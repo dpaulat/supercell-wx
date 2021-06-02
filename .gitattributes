@@ -1,0 +1,4 @@
+# Set the default behavior
+* text=auto
+
+*.bat text eol=crlf
