@@ -12,6 +12,7 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 include(${PROJECT_SOURCE_DIR}/external/cmake-conan/conan.cmake)
 
 conan_cmake_configure(REQUIRES boost/1.76.0
+                               gtest/cci.20210126
                                openssl/1.1.1k
                                vulkan-loader/1.2.172
                       GENERATORS cmake
@@ -35,11 +36,13 @@ conan_basic_setup(TARGETS)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_ALL_NO_LIB")
 
-set(SUPERCELL_WX_DIR ${PROJECT_SOURCE_DIR})
+set(SCWX_DIR ${PROJECT_SOURCE_DIR})
 
 option(BUILD_DOCS "Build documentation" OFF)
 
 add_subdirectory(external)
+add_subdirectory(wxdata)
+add_subdirectory(test)
 
 if(BUILD_DOCS)
     add_subdirectory(docs)

@@ -4,3 +4,6 @@
 [submodule "external/cmake-conan"]
 	path = external/cmake-conan
 	url = https://github.com/conan-io/cmake-conan.git
+[submodule "test/data"]
+	path = test/data
+	url = ../supercell-wx-test-data
