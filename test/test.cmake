@@ -9,15 +9,15 @@ find_package(GTest)
 
 set(SRC_MAIN source/scwx/wxtest.cpp)
 set(SRC_UTIL_TESTS source/scwx/util/rangebuf.test.cpp)
-set(SRC_WSR88D_RPG_TESTS source/scwx/wsr88d/rpg/ar2v_file.test.cpp)
+set(SRC_WSR88D_TESTS source/scwx/wsr88d/ar2v_file.test.cpp)
 
 add_executable(wxtest ${SRC_MAIN}
                       ${SRC_UTIL_TESTS}
-                      ${SRC_WSR88D_RPG_TESTS})
+                      ${SRC_WSR88D_TESTS})
 
-source_group("Source Files\\main"        FILES ${SRC_MAIN})
-source_group("Source Files\\util"        FILES ${SRC_UTIL_TESTS})
-source_group("Source Files\\wsr88d\\rpg" FILES ${SRC_WSR88D_RPG_TESTS})
+source_group("Source Files\\main"   FILES ${SRC_MAIN})
+source_group("Source Files\\util"   FILES ${SRC_UTIL_TESTS})
+source_group("Source Files\\wsr88d" FILES ${SRC_WSR88D_TESTS})
 
 target_include_directories(wxtest PRIVATE ${GTest_INCLUDE_DIRS})
 

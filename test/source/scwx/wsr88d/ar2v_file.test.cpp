@@ -1,4 +1,4 @@
-#include <scwx/wsr88d/rpg/ar2v_file.hpp>
+#include <scwx/wsr88d/ar2v_file.hpp>
 
 #include <fstream>
 
@@ -7,8 +7,6 @@
 namespace scwx
 {
 namespace wsr88d
-{
-namespace rpg
 {
 
 TEST(ar2v_file, klsx)
@@ -21,6 +19,5 @@ TEST(ar2v_file, klsx)
    EXPECT_EQ(fileValid, true);
 }
 
-} // namespace rpg
 } // namespace wsr88d
 } // namespace scwx

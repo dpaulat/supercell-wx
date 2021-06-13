@@ -1,4 +1,4 @@
-#include <scwx/wsr88d/rpg/ar2v_file.hpp>
+#include <scwx/wsr88d/ar2v_file.hpp>
 #include <scwx/wsr88d/rda/message_header.hpp>
 #include <scwx/util/rangebuf.hpp>
 
@@ -20,10 +20,8 @@ namespace scwx
 {
 namespace wsr88d
 {
-namespace rpg
-{
 
-static const std::string logPrefix_ = "[scwx::wsr88d::rpg::ar2v_file] ";
+static const std::string logPrefix_ = "[scwx::wsr88d::ar2v_file] ";
 
 class Ar2vFileImpl
 {
@@ -215,6 +213,5 @@ void Ar2vFileImpl::ParseLDMRecords()
    }
 }
 
-} // namespace rpg
 } // namespace wsr88d
 } // namespace scwx

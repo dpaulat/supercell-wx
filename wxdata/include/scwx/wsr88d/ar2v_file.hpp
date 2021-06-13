@@ -7,8 +7,6 @@ namespace scwx
 {
 namespace wsr88d
 {
-namespace rpg
-{
 
 class Ar2vFileImpl;
 
@@ -35,6 +33,5 @@ private:
    std::unique_ptr<Ar2vFileImpl> p;
 };
 
-} // namespace rpg
 } // namespace wsr88d
 } // namespace scwx
