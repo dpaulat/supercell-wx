@@ -1,4 +1,5 @@
 #include <scwx/wsr88d/rpg/ar2v_file.hpp>
+#include <scwx/wsr88d/rda/message_header.hpp>
 #include <scwx/util/rangebuf.hpp>
 
 #include <fstream>
@@ -33,18 +34,22 @@ public:
        julianDate_ {0},
        milliseconds_ {0},
        icao_(),
-       numRecords_ {0} {};
+       numRecords_ {0},
+       rawRecords_() {};
    ~Ar2vFileImpl() = default;
 
-   void ParseLDMRecords(std::ifstream& f);
+   void LoadLDMRecords(std::ifstream& f);
+   void ParseLDMRecords();
 
    std::string tapeFilename_;
    std::string extensionNumber_;
-   int32_t     julianDate_;
-   int32_t     milliseconds_;
+   uint32_t    julianDate_;
+   uint32_t    milliseconds_;
    std::string icao_;
 
    size_t numRecords_;
+
+   std::list<std::stringstream> rawRecords_;
 };
 
 Ar2vFile::Ar2vFile() : p(std::make_unique<Ar2vFileImpl>()) {}
@@ -101,13 +106,13 @@ bool Ar2vFile::LoadFile(const std::string& filename)
          << logPrefix_ << "Time:      " << p->milliseconds_;
       BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "ICAO:      " << p->icao_;
 
-      p->ParseLDMRecords(f);
+      p->LoadLDMRecords(f);
    }
 
    return fileValid;
 }
 
-void Ar2vFileImpl::ParseLDMRecords(std::ifstream& f)
+void Ar2vFileImpl::LoadLDMRecords(std::ifstream& f)
 {
    numRecords_ = 0;
 
@@ -122,7 +127,7 @@ void Ar2vFileImpl::ParseLDMRecords(std::ifstream& f)
       controlWord = htonl(controlWord);
       recordSize  = std::abs(controlWord);
 
-      BOOST_LOG_TRIVIAL(debug)
+      BOOST_LOG_TRIVIAL(trace)
          << logPrefix_ << "LDM Record Found: Size = " << recordSize << " bytes";
 
       boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
@@ -130,14 +135,15 @@ void Ar2vFileImpl::ParseLDMRecords(std::ifstream& f)
       in.push(boost::iostreams::bzip2_decompressor());
       in.push(r);
 
-      std::ostringstream of;
-
       try
       {
-         std::streamsize bytesCopied = boost::iostreams::copy(in, of);
-         BOOST_LOG_TRIVIAL(debug)
+         std::stringstream ss;
+         std::streamsize   bytesCopied = boost::iostreams::copy(in, ss);
+         BOOST_LOG_TRIVIAL(trace)
             << logPrefix_ << "Decompressed record size = " << bytesCopied
             << " bytes";
+
+         rawRecords_.push_back(std::move(ss));
       }
       catch (const boost::iostreams::bzip2_error& ex)
       {
@@ -151,8 +157,62 @@ void Ar2vFileImpl::ParseLDMRecords(std::ifstream& f)
       ++numRecords_;
    }
 
+   ParseLDMRecords();
+
    BOOST_LOG_TRIVIAL(debug)
       << logPrefix_ << "Found " << numRecords_ << " LDM Records";
+}
+
+void Ar2vFileImpl::ParseLDMRecords()
+{
+   size_t count = 0;
+
+   for (auto it = rawRecords_.begin(); it != rawRecords_.end(); it++)
+   {
+      std::stringstream& ss = *it;
+
+      BOOST_LOG_TRIVIAL(trace) << logPrefix_ << "Record " << count++;
+
+      // The communications manager inserts an extra 12 bytes at the beginning
+      // of each record
+      ss.seekg(12);
+
+      while (!ss.eof())
+      {
+         // TODO: Parse message, not just header
+         rda::MessageHeader header;
+         if (!header.Parse(ss))
+         {
+            // Invalid header
+            break;
+         }
+
+         // Seek to the end of the current message
+         ss.seekg(header.message_size() * 2 - rda::MessageHeader::SIZE,
+                  std::ios_base::cur);
+
+         off_t    offset   = 0;
+         uint16_t nextSize = 0u;
+         do
+         {
+            ss.read(reinterpret_cast<char*>(&nextSize), 2);
+            if (nextSize == 0)
+            {
+               offset += 2;
+            }
+            else
+            {
+               ss.seekg(-2, std::ios_base::cur);
+            }
+         } while (!ss.eof() && nextSize == 0u);
+
+         if (!ss.eof() && offset != 0)
+         {
+            BOOST_LOG_TRIVIAL(trace)
+               << logPrefix_ << "Next record offset by " << offset << " bytes";
+         }
+      }
+   }
 }
 
 } // namespace rpg
