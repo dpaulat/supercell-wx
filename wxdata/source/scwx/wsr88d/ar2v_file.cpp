@@ -1,5 +1,5 @@
 #include <scwx/wsr88d/ar2v_file.hpp>
-#include <scwx/wsr88d/rda/message_header.hpp>
+#include <scwx/wsr88d/rda/message_factory.hpp>
 #include <scwx/util/rangebuf.hpp>
 
 #include <fstream>
@@ -54,7 +54,7 @@ Ar2vFile::Ar2vFile() : p(std::make_unique<Ar2vFileImpl>()) {}
 Ar2vFile::~Ar2vFile() = default;
 
 Ar2vFile::Ar2vFile(Ar2vFile&&) noexcept = default;
-Ar2vFile& Ar2vFile::operator=(Ar2vFile&&) = default;
+Ar2vFile& Ar2vFile::operator=(Ar2vFile&&) noexcept = default;
 
 bool Ar2vFile::LoadFile(const std::string& filename)
 {
@@ -112,6 +112,8 @@ bool Ar2vFile::LoadFile(const std::string& filename)
 
 void Ar2vFileImpl::LoadLDMRecords(std::ifstream& f)
 {
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading LDM Records";
+
    numRecords_ = 0;
 
    while (f.peek() != EOF)
@@ -163,6 +165,8 @@ void Ar2vFileImpl::LoadLDMRecords(std::ifstream& f)
 
 void Ar2vFileImpl::ParseLDMRecords()
 {
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Parsing LDM Records";
+
    size_t count = 0;
 
    for (auto it = rawRecords_.begin(); it != rawRecords_.end(); it++)
@@ -177,17 +181,12 @@ void Ar2vFileImpl::ParseLDMRecords()
 
       while (!ss.eof())
       {
-         // TODO: Parse message, not just header
-         rda::MessageHeader header;
-         if (!header.Parse(ss))
+         rda::MessageInfo msgInfo = rda::MessageFactory::Create(ss);
+         if (!msgInfo.headerValid)
          {
-            // Invalid header
+            // Invalid message
             break;
          }
-
-         // Seek to the end of the current message
-         ss.seekg(header.message_size() * 2 - rda::MessageHeader::SIZE,
-                  std::ios_base::cur);
 
          off_t    offset   = 0;
          uint16_t nextSize = 0u;

@@ -8,7 +8,8 @@ find_package(BZip2)
 find_package(GTest)
 
 set(SRC_MAIN source/scwx/wxtest.cpp)
-set(SRC_UTIL_TESTS source/scwx/util/rangebuf.test.cpp)
+set(SRC_UTIL_TESTS source/scwx/util/rangebuf.test.cpp
+                   source/scwx/util/vectorbuf.test.cpp)
 set(SRC_WSR88D_TESTS source/scwx/wsr88d/ar2v_file.test.cpp)
 
 add_executable(wxtest ${SRC_MAIN}

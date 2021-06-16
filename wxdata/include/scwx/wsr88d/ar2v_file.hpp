@@ -25,7 +25,7 @@ public:
    Ar2vFile& operator=(const Ar2vFile&) = delete;
 
    Ar2vFile(Ar2vFile&&) noexcept;
-   Ar2vFile& operator=(Ar2vFile&&);
+   Ar2vFile& operator=(Ar2vFile&&) noexcept;
 
    bool LoadFile(const std::string& filename);
 

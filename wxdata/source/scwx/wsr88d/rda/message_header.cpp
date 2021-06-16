@@ -44,14 +44,11 @@ public:
    uint16_t messageSegmentNumber_;
 };
 
-MessageHeader::MessageHeader() :
-    p(std::make_unique<MessageHeaderImpl>())
-{
-}
+MessageHeader::MessageHeader() : p(std::make_unique<MessageHeaderImpl>()) {}
 MessageHeader::~MessageHeader() = default;
 
 MessageHeader::MessageHeader(MessageHeader&&) noexcept = default;
-MessageHeader& MessageHeader::operator=(MessageHeader&&) = default;
+MessageHeader& MessageHeader::operator=(MessageHeader&&) noexcept = default;
 
 uint16_t MessageHeader::message_size() const
 {
@@ -91,6 +88,11 @@ uint16_t MessageHeader::number_of_message_segments() const
 uint16_t MessageHeader::message_segment_number() const
 {
    return p->messageSegmentNumber_;
+}
+
+void MessageHeader::set_message_size(uint16_t messageSize)
+{
+   p->messageSize_ = messageSize;
 }
 
 bool MessageHeader::Parse(std::istream& is)

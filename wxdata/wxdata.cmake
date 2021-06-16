@@ -2,12 +2,20 @@ project(scwx-data)
 
 find_package(Boost)
 
-set(HDR_UTIL include/scwx/util/rangebuf.hpp)
-set(SRC_UTIL source/scwx/util/rangebuf.cpp)
+set(HDR_UTIL include/scwx/util/rangebuf.hpp
+             include/scwx/util/vectorbuf.hpp)
+set(SRC_UTIL source/scwx/util/rangebuf.cpp
+             source/scwx/util/vectorbuf.cpp)
 set(HDR_WSR88D include/scwx/wsr88d/ar2v_file.hpp)
 set(SRC_WSR88D source/scwx/wsr88d/ar2v_file.cpp)
-set(HDR_WSR88D_RDA include/scwx/wsr88d/rda/message_header.hpp)
-set(SRC_WSR88D_RDA source/scwx/wsr88d/rda/message_header.cpp)
+set(HDR_WSR88D_RDA include/scwx/wsr88d/rda/clutter_filter_map.hpp
+                   include/scwx/wsr88d/rda/message.hpp
+                   include/scwx/wsr88d/rda/message_factory.hpp
+                   include/scwx/wsr88d/rda/message_header.hpp)
+set(SRC_WSR88D_RDA source/scwx/wsr88d/rda/clutter_filter_map.cpp
+                   source/scwx/wsr88d/rda/message.cpp
+                   source/scwx/wsr88d/rda/message_factory.cpp
+                   source/scwx/wsr88d/rda/message_header.cpp)
 
 add_library(wxdata OBJECT ${HDR_UTIL}
                           ${SRC_UTIL}

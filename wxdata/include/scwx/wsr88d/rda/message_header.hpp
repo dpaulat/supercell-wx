@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstdint>
 #include <memory>
 
@@ -20,7 +22,7 @@ public:
    MessageHeader& operator=(const MessageHeader&) = delete;
 
    MessageHeader(MessageHeader&&) noexcept;
-   MessageHeader& operator=(MessageHeader&&);
+   MessageHeader& operator=(MessageHeader&&) noexcept;
 
    uint16_t message_size() const;
    uint8_t  rda_redundant_channel() const;
@@ -30,6 +32,8 @@ public:
    uint32_t milliseconds_of_day() const;
    uint16_t number_of_message_segments() const;
    uint16_t message_segment_number() const;
+
+   void set_message_size(uint16_t messageSize);
 
    bool Parse(std::istream& is);
 
