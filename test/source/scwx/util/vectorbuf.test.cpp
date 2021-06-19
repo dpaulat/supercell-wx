@@ -7,30 +7,76 @@ namespace scwx
 namespace util
 {
 
-TEST(vectorbuf, smiles)
+class vectorbuf_test : public ::testing::Test
 {
-   std::vector<char> v;
-   vectorbuf         vb(v);
-   std::istream      is(&vb);
+protected:
+   vectorbuf_test() : v_(), vb_(v_), is_(&vb_), Test() {}
+   ~vectorbuf_test() = default;
 
-   v.reserve(7);
-   memcpy(v.data(), "smiles", 7);
-   vb.update_read_pointers(7);
+   void SetUp() override
+   {
+      v_.reserve(7);
+      memcpy(v_.data(), "smiles", 7);
+      vb_.update_read_pointers(7);
+   }
 
-   EXPECT_EQ(is.eof(), false);
-   EXPECT_EQ(is.fail(), false);
+   std::vector<char> v_;
+   vectorbuf         vb_;
+   std::istream      is_;
+};
+
+TEST_F(vectorbuf_test, smiles)
+{
+   EXPECT_EQ(is_.eof(), false);
+   EXPECT_EQ(is_.fail(), false);
 
    char data[7];
-   is.read(data, 7);
+   is_.read(data, 7);
 
    EXPECT_EQ(std::string(data), std::string("smiles"));
-   EXPECT_EQ(is.eof(), false);
-   EXPECT_EQ(is.fail(), false);
+   EXPECT_EQ(is_.eof(), false);
+   EXPECT_EQ(is_.fail(), false);
 
-   is.read(data, 1);
+   is_.read(data, 1);
 
-   EXPECT_EQ(is.eof(), true);
-   EXPECT_EQ(is.fail(), true);
+   EXPECT_EQ(is_.eof(), true);
+   EXPECT_EQ(is_.fail(), true);
+}
+
+TEST_F(vectorbuf_test, seekg_begin)
+{
+   is_.seekg(1, std::ios_base::beg);
+
+   char data[7] = {0};
+   is_.read(data, 6);
+
+   EXPECT_EQ(std::string(data), std::string("miles"));
+   EXPECT_EQ(is_.eof(), false);
+   EXPECT_EQ(is_.fail(), false);
+}
+
+TEST_F(vectorbuf_test, seekg_cur)
+{
+   char data[4] = {0};
+   is_.read(data, 1);
+   is_.seekg(2, std::ios_base::cur);
+   is_.read(data, 3);
+
+   EXPECT_EQ(std::string(data), std::string("les"));
+   EXPECT_EQ(is_.eof(), false);
+   EXPECT_EQ(is_.fail(), false);
+}
+
+TEST_F(vectorbuf_test, seekg_end)
+{
+   is_.seekg(-4, std::ios_base::end);
+
+   char data[4] = {0};
+   is_.read(data, 3);
+
+   EXPECT_EQ(std::string(data), std::string("les"));
+   EXPECT_EQ(is_.eof(), false);
+   EXPECT_EQ(is_.fail(), false);
 }
 
 } // namespace util
