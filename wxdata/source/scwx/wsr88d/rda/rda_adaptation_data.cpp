@@ -407,6 +407,883 @@ const std::string& RdaAdaptationData::adap_format() const
    return p->adapFormat_;
 }
 
+const std::string& RdaAdaptationData::adap_revision() const
+{
+   return p->adapRevision_;
+}
+
+const std::string& RdaAdaptationData::adap_date() const
+{
+   return p->adapDate_;
+}
+
+const std::string& RdaAdaptationData::adap_time() const
+{
+   return p->adapTime_;
+}
+
+float RdaAdaptationData::lower_pre_limit() const
+{
+   return p->lowerPreLimit_;
+}
+
+float RdaAdaptationData::az_lat() const
+{
+   return p->azLat_;
+}
+
+float RdaAdaptationData::upper_pre_limit() const
+{
+   return p->upperPreLimit_;
+}
+
+float RdaAdaptationData::el_lat() const
+{
+   return p->elLat_;
+}
+
+float RdaAdaptationData::parkaz() const
+{
+   return p->parkaz_;
+}
+
+float RdaAdaptationData::parkel() const
+{
+   return p->parkel_;
+}
+
+float RdaAdaptationData::a_fuel_conv(unsigned i) const
+{
+   return p->aFuelConv_[i];
+}
+
+float RdaAdaptationData::a_min_shelter_temp() const
+{
+   return p->aMinShelterTemp_;
+}
+
+float RdaAdaptationData::a_max_shelter_temp() const
+{
+   return p->aMaxShelterTemp_;
+}
+
+float RdaAdaptationData::a_min_shelter_ac_temp_diff() const
+{
+   return p->aMinShelterAcTempDiff_;
+}
+
+float RdaAdaptationData::a_max_xmtr_air_temp() const
+{
+   return p->aMaxXmtrAirTemp_;
+}
+
+float RdaAdaptationData::a_max_rad_temp() const
+{
+   return p->aMaxRadTemp_;
+}
+
+float RdaAdaptationData::a_max_rad_temp_rise() const
+{
+   return p->aMaxRadTempRise_;
+}
+
+float RdaAdaptationData::lower_dead_limit() const
+{
+   return p->lowerDeadLimit_;
+}
+
+float RdaAdaptationData::upper_dead_limit() const
+{
+   return p->upperDeadLimit_;
+}
+
+float RdaAdaptationData::a_min_gen_room_temp() const
+{
+   return p->aMinGenRoomTemp_;
+}
+
+float RdaAdaptationData::a_max_gen_room_temp() const
+{
+   return p->aMaxGenRoomTemp_;
+}
+
+float RdaAdaptationData::spip_5v_reg_lim() const
+{
+   return p->spip5VRegLim_;
+}
+
+float RdaAdaptationData::spip_15v_reg_lim() const
+{
+   return p->spip15VRegLim_;
+}
+
+bool RdaAdaptationData::rpg_co_located() const
+{
+   return p->rpgCoLocated_;
+}
+
+bool RdaAdaptationData::spec_filter_installed() const
+{
+   return p->specFilterInstalled_;
+}
+
+bool RdaAdaptationData::tps_installed() const
+{
+   return p->tpsInstalled_;
+}
+
+bool RdaAdaptationData::rms_installed() const
+{
+   return p->rmsInstalled_;
+}
+
+uint32_t RdaAdaptationData::a_hvdl_tst_int() const
+{
+   return p->aHvdlTstInt_;
+}
+
+uint32_t RdaAdaptationData::a_rpg_lt_int() const
+{
+   return p->aRpgLtInt_;
+}
+
+uint32_t RdaAdaptationData::a_min_stab_util_pwr_time() const
+{
+   return p->aMinStabUtilPwrTime_;
+}
+
+uint32_t RdaAdaptationData::a_gen_auto_exer_interval() const
+{
+   return p->aGenAutoExerInterval_;
+}
+
+uint32_t RdaAdaptationData::a_util_pwr_sw_req_interval() const
+{
+   return p->aUtilPwrSwReqInterval_;
+}
+
+float RdaAdaptationData::a_low_fuel_level() const
+{
+   return p->aLowFuelLevel_;
+}
+
+uint32_t RdaAdaptationData::config_chan_number() const
+{
+   return p->configChanNumber_;
+}
+
+uint32_t RdaAdaptationData::redundant_chan_config() const
+{
+   return p->redundantChanConfig_;
+}
+
+float RdaAdaptationData::atten_table(unsigned i) const
+{
+   return p->attenTable_[i];
+}
+
+float RdaAdaptationData::path_losses(unsigned i) const
+{
+   return p->pathLosses_.at(i);
+}
+
+float RdaAdaptationData::h_coupler_xmt_loss() const
+{
+   return path_losses(29);
+}
+
+float RdaAdaptationData::h_coupler_cw_loss() const
+{
+   return path_losses(48);
+}
+
+float RdaAdaptationData::v_coupler_xmt_loss() const
+{
+   return path_losses(49);
+}
+
+float RdaAdaptationData::ame_ts_bias() const
+{
+   return path_losses(51);
+}
+
+float RdaAdaptationData::v_coupler_cw_loss() const
+{
+   return path_losses(53);
+}
+
+float RdaAdaptationData::pwr_sense_bias() const
+{
+   return path_losses(56);
+}
+
+float RdaAdaptationData::ame_v_noise_enr() const
+{
+   return path_losses(57);
+}
+
+float RdaAdaptationData::chan_cal_diff() const
+{
+   return path_losses(70);
+}
+
+float RdaAdaptationData::v_ts_cw() const
+{
+   return p->vTsCw_;
+}
+
+float RdaAdaptationData::h_rnscale(unsigned i) const
+{
+   return p->hRnscale_[i];
+}
+
+float RdaAdaptationData::atmos(unsigned i) const
+{
+   return p->atmos_[i];
+}
+
+float RdaAdaptationData::el_index(unsigned i) const
+{
+   return p->elIndex_[i];
+}
+
+uint32_t RdaAdaptationData::tfreq_mhz() const
+{
+   return p->tfreqMhz_;
+}
+
+float RdaAdaptationData::base_data_tcn() const
+{
+   return p->baseDataTcn_;
+}
+
+float RdaAdaptationData::refl_data_tover() const
+{
+   return p->reflDataTover_;
+}
+
+float RdaAdaptationData::tar_h_dbz0_lp() const
+{
+   return p->tarHDbz0Lp_;
+}
+
+float RdaAdaptationData::tar_v_dbz0_lp() const
+{
+   return p->tarVDbz0Lp_;
+}
+
+uint32_t RdaAdaptationData::init_phi_dp() const
+{
+   return p->initPhiDp_;
+}
+
+uint32_t RdaAdaptationData::norm_init_phi_dp() const
+{
+   return p->normInitPhiDp_;
+}
+
+float RdaAdaptationData::lx_lp() const
+{
+   return p->lxLp_;
+}
+
+float RdaAdaptationData::lx_sp() const
+{
+   return p->lxSp_;
+}
+
+float RdaAdaptationData::meteor_param() const
+{
+   return p->meteorParam_;
+}
+
+float RdaAdaptationData::antenna_gain() const
+{
+   return p->antennaGain_;
+}
+
+float RdaAdaptationData::vel_degrad_limit() const
+{
+   return p->velDegradLimit_;
+}
+
+float RdaAdaptationData::wth_degrad_limit() const
+{
+   return p->wthDegradLimit_;
+}
+
+float RdaAdaptationData::h_noisetemp_dgrad_limit() const
+{
+   return p->hNoisetempDgradLimit_;
+}
+
+uint32_t RdaAdaptationData::h_min_noisetemp() const
+{
+   return p->hMinNoisetemp_;
+}
+
+float RdaAdaptationData::v_noisetemp_dgrad_limit() const
+{
+   return p->vNoisetempDgradLimit_;
+}
+
+uint32_t RdaAdaptationData::v_min_noisetemp() const
+{
+   return p->vMinNoisetemp_;
+}
+
+float RdaAdaptationData::kly_degrade_limit() const
+{
+   return p->klyDegradeLimit_;
+}
+
+float RdaAdaptationData::ts_coho() const
+{
+   return p->tsCoho_;
+}
+
+float RdaAdaptationData::h_ts_cw() const
+{
+   return p->hTsCw_;
+}
+
+float RdaAdaptationData::ts_stalo() const
+{
+   return p->tsStalo_;
+}
+
+float RdaAdaptationData::ame_h_noise_enr() const
+{
+   return p->ameHNoiseEnr_;
+}
+
+float RdaAdaptationData::xmtr_peak_pwr_high_limit() const
+{
+   return p->xmtrPeakPwrHighLimit_;
+}
+
+float RdaAdaptationData::xmtr_peak_pwr_low_limit() const
+{
+   return p->xmtrPeakPwrLowLimit_;
+}
+
+float RdaAdaptationData::h_dbz0_delta_limit() const
+{
+   return p->hDbz0DeltaLimit_;
+}
+
+float RdaAdaptationData::threshold1() const
+{
+   return p->threshold1_;
+}
+
+float RdaAdaptationData::threshold2() const
+{
+   return p->threshold2_;
+}
+
+float RdaAdaptationData::clut_supp_dgrad_lim() const
+{
+   return p->clutSuppDgradLim_;
+}
+
+float RdaAdaptationData::range0_value() const
+{
+   return p->range0Value_;
+}
+
+float RdaAdaptationData::xmtr_pwr_mtr_scale() const
+{
+   return p->xmtrPwrMtrScale_;
+}
+
+float RdaAdaptationData::v_dbz0_delta_limit() const
+{
+   return p->vDbz0DeltaLimit_;
+}
+
+float RdaAdaptationData::tar_h_dbz0_sp() const
+{
+   return p->tarHDbz0Sp_;
+}
+
+float RdaAdaptationData::tar_v_dbz0_sp() const
+{
+   return p->tarVDbz0Sp_;
+}
+
+uint32_t RdaAdaptationData::deltaprf() const
+{
+   return p->deltaprf_;
+}
+
+uint32_t RdaAdaptationData::tau_sp() const
+{
+   return p->tauSp_;
+}
+
+uint32_t RdaAdaptationData::tau_lp() const
+{
+   return p->tauLp_;
+}
+
+uint32_t RdaAdaptationData::nc_dead_value() const
+{
+   return p->ncDeadValue_;
+}
+
+uint32_t RdaAdaptationData::tau_rf_sp() const
+{
+   return p->tauRfSp_;
+}
+
+uint32_t RdaAdaptationData::tau_rf_lp() const
+{
+   return p->tauRfLp_;
+}
+
+float RdaAdaptationData::seg1_lim() const
+{
+   return p->seg1Lim_;
+}
+
+float RdaAdaptationData::slatsec() const
+{
+   return p->slatsec_;
+}
+
+float RdaAdaptationData::slonsec() const
+{
+   return p->slonsec_;
+}
+
+uint32_t RdaAdaptationData::slatdeg() const
+{
+   return p->slatdeg_;
+}
+
+uint32_t RdaAdaptationData::slatmin() const
+{
+   return p->slatmin_;
+}
+
+uint32_t RdaAdaptationData::slondeg() const
+{
+   return p->slondeg_;
+}
+
+uint32_t RdaAdaptationData::slonmin() const
+{
+   return p->slonmin_;
+}
+
+char RdaAdaptationData::slatdir() const
+{
+   return p->slatdir_;
+}
+
+char RdaAdaptationData::slondir() const
+{
+   return p->slondir_;
+}
+
+float RdaAdaptationData::az_correction_factor() const
+{
+   return p->azCorrectionFactor_;
+}
+
+float RdaAdaptationData::el_correction_factor() const
+{
+   return p->elCorrectionFactor_;
+}
+
+const std::string& RdaAdaptationData::site_name() const
+{
+   return p->siteName_;
+}
+
+float RdaAdaptationData::ant_manual_setup_ielmin() const
+{
+   constexpr float SCALE = 360.0f / 65536.0f;
+   return p->antManualSetup_.ielmin_ * SCALE;
+}
+
+float RdaAdaptationData::ant_manual_setup_ielmax() const
+{
+   constexpr float SCALE = 360.0f / 65536.0f;
+   return p->antManualSetup_.ielmax_ * SCALE;
+}
+
+uint32_t RdaAdaptationData::ant_manual_setup_fazvelmax() const
+{
+   return p->antManualSetup_.fazvelmax_;
+}
+
+uint32_t RdaAdaptationData::ant_manual_setup_felvelmax() const
+{
+   return p->antManualSetup_.felvelmax_;
+}
+
+int32_t RdaAdaptationData::ant_manual_setup_ignd_hgt() const
+{
+   return p->antManualSetup_.igndHgt_;
+}
+
+uint32_t RdaAdaptationData::ant_manual_setup_irad_hgt() const
+{
+   return p->antManualSetup_.iradHgt_;
+}
+
+float RdaAdaptationData::az_pos_sustain_drive() const
+{
+   return p->azPosSustainDrive_;
+}
+
+float RdaAdaptationData::az_neg_sustain_drive() const
+{
+   return p->azNegSustainDrive_;
+}
+
+float RdaAdaptationData::az_nom_pos_drive_slope() const
+{
+   return p->azNomPosDriveSlope_;
+}
+
+float RdaAdaptationData::az_nom_neg_drive_slope() const
+{
+   return p->azNomNegDriveSlope_;
+}
+
+float RdaAdaptationData::az_feedback_slope() const
+{
+   return p->azFeedbackSlope_;
+}
+
+float RdaAdaptationData::el_pos_sustain_drive() const
+{
+   return p->elPosSustainDrive_;
+}
+
+float RdaAdaptationData::el_neg_sustain_drive() const
+{
+   return p->elNegSustainDrive_;
+}
+
+float RdaAdaptationData::el_nom_pos_drive_slope() const
+{
+   return p->elNomPosDriveSlope_;
+}
+
+float RdaAdaptationData::el_nom_neg_drive_slope() const
+{
+   return p->elNomNegDriveSlope_;
+}
+
+float RdaAdaptationData::el_feedback_slope() const
+{
+   return p->elFeedbackSlope_;
+}
+
+float RdaAdaptationData::el_first_slope() const
+{
+   return p->elFirstSlope_;
+}
+
+float RdaAdaptationData::el_second_slope() const
+{
+   return p->elSecondSlope_;
+}
+
+float RdaAdaptationData::el_third_slope() const
+{
+   return p->elThirdSlope_;
+}
+
+float RdaAdaptationData::el_droop_pos() const
+{
+   return p->elDroopPos_;
+}
+
+float RdaAdaptationData::el_off_neutral_drive() const
+{
+   return p->elOffNeutralDrive_;
+}
+
+float RdaAdaptationData::az_intertia() const
+{
+   return p->azIntertia_;
+}
+
+float RdaAdaptationData::el_inertia() const
+{
+   return p->elInertia_;
+}
+
+uint32_t RdaAdaptationData::rvp8nv_iwaveguide_length() const
+{
+   return p->rvp8nvIwaveguideLength_;
+}
+
+float RdaAdaptationData::v_rnscale(unsigned i) const
+{
+   return p->vRnscale_[i];
+}
+
+float RdaAdaptationData::vel_data_tover() const
+{
+   return p->velDataTover_;
+}
+
+float RdaAdaptationData::width_data_tover() const
+{
+   return p->widthDataTover_;
+}
+
+float RdaAdaptationData::doppler_range_start() const
+{
+   return p->dopplerRangeStart_;
+}
+
+uint32_t RdaAdaptationData::max_el_index() const
+{
+   return p->maxElIndex_;
+}
+
+float RdaAdaptationData::seg2_lim() const
+{
+   return p->seg2Lim_;
+}
+
+float RdaAdaptationData::seg3_lim() const
+{
+   return p->seg3Lim_;
+}
+
+float RdaAdaptationData::seg4_lim() const
+{
+   return p->seg4Lim_;
+}
+
+uint32_t RdaAdaptationData::nbr_el_segments() const
+{
+   return p->nbrElSegments_;
+}
+
+float RdaAdaptationData::h_noise_long() const
+{
+   return p->hNoiseLong_;
+}
+
+float RdaAdaptationData::ant_noise_temp() const
+{
+   return p->antNoiseTemp_;
+}
+
+float RdaAdaptationData::h_noise_short() const
+{
+   return p->hNoiseShort_;
+}
+
+float RdaAdaptationData::h_noise_tolerance() const
+{
+   return p->hNoiseTolerance_;
+}
+
+float RdaAdaptationData::min_h_dyn_range() const
+{
+   return p->minHDynRange_;
+}
+
+bool RdaAdaptationData::gen_installed() const
+{
+   return p->genInstalled_;
+}
+
+bool RdaAdaptationData::gen_exercise() const
+{
+   return p->genExercise_;
+}
+
+float RdaAdaptationData::v_noise_tolerance() const
+{
+   return p->vNoiseTolerance_;
+}
+
+float RdaAdaptationData::min_v_dyn_range() const
+{
+   return p->minVDynRange_;
+}
+
+float RdaAdaptationData::zdr_bias_dgrad_lim() const
+{
+   return p->zdrBiasDgradLim_;
+}
+
+float RdaAdaptationData::baseline_zdr_bias() const
+{
+   return p->baselineZdrBias_;
+}
+
+float RdaAdaptationData::v_noise_long() const
+{
+   return p->vNoiseLong_;
+}
+
+float RdaAdaptationData::v_noise_short() const
+{
+   return p->vNoiseShort_;
+}
+
+float RdaAdaptationData::zdr_data_tover() const
+{
+   return p->zdrDataTover_;
+}
+
+float RdaAdaptationData::phi_data_tover() const
+{
+   return p->phiDataTover_;
+}
+
+float RdaAdaptationData::rho_data_tover() const
+{
+   return p->rhoDataTover_;
+}
+
+float RdaAdaptationData::stalo_power_dgrad_limit() const
+{
+   return p->staloPowerDgradLimit_;
+}
+
+float RdaAdaptationData::stalo_power_maint_limit() const
+{
+   return p->staloPowerMaintLimit_;
+}
+
+float RdaAdaptationData::min_h_pwr_sense() const
+{
+   return p->minHPwrSense_;
+}
+
+float RdaAdaptationData::min_v_pwr_sense() const
+{
+   return p->minVPwrSense_;
+}
+
+float RdaAdaptationData::h_pwr_sense_offset() const
+{
+   return p->hPwrSenseOffset_;
+}
+
+float RdaAdaptationData::v_pwr_sense_offset() const
+{
+   return p->vPwrSenseOffset_;
+}
+
+float RdaAdaptationData::ps_gain_ref() const
+{
+   return p->psGainRef_;
+}
+
+float RdaAdaptationData::rf_pallet_broad_loss() const
+{
+   return p->rfPalletBroadLoss_;
+}
+
+float RdaAdaptationData::ame_ps_tolerance() const
+{
+   return p->amePsTolerance_;
+}
+
+float RdaAdaptationData::ame_max_temp() const
+{
+   return p->ameMaxTemp_;
+}
+
+float RdaAdaptationData::ame_min_temp() const
+{
+   return p->ameMinTemp_;
+}
+
+float RdaAdaptationData::rcvr_mod_max_temp() const
+{
+   return p->rcvrModMaxTemp_;
+}
+
+float RdaAdaptationData::rcvr_mod_min_temp() const
+{
+   return p->rcvrModMinTemp_;
+}
+
+float RdaAdaptationData::bite_mod_max_temp() const
+{
+   return p->biteModMaxTemp_;
+}
+
+float RdaAdaptationData::bite_mod_min_temp() const
+{
+   return p->biteModMinTemp_;
+}
+
+uint32_t RdaAdaptationData::default_polarization() const
+{
+   return p->defaultPolarization_;
+}
+
+float RdaAdaptationData::tr_limit_dgrad_limit() const
+{
+   return p->trLimitDgradLimit_;
+}
+
+float RdaAdaptationData::tr_limit_fail_limit() const
+{
+   return p->trLimitFailLimit_;
+}
+
+bool RdaAdaptationData::rfp_stepper_enabled() const
+{
+   return p->rfpStepperEnabled_;
+}
+
+float RdaAdaptationData::ame_current_tolerance() const
+{
+   return p->ameCurrentTolerance_;
+}
+
+uint32_t RdaAdaptationData::h_only_polarization() const
+{
+   return p->hOnlyPolarization_;
+}
+
+uint32_t RdaAdaptationData::v_only_polarization() const
+{
+   return p->vOnlyPolarization_;
+}
+
+float RdaAdaptationData::sun_bias() const
+{
+   return p->sunBias_;
+}
+
+float RdaAdaptationData::a_min_shelter_temp_warn() const
+{
+   return p->aMinShelterTempWarn_;
+}
+
+float RdaAdaptationData::power_meter_zero() const
+{
+   return p->powerMeterZero_;
+}
+
+float RdaAdaptationData::txb_baseline() const
+{
+   return p->txbBaseline_;
+}
+
+float RdaAdaptationData::txb_alarm_thresh() const
+{
+   return p->txbAlarmThresh_;
+}
+
 bool RdaAdaptationData::Parse(std::istream& is)
 {
    BOOST_LOG_TRIVIAL(debug)
