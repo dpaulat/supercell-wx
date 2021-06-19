@@ -1,7 +1,5 @@
 #include <scwx/wsr88d/rda/message.hpp>
 
-#include <istream>
-
 #include <boost/log/trivial.hpp>
 
 namespace scwx
@@ -28,12 +26,23 @@ Message::~Message() = default;
 Message::Message(Message&&) noexcept = default;
 Message& Message::operator=(Message&&) noexcept = default;
 
-bool Message::ValidateSize(std::istream& is, size_t bytesRead) const
+bool Message::ValidateMessage(std::istream& is, size_t bytesRead) const
 {
    bool   messageValid = true;
    size_t dataSize     = header().message_size() * 2 - header().SIZE;
 
-   if (bytesRead != dataSize)
+   if (is.eof())
+   {
+      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Reached end of file";
+      messageValid = false;
+   }
+   else if (is.fail())
+   {
+      BOOST_LOG_TRIVIAL(warning)
+         << logPrefix_ << "Could not read from input stream";
+      messageValid = false;
+   }
+   else if (bytesRead != dataSize)
    {
       is.seekg(static_cast<std::streamoff>(dataSize) -
                   static_cast<std::streamoff>(bytesRead),

@@ -1,17 +1,6 @@
 #include <scwx/wsr88d/rda/rda_adaptation_data.hpp>
 
-#include <array>
-#include <execution>
-#include <istream>
-#include <map>
-
 #include <boost/log/trivial.hpp>
-
-#ifdef WIN32
-#   include <WinSock2.h>
-#else
-#   include <arpa/inet.h>
-#endif
 
 namespace scwx
 {
@@ -22,14 +11,6 @@ namespace rda
 
 static const std::string logPrefix_ =
    "[scwx::wsr88d::rda::rda_adaptation_data] ";
-
-static void  ReadBoolean(std::istream& is, bool& value);
-static void  ReadChar(std::istream& is, char& value);
-static float SwapFloat(float f);
-template<size_t _Size>
-static void SwapFloatArray(std::array<float, _Size>& arr);
-template<typename T>
-static void SwapFloatMap(std::map<T, float>& m);
 
 struct AntManualSetup
 {
@@ -1757,13 +1738,7 @@ bool RdaAdaptationData::Parse(std::istream& is)
    p->txbBaseline_          = SwapFloat(p->txbBaseline_);
    p->txbAlarmThresh_       = SwapFloat(p->txbAlarmThresh_);
 
-   if (is.eof())
-   {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Reached end of file (1)";
-      messageValid = false;
-   }
-
-   if (!ValidateSize(is, bytesRead))
+   if (!ValidateMessage(is, bytesRead))
    {
       messageValid = false;
    }
@@ -1779,43 +1754,6 @@ RdaAdaptationData::Create(MessageHeader&& header, std::istream& is)
    message->set_header(std::move(header));
    message->Parse(is);
    return message;
-}
-
-static void ReadBoolean(std::istream& is, bool& value)
-{
-   std::string data(4, ' ');
-   is.read(reinterpret_cast<char*>(&data[0]), 4);
-   value = (data.at(0) == 'T');
-}
-
-static void ReadChar(std::istream& is, char& value)
-{
-   std::string data(4, ' ');
-   is.read(reinterpret_cast<char*>(&data[0]), 4);
-   value = data.at(0);
-}
-
-static float SwapFloat(float f)
-{
-   return ntohf(*reinterpret_cast<uint32_t*>(&f));
-}
-
-template<size_t _Size>
-static void SwapFloatArray(std::array<float, _Size>& arr)
-{
-   std::transform(std::execution::par_unseq,
-                  arr.begin(),
-                  arr.end(),
-                  arr.begin(),
-                  [](float f) { return SwapFloat(f); });
-}
-
-template<typename T>
-static void SwapFloatMap(std::map<T, float>& m)
-{
-   std::for_each(std::execution::par_unseq, m.begin(), m.end(), [](auto& p) {
-      p.second = SwapFloat(p.second);
-   });
 }
 
 } // namespace rda

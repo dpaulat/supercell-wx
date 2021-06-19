@@ -1,15 +1,8 @@
 #include <scwx/wsr88d/rda/clutter_filter_map.hpp>
 
-#include <istream>
 #include <vector>
 
 #include <boost/log/trivial.hpp>
-
-#ifdef WIN32
-#   include <WinSock2.h>
-#else
-#   include <arpa/inet.h>
-#endif
 
 namespace scwx
 {
@@ -205,7 +198,7 @@ bool ClutterFilterMap::Parse(std::istream& is)
       }
    }
 
-   if (!ValidateSize(is, bytesRead))
+   if (!ValidateMessage(is, bytesRead))
    {
       messageValid = false;
    }

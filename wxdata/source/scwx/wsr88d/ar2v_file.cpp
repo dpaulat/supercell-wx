@@ -10,12 +10,6 @@
 #include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/log/trivial.hpp>
 
-#ifdef WIN32
-#   include <WinSock2.h>
-#else
-#   include <arpa/inet.h>
-#endif
-
 namespace scwx
 {
 namespace wsr88d
