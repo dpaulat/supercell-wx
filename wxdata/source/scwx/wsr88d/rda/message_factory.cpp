@@ -2,6 +2,7 @@
 
 #include <scwx/util/vectorbuf.hpp>
 #include <scwx/wsr88d/rda/clutter_filter_map.hpp>
+#include <scwx/wsr88d/rda/rda_adaptation_data.hpp>
 
 #include <istream>
 #include <unordered_map>
@@ -22,7 +23,7 @@ typedef std::function<std::unique_ptr<Message>(MessageHeader&&, std::istream&)>
    CreateMessageFunction;
 
 static const std::unordered_map<uint8_t, CreateMessageFunction> create_ {
-   {15, ClutterFilterMap::Create}};
+   {15, ClutterFilterMap::Create}, {18, RdaAdaptationData::Create}};
 
 static std::vector<char> messageData_;
 static size_t            bufferedSize_;
@@ -70,6 +71,7 @@ MessageInfo MessageFactory::Create(std::istream& is)
          {
             // Estimate total message size
             messageData_.reserve(dataSize * totalSegments);
+            messageBufferStream_.clear();
             bufferedSize_ = 0;
          }
 
@@ -112,6 +114,7 @@ MessageInfo MessageFactory::Create(std::istream& is)
          info.message =
             create_.at(messageType)(std::move(header), *messageStream);
          messageData_.shrink_to_fit();
+         messageBufferStream_.clear();
          bufferedSize_ = 0;
       }
    }

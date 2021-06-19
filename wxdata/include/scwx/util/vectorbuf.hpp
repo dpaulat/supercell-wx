@@ -19,6 +19,13 @@ public:
 
    void update_read_pointers(size_t size);
 
+protected:
+   pos_type
+   seekoff(std::streamoff          off,
+           std::ios_base::seekdir  way,
+           std::ios_base::openmode which = std::ios_base::in |
+                                           std::ios_base::out) override;
+
 private:
    std::vector<char>& v_;
 };
