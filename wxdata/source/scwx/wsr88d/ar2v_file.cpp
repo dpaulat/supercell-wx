@@ -52,7 +52,7 @@ Ar2vFile& Ar2vFile::operator=(Ar2vFile&&) noexcept = default;
 
 bool Ar2vFile::LoadFile(const std::string& filename)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "LoadFile(" << filename << ")\n";
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "LoadFile(" << filename << ")";
    bool fileValid = true;
 
    std::ifstream f(filename, std::ios_base::in | std::ios_base::binary);

@@ -14,6 +14,7 @@ set(HDR_WSR88D_RDA include/scwx/wsr88d/rda/clutter_filter_map.hpp
                    include/scwx/wsr88d/rda/message_header.hpp
                    include/scwx/wsr88d/rda/performance_maintenance_data.hpp
                    include/scwx/wsr88d/rda/rda_adaptation_data.hpp
+                   include/scwx/wsr88d/rda/rda_status_data.hpp
                    include/scwx/wsr88d/rda/volume_coverage_pattern_data.hpp)
 set(SRC_WSR88D_RDA source/scwx/wsr88d/rda/clutter_filter_map.cpp
                    source/scwx/wsr88d/rda/message.cpp
@@ -21,6 +22,7 @@ set(SRC_WSR88D_RDA source/scwx/wsr88d/rda/clutter_filter_map.cpp
                    source/scwx/wsr88d/rda/message_header.cpp
                    source/scwx/wsr88d/rda/performance_maintenance_data.cpp
                    source/scwx/wsr88d/rda/rda_adaptation_data.cpp
+                   source/scwx/wsr88d/rda/rda_status_data.cpp
                    source/scwx/wsr88d/rda/volume_coverage_pattern_data.cpp)
 
 add_library(wxdata OBJECT ${HDR_UTIL}
