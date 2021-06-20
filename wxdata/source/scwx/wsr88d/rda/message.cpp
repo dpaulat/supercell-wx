@@ -33,7 +33,7 @@ bool Message::ValidateMessage(std::istream& is, size_t bytesRead) const
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Reached end of file";
+      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Reached end of data stream";
       messageValid = false;
    }
    else if (is.fail())

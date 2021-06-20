@@ -92,6 +92,9 @@ public:
 
    virtual bool Parse(std::istream& is) = 0;
 
+   static constexpr double ANGLE_DATA_SCALE      = 0.005493125;
+   static constexpr double AZ_EL_RATE_DATA_SCALE = 0.001373291015625;
+
 private:
    std::unique_ptr<MessageImpl> p;
 };

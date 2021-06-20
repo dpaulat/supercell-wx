@@ -91,32 +91,24 @@ bool ClutterFilterMap::Parse(std::istream& is)
    p->mapGenerationTime_ = htons(p->mapGenerationTime_);
    numElevationSegments  = htons(numElevationSegments);
 
-   if (is.eof())
+   if (p->mapGenerationDate_ < 1)
    {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Reached end of file (1)";
+      BOOST_LOG_TRIVIAL(warning)
+         << logPrefix_ << "Invalid date: " << p->mapGenerationDate_;
       messageValid = false;
    }
-   else
+   if (p->mapGenerationTime_ > 1440)
    {
-      if (p->mapGenerationDate_ < 1)
-      {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid date: " << p->mapGenerationDate_;
-         messageValid = false;
-      }
-      if (p->mapGenerationTime_ > 1440)
-      {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid time: " << p->mapGenerationTime_;
-         messageValid = false;
-      }
-      if (numElevationSegments < 1 || numElevationSegments > 5)
-      {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_
-            << "Invalid number of elevation segments: " << numElevationSegments;
-         messageValid = false;
-      }
+      BOOST_LOG_TRIVIAL(warning)
+         << logPrefix_ << "Invalid time: " << p->mapGenerationTime_;
+      messageValid = false;
+   }
+   if (numElevationSegments < 1 || numElevationSegments > 5)
+   {
+      BOOST_LOG_TRIVIAL(warning)
+         << logPrefix_
+         << "Invalid number of elevation segments: " << numElevationSegments;
+      messageValid = false;
    }
 
    if (!messageValid)
@@ -138,21 +130,12 @@ bool ClutterFilterMap::Parse(std::istream& is)
 
          numRangeZones = htons(numRangeZones);
 
-         if (is.eof())
+         if (numRangeZones < 1 || numRangeZones > 20)
          {
             BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_ << "Reached end of file (2)";
+               << logPrefix_
+               << "Invalid number of range zones: " << numRangeZones;
             messageValid = false;
-         }
-         else
-         {
-            if (numRangeZones < 1 || numRangeZones > 20)
-            {
-               BOOST_LOG_TRIVIAL(warning)
-                  << logPrefix_
-                  << "Invalid number of range zones: " << numRangeZones;
-               messageValid = false;
-            }
          }
 
          if (!messageValid)
@@ -173,26 +156,17 @@ bool ClutterFilterMap::Parse(std::istream& is)
             zone.opCode   = htons(zone.opCode);
             zone.endRange = htons(zone.endRange);
 
-            if (is.eof())
+            if (zone.opCode > 2)
             {
                BOOST_LOG_TRIVIAL(warning)
-                  << logPrefix_ << "Reached end of file (3)";
+                  << logPrefix_ << "Invalid op code: " << zone.opCode;
                messageValid = false;
             }
-            else
+            if (zone.endRange > 511)
             {
-               if (zone.opCode > 2)
-               {
-                  BOOST_LOG_TRIVIAL(warning)
-                     << logPrefix_ << "Invalid op code: " << zone.opCode;
-                  messageValid = false;
-               }
-               if (zone.endRange > 511)
-               {
-                  BOOST_LOG_TRIVIAL(warning)
-                     << logPrefix_ << "Invalid end range: " << zone.endRange;
-                  messageValid = false;
-               }
+               BOOST_LOG_TRIVIAL(warning)
+                  << logPrefix_ << "Invalid end range: " << zone.endRange;
+               messageValid = false;
             }
          }
       }
