@@ -2294,8 +2294,8 @@ bool PerformanceMaintenanceData::Parse(std::istream& is)
    p->transmitterRecyclingSummary_ = htons(p->transmitterRecyclingSummary_);
    p->transmitterInoperable_       = htons(p->transmitterInoperable_);
    p->transmitterAirFilter_        = htons(p->transmitterAirFilter_);
-   SwapUInt16Array(p->zeroTestBit_);
-   SwapUInt16Array(p->oneTestBit_);
+   SwapArray(p->zeroTestBit_);
+   SwapArray(p->oneTestBit_);
    p->xmtrSpipInterface_        = htons(p->xmtrSpipInterface_);
    p->transmitterSummaryStatus_ = htons(p->transmitterSummaryStatus_);
    p->transmitterRfPower_       = SwapFloat(p->transmitterRfPower_);

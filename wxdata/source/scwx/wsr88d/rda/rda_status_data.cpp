@@ -310,7 +310,7 @@ bool RdaStatusData::Parse(std::istream& is)
    p->transitionPowerSourceStatus_ = htons(p->transitionPowerSourceStatus_);
    p->rmsControlStatus_            = htons(p->rmsControlStatus_);
    p->performanceCheckStatus_      = htons(p->performanceCheckStatus_);
-   SwapUInt16Array(p->alarmCodes_);
+   SwapArray(p->alarmCodes_);
    p->signalProcessingOptions_ = htons(p->signalProcessingOptions_);
    p->statusVersion_           = htons(p->statusVersion_);
 

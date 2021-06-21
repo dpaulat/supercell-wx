@@ -1582,7 +1582,7 @@ bool RdaAdaptationData::Parse(std::istream& is)
    p->parkaz_        = SwapFloat(p->parkaz_);
    p->parkel_        = SwapFloat(p->parkel_);
 
-   SwapFloatArray(p->aFuelConv_);
+   SwapArray(p->aFuelConv_);
 
    p->aMinShelterTemp_       = SwapFloat(p->aMinShelterTemp_);
    p->aMaxShelterTemp_       = SwapFloat(p->aMaxShelterTemp_);
@@ -1605,14 +1605,14 @@ bool RdaAdaptationData::Parse(std::istream& is)
    p->configChanNumber_      = ntohl(p->configChanNumber_);
    p->redundantChanConfig_   = ntohl(p->redundantChanConfig_);
 
-   SwapFloatArray(p->attenTable_);
-   SwapFloatMap(p->pathLosses_);
+   SwapArray(p->attenTable_);
+   SwapMap(p->pathLosses_);
 
    p->vTsCw_ = SwapFloat(p->vTsCw_);
 
-   SwapFloatArray(p->hRnscale_);
-   SwapFloatArray(p->atmos_);
-   SwapFloatArray(p->elIndex_);
+   SwapArray(p->hRnscale_);
+   SwapArray(p->atmos_);
+   SwapArray(p->elIndex_);
 
    p->tfreqMhz_                  = ntohl(p->tfreqMhz_);
    p->baseDataTcn_               = SwapFloat(p->baseDataTcn_);
@@ -1687,7 +1687,7 @@ bool RdaAdaptationData::Parse(std::istream& is)
    p->elInertia_                 = SwapFloat(p->elInertia_);
    p->rvp8nvIwaveguideLength_    = ntohl(p->rvp8nvIwaveguideLength_);
 
-   SwapFloatArray(p->vRnscale_);
+   SwapArray(p->vRnscale_);
 
    p->velDataTover_         = SwapFloat(p->velDataTover_);
    p->widthDataTover_       = SwapFloat(p->widthDataTover_);

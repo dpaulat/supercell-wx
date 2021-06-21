@@ -9,6 +9,7 @@ set(SRC_UTIL source/scwx/util/rangebuf.cpp
 set(HDR_WSR88D include/scwx/wsr88d/ar2v_file.hpp)
 set(SRC_WSR88D source/scwx/wsr88d/ar2v_file.cpp)
 set(HDR_WSR88D_RDA include/scwx/wsr88d/rda/clutter_filter_map.hpp
+                   include/scwx/wsr88d/rda/digital_radar_data.hpp
                    include/scwx/wsr88d/rda/message.hpp
                    include/scwx/wsr88d/rda/message_factory.hpp
                    include/scwx/wsr88d/rda/message_header.hpp
@@ -17,6 +18,7 @@ set(HDR_WSR88D_RDA include/scwx/wsr88d/rda/clutter_filter_map.hpp
                    include/scwx/wsr88d/rda/rda_status_data.hpp
                    include/scwx/wsr88d/rda/volume_coverage_pattern_data.hpp)
 set(SRC_WSR88D_RDA source/scwx/wsr88d/rda/clutter_filter_map.cpp
+                   source/scwx/wsr88d/rda/digital_radar_data.cpp
                    source/scwx/wsr88d/rda/message.cpp
                    source/scwx/wsr88d/rda/message_factory.cpp
                    source/scwx/wsr88d/rda/message_header.cpp
