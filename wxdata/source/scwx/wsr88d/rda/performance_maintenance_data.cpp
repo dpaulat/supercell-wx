@@ -2174,46 +2174,46 @@ bool PerformanceMaintenanceData::Parse(std::istream& is)
    bytesRead += 960;
 
    // Communications
-   p->loopBackSetStatus_             = htons(p->loopBackSetStatus_);
-   p->t1OutputFrames_                = htonl(p->t1OutputFrames_);
-   p->t1InputFrames_                 = htonl(p->t1InputFrames_);
-   p->routerMemoryUsed_              = htonl(p->routerMemoryUsed_);
-   p->routerMemoryFree_              = htonl(p->routerMemoryFree_);
-   p->routerMemoryUtilization_       = htons(p->routerMemoryUtilization_);
-   p->routeToRpg_                    = htons(p->routeToRpg_);
-   p->csuLossOfSignal_               = htonl(p->csuLossOfSignal_);
-   p->csuLossOfFrames_               = htonl(p->csuLossOfFrames_);
-   p->csuYellowAlarms_               = htonl(p->csuYellowAlarms_);
-   p->csuBlueAlarms_                 = htonl(p->csuBlueAlarms_);
-   p->csu24HrErroredSeconds_         = htonl(p->csu24HrErroredSeconds_);
-   p->csu24HrSeverelyErroredSeconds_ = htonl(p->csu24HrSeverelyErroredSeconds_);
+   p->loopBackSetStatus_             = ntohs(p->loopBackSetStatus_);
+   p->t1OutputFrames_                = ntohl(p->t1OutputFrames_);
+   p->t1InputFrames_                 = ntohl(p->t1InputFrames_);
+   p->routerMemoryUsed_              = ntohl(p->routerMemoryUsed_);
+   p->routerMemoryFree_              = ntohl(p->routerMemoryFree_);
+   p->routerMemoryUtilization_       = ntohs(p->routerMemoryUtilization_);
+   p->routeToRpg_                    = ntohs(p->routeToRpg_);
+   p->csuLossOfSignal_               = ntohl(p->csuLossOfSignal_);
+   p->csuLossOfFrames_               = ntohl(p->csuLossOfFrames_);
+   p->csuYellowAlarms_               = ntohl(p->csuYellowAlarms_);
+   p->csuBlueAlarms_                 = ntohl(p->csuBlueAlarms_);
+   p->csu24HrErroredSeconds_         = ntohl(p->csu24HrErroredSeconds_);
+   p->csu24HrSeverelyErroredSeconds_ = ntohl(p->csu24HrSeverelyErroredSeconds_);
    p->csu24HrSeverelyErroredFramingSeconds_ =
-      htonl(p->csu24HrSeverelyErroredFramingSeconds_);
-   p->csu24HrUnavailableSeconds_    = htonl(p->csu24HrUnavailableSeconds_);
-   p->csu24HrControlledSlipSeconds_ = htonl(p->csu24HrControlledSlipSeconds_);
-   p->csu24HrPathCodingViolations_  = htonl(p->csu24HrPathCodingViolations_);
-   p->csu24HrLineErroredSeconds_    = htonl(p->csu24HrLineErroredSeconds_);
-   p->csu24HrBurstyErroredSeconds_  = htonl(p->csu24HrBurstyErroredSeconds_);
-   p->csu24HrDegradedMinutes_       = htonl(p->csu24HrDegradedMinutes_);
-   p->lanSwitchCpuUtilization_      = htonl(p->lanSwitchCpuUtilization_);
-   p->lanSwitchMemoryUtilization_   = htons(p->lanSwitchMemoryUtilization_);
-   p->ifdrChasisTemperature_        = htons(p->ifdrChasisTemperature_);
-   p->ifdrFpgaTemperature_          = htons(p->ifdrFpgaTemperature_);
-   p->gpsSatellites_                = htonl(p->gpsSatellites_);
-   p->ipcStatus_                    = htons(p->ipcStatus_);
-   p->commandedChannelControl_      = htons(p->commandedChannelControl_);
+      ntohl(p->csu24HrSeverelyErroredFramingSeconds_);
+   p->csu24HrUnavailableSeconds_    = ntohl(p->csu24HrUnavailableSeconds_);
+   p->csu24HrControlledSlipSeconds_ = ntohl(p->csu24HrControlledSlipSeconds_);
+   p->csu24HrPathCodingViolations_  = ntohl(p->csu24HrPathCodingViolations_);
+   p->csu24HrLineErroredSeconds_    = ntohl(p->csu24HrLineErroredSeconds_);
+   p->csu24HrBurstyErroredSeconds_  = ntohl(p->csu24HrBurstyErroredSeconds_);
+   p->csu24HrDegradedMinutes_       = ntohl(p->csu24HrDegradedMinutes_);
+   p->lanSwitchCpuUtilization_      = ntohl(p->lanSwitchCpuUtilization_);
+   p->lanSwitchMemoryUtilization_   = ntohs(p->lanSwitchMemoryUtilization_);
+   p->ifdrChasisTemperature_        = ntohs(p->ifdrChasisTemperature_);
+   p->ifdrFpgaTemperature_          = ntohs(p->ifdrFpgaTemperature_);
+   p->gpsSatellites_                = ntohl(p->gpsSatellites_);
+   p->ipcStatus_                    = ntohs(p->ipcStatus_);
+   p->commandedChannelControl_      = ntohs(p->commandedChannelControl_);
 
    // AME
-   p->polarization_           = htons(p->polarization_);
+   p->polarization_           = ntohs(p->polarization_);
    p->ameInternalTemperature_ = SwapFloat(p->ameInternalTemperature_);
    p->ameReceiverModuleTemperature_ =
       SwapFloat(p->ameReceiverModuleTemperature_);
    p->ameBiteCalModuleTemperature_ = SwapFloat(p->ameBiteCalModuleTemperature_);
    p->amePeltierPulseWidthModulation_ =
-      htons(p->amePeltierPulseWidthModulation_);
-   p->amePeltierStatus_     = htons(p->amePeltierStatus_);
-   p->ameADConverterStatus_ = htons(p->ameADConverterStatus_);
-   p->ameState_             = htons(p->ameState_);
+      ntohs(p->amePeltierPulseWidthModulation_);
+   p->amePeltierStatus_     = ntohs(p->amePeltierStatus_);
+   p->ameADConverterStatus_ = ntohs(p->ameADConverterStatus_);
+   p->ameState_             = ntohs(p->ameState_);
    p->ame3_3VPsVoltage_     = SwapFloat(p->ame3_3VPsVoltage_);
    p->ame5VPsVoltage_       = SwapFloat(p->ame5VPsVoltage_);
    p->ame6_5VPsVoltage_     = SwapFloat(p->ame6_5VPsVoltage_);
@@ -2223,8 +2223,8 @@ bool PerformanceMaintenanceData::Parse(std::istream& is)
    p->peltierCurrent_       = SwapFloat(p->peltierCurrent_);
    p->adcCalibrationReferenceVoltage_ =
       SwapFloat(p->adcCalibrationReferenceVoltage_);
-   p->ameMode_                     = htons(p->ameMode_);
-   p->amePeltierMode_              = htons(p->amePeltierMode_);
+   p->ameMode_                     = ntohs(p->ameMode_);
+   p->amePeltierMode_              = ntohs(p->amePeltierMode_);
    p->amePeltierInsideFanCurrent_  = SwapFloat(p->amePeltierInsideFanCurrent_);
    p->amePeltierOutsideFanCurrent_ = SwapFloat(p->amePeltierOutsideFanCurrent_);
    p->horizontalTrLimiterVoltage_  = SwapFloat(p->horizontalTrLimiterVoltage_);
@@ -2234,8 +2234,8 @@ bool PerformanceMaintenanceData::Parse(std::istream& is)
       SwapFloat(p->adcCalibrationGainCorrection_);
 
    // RCP/SPIP Power Button Status
-   p->rcpStatus_        = htons(p->rcpStatus_);
-   p->spipPowerButtons_ = htons(p->spipPowerButtons_);
+   p->rcpStatus_        = ntohs(p->rcpStatus_);
+   p->spipPowerButtons_ = ntohs(p->spipPowerButtons_);
 
    // Power
    p->masterPowerAdministratorLoad_ =
@@ -2244,95 +2244,95 @@ bool PerformanceMaintenanceData::Parse(std::istream& is)
       SwapFloat(p->expansionPowerAdministratorLoad_);
 
    // Transmitter
-   p->_5VdcPs_                    = htons(p->_5VdcPs_);
-   p->_15VdcPs_                   = htons(p->_15VdcPs_);
-   p->_28VdcPs_                   = htons(p->_28VdcPs_);
-   p->neg15VdcPs_                 = htons(p->neg15VdcPs_);
-   p->_45VdcPs_                   = htons(p->_45VdcPs_);
-   p->filamentPsVoltage_          = htons(p->filamentPsVoltage_);
-   p->vacuumPumpPsVoltage_        = htons(p->vacuumPumpPsVoltage_);
-   p->focusCoilPsVoltage_         = htons(p->focusCoilPsVoltage_);
-   p->filamentPs_                 = htons(p->filamentPs_);
-   p->klystronWarmup_             = htons(p->klystronWarmup_);
-   p->transmitterAvailable_       = htons(p->transmitterAvailable_);
-   p->wgSwitchPosition_           = htons(p->wgSwitchPosition_);
-   p->wgPfnTransferInterlock_     = htons(p->wgPfnTransferInterlock_);
-   p->maintenanceMode_            = htons(p->maintenanceMode_);
-   p->maintenanceRequired_        = htons(p->maintenanceRequired_);
-   p->pfnSwitchPosition_          = htons(p->pfnSwitchPosition_);
-   p->modulatorOverload_          = htons(p->modulatorOverload_);
-   p->modulatorInvCurrent_        = htons(p->modulatorInvCurrent_);
-   p->modulatorSwitchFail_        = htons(p->modulatorSwitchFail_);
-   p->mainPowerVoltage_           = htons(p->mainPowerVoltage_);
-   p->chargingSystemFail_         = htons(p->chargingSystemFail_);
-   p->inverseDiodeCurrent_        = htons(p->inverseDiodeCurrent_);
-   p->triggerAmplifier_           = htons(p->triggerAmplifier_);
-   p->circulatorTemperature_      = htons(p->circulatorTemperature_);
-   p->spectrumFilterPressure_     = htons(p->spectrumFilterPressure_);
-   p->wgArcVswr_                  = htons(p->wgArcVswr_);
-   p->cabinetInterlock_           = htons(p->cabinetInterlock_);
-   p->cabinetAirTemperature_      = htons(p->cabinetAirTemperature_);
-   p->cabinetAirflow_             = htons(p->cabinetAirflow_);
-   p->klystronCurrent_            = htons(p->klystronCurrent_);
-   p->klystronFilamentCurrent_    = htons(p->klystronFilamentCurrent_);
-   p->klystronVacionCurrent_      = htons(p->klystronVacionCurrent_);
-   p->klystronAirTemperature_     = htons(p->klystronAirTemperature_);
-   p->klystronAirflow_            = htons(p->klystronAirflow_);
-   p->modulatorSwitchMaintenance_ = htons(p->modulatorSwitchMaintenance_);
+   p->_5VdcPs_                    = ntohs(p->_5VdcPs_);
+   p->_15VdcPs_                   = ntohs(p->_15VdcPs_);
+   p->_28VdcPs_                   = ntohs(p->_28VdcPs_);
+   p->neg15VdcPs_                 = ntohs(p->neg15VdcPs_);
+   p->_45VdcPs_                   = ntohs(p->_45VdcPs_);
+   p->filamentPsVoltage_          = ntohs(p->filamentPsVoltage_);
+   p->vacuumPumpPsVoltage_        = ntohs(p->vacuumPumpPsVoltage_);
+   p->focusCoilPsVoltage_         = ntohs(p->focusCoilPsVoltage_);
+   p->filamentPs_                 = ntohs(p->filamentPs_);
+   p->klystronWarmup_             = ntohs(p->klystronWarmup_);
+   p->transmitterAvailable_       = ntohs(p->transmitterAvailable_);
+   p->wgSwitchPosition_           = ntohs(p->wgSwitchPosition_);
+   p->wgPfnTransferInterlock_     = ntohs(p->wgPfnTransferInterlock_);
+   p->maintenanceMode_            = ntohs(p->maintenanceMode_);
+   p->maintenanceRequired_        = ntohs(p->maintenanceRequired_);
+   p->pfnSwitchPosition_          = ntohs(p->pfnSwitchPosition_);
+   p->modulatorOverload_          = ntohs(p->modulatorOverload_);
+   p->modulatorInvCurrent_        = ntohs(p->modulatorInvCurrent_);
+   p->modulatorSwitchFail_        = ntohs(p->modulatorSwitchFail_);
+   p->mainPowerVoltage_           = ntohs(p->mainPowerVoltage_);
+   p->chargingSystemFail_         = ntohs(p->chargingSystemFail_);
+   p->inverseDiodeCurrent_        = ntohs(p->inverseDiodeCurrent_);
+   p->triggerAmplifier_           = ntohs(p->triggerAmplifier_);
+   p->circulatorTemperature_      = ntohs(p->circulatorTemperature_);
+   p->spectrumFilterPressure_     = ntohs(p->spectrumFilterPressure_);
+   p->wgArcVswr_                  = ntohs(p->wgArcVswr_);
+   p->cabinetInterlock_           = ntohs(p->cabinetInterlock_);
+   p->cabinetAirTemperature_      = ntohs(p->cabinetAirTemperature_);
+   p->cabinetAirflow_             = ntohs(p->cabinetAirflow_);
+   p->klystronCurrent_            = ntohs(p->klystronCurrent_);
+   p->klystronFilamentCurrent_    = ntohs(p->klystronFilamentCurrent_);
+   p->klystronVacionCurrent_      = ntohs(p->klystronVacionCurrent_);
+   p->klystronAirTemperature_     = ntohs(p->klystronAirTemperature_);
+   p->klystronAirflow_            = ntohs(p->klystronAirflow_);
+   p->modulatorSwitchMaintenance_ = ntohs(p->modulatorSwitchMaintenance_);
    p->postChargeRegulatorMaintenance_ =
-      htons(p->postChargeRegulatorMaintenance_);
-   p->wgPressureHumidity_          = htons(p->wgPressureHumidity_);
-   p->transmitterOvervoltage_      = htons(p->transmitterOvervoltage_);
-   p->transmitterOvercurrent_      = htons(p->transmitterOvercurrent_);
-   p->focusCoilCurrent_            = htons(p->focusCoilCurrent_);
-   p->focusCoilAirflow_            = htons(p->focusCoilAirflow_);
-   p->oilTemperature_              = htons(p->oilTemperature_);
-   p->prfLimit_                    = htons(p->prfLimit_);
-   p->transmitterOilLevel_         = htons(p->transmitterOilLevel_);
-   p->transmitterBatteryCharging_  = htons(p->transmitterBatteryCharging_);
-   p->highVoltageStatus_           = htons(p->highVoltageStatus_);
-   p->transmitterRecyclingSummary_ = htons(p->transmitterRecyclingSummary_);
-   p->transmitterInoperable_       = htons(p->transmitterInoperable_);
-   p->transmitterAirFilter_        = htons(p->transmitterAirFilter_);
+      ntohs(p->postChargeRegulatorMaintenance_);
+   p->wgPressureHumidity_          = ntohs(p->wgPressureHumidity_);
+   p->transmitterOvervoltage_      = ntohs(p->transmitterOvervoltage_);
+   p->transmitterOvercurrent_      = ntohs(p->transmitterOvercurrent_);
+   p->focusCoilCurrent_            = ntohs(p->focusCoilCurrent_);
+   p->focusCoilAirflow_            = ntohs(p->focusCoilAirflow_);
+   p->oilTemperature_              = ntohs(p->oilTemperature_);
+   p->prfLimit_                    = ntohs(p->prfLimit_);
+   p->transmitterOilLevel_         = ntohs(p->transmitterOilLevel_);
+   p->transmitterBatteryCharging_  = ntohs(p->transmitterBatteryCharging_);
+   p->highVoltageStatus_           = ntohs(p->highVoltageStatus_);
+   p->transmitterRecyclingSummary_ = ntohs(p->transmitterRecyclingSummary_);
+   p->transmitterInoperable_       = ntohs(p->transmitterInoperable_);
+   p->transmitterAirFilter_        = ntohs(p->transmitterAirFilter_);
    SwapArray(p->zeroTestBit_);
    SwapArray(p->oneTestBit_);
-   p->xmtrSpipInterface_        = htons(p->xmtrSpipInterface_);
-   p->transmitterSummaryStatus_ = htons(p->transmitterSummaryStatus_);
+   p->xmtrSpipInterface_        = ntohs(p->xmtrSpipInterface_);
+   p->transmitterSummaryStatus_ = ntohs(p->transmitterSummaryStatus_);
    p->transmitterRfPower_       = SwapFloat(p->transmitterRfPower_);
    p->horizontalXmtrPeakPower_  = SwapFloat(p->horizontalXmtrPeakPower_);
    p->xmtrPeakPower_            = SwapFloat(p->xmtrPeakPower_);
    p->verticalXmtrPeakPower_    = SwapFloat(p->verticalXmtrPeakPower_);
    p->xmtrRfAvgPower_           = SwapFloat(p->xmtrRfAvgPower_);
-   p->xmtrRecycleCount_         = htonl(p->xmtrRecycleCount_);
+   p->xmtrRecycleCount_         = ntohl(p->xmtrRecycleCount_);
    p->receiverBias_             = SwapFloat(p->receiverBias_);
    p->transmitImbalance_        = SwapFloat(p->transmitImbalance_);
    p->xmtrPowerMeterZero_       = SwapFloat(p->xmtrPowerMeterZero_);
 
    // Tower/Utilities
-   p->acUnit1CompressorShutOff_     = htons(p->acUnit1CompressorShutOff_);
-   p->acUnit2CompressorShutOff_     = htons(p->acUnit2CompressorShutOff_);
-   p->generatorMaintenanceRequired_ = htons(p->generatorMaintenanceRequired_);
-   p->generatorBatteryVoltage_      = htons(p->generatorBatteryVoltage_);
-   p->generatorEngine_              = htons(p->generatorEngine_);
-   p->generatorVoltFrequency_       = htons(p->generatorVoltFrequency_);
-   p->powerSource_                  = htons(p->powerSource_);
-   p->transitionalPowerSource_      = htons(p->transitionalPowerSource_);
-   p->generatorAutoRunOffSwitch_    = htons(p->generatorAutoRunOffSwitch_);
-   p->aircraftHazardLighting_       = htons(p->aircraftHazardLighting_);
+   p->acUnit1CompressorShutOff_     = ntohs(p->acUnit1CompressorShutOff_);
+   p->acUnit2CompressorShutOff_     = ntohs(p->acUnit2CompressorShutOff_);
+   p->generatorMaintenanceRequired_ = ntohs(p->generatorMaintenanceRequired_);
+   p->generatorBatteryVoltage_      = ntohs(p->generatorBatteryVoltage_);
+   p->generatorEngine_              = ntohs(p->generatorEngine_);
+   p->generatorVoltFrequency_       = ntohs(p->generatorVoltFrequency_);
+   p->powerSource_                  = ntohs(p->powerSource_);
+   p->transitionalPowerSource_      = ntohs(p->transitionalPowerSource_);
+   p->generatorAutoRunOffSwitch_    = ntohs(p->generatorAutoRunOffSwitch_);
+   p->aircraftHazardLighting_       = ntohs(p->aircraftHazardLighting_);
 
    // Equipment Shelter
    p->equipmentShelterFireDetectionSystem_ =
-      htons(p->equipmentShelterFireDetectionSystem_);
-   p->equipmentShelterFireSmoke_   = htons(p->equipmentShelterFireSmoke_);
-   p->generatorShelterFireSmoke_   = htons(p->generatorShelterFireSmoke_);
-   p->utilityVoltageFrequency_     = htons(p->utilityVoltageFrequency_);
-   p->siteSecurityAlarm_           = htons(p->siteSecurityAlarm_);
-   p->securityEquipment_           = htons(p->securityEquipment_);
-   p->securitySystem_              = htons(p->securitySystem_);
-   p->receiverConnectedToAntenna_  = htons(p->receiverConnectedToAntenna_);
-   p->radomeHatch_                 = htons(p->radomeHatch_);
-   p->acUnit1FilterDirty_          = htons(p->acUnit1FilterDirty_);
-   p->acUnit2FilterDirty_          = htons(p->acUnit2FilterDirty_);
+      ntohs(p->equipmentShelterFireDetectionSystem_);
+   p->equipmentShelterFireSmoke_   = ntohs(p->equipmentShelterFireSmoke_);
+   p->generatorShelterFireSmoke_   = ntohs(p->generatorShelterFireSmoke_);
+   p->utilityVoltageFrequency_     = ntohs(p->utilityVoltageFrequency_);
+   p->siteSecurityAlarm_           = ntohs(p->siteSecurityAlarm_);
+   p->securityEquipment_           = ntohs(p->securityEquipment_);
+   p->securitySystem_              = ntohs(p->securitySystem_);
+   p->receiverConnectedToAntenna_  = ntohs(p->receiverConnectedToAntenna_);
+   p->radomeHatch_                 = ntohs(p->radomeHatch_);
+   p->acUnit1FilterDirty_          = ntohs(p->acUnit1FilterDirty_);
+   p->acUnit2FilterDirty_          = ntohs(p->acUnit2FilterDirty_);
    p->equipmentShelterTemperature_ = SwapFloat(p->equipmentShelterTemperature_);
    p->outsideAmbientTemperature_   = SwapFloat(p->outsideAmbientTemperature_);
    p->transmitterLeavingAirTemp_   = SwapFloat(p->transmitterLeavingAirTemp_);
@@ -2342,52 +2342,52 @@ bool PerformanceMaintenanceData::Parse(std::istream& is)
    p->acUnit2DischargeAirTemp_     = SwapFloat(p->acUnit2DischargeAirTemp_);
    p->spip15VPs_                   = SwapFloat(p->spip15VPs_);
    p->spipNeg15VPs_                = SwapFloat(p->spipNeg15VPs_);
-   p->spip28VPsStatus_             = htons(p->spip28VPsStatus_);
+   p->spip28VPsStatus_             = ntohs(p->spip28VPsStatus_);
    p->spip5VPs_                    = SwapFloat(p->spip5VPs_);
-   p->convertedGeneratorFuelLevel_ = htons(p->convertedGeneratorFuelLevel_);
+   p->convertedGeneratorFuelLevel_ = ntohs(p->convertedGeneratorFuelLevel_);
 
    // Antenna/Pedestal
-   p->elevationPosDeadLimit_         = htons(p->elevationPosDeadLimit_);
-   p->_150VOvervoltage_              = htons(p->_150VOvervoltage_);
-   p->_150VUndervoltage_             = htons(p->_150VUndervoltage_);
-   p->elevationServoAmpInhibit_      = htons(p->elevationServoAmpInhibit_);
-   p->elevationServoAmpShortCircuit_ = htons(p->elevationServoAmpShortCircuit_);
-   p->elevationServoAmpOvertemp_     = htons(p->elevationServoAmpOvertemp_);
-   p->elevationMotorOvertemp_        = htons(p->elevationMotorOvertemp_);
-   p->elevationStowPin_              = htons(p->elevationStowPin_);
-   p->elevationHousing5VPs_          = htons(p->elevationHousing5VPs_);
-   p->elevationNegDeadLimit_         = htons(p->elevationNegDeadLimit_);
-   p->elevationPosNormalLimit_       = htons(p->elevationPosNormalLimit_);
-   p->elevationNegNormalLimit_       = htons(p->elevationNegNormalLimit_);
-   p->elevationEncoderLight_         = htons(p->elevationEncoderLight_);
-   p->elevationGearboxOil_           = htons(p->elevationGearboxOil_);
-   p->elevationHandwheel_            = htons(p->elevationHandwheel_);
-   p->elevationAmpPs_                = htons(p->elevationAmpPs_);
-   p->azimuthServoAmpInhibit_        = htons(p->azimuthServoAmpInhibit_);
-   p->azimuthServoAmpShortCircuit_   = htons(p->azimuthServoAmpShortCircuit_);
-   p->azimuthServoAmpOvertemp_       = htons(p->azimuthServoAmpOvertemp_);
-   p->azimuthMotorOvertemp_          = htons(p->azimuthMotorOvertemp_);
-   p->azimuthStowPin_                = htons(p->azimuthStowPin_);
-   p->azimuthHousing5VPs_            = htons(p->azimuthHousing5VPs_);
-   p->azimuthEncoderLight_           = htons(p->azimuthEncoderLight_);
-   p->azimuthGearboxOil_             = htons(p->azimuthGearboxOil_);
-   p->azimuthBullGearOil_            = htons(p->azimuthBullGearOil_);
-   p->azimuthHandwheel_              = htons(p->azimuthHandwheel_);
-   p->azimuthServoAmpPs_             = htons(p->azimuthServoAmpPs_);
-   p->servo_                         = htons(p->servo_);
-   p->pedestalInterlockSwitch_       = htons(p->pedestalInterlockSwitch_);
+   p->elevationPosDeadLimit_         = ntohs(p->elevationPosDeadLimit_);
+   p->_150VOvervoltage_              = ntohs(p->_150VOvervoltage_);
+   p->_150VUndervoltage_             = ntohs(p->_150VUndervoltage_);
+   p->elevationServoAmpInhibit_      = ntohs(p->elevationServoAmpInhibit_);
+   p->elevationServoAmpShortCircuit_ = ntohs(p->elevationServoAmpShortCircuit_);
+   p->elevationServoAmpOvertemp_     = ntohs(p->elevationServoAmpOvertemp_);
+   p->elevationMotorOvertemp_        = ntohs(p->elevationMotorOvertemp_);
+   p->elevationStowPin_              = ntohs(p->elevationStowPin_);
+   p->elevationHousing5VPs_          = ntohs(p->elevationHousing5VPs_);
+   p->elevationNegDeadLimit_         = ntohs(p->elevationNegDeadLimit_);
+   p->elevationPosNormalLimit_       = ntohs(p->elevationPosNormalLimit_);
+   p->elevationNegNormalLimit_       = ntohs(p->elevationNegNormalLimit_);
+   p->elevationEncoderLight_         = ntohs(p->elevationEncoderLight_);
+   p->elevationGearboxOil_           = ntohs(p->elevationGearboxOil_);
+   p->elevationHandwheel_            = ntohs(p->elevationHandwheel_);
+   p->elevationAmpPs_                = ntohs(p->elevationAmpPs_);
+   p->azimuthServoAmpInhibit_        = ntohs(p->azimuthServoAmpInhibit_);
+   p->azimuthServoAmpShortCircuit_   = ntohs(p->azimuthServoAmpShortCircuit_);
+   p->azimuthServoAmpOvertemp_       = ntohs(p->azimuthServoAmpOvertemp_);
+   p->azimuthMotorOvertemp_          = ntohs(p->azimuthMotorOvertemp_);
+   p->azimuthStowPin_                = ntohs(p->azimuthStowPin_);
+   p->azimuthHousing5VPs_            = ntohs(p->azimuthHousing5VPs_);
+   p->azimuthEncoderLight_           = ntohs(p->azimuthEncoderLight_);
+   p->azimuthGearboxOil_             = ntohs(p->azimuthGearboxOil_);
+   p->azimuthBullGearOil_            = ntohs(p->azimuthBullGearOil_);
+   p->azimuthHandwheel_              = ntohs(p->azimuthHandwheel_);
+   p->azimuthServoAmpPs_             = ntohs(p->azimuthServoAmpPs_);
+   p->servo_                         = ntohs(p->servo_);
+   p->pedestalInterlockSwitch_       = ntohs(p->pedestalInterlockSwitch_);
 
    // RF Generator/Receiver
-   p->cohoClock_ = htons(p->cohoClock_);
+   p->cohoClock_ = ntohs(p->cohoClock_);
    p->rfGeneratorFrequencySelectOscillator_ =
-      htons(p->rfGeneratorFrequencySelectOscillator_);
-   p->rfGeneratorRfStalo_          = htons(p->rfGeneratorRfStalo_);
-   p->rfGeneratorPhaseShiftedCoho_ = htons(p->rfGeneratorPhaseShiftedCoho_);
-   p->_9VReceiverPs_               = htons(p->_9VReceiverPs_);
-   p->_5VReceiverPs_               = htons(p->_5VReceiverPs_);
-   p->_18VReceiverPs_              = htons(p->_18VReceiverPs_);
-   p->neg9VReceiverPs_             = htons(p->neg9VReceiverPs_);
-   p->_5VSingleChannelRdaiuPs_     = htons(p->_5VSingleChannelRdaiuPs_);
+      ntohs(p->rfGeneratorFrequencySelectOscillator_);
+   p->rfGeneratorRfStalo_          = ntohs(p->rfGeneratorRfStalo_);
+   p->rfGeneratorPhaseShiftedCoho_ = ntohs(p->rfGeneratorPhaseShiftedCoho_);
+   p->_9VReceiverPs_               = ntohs(p->_9VReceiverPs_);
+   p->_5VReceiverPs_               = ntohs(p->_5VReceiverPs_);
+   p->_18VReceiverPs_              = ntohs(p->_18VReceiverPs_);
+   p->neg9VReceiverPs_             = ntohs(p->neg9VReceiverPs_);
+   p->_5VSingleChannelRdaiuPs_     = ntohs(p->_5VSingleChannelRdaiuPs_);
    p->horizontalShortPulseNoise_   = SwapFloat(p->horizontalShortPulseNoise_);
    p->horizontalLongPulseNoise_    = SwapFloat(p->horizontalLongPulseNoise_);
    p->horizontalNoiseTemperature_  = SwapFloat(p->horizontalNoiseTemperature_);
@@ -2403,10 +2403,10 @@ bool PerformanceMaintenanceData::Parse(std::istream& is)
    p->kdPeakMeasured_           = SwapFloat(p->kdPeakMeasured_);
    p->shortPulseHorizontalDbz0_ = SwapFloat(p->shortPulseHorizontalDbz0_);
    p->longPulseHorizontalDbz0_  = SwapFloat(p->longPulseHorizontalDbz0_);
-   p->velocityProcessed_        = htons(p->velocityProcessed_);
-   p->widthProcessed_           = htons(p->widthProcessed_);
-   p->velocityRfGen_            = htons(p->velocityRfGen_);
-   p->widthRfGen_               = htons(p->widthRfGen_);
+   p->velocityProcessed_        = ntohs(p->velocityProcessed_);
+   p->widthProcessed_           = ntohs(p->widthProcessed_);
+   p->velocityRfGen_            = ntohs(p->velocityRfGen_);
+   p->widthRfGen_               = ntohs(p->widthRfGen_);
    p->horizontalI0_             = SwapFloat(p->horizontalI0_);
    p->verticalI0_               = SwapFloat(p->verticalI0_);
    p->verticalDynamicRange_     = SwapFloat(p->verticalDynamicRange_);
@@ -2423,42 +2423,42 @@ bool PerformanceMaintenanceData::Parse(std::istream& is)
    p->verticalLinearity_ = SwapFloat(p->verticalLinearity_);
 
    // File Status
-   p->stateFileReadStatus_      = htons(p->stateFileReadStatus_);
-   p->stateFileWriteStatus_     = htons(p->stateFileWriteStatus_);
-   p->bypassMapFileReadStatus_  = htons(p->bypassMapFileReadStatus_);
-   p->bypassMapFileWriteStatus_ = htons(p->bypassMapFileWriteStatus_);
+   p->stateFileReadStatus_      = ntohs(p->stateFileReadStatus_);
+   p->stateFileWriteStatus_     = ntohs(p->stateFileWriteStatus_);
+   p->bypassMapFileReadStatus_  = ntohs(p->bypassMapFileReadStatus_);
+   p->bypassMapFileWriteStatus_ = ntohs(p->bypassMapFileWriteStatus_);
    p->currentAdaptationFileReadStatus_ =
-      htons(p->currentAdaptationFileReadStatus_);
+      ntohs(p->currentAdaptationFileReadStatus_);
    p->currentAdaptationFileWriteStatus_ =
-      htons(p->currentAdaptationFileWriteStatus_);
-   p->censorZoneFileReadStatus_  = htons(p->censorZoneFileReadStatus_);
-   p->censorZoneFileWriteStatus_ = htons(p->censorZoneFileWriteStatus_);
-   p->remoteVcpFileReadStatus_   = htons(p->remoteVcpFileReadStatus_);
-   p->remoteVcpFileWriteStatus_  = htons(p->remoteVcpFileWriteStatus_);
+      ntohs(p->currentAdaptationFileWriteStatus_);
+   p->censorZoneFileReadStatus_  = ntohs(p->censorZoneFileReadStatus_);
+   p->censorZoneFileWriteStatus_ = ntohs(p->censorZoneFileWriteStatus_);
+   p->remoteVcpFileReadStatus_   = ntohs(p->remoteVcpFileReadStatus_);
+   p->remoteVcpFileWriteStatus_  = ntohs(p->remoteVcpFileWriteStatus_);
    p->baselineAdaptationFileReadStatus_ =
-      htons(p->baselineAdaptationFileReadStatus_);
-   p->readStatusOfPrfSets_ = htons(p->readStatusOfPrfSets_);
+      ntohs(p->baselineAdaptationFileReadStatus_);
+   p->readStatusOfPrfSets_ = ntohs(p->readStatusOfPrfSets_);
    p->clutterFilterMapFileReadStatus_ =
-      htons(p->clutterFilterMapFileReadStatus_);
+      ntohs(p->clutterFilterMapFileReadStatus_);
    p->clutterFilterMapFileWriteStatus_ =
-      htons(p->clutterFilterMapFileWriteStatus_);
-   p->generatlDiskIoError_ = htons(p->generatlDiskIoError_);
-   p->cpu1FanSpeed_        = htons(p->cpu1FanSpeed_);
-   p->cpu2FanSpeed_        = htons(p->cpu2FanSpeed_);
-   p->rspFan1Speed_        = htons(p->rspFan1Speed_);
-   p->rspFan2Speed_        = htons(p->rspFan2Speed_);
-   p->rspFan3Speed_        = htons(p->rspFan3Speed_);
+      ntohs(p->clutterFilterMapFileWriteStatus_);
+   p->generatlDiskIoError_ = ntohs(p->generatlDiskIoError_);
+   p->cpu1FanSpeed_        = ntohs(p->cpu1FanSpeed_);
+   p->cpu2FanSpeed_        = ntohs(p->cpu2FanSpeed_);
+   p->rspFan1Speed_        = ntohs(p->rspFan1Speed_);
+   p->rspFan2Speed_        = ntohs(p->rspFan2Speed_);
+   p->rspFan3Speed_        = ntohs(p->rspFan3Speed_);
 
    // Device Status
-   p->spipCommStatus_               = htons(p->spipCommStatus_);
-   p->hciCommStatus_                = htons(p->hciCommStatus_);
-   p->signalProcessorCommandStatus_ = htons(p->signalProcessorCommandStatus_);
-   p->ameCommunicationStatus_       = htons(p->ameCommunicationStatus_);
-   p->rmsLinkStatus_                = htons(p->rmsLinkStatus_);
-   p->rpgLinkStatus_                = htons(p->rpgLinkStatus_);
-   p->interpanelLinkStatus_         = htons(p->interpanelLinkStatus_);
-   p->performanceCheckTime_         = htonl(p->performanceCheckTime_);
-   p->version_                      = htons(p->version_);
+   p->spipCommStatus_               = ntohs(p->spipCommStatus_);
+   p->hciCommStatus_                = ntohs(p->hciCommStatus_);
+   p->signalProcessorCommandStatus_ = ntohs(p->signalProcessorCommandStatus_);
+   p->ameCommunicationStatus_       = ntohs(p->ameCommunicationStatus_);
+   p->rmsLinkStatus_                = ntohs(p->rmsLinkStatus_);
+   p->rpgLinkStatus_                = ntohs(p->rpgLinkStatus_);
+   p->interpanelLinkStatus_         = ntohs(p->interpanelLinkStatus_);
+   p->performanceCheckTime_         = ntohl(p->performanceCheckTime_);
+   p->version_                      = ntohs(p->version_);
 
    if (!ValidateMessage(is, bytesRead))
    {

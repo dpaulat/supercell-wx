@@ -76,8 +76,8 @@ bool Ar2vFile::LoadFile(const std::string& filename)
       f.read(reinterpret_cast<char*>(&p->milliseconds_), 4);
       f.read(&p->icao_[0], 4);
 
-      p->julianDate_   = htonl(p->julianDate_);
-      p->milliseconds_ = htonl(p->milliseconds_);
+      p->julianDate_   = ntohl(p->julianDate_);
+      p->milliseconds_ = ntohl(p->milliseconds_);
    }
 
    if (f.eof())
@@ -118,7 +118,7 @@ void Ar2vFileImpl::LoadLDMRecords(std::ifstream& f)
 
       f.read(reinterpret_cast<char*>(&controlWord), 4);
 
-      controlWord = htonl(controlWord);
+      controlWord = ntohl(controlWord);
       recordSize  = std::abs(controlWord);
 
       BOOST_LOG_TRIVIAL(trace)

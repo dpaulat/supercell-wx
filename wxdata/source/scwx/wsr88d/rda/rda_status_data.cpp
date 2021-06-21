@@ -279,40 +279,40 @@ bool RdaStatusData::Parse(std::istream& is)
    is.read(reinterpret_cast<char*>(&p->statusVersion_), 2);           // 42
    bytesRead += 120;
 
-   p->rdaStatus_                    = htons(p->rdaStatus_);
-   p->operabilityStatus_            = htons(p->operabilityStatus_);
-   p->controlStatus_                = htons(p->controlStatus_);
-   p->auxiliaryPowerGeneratorState_ = htons(p->auxiliaryPowerGeneratorState_);
-   p->averageTransmitterPower_      = htons(p->averageTransmitterPower_);
+   p->rdaStatus_                    = ntohs(p->rdaStatus_);
+   p->operabilityStatus_            = ntohs(p->operabilityStatus_);
+   p->controlStatus_                = ntohs(p->controlStatus_);
+   p->auxiliaryPowerGeneratorState_ = ntohs(p->auxiliaryPowerGeneratorState_);
+   p->averageTransmitterPower_      = ntohs(p->averageTransmitterPower_);
    p->horizontalReflectivityCalibrationCorrection_ =
-      htons(p->horizontalReflectivityCalibrationCorrection_);
-   p->dataTransmissionEnabled_     = htons(p->dataTransmissionEnabled_);
-   p->volumeCoveragePatternNumber_ = htons(p->volumeCoveragePatternNumber_);
-   p->rdaControlAuthorization_     = htons(p->rdaControlAuthorization_);
-   p->rdaBuildNumber_              = htons(p->rdaBuildNumber_);
-   p->operationalMode_             = htons(p->operationalMode_);
-   p->superResolutionStatus_       = htons(p->superResolutionStatus_);
+      ntohs(p->horizontalReflectivityCalibrationCorrection_);
+   p->dataTransmissionEnabled_     = ntohs(p->dataTransmissionEnabled_);
+   p->volumeCoveragePatternNumber_ = ntohs(p->volumeCoveragePatternNumber_);
+   p->rdaControlAuthorization_     = ntohs(p->rdaControlAuthorization_);
+   p->rdaBuildNumber_              = ntohs(p->rdaBuildNumber_);
+   p->operationalMode_             = ntohs(p->operationalMode_);
+   p->superResolutionStatus_       = ntohs(p->superResolutionStatus_);
    p->clutterMitigationDecisionStatus_ =
-      htons(p->clutterMitigationDecisionStatus_);
-   p->avsetEbcRdaLogDataStatus_ = htons(p->avsetEbcRdaLogDataStatus_);
-   p->rdaAlarmSummary_          = htons(p->rdaAlarmSummary_);
-   p->commandAcknowledgement_   = htons(p->commandAcknowledgement_);
-   p->channelControlStatus_     = htons(p->channelControlStatus_);
-   p->spotBlankingStatus_       = htons(p->spotBlankingStatus_);
-   p->bypassMapGenerationDate_  = htons(p->bypassMapGenerationDate_);
-   p->bypassMapGenerationTime_  = htons(p->bypassMapGenerationTime_);
+      ntohs(p->clutterMitigationDecisionStatus_);
+   p->avsetEbcRdaLogDataStatus_ = ntohs(p->avsetEbcRdaLogDataStatus_);
+   p->rdaAlarmSummary_          = ntohs(p->rdaAlarmSummary_);
+   p->commandAcknowledgement_   = ntohs(p->commandAcknowledgement_);
+   p->channelControlStatus_     = ntohs(p->channelControlStatus_);
+   p->spotBlankingStatus_       = ntohs(p->spotBlankingStatus_);
+   p->bypassMapGenerationDate_  = ntohs(p->bypassMapGenerationDate_);
+   p->bypassMapGenerationTime_  = ntohs(p->bypassMapGenerationTime_);
    p->clutterFilterMapGenerationDate_ =
-      htons(p->clutterFilterMapGenerationDate_);
+      ntohs(p->clutterFilterMapGenerationDate_);
    p->clutterFilterMapGenerationTime_ =
-      htons(p->clutterFilterMapGenerationTime_);
+      ntohs(p->clutterFilterMapGenerationTime_);
    p->verticalReflectivityCalibrationCorrection_ =
-      htons(p->verticalReflectivityCalibrationCorrection_);
-   p->transitionPowerSourceStatus_ = htons(p->transitionPowerSourceStatus_);
-   p->rmsControlStatus_            = htons(p->rmsControlStatus_);
-   p->performanceCheckStatus_      = htons(p->performanceCheckStatus_);
+      ntohs(p->verticalReflectivityCalibrationCorrection_);
+   p->transitionPowerSourceStatus_ = ntohs(p->transitionPowerSourceStatus_);
+   p->rmsControlStatus_            = ntohs(p->rmsControlStatus_);
+   p->performanceCheckStatus_      = ntohs(p->performanceCheckStatus_);
    SwapArray(p->alarmCodes_);
-   p->signalProcessingOptions_ = htons(p->signalProcessingOptions_);
-   p->statusVersion_           = htons(p->statusVersion_);
+   p->signalProcessingOptions_ = ntohs(p->signalProcessingOptions_);
+   p->statusVersion_           = ntohs(p->statusVersion_);
 
    if (!ValidateMessage(is, bytesRead))
    {

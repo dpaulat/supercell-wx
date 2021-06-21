@@ -87,9 +87,9 @@ bool ClutterFilterMap::Parse(std::istream& is)
    is.read(reinterpret_cast<char*>(&numElevationSegments), 2);
    bytesRead += 6;
 
-   p->mapGenerationDate_ = htons(p->mapGenerationDate_);
-   p->mapGenerationTime_ = htons(p->mapGenerationTime_);
-   numElevationSegments  = htons(numElevationSegments);
+   p->mapGenerationDate_ = ntohs(p->mapGenerationDate_);
+   p->mapGenerationTime_ = ntohs(p->mapGenerationTime_);
+   numElevationSegments  = ntohs(numElevationSegments);
 
    if (p->mapGenerationDate_ < 1)
    {
@@ -128,7 +128,7 @@ bool ClutterFilterMap::Parse(std::istream& is)
          is.read(reinterpret_cast<char*>(&numRangeZones), 2);
          bytesRead += 2;
 
-         numRangeZones = htons(numRangeZones);
+         numRangeZones = ntohs(numRangeZones);
 
          if (numRangeZones < 1 || numRangeZones > 20)
          {
@@ -153,8 +153,8 @@ bool ClutterFilterMap::Parse(std::istream& is)
             is.read(reinterpret_cast<char*>(&zone.endRange), 2);
             bytesRead += 4;
 
-            zone.opCode   = htons(zone.opCode);
-            zone.endRange = htons(zone.endRange);
+            zone.opCode   = ntohs(zone.opCode);
+            zone.endRange = ntohs(zone.endRange);
 
             if (zone.opCode > 2)
             {

@@ -385,12 +385,12 @@ bool VolumeCoveragePatternData::Parse(std::istream& is)
    is.seekg(2, std::ios_base::cur);                                     // 11
    bytesRead += 22;
 
-   messageSize             = htons(messageSize);
-   p->patternType_         = htons(p->patternType_);
-   p->patternNumber_       = htons(p->patternNumber_);
-   numberOfElevationCuts   = htons(numberOfElevationCuts);
-   p->vcpSequencing_       = htons(p->vcpSequencing_);
-   p->vcpSupplementalData_ = htons(p->vcpSupplementalData_);
+   messageSize             = ntohs(messageSize);
+   p->patternType_         = ntohs(p->patternType_);
+   p->patternNumber_       = ntohs(p->patternNumber_);
+   numberOfElevationCuts   = ntohs(numberOfElevationCuts);
+   p->vcpSequencing_       = ntohs(p->vcpSequencing_);
+   p->vcpSupplementalData_ = ntohs(p->vcpSupplementalData_);
 
    if (messageSize < 34 || messageSize > 747)
    {
@@ -442,20 +442,20 @@ bool VolumeCoveragePatternData::Parse(std::istream& is)
       is.seekg(2, std::ios_base::cur);                           // E23
       bytesRead += 46;
 
-      c.elevationAngle_ = htons(c.elevationAngle_);
+      c.elevationAngle_ = ntohs(c.elevationAngle_);
       c.surveillancePrfPulseCountRadial_ =
-         htons(c.surveillancePrfPulseCountRadial_);
-      c.azimuthRate_            = htons(c.azimuthRate_);
-      c.reflectivityThreshold_  = htons(c.reflectivityThreshold_);
-      c.velocityThreshold_      = htons(c.velocityThreshold_);
-      c.spectrumWidthThreshold_ = htons(c.spectrumWidthThreshold_);
+         ntohs(c.surveillancePrfPulseCountRadial_);
+      c.azimuthRate_            = ntohs(c.azimuthRate_);
+      c.reflectivityThreshold_  = ntohs(c.reflectivityThreshold_);
+      c.velocityThreshold_      = ntohs(c.velocityThreshold_);
+      c.spectrumWidthThreshold_ = ntohs(c.spectrumWidthThreshold_);
       c.differentialReflectivityThreshold_ =
-         htons(c.differentialReflectivityThreshold_);
-      c.differentialPhaseThreshold_ = htons(c.differentialPhaseThreshold_);
+         ntohs(c.differentialReflectivityThreshold_);
+      c.differentialPhaseThreshold_ = ntohs(c.differentialPhaseThreshold_);
       c.correlationCoefficientThreshold_ =
-         htons(c.correlationCoefficientThreshold_);
-      c.supplementalData_ = htons(c.supplementalData_);
-      c.ebcAngle_         = htons(c.ebcAngle_);
+         ntohs(c.correlationCoefficientThreshold_);
+      c.supplementalData_ = ntohs(c.supplementalData_);
+      c.ebcAngle_         = ntohs(c.ebcAngle_);
 
       for (size_t s = 0; s < c.sector_.size(); s++)
       {
@@ -503,9 +503,9 @@ static void ReadSector(std::istream& is, Sector& s)
 
 static void SwapSector(Sector& s)
 {
-   s.edgeAngle_                  = htons(s.edgeAngle_);
-   s.dopplerPrfNumber_           = htons(s.dopplerPrfNumber_);
-   s.dopplerPrfPulseCountRadial_ = htons(s.dopplerPrfPulseCountRadial_);
+   s.edgeAngle_                  = ntohs(s.edgeAngle_);
+   s.dopplerPrfNumber_           = ntohs(s.dopplerPrfNumber_);
+   s.dopplerPrfPulseCountRadial_ = ntohs(s.dopplerPrfPulseCountRadial_);
 }
 
 } // namespace rda

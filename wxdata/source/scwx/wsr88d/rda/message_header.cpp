@@ -108,12 +108,12 @@ bool MessageHeader::Parse(std::istream& is)
    is.read(reinterpret_cast<char*>(&p->numberOfMessageSegments_), 2);
    is.read(reinterpret_cast<char*>(&p->messageSegmentNumber_), 2);
 
-   p->messageSize_             = htons(p->messageSize_);
-   p->idSequenceNumber_        = htons(p->idSequenceNumber_);
-   p->julianDate_              = htons(p->julianDate_);
-   p->millisecondsOfDay_       = htonl(p->millisecondsOfDay_);
-   p->numberOfMessageSegments_ = htons(p->numberOfMessageSegments_);
-   p->messageSegmentNumber_    = htons(p->messageSegmentNumber_);
+   p->messageSize_             = ntohs(p->messageSize_);
+   p->idSequenceNumber_        = ntohs(p->idSequenceNumber_);
+   p->julianDate_              = ntohs(p->julianDate_);
+   p->millisecondsOfDay_       = ntohl(p->millisecondsOfDay_);
+   p->numberOfMessageSegments_ = ntohs(p->numberOfMessageSegments_);
+   p->messageSegmentNumber_    = ntohs(p->messageSegmentNumber_);
 
    if (is.eof())
    {
