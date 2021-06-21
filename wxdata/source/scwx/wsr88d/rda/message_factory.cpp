@@ -78,7 +78,7 @@ MessageInfo MessageFactory::Create(std::istream& is)
          if (segment == 1)
          {
             // Estimate total message size
-            messageData_.reserve(dataSize * totalSegments);
+            messageData_.resize(dataSize * totalSegments);
             messageBufferStream_.clear();
             bufferedSize_ = 0;
          }
@@ -93,7 +93,7 @@ MessageInfo MessageFactory::Create(std::istream& is)
                std::max<uint16_t>(totalSegments - segment + 1, 100u);
             size_t remainingSize = remainingSegments * dataSize;
 
-            messageData_.reserve(bufferedSize_ + remainingSize);
+            messageData_.resize(bufferedSize_ + remainingSize);
          }
 
          is.read(messageData_.data() + bufferedSize_, dataSize);
