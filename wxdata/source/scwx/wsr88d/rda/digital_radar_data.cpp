@@ -78,6 +78,9 @@ struct MomentDataBlock : DataBlock
    float    scale_;
    float    offset_;
 
+   std::vector<char>     momentGates8_;
+   std::vector<uint16_t> momentGates16_;
+
    static std::unique_ptr<MomentDataBlock>
    Create(const std::string& dataBlockType,
           const std::string& dataName,
@@ -107,7 +110,33 @@ struct MomentDataBlock : DataBlock
       p->scale_        = Message::SwapFloat(p->scale_);
       p->offset_       = Message::SwapFloat(p->offset_);
 
-      // TODO: Moment gates
+      if (p->numberOfDataMomentGates_ >= 0 &&
+          p->numberOfDataMomentGates_ <= 1840)
+      {
+         if (p->dataWordSize_ == 8)
+         {
+            p->momentGates8_.resize(p->numberOfDataMomentGates_);
+            is.read(p->momentGates8_.data(), p->numberOfDataMomentGates_);
+         }
+         else if (p->dataWordSize_ == 16)
+         {
+            p->momentGates16_.resize(p->numberOfDataMomentGates_);
+            is.read(reinterpret_cast<char*>(p->momentGates16_.data()),
+                    p->numberOfDataMomentGates_ * 2);
+            Message::SwapVector(p->momentGates16_);
+         }
+         else
+         {
+            BOOST_LOG_TRIVIAL(warning)
+               << logPrefix_ << "Invalid data word size: " << p->dataWordSize_;
+         }
+      }
+      else
+      {
+         BOOST_LOG_TRIVIAL(warning)
+            << logPrefix_ << "Invalid number of data moment gates: "
+            << p->numberOfDataMomentGates_;
+      }
 
       return p;
    }
@@ -359,6 +388,81 @@ DigitalRadarData::~DigitalRadarData() = default;
 DigitalRadarData::DigitalRadarData(DigitalRadarData&&) noexcept = default;
 DigitalRadarData&
 DigitalRadarData::operator=(DigitalRadarData&&) noexcept = default;
+
+const std::string& DigitalRadarData::radar_identifier() const
+{
+   return p->radarIdentifier_;
+}
+
+uint32_t DigitalRadarData::collection_time() const
+{
+   return p->collectionTime_;
+}
+
+uint16_t DigitalRadarData::modified_julian_date() const
+{
+   return p->modifiedJulianDate_;
+}
+
+uint16_t DigitalRadarData::azimuth_number() const
+{
+   return p->azimuthNumber_;
+}
+
+float DigitalRadarData::azimuth_angle() const
+{
+   return p->azimuthAngle_;
+}
+
+uint8_t DigitalRadarData::compression_indicator() const
+{
+   return p->compressionIndicator_;
+}
+
+uint16_t DigitalRadarData::radial_length() const
+{
+   return p->radialLength_;
+}
+
+uint8_t DigitalRadarData::azimuth_resolution_spacing() const
+{
+   return p->azimuthResolutionSpacing_;
+}
+
+uint8_t DigitalRadarData::radial_status() const
+{
+   return p->radialStatus_;
+}
+
+uint8_t DigitalRadarData::elevation_number() const
+{
+   return p->elevationNumber_;
+}
+
+uint8_t DigitalRadarData::cut_sector_number() const
+{
+   return p->cutSectorNumber_;
+}
+
+float DigitalRadarData::elevation_angle() const
+{
+   return p->elevationAngle_;
+}
+
+uint8_t DigitalRadarData::radial_spot_blanking_status() const
+{
+   return p->radialSpotBlankingStatus_;
+}
+
+uint8_t DigitalRadarData::azimuth_indexing_mode() const
+{
+   return p->azimuthIndexingMode_;
+}
+
+uint16_t DigitalRadarData::data_block_count() const
+{
+   return p->dataBlockCount_;
+}
 
 bool DigitalRadarData::Parse(std::istream& is)
 {

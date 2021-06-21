@@ -105,6 +105,15 @@ public:
       });
    }
 
+   static void SwapVector(std::vector<uint16_t>& v)
+   {
+      std::transform(std::execution::par_unseq,
+                     v.begin(),
+                     v.end(),
+                     v.begin(),
+                     [](uint16_t u) { return ntohs(u); });
+   }
+
 private:
    std::unique_ptr<MessageImpl> p;
 };
