@@ -42,6 +42,7 @@ option(BUILD_DOCS "Build documentation" OFF)
 
 add_subdirectory(external)
 add_subdirectory(wxdata)
+add_subdirectory(scwx-qt)
 add_subdirectory(test)
 
 if(BUILD_DOCS)
