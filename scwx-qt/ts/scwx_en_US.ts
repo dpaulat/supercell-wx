@@ -4,7 +4,7 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../source/scwx/qt/main_window.ui" line="14"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="14"/>
         <source>MainWindow</source>
         <translation type="unfinished"></translation>
     </message>

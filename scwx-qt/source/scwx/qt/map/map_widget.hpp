@@ -1,0 +1,56 @@
+#pragma once
+
+#include <QMapboxGL>
+
+#include <QOpenGLWidget>
+#include <QPropertyAnimation>
+#include <QScopedPointer>
+#include <QtGlobal>
+
+class QKeyEvent;
+class QMouseEvent;
+class QWheelEvent;
+
+namespace scwx
+{
+namespace qt
+{
+
+class MapWidget : public QOpenGLWidget
+{
+   Q_OBJECT
+
+public:
+   MapWidget(const QMapboxGLSettings&);
+   ~MapWidget();
+
+private:
+   void  changeStyle();
+   qreal pixelRatio();
+
+   // QWidget implementation.
+   void keyPressEvent(QKeyEvent* ev) override final;
+   void mousePressEvent(QMouseEvent* ev) override final;
+   void mouseMoveEvent(QMouseEvent* ev) override final;
+   void wheelEvent(QWheelEvent* ev) override final;
+
+   // QOpenGLWidget implementation.
+   void initializeGL() override final;
+   void paintGL() override final;
+
+   QPointF lastPos_;
+
+   QMapboxGLSettings         settings_;
+   QScopedPointer<QMapboxGL> map_;
+
+   uint64_t frameDraws_ = 0;
+
+   QVariant symbolAnnotationId_;
+   QVariant lineAnnotationId_;
+   QVariant fillAnnotationId_;
+
+   bool sourceAdded_ = false;
+};
+
+} // namespace qt
+} // namespace scwx

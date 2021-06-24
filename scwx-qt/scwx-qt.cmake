@@ -43,20 +43,37 @@ find_package(Qt${QT_VERSION_MAJOR}
 
 include(qt6-linguist.cmake)
 
+set(HDR_MAIN source/scwx/qt/main/main_window.hpp)
+set(SRC_MAIN source/scwx/qt/main/main.cpp
+             source/scwx/qt/main/main_window.cpp)
+set(UI_MAIN  source/scwx/qt/main/main_window.ui)
+set(HDR_MAP source/scwx/qt/map/map_widget.hpp)
+set(SRC_MAP source/scwx/qt/map/map_widget.cpp)
+
 set(TS_FILES ts/scwx_en_US.ts)
 
-set(PROJECT_SOURCES
-        source/scwx/qt/main.cpp
-        source/scwx/qt/main_window.cpp
-        source/scwx/qt/main_window.hpp
-        source/scwx/qt/main_window.ui
-        ${TS_FILES}
-)
+set(PROJECT_SOURCES ${HDR_MAIN}
+                    ${SRC_MAIN}
+                    ${UI_MAIN}
+                    ${HDR_MAP}
+                    ${SRC_MAP}
+                    ${TS_FILES})
+
+source_group("Header Files\\main" FILES ${HDR_MAIN})
+source_group("Source Files\\main" FILES ${SRC_MAIN})
+source_group("UI Files\\main"     FILES ${UI_MAIN})
+source_group("Header Files\\map"  FILES ${HDR_MAP})
+source_group("Source Files\\map"  FILES ${SRC_MAP})
+source_group("I18N Files"         FILES ${TS_FILES})
 
 qt_add_executable(scwx-qt
     ${PROJECT_SOURCES}
 )
 
-qt6_create_translation_scwx(QM_FILES ${PROJECT_SOURCE_DIR} ${TS_FILES})
+qt6_create_translation_scwx(QM_FILES ${scwx-qt_SOURCE_DIR} ${TS_FILES})
 
-target_link_libraries(scwx-qt PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_include_directories(scwx-qt PRIVATE ${scwx-qt_SOURCE_DIR}/source)
+
+target_link_libraries(scwx-qt PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
+                                      Qt${QT_VERSION_MAJOR}::OpenGLWidgets
+                                      qmapboxgl)
