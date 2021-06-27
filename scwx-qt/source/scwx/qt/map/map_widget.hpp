@@ -38,6 +38,8 @@ private:
    void initializeGL() override final;
    void paintGL() override final;
 
+   void AddLayers();
+
    QPointF lastPos_;
 
    QMapboxGLSettings         settings_;
@@ -45,11 +47,8 @@ private:
 
    uint64_t frameDraws_ = 0;
 
-   QVariant symbolAnnotationId_;
-   QVariant lineAnnotationId_;
-   QVariant fillAnnotationId_;
-
-   bool sourceAdded_ = false;
+private slots:
+   void mapChanged(QMapboxGL::MapChange);
 };
 
 } // namespace qt

@@ -11,6 +11,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(Boost)
+
 # QtCreator supports the following variables for Android, which are identical to qmake Android variables.
 # Check https://doc.qt.io/qt/deployment-android.html for more information.
 # They need to be set before the find_package( ...) calls below.
@@ -47,8 +49,10 @@ set(HDR_MAIN source/scwx/qt/main/main_window.hpp)
 set(SRC_MAIN source/scwx/qt/main/main.cpp
              source/scwx/qt/main/main_window.cpp)
 set(UI_MAIN  source/scwx/qt/main/main_window.ui)
-set(HDR_MAP source/scwx/qt/map/map_widget.hpp)
-set(SRC_MAP source/scwx/qt/map/map_widget.cpp)
+set(HDR_MAP source/scwx/qt/map/map_widget.hpp
+            source/scwx/qt/map/triangle_layer.hpp)
+set(SRC_MAP source/scwx/qt/map/map_widget.cpp
+            source/scwx/qt/map/triangle_layer.cpp)
 
 set(TS_FILES ts/scwx_en_US.ts)
 
@@ -76,4 +80,6 @@ target_include_directories(scwx-qt PRIVATE ${scwx-qt_SOURCE_DIR}/source)
 
 target_link_libraries(scwx-qt PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
                                       Qt${QT_VERSION_MAJOR}::OpenGLWidgets
-                                      qmapboxgl)
+                                      Boost::log
+                                      qmapboxgl
+                                      opengl32)
