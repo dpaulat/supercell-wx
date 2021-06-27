@@ -236,22 +236,22 @@ uint8_t VolumeCoveragePatternData::super_resolution_control(uint16_t e) const
 
 bool VolumeCoveragePatternData::half_degree_azimuth(uint16_t e) const
 {
-   return p->elevationCuts_[e].superResolutionControl_ & 0x0001;
+   return p->elevationCuts_[e].superResolutionControl_ & 0x01;
 }
 
 bool VolumeCoveragePatternData::quarter_km_reflectivity(uint16_t e) const
 {
-   return p->elevationCuts_[e].superResolutionControl_ & 0x0002;
+   return p->elevationCuts_[e].superResolutionControl_ & 0x02;
 }
 
 bool VolumeCoveragePatternData::doppler_to_300km(uint16_t e) const
 {
-   return p->elevationCuts_[e].superResolutionControl_ & 0x0004;
+   return p->elevationCuts_[e].superResolutionControl_ & 0x04;
 }
 
 bool VolumeCoveragePatternData::dual_polarization_to_300km(uint16_t e) const
 {
-   return p->elevationCuts_[e].superResolutionControl_ & 0x0008;
+   return p->elevationCuts_[e].superResolutionControl_ & 0x08;
 }
 
 uint8_t VolumeCoveragePatternData::surveillance_prf_number(uint16_t e) const
@@ -484,13 +484,18 @@ bool VolumeCoveragePatternData::Parse(std::istream& is)
    return messageValid;
 }
 
-std::unique_ptr<VolumeCoveragePatternData>
+std::shared_ptr<VolumeCoveragePatternData>
 VolumeCoveragePatternData::Create(MessageHeader&& header, std::istream& is)
 {
-   std::unique_ptr<VolumeCoveragePatternData> message =
-      std::make_unique<VolumeCoveragePatternData>();
+   std::shared_ptr<VolumeCoveragePatternData> message =
+      std::make_shared<VolumeCoveragePatternData>();
    message->set_header(std::move(header));
-   message->Parse(is);
+
+   if (!message->Parse(is))
+   {
+      message.reset();
+   }
+
    return message;
 }
 

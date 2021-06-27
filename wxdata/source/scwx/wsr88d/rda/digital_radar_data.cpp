@@ -501,19 +501,34 @@ bool DigitalRadarData::Parse(std::istream& is)
    p->elevationAngle_     = SwapFloat(p->elevationAngle_);
    p->dataBlockCount_     = ntohs(p->dataBlockCount_);
 
+   if (p->azimuthNumber_ < 1 || p->azimuthNumber_ > 720)
+   {
+      BOOST_LOG_TRIVIAL(warning)
+         << logPrefix_ << "Invalid azimuth number: " << p->azimuthNumber_;
+      messageValid = false;
+   }
+   if (p->elevationNumber_ < 1 || p->elevationNumber_ > 32)
+   {
+      BOOST_LOG_TRIVIAL(warning)
+         << logPrefix_ << "Invalid elevation number: " << p->elevationNumber_;
+      messageValid = false;
+   }
    if (p->dataBlockCount_ < 4 || p->dataBlockCount_ > 10)
    {
       BOOST_LOG_TRIVIAL(warning)
          << logPrefix_
          << "Invalid number of data blocks: " << p->dataBlockCount_;
-      p->dataBlockCount_ = 0;
-      messageValid       = false;
+      messageValid = false;
    }
    if (p->compressionIndicator_ != 0)
    {
       BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Compression not supported";
+      messageValid = false;
+   }
+
+   if (!messageValid)
+   {
       p->dataBlockCount_ = 0;
-      messageValid       = false;
    }
 
    is.read(reinterpret_cast<char*>(&p->dataBlockPointer_),
@@ -599,13 +614,18 @@ bool DigitalRadarData::Parse(std::istream& is)
    return messageValid;
 }
 
-std::unique_ptr<DigitalRadarData>
+std::shared_ptr<DigitalRadarData>
 DigitalRadarData::Create(MessageHeader&& header, std::istream& is)
 {
-   std::unique_ptr<DigitalRadarData> message =
-      std::make_unique<DigitalRadarData>();
+   std::shared_ptr<DigitalRadarData> message =
+      std::make_shared<DigitalRadarData>();
    message->set_header(std::move(header));
-   message->Parse(is);
+
+   if (!message->Parse(is))
+   {
+      message.reset();
+   }
+
    return message;
 }
 

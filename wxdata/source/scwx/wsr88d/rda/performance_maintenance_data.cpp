@@ -2468,13 +2468,18 @@ bool PerformanceMaintenanceData::Parse(std::istream& is)
    return messageValid;
 }
 
-std::unique_ptr<PerformanceMaintenanceData>
+std::shared_ptr<PerformanceMaintenanceData>
 PerformanceMaintenanceData::Create(MessageHeader&& header, std::istream& is)
 {
-   std::unique_ptr<PerformanceMaintenanceData> message =
-      std::make_unique<PerformanceMaintenanceData>();
+   std::shared_ptr<PerformanceMaintenanceData> message =
+      std::make_shared<PerformanceMaintenanceData>();
    message->set_header(std::move(header));
-   message->Parse(is);
+
+   if (!message->Parse(is))
+   {
+      message.reset();
+   }
+
    return message;
 }
 

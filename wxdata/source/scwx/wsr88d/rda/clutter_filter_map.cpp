@@ -186,13 +186,18 @@ bool ClutterFilterMap::Parse(std::istream& is)
    return messageValid;
 }
 
-std::unique_ptr<ClutterFilterMap>
+std::shared_ptr<ClutterFilterMap>
 ClutterFilterMap::Create(MessageHeader&& header, std::istream& is)
 {
-   std::unique_ptr<ClutterFilterMap> message =
-      std::make_unique<ClutterFilterMap>();
+   std::shared_ptr<ClutterFilterMap> message =
+      std::make_shared<ClutterFilterMap>();
    message->set_header(std::move(header));
-   message->Parse(is);
+
+   if (!message->Parse(is))
+   {
+      message.reset();
+   }
+
    return message;
 }
 

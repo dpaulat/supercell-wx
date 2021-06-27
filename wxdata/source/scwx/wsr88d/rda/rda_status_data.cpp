@@ -322,12 +322,17 @@ bool RdaStatusData::Parse(std::istream& is)
    return messageValid;
 }
 
-std::unique_ptr<RdaStatusData> RdaStatusData::Create(MessageHeader&& header,
+std::shared_ptr<RdaStatusData> RdaStatusData::Create(MessageHeader&& header,
                                                      std::istream&   is)
 {
-   std::unique_ptr<RdaStatusData> message = std::make_unique<RdaStatusData>();
+   std::shared_ptr<RdaStatusData> message = std::make_shared<RdaStatusData>();
    message->set_header(std::move(header));
-   message->Parse(is);
+
+   if (!message->Parse(is))
+   {
+      message.reset();
+   }
+
    return message;
 }
 

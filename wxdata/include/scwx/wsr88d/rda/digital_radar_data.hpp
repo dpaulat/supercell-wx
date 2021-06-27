@@ -41,7 +41,7 @@ public:
 
    bool Parse(std::istream& is);
 
-   static std::unique_ptr<DigitalRadarData> Create(MessageHeader&& header,
+   static std::shared_ptr<DigitalRadarData> Create(MessageHeader&& header,
                                                    std::istream&   is);
 
 private:

@@ -77,7 +77,7 @@ public:
 
    bool Parse(std::istream& is);
 
-   static std::unique_ptr<VolumeCoveragePatternData>
+   static std::shared_ptr<VolumeCoveragePatternData>
    Create(MessageHeader&& header, std::istream& is);
 
 private:

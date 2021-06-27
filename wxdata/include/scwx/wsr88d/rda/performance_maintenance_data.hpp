@@ -278,7 +278,7 @@ public:
 
    bool Parse(std::istream& is);
 
-   static std::unique_ptr<PerformanceMaintenanceData>
+   static std::shared_ptr<PerformanceMaintenanceData>
    Create(MessageHeader&& header, std::istream& is);
 
 private:

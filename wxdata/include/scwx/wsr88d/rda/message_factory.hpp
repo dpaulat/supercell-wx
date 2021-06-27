@@ -11,7 +11,7 @@ namespace rda
 
 struct MessageInfo
 {
-   std::unique_ptr<Message> message;
+   std::shared_ptr<Message> message;
    bool                     headerValid;
    bool                     messageValid;
 

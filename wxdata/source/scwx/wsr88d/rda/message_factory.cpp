@@ -22,7 +22,7 @@ namespace rda
 
 static const std::string logPrefix_ = "[scwx::wsr88d::rda::message_factory] ";
 
-typedef std::function<std::unique_ptr<Message>(MessageHeader&&, std::istream&)>
+typedef std::function<std::shared_ptr<Message>(MessageHeader&&, std::istream&)>
    CreateMessageFunction;
 
 static const std::unordered_map<uint8_t, CreateMessageFunction> create_ {
@@ -131,6 +131,11 @@ MessageInfo MessageFactory::Create(std::istream& is)
       // Seek to the end of the current message
       is.seekg(header.message_size() * 2 - rda::MessageHeader::SIZE,
                std::ios_base::cur);
+   }
+
+   if (info.message == nullptr)
+   {
+      info.messageValid = false;
    }
 
    return info;

@@ -1746,13 +1746,18 @@ bool RdaAdaptationData::Parse(std::istream& is)
    return messageValid;
 }
 
-std::unique_ptr<RdaAdaptationData>
+std::shared_ptr<RdaAdaptationData>
 RdaAdaptationData::Create(MessageHeader&& header, std::istream& is)
 {
-   std::unique_ptr<RdaAdaptationData> message =
-      std::make_unique<RdaAdaptationData>();
+   std::shared_ptr<RdaAdaptationData> message =
+      std::make_shared<RdaAdaptationData>();
    message->set_header(std::move(header));
-   message->Parse(is);
+
+   if (!message->Parse(is))
+   {
+      message.reset();
+   }
+
    return message;
 }
 

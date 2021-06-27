@@ -55,7 +55,7 @@ public:
 
    bool Parse(std::istream& is);
 
-   static std::unique_ptr<RdaStatusData> Create(MessageHeader&& header,
+   static std::shared_ptr<RdaStatusData> Create(MessageHeader&& header,
                                                 std::istream&   is);
 
 private:

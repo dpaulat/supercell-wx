@@ -32,7 +32,7 @@ public:
 
    bool Parse(std::istream& is);
 
-   static std::unique_ptr<ClutterFilterMap> Create(MessageHeader&& header,
+   static std::shared_ptr<ClutterFilterMap> Create(MessageHeader&& header,
                                                    std::istream&   is);
 
    static const size_t NUM_AZIMUTH_SEGMENTS = 360u;

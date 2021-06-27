@@ -1,5 +1,8 @@
 #include <scwx/wsr88d/ar2v_file.hpp>
+#include <scwx/wsr88d/rda/digital_radar_data.hpp>
 #include <scwx/wsr88d/rda/message_factory.hpp>
+#include <scwx/wsr88d/rda/types.hpp>
+#include <scwx/wsr88d/rda/volume_coverage_pattern_data.hpp>
 #include <scwx/util/rangebuf.hpp>
 
 #include <fstream>
@@ -27,11 +30,16 @@ public:
        milliseconds_ {0},
        icao_(),
        numRecords_ {0},
-       rawRecords_() {};
+       rawRecords_(),
+       vcpData_ {nullptr},
+       radarData_ {} {};
    ~Ar2vFileImpl() = default;
 
+   void HandleMessage(std::shared_ptr<rda::Message>& message);
    void LoadLDMRecords(std::ifstream& f);
    void ParseLDMRecords();
+   void ProcessRadarData(std::shared_ptr<rda::DigitalRadarData>& message);
+   void ProcessVcpData();
 
    std::string tapeFilename_;
    std::string extensionNumber_;
@@ -40,6 +48,12 @@ public:
    std::string icao_;
 
    size_t numRecords_;
+
+   std::shared_ptr<rda::VolumeCoveragePatternData> vcpData_;
+   std::unordered_map<
+      uint16_t,
+      std::unordered_map<uint16_t, std::shared_ptr<rda::DigitalRadarData>>>
+      radarData_;
 
    std::list<std::stringstream> rawRecords_;
 };
@@ -182,6 +196,11 @@ void Ar2vFileImpl::ParseLDMRecords()
             break;
          }
 
+         if (msgInfo.messageValid)
+         {
+            HandleMessage(msgInfo.message);
+         }
+
          off_t    offset   = 0;
          uint16_t nextSize = 0u;
          do
@@ -202,6 +221,52 @@ void Ar2vFileImpl::ParseLDMRecords()
             BOOST_LOG_TRIVIAL(trace)
                << logPrefix_ << "Next record offset by " << offset << " bytes";
          }
+      }
+   }
+}
+
+void Ar2vFileImpl::HandleMessage(std::shared_ptr<rda::Message>& message)
+{
+   switch (message->header().message_type())
+   {
+   case static_cast<uint8_t>(rda::MessageId::VolumeCoveragePatternData):
+      vcpData_ =
+         std::static_pointer_cast<rda::VolumeCoveragePatternData>(message);
+      ProcessVcpData();
+      break;
+
+   case static_cast<uint8_t>(rda::MessageId::DigitalRadarData):
+      ProcessRadarData(
+         std::static_pointer_cast<rda::DigitalRadarData>(message));
+      break;
+
+   default: break;
+   }
+}
+
+void Ar2vFileImpl::ProcessRadarData(
+   std::shared_ptr<rda::DigitalRadarData>& message)
+{
+   uint16_t azimuthIndex   = message->azimuth_number() - 1;
+   uint16_t elevationIndex = message->elevation_number() - 1;
+
+   radarData_[elevationIndex][azimuthIndex] = message;
+}
+
+void Ar2vFileImpl::ProcessVcpData()
+{
+   uint16_t numberOfElevationCuts = vcpData_->number_of_elevation_cuts();
+   radarData_.reserve(numberOfElevationCuts);
+
+   for (uint16_t e = 0; e < numberOfElevationCuts; ++e)
+   {
+      if (vcpData_->half_degree_azimuth(e))
+      {
+         radarData_[e].reserve(720);
+      }
+      else
+      {
+         radarData_[e].reserve(360);
       }
    }
 }
