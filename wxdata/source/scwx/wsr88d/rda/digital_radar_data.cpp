@@ -12,21 +12,6 @@ namespace rda
 static const std::string logPrefix_ =
    "[scwx::wsr88d::rda::digital_radar_data] ";
 
-enum class DataBlockType
-{
-   Volume,
-   Elevation,
-   Radial,
-   MomentRef,
-   MomentVel,
-   MomentSw,
-   MomentZdr,
-   MomentPhi,
-   MomentRho,
-   MomentCfp,
-   Unknown
-};
-
 static const std::unordered_map<std::string, DataBlockType> strToDataBlock_ {
    {"VOL", DataBlockType::Volume},
    {"ELV", DataBlockType::Elevation},
@@ -39,10 +24,11 @@ static const std::unordered_map<std::string, DataBlockType> strToDataBlock_ {
    {"RHO", DataBlockType::MomentRho},
    {"CFP", DataBlockType::MomentCfp}};
 
-struct DataBlock
+class DataBlockImpl
 {
-   explicit DataBlock(const std::string& dataBlockType,
-                      const std::string& dataName) :
+public:
+   explicit DataBlockImpl(const std::string& dataBlockType,
+                          const std::string& dataName) :
        dataBlockType_ {dataBlockType}, dataName_ {dataName}
    {
    }
@@ -51,11 +37,20 @@ struct DataBlock
    std::string dataName_;
 };
 
-struct MomentDataBlock : DataBlock
+DataBlock::DataBlock(const std::string& dataBlockType,
+                     const std::string& dataName) :
+    p(std::make_unique<DataBlockImpl>(dataBlockType, dataName))
 {
-   explicit MomentDataBlock(const std::string& dataBlockType,
-                            const std::string& dataName) :
-       DataBlock(dataBlockType, dataName),
+}
+DataBlock::~DataBlock() = default;
+
+DataBlock::DataBlock(DataBlock&&) noexcept = default;
+DataBlock& DataBlock::operator=(DataBlock&&) noexcept = default;
+
+class MomentDataBlockImpl
+{
+public:
+   explicit MomentDataBlockImpl() :
        numberOfDataMomentGates_ {0},
        dataMomentRange_ {0},
        dataMomentRangeSampleInterval_ {0},
@@ -78,75 +73,148 @@ struct MomentDataBlock : DataBlock
    float    scale_;
    float    offset_;
 
-   std::vector<char>     momentGates8_;
+   std::vector<uint8_t>  momentGates8_;
    std::vector<uint16_t> momentGates16_;
+};
 
-   static std::unique_ptr<MomentDataBlock>
-   Create(const std::string& dataBlockType,
-          const std::string& dataName,
-          std::istream&      is)
+MomentDataBlock::MomentDataBlock(const std::string& dataBlockType,
+                                 const std::string& dataName) :
+    DataBlock(dataBlockType, dataName),
+    p(std::make_unique<MomentDataBlockImpl>())
+{
+}
+MomentDataBlock::~MomentDataBlock() = default;
+
+MomentDataBlock::MomentDataBlock(MomentDataBlock&&) noexcept = default;
+MomentDataBlock&
+MomentDataBlock::operator=(MomentDataBlock&&) noexcept = default;
+
+uint16_t MomentDataBlock::number_of_data_moment_gates() const
+{
+   return p->numberOfDataMomentGates_;
+}
+
+float MomentDataBlock::data_moment_range() const
+{
+   return p->dataMomentRange_ / 0.001f;
+}
+
+float MomentDataBlock::data_moment_range_sample_interval() const
+{
+   return p->dataMomentRangeSampleInterval_ / 0.001f;
+}
+
+float MomentDataBlock::snr_threshold() const
+{
+   return p->snrThreshold_ / 0.1f;
+}
+
+uint8_t MomentDataBlock::data_word_size() const
+{
+   return p->dataWordSize_;
+}
+
+float MomentDataBlock::scale() const
+{
+   return p->scale_;
+}
+
+float MomentDataBlock::offset() const
+{
+   return p->offset_;
+}
+
+const void* MomentDataBlock::data_moments() const
+{
+   const void* dataMoments;
+
+   switch (p->dataWordSize_)
    {
-      std::unique_ptr<MomentDataBlock> p =
-         std::make_unique<MomentDataBlock>(dataBlockType, dataName);
+   case 8: dataMoments = p->momentGates8_.data(); break;
+   case 16: dataMoments = p->momentGates8_.data(); break;
+   default: dataMoments = nullptr; break;
+   }
 
-      is.seekg(4, std::ios_base::cur);                                   // 4-7
-      is.read(reinterpret_cast<char*>(&p->numberOfDataMomentGates_), 2); // 8-9
-      is.read(reinterpret_cast<char*>(&p->dataMomentRange_), 2); // 10-11
-      is.read(reinterpret_cast<char*>(&p->dataMomentRangeSampleInterval_),
-              2);                                             // 12-13
-      is.read(reinterpret_cast<char*>(&p->tover_), 2);        // 14-15
-      is.read(reinterpret_cast<char*>(&p->snrThreshold_), 2); // 16-17
-      is.read(reinterpret_cast<char*>(&p->controlFlags_), 1); // 18
-      is.read(reinterpret_cast<char*>(&p->dataWordSize_), 1); // 19
-      is.read(reinterpret_cast<char*>(&p->scale_), 4);        // 20-23
-      is.read(reinterpret_cast<char*>(&p->offset_), 4);       // 24-27
+   return dataMoments;
+}
 
-      p->numberOfDataMomentGates_ = ntohs(p->numberOfDataMomentGates_);
-      p->dataMomentRange_         = ntohs(p->dataMomentRange_);
-      p->dataMomentRangeSampleInterval_ =
-         ntohs(p->dataMomentRangeSampleInterval_);
-      p->tover_        = ntohs(p->tover_);
-      p->snrThreshold_ = ntohs(p->snrThreshold_);
-      p->scale_        = Message::SwapFloat(p->scale_);
-      p->offset_       = Message::SwapFloat(p->offset_);
+std::shared_ptr<MomentDataBlock>
+MomentDataBlock::Create(const std::string& dataBlockType,
+                        const std::string& dataName,
+                        std::istream&      is)
+{
+   std::shared_ptr<MomentDataBlock> p =
+      std::make_shared<MomentDataBlock>(dataBlockType, dataName);
 
-      if (p->numberOfDataMomentGates_ >= 0 &&
-          p->numberOfDataMomentGates_ <= 1840)
+   if (!p->Parse(is))
+   {
+      p.reset();
+   }
+
+   return p;
+}
+
+bool MomentDataBlock::Parse(std::istream& is)
+{
+   bool dataBlockValid = true;
+
+   is.seekg(4, std::ios_base::cur);                                   // 4-7
+   is.read(reinterpret_cast<char*>(&p->numberOfDataMomentGates_), 2); // 8-9
+   is.read(reinterpret_cast<char*>(&p->dataMomentRange_), 2);         // 10-11
+   is.read(reinterpret_cast<char*>(&p->dataMomentRangeSampleInterval_),
+           2);                                             // 12-13
+   is.read(reinterpret_cast<char*>(&p->tover_), 2);        // 14-15
+   is.read(reinterpret_cast<char*>(&p->snrThreshold_), 2); // 16-17
+   is.read(reinterpret_cast<char*>(&p->controlFlags_), 1); // 18
+   is.read(reinterpret_cast<char*>(&p->dataWordSize_), 1); // 19
+   is.read(reinterpret_cast<char*>(&p->scale_), 4);        // 20-23
+   is.read(reinterpret_cast<char*>(&p->offset_), 4);       // 24-27
+
+   p->numberOfDataMomentGates_       = ntohs(p->numberOfDataMomentGates_);
+   p->dataMomentRange_               = ntohs(p->dataMomentRange_);
+   p->dataMomentRangeSampleInterval_ = ntohs(p->dataMomentRangeSampleInterval_);
+   p->tover_                         = ntohs(p->tover_);
+   p->snrThreshold_                  = ntohs(p->snrThreshold_);
+   p->scale_                         = Message::SwapFloat(p->scale_);
+   p->offset_                        = Message::SwapFloat(p->offset_);
+
+   if (p->numberOfDataMomentGates_ >= 0 && p->numberOfDataMomentGates_ <= 1840)
+   {
+      if (p->dataWordSize_ == 8)
       {
-         if (p->dataWordSize_ == 8)
-         {
-            p->momentGates8_.resize(p->numberOfDataMomentGates_);
-            is.read(p->momentGates8_.data(), p->numberOfDataMomentGates_);
-         }
-         else if (p->dataWordSize_ == 16)
-         {
-            p->momentGates16_.resize(p->numberOfDataMomentGates_);
-            is.read(reinterpret_cast<char*>(p->momentGates16_.data()),
-                    p->numberOfDataMomentGates_ * 2);
-            Message::SwapVector(p->momentGates16_);
-         }
-         else
-         {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_ << "Invalid data word size: " << p->dataWordSize_;
-         }
+         p->momentGates8_.resize(p->numberOfDataMomentGates_);
+         is.read(reinterpret_cast<char*>(p->momentGates8_.data()),
+                 p->numberOfDataMomentGates_);
+      }
+      else if (p->dataWordSize_ == 16)
+      {
+         p->momentGates16_.resize(p->numberOfDataMomentGates_);
+         is.read(reinterpret_cast<char*>(p->momentGates16_.data()),
+                 p->numberOfDataMomentGates_ * 2);
+         Message::SwapVector(p->momentGates16_);
       }
       else
       {
          BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid number of data moment gates: "
-            << p->numberOfDataMomentGates_;
+            << logPrefix_ << "Invalid data word size: " << p->dataWordSize_;
+         dataBlockValid = false;
       }
-
-      return p;
    }
-};
+   else
+   {
+      BOOST_LOG_TRIVIAL(warning)
+         << logPrefix_ << "Invalid number of data moment gates: "
+         << p->numberOfDataMomentGates_;
+      dataBlockValid = false;
+   }
 
-struct VolumeDataBlock : DataBlock
+   return dataBlockValid;
+}
+
+class VolumeDataBlockImpl
 {
-   explicit VolumeDataBlock(const std::string& dataBlockType,
-                            const std::string& dataName) :
-       DataBlock(dataBlockType, dataName),
+public:
+   explicit VolumeDataBlockImpl() :
        lrtup_ {0},
        versionNumberMajor_ {0},
        versionNumberMinor_ {0},
@@ -178,92 +246,136 @@ struct VolumeDataBlock : DataBlock
    float    initialSystemDifferentialPhase_;
    uint16_t volumeCoveragePatternNumber_;
    uint16_t processingStatus_;
-
-   static std::unique_ptr<VolumeDataBlock>
-   Create(const std::string& dataBlockType,
-          const std::string& dataName,
-          std::istream&      is)
-   {
-      std::unique_ptr<VolumeDataBlock> p =
-         std::make_unique<VolumeDataBlock>(dataBlockType, dataName);
-
-      is.read(reinterpret_cast<char*>(&p->lrtup_), 2);               // 4-5
-      is.read(reinterpret_cast<char*>(&p->versionNumberMajor_), 1);  // 6
-      is.read(reinterpret_cast<char*>(&p->versionNumberMinor_), 1);  // 7
-      is.read(reinterpret_cast<char*>(&p->latitude_), 4);            // 8-11
-      is.read(reinterpret_cast<char*>(&p->longitude_), 4);           // 12-15
-      is.read(reinterpret_cast<char*>(&p->siteHeight_), 2);          // 16-17
-      is.read(reinterpret_cast<char*>(&p->feedhornHeight_), 2);      // 18-19
-      is.read(reinterpret_cast<char*>(&p->calibrationConstant_), 4); // 20-23
-      is.read(reinterpret_cast<char*>(&p->horizontaShvTxPower_), 4); // 24-27
-      is.read(reinterpret_cast<char*>(&p->verticalShvTxPower_), 4);  // 28-31
-      is.read(reinterpret_cast<char*>(&p->systemDifferentialReflectivity_),
-              4); // 32-35
-      is.read(reinterpret_cast<char*>(&p->initialSystemDifferentialPhase_),
-              4); // 36-39
-      is.read(reinterpret_cast<char*>(&p->volumeCoveragePatternNumber_),
-              2);                                                 // 40-41
-      is.read(reinterpret_cast<char*>(&p->processingStatus_), 2); // 42-43
-
-      p->lrtup_               = ntohs(p->lrtup_);
-      p->latitude_            = Message::SwapFloat(p->latitude_);
-      p->longitude_           = Message::SwapFloat(p->longitude_);
-      p->siteHeight_          = ntohs(p->siteHeight_);
-      p->feedhornHeight_      = ntohs(p->feedhornHeight_);
-      p->calibrationConstant_ = Message::SwapFloat(p->calibrationConstant_);
-      p->horizontaShvTxPower_ = Message::SwapFloat(p->horizontaShvTxPower_);
-      p->verticalShvTxPower_  = Message::SwapFloat(p->verticalShvTxPower_);
-      p->systemDifferentialReflectivity_ =
-         Message::SwapFloat(p->systemDifferentialReflectivity_);
-      p->initialSystemDifferentialPhase_ =
-         Message::SwapFloat(p->initialSystemDifferentialPhase_);
-      p->volumeCoveragePatternNumber_ = ntohs(p->volumeCoveragePatternNumber_);
-      p->processingStatus_            = ntohs(p->processingStatus_);
-
-      return p;
-   }
 };
 
-struct ElevationDataBlock : DataBlock
+VolumeDataBlock::VolumeDataBlock(const std::string& dataBlockType,
+                                 const std::string& dataName) :
+    DataBlock(dataBlockType, dataName),
+    p(std::make_unique<VolumeDataBlockImpl>())
 {
-   explicit ElevationDataBlock(const std::string& dataBlockType,
-                               const std::string& dataName) :
-       DataBlock(dataBlockType, dataName),
-       lrtup_ {0},
-       atmos_ {0},
-       calibrationConstant_ {0.0f}
+}
+VolumeDataBlock::~VolumeDataBlock() = default;
+
+VolumeDataBlock::VolumeDataBlock(VolumeDataBlock&&) noexcept = default;
+VolumeDataBlock&
+VolumeDataBlock::operator=(VolumeDataBlock&&) noexcept = default;
+
+std::shared_ptr<VolumeDataBlock>
+VolumeDataBlock::Create(const std::string& dataBlockType,
+                        const std::string& dataName,
+                        std::istream&      is)
+{
+   std::shared_ptr<VolumeDataBlock> p =
+      std::make_shared<VolumeDataBlock>(dataBlockType, dataName);
+
+   if (!p->Parse(is))
+   {
+      p.reset();
+   }
+
+   return p;
+}
+
+bool VolumeDataBlock::Parse(std::istream& is)
+{
+   bool dataBlockValid = true;
+
+   is.read(reinterpret_cast<char*>(&p->lrtup_), 2);               // 4-5
+   is.read(reinterpret_cast<char*>(&p->versionNumberMajor_), 1);  // 6
+   is.read(reinterpret_cast<char*>(&p->versionNumberMinor_), 1);  // 7
+   is.read(reinterpret_cast<char*>(&p->latitude_), 4);            // 8-11
+   is.read(reinterpret_cast<char*>(&p->longitude_), 4);           // 12-15
+   is.read(reinterpret_cast<char*>(&p->siteHeight_), 2);          // 16-17
+   is.read(reinterpret_cast<char*>(&p->feedhornHeight_), 2);      // 18-19
+   is.read(reinterpret_cast<char*>(&p->calibrationConstant_), 4); // 20-23
+   is.read(reinterpret_cast<char*>(&p->horizontaShvTxPower_), 4); // 24-27
+   is.read(reinterpret_cast<char*>(&p->verticalShvTxPower_), 4);  // 28-31
+   is.read(reinterpret_cast<char*>(&p->systemDifferentialReflectivity_),
+           4); // 32-35
+   is.read(reinterpret_cast<char*>(&p->initialSystemDifferentialPhase_),
+           4); // 36-39
+   is.read(reinterpret_cast<char*>(&p->volumeCoveragePatternNumber_),
+           2);                                                 // 40-41
+   is.read(reinterpret_cast<char*>(&p->processingStatus_), 2); // 42-43
+
+   p->lrtup_               = ntohs(p->lrtup_);
+   p->latitude_            = Message::SwapFloat(p->latitude_);
+   p->longitude_           = Message::SwapFloat(p->longitude_);
+   p->siteHeight_          = ntohs(p->siteHeight_);
+   p->feedhornHeight_      = ntohs(p->feedhornHeight_);
+   p->calibrationConstant_ = Message::SwapFloat(p->calibrationConstant_);
+   p->horizontaShvTxPower_ = Message::SwapFloat(p->horizontaShvTxPower_);
+   p->verticalShvTxPower_  = Message::SwapFloat(p->verticalShvTxPower_);
+   p->systemDifferentialReflectivity_ =
+      Message::SwapFloat(p->systemDifferentialReflectivity_);
+   p->initialSystemDifferentialPhase_ =
+      Message::SwapFloat(p->initialSystemDifferentialPhase_);
+   p->volumeCoveragePatternNumber_ = ntohs(p->volumeCoveragePatternNumber_);
+   p->processingStatus_            = ntohs(p->processingStatus_);
+
+   return dataBlockValid;
+}
+
+class ElevationDataBlockImpl
+{
+public:
+   explicit ElevationDataBlockImpl() :
+       lrtup_ {0}, atmos_ {0}, calibrationConstant_ {0.0f}
    {
    }
 
    uint16_t lrtup_;
    int16_t  atmos_;
    float    calibrationConstant_;
-
-   static std::unique_ptr<ElevationDataBlock>
-   Create(const std::string& dataBlockType,
-          const std::string& dataName,
-          std::istream&      is)
-   {
-      std::unique_ptr<ElevationDataBlock> p =
-         std::make_unique<ElevationDataBlock>(dataBlockType, dataName);
-
-      is.read(reinterpret_cast<char*>(&p->lrtup_), 2);               // 4-5
-      is.read(reinterpret_cast<char*>(&p->atmos_), 2);               // 6-7
-      is.read(reinterpret_cast<char*>(&p->calibrationConstant_), 4); // 8-11
-
-      p->lrtup_               = ntohs(p->lrtup_);
-      p->atmos_               = ntohs(p->atmos_);
-      p->calibrationConstant_ = Message::SwapFloat(p->calibrationConstant_);
-
-      return p;
-   }
 };
 
-struct RadialDataBlock : DataBlock
+ElevationDataBlock::ElevationDataBlock(const std::string& dataBlockType,
+                                       const std::string& dataName) :
+    DataBlock(dataBlockType, dataName),
+    p(std::make_unique<ElevationDataBlockImpl>())
 {
-   explicit RadialDataBlock(const std::string& dataBlockType,
-                            const std::string& dataName) :
-       DataBlock(dataBlockType, dataName),
+}
+ElevationDataBlock::~ElevationDataBlock() = default;
+
+ElevationDataBlock::ElevationDataBlock(ElevationDataBlock&&) noexcept = default;
+ElevationDataBlock&
+ElevationDataBlock::operator=(ElevationDataBlock&&) noexcept = default;
+
+std::shared_ptr<ElevationDataBlock>
+ElevationDataBlock::Create(const std::string& dataBlockType,
+                           const std::string& dataName,
+                           std::istream&      is)
+{
+   std::shared_ptr<ElevationDataBlock> p =
+      std::make_shared<ElevationDataBlock>(dataBlockType, dataName);
+
+   if (!p->Parse(is))
+   {
+      p.reset();
+   }
+
+   return p;
+}
+
+bool ElevationDataBlock::Parse(std::istream& is)
+{
+   bool dataBlockValid = true;
+
+   is.read(reinterpret_cast<char*>(&p->lrtup_), 2);               // 4-5
+   is.read(reinterpret_cast<char*>(&p->atmos_), 2);               // 6-7
+   is.read(reinterpret_cast<char*>(&p->calibrationConstant_), 4); // 8-11
+
+   p->lrtup_               = ntohs(p->lrtup_);
+   p->atmos_               = ntohs(p->atmos_);
+   p->calibrationConstant_ = Message::SwapFloat(p->calibrationConstant_);
+
+   return dataBlockValid;
+}
+
+class RadialDataBlockImpl
+{
+public:
+   explicit RadialDataBlockImpl() :
        lrtup_ {0},
        unambigiousRange_ {0},
        noiseLevelHorizontal_ {0.0f},
@@ -283,40 +395,64 @@ struct RadialDataBlock : DataBlock
    uint16_t radialFlags_;
    float    calibrationConstantHorizontal_;
    float    calibrationConstantVertical_;
-
-   static std::unique_ptr<RadialDataBlock>
-   Create(const std::string& dataBlockType,
-          const std::string& dataName,
-          std::istream&      is)
-   {
-      std::unique_ptr<RadialDataBlock> p =
-         std::make_unique<RadialDataBlock>(dataBlockType, dataName);
-
-      is.read(reinterpret_cast<char*>(&p->lrtup_), 2);                // 4-5
-      is.read(reinterpret_cast<char*>(&p->unambigiousRange_), 2);     // 6-7
-      is.read(reinterpret_cast<char*>(&p->noiseLevelHorizontal_), 4); // 8-11
-      is.read(reinterpret_cast<char*>(&p->noiseLevelVertical_), 4);   // 12-15
-      is.read(reinterpret_cast<char*>(&p->nyquistVelocity_), 2);      // 16-17
-      is.read(reinterpret_cast<char*>(&p->radialFlags_), 2);          // 18-19
-      is.read(reinterpret_cast<char*>(&p->calibrationConstantHorizontal_),
-              4); // 20-23
-      is.read(reinterpret_cast<char*>(&p->calibrationConstantVertical_),
-              4); // 24-27
-
-      p->lrtup_                = ntohs(p->lrtup_);
-      p->unambigiousRange_     = ntohs(p->unambigiousRange_);
-      p->noiseLevelHorizontal_ = Message::SwapFloat(p->noiseLevelHorizontal_);
-      p->noiseLevelVertical_   = Message::SwapFloat(p->noiseLevelVertical_);
-      p->nyquistVelocity_      = ntohs(p->nyquistVelocity_);
-      p->radialFlags_          = ntohs(p->radialFlags_);
-      p->calibrationConstantHorizontal_ =
-         Message::SwapFloat(p->calibrationConstantHorizontal_);
-      p->calibrationConstantVertical_ =
-         Message::SwapFloat(p->calibrationConstantVertical_);
-
-      return p;
-   }
 };
+
+RadialDataBlock::RadialDataBlock(const std::string& dataBlockType,
+                                 const std::string& dataName) :
+    DataBlock(dataBlockType, dataName),
+    p(std::make_unique<RadialDataBlockImpl>())
+{
+}
+RadialDataBlock::~RadialDataBlock() = default;
+
+RadialDataBlock::RadialDataBlock(RadialDataBlock&&) noexcept = default;
+RadialDataBlock&
+RadialDataBlock::operator=(RadialDataBlock&&) noexcept = default;
+
+std::shared_ptr<RadialDataBlock>
+RadialDataBlock::Create(const std::string& dataBlockType,
+                        const std::string& dataName,
+                        std::istream&      is)
+{
+   std::shared_ptr<RadialDataBlock> p =
+      std::make_shared<RadialDataBlock>(dataBlockType, dataName);
+
+   if (!p->Parse(is))
+   {
+      p.reset();
+   }
+
+   return p;
+}
+
+bool RadialDataBlock::Parse(std::istream& is)
+{
+   bool dataBlockValid = true;
+
+   is.read(reinterpret_cast<char*>(&p->lrtup_), 2);                // 4-5
+   is.read(reinterpret_cast<char*>(&p->unambigiousRange_), 2);     // 6-7
+   is.read(reinterpret_cast<char*>(&p->noiseLevelHorizontal_), 4); // 8-11
+   is.read(reinterpret_cast<char*>(&p->noiseLevelVertical_), 4);   // 12-15
+   is.read(reinterpret_cast<char*>(&p->nyquistVelocity_), 2);      // 16-17
+   is.read(reinterpret_cast<char*>(&p->radialFlags_), 2);          // 18-19
+   is.read(reinterpret_cast<char*>(&p->calibrationConstantHorizontal_),
+           4); // 20-23
+   is.read(reinterpret_cast<char*>(&p->calibrationConstantVertical_),
+           4); // 24-27
+
+   p->lrtup_                = ntohs(p->lrtup_);
+   p->unambigiousRange_     = ntohs(p->unambigiousRange_);
+   p->noiseLevelHorizontal_ = Message::SwapFloat(p->noiseLevelHorizontal_);
+   p->noiseLevelVertical_   = Message::SwapFloat(p->noiseLevelVertical_);
+   p->nyquistVelocity_      = ntohs(p->nyquistVelocity_);
+   p->radialFlags_          = ntohs(p->radialFlags_);
+   p->calibrationConstantHorizontal_ =
+      Message::SwapFloat(p->calibrationConstantHorizontal_);
+   p->calibrationConstantVertical_ =
+      Message::SwapFloat(p->calibrationConstantVertical_);
+
+   return dataBlockValid;
+}
 
 class DigitalRadarDataImpl
 {
@@ -341,13 +477,7 @@ public:
        volumeDataBlock_ {nullptr},
        elevationDataBlock_ {nullptr},
        radialDataBlock_ {nullptr},
-       momentRefDataBlock_ {nullptr},
-       momentVelDataBlock_ {nullptr},
-       momentSwDataBlock_ {nullptr},
-       momentZdrDataBlock_ {nullptr},
-       momentPhiDataBlock_ {nullptr},
-       momentRhoDataBlock_ {nullptr},
-       momentCfpDataBlock_ {nullptr} {};
+       momentDataBlock_ {} {};
    ~DigitalRadarDataImpl() = default;
 
    std::string              radarIdentifier_;
@@ -367,16 +497,11 @@ public:
    uint16_t                 dataBlockCount_;
    std::array<uint32_t, 10> dataBlockPointer_;
 
-   std::unique_ptr<VolumeDataBlock>    volumeDataBlock_;
-   std::unique_ptr<ElevationDataBlock> elevationDataBlock_;
-   std::unique_ptr<RadialDataBlock>    radialDataBlock_;
-   std::unique_ptr<MomentDataBlock>    momentRefDataBlock_;
-   std::unique_ptr<MomentDataBlock>    momentVelDataBlock_;
-   std::unique_ptr<MomentDataBlock>    momentSwDataBlock_;
-   std::unique_ptr<MomentDataBlock>    momentZdrDataBlock_;
-   std::unique_ptr<MomentDataBlock>    momentPhiDataBlock_;
-   std::unique_ptr<MomentDataBlock>    momentRhoDataBlock_;
-   std::unique_ptr<MomentDataBlock>    momentCfpDataBlock_;
+   std::shared_ptr<VolumeDataBlock>    volumeDataBlock_;
+   std::shared_ptr<ElevationDataBlock> elevationDataBlock_;
+   std::shared_ptr<RadialDataBlock>    radialDataBlock_;
+   std::unordered_map<DataBlockType, std::shared_ptr<MomentDataBlock>>
+      momentDataBlock_;
 };
 
 DigitalRadarData::DigitalRadarData() :
@@ -462,6 +587,20 @@ uint8_t DigitalRadarData::azimuth_indexing_mode() const
 uint16_t DigitalRadarData::data_block_count() const
 {
    return p->dataBlockCount_;
+}
+
+std::shared_ptr<MomentDataBlock>
+DigitalRadarData::moment_data_block(DataBlockType type) const
+{
+   std::shared_ptr<MomentDataBlock> momentDataBlock = nullptr;
+
+   auto it = p->momentDataBlock_.find(type);
+   if (it != p->momentDataBlock_.end())
+   {
+      momentDataBlock = it->second;
+   }
+
+   return momentDataBlock;
 }
 
 bool DigitalRadarData::Parse(std::istream& is)
@@ -571,31 +710,13 @@ bool DigitalRadarData::Parse(std::istream& is)
             std::move(RadialDataBlock::Create(dataBlockType, dataName, is));
          break;
       case DataBlockType::MomentRef:
-         p->momentRefDataBlock_ =
-            std::move(MomentDataBlock::Create(dataBlockType, dataName, is));
-         break;
       case DataBlockType::MomentVel:
-         p->momentVelDataBlock_ =
-            std::move(MomentDataBlock::Create(dataBlockType, dataName, is));
-         break;
       case DataBlockType::MomentSw:
-         p->momentSwDataBlock_ =
-            std::move(MomentDataBlock::Create(dataBlockType, dataName, is));
-         break;
       case DataBlockType::MomentZdr:
-         p->momentZdrDataBlock_ =
-            std::move(MomentDataBlock::Create(dataBlockType, dataName, is));
-         break;
       case DataBlockType::MomentPhi:
-         p->momentPhiDataBlock_ =
-            std::move(MomentDataBlock::Create(dataBlockType, dataName, is));
-         break;
       case DataBlockType::MomentRho:
-         p->momentRhoDataBlock_ =
-            std::move(MomentDataBlock::Create(dataBlockType, dataName, is));
-         break;
       case DataBlockType::MomentCfp:
-         p->momentCfpDataBlock_ =
+         p->momentDataBlock_[dataBlock] =
             std::move(MomentDataBlock::Create(dataBlockType, dataName, is));
          break;
       default:
