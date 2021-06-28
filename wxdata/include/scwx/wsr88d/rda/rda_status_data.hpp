@@ -17,7 +17,7 @@ public:
    explicit RdaStatusData();
    ~RdaStatusData();
 
-   RdaStatusData(const Message&) = delete;
+   RdaStatusData(const RdaStatusData&) = delete;
    RdaStatusData& operator=(const RdaStatusData&) = delete;
 
    RdaStatusData(RdaStatusData&&) noexcept;

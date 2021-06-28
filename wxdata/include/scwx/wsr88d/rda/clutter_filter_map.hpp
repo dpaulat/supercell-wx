@@ -17,7 +17,7 @@ public:
    explicit ClutterFilterMap();
    ~ClutterFilterMap();
 
-   ClutterFilterMap(const Message&) = delete;
+   ClutterFilterMap(const ClutterFilterMap&) = delete;
    ClutterFilterMap& operator=(const ClutterFilterMap&) = delete;
 
    ClutterFilterMap(ClutterFilterMap&&) noexcept;

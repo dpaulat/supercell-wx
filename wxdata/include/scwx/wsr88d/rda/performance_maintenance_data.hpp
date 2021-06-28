@@ -17,7 +17,7 @@ public:
    explicit PerformanceMaintenanceData();
    ~PerformanceMaintenanceData();
 
-   PerformanceMaintenanceData(const Message&) = delete;
+   PerformanceMaintenanceData(const PerformanceMaintenanceData&) = delete;
    PerformanceMaintenanceData&
    operator=(const PerformanceMaintenanceData&) = delete;
 

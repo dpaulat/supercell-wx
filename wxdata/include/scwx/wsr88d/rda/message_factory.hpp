@@ -24,7 +24,7 @@ private:
    explicit MessageFactory() = delete;
    ~MessageFactory()         = delete;
 
-   MessageFactory(const Message&) = delete;
+   MessageFactory(const MessageFactory&) = delete;
    MessageFactory& operator=(const MessageFactory&) = delete;
 
    MessageFactory(MessageFactory&&) noexcept = delete;

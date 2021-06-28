@@ -19,7 +19,7 @@ public:
    explicit VolumeCoveragePatternData();
    ~VolumeCoveragePatternData();
 
-   VolumeCoveragePatternData(const Message&) = delete;
+   VolumeCoveragePatternData(const VolumeCoveragePatternData&) = delete;
    VolumeCoveragePatternData&
    operator=(const VolumeCoveragePatternData&) = delete;
 

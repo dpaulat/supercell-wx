@@ -17,7 +17,7 @@ public:
    explicit RdaAdaptationData();
    ~RdaAdaptationData();
 
-   RdaAdaptationData(const Message&) = delete;
+   RdaAdaptationData(const RdaAdaptationData&) = delete;
    RdaAdaptationData& operator=(const RdaAdaptationData&) = delete;
 
    RdaAdaptationData(RdaAdaptationData&&) noexcept;
