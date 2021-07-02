@@ -8,15 +8,18 @@ find_package(BZip2)
 find_package(GTest)
 
 set(SRC_MAIN source/scwx/wxtest.cpp)
+set(SRC_COMMON_TESTS source/scwx/common/color_table.test.cpp)
 set(SRC_UTIL_TESTS source/scwx/util/rangebuf.test.cpp
                    source/scwx/util/vectorbuf.test.cpp)
 set(SRC_WSR88D_TESTS source/scwx/wsr88d/ar2v_file.test.cpp)
 
 add_executable(wxtest ${SRC_MAIN}
+                      ${SRC_COMMON_TESTS}
                       ${SRC_UTIL_TESTS}
                       ${SRC_WSR88D_TESTS})
 
 source_group("Source Files\\main"   FILES ${SRC_MAIN})
+source_group("Source Files\\common" FILES ${SRC_COMMON_TESTS})
 source_group("Source Files\\util"   FILES ${SRC_UTIL_TESTS})
 source_group("Source Files\\wsr88d" FILES ${SRC_WSR88D_TESTS})
 
@@ -38,6 +41,7 @@ target_link_libraries(wxtest Boost::iostreams
                              Boost::log
                              BZip2::BZip2
                              GTest::gtest
+                             hsluv-c
                              wxdata)
 
 if (WIN32)

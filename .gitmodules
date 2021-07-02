@@ -7,3 +7,6 @@
 [submodule "test/data"]
 	path = test/data
 	url = ../supercell-wx-test-data
+[submodule "external/hsluv-c"]
+	path = external/hsluv-c
+	url = https://github.com/hsluv/hsluv-c.git

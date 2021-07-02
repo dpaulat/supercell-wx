@@ -2,6 +2,8 @@ project(scwx-data)
 
 find_package(Boost)
 
+set(HDR_COMMON include/scwx/common/color_table.hpp)
+set(SRC_COMMON source/scwx/common/color_table.cpp)
 set(HDR_UTIL include/scwx/util/rangebuf.hpp
              include/scwx/util/vectorbuf.hpp)
 set(SRC_UTIL source/scwx/util/rangebuf.cpp
@@ -28,13 +30,17 @@ set(SRC_WSR88D_RDA source/scwx/wsr88d/rda/clutter_filter_map.cpp
                    source/scwx/wsr88d/rda/rda_status_data.cpp
                    source/scwx/wsr88d/rda/volume_coverage_pattern_data.cpp)
 
-add_library(wxdata OBJECT ${HDR_UTIL}
+add_library(wxdata OBJECT ${HDR_COMMON}
+                          ${SRC_COMMON}
+                          ${HDR_UTIL}
                           ${SRC_UTIL}
                           ${HDR_WSR88D}
                           ${SRC_WSR88D}
                           ${HDR_WSR88D_RDA}
                           ${SRC_WSR88D_RDA})
 
+source_group("Header Files\\common"      FILES ${HDR_COMMON})
+source_group("Source Files\\common"      FILES ${SRC_COMMON})
 source_group("Header Files\\util"        FILES ${HDR_UTIL})
 source_group("Source Files\\util"        FILES ${SRC_UTIL})
 source_group("Header Files\\wsr88d"      FILES ${HDR_WSR88D})
@@ -43,6 +49,7 @@ source_group("Header Files\\wsr88d\\rda" FILES ${HDR_WSR88D_RDA})
 source_group("Source Files\\wsr88d\\rda" FILES ${SRC_WSR88D_RDA})
 
 target_include_directories(wxdata PRIVATE ${Boost_INCLUDE_DIR}
+                                          ${HSLUV_C_INCLUDE_DIR}
                                           ${scwx-data_SOURCE_DIR}/include
                                           ${scwx-data_SOURCE_DIR}/source)
 target_include_directories(wxdata INTERFACE ${scwx-data_SOURCE_DIR}/include)
@@ -51,6 +58,6 @@ if(MSVC)
     target_compile_options(wxdata PRIVATE /W3)
 endif()
 
-set_target_properties(wxdata PROPERTIES CXX_STANDARD 17
+set_target_properties(wxdata PROPERTIES CXX_STANDARD 20
                                         CXX_STANDARD_REQUIRED ON
                                         CXX_EXTENSIONS OFF)

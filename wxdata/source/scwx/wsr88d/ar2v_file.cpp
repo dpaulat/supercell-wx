@@ -38,7 +38,7 @@ public:
    void HandleMessage(std::shared_ptr<rda::Message>& message);
    void LoadLDMRecords(std::ifstream& f);
    void ParseLDMRecords();
-   void ProcessRadarData(std::shared_ptr<rda::DigitalRadarData>& message);
+   void ProcessRadarData(std::shared_ptr<rda::DigitalRadarData> message);
    void ProcessVcpData();
 
    std::string tapeFilename_;
@@ -245,7 +245,7 @@ void Ar2vFileImpl::HandleMessage(std::shared_ptr<rda::Message>& message)
 }
 
 void Ar2vFileImpl::ProcessRadarData(
-   std::shared_ptr<rda::DigitalRadarData>& message)
+   std::shared_ptr<rda::DigitalRadarData> message)
 {
    uint16_t azimuthIndex   = message->azimuth_number() - 1;
    uint16_t elevationIndex = message->elevation_number() - 1;
