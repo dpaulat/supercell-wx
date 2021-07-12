@@ -16,6 +16,20 @@ namespace scwx
 namespace qt
 {
 
+typedef std::pair<std::string, std::string> MapStyle;
+
+// clang-format off
+static const MapStyle streets          { "mapbox://styles/mapbox/streets-v11",           "Streets"};
+static const MapStyle outdoors         { "mapbox://styles/mapbox/outdoors-v11",          "Outdoors"};
+static const MapStyle light            { "mapbox://styles/mapbox/light-v10",             "Light"};
+static const MapStyle dark             { "mapbox://styles/mapbox/dark-v10",              "Dark" };
+static const MapStyle satellite        { "mapbox://styles/mapbox/satellite-v9",          "Satellite" };
+static const MapStyle satelliteStreets { "mapbox://styles/mapbox/satellite-streets-v11", "Satellite Streets" };
+// clang-format on
+
+static const std::array<MapStyle, 6> mapboxStyles_ = {
+   {streets, outdoors, light, dark, satellite, satelliteStreets}};
+
 MapWidget::MapWidget(const QMapboxGLSettings& settings) : settings_(settings)
 {
    setFocusPolicy(Qt::StrongFocus);
@@ -35,12 +49,13 @@ qreal MapWidget::pixelRatio()
 
 void MapWidget::changeStyle()
 {
-   static uint8_t currentStyleIndex;
+   static uint8_t currentStyleIndex = 0;
 
-   auto& styles = QMapbox::defaultStyles();
+   auto& styles = mapboxStyles_;
 
-   map_->setStyleUrl(styles[currentStyleIndex].first);
-   setWindowTitle(QString("Mapbox GL: ") + styles[currentStyleIndex].second);
+   map_->setStyleUrl(styles[currentStyleIndex].first.c_str());
+   setWindowTitle(QString("Mapbox GL: ") +
+                  styles[currentStyleIndex].second.c_str());
 
    if (++currentStyleIndex == styles.size())
    {

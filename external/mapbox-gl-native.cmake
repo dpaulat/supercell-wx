@@ -5,6 +5,9 @@ set(gtest_disable_pthreads ON)
 set(MBGL_WITH_QT ON)
 add_subdirectory(mapbox-gl-native)
 
+find_package(ZLIB)
+target_link_libraries(mbgl-core PUBLIC ZLIB::ZLIB)
+
 set_target_properties(mbgl-qt PROPERTIES EXCLUDE_FROM_ALL True)
 set_target_properties(mbgl-test-runner PROPERTIES EXCLUDE_FROM_ALL True)
 set_target_properties(mbgl-vendor-icu PROPERTIES EXCLUDE_FROM_ALL True)
