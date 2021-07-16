@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>gl/radar.frag</file>
+        <file>gl/radar.vert</file>
+    </qresource>
+</RCC>

@@ -1,6 +1,6 @@
 #include "map_widget.hpp"
 
-#include <scwx/qt/map/triangle_layer.hpp>
+#include <scwx/qt/map/radar_layer.hpp>
 
 #include <QApplication>
 #include <QColor>
@@ -65,7 +65,7 @@ void MapWidget::changeStyle()
 void MapWidget::AddLayers()
 {
    // QMapboxGL::addCustomLayer will take ownership of the QScopedPointer
-   QScopedPointer<QMapbox::CustomLayerHostInterface> pHost(new TriangleLayer());
+   QScopedPointer<QMapbox::CustomLayerHostInterface> pHost(new RadarLayer());
 
    QString before = "ferry";
 
@@ -80,7 +80,7 @@ void MapWidget::AddLayers()
       }
    }
 
-   map_->addCustomLayer("triangle", pHost, before);
+   map_->addCustomLayer("radar", pHost, before);
 }
 
 void MapWidget::keyPressEvent(QKeyEvent* ev)

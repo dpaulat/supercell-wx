@@ -12,6 +12,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Boost)
+find_package(glm)
 
 # QtCreator supports the following variables for Android, which are identical to qmake Android variables.
 # Check https://doc.qt.io/qt/deployment-android.html for more information.
@@ -50,9 +51,18 @@ set(SRC_MAIN source/scwx/qt/main/main.cpp
              source/scwx/qt/main/main_window.cpp)
 set(UI_MAIN  source/scwx/qt/main/main_window.ui)
 set(HDR_MAP source/scwx/qt/map/map_widget.hpp
+            source/scwx/qt/map/radar_layer.hpp
             source/scwx/qt/map/triangle_layer.hpp)
 set(SRC_MAP source/scwx/qt/map/map_widget.cpp
+            source/scwx/qt/map/radar_layer.cpp
             source/scwx/qt/map/triangle_layer.cpp)
+set(HDR_UTIL source/scwx/qt/util/shader_program.hpp)
+set(SRC_UTIL source/scwx/qt/util/shader_program.cpp)
+
+set(RESOURCE_FILES scwx-qt.qrc)
+
+set(SHADER_FILES gl/radar.frag
+                 gl/radar.vert)
 
 set(TS_FILES ts/scwx_en_US.ts)
 
@@ -61,6 +71,10 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${UI_MAIN}
                     ${HDR_MAP}
                     ${SRC_MAP}
+                    ${HDR_UTIL}
+                    ${SRC_UTIL}
+                    ${SHADER_FILES}
+                    ${RESOURCE_FILES}
                     ${TS_FILES})
 
 source_group("Header Files\\main" FILES ${HDR_MAIN})
@@ -68,6 +82,10 @@ source_group("Source Files\\main" FILES ${SRC_MAIN})
 source_group("UI Files\\main"     FILES ${UI_MAIN})
 source_group("Header Files\\map"  FILES ${HDR_MAP})
 source_group("Source Files\\map"  FILES ${SRC_MAP})
+source_group("Header Files\\util" FILES ${HDR_UTIL})
+source_group("Source Files\\util" FILES ${SRC_UTIL})
+source_group("OpenGL Shaders"     FILES ${SHADER_FILES})
+source_group("Resources"          FILES ${RESOURCE_FILES})
 source_group("I18N Files"         FILES ${TS_FILES})
 
 qt_add_executable(scwx-qt
@@ -82,4 +100,5 @@ target_link_libraries(scwx-qt PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
                                       Qt${QT_VERSION_MAJOR}::OpenGLWidgets
                                       Boost::log
                                       qmapboxgl
-                                      opengl32)
+                                      opengl32
+                                      glm::glm)
