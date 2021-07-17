@@ -1,10 +1,11 @@
 #pragma once
 
+#include <memory>
+
 #include <QMapboxGL>
 
 #include <QOpenGLWidget>
 #include <QPropertyAnimation>
-#include <QScopedPointer>
 #include <QtGlobal>
 
 class QKeyEvent;
@@ -42,8 +43,8 @@ private:
 
    QPointF lastPos_;
 
-   QMapboxGLSettings         settings_;
-   QScopedPointer<QMapboxGL> map_;
+   QMapboxGLSettings          settings_;
+   std::shared_ptr<QMapboxGL> map_;
 
    uint64_t frameDraws_ = 0;
 

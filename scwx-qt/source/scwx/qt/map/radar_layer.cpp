@@ -1,5 +1,3 @@
-#define _USE_MATH_DEFINES
-
 #include <scwx/qt/map/radar_layer.hpp>
 #include <scwx/qt/util/shader_program.hpp>
 
@@ -21,7 +19,8 @@ static const std::string logPrefix_ = "[scwx::qt::map::radar_layer] ";
 class RadarLayerImpl
 {
 public:
-   explicit RadarLayerImpl() :
+   explicit RadarLayerImpl(std::shared_ptr<QMapboxGL> map) :
+       map_(map),
        gl_(),
        shaderProgram_(),
        uMVPMatrixLocation_(GL_INVALID_INDEX),
@@ -33,6 +32,8 @@ public:
    }
    ~RadarLayerImpl() = default;
 
+   std::shared_ptr<QMapboxGL> map_;
+
    QOpenGLFunctions_3_3_Core gl_;
 
    ShaderProgram shaderProgram_;
@@ -43,7 +44,10 @@ public:
    GLsizeiptr numVertices_;
 };
 
-RadarLayer::RadarLayer() : p(std::make_unique<RadarLayerImpl>()) {}
+RadarLayer::RadarLayer(std::shared_ptr<QMapboxGL> map) :
+    p(std::make_unique<RadarLayerImpl>(map))
+{
+}
 RadarLayer::~RadarLayer() = default;
 
 RadarLayer::RadarLayer(RadarLayer&&) noexcept = default;
@@ -69,10 +73,11 @@ void RadarLayer::initialize()
    static std::array<GLfloat, MAX_RADIALS * MAX_DATA_MOMENT_GATES * 6 * 2>
       vertices;
 
-   constexpr float angleDelta = 0.5f * static_cast<float>(M_PI) / 180.0f;
+   constexpr float angleDelta  = glm::radians<float>(0.5f);
+   constexpr float angleDeltaH = angleDelta / 2.0f;
 
-   float angle1 = 0;
-   float angle2 = angleDelta;
+   float angle1 = -angleDeltaH;
+   float angle2 = angleDeltaH;
 
    GLsizeiptr index = 0;
 
@@ -162,28 +167,25 @@ void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)
 
    p->shaderProgram_.Use();
 
-   float metersPerPixel =
+   const QMapbox::Coordinate radar(38.6986, -90.6828);
+
+   const float metersPerPixel =
       QMapbox::metersPerPixelAtLatitude(params.latitude, params.zoom);
 
    const float scale  = 1000.0f / metersPerPixel * 2.0f;
    const float xScale = scale / params.width;
    const float yScale = scale / params.height;
 
-   const QMapbox::Coordinate radar(38.6986, -90.6828);
-
-   const QMapbox::ProjectedMeters radarMeters =
-      QMapbox::projectedMetersForCoordinate(radar);
-   const QMapbox::ProjectedMeters mapMeters =
-      QMapbox::projectedMetersForCoordinate(
-         {params.latitude, params.longitude});
-
-   const float yTranslate = (radarMeters.first - mapMeters.first) * 0.001f;
-   const float xTranslate = (radarMeters.second - mapMeters.second) * 0.001f;
+   QPointF     radarScreen = p->map_->pixelForCoordinate(radar);
+   const float xTranslate =
+      (radarScreen.x() - (params.width * 0.5f)) / params.width * 2.0f;
+   const float yTranslate =
+      -(radarScreen.y() - (params.height * 0.5f)) / params.height * 2.0f;
 
    glm::mat4 uMVPMatrix(1.0f);
-   uMVPMatrix = glm::scale(uMVPMatrix, glm::vec3(xScale, yScale, 1.0f));
    uMVPMatrix =
       glm::translate(uMVPMatrix, glm::vec3(xTranslate, yTranslate, 0.0f));
+   uMVPMatrix = glm::scale(uMVPMatrix, glm::vec3(xScale, yScale, 1.0f));
    uMVPMatrix = glm::rotate(uMVPMatrix,
                             glm::radians<float>(params.bearing),
                             glm::vec3(0.0f, 0.0f, 1.0f));

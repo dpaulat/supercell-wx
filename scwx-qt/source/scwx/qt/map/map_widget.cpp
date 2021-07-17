@@ -62,10 +62,11 @@ void MapWidget::changeStyle()
       currentStyleIndex = 0;
    }
 }
+
 void MapWidget::AddLayers()
 {
    // QMapboxGL::addCustomLayer will take ownership of the QScopedPointer
-   QScopedPointer<QMapbox::CustomLayerHostInterface> pHost(new RadarLayer());
+   QScopedPointer<QMapbox::CustomLayerHostInterface> pHost(new RadarLayer(map_));
 
    QString before = "ferry";
 
@@ -167,11 +168,7 @@ void MapWidget::wheelEvent(QWheelEvent* ev)
       factor = factor > -1 ? factor : 1 / factor;
    }
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
    map_->scaleBy(1 + factor, ev->position());
-#else
-   map_->scaleBy(1 + factor, ev->pos());
-#endif
 
    ev->accept();
 }
@@ -179,10 +176,10 @@ void MapWidget::wheelEvent(QWheelEvent* ev)
 void MapWidget::initializeGL()
 {
    map_.reset(new QMapboxGL(nullptr, settings_, size(), pixelRatio()));
-   connect(map_.data(), SIGNAL(needsRendering()), this, SLOT(update()));
+   connect(map_.get(), SIGNAL(needsRendering()), this, SLOT(update()));
 
    // Set default location to KLSX.
-   map_->setCoordinateZoom(QMapbox::Coordinate(38.6986, -90.6828), 14);
+   map_->setCoordinateZoom(QMapbox::Coordinate(38.6986, -90.6828), 11);
 
    QString styleUrl = qgetenv("MAPBOX_STYLE_URL");
    if (styleUrl.isEmpty())
@@ -209,9 +206,9 @@ void MapWidget::paintGL()
 
 void MapWidget::mapChanged(QMapboxGL::MapChange mapChange)
 {
-   if (mapChange == QMapboxGL::MapChangeDidFinishLoadingStyle)
+   switch (mapChange)
    {
-      AddLayers();
+   case QMapboxGL::MapChangeDidFinishLoadingStyle: AddLayers(); break;
    }
 }
 
