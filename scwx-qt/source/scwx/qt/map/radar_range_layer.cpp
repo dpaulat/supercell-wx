@@ -1,8 +1,9 @@
 #include <scwx/qt/map/radar_range_layer.hpp>
 
 #include <boost/log/trivial.hpp>
-
+#include <geodesic.h>
 #include <glm/glm.hpp>
+#include <mbgl/util/constants.hpp>
 
 namespace scwx
 {
@@ -11,18 +12,21 @@ namespace qt
 
 static const std::string logPrefix_ = "[scwx::qt::map::radar_range_layer] ";
 
+static constexpr double EARTH_FLATTENING = 1 / 298.257223563;
+
 void RadarRangeLayer::Add(std::shared_ptr<QMapboxGL> map, const QString& before)
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Add()";
 
+   geod_geodesic g;
+   geod_init(&g, mbgl::util::EARTH_RADIUS_M, EARTH_FLATTENING);
+
    constexpr float range = 460.0f * 1000.0f;
 
-   constexpr float angleDelta  = glm::radians<float>(0.5f);
+   constexpr float angleDelta  = 0.5f;
    constexpr float angleDeltaH = angleDelta / 2.0f;
 
-   const QMapbox::Coordinate      radar {38.6986, -90.6828};
-   const QMapbox::ProjectedMeters radarMeters {
-      QMapbox::projectedMetersForCoordinate(radar)};
+   const QMapbox::Coordinate radar {38.6986, -90.6828};
 
    float angle = -angleDeltaH;
 
@@ -30,15 +34,19 @@ void RadarRangeLayer::Add(std::shared_ptr<QMapboxGL> map, const QString& before)
 
    for (uint16_t azimuth = 0; azimuth <= 720; ++azimuth)
    {
-      const float sinTheta = std::sinf(angle);
-      const float cosTheta = std::cosf(angle);
+      double latitude;
+      double longitude;
 
-      const float x = range * sinTheta + radarMeters.second;
-      const float y = range * cosTheta + radarMeters.first;
+      geod_direct(&g,
+                  radar.first,
+                  radar.second,
+                  angle,
+                  range,
+                  &latitude,
+                  &longitude,
+                  nullptr);
 
-      QMapbox::Coordinate point {QMapbox::coordinateForProjectedMeters({y, x})};
-
-      geometry.append(point);
+      geometry.append({latitude, longitude});
 
       angle += angleDelta;
    }

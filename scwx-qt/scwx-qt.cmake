@@ -13,6 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Boost)
 find_package(glm)
+find_package(proj)
 
 # QtCreator supports the following variables for Android, which are identical to qmake Android variables.
 # Check https://doc.qt.io/qt/deployment-android.html for more information.
@@ -96,11 +97,13 @@ qt_add_executable(scwx-qt
 
 qt6_create_translation_scwx(QM_FILES ${scwx-qt_SOURCE_DIR} ${TS_FILES})
 
-target_include_directories(scwx-qt PRIVATE ${scwx-qt_SOURCE_DIR}/source)
+target_include_directories(scwx-qt PRIVATE ${scwx-qt_SOURCE_DIR}/source
+                                           ${MBGL_INCLUDE_DIR})
 
 target_link_libraries(scwx-qt PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
                                       Qt${QT_VERSION_MAJOR}::OpenGLWidgets
                                       Boost::log
                                       qmapboxgl
                                       opengl32
-                                      glm::glm)
+                                      glm::glm
+                                      PROJ::proj)
