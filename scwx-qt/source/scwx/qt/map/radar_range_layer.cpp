@@ -1,9 +1,8 @@
 #include <scwx/qt/map/radar_range_layer.hpp>
 
 #include <boost/log/trivial.hpp>
-#include <geodesic.h>
+#include <GeographicLib/Geodesic.hpp>
 #include <glm/glm.hpp>
-#include <mbgl/util/constants.hpp>
 
 namespace scwx
 {
@@ -12,14 +11,12 @@ namespace qt
 
 static const std::string logPrefix_ = "[scwx::qt::map::radar_range_layer] ";
 
-static constexpr double EARTH_FLATTENING = 1 / 298.257223563;
-
 void RadarRangeLayer::Add(std::shared_ptr<QMapboxGL> map, const QString& before)
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Add()";
 
-   geod_geodesic g;
-   geod_init(&g, mbgl::util::EARTH_RADIUS_M, EARTH_FLATTENING);
+   GeographicLib::Geodesic geodesic(GeographicLib::Constants::WGS84_a(),
+                                    GeographicLib::Constants::WGS84_f());
 
    constexpr float range = 460.0f * 1000.0f;
 
@@ -37,14 +34,8 @@ void RadarRangeLayer::Add(std::shared_ptr<QMapboxGL> map, const QString& before)
       double latitude;
       double longitude;
 
-      geod_direct(&g,
-                  radar.first,
-                  radar.second,
-                  angle,
-                  range,
-                  &latitude,
-                  &longitude,
-                  nullptr);
+      geodesic.Direct(
+         radar.first, radar.second, angle, range, latitude, longitude);
 
       geometry.append({latitude, longitude});
 

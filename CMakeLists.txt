@@ -13,10 +13,10 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 include(${PROJECT_SOURCE_DIR}/external/cmake-conan/conan.cmake)
 
 conan_cmake_configure(REQUIRES boost/1.76.0
+                               geographiclib/1.52
                                glm/0.9.9.8
                                gtest/cci.20210126
                                openssl/1.1.1k
-                               proj/8.1.0
                                vulkan-loader/1.2.172
                       GENERATORS cmake
                                  cmake_find_package

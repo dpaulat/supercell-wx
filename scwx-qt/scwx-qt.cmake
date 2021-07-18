@@ -12,8 +12,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Boost)
+find_package(geographiclib)
 find_package(glm)
-find_package(proj)
 
 # QtCreator supports the following variables for Android, which are identical to qmake Android variables.
 # Check https://doc.qt.io/qt/deployment-android.html for more information.
@@ -105,5 +105,5 @@ target_link_libraries(scwx-qt PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
                                       Boost::log
                                       qmapboxgl
                                       opengl32
-                                      glm::glm
-                                      PROJ::proj)
+                                      GeographicLib::GeographicLib
+                                      glm::glm)
