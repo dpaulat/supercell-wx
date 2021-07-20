@@ -4,10 +4,11 @@
 #include <QOpenGLFunctions_3_3_Core>
 
 #include <boost/log/trivial.hpp>
-
+#include <GeographicLib/Geodesic.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <mbgl/util/constants.hpp>
 
 namespace scwx
 {
@@ -15,6 +16,9 @@ namespace qt
 {
 
 static const std::string logPrefix_ = "[scwx::qt::map::radar_layer] ";
+
+static glm::vec2
+LatLongToScreenCoordinate(const QMapbox::Coordinate& coordinate);
 
 class RadarLayerImpl
 {
@@ -24,8 +28,11 @@ public:
        gl_(),
        shaderProgram_(),
        uMVPMatrixLocation_(GL_INVALID_INDEX),
+       uMapScreenCoordLocation_(GL_INVALID_INDEX),
        vbo_ {GL_INVALID_INDEX},
        vao_ {GL_INVALID_INDEX},
+       scale_ {0.0},
+       bearing_ {0.0},
        numVertices_ {0}
    {
       gl_.initializeOpenGLFunctions();
@@ -38,8 +45,12 @@ public:
 
    ShaderProgram shaderProgram_;
    GLint         uMVPMatrixLocation_;
+   GLint         uMapScreenCoordLocation_;
    GLuint        vbo_;
    GLuint        vao_;
+
+   double scale_;
+   double bearing_;
 
    GLsizeiptr numVertices_;
 };
@@ -67,13 +78,25 @@ void RadarLayer::initialize()
    {
       BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Could not find uMVPMatrix";
    }
+
+   p->uMapScreenCoordLocation_ =
+      gl.glGetUniformLocation(p->shaderProgram_.id(), "uMapScreenCoord");
+   if (p->uMapScreenCoordLocation_ == -1)
+   {
+      BOOST_LOG_TRIVIAL(warning)
+         << logPrefix_ << "Could not find uMapScreenCoord";
+   }
+
    constexpr uint16_t MAX_RADIALS           = 720;
    constexpr uint16_t MAX_DATA_MOMENT_GATES = 1840;
+
+   const QMapbox::Coordinate radar(38.6986, -90.6828);
+   const QPointF             radarScreen = p->map_->pixelForCoordinate(radar);
 
    static std::array<GLfloat, MAX_RADIALS * MAX_DATA_MOMENT_GATES * 6 * 2>
       vertices;
 
-   constexpr float angleDelta  = glm::radians<float>(0.5f);
+   constexpr float angleDelta  = 0.5f;
    constexpr float angleDeltaH = angleDelta / 2.0f;
 
    float angle1 = -angleDeltaH;
@@ -81,10 +104,16 @@ void RadarLayer::initialize()
 
    GLsizeiptr index = 0;
 
+   GeographicLib::Geodesic geodesic(GeographicLib::Constants::WGS84_a(),
+                                    GeographicLib::Constants::WGS84_f());
+
+   p->scale_   = p->map_->scale();
+   p->bearing_ = p->map_->bearing();
+
    for (uint16_t azimuth = 0; azimuth < 720; ++azimuth)
    {
-      const float dataMomentRange     = 2.125f;
-      const float dataMomentInterval  = 0.25f;
+      const float dataMomentRange     = 2.125f * 1000.0f;
+      const float dataMomentInterval  = 0.25f * 1000.0f;
       const float dataMomentIntervalH = dataMomentInterval * 0.5f;
       const float snrThreshold        = 2.0f;
 
@@ -93,40 +122,38 @@ void RadarLayer::initialize()
       float range1 = dataMomentRange - dataMomentIntervalH;
       float range2 = range1 + dataMomentInterval;
 
-      float sinTheta1 = std::sinf(angle1);
-      float sinTheta2 = std::sinf(angle2);
-      float cosTheta1 = std::cosf(angle1);
-      float cosTheta2 = std::cosf(angle2);
-
       for (uint16_t gate = 0; gate < numberOfDataMomentGates; ++gate)
       {
-         float r1SinTheta1 = range1 * sinTheta1;
-         float r1SinTheta2 = range1 * sinTheta2;
-         float r2SinTheta1 = range2 * sinTheta1;
-         float r2SinTheta2 = range2 * sinTheta2;
+         double lat[4];
+         double lon[4];
 
-         float r1CosTheta1 = range1 * cosTheta1;
-         float r1CosTheta2 = range1 * cosTheta2;
-         float r2CosTheta1 = range2 * cosTheta1;
-         float r2CosTheta2 = range2 * cosTheta2;
+         // TODO: Optimize
+         geodesic.Direct(
+            radar.first, radar.second, angle1, range1, lat[0], lon[0]);
+         geodesic.Direct(
+            radar.first, radar.second, angle1, range2, lat[1], lon[1]);
+         geodesic.Direct(
+            radar.first, radar.second, angle2, range1, lat[2], lon[2]);
+         geodesic.Direct(
+            radar.first, radar.second, angle2, range2, lat[3], lon[3]);
 
-         vertices[index++] = r1SinTheta1;
-         vertices[index++] = r1CosTheta1;
+         vertices[index++] = lat[0];
+         vertices[index++] = lon[0];
 
-         vertices[index++] = r2SinTheta1;
-         vertices[index++] = r2CosTheta1;
+         vertices[index++] = lat[1];
+         vertices[index++] = lon[1];
 
-         vertices[index++] = r1SinTheta2;
-         vertices[index++] = r1CosTheta2;
+         vertices[index++] = lat[2];
+         vertices[index++] = lon[2];
 
-         vertices[index++] = r1SinTheta2;
-         vertices[index++] = r1CosTheta2;
+         vertices[index++] = lat[2];
+         vertices[index++] = lon[2];
 
-         vertices[index++] = r2SinTheta2;
-         vertices[index++] = r2CosTheta2;
+         vertices[index++] = lat[3];
+         vertices[index++] = lon[3];
 
-         vertices[index++] = r2SinTheta1;
-         vertices[index++] = r2CosTheta1;
+         vertices[index++] = lat[1];
+         vertices[index++] = lon[1];
 
          range1 += dataMomentInterval;
          range2 += dataMomentInterval;
@@ -167,28 +194,21 @@ void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)
 
    p->shaderProgram_.Use();
 
-   const QMapbox::Coordinate radar(38.6986, -90.6828);
-
-   const float metersPerPixel =
-      QMapbox::metersPerPixelAtLatitude(params.latitude, params.zoom);
-
-   const float scale  = 1000.0f / metersPerPixel * 2.0f;
+   const float scale =
+      p->map_->scale() * 2.0f * mbgl::util::tileSize / mbgl::util::DEGREES_MAX;
    const float xScale = scale / params.width;
    const float yScale = scale / params.height;
 
-   QPointF     radarScreen = p->map_->pixelForCoordinate(radar);
-   const float xTranslate =
-      (radarScreen.x() - (params.width * 0.5f)) / params.width * 2.0f;
-   const float yTranslate =
-      -(radarScreen.y() - (params.height * 0.5f)) / params.height * 2.0f;
-
    glm::mat4 uMVPMatrix(1.0f);
-   uMVPMatrix =
-      glm::translate(uMVPMatrix, glm::vec3(xTranslate, yTranslate, 0.0f));
    uMVPMatrix = glm::scale(uMVPMatrix, glm::vec3(xScale, yScale, 1.0f));
    uMVPMatrix = glm::rotate(uMVPMatrix,
-                            glm::radians<float>(params.bearing),
+                            glm::radians<float>(params.bearing - p->bearing_),
                             glm::vec3(0.0f, 0.0f, 1.0f));
+
+   gl.glUniform2fv(p->uMapScreenCoordLocation_,
+                   1,
+                   glm::value_ptr(LatLongToScreenCoordinate(
+                      {params.latitude, params.longitude})));
 
    gl.glUniformMatrix4fv(
       p->uMVPMatrixLocation_, 1, GL_FALSE, glm::value_ptr(uMVPMatrix));
@@ -211,6 +231,20 @@ void RadarLayer::deinitialize()
    p->uMVPMatrixLocation_ = GL_INVALID_INDEX;
    p->vao_                = GL_INVALID_INDEX;
    p->vbo_                = GL_INVALID_INDEX;
+}
+
+static glm::vec2
+LatLongToScreenCoordinate(const QMapbox::Coordinate& coordinate)
+{
+   double latitude = std::clamp(
+      coordinate.first, -mbgl::util::LATITUDE_MAX, mbgl::util::LATITUDE_MAX);
+   glm::vec2 screen {
+      mbgl::util::LONGITUDE_MAX + coordinate.second,
+      -(mbgl::util::LONGITUDE_MAX -
+        mbgl::util::RAD2DEG *
+           std::log(std::tan(M_PI / 4.0 +
+                             latitude * M_PI / mbgl::util::DEGREES_MAX)))};
+   return screen;
 }
 
 } // namespace qt
