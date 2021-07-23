@@ -1,9 +1,13 @@
 #include <scwx/qt/map/radar_layer.hpp>
 #include <scwx/qt/util/shader_program.hpp>
 
+#include <execution>
+
 #include <QOpenGLFunctions_3_3_Core>
 
 #include <boost/log/trivial.hpp>
+#include <boost/range/irange.hpp>
+#include <boost/timer/timer.hpp>
 #include <GeographicLib/Geodesic.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -14,6 +18,9 @@ namespace scwx
 {
 namespace qt
 {
+
+static constexpr uint32_t MAX_RADIALS           = 720;
+static constexpr uint32_t MAX_DATA_MOMENT_GATES = 1840;
 
 static const std::string logPrefix_ = "[scwx::qt::map::radar_layer] ";
 
@@ -70,6 +77,9 @@ void RadarLayer::initialize()
 
    QOpenGLFunctions_3_3_Core& gl = p->gl_;
 
+   boost::timer::cpu_timer timer;
+
+   // Load and configure radar shader
    p->shaderProgram_.Load(":/gl/radar.vert", ":/gl/radar.frag");
 
    p->uMVPMatrixLocation_ =
@@ -87,82 +97,95 @@ void RadarLayer::initialize()
          << logPrefix_ << "Could not find uMapScreenCoord";
    }
 
-   constexpr uint16_t MAX_RADIALS           = 720;
-   constexpr uint16_t MAX_DATA_MOMENT_GATES = 1840;
-
-   const QMapbox::Coordinate radar(38.6986, -90.6828);
-   const QPointF             radarScreen = p->map_->pixelForCoordinate(radar);
-
-   static std::array<GLfloat, MAX_RADIALS * MAX_DATA_MOMENT_GATES * 6 * 2>
-      vertices;
-
-   constexpr float angleDelta  = 0.5f;
-   constexpr float angleDeltaH = angleDelta / 2.0f;
-
-   float angle1 = -angleDeltaH;
-   float angle2 = angleDeltaH;
-
-   GLsizeiptr index = 0;
+   // Calculate coordinates
+   static std::array<GLfloat, MAX_RADIALS * MAX_DATA_MOMENT_GATES * 2>
+      coordinates;
 
    GeographicLib::Geodesic geodesic(GeographicLib::Constants::WGS84_a(),
                                     GeographicLib::Constants::WGS84_f());
 
-   p->scale_   = p->map_->scale();
-   p->bearing_ = p->map_->bearing();
+   const QMapbox::Coordinate radar(38.6986, -90.6828);
+   auto                      radialGates =
+      boost::irange<uint32_t>(0, MAX_RADIALS * MAX_DATA_MOMENT_GATES);
 
-   for (uint16_t azimuth = 0; azimuth < 720; ++azimuth)
+   timer.start();
+   std::for_each(
+      std::execution::par_unseq,
+      radialGates.begin(),
+      radialGates.end(),
+      [&](uint32_t radialGate) {
+         const uint16_t gate =
+            static_cast<uint16_t>(radialGate % MAX_DATA_MOMENT_GATES);
+         const uint16_t radial =
+            static_cast<uint16_t>(radialGate / MAX_DATA_MOMENT_GATES);
+
+         const float  angle  = radial * 0.5f - 0.25f;
+         const float  range  = (gate + 1) * 250.0f;
+         const size_t offset = radialGate * 2;
+
+         double latitude;
+         double longitude;
+
+         geodesic.Direct(
+            radar.first, radar.second, angle, range, latitude, longitude);
+
+         coordinates[offset]     = latitude;
+         coordinates[offset + 1] = longitude;
+      });
+   timer.stop();
+   BOOST_LOG_TRIVIAL(debug)
+      << "Coordinates calculated in " << timer.format(6, "%ws");
+
+   // Calculate vertices
+   static std::array<GLfloat, MAX_RADIALS * MAX_DATA_MOMENT_GATES * 6 * 2>
+              vertices;
+   GLsizeiptr index = 0;
+
+   timer.start();
+   for (uint16_t radial = 0; radial < 720; ++radial)
    {
       const float dataMomentRange     = 2.125f * 1000.0f;
       const float dataMomentInterval  = 0.25f * 1000.0f;
       const float dataMomentIntervalH = dataMomentInterval * 0.5f;
       const float snrThreshold        = 2.0f;
 
+      const uint16_t startGate               = 7;
       const uint16_t numberOfDataMomentGates = 1832;
+      const uint16_t endGate                 = std::min<uint16_t>(
+         numberOfDataMomentGates + startGate, MAX_DATA_MOMENT_GATES - 1);
 
-      float range1 = dataMomentRange - dataMomentIntervalH;
-      float range2 = range1 + dataMomentInterval;
-
-      for (uint16_t gate = 0; gate < numberOfDataMomentGates; ++gate)
+      for (uint16_t gate = startGate; gate < endGate; ++gate)
       {
-         double lat[4];
-         double lon[4];
+         size_t offset1 = (radial * MAX_DATA_MOMENT_GATES + gate) * 2;
+         size_t offset2 = offset1 + 2;
+         size_t offset3 =
+            (((radial + 1) % MAX_RADIALS) * MAX_DATA_MOMENT_GATES + gate) * 2;
+         size_t offset4 = offset3 + 2;
 
-         // TODO: Optimize
-         geodesic.Direct(
-            radar.first, radar.second, angle1, range1, lat[0], lon[0]);
-         geodesic.Direct(
-            radar.first, radar.second, angle1, range2, lat[1], lon[1]);
-         geodesic.Direct(
-            radar.first, radar.second, angle2, range1, lat[2], lon[2]);
-         geodesic.Direct(
-            radar.first, radar.second, angle2, range2, lat[3], lon[3]);
+         vertices[index++] = coordinates[offset1];
+         vertices[index++] = coordinates[offset1 + 1];
 
-         vertices[index++] = lat[0];
-         vertices[index++] = lon[0];
+         vertices[index++] = coordinates[offset2];
+         vertices[index++] = coordinates[offset2 + 1];
 
-         vertices[index++] = lat[1];
-         vertices[index++] = lon[1];
+         vertices[index++] = coordinates[offset3];
+         vertices[index++] = coordinates[offset3 + 1];
 
-         vertices[index++] = lat[2];
-         vertices[index++] = lon[2];
+         vertices[index++] = coordinates[offset3];
+         vertices[index++] = coordinates[offset3 + 1];
 
-         vertices[index++] = lat[2];
-         vertices[index++] = lon[2];
+         vertices[index++] = coordinates[offset4];
+         vertices[index++] = coordinates[offset4 + 1];
 
-         vertices[index++] = lat[3];
-         vertices[index++] = lon[3];
-
-         vertices[index++] = lat[1];
-         vertices[index++] = lon[1];
-
-         range1 += dataMomentInterval;
-         range2 += dataMomentInterval;
+         vertices[index++] = coordinates[offset2];
+         vertices[index++] = coordinates[offset2 + 1];
       }
 
-      angle1 += angleDelta;
-      angle2 += angleDelta;
       break;
    }
+   timer.stop();
+   BOOST_LOG_TRIVIAL(debug)
+      << "Vertices calculated in " << timer.format(6, "%ws");
 
    // Generate a vertex buffer object
    gl.glGenBuffers(1, &p->vbo_);
@@ -175,10 +198,14 @@ void RadarLayer::initialize()
 
    // Copy vertices array in a buffer for OpenGL to use
    gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
+   timer.start();
    gl.glBufferData(GL_ARRAY_BUFFER,
                    index * sizeof(GLfloat),
                    vertices.data(),
                    GL_STATIC_DRAW);
+   timer.stop();
+   BOOST_LOG_TRIVIAL(debug)
+      << "Vertices buffered in " << timer.format(6, "%ws");
 
    // Set the vertex attributes pointers
    gl.glVertexAttribPointer(
@@ -186,6 +213,7 @@ void RadarLayer::initialize()
    gl.glEnableVertexAttribArray(0);
 
    p->numVertices_ = index;
+   p->bearing_     = p->map_->bearing();
 }
 
 void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)

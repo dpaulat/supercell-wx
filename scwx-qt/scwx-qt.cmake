@@ -103,6 +103,7 @@ target_include_directories(scwx-qt PRIVATE ${scwx-qt_SOURCE_DIR}/source
 target_link_libraries(scwx-qt PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
                                       Qt${QT_VERSION_MAJOR}::OpenGLWidgets
                                       Boost::log
+                                      Boost::timer
                                       qmapboxgl
                                       opengl32
                                       GeographicLib::GeographicLib
