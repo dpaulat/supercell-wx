@@ -1,5 +1,7 @@
 #pragma once
 
+#include <scwx/qt/util/gl.hpp>
+
 #include <QMapboxGL>
 
 namespace scwx
@@ -12,7 +14,7 @@ class RadarLayerImpl;
 class RadarLayer : public QMapbox::CustomLayerHostInterface
 {
 public:
-   explicit RadarLayer(std::shared_ptr<QMapboxGL> map);
+   explicit RadarLayer(std::shared_ptr<QMapboxGL> map, OpenGLFunctions& gl);
    ~RadarLayer();
 
    RadarLayer(const RadarLayer&) = delete;

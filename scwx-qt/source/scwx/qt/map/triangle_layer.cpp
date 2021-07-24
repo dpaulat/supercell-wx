@@ -1,7 +1,5 @@
 #include <scwx/qt/map/triangle_layer.hpp>
 
-#include <QOpenGLFunctions_3_3_Core>
-
 #include <boost/log/trivial.hpp>
 
 namespace scwx
@@ -9,13 +7,13 @@ namespace scwx
 namespace qt
 {
 
-static const std::string logPrefix_ = "[scwx::map::triangle_layer] ";
+static const std::string logPrefix_ = "[scwx::qt::map::triangle_layer] ";
 
 class TriangleLayerImpl
 {
 public:
-   explicit TriangleLayerImpl() :
-       gl_(),
+   explicit TriangleLayerImpl(OpenGLFunctions& gl) :
+       gl_(gl),
        shaderProgram_ {GL_INVALID_INDEX},
        vbo_ {GL_INVALID_INDEX},
        vao_ {GL_INVALID_INDEX}
@@ -24,14 +22,17 @@ public:
    }
    ~TriangleLayerImpl() = default;
 
-   QOpenGLFunctions_3_3_Core gl_;
+   OpenGLFunctions& gl_;
 
    GLuint shaderProgram_;
    GLuint vbo_;
    GLuint vao_;
 };
 
-TriangleLayer::TriangleLayer() : p(std::make_unique<TriangleLayerImpl>()) {}
+TriangleLayer::TriangleLayer(OpenGLFunctions& gl) :
+    p(std::make_unique<TriangleLayerImpl>(gl))
+{
+}
 TriangleLayer::~TriangleLayer() = default;
 
 TriangleLayer::TriangleLayer(TriangleLayer&&) noexcept = default;
@@ -39,7 +40,7 @@ TriangleLayer& TriangleLayer::operator=(TriangleLayer&&) noexcept = default;
 
 void TriangleLayer::initialize()
 {
-   QOpenGLFunctions_3_3_Core& gl = p->gl_;
+   OpenGLFunctions& gl = p->gl_;
 
    static const char* vertexShaderSource =
       "#version 330 core\n"
@@ -141,7 +142,7 @@ void TriangleLayer::initialize()
 
 void TriangleLayer::render(const QMapbox::CustomLayerRenderParameters&)
 {
-   QOpenGLFunctions_3_3_Core& gl = p->gl_;
+   OpenGLFunctions& gl = p->gl_;
 
    gl.glUseProgram(p->shaderProgram_);
    gl.glBindVertexArray(p->vao_);
@@ -150,7 +151,7 @@ void TriangleLayer::render(const QMapbox::CustomLayerRenderParameters&)
 
 void TriangleLayer::deinitialize()
 {
-   QOpenGLFunctions_3_3_Core& gl = p->gl_;
+   OpenGLFunctions& gl = p->gl_;
 
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "deinitialize()";
 

@@ -2,6 +2,7 @@
 
 #include <scwx/qt/map/radar_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
+#include <scwx/qt/util/gl.hpp>
 
 #include <QApplication>
 #include <QColor>
@@ -31,7 +32,27 @@ static const MapStyle satelliteStreets { "mapbox://styles/mapbox/satellite-stree
 static const std::array<MapStyle, 6> mapboxStyles_ = {
    {streets, outdoors, light, dark, satellite, satelliteStreets}};
 
-MapWidget::MapWidget(const QMapboxGLSettings& settings) : settings_(settings)
+class MapWidgetImpl
+{
+public:
+   explicit MapWidgetImpl(const QMapboxGLSettings& settings) :
+       gl_(), settings_(settings), map_(), lastPos_(), frameDraws_(0)
+   {
+   }
+   ~MapWidgetImpl() = default;
+
+   OpenGLFunctions gl_;
+
+   QMapboxGLSettings          settings_;
+   std::shared_ptr<QMapboxGL> map_;
+
+   QPointF lastPos_;
+
+   uint64_t frameDraws_;
+};
+
+MapWidget::MapWidget(const QMapboxGLSettings& settings) :
+    p(std::make_unique<MapWidgetImpl>(settings))
 {
    setFocusPolicy(Qt::StrongFocus);
 }
@@ -54,7 +75,7 @@ void MapWidget::changeStyle()
 
    auto& styles = mapboxStyles_;
 
-   map_->setStyleUrl(styles[currentStyleIndex].first.c_str());
+   p->map_->setStyleUrl(styles[currentStyleIndex].first.c_str());
    setWindowTitle(QString("Mapbox GL: ") +
                   styles[currentStyleIndex].second.c_str());
 
@@ -68,11 +89,11 @@ void MapWidget::AddLayers()
 {
    // QMapboxGL::addCustomLayer will take ownership of the QScopedPointer
    QScopedPointer<QMapbox::CustomLayerHostInterface> pHost(
-      new RadarLayer(map_));
+      new RadarLayer(p->map_, p->gl_));
 
    QString before = "ferry";
 
-   for (const QString& layer : map_->layerIds())
+   for (const QString& layer : p->map_->layerIds())
    {
       // Draw below tunnels, ferries and roads
       if (layer.startsWith("tunnel") || layer.startsWith("ferry") ||
@@ -83,8 +104,8 @@ void MapWidget::AddLayers()
       }
    }
 
-   map_->addCustomLayer("radar", pHost, before);
-   RadarRangeLayer::Add(map_, before);
+   p->map_->addCustomLayer("radar", pHost, before);
+   RadarRangeLayer::Add(p->map_, before);
 }
 
 void MapWidget::keyPressEvent(QKeyEvent* ev)
@@ -94,7 +115,7 @@ void MapWidget::keyPressEvent(QKeyEvent* ev)
    case Qt::Key_S: changeStyle(); break;
    case Qt::Key_L:
    {
-      for (const QString& layer : map_->layerIds())
+      for (const QString& layer : p->map_->layerIds())
       {
          qDebug() << "Layer: " << layer;
       }
@@ -108,7 +129,7 @@ void MapWidget::keyPressEvent(QKeyEvent* ev)
 
 void MapWidget::mousePressEvent(QMouseEvent* ev)
 {
-   lastPos_ = ev->position();
+   p->lastPos_ = ev->position();
 
    if (ev->type() == QEvent::MouseButtonPress)
    {
@@ -122,11 +143,11 @@ void MapWidget::mousePressEvent(QMouseEvent* ev)
    {
       if (ev->buttons() == Qt::LeftButton)
       {
-         map_->scaleBy(2.0, lastPos_);
+         p->map_->scaleBy(2.0, p->lastPos_);
       }
       else if (ev->buttons() == Qt::RightButton)
       {
-         map_->scaleBy(0.5, lastPos_);
+         p->map_->scaleBy(0.5, p->lastPos_);
       }
    }
 
@@ -135,26 +156,26 @@ void MapWidget::mousePressEvent(QMouseEvent* ev)
 
 void MapWidget::mouseMoveEvent(QMouseEvent* ev)
 {
-   QPointF delta = ev->position() - lastPos_;
+   QPointF delta = ev->position() - p->lastPos_;
 
    if (!delta.isNull())
    {
       if (ev->buttons() == Qt::LeftButton &&
           ev->modifiers() & Qt::ShiftModifier)
       {
-         map_->pitchBy(delta.y());
+         p->map_->pitchBy(delta.y());
       }
       else if (ev->buttons() == Qt::LeftButton)
       {
-         map_->moveBy(delta);
+         p->map_->moveBy(delta);
       }
       else if (ev->buttons() == Qt::RightButton)
       {
-         map_->rotateBy(lastPos_, ev->position());
+         p->map_->rotateBy(p->lastPos_, ev->position());
       }
    }
 
-   lastPos_ = ev->position();
+   p->lastPos_ = ev->position();
    ev->accept();
 }
 
@@ -171,18 +192,21 @@ void MapWidget::wheelEvent(QWheelEvent* ev)
       factor = factor > -1 ? factor : 1 / factor;
    }
 
-   map_->scaleBy(1 + factor, ev->position());
+   p->map_->scaleBy(1 + factor, ev->position());
 
    ev->accept();
 }
 
 void MapWidget::initializeGL()
 {
-   map_.reset(new QMapboxGL(nullptr, settings_, size(), pixelRatio()));
-   connect(map_.get(), SIGNAL(needsRendering()), this, SLOT(update()));
+   makeCurrent();
+   p->gl_.initializeOpenGLFunctions();
+
+   p->map_.reset(new QMapboxGL(nullptr, p->settings_, size(), pixelRatio()));
+   connect(p->map_.get(), SIGNAL(needsRendering()), this, SLOT(update()));
 
    // Set default location to KLSX.
-   map_->setCoordinateZoom(QMapbox::Coordinate(38.6986, -90.6828), 11);
+   p->map_->setCoordinateZoom(QMapbox::Coordinate(38.6986, -90.6828), 11);
 
    QString styleUrl = qgetenv("MAPBOX_STYLE_URL");
    if (styleUrl.isEmpty())
@@ -191,20 +215,20 @@ void MapWidget::initializeGL()
    }
    else
    {
-      map_->setStyleUrl(styleUrl);
+      p->map_->setStyleUrl(styleUrl);
       setWindowTitle(QString("Mapbox GL: ") + styleUrl);
    }
 
-   connect(map_.get(), &QMapboxGL::mapChanged, this, &MapWidget::mapChanged);
+   connect(p->map_.get(), &QMapboxGL::mapChanged, this, &MapWidget::mapChanged);
 }
 
 void MapWidget::paintGL()
 {
-   frameDraws_++;
-   map_->resize(size());
-   map_->setFramebufferObject(defaultFramebufferObject(),
-                              size() * pixelRatio());
-   map_->render();
+   p->frameDraws_++;
+   p->map_->resize(size());
+   p->map_->setFramebufferObject(defaultFramebufferObject(),
+                                 size() * pixelRatio());
+   p->map_->render();
 }
 
 void MapWidget::mapChanged(QMapboxGL::MapChange mapChange)

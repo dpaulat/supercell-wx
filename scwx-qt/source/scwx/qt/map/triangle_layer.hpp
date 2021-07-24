@@ -1,4 +1,8 @@
-#include <qmapboxgl.hpp>
+#pragma once
+
+#include <scwx/qt/util/gl.hpp>
+
+#include <QMapboxGL>
 
 namespace scwx
 {
@@ -10,7 +14,7 @@ class TriangleLayerImpl;
 class TriangleLayer : public QMapbox::CustomLayerHostInterface
 {
 public:
-   explicit TriangleLayer();
+   explicit TriangleLayer(OpenGLFunctions& gl);
    ~TriangleLayer();
 
    TriangleLayer(const TriangleLayer&) = delete;

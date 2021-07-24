@@ -17,12 +17,14 @@ namespace scwx
 namespace qt
 {
 
+class MapWidgetImpl;
+
 class MapWidget : public QOpenGLWidget
 {
    Q_OBJECT
 
 public:
-   MapWidget(const QMapboxGLSettings&);
+   explicit MapWidget(const QMapboxGLSettings&);
    ~MapWidget();
 
 private:
@@ -41,12 +43,7 @@ private:
 
    void AddLayers();
 
-   QPointF lastPos_;
-
-   QMapboxGLSettings          settings_;
-   std::shared_ptr<QMapboxGL> map_;
-
-   uint64_t frameDraws_ = 0;
+   std::unique_ptr<MapWidgetImpl> p;
 
 private slots:
    void mapChanged(QMapboxGL::MapChange);

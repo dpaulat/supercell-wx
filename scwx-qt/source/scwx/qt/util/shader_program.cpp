@@ -1,7 +1,6 @@
 #include <scwx/qt/util/shader_program.hpp>
 
 #include <QFile>
-#include <QOpenGLFunctions_3_3_Core>
 
 #include <boost/log/trivial.hpp>
 
@@ -15,10 +14,9 @@ static const std::string logPrefix_ = "[scwx::qt::util::shader_program] ";
 class ShaderProgramImpl
 {
 public:
-   explicit ShaderProgramImpl() : gl_(), id_ {GL_INVALID_INDEX}
+   explicit ShaderProgramImpl(OpenGLFunctions& gl) :
+       gl_(gl), id_ {GL_INVALID_INDEX}
    {
-      gl_.initializeOpenGLFunctions();
-
       // Create shader program
       id_ = gl_.glCreateProgram();
    }
@@ -29,12 +27,15 @@ public:
       gl_.glDeleteProgram(id_);
    }
 
-   QOpenGLFunctions_3_3_Core gl_;
+   OpenGLFunctions& gl_;
 
    GLuint id_;
 };
 
-ShaderProgram::ShaderProgram() : p(std::make_unique<ShaderProgramImpl>()) {}
+ShaderProgram::ShaderProgram(OpenGLFunctions& gl) :
+    p(std::make_unique<ShaderProgramImpl>(gl))
+{
+}
 ShaderProgram::~ShaderProgram() = default;
 
 ShaderProgram::ShaderProgram(ShaderProgram&&) noexcept = default;
@@ -50,7 +51,7 @@ bool ShaderProgram::Load(const std::string& vertexPath,
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Load()";
 
-   QOpenGLFunctions_3_3_Core& gl = p->gl_;
+   OpenGLFunctions& gl = p->gl_;
 
    GLint glSuccess;
    bool  success = true;

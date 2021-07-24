@@ -1,13 +1,13 @@
 #pragma once
 
+#include <scwx/qt/util/gl.hpp>
+
 #ifdef _WIN32
-#include <Windows.h>
+#   include <Windows.h>
 #endif
 
 #include <memory>
 #include <string>
-
-#include <GL/gl.h>
 
 namespace scwx
 {
@@ -19,7 +19,7 @@ class ShaderProgramImpl;
 class ShaderProgram
 {
 public:
-   explicit ShaderProgram();
+   explicit ShaderProgram(OpenGLFunctions& gl);
    ~ShaderProgram();
 
    ShaderProgram(const ShaderProgram&) = delete;

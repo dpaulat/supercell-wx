@@ -3,8 +3,6 @@
 
 #include <execution>
 
-#include <QOpenGLFunctions_3_3_Core>
-
 #include <boost/log/trivial.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
@@ -30,10 +28,11 @@ LatLongToScreenCoordinate(const QMapbox::Coordinate& coordinate);
 class RadarLayerImpl
 {
 public:
-   explicit RadarLayerImpl(std::shared_ptr<QMapboxGL> map) :
+   explicit RadarLayerImpl(std::shared_ptr<QMapboxGL> map,
+                           OpenGLFunctions&           gl) :
        map_(map),
-       gl_(),
-       shaderProgram_(),
+       gl_(gl),
+       shaderProgram_(gl),
        uMVPMatrixLocation_(GL_INVALID_INDEX),
        uMapScreenCoordLocation_(GL_INVALID_INDEX),
        vbo_ {GL_INVALID_INDEX},
@@ -42,13 +41,12 @@ public:
        bearing_ {0.0},
        numVertices_ {0}
    {
-      gl_.initializeOpenGLFunctions();
    }
    ~RadarLayerImpl() = default;
 
    std::shared_ptr<QMapboxGL> map_;
 
-   QOpenGLFunctions_3_3_Core gl_;
+   OpenGLFunctions& gl_;
 
    ShaderProgram shaderProgram_;
    GLint         uMVPMatrixLocation_;
@@ -62,8 +60,8 @@ public:
    GLsizeiptr numVertices_;
 };
 
-RadarLayer::RadarLayer(std::shared_ptr<QMapboxGL> map) :
-    p(std::make_unique<RadarLayerImpl>(map))
+RadarLayer::RadarLayer(std::shared_ptr<QMapboxGL> map, OpenGLFunctions& gl) :
+    p(std::make_unique<RadarLayerImpl>(map, gl))
 {
 }
 RadarLayer::~RadarLayer() = default;
@@ -75,7 +73,7 @@ void RadarLayer::initialize()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "initialize()";
 
-   QOpenGLFunctions_3_3_Core& gl = p->gl_;
+   OpenGLFunctions& gl = p->gl_;
 
    boost::timer::cpu_timer timer;
 
@@ -134,7 +132,7 @@ void RadarLayer::initialize()
       });
    timer.stop();
    BOOST_LOG_TRIVIAL(debug)
-      << "Coordinates calculated in " << timer.format(6, "%ws");
+      << logPrefix_ << "Coordinates calculated in " << timer.format(6, "%ws");
 
    // Calculate vertices
    static std::array<GLfloat, MAX_RADIALS * MAX_DATA_MOMENT_GATES * 6 * 2>
@@ -185,7 +183,7 @@ void RadarLayer::initialize()
    }
    timer.stop();
    BOOST_LOG_TRIVIAL(debug)
-      << "Vertices calculated in " << timer.format(6, "%ws");
+      << logPrefix_ << "Vertices calculated in " << timer.format(6, "%ws");
 
    // Generate a vertex buffer object
    gl.glGenBuffers(1, &p->vbo_);
@@ -205,7 +203,7 @@ void RadarLayer::initialize()
                    GL_STATIC_DRAW);
    timer.stop();
    BOOST_LOG_TRIVIAL(debug)
-      << "Vertices buffered in " << timer.format(6, "%ws");
+      << logPrefix_ << "Vertices buffered in " << timer.format(6, "%ws");
 
    // Set the vertex attributes pointers
    gl.glVertexAttribPointer(
@@ -218,7 +216,7 @@ void RadarLayer::initialize()
 
 void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)
 {
-   QOpenGLFunctions_3_3_Core& gl = p->gl_;
+   OpenGLFunctions& gl = p->gl_;
 
    p->shaderProgram_.Use();
 
@@ -249,7 +247,7 @@ void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)
 
 void RadarLayer::deinitialize()
 {
-   QOpenGLFunctions_3_3_Core& gl = p->gl_;
+   OpenGLFunctions& gl = p->gl_;
 
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "deinitialize()";
 
