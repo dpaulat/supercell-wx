@@ -87,9 +87,17 @@ void MapWidget::changeStyle()
 
 void MapWidget::AddLayers()
 {
+   std::shared_ptr<manager::RadarManager> radarManager =
+      std::make_shared<manager::RadarManager>();
+   std::shared_ptr<view::RadarView> radarView =
+      std::make_shared<view::RadarView>(radarManager, p->map_);
+
+   radarManager->Initialize();
+   radarView->Initialize();
+
    // QMapboxGL::addCustomLayer will take ownership of the QScopedPointer
    QScopedPointer<QMapbox::CustomLayerHostInterface> pHost(
-      new RadarLayer(p->map_, p->gl_));
+      new RadarLayer(radarView, p->gl_));
 
    QString before = "ferry";
 

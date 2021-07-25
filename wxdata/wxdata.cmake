@@ -2,7 +2,9 @@ project(scwx-data)
 
 find_package(Boost)
 
-set(HDR_COMMON include/scwx/common/color_table.hpp)
+set(HDR_COMMON include/scwx/common/color_table.hpp
+               include/scwx/common/constants.hpp
+               include/scwx/common/types.hpp)
 set(SRC_COMMON source/scwx/common/color_table.cpp)
 set(HDR_UTIL include/scwx/util/rangebuf.hpp
              include/scwx/util/vectorbuf.hpp)
@@ -56,6 +58,15 @@ target_include_directories(wxdata INTERFACE ${scwx-data_SOURCE_DIR}/include)
 
 if(MSVC)
     target_compile_options(wxdata PRIVATE /W3)
+endif()
+
+target_link_libraries(wxdata INTERFACE Boost::iostreams
+                                       Boost::log
+                                       BZip2::BZip2
+                                       hsluv-c)
+
+if (WIN32)
+    target_link_libraries(wxdata INTERFACE Ws2_32)
 endif()
 
 set_target_properties(wxdata PROPERTIES CXX_STANDARD 20

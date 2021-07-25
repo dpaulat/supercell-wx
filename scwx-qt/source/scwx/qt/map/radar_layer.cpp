@@ -4,7 +4,6 @@
 #include <execution>
 
 #include <boost/log/trivial.hpp>
-#include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 #include <GeographicLib/Geodesic.hpp>
 #include <glm/glm.hpp>
@@ -28,25 +27,22 @@ LatLongToScreenCoordinate(const QMapbox::Coordinate& coordinate);
 class RadarLayerImpl
 {
 public:
-   explicit RadarLayerImpl(std::shared_ptr<QMapboxGL> map,
-                           OpenGLFunctions&           gl) :
-       map_(map),
+   explicit RadarLayerImpl(std::shared_ptr<view::RadarView> radarView,
+                           OpenGLFunctions&                 gl) :
+       radarView_(radarView),
        gl_(gl),
        shaderProgram_(gl),
        uMVPMatrixLocation_(GL_INVALID_INDEX),
        uMapScreenCoordLocation_(GL_INVALID_INDEX),
        vbo_ {GL_INVALID_INDEX},
        vao_ {GL_INVALID_INDEX},
-       scale_ {0.0},
-       bearing_ {0.0},
        numVertices_ {0}
    {
    }
    ~RadarLayerImpl() = default;
 
-   std::shared_ptr<QMapboxGL> map_;
-
-   OpenGLFunctions& gl_;
+   std::shared_ptr<view::RadarView> radarView_;
+   OpenGLFunctions&                 gl_;
 
    ShaderProgram shaderProgram_;
    GLint         uMVPMatrixLocation_;
@@ -54,14 +50,12 @@ public:
    GLuint        vbo_;
    GLuint        vao_;
 
-   double scale_;
-   double bearing_;
-
    GLsizeiptr numVertices_;
 };
 
-RadarLayer::RadarLayer(std::shared_ptr<QMapboxGL> map, OpenGLFunctions& gl) :
-    p(std::make_unique<RadarLayerImpl>(map, gl))
+RadarLayer::RadarLayer(std::shared_ptr<view::RadarView> radarView,
+                       OpenGLFunctions&                 gl) :
+    p(std::make_unique<RadarLayerImpl>(radarView, gl))
 {
 }
 RadarLayer::~RadarLayer() = default;
@@ -95,95 +89,7 @@ void RadarLayer::initialize()
          << logPrefix_ << "Could not find uMapScreenCoord";
    }
 
-   // Calculate coordinates
-   static std::array<GLfloat, MAX_RADIALS * MAX_DATA_MOMENT_GATES * 2>
-      coordinates;
-
-   GeographicLib::Geodesic geodesic(GeographicLib::Constants::WGS84_a(),
-                                    GeographicLib::Constants::WGS84_f());
-
-   const QMapbox::Coordinate radar(38.6986, -90.6828);
-   auto                      radialGates =
-      boost::irange<uint32_t>(0, MAX_RADIALS * MAX_DATA_MOMENT_GATES);
-
-   timer.start();
-   std::for_each(
-      std::execution::par_unseq,
-      radialGates.begin(),
-      radialGates.end(),
-      [&](uint32_t radialGate) {
-         const uint16_t gate =
-            static_cast<uint16_t>(radialGate % MAX_DATA_MOMENT_GATES);
-         const uint16_t radial =
-            static_cast<uint16_t>(radialGate / MAX_DATA_MOMENT_GATES);
-
-         const float  angle  = radial * 0.5f - 0.25f;
-         const float  range  = (gate + 1) * 250.0f;
-         const size_t offset = radialGate * 2;
-
-         double latitude;
-         double longitude;
-
-         geodesic.Direct(
-            radar.first, radar.second, angle, range, latitude, longitude);
-
-         coordinates[offset]     = latitude;
-         coordinates[offset + 1] = longitude;
-      });
-   timer.stop();
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "Coordinates calculated in " << timer.format(6, "%ws");
-
-   // Calculate vertices
-   static std::array<GLfloat, MAX_RADIALS * MAX_DATA_MOMENT_GATES * 6 * 2>
-              vertices;
-   GLsizeiptr index = 0;
-
-   timer.start();
-   for (uint16_t radial = 0; radial < 720; ++radial)
-   {
-      const float dataMomentRange     = 2.125f * 1000.0f;
-      const float dataMomentInterval  = 0.25f * 1000.0f;
-      const float dataMomentIntervalH = dataMomentInterval * 0.5f;
-      const float snrThreshold        = 2.0f;
-
-      const uint16_t startGate               = 7;
-      const uint16_t numberOfDataMomentGates = 1832;
-      const uint16_t endGate                 = std::min<uint16_t>(
-         numberOfDataMomentGates + startGate, MAX_DATA_MOMENT_GATES - 1);
-
-      for (uint16_t gate = startGate; gate < endGate; ++gate)
-      {
-         size_t offset1 = (radial * MAX_DATA_MOMENT_GATES + gate) * 2;
-         size_t offset2 = offset1 + 2;
-         size_t offset3 =
-            (((radial + 1) % MAX_RADIALS) * MAX_DATA_MOMENT_GATES + gate) * 2;
-         size_t offset4 = offset3 + 2;
-
-         vertices[index++] = coordinates[offset1];
-         vertices[index++] = coordinates[offset1 + 1];
-
-         vertices[index++] = coordinates[offset2];
-         vertices[index++] = coordinates[offset2 + 1];
-
-         vertices[index++] = coordinates[offset3];
-         vertices[index++] = coordinates[offset3 + 1];
-
-         vertices[index++] = coordinates[offset3];
-         vertices[index++] = coordinates[offset3 + 1];
-
-         vertices[index++] = coordinates[offset4];
-         vertices[index++] = coordinates[offset4 + 1];
-
-         vertices[index++] = coordinates[offset2];
-         vertices[index++] = coordinates[offset2 + 1];
-      }
-
-      break;
-   }
-   timer.stop();
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "Vertices calculated in " << timer.format(6, "%ws");
+   const std::vector<float>& vertices = p->radarView_->vertices();
 
    // Generate a vertex buffer object
    gl.glGenBuffers(1, &p->vbo_);
@@ -198,7 +104,7 @@ void RadarLayer::initialize()
    gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
    timer.start();
    gl.glBufferData(GL_ARRAY_BUFFER,
-                   index * sizeof(GLfloat),
+                   vertices.size() * sizeof(GLfloat),
                    vertices.data(),
                    GL_STATIC_DRAW);
    timer.stop();
@@ -210,8 +116,7 @@ void RadarLayer::initialize()
       0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), static_cast<void*>(0));
    gl.glEnableVertexAttribArray(0);
 
-   p->numVertices_ = index;
-   p->bearing_     = p->map_->bearing();
+   p->numVertices_ = vertices.size();
 }
 
 void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)
@@ -220,15 +125,15 @@ void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)
 
    p->shaderProgram_.Use();
 
-   const float scale =
-      p->map_->scale() * 2.0f * mbgl::util::tileSize / mbgl::util::DEGREES_MAX;
+   const float scale = p->radarView_->scale() * 2.0f * mbgl::util::tileSize /
+                       mbgl::util::DEGREES_MAX;
    const float xScale = scale / params.width;
    const float yScale = scale / params.height;
 
    glm::mat4 uMVPMatrix(1.0f);
    uMVPMatrix = glm::scale(uMVPMatrix, glm::vec3(xScale, yScale, 1.0f));
    uMVPMatrix = glm::rotate(uMVPMatrix,
-                            glm::radians<float>(params.bearing - p->bearing_),
+                            glm::radians<float>(params.bearing),
                             glm::vec3(0.0f, 0.0f, 1.0f));
 
    gl.glUniform2fv(p->uMapScreenCoordLocation_,

@@ -51,6 +51,8 @@ set(HDR_MAIN source/scwx/qt/main/main_window.hpp)
 set(SRC_MAIN source/scwx/qt/main/main.cpp
              source/scwx/qt/main/main_window.cpp)
 set(UI_MAIN  source/scwx/qt/main/main_window.ui)
+set(HDR_MANAGER source/scwx/qt/manager/radar_manager.hpp)
+set(SRC_MANAGER source/scwx/qt/manager/radar_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/map_widget.hpp
             source/scwx/qt/map/radar_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp
@@ -62,6 +64,8 @@ set(SRC_MAP source/scwx/qt/map/map_widget.cpp
 set(HDR_UTIL source/scwx/qt/util/gl.hpp
              source/scwx/qt/util/shader_program.hpp)
 set(SRC_UTIL source/scwx/qt/util/shader_program.cpp)
+set(HDR_VIEW source/scwx/qt/view/radar_view.hpp)
+set(SRC_VIEW source/scwx/qt/view/radar_view.cpp)
 
 set(RESOURCE_FILES scwx-qt.qrc)
 
@@ -72,25 +76,33 @@ set(TS_FILES ts/scwx_en_US.ts)
 
 set(PROJECT_SOURCES ${HDR_MAIN}
                     ${SRC_MAIN}
+                    ${HDR_MANAGER}
+                    ${SRC_MANAGER}
                     ${UI_MAIN}
                     ${HDR_MAP}
                     ${SRC_MAP}
                     ${HDR_UTIL}
                     ${SRC_UTIL}
+                    ${HDR_VIEW}
+                    ${SRC_VIEW}
                     ${SHADER_FILES}
                     ${RESOURCE_FILES}
                     ${TS_FILES})
 
-source_group("Header Files\\main" FILES ${HDR_MAIN})
-source_group("Source Files\\main" FILES ${SRC_MAIN})
-source_group("UI Files\\main"     FILES ${UI_MAIN})
-source_group("Header Files\\map"  FILES ${HDR_MAP})
-source_group("Source Files\\map"  FILES ${SRC_MAP})
-source_group("Header Files\\util" FILES ${HDR_UTIL})
-source_group("Source Files\\util" FILES ${SRC_UTIL})
-source_group("OpenGL Shaders"     FILES ${SHADER_FILES})
-source_group("Resources"          FILES ${RESOURCE_FILES})
-source_group("I18N Files"         FILES ${TS_FILES})
+source_group("Header Files\\main"    FILES ${HDR_MAIN})
+source_group("Source Files\\main"    FILES ${SRC_MAIN})
+source_group("Header Files\\manager" FILES ${HDR_MANAGER})
+source_group("Source Files\\manager" FILES ${SRC_MANAGER})
+source_group("UI Files\\main"        FILES ${UI_MAIN})
+source_group("Header Files\\map"     FILES ${HDR_MAP})
+source_group("Source Files\\map"     FILES ${SRC_MAP})
+source_group("Header Files\\util"    FILES ${HDR_UTIL})
+source_group("Source Files\\util"    FILES ${SRC_UTIL})
+source_group("Header Files\\view"    FILES ${HDR_VIEW})
+source_group("Source Files\\view"    FILES ${SRC_VIEW})
+source_group("OpenGL Shaders"        FILES ${SHADER_FILES})
+source_group("Resources"             FILES ${RESOURCE_FILES})
+source_group("I18N Files"            FILES ${TS_FILES})
 
 qt_add_executable(scwx-qt
     ${PROJECT_SOURCES}
@@ -103,9 +115,9 @@ target_include_directories(scwx-qt PRIVATE ${scwx-qt_SOURCE_DIR}/source
 
 target_link_libraries(scwx-qt PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
                                       Qt${QT_VERSION_MAJOR}::OpenGLWidgets
-                                      Boost::log
                                       Boost::timer
                                       qmapboxgl
                                       opengl32
                                       GeographicLib::GeographicLib
-                                      glm::glm)
+                                      glm::glm
+                                      wxdata)

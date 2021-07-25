@@ -37,13 +37,5 @@ target_compile_definitions(wxtest PRIVATE SCWX_TEST_DATA_DIR="${SCWX_DIR}/test/d
 
 gtest_discover_tests(wxtest)
 
-target_link_libraries(wxtest Boost::iostreams
-                             Boost::log
-                             BZip2::BZip2
-                             GTest::gtest
-                             hsluv-c
+target_link_libraries(wxtest GTest::gtest
                              wxdata)
-
-if (WIN32)
-    target_link_libraries(wxtest Ws2_32)
-endif()
