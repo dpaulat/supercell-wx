@@ -362,7 +362,7 @@ VolumeCoveragePatternData::doppler_prf_pulse_count_radial(uint16_t e,
 
 bool VolumeCoveragePatternData::Parse(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(debug)
+   BOOST_LOG_TRIVIAL(trace)
       << logPrefix_ << "Parsing Volume Coverage Pattern Data (Message Type 5)";
 
    bool   messageValid = true;

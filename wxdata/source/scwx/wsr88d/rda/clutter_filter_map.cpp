@@ -75,7 +75,7 @@ uint16_t ClutterFilterMap::end_range(uint16_t e, uint16_t a, uint16_t z) const
 
 bool ClutterFilterMap::Parse(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(debug)
+   BOOST_LOG_TRIVIAL(trace)
       << logPrefix_ << "Parsing Clutter Filter Map (Message Type 15)";
 
    bool     messageValid         = true;

@@ -1267,7 +1267,7 @@ float RdaAdaptationData::txb_alarm_thresh() const
 
 bool RdaAdaptationData::Parse(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(debug)
+   BOOST_LOG_TRIVIAL(trace)
       << logPrefix_ << "Parsing RDA Adaptation Data (Message Type 18)";
 
    bool   messageValid = true;

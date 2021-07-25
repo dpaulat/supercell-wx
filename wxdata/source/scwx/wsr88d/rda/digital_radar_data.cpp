@@ -605,7 +605,7 @@ DigitalRadarData::moment_data_block(DataBlockType type) const
 
 bool DigitalRadarData::Parse(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(debug)
+   BOOST_LOG_TRIVIAL(trace)
       << logPrefix_ << "Parsing Digital Radar Data (Message Type 31)";
 
    bool   messageValid = true;

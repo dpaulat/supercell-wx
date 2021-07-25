@@ -233,7 +233,7 @@ uint16_t RdaStatusData::status_version() const
 
 bool RdaStatusData::Parse(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(debug)
+   BOOST_LOG_TRIVIAL(trace)
       << logPrefix_ << "Parsing RDA Status Data (Message Type 2)";
 
    bool   messageValid = true;

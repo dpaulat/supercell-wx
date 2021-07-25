@@ -1823,7 +1823,7 @@ uint16_t PerformanceMaintenanceData::version() const
 
 bool PerformanceMaintenanceData::Parse(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(debug)
+   BOOST_LOG_TRIVIAL(trace)
       << logPrefix_ << "Parsing Performance/Maintenance Data (Message Type 3)";
 
    bool   messageValid = true;
