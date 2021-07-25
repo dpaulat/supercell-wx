@@ -1,6 +1,7 @@
 #include <scwx/qt/manager/radar_manager.hpp>
 #include <scwx/common/constants.hpp>
 
+#include <deque>
 #include <execution>
 
 #include <boost/log/trivial.hpp>
@@ -27,6 +28,9 @@ static constexpr uint32_t NUM_COORIDNATES_0_5_DEGREE =
 static constexpr uint32_t NUM_COORIDNATES_1_DEGREE =
    NUM_RADIAL_GATES_1_DEGREE * 2;
 
+// TODO: Configure this in settings for radar loop
+static constexpr size_t MAX_LEVEL2_FILES = 6;
+
 class RadarManagerImpl
 {
 public:
@@ -35,6 +39,8 @@ public:
 
    std::vector<float> coordinates0_5Degree_;
    std::vector<float> coordinates1Degree_;
+
+   std::deque<std::shared_ptr<wsr88d::Ar2vFile>> level2Data_;
 };
 
 RadarManager::RadarManager() : p(std::make_unique<RadarManagerImpl>()) {}
@@ -55,28 +61,43 @@ RadarManager::coordinates(common::RadialSize radialSize) const
    throw std::exception("Invalid radial size");
 }
 
+std::shared_ptr<const wsr88d::Ar2vFile> RadarManager::level2_data() const
+{
+   std::shared_ptr<const wsr88d::Ar2vFile> level2Data = nullptr;
+
+   if (p->level2Data_.size() > 0)
+   {
+      level2Data = p->level2Data_.back();
+   }
+
+   return level2Data;
+}
+
 void RadarManager::Initialize()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Initialize()";
 
    boost::timer::cpu_timer timer;
 
-   // Calculate coordinates
+   GeographicLib::Geodesic geodesic(GeographicLib::Constants::WGS84_a(),
+                                    GeographicLib::Constants::WGS84_f());
+
+   // TODO: This should be retrieved from configuration
+   const QMapbox::Coordinate radar(38.6986, -90.6828);
+
+   // Calculate half degree azimuth coordinates
    timer.start();
    std::vector<float>& coordinates0_5Degree = p->coordinates0_5Degree_;
 
    coordinates0_5Degree.resize(NUM_COORIDNATES_0_5_DEGREE);
 
-   GeographicLib::Geodesic geodesic(GeographicLib::Constants::WGS84_a(),
-                                    GeographicLib::Constants::WGS84_f());
-
-   const QMapbox::Coordinate radar(38.6986, -90.6828);
-   auto radialGates = boost::irange<uint32_t>(0, NUM_RADIAL_GATES_0_5_DEGREE);
+   auto radialGates0_5Degree =
+      boost::irange<uint32_t>(0, NUM_RADIAL_GATES_0_5_DEGREE);
 
    std::for_each(
       std::execution::par_unseq,
-      radialGates.begin(),
-      radialGates.end(),
+      radialGates0_5Degree.begin(),
+      radialGates0_5Degree.end(),
       [&](uint32_t radialGate) {
          const uint16_t gate =
             static_cast<uint16_t>(radialGate % common::MAX_DATA_MOMENT_GATES);
@@ -100,6 +121,62 @@ void RadarManager::Initialize()
    BOOST_LOG_TRIVIAL(debug)
       << logPrefix_ << "Coordinates (0.5 degree) calculated in "
       << timer.format(6, "%ws");
+
+   // Calculate 1 degree azimuth coordinates
+   timer.start();
+   std::vector<float>& coordinates1Degree = p->coordinates1Degree_;
+
+   coordinates1Degree.resize(NUM_COORIDNATES_1_DEGREE);
+
+   auto radialGates1Degree =
+      boost::irange<uint32_t>(0, NUM_RADIAL_GATES_1_DEGREE);
+
+   std::for_each(
+      std::execution::par_unseq,
+      radialGates1Degree.begin(),
+      radialGates1Degree.end(),
+      [&](uint32_t radialGate) {
+         const uint16_t gate =
+            static_cast<uint16_t>(radialGate % common::MAX_DATA_MOMENT_GATES);
+         const uint16_t radial =
+            static_cast<uint16_t>(radialGate / common::MAX_DATA_MOMENT_GATES);
+
+         const float  angle  = radial * 1.0f - 0.5f; // 1 degree radial
+         const float  range  = (gate + 1) * 250.0f;  // 0.25km gate size
+         const size_t offset = radialGate * 2;
+
+         double latitude;
+         double longitude;
+
+         geodesic.Direct(
+            radar.first, radar.second, angle, range, latitude, longitude);
+
+         coordinates1Degree[offset]     = latitude;
+         coordinates1Degree[offset + 1] = longitude;
+      });
+   timer.stop();
+   BOOST_LOG_TRIVIAL(debug)
+      << logPrefix_ << "Coordinates (1 degree) calculated in "
+      << timer.format(6, "%ws");
+}
+
+void RadarManager::LoadLevel2Data(const std::string& filename)
+{
+   std::shared_ptr<wsr88d::Ar2vFile> ar2vFile =
+      std::make_shared<wsr88d::Ar2vFile>();
+
+   bool success = ar2vFile->LoadFile(filename);
+   if (!success)
+   {
+      return;
+   }
+
+   // TODO: Sort and index these
+   if (p->level2Data_.size() >= MAX_LEVEL2_FILES - 1)
+   {
+      p->level2Data_.pop_front();
+   }
+   p->level2Data_.push_back(ar2vFile);
 }
 
 } // namespace manager

@@ -63,60 +63,158 @@ void RadarView::Initialize()
 
    boost::timer::cpu_timer timer;
 
+   // TODO: Pick this based on radar data
    const std::vector<float>& coordinates =
       p->radarManager_->coordinates(common::RadialSize::_0_5Degree);
 
+   std::shared_ptr<const wsr88d::Ar2vFile> level2Data =
+      p->radarManager_->level2_data();
+   if (level2Data == nullptr)
+   {
+      return;
+   }
+
+   // TODO: Pick these based on view settings
+   auto                       radarData = level2Data->radar_data()[0];
+   wsr88d::rda::DataBlockType blockType = wsr88d::rda::DataBlockType::MomentRef;
+
    // Calculate vertices
    timer.start();
+
+   auto momentData0 = radarData[0]->moment_data_block(blockType);
+
    std::vector<float>& vertices = p->vertices_;
-   const uint32_t      radials  = common::MAX_RADIALS;
-   const uint32_t      gates    = common::MAX_DATA_MOMENT_GATES;
+   const size_t        radials  = radarData.size();
+   const uint32_t      gates    = momentData0->number_of_data_moment_gates();
    vertices.clear();
    vertices.resize(radials * gates * VERTICES_PER_BIN * VALUES_PER_VERTEX);
    size_t index = 0;
 
-   for (uint16_t radial = 0; radial < 720; ++radial)
+   // Compute threshold at which to display an individual bin
+   const float    scale  = momentData0->scale();
+   const float    offset = momentData0->offset();
+   const uint16_t snrThreshold =
+      std::lroundf(momentData0->snr_threshold_raw() * scale / 10 + offset);
+
+   // Azimuth resolution spacing:
+   //   1 = 0.5 degrees
+   //   2 = 1.0 degrees
+   const float radialMultiplier =
+      2.0f /
+      std::clamp<int8_t>(radarData[0]->azimuth_resolution_spacing(), 1, 2);
+
+   const float    startAngle  = radarData[0]->azimuth_angle();
+   const uint16_t startRadial = std::lroundf(startAngle * radialMultiplier);
+
+   for (uint16_t radial = 0; radial < radials; ++radial)
    {
-      const float dataMomentRange     = 2.125f * 1000.0f;
-      const float dataMomentInterval  = 0.25f * 1000.0f;
-      const float dataMomentIntervalH = dataMomentInterval * 0.5f;
-      const float snrThreshold        = 2.0f;
+      auto radialData = radarData[radial];
+      auto momentData = radarData[radial]->moment_data_block(blockType);
 
-      const uint16_t startGate               = 7;
-      const uint16_t numberOfDataMomentGates = 1832;
+      // Compute gate interval
+      const uint16_t dataMomentRange = momentData->data_moment_range_raw();
+      const uint16_t dataMomentInterval =
+         momentData->data_moment_range_sample_interval_raw();
+      const uint16_t dataMomentIntervalH = dataMomentInterval / 2;
+
+      // Compute gate size (number of base 250m gates per bin)
+      const uint16_t gateSize = std::max<uint16_t>(1, dataMomentInterval / 250);
+
+      // Compute gate range [startGate, endGate)
+      const uint16_t startGate = (dataMomentRange - dataMomentIntervalH) / 250;
+      const uint16_t numberOfDataMomentGates =
+         std::min<uint16_t>(momentData->number_of_data_moment_gates(),
+                            static_cast<uint16_t>(gates));
       const uint16_t endGate =
-         std::min<uint16_t>(numberOfDataMomentGates + startGate,
-                            common::MAX_DATA_MOMENT_GATES - 1);
+         std::min<uint16_t>(startGate + numberOfDataMomentGates * gateSize,
+                            common::MAX_DATA_MOMENT_GATES);
 
-      for (uint16_t gate = startGate; gate < endGate; ++gate)
+      const uint8_t*  dataMoments8  = nullptr;
+      const uint16_t* dataMoments16 = nullptr;
+
+      if (momentData->data_word_size() == 8)
       {
-         size_t offset1 = (radial * common::MAX_DATA_MOMENT_GATES + gate) * 2;
-         size_t offset2 = offset1 + 2;
-         size_t offset3 = (((radial + 1) % common::MAX_RADIALS) *
-                              common::MAX_DATA_MOMENT_GATES +
-                           gate) *
-                          2;
-         size_t offset4 = offset3 + 2;
+         dataMoments8 =
+            reinterpret_cast<const uint8_t*>(momentData->data_moments());
+      }
+      else
+      {
+         dataMoments16 =
+            reinterpret_cast<const uint16_t*>(momentData->data_moments());
+      }
 
-         vertices[index++] = coordinates[offset1];
-         vertices[index++] = coordinates[offset1 + 1];
+      for (uint16_t gate = startGate, i = 0; gate + gateSize <= endGate;
+           gate += gateSize, ++i)
+      {
+         uint16_t dataValue =
+            (dataMoments8 != nullptr) ? dataMoments8[i] : dataMoments16[i];
 
-         vertices[index++] = coordinates[offset2];
-         vertices[index++] = coordinates[offset2 + 1];
+         if (dataValue < snrThreshold)
+         {
+            continue;
+         }
 
-         vertices[index++] = coordinates[offset3];
-         vertices[index++] = coordinates[offset3 + 1];
+         if (gate > 0)
+         {
+            const uint16_t baseCoord = gate - 1;
 
-         vertices[index++] = coordinates[offset3];
-         vertices[index++] = coordinates[offset3 + 1];
+            size_t offset1 = ((startRadial + radial) % common::MAX_RADIALS *
+                                 common::MAX_DATA_MOMENT_GATES +
+                              baseCoord) *
+                             2;
+            size_t offset2 = offset1 + gateSize * 2;
+            size_t offset3 =
+               (((startRadial + radial + 1) % common::MAX_RADIALS) *
+                   common::MAX_DATA_MOMENT_GATES +
+                baseCoord) *
+               2;
+            size_t offset4 = offset3 + gateSize * 2;
 
-         vertices[index++] = coordinates[offset4];
-         vertices[index++] = coordinates[offset4 + 1];
+            vertices[index++] = coordinates[offset1];
+            vertices[index++] = coordinates[offset1 + 1];
 
-         vertices[index++] = coordinates[offset2];
-         vertices[index++] = coordinates[offset2 + 1];
+            vertices[index++] = coordinates[offset2];
+            vertices[index++] = coordinates[offset2 + 1];
+
+            vertices[index++] = coordinates[offset3];
+            vertices[index++] = coordinates[offset3 + 1];
+
+            vertices[index++] = coordinates[offset3];
+            vertices[index++] = coordinates[offset3 + 1];
+
+            vertices[index++] = coordinates[offset4];
+            vertices[index++] = coordinates[offset4 + 1];
+
+            vertices[index++] = coordinates[offset2];
+            vertices[index++] = coordinates[offset2 + 1];
+         }
+         else
+         {
+            const uint16_t baseCoord = gate;
+
+            size_t offset1 = ((startRadial + radial) % common::MAX_RADIALS *
+                                 common::MAX_DATA_MOMENT_GATES +
+                              baseCoord) *
+                             2;
+            size_t offset2 =
+               (((startRadial + radial + 1) % common::MAX_RADIALS) *
+                   common::MAX_DATA_MOMENT_GATES +
+                baseCoord) *
+               2;
+
+            // TODO: Radar location
+            vertices[index++] = 38.6986f;
+            vertices[index++] = -90.6828f;
+
+            vertices[index++] = coordinates[offset1];
+            vertices[index++] = coordinates[offset1 + 1];
+
+            vertices[index++] = coordinates[offset2];
+            vertices[index++] = coordinates[offset2 + 1];
+         }
       }
    }
+   vertices.resize(index);
    timer.stop();
    BOOST_LOG_TRIVIAL(debug)
       << logPrefix_ << "Vertices calculated in " << timer.format(6, "%ws");

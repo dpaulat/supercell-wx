@@ -110,6 +110,10 @@ qt_add_executable(scwx-qt
 
 qt6_create_translation_scwx(QM_FILES ${scwx-qt_SOURCE_DIR} ${TS_FILES})
 
+if (WIN32)
+    target_compile_definitions(scwx-qt PRIVATE WIN32_LEAN_AND_MEAN)
+endif()
+
 target_include_directories(scwx-qt PRIVATE ${scwx-qt_SOURCE_DIR}/source
                                            ${MBGL_INCLUDE_DIR})
 

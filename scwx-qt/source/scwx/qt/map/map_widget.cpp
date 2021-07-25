@@ -36,7 +36,12 @@ class MapWidgetImpl
 {
 public:
    explicit MapWidgetImpl(const QMapboxGLSettings& settings) :
-       gl_(), settings_(settings), map_(), lastPos_(), frameDraws_(0)
+       gl_(),
+       settings_(settings),
+       map_(),
+       radarManager_ {std::make_shared<manager::RadarManager>()},
+       lastPos_(),
+       frameDraws_(0)
    {
    }
    ~MapWidgetImpl() = default;
@@ -45,6 +50,8 @@ public:
 
    QMapboxGLSettings          settings_;
    std::shared_ptr<QMapboxGL> map_;
+
+   std::shared_ptr<manager::RadarManager> radarManager_;
 
    QPointF lastPos_;
 
@@ -55,6 +62,13 @@ MapWidget::MapWidget(const QMapboxGLSettings& settings) :
     p(std::make_unique<MapWidgetImpl>(settings))
 {
    setFocusPolicy(Qt::StrongFocus);
+
+   p->radarManager_->Initialize();
+   QString ar2vFile = qgetenv("AR2V_FILE");
+   if (!ar2vFile.isEmpty())
+   {
+      p->radarManager_->LoadLevel2Data(ar2vFile.toUtf8().constData());
+   }
 }
 
 MapWidget::~MapWidget()
@@ -87,12 +101,9 @@ void MapWidget::changeStyle()
 
 void MapWidget::AddLayers()
 {
-   std::shared_ptr<manager::RadarManager> radarManager =
-      std::make_shared<manager::RadarManager>();
    std::shared_ptr<view::RadarView> radarView =
-      std::make_shared<view::RadarView>(radarManager, p->map_);
+      std::make_shared<view::RadarView>(p->radarManager_, p->map_);
 
-   radarManager->Initialize();
    radarView->Initialize();
 
    // QMapboxGL::addCustomLayer will take ownership of the QScopedPointer
