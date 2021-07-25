@@ -96,17 +96,32 @@ uint16_t MomentDataBlock::number_of_data_moment_gates() const
 
 float MomentDataBlock::data_moment_range() const
 {
-   return p->dataMomentRange_ / 0.001f;
+   return p->dataMomentRange_ * 0.001f;
+}
+
+uint16_t MomentDataBlock::data_moment_range_raw() const
+{
+   return p->dataMomentRange_;
 }
 
 float MomentDataBlock::data_moment_range_sample_interval() const
 {
-   return p->dataMomentRangeSampleInterval_ / 0.001f;
+   return p->dataMomentRangeSampleInterval_ * 0.001f;
+}
+
+uint16_t MomentDataBlock::data_moment_range_sample_interval_raw() const
+{
+   return p->dataMomentRangeSampleInterval_;
 }
 
 float MomentDataBlock::snr_threshold() const
 {
-   return p->snrThreshold_ / 0.1f;
+   return p->snrThreshold_ * 0.1f;
+}
+
+int16_t MomentDataBlock::snr_threshold_raw() const
+{
+   return p->snrThreshold_;
 }
 
 uint8_t MomentDataBlock::data_word_size() const

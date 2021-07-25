@@ -1,7 +1,11 @@
 #pragma once
 
+#include <scwx/wsr88d/rda/digital_radar_data.hpp>
+#include <scwx/wsr88d/rda/volume_coverage_pattern_data.hpp>
+
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 namespace scwx
 {
@@ -26,6 +30,12 @@ public:
 
    Ar2vFile(Ar2vFile&&) noexcept;
    Ar2vFile& operator=(Ar2vFile&&) noexcept;
+
+   std::unordered_map<
+      uint16_t,
+      std::unordered_map<uint16_t, std::shared_ptr<rda::DigitalRadarData>>>
+                                                         radar_data() const;
+   std::shared_ptr<const rda::VolumeCoveragePatternData> vcp_data() const;
 
    bool LoadFile(const std::string& filename);
 

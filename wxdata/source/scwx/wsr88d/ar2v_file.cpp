@@ -1,8 +1,6 @@
 #include <scwx/wsr88d/ar2v_file.hpp>
-#include <scwx/wsr88d/rda/digital_radar_data.hpp>
 #include <scwx/wsr88d/rda/message_factory.hpp>
 #include <scwx/wsr88d/rda/types.hpp>
-#include <scwx/wsr88d/rda/volume_coverage_pattern_data.hpp>
 #include <scwx/util/rangebuf.hpp>
 
 #include <fstream>
@@ -63,6 +61,19 @@ Ar2vFile::~Ar2vFile() = default;
 
 Ar2vFile::Ar2vFile(Ar2vFile&&) noexcept = default;
 Ar2vFile& Ar2vFile::operator=(Ar2vFile&&) noexcept = default;
+
+std::unordered_map<
+   uint16_t,
+   std::unordered_map<uint16_t, std::shared_ptr<rda::DigitalRadarData>>>
+Ar2vFile::radar_data() const
+{
+   return p->radarData_;
+}
+
+std::shared_ptr<const rda::VolumeCoveragePatternData> Ar2vFile::vcp_data() const
+{
+   return p->vcpData_;
+}
 
 bool Ar2vFile::LoadFile(const std::string& filename)
 {
@@ -223,6 +234,8 @@ void Ar2vFileImpl::ParseLDMRecords()
          }
       }
    }
+
+   rawRecords_.clear();
 }
 
 void Ar2vFileImpl::HandleMessage(std::shared_ptr<rda::Message>& message)

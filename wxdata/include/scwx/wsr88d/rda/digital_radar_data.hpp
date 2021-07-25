@@ -88,8 +88,11 @@ public:
 
    uint16_t    number_of_data_moment_gates() const;
    float       data_moment_range() const;
+   uint16_t    data_moment_range_raw() const;
    float       data_moment_range_sample_interval() const;
+   uint16_t    data_moment_range_sample_interval_raw() const;
    float       snr_threshold() const;
+   int16_t     snr_threshold_raw() const;
    uint8_t     data_word_size() const;
    float       scale() const;
    float       offset() const;
