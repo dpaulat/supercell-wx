@@ -44,11 +44,11 @@ public:
    std::shared_ptr<view::RadarView> radarView_;
    OpenGLFunctions&                 gl_;
 
-   ShaderProgram shaderProgram_;
-   GLint         uMVPMatrixLocation_;
-   GLint         uMapScreenCoordLocation_;
-   GLuint        vbo_;
-   GLuint        vao_;
+   ShaderProgram         shaderProgram_;
+   GLint                 uMVPMatrixLocation_;
+   GLint                 uMapScreenCoordLocation_;
+   std::array<GLuint, 2> vbo_;
+   GLuint                vao_;
 
    GLsizeiptr numVertices_;
 };
@@ -89,19 +89,19 @@ void RadarLayer::initialize()
          << logPrefix_ << "Could not find uMapScreenCoord";
    }
 
-   const std::vector<float>& vertices = p->radarView_->vertices();
+   const std::vector<float>&    vertices      = p->radarView_->vertices();
+   const std::vector<uint8_t>&  dataMoments8  = p->radarView_->data_moments8();
+   const std::vector<uint16_t>& dataMoments16 = p->radarView_->data_moments16();
 
-   // Generate a vertex buffer object
-   gl.glGenBuffers(1, &p->vbo_);
-
-   // Generate a vertex array object
+   // Generate and bind a vertex array object
    gl.glGenVertexArrays(1, &p->vao_);
-
-   // Bind vertex array object
    gl.glBindVertexArray(p->vao_);
 
-   // Copy vertices array in a buffer for OpenGL to use
-   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
+   // Generate vertex buffer objects
+   gl.glGenBuffers(2, p->vbo_.data());
+
+   // Buffer vertices
+   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
    timer.start();
    gl.glBufferData(GL_ARRAY_BUFFER,
                    vertices.size() * sizeof(GLfloat),
@@ -111,12 +111,38 @@ void RadarLayer::initialize()
    BOOST_LOG_TRIVIAL(debug)
       << logPrefix_ << "Vertices buffered in " << timer.format(6, "%ws");
 
-   // Set the vertex attributes pointers
-   gl.glVertexAttribPointer(
-      0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), static_cast<void*>(0));
+   gl.glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, static_cast<void*>(0));
    gl.glEnableVertexAttribArray(0);
 
-   p->numVertices_ = vertices.size();
+   // Buffer data moments
+   const GLvoid* data;
+   GLsizeiptr    dataSize;
+   GLenum        type;
+
+   if (dataMoments8.size() > 0)
+   {
+      data     = static_cast<const GLvoid*>(dataMoments8.data());
+      dataSize = dataMoments8.size() * sizeof(GLubyte);
+      type     = GL_UNSIGNED_BYTE;
+   }
+   else
+   {
+      data     = static_cast<const GLvoid*>(dataMoments16.data());
+      dataSize = dataMoments16.size() * sizeof(GLushort);
+      type     = GL_UNSIGNED_SHORT;
+   }
+
+   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
+   timer.start();
+   gl.glBufferData(GL_ARRAY_BUFFER, dataSize, data, GL_STATIC_DRAW);
+   timer.stop();
+   BOOST_LOG_TRIVIAL(debug)
+      << logPrefix_ << "Data moments buffered in " << timer.format(6, "%ws");
+
+   gl.glVertexAttribIPointer(1, 1, type, 0, static_cast<void*>(0));
+   gl.glEnableVertexAttribArray(1);
+
+   p->numVertices_ = vertices.size() / 2;
 }
 
 void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)
@@ -145,9 +171,7 @@ void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)
       p->uMVPMatrixLocation_, 1, GL_FALSE, glm::value_ptr(uMVPMatrix));
 
    gl.glBindVertexArray(p->vao_);
-   gl.glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
    gl.glDrawArrays(GL_TRIANGLES, 0, p->numVertices_);
-   gl.glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void RadarLayer::deinitialize()
@@ -157,11 +181,11 @@ void RadarLayer::deinitialize()
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "deinitialize()";
 
    gl.glDeleteVertexArrays(1, &p->vao_);
-   gl.glDeleteBuffers(1, &p->vbo_);
+   gl.glDeleteBuffers(2, p->vbo_.data());
 
    p->uMVPMatrixLocation_ = GL_INVALID_INDEX;
    p->vao_                = GL_INVALID_INDEX;
-   p->vbo_                = GL_INVALID_INDEX;
+   p->vbo_                = {GL_INVALID_INDEX};
 }
 
 static glm::vec2

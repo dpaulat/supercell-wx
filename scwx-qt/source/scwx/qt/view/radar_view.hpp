@@ -29,9 +29,11 @@ public:
    RadarView(RadarView&&) noexcept;
    RadarView& operator=(RadarView&&) noexcept;
 
-   double                    bearing() const;
-   double                    scale() const;
-   const std::vector<float>& vertices() const;
+   double                       bearing() const;
+   double                       scale() const;
+   const std::vector<uint8_t>&  data_moments8() const;
+   const std::vector<uint16_t>& data_moments16() const;
+   const std::vector<float>&    vertices() const;
 
    void Initialize();
 

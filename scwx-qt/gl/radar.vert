@@ -7,12 +7,12 @@
 #define RAD2DEG       57.295779513082320876798156332941f
 
 layout (location = 0) in vec2 aLatLong;
-layout (location = 1) in vec2 aTexCoord;
+layout (location = 1) in uint aDataMoment;
 
 uniform mat4 uMVPMatrix;
 uniform vec2 uMapScreenCoord;
 
-out vec2 texCoord;
+flat out uint dataMoment;
 
 vec2 latLngToScreenCoordinate(in vec2 latLng)
 {
@@ -25,8 +25,8 @@ vec2 latLngToScreenCoordinate(in vec2 latLng)
 
 void main()
 {
-   // Pass the texture coordinate to the fragment shader
-   texCoord = aTexCoord;
+   // Pass the coded data moment to the fragment shader
+   dataMoment = aDataMoment;
 
    vec2 p = latLngToScreenCoordinate(aLatLong) - uMapScreenCoord;
 

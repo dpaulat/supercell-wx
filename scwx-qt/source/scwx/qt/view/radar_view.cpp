@@ -29,7 +29,9 @@ public:
    std::shared_ptr<manager::RadarManager> radarManager_;
    std::shared_ptr<QMapboxGL>             map_;
 
-   std::vector<float> vertices_;
+   std::vector<float>    vertices_;
+   std::vector<uint8_t>  dataMoments8_;
+   std::vector<uint16_t> dataMoments16_;
 };
 
 RadarView::RadarView(std::shared_ptr<manager::RadarManager> radarManager,
@@ -50,6 +52,16 @@ double RadarView::bearing() const
 double RadarView::scale() const
 {
    return p->map_->scale();
+}
+
+const std::vector<uint8_t>& RadarView::data_moments8() const
+{
+   return p->dataMoments8_;
+}
+
+const std::vector<uint16_t>& RadarView::data_moments16() const
+{
+   return p->dataMoments16_;
 }
 
 const std::vector<float>& RadarView::vertices() const
@@ -83,12 +95,33 @@ void RadarView::Initialize()
 
    auto momentData0 = radarData[0]->moment_data_block(blockType);
 
+   // Setup vertex vector
    std::vector<float>& vertices = p->vertices_;
    const size_t        radials  = radarData.size();
    const uint32_t      gates    = momentData0->number_of_data_moment_gates();
+   size_t              vIndex   = 0;
    vertices.clear();
    vertices.resize(radials * gates * VERTICES_PER_BIN * VALUES_PER_VERTEX);
-   size_t index = 0;
+
+   // Setup data moment vector
+   std::vector<uint8_t>&  dataMoments8  = p->dataMoments8_;
+   std::vector<uint16_t>& dataMoments16 = p->dataMoments16_;
+   size_t                 mIndex        = 0;
+
+   if (momentData0->data_word_size() == 8)
+   {
+      dataMoments16.resize(0);
+      dataMoments16.shrink_to_fit();
+
+      dataMoments8.resize(radials * gates * VERTICES_PER_BIN);
+   }
+   else
+   {
+      dataMoments8.resize(0);
+      dataMoments8.shrink_to_fit();
+
+      dataMoments16.resize(radials * gates * VERTICES_PER_BIN);
+   }
 
    // Compute threshold at which to display an individual bin
    const float    scale  = momentData0->scale();
@@ -111,6 +144,13 @@ void RadarView::Initialize()
       auto radialData = radarData[radial];
       auto momentData = radarData[radial]->moment_data_block(blockType);
 
+      if (momentData0->data_word_size() != momentData->data_word_size())
+      {
+         BOOST_LOG_TRIVIAL(warning)
+            << logPrefix_ << "Radial " << radial << " has different word size";
+         continue;
+      }
+
       // Compute gate interval
       const uint16_t dataMomentRange = momentData->data_moment_range_raw();
       const uint16_t dataMomentInterval =
@@ -129,31 +169,54 @@ void RadarView::Initialize()
          std::min<uint16_t>(startGate + numberOfDataMomentGates * gateSize,
                             common::MAX_DATA_MOMENT_GATES);
 
-      const uint8_t*  dataMoments8  = nullptr;
-      const uint16_t* dataMoments16 = nullptr;
+      const uint8_t*  dataMomentsArray8  = nullptr;
+      const uint16_t* dataMomentsArray16 = nullptr;
 
       if (momentData->data_word_size() == 8)
       {
-         dataMoments8 =
+         dataMomentsArray8 =
             reinterpret_cast<const uint8_t*>(momentData->data_moments());
       }
       else
       {
-         dataMoments16 =
+         dataMomentsArray16 =
             reinterpret_cast<const uint16_t*>(momentData->data_moments());
       }
 
       for (uint16_t gate = startGate, i = 0; gate + gateSize <= endGate;
            gate += gateSize, ++i)
       {
-         uint16_t dataValue =
-            (dataMoments8 != nullptr) ? dataMoments8[i] : dataMoments16[i];
+         size_t vertexCount = (gate > 0) ? 6 : 3;
 
-         if (dataValue < snrThreshold)
+         // Store data moment value
+         if (dataMomentsArray8 != nullptr)
          {
-            continue;
+            uint8_t dataValue = dataMomentsArray8[i];
+            if (dataValue < snrThreshold)
+            {
+               continue;
+            }
+
+            for (size_t m = 0; m < vertexCount; m++)
+            {
+               dataMoments8[mIndex++] = dataMomentsArray8[i];
+            }
+         }
+         else
+         {
+            uint16_t dataValue = dataMomentsArray16[i];
+            if (dataValue < snrThreshold)
+            {
+               continue;
+            }
+
+            for (size_t m = 0; m < vertexCount; m++)
+            {
+               dataMoments16[mIndex++] = dataMomentsArray16[i];
+            }
          }
 
+         // Store vertices
          if (gate > 0)
          {
             const uint16_t baseCoord = gate - 1;
@@ -170,23 +233,25 @@ void RadarView::Initialize()
                2;
             size_t offset4 = offset3 + gateSize * 2;
 
-            vertices[index++] = coordinates[offset1];
-            vertices[index++] = coordinates[offset1 + 1];
+            vertices[vIndex++] = coordinates[offset1];
+            vertices[vIndex++] = coordinates[offset1 + 1];
 
-            vertices[index++] = coordinates[offset2];
-            vertices[index++] = coordinates[offset2 + 1];
+            vertices[vIndex++] = coordinates[offset2];
+            vertices[vIndex++] = coordinates[offset2 + 1];
 
-            vertices[index++] = coordinates[offset3];
-            vertices[index++] = coordinates[offset3 + 1];
+            vertices[vIndex++] = coordinates[offset3];
+            vertices[vIndex++] = coordinates[offset3 + 1];
 
-            vertices[index++] = coordinates[offset3];
-            vertices[index++] = coordinates[offset3 + 1];
+            vertices[vIndex++] = coordinates[offset3];
+            vertices[vIndex++] = coordinates[offset3 + 1];
 
-            vertices[index++] = coordinates[offset4];
-            vertices[index++] = coordinates[offset4 + 1];
+            vertices[vIndex++] = coordinates[offset4];
+            vertices[vIndex++] = coordinates[offset4 + 1];
 
-            vertices[index++] = coordinates[offset2];
-            vertices[index++] = coordinates[offset2 + 1];
+            vertices[vIndex++] = coordinates[offset2];
+            vertices[vIndex++] = coordinates[offset2 + 1];
+
+            vertexCount = 6;
          }
          else
          {
@@ -203,18 +268,30 @@ void RadarView::Initialize()
                2;
 
             // TODO: Radar location
-            vertices[index++] = 38.6986f;
-            vertices[index++] = -90.6828f;
+            vertices[vIndex++] = 38.6986f;
+            vertices[vIndex++] = -90.6828f;
 
-            vertices[index++] = coordinates[offset1];
-            vertices[index++] = coordinates[offset1 + 1];
+            vertices[vIndex++] = coordinates[offset1];
+            vertices[vIndex++] = coordinates[offset1 + 1];
 
-            vertices[index++] = coordinates[offset2];
-            vertices[index++] = coordinates[offset2 + 1];
+            vertices[vIndex++] = coordinates[offset2];
+            vertices[vIndex++] = coordinates[offset2 + 1];
+
+            vertexCount = 3;
          }
       }
    }
-   vertices.resize(index);
+   vertices.resize(vIndex);
+
+   if (momentData0->data_word_size() == 8)
+   {
+      dataMoments8.resize(mIndex);
+   }
+   else
+   {
+      dataMoments16.resize(mIndex);
+   }
+
    timer.stop();
    BOOST_LOG_TRIVIAL(debug)
       << logPrefix_ << "Vertices calculated in " << timer.format(6, "%ws");

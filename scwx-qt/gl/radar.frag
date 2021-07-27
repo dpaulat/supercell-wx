@@ -5,9 +5,22 @@ precision mediump float;
 
 uniform sampler2D uTexture;
 
-in vec2 texCoord;
+flat in uint dataMoment;
+
+layout (location = 0) out vec4 fragColor;
 
 void main()
 {
-   gl_FragColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+   if (dataMoment < 126u)
+   {
+      fragColor = vec4(0.0f, 0.5f, 0.0f, 0.9f);
+   }
+   else if (dataMoment < 156u)
+   {
+      fragColor = vec4(1.0f, 0.75f, 0.0f, 0.9f);
+   }
+   else
+   {
+      fragColor = vec4(1.0f, 0.0f, 0.0f, 0.9f);
+   }
 }
