@@ -28,6 +28,8 @@ public:
    void render(const QMapbox::CustomLayerRenderParameters&) override final;
    void deinitialize() override final;
 
+   void UpdateColorTable();
+
 private:
    std::unique_ptr<RadarLayerImpl> p;
 };

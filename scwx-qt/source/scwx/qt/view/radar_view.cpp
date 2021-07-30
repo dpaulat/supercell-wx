@@ -2,6 +2,7 @@
 #include <scwx/common/constants.hpp>
 
 #include <boost/log/trivial.hpp>
+#include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 
 namespace scwx
@@ -21,7 +22,11 @@ class RadarViewImpl
 public:
    explicit RadarViewImpl(std::shared_ptr<manager::RadarManager> radarManager,
                           std::shared_ptr<QMapboxGL>             map) :
-       radarManager_(radarManager), map_(map)
+       radarManager_(radarManager),
+       map_(map),
+       colorTable_ {boost::gil::rgba8_pixel_t(0, 128, 0, 255),
+                    boost::gil::rgba8_pixel_t(255, 192, 0, 255),
+                    boost::gil::rgba8_pixel_t(255, 0, 0, 255)}
    {
    }
    ~RadarViewImpl() = default;
@@ -32,6 +37,8 @@ public:
    std::vector<float>    vertices_;
    std::vector<uint8_t>  dataMoments8_;
    std::vector<uint16_t> dataMoments16_;
+
+   std::vector<boost::gil::rgba8_pixel_t> colorTable_;
 };
 
 RadarView::RadarView(std::shared_ptr<manager::RadarManager> radarManager,
@@ -67,6 +74,11 @@ const std::vector<uint16_t>& RadarView::data_moments16() const
 const std::vector<float>& RadarView::vertices() const
 {
    return p->vertices_;
+}
+
+const std::vector<boost::gil::rgba8_pixel_t>& RadarView::color_table() const
+{
+   return p->colorTable_;
 }
 
 void RadarView::Initialize()
@@ -295,6 +307,26 @@ void RadarView::Initialize()
    timer.stop();
    BOOST_LOG_TRIVIAL(debug)
       << logPrefix_ << "Vertices calculated in " << timer.format(6, "%ws");
+}
+
+void RadarView::LoadColorTable(std::shared_ptr<common::ColorTable> colorTable)
+{
+   // TODO: Make size, offset and scale dynamic
+   const float offset = 66.0f;
+   const float scale  = 2.0f;
+
+   std::vector<boost::gil::rgba8_pixel_t>& lut = p->colorTable_;
+   lut.resize(254);
+
+   auto dataRange = boost::irange<uint16_t>(2, 255);
+
+   std::for_each(std::execution::par_unseq,
+                 dataRange.begin(),
+                 dataRange.end(),
+                 [&](uint16_t i) {
+                    float f                     = (i - offset) / scale;
+                    lut[i - *dataRange.begin()] = colorTable->Color(f);
+                 });
 }
 
 } // namespace view

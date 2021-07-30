@@ -36,6 +36,7 @@ public:
        uMapScreenCoordLocation_(GL_INVALID_INDEX),
        vbo_ {GL_INVALID_INDEX},
        vao_ {GL_INVALID_INDEX},
+       texture_ {GL_INVALID_INDEX},
        numVertices_ {0}
    {
    }
@@ -49,6 +50,7 @@ public:
    GLint                 uMapScreenCoordLocation_;
    std::array<GLuint, 2> vbo_;
    GLuint                vao_;
+   GLuint                texture_;
 
    GLsizeiptr numVertices_;
 };
@@ -143,6 +145,11 @@ void RadarLayer::initialize()
    gl.glEnableVertexAttribArray(1);
 
    p->numVertices_ = vertices.size() / 2;
+
+   // Create color table
+   gl.glGenTextures(1, &p->texture_);
+   UpdateColorTable();
+   gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 }
 
 void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)
@@ -170,6 +177,8 @@ void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)
    gl.glUniformMatrix4fv(
       p->uMVPMatrixLocation_, 1, GL_FALSE, glm::value_ptr(uMVPMatrix));
 
+   gl.glActiveTexture(GL_TEXTURE0);
+   gl.glBindTexture(GL_TEXTURE_1D, p->texture_);
    gl.glBindVertexArray(p->vao_);
    gl.glDrawArrays(GL_TRIANGLES, 0, p->numVertices_);
 }
@@ -186,6 +195,27 @@ void RadarLayer::deinitialize()
    p->uMVPMatrixLocation_ = GL_INVALID_INDEX;
    p->vao_                = GL_INVALID_INDEX;
    p->vbo_                = {GL_INVALID_INDEX};
+   p->texture_            = GL_INVALID_INDEX;
+}
+
+void RadarLayer::UpdateColorTable()
+{
+   OpenGLFunctions& gl = p->gl_;
+
+   const std::vector<boost::gil::rgba8_pixel_t>& colorTable =
+      p->radarView_->color_table();
+
+   gl.glActiveTexture(GL_TEXTURE0);
+   gl.glBindTexture(GL_TEXTURE_1D, p->texture_);
+   gl.glTexImage1D(GL_TEXTURE_1D,
+                   0,
+                   GL_RGBA,
+                   (GLsizei) colorTable.size(),
+                   0,
+                   GL_RGBA,
+                   GL_UNSIGNED_BYTE,
+                   colorTable.data());
+   gl.glGenerateMipmap(GL_TEXTURE_1D);
 }
 
 static glm::vec2

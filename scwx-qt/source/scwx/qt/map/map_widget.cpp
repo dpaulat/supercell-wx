@@ -106,6 +106,14 @@ void MapWidget::AddLayers()
 
    radarView->Initialize();
 
+   QString colorTableFile = qgetenv("COLOR_TABLE");
+   if (!colorTableFile.isEmpty())
+   {
+      std::shared_ptr<common::ColorTable> colorTable =
+         common::ColorTable::Load(colorTableFile.toUtf8().constData());
+      radarView->LoadColorTable(colorTable);
+   }
+
    // QMapboxGL::addCustomLayer will take ownership of the QScopedPointer
    QScopedPointer<QMapbox::CustomLayerHostInterface> pHost(
       new RadarLayer(radarView, p->gl_));
