@@ -45,11 +45,12 @@ RadarView::RadarView(std::shared_ptr<manager::RadarManager> radarManager,
                      std::shared_ptr<QMapboxGL>             map) :
     p(std::make_unique<RadarViewImpl>(radarManager, map))
 {
+   connect(radarManager.get(),
+           &manager::RadarManager::Level2DataLoaded,
+           this,
+           &RadarView::UpdatePlot);
 }
 RadarView::~RadarView() = default;
-
-RadarView::RadarView(RadarView&&) noexcept = default;
-RadarView& RadarView::operator=(RadarView&&) noexcept = default;
 
 double RadarView::bearing() const
 {
@@ -83,7 +84,34 @@ const std::vector<boost::gil::rgba8_pixel_t>& RadarView::color_table() const
 
 void RadarView::Initialize()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Initialize()";
+   UpdatePlot();
+}
+
+void RadarView::LoadColorTable(std::shared_ptr<common::ColorTable> colorTable)
+{
+   // TODO: Make size, offset and scale dynamic
+   const float offset = 66.0f;
+   const float scale  = 2.0f;
+
+   std::vector<boost::gil::rgba8_pixel_t>& lut = p->colorTable_;
+   lut.resize(254);
+
+   auto dataRange = boost::irange<uint16_t>(2, 255);
+
+   std::for_each(std::execution::par_unseq,
+                 dataRange.begin(),
+                 dataRange.end(),
+                 [&](uint16_t i) {
+                    float f                     = (i - offset) / scale;
+                    lut[i - *dataRange.begin()] = colorTable->Color(f);
+                 });
+
+   emit ColorTableLoaded();
+}
+
+void RadarView::UpdatePlot()
+{
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "UpdatePlot()";
 
    boost::timer::cpu_timer timer;
 
@@ -307,26 +335,8 @@ void RadarView::Initialize()
    timer.stop();
    BOOST_LOG_TRIVIAL(debug)
       << logPrefix_ << "Vertices calculated in " << timer.format(6, "%ws");
-}
 
-void RadarView::LoadColorTable(std::shared_ptr<common::ColorTable> colorTable)
-{
-   // TODO: Make size, offset and scale dynamic
-   const float offset = 66.0f;
-   const float scale  = 2.0f;
-
-   std::vector<boost::gil::rgba8_pixel_t>& lut = p->colorTable_;
-   lut.resize(254);
-
-   auto dataRange = boost::irange<uint16_t>(2, 255);
-
-   std::for_each(std::execution::par_unseq,
-                 dataRange.begin(),
-                 dataRange.end(),
-                 [&](uint16_t i) {
-                    float f                     = (i - offset) / scale;
-                    lut[i - *dataRange.begin()] = colorTable->Color(f);
-                 });
+   emit PlotUpdated();
 }
 
 } // namespace view

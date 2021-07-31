@@ -37,7 +37,9 @@ public:
        vbo_ {GL_INVALID_INDEX},
        vao_ {GL_INVALID_INDEX},
        texture_ {GL_INVALID_INDEX},
-       numVertices_ {0}
+       numVertices_ {0},
+       colorTableUpdated_(false),
+       plotUpdated_(false)
    {
    }
    ~RadarLayerImpl() = default;
@@ -53,6 +55,9 @@ public:
    GLuint                texture_;
 
    GLsizeiptr numVertices_;
+
+   bool colorTableUpdated_;
+   bool plotUpdated_;
 };
 
 RadarLayer::RadarLayer(std::shared_ptr<view::RadarView> radarView,
@@ -62,16 +67,11 @@ RadarLayer::RadarLayer(std::shared_ptr<view::RadarView> radarView,
 }
 RadarLayer::~RadarLayer() = default;
 
-RadarLayer::RadarLayer(RadarLayer&&) noexcept = default;
-RadarLayer& RadarLayer::operator=(RadarLayer&&) noexcept = default;
-
 void RadarLayer::initialize()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "initialize()";
 
    OpenGLFunctions& gl = p->gl_;
-
-   boost::timer::cpu_timer timer;
 
    // Load and configure radar shader
    p->shaderProgram_.Load(":/gl/radar.vert", ":/gl/radar.frag");
@@ -91,12 +91,45 @@ void RadarLayer::initialize()
          << logPrefix_ << "Could not find uMapScreenCoord";
    }
 
+   // Generate a vertex array object
+   gl.glGenVertexArrays(1, &p->vao_);
+
+   // Generate vertex buffer objects
+   gl.glGenBuffers(2, p->vbo_.data());
+
+   // Update radar plot
+   UpdatePlot();
+
+   // Create color table
+   gl.glGenTextures(1, &p->texture_);
+   UpdateColorTable();
+   gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+
+   connect(p->radarView_.get(),
+           &view::RadarView::ColorTableLoaded,
+           this,
+           &RadarLayer::ReceiveColorTableUpdate);
+   connect(p->radarView_.get(),
+           &view::RadarView::PlotUpdated,
+           this,
+           &RadarLayer::ReceivePlotUpdate);
+}
+
+void RadarLayer::UpdatePlot()
+{
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "UpdatePlot()";
+
+   p->plotUpdated_ = false;
+
+   OpenGLFunctions& gl = p->gl_;
+
+   boost::timer::cpu_timer timer;
+
    const std::vector<float>&    vertices      = p->radarView_->vertices();
    const std::vector<uint8_t>&  dataMoments8  = p->radarView_->data_moments8();
    const std::vector<uint16_t>& dataMoments16 = p->radarView_->data_moments16();
 
-   // Generate and bind a vertex array object
-   gl.glGenVertexArrays(1, &p->vao_);
+   // Bind a vertex array object
    gl.glBindVertexArray(p->vao_);
 
    // Generate vertex buffer objects
@@ -145,16 +178,21 @@ void RadarLayer::initialize()
    gl.glEnableVertexAttribArray(1);
 
    p->numVertices_ = vertices.size() / 2;
-
-   // Create color table
-   gl.glGenTextures(1, &p->texture_);
-   UpdateColorTable();
-   gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 }
 
 void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)
 {
    OpenGLFunctions& gl = p->gl_;
+
+   if (p->colorTableUpdated_)
+   {
+      UpdateColorTable();
+   }
+
+   if (p->plotUpdated_)
+   {
+      UpdatePlot();
+   }
 
    p->shaderProgram_.Use();
 
@@ -196,10 +234,23 @@ void RadarLayer::deinitialize()
    p->vao_                = GL_INVALID_INDEX;
    p->vbo_                = {GL_INVALID_INDEX};
    p->texture_            = GL_INVALID_INDEX;
+
+   disconnect(p->radarView_.get(),
+              &view::RadarView::ColorTableLoaded,
+              this,
+              &RadarLayer::ReceiveColorTableUpdate);
+   disconnect(p->radarView_.get(),
+              &view::RadarView::PlotUpdated,
+              this,
+              &RadarLayer::ReceivePlotUpdate);
 }
 
 void RadarLayer::UpdateColorTable()
 {
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "UpdateColorTable()";
+
+   p->colorTableUpdated_ = false;
+
    OpenGLFunctions& gl = p->gl_;
 
    const std::vector<boost::gil::rgba8_pixel_t>& colorTable =
@@ -216,6 +267,16 @@ void RadarLayer::UpdateColorTable()
                    GL_UNSIGNED_BYTE,
                    colorTable.data());
    gl.glGenerateMipmap(GL_TEXTURE_1D);
+}
+
+void RadarLayer::ReceiveColorTableUpdate()
+{
+   p->colorTableUpdated_ = true;
+}
+
+void RadarLayer::ReceivePlotUpdate()
+{
+   p->plotUpdated_ = true;
 }
 
 static glm::vec2

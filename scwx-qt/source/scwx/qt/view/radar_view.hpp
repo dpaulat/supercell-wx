@@ -17,18 +17,14 @@ namespace view
 
 class RadarViewImpl;
 
-class RadarView
+class RadarView : public QObject
 {
+   Q_OBJECT
+
 public:
    explicit RadarView(std::shared_ptr<manager::RadarManager> radarManager,
                       std::shared_ptr<QMapboxGL>             map);
    ~RadarView();
-
-   RadarView(const RadarView&) = delete;
-   RadarView& operator=(const RadarView&) = delete;
-
-   RadarView(RadarView&&) noexcept;
-   RadarView& operator=(RadarView&&) noexcept;
 
    double                       bearing() const;
    double                       scale() const;
@@ -40,6 +36,13 @@ public:
 
    void Initialize();
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable);
+
+public slots:
+   void UpdatePlot();
+
+signals:
+   void ColorTableLoaded();
+   void PlotUpdated();
 
 private:
    std::unique_ptr<RadarViewImpl> p;

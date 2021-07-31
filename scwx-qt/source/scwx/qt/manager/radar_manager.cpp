@@ -46,9 +46,6 @@ public:
 RadarManager::RadarManager() : p(std::make_unique<RadarManagerImpl>()) {}
 RadarManager::~RadarManager() = default;
 
-RadarManager::RadarManager(RadarManager&&) noexcept = default;
-RadarManager& RadarManager::operator=(RadarManager&&) noexcept = default;
-
 const std::vector<float>&
 RadarManager::coordinates(common::RadialSize radialSize) const
 {
@@ -177,6 +174,8 @@ void RadarManager::LoadLevel2Data(const std::string& filename)
       p->level2Data_.pop_front();
    }
    p->level2Data_.push_back(ar2vFile);
+
+   emit Level2DataLoaded();
 }
 
 } // namespace manager
