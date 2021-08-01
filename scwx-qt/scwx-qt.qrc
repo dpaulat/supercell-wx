@@ -2,5 +2,7 @@
     <qresource prefix="/">
         <file>gl/radar.frag</file>
         <file>gl/radar.vert</file>
+        <file>gl/text.frag</file>
+        <file>gl/text.vert</file>
     </qresource>
 </RCC>

@@ -147,7 +147,7 @@ bool ShaderProgram::Load(const std::string& vertexPath,
    gl.glDeleteShader(vertexShader);
    gl.glDeleteShader(fragmentShader);
 
-   return false;
+   return success;
 }
 
 void ShaderProgram::Use() const

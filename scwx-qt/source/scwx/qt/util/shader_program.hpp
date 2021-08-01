@@ -20,7 +20,7 @@ class ShaderProgram
 {
 public:
    explicit ShaderProgram(OpenGLFunctions& gl);
-   ~ShaderProgram();
+   virtual ~ShaderProgram();
 
    ShaderProgram(const ShaderProgram&) = delete;
    ShaderProgram& operator=(const ShaderProgram&) = delete;

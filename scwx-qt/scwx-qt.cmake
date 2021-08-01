@@ -12,6 +12,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Boost)
+find_package(Freetype)
 find_package(geographiclib)
 find_package(glm)
 
@@ -51,6 +52,8 @@ set(HDR_MAIN source/scwx/qt/main/main_window.hpp)
 set(SRC_MAIN source/scwx/qt/main/main.cpp
              source/scwx/qt/main/main_window.cpp)
 set(UI_MAIN  source/scwx/qt/main/main_window.ui)
+set(HDR_GL source/scwx/qt/gl/text_shader.hpp)
+set(SRC_GL source/scwx/qt/gl/text_shader.cpp)
 set(HDR_MANAGER source/scwx/qt/manager/radar_manager.hpp)
 set(SRC_MANAGER source/scwx/qt/manager/radar_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/map_widget.hpp
@@ -61,16 +64,20 @@ set(SRC_MAP source/scwx/qt/map/map_widget.cpp
             source/scwx/qt/map/radar_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp
             source/scwx/qt/map/triangle_layer.cpp)
-set(HDR_UTIL source/scwx/qt/util/gl.hpp
+set(HDR_UTIL source/scwx/qt/util/font.hpp
+             source/scwx/qt/util/gl.hpp
              source/scwx/qt/util/shader_program.hpp)
-set(SRC_UTIL source/scwx/qt/util/shader_program.cpp)
+set(SRC_UTIL source/scwx/qt/util/font.cpp
+             source/scwx/qt/util/shader_program.cpp)
 set(HDR_VIEW source/scwx/qt/view/radar_view.hpp)
 set(SRC_VIEW source/scwx/qt/view/radar_view.cpp)
 
 set(RESOURCE_FILES scwx-qt.qrc)
 
 set(SHADER_FILES gl/radar.frag
-                 gl/radar.vert)
+                 gl/radar.vert
+                 gl/text.frag
+                 gl/text.vert)
 
 set(TS_FILES ts/scwx_en_US.ts)
 
@@ -122,6 +129,7 @@ target_link_libraries(scwx-qt PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
                                       Boost::timer
                                       qmapboxgl
                                       opengl32
+                                      Freetype::Freetype
                                       GeographicLib::GeographicLib
                                       glm::glm
                                       wxdata)
