@@ -74,9 +74,10 @@ void TextShader::RenderText(const std::string&               text,
    gl.glActiveTexture(GL_TEXTURE0);
    gl.glBindTexture(GL_TEXTURE_2D, textureId);
 
-   std::shared_ptr<util::FontBuffer> buffer = util::Font::CreateBuffer();
+   std::shared_ptr<util::FontBuffer> buffer =
+      std::make_shared<util::FontBuffer>();
    font->BufferText(buffer, text, x, y, scale, color);
-   util::Font::RenderBuffer(gl, buffer);
+   buffer->Render(gl);
 }
 
 void TextShader::SetProjection(const glm::mat4& projection)

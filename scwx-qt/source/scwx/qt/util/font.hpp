@@ -1,12 +1,12 @@
 #pragma once
 
+#include <scwx/qt/util/font_buffer.hpp>
 #include <scwx/qt/util/gl.hpp>
 
 #include <memory>
 #include <string>
 
 #include <boost/gil.hpp>
-#include <glm/glm.hpp>
 
 namespace scwx
 {
@@ -14,8 +14,6 @@ namespace qt
 {
 namespace util
 {
-
-class FontBuffer;
 
 class FontImpl;
 
@@ -43,11 +41,6 @@ public:
    GLuint GenerateTexture(OpenGLFunctions& gl);
 
    static std::shared_ptr<Font> Create(const std::string& resource);
-
-   static std::shared_ptr<FontBuffer> CreateBuffer();
-   static void ClearBuffer(std::shared_ptr<FontBuffer> buffer);
-   static void RenderBuffer(OpenGLFunctions&            gl,
-                            std::shared_ptr<FontBuffer> buffer);
 
 private:
    std::unique_ptr<FontImpl> p;

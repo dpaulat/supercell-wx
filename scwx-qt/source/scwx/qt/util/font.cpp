@@ -1,6 +1,5 @@
 #include <scwx/qt/util/font.hpp>
 
-#include <mutex>
 #include <unordered_map>
 
 #include <boost/log/trivial.hpp>
@@ -64,34 +63,6 @@ static const std::string CODEPOINTS =
 static const std::string logPrefix_ = "[scwx::qt::util::font] ";
 
 static std::unordered_map<std::string, std::shared_ptr<Font>> fontMap_;
-
-class FontBuffer
-{
-public:
-   explicit FontBuffer() :
-       vaoId_ {GL_INVALID_INDEX},
-       verticesId_ {GL_INVALID_INDEX},
-       indicesId_ {GL_INVALID_INDEX},
-       gpuISize_ {0},
-       gpuVSize_ {0},
-       dirty_ {true}
-   {
-   }
-
-   ~FontBuffer() {}
-
-   GLuint  vaoId_      = GL_INVALID_INDEX;
-   GLuint  verticesId_ = GL_INVALID_INDEX;
-   GLuint  indicesId_  = GL_INVALID_INDEX;
-   GLsizei gpuISize_   = 0;
-   GLsizei gpuVSize_   = 0;
-   bool    dirty_      = true;
-
-   std::vector<GLfloat> vertices_;
-   std::vector<GLuint>  indices_;
-
-   std::mutex mutex_;
-};
 
 class FontImpl
 {
@@ -165,27 +136,14 @@ float Font::BufferText(std::shared_ptr<FontBuffer> buffer,
       float s1 = glyph.s1_;
       float t1 = glyph.t1_;
 
-      {
-         std::scoped_lock lock(buffer->mutex_);
-
-         const GLuint i0 = static_cast<GLuint>(buffer->vertices_.size() / 9u);
-         const GLuint i1 = i0 + 1;
-         const GLuint i2 = i1 + 1;
-         const GLuint i3 = i2 + 1;
-
-         buffer->indices_.insert(buffer->indices_.end(),
-                                 {i0, i1, i2, i0, i2, i3});
-         buffer->vertices_.insert(buffer->vertices_.end(),
-                                  {x0, y0, 0, s0, t0, r, g, b, a, //
+      buffer->Push(/* Indices  */ {0, 1, 2, 0, 2, 3},             //
+                   /* Vertices */ {x0, y0, 0, s0, t0, r, g, b, a, //
                                    x0, y1, 0, s0, t1, r, g, b, a, //
                                    x1, y1, 0, s1, t1, r, g, b, a, //
                                    x1, y0, 0, s1, t0, r, g, b, a});
-      }
 
       x += glyph.advanceX_ * scale;
    }
-
-   buffer->dirty_ = true;
 
    return x;
 }
@@ -314,129 +272,6 @@ std::shared_ptr<Font> Font::Create(const std::string& resource)
    }
 
    return font;
-}
-
-std::shared_ptr<FontBuffer> Font::CreateBuffer()
-{
-   return std::make_shared<FontBuffer>();
-}
-
-void Font::ClearBuffer(std::shared_ptr<FontBuffer> buffer)
-{
-   if (buffer != nullptr)
-   {
-      std::scoped_lock lock(buffer->mutex_);
-      buffer->indices_.clear();
-      buffer->vertices_.clear();
-      buffer->dirty_ = true;
-   }
-}
-
-void Font::RenderBuffer(OpenGLFunctions& gl, std::shared_ptr<FontBuffer> buffer)
-{
-   // TODO:
-   if (buffer == nullptr)
-   {
-      return;
-   }
-
-   std::scoped_lock lock(buffer->mutex_);
-
-   // TODO: Vertex buffer upload
-   if (buffer->dirty_)
-   {
-      if (buffer->verticesId_ == GL_INVALID_INDEX)
-      {
-         gl.glGenBuffers(1, &buffer->verticesId_);
-      }
-      if (buffer->indicesId_ == GL_INVALID_INDEX)
-      {
-         gl.glGenBuffers(1, &buffer->indicesId_);
-      }
-
-      GLsizei vSize =
-         static_cast<GLsizei>(buffer->vertices_.size() * sizeof(GLfloat));
-      GLsizei iSize =
-         static_cast<GLsizei>(buffer->indices_.size() * sizeof(GLuint));
-
-      // Always upload vertices first to avoid rendering non-existent data
-
-      // Upload vertices
-      gl.glBindBuffer(GL_ARRAY_BUFFER, buffer->verticesId_);
-      if (vSize != buffer->gpuVSize_)
-      {
-         gl.glBufferData(
-            GL_ARRAY_BUFFER, vSize, buffer->vertices_.data(), GL_DYNAMIC_DRAW);
-         buffer->gpuVSize_ = vSize;
-      }
-      else
-      {
-         gl.glBufferSubData(
-            GL_ARRAY_BUFFER, 0, vSize, buffer->vertices_.data());
-      }
-
-      // Upload indices
-      gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer->indicesId_);
-      if (iSize != buffer->gpuISize_)
-      {
-         gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                         iSize,
-                         buffer->indices_.data(),
-                         GL_DYNAMIC_DRAW);
-      }
-      else
-      {
-         gl.glBufferSubData(
-            GL_ELEMENT_ARRAY_BUFFER, 0, iSize, buffer->indices_.data());
-      }
-
-      buffer->dirty_ = false;
-   }
-
-   // TODO: Setup
-   if (buffer->vaoId_ == GL_INVALID_INDEX)
-   {
-      // Generate and setup VAO
-      gl.glGenVertexArrays(1, &buffer->vaoId_);
-      gl.glBindVertexArray(buffer->vaoId_);
-
-      gl.glBindBuffer(GL_ARRAY_BUFFER, buffer->verticesId_);
-
-      // vec3 aVertex
-      gl.glEnableVertexAttribArray(0);
-      gl.glVertexAttribPointer(
-         0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), nullptr);
-
-      // vec2 aTexCoords
-      gl.glEnableVertexAttribArray(1);
-      gl.glVertexAttribPointer(
-         1,
-         2,
-         GL_FLOAT,
-         GL_FALSE,
-         9 * sizeof(float),
-         reinterpret_cast<const GLvoid*>(3 * sizeof(float)));
-
-      // vec4 aColor
-      gl.glEnableVertexAttribArray(2);
-      gl.glVertexAttribPointer(
-         2,
-         4,
-         GL_FLOAT,
-         GL_FALSE,
-         9 * sizeof(float),
-         reinterpret_cast<const GLvoid*>(5 * sizeof(float)));
-
-      gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer->indicesId_);
-   }
-
-   // Bind VAO for drawing
-   gl.glBindVertexArray(buffer->vaoId_);
-
-   gl.glDrawElements(GL_TRIANGLES,
-                     static_cast<GLsizei>(buffer->indices_.size()),
-                     GL_UNSIGNED_INT,
-                     0);
 }
 
 } // namespace util

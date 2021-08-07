@@ -65,9 +65,11 @@ set(SRC_MAP source/scwx/qt/map/map_widget.cpp
             source/scwx/qt/map/radar_range_layer.cpp
             source/scwx/qt/map/triangle_layer.cpp)
 set(HDR_UTIL source/scwx/qt/util/font.hpp
+             source/scwx/qt/util/font_buffer.hpp
              source/scwx/qt/util/gl.hpp
              source/scwx/qt/util/shader_program.hpp)
 set(SRC_UTIL source/scwx/qt/util/font.cpp
+             source/scwx/qt/util/font_buffer.cpp
              source/scwx/qt/util/shader_program.cpp)
 set(HDR_VIEW source/scwx/qt/view/radar_view.hpp)
 set(SRC_VIEW source/scwx/qt/view/radar_view.cpp)
