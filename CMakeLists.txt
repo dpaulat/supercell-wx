@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.11)
 set(PROJECT_NAME supercell-wx)
-project(${PROJECT_NAME} CXX)
+project(${PROJECT_NAME} C CXX)
 
 set(CMAKE_POLICY_DEFAULT_CMP0054 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
