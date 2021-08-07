@@ -11,6 +11,8 @@ namespace qt
 
 static const std::string logPrefix_ = "[scwx::qt::util::shader_program] ";
 
+static constexpr GLsizei INFO_LOG_BUF_SIZE = 512;
+
 class ShaderProgramImpl
 {
 public:
@@ -49,12 +51,15 @@ GLuint ShaderProgram::id() const
 bool ShaderProgram::Load(const std::string& vertexPath,
                          const std::string& fragmentPath)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Load()";
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Load(\"" << vertexPath << "\", \""
+                            << fragmentPath << "\")";
 
    OpenGLFunctions& gl = p->gl_;
 
-   GLint glSuccess;
-   bool  success = true;
+   GLint   glSuccess;
+   bool    success = true;
+   char    infoLog[INFO_LOG_BUF_SIZE];
+   GLsizei logLength;
 
    QFile vertexFile(vertexPath.c_str());
    QFile fragmentFile(fragmentPath.c_str());
@@ -98,13 +103,17 @@ bool ShaderProgram::Load(const std::string& vertexPath,
 
    // Check for errors
    gl.glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &glSuccess);
+   gl.glGetShaderInfoLog(vertexShader, INFO_LOG_BUF_SIZE, &logLength, infoLog);
    if (!glSuccess)
    {
-      char infoLog[512];
-      gl.glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
       BOOST_LOG_TRIVIAL(error)
-         << logPrefix_ << "Vertex shader compilation failed";
+         << logPrefix_ << "Vertex shader compilation failed: " << infoLog;
       success = false;
+   }
+   else if (logLength > 0)
+   {
+      BOOST_LOG_TRIVIAL(error)
+         << logPrefix_ << "Vertex shader compiled with warnings: " << infoLog;
    }
 
    // Create a fragment shader
@@ -116,13 +125,18 @@ bool ShaderProgram::Load(const std::string& vertexPath,
 
    // Check for errors
    gl.glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &glSuccess);
+   gl.glGetShaderInfoLog(
+      fragmentShader, INFO_LOG_BUF_SIZE, &logLength, infoLog);
    if (!glSuccess)
    {
-      char infoLog[512];
-      gl.glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
       BOOST_LOG_TRIVIAL(error)
          << logPrefix_ << "Fragment shader compilation failed: " << infoLog;
       success = false;
+   }
+   else if (logLength > 0)
+   {
+      BOOST_LOG_TRIVIAL(error)
+         << logPrefix_ << "Fragment shader compiled with warnings: " << infoLog;
    }
 
    if (success)
@@ -133,13 +147,17 @@ bool ShaderProgram::Load(const std::string& vertexPath,
 
       // Check for errors
       gl.glGetProgramiv(p->id_, GL_LINK_STATUS, &glSuccess);
+      gl.glGetProgramInfoLog(p->id_, INFO_LOG_BUF_SIZE, &logLength, infoLog);
       if (!glSuccess)
       {
-         char infoLog[512];
-         gl.glGetProgramInfoLog(p->id_, 512, NULL, infoLog);
          BOOST_LOG_TRIVIAL(error)
             << logPrefix_ << "Shader program link failed: " << infoLog;
          success = false;
+      }
+      else if (logLength > 0)
+      {
+         BOOST_LOG_TRIVIAL(error)
+            << logPrefix_ << "Shader program linked with warnings: " << infoLog;
       }
    }
 
