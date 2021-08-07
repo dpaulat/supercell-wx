@@ -15,6 +15,13 @@ namespace qt
 namespace gl
 {
 
+enum class TextAlign
+{
+   Left,
+   Center,
+   Right
+};
+
 class TextShaderImpl;
 
 class TextShader : public ShaderProgram
@@ -37,7 +44,8 @@ public:
                    const glm::mat4&                 projection,
                    const boost::gil::rgba8_pixel_t& color,
                    std::shared_ptr<util::Font>      font,
-                   GLuint                           textureId);
+                   GLuint                           textureId,
+                   TextAlign                        align = TextAlign::Left);
    void SetProjection(const glm::mat4& projection);
 
 private:

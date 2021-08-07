@@ -33,10 +33,10 @@ public:
                     const std::string&          text,
                     float                       x,
                     float                       y,
-                    float                       scale,
+                    float                       pointSize,
                     boost::gil::rgba8_pixel_t   color) const;
    float Kerning(char c1, char c2) const;
-   float TextLength(const std::string& text, float scale) const;
+   float TextLength(const std::string& text, float pointSize) const;
 
    GLuint GenerateTexture(OpenGLFunctions& gl);
 

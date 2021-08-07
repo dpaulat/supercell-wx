@@ -55,11 +55,12 @@ bool TextShader::Initialize()
 void TextShader::RenderText(const std::string&               text,
                             float                            x,
                             float                            y,
-                            float                            scale,
+                            float                            pointSize,
                             const glm::mat4&                 projection,
                             const boost::gil::rgba8_pixel_t& color,
                             std::shared_ptr<util::Font>      font,
-                            GLuint                           textureId)
+                            GLuint                           textureId,
+                            TextAlign                        align)
 {
    OpenGLFunctions& gl = p->gl_;
 
@@ -74,9 +75,26 @@ void TextShader::RenderText(const std::string&               text,
    gl.glActiveTexture(GL_TEXTURE0);
    gl.glBindTexture(GL_TEXTURE_2D, textureId);
 
+   switch (align)
+   {
+   case TextAlign::Left:
+      // Do nothing
+      break;
+
+   case TextAlign::Center:
+      // X position is the center of text, subtract half length
+      x -= font->TextLength(text, pointSize) * 0.5f;
+      break;
+
+   case TextAlign::Right:
+      // X position is the end of text, subtract length
+      x -= font->TextLength(text, pointSize);
+      break;
+   }
+
    std::shared_ptr<util::FontBuffer> buffer =
       std::make_shared<util::FontBuffer>();
-   font->BufferText(buffer, text, x, y, scale, color);
+   font->BufferText(buffer, text, x, y, pointSize, color);
    buffer->Render(gl);
 }
 

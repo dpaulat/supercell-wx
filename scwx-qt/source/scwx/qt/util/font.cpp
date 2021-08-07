@@ -62,6 +62,9 @@ static const std::string CODEPOINTS =
 
 static const std::string logPrefix_ = "[scwx::qt::util::font] ";
 
+static constexpr float BASE_POINT_SIZE = 72.0f;
+static constexpr float POINT_SCALE     = 1.0f / BASE_POINT_SIZE;
+
 static std::unordered_map<std::string, std::shared_ptr<Font>> fontMap_;
 
 class FontImpl
@@ -96,10 +99,12 @@ float Font::BufferText(std::shared_ptr<FontBuffer> buffer,
                        const std::string&          text,
                        float                       x,
                        float                       y,
-                       float                       scale,
+                       float                       pointSize,
                        boost::gil::rgba8_pixel_t   color) const
 {
    static constexpr float colorScale = 1.0f / 255.0f;
+
+   const float scale = pointSize * POINT_SCALE;
 
    float r = color[0] * colorScale;
    float g = color[1] * colorScale;
@@ -154,8 +159,10 @@ float Font::Kerning(char c1, char c2) const
    return 0.0f;
 }
 
-float Font::TextLength(const std::string& text, float scale) const
+float Font::TextLength(const std::string& text, float pointSize) const
 {
+   const float scale = pointSize * POINT_SCALE;
+
    float x = 0.0f;
 
    for (size_t i = 0; i < text.length(); ++i)
@@ -232,7 +239,7 @@ std::shared_ptr<Font> Font::Create(const std::string& resource)
 
    font->p->atlas_                   = ftgl::texture_atlas_new(512, 512, 1);
    ftgl::texture_font_t* textureFont = ftgl::texture_font_new_from_memory(
-      font->p->atlas_, 72, fontData.constData(), fontData.size());
+      font->p->atlas_, BASE_POINT_SIZE, fontData.constData(), fontData.size());
 
    textureFont->rendermode = ftgl::RENDER_SIGNED_DISTANCE_FIELD;
 
