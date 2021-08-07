@@ -30,15 +30,15 @@ public:
    TextShader& operator=(TextShader&&) noexcept;
 
    bool Initialize();
-   void RenderText(const std::string&                           text,
-                   float                                        x,
-                   float                                        y,
-                   float                                        scale,
-                   const glm::mat4&                             projection,
-                   const boost::gil::rgba8_pixel_t&             color,
-                   const std::unordered_map<char, util::Glyph>& glyphs);
+   void RenderText(const std::string&               text,
+                   float                            x,
+                   float                            y,
+                   float                            scale,
+                   const glm::mat4&                 projection,
+                   const boost::gil::rgba8_pixel_t& color,
+                   std::shared_ptr<util::Font>      font,
+                   GLuint                           textureId);
    void SetProjection(const glm::mat4& projection);
-   void SetTextColor(const boost::gil::rgba8_pixel_t color);
 
 private:
    std::unique_ptr<TextShaderImpl> p;

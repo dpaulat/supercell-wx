@@ -16,11 +16,7 @@ class TextShaderImpl
 {
 public:
    explicit TextShaderImpl(OpenGLFunctions& gl) :
-       gl_ {gl},
-       projectionLocation_(GL_INVALID_INDEX),
-       textColorLocation_(GL_INVALID_INDEX),
-       vao_ {GL_INVALID_INDEX},
-       vbo_ {GL_INVALID_INDEX}
+       gl_ {gl}, projectionLocation_(GL_INVALID_INDEX)
    {
    }
 
@@ -29,10 +25,6 @@ public:
    OpenGLFunctions& gl_;
 
    GLint projectionLocation_;
-   GLint textColorLocation_;
-
-   GLuint vao_;
-   GLuint vbo_;
 };
 
 TextShader::TextShader(OpenGLFunctions& gl) :
@@ -57,23 +49,6 @@ bool TextShader::Initialize()
       BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Could not find projection";
    }
 
-   p->textColorLocation_ = gl.glGetUniformLocation(id(), "textColor");
-   if (p->textColorLocation_ == -1)
-   {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Could not find textColor";
-   }
-
-   gl.glGenVertexArrays(1, &p->vao_);
-   gl.glGenBuffers(1, &p->vbo_);
-   gl.glBindVertexArray(p->vao_);
-   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
-   gl.glBufferData(
-      GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, nullptr, GL_DYNAMIC_DRAW);
-   gl.glEnableVertexAttribArray(0);
-   gl.glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-   gl.glBindBuffer(GL_ARRAY_BUFFER, 0);
-   gl.glBindVertexArray(0);
-
    return success;
 }
 
@@ -83,7 +58,8 @@ void TextShader::RenderText(const std::string&               text,
                             float                            scale,
                             const glm::mat4&                 projection,
                             const boost::gil::rgba8_pixel_t& color,
-                            const std::unordered_map<char, util::Glyph>& glyphs)
+                            std::shared_ptr<util::Font>      font,
+                            GLuint                           textureId)
 {
    OpenGLFunctions& gl = p->gl_;
 
@@ -94,60 +70,19 @@ void TextShader::RenderText(const std::string&               text,
 
    gl.glUniformMatrix4fv(
       p->projectionLocation_, 1, GL_FALSE, glm::value_ptr(projection));
-   gl.glUniform4f(
-      p->textColorLocation_, color[0], color[1], color[2], color[3]);
 
    gl.glActiveTexture(GL_TEXTURE0);
-   gl.glBindVertexArray(p->vao_);
+   gl.glBindTexture(GL_TEXTURE_2D, textureId);
 
-   for (auto c = text.cbegin(); c != text.cend(); c++)
-   {
-      if (glyphs.find(*c) == glyphs.end())
-      {
-         continue;
-      }
-
-      const util::Glyph& g = glyphs.at(*c);
-
-      float xpos = x + g.bearing.x * scale;
-      float ypos = y - (g.size.y - g.bearing.y) * scale;
-
-      float w = g.size.x * scale;
-      float h = g.size.y * scale;
-
-      // Glyph vertices
-      float vertices[6][4] = {{xpos, ypos + h, 0.0f, 0.0f},
-                              {xpos, ypos, 0.0f, 1.0f},
-                              {xpos + w, ypos, 1.0f, 1.0f}, //
-                                                            //
-                              {xpos, ypos + h, 0.0f, 0.0f},
-                              {xpos + w, ypos, 1.0f, 1.0f},
-                              {xpos + w, ypos + h, 1.0f, 0.0f}};
-
-      // Render glyph texture
-      gl.glBindTexture(GL_TEXTURE_2D, g.textureId);
-
-      gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
-      gl.glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-      gl.glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-      gl.glDrawArrays(GL_TRIANGLES, 0, 6);
-
-      // Advance to the next glyph
-      x += (g.advance >> 6) * scale;
-   }
+   std::shared_ptr<util::FontBuffer> buffer = util::Font::CreateBuffer();
+   font->BufferText(buffer, text, x, y, scale, color);
+   util::Font::RenderBuffer(gl, buffer);
 }
 
 void TextShader::SetProjection(const glm::mat4& projection)
 {
    p->gl_.glUniformMatrix4fv(
       p->projectionLocation_, 1, GL_FALSE, glm::value_ptr(projection));
-}
-
-void TextShader::SetTextColor(const boost::gil::rgba8_pixel_t color)
-{
-   p->gl_.glUniform4f(
-      p->textColorLocation_, color[0], color[1], color[2], color[3]);
 }
 
 } // namespace gl

@@ -122,6 +122,7 @@ if (WIN32)
 endif()
 
 target_include_directories(scwx-qt PRIVATE ${scwx-qt_SOURCE_DIR}/source
+                                           ${FTGL_INCLUDE_DIR}
                                            ${MBGL_INCLUDE_DIR})
 
 target_link_libraries(scwx-qt PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
@@ -129,7 +130,7 @@ target_link_libraries(scwx-qt PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
                                       Boost::timer
                                       qmapboxgl
                                       opengl32
-                                      Freetype::Freetype
+                                      freetype-gl
                                       GeographicLib::GeographicLib
                                       glm::glm
                                       wxdata)

@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 
+#include <boost/gil.hpp>
 #include <glm/glm.hpp>
 
 namespace scwx
@@ -14,13 +15,7 @@ namespace qt
 namespace util
 {
 
-struct Glyph
-{
-   GLuint     textureId;
-   glm::ivec2 size;    // pixels
-   glm::ivec2 bearing; // pixels
-   GLint      advance; // 1/64 pixels
-};
+class FontBuffer;
 
 class FontImpl;
 
@@ -36,11 +31,23 @@ public:
    Font(Font&&)  = delete;
    Font& operator=(Font&&) = delete;
 
-   void GenerateGlyphs(OpenGLFunctions&                 gl,
-                       std::unordered_map<char, Glyph>& glyphs,
-                       unsigned int                     height);
+   float BufferText(std::shared_ptr<FontBuffer> buffer,
+                    const std::string&          text,
+                    float                       x,
+                    float                       y,
+                    float                       scale,
+                    boost::gil::rgba8_pixel_t   color) const;
+   float Kerning(char c1, char c2) const;
+   float TextLength(const std::string& text, float scale) const;
+
+   GLuint GenerateTexture(OpenGLFunctions& gl);
 
    static std::shared_ptr<Font> Create(const std::string& resource);
+
+   static std::shared_ptr<FontBuffer> CreateBuffer();
+   static void ClearBuffer(std::shared_ptr<FontBuffer> buffer);
+   static void RenderBuffer(OpenGLFunctions&            gl,
+                            std::shared_ptr<FontBuffer> buffer);
 
 private:
    std::unique_ptr<FontImpl> p;

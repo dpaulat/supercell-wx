@@ -90,7 +90,7 @@ if(MSVC)
     target_compile_definitions(makefont    PRIVATE _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_DEPRECATE)
 endif(MSVC)
 
-set(FTGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
+set(FTGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/freetype-gl PARENT_SCOPE)
 
 set_target_properties(doc      PROPERTIES EXCLUDE_FROM_ALL True)
 set_target_properties(makefont PROPERTIES EXCLUDE_FROM_ALL True)
