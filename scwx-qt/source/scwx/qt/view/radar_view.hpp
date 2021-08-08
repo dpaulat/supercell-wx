@@ -3,6 +3,7 @@
 #include <scwx/common/color_table.hpp>
 #include <scwx/qt/manager/radar_manager.hpp>
 
+#include <chrono>
 #include <memory>
 #include <vector>
 
@@ -36,6 +37,8 @@ public:
 
    void Initialize();
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable);
+
+   std::chrono::system_clock::time_point PlotTime();
 
 public slots:
    void UpdatePlot();

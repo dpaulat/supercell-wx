@@ -17,6 +17,9 @@ static const std::string logPrefix_ = "[scwx::qt::view::radar_view] ";
 static constexpr uint32_t VERTICES_PER_BIN  = 6;
 static constexpr uint32_t VALUES_PER_VERTEX = 2;
 
+static std::chrono::system_clock::time_point
+TimePoint(uint16_t modifiedJulianDate, uint32_t milliseconds);
+
 class RadarViewImpl
 {
 public:
@@ -24,6 +27,7 @@ public:
                           std::shared_ptr<QMapboxGL>             map) :
        radarManager_(radarManager),
        map_(map),
+       plotTime_(),
        colorTable_ {boost::gil::rgba8_pixel_t(0, 128, 0, 255),
                     boost::gil::rgba8_pixel_t(255, 192, 0, 255),
                     boost::gil::rgba8_pixel_t(255, 0, 0, 255)}
@@ -37,6 +41,8 @@ public:
    std::vector<float>    vertices_;
    std::vector<uint8_t>  dataMoments8_;
    std::vector<uint16_t> dataMoments16_;
+
+   std::chrono::system_clock::time_point plotTime_;
 
    std::vector<boost::gil::rgba8_pixel_t> colorTable_;
 };
@@ -109,6 +115,11 @@ void RadarView::LoadColorTable(std::shared_ptr<common::ColorTable> colorTable)
    emit ColorTableLoaded();
 }
 
+std::chrono::system_clock::time_point RadarView::PlotTime()
+{
+   return p->plotTime_;
+}
+
 void RadarView::UpdatePlot()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "UpdatePlot()";
@@ -129,6 +140,9 @@ void RadarView::UpdatePlot()
    // TODO: Pick these based on view settings
    auto                       radarData = level2Data->radar_data()[0];
    wsr88d::rda::DataBlockType blockType = wsr88d::rda::DataBlockType::MomentRef;
+
+   p->plotTime_ = TimePoint(radarData[0]->modified_julian_date(),
+                            radarData[0]->collection_time());
 
    // Calculate vertices
    timer.start();
@@ -337,6 +351,17 @@ void RadarView::UpdatePlot()
       << logPrefix_ << "Vertices calculated in " << timer.format(6, "%ws");
 
    emit PlotUpdated();
+}
+
+static std::chrono::system_clock::time_point
+TimePoint(uint16_t modifiedJulianDate, uint32_t milliseconds)
+{
+   using namespace std::chrono;
+   using sys_days       = time_point<system_clock, days>;
+   constexpr auto epoch = sys_days {1969y / December / 31d};
+
+   return epoch + (modifiedJulianDate * 24h) +
+          std::chrono::milliseconds {milliseconds};
 }
 
 } // namespace view
