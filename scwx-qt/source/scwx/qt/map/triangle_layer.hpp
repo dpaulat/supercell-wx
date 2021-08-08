@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/qt/util/gl.hpp>
+#include <scwx/qt/gl/gl.hpp>
 
 #include <QMapboxGL>
 
@@ -8,13 +8,15 @@ namespace scwx
 {
 namespace qt
 {
+namespace map
+{
 
 class TriangleLayerImpl;
 
 class TriangleLayer : public QMapbox::CustomLayerHostInterface
 {
 public:
-   explicit TriangleLayer(OpenGLFunctions& gl);
+   explicit TriangleLayer(gl::OpenGLFunctions& gl);
    ~TriangleLayer();
 
    TriangleLayer(const TriangleLayer&) = delete;
@@ -31,5 +33,6 @@ private:
    std::unique_ptr<TriangleLayerImpl> p;
 };
 
+} // namespace map
 } // namespace qt
 } // namespace scwx

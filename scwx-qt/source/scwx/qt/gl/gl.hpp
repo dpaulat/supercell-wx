@@ -16,8 +16,11 @@ namespace scwx
 {
 namespace qt
 {
+namespace gl
+{
 
 using OpenGLFunctions = QOpenGLFunctions_3_3_Core;
 
+}
 } // namespace qt
 } // namespace scwx

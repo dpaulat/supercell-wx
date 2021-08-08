@@ -7,6 +7,8 @@ namespace scwx
 {
 namespace qt
 {
+namespace main
+{
 
 MainWindow::MainWindow(QWidget* parent) :
     QMainWindow(parent), ui(new Ui::MainWindow)
@@ -17,7 +19,7 @@ MainWindow::MainWindow(QWidget* parent) :
    settings.setCacheDatabasePath("/tmp/mbgl-cache.db");
    settings.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
 
-   ui->centralwidget->layout()->addWidget(new MapWidget(settings));
+   ui->centralwidget->layout()->addWidget(new map::MapWidget(settings));
 }
 
 MainWindow::~MainWindow()
@@ -25,5 +27,6 @@ MainWindow::~MainWindow()
    delete ui;
 }
 
+} // namespace main
 } // namespace qt
 } // namespace scwx

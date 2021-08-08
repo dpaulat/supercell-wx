@@ -13,6 +13,8 @@ namespace scwx
 {
 namespace qt
 {
+namespace main
+{
 
 class MainWindow : public QMainWindow
 {
@@ -26,5 +28,6 @@ private:
    Ui::MainWindow* ui;
 };
 
+} // namespace main
 } // namespace qt
 } // namespace scwx

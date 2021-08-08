@@ -8,6 +8,8 @@ namespace scwx
 {
 namespace qt
 {
+namespace map
+{
 
 static const std::string logPrefix_ = "[scwx::qt::map::radar_range_layer] ";
 
@@ -56,5 +58,6 @@ void RadarRangeLayer::Add(std::shared_ptr<QMapboxGL> map, const QString& before)
       "rangeCircleLayer", "line-color", "rgba(128, 128, 128, 128)");
 }
 
+} // namespace map
 } // namespace qt
 } // namespace scwx

@@ -191,7 +191,7 @@ float Font::TextLength(const std::string& text, float pointSize) const
    return x;
 }
 
-GLuint Font::GenerateTexture(OpenGLFunctions& gl)
+GLuint Font::GenerateTexture(gl::OpenGLFunctions& gl)
 {
    gl.glGenTextures(1, &p->atlas_->id);
    gl.glBindTexture(GL_TEXTURE_2D, p->atlas_->id);

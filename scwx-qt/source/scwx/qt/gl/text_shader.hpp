@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/qt/util/shader_program.hpp>
+#include <scwx/qt/gl/shader_program.hpp>
 #include <scwx/qt/util/font.hpp>
 
 #include <memory>

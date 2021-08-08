@@ -1,5 +1,5 @@
 #include <scwx/qt/map/radar_layer.hpp>
-#include <scwx/qt/util/shader_program.hpp>
+#include <scwx/qt/gl/shader_program.hpp>
 
 #include <execution>
 
@@ -15,6 +15,8 @@ namespace scwx
 {
 namespace qt
 {
+namespace map
+{
 
 static constexpr uint32_t MAX_RADIALS           = 720;
 static constexpr uint32_t MAX_DATA_MOMENT_GATES = 1840;
@@ -28,7 +30,7 @@ class RadarLayerImpl
 {
 public:
    explicit RadarLayerImpl(std::shared_ptr<view::RadarView> radarView,
-                           OpenGLFunctions&                 gl) :
+                           gl::OpenGLFunctions&             gl) :
        radarView_(radarView),
        gl_(gl),
        shaderProgram_(gl),
@@ -45,9 +47,9 @@ public:
    ~RadarLayerImpl() = default;
 
    std::shared_ptr<view::RadarView> radarView_;
-   OpenGLFunctions&                 gl_;
+   gl::OpenGLFunctions&             gl_;
 
-   ShaderProgram         shaderProgram_;
+   gl::ShaderProgram     shaderProgram_;
    GLint                 uMVPMatrixLocation_;
    GLint                 uMapScreenCoordLocation_;
    std::array<GLuint, 2> vbo_;
@@ -61,7 +63,7 @@ public:
 };
 
 RadarLayer::RadarLayer(std::shared_ptr<view::RadarView> radarView,
-                       OpenGLFunctions&                 gl) :
+                       gl::OpenGLFunctions&             gl) :
     p(std::make_unique<RadarLayerImpl>(radarView, gl))
 {
 }
@@ -71,7 +73,7 @@ void RadarLayer::initialize()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "initialize()";
 
-   OpenGLFunctions& gl = p->gl_;
+   gl::OpenGLFunctions& gl = p->gl_;
 
    // Load and configure radar shader
    p->shaderProgram_.Load(":/gl/radar.vert", ":/gl/radar.frag");
@@ -121,7 +123,7 @@ void RadarLayer::UpdatePlot()
 
    p->plotUpdated_ = false;
 
-   OpenGLFunctions& gl = p->gl_;
+   gl::OpenGLFunctions& gl = p->gl_;
 
    boost::timer::cpu_timer timer;
 
@@ -182,7 +184,7 @@ void RadarLayer::UpdatePlot()
 
 void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)
 {
-   OpenGLFunctions& gl = p->gl_;
+   gl::OpenGLFunctions& gl = p->gl_;
 
    if (p->colorTableUpdated_)
    {
@@ -223,7 +225,7 @@ void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)
 
 void RadarLayer::deinitialize()
 {
-   OpenGLFunctions& gl = p->gl_;
+   gl::OpenGLFunctions& gl = p->gl_;
 
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "deinitialize()";
 
@@ -251,7 +253,7 @@ void RadarLayer::UpdateColorTable()
 
    p->colorTableUpdated_ = false;
 
-   OpenGLFunctions& gl = p->gl_;
+   gl::OpenGLFunctions& gl = p->gl_;
 
    const std::vector<boost::gil::rgba8_pixel_t>& colorTable =
       p->radarView_->color_table();
@@ -293,5 +295,6 @@ LatLongToScreenCoordinate(const QMapbox::Coordinate& coordinate)
    return screen;
 }
 
+} // namespace map
 } // namespace qt
 } // namespace scwx

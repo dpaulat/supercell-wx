@@ -6,13 +6,15 @@ namespace scwx
 {
 namespace qt
 {
+namespace map
+{
 
 static const std::string logPrefix_ = "[scwx::qt::map::triangle_layer] ";
 
 class TriangleLayerImpl
 {
 public:
-   explicit TriangleLayerImpl(OpenGLFunctions& gl) :
+   explicit TriangleLayerImpl(gl::OpenGLFunctions& gl) :
        gl_(gl),
        shaderProgram_ {GL_INVALID_INDEX},
        vbo_ {GL_INVALID_INDEX},
@@ -22,14 +24,14 @@ public:
    }
    ~TriangleLayerImpl() = default;
 
-   OpenGLFunctions& gl_;
+   gl::OpenGLFunctions& gl_;
 
    GLuint shaderProgram_;
    GLuint vbo_;
    GLuint vao_;
 };
 
-TriangleLayer::TriangleLayer(OpenGLFunctions& gl) :
+TriangleLayer::TriangleLayer(gl::OpenGLFunctions& gl) :
     p(std::make_unique<TriangleLayerImpl>(gl))
 {
 }
@@ -40,7 +42,7 @@ TriangleLayer& TriangleLayer::operator=(TriangleLayer&&) noexcept = default;
 
 void TriangleLayer::initialize()
 {
-   OpenGLFunctions& gl = p->gl_;
+   gl::OpenGLFunctions& gl = p->gl_;
 
    static const char* vertexShaderSource =
       "#version 330 core\n"
@@ -142,7 +144,7 @@ void TriangleLayer::initialize()
 
 void TriangleLayer::render(const QMapbox::CustomLayerRenderParameters&)
 {
-   OpenGLFunctions& gl = p->gl_;
+   gl::OpenGLFunctions& gl = p->gl_;
 
    gl.glUseProgram(p->shaderProgram_);
    gl.glBindVertexArray(p->vao_);
@@ -151,7 +153,7 @@ void TriangleLayer::render(const QMapbox::CustomLayerRenderParameters&)
 
 void TriangleLayer::deinitialize()
 {
-   OpenGLFunctions& gl = p->gl_;
+   gl::OpenGLFunctions& gl = p->gl_;
 
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "deinitialize()";
 
@@ -164,5 +166,6 @@ void TriangleLayer::deinitialize()
    p->vbo_           = GL_INVALID_INDEX;
 }
 
+} // namespace map
 } // namespace qt
 } // namespace scwx

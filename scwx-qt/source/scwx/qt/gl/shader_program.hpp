@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/qt/util/gl.hpp>
+#include <scwx/qt/gl/gl.hpp>
 
 #ifdef _WIN32
 #   include <Windows.h>
@@ -12,6 +12,8 @@
 namespace scwx
 {
 namespace qt
+{
+namespace gl
 {
 
 class ShaderProgramImpl;
@@ -38,5 +40,6 @@ private:
    std::unique_ptr<ShaderProgramImpl> p;
 };
 
+} // namespace gl
 } // namespace qt
 } // namespace scwx

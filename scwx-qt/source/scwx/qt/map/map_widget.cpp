@@ -1,8 +1,7 @@
-#include "map_widget.hpp"
-
+#include <scwx/qt/map/map_widget.hpp>
+#include <scwx/qt/gl/gl.hpp>
 #include <scwx/qt/map/radar_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
-#include <scwx/qt/util/gl.hpp>
 
 #include <QApplication>
 #include <QColor>
@@ -16,6 +15,8 @@
 namespace scwx
 {
 namespace qt
+{
+namespace map
 {
 
 typedef std::pair<std::string, std::string> MapStyle;
@@ -46,7 +47,7 @@ public:
    }
    ~MapWidgetImpl() = default;
 
-   OpenGLFunctions gl_;
+   gl::OpenGLFunctions gl_;
 
    QMapboxGLSettings          settings_;
    std::shared_ptr<QMapboxGL> map_;
@@ -266,5 +267,6 @@ void MapWidget::mapChanged(QMapboxGL::MapChange mapChange)
    }
 }
 
+} // namespace map
 } // namespace qt
 } // namespace scwx

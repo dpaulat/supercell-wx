@@ -16,6 +16,8 @@ namespace scwx
 {
 namespace qt
 {
+namespace map
+{
 
 class MapWidgetImpl;
 
@@ -49,5 +51,6 @@ private slots:
    void mapChanged(QMapboxGL::MapChange);
 };
 
+} // namespace map
 } // namespace qt
 } // namespace scwx

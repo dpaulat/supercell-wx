@@ -1,7 +1,7 @@
 #pragma once
 
+#include <scwx/qt/gl/gl.hpp>
 #include <scwx/qt/util/font_buffer.hpp>
-#include <scwx/qt/util/gl.hpp>
 
 #include <memory>
 #include <string>
@@ -38,7 +38,7 @@ public:
    float Kerning(char c1, char c2) const;
    float TextLength(const std::string& text, float pointSize) const;
 
-   GLuint GenerateTexture(OpenGLFunctions& gl);
+   GLuint GenerateTexture(gl::OpenGLFunctions& gl);
 
    static std::shared_ptr<Font> Create(const std::string& resource);
 

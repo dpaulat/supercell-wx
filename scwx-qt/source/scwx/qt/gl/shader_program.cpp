@@ -1,4 +1,4 @@
-#include <scwx/qt/util/shader_program.hpp>
+#include <scwx/qt/gl/shader_program.hpp>
 
 #include <QFile>
 
@@ -8,8 +8,10 @@ namespace scwx
 {
 namespace qt
 {
+namespace gl
+{
 
-static const std::string logPrefix_ = "[scwx::qt::util::shader_program] ";
+static const std::string logPrefix_ = "[scwx::qt::gl::shader_program] ";
 
 static constexpr GLsizei INFO_LOG_BUF_SIZE = 512;
 
@@ -173,5 +175,6 @@ void ShaderProgram::Use() const
    p->gl_.glUseProgram(p->id_);
 }
 
+} // namespace gl
 } // namespace qt
 } // namespace scwx

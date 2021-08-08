@@ -28,7 +28,7 @@ public:
 
    ~FontBufferImpl() {}
 
-   void RenderSetup(OpenGLFunctions& gl)
+   void RenderSetup(gl::OpenGLFunctions& gl)
    {
       // Generate and setup VAO
       gl.glGenVertexArrays(1, &vaoId_);
@@ -64,7 +64,7 @@ public:
       gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesId_);
    }
 
-   void Upload(OpenGLFunctions& gl)
+   void Upload(gl::OpenGLFunctions& gl)
    {
       if (verticesId_ == GL_INVALID_INDEX)
       {
@@ -157,7 +157,7 @@ void FontBuffer::Push(std::initializer_list<GLuint>  indices,
    p->vertices_.insert(p->vertices_.end(), vertices);
 }
 
-void FontBuffer::Render(OpenGLFunctions& gl)
+void FontBuffer::Render(gl::OpenGLFunctions& gl)
 {
    std::scoped_lock lock(p->mutex_);
 

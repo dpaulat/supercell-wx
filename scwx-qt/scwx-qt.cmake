@@ -52,8 +52,11 @@ set(HDR_MAIN source/scwx/qt/main/main_window.hpp)
 set(SRC_MAIN source/scwx/qt/main/main.cpp
              source/scwx/qt/main/main_window.cpp)
 set(UI_MAIN  source/scwx/qt/main/main_window.ui)
-set(HDR_GL source/scwx/qt/gl/text_shader.hpp)
-set(SRC_GL source/scwx/qt/gl/text_shader.cpp)
+set(HDR_GL source/scwx/qt/gl/gl.hpp
+           source/scwx/qt/gl/shader_program.hpp
+           source/scwx/qt/gl/text_shader.hpp)
+set(SRC_GL source/scwx/qt/gl/shader_program.cpp
+           source/scwx/qt/gl/text_shader.cpp)
 set(HDR_MANAGER source/scwx/qt/manager/radar_manager.hpp)
 set(SRC_MANAGER source/scwx/qt/manager/radar_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/map_widget.hpp
@@ -65,12 +68,9 @@ set(SRC_MAP source/scwx/qt/map/map_widget.cpp
             source/scwx/qt/map/radar_range_layer.cpp
             source/scwx/qt/map/triangle_layer.cpp)
 set(HDR_UTIL source/scwx/qt/util/font.hpp
-             source/scwx/qt/util/font_buffer.hpp
-             source/scwx/qt/util/gl.hpp
-             source/scwx/qt/util/shader_program.hpp)
+             source/scwx/qt/util/font_buffer.hpp)
 set(SRC_UTIL source/scwx/qt/util/font.cpp
-             source/scwx/qt/util/font_buffer.cpp
-             source/scwx/qt/util/shader_program.cpp)
+             source/scwx/qt/util/font_buffer.cpp)
 set(HDR_VIEW source/scwx/qt/view/radar_view.hpp)
 set(SRC_VIEW source/scwx/qt/view/radar_view.cpp)
 
@@ -85,6 +85,8 @@ set(TS_FILES ts/scwx_en_US.ts)
 
 set(PROJECT_SOURCES ${HDR_MAIN}
                     ${SRC_MAIN}
+                    ${HDR_GL}
+                    ${SRC_GL}
                     ${HDR_MANAGER}
                     ${SRC_MANAGER}
                     ${UI_MAIN}
@@ -100,6 +102,8 @@ set(PROJECT_SOURCES ${HDR_MAIN}
 
 source_group("Header Files\\main"    FILES ${HDR_MAIN})
 source_group("Source Files\\main"    FILES ${SRC_MAIN})
+source_group("Header Files\\gl"      FILES ${HDR_GL})
+source_group("Source Files\\gl"      FILES ${SRC_GL})
 source_group("Header Files\\manager" FILES ${HDR_MANAGER})
 source_group("Source Files\\manager" FILES ${SRC_MANAGER})
 source_group("UI Files\\main"        FILES ${UI_MAIN})

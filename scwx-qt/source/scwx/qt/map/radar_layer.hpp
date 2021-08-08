@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/qt/util/gl.hpp>
+#include <scwx/qt/gl/gl.hpp>
 #include <scwx/qt/view/radar_view.hpp>
 
 #include <QMapboxGL>
@@ -8,6 +8,8 @@
 namespace scwx
 {
 namespace qt
+{
+namespace map
 {
 
 class RadarLayerImpl;
@@ -18,7 +20,7 @@ class RadarLayer : public QObject, public QMapbox::CustomLayerHostInterface
 
 public:
    explicit RadarLayer(std::shared_ptr<view::RadarView> radarView,
-                       OpenGLFunctions&                 gl);
+                       gl::OpenGLFunctions&             gl);
    ~RadarLayer();
 
    void initialize() override final;
@@ -36,5 +38,6 @@ private:
    std::unique_ptr<RadarLayerImpl> p;
 };
 
+} // namespace map
 } // namespace qt
 } // namespace scwx

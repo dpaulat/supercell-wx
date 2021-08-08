@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/qt/util/gl.hpp>
+#include <scwx/qt/gl/gl.hpp>
 
 #include <memory>
 
@@ -28,7 +28,7 @@ public:
    void Clear();
    void Push(std::initializer_list<GLuint>  indices,
              std::initializer_list<GLfloat> vertices);
-   void Render(OpenGLFunctions& gl);
+   void Render(gl::OpenGLFunctions& gl);
 
 private:
    std::unique_ptr<FontBufferImpl> p;
