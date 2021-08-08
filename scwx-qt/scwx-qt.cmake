@@ -60,10 +60,12 @@ set(SRC_GL source/scwx/qt/gl/shader_program.cpp
 set(HDR_MANAGER source/scwx/qt/manager/radar_manager.hpp)
 set(SRC_MANAGER source/scwx/qt/manager/radar_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/map_widget.hpp
+            source/scwx/qt/map/overlay_layer.hpp
             source/scwx/qt/map/radar_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp
             source/scwx/qt/map/triangle_layer.hpp)
 set(SRC_MAP source/scwx/qt/map/map_widget.cpp
+            source/scwx/qt/map/overlay_layer.cpp
             source/scwx/qt/map/radar_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp
             source/scwx/qt/map/triangle_layer.cpp)
@@ -76,7 +78,9 @@ set(SRC_VIEW source/scwx/qt/view/radar_view.cpp)
 
 set(RESOURCE_FILES scwx-qt.qrc)
 
-set(SHADER_FILES gl/radar.frag
+set(SHADER_FILES gl/overlay.frag
+                 gl/overlay.vert
+                 gl/radar.frag
                  gl/radar.vert
                  gl/text.frag
                  gl/text.vert)

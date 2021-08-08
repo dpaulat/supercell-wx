@@ -1,5 +1,6 @@
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/gl/gl.hpp>
+#include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/map/radar_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
 
@@ -118,6 +119,8 @@ void MapWidget::AddLayers()
    // QMapboxGL::addCustomLayer will take ownership of the QScopedPointer
    QScopedPointer<QMapbox::CustomLayerHostInterface> pHost(
       new RadarLayer(radarView, p->gl_));
+   QScopedPointer<QMapbox::CustomLayerHostInterface> pOverlayHost(
+      new OverlayLayer(radarView, p->gl_));
 
    QString before = "ferry";
 
@@ -134,6 +137,7 @@ void MapWidget::AddLayers()
 
    p->map_->addCustomLayer("radar", pHost, before);
    RadarRangeLayer::Add(p->map_, before);
+   p->map_->addCustomLayer("overlay", pOverlayHost);
 }
 
 void MapWidget::keyPressEvent(QKeyEvent* ev)
