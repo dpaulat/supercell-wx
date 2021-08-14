@@ -1,10 +1,20 @@
+// No suitable standard C++ replacement
+#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+
 #include <scwx/qt/util/font.hpp>
 
+#include <codecvt>
 #include <unordered_map>
 
 #include <boost/log/trivial.hpp>
 #include <boost/timer/timer.hpp>
 #include <QFile>
+#include <QFileInfo>
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#include FT_SFNT_NAMES_H
+#include FT_TRUETYPE_IDS_H
 
 // #include <freetype-gl.h> (exclude opengl.h)
 #include <platform.h>
@@ -13,6 +23,12 @@
 #include <texture-atlas.h>
 #include <texture-font.h>
 #include <ftgl-utils.h>
+
+#ifdef WIN32
+#   include <WinSock2.h>
+#else
+#   include <arpa/inet.h>
+#endif
 
 namespace scwx
 {
@@ -67,6 +83,8 @@ static constexpr float POINT_SCALE     = 1.0f / BASE_POINT_SIZE;
 
 static std::unordered_map<std::string, std::shared_ptr<Font>> fontMap_;
 
+static void ParseSfntName(const FT_SfntName& sfntName, std::string& str);
+
 class FontImpl
 {
 public:
@@ -83,7 +101,15 @@ public:
       }
    }
 
+   void ParseNames(FT_Face face);
+
    const std::string resource_;
+
+   struct
+   {
+      std::string fontFamily_;
+      std::string fontSubfamily_;
+   } fontData_;
 
    ftgl::texture_atlas_t*                 atlas_;
    std::unordered_map<char, TextureGlyph> glyphs_;
@@ -216,6 +242,8 @@ GLuint Font::GenerateTexture(gl::OpenGLFunctions& gl)
 
 std::shared_ptr<Font> Font::Create(const std::string& resource)
 {
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading font file: " << resource;
+
    std::shared_ptr<Font>   font = nullptr;
    boost::timer::cpu_timer timer;
 
@@ -229,8 +257,7 @@ std::shared_ptr<Font> Font::Create(const std::string& resource)
    fontFile.open(QIODevice::ReadOnly);
    if (!fontFile.isOpen())
    {
-      BOOST_LOG_TRIVIAL(error)
-         << logPrefix_ << "Could not read font file: " << resource;
+      BOOST_LOG_TRIVIAL(error) << logPrefix_ << "Could not read font file";
       return font;
    }
 
@@ -240,6 +267,8 @@ std::shared_ptr<Font> Font::Create(const std::string& resource)
    font->p->atlas_                   = ftgl::texture_atlas_new(512, 512, 1);
    ftgl::texture_font_t* textureFont = ftgl::texture_font_new_from_memory(
       font->p->atlas_, BASE_POINT_SIZE, fontData.constData(), fontData.size());
+
+   font->p->ParseNames(textureFont->face);
 
    textureFont->rendermode = ftgl::RENDER_SIGNED_DISTANCE_FIELD;
 
@@ -268,8 +297,8 @@ std::shared_ptr<Font> Font::Create(const std::string& resource)
       }
    }
 
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Font \"" << resource
-                            << "\" loaded in " << timer.format(6, "%ws");
+   BOOST_LOG_TRIVIAL(debug)
+      << logPrefix_ << "Font loaded in " << timer.format(6, "%ws");
 
    texture_font_delete(textureFont);
 
@@ -279,6 +308,67 @@ std::shared_ptr<Font> Font::Create(const std::string& resource)
    }
 
    return font;
+}
+
+void FontImpl::ParseNames(FT_Face face)
+{
+   FT_SfntName sfntName;
+   FT_Error    error;
+
+   FT_UInt nameCount = FT_Get_Sfnt_Name_Count(face);
+
+   for (FT_UInt i = 0; i < nameCount; i++)
+   {
+      error = FT_Get_Sfnt_Name(face, i, &sfntName);
+
+      if (error == 0)
+      {
+         switch (sfntName.name_id)
+         {
+         case TT_NAME_ID_FONT_FAMILY:
+            ParseSfntName(sfntName, fontData_.fontFamily_);
+            break;
+
+         case TT_NAME_ID_FONT_SUBFAMILY:
+            ParseSfntName(sfntName, fontData_.fontSubfamily_);
+            break;
+         }
+      }
+   }
+
+   BOOST_LOG_TRIVIAL(debug)
+      << logPrefix_ << "Font family: " << fontData_.fontFamily_ << " ("
+      << fontData_.fontSubfamily_ << ")";
+}
+
+static void ParseSfntName(const FT_SfntName& sfntName, std::string& str)
+{
+   if (str.empty())
+   {
+      if (sfntName.platform_id == TT_PLATFORM_MICROSOFT &&
+          sfntName.encoding_id == TT_MS_ID_UNICODE_CS)
+      {
+         char16_t* tempString = new char16_t[sfntName.string_len / 2];
+         memcpy(tempString, sfntName.string, sfntName.string_len);
+
+         for (size_t j = 0; j < sfntName.string_len / 2; j++)
+         {
+            tempString[j] = ntohs(tempString[j]);
+         }
+
+         str =
+            std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}
+               .to_bytes(tempString, tempString + sfntName.string_len / 2);
+
+         delete[] tempString;
+      }
+      else if (sfntName.platform_id == TT_PLATFORM_MACINTOSH &&
+               sfntName.encoding_id == TT_MAC_ID_ROMAN)
+      {
+         str = std::string(reinterpret_cast<char*>(sfntName.string),
+                           sfntName.string_len);
+      }
+   }
 }
 
 } // namespace util
