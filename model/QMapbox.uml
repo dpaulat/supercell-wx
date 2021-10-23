@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<uml:Model xmi:version="20131001" xmlns:xmi="http://www.omg.org/spec/XMI/20131001" xmlns:uml="http://www.eclipse.org/uml2/5.0.0/UML" xmi:id="_r3iKMALIEeyIXMJVZXHk6Q" name="QMapbox" URI="" viewpoint="">
+  <packageImport xmi:type="uml:PackageImport" xmi:id="_r3z3AALIEeyIXMJVZXHk6Q">
+    <importedPackage xmi:type="uml:Model" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#_0"/>
+  </packageImport>
+  <packagedElement xmi:type="uml:Class" xmi:id="_0wg9EALIEeyIXMJVZXHk6Q" name="CustomLayerHostInterface" visibility="public" isAbstract="true">
+    <ownedOperation xmi:type="uml:Operation" xmi:id="_0wg9EQLIEeyIXMJVZXHk6Q" name="initialize" isAbstract="true"/>
+    <ownedOperation xmi:type="uml:Operation" xmi:id="_0wg9EgLIEeyIXMJVZXHk6Q" name="render" isAbstract="true">
+      <ownedParameter xmi:type="uml:Parameter" xmi:id="_0wg9EwLIEeyIXMJVZXHk6Q" type="_0wg9FQLIEeyIXMJVZXHk6Q" direction="inout"/>
+    </ownedOperation>
+    <ownedOperation xmi:type="uml:Operation" xmi:id="_0wg9FALIEeyIXMJVZXHk6Q" name="deinitialize" isAbstract="true"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:DataType" xmi:id="_0wg9FQLIEeyIXMJVZXHk6Q" name="CustomLayerRenderParameters">
+    <ownedAttribute xmi:type="uml:Property" xmi:id="_0wg9FgLIEeyIXMJVZXHk6Q" name="width">
+      <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Real"/>
+    </ownedAttribute>
+    <ownedAttribute xmi:type="uml:Property" xmi:id="_0wg9FwLIEeyIXMJVZXHk6Q" name="height">
+      <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Real"/>
+    </ownedAttribute>
+    <ownedAttribute xmi:type="uml:Property" xmi:id="_0wg9GALIEeyIXMJVZXHk6Q" name="latitude">
+      <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Real"/>
+    </ownedAttribute>
+    <ownedAttribute xmi:type="uml:Property" xmi:id="_0wg9GQLIEeyIXMJVZXHk6Q" name="longitude">
+      <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Real"/>
+    </ownedAttribute>
+    <ownedAttribute xmi:type="uml:Property" xmi:id="_0wg9GgLIEeyIXMJVZXHk6Q" name="zoom">
+      <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Real"/>
+    </ownedAttribute>
+    <ownedAttribute xmi:type="uml:Property" xmi:id="_0wg9GwLIEeyIXMJVZXHk6Q" name="bearing">
+      <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Real"/>
+    </ownedAttribute>
+    <ownedAttribute xmi:type="uml:Property" xmi:id="_0wg9HALIEeyIXMJVZXHk6Q" name="pitch">
+      <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Real"/>
+    </ownedAttribute>
+    <ownedAttribute xmi:type="uml:Property" xmi:id="_0wg9HQLIEeyIXMJVZXHk6Q" name="fieldOfView">
+      <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Real"/>
+    </ownedAttribute>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Class" xmi:id="_nmyGoC9-EeyWgvKLGfX-VA" name="QMapboxGL"/>
+</uml:Model>
