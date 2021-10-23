@@ -7,5 +7,6 @@
         <file>gl/text.frag</file>
         <file>gl/text.vert</file>
         <file>res/fonts/din1451alt.ttf</file>
+        <file>res/fonts/din1451alt_g.ttf</file>
     </qresource>
 </RCC>

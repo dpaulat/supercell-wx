@@ -57,8 +57,10 @@ set(HDR_GL source/scwx/qt/gl/gl.hpp
            source/scwx/qt/gl/text_shader.hpp)
 set(SRC_GL source/scwx/qt/gl/shader_program.cpp
            source/scwx/qt/gl/text_shader.cpp)
-set(HDR_MANAGER source/scwx/qt/manager/radar_manager.hpp)
-set(SRC_MANAGER source/scwx/qt/manager/radar_manager.cpp)
+set(HDR_MANAGER source/scwx/qt/manager/radar_manager.hpp
+                source/scwx/qt/manager/resource_manager.hpp)
+set(SRC_MANAGER source/scwx/qt/manager/radar_manager.cpp
+                source/scwx/qt/manager/resource_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/map_widget.hpp
             source/scwx/qt/map/overlay_layer.hpp
             source/scwx/qt/map/radar_layer.hpp

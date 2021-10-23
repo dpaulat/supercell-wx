@@ -250,6 +250,7 @@ std::shared_ptr<Font> Font::Create(const std::string& resource)
    auto it = fontMap_.find(resource);
    if (it != fontMap_.end())
    {
+      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Font already created";
       return it->second;
    }
 
