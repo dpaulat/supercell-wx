@@ -12,18 +12,18 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 include(${PROJECT_SOURCE_DIR}/external/cmake-conan/conan.cmake)
 
-conan_cmake_configure(REQUIRES boost/1.76.0
+conan_cmake_configure(REQUIRES boost/1.77.0
                                freetype/2.10.4
                                geographiclib/1.52
                                glew/2.2.0
                                glm/0.9.9.8
                                gtest/cci.20210126
-                               openssl/1.1.1k
-                               vulkan-loader/1.2.172
+                               openssl/3.0.0
+                               vulkan-loader/1.2.190
                       GENERATORS cmake
                                  cmake_find_package
                                  cmake_paths
-                      BUILD_REQUIRES cmake/3.19.4
+                      BUILD_REQUIRES cmake/3.21.3
                       IMPORTS "bin, *.dll -> ./bin"
                       IMPORTS "lib, *.dylib -> ./bin"
                       OPTIONS openssl:shared=True)
