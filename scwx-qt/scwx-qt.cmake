@@ -48,9 +48,10 @@ find_package(Qt${QT_VERSION_MAJOR}
 
 include(qt6-linguist.cmake)
 
+set(SRC_EXE_MAIN source/scwx/qt/main/main.cpp)
+
 set(HDR_MAIN source/scwx/qt/main/main_window.hpp)
-set(SRC_MAIN source/scwx/qt/main/main.cpp
-             source/scwx/qt/main/main_window.cpp)
+set(SRC_MAIN source/scwx/qt/main/main_window.cpp)
 set(UI_MAIN  source/scwx/qt/main/main_window.ui)
 set(HDR_GL source/scwx/qt/gl/gl.hpp
            source/scwx/qt/gl/shader_program.hpp
@@ -58,9 +59,11 @@ set(HDR_GL source/scwx/qt/gl/gl.hpp
 set(SRC_GL source/scwx/qt/gl/shader_program.cpp
            source/scwx/qt/gl/text_shader.cpp)
 set(HDR_MANAGER source/scwx/qt/manager/radar_manager.hpp
-                source/scwx/qt/manager/resource_manager.hpp)
+                source/scwx/qt/manager/resource_manager.hpp
+                source/scwx/qt/manager/settings_manager.hpp)
 set(SRC_MANAGER source/scwx/qt/manager/radar_manager.cpp
-                source/scwx/qt/manager/resource_manager.cpp)
+                source/scwx/qt/manager/resource_manager.cpp
+                source/scwx/qt/manager/settings_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/map_widget.hpp
             source/scwx/qt/map/overlay_layer.hpp
             source/scwx/qt/map/radar_layer.hpp
@@ -71,10 +74,14 @@ set(SRC_MAP source/scwx/qt/map/map_widget.cpp
             source/scwx/qt/map/radar_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp
             source/scwx/qt/map/triangle_layer.cpp)
+set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp)
+set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp)
 set(HDR_UTIL source/scwx/qt/util/font.hpp
-             source/scwx/qt/util/font_buffer.hpp)
+             source/scwx/qt/util/font_buffer.hpp
+             source/scwx/qt/util/json.hpp)
 set(SRC_UTIL source/scwx/qt/util/font.cpp
-             source/scwx/qt/util/font_buffer.cpp)
+             source/scwx/qt/util/font_buffer.cpp
+             source/scwx/qt/util/json.cpp)
 set(HDR_VIEW source/scwx/qt/view/radar_view.hpp)
 set(SRC_VIEW source/scwx/qt/view/radar_view.cpp)
 
@@ -98,6 +105,8 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${UI_MAIN}
                     ${HDR_MAP}
                     ${SRC_MAP}
+                    ${HDR_SETTINGS}
+                    ${SRC_SETTINGS}
                     ${HDR_UTIL}
                     ${SRC_UTIL}
                     ${HDR_VIEW}
@@ -105,44 +114,55 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${SHADER_FILES}
                     ${RESOURCE_FILES}
                     ${TS_FILES})
+set(EXECUTABLE_SOURCES ${SRC_EXE_MAIN})
 
-source_group("Header Files\\main"    FILES ${HDR_MAIN})
-source_group("Source Files\\main"    FILES ${SRC_MAIN})
-source_group("Header Files\\gl"      FILES ${HDR_GL})
-source_group("Source Files\\gl"      FILES ${SRC_GL})
-source_group("Header Files\\manager" FILES ${HDR_MANAGER})
-source_group("Source Files\\manager" FILES ${SRC_MANAGER})
-source_group("UI Files\\main"        FILES ${UI_MAIN})
-source_group("Header Files\\map"     FILES ${HDR_MAP})
-source_group("Source Files\\map"     FILES ${SRC_MAP})
-source_group("Header Files\\util"    FILES ${HDR_UTIL})
-source_group("Source Files\\util"    FILES ${SRC_UTIL})
-source_group("Header Files\\view"    FILES ${HDR_VIEW})
-source_group("Source Files\\view"    FILES ${SRC_VIEW})
-source_group("OpenGL Shaders"        FILES ${SHADER_FILES})
-source_group("Resources"             FILES ${RESOURCE_FILES})
-source_group("I18N Files"            FILES ${TS_FILES})
+source_group("Header Files\\main"     FILES ${HDR_MAIN})
+source_group("Source Files\\main"     FILES ${SRC_MAIN})
+source_group("Header Files\\gl"       FILES ${HDR_GL})
+source_group("Source Files\\gl"       FILES ${SRC_GL})
+source_group("Header Files\\manager"  FILES ${HDR_MANAGER})
+source_group("Source Files\\manager"  FILES ${SRC_MANAGER})
+source_group("UI Files\\main"         FILES ${UI_MAIN})
+source_group("Header Files\\map"      FILES ${HDR_MAP})
+source_group("Source Files\\map"      FILES ${SRC_MAP})
+source_group("Header Files\\settings" FILES ${HDR_SETTINGS})
+source_group("Source Files\\settings" FILES ${SRC_SETTINGS})
+source_group("Header Files\\util"     FILES ${HDR_UTIL})
+source_group("Source Files\\util"     FILES ${SRC_UTIL})
+source_group("Header Files\\view"     FILES ${HDR_VIEW})
+source_group("Source Files\\view"     FILES ${SRC_VIEW})
+source_group("OpenGL Shaders"         FILES ${SHADER_FILES})
+source_group("Resources"              FILES ${RESOURCE_FILES})
+source_group("I18N Files"             FILES ${TS_FILES})
 
-qt_add_executable(scwx-qt
-    ${PROJECT_SOURCES}
-)
+add_library(scwx-qt OBJECT ${PROJECT_SOURCES})
+set_property(TARGET scwx-qt PROPERTY AUTOMOC ON)
+
+qt_add_executable(supercell-wx ${EXECUTABLE_SOURCES})
 
 qt6_create_translation_scwx(QM_FILES ${scwx-qt_SOURCE_DIR} ${TS_FILES})
 
 if (WIN32)
-    target_compile_definitions(scwx-qt PRIVATE WIN32_LEAN_AND_MEAN)
+    target_compile_definitions(scwx-qt      PUBLIC WIN32_LEAN_AND_MEAN)
+    target_compile_definitions(supercell-wx PUBLIC WIN32_LEAN_AND_MEAN)
 endif()
 
-target_include_directories(scwx-qt PRIVATE ${scwx-qt_SOURCE_DIR}/source
-                                           ${FTGL_INCLUDE_DIR}
-                                           ${MBGL_INCLUDE_DIR})
+target_include_directories(scwx-qt PUBLIC ${scwx-qt_SOURCE_DIR}/source
+                                          ${FTGL_INCLUDE_DIR}
+                                          ${MBGL_INCLUDE_DIR})
 
-target_link_libraries(scwx-qt PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
-                                      Qt${QT_VERSION_MAJOR}::OpenGLWidgets
-                                      Boost::timer
-                                      qmapboxgl
-                                      opengl32
-                                      freetype-gl
-                                      GeographicLib::GeographicLib
-                                      glm::glm
-                                      wxdata)
+target_include_directories(supercell-wx PUBLIC ${scwx-qt_SOURCE_DIR}/source)
+
+target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
+                                     Qt${QT_VERSION_MAJOR}::OpenGLWidgets
+                                     Boost::json
+                                     Boost::timer
+                                     qmapboxgl
+                                     opengl32
+                                     freetype-gl
+                                     GeographicLib::GeographicLib
+                                     glm::glm
+                                     wxdata)
+
+target_link_libraries(supercell-wx PRIVATE scwx-qt
+                                           wxdata)
