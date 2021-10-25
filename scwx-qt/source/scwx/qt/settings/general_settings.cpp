@@ -93,6 +93,11 @@ GeneralSettings::Load(const boost::json::value* json, bool& jsonDirty)
    return generalSettings;
 }
 
+bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
+{
+   return lhs.p->defaultRadarSite_ == rhs.p->defaultRadarSite_;
+}
+
 } // namespace settings
 } // namespace qt
 } // namespace scwx

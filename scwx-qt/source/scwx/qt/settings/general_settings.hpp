@@ -34,6 +34,9 @@ public:
    static std::shared_ptr<GeneralSettings> Load(const boost::json::value* json,
                                                 bool& jsonDirty);
 
+   friend bool operator==(const GeneralSettings& lhs,
+                          const GeneralSettings& rhs);
+
 private:
    std::unique_ptr<GeneralSettingsImpl> p;
 };
