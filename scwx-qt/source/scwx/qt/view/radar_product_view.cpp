@@ -24,10 +24,8 @@ class RadarProductViewImpl
 {
 public:
    explicit RadarProductViewImpl(
-      std::shared_ptr<manager::RadarProductManager> radarProductManager,
-      std::shared_ptr<QMapboxGL>                    map) :
+      std::shared_ptr<manager::RadarProductManager> radarProductManager) :
        radarProductManager_(radarProductManager),
-       map_(map),
        plotTime_(),
        colorTable_ {boost::gil::rgba8_pixel_t(0, 128, 0, 255),
                     boost::gil::rgba8_pixel_t(255, 192, 0, 255),
@@ -37,7 +35,6 @@ public:
    ~RadarProductViewImpl() = default;
 
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
-   std::shared_ptr<QMapboxGL>                    map_;
 
    std::vector<float>    vertices_;
    std::vector<uint8_t>  dataMoments8_;
@@ -49,9 +46,8 @@ public:
 };
 
 RadarProductView::RadarProductView(
-   std::shared_ptr<manager::RadarProductManager> radarProductManager,
-   std::shared_ptr<QMapboxGL>                    map) :
-    p(std::make_unique<RadarProductViewImpl>(radarProductManager, map))
+   std::shared_ptr<manager::RadarProductManager> radarProductManager) :
+    p(std::make_unique<RadarProductViewImpl>(radarProductManager))
 {
    connect(radarProductManager.get(),
            &manager::RadarProductManager::Level2DataLoaded,
@@ -59,26 +55,6 @@ RadarProductView::RadarProductView(
            &RadarProductView::UpdatePlot);
 }
 RadarProductView::~RadarProductView() = default;
-
-double RadarProductView::bearing() const
-{
-   return p->map_->bearing();
-}
-
-double RadarProductView::scale() const
-{
-   return p->map_->scale();
-}
-
-const std::vector<uint8_t>& RadarProductView::data_moments8() const
-{
-   return p->dataMoments8_;
-}
-
-const std::vector<uint16_t>& RadarProductView::data_moments16() const
-{
-   return p->dataMoments16_;
-}
 
 const std::vector<float>& RadarProductView::vertices() const
 {

@@ -104,8 +104,7 @@ void MapWidget::changeStyle()
 void MapWidget::AddLayers()
 {
    std::shared_ptr<view::RadarProductView> radarProductView =
-      std::make_shared<view::RadarProductView>(p->radarProductManager_,
-                                               p->map_);
+      std::make_shared<view::RadarProductView>(p->radarProductManager_);
 
    radarProductView->Initialize();
 

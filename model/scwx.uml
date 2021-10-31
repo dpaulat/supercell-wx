@@ -52,33 +52,6 @@
         <packagedElement xmi:type="uml:Class" xmi:id="_Yt2OQAKhEeyIXMJVZXHk6Q" name="RadarProductView">
           <ownedOperation xmi:type="uml:Operation" xmi:id="_Ra89oC9-EeyWgvKLGfX-VA" name="RadarView">
             <ownedParameter xmi:type="uml:Parameter" xmi:id="_fn3IQC9-EeyWgvKLGfX-VA" type="_UwnjsAKhEeyIXMJVZXHk6Q"/>
-            <ownedParameter xmi:type="uml:Parameter" xmi:id="_rTMG8C9-EeyWgvKLGfX-VA">
-              <type xmi:type="uml:Class" href="QMapbox.uml#_nmyGoC9-EeyWgvKLGfX-VA"/>
-            </ownedParameter>
-          </ownedOperation>
-          <ownedOperation xmi:type="uml:Operation" xmi:id="_xD_A4C9-EeyWgvKLGfX-VA" name="bearing">
-            <ownedParameter xmi:type="uml:Parameter" xmi:id="_zQLLoC9-EeyWgvKLGfX-VA" direction="return">
-              <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Real"/>
-            </ownedParameter>
-          </ownedOperation>
-          <ownedOperation xmi:type="uml:Operation" xmi:id="_1m6ZgC9-EeyWgvKLGfX-VA" name="scale">
-            <ownedParameter xmi:type="uml:Parameter" xmi:id="_34s18C9-EeyWgvKLGfX-VA" direction="return">
-              <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Real"/>
-            </ownedParameter>
-          </ownedOperation>
-          <ownedOperation xmi:type="uml:Operation" xmi:id="_7lnzoC9-EeyWgvKLGfX-VA" name="data_moments8">
-            <ownedParameter xmi:type="uml:Parameter" xmi:id="_YqZKYC9_EeyWgvKLGfX-VA" direction="return">
-              <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Integer"/>
-              <lowerValue xmi:type="uml:LiteralInteger" xmi:id="_hkT78C-AEeyWgvKLGfX-VA"/>
-              <upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="_hkrIUC-AEeyWgvKLGfX-VA" value="*"/>
-            </ownedParameter>
-          </ownedOperation>
-          <ownedOperation xmi:type="uml:Operation" xmi:id="_8_fJkC9-EeyWgvKLGfX-VA" name="data_moments16">
-            <ownedParameter xmi:type="uml:Parameter" xmi:id="_ckm9MC9_EeyWgvKLGfX-VA" direction="return">
-              <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Integer"/>
-              <lowerValue xmi:type="uml:LiteralInteger" xmi:id="_f8PK4C-AEeyWgvKLGfX-VA"/>
-              <upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="_f8lJIC-AEeyWgvKLGfX-VA" value="*"/>
-            </ownedParameter>
           </ownedOperation>
           <ownedOperation xmi:type="uml:Operation" xmi:id="_91rKsC9-EeyWgvKLGfX-VA" name="vertices">
             <ownedParameter xmi:type="uml:Parameter" xmi:id="_cVaOIC-AEeyWgvKLGfX-VA" direction="return">
@@ -94,6 +67,17 @@
             </ownedParameter>
           </ownedOperation>
           <ownedOperation xmi:type="uml:Operation" xmi:id="__jCEYC9-EeyWgvKLGfX-VA" name="Initialize"/>
+          <ownedOperation xmi:type="uml:Operation" xmi:id="_c77bEDqCEey_nYE4G1Fl-w" name="GetMomentData">
+            <ownedParameter xmi:type="uml:Parameter" xmi:id="_kEgAQDqCEey_nYE4G1Fl-w" direction="return">
+              <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Real"/>
+            </ownedParameter>
+            <ownedParameter xmi:type="uml:Parameter" xmi:id="_qfEP8DqCEey_nYE4G1Fl-w" direction="return">
+              <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Integer"/>
+            </ownedParameter>
+            <ownedParameter xmi:type="uml:Parameter" xmi:id="_rf4zwDqCEey_nYE4G1Fl-w" direction="return">
+              <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Integer"/>
+            </ownedParameter>
+          </ownedOperation>
           <ownedOperation xmi:type="uml:Operation" xmi:id="_BfETQC9_EeyWgvKLGfX-VA" name="LoadColorTable">
             <ownedParameter xmi:type="uml:Parameter" xmi:id="_ZiBNADQAEeyGO_jIbsSKUw" type="_8fCdAC-AEeyWgvKLGfX-VA"/>
           </ownedOperation>
@@ -144,6 +128,6 @@
   <C_Cpp:CppRoot xmi:id="_AdZxAC92EeyWgvKLGfX-VA" base_package="_8VbnMAKgEeyIXMJVZXHk6Q"/>
   <C_Cpp:Ptr xmi:id="__CcVQC99EeyWgvKLGfX-VA" base_parameter="_9metkC99EeyWgvKLGfX-VA"/>
   <C_Cpp:Ptr xmi:id="_sVLIYC9-EeyWgvKLGfX-VA" base_parameter="_fn3IQC9-EeyWgvKLGfX-VA"/>
-  <C_Cpp:Ptr xmi:id="_ta_g8C9-EeyWgvKLGfX-VA" base_parameter="_rTMG8C9-EeyWgvKLGfX-VA"/>
   <C_Cpp:Ptr xmi:id="_a-OFQDQAEeyGO_jIbsSKUw" base_parameter="_ZiBNADQAEeyGO_jIbsSKUw"/>
+  <C_Cpp:Ptr xmi:id="_lr6qADqCEey_nYE4G1Fl-w" base_parameter="_kEgAQDqCEey_nYE4G1Fl-w"/>
 </xmi:XMI>

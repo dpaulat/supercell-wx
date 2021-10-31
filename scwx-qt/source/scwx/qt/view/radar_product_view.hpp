@@ -7,8 +7,6 @@
 #include <memory>
 #include <vector>
 
-#include <QMapboxGL>
-
 namespace scwx
 {
 namespace qt
@@ -24,16 +22,10 @@ class RadarProductView : public QObject
 
 public:
    explicit RadarProductView(
-      std::shared_ptr<manager::RadarProductManager> radarProductManager,
-      std::shared_ptr<QMapboxGL>                    map);
+      std::shared_ptr<manager::RadarProductManager> radarProductManager);
    ~RadarProductView();
 
-   double                       bearing() const;
-   double                       scale() const;
-   const std::vector<uint8_t>&  data_moments8() const;
-   const std::vector<uint16_t>& data_moments16() const;
-   const std::vector<float>&    vertices() const;
-
+   const std::vector<float>&                     vertices() const;
    const std::vector<boost::gil::rgba8_pixel_t>& color_table() const;
 
    void Initialize();

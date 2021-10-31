@@ -199,7 +199,7 @@ void RadarProductLayer::render(
 
    p->shaderProgram_.Use();
 
-   const float scale = p->radarProductView_->scale() * 2.0f *
+   const float scale = std::pow(2.0, params.zoom) * 2.0f *
                        mbgl::util::tileSize / mbgl::util::DEGREES_MAX;
    const float xScale = scale / params.width;
    const float yScale = scale / params.height;
