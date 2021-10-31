@@ -29,7 +29,7 @@ public:
    void deinitialize() override final;
 
 public slots:
-   void ReceivePlotUpdate();
+   void UpdateSweepTimeNextFrame();
 
 private:
    std::unique_ptr<OverlayLayerImpl> p;

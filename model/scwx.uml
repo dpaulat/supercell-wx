@@ -81,11 +81,12 @@
           <ownedOperation xmi:type="uml:Operation" xmi:id="_BfETQC9_EeyWgvKLGfX-VA" name="LoadColorTable">
             <ownedParameter xmi:type="uml:Parameter" xmi:id="_ZiBNADQAEeyGO_jIbsSKUw" type="_8fCdAC-AEeyWgvKLGfX-VA"/>
           </ownedOperation>
-          <ownedOperation xmi:type="uml:Operation" xmi:id="_Cb_1kC9_EeyWgvKLGfX-VA" name="PlotTime">
+          <ownedOperation xmi:type="uml:Operation" xmi:id="_Cb_1kC9_EeyWgvKLGfX-VA" name="SweepTime">
             <ownedParameter xmi:type="uml:Parameter" xmi:id="_tZRrUDQAEeyGO_jIbsSKUw" direction="return">
               <type xmi:type="uml:Class" href="std.uml#_L1eGYC9_EeyWgvKLGfX-VA"/>
             </ownedParameter>
           </ownedOperation>
+          <ownedOperation xmi:type="uml:Operation" xmi:id="_Y__XsDqHEey_nYE4G1Fl-w" name="ComputeSweep" visibility="protected"/>
         </packagedElement>
       </packagedElement>
       <packagedElement xmi:type="uml:Package" xmi:id="_qBoqQAKhEeyIXMJVZXHk6Q" name="map">
@@ -97,10 +98,10 @@
             </ownedParameter>
           </ownedOperation>
           <ownedOperation xmi:type="uml:Operation" xmi:id="_ZE4jgALIEeyIXMJVZXHk6Q" name="deinitialize"/>
-          <ownedOperation xmi:type="uml:Operation" xmi:id="_ZfuscALIEeyIXMJVZXHk6Q" name="UpdateColorTable"/>
-          <ownedOperation xmi:type="uml:Operation" xmi:id="_aEsasALIEeyIXMJVZXHk6Q" name="UpdatePlot"/>
-          <ownedOperation xmi:type="uml:Operation" xmi:id="_a_EYQALIEeyIXMJVZXHk6Q" name="ReceiveColorTableUpdate"/>
-          <ownedOperation xmi:type="uml:Operation" xmi:id="_cBpPkALIEeyIXMJVZXHk6Q" name="ReceivePlotUpdate"/>
+          <ownedOperation xmi:type="uml:Operation" xmi:id="_ZfuscALIEeyIXMJVZXHk6Q" name="UpdateColorTable" visibility="private"/>
+          <ownedOperation xmi:type="uml:Operation" xmi:id="_aEsasALIEeyIXMJVZXHk6Q" name="UpdateSweep" visibility="private"/>
+          <ownedOperation xmi:type="uml:Operation" xmi:id="_a_EYQALIEeyIXMJVZXHk6Q" name="UpdateColorTableNextFrame" visibility="private"/>
+          <ownedOperation xmi:type="uml:Operation" xmi:id="_cBpPkALIEeyIXMJVZXHk6Q" name="UpdateSweepNextFrame" visibility="private"/>
         </packagedElement>
         <packagedElement xmi:type="uml:Realization" xmi:id="_K0c44ALKEeyIXMJVZXHk6Q" client="_a0ejkAKhEeyIXMJVZXHk6Q">
           <supplier xmi:type="uml:Class" href="QMapbox.uml#_0wg9EALIEeyIXMJVZXHk6Q"/>

@@ -33,14 +33,14 @@ public:
    std::tuple<const void*, size_t, size_t> GetMomentData();
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable);
 
-   std::chrono::system_clock::time_point PlotTime();
+   std::chrono::system_clock::time_point SweepTime();
 
-public slots:
-   void UpdatePlot();
+protected slots:
+   void ComputeSweep();
 
 signals:
    void ColorTableLoaded();
-   void PlotUpdated();
+   void SweepComputed();
 
 private:
    std::unique_ptr<RadarProductViewImpl> p;

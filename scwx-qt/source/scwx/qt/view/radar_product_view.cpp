@@ -26,7 +26,7 @@ public:
    explicit RadarProductViewImpl(
       std::shared_ptr<manager::RadarProductManager> radarProductManager) :
        radarProductManager_(radarProductManager),
-       plotTime_(),
+       sweepTime_(),
        colorTable_ {boost::gil::rgba8_pixel_t(0, 128, 0, 255),
                     boost::gil::rgba8_pixel_t(255, 192, 0, 255),
                     boost::gil::rgba8_pixel_t(255, 0, 0, 255)}
@@ -40,7 +40,7 @@ public:
    std::vector<uint8_t>  dataMoments8_;
    std::vector<uint16_t> dataMoments16_;
 
-   std::chrono::system_clock::time_point plotTime_;
+   std::chrono::system_clock::time_point sweepTime_;
 
    std::vector<boost::gil::rgba8_pixel_t> colorTable_;
 };
@@ -52,7 +52,7 @@ RadarProductView::RadarProductView(
    connect(radarProductManager.get(),
            &manager::RadarProductManager::Level2DataLoaded,
            this,
-           &RadarProductView::UpdatePlot);
+           &RadarProductView::ComputeSweep);
 }
 RadarProductView::~RadarProductView() = default;
 
@@ -69,7 +69,7 @@ RadarProductView::color_table() const
 
 void RadarProductView::Initialize()
 {
-   UpdatePlot();
+   ComputeSweep();
 }
 
 std::tuple<const void*, size_t, size_t> RadarProductView::GetMomentData()
@@ -117,14 +117,14 @@ void RadarProductView::LoadColorTable(
    emit ColorTableLoaded();
 }
 
-std::chrono::system_clock::time_point RadarProductView::PlotTime()
+std::chrono::system_clock::time_point RadarProductView::SweepTime()
 {
-   return p->plotTime_;
+   return p->sweepTime_;
 }
 
-void RadarProductView::UpdatePlot()
+void RadarProductView::ComputeSweep()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "UpdatePlot()";
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "ComputeSweep()";
 
    boost::timer::cpu_timer timer;
 
@@ -143,8 +143,8 @@ void RadarProductView::UpdatePlot()
    auto                       radarData = level2Data->radar_data()[0];
    wsr88d::rda::DataBlockType blockType = wsr88d::rda::DataBlockType::MomentRef;
 
-   p->plotTime_ = TimePoint(radarData[0]->modified_julian_date(),
-                            radarData[0]->collection_time());
+   p->sweepTime_ = TimePoint(radarData[0]->modified_julian_date(),
+                             radarData[0]->collection_time());
 
    // Calculate vertices
    timer.start();
@@ -352,7 +352,7 @@ void RadarProductView::UpdatePlot()
    BOOST_LOG_TRIVIAL(debug)
       << logPrefix_ << "Vertices calculated in " << timer.format(6, "%ws");
 
-   emit PlotUpdated();
+   emit SweepComputed();
 }
 
 static std::chrono::system_clock::time_point

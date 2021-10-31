@@ -41,8 +41,8 @@ public:
        vao_ {GL_INVALID_INDEX},
        texture_ {GL_INVALID_INDEX},
        numVertices_ {0},
-       colorTableUpdated_(false),
-       plotUpdated_(false)
+       colorTableNeedsUpdate_ {false},
+       sweepNeedsUpdate_ {false}
    {
    }
    ~RadarProductLayerImpl() = default;
@@ -59,8 +59,8 @@ public:
 
    GLsizeiptr numVertices_;
 
-   bool colorTableUpdated_;
-   bool plotUpdated_;
+   bool colorTableNeedsUpdate_;
+   bool sweepNeedsUpdate_;
 };
 
 RadarProductLayer::RadarProductLayer(
@@ -112,18 +112,18 @@ void RadarProductLayer::initialize()
    connect(p->radarProductView_.get(),
            &view::RadarProductView::ColorTableLoaded,
            this,
-           &RadarProductLayer::ReceiveColorTableUpdate);
+           &RadarProductLayer::UpdateColorTableNextFrame);
    connect(p->radarProductView_.get(),
-           &view::RadarProductView::PlotUpdated,
+           &view::RadarProductView::SweepComputed,
            this,
-           &RadarProductLayer::ReceivePlotUpdate);
+           &RadarProductLayer::UpdateSweepNextFrame);
 }
 
 void RadarProductLayer::UpdateSweep()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "UpdateSweep()";
 
-   p->plotUpdated_ = false;
+   p->sweepNeedsUpdate_ = false;
 
    gl::OpenGLFunctions& gl = p->gl_;
 
@@ -187,12 +187,12 @@ void RadarProductLayer::render(
 {
    gl::OpenGLFunctions& gl = p->gl_;
 
-   if (p->colorTableUpdated_)
+   if (p->colorTableNeedsUpdate_)
    {
       UpdateColorTable();
    }
 
-   if (p->plotUpdated_)
+   if (p->sweepNeedsUpdate_)
    {
       UpdateSweep();
    }
@@ -241,18 +241,18 @@ void RadarProductLayer::deinitialize()
    disconnect(p->radarProductView_.get(),
               &view::RadarProductView::ColorTableLoaded,
               this,
-              &RadarProductLayer::ReceiveColorTableUpdate);
+              &RadarProductLayer::UpdateColorTableNextFrame);
    disconnect(p->radarProductView_.get(),
-              &view::RadarProductView::PlotUpdated,
+              &view::RadarProductView::SweepComputed,
               this,
-              &RadarProductLayer::ReceivePlotUpdate);
+              &RadarProductLayer::UpdateSweepNextFrame);
 }
 
 void RadarProductLayer::UpdateColorTable()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "UpdateColorTable()";
 
-   p->colorTableUpdated_ = false;
+   p->colorTableNeedsUpdate_ = false;
 
    gl::OpenGLFunctions& gl = p->gl_;
 
@@ -272,14 +272,14 @@ void RadarProductLayer::UpdateColorTable()
    gl.glGenerateMipmap(GL_TEXTURE_1D);
 }
 
-void RadarProductLayer::ReceiveColorTableUpdate()
+void RadarProductLayer::UpdateColorTableNextFrame()
 {
-   p->colorTableUpdated_ = true;
+   p->colorTableNeedsUpdate_ = true;
 }
 
-void RadarProductLayer::ReceivePlotUpdate()
+void RadarProductLayer::UpdateSweepNextFrame()
 {
-   p->plotUpdated_ = true;
+   p->sweepNeedsUpdate_ = true;
 }
 
 static glm::vec2

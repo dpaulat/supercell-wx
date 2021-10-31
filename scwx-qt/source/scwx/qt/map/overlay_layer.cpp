@@ -41,9 +41,7 @@ public:
        vbo_ {GL_INVALID_INDEX},
        vao_ {GL_INVALID_INDEX},
        texture_ {GL_INVALID_INDEX},
-       numVertices_ {0},
-       colorTableUpdated_(false),
-       plotUpdated_(true)
+       sweepTimeNeedsUpdate_ {true}
    {
       // TODO: Manage font at the global level, texture at the view level
    }
@@ -61,10 +59,7 @@ public:
    GLuint                      vao_;
    GLuint                      texture_;
 
-   GLsizeiptr numVertices_;
-
-   bool colorTableUpdated_;
-   bool plotUpdated_;
+   bool sweepTimeNeedsUpdate_;
 };
 
 OverlayLayer::OverlayLayer(
@@ -127,32 +122,32 @@ void OverlayLayer::initialize()
    gl.glUniform4f(p->uColorLocation_, 0.0f, 0.0f, 0.0f, 0.75f);
 
    connect(p->radarProductView_.get(),
-           &view::RadarProductView::PlotUpdated,
+           &view::RadarProductView::SweepComputed,
            this,
-           &OverlayLayer::ReceivePlotUpdate);
+           &OverlayLayer::UpdateSweepTimeNextFrame);
 }
 
 void OverlayLayer::render(const QMapbox::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = p->gl_;
 
-   static std::string plotTimeString;
+   static std::string sweepTimeString;
 
-   if (p->plotUpdated_)
+   if (p->sweepTimeNeedsUpdate_)
    {
       using namespace std::chrono;
-      auto plotTime =
-         time_point_cast<seconds>(p->radarProductView_->PlotTime());
+      auto sweepTime =
+         time_point_cast<seconds>(p->radarProductView_->SweepTime());
 
-      if (plotTime.time_since_epoch().count() != 0)
+      if (sweepTime.time_since_epoch().count() != 0)
       {
-         zoned_time         zt = {current_zone(), plotTime};
+         zoned_time         zt = {current_zone(), sweepTime};
          std::ostringstream os;
          os << zt;
-         plotTimeString = os.str();
+         sweepTimeString = os.str();
       }
 
-      p->plotUpdated_ = false;
+      p->sweepTimeNeedsUpdate_ = false;
    }
 
    glm::mat4 projection = glm::ortho(0.0f,
@@ -181,7 +176,7 @@ void OverlayLayer::render(const QMapbox::CustomLayerRenderParameters& params)
    gl.glDrawArrays(GL_TRIANGLES, 0, 6);
 
    // Render time
-   p->textShader_.RenderText(plotTimeString,
+   p->textShader_.RenderText(sweepTimeString,
                              params.width - 7.0f,
                              7.0f,
                              16.0f,
@@ -211,14 +206,14 @@ void OverlayLayer::deinitialize()
    p->texture_            = GL_INVALID_INDEX;
 
    disconnect(p->radarProductView_.get(),
-              &view::RadarProductView::PlotUpdated,
+              &view::RadarProductView::SweepComputed,
               this,
-              &OverlayLayer::ReceivePlotUpdate);
+              &OverlayLayer::UpdateSweepTimeNextFrame);
 }
 
-void OverlayLayer::ReceivePlotUpdate()
+void OverlayLayer::UpdateSweepTimeNextFrame()
 {
-   p->plotUpdated_ = true;
+   p->sweepTimeNeedsUpdate_ = true;
 }
 
 } // namespace map

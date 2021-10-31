@@ -30,12 +30,13 @@ public:
    void render(const QMapbox::CustomLayerRenderParameters&) override final;
    void deinitialize() override final;
 
+private:
    void UpdateColorTable();
    void UpdateSweep();
 
-public slots:
-   void ReceiveColorTableUpdate();
-   void ReceivePlotUpdate();
+private slots:
+   void UpdateColorTableNextFrame();
+   void UpdateSweepNextFrame();
 
 private:
    std::unique_ptr<RadarProductLayerImpl> p;
