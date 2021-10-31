@@ -11,7 +11,7 @@ namespace manager
 namespace SettingsManager
 {
 
-bool Initialize();
+void Initialize();
 void ReadSettings(const std::string& settingsPath);
 
 std::shared_ptr<settings::GeneralSettings> general_settings();

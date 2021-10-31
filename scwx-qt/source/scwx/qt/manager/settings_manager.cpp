@@ -26,28 +26,25 @@ static boost::json::value ConvertSettingsToJson();
 static void               GenerateDefaultSettings();
 static bool               LoadSettings(const boost::json::object& settingsJson);
 
-bool Initialize()
+void Initialize()
 {
    std::string appDataPath {
       QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
          .toStdString()};
 
-   if (!std::filesystem::is_directory(appDataPath))
+   if (!std::filesystem::exists(appDataPath))
    {
       if (!std::filesystem::create_directories(appDataPath))
       {
          BOOST_LOG_TRIVIAL(error)
             << logPrefix_ << "Unable to create application data directory: \""
             << appDataPath << "\"";
-         return false;
       }
    }
 
    std::string settingsPath {appDataPath + "/settings.json"};
 
    ReadSettings(settingsPath);
-
-   return true;
 }
 
 void ReadSettings(const std::string& settingsPath)
