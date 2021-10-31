@@ -95,15 +95,23 @@ void WriteJsonFile(const std::string&        path,
 {
    std::ofstream ofs {path};
 
-   if (prettyPrint)
+   if (!ofs.is_open())
    {
-      PrettyPrintJson(ofs, json);
+      BOOST_LOG_TRIVIAL(warning)
+         << logPrefix_ << "Cannot write JSON file: \"" << path << "\"";
    }
    else
    {
-      ofs << json;
+      if (prettyPrint)
+      {
+         PrettyPrintJson(ofs, json);
+      }
+      else
+      {
+         ofs << json;
+      }
+      ofs.close();
    }
-   ofs.close();
 }
 
 static void PrettyPrintJson(std::ostream&             os,
