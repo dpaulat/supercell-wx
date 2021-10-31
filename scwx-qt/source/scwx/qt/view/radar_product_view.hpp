@@ -37,6 +37,8 @@ public:
    const std::vector<boost::gil::rgba8_pixel_t>& color_table() const;
 
    void Initialize();
+
+   std::tuple<const void*, size_t, size_t> GetMomentData();
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable);
 
    std::chrono::system_clock::time_point PlotTime();

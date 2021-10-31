@@ -96,6 +96,28 @@ void RadarProductView::Initialize()
    UpdatePlot();
 }
 
+std::tuple<const void*, size_t, size_t> RadarProductView::GetMomentData()
+{
+   const void* data;
+   size_t      dataSize;
+   size_t      componentSize;
+
+   if (p->dataMoments8_.size() > 0)
+   {
+      data          = p->dataMoments8_.data();
+      dataSize      = p->dataMoments8_.size() * sizeof(uint8_t);
+      componentSize = 1;
+   }
+   else
+   {
+      data          = p->dataMoments16_.data();
+      dataSize      = p->dataMoments16_.size() * sizeof(uint16_t);
+      componentSize = 2;
+   }
+
+   return std::tie(data, dataSize, componentSize);
+}
+
 void RadarProductView::LoadColorTable(
    std::shared_ptr<common::ColorTable> colorTable)
 {

@@ -129,11 +129,7 @@ void RadarProductLayer::UpdateSweep()
 
    boost::timer::cpu_timer timer;
 
-   const std::vector<float>&   vertices = p->radarProductView_->vertices();
-   const std::vector<uint8_t>& dataMoments8 =
-      p->radarProductView_->data_moments8();
-   const std::vector<uint16_t>& dataMoments16 =
-      p->radarProductView_->data_moments16();
+   const std::vector<float>& vertices = p->radarProductView_->vertices();
 
    // Bind a vertex array object
    gl.glBindVertexArray(p->vao_);
@@ -158,19 +154,19 @@ void RadarProductLayer::UpdateSweep()
    // Buffer data moments
    const GLvoid* data;
    GLsizeiptr    dataSize;
+   size_t        componentSize;
    GLenum        type;
 
-   if (dataMoments8.size() > 0)
+   std::tie(data, dataSize, componentSize) =
+      p->radarProductView_->GetMomentData();
+
+   if (componentSize == 1)
    {
-      data     = static_cast<const GLvoid*>(dataMoments8.data());
-      dataSize = dataMoments8.size() * sizeof(GLubyte);
-      type     = GL_UNSIGNED_BYTE;
+      type = GL_UNSIGNED_BYTE;
    }
    else
    {
-      data     = static_cast<const GLvoid*>(dataMoments16.data());
-      dataSize = dataMoments16.size() * sizeof(GLushort);
-      type     = GL_UNSIGNED_SHORT;
+      type = GL_UNSIGNED_SHORT;
    }
 
    gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
