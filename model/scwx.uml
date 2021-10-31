@@ -31,7 +31,7 @@
     </packagedElement>
     <packagedElement xmi:type="uml:Package" xmi:id="_knPeIAKhEeyIXMJVZXHk6Q" name="qt">
       <packagedElement xmi:type="uml:Package" xmi:id="_md5dwAKhEeyIXMJVZXHk6Q" name="manager">
-        <packagedElement xmi:type="uml:Class" xmi:id="_UwnjsAKhEeyIXMJVZXHk6Q" name="RadarManager">
+        <packagedElement xmi:type="uml:Class" xmi:id="_UwnjsAKhEeyIXMJVZXHk6Q" name="RadarProductManager">
           <ownedOperation xmi:type="uml:Operation" xmi:id="_6sXFoC9YEeyWgvKLGfX-VA" name="coordinates">
             <ownedParameter xmi:type="uml:Parameter" xmi:id="_CXovQC9ZEeyWgvKLGfX-VA" type="_NOlLAC9WEeyWaqg4hauF0A"/>
             <ownedParameter xmi:type="uml:Parameter" xmi:id="_Xk9LIC9lEeyWgvKLGfX-VA" direction="return">
@@ -49,7 +49,7 @@
         </packagedElement>
       </packagedElement>
       <packagedElement xmi:type="uml:Package" xmi:id="_oVSdMAKhEeyIXMJVZXHk6Q" name="view">
-        <packagedElement xmi:type="uml:Class" xmi:id="_Yt2OQAKhEeyIXMJVZXHk6Q" name="RadarView">
+        <packagedElement xmi:type="uml:Class" xmi:id="_Yt2OQAKhEeyIXMJVZXHk6Q" name="RadarProductView">
           <ownedOperation xmi:type="uml:Operation" xmi:id="_Ra89oC9-EeyWgvKLGfX-VA" name="RadarView">
             <ownedParameter xmi:type="uml:Parameter" xmi:id="_fn3IQC9-EeyWgvKLGfX-VA" type="_UwnjsAKhEeyIXMJVZXHk6Q"/>
             <ownedParameter xmi:type="uml:Parameter" xmi:id="_rTMG8C9-EeyWgvKLGfX-VA">
@@ -105,7 +105,7 @@
         </packagedElement>
       </packagedElement>
       <packagedElement xmi:type="uml:Package" xmi:id="_qBoqQAKhEeyIXMJVZXHk6Q" name="map">
-        <packagedElement xmi:type="uml:Class" xmi:id="_a0ejkAKhEeyIXMJVZXHk6Q" name="RadarLayer">
+        <packagedElement xmi:type="uml:Class" xmi:id="_a0ejkAKhEeyIXMJVZXHk6Q" name="RadarProductLayer">
           <ownedOperation xmi:type="uml:Operation" xmi:id="_X9HDIALIEeyIXMJVZXHk6Q" name="initialize"/>
           <ownedOperation xmi:type="uml:Operation" xmi:id="_Y0k2oALIEeyIXMJVZXHk6Q" name="render">
             <ownedParameter xmi:type="uml:Parameter" xmi:id="_yX_UkALKEeyIXMJVZXHk6Q" direction="inout">

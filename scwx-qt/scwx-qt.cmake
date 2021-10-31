@@ -58,20 +58,20 @@ set(HDR_GL source/scwx/qt/gl/gl.hpp
            source/scwx/qt/gl/text_shader.hpp)
 set(SRC_GL source/scwx/qt/gl/shader_program.cpp
            source/scwx/qt/gl/text_shader.cpp)
-set(HDR_MANAGER source/scwx/qt/manager/radar_manager.hpp
+set(HDR_MANAGER source/scwx/qt/manager/radar_product_manager.hpp
                 source/scwx/qt/manager/resource_manager.hpp
                 source/scwx/qt/manager/settings_manager.hpp)
-set(SRC_MANAGER source/scwx/qt/manager/radar_manager.cpp
+set(SRC_MANAGER source/scwx/qt/manager/radar_product_manager.cpp
                 source/scwx/qt/manager/resource_manager.cpp
                 source/scwx/qt/manager/settings_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/map_widget.hpp
             source/scwx/qt/map/overlay_layer.hpp
-            source/scwx/qt/map/radar_layer.hpp
+            source/scwx/qt/map/radar_product_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp
             source/scwx/qt/map/triangle_layer.hpp)
 set(SRC_MAP source/scwx/qt/map/map_widget.cpp
             source/scwx/qt/map/overlay_layer.cpp
-            source/scwx/qt/map/radar_layer.cpp
+            source/scwx/qt/map/radar_product_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp
             source/scwx/qt/map/triangle_layer.cpp)
 set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp)
@@ -82,8 +82,8 @@ set(HDR_UTIL source/scwx/qt/util/font.hpp
 set(SRC_UTIL source/scwx/qt/util/font.cpp
              source/scwx/qt/util/font_buffer.cpp
              source/scwx/qt/util/json.cpp)
-set(HDR_VIEW source/scwx/qt/view/radar_view.hpp)
-set(SRC_VIEW source/scwx/qt/view/radar_view.cpp)
+set(HDR_VIEW source/scwx/qt/view/radar_product_view.hpp)
+set(SRC_VIEW source/scwx/qt/view/radar_product_view.cpp)
 
 set(RESOURCE_FILES scwx-qt.qrc)
 

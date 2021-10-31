@@ -1,4 +1,4 @@
-#include <scwx/qt/manager/radar_manager.hpp>
+#include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/common/constants.hpp>
 
 #include <deque>
@@ -17,7 +17,8 @@ namespace qt
 namespace manager
 {
 
-static const std::string logPrefix_ = "[scwx::qt::manager::radar_manager] ";
+static const std::string logPrefix_ =
+   "[scwx::qt::manager::radar_product_manager] ";
 
 static constexpr uint32_t NUM_RADIAL_GATES_0_5_DEGREE =
    common::MAX_0_5_DEGREE_RADIALS * common::MAX_DATA_MOMENT_GATES;
@@ -31,11 +32,11 @@ static constexpr uint32_t NUM_COORIDNATES_1_DEGREE =
 // TODO: Configure this in settings for radar loop
 static constexpr size_t MAX_LEVEL2_FILES = 6;
 
-class RadarManagerImpl
+class RadarProductManagerImpl
 {
 public:
-   explicit RadarManagerImpl() {}
-   ~RadarManagerImpl() = default;
+   explicit RadarProductManagerImpl() {}
+   ~RadarProductManagerImpl() = default;
 
    std::vector<float> coordinates0_5Degree_;
    std::vector<float> coordinates1Degree_;
@@ -43,11 +44,14 @@ public:
    std::deque<std::shared_ptr<wsr88d::Ar2vFile>> level2Data_;
 };
 
-RadarManager::RadarManager() : p(std::make_unique<RadarManagerImpl>()) {}
-RadarManager::~RadarManager() = default;
+RadarProductManager::RadarProductManager() :
+    p(std::make_unique<RadarProductManagerImpl>())
+{
+}
+RadarProductManager::~RadarProductManager() = default;
 
 const std::vector<float>&
-RadarManager::coordinates(common::RadialSize radialSize) const
+RadarProductManager::coordinates(common::RadialSize radialSize) const
 {
    switch (radialSize)
    {
@@ -58,7 +62,7 @@ RadarManager::coordinates(common::RadialSize radialSize) const
    throw std::exception("Invalid radial size");
 }
 
-std::shared_ptr<const wsr88d::Ar2vFile> RadarManager::level2_data() const
+std::shared_ptr<const wsr88d::Ar2vFile> RadarProductManager::level2_data() const
 {
    std::shared_ptr<const wsr88d::Ar2vFile> level2Data = nullptr;
 
@@ -70,7 +74,7 @@ std::shared_ptr<const wsr88d::Ar2vFile> RadarManager::level2_data() const
    return level2Data;
 }
 
-void RadarManager::Initialize()
+void RadarProductManager::Initialize()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Initialize()";
 
@@ -157,7 +161,7 @@ void RadarManager::Initialize()
       << timer.format(6, "%ws");
 }
 
-void RadarManager::LoadLevel2Data(const std::string& filename)
+void RadarProductManager::LoadLevel2Data(const std::string& filename)
 {
    std::shared_ptr<wsr88d::Ar2vFile> ar2vFile =
       std::make_shared<wsr88d::Ar2vFile>();

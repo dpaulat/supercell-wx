@@ -1,4 +1,4 @@
-#include <scwx/qt/map/radar_layer.hpp>
+#include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/gl/shader_program.hpp>
 
 #include <execution>
@@ -21,17 +21,18 @@ namespace map
 static constexpr uint32_t MAX_RADIALS           = 720;
 static constexpr uint32_t MAX_DATA_MOMENT_GATES = 1840;
 
-static const std::string logPrefix_ = "[scwx::qt::map::radar_layer] ";
+static const std::string logPrefix_ = "[scwx::qt::map::radar_product_layer] ";
 
 static glm::vec2
 LatLongToScreenCoordinate(const QMapbox::Coordinate& coordinate);
 
-class RadarLayerImpl
+class RadarProductLayerImpl
 {
 public:
-   explicit RadarLayerImpl(std::shared_ptr<view::RadarView> radarView,
-                           gl::OpenGLFunctions&             gl) :
-       radarView_(radarView),
+   explicit RadarProductLayerImpl(
+      std::shared_ptr<view::RadarProductView> radarProductView,
+      gl::OpenGLFunctions&                    gl) :
+       radarProductView_(radarProductView),
        gl_(gl),
        shaderProgram_(gl),
        uMVPMatrixLocation_(GL_INVALID_INDEX),
@@ -44,10 +45,10 @@ public:
        plotUpdated_(false)
    {
    }
-   ~RadarLayerImpl() = default;
+   ~RadarProductLayerImpl() = default;
 
-   std::shared_ptr<view::RadarView> radarView_;
-   gl::OpenGLFunctions&             gl_;
+   std::shared_ptr<view::RadarProductView> radarProductView_;
+   gl::OpenGLFunctions&                    gl_;
 
    gl::ShaderProgram     shaderProgram_;
    GLint                 uMVPMatrixLocation_;
@@ -62,14 +63,15 @@ public:
    bool plotUpdated_;
 };
 
-RadarLayer::RadarLayer(std::shared_ptr<view::RadarView> radarView,
-                       gl::OpenGLFunctions&             gl) :
-    p(std::make_unique<RadarLayerImpl>(radarView, gl))
+RadarProductLayer::RadarProductLayer(
+   std::shared_ptr<view::RadarProductView> radarProductView,
+   gl::OpenGLFunctions&                    gl) :
+    p(std::make_unique<RadarProductLayerImpl>(radarProductView, gl))
 {
 }
-RadarLayer::~RadarLayer() = default;
+RadarProductLayer::~RadarProductLayer() = default;
 
-void RadarLayer::initialize()
+void RadarProductLayer::initialize()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "initialize()";
 
@@ -99,27 +101,27 @@ void RadarLayer::initialize()
    // Generate vertex buffer objects
    gl.glGenBuffers(2, p->vbo_.data());
 
-   // Update radar plot
-   UpdatePlot();
+   // Update radar sweep
+   UpdateSweep();
 
    // Create color table
    gl.glGenTextures(1, &p->texture_);
    UpdateColorTable();
    gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 
-   connect(p->radarView_.get(),
-           &view::RadarView::ColorTableLoaded,
+   connect(p->radarProductView_.get(),
+           &view::RadarProductView::ColorTableLoaded,
            this,
-           &RadarLayer::ReceiveColorTableUpdate);
-   connect(p->radarView_.get(),
-           &view::RadarView::PlotUpdated,
+           &RadarProductLayer::ReceiveColorTableUpdate);
+   connect(p->radarProductView_.get(),
+           &view::RadarProductView::PlotUpdated,
            this,
-           &RadarLayer::ReceivePlotUpdate);
+           &RadarProductLayer::ReceivePlotUpdate);
 }
 
-void RadarLayer::UpdatePlot()
+void RadarProductLayer::UpdateSweep()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "UpdatePlot()";
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "UpdateSweep()";
 
    p->plotUpdated_ = false;
 
@@ -127,9 +129,11 @@ void RadarLayer::UpdatePlot()
 
    boost::timer::cpu_timer timer;
 
-   const std::vector<float>&    vertices      = p->radarView_->vertices();
-   const std::vector<uint8_t>&  dataMoments8  = p->radarView_->data_moments8();
-   const std::vector<uint16_t>& dataMoments16 = p->radarView_->data_moments16();
+   const std::vector<float>&   vertices = p->radarProductView_->vertices();
+   const std::vector<uint8_t>& dataMoments8 =
+      p->radarProductView_->data_moments8();
+   const std::vector<uint16_t>& dataMoments16 =
+      p->radarProductView_->data_moments16();
 
    // Bind a vertex array object
    gl.glBindVertexArray(p->vao_);
@@ -182,7 +186,8 @@ void RadarLayer::UpdatePlot()
    p->numVertices_ = vertices.size() / 2;
 }
 
-void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)
+void RadarProductLayer::render(
+   const QMapbox::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = p->gl_;
 
@@ -193,13 +198,13 @@ void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)
 
    if (p->plotUpdated_)
    {
-      UpdatePlot();
+      UpdateSweep();
    }
 
    p->shaderProgram_.Use();
 
-   const float scale = p->radarView_->scale() * 2.0f * mbgl::util::tileSize /
-                       mbgl::util::DEGREES_MAX;
+   const float scale = p->radarProductView_->scale() * 2.0f *
+                       mbgl::util::tileSize / mbgl::util::DEGREES_MAX;
    const float xScale = scale / params.width;
    const float yScale = scale / params.height;
 
@@ -223,7 +228,7 @@ void RadarLayer::render(const QMapbox::CustomLayerRenderParameters& params)
    gl.glDrawArrays(GL_TRIANGLES, 0, p->numVertices_);
 }
 
-void RadarLayer::deinitialize()
+void RadarProductLayer::deinitialize()
 {
    gl::OpenGLFunctions& gl = p->gl_;
 
@@ -237,17 +242,17 @@ void RadarLayer::deinitialize()
    p->vbo_                = {GL_INVALID_INDEX};
    p->texture_            = GL_INVALID_INDEX;
 
-   disconnect(p->radarView_.get(),
-              &view::RadarView::ColorTableLoaded,
+   disconnect(p->radarProductView_.get(),
+              &view::RadarProductView::ColorTableLoaded,
               this,
-              &RadarLayer::ReceiveColorTableUpdate);
-   disconnect(p->radarView_.get(),
-              &view::RadarView::PlotUpdated,
+              &RadarProductLayer::ReceiveColorTableUpdate);
+   disconnect(p->radarProductView_.get(),
+              &view::RadarProductView::PlotUpdated,
               this,
-              &RadarLayer::ReceivePlotUpdate);
+              &RadarProductLayer::ReceivePlotUpdate);
 }
 
-void RadarLayer::UpdateColorTable()
+void RadarProductLayer::UpdateColorTable()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "UpdateColorTable()";
 
@@ -256,7 +261,7 @@ void RadarLayer::UpdateColorTable()
    gl::OpenGLFunctions& gl = p->gl_;
 
    const std::vector<boost::gil::rgba8_pixel_t>& colorTable =
-      p->radarView_->color_table();
+      p->radarProductView_->color_table();
 
    gl.glActiveTexture(GL_TEXTURE0);
    gl.glBindTexture(GL_TEXTURE_1D, p->texture_);
@@ -271,12 +276,12 @@ void RadarLayer::UpdateColorTable()
    gl.glGenerateMipmap(GL_TEXTURE_1D);
 }
 
-void RadarLayer::ReceiveColorTableUpdate()
+void RadarProductLayer::ReceiveColorTableUpdate()
 {
    p->colorTableUpdated_ = true;
 }
 
-void RadarLayer::ReceivePlotUpdate()
+void RadarProductLayer::ReceivePlotUpdate()
 {
    p->plotUpdated_ = true;
 }

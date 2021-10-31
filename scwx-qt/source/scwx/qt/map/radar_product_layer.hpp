@@ -1,7 +1,7 @@
 #pragma once
 
 #include <scwx/qt/gl/gl.hpp>
-#include <scwx/qt/view/radar_view.hpp>
+#include <scwx/qt/view/radar_product_view.hpp>
 
 #include <QMapboxGL>
 
@@ -12,30 +12,33 @@ namespace qt
 namespace map
 {
 
-class RadarLayerImpl;
+class RadarProductLayerImpl;
 
-class RadarLayer : public QObject, public QMapbox::CustomLayerHostInterface
+class RadarProductLayer :
+    public QObject,
+    public QMapbox::CustomLayerHostInterface
 {
    Q_OBJECT
 
 public:
-   explicit RadarLayer(std::shared_ptr<view::RadarView> radarView,
-                       gl::OpenGLFunctions&             gl);
-   ~RadarLayer();
+   explicit RadarProductLayer(
+      std::shared_ptr<view::RadarProductView> radarProductView,
+      gl::OpenGLFunctions&                    gl);
+   ~RadarProductLayer();
 
    void initialize() override final;
    void render(const QMapbox::CustomLayerRenderParameters&) override final;
    void deinitialize() override final;
 
    void UpdateColorTable();
-   void UpdatePlot();
+   void UpdateSweep();
 
 public slots:
    void ReceiveColorTableUpdate();
    void ReceivePlotUpdate();
 
 private:
-   std::unique_ptr<RadarLayerImpl> p;
+   std::unique_ptr<RadarProductLayerImpl> p;
 };
 
 } // namespace map

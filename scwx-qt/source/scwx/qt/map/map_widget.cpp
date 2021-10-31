@@ -1,7 +1,7 @@
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/gl/gl.hpp>
 #include <scwx/qt/map/overlay_layer.hpp>
-#include <scwx/qt/map/radar_layer.hpp>
+#include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
 
 #include <QApplication>
@@ -41,7 +41,7 @@ public:
        gl_(),
        settings_(settings),
        map_(),
-       radarManager_ {std::make_shared<manager::RadarManager>()},
+       radarProductManager_ {std::make_shared<manager::RadarProductManager>()},
        lastPos_(),
        frameDraws_(0)
    {
@@ -53,7 +53,7 @@ public:
    QMapboxGLSettings          settings_;
    std::shared_ptr<QMapboxGL> map_;
 
-   std::shared_ptr<manager::RadarManager> radarManager_;
+   std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
    QPointF lastPos_;
 
@@ -65,11 +65,11 @@ MapWidget::MapWidget(const QMapboxGLSettings& settings) :
 {
    setFocusPolicy(Qt::StrongFocus);
 
-   p->radarManager_->Initialize();
+   p->radarProductManager_->Initialize();
    QString ar2vFile = qgetenv("AR2V_FILE");
    if (!ar2vFile.isEmpty())
    {
-      p->radarManager_->LoadLevel2Data(ar2vFile.toUtf8().constData());
+      p->radarProductManager_->LoadLevel2Data(ar2vFile.toUtf8().constData());
    }
 }
 
@@ -103,24 +103,25 @@ void MapWidget::changeStyle()
 
 void MapWidget::AddLayers()
 {
-   std::shared_ptr<view::RadarView> radarView =
-      std::make_shared<view::RadarView>(p->radarManager_, p->map_);
+   std::shared_ptr<view::RadarProductView> radarProductView =
+      std::make_shared<view::RadarProductView>(p->radarProductManager_,
+                                               p->map_);
 
-   radarView->Initialize();
+   radarProductView->Initialize();
 
    QString colorTableFile = qgetenv("COLOR_TABLE");
    if (!colorTableFile.isEmpty())
    {
       std::shared_ptr<common::ColorTable> colorTable =
          common::ColorTable::Load(colorTableFile.toUtf8().constData());
-      radarView->LoadColorTable(colorTable);
+      radarProductView->LoadColorTable(colorTable);
    }
 
    // QMapboxGL::addCustomLayer will take ownership of the QScopedPointer
    QScopedPointer<QMapbox::CustomLayerHostInterface> pHost(
-      new RadarLayer(radarView, p->gl_));
+      new RadarProductLayer(radarProductView, p->gl_));
    QScopedPointer<QMapbox::CustomLayerHostInterface> pOverlayHost(
-      new OverlayLayer(radarView, p->gl_));
+      new OverlayLayer(radarProductView, p->gl_));
 
    QString before = "ferry";
 

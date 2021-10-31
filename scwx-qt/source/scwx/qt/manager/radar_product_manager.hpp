@@ -15,15 +15,15 @@ namespace qt
 namespace manager
 {
 
-class RadarManagerImpl;
+class RadarProductManagerImpl;
 
-class RadarManager : public QObject
+class RadarProductManager : public QObject
 {
    Q_OBJECT
 
 public:
-   explicit RadarManager();
-   ~RadarManager();
+   explicit RadarProductManager();
+   ~RadarProductManager();
 
    const std::vector<float>& coordinates(common::RadialSize radialSize) const;
 
@@ -37,7 +37,7 @@ signals:
    void Level2DataLoaded();
 
 private:
-   std::unique_ptr<RadarManagerImpl> p;
+   std::unique_ptr<RadarProductManagerImpl> p;
 };
 
 } // namespace manager

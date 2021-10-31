@@ -1,7 +1,7 @@
 #pragma once
 
 #include <scwx/qt/gl/gl.hpp>
-#include <scwx/qt/view/radar_view.hpp>
+#include <scwx/qt/view/radar_product_view.hpp>
 
 #include <QMapboxGL>
 
@@ -19,8 +19,9 @@ class OverlayLayer : public QObject, public QMapbox::CustomLayerHostInterface
    Q_OBJECT
 
 public:
-   explicit OverlayLayer(std::shared_ptr<view::RadarView> radarView,
-                         gl::OpenGLFunctions&             gl);
+   explicit OverlayLayer(
+      std::shared_ptr<view::RadarProductView> radarProductView,
+      gl::OpenGLFunctions&                    gl);
    ~OverlayLayer();
 
    void initialize() override final;

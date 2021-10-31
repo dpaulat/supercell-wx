@@ -28,9 +28,10 @@ static const std::string logPrefix_ = "[scwx::qt::map::overlay_layer] ";
 class OverlayLayerImpl
 {
 public:
-   explicit OverlayLayerImpl(std::shared_ptr<view::RadarView> radarView,
-                             gl::OpenGLFunctions&             gl) :
-       radarView_(radarView),
+   explicit OverlayLayerImpl(
+      std::shared_ptr<view::RadarProductView> radarProductView,
+      gl::OpenGLFunctions&                    gl) :
+       radarProductView_(radarProductView),
        gl_(gl),
        textShader_(gl),
        font_(util::Font::Create(":/res/fonts/din1451alt.ttf")),
@@ -48,8 +49,8 @@ public:
    }
    ~OverlayLayerImpl() = default;
 
-   std::shared_ptr<view::RadarView> radarView_;
-   gl::OpenGLFunctions&             gl_;
+   std::shared_ptr<view::RadarProductView> radarProductView_;
+   gl::OpenGLFunctions&                    gl_;
 
    gl::TextShader              textShader_;
    std::shared_ptr<util::Font> font_;
@@ -66,9 +67,10 @@ public:
    bool plotUpdated_;
 };
 
-OverlayLayer::OverlayLayer(std::shared_ptr<view::RadarView> radarView,
-                           gl::OpenGLFunctions&             gl) :
-    p(std::make_unique<OverlayLayerImpl>(radarView, gl))
+OverlayLayer::OverlayLayer(
+   std::shared_ptr<view::RadarProductView> radarProductView,
+   gl::OpenGLFunctions&                    gl) :
+    p(std::make_unique<OverlayLayerImpl>(radarProductView, gl))
 {
 }
 OverlayLayer::~OverlayLayer() = default;
@@ -124,8 +126,8 @@ void OverlayLayer::initialize()
    // Bottom panel color
    gl.glUniform4f(p->uColorLocation_, 0.0f, 0.0f, 0.0f, 0.75f);
 
-   connect(p->radarView_.get(),
-           &view::RadarView::PlotUpdated,
+   connect(p->radarProductView_.get(),
+           &view::RadarProductView::PlotUpdated,
            this,
            &OverlayLayer::ReceivePlotUpdate);
 }
@@ -139,7 +141,8 @@ void OverlayLayer::render(const QMapbox::CustomLayerRenderParameters& params)
    if (p->plotUpdated_)
    {
       using namespace std::chrono;
-      auto plotTime = time_point_cast<seconds>(p->radarView_->PlotTime());
+      auto plotTime =
+         time_point_cast<seconds>(p->radarProductView_->PlotTime());
 
       if (plotTime.time_since_epoch().count() != 0)
       {
@@ -207,8 +210,8 @@ void OverlayLayer::deinitialize()
    p->vbo_                = {GL_INVALID_INDEX};
    p->texture_            = GL_INVALID_INDEX;
 
-   disconnect(p->radarView_.get(),
-              &view::RadarView::PlotUpdated,
+   disconnect(p->radarProductView_.get(),
+              &view::RadarProductView::PlotUpdated,
               this,
               &OverlayLayer::ReceivePlotUpdate);
 }

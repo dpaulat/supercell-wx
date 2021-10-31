@@ -1,4 +1,4 @@
-#include <scwx/qt/view/radar_view.hpp>
+#include <scwx/qt/view/radar_product_view.hpp>
 #include <scwx/common/constants.hpp>
 
 #include <boost/log/trivial.hpp>
@@ -12,7 +12,7 @@ namespace qt
 namespace view
 {
 
-static const std::string logPrefix_ = "[scwx::qt::view::radar_view] ";
+static const std::string logPrefix_ = "[scwx::qt::view::radar_product_view] ";
 
 static constexpr uint32_t VERTICES_PER_BIN  = 6;
 static constexpr uint32_t VALUES_PER_VERTEX = 2;
@@ -20,12 +20,13 @@ static constexpr uint32_t VALUES_PER_VERTEX = 2;
 static std::chrono::system_clock::time_point
 TimePoint(uint16_t modifiedJulianDate, uint32_t milliseconds);
 
-class RadarViewImpl
+class RadarProductViewImpl
 {
 public:
-   explicit RadarViewImpl(std::shared_ptr<manager::RadarManager> radarManager,
-                          std::shared_ptr<QMapboxGL>             map) :
-       radarManager_(radarManager),
+   explicit RadarProductViewImpl(
+      std::shared_ptr<manager::RadarProductManager> radarProductManager,
+      std::shared_ptr<QMapboxGL>                    map) :
+       radarProductManager_(radarProductManager),
        map_(map),
        plotTime_(),
        colorTable_ {boost::gil::rgba8_pixel_t(0, 128, 0, 255),
@@ -33,10 +34,10 @@ public:
                     boost::gil::rgba8_pixel_t(255, 0, 0, 255)}
    {
    }
-   ~RadarViewImpl() = default;
+   ~RadarProductViewImpl() = default;
 
-   std::shared_ptr<manager::RadarManager> radarManager_;
-   std::shared_ptr<QMapboxGL>             map_;
+   std::shared_ptr<manager::RadarProductManager> radarProductManager_;
+   std::shared_ptr<QMapboxGL>                    map_;
 
    std::vector<float>    vertices_;
    std::vector<uint8_t>  dataMoments8_;
@@ -47,53 +48,56 @@ public:
    std::vector<boost::gil::rgba8_pixel_t> colorTable_;
 };
 
-RadarView::RadarView(std::shared_ptr<manager::RadarManager> radarManager,
-                     std::shared_ptr<QMapboxGL>             map) :
-    p(std::make_unique<RadarViewImpl>(radarManager, map))
+RadarProductView::RadarProductView(
+   std::shared_ptr<manager::RadarProductManager> radarProductManager,
+   std::shared_ptr<QMapboxGL>                    map) :
+    p(std::make_unique<RadarProductViewImpl>(radarProductManager, map))
 {
-   connect(radarManager.get(),
-           &manager::RadarManager::Level2DataLoaded,
+   connect(radarProductManager.get(),
+           &manager::RadarProductManager::Level2DataLoaded,
            this,
-           &RadarView::UpdatePlot);
+           &RadarProductView::UpdatePlot);
 }
-RadarView::~RadarView() = default;
+RadarProductView::~RadarProductView() = default;
 
-double RadarView::bearing() const
+double RadarProductView::bearing() const
 {
    return p->map_->bearing();
 }
 
-double RadarView::scale() const
+double RadarProductView::scale() const
 {
    return p->map_->scale();
 }
 
-const std::vector<uint8_t>& RadarView::data_moments8() const
+const std::vector<uint8_t>& RadarProductView::data_moments8() const
 {
    return p->dataMoments8_;
 }
 
-const std::vector<uint16_t>& RadarView::data_moments16() const
+const std::vector<uint16_t>& RadarProductView::data_moments16() const
 {
    return p->dataMoments16_;
 }
 
-const std::vector<float>& RadarView::vertices() const
+const std::vector<float>& RadarProductView::vertices() const
 {
    return p->vertices_;
 }
 
-const std::vector<boost::gil::rgba8_pixel_t>& RadarView::color_table() const
+const std::vector<boost::gil::rgba8_pixel_t>&
+RadarProductView::color_table() const
 {
    return p->colorTable_;
 }
 
-void RadarView::Initialize()
+void RadarProductView::Initialize()
 {
    UpdatePlot();
 }
 
-void RadarView::LoadColorTable(std::shared_ptr<common::ColorTable> colorTable)
+void RadarProductView::LoadColorTable(
+   std::shared_ptr<common::ColorTable> colorTable)
 {
    // TODO: Make size, offset and scale dynamic
    const float offset = 66.0f;
@@ -115,12 +119,12 @@ void RadarView::LoadColorTable(std::shared_ptr<common::ColorTable> colorTable)
    emit ColorTableLoaded();
 }
 
-std::chrono::system_clock::time_point RadarView::PlotTime()
+std::chrono::system_clock::time_point RadarProductView::PlotTime()
 {
    return p->plotTime_;
 }
 
-void RadarView::UpdatePlot()
+void RadarProductView::UpdatePlot()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "UpdatePlot()";
 
@@ -128,10 +132,10 @@ void RadarView::UpdatePlot()
 
    // TODO: Pick this based on radar data
    const std::vector<float>& coordinates =
-      p->radarManager_->coordinates(common::RadialSize::_0_5Degree);
+      p->radarProductManager_->coordinates(common::RadialSize::_0_5Degree);
 
    std::shared_ptr<const wsr88d::Ar2vFile> level2Data =
-      p->radarManager_->level2_data();
+      p->radarProductManager_->level2_data();
    if (level2Data == nullptr)
    {
       return;

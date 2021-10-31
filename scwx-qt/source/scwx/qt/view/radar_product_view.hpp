@@ -1,7 +1,7 @@
 #pragma once
 
 #include <scwx/common/color_table.hpp>
-#include <scwx/qt/manager/radar_manager.hpp>
+#include <scwx/qt/manager/radar_product_manager.hpp>
 
 #include <chrono>
 #include <memory>
@@ -16,16 +16,17 @@ namespace qt
 namespace view
 {
 
-class RadarViewImpl;
+class RadarProductViewImpl;
 
-class RadarView : public QObject
+class RadarProductView : public QObject
 {
    Q_OBJECT
 
 public:
-   explicit RadarView(std::shared_ptr<manager::RadarManager> radarManager,
-                      std::shared_ptr<QMapboxGL>             map);
-   ~RadarView();
+   explicit RadarProductView(
+      std::shared_ptr<manager::RadarProductManager> radarProductManager,
+      std::shared_ptr<QMapboxGL>                    map);
+   ~RadarProductView();
 
    double                       bearing() const;
    double                       scale() const;
@@ -48,7 +49,7 @@ signals:
    void PlotUpdated();
 
 private:
-   std::unique_ptr<RadarViewImpl> p;
+   std::unique_ptr<RadarProductViewImpl> p;
 };
 
 } // namespace view
