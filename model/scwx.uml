@@ -81,7 +81,7 @@
           <ownedOperation xmi:type="uml:Operation" xmi:id="_BfETQC9_EeyWgvKLGfX-VA" name="LoadColorTable">
             <ownedParameter xmi:type="uml:Parameter" xmi:id="_ZiBNADQAEeyGO_jIbsSKUw" type="_8fCdAC-AEeyWgvKLGfX-VA"/>
           </ownedOperation>
-          <ownedOperation xmi:type="uml:Operation" xmi:id="_Cb_1kC9_EeyWgvKLGfX-VA" name="SweepTime">
+          <ownedOperation xmi:type="uml:Operation" xmi:id="_Cb_1kC9_EeyWgvKLGfX-VA" name="sweep_time">
             <ownedParameter xmi:type="uml:Parameter" xmi:id="_tZRrUDQAEeyGO_jIbsSKUw" direction="return">
               <type xmi:type="uml:Class" href="std.uml#_L1eGYC9_EeyWgvKLGfX-VA"/>
             </ownedParameter>
@@ -131,4 +131,9 @@
   <C_Cpp:Ptr xmi:id="_sVLIYC9-EeyWgvKLGfX-VA" base_parameter="_fn3IQC9-EeyWgvKLGfX-VA"/>
   <C_Cpp:Ptr xmi:id="_a-OFQDQAEeyGO_jIbsSKUw" base_parameter="_ZiBNADQAEeyGO_jIbsSKUw"/>
   <C_Cpp:Ptr xmi:id="_lr6qADqCEey_nYE4G1Fl-w" base_parameter="_kEgAQDqCEey_nYE4G1Fl-w"/>
+  <C_Cpp:Virtual xmi:id="_GY4iwDrAEey_nYE4G1Fl-w" base_operation="_-xc2cC9-EeyWgvKLGfX-VA"/>
+  <C_Cpp:Virtual xmi:id="_HndOsDrAEey_nYE4G1Fl-w" base_operation="_Cb_1kC9_EeyWgvKLGfX-VA"/>
+  <C_Cpp:Virtual xmi:id="_Jlj6IDrAEey_nYE4G1Fl-w" base_operation="_91rKsC9-EeyWgvKLGfX-VA"/>
+  <C_Cpp:Virtual xmi:id="_NpMHoDrAEey_nYE4G1Fl-w" base_operation="_BfETQC9_EeyWgvKLGfX-VA"/>
+  <C_Cpp:Virtual xmi:id="_PYPqcDrAEey_nYE4G1Fl-w" base_operation="_c77bEDqCEey_nYE4G1Fl-w"/>
 </xmi:XMI>

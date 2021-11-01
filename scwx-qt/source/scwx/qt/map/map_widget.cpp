@@ -1,8 +1,10 @@
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/gl/gl.hpp>
+#include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
+#include <scwx/qt/view/radar_product_view_factory.hpp>
 
 #include <QApplication>
 #include <QColor>
@@ -104,7 +106,7 @@ void MapWidget::changeStyle()
 void MapWidget::AddLayers()
 {
    std::shared_ptr<view::RadarProductView> radarProductView =
-      std::make_shared<view::RadarProductView>(p->radarProductManager_);
+      view::RadarProductViewFactory::Create("L2REF", p->radarProductManager_);
 
    radarProductView->Initialize();
 

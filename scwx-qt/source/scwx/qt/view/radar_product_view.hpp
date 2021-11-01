@@ -1,11 +1,12 @@
 #pragma once
 
 #include <scwx/common/color_table.hpp>
-#include <scwx/qt/manager/radar_product_manager.hpp>
 
 #include <chrono>
 #include <memory>
 #include <vector>
+
+#include <QObject>
 
 namespace scwx
 {
@@ -21,22 +22,21 @@ class RadarProductView : public QObject
    Q_OBJECT
 
 public:
-   explicit RadarProductView(
-      std::shared_ptr<manager::RadarProductManager> radarProductManager);
+   explicit RadarProductView();
    ~RadarProductView();
 
-   const std::vector<float>&                     vertices() const;
-   const std::vector<boost::gil::rgba8_pixel_t>& color_table() const;
+   virtual const std::vector<boost::gil::rgba8_pixel_t>& color_table() const;
+   virtual std::chrono::system_clock::time_point         sweep_time() const;
+   virtual const std::vector<float>&                     vertices() const = 0;
 
    void Initialize();
+   virtual void
+   LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) = 0;
 
-   std::tuple<const void*, size_t, size_t> GetMomentData();
-   void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable);
-
-   std::chrono::system_clock::time_point SweepTime();
+   virtual std::tuple<const void*, size_t, size_t> GetMomentData() const = 0;
 
 protected slots:
-   void ComputeSweep();
+   virtual void ComputeSweep();
 
 signals:
    void ColorTableLoaded();

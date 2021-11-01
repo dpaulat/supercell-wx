@@ -82,8 +82,12 @@ set(HDR_UTIL source/scwx/qt/util/font.hpp
 set(SRC_UTIL source/scwx/qt/util/font.cpp
              source/scwx/qt/util/font_buffer.cpp
              source/scwx/qt/util/json.cpp)
-set(HDR_VIEW source/scwx/qt/view/radar_product_view.hpp)
-set(SRC_VIEW source/scwx/qt/view/radar_product_view.cpp)
+set(HDR_VIEW source/scwx/qt/view/level2_product_view.hpp
+             source/scwx/qt/view/radar_product_view.hpp
+             source/scwx/qt/view/radar_product_view_factory.hpp)
+set(SRC_VIEW source/scwx/qt/view/level2_product_view.cpp
+             source/scwx/qt/view/radar_product_view.cpp
+             source/scwx/qt/view/radar_product_view_factory.cpp)
 
 set(RESOURCE_FILES scwx-qt.qrc)
 

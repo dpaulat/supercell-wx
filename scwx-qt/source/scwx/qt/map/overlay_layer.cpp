@@ -137,7 +137,7 @@ void OverlayLayer::render(const QMapbox::CustomLayerRenderParameters& params)
    {
       using namespace std::chrono;
       auto sweepTime =
-         time_point_cast<seconds>(p->radarProductView_->SweepTime());
+         time_point_cast<seconds>(p->radarProductView_->sweep_time());
 
       if (sweepTime.time_since_epoch().count() != 0)
       {
