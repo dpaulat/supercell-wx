@@ -76,6 +76,8 @@ set(SRC_MAP source/scwx/qt/map/map_widget.cpp
             source/scwx/qt/map/triangle_layer.cpp)
 set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp)
 set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp)
+set(HDR_UI source/scwx/qt/ui/flow_layout.hpp)
+set(SRC_UI source/scwx/qt/ui/flow_layout.cpp)
 set(HDR_UTIL source/scwx/qt/util/font.hpp
              source/scwx/qt/util/font_buffer.hpp
              source/scwx/qt/util/json.hpp)
@@ -111,6 +113,8 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${SRC_MAP}
                     ${HDR_SETTINGS}
                     ${SRC_SETTINGS}
+                    ${HDR_UI}
+                    ${SRC_UI}
                     ${HDR_UTIL}
                     ${SRC_UTIL}
                     ${HDR_VIEW}
@@ -131,6 +135,8 @@ source_group("Header Files\\map"      FILES ${HDR_MAP})
 source_group("Source Files\\map"      FILES ${SRC_MAP})
 source_group("Header Files\\settings" FILES ${HDR_SETTINGS})
 source_group("Source Files\\settings" FILES ${SRC_SETTINGS})
+source_group("Header Files\\ui"       FILES ${HDR_UI})
+source_group("Source Files\\ui"       FILES ${SRC_UI})
 source_group("Header Files\\util"     FILES ${HDR_UTIL})
 source_group("Source Files\\util"     FILES ${SRC_UTIL})
 source_group("Header Files\\view"     FILES ${HDR_VIEW})
