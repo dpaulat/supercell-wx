@@ -24,6 +24,8 @@ public:
    MainWindow(QWidget* parent = nullptr);
    ~MainWindow();
 
+   void showEvent(QShowEvent* event) override;
+
 private:
    Ui::MainWindow* ui;
 };
