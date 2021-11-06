@@ -18,32 +18,41 @@ typedef std::function<std::shared_ptr<RadarProductView>(
    std::shared_ptr<manager::RadarProductManager> radarProductManager)>
    CreateRadarProductFunction;
 
-static const std::unordered_map<std::string, CreateRadarProductFunction>
-   create_ {{PRODUCT_L2_REF, Level2ProductView::Create},
-            {PRODUCT_L2_VEL, Level2ProductView::Create},
-            {PRODUCT_L2_SW, Level2ProductView::Create},
-            {PRODUCT_L2_ZDR, Level2ProductView::Create},
-            {PRODUCT_L2_PHI, Level2ProductView::Create},
-            {PRODUCT_L2_RHO, Level2ProductView::Create},
-            {PRODUCT_L2_CFP, Level2ProductView::Create}};
-
 std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
+   const std::string&                            productGroup,
    const std::string&                            productName,
    std::shared_ptr<manager::RadarProductManager> radarProductManager)
 {
    std::shared_ptr<RadarProductView> view = nullptr;
 
-   if (create_.find(productName) == create_.end())
+   if (productGroup == "L2")
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Unknown radar product: " << productName;
+      common::Level2Product product = common::GetLevel2Product(productName);
+
+      if (product == common::Level2Product::Unknown)
+      {
+         BOOST_LOG_TRIVIAL(warning)
+            << logPrefix_ << "Unknown Level 2 radar product: " << productName;
+      }
+      else
+      {
+         view = Create(product, radarProductManager);
+      }
    }
    else
    {
-      view = create_.at(productName)(productName, radarProductManager);
+      BOOST_LOG_TRIVIAL(warning)
+         << logPrefix_ << "Unknown radar product group: " << productGroup;
    }
 
    return view;
+}
+
+std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
+   common::Level2Product                         product,
+   std::shared_ptr<manager::RadarProductManager> radarProductManager)
+{
+   return Level2ProductView::Create(product, radarProductManager);
 }
 
 } // namespace view

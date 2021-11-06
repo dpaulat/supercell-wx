@@ -1,5 +1,6 @@
 #pragma once
 
+#include <scwx/common/products.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/view/radar_product_view.hpp>
 
@@ -27,7 +28,11 @@ private:
 
 public:
    static std::shared_ptr<RadarProductView>
-   Create(const std::string&                            productName,
+   Create(const std::string&                            productGroup,
+          const std::string&                            productName,
+          std::shared_ptr<manager::RadarProductManager> radarProductManager);
+   static std::shared_ptr<RadarProductView>
+   Create(common::Level2Product                         product,
           std::shared_ptr<manager::RadarProductManager> radarProductManager);
 };
 

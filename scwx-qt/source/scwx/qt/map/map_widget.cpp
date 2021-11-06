@@ -44,6 +44,9 @@ public:
        settings_(settings),
        map_(),
        radarProductManager_ {std::make_shared<manager::RadarProductManager>()},
+       radarProductLayer_ {nullptr},
+       radarProductView_ {nullptr},
+       overlayLayer_ {nullptr},
        lastPos_(),
        frameDraws_(0)
    {
@@ -56,6 +59,11 @@ public:
    std::shared_ptr<QMapboxGL> map_;
 
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
+
+   std::shared_ptr<common::ColorTable>     colorTable_;
+   std::shared_ptr<view::RadarProductView> radarProductView_;
+   std::shared_ptr<RadarProductLayer>      radarProductLayer_;
+   std::shared_ptr<OverlayLayer>           overlayLayer_;
 
    QPointF lastPos_;
 
@@ -73,6 +81,8 @@ MapWidget::MapWidget(const QMapboxGLSettings& settings) :
    {
       p->radarProductManager_->LoadLevel2Data(ar2vFile.toUtf8().constData());
    }
+
+   SelectRadarProduct(common::Level2Product::Reflectivity);
 }
 
 MapWidget::~MapWidget()
@@ -80,6 +90,27 @@ MapWidget::~MapWidget()
    // Make sure we have a valid context so we
    // can delete the QMapboxGL.
    makeCurrent();
+}
+
+void MapWidget::SelectRadarProduct(common::Level2Product product)
+{
+   p->radarProductView_ =
+      view::RadarProductViewFactory::Create(product, p->radarProductManager_);
+
+   p->radarProductView_->Initialize();
+
+   QString colorTableFile = qgetenv("COLOR_TABLE");
+   if (!colorTableFile.isEmpty())
+   {
+      std::shared_ptr<common::ColorTable> colorTable =
+         common::ColorTable::Load(colorTableFile.toUtf8().constData());
+      p->radarProductView_->LoadColorTable(colorTable);
+   }
+
+   if (p->map_ != nullptr)
+   {
+      AddLayers();
+   }
 }
 
 qreal MapWidget::pixelRatio()
@@ -105,24 +136,29 @@ void MapWidget::changeStyle()
 
 void MapWidget::AddLayers()
 {
-   std::shared_ptr<view::RadarProductView> radarProductView =
-      view::RadarProductViewFactory::Create("L2REF", p->radarProductManager_);
-
-   radarProductView->Initialize();
-
-   QString colorTableFile = qgetenv("COLOR_TABLE");
-   if (!colorTableFile.isEmpty())
+   // TODO: Improve this
+   if (p->map_->layerExists("rangeCircleLayer"))
    {
-      std::shared_ptr<common::ColorTable> colorTable =
-         common::ColorTable::Load(colorTableFile.toUtf8().constData());
-      radarProductView->LoadColorTable(colorTable);
+      p->map_->removeLayer("rangeCircleLayer");
+   }
+   if (p->map_->sourceExists("rangeCircleSource"))
+   {
+      p->map_->removeSource("rangeCircleSource");
+   }
+   if (p->map_->layerExists("radar"))
+   {
+      p->map_->removeLayer("radar");
+   }
+   if (p->map_->layerExists("overlay"))
+   {
+      p->map_->removeLayer("overlay");
    }
 
    // QMapboxGL::addCustomLayer will take ownership of the QScopedPointer
    QScopedPointer<QMapbox::CustomLayerHostInterface> pHost(
-      new RadarProductLayer(radarProductView, p->gl_));
+      new RadarProductLayer(p->radarProductView_, p->gl_));
    QScopedPointer<QMapbox::CustomLayerHostInterface> pOverlayHost(
-      new OverlayLayer(radarProductView, p->gl_));
+      new OverlayLayer(p->radarProductView_, p->gl_));
 
    QString before = "ferry";
 

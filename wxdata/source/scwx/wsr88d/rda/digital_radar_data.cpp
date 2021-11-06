@@ -146,7 +146,7 @@ const void* MomentDataBlock::data_moments() const
    switch (p->dataWordSize_)
    {
    case 8: dataMoments = p->momentGates8_.data(); break;
-   case 16: dataMoments = p->momentGates8_.data(); break;
+   case 16: dataMoments = p->momentGates16_.data(); break;
    default: dataMoments = nullptr; break;
    }
 

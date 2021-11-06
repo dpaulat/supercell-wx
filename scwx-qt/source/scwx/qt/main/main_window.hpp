@@ -20,6 +20,8 @@ class MainWindow : public QMainWindow
 {
    Q_OBJECT
 
+   friend class MainWindowImpl;
+
 public:
    MainWindow(QWidget* parent = nullptr);
    ~MainWindow();
@@ -27,7 +29,8 @@ public:
    void showEvent(QShowEvent* event) override;
 
 private:
-   Ui::MainWindow* ui;
+   std::unique_ptr<MainWindowImpl> p;
+   Ui::MainWindow*                 ui;
 };
 
 } // namespace main

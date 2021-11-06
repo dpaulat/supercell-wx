@@ -1,5 +1,7 @@
 #pragma once
 
+#include <scwx/common/products.hpp>
+
 #include <memory>
 
 #include <QMapboxGL>
@@ -28,6 +30,8 @@ class MapWidget : public QOpenGLWidget
 public:
    explicit MapWidget(const QMapboxGLSettings&);
    ~MapWidget();
+
+   void SelectRadarProduct(common::Level2Product product);
 
 private:
    void  changeStyle();

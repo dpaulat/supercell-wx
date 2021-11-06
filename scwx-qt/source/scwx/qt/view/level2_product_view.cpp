@@ -17,14 +17,22 @@ static const std::string logPrefix_ = "[scwx::qt::view::level2_product_view] ";
 static constexpr uint32_t VERTICES_PER_BIN  = 6;
 static constexpr uint32_t VALUES_PER_VERTEX = 2;
 
-static const std::unordered_map<std::string, wsr88d::rda::DataBlockType>
-   blockTypes_ {{PRODUCT_L2_REF, wsr88d::rda::DataBlockType::MomentRef},
-                {PRODUCT_L2_VEL, wsr88d::rda::DataBlockType::MomentVel},
-                {PRODUCT_L2_SW, wsr88d::rda::DataBlockType::MomentSw},
-                {PRODUCT_L2_ZDR, wsr88d::rda::DataBlockType::MomentZdr},
-                {PRODUCT_L2_PHI, wsr88d::rda::DataBlockType::MomentPhi},
-                {PRODUCT_L2_RHO, wsr88d::rda::DataBlockType::MomentRho},
-                {PRODUCT_L2_CFP, wsr88d::rda::DataBlockType::MomentCfp}};
+static const std::unordered_map<common::Level2Product,
+                                wsr88d::rda::DataBlockType>
+   blockTypes_ {
+      {common::Level2Product::Reflectivity,
+       wsr88d::rda::DataBlockType::MomentRef},
+      {common::Level2Product::Velocity, wsr88d::rda::DataBlockType::MomentVel},
+      {common::Level2Product::SpectrumWidth,
+       wsr88d::rda::DataBlockType::MomentSw},
+      {common::Level2Product::DifferentialReflectivity,
+       wsr88d::rda::DataBlockType::MomentZdr},
+      {common::Level2Product::DifferentialPhase,
+       wsr88d::rda::DataBlockType::MomentPhi},
+      {common::Level2Product::CorrelationCoefficient,
+       wsr88d::rda::DataBlockType::MomentRho},
+      {common::Level2Product::ClutterFilterPowerRemoved,
+       wsr88d::rda::DataBlockType::MomentCfp}};
 
 static std::chrono::system_clock::time_point
 TimePoint(uint16_t modifiedJulianDate, uint32_t milliseconds);
@@ -33,11 +41,14 @@ class Level2ProductViewImpl
 {
 public:
    explicit Level2ProductViewImpl(
-      const std::string&                            productName,
+      common::Level2Product                         product,
       std::shared_ptr<manager::RadarProductManager> radarProductManager) :
-       radarProductManager_ {radarProductManager}, sweepTime_ {}, colorTable_ {}
+       product_ {product},
+       radarProductManager_ {radarProductManager},
+       sweepTime_ {},
+       colorTable_ {}
    {
-      auto it = blockTypes_.find(productName);
+      auto it = blockTypes_.find(product);
 
       if (it != blockTypes_.end())
       {
@@ -45,13 +56,14 @@ public:
       }
       else
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Unknown product: \"" << productName << "\"";
+         BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Unknown product: \""
+                                    << common::GetLevel2Name(product) << "\"";
          dataBlockType_ = wsr88d::rda::DataBlockType::Unknown;
       }
    }
    ~Level2ProductViewImpl() = default;
 
+   common::Level2Product                         product_;
    wsr88d::rda::DataBlockType                    dataBlockType_;
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
@@ -65,9 +77,9 @@ public:
 };
 
 Level2ProductView::Level2ProductView(
-   const std::string&                            productName,
+   common::Level2Product                         product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager) :
-    p(std::make_unique<Level2ProductViewImpl>(productName, radarProductManager))
+    p(std::make_unique<Level2ProductViewImpl>(product, radarProductManager))
 {
    connect(radarProductManager.get(),
            &manager::RadarProductManager::Level2DataLoaded,
@@ -169,13 +181,20 @@ void Level2ProductView::ComputeSweep()
    // TODO: Pick this based on view settings
    auto radarData = level2Data->radar_data()[0];
 
+   auto momentData0 = radarData[0]->moment_data_block(p->dataBlockType_);
+
+   if (momentData0 == nullptr)
+   {
+      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "No moment data for "
+                                 << common::GetLevel2Name(p->product_);
+      return;
+   }
+
    p->sweepTime_ = TimePoint(radarData[0]->modified_julian_date(),
                              radarData[0]->collection_time());
 
    // Calculate vertices
    timer.start();
-
-   auto momentData0 = radarData[0]->moment_data_block(p->dataBlockType_);
 
    // Setup vertex vector
    std::vector<float>& vertices = p->vertices_;
@@ -382,10 +401,10 @@ void Level2ProductView::ComputeSweep()
 }
 
 std::shared_ptr<Level2ProductView> Level2ProductView::Create(
-   const std::string&                            productName,
+   common::Level2Product                         product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager)
 {
-   return std::make_shared<Level2ProductView>(productName, radarProductManager);
+   return std::make_shared<Level2ProductView>(product, radarProductManager);
 }
 
 static std::chrono::system_clock::time_point

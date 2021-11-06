@@ -18,8 +18,22 @@ namespace main
 
 static const std::string logPrefix_ = "[scwx::qt::main::main_window] ";
 
+class MainWindowImpl
+{
+public:
+   explicit MainWindowImpl(MainWindow* mainWindow) : mainWindow_(mainWindow) {}
+   ~MainWindowImpl() = default;
+
+   void SelectRadarProduct(common::Level2Product product);
+
+   MainWindow*     mainWindow_;
+   map::MapWidget* map_;
+};
+
 MainWindow::MainWindow(QWidget* parent) :
-    QMainWindow(parent), ui(new Ui::MainWindow)
+    QMainWindow(parent),
+    p(std::make_unique<MainWindowImpl>(this)),
+    ui(new Ui::MainWindow)
 {
    ui->setupUi(this);
 
@@ -27,9 +41,11 @@ MainWindow::MainWindow(QWidget* parent) :
    settings.setCacheDatabasePath("/tmp/mbgl-cache.db");
    settings.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
 
-   ui->centralwidget->layout()->addWidget(new map::MapWidget(settings));
+   p->map_ = new map::MapWidget(settings);
 
-   // Add Level2 Products
+   ui->centralwidget->layout()->addWidget(p->map_);
+
+   // Add Level 2 Products
    QLayout* level2Layout = new ui::FlowLayout();
    ui->level2Products->setLayout(level2Layout);
 
@@ -41,6 +57,10 @@ MainWindow::MainWindow(QWidget* parent) :
       toolButton->setStatusTip(
          tr(common::GetLevel2Description(product).c_str()));
       level2Layout->addWidget(toolButton);
+
+      connect(toolButton, &QToolButton::clicked, this, [=]() {
+         p->SelectRadarProduct(product);
+      });
    }
 }
 
@@ -74,6 +94,31 @@ void MainWindow::showEvent(QShowEvent* event)
    }
 
    resizeDocks({ui->radarToolboxDock}, {150}, Qt::Horizontal);
+}
+
+void MainWindowImpl::SelectRadarProduct(common::Level2Product product)
+{
+   const std::string& productName = common::GetLevel2Name(product);
+
+   BOOST_LOG_TRIVIAL(debug)
+      << logPrefix_ << "Selecting Level 2 radar product: " << productName;
+
+   for (QToolButton* toolButton :
+        mainWindow_->ui->level2Products->findChildren<QToolButton*>())
+   {
+      if (toolButton->text().toStdString() == productName)
+      {
+         toolButton->setCheckable(true);
+         toolButton->setChecked(true);
+      }
+      else
+      {
+         toolButton->setChecked(false);
+         toolButton->setCheckable(false);
+      }
+   }
+
+   map_->SelectRadarProduct(product);
 }
 
 } // namespace main
