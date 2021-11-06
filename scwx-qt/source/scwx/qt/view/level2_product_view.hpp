@@ -28,20 +28,23 @@ public:
       std::shared_ptr<manager::RadarProductManager> radarProductManager);
    ~Level2ProductView();
 
-   const std::vector<boost::gil::rgba8_pixel_t>& color_table() const;
-   std::chrono::system_clock::time_point         sweep_time() const;
-   const std::vector<float>&                     vertices() const;
+   const std::vector<boost::gil::rgba8_pixel_t>& color_table() const override;
+   std::chrono::system_clock::time_point         sweep_time() const override;
+   const std::vector<float>&                     vertices() const override;
 
-   void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable);
+   void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) override;
 
-   std::tuple<const void*, size_t, size_t> GetMomentData() const;
+   std::tuple<const void*, size_t, size_t> GetMomentData() const override;
 
    static std::shared_ptr<Level2ProductView>
    Create(common::Level2Product                         product,
           std::shared_ptr<manager::RadarProductManager> radarProductManager);
 
+protected:
+   void UpdateColorTable() override;
+
 protected slots:
-   void ComputeSweep();
+   void ComputeSweep() override;
 
 private:
    std::unique_ptr<Level2ProductViewImpl> p;

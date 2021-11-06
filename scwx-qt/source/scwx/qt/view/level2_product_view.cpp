@@ -45,8 +45,11 @@ public:
       std::shared_ptr<manager::RadarProductManager> radarProductManager) :
        product_ {product},
        radarProductManager_ {radarProductManager},
+       latitude_ {},
+       longitude_ {},
        sweepTime_ {},
-       colorTable_ {}
+       colorTable_ {},
+       colorTableLut_ {}
    {
       auto it = blockTypes_.find(product);
 
@@ -67,13 +70,23 @@ public:
    wsr88d::rda::DataBlockType                    dataBlockType_;
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
+   std::shared_ptr<wsr88d::rda::MomentDataBlock> momentDataBlock0_;
+
    std::vector<float>    vertices_;
    std::vector<uint8_t>  dataMoments8_;
    std::vector<uint16_t> dataMoments16_;
 
+   float latitude_;
+   float longitude_;
+
    std::chrono::system_clock::time_point sweepTime_;
 
-   std::vector<boost::gil::rgba8_pixel_t> colorTable_;
+   std::shared_ptr<common::ColorTable>    colorTable_;
+   std::vector<boost::gil::rgba8_pixel_t> colorTableLut_;
+
+   std::shared_ptr<common::ColorTable> savedColorTable_;
+   float                               savedScale_;
+   float                               savedOffset_;
 };
 
 Level2ProductView::Level2ProductView(
@@ -91,13 +104,13 @@ Level2ProductView::~Level2ProductView() = default;
 const std::vector<boost::gil::rgba8_pixel_t>&
 Level2ProductView::color_table() const
 {
-   if (p->colorTable_.size() == 0)
+   if (p->colorTableLut_.size() == 0)
    {
       return RadarProductView::color_table();
    }
    else
    {
-      return p->colorTable_;
+      return p->colorTableLut_;
    }
 }
 
@@ -136,11 +149,31 @@ std::tuple<const void*, size_t, size_t> Level2ProductView::GetMomentData() const
 void Level2ProductView::LoadColorTable(
    std::shared_ptr<common::ColorTable> colorTable)
 {
-   // TODO: Make size, offset and scale dynamic
-   const float offset = 66.0f;
-   const float scale  = 2.0f;
+   p->colorTable_ = colorTable;
+   UpdateColorTable();
+}
 
-   std::vector<boost::gil::rgba8_pixel_t>& lut = p->colorTable_;
+void Level2ProductView::UpdateColorTable()
+{
+   if (p->momentDataBlock0_ == nullptr || //
+       p->colorTable_ == nullptr)
+   {
+      // Nothing to update
+      return;
+   }
+
+   const float offset = p->momentDataBlock0_->offset();
+   const float scale  = p->momentDataBlock0_->scale();
+
+   if (p->savedColorTable_ == p->colorTable_ && //
+       p->savedOffset_ == offset &&             //
+       p->savedScale_ == scale)
+   {
+      // The color table LUT does not need updated
+      return;
+   }
+
+   std::vector<boost::gil::rgba8_pixel_t>& lut = p->colorTableLut_;
    lut.resize(254);
 
    auto dataRange = boost::irange<uint16_t>(2, 255);
@@ -150,10 +183,14 @@ void Level2ProductView::LoadColorTable(
                  dataRange.end(),
                  [&](uint16_t i) {
                     float f                     = (i - offset) / scale;
-                    lut[i - *dataRange.begin()] = colorTable->Color(f);
+                    lut[i - *dataRange.begin()] = p->colorTable_->Color(f);
                  });
 
-   emit ColorTableLoaded();
+   p->savedColorTable_ = p->colorTable_;
+   p->savedOffset_     = offset;
+   p->savedScale_      = scale;
+
+   emit ColorTableUpdated();
 }
 
 void Level2ProductView::ComputeSweep()
@@ -181,7 +218,8 @@ void Level2ProductView::ComputeSweep()
    // TODO: Pick this based on view settings
    auto radarData = level2Data->radar_data()[0];
 
-   auto momentData0 = radarData[0]->moment_data_block(p->dataBlockType_);
+   auto momentData0     = radarData[0]->moment_data_block(p->dataBlockType_);
+   p->momentDataBlock0_ = momentData0;
 
    if (momentData0 == nullptr)
    {
@@ -190,7 +228,10 @@ void Level2ProductView::ComputeSweep()
       return;
    }
 
-   p->sweepTime_ = TimePoint(radarData[0]->modified_julian_date(),
+   auto volumeData0 = radarData[0]->volume_data_block();
+   p->latitude_     = volumeData0->latitude();
+   p->longitude_    = volumeData0->longitude();
+   p->sweepTime_    = TimePoint(radarData[0]->modified_julian_date(),
                              radarData[0]->collection_time());
 
    // Calculate vertices
@@ -368,9 +409,8 @@ void Level2ProductView::ComputeSweep()
                 baseCoord) *
                2;
 
-            // TODO: Radar location
-            vertices[vIndex++] = 38.6986f;
-            vertices[vIndex++] = -90.6828f;
+            vertices[vIndex++] = p->latitude_;
+            vertices[vIndex++] = p->longitude_;
 
             vertices[vIndex++] = coordinates[offset1];
             vertices[vIndex++] = coordinates[offset1 + 1];
@@ -398,6 +438,8 @@ void Level2ProductView::ComputeSweep()
       << logPrefix_ << "Vertices calculated in " << timer.format(6, "%ws");
 
    emit SweepComputed();
+
+   UpdateColorTable();
 }
 
 std::shared_ptr<Level2ProductView> Level2ProductView::Create(

@@ -146,6 +146,9 @@ public:
    VolumeDataBlock(VolumeDataBlock&&) noexcept;
    VolumeDataBlock& operator=(VolumeDataBlock&&) noexcept;
 
+   float latitude() const;
+   float longitude() const;
+
    static std::shared_ptr<VolumeDataBlock>
    Create(const std::string& dataBlockType,
           const std::string& dataName,
@@ -185,6 +188,7 @@ public:
    uint8_t            azimuth_indexing_mode() const;
    uint16_t           data_block_count() const;
 
+   std::shared_ptr<VolumeDataBlock> volume_data_block() const;
    std::shared_ptr<MomentDataBlock> moment_data_block(DataBlockType type) const;
 
    bool Parse(std::istream& is);

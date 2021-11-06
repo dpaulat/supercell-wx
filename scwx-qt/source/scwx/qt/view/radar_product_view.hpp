@@ -35,11 +35,14 @@ public:
 
    virtual std::tuple<const void*, size_t, size_t> GetMomentData() const = 0;
 
+protected:
+   virtual void UpdateColorTable() = 0;
+
 protected slots:
    virtual void ComputeSweep();
 
 signals:
-   void ColorTableLoaded();
+   void ColorTableUpdated();
    void SweepComputed();
 
 private:

@@ -110,7 +110,7 @@ void RadarProductLayer::initialize()
    gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 
    connect(p->radarProductView_.get(),
-           &view::RadarProductView::ColorTableLoaded,
+           &view::RadarProductView::ColorTableUpdated,
            this,
            &RadarProductLayer::UpdateColorTableNextFrame);
    connect(p->radarProductView_.get(),
@@ -239,7 +239,7 @@ void RadarProductLayer::deinitialize()
    p->texture_            = GL_INVALID_INDEX;
 
    disconnect(p->radarProductView_.get(),
-              &view::RadarProductView::ColorTableLoaded,
+              &view::RadarProductView::ColorTableUpdated,
               this,
               &RadarProductLayer::UpdateColorTableNextFrame);
    disconnect(p->radarProductView_.get(),

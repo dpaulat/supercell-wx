@@ -275,6 +275,16 @@ VolumeDataBlock::VolumeDataBlock(VolumeDataBlock&&) noexcept = default;
 VolumeDataBlock&
 VolumeDataBlock::operator=(VolumeDataBlock&&) noexcept = default;
 
+float VolumeDataBlock::latitude() const
+{
+   return p->latitude_;
+}
+
+float VolumeDataBlock::longitude() const
+{
+   return p->longitude_;
+}
+
 std::shared_ptr<VolumeDataBlock>
 VolumeDataBlock::Create(const std::string& dataBlockType,
                         const std::string& dataName,
@@ -602,6 +612,10 @@ uint8_t DigitalRadarData::azimuth_indexing_mode() const
 uint16_t DigitalRadarData::data_block_count() const
 {
    return p->dataBlockCount_;
+}
+std::shared_ptr<VolumeDataBlock> DigitalRadarData::volume_data_block() const
+{
+   return p->volumeDataBlock_;
 }
 
 std::shared_ptr<MomentDataBlock>
