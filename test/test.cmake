@@ -11,6 +11,7 @@ set(SRC_MAIN source/scwx/wxtest.cpp)
 set(SRC_COMMON_TESTS source/scwx/common/color_table.test.cpp)
 set(SRC_QT_MANAGER_TESTS source/scwx/qt/manager/settings_manager.test.cpp)
 set(SRC_UTIL_TESTS source/scwx/util/rangebuf.test.cpp
+                   source/scwx/util/streams.test.cpp
                    source/scwx/util/vectorbuf.test.cpp)
 set(SRC_WSR88D_TESTS source/scwx/wsr88d/ar2v_file.test.cpp)
 

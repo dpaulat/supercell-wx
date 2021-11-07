@@ -25,19 +25,22 @@ void VerifyDefaults()
 {
    std::shared_ptr<settings::GeneralSettings> defaultGeneralSettings =
       settings::GeneralSettings::Create();
+   std::shared_ptr<settings::PaletteSettings> defaultPaletteSettings =
+      settings::PaletteSettings::Create();
 
    EXPECT_EQ(*defaultGeneralSettings, *SettingsManager::general_settings());
+   EXPECT_EQ(*defaultPaletteSettings, *SettingsManager::palette_settings());
 }
 
 void CompareFiles(const std::string& file1, const std::string& file2)
 {
    std::ifstream     ifs1 {file1};
    std::stringstream buffer1;
-   buffer1 << buffer1.rdbuf();
+   buffer1 << ifs1.rdbuf();
 
    std::ifstream     ifs2 {file2};
    std::stringstream buffer2;
-   buffer2 << buffer2.rdbuf();
+   buffer2 << ifs2.rdbuf();
 
    EXPECT_EQ(buffer1.str(), buffer2.str());
 }
