@@ -1,4 +1,5 @@
 #include <scwx/common/color_table.hpp>
+#include <scwx/util/streams.hpp>
 
 #include <cmath>
 #include <fstream>
@@ -122,6 +123,11 @@ boost::gil::rgba8_pixel_t ColorTable::Color(float value) const
    return color;
 }
 
+bool ColorTable::IsValid() const
+{
+   return p->colorMap_.size() > 0;
+}
+
 std::shared_ptr<ColorTable> ColorTable::Load(const std::string& filename)
 {
    BOOST_LOG_TRIVIAL(debug)
@@ -132,7 +138,7 @@ std::shared_ptr<ColorTable> ColorTable::Load(const std::string& filename)
    std::ifstream f(filename, std::ios_base::in);
 
    std::string line;
-   while (std::getline(f, line))
+   while (scwx::util::getline(f, line))
    {
       std::string              token;
       std::istringstream       tokens(line);

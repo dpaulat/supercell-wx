@@ -26,9 +26,9 @@ public:
    GeneralSettings(GeneralSettings&&) noexcept;
    GeneralSettings& operator=(GeneralSettings&&) noexcept;
 
-   const std::string& default_radar_site();
+   const std::string& default_radar_site() const;
 
-   boost::json::value ToJson();
+   boost::json::value ToJson() const;
 
    static std::shared_ptr<GeneralSettings> Create();
    static std::shared_ptr<GeneralSettings> Load(const boost::json::value* json,

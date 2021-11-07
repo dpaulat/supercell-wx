@@ -74,8 +74,10 @@ set(SRC_MAP source/scwx/qt/map/map_widget.cpp
             source/scwx/qt/map/radar_product_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp
             source/scwx/qt/map/triangle_layer.cpp)
-set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp)
-set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp)
+set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp
+                 source/scwx/qt/settings/palette_settings.hpp)
+set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
+                 source/scwx/qt/settings/palette_settings.cpp)
 set(HDR_UI source/scwx/qt/ui/flow_layout.hpp)
 set(SRC_UI source/scwx/qt/ui/flow_layout.cpp)
 set(HDR_UTIL source/scwx/qt/util/font.hpp

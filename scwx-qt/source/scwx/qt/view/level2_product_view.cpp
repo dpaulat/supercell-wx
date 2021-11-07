@@ -156,14 +156,15 @@ void Level2ProductView::LoadColorTable(
 void Level2ProductView::UpdateColorTable()
 {
    if (p->momentDataBlock0_ == nullptr || //
-       p->colorTable_ == nullptr)
+       p->colorTable_ == nullptr ||       //
+       !p->colorTable_->IsValid())
    {
       // Nothing to update
       return;
    }
 
-   const float offset = p->momentDataBlock0_->offset();
-   const float scale  = p->momentDataBlock0_->scale();
+   float offset = p->momentDataBlock0_->offset();
+   float scale  = p->momentDataBlock0_->scale();
 
    if (p->savedColorTable_ == p->colorTable_ && //
        p->savedOffset_ == offset &&             //
@@ -173,10 +174,41 @@ void Level2ProductView::UpdateColorTable()
       return;
    }
 
-   std::vector<boost::gil::rgba8_pixel_t>& lut = p->colorTableLut_;
-   lut.resize(254);
+   uint16_t rangeMin;
+   uint16_t rangeMax;
 
-   auto dataRange = boost::irange<uint16_t>(2, 255);
+   switch (p->product_)
+   {
+   case common::Level2Product::Reflectivity:
+   case common::Level2Product::Velocity:
+   case common::Level2Product::SpectrumWidth:
+   case common::Level2Product::CorrelationCoefficient:
+   default:
+      rangeMin = 2;
+      rangeMax = 255;
+      break;
+
+   case common::Level2Product::DifferentialReflectivity:
+      rangeMin = 2;
+      rangeMax = 1058;
+      break;
+
+   case common::Level2Product::DifferentialPhase:
+      rangeMin = 2;
+      rangeMax = 1023;
+      break;
+
+   case common::Level2Product::ClutterFilterPowerRemoved:
+      rangeMin = 8;
+      rangeMax = 81;
+      break;
+   }
+
+   boost::integer_range<uint16_t> dataRange =
+      boost::irange<uint16_t>(rangeMin, rangeMax);
+
+   std::vector<boost::gil::rgba8_pixel_t>& lut = p->colorTableLut_;
+   lut.resize(rangeMax - rangeMin + 1);
 
    std::for_each(std::execution::par_unseq,
                  dataRange.begin(),

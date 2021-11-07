@@ -12,7 +12,7 @@ namespace settings
 
 static const std::string logPrefix_ = "[scwx::qt::settings::general_settings] ";
 
-static const std::string& DEFAULT_DEFAULT_RADAR_SITE = "KLSX";
+static const std::string DEFAULT_DEFAULT_RADAR_SITE = "KLSX";
 
 class GeneralSettingsImpl
 {
@@ -35,12 +35,12 @@ GeneralSettings::GeneralSettings(GeneralSettings&&) noexcept = default;
 GeneralSettings&
 GeneralSettings::operator=(GeneralSettings&&) noexcept = default;
 
-const std::string& GeneralSettings::default_radar_site()
+const std::string& GeneralSettings::default_radar_site() const
 {
    return p->defaultRadarSite_;
 }
 
-boost::json::value GeneralSettings::ToJson()
+boost::json::value GeneralSettings::ToJson() const
 {
    boost::json::object json;
 

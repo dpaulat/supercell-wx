@@ -21,6 +21,7 @@ namespace SettingsManager
 static const std::string logPrefix_ = "[scwx::qt::manager::settings_manager] ";
 
 static std::shared_ptr<settings::GeneralSettings> generalSettings_ = nullptr;
+static std::shared_ptr<settings::PaletteSettings> paletteSettings_ = nullptr;
 
 static boost::json::value ConvertSettingsToJson();
 static void               GenerateDefaultSettings();
@@ -79,11 +80,17 @@ std::shared_ptr<settings::GeneralSettings> general_settings()
    return generalSettings_;
 }
 
+std::shared_ptr<settings::PaletteSettings> palette_settings()
+{
+   return paletteSettings_;
+}
+
 static boost::json::value ConvertSettingsToJson()
 {
    boost::json::object settingsJson;
 
    settingsJson["general"] = generalSettings_->ToJson();
+   settingsJson["palette"] = paletteSettings_->ToJson();
 
    return settingsJson;
 }
@@ -93,6 +100,7 @@ static void GenerateDefaultSettings()
    BOOST_LOG_TRIVIAL(info) << logPrefix_ << "Generating default settings";
 
    generalSettings_ = settings::GeneralSettings::Create();
+   paletteSettings_ = settings::PaletteSettings::Create();
 }
 
 static bool LoadSettings(const boost::json::object& settingsJson)
@@ -103,6 +111,8 @@ static bool LoadSettings(const boost::json::object& settingsJson)
 
    generalSettings_ = settings::GeneralSettings::Load(
       settingsJson.if_contains("general"), jsonDirty);
+   paletteSettings_ = settings::PaletteSettings::Load(
+      settingsJson.if_contains("palette"), jsonDirty);
 
    return jsonDirty;
 }

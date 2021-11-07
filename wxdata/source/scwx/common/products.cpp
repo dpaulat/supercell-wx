@@ -27,6 +27,16 @@ static const std::unordered_map<Level2Product, std::string> level2Description_ {
    {Level2Product::ClutterFilterPowerRemoved, "Clutter Filter Power Removed"},
    {Level2Product::Unknown, "?"}};
 
+static const std::unordered_map<Level2Product, std::string> level2Palette_ {
+   {Level2Product::Reflectivity, "BR"},
+   {Level2Product::Velocity, "BV"},
+   {Level2Product::SpectrumWidth, "SW"},
+   {Level2Product::DifferentialReflectivity, "ZDR"},
+   {Level2Product::DifferentialPhase, "PHI"},
+   {Level2Product::CorrelationCoefficient, "CC"},
+   {Level2Product::ClutterFilterPowerRemoved, "???"},
+   {Level2Product::Unknown, "???"}};
+
 const std::string& GetLevel2Name(Level2Product product)
 {
    return level2Name_.at(product);
@@ -35,6 +45,11 @@ const std::string& GetLevel2Name(Level2Product product)
 const std::string& GetLevel2Description(Level2Product product)
 {
    return level2Description_.at(product);
+}
+
+const std::string& GetLevel2Palette(Level2Product product)
+{
+   return level2Palette_.at(product);
 }
 
 const Level2Product GetLevel2Product(const std::string& name)

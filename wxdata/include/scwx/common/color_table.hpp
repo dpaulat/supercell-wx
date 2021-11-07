@@ -35,6 +35,7 @@ public:
    ColorTable& operator=(ColorTable&&) noexcept;
 
    boost::gil::rgba8_pixel_t Color(float value) const;
+   bool                      IsValid() const;
 
    static std::shared_ptr<ColorTable> Load(const std::string& filename);
 

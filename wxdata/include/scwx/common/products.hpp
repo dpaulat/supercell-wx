@@ -29,6 +29,7 @@ typedef util::Iterator<Level2Product,
 
 const std::string&  GetLevel2Name(Level2Product product);
 const std::string&  GetLevel2Description(Level2Product product);
+const std::string&  GetLevel2Palette(Level2Product product);
 const Level2Product GetLevel2Product(const std::string& id);
 
 } // namespace common

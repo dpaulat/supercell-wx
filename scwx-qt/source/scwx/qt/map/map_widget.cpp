@@ -1,6 +1,7 @@
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/gl/gl.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
+#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
@@ -99,11 +100,13 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
 
    p->radarProductView_->Initialize();
 
-   QString colorTableFile = qgetenv("COLOR_TABLE");
-   if (!colorTableFile.isEmpty())
+   std::string colorTableFile =
+      manager::SettingsManager::palette_settings()->palette(
+         common::GetLevel2Palette(product));
+   if (!colorTableFile.empty())
    {
       std::shared_ptr<common::ColorTable> colorTable =
-         common::ColorTable::Load(colorTableFile.toUtf8().constData());
+         common::ColorTable::Load(colorTableFile);
       p->radarProductView_->LoadColorTable(colorTable);
    }
 
