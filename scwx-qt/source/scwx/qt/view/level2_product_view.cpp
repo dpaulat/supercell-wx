@@ -236,19 +236,19 @@ void Level2ProductView::ComputeSweep()
       return;
    }
 
-   std::shared_ptr<const wsr88d::Ar2vFile> level2Data =
-      p->radarProductManager_->level2_data();
-   if (level2Data == nullptr)
+   // TODO: Pick this based on view settings
+   auto radarData =
+      p->radarProductManager_->GetLevel2Data(p->dataBlockType_, 0);
+   if (radarData.size() == 0)
    {
       return;
    }
 
-   // TODO: Pick this based on radar data
+   const common::RadialSize  radialSize = (radarData.size() == 720) ?
+                                             common::RadialSize::_0_5Degree :
+                                             common::RadialSize::_1Degree;
    const std::vector<float>& coordinates =
-      p->radarProductManager_->coordinates(common::RadialSize::_0_5Degree);
-
-   // TODO: Pick this based on view settings
-   auto radarData = level2Data->radar_data()[0];
+      p->radarProductManager_->coordinates(radialSize);
 
    auto momentData0     = radarData[0]->moment_data_block(p->dataBlockType_);
    p->momentDataBlock0_ = momentData0;

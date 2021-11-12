@@ -77,11 +77,6 @@ MapWidget::MapWidget(const QMapboxGLSettings& settings) :
    setFocusPolicy(Qt::StrongFocus);
 
    p->radarProductManager_->Initialize();
-   QString ar2vFile = qgetenv("AR2V_FILE");
-   if (!ar2vFile.isEmpty())
-   {
-      p->radarProductManager_->LoadLevel2Data(ar2vFile.toUtf8().constData());
-   }
 
    SelectRadarProduct(common::Level2Product::Reflectivity);
 }
@@ -109,6 +104,19 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
          common::ColorTable::Load(colorTableFile);
       p->radarProductView_->LoadColorTable(colorTable);
    }
+
+   connect(
+      p->radarProductView_.get(),
+      &view::RadarProductView::ColorTableUpdated,
+      this,
+      [&]() { update(); },
+      Qt::QueuedConnection);
+   connect(
+      p->radarProductView_.get(),
+      &view::RadarProductView::SweepComputed,
+      this,
+      [&]() { update(); },
+      Qt::QueuedConnection);
 
    if (p->map_ != nullptr)
    {

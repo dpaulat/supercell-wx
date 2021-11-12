@@ -33,6 +33,11 @@ public:
    void Initialize();
    void LoadLevel2Data(const std::string& filename);
 
+   std::unordered_map<uint16_t, std::shared_ptr<wsr88d::rda::DigitalRadarData>>
+   GetLevel2Data(wsr88d::rda::DataBlockType            dataBlockType,
+                 uint8_t                               elevationIndex,
+                 std::chrono::system_clock::time_point time = {});
+
 signals:
    void Level2DataLoaded();
 

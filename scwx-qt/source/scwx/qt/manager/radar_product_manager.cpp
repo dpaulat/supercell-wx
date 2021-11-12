@@ -1,5 +1,6 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/common/constants.hpp>
+#include <scwx/util/threads.hpp>
 
 #include <deque>
 #include <execution>
@@ -180,6 +181,33 @@ void RadarProductManager::LoadLevel2Data(const std::string& filename)
    p->level2Data_.push_back(ar2vFile);
 
    emit Level2DataLoaded();
+}
+
+std::unordered_map<uint16_t, std::shared_ptr<wsr88d::rda::DigitalRadarData>>
+RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
+                                   uint8_t                    elevationIndex,
+                                   std::chrono::system_clock::time_point time)
+{
+   std::unordered_map<uint16_t, std::shared_ptr<wsr88d::rda::DigitalRadarData>>
+      radarData;
+
+   if (p->level2Data_.size() > 0)
+   {
+      // TODO: Pull this from the database
+      radarData = p->level2Data_[0]->radar_data()[elevationIndex];
+   }
+   else
+   {
+      scwx::util::async([&]() {
+         QString filename = qgetenv("AR2V_FILE");
+         if (!filename.isEmpty())
+         {
+            LoadLevel2Data(filename.toUtf8().constData());
+         }
+      });
+   }
+
+   return radarData;
 }
 
 } // namespace manager

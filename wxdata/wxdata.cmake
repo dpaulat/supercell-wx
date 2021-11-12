@@ -11,6 +11,7 @@ set(SRC_COMMON source/scwx/common/color_table.cpp
 set(HDR_UTIL include/scwx/util/iterator.hpp
              include/scwx/util/rangebuf.hpp
              include/scwx/util/streams.hpp
+             include/scwx/util/threads.hpp
              include/scwx/util/vectorbuf.hpp)
 set(SRC_UTIL source/scwx/util/rangebuf.cpp
              source/scwx/util/streams.cpp
