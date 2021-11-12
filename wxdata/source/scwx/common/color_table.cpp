@@ -195,8 +195,8 @@ void ColorTable::ProcessLine(const std::vector<std::string>& tokenList)
    }
    else if (tokenList[0] == "Step:")
    {
-      // Step: float
-      p->step_ = std::stof(tokenList[1]);
+      // Step: number
+      p->step_ = std::stol(tokenList[1]);
    }
    else if (tokenList[0] == "RF")
    {
