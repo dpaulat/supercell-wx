@@ -37,10 +37,8 @@ public:
    std::chrono::system_clock::time_point start_time() const;
    std::chrono::system_clock::time_point end_time() const;
 
-   std::map<uint16_t,
-            std::map<uint16_t, std::shared_ptr<rda::DigitalRadarData>>>
-                                                         radar_data() const;
-   std::shared_ptr<const rda::VolumeCoveragePatternData> vcp_data() const;
+   std::map<uint16_t, std::shared_ptr<rda::ElevationScan>> radar_data() const;
+   std::shared_ptr<const rda::VolumeCoveragePatternData>   vcp_data() const;
 
    bool LoadFile(const std::string& filename);
 

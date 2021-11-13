@@ -47,10 +47,8 @@ public:
 
    size_t numRecords_;
 
-   std::shared_ptr<rda::VolumeCoveragePatternData> vcpData_;
-   std::map<uint16_t,
-            std::map<uint16_t, std::shared_ptr<rda::DigitalRadarData>>>
-      radarData_;
+   std::shared_ptr<rda::VolumeCoveragePatternData>         vcpData_;
+   std::map<uint16_t, std::shared_ptr<rda::ElevationScan>> radarData_;
 
    std::list<std::stringstream> rawRecords_;
 };
@@ -82,7 +80,7 @@ std::chrono::system_clock::time_point Ar2vFile::end_time() const
    if (p->radarData_.size() > 0)
    {
       std::shared_ptr<rda::DigitalRadarData> lastRadial =
-         p->radarData_.crbegin()->second.crbegin()->second;
+         p->radarData_.crbegin()->second->crbegin()->second;
 
       endTime = util::TimePoint(lastRadial->modified_julian_date(),
                                 lastRadial->collection_time());
@@ -91,7 +89,7 @@ std::chrono::system_clock::time_point Ar2vFile::end_time() const
    return endTime;
 }
 
-std::map<uint16_t, std::map<uint16_t, std::shared_ptr<rda::DigitalRadarData>>>
+std::map<uint16_t, std::shared_ptr<rda::ElevationScan>>
 Ar2vFile::radar_data() const
 {
    return p->radarData_;
@@ -289,7 +287,12 @@ void Ar2vFileImpl::ProcessRadarData(
    uint16_t azimuthIndex   = message->azimuth_number() - 1;
    uint16_t elevationIndex = message->elevation_number() - 1;
 
-   radarData_[elevationIndex][azimuthIndex] = message;
+   if (radarData_[elevationIndex] == nullptr)
+   {
+      radarData_[elevationIndex] = std::make_shared<rda::ElevationScan>();
+   }
+
+   (*radarData_[elevationIndex])[azimuthIndex] = message;
 }
 
 } // namespace wsr88d

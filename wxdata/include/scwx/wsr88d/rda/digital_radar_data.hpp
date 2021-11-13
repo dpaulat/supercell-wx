@@ -1,5 +1,6 @@
 #pragma once
 
+#include <scwx/util/iterator.hpp>
 #include <scwx/wsr88d/rda/message.hpp>
 
 namespace scwx
@@ -23,6 +24,9 @@ enum class DataBlockType
    MomentCfp,
    Unknown
 };
+typedef util::
+   Iterator<DataBlockType, DataBlockType::MomentRef, DataBlockType::MomentCfp>
+      MomentDataBlockTypeIterator;
 
 class DataBlockImpl;
 class ElevationDataBlockImpl;
@@ -30,7 +34,10 @@ class MomentDataBlockImpl;
 class RadialDataBlockImpl;
 class VolumeDataBlockImpl;
 
+class DigitalRadarData;
 class DigitalRadarDataImpl;
+
+typedef std::map<uint16_t, std::shared_ptr<DigitalRadarData>> ElevationScan;
 
 class DataBlock
 {

@@ -237,18 +237,20 @@ void Level2ProductView::ComputeSweep()
    // TODO: Pick this based on view settings
    auto radarData =
       p->radarProductManager_->GetLevel2Data(p->dataBlockType_, 0);
-   if (radarData.size() == 0)
+   if (radarData == nullptr)
    {
       return;
    }
 
-   const common::RadialSize  radialSize = (radarData.size() == 720) ?
-                                             common::RadialSize::_0_5Degree :
-                                             common::RadialSize::_1Degree;
+   const size_t             radials = radarData->size();
+   const common::RadialSize radialSize =
+      (radials == common::MAX_0_5_DEGREE_RADIALS) ?
+         common::RadialSize::_0_5Degree :
+         common::RadialSize::_1Degree;
    const std::vector<float>& coordinates =
       p->radarProductManager_->coordinates(radialSize);
 
-   auto radarData0      = radarData[0];
+   auto radarData0      = (*radarData)[0];
    auto momentData0     = radarData0->moment_data_block(p->dataBlockType_);
    p->momentDataBlock0_ = momentData0;
 
@@ -270,7 +272,6 @@ void Level2ProductView::ComputeSweep()
 
    // Setup vertex vector
    std::vector<float>& vertices = p->vertices_;
-   const size_t        radials  = radarData.size();
    const uint32_t      gates    = momentData0->number_of_data_moment_gates();
    size_t              vIndex   = 0;
    vertices.clear();
@@ -311,7 +312,7 @@ void Level2ProductView::ComputeSweep()
    const float    startAngle  = radarData0->azimuth_angle();
    const uint16_t startRadial = std::lroundf(startAngle * radialMultiplier);
 
-   for (auto radialPair : radarData)
+   for (auto radialPair : *radarData)
    {
       uint16_t radial     = radialPair.first;
       auto     radialData = radialPair.second;

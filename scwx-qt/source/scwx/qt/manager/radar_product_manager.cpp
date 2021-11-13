@@ -180,12 +180,12 @@ void RadarProductManager::LoadLevel2Data(const std::string& filename)
    emit Level2DataLoaded();
 }
 
-std::map<uint16_t, std::shared_ptr<wsr88d::rda::DigitalRadarData>>
+std::shared_ptr<wsr88d::rda::ElevationScan>
 RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
                                    uint8_t                    elevationIndex,
                                    std::chrono::system_clock::time_point time)
 {
-   std::map<uint16_t, std::shared_ptr<wsr88d::rda::DigitalRadarData>> radarData;
+   std::shared_ptr<wsr88d::rda::ElevationScan> radarData = nullptr;
 
    if (p->level2VolumeScans_.size() > 0)
    {
