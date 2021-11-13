@@ -42,7 +42,9 @@ public:
    std::vector<float> coordinates0_5Degree_;
    std::vector<float> coordinates1Degree_;
 
-   std::deque<std::shared_ptr<wsr88d::Ar2vFile>> level2Data_;
+   std::map<std::chrono::system_clock::time_point,
+            std::shared_ptr<wsr88d::Ar2vFile>>
+      level2VolumeScans_;
 };
 
 RadarProductManager::RadarProductManager() :
@@ -67,9 +69,9 @@ std::shared_ptr<const wsr88d::Ar2vFile> RadarProductManager::level2_data() const
 {
    std::shared_ptr<const wsr88d::Ar2vFile> level2Data = nullptr;
 
-   if (p->level2Data_.size() > 0)
+   if (p->level2VolumeScans_.size() > 0)
    {
-      level2Data = p->level2Data_.back();
+      level2Data = p->level2VolumeScans_.crbegin()->second;
    }
 
    return level2Data;
@@ -173,28 +175,22 @@ void RadarProductManager::LoadLevel2Data(const std::string& filename)
       return;
    }
 
-   // TODO: Sort and index these
-   if (p->level2Data_.size() >= MAX_LEVEL2_FILES - 1)
-   {
-      p->level2Data_.pop_front();
-   }
-   p->level2Data_.push_back(ar2vFile);
+   p->level2VolumeScans_[ar2vFile->start_time()] = ar2vFile;
 
    emit Level2DataLoaded();
 }
 
-std::unordered_map<uint16_t, std::shared_ptr<wsr88d::rda::DigitalRadarData>>
+std::map<uint16_t, std::shared_ptr<wsr88d::rda::DigitalRadarData>>
 RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
                                    uint8_t                    elevationIndex,
                                    std::chrono::system_clock::time_point time)
 {
-   std::unordered_map<uint16_t, std::shared_ptr<wsr88d::rda::DigitalRadarData>>
-      radarData;
+   std::map<uint16_t, std::shared_ptr<wsr88d::rda::DigitalRadarData>> radarData;
 
-   if (p->level2Data_.size() > 0)
+   if (p->level2VolumeScans_.size() > 0)
    {
-      // TODO: Pull this from the database
-      radarData = p->level2Data_[0]->radar_data()[elevationIndex];
+      radarData =
+         p->level2VolumeScans_.crbegin()->second->radar_data()[elevationIndex];
    }
    else
    {

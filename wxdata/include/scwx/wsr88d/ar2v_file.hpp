@@ -3,9 +3,9 @@
 #include <scwx/wsr88d/rda/digital_radar_data.hpp>
 #include <scwx/wsr88d/rda/volume_coverage_pattern_data.hpp>
 
+#include <chrono>
 #include <memory>
 #include <string>
-#include <unordered_map>
 
 namespace scwx
 {
@@ -31,9 +31,14 @@ public:
    Ar2vFile(Ar2vFile&&) noexcept;
    Ar2vFile& operator=(Ar2vFile&&) noexcept;
 
-   std::unordered_map<
-      uint16_t,
-      std::unordered_map<uint16_t, std::shared_ptr<rda::DigitalRadarData>>>
+   uint32_t julian_date() const;
+   uint32_t milliseconds() const;
+
+   std::chrono::system_clock::time_point start_time() const;
+   std::chrono::system_clock::time_point end_time() const;
+
+   std::map<uint16_t,
+            std::map<uint16_t, std::shared_ptr<rda::DigitalRadarData>>>
                                                          radar_data() const;
    std::shared_ptr<const rda::VolumeCoveragePatternData> vcp_data() const;
 

@@ -2,6 +2,7 @@
 #include <scwx/wsr88d/rda/message_factory.hpp>
 #include <scwx/wsr88d/rda/types.hpp>
 #include <scwx/util/rangebuf.hpp>
+#include <scwx/util/time.hpp>
 
 #include <fstream>
 #include <sstream>
@@ -37,7 +38,6 @@ public:
    void LoadLDMRecords(std::ifstream& f);
    void ParseLDMRecords();
    void ProcessRadarData(std::shared_ptr<rda::DigitalRadarData> message);
-   void ProcessVcpData();
 
    std::string tapeFilename_;
    std::string extensionNumber_;
@@ -48,9 +48,8 @@ public:
    size_t numRecords_;
 
    std::shared_ptr<rda::VolumeCoveragePatternData> vcpData_;
-   std::unordered_map<
-      uint16_t,
-      std::unordered_map<uint16_t, std::shared_ptr<rda::DigitalRadarData>>>
+   std::map<uint16_t,
+            std::map<uint16_t, std::shared_ptr<rda::DigitalRadarData>>>
       radarData_;
 
    std::list<std::stringstream> rawRecords_;
@@ -62,9 +61,37 @@ Ar2vFile::~Ar2vFile() = default;
 Ar2vFile::Ar2vFile(Ar2vFile&&) noexcept = default;
 Ar2vFile& Ar2vFile::operator=(Ar2vFile&&) noexcept = default;
 
-std::unordered_map<
-   uint16_t,
-   std::unordered_map<uint16_t, std::shared_ptr<rda::DigitalRadarData>>>
+uint32_t Ar2vFile::julian_date() const
+{
+   return p->julianDate_;
+}
+
+uint32_t Ar2vFile::milliseconds() const
+{
+   return p->milliseconds_;
+}
+std::chrono::system_clock::time_point Ar2vFile::start_time() const
+{
+   return util::TimePoint(p->julianDate_, p->milliseconds_);
+}
+
+std::chrono::system_clock::time_point Ar2vFile::end_time() const
+{
+   std::chrono::system_clock::time_point endTime {};
+
+   if (p->radarData_.size() > 0)
+   {
+      std::shared_ptr<rda::DigitalRadarData> lastRadial =
+         p->radarData_.crbegin()->second.crbegin()->second;
+
+      endTime = util::TimePoint(lastRadial->modified_julian_date(),
+                                lastRadial->collection_time());
+   }
+
+   return endTime;
+}
+
+std::map<uint16_t, std::map<uint16_t, std::shared_ptr<rda::DigitalRadarData>>>
 Ar2vFile::radar_data() const
 {
    return p->radarData_;
@@ -245,7 +272,6 @@ void Ar2vFileImpl::HandleMessage(std::shared_ptr<rda::Message>& message)
    case static_cast<uint8_t>(rda::MessageId::VolumeCoveragePatternData):
       vcpData_ =
          std::static_pointer_cast<rda::VolumeCoveragePatternData>(message);
-      ProcessVcpData();
       break;
 
    case static_cast<uint8_t>(rda::MessageId::DigitalRadarData):
@@ -264,24 +290,6 @@ void Ar2vFileImpl::ProcessRadarData(
    uint16_t elevationIndex = message->elevation_number() - 1;
 
    radarData_[elevationIndex][azimuthIndex] = message;
-}
-
-void Ar2vFileImpl::ProcessVcpData()
-{
-   uint16_t numberOfElevationCuts = vcpData_->number_of_elevation_cuts();
-   radarData_.reserve(numberOfElevationCuts);
-
-   for (uint16_t e = 0; e < numberOfElevationCuts; ++e)
-   {
-      if (vcpData_->half_degree_azimuth(e))
-      {
-         radarData_[e].reserve(720);
-      }
-      else
-      {
-         radarData_[e].reserve(360);
-      }
-   }
 }
 
 } // namespace wsr88d

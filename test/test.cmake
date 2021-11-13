@@ -29,7 +29,7 @@ source_group("Source Files\\wsr88d"      FILES ${SRC_WSR88D_TESTS})
 
 target_include_directories(wxtest PRIVATE ${GTest_INCLUDE_DIRS})
 
-set_target_properties(wxtest PROPERTIES CXX_STANDARD 17
+set_target_properties(wxtest PROPERTIES CXX_STANDARD 20
                                         CXX_STANDARD_REQUIRED ON
                                         CXX_EXTENSIONS OFF)
 

@@ -12,9 +12,11 @@ set(HDR_UTIL include/scwx/util/iterator.hpp
              include/scwx/util/rangebuf.hpp
              include/scwx/util/streams.hpp
              include/scwx/util/threads.hpp
+             include/scwx/util/time.hpp
              include/scwx/util/vectorbuf.hpp)
 set(SRC_UTIL source/scwx/util/rangebuf.cpp
              source/scwx/util/streams.cpp
+             source/scwx/util/time.cpp
              source/scwx/util/vectorbuf.cpp)
 set(HDR_WSR88D include/scwx/wsr88d/ar2v_file.hpp)
 set(SRC_WSR88D source/scwx/wsr88d/ar2v_file.cpp)

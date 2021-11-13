@@ -1,5 +1,6 @@
 #include <scwx/qt/view/level2_product_view.hpp>
 #include <scwx/common/constants.hpp>
+#include <scwx/util/time.hpp>
 
 #include <boost/log/trivial.hpp>
 #include <boost/range/irange.hpp>
@@ -33,9 +34,6 @@ static const std::unordered_map<common::Level2Product,
        wsr88d::rda::DataBlockType::MomentRho},
       {common::Level2Product::ClutterFilterPowerRemoved,
        wsr88d::rda::DataBlockType::MomentCfp}};
-
-static std::chrono::system_clock::time_point
-TimePoint(uint16_t modifiedJulianDate, uint32_t milliseconds);
 
 class Level2ProductViewImpl
 {
@@ -250,7 +248,8 @@ void Level2ProductView::ComputeSweep()
    const std::vector<float>& coordinates =
       p->radarProductManager_->coordinates(radialSize);
 
-   auto momentData0     = radarData[0]->moment_data_block(p->dataBlockType_);
+   auto radarData0      = radarData[0];
+   auto momentData0     = radarData0->moment_data_block(p->dataBlockType_);
    p->momentDataBlock0_ = momentData0;
 
    if (momentData0 == nullptr)
@@ -260,11 +259,11 @@ void Level2ProductView::ComputeSweep()
       return;
    }
 
-   auto volumeData0 = radarData[0]->volume_data_block();
+   auto volumeData0 = radarData0->volume_data_block();
    p->latitude_     = volumeData0->latitude();
    p->longitude_    = volumeData0->longitude();
-   p->sweepTime_    = TimePoint(radarData[0]->modified_julian_date(),
-                             radarData[0]->collection_time());
+   p->sweepTime_    = util::TimePoint(radarData0->modified_julian_date(),
+                                   radarData0->collection_time());
 
    // Calculate vertices
    timer.start();
@@ -307,16 +306,16 @@ void Level2ProductView::ComputeSweep()
    //   1 = 0.5 degrees
    //   2 = 1.0 degrees
    const float radialMultiplier =
-      2.0f /
-      std::clamp<int8_t>(radarData[0]->azimuth_resolution_spacing(), 1, 2);
+      2.0f / std::clamp<int8_t>(radarData0->azimuth_resolution_spacing(), 1, 2);
 
-   const float    startAngle  = radarData[0]->azimuth_angle();
+   const float    startAngle  = radarData0->azimuth_angle();
    const uint16_t startRadial = std::lroundf(startAngle * radialMultiplier);
 
-   for (uint16_t radial = 0; radial < radials; ++radial)
+   for (auto radialPair : radarData)
    {
-      auto radialData = radarData[radial];
-      auto momentData = radarData[radial]->moment_data_block(p->dataBlockType_);
+      uint16_t radial     = radialPair.first;
+      auto     radialData = radialPair.second;
+      auto     momentData = radialData->moment_data_block(p->dataBlockType_);
 
       if (momentData0->data_word_size() != momentData->data_word_size())
       {
@@ -479,17 +478,6 @@ std::shared_ptr<Level2ProductView> Level2ProductView::Create(
    std::shared_ptr<manager::RadarProductManager> radarProductManager)
 {
    return std::make_shared<Level2ProductView>(product, radarProductManager);
-}
-
-static std::chrono::system_clock::time_point
-TimePoint(uint16_t modifiedJulianDate, uint32_t milliseconds)
-{
-   using namespace std::chrono;
-   using sys_days       = time_point<system_clock, days>;
-   constexpr auto epoch = sys_days {1969y / December / 31d};
-
-   return epoch + (modifiedJulianDate * 24h) +
-          std::chrono::milliseconds {milliseconds};
 }
 
 } // namespace view
