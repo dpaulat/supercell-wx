@@ -209,7 +209,7 @@ void Level2ProductView::UpdateColorTable()
    }
 
    boost::integer_range<uint16_t> dataRange =
-      boost::irange<uint16_t>(rangeMin, rangeMax);
+      boost::irange<uint16_t>(rangeMin, rangeMax + 1);
 
    std::vector<boost::gil::rgba8_pixel_t>& lut = p->colorTableLut_;
    lut.resize(rangeMax - rangeMin + 1);
@@ -309,8 +309,7 @@ void Level2ProductView::ComputeSweep()
    // Compute threshold at which to display an individual bin
    const float    scale  = momentData0->scale();
    const float    offset = momentData0->offset();
-   const uint16_t snrThreshold =
-      std::lroundf(momentData0->snr_threshold_raw() * scale / 10 + offset);
+   const uint16_t snrThreshold = momentData0->snr_threshold_raw();
 
    // Azimuth resolution spacing:
    //   1 = 0.5 degrees

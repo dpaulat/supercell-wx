@@ -298,7 +298,7 @@ void RadarProductLayer::UpdateColorTable()
    gl.glGenerateMipmap(GL_TEXTURE_1D);
 
    gl.glUniform1ui(p->uDataMomentOffsetLocation_, rangeMin);
-   gl.glUniform1f(p->uDataMomentScaleLocation_, rangeMax - rangeMin);
+   gl.glUniform1f(p->uDataMomentScaleLocation_, scale);
 }
 
 void RadarProductLayer::UpdateColorTableNextFrame()
