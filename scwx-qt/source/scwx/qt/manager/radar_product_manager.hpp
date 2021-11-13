@@ -35,7 +35,7 @@ public:
 
    std::shared_ptr<wsr88d::rda::ElevationScan>
    GetLevel2Data(wsr88d::rda::DataBlockType            dataBlockType,
-                 uint8_t                               elevationIndex,
+                 uint16_t                              elevation,
                  std::chrono::system_clock::time_point time = {});
 
 signals:

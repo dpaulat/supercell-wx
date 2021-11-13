@@ -219,12 +219,30 @@ double VolumeCoveragePatternData::elevation_angle(uint16_t e) const
    return p->elevationCuts_[e].elevationAngle_ * ANGLE_DATA_SCALE;
 }
 
+uint16_t VolumeCoveragePatternData::elevation_angle_raw(uint16_t e) const
+{
+   return p->elevationCuts_[e].elevationAngle_;
+}
+
 uint8_t VolumeCoveragePatternData::channel_configuration(uint16_t e) const
 {
    return p->elevationCuts_[e].channelConfiguration_;
 }
 
-uint8_t VolumeCoveragePatternData::waveform_type(uint16_t e) const
+WaveformType VolumeCoveragePatternData::waveform_type(uint16_t e) const
+{
+   switch (p->elevationCuts_[e].waveformType_)
+   {
+   case 1: return WaveformType::ContiguousSurveillance;
+   case 2: return WaveformType::ContiguousDopplerWithAmbiguityResolution;
+   case 3: return WaveformType::ContiguousDopplerWithoutAmbiguityResolution;
+   case 4: return WaveformType::Batch;
+   case 5: return WaveformType::StaggeredPulsePair;
+   default: return WaveformType::Unknown;
+   }
+}
+
+uint8_t VolumeCoveragePatternData::waveform_type_raw(uint16_t e) const
 {
    return p->elevationCuts_[e].waveformType_;
 }

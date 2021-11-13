@@ -31,10 +31,12 @@ public:
        numRecords_ {0},
        rawRecords_(),
        vcpData_ {nullptr},
-       radarData_ {} {};
+       radarData_ {},
+       index_ {} {};
    ~Ar2vFileImpl() = default;
 
    void HandleMessage(std::shared_ptr<rda::Message>& message);
+   void IndexFile();
    void LoadLDMRecords(std::ifstream& f);
    void ParseLDMRecords();
    void ProcessRadarData(std::shared_ptr<rda::DigitalRadarData> message);
@@ -49,6 +51,10 @@ public:
 
    std::shared_ptr<rda::VolumeCoveragePatternData>         vcpData_;
    std::map<uint16_t, std::shared_ptr<rda::ElevationScan>> radarData_;
+
+   std::map<rda::DataBlockType,
+            std::map<uint16_t, std::shared_ptr<rda::ElevationScan>>>
+      index_;
 
    std::list<std::stringstream> rawRecords_;
 };
@@ -98,6 +104,23 @@ Ar2vFile::radar_data() const
 std::shared_ptr<const rda::VolumeCoveragePatternData> Ar2vFile::vcp_data() const
 {
    return p->vcpData_;
+}
+
+std::shared_ptr<rda::ElevationScan>
+Ar2vFile::GetElevationScan(rda::DataBlockType                    dataBlockType,
+                           uint16_t                              elevation,
+                           std::chrono::system_clock::time_point time) const
+{
+   std::shared_ptr<rda::ElevationScan> elevationScan = nullptr;
+
+   // TODO: 88 = 0.5 degrees - this should be parameterized and searched
+   if (p->index_.contains(dataBlockType) &&
+       p->index_.at(dataBlockType).contains(88))
+   {
+      return p->index_.at(dataBlockType).at(88);
+   }
+
+   return elevationScan;
 }
 
 bool Ar2vFile::LoadFile(const std::string& filename)
@@ -150,6 +173,8 @@ bool Ar2vFile::LoadFile(const std::string& filename)
 
       p->LoadLDMRecords(f);
    }
+
+   p->IndexFile();
 
    return fileValid;
 }
@@ -293,6 +318,45 @@ void Ar2vFileImpl::ProcessRadarData(
    }
 
    (*radarData_[elevationIndex])[azimuthIndex] = message;
+}
+
+void Ar2vFileImpl::IndexFile()
+{
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Indexing file";
+
+   for (auto elevationCut : radarData_)
+   {
+      uint16_t elevationAngle =
+         vcpData_->elevation_angle_raw(elevationCut.first);
+      rda::WaveformType waveformType =
+         vcpData_->waveform_type(elevationCut.first);
+
+      std::shared_ptr<rda::DigitalRadarData> radial0 =
+         (*elevationCut.second)[0];
+
+      for (rda::DataBlockType dataBlockType :
+           rda::MomentDataBlockTypeIterator())
+      {
+         if (dataBlockType == rda::DataBlockType::MomentRef &&
+             (waveformType ==
+                 rda::WaveformType::ContiguousDopplerWithAmbiguityResolution ||
+              waveformType == rda::WaveformType::
+                                 ContiguousDopplerWithoutAmbiguityResolution))
+         {
+            // Reflectivity data is contained within both surveillance and
+            // doppler modes.  Surveillance mode produces a better image.
+            continue;
+         }
+
+         auto momentData = radial0->moment_data_block(dataBlockType);
+
+         if (momentData != nullptr)
+         {
+            // TODO: Handle multiple elevation scans
+            index_[dataBlockType][elevationAngle] = elevationCut.second;
+         }
+      }
+   }
 }
 
 } // namespace wsr88d
