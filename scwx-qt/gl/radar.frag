@@ -4,6 +4,8 @@
 precision mediump float;
 
 uniform sampler1D uTexture;
+uniform uint uDataMomentOffset;
+uniform float uDataMomentScale;
 
 flat in uint dataMoment;
 
@@ -11,7 +13,7 @@ layout (location = 0) out vec4 fragColor;
 
 void main()
 {
-   float texCoord = float(dataMoment - 2u) / 253.0f; // TODO: Scale properly
+   float texCoord = float(dataMoment - uDataMomentOffset) / uDataMomentScale;
 
    fragColor = texture(uTexture, texCoord);
 }

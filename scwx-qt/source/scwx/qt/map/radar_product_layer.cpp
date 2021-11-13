@@ -53,6 +53,8 @@ public:
    gl::ShaderProgram     shaderProgram_;
    GLint                 uMVPMatrixLocation_;
    GLint                 uMapScreenCoordLocation_;
+   GLint                 uDataMomentOffsetLocation_;
+   GLint                 uDataMomentScaleLocation_;
    std::array<GLuint, 2> vbo_;
    GLuint                vao_;
    GLuint                texture_;
@@ -94,6 +96,24 @@ void RadarProductLayer::initialize()
       BOOST_LOG_TRIVIAL(warning)
          << logPrefix_ << "Could not find uMapScreenCoord";
    }
+
+   p->uDataMomentOffsetLocation_ =
+      gl.glGetUniformLocation(p->shaderProgram_.id(), "uDataMomentOffset");
+   if (p->uDataMomentOffsetLocation_ == -1)
+   {
+      BOOST_LOG_TRIVIAL(warning)
+         << logPrefix_ << "Could not find uDataMomentOffset";
+   }
+
+   p->uDataMomentScaleLocation_ =
+      gl.glGetUniformLocation(p->shaderProgram_.id(), "uDataMomentScale");
+   if (p->uDataMomentScaleLocation_ == -1)
+   {
+      BOOST_LOG_TRIVIAL(warning)
+         << logPrefix_ << "Could not find uDataMomentScale";
+   }
+
+   p->shaderProgram_.Use();
 
    // Generate a vertex array object
    gl.glGenVertexArrays(1, &p->vao_);
@@ -187,6 +207,8 @@ void RadarProductLayer::render(
 {
    gl::OpenGLFunctions& gl = p->gl_;
 
+   p->shaderProgram_.Use();
+
    if (p->colorTableNeedsUpdate_)
    {
       UpdateColorTable();
@@ -196,8 +218,6 @@ void RadarProductLayer::render(
    {
       UpdateSweep();
    }
-
-   p->shaderProgram_.Use();
 
    const float scale = std::pow(2.0, params.zoom) * 2.0f *
                        mbgl::util::tileSize / mbgl::util::DEGREES_MAX;
@@ -252,12 +272,18 @@ void RadarProductLayer::UpdateColorTable()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "UpdateColorTable()";
 
+   uint16_t rangeMin;
+   uint16_t rangeMax;
+   float    scale;
+
    p->colorTableNeedsUpdate_ = false;
 
    gl::OpenGLFunctions& gl = p->gl_;
 
    const std::vector<boost::gil::rgba8_pixel_t>& colorTable =
-      p->radarProductView_->color_table();
+      p->radarProductView_->color_table(rangeMin, rangeMax);
+
+   scale = rangeMax - rangeMin;
 
    gl.glActiveTexture(GL_TEXTURE0);
    gl.glBindTexture(GL_TEXTURE_1D, p->texture_);
@@ -270,6 +296,9 @@ void RadarProductLayer::UpdateColorTable()
                    GL_UNSIGNED_BYTE,
                    colorTable.data());
    gl.glGenerateMipmap(GL_TEXTURE_1D);
+
+   gl.glUniform1ui(p->uDataMomentOffsetLocation_, rangeMin);
+   gl.glUniform1f(p->uDataMomentScaleLocation_, rangeMax - rangeMin);
 }
 
 void RadarProductLayer::UpdateColorTableNextFrame()

@@ -18,6 +18,8 @@ static const std::vector<boost::gil::rgba8_pixel_t> DEFAULT_COLOR_TABLE = {
    boost::gil::rgba8_pixel_t(0, 128, 0, 255),
    boost::gil::rgba8_pixel_t(255, 192, 0, 255),
    boost::gil::rgba8_pixel_t(255, 0, 0, 255)};
+static const uint16_t DEFAULT_COLOR_TABLE_MIN = 2u;
+static const uint16_t DEFAULT_COLOR_TABLE_MAX = 255u;
 
 class RadarProductViewImpl
 {
@@ -31,8 +33,10 @@ RadarProductView::RadarProductView() :
 RadarProductView::~RadarProductView() = default;
 
 const std::vector<boost::gil::rgba8_pixel_t>&
-RadarProductView::color_table() const
+RadarProductView::color_table(uint16_t& minValue, uint16_t& maxValue) const
 {
+   minValue = DEFAULT_COLOR_TABLE_MIN;
+   maxValue = DEFAULT_COLOR_TABLE_MAX;
    return DEFAULT_COLOR_TABLE;
 }
 

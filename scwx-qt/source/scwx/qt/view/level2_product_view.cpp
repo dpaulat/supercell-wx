@@ -47,7 +47,9 @@ public:
        longitude_ {},
        sweepTime_ {},
        colorTable_ {},
-       colorTableLut_ {}
+       colorTableLut_ {},
+       colorTableMin_ {2},
+       colorTableMax_ {254}
    {
       auto it = blockTypes_.find(product);
 
@@ -81,6 +83,8 @@ public:
 
    std::shared_ptr<common::ColorTable>    colorTable_;
    std::vector<boost::gil::rgba8_pixel_t> colorTableLut_;
+   uint16_t                               colorTableMin_;
+   uint16_t                               colorTableMax_;
 
    std::shared_ptr<common::ColorTable> savedColorTable_;
    float                               savedScale_;
@@ -100,14 +104,16 @@ Level2ProductView::Level2ProductView(
 Level2ProductView::~Level2ProductView() = default;
 
 const std::vector<boost::gil::rgba8_pixel_t>&
-Level2ProductView::color_table() const
+Level2ProductView::color_table(uint16_t& minValue, uint16_t& maxValue) const
 {
    if (p->colorTableLut_.size() == 0)
    {
-      return RadarProductView::color_table();
+      return RadarProductView::color_table(minValue, maxValue);
    }
    else
    {
+      minValue = p->colorTableMin_;
+      maxValue = p->colorTableMax_;
       return p->colorTableLut_;
    }
 }
@@ -215,6 +221,9 @@ void Level2ProductView::UpdateColorTable()
                     float f                     = (i - offset) / scale;
                     lut[i - *dataRange.begin()] = p->colorTable_->Color(f);
                  });
+
+   p->colorTableMin_ = rangeMin;
+   p->colorTableMax_ = rangeMax;
 
    p->savedColorTable_ = p->colorTable_;
    p->savedOffset_     = offset;

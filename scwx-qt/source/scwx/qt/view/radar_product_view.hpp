@@ -25,9 +25,10 @@ public:
    explicit RadarProductView();
    ~RadarProductView();
 
-   virtual const std::vector<boost::gil::rgba8_pixel_t>& color_table() const;
-   virtual std::chrono::system_clock::time_point         sweep_time() const;
-   virtual const std::vector<float>&                     vertices() const = 0;
+   virtual const std::vector<boost::gil::rgba8_pixel_t>&
+   color_table(uint16_t& minValue, uint16_t& maxValue) const;
+   virtual std::chrono::system_clock::time_point sweep_time() const;
+   virtual const std::vector<float>&             vertices() const = 0;
 
    void Initialize();
    virtual void

@@ -28,9 +28,10 @@ public:
       std::shared_ptr<manager::RadarProductManager> radarProductManager);
    ~Level2ProductView();
 
-   const std::vector<boost::gil::rgba8_pixel_t>& color_table() const override;
-   std::chrono::system_clock::time_point         sweep_time() const override;
-   const std::vector<float>&                     vertices() const override;
+   const std::vector<boost::gil::rgba8_pixel_t>&
+   color_table(uint16_t& minValue, uint16_t& maxValue) const override;
+   std::chrono::system_clock::time_point sweep_time() const override;
+   const std::vector<float>&             vertices() const override;
 
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) override;
 
