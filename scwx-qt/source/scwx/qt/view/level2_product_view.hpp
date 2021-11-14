@@ -36,6 +36,7 @@ public:
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) override;
 
    std::tuple<const void*, size_t, size_t> GetMomentData() const override;
+   std::tuple<const void*, size_t, size_t> GetCfpMomentData() const override;
 
    static std::shared_ptr<Level2ProductView>
    Create(common::Level2Product                         product,

@@ -50,6 +50,16 @@ void RadarProductView::Initialize()
    ComputeSweep();
 }
 
+std::tuple<const void*, size_t, size_t>
+RadarProductView::GetCfpMomentData() const
+{
+   const void* data          = nullptr;
+   size_t      dataSize      = 0;
+   size_t      componentSize = 0;
+
+   return std::tie(data, dataSize, componentSize);
+}
+
 void RadarProductView::ComputeSweep()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "ComputeSweep()";

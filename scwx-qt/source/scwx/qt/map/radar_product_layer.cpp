@@ -37,10 +37,14 @@ public:
        shaderProgram_(gl),
        uMVPMatrixLocation_(GL_INVALID_INDEX),
        uMapScreenCoordLocation_(GL_INVALID_INDEX),
+       uDataMomentOffsetLocation_(GL_INVALID_INDEX),
+       uDataMomentScaleLocation_(GL_INVALID_INDEX),
+       uCFPEnabledLocation_(GL_INVALID_INDEX),
        vbo_ {GL_INVALID_INDEX},
        vao_ {GL_INVALID_INDEX},
        texture_ {GL_INVALID_INDEX},
        numVertices_ {0},
+       cfpEnabled_ {false},
        colorTableNeedsUpdate_ {false},
        sweepNeedsUpdate_ {false}
    {
@@ -55,11 +59,14 @@ public:
    GLint                 uMapScreenCoordLocation_;
    GLint                 uDataMomentOffsetLocation_;
    GLint                 uDataMomentScaleLocation_;
-   std::array<GLuint, 2> vbo_;
+   GLint                 uCFPEnabledLocation_;
+   std::array<GLuint, 3> vbo_;
    GLuint                vao_;
    GLuint                texture_;
 
    GLsizeiptr numVertices_;
+
+   bool cfpEnabled_;
 
    bool colorTableNeedsUpdate_;
    bool sweepNeedsUpdate_;
@@ -113,6 +120,13 @@ void RadarProductLayer::initialize()
          << logPrefix_ << "Could not find uDataMomentScale";
    }
 
+   p->uCFPEnabledLocation_ =
+      gl.glGetUniformLocation(p->shaderProgram_.id(), "uCFPEnabled");
+   if (p->uCFPEnabledLocation_ == -1)
+   {
+      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Could not find uCFPEnabled";
+   }
+
    p->shaderProgram_.Use();
 
    // Generate a vertex array object
@@ -155,7 +169,7 @@ void RadarProductLayer::UpdateSweep()
    gl.glBindVertexArray(p->vao_);
 
    // Generate vertex buffer objects
-   gl.glGenBuffers(2, p->vbo_.data());
+   gl.glGenBuffers(3, p->vbo_.data());
 
    // Buffer vertices
    gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
@@ -199,6 +213,41 @@ void RadarProductLayer::UpdateSweep()
    gl.glVertexAttribIPointer(1, 1, type, 0, static_cast<void*>(0));
    gl.glEnableVertexAttribArray(1);
 
+   // Buffer CFP data
+   const GLvoid* cfpData;
+   GLsizeiptr    cfpDataSize;
+   size_t        cfpComponentSize;
+   GLenum        cfpType;
+
+   std::tie(cfpData, cfpDataSize, cfpComponentSize) =
+      p->radarProductView_->GetCfpMomentData();
+
+   if (cfpData != nullptr)
+   {
+      if (cfpComponentSize == 1)
+      {
+         cfpType = GL_UNSIGNED_BYTE;
+      }
+      else
+      {
+         cfpType = GL_UNSIGNED_SHORT;
+      }
+
+      gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[2]);
+      timer.start();
+      gl.glBufferData(GL_ARRAY_BUFFER, cfpDataSize, cfpData, GL_STATIC_DRAW);
+      timer.stop();
+      BOOST_LOG_TRIVIAL(debug)
+         << logPrefix_ << "CFP moments buffered in " << timer.format(6, "%ws");
+
+      gl.glVertexAttribIPointer(2, 1, cfpType, 0, static_cast<void*>(0));
+      gl.glEnableVertexAttribArray(2);
+   }
+   else
+   {
+      gl.glDisableVertexAttribArray(2);
+   }
+
    p->numVertices_ = vertices.size() / 2;
 }
 
@@ -238,6 +287,8 @@ void RadarProductLayer::render(
    gl.glUniformMatrix4fv(
       p->uMVPMatrixLocation_, 1, GL_FALSE, glm::value_ptr(uMVPMatrix));
 
+   gl.glUniform1i(p->uCFPEnabledLocation_, p->cfpEnabled_ ? 1 : 0);
+
    gl.glActiveTexture(GL_TEXTURE0);
    gl.glBindTexture(GL_TEXTURE_1D, p->texture_);
    gl.glBindVertexArray(p->vao_);
@@ -253,10 +304,14 @@ void RadarProductLayer::deinitialize()
    gl.glDeleteVertexArrays(1, &p->vao_);
    gl.glDeleteBuffers(2, p->vbo_.data());
 
-   p->uMVPMatrixLocation_ = GL_INVALID_INDEX;
-   p->vao_                = GL_INVALID_INDEX;
-   p->vbo_                = {GL_INVALID_INDEX};
-   p->texture_            = GL_INVALID_INDEX;
+   p->uMVPMatrixLocation_        = GL_INVALID_INDEX;
+   p->uMapScreenCoordLocation_   = GL_INVALID_INDEX;
+   p->uDataMomentOffsetLocation_ = GL_INVALID_INDEX;
+   p->uDataMomentScaleLocation_  = GL_INVALID_INDEX;
+   p->uCFPEnabledLocation_       = GL_INVALID_INDEX;
+   p->vao_                       = GL_INVALID_INDEX;
+   p->vbo_                       = {GL_INVALID_INDEX};
+   p->texture_                   = GL_INVALID_INDEX;
 
    disconnect(p->radarProductView_.get(),
               &view::RadarProductView::ColorTableUpdated,

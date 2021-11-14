@@ -76,6 +76,7 @@ public:
    std::vector<float>    vertices_;
    std::vector<uint8_t>  dataMoments8_;
    std::vector<uint16_t> dataMoments16_;
+   std::vector<uint8_t>  cfpMoments_;
 
    float latitude_;
    float longitude_;
@@ -146,6 +147,22 @@ std::tuple<const void*, size_t, size_t> Level2ProductView::GetMomentData() const
       data          = p->dataMoments16_.data();
       dataSize      = p->dataMoments16_.size() * sizeof(uint16_t);
       componentSize = 2;
+   }
+
+   return std::tie(data, dataSize, componentSize);
+}
+
+std::tuple<const void*, size_t, size_t>
+Level2ProductView::GetCfpMomentData() const
+{
+   const void* data          = nullptr;
+   size_t      dataSize      = 0;
+   size_t      componentSize = 1;
+
+   if (p->cfpMoments_.size() > 0)
+   {
+      data     = p->cfpMoments_.data();
+      dataSize = p->cfpMoments_.size() * sizeof(uint8_t);
    }
 
    return std::tie(data, dataSize, componentSize);
@@ -297,6 +314,7 @@ void Level2ProductView::ComputeSweep()
    // Setup data moment vector
    std::vector<uint8_t>&  dataMoments8  = p->dataMoments8_;
    std::vector<uint16_t>& dataMoments16 = p->dataMoments16_;
+   std::vector<uint8_t>&  cfpMoments    = p->cfpMoments_;
    size_t                 mIndex        = 0;
 
    if (momentData0->data_word_size() == 8)
@@ -312,6 +330,16 @@ void Level2ProductView::ComputeSweep()
       dataMoments8.shrink_to_fit();
 
       dataMoments16.resize(radials * gates * VERTICES_PER_BIN);
+   }
+
+   if (p->dataBlockType_ == wsr88d::rda::DataBlockType::MomentRef)
+   {
+      cfpMoments.resize(radials * gates * VERTICES_PER_BIN);
+   }
+   else
+   {
+      cfpMoments.resize(0);
+      cfpMoments.shrink_to_fit();
    }
 
    // Compute threshold at which to display an individual bin
@@ -361,6 +389,7 @@ void Level2ProductView::ComputeSweep()
 
       const uint8_t*  dataMomentsArray8  = nullptr;
       const uint16_t* dataMomentsArray16 = nullptr;
+      const uint8_t*  cfpMomentsArray    = nullptr;
 
       if (momentData->data_word_size() == 8)
       {
@@ -371,6 +400,13 @@ void Level2ProductView::ComputeSweep()
       {
          dataMomentsArray16 =
             reinterpret_cast<const uint16_t*>(momentData->data_moments());
+      }
+
+      if (cfpMoments.size() > 0)
+      {
+         cfpMomentsArray = reinterpret_cast<const uint8_t*>(
+            radialData->moment_data_block(wsr88d::rda::DataBlockType::MomentCfp)
+               ->data_moments());
       }
 
       for (uint16_t gate = startGate, i = 0; gate + gateSize <= endGate;
@@ -390,6 +426,11 @@ void Level2ProductView::ComputeSweep()
             for (size_t m = 0; m < vertexCount; m++)
             {
                dataMoments8[mIndex++] = dataMomentsArray8[i];
+
+               if (cfpMomentsArray != nullptr)
+               {
+                  cfpMoments[mIndex - 1] = cfpMomentsArray[i];
+               }
             }
          }
          else
@@ -479,6 +520,11 @@ void Level2ProductView::ComputeSweep()
    else
    {
       dataMoments16.resize(mIndex);
+   }
+
+   if (cfpMoments.size() > 0)
+   {
+      cfpMoments.resize(mIndex);
    }
 
    timer.stop();

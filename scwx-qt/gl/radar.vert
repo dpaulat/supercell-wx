@@ -8,11 +8,13 @@
 
 layout (location = 0) in vec2 aLatLong;
 layout (location = 1) in uint aDataMoment;
+layout (location = 2) in uint aCfpMoment;
 
 uniform mat4 uMVPMatrix;
 uniform vec2 uMapScreenCoord;
 
 flat out uint dataMoment;
+flat out uint cfpMoment;
 
 vec2 latLngToScreenCoordinate(in vec2 latLng)
 {
@@ -27,6 +29,7 @@ void main()
 {
    // Pass the coded data moment to the fragment shader
    dataMoment = aDataMoment;
+   cfpMoment  = aCfpMoment;
 
    vec2 p = latLngToScreenCoordinate(aLatLong) - uMapScreenCoord;
 
