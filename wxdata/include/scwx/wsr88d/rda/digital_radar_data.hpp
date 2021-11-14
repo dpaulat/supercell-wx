@@ -129,6 +129,8 @@ public:
    RadialDataBlock(RadialDataBlock&&) noexcept;
    RadialDataBlock& operator=(RadialDataBlock&&) noexcept;
 
+   float unambiguous_range() const;
+
    static std::shared_ptr<RadialDataBlock>
    Create(const std::string& dataBlockType,
           const std::string& dataName,
@@ -195,7 +197,9 @@ public:
    uint8_t            azimuth_indexing_mode() const;
    uint16_t           data_block_count() const;
 
-   std::shared_ptr<VolumeDataBlock> volume_data_block() const;
+   std::shared_ptr<ElevationDataBlock> elevation_data_block() const;
+   std::shared_ptr<RadialDataBlock>    radial_data_block() const;
+   std::shared_ptr<VolumeDataBlock>    volume_data_block() const;
    std::shared_ptr<MomentDataBlock> moment_data_block(DataBlockType type) const;
 
    bool Parse(std::istream& is);

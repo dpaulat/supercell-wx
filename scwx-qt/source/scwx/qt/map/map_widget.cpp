@@ -115,7 +115,10 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
       p->radarProductView_.get(),
       &view::RadarProductView::SweepComputed,
       this,
-      [&]() { update(); },
+      [&]() {
+         RadarRangeLayer::Update(p->map_, p->radarProductView_->range());
+         update();
+      },
       Qt::QueuedConnection);
 
    if (p->map_ != nullptr)
@@ -148,14 +151,6 @@ void MapWidget::changeStyle()
 void MapWidget::AddLayers()
 {
    // TODO: Improve this
-   if (p->map_->layerExists("rangeCircleLayer"))
-   {
-      p->map_->removeLayer("rangeCircleLayer");
-   }
-   if (p->map_->sourceExists("rangeCircleSource"))
-   {
-      p->map_->removeSource("rangeCircleSource");
-   }
    if (p->map_->layerExists("radar"))
    {
       p->map_->removeLayer("radar");
@@ -185,7 +180,7 @@ void MapWidget::AddLayers()
    }
 
    p->map_->addCustomLayer("radar", pHost, before);
-   RadarRangeLayer::Add(p->map_, before);
+   RadarRangeLayer::Add(p->map_, p->radarProductView_->range(), before);
    p->map_->addCustomLayer("overlay", pOverlayHost);
 }
 

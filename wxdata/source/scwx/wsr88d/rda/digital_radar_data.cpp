@@ -434,6 +434,11 @@ RadialDataBlock::RadialDataBlock(RadialDataBlock&&) noexcept = default;
 RadialDataBlock&
 RadialDataBlock::operator=(RadialDataBlock&&) noexcept = default;
 
+float RadialDataBlock::unambiguous_range() const
+{
+   return p->unambigiousRange_ / 10.0f;
+}
+
 std::shared_ptr<RadialDataBlock>
 RadialDataBlock::Create(const std::string& dataBlockType,
                         const std::string& dataName,
@@ -613,6 +618,18 @@ uint16_t DigitalRadarData::data_block_count() const
 {
    return p->dataBlockCount_;
 }
+
+std::shared_ptr<ElevationDataBlock>
+DigitalRadarData::elevation_data_block() const
+{
+   return p->elevationDataBlock_;
+}
+
+std::shared_ptr<RadialDataBlock> DigitalRadarData::radial_data_block() const
+{
+   return p->radialDataBlock_;
+}
+
 std::shared_ptr<VolumeDataBlock> DigitalRadarData::volume_data_block() const
 {
    return p->volumeDataBlock_;

@@ -46,6 +46,7 @@ public:
        radarProductManager_ {radarProductManager},
        latitude_ {},
        longitude_ {},
+       range_ {},
        sweepTime_ {},
        colorTable_ {},
        colorTableLut_ {},
@@ -80,6 +81,7 @@ public:
 
    float latitude_;
    float longitude_;
+   float range_;
 
    std::chrono::system_clock::time_point sweepTime_;
 
@@ -118,6 +120,11 @@ Level2ProductView::color_table(uint16_t& minValue, uint16_t& maxValue) const
       maxValue = p->colorTableMax_;
       return p->colorTableLut_;
    }
+}
+
+float Level2ProductView::range() const
+{
+   return p->range_;
 }
 
 std::chrono::system_clock::time_point Level2ProductView::sweep_time() const
@@ -295,10 +302,16 @@ void Level2ProductView::ComputeSweep()
       return;
    }
 
+   const uint32_t gates = momentData0->number_of_data_moment_gates();
+
+   auto radialData0 = radarData0->radial_data_block();
    auto volumeData0 = radarData0->volume_data_block();
    p->latitude_     = volumeData0->latitude();
    p->longitude_    = volumeData0->longitude();
-   p->sweepTime_    = util::TimePoint(radarData0->modified_julian_date(),
+   p->range_ =
+      momentData0->data_moment_range() +
+      momentData0->data_moment_range_sample_interval() * (gates - 0.5f);
+   p->sweepTime_ = util::TimePoint(radarData0->modified_julian_date(),
                                    radarData0->collection_time());
 
    // Calculate vertices
@@ -306,7 +319,6 @@ void Level2ProductView::ComputeSweep()
 
    // Setup vertex vector
    std::vector<float>& vertices = p->vertices_;
-   const uint32_t      gates    = momentData0->number_of_data_moment_gates();
    size_t              vIndex   = 0;
    vertices.clear();
    vertices.resize(radials * gates * VERTICES_PER_BIN * VALUES_PER_VERTEX);

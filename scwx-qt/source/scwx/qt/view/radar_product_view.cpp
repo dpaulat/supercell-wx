@@ -40,6 +40,11 @@ RadarProductView::color_table(uint16_t& minValue, uint16_t& maxValue) const
    return DEFAULT_COLOR_TABLE;
 }
 
+float RadarProductView::range() const
+{
+   return 0.0f;
+}
+
 std::chrono::system_clock::time_point RadarProductView::sweep_time() const
 {
    return {};
