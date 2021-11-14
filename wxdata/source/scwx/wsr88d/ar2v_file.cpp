@@ -106,21 +106,56 @@ std::shared_ptr<const rda::VolumeCoveragePatternData> Ar2vFile::vcp_data() const
    return p->vcpData_;
 }
 
-std::shared_ptr<rda::ElevationScan>
+std::pair<float, std::shared_ptr<rda::ElevationScan>>
 Ar2vFile::GetElevationScan(rda::DataBlockType                    dataBlockType,
-                           uint16_t                              elevation,
+                           float                                 elevation,
                            std::chrono::system_clock::time_point time) const
 {
-   std::shared_ptr<rda::ElevationScan> elevationScan = nullptr;
+   constexpr float scaleFactor = 8.0f / 0.043945f;
 
-   // TODO: 88 = 0.5 degrees - this should be parameterized and searched
-   if (p->index_.contains(dataBlockType) &&
-       p->index_.at(dataBlockType).contains(88))
+   float                               elevationFound = 0.0f;
+   std::shared_ptr<rda::ElevationScan> elevationScan  = nullptr;
+
+   uint16_t codedElevation =
+      static_cast<uint16_t>(std::lroundf(elevation * scaleFactor));
+
+   if (p->index_.contains(dataBlockType))
    {
-      return p->index_.at(dataBlockType).at(88);
+      auto scans = p->index_.at(dataBlockType);
+
+      uint16_t lowerBound = scans.cbegin()->first;
+      uint16_t upperBound = scans.crbegin()->first;
+
+      for (auto scan : scans)
+      {
+         if (scan.first > lowerBound && scan.first < codedElevation)
+         {
+            lowerBound = scan.first;
+         }
+         if (scan.first < upperBound && scan.first > codedElevation)
+         {
+            upperBound = scan.first;
+         }
+      }
+
+      uint16_t lowerDelta = std::abs(static_cast<int32_t>(codedElevation) -
+                                     static_cast<int32_t>(lowerBound));
+      uint16_t upperDelta = std::abs(static_cast<int32_t>(codedElevation) -
+                                     static_cast<int32_t>(upperBound));
+
+      if (lowerDelta < upperDelta)
+      {
+         elevationFound = lowerBound / scaleFactor;
+         elevationScan  = scans.at(lowerBound);
+      }
+      else
+      {
+         elevationFound = upperBound / scaleFactor;
+         elevationScan  = scans.at(upperBound);
+      }
    }
 
-   return elevationScan;
+   return std::make_pair(elevationFound, elevationScan);
 }
 
 bool Ar2vFile::LoadFile(const std::string& filename)

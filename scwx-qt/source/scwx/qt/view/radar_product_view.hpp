@@ -27,6 +27,7 @@ public:
 
    virtual const std::vector<boost::gil::rgba8_pixel_t>&
                  color_table(uint16_t& minValue, uint16_t& maxValue) const;
+   virtual float elevation() const;
    virtual float range() const;
    virtual std::chrono::system_clock::time_point sweep_time() const;
    virtual const std::vector<float>&             vertices() const = 0;

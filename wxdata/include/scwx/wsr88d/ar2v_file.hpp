@@ -40,9 +40,9 @@ public:
    std::map<uint16_t, std::shared_ptr<rda::ElevationScan>> radar_data() const;
    std::shared_ptr<const rda::VolumeCoveragePatternData>   vcp_data() const;
 
-   std::shared_ptr<rda::ElevationScan>
+   std::pair<float, std::shared_ptr<rda::ElevationScan>>
    GetElevationScan(rda::DataBlockType                    dataBlockType,
-                    uint16_t                              elevation,
+                    float                                 elevation,
                     std::chrono::system_clock::time_point time) const;
 
    bool LoadFile(const std::string& filename);

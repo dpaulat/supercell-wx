@@ -44,8 +44,10 @@ public:
       std::shared_ptr<manager::RadarProductManager> radarProductManager) :
        product_ {product},
        radarProductManager_ {radarProductManager},
+       momentDataBlock0_ {nullptr},
        latitude_ {},
        longitude_ {},
+       elevation_ {},
        range_ {},
        sweepTime_ {},
        colorTable_ {},
@@ -81,6 +83,7 @@ public:
 
    float latitude_;
    float longitude_;
+   float elevation_;
    float range_;
 
    std::chrono::system_clock::time_point sweepTime_;
@@ -120,6 +123,11 @@ Level2ProductView::color_table(uint16_t& minValue, uint16_t& maxValue) const
       maxValue = p->colorTableMax_;
       return p->colorTableLut_;
    }
+}
+
+float Level2ProductView::elevation() const
+{
+   return p->elevation_;
 }
 
 float Level2ProductView::range() const
@@ -276,8 +284,10 @@ void Level2ProductView::ComputeSweep()
    }
 
    // TODO: Pick this based on view settings
-   auto radarData =
-      p->radarProductManager_->GetLevel2Data(p->dataBlockType_, 0);
+   float                                       elevation;
+   std::shared_ptr<wsr88d::rda::ElevationScan> radarData;
+   std::tie(elevation, radarData) =
+      p->radarProductManager_->GetLevel2Data(p->dataBlockType_, 0.0f);
    if (radarData == nullptr)
    {
       return;
@@ -308,6 +318,7 @@ void Level2ProductView::ComputeSweep()
    auto volumeData0 = radarData0->volume_data_block();
    p->latitude_     = volumeData0->latitude();
    p->longitude_    = volumeData0->longitude();
+   p->elevation_    = elevation;
    p->range_ =
       momentData0->data_moment_range() +
       momentData0->data_moment_range_sample_interval() * (gates - 0.5f);
@@ -464,16 +475,15 @@ void Level2ProductView::ComputeSweep()
          {
             const uint16_t baseCoord = gate - 1;
 
-            size_t offset1 = ((startRadial + radial) % common::MAX_RADIALS *
+            size_t offset1 = ((startRadial + radial) % radials *
                                  common::MAX_DATA_MOMENT_GATES +
                               baseCoord) *
                              2;
             size_t offset2 = offset1 + gateSize * 2;
-            size_t offset3 =
-               (((startRadial + radial + 1) % common::MAX_RADIALS) *
-                   common::MAX_DATA_MOMENT_GATES +
-                baseCoord) *
-               2;
+            size_t offset3 = (((startRadial + radial + 1) % radials) *
+                                 common::MAX_DATA_MOMENT_GATES +
+                              baseCoord) *
+                             2;
             size_t offset4 = offset3 + gateSize * 2;
 
             vertices[vIndex++] = coordinates[offset1];
@@ -500,15 +510,14 @@ void Level2ProductView::ComputeSweep()
          {
             const uint16_t baseCoord = gate;
 
-            size_t offset1 = ((startRadial + radial) % common::MAX_RADIALS *
+            size_t offset1 = ((startRadial + radial) % radials *
                                  common::MAX_DATA_MOMENT_GATES +
                               baseCoord) *
                              2;
-            size_t offset2 =
-               (((startRadial + radial + 1) % common::MAX_RADIALS) *
-                   common::MAX_DATA_MOMENT_GATES +
-                baseCoord) *
-               2;
+            size_t offset2 = (((startRadial + radial + 1) % radials) *
+                                 common::MAX_DATA_MOMENT_GATES +
+                              baseCoord) *
+                             2;
 
             vertices[vIndex++] = p->latitude_;
             vertices[vIndex++] = p->longitude_;

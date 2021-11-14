@@ -40,6 +40,11 @@ RadarProductView::color_table(uint16_t& minValue, uint16_t& maxValue) const
    return DEFAULT_COLOR_TABLE;
 }
 
+float RadarProductView::elevation() const
+{
+   return 0.0f;
+}
+
 float RadarProductView::range() const
 {
    return 0.0f;

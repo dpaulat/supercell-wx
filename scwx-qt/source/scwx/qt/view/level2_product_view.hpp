@@ -30,6 +30,7 @@ public:
 
    const std::vector<boost::gil::rgba8_pixel_t>&
          color_table(uint16_t& minValue, uint16_t& maxValue) const override;
+   float elevation() const override;
    float range() const override;
    std::chrono::system_clock::time_point sweep_time() const override;
    const std::vector<float>&             vertices() const override;
