@@ -34,6 +34,8 @@ public:
    ColorTable(ColorTable&&) noexcept;
    ColorTable& operator=(ColorTable&&) noexcept;
 
+   boost::gil::rgba8_pixel_t rf_color() const;
+
    boost::gil::rgba8_pixel_t Color(float value) const;
    bool                      IsValid() const;
 

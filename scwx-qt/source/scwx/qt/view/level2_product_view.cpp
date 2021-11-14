@@ -15,8 +15,9 @@ namespace view
 
 static const std::string logPrefix_ = "[scwx::qt::view::level2_product_view] ";
 
-static constexpr uint32_t VERTICES_PER_BIN  = 6;
-static constexpr uint32_t VALUES_PER_VERTEX = 2;
+static constexpr uint16_t RANGE_FOLDED      = 1u;
+static constexpr uint32_t VERTICES_PER_BIN  = 6u;
+static constexpr uint32_t VALUES_PER_VERTEX = 2u;
 
 static const std::unordered_map<common::Level2Product,
                                 wsr88d::rda::DataBlockType>
@@ -188,22 +189,22 @@ void Level2ProductView::UpdateColorTable()
    case common::Level2Product::SpectrumWidth:
    case common::Level2Product::CorrelationCoefficient:
    default:
-      rangeMin = 2;
+      rangeMin = 1;
       rangeMax = 255;
       break;
 
    case common::Level2Product::DifferentialReflectivity:
-      rangeMin = 2;
+      rangeMin = 1;
       rangeMax = 1058;
       break;
 
    case common::Level2Product::DifferentialPhase:
-      rangeMin = 2;
+      rangeMin = 1;
       rangeMax = 1023;
       break;
 
    case common::Level2Product::ClutterFilterPowerRemoved:
-      rangeMin = 8;
+      rangeMin = 1;
       rangeMax = 81;
       break;
    }
@@ -218,8 +219,15 @@ void Level2ProductView::UpdateColorTable()
                  dataRange.begin(),
                  dataRange.end(),
                  [&](uint16_t i) {
-                    float f                     = (i - offset) / scale;
-                    lut[i - *dataRange.begin()] = p->colorTable_->Color(f);
+                    if (i == RANGE_FOLDED)
+                    {
+                       lut[i - *dataRange.begin()] = p->colorTable_->rf_color();
+                    }
+                    else
+                    {
+                       float f                     = (i - offset) / scale;
+                       lut[i - *dataRange.begin()] = p->colorTable_->Color(f);
+                    }
                  });
 
    p->colorTableMin_ = rangeMin;
@@ -307,8 +315,8 @@ void Level2ProductView::ComputeSweep()
    }
 
    // Compute threshold at which to display an individual bin
-   const float    scale  = momentData0->scale();
-   const float    offset = momentData0->offset();
+   const float    scale        = momentData0->scale();
+   const float    offset       = momentData0->offset();
    const uint16_t snrThreshold = momentData0->snr_threshold_raw();
 
    // Azimuth resolution spacing:
@@ -374,7 +382,7 @@ void Level2ProductView::ComputeSweep()
          if (dataMomentsArray8 != nullptr)
          {
             uint8_t dataValue = dataMomentsArray8[i];
-            if (dataValue < snrThreshold)
+            if (dataValue < snrThreshold && dataValue != RANGE_FOLDED)
             {
                continue;
             }
@@ -387,7 +395,7 @@ void Level2ProductView::ComputeSweep()
          else
          {
             uint16_t dataValue = dataMomentsArray16[i];
-            if (dataValue < snrThreshold)
+            if (dataValue < snrThreshold && dataValue != RANGE_FOLDED)
             {
                continue;
             }

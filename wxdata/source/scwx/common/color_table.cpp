@@ -70,6 +70,11 @@ ColorTable::~ColorTable() = default;
 ColorTable::ColorTable(ColorTable&&) noexcept = default;
 ColorTable& ColorTable::operator=(ColorTable&&) noexcept = default;
 
+boost::gil::rgba8_pixel_t ColorTable::rf_color() const
+{
+   return p->rfColor_;
+}
+
 boost::gil::rgba8_pixel_t ColorTable::Color(float value) const
 {
    boost::gil::rgba8_pixel_t color;
@@ -198,7 +203,7 @@ void ColorTable::ProcessLine(const std::vector<std::string>& tokenList)
       // Step: number
       p->step_ = std::stol(tokenList[1]);
    }
-   else if (tokenList[0] == "RF")
+   else if (tokenList[0] == "RF:")
    {
       // RF: R G B [A]
       p->rfColor_ = ParseColor(tokenList, 1, p->colorMode_);
