@@ -1,5 +1,6 @@
 #include <scwx/qt/view/level2_product_view.hpp>
 #include <scwx/common/constants.hpp>
+#include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 
 #include <boost/log/trivial.hpp>
@@ -41,13 +42,17 @@ class Level2ProductViewImpl
 public:
    explicit Level2ProductViewImpl(
       common::Level2Product                         product,
+      float                                         elevation,
       std::shared_ptr<manager::RadarProductManager> radarProductManager) :
        product_ {product},
        radarProductManager_ {radarProductManager},
+       selectedElevation_ {elevation},
+       elevationScan_ {nullptr},
        momentDataBlock0_ {nullptr},
        latitude_ {},
        longitude_ {},
-       elevation_ {},
+       elevationCut_ {},
+       elevationCuts_ {},
        range_ {},
        sweepTime_ {},
        colorTable_ {},
@@ -74,6 +79,9 @@ public:
    wsr88d::rda::DataBlockType                    dataBlockType_;
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
+   float selectedElevation_;
+
+   std::shared_ptr<wsr88d::rda::ElevationScan>   elevationScan_;
    std::shared_ptr<wsr88d::rda::MomentDataBlock> momentDataBlock0_;
 
    std::vector<float>    vertices_;
@@ -81,10 +89,11 @@ public:
    std::vector<uint16_t> dataMoments16_;
    std::vector<uint8_t>  cfpMoments_;
 
-   float latitude_;
-   float longitude_;
-   float elevation_;
-   float range_;
+   float              latitude_;
+   float              longitude_;
+   float              elevationCut_;
+   std::vector<float> elevationCuts_;
+   float              range_;
 
    std::chrono::system_clock::time_point sweepTime_;
 
@@ -100,8 +109,10 @@ public:
 
 Level2ProductView::Level2ProductView(
    common::Level2Product                         product,
+   float                                         elevation,
    std::shared_ptr<manager::RadarProductManager> radarProductManager) :
-    p(std::make_unique<Level2ProductViewImpl>(product, radarProductManager))
+    p(std::make_unique<Level2ProductViewImpl>(
+       product, elevation, radarProductManager))
 {
    connect(radarProductManager.get(),
            &manager::RadarProductManager::Level2DataLoaded,
@@ -127,7 +138,7 @@ Level2ProductView::color_table(uint16_t& minValue, uint16_t& maxValue) const
 
 float Level2ProductView::elevation() const
 {
-   return p->elevation_;
+   return p->elevationCut_;
 }
 
 float Level2ProductView::range() const
@@ -143,6 +154,11 @@ std::chrono::system_clock::time_point Level2ProductView::sweep_time() const
 const std::vector<float>& Level2ProductView::vertices() const
 {
    return p->vertices_;
+}
+
+std::vector<float> Level2ProductView::GetElevationCuts() const
+{
+   return p->elevationCuts_;
 }
 
 std::tuple<const void*, size_t, size_t> Level2ProductView::GetMomentData() const
@@ -188,6 +204,12 @@ void Level2ProductView::LoadColorTable(
 {
    p->colorTable_ = colorTable;
    UpdateColorTable();
+}
+
+void Level2ProductView::SelectElevation(float elevation)
+{
+   p->selectedElevation_ = elevation;
+   util::async([=]() { ComputeSweep(); });
 }
 
 void Level2ProductView::UpdateColorTable()
@@ -246,6 +268,7 @@ void Level2ProductView::UpdateColorTable()
 
    std::vector<boost::gil::rgba8_pixel_t>& lut = p->colorTableLut_;
    lut.resize(rangeMax - rangeMin + 1);
+   lut.shrink_to_fit();
 
    std::for_each(std::execution::par_unseq,
                  dataRange.begin(),
@@ -283,12 +306,12 @@ void Level2ProductView::ComputeSweep()
       return;
    }
 
-   // TODO: Pick this based on view settings
    float                                       elevation;
    std::shared_ptr<wsr88d::rda::ElevationScan> radarData;
-   std::tie(elevation, radarData) =
-      p->radarProductManager_->GetLevel2Data(p->dataBlockType_, 0.0f);
-   if (radarData == nullptr)
+   std::tie(radarData, p->elevationCut_, p->elevationCuts_) =
+      p->radarProductManager_->GetLevel2Data(p->dataBlockType_,
+                                             p->selectedElevation_);
+   if (radarData == nullptr || radarData == p->elevationScan_)
    {
       return;
    }
@@ -303,6 +326,7 @@ void Level2ProductView::ComputeSweep()
 
    auto radarData0      = (*radarData)[0];
    auto momentData0     = radarData0->moment_data_block(p->dataBlockType_);
+   p->elevationScan_    = radarData;
    p->momentDataBlock0_ = momentData0;
 
    if (momentData0 == nullptr)
@@ -318,7 +342,6 @@ void Level2ProductView::ComputeSweep()
    auto volumeData0 = radarData0->volume_data_block();
    p->latitude_     = volumeData0->latitude();
    p->longitude_    = volumeData0->longitude();
-   p->elevation_    = elevation;
    p->range_ =
       momentData0->data_moment_range() +
       momentData0->data_moment_range_sample_interval() * (gates - 0.5f);
@@ -533,19 +556,23 @@ void Level2ProductView::ComputeSweep()
       }
    }
    vertices.resize(vIndex);
+   vertices.shrink_to_fit();
 
    if (momentData0->data_word_size() == 8)
    {
       dataMoments8.resize(mIndex);
+      dataMoments8.shrink_to_fit();
    }
    else
    {
       dataMoments16.resize(mIndex);
+      dataMoments16.shrink_to_fit();
    }
 
    if (cfpMoments.size() > 0)
    {
       cfpMoments.resize(mIndex);
+      cfpMoments.shrink_to_fit();
    }
 
    timer.stop();
@@ -559,9 +586,11 @@ void Level2ProductView::ComputeSweep()
 
 std::shared_ptr<Level2ProductView> Level2ProductView::Create(
    common::Level2Product                         product,
+   float                                         elevation,
    std::shared_ptr<manager::RadarProductManager> radarProductManager)
 {
-   return std::make_shared<Level2ProductView>(product, radarProductManager);
+   return std::make_shared<Level2ProductView>(
+      product, elevation, radarProductManager);
 }
 
 } // namespace view

@@ -2,7 +2,8 @@ project(scwx-data)
 
 find_package(Boost)
 
-set(HDR_COMMON include/scwx/common/color_table.hpp
+set(HDR_COMMON include/scwx/common/characters.hpp
+               include/scwx/common/color_table.hpp
                include/scwx/common/constants.hpp
                include/scwx/common/products.hpp
                include/scwx/common/types.hpp)

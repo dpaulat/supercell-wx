@@ -33,7 +33,9 @@ public:
    void Initialize();
    void LoadLevel2Data(const std::string& filename);
 
-   std::pair<float, std::shared_ptr<wsr88d::rda::ElevationScan>>
+   std::tuple<std::shared_ptr<wsr88d::rda::ElevationScan>,
+              float,
+              std::vector<float>>
    GetLevel2Data(wsr88d::rda::DataBlockType            dataBlockType,
                  float                                 elevation,
                  std::chrono::system_clock::time_point time = {});

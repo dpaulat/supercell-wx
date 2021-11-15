@@ -180,17 +180,20 @@ void RadarProductManager::LoadLevel2Data(const std::string& filename)
    emit Level2DataLoaded();
 }
 
-std::pair<float, std::shared_ptr<wsr88d::rda::ElevationScan>>
+std::tuple<std::shared_ptr<wsr88d::rda::ElevationScan>,
+           float,
+           std::vector<float>>
 RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
                                    float                      elevation,
                                    std::chrono::system_clock::time_point time)
 {
-   float                                       elevationFound = 0.0f;
-   std::shared_ptr<wsr88d::rda::ElevationScan> radarData      = nullptr;
+   std::shared_ptr<wsr88d::rda::ElevationScan> radarData    = nullptr;
+   float                                       elevationCut = 0.0f;
+   std::vector<float>                          elevationCuts;
 
    if (p->level2VolumeScans_.size() > 0)
    {
-      std::tie(elevationFound, radarData) =
+      std::tie(radarData, elevationCut, elevationCuts) =
          p->level2VolumeScans_.crbegin()->second->GetElevationScan(
             dataBlockType, elevation, time);
    }
@@ -205,7 +208,7 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
       });
    }
 
-   return std::make_pair(elevationFound, radarData);
+   return std::tie(radarData, elevationCut, elevationCuts);
 }
 
 } // namespace manager

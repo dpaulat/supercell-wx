@@ -60,6 +60,13 @@ void RadarProductView::Initialize()
    ComputeSweep();
 }
 
+void RadarProductView::SelectElevation(float elevation) {}
+
+std::vector<float> RadarProductView::GetElevationCuts() const
+{
+   return {};
+}
+
 std::tuple<const void*, size_t, size_t>
 RadarProductView::GetCfpMomentData() const
 {

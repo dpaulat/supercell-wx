@@ -40,7 +40,7 @@ public:
    std::map<uint16_t, std::shared_ptr<rda::ElevationScan>> radar_data() const;
    std::shared_ptr<const rda::VolumeCoveragePatternData>   vcp_data() const;
 
-   std::pair<float, std::shared_ptr<rda::ElevationScan>>
+   std::tuple<std::shared_ptr<rda::ElevationScan>, float, std::vector<float>>
    GetElevationScan(rda::DataBlockType                    dataBlockType,
                     float                                 elevation,
                     std::chrono::system_clock::time_point time) const;

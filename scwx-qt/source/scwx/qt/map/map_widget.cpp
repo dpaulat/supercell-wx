@@ -88,22 +88,32 @@ MapWidget::~MapWidget()
    makeCurrent();
 }
 
+float MapWidget::GetElevation() const
+{
+   return p->radarProductView_->elevation();
+}
+
+std::vector<float> MapWidget::GetElevationCuts() const
+{
+   return p->radarProductView_->GetElevationCuts();
+}
+
+void MapWidget::SelectElevation(float elevation)
+{
+   p->radarProductView_->SelectElevation(elevation);
+}
+
 void MapWidget::SelectRadarProduct(common::Level2Product product)
 {
-   p->radarProductView_ =
-      view::RadarProductViewFactory::Create(product, p->radarProductManager_);
+   float currentElevation = 0.0f;
 
-   p->radarProductView_->Initialize();
-
-   std::string colorTableFile =
-      manager::SettingsManager::palette_settings()->palette(
-         common::GetLevel2Palette(product));
-   if (!colorTableFile.empty())
+   if (p->radarProductView_ != nullptr)
    {
-      std::shared_ptr<common::ColorTable> colorTable =
-         common::ColorTable::Load(colorTableFile);
-      p->radarProductView_->LoadColorTable(colorTable);
+      currentElevation = p->radarProductView_->elevation();
    }
+
+   p->radarProductView_ = view::RadarProductViewFactory::Create(
+      product, currentElevation, p->radarProductManager_);
 
    connect(
       p->radarProductView_.get(),
@@ -118,8 +128,21 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
       [&]() {
          RadarRangeLayer::Update(p->map_, p->radarProductView_->range());
          update();
+         emit RadarSweepUpdated();
       },
       Qt::QueuedConnection);
+
+   p->radarProductView_->Initialize();
+
+   std::string colorTableFile =
+      manager::SettingsManager::palette_settings()->palette(
+         common::GetLevel2Palette(product));
+   if (!colorTableFile.empty())
+   {
+      std::shared_ptr<common::ColorTable> colorTable =
+         common::ColorTable::Load(colorTableFile);
+      p->radarProductView_->LoadColorTable(colorTable);
+   }
 
    if (p->map_ != nullptr)
    {

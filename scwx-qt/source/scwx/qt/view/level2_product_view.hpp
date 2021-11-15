@@ -25,6 +25,7 @@ class Level2ProductView : public RadarProductView
 public:
    explicit Level2ProductView(
       common::Level2Product                         product,
+      float                                         elevation,
       std::shared_ptr<manager::RadarProductManager> radarProductManager);
    ~Level2ProductView();
 
@@ -36,12 +37,15 @@ public:
    const std::vector<float>&             vertices() const override;
 
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) override;
+   void SelectElevation(float elevation) override;
 
+   std::vector<float>                      GetElevationCuts() const override;
    std::tuple<const void*, size_t, size_t> GetMomentData() const override;
    std::tuple<const void*, size_t, size_t> GetCfpMomentData() const override;
 
    static std::shared_ptr<Level2ProductView>
    Create(common::Level2Product                         product,
+          float                                         elevation,
           std::shared_ptr<manager::RadarProductManager> radarProductManager);
 
 protected:

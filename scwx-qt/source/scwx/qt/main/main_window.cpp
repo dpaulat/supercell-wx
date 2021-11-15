@@ -3,6 +3,7 @@
 
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
+#include <scwx/common/characters.hpp>
 #include <scwx/common/products.hpp>
 
 #include <QToolButton>
@@ -18,16 +19,25 @@ namespace main
 
 static const std::string logPrefix_ = "[scwx::qt::main::main_window] ";
 
-class MainWindowImpl
+class MainWindowImpl : public QObject
 {
+   Q_OBJECT
+
 public:
-   explicit MainWindowImpl(MainWindow* mainWindow) : mainWindow_(mainWindow) {}
+   explicit MainWindowImpl(MainWindow* mainWindow) :
+       mainWindow_ {mainWindow}, map_ {nullptr}, elevationCuts_ {}
+   {
+   }
    ~MainWindowImpl() = default;
 
+   void InitializeConnections();
    void SelectRadarProduct(common::Level2Product product);
+   void UpdateRadarProductSettings(map::MapWidget* mapWidget);
 
    MainWindow*     mainWindow_;
    map::MapWidget* map_;
+
+   std::vector<float> elevationCuts_;
 };
 
 MainWindow::MainWindow(QWidget* parent) :
@@ -62,6 +72,11 @@ MainWindow::MainWindow(QWidget* parent) :
          p->SelectRadarProduct(product);
       });
    }
+
+   QLayout* elevationLayout = new ui::FlowLayout();
+   ui->elevationSettings->setLayout(elevationLayout);
+
+   p->InitializeConnections();
 }
 
 MainWindow::~MainWindow()
@@ -96,6 +111,16 @@ void MainWindow::showEvent(QShowEvent* event)
    resizeDocks({ui->radarToolboxDock}, {150}, Qt::Horizontal);
 }
 
+void MainWindowImpl::InitializeConnections()
+{
+   connect(
+      map_,
+      &map::MapWidget::RadarSweepUpdated,
+      this,
+      [this]() { UpdateRadarProductSettings(map_); },
+      Qt::QueuedConnection);
+}
+
 void MainWindowImpl::SelectRadarProduct(common::Level2Product product)
 {
    const std::string& productName = common::GetLevel2Name(product);
@@ -121,6 +146,61 @@ void MainWindowImpl::SelectRadarProduct(common::Level2Product product)
    map_->SelectRadarProduct(product);
 }
 
+void MainWindowImpl::UpdateRadarProductSettings(map::MapWidget* mapWidget)
+{
+   float              currentElevation = mapWidget->GetElevation();
+   std::vector<float> elevationCuts    = mapWidget->GetElevationCuts();
+
+   if (elevationCuts_ == elevationCuts)
+   {
+      return;
+   }
+
+   for (QToolButton* toolButton :
+        mainWindow_->ui->elevationSettings->findChildren<QToolButton*>())
+   {
+      delete toolButton;
+   }
+
+   QLayout* layout = mainWindow_->ui->elevationSettings->layout();
+
+   // Create elevation cut tool buttons
+   for (float elevationCut : elevationCuts)
+   {
+      QToolButton* toolButton = new QToolButton();
+      toolButton->setText(QString::number(elevationCut, 'f', 1) +
+                          common::Characters::DEGREE);
+      layout->addWidget(toolButton);
+
+      connect(toolButton, &QToolButton::clicked, this, [=]() {
+         mapWidget->SelectElevation(elevationCut);
+      });
+   }
+
+   // Update toolbox active item to render
+   QToolBox* toolbox      = mainWindow_->ui->radarToolbox;
+   int       currentIndex = toolbox->currentIndex();
+   toolbox->setCurrentWidget(mainWindow_->ui->productSettingsPage);
+   toolbox->setCurrentIndex(currentIndex);
+
+   // Set each elevation cut's tool button to the same size
+   int elevationCutMaxWidth = 0;
+   for (QToolButton* widget :
+        mainWindow_->ui->elevationSettings->findChildren<QToolButton*>())
+   {
+      elevationCutMaxWidth = std::max(elevationCutMaxWidth, widget->width());
+   }
+   for (QToolButton* widget :
+        mainWindow_->ui->elevationSettings->findChildren<QToolButton*>())
+   {
+      widget->setMinimumWidth(elevationCutMaxWidth);
+   }
+
+   elevationCuts_ = elevationCuts;
+}
+
 } // namespace main
 } // namespace qt
 } // namespace scwx
+
+#include "main_window.moc"

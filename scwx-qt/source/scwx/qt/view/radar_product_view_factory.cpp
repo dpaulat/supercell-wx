@@ -21,6 +21,7 @@ typedef std::function<std::shared_ptr<RadarProductView>(
 std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
    const std::string&                            productGroup,
    const std::string&                            productName,
+   float                                         elevation,
    std::shared_ptr<manager::RadarProductManager> radarProductManager)
 {
    std::shared_ptr<RadarProductView> view = nullptr;
@@ -36,7 +37,7 @@ std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
       }
       else
       {
-         view = Create(product, radarProductManager);
+         view = Create(product, elevation, radarProductManager);
       }
    }
    else
@@ -50,9 +51,10 @@ std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
 
 std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
    common::Level2Product                         product,
+   float                                         elevation,
    std::shared_ptr<manager::RadarProductManager> radarProductManager)
 {
-   return Level2ProductView::Create(product, radarProductManager);
+   return Level2ProductView::Create(product, elevation, radarProductManager);
 }
 
 } // namespace view

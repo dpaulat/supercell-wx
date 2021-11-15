@@ -31,7 +31,10 @@ public:
    explicit MapWidget(const QMapboxGLSettings&);
    ~MapWidget();
 
-   void SelectRadarProduct(common::Level2Product product);
+   float              GetElevation() const;
+   std::vector<float> GetElevationCuts() const;
+   void               SelectElevation(float elevation);
+   void               SelectRadarProduct(common::Level2Product product);
 
 private:
    void  changeStyle();
@@ -53,6 +56,9 @@ private:
 
 private slots:
    void mapChanged(QMapboxGL::MapChange);
+
+signals:
+   void RadarSweepUpdated();
 };
 
 } // namespace map

@@ -106,15 +106,19 @@ std::shared_ptr<const rda::VolumeCoveragePatternData> Ar2vFile::vcp_data() const
    return p->vcpData_;
 }
 
-std::pair<float, std::shared_ptr<rda::ElevationScan>>
+std::tuple<std::shared_ptr<rda::ElevationScan>, float, std::vector<float>>
 Ar2vFile::GetElevationScan(rda::DataBlockType                    dataBlockType,
                            float                                 elevation,
                            std::chrono::system_clock::time_point time) const
 {
+   BOOST_LOG_TRIVIAL(debug)
+      << logPrefix_ << "GetElevationScan: " << elevation << " degrees";
+
    constexpr float scaleFactor = 8.0f / 0.043945f;
 
-   float                               elevationFound = 0.0f;
-   std::shared_ptr<rda::ElevationScan> elevationScan  = nullptr;
+   std::shared_ptr<rda::ElevationScan> elevationScan = nullptr;
+   float                               elevationCut  = 0.0f;
+   std::vector<float>                  elevationCuts;
 
    uint16_t codedElevation =
       static_cast<uint16_t>(std::lroundf(elevation * scaleFactor));
@@ -128,14 +132,16 @@ Ar2vFile::GetElevationScan(rda::DataBlockType                    dataBlockType,
 
       for (auto scan : scans)
       {
-         if (scan.first > lowerBound && scan.first < codedElevation)
+         if (scan.first > lowerBound && scan.first <= codedElevation)
          {
             lowerBound = scan.first;
          }
-         if (scan.first < upperBound && scan.first > codedElevation)
+         if (scan.first < upperBound && scan.first >= codedElevation)
          {
             upperBound = scan.first;
          }
+
+         elevationCuts.push_back(scan.first / scaleFactor);
       }
 
       uint16_t lowerDelta = std::abs(static_cast<int32_t>(codedElevation) -
@@ -145,17 +151,17 @@ Ar2vFile::GetElevationScan(rda::DataBlockType                    dataBlockType,
 
       if (lowerDelta < upperDelta)
       {
-         elevationFound = lowerBound / scaleFactor;
-         elevationScan  = scans.at(lowerBound);
+         elevationScan = scans.at(lowerBound);
+         elevationCut  = lowerBound / scaleFactor;
       }
       else
       {
-         elevationFound = upperBound / scaleFactor;
-         elevationScan  = scans.at(upperBound);
+         elevationScan = scans.at(upperBound);
+         elevationCut  = upperBound / scaleFactor;
       }
    }
 
-   return std::make_pair(elevationFound, elevationScan);
+   return std::tie(elevationScan, elevationCut, elevationCuts);
 }
 
 bool Ar2vFile::LoadFile(const std::string& filename)
@@ -373,10 +379,8 @@ void Ar2vFileImpl::IndexFile()
            rda::MomentDataBlockTypeIterator())
       {
          if (dataBlockType == rda::DataBlockType::MomentRef &&
-             (waveformType ==
-                 rda::WaveformType::ContiguousDopplerWithAmbiguityResolution ||
-              waveformType == rda::WaveformType::
-                                 ContiguousDopplerWithoutAmbiguityResolution))
+             waveformType ==
+                rda::WaveformType::ContiguousDopplerWithAmbiguityResolution)
          {
             // Reflectivity data is contained within both surveillance and
             // doppler modes.  Surveillance mode produces a better image.

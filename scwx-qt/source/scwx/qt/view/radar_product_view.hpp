@@ -35,7 +35,9 @@ public:
    void Initialize();
    virtual void
    LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) = 0;
+   virtual void SelectElevation(float elevation);
 
+   virtual std::vector<float>                      GetElevationCuts() const;
    virtual std::tuple<const void*, size_t, size_t> GetMomentData() const = 0;
    virtual std::tuple<const void*, size_t, size_t> GetCfpMomentData() const;
 
