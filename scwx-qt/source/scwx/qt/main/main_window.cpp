@@ -34,7 +34,9 @@ public:
    ~MainWindowImpl() = default;
 
    void InitializeConnections();
+   void SelectElevation(map::MapWidget* mapWidget, float elevation);
    void SelectRadarProduct(common::Level2Product product);
+   void UpdateElevationSelection(float elevation);
    void UpdateRadarProductSettings(map::MapWidget* mapWidget);
 
    MainWindow*     mainWindow_;
@@ -86,6 +88,8 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->declutterCheckbox->setVisible(false);
 
    p->InitializeConnections();
+
+   p->SelectRadarProduct(common::Level2Product::Reflectivity);
 }
 
 MainWindow::~MainWindow()
@@ -163,6 +167,12 @@ void MainWindowImpl::InitializeConnections()
       Qt::QueuedConnection);
 }
 
+void MainWindowImpl::SelectElevation(map::MapWidget* mapWidget, float elevation)
+{
+   mapWidget->SelectElevation(elevation);
+   UpdateElevationSelection(elevation);
+}
+
 void MainWindowImpl::SelectRadarProduct(common::Level2Product product)
 {
    const std::string& productName = common::GetLevel2Name(product);
@@ -188,39 +198,60 @@ void MainWindowImpl::SelectRadarProduct(common::Level2Product product)
    map_->SelectRadarProduct(product);
 }
 
+void MainWindowImpl::UpdateElevationSelection(float elevation)
+{
+   QString buttonText {QString::number(elevation, 'f', 1) +
+                       common::Characters::DEGREE};
+
+   for (QToolButton* toolButton :
+        mainWindow_->ui->elevationGroupBox->findChildren<QToolButton*>())
+   {
+      if (toolButton->text() == buttonText)
+      {
+         toolButton->setCheckable(true);
+         toolButton->setChecked(true);
+      }
+      else
+      {
+         toolButton->setChecked(false);
+         toolButton->setCheckable(false);
+      }
+   }
+}
+
 void MainWindowImpl::UpdateRadarProductSettings(map::MapWidget* mapWidget)
 {
    float              currentElevation = mapWidget->GetElevation();
    std::vector<float> elevationCuts    = mapWidget->GetElevationCuts();
 
-   if (elevationCuts_ == elevationCuts)
+   if (elevationCuts_ != elevationCuts)
    {
-      return;
+      for (QToolButton* toolButton :
+           mainWindow_->ui->elevationGroupBox->findChildren<QToolButton*>())
+      {
+         delete toolButton;
+      }
+
+      QLayout* layout = mainWindow_->ui->elevationGroupBox->layout();
+
+      // Create elevation cut tool buttons
+      for (float elevationCut : elevationCuts)
+      {
+         QToolButton* toolButton = new QToolButton();
+         toolButton->setText(QString::number(elevationCut, 'f', 1) +
+                             common::Characters::DEGREE);
+         layout->addWidget(toolButton);
+
+         connect(toolButton, &QToolButton::clicked, this, [=]() {
+            SelectElevation(mapWidget, elevationCut);
+         });
+      }
+
+      elevationCuts_          = elevationCuts;
+      resizeElevationButtons_ = true;
    }
 
-   for (QToolButton* toolButton :
-        mainWindow_->ui->elevationGroupBox->findChildren<QToolButton*>())
-   {
-      delete toolButton;
-   }
-
-   QLayout* layout = mainWindow_->ui->elevationGroupBox->layout();
-
-   // Create elevation cut tool buttons
-   for (float elevationCut : elevationCuts)
-   {
-      QToolButton* toolButton = new QToolButton();
-      toolButton->setText(QString::number(elevationCut, 'f', 1) +
-                          common::Characters::DEGREE);
-      layout->addWidget(toolButton);
-
-      connect(toolButton, &QToolButton::clicked, this, [=]() {
-         mapWidget->SelectElevation(elevationCut);
-      });
-   }
-
-   elevationCuts_          = elevationCuts;
-   resizeElevationButtons_ = true;
+   UpdateElevationSelection(currentElevation);
 }
 
 } // namespace main

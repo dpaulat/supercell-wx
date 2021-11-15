@@ -77,8 +77,6 @@ MapWidget::MapWidget(const QMapboxGLSettings& settings) :
    setFocusPolicy(Qt::StrongFocus);
 
    p->radarProductManager_->Initialize();
-
-   SelectRadarProduct(common::Level2Product::Reflectivity);
 }
 
 MapWidget::~MapWidget()
