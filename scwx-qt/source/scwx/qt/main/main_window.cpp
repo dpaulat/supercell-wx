@@ -25,7 +25,10 @@ class MainWindowImpl : public QObject
 
 public:
    explicit MainWindowImpl(MainWindow* mainWindow) :
-       mainWindow_ {mainWindow}, map_ {nullptr}, elevationCuts_ {}
+       mainWindow_ {mainWindow},
+       map_ {nullptr},
+       elevationCuts_ {},
+       resizeElevationButtons_ {false}
    {
    }
    ~MainWindowImpl() = default;
@@ -38,6 +41,8 @@ public:
    map::MapWidget* map_;
 
    std::vector<float> elevationCuts_;
+
+   bool resizeElevationButtons_;
 };
 
 MainWindow::MainWindow(QWidget* parent) :
@@ -57,7 +62,8 @@ MainWindow::MainWindow(QWidget* parent) :
 
    // Add Level 2 Products
    QLayout* level2Layout = new ui::FlowLayout();
-   ui->level2Products->setLayout(level2Layout);
+   level2Layout->setContentsMargins(0, 0, 0, 0);
+   ui->level2ProductFrame->setLayout(level2Layout);
 
    for (common::Level2Product product : common::Level2ProductIterator())
    {
@@ -74,7 +80,10 @@ MainWindow::MainWindow(QWidget* parent) :
    }
 
    QLayout* elevationLayout = new ui::FlowLayout();
-   ui->elevationSettings->setLayout(elevationLayout);
+   ui->elevationGroupBox->setLayout(elevationLayout);
+
+   ui->settingsGroupBox->setVisible(false);
+   ui->declutterCheckbox->setVisible(false);
 
    p->InitializeConnections();
 }
@@ -84,28 +93,61 @@ MainWindow::~MainWindow()
    delete ui;
 }
 
+bool MainWindow::event(QEvent* event)
+{
+   if (event->type() == QEvent::Type::Paint)
+   {
+      if (p->resizeElevationButtons_)
+      {
+         // Set each elevation cut's tool button to the same size
+         int elevationCutMaxWidth = 0;
+         for (QToolButton* widget :
+              ui->elevationGroupBox->findChildren<QToolButton*>())
+         {
+            elevationCutMaxWidth =
+               std::max(elevationCutMaxWidth, widget->width());
+         }
+         for (QToolButton* widget :
+              ui->elevationGroupBox->findChildren<QToolButton*>())
+         {
+            widget->setMinimumWidth(elevationCutMaxWidth);
+         }
+
+         p->resizeElevationButtons_ = false;
+      }
+   }
+
+   return QMainWindow::event(event);
+}
+
 void MainWindow::showEvent(QShowEvent* event)
 {
    QMainWindow::showEvent(event);
 
-   // Cycle through each item in the toolbox to render
-   QToolBox* toolbox      = ui->radarToolbox;
-   int       currentIndex = toolbox->currentIndex();
-   for (int i = 0; i < toolbox->count(); i++)
-   {
-      toolbox->setCurrentIndex(i);
-   }
-   toolbox->setCurrentIndex(currentIndex);
-
    // Set each level 2 product's tool button to the same size
    int level2MaxWidth = 0;
-   for (QWidget* widget : ui->level2Products->findChildren<QWidget*>())
+   for (QToolButton* widget :
+        ui->level2ProductFrame->findChildren<QToolButton*>())
    {
       level2MaxWidth = std::max(level2MaxWidth, widget->width());
    }
-   for (QWidget* widget : ui->level2Products->findChildren<QWidget*>())
+   for (QToolButton* widget :
+        ui->level2ProductFrame->findChildren<QToolButton*>())
    {
       widget->setMinimumWidth(level2MaxWidth);
+   }
+
+   // Set each elevation cut's tool button to the same size
+   int elevationCutMaxWidth = 0;
+   for (QToolButton* widget :
+        ui->elevationGroupBox->findChildren<QToolButton*>())
+   {
+      elevationCutMaxWidth = std::max(elevationCutMaxWidth, widget->width());
+   }
+   for (QToolButton* widget :
+        ui->elevationGroupBox->findChildren<QToolButton*>())
+   {
+      widget->setMinimumWidth(elevationCutMaxWidth);
    }
 
    resizeDocks({ui->radarToolboxDock}, {150}, Qt::Horizontal);
@@ -129,7 +171,7 @@ void MainWindowImpl::SelectRadarProduct(common::Level2Product product)
       << logPrefix_ << "Selecting Level 2 radar product: " << productName;
 
    for (QToolButton* toolButton :
-        mainWindow_->ui->level2Products->findChildren<QToolButton*>())
+        mainWindow_->ui->level2ProductFrame->findChildren<QToolButton*>())
    {
       if (toolButton->text().toStdString() == productName)
       {
@@ -157,12 +199,12 @@ void MainWindowImpl::UpdateRadarProductSettings(map::MapWidget* mapWidget)
    }
 
    for (QToolButton* toolButton :
-        mainWindow_->ui->elevationSettings->findChildren<QToolButton*>())
+        mainWindow_->ui->elevationGroupBox->findChildren<QToolButton*>())
    {
       delete toolButton;
    }
 
-   QLayout* layout = mainWindow_->ui->elevationSettings->layout();
+   QLayout* layout = mainWindow_->ui->elevationGroupBox->layout();
 
    // Create elevation cut tool buttons
    for (float elevationCut : elevationCuts)
@@ -177,26 +219,8 @@ void MainWindowImpl::UpdateRadarProductSettings(map::MapWidget* mapWidget)
       });
    }
 
-   // Update toolbox active item to render
-   QToolBox* toolbox      = mainWindow_->ui->radarToolbox;
-   int       currentIndex = toolbox->currentIndex();
-   toolbox->setCurrentWidget(mainWindow_->ui->productSettingsPage);
-   toolbox->setCurrentIndex(currentIndex);
-
-   // Set each elevation cut's tool button to the same size
-   int elevationCutMaxWidth = 0;
-   for (QToolButton* widget :
-        mainWindow_->ui->elevationSettings->findChildren<QToolButton*>())
-   {
-      elevationCutMaxWidth = std::max(elevationCutMaxWidth, widget->width());
-   }
-   for (QToolButton* widget :
-        mainWindow_->ui->elevationSettings->findChildren<QToolButton*>())
-   {
-      widget->setMinimumWidth(elevationCutMaxWidth);
-   }
-
-   elevationCuts_ = elevationCuts;
+   elevationCuts_          = elevationCuts;
+   resizeElevationButtons_ = true;
 }
 
 } // namespace main

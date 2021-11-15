@@ -14,27 +14,57 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="68"/>
-        <source>Radar Sites</source>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="82"/>
+        <source>...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="91"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="170"/>
+        <source>Level 3</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="197"/>
+        <source>Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="203"/>
+        <source>Declutter</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="113"/>
+        <source>Radar Site</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="96"/>
+        <source>Volume Coverage Pattern</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="99"/>
+        <source>VCP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="120"/>
+        <source>Clear Air Mode</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="137"/>
         <source>Radar Products</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="97"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="143"/>
         <source>Level 2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="118"/>
-        <source>Product Settings</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="124"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="190"/>
         <source>Elevation</source>
         <translation type="unfinished"></translation>
     </message>
