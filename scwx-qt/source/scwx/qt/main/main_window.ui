@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Supercell Wx</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout">
@@ -38,6 +38,20 @@
      <height>21</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menu_File">
+    <property name="title">
+     <string>&amp;File</string>
+    </property>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menu_Help">
+    <property name="title">
+     <string>&amp;Help</string>
+    </property>
+    <addaction name="actionAboutSupercellWx"/>
+   </widget>
+   <addaction name="menu_File"/>
+   <addaction name="menu_Help"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QDockWidget" name="radarToolboxDock">
@@ -223,6 +237,16 @@
     </layout>
    </widget>
   </widget>
+  <action name="actionExit">
+   <property name="text">
+    <string>E&amp;xit</string>
+   </property>
+  </action>
+  <action name="actionAboutSupercellWx">
+   <property name="text">
+    <string>About &amp;Supercell Wx...</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>

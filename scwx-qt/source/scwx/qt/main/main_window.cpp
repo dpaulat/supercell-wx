@@ -157,6 +157,11 @@ void MainWindow::showEvent(QShowEvent* event)
    resizeDocks({ui->radarToolboxDock}, {150}, Qt::Horizontal);
 }
 
+void MainWindow::on_actionExit_triggered()
+{
+   close();
+}
+
 void MainWindowImpl::InitializeConnections()
 {
    connect(

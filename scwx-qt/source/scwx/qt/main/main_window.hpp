@@ -29,6 +29,9 @@ public:
    bool event(QEvent* event) override;
    void showEvent(QShowEvent* event) override;
 
+private slots:
+   void on_actionExit_triggered();
+
 private:
    std::unique_ptr<MainWindowImpl> p;
    Ui::MainWindow*                 ui;
