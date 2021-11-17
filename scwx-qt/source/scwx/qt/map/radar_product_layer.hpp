@@ -34,10 +34,6 @@ private:
    void UpdateColorTable();
    void UpdateSweep();
 
-private slots:
-   void UpdateColorTableNextFrame();
-   void UpdateSweepNextFrame();
-
 private:
    std::unique_ptr<RadarProductLayerImpl> p;
 };

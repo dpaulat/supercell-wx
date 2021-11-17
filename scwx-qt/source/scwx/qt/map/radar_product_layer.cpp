@@ -146,11 +146,11 @@ void RadarProductLayer::initialize()
    connect(p->radarProductView_.get(),
            &view::RadarProductView::ColorTableUpdated,
            this,
-           &RadarProductLayer::UpdateColorTableNextFrame);
+           [=]() { p->colorTableNeedsUpdate_ = true; });
    connect(p->radarProductView_.get(),
            &view::RadarProductView::SweepComputed,
            this,
-           &RadarProductLayer::UpdateSweepNextFrame);
+           [=]() { p->sweepNeedsUpdate_ = true; });
 }
 
 void RadarProductLayer::UpdateSweep()
@@ -302,7 +302,7 @@ void RadarProductLayer::deinitialize()
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "deinitialize()";
 
    gl.glDeleteVertexArrays(1, &p->vao_);
-   gl.glDeleteBuffers(2, p->vbo_.data());
+   gl.glDeleteBuffers(3, p->vbo_.data());
 
    p->uMVPMatrixLocation_        = GL_INVALID_INDEX;
    p->uMapScreenCoordLocation_   = GL_INVALID_INDEX;
@@ -312,15 +312,6 @@ void RadarProductLayer::deinitialize()
    p->vao_                       = GL_INVALID_INDEX;
    p->vbo_                       = {GL_INVALID_INDEX};
    p->texture_                   = GL_INVALID_INDEX;
-
-   disconnect(p->radarProductView_.get(),
-              &view::RadarProductView::ColorTableUpdated,
-              this,
-              &RadarProductLayer::UpdateColorTableNextFrame);
-   disconnect(p->radarProductView_.get(),
-              &view::RadarProductView::SweepComputed,
-              this,
-              &RadarProductLayer::UpdateSweepNextFrame);
 }
 
 void RadarProductLayer::UpdateColorTable()
@@ -354,16 +345,6 @@ void RadarProductLayer::UpdateColorTable()
 
    gl.glUniform1ui(p->uDataMomentOffsetLocation_, rangeMin);
    gl.glUniform1f(p->uDataMomentScaleLocation_, scale);
-}
-
-void RadarProductLayer::UpdateColorTableNextFrame()
-{
-   p->colorTableNeedsUpdate_ = true;
-}
-
-void RadarProductLayer::UpdateSweepNextFrame()
-{
-   p->sweepNeedsUpdate_ = true;
 }
 
 static glm::vec2
