@@ -64,12 +64,14 @@ set(HDR_MANAGER source/scwx/qt/manager/radar_product_manager.hpp
 set(SRC_MANAGER source/scwx/qt/manager/radar_product_manager.cpp
                 source/scwx/qt/manager/resource_manager.cpp
                 source/scwx/qt/manager/settings_manager.cpp)
-set(HDR_MAP source/scwx/qt/map/map_widget.hpp
+set(HDR_MAP source/scwx/qt/map/color_table_layer.hpp
+            source/scwx/qt/map/map_widget.hpp
             source/scwx/qt/map/overlay_layer.hpp
             source/scwx/qt/map/radar_product_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp
             source/scwx/qt/map/triangle_layer.hpp)
-set(SRC_MAP source/scwx/qt/map/map_widget.cpp
+set(SRC_MAP source/scwx/qt/map/color_table_layer.cpp
+            source/scwx/qt/map/map_widget.cpp
             source/scwx/qt/map/overlay_layer.cpp
             source/scwx/qt/map/radar_product_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp
@@ -100,7 +102,9 @@ set(SHADER_FILES gl/overlay.frag
                  gl/radar.frag
                  gl/radar.vert
                  gl/text.frag
-                 gl/text.vert)
+                 gl/text.vert
+                 gl/texture1d.frag
+                 gl/texture1d.vert)
 
 set(TS_FILES ts/scwx_en_US.ts)
 

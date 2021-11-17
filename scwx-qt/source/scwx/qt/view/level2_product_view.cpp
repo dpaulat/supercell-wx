@@ -122,17 +122,39 @@ Level2ProductView::Level2ProductView(
 Level2ProductView::~Level2ProductView() = default;
 
 const std::vector<boost::gil::rgba8_pixel_t>&
-Level2ProductView::color_table(uint16_t& minValue, uint16_t& maxValue) const
+Level2ProductView::color_table() const
 {
    if (p->colorTableLut_.size() == 0)
    {
-      return RadarProductView::color_table(minValue, maxValue);
+      return RadarProductView::color_table();
    }
    else
    {
-      minValue = p->colorTableMin_;
-      maxValue = p->colorTableMax_;
       return p->colorTableLut_;
+   }
+}
+
+uint16_t Level2ProductView::color_table_min() const
+{
+   if (p->colorTableLut_.size() == 0)
+   {
+      return RadarProductView::color_table_min();
+   }
+   else
+   {
+      return p->colorTableMin_;
+   }
+}
+
+uint16_t Level2ProductView::color_table_max() const
+{
+   if (p->colorTableLut_.size() == 0)
+   {
+      return RadarProductView::color_table_max();
+   }
+   else
+   {
+      return p->colorTableMax_;
    }
 }
 
@@ -306,7 +328,6 @@ void Level2ProductView::ComputeSweep()
       return;
    }
 
-   float                                       elevation;
    std::shared_ptr<wsr88d::rda::ElevationScan> radarData;
    std::tie(radarData, p->elevationCut_, p->elevationCuts_) =
       p->radarProductManager_->GetLevel2Data(p->dataBlockType_,

@@ -33,11 +33,19 @@ RadarProductView::RadarProductView() :
 RadarProductView::~RadarProductView() = default;
 
 const std::vector<boost::gil::rgba8_pixel_t>&
-RadarProductView::color_table(uint16_t& minValue, uint16_t& maxValue) const
+RadarProductView::color_table() const
 {
-   minValue = DEFAULT_COLOR_TABLE_MIN;
-   maxValue = DEFAULT_COLOR_TABLE_MAX;
    return DEFAULT_COLOR_TABLE;
+}
+
+uint16_t RadarProductView::color_table_min() const
+{
+   return DEFAULT_COLOR_TABLE_MIN;
+}
+
+uint16_t RadarProductView::color_table_max() const
+{
+   return DEFAULT_COLOR_TABLE_MAX;
 }
 
 float RadarProductView::elevation() const

@@ -2,6 +2,7 @@
 #include <scwx/qt/gl/gl.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/map/color_table_layer.hpp>
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
@@ -180,12 +181,18 @@ void MapWidget::AddLayers()
    {
       p->map_->removeLayer("overlay");
    }
+   if (p->map_->layerExists("colorTable"))
+   {
+      p->map_->removeLayer("colorTable");
+   }
 
    // QMapboxGL::addCustomLayer will take ownership of the QScopedPointer
    QScopedPointer<QMapbox::CustomLayerHostInterface> pHost(
       new RadarProductLayer(p->radarProductView_, p->gl_));
    QScopedPointer<QMapbox::CustomLayerHostInterface> pOverlayHost(
       new OverlayLayer(p->radarProductView_, p->gl_));
+   QScopedPointer<QMapbox::CustomLayerHostInterface> pColorTableHost(
+      new ColorTableLayer(p->radarProductView_, p->gl_));
 
    QString before = "ferry";
 
@@ -203,6 +210,7 @@ void MapWidget::AddLayers()
    p->map_->addCustomLayer("radar", pHost, before);
    RadarRangeLayer::Add(p->map_, p->radarProductView_->range(), before);
    p->map_->addCustomLayer("overlay", pOverlayHost);
+   p->map_->addCustomLayer("colorTable", pColorTableHost);
 }
 
 void MapWidget::keyPressEvent(QKeyEvent* ev)

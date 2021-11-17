@@ -318,18 +318,16 @@ void RadarProductLayer::UpdateColorTable()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "UpdateColorTable()";
 
-   uint16_t rangeMin;
-   uint16_t rangeMax;
-   float    scale;
-
    p->colorTableNeedsUpdate_ = false;
 
    gl::OpenGLFunctions& gl = p->gl_;
 
    const std::vector<boost::gil::rgba8_pixel_t>& colorTable =
-      p->radarProductView_->color_table(rangeMin, rangeMax);
+      p->radarProductView_->color_table();
+   const uint16_t rangeMin = p->radarProductView_->color_table_min();
+   const uint16_t rangeMax = p->radarProductView_->color_table_max();
 
-   scale = rangeMax - rangeMin;
+   const float scale = rangeMax - rangeMin;
 
    gl.glActiveTexture(GL_TEXTURE0);
    gl.glBindTexture(GL_TEXTURE_1D, p->texture_);
