@@ -110,7 +110,7 @@ void OverlayLayer::initialize()
 
    gl.glBindVertexArray(p->vao_);
 
-   // Bottom panel (dynamic sized)
+   // Upper right panel (dynamic sized)
    gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
    gl.glBufferData(
       GL_ARRAY_BUFFER, sizeof(float) * 6 * 2, nullptr, GL_DYNAMIC_DRAW);
@@ -118,7 +118,7 @@ void OverlayLayer::initialize()
    gl.glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, static_cast<void*>(0));
    gl.glEnableVertexAttribArray(0);
 
-   // Bottom panel color
+   // Upper right panel color
    gl.glUniform4f(p->uColorLocation_, 0.0f, 0.0f, 0.0f, 0.75f);
 
    connect(p->radarProductView_.get(),
@@ -160,31 +160,43 @@ void OverlayLayer::render(const QMapbox::CustomLayerRenderParameters& params)
    gl.glUniformMatrix4fv(
       p->uMVPMatrixLocation_, 1, GL_FALSE, glm::value_ptr(projection));
 
-   // Bottom panel vertices
-   float vertices[6][2] = {{0.0f, 0.0f},
-                           {0.0f, 24.0f},
-                           {static_cast<float>(params.width), 0.0f}, //
-                                                                     //
-                           {0.0f, 24.0f},
-                           {static_cast<float>(params.width), 0.0f},
-                           {static_cast<float>(params.width), 24.0f}};
+   if (sweepTimeString.length() > 0)
+   {
+      const float fontSize   = 16.0f;
+      const float textLength = p->font_->TextLength(sweepTimeString, fontSize);
 
-   // Draw vertices
-   gl.glBindVertexArray(p->vao_);
-   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
-   gl.glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-   gl.glDrawArrays(GL_TRIANGLES, 0, 6);
+      // Upper right panel vertices
+      const float vertexLX =
+         static_cast<float>(params.width) - textLength - 14.0f;
+      const float vertexRX       = static_cast<float>(params.width);
+      const float vertexTY       = static_cast<float>(params.height);
+      const float vertexBY       = static_cast<float>(params.height) - 22.0f;
+      const float vertices[6][2] = {{vertexLX, vertexTY}, // TL
+                                    {vertexLX, vertexBY}, // BL
+                                    {vertexRX, vertexTY}, // TR
+                                    //
+                                    {vertexLX, vertexBY},  // BL
+                                    {vertexRX, vertexTY},  // TR
+                                    {vertexRX, vertexBY}}; // BR
 
-   // Render time
-   p->textShader_.RenderText(sweepTimeString,
-                             params.width - 7.0f,
-                             7.0f,
-                             16.0f,
-                             projection,
-                             boost::gil::rgba8_pixel_t(255, 255, 255, 204),
-                             p->font_,
-                             p->texture_,
-                             gl::TextAlign::Right);
+      // Draw vertices
+      gl.glBindVertexArray(p->vao_);
+      gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
+      gl.glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+      gl.glDrawArrays(GL_TRIANGLES, 0, 6);
+
+      // Render time
+      p->textShader_.RenderText(sweepTimeString,
+                                params.width - 7.0f,
+                                static_cast<float>(params.height) -
+                                   16.0f, // 7.0f,
+                                fontSize,
+                                projection,
+                                boost::gil::rgba8_pixel_t(255, 255, 255, 204),
+                                p->font_,
+                                p->texture_,
+                                gl::TextAlign::Right);
+   }
 
    SCWX_GL_CHECK_ERROR();
 }
