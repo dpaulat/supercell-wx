@@ -95,6 +95,40 @@ INSTANTIATE_TEST_SUITE_P(SettingsManager,
                                          "settings-empty-groups.json",
                                          "settings-empty-object.json"));
 
+TEST(SettingsManager, SettingsBadMinimum)
+{
+   std::string minimumFile(std::string(SCWX_TEST_DATA_DIR) +
+                           "/json/settings/settings-minimum.json");
+   std::string sourceFile(std::string(SCWX_TEST_DATA_DIR) +
+                          "/json/settings/settings-bad-minimum.json");
+   std::string filename {TEMP_SETTINGS_FILE};
+
+   std::filesystem::copy_file(sourceFile, filename);
+
+   SettingsManager::ReadSettings(filename);
+
+   CompareFiles(filename, minimumFile);
+
+   std::filesystem::remove(filename);
+}
+
+TEST(SettingsManager, SettingsBadMaximum)
+{
+   std::string maximumFile(std::string(SCWX_TEST_DATA_DIR) +
+                           "/json/settings/settings-maximum.json");
+   std::string sourceFile(std::string(SCWX_TEST_DATA_DIR) +
+                          "/json/settings/settings-bad-maximum.json");
+   std::string filename {TEMP_SETTINGS_FILE};
+
+   std::filesystem::copy_file(sourceFile, filename);
+
+   SettingsManager::ReadSettings(filename);
+
+   CompareFiles(filename, maximumFile);
+
+   std::filesystem::remove(filename);
+}
+
 } // namespace manager
 } // namespace qt
 } // namespace scwx

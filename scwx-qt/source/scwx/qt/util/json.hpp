@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include <boost/json.hpp>
 
 namespace scwx
@@ -11,6 +13,12 @@ namespace util
 namespace json
 {
 
+bool FromJsonInt64(const boost::json::object& json,
+                   const std::string&         key,
+                   int64_t&                   value,
+                   const int64_t              defaultValue,
+                   std::optional<int64_t>     minValue,
+                   std::optional<int64_t>     maxValue);
 bool FromJsonString(const boost::json::object& json,
                     const std::string&         key,
                     std::string&               value,

@@ -13,6 +13,13 @@ namespace settings
 static const std::string logPrefix_ = "[scwx::qt::settings::general_settings] ";
 
 static const std::string DEFAULT_DEFAULT_RADAR_SITE = "KLSX";
+static const int64_t     DEFAULT_GRID_WIDTH         = 1;
+static const int64_t     DEFAULT_GRID_HEIGHT        = 1;
+
+static const int64_t GRID_WIDTH_MINIMUM  = 1;
+static const int64_t GRID_WIDTH_MAXIMUM  = 2;
+static const int64_t GRID_HEIGHT_MINIMUM = 1;
+static const int64_t GRID_HEIGHT_MAXIMUM = 2;
 
 class GeneralSettingsImpl
 {
@@ -21,9 +28,16 @@ public:
 
    ~GeneralSettingsImpl() {}
 
-   void SetDefaults() { defaultRadarSite_ = DEFAULT_DEFAULT_RADAR_SITE; }
+   void SetDefaults()
+   {
+      defaultRadarSite_ = DEFAULT_DEFAULT_RADAR_SITE;
+      gridWidth_        = DEFAULT_GRID_WIDTH;
+      gridHeight_       = DEFAULT_GRID_HEIGHT;
+   }
 
    std::string defaultRadarSite_;
+   int64_t     gridWidth_;
+   int64_t     gridHeight_;
 };
 
 GeneralSettings::GeneralSettings() : p(std::make_unique<GeneralSettingsImpl>())
@@ -40,11 +54,23 @@ const std::string& GeneralSettings::default_radar_site() const
    return p->defaultRadarSite_;
 }
 
+int64_t GeneralSettings::grid_height() const
+{
+   return p->gridHeight_;
+}
+
+int64_t GeneralSettings::grid_width() const
+{
+   return p->gridWidth_;
+}
+
 boost::json::value GeneralSettings::ToJson() const
 {
    boost::json::object json;
 
    json["default_radar_site"] = p->defaultRadarSite_;
+   json["grid_width"]         = p->gridWidth_;
+   json["grid_height"]        = p->gridHeight_;
 
    return json;
 }
@@ -72,6 +98,18 @@ GeneralSettings::Load(const boost::json::value* json, bool& jsonDirty)
                                      "default_radar_site",
                                      generalSettings->p->defaultRadarSite_,
                                      DEFAULT_DEFAULT_RADAR_SITE);
+      jsonDirty |= !util::json::FromJsonInt64(json->as_object(),
+                                              "grid_width",
+                                              generalSettings->p->gridWidth_,
+                                              DEFAULT_GRID_WIDTH,
+                                              GRID_WIDTH_MINIMUM,
+                                              GRID_WIDTH_MAXIMUM);
+      jsonDirty |= !util::json::FromJsonInt64(json->as_object(),
+                                              "grid_height",
+                                              generalSettings->p->gridHeight_,
+                                              DEFAULT_GRID_HEIGHT,
+                                              GRID_HEIGHT_MINIMUM,
+                                              GRID_HEIGHT_MAXIMUM);
    }
    else
    {
@@ -95,7 +133,9 @@ GeneralSettings::Load(const boost::json::value* json, bool& jsonDirty)
 
 bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
 {
-   return lhs.p->defaultRadarSite_ == rhs.p->defaultRadarSite_;
+   return (lhs.p->defaultRadarSite_ == rhs.p->defaultRadarSite_ &&
+           lhs.p->gridWidth_ == rhs.p->gridWidth_ &&
+           lhs.p->gridHeight_ == rhs.p->gridHeight_);
 }
 
 } // namespace settings

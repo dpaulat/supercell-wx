@@ -27,6 +27,8 @@ public:
    GeneralSettings& operator=(GeneralSettings&&) noexcept;
 
    const std::string& default_radar_site() const;
+   int64_t            grid_height() const;
+   int64_t            grid_width() const;
 
    boost::json::value ToJson() const;
 

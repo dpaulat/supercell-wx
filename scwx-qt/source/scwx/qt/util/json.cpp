@@ -27,20 +27,74 @@ static void PrettyPrintJson(std::ostream&             os,
                             boost::json::value const& jv,
                             std::string*              indent = nullptr);
 
+bool FromJsonInt64(const boost::json::object& json,
+                   const std::string&         key,
+                   int64_t&                   value,
+                   const int64_t              defaultValue,
+                   std::optional<int64_t>     minValue,
+                   std::optional<int64_t>     maxValue)
+{
+   const boost::json::value* jv    = json.if_contains(key);
+   bool                      dirty = true;
+
+   if (jv != nullptr)
+   {
+      if (jv->is_int64())
+      {
+         value = boost::json::value_to<int64_t>(*jv);
+
+         if (minValue.has_value() && value < *minValue)
+         {
+            BOOST_LOG_TRIVIAL(warning)
+               << logPrefix_ << key << " less than minimum (" << value << " < "
+               << *minValue << "), setting to: " << *minValue;
+            value = *minValue;
+         }
+         else if (maxValue.has_value() && value > *maxValue)
+         {
+            BOOST_LOG_TRIVIAL(warning)
+               << logPrefix_ << key << " greater than maximum (" << value
+               << " > " << *maxValue << "), setting to: " << *maxValue;
+            value = *maxValue;
+         }
+         else
+         {
+            dirty = false;
+         }
+      }
+      else
+      {
+         BOOST_LOG_TRIVIAL(warning)
+            << logPrefix_ << key << " is not an int64 (" << jv->kind()
+            << "), setting to default:" << defaultValue;
+         value = defaultValue;
+      }
+   }
+   else
+   {
+      BOOST_LOG_TRIVIAL(debug)
+         << logPrefix_ << key
+         << " is not present, setting to default: " << defaultValue;
+      value = defaultValue;
+   }
+
+   return !dirty;
+}
+
 bool FromJsonString(const boost::json::object& json,
                     const std::string&         key,
                     std::string&               value,
                     const std::string&         defaultValue)
 {
    const boost::json::value* jv    = json.if_contains(key);
-   bool                      found = false;
+   bool                      dirty = true;
 
    if (jv != nullptr)
    {
       if (jv->is_string())
       {
          value = boost::json::value_to<std::string>(*jv);
-         found = true;
+         dirty = false;
       }
       else
       {
@@ -58,7 +112,7 @@ bool FromJsonString(const boost::json::object& json,
       value = defaultValue;
    }
 
-   return found;
+   return !dirty;
 }
 
 boost::json::value ReadJsonFile(const std::string& path)
