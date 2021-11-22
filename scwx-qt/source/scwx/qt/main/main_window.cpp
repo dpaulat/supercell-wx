@@ -42,7 +42,8 @@ public:
    void ConfigureMapLayout();
    void InitializeConnections();
    void SelectElevation(map::MapWidget* mapWidget, float elevation);
-   void SelectRadarProduct(common::Level2Product product);
+   void SelectRadarProduct(map::MapWidget*       mapWidget,
+                           common::Level2Product product);
    void UpdateElevationSelection(float elevation);
    void UpdateRadarProductSettings(map::MapWidget* mapWidget);
 
@@ -87,7 +88,7 @@ MainWindow::MainWindow(QWidget* parent) :
       level2Layout->addWidget(toolButton);
 
       connect(toolButton, &QToolButton::clicked, this, [=]() {
-         p->SelectRadarProduct(product);
+         p->SelectRadarProduct(p->activeMap_, product);
       });
    }
 
@@ -99,7 +100,11 @@ MainWindow::MainWindow(QWidget* parent) :
 
    p->InitializeConnections();
 
-   p->SelectRadarProduct(common::Level2Product::Reflectivity);
+   p->SelectRadarProduct(p->activeMap_, common::Level2Product::Reflectivity);
+   if (p->maps_.at(1) != nullptr)
+   {
+      p->SelectRadarProduct(p->maps_.at(1), common::Level2Product::Velocity);
+   }
 }
 
 MainWindow::~MainWindow()
@@ -241,32 +246,40 @@ void MainWindowImpl::InitializeConnections()
 void MainWindowImpl::SelectElevation(map::MapWidget* mapWidget, float elevation)
 {
    mapWidget->SelectElevation(elevation);
-   UpdateElevationSelection(elevation);
+
+   if (mapWidget == activeMap_)
+   {
+      UpdateElevationSelection(elevation);
+   }
 }
 
-void MainWindowImpl::SelectRadarProduct(common::Level2Product product)
+void MainWindowImpl::SelectRadarProduct(map::MapWidget*       mapWidget,
+                                        common::Level2Product product)
 {
    const std::string& productName = common::GetLevel2Name(product);
 
    BOOST_LOG_TRIVIAL(debug)
       << logPrefix_ << "Selecting Level 2 radar product: " << productName;
 
-   for (QToolButton* toolButton :
-        mainWindow_->ui->level2ProductFrame->findChildren<QToolButton*>())
+   if (mapWidget == activeMap_)
    {
-      if (toolButton->text().toStdString() == productName)
+      for (QToolButton* toolButton :
+           mainWindow_->ui->level2ProductFrame->findChildren<QToolButton*>())
       {
-         toolButton->setCheckable(true);
-         toolButton->setChecked(true);
-      }
-      else
-      {
-         toolButton->setChecked(false);
-         toolButton->setCheckable(false);
+         if (toolButton->text().toStdString() == productName)
+         {
+            toolButton->setCheckable(true);
+            toolButton->setChecked(true);
+         }
+         else
+         {
+            toolButton->setChecked(false);
+            toolButton->setCheckable(false);
+         }
       }
    }
 
-   activeMap_->SelectRadarProduct(product);
+   mapWidget->SelectRadarProduct(product);
 }
 
 void MainWindowImpl::UpdateElevationSelection(float elevation)
