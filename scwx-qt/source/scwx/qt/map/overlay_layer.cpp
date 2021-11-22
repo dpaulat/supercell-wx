@@ -41,6 +41,7 @@ public:
        vbo_ {GL_INVALID_INDEX},
        vao_ {GL_INVALID_INDEX},
        texture_ {GL_INVALID_INDEX},
+       sweepTimeString_ {},
        sweepTimeNeedsUpdate_ {true}
    {
       // TODO: Manage font at the global level, texture at the view level
@@ -59,7 +60,8 @@ public:
    GLuint                      vao_;
    GLuint                      texture_;
 
-   bool sweepTimeNeedsUpdate_;
+   std::string sweepTimeString_;
+   bool        sweepTimeNeedsUpdate_;
 };
 
 OverlayLayer::OverlayLayer(
@@ -131,8 +133,6 @@ void OverlayLayer::render(const QMapbox::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = p->gl_;
 
-   static std::string sweepTimeString;
-
    if (p->sweepTimeNeedsUpdate_)
    {
       using namespace std::chrono;
@@ -144,7 +144,7 @@ void OverlayLayer::render(const QMapbox::CustomLayerRenderParameters& params)
          zoned_time         zt = {current_zone(), sweepTime};
          std::ostringstream os;
          os << zt;
-         sweepTimeString = os.str();
+         p->sweepTimeString_ = os.str();
       }
 
       p->sweepTimeNeedsUpdate_ = false;
@@ -160,10 +160,11 @@ void OverlayLayer::render(const QMapbox::CustomLayerRenderParameters& params)
    gl.glUniformMatrix4fv(
       p->uMVPMatrixLocation_, 1, GL_FALSE, glm::value_ptr(projection));
 
-   if (sweepTimeString.length() > 0)
+   if (p->sweepTimeString_.length() > 0)
    {
-      const float fontSize   = 16.0f;
-      const float textLength = p->font_->TextLength(sweepTimeString, fontSize);
+      const float fontSize = 16.0f;
+      const float textLength =
+         p->font_->TextLength(p->sweepTimeString_, fontSize);
 
       // Upper right panel vertices
       const float vertexLX =
@@ -186,7 +187,7 @@ void OverlayLayer::render(const QMapbox::CustomLayerRenderParameters& params)
       gl.glDrawArrays(GL_TRIANGLES, 0, 6);
 
       // Render time
-      p->textShader_.RenderText(sweepTimeString,
+      p->textShader_.RenderText(p->sweepTimeString_,
                                 params.width - 7.0f,
                                 static_cast<float>(params.height) -
                                    16.0f, // 7.0f,
