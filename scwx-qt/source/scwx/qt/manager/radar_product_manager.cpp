@@ -4,6 +4,7 @@
 
 #include <deque>
 #include <execution>
+#include <mutex>
 
 #include <boost/log/trivial.hpp>
 #include <boost/range/irange.hpp>
@@ -30,14 +31,21 @@ static constexpr uint32_t NUM_COORIDNATES_0_5_DEGREE =
 static constexpr uint32_t NUM_COORIDNATES_1_DEGREE =
    NUM_RADIAL_GATES_1_DEGREE * 2;
 
-// TODO: Configure this in settings for radar loop
-static constexpr size_t MAX_LEVEL2_FILES = 6;
+// TODO: Find a way to garbage collect this
+static std::unordered_map<std::string, std::shared_ptr<RadarProductManager>>
+   instanceMap_;
 
 class RadarProductManagerImpl
 {
 public:
-   explicit RadarProductManagerImpl() {}
+   explicit RadarProductManagerImpl(const std::string& radarSite) :
+       radarSite_ {radarSite}, initialized_ {false}
+   {
+   }
    ~RadarProductManagerImpl() = default;
+
+   std::string radarSite_;
+   bool        initialized_;
 
    std::vector<float> coordinates0_5Degree_;
    std::vector<float> coordinates1Degree_;
@@ -45,10 +53,12 @@ public:
    std::map<std::chrono::system_clock::time_point,
             std::shared_ptr<wsr88d::Ar2vFile>>
       level2VolumeScans_;
+
+   std::mutex fileLoadMutex_;
 };
 
-RadarProductManager::RadarProductManager() :
-    p(std::make_unique<RadarProductManagerImpl>())
+RadarProductManager::RadarProductManager(const std::string& radarSite) :
+    p(std::make_unique<RadarProductManagerImpl>(radarSite))
 {
 }
 RadarProductManager::~RadarProductManager() = default;
@@ -79,6 +89,11 @@ std::shared_ptr<const wsr88d::Ar2vFile> RadarProductManager::level2_data() const
 
 void RadarProductManager::Initialize()
 {
+   if (p->initialized_)
+   {
+      return;
+   }
+
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Initialize()";
 
    boost::timer::cpu_timer timer;
@@ -162,12 +177,19 @@ void RadarProductManager::Initialize()
    BOOST_LOG_TRIVIAL(debug)
       << logPrefix_ << "Coordinates (1 degree) calculated in "
       << timer.format(6, "%ws");
+
+   p->initialized_ = true;
 }
 
 void RadarProductManager::LoadLevel2Data(const std::string& filename)
 {
    std::shared_ptr<wsr88d::Ar2vFile> ar2vFile =
       std::make_shared<wsr88d::Ar2vFile>();
+
+   if (!p->initialized_)
+   {
+      Initialize();
+   }
 
    bool success = ar2vFile->LoadFile(filename);
    if (!success)
@@ -200,15 +222,36 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
    else
    {
       scwx::util::async([&]() {
+         std::lock_guard<std::mutex> guard(p->fileLoadMutex_);
+
+         BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Start load";
+
          QString filename = qgetenv("AR2V_FILE");
-         if (!filename.isEmpty())
+         if (!filename.isEmpty() && p->level2VolumeScans_.size() == 0)
          {
             LoadLevel2Data(filename.toUtf8().constData());
          }
+
+         BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "End load";
       });
    }
 
    return std::tie(radarData, elevationCut, elevationCuts);
+}
+
+std::shared_ptr<RadarProductManager>
+RadarProductManager::Instance(const std::string& radarSite)
+{
+   static std::mutex           instanceMutex;
+   std::lock_guard<std::mutex> guard(instanceMutex);
+
+   if (!instanceMap_.contains(radarSite))
+   {
+      instanceMap_[radarSite] =
+         std::make_shared<RadarProductManager>(radarSite);
+   }
+
+   return instanceMap_[radarSite];
 }
 
 } // namespace manager

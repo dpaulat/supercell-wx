@@ -22,7 +22,7 @@ class RadarProductManager : public QObject
    Q_OBJECT
 
 public:
-   explicit RadarProductManager();
+   explicit RadarProductManager(const std::string& radarSite);
    ~RadarProductManager();
 
    const std::vector<float>& coordinates(common::RadialSize radialSize) const;
@@ -39,6 +39,9 @@ public:
    GetLevel2Data(wsr88d::rda::DataBlockType            dataBlockType,
                  float                                 elevation,
                  std::chrono::system_clock::time_point time = {});
+
+   static std::shared_ptr<RadarProductManager>
+   Instance(const std::string& radarSite);
 
 signals:
    void Level2DataLoaded();

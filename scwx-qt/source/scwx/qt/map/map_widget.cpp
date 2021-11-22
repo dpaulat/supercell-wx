@@ -53,7 +53,7 @@ public:
        widget_ {widget},
        settings_(settings),
        map_(),
-       radarProductManager_ {std::make_shared<manager::RadarProductManager>()},
+       radarProductManager_ {manager::RadarProductManager::Instance("KLSX")},
        radarProductLayer_ {nullptr},
        radarProductView_ {nullptr},
        overlayLayer_ {nullptr},
@@ -98,8 +98,6 @@ MapWidget::MapWidget(const QMapboxGLSettings& settings) :
     p(std::make_unique<MapWidgetImpl>(this, settings))
 {
    setFocusPolicy(Qt::StrongFocus);
-
-   p->radarProductManager_->Initialize();
 }
 
 MapWidget::~MapWidget()
