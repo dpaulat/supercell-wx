@@ -35,6 +35,11 @@ public:
    std::vector<float> GetElevationCuts() const;
    void               SelectElevation(float elevation);
    void               SelectRadarProduct(common::Level2Product product);
+   void               SetMapParameters(double latitude,
+                                       double longitude,
+                                       double zoom,
+                                       double bearing,
+                                       double pitch);
 
 private:
    void  changeStyle();
@@ -58,6 +63,11 @@ private slots:
    void mapChanged(QMapboxGL::MapChange);
 
 signals:
+   void MapParametersChanged(double latitude,
+                             double longitude,
+                             double zoom,
+                             double bearing,
+                             double pitch);
    void RadarSweepUpdated();
 };
 

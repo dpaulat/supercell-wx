@@ -54,6 +54,13 @@ public:
    std::vector<float>           elevationCuts_;
 
    bool resizeElevationButtons_;
+
+public slots:
+   void UpdateMapParameters(double latitude,
+                            double longitude,
+                            double zoom,
+                            double bearing,
+                            double pitch);
 };
 
 MainWindow::MainWindow(QWidget* parent) :
@@ -203,6 +210,11 @@ void MainWindowImpl::ConfigureMapLayout()
          if (maps_.at(mapIndex) == nullptr)
          {
             maps_[mapIndex] = new map::MapWidget(settings_);
+
+            connect(maps_[mapIndex],
+                    &map::MapWidget::MapParametersChanged,
+                    this,
+                    &MainWindowImpl::UpdateMapParameters);
          }
 
          hs->addWidget(maps_[mapIndex]);
@@ -275,6 +287,15 @@ void MainWindowImpl::UpdateElevationSelection(float elevation)
          toolButton->setChecked(false);
          toolButton->setCheckable(false);
       }
+   }
+}
+
+void MainWindowImpl::UpdateMapParameters(
+   double latitude, double longitude, double zoom, double bearing, double pitch)
+{
+   for (map::MapWidget* map : maps_)
+   {
+      map->SetMapParameters(latitude, longitude, zoom, bearing, pitch);
    }
 }
 

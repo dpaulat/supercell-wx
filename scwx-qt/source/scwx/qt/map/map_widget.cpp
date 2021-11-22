@@ -17,12 +17,16 @@
 #include <QMouseEvent>
 #include <QString>
 
+#include <boost/log/trivial.hpp>
+
 namespace scwx
 {
 namespace qt
 {
 namespace map
 {
+
+static const std::string logPrefix_ = "[scwx::qt::map::map_widget] ";
 
 typedef std::pair<std::string, std::string> MapStyle;
 
@@ -38,11 +42,15 @@ static const MapStyle satelliteStreets { "mapbox://styles/mapbox/satellite-stree
 static const std::array<MapStyle, 6> mapboxStyles_ = {
    {streets, outdoors, light, dark, satellite, satelliteStreets}};
 
-class MapWidgetImpl
+class MapWidgetImpl : public QObject
 {
+   Q_OBJECT
+
 public:
-   explicit MapWidgetImpl(const QMapboxGLSettings& settings) :
+   explicit MapWidgetImpl(MapWidget*               widget,
+                          const QMapboxGLSettings& settings) :
        gl_(),
+       widget_ {widget},
        settings_(settings),
        map_(),
        radarProductManager_ {std::make_shared<manager::RadarProductManager>()},
@@ -56,8 +64,11 @@ public:
    }
    ~MapWidgetImpl() = default;
 
+   bool UpdateStoredMapParameters();
+
    gl::OpenGLFunctions gl_;
 
+   MapWidget*                 widget_;
    QMapboxGLSettings          settings_;
    std::shared_ptr<QMapboxGL> map_;
 
@@ -72,10 +83,19 @@ public:
    uint8_t currentStyleIndex_;
 
    uint64_t frameDraws_;
+
+   double prevLatitude_;
+   double prevLongitude_;
+   double prevZoom_;
+   double prevBearing_;
+   double prevPitch_;
+
+public slots:
+   void Update();
 };
 
 MapWidget::MapWidget(const QMapboxGLSettings& settings) :
-    p(std::make_unique<MapWidgetImpl>(settings))
+    p(std::make_unique<MapWidgetImpl>(this, settings))
 {
    setFocusPolicy(Qt::StrongFocus);
 
@@ -149,6 +169,14 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
    {
       AddLayers();
    }
+}
+
+void MapWidget::SetMapParameters(
+   double latitude, double longitude, double zoom, double bearing, double pitch)
+{
+   p->map_->setCoordinateZoom({latitude, longitude}, zoom);
+   p->map_->setBearing(bearing);
+   p->map_->setPitch(pitch);
 }
 
 qreal MapWidget::pixelRatio()
@@ -313,10 +341,14 @@ void MapWidget::initializeGL()
    p->gl_.initializeOpenGLFunctions();
 
    p->map_.reset(new QMapboxGL(nullptr, p->settings_, size(), pixelRatio()));
-   connect(p->map_.get(), SIGNAL(needsRendering()), this, SLOT(update()));
+   connect(p->map_.get(),
+           &QMapboxGL::needsRendering,
+           p.get(),
+           &MapWidgetImpl::Update);
 
    // Set default location to KLSX.
    p->map_->setCoordinateZoom(QMapbox::Coordinate(38.6986, -90.6828), 11);
+   p->UpdateStoredMapParameters();
 
    QString styleUrl = qgetenv("MAPBOX_STYLE_URL");
    if (styleUrl.isEmpty())
@@ -349,6 +381,47 @@ void MapWidget::mapChanged(QMapboxGL::MapChange mapChange)
    }
 }
 
+void MapWidgetImpl::Update()
+{
+   widget_->update();
+
+   if (UpdateStoredMapParameters())
+   {
+      emit widget_->MapParametersChanged(
+         prevLatitude_, prevLongitude_, prevZoom_, prevBearing_, prevPitch_);
+   }
+}
+
+bool MapWidgetImpl::UpdateStoredMapParameters()
+{
+   bool changed = false;
+
+   double newLatitude  = map_->latitude();
+   double newLongitude = map_->longitude();
+   double newZoom      = map_->zoom();
+   double newBearing   = map_->bearing();
+   double newPitch     = map_->pitch();
+
+   if (prevLatitude_ != newLatitude ||   //
+       prevLongitude_ != newLongitude || //
+       prevZoom_ != newZoom ||           //
+       prevBearing_ != newBearing ||     //
+       prevPitch_ != newPitch)
+   {
+      prevLatitude_  = newLatitude;
+      prevLongitude_ = newLongitude;
+      prevZoom_      = newZoom;
+      prevBearing_   = newBearing;
+      prevPitch_     = newPitch;
+
+      changed = true;
+   }
+
+   return changed;
+}
+
 } // namespace map
 } // namespace qt
 } // namespace scwx
+
+#include "map_widget.moc"
