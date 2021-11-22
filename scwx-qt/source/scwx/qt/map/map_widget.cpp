@@ -50,6 +50,7 @@ public:
        radarProductView_ {nullptr},
        overlayLayer_ {nullptr},
        lastPos_(),
+       currentStyleIndex_ {0},
        frameDraws_(0)
    {
    }
@@ -68,6 +69,7 @@ public:
    std::shared_ptr<OverlayLayer>           overlayLayer_;
 
    QPointF lastPos_;
+   uint8_t currentStyleIndex_;
 
    uint64_t frameDraws_;
 };
@@ -156,22 +158,25 @@ qreal MapWidget::pixelRatio()
 
 void MapWidget::changeStyle()
 {
-   static uint8_t currentStyleIndex = 0;
-
    auto& styles = mapboxStyles_;
 
-   p->map_->setStyleUrl(styles[currentStyleIndex].first.c_str());
+   p->map_->setStyleUrl(styles[p->currentStyleIndex_].first.c_str());
    setWindowTitle(QString("Mapbox GL: ") +
-                  styles[currentStyleIndex].second.c_str());
+                  styles[p->currentStyleIndex_].second.c_str());
 
-   if (++currentStyleIndex == styles.size())
+   if (++p->currentStyleIndex_ == styles.size())
    {
-      currentStyleIndex = 0;
+      p->currentStyleIndex_ = 0;
    }
 }
 
 void MapWidget::AddLayers()
 {
+   if (p->radarProductView_ == nullptr)
+   {
+      return;
+   }
+
    // TODO: Improve this
    if (p->map_->layerExists("radar"))
    {

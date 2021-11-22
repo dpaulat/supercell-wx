@@ -1,11 +1,13 @@
 #include "main_window.hpp"
 #include "./ui_main_window.h"
 
+#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/common/products.hpp>
 
+#include <QSplitter>
 #include <QToolButton>
 
 #include <boost/log/trivial.hpp>
@@ -26,23 +28,30 @@ class MainWindowImpl : public QObject
 public:
    explicit MainWindowImpl(MainWindow* mainWindow) :
        mainWindow_ {mainWindow},
-       map_ {nullptr},
+       settings_ {},
+       activeMap_ {nullptr},
+       maps_ {},
        elevationCuts_ {},
        resizeElevationButtons_ {false}
    {
+      settings_.setCacheDatabasePath("/tmp/mbgl-cache.db");
+      settings_.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
    }
    ~MainWindowImpl() = default;
 
+   void ConfigureMapLayout();
    void InitializeConnections();
    void SelectElevation(map::MapWidget* mapWidget, float elevation);
    void SelectRadarProduct(common::Level2Product product);
    void UpdateElevationSelection(float elevation);
    void UpdateRadarProductSettings(map::MapWidget* mapWidget);
 
-   MainWindow*     mainWindow_;
-   map::MapWidget* map_;
+   MainWindow*       mainWindow_;
+   QMapboxGLSettings settings_;
+   map::MapWidget*   activeMap_;
 
-   std::vector<float> elevationCuts_;
+   std::vector<map::MapWidget*> maps_;
+   std::vector<float>           elevationCuts_;
 
    bool resizeElevationButtons_;
 };
@@ -54,13 +63,7 @@ MainWindow::MainWindow(QWidget* parent) :
 {
    ui->setupUi(this);
 
-   QMapboxGLSettings settings;
-   settings.setCacheDatabasePath("/tmp/mbgl-cache.db");
-   settings.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
-
-   p->map_ = new map::MapWidget(settings);
-
-   ui->centralwidget->layout()->addWidget(p->map_);
+   p->ConfigureMapLayout();
 
    // Add Level 2 Products
    QLayout* level2Layout = new ui::FlowLayout();
@@ -162,13 +165,64 @@ void MainWindow::on_actionExit_triggered()
    close();
 }
 
+void MainWindowImpl::ConfigureMapLayout()
+{
+   auto generalSettings = manager::SettingsManager::general_settings();
+
+   const int64_t gridWidth  = generalSettings->grid_width();
+   const int64_t gridHeight = generalSettings->grid_height();
+   const int64_t mapCount   = gridWidth * gridHeight;
+
+   size_t mapIndex = 0;
+
+   QSplitter* vs = new QSplitter(Qt::Vertical);
+   vs->setHandleWidth(1);
+
+   maps_.resize(mapCount);
+
+   auto MoveSplitter = [=](int pos, int index) {
+      QSplitter* s = dynamic_cast<QSplitter*>(sender());
+
+      if (s != nullptr)
+      {
+         auto sizes = s->sizes();
+         for (QSplitter* hs : vs->findChildren<QSplitter*>())
+         {
+            hs->setSizes(sizes);
+         }
+      }
+   };
+
+   for (int64_t y = 0; y < gridHeight; y++)
+   {
+      QSplitter* hs = new QSplitter(vs);
+      hs->setHandleWidth(1);
+
+      for (int64_t x = 0; x < gridWidth; x++, mapIndex++)
+      {
+         if (maps_.at(mapIndex) == nullptr)
+         {
+            maps_[mapIndex] = new map::MapWidget(settings_);
+         }
+
+         hs->addWidget(maps_[mapIndex]);
+      }
+
+      connect(hs, &QSplitter::splitterMoved, this, MoveSplitter);
+   }
+
+   mainWindow_->ui->centralwidget->layout()->addWidget(vs);
+
+   activeMap_ = maps_.at(0);
+}
+
 void MainWindowImpl::InitializeConnections()
 {
    connect(
-      map_,
+      activeMap_,
       &map::MapWidget::RadarSweepUpdated,
       this,
-      [this]() { UpdateRadarProductSettings(map_); },
+      [this]() { UpdateRadarProductSettings(activeMap_); },
       Qt::QueuedConnection);
 }
 
@@ -200,7 +254,7 @@ void MainWindowImpl::SelectRadarProduct(common::Level2Product product)
       }
    }
 
-   map_->SelectRadarProduct(product);
+   activeMap_->SelectRadarProduct(product);
 }
 
 void MainWindowImpl::UpdateElevationSelection(float elevation)
