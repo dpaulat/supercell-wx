@@ -54,7 +54,7 @@ ColorTableLayer::ColorTableLayer(
 }
 ColorTableLayer::~ColorTableLayer() = default;
 
-void ColorTableLayer::initialize()
+void ColorTableLayer::Initialize()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "initialize()";
 
@@ -111,7 +111,7 @@ void ColorTableLayer::initialize()
            [=]() { p->colorTableNeedsUpdate_ = true; });
 }
 
-void ColorTableLayer::render(const QMapbox::CustomLayerRenderParameters& params)
+void ColorTableLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = p->gl_;
 
@@ -170,7 +170,7 @@ void ColorTableLayer::render(const QMapbox::CustomLayerRenderParameters& params)
    SCWX_GL_CHECK_ERROR();
 }
 
-void ColorTableLayer::deinitialize()
+void ColorTableLayer::Deinitialize()
 {
    gl::OpenGLFunctions& gl = p->gl_;
 

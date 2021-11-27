@@ -72,7 +72,7 @@ OverlayLayer::OverlayLayer(
 }
 OverlayLayer::~OverlayLayer() = default;
 
-void OverlayLayer::initialize()
+void OverlayLayer::Initialize()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "initialize()";
 
@@ -137,7 +137,7 @@ void OverlayLayer::initialize()
            &OverlayLayer::UpdateSweepTimeNextFrame);
 }
 
-void OverlayLayer::render(const QMapbox::CustomLayerRenderParameters& params)
+void OverlayLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = p->gl_;
 
@@ -233,7 +233,7 @@ void OverlayLayer::render(const QMapbox::CustomLayerRenderParameters& params)
    SCWX_GL_CHECK_ERROR();
 }
 
-void OverlayLayer::deinitialize()
+void OverlayLayer::Deinitialize()
 {
    gl::OpenGLFunctions& gl = p->gl_;
 

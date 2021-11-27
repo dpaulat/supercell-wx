@@ -3,6 +3,7 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/color_table_layer.hpp>
+#include <scwx/qt/map/layer_wrapper.hpp>
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
@@ -57,6 +58,7 @@ public:
        radarProductLayer_ {nullptr},
        radarProductView_ {nullptr},
        overlayLayer_ {nullptr},
+       colorTableLayer_ {nullptr},
        isActive_ {false},
        lastPos_(),
        currentStyleIndex_ {0},
@@ -82,8 +84,10 @@ public:
 
    std::shared_ptr<common::ColorTable>     colorTable_;
    std::shared_ptr<view::RadarProductView> radarProductView_;
-   std::shared_ptr<RadarProductLayer>      radarProductLayer_;
-   std::shared_ptr<OverlayLayer>           overlayLayer_;
+
+   std::shared_ptr<RadarProductLayer> radarProductLayer_;
+   std::shared_ptr<OverlayLayer>      overlayLayer_;
+   std::shared_ptr<ColorTableLayer>   colorTableLayer_;
 
    bool    isActive_;
    QPointF lastPos_;
@@ -236,13 +240,20 @@ void MapWidget::AddLayers()
       p->map_->removeLayer("colorTable");
    }
 
+   p->radarProductLayer_ =
+      std::make_shared<RadarProductLayer>(p->radarProductView_, p->gl_);
+   p->overlayLayer_ =
+      std::make_shared<OverlayLayer>(p->radarProductView_, p->gl_);
+   p->colorTableLayer_ =
+      std::make_shared<ColorTableLayer>(p->radarProductView_, p->gl_);
+
    // QMapboxGL::addCustomLayer will take ownership of the QScopedPointer
    QScopedPointer<QMapbox::CustomLayerHostInterface> pHost(
-      new RadarProductLayer(p->radarProductView_, p->gl_));
+      new LayerWrapper(p->radarProductLayer_));
    QScopedPointer<QMapbox::CustomLayerHostInterface> pOverlayHost(
-      new OverlayLayer(p->radarProductView_, p->gl_));
+      new LayerWrapper(p->overlayLayer_));
    QScopedPointer<QMapbox::CustomLayerHostInterface> pColorTableHost(
-      new ColorTableLayer(p->radarProductView_, p->gl_));
+      new LayerWrapper(p->colorTableLayer_));
 
    QString before = "ferry";
 

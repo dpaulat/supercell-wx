@@ -1,9 +1,8 @@
 #pragma once
 
 #include <scwx/qt/gl/gl.hpp>
+#include <scwx/qt/map/generic_layer.hpp>
 #include <scwx/qt/view/radar_product_view.hpp>
-
-#include <QMapboxGL>
 
 namespace scwx
 {
@@ -14,21 +13,17 @@ namespace map
 
 class RadarProductLayerImpl;
 
-class RadarProductLayer :
-    public QObject,
-    public QMapbox::CustomLayerHostInterface
+class RadarProductLayer : public GenericLayer
 {
-   Q_OBJECT
-
 public:
    explicit RadarProductLayer(
       std::shared_ptr<view::RadarProductView> radarProductView,
       gl::OpenGLFunctions&                    gl);
    ~RadarProductLayer();
 
-   void initialize() override final;
-   void render(const QMapbox::CustomLayerRenderParameters&) override final;
-   void deinitialize() override final;
+   void Initialize() override final;
+   void Render(const QMapbox::CustomLayerRenderParameters&) override final;
+   void Deinitialize() override final;
 
 private:
    void UpdateColorTable();

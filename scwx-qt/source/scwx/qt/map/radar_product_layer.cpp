@@ -80,7 +80,7 @@ RadarProductLayer::RadarProductLayer(
 }
 RadarProductLayer::~RadarProductLayer() = default;
 
-void RadarProductLayer::initialize()
+void RadarProductLayer::Initialize()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "initialize()";
 
@@ -251,7 +251,7 @@ void RadarProductLayer::UpdateSweep()
    p->numVertices_ = vertices.size() / 2;
 }
 
-void RadarProductLayer::render(
+void RadarProductLayer::Render(
    const QMapbox::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = p->gl_;
@@ -295,7 +295,7 @@ void RadarProductLayer::render(
    gl.glDrawArrays(GL_TRIANGLES, 0, p->numVertices_);
 }
 
-void RadarProductLayer::deinitialize()
+void RadarProductLayer::Deinitialize()
 {
    gl::OpenGLFunctions& gl = p->gl_;
 
