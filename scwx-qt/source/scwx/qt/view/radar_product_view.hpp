@@ -23,7 +23,7 @@ class RadarProductView : public QObject
 
 public:
    explicit RadarProductView();
-   ~RadarProductView();
+   virtual ~RadarProductView();
 
    virtual const std::vector<boost::gil::rgba8_pixel_t>& color_table() const;
    virtual uint16_t                              color_table_min() const;

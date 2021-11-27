@@ -20,7 +20,7 @@ class GenericLayer : public QObject
 
 public:
    explicit GenericLayer();
-   ~GenericLayer();
+   virtual ~GenericLayer();
 
    virtual void Initialize() = 0;
    virtual void Render(const QMapbox::CustomLayerRenderParameters&) = 0;
