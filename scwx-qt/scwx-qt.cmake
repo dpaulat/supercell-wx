@@ -70,16 +70,14 @@ set(HDR_MAP source/scwx/qt/map/color_table_layer.hpp
             source/scwx/qt/map/map_widget.hpp
             source/scwx/qt/map/overlay_layer.hpp
             source/scwx/qt/map/radar_product_layer.hpp
-            source/scwx/qt/map/radar_range_layer.hpp
-            source/scwx/qt/map/triangle_layer.hpp)
+            source/scwx/qt/map/radar_range_layer.hpp)
 set(SRC_MAP source/scwx/qt/map/color_table_layer.cpp
             source/scwx/qt/map/generic_layer.cpp
             source/scwx/qt/map/layer_wrapper.cpp
             source/scwx/qt/map/map_widget.cpp
             source/scwx/qt/map/overlay_layer.cpp
             source/scwx/qt/map/radar_product_layer.cpp
-            source/scwx/qt/map/radar_range_layer.cpp
-            source/scwx/qt/map/triangle_layer.cpp)
+            source/scwx/qt/map/radar_range_layer.cpp)
 set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/palette_settings.hpp)
 set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
