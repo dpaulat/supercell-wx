@@ -42,6 +42,10 @@ public:
    virtual std::tuple<const void*, size_t, size_t> GetMomentData() const = 0;
    virtual std::tuple<const void*, size_t, size_t> GetCfpMomentData() const;
 
+   bool IsActive() const;
+
+   void SetActive(bool isActive);
+
 protected:
    virtual void UpdateColorTable() = 0;
 

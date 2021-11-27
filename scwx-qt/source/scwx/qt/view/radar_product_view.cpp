@@ -24,8 +24,10 @@ static const uint16_t DEFAULT_COLOR_TABLE_MAX = 255u;
 class RadarProductViewImpl
 {
 public:
-   explicit RadarProductViewImpl() = default;
-   ~RadarProductViewImpl()         = default;
+   explicit RadarProductViewImpl() : isActive_ {false} {};
+   ~RadarProductViewImpl() = default;
+
+   bool isActive_;
 };
 
 RadarProductView::RadarProductView() :
@@ -83,6 +85,16 @@ RadarProductView::GetCfpMomentData() const
    size_t      componentSize = 0;
 
    return std::tie(data, dataSize, componentSize);
+}
+
+bool RadarProductView::IsActive() const
+{
+   return p->isActive_;
+}
+
+void RadarProductView::SetActive(bool isActive)
+{
+   p->isActive_ = isActive;
 }
 
 void RadarProductView::ComputeSweep()

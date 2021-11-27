@@ -57,9 +57,15 @@ public:
        radarProductLayer_ {nullptr},
        radarProductView_ {nullptr},
        overlayLayer_ {nullptr},
+       isActive_ {false},
        lastPos_(),
        currentStyleIndex_ {0},
-       frameDraws_(0)
+       frameDraws_(0),
+       prevLatitude_ {0.0},
+       prevLongitude_ {0.0},
+       prevZoom_ {0.0},
+       prevBearing_ {0.0},
+       prevPitch_ {0.0}
    {
    }
    ~MapWidgetImpl() = default;
@@ -79,6 +85,7 @@ public:
    std::shared_ptr<RadarProductLayer>      radarProductLayer_;
    std::shared_ptr<OverlayLayer>           overlayLayer_;
 
+   bool    isActive_;
    QPointF lastPos_;
    uint8_t currentStyleIndex_;
 
@@ -133,6 +140,7 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
 
    p->radarProductView_ = view::RadarProductViewFactory::Create(
       product, currentElevation, p->radarProductManager_);
+   p->radarProductView_->SetActive(p->isActive_);
 
    connect(
       p->radarProductView_.get(),
@@ -166,6 +174,17 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
    if (p->map_ != nullptr)
    {
       AddLayers();
+   }
+}
+
+void MapWidget::SetActive(bool isActive)
+{
+   p->isActive_ = isActive;
+
+   if (p->radarProductView_ != nullptr)
+   {
+      p->radarProductView_->SetActive(isActive);
+      update();
    }
 }
 
@@ -345,7 +364,7 @@ void MapWidget::initializeGL()
            &MapWidgetImpl::Update);
 
    // Set default location to KLSX.
-   p->map_->setCoordinateZoom(QMapbox::Coordinate(38.6986, -90.6828), 11);
+   p->map_->setCoordinateZoom(QMapbox::Coordinate(38.6986, -90.6828), 9);
    p->UpdateStoredMapParameters();
 
    QString styleUrl = qgetenv("MAPBOX_STYLE_URL");

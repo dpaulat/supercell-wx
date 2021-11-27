@@ -312,6 +312,11 @@ void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)
    }
 
    activeMap_ = mapWidget;
+
+   for (map::MapWidget* widget : maps_)
+   {
+      widget->SetActive(mapWidget == widget);
+   }
 }
 
 void MainWindowImpl::UpdateElevationSelection(float elevation)

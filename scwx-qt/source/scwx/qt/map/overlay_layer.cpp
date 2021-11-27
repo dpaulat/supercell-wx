@@ -56,7 +56,7 @@ public:
    gl::ShaderProgram           shaderProgram_;
    GLint                       uMVPMatrixLocation_;
    GLint                       uColorLocation_;
-   GLuint                      vbo_;
+   std::array<GLuint, 2>       vbo_;
    GLuint                      vao_;
    GLuint                      texture_;
 
@@ -108,12 +108,20 @@ void OverlayLayer::initialize()
    gl.glGenVertexArrays(1, &p->vao_);
 
    // Generate vertex buffer objects
-   gl.glGenBuffers(1, &p->vbo_);
+   gl.glGenBuffers(static_cast<GLsizei>(p->vbo_.size()), p->vbo_.data());
 
    gl.glBindVertexArray(p->vao_);
 
+   // Active box (dynamic sized)
+   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
+   gl.glBufferData(
+      GL_ARRAY_BUFFER, sizeof(float) * 5 * 2, nullptr, GL_DYNAMIC_DRAW);
+
+   gl.glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, static_cast<void*>(0));
+   gl.glEnableVertexAttribArray(0);
+
    // Upper right panel (dynamic sized)
-   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
+   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
    gl.glBufferData(
       GL_ARRAY_BUFFER, sizeof(float) * 6 * 2, nullptr, GL_DYNAMIC_DRAW);
 
@@ -160,6 +168,27 @@ void OverlayLayer::render(const QMapbox::CustomLayerRenderParameters& params)
    gl.glUniformMatrix4fv(
       p->uMVPMatrixLocation_, 1, GL_FALSE, glm::value_ptr(projection));
 
+   if (p->radarProductView_->IsActive())
+   {
+      const float vertexLX       = 1.0f;
+      const float vertexRX       = static_cast<float>(params.width) - 1.0f;
+      const float vertexTY       = static_cast<float>(params.height) - 1.0f;
+      const float vertexBY       = 1.0f;
+      const float vertices[5][2] = {{vertexLX, vertexTY},  // TL
+                                    {vertexLX, vertexBY},  // BL
+                                    {vertexRX, vertexBY},  // BR
+                                    {vertexRX, vertexTY},  // TR
+                                    {vertexLX, vertexTY}}; // TL
+
+      // Draw vertices
+      gl.glBindVertexArray(p->vao_);
+      gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
+      gl.glVertexAttribPointer(
+         0, 2, GL_FLOAT, GL_FALSE, 0, static_cast<void*>(0));
+      gl.glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+      gl.glDrawArrays(GL_LINE_STRIP, 0, 5);
+   }
+
    if (p->sweepTimeString_.length() > 0)
    {
       const float fontSize = 16.0f;
@@ -182,7 +211,9 @@ void OverlayLayer::render(const QMapbox::CustomLayerRenderParameters& params)
 
       // Draw vertices
       gl.glBindVertexArray(p->vao_);
-      gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
+      gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
+      gl.glVertexAttribPointer(
+         0, 2, GL_FLOAT, GL_FALSE, 0, static_cast<void*>(0));
       gl.glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
       gl.glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -209,7 +240,7 @@ void OverlayLayer::deinitialize()
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "deinitialize()";
 
    gl.glDeleteVertexArrays(1, &p->vao_);
-   gl.glDeleteBuffers(1, &p->vbo_);
+   gl.glDeleteBuffers(static_cast<GLsizei>(p->vbo_.size()), p->vbo_.data());
    gl.glDeleteTextures(1, &p->texture_);
 
    p->uMVPMatrixLocation_ = GL_INVALID_INDEX;
