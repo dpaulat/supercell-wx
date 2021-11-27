@@ -56,6 +56,7 @@ public:
    std::vector<map::MapWidget*> maps_;
    std::vector<float>           elevationCuts_;
 
+   bool elevationButtonsChanged_;
    bool resizeElevationButtons_;
 
 public slots:
@@ -123,7 +124,11 @@ bool MainWindow::event(QEvent* event)
 {
    if (event->type() == QEvent::Type::Paint)
    {
-      if (p->resizeElevationButtons_)
+      if (p->elevationButtonsChanged_)
+      {
+         p->elevationButtonsChanged_ = false;
+      }
+      else if (p->resizeElevationButtons_)
       {
          // Set each elevation cut's tool button to the same size
          int elevationCutMaxWidth = 0;
@@ -367,8 +372,9 @@ void MainWindowImpl::UpdateRadarProductSettings()
          });
       }
 
-      elevationCuts_          = elevationCuts;
-      resizeElevationButtons_ = true;
+      elevationCuts_           = elevationCuts;
+      elevationButtonsChanged_ = true;
+      resizeElevationButtons_  = true;
    }
 
    UpdateElevationSelection(currentElevation);
