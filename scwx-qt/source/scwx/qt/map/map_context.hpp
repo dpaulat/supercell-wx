@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/qt/gl/gl.hpp>
+#include <scwx/qt/map/map_settings.hpp>
 #include <scwx/qt/view/radar_product_view.hpp>
 
 namespace scwx
@@ -14,7 +15,7 @@ struct MapContext
 {
    explicit MapContext(
       std::shared_ptr<view::RadarProductView> radarProductView = nullptr) :
-       gl_ {}, radarProductView_ {radarProductView}
+       gl_ {}, settings_ {}, radarProductView_ {radarProductView}
    {
    }
    ~MapContext() = default;
@@ -26,6 +27,7 @@ struct MapContext
    MapContext& operator=(MapContext&&) noexcept = default;
 
    gl::OpenGLFunctions                     gl_;
+   MapSettings                             settings_;
    std::shared_ptr<view::RadarProductView> radarProductView_;
 };
 

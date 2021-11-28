@@ -58,7 +58,6 @@ public:
        radarProductLayer_ {nullptr},
        overlayLayer_ {nullptr},
        colorTableLayer_ {nullptr},
-       isActive_ {false},
        lastPos_(),
        currentStyleIndex_ {0},
        frameDraws_(0),
@@ -87,7 +86,6 @@ public:
    std::shared_ptr<OverlayLayer>      overlayLayer_;
    std::shared_ptr<ColorTableLayer>   colorTableLayer_;
 
-   bool    isActive_;
    QPointF lastPos_;
    uint8_t currentStyleIndex_;
 
@@ -145,7 +143,6 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
 
    radarProductView = view::RadarProductViewFactory::Create(
       product, currentElevation, p->radarProductManager_);
-   radarProductView->SetActive(p->isActive_);
 
    connect(
       radarProductView.get(),
@@ -184,13 +181,8 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
 
 void MapWidget::SetActive(bool isActive)
 {
-   p->isActive_ = isActive;
-
-   if (p->context_->radarProductView_ != nullptr)
-   {
-      p->context_->radarProductView_->SetActive(isActive);
-      update();
-   }
+   p->context_->settings_.isActive_ = isActive;
+   update();
 }
 
 void MapWidget::SetMapParameters(

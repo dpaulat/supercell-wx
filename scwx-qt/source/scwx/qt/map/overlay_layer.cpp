@@ -159,7 +159,7 @@ void OverlayLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
    gl.glUniformMatrix4fv(
       p->uMVPMatrixLocation_, 1, GL_FALSE, glm::value_ptr(projection));
 
-   if (context()->radarProductView_->IsActive())
+   if (context()->settings_.isActive_)
    {
       const float vertexLX       = 1.0f;
       const float vertexRX       = static_cast<float>(params.width) - 1.0f;

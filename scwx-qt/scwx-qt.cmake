@@ -68,6 +68,7 @@ set(HDR_MAP source/scwx/qt/map/color_table_layer.hpp
             source/scwx/qt/map/generic_layer.hpp
             source/scwx/qt/map/layer_wrapper.hpp
             source/scwx/qt/map/map_context.hpp
+            source/scwx/qt/map/map_settings.hpp
             source/scwx/qt/map/map_widget.hpp
             source/scwx/qt/map/overlay_layer.hpp
             source/scwx/qt/map/radar_product_layer.hpp
