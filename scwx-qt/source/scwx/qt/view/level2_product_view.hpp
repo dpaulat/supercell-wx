@@ -40,7 +40,9 @@ public:
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) override;
    void SelectElevation(float elevation) override;
 
-   std::vector<float>                      GetElevationCuts() const override;
+   common::RadarProductGroup GetRadarProductGroup() const override;
+   std::string               GetRadarProductName() const override;
+   std::vector<float>        GetElevationCuts() const override;
    std::tuple<const void*, size_t, size_t> GetMomentData() const override;
    std::tuple<const void*, size_t, size_t> GetCfpMomentData() const override;
 

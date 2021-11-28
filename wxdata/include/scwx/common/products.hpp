@@ -9,7 +9,16 @@ namespace scwx
 namespace common
 {
 
-const std::string LEVEL2_GROUP_ID = "L2";
+enum class RadarProductGroup
+{
+   Level2,
+   Level3,
+   Unknown
+};
+typedef util::Iterator<RadarProductGroup,
+                       RadarProductGroup::Level2,
+                       RadarProductGroup::Level3>
+   RadarProductGroupIterator;
 
 enum class Level2Product
 {
@@ -27,10 +36,13 @@ typedef util::Iterator<Level2Product,
                        Level2Product::ClutterFilterPowerRemoved>
    Level2ProductIterator;
 
+const std::string&      GetRadarProductGroupName(RadarProductGroup group);
+const RadarProductGroup GetRadarProductGroup(const std::string& name);
+
 const std::string&  GetLevel2Name(Level2Product product);
 const std::string&  GetLevel2Description(Level2Product product);
 const std::string&  GetLevel2Palette(Level2Product product);
-const Level2Product GetLevel2Product(const std::string& id);
+const Level2Product GetLevel2Product(const std::string& name);
 
 } // namespace common
 } // namespace scwx

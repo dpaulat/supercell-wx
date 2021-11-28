@@ -178,6 +178,16 @@ const std::vector<float>& Level2ProductView::vertices() const
    return p->vertices_;
 }
 
+common::RadarProductGroup Level2ProductView::GetRadarProductGroup() const
+{
+   return common::RadarProductGroup::Level2;
+}
+
+std::string Level2ProductView::GetRadarProductName() const
+{
+   return common::GetLevel2Name(p->product_);
+}
+
 std::vector<float> Level2ProductView::GetElevationCuts() const
 {
    return p->elevationCuts_;

@@ -31,16 +31,19 @@ public:
    explicit MapWidget(const QMapboxGLSettings&);
    ~MapWidget();
 
-   float              GetElevation() const;
-   std::vector<float> GetElevationCuts() const;
-   void               SelectElevation(float elevation);
-   void               SelectRadarProduct(common::Level2Product product);
-   void               SetActive(bool isActive);
-   void               SetMapParameters(double latitude,
-                                       double longitude,
-                                       double zoom,
-                                       double bearing,
-                                       double pitch);
+   float                     GetElevation() const;
+   std::vector<float>        GetElevationCuts() const;
+   common::RadarProductGroup GetRadarProductGroup() const;
+   std::string               GetRadarProductName() const;
+
+   void SelectElevation(float elevation);
+   void SelectRadarProduct(common::Level2Product product);
+   void SetActive(bool isActive);
+   void SetMapParameters(double latitude,
+                         double longitude,
+                         double zoom,
+                         double bearing,
+                         double pitch);
 
 private:
    void  changeStyle();

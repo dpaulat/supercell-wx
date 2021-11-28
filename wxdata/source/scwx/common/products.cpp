@@ -7,6 +7,11 @@ namespace scwx
 namespace common
 {
 
+static const std::unordered_map<RadarProductGroup, std::string>
+   productGroupName_ {{RadarProductGroup::Level2, "L2"},
+                      {RadarProductGroup::Level3, "L3"},
+                      {RadarProductGroup::Unknown, "?"}};
+
 static const std::unordered_map<Level2Product, std::string> level2Name_ {
    {Level2Product::Reflectivity, "REF"},
    {Level2Product::Velocity, "VEL"},
@@ -36,6 +41,30 @@ static const std::unordered_map<Level2Product, std::string> level2Palette_ {
    {Level2Product::CorrelationCoefficient, "CC"},
    {Level2Product::ClutterFilterPowerRemoved, "???"},
    {Level2Product::Unknown, "???"}};
+
+const std::string& GetProductGroupName(RadarProductGroup group)
+{
+   return productGroupName_.at(group);
+}
+
+const RadarProductGroup GetProductGroup(const std::string& name)
+{
+   auto result = std::find_if(
+      productGroupName_.cbegin(),
+      productGroupName_.cend(),
+      [&](const std::pair<RadarProductGroup, std::string>& pair) -> bool {
+         return pair.second == name;
+      });
+
+   if (result != productGroupName_.cend())
+   {
+      return result->first;
+   }
+   else
+   {
+      return RadarProductGroup::Unknown;
+   }
+}
 
 const std::string& GetLevel2Name(Level2Product product)
 {

@@ -47,6 +47,9 @@ public:
                            common::Level2Product product);
    void SetActiveMap(map::MapWidget* mapWidget);
    void UpdateElevationSelection(float elevation);
+   void UpdateLevel2ProductSelection(common::Level2Product product);
+   void UpdateRadarProductSelection(common::RadarProductGroup group,
+                                    const std::string&        product);
    void UpdateRadarProductSettings();
 
    MainWindow*       mainWindow_;
@@ -252,6 +255,9 @@ void MainWindowImpl::HandleFocusChange(QWidget* focused)
    if (mapWidget != nullptr)
    {
       SetActiveMap(mapWidget);
+      UpdateRadarProductSelection(mapWidget->GetRadarProductGroup(),
+                                  mapWidget->GetRadarProductName());
+      UpdateRadarProductSettings();
    }
 }
 
@@ -285,20 +291,8 @@ void MainWindowImpl::SelectRadarProduct(map::MapWidget*       mapWidget,
 
    if (mapWidget == activeMap_)
    {
-      for (QToolButton* toolButton :
-           mainWindow_->ui->level2ProductFrame->findChildren<QToolButton*>())
-      {
-         if (toolButton->text().toStdString() == productName)
-         {
-            toolButton->setCheckable(true);
-            toolButton->setChecked(true);
-         }
-         else
-         {
-            toolButton->setChecked(false);
-            toolButton->setCheckable(false);
-         }
-      }
+      UpdateLevel2ProductSelection(product);
+      UpdateRadarProductSettings();
    }
 
    mapWidget->SelectRadarProduct(product);
@@ -346,6 +340,39 @@ void MainWindowImpl::UpdateMapParameters(
    for (map::MapWidget* map : maps_)
    {
       map->SetMapParameters(latitude, longitude, zoom, bearing, pitch);
+   }
+}
+
+void MainWindowImpl::UpdateLevel2ProductSelection(common::Level2Product product)
+{
+   const std::string& productName = common::GetLevel2Name(product);
+
+   for (QToolButton* toolButton :
+        mainWindow_->ui->level2ProductFrame->findChildren<QToolButton*>())
+   {
+      if (toolButton->text().toStdString() == productName)
+      {
+         toolButton->setCheckable(true);
+         toolButton->setChecked(true);
+      }
+      else
+      {
+         toolButton->setChecked(false);
+         toolButton->setCheckable(false);
+      }
+   }
+}
+
+void MainWindowImpl::UpdateRadarProductSelection(
+   common::RadarProductGroup group, const std::string& product)
+{
+   switch (group)
+   {
+   case common::RadarProductGroup::Level2:
+      UpdateLevel2ProductSelection(common::GetLevel2Product(product));
+      break;
+
+   default: UpdateLevel2ProductSelection(common::Level2Product::Unknown); break;
    }
 }
 

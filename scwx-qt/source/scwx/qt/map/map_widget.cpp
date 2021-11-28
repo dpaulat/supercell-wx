@@ -116,17 +116,59 @@ MapWidget::~MapWidget()
 
 float MapWidget::GetElevation() const
 {
-   return p->context_->radarProductView_->elevation();
+   if (p->context_->radarProductView_ != nullptr)
+   {
+      return p->context_->radarProductView_->elevation();
+   }
+   else
+   {
+      return 0.0f;
+   }
 }
 
 std::vector<float> MapWidget::GetElevationCuts() const
 {
-   return p->context_->radarProductView_->GetElevationCuts();
+   if (p->context_->radarProductView_ != nullptr)
+   {
+      return p->context_->radarProductView_->GetElevationCuts();
+   }
+   else
+   {
+      return {};
+   }
+}
+
+common::RadarProductGroup MapWidget::GetRadarProductGroup() const
+{
+   if (p->context_->radarProductView_ != nullptr)
+   {
+      return p->context_->radarProductView_->GetRadarProductGroup();
+   }
+   else
+   {
+      return common::RadarProductGroup::Unknown;
+   }
+}
+
+std::string MapWidget::GetRadarProductName() const
+{
+
+   if (p->context_->radarProductView_ != nullptr)
+   {
+      return p->context_->radarProductView_->GetRadarProductName();
+   }
+   else
+   {
+      return "?";
+   }
 }
 
 void MapWidget::SelectElevation(float elevation)
 {
-   p->context_->radarProductView_->SelectElevation(elevation);
+   if (p->context_->radarProductView_ != nullptr)
+   {
+      p->context_->radarProductView_->SelectElevation(elevation);
+   }
 }
 
 void MapWidget::SelectRadarProduct(common::Level2Product product)
