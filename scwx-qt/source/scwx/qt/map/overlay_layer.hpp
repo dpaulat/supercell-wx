@@ -1,8 +1,6 @@
 #pragma once
 
-#include <scwx/qt/gl/gl.hpp>
 #include <scwx/qt/map/generic_layer.hpp>
-#include <scwx/qt/view/radar_product_view.hpp>
 
 namespace scwx
 {
@@ -16,9 +14,7 @@ class OverlayLayerImpl;
 class OverlayLayer : public GenericLayer
 {
 public:
-   explicit OverlayLayer(
-      std::shared_ptr<view::RadarProductView> radarProductView,
-      gl::OpenGLFunctions&                    gl);
+   explicit OverlayLayer(std::shared_ptr<MapContext> context);
    ~OverlayLayer();
 
    void Initialize() override final;

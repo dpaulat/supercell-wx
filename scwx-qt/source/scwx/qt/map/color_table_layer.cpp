@@ -17,12 +17,8 @@ static const std::string logPrefix_ = "[scwx::qt::map::color_table_layer] ";
 class ColorTableLayerImpl
 {
 public:
-   explicit ColorTableLayerImpl(
-      std::shared_ptr<view::RadarProductView> radarProductView,
-      gl::OpenGLFunctions&                    gl) :
-       radarProductView_(radarProductView),
-       gl_(gl),
-       shaderProgram_(gl),
+   explicit ColorTableLayerImpl(std::shared_ptr<MapContext> context) :
+       shaderProgram_(context->gl_),
        uMVPMatrixLocation_(GL_INVALID_INDEX),
        vbo_ {GL_INVALID_INDEX},
        vao_ {GL_INVALID_INDEX},
@@ -31,9 +27,6 @@ public:
    {
    }
    ~ColorTableLayerImpl() = default;
-
-   std::shared_ptr<view::RadarProductView> radarProductView_;
-   gl::OpenGLFunctions&                    gl_;
 
    gl::ShaderProgram     shaderProgram_;
    GLint                 uMVPMatrixLocation_;
@@ -46,19 +39,17 @@ public:
    bool colorTableNeedsUpdate_;
 };
 
-ColorTableLayer::ColorTableLayer(
-   std::shared_ptr<view::RadarProductView> radarProductView,
-   gl::OpenGLFunctions&                    gl) :
-    p(std::make_unique<ColorTableLayerImpl>(radarProductView, gl))
+ColorTableLayer::ColorTableLayer(std::shared_ptr<MapContext> context) :
+    GenericLayer(context), p(std::make_unique<ColorTableLayerImpl>(context))
 {
 }
 ColorTableLayer::~ColorTableLayer() = default;
 
 void ColorTableLayer::Initialize()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "initialize()";
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Initialize()";
 
-   gl::OpenGLFunctions& gl = p->gl_;
+   gl::OpenGLFunctions& gl = context()->gl_;
 
    // Load and configure overlay shader
    p->shaderProgram_.Load(":/gl/texture1d.vert", ":/gl/texture1d.frag");
@@ -105,7 +96,7 @@ void ColorTableLayer::Initialize()
    gl.glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, static_cast<void*>(0));
    gl.glEnableVertexAttribArray(1);
 
-   connect(p->radarProductView_.get(),
+   connect(context()->radarProductView_.get(),
            &view::RadarProductView::ColorTableUpdated,
            this,
            [=]() { p->colorTableNeedsUpdate_ = true; });
@@ -113,7 +104,7 @@ void ColorTableLayer::Initialize()
 
 void ColorTableLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 {
-   gl::OpenGLFunctions& gl = p->gl_;
+   gl::OpenGLFunctions& gl = context()->gl_;
 
    glm::mat4 projection = glm::ortho(0.0f,
                                      static_cast<float>(params.width),
@@ -127,7 +118,7 @@ void ColorTableLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 
    if (p->colorTableNeedsUpdate_)
    {
-      p->colorTable_ = p->radarProductView_->color_table();
+      p->colorTable_ = context()->radarProductView_->color_table();
 
       gl.glActiveTexture(GL_TEXTURE0);
       gl.glBindTexture(GL_TEXTURE_1D, p->texture_);
@@ -144,8 +135,9 @@ void ColorTableLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
       gl.glGenerateMipmap(GL_TEXTURE_1D);
    }
 
-   if (p->colorTable_.size() > 0 && p->radarProductView_->sweep_time() !=
-                                       std::chrono::system_clock::time_point())
+   if (p->colorTable_.size() > 0 &&
+       context()->radarProductView_->sweep_time() !=
+          std::chrono::system_clock::time_point())
    {
       // Color table panel vertices
       const float vertexLX       = 0.0f;
@@ -172,9 +164,9 @@ void ColorTableLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 
 void ColorTableLayer::Deinitialize()
 {
-   gl::OpenGLFunctions& gl = p->gl_;
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Deinitialize()";
 
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "deinitialize()";
+   gl::OpenGLFunctions& gl = context()->gl_;
 
    gl.glDeleteVertexArrays(1, &p->vao_);
    gl.glDeleteBuffers(2, p->vbo_.data());

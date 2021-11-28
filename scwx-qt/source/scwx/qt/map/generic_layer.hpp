@@ -1,5 +1,7 @@
 #pragma once
 
+#include <scwx/qt/map/map_context.hpp>
+
 #include <memory>
 
 #include <QObject>
@@ -19,12 +21,15 @@ class GenericLayer : public QObject
    Q_OBJECT
 
 public:
-   explicit GenericLayer();
+   explicit GenericLayer(std::shared_ptr<MapContext> context);
    virtual ~GenericLayer();
 
-   virtual void Initialize() = 0;
+   virtual void Initialize()                                        = 0;
    virtual void Render(const QMapbox::CustomLayerRenderParameters&) = 0;
-   virtual void Deinitialize() = 0;
+   virtual void Deinitialize()                                      = 0;
+
+protected:
+   std::shared_ptr<MapContext> context() const;
 
 private:
    std::unique_ptr<GenericLayerImpl> p;

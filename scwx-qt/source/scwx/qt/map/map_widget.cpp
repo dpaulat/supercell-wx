@@ -50,13 +50,12 @@ class MapWidgetImpl : public QObject
 public:
    explicit MapWidgetImpl(MapWidget*               widget,
                           const QMapboxGLSettings& settings) :
-       gl_(),
+       context_ {std::make_shared<MapContext>()},
        widget_ {widget},
        settings_(settings),
        map_(),
        radarProductManager_ {manager::RadarProductManager::Instance("KLSX")},
        radarProductLayer_ {nullptr},
-       radarProductView_ {nullptr},
        overlayLayer_ {nullptr},
        colorTableLayer_ {nullptr},
        isActive_ {false},
@@ -74,7 +73,7 @@ public:
 
    bool UpdateStoredMapParameters();
 
-   gl::OpenGLFunctions gl_;
+   std::shared_ptr<MapContext> context_;
 
    MapWidget*                 widget_;
    QMapboxGLSettings          settings_;
@@ -82,8 +81,7 @@ public:
 
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
-   std::shared_ptr<common::ColorTable>     colorTable_;
-   std::shared_ptr<view::RadarProductView> radarProductView_;
+   std::shared_ptr<common::ColorTable> colorTable_;
 
    std::shared_ptr<RadarProductLayer> radarProductLayer_;
    std::shared_ptr<OverlayLayer>      overlayLayer_;
@@ -120,50 +118,53 @@ MapWidget::~MapWidget()
 
 float MapWidget::GetElevation() const
 {
-   return p->radarProductView_->elevation();
+   return p->context_->radarProductView_->elevation();
 }
 
 std::vector<float> MapWidget::GetElevationCuts() const
 {
-   return p->radarProductView_->GetElevationCuts();
+   return p->context_->radarProductView_->GetElevationCuts();
 }
 
 void MapWidget::SelectElevation(float elevation)
 {
-   p->radarProductView_->SelectElevation(elevation);
+   p->context_->radarProductView_->SelectElevation(elevation);
 }
 
 void MapWidget::SelectRadarProduct(common::Level2Product product)
 {
    float currentElevation = 0.0f;
 
-   if (p->radarProductView_ != nullptr)
+   std::shared_ptr<view::RadarProductView>& radarProductView =
+      p->context_->radarProductView_;
+
+   if (p->context_->radarProductView_ != nullptr)
    {
-      currentElevation = p->radarProductView_->elevation();
+      currentElevation = p->context_->radarProductView_->elevation();
    }
 
-   p->radarProductView_ = view::RadarProductViewFactory::Create(
+   radarProductView = view::RadarProductViewFactory::Create(
       product, currentElevation, p->radarProductManager_);
-   p->radarProductView_->SetActive(p->isActive_);
+   radarProductView->SetActive(p->isActive_);
 
    connect(
-      p->radarProductView_.get(),
+      radarProductView.get(),
       &view::RadarProductView::ColorTableUpdated,
       this,
       [&]() { update(); },
       Qt::QueuedConnection);
    connect(
-      p->radarProductView_.get(),
+      radarProductView.get(),
       &view::RadarProductView::SweepComputed,
       this,
       [&]() {
-         RadarRangeLayer::Update(p->map_, p->radarProductView_->range());
+         RadarRangeLayer::Update(p->map_, radarProductView->range());
          update();
          emit RadarSweepUpdated();
       },
       Qt::QueuedConnection);
 
-   p->radarProductView_->Initialize();
+   radarProductView->Initialize();
 
    std::string colorTableFile =
       manager::SettingsManager::palette_settings()->palette(
@@ -172,7 +173,7 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
    {
       std::shared_ptr<common::ColorTable> colorTable =
          common::ColorTable::Load(colorTableFile);
-      p->radarProductView_->LoadColorTable(colorTable);
+      radarProductView->LoadColorTable(colorTable);
    }
 
    if (p->map_ != nullptr)
@@ -185,9 +186,9 @@ void MapWidget::SetActive(bool isActive)
 {
    p->isActive_ = isActive;
 
-   if (p->radarProductView_ != nullptr)
+   if (p->context_->radarProductView_ != nullptr)
    {
-      p->radarProductView_->SetActive(isActive);
+      p->context_->radarProductView_->SetActive(isActive);
       update();
    }
 }
@@ -221,7 +222,7 @@ void MapWidget::changeStyle()
 
 void MapWidget::AddLayers()
 {
-   if (p->radarProductView_ == nullptr)
+   if (p->context_->radarProductView_ == nullptr)
    {
       return;
    }
@@ -240,12 +241,9 @@ void MapWidget::AddLayers()
       p->map_->removeLayer("colorTable");
    }
 
-   p->radarProductLayer_ =
-      std::make_shared<RadarProductLayer>(p->radarProductView_, p->gl_);
-   p->overlayLayer_ =
-      std::make_shared<OverlayLayer>(p->radarProductView_, p->gl_);
-   p->colorTableLayer_ =
-      std::make_shared<ColorTableLayer>(p->radarProductView_, p->gl_);
+   p->radarProductLayer_ = std::make_shared<RadarProductLayer>(p->context_);
+   p->overlayLayer_      = std::make_shared<OverlayLayer>(p->context_);
+   p->colorTableLayer_   = std::make_shared<ColorTableLayer>(p->context_);
 
    // QMapboxGL::addCustomLayer will take ownership of the QScopedPointer
    QScopedPointer<QMapbox::CustomLayerHostInterface> pHost(
@@ -269,7 +267,8 @@ void MapWidget::AddLayers()
    }
 
    p->map_->addCustomLayer("radar", pHost, before);
-   RadarRangeLayer::Add(p->map_, p->radarProductView_->range(), before);
+   RadarRangeLayer::Add(
+      p->map_, p->context_->radarProductView_->range(), before);
    p->map_->addCustomLayer("overlay", pOverlayHost);
    p->map_->addCustomLayer("colorTable", pColorTableHost);
 }
@@ -366,7 +365,7 @@ void MapWidget::wheelEvent(QWheelEvent* ev)
 void MapWidget::initializeGL()
 {
    makeCurrent();
-   p->gl_.initializeOpenGLFunctions();
+   p->context_->gl_.initializeOpenGLFunctions();
 
    p->map_.reset(new QMapboxGL(nullptr, p->settings_, size(), pixelRatio()));
    connect(p->map_.get(),
