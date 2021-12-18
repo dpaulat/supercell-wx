@@ -196,7 +196,8 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
       radarProductView.get(),
       &view::RadarProductView::SweepComputed,
       this,
-      [&]() {
+      [&]()
+      {
          RadarRangeLayer::Update(p->map_, radarProductView->range());
          update();
          emit RadarSweepUpdated();
@@ -279,13 +280,13 @@ void MapWidget::AddLayers()
    p->overlayLayer_      = std::make_shared<OverlayLayer>(p->context_);
    p->colorTableLayer_   = std::make_shared<ColorTableLayer>(p->context_);
 
-   // QMapboxGL::addCustomLayer will take ownership of the QScopedPointer
-   QScopedPointer<QMapbox::CustomLayerHostInterface> pHost(
-      new LayerWrapper(p->radarProductLayer_));
-   QScopedPointer<QMapbox::CustomLayerHostInterface> pOverlayHost(
-      new LayerWrapper(p->overlayLayer_));
-   QScopedPointer<QMapbox::CustomLayerHostInterface> pColorTableHost(
-      new LayerWrapper(p->colorTableLayer_));
+   // QMapboxGL::addCustomLayer will take ownership of the std::unique_ptr
+   std::unique_ptr<QMapbox::CustomLayerHostInterface> pHost =
+      std::make_unique<LayerWrapper>(p->radarProductLayer_);
+   std::unique_ptr<QMapbox::CustomLayerHostInterface> pOverlayHost =
+      std::make_unique<LayerWrapper>(p->overlayLayer_);
+   std::unique_ptr<QMapbox::CustomLayerHostInterface> pColorTableHost =
+      std::make_unique<LayerWrapper>(p->colorTableLayer_);
 
    QString before = "ferry";
 
@@ -300,11 +301,11 @@ void MapWidget::AddLayers()
       }
    }
 
-   p->map_->addCustomLayer("radar", pHost, before);
+   p->map_->addCustomLayer("radar", std::move(pHost), before);
    RadarRangeLayer::Add(
       p->map_, p->context_->radarProductView_->range(), before);
-   p->map_->addCustomLayer("overlay", pOverlayHost);
-   p->map_->addCustomLayer("colorTable", pColorTableHost);
+   p->map_->addCustomLayer("overlay", std::move(pOverlayHost));
+   p->map_->addCustomLayer("colorTable", std::move(pColorTableHost));
 }
 
 void MapWidget::keyPressEvent(QKeyEvent* ev)
