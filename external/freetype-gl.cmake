@@ -14,6 +14,10 @@ set(freetype-gl_BUILD_HARFBUZZ OFF)
 set(freetype-gl_BUILD_MAKEFONT ON)
 set(freetype-gl_BUILD_TESTS    OFF)
 set(freetype-gl_BUILD_SHARED   OFF)
+set(freetype-gl_OFF_SCREEN     OFF)
+
+configure_file(freetype-gl/cmake/config.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/freetype-gl/config.h)
 
 set(FREETYPE_GL_HDR freetype-gl/distance-field.h
                     freetype-gl/edtaa3func.h
@@ -31,7 +35,8 @@ set(FREETYPE_GL_HDR freetype-gl/distance-field.h
                     freetype-gl/vector.h
                     freetype-gl/vertex-attribute.h
                     freetype-gl/vertex-buffer.h
-                    freetype-gl/freetype-gl-errdef.h)
+                    freetype-gl/freetype-gl-errdef.h
+                    ${CMAKE_CURRENT_BINARY_DIR}/freetype-gl/config.h)
 set(FREETYPE_GL_SRC freetype-gl/distance-field.c
                     freetype-gl/edtaa3func.c
                     freetype-gl/font-manager.c
@@ -83,12 +88,25 @@ endif()
 if(freetype-gl_USE_VAO)
     target_compile_definitions(freetype-gl PRIVATE FREETYPE_GL_USE_VAO)
     target_compile_definitions(makefont    PRIVATE FREETYPE_GL_USE_VAO)
-endif(freetype-gl_USE_VAO)
+endif()
+
+if(freetype-gl_USE_WITH_GLAD)
+    target_compile_definitions(freetype-gl PRIVATE GL_WITH_GLAD)
+    target_compile_definitions(makefont    PRIVATE GL_WITH_GLAD)
+endif()
+
+if(freetype-gl_USE_WITH_GLEW)
+    target_compile_definitions(freetype-gl PRIVATE FREETYPE_GL_USE_GLEW)
+    target_compile_definitions(makefont    PRIVATE FREETYPE_GL_USE_GLEW)
+endif()
 
 if(MSVC)
     target_compile_definitions(freetype-gl PRIVATE _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_DEPRECATE)
     target_compile_definitions(makefont    PRIVATE _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_DEPRECATE)
 endif(MSVC)
+
+target_include_directories(freetype-gl PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/freetype-gl)
+target_include_directories(makefont    PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/freetype-gl)
 
 set(FTGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/freetype-gl PARENT_SCOPE)
 

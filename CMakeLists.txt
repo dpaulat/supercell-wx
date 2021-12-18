@@ -13,7 +13,7 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 include(${PROJECT_SOURCE_DIR}/external/cmake-conan/conan.cmake)
 
 conan_cmake_configure(REQUIRES boost/1.77.0
-                               freetype/2.10.4
+                               freetype/2.11.1
                                geographiclib/1.52
                                glew/2.2.0
                                glm/0.9.9.8
