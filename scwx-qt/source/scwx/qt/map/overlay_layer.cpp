@@ -1,3 +1,8 @@
+// Enable chrono formatters
+#ifndef __cpp_lib_format
+#define __cpp_lib_format 202110L
+#endif
+
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/gl/shader_program.hpp>
 #include <scwx/qt/gl/text_shader.hpp>
