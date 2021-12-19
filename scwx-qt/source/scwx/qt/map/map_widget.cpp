@@ -304,8 +304,8 @@ void MapWidget::AddLayers()
    p->map_->addCustomLayer("radar", std::move(pHost), before);
    RadarRangeLayer::Add(
       p->map_, p->context_->radarProductView_->range(), before);
-   p->map_->addCustomLayer("overlay", std::move(pOverlayHost));
    p->map_->addCustomLayer("colorTable", std::move(pColorTableHost));
+   p->map_->addCustomLayer("overlay", std::move(pOverlayHost));
 }
 
 void MapWidget::keyPressEvent(QKeyEvent* ev)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/qt/map/generic_layer.hpp>
+#include <scwx/qt/map/draw_layer.hpp>
 
 namespace scwx
 {
@@ -11,7 +11,7 @@ namespace map
 
 class OverlayLayerImpl;
 
-class OverlayLayer : public GenericLayer
+class OverlayLayer : public DrawLayer
 {
 public:
    explicit OverlayLayer(std::shared_ptr<MapContext> context);

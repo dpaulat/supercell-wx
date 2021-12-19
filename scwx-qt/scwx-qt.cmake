@@ -58,6 +58,10 @@ set(HDR_GL source/scwx/qt/gl/gl.hpp
            source/scwx/qt/gl/text_shader.hpp)
 set(SRC_GL source/scwx/qt/gl/shader_program.cpp
            source/scwx/qt/gl/text_shader.cpp)
+set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
+                source/scwx/qt/gl/draw/rectangle.hpp)
+set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
+                source/scwx/qt/gl/draw/rectangle.cpp)
 set(HDR_MANAGER source/scwx/qt/manager/radar_product_manager.hpp
                 source/scwx/qt/manager/resource_manager.hpp
                 source/scwx/qt/manager/settings_manager.hpp)
@@ -65,6 +69,7 @@ set(SRC_MANAGER source/scwx/qt/manager/radar_product_manager.cpp
                 source/scwx/qt/manager/resource_manager.cpp
                 source/scwx/qt/manager/settings_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/color_table_layer.hpp
+            source/scwx/qt/map/draw_layer.hpp
             source/scwx/qt/map/generic_layer.hpp
             source/scwx/qt/map/layer_wrapper.hpp
             source/scwx/qt/map/map_context.hpp
@@ -74,6 +79,7 @@ set(HDR_MAP source/scwx/qt/map/color_table_layer.hpp
             source/scwx/qt/map/radar_product_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp)
 set(SRC_MAP source/scwx/qt/map/color_table_layer.cpp
+            source/scwx/qt/map/draw_layer.cpp
             source/scwx/qt/map/generic_layer.cpp
             source/scwx/qt/map/layer_wrapper.cpp
             source/scwx/qt/map/map_widget.cpp
@@ -101,7 +107,9 @@ set(SRC_VIEW source/scwx/qt/view/level2_product_view.cpp
 
 set(RESOURCE_FILES scwx-qt.qrc)
 
-set(SHADER_FILES gl/overlay.frag
+set(SHADER_FILES gl/color.frag
+                 gl/color.vert
+                 gl/overlay.frag
                  gl/overlay.vert
                  gl/radar.frag
                  gl/radar.vert
@@ -116,6 +124,8 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${SRC_MAIN}
                     ${HDR_GL}
                     ${SRC_GL}
+                    ${HDR_GL_DRAW}
+                    ${SRC_GL_DRAW}
                     ${HDR_MANAGER}
                     ${SRC_MANAGER}
                     ${UI_MAIN}
@@ -138,6 +148,8 @@ source_group("Header Files\\main"     FILES ${HDR_MAIN})
 source_group("Source Files\\main"     FILES ${SRC_MAIN})
 source_group("Header Files\\gl"       FILES ${HDR_GL})
 source_group("Source Files\\gl"       FILES ${SRC_GL})
+source_group("Header Files\\gl\\draw" FILES ${HDR_GL_DRAW})
+source_group("Source Files\\gl\\draw" FILES ${SRC_GL_DRAW})
 source_group("Header Files\\manager"  FILES ${HDR_MANAGER})
 source_group("Source Files\\manager"  FILES ${SRC_MANAGER})
 source_group("UI Files\\main"         FILES ${UI_MAIN})
