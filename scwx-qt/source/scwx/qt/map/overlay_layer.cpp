@@ -37,14 +37,10 @@ public:
    explicit OverlayLayerImpl(std::shared_ptr<MapContext> context) :
        textShader_(context->gl_),
        font_(util::Font::Create(":/res/fonts/din1451alt.ttf")),
-       shaderProgram_(context->gl_),
-       uMVPMatrixLocation_(GL_INVALID_INDEX),
-       uColorLocation_(GL_INVALID_INDEX),
-       vbo_ {GL_INVALID_INDEX},
-       vao_ {GL_INVALID_INDEX},
        texture_ {GL_INVALID_INDEX},
        activeBoxOuter_ {std::make_shared<gl::draw::Rectangle>(context->gl_)},
        activeBoxInner_ {std::make_shared<gl::draw::Rectangle>(context->gl_)},
+       timeBox_ {std::make_shared<gl::draw::Rectangle>(context->gl_)},
        sweepTimeString_ {},
        sweepTimeNeedsUpdate_ {true}
    {
@@ -54,15 +50,11 @@ public:
 
    gl::TextShader              textShader_;
    std::shared_ptr<util::Font> font_;
-   gl::ShaderProgram           shaderProgram_;
-   GLint                       uMVPMatrixLocation_;
-   GLint                       uColorLocation_;
-   GLuint                      vbo_;
-   GLuint                      vao_;
    GLuint                      texture_;
 
    std::shared_ptr<gl::draw::Rectangle> activeBoxOuter_;
    std::shared_ptr<gl::draw::Rectangle> activeBoxInner_;
+   std::shared_ptr<gl::draw::Rectangle> timeBox_;
 
    std::string sweepTimeString_;
    bool        sweepTimeNeedsUpdate_;
@@ -71,10 +63,15 @@ public:
 OverlayLayer::OverlayLayer(std::shared_ptr<MapContext> context) :
     DrawLayer(context), p(std::make_unique<OverlayLayerImpl>(context))
 {
+   AddDrawItem(p->timeBox_);
    AddDrawItem(p->activeBoxOuter_);
    AddDrawItem(p->activeBoxInner_);
 
+   p->activeBoxOuter_->SetPosition(0.0f, 0.0f);
+   p->activeBoxOuter_->SetBorder(1.0f, {0, 0, 0, 255});
+   p->activeBoxInner_->SetBorder(1.0f, {255, 255, 255, 255});
    p->activeBoxInner_->SetPosition(1.0f, 1.0f);
+   p->timeBox_->SetFill({0, 0, 0, 192});
 }
 
 OverlayLayer::~OverlayLayer() = default;
@@ -89,48 +86,10 @@ void OverlayLayer::Initialize()
 
    p->textShader_.Initialize();
 
-   // Load and configure overlay shader
-   p->shaderProgram_.Load(":/gl/overlay.vert", ":/gl/overlay.frag");
-
-   p->uMVPMatrixLocation_ =
-      gl.glGetUniformLocation(p->shaderProgram_.id(), "uMVPMatrix");
-   if (p->uMVPMatrixLocation_ == -1)
-   {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Could not find uMVPMatrix";
-   }
-
-   p->uColorLocation_ =
-      gl.glGetUniformLocation(p->shaderProgram_.id(), "uColor");
-   if (p->uColorLocation_ == -1)
-   {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Could not find uColor";
-   }
-
    if (p->texture_ == GL_INVALID_INDEX)
    {
       p->texture_ = p->font_->GenerateTexture(gl);
    }
-
-   p->shaderProgram_.Use();
-
-   // Generate a vertex array object
-   gl.glGenVertexArrays(1, &p->vao_);
-
-   // Generate vertex buffer objects
-   gl.glGenBuffers(1, &p->vbo_);
-
-   gl.glBindVertexArray(p->vao_);
-
-   // Upper right panel (dynamic sized)
-   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
-   gl.glBufferData(
-      GL_ARRAY_BUFFER, sizeof(float) * 6 * 2, nullptr, GL_DYNAMIC_DRAW);
-
-   gl.glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, static_cast<void*>(0));
-   gl.glEnableVertexAttribArray(0);
-
-   // Upper right panel color
-   gl.glUniform4f(p->uColorLocation_, 0.0f, 0.0f, 0.0f, 0.75f);
 
    connect(context()->radarProductView_.get(),
            &view::RadarProductView::SweepComputed,
@@ -140,6 +99,8 @@ void OverlayLayer::Initialize()
 
 void OverlayLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 {
+   constexpr float fontSize = 16.0f;
+
    gl::OpenGLFunctions& gl = context()->gl_;
 
    if (p->sweepTimeNeedsUpdate_)
@@ -164,50 +125,30 @@ void OverlayLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
                                      0.0f,
                                      static_cast<float>(params.height));
 
-   p->shaderProgram_.Use();
-
-   gl.glUniformMatrix4fv(
-      p->uMVPMatrixLocation_, 1, GL_FALSE, glm::value_ptr(projection));
-
    // Active Box
    p->activeBoxOuter_->SetVisible(context()->settings_.isActive_);
    p->activeBoxInner_->SetVisible(context()->settings_.isActive_);
    if (context()->settings_.isActive_)
    {
       p->activeBoxOuter_->SetSize(params.width, params.height);
-      p->activeBoxOuter_->SetBorder(1.0f, {0, 0, 0, 255});
       p->activeBoxInner_->SetSize(params.width - 2.0f, params.height - 2.0f);
-      p->activeBoxInner_->SetBorder(1.0f, {255, 255, 255, 255});
    }
 
    if (p->sweepTimeString_.length() > 0)
    {
-      const float fontSize = 16.0f;
       const float textLength =
          p->font_->TextLength(p->sweepTimeString_, fontSize);
 
-      // Upper right panel vertices
-      const float vertexLX =
-         static_cast<float>(params.width) - textLength - 14.0f;
-      const float vertexRX       = static_cast<float>(params.width);
-      const float vertexTY       = static_cast<float>(params.height);
-      const float vertexBY       = static_cast<float>(params.height) - 22.0f;
-      const float vertices[6][2] = {{vertexLX, vertexTY}, // TL
-                                    {vertexLX, vertexBY}, // BL
-                                    {vertexRX, vertexTY}, // TR
-                                    //
-                                    {vertexLX, vertexBY},  // BL
-                                    {vertexRX, vertexTY},  // TR
-                                    {vertexRX, vertexBY}}; // BR
+      p->timeBox_->SetPosition(static_cast<float>(params.width) - textLength -
+                                  14.0f,
+                               static_cast<float>(params.height) - 22.0f);
+      p->timeBox_->SetSize(textLength + 14.0f, 22.0f);
+   }
 
-      // Draw vertices
-      gl.glBindVertexArray(p->vao_);
-      gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
-      gl.glVertexAttribPointer(
-         0, 2, GL_FLOAT, GL_FALSE, 0, static_cast<void*>(0));
-      gl.glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-      gl.glDrawArrays(GL_TRIANGLES, 0, 6);
+   DrawLayer::Render(params);
 
+   if (p->sweepTimeString_.length() > 0)
+   {
       // Render time
       p->textShader_.RenderText(p->sweepTimeString_,
                                 params.width - 7.0f,
@@ -220,8 +161,6 @@ void OverlayLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
                                 gl::TextAlign::Right);
    }
 
-   DrawLayer::Render(params);
-
    SCWX_GL_CHECK_ERROR();
 }
 
@@ -233,15 +172,9 @@ void OverlayLayer::Deinitialize()
 
    gl::OpenGLFunctions& gl = context()->gl_;
 
-   gl.glDeleteVertexArrays(1, &p->vao_);
-   gl.glDeleteBuffers(1, &p->vbo_);
    gl.glDeleteTextures(1, &p->texture_);
 
-   p->uMVPMatrixLocation_ = GL_INVALID_INDEX;
-   p->uColorLocation_     = GL_INVALID_INDEX;
-   p->vao_                = GL_INVALID_INDEX;
-   p->vbo_                = GL_INVALID_INDEX;
-   p->texture_            = GL_INVALID_INDEX;
+   p->texture_ = GL_INVALID_INDEX;
 
    disconnect(context()->radarProductView_.get(),
               &view::RadarProductView::SweepComputed,

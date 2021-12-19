@@ -34,7 +34,7 @@ public:
 
    void SetBorder(float width, boost::gil::rgba8_pixel_t color);
    void SetFill(boost::gil::rgba8_pixel_t color);
-   void SetPosition(float x, float y);
+   void SetPosition(float x, float y, float z = 0.0f);
    void SetSize(float width, float height);
    void SetVisible(bool visible);
 

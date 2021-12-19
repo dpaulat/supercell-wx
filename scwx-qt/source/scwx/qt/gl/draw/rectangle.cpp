@@ -67,6 +67,7 @@ public:
    void Update();
 };
 
+// TODO: OpenGL context with shaders
 Rectangle::Rectangle(OpenGLFunctions& gl) :
     DrawItem(), p(std::make_unique<RectangleImpl>(gl))
 {
@@ -159,12 +160,13 @@ void Rectangle::SetFill(boost::gil::rgba8_pixel_t color)
    }
 }
 
-void Rectangle::SetPosition(float x, float y)
+void Rectangle::SetPosition(float x, float y, float z)
 {
-   if (p->x_ != x || p->y_ != y)
+   if (p->x_ != x || p->y_ != y || p->z_ != z)
    {
       p->x_     = x;
       p->y_     = y;
+      p->z_     = z;
       p->dirty_ = true;
    }
 }

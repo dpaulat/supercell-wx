@@ -2,8 +2,6 @@
     <qresource prefix="/">
         <file>gl/color.frag</file>
         <file>gl/color.vert</file>
-        <file>gl/overlay.frag</file>
-        <file>gl/overlay.vert</file>
         <file>gl/radar.frag</file>
         <file>gl/radar.vert</file>
         <file>gl/text.frag</file>

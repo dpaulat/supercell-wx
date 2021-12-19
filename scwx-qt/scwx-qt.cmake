@@ -109,8 +109,6 @@ set(RESOURCE_FILES scwx-qt.qrc)
 
 set(SHADER_FILES gl/color.frag
                  gl/color.vert
-                 gl/overlay.frag
-                 gl/overlay.vert
                  gl/radar.frag
                  gl/radar.vert
                  gl/text.frag

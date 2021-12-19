@@ -67,9 +67,7 @@ void DrawLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
    glm::mat4 projection = glm::ortho(0.0f,
                                      static_cast<float>(params.width),
                                      0.0f,
-                                     static_cast<float>(params.height),
-                                     -10.0f,
-                                     10.0f);
+                                     static_cast<float>(params.height));
 
    gl.glUniformMatrix4fv(
       p->uMVPMatrixLocation_, 1, GL_FALSE, glm::value_ptr(projection));
