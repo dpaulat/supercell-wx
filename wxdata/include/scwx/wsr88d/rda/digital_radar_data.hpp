@@ -155,8 +155,9 @@ public:
    VolumeDataBlock(VolumeDataBlock&&) noexcept;
    VolumeDataBlock& operator=(VolumeDataBlock&&) noexcept;
 
-   float latitude() const;
-   float longitude() const;
+   float    latitude() const;
+   float    longitude() const;
+   uint16_t volume_coverage_pattern_number() const;
 
    static std::shared_ptr<VolumeDataBlock>
    Create(const std::string& dataBlockType,

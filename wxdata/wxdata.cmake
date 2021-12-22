@@ -6,9 +6,11 @@ set(HDR_COMMON include/scwx/common/characters.hpp
                include/scwx/common/color_table.hpp
                include/scwx/common/constants.hpp
                include/scwx/common/products.hpp
-               include/scwx/common/types.hpp)
+               include/scwx/common/types.hpp
+               include/scwx/common/vcp.hpp)
 set(SRC_COMMON source/scwx/common/color_table.cpp
-               source/scwx/common/products.cpp)
+               source/scwx/common/products.cpp
+               source/scwx/common/vcp.cpp)
 set(HDR_UTIL include/scwx/util/iterator.hpp
              include/scwx/util/rangebuf.hpp
              include/scwx/util/streams.hpp

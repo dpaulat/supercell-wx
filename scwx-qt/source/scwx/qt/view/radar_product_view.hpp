@@ -32,6 +32,7 @@ public:
    virtual float                                 elevation() const;
    virtual float                                 range() const;
    virtual std::chrono::system_clock::time_point sweep_time() const;
+   virtual uint16_t                              vcp() const      = 0;
    virtual const std::vector<float>&             vertices() const = 0;
 
    void Initialize();

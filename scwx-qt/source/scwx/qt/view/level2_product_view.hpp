@@ -35,6 +35,7 @@ public:
    float                                 elevation() const override;
    float                                 range() const override;
    std::chrono::system_clock::time_point sweep_time() const override;
+   uint16_t                              vcp() const override;
    const std::vector<float>&             vertices() const override;
 
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) override;

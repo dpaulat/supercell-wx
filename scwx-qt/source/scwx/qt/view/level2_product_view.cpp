@@ -54,6 +54,7 @@ public:
        elevationCut_ {},
        elevationCuts_ {},
        range_ {},
+       vcp_ {},
        sweepTime_ {},
        colorTable_ {},
        colorTableLut_ {},
@@ -94,6 +95,7 @@ public:
    float              elevationCut_;
    std::vector<float> elevationCuts_;
    float              range_;
+   uint16_t           vcp_;
 
    std::chrono::system_clock::time_point sweepTime_;
 
@@ -171,6 +173,11 @@ float Level2ProductView::range() const
 std::chrono::system_clock::time_point Level2ProductView::sweep_time() const
 {
    return p->sweepTime_;
+}
+
+uint16_t Level2ProductView::vcp() const
+{
+   return p->vcp_;
 }
 
 const std::vector<float>& Level2ProductView::vertices() const
@@ -305,7 +312,8 @@ void Level2ProductView::UpdateColorTable()
    std::for_each(std::execution::par_unseq,
                  dataRange.begin(),
                  dataRange.end(),
-                 [&](uint16_t i) {
+                 [&](uint16_t i)
+                 {
                     if (i == RANGE_FOLDED)
                     {
                        lut[i - *dataRange.begin()] = p->colorTable_->rf_color();
@@ -378,6 +386,7 @@ void Level2ProductView::ComputeSweep()
       momentData0->data_moment_range_sample_interval() * (gates - 0.5f);
    p->sweepTime_ = util::TimePoint(radarData0->modified_julian_date(),
                                    radarData0->collection_time());
+   p->vcp_       = volumeData0->volume_coverage_pattern_number();
 
    // Calculate vertices
    timer.start();

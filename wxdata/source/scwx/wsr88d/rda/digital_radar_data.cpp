@@ -285,6 +285,11 @@ float VolumeDataBlock::longitude() const
    return p->longitude_;
 }
 
+uint16_t VolumeDataBlock::volume_coverage_pattern_number() const
+{
+   return p->volumeCoveragePatternNumber_;
+}
+
 std::shared_ptr<VolumeDataBlock>
 VolumeDataBlock::Create(const std::string& dataBlockType,
                         const std::string& dataName,

@@ -6,6 +6,7 @@
 #include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/common/products.hpp>
+#include <scwx/common/vcp.hpp>
 
 #include <QSplitter>
 #include <QToolButton>
@@ -50,6 +51,7 @@ public:
    void UpdateRadarProductSelection(common::RadarProductGroup group,
                                     const std::string&        product);
    void UpdateRadarProductSettings();
+   void UpdateVcp();
 
    MainWindow*       mainWindow_;
    QMapboxGLSettings settings_;
@@ -75,6 +77,10 @@ MainWindow::MainWindow(QWidget* parent) :
     ui(new Ui::MainWindow)
 {
    ui->setupUi(this);
+
+   ui->vcpLabel->setVisible(false);
+   ui->vcpValueLabel->setVisible(false);
+   ui->vcpDescriptionLabel->setVisible(false);
 
    p->ConfigureMapLayout();
 
@@ -243,6 +249,7 @@ void MainWindowImpl::ConfigureMapLayout()
                {
                   if (maps_[mapIndex] == activeMap_)
                   {
+                     UpdateVcp();
                      UpdateRadarProductSettings();
                   }
                },
@@ -270,6 +277,7 @@ void MainWindowImpl::HandleFocusChange(QWidget* focused)
       UpdateRadarProductSelection(mapWidget->GetRadarProductGroup(),
                                   mapWidget->GetRadarProductName());
       UpdateRadarProductSettings();
+      UpdateVcp();
    }
 }
 
@@ -413,6 +421,28 @@ void MainWindowImpl::UpdateRadarProductSettings()
    }
 
    UpdateElevationSelection(currentElevation);
+}
+
+void MainWindowImpl::UpdateVcp()
+{
+   uint16_t vcp = activeMap_->GetVcp();
+
+   if (vcp != 0)
+   {
+      mainWindow_->ui->vcpLabel->setVisible(true);
+      mainWindow_->ui->vcpValueLabel->setVisible(true);
+      mainWindow_->ui->vcpDescriptionLabel->setVisible(true);
+
+      mainWindow_->ui->vcpValueLabel->setText(QString::number(vcp));
+      mainWindow_->ui->vcpDescriptionLabel->setText(
+         tr(common::GetVcpDescription(vcp).c_str()));
+   }
+   else
+   {
+      mainWindow_->ui->vcpLabel->setVisible(false);
+      mainWindow_->ui->vcpValueLabel->setVisible(false);
+      mainWindow_->ui->vcpDescriptionLabel->setVisible(false);
+   }
 }
 
 } // namespace main

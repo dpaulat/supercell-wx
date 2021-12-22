@@ -163,6 +163,19 @@ std::string MapWidget::GetRadarProductName() const
    }
 }
 
+uint16_t MapWidget::GetVcp() const
+{
+
+   if (p->context_->radarProductView_ != nullptr)
+   {
+      return p->context_->radarProductView_->vcp();
+   }
+   else
+   {
+      return 0;
+   }
+}
+
 void MapWidget::SelectElevation(float elevation)
 {
    if (p->context_->radarProductView_ != nullptr)

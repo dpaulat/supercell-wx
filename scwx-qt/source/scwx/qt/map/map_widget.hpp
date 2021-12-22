@@ -35,6 +35,7 @@ public:
    std::vector<float>        GetElevationCuts() const;
    common::RadarProductGroup GetRadarProductGroup() const;
    std::string               GetRadarProductName() const;
+   uint16_t                  GetVcp() const;
 
    void SelectElevation(float elevation);
    void SelectRadarProduct(common::Level2Product product);
