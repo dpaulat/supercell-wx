@@ -41,7 +41,6 @@ public:
 
    void ConfigureMapLayout();
    void HandleFocusChange(QWidget* focused);
-   void InitializeConnections();
    void SelectElevation(map::MapWidget* mapWidget, float elevation);
    void SelectRadarProduct(map::MapWidget*       mapWidget,
                            common::Level2Product product);
@@ -93,9 +92,10 @@ MainWindow::MainWindow(QWidget* parent) :
          tr(common::GetLevel2Description(product).c_str()));
       level2Layout->addWidget(toolButton);
 
-      connect(toolButton, &QToolButton::clicked, this, [=]() {
-         p->SelectRadarProduct(p->activeMap_, product);
-      });
+      connect(toolButton,
+              &QToolButton::clicked,
+              this,
+              [=]() { p->SelectRadarProduct(p->activeMap_, product); });
    }
 
    QLayout* elevationLayout = new ui::FlowLayout();
@@ -103,8 +103,6 @@ MainWindow::MainWindow(QWidget* parent) :
 
    ui->settingsGroupBox->setVisible(false);
    ui->declutterCheckbox->setVisible(false);
-
-   p->InitializeConnections();
 
    p->SelectRadarProduct(p->activeMap_, common::Level2Product::Reflectivity);
    if (p->maps_.at(1) != nullptr)
@@ -207,7 +205,8 @@ void MainWindowImpl::ConfigureMapLayout()
 
    maps_.resize(mapCount);
 
-   auto MoveSplitter = [=](int pos, int index) {
+   auto MoveSplitter = [=](int pos, int index)
+   {
       QSplitter* s = dynamic_cast<QSplitter*>(sender());
 
       if (s != nullptr)
@@ -235,6 +234,19 @@ void MainWindowImpl::ConfigureMapLayout()
                     &map::MapWidget::MapParametersChanged,
                     this,
                     &MainWindowImpl::UpdateMapParameters);
+
+            connect(
+               maps_[mapIndex],
+               &map::MapWidget::RadarSweepUpdated,
+               this,
+               [=]()
+               {
+                  if (maps_[mapIndex] == activeMap_)
+                  {
+                     UpdateRadarProductSettings();
+                  }
+               },
+               Qt::QueuedConnection);
          }
 
          hs->addWidget(maps_[mapIndex]);
@@ -259,16 +271,6 @@ void MainWindowImpl::HandleFocusChange(QWidget* focused)
                                   mapWidget->GetRadarProductName());
       UpdateRadarProductSettings();
    }
-}
-
-void MainWindowImpl::InitializeConnections()
-{
-   connect(
-      activeMap_,
-      &map::MapWidget::RadarSweepUpdated,
-      this,
-      [this]() { UpdateRadarProductSettings(); },
-      Qt::QueuedConnection);
 }
 
 void MainWindowImpl::SelectElevation(map::MapWidget* mapWidget, float elevation)
@@ -399,9 +401,10 @@ void MainWindowImpl::UpdateRadarProductSettings()
                              common::Characters::DEGREE);
          layout->addWidget(toolButton);
 
-         connect(toolButton, &QToolButton::clicked, this, [=]() {
-            SelectElevation(activeMap_, elevationCut);
-         });
+         connect(toolButton,
+                 &QToolButton::clicked,
+                 this,
+                 [=]() { SelectElevation(activeMap_, elevationCut); });
       }
 
       elevationCuts_           = elevationCuts;
