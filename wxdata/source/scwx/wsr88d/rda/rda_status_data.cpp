@@ -78,7 +78,7 @@ public:
 };
 
 RdaStatusData::RdaStatusData() :
-    Message(), p(std::make_unique<RdaStatusDataImpl>())
+    Level2Message(), p(std::make_unique<RdaStatusDataImpl>())
 {
 }
 RdaStatusData::~RdaStatusData() = default;
@@ -322,8 +322,8 @@ bool RdaStatusData::Parse(std::istream& is)
    return messageValid;
 }
 
-std::shared_ptr<RdaStatusData> RdaStatusData::Create(MessageHeader&& header,
-                                                     std::istream&   is)
+std::shared_ptr<RdaStatusData>
+RdaStatusData::Create(Level2MessageHeader&& header, std::istream& is)
 {
    std::shared_ptr<RdaStatusData> message = std::make_shared<RdaStatusData>();
    message->set_header(std::move(header));

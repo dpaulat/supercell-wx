@@ -369,7 +369,7 @@ public:
 };
 
 RdaAdaptationData::RdaAdaptationData() :
-    Message(), p(std::make_unique<RdaAdaptationDataImpl>())
+    Level2Message(), p(std::make_unique<RdaAdaptationDataImpl>())
 {
 }
 RdaAdaptationData::~RdaAdaptationData() = default;
@@ -1747,7 +1747,7 @@ bool RdaAdaptationData::Parse(std::istream& is)
 }
 
 std::shared_ptr<RdaAdaptationData>
-RdaAdaptationData::Create(MessageHeader&& header, std::istream& is)
+RdaAdaptationData::Create(Level2MessageHeader&& header, std::istream& is)
 {
    std::shared_ptr<RdaAdaptationData> message =
       std::make_shared<RdaAdaptationData>();

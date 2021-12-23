@@ -10,19 +10,19 @@ namespace wsr88d
 namespace rda
 {
 
-class MessageHeaderImpl;
+class Level2MessageHeaderImpl;
 
-class MessageHeader
+class Level2MessageHeader
 {
 public:
-   explicit MessageHeader();
-   ~MessageHeader();
+   explicit Level2MessageHeader();
+   ~Level2MessageHeader();
 
-   MessageHeader(const MessageHeader&) = delete;
-   MessageHeader& operator=(const MessageHeader&) = delete;
+   Level2MessageHeader(const Level2MessageHeader&) = delete;
+   Level2MessageHeader& operator=(const Level2MessageHeader&) = delete;
 
-   MessageHeader(MessageHeader&&) noexcept;
-   MessageHeader& operator=(MessageHeader&&) noexcept;
+   Level2MessageHeader(Level2MessageHeader&&) noexcept;
+   Level2MessageHeader& operator=(Level2MessageHeader&&) noexcept;
 
    uint16_t message_size() const;
    uint8_t  rda_redundant_channel() const;
@@ -40,7 +40,7 @@ public:
    static const size_t SIZE = 16u;
 
 private:
-   std::unique_ptr<MessageHeaderImpl> p;
+   std::unique_ptr<Level2MessageHeaderImpl> p;
 };
 
 } // namespace rda

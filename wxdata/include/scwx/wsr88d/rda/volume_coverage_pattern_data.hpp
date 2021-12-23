@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/wsr88d/rda/message.hpp>
+#include <scwx/wsr88d/rda/level2_message.hpp>
 
 #include <string>
 
@@ -23,7 +23,7 @@ enum class WaveformType
 
 class VolumeCoveragePatternDataImpl;
 
-class VolumeCoveragePatternData : public Message
+class VolumeCoveragePatternData : public Level2Message
 {
 public:
    explicit VolumeCoveragePatternData();
@@ -90,7 +90,7 @@ public:
    bool Parse(std::istream& is);
 
    static std::shared_ptr<VolumeCoveragePatternData>
-   Create(MessageHeader&& header, std::istream& is);
+   Create(Level2MessageHeader&& header, std::istream& is);
 
 private:
    std::unique_ptr<VolumeCoveragePatternDataImpl> p;

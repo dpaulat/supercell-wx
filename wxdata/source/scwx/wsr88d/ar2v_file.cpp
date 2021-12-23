@@ -1,5 +1,5 @@
 #include <scwx/wsr88d/ar2v_file.hpp>
-#include <scwx/wsr88d/rda/message_factory.hpp>
+#include <scwx/wsr88d/rda/level2_message_factory.hpp>
 #include <scwx/wsr88d/rda/types.hpp>
 #include <scwx/util/rangebuf.hpp>
 #include <scwx/util/time.hpp>
@@ -35,7 +35,7 @@ public:
        index_ {} {};
    ~Ar2vFileImpl() = default;
 
-   void HandleMessage(std::shared_ptr<rda::Message>& message);
+   void HandleMessage(std::shared_ptr<rda::Level2Message>& message);
    void IndexFile();
    void LoadLDMRecords(std::ifstream& f);
    void ParseLDMRecords();
@@ -291,7 +291,7 @@ void Ar2vFileImpl::ParseLDMRecords()
 
       while (!ss.eof())
       {
-         rda::MessageInfo msgInfo = rda::MessageFactory::Create(ss);
+         rda::Level2MessageInfo msgInfo = rda::Level2MessageFactory::Create(ss);
          if (!msgInfo.headerValid)
          {
             // Invalid message
@@ -329,7 +329,7 @@ void Ar2vFileImpl::ParseLDMRecords()
    rawRecords_.clear();
 }
 
-void Ar2vFileImpl::HandleMessage(std::shared_ptr<rda::Message>& message)
+void Ar2vFileImpl::HandleMessage(std::shared_ptr<rda::Level2Message>& message)
 {
    switch (message->header().message_type())
    {

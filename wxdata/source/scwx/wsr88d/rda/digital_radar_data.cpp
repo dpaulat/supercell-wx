@@ -540,7 +540,7 @@ public:
 };
 
 DigitalRadarData::DigitalRadarData() :
-    Message(), p(std::make_unique<DigitalRadarDataImpl>())
+    Level2Message(), p(std::make_unique<DigitalRadarDataImpl>())
 {
 }
 DigitalRadarData::~DigitalRadarData() = default;
@@ -787,7 +787,7 @@ bool DigitalRadarData::Parse(std::istream& is)
 }
 
 std::shared_ptr<DigitalRadarData>
-DigitalRadarData::Create(MessageHeader&& header, std::istream& is)
+DigitalRadarData::Create(Level2MessageHeader&& header, std::istream& is)
 {
    std::shared_ptr<DigitalRadarData> message =
       std::make_shared<DigitalRadarData>();

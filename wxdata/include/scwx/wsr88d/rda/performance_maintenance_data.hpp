@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/wsr88d/rda/message.hpp>
+#include <scwx/wsr88d/rda/level2_message.hpp>
 
 namespace scwx
 {
@@ -11,7 +11,7 @@ namespace rda
 
 class PerformanceMaintenanceDataImpl;
 
-class PerformanceMaintenanceData : public Message
+class PerformanceMaintenanceData : public Level2Message
 {
 public:
    explicit PerformanceMaintenanceData();
@@ -279,7 +279,7 @@ public:
    bool Parse(std::istream& is);
 
    static std::shared_ptr<PerformanceMaintenanceData>
-   Create(MessageHeader&& header, std::istream& is);
+   Create(Level2MessageHeader&& header, std::istream& is);
 
 private:
    std::unique_ptr<PerformanceMaintenanceDataImpl> p;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/wsr88d/rda/message.hpp>
+#include <scwx/wsr88d/rda/level2_message.hpp>
 
 namespace scwx
 {
@@ -11,7 +11,7 @@ namespace rda
 
 class ClutterFilterMapImpl;
 
-class ClutterFilterMap : public Message
+class ClutterFilterMap : public Level2Message
 {
 public:
    explicit ClutterFilterMap();
@@ -32,8 +32,8 @@ public:
 
    bool Parse(std::istream& is);
 
-   static std::shared_ptr<ClutterFilterMap> Create(MessageHeader&& header,
-                                                   std::istream&   is);
+   static std::shared_ptr<ClutterFilterMap> Create(Level2MessageHeader&& header,
+                                                   std::istream&         is);
 
    static const size_t NUM_AZIMUTH_SEGMENTS = 360u;
 

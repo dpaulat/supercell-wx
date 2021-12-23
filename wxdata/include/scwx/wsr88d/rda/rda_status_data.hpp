@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/wsr88d/rda/message.hpp>
+#include <scwx/wsr88d/rda/level2_message.hpp>
 
 namespace scwx
 {
@@ -11,7 +11,7 @@ namespace rda
 
 class RdaStatusDataImpl;
 
-class RdaStatusData : public Message
+class RdaStatusData : public Level2Message
 {
 public:
    explicit RdaStatusData();
@@ -55,8 +55,8 @@ public:
 
    bool Parse(std::istream& is);
 
-   static std::shared_ptr<RdaStatusData> Create(MessageHeader&& header,
-                                                std::istream&   is);
+   static std::shared_ptr<RdaStatusData> Create(Level2MessageHeader&& header,
+                                                std::istream&         is);
 
 private:
    std::unique_ptr<RdaStatusDataImpl> p;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <scwx/util/iterator.hpp>
-#include <scwx/wsr88d/rda/message.hpp>
+#include <scwx/wsr88d/rda/level2_message.hpp>
 
 namespace scwx
 {
@@ -170,7 +170,7 @@ private:
    bool Parse(std::istream& is);
 };
 
-class DigitalRadarData : public Message
+class DigitalRadarData : public Level2Message
 {
 public:
    explicit DigitalRadarData();
@@ -205,8 +205,8 @@ public:
 
    bool Parse(std::istream& is);
 
-   static std::shared_ptr<DigitalRadarData> Create(MessageHeader&& header,
-                                                   std::istream&   is);
+   static std::shared_ptr<DigitalRadarData> Create(Level2MessageHeader&& header,
+                                                   std::istream&         is);
 
 private:
    std::unique_ptr<DigitalRadarDataImpl> p;

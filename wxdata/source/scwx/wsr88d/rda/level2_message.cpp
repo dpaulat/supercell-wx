@@ -1,4 +1,4 @@
-#include <scwx/wsr88d/rda/message.hpp>
+#include <scwx/wsr88d/rda/level2_message.hpp>
 
 #include <boost/log/trivial.hpp>
 
@@ -9,24 +9,27 @@ namespace wsr88d
 namespace rda
 {
 
-static const std::string logPrefix_ = "[scwx::wsr88d::rda::message] ";
+static const std::string logPrefix_ = "[scwx::wsr88d::rda::level2_message] ";
 
-class MessageImpl
+class Level2MessageImpl
 {
 public:
-   explicit MessageImpl() : header_() {};
-   ~MessageImpl() = default;
+   explicit Level2MessageImpl() : header_() {};
+   ~Level2MessageImpl() = default;
 
-   MessageHeader header_;
+   Level2MessageHeader header_;
 };
 
-Message::Message() : p(std::make_unique<MessageImpl>()) {}
-Message::~Message() = default;
+Level2Message::Level2Message() :
+    Message(), p(std::make_unique<Level2MessageImpl>())
+{
+}
+Level2Message::~Level2Message() = default;
 
-Message::Message(Message&&) noexcept = default;
-Message& Message::operator=(Message&&) noexcept = default;
+Level2Message::Level2Message(Level2Message&&) noexcept = default;
+Level2Message& Level2Message::operator=(Level2Message&&) noexcept = default;
 
-bool Message::ValidateMessage(std::istream& is, size_t bytesRead) const
+bool Level2Message::ValidateMessage(std::istream& is, size_t bytesRead) const
 {
    bool   messageValid = true;
    size_t dataSize     = header().message_size() * 2 - header().SIZE;
@@ -66,12 +69,12 @@ bool Message::ValidateMessage(std::istream& is, size_t bytesRead) const
    return messageValid;
 }
 
-const MessageHeader& Message::header() const
+const Level2MessageHeader& Level2Message::header() const
 {
    return p->header_;
 }
 
-void Message::set_header(MessageHeader&& header)
+void Level2Message::set_header(Level2MessageHeader&& header)
 {
    p->header_ = std::move(header);
 }

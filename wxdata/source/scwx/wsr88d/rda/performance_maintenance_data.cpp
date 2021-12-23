@@ -550,7 +550,7 @@ public:
 };
 
 PerformanceMaintenanceData::PerformanceMaintenanceData() :
-    Message(), p(std::make_unique<PerformanceMaintenanceDataImpl>())
+    Level2Message(), p(std::make_unique<PerformanceMaintenanceDataImpl>())
 {
 }
 PerformanceMaintenanceData::~PerformanceMaintenanceData() = default;
@@ -2469,7 +2469,8 @@ bool PerformanceMaintenanceData::Parse(std::istream& is)
 }
 
 std::shared_ptr<PerformanceMaintenanceData>
-PerformanceMaintenanceData::Create(MessageHeader&& header, std::istream& is)
+PerformanceMaintenanceData::Create(Level2MessageHeader&& header,
+                                   std::istream&         is)
 {
    std::shared_ptr<PerformanceMaintenanceData> message =
       std::make_shared<PerformanceMaintenanceData>();

@@ -21,13 +21,15 @@ set(SRC_UTIL source/scwx/util/rangebuf.cpp
              source/scwx/util/streams.cpp
              source/scwx/util/time.cpp
              source/scwx/util/vectorbuf.cpp)
-set(HDR_WSR88D include/scwx/wsr88d/ar2v_file.hpp)
-set(SRC_WSR88D source/scwx/wsr88d/ar2v_file.cpp)
+set(HDR_WSR88D include/scwx/wsr88d/ar2v_file.hpp
+               include/scwx/wsr88d/message.hpp)
+set(SRC_WSR88D source/scwx/wsr88d/ar2v_file.cpp
+               source/scwx/wsr88d/message.cpp)
 set(HDR_WSR88D_RDA include/scwx/wsr88d/rda/clutter_filter_map.hpp
                    include/scwx/wsr88d/rda/digital_radar_data.hpp
-                   include/scwx/wsr88d/rda/message.hpp
-                   include/scwx/wsr88d/rda/message_factory.hpp
-                   include/scwx/wsr88d/rda/message_header.hpp
+                   include/scwx/wsr88d/rda/level2_message.hpp
+                   include/scwx/wsr88d/rda/level2_message_factory.hpp
+                   include/scwx/wsr88d/rda/level2_message_header.hpp
                    include/scwx/wsr88d/rda/performance_maintenance_data.hpp
                    include/scwx/wsr88d/rda/rda_adaptation_data.hpp
                    include/scwx/wsr88d/rda/rda_status_data.hpp
@@ -35,9 +37,9 @@ set(HDR_WSR88D_RDA include/scwx/wsr88d/rda/clutter_filter_map.hpp
                    include/scwx/wsr88d/rda/volume_coverage_pattern_data.hpp)
 set(SRC_WSR88D_RDA source/scwx/wsr88d/rda/clutter_filter_map.cpp
                    source/scwx/wsr88d/rda/digital_radar_data.cpp
-                   source/scwx/wsr88d/rda/message.cpp
-                   source/scwx/wsr88d/rda/message_factory.cpp
-                   source/scwx/wsr88d/rda/message_header.cpp
+                   source/scwx/wsr88d/rda/level2_message.cpp
+                   source/scwx/wsr88d/rda/level2_message_factory.cpp
+                   source/scwx/wsr88d/rda/level2_message_header.cpp
                    source/scwx/wsr88d/rda/performance_maintenance_data.cpp
                    source/scwx/wsr88d/rda/rda_adaptation_data.cpp
                    source/scwx/wsr88d/rda/rda_status_data.cpp

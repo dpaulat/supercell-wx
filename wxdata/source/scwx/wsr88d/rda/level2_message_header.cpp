@@ -1,4 +1,4 @@
-#include <scwx/wsr88d/rda/message_header.hpp>
+#include <scwx/wsr88d/rda/level2_message_header.hpp>
 
 #include <istream>
 #include <string>
@@ -18,12 +18,13 @@ namespace wsr88d
 namespace rda
 {
 
-static const std::string logPrefix_ = "[scwx::wsr88d::rda::message_header] ";
+static const std::string logPrefix_ =
+   "[scwx::wsr88d::rda::level2_message_header] ";
 
-class MessageHeaderImpl
+class Level2MessageHeaderImpl
 {
 public:
-   explicit MessageHeaderImpl() :
+   explicit Level2MessageHeaderImpl() :
        messageSize_(),
        rdaRedundantChannel_(),
        messageType_(),
@@ -32,7 +33,7 @@ public:
        millisecondsOfDay_(),
        numberOfMessageSegments_(),
        messageSegmentNumber_() {};
-   ~MessageHeaderImpl() = default;
+   ~Level2MessageHeaderImpl() = default;
 
    uint16_t messageSize_;
    uint8_t  rdaRedundantChannel_;
@@ -44,58 +45,63 @@ public:
    uint16_t messageSegmentNumber_;
 };
 
-MessageHeader::MessageHeader() : p(std::make_unique<MessageHeaderImpl>()) {}
-MessageHeader::~MessageHeader() = default;
+Level2MessageHeader::Level2MessageHeader() :
+    p(std::make_unique<Level2MessageHeaderImpl>())
+{
+}
+Level2MessageHeader::~Level2MessageHeader() = default;
 
-MessageHeader::MessageHeader(MessageHeader&&) noexcept = default;
-MessageHeader& MessageHeader::operator=(MessageHeader&&) noexcept = default;
+Level2MessageHeader::Level2MessageHeader(Level2MessageHeader&&) noexcept =
+   default;
+Level2MessageHeader&
+Level2MessageHeader::operator=(Level2MessageHeader&&) noexcept = default;
 
-uint16_t MessageHeader::message_size() const
+uint16_t Level2MessageHeader::message_size() const
 {
    return p->messageSize_;
 }
 
-uint8_t MessageHeader::rda_redundant_channel() const
+uint8_t Level2MessageHeader::rda_redundant_channel() const
 {
    return p->rdaRedundantChannel_;
 }
 
-uint8_t MessageHeader::message_type() const
+uint8_t Level2MessageHeader::message_type() const
 {
    return p->messageType_;
 }
 
-uint16_t MessageHeader::id_sequence_number() const
+uint16_t Level2MessageHeader::id_sequence_number() const
 {
    return p->idSequenceNumber_;
 }
 
-uint16_t MessageHeader::julian_date() const
+uint16_t Level2MessageHeader::julian_date() const
 {
    return p->julianDate_;
 }
 
-uint32_t MessageHeader::milliseconds_of_day() const
+uint32_t Level2MessageHeader::milliseconds_of_day() const
 {
    return p->millisecondsOfDay_;
 }
 
-uint16_t MessageHeader::number_of_message_segments() const
+uint16_t Level2MessageHeader::number_of_message_segments() const
 {
    return p->numberOfMessageSegments_;
 }
 
-uint16_t MessageHeader::message_segment_number() const
+uint16_t Level2MessageHeader::message_segment_number() const
 {
    return p->messageSegmentNumber_;
 }
 
-void MessageHeader::set_message_size(uint16_t messageSize)
+void Level2MessageHeader::set_message_size(uint16_t messageSize)
 {
    p->messageSize_ = messageSize;
 }
 
-bool MessageHeader::Parse(std::istream& is)
+bool Level2MessageHeader::Parse(std::istream& is)
 {
    bool headerValid = true;
 

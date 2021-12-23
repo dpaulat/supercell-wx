@@ -34,7 +34,7 @@ public:
 };
 
 ClutterFilterMap::ClutterFilterMap() :
-    Message(), p(std::make_unique<ClutterFilterMapImpl>())
+    Level2Message(), p(std::make_unique<ClutterFilterMapImpl>())
 {
 }
 ClutterFilterMap::~ClutterFilterMap() = default;
@@ -187,7 +187,7 @@ bool ClutterFilterMap::Parse(std::istream& is)
 }
 
 std::shared_ptr<ClutterFilterMap>
-ClutterFilterMap::Create(MessageHeader&& header, std::istream& is)
+ClutterFilterMap::Create(Level2MessageHeader&& header, std::istream& is)
 {
    std::shared_ptr<ClutterFilterMap> message =
       std::make_shared<ClutterFilterMap>();

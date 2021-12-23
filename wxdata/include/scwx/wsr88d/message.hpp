@@ -1,7 +1,5 @@
 #pragma once
 
-#include <scwx/wsr88d/rda/message_header.hpp>
-
 #include <array>
 #include <execution>
 #include <istream>
@@ -18,8 +16,6 @@ namespace scwx
 {
 namespace wsr88d
 {
-namespace rda
-{
 
 class MessageImpl;
 
@@ -34,19 +30,12 @@ protected:
    Message(Message&&) noexcept;
    Message& operator=(Message&&) noexcept;
 
-   bool ValidateMessage(std::istream& is, size_t bytesRead) const;
+   virtual bool ValidateMessage(std::istream& is, size_t bytesRead) const = 0;
 
 public:
    virtual ~Message();
 
-   const MessageHeader& header() const;
-
-   void set_header(MessageHeader&& header);
-
    virtual bool Parse(std::istream& is) = 0;
-
-   static constexpr double ANGLE_DATA_SCALE      = 0.005493125;
-   static constexpr double AZ_EL_RATE_DATA_SCALE = 0.001373291015625;
 
    static void ReadBoolean(std::istream& is, bool& value)
    {
@@ -100,9 +89,10 @@ public:
    template<typename T>
    static void SwapMap(std::map<T, float>& m)
    {
-      std::for_each(std::execution::par_unseq, m.begin(), m.end(), [](auto& p) {
-         p.second = SwapFloat(p.second);
-      });
+      std::for_each(std::execution::par_unseq,
+                    m.begin(),
+                    m.end(),
+                    [](auto& p) { p.second = SwapFloat(p.second); });
    }
 
    static void SwapVector(std::vector<uint16_t>& v)
@@ -118,6 +108,5 @@ private:
    std::unique_ptr<MessageImpl> p;
 };
 
-} // namespace rda
 } // namespace wsr88d
 } // namespace scwx

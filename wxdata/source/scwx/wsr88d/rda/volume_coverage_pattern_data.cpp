@@ -96,7 +96,7 @@ public:
 };
 
 VolumeCoveragePatternData::VolumeCoveragePatternData() :
-    Message(), p(std::make_unique<VolumeCoveragePatternDataImpl>())
+    Level2Message(), p(std::make_unique<VolumeCoveragePatternDataImpl>())
 {
 }
 VolumeCoveragePatternData::~VolumeCoveragePatternData() = default;
@@ -503,7 +503,8 @@ bool VolumeCoveragePatternData::Parse(std::istream& is)
 }
 
 std::shared_ptr<VolumeCoveragePatternData>
-VolumeCoveragePatternData::Create(MessageHeader&& header, std::istream& is)
+VolumeCoveragePatternData::Create(Level2MessageHeader&& header,
+                                  std::istream&         is)
 {
    std::shared_ptr<VolumeCoveragePatternData> message =
       std::make_shared<VolumeCoveragePatternData>();

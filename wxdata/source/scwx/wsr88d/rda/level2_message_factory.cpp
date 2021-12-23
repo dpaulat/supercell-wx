@@ -1,4 +1,4 @@
-#include <scwx/wsr88d/rda/message_factory.hpp>
+#include <scwx/wsr88d/rda/level2_message_factory.hpp>
 
 #include <scwx/util/vectorbuf.hpp>
 #include <scwx/wsr88d/rda/clutter_filter_map.hpp>
@@ -20,12 +20,14 @@ namespace wsr88d
 namespace rda
 {
 
-static const std::string logPrefix_ = "[scwx::wsr88d::rda::message_factory] ";
+static const std::string logPrefix_ =
+   "[scwx::wsr88d::rda::level2_message_factory] ";
 
-typedef std::function<std::shared_ptr<Message>(MessageHeader&&, std::istream&)>
-   CreateMessageFunction;
+typedef std::function<std::shared_ptr<Level2Message>(Level2MessageHeader&&,
+                                                     std::istream&)>
+   CreateLevel2MessageFunction;
 
-static const std::unordered_map<uint8_t, CreateMessageFunction> create_ {
+static const std::unordered_map<uint8_t, CreateLevel2MessageFunction> create_ {
    {2, RdaStatusData::Create},
    {3, PerformanceMaintenanceData::Create},
    {5, VolumeCoveragePatternData::Create},
@@ -38,10 +40,10 @@ static size_t            bufferedSize_;
 static util::vectorbuf   messageBuffer_(messageData_);
 static std::istream      messageBufferStream_(&messageBuffer_);
 
-MessageInfo MessageFactory::Create(std::istream& is)
+Level2MessageInfo Level2MessageFactory::Create(std::istream& is)
 {
-   MessageInfo   info;
-   MessageHeader header;
+   Level2MessageInfo   info;
+   Level2MessageHeader header;
    info.headerValid  = header.Parse(is);
    info.messageValid = info.headerValid;
 
@@ -58,7 +60,7 @@ MessageInfo MessageFactory::Create(std::istream& is)
       uint16_t segment       = header.message_segment_number();
       uint16_t totalSegments = header.number_of_message_segments();
       uint8_t  messageType   = header.message_type();
-      size_t   dataSize      = header.message_size() * 2 - MessageHeader::SIZE;
+      size_t   dataSize = header.message_size() * 2 - Level2MessageHeader::SIZE;
 
       std::istream* messageStream = nullptr;
 
@@ -110,8 +112,8 @@ MessageInfo MessageFactory::Create(std::istream& is)
          else if (segment == totalSegments)
          {
             messageBuffer_.update_read_pointers(bufferedSize_);
-            header.set_message_size(
-               static_cast<uint16_t>(bufferedSize_ / 2 + MessageHeader::SIZE));
+            header.set_message_size(static_cast<uint16_t>(
+               bufferedSize_ / 2 + Level2MessageHeader::SIZE));
 
             messageStream = &messageBufferStream_;
          }
@@ -129,7 +131,7 @@ MessageInfo MessageFactory::Create(std::istream& is)
    else if (info.headerValid)
    {
       // Seek to the end of the current message
-      is.seekg(header.message_size() * 2 - rda::MessageHeader::SIZE,
+      is.seekg(header.message_size() * 2 - rda::Level2MessageHeader::SIZE,
                std::ios_base::cur);
    }
 
