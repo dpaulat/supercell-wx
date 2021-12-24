@@ -30,10 +30,12 @@ protected:
    Message(Message&&) noexcept;
    Message& operator=(Message&&) noexcept;
 
-   virtual bool ValidateMessage(std::istream& is, size_t bytesRead) const = 0;
+   virtual bool ValidateMessage(std::istream& is, size_t bytesRead) const;
 
 public:
    virtual ~Message();
+
+   virtual size_t data_size() const = 0;
 
    virtual bool Parse(std::istream& is) = 0;
 

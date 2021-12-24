@@ -7,12 +7,6 @@
 
 #include <boost/log/trivial.hpp>
 
-#ifdef WIN32
-#   include <WinSock2.h>
-#else
-#   include <arpa/inet.h>
-#endif
-
 namespace scwx
 {
 namespace wsr88d
@@ -207,6 +201,11 @@ bool ProductDescriptionBlock::IsCompressionEnabled() const
    }
 
    return isCompressed;
+}
+
+size_t ProductDescriptionBlock::data_size() const
+{
+   return SIZE;
 }
 
 bool ProductDescriptionBlock::Parse(std::istream& is)

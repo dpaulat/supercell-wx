@@ -29,10 +29,10 @@ protected:
    Level2Message(Level2Message&&) noexcept;
    Level2Message& operator=(Level2Message&&) noexcept;
 
-   bool ValidateMessage(std::istream& is, size_t bytesRead) const override;
-
 public:
    virtual ~Level2Message();
+
+   size_t data_size() const override;
 
    const Level2MessageHeader& header() const;
 

@@ -48,9 +48,11 @@ public:
 
    bool IsCompressionEnabled() const;
 
-   bool Parse(std::istream& is);
+   size_t data_size() const override;
 
-   static const size_t SIZE = 102u;
+   bool Parse(std::istream& is) override;
+
+   static constexpr size_t SIZE = 102u;
 
 private:
    std::unique_ptr<ProductDescriptionBlockImpl> p;
