@@ -1,4 +1,4 @@
-#include <scwx/wsr88d/rpg/linked_vector_packet.hpp>
+#include <scwx/wsr88d/rpg/unlinked_vector_packet.hpp>
 
 #include <istream>
 #include <string>
@@ -13,56 +13,57 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::linked_vector_packet] ";
+   "[scwx::wsr88d::rpg::unlinked_vector_packet] ";
 
-class LinkedVectorPacketImpl
+class UnlinkedVectorPacketImpl
 {
 public:
-   explicit LinkedVectorPacketImpl() :
+   explicit UnlinkedVectorPacketImpl() :
        packetCode_ {},
        lengthOfBlock_ {},
        valueOfVector_ {},
-       startI_ {},
-       startJ_ {},
+       beginI_ {},
+       beginJ_ {},
        endI_ {},
        endJ_ {} {};
-   ~LinkedVectorPacketImpl() = default;
+   ~UnlinkedVectorPacketImpl() = default;
 
    uint16_t packetCode_;
    uint16_t lengthOfBlock_;
    uint16_t valueOfVector_;
 
-   uint16_t              startI_;
-   uint16_t              startJ_;
+   std::vector<uint16_t> beginI_;
+   std::vector<uint16_t> beginJ_;
    std::vector<uint16_t> endI_;
    std::vector<uint16_t> endJ_;
 };
 
-LinkedVectorPacket::LinkedVectorPacket() :
-    p(std::make_unique<LinkedVectorPacketImpl>())
+UnlinkedVectorPacket::UnlinkedVectorPacket() :
+    p(std::make_unique<UnlinkedVectorPacketImpl>())
 {
 }
-LinkedVectorPacket::~LinkedVectorPacket() = default;
+UnlinkedVectorPacket::~UnlinkedVectorPacket() = default;
 
-LinkedVectorPacket::LinkedVectorPacket(LinkedVectorPacket&&) noexcept = default;
-LinkedVectorPacket&
-LinkedVectorPacket::operator=(LinkedVectorPacket&&) noexcept = default;
+UnlinkedVectorPacket::UnlinkedVectorPacket(UnlinkedVectorPacket&&) noexcept =
+   default;
+UnlinkedVectorPacket&
+UnlinkedVectorPacket::operator=(UnlinkedVectorPacket&&) noexcept = default;
 
-uint16_t LinkedVectorPacket::packet_code() const
+uint16_t UnlinkedVectorPacket::packet_code() const
 {
    return p->packetCode_;
 }
 
-uint16_t LinkedVectorPacket::length_of_block() const
+uint16_t UnlinkedVectorPacket::length_of_block() const
 {
    return p->lengthOfBlock_;
 }
 
-std::optional<uint16_t> LinkedVectorPacket::value_of_vector() const
+std::optional<uint16_t> UnlinkedVectorPacket::value_of_vector() const
 {
    std::optional<uint16_t> value;
 
-   if (p->packetCode_ == 9)
+   if (p->packetCode_ == 10)
    {
       value = p->valueOfVector_;
    }
@@ -70,12 +71,12 @@ std::optional<uint16_t> LinkedVectorPacket::value_of_vector() const
    return value;
 }
 
-size_t LinkedVectorPacket::data_size() const
+size_t UnlinkedVectorPacket::data_size() const
 {
    return p->lengthOfBlock_ + 4u;
 }
 
-bool LinkedVectorPacket::Parse(std::istream& is)
+bool UnlinkedVectorPacket::Parse(std::istream& is)
 {
    bool blockValid = true;
 
@@ -85,14 +86,14 @@ bool LinkedVectorPacket::Parse(std::istream& is)
    p->packetCode_    = ntohs(p->packetCode_);
    p->lengthOfBlock_ = ntohs(p->lengthOfBlock_);
 
-   int vectorSize = static_cast<int>(p->lengthOfBlock_) - 2;
+   int vectorSize = static_cast<int>(p->lengthOfBlock_);
 
    if (is.eof())
    {
       BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
       blockValid = false;
    }
-   else if (p->packetCode_ == 9)
+   else if (p->packetCode_ == 10)
    {
       is.read(reinterpret_cast<char*>(&p->valueOfVector_), 2);
       p->valueOfVector_ = ntohs(p->valueOfVector_);
@@ -100,26 +101,28 @@ bool LinkedVectorPacket::Parse(std::istream& is)
       vectorSize -= 2;
    }
 
-   is.read(reinterpret_cast<char*>(&p->startI_), 2);
-   is.read(reinterpret_cast<char*>(&p->startJ_), 2);
-
-   p->startI_ = ntohs(p->startI_);
-   p->startJ_ = ntohs(p->startJ_);
-
    // The number of vectors is equal to the size divided by the number of bytes
-   // in a vector coordinate
-   int      vectorCount = vectorSize / 4;
+   // in a vector
+   int      vectorCount = vectorSize / 8;
+   uint16_t beginI;
+   uint16_t beginJ;
    uint16_t endI;
    uint16_t endJ;
 
    for (int v = 0; v < vectorCount && !is.eof(); v++)
    {
+      is.read(reinterpret_cast<char*>(&beginI), 2);
+      is.read(reinterpret_cast<char*>(&beginJ), 2);
       is.read(reinterpret_cast<char*>(&endI), 2);
       is.read(reinterpret_cast<char*>(&endJ), 2);
 
-      endI = ntohs(endI);
-      endJ = ntohs(endJ);
+      beginI = ntohs(beginI);
+      beginJ = ntohs(beginJ);
+      endI   = ntohs(endI);
+      endJ   = ntohs(endJ);
 
+      p->beginI_.push_back(beginI);
+      p->beginJ_.push_back(beginJ);
       p->endI_.push_back(endI);
       p->endJ_.push_back(endJ);
    }
@@ -131,7 +134,7 @@ bool LinkedVectorPacket::Parse(std::istream& is)
    }
    else
    {
-      if (p->packetCode_ != 6 && p->packetCode_ != 9)
+      if (p->packetCode_ != 7 && p->packetCode_ != 10)
       {
          BOOST_LOG_TRIVIAL(warning)
             << logPrefix_ << "Invalid packet code: " << p->packetCode_;

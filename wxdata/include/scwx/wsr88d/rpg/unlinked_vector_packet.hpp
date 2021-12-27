@@ -12,19 +12,19 @@ namespace wsr88d
 namespace rpg
 {
 
-class LinkedVectorPacketImpl;
+class UnlinkedVectorPacketImpl;
 
-class LinkedVectorPacket : public Packet
+class UnlinkedVectorPacket : public Packet
 {
 public:
-   explicit LinkedVectorPacket();
-   ~LinkedVectorPacket();
+   explicit UnlinkedVectorPacket();
+   ~UnlinkedVectorPacket();
 
-   LinkedVectorPacket(const LinkedVectorPacket&) = delete;
-   LinkedVectorPacket& operator=(const LinkedVectorPacket&) = delete;
+   UnlinkedVectorPacket(const UnlinkedVectorPacket&) = delete;
+   UnlinkedVectorPacket& operator=(const UnlinkedVectorPacket&) = delete;
 
-   LinkedVectorPacket(LinkedVectorPacket&&) noexcept;
-   LinkedVectorPacket& operator=(LinkedVectorPacket&&) noexcept;
+   UnlinkedVectorPacket(UnlinkedVectorPacket&&) noexcept;
+   UnlinkedVectorPacket& operator=(UnlinkedVectorPacket&&) noexcept;
 
    uint16_t                packet_code() const;
    uint16_t                length_of_block() const;
@@ -35,7 +35,7 @@ public:
    bool Parse(std::istream& is) override;
 
 private:
-   std::unique_ptr<LinkedVectorPacketImpl> p;
+   std::unique_ptr<UnlinkedVectorPacketImpl> p;
 };
 
 } // namespace rpg
