@@ -32,10 +32,10 @@ public:
    uint16_t lengthOfBlock_;
    uint16_t valueOfVector_;
 
-   uint16_t              startI_;
-   uint16_t              startJ_;
-   std::vector<uint16_t> endI_;
-   std::vector<uint16_t> endJ_;
+   int16_t              startI_;
+   int16_t              startJ_;
+   std::vector<int16_t> endI_;
+   std::vector<int16_t> endJ_;
 };
 
 LinkedVectorPacket::LinkedVectorPacket() :
@@ -108,9 +108,9 @@ bool LinkedVectorPacket::Parse(std::istream& is)
 
    // The number of vectors is equal to the size divided by the number of bytes
    // in a vector coordinate
-   int      vectorCount = vectorSize / 4;
-   uint16_t endI;
-   uint16_t endJ;
+   int     vectorCount = vectorSize / 4;
+   int16_t endI;
+   int16_t endJ;
 
    for (int v = 0; v < vectorCount && !is.eof(); v++)
    {
