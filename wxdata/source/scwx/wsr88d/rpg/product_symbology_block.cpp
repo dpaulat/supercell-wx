@@ -1,4 +1,5 @@
 #include <scwx/wsr88d/rpg/product_symbology_block.hpp>
+#include <scwx/wsr88d/rpg/packet_factory.hpp>
 
 #include <istream>
 #include <string>
@@ -26,6 +27,8 @@ public:
    int16_t  blockId_;
    uint32_t lengthOfBlock_;
    uint16_t numberOfLayers_;
+
+   std::vector<std::vector<std::shared_ptr<Packet>>> layerList_;
 };
 
 ProductSymbologyBlock::ProductSymbologyBlock() :
@@ -102,25 +105,56 @@ bool ProductSymbologyBlock::Parse(std::istream& is)
    {
       int16_t  layerDivider;
       uint32_t lengthOfDataLayer;
-      uint16_t packetCode;
+      uint32_t bytesRead = 0;
 
       for (uint16_t i = 0; i < p->numberOfLayers_; i++)
       {
+         std::vector<std::shared_ptr<Packet>> packetList;
+
          is.read(reinterpret_cast<char*>(&layerDivider), 2);
          is.read(reinterpret_cast<char*>(&lengthOfDataLayer), 4);
 
          layerDivider      = ntohs(layerDivider);
          lengthOfDataLayer = ntohl(lengthOfDataLayer);
 
-         is.read(reinterpret_cast<char*>(&packetCode), 2);
-         packetCode = ntohs(packetCode);
-         is.seekg(-2, std::ios_base::cur);
+         std::streampos layerStart = is.tellg();
+         std::streampos layerEnd =
+            layerStart + static_cast<std::streamoff>(lengthOfDataLayer);
 
-         BOOST_LOG_TRIVIAL(debug)
-            << logPrefix_ << "Reading packet: " << packetCode;
+         while (bytesRead < lengthOfDataLayer)
+         {
+            std::shared_ptr<Packet> packet = PacketFactory::Create(is);
+            if (packet != nullptr)
+            {
+               packetList.push_back(packet);
+               bytesRead += static_cast<uint32_t>(packet->data_size());
+            }
+            else
+            {
+               break;
+            }
+         }
 
-         // TODO: Read packets
-         is.seekg(lengthOfDataLayer, std::ios_base::cur);
+         if (bytesRead < lengthOfDataLayer)
+         {
+            BOOST_LOG_TRIVIAL(trace)
+               << logPrefix_
+               << "Layer bytes read smaller than size: " << bytesRead << " < "
+               << lengthOfDataLayer << " bytes";
+            blockValid = false;
+            is.seekg(layerEnd, std::ios_base::beg);
+         }
+         if (bytesRead > lengthOfDataLayer)
+         {
+            BOOST_LOG_TRIVIAL(warning)
+               << logPrefix_
+               << "Layer bytes read larger than size: " << bytesRead << " > "
+               << lengthOfDataLayer << " bytes";
+            blockValid = false;
+            is.seekg(layerEnd, std::ios_base::beg);
+         }
+
+         p->layerList_.push_back(std::move(packetList));
       }
    }
 

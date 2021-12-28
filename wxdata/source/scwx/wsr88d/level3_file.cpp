@@ -32,7 +32,7 @@ public:
        tabularBlock_ {} {};
    ~Level3FileImpl() = default;
 
-   void LoadBlocks(std::istream& is);
+   bool LoadBlocks(std::istream& is);
 
    rpg::WmoHeader               wmoHeader_;
    rpg::Level3MessageHeader     messageHeader_;
@@ -123,7 +123,7 @@ bool Level3File::LoadData(std::istream& is)
                << logPrefix_ << "Decompressed data size = " << bytesCopied
                << " bytes";
 
-            p->LoadBlocks(ss);
+            dataValid = p->LoadBlocks(ss);
          }
          catch (const boost::iostreams::bzip2_error& ex)
          {
@@ -136,15 +136,19 @@ bool Level3File::LoadData(std::istream& is)
       }
       else
       {
-         p->LoadBlocks(is);
+         dataValid = p->LoadBlocks(is);
       }
    }
 
    return dataValid;
 }
 
-void Level3FileImpl::LoadBlocks(std::istream& is)
+bool Level3FileImpl::LoadBlocks(std::istream& is)
 {
+   bool symbologyValid = true;
+   bool graphicValid   = true;
+   bool tabularValid   = true;
+
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading Blocks";
 
    std::streampos offsetBasePos = is.tellg();
@@ -159,8 +163,6 @@ void Level3FileImpl::LoadBlocks(std::istream& is)
 
    if (offsetToSymbology >= offsetBase)
    {
-      bool symbologyValid;
-
       symbologyBlock_ = std::make_shared<rpg::ProductSymbologyBlock>();
 
       is.seekg(offsetToSymbology - offsetBase, std::ios_base::cur);
@@ -197,6 +199,8 @@ void Level3FileImpl::LoadBlocks(std::istream& is)
          << logPrefix_
          << "Tabular alphanumeric block found: " << offsetToTabular;
    }
+
+   return (symbologyValid && graphicValid && tabularValid);
 }
 
 } // namespace wsr88d
