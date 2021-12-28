@@ -1,4 +1,4 @@
-#include <scwx/wsr88d/rpg/linked_vector_packet.hpp>
+#include <scwx/wsr88d/rpg/text_and_special_symbol_packet.hpp>
 
 #include <istream>
 #include <string>
@@ -13,69 +13,68 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::linked_vector_packet] ";
+   "[scwx::wsr88d::rpg::text_and_special_symbol_packet] ";
 
-class LinkedVectorPacketImpl
+class TextAndSpecialSymbolPacketImpl
 {
 public:
-   explicit LinkedVectorPacketImpl() :
+   explicit TextAndSpecialSymbolPacketImpl() :
        packetCode_ {},
        lengthOfBlock_ {},
-       valueOfVector_ {},
+       valueOfText_ {},
        startI_ {},
        startJ_ {},
-       endI_ {},
-       endJ_ {} {};
-   ~LinkedVectorPacketImpl() = default;
+       characters_ {} {};
+   ~TextAndSpecialSymbolPacketImpl() = default;
 
    uint16_t packetCode_;
    uint16_t lengthOfBlock_;
-   uint16_t valueOfVector_;
+   uint16_t valueOfText_;
+   int16_t  startI_;
+   int16_t  startJ_;
 
-   int16_t              startI_;
-   int16_t              startJ_;
-   std::vector<int16_t> endI_;
-   std::vector<int16_t> endJ_;
+   std::vector<char> characters_;
 };
 
-LinkedVectorPacket::LinkedVectorPacket() :
-    p(std::make_unique<LinkedVectorPacketImpl>())
+TextAndSpecialSymbolPacket::TextAndSpecialSymbolPacket() :
+    p(std::make_unique<TextAndSpecialSymbolPacketImpl>())
 {
 }
-LinkedVectorPacket::~LinkedVectorPacket() = default;
+TextAndSpecialSymbolPacket::~TextAndSpecialSymbolPacket() = default;
 
-LinkedVectorPacket::LinkedVectorPacket(LinkedVectorPacket&&) noexcept = default;
-LinkedVectorPacket&
-LinkedVectorPacket::operator=(LinkedVectorPacket&&) noexcept = default;
+TextAndSpecialSymbolPacket::TextAndSpecialSymbolPacket(
+   TextAndSpecialSymbolPacket&&) noexcept                       = default;
+TextAndSpecialSymbolPacket& TextAndSpecialSymbolPacket::operator=(
+   TextAndSpecialSymbolPacket&&) noexcept = default;
 
-uint16_t LinkedVectorPacket::packet_code() const
+uint16_t TextAndSpecialSymbolPacket::packet_code() const
 {
    return p->packetCode_;
 }
 
-uint16_t LinkedVectorPacket::length_of_block() const
+uint16_t TextAndSpecialSymbolPacket::length_of_block() const
 {
    return p->lengthOfBlock_;
 }
 
-std::optional<uint16_t> LinkedVectorPacket::value_of_vector() const
+std::optional<uint16_t> TextAndSpecialSymbolPacket::value_of_text() const
 {
    std::optional<uint16_t> value;
 
-   if (p->packetCode_ == 9)
+   if (p->packetCode_ == 8)
    {
-      value = p->valueOfVector_;
+      value = p->valueOfText_;
    }
 
    return value;
 }
 
-size_t LinkedVectorPacket::data_size() const
+size_t TextAndSpecialSymbolPacket::data_size() const
 {
    return p->lengthOfBlock_ + 4u;
 }
 
-bool LinkedVectorPacket::Parse(std::istream& is)
+bool TextAndSpecialSymbolPacket::Parse(std::istream& is)
 {
    bool blockValid = true;
 
@@ -92,10 +91,10 @@ bool LinkedVectorPacket::Parse(std::istream& is)
       BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
       blockValid = false;
    }
-   else if (p->packetCode_ == 9)
+   else if (p->packetCode_ == 8)
    {
-      is.read(reinterpret_cast<char*>(&p->valueOfVector_), 2);
-      p->valueOfVector_ = ntohs(p->valueOfVector_);
+      is.read(reinterpret_cast<char*>(&p->valueOfText_), 2);
+      p->valueOfText_ = ntohs(p->valueOfText_);
 
       vectorSize -= 2;
    }
@@ -108,20 +107,13 @@ bool LinkedVectorPacket::Parse(std::istream& is)
 
    // The number of vectors is equal to the size divided by the number of bytes
    // in a vector coordinate
-   int     vectorCount = vectorSize / 4;
-   int16_t endI;
-   int16_t endJ;
+   int  vectorCount = vectorSize;
+   char c;
 
    for (int v = 0; v < vectorCount && !is.eof(); v++)
    {
-      is.read(reinterpret_cast<char*>(&endI), 2);
-      is.read(reinterpret_cast<char*>(&endJ), 2);
-
-      endI = ntohs(endI);
-      endJ = ntohs(endJ);
-
-      p->endI_.push_back(endI);
-      p->endJ_.push_back(endJ);
+      is.get(c);
+      p->characters_.push_back(c);
    }
 
    if (is.eof())
@@ -131,7 +123,7 @@ bool LinkedVectorPacket::Parse(std::istream& is)
    }
    else
    {
-      if (p->packetCode_ != 6 && p->packetCode_ != 9)
+      if (p->packetCode_ != 1 && p->packetCode_ != 2 && p->packetCode_ != 8)
       {
          BOOST_LOG_TRIVIAL(warning)
             << logPrefix_ << "Invalid packet code: " << p->packetCode_;
