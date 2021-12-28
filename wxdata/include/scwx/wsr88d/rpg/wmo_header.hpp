@@ -35,6 +35,7 @@ public:
    WmoHeader(WmoHeader&&) noexcept;
    WmoHeader& operator=(WmoHeader&&) noexcept;
 
+   const std::string& sequence_number() const;
    const std::string& data_type() const;
    const std::string& geographic_designator() const;
    const std::string& bulletin_id() const;

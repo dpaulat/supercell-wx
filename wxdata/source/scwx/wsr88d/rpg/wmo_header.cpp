@@ -26,6 +26,7 @@ class WmoHeaderImpl
 {
 public:
    explicit WmoHeaderImpl() :
+       sequenceNumber_ {},
        dataType_ {},
        geographicDesignator_ {},
        bulletinId_ {},
@@ -36,6 +37,7 @@ public:
        productDesignator_ {} {};
    ~WmoHeaderImpl() = default;
 
+   std::string sequenceNumber_;
    std::string dataType_;
    std::string geographicDesignator_;
    std::string bulletinId_;
@@ -51,6 +53,11 @@ WmoHeader::~WmoHeader() = default;
 
 WmoHeader::WmoHeader(WmoHeader&&) noexcept = default;
 WmoHeader& WmoHeader::operator=(WmoHeader&&) noexcept = default;
+
+const std::string& WmoHeader::sequence_number() const
+{
+   return p->sequenceNumber_;
+}
 
 const std::string& WmoHeader::data_type() const
 {
@@ -96,8 +103,16 @@ bool WmoHeader::Parse(std::istream& is)
 {
    bool headerValid = true;
 
+   std::string sohLine;
+   std::string sequenceLine;
    std::string wmoLine;
    std::string awipsLine;
+
+   if (is.peek() == 0x01)
+   {
+      std::getline(is, sohLine);
+      std::getline(is, sequenceLine);
+   }
 
    std::getline(is, wmoLine);
    std::getline(is, awipsLine);
@@ -105,6 +120,17 @@ bool WmoHeader::Parse(std::istream& is)
    if (is.eof())
    {
       BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      headerValid = false;
+   }
+   else if (!sohLine.empty() && !sohLine.ends_with("\r\r"))
+   {
+      BOOST_LOG_TRIVIAL(debug)
+         << logPrefix_ << "Start of Heading Line is malformed";
+      headerValid = false;
+   }
+   else if (!sequenceLine.empty() && !sequenceLine.ends_with(" \r\r"))
+   {
+      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Sequence Line is malformed";
       headerValid = false;
    }
    else if (!wmoLine.ends_with("\r\r"))
@@ -122,8 +148,22 @@ bool WmoHeader::Parse(std::istream& is)
    else
    {
       // Remove delimiters from the end of the line
+      if (!sequenceLine.empty())
+      {
+         sequenceLine.erase(sequenceLine.end() - 3);
+      }
+
       wmoLine.erase(wmoLine.end() - 2);
       awipsLine.erase(awipsLine.end() - 2);
+   }
+
+   // Transmission Header:
+   // [SOH]
+   // nnn
+
+   if (headerValid && !sequenceLine.empty())
+   {
+      p->sequenceNumber_ = sequenceLine;
    }
 
    // WMO Abbreviated Heading Line:
