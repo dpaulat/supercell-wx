@@ -1,6 +1,7 @@
 #include <scwx/wsr88d/level3_file.hpp>
 #include <scwx/wsr88d/rpg/level3_message_header.hpp>
 #include <scwx/wsr88d/rpg/product_description_block.hpp>
+#include <scwx/wsr88d/rpg/product_symbology_block.hpp>
 #include <scwx/wsr88d/rpg/wmo_header.hpp>
 #include <scwx/util/rangebuf.hpp>
 #include <scwx/util/time.hpp>
@@ -23,14 +24,23 @@ class Level3FileImpl
 {
 public:
    explicit Level3FileImpl() :
-       wmoHeader_ {}, messageHeader_ {}, description_ {} {};
+       wmoHeader_ {},
+       messageHeader_ {},
+       descriptionBlock_ {},
+       symbologyBlock_ {},
+       graphicBlock_ {},
+       tabularBlock_ {} {};
    ~Level3FileImpl() = default;
 
    void LoadBlocks(std::istream& is);
 
    rpg::WmoHeader               wmoHeader_;
    rpg::Level3MessageHeader     messageHeader_;
-   rpg::ProductDescriptionBlock description_;
+   rpg::ProductDescriptionBlock descriptionBlock_;
+
+   std::shared_ptr<rpg::ProductSymbologyBlock> symbologyBlock_;
+   std::shared_ptr<void>                       graphicBlock_;
+   std::shared_ptr<void>                       tabularBlock_;
 
    size_t numRecords_;
 };
@@ -87,12 +97,12 @@ bool Level3File::LoadData(std::istream& is)
       BOOST_LOG_TRIVIAL(debug)
          << logPrefix_ << "Code:      " << p->messageHeader_.message_code();
 
-      dataValid = p->description_.Parse(is);
+      dataValid = p->descriptionBlock_.Parse(is);
    }
 
    if (dataValid)
    {
-      if (p->description_.IsCompressionEnabled())
+      if (p->descriptionBlock_.IsCompressionEnabled())
       {
          size_t messageLength = p->messageHeader_.length_of_message();
          size_t prefixLength =
@@ -137,7 +147,56 @@ void Level3FileImpl::LoadBlocks(std::istream& is)
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading Blocks";
 
-   // TODO
+   std::streampos offsetBasePos = is.tellg();
+
+   constexpr size_t offsetBase =
+      rpg::Level3MessageHeader::SIZE + rpg::ProductDescriptionBlock::SIZE;
+
+   const size_t offsetToSymbology =
+      descriptionBlock_.offset_to_symbology() * 2u;
+   const size_t offsetToGraphic = descriptionBlock_.offset_to_graphic() * 2u;
+   const size_t offsetToTabular = descriptionBlock_.offset_to_tabular() * 2u;
+
+   if (offsetToSymbology >= offsetBase)
+   {
+      bool symbologyValid;
+
+      symbologyBlock_ = std::make_shared<rpg::ProductSymbologyBlock>();
+
+      is.seekg(offsetToSymbology - offsetBase, std::ios_base::cur);
+      symbologyValid = symbologyBlock_->Parse(is);
+      is.seekg(offsetBasePos, std::ios_base::beg);
+
+      BOOST_LOG_TRIVIAL(debug)
+         << logPrefix_ << "Product symbology block valid: " << symbologyValid;
+
+      if (!symbologyValid)
+      {
+         symbologyBlock_ = nullptr;
+      }
+   }
+
+   if (offsetToGraphic >= offsetBase)
+   {
+      // TODO
+      is.seekg(offsetToGraphic - offsetBase, std::ios_base::cur);
+      is.seekg(offsetBasePos, std::ios_base::beg);
+
+      BOOST_LOG_TRIVIAL(debug)
+         << logPrefix_
+         << "Graphic alphanumeric block found: " << offsetToGraphic;
+   }
+
+   if (offsetToTabular >= offsetBase)
+   {
+      // TODO
+      is.seekg(offsetToTabular - offsetBase, std::ios_base::cur);
+      is.seekg(offsetBasePos, std::ios_base::beg);
+
+      BOOST_LOG_TRIVIAL(debug)
+         << logPrefix_
+         << "Tabular alphanumeric block found: " << offsetToTabular;
+   }
 }
 
 } // namespace wsr88d
