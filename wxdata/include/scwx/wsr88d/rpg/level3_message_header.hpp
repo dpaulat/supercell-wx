@@ -34,7 +34,7 @@ public:
 
    bool Parse(std::istream& is);
 
-   static const size_t SIZE = 18u;
+   static constexpr size_t SIZE = 18u;
 
 private:
    std::unique_ptr<Level3MessageHeaderImpl> p;

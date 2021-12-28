@@ -150,11 +150,11 @@ bool WmoHeader::Parse(std::istream& is)
       // Remove delimiters from the end of the line
       if (!sequenceLine.empty())
       {
-         sequenceLine.erase(sequenceLine.end() - 3);
+         sequenceLine.erase(sequenceLine.length() - 3);
       }
 
-      wmoLine.erase(wmoLine.end() - 2);
-      awipsLine.erase(awipsLine.end() - 2);
+      wmoLine.erase(wmoLine.length() - 2);
+      awipsLine.erase(awipsLine.length() - 2);
    }
 
    // Transmission Header:
