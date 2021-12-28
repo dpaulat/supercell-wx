@@ -212,6 +212,8 @@ bool ProductDescriptionBlock::Parse(std::istream& is)
 {
    bool blockValid = true;
 
+   const std::streampos blockStart = is.tellg();
+
    is.read(reinterpret_cast<char*>(&p->blockDivider_), 2);            // 10
    is.read(reinterpret_cast<char*>(&p->latitudeOfRadar_), 4);         // 11-12
    is.read(reinterpret_cast<char*>(&p->longitudeOfRadar_), 4);        // 13-14
@@ -295,6 +297,12 @@ bool ProductDescriptionBlock::Parse(std::istream& is)
    {
       BOOST_LOG_TRIVIAL(trace)
          << logPrefix_ << "Product code: " << p->productCode_;
+   }
+
+   const std::streampos blockEnd = is.tellg();
+   if (!ValidateMessage(is, blockEnd - blockStart))
+   {
+      blockValid = false;
    }
 
    return blockValid;

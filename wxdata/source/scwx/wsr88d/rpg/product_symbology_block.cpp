@@ -1,0 +1,138 @@
+#include <scwx/wsr88d/rpg/product_symbology_block.hpp>
+
+#include <istream>
+#include <string>
+
+#include <boost/log/trivial.hpp>
+
+namespace scwx
+{
+namespace wsr88d
+{
+namespace rpg
+{
+
+static const std::string logPrefix_ =
+   "[scwx::wsr88d::rpg::product_symbology_block] ";
+
+class ProductSymbologyBlockImpl
+{
+public:
+   explicit ProductSymbologyBlockImpl() :
+       blockDivider_ {}, blockId_ {}, lengthOfBlock_ {}, numberOfLayers_ {} {};
+   ~ProductSymbologyBlockImpl() = default;
+
+   int16_t  blockDivider_;
+   int16_t  blockId_;
+   uint32_t lengthOfBlock_;
+   uint16_t numberOfLayers_;
+};
+
+ProductSymbologyBlock::ProductSymbologyBlock() :
+    Message(), p(std::make_unique<ProductSymbologyBlockImpl>())
+{
+}
+ProductSymbologyBlock::~ProductSymbologyBlock() = default;
+
+ProductSymbologyBlock::ProductSymbologyBlock(ProductSymbologyBlock&&) noexcept =
+   default;
+ProductSymbologyBlock&
+ProductSymbologyBlock::operator=(ProductSymbologyBlock&&) noexcept = default;
+
+int16_t ProductSymbologyBlock::block_divider() const
+{
+   return p->blockDivider_;
+}
+
+size_t ProductSymbologyBlock::data_size() const
+{
+   return p->lengthOfBlock_;
+}
+
+bool ProductSymbologyBlock::Parse(std::istream& is)
+{
+   bool blockValid = true;
+
+   const std::streampos blockStart = is.tellg();
+
+   is.read(reinterpret_cast<char*>(&p->blockDivider_), 2);
+   is.read(reinterpret_cast<char*>(&p->blockId_), 2);
+   is.read(reinterpret_cast<char*>(&p->lengthOfBlock_), 4);
+   is.read(reinterpret_cast<char*>(&p->numberOfLayers_), 2);
+
+   p->blockDivider_   = ntohs(p->blockDivider_);
+   p->blockId_        = ntohs(p->blockId_);
+   p->lengthOfBlock_  = ntohl(p->lengthOfBlock_);
+   p->numberOfLayers_ = ntohs(p->numberOfLayers_);
+
+   if (is.eof())
+   {
+      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      blockValid = false;
+   }
+   else
+   {
+      if (p->blockDivider_ != -1)
+      {
+         BOOST_LOG_TRIVIAL(warning)
+            << logPrefix_ << "Invalid block divider: " << p->blockDivider_;
+         blockValid = false;
+      }
+      if (p->blockId_ != 1)
+      {
+         BOOST_LOG_TRIVIAL(warning)
+            << logPrefix_ << "Invalid block ID: " << p->blockId_;
+         blockValid = false;
+      }
+      if (p->lengthOfBlock_ < 10)
+      {
+         BOOST_LOG_TRIVIAL(warning)
+            << logPrefix_ << "Invalid block length: " << p->lengthOfBlock_;
+         blockValid = false;
+      }
+      if (p->numberOfLayers_ < 1 || p->numberOfLayers_ > 18)
+      {
+         BOOST_LOG_TRIVIAL(warning)
+            << logPrefix_ << "Invalid number of layers: " << p->numberOfLayers_;
+         blockValid = false;
+      }
+   }
+
+   if (blockValid)
+   {
+      int16_t  layerDivider;
+      uint32_t lengthOfDataLayer;
+      uint16_t packetCode;
+
+      for (uint16_t i = 0; i < p->numberOfLayers_; i++)
+      {
+         is.read(reinterpret_cast<char*>(&layerDivider), 2);
+         is.read(reinterpret_cast<char*>(&lengthOfDataLayer), 4);
+
+         layerDivider      = ntohs(layerDivider);
+         lengthOfDataLayer = ntohl(lengthOfDataLayer);
+
+         is.read(reinterpret_cast<char*>(&packetCode), 2);
+         packetCode = ntohs(packetCode);
+         is.seekg(-2, std::ios_base::cur);
+
+         BOOST_LOG_TRIVIAL(debug)
+            << logPrefix_ << "Reading packet: " << packetCode;
+
+         // TODO: Read packets
+         is.seekg(lengthOfDataLayer, std::ios_base::cur);
+      }
+   }
+
+   const std::streampos blockEnd = is.tellg();
+   if (!ValidateMessage(is, blockEnd - blockStart))
+   {
+      blockValid = false;
+   }
+
+   return blockValid;
+}
+
+} // namespace rpg
+} // namespace wsr88d
+} // namespace scwx
