@@ -22,8 +22,10 @@ set(SRC_UTIL source/scwx/util/rangebuf.cpp
              source/scwx/util/time.cpp
              source/scwx/util/vectorbuf.cpp)
 set(HDR_WSR88D include/scwx/wsr88d/ar2v_file.hpp
+               include/scwx/wsr88d/level3_file.hpp
                include/scwx/wsr88d/message.hpp)
 set(SRC_WSR88D source/scwx/wsr88d/ar2v_file.cpp
+               source/scwx/wsr88d/level3_file.cpp
                source/scwx/wsr88d/message.cpp)
 set(HDR_WSR88D_RDA include/scwx/wsr88d/rda/clutter_filter_map.hpp
                    include/scwx/wsr88d/rda/digital_radar_data.hpp
@@ -44,6 +46,30 @@ set(SRC_WSR88D_RDA source/scwx/wsr88d/rda/clutter_filter_map.cpp
                    source/scwx/wsr88d/rda/rda_adaptation_data.cpp
                    source/scwx/wsr88d/rda/rda_status_data.cpp
                    source/scwx/wsr88d/rda/volume_coverage_pattern_data.cpp)
+set(HDR_WSR88D_RPG include/scwx/wsr88d/rpg/level3_message_header.hpp
+                   include/scwx/wsr88d/rpg/linked_contour_vector_packet.hpp
+                   include/scwx/wsr88d/rpg/linked_vector_packet.hpp
+                   include/scwx/wsr88d/rpg/packet.hpp
+                   include/scwx/wsr88d/rpg/packet_factory.hpp
+                   include/scwx/wsr88d/rpg/product_description_block.hpp
+                   include/scwx/wsr88d/rpg/product_symbology_block.hpp
+                   include/scwx/wsr88d/rpg/set_color_level_packet.hpp
+                   include/scwx/wsr88d/rpg/text_and_special_symbol_packet.hpp
+                   include/scwx/wsr88d/rpg/unlinked_contour_vector_packet.hpp
+                   include/scwx/wsr88d/rpg/unlinked_vector_packet.hpp
+                   include/scwx/wsr88d/rpg/wmo_header.hpp)
+set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/level3_message_header.cpp
+                   source/scwx/wsr88d/rpg/linked_contour_vector_packet.cpp
+                   source/scwx/wsr88d/rpg/linked_vector_packet.cpp
+                   source/scwx/wsr88d/rpg/packet.cpp
+                   source/scwx/wsr88d/rpg/packet_factory.cpp
+                   source/scwx/wsr88d/rpg/product_description_block.cpp
+                   source/scwx/wsr88d/rpg/product_symbology_block.cpp
+                   source/scwx/wsr88d/rpg/set_color_level_packet.cpp
+                   source/scwx/wsr88d/rpg/text_and_special_symbol_packet.cpp
+                   source/scwx/wsr88d/rpg/unlinked_contour_vector_packet.cpp
+                   source/scwx/wsr88d/rpg/unlinked_vector_packet.cpp
+                   source/scwx/wsr88d/rpg/wmo_header.cpp)
 
 add_library(wxdata OBJECT ${HDR_COMMON}
                           ${SRC_COMMON}
@@ -52,7 +78,9 @@ add_library(wxdata OBJECT ${HDR_COMMON}
                           ${HDR_WSR88D}
                           ${SRC_WSR88D}
                           ${HDR_WSR88D_RDA}
-                          ${SRC_WSR88D_RDA})
+                          ${SRC_WSR88D_RDA}
+                          ${HDR_WSR88D_RPG}
+                          ${SRC_WSR88D_RPG})
 
 source_group("Header Files\\common"      FILES ${HDR_COMMON})
 source_group("Source Files\\common"      FILES ${SRC_COMMON})
@@ -62,6 +90,8 @@ source_group("Header Files\\wsr88d"      FILES ${HDR_WSR88D})
 source_group("Source Files\\wsr88d"      FILES ${SRC_WSR88D})
 source_group("Header Files\\wsr88d\\rda" FILES ${HDR_WSR88D_RDA})
 source_group("Source Files\\wsr88d\\rda" FILES ${SRC_WSR88D_RDA})
+source_group("Header Files\\wsr88d\\rpg" FILES ${HDR_WSR88D_RPG})
+source_group("Source Files\\wsr88d\\rpg" FILES ${SRC_WSR88D_RPG})
 
 target_include_directories(wxdata PRIVATE ${Boost_INCLUDE_DIR}
                                           ${HSLUV_C_INCLUDE_DIR}
