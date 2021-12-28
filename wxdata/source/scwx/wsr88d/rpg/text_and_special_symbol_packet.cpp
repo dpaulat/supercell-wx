@@ -134,6 +134,20 @@ bool TextAndSpecialSymbolPacket::Parse(std::istream& is)
    return blockValid;
 }
 
+std::shared_ptr<TextAndSpecialSymbolPacket>
+TextAndSpecialSymbolPacket::Create(std::istream& is)
+{
+   std::shared_ptr<TextAndSpecialSymbolPacket> packet =
+      std::make_shared<TextAndSpecialSymbolPacket>();
+
+   if (!packet->Parse(is))
+   {
+      packet.reset();
+   }
+
+   return packet;
+}
+
 } // namespace rpg
 } // namespace wsr88d
 } // namespace scwx

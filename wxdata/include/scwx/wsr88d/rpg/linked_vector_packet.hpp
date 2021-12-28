@@ -34,6 +34,8 @@ public:
 
    bool Parse(std::istream& is) override;
 
+   static std::shared_ptr<LinkedVectorPacket> Create(std::istream& is);
+
 private:
    std::unique_ptr<LinkedVectorPacketImpl> p;
 };

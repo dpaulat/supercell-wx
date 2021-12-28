@@ -145,6 +145,20 @@ bool UnlinkedVectorPacket::Parse(std::istream& is)
    return blockValid;
 }
 
+std::shared_ptr<UnlinkedVectorPacket>
+UnlinkedVectorPacket::Create(std::istream& is)
+{
+   std::shared_ptr<UnlinkedVectorPacket> packet =
+      std::make_shared<UnlinkedVectorPacket>();
+
+   if (!packet->Parse(is))
+   {
+      packet.reset();
+   }
+
+   return packet;
+}
+
 } // namespace rpg
 } // namespace wsr88d
 } // namespace scwx

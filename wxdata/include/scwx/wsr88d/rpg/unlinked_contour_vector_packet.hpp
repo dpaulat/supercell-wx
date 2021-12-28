@@ -35,6 +35,8 @@ public:
 
    bool Parse(std::istream& is) override;
 
+   static std::shared_ptr<UnlinkedContourVectorPacket> Create(std::istream& is);
+
 private:
    std::unique_ptr<UnlinkedContourVectorPacketImpl> p;
 };

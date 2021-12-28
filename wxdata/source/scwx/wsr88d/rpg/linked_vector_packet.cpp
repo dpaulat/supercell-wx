@@ -142,6 +142,19 @@ bool LinkedVectorPacket::Parse(std::istream& is)
    return blockValid;
 }
 
+std::shared_ptr<LinkedVectorPacket> LinkedVectorPacket::Create(std::istream& is)
+{
+   std::shared_ptr<LinkedVectorPacket> packet =
+      std::make_shared<LinkedVectorPacket>();
+
+   if (!packet->Parse(is))
+   {
+      packet.reset();
+   }
+
+   return packet;
+}
+
 } // namespace rpg
 } // namespace wsr88d
 } // namespace scwx

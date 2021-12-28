@@ -34,6 +34,8 @@ public:
 
    bool Parse(std::istream& is) override;
 
+   static std::shared_ptr<SetColorLevelPacket> Create(std::istream& is);
+
    static constexpr size_t SIZE = 6u;
 
 private:

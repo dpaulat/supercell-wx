@@ -136,6 +136,20 @@ bool LinkedContourVectorPacket::Parse(std::istream& is)
    return blockValid;
 }
 
+std::shared_ptr<LinkedContourVectorPacket>
+LinkedContourVectorPacket::Create(std::istream& is)
+{
+   std::shared_ptr<LinkedContourVectorPacket> packet =
+      std::make_shared<LinkedContourVectorPacket>();
+
+   if (!packet->Parse(is))
+   {
+      packet.reset();
+   }
+
+   return packet;
+}
+
 } // namespace rpg
 } // namespace wsr88d
 } // namespace scwx

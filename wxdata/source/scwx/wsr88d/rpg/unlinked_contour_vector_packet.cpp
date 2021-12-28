@@ -120,6 +120,20 @@ bool UnlinkedContourVectorPacket::Parse(std::istream& is)
    return blockValid;
 }
 
+std::shared_ptr<UnlinkedContourVectorPacket>
+UnlinkedContourVectorPacket::Create(std::istream& is)
+{
+   std::shared_ptr<UnlinkedContourVectorPacket> packet =
+      std::make_shared<UnlinkedContourVectorPacket>();
+
+   if (!packet->Parse(is))
+   {
+      packet.reset();
+   }
+
+   return packet;
+}
+
 } // namespace rpg
 } // namespace wsr88d
 } // namespace scwx

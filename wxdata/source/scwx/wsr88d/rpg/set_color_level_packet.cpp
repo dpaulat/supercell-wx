@@ -95,6 +95,20 @@ bool SetColorLevelPacket::Parse(std::istream& is)
    return blockValid;
 }
 
+std::shared_ptr<SetColorLevelPacket>
+SetColorLevelPacket::Create(std::istream& is)
+{
+   std::shared_ptr<SetColorLevelPacket> packet =
+      std::make_shared<SetColorLevelPacket>();
+
+   if (!packet->Parse(is))
+   {
+      packet.reset();
+   }
+
+   return packet;
+}
+
 } // namespace rpg
 } // namespace wsr88d
 } // namespace scwx
