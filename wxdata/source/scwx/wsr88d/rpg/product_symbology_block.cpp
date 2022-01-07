@@ -109,6 +109,8 @@ bool ProductSymbologyBlock::Parse(std::istream& is)
 
       for (uint16_t i = 0; i < p->numberOfLayers_; i++)
       {
+         BOOST_LOG_TRIVIAL(trace) << logPrefix_ << "Layer " << i;
+
          std::vector<std::shared_ptr<Packet>> packetList;
 
          is.read(reinterpret_cast<char*>(&layerDivider), 2);
