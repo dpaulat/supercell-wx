@@ -38,7 +38,10 @@ public:
        iCenterOfSweep_ {0},
        jCenterOfSweep_ {0},
        scaleFactor_ {0},
-       dataSize_ {0} {};
+       radial_ {},
+       dataSize_ {0}
+   {
+   }
    ~RadialDataPacketImpl() = default;
 
    uint16_t packetCode_;

@@ -32,7 +32,9 @@ public:
        numberOfLfmBoxesInRow_ {0},
        numberOfRows_ {0},
        row_ {},
-       dataSize_ {0} {};
+       dataSize_ {0}
+   {
+   }
    ~DigitalPrecipitationDataArrayPacketImpl() = default;
 
    uint16_t packetCode_;

@@ -25,13 +25,15 @@ class Level3MessageHeaderImpl
 {
 public:
    explicit Level3MessageHeaderImpl() :
-       messageCode_ {},
-       dateOfMessage_ {},
-       timeOfMessage_ {},
-       lengthOfMessage_ {},
-       sourceId_ {},
-       destinationId_ {},
-       numberBlocks_ {} {};
+       messageCode_ {0},
+       dateOfMessage_ {0},
+       timeOfMessage_ {0},
+       lengthOfMessage_ {0},
+       sourceId_ {0},
+       destinationId_ {0},
+       numberBlocks_ {0}
+   {
+   }
    ~Level3MessageHeaderImpl() = default;
 
    int16_t  messageCode_;

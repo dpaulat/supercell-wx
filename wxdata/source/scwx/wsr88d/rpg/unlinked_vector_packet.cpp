@@ -19,13 +19,15 @@ class UnlinkedVectorPacketImpl
 {
 public:
    explicit UnlinkedVectorPacketImpl() :
-       packetCode_ {},
-       lengthOfBlock_ {},
-       valueOfVector_ {},
+       packetCode_ {0},
+       lengthOfBlock_ {0},
+       valueOfVector_ {0},
        beginI_ {},
        beginJ_ {},
        endI_ {},
-       endJ_ {} {};
+       endJ_ {}
+   {
+   }
    ~UnlinkedVectorPacketImpl() = default;
 
    uint16_t packetCode_;

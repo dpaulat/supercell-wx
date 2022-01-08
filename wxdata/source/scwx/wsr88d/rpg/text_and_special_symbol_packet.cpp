@@ -19,12 +19,14 @@ class TextAndSpecialSymbolPacketImpl
 {
 public:
    explicit TextAndSpecialSymbolPacketImpl() :
-       packetCode_ {},
-       lengthOfBlock_ {},
-       valueOfText_ {},
-       startI_ {},
-       startJ_ {},
-       characters_ {} {};
+       packetCode_ {0},
+       lengthOfBlock_ {0},
+       valueOfText_ {0},
+       startI_ {0},
+       startJ_ {0},
+       characters_ {}
+   {
+   }
    ~TextAndSpecialSymbolPacketImpl() = default;
 
    uint16_t packetCode_;

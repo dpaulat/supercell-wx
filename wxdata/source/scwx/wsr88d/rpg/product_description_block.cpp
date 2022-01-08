@@ -25,31 +25,33 @@ class ProductDescriptionBlockImpl
 {
 public:
    explicit ProductDescriptionBlockImpl() :
-       blockDivider_ {},
-       latitudeOfRadar_ {},
-       longitudeOfRadar_ {},
-       heightOfRadar_ {},
-       productCode_ {},
-       operationalMode_ {},
-       volumeCoveragePattern_ {},
-       sequenceNumber_ {},
-       volumeScanNumber_ {},
-       volumeScanDate_ {},
-       volumeScanStartTime_ {},
-       generationDateOfProduct_ {},
-       generationTimeOfProduct_ {},
-       elevationNumber_ {},
-       halfword31_ {},
-       halfword32_ {},
-       halfword33_ {},
-       halfword34_ {},
-       halfword35_ {},
-       version_ {},
-       spotBlank_ {},
-       offsetToSymbology_ {},
-       offsetToGraphic_ {},
-       offsetToTabular_ {},
-       parameters_ {} {};
+       blockDivider_ {0},
+       latitudeOfRadar_ {0},
+       longitudeOfRadar_ {0},
+       heightOfRadar_ {0},
+       productCode_ {0},
+       operationalMode_ {0},
+       volumeCoveragePattern_ {0},
+       sequenceNumber_ {0},
+       volumeScanNumber_ {0},
+       volumeScanDate_ {0},
+       volumeScanStartTime_ {0},
+       generationDateOfProduct_ {0},
+       generationTimeOfProduct_ {0},
+       elevationNumber_ {0},
+       halfword31_ {0},
+       halfword32_ {0},
+       halfword33_ {0},
+       halfword34_ {0},
+       halfword35_ {0},
+       version_ {0},
+       spotBlank_ {0},
+       offsetToSymbology_ {0},
+       offsetToGraphic_ {0},
+       offsetToTabular_ {0},
+       parameters_ {0}
+   {
+   }
    ~ProductDescriptionBlockImpl() = default;
 
    int16_t  blockDivider_;

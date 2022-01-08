@@ -38,7 +38,9 @@ public:
        numberOfRows_ {0},
        packagingDescriptor_ {0},
        row_ {},
-       dataSize_ {0} {};
+       dataSize_ {0}
+   {
+   }
    ~RasterDataPacketImpl() = default;
 
    uint16_t                packetCode_;

@@ -34,7 +34,9 @@ public:
        dateTime_ {},
        bbbIndicator_ {},
        productCategory_ {},
-       productDesignator_ {} {};
+       productDesignator_ {}
+   {
+   }
    ~WmoHeaderImpl() = default;
 
    std::string sequenceNumber_;

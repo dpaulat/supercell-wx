@@ -20,7 +20,13 @@ class ProductSymbologyBlockImpl
 {
 public:
    explicit ProductSymbologyBlockImpl() :
-       blockDivider_ {}, blockId_ {}, lengthOfBlock_ {}, numberOfLayers_ {} {};
+       blockDivider_ {0},
+       blockId_ {0},
+       lengthOfBlock_ {0},
+       numberOfLayers_ {0},
+       layerList_ {}
+   {
+   }
    ~ProductSymbologyBlockImpl() = default;
 
    int16_t  blockDivider_;

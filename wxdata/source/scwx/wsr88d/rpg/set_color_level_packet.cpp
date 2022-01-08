@@ -19,7 +19,9 @@ class SetColorLevelPacketImpl
 {
 public:
    explicit SetColorLevelPacketImpl() :
-       packetCode_ {}, colorValueIndicator_ {}, valueOfContour_ {} {};
+       packetCode_ {0}, colorValueIndicator_ {0}, valueOfContour_ {0}
+   {
+   }
    ~SetColorLevelPacketImpl() = default;
 
    uint16_t packetCode_;

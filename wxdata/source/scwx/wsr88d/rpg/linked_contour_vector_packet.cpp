@@ -19,13 +19,15 @@ class LinkedContourVectorPacketImpl
 {
 public:
    explicit LinkedContourVectorPacketImpl() :
-       packetCode_ {},
-       initialPointIndicator_ {},
-       lengthOfVectors_ {},
-       startI_ {},
-       startJ_ {},
+       packetCode_ {0},
+       initialPointIndicator_ {0},
+       lengthOfVectors_ {0},
+       startI_ {0},
+       startJ_ {0},
        endI_ {},
-       endJ_ {} {};
+       endJ_ {}
+   {
+   }
    ~LinkedContourVectorPacketImpl() = default;
 
    uint16_t packetCode_;

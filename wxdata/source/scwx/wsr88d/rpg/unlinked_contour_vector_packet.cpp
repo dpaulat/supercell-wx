@@ -19,12 +19,14 @@ class UnlinkedContourVectorPacketImpl
 {
 public:
    explicit UnlinkedContourVectorPacketImpl() :
-       packetCode_ {},
-       lengthOfVectors_ {},
+       packetCode_ {0},
+       lengthOfVectors_ {0},
        beginI_ {},
        beginJ_ {},
        endI_ {},
-       endJ_ {} {};
+       endJ_ {}
+   {
+   }
    ~UnlinkedContourVectorPacketImpl() = default;
 
    uint16_t packetCode_;
