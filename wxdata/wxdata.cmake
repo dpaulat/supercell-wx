@@ -46,7 +46,8 @@ set(SRC_WSR88D_RDA source/scwx/wsr88d/rda/clutter_filter_map.cpp
                    source/scwx/wsr88d/rda/rda_adaptation_data.cpp
                    source/scwx/wsr88d/rda/rda_status_data.cpp
                    source/scwx/wsr88d/rda/volume_coverage_pattern_data.cpp)
-set(HDR_WSR88D_RPG include/scwx/wsr88d/rpg/level3_message_header.hpp
+set(HDR_WSR88D_RPG include/scwx/wsr88d/rpg/digital_precipitation_data_array_packet.hpp
+                   include/scwx/wsr88d/rpg/level3_message_header.hpp
                    include/scwx/wsr88d/rpg/linked_contour_vector_packet.hpp
                    include/scwx/wsr88d/rpg/linked_vector_packet.hpp
                    include/scwx/wsr88d/rpg/packet.hpp
@@ -60,7 +61,8 @@ set(HDR_WSR88D_RPG include/scwx/wsr88d/rpg/level3_message_header.hpp
                    include/scwx/wsr88d/rpg/unlinked_contour_vector_packet.hpp
                    include/scwx/wsr88d/rpg/unlinked_vector_packet.hpp
                    include/scwx/wsr88d/rpg/wmo_header.hpp)
-set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/level3_message_header.cpp
+set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/digital_precipitation_data_array_packet.cpp
+                   source/scwx/wsr88d/rpg/level3_message_header.cpp
                    source/scwx/wsr88d/rpg/linked_contour_vector_packet.cpp
                    source/scwx/wsr88d/rpg/linked_vector_packet.cpp
                    source/scwx/wsr88d/rpg/packet.cpp
