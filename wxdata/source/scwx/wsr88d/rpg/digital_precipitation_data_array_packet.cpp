@@ -15,18 +15,18 @@ namespace rpg
 static const std::string logPrefix_ =
    "[scwx::wsr88d::rpg::digital_precipitation_data_array_packet] ";
 
-struct Row
-{
-   uint16_t             numberOfBytes_;
-   std::vector<uint8_t> run_;
-   std::vector<uint8_t> level_;
-
-   Row() : numberOfBytes_ {0}, run_ {}, level_ {} {}
-};
-
 class DigitalPrecipitationDataArrayPacketImpl
 {
 public:
+   struct Row
+   {
+      uint16_t             numberOfBytes_;
+      std::vector<uint8_t> run_;
+      std::vector<uint8_t> level_;
+
+      Row() : numberOfBytes_ {0}, run_ {}, level_ {} {}
+   };
+
    explicit DigitalPrecipitationDataArrayPacketImpl() :
        packetCode_ {0},
        numberOfLfmBoxesInRow_ {0},
@@ -122,7 +122,7 @@ bool DigitalPrecipitationDataArrayPacket::Parse(std::istream& is)
       {
          size_t rowBytesRead = 0;
 
-         Row& row = p->row_[r];
+         auto& row = p->row_[r];
 
          is.read(reinterpret_cast<char*>(&row.numberOfBytes_), 2);
          bytesRead += 2;

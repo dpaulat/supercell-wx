@@ -15,30 +15,30 @@ namespace rpg
 static const std::string logPrefix_ =
    "[scwx::wsr88d::rpg::raster_data_packet] ";
 
-struct Row
-{
-   uint16_t             numberOfBytes_;
-   std::vector<uint8_t> data_;
-
-   Row() : numberOfBytes_ {0}, data_ {} {}
-};
-
 class RasterDataPacketImpl
 {
 public:
+   struct Row
+   {
+      uint16_t             numberOfBytes_;
+      std::vector<uint8_t> data_;
+
+      Row() : numberOfBytes_ {0}, data_ {} {}
+   };
+
    explicit RasterDataPacketImpl() :
-       packetCode_ {},
-       opFlag_ {},
-       iCoordinateStart_ {},
-       jCoordinateStart_ {},
-       xScaleInt_ {},
-       xScaleFractional_ {},
-       yScaleInt_ {},
-       yScaleFractional_ {},
-       numberOfRows_ {},
-       packagingDescriptor_ {},
+       packetCode_ {0},
+       opFlag_ {0},
+       iCoordinateStart_ {0},
+       jCoordinateStart_ {0},
+       xScaleInt_ {0},
+       xScaleFractional_ {0},
+       yScaleInt_ {0},
+       yScaleFractional_ {0},
+       numberOfRows_ {0},
+       packagingDescriptor_ {0},
        row_ {},
-       dataSize_ {} {};
+       dataSize_ {0} {};
    ~RasterDataPacketImpl() = default;
 
    uint16_t                packetCode_;
@@ -52,7 +52,7 @@ public:
    uint16_t                numberOfRows_;
    uint16_t                packagingDescriptor_;
 
-   // Repeat for each radial
+   // Repeat for each row
    std::vector<Row> row_;
 
    size_t dataSize_;
@@ -181,7 +181,7 @@ bool RasterDataPacket::Parse(std::istream& is)
       {
          size_t rowBytesRead = 0;
 
-         Row& row = p->row_[r];
+         auto& row = p->row_[r];
 
          is.read(reinterpret_cast<char*>(&row.numberOfBytes_), 2);
          bytesRead += 2;

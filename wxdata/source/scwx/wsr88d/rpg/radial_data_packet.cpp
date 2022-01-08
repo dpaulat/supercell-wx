@@ -15,30 +15,30 @@ namespace rpg
 static const std::string logPrefix_ =
    "[scwx::wsr88d::rpg::radial_data_packet] ";
 
-struct Radial
-{
-   uint16_t             numberOfRleHalfwords_;
-   uint16_t             startAngle_;
-   uint16_t             angleDelta_;
-   std::vector<uint8_t> data_;
-
-   Radial() :
-       numberOfRleHalfwords_ {0}, startAngle_ {0}, angleDelta_ {0}, data_ {}
-   {
-   }
-};
-
 class RadialDataPacketImpl
 {
 public:
+   struct Radial
+   {
+      uint16_t             numberOfRleHalfwords_;
+      uint16_t             startAngle_;
+      uint16_t             angleDelta_;
+      std::vector<uint8_t> data_;
+
+      Radial() :
+          numberOfRleHalfwords_ {0}, startAngle_ {0}, angleDelta_ {0}, data_ {}
+      {
+      }
+   };
+
    explicit RadialDataPacketImpl() :
-       packetCode_ {},
-       indexOfFirstRangeBin_ {},
-       numberOfRangeBins_ {},
-       iCenterOfSweep_ {},
-       jCenterOfSweep_ {},
-       scaleFactor_ {},
-       dataSize_ {} {};
+       packetCode_ {0},
+       indexOfFirstRangeBin_ {0},
+       numberOfRangeBins_ {0},
+       iCenterOfSweep_ {0},
+       jCenterOfSweep_ {0},
+       scaleFactor_ {0},
+       dataSize_ {0} {};
    ~RadialDataPacketImpl() = default;
 
    uint16_t packetCode_;
@@ -162,7 +162,7 @@ bool RadialDataPacket::Parse(std::istream& is)
 
       for (uint16_t r = 0; r < p->numberOfRadials_; r++)
       {
-         Radial& radial = p->radial_[r];
+         auto& radial = p->radial_[r];
 
          is.read(reinterpret_cast<char*>(&radial.numberOfRleHalfwords_), 2);
          is.read(reinterpret_cast<char*>(&radial.startAngle_), 2);
