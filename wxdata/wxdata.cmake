@@ -54,6 +54,7 @@ set(HDR_WSR88D_RPG include/scwx/wsr88d/rpg/level3_message_header.hpp
                    include/scwx/wsr88d/rpg/product_description_block.hpp
                    include/scwx/wsr88d/rpg/product_symbology_block.hpp
                    include/scwx/wsr88d/rpg/radial_data_packet.hpp
+                   include/scwx/wsr88d/rpg/raster_data_packet.hpp
                    include/scwx/wsr88d/rpg/set_color_level_packet.hpp
                    include/scwx/wsr88d/rpg/text_and_special_symbol_packet.hpp
                    include/scwx/wsr88d/rpg/unlinked_contour_vector_packet.hpp
@@ -67,6 +68,7 @@ set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/level3_message_header.cpp
                    source/scwx/wsr88d/rpg/product_description_block.cpp
                    source/scwx/wsr88d/rpg/product_symbology_block.cpp
                    source/scwx/wsr88d/rpg/radial_data_packet.cpp
+                   source/scwx/wsr88d/rpg/raster_data_packet.cpp
                    source/scwx/wsr88d/rpg/set_color_level_packet.cpp
                    source/scwx/wsr88d/rpg/text_and_special_symbol_packet.cpp
                    source/scwx/wsr88d/rpg/unlinked_contour_vector_packet.cpp

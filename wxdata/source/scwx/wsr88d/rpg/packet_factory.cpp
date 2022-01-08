@@ -3,6 +3,7 @@
 #include <scwx/wsr88d/rpg/linked_contour_vector_packet.hpp>
 #include <scwx/wsr88d/rpg/linked_vector_packet.hpp>
 #include <scwx/wsr88d/rpg/radial_data_packet.hpp>
+#include <scwx/wsr88d/rpg/raster_data_packet.hpp>
 #include <scwx/wsr88d/rpg/set_color_level_packet.hpp>
 #include <scwx/wsr88d/rpg/text_and_special_symbol_packet.hpp>
 #include <scwx/wsr88d/rpg/unlinked_contour_vector_packet.hpp>
@@ -35,7 +36,9 @@ static const std::unordered_map<uint16_t, CreateMessageFunction> create_ {
    {0x0802, SetColorLevelPacket::Create},
    {0x0E03, LinkedContourVectorPacket::Create},
    {0x3501, UnlinkedContourVectorPacket::Create},
-   {0xAF1F, RadialDataPacket::Create}};
+   {0xAF1F, RadialDataPacket::Create},
+   {0xBA07, RasterDataPacket::Create},
+   {0xBA0F, RasterDataPacket::Create}};
 
 std::shared_ptr<Packet> PacketFactory::Create(std::istream& is)
 {
