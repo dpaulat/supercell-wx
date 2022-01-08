@@ -52,6 +52,7 @@ set(HDR_WSR88D_RPG include/scwx/wsr88d/rpg/digital_precipitation_data_array_pack
                    include/scwx/wsr88d/rpg/linked_vector_packet.hpp
                    include/scwx/wsr88d/rpg/packet.hpp
                    include/scwx/wsr88d/rpg/packet_factory.hpp
+                   include/scwx/wsr88d/rpg/precipitation_rate_data_array_packet.hpp
                    include/scwx/wsr88d/rpg/product_description_block.hpp
                    include/scwx/wsr88d/rpg/product_symbology_block.hpp
                    include/scwx/wsr88d/rpg/radial_data_packet.hpp
@@ -67,6 +68,7 @@ set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/digital_precipitation_data_array_packe
                    source/scwx/wsr88d/rpg/linked_vector_packet.cpp
                    source/scwx/wsr88d/rpg/packet.cpp
                    source/scwx/wsr88d/rpg/packet_factory.cpp
+                   source/scwx/wsr88d/rpg/precipitation_rate_data_array_packet.cpp
                    source/scwx/wsr88d/rpg/product_description_block.cpp
                    source/scwx/wsr88d/rpg/product_symbology_block.cpp
                    source/scwx/wsr88d/rpg/radial_data_packet.cpp
