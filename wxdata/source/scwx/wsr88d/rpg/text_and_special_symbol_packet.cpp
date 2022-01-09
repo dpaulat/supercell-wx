@@ -80,43 +80,21 @@ bool TextAndSpecialSymbolPacket::Parse(std::istream& is)
 {
    bool blockValid = true;
 
+   std::streampos isBegin = is.tellg();
+
    is.read(reinterpret_cast<char*>(&p->packetCode_), 2);
    is.read(reinterpret_cast<char*>(&p->lengthOfBlock_), 2);
 
    p->packetCode_    = ntohs(p->packetCode_);
    p->lengthOfBlock_ = ntohs(p->lengthOfBlock_);
 
-   int vectorSize = static_cast<int>(p->lengthOfBlock_) - 4;
-
-   if (is.eof())
-   {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
-      blockValid = false;
-   }
-   else if (p->packetCode_ == 8)
-   {
-      is.read(reinterpret_cast<char*>(&p->valueOfText_), 2);
-      p->valueOfText_ = ntohs(p->valueOfText_);
-
-      vectorSize -= 2;
-   }
+   int textLength = static_cast<int>(p->lengthOfBlock_) - 4;
 
    is.read(reinterpret_cast<char*>(&p->startI_), 2);
    is.read(reinterpret_cast<char*>(&p->startJ_), 2);
 
    p->startI_ = ntohs(p->startI_);
    p->startJ_ = ntohs(p->startJ_);
-
-   // The number of vectors is equal to the size divided by the number of bytes
-   // in a vector coordinate
-   int  vectorCount = vectorSize;
-   char c;
-
-   for (int v = 0; v < vectorCount && !is.eof(); v++)
-   {
-      is.get(c);
-      p->characters_.push_back(c);
-   }
 
    if (is.eof())
    {
@@ -131,6 +109,39 @@ bool TextAndSpecialSymbolPacket::Parse(std::istream& is)
             << logPrefix_ << "Invalid packet code: " << p->packetCode_;
          blockValid = false;
       }
+      else if (p->lengthOfBlock_ < 1 || p->lengthOfBlock_ > 32767)
+      {
+         BOOST_LOG_TRIVIAL(warning)
+            << logPrefix_ << "Invalid length of block: " << p->packetCode_;
+         blockValid = false;
+      }
+      else if (p->packetCode_ == 8)
+      {
+         is.read(reinterpret_cast<char*>(&p->valueOfText_), 2);
+         p->valueOfText_ = ntohs(p->valueOfText_);
+
+         textLength -= 2;
+      }
+   }
+
+   if (blockValid && textLength < 0)
+   {
+      BOOST_LOG_TRIVIAL(warning)
+         << logPrefix_ << "Too few bytes in block: " << p->lengthOfBlock_;
+      blockValid = false;
+   }
+
+   if (blockValid)
+   {
+      p->characters_.resize(textLength);
+      is.read(reinterpret_cast<char*>(p->characters_.data()), textLength);
+   }
+
+   std::streampos isEnd = is.tellg();
+
+   if (!ValidateMessage(is, isEnd - isBegin))
+   {
+      blockValid = false;
    }
 
    return blockValid;

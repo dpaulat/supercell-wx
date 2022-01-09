@@ -110,20 +110,18 @@ bool LinkedVectorPacket::Parse(std::istream& is)
 
    // The number of vectors is equal to the size divided by the number of bytes
    // in a vector coordinate
-   int     vectorCount = vectorSize / 4;
-   int16_t endI;
-   int16_t endJ;
+   int vectorCount = vectorSize / 4;
+
+   p->endI_.resize(vectorCount);
+   p->endJ_.resize(vectorCount);
 
    for (int v = 0; v < vectorCount && !is.eof(); v++)
    {
-      is.read(reinterpret_cast<char*>(&endI), 2);
-      is.read(reinterpret_cast<char*>(&endJ), 2);
+      is.read(reinterpret_cast<char*>(&p->endI_[v]), 2);
+      is.read(reinterpret_cast<char*>(&p->endJ_[v]), 2);
 
-      endI = ntohs(endI);
-      endJ = ntohs(endJ);
-
-      p->endI_.push_back(endI);
-      p->endJ_.push_back(endJ);
+      p->endI_[v] = ntohs(p->endI_[v]);
+      p->endJ_[v] = ntohs(p->endJ_[v]);
    }
 
    if (is.eof())
