@@ -1,6 +1,7 @@
 #include <scwx/wsr88d/rpg/packet_factory.hpp>
 
 #include <scwx/wsr88d/rpg/digital_precipitation_data_array_packet.hpp>
+#include <scwx/wsr88d/rpg/digital_radial_data_array_packet.hpp>
 #include <scwx/wsr88d/rpg/linked_contour_vector_packet.hpp>
 #include <scwx/wsr88d/rpg/linked_vector_packet.hpp>
 #include <scwx/wsr88d/rpg/precipitation_rate_data_array_packet.hpp>
@@ -35,6 +36,7 @@ static const std::unordered_map<uint16_t, CreateMessageFunction> create_ {
    {8, TextAndSpecialSymbolPacket::Create},
    {9, LinkedVectorPacket::Create},
    {10, UnlinkedVectorPacket::Create},
+   {16, DigitalRadialDataArrayPacket::Create},
    {17, DigitalPrecipitationDataArrayPacket::Create},
    {18, PrecipitationRateDataArrayPacket::Create},
    {0x0802, SetColorLevelPacket::Create},
