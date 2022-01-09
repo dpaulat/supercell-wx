@@ -62,6 +62,7 @@ set(HDR_WSR88D_RPG include/scwx/wsr88d/rpg/digital_precipitation_data_array_pack
                    include/scwx/wsr88d/rpg/text_and_special_symbol_packet.hpp
                    include/scwx/wsr88d/rpg/unlinked_contour_vector_packet.hpp
                    include/scwx/wsr88d/rpg/unlinked_vector_packet.hpp
+                   include/scwx/wsr88d/rpg/vector_arrow_data_packet.hpp
                    include/scwx/wsr88d/rpg/wmo_header.hpp)
 set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/digital_precipitation_data_array_packet.cpp
                    source/scwx/wsr88d/rpg/digital_radial_data_array_packet.cpp
@@ -79,6 +80,7 @@ set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/digital_precipitation_data_array_packe
                    source/scwx/wsr88d/rpg/text_and_special_symbol_packet.cpp
                    source/scwx/wsr88d/rpg/unlinked_contour_vector_packet.cpp
                    source/scwx/wsr88d/rpg/unlinked_vector_packet.cpp
+                   source/scwx/wsr88d/rpg/vector_arrow_data_packet.cpp
                    source/scwx/wsr88d/rpg/wmo_header.cpp)
 
 add_library(wxdata OBJECT ${HDR_COMMON}

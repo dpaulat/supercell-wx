@@ -11,6 +11,7 @@
 #include <scwx/wsr88d/rpg/text_and_special_symbol_packet.hpp>
 #include <scwx/wsr88d/rpg/unlinked_contour_vector_packet.hpp>
 #include <scwx/wsr88d/rpg/unlinked_vector_packet.hpp>
+#include <scwx/wsr88d/rpg/vector_arrow_data_packet.hpp>
 
 #include <unordered_map>
 
@@ -31,6 +32,7 @@ typedef std::function<std::shared_ptr<Packet>(std::istream&)>
 static const std::unordered_map<uint16_t, CreateMessageFunction> create_ {
    {1, TextAndSpecialSymbolPacket::Create},
    {2, TextAndSpecialSymbolPacket::Create},
+   {5, VectorArrowDataPacket::Create},
    {6, LinkedVectorPacket::Create},
    {7, UnlinkedVectorPacket::Create},
    {8, TextAndSpecialSymbolPacket::Create},
