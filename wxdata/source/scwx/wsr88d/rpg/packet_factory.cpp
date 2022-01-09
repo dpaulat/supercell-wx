@@ -2,12 +2,19 @@
 
 #include <scwx/wsr88d/rpg/digital_precipitation_data_array_packet.hpp>
 #include <scwx/wsr88d/rpg/digital_radial_data_array_packet.hpp>
+#include <scwx/wsr88d/rpg/hda_hail_symbol_packet.hpp>
 #include <scwx/wsr88d/rpg/linked_contour_vector_packet.hpp>
 #include <scwx/wsr88d/rpg/linked_vector_packet.hpp>
+#include <scwx/wsr88d/rpg/mesocyclone_symbol_packet.hpp>
+#include <scwx/wsr88d/rpg/point_feature_symbol_packet.hpp>
+#include <scwx/wsr88d/rpg/point_graphic_symbol_packet.hpp>
 #include <scwx/wsr88d/rpg/precipitation_rate_data_array_packet.hpp>
 #include <scwx/wsr88d/rpg/radial_data_packet.hpp>
 #include <scwx/wsr88d/rpg/raster_data_packet.hpp>
+#include <scwx/wsr88d/rpg/scit_forecast_data_packet.hpp>
 #include <scwx/wsr88d/rpg/set_color_level_packet.hpp>
+#include <scwx/wsr88d/rpg/sti_circle_symbol_packet.hpp>
+#include <scwx/wsr88d/rpg/storm_id_symbol_packet.hpp>
 #include <scwx/wsr88d/rpg/text_and_special_symbol_packet.hpp>
 #include <scwx/wsr88d/rpg/unlinked_contour_vector_packet.hpp>
 #include <scwx/wsr88d/rpg/unlinked_vector_packet.hpp>
@@ -33,6 +40,7 @@ typedef std::function<std::shared_ptr<Packet>(std::istream&)>
 static const std::unordered_map<uint16_t, CreateMessageFunction> create_ {
    {1, TextAndSpecialSymbolPacket::Create},
    {2, TextAndSpecialSymbolPacket::Create},
+   {3, MesocycloneSymbolPacket::Create},
    {4, WindBarbDataPacket::Create},
    {5, VectorArrowDataPacket::Create},
    {6, LinkedVectorPacket::Create},
@@ -40,9 +48,20 @@ static const std::unordered_map<uint16_t, CreateMessageFunction> create_ {
    {8, TextAndSpecialSymbolPacket::Create},
    {9, LinkedVectorPacket::Create},
    {10, UnlinkedVectorPacket::Create},
+   {11, MesocycloneSymbolPacket::Create},
+   {12, PointGraphicSymbolPacket::Create},
+   {13, PointGraphicSymbolPacket::Create},
+   {14, PointGraphicSymbolPacket::Create},
+   {15, StormIdSymbolPacket::Create},
    {16, DigitalRadialDataArrayPacket::Create},
    {17, DigitalPrecipitationDataArrayPacket::Create},
    {18, PrecipitationRateDataArrayPacket::Create},
+   {19, HdaHailSymbolPacket::Create},
+   {20, PointFeatureSymbolPacket::Create},
+   {23, ScitForecastDataPacket::Create},
+   {24, ScitForecastDataPacket::Create},
+   {25, StiCircleSymbolPacket::Create},
+   {26, PointGraphicSymbolPacket::Create},
    {0x0802, SetColorLevelPacket::Create},
    {0x0E03, LinkedContourVectorPacket::Create},
    {0x3501, UnlinkedContourVectorPacket::Create},

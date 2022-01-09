@@ -48,17 +48,25 @@ set(SRC_WSR88D_RDA source/scwx/wsr88d/rda/clutter_filter_map.cpp
                    source/scwx/wsr88d/rda/volume_coverage_pattern_data.cpp)
 set(HDR_WSR88D_RPG include/scwx/wsr88d/rpg/digital_precipitation_data_array_packet.hpp
                    include/scwx/wsr88d/rpg/digital_radial_data_array_packet.hpp
+                   include/scwx/wsr88d/rpg/hda_hail_symbol_packet.hpp
                    include/scwx/wsr88d/rpg/level3_message_header.hpp
                    include/scwx/wsr88d/rpg/linked_contour_vector_packet.hpp
                    include/scwx/wsr88d/rpg/linked_vector_packet.hpp
+                   include/scwx/wsr88d/rpg/mesocyclone_symbol_packet.hpp
                    include/scwx/wsr88d/rpg/packet.hpp
                    include/scwx/wsr88d/rpg/packet_factory.hpp
+                   include/scwx/wsr88d/rpg/point_feature_symbol_packet.hpp
+                   include/scwx/wsr88d/rpg/point_graphic_symbol_packet.hpp
                    include/scwx/wsr88d/rpg/precipitation_rate_data_array_packet.hpp
                    include/scwx/wsr88d/rpg/product_description_block.hpp
                    include/scwx/wsr88d/rpg/product_symbology_block.hpp
                    include/scwx/wsr88d/rpg/radial_data_packet.hpp
                    include/scwx/wsr88d/rpg/raster_data_packet.hpp
+                   include/scwx/wsr88d/rpg/scit_forecast_data_packet.hpp
                    include/scwx/wsr88d/rpg/set_color_level_packet.hpp
+                   include/scwx/wsr88d/rpg/special_graphic_symbol_packet.hpp
+                   include/scwx/wsr88d/rpg/sti_circle_symbol_packet.hpp
+                   include/scwx/wsr88d/rpg/storm_id_symbol_packet.hpp
                    include/scwx/wsr88d/rpg/text_and_special_symbol_packet.hpp
                    include/scwx/wsr88d/rpg/unlinked_contour_vector_packet.hpp
                    include/scwx/wsr88d/rpg/unlinked_vector_packet.hpp
@@ -67,17 +75,25 @@ set(HDR_WSR88D_RPG include/scwx/wsr88d/rpg/digital_precipitation_data_array_pack
                    include/scwx/wsr88d/rpg/wmo_header.hpp)
 set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/digital_precipitation_data_array_packet.cpp
                    source/scwx/wsr88d/rpg/digital_radial_data_array_packet.cpp
+                   source/scwx/wsr88d/rpg/hda_hail_symbol_packet.cpp
                    source/scwx/wsr88d/rpg/level3_message_header.cpp
                    source/scwx/wsr88d/rpg/linked_contour_vector_packet.cpp
                    source/scwx/wsr88d/rpg/linked_vector_packet.cpp
+                   source/scwx/wsr88d/rpg/mesocyclone_symbol_packet.cpp
                    source/scwx/wsr88d/rpg/packet.cpp
                    source/scwx/wsr88d/rpg/packet_factory.cpp
+                   source/scwx/wsr88d/rpg/point_feature_symbol_packet.cpp
+                   source/scwx/wsr88d/rpg/point_graphic_symbol_packet.cpp
                    source/scwx/wsr88d/rpg/precipitation_rate_data_array_packet.cpp
                    source/scwx/wsr88d/rpg/product_description_block.cpp
                    source/scwx/wsr88d/rpg/product_symbology_block.cpp
                    source/scwx/wsr88d/rpg/radial_data_packet.cpp
                    source/scwx/wsr88d/rpg/raster_data_packet.cpp
+                   source/scwx/wsr88d/rpg/scit_forecast_data_packet.cpp
                    source/scwx/wsr88d/rpg/set_color_level_packet.cpp
+                   source/scwx/wsr88d/rpg/special_graphic_symbol_packet.cpp
+                   source/scwx/wsr88d/rpg/sti_circle_symbol_packet.cpp
+                   source/scwx/wsr88d/rpg/storm_id_symbol_packet.cpp
                    source/scwx/wsr88d/rpg/text_and_special_symbol_packet.cpp
                    source/scwx/wsr88d/rpg/unlinked_contour_vector_packet.cpp
                    source/scwx/wsr88d/rpg/unlinked_vector_packet.cpp
