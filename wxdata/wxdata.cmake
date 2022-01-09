@@ -48,6 +48,7 @@ set(SRC_WSR88D_RDA source/scwx/wsr88d/rda/clutter_filter_map.cpp
                    source/scwx/wsr88d/rda/volume_coverage_pattern_data.cpp)
 set(HDR_WSR88D_RPG include/scwx/wsr88d/rpg/digital_precipitation_data_array_packet.hpp
                    include/scwx/wsr88d/rpg/digital_radial_data_array_packet.hpp
+                   include/scwx/wsr88d/rpg/generic_data_packet.hpp
                    include/scwx/wsr88d/rpg/hda_hail_symbol_packet.hpp
                    include/scwx/wsr88d/rpg/level3_message_header.hpp
                    include/scwx/wsr88d/rpg/linked_contour_vector_packet.hpp
@@ -75,6 +76,7 @@ set(HDR_WSR88D_RPG include/scwx/wsr88d/rpg/digital_precipitation_data_array_pack
                    include/scwx/wsr88d/rpg/wmo_header.hpp)
 set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/digital_precipitation_data_array_packet.cpp
                    source/scwx/wsr88d/rpg/digital_radial_data_array_packet.cpp
+                   source/scwx/wsr88d/rpg/generic_data_packet.cpp
                    source/scwx/wsr88d/rpg/hda_hail_symbol_packet.cpp
                    source/scwx/wsr88d/rpg/level3_message_header.cpp
                    source/scwx/wsr88d/rpg/linked_contour_vector_packet.cpp
