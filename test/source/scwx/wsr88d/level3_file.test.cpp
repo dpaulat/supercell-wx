@@ -41,7 +41,7 @@ INSTANTIATE_TEST_SUITE_P(
       std::pair<int16_t, std::string> {57, "KLSX_SDUS53_NVLLSX_202112110130"},
       std::pair<int16_t, std::string> {58, "KLSX_SDUS33_NSTLSX_202112110215"},
       std::pair<int16_t, std::string> {59, "KLSX_SDUS63_NHILSX_202112110152"},
-      std::pair<int16_t, std::string> {61, "KLSX_SDUS63_NTVLSX_202112110152"},
+      std::pair<int16_t, std::string> {61, "KLSX_SDUS63_NTVLSX_202112110238"},
       std::pair<int16_t, std::string> {62, "KLSX_SDUS63_NSSLSX_202112110140"},
       std::pair<int16_t, std::string> {66, "KLSX_SDUS63_NMLLSX_202112110119"},
       std::pair<int16_t, std::string> {67, "KLSX_SDUS63_NLALSX_202112110119"},
@@ -72,8 +72,13 @@ INSTANTIATE_TEST_SUITE_P(
       std::pair<int16_t, std::string> {175, "KLSX_SDUS83_DSDLSX_202112110135"},
       std::pair<int16_t, std::string> {176, "KLSX_SDUS83_DPRLSX_202112110140"},
       std::pair<int16_t, std::string> {177, "KLSX_SDUS83_HHCLSX_202112110140"},
-      std::pair<int16_t, std::string> {99,
-                                       "Level3_LSX_N1U_20211228_0446.nids"}));
+      std::pair<int16_t, std::string> {99, "Level3_LSX_N1U_20211228_0446.nids"},
+      std::pair<int16_t, std::string> {180,
+                                       "Level3_STL_TZ0_20211211_0200.nids"},
+      std::pair<int16_t, std::string> {182,
+                                       "Level3_STL_TV0_20211211_0200.nids"},
+      std::pair<int16_t, std::string> {186,
+                                       "Level3_STL_TZL_20211211_0200.nids"}));
 
 } // namespace wsr88d
 } // namespace scwx
