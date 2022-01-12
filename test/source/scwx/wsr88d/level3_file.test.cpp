@@ -73,6 +73,7 @@ INSTANTIATE_TEST_SUITE_P(
       std::pair<int16_t, std::string> {176, "KLSX_SDUS83_DPRLSX_202112110140"},
       std::pair<int16_t, std::string> {177, "KLSX_SDUS83_HHCLSX_202112110140"},
       std::pair<int16_t, std::string> {99, "Level3_LSX_N1U_20211228_0446.nids"},
+      std::pair<int16_t, std::string> {37, "Level3_STL_NCR_20211211_0200.nids"},
       std::pair<int16_t, std::string> {180,
                                        "Level3_STL_TZ0_20211211_0200.nids"},
       std::pair<int16_t, std::string> {182,

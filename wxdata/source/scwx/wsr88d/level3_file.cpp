@@ -1,4 +1,5 @@
 #include <scwx/wsr88d/level3_file.hpp>
+#include <scwx/wsr88d/rpg/ccb_header.hpp>
 #include <scwx/wsr88d/rpg/level3_message_header.hpp>
 #include <scwx/wsr88d/rpg/product_description_block.hpp>
 #include <scwx/wsr88d/rpg/product_symbology_block.hpp>
@@ -11,6 +12,7 @@
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
+#include <boost/iostreams/filter/zlib.hpp>
 #include <boost/log/trivial.hpp>
 
 namespace scwx
@@ -25,6 +27,7 @@ class Level3FileImpl
 public:
    explicit Level3FileImpl() :
        wmoHeader_ {},
+       ccbHeader_ {},
        messageHeader_ {},
        descriptionBlock_ {},
        symbologyBlock_ {},
@@ -32,11 +35,15 @@ public:
        tabularBlock_ {} {};
    ~Level3FileImpl() = default;
 
+   bool DecompressFile(std::istream& is, std::stringstream& ss);
+   bool LoadFileData(std::istream& is);
    bool LoadBlocks(std::istream& is);
 
-   rpg::WmoHeader               wmoHeader_;
-   rpg::Level3MessageHeader     messageHeader_;
-   rpg::ProductDescriptionBlock descriptionBlock_;
+   rpg::WmoHeader                  wmoHeader_;
+   std::shared_ptr<rpg::CcbHeader> ccbHeader_;
+   std::shared_ptr<rpg::WmoHeader> innerHeader_;
+   rpg::Level3MessageHeader        messageHeader_;
+   rpg::ProductDescriptionBlock    descriptionBlock_;
 
    std::shared_ptr<rpg::ProductSymbologyBlock> symbologyBlock_;
    std::shared_ptr<void>                       graphicBlock_;
@@ -89,22 +96,107 @@ bool Level3File::LoadData(std::istream& is)
       BOOST_LOG_TRIVIAL(debug)
          << logPrefix_ << "Category:  " << p->wmoHeader_.product_category();
 
-      dataValid = p->messageHeader_.Parse(is);
+      // If the header is compressed
+      if (is.peek() == 0x78)
+      {
+         std::stringstream ss;
+
+         dataValid = p->DecompressFile(is, ss);
+
+         if (dataValid)
+         {
+            dataValid = p->LoadFileData(ss);
+         }
+      }
+      else
+      {
+         dataValid = p->LoadFileData(is);
+      }
    }
+
+   return dataValid;
+}
+
+bool Level3FileImpl::DecompressFile(std::istream& is, std::stringstream& ss)
+{
+   bool dataValid = true;
+
+   std::streampos  dataStart          = is.tellg();
+   std::streamsize totalBytesCopied   = 0;
+   int             totalBytesConsumed = 0;
+
+   while (dataValid && is.peek() == 0x78)
+      try
+      {
+         boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
+         boost::iostreams::zlib_decompressor zlibDecompressor;
+         in.push(zlibDecompressor);
+         in.push(is);
+
+         std::streamsize bytesCopied   = boost::iostreams::copy(in, ss);
+         int             bytesConsumed = zlibDecompressor.filter().total_in();
+
+         totalBytesCopied += bytesCopied;
+         totalBytesConsumed += bytesConsumed;
+
+         is.seekg(dataStart + static_cast<std::streamoff>(totalBytesConsumed),
+                  std::ios_base::beg);
+
+         if (bytesConsumed <= 0)
+         {
+            // Not sure this will ever occur, but will prevent an infinite loop
+            break;
+         }
+      }
+      catch (const boost::iostreams::zlib_error& ex)
+      {
+         int error = ex.error();
+
+         BOOST_LOG_TRIVIAL(warning)
+            << logPrefix_ << "Error decompressing data: " << ex.what();
+
+         dataValid = false;
+      }
+
+   if (dataValid)
+   {
+      BOOST_LOG_TRIVIAL(trace)
+         << logPrefix_ << "Input data consumed = " << totalBytesCopied
+         << " bytes";
+      BOOST_LOG_TRIVIAL(trace)
+         << logPrefix_ << "Decompressed data size = " << totalBytesConsumed
+         << " bytes";
+
+      ccbHeader_ = std::make_shared<rpg::CcbHeader>();
+      dataValid  = ccbHeader_->Parse(ss);
+   }
+
+   if (dataValid)
+   {
+      innerHeader_ = std::make_shared<rpg::WmoHeader>();
+      dataValid    = innerHeader_->Parse(ss);
+   }
+
+   return dataValid;
+}
+
+bool Level3FileImpl::LoadFileData(std::istream& is)
+{
+   bool dataValid = messageHeader_.Parse(is);
 
    if (dataValid)
    {
       BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Code:      " << p->messageHeader_.message_code();
+         << logPrefix_ << "Code:      " << messageHeader_.message_code();
 
-      dataValid = p->descriptionBlock_.Parse(is);
+      dataValid = descriptionBlock_.Parse(is);
    }
 
    if (dataValid)
    {
-      if (p->descriptionBlock_.IsCompressionEnabled())
+      if (descriptionBlock_.IsCompressionEnabled())
       {
-         size_t messageLength = p->messageHeader_.length_of_message();
+         size_t messageLength = messageHeader_.length_of_message();
          size_t prefixLength =
             rpg::Level3MessageHeader::SIZE + rpg::ProductDescriptionBlock::SIZE;
          size_t recordSize =
@@ -123,7 +215,7 @@ bool Level3File::LoadData(std::istream& is)
                << logPrefix_ << "Decompressed data size = " << bytesCopied
                << " bytes";
 
-            dataValid = p->LoadBlocks(ss);
+            dataValid = LoadBlocks(ss);
          }
          catch (const boost::iostreams::bzip2_error& ex)
          {
@@ -136,7 +228,7 @@ bool Level3File::LoadData(std::istream& is)
       }
       else
       {
-         dataValid = p->LoadBlocks(is);
+         dataValid = LoadBlocks(is);
       }
    }
 
