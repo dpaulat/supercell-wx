@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 
 namespace scwx
 {
@@ -30,6 +31,9 @@ public:
    uint16_t                packet_code() const;
    uint16_t                length_of_block() const;
    std::optional<uint16_t> value_of_text() const;
+   int16_t                 start_i() const;
+   int16_t                 start_j() const;
+   std::string             text() const;
 
    size_t data_size() const override;
 

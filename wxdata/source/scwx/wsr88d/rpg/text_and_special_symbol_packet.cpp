@@ -24,7 +24,7 @@ public:
        valueOfText_ {0},
        startI_ {0},
        startJ_ {0},
-       characters_ {}
+       text_ {}
    {
    }
    ~TextAndSpecialSymbolPacketImpl() = default;
@@ -35,7 +35,7 @@ public:
    int16_t  startI_;
    int16_t  startJ_;
 
-   std::vector<char> characters_;
+   std::string text_;
 };
 
 TextAndSpecialSymbolPacket::TextAndSpecialSymbolPacket() :
@@ -69,6 +69,21 @@ std::optional<uint16_t> TextAndSpecialSymbolPacket::value_of_text() const
    }
 
    return value;
+}
+
+int16_t TextAndSpecialSymbolPacket::start_i() const
+{
+   return p->startI_;
+}
+
+int16_t TextAndSpecialSymbolPacket::start_j() const
+{
+   return p->startJ_;
+}
+
+std::string TextAndSpecialSymbolPacket::text() const
+{
+   return p->text_;
 }
 
 size_t TextAndSpecialSymbolPacket::data_size() const
@@ -133,8 +148,8 @@ bool TextAndSpecialSymbolPacket::Parse(std::istream& is)
 
    if (blockValid)
    {
-      p->characters_.resize(textLength);
-      is.read(reinterpret_cast<char*>(p->characters_.data()), textLength);
+      p->text_.resize(textLength);
+      is.read(p->text_.data(), textLength);
    }
 
    std::streampos isEnd = is.tellg();

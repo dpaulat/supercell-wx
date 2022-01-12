@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 
 namespace scwx
 {
@@ -26,9 +27,9 @@ public:
    StormIdSymbolPacket(StormIdSymbolPacket&&) noexcept;
    StormIdSymbolPacket& operator=(StormIdSymbolPacket&&) noexcept;
 
-   int16_t                    i_position(size_t i) const;
-   int16_t                    j_position(size_t i) const;
-   const std::array<char, 2>& character(size_t i) const;
+   int16_t     i_position(size_t i) const;
+   int16_t     j_position(size_t i) const;
+   std::string storm_id(size_t i) const;
 
    size_t RecordCount() const override;
 

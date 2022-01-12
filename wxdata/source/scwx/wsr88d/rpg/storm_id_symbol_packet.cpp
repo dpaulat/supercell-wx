@@ -17,11 +17,11 @@ static const std::string logPrefix_ =
 
 struct StormIdSymbol
 {
-   int16_t             iPosition_;
-   int16_t             jPosition_;
-   std::array<char, 2> character_;
+   int16_t     iPosition_;
+   int16_t     jPosition_;
+   std::string stormId_;
 
-   StormIdSymbol() : iPosition_ {0}, jPosition_ {0}, character_ {0} {}
+   StormIdSymbol() : iPosition_ {0}, jPosition_ {0}, stormId_ {} {}
 };
 
 class StormIdSymbolPacketImpl
@@ -55,9 +55,9 @@ int16_t StormIdSymbolPacket::j_position(size_t i) const
    return p->symbol_[i].jPosition_;
 }
 
-const std::array<char, 2>& StormIdSymbolPacket::character(size_t i) const
+std::string StormIdSymbolPacket::storm_id(size_t i) const
 {
-   return p->symbol_[i].character_;
+   return p->symbol_[i].stormId_;
 }
 
 size_t StormIdSymbolPacket::RecordCount() const
@@ -85,9 +85,11 @@ bool StormIdSymbolPacket::ParseData(std::istream& is)
       {
          StormIdSymbol& s = p->symbol_[i];
 
+         s.stormId_.resize(2);
+
          is.read(reinterpret_cast<char*>(&s.iPosition_), 2);
          is.read(reinterpret_cast<char*>(&s.jPosition_), 2);
-         is.read(reinterpret_cast<char*>(s.character_.data()), 2);
+         is.read(s.stormId_.data(), 2);
 
          s.iPosition_ = ntohs(s.iPosition_);
          s.jPosition_ = ntohs(s.jPosition_);
