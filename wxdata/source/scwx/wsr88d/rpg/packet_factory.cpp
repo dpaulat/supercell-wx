@@ -1,5 +1,6 @@
 #include <scwx/wsr88d/rpg/packet_factory.hpp>
 
+#include <scwx/wsr88d/rpg/cell_trend_data_packet.hpp>
 #include <scwx/wsr88d/rpg/digital_precipitation_data_array_packet.hpp>
 #include <scwx/wsr88d/rpg/digital_radial_data_array_packet.hpp>
 #include <scwx/wsr88d/rpg/generic_data_packet.hpp>
@@ -59,6 +60,7 @@ static const std::unordered_map<uint16_t, CreateMessageFunction> create_ {
    {18, PrecipitationRateDataArrayPacket::Create},
    {19, HdaHailSymbolPacket::Create},
    {20, PointFeatureSymbolPacket::Create},
+   {21, CellTrendDataPacket::Create},
    {23, ScitForecastDataPacket::Create},
    {24, ScitForecastDataPacket::Create},
    {25, StiCircleSymbolPacket::Create},
