@@ -53,6 +53,17 @@ int16_t ProductSymbologyBlock::block_divider() const
    return p->blockDivider_;
 }
 
+uint16_t ProductSymbologyBlock::number_of_layers() const
+{
+   return p->numberOfLayers_;
+}
+
+const std::vector<std::shared_ptr<Packet>>&
+ProductSymbologyBlock::packet_list(uint16_t i) const
+{
+   return p->layerList_[i];
+}
+
 size_t ProductSymbologyBlock::data_size() const
 {
    return p->lengthOfBlock_;

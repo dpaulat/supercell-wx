@@ -39,17 +39,14 @@ public:
    bool LoadFileData(std::istream& is);
    bool LoadBlocks(std::istream& is);
 
-   rpg::WmoHeader                  wmoHeader_;
-   std::shared_ptr<rpg::CcbHeader> ccbHeader_;
-   std::shared_ptr<rpg::WmoHeader> innerHeader_;
-   rpg::Level3MessageHeader        messageHeader_;
-   rpg::ProductDescriptionBlock    descriptionBlock_;
-
-   std::shared_ptr<rpg::ProductSymbologyBlock> symbologyBlock_;
-   std::shared_ptr<void>                       graphicBlock_;
-   std::shared_ptr<void>                       tabularBlock_;
-
-   size_t numRecords_;
+   std::shared_ptr<rpg::WmoHeader>               wmoHeader_;
+   std::shared_ptr<rpg::CcbHeader>               ccbHeader_;
+   std::shared_ptr<rpg::WmoHeader>               innerHeader_;
+   std::shared_ptr<rpg::Level3MessageHeader>     messageHeader_;
+   std::shared_ptr<rpg::ProductDescriptionBlock> descriptionBlock_;
+   std::shared_ptr<rpg::ProductSymbologyBlock>   symbologyBlock_;
+   std::shared_ptr<void>                         graphicBlock_;
+   std::shared_ptr<void>                         tabularBlock_;
 };
 
 Level3File::Level3File() : p(std::make_unique<Level3FileImpl>()) {}
@@ -57,6 +54,17 @@ Level3File::~Level3File() = default;
 
 Level3File::Level3File(Level3File&&) noexcept = default;
 Level3File& Level3File::operator=(Level3File&&) noexcept = default;
+
+std::shared_ptr<rpg::Level3MessageHeader> Level3File::message_header() const
+{
+   return p->messageHeader_;
+}
+
+std::shared_ptr<rpg::ProductSymbologyBlock>
+Level3File::product_symbology_block() const
+{
+   return p->symbologyBlock_;
+}
 
 bool Level3File::LoadFile(const std::string& filename)
 {
@@ -83,18 +91,20 @@ bool Level3File::LoadData(std::istream& is)
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading Data";
 
-   bool dataValid = p->wmoHeader_.Parse(is);
+   p->wmoHeader_ = std::make_shared<rpg::WmoHeader>();
+
+   bool dataValid = p->wmoHeader_->Parse(is);
 
    if (dataValid)
    {
       BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Data Type: " << p->wmoHeader_.data_type();
+         << logPrefix_ << "Data Type: " << p->wmoHeader_->data_type();
       BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "ICAO:      " << p->wmoHeader_.icao();
+         << logPrefix_ << "ICAO:      " << p->wmoHeader_->icao();
       BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Date/Time: " << p->wmoHeader_.date_time();
+         << logPrefix_ << "Date/Time: " << p->wmoHeader_->date_time();
       BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Category:  " << p->wmoHeader_.product_category();
+         << logPrefix_ << "Category:  " << p->wmoHeader_->product_category();
 
       // If the header is compressed
       if (is.peek() == 0x78)
@@ -182,21 +192,25 @@ bool Level3FileImpl::DecompressFile(std::istream& is, std::stringstream& ss)
 
 bool Level3FileImpl::LoadFileData(std::istream& is)
 {
-   bool dataValid = messageHeader_.Parse(is);
+   messageHeader_ = std::make_shared<rpg::Level3MessageHeader>();
+
+   bool dataValid = messageHeader_->Parse(is);
 
    if (dataValid)
    {
       BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Code:      " << messageHeader_.message_code();
+         << logPrefix_ << "Code:      " << messageHeader_->message_code();
 
-      dataValid = descriptionBlock_.Parse(is);
+      descriptionBlock_ = std::make_shared<rpg::ProductDescriptionBlock>();
+
+      dataValid = descriptionBlock_->Parse(is);
    }
 
    if (dataValid)
    {
-      if (descriptionBlock_.IsCompressionEnabled())
+      if (descriptionBlock_->IsCompressionEnabled())
       {
-         size_t messageLength = messageHeader_.length_of_message();
+         size_t messageLength = messageHeader_->length_of_message();
          size_t prefixLength =
             rpg::Level3MessageHeader::SIZE + rpg::ProductDescriptionBlock::SIZE;
          size_t recordSize =
@@ -249,9 +263,9 @@ bool Level3FileImpl::LoadBlocks(std::istream& is)
       rpg::Level3MessageHeader::SIZE + rpg::ProductDescriptionBlock::SIZE;
 
    const size_t offsetToSymbology =
-      descriptionBlock_.offset_to_symbology() * 2u;
-   const size_t offsetToGraphic = descriptionBlock_.offset_to_graphic() * 2u;
-   const size_t offsetToTabular = descriptionBlock_.offset_to_tabular() * 2u;
+      descriptionBlock_->offset_to_symbology() * 2u;
+   const size_t offsetToGraphic = descriptionBlock_->offset_to_graphic() * 2u;
+   const size_t offsetToTabular = descriptionBlock_->offset_to_tabular() * 2u;
 
    if (offsetToSymbology >= offsetBase)
    {

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <scwx/wsr88d/rpg/level3_message_header.hpp>
+#include <scwx/wsr88d/rpg/product_symbology_block.hpp>
+
 #include <memory>
 #include <string>
 
@@ -21,6 +24,9 @@ public:
 
    Level3File(Level3File&&) noexcept;
    Level3File& operator=(Level3File&&) noexcept;
+
+   std::shared_ptr<rpg::Level3MessageHeader>   message_header() const;
+   std::shared_ptr<rpg::ProductSymbologyBlock> product_symbology_block() const;
 
    bool LoadFile(const std::string& filename);
    bool LoadData(std::istream& is);

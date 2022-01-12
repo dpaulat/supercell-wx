@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/wsr88d/message.hpp>
+#include <scwx/wsr88d/rpg/packet.hpp>
 
 #include <cstdint>
 #include <memory>
@@ -26,7 +27,10 @@ public:
    ProductSymbologyBlock(ProductSymbologyBlock&&) noexcept;
    ProductSymbologyBlock& operator=(ProductSymbologyBlock&&) noexcept;
 
-   int16_t block_divider() const;
+   int16_t  block_divider() const;
+   uint16_t number_of_layers() const;
+
+   const std::vector<std::shared_ptr<Packet>>& packet_list(uint16_t i) const;
 
    size_t data_size() const override;
 
