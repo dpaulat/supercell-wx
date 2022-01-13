@@ -1,6 +1,7 @@
 #include <scwx/wsr88d/rpg/level3_message_factory.hpp>
 
 #include <scwx/util/vectorbuf.hpp>
+#include <scwx/wsr88d/rpg/general_status_message.hpp>
 #include <scwx/wsr88d/rpg/graphic_product_message.hpp>
 #include <scwx/wsr88d/rpg/tabular_product_message.hpp>
 
@@ -24,7 +25,8 @@ typedef std::function<std::shared_ptr<Level3Message>(Level3MessageHeader&&,
    CreateLevel3MessageFunction;
 
 static const std::unordered_map<int16_t, CreateLevel3MessageFunction> //
-   create_ {{19, GraphicProductMessage::Create},
+   create_ {{2, GeneralStatusMessage::Create},
+            {19, GraphicProductMessage::Create},
             {20, GraphicProductMessage::Create},
             {27, GraphicProductMessage::Create},
             {30, GraphicProductMessage::Create},

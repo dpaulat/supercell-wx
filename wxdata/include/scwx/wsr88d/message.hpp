@@ -69,6 +69,16 @@ public:
    }
 
    template<size_t _Size>
+   static void SwapArray(std::array<int16_t, _Size>& arr, size_t size = _Size)
+   {
+      std::transform(std::execution::par_unseq,
+                     arr.begin(),
+                     arr.begin() + size,
+                     arr.begin(),
+                     [](int16_t u) { return ntohs(u); });
+   }
+
+   template<size_t _Size>
    static void SwapArray(std::array<uint16_t, _Size>& arr, size_t size = _Size)
    {
       std::transform(std::execution::par_unseq,
