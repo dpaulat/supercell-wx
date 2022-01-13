@@ -70,65 +70,74 @@ size_t TabularAlphanumericBlock::data_size() const
 
 bool TabularAlphanumericBlock::Parse(std::istream& is)
 {
+   return Parse(is, false);
+}
+
+bool TabularAlphanumericBlock::Parse(std::istream& is, bool skipHeader)
+{
    bool blockValid = true;
 
    const std::streampos blockStart = is.tellg();
 
-   is.read(reinterpret_cast<char*>(&p->blockDivider1_), 2);
-   is.read(reinterpret_cast<char*>(&p->blockId_), 2);
-   is.read(reinterpret_cast<char*>(&p->lengthOfBlock_), 4);
-
-   p->blockDivider1_ = ntohs(p->blockDivider1_);
-   p->blockId_       = ntohs(p->blockId_);
-   p->lengthOfBlock_ = ntohl(p->lengthOfBlock_);
-
-   if (is.eof())
+   if (!skipHeader)
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
-      blockValid = false;
-   }
-   else
-   {
-      if (p->blockDivider1_ != -1)
+
+      is.read(reinterpret_cast<char*>(&p->blockDivider1_), 2);
+      is.read(reinterpret_cast<char*>(&p->blockId_), 2);
+      is.read(reinterpret_cast<char*>(&p->lengthOfBlock_), 4);
+
+      p->blockDivider1_ = ntohs(p->blockDivider1_);
+      p->blockId_       = ntohs(p->blockId_);
+      p->lengthOfBlock_ = ntohl(p->lengthOfBlock_);
+
+      if (is.eof())
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_
-            << "Invalid first block divider: " << p->blockDivider1_;
+         BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
          blockValid = false;
       }
-      if (p->blockId_ != 3)
+      else
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid block ID: " << p->blockId_;
-         blockValid = false;
+         if (p->blockDivider1_ != -1)
+         {
+            BOOST_LOG_TRIVIAL(warning)
+               << logPrefix_
+               << "Invalid first block divider: " << p->blockDivider1_;
+            blockValid = false;
+         }
+         if (p->blockId_ != 3)
+         {
+            BOOST_LOG_TRIVIAL(warning)
+               << logPrefix_ << "Invalid block ID: " << p->blockId_;
+            blockValid = false;
+         }
+         if (p->lengthOfBlock_ < 10)
+         {
+            BOOST_LOG_TRIVIAL(warning)
+               << logPrefix_ << "Invalid block length: " << p->lengthOfBlock_;
+            blockValid = false;
+         }
       }
-      if (p->lengthOfBlock_ < 10)
+
+      if (blockValid)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid block length: " << p->lengthOfBlock_;
-         blockValid = false;
+         p->messageHeader_ = std::make_shared<Level3MessageHeader>();
+         blockValid        = p->messageHeader_->Parse(is);
+
+         if (!blockValid)
+         {
+            p->messageHeader_ = nullptr;
+         }
       }
-   }
 
-   if (blockValid)
-   {
-      p->messageHeader_ = std::make_shared<Level3MessageHeader>();
-      blockValid        = p->messageHeader_->Parse(is);
-
-      if (!blockValid)
+      if (blockValid)
       {
-         p->messageHeader_ = nullptr;
-      }
-   }
+         p->descriptionBlock_ = std::make_shared<ProductDescriptionBlock>();
+         blockValid           = p->descriptionBlock_->Parse(is);
 
-   if (blockValid)
-   {
-      p->descriptionBlock_ = std::make_shared<ProductDescriptionBlock>();
-      blockValid           = p->descriptionBlock_->Parse(is);
-
-      if (!blockValid)
-      {
-         p->descriptionBlock_ = nullptr;
+         if (!blockValid)
+         {
+            p->descriptionBlock_ = nullptr;
+         }
       }
    }
 
@@ -196,8 +205,13 @@ bool TabularAlphanumericBlock::Parse(std::istream& is)
 
    const std::streampos blockEnd = is.tellg();
 
-   if (!ValidateMessage(is, blockEnd - blockStart))
+   if (!skipHeader && !ValidateMessage(is, blockEnd - blockStart))
    {
+      blockValid = false;
+   }
+   else if (skipHeader && is.eof())
+   {
+      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
       blockValid = false;
    }
 

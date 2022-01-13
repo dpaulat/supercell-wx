@@ -10,6 +10,7 @@
 #include <scwx/util/time.hpp>
 
 #include <fstream>
+#include <set>
 
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
@@ -23,6 +24,8 @@ namespace wsr88d
 {
 
 static const std::string logPrefix_ = "[scwx::wsr88d::level3_file] ";
+
+static const std::set<int16_t> standaloneTabularProducts_ = {62, 75, 77, 82};
 
 class Level3FileImpl
 {
@@ -259,15 +262,27 @@ bool Level3FileImpl::LoadBlocks(std::istream& is)
 
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading Blocks";
 
+   bool skipTabularHeader = false;
+
    std::streampos offsetBasePos = is.tellg();
 
    constexpr size_t offsetBase =
       rpg::Level3MessageHeader::SIZE + rpg::ProductDescriptionBlock::SIZE;
 
-   const size_t offsetToSymbology =
-      descriptionBlock_->offset_to_symbology() * 2u;
-   const size_t offsetToGraphic = descriptionBlock_->offset_to_graphic() * 2u;
-   const size_t offsetToTabular = descriptionBlock_->offset_to_tabular() * 2u;
+   size_t offsetToSymbology = descriptionBlock_->offset_to_symbology() * 2u;
+   size_t offsetToGraphic   = descriptionBlock_->offset_to_graphic() * 2u;
+   size_t offsetToTabular   = descriptionBlock_->offset_to_tabular() * 2u;
+
+   if (standaloneTabularProducts_.contains(messageHeader_->message_code()))
+   {
+      // These products are completely alphanumeric, and do not contain a
+      // symbology block.
+      offsetToTabular   = offsetToSymbology;
+      offsetToSymbology = 0;
+      offsetToGraphic   = 0;
+
+      skipTabularHeader = true;
+   }
 
    if (offsetToSymbology >= offsetBase)
    {
@@ -308,7 +323,7 @@ bool Level3FileImpl::LoadBlocks(std::istream& is)
       tabularBlock_ = std::make_shared<rpg::TabularAlphanumericBlock>();
 
       is.seekg(offsetToTabular - offsetBase, std::ios_base::cur);
-      tabularValid = tabularBlock_->Parse(is);
+      tabularValid = tabularBlock_->Parse(is, skipTabularHeader);
       is.seekg(offsetBasePos, std::ios_base::beg);
 
       BOOST_LOG_TRIVIAL(debug)
