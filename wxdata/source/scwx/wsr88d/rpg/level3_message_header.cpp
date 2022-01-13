@@ -126,7 +126,7 @@ bool Level3MessageHeader::Parse(std::istream& is)
             << logPrefix_ << "Invalid message code: " << p->messageCode_;
          headerValid = false;
       }
-      if (p->dateOfMessage_ < 1u || p->dateOfMessage_ > 32'767u)
+      if (p->dateOfMessage_ > 32'767u)
       {
          BOOST_LOG_TRIVIAL(warning)
             << logPrefix_ << "Invalid date: " << p->dateOfMessage_;

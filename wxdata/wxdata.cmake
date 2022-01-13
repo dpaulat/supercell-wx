@@ -72,6 +72,7 @@ set(HDR_WSR88D_RPG include/scwx/wsr88d/rpg/ccb_header.hpp
                    include/scwx/wsr88d/rpg/special_graphic_symbol_packet.hpp
                    include/scwx/wsr88d/rpg/sti_circle_symbol_packet.hpp
                    include/scwx/wsr88d/rpg/storm_id_symbol_packet.hpp
+                   include/scwx/wsr88d/rpg/tabular_alphanumeric_block.hpp
                    include/scwx/wsr88d/rpg/text_and_special_symbol_packet.hpp
                    include/scwx/wsr88d/rpg/unlinked_contour_vector_packet.hpp
                    include/scwx/wsr88d/rpg/unlinked_vector_packet.hpp
@@ -104,6 +105,7 @@ set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/ccb_header.cpp
                    source/scwx/wsr88d/rpg/special_graphic_symbol_packet.cpp
                    source/scwx/wsr88d/rpg/sti_circle_symbol_packet.cpp
                    source/scwx/wsr88d/rpg/storm_id_symbol_packet.cpp
+                   source/scwx/wsr88d/rpg/tabular_alphanumeric_block.cpp
                    source/scwx/wsr88d/rpg/text_and_special_symbol_packet.cpp
                    source/scwx/wsr88d/rpg/unlinked_contour_vector_packet.cpp
                    source/scwx/wsr88d/rpg/unlinked_vector_packet.cpp

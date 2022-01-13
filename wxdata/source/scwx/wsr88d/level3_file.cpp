@@ -4,6 +4,7 @@
 #include <scwx/wsr88d/rpg/level3_message_header.hpp>
 #include <scwx/wsr88d/rpg/product_description_block.hpp>
 #include <scwx/wsr88d/rpg/product_symbology_block.hpp>
+#include <scwx/wsr88d/rpg/tabular_alphanumeric_block.hpp>
 #include <scwx/wsr88d/rpg/wmo_header.hpp>
 #include <scwx/util/rangebuf.hpp>
 #include <scwx/util/time.hpp>
@@ -47,7 +48,7 @@ public:
    std::shared_ptr<rpg::ProductDescriptionBlock>  descriptionBlock_;
    std::shared_ptr<rpg::ProductSymbologyBlock>    symbologyBlock_;
    std::shared_ptr<rpg::GraphicAlphanumericBlock> graphicBlock_;
-   std::shared_ptr<void>                          tabularBlock_;
+   std::shared_ptr<rpg::TabularAlphanumericBlock> tabularBlock_;
 };
 
 Level3File::Level3File() : p(std::make_unique<Level3FileImpl>()) {}
@@ -304,13 +305,19 @@ bool Level3FileImpl::LoadBlocks(std::istream& is)
 
    if (offsetToTabular >= offsetBase)
    {
-      // TODO
+      tabularBlock_ = std::make_shared<rpg::TabularAlphanumericBlock>();
+
       is.seekg(offsetToTabular - offsetBase, std::ios_base::cur);
+      tabularValid = tabularBlock_->Parse(is);
       is.seekg(offsetBasePos, std::ios_base::beg);
 
       BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_
-         << "Tabular alphanumeric block found: " << offsetToTabular;
+         << logPrefix_ << "Tabular alphanumeric block valid: " << tabularValid;
+
+      if (!tabularValid)
+      {
+         tabularBlock_ = nullptr;
+      }
    }
 
    return (symbologyValid && graphicValid && tabularValid);
