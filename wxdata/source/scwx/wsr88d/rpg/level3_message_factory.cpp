@@ -3,6 +3,7 @@
 #include <scwx/util/vectorbuf.hpp>
 #include <scwx/wsr88d/rpg/general_status_message.hpp>
 #include <scwx/wsr88d/rpg/graphic_product_message.hpp>
+#include <scwx/wsr88d/rpg/radar_coded_message.hpp>
 #include <scwx/wsr88d/rpg/tabular_product_message.hpp>
 
 #include <unordered_map>
@@ -48,6 +49,7 @@ static const std::unordered_map<int16_t, CreateLevel3MessageFunction> //
             {65, GraphicProductMessage::Create},
             {66, GraphicProductMessage::Create},
             {67, GraphicProductMessage::Create},
+            {74, RadarCodedMessage::Create},
             {75, TabularProductMessage::Create},
             {77, TabularProductMessage::Create},
             {78, GraphicProductMessage::Create},
