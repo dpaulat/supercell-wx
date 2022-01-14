@@ -144,7 +144,7 @@ bool Level3MessageHeader::Parse(std::istream& is)
             << logPrefix_ << "Invalid length: " << p->lengthOfMessage_;
          headerValid = false;
       }
-      if (p->sourceId_ > 999u)
+      if ((p->sourceId_ > 999u && p->sourceId_ < 3000) || p->sourceId_ > 3045)
       {
          BOOST_LOG_TRIVIAL(warning)
             << logPrefix_ << "Invalid source ID: " << p->sourceId_;

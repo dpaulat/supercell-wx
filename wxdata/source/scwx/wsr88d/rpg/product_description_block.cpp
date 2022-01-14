@@ -18,8 +18,9 @@ static const std::string logPrefix_ =
    "[scwx::wsr88d::rpg::product_description_block] ";
 
 static const std::set<int16_t> compressedProducts_ = {
-   32,  94,  99,  134, 135, 138, 149, 152, 153, 154, 155, 159, 161, 163, 165,
-   167, 168, 170, 172, 173, 174, 175, 176, 177, 178, 179, 193, 195, 202};
+   32,  94,  99,  134, 135, 138, 149, 152, 153, 154, 155,
+   159, 161, 163, 165, 167, 168, 170, 172, 173, 174, 175,
+   176, 177, 178, 179, 180, 182, 186, 193, 195, 202};
 
 class ProductDescriptionBlockImpl
 {
