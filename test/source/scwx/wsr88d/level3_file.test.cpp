@@ -22,8 +22,11 @@ TEST_P(ValidFileTest, ValidFile)
 
    bool fileValid = file.LoadFile(std::string(SCWX_TEST_DATA_DIR) +
                                   "/nexrad/level3/" + filename);
+   auto message   = file.message();
 
    EXPECT_EQ(fileValid, true);
+   ASSERT_NE(message, nullptr);
+   EXPECT_EQ(message->header().message_code(), param.first);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -31,8 +34,12 @@ INSTANTIATE_TEST_SUITE_P(
    ValidFileTest,
    testing::Values(
       std::pair<int16_t, std::string> {2, "KLSX_NXUS63_GSMLSX_202112110238"},
+      std::pair<int16_t, std::string> {19, "KLSX_SDUS53_N0RLSX_202105041639"},
+      std::pair<int16_t, std::string> {20, "KLSX_SDUS73_N0ZLSX_202105042031"},
+      std::pair<int16_t, std::string> {27, "KLSX_SDUS53_N0VLSX_202105042201"},
       std::pair<int16_t, std::string> {30, "KLSX_SDUS63_NSWLSX_202112110135"},
       std::pair<int16_t, std::string> {32, "KLSX_SDUS53_DHRLSX_202112110215"},
+      std::pair<int16_t, std::string> {34, "KLSX_SDUS63_NC1LSX_202101011756"},
       std::pair<int16_t, std::string> {37, "KLSX_SDUS53_NCRLSX_202112110215"},
       std::pair<int16_t, std::string> {38, "KLSX_SDUS63_NCZLSX_202112110130"},
       std::pair<int16_t, std::string> {41, "KLSX_SDUS73_NETLSX_202112110152"},
@@ -66,6 +73,7 @@ INSTANTIATE_TEST_SUITE_P(
       std::pair<int16_t, std::string> {166, "KLSX_SDUS83_N1MLSX_202112110200"},
       std::pair<int16_t, std::string> {169, "KLSX_SDUS83_OHALSX_202112110109"},
       std::pair<int16_t, std::string> {170, "KLSX_SDUS83_DAALSX_202112110135"},
+      std::pair<int16_t, std::string> {171, "KLSX_SDUS33_PTALSX_202101201007"},
       std::pair<int16_t, std::string> {172, "KLSX_SDUS83_DTALSX_202112110209"},
       std::pair<int16_t, std::string> {173, "KLSX_SDUS83_DU3LSX_202112110209"},
       std::pair<int16_t, std::string> {174, "KLSX_SDUS83_DODLSX_202112110244"},
