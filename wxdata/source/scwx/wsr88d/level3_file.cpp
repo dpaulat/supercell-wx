@@ -1,7 +1,7 @@
 #include <scwx/wsr88d/level3_file.hpp>
+#include <scwx/awips/wmo_header.hpp>
 #include <scwx/wsr88d/rpg/ccb_header.hpp>
 #include <scwx/wsr88d/rpg/level3_message_factory.hpp>
-#include <scwx/wsr88d/rpg/wmo_header.hpp>
 
 #include <fstream>
 
@@ -27,9 +27,9 @@ public:
    bool DecompressFile(std::istream& is, std::stringstream& ss);
    bool LoadFileData(std::istream& is);
 
-   std::shared_ptr<rpg::WmoHeader>     wmoHeader_;
+   std::shared_ptr<awips::WmoHeader>   wmoHeader_;
    std::shared_ptr<rpg::CcbHeader>     ccbHeader_;
-   std::shared_ptr<rpg::WmoHeader>     innerHeader_;
+   std::shared_ptr<awips::WmoHeader>   innerHeader_;
    std::shared_ptr<rpg::Level3Message> message_;
 };
 
@@ -69,7 +69,7 @@ bool Level3File::LoadData(std::istream& is)
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading Data";
 
-   p->wmoHeader_ = std::make_shared<rpg::WmoHeader>();
+   p->wmoHeader_ = std::make_shared<awips::WmoHeader>();
 
    bool dataValid = p->wmoHeader_->Parse(is);
 
@@ -161,7 +161,7 @@ bool Level3FileImpl::DecompressFile(std::istream& is, std::stringstream& ss)
 
    if (dataValid)
    {
-      innerHeader_ = std::make_shared<rpg::WmoHeader>();
+      innerHeader_ = std::make_shared<awips::WmoHeader>();
       dataValid    = innerHeader_->Parse(ss);
    }
 

@@ -1,7 +1,7 @@
 #pragma once
 
+#include <scwx/awips/message.hpp>
 #include <scwx/wsr88d/rda/level2_message_header.hpp>
-#include <scwx/wsr88d/message.hpp>
 
 #ifdef WIN32
 #   include <WinSock2.h>
@@ -18,7 +18,7 @@ namespace rda
 
 class Level2MessageImpl;
 
-class Level2Message : public Message
+class Level2Message : public awips::Message
 {
 protected:
    explicit Level2Message();

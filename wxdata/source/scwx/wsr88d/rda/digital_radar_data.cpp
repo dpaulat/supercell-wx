@@ -190,8 +190,8 @@ bool MomentDataBlock::Parse(std::istream& is)
    p->dataMomentRangeSampleInterval_ = ntohs(p->dataMomentRangeSampleInterval_);
    p->tover_                         = ntohs(p->tover_);
    p->snrThreshold_                  = ntohs(p->snrThreshold_);
-   p->scale_                         = Message::SwapFloat(p->scale_);
-   p->offset_                        = Message::SwapFloat(p->offset_);
+   p->scale_                         = awips::Message::SwapFloat(p->scale_);
+   p->offset_                        = awips::Message::SwapFloat(p->offset_);
 
    if (p->numberOfDataMomentGates_ >= 0 && p->numberOfDataMomentGates_ <= 1840)
    {
@@ -206,7 +206,7 @@ bool MomentDataBlock::Parse(std::istream& is)
          p->momentGates16_.resize(p->numberOfDataMomentGates_);
          is.read(reinterpret_cast<char*>(p->momentGates16_.data()),
                  p->numberOfDataMomentGates_ * 2);
-         Message::SwapVector(p->momentGates16_);
+         awips::Message::SwapVector(p->momentGates16_);
       }
       else
       {
@@ -329,17 +329,17 @@ bool VolumeDataBlock::Parse(std::istream& is)
    is.read(reinterpret_cast<char*>(&p->processingStatus_), 2); // 42-43
 
    p->lrtup_               = ntohs(p->lrtup_);
-   p->latitude_            = Message::SwapFloat(p->latitude_);
-   p->longitude_           = Message::SwapFloat(p->longitude_);
+   p->latitude_            = awips::Message::SwapFloat(p->latitude_);
+   p->longitude_           = awips::Message::SwapFloat(p->longitude_);
    p->siteHeight_          = ntohs(p->siteHeight_);
    p->feedhornHeight_      = ntohs(p->feedhornHeight_);
-   p->calibrationConstant_ = Message::SwapFloat(p->calibrationConstant_);
-   p->horizontaShvTxPower_ = Message::SwapFloat(p->horizontaShvTxPower_);
-   p->verticalShvTxPower_  = Message::SwapFloat(p->verticalShvTxPower_);
+   p->calibrationConstant_ = awips::Message::SwapFloat(p->calibrationConstant_);
+   p->horizontaShvTxPower_ = awips::Message::SwapFloat(p->horizontaShvTxPower_);
+   p->verticalShvTxPower_  = awips::Message::SwapFloat(p->verticalShvTxPower_);
    p->systemDifferentialReflectivity_ =
-      Message::SwapFloat(p->systemDifferentialReflectivity_);
+      awips::Message::SwapFloat(p->systemDifferentialReflectivity_);
    p->initialSystemDifferentialPhase_ =
-      Message::SwapFloat(p->initialSystemDifferentialPhase_);
+      awips::Message::SwapFloat(p->initialSystemDifferentialPhase_);
    p->volumeCoveragePatternNumber_ = ntohs(p->volumeCoveragePatternNumber_);
    p->processingStatus_            = ntohs(p->processingStatus_);
 
@@ -397,7 +397,7 @@ bool ElevationDataBlock::Parse(std::istream& is)
 
    p->lrtup_               = ntohs(p->lrtup_);
    p->atmos_               = ntohs(p->atmos_);
-   p->calibrationConstant_ = Message::SwapFloat(p->calibrationConstant_);
+   p->calibrationConstant_ = awips::Message::SwapFloat(p->calibrationConstant_);
 
    return dataBlockValid;
 }
@@ -475,16 +475,17 @@ bool RadialDataBlock::Parse(std::istream& is)
    is.read(reinterpret_cast<char*>(&p->calibrationConstantVertical_),
            4); // 24-27
 
-   p->lrtup_                = ntohs(p->lrtup_);
-   p->unambigiousRange_     = ntohs(p->unambigiousRange_);
-   p->noiseLevelHorizontal_ = Message::SwapFloat(p->noiseLevelHorizontal_);
-   p->noiseLevelVertical_   = Message::SwapFloat(p->noiseLevelVertical_);
-   p->nyquistVelocity_      = ntohs(p->nyquistVelocity_);
-   p->radialFlags_          = ntohs(p->radialFlags_);
+   p->lrtup_            = ntohs(p->lrtup_);
+   p->unambigiousRange_ = ntohs(p->unambigiousRange_);
+   p->noiseLevelHorizontal_ =
+      awips::Message::SwapFloat(p->noiseLevelHorizontal_);
+   p->noiseLevelVertical_ = awips::Message::SwapFloat(p->noiseLevelVertical_);
+   p->nyquistVelocity_    = ntohs(p->nyquistVelocity_);
+   p->radialFlags_        = ntohs(p->radialFlags_);
    p->calibrationConstantHorizontal_ =
-      Message::SwapFloat(p->calibrationConstantHorizontal_);
+      awips::Message::SwapFloat(p->calibrationConstantHorizontal_);
    p->calibrationConstantVertical_ =
-      Message::SwapFloat(p->calibrationConstantVertical_);
+      awips::Message::SwapFloat(p->calibrationConstantVertical_);
 
    return dataBlockValid;
 }

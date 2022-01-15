@@ -1,4 +1,4 @@
-#include <scwx/wsr88d/rpg/wmo_header.hpp>
+#include <scwx/awips/wmo_header.hpp>
 #include <scwx/util/streams.hpp>
 
 #include <istream>
@@ -15,12 +15,10 @@
 
 namespace scwx
 {
-namespace wsr88d
-{
-namespace rpg
+namespace awips
 {
 
-static const std::string logPrefix_ = "[scwx::wsr88d::rpg::wmo_header] ";
+static const std::string logPrefix_ = "[scwx::awips::wmo_header] ";
 
 class WmoHeaderImpl
 {
@@ -249,6 +247,5 @@ bool WmoHeader::Parse(std::istream& is)
    return headerValid;
 }
 
-} // namespace rpg
-} // namespace wsr88d
+} // namespace awips
 } // namespace scwx

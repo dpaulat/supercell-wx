@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/wsr88d/message.hpp>
+#include <scwx/awips/message.hpp>
 
 #include <cstdint>
 #include <memory>
@@ -12,7 +12,7 @@ namespace wsr88d
 namespace rpg
 {
 
-class Packet : public Message
+class Packet : public awips::Message
 {
 protected:
    explicit Packet();

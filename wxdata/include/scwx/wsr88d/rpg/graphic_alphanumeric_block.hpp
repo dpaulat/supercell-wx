@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/wsr88d/message.hpp>
+#include <scwx/awips/message.hpp>
 
 #include <cstdint>
 #include <memory>
@@ -14,7 +14,7 @@ namespace rpg
 
 class GraphicAlphanumericBlockImpl;
 
-class GraphicAlphanumericBlock : public Message
+class GraphicAlphanumericBlock : public awips::Message
 {
 public:
    explicit GraphicAlphanumericBlock();

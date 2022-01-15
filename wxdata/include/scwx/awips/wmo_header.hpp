@@ -5,9 +5,7 @@
 
 namespace scwx
 {
-namespace wsr88d
-{
-namespace rpg
+namespace awips
 {
 
 class WmoHeaderImpl;
@@ -51,6 +49,5 @@ private:
    std::unique_ptr<WmoHeaderImpl> p;
 };
 
-} // namespace rpg
-} // namespace wsr88d
+} // namespace awips
 } // namespace scwx

@@ -1,13 +1,13 @@
-#include <scwx/wsr88d/message.hpp>
+#include <scwx/awips/message.hpp>
 
 #include <boost/log/trivial.hpp>
 
 namespace scwx
 {
-namespace wsr88d
+namespace awips
 {
 
-static const std::string logPrefix_ = "[scwx::wsr88d::message] ";
+static const std::string logPrefix_ = "[scwx::awips::message] ";
 
 class MessageImpl
 {
@@ -63,5 +63,5 @@ bool Message::ValidateMessage(std::istream& is, size_t bytesRead) const
    return messageValid;
 }
 
-} // namespace wsr88d
+} // namespace awips
 } // namespace scwx

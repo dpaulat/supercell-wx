@@ -1,7 +1,7 @@
 #pragma once
 
+#include <scwx/awips/message.hpp>
 #include <scwx/wsr88d/rpg/level3_message_header.hpp>
-#include <scwx/wsr88d/message.hpp>
 
 namespace scwx
 {
@@ -12,7 +12,7 @@ namespace rpg
 
 class Level3MessageImpl;
 
-class Level3Message : public Message
+class Level3Message : public awips::Message
 {
 protected:
    explicit Level3Message();

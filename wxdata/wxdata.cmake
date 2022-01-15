@@ -2,6 +2,10 @@ project(scwx-data)
 
 find_package(Boost)
 
+set(HDR_AWIPS include/scwx/awips/message.hpp
+              include/scwx/awips/wmo_header.hpp)
+set(SRC_AWIPS source/scwx/awips/message.cpp
+              source/scwx/awips/wmo_header.cpp)
 set(HDR_COMMON include/scwx/common/characters.hpp
                include/scwx/common/color_table.hpp
                include/scwx/common/constants.hpp
@@ -22,11 +26,9 @@ set(SRC_UTIL source/scwx/util/rangebuf.cpp
              source/scwx/util/time.cpp
              source/scwx/util/vectorbuf.cpp)
 set(HDR_WSR88D include/scwx/wsr88d/ar2v_file.hpp
-               include/scwx/wsr88d/level3_file.hpp
-               include/scwx/wsr88d/message.hpp)
+               include/scwx/wsr88d/level3_file.hpp)
 set(SRC_WSR88D source/scwx/wsr88d/ar2v_file.cpp
-               source/scwx/wsr88d/level3_file.cpp
-               source/scwx/wsr88d/message.cpp)
+               source/scwx/wsr88d/level3_file.cpp)
 set(HDR_WSR88D_RDA include/scwx/wsr88d/rda/clutter_filter_map.hpp
                    include/scwx/wsr88d/rda/digital_radar_data.hpp
                    include/scwx/wsr88d/rda/level2_message.hpp
@@ -83,8 +85,7 @@ set(HDR_WSR88D_RPG include/scwx/wsr88d/rpg/ccb_header.hpp
                    include/scwx/wsr88d/rpg/unlinked_contour_vector_packet.hpp
                    include/scwx/wsr88d/rpg/unlinked_vector_packet.hpp
                    include/scwx/wsr88d/rpg/vector_arrow_data_packet.hpp
-                   include/scwx/wsr88d/rpg/wind_barb_data_packet.hpp
-                   include/scwx/wsr88d/rpg/wmo_header.hpp)
+                   include/scwx/wsr88d/rpg/wind_barb_data_packet.hpp)
 set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/ccb_header.cpp
                    source/scwx/wsr88d/rpg/cell_trend_data_packet.cpp
                    source/scwx/wsr88d/rpg/cell_trend_volume_scan_times.cpp
@@ -122,10 +123,11 @@ set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/ccb_header.cpp
                    source/scwx/wsr88d/rpg/unlinked_contour_vector_packet.cpp
                    source/scwx/wsr88d/rpg/unlinked_vector_packet.cpp
                    source/scwx/wsr88d/rpg/vector_arrow_data_packet.cpp
-                   source/scwx/wsr88d/rpg/wind_barb_data_packet.cpp
-                   source/scwx/wsr88d/rpg/wmo_header.cpp)
+                   source/scwx/wsr88d/rpg/wind_barb_data_packet.cpp)
 
-add_library(wxdata OBJECT ${HDR_COMMON}
+add_library(wxdata OBJECT ${HDR_AWIPS}
+                          ${SRC_AWIPS}
+                          ${HDR_COMMON}
                           ${SRC_COMMON}
                           ${HDR_UTIL}
                           ${SRC_UTIL}
@@ -136,6 +138,8 @@ add_library(wxdata OBJECT ${HDR_COMMON}
                           ${HDR_WSR88D_RPG}
                           ${SRC_WSR88D_RPG})
 
+source_group("Header Files\\awips"       FILES ${HDR_AWIPS})
+source_group("Source Files\\awips"       FILES ${SRC_AWIPS})
 source_group("Header Files\\common"      FILES ${HDR_COMMON})
 source_group("Source Files\\common"      FILES ${SRC_COMMON})
 source_group("Header Files\\util"        FILES ${HDR_UTIL})

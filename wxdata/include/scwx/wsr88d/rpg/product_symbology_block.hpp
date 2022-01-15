@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/wsr88d/message.hpp>
+#include <scwx/awips/message.hpp>
 #include <scwx/wsr88d/rpg/packet.hpp>
 
 #include <cstdint>
@@ -15,7 +15,7 @@ namespace rpg
 
 class ProductSymbologyBlockImpl;
 
-class ProductSymbologyBlock : public Message
+class ProductSymbologyBlock : public awips::Message
 {
 public:
    explicit ProductSymbologyBlock();

@@ -14,7 +14,7 @@
 
 namespace scwx
 {
-namespace wsr88d
+namespace awips
 {
 
 class MessageImpl;
@@ -120,5 +120,5 @@ private:
    std::unique_ptr<MessageImpl> p;
 };
 
-} // namespace wsr88d
+} // namespace awips
 } // namespace scwx
