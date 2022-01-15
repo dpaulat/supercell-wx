@@ -75,6 +75,8 @@ bool LinkedContourVectorPacket::Parse(std::istream& is)
 {
    bool blockValid = true;
 
+   std::streampos isBegin = is.tellg();
+
    is.read(reinterpret_cast<char*>(&p->packetCode_), 2);
    is.read(reinterpret_cast<char*>(&p->initialPointIndicator_), 2);
    is.read(reinterpret_cast<char*>(&p->startI_), 2);
@@ -88,28 +90,6 @@ bool LinkedContourVectorPacket::Parse(std::istream& is)
    p->lengthOfVectors_       = ntohs(p->lengthOfVectors_);
 
    int vectorSize = static_cast<int>(p->lengthOfVectors_);
-
-   if (is.eof())
-   {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
-      blockValid = false;
-   }
-
-   // The number of vectors is equal to the size divided by the number of bytes
-   // in a vector coordinate
-   int vectorCount = vectorSize / 4;
-
-   p->endI_.resize(vectorCount);
-   p->endJ_.resize(vectorCount);
-
-   for (int v = 0; v < vectorCount && !is.eof(); v++)
-   {
-      is.read(reinterpret_cast<char*>(&p->endI_[v]), 2);
-      is.read(reinterpret_cast<char*>(&p->endJ_[v]), 2);
-
-      p->endI_[v] = ntohs(p->endI_[v]);
-      p->endJ_[v] = ntohs(p->endJ_[v]);
-   }
 
    if (is.eof())
    {
@@ -131,6 +111,33 @@ bool LinkedContourVectorPacket::Parse(std::istream& is)
             << "Invalid initial point indicator: " << p->initialPointIndicator_;
          blockValid = false;
       }
+   }
+
+   if (blockValid)
+   {
+      // The number of vectors is equal to the size divided by the number of
+      // bytes in a vector coordinate
+      int vectorCount = vectorSize / 4;
+
+      p->endI_.resize(vectorCount);
+      p->endJ_.resize(vectorCount);
+
+      for (int v = 0; v < vectorCount && !is.eof(); v++)
+      {
+         is.read(reinterpret_cast<char*>(&p->endI_[v]), 2);
+         is.read(reinterpret_cast<char*>(&p->endJ_[v]), 2);
+
+         p->endI_[v] = ntohs(p->endI_[v]);
+         p->endJ_[v] = ntohs(p->endJ_[v]);
+      }
+   }
+
+   std::streampos isEnd     = is.tellg();
+   std::streamoff bytesRead = isEnd - isBegin;
+
+   if (!ValidateMessage(is, bytesRead))
+   {
+      blockValid = false;
    }
 
    return blockValid;

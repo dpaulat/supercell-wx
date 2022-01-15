@@ -81,6 +81,8 @@ bool LinkedVectorPacket::Parse(std::istream& is)
 {
    bool blockValid = true;
 
+   std::streampos isBegin = is.tellg();
+
    is.read(reinterpret_cast<char*>(&p->packetCode_), 2);
    is.read(reinterpret_cast<char*>(&p->lengthOfBlock_), 2);
 
@@ -101,34 +103,6 @@ bool LinkedVectorPacket::Parse(std::istream& is)
 
       vectorSize -= 2;
    }
-
-   is.read(reinterpret_cast<char*>(&p->startI_), 2);
-   is.read(reinterpret_cast<char*>(&p->startJ_), 2);
-
-   p->startI_ = ntohs(p->startI_);
-   p->startJ_ = ntohs(p->startJ_);
-
-   // The number of vectors is equal to the size divided by the number of bytes
-   // in a vector coordinate
-   int vectorCount = vectorSize / 4;
-
-   p->endI_.resize(vectorCount);
-   p->endJ_.resize(vectorCount);
-
-   for (int v = 0; v < vectorCount && !is.eof(); v++)
-   {
-      is.read(reinterpret_cast<char*>(&p->endI_[v]), 2);
-      is.read(reinterpret_cast<char*>(&p->endJ_[v]), 2);
-
-      p->endI_[v] = ntohs(p->endI_[v]);
-      p->endJ_[v] = ntohs(p->endJ_[v]);
-   }
-
-   if (is.eof())
-   {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
-      blockValid = false;
-   }
    else
    {
       if (p->packetCode_ != 6 && p->packetCode_ != 9)
@@ -137,6 +111,39 @@ bool LinkedVectorPacket::Parse(std::istream& is)
             << logPrefix_ << "Invalid packet code: " << p->packetCode_;
          blockValid = false;
       }
+   }
+
+   if (blockValid)
+   {
+      is.read(reinterpret_cast<char*>(&p->startI_), 2);
+      is.read(reinterpret_cast<char*>(&p->startJ_), 2);
+
+      p->startI_ = ntohs(p->startI_);
+      p->startJ_ = ntohs(p->startJ_);
+
+      // The number of vectors is equal to the size divided by the number of
+      // bytes in a vector coordinate
+      int vectorCount = vectorSize / 4;
+
+      p->endI_.resize(vectorCount);
+      p->endJ_.resize(vectorCount);
+
+      for (int v = 0; v < vectorCount && !is.eof(); v++)
+      {
+         is.read(reinterpret_cast<char*>(&p->endI_[v]), 2);
+         is.read(reinterpret_cast<char*>(&p->endJ_[v]), 2);
+
+         p->endI_[v] = ntohs(p->endI_[v]);
+         p->endJ_[v] = ntohs(p->endJ_[v]);
+      }
+   }
+
+   std::streampos isEnd     = is.tellg();
+   std::streamoff bytesRead = isEnd - isBegin;
+
+   if (!ValidateMessage(is, bytesRead))
+   {
+      blockValid = false;
    }
 
    return blockValid;

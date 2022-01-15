@@ -64,6 +64,8 @@ bool SetColorLevelPacket::Parse(std::istream& is)
 {
    bool blockValid = true;
 
+   std::streampos isBegin = is.tellg();
+
    is.read(reinterpret_cast<char*>(&p->packetCode_), 2);
    is.read(reinterpret_cast<char*>(&p->colorValueIndicator_), 2);
    is.read(reinterpret_cast<char*>(&p->valueOfContour_), 2);
@@ -92,6 +94,14 @@ bool SetColorLevelPacket::Parse(std::istream& is)
             << "Invalid color value indicator: " << p->colorValueIndicator_;
          blockValid = false;
       }
+   }
+
+   std::streampos isEnd     = is.tellg();
+   std::streamoff bytesRead = isEnd - isBegin;
+
+   if (!ValidateMessage(is, bytesRead))
+   {
+      blockValid = false;
    }
 
    return blockValid;
