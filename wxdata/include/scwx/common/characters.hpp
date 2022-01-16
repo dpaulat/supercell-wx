@@ -8,6 +8,7 @@ namespace Characters
 {
 
 constexpr char DEGREE = static_cast<char>(0xb0);
+constexpr char ETX    = static_cast<char>(0x03);
 
 } // namespace Characters
 } // namespace common

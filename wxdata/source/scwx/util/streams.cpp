@@ -20,6 +20,10 @@ std::istream& getline(std::istream& is, std::string& t)
       case '\n': return is;
 
       case '\r':
+         while (sb->sgetc() == '\r')
+         {
+            sb->sbumpc();
+         }
          if (sb->sgetc() == '\n')
          {
             sb->sbumpc();
