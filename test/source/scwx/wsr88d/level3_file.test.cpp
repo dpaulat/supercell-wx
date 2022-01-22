@@ -7,12 +7,12 @@ namespace scwx
 namespace wsr88d
 {
 
-class ValidFileTest :
+class Level3ValidFileTest :
     public testing::TestWithParam<std::pair<int16_t, std::string>>
 {
 };
 
-TEST_P(ValidFileTest, ValidFile)
+TEST_P(Level3ValidFileTest, ValidFile)
 {
    Level3File file;
 
@@ -31,7 +31,7 @@ TEST_P(ValidFileTest, ValidFile)
 
 INSTANTIATE_TEST_SUITE_P(
    Level3File,
-   ValidFileTest,
+   Level3ValidFileTest,
    testing::Values(
       std::pair<int16_t, std::string> {2, "KLSX_NXUS63_GSMLSX_202112110238"},
       std::pair<int16_t, std::string> {19, "KLSX_SDUS53_N0RLSX_202105041639"},
