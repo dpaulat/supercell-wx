@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/awips/message.hpp>
+#include <scwx/awips/wmo_header.hpp>
 
 #include <cstdint>
 #include <memory>
@@ -23,6 +24,8 @@ public:
 
    TextProductMessage(TextProductMessage&&) noexcept;
    TextProductMessage& operator=(TextProductMessage&&) noexcept;
+
+   std::shared_ptr<WmoHeader> wmo_header() const;
 
    size_t data_size() const;
 

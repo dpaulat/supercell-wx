@@ -35,5 +35,26 @@ INSTANTIATE_TEST_SUITE_P(
                    "/warnings/warnings_20210606_22-59.txt",
                    "/nexrad/level3/KLSX_NOUS63_FTMLSX_202201041404"));
 
+TEST(TextProductFile, Update)
+{
+   const std::string filename1 {std::string(SCWX_TEST_DATA_DIR) +
+                                "/warnings/warnings_20210606_22-08.txt"};
+   const std::string filename2 {std::string(SCWX_TEST_DATA_DIR) +
+                                "/warnings/warnings_20210606_22-19.txt"};
+   const std::string filename3 {std::string(SCWX_TEST_DATA_DIR) +
+                                "/warnings/warnings_20210606_22-59.txt"};
+
+   TextProductFile file;
+
+   file.LoadFile(filename1);
+   EXPECT_EQ(file.message_count(), 2);
+
+   file.LoadFile(filename2);
+   EXPECT_EQ(file.message_count(), 4);
+
+   file.LoadFile(filename3);
+   EXPECT_EQ(file.message_count(), 13);
+}
+
 } // namespace awips
 } // namespace scwx

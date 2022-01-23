@@ -37,6 +37,8 @@ public:
    }
    ~WmoHeaderImpl() = default;
 
+   bool operator==(const WmoHeaderImpl& o) const;
+
    std::string sequenceNumber_;
    std::string dataType_;
    std::string geographicDesignator_;
@@ -53,6 +55,24 @@ WmoHeader::~WmoHeader() = default;
 
 WmoHeader::WmoHeader(WmoHeader&&) noexcept = default;
 WmoHeader& WmoHeader::operator=(WmoHeader&&) noexcept = default;
+
+bool WmoHeader::operator==(const WmoHeader& o) const
+{
+   return (*p.get() == *o.p.get());
+}
+
+bool WmoHeaderImpl::operator==(const WmoHeaderImpl& o) const
+{
+   return (sequenceNumber_ == o.sequenceNumber_ &&             //
+           dataType_ == o.dataType_ &&                         //
+           geographicDesignator_ == o.geographicDesignator_ && //
+           bulletinId_ == o.bulletinId_ &&                     //
+           icao_ == o.icao_ &&                                 //
+           dateTime_ == o.dateTime_ &&                         //
+           bbbIndicator_ == o.bbbIndicator_ &&                 //
+           productCategory_ == o.productCategory_ &&           //
+           productDesignator_ == o.productDesignator_);
+}
 
 const std::string& WmoHeader::sequence_number() const
 {

@@ -68,10 +68,23 @@ bool TextProductFile::LoadData(std::istream& is)
    {
       std::shared_ptr<TextProductMessage> message =
          TextProductMessage::Create(is);
+      bool duplicate = false;
 
       if (message != nullptr)
       {
-         p->messages_.push_back(message);
+         for (auto m : p->messages_)
+         {
+            if (*m->wmo_header().get() == *message->wmo_header().get())
+            {
+               duplicate = true;
+               break;
+            }
+         }
+
+         if (!duplicate)
+         {
+            p->messages_.push_back(message);
+         }
       }
       else
       {

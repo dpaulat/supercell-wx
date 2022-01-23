@@ -33,6 +33,8 @@ public:
    WmoHeader(WmoHeader&&) noexcept;
    WmoHeader& operator=(WmoHeader&&) noexcept;
 
+   bool operator==(const WmoHeader& o) const;
+
    const std::string& sequence_number() const;
    const std::string& data_type() const;
    const std::string& geographic_designator() const;

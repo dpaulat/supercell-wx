@@ -1,6 +1,5 @@
 #include <scwx/awips/text_product_message.hpp>
 #include <scwx/awips/pvtec.hpp>
-#include <scwx/awips/wmo_header.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/util/streams.hpp>
 
@@ -99,6 +98,11 @@ TextProductMessage::~TextProductMessage() = default;
 TextProductMessage::TextProductMessage(TextProductMessage&&) noexcept = default;
 TextProductMessage&
 TextProductMessage::operator=(TextProductMessage&&) noexcept = default;
+
+std::shared_ptr<WmoHeader> TextProductMessage::wmo_header() const
+{
+   return p->wmoHeader_;
+}
 
 size_t TextProductMessage::data_size() const
 {
