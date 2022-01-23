@@ -1,4 +1,5 @@
 #include <scwx/awips/text_product_message.hpp>
+#include <scwx/awips/pvtec.hpp>
 #include <scwx/awips/wmo_header.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/util/streams.hpp>
@@ -26,7 +27,7 @@ static const std::regex reDateTimeString {"^[0-9]{3,4} ([AP]M|UTC)"};
 
 struct Vtec
 {
-   std::string pVtec_;
+   PVtec       pVtec_;
    std::string hVtec_;
 
    Vtec() : pVtec_ {}, hVtec_ {} {}
@@ -330,7 +331,7 @@ std::optional<Vtec> TryParseVtecString(std::istream& is)
    if (std::regex_search(line, rePVtecString))
    {
       vtec = Vtec();
-      vtec->pVtec_.swap(line);
+      vtec->pVtec_.Parse(line);
 
       isBegin = is.tellg();
 
@@ -342,8 +343,8 @@ std::optional<Vtec> TryParseVtecString(std::istream& is)
       }
       else
       {
-         // H-VTEC was not found, so reset the istream to the beginning of the
-         // line
+         // H-VTEC was not found, so reset the istream to the beginning of
+         // the line
          is.seekg(isBegin, std::ios_base::beg);
       }
    }

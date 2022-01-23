@@ -3,10 +3,16 @@ project(scwx-data)
 find_package(Boost)
 
 set(HDR_AWIPS include/scwx/awips/message.hpp
+              include/scwx/awips/phenomenon.hpp
+              include/scwx/awips/pvtec.hpp
+              include/scwx/awips/significance.hpp
               include/scwx/awips/text_product_file.hpp
               include/scwx/awips/text_product_message.hpp
               include/scwx/awips/wmo_header.hpp)
 set(SRC_AWIPS source/scwx/awips/message.cpp
+              source/scwx/awips/phenomenon.cpp
+              source/scwx/awips/pvtec.cpp
+              source/scwx/awips/significance.cpp
               source/scwx/awips/text_product_file.cpp
               source/scwx/awips/text_product_message.cpp
               source/scwx/awips/wmo_header.cpp)
