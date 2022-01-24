@@ -148,7 +148,7 @@ bool WmoHeader::Parse(std::istream& is)
          << logPrefix_ << "Start of Heading Line is malformed";
       headerValid = false;
    }
-   else if (!sequenceLine.empty() && !sequenceLine.ends_with(" \r\r"))
+   else if (!sequenceLine.empty() && !sequenceLine.ends_with("\r\r"))
    {
       BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Sequence Line is malformed";
       headerValid = false;
@@ -170,7 +170,11 @@ bool WmoHeader::Parse(std::istream& is)
       // Remove delimiters from the end of the line
       if (!sequenceLine.empty())
       {
-         sequenceLine.erase(sequenceLine.length() - 3);
+         sequenceLine.erase(sequenceLine.length() - 2);
+         while (sequenceLine.ends_with(' '))
+         {
+            sequenceLine.erase(sequenceLine.length() - 1);
+         }
       }
 
       wmoLine.erase(wmoLine.length() - 2);

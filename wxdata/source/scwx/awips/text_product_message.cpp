@@ -75,6 +75,7 @@ static std::vector<std::string>     ParseProductContent(std::istream& is);
 void                                SkipBlankLines(std::istream& is);
 bool                                TryParseEndOfProduct(std::istream& is);
 static std::vector<std::string>     TryParseMndHeader(std::istream& is);
+static std::vector<std::string>     TryParseOverviewBlock(std::istream& is);
 static std::optional<SegmentHeader> TryParseSegmentHeader(std::istream& is);
 static std::optional<Vtec>          TryParseVtecString(std::istream& is);
 
@@ -86,6 +87,7 @@ public:
 
    std::shared_ptr<WmoHeader>            wmoHeader_;
    std::vector<std::string>              mndHeader_;
+   std::vector<std::string>              overviewBlock_;
    std::vector<std::shared_ptr<Segment>> segments_;
 };
 
@@ -136,6 +138,13 @@ bool TextProductMessage::Parse(std::istream& is)
 
          p->mndHeader_ = TryParseMndHeader(is);
          SkipBlankLines(is);
+
+         // Optional overview block appears between MND and segment header
+         if (!segment->header_.has_value())
+         {
+            p->overviewBlock_ = TryParseOverviewBlock(is);
+            SkipBlankLines(is);
+         }
       }
 
       if (!segment->header_.has_value())
@@ -165,7 +174,10 @@ std::vector<std::string> ParseProductContent(std::istream& is)
    {
       util::getline(is, line);
 
-      productContent.push_back(line);
+      if (!productContent.empty() || !line.starts_with("$$"))
+      {
+         productContent.push_back(line);
+      }
 
       if (line.starts_with("$$"))
       {
@@ -261,6 +273,27 @@ std::vector<std::string> TryParseMndHeader(std::istream& is)
    }
 
    return mndHeader;
+}
+
+std::vector<std::string> TryParseOverviewBlock(std::istream& is)
+{
+   // Optional overview block contains text in the following format:
+   // ...OVERVIEW HEADLINE... /OPTIONAL/
+   // .OVERVIEW WITH GENERAL INFORMATION / OPTIONAL /
+   // Key off the block beginning with .
+   std::vector<std::string> overviewBlock;
+   std::string              line;
+
+   if (is.peek() == '.')
+   {
+      while (!is.eof() && is.peek() != '\r')
+      {
+         util::getline(is, line);
+         overviewBlock.push_back(line);
+      }
+   }
+
+   return overviewBlock;
 }
 
 std::optional<SegmentHeader> TryParseSegmentHeader(std::istream& is)

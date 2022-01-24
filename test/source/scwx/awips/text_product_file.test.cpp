@@ -33,7 +33,9 @@ INSTANTIATE_TEST_SUITE_P(
    testing::Values("/warnings/warnings_20210604_21.txt",
                    "/warnings/warnings_20210606_15.txt",
                    "/warnings/warnings_20210606_22-59.txt",
-                   "/nexrad/level3/KLSX_NOUS63_FTMLSX_202201041404"));
+                   "/nexrad/level3/KLSX_NOUS63_FTMLSX_202201041404",
+                   "/text/PGUM_WHPQ41_CFWPQ1_202201231710.nids",
+                   "/text/PGUM_WHPQ42_CFWPQ2_202201231924.nids"));
 
 TEST(TextProductFile, Update)
 {
