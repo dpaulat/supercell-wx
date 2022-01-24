@@ -130,55 +130,25 @@ bool WmoHeader::Parse(std::istream& is)
 
    if (is.peek() == 0x01)
    {
-      std::getline(is, sohLine);
-      std::getline(is, sequenceLine);
+      util::getline(is, sohLine);
+      util::getline(is, sequenceLine);
    }
 
-   std::getline(is, wmoLine);
-   std::getline(is, awipsLine);
+   util::getline(is, wmoLine);
+   util::getline(is, awipsLine);
 
    if (is.eof())
    {
       BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
       headerValid = false;
    }
-   else if (!sohLine.empty() && !sohLine.ends_with("\r\r"))
-   {
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Start of Heading Line is malformed";
-      headerValid = false;
-   }
-   else if (!sequenceLine.empty() && !sequenceLine.ends_with("\r\r"))
-   {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Sequence Line is malformed";
-      headerValid = false;
-   }
-   else if (!wmoLine.ends_with("\r\r"))
-   {
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "WMO Abbreviated Heading Line is malformed";
-      headerValid = false;
-   }
-   else if (!awipsLine.ends_with("\r\r"))
-   {
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "AWIPS Identifier Line is malformed";
-      headerValid = false;
-   }
    else
    {
       // Remove delimiters from the end of the line
-      if (!sequenceLine.empty())
+      while (sequenceLine.ends_with(' '))
       {
-         sequenceLine.erase(sequenceLine.length() - 2);
-         while (sequenceLine.ends_with(' '))
-         {
-            sequenceLine.erase(sequenceLine.length() - 1);
-         }
+         sequenceLine.erase(sequenceLine.length() - 1);
       }
-
-      wmoLine.erase(wmoLine.length() - 2);
-      awipsLine.erase(awipsLine.length() - 2);
    }
 
    // Transmission Header:
