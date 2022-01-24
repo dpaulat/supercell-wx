@@ -56,12 +56,12 @@ Significance GetSignificance(const std::string& code)
    return significance;
 }
 
-std::string GetSignificanceCode(Significance significance)
+const std::string& GetSignificanceCode(Significance significance)
 {
    return significanceCodes_.left.at(significance);
 }
 
-std::string GetSignificanceText(Significance significance)
+const std::string& GetSignificanceText(Significance significance)
 {
    return significanceText_.at(significance);
 }

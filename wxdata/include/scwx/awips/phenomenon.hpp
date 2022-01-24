@@ -68,9 +68,9 @@ enum class Phenomenon
    Unknown
 };
 
-Phenomenon  GetPhenomenon(const std::string& code);
-std::string GetPhenomenonCode(Phenomenon phenomenon);
-std::string GetPhenomenonText(Phenomenon phenomenon);
+Phenomenon         GetPhenomenon(const std::string& code);
+const std::string& GetPhenomenonCode(Phenomenon phenomenon);
+const std::string& GetPhenomenonText(Phenomenon phenomenon);
 
 } // namespace awips
 } // namespace scwx

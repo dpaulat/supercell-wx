@@ -19,9 +19,9 @@ enum class Significance
    Unknown
 };
 
-Significance GetSignificance(const std::string& code);
-std::string  GetSignificanceCode(Significance significance);
-std::string  GetSignificanceText(Significance significance);
+Significance       GetSignificance(const std::string& code);
+const std::string& GetSignificanceCode(Significance significance);
+const std::string& GetSignificanceText(Significance significance);
 
 } // namespace awips
 } // namespace scwx

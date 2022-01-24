@@ -154,12 +154,12 @@ Phenomenon GetPhenomenon(const std::string& code)
    return phenomenon;
 }
 
-std::string GetPhenomenonCode(Phenomenon phenomenon)
+const std::string& GetPhenomenonCode(Phenomenon phenomenon)
 {
    return phenomenonCodes_.left.at(phenomenon);
 }
 
-std::string GetPhenomenonText(Phenomenon phenomenon)
+const std::string& GetPhenomenonText(Phenomenon phenomenon)
 {
    return phenomenonText_.at(phenomenon);
 }

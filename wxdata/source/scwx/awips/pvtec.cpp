@@ -242,7 +242,7 @@ PVtec::ProductType PVtec::GetProductType(const std::string& code)
    return productType;
 }
 
-std::string PVtec::GetProductTypeCode(PVtec::ProductType productType)
+const std::string& PVtec::GetProductTypeCode(PVtec::ProductType productType)
 {
    return productTypeCodes_.left.at(productType);
 }
@@ -266,7 +266,7 @@ PVtec::Action PVtec::GetAction(const std::string& code)
    return action;
 }
 
-std::string PVtec::GetActionCode(PVtec::Action action)
+const std::string& PVtec::GetActionCode(PVtec::Action action)
 {
    return actionCodes_.left.at(action);
 }

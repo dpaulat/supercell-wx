@@ -61,11 +61,11 @@ public:
 
    bool Parse(const std::string& s);
 
-   static ProductType GetProductType(const std::string& code);
-   static std::string GetProductTypeCode(ProductType productType);
+   static ProductType        GetProductType(const std::string& code);
+   static const std::string& GetProductTypeCode(ProductType productType);
 
-   static Action      GetAction(const std::string& code);
-   static std::string GetActionCode(Action action);
+   static Action             GetAction(const std::string& code);
+   static const std::string& GetActionCode(Action action);
 
 private:
    std::unique_ptr<PVtecImpl> p;
