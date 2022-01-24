@@ -74,47 +74,47 @@ bool WmoHeaderImpl::operator==(const WmoHeaderImpl& o) const
            productDesignator_ == o.productDesignator_);
 }
 
-const std::string& WmoHeader::sequence_number() const
+std::string WmoHeader::sequence_number() const
 {
    return p->sequenceNumber_;
 }
 
-const std::string& WmoHeader::data_type() const
+std::string WmoHeader::data_type() const
 {
    return p->dataType_;
 }
 
-const std::string& WmoHeader::geographic_designator() const
+std::string WmoHeader::geographic_designator() const
 {
    return p->geographicDesignator_;
 }
 
-const std::string& WmoHeader::bulletin_id() const
+std::string WmoHeader::bulletin_id() const
 {
    return p->bulletinId_;
 }
 
-const std::string& WmoHeader::icao() const
+std::string WmoHeader::icao() const
 {
    return p->icao_;
 }
 
-const std::string& WmoHeader::date_time() const
+std::string WmoHeader::date_time() const
 {
    return p->dateTime_;
 }
 
-const std::string& WmoHeader::bbb_indicator() const
+std::string WmoHeader::bbb_indicator() const
 {
    return p->bbbIndicator_;
 }
 
-const std::string& WmoHeader::product_category() const
+std::string WmoHeader::product_category() const
 {
    return p->productCategory_;
 }
 
-const std::string& WmoHeader::product_designator() const
+std::string WmoHeader::product_designator() const
 {
    return p->productDesignator_;
 }

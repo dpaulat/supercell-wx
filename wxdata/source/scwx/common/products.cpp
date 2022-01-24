@@ -47,14 +47,13 @@ const std::string& GetProductGroupName(RadarProductGroup group)
    return productGroupName_.at(group);
 }
 
-const RadarProductGroup GetProductGroup(const std::string& name)
+RadarProductGroup GetProductGroup(const std::string& name)
 {
    auto result = std::find_if(
       productGroupName_.cbegin(),
       productGroupName_.cend(),
-      [&](const std::pair<RadarProductGroup, std::string>& pair) -> bool {
-         return pair.second == name;
-      });
+      [&](const std::pair<RadarProductGroup, std::string>& pair) -> bool
+      { return pair.second == name; });
 
    if (result != productGroupName_.cend())
    {
@@ -81,14 +80,13 @@ const std::string& GetLevel2Palette(Level2Product product)
    return level2Palette_.at(product);
 }
 
-const Level2Product GetLevel2Product(const std::string& name)
+Level2Product GetLevel2Product(const std::string& name)
 {
    auto result = std::find_if(
       level2Name_.cbegin(),
       level2Name_.cend(),
-      [&](const std::pair<Level2Product, std::string>& pair) -> bool {
-         return pair.second == name;
-      });
+      [&](const std::pair<Level2Product, std::string>& pair) -> bool
+      { return pair.second == name; });
 
    if (result != level2Name_.cend())
    {

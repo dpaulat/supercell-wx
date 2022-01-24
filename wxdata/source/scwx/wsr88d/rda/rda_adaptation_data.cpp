@@ -378,27 +378,27 @@ RdaAdaptationData::RdaAdaptationData(RdaAdaptationData&&) noexcept = default;
 RdaAdaptationData&
 RdaAdaptationData::operator=(RdaAdaptationData&&) noexcept = default;
 
-const std::string& RdaAdaptationData::adap_file_name() const
+std::string RdaAdaptationData::adap_file_name() const
 {
    return p->adapFileName_;
 }
 
-const std::string& RdaAdaptationData::adap_format() const
+std::string RdaAdaptationData::adap_format() const
 {
    return p->adapFormat_;
 }
 
-const std::string& RdaAdaptationData::adap_revision() const
+std::string RdaAdaptationData::adap_revision() const
 {
    return p->adapRevision_;
 }
 
-const std::string& RdaAdaptationData::adap_date() const
+std::string RdaAdaptationData::adap_date() const
 {
    return p->adapDate_;
 }
 
-const std::string& RdaAdaptationData::adap_time() const
+std::string RdaAdaptationData::adap_time() const
 {
    return p->adapTime_;
 }
@@ -878,7 +878,7 @@ float RdaAdaptationData::el_correction_factor() const
    return p->elCorrectionFactor_;
 }
 
-const std::string& RdaAdaptationData::site_name() const
+std::string RdaAdaptationData::site_name() const
 {
    return p->siteName_;
 }

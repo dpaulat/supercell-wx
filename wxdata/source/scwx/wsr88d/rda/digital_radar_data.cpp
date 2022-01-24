@@ -550,7 +550,7 @@ DigitalRadarData::DigitalRadarData(DigitalRadarData&&) noexcept = default;
 DigitalRadarData&
 DigitalRadarData::operator=(DigitalRadarData&&) noexcept = default;
 
-const std::string& DigitalRadarData::radar_identifier() const
+std::string DigitalRadarData::radar_identifier() const
 {
    return p->radarIdentifier_;
 }

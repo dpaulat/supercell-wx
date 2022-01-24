@@ -821,7 +821,7 @@ uint16_t PerformanceMaintenanceData::rcp_status() const
    return p->rcpStatus_;
 }
 
-const std::string& PerformanceMaintenanceData::rcp_string() const
+std::string PerformanceMaintenanceData::rcp_string() const
 {
    return p->rcpString_;
 }

@@ -35,15 +35,15 @@ public:
 
    bool operator==(const WmoHeader& o) const;
 
-   const std::string& sequence_number() const;
-   const std::string& data_type() const;
-   const std::string& geographic_designator() const;
-   const std::string& bulletin_id() const;
-   const std::string& icao() const;
-   const std::string& date_time() const;
-   const std::string& bbb_indicator() const;
-   const std::string& product_category() const;
-   const std::string& product_designator() const;
+   std::string sequence_number() const;
+   std::string data_type() const;
+   std::string geographic_designator() const;
+   std::string bulletin_id() const;
+   std::string icao() const;
+   std::string date_time() const;
+   std::string bbb_indicator() const;
+   std::string product_category() const;
+   std::string product_designator() const;
 
    bool Parse(std::istream& is);
 
