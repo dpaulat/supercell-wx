@@ -195,5 +195,38 @@ TEST(CodedLocation, NCMaine)
    EXPECT_DOUBLE_EQ(coordinates[12].longitude_, -69.21);
 }
 
+TEST(CodedLocation, InvalidNC)
+{
+   std::vector<std::string> data = {
+      "LAT...LON 47316870 4721679 46466767 45436766 44756779",
+      "      44216834 43816943 43706970 43837006 44497009",
+      "      45306974 46356946 46976921"};
+
+   CodedLocation location;
+   bool          dataValid = location.Parse(data);
+
+   EXPECT_EQ(dataValid, false);
+}
+
+TEST(CodedLocation, EmptyData)
+{
+   std::vector<std::string> data = {};
+
+   CodedLocation location;
+   bool          dataValid = location.Parse(data);
+
+   EXPECT_EQ(dataValid, false);
+}
+
+TEST(CodedLocation, MalformedData)
+{
+   std::vector<std::string> data = {"LAT...LON 1360"};
+
+   CodedLocation location;
+   bool          dataValid = location.Parse(data);
+
+   EXPECT_EQ(dataValid, false);
+}
+
 } // namespace awips
 } // namespace scwx

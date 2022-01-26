@@ -175,6 +175,28 @@ bool CodedTimeMotionLocation::Parse(const StringRange& lines,
          }
       }
    }
+   else
+   {
+      if (tokenList.empty())
+      {
+         BOOST_LOG_TRIVIAL(warning)
+            << logPrefix_ << "TIME...MOT...LOC not found";
+      }
+      else
+      {
+         BOOST_LOG_TRIVIAL(warning)
+            << logPrefix_
+            << "Malformed TIME...MOT...LOC tokens: (0: " << tokenList.at(0)
+            << ", size: " << tokenList.size() << ")";
+
+         for (const auto& token : tokenList)
+         {
+            BOOST_LOG_TRIVIAL(debug) << logPrefix_ << token;
+         }
+      }
+
+      dataValid = false;
+   }
 
    return dataValid;
 }

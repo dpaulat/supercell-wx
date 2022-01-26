@@ -114,6 +114,11 @@ bool CodedLocation::Parse(const StringRange& lines, const std::string& wfo)
          {
             if (token->size() != 8)
             {
+               BOOST_LOG_TRIVIAL(warning)
+                  << logPrefix_
+                  << "Invalid National Center LAT...LON format: \"" << *token
+                  << "\"";
+
                dataValid = false;
                break;
             }
@@ -136,6 +141,27 @@ bool CodedLocation::Parse(const StringRange& lines, const std::string& wfo)
             p->coordinates_.push_back({latitude, longitude});
          }
       }
+   }
+   else
+   {
+      if (tokenList.empty())
+      {
+         BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "LAT...LON not found";
+      }
+      else
+      {
+         BOOST_LOG_TRIVIAL(warning)
+            << logPrefix_
+            << "Malformed LAT...LON tokens: (0: " << tokenList.at(0)
+            << ", size: " << tokenList.size() << ")";
+
+         for (const auto& token : tokenList)
+         {
+            BOOST_LOG_TRIVIAL(debug) << logPrefix_ << token;
+         }
+      }
+
+      dataValid = false;
    }
 
    if (dataValid)

@@ -86,5 +86,25 @@ TEST(CodedTimeMotionLocation, TwoCoordinates)
    EXPECT_DOUBLE_EQ(coordinates[1].longitude_, -81.98);
 }
 
+TEST(CodedTimeMotionLocation, EmptyData)
+{
+   std::vector<std::string> data = {};
+
+   CodedTimeMotionLocation tml;
+   bool                    dataValid = tml.Parse(data);
+
+   EXPECT_EQ(dataValid, false);
+}
+
+TEST(CodedTimeMotionLocation, MalformedData)
+{
+   std::vector<std::string> data = {"TIME...MOT...LOC 2113Z 345DEG 42KT 2760"};
+
+   CodedTimeMotionLocation tml;
+   bool                    dataValid = tml.Parse(data);
+
+   EXPECT_EQ(dataValid, false);
+}
+
 } // namespace awips
 } // namespace scwx
