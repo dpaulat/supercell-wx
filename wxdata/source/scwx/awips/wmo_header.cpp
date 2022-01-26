@@ -171,7 +171,7 @@ bool WmoHeader::Parse(std::istream& is)
 
       while (wmoTokens >> token)
       {
-         wmoTokenList.push_back(std::move(token));
+         wmoTokenList.push_back(token);
       }
 
       if (wmoTokenList.size() < 3 || wmoTokenList.size() > 4)
