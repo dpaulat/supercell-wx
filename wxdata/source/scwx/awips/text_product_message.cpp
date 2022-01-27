@@ -1,4 +1,6 @@
 #include <scwx/awips/text_product_message.hpp>
+#include <scwx/awips/coded_location.hpp>
+#include <scwx/awips/coded_time_motion_location.hpp>
 #include <scwx/awips/pvtec.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/util/streams.hpp>
@@ -59,10 +61,15 @@ struct SegmentHeader
 
 struct Segment
 {
-   std::optional<SegmentHeader> header_;
-   std::vector<std::string>     productContent_;
+   std::optional<SegmentHeader>           header_;
+   std::vector<std::string>               productContent_;
+   std::optional<CodedLocation>           codedLocation_;
+   std::optional<CodedTimeMotionLocation> codedMotion_;
 
-   Segment() : header_ {}, productContent_ {} {}
+   Segment() :
+       header_ {}, productContent_ {}, codedLocation_ {}, codedMotion_ {}
+   {
+   }
 
    Segment(const Segment&) = delete;
    Segment& operator=(const Segment&) = delete;
@@ -71,9 +78,11 @@ struct Segment
    Segment& operator=(Segment&&) noexcept = default;
 };
 
+static void ParseCodedInformation(std::shared_ptr<Segment> segment,
+                                  const std::string&       wfo);
 static std::vector<std::string>     ParseProductContent(std::istream& is);
-void                                SkipBlankLines(std::istream& is);
-bool                                TryParseEndOfProduct(std::istream& is);
+static void                         SkipBlankLines(std::istream& is);
+static bool                         TryParseEndOfProduct(std::istream& is);
 static std::vector<std::string>     TryParseMndHeader(std::istream& is);
 static std::vector<std::string>     TryParseOverviewBlock(std::istream& is);
 static std::optional<SegmentHeader> TryParseSegmentHeader(std::istream& is);
@@ -156,6 +165,8 @@ bool TextProductMessage::Parse(std::istream& is)
       segment->productContent_ = ParseProductContent(is);
       SkipBlankLines(is);
 
+      ParseCodedInformation(segment, p->wmoHeader_->icao());
+
       if (segment->header_.has_value() || !segment->productContent_.empty())
       {
          p->segments_.push_back(std::move(segment));
@@ -163,6 +174,58 @@ bool TextProductMessage::Parse(std::istream& is)
    }
 
    return dataValid;
+}
+
+void ParseCodedInformation(std::shared_ptr<Segment> segment,
+                           const std::string&       wfo)
+{
+   typedef std::vector<std::string>::const_iterator StringIterator;
+
+   std::vector<std::string>& productContent = segment->productContent_;
+
+   StringIterator codedLocationBegin = productContent.cend();
+   StringIterator codedLocationEnd   = productContent.cend();
+   StringIterator codedMotionBegin   = productContent.cend();
+   StringIterator codedMotionEnd     = productContent.cend();
+
+   for (auto it = productContent.cbegin(); it != productContent.cend(); ++it)
+   {
+      if (codedLocationBegin == productContent.cend() &&
+          it->starts_with("LAT...LON"))
+      {
+         codedLocationBegin = it;
+      }
+      else if (codedLocationBegin != productContent.cend() &&
+               codedLocationEnd == productContent.cend() &&
+               !it->starts_with(" ") /* Continuation line */)
+      {
+         codedLocationEnd = it;
+      }
+
+      if (codedMotionBegin == productContent.cend() &&
+          it->starts_with("TIME...MOT...LOC"))
+      {
+         codedMotionBegin = it;
+      }
+      else if (codedMotionBegin != productContent.cend() &&
+               codedMotionEnd == productContent.cend() &&
+               !it->starts_with(" ") /* Continuation line */)
+      {
+         codedMotionEnd = it;
+      }
+   }
+
+   if (codedLocationBegin != productContent.cend())
+   {
+      segment->codedLocation_ =
+         CodedLocation::Create({codedLocationBegin, codedLocationEnd}, wfo);
+   }
+
+   if (codedMotionBegin != productContent.cend())
+   {
+      segment->codedMotion_ = CodedTimeMotionLocation::Create(
+         {codedMotionBegin, codedMotionEnd}, wfo);
+   }
 }
 
 std::vector<std::string> ParseProductContent(std::istream& is)
@@ -367,8 +430,10 @@ std::optional<Vtec> TryParseVtecString(std::istream& is)
 
    if (std::regex_search(line, rePVtecString))
    {
-      vtec = Vtec();
-      vtec->pVtec_.Parse(line);
+      bool vtecValid;
+
+      vtec      = Vtec();
+      vtecValid = vtec->pVtec_.Parse(line);
 
       isBegin = is.tellg();
 
@@ -383,6 +448,11 @@ std::optional<Vtec> TryParseVtecString(std::istream& is)
          // H-VTEC was not found, so reset the istream to the beginning of
          // the line
          is.seekg(isBegin, std::ios_base::beg);
+      }
+
+      if (!vtecValid)
+      {
+         vtec.reset();
       }
    }
    else

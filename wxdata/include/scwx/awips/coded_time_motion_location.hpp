@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -36,7 +37,10 @@ public:
    uint8_t                                     speed() const;
    std::vector<common::Coordinate>             coordinates() const;
 
-   bool Parse(const StringRange& lines, const std::string& wfo = "");
+   bool Parse(const StringRange& lines, const std::string& wfo = {});
+
+   static std::optional<CodedTimeMotionLocation>
+   Create(const StringRange& lines, const std::string& wfo = {});
 
 private:
    std::unique_ptr<CodedTimeMotionLocationImpl> p;

@@ -205,5 +205,18 @@ bool CodedLocation::Parse(const StringRange& lines, const std::string& wfo)
    return dataValid;
 }
 
+std::optional<CodedLocation> CodedLocation::Create(const StringRange& lines,
+                                                   const std::string& wfo)
+{
+   std::optional<CodedLocation> location = std::make_optional<CodedLocation>();
+
+   if (!location->Parse(lines, wfo))
+   {
+      location.reset();
+   }
+
+   return location;
+}
+
 } // namespace awips
 } // namespace scwx

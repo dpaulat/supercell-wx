@@ -234,5 +234,20 @@ bool CodedTimeMotionLocation::Parse(const StringRange& lines,
    return dataValid;
 }
 
+std::optional<CodedTimeMotionLocation>
+CodedTimeMotionLocation::Create(const StringRange& lines,
+                                const std::string& wfo)
+{
+   std::optional<CodedTimeMotionLocation> motion =
+      std::make_optional<CodedTimeMotionLocation>();
+
+   if (!motion->Parse(lines, wfo))
+   {
+      motion.reset();
+   }
+
+   return motion;
+}
+
 } // namespace awips
 } // namespace scwx

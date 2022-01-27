@@ -3,6 +3,7 @@
 #include <scwx/common/geographic.hpp>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -32,7 +33,10 @@ public:
 
    std::vector<common::Coordinate> coordinates() const;
 
-   bool Parse(const StringRange& lines, const std::string& wfo = "");
+   bool Parse(const StringRange& lines, const std::string& wfo = {});
+
+   static std::optional<CodedLocation> Create(const StringRange& lines,
+                                              const std::string& wfo = {});
 
 private:
    std::unique_ptr<CodedLocationImpl> p;
