@@ -122,8 +122,18 @@ bool CodedTimeMotionLocation::Parse(const StringRange& lines,
       std::string direction = tokenList.at(2);
       if (direction.size() == 6 && direction.ends_with("DEG"))
       {
-         p->direction_ =
-            static_cast<uint16_t>(std::stoul(direction.substr(0, 3)));
+         try
+         {
+            p->direction_ =
+               static_cast<uint16_t>(std::stoul(direction.substr(0, 3)));
+         }
+         catch (const std::exception& ex)
+         {
+            BOOST_LOG_TRIVIAL(warning)
+               << logPrefix_ << "Invalid direction: \"" << direction << "\" ("
+               << ex.what() << ")";
+            dataValid = false;
+         }
       }
       else
       {
@@ -136,8 +146,17 @@ bool CodedTimeMotionLocation::Parse(const StringRange& lines,
       std::string speed = tokenList.at(3);
       if (speed.size() >= 3 && speed.size() <= 4 && speed.ends_with("KT"))
       {
-         p->speed_ =
-            static_cast<uint8_t>(std::stoul(speed.substr(0, speed.size() - 2)));
+         try
+         {
+            p->speed_ = static_cast<uint8_t>(
+               std::stoul(speed.substr(0, speed.size() - 2)));
+         }
+         catch (const std::exception& ex)
+         {
+            BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Invalid speed: \""
+                                       << speed << "\" (" << ex.what() << ")";
+            dataValid = false;
+         }
       }
       else
       {
@@ -150,9 +169,23 @@ bool CodedTimeMotionLocation::Parse(const StringRange& lines,
       for (auto token = tokenList.cbegin() + 4; token != tokenList.cend();
            ++token)
       {
-         double latitude = std::stod(*token) * 0.01;
-         ++token;
-         double longitude = std::stod(*token) * 0.01;
+         double latitude  = 0.0;
+         double longitude = 0.0;
+
+         try
+         {
+            latitude = std::stod(*token) * 0.01;
+            ++token;
+            longitude = std::stod(*token) * 0.01;
+         }
+         catch (const std::exception& ex)
+         {
+            BOOST_LOG_TRIVIAL(warning)
+               << logPrefix_ << "Invalid location token: \"" << *token << "\" ("
+               << ex.what() << ")";
+            dataValid = false;
+            break;
+         }
 
          // If a given product straddles 180 degrees longitude, those points
          // west of 180 degrees will be given as if they were west longitude

@@ -82,9 +82,23 @@ bool CodedLocation::Parse(const StringRange& lines, const std::string& wfo)
          for (auto token = tokenList.cbegin() + 1; token != tokenList.cend();
               ++token)
          {
-            double latitude = std::stod(*token) * 0.01;
-            ++token;
-            double longitude = std::stod(*token) * 0.01;
+            double latitude  = 0.0;
+            double longitude = 0.0;
+
+            try
+            {
+               latitude = std::stod(*token) * 0.01;
+               ++token;
+               longitude = std::stod(*token) * 0.01;
+            }
+            catch (const std::exception& ex)
+            {
+               BOOST_LOG_TRIVIAL(warning)
+                  << logPrefix_ << "Invalid WFO location token: \"" << *token
+                  << "\" (" << ex.what() << ")";
+               dataValid = false;
+               break;
+            }
 
             // If a given product straddles 180 degrees longitude, those points
             // west of 180 degrees will be given as if they were west longitude
@@ -99,7 +113,7 @@ bool CodedLocation::Parse(const StringRange& lines, const std::string& wfo)
             p->coordinates_.push_back({latitude, longitude});
          }
 
-         if (!wfoIsWest && straddlesDateLine)
+         if (dataValid && !wfoIsWest && straddlesDateLine)
          {
             for (auto& coordinate : p->coordinates_)
             {
@@ -123,8 +137,22 @@ bool CodedLocation::Parse(const StringRange& lines, const std::string& wfo)
                break;
             }
 
-            double latitude  = std::stod(token->substr(0, 4)) * 0.01;
-            double longitude = std::stod(token->substr(4, 4)) * -0.01;
+            double latitude  = 0.0;
+            double longitude = 0.0;
+
+            try
+            {
+               latitude  = std::stod(token->substr(0, 4)) * 0.01;
+               longitude = std::stod(token->substr(4, 4)) * -0.01;
+            }
+            catch (const std::exception& ex)
+            {
+               BOOST_LOG_TRIVIAL(warning)
+                  << logPrefix_ << "Invalid National Center location token: \""
+                  << *token << "\" (" << ex.what() << ")";
+               dataValid = false;
+               break;
+            }
 
             // Longitudes of greater than 100 degrees will drop the leading 1;
             // i.e., 105.22 W would be coded as 0522.  This is ambiguous

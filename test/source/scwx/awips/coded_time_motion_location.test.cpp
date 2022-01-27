@@ -106,5 +106,38 @@ TEST(CodedTimeMotionLocation, MalformedData)
    EXPECT_EQ(dataValid, false);
 }
 
+TEST(CodedTimeMotionLocation, InvalidDirection)
+{
+   std::vector<std::string> data = {
+      "TIME...MOT...LOC 1959Z ZZZDEG 0KT 3253 11464"};
+
+   CodedTimeMotionLocation tml;
+   bool                    dataValid = tml.Parse(data);
+
+   EXPECT_EQ(dataValid, false);
+}
+
+TEST(CodedTimeMotionLocation, InvalidSpeed)
+{
+   std::vector<std::string> data = {
+      "TIME...MOT...LOC 1959Z 254DEG ZKT 3253 11464"};
+
+   CodedTimeMotionLocation tml;
+   bool                    dataValid = tml.Parse(data);
+
+   EXPECT_EQ(dataValid, false);
+}
+
+TEST(CodedTimeMotionLocation, InvalidLocation)
+{
+   std::vector<std::string> data = {
+      "TIME...MOT...LOC 1959Z 254DEG 0KT ZZZZ 11464"};
+
+   CodedTimeMotionLocation tml;
+   bool                    dataValid = tml.Parse(data);
+
+   EXPECT_EQ(dataValid, false);
+}
+
 } // namespace awips
 } // namespace scwx
