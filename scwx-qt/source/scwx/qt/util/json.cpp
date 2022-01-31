@@ -3,6 +3,8 @@
 #include <fstream>
 
 #include <boost/log/trivial.hpp>
+#include <QFile>
+#include <QTextStream>
 
 namespace scwx
 {
@@ -26,6 +28,9 @@ static const std::string logPrefix_ = "[scwx::qt::util::json] ";
 static void PrettyPrintJson(std::ostream&             os,
                             boost::json::value const& jv,
                             std::string*              indent = nullptr);
+
+static boost::json::value ReadJsonFile(QFile& file);
+static boost::json::value ReadJsonStream(std::istream& is);
 
 bool FromJsonInt64(const boost::json::object& json,
                    const std::string&         key,
@@ -117,13 +122,56 @@ bool FromJsonString(const boost::json::object& json,
 
 boost::json::value ReadJsonFile(const std::string& path)
 {
-   std::ifstream ifs {path};
-   std::string   line;
+   boost::json::value json;
+
+   if (path.starts_with(":"))
+   {
+      QFile file(path.c_str());
+      json = ReadJsonFile(file);
+   }
+   else
+   {
+      std::ifstream ifs {path};
+      json = ReadJsonStream(ifs);
+   }
+
+   return json;
+}
+
+static boost::json::value ReadJsonFile(QFile& file)
+{
+   boost::json::value json;
+
+   if (file.open(QIODevice::ReadOnly))
+   {
+      QTextStream jsonStream(&file);
+      jsonStream.setEncoding(QStringConverter::Utf8);
+
+      std::string        jsonSource = jsonStream.readAll().toStdString();
+      std::istringstream is {jsonSource};
+
+      json = ReadJsonStream(is);
+
+      file.close();
+   }
+   else
+   {
+      BOOST_LOG_TRIVIAL(warning)
+         << logPrefix_ << "Could not open file for reading: \""
+         << file.fileName().toStdString() << "\"";
+   }
+
+   return json;
+}
+
+static boost::json::value ReadJsonStream(std::istream& is)
+{
+   std::string line;
 
    boost::json::stream_parser p;
    boost::json::error_code    ec;
 
-   while (std::getline(ifs, line))
+   while (std::getline(is, line))
    {
       p.write(line, ec);
       if (ec)

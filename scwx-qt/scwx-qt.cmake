@@ -53,6 +53,8 @@ set(SRC_EXE_MAIN source/scwx/qt/main/main.cpp)
 set(HDR_MAIN source/scwx/qt/main/main_window.hpp)
 set(SRC_MAIN source/scwx/qt/main/main_window.cpp)
 set(UI_MAIN  source/scwx/qt/main/main_window.ui)
+set(HDR_CONFIG source/scwx/qt/config/radar_site.hpp)
+set(SRC_CONFIG source/scwx/qt/config/radar_site.cpp)
 set(HDR_GL source/scwx/qt/gl/gl.hpp
            source/scwx/qt/gl/shader_program.hpp
            source/scwx/qt/gl/text_shader.hpp)
@@ -116,10 +118,14 @@ set(SHADER_FILES gl/color.frag
                  gl/texture1d.frag
                  gl/texture1d.vert)
 
+set (JSON_FILES res/config/radar_sites.json)
+
 set(TS_FILES ts/scwx_en_US.ts)
 
 set(PROJECT_SOURCES ${HDR_MAIN}
                     ${SRC_MAIN}
+                    ${HDR_CONFIG}
+                    ${SRC_CONFIG}
                     ${HDR_GL}
                     ${SRC_GL}
                     ${HDR_GL_DRAW}
@@ -138,12 +144,15 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${HDR_VIEW}
                     ${SRC_VIEW}
                     ${SHADER_FILES}
+                    ${JSON_FILES}
                     ${RESOURCE_FILES}
                     ${TS_FILES})
 set(EXECUTABLE_SOURCES ${SRC_EXE_MAIN})
 
 source_group("Header Files\\main"     FILES ${HDR_MAIN})
 source_group("Source Files\\main"     FILES ${SRC_MAIN})
+source_group("Header Files\\config"   FILES ${HDR_CONFIG})
+source_group("Source Files\\config"   FILES ${SRC_CONFIG})
 source_group("Header Files\\gl"       FILES ${HDR_GL})
 source_group("Source Files\\gl"       FILES ${SRC_GL})
 source_group("Header Files\\gl\\draw" FILES ${HDR_GL_DRAW})
@@ -163,6 +172,7 @@ source_group("Header Files\\view"     FILES ${HDR_VIEW})
 source_group("Source Files\\view"     FILES ${SRC_VIEW})
 source_group("OpenGL Shaders"         FILES ${SHADER_FILES})
 source_group("Resources"              FILES ${RESOURCE_FILES})
+source_group("Resources\\json"        FILES ${JSON_FILES})
 source_group("I18N Files"             FILES ${TS_FILES})
 
 add_library(scwx-qt OBJECT ${PROJECT_SOURCES})

@@ -8,6 +8,7 @@
         <file>gl/text.vert</file>
         <file>gl/texture1d.frag</file>
         <file>gl/texture1d.vert</file>
+        <file>res/config/radar_sites.json</file>
         <file>res/fonts/din1451alt.ttf</file>
         <file>res/fonts/din1451alt_g.ttf</file>
     </qresource>

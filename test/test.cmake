@@ -13,6 +13,7 @@ set(SRC_AWIPS_TESTS source/scwx/awips/coded_location.test.cpp
                     source/scwx/awips/pvtec.test.cpp
                     source/scwx/awips/text_product_file.test.cpp)
 set(SRC_COMMON_TESTS source/scwx/common/color_table.test.cpp)
+set(SRC_QT_CONFIG_TESTS source/scwx/qt/config/radar_site.test.cpp)
 set(SRC_QT_MANAGER_TESTS source/scwx/qt/manager/settings_manager.test.cpp)
 set(SRC_UTIL_TESTS source/scwx/util/rangebuf.test.cpp
                    source/scwx/util/streams.test.cpp
@@ -23,6 +24,7 @@ set(SRC_WSR88D_TESTS source/scwx/wsr88d/ar2v_file.test.cpp
 add_executable(wxtest ${SRC_MAIN}
                       ${SRC_AWIPS_TESTS}
                       ${SRC_COMMON_TESTS}
+                      ${SRC_QT_CONFIG_TESTS}
                       ${SRC_QT_MANAGER_TESTS}
                       ${SRC_UTIL_TESTS}
                       ${SRC_WSR88D_TESTS})
@@ -30,6 +32,7 @@ add_executable(wxtest ${SRC_MAIN}
 source_group("Source Files\\main"        FILES ${SRC_MAIN})
 source_group("Source Files\\awips"       FILES ${SRC_AWIPS_TESTS})
 source_group("Source Files\\common"      FILES ${SRC_COMMON_TESTS})
+source_group("Source Files\\qt\\config"  FILES ${SRC_QT_CONFIG_TESTS})
 source_group("Source Files\\qt\\manager" FILES ${SRC_QT_MANAGER_TESTS})
 source_group("Source Files\\util"        FILES ${SRC_UTIL_TESTS})
 source_group("Source Files\\wsr88d"      FILES ${SRC_WSR88D_TESTS})
