@@ -16,9 +16,11 @@ std::string GetVcpDescription(uint16_t vcp)
    {
    case 31:
    case 32:
-   case 35: return CLEAR_AIR_MODE;
+   case 35:
+   case 90: return CLEAR_AIR_MODE;
 
    case 12:
+   case 80:
    case 112:
    case 121:
    case 212:
