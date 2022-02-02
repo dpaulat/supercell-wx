@@ -1,3 +1,4 @@
+#include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/main/main_window.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
@@ -13,6 +14,7 @@ int main(int argc, char* argv[])
 
    QCoreApplication::setApplicationName("Supercell Wx");
 
+   scwx::qt::config::RadarSite::Initialize();
    scwx::qt::manager::SettingsManager::Initialize();
    scwx::qt::manager::ResourceManager::PreLoad();
 

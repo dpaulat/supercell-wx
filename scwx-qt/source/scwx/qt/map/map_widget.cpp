@@ -211,7 +211,13 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
       this,
       [&]()
       {
-         RadarRangeLayer::Update(p->map_, radarProductView->range());
+         std::shared_ptr<config::RadarSite> radarSite =
+            p->radarProductManager_->radar_site();
+
+         RadarRangeLayer::Update(
+            p->map_,
+            radarProductView->range(),
+            {radarSite->latitude(), radarSite->longitude()});
          update();
          emit RadarSweepUpdated();
       },
@@ -301,6 +307,9 @@ void MapWidget::AddLayers()
    std::unique_ptr<QMapbox::CustomLayerHostInterface> pColorTableHost =
       std::make_unique<LayerWrapper>(p->colorTableLayer_);
 
+   std::shared_ptr<config::RadarSite> radarSite =
+      p->radarProductManager_->radar_site();
+
    QString before = "ferry";
 
    for (const QString& layer : p->map_->layerIds())
@@ -315,8 +324,9 @@ void MapWidget::AddLayers()
    }
 
    p->map_->addCustomLayer("radar", std::move(pHost), before);
-   RadarRangeLayer::Add(
-      p->map_, p->context_->radarProductView_->range(), before);
+   RadarRangeLayer::Add(p->map_,
+                        p->context_->radarProductView_->range(),
+                        {radarSite->latitude(), radarSite->longitude()});
    p->map_->addCustomLayer("colorTable", std::move(pColorTableHost));
    p->map_->addCustomLayer("overlay", std::move(pOverlayHost));
 }
@@ -421,8 +431,11 @@ void MapWidget::initializeGL()
            p.get(),
            &MapWidgetImpl::Update);
 
-   // Set default location to KLSX.
-   p->map_->setCoordinateZoom(QMapbox::Coordinate(38.6986, -90.6828), 9);
+   // Set default location to radar site
+   std::shared_ptr<config::RadarSite> radarSite =
+      p->radarProductManager_->radar_site();
+   p->map_->setCoordinateZoom({radarSite->latitude(), radarSite->longitude()},
+                              9);
    p->UpdateStoredMapParameters();
 
    QString styleUrl = qgetenv("MAPBOX_STYLE_URL");

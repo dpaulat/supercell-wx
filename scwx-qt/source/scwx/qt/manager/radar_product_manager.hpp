@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/common/types.hpp>
+#include <scwx/qt/config/radar_site.hpp>
 #include <scwx/wsr88d/ar2v_file.hpp>
 
 #include <memory>
@@ -22,10 +23,11 @@ class RadarProductManager : public QObject
    Q_OBJECT
 
 public:
-   explicit RadarProductManager(const std::string& radarSite);
+   explicit RadarProductManager(const std::string& radarId);
    ~RadarProductManager();
 
    const std::vector<float>& coordinates(common::RadialSize radialSize) const;
+   std::shared_ptr<config::RadarSite> radar_site() const;
 
    // TODO: Improve this interface
    std::shared_ptr<const wsr88d::Ar2vFile> level2_data() const;

@@ -13,8 +13,11 @@ namespace RadarRangeLayer
 
 void Add(std::shared_ptr<QMapboxGL> map,
          float                      range,
+         QMapbox::Coordinate        center,
          const QString&             before = QString());
-void Update(std::shared_ptr<QMapboxGL> map, float range);
+void Update(std::shared_ptr<QMapboxGL> map,
+            float                      range,
+            QMapbox::Coordinate        center);
 
 } // namespace RadarRangeLayer
 } // namespace map

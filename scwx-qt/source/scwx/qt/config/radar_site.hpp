@@ -34,6 +34,7 @@ public:
 
    static std::shared_ptr<RadarSite> Get(const std::string& id);
 
+   static void   Initialize();
    static size_t ReadConfig(const std::string& path);
 
 private:

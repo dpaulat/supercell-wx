@@ -13,10 +13,12 @@ namespace map
 
 static const std::string logPrefix_ = "[scwx::qt::map::radar_range_layer] ";
 
-static std::shared_ptr<QMapbox::Feature> GetRangeCircle(float range);
+static std::shared_ptr<QMapbox::Feature>
+GetRangeCircle(float range, QMapbox::Coordinate center);
 
 void RadarRangeLayer::Add(std::shared_ptr<QMapboxGL> map,
                           float                      range,
+                          QMapbox::Coordinate        center,
                           const QString&             before)
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Add()";
@@ -30,7 +32,8 @@ void RadarRangeLayer::Add(std::shared_ptr<QMapboxGL> map,
       map->removeSource("rangeCircleSource");
    }
 
-   std::shared_ptr<QMapbox::Feature> rangeCircle = GetRangeCircle(range);
+   std::shared_ptr<QMapbox::Feature> rangeCircle =
+      GetRangeCircle(range, center);
 
    map->addSource(
       "rangeCircleSource",
@@ -43,23 +46,25 @@ void RadarRangeLayer::Add(std::shared_ptr<QMapboxGL> map,
       "rangeCircleLayer", "line-color", "rgba(128, 128, 128, 128)");
 }
 
-void RadarRangeLayer::Update(std::shared_ptr<QMapboxGL> map, float range)
+void RadarRangeLayer::Update(std::shared_ptr<QMapboxGL> map,
+                             float                      range,
+                             QMapbox::Coordinate        center)
 {
-   std::shared_ptr<QMapbox::Feature> rangeCircle = GetRangeCircle(range);
+   std::shared_ptr<QMapbox::Feature> rangeCircle =
+      GetRangeCircle(range, center);
 
    map->updateSource("rangeCircleSource",
                      {{"data", QVariant::fromValue(*rangeCircle)}});
 }
 
-static std::shared_ptr<QMapbox::Feature> GetRangeCircle(float range)
+static std::shared_ptr<QMapbox::Feature>
+GetRangeCircle(float range, QMapbox::Coordinate center)
 {
    GeographicLib::Geodesic geodesic(GeographicLib::Constants::WGS84_a(),
                                     GeographicLib::Constants::WGS84_f());
 
    constexpr float angleDelta  = 0.5f;
    constexpr float angleDeltaH = angleDelta / 2.0f;
-
-   const QMapbox::Coordinate radar {38.6986, -90.6828};
 
    float angle = -angleDeltaH;
 
@@ -70,8 +75,8 @@ static std::shared_ptr<QMapbox::Feature> GetRangeCircle(float range)
       double latitude;
       double longitude;
 
-      geodesic.Direct(radar.first,
-                      radar.second,
+      geodesic.Direct(center.first,
+                      center.second,
                       angle,
                       range * 1000.0f,
                       latitude,

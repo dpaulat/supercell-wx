@@ -14,6 +14,9 @@ namespace config
 
 static const std::string logPrefix_ = "[scwx::qt::settings::radar_site] ";
 
+static const std::string defaultRadarSiteFile_ =
+   ":/res/config/radar_sites.json";
+
 static std::unordered_map<std::string, std::shared_ptr<RadarSite>>
    radarSiteMap_;
 
@@ -97,8 +100,16 @@ std::shared_ptr<RadarSite> RadarSite::Get(const std::string& id)
    return radarSite;
 }
 
+void RadarSite::Initialize()
+{
+   ReadConfig(defaultRadarSiteFile_);
+}
+
 size_t RadarSite::ReadConfig(const std::string& path)
 {
+   BOOST_LOG_TRIVIAL(info) << logPrefix_ << "Loading radar sites from \""
+                           << path << "\"...";
+
    bool   dataValid  = true;
    size_t sitesAdded = 0;
 

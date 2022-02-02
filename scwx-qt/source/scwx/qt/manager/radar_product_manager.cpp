@@ -1,5 +1,6 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/common/constants.hpp>
+#include <scwx/qt/config/radar_site.hpp>
 #include <scwx/util/threads.hpp>
 
 #include <deque>
@@ -38,14 +39,24 @@ static std::unordered_map<std::string, std::shared_ptr<RadarProductManager>>
 class RadarProductManagerImpl
 {
 public:
-   explicit RadarProductManagerImpl(const std::string& radarSite) :
-       radarSite_ {radarSite}, initialized_ {false}
+   explicit RadarProductManagerImpl(const std::string& radarId) :
+       radarId_ {radarId},
+       initialized_ {false},
+       radarSite_ {config::RadarSite::Get(radarId)}
    {
+      if (radarSite_ == nullptr)
+      {
+         BOOST_LOG_TRIVIAL(warning)
+            << logPrefix_ << "Radar site not found: \"" << radarId_ << "\"";
+         radarSite_ = std::make_shared<config::RadarSite>();
+      }
    }
    ~RadarProductManagerImpl() = default;
 
-   std::string radarSite_;
+   std::string radarId_;
    bool        initialized_;
+
+   std::shared_ptr<config::RadarSite> radarSite_;
 
    std::vector<float> coordinates0_5Degree_;
    std::vector<float> coordinates1Degree_;
@@ -57,8 +68,8 @@ public:
    std::mutex fileLoadMutex_;
 };
 
-RadarProductManager::RadarProductManager(const std::string& radarSite) :
-    p(std::make_unique<RadarProductManagerImpl>(radarSite))
+RadarProductManager::RadarProductManager(const std::string& radarId) :
+    p(std::make_unique<RadarProductManagerImpl>(radarId))
 {
 }
 RadarProductManager::~RadarProductManager() = default;
@@ -73,6 +84,11 @@ RadarProductManager::coordinates(common::RadialSize radialSize) const
    }
 
    throw std::exception("Invalid radial size");
+}
+
+std::shared_ptr<config::RadarSite> RadarProductManager::radar_site() const
+{
+   return p->radarSite_;
 }
 
 std::shared_ptr<const wsr88d::Ar2vFile> RadarProductManager::level2_data() const
@@ -101,8 +117,8 @@ void RadarProductManager::Initialize()
    GeographicLib::Geodesic geodesic(GeographicLib::Constants::WGS84_a(),
                                     GeographicLib::Constants::WGS84_f());
 
-   // TODO: This should be retrieved from configuration
-   const QMapbox::Coordinate radar(38.6986, -90.6828);
+   const QMapbox::Coordinate radar(p->radarSite_->latitude(),
+                                   p->radarSite_->longitude());
 
    // Calculate half degree azimuth coordinates
    timer.start();
@@ -117,7 +133,8 @@ void RadarProductManager::Initialize()
       std::execution::par_unseq,
       radialGates0_5Degree.begin(),
       radialGates0_5Degree.end(),
-      [&](uint32_t radialGate) {
+      [&](uint32_t radialGate)
+      {
          const uint16_t gate =
             static_cast<uint16_t>(radialGate % common::MAX_DATA_MOMENT_GATES);
          const uint16_t radial =
@@ -154,7 +171,8 @@ void RadarProductManager::Initialize()
       std::execution::par_unseq,
       radialGates1Degree.begin(),
       radialGates1Degree.end(),
-      [&](uint32_t radialGate) {
+      [&](uint32_t radialGate)
+      {
          const uint16_t gate =
             static_cast<uint16_t>(radialGate % common::MAX_DATA_MOMENT_GATES);
          const uint16_t radial =
@@ -221,19 +239,21 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
    }
    else
    {
-      scwx::util::async([&]() {
-         std::lock_guard<std::mutex> guard(p->fileLoadMutex_);
-
-         BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Start load";
-
-         QString filename = qgetenv("AR2V_FILE");
-         if (!filename.isEmpty() && p->level2VolumeScans_.size() == 0)
+      scwx::util::async(
+         [&]()
          {
-            LoadLevel2Data(filename.toUtf8().constData());
-         }
+            std::lock_guard<std::mutex> guard(p->fileLoadMutex_);
 
-         BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "End load";
-      });
+            BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Start load";
+
+            QString filename = qgetenv("AR2V_FILE");
+            if (!filename.isEmpty() && p->level2VolumeScans_.size() == 0)
+            {
+               LoadLevel2Data(filename.toUtf8().constData());
+            }
+
+            BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "End load";
+         });
    }
 
    return std::tie(radarData, elevationCut, elevationCuts);
