@@ -1,5 +1,6 @@
 #pragma once
 
+#include <scwx/wsr88d/nexrad_file.hpp>
 #include <scwx/wsr88d/rda/digital_radar_data.hpp>
 #include <scwx/wsr88d/rda/volume_coverage_pattern_data.hpp>
 
@@ -19,7 +20,7 @@ class Ar2vFileImpl;
  * the Archive II/User, Document Number 2620010H, published by the WSR-88D Radar
  * Operations Center.
  */
-class Ar2vFile
+class Ar2vFile : public NexradFile
 {
 public:
    explicit Ar2vFile();
@@ -46,6 +47,7 @@ public:
                     std::chrono::system_clock::time_point time) const;
 
    bool LoadFile(const std::string& filename);
+   bool LoadData(std::istream& is);
 
 private:
    std::unique_ptr<Ar2vFileImpl> p;

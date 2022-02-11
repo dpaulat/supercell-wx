@@ -41,9 +41,13 @@ set(SRC_UTIL source/scwx/util/rangebuf.cpp
              source/scwx/util/time.cpp
              source/scwx/util/vectorbuf.cpp)
 set(HDR_WSR88D include/scwx/wsr88d/ar2v_file.hpp
-               include/scwx/wsr88d/level3_file.hpp)
+               include/scwx/wsr88d/level3_file.hpp
+               include/scwx/wsr88d/nexrad_file.hpp
+               include/scwx/wsr88d/nexrad_file_factory.hpp)
 set(SRC_WSR88D source/scwx/wsr88d/ar2v_file.cpp
-               source/scwx/wsr88d/level3_file.cpp)
+               source/scwx/wsr88d/level3_file.cpp
+               source/scwx/wsr88d/nexrad_file.cpp
+               source/scwx/wsr88d/nexrad_file_factory.cpp)
 set(HDR_WSR88D_RDA include/scwx/wsr88d/rda/clutter_filter_map.hpp
                    include/scwx/wsr88d/rda/digital_radar_data.hpp
                    include/scwx/wsr88d/rda/level2_message.hpp

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <scwx/wsr88d/nexrad_file.hpp>
 #include <scwx/wsr88d/rpg/level3_message.hpp>
 
 #include <memory>
@@ -12,7 +13,7 @@ namespace wsr88d
 
 class Level3FileImpl;
 
-class Level3File
+class Level3File : public NexradFile
 {
 public:
    explicit Level3File();

@@ -19,7 +19,8 @@ set(SRC_UTIL_TESTS source/scwx/util/rangebuf.test.cpp
                    source/scwx/util/streams.test.cpp
                    source/scwx/util/vectorbuf.test.cpp)
 set(SRC_WSR88D_TESTS source/scwx/wsr88d/ar2v_file.test.cpp
-                     source/scwx/wsr88d/level3_file.test.cpp)
+                     source/scwx/wsr88d/level3_file.test.cpp
+                     source/scwx/wsr88d/nexrad_file_factory.test.cpp)
 
 add_executable(wxtest ${SRC_MAIN}
                       ${SRC_AWIPS_TESTS}

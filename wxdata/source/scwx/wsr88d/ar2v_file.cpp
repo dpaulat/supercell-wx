@@ -37,7 +37,7 @@ public:
 
    void HandleMessage(std::shared_ptr<rda::Level2Message>& message);
    void IndexFile();
-   void LoadLDMRecords(std::ifstream& f);
+   void LoadLDMRecords(std::istream& is);
    void ParseLDMRecords();
    void ProcessRadarData(std::shared_ptr<rda::DigitalRadarData> message);
 
@@ -179,29 +179,40 @@ bool Ar2vFile::LoadFile(const std::string& filename)
 
    if (fileValid)
    {
-      // Read Volume Header Record
-      p->tapeFilename_.resize(9, ' ');
-      p->extensionNumber_.resize(3, ' ');
-      p->icao_.resize(4, ' ');
-
-      f.read(&p->tapeFilename_[0], 9);
-      f.read(&p->extensionNumber_[0], 3);
-      f.read(reinterpret_cast<char*>(&p->julianDate_), 4);
-      f.read(reinterpret_cast<char*>(&p->milliseconds_), 4);
-      f.read(&p->icao_[0], 4);
-
-      p->julianDate_   = ntohl(p->julianDate_);
-      p->milliseconds_ = ntohl(p->milliseconds_);
+      fileValid = LoadData(f);
    }
 
-   if (f.eof())
+   return fileValid;
+}
+
+bool Ar2vFile::LoadData(std::istream& is)
+{
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading Data";
+
+   bool dataValid = true;
+
+   // Read Volume Header Record
+   p->tapeFilename_.resize(9, ' ');
+   p->extensionNumber_.resize(3, ' ');
+   p->icao_.resize(4, ' ');
+
+   is.read(&p->tapeFilename_[0], 9);
+   is.read(&p->extensionNumber_[0], 3);
+   is.read(reinterpret_cast<char*>(&p->julianDate_), 4);
+   is.read(reinterpret_cast<char*>(&p->milliseconds_), 4);
+   is.read(&p->icao_[0], 4);
+
+   p->julianDate_   = ntohl(p->julianDate_);
+   p->milliseconds_ = ntohl(p->milliseconds_);
+
+   if (is.eof())
    {
       BOOST_LOG_TRIVIAL(warning)
          << logPrefix_ << "Could not read Volume Header Record\n";
-      fileValid = false;
+      dataValid = false;
    }
 
-   if (fileValid)
+   if (dataValid)
    {
       BOOST_LOG_TRIVIAL(debug)
          << logPrefix_ << "Filename:  " << p->tapeFilename_;
@@ -212,27 +223,27 @@ bool Ar2vFile::LoadFile(const std::string& filename)
          << logPrefix_ << "Time:      " << p->milliseconds_;
       BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "ICAO:      " << p->icao_;
 
-      p->LoadLDMRecords(f);
+      p->LoadLDMRecords(is);
    }
 
    p->IndexFile();
 
-   return fileValid;
+   return dataValid;
 }
 
-void Ar2vFileImpl::LoadLDMRecords(std::ifstream& f)
+void Ar2vFileImpl::LoadLDMRecords(std::istream& is)
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading LDM Records";
 
    numRecords_ = 0;
 
-   while (f.peek() != EOF)
+   while (is.peek() != EOF)
    {
-      std::streampos startPosition = f.tellg();
+      std::streampos startPosition = is.tellg();
       int32_t        controlWord   = 0;
       size_t         recordSize;
 
-      f.read(reinterpret_cast<char*>(&controlWord), 4);
+      is.read(reinterpret_cast<char*>(&controlWord), 4);
 
       controlWord = ntohl(controlWord);
       recordSize  = std::abs(controlWord);
@@ -240,8 +251,13 @@ void Ar2vFileImpl::LoadLDMRecords(std::ifstream& f)
       BOOST_LOG_TRIVIAL(trace)
          << logPrefix_ << "LDM Record Found: Size = " << recordSize << " bytes";
 
+      if (recordSize == 0)
+      {
+         break;
+      }
+
       boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
-      util::rangebuf r(f.rdbuf(), recordSize);
+      util::rangebuf r(is.rdbuf(), recordSize);
       in.push(boost::iostreams::bzip2_decompressor());
       in.push(r);
 
@@ -261,7 +277,7 @@ void Ar2vFileImpl::LoadLDMRecords(std::ifstream& f)
          BOOST_LOG_TRIVIAL(warning)
             << logPrefix_ << "Error decompressing record " << numRecords_;
 
-         f.seekg(startPosition + std::streampos(recordSize));
+         is.seekg(startPosition + std::streampos(recordSize));
       }
 
       ++numRecords_;
