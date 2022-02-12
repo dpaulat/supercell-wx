@@ -28,26 +28,24 @@ public:
        julianDate_ {0},
        milliseconds_ {0},
        icao_(),
-       numRecords_ {0},
        rawRecords_(),
        vcpData_ {nullptr},
        radarData_ {},
        index_ {} {};
    ~Ar2vFileImpl() = default;
 
-   void HandleMessage(std::shared_ptr<rda::Level2Message>& message);
-   void IndexFile();
-   void LoadLDMRecords(std::istream& is);
-   void ParseLDMRecords();
-   void ProcessRadarData(std::shared_ptr<rda::DigitalRadarData> message);
+   size_t DecompressLDMRecords(std::istream& is);
+   void   HandleMessage(std::shared_ptr<rda::Level2Message>& message);
+   void   IndexFile();
+   void   ParseLDMRecords();
+   void   ParseLDMRecord(std::istream& is);
+   void   ProcessRadarData(std::shared_ptr<rda::DigitalRadarData> message);
 
    std::string tapeFilename_;
    std::string extensionNumber_;
    uint32_t    julianDate_;
    uint32_t    milliseconds_;
    std::string icao_;
-
-   size_t numRecords_;
 
    std::shared_ptr<rda::VolumeCoveragePatternData>         vcpData_;
    std::map<uint16_t, std::shared_ptr<rda::ElevationScan>> radarData_;
@@ -223,7 +221,15 @@ bool Ar2vFile::LoadData(std::istream& is)
          << logPrefix_ << "Time:      " << p->milliseconds_;
       BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "ICAO:      " << p->icao_;
 
-      p->LoadLDMRecords(is);
+      size_t decompressedRecords = p->DecompressLDMRecords(is);
+      if (decompressedRecords == 0)
+      {
+         p->ParseLDMRecord(is);
+      }
+      else
+      {
+         p->ParseLDMRecords();
+      }
    }
 
    p->IndexFile();
@@ -231,11 +237,11 @@ bool Ar2vFile::LoadData(std::istream& is)
    return dataValid;
 }
 
-void Ar2vFileImpl::LoadLDMRecords(std::istream& is)
+size_t Ar2vFileImpl::DecompressLDMRecords(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading LDM Records";
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Decompressing LDM Records";
 
-   numRecords_ = 0;
+   size_t numRecords = 0;
 
    while (is.peek() != EOF)
    {
@@ -253,6 +259,7 @@ void Ar2vFileImpl::LoadLDMRecords(std::istream& is)
 
       if (recordSize == 0)
       {
+         is.seekg(startPosition, std::ios_base::beg);
          break;
       }
 
@@ -275,18 +282,19 @@ void Ar2vFileImpl::LoadLDMRecords(std::istream& is)
       {
          int error = ex.error();
          BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Error decompressing record " << numRecords_;
+            << logPrefix_ << "Error decompressing record " << numRecords;
 
-         is.seekg(startPosition + std::streampos(recordSize));
+         is.seekg(startPosition + std::streampos(recordSize),
+                  std::ios_base::beg);
       }
 
-      ++numRecords_;
+      ++numRecords;
    }
 
-   ParseLDMRecords();
-
    BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "Found " << numRecords_ << " LDM Records";
+      << logPrefix_ << "Decompressed " << numRecords << " LDM Records";
+
+   return numRecords;
 }
 
 void Ar2vFileImpl::ParseLDMRecords()
@@ -301,48 +309,53 @@ void Ar2vFileImpl::ParseLDMRecords()
 
       BOOST_LOG_TRIVIAL(trace) << logPrefix_ << "Record " << count++;
 
-      // The communications manager inserts an extra 12 bytes at the beginning
-      // of each record
-      ss.seekg(12);
-
-      while (!ss.eof())
-      {
-         rda::Level2MessageInfo msgInfo = rda::Level2MessageFactory::Create(ss);
-         if (!msgInfo.headerValid)
-         {
-            // Invalid message
-            break;
-         }
-
-         if (msgInfo.messageValid)
-         {
-            HandleMessage(msgInfo.message);
-         }
-
-         off_t    offset   = 0;
-         uint16_t nextSize = 0u;
-         do
-         {
-            ss.read(reinterpret_cast<char*>(&nextSize), 2);
-            if (nextSize == 0)
-            {
-               offset += 2;
-            }
-            else
-            {
-               ss.seekg(-2, std::ios_base::cur);
-            }
-         } while (!ss.eof() && nextSize == 0u);
-
-         if (!ss.eof() && offset != 0)
-         {
-            BOOST_LOG_TRIVIAL(trace)
-               << logPrefix_ << "Next record offset by " << offset << " bytes";
-         }
-      }
+      ParseLDMRecord(ss);
    }
 
    rawRecords_.clear();
+}
+
+void Ar2vFileImpl::ParseLDMRecord(std::istream& is)
+{
+   // The communications manager inserts an extra 12 bytes at the beginning
+   // of each record
+   is.seekg(12, std::ios_base::cur);
+
+   while (!is.eof())
+   {
+      rda::Level2MessageInfo msgInfo = rda::Level2MessageFactory::Create(is);
+      if (!msgInfo.headerValid)
+      {
+         // Invalid message
+         break;
+      }
+
+      if (msgInfo.messageValid)
+      {
+         HandleMessage(msgInfo.message);
+      }
+
+      off_t    offset   = 0;
+      uint16_t nextSize = 0u;
+      do
+      {
+         is.read(reinterpret_cast<char*>(&nextSize), 2);
+         if (nextSize == 0)
+         {
+            offset += 2;
+         }
+         else
+         {
+            is.seekg(-2, std::ios_base::cur);
+         }
+      } while (!is.eof() && nextSize == 0u);
+
+      if (!is.eof() && offset != 0)
+      {
+         BOOST_LOG_TRIVIAL(trace)
+            << logPrefix_ << "Next record offset by " << offset << " bytes";
+      }
+   }
 }
 
 void Ar2vFileImpl::HandleMessage(std::shared_ptr<rda::Level2Message>& message)
