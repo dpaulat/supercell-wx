@@ -1,6 +1,9 @@
+#define NOMINMAX
+
 #include "main_window.hpp"
 #include "./ui_main_window.h"
 
+#include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
@@ -8,6 +11,8 @@
 #include <scwx/common/products.hpp>
 #include <scwx/common/vcp.hpp>
 
+#include <QFileDialog>
+#include <QMessageBox>
 #include <QSplitter>
 #include <QToolButton>
 
@@ -33,6 +38,7 @@ public:
        activeMap_ {nullptr},
        maps_ {},
        elevationCuts_ {},
+       elevationButtonsChanged_ {false},
        resizeElevationButtons_ {false}
    {
       settings_.setCacheDatabasePath("/tmp/mbgl-cache.db");
@@ -189,6 +195,66 @@ void MainWindow::showEvent(QShowEvent* event)
    }
 
    resizeDocks({ui->radarToolboxDock}, {150}, Qt::Horizontal);
+}
+
+void MainWindow::on_actionOpen_triggered()
+{
+   static const std::string nexradFilter = "NEXRAD Products (*)";
+
+   QFileDialog* dialog = new QFileDialog(this);
+
+   dialog->setFileMode(QFileDialog::ExistingFile);
+   dialog->setNameFilter(tr(nexradFilter.c_str()));
+   dialog->setAttribute(Qt::WA_DeleteOnClose);
+
+   // Make sure the parent window properly repaints on close
+   connect(
+      dialog,
+      &QFileDialog::finished,
+      this,
+      [=]() { update(); },
+      Qt::QueuedConnection);
+
+   connect(
+      dialog,
+      &QFileDialog::fileSelected,
+      this,
+      [=](const QString& file)
+      {
+         BOOST_LOG_TRIVIAL(info) << "Selected: " << file.toStdString();
+
+         manager::RadarProductManager::LoadFile(
+            file.toStdString(),
+            [=](std::shared_ptr<wsr88d::NexradFile> nexradFile)
+            {
+               std::shared_ptr<wsr88d::Ar2vFile> level2File =
+                  std::dynamic_pointer_cast<wsr88d::Ar2vFile>(nexradFile);
+               std::shared_ptr<wsr88d::Level3File> level3File =
+                  std::dynamic_pointer_cast<wsr88d::Level3File>(nexradFile);
+
+               if (level2File != nullptr)
+               {
+                  // TODO: Handle
+               }
+               else if (level3File != nullptr)
+               {
+                  // TODO: Handle
+               }
+               else
+               {
+                  QMessageBox* messageBox = new QMessageBox(this);
+                  messageBox->setIcon(QMessageBox::Warning);
+                  messageBox->setText(
+                     QString("%1\n%2").arg(tr("Unrecognized NEXRAD Product:"),
+                                           QDir::toNativeSeparators(file)));
+                  messageBox->setAttribute(Qt::WA_DeleteOnClose);
+                  messageBox->open();
+               }
+            },
+            this);
+      });
+
+   dialog->open();
 }
 
 void MainWindow::on_actionExit_triggered()
