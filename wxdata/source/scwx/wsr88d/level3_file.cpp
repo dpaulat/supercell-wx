@@ -1,5 +1,4 @@
 #include <scwx/wsr88d/level3_file.hpp>
-#include <scwx/awips/wmo_header.hpp>
 #include <scwx/wsr88d/rpg/ccb_header.hpp>
 #include <scwx/wsr88d/rpg/level3_message_factory.hpp>
 
@@ -38,6 +37,11 @@ Level3File::~Level3File() = default;
 
 Level3File::Level3File(Level3File&&) noexcept = default;
 Level3File& Level3File::operator=(Level3File&&) noexcept = default;
+
+std::shared_ptr<awips::WmoHeader> Level3File::wmo_header() const
+{
+   return p->wmoHeader_;
+}
 
 std::shared_ptr<rpg::Level3Message> Level3File::message() const
 {

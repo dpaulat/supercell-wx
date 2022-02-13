@@ -32,8 +32,9 @@ public:
    Ar2vFile(Ar2vFile&&) noexcept;
    Ar2vFile& operator=(Ar2vFile&&) noexcept;
 
-   uint32_t julian_date() const;
-   uint32_t milliseconds() const;
+   uint32_t    julian_date() const;
+   uint32_t    milliseconds() const;
+   std::string icao() const;
 
    std::chrono::system_clock::time_point start_time() const;
    std::chrono::system_clock::time_point end_time() const;

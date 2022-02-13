@@ -1,5 +1,6 @@
 #pragma once
 
+#include <scwx/awips/wmo_header.hpp>
 #include <scwx/wsr88d/nexrad_file.hpp>
 #include <scwx/wsr88d/rpg/level3_message.hpp>
 
@@ -25,6 +26,7 @@ public:
    Level3File(Level3File&&) noexcept;
    Level3File& operator=(Level3File&&) noexcept;
 
+   std::shared_ptr<awips::WmoHeader>   wmo_header() const;
    std::shared_ptr<rpg::Level3Message> message() const;
 
    bool LoadFile(const std::string& filename);

@@ -72,6 +72,12 @@ uint32_t Ar2vFile::milliseconds() const
 {
    return p->milliseconds_;
 }
+
+std::string Ar2vFile::icao() const
+{
+   return p->icao_;
+}
+
 std::chrono::system_clock::time_point Ar2vFile::start_time() const
 {
    return util::TimePoint(p->julianDate_, p->milliseconds_);
