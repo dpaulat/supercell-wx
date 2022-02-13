@@ -2,10 +2,12 @@
 #include <scwx/common/constants.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/util/threads.hpp>
+#include <scwx/wsr88d/nexrad_file_factory.hpp>
 
 #include <deque>
 #include <execution>
 #include <mutex>
+#include <shared_mutex>
 
 #include <boost/log/trivial.hpp>
 #include <boost/range/irange.hpp>
@@ -23,6 +25,13 @@ namespace manager
 static const std::string logPrefix_ =
    "[scwx::qt::manager::radar_product_manager] ";
 
+typedef std::function<std::shared_ptr<wsr88d::NexradFile>()>
+   CreateNexradFileFunction;
+
+static void LoadNexradFile(CreateNexradFileFunction load,
+                           FileLoadCompleteFunction onComplete,
+                           QObject*                 context);
+
 static constexpr uint32_t NUM_RADIAL_GATES_0_5_DEGREE =
    common::MAX_0_5_DEGREE_RADIALS * common::MAX_DATA_MOMENT_GATES;
 static constexpr uint32_t NUM_RADIAL_GATES_1_DEGREE =
@@ -35,6 +44,8 @@ static constexpr uint32_t NUM_COORIDNATES_1_DEGREE =
 // TODO: Find a way to garbage collect this
 static std::unordered_map<std::string, std::shared_ptr<RadarProductManager>>
    instanceMap_;
+
+static std::shared_mutex fileLoadMutex_;
 
 class RadarProductManagerImpl
 {
@@ -197,6 +208,60 @@ void RadarProductManager::Initialize()
       << timer.format(6, "%ws");
 
    p->initialized_ = true;
+}
+
+void RadarProductManager::LoadData(std::istream&            is,
+                                   FileLoadCompleteFunction onComplete,
+                                   QObject*                 context)
+{
+   LoadNexradFile(
+      [=, &is]() -> std::shared_ptr<wsr88d::NexradFile> {
+         return wsr88d::NexradFileFactory::Create(is);
+      },
+      onComplete,
+      context);
+}
+
+void RadarProductManager::LoadFile(const std::string&       filename,
+                                   FileLoadCompleteFunction onComplete,
+                                   QObject*                 context)
+{
+   LoadNexradFile(
+      [=]() -> std::shared_ptr<wsr88d::NexradFile> {
+         return wsr88d::NexradFileFactory::Create(filename);
+      },
+      onComplete,
+      context);
+}
+
+static void LoadNexradFile(CreateNexradFileFunction load,
+                           FileLoadCompleteFunction onComplete,
+                           QObject*                 context)
+{
+   scwx::util::async(
+      [=]()
+      {
+         std::unique_lock                    lock(fileLoadMutex_);
+         std::shared_ptr<wsr88d::NexradFile> nexradFile = load();
+
+         // TODO: Store and index
+         //       - Should this impact arguments sent back in onComplete?
+
+         lock.unlock();
+
+         if (onComplete != nullptr)
+         {
+            if (context == nullptr)
+            {
+               onComplete(nexradFile);
+            }
+            else
+            {
+               QMetaObject::invokeMethod(context,
+                                         [=]() { onComplete(nexradFile); });
+            }
+         }
+      });
 }
 
 void RadarProductManager::LoadLevel2Data(const std::string& filename)
