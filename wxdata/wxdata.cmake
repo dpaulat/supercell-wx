@@ -48,7 +48,8 @@ set(SRC_WSR88D source/scwx/wsr88d/ar2v_file.cpp
                source/scwx/wsr88d/level3_file.cpp
                source/scwx/wsr88d/nexrad_file.cpp
                source/scwx/wsr88d/nexrad_file_factory.cpp)
-set(HDR_WSR88D_RDA include/scwx/wsr88d/rda/clutter_filter_map.hpp
+set(HDR_WSR88D_RDA include/scwx/wsr88d/rda/clutter_filter_bypass_map.hpp
+                   include/scwx/wsr88d/rda/clutter_filter_map.hpp
                    include/scwx/wsr88d/rda/digital_radar_data.hpp
                    include/scwx/wsr88d/rda/level2_message.hpp
                    include/scwx/wsr88d/rda/level2_message_factory.hpp
@@ -58,7 +59,8 @@ set(HDR_WSR88D_RDA include/scwx/wsr88d/rda/clutter_filter_map.hpp
                    include/scwx/wsr88d/rda/rda_status_data.hpp
                    include/scwx/wsr88d/rda/types.hpp
                    include/scwx/wsr88d/rda/volume_coverage_pattern_data.hpp)
-set(SRC_WSR88D_RDA source/scwx/wsr88d/rda/clutter_filter_map.cpp
+set(SRC_WSR88D_RDA source/scwx/wsr88d/rda/clutter_filter_bypass_map.cpp
+                   source/scwx/wsr88d/rda/clutter_filter_map.cpp
                    source/scwx/wsr88d/rda/digital_radar_data.cpp
                    source/scwx/wsr88d/rda/level2_message.cpp
                    source/scwx/wsr88d/rda/level2_message_factory.cpp

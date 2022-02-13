@@ -1,6 +1,7 @@
 #include <scwx/wsr88d/rda/level2_message_factory.hpp>
 
 #include <scwx/util/vectorbuf.hpp>
+#include <scwx/wsr88d/rda/clutter_filter_bypass_map.hpp>
 #include <scwx/wsr88d/rda/clutter_filter_map.hpp>
 #include <scwx/wsr88d/rda/digital_radar_data.hpp>
 #include <scwx/wsr88d/rda/performance_maintenance_data.hpp>
@@ -31,6 +32,7 @@ static const std::unordered_map<uint8_t, CreateLevel2MessageFunction> create_ {
    {2, RdaStatusData::Create},
    {3, PerformanceMaintenanceData::Create},
    {5, VolumeCoveragePatternData::Create},
+   {13, ClutterFilterBypassMap::Create},
    {15, ClutterFilterMap::Create},
    {18, RdaAdaptationData::Create},
    {31, DigitalRadarData::Create}};
