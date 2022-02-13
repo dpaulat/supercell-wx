@@ -273,11 +273,8 @@ bool RdaStatusData::Parse(std::istream& is)
    is.read(reinterpret_cast<char*>(&p->rmsControlStatus_), 2);            // 25
    is.read(reinterpret_cast<char*>(&p->performanceCheckStatus_), 2);      // 26
    is.read(reinterpret_cast<char*>(&p->alarmCodes_),
-           p->alarmCodes_.size() * 2);                                // 27-40
-   is.read(reinterpret_cast<char*>(&p->signalProcessingOptions_), 2); // 41
-   is.seekg(36, std::ios_base::cur);                                  // 42-59
-   is.read(reinterpret_cast<char*>(&p->statusVersion_), 2);           // 42
-   bytesRead += 120;
+           p->alarmCodes_.size() * 2); // 27-40
+   bytesRead += 80;
 
    p->rdaStatus_                    = ntohs(p->rdaStatus_);
    p->operabilityStatus_            = ntohs(p->operabilityStatus_);
@@ -311,8 +308,18 @@ bool RdaStatusData::Parse(std::istream& is)
    p->rmsControlStatus_            = ntohs(p->rmsControlStatus_);
    p->performanceCheckStatus_      = ntohs(p->performanceCheckStatus_);
    SwapArray(p->alarmCodes_);
-   p->signalProcessingOptions_ = ntohs(p->signalProcessingOptions_);
-   p->statusVersion_           = ntohs(p->statusVersion_);
+
+   // RDA Build 18.0 increased the size of the message from 80 to 120 bytes
+   if (header().message_size() * 2 > Level2MessageHeader::SIZE + 80)
+   {
+      is.read(reinterpret_cast<char*>(&p->signalProcessingOptions_), 2); // 41
+      is.seekg(36, std::ios_base::cur);                        // 42-59
+      is.read(reinterpret_cast<char*>(&p->statusVersion_), 2); // 60
+      bytesRead += 40;
+
+      p->signalProcessingOptions_ = ntohs(p->signalProcessingOptions_);
+      p->statusVersion_           = ntohs(p->statusVersion_);
+   }
 
    if (!ValidateMessage(is, bytesRead))
    {
