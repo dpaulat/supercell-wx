@@ -2,6 +2,7 @@
 
 #include <scwx/common/types.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/request/nexrad_file_request.hpp>
 #include <scwx/wsr88d/ar2v_file.hpp>
 #include <scwx/wsr88d/level3_file.hpp>
 
@@ -16,9 +17,6 @@ namespace qt
 {
 namespace manager
 {
-
-typedef std::function<void(std::shared_ptr<wsr88d::NexradFile>)>
-   FileLoadCompleteFunction;
 
 class RadarProductManagerImpl;
 
@@ -49,12 +47,12 @@ public:
    static std::shared_ptr<RadarProductManager>
    Instance(const std::string& radarSite);
 
-   static void LoadData(std::istream&            is,
-                        FileLoadCompleteFunction onComplete,
-                        QObject*                 context = nullptr);
-   static void LoadFile(const std::string&       filename,
-                        FileLoadCompleteFunction onComplete,
-                        QObject*                 context = nullptr);
+   static void
+   LoadData(std::istream&                               is,
+            std::shared_ptr<request::NexradFileRequest> request = nullptr);
+   static void
+   LoadFile(const std::string&                          filename,
+            std::shared_ptr<request::NexradFileRequest> request = nullptr);
 
 signals:
    void Level2DataLoaded();

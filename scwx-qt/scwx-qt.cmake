@@ -88,6 +88,8 @@ set(SRC_MAP source/scwx/qt/map/color_table_layer.cpp
             source/scwx/qt/map/overlay_layer.cpp
             source/scwx/qt/map/radar_product_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp)
+set(HDR_REQUEST source/scwx/qt/request/nexrad_file_request.hpp)
+set(SRC_REQUEST source/scwx/qt/request/nexrad_file_request.cpp)
 set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/palette_settings.hpp)
 set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
@@ -135,6 +137,8 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${UI_MAIN}
                     ${HDR_MAP}
                     ${SRC_MAP}
+                    ${HDR_REQUEST}
+                    ${SRC_REQUEST}
                     ${HDR_SETTINGS}
                     ${SRC_SETTINGS}
                     ${HDR_UI}
@@ -162,6 +166,8 @@ source_group("Source Files\\manager"  FILES ${SRC_MANAGER})
 source_group("UI Files\\main"         FILES ${UI_MAIN})
 source_group("Header Files\\map"      FILES ${HDR_MAP})
 source_group("Source Files\\map"      FILES ${SRC_MAP})
+source_group("Header Files\\request"  FILES ${HDR_REQUEST})
+source_group("Source Files\\request"  FILES ${SRC_REQUEST})
 source_group("Header Files\\settings" FILES ${HDR_SETTINGS})
 source_group("Source Files\\settings" FILES ${SRC_SETTINGS})
 source_group("Header Files\\ui"       FILES ${HDR_UI})

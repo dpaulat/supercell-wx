@@ -223,10 +223,18 @@ void MainWindow::on_actionOpen_triggered()
       {
          BOOST_LOG_TRIVIAL(info) << "Selected: " << file.toStdString();
 
-         manager::RadarProductManager::LoadFile(
-            file.toStdString(),
-            [=](std::shared_ptr<wsr88d::NexradFile> nexradFile)
+         std::shared_ptr<request::NexradFileRequest> request =
+            std::make_shared<request::NexradFileRequest>();
+
+         connect(
+            request.get(),
+            &request::NexradFileRequest::RequestComplete,
+            this,
+            [=](std::shared_ptr<request::NexradFileRequest> request)
             {
+               std::shared_ptr<wsr88d::NexradFile> nexradFile =
+                  request->nexrad_file();
+
                std::shared_ptr<wsr88d::Ar2vFile> level2File =
                   std::dynamic_pointer_cast<wsr88d::Ar2vFile>(nexradFile);
                std::shared_ptr<wsr88d::Level3File> level3File =
@@ -250,8 +258,9 @@ void MainWindow::on_actionOpen_triggered()
                   messageBox->setAttribute(Qt::WA_DeleteOnClose);
                   messageBox->open();
                }
-            },
-            this);
+            });
+
+         manager::RadarProductManager::LoadFile(file.toStdString(), request);
       });
 
    dialog->open();

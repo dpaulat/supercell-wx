@@ -28,9 +28,8 @@ static const std::string logPrefix_ =
 typedef std::function<std::shared_ptr<wsr88d::NexradFile>()>
    CreateNexradFileFunction;
 
-static void LoadNexradFile(CreateNexradFileFunction load,
-                           FileLoadCompleteFunction onComplete,
-                           QObject*                 context);
+static void LoadNexradFile(CreateNexradFileFunction                    load,
+                           std::shared_ptr<request::NexradFileRequest> request);
 
 static constexpr uint32_t NUM_RADIAL_GATES_0_5_DEGREE =
    common::MAX_0_5_DEGREE_RADIALS * common::MAX_DATA_MOMENT_GATES;
@@ -210,33 +209,29 @@ void RadarProductManager::Initialize()
    p->initialized_ = true;
 }
 
-void RadarProductManager::LoadData(std::istream&            is,
-                                   FileLoadCompleteFunction onComplete,
-                                   QObject*                 context)
+void RadarProductManager::LoadData(
+   std::istream& is, std::shared_ptr<request::NexradFileRequest> request)
 {
    LoadNexradFile(
       [=, &is]() -> std::shared_ptr<wsr88d::NexradFile> {
          return wsr88d::NexradFileFactory::Create(is);
       },
-      onComplete,
-      context);
+      request);
 }
 
-void RadarProductManager::LoadFile(const std::string&       filename,
-                                   FileLoadCompleteFunction onComplete,
-                                   QObject*                 context)
+void RadarProductManager::LoadFile(
+   const std::string&                          filename,
+   std::shared_ptr<request::NexradFileRequest> request)
 {
    LoadNexradFile(
       [=]() -> std::shared_ptr<wsr88d::NexradFile> {
          return wsr88d::NexradFileFactory::Create(filename);
       },
-      onComplete,
-      context);
+      request);
 }
 
-static void LoadNexradFile(CreateNexradFileFunction load,
-                           FileLoadCompleteFunction onComplete,
-                           QObject*                 context)
+static void LoadNexradFile(CreateNexradFileFunction                    load,
+                           std::shared_ptr<request::NexradFileRequest> request)
 {
    scwx::util::async(
       [=]()
@@ -249,17 +244,10 @@ static void LoadNexradFile(CreateNexradFileFunction load,
 
          lock.unlock();
 
-         if (onComplete != nullptr)
+         if (request != nullptr)
          {
-            if (context == nullptr)
-            {
-               onComplete(nexradFile);
-            }
-            else
-            {
-               QMetaObject::invokeMethod(context,
-                                         [=]() { onComplete(nexradFile); });
-            }
+            request->set_nexrad_file(nexradFile);
+            emit request->RequestComplete(request);
          }
       });
 }
