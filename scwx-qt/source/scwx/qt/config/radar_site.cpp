@@ -1,5 +1,6 @@
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/util/json.hpp>
+#include <scwx/common/sites.hpp>
 
 #include <unordered_map>
 
@@ -18,7 +19,8 @@ static const std::string defaultRadarSiteFile_ =
    ":/res/config/radar_sites.json";
 
 static std::unordered_map<std::string, std::shared_ptr<RadarSite>>
-   radarSiteMap_;
+                                                    radarSiteMap_;
+static std::unordered_map<std::string, std::string> siteIdMap_;
 
 static bool ValidateJsonEntry(const boost::json::object& o);
 
@@ -100,6 +102,18 @@ std::shared_ptr<RadarSite> RadarSite::Get(const std::string& id)
    return radarSite;
 }
 
+std::string GetRadarIdFromSiteId(const std::string& siteId)
+{
+   std::string id = "???";
+
+   if (siteIdMap_.contains(siteId))
+   {
+      id = siteIdMap_.at(siteId);
+   }
+
+   return id;
+}
+
 void RadarSite::Initialize()
 {
    ReadConfig(defaultRadarSiteFile_);
@@ -144,6 +158,19 @@ size_t RadarSite::ReadConfig(const std::string& path)
             {
                radarSiteMap_[site->p->id_] = site;
                ++sitesAdded;
+            }
+
+            std::string siteId = common::GetSiteId(site->p->id_);
+
+            if (!siteIdMap_.contains(siteId))
+            {
+               siteIdMap_[siteId] = site->p->id_;
+            }
+            else
+            {
+               BOOST_LOG_TRIVIAL(warning)
+                  << logPrefix_ << "Site ID conflict: " << siteIdMap_.at(siteId)
+                  << " and " << site->p->id_;
             }
          }
       }

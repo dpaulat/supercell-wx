@@ -41,6 +41,8 @@ private:
    std::unique_ptr<RadarSiteImpl> p;
 };
 
+std::string GetRadarIdFromSiteId(const std::string& siteId);
+
 } // namespace config
 } // namespace qt
 } // namespace scwx
