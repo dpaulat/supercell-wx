@@ -87,6 +87,8 @@ bool Level3File::LoadData(std::istream& is)
          << logPrefix_ << "Date/Time: " << p->wmoHeader_->date_time();
       BOOST_LOG_TRIVIAL(debug)
          << logPrefix_ << "Category:  " << p->wmoHeader_->product_category();
+      BOOST_LOG_TRIVIAL(debug)
+         << logPrefix_ << "Site ID:   " << p->wmoHeader_->product_designator();
 
       // If the header is compressed
       if (is.peek() == 0x78)

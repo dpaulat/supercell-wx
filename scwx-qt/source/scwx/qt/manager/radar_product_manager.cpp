@@ -1,7 +1,9 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/common/constants.hpp>
+#include <scwx/common/sites.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/util/threads.hpp>
+#include <scwx/util/time.hpp>
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 
 #include <deque>
@@ -239,14 +241,56 @@ static void LoadNexradFile(CreateNexradFileFunction                    load,
          std::unique_lock                    lock(fileLoadMutex_);
          std::shared_ptr<wsr88d::NexradFile> nexradFile = load();
 
-         // TODO: Store and index
-         //       - Should this impact arguments sent back in onComplete?
+         std::shared_ptr<wsr88d::Ar2vFile> level2File =
+            std::dynamic_pointer_cast<wsr88d::Ar2vFile>(nexradFile);
+         std::shared_ptr<wsr88d::Level3File> level3File =
+            std::dynamic_pointer_cast<wsr88d::Level3File>(nexradFile);
+
+         bool        fileValid    = false;
+         std::string radarId      = "????";
+         std::string siteId       = "???";
+         uint16_t    julianDate   = 0;
+         uint32_t    milliseconds = 0;
+
+         std::chrono::system_clock::time_point time;
+
+         if (level2File != nullptr)
+         {
+            fileValid    = true;
+            radarId      = level2File->icao();
+            siteId       = common::GetSiteId(radarId);
+            julianDate   = level2File->julian_date();
+            milliseconds = level2File->milliseconds();
+         }
+         else if (level3File != nullptr)
+         {
+            fileValid  = true;
+            siteId     = level3File->wmo_header()->product_designator();
+            radarId    = config::GetRadarIdFromSiteId(siteId);
+            julianDate = level3File->message()->header().date_of_message();
+            milliseconds =
+               level3File->message()->header().time_of_message() * 1000u;
+         }
+
+         if (fileValid)
+         {
+            time = util::TimePoint(julianDate, milliseconds);
+
+            std::shared_ptr<RadarProductManager> manager =
+               RadarProductManager::Instance(radarId);
+
+            // TODO: Store and index
+            // TODO: When to initialize?
+         }
 
          lock.unlock();
 
          if (request != nullptr)
          {
             request->set_nexrad_file(nexradFile);
+            request->set_radar_id(radarId);
+            request->set_site_id(siteId);
+            request->set_time(time);
             emit request->RequestComplete(request);
          }
       });
