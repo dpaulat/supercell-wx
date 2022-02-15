@@ -120,7 +120,9 @@ set(SHADER_FILES gl/color.frag
                  gl/texture1d.frag
                  gl/texture1d.vert)
 
-set (JSON_FILES res/config/radar_sites.json)
+set(CMAKE_FILES scwx-qt.cmake)
+
+set(JSON_FILES res/config/radar_sites.json)
 
 set(TS_FILES ts/scwx_en_US.ts)
 
@@ -150,7 +152,8 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${SHADER_FILES}
                     ${JSON_FILES}
                     ${RESOURCE_FILES}
-                    ${TS_FILES})
+                    ${TS_FILES}
+                    ${CMAKE_FILES})
 set(EXECUTABLE_SOURCES ${SRC_EXE_MAIN})
 
 source_group("Header Files\\main"     FILES ${HDR_MAIN})

@@ -22,13 +22,16 @@ set(SRC_WSR88D_TESTS source/scwx/wsr88d/ar2v_file.test.cpp
                      source/scwx/wsr88d/level3_file.test.cpp
                      source/scwx/wsr88d/nexrad_file_factory.test.cpp)
 
+set(CMAKE_FILES test.cmake)
+
 add_executable(wxtest ${SRC_MAIN}
                       ${SRC_AWIPS_TESTS}
                       ${SRC_COMMON_TESTS}
                       ${SRC_QT_CONFIG_TESTS}
                       ${SRC_QT_MANAGER_TESTS}
                       ${SRC_UTIL_TESTS}
-                      ${SRC_WSR88D_TESTS})
+                      ${SRC_WSR88D_TESTS}
+                      ${CMAKE_FILES})
 
 source_group("Source Files\\main"        FILES ${SRC_MAIN})
 source_group("Source Files\\awips"       FILES ${SRC_AWIPS_TESTS})

@@ -146,6 +146,8 @@ set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/ccb_header.cpp
                    source/scwx/wsr88d/rpg/vector_arrow_data_packet.cpp
                    source/scwx/wsr88d/rpg/wind_barb_data_packet.cpp)
 
+set(CMAKE_FILES wxdata.cmake)
+
 add_library(wxdata OBJECT ${HDR_AWIPS}
                           ${SRC_AWIPS}
                           ${HDR_COMMON}
@@ -157,7 +159,8 @@ add_library(wxdata OBJECT ${HDR_AWIPS}
                           ${HDR_WSR88D_RDA}
                           ${SRC_WSR88D_RDA}
                           ${HDR_WSR88D_RPG}
-                          ${SRC_WSR88D_RPG})
+                          ${SRC_WSR88D_RPG}
+                          ${CMAKE_FILES})
 
 source_group("Header Files\\awips"       FILES ${HDR_AWIPS})
 source_group("Source Files\\awips"       FILES ${SRC_AWIPS})
