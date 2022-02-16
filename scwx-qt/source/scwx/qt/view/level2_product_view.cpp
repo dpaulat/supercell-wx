@@ -418,7 +418,9 @@ void Level2ProductView::ComputeSweep()
       dataMoments16.resize(radials * gates * VERTICES_PER_BIN);
    }
 
-   if (p->dataBlockType_ == wsr88d::rda::DataBlockType::MomentRef)
+   if (p->dataBlockType_ == wsr88d::rda::DataBlockType::MomentRef &&
+       radarData0->moment_data_block(wsr88d::rda::DataBlockType::MomentCfp) !=
+          nullptr)
    {
       cfpMoments.resize(radials * gates * VERTICES_PER_BIN);
    }
