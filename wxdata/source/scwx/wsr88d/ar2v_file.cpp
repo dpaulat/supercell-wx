@@ -404,6 +404,13 @@ void Ar2vFileImpl::IndexFile()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Indexing file";
 
+   if (vcpData_ == nullptr)
+   {
+      BOOST_LOG_TRIVIAL(warning)
+         << logPrefix_ << "Cannot index file without VCP data";
+      return;
+   }
+
    for (auto elevationCut : radarData_)
    {
       uint16_t elevationAngle =
