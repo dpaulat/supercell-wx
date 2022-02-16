@@ -329,18 +329,6 @@ void Ar2vFileImpl::ParseLDMRecord(std::istream& is)
 
    while (!is.eof())
    {
-      rda::Level2MessageInfo msgInfo = rda::Level2MessageFactory::Create(is);
-      if (!msgInfo.headerValid)
-      {
-         // Invalid message
-         break;
-      }
-
-      if (msgInfo.messageValid)
-      {
-         HandleMessage(msgInfo.message);
-      }
-
       off_t    offset   = 0;
       uint16_t nextSize = 0u;
       do
@@ -360,6 +348,22 @@ void Ar2vFileImpl::ParseLDMRecord(std::istream& is)
       {
          BOOST_LOG_TRIVIAL(trace)
             << logPrefix_ << "Next record offset by " << offset << " bytes";
+      }
+      else if (is.eof())
+      {
+         break;
+      }
+
+      rda::Level2MessageInfo msgInfo = rda::Level2MessageFactory::Create(is);
+      if (!msgInfo.headerValid)
+      {
+         // Invalid message
+         break;
+      }
+
+      if (msgInfo.messageValid)
+      {
+         HandleMessage(msgInfo.message);
       }
    }
 }

@@ -19,5 +19,15 @@ TEST(ar2v_file, klsx)
    EXPECT_EQ(fileValid, true);
 }
 
+TEST(ar2v_file, tstl)
+{
+   Ar2vFile file;
+   bool     fileValid =
+      file.LoadFile(std::string(SCWX_TEST_DATA_DIR) +
+                    "/nexrad/level2/Level2_TSTL_20220213_2357.ar2v");
+
+   EXPECT_EQ(fileValid, true);
+}
+
 } // namespace wsr88d
 } // namespace scwx
