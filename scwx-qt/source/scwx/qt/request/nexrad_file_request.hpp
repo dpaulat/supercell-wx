@@ -1,8 +1,7 @@
 #pragma once
 
-#include <scwx/wsr88d/nexrad_file.hpp>
+#include <scwx/qt/types/radar_product_record.hpp>
 
-#include <chrono>
 #include <memory>
 
 #include <QObject>
@@ -24,15 +23,10 @@ public:
    explicit NexradFileRequest();
    ~NexradFileRequest();
 
-   std::shared_ptr<wsr88d::NexradFile>   nexrad_file() const;
-   std::string                           radar_id() const;
-   std::string                           site_id() const;
-   std::chrono::system_clock::time_point time() const;
+   std::shared_ptr<types::RadarProductRecord> radar_product_record() const;
 
-   void set_nexrad_file(std::shared_ptr<wsr88d::NexradFile> nexradFile);
-   void set_radar_id(const std::string& radarId);
-   void set_site_id(const std::string& siteId);
-   void set_time(std::chrono::system_clock::time_point time);
+   void
+   set_radar_product_record(std::shared_ptr<types::RadarProductRecord> record);
 
 private:
    std::unique_ptr<NexradFileRequestImpl> p;

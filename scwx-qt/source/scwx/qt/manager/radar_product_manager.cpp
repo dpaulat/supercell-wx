@@ -1,9 +1,6 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/common/constants.hpp>
-#include <scwx/common/sites.hpp>
-#include <scwx/qt/config/radar_site.hpp>
 #include <scwx/util/threads.hpp>
-#include <scwx/util/time.hpp>
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 
 #include <deque>
@@ -26,12 +23,6 @@ namespace manager
 
 static const std::string logPrefix_ =
    "[scwx::qt::manager::radar_product_manager] ";
-
-typedef std::function<std::shared_ptr<wsr88d::NexradFile>()>
-   CreateNexradFileFunction;
-
-static void LoadNexradFile(CreateNexradFileFunction                    load,
-                           std::shared_ptr<request::NexradFileRequest> request);
 
 static constexpr uint32_t NUM_RADIAL_GATES_0_5_DEGREE =
    common::MAX_0_5_DEGREE_RADIALS * common::MAX_DATA_MOMENT_GATES;
@@ -64,6 +55,9 @@ public:
       }
    }
    ~RadarProductManagerImpl() = default;
+
+   void
+   StoreRadarProductRecord(std::shared_ptr<types::RadarProductRecord> record);
 
    std::string radarId_;
    bool        initialized_;
@@ -214,26 +208,23 @@ void RadarProductManager::Initialize()
 void RadarProductManager::LoadData(
    std::istream& is, std::shared_ptr<request::NexradFileRequest> request)
 {
-   LoadNexradFile(
-      [=, &is]() -> std::shared_ptr<wsr88d::NexradFile> {
-         return wsr88d::NexradFileFactory::Create(is);
-      },
-      request);
+   LoadNexradFile([=, &is]() -> std::shared_ptr<wsr88d::NexradFile>
+                  { return wsr88d::NexradFileFactory::Create(is); },
+                  request);
 }
 
 void RadarProductManager::LoadFile(
    const std::string&                          filename,
    std::shared_ptr<request::NexradFileRequest> request)
 {
-   LoadNexradFile(
-      [=]() -> std::shared_ptr<wsr88d::NexradFile> {
-         return wsr88d::NexradFileFactory::Create(filename);
-      },
-      request);
+   LoadNexradFile([=]() -> std::shared_ptr<wsr88d::NexradFile>
+                  { return wsr88d::NexradFileFactory::Create(filename); },
+                  request);
 }
 
-static void LoadNexradFile(CreateNexradFileFunction                    load,
-                           std::shared_ptr<request::NexradFileRequest> request)
+void RadarProductManager::LoadNexradFile(
+   CreateNexradFileFunction                    load,
+   std::shared_ptr<request::NexradFileRequest> request)
 {
    scwx::util::async(
       [=]()
@@ -241,45 +232,19 @@ static void LoadNexradFile(CreateNexradFileFunction                    load,
          std::unique_lock                    lock(fileLoadMutex_);
          std::shared_ptr<wsr88d::NexradFile> nexradFile = load();
 
-         std::shared_ptr<wsr88d::Ar2vFile> level2File =
-            std::dynamic_pointer_cast<wsr88d::Ar2vFile>(nexradFile);
-         std::shared_ptr<wsr88d::Level3File> level3File =
-            std::dynamic_pointer_cast<wsr88d::Level3File>(nexradFile);
+         std::shared_ptr<types::RadarProductRecord> record = nullptr;
 
-         bool        fileValid    = false;
-         std::string radarId      = "????";
-         std::string siteId       = "???";
-         uint16_t    julianDate   = 0;
-         uint32_t    milliseconds = 0;
-
-         std::chrono::system_clock::time_point time;
-
-         if (level2File != nullptr)
-         {
-            fileValid    = true;
-            radarId      = level2File->icao();
-            siteId       = common::GetSiteId(radarId);
-            julianDate   = level2File->julian_date();
-            milliseconds = level2File->milliseconds();
-         }
-         else if (level3File != nullptr)
-         {
-            fileValid  = true;
-            siteId     = level3File->wmo_header()->product_designator();
-            radarId    = config::GetRadarIdFromSiteId(siteId);
-            julianDate = level3File->message()->header().date_of_message();
-            milliseconds =
-               level3File->message()->header().time_of_message() * 1000u;
-         }
+         bool fileValid = (nexradFile != nullptr);
 
          if (fileValid)
          {
-            time = util::TimePoint(julianDate, milliseconds);
+            record = types::RadarProductRecord::Create(nexradFile);
 
             std::shared_ptr<RadarProductManager> manager =
-               RadarProductManager::Instance(radarId);
+               RadarProductManager::Instance(record->radar_id());
 
-            // TODO: Store and index
+            manager->p->StoreRadarProductRecord(record);
+
             // TODO: When to initialize?
          }
 
@@ -287,10 +252,7 @@ static void LoadNexradFile(CreateNexradFileFunction                    load,
 
          if (request != nullptr)
          {
-            request->set_nexrad_file(nexradFile);
-            request->set_radar_id(radarId);
-            request->set_site_id(siteId);
-            request->set_time(time);
+            request->set_radar_product_record(record);
             emit request->RequestComplete(request);
          }
       });
@@ -315,6 +277,12 @@ void RadarProductManager::LoadLevel2Data(const std::string& filename)
    p->level2VolumeScans_[ar2vFile->start_time()] = ar2vFile;
 
    emit Level2DataLoaded();
+}
+
+void RadarProductManagerImpl::StoreRadarProductRecord(
+   std::shared_ptr<types::RadarProductRecord> record)
+{
+   // TODO
 }
 
 std::tuple<std::shared_ptr<wsr88d::rda::ElevationScan>,

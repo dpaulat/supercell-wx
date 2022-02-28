@@ -3,6 +3,7 @@
 #include <scwx/common/types.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/request/nexrad_file_request.hpp>
+#include <scwx/qt/types/radar_product_record.hpp>
 #include <scwx/wsr88d/ar2v_file.hpp>
 #include <scwx/wsr88d/level3_file.hpp>
 
@@ -58,6 +59,13 @@ signals:
    void Level2DataLoaded();
 
 private:
+   typedef std::function<std::shared_ptr<wsr88d::NexradFile>()>
+      CreateNexradFileFunction;
+
+   static void
+   LoadNexradFile(CreateNexradFileFunction                    load,
+                  std::shared_ptr<request::NexradFileRequest> request);
+
    std::unique_ptr<RadarProductManagerImpl> p;
 };
 

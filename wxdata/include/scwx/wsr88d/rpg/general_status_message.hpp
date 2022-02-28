@@ -1,7 +1,6 @@
 #pragma once
 
 #include <scwx/wsr88d/rpg/level3_message.hpp>
-#include <scwx/wsr88d/rpg/product_description_block.hpp>
 
 #include <cstdint>
 #include <memory>

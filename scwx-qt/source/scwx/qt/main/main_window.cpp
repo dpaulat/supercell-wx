@@ -226,19 +226,22 @@ void MainWindow::on_actionOpen_triggered()
          std::shared_ptr<request::NexradFileRequest> request =
             std::make_shared<request::NexradFileRequest>();
 
-         connect(
+         connect( //
             request.get(),
             &request::NexradFileRequest::RequestComplete,
             this,
             [=](std::shared_ptr<request::NexradFileRequest> request)
             {
-               std::shared_ptr<wsr88d::NexradFile> nexradFile =
-                  request->nexrad_file();
+               std::shared_ptr<types::RadarProductRecord> record =
+                  request->radar_product_record();
+               std::shared_ptr<wsr88d::Ar2vFile>   level2File = nullptr;
+               std::shared_ptr<wsr88d::Level3File> level3File = nullptr;
 
-               std::shared_ptr<wsr88d::Ar2vFile> level2File =
-                  std::dynamic_pointer_cast<wsr88d::Ar2vFile>(nexradFile);
-               std::shared_ptr<wsr88d::Level3File> level3File =
-                  std::dynamic_pointer_cast<wsr88d::Level3File>(nexradFile);
+               if (record != nullptr)
+               {
+                  level2File = record->level2_file();
+                  level3File = record->level3_file();
+               }
 
                if (level2File != nullptr)
                {

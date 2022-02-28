@@ -2,6 +2,7 @@
 
 #include <scwx/awips/message.hpp>
 #include <scwx/wsr88d/rpg/level3_message_header.hpp>
+#include <scwx/wsr88d/rpg/product_description_block.hpp>
 
 namespace scwx
 {
@@ -28,9 +29,11 @@ public:
 
    size_t data_size() const override;
 
-   const Level3MessageHeader& header() const;
+   const Level3MessageHeader&               header() const;
 
    void set_header(Level3MessageHeader&& header);
+
+   virtual std::shared_ptr<ProductDescriptionBlock> description_block() const;
 
 private:
    std::unique_ptr<Level3MessageImpl> p;

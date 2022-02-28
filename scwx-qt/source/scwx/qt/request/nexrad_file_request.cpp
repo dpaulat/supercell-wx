@@ -15,17 +15,11 @@ static const std::string logPrefix_ =
 class NexradFileRequestImpl
 {
 public:
-   explicit NexradFileRequestImpl() :
-       nexradFile_ {nullptr}, radarId_ {}, siteId_ {}, time_ {}
-   {
-   }
+   explicit NexradFileRequestImpl() : radarProductRecord_ {nullptr} {}
 
    ~NexradFileRequestImpl() {}
 
-   std::shared_ptr<wsr88d::NexradFile>   nexradFile_;
-   std::string                           radarId_;
-   std::string                           siteId_;
-   std::chrono::system_clock::time_point time_;
+   std::shared_ptr<types::RadarProductRecord> radarProductRecord_;
 };
 
 NexradFileRequest::NexradFileRequest() :
@@ -34,45 +28,16 @@ NexradFileRequest::NexradFileRequest() :
 }
 NexradFileRequest::~NexradFileRequest() = default;
 
-std::shared_ptr<wsr88d::NexradFile> NexradFileRequest::nexrad_file() const
+std::shared_ptr<types::RadarProductRecord>
+NexradFileRequest::radar_product_record() const
 {
-   return p->nexradFile_;
+   return p->radarProductRecord_;
 }
 
-std::string NexradFileRequest::radar_id() const
+void NexradFileRequest::set_radar_product_record(
+   std::shared_ptr<types::RadarProductRecord> record)
 {
-   return p->radarId_;
-}
-
-std::string NexradFileRequest::site_id() const
-{
-   return p->siteId_;
-}
-
-std::chrono::system_clock::time_point NexradFileRequest::time() const
-{
-   return p->time_;
-}
-
-void NexradFileRequest::set_nexrad_file(
-   std::shared_ptr<wsr88d::NexradFile> nexradFile)
-{
-   p->nexradFile_ = nexradFile;
-}
-
-void NexradFileRequest::set_radar_id(const std::string& radarId)
-{
-   p->radarId_ = radarId;
-}
-
-void NexradFileRequest::set_site_id(const std::string& siteId)
-{
-   p->siteId_ = siteId;
-}
-
-void NexradFileRequest::set_time(std::chrono::system_clock::time_point time)
-{
-   p->time_ = time;
+   p->radarProductRecord_ = record;
 }
 
 } // namespace request

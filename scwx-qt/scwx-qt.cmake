@@ -94,6 +94,8 @@ set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/palette_settings.hpp)
 set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/palette_settings.cpp)
+set(HDR_TYPES source/scwx/qt/types/radar_product_record.hpp)
+set(SRC_TYPES source/scwx/qt/types/radar_product_record.cpp)
 set(HDR_UI source/scwx/qt/ui/flow_layout.hpp)
 set(SRC_UI source/scwx/qt/ui/flow_layout.cpp)
 set(HDR_UTIL source/scwx/qt/util/font.hpp
@@ -143,6 +145,8 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${SRC_REQUEST}
                     ${HDR_SETTINGS}
                     ${SRC_SETTINGS}
+                    ${HDR_TYPES}
+                    ${SRC_TYPES}
                     ${HDR_UI}
                     ${SRC_UI}
                     ${HDR_UTIL}
@@ -173,6 +177,8 @@ source_group("Header Files\\request"  FILES ${HDR_REQUEST})
 source_group("Source Files\\request"  FILES ${SRC_REQUEST})
 source_group("Header Files\\settings" FILES ${HDR_SETTINGS})
 source_group("Source Files\\settings" FILES ${SRC_SETTINGS})
+source_group("Header Files\\types"    FILES ${HDR_TYPES})
+source_group("Source Files\\types"    FILES ${SRC_TYPES})
 source_group("Header Files\\ui"       FILES ${HDR_UI})
 source_group("Source Files\\ui"       FILES ${SRC_UI})
 source_group("Header Files\\util"     FILES ${HDR_UTIL})

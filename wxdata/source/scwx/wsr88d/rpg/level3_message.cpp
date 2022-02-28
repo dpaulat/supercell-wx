@@ -44,6 +44,12 @@ void Level3Message::set_header(Level3MessageHeader&& header)
    p->header_ = std::move(header);
 }
 
+std::shared_ptr<ProductDescriptionBlock>
+Level3Message::description_block() const
+{
+   return nullptr;
+}
+
 } // namespace rpg
 } // namespace wsr88d
 } // namespace scwx
