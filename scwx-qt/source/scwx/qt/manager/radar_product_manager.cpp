@@ -24,6 +24,9 @@ namespace manager
 static const std::string logPrefix_ =
    "[scwx::qt::manager::radar_product_manager] ";
 
+typedef std::function<std::shared_ptr<wsr88d::NexradFile>()>
+   CreateNexradFileFunction;
+
 static constexpr uint32_t NUM_RADIAL_GATES_0_5_DEGREE =
    common::MAX_0_5_DEGREE_RADIALS * common::MAX_DATA_MOMENT_GATES;
 static constexpr uint32_t NUM_RADIAL_GATES_1_DEGREE =
@@ -59,6 +62,10 @@ public:
    void
    StoreRadarProductRecord(std::shared_ptr<types::RadarProductRecord> record);
 
+   static void
+   LoadNexradFile(CreateNexradFileFunction                    load,
+                  std::shared_ptr<request::NexradFileRequest> request);
+
    std::string radarId_;
    bool        initialized_;
 
@@ -70,8 +77,6 @@ public:
    std::map<std::chrono::system_clock::time_point,
             std::shared_ptr<wsr88d::Ar2vFile>>
       level2VolumeScans_;
-
-   std::mutex fileLoadMutex_;
 };
 
 RadarProductManager::RadarProductManager(const std::string& radarId) :
@@ -208,21 +213,23 @@ void RadarProductManager::Initialize()
 void RadarProductManager::LoadData(
    std::istream& is, std::shared_ptr<request::NexradFileRequest> request)
 {
-   LoadNexradFile([=, &is]() -> std::shared_ptr<wsr88d::NexradFile>
-                  { return wsr88d::NexradFileFactory::Create(is); },
-                  request);
+   RadarProductManagerImpl::LoadNexradFile(
+      [=, &is]() -> std::shared_ptr<wsr88d::NexradFile>
+      { return wsr88d::NexradFileFactory::Create(is); },
+      request);
 }
 
 void RadarProductManager::LoadFile(
    const std::string&                          filename,
    std::shared_ptr<request::NexradFileRequest> request)
 {
-   LoadNexradFile([=]() -> std::shared_ptr<wsr88d::NexradFile>
-                  { return wsr88d::NexradFileFactory::Create(filename); },
-                  request);
+   RadarProductManagerImpl::LoadNexradFile(
+      [=]() -> std::shared_ptr<wsr88d::NexradFile>
+      { return wsr88d::NexradFileFactory::Create(filename); },
+      request);
 }
 
-void RadarProductManager::LoadNexradFile(
+void RadarProductManagerImpl::LoadNexradFile(
    CreateNexradFileFunction                    load,
    std::shared_ptr<request::NexradFileRequest> request)
 {
@@ -307,7 +314,7 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
       scwx::util::async(
          [&]()
          {
-            std::lock_guard<std::mutex> guard(p->fileLoadMutex_);
+            std::unique_lock lock(fileLoadMutex_);
 
             BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Start load";
 

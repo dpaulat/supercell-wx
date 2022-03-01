@@ -59,14 +59,9 @@ signals:
    void Level2DataLoaded();
 
 private:
-   typedef std::function<std::shared_ptr<wsr88d::NexradFile>()>
-      CreateNexradFileFunction;
-
-   static void
-   LoadNexradFile(CreateNexradFileFunction                    load,
-                  std::shared_ptr<request::NexradFileRequest> request);
-
    std::unique_ptr<RadarProductManagerImpl> p;
+
+   friend class RadarProductManagerImpl;
 };
 
 } // namespace manager
