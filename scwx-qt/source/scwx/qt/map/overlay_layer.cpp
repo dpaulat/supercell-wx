@@ -103,7 +103,7 @@ void OverlayLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 
    gl::OpenGLFunctions& gl = context()->gl_;
 
-   if (p->sweepTimeNeedsUpdate_)
+   if (p->sweepTimeNeedsUpdate_ && context()->radarProductView_ != nullptr)
    {
       using namespace std::chrono;
       auto sweepTime =

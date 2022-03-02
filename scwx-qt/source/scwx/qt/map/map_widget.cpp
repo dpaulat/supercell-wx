@@ -54,6 +54,7 @@ public:
        widget_ {widget},
        settings_(settings),
        map_(),
+       layerList_ {},
        radarProductManager_ {manager::RadarProductManager::Instance("KLSX")},
        radarProductLayer_ {nullptr},
        overlayLayer_ {nullptr},
@@ -70,6 +71,9 @@ public:
    }
    ~MapWidgetImpl() = default;
 
+   void AddLayer(const std::string&            id,
+                 std::shared_ptr<GenericLayer> layer,
+                 const std::string&            before = {});
    bool UpdateStoredMapParameters();
 
    std::shared_ptr<MapContext> context_;
@@ -77,6 +81,7 @@ public:
    MapWidget*                 widget_;
    QMapboxGLSettings          settings_;
    std::shared_ptr<QMapboxGL> map_;
+   std::list<std::string>     layerList_;
 
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
@@ -276,59 +281,56 @@ void MapWidget::changeStyle()
 
 void MapWidget::AddLayers()
 {
-   if (p->context_->radarProductView_ == nullptr)
+   // Clear custom layers
+   for (const std::string& id : p->layerList_)
    {
-      return;
+      p->map_->removeLayer(id.c_str());
+   }
+   p->layerList_.clear();
+
+   if (p->context_->radarProductView_ != nullptr)
+   {
+      p->radarProductLayer_ = std::make_shared<RadarProductLayer>(p->context_);
+      p->colorTableLayer_   = std::make_shared<ColorTableLayer>(p->context_);
+
+      std::shared_ptr<config::RadarSite> radarSite =
+         p->radarProductManager_->radar_site();
+
+      std::string before = "ferry";
+
+      for (const QString& layer : p->map_->layerIds())
+      {
+         // Draw below tunnels, ferries and roads
+         if (layer.startsWith("tunnel") || layer.startsWith("ferry") ||
+             layer.startsWith("road"))
+         {
+            before = layer.toStdString();
+            break;
+         }
+      }
+
+      p->AddLayer("radar", p->radarProductLayer_, before);
+      RadarRangeLayer::Add(p->map_,
+                           p->context_->radarProductView_->range(),
+                           {radarSite->latitude(), radarSite->longitude()});
+      p->AddLayer("colorTable", p->colorTableLayer_);
    }
 
-   // TODO: Improve this
-   if (p->map_->layerExists("radar"))
-   {
-      p->map_->removeLayer("radar");
-   }
-   if (p->map_->layerExists("overlay"))
-   {
-      p->map_->removeLayer("overlay");
-   }
-   if (p->map_->layerExists("colorTable"))
-   {
-      p->map_->removeLayer("colorTable");
-   }
+   p->overlayLayer_ = std::make_shared<OverlayLayer>(p->context_);
+   p->AddLayer("overlay", p->overlayLayer_);
+}
 
-   p->radarProductLayer_ = std::make_shared<RadarProductLayer>(p->context_);
-   p->overlayLayer_      = std::make_shared<OverlayLayer>(p->context_);
-   p->colorTableLayer_   = std::make_shared<ColorTableLayer>(p->context_);
-
+void MapWidgetImpl::AddLayer(const std::string&            id,
+                             std::shared_ptr<GenericLayer> layer,
+                             const std::string&            before)
+{
    // QMapboxGL::addCustomLayer will take ownership of the std::unique_ptr
    std::unique_ptr<QMapbox::CustomLayerHostInterface> pHost =
-      std::make_unique<LayerWrapper>(p->radarProductLayer_);
-   std::unique_ptr<QMapbox::CustomLayerHostInterface> pOverlayHost =
-      std::make_unique<LayerWrapper>(p->overlayLayer_);
-   std::unique_ptr<QMapbox::CustomLayerHostInterface> pColorTableHost =
-      std::make_unique<LayerWrapper>(p->colorTableLayer_);
+      std::make_unique<LayerWrapper>(layer);
 
-   std::shared_ptr<config::RadarSite> radarSite =
-      p->radarProductManager_->radar_site();
+   map_->addCustomLayer(id.c_str(), std::move(pHost), before.c_str());
 
-   QString before = "ferry";
-
-   for (const QString& layer : p->map_->layerIds())
-   {
-      // Draw below tunnels, ferries and roads
-      if (layer.startsWith("tunnel") || layer.startsWith("ferry") ||
-          layer.startsWith("road"))
-      {
-         before = layer;
-         break;
-      }
-   }
-
-   p->map_->addCustomLayer("radar", std::move(pHost), before);
-   RadarRangeLayer::Add(p->map_,
-                        p->context_->radarProductView_->range(),
-                        {radarSite->latitude(), radarSite->longitude()});
-   p->map_->addCustomLayer("colorTable", std::move(pColorTableHost));
-   p->map_->addCustomLayer("overlay", std::move(pOverlayHost));
+   layerList_.push_back(id);
 }
 
 void MapWidget::keyPressEvent(QKeyEvent* ev)
