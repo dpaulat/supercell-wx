@@ -49,8 +49,6 @@ RadarProductRecord::RadarProductRecord(
    uint16_t julianDate   = 0;
    uint32_t milliseconds = 0;
 
-   std::chrono::system_clock::time_point time;
-
    if (level2File != nullptr)
    {
       p->radarProductGroup_ = common::RadarProductGroup::Level2;
@@ -81,7 +79,7 @@ RadarProductRecord::RadarProductRecord(
       }
    }
 
-   time = util::TimePoint(julianDate, milliseconds);
+   p->time_ = util::TimePoint(julianDate, milliseconds);
 }
 
 RadarProductRecord::~RadarProductRecord() = default;

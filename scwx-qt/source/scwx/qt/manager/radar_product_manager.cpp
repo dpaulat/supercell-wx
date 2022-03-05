@@ -40,7 +40,11 @@ static constexpr uint32_t NUM_COORIDNATES_1_DEGREE =
 static std::unordered_map<std::string, std::shared_ptr<RadarProductManager>>
    instanceMap_;
 
+std::unordered_map<std::string, std::shared_ptr<types::RadarProductRecord>>
+   fileIndex_;
+
 static std::shared_mutex fileLoadMutex_;
+static std::shared_mutex fileIndexMutex_;
 
 class RadarProductManagerImpl
 {
@@ -59,7 +63,7 @@ public:
    }
    ~RadarProductManagerImpl() = default;
 
-   void
+   std::shared_ptr<types::RadarProductRecord>
    StoreRadarProductRecord(std::shared_ptr<types::RadarProductRecord> record);
 
    static void
@@ -73,6 +77,14 @@ public:
 
    std::vector<float> coordinates0_5Degree_;
    std::vector<float> coordinates1Degree_;
+
+   std::map<std::chrono::system_clock::time_point,
+            std::shared_ptr<types::RadarProductRecord>>
+      level2ProductRecords_;
+   std::unordered_map<std::string,
+                      std::map<std::chrono::system_clock::time_point,
+                               std::shared_ptr<types::RadarProductRecord>>>
+      level3ProductRecords_;
 
    std::map<std::chrono::system_clock::time_point,
             std::shared_ptr<wsr88d::Ar2vFile>>
@@ -213,6 +225,8 @@ void RadarProductManager::Initialize()
 void RadarProductManager::LoadData(
    std::istream& is, std::shared_ptr<request::NexradFileRequest> request)
 {
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "LoadData()";
+
    RadarProductManagerImpl::LoadNexradFile(
       [=, &is]() -> std::shared_ptr<wsr88d::NexradFile>
       { return wsr88d::NexradFileFactory::Create(is); },
@@ -223,10 +237,47 @@ void RadarProductManager::LoadFile(
    const std::string&                          filename,
    std::shared_ptr<request::NexradFileRequest> request)
 {
-   RadarProductManagerImpl::LoadNexradFile(
-      [=]() -> std::shared_ptr<wsr88d::NexradFile>
-      { return wsr88d::NexradFileFactory::Create(filename); },
-      request);
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "LoadFile(" << filename << ")";
+
+   std::shared_ptr<types::RadarProductRecord> existingRecord = nullptr;
+
+   {
+      std::shared_lock lock {fileIndexMutex_};
+      auto             it = fileIndex_.find(filename);
+      if (it != fileIndex_.cend())
+      {
+         BOOST_LOG_TRIVIAL(debug)
+            << logPrefix_ << "File previously loaded, loading from file cache";
+
+         existingRecord = it->second;
+      }
+   }
+
+   if (existingRecord == nullptr)
+   {
+      QObject::connect(request.get(),
+                       &request::NexradFileRequest::RequestComplete,
+                       [=](std::shared_ptr<request::NexradFileRequest> request)
+                       {
+                          auto record = request->radar_product_record();
+
+                          if (record != nullptr)
+                          {
+                             std::unique_lock lock {fileIndexMutex_};
+                             fileIndex_[filename] = record;
+                          }
+                       });
+
+      RadarProductManagerImpl::LoadNexradFile(
+         [=]() -> std::shared_ptr<wsr88d::NexradFile>
+         { return wsr88d::NexradFileFactory::Create(filename); },
+         request);
+   }
+   else if (request != nullptr)
+   {
+      request->set_radar_product_record(existingRecord);
+      emit request->RequestComplete(request);
+   }
 }
 
 void RadarProductManagerImpl::LoadNexradFile(
@@ -250,9 +301,8 @@ void RadarProductManagerImpl::LoadNexradFile(
             std::shared_ptr<RadarProductManager> manager =
                RadarProductManager::Instance(record->radar_id());
 
-            manager->p->StoreRadarProductRecord(record);
-
-            // TODO: When to initialize?
+            manager->Initialize();
+            record = manager->p->StoreRadarProductRecord(record);
          }
 
          lock.unlock();
@@ -286,10 +336,50 @@ void RadarProductManager::LoadLevel2Data(const std::string& filename)
    emit Level2DataLoaded();
 }
 
-void RadarProductManagerImpl::StoreRadarProductRecord(
+std::shared_ptr<types::RadarProductRecord>
+RadarProductManagerImpl::StoreRadarProductRecord(
    std::shared_ptr<types::RadarProductRecord> record)
 {
-   // TODO
+   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "StoreRadarProductRecord()";
+
+   std::shared_ptr<types::RadarProductRecord> storedRecord = record;
+
+   if (record->radar_product_group() == common::RadarProductGroup::Level2)
+   {
+      auto it = level2ProductRecords_.find(record->time());
+      if (it != level2ProductRecords_.cend())
+      {
+         BOOST_LOG_TRIVIAL(debug)
+            << logPrefix_
+            << "Level 2 product previously loaded, loading from cache";
+
+         storedRecord = it->second;
+      }
+      else
+      {
+         level2ProductRecords_[record->time()] = record;
+      }
+   }
+   else if (record->radar_product_group() == common::RadarProductGroup::Level3)
+   {
+      auto productMap = level3ProductRecords_[record->radar_product()];
+
+      auto it = productMap.find(record->time());
+      if (it != productMap.cend())
+      {
+         BOOST_LOG_TRIVIAL(debug)
+            << logPrefix_
+            << "Level 3 product previously loaded, loading from cache";
+
+         storedRecord = it->second;
+      }
+      else
+      {
+         productMap[record->time()] = record;
+      }
+   }
+
+   return storedRecord;
 }
 
 std::tuple<std::shared_ptr<wsr88d::rda::ElevationScan>,
