@@ -22,20 +22,24 @@ std::chrono::system_clock::time_point TimePoint(uint16_t modifiedJulianDate,
 }
 
 std::string TimeString(std::chrono::system_clock::time_point time,
-                       const std::chrono::time_zone*         timeZone)
+                       const std::chrono::time_zone*         timeZone,
+                       bool                                  epochValid)
 {
    using namespace std::chrono;
    auto               timeInSeconds = time_point_cast<seconds>(time);
    std::ostringstream os;
 
-   if (timeZone != nullptr)
+   if (epochValid || time.time_since_epoch().count() != 0)
    {
-      zoned_time zt = {current_zone(), timeInSeconds};
-      os << zt;
-   }
-   else
-   {
-      os << timeInSeconds;
+      if (timeZone != nullptr)
+      {
+         zoned_time zt = {current_zone(), timeInSeconds};
+         os << zt;
+      }
+      else
+      {
+         os << timeInSeconds;
+      }
    }
 
    return os.str();

@@ -103,7 +103,8 @@ void OverlayLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
    {
       p->sweepTimeString_ =
          scwx::util::TimeString(context()->radarProductView_->sweep_time(),
-                                std::chrono::current_zone());
+                                std::chrono::current_zone(),
+                                false);
       p->sweepTimeNeedsUpdate_ = false;
    }
 
