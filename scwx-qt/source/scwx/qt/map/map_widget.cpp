@@ -8,6 +8,7 @@
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
+#include <scwx/util/time.hpp>
 
 #include <QApplication>
 #include <QColor>
@@ -244,6 +245,17 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
    {
       AddLayers();
    }
+}
+
+void MapWidget::SelectRadarProduct(const std::string&        radarId,
+                                   common::RadarProductGroup group,
+                                   const std::string&        product,
+                                   std::chrono::system_clock::time_point time)
+{
+   BOOST_LOG_TRIVIAL(debug)
+      << logPrefix_ << "SelectRadarProduct(" << radarId << ", "
+      << common::GetRadarProductGroupName(group) << ", " << product << ", "
+      << util::TimeString(time) << ")";
 }
 
 void MapWidget::SetActive(bool isActive)

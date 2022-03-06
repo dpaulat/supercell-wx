@@ -207,6 +207,8 @@ void MainWindow::on_actionOpen_triggered()
    dialog->setNameFilter(tr(nexradFilter.c_str()));
    dialog->setAttribute(Qt::WA_DeleteOnClose);
 
+   map::MapWidget* currentMap = p->activeMap_;
+
    // Make sure the parent window properly repaints on close
    connect(
       dialog,
@@ -234,22 +236,13 @@ void MainWindow::on_actionOpen_triggered()
             {
                std::shared_ptr<types::RadarProductRecord> record =
                   request->radar_product_record();
-               std::shared_ptr<wsr88d::Ar2vFile>   level2File = nullptr;
-               std::shared_ptr<wsr88d::Level3File> level3File = nullptr;
 
                if (record != nullptr)
                {
-                  level2File = record->level2_file();
-                  level3File = record->level3_file();
-               }
-
-               if (level2File != nullptr)
-               {
-                  // TODO: Handle
-               }
-               else if (level3File != nullptr)
-               {
-                  // TODO: Handle
+                  currentMap->SelectRadarProduct(record->radar_id(),
+                                                 record->radar_product_group(),
+                                                 record->radar_product(),
+                                                 record->time());
                }
                else
                {

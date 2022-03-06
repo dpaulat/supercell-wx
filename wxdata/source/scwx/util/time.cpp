@@ -1,3 +1,8 @@
+// Enable chrono formatters
+#ifndef __cpp_lib_format
+#   define __cpp_lib_format 202110L
+#endif
+
 #include <scwx/util/time.hpp>
 
 namespace scwx
@@ -5,8 +10,8 @@ namespace scwx
 namespace util
 {
 
-std::chrono::system_clock::time_point
-TimePoint(uint16_t modifiedJulianDate, uint32_t milliseconds)
+std::chrono::system_clock::time_point TimePoint(uint16_t modifiedJulianDate,
+                                                uint32_t milliseconds)
 {
    using namespace std::chrono;
    using sys_days       = time_point<system_clock, days>;
@@ -16,5 +21,25 @@ TimePoint(uint16_t modifiedJulianDate, uint32_t milliseconds)
           std::chrono::milliseconds {milliseconds};
 }
 
-} // namespace qt
+std::string TimeString(std::chrono::system_clock::time_point time,
+                       const std::chrono::time_zone*         timeZone)
+{
+   using namespace std::chrono;
+   auto               timeInSeconds = time_point_cast<seconds>(time);
+   std::ostringstream os;
+
+   if (timeZone != nullptr)
+   {
+      zoned_time zt = {current_zone(), timeInSeconds};
+      os << zt;
+   }
+   else
+   {
+      os << timeInSeconds;
+   }
+
+   return os.str();
+}
+
+} // namespace util
 } // namespace scwx

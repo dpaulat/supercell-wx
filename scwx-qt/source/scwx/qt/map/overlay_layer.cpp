@@ -1,13 +1,9 @@
-// Enable chrono formatters
-#ifndef __cpp_lib_format
-#   define __cpp_lib_format 202110L
-#endif
-
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/gl/draw/rectangle.hpp>
 #include <scwx/qt/gl/shader_program.hpp>
 #include <scwx/qt/gl/text_shader.hpp>
 #include <scwx/qt/util/font.hpp>
+#include <scwx/util/time.hpp>
 
 #include <chrono>
 #include <execution>
@@ -105,18 +101,9 @@ void OverlayLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 
    if (p->sweepTimeNeedsUpdate_ && context()->radarProductView_ != nullptr)
    {
-      using namespace std::chrono;
-      auto sweepTime =
-         time_point_cast<seconds>(context()->radarProductView_->sweep_time());
-
-      if (sweepTime.time_since_epoch().count() != 0)
-      {
-         zoned_time         zt = {current_zone(), sweepTime};
-         std::ostringstream os;
-         os << zt;
-         p->sweepTimeString_ = os.str();
-      }
-
+      p->sweepTimeString_ =
+         scwx::util::TimeString(context()->radarProductView_->sweep_time(),
+                                std::chrono::current_zone());
       p->sweepTimeNeedsUpdate_ = false;
    }
 
