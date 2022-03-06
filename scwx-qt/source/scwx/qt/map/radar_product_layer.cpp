@@ -124,7 +124,7 @@ void RadarProductLayer::Initialize()
    gl.glGenVertexArrays(1, &p->vao_);
 
    // Generate vertex buffer objects
-   gl.glGenBuffers(2, p->vbo_.data());
+   gl.glGenBuffers(3, p->vbo_.data());
 
    // Update radar sweep
    UpdateSweep();
@@ -159,9 +159,6 @@ void RadarProductLayer::UpdateSweep()
 
    // Bind a vertex array object
    gl.glBindVertexArray(p->vao_);
-
-   // Generate vertex buffer objects
-   gl.glGenBuffers(3, p->vbo_.data());
 
    // Buffer vertices
    gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
