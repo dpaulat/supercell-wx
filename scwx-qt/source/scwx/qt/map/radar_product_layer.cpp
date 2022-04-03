@@ -154,8 +154,10 @@ void RadarProductLayer::UpdateSweep()
 
    boost::timer::cpu_timer timer;
 
-   const std::vector<float>& vertices =
-      context()->radarProductView_->vertices();
+   std::shared_ptr<view::RadarProductView> radarProductView =
+      context()->radarProductView_;
+
+   const std::vector<float>& vertices = radarProductView->vertices();
 
    // Bind a vertex array object
    gl.glBindVertexArray(p->vao_);
@@ -180,8 +182,7 @@ void RadarProductLayer::UpdateSweep()
    size_t        componentSize;
    GLenum        type;
 
-   std::tie(data, dataSize, componentSize) =
-      context()->radarProductView_->GetMomentData();
+   std::tie(data, dataSize, componentSize) = radarProductView->GetMomentData();
 
    if (componentSize == 1)
    {
@@ -209,7 +210,7 @@ void RadarProductLayer::UpdateSweep()
    GLenum        cfpType;
 
    std::tie(cfpData, cfpDataSize, cfpComponentSize) =
-      context()->radarProductView_->GetCfpMomentData();
+      radarProductView->GetCfpMomentData();
 
    if (cfpData != nullptr)
    {
