@@ -8,6 +8,7 @@
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
+#include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 
 #include <QApplication>
@@ -60,6 +61,7 @@ public:
        radarProductLayer_ {nullptr},
        overlayLayer_ {nullptr},
        colorTableLayer_ {nullptr},
+       selectedTime_ {},
        lastPos_(),
        currentStyleIndex_ {0},
        frameDraws_(0),
@@ -77,6 +79,9 @@ public:
                  const std::string&            before = {});
    bool UpdateStoredMapParameters();
 
+   common::Level2Product
+   GetLevel2ProductOrDefault(const std::string& productName) const;
+
    std::shared_ptr<MapContext> context_;
 
    MapWidget*                 widget_;
@@ -91,6 +96,8 @@ public:
    std::shared_ptr<RadarProductLayer> radarProductLayer_;
    std::shared_ptr<OverlayLayer>      overlayLayer_;
    std::shared_ptr<ColorTableLayer>   colorTableLayer_;
+
+   std::chrono::system_clock::time_point selectedTime_;
 
    QPointF lastPos_;
    uint8_t currentStyleIndex_;
@@ -144,6 +151,28 @@ std::vector<float> MapWidget::GetElevationCuts() const
    }
 }
 
+common::Level2Product
+MapWidgetImpl::GetLevel2ProductOrDefault(const std::string& productName) const
+{
+   common::Level2Product level2Product = common::GetLevel2Product(productName);
+
+   if (level2Product == common::Level2Product::Unknown)
+   {
+      if (context_->radarProductView_ != nullptr)
+      {
+         common::Level2Product level2Product = common::GetLevel2Product(
+            context_->radarProductView_->GetRadarProductName());
+      }
+   }
+
+   if (level2Product == common::Level2Product::Unknown)
+   {
+      level2Product = common::Level2Product::Reflectivity;
+   }
+
+   return level2Product;
+}
+
 common::RadarProductGroup MapWidget::GetRadarProductGroup() const
 {
    if (p->context_->radarProductView_ != nullptr)
@@ -187,6 +216,7 @@ void MapWidget::SelectElevation(float elevation)
    if (p->context_->radarProductView_ != nullptr)
    {
       p->context_->radarProductView_->SelectElevation(elevation);
+      p->context_->radarProductView_->Update();
    }
 }
 
@@ -204,6 +234,7 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
 
    radarProductView = view::RadarProductViewFactory::Create(
       product, currentElevation, p->radarProductManager_);
+   radarProductView->SelectTime(p->selectedTime_);
 
    connect(
       radarProductView.get(),
@@ -229,17 +260,21 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
       },
       Qt::QueuedConnection);
 
-   radarProductView->Initialize();
+   util::async(
+      [=]()
+      {
+         radarProductView->Initialize();
 
-   std::string colorTableFile =
-      manager::SettingsManager::palette_settings()->palette(
-         common::GetLevel2Palette(product));
-   if (!colorTableFile.empty())
-   {
-      std::shared_ptr<common::ColorTable> colorTable =
-         common::ColorTable::Load(colorTableFile);
-      radarProductView->LoadColorTable(colorTable);
-   }
+         std::string colorTableFile =
+            manager::SettingsManager::palette_settings()->palette(
+               common::GetLevel2Palette(product));
+         if (!colorTableFile.empty())
+         {
+            std::shared_ptr<common::ColorTable> colorTable =
+               common::ColorTable::Load(colorTableFile);
+            radarProductView->LoadColorTable(colorTable);
+         }
+      });
 
    if (p->map_ != nullptr)
    {
@@ -256,6 +291,17 @@ void MapWidget::SelectRadarProduct(const std::string&        radarId,
       << logPrefix_ << "SelectRadarProduct(" << radarId << ", "
       << common::GetRadarProductGroupName(group) << ", " << product << ", "
       << util::TimeString(time) << ")";
+
+   p->radarProductManager_ = manager::RadarProductManager::Instance(radarId);
+   p->selectedTime_        = time;
+
+   if (group == common::RadarProductGroup::Level2)
+   {
+      common::Level2Product level2Product =
+         p->GetLevel2ProductOrDefault(product);
+
+      SelectRadarProduct(level2Product);
+   }
 }
 
 void MapWidget::SetActive(bool isActive)

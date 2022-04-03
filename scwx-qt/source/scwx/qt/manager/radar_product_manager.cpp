@@ -64,6 +64,8 @@ public:
    ~RadarProductManagerImpl() = default;
 
    std::shared_ptr<types::RadarProductRecord>
+   GetLevel2ProductRecord(std::chrono::system_clock::time_point time);
+   std::shared_ptr<types::RadarProductRecord>
    StoreRadarProductRecord(std::shared_ptr<types::RadarProductRecord> record);
 
    static void
@@ -85,10 +87,6 @@ public:
                       std::map<std::chrono::system_clock::time_point,
                                std::shared_ptr<types::RadarProductRecord>>>
       level3ProductRecords_;
-
-   std::map<std::chrono::system_clock::time_point,
-            std::shared_ptr<wsr88d::Ar2vFile>>
-      level2VolumeScans_;
 };
 
 RadarProductManager::RadarProductManager(const std::string& radarId) :
@@ -112,18 +110,6 @@ RadarProductManager::coordinates(common::RadialSize radialSize) const
 std::shared_ptr<config::RadarSite> RadarProductManager::radar_site() const
 {
    return p->radarSite_;
-}
-
-std::shared_ptr<const wsr88d::Ar2vFile> RadarProductManager::level2_data() const
-{
-   std::shared_ptr<const wsr88d::Ar2vFile> level2Data = nullptr;
-
-   if (p->level2VolumeScans_.size() > 0)
-   {
-      level2Data = p->level2VolumeScans_.crbegin()->second;
-   }
-
-   return level2Data;
 }
 
 void RadarProductManager::Initialize()
@@ -315,25 +301,50 @@ void RadarProductManagerImpl::LoadNexradFile(
       });
 }
 
-void RadarProductManager::LoadLevel2Data(const std::string& filename)
+std::shared_ptr<types::RadarProductRecord>
+RadarProductManagerImpl::GetLevel2ProductRecord(
+   std::chrono::system_clock::time_point time)
 {
-   std::shared_ptr<wsr88d::Ar2vFile> ar2vFile =
-      std::make_shared<wsr88d::Ar2vFile>();
+   std::shared_ptr<types::RadarProductRecord> record = nullptr;
 
-   if (!p->initialized_)
+   // TODO: Round to minutes
+
+   // Find the first product record greater than the time requested
+   auto it = level2ProductRecords_.upper_bound(time);
+
+   // A product record with a time greater was found
+   if (it != level2ProductRecords_.cend())
    {
-      Initialize();
+      // Are there product records prior to this record?
+      if (it != level2ProductRecords_.cbegin())
+      {
+         // Get the product record immediately preceding, this the record we are
+         // looking for
+         --it;
+
+         // Does the record contain the time we are looking for?
+         if (it->second->level2_file()->start_time() <= time &&
+             time <= it->second->level2_file()->end_time())
+         {
+            record = it->second;
+         }
+      }
+   }
+   else if (level2ProductRecords_.size() > 0)
+   {
+      // A product record with a time greater was not found. If it exists, it
+      // must be the last record.
+      auto rit = level2ProductRecords_.rbegin();
+
+      // Does the record contain the time we are looking for?
+      if (rit->second->level2_file()->start_time() <= time &&
+          time <= rit->second->level2_file()->end_time())
+      {
+         record = rit->second;
+      }
    }
 
-   bool success = ar2vFile->LoadFile(filename);
-   if (!success)
-   {
-      return;
-   }
-
-   p->level2VolumeScans_[ar2vFile->start_time()] = ar2vFile;
-
-   emit Level2DataLoaded();
+   return record;
 }
 
 std::shared_ptr<types::RadarProductRecord>
@@ -393,29 +404,14 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
    float                                       elevationCut = 0.0f;
    std::vector<float>                          elevationCuts;
 
-   if (p->level2VolumeScans_.size() > 0)
+   std::shared_ptr<types::RadarProductRecord> record =
+      p->GetLevel2ProductRecord(time);
+
+   if (record != nullptr)
    {
       std::tie(radarData, elevationCut, elevationCuts) =
-         p->level2VolumeScans_.crbegin()->second->GetElevationScan(
+         record->level2_file()->GetElevationScan(
             dataBlockType, elevation, time);
-   }
-   else
-   {
-      scwx::util::async(
-         [&]()
-         {
-            std::unique_lock lock(fileLoadMutex_);
-
-            BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Start load";
-
-            QString filename = qgetenv("AR2V_FILE");
-            if (!filename.isEmpty() && p->level2VolumeScans_.size() == 0)
-            {
-               LoadLevel2Data(filename.toUtf8().constData());
-            }
-
-            BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "End load";
-         });
    }
 
    return std::tie(radarData, elevationCut, elevationCuts);

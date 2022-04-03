@@ -40,6 +40,8 @@ public:
 
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) override;
    void SelectElevation(float elevation) override;
+   void SelectTime(std::chrono::system_clock::time_point time) override;
+   void Update() override;
 
    common::RadarProductGroup GetRadarProductGroup() const override;
    std::string               GetRadarProductName() const override;

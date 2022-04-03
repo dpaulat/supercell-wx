@@ -39,6 +39,8 @@ public:
    virtual void
    LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) = 0;
    virtual void SelectElevation(float elevation);
+   virtual void SelectTime(std::chrono::system_clock::time_point time) = 0;
+   virtual void Update() = 0;
 
    virtual common::RadarProductGroup GetRadarProductGroup() const = 0;
    virtual std::string               GetRadarProductName() const  = 0;

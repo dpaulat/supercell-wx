@@ -32,11 +32,7 @@ public:
    const std::vector<float>& coordinates(common::RadialSize radialSize) const;
    std::shared_ptr<config::RadarSite> radar_site() const;
 
-   // TODO: Improve this interface
-   std::shared_ptr<const wsr88d::Ar2vFile> level2_data() const;
-
    void Initialize();
-   void LoadLevel2Data(const std::string& filename);
 
    std::tuple<std::shared_ptr<wsr88d::rda::ElevationScan>,
               float,
@@ -54,9 +50,6 @@ public:
    static void
    LoadFile(const std::string&                          filename,
             std::shared_ptr<request::NexradFileRequest> request = nullptr);
-
-signals:
-   void Level2DataLoaded();
 
 private:
    std::unique_ptr<RadarProductManagerImpl> p;

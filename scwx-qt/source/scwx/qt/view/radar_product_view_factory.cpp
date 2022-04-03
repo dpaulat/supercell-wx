@@ -19,14 +19,14 @@ typedef std::function<std::shared_ptr<RadarProductView>(
    CreateRadarProductFunction;
 
 std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
-   const std::string&                            productGroup,
+   common::RadarProductGroup                     productGroup,
    const std::string&                            productName,
    float                                         elevation,
    std::shared_ptr<manager::RadarProductManager> radarProductManager)
 {
    std::shared_ptr<RadarProductView> view = nullptr;
 
-   if (productGroup == "L2")
+   if (productGroup == common::RadarProductGroup::Level2)
    {
       common::Level2Product product = common::GetLevel2Product(productName);
 
@@ -43,7 +43,8 @@ std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
    else
    {
       BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Unknown radar product group: " << productGroup;
+         << logPrefix_ << "Unknown radar product group: "
+         << common::GetRadarProductGroupName(productGroup);
    }
 
    return view;

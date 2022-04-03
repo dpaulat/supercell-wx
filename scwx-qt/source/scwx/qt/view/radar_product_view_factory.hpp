@@ -28,7 +28,7 @@ private:
 
 public:
    static std::shared_ptr<RadarProductView>
-   Create(const std::string&                            productGroup,
+   Create(common::RadarProductGroup                     productGroup,
           const std::string&                            productName,
           float                                         elevation,
           std::shared_ptr<manager::RadarProductManager> radarProductManager);
