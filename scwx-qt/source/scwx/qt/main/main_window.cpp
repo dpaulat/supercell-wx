@@ -48,6 +48,8 @@ public:
 
    void ConfigureMapLayout();
    void HandleFocusChange(QWidget* focused);
+   void NormalizeElevationButtons();
+   void NormalizeLevel2ProductButtons();
    void SelectElevation(map::MapWidget* mapWidget, float elevation);
    void SelectRadarProduct(map::MapWidget*       mapWidget,
                            common::Level2Product product);
@@ -143,21 +145,7 @@ bool MainWindow::event(QEvent* event)
       }
       else if (p->resizeElevationButtons_)
       {
-         // Set each elevation cut's tool button to the same size
-         int elevationCutMaxWidth = 0;
-         for (QToolButton* widget :
-              ui->elevationGroupBox->findChildren<QToolButton*>())
-         {
-            elevationCutMaxWidth =
-               std::max(elevationCutMaxWidth, widget->width());
-         }
-         for (QToolButton* widget :
-              ui->elevationGroupBox->findChildren<QToolButton*>())
-         {
-            widget->setMinimumWidth(elevationCutMaxWidth);
-         }
-
-         p->resizeElevationButtons_ = false;
+         p->NormalizeElevationButtons();
       }
    }
 
@@ -168,33 +156,58 @@ void MainWindow::showEvent(QShowEvent* event)
 {
    QMainWindow::showEvent(event);
 
+   p->NormalizeLevel2ProductButtons();
+   p->NormalizeElevationButtons();
+
+   resizeDocks({ui->radarToolboxDock}, {150}, Qt::Horizontal);
+}
+
+void MainWindowImpl::NormalizeLevel2ProductButtons()
+{
    // Set each level 2 product's tool button to the same size
    int level2MaxWidth = 0;
    for (QToolButton* widget :
-        ui->level2ProductFrame->findChildren<QToolButton*>())
+        mainWindow_->ui->level2ProductFrame->findChildren<QToolButton*>())
    {
-      level2MaxWidth = std::max(level2MaxWidth, widget->width());
-   }
-   for (QToolButton* widget :
-        ui->level2ProductFrame->findChildren<QToolButton*>())
-   {
-      widget->setMinimumWidth(level2MaxWidth);
+      if (widget->isVisible())
+      {
+         level2MaxWidth = std::max(level2MaxWidth, widget->width());
+      }
    }
 
+   if (level2MaxWidth > 0)
+   {
+      for (QToolButton* widget :
+           mainWindow_->ui->level2ProductFrame->findChildren<QToolButton*>())
+      {
+         widget->setMinimumWidth(level2MaxWidth);
+      }
+   }
+}
+
+void MainWindowImpl::NormalizeElevationButtons()
+{
    // Set each elevation cut's tool button to the same size
    int elevationCutMaxWidth = 0;
    for (QToolButton* widget :
-        ui->elevationGroupBox->findChildren<QToolButton*>())
+        mainWindow_->ui->elevationGroupBox->findChildren<QToolButton*>())
    {
-      elevationCutMaxWidth = std::max(elevationCutMaxWidth, widget->width());
-   }
-   for (QToolButton* widget :
-        ui->elevationGroupBox->findChildren<QToolButton*>())
-   {
-      widget->setMinimumWidth(elevationCutMaxWidth);
+      if (widget->isVisible())
+      {
+         elevationCutMaxWidth = std::max(elevationCutMaxWidth, widget->width());
+      }
    }
 
-   resizeDocks({ui->radarToolboxDock}, {150}, Qt::Horizontal);
+   if (elevationCutMaxWidth > 0)
+   {
+      for (QToolButton* widget :
+           mainWindow_->ui->elevationGroupBox->findChildren<QToolButton*>())
+      {
+         widget->setMinimumWidth(elevationCutMaxWidth);
+      }
+
+      resizeElevationButtons_ = false;
+   }
 }
 
 void MainWindow::on_actionOpen_triggered()
