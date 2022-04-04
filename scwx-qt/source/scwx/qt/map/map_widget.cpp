@@ -61,6 +61,7 @@ public:
        radarProductLayer_ {nullptr},
        overlayLayer_ {nullptr},
        colorTableLayer_ {nullptr},
+       selectedLevel2Product_ {common::Level2Product::Unknown},
        selectedTime_ {},
        lastPos_(),
        currentStyleIndex_ {0},
@@ -97,6 +98,7 @@ public:
    std::shared_ptr<OverlayLayer>      overlayLayer_;
    std::shared_ptr<ColorTableLayer>   colorTableLayer_;
 
+   common::Level2Product                 selectedLevel2Product_;
    std::chrono::system_clock::time_point selectedTime_;
 
    QPointF lastPos_;
@@ -167,7 +169,14 @@ MapWidgetImpl::GetLevel2ProductOrDefault(const std::string& productName) const
 
    if (level2Product == common::Level2Product::Unknown)
    {
-      level2Product = common::Level2Product::Reflectivity;
+      if (selectedLevel2Product_ != common::Level2Product::Unknown)
+      {
+         level2Product = selectedLevel2Product_;
+      }
+      else
+      {
+         level2Product = common::Level2Product::Reflectivity;
+      }
    }
 
    return level2Product;
@@ -235,6 +244,8 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
    radarProductView = view::RadarProductViewFactory::Create(
       product, currentElevation, p->radarProductManager_);
    radarProductView->SelectTime(p->selectedTime_);
+
+   p->selectedLevel2Product_ = product;
 
    connect(
       radarProductView.get(),
