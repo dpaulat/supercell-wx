@@ -66,6 +66,8 @@ INSTANTIATE_TEST_SUITE_P(
       std::pair<int16_t, std::string> {138, "KLSX_SDUS53_DSPLSX_202112110109"},
       std::pair<int16_t, std::string> {141, "KLSX_SDUS33_NMDLSX_202112110152"},
       std::pair<int16_t, std::string> {152, "KLSX_SDUS43_RSLLSX_202112110256"},
+      std::pair<int16_t, std::string> {153, "LSX_N0B_2022_03_31_15_04_46"},
+      std::pair<int16_t, std::string> {154, "LSX_N0G_2022_03_31_15_04_46"},
       std::pair<int16_t, std::string> {159, "KLSX_SDUS83_N0XLSX_202112110212"},
       std::pair<int16_t, std::string> {161, "KLSX_SDUS83_N0CLSX_202112110106"},
       std::pair<int16_t, std::string> {163, "KLSX_SDUS83_N0KLSX_202112110229"},
