@@ -353,6 +353,8 @@ void Level2ProductView::ComputeSweep()
       return;
    }
 
+   std::scoped_lock sweepLock(sweep_mutex());
+
    std::shared_ptr<wsr88d::rda::ElevationScan> radarData;
    std::tie(radarData, p->elevationCut_, p->elevationCuts_) =
       p->radarProductManager_->GetLevel2Data(

@@ -148,14 +148,23 @@ void RadarProductLayer::UpdateSweep()
 {
    BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "UpdateSweep()";
 
-   p->sweepNeedsUpdate_ = false;
-
    gl::OpenGLFunctions& gl = context()->gl_;
 
    boost::timer::cpu_timer timer;
 
    std::shared_ptr<view::RadarProductView> radarProductView =
       context()->radarProductView_;
+
+   std::unique_lock sweepLock(radarProductView->sweep_mutex(),
+                              std::try_to_lock);
+   if (!sweepLock.owns_lock())
+   {
+      BOOST_LOG_TRIVIAL(debug)
+         << logPrefix_ << "Sweep locked, deferring update";
+      return;
+   }
+
+   p->sweepNeedsUpdate_ = false;
 
    const std::vector<float>& vertices = radarProductView->vertices();
 

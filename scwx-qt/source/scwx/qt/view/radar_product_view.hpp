@@ -5,6 +5,7 @@
 
 #include <chrono>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 #include <QObject>
@@ -35,12 +36,14 @@ public:
    virtual uint16_t                              vcp() const      = 0;
    virtual const std::vector<float>&             vertices() const = 0;
 
+   std::mutex& sweep_mutex();
+
    void Initialize();
    virtual void
    LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) = 0;
    virtual void SelectElevation(float elevation);
    virtual void SelectTime(std::chrono::system_clock::time_point time) = 0;
-   virtual void Update() = 0;
+   virtual void Update()                                               = 0;
 
    virtual common::RadarProductGroup GetRadarProductGroup() const = 0;
    virtual std::string               GetRadarProductName() const  = 0;

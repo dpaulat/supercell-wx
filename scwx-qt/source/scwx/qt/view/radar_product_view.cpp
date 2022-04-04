@@ -24,8 +24,10 @@ static const uint16_t DEFAULT_COLOR_TABLE_MAX = 255u;
 class RadarProductViewImpl
 {
 public:
-   explicit RadarProductViewImpl() = default;
-   ~RadarProductViewImpl()         = default;
+   explicit RadarProductViewImpl() : sweepMutex_ {} {}
+   ~RadarProductViewImpl() = default;
+
+   std::mutex sweepMutex_;
 };
 
 RadarProductView::RadarProductView() :
@@ -61,6 +63,11 @@ float RadarProductView::range() const
 std::chrono::system_clock::time_point RadarProductView::sweep_time() const
 {
    return {};
+}
+
+std::mutex& RadarProductView::sweep_mutex()
+{
+   return p->sweepMutex_;
 }
 
 void RadarProductView::Initialize()
