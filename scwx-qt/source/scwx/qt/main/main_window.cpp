@@ -333,8 +333,11 @@ void MainWindowImpl::ConfigureMapLayout()
                {
                   if (maps_[mapIndex] == activeMap_)
                   {
-                     UpdateVcp();
+                     UpdateRadarProductSelection(
+                        activeMap_->GetRadarProductGroup(),
+                        activeMap_->GetRadarProductName());
                      UpdateRadarProductSettings();
+                     UpdateVcp();
                   }
                },
                Qt::QueuedConnection);
