@@ -274,8 +274,6 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
    util::async(
       [=]()
       {
-         radarProductView->Initialize();
-
          std::string colorTableFile =
             manager::SettingsManager::palette_settings()->palette(
                common::GetLevel2Palette(product));
@@ -285,6 +283,8 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
                common::ColorTable::Load(colorTableFile);
             radarProductView->LoadColorTable(colorTable);
          }
+
+         radarProductView->Initialize();
       });
 
    if (p->map_ != nullptr)

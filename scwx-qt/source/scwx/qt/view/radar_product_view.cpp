@@ -24,9 +24,10 @@ static const uint16_t DEFAULT_COLOR_TABLE_MAX = 255u;
 class RadarProductViewImpl
 {
 public:
-   explicit RadarProductViewImpl() : sweepMutex_ {} {}
+   explicit RadarProductViewImpl() : initialized_ {false}, sweepMutex_ {} {}
    ~RadarProductViewImpl() = default;
 
+   bool       initialized_;
    std::mutex sweepMutex_;
 };
 
@@ -73,9 +74,16 @@ std::mutex& RadarProductView::sweep_mutex()
 void RadarProductView::Initialize()
 {
    ComputeSweep();
+
+   p->initialized_ = true;
 }
 
 void RadarProductView::SelectElevation(float elevation) {}
+
+bool RadarProductView::IsInitialized() const
+{
+   return p->initialized_;
+}
 
 std::vector<float> RadarProductView::GetElevationCuts() const
 {

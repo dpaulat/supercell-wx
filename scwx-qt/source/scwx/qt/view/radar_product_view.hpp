@@ -45,6 +45,8 @@ public:
    virtual void SelectTime(std::chrono::system_clock::time_point time) = 0;
    virtual void Update()                                               = 0;
 
+   bool IsInitialized() const;
+
    virtual common::RadarProductGroup GetRadarProductGroup() const = 0;
    virtual std::string               GetRadarProductName() const  = 0;
    virtual std::vector<float>        GetElevationCuts() const;

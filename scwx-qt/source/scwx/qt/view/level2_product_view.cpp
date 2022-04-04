@@ -630,9 +630,9 @@ void Level2ProductView::ComputeSweep()
    BOOST_LOG_TRIVIAL(debug)
       << logPrefix_ << "Vertices calculated in " << timer.format(6, "%ws");
 
-   emit SweepComputed();
-
    UpdateColorTable();
+
+   emit SweepComputed();
 }
 
 std::shared_ptr<Level2ProductView> Level2ProductView::Create(

@@ -106,6 +106,12 @@ void ColorTableLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = context()->gl_;
 
+   if (!context()->radarProductView_->IsInitialized())
+   {
+      // Defer rendering until view is initialized
+      return;
+   }
+
    glm::mat4 projection = glm::ortho(0.0f,
                                      static_cast<float>(params.width),
                                      0.0f,
