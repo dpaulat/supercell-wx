@@ -26,6 +26,9 @@ static const std::string logPrefix_ =
 
 typedef std::function<std::shared_ptr<wsr88d::NexradFile>()>
    CreateNexradFileFunction;
+typedef std::map<std::chrono::system_clock::time_point,
+                 std::shared_ptr<types::RadarProductRecord>>
+   RadarProductRecordMap;
 
 static constexpr uint32_t NUM_RADIAL_GATES_0_5_DEGREE =
    common::MAX_0_5_DEGREE_RADIALS * common::MAX_DATA_MOMENT_GATES;
@@ -63,8 +66,14 @@ public:
    }
    ~RadarProductManagerImpl() = default;
 
+   static std::shared_ptr<types::RadarProductRecord>
+   GetRadarProductRecord(RadarProductRecordMap&                map,
+                         std::chrono::system_clock::time_point time);
    std::shared_ptr<types::RadarProductRecord>
    GetLevel2ProductRecord(std::chrono::system_clock::time_point time);
+   std::shared_ptr<types::RadarProductRecord>
+   GetLevel3ProductRecord(const std::string&                    product,
+                          std::chrono::system_clock::time_point time);
    std::shared_ptr<types::RadarProductRecord>
    StoreRadarProductRecord(std::shared_ptr<types::RadarProductRecord> record);
 
@@ -80,13 +89,8 @@ public:
    std::vector<float> coordinates0_5Degree_;
    std::vector<float> coordinates1Degree_;
 
-   std::map<std::chrono::system_clock::time_point,
-            std::shared_ptr<types::RadarProductRecord>>
-      level2ProductRecords_;
-   std::unordered_map<std::string,
-                      std::map<std::chrono::system_clock::time_point,
-                               std::shared_ptr<types::RadarProductRecord>>>
-      level3ProductRecords_;
+   RadarProductRecordMap                                  level2ProductRecords_;
+   std::unordered_map<std::string, RadarProductRecordMap> level3ProductRecords_;
 };
 
 RadarProductManager::RadarProductManager(const std::string& radarId) :
@@ -302,46 +306,67 @@ void RadarProductManagerImpl::LoadNexradFile(
 }
 
 std::shared_ptr<types::RadarProductRecord>
-RadarProductManagerImpl::GetLevel2ProductRecord(
-   std::chrono::system_clock::time_point time)
+RadarProductManagerImpl::GetRadarProductRecord(
+   RadarProductRecordMap& map, std::chrono::system_clock::time_point time)
 {
    std::shared_ptr<types::RadarProductRecord> record = nullptr;
 
    // TODO: Round to minutes
 
    // Find the first product record greater than the time requested
-   auto it = level2ProductRecords_.upper_bound(time);
+   auto it = map.upper_bound(time);
 
    // A product record with a time greater was found
-   if (it != level2ProductRecords_.cend())
+   if (it != map.cend())
    {
       // Are there product records prior to this record?
-      if (it != level2ProductRecords_.cbegin())
+      if (it != map.cbegin())
       {
          // Get the product record immediately preceding, this the record we are
          // looking for
-         --it;
-
-         // Does the record contain the time we are looking for?
-         if (it->second->level2_file()->start_time() <= time &&
-             time <= it->second->level2_file()->end_time())
-         {
-            record = it->second;
-         }
+         record = (--it)->second;
       }
    }
-   else if (level2ProductRecords_.size() > 0)
+   else if (map.size() > 0)
    {
       // A product record with a time greater was not found. If it exists, it
       // must be the last record.
-      auto rit = level2ProductRecords_.rbegin();
+      record = map.rbegin()->second;
+   }
 
-      // Does the record contain the time we are looking for?
-      if (rit->second->level2_file()->start_time() <= time &&
-          time <= rit->second->level2_file()->end_time())
-      {
-         record = rit->second;
-      }
+   return record;
+}
+
+std::shared_ptr<types::RadarProductRecord>
+RadarProductManagerImpl::GetLevel2ProductRecord(
+   std::chrono::system_clock::time_point time)
+{
+   std::shared_ptr<types::RadarProductRecord> record =
+      GetRadarProductRecord(level2ProductRecords_, time);
+
+   // TODO: Round to minutes
+
+   // Does the record contain the time we are looking for?
+   if (record != nullptr && (time < record->level2_file()->start_time() ||
+                             record->level2_file()->end_time() < time))
+   {
+      record = nullptr;
+   }
+
+   return record;
+}
+
+std::shared_ptr<types::RadarProductRecord>
+RadarProductManagerImpl::GetLevel3ProductRecord(
+   const std::string& product, std::chrono::system_clock::time_point time)
+{
+   std::shared_ptr<types::RadarProductRecord> record = nullptr;
+
+   auto it = level3ProductRecords_.find(product);
+
+   if (it != level3ProductRecords_.cend())
+   {
+      record = GetRadarProductRecord(it->second, time);
    }
 
    return record;
