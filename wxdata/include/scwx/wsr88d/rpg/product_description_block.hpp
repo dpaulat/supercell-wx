@@ -27,8 +27,8 @@ public:
    ProductDescriptionBlock& operator=(ProductDescriptionBlock&&) noexcept;
 
    int16_t  block_divider() const;
-   int32_t  latitude_of_radar() const;
-   int32_t  longitude_of_radar() const;
+   float    latitude_of_radar() const;
+   float    longitude_of_radar() const;
    int16_t  height_of_radar() const;
    int16_t  product_code() const;
    uint16_t operational_mode() const;

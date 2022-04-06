@@ -58,7 +58,7 @@ uint16_t ProductSymbologyBlock::number_of_layers() const
    return p->numberOfLayers_;
 }
 
-const std::vector<std::shared_ptr<Packet>>&
+std::vector<std::shared_ptr<Packet>>
 ProductSymbologyBlock::packet_list(uint16_t i) const
 {
    return p->layerList_[i];

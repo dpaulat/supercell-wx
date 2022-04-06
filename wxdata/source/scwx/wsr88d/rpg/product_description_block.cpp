@@ -104,14 +104,14 @@ int16_t ProductDescriptionBlock::block_divider() const
    return p->blockDivider_;
 }
 
-int32_t ProductDescriptionBlock::latitude_of_radar() const
+float ProductDescriptionBlock::latitude_of_radar() const
 {
-   return p->latitudeOfRadar_;
+   return p->latitudeOfRadar_ * 0.001f;
 }
 
-int32_t ProductDescriptionBlock::longitude_of_radar() const
+float ProductDescriptionBlock::longitude_of_radar() const
 {
-   return p->longitudeOfRadar_;
+   return p->longitudeOfRadar_ * 0.001f;
 }
 
 int16_t ProductDescriptionBlock::height_of_radar() const

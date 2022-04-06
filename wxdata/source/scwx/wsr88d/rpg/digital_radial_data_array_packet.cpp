@@ -108,6 +108,22 @@ size_t DigitalRadialDataArrayPacket::data_size() const
    return p->dataSize_;
 }
 
+float DigitalRadialDataArrayPacket::start_angle(uint16_t r) const
+{
+   return p->radial_[r].startAngle_ * 0.1f;
+}
+
+float DigitalRadialDataArrayPacket::delta_angle(uint16_t r) const
+{
+   return p->radial_[r].deltaAngle_ * 0.1f;
+}
+
+const std::vector<uint8_t>&
+DigitalRadialDataArrayPacket::level(uint16_t r) const
+{
+   return p->radial_[r].level_;
+}
+
 bool DigitalRadialDataArrayPacket::Parse(std::istream& is)
 {
    bool   blockValid = true;
@@ -141,6 +157,13 @@ bool DigitalRadialDataArrayPacket::Parse(std::istream& is)
       {
          BOOST_LOG_TRIVIAL(warning)
             << logPrefix_ << "Invalid packet code: " << p->packetCode_;
+         blockValid = false;
+      }
+      if (p->indexOfFirstRangeBin_ < 0 || p->indexOfFirstRangeBin_ > 230)
+      {
+         BOOST_LOG_TRIVIAL(warning)
+            << logPrefix_
+            << "Invalid index of first range bin: " << p->indexOfFirstRangeBin_;
          blockValid = false;
       }
       if (p->numberOfRangeBins_ < 0 || p->numberOfRangeBins_ > 1840)

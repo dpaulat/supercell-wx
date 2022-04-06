@@ -36,6 +36,10 @@ public:
    float    range_scale_factor() const;
    uint16_t number_of_radials() const;
 
+   float                       start_angle(uint16_t r) const;
+   float                       delta_angle(uint16_t r) const;
+   const std::vector<uint8_t>& level(uint16_t r) const;
+
    size_t data_size() const override;
 
    bool Parse(std::istream& is) override;
