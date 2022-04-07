@@ -398,7 +398,7 @@ RadarProductManagerImpl::StoreRadarProductRecord(
    }
    else if (record->radar_product_group() == common::RadarProductGroup::Level3)
    {
-      auto productMap = level3ProductRecords_[record->radar_product()];
+      auto& productMap = level3ProductRecords_[record->radar_product()];
 
       auto it = productMap.find(record->time());
       if (it != productMap.cend())
@@ -440,6 +440,23 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
    }
 
    return std::tie(radarData, elevationCut, elevationCuts);
+}
+
+std::shared_ptr<wsr88d::rpg::Level3Message>
+RadarProductManager::GetLevel3Data(const std::string& product,
+                                   std::chrono::system_clock::time_point time)
+{
+   std::shared_ptr<wsr88d::rpg::Level3Message> message = nullptr;
+
+   std::shared_ptr<types::RadarProductRecord> record =
+      p->GetLevel3ProductRecord(product, time);
+
+   if (record != nullptr)
+   {
+      message = record->level3_file()->message();
+   }
+
+   return message;
 }
 
 std::shared_ptr<RadarProductManager>

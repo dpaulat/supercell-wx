@@ -41,6 +41,10 @@ public:
                  float                                 elevation,
                  std::chrono::system_clock::time_point time = {});
 
+   std::shared_ptr<wsr88d::rpg::Level3Message>
+   GetLevel3Data(const std::string&                    product,
+                 std::chrono::system_clock::time_point time = {});
+
    static std::shared_ptr<RadarProductManager>
    Instance(const std::string& radarSite);
 
