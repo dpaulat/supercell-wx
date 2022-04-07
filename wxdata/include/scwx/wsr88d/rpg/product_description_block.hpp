@@ -46,6 +46,13 @@ public:
    uint32_t offset_to_graphic() const;
    uint32_t offset_to_tabular() const;
 
+   float    range() const;
+   uint16_t range_raw() const;
+   float    x_resolution() const;
+   uint16_t x_resolution_raw() const;
+   float    y_resolution() const;
+   uint16_t y_resolution_raw() const;
+
    bool IsCompressionEnabled() const;
 
    size_t data_size() const override;

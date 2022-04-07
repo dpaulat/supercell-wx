@@ -22,6 +22,49 @@ static const std::set<int16_t> compressedProducts_ = {
    159, 161, 163, 165, 167, 168, 170, 172, 173, 174, 175,
    176, 177, 178, 179, 180, 182, 186, 193, 195, 202};
 
+static const std::unordered_map<int16_t, uint16_t> rangeMap_ {
+   {19, 230},  {20, 460},  {27, 230},  {30, 230},  {31, 230},  {32, 230},
+   {37, 230},  {38, 460},  {41, 230},  {50, 230},  {51, 230},  {56, 230},
+   {57, 230},  {58, 460},  {59, 230},  {61, 230},  {62, 460},  {65, 230},
+   {66, 230},  {67, 230},  {74, 460},  {78, 230},  {79, 230},  {80, 230},
+   {81, 230},  {86, 230},  {90, 230},  {93, 115},  {94, 460},  {97, 230},
+   {98, 460},  {99, 230},  {113, 300}, {132, 230}, {133, 230}, {134, 460},
+   {135, 345}, {137, 230}, {138, 230}, {140, 70},  {141, 230}, {143, 230},
+   {144, 230}, {145, 230}, {146, 230}, {147, 230}, {149, 230}, {150, 230},
+   {151, 230}, {153, 460}, {154, 300}, {155, 300}, {159, 300}, {161, 300},
+   {163, 300}, {165, 300}, {166, 230}, {167, 300}, {168, 300}, {169, 230},
+   {170, 230}, {171, 230}, {172, 230}, {173, 230}, {174, 230}, {175, 230},
+   {176, 230}, {177, 230}, {178, 300}, {179, 300}, {193, 460}, {195, 460},
+   {196, 50}};
+
+static const std::unordered_map<int16_t, uint16_t> xResolutionMap_ {
+   {19, 1000},  {20, 2000},  {27, 1000},  {30, 1000},  {31, 2000},  {32, 1000},
+   {37, 1000},  {38, 4000},  {41, 4000},  {50, 1000},  {51, 1000},  {56, 1000},
+   {57, 4000},  {65, 4000},  {66, 4000},  {67, 4000},  {78, 2000},  {79, 2000},
+   {80, 2000},  {86, 1000},  {90, 4000},  {93, 1000},  {94, 1000},  {97, 1000},
+   {98, 1000},  {99, 250},   {113, 250},  {132, 1000}, {133, 1000}, {134, 1000},
+   {135, 1000}, {137, 1000}, {138, 2000}, {144, 1000}, {145, 1000}, {146, 1000},
+   {147, 1000}, {150, 1000}, {151, 1000}, {153, 250},  {154, 250},  {155, 250},
+   {159, 250},  {161, 250},  {163, 250},  {165, 250},  {166, 250},  {167, 250},
+   {168, 250},  {169, 2000}, {170, 250},  {171, 2000}, {172, 250},  {173, 250},
+   {174, 250},  {175, 250},  {176, 250},  {177, 250},  {178, 1000}, {179, 1000},
+   {193, 250},  {195, 1000}};
+
+static const std::unordered_map<int16_t, uint16_t> yResolutionMap_ {{37, 1000},
+                                                                    {38, 4000},
+                                                                    {41, 4000},
+                                                                    {50, 500},
+                                                                    {51, 500},
+                                                                    {57, 4000},
+                                                                    {65, 4000},
+                                                                    {66, 4000},
+                                                                    {67, 4000},
+                                                                    {86, 500},
+                                                                    {90, 4000},
+                                                                    {97, 1000},
+                                                                    {98, 4000},
+                                                                    {166, 250}};
+
 class ProductDescriptionBlockImpl
 {
 public:
@@ -192,6 +235,60 @@ uint32_t ProductDescriptionBlock::offset_to_graphic() const
 uint32_t ProductDescriptionBlock::offset_to_tabular() const
 {
    return p->offsetToTabular_;
+}
+
+float ProductDescriptionBlock::range() const
+{
+   return range_raw();
+}
+
+uint16_t ProductDescriptionBlock::range_raw() const
+{
+   uint16_t range = 0;
+
+   auto it = rangeMap_.find(p->productCode_);
+   if (it != rangeMap_.cend())
+   {
+      range = it->second;
+   }
+
+   return range;
+}
+
+float ProductDescriptionBlock::x_resolution() const
+{
+   return x_resolution_raw() * 0.001f;
+}
+
+uint16_t ProductDescriptionBlock::x_resolution_raw() const
+{
+   uint16_t xResolution = 0;
+
+   auto it = xResolutionMap_.find(p->productCode_);
+   if (it != xResolutionMap_.cend())
+   {
+      xResolution = it->second;
+   }
+
+   return xResolution;
+}
+
+float ProductDescriptionBlock::y_resolution() const
+{
+   return y_resolution_raw() * 0.001f;
+}
+
+uint16_t ProductDescriptionBlock::y_resolution_raw() const
+{
+   uint16_t yResolution = 0;
+
+   auto it = yResolutionMap_.find(p->productCode_);
+   if (it != yResolutionMap_.cend())
+   {
+      yResolution = it->second;
+   }
+
+   return yResolution;
 }
 
 bool ProductDescriptionBlock::IsCompressionEnabled() const
