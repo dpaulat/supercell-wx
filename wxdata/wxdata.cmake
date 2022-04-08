@@ -32,13 +32,15 @@ set(SRC_COMMON source/scwx/common/color_table.cpp
                source/scwx/common/products.cpp
                source/scwx/common/sites.cpp
                source/scwx/common/vcp.cpp)
-set(HDR_UTIL include/scwx/util/iterator.hpp
+set(HDR_UTIL include/scwx/util/float.hpp
+             include/scwx/util/iterator.hpp
              include/scwx/util/rangebuf.hpp
              include/scwx/util/streams.hpp
              include/scwx/util/threads.hpp
              include/scwx/util/time.hpp
              include/scwx/util/vectorbuf.hpp)
-set(SRC_UTIL source/scwx/util/rangebuf.cpp
+set(SRC_UTIL source/scwx/util/float.cpp
+             source/scwx/util/rangebuf.cpp
              source/scwx/util/streams.cpp
              source/scwx/util/time.cpp
              source/scwx/util/vectorbuf.cpp)
