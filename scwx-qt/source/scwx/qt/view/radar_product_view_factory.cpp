@@ -1,5 +1,6 @@
 #include <scwx/qt/view/radar_product_view_factory.hpp>
 #include <scwx/qt/view/level2_product_view.hpp>
+#include <scwx/qt/view/level3_radial_view.hpp>
 
 #include <boost/log/trivial.hpp>
 
@@ -39,6 +40,10 @@ std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
       {
          view = Create(product, elevation, radarProductManager);
       }
+   }
+   else if (productGroup == common::RadarProductGroup::Level3)
+   {
+      view = Level3RadialView::Create(productName, radarProductManager);
    }
    else
    {

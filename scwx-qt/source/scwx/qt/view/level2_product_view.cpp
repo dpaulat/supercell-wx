@@ -440,8 +440,6 @@ void Level2ProductView::ComputeSweep()
    }
 
    // Compute threshold at which to display an individual bin
-   const float    scale        = momentData0->scale();
-   const float    offset       = momentData0->offset();
    const uint16_t snrThreshold = momentData0->snr_threshold_raw();
 
    // Azimuth resolution spacing:
