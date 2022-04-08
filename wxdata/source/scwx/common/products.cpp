@@ -42,6 +42,21 @@ static const std::unordered_map<Level2Product, std::string> level2Palette_ {
    {Level2Product::ClutterFilterPowerRemoved, "???"},
    {Level2Product::Unknown, "???"}};
 
+static const std::unordered_map<int16_t, std::string> level3Palette_ {
+   {19, "BR"},   {20, "BR"},   {27, "BV"},   {30, "SW"},   {31, "???"},
+   {32, "BR"},   {37, "BR"},   {38, "BR"},   {41, "???"},  {50, "BR"},
+   {51, "BV"},   {56, "BV"},   {57, "???"},  {65, "BR"},   {66, "BR"},
+   {67, "BR"},   {78, "???"},  {79, "???"},  {80, "???"},  {81, "???"},
+   {86, "BV"},   {90, "BR"},   {93, "BV"},   {94, "BR"},   {97, "BR"},
+   {98, "BR"},   {99, "BV"},   {113, "???"}, {132, "???"}, {133, "???"},
+   {134, "???"}, {135, "???"}, {137, "BR"},  {138, "???"}, {144, "???"},
+   {145, "???"}, {146, "???"}, {150, "???"}, {151, "???"}, {153, "BR"},
+   {154, "BV"},  {155, "SW"},  {159, "ZDR"}, {161, "CC"},  {163, "PHI"},
+   {165, "???"}, {167, "CC"},  {168, "PHI"}, {169, "???"}, {170, "???"},
+   {171, "???"}, {172, "???"}, {173, "???"}, {174, "???"}, {175, "???"},
+   {176, "???"}, {177, "???"}, {178, "???"}, {179, "???"}, {193, "BR"},
+   {195, "BR"},  {-1, "???"}};
+
 const std::string& GetRadarProductGroupName(RadarProductGroup group)
 {
    return radarProductGroupName_.at(group);
@@ -78,6 +93,19 @@ const std::string& GetLevel2Description(Level2Product product)
 const std::string& GetLevel2Palette(Level2Product product)
 {
    return level2Palette_.at(product);
+}
+
+const std::string& GetLevel3Palette(int16_t productCode)
+{
+   auto it = level3Palette_.find(productCode);
+   if (it != level3Palette_.cend())
+   {
+      return it->second;
+   }
+   else
+   {
+      return level3Palette_.at(-1);
+   }
 }
 
 Level2Product GetLevel2Product(const std::string& name)

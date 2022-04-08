@@ -44,5 +44,7 @@ const std::string& GetLevel2Description(Level2Product product);
 const std::string& GetLevel2Palette(Level2Product product);
 Level2Product      GetLevel2Product(const std::string& name);
 
+const std::string& GetLevel3Palette(int16_t productCode);
+
 } // namespace common
 } // namespace scwx
