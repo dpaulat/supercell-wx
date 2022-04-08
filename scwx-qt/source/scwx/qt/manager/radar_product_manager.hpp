@@ -30,6 +30,7 @@ public:
    ~RadarProductManager();
 
    const std::vector<float>& coordinates(common::RadialSize radialSize) const;
+   float                     gate_size() const;
    std::shared_ptr<config::RadarSite> radar_site() const;
 
    void Initialize();

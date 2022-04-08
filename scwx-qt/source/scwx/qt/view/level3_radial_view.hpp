@@ -37,7 +37,6 @@ public:
    const std::vector<float>&             vertices() const override;
 
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) override;
-   void SelectElevation(float elevation) override;
    void SelectTime(std::chrono::system_clock::time_point time) override;
    void Update() override;
 

@@ -40,7 +40,10 @@ public:
        colorTable_ {},
        colorTableLut_ {},
        colorTableMin_ {2},
-       colorTableMax_ {254}
+       colorTableMax_ {254},
+       savedColorTable_ {nullptr},
+       savedScale_ {0.0f},
+       savedOffset_ {0.0f}
    {
    }
    ~Level3RadialViewImpl() = default;
@@ -48,7 +51,6 @@ public:
    std::string                                   product_;
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
-   float                                 selectedElevation_;
    std::chrono::system_clock::time_point selectedTime_;
 
    std::shared_ptr<wsr88d::rpg::GraphicProductMessage> graphicMessage_;
@@ -166,11 +168,6 @@ void Level3RadialView::LoadColorTable(
 {
    p->colorTable_ = colorTable;
    UpdateColorTable();
-}
-
-void Level3RadialView::SelectElevation(float elevation)
-{
-   p->selectedElevation_ = elevation;
 }
 
 void Level3RadialView::SelectTime(std::chrono::system_clock::time_point time)
@@ -435,8 +432,11 @@ void Level3RadialView::ComputeSweep()
       const uint16_t dataMomentIntervalH = dataMomentInterval / 2;
       const uint16_t dataMomentRange     = dataMomentIntervalH;
 
-      // Compute gate size (number of base 250m gates per bin)
-      const uint16_t gateSize = std::max<uint16_t>(1, dataMomentInterval / 250);
+      // Compute gate size (number of base gates per bin)
+      const uint16_t gateSize = std::max<uint16_t>(
+         1,
+         dataMomentInterval /
+            static_cast<uint16_t>(p->radarProductManager_->gate_size()));
 
       // Compute gate range [startGate, endGate)
       const uint16_t startGate = 0;

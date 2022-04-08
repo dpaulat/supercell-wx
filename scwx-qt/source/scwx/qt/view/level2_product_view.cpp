@@ -60,7 +60,10 @@ public:
        colorTable_ {},
        colorTableLut_ {},
        colorTableMin_ {2},
-       colorTableMax_ {254}
+       colorTableMax_ {254},
+       savedColorTable_ {nullptr},
+       savedScale_ {0.0f},
+       savedOffset_ {0.0f}
    {
       auto it = blockTypes_.find(product);
 
@@ -471,10 +474,14 @@ void Level2ProductView::ComputeSweep()
       const uint16_t dataMomentIntervalH = dataMomentInterval / 2;
 
       // Compute gate size (number of base 250m gates per bin)
-      const uint16_t gateSize = std::max<uint16_t>(1, dataMomentInterval / 250);
+      const uint16_t gateSizeMeters =
+         static_cast<uint16_t>(p->radarProductManager_->gate_size());
+      const uint16_t gateSize =
+         std::max<uint16_t>(1, dataMomentInterval / gateSizeMeters);
 
       // Compute gate range [startGate, endGate)
-      const uint16_t startGate = (dataMomentRange - dataMomentIntervalH) / 250;
+      const uint16_t startGate =
+         (dataMomentRange - dataMomentIntervalH) / gateSizeMeters;
       const uint16_t numberOfDataMomentGates =
          std::min<uint16_t>(momentData->number_of_data_moment_gates(),
                             static_cast<uint16_t>(gates));

@@ -104,11 +104,18 @@ RadarProductManager::coordinates(common::RadialSize radialSize) const
 {
    switch (radialSize)
    {
-   case common::RadialSize::_0_5Degree: return p->coordinates0_5Degree_;
-   case common::RadialSize::_1Degree: return p->coordinates1Degree_;
+   case common::RadialSize::_0_5Degree:
+      return p->coordinates0_5Degree_;
+   case common::RadialSize::_1Degree:
+      return p->coordinates1Degree_;
    }
 
    throw std::exception("Invalid radial size");
+}
+
+float RadarProductManager::gate_size() const
+{
+   return (p->radarSite_->type() == "tdwr") ? 150.0f : 250.0f;
 }
 
 std::shared_ptr<config::RadarSite> RadarProductManager::radar_site() const
@@ -133,6 +140,8 @@ void RadarProductManager::Initialize()
    const QMapbox::Coordinate radar(p->radarSite_->latitude(),
                                    p->radarSite_->longitude());
 
+   const float gateSize = gate_size();
+
    // Calculate half degree azimuth coordinates
    timer.start();
    std::vector<float>& coordinates0_5Degree = p->coordinates0_5Degree_;
@@ -154,7 +163,7 @@ void RadarProductManager::Initialize()
             static_cast<uint16_t>(radialGate / common::MAX_DATA_MOMENT_GATES);
 
          const float  angle  = radial * 0.5f - 0.25f; // 0.5 degree radial
-         const float  range  = (gate + 1) * 250.0f;   // 0.25km gate size
+         const float  range  = (gate + 1) * gateSize;
          const size_t offset = radialGate * 2;
 
          double latitude;
@@ -192,7 +201,7 @@ void RadarProductManager::Initialize()
             static_cast<uint16_t>(radialGate / common::MAX_DATA_MOMENT_GATES);
 
          const float  angle  = radial * 1.0f - 0.5f; // 1 degree radial
-         const float  range  = (gate + 1) * 250.0f;  // 0.25km gate size
+         const float  range  = (gate + 1) * gateSize;
          const size_t offset = radialGate * 2;
 
          double latitude;
