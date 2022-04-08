@@ -1,4 +1,5 @@
 #include <scwx/wsr88d/rpg/product_description_block.hpp>
+#include <scwx/util/float.hpp>
 
 #include <array>
 #include <istream>
@@ -34,8 +35,8 @@ static const std::unordered_map<int16_t, uint16_t> rangeMap_ {
    {151, 230}, {153, 460}, {154, 300}, {155, 300}, {159, 300}, {161, 300},
    {163, 300}, {165, 300}, {166, 230}, {167, 300}, {168, 300}, {169, 230},
    {170, 230}, {171, 230}, {172, 230}, {173, 230}, {174, 230}, {175, 230},
-   {176, 230}, {177, 230}, {178, 300}, {179, 300}, {193, 460}, {195, 460},
-   {196, 50}};
+   {176, 230}, {177, 230}, {178, 300}, {179, 300}, {180, 90},  {181, 90},
+   {182, 90},  {184, 90},  {186, 415}, {193, 460}, {195, 460}, {196, 50}};
 
 static const std::unordered_map<int16_t, uint16_t> xResolutionMap_ {
    {19, 1000},  {20, 2000},  {27, 1000},  {30, 1000},  {31, 2000},  {32, 1000},
@@ -48,7 +49,8 @@ static const std::unordered_map<int16_t, uint16_t> xResolutionMap_ {
    {159, 250},  {161, 250},  {163, 250},  {165, 250},  {166, 250},  {167, 250},
    {168, 250},  {169, 2000}, {170, 250},  {171, 2000}, {172, 250},  {173, 250},
    {174, 250},  {175, 250},  {176, 250},  {177, 250},  {178, 1000}, {179, 1000},
-   {193, 250},  {195, 1000}};
+   {180, 150},  {181, 150},  {182, 150},  {184, 150},  {186, 300},  {193, 250},
+   {195, 1000}};
 
 static const std::unordered_map<int16_t, uint16_t> yResolutionMap_ {{37, 1000},
                                                                     {38, 4000},
@@ -120,7 +122,10 @@ public:
    uint16_t halfword33_;
    uint16_t halfword34_;
    uint16_t halfword35_;
-   // Halfwords 36-46 are unused
+   uint16_t halfword36_;
+   uint16_t halfword37_;
+   uint16_t halfword38_;
+   // Halfwords 39-46 are unused
    // 47-53: Product dependent parameters 4-10 (Table V, Note 3)
    uint8_t  version_;
    uint8_t  spotBlank_;
@@ -291,6 +296,231 @@ uint16_t ProductDescriptionBlock::y_resolution_raw() const
    return yResolution;
 }
 
+uint16_t ProductDescriptionBlock::threshold() const
+{
+   uint16_t threshold = 0;
+
+   switch (p->productCode_)
+   {
+   case 81:
+      threshold = 1;
+      break;
+
+   case 32:
+   case 93:
+   case 94:
+   case 99:
+   case 135:
+   case 153:
+   case 154:
+   case 180:
+   case 182:
+   case 186:
+   case 195:
+      threshold = 2;
+      break;
+
+   case 193:
+      threshold = 3;
+      break;
+
+   case 155:
+      threshold = 129;
+      break;
+
+   case 159:
+   case 161:
+   case 163:
+   case 167:
+   case 168:
+   case 170:
+   case 172:
+   case 173:
+   case 174:
+   case 175:
+   case 176:
+      threshold = p->halfword37_;
+      break;
+   }
+
+   return threshold;
+}
+
+float ProductDescriptionBlock::offset() const
+{
+   float offset = 0.0f;
+
+   switch (p->productCode_)
+   {
+   case 32:
+   case 81:
+   case 93:
+   case 94:
+   case 99:
+   case 153:
+   case 154:
+   case 155:
+   case 180:
+   case 182:
+   case 186:
+   case 193:
+   case 195:
+      offset = static_cast<int16_t>(p->halfword31_) * 0.1f;
+      break;
+
+   case 134:
+      offset = util::DecodeFloat16(p->halfword32_);
+      break;
+
+   case 135:
+      offset = static_cast<int16_t>(p->halfword33_);
+      break;
+
+   case 159:
+   case 161:
+   case 163:
+   case 167:
+   case 168:
+   case 170:
+   case 172:
+   case 173:
+   case 174:
+   case 175:
+   case 176:
+      offset = util::DecodeFloat32(p->halfword33_, p->halfword34_);
+      break;
+   }
+
+   return offset;
+}
+
+float ProductDescriptionBlock::scale() const
+{
+   float scale = 1.0f;
+
+   switch (p->productCode_)
+   {
+   case 32:
+   case 93:
+   case 94:
+   case 99:
+   case 153:
+   case 154:
+   case 155:
+   case 180:
+   case 182:
+   case 186:
+   case 193:
+   case 195:
+      scale = p->halfword32_ * 0.1f;
+      break;
+
+   case 81:
+      scale = p->halfword32_ * 0.001f;
+      break;
+
+   case 134:
+      scale = util::DecodeFloat16(p->halfword31_);
+      break;
+
+   case 135:
+      scale = p->halfword32_;
+      break;
+
+   case 159:
+   case 161:
+   case 163:
+   case 167:
+   case 168:
+   case 170:
+   case 172:
+   case 173:
+   case 174:
+   case 175:
+   case 176:
+      scale = util::DecodeFloat32(p->halfword31_, p->halfword32_);
+      break;
+   }
+
+   return scale;
+}
+
+uint16_t ProductDescriptionBlock::number_of_levels() const
+{
+   uint16_t numberOfLevels = 1u;
+
+   switch (p->productCode_)
+   {
+   case 32:
+   case 81:
+   case 93:
+   case 94:
+   case 99:
+   case 153:
+   case 154:
+   case 155:
+   case 180:
+   case 182:
+   case 186:
+   case 193:
+   case 195:
+      numberOfLevels = p->halfword33_;
+      break;
+
+   case 134:
+      numberOfLevels = 254;
+      break;
+
+   case 135:
+      numberOfLevels = 199;
+      break;
+
+   case 159:
+   case 161:
+   case 163:
+   case 167:
+   case 168:
+   case 170:
+   case 172:
+   case 173:
+   case 174:
+   case 175:
+   case 176:
+      numberOfLevels = p->halfword36_;
+      break;
+   }
+
+   return numberOfLevels;
+}
+
+float ProductDescriptionBlock::log_offset() const
+{
+   float logOffset = 0.0f;
+
+   switch (p->productCode_)
+   {
+   case 134:
+      logOffset = util ::DecodeFloat16(p->halfword35_);
+      break;
+   }
+
+   return logOffset;
+}
+
+float ProductDescriptionBlock::log_scale() const
+{
+   float logScale = 1.0f;
+
+   switch (p->productCode_)
+   {
+   case 134:
+      logScale = util ::DecodeFloat16(p->halfword34_);
+      break;
+   }
+
+   return logScale;
+}
+
 bool ProductDescriptionBlock::IsCompressionEnabled() const
 {
    bool isCompressed = false;
@@ -335,8 +565,11 @@ bool ProductDescriptionBlock::Parse(std::istream& is)
    is.read(reinterpret_cast<char*>(&p->halfword33_), 2);              // 33
    is.read(reinterpret_cast<char*>(&p->halfword34_), 2);              // 34
    is.read(reinterpret_cast<char*>(&p->halfword35_), 2);              // 35
+   is.read(reinterpret_cast<char*>(&p->halfword36_), 2);              // 36
+   is.read(reinterpret_cast<char*>(&p->halfword37_), 2);              // 37
+   is.read(reinterpret_cast<char*>(&p->halfword38_), 2);              // 38
 
-   is.seekg(11 * 2, std::ios_base::cur); // 36-46
+   is.seekg(8 * 2, std::ios_base::cur); // 39-46
 
    is.read(reinterpret_cast<char*>(&p->parameters_[3]), 7 * 2); // 47-53
    is.read(reinterpret_cast<char*>(&p->version_), 1);           // 54
@@ -364,6 +597,9 @@ bool ProductDescriptionBlock::Parse(std::istream& is)
    p->halfword33_              = ntohs(p->halfword33_);
    p->halfword34_              = ntohs(p->halfword34_);
    p->halfword35_              = ntohs(p->halfword35_);
+   p->halfword36_              = ntohs(p->halfword36_);
+   p->halfword37_              = ntohs(p->halfword37_);
+   p->halfword38_              = ntohs(p->halfword38_);
    p->offsetToSymbology_       = ntohl(p->offsetToSymbology_);
    p->offsetToGraphic_         = ntohl(p->offsetToGraphic_);
    p->offsetToTabular_         = ntohl(p->offsetToTabular_);

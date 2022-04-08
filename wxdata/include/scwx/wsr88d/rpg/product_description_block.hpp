@@ -53,6 +53,14 @@ public:
    float    y_resolution() const;
    uint16_t y_resolution_raw() const;
 
+   uint16_t threshold() const;
+   float    offset() const;
+   float    scale() const;
+   uint16_t number_of_levels() const;
+
+   float log_offset() const;
+   float log_scale() const;
+
    bool IsCompressionEnabled() const;
 
    size_t data_size() const override;
