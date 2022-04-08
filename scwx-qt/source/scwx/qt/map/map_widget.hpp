@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/common/products.hpp>
+#include <scwx/qt/types/radar_product_record.hpp>
 
 #include <chrono>
 #include <memory>
@@ -40,10 +41,7 @@ public:
 
    void SelectElevation(float elevation);
    void SelectRadarProduct(common::Level2Product product);
-   void SelectRadarProduct(const std::string&                    radarId,
-                           common::RadarProductGroup             group,
-                           const std::string&                    product,
-                           std::chrono::system_clock::time_point time);
+   void SelectRadarProduct(std::shared_ptr<types::RadarProductRecord> record);
    void SetActive(bool isActive);
    void SetMapParameters(double latitude,
                          double longitude,

@@ -252,10 +252,7 @@ void MainWindow::on_actionOpen_triggered()
 
                if (record != nullptr)
                {
-                  currentMap->SelectRadarProduct(record->radar_id(),
-                                                 record->radar_product_group(),
-                                                 record->radar_product(),
-                                                 record->time());
+                  currentMap->SelectRadarProduct(record);
                }
                else
                {

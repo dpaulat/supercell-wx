@@ -293,11 +293,22 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
    }
 }
 
-void MapWidget::SelectRadarProduct(const std::string&        radarId,
-                                   common::RadarProductGroup group,
-                                   const std::string&        product,
-                                   std::chrono::system_clock::time_point time)
+void MapWidget::SelectRadarProduct(
+   std::shared_ptr<types::RadarProductRecord> record)
 {
+   const std::string                     radarId = record->radar_id();
+   common::RadarProductGroup             group = record->radar_product_group();
+   const std::string                     product = record->radar_product();
+   std::chrono::system_clock::time_point time    = record->time();
+
+   int16_t productCode = 0;
+
+   std::shared_ptr<wsr88d::Level3File> level3File = record->level3_file();
+   if (level3File != nullptr && level3File->message() != nullptr)
+   {
+      productCode = level3File->message()->header().message_code();
+   }
+
    BOOST_LOG_TRIVIAL(debug)
       << logPrefix_ << "SelectRadarProduct(" << radarId << ", "
       << common::GetRadarProductGroupName(group) << ", " << product << ", "
@@ -312,6 +323,61 @@ void MapWidget::SelectRadarProduct(const std::string&        radarId,
          p->GetLevel2ProductOrDefault(product);
 
       SelectRadarProduct(level2Product);
+   }
+   else
+   {
+      // TODO: Combine this with the SelectRadarProduct(Level2Product) function
+      std::shared_ptr<view::RadarProductView>& radarProductView =
+         p->context_->radarProductView_;
+
+      radarProductView = view::RadarProductViewFactory::Create(
+         group, product, 0.0f, p->radarProductManager_);
+      radarProductView->SelectTime(p->selectedTime_);
+
+      connect(
+         radarProductView.get(),
+         &view::RadarProductView::ColorTableUpdated,
+         this,
+         [&]() { update(); },
+         Qt::QueuedConnection);
+      connect(
+         radarProductView.get(),
+         &view::RadarProductView::SweepComputed,
+         this,
+         [&]()
+         {
+            std::shared_ptr<config::RadarSite> radarSite =
+               p->radarProductManager_->radar_site();
+
+            RadarRangeLayer::Update(
+               p->map_,
+               radarProductView->range(),
+               {radarSite->latitude(), radarSite->longitude()});
+            update();
+            emit RadarSweepUpdated();
+         },
+         Qt::QueuedConnection);
+
+      util::async(
+         [=]()
+         {
+            std::string colorTableFile =
+               manager::SettingsManager::palette_settings()->palette(
+                  common::GetLevel3Palette(productCode));
+            if (!colorTableFile.empty())
+            {
+               std::shared_ptr<common::ColorTable> colorTable =
+                  common::ColorTable::Load(colorTableFile);
+               radarProductView->LoadColorTable(colorTable);
+            }
+
+            radarProductView->Initialize();
+         });
+
+      if (p->map_ != nullptr)
+      {
+         AddLayers();
+      }
    }
 }
 
