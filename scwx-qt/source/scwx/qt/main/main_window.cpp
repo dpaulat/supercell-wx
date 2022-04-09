@@ -119,7 +119,7 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->declutterCheckbox->setVisible(false);
 
    p->SelectRadarProduct(p->activeMap_, common::Level2Product::Reflectivity);
-   if (p->maps_.at(1) != nullptr)
+   if (p->maps_.size() > 1 && p->maps_.at(1) != nullptr)
    {
       p->SelectRadarProduct(p->maps_.at(1), common::Level2Product::Velocity);
    }
@@ -466,7 +466,9 @@ void MainWindowImpl::UpdateRadarProductSelection(
       UpdateLevel2ProductSelection(common::GetLevel2Product(product));
       break;
 
-   default: UpdateLevel2ProductSelection(common::Level2Product::Unknown); break;
+   default:
+      UpdateLevel2ProductSelection(common::Level2Product::Unknown);
+      break;
    }
 }
 

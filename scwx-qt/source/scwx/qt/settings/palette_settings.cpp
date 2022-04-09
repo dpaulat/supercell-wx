@@ -13,7 +13,7 @@ namespace settings
 static const std::string logPrefix_ = "[scwx::qt::settings::palette_settings] ";
 
 static const std::vector<std::string> paletteNames_ = {
-   "BR", "BV", "SW", "ZDR", "PHI", "CC", "???"};
+   "BR", "BV", "SW", "ZDR", "PHI", "CC", "STP", "???"};
 
 static const std::string DEFAULT_KEY     = "Default";
 static const std::string DEFAULT_PALETTE = "";
@@ -27,10 +27,10 @@ public:
 
    void SetDefaults()
    {
-      std::for_each(
-         paletteNames_.cbegin(),
-         paletteNames_.cend(),
-         [&](const std::string& name) { palette_[name] = DEFAULT_PALETTE; });
+      std::for_each(paletteNames_.cbegin(),
+                    paletteNames_.cend(),
+                    [&](const std::string& name)
+                    { palette_[name] = DEFAULT_PALETTE; });
    }
 
    std::unordered_map<std::string, std::string> palette_;
@@ -66,10 +66,10 @@ boost::json::value PaletteSettings::ToJson() const
 {
    boost::json::object json;
 
-   std::for_each(
-      paletteNames_.cbegin(),
-      paletteNames_.cend(),
-      [&](const std::string& name) { json[name] = p->palette_[name]; });
+   std::for_each(paletteNames_.cbegin(),
+                 paletteNames_.cend(),
+                 [&](const std::string& name)
+                 { json[name] = p->palette_[name]; });
 
    return json;
 }
@@ -94,7 +94,8 @@ PaletteSettings::Load(const boost::json::value* json, bool& jsonDirty)
    {
       std::for_each(paletteNames_.cbegin(),
                     paletteNames_.cend(),
-                    [&](const std::string& name) {
+                    [&](const std::string& name)
+                    {
                        jsonDirty |= !util::json::FromJsonString(
                           json->as_object(),
                           name,
