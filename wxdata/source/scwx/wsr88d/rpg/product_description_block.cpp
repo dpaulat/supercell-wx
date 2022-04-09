@@ -298,7 +298,7 @@ uint16_t ProductDescriptionBlock::y_resolution_raw() const
 
 uint16_t ProductDescriptionBlock::threshold() const
 {
-   uint16_t threshold = 0;
+   uint16_t threshold = 1;
 
    switch (p->productCode_)
    {
@@ -320,12 +320,16 @@ uint16_t ProductDescriptionBlock::threshold() const
       threshold = 2;
       break;
 
-   case 193:
-      threshold = 3;
+   case 138:
+      threshold = p->halfword31_;
       break;
 
    case 155:
       threshold = 129;
+      break;
+
+   case 193:
+      threshold = 3;
       break;
 
    case 159:
@@ -427,6 +431,10 @@ float ProductDescriptionBlock::scale() const
       scale = p->halfword32_;
       break;
 
+   case 138:
+      scale = p->halfword32_ * 0.01;
+      break;
+
    case 159:
    case 161:
    case 163:
@@ -447,10 +455,49 @@ float ProductDescriptionBlock::scale() const
 
 uint16_t ProductDescriptionBlock::number_of_levels() const
 {
-   uint16_t numberOfLevels = 1u;
+   uint16_t numberOfLevels = 16u;
 
    switch (p->productCode_)
    {
+   case 19:
+   case 20:
+   case 27:
+   case 31:
+   case 37:
+   case 38:
+   case 41:
+   case 49:
+   case 50:
+   case 51:
+   case 56:
+   case 57:
+   case 78:
+   case 79:
+   case 80:
+   case 97:
+   case 98:
+   case 137:
+   case 144:
+   case 145:
+   case 146:
+   case 147:
+   case 150:
+   case 151:
+   case 169:
+   case 171:
+      numberOfLevels = 16;
+      break;
+
+   case 30:
+   case 65:
+   case 66:
+   case 67:
+   case 84:
+   case 86:
+   case 90:
+      numberOfLevels = 8;
+      break;
+
    case 32:
    case 81:
    case 93:
@@ -467,12 +514,28 @@ uint16_t ProductDescriptionBlock::number_of_levels() const
       numberOfLevels = p->halfword33_;
       break;
 
+   case 113:
+      numberOfLevels = 13;
+      break;
+
+   case 132:
+      numberOfLevels = 11;
+      break;
+
+   case 133:
+      numberOfLevels = 12;
+      break;
+
    case 134:
       numberOfLevels = 254;
       break;
 
    case 135:
       numberOfLevels = 199;
+      break;
+
+   case 138:
+      numberOfLevels = p->halfword33_;
       break;
 
    case 159:
@@ -487,6 +550,11 @@ uint16_t ProductDescriptionBlock::number_of_levels() const
    case 175:
    case 176:
       numberOfLevels = p->halfword36_;
+      break;
+
+   case 178:
+   case 179:
+      numberOfLevels = 71;
       break;
    }
 
