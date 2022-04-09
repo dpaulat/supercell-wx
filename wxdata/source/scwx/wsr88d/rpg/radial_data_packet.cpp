@@ -218,13 +218,20 @@ bool RadialDataPacket::Parse(std::istream& is)
             radial.data_.pop_back();
          }
 
-         radial.level_.resize(radial.data_.size());
+         // Unpack the levels from the Run Length Encoded data
+         radial.level_.resize(p->numberOfRangeBins_);
 
-         std::transform(std::execution::par_unseq,
-                        radial.data_.cbegin(),
-                        radial.data_.cend(),
-                        radial.level_.begin(),
-                        [](uint8_t data) -> uint8_t { return data & 0x0f; });
+         uint16_t b = 0;
+         for (auto it = radial.data_.cbegin(); it != radial.data_.cend(); it++)
+         {
+            uint8_t run   = *it >> 4;
+            uint8_t level = *it & 0x0f;
+
+            for (int i = 0; i < run && b < p->numberOfRangeBins_; i++)
+            {
+               radial.level_[b++] = level;
+            }
+         }
       }
    }
 
