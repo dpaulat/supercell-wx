@@ -3,7 +3,6 @@
 #include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/rpg/digital_radial_data_array_packet.hpp>
-#include <scwx/wsr88d/rpg/graphic_product_message.hpp>
 #include <scwx/wsr88d/rpg/radial_data_packet.hpp>
 
 #include <boost/log/trivial.hpp>
@@ -32,19 +31,11 @@ public:
        product_ {product},
        radarProductManager_ {radarProductManager},
        selectedTime_ {},
-       graphicMessage_ {nullptr},
        latitude_ {},
        longitude_ {},
        range_ {},
        vcp_ {},
-       sweepTime_ {},
-       colorTable_ {},
-       colorTableLut_ {},
-       colorTableMin_ {2},
-       colorTableMax_ {254},
-       savedColorTable_ {nullptr},
-       savedScale_ {0.0f},
-       savedOffset_ {0.0f}
+       sweepTime_ {}
    {
    }
    ~Level3RadialViewImpl() = default;
@@ -53,8 +44,6 @@ public:
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
    std::chrono::system_clock::time_point selectedTime_;
-
-   std::shared_ptr<wsr88d::rpg::GraphicProductMessage> graphicMessage_;
 
    std::vector<float>   vertices_;
    std::vector<uint8_t> dataMoments8_;
@@ -65,61 +54,16 @@ public:
    uint16_t vcp_;
 
    std::chrono::system_clock::time_point sweepTime_;
-
-   std::shared_ptr<common::ColorTable>    colorTable_;
-   std::vector<boost::gil::rgba8_pixel_t> colorTableLut_;
-   uint16_t                               colorTableMin_;
-   uint16_t                               colorTableMax_;
-
-   std::shared_ptr<common::ColorTable> savedColorTable_;
-   float                               savedScale_;
-   float                               savedOffset_;
 };
 
 Level3RadialView::Level3RadialView(
    const std::string&                            product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager) :
+    Level3ProductView(product),
     p(std::make_unique<Level3RadialViewImpl>(product, radarProductManager))
 {
 }
 Level3RadialView::~Level3RadialView() = default;
-
-const std::vector<boost::gil::rgba8_pixel_t>&
-Level3RadialView::color_table() const
-{
-   if (p->colorTableLut_.size() == 0)
-   {
-      return RadarProductView::color_table();
-   }
-   else
-   {
-      return p->colorTableLut_;
-   }
-}
-
-uint16_t Level3RadialView::color_table_min() const
-{
-   if (p->colorTableLut_.size() == 0)
-   {
-      return RadarProductView::color_table_min();
-   }
-   else
-   {
-      return p->colorTableMin_;
-   }
-}
-
-uint16_t Level3RadialView::color_table_max() const
-{
-   if (p->colorTableLut_.size() == 0)
-   {
-      return RadarProductView::color_table_max();
-   }
-   else
-   {
-      return p->colorTableMax_;
-   }
-}
 
 float Level3RadialView::range() const
 {
@@ -141,16 +85,6 @@ const std::vector<float>& Level3RadialView::vertices() const
    return p->vertices_;
 }
 
-common::RadarProductGroup Level3RadialView::GetRadarProductGroup() const
-{
-   return common::RadarProductGroup::Level3;
-}
-
-std::string Level3RadialView::GetRadarProductName() const
-{
-   return p->product_;
-}
-
 std::tuple<const void*, size_t, size_t> Level3RadialView::GetMomentData() const
 {
    const void* data;
@@ -164,112 +98,9 @@ std::tuple<const void*, size_t, size_t> Level3RadialView::GetMomentData() const
    return std::tie(data, dataSize, componentSize);
 }
 
-void Level3RadialView::LoadColorTable(
-   std::shared_ptr<common::ColorTable> colorTable)
-{
-   p->colorTable_ = colorTable;
-   UpdateColorTable();
-}
-
 void Level3RadialView::SelectTime(std::chrono::system_clock::time_point time)
 {
    p->selectedTime_ = time;
-}
-
-void Level3RadialView::Update()
-{
-   util::async([=]() { ComputeSweep(); });
-}
-
-void Level3RadialView::UpdateColorTable()
-{
-   if (p->graphicMessage_ == nullptr || //
-       p->colorTable_ == nullptr ||     //
-       !p->colorTable_->IsValid())
-   {
-      // Nothing to update
-      return;
-   }
-
-   std::shared_ptr<wsr88d::rpg::ProductDescriptionBlock> descriptionBlock =
-      p->graphicMessage_->description_block();
-
-   if (descriptionBlock == nullptr)
-   {
-      // No description block
-      return;
-   }
-
-   float    offset    = descriptionBlock->offset();
-   float    scale     = descriptionBlock->scale();
-   uint16_t threshold = descriptionBlock->threshold();
-
-   if (p->savedColorTable_ == p->colorTable_ && //
-       p->savedOffset_ == offset &&             //
-       p->savedScale_ == scale)
-   {
-      // The color table LUT does not need updated
-      return;
-   }
-
-   // If the threshold is 2, the range min should be set to 1 for range folding
-   uint16_t rangeMin = std::min<uint16_t>(1, threshold);
-   uint16_t rangeMax = descriptionBlock->number_of_levels();
-
-   boost::integer_range<uint16_t> dataRange =
-      boost::irange<uint16_t>(rangeMin, rangeMax + 1);
-
-   std::vector<boost::gil::rgba8_pixel_t>& lut = p->colorTableLut_;
-   lut.resize(rangeMax - rangeMin + 1);
-   lut.shrink_to_fit();
-
-   std::for_each(std::execution::par_unseq,
-                 dataRange.begin(),
-                 dataRange.end(),
-                 [&](uint16_t i)
-                 {
-                    if (i == RANGE_FOLDED && threshold > RANGE_FOLDED)
-                    {
-                       lut[i - *dataRange.begin()] = p->colorTable_->rf_color();
-                    }
-                    else
-                    {
-                       float f;
-
-                       // Different products use different scale/offset formulas
-                       switch (descriptionBlock->product_code())
-                       {
-                       case 159:
-                       case 161:
-                       case 163:
-                       case 167:
-                       case 168:
-                       case 170:
-                       case 172:
-                       case 173:
-                       case 174:
-                       case 175:
-                       case 176:
-                          f = (i - offset) / scale;
-                          break;
-
-                       default:
-                          f = i * scale + offset;
-                          break;
-                       }
-
-                       lut[i - *dataRange.begin()] = p->colorTable_->Color(f);
-                    }
-                 });
-
-   p->colorTableMin_ = rangeMin;
-   p->colorTableMax_ = rangeMax;
-
-   p->savedColorTable_ = p->colorTable_;
-   p->savedOffset_     = offset;
-   p->savedScale_      = scale;
-
-   emit ColorTableUpdated();
 }
 
 void Level3RadialView::ComputeSweep()
@@ -293,12 +124,12 @@ void Level3RadialView::ComputeSweep()
          << logPrefix_ << "Graphic Product Message not found";
       return;
    }
-   else if (gpm == p->graphicMessage_)
+   else if (gpm == graphic_product_message())
    {
       // Skip if this is the message we previously processed
       return;
    }
-   p->graphicMessage_ = gpm;
+   set_graphic_product_message(gpm);
 
    // A message with radial data should have a Product Description Block and
    // Product Symbology Block
