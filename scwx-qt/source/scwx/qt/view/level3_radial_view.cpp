@@ -4,6 +4,7 @@
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/rpg/digital_radial_data_array_packet.hpp>
 #include <scwx/wsr88d/rpg/graphic_product_message.hpp>
+#include <scwx/wsr88d/rpg/radial_data_packet.hpp>
 
 #include <boost/log/trivial.hpp>
 #include <boost/range/irange.hpp>
@@ -322,8 +323,10 @@ void Level3RadialView::ComputeSweep()
 
    // A message with radial data should either have a Digital Radial Data Array
    // Packet, or a Radial Data Array Packet (TODO)
-   std::shared_ptr<wsr88d::rpg::DigitalRadialDataArrayPacket> digitalData =
-      nullptr;
+   std::shared_ptr<wsr88d::rpg::DigitalRadialDataArrayPacket>
+                                                  digitalDataPacket = nullptr;
+   std::shared_ptr<wsr88d::rpg::RadialDataPacket> radialDataPacket  = nullptr;
+   std::shared_ptr<wsr88d::rpg::GenericRadialDataPacket> radialData = nullptr;
 
    for (uint16_t layer = 0; layer < numberOfLayers; layer++)
    {
@@ -332,40 +335,56 @@ void Level3RadialView::ComputeSweep()
 
       for (auto it = packetList.begin(); it != packetList.end(); it++)
       {
-         digitalData = std::dynamic_pointer_cast<
+         // Prefer Digital Radial Data to Radial Data
+         digitalDataPacket = std::dynamic_pointer_cast<
             wsr88d::rpg::DigitalRadialDataArrayPacket>(*it);
 
-         if (digitalData != nullptr)
+         if (digitalDataPacket != nullptr)
          {
             break;
          }
+
+         // Otherwise, check for Radial Data
+         if (radialDataPacket == nullptr)
+         {
+            radialDataPacket =
+               std::dynamic_pointer_cast<wsr88d::rpg::RadialDataPacket>(*it);
+         }
       }
 
-      if (digitalData != nullptr)
+      if (digitalDataPacket != nullptr)
       {
          break;
       }
    }
 
-   if (digitalData == nullptr)
+   if (digitalDataPacket != nullptr)
    {
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "No digital radial data array found";
+      radialData = digitalDataPacket;
+   }
+   else if (radialDataPacket != nullptr)
+   {
+      radialData = radialDataPacket;
+   }
+   else
+   {
+      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "No radial data found";
       return;
    }
 
-   if (digitalData->i_center_of_sweep() != 0 ||
-       digitalData->j_center_of_sweep() != 0)
+   // Check if radial data is centered on the radar location
+   if (radialData->i_center_of_sweep() != 0 ||
+       radialData->j_center_of_sweep() != 0)
    {
       BOOST_LOG_TRIVIAL(warning)
          << logPrefix_
          << "(i, j) is not centered on radar, display is inaccurate: ("
-         << digitalData->i_center_of_sweep() << ", "
-         << digitalData->j_center_of_sweep() << ")";
+         << radialData->i_center_of_sweep() << ", "
+         << radialData->j_center_of_sweep() << ")";
    }
 
    // Assume the number of radials should be 360 or 720
-   const size_t radials = digitalData->number_of_radials();
+   const size_t radials = radialData->number_of_radials();
    if (radials != 360 && radials != 720)
    {
       BOOST_LOG_TRIVIAL(warning)
@@ -381,7 +400,7 @@ void Level3RadialView::ComputeSweep()
       p->radarProductManager_->coordinates(radialSize);
 
    // There should be a positive number of range bins in radial data
-   const uint16_t gates = digitalData->number_of_range_bins();
+   const uint16_t gates = radialData->number_of_range_bins();
    if (gates < 1)
    {
       BOOST_LOG_TRIVIAL(warning)
@@ -419,13 +438,12 @@ void Level3RadialView::ComputeSweep()
 
    // Determine which radial to start at
    const float    radialMultiplier = radials / 360.0f;
-   const float    startAngle       = digitalData->start_angle(0);
+   const float    startAngle       = radialData->start_angle(0);
    const uint16_t startRadial = std::lroundf(startAngle * radialMultiplier);
 
-   for (uint16_t radial = 0; radial < digitalData->number_of_radials();
-        radial++)
+   for (uint16_t radial = 0; radial < radialData->number_of_radials(); radial++)
    {
-      const auto dataMomentsArray8 = digitalData->level(radial);
+      const auto dataMomentsArray8 = radialData->level(radial);
 
       // Compute gate interval
       const uint16_t dataMomentInterval  = descriptionBlock->x_resolution_raw();
@@ -449,7 +467,8 @@ void Level3RadialView::ComputeSweep()
          size_t vertexCount = (gate > 0) ? 6 : 3;
 
          // Store data moment value
-         uint8_t dataValue = dataMomentsArray8[i];
+         uint8_t dataValue =
+            (i < dataMomentsArray8.size()) ? dataMomentsArray8[i] : 0;
          if (dataValue < snrThreshold && dataValue != RANGE_FOLDED)
          {
             continue;
@@ -457,7 +476,7 @@ void Level3RadialView::ComputeSweep()
 
          for (size_t m = 0; m < vertexCount; m++)
          {
-            dataMoments8[mIndex++] = dataMomentsArray8[i];
+            dataMoments8[mIndex++] = dataValue;
          }
 
          // Store vertices

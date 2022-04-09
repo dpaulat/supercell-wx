@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/wsr88d/rpg/packet.hpp>
+#include <scwx/wsr88d/rpg/generic_radial_data_packet.hpp>
 
 #include <cstdint>
 #include <memory>
@@ -14,7 +14,7 @@ namespace rpg
 
 class DigitalRadialDataArrayPacketImpl;
 
-class DigitalRadialDataArrayPacket : public Packet
+class DigitalRadialDataArrayPacket : public GenericRadialDataPacket
 {
 public:
    explicit DigitalRadialDataArrayPacket();

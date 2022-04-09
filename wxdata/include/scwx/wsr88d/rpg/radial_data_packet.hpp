@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/wsr88d/rpg/packet.hpp>
+#include <scwx/wsr88d/rpg/generic_radial_data_packet.hpp>
 
 #include <cstdint>
 #include <memory>
@@ -14,7 +14,7 @@ namespace rpg
 
 class RadialDataPacketImpl;
 
-class RadialDataPacket : public Packet
+class RadialDataPacket : public GenericRadialDataPacket
 {
 public:
    explicit RadialDataPacket();
@@ -33,6 +33,10 @@ public:
    int16_t  j_center_of_sweep() const;
    float    scale_factor() const;
    uint16_t number_of_radials() const;
+
+   float                       start_angle(uint16_t r) const;
+   float                       delta_angle(uint16_t r) const;
+   const std::vector<uint8_t>& level(uint16_t r) const;
 
    size_t data_size() const override;
 

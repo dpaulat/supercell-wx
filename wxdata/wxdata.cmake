@@ -80,6 +80,7 @@ set(HDR_WSR88D_RPG include/scwx/wsr88d/rpg/ccb_header.hpp
                    include/scwx/wsr88d/rpg/digital_radial_data_array_packet.hpp
                    include/scwx/wsr88d/rpg/general_status_message.hpp
                    include/scwx/wsr88d/rpg/generic_data_packet.hpp
+                   include/scwx/wsr88d/rpg/generic_radial_data_packet.hpp
                    include/scwx/wsr88d/rpg/graphic_alphanumeric_block.hpp
                    include/scwx/wsr88d/rpg/graphic_product_message.hpp
                    include/scwx/wsr88d/rpg/hda_hail_symbol_packet.hpp
@@ -118,6 +119,7 @@ set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/ccb_header.cpp
                    source/scwx/wsr88d/rpg/digital_radial_data_array_packet.cpp
                    source/scwx/wsr88d/rpg/general_status_message.cpp
                    source/scwx/wsr88d/rpg/generic_data_packet.cpp
+                   source/scwx/wsr88d/rpg/generic_radial_data_packet.cpp
                    source/scwx/wsr88d/rpg/graphic_alphanumeric_block.cpp
                    source/scwx/wsr88d/rpg/graphic_product_message.cpp
                    source/scwx/wsr88d/rpg/hda_hail_symbol_packet.cpp

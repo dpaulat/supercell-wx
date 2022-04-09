@@ -24,9 +24,14 @@ public:
       uint16_t             startAngle_;
       uint16_t             angleDelta_;
       std::vector<uint8_t> data_;
+      std::vector<uint8_t> level_;
 
       Radial() :
-          numberOfRleHalfwords_ {0}, startAngle_ {0}, angleDelta_ {0}, data_ {}
+          numberOfRleHalfwords_ {0},
+          startAngle_ {0},
+          angleDelta_ {0},
+          data_ {},
+          level_ {}
       {
       }
    };
@@ -101,6 +106,21 @@ float RadialDataPacket::scale_factor() const
 uint16_t RadialDataPacket::number_of_radials() const
 {
    return p->numberOfRadials_;
+}
+
+float RadialDataPacket::start_angle(uint16_t r) const
+{
+   return p->radial_[r].startAngle_ * 0.1f;
+}
+
+float RadialDataPacket::delta_angle(uint16_t r) const
+{
+   return p->radial_[r].angleDelta_ * 0.1f;
+}
+
+const std::vector<uint8_t>& RadialDataPacket::level(uint16_t r) const
+{
+   return p->radial_[r].level_;
 }
 
 size_t RadialDataPacket::data_size() const
@@ -197,6 +217,14 @@ bool RadialDataPacket::Parse(std::istream& is)
          {
             radial.data_.pop_back();
          }
+
+         radial.level_.resize(radial.data_.size());
+
+         std::transform(std::execution::par_unseq,
+                        radial.data_.cbegin(),
+                        radial.data_.cend(),
+                        radial.level_.begin(),
+                        [](uint8_t data) -> uint8_t { return data & 0x0f; });
       }
    }
 
