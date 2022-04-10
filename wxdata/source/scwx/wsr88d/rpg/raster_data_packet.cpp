@@ -22,8 +22,9 @@ public:
    {
       uint16_t             numberOfBytes_;
       std::vector<uint8_t> data_;
+      std::vector<uint8_t> level_;
 
-      Row() : numberOfBytes_ {0}, data_ {} {}
+      Row() : numberOfBytes_ {0}, data_ {}, level_ {} {}
    };
 
    explicit RasterDataPacketImpl() :
@@ -120,6 +121,11 @@ uint16_t RasterDataPacket::packaging_descriptor() const
    return p->packagingDescriptor_;
 }
 
+const std::vector<uint8_t>& RasterDataPacket::level(uint16_t r) const
+{
+   return p->row_[r].level_;
+}
+
 size_t RasterDataPacket::data_size() const
 {
    return p->dataSize_;
@@ -211,6 +217,28 @@ bool RasterDataPacket::Parse(std::istream& is)
          if (row.data_.back() == 0)
          {
             row.data_.pop_back();
+         }
+
+         // Unpack the levels from the Run Length Encoded data
+         uint16_t binCount =
+            std::accumulate(row.data_.cbegin(),
+                            row.data_.cend(),
+                            0,
+                            [](const uint16_t& a, const uint8_t& b) -> uint16_t
+                            { return a + (b >> 4); });
+
+         row.level_.resize(binCount);
+
+         uint16_t b = 0;
+         for (auto it = row.data_.cbegin(); it != row.data_.cend(); it++)
+         {
+            uint8_t run   = *it >> 4;
+            uint8_t level = *it & 0x0f;
+
+            for (int i = 0; i < run && b < binCount; i++)
+            {
+               row.level_[b++] = level;
+            }
          }
       }
    }

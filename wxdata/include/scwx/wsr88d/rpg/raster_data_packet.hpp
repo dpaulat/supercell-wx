@@ -37,6 +37,8 @@ public:
    uint16_t number_of_rows() const;
    uint16_t packaging_descriptor() const;
 
+   const std::vector<uint8_t>& level(uint16_t r) const;
+
    size_t data_size() const override;
 
    bool Parse(std::istream& is) override;
