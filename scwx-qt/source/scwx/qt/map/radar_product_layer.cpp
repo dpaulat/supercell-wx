@@ -132,6 +132,8 @@ void RadarProductLayer::Initialize()
    // Create color table
    gl.glGenTextures(1, &p->texture_);
    UpdateColorTable();
+   gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+   gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
    gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 
    connect(context()->radarProductView_.get(),
