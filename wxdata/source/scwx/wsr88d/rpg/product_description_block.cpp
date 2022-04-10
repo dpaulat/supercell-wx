@@ -528,11 +528,11 @@ uint16_t ProductDescriptionBlock::number_of_levels() const
       break;
 
    case 134:
-      numberOfLevels = 254;
+      numberOfLevels = 256;
       break;
 
    case 135:
-      numberOfLevels = 199;
+      numberOfLevels = 200;
       break;
 
    case 138:

@@ -152,23 +152,26 @@ void Level3ProductView::UpdateColorTable()
    float    scale     = descriptionBlock->scale();
    uint16_t threshold = descriptionBlock->threshold();
 
+   // If the threshold is 2, the range min should be set to 1 for range folding
+   uint16_t rangeMin       = std::min<uint16_t>(1, threshold);
+   uint16_t numberOfLevels = descriptionBlock->number_of_levels();
+   uint16_t rangeMax       = (numberOfLevels > 0) ? numberOfLevels - 1 : 0;
+
    if (p->savedColorTable_ == p->colorTable_ && //
        p->savedOffset_ == offset &&             //
-       p->savedScale_ == scale)
+       p->savedScale_ == scale &&               //
+       numberOfLevels > 16)
    {
       // The color table LUT does not need updated
       return;
    }
 
-   // If the threshold is 2, the range min should be set to 1 for range folding
-   uint16_t rangeMin = std::min<uint16_t>(1, threshold);
-   uint16_t rangeMax = descriptionBlock->number_of_levels();
-
+   // Iterate over [rangeMin, numberOfLevels)
    boost::integer_range<uint16_t> dataRange =
-      boost::irange<uint16_t>(rangeMin, rangeMax + 1);
+      boost::irange<uint16_t>(rangeMin, numberOfLevels);
 
    std::vector<boost::gil::rgba8_pixel_t>& lut = p->colorTableLut_;
-   lut.resize(rangeMax - rangeMin + 1);
+   lut.resize(numberOfLevels - rangeMin);
    lut.shrink_to_fit();
 
    std::for_each(std::execution::par_unseq,
@@ -184,26 +187,34 @@ void Level3ProductView::UpdateColorTable()
                     {
                        float f;
 
-                       // Different products use different scale/offset formulas
-                       switch (descriptionBlock->product_code())
+                       // Different products use different scale/offset
+                       // formulas
+                       if (numberOfLevels > 16)
                        {
-                       case 159:
-                       case 161:
-                       case 163:
-                       case 167:
-                       case 168:
-                       case 170:
-                       case 172:
-                       case 173:
-                       case 174:
-                       case 175:
-                       case 176:
-                          f = (i - offset) / scale;
-                          break;
+                          switch (descriptionBlock->product_code())
+                          {
+                          case 159:
+                          case 161:
+                          case 163:
+                          case 167:
+                          case 168:
+                          case 170:
+                          case 172:
+                          case 173:
+                          case 174:
+                          case 175:
+                          case 176:
+                             f = (i - offset) / scale;
+                             break;
 
-                       default:
-                          f = i * scale + offset;
-                          break;
+                          default:
+                             f = i * scale + offset;
+                             break;
+                          }
+                       }
+                       else
+                       {
+                          f = descriptionBlock->data_level_threshold(i);
                        }
 
                        lut[i - *dataRange.begin()] = p->colorTable_->Color(f);
