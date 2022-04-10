@@ -85,20 +85,18 @@ public:
        generationDateOfProduct_ {0},
        generationTimeOfProduct_ {0},
        elevationNumber_ {0},
-       halfword31_ {0},
-       halfword32_ {0},
-       halfword33_ {0},
-       halfword34_ {0},
-       halfword35_ {0},
        version_ {0},
        spotBlank_ {0},
        offsetToSymbology_ {0},
        offsetToGraphic_ {0},
        offsetToTabular_ {0},
-       parameters_ {0}
+       parameters_ {0},
+       halfwords_ {0}
    {
    }
    ~ProductDescriptionBlockImpl() = default;
+
+   uint16_t halfword(size_t i);
 
    int16_t  blockDivider_;
    int32_t  latitudeOfRadar_;
@@ -117,15 +115,6 @@ public:
    uint16_t elevationNumber_;
    // 30:    Product dependent parameter 3 (Table V)
    // 31-46: Product dependent (Note 1)
-   uint16_t halfword31_;
-   uint16_t halfword32_;
-   uint16_t halfword33_;
-   uint16_t halfword34_;
-   uint16_t halfword35_;
-   uint16_t halfword36_;
-   uint16_t halfword37_;
-   uint16_t halfword38_;
-   // Halfwords 39-46 are unused
    // 47-53: Product dependent parameters 4-10 (Table V, Note 3)
    uint8_t  version_;
    uint8_t  spotBlank_;
@@ -134,7 +123,14 @@ public:
    uint32_t offsetToTabular_;
 
    std::array<uint16_t, 10> parameters_;
+   std::array<uint16_t, 16> halfwords_;
 };
+
+uint16_t ProductDescriptionBlockImpl::halfword(size_t i)
+{
+   // Halfwords start at halfword 31
+   return halfwords_[i - 31];
+}
 
 ProductDescriptionBlock::ProductDescriptionBlock() :
     p(std::make_unique<ProductDescriptionBlockImpl>())
@@ -215,6 +211,11 @@ uint32_t ProductDescriptionBlock::generation_time_of_product() const
 uint16_t ProductDescriptionBlock::elevation_number() const
 {
    return p->elevationNumber_;
+}
+
+uint16_t ProductDescriptionBlock::data_level_threshold(size_t i) const
+{
+   return p->halfwords_[i];
 }
 
 uint8_t ProductDescriptionBlock::version() const
@@ -321,7 +322,7 @@ uint16_t ProductDescriptionBlock::threshold() const
       break;
 
    case 138:
-      threshold = p->halfword31_;
+      threshold = p->halfword(31);
       break;
 
    case 155:
@@ -343,7 +344,7 @@ uint16_t ProductDescriptionBlock::threshold() const
    case 174:
    case 175:
    case 176:
-      threshold = p->halfword37_;
+      threshold = p->halfword(37);
       break;
    }
 
@@ -369,15 +370,15 @@ float ProductDescriptionBlock::offset() const
    case 186:
    case 193:
    case 195:
-      offset = static_cast<int16_t>(p->halfword31_) * 0.1f;
+      offset = static_cast<int16_t>(p->halfword(31)) * 0.1f;
       break;
 
    case 134:
-      offset = util::DecodeFloat16(p->halfword32_);
+      offset = util::DecodeFloat16(p->halfword(32));
       break;
 
    case 135:
-      offset = static_cast<int16_t>(p->halfword33_);
+      offset = static_cast<int16_t>(p->halfword(33));
       break;
 
    case 159:
@@ -391,7 +392,7 @@ float ProductDescriptionBlock::offset() const
    case 174:
    case 175:
    case 176:
-      offset = util::DecodeFloat32(p->halfword33_, p->halfword34_);
+      offset = util::DecodeFloat32(p->halfword(33), p->halfword(34));
       break;
    }
 
@@ -416,23 +417,23 @@ float ProductDescriptionBlock::scale() const
    case 186:
    case 193:
    case 195:
-      scale = p->halfword32_ * 0.1f;
+      scale = p->halfword(32) * 0.1f;
       break;
 
    case 81:
-      scale = p->halfword32_ * 0.001f;
+      scale = p->halfword(32) * 0.001f;
       break;
 
    case 134:
-      scale = util::DecodeFloat16(p->halfword31_);
+      scale = util::DecodeFloat16(p->halfword(31));
       break;
 
    case 135:
-      scale = p->halfword32_;
+      scale = p->halfword(32);
       break;
 
    case 138:
-      scale = p->halfword32_ * 0.01f;
+      scale = p->halfword(32) * 0.01f;
       break;
 
    case 159:
@@ -446,7 +447,7 @@ float ProductDescriptionBlock::scale() const
    case 174:
    case 175:
    case 176:
-      scale = util::DecodeFloat32(p->halfword31_, p->halfword32_);
+      scale = util::DecodeFloat32(p->halfword(31), p->halfword(32));
       break;
    }
 
@@ -511,7 +512,7 @@ uint16_t ProductDescriptionBlock::number_of_levels() const
    case 186:
    case 193:
    case 195:
-      numberOfLevels = p->halfword33_;
+      numberOfLevels = p->halfword(33);
       break;
 
    case 113:
@@ -535,7 +536,7 @@ uint16_t ProductDescriptionBlock::number_of_levels() const
       break;
 
    case 138:
-      numberOfLevels = p->halfword33_;
+      numberOfLevels = p->halfword(33);
       break;
 
    case 159:
@@ -549,7 +550,7 @@ uint16_t ProductDescriptionBlock::number_of_levels() const
    case 174:
    case 175:
    case 176:
-      numberOfLevels = p->halfword36_;
+      numberOfLevels = p->halfword(36);
       break;
 
    case 178:
@@ -568,7 +569,7 @@ float ProductDescriptionBlock::log_offset() const
    switch (p->productCode_)
    {
    case 134:
-      logOffset = util ::DecodeFloat16(p->halfword35_);
+      logOffset = util ::DecodeFloat16(p->halfword(35));
       break;
    }
 
@@ -582,7 +583,7 @@ float ProductDescriptionBlock::log_scale() const
    switch (p->productCode_)
    {
    case 134:
-      logScale = util ::DecodeFloat16(p->halfword34_);
+      logScale = util ::DecodeFloat16(p->halfword(34));
       break;
    }
 
@@ -628,23 +629,13 @@ bool ProductDescriptionBlock::Parse(std::istream& is)
    is.read(reinterpret_cast<char*>(&p->parameters_[0]), 2 * 2);       // 27-28
    is.read(reinterpret_cast<char*>(&p->elevationNumber_), 2);         // 29
    is.read(reinterpret_cast<char*>(&p->parameters_[2]), 2);           // 30
-   is.read(reinterpret_cast<char*>(&p->halfword31_), 2);              // 31
-   is.read(reinterpret_cast<char*>(&p->halfword32_), 2);              // 32
-   is.read(reinterpret_cast<char*>(&p->halfword33_), 2);              // 33
-   is.read(reinterpret_cast<char*>(&p->halfword34_), 2);              // 34
-   is.read(reinterpret_cast<char*>(&p->halfword35_), 2);              // 35
-   is.read(reinterpret_cast<char*>(&p->halfword36_), 2);              // 36
-   is.read(reinterpret_cast<char*>(&p->halfword37_), 2);              // 37
-   is.read(reinterpret_cast<char*>(&p->halfword38_), 2);              // 38
-
-   is.seekg(8 * 2, std::ios_base::cur); // 39-46
-
-   is.read(reinterpret_cast<char*>(&p->parameters_[3]), 7 * 2); // 47-53
-   is.read(reinterpret_cast<char*>(&p->version_), 1);           // 54
-   is.read(reinterpret_cast<char*>(&p->spotBlank_), 1);         // 54
-   is.read(reinterpret_cast<char*>(&p->offsetToSymbology_), 4); // 55-56
-   is.read(reinterpret_cast<char*>(&p->offsetToGraphic_), 4);   // 57-58
-   is.read(reinterpret_cast<char*>(&p->offsetToTabular_), 4);   // 59-60
+   is.read(reinterpret_cast<char*>(&p->halfwords_[0]), 16 * 2);       // 31-46
+   is.read(reinterpret_cast<char*>(&p->parameters_[3]), 7 * 2);       // 47-53
+   is.read(reinterpret_cast<char*>(&p->version_), 1);                 // 54
+   is.read(reinterpret_cast<char*>(&p->spotBlank_), 1);               // 54
+   is.read(reinterpret_cast<char*>(&p->offsetToSymbology_), 4);       // 55-56
+   is.read(reinterpret_cast<char*>(&p->offsetToGraphic_), 4);         // 57-58
+   is.read(reinterpret_cast<char*>(&p->offsetToTabular_), 4);         // 59-60
 
    p->blockDivider_            = ntohs(p->blockDivider_);
    p->latitudeOfRadar_         = ntohl(p->latitudeOfRadar_);
@@ -660,19 +651,12 @@ bool ProductDescriptionBlock::Parse(std::istream& is)
    p->generationDateOfProduct_ = ntohs(p->generationDateOfProduct_);
    p->generationTimeOfProduct_ = ntohl(p->generationTimeOfProduct_);
    p->elevationNumber_         = ntohs(p->elevationNumber_);
-   p->halfword31_              = ntohs(p->halfword31_);
-   p->halfword32_              = ntohs(p->halfword32_);
-   p->halfword33_              = ntohs(p->halfword33_);
-   p->halfword34_              = ntohs(p->halfword34_);
-   p->halfword35_              = ntohs(p->halfword35_);
-   p->halfword36_              = ntohs(p->halfword36_);
-   p->halfword37_              = ntohs(p->halfword37_);
-   p->halfword38_              = ntohs(p->halfword38_);
    p->offsetToSymbology_       = ntohl(p->offsetToSymbology_);
    p->offsetToGraphic_         = ntohl(p->offsetToGraphic_);
    p->offsetToTabular_         = ntohl(p->offsetToTabular_);
 
    SwapArray(p->parameters_);
+   SwapArray(p->halfwords_);
 
    if (is.eof())
    {

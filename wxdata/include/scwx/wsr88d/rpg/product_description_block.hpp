@@ -40,6 +40,7 @@ public:
    uint16_t generation_date_of_product() const;
    uint32_t generation_time_of_product() const;
    uint16_t elevation_number() const;
+   uint16_t data_level_threshold(size_t i) const;
    uint8_t  version() const;
    uint8_t  spot_blank() const;
    uint32_t offset_to_symbology() const;
