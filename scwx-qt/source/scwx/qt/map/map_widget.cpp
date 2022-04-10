@@ -314,24 +314,35 @@ void MapWidget::SelectRadarProduct(
       << common::GetRadarProductGroupName(group) << ", " << product << ", "
       << util::TimeString(time) << ")";
 
-   p->radarProductManager_ = manager::RadarProductManager::Instance(radarId);
-   p->selectedTime_        = time;
-
    if (group == common::RadarProductGroup::Level2)
    {
       common::Level2Product level2Product =
          p->GetLevel2ProductOrDefault(product);
+
+      p->radarProductManager_ = manager::RadarProductManager::Instance(radarId);
+      p->selectedTime_        = time;
 
       SelectRadarProduct(level2Product);
    }
    else
    {
       // TODO: Combine this with the SelectRadarProduct(Level2Product) function
-      std::shared_ptr<view::RadarProductView>& radarProductView =
-         p->context_->radarProductView_;
+      std::shared_ptr<manager::RadarProductManager> radarProductManager =
+         manager::RadarProductManager::Instance(radarId);
+      std::shared_ptr<view::RadarProductView> radarProductView =
+         view::RadarProductViewFactory::Create(
+            group, product, productCode, 0.0f, radarProductManager);
 
-      radarProductView = view::RadarProductViewFactory::Create(
-         group, product, 0.0f, p->radarProductManager_);
+      if (radarProductView == nullptr)
+      {
+         BOOST_LOG_TRIVIAL(debug)
+            << logPrefix_ << "No view created for product";
+         return;
+      }
+
+      p->context_->radarProductView_ = radarProductView;
+      p->radarProductManager_        = radarProductManager;
+      p->selectedTime_               = time;
       radarProductView->SelectTime(p->selectedTime_);
 
       connect(
@@ -344,7 +355,7 @@ void MapWidget::SelectRadarProduct(
          radarProductView.get(),
          &view::RadarProductView::SweepComputed,
          this,
-         [&]()
+         [=]()
          {
             std::shared_ptr<config::RadarSite> radarSite =
                p->radarProductManager_->radar_site();
@@ -472,7 +483,9 @@ void MapWidget::keyPressEvent(QKeyEvent* ev)
 {
    switch (ev->key())
    {
-   case Qt::Key_S: changeStyle(); break;
+   case Qt::Key_S:
+      changeStyle();
+      break;
    case Qt::Key_L:
    {
       for (const QString& layer : p->map_->layerIds())
@@ -481,7 +494,8 @@ void MapWidget::keyPressEvent(QKeyEvent* ev)
       }
    }
    break;
-   default: break;
+   default:
+      break;
    }
 
    ev->accept();
@@ -602,7 +616,9 @@ void MapWidget::mapChanged(QMapboxGL::MapChange mapChange)
 {
    switch (mapChange)
    {
-   case QMapboxGL::MapChangeDidFinishLoadingStyle: AddLayers(); break;
+   case QMapboxGL::MapChangeDidFinishLoadingStyle:
+      AddLayers();
+      break;
    }
 }
 
