@@ -174,52 +174,75 @@ void Level3ProductView::UpdateColorTable()
    lut.resize(numberOfLevels - rangeMin);
    lut.shrink_to_fit();
 
-   std::for_each(std::execution::par_unseq,
-                 dataRange.begin(),
-                 dataRange.end(),
-                 [&](uint16_t i)
-                 {
-                    if (i == RANGE_FOLDED && threshold > RANGE_FOLDED)
-                    {
-                       lut[i - *dataRange.begin()] = p->colorTable_->rf_color();
-                    }
-                    else
-                    {
-                       float f;
+   std::for_each(
+      std::execution::par_unseq,
+      dataRange.begin(),
+      dataRange.end(),
+      [&](uint16_t i)
+      {
+         const size_t lutIndex = i - *dataRange.begin();
+         float        f;
 
-                       // Different products use different scale/offset
-                       // formulas
-                       if (numberOfLevels > 16)
-                       {
-                          switch (descriptionBlock->product_code())
-                          {
-                          case 159:
-                          case 161:
-                          case 163:
-                          case 167:
-                          case 168:
-                          case 170:
-                          case 172:
-                          case 173:
-                          case 174:
-                          case 175:
-                          case 176:
-                             f = (i - offset) / scale;
-                             break;
+         // Different products use different scale/offset formulas
+         if (numberOfLevels > 16)
+         {
+            if (i == RANGE_FOLDED && threshold > RANGE_FOLDED)
+            {
+               lut[lutIndex] = p->colorTable_->rf_color();
+            }
+            else
+            {
+               switch (descriptionBlock->product_code())
+               {
+               case 159:
+               case 161:
+               case 163:
+               case 167:
+               case 168:
+               case 170:
+               case 172:
+               case 173:
+               case 174:
+               case 175:
+               case 176:
+                  f = (i - offset) / scale;
+                  break;
 
-                          default:
-                             f = i * scale + offset;
-                             break;
-                          }
-                       }
-                       else
-                       {
-                          f = descriptionBlock->data_level_threshold(i);
-                       }
+               default:
+                  f = i * scale + offset;
+                  break;
+               }
 
-                       lut[i - *dataRange.begin()] = p->colorTable_->Color(f);
-                    }
-                 });
+               lut[lutIndex] = p->colorTable_->Color(f);
+            }
+         }
+         else
+         {
+            uint16_t th = descriptionBlock->data_level_threshold(i);
+            if ((th & 0x8000u) == 0)
+            {
+               // If bit 0 is zero, then the LSB is numeric
+               f             = static_cast<float>(th);
+               lut[lutIndex] = p->colorTable_->Color(f);
+            }
+            else
+            {
+               // If bit 0 is one, then the LSB is coded
+               uint16_t lsb = th & 0x00ffu;
+
+               switch (lsb)
+               {
+               case 3: // RF
+                  lut[lutIndex] = p->colorTable_->rf_color();
+                  break;
+
+               default: // Ignore other values
+                  lut[lutIndex] = boost::gil::rgba8_pixel_t {0, 0, 0, 0};
+                  break;
+               }
+            }
+         }
+      });
 
    p->colorTableMin_ = rangeMin;
    p->colorTableMax_ = rangeMax;
