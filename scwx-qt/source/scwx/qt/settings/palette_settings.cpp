@@ -25,9 +25,11 @@ static const std::vector<std::string> paletteNames_ = {
    "DSD",
    "ET",
    "OHP",
+   "OHPIN",
    "PHI3",
    "SRV",
    "STP",
+   "STPIN",
    "VIL",
    "???"};
 
