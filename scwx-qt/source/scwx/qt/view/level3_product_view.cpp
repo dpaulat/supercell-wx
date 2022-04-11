@@ -222,7 +222,7 @@ void Level3ProductView::UpdateColorTable()
             if ((th & 0x8000u) == 0)
             {
                // If bit 0 is zero, then the LSB is numeric
-               f             = static_cast<float>(th);
+               f             = static_cast<float>(th & 0x00ffu);
                lut[lutIndex] = p->colorTable_->Color(f);
             }
             else
