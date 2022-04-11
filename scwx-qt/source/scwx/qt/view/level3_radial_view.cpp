@@ -203,17 +203,6 @@ void Level3RadialView::ComputeSweep()
       return;
    }
 
-   // Check if radial data is centered on the radar location
-   if (radialData->i_center_of_sweep() != 0 ||
-       radialData->j_center_of_sweep() != 0)
-   {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_
-         << "(i, j) is not centered on radar, display is inaccurate: ("
-         << radialData->i_center_of_sweep() << ", "
-         << radialData->j_center_of_sweep() << ")";
-   }
-
    // Assume the number of radials should be 360 or 720
    const size_t radials = radialData->number_of_radials();
    if (radials != 360 && radials != 720)
