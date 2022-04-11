@@ -148,9 +148,10 @@ void Level3ProductView::UpdateColorTable()
       return;
    }
 
-   float    offset    = descriptionBlock->offset();
-   float    scale     = descriptionBlock->scale();
-   uint16_t threshold = descriptionBlock->threshold();
+   int16_t  productCode = descriptionBlock->product_code();
+   float    offset      = descriptionBlock->offset();
+   float    scale       = descriptionBlock->scale();
+   uint16_t threshold   = descriptionBlock->threshold();
 
    // If the threshold is 2, the range min should be set to 1 for range folding
    uint16_t rangeMin       = std::min<uint16_t>(1, threshold);
@@ -184,7 +185,7 @@ void Level3ProductView::UpdateColorTable()
          float        f;
 
          // Different products use different scale/offset formulas
-         if (numberOfLevels > 16)
+         if (numberOfLevels > 16 || productCode == 34)
          {
             if (i == RANGE_FOLDED && threshold > RANGE_FOLDED)
             {
