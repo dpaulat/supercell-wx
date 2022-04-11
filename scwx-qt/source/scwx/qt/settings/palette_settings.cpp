@@ -13,7 +13,23 @@ namespace settings
 static const std::string logPrefix_ = "[scwx::qt::settings::palette_settings] ";
 
 static const std::vector<std::string> paletteNames_ = {
-   "BR", "BV", "SW", "ZDR", "PHI", "CC", "STP", "???"};
+   // Level 2 / Common Products
+   "BR",
+   "BV",
+   "SW",
+   "ZDR",
+   "PHI2",
+   "CC",
+   // Level 3 Products
+   "DOD",
+   "DSD",
+   "ET",
+   "OHP",
+   "PHI3",
+   "SRV",
+   "STP",
+   "VIL",
+   "???"};
 
 static const std::string DEFAULT_KEY     = "Default";
 static const std::string DEFAULT_PALETTE = "";
