@@ -14,6 +14,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QSplitter>
+#include <QStandardPaths>
 #include <QToolButton>
 
 #include <boost/log/trivial.hpp>
@@ -41,7 +42,23 @@ public:
        elevationButtonsChanged_ {false},
        resizeElevationButtons_ {false}
    {
-      settings_.setCacheDatabasePath("/tmp/mbgl-cache.db");
+      std::string appDataPath {
+         QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+            .toStdString()};
+      std::string cacheDbPath {appDataPath + "/mbgl-cache.db"};
+
+      if (!std::filesystem::exists(appDataPath))
+      {
+         if (!std::filesystem::create_directories(appDataPath))
+         {
+            BOOST_LOG_TRIVIAL(error)
+               << logPrefix_
+               << "Unable to create application local data directory: \""
+               << appDataPath << "\"";
+         }
+      }
+
+      settings_.setCacheDatabasePath(QString {cacheDbPath.c_str()});
       settings_.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
    }
    ~MainWindowImpl() = default;
