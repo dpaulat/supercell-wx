@@ -9,7 +9,8 @@ find_package(ZLIB)
 target_include_directories(mbgl-core PRIVATE ${ZLIB_INCLUDE_DIRS})
 target_link_libraries(mbgl-core INTERFACE ${ZLIB_LIBRARIES})
 
-set(MBGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mapbox-gl-native/include PARENT_SCOPE)
+set(MBGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mapbox-gl-native/include
+                     ${CMAKE_CURRENT_SOURCE_DIR}/mapbox-gl-native/platform/qt/include PARENT_SCOPE)
 
 set_target_properties(mbgl-qt PROPERTIES EXCLUDE_FROM_ALL True)
 set_target_properties(mbgl-test-runner PROPERTIES EXCLUDE_FROM_ALL True)
