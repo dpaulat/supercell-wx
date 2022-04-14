@@ -1,6 +1,7 @@
 project(scwx-data)
 
 find_package(Boost)
+find_package(spdlog)
 
 set(HDR_AWIPS include/scwx/awips/coded_location.hpp
               include/scwx/awips/coded_time_motion_location.hpp
@@ -34,12 +35,14 @@ set(SRC_COMMON source/scwx/common/color_table.cpp
                source/scwx/common/vcp.cpp)
 set(HDR_UTIL include/scwx/util/float.hpp
              include/scwx/util/iterator.hpp
+             include/scwx/util/logger.hpp
              include/scwx/util/rangebuf.hpp
              include/scwx/util/streams.hpp
              include/scwx/util/threads.hpp
              include/scwx/util/time.hpp
              include/scwx/util/vectorbuf.hpp)
 set(SRC_UTIL source/scwx/util/float.cpp
+             source/scwx/util/logger.cpp
              source/scwx/util/rangebuf.cpp
              source/scwx/util/streams.cpp
              source/scwx/util/time.cpp
@@ -191,6 +194,7 @@ if(MSVC)
     target_compile_options(wxdata PRIVATE /W3)
 endif()
 
+target_link_libraries(wxdata PUBLIC spdlog::spdlog)
 target_link_libraries(wxdata INTERFACE Boost::iostreams
                                        Boost::log
                                        BZip2::BZip2

@@ -19,6 +19,7 @@ conan_cmake_configure(REQUIRES boost/1.78.0
                                glm/0.9.9.8
                                gtest/cci.20210126
                                openssl/1.1.1n
+                               spdlog/1.10.0
                                vulkan-loader/1.3.204.1
                       GENERATORS cmake
                                  cmake_find_package
