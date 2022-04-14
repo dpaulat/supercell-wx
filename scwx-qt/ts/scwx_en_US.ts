@@ -102,7 +102,7 @@
 <context>
     <name>scwx::qt::main::MainWindow</name>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.cpp" line="279"/>
+        <location filename="../source/scwx/qt/main/main_window.cpp" line="278"/>
         <source>Unrecognized NEXRAD Product:</source>
         <translation type="unfinished"></translation>
     </message>
