@@ -4,20 +4,21 @@
 #endif
 
 #include <scwx/awips/pvtec.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <chrono>
 
 #include <boost/assign.hpp>
 #include <boost/bimap.hpp>
 #include <boost/bimap/unordered_set_of.hpp>
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
 namespace awips
 {
 
-static const std::string logPrefix_ = "[scwx::awips::pvtec] ";
+static const std::string logPrefix_ = "scwx::awips::pvtec";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 typedef boost::bimap<boost::bimaps::unordered_set_of<PVtec::ProductType>,
                      boost::bimaps::unordered_set_of<std::string>>
@@ -171,9 +172,9 @@ bool PVtec::Parse(const std::string& s)
       }
       catch (const std::exception& ex)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Error parsing event tracking number: \""
-            << eventNumberString << "\" (" << ex.what() << ")";
+         logger_->warn("Error parsing event tracking number: \"{}\" ({})",
+                       eventNumberString,
+                       ex.what());
 
          p->eventTrackingNumber_ = -1;
       }
@@ -214,8 +215,7 @@ bool PVtec::Parse(const std::string& s)
    }
    else
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Invalid P-VTEC: \"" << s << "\"";
+      logger_->warn("Invalid P-VTEC: \"{}\"", s);
    }
 
    p->valid_ = dataValid;
@@ -235,8 +235,7 @@ PVtec::ProductType PVtec::GetProductType(const std::string& code)
    {
       productType = ProductType::Unknown;
 
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Unrecognized product code: \"" << code << "\"";
+      logger_->debug("Unrecognized product code: \"{}\"", code);
    }
 
    return productType;
@@ -259,8 +258,7 @@ PVtec::Action PVtec::GetAction(const std::string& code)
    {
       action = Action::Unknown;
 
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Unrecognized action code: \"" << code << "\"";
+      logger_->debug("Unrecognized action code: \"{}\"", code);
    }
 
    return action;

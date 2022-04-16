@@ -9,14 +9,12 @@
 #include <regex>
 #include <string>
 
-#include <boost/log/trivial.hpp>
-
 namespace scwx
 {
 namespace awips
 {
 
-static const std::string logPrefix_ = "[scwx::awips::text_product_message] ";
+static const std::string logPrefix_ = "scwx::awips::text_product_message";
 
 // Issuance date/time takes one of the following forms:
 // * <hhmm>_xM_<tz>_day_mon_<dd>_year

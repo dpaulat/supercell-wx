@@ -1,4 +1,5 @@
 #include <scwx/common/color_table.hpp>
+#include <scwx/util/logger.hpp>
 #include <scwx/util/streams.hpp>
 
 #include <cmath>
@@ -9,7 +10,6 @@
 #include <sstream>
 
 #include <boost/gil.hpp>
-#include <boost/log/trivial.hpp>
 
 #include <hsluv.h>
 
@@ -18,7 +18,8 @@ namespace scwx
 namespace common
 {
 
-static const std::string logPrefix_ {"[scwx::common::color_table] "};
+static const std::string logPrefix_ {"scwx::common::color_table"};
+static const auto        logger_ = util::Logger::Create(logPrefix_);
 
 enum class ColorMode
 {
@@ -135,8 +136,7 @@ bool ColorTable::IsValid() const
 
 std::shared_ptr<ColorTable> ColorTable::Load(const std::string& filename)
 {
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "Loading color table: " << filename;
+   logger_->debug("Loading color table: {}", filename);
 
    std::shared_ptr<ColorTable> p = std::make_shared<ColorTable>();
 
@@ -167,8 +167,7 @@ std::shared_ptr<ColorTable> ColorTable::Load(const std::string& filename)
          }
          catch (const std::exception&)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_ << "Could not parse line: " << line;
+            logger_->warn("Could not parse line: {}", line);
          }
       }
    }

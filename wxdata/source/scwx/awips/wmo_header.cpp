@@ -1,11 +1,10 @@
 #include <scwx/awips/wmo_header.hpp>
+#include <scwx/util/logger.hpp>
 #include <scwx/util/streams.hpp>
 
 #include <istream>
 #include <sstream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 #ifdef WIN32
 #   include <WinSock2.h>
@@ -18,7 +17,8 @@ namespace scwx
 namespace awips
 {
 
-static const std::string logPrefix_ = "[scwx::awips::wmo_header] ";
+static const std::string logPrefix_ = "scwx::awips::wmo_header";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 class WmoHeaderImpl
 {
@@ -139,7 +139,7 @@ bool WmoHeader::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       headerValid = false;
    }
    else
@@ -176,29 +176,28 @@ bool WmoHeader::Parse(std::istream& is)
 
       if (wmoTokenList.size() < 3 || wmoTokenList.size() > 4)
       {
-         BOOST_LOG_TRIVIAL(debug)
-            << logPrefix_ << "Invalid number of WMO tokens";
+         logger_->debug("Invalid number of WMO tokens");
          headerValid = false;
       }
       else if (wmoTokenList[0].size() != 6)
       {
-         BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "WMO identifier malformed";
+         logger_->debug("WMO identifier malformed");
          headerValid = false;
       }
       else if (wmoTokenList[1].size() != 4)
       {
-         BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "ICAO malformed";
+         logger_->debug("ICAO malformed");
          headerValid = false;
       }
       else if (wmoTokenList[2].size() != 6)
       {
-         BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Date/time malformed";
+         logger_->debug("Date/time malformed");
          headerValid = false;
       }
       else if (wmoTokenList.size() == 4 && wmoTokenList[3].size() != 3)
       {
          // BBB indicator is optional
-         BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "BBB indicator malformed";
+         logger_->debug("BBB indicator malformed");
          headerValid = false;
       }
       else
@@ -227,8 +226,7 @@ bool WmoHeader::Parse(std::istream& is)
    {
       if (awipsLine.size() != 6)
       {
-         BOOST_LOG_TRIVIAL(debug)
-            << logPrefix_ << "AWIPS Identifier Line bad size";
+         logger_->debug("AWIPS Identifier Line bad size");
          headerValid = false;
       }
       else

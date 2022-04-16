@@ -1,15 +1,15 @@
 #include <scwx/awips/text_product_file.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <fstream>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
 namespace awips
 {
 
-static const std::string logPrefix_ = "[scwx::awips::text_product_file] ";
+static const std::string logPrefix_ = "scwx::awips::text_product_file";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 class TextProductFileImpl
 {
@@ -41,14 +41,13 @@ std::shared_ptr<TextProductMessage> TextProductFile::message(size_t i) const
 
 bool TextProductFile::LoadFile(const std::string& filename)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "LoadFile(" << filename << ")";
+   logger_->debug("LoadFile: {}", filename);
    bool fileValid = true;
 
    std::ifstream f(filename, std::ios_base::in | std::ios_base::binary);
    if (!f.good())
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Could not open file for reading: " << filename;
+      logger_->warn("Could not open file for reading: {}", filename);
       fileValid = false;
    }
 
@@ -62,7 +61,7 @@ bool TextProductFile::LoadFile(const std::string& filename)
 
 bool TextProductFile::LoadData(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading Data";
+   logger_->debug("Loading Data");
 
    while (!is.eof())
    {
