@@ -1,6 +1,5 @@
 #include <scwx/wsr88d/rda/rda_status_data.hpp>
-
-#include <boost/log/trivial.hpp>
+#include <scwx/util/logger.hpp>
 
 namespace scwx
 {
@@ -9,7 +8,8 @@ namespace wsr88d
 namespace rda
 {
 
-static const std::string logPrefix_ = "[scwx::wsr88d::rda::rda_status_data] ";
+static const std::string logPrefix_ = "scwx::wsr88d::rda::rda_status_data";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 class RdaStatusDataImpl
 {
@@ -233,8 +233,7 @@ uint16_t RdaStatusData::status_version() const
 
 bool RdaStatusData::Parse(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(trace)
-      << logPrefix_ << "Parsing RDA Status Data (Message Type 2)";
+   logger_->trace("Parsing RDA Status Data (Message Type 2)");
 
    bool   messageValid = true;
    size_t bytesRead    = 0;

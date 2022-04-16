@@ -1,9 +1,8 @@
 #include <scwx/wsr88d/rda/level2_message_header.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 #ifdef WIN32
 #   include <WinSock2.h>
@@ -19,7 +18,8 @@ namespace rda
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rda::level2_message_header] ";
+   "scwx::wsr88d::rda::level2_message_header";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 class Level2MessageHeaderImpl
 {
@@ -123,44 +123,40 @@ bool Level2MessageHeader::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       headerValid = false;
    }
    else
    {
       if (p->messageSize_ < 9)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid message size: " << p->messageSize_;
+         logger_->warn("Invalid message size: {}", p->messageSize_);
          headerValid = false;
       }
       if (p->julianDate_ < 1)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid date: " << p->julianDate_;
+         logger_->warn("Invalid date: {}", p->julianDate_);
          headerValid = false;
       }
       if (p->millisecondsOfDay_ > 86'399'999u)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid milliseconds: " << p->millisecondsOfDay_;
+         logger_->warn("Invalid milliseconds: {}", p->millisecondsOfDay_);
          headerValid = false;
       }
       if (p->messageSize_ < 65534 &&
           p->messageSegmentNumber_ > p->numberOfMessageSegments_)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid segment = " << p->messageSegmentNumber_
-            << "/" << p->numberOfMessageSegments_;
+         logger_->warn("Invalid segment = {}/{}",
+                       p->messageSegmentNumber_,
+                       p->numberOfMessageSegments_);
          headerValid = false;
       }
    }
 
    if (headerValid)
    {
-      BOOST_LOG_TRIVIAL(trace)
-         << logPrefix_
-         << "Message type: " << static_cast<unsigned>(p->messageType_);
+      logger_->trace("Message type: {}",
+                     static_cast<unsigned>(p->messageType_));
    }
 
    return headerValid;

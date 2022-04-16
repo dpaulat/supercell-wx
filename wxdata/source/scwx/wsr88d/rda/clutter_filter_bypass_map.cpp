@@ -1,8 +1,7 @@
 #include <scwx/wsr88d/rda/clutter_filter_bypass_map.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <vector>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -12,7 +11,8 @@ namespace rda
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rda::clutter_filter_bypass_map] ";
+   "scwx::wsr88d::rda::clutter_filter_bypass_map";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 class ClutterFilterBypassMapImpl
 {
@@ -61,8 +61,7 @@ ClutterFilterBypassMap::range_bin(uint16_t e, uint16_t r, uint16_t b) const
 
 bool ClutterFilterBypassMap::Parse(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(trace)
-      << logPrefix_ << "Parsing Clutter Filter Bypass Map (Message Type 13)";
+   logger_->trace("Parsing Clutter Filter Bypass Map (Message Type 13)");
 
    bool     messageValid         = true;
    size_t   bytesRead            = 0;
@@ -79,21 +78,18 @@ bool ClutterFilterBypassMap::Parse(std::istream& is)
 
    if (p->mapGenerationDate_ < 1)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Invalid date: " << p->mapGenerationDate_;
+      logger_->warn("Invalid date: {}", p->mapGenerationDate_);
       messageValid = false;
    }
    if (p->mapGenerationTime_ > 1440)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Invalid time: " << p->mapGenerationTime_;
+      logger_->warn("Invalid time: {}", p->mapGenerationTime_);
       messageValid = false;
    }
    if (numElevationSegments < 1 || numElevationSegments > 5)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_
-         << "Invalid number of elevation segments: " << numElevationSegments;
+      logger_->warn("Invalid number of elevation segments: {}",
+                    numElevationSegments);
       messageValid = false;
    }
 

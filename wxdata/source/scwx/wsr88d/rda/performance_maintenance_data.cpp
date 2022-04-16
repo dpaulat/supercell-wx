@@ -1,8 +1,7 @@
 #include <scwx/wsr88d/rda/performance_maintenance_data.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <array>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -12,7 +11,8 @@ namespace rda
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rda::performance_maintenance_data] ";
+   "scwx::wsr88d::rda::performance_maintenance_data";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 class PerformanceMaintenanceDataImpl
 {
@@ -1823,8 +1823,7 @@ uint16_t PerformanceMaintenanceData::version() const
 
 bool PerformanceMaintenanceData::Parse(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(trace)
-      << logPrefix_ << "Parsing Performance/Maintenance Data (Message Type 3)";
+   logger_->trace("Parsing Performance/Maintenance Data (Message Type 3)");
 
    bool   messageValid = true;
    size_t bytesRead    = 0;

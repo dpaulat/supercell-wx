@@ -1,8 +1,7 @@
 #include <scwx/wsr88d/rda/clutter_filter_map.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <vector>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -11,8 +10,8 @@ namespace wsr88d
 namespace rda
 {
 
-static const std::string logPrefix_ =
-   "[scwx::wsr88d::rda::clutter_filter_map] ";
+static const std::string logPrefix_ = "scwx::wsr88d::rda::clutter_filter_map";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 struct RangeZone
 {
@@ -75,8 +74,7 @@ uint16_t ClutterFilterMap::end_range(uint16_t e, uint16_t a, uint16_t z) const
 
 bool ClutterFilterMap::Parse(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(trace)
-      << logPrefix_ << "Parsing Clutter Filter Map (Message Type 15)";
+   logger_->trace("Parsing Clutter Filter Map (Message Type 15)");
 
    bool     messageValid         = true;
    size_t   bytesRead            = 0;
@@ -93,21 +91,18 @@ bool ClutterFilterMap::Parse(std::istream& is)
 
    if (p->mapGenerationDate_ < 1)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Invalid date: " << p->mapGenerationDate_;
+      logger_->warn("Invalid date: {}", p->mapGenerationDate_);
       messageValid = false;
    }
    if (p->mapGenerationTime_ > 1440)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Invalid time: " << p->mapGenerationTime_;
+      logger_->warn("Invalid time: {}", p->mapGenerationTime_);
       messageValid = false;
    }
    if (numElevationSegments < 1 || numElevationSegments > 5)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_
-         << "Invalid number of elevation segments: " << numElevationSegments;
+      logger_->warn("Invalid number of elevation segments: {}",
+                    numElevationSegments);
       messageValid = false;
    }
 
@@ -132,9 +127,7 @@ bool ClutterFilterMap::Parse(std::istream& is)
 
          if (numRangeZones < 1 || numRangeZones > 20)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_
-               << "Invalid number of range zones: " << numRangeZones;
+            logger_->warn("Invalid number of range zones: {}", numRangeZones);
             messageValid = false;
          }
 
@@ -158,14 +151,12 @@ bool ClutterFilterMap::Parse(std::istream& is)
 
             if (zone.opCode > 2)
             {
-               BOOST_LOG_TRIVIAL(warning)
-                  << logPrefix_ << "Invalid op code: " << zone.opCode;
+               logger_->warn("Invalid op code: {}", zone.opCode);
                messageValid = false;
             }
             if (zone.endRange > 511)
             {
-               BOOST_LOG_TRIVIAL(warning)
-                  << logPrefix_ << "Invalid end range: " << zone.endRange;
+               logger_->warn("Invalid end range: {}", zone.endRange);
                messageValid = false;
             }
          }
