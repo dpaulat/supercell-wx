@@ -1,10 +1,9 @@
 #include <scwx/wsr88d/rpg/special_graphic_symbol_packet.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <set>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -14,7 +13,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::special_graphic_symbol_packet] ";
+   "scwx::wsr88d::rpg::special_graphic_symbol_packet";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 static const std::set<uint16_t> packetCodes_ = {
    3, 11, 12, 13, 14, 15, 19, 20, 23, 24, 25, 26};
@@ -72,7 +72,7 @@ bool SpecialGraphicSymbolPacket::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       blockValid = false;
    }
    else
@@ -82,15 +82,13 @@ bool SpecialGraphicSymbolPacket::Parse(std::istream& is)
 
       if (!packetCodes_.contains(p->packetCode_))
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid packet code: " << p->packetCode_;
+         logger_->warn("Invalid packet code: {}", p->packetCode_);
          blockValid = false;
       }
       else if (p->lengthOfBlock_ < minBlockLength ||
                p->lengthOfBlock_ > maxBlockLength)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid length of block: " << p->packetCode_;
+         logger_->warn("Invalid length of block: {}", p->lengthOfBlock_);
          blockValid = false;
       }
    }

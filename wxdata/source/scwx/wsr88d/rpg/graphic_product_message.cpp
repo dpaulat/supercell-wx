@@ -1,4 +1,5 @@
 #include <scwx/wsr88d/rpg/graphic_product_message.hpp>
+#include <scwx/util/logger.hpp>
 #include <scwx/util/rangebuf.hpp>
 
 #include <istream>
@@ -7,7 +8,6 @@
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -17,7 +17,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::graphic_product_message] ";
+   "scwx::wsr88d::rpg::graphic_product_message";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 class GraphicProductMessageImpl
 {
@@ -102,17 +103,14 @@ bool GraphicProductMessage::Parse(std::istream& is)
          {
             std::stringstream ss;
             std::streamsize   bytesCopied = boost::iostreams::copy(in, ss);
-            BOOST_LOG_TRIVIAL(trace)
-               << logPrefix_ << "Decompressed data size = " << bytesCopied
-               << " bytes";
+            logger_->trace("Decompressed data size = {} bytes", bytesCopied);
 
             dataValid = p->LoadBlocks(ss);
          }
          catch (const boost::iostreams::bzip2_error& ex)
          {
             int error = ex.error();
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_ << "Error decompressing data: " << ex.what();
+            logger_->warn("Error decompressing data: {}", ex.what());
 
             dataValid = false;
          }
@@ -138,7 +136,7 @@ bool GraphicProductMessageImpl::LoadBlocks(std::istream& is)
    bool graphicValid   = true;
    bool tabularValid   = true;
 
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading Blocks";
+   logger_->debug("Loading Blocks");
 
    std::streampos offsetBasePos = is.tellg();
 
@@ -157,8 +155,7 @@ bool GraphicProductMessageImpl::LoadBlocks(std::istream& is)
       symbologyValid = symbologyBlock_->Parse(is);
       is.seekg(offsetBasePos, std::ios_base::beg);
 
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Product symbology block valid: " << symbologyValid;
+      logger_->debug("Product symbology block valid: {}", symbologyValid);
 
       if (!symbologyValid)
       {
@@ -174,8 +171,7 @@ bool GraphicProductMessageImpl::LoadBlocks(std::istream& is)
       graphicValid = graphicBlock_->Parse(is);
       is.seekg(offsetBasePos, std::ios_base::beg);
 
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Graphic alphanumeric block valid: " << graphicValid;
+      logger_->debug("Graphic alphanumeric block valid: {}", graphicValid);
 
       if (!graphicValid)
       {
@@ -191,8 +187,7 @@ bool GraphicProductMessageImpl::LoadBlocks(std::istream& is)
       tabularValid = tabularBlock_->Parse(is);
       is.seekg(offsetBasePos, std::ios_base::beg);
 
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Tabular alphanumeric block valid: " << tabularValid;
+      logger_->debug("Tabular alphanumeric block valid: {}", tabularValid);
 
       if (!tabularValid)
       {

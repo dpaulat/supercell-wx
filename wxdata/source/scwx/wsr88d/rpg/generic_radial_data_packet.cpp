@@ -2,8 +2,6 @@
 
 #include <string>
 
-#include <boost/log/trivial.hpp>
-
 namespace scwx
 {
 namespace wsr88d
@@ -12,7 +10,7 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::generic_radial_data_packet] ";
+   "scwx::wsr88d::rpg::generic_radial_data_packet";
 
 class GenericRadialDataPacketImpl
 {

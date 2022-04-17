@@ -1,9 +1,8 @@
 #include <scwx/wsr88d/rpg/text_and_special_symbol_packet.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -13,7 +12,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::text_and_special_symbol_packet] ";
+   "scwx::wsr88d::rpg::text_and_special_symbol_packet";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 class TextAndSpecialSymbolPacketImpl
 {
@@ -113,21 +113,19 @@ bool TextAndSpecialSymbolPacket::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       blockValid = false;
    }
    else
    {
       if (p->packetCode_ != 1 && p->packetCode_ != 2 && p->packetCode_ != 8)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid packet code: " << p->packetCode_;
+         logger_->warn("Invalid packet code: {}", p->packetCode_);
          blockValid = false;
       }
       else if (p->lengthOfBlock_ < 1 || p->lengthOfBlock_ > 32767)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid length of block: " << p->packetCode_;
+         logger_->warn("Invalid length of block: {}", p->lengthOfBlock_);
          blockValid = false;
       }
       else if (p->packetCode_ == 8)
@@ -141,8 +139,7 @@ bool TextAndSpecialSymbolPacket::Parse(std::istream& is)
 
    if (blockValid && textLength < 0)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Too few bytes in block: " << p->lengthOfBlock_;
+      logger_->warn("Too few bytes in block: {}", p->lengthOfBlock_);
       blockValid = false;
    }
 

@@ -1,9 +1,8 @@
 #include <scwx/wsr88d/rpg/sti_circle_symbol_packet.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -13,7 +12,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::sti_circle_symbol_packet] ";
+   "scwx::wsr88d::rpg::sti_circle_symbol_packet";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 struct StiCircleSymbol
 {
@@ -71,8 +71,7 @@ bool StiCircleSymbolPacket::ParseData(std::istream& is)
 
    if (packet_code() != 25)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Invalid packet code: " << packet_code();
+      logger_->warn("Invalid packet code: {}", packet_code());
       blockValid = false;
    }
 

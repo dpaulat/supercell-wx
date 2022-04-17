@@ -1,9 +1,8 @@
 #include <scwx/wsr88d/rpg/set_color_level_packet.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -13,7 +12,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::set_color_level_packet] ";
+   "scwx::wsr88d::rpg::set_color_level_packet";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 class SetColorLevelPacketImpl
 {
@@ -76,22 +76,20 @@ bool SetColorLevelPacket::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       blockValid = false;
    }
    else
    {
       if (p->packetCode_ != 0x0802)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid packet code: " << p->packetCode_;
+         logger_->warn("Invalid packet code: {}", p->packetCode_);
          blockValid = false;
       }
       if (p->colorValueIndicator_ != 0x0002)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_
-            << "Invalid color value indicator: " << p->colorValueIndicator_;
+         logger_->warn("Invalid color value indicator: {}",
+                       p->colorValueIndicator_);
          blockValid = false;
       }
    }

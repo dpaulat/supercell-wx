@@ -1,12 +1,11 @@
 #include <scwx/wsr88d/rpg/product_description_block.hpp>
 #include <scwx/util/float.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <array>
 #include <istream>
 #include <set>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -16,7 +15,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::product_description_block] ";
+   "scwx::wsr88d::rpg::product_description_block";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 static const std::set<int16_t> compressedProducts_ = {
    32,  94,  99,  134, 135, 138, 149, 152, 153, 154, 155,
@@ -660,31 +660,28 @@ bool ProductDescriptionBlock::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       blockValid = false;
    }
    else
    {
       if (p->blockDivider_ != -1)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid block divider: " << p->blockDivider_;
+         logger_->warn("Invalid block divider: {}", p->blockDivider_);
          blockValid = false;
       }
       if (p->productCode_ < -299 ||
           (p->productCode_ > -16 && p->productCode_ < 16) ||
           p->productCode_ > 299)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid product code: " << p->productCode_;
+         logger_->warn("Invalid product code: {}", p->productCode_);
          blockValid = false;
       }
    }
 
    if (blockValid)
    {
-      BOOST_LOG_TRIVIAL(trace)
-         << logPrefix_ << "Product code: " << p->productCode_;
+      logger_->trace("Product code: {}", p->productCode_);
    }
 
    const std::streampos blockEnd = is.tellg();

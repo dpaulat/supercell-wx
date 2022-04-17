@@ -1,5 +1,6 @@
 #include <scwx/wsr88d/rpg/packet_factory.hpp>
 
+#include <scwx/util/logger.hpp>
 #include <scwx/wsr88d/rpg/cell_trend_data_packet.hpp>
 #include <scwx/wsr88d/rpg/cell_trend_volume_scan_times.hpp>
 #include <scwx/wsr88d/rpg/digital_precipitation_data_array_packet.hpp>
@@ -26,8 +27,6 @@
 
 #include <unordered_map>
 
-#include <boost/log/trivial.hpp>
-
 namespace scwx
 {
 namespace wsr88d
@@ -35,7 +34,8 @@ namespace wsr88d
 namespace rpg
 {
 
-static const std::string logPrefix_ = "[scwx::wsr88d::rpg::packet_factory] ";
+static const std::string logPrefix_ = "scwx::wsr88d::rpg::packet_factory";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 typedef std::function<std::shared_ptr<Packet>(std::istream&)>
    CreateMessageFunction;
@@ -95,17 +95,13 @@ std::shared_ptr<Packet> PacketFactory::Create(std::istream& is)
 
    if (packetValid && create_.find(packetCode) == create_.end())
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Unknown packet code: " << packetCode << " (0x"
-         << std::hex << packetCode << std::dec << ")";
+      logger_->warn("Unknown packet code: {0} (0x{0:x})", packetCode);
       packetValid = false;
    }
 
    if (packetValid)
    {
-      BOOST_LOG_TRIVIAL(trace)
-         << logPrefix_ << "Found packet code: " << packetCode << " (0x"
-         << std::hex << packetCode << std::dec << ")";
+      logger_->trace("Found packet code: {0} (0x{0:x})", packetCode);
       packet = create_.at(packetCode)(is);
    }
 

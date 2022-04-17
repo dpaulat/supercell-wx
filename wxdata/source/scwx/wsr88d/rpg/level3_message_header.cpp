@@ -1,9 +1,8 @@
 #include <scwx/wsr88d/rpg/level3_message_header.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 #ifdef WIN32
 #   include <WinSock2.h>
@@ -19,7 +18,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::level3_message_header] ";
+   "scwx::wsr88d::rpg::level3_message_header";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 class Level3MessageHeaderImpl
 {
@@ -113,7 +113,7 @@ bool Level3MessageHeader::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       headerValid = false;
    }
    else
@@ -122,52 +122,44 @@ bool Level3MessageHeader::Parse(std::istream& is)
           (p->messageCode_ > -16 && p->messageCode_ < 0) ||
           p->messageCode_ > 211)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid message code: " << p->messageCode_;
+         logger_->warn("Invalid message code: {}", p->messageCode_);
          headerValid = false;
       }
       if (p->dateOfMessage_ > 32'767u)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid date: " << p->dateOfMessage_;
+         logger_->warn("Invalid date: {}", p->dateOfMessage_);
          headerValid = false;
       }
       if (p->timeOfMessage_ > 86'399u)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid time: " << p->timeOfMessage_;
+         logger_->warn("Invalid time: {}", p->timeOfMessage_);
          headerValid = false;
       }
       if (p->lengthOfMessage_ < 18 || p->lengthOfMessage_ > 1'329'270u)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid length: " << p->lengthOfMessage_;
+         logger_->warn("Invalid length: {}", p->lengthOfMessage_);
          headerValid = false;
       }
       if ((p->sourceId_ > 999u && p->sourceId_ < 3000) || p->sourceId_ > 3045)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid source ID: " << p->sourceId_;
+         logger_->warn("Invalid source ID: {}", p->sourceId_);
          headerValid = false;
       }
       if (p->destinationId_ > 999u)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid destination ID: " << p->destinationId_;
+         logger_->warn("Invalid destination ID: {}", p->destinationId_);
          headerValid = false;
       }
       if (p->numberBlocks_ < 1u || p->numberBlocks_ > 51u)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid block count: " << p->numberBlocks_;
+         logger_->warn("Invalid block count: {}", p->numberBlocks_);
          headerValid = false;
       }
    }
 
    if (headerValid)
    {
-      BOOST_LOG_TRIVIAL(trace)
-         << logPrefix_ << "Message code: " << p->messageCode_;
+      logger_->trace("Message code: {}", p->messageCode_);
    }
 
    return headerValid;

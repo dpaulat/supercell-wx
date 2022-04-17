@@ -1,10 +1,9 @@
 #include <scwx/wsr88d/rpg/product_symbology_block.hpp>
 #include <scwx/wsr88d/rpg/packet_factory.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -14,7 +13,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::product_symbology_block] ";
+   "scwx::wsr88d::rpg::product_symbology_block";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 class ProductSymbologyBlockImpl
 {
@@ -87,33 +87,29 @@ bool ProductSymbologyBlock::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       blockValid = false;
    }
    else
    {
       if (p->blockDivider_ != -1)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid block divider: " << p->blockDivider_;
+         logger_->warn("Invalid block divider: {}", p->blockDivider_);
          blockValid = false;
       }
       if (p->blockId_ != 1)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid block ID: " << p->blockId_;
+         logger_->warn("Invalid block ID: {}", p->blockId_);
          blockValid = false;
       }
       if (p->lengthOfBlock_ < 10)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid block length: " << p->lengthOfBlock_;
+         logger_->warn("Invalid block length: {}", p->lengthOfBlock_);
          blockValid = false;
       }
       if (p->numberOfLayers_ < 1 || p->numberOfLayers_ > 18)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid number of layers: " << p->numberOfLayers_;
+         logger_->warn("Invalid number of layers: {}", p->numberOfLayers_);
          blockValid = false;
       }
    }
@@ -125,7 +121,7 @@ bool ProductSymbologyBlock::Parse(std::istream& is)
 
       for (uint16_t i = 0; i < p->numberOfLayers_; i++)
       {
-         BOOST_LOG_TRIVIAL(trace) << logPrefix_ << "Layer " << i;
+         logger_->trace("Layer {}", i);
 
          std::vector<std::shared_ptr<Packet>> packetList;
          uint32_t                             bytesRead = 0;
@@ -156,19 +152,17 @@ bool ProductSymbologyBlock::Parse(std::istream& is)
 
          if (bytesRead < lengthOfDataLayer)
          {
-            BOOST_LOG_TRIVIAL(trace)
-               << logPrefix_
-               << "Layer bytes read smaller than size: " << bytesRead << " < "
-               << lengthOfDataLayer << " bytes";
+            logger_->trace("Layer bytes read smaller than size: {} < {} bytes",
+                           bytesRead,
+                           lengthOfDataLayer);
             blockValid = false;
             is.seekg(layerEnd, std::ios_base::beg);
          }
          if (bytesRead > lengthOfDataLayer)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_
-               << "Layer bytes read larger than size: " << bytesRead << " > "
-               << lengthOfDataLayer << " bytes";
+            logger_->warn("Layer bytes read larger than size: {} > {} bytes",
+                          bytesRead,
+                          lengthOfDataLayer);
             blockValid = false;
             is.seekg(layerEnd, std::ios_base::beg);
          }

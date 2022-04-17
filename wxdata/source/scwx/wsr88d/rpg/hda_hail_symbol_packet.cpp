@@ -1,9 +1,8 @@
 #include <scwx/wsr88d/rpg/hda_hail_symbol_packet.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -13,7 +12,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::hda_hail_symbol_packet] ";
+   "scwx::wsr88d::rpg::hda_hail_symbol_packet";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 struct HdaHailSymbol
 {
@@ -90,8 +90,7 @@ bool HdaHailSymbolPacket::ParseData(std::istream& is)
 
    if (packet_code() != 19)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Invalid packet code: " << packet_code();
+      logger_->warn("Invalid packet code: {}", packet_code());
       blockValid = false;
    }
 

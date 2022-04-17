@@ -1,9 +1,8 @@
 #include <scwx/wsr88d/rpg/cell_trend_volume_scan_times.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -13,7 +12,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::cell_trend_volume_scan_times] ";
+   "scwx::wsr88d::rpg::cell_trend_volume_scan_times";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 class CellTrendVolumeScanTimesImpl
 {
@@ -93,21 +93,19 @@ bool CellTrendVolumeScanTimes::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       blockValid = false;
    }
    else
    {
       if (p->packetCode_ != 22)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid packet code: " << p->packetCode_;
+         logger_->warn("Invalid packet code: {}", p->packetCode_);
          blockValid = false;
       }
       else if (p->lengthOfBlock_ < 4 || p->lengthOfBlock_ > 22)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid length of block: " << p->packetCode_;
+         logger_->warn("Invalid length of block: {}", p->packetCode_);
          blockValid = false;
       }
    }

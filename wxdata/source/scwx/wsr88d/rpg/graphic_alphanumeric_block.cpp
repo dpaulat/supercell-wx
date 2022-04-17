@@ -1,10 +1,9 @@
 #include <scwx/wsr88d/rpg/graphic_alphanumeric_block.hpp>
 #include <scwx/wsr88d/rpg/packet_factory.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -14,7 +13,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::graphic_alphanumeric_block] ";
+   "scwx::wsr88d::rpg::graphic_alphanumeric_block";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 class GraphicAlphanumericBlockImpl
 {
@@ -76,33 +76,29 @@ bool GraphicAlphanumericBlock::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       blockValid = false;
    }
    else
    {
       if (p->blockDivider_ != -1)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid block divider: " << p->blockDivider_;
+         logger_->warn("Invalid block divider: {}", p->blockDivider_);
          blockValid = false;
       }
       if (p->blockId_ != 2)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid block ID: " << p->blockId_;
+         logger_->warn("Invalid block ID: {}", p->blockId_);
          blockValid = false;
       }
       if (p->lengthOfBlock_ < 10)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid block length: " << p->lengthOfBlock_;
+         logger_->warn("Invalid block length: {}", p->lengthOfBlock_);
          blockValid = false;
       }
       if (p->numberOfPages_ < 1 || p->numberOfPages_ > 48)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid number of pages: " << p->numberOfPages_;
+         logger_->warn("Invalid number of pages: {}", p->numberOfPages_);
          blockValid = false;
       }
    }
@@ -114,7 +110,7 @@ bool GraphicAlphanumericBlock::Parse(std::istream& is)
 
       for (uint16_t i = 0; i < p->numberOfPages_; i++)
       {
-         BOOST_LOG_TRIVIAL(trace) << logPrefix_ << "Page " << (i + 1);
+         logger_->trace("Page {}", (i + 1));
 
          std::vector<std::shared_ptr<Packet>> packetList;
          uint32_t                             bytesRead = 0;
@@ -131,9 +127,8 @@ bool GraphicAlphanumericBlock::Parse(std::istream& is)
 
          if (pageNumber != i + 1)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_ << "Page out of order: Expected " << (i + 1)
-               << ", found " << pageNumber;
+            logger_->warn(
+               "Page out of order: Expected {}, found {}", (i + 1), pageNumber);
          }
 
          while (bytesRead < lengthOfPage)
@@ -152,19 +147,17 @@ bool GraphicAlphanumericBlock::Parse(std::istream& is)
 
          if (bytesRead < lengthOfPage)
          {
-            BOOST_LOG_TRIVIAL(trace)
-               << logPrefix_
-               << "Page bytes read smaller than size: " << bytesRead << " < "
-               << lengthOfPage << " bytes";
+            logger_->trace("Page bytes read smaller than size: {} < {} bytes",
+                           bytesRead,
+                           lengthOfPage);
             blockValid = false;
             is.seekg(pageEnd, std::ios_base::beg);
          }
          if (bytesRead > lengthOfPage)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_
-               << "Page bytes read larger than size: " << bytesRead << " > "
-               << lengthOfPage << " bytes";
+            logger_->warn("Page bytes read larger than size: {} > {} bytes",
+                          bytesRead,
+                          lengthOfPage);
             blockValid = false;
             is.seekg(pageEnd, std::ios_base::beg);
          }

@@ -1,9 +1,8 @@
 #include <scwx/wsr88d/rpg/digital_precipitation_data_array_packet.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -13,7 +12,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::digital_precipitation_data_array_packet] ";
+   "scwx::wsr88d::rpg::digital_precipitation_data_array_packet";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 class DigitalPrecipitationDataArrayPacketImpl
 {
@@ -97,21 +97,19 @@ bool DigitalPrecipitationDataArrayPacket::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       blockValid = false;
    }
    else
    {
       if (p->packetCode_ != 17)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid packet code: " << p->packetCode_;
+         logger_->warn("Invalid packet code: {}", p->packetCode_);
          blockValid = false;
       }
       if (p->numberOfRows_ != 131)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid number of rows: " << p->numberOfRows_;
+         logger_->warn("Invalid number of rows: {}", p->numberOfRows_);
          blockValid = false;
       }
    }
@@ -134,10 +132,9 @@ bool DigitalPrecipitationDataArrayPacket::Parse(std::istream& is)
          if (row.numberOfBytes_ < 2 || row.numberOfBytes_ > 262 ||
              row.numberOfBytes_ % 2 != 0)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_
-               << "Invalid number of bytes in row: " << row.numberOfBytes_
-               << " (Row " << r << ")";
+            logger_->warn("Invalid number of bytes in row: {} (Row {})",
+                          row.numberOfBytes_,
+                          r);
             blockValid = false;
             break;
          }
