@@ -1,20 +1,21 @@
 #include <scwx/wsr88d/level3_file.hpp>
 #include <scwx/wsr88d/rpg/ccb_header.hpp>
 #include <scwx/wsr88d/rpg/level3_message_factory.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <fstream>
 
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/zlib.hpp>
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
 namespace wsr88d
 {
 
-static const std::string logPrefix_ = "[scwx::wsr88d::level3_file] ";
+static const std::string logPrefix_ = "scwx::wsr88d::level3_file";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 class Level3FileImpl
 {
@@ -50,14 +51,13 @@ std::shared_ptr<rpg::Level3Message> Level3File::message() const
 
 bool Level3File::LoadFile(const std::string& filename)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "LoadFile(" << filename << ")";
+   logger_->debug("LoadFile: {}", filename);
    bool fileValid = true;
 
    std::ifstream f(filename, std::ios_base::in | std::ios_base::binary);
    if (!f.good())
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Could not open file for reading: " << filename;
+      logger_->warn("Could not open file for reading: {}", filename);
       fileValid = false;
    }
 
@@ -71,7 +71,7 @@ bool Level3File::LoadFile(const std::string& filename)
 
 bool Level3File::LoadData(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading Data";
+   logger_->debug("Loading Data");
 
    p->wmoHeader_ = std::make_shared<awips::WmoHeader>();
 
@@ -79,16 +79,11 @@ bool Level3File::LoadData(std::istream& is)
 
    if (dataValid)
    {
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Data Type: " << p->wmoHeader_->data_type();
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "ICAO:      " << p->wmoHeader_->icao();
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Date/Time: " << p->wmoHeader_->date_time();
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Category:  " << p->wmoHeader_->product_category();
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Site ID:   " << p->wmoHeader_->product_designator();
+      logger_->debug("Data Type: {}", p->wmoHeader_->data_type());
+      logger_->debug("ICAO:      {}", p->wmoHeader_->icao());
+      logger_->debug("Date/Time: {}", p->wmoHeader_->date_time());
+      logger_->debug("Category:  {}", p->wmoHeader_->product_category());
+      logger_->debug("Site ID:   {}", p->wmoHeader_->product_designator());
 
       // If the header is compressed
       if (is.peek() == 0x78)
@@ -146,20 +141,15 @@ bool Level3FileImpl::DecompressFile(std::istream& is, std::stringstream& ss)
       {
          int error = ex.error();
 
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Error decompressing data: " << ex.what();
+         logger_->warn("Error decompressing data: {}", ex.what());
 
          dataValid = false;
       }
 
    if (dataValid)
    {
-      BOOST_LOG_TRIVIAL(trace)
-         << logPrefix_ << "Input data consumed = " << totalBytesCopied
-         << " bytes";
-      BOOST_LOG_TRIVIAL(trace)
-         << logPrefix_ << "Decompressed data size = " << totalBytesConsumed
-         << " bytes";
+      logger_->trace("Input data consumed = {} bytes", totalBytesCopied);
+      logger_->trace("Decompressed data size = {} bytes", totalBytesConsumed);
 
       ccbHeader_ = std::make_shared<rpg::CcbHeader>();
       dataValid  = ccbHeader_->Parse(ss);

@@ -1,6 +1,7 @@
 #include <scwx/wsr88d/ar2v_file.hpp>
 #include <scwx/wsr88d/rda/level2_message_factory.hpp>
 #include <scwx/wsr88d/rda/types.hpp>
+#include <scwx/util/logger.hpp>
 #include <scwx/util/rangebuf.hpp>
 #include <scwx/util/time.hpp>
 
@@ -10,14 +11,14 @@
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
 namespace wsr88d
 {
 
-static const std::string logPrefix_ = "[scwx::wsr88d::ar2v_file] ";
+static const std::string logPrefix_ = "scwx::wsr88d::ar2v_file";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 class Ar2vFileImpl
 {
@@ -115,8 +116,7 @@ Ar2vFile::GetElevationScan(rda::DataBlockType                    dataBlockType,
                            float                                 elevation,
                            std::chrono::system_clock::time_point time) const
 {
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "GetElevationScan: " << elevation << " degrees";
+   logger_->debug("GetElevationScan: {} degrees", elevation);
 
    constexpr float scaleFactor = 8.0f / 0.043945f;
 
@@ -170,14 +170,13 @@ Ar2vFile::GetElevationScan(rda::DataBlockType                    dataBlockType,
 
 bool Ar2vFile::LoadFile(const std::string& filename)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "LoadFile(" << filename << ")";
+   logger_->debug("LoadFile: {}", filename);
    bool fileValid = true;
 
    std::ifstream f(filename, std::ios_base::in | std::ios_base::binary);
    if (!f.good())
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Could not open file for reading: " << filename;
+      logger_->warn("Could not open file for reading: {}", filename);
       fileValid = false;
    }
 
@@ -191,7 +190,7 @@ bool Ar2vFile::LoadFile(const std::string& filename)
 
 bool Ar2vFile::LoadData(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading Data";
+   logger_->debug("Loading Data");
 
    bool dataValid = true;
 
@@ -211,21 +210,17 @@ bool Ar2vFile::LoadData(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Could not read Volume Header Record\n";
+      logger_->warn("Could not read Volume Header Record");
       dataValid = false;
    }
 
    if (dataValid)
    {
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Filename:  " << p->tapeFilename_;
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Extension: " << p->extensionNumber_;
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Date:      " << p->julianDate_;
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Time:      " << p->milliseconds_;
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "ICAO:      " << p->icao_;
+      logger_->debug("Filename:  {}", p->tapeFilename_);
+      logger_->debug("Extension: {}", p->extensionNumber_);
+      logger_->debug("Date:      {}", p->julianDate_);
+      logger_->debug("Time:      {}", p->milliseconds_);
+      logger_->debug("ICAO:      {}", p->icao_);
 
       size_t decompressedRecords = p->DecompressLDMRecords(is);
       if (decompressedRecords == 0)
@@ -245,7 +240,7 @@ bool Ar2vFile::LoadData(std::istream& is)
 
 size_t Ar2vFileImpl::DecompressLDMRecords(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Decompressing LDM Records";
+   logger_->debug("Decompressing LDM Records");
 
    size_t numRecords = 0;
 
@@ -260,8 +255,7 @@ size_t Ar2vFileImpl::DecompressLDMRecords(std::istream& is)
       controlWord = ntohl(controlWord);
       recordSize  = std::abs(controlWord);
 
-      BOOST_LOG_TRIVIAL(trace)
-         << logPrefix_ << "LDM Record Found: Size = " << recordSize << " bytes";
+      logger_->trace("LDM Record Found: Size = {} bytes", recordSize);
 
       if (recordSize == 0)
       {
@@ -278,17 +272,14 @@ size_t Ar2vFileImpl::DecompressLDMRecords(std::istream& is)
       {
          std::stringstream ss;
          std::streamsize   bytesCopied = boost::iostreams::copy(in, ss);
-         BOOST_LOG_TRIVIAL(trace)
-            << logPrefix_ << "Decompressed record size = " << bytesCopied
-            << " bytes";
+         logger_->trace("Decompressed record size = {} bytes", bytesCopied);
 
          rawRecords_.push_back(std::move(ss));
       }
       catch (const boost::iostreams::bzip2_error& ex)
       {
          int error = ex.error();
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Error decompressing record " << numRecords;
+         logger_->warn("Error decompressing record {}", numRecords);
 
          is.seekg(startPosition + std::streampos(recordSize),
                   std::ios_base::beg);
@@ -297,15 +288,14 @@ size_t Ar2vFileImpl::DecompressLDMRecords(std::istream& is)
       ++numRecords;
    }
 
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "Decompressed " << numRecords << " LDM Records";
+   logger_->debug("Decompressed {} LDM Records", numRecords);
 
    return numRecords;
 }
 
 void Ar2vFileImpl::ParseLDMRecords()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Parsing LDM Records";
+   logger_->debug("Parsing LDM Records");
 
    size_t count = 0;
 
@@ -313,7 +303,7 @@ void Ar2vFileImpl::ParseLDMRecords()
    {
       std::stringstream& ss = *it;
 
-      BOOST_LOG_TRIVIAL(trace) << logPrefix_ << "Record " << count++;
+      logger_->trace("Record {}", count++);
 
       ParseLDMRecord(ss);
    }
@@ -346,8 +336,7 @@ void Ar2vFileImpl::ParseLDMRecord(std::istream& is)
 
       if (!is.eof() && offset != 0)
       {
-         BOOST_LOG_TRIVIAL(trace)
-            << logPrefix_ << "Next record offset by " << offset << " bytes";
+         logger_->trace("Next record offset by {} bytes", offset);
       }
       else if (is.eof())
       {
@@ -382,7 +371,8 @@ void Ar2vFileImpl::HandleMessage(std::shared_ptr<rda::Level2Message>& message)
          std::static_pointer_cast<rda::DigitalRadarData>(message));
       break;
 
-   default: break;
+   default:
+      break;
    }
 }
 
@@ -402,12 +392,11 @@ void Ar2vFileImpl::ProcessRadarData(
 
 void Ar2vFileImpl::IndexFile()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Indexing file";
+   logger_->debug("Indexing file");
 
    if (vcpData_ == nullptr)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Cannot index file without VCP data";
+      logger_->warn("Cannot index file without VCP data");
       return;
    }
 
