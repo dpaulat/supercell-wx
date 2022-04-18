@@ -7,8 +7,7 @@
       GLenum err;                                                              \
       while ((err = gl.glGetError()) != GL_NO_ERROR)                           \
       {                                                                        \
-         BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "GL Error: " << err       \
-                                    << ", " __FILE__ << ":" << __LINE__;       \
+         logger_->error("GL Error: {}, {}: {}", err, __FILE__, __LINE__);      \
       }                                                                        \
    }
 

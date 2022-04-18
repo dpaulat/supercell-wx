@@ -1,9 +1,9 @@
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/gl/shader_program.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <execution>
 
-#include <boost/log/trivial.hpp>
 #include <boost/timer/timer.hpp>
 #include <GeographicLib/Geodesic.hpp>
 #include <glm/glm.hpp>
@@ -21,7 +21,8 @@ namespace map
 static constexpr uint32_t MAX_RADIALS           = 720;
 static constexpr uint32_t MAX_DATA_MOMENT_GATES = 1840;
 
-static const std::string logPrefix_ = "[scwx::qt::map::radar_product_layer] ";
+static const std::string logPrefix_ = "scwx::qt::map::radar_product_layer";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static glm::vec2
 LatLongToScreenCoordinate(const QMapbox::Coordinate& coordinate);
@@ -73,7 +74,7 @@ RadarProductLayer::~RadarProductLayer() = default;
 
 void RadarProductLayer::Initialize()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Initialize()";
+   logger_->debug("Initialize()");
 
    gl::OpenGLFunctions& gl = context()->gl_;
 
@@ -84,38 +85,35 @@ void RadarProductLayer::Initialize()
       gl.glGetUniformLocation(p->shaderProgram_.id(), "uMVPMatrix");
    if (p->uMVPMatrixLocation_ == -1)
    {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Could not find uMVPMatrix";
+      logger_->warn("Could not find uMVPMatrix");
    }
 
    p->uMapScreenCoordLocation_ =
       gl.glGetUniformLocation(p->shaderProgram_.id(), "uMapScreenCoord");
    if (p->uMapScreenCoordLocation_ == -1)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Could not find uMapScreenCoord";
+      logger_->warn("Could not find uMapScreenCoord");
    }
 
    p->uDataMomentOffsetLocation_ =
       gl.glGetUniformLocation(p->shaderProgram_.id(), "uDataMomentOffset");
    if (p->uDataMomentOffsetLocation_ == -1)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Could not find uDataMomentOffset";
+      logger_->warn("Could not find uDataMomentOffset");
    }
 
    p->uDataMomentScaleLocation_ =
       gl.glGetUniformLocation(p->shaderProgram_.id(), "uDataMomentScale");
    if (p->uDataMomentScaleLocation_ == -1)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Could not find uDataMomentScale";
+      logger_->warn("Could not find uDataMomentScale");
    }
 
    p->uCFPEnabledLocation_ =
       gl.glGetUniformLocation(p->shaderProgram_.id(), "uCFPEnabled");
    if (p->uCFPEnabledLocation_ == -1)
    {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Could not find uCFPEnabled";
+      logger_->warn("Could not find uCFPEnabled");
    }
 
    p->shaderProgram_.Use();
@@ -148,7 +146,7 @@ void RadarProductLayer::Initialize()
 
 void RadarProductLayer::UpdateSweep()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "UpdateSweep()";
+   logger_->debug("UpdateSweep()");
 
    gl::OpenGLFunctions& gl = context()->gl_;
 
@@ -161,8 +159,7 @@ void RadarProductLayer::UpdateSweep()
                               std::try_to_lock);
    if (!sweepLock.owns_lock())
    {
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Sweep locked, deferring update";
+      logger_->debug("Sweep locked, deferring update");
       return;
    }
 
@@ -181,8 +178,7 @@ void RadarProductLayer::UpdateSweep()
                    vertices.data(),
                    GL_STATIC_DRAW);
    timer.stop();
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "Vertices buffered in " << timer.format(6, "%ws");
+   logger_->debug("Vertices buffered in {}", timer.format(6, "%ws"));
 
    gl.glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, static_cast<void*>(0));
    gl.glEnableVertexAttribArray(0);
@@ -208,8 +204,7 @@ void RadarProductLayer::UpdateSweep()
    timer.start();
    gl.glBufferData(GL_ARRAY_BUFFER, dataSize, data, GL_STATIC_DRAW);
    timer.stop();
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "Data moments buffered in " << timer.format(6, "%ws");
+   logger_->debug("Data moments buffered in {}", timer.format(6, "%ws"));
 
    gl.glVertexAttribIPointer(1, 1, type, 0, static_cast<void*>(0));
    gl.glEnableVertexAttribArray(1);
@@ -238,8 +233,7 @@ void RadarProductLayer::UpdateSweep()
       timer.start();
       gl.glBufferData(GL_ARRAY_BUFFER, cfpDataSize, cfpData, GL_STATIC_DRAW);
       timer.stop();
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "CFP moments buffered in " << timer.format(6, "%ws");
+      logger_->debug("CFP moments buffered in {}", timer.format(6, "%ws"));
 
       gl.glVertexAttribIPointer(2, 1, cfpType, 0, static_cast<void*>(0));
       gl.glEnableVertexAttribArray(2);
@@ -294,11 +288,13 @@ void RadarProductLayer::Render(
    gl.glBindTexture(GL_TEXTURE_1D, p->texture_);
    gl.glBindVertexArray(p->vao_);
    gl.glDrawArrays(GL_TRIANGLES, 0, p->numVertices_);
+
+   SCWX_GL_CHECK_ERROR();
 }
 
 void RadarProductLayer::Deinitialize()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Deinitialize()";
+   logger_->debug("Deinitialize()");
 
    gl::OpenGLFunctions& gl = context()->gl_;
 
@@ -317,7 +313,7 @@ void RadarProductLayer::Deinitialize()
 
 void RadarProductLayer::UpdateColorTable()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "UpdateColorTable()";
+   logger_->debug("UpdateColorTable()");
 
    p->colorTableNeedsUpdate_ = false;
 
