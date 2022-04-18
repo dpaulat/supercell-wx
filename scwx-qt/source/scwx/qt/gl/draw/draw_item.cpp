@@ -1,6 +1,6 @@
 #include <scwx/qt/gl/draw/draw_item.hpp>
 
-#include <boost/log/trivial.hpp>
+#include <string>
 
 namespace scwx
 {
@@ -11,7 +11,7 @@ namespace gl
 namespace draw
 {
 
-static const std::string logPrefix_ = "[scwx::qt::gl::draw::draw_item] ";
+static const std::string logPrefix_ = "scwx::qt::gl::draw::draw_item";
 
 class DrawItemImpl
 {

@@ -1,10 +1,9 @@
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/util/json.hpp>
 #include <scwx/common/sites.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <unordered_map>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -13,7 +12,8 @@ namespace qt
 namespace config
 {
 
-static const std::string logPrefix_ = "[scwx::qt::settings::radar_site] ";
+static const std::string logPrefix_ = "scwx::qt::settings::radar_site";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static const std::string defaultRadarSiteFile_ =
    ":/res/config/radar_sites.json";
@@ -121,8 +121,7 @@ void RadarSite::Initialize()
 
 size_t RadarSite::ReadConfig(const std::string& path)
 {
-   BOOST_LOG_TRIVIAL(info) << logPrefix_ << "Loading radar sites from \""
-                           << path << "\"...";
+   logger_->info("Loading radar sites from \"{}\"...", path);
 
    bool   dataValid  = true;
    size_t sitesAdded = 0;
@@ -139,7 +138,7 @@ size_t RadarSite::ReadConfig(const std::string& path)
 
          if (!ValidateJsonEntry(o))
          {
-            BOOST_LOG_TRIVIAL(info) << logPrefix_ << "Incorrect format: " << v;
+            logger_->info("Incorrect format: {}", boost::json::serialize(v));
          }
          else
          {
@@ -168,9 +167,9 @@ size_t RadarSite::ReadConfig(const std::string& path)
             }
             else
             {
-               BOOST_LOG_TRIVIAL(warning)
-                  << logPrefix_ << "Site ID conflict: " << siteIdMap_.at(siteId)
-                  << " and " << site->p->id_;
+               logger_->warn("Site ID conflict: {} and {}",
+                             siteIdMap_.at(siteId),
+                             site->p->id_);
             }
          }
       }

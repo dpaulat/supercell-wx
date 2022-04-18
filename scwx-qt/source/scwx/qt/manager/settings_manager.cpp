@@ -1,13 +1,12 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/util/json.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <filesystem>
 #include <fstream>
 
 #include <QDir>
 #include <QStandardPaths>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -18,7 +17,8 @@ namespace manager
 namespace SettingsManager
 {
 
-static const std::string logPrefix_ = "[scwx::qt::manager::settings_manager] ";
+static const std::string logPrefix_ = "scwx::qt::manager::settings_manager";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static std::shared_ptr<settings::GeneralSettings> generalSettings_ = nullptr;
 static std::shared_ptr<settings::PaletteSettings> paletteSettings_ = nullptr;
@@ -37,9 +37,8 @@ void Initialize()
    {
       if (!std::filesystem::create_directories(appDataPath))
       {
-         BOOST_LOG_TRIVIAL(error)
-            << logPrefix_ << "Unable to create application data directory: \""
-            << appDataPath << "\"";
+         logger_->error("Unable to create application data directory: \"{}\"",
+                        appDataPath);
       }
    }
 
@@ -97,7 +96,7 @@ static boost::json::value ConvertSettingsToJson()
 
 static void GenerateDefaultSettings()
 {
-   BOOST_LOG_TRIVIAL(info) << logPrefix_ << "Generating default settings";
+   logger_->info("Generating default settings");
 
    generalSettings_ = settings::GeneralSettings::Create();
    paletteSettings_ = settings::PaletteSettings::Create();
@@ -105,7 +104,7 @@ static void GenerateDefaultSettings()
 
 static bool LoadSettings(const boost::json::object& settingsJson)
 {
-   BOOST_LOG_TRIVIAL(info) << logPrefix_ << "Loading settings";
+   logger_->info("Loading settings");
 
    bool jsonDirty = false;
 

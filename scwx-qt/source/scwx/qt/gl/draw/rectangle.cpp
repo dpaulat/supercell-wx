@@ -2,8 +2,6 @@
 
 #include <optional>
 
-#include <boost/log/trivial.hpp>
-
 namespace scwx
 {
 namespace qt
@@ -13,7 +11,7 @@ namespace gl
 namespace draw
 {
 
-static const std::string logPrefix_ = "[scwx::qt::gl::draw::rectangle] ";
+static const std::string logPrefix_ = "scwx::qt::gl::draw::rectangle";
 
 static constexpr size_t NUM_RECTANGLES         = 5;
 static constexpr size_t NUM_TRIANGLES          = NUM_RECTANGLES * 2;
