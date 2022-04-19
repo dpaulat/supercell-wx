@@ -202,9 +202,6 @@ target_link_libraries(wxdata INTERFACE Boost::iostreams
 
 if (WIN32)
     target_link_libraries(wxdata INTERFACE Ws2_32)
-
-    # For Boost::log
-    target_compile_definitions(wxdata PRIVATE BOOST_USE_WINAPI_VERSION=0x0601)
 endif()
 
 set_target_properties(wxdata PROPERTIES CXX_STANDARD 20
