@@ -2,10 +2,9 @@
 #include <scwx/qt/view/level2_product_view.hpp>
 #include <scwx/qt/view/level3_radial_view.hpp>
 #include <scwx/qt/view/level3_raster_view.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <unordered_set>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -15,7 +14,8 @@ namespace view
 {
 
 static const std::string logPrefix_ =
-   "[scwx::qt::view::radar_product_view_factory] ";
+   "scwx::qt::view::radar_product_view_factory";
+static const auto logger_ = scwx::util::Logger::Create(logPrefix_);
 
 typedef std::function<std::shared_ptr<RadarProductView>(
    const std::string&                            productName,
@@ -46,8 +46,7 @@ std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
 
       if (product == common::Level2Product::Unknown)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Unknown Level 2 radar product: " << productName;
+         logger_->warn("Unknown Level 2 radar product: {}", productName);
       }
       else
       {
@@ -67,9 +66,8 @@ std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
    }
    else
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Unknown radar product group: "
-         << common::GetRadarProductGroupName(productGroup);
+      logger_->warn("Unknown radar product group: {}",
+                    common::GetRadarProductGroupName(productGroup));
    }
 
    return view;

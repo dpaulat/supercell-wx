@@ -6,7 +6,6 @@
 #include <scwx/wsr88d/rpg/graphic_product_message.hpp>
 #include <scwx/wsr88d/rpg/radial_data_packet.hpp>
 
-#include <boost/log/trivial.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 
@@ -17,7 +16,7 @@ namespace qt
 namespace view
 {
 
-static const std::string logPrefix_ = "[scwx::qt::view::level3_product_view] ";
+static const std::string logPrefix_ = "scwx::qt::view::level3_product_view";
 
 static constexpr uint16_t RANGE_FOLDED = 1u;
 

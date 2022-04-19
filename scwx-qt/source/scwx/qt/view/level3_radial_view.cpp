@@ -1,11 +1,11 @@
 #include <scwx/qt/view/level3_radial_view.hpp>
 #include <scwx/common/constants.hpp>
+#include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/rpg/digital_radial_data_array_packet.hpp>
 #include <scwx/wsr88d/rpg/radial_data_packet.hpp>
 
-#include <boost/log/trivial.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 
@@ -16,7 +16,8 @@ namespace qt
 namespace view
 {
 
-static const std::string logPrefix_ = "[scwx::qt::view::level3_radial_view] ";
+static const std::string logPrefix_ = "scwx::qt::view::level3_radial_view";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr uint16_t RANGE_FOLDED      = 1u;
 static constexpr uint32_t VERTICES_PER_BIN  = 6u;
@@ -105,7 +106,7 @@ void Level3RadialView::SelectTime(std::chrono::system_clock::time_point time)
 
 void Level3RadialView::ComputeSweep()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "ComputeSweep()";
+   logger_->debug("ComputeSweep()");
 
    boost::timer::cpu_timer timer;
 
@@ -120,8 +121,7 @@ void Level3RadialView::ComputeSweep()
       std::dynamic_pointer_cast<wsr88d::rpg::GraphicProductMessage>(message);
    if (gpm == nullptr)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Graphic Product Message not found";
+      logger_->warn("Graphic Product Message not found");
       return;
    }
    else if (gpm == graphic_product_message())
@@ -139,7 +139,7 @@ void Level3RadialView::ComputeSweep()
       gpm->symbology_block();
    if (descriptionBlock == nullptr || symbologyBlock == nullptr)
    {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Missing blocks";
+      logger_->warn("Missing blocks");
       return;
    }
 
@@ -147,8 +147,7 @@ void Level3RadialView::ComputeSweep()
    uint16_t numberOfLayers = symbologyBlock->number_of_layers();
    if (numberOfLayers < 1)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "No layers present in symbology block";
+      logger_->warn("No layers present in symbology block");
       return;
    }
 
@@ -199,7 +198,7 @@ void Level3RadialView::ComputeSweep()
    }
    else
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "No radial data found";
+      logger_->debug("No radial data found");
       return;
    }
 
@@ -207,8 +206,7 @@ void Level3RadialView::ComputeSweep()
    const size_t radials = radialData->number_of_radials();
    if (radials != 360 && radials != 720)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Unsupported number of radials: " << radials;
+      logger_->warn("Unsupported number of radials: {}", radials);
       return;
    }
 
@@ -223,8 +221,7 @@ void Level3RadialView::ComputeSweep()
    const uint16_t gates = radialData->number_of_range_bins();
    if (gates < 1)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "No range bins in radial data";
+      logger_->warn("No range bins in radial data");
       return;
    }
 
@@ -368,8 +365,7 @@ void Level3RadialView::ComputeSweep()
    dataMoments8.shrink_to_fit();
 
    timer.stop();
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "Vertices calculated in " << timer.format(6, "%ws");
+   logger_->debug("Vertices calculated in {}", timer.format(6, "%ws"));
 
    UpdateColorTable();
 

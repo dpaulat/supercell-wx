@@ -1,9 +1,9 @@
 #include <scwx/qt/view/level2_product_view.hpp>
 #include <scwx/common/constants.hpp>
+#include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 
-#include <boost/log/trivial.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 
@@ -14,7 +14,8 @@ namespace qt
 namespace view
 {
 
-static const std::string logPrefix_ = "[scwx::qt::view::level2_product_view] ";
+static const std::string logPrefix_ = "scwx::qt::view::level2_product_view";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr uint16_t RANGE_FOLDED      = 1u;
 static constexpr uint32_t VERTICES_PER_BIN  = 6u;
@@ -73,8 +74,8 @@ public:
       }
       else
       {
-         BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Unknown product: \""
-                                    << common::GetLevel2Name(product) << "\"";
+         logger_->warn("Unknown product: \"{}\"",
+                       common::GetLevel2Name(product));
          dataBlockType_ = wsr88d::rda::DataBlockType::Unknown;
       }
    }
@@ -347,7 +348,7 @@ void Level2ProductView::UpdateColorTable()
 
 void Level2ProductView::ComputeSweep()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "ComputeSweep()";
+   logger_->debug("ComputeSweep()");
 
    boost::timer::cpu_timer timer;
 
@@ -382,8 +383,8 @@ void Level2ProductView::ComputeSweep()
 
    if (momentData0 == nullptr)
    {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "No moment data for "
-                                 << common::GetLevel2Name(p->product_);
+      logger_->warn("No moment data for {}",
+                    common::GetLevel2Name(p->product_));
       return;
    }
 
@@ -462,8 +463,7 @@ void Level2ProductView::ComputeSweep()
 
       if (momentData0->data_word_size() != momentData->data_word_size())
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Radial " << radial << " has different word size";
+         logger_->warn("Radial {} has different word size", radial);
          continue;
       }
 
@@ -632,8 +632,7 @@ void Level2ProductView::ComputeSweep()
    }
 
    timer.stop();
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "Vertices calculated in " << timer.format(6, "%ws");
+   logger_->debug("Vertices calculated in {}", timer.format(6, "%ws"));
 
    UpdateColorTable();
 

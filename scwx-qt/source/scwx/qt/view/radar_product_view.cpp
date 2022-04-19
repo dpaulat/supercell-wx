@@ -1,7 +1,7 @@
 #include <scwx/qt/view/radar_product_view.hpp>
 #include <scwx/common/constants.hpp>
+#include <scwx/util/logger.hpp>
 
-#include <boost/log/trivial.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 
@@ -12,7 +12,8 @@ namespace qt
 namespace view
 {
 
-static const std::string logPrefix_ = "[scwx::qt::view::radar_product_view] ";
+static const std::string logPrefix_ = "scwx::qt::view::radar_product_view";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static const std::vector<boost::gil::rgba8_pixel_t> DEFAULT_COLOR_TABLE = {
    boost::gil::rgba8_pixel_t(0, 128, 0, 255),
@@ -102,7 +103,7 @@ RadarProductView::GetCfpMomentData() const
 
 void RadarProductView::ComputeSweep()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "ComputeSweep()";
+   logger_->debug("ComputeSweep()");
 
    emit SweepComputed();
 }

@@ -3,8 +3,6 @@
 #include <scwx/common/sites.hpp>
 #include <scwx/util/time.hpp>
 
-#include <boost/log/trivial.hpp>
-
 namespace scwx
 {
 namespace qt
@@ -12,8 +10,7 @@ namespace qt
 namespace types
 {
 
-static const std::string logPrefix_ =
-   "[scwx::qt::types::radar_product_record] ";
+static const std::string logPrefix_ = "scwx::qt::types::radar_product_record";
 
 class RadarProductRecordImpl
 {

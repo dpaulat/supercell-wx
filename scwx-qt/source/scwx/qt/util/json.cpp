@@ -1,8 +1,8 @@
 #include <scwx/qt/util/json.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <fstream>
 
-#include <boost/log/trivial.hpp>
 #include <QFile>
 #include <QTextStream>
 
@@ -15,7 +15,8 @@ namespace util
 namespace json
 {
 
-static const std::string logPrefix_ = "[scwx::qt::util::json] ";
+static const std::string logPrefix_ = "scwx::qt::util::json";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 /* Adapted from:
  * https://www.boost.org/doc/libs/1_77_0/libs/json/doc/html/json/examples.html#json.examples.pretty
@@ -50,16 +51,18 @@ bool FromJsonInt64(const boost::json::object& json,
 
          if (minValue.has_value() && value < *minValue)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_ << key << " less than minimum (" << value << " < "
-               << *minValue << "), setting to: " << *minValue;
+            logger_->warn("{} less than minimum ({} < {}), setting to: {2}",
+                          key,
+                          value,
+                          *minValue);
             value = *minValue;
          }
          else if (maxValue.has_value() && value > *maxValue)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_ << key << " greater than maximum (" << value
-               << " > " << *maxValue << "), setting to: " << *maxValue;
+            logger_->warn("{} greater than maximum ({} > {}), setting to: {2}",
+                          key,
+                          value,
+                          *maxValue);
             value = *maxValue;
          }
          else
@@ -69,17 +72,17 @@ bool FromJsonInt64(const boost::json::object& json,
       }
       else
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << key << " is not an int64 (" << jv->kind()
-            << "), setting to default:" << defaultValue;
+         logger_->warn("{} is not an int64 ({}), setting to default: {}",
+                       key,
+                       jv->kind(),
+                       defaultValue);
          value = defaultValue;
       }
    }
    else
    {
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << key
-         << " is not present, setting to default: " << defaultValue;
+      logger_->debug(
+         "{} is not present, setting to default: {}", key, defaultValue);
       value = defaultValue;
    }
 
@@ -103,17 +106,15 @@ bool FromJsonString(const boost::json::object& json,
       }
       else
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << key
-            << " is not a string, setting to default: " << defaultValue;
+         logger_->warn(
+            "{} is not a string, setting to default: {}", key, defaultValue);
          value = defaultValue;
       }
    }
    else
    {
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << key
-         << " is not present, setting to default: " << defaultValue;
+      logger_->debug(
+         "{} is not present, setting to default: {}", key, defaultValue);
       value = defaultValue;
    }
 
@@ -156,9 +157,8 @@ static boost::json::value ReadJsonFile(QFile& file)
    }
    else
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Could not open file for reading: \""
-         << file.fileName().toStdString() << "\"";
+      logger_->warn("Could not open file for reading: \"{}\"",
+                    file.fileName().toStdString());
    }
 
    return json;
@@ -176,7 +176,7 @@ static boost::json::value ReadJsonStream(std::istream& is)
       p.write(line, ec);
       if (ec)
       {
-         BOOST_LOG_TRIVIAL(warning) << logPrefix_ << ec.message();
+         logger_->warn("{}", ec.message());
          return nullptr;
       }
    }
@@ -184,7 +184,7 @@ static boost::json::value ReadJsonStream(std::istream& is)
    p.finish(ec);
    if (ec)
    {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << ec.message();
+      logger_->warn("{}", ec.message());
       return nullptr;
    }
 
@@ -199,8 +199,7 @@ void WriteJsonFile(const std::string&        path,
 
    if (!ofs.is_open())
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Cannot write JSON file: \"" << path << "\"";
+      logger_->warn("Cannot write JSON file: \"{}\"", path);
    }
    else
    {
@@ -277,11 +276,17 @@ static void PrettyPrintJson(std::ostream&             os,
       break;
    }
 
-   case boost::json::kind::uint64: os << jv.get_uint64(); break;
+   case boost::json::kind::uint64:
+      os << jv.get_uint64();
+      break;
 
-   case boost::json::kind::int64: os << jv.get_int64(); break;
+   case boost::json::kind::int64:
+      os << jv.get_int64();
+      break;
 
-   case boost::json::kind::double_: os << jv.get_double(); break;
+   case boost::json::kind::double_:
+      os << jv.get_double();
+      break;
 
    case boost::json::kind::bool_:
       if (jv.get_bool())
@@ -290,7 +295,9 @@ static void PrettyPrintJson(std::ostream&             os,
          os << "false";
       break;
 
-   case boost::json::kind::null: os << "null"; break;
+   case boost::json::kind::null:
+      os << "null";
+      break;
    }
 
    if (indent->empty())

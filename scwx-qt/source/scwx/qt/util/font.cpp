@@ -2,11 +2,11 @@
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
 #include <scwx/qt/util/font.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <codecvt>
 #include <unordered_map>
 
-#include <boost/log/trivial.hpp>
 #include <boost/timer/timer.hpp>
 #include <QFile>
 #include <QFileInfo>
@@ -76,7 +76,8 @@ static const std::string CODEPOINTS =
    "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_"
    "`abcdefghijklmnopqrstuvwxyz{|}~";
 
-static const std::string logPrefix_ = "[scwx::qt::util::font] ";
+static const std::string logPrefix_ = "scwx::qt::util::font";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr float BASE_POINT_SIZE = 72.0f;
 static constexpr float POINT_SCALE     = 1.0f / BASE_POINT_SIZE;
@@ -144,9 +145,8 @@ float Font::BufferText(std::shared_ptr<FontBuffer> buffer,
       auto it = p->glyphs_.find(c);
       if (it == p->glyphs_.end())
       {
-         BOOST_LOG_TRIVIAL(info)
-            << logPrefix_
-            << "Could not draw character: " << static_cast<uint32_t>(c);
+         logger_->info("Could not draw character: {}",
+                       static_cast<uint32_t>(c));
          continue;
       }
 
@@ -198,9 +198,7 @@ float Font::TextLength(const std::string& text, float pointSize) const
       auto it = p->glyphs_.find(c);
       if (it == p->glyphs_.end())
       {
-         BOOST_LOG_TRIVIAL(info)
-            << logPrefix_
-            << "Character not found: " << static_cast<uint32_t>(c);
+         logger_->info("Character not found: {}", static_cast<uint32_t>(c));
          continue;
       }
 
@@ -242,7 +240,7 @@ GLuint Font::GenerateTexture(gl::OpenGLFunctions& gl)
 
 std::shared_ptr<Font> Font::Create(const std::string& resource)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading font file: " << resource;
+   logger_->debug("Loading font file: {}", resource);
 
    std::shared_ptr<Font>   font = nullptr;
    boost::timer::cpu_timer timer;
@@ -250,7 +248,7 @@ std::shared_ptr<Font> Font::Create(const std::string& resource)
    auto it = fontMap_.find(resource);
    if (it != fontMap_.end())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Font already created";
+      logger_->debug("Font already created");
       return it->second;
    }
 
@@ -258,7 +256,7 @@ std::shared_ptr<Font> Font::Create(const std::string& resource)
    fontFile.open(QIODevice::ReadOnly);
    if (!fontFile.isOpen())
    {
-      BOOST_LOG_TRIVIAL(error) << logPrefix_ << "Could not read font file";
+      logger_->error("Could not read font file");
       return font;
    }
 
@@ -298,8 +296,7 @@ std::shared_ptr<Font> Font::Create(const std::string& resource)
       }
    }
 
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "Font loaded in " << timer.format(6, "%ws");
+   logger_->debug("Font loaded in {}", timer.format(6, "%ws"));
 
    texture_font_delete(textureFont);
 
@@ -337,9 +334,8 @@ void FontImpl::ParseNames(FT_Face face)
       }
    }
 
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "Font family: " << fontData_.fontFamily_ << " ("
-      << fontData_.fontSubfamily_ << ")";
+   logger_->debug(
+      "Font family: {} ({})", fontData_.fontFamily_, fontData_.fontSubfamily_);
 }
 
 static void ParseSfntName(const FT_SfntName& sfntName, std::string& str)
