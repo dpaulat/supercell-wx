@@ -8,6 +8,7 @@
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
+#include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 
@@ -20,8 +21,6 @@
 #include <QMouseEvent>
 #include <QString>
 
-#include <boost/log/trivial.hpp>
-
 namespace scwx
 {
 namespace qt
@@ -29,7 +28,8 @@ namespace qt
 namespace map
 {
 
-static const std::string logPrefix_ = "[scwx::qt::map::map_widget] ";
+static const std::string logPrefix_ = "scwx::qt::map::map_widget";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 typedef std::pair<std::string, std::string> MapStyle;
 
@@ -309,10 +309,11 @@ void MapWidget::SelectRadarProduct(
       productCode = level3File->message()->header().message_code();
    }
 
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "SelectRadarProduct(" << radarId << ", "
-      << common::GetRadarProductGroupName(group) << ", " << product << ", "
-      << util::TimeString(time) << ")";
+   logger_->debug("SelectRadarProduct: {}, {}, {}, {}",
+                  radarId,
+                  common::GetRadarProductGroupName(group),
+                  product,
+                  util::TimeString(time));
 
    if (group == common::RadarProductGroup::Level2)
    {
@@ -335,8 +336,7 @@ void MapWidget::SelectRadarProduct(
 
       if (radarProductView == nullptr)
       {
-         BOOST_LOG_TRIVIAL(debug)
-            << logPrefix_ << "No view created for product";
+         logger_->debug("No view created for product");
          return;
       }
 

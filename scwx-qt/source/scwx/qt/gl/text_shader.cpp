@@ -1,6 +1,6 @@
 #include <scwx/qt/gl/text_shader.hpp>
+#include <scwx/util/logger.hpp>
 
-#include <boost/log/trivial.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 namespace scwx
@@ -10,7 +10,8 @@ namespace qt
 namespace gl
 {
 
-static const std::string logPrefix_ = "[scwx::qt::gl::text_shader] ";
+static const std::string logPrefix_ = "scwx::qt::gl::text_shader";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 class TextShaderImpl
 {
@@ -46,7 +47,7 @@ bool TextShader::Initialize()
    p->projectionLocation_ = gl.glGetUniformLocation(id(), "projection");
    if (p->projectionLocation_ == -1)
    {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Could not find projection";
+      logger_->warn("Could not find projection");
    }
 
    return success;

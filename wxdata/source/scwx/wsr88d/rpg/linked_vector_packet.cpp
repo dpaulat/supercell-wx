@@ -1,9 +1,8 @@
 #include <scwx/wsr88d/rpg/linked_vector_packet.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -12,8 +11,8 @@ namespace wsr88d
 namespace rpg
 {
 
-static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::linked_vector_packet] ";
+static const std::string logPrefix_ = "scwx::wsr88d::rpg::linked_vector_packet";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 class LinkedVectorPacketImpl
 {
@@ -93,7 +92,7 @@ bool LinkedVectorPacket::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       blockValid = false;
    }
    else if (p->packetCode_ == 9)
@@ -107,8 +106,7 @@ bool LinkedVectorPacket::Parse(std::istream& is)
    {
       if (p->packetCode_ != 6 && p->packetCode_ != 9)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid packet code: " << p->packetCode_;
+         logger_->warn("Invalid packet code: {}", p->packetCode_);
          blockValid = false;
       }
    }

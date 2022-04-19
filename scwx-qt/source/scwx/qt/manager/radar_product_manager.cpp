@@ -1,6 +1,7 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/common/constants.hpp>
 #include <scwx/util/threads.hpp>
+#include <scwx/util/logger.hpp>
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 
 #include <deque>
@@ -8,7 +9,6 @@
 #include <mutex>
 #include <shared_mutex>
 
-#include <boost/log/trivial.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 #include <GeographicLib/Geodesic.hpp>
@@ -22,7 +22,8 @@ namespace manager
 {
 
 static const std::string logPrefix_ =
-   "[scwx::qt::manager::radar_product_manager] ";
+   "scwx::qt::manager::radar_product_manager";
+static const auto logger_ = scwx::util::Logger::Create(logPrefix_);
 
 typedef std::function<std::shared_ptr<wsr88d::NexradFile>()>
    CreateNexradFileFunction;
@@ -59,8 +60,7 @@ public:
    {
       if (radarSite_ == nullptr)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Radar site not found: \"" << radarId_ << "\"";
+         logger_->warn("Radar site not found: \"{}\"", radarId_);
          radarSite_ = std::make_shared<config::RadarSite>();
       }
    }
@@ -130,7 +130,7 @@ void RadarProductManager::Initialize()
       return;
    }
 
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Initialize()";
+   logger_->debug("Initialize()");
 
    boost::timer::cpu_timer timer;
 
@@ -176,9 +176,8 @@ void RadarProductManager::Initialize()
          coordinates0_5Degree[offset + 1] = longitude;
       });
    timer.stop();
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "Coordinates (0.5 degree) calculated in "
-      << timer.format(6, "%ws");
+   logger_->debug("Coordinates (0.5 degree) calculated in {}",
+                  timer.format(6, "%ws"));
 
    // Calculate 1 degree azimuth coordinates
    timer.start();
@@ -214,9 +213,8 @@ void RadarProductManager::Initialize()
          coordinates1Degree[offset + 1] = longitude;
       });
    timer.stop();
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "Coordinates (1 degree) calculated in "
-      << timer.format(6, "%ws");
+   logger_->debug("Coordinates (1 degree) calculated in {}",
+                  timer.format(6, "%ws"));
 
    p->initialized_ = true;
 }
@@ -224,7 +222,7 @@ void RadarProductManager::Initialize()
 void RadarProductManager::LoadData(
    std::istream& is, std::shared_ptr<request::NexradFileRequest> request)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "LoadData()";
+   logger_->debug("LoadData()");
 
    RadarProductManagerImpl::LoadNexradFile(
       [=, &is]() -> std::shared_ptr<wsr88d::NexradFile>
@@ -236,7 +234,7 @@ void RadarProductManager::LoadFile(
    const std::string&                          filename,
    std::shared_ptr<request::NexradFileRequest> request)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "LoadFile(" << filename << ")";
+   logger_->debug("LoadFile: {}", filename);
 
    std::shared_ptr<types::RadarProductRecord> existingRecord = nullptr;
 
@@ -245,8 +243,7 @@ void RadarProductManager::LoadFile(
       auto             it = fileIndex_.find(filename);
       if (it != fileIndex_.cend())
       {
-         BOOST_LOG_TRIVIAL(debug)
-            << logPrefix_ << "File previously loaded, loading from file cache";
+         logger_->debug("File previously loaded, loading from file cache");
 
          existingRecord = it->second;
       }
@@ -385,7 +382,7 @@ std::shared_ptr<types::RadarProductRecord>
 RadarProductManagerImpl::StoreRadarProductRecord(
    std::shared_ptr<types::RadarProductRecord> record)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "StoreRadarProductRecord()";
+   logger_->debug("StoreRadarProductRecord()");
 
    std::shared_ptr<types::RadarProductRecord> storedRecord = record;
 
@@ -394,9 +391,8 @@ RadarProductManagerImpl::StoreRadarProductRecord(
       auto it = level2ProductRecords_.find(record->time());
       if (it != level2ProductRecords_.cend())
       {
-         BOOST_LOG_TRIVIAL(debug)
-            << logPrefix_
-            << "Level 2 product previously loaded, loading from cache";
+         logger_->debug(
+            "Level 2 product previously loaded, loading from cache");
 
          storedRecord = it->second;
       }
@@ -412,9 +408,8 @@ RadarProductManagerImpl::StoreRadarProductRecord(
       auto it = productMap.find(record->time());
       if (it != productMap.cend())
       {
-         BOOST_LOG_TRIVIAL(debug)
-            << logPrefix_
-            << "Level 3 product previously loaded, loading from cache";
+         logger_->debug(
+            "Level 3 product previously loaded, loading from cache");
 
          storedRecord = it->second;
       }

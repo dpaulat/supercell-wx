@@ -1,9 +1,8 @@
 #include <scwx/wsr88d/rpg/tabular_product_message.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -13,7 +12,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::tabular_product_message] ";
+   "scwx::wsr88d::rpg::tabular_product_message";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 class TabularProductMessageImpl
 {
@@ -82,7 +82,7 @@ bool TabularProductMessageImpl::LoadBlocks(std::istream& is)
 
    bool tabularValid = true;
 
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading Blocks";
+   logger_->debug("Loading Blocks");
 
    std::streampos offsetBasePos = is.tellg();
 
@@ -99,8 +99,7 @@ bool TabularProductMessageImpl::LoadBlocks(std::istream& is)
       tabularValid = tabularBlock_->Parse(is, skipTabularHeader);
       is.seekg(offsetBasePos, std::ios_base::beg);
 
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Tabular alphanumeric block valid: " << tabularValid;
+      logger_->debug("Tabular alphanumeric block valid: {}", tabularValid);
 
       if (!tabularValid)
       {

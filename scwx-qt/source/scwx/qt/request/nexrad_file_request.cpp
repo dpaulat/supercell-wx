@@ -1,7 +1,5 @@
 #include <scwx/qt/request/nexrad_file_request.hpp>
 
-#include <boost/log/trivial.hpp>
-
 namespace scwx
 {
 namespace qt
@@ -9,8 +7,7 @@ namespace qt
 namespace request
 {
 
-static const std::string logPrefix_ =
-   "[scwx::qt::request::nexrad_file_request] ";
+static const std::string logPrefix_ = "scwx::qt::request::nexrad_file_request";
 
 class NexradFileRequestImpl
 {

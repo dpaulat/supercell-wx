@@ -1,9 +1,8 @@
 #include <scwx/wsr88d/rpg/radial_data_packet.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -12,8 +11,8 @@ namespace wsr88d
 namespace rpg
 {
 
-static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::radial_data_packet] ";
+static const std::string logPrefix_ = "scwx::wsr88d::rpg::radial_data_packet";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 class RadialDataPacketImpl
 {
@@ -152,29 +151,25 @@ bool RadialDataPacket::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       blockValid = false;
    }
    else
    {
       if (p->packetCode_ != 0xAF1F)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid packet code: " << p->packetCode_;
+         logger_->warn("Invalid packet code: {}", p->packetCode_);
          blockValid = false;
       }
       if (p->numberOfRangeBins_ < 1 || p->numberOfRangeBins_ > 460)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_
-            << "Invalid number of range bins: " << p->numberOfRangeBins_;
+         logger_->warn("Invalid number of range bins: {}",
+                       p->numberOfRangeBins_);
          blockValid = false;
       }
       if (p->numberOfRadials_ < 1 || p->numberOfRadials_ > 400)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_
-            << "Invalid number of radials: " << p->numberOfRadials_;
+         logger_->warn("Invalid number of radials: {}", p->numberOfRadials_);
          blockValid = false;
       }
    }
@@ -199,9 +194,9 @@ bool RadialDataPacket::Parse(std::istream& is)
          if (radial.numberOfRleHalfwords_ < 1 ||
              radial.numberOfRleHalfwords_ > 230)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_ << "Invalid number of RLE halfwords: "
-               << radial.numberOfRleHalfwords_ << " (Radial " << r << ")";
+            logger_->warn("Invalid number of RLE halfwords: {} (Radial {})",
+                          radial.numberOfRleHalfwords_,
+                          r);
             blockValid = false;
             break;
          }

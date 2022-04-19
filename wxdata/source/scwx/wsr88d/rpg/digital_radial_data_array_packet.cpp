@@ -1,9 +1,8 @@
 #include <scwx/wsr88d/rpg/digital_radial_data_array_packet.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -13,7 +12,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::digital_radial_data_array_packet] ";
+   "scwx::wsr88d::rpg::digital_radial_data_array_packet";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 class DigitalRadialDataArrayPacketImpl
 {
@@ -148,36 +148,31 @@ bool DigitalRadialDataArrayPacket::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       blockValid = false;
    }
    else
    {
       if (p->packetCode_ != 16)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid packet code: " << p->packetCode_;
+         logger_->warn("Invalid packet code: {}", p->packetCode_);
          blockValid = false;
       }
       if (p->indexOfFirstRangeBin_ < 0 || p->indexOfFirstRangeBin_ > 230)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_
-            << "Invalid index of first range bin: " << p->indexOfFirstRangeBin_;
+         logger_->warn("Invalid index of first range bin: {}",
+                       p->indexOfFirstRangeBin_);
          blockValid = false;
       }
       if (p->numberOfRangeBins_ < 0 || p->numberOfRangeBins_ > 1840)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_
-            << "Invalid number of range bins: " << p->numberOfRangeBins_;
+         logger_->warn("Invalid number of range bins: {}",
+                       p->numberOfRangeBins_);
          blockValid = false;
       }
       if (p->numberOfRadials_ < 1 || p->numberOfRadials_ > 720)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_
-            << "Invalid number of radials: " << p->numberOfRadials_;
+         logger_->warn("Invalid number of radials: {}", p->numberOfRadials_);
          blockValid = false;
       }
    }
@@ -201,19 +196,19 @@ bool DigitalRadialDataArrayPacket::Parse(std::istream& is)
 
          if (radial.numberOfBytes_ < 1 || radial.numberOfBytes_ > 1840)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_
-               << "Invalid number of bytes: " << radial.numberOfBytes_
-               << " (Radial " << r << ")";
+            logger_->warn("Invalid number of bytes: {} (Radial {})",
+                          radial.numberOfBytes_,
+                          r);
             blockValid = false;
             break;
          }
          else if (radial.numberOfBytes_ < p->numberOfRangeBins_)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_ << "Number of bytes < number of range bins: "
-               << radial.numberOfBytes_ << " < " << p->numberOfRangeBins_
-               << " (Radial " << r << ")";
+            logger_->warn(
+               "Number of bytes < number of range bins: {} < {} (Radial {})",
+               radial.numberOfBytes_,
+               p->numberOfRangeBins_,
+               r);
             blockValid = false;
             break;
          }

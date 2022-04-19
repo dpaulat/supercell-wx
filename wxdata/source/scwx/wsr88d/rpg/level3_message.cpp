@@ -1,7 +1,5 @@
 #include <scwx/wsr88d/rpg/level3_message.hpp>
 
-#include <boost/log/trivial.hpp>
-
 namespace scwx
 {
 namespace wsr88d
@@ -9,7 +7,7 @@ namespace wsr88d
 namespace rpg
 {
 
-static const std::string logPrefix_ = "[scwx::wsr88d::rpg::level3_message] ";
+static const std::string logPrefix_ = "scwx::wsr88d::rpg::level3_message";
 
 class Level3MessageImpl
 {

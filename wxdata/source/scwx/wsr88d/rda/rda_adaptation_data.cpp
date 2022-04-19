@@ -1,6 +1,5 @@
 #include <scwx/wsr88d/rda/rda_adaptation_data.hpp>
-
-#include <boost/log/trivial.hpp>
+#include <scwx/util/logger.hpp>
 
 namespace scwx
 {
@@ -9,8 +8,8 @@ namespace wsr88d
 namespace rda
 {
 
-static const std::string logPrefix_ =
-   "[scwx::wsr88d::rda::rda_adaptation_data] ";
+static const std::string logPrefix_ = "scwx::wsr88d::rda::rda_adaptation_data";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 struct AntManualSetup
 {
@@ -1267,8 +1266,7 @@ float RdaAdaptationData::txb_alarm_thresh() const
 
 bool RdaAdaptationData::Parse(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(trace)
-      << logPrefix_ << "Parsing RDA Adaptation Data (Message Type 18)";
+   logger_->trace("Parsing RDA Adaptation Data (Message Type 18)");
 
    bool   messageValid = true;
    size_t bytesRead    = 0;

@@ -1,5 +1,6 @@
 #include <scwx/wsr88d/rda/level2_message_factory.hpp>
 
+#include <scwx/util/logger.hpp>
 #include <scwx/util/vectorbuf.hpp>
 #include <scwx/wsr88d/rda/clutter_filter_bypass_map.hpp>
 #include <scwx/wsr88d/rda/clutter_filter_map.hpp>
@@ -12,8 +13,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <boost/log/trivial.hpp>
-
 namespace scwx
 {
 namespace wsr88d
@@ -22,7 +21,8 @@ namespace rda
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rda::level2_message_factory] ";
+   "scwx::wsr88d::rda::level2_message_factory";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 typedef std::function<std::shared_ptr<Level2Message>(Level2MessageHeader&&,
                                                      std::istream&)>
@@ -51,9 +51,8 @@ Level2MessageInfo Level2MessageFactory::Create(std::istream& is)
 
    if (info.headerValid && create_.find(header.message_type()) == create_.end())
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Unknown message type: "
-         << static_cast<unsigned>(header.message_type());
+      logger_->warn("Unknown message type: {}",
+                    static_cast<unsigned>(header.message_type()));
       info.messageValid = false;
    }
 
@@ -68,16 +67,15 @@ Level2MessageInfo Level2MessageFactory::Create(std::istream& is)
 
       if (totalSegments == 1)
       {
-         BOOST_LOG_TRIVIAL(trace) << logPrefix_ << "Found Message "
-                                  << static_cast<unsigned>(messageType);
+         logger_->trace("Found Message {}", static_cast<unsigned>(messageType));
          messageStream = &is;
       }
       else
       {
-         BOOST_LOG_TRIVIAL(trace)
-            << logPrefix_ << "Found Message "
-            << static_cast<unsigned>(messageType) << " Segment " << segment
-            << "/" << totalSegments;
+         logger_->trace("Found Message {} Segment {}/{}",
+                        static_cast<unsigned>(messageType),
+                        segment,
+                        totalSegments);
 
          if (segment == 1)
          {
@@ -89,8 +87,7 @@ Level2MessageInfo Level2MessageFactory::Create(std::istream& is)
 
          if (messageData_.capacity() < bufferedSize_ + dataSize)
          {
-            BOOST_LOG_TRIVIAL(debug)
-               << logPrefix_ << "Bad size estimate, increasing size";
+            logger_->debug("Bad size estimate, increasing size");
 
             // Estimate remaining size
             uint16_t remainingSegments =
@@ -105,8 +102,7 @@ Level2MessageInfo Level2MessageFactory::Create(std::istream& is)
 
          if (is.eof())
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_ << "End of file reached trying to buffer message";
+            logger_->warn("End of file reached trying to buffer message");
             info.messageValid = false;
             messageData_.shrink_to_fit();
             bufferedSize_ = 0;

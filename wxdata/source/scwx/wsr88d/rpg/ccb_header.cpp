@@ -1,11 +1,10 @@
 #include <scwx/wsr88d/rpg/ccb_header.hpp>
+#include <scwx/util/logger.hpp>
 #include <scwx/util/streams.hpp>
 
 #include <istream>
 #include <sstream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 #ifdef WIN32
 #   include <WinSock2.h>
@@ -20,7 +19,8 @@ namespace wsr88d
 namespace rpg
 {
 
-static const std::string logPrefix_ = "[scwx::wsr88d::rpg::ccb_header] ";
+static const std::string logPrefix_ = "scwx::wsr88d::rpg::ccb_header";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 class CcbHeaderImpl
 {
@@ -197,7 +197,7 @@ bool CcbHeader::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       headerValid = false;
    }
 

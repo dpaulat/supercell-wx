@@ -1,7 +1,6 @@
 #include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/util/json.hpp>
-
-#include <boost/log/trivial.hpp>
+#include <scwx/util/logger.hpp>
 
 namespace scwx
 {
@@ -10,7 +9,8 @@ namespace qt
 namespace settings
 {
 
-static const std::string logPrefix_ = "[scwx::qt::settings::palette_settings] ";
+static const std::string logPrefix_ = "scwx::qt::settings::palette_settings";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static const std::vector<std::string> paletteNames_ = {
    // Level 2 / Common Products
@@ -125,13 +125,11 @@ PaletteSettings::Load(const boost::json::value* json, bool& jsonDirty)
    {
       if (json == nullptr)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Key is not present, resetting to defaults";
+         logger_->warn("Key is not present, resetting to defaults");
       }
       else if (!json->is_object())
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid json, resetting to defaults";
+         logger_->warn("Invalid json, resetting to defaults");
       }
 
       generalSettings->p->SetDefaults();

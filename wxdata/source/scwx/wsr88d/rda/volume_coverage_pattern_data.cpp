@@ -1,6 +1,5 @@
 #include <scwx/wsr88d/rda/volume_coverage_pattern_data.hpp>
-
-#include <boost/log/trivial.hpp>
+#include <scwx/util/logger.hpp>
 
 namespace scwx
 {
@@ -10,7 +9,8 @@ namespace rda
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rda::volume_coverage_pattern_data] ";
+   "scwx::wsr88d::rda::volume_coverage_pattern_data";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 struct Sector;
 
@@ -137,8 +137,12 @@ float VolumeCoveragePatternData::doppler_velocity_resolution() const
 
    switch (p->dopplerVelocityResolution_)
    {
-   case 2: resolution = 0.5f; break;
-   case 4: resolution = 1.0f; break;
+   case 2:
+      resolution = 0.5f;
+      break;
+   case 4:
+      resolution = 1.0f;
+      break;
    }
 
    return resolution;
@@ -233,12 +237,18 @@ WaveformType VolumeCoveragePatternData::waveform_type(uint16_t e) const
 {
    switch (p->elevationCuts_[e].waveformType_)
    {
-   case 1: return WaveformType::ContiguousSurveillance;
-   case 2: return WaveformType::ContiguousDopplerWithAmbiguityResolution;
-   case 3: return WaveformType::ContiguousDopplerWithoutAmbiguityResolution;
-   case 4: return WaveformType::Batch;
-   case 5: return WaveformType::StaggeredPulsePair;
-   default: return WaveformType::Unknown;
+   case 1:
+      return WaveformType::ContiguousSurveillance;
+   case 2:
+      return WaveformType::ContiguousDopplerWithAmbiguityResolution;
+   case 3:
+      return WaveformType::ContiguousDopplerWithoutAmbiguityResolution;
+   case 4:
+      return WaveformType::Batch;
+   case 5:
+      return WaveformType::StaggeredPulsePair;
+   default:
+      return WaveformType::Unknown;
    }
 }
 
@@ -380,8 +390,7 @@ VolumeCoveragePatternData::doppler_prf_pulse_count_radial(uint16_t e,
 
 bool VolumeCoveragePatternData::Parse(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(trace)
-      << logPrefix_ << "Parsing Volume Coverage Pattern Data (Message Type 5)";
+   logger_->trace("Parsing Volume Coverage Pattern Data (Message Type 5)");
 
    bool   messageValid = true;
    size_t bytesRead    = 0;
@@ -412,15 +421,13 @@ bool VolumeCoveragePatternData::Parse(std::istream& is)
 
    if (messageSize < 34 || messageSize > 747)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Invalid message size: " << messageSize;
+      logger_->warn("Invalid message size: {}", messageSize);
       messageValid = false;
    }
    if (numberOfElevationCuts < 1 || numberOfElevationCuts > 32)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_
-         << "Invalid number of elevation cuts: " << numberOfElevationCuts;
+      logger_->warn("Invalid number of elevation cuts: {}",
+                    numberOfElevationCuts);
       messageValid = false;
    }
 
@@ -483,9 +490,9 @@ bool VolumeCoveragePatternData::Parse(std::istream& is)
 
    if (messageValid && bytesRead != messageSize * 2)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Bytes read (" << bytesRead
-         << ") not equal to message size (" << messageSize * 2 << ")";
+      logger_->warn("Bytes read ({}) not equal to message size ({})",
+                    bytesRead,
+                    messageSize * 2);
    }
 
    if (!ValidateMessage(is, bytesRead))

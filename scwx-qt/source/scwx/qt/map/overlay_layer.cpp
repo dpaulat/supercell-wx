@@ -3,6 +3,7 @@
 #include <scwx/qt/gl/shader_program.hpp>
 #include <scwx/qt/gl/text_shader.hpp>
 #include <scwx/qt/util/font.hpp>
+#include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
 #include <chrono>
@@ -10,7 +11,6 @@
 
 #include <boost/date_time.hpp>
 #include <boost/date_time/local_time/local_time.hpp>
-#include <boost/log/trivial.hpp>
 #include <boost/timer/timer.hpp>
 #include <GeographicLib/Geodesic.hpp>
 #include <glm/glm.hpp>
@@ -25,7 +25,8 @@ namespace qt
 namespace map
 {
 
-static const std::string logPrefix_ = "[scwx::qt::map::overlay_layer] ";
+static const std::string logPrefix_ = "scwx::qt::map::overlay_layer";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 class OverlayLayerImpl
 {
@@ -74,7 +75,7 @@ OverlayLayer::~OverlayLayer() = default;
 
 void OverlayLayer::Initialize()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Initialize()";
+   logger_->debug("Initialize()");
 
    DrawLayer::Initialize();
 
@@ -154,7 +155,7 @@ void OverlayLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 
 void OverlayLayer::Deinitialize()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Deinitialize()";
+   logger_->debug("Deinitialize()");
 
    DrawLayer::Deinitialize();
 

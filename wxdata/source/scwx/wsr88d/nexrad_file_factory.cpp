@@ -1,6 +1,7 @@
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 #include <scwx/wsr88d/ar2v_file.hpp>
 #include <scwx/wsr88d/level3_file.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <fstream>
 #include <sstream>
@@ -8,19 +9,19 @@
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
 namespace wsr88d
 {
 
-static const std::string logPrefix_ = "[scwx::wsr88d::nexrad_file_factory] ";
+static const std::string logPrefix_ = "scwx::wsr88d::nexrad_file_factory";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 std::shared_ptr<NexradFile>
 NexradFileFactory::Create(const std::string& filename)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Create(" << filename << ")";
+   logger_->debug("Create: {}", filename);
 
    std::shared_ptr<NexradFile> nexradFile = nullptr;
    bool                        fileValid  = true;
@@ -28,8 +29,7 @@ NexradFileFactory::Create(const std::string& filename)
    std::ifstream f(filename, std::ios_base::in | std::ios_base::binary);
    if (!f.good())
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Could not open file for reading: " << filename;
+      logger_->warn("Could not open file for reading: {}", filename);
       fileValid = false;
    }
 
@@ -74,26 +74,23 @@ std::shared_ptr<NexradFile> NexradFileFactory::Create(std::istream& is)
          dataValid = ss.good();
          ss.seekg(pisBegin, std::ios_base::beg);
 
-         BOOST_LOG_TRIVIAL(trace)
-            << logPrefix_ << "Decompressed file = " << bytesCopied << " bytes";
+         logger_->trace("Decompressed file = {} bytes", bytesCopied);
 
          if (!dataValid)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_ << "Error reading decompressed stream";
+            logger_->warn("Error reading decompressed stream");
          }
       }
       catch (const boost::iostreams::gzip_error& ex)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Error decompressing file: " << ex.what();
+         logger_->warn("Error decompressing file: {}", ex.what());
 
          dataValid = false;
       }
    }
    else if (!dataValid)
    {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Error reading file";
+      logger_->warn("Error reading file");
    }
 
    if (dataValid)

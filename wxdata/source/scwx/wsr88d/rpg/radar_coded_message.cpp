@@ -1,9 +1,8 @@
 #include <scwx/wsr88d/rpg/radar_coded_message.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -12,8 +11,8 @@ namespace wsr88d
 namespace rpg
 {
 
-static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::radar_coded_message] ";
+static const std::string logPrefix_ = "scwx::wsr88d::rpg::radar_coded_message";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 class RadarCodedMessageImpl
 {
@@ -77,7 +76,7 @@ bool RadarCodedMessage::Parse(std::istream& is)
 
 bool RadarCodedMessageImpl::LoadBlocks(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Loading Blocks";
+   logger_->debug("Loading Blocks");
 
    pupSiteIdentifier_.resize(4);
    productCategory_.resize(5);

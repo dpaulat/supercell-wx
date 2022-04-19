@@ -2,15 +2,13 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/log/trivial.hpp>
-
 namespace scwx
 {
 namespace awips
 {
 
 static const std::string logPrefix_ =
-   "[scwx::awips::coded_time_motion_location.test] ";
+   "scwx::awips::coded_time_motion_location.test";
 
 TEST(CodedTimeMotionLocation, LeadingZeroes)
 {

@@ -1,6 +1,5 @@
 #include <scwx/wsr88d/rda/digital_radar_data.hpp>
-
-#include <boost/log/trivial.hpp>
+#include <scwx/util/logger.hpp>
 
 namespace scwx
 {
@@ -9,8 +8,8 @@ namespace wsr88d
 namespace rda
 {
 
-static const std::string logPrefix_ =
-   "[scwx::wsr88d::rda::digital_radar_data] ";
+static const std::string logPrefix_ = "scwx::wsr88d::rda::digital_radar_data";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 static const std::unordered_map<std::string, DataBlockType> strToDataBlock_ {
    {"VOL", DataBlockType::Volume},
@@ -145,9 +144,15 @@ const void* MomentDataBlock::data_moments() const
 
    switch (p->dataWordSize_)
    {
-   case 8: dataMoments = p->momentGates8_.data(); break;
-   case 16: dataMoments = p->momentGates16_.data(); break;
-   default: dataMoments = nullptr; break;
+   case 8:
+      dataMoments = p->momentGates8_.data();
+      break;
+   case 16:
+      dataMoments = p->momentGates16_.data();
+      break;
+   default:
+      dataMoments = nullptr;
+      break;
    }
 
    return dataMoments;
@@ -210,16 +215,14 @@ bool MomentDataBlock::Parse(std::istream& is)
       }
       else
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid data word size: " << p->dataWordSize_;
+         logger_->warn("Invalid data word size: {}", p->dataWordSize_);
          dataBlockValid = false;
       }
    }
    else
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Invalid number of data moment gates: "
-         << p->numberOfDataMomentGates_;
+      logger_->warn("Invalid number of data moment gates: {}",
+                    p->numberOfDataMomentGates_);
       dataBlockValid = false;
    }
 
@@ -657,8 +660,7 @@ DigitalRadarData::moment_data_block(DataBlockType type) const
 
 bool DigitalRadarData::Parse(std::istream& is)
 {
-   BOOST_LOG_TRIVIAL(trace)
-      << logPrefix_ << "Parsing Digital Radar Data (Message Type 31)";
+   logger_->trace("Parsing Digital Radar Data (Message Type 31)");
 
    bool   messageValid = true;
    size_t bytesRead    = 0;
@@ -694,26 +696,22 @@ bool DigitalRadarData::Parse(std::istream& is)
 
    if (p->azimuthNumber_ < 1 || p->azimuthNumber_ > 720)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Invalid azimuth number: " << p->azimuthNumber_;
+      logger_->warn("Invalid azimuth number: {}", p->azimuthNumber_);
       messageValid = false;
    }
    if (p->elevationNumber_ < 1 || p->elevationNumber_ > 32)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Invalid elevation number: " << p->elevationNumber_;
+      logger_->warn("Invalid elevation number: ", p->elevationNumber_);
       messageValid = false;
    }
    if (p->dataBlockCount_ < 4 || p->dataBlockCount_ > 10)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_
-         << "Invalid number of data blocks: " << p->dataBlockCount_;
+      logger_->warn("Invalid number of data blocks: {}", p->dataBlockCount_);
       messageValid = false;
    }
    if (p->compressionIndicator_ != 0)
    {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Compression not supported";
+      logger_->warn("Compression not supported");
       messageValid = false;
    }
 
@@ -772,8 +770,7 @@ bool DigitalRadarData::Parse(std::istream& is)
             std::move(MomentDataBlock::Create(dataBlockType, dataName, is));
          break;
       default:
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Unknown data name: " << dataName;
+         logger_->warn("Unknown data name: {}", dataName);
          break;
       }
    }

@@ -2,11 +2,10 @@
 #include <scwx/wsr88d/rpg/level3_message_header.hpp>
 #include <scwx/wsr88d/rpg/packet_factory.hpp>
 #include <scwx/wsr88d/rpg/product_description_block.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -16,7 +15,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::tabular_alphanumeric_block] ";
+   "scwx::wsr88d::rpg::tabular_alphanumeric_block";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 class TabularAlphanumericBlockImpl
 {
@@ -92,28 +92,24 @@ bool TabularAlphanumericBlock::Parse(std::istream& is, bool skipHeader)
 
       if (is.eof())
       {
-         BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+         logger_->debug("Reached end of file");
          blockValid = false;
       }
       else
       {
          if (p->blockDivider1_ != -1)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_
-               << "Invalid first block divider: " << p->blockDivider1_;
+            logger_->warn("Invalid first block divider: {}", p->blockDivider1_);
             blockValid = false;
          }
          if (p->blockId_ != 3)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_ << "Invalid block ID: " << p->blockId_;
+            logger_->warn("Invalid block ID: {}", p->blockId_);
             blockValid = false;
          }
          if (p->lengthOfBlock_ < 10)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_ << "Invalid block length: " << p->lengthOfBlock_;
+            logger_->warn("Invalid block length: {}", p->lengthOfBlock_);
             blockValid = false;
          }
       }
@@ -151,15 +147,12 @@ bool TabularAlphanumericBlock::Parse(std::istream& is, bool skipHeader)
 
       if (p->blockDivider2_ != -1)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_
-            << "Invalid second block divider: " << p->blockDivider2_;
+         logger_->warn("Invalid second block divider: {}", p->blockDivider2_);
          blockValid = false;
       }
       if (p->numberOfPages_ < 1 || p->numberOfPages_ > 48)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid number of pages: " << p->numberOfPages_;
+         logger_->warn("Invalid number of pages: {}", p->numberOfPages_);
          blockValid = false;
       }
    }
@@ -184,10 +177,9 @@ bool TabularAlphanumericBlock::Parse(std::istream& is, bool skipHeader)
             }
             else if (numberOfCharacters > 80)
             {
-               BOOST_LOG_TRIVIAL(warning)
-                  << logPrefix_
-                  << "Invalid number of characters: " << numberOfCharacters
-                  << " (Page " << (i + 1) << ")";
+               logger_->warn("Invalid number of characters: {} (Page {})",
+                             numberOfCharacters,
+                             (i + 1));
                blockValid = false;
                break;
             }
@@ -211,7 +203,7 @@ bool TabularAlphanumericBlock::Parse(std::istream& is, bool skipHeader)
    }
    else if (skipHeader && is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       blockValid = false;
    }
 

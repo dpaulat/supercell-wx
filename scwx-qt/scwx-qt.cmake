@@ -206,10 +206,6 @@ qt6_create_translation_scwx(QM_FILES ${scwx-qt_SOURCE_DIR} ${TS_FILES})
 if (WIN32)
     target_compile_definitions(scwx-qt      PUBLIC WIN32_LEAN_AND_MEAN)
     target_compile_definitions(supercell-wx PUBLIC WIN32_LEAN_AND_MEAN)
-
-    # For Boost::log
-    target_compile_definitions(scwx-qt      PRIVATE BOOST_USE_WINAPI_VERSION=0x0601)
-    target_compile_definitions(supercell-wx PRIVATE BOOST_USE_WINAPI_VERSION=0x0601)
 endif()
 
 target_include_directories(scwx-qt PUBLIC ${scwx-qt_SOURCE_DIR}/source

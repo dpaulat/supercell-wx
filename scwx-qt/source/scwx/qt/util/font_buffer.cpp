@@ -1,8 +1,7 @@
 #include <scwx/qt/util/font_buffer.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <mutex>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -11,7 +10,8 @@ namespace qt
 namespace util
 {
 
-static const std::string logPrefix_ = "[scwx::qt::util::font_buffer] ";
+static const std::string logPrefix_ = "scwx::qt::util::font_buffer";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 class FontBufferImpl
 {
@@ -140,8 +140,7 @@ void FontBuffer::Push(std::initializer_list<GLuint>  indices,
 {
    if (indices.size() % 3 != 0 || vertices.size() % 9 != 0)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Invalid push arguments, ignoring";
+      logger_->warn("Invalid push arguments, ignoring");
       return;
    }
 

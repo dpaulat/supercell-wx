@@ -1,9 +1,8 @@
 #include <scwx/wsr88d/rpg/raster_data_packet.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -12,8 +11,8 @@ namespace wsr88d
 namespace rpg
 {
 
-static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::raster_data_packet] ";
+static const std::string logPrefix_ = "scwx::wsr88d::rpg::raster_data_packet";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 class RasterDataPacketImpl
 {
@@ -162,21 +161,19 @@ bool RasterDataPacket::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       blockValid = false;
    }
    else
    {
       if (p->packetCode_ != 0xBA0F && p->packetCode_ != 0xBA07)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid packet code: " << p->packetCode_;
+         logger_->warn("Invalid packet code: {}", p->packetCode_);
          blockValid = false;
       }
       if (p->numberOfRows_ < 1 || p->numberOfRows_ > 464)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid number of rows: " << p->numberOfRows_;
+         logger_->warn("Invalid number of rows: {}", p->numberOfRows_);
          blockValid = false;
       }
    }
@@ -199,10 +196,9 @@ bool RasterDataPacket::Parse(std::istream& is)
          if (row.numberOfBytes_ < 2 || row.numberOfBytes_ > 920 ||
              row.numberOfBytes_ % 2 != 0)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_
-               << "Invalid number of bytes in row: " << row.numberOfBytes_
-               << " (Row " << r << ")";
+            logger_->warn("Invalid number of bytes in row: {} (Row {})",
+                          row.numberOfBytes_,
+                          r);
             blockValid = false;
             break;
          }

@@ -4,8 +4,6 @@
 #include <istream>
 #include <string>
 
-#include <boost/log/trivial.hpp>
-
 namespace scwx
 {
 namespace wsr88d
@@ -14,7 +12,7 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::general_status_message] ";
+   "scwx::wsr88d::rpg::general_status_message";
 
 class GeneralStatusMessageImpl
 {

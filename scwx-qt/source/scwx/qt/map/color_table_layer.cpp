@@ -1,7 +1,7 @@
 #include <scwx/qt/map/color_table_layer.hpp>
 #include <scwx/qt/gl/shader_program.hpp>
+#include <scwx/util/logger.hpp>
 
-#include <boost/log/trivial.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -12,7 +12,8 @@ namespace qt
 namespace map
 {
 
-static const std::string logPrefix_ = "[scwx::qt::map::color_table_layer] ";
+static const std::string logPrefix_ = "scwx::qt::map::color_table_layer";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 class ColorTableLayerImpl
 {
@@ -47,7 +48,7 @@ ColorTableLayer::~ColorTableLayer() = default;
 
 void ColorTableLayer::Initialize()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Initialize()";
+   logger_->debug("Initialize()");
 
    gl::OpenGLFunctions& gl = context()->gl_;
 
@@ -58,7 +59,7 @@ void ColorTableLayer::Initialize()
       gl.glGetUniformLocation(p->shaderProgram_.id(), "uMVPMatrix");
    if (p->uMVPMatrixLocation_ == -1)
    {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Could not find uMVPMatrix";
+      logger_->warn("Could not find uMVPMatrix");
    }
 
    gl.glGenTextures(1, &p->texture_);
@@ -170,7 +171,7 @@ void ColorTableLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 
 void ColorTableLayer::Deinitialize()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Deinitialize()";
+   logger_->debug("Deinitialize()");
 
    gl::OpenGLFunctions& gl = context()->gl_;
 

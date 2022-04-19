@@ -1,9 +1,8 @@
 #include <scwx/wsr88d/rpg/vector_arrow_data_packet.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -13,7 +12,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::vector_arrow_data_packet] ";
+   "scwx::wsr88d::rpg::vector_arrow_data_packet";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 struct VectorArrow
 {
@@ -88,15 +88,14 @@ bool VectorArrowDataPacket::Parse(std::istream& is)
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Reached end of file";
+      logger_->debug("Reached end of file");
       blockValid = false;
    }
    else
    {
       if (p->packetCode_ != 5)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid packet code: " << p->packetCode_;
+         logger_->warn("Invalid packet code: {}", p->packetCode_);
          blockValid = false;
       }
    }

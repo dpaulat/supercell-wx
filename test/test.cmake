@@ -54,11 +54,6 @@ endif()
 
 target_compile_definitions(wxtest PRIVATE SCWX_TEST_DATA_DIR="${SCWX_DIR}/test/data")
 
-if (WIN32)
-    # For Boost::log
-    target_compile_definitions(wxtest PRIVATE BOOST_USE_WINAPI_VERSION=0x0601)
-endif()
-
 gtest_discover_tests(wxtest)
 
 target_link_libraries(wxtest GTest::gtest

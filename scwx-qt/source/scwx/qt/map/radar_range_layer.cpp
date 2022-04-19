@@ -1,6 +1,6 @@
 #include <scwx/qt/map/radar_range_layer.hpp>
+#include <scwx/util/logger.hpp>
 
-#include <boost/log/trivial.hpp>
 #include <GeographicLib/Geodesic.hpp>
 #include <glm/glm.hpp>
 
@@ -11,7 +11,8 @@ namespace qt
 namespace map
 {
 
-static const std::string logPrefix_ = "[scwx::qt::map::radar_range_layer] ";
+static const std::string logPrefix_ = "scwx::qt::map::radar_range_layer";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static std::shared_ptr<QMapbox::Feature>
 GetRangeCircle(float range, QMapbox::Coordinate center);
@@ -21,7 +22,7 @@ void RadarRangeLayer::Add(std::shared_ptr<QMapboxGL> map,
                           QMapbox::Coordinate        center,
                           const QString&             before)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Add()";
+   logger_->debug("Add()");
 
    if (map->layerExists("rangeCircleLayer"))
    {

@@ -1,5 +1,6 @@
 #include <scwx/wsr88d/rpg/level3_message_factory.hpp>
 
+#include <scwx/util/logger.hpp>
 #include <scwx/util/vectorbuf.hpp>
 #include <scwx/wsr88d/rpg/general_status_message.hpp>
 #include <scwx/wsr88d/rpg/graphic_product_message.hpp>
@@ -9,8 +10,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <boost/log/trivial.hpp>
-
 namespace scwx
 {
 namespace wsr88d
@@ -19,7 +18,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::level3_message_factory] ";
+   "scwx::wsr88d::rpg::level3_message_factory";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 typedef std::function<std::shared_ptr<Level3Message>(Level3MessageHeader&&,
                                                      std::istream&)>
@@ -133,8 +133,7 @@ std::shared_ptr<Level3Message> Level3MessageFactory::Create(std::istream& is)
 
    if (headerValid && create_.find(header.message_code()) == create_.end())
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Unknown message type: " << header.message_code();
+      logger_->warn("Unknown message type: {}", header.message_code());
       messageValid = false;
    }
 
@@ -143,7 +142,7 @@ std::shared_ptr<Level3Message> Level3MessageFactory::Create(std::istream& is)
       int16_t messageCode = header.message_code();
       size_t  dataSize = header.length_of_message() - Level3MessageHeader::SIZE;
 
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Found Message " << messageCode;
+      logger_->debug("Found Message {}", messageCode);
 
       message = create_.at(messageCode)(std::move(header), is);
    }

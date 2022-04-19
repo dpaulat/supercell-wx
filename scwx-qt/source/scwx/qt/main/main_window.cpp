@@ -10,14 +10,13 @@
 #include <scwx/common/characters.hpp>
 #include <scwx/common/products.hpp>
 #include <scwx/common/vcp.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QSplitter>
 #include <QStandardPaths>
 #include <QToolButton>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -26,7 +25,8 @@ namespace qt
 namespace main
 {
 
-static const std::string logPrefix_ = "[scwx::qt::main::main_window] ";
+static const std::string logPrefix_ = "scwx::qt::main::main_window";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 class MainWindowImpl : public QObject
 {
@@ -51,10 +51,9 @@ public:
       {
          if (!std::filesystem::create_directories(appDataPath))
          {
-            BOOST_LOG_TRIVIAL(error)
-               << logPrefix_
-               << "Unable to create application local data directory: \""
-               << appDataPath << "\"";
+            logger_->error(
+               "Unable to create application local data directory: \"{}\"",
+               appDataPath);
          }
       }
 
@@ -253,7 +252,7 @@ void MainWindow::on_actionOpen_triggered()
       this,
       [=](const QString& file)
       {
-         BOOST_LOG_TRIVIAL(info) << "Selected: " << file.toStdString();
+         logger_->info("Selected: {}", file.toStdString());
 
          std::shared_ptr<request::NexradFileRequest> request =
             std::make_shared<request::NexradFileRequest>();
@@ -397,8 +396,7 @@ void MainWindowImpl::SelectRadarProduct(map::MapWidget*       mapWidget,
 {
    const std::string& productName = common::GetLevel2Name(product);
 
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "Selecting Level 2 radar product: " << productName;
+   logger_->debug("Selecting Level 2 radar product: {}", productName);
 
    if (mapWidget == activeMap_)
    {

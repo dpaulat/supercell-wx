@@ -7,7 +7,7 @@ namespace wsr88d
 namespace rpg
 {
 
-static const std::string logPrefix_ = "[scwx::wsr88d::rpg::packet] ";
+static const std::string logPrefix_ = "scwx::wsr88d::rpg::packet";
 
 Packet::Packet()  = default;
 Packet::~Packet() = default;

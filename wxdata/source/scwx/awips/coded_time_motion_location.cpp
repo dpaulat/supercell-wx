@@ -4,18 +4,17 @@
 #endif
 
 #include <scwx/awips/coded_time_motion_location.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <sstream>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
 namespace awips
 {
 
-static const std::string logPrefix_ =
-   "[scwx::awips::coded_time_motion_location] ";
+static const std::string logPrefix_ = "scwx::awips::coded_time_motion_location";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 class CodedTimeMotionLocationImpl
 {
@@ -111,8 +110,7 @@ bool CodedTimeMotionLocation::Parse(const StringRange& lines,
          }
          else
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_ << "Invalid time: \"" << time << "\"";
+            logger_->warn("Invalid time: \"{}\"", time);
             p->time_  = hh_mm_ss<minutes> {};
             dataValid = false;
          }
@@ -129,16 +127,14 @@ bool CodedTimeMotionLocation::Parse(const StringRange& lines,
          }
          catch (const std::exception& ex)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_ << "Invalid direction: \"" << direction << "\" ("
-               << ex.what() << ")";
+            logger_->warn(
+               "Invalid direction: \"{}\" ({})", direction, ex.what());
             dataValid = false;
          }
       }
       else
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid direction: \"" << direction << "\"";
+         logger_->warn("Invalid direction: \"{}\"", direction);
          dataValid = false;
       }
 
@@ -153,15 +149,13 @@ bool CodedTimeMotionLocation::Parse(const StringRange& lines,
          }
          catch (const std::exception& ex)
          {
-            BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Invalid speed: \""
-                                       << speed << "\" (" << ex.what() << ")";
+            logger_->warn("Invalid speed: \"{}\" ({})", speed, ex.what());
             dataValid = false;
          }
       }
       else
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Invalid speed: \"" << speed << "\"";
+         logger_->warn("Invalid speed: \"{}\"", speed);
          dataValid = false;
       }
 
@@ -180,9 +174,8 @@ bool CodedTimeMotionLocation::Parse(const StringRange& lines,
          }
          catch (const std::exception& ex)
          {
-            BOOST_LOG_TRIVIAL(warning)
-               << logPrefix_ << "Invalid location token: \"" << *token << "\" ("
-               << ex.what() << ")";
+            logger_->warn(
+               "Invalid location token: \"{}\" ({})", *token, ex.what());
             dataValid = false;
             break;
          }
@@ -212,19 +205,17 @@ bool CodedTimeMotionLocation::Parse(const StringRange& lines,
    {
       if (tokenList.empty())
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "TIME...MOT...LOC not found";
+         logger_->warn("TIME...MOT...LOC not found");
       }
       else
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_
-            << "Malformed TIME...MOT...LOC tokens: (0: " << tokenList.at(0)
-            << ", size: " << tokenList.size() << ")";
+         logger_->warn("Malformed TIME...MOT...LOC tokens: (0: {}, size: {})",
+                       tokenList.at(0),
+                       tokenList.size());
 
          for (const auto& token : tokenList)
          {
-            BOOST_LOG_TRIVIAL(debug) << logPrefix_ << token;
+            logger_->debug("{}", token);
          }
       }
 

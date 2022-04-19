@@ -2,14 +2,12 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/log/trivial.hpp>
-
 namespace scwx
 {
 namespace awips
 {
 
-static const std::string logPrefix_ = "[scwx::awips::pvtec.test] ";
+static const std::string logPrefix_ = "scwx::awips::pvtec.test";
 
 std::pair<std::chrono::year_month_day,
           std::chrono::hh_mm_ss<std::chrono::minutes>>

@@ -1,16 +1,17 @@
 #include <scwx/awips/phenomenon.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <boost/assign.hpp>
 #include <boost/bimap.hpp>
 #include <boost/bimap/unordered_set_of.hpp>
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
 namespace awips
 {
 
-static const std::string logPrefix_ = "[scwx::awips::phenomenon] ";
+static const std::string logPrefix_ = "scwx::awips::phenomenon";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 typedef boost::bimap<boost::bimaps::unordered_set_of<Phenomenon>,
                      boost::bimaps::unordered_set_of<std::string>>
@@ -147,8 +148,7 @@ Phenomenon GetPhenomenon(const std::string& code)
    {
       phenomenon = Phenomenon::Unknown;
 
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Unrecognized code: \"" << code << "\"";
+      logger_->debug("Unrecognized code: \"{}\"", code);
    }
 
    return phenomenon;

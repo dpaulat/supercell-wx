@@ -1,13 +1,13 @@
 #include <scwx/awips/message.hpp>
-
-#include <boost/log/trivial.hpp>
+#include <scwx/util/logger.hpp>
 
 namespace scwx
 {
 namespace awips
 {
 
-static const std::string logPrefix_ = "[scwx::awips::message] ";
+static const std::string logPrefix_ = "scwx::awips::message";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 class MessageImpl
 {
@@ -30,13 +30,12 @@ bool Message::ValidateMessage(std::istream& is, size_t bytesRead) const
 
    if (is.eof())
    {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Reached end of data stream";
+      logger_->warn("Reached end of data stream");
       messageValid = false;
    }
    else if (is.fail())
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Could not read from input stream";
+      logger_->warn("Could not read from input stream");
       messageValid = false;
    }
    else if (bytesRead != dataSize)
@@ -47,15 +46,15 @@ bool Message::ValidateMessage(std::istream& is, size_t bytesRead) const
 
       if (bytesRead < dataSize)
       {
-         BOOST_LOG_TRIVIAL(trace)
-            << logPrefix_ << "Message contents smaller than size: " << bytesRead
-            << " < " << dataSize << " bytes";
+         logger_->trace("Message contents smaller than size: {} < {} bytes",
+                        bytesRead,
+                        dataSize);
       }
       if (bytesRead > dataSize)
       {
-         BOOST_LOG_TRIVIAL(warning)
-            << logPrefix_ << "Message contents larger than size: " << bytesRead
-            << " > " << dataSize << " bytes";
+         logger_->warn("Message contents larger than size: {} > {} bytes",
+                       bytesRead,
+                       dataSize);
          messageValid = false;
       }
    }

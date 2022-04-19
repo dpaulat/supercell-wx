@@ -1,8 +1,7 @@
 #include <scwx/qt/gl/shader_program.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <QFile>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -11,7 +10,8 @@ namespace qt
 namespace gl
 {
 
-static const std::string logPrefix_ = "[scwx::qt::gl::shader_program] ";
+static const std::string logPrefix_ = "scwx::qt::gl::shader_program";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr GLsizei INFO_LOG_BUF_SIZE = 512;
 
@@ -53,8 +53,7 @@ GLuint ShaderProgram::id() const
 bool ShaderProgram::Load(const std::string& vertexPath,
                          const std::string& fragmentPath)
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "Load(\"" << vertexPath << "\", \""
-                            << fragmentPath << "\")";
+   logger_->debug("Load: {}, {}", vertexPath, fragmentPath);
 
    OpenGLFunctions& gl = p->gl_;
 
@@ -71,15 +70,13 @@ bool ShaderProgram::Load(const std::string& vertexPath,
 
    if (!vertexFile.isOpen())
    {
-      BOOST_LOG_TRIVIAL(error)
-         << logPrefix_ << "Could not load vertex shader: " << vertexPath;
+      logger_->error("Could not load vertex shader: {}", vertexPath);
       return false;
    }
 
    if (!fragmentFile.isOpen())
    {
-      BOOST_LOG_TRIVIAL(error)
-         << logPrefix_ << "Could not load fragment shader: " << fragmentPath;
+      logger_->error("Could not load fragment shader: {}", fragmentPath);
       return false;
    }
 
@@ -108,14 +105,12 @@ bool ShaderProgram::Load(const std::string& vertexPath,
    gl.glGetShaderInfoLog(vertexShader, INFO_LOG_BUF_SIZE, &logLength, infoLog);
    if (!glSuccess)
    {
-      BOOST_LOG_TRIVIAL(error)
-         << logPrefix_ << "Vertex shader compilation failed: " << infoLog;
+      logger_->error("Vertex shader compilation failed: {}", infoLog);
       success = false;
    }
    else if (logLength > 0)
    {
-      BOOST_LOG_TRIVIAL(error)
-         << logPrefix_ << "Vertex shader compiled with warnings: " << infoLog;
+      logger_->error("Vertex shader compiled with warnings: {}", infoLog);
    }
 
    // Create a fragment shader
@@ -131,14 +126,12 @@ bool ShaderProgram::Load(const std::string& vertexPath,
       fragmentShader, INFO_LOG_BUF_SIZE, &logLength, infoLog);
    if (!glSuccess)
    {
-      BOOST_LOG_TRIVIAL(error)
-         << logPrefix_ << "Fragment shader compilation failed: " << infoLog;
+      logger_->error("Fragment shader compilation failed: {}", infoLog);
       success = false;
    }
    else if (logLength > 0)
    {
-      BOOST_LOG_TRIVIAL(error)
-         << logPrefix_ << "Fragment shader compiled with warnings: " << infoLog;
+      logger_->error("Fragment shader compiled with warnings: {}", infoLog);
    }
 
    if (success)
@@ -152,14 +145,12 @@ bool ShaderProgram::Load(const std::string& vertexPath,
       gl.glGetProgramInfoLog(p->id_, INFO_LOG_BUF_SIZE, &logLength, infoLog);
       if (!glSuccess)
       {
-         BOOST_LOG_TRIVIAL(error)
-            << logPrefix_ << "Shader program link failed: " << infoLog;
+         logger_->error("Shader program link failed: {}", infoLog);
          success = false;
       }
       else if (logLength > 0)
       {
-         BOOST_LOG_TRIVIAL(error)
-            << logPrefix_ << "Shader program linked with warnings: " << infoLog;
+         logger_->error("Shader program linked with warnings: {}", infoLog);
       }
    }
 

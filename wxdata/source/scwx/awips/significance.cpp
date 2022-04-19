@@ -1,16 +1,17 @@
 #include <scwx/awips/significance.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <boost/assign.hpp>
 #include <boost/bimap.hpp>
 #include <boost/bimap/unordered_set_of.hpp>
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
 namespace awips
 {
 
-static const std::string logPrefix_ = "[scwx::awips::significance] ";
+static const std::string logPrefix_ = "scwx::awips::significance";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 typedef boost::bimap<boost::bimaps::unordered_set_of<Significance>,
                      boost::bimaps::unordered_set_of<std::string>>
@@ -49,8 +50,7 @@ Significance GetSignificance(const std::string& code)
    {
       significance = Significance::Unknown;
 
-      BOOST_LOG_TRIVIAL(debug)
-         << logPrefix_ << "Unrecognized code: \"" << code << "\"";
+      logger_->debug("Unrecognized code: \"{}\"", code);
    }
 
    return significance;

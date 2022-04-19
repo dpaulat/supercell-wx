@@ -1,10 +1,9 @@
 #include <scwx/wsr88d/rpg/scit_forecast_data_packet.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <istream>
 #include <set>
 #include <string>
-
-#include <boost/log/trivial.hpp>
 
 namespace scwx
 {
@@ -14,7 +13,8 @@ namespace rpg
 {
 
 static const std::string logPrefix_ =
-   "[scwx::wsr88d::rpg::scit_forecast_data_packet] ";
+   "scwx::wsr88d::rpg::scit_forecast_data_packet";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 static const std::set<uint16_t> packetCodes_ = {23, 24};
 
@@ -55,8 +55,7 @@ bool ScitForecastDataPacket::ParseData(std::istream& is)
 
    if (!packetCodes_.contains(packet_code()))
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Invalid packet code: " << packet_code();
+      logger_->warn("Invalid packet code: {}", packet_code());
       blockValid = false;
    }
 

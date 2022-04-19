@@ -1,7 +1,7 @@
 #include <scwx/qt/map/draw_layer.hpp>
 #include <scwx/qt/gl/shader_program.hpp>
+#include <scwx/util/logger.hpp>
 
-#include <boost/log/trivial.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -13,7 +13,8 @@ namespace qt
 namespace map
 {
 
-static const std::string logPrefix_ = "[scwx::qt::map::draw_layer] ";
+static const std::string logPrefix_ = "scwx::qt::map::draw_layer";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 class DrawLayerImpl
 {
@@ -47,7 +48,7 @@ void DrawLayer::Initialize()
       gl.glGetUniformLocation(p->shaderProgram_.id(), "uMVPMatrix");
    if (p->uMVPMatrixLocation_ == -1)
    {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Could not find uMVPMatrix";
+      logger_->warn("Could not find uMVPMatrix");
    }
 
    p->shaderProgram_.Use();

@@ -1,10 +1,10 @@
 #include <scwx/qt/view/level3_raster_view.hpp>
 #include <scwx/common/constants.hpp>
+#include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/rpg/raster_data_packet.hpp>
 
-#include <boost/log/trivial.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 #include <GeographicLib/Geodesic.hpp>
@@ -16,7 +16,8 @@ namespace qt
 namespace view
 {
 
-static const std::string logPrefix_ = "[scwx::qt::view::level3_raster_view] ";
+static const std::string logPrefix_ = "scwx::qt::view::level3_raster_view";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr uint16_t RANGE_FOLDED      = 1u;
 static constexpr uint32_t VERTICES_PER_BIN  = 6u;
@@ -105,7 +106,7 @@ void Level3RasterView::SelectTime(std::chrono::system_clock::time_point time)
 
 void Level3RasterView::ComputeSweep()
 {
-   BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "ComputeSweep()";
+   logger_->debug("ComputeSweep()");
 
    boost::timer::cpu_timer timer;
 
@@ -120,8 +121,7 @@ void Level3RasterView::ComputeSweep()
       std::dynamic_pointer_cast<wsr88d::rpg::GraphicProductMessage>(message);
    if (gpm == nullptr)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "Graphic Product Message not found";
+      logger_->warn("Graphic Product Message not found");
       return;
    }
    else if (gpm == graphic_product_message())
@@ -139,7 +139,7 @@ void Level3RasterView::ComputeSweep()
       gpm->symbology_block();
    if (descriptionBlock == nullptr || symbologyBlock == nullptr)
    {
-      BOOST_LOG_TRIVIAL(warning) << logPrefix_ << "Missing blocks";
+      logger_->warn("Missing blocks");
       return;
    }
 
@@ -147,8 +147,7 @@ void Level3RasterView::ComputeSweep()
    uint16_t numberOfLayers = symbologyBlock->number_of_layers();
    if (numberOfLayers < 1)
    {
-      BOOST_LOG_TRIVIAL(warning)
-         << logPrefix_ << "No layers present in symbology block";
+      logger_->warn("No layers present in symbology block");
       return;
    }
 
@@ -179,7 +178,7 @@ void Level3RasterView::ComputeSweep()
 
    if (rasterData == nullptr)
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "No raster data found";
+      logger_->debug("No raster data found");
       return;
    }
 
@@ -193,7 +192,7 @@ void Level3RasterView::ComputeSweep()
 
    if (maxColumns == 0)
    {
-      BOOST_LOG_TRIVIAL(debug) << logPrefix_ << "No raster bins found";
+      logger_->debug("No raster bins found");
       return;
    }
 
@@ -256,8 +255,7 @@ void Level3RasterView::ComputeSweep()
       });
 
    timer.stop();
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "Coordinates calculated in " << timer.format(6, "%ws");
+   logger_->debug("Coordinates calculated in {}", timer.format(6, "%ws"));
 
    // Calculate vertices
    timer.start();
@@ -332,8 +330,7 @@ void Level3RasterView::ComputeSweep()
    dataMoments8.shrink_to_fit();
 
    timer.stop();
-   BOOST_LOG_TRIVIAL(debug)
-      << logPrefix_ << "Vertices calculated in " << timer.format(6, "%ws");
+   logger_->debug("Vertices calculated in {}", timer.format(6, "%ws"));
 
    UpdateColorTable();
 
