@@ -196,7 +196,6 @@ endif()
 
 target_link_libraries(wxdata PUBLIC spdlog::spdlog)
 target_link_libraries(wxdata INTERFACE Boost::iostreams
-                                       Boost::log
                                        BZip2::BZip2
                                        hsluv-c)
 
