@@ -4,15 +4,12 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/log/trivial.hpp>
-
 namespace scwx
 {
 namespace wsr88d
 {
 
-static const std::string logPrefix_ =
-   "[scwx::wsr88d::nexrad_file_factory.test] ";
+static const std::string logPrefix_ = "scwx::wsr88d::nexrad_file_factory.test";
 
 TEST(NexradFileFactory, Level2V06)
 {

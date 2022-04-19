@@ -2,14 +2,12 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/log/trivial.hpp>
-
 namespace scwx
 {
 namespace awips
 {
 
-static const std::string logPrefix_ = "[scwx::awips::text_product_file.test] ";
+static const std::string logPrefix_ = "scwx::awips::text_product_file.test";
 
 class TextProductValidFileTest : public testing::TestWithParam<std::string>
 {
