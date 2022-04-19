@@ -125,10 +125,12 @@ void RadarProductLayer::Initialize()
    gl.glGenBuffers(3, p->vbo_.data());
 
    // Update radar sweep
+   p->sweepNeedsUpdate_ = true;
    UpdateSweep();
 
    // Create color table
    gl.glGenTextures(1, &p->texture_);
+   p->colorTableNeedsUpdate_ = true;
    UpdateColorTable();
    gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
    gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
