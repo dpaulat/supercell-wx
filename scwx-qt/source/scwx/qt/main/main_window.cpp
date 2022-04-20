@@ -57,7 +57,11 @@ public:
          }
       }
 
+      std::string mapboxApiKey =
+         manager::SettingsManager::general_settings()->mapbox_api_key();
+
       settings_.resetToTemplate(QMapboxGLSettings::MapboxSettings);
+      settings_.setApiKey(QString {mapboxApiKey.c_str()});
       settings_.setCacheDatabasePath(QString {cacheDbPath.c_str()});
       settings_.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
    }

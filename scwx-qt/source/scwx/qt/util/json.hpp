@@ -22,7 +22,8 @@ bool FromJsonInt64(const boost::json::object& json,
 bool FromJsonString(const boost::json::object& json,
                     const std::string&         key,
                     std::string&               value,
-                    const std::string&         defaultValue);
+                    const std::string&         defaultValue,
+                    size_t                     minLength = 0);
 
 boost::json::value ReadJsonFile(const std::string& path);
 void               WriteJsonFile(const std::string&        path,

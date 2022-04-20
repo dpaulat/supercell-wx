@@ -15,6 +15,7 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static const std::string DEFAULT_DEFAULT_RADAR_SITE = "KLSX";
 static const int64_t     DEFAULT_GRID_WIDTH         = 1;
 static const int64_t     DEFAULT_GRID_HEIGHT        = 1;
+static const std::string DEFAULT_MAPBOX_API_KEY     = "?";
 
 static const int64_t GRID_WIDTH_MINIMUM  = 1;
 static const int64_t GRID_WIDTH_MAXIMUM  = 2;
@@ -24,7 +25,7 @@ static const int64_t GRID_HEIGHT_MAXIMUM = 2;
 class GeneralSettingsImpl
 {
 public:
-   explicit GeneralSettingsImpl() {}
+   explicit GeneralSettingsImpl() { SetDefaults(); }
 
    ~GeneralSettingsImpl() {}
 
@@ -33,11 +34,13 @@ public:
       defaultRadarSite_ = DEFAULT_DEFAULT_RADAR_SITE;
       gridWidth_        = DEFAULT_GRID_WIDTH;
       gridHeight_       = DEFAULT_GRID_HEIGHT;
+      mapboxApiKey_     = DEFAULT_MAPBOX_API_KEY;
    }
 
    std::string defaultRadarSite_;
    int64_t     gridWidth_;
    int64_t     gridHeight_;
+   std::string mapboxApiKey_;
 };
 
 GeneralSettings::GeneralSettings() : p(std::make_unique<GeneralSettingsImpl>())
@@ -49,7 +52,7 @@ GeneralSettings::GeneralSettings(GeneralSettings&&) noexcept = default;
 GeneralSettings&
 GeneralSettings::operator=(GeneralSettings&&) noexcept = default;
 
-const std::string& GeneralSettings::default_radar_site() const
+std::string GeneralSettings::default_radar_site() const
 {
    return p->defaultRadarSite_;
 }
@@ -64,6 +67,11 @@ int64_t GeneralSettings::grid_width() const
    return p->gridWidth_;
 }
 
+std::string GeneralSettings::mapbox_api_key() const
+{
+   return p->mapboxApiKey_;
+}
+
 boost::json::value GeneralSettings::ToJson() const
 {
    boost::json::object json;
@@ -71,6 +79,7 @@ boost::json::value GeneralSettings::ToJson() const
    json["default_radar_site"] = p->defaultRadarSite_;
    json["grid_width"]         = p->gridWidth_;
    json["grid_height"]        = p->gridHeight_;
+   json["mapbox_api_key"]     = p->mapboxApiKey_;
 
    return json;
 }
@@ -110,6 +119,12 @@ GeneralSettings::Load(const boost::json::value* json, bool& jsonDirty)
                                               DEFAULT_GRID_HEIGHT,
                                               GRID_HEIGHT_MINIMUM,
                                               GRID_HEIGHT_MAXIMUM);
+      jsonDirty |=
+         !util::json::FromJsonString(json->as_object(),
+                                     "mapbox_api_key",
+                                     generalSettings->p->mapboxApiKey_,
+                                     DEFAULT_MAPBOX_API_KEY,
+                                     1);
    }
    else
    {
@@ -133,7 +148,8 @@ bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
 {
    return (lhs.p->defaultRadarSite_ == rhs.p->defaultRadarSite_ &&
            lhs.p->gridWidth_ == rhs.p->gridWidth_ &&
-           lhs.p->gridHeight_ == rhs.p->gridHeight_);
+           lhs.p->gridHeight_ == rhs.p->gridHeight_ &&
+           lhs.p->mapboxApiKey_ == rhs.p->mapboxApiKey_);
 }
 
 } // namespace settings

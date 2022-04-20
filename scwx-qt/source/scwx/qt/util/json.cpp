@@ -92,7 +92,8 @@ bool FromJsonInt64(const boost::json::object& json,
 bool FromJsonString(const boost::json::object& json,
                     const std::string&         key,
                     std::string&               value,
-                    const std::string&         defaultValue)
+                    const std::string&         defaultValue,
+                    size_t                     minLength)
 {
    const boost::json::value* jv    = json.if_contains(key);
    bool                      dirty = true;
@@ -102,7 +103,20 @@ bool FromJsonString(const boost::json::object& json,
       if (jv->is_string())
       {
          value = boost::json::value_to<std::string>(*jv);
-         dirty = false;
+
+         if (value.length() >= minLength)
+         {
+            dirty = false;
+         }
+         else
+         {
+            logger_->warn(
+               "{} is shorter than {} characters, setting to default: {}",
+               key,
+               minLength,
+               defaultValue);
+            value = defaultValue;
+         }
       }
       else
       {
