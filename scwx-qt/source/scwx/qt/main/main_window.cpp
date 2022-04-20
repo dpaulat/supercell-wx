@@ -57,6 +57,7 @@ public:
          }
       }
 
+      settings_.resetToTemplate(QMapboxGLSettings::MapboxSettings);
       settings_.setCacheDatabasePath(QString {cacheDbPath.c_str()});
       settings_.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
    }
