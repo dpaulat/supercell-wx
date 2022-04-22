@@ -4,6 +4,7 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <aws/core/Aws.h>
 #include <spdlog/spdlog.h>
 #include <QApplication>
 
@@ -14,6 +15,9 @@ int main(int argc, char* argv[])
 
    QCoreApplication::setApplicationName("Supercell Wx");
 
+   Aws::SDKOptions awsSdkOptions;
+   Aws::InitAPI(awsSdkOptions);
+
    scwx::qt::config::RadarSite::Initialize();
    scwx::qt::manager::SettingsManager::Initialize();
    scwx::qt::manager::ResourceManager::PreLoad();
@@ -21,5 +25,9 @@ int main(int argc, char* argv[])
    QApplication               a(argc, argv);
    scwx::qt::main::MainWindow w;
    w.show();
-   return a.exec();
+   int result = a.exec();
+
+   Aws::ShutdownAPI(awsSdkOptions);
+
+   return result;
 }
