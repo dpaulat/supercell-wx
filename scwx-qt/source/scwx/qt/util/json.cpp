@@ -51,7 +51,7 @@ bool FromJsonInt64(const boost::json::object& json,
 
          if (minValue.has_value() && value < *minValue)
          {
-            logger_->warn("{} less than minimum ({} < {}), setting to: {2}",
+            logger_->warn("{0} less than minimum ({1} < {2}), setting to: {2}",
                           key,
                           value,
                           *minValue);
@@ -59,10 +59,11 @@ bool FromJsonInt64(const boost::json::object& json,
          }
          else if (maxValue.has_value() && value > *maxValue)
          {
-            logger_->warn("{} greater than maximum ({} > {}), setting to: {2}",
-                          key,
-                          value,
-                          *maxValue);
+            logger_->warn(
+               "{0} greater than maximum ({1} > {2}), setting to: {2}",
+               key,
+               value,
+               *maxValue);
             value = *maxValue;
          }
          else
