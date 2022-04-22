@@ -1,5 +1,6 @@
 project(scwx-data)
 
+find_package(AWSSDK)
 find_package(Boost)
 find_package(spdlog)
 
@@ -194,7 +195,8 @@ if(MSVC)
     target_compile_options(wxdata PRIVATE /W3)
 endif()
 
-target_link_libraries(wxdata PUBLIC spdlog::spdlog)
+target_link_libraries(wxdata PUBLIC AWS::s3
+                                    spdlog::spdlog)
 target_link_libraries(wxdata INTERFACE Boost::iostreams
                                        BZip2::BZip2
                                        hsluv-c)
