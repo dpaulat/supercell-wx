@@ -34,6 +34,8 @@ set(SRC_COMMON source/scwx/common/color_table.cpp
                source/scwx/common/products.cpp
                source/scwx/common/sites.cpp
                source/scwx/common/vcp.cpp)
+set(HDR_PROVIDER include/scwx/provider/aws_level2_data_provider.hpp)
+set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp)
 set(HDR_UTIL include/scwx/util/float.hpp
              include/scwx/util/iterator.hpp
              include/scwx/util/logger.hpp
@@ -162,6 +164,8 @@ add_library(wxdata OBJECT ${HDR_AWIPS}
                           ${SRC_AWIPS}
                           ${HDR_COMMON}
                           ${SRC_COMMON}
+                          ${HDR_PROVIDER}
+                          ${SRC_PROVIDER}
                           ${HDR_UTIL}
                           ${SRC_UTIL}
                           ${HDR_WSR88D}
@@ -176,6 +180,8 @@ source_group("Header Files\\awips"       FILES ${HDR_AWIPS})
 source_group("Source Files\\awips"       FILES ${SRC_AWIPS})
 source_group("Header Files\\common"      FILES ${HDR_COMMON})
 source_group("Source Files\\common"      FILES ${SRC_COMMON})
+source_group("Header Files\\provider"    FILES ${HDR_PROVIDER})
+source_group("Source Files\\provider"    FILES ${SRC_PROVIDER})
 source_group("Header Files\\util"        FILES ${HDR_UTIL})
 source_group("Source Files\\util"        FILES ${SRC_UTIL})
 source_group("Header Files\\wsr88d"      FILES ${HDR_WSR88D})
