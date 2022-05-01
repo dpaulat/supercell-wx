@@ -32,6 +32,9 @@ public:
    std::shared_ptr<wsr88d::Ar2vFile> LoadObjectByKey(const std::string& key);
    void                              Refresh();
 
+   static std::chrono::system_clock::time_point
+   GetTimePointFromKey(const std::string& key);
+
 private:
    std::unique_ptr<AwsLevel2DataProviderImpl> p;
 };
