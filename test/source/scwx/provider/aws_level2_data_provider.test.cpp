@@ -24,7 +24,7 @@ TEST(AwsLevel2DataProvider, Refresh)
 
    provider.Refresh();
 
-   // TODO: Check object count
+   EXPECT_GT(provider.cache_size(), 0);
 }
 
 TEST(AwsLevel2DataProvider, TimePointValid)

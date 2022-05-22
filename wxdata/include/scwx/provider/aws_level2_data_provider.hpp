@@ -28,7 +28,9 @@ public:
    AwsLevel2DataProvider(AwsLevel2DataProvider&&) noexcept;
    AwsLevel2DataProvider& operator=(AwsLevel2DataProvider&&) noexcept;
 
-   void ListObjects(std::chrono::system_clock::time_point date);
+   size_t cache_size() const;
+
+   size_t ListObjects(std::chrono::system_clock::time_point date);
    std::shared_ptr<wsr88d::Ar2vFile> LoadObjectByKey(const std::string& key);
    void                              Refresh();
 

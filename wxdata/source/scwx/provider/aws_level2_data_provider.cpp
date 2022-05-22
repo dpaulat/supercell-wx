@@ -71,11 +71,16 @@ AwsLevel2DataProvider::AwsLevel2DataProvider(AwsLevel2DataProvider&&) noexcept =
 AwsLevel2DataProvider&
 AwsLevel2DataProvider::operator=(AwsLevel2DataProvider&&) noexcept = default;
 
-void AwsLevel2DataProvider::ListObjects(
-   std::chrono::system_clock::time_point date)
+size_t AwsLevel2DataProvider::cache_size() const
+{
+   return p->objects_.size();
+}
+
+size_t
+AwsLevel2DataProvider::ListObjects(std::chrono::system_clock::time_point date)
 {
    const std::string prefix =
-      fmt::format("{0:%Y/%m/%d}/{1}/", date, p->radarSite_);
+      fmt::format("{0:%Y/%m/%d}/{1}/", fmt::gmtime(date), p->radarSite_);
 
    logger_->debug("ListObjects: {}", prefix);
 
@@ -84,6 +89,8 @@ void AwsLevel2DataProvider::ListObjects(
    request.SetPrefix(prefix);
 
    auto outcome = p->client_->ListObjectsV2(request);
+
+   size_t totalObjects = 0;
 
    if (outcome.IsSuccess())
    {
@@ -96,13 +103,18 @@ void AwsLevel2DataProvider::ListObjects(
                     objects.cend(),
                     [&](const Aws::S3::Model::Object& object)
                     {
-                       // TODO: Skip MDM
-                       std::string key  = object.GetKey();
-                       auto        time = GetTimePointFromKey(key);
+                       std::string key = object.GetKey();
 
-                       std::unique_lock lock(p->objectsMutex_);
+                       if (!key.ends_with("_MDM"))
+                       {
+                          auto time = GetTimePointFromKey(key);
 
-                       p->objects_[time] = key;
+                          std::unique_lock lock(p->objectsMutex_);
+
+                          p->objects_[time] = key;
+
+                          totalObjects++;
+                       }
                     });
    }
    else
@@ -110,6 +122,8 @@ void AwsLevel2DataProvider::ListObjects(
       logger_->warn("Could not list objects: {}",
                     outcome.GetError().GetMessage());
    }
+
+   return totalObjects;
 }
 
 std::shared_ptr<wsr88d::Ar2vFile>
@@ -143,10 +157,36 @@ AwsLevel2DataProvider::LoadObjectByKey(const std::string& key)
 
 void AwsLevel2DataProvider::Refresh()
 {
+   using namespace std::chrono;
+
    logger_->debug("Refresh()");
 
-   // TODO: What if the date just rolled, we might miss from the previous date?
-   ListObjects(std::chrono::system_clock::now());
+   static std::mutex               refreshMutex;
+   static system_clock::time_point refreshDate {};
+
+   auto today     = floor<days>(system_clock::now());
+   auto yesterday = today - days {1};
+
+   std::unique_lock lock(refreshMutex);
+
+   size_t objectCount;
+
+   // If we haven't gotten any objects from today, first list objects for
+   // yesterday, to ensure we haven't missed any objects near midnight
+   if (refreshDate < today)
+   {
+      objectCount = ListObjects(yesterday);
+      if (objectCount > 0)
+      {
+         refreshDate = yesterday;
+      }
+   }
+
+   objectCount = ListObjects(today);
+   if (objectCount > 0)
+   {
+      refreshDate = today;
+   }
 }
 
 std::chrono::system_clock::time_point
