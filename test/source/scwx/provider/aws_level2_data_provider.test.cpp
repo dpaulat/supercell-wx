@@ -7,6 +7,32 @@ namespace scwx
 namespace provider
 {
 
+TEST(AwsLevel2DataProvider, FindKeyFixed)
+{
+   using namespace std::chrono;
+   using sys_days = time_point<system_clock, days>;
+
+   const auto date = sys_days {2021y / May / 27d};
+   const auto time = date + 17h + 59min;
+
+   AwsLevel2DataProvider provider("KLSX");
+
+   provider.ListObjects(date);
+   std::string key = provider.FindKey(time);
+
+   EXPECT_EQ(key, "2021/05/27/KLSX/KLSX20210527_175717_V06");
+}
+
+TEST(AwsLevel2DataProvider, FindKeyNow)
+{
+   AwsLevel2DataProvider provider("KLSX");
+
+   provider.Refresh();
+   std::string key = provider.FindKey(std::chrono::system_clock::now());
+
+   EXPECT_GT(key.size(), 0);
+}
+
 TEST(AwsLevel2DataProvider, LoadObjectByKey)
 {
    const std::string key = "2022/04/21/KLSX/KLSX20220421_160055_V06";

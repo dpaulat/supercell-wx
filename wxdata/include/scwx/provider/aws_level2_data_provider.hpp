@@ -30,7 +30,8 @@ public:
 
    size_t cache_size() const;
 
-   size_t ListObjects(std::chrono::system_clock::time_point date);
+   std::string FindKey(std::chrono::system_clock::time_point time);
+   size_t      ListObjects(std::chrono::system_clock::time_point date);
    std::shared_ptr<wsr88d::Ar2vFile> LoadObjectByKey(const std::string& key);
    void                              Refresh();
 

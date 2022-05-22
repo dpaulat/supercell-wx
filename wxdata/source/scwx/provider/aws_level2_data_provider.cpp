@@ -1,5 +1,7 @@
 #include <scwx/provider/aws_level2_data_provider.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/map.hpp>
+#include <scwx/util/time.hpp>
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 
 #include <shared_mutex>
@@ -74,6 +76,24 @@ AwsLevel2DataProvider::operator=(AwsLevel2DataProvider&&) noexcept = default;
 size_t AwsLevel2DataProvider::cache_size() const
 {
    return p->objects_.size();
+}
+
+std::string
+AwsLevel2DataProvider::FindKey(std::chrono::system_clock::time_point time)
+{
+   logger_->debug("FindKey: {}", util::TimeString(time));
+
+   std::string key {};
+
+   std::optional<std::string> element =
+      util::GetBoundedElement(p->objects_, time);
+
+   if (element.has_value())
+   {
+      key = *element;
+   }
+
+   return key;
 }
 
 size_t

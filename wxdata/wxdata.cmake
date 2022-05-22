@@ -39,6 +39,7 @@ set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp)
 set(HDR_UTIL include/scwx/util/float.hpp
              include/scwx/util/iterator.hpp
              include/scwx/util/logger.hpp
+             include/scwx/util/map.hpp
              include/scwx/util/rangebuf.hpp
              include/scwx/util/streams.hpp
              include/scwx/util/threads.hpp
