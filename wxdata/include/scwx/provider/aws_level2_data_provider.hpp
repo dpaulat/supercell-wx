@@ -1,10 +1,6 @@
 #pragma once
 
-#include <scwx/wsr88d/ar2v_file.hpp>
-
-#include <chrono>
-#include <memory>
-#include <string>
+#include <scwx/provider/level2_data_provider.hpp>
 
 namespace scwx
 {
@@ -13,7 +9,10 @@ namespace provider
 
 class AwsLevel2DataProviderImpl;
 
-class AwsLevel2DataProvider
+/**
+ * @brief AWS Level 2 Data Provider
+ */
+class AwsLevel2DataProvider : public Level2DataProvider
 {
 public:
    explicit AwsLevel2DataProvider(const std::string& radarSite);

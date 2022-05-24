@@ -34,8 +34,10 @@ set(SRC_COMMON source/scwx/common/color_table.cpp
                source/scwx/common/products.cpp
                source/scwx/common/sites.cpp
                source/scwx/common/vcp.cpp)
-set(HDR_PROVIDER include/scwx/provider/aws_level2_data_provider.hpp)
-set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp)
+set(HDR_PROVIDER include/scwx/provider/aws_level2_data_provider.hpp
+                 include/scwx/provider/level2_data_provider.hpp)
+set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp
+                 source/scwx/provider/level2_data_provider.cpp)
 set(HDR_UTIL include/scwx/util/float.hpp
              include/scwx/util/iterator.hpp
              include/scwx/util/logger.hpp
