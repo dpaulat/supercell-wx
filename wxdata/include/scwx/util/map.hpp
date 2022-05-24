@@ -8,10 +8,10 @@ namespace scwx
 namespace util
 {
 
-template<class Key, class T>
-std::optional<T> GetBoundedElement(std::map<Key, T>& map, Key key)
+template<class Key, class T, class ReturnType = std::optional<T>>
+ReturnType GetBoundedElement(std::map<Key, T>& map, Key key)
 {
-   std::optional<T> element = std::nullopt;
+   ReturnType element;
 
    // Find the first element greater than the key requested
    auto it = map.upper_bound(key);
@@ -35,6 +35,12 @@ std::optional<T> GetBoundedElement(std::map<Key, T>& map, Key key)
    }
 
    return element;
+}
+
+template<class Key, class T>
+inline T GetBoundedElementValue(std::map<Key, T>& map, Key key)
+{
+   return GetBoundedElement<Key, T, T>(map, key);
 }
 
 } // namespace util

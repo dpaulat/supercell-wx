@@ -1,7 +1,8 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/common/constants.hpp>
-#include <scwx/util/threads.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/map.hpp>
+#include <scwx/util/threads.hpp>
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 
 #include <deque>
@@ -66,9 +67,6 @@ public:
    }
    ~RadarProductManagerImpl() = default;
 
-   static std::shared_ptr<types::RadarProductRecord>
-   GetRadarProductRecord(RadarProductRecordMap&                map,
-                         std::chrono::system_clock::time_point time);
    std::shared_ptr<types::RadarProductRecord>
    GetLevel2ProductRecord(std::chrono::system_clock::time_point time);
    std::shared_ptr<types::RadarProductRecord>
@@ -312,45 +310,12 @@ void RadarProductManagerImpl::LoadNexradFile(
 }
 
 std::shared_ptr<types::RadarProductRecord>
-RadarProductManagerImpl::GetRadarProductRecord(
-   RadarProductRecordMap& map, std::chrono::system_clock::time_point time)
-{
-   std::shared_ptr<types::RadarProductRecord> record = nullptr;
-
-   // TODO: Round to minutes
-
-   // Find the first product record greater than the time requested
-   auto it = map.upper_bound(time);
-
-   // A product record with a time greater was found
-   if (it != map.cend())
-   {
-      // Are there product records prior to this record?
-      if (it != map.cbegin())
-      {
-         // Get the product record immediately preceding, this the record we are
-         // looking for
-         record = (--it)->second;
-      }
-   }
-   else if (map.size() > 0)
-   {
-      // A product record with a time greater was not found. If it exists, it
-      // must be the last record.
-      record = map.rbegin()->second;
-   }
-
-   return record;
-}
-
-std::shared_ptr<types::RadarProductRecord>
 RadarProductManagerImpl::GetLevel2ProductRecord(
    std::chrono::system_clock::time_point time)
 {
-   std::shared_ptr<types::RadarProductRecord> record =
-      GetRadarProductRecord(level2ProductRecords_, time);
-
    // TODO: Round to minutes
+   std::shared_ptr<types::RadarProductRecord> record =
+      util::GetBoundedElementValue(level2ProductRecords_, time);
 
    // Does the record contain the time we are looking for?
    if (record != nullptr && (time < record->level2_file()->start_time() ||
@@ -372,7 +337,7 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
 
    if (it != level3ProductRecords_.cend())
    {
-      record = GetRadarProductRecord(it->second, time);
+      record = util::GetBoundedElementValue(it->second, time);
    }
 
    return record;
