@@ -85,6 +85,8 @@ AwsLevel2DataProvider::FindKey(std::chrono::system_clock::time_point time)
 
    std::string key {};
 
+   std::shared_lock lock(p->objectsMutex_);
+
    std::optional<std::string> element =
       util::GetBoundedElement(p->objects_, time);
 
