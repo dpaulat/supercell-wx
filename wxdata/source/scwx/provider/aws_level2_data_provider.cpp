@@ -98,7 +98,7 @@ AwsLevel2DataProvider::FindKey(std::chrono::system_clock::time_point time)
    return key;
 }
 
-size_t
+std::pair<size_t, size_t>
 AwsLevel2DataProvider::ListObjects(std::chrono::system_clock::time_point date)
 {
    const std::string prefix =
@@ -112,6 +112,7 @@ AwsLevel2DataProvider::ListObjects(std::chrono::system_clock::time_point date)
 
    auto outcome = p->client_->ListObjectsV2(request);
 
+   size_t newObjects   = 0;
    size_t totalObjects = 0;
 
    if (outcome.IsSuccess())
@@ -133,7 +134,13 @@ AwsLevel2DataProvider::ListObjects(std::chrono::system_clock::time_point date)
 
                           std::unique_lock lock(p->objectsMutex_);
 
-                          p->objects_[time] = key;
+                          auto [it, inserted] =
+                             p->objects_.insert_or_assign(time, key);
+
+                          if (inserted)
+                          {
+                             newObjects++;
+                          }
 
                           totalObjects++;
                        }
@@ -145,7 +152,7 @@ AwsLevel2DataProvider::ListObjects(std::chrono::system_clock::time_point date)
                     outcome.GetError().GetMessage());
    }
 
-   return totalObjects;
+   return std::make_pair(newObjects, totalObjects);
 }
 
 std::shared_ptr<wsr88d::Ar2vFile>
@@ -177,7 +184,7 @@ AwsLevel2DataProvider::LoadObjectByKey(const std::string& key)
    return level2File;
 }
 
-void AwsLevel2DataProvider::Refresh()
+size_t AwsLevel2DataProvider::Refresh()
 {
    using namespace std::chrono;
 
@@ -191,24 +198,28 @@ void AwsLevel2DataProvider::Refresh()
 
    std::unique_lock lock(refreshMutex);
 
-   size_t objectCount;
+   size_t totalNewObjects = 0;
 
    // If we haven't gotten any objects from today, first list objects for
    // yesterday, to ensure we haven't missed any objects near midnight
    if (refreshDate < today)
    {
-      objectCount = ListObjects(yesterday);
-      if (objectCount > 0)
+      auto [newObjects, totalObjects] = ListObjects(yesterday);
+      totalNewObjects                 = newObjects;
+      if (totalObjects > 0)
       {
          refreshDate = yesterday;
       }
    }
 
-   objectCount = ListObjects(today);
-   if (objectCount > 0)
+   auto [newObjects, totalObjects] = ListObjects(today);
+   totalNewObjects += newObjects;
+   if (totalObjects > 0)
    {
       refreshDate = today;
    }
+
+   return totalNewObjects;
 }
 
 std::chrono::system_clock::time_point

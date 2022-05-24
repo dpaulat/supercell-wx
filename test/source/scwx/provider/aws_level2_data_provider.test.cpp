@@ -48,8 +48,9 @@ TEST(AwsLevel2DataProvider, Refresh)
 {
    AwsLevel2DataProvider provider("KLSX");
 
-   provider.Refresh();
+   size_t newObjects = provider.Refresh();
 
+   EXPECT_GT(newObjects, 0);
    EXPECT_GT(provider.cache_size(), 0);
 }
 
