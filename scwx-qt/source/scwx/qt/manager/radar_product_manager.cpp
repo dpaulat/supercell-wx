@@ -1,5 +1,6 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/common/constants.hpp>
+#include <scwx/provider/level2_data_provider_factory.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/map.hpp>
 #include <scwx/util/threads.hpp>
@@ -57,7 +58,9 @@ public:
    explicit RadarProductManagerImpl(const std::string& radarId) :
        radarId_ {radarId},
        initialized_ {false},
-       radarSite_ {config::RadarSite::Get(radarId)}
+       radarSite_ {config::RadarSite::Get(radarId)},
+       level2DataProvider_ {
+          provider::Level2DataProviderFactory::Create(radarId)}
    {
       if (radarSite_ == nullptr)
       {
@@ -89,6 +92,8 @@ public:
 
    RadarProductRecordMap                                  level2ProductRecords_;
    std::unordered_map<std::string, RadarProductRecordMap> level3ProductRecords_;
+
+   std::shared_ptr<provider::Level2DataProvider> level2DataProvider_;
 };
 
 RadarProductManager::RadarProductManager(const std::string& radarId) :
