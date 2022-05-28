@@ -1,15 +1,17 @@
-#include <future>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/post.hpp>
 
 namespace scwx
 {
 namespace util
 {
 
+boost::asio::io_context& io_context();
+
 template<class F>
 void async(F&& f)
 {
-   auto future = std::make_shared<std::future<void>>();
-   *future     = std::async(std::launch::async, [future, f]() { f(); });
+   boost::asio::post(io_context(), f);
 }
 
 } // namespace util

@@ -54,6 +54,7 @@ set(SRC_UTIL source/scwx/util/float.cpp
              source/scwx/util/rangebuf.cpp
              source/scwx/util/streams.cpp
              source/scwx/util/time.cpp
+             source/scwx/util/threads.cpp
              source/scwx/util/vectorbuf.cpp)
 set(HDR_WSR88D include/scwx/wsr88d/ar2v_file.hpp
                include/scwx/wsr88d/level3_file.hpp
