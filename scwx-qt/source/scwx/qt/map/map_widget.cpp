@@ -273,6 +273,35 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
       },
       Qt::QueuedConnection);
 
+   connect(
+      p->radarProductManager_.get(),
+      &manager::RadarProductManager::NewLevel2DataAvailable,
+      this,
+      [&](std::chrono::system_clock::time_point latestTime)
+      {
+         std::shared_ptr<request::NexradFileRequest> request =
+            std::make_shared<request::NexradFileRequest>();
+
+         connect(request.get(),
+                 &request::NexradFileRequest::RequestComplete,
+                 this,
+                 [&](std::shared_ptr<request::NexradFileRequest> request)
+                 {
+                    auto record = request->radar_product_record();
+
+                    if (record != nullptr)
+                    {
+                       SelectRadarProduct(record);
+                    }
+                 });
+
+         // TODO: If live data is enabled
+         util::async(
+            [=]()
+            { p->radarProductManager_->LoadLevel2Data(latestTime, request); });
+      },
+      Qt::QueuedConnection);
+
    util::async(
       [=]()
       {
@@ -293,6 +322,8 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
    {
       AddLayers();
    }
+
+   p->radarProductManager_->EnableLevel2Refresh(true);
 }
 
 void MapWidget::SelectRadarProduct(
