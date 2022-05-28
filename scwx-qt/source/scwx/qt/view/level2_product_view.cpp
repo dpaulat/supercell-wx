@@ -443,8 +443,9 @@ void Level2ProductView::ComputeSweep()
       cfpMoments.shrink_to_fit();
    }
 
-   // Compute threshold at which to display an individual bin
-   const uint16_t snrThreshold = momentData0->snr_threshold_raw();
+   // Compute threshold at which to display an individual bin (minimum of 2)
+   const uint16_t snrThreshold =
+      std::max<int16_t>(2, momentData0->snr_threshold_raw());
 
    // Azimuth resolution spacing:
    //   1 = 0.5 degrees
