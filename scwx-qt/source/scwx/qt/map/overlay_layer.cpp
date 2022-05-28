@@ -88,10 +88,13 @@ void OverlayLayer::Initialize()
       p->texture_ = p->font_->GenerateTexture(gl);
    }
 
-   connect(context()->radarProductView_.get(),
-           &view::RadarProductView::SweepComputed,
-           this,
-           &OverlayLayer::UpdateSweepTimeNextFrame);
+   if (context()->radarProductView_ != nullptr)
+   {
+      connect(context()->radarProductView_.get(),
+              &view::RadarProductView::SweepComputed,
+              this,
+              &OverlayLayer::UpdateSweepTimeNextFrame);
+   }
 }
 
 void OverlayLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
