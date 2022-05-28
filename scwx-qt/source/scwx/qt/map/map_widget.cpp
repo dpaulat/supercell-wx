@@ -57,7 +57,9 @@ public:
        settings_(settings),
        map_(),
        layerList_ {},
-       radarProductManager_ {manager::RadarProductManager::Instance("KLSX")},
+       radarProductManager_ {manager::RadarProductManager::Instance(
+          scwx::qt::manager::SettingsManager::general_settings()
+             ->default_radar_site())},
        radarProductLayer_ {nullptr},
        overlayLayer_ {nullptr},
        colorTableLayer_ {nullptr},
