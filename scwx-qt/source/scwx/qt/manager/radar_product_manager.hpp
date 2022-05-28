@@ -34,6 +34,7 @@ public:
    std::shared_ptr<config::RadarSite> radar_site() const;
 
    void Initialize();
+   void EnableLevel2Refresh(bool enabled);
 
    std::tuple<std::shared_ptr<wsr88d::rda::ElevationScan>,
               float,
@@ -49,12 +50,20 @@ public:
    static std::shared_ptr<RadarProductManager>
    Instance(const std::string& radarSite);
 
+   void LoadLevel2Data(
+      std::chrono::system_clock::time_point       time,
+      std::shared_ptr<request::NexradFileRequest> request = nullptr);
+
    static void
    LoadData(std::istream&                               is,
             std::shared_ptr<request::NexradFileRequest> request = nullptr);
    static void
    LoadFile(const std::string&                          filename,
             std::shared_ptr<request::NexradFileRequest> request = nullptr);
+
+signals:
+   void
+   NewLevel2DataAvailable(std::chrono::system_clock::time_point latestTime);
 
 private:
    std::unique_ptr<RadarProductManagerImpl> p;
