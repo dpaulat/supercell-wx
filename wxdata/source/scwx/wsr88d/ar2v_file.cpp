@@ -313,6 +313,8 @@ void Ar2vFileImpl::ParseLDMRecords()
 
 void Ar2vFileImpl::ParseLDMRecord(std::istream& is)
 {
+   auto ctx = rda::Level2MessageFactory::CreateContext();
+
    // The communications manager inserts an extra 12 bytes at the beginning
    // of each record
    is.seekg(12, std::ios_base::cur);
@@ -343,7 +345,8 @@ void Ar2vFileImpl::ParseLDMRecord(std::istream& is)
          break;
       }
 
-      rda::Level2MessageInfo msgInfo = rda::Level2MessageFactory::Create(is);
+      rda::Level2MessageInfo msgInfo =
+         rda::Level2MessageFactory::Create(is, ctx);
       if (!msgInfo.headerValid)
       {
          // Invalid message

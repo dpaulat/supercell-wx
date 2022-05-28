@@ -34,7 +34,11 @@ private:
    Level2MessageFactory& operator=(Level2MessageFactory&&) noexcept = delete;
 
 public:
-   static Level2MessageInfo Create(std::istream& is);
+   struct Context;
+
+   static std::shared_ptr<Context> CreateContext();
+   static Level2MessageInfo        Create(std::istream&            is,
+                                          std::shared_ptr<Context> ctx);
 };
 
 } // namespace rda
