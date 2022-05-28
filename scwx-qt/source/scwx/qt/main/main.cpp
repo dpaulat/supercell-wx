@@ -1,5 +1,6 @@
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/main/main_window.hpp>
+#include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/util/logger.hpp>
@@ -53,10 +54,16 @@ int main(int argc, char* argv[])
    scwx::qt::manager::ResourceManager::PreLoad();
 
    // Run Qt main loop
-   QApplication               a(argc, argv);
-   scwx::qt::main::MainWindow w;
-   w.show();
-   int result = a.exec();
+   int result;
+   {
+      QApplication               a(argc, argv);
+      scwx::qt::main::MainWindow w;
+      w.show();
+      result = a.exec();
+   }
+
+   // Deinitialize application
+   scwx::qt::manager::RadarProductManager::Cleanup();
 
    // Gracefully stop the io_context main loop
    work.reset();

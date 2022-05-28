@@ -12,12 +12,12 @@
 #include <mutex>
 #include <shared_mutex>
 
+#include <boost/asio/steady_timer.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 #include <fmt/chrono.h>
 #include <GeographicLib/Geodesic.hpp>
 #include <QMapbox>
-#include <QTimer>
 
 namespace scwx
 {
@@ -49,7 +49,8 @@ static constexpr std::chrono::seconds kRetryInterval_ {15};
 
 // TODO: Find a way to garbage collect this
 static std::unordered_map<std::string, std::shared_ptr<RadarProductManager>>
-   instanceMap_;
+                  instanceMap_;
+static std::mutex instanceMutex_;
 
 static std::unordered_map<std::string,
                           std::shared_ptr<types::RadarProductRecord>>
@@ -74,7 +75,8 @@ public:
        level2ProductRecordMutex_ {},
        level3ProductRecordMutex_ {},
        level2DataRefreshEnabled_ {false},
-       level2DataRefreshTimer_ {std::make_shared<QTimer>()},
+       level2DataRefreshTimer_ {util::io_context()},
+       level2DataRefreshTimerMutex_ {},
        level2DataProvider_ {
           provider::Level2DataProviderFactory::Create(radarId)},
        initializeMutex_ {},
@@ -85,10 +87,15 @@ public:
          logger_->warn("Radar site not found: \"{}\"", radarId_);
          radarSite_ = std::make_shared<config::RadarSite>();
       }
-
-      level2DataRefreshTimer_->setSingleShot(true);
    }
-   ~RadarProductManagerImpl() = default;
+   ~RadarProductManagerImpl()
+   {
+      {
+         std::unique_lock lock(level2DataRefreshTimerMutex_);
+         level2DataRefreshEnabled_ = false;
+         level2DataRefreshTimer_.cancel();
+      }
+   }
 
    RadarProductManager* self_;
 
@@ -122,7 +129,8 @@ public:
    std::shared_mutex level3ProductRecordMutex_;
 
    bool                                          level2DataRefreshEnabled_;
-   std::shared_ptr<QTimer>                       level2DataRefreshTimer_;
+   boost::asio::steady_timer                     level2DataRefreshTimer_;
+   std::mutex                                    level2DataRefreshTimerMutex_;
    std::shared_ptr<provider::Level2DataProvider> level2DataProvider_;
 
    std::mutex initializeMutex_;
@@ -134,6 +142,19 @@ RadarProductManager::RadarProductManager(const std::string& radarId) :
 {
 }
 RadarProductManager::~RadarProductManager() = default;
+
+void RadarProductManager::Cleanup()
+{
+   {
+      std::unique_lock lock(fileIndexMutex_);
+      fileIndex_.clear();
+   }
+
+   {
+      std::unique_lock lock(instanceMutex_);
+      instanceMap_.clear();
+   }
+}
 
 const std::vector<float>&
 RadarProductManager::coordinates(common::RadialSize radialSize) const
@@ -274,7 +295,10 @@ void RadarProductManagerImpl::RefreshLevel2Data()
 {
    logger_->debug("RefreshLevel2Data()");
 
-   level2DataRefreshTimer_->stop();
+   {
+      std::unique_lock lock(level2DataRefreshTimerMutex_);
+      level2DataRefreshTimer_.cancel();
+   }
 
    util::async(
       [&]()
@@ -301,14 +325,34 @@ void RadarProductManagerImpl::RefreshLevel2Data()
             emit self_->NewLevel2DataAvailable(latestTime);
          }
 
+         std::unique_lock lock(level2DataRefreshTimerMutex_);
+
          if (level2DataRefreshEnabled_)
          {
             logger_->debug(
                "Scheduled refresh in {:%M:%S}",
                std::chrono::duration_cast<std::chrono::seconds>(interval));
 
-            // TODO: This doesn't work from an async thread
-            level2DataRefreshTimer_->start(interval);
+            {
+               level2DataRefreshTimer_.expires_after(interval);
+               level2DataRefreshTimer_.async_wait(
+                  [this](const boost::system::error_code& e)
+                  {
+                     if (e == boost::system::errc::success)
+                     {
+                        RefreshLevel2Data();
+                     }
+                     else if (e == boost::asio::error::operation_aborted)
+                     {
+                        logger_->debug("Level 2 data refresh timer cancelled");
+                     }
+                     else
+                     {
+                        logger_->warn("Level 2 data refresh timer error: {}",
+                                      e.message());
+                     }
+                  });
+            }
          }
       });
 }
@@ -580,8 +624,7 @@ RadarProductManager::GetLevel3Data(const std::string& product,
 std::shared_ptr<RadarProductManager>
 RadarProductManager::Instance(const std::string& radarSite)
 {
-   static std::mutex           instanceMutex;
-   std::lock_guard<std::mutex> guard(instanceMutex);
+   std::lock_guard<std::mutex> guard(instanceMutex_);
 
    if (!instanceMap_.contains(radarSite))
    {
