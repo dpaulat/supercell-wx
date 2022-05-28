@@ -27,6 +27,20 @@ static const std::string kDefaultRegion_     = "us-east-1";
 class AwsLevel2DataProviderImpl
 {
 public:
+   struct ObjectRecord
+   {
+      explicit ObjectRecord(
+         const std::string&                    key,
+         std::chrono::system_clock::time_point lastModified) :
+          key_ {key}, lastModified_ {lastModified}
+      {
+      }
+      ~ObjectRecord() = default;
+
+      std::string                           key_;
+      std::chrono::system_clock::time_point lastModified_;
+   };
+
    explicit AwsLevel2DataProviderImpl(const std::string& radarSite,
                                       const std::string& bucketName,
                                       const std::string& region) :
@@ -35,7 +49,9 @@ public:
        region_ {region},
        client_ {nullptr},
        objects_ {},
-       objectsMutex_ {}
+       objectsMutex_ {},
+       lastModified_ {},
+       updatePeriod_ {}
    {
       Aws::Client::ClientConfiguration config;
       config.region = region_;
@@ -45,14 +61,19 @@ public:
 
    ~AwsLevel2DataProviderImpl() {}
 
+   void UpdateMetadata();
+
    std::string radarSite_;
    std::string bucketName_;
    std::string region_;
 
    std::unique_ptr<Aws::S3::S3Client> client_;
 
-   std::map<std::chrono::system_clock::time_point, std::string> objects_;
-   std::shared_mutex                                            objectsMutex_;
+   std::map<std::chrono::system_clock::time_point, ObjectRecord> objects_;
+   std::shared_mutex                                             objectsMutex_;
+
+   std::chrono::system_clock::time_point lastModified_;
+   std::chrono::seconds                  updatePeriod_;
 };
 
 AwsLevel2DataProvider::AwsLevel2DataProvider(const std::string& radarSite) :
@@ -78,6 +99,17 @@ size_t AwsLevel2DataProvider::cache_size() const
    return p->objects_.size();
 }
 
+std::chrono::seconds AwsLevel2DataProvider::update_period() const
+{
+   return p->updatePeriod_;
+}
+
+std::chrono::system_clock::time_point
+AwsLevel2DataProvider::last_modified() const
+{
+   return p->lastModified_;
+}
+
 std::string
 AwsLevel2DataProvider::FindKey(std::chrono::system_clock::time_point time)
 {
@@ -87,12 +119,27 @@ AwsLevel2DataProvider::FindKey(std::chrono::system_clock::time_point time)
 
    std::shared_lock lock(p->objectsMutex_);
 
-   std::optional<std::string> element =
-      util::GetBoundedElement(p->objects_, time);
+   auto element = util::GetBoundedElement(p->objects_, time);
 
    if (element.has_value())
    {
-      key = *element;
+      key = element->key_;
+   }
+
+   return key;
+}
+
+std::string AwsLevel2DataProvider::FindLatestKey()
+{
+   logger_->debug("FindLatestKey()");
+
+   std::string key {};
+
+   std::shared_lock lock(p->objectsMutex_);
+
+   if (!p->objects_.empty())
+   {
+      key = p->objects_.crbegin()->second.key_;
    }
 
    return key;
@@ -122,35 +169,44 @@ AwsLevel2DataProvider::ListObjects(std::chrono::system_clock::time_point date)
       logger_->debug("Found {} objects", objects.size());
 
       // Store objects
-      std::for_each(objects.cbegin(),
-                    objects.cend(),
-                    [&](const Aws::S3::Model::Object& object)
-                    {
-                       std::string key = object.GetKey();
+      std::for_each( //
+         objects.cbegin(),
+         objects.cend(),
+         [&](const Aws::S3::Model::Object& object)
+         {
+            std::string key = object.GetKey();
 
-                       if (!key.ends_with("_MDM"))
-                       {
-                          auto time = GetTimePointFromKey(key);
+            if (!key.ends_with("_MDM"))
+            {
+               auto time = GetTimePointFromKey(key);
 
-                          std::unique_lock lock(p->objectsMutex_);
+               std::chrono::seconds lastModifiedSeconds {
+                  object.GetLastModified().Seconds()};
+               std::chrono::system_clock::time_point lastModified {
+                  lastModifiedSeconds};
 
-                          auto [it, inserted] =
-                             p->objects_.insert_or_assign(time, key);
+               std::unique_lock lock(p->objectsMutex_);
 
-                          if (inserted)
-                          {
-                             newObjects++;
-                          }
+               auto [it, inserted] = p->objects_.insert_or_assign(
+                  time,
+                  AwsLevel2DataProviderImpl::ObjectRecord {key, lastModified});
 
-                          totalObjects++;
-                       }
-                    });
+               if (inserted)
+               {
+                  newObjects++;
+               }
+
+               totalObjects++;
+            }
+         });
    }
    else
    {
       logger_->warn("Could not list objects: {}",
                     outcome.GetError().GetMessage());
    }
+
+   p->UpdateMetadata();
 
    return std::make_pair(newObjects, totalObjects);
 }
@@ -220,6 +276,32 @@ size_t AwsLevel2DataProvider::Refresh()
    }
 
    return totalNewObjects;
+}
+
+void AwsLevel2DataProviderImpl::UpdateMetadata()
+{
+   std::shared_lock lock(objectsMutex_);
+
+   if (!objects_.empty())
+   {
+      lastModified_ = objects_.crbegin()->second.lastModified_;
+   }
+
+   if (objects_.size() >= 2)
+   {
+      auto it           = objects_.crbegin();
+      auto lastModified = it->second.lastModified_;
+      auto prevModified = (++it)->second.lastModified_;
+      auto delta        = lastModified - prevModified;
+
+      updatePeriod_ = std::chrono::duration_cast<std::chrono::seconds>(delta);
+   }
+}
+
+std::chrono::system_clock::time_point
+AwsLevel2DataProvider::GetTimePointByKey(const std::string& key) const
+{
+   return GetTimePointFromKey(key);
 }
 
 std::chrono::system_clock::time_point

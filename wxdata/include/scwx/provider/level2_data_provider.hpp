@@ -28,6 +28,23 @@ public:
    virtual size_t cache_size() const = 0;
 
    /**
+    * Gets the last modified time. This is equal to the most recent object's
+    * modification time. If there are no objects, the epoch is returned.
+    *
+    * @return Last modified time
+    */
+   virtual std::chrono::system_clock::time_point last_modified() const = 0;
+
+   /**
+    * Gets the current update period. This is equal to the difference between
+    * the last two objects' modification times. If there are less than two
+    * objects, an update period of 0 is returned.
+    *
+    * @return Update period
+    */
+   virtual std::chrono::seconds update_period() const = 0;
+
+   /**
     * Finds the most recent key in the cache, no later than the time provided.
     *
     * @param time Upper-bound time for the key search
@@ -35,6 +52,13 @@ public:
     * @return Level 2 data key
     */
    virtual std::string FindKey(std::chrono::system_clock::time_point time) = 0;
+
+   /**
+    * Finds the most recent key in the cache.
+    *
+    * @return Level 2 data key
+    */
+   virtual std::string FindLatestKey() = 0;
 
    /**
     * Lists level 2 objects for the date supplied, and adds them to the cache.
@@ -65,6 +89,16 @@ public:
     * @return New objects found
     */
    virtual size_t Refresh() = 0;
+
+   /**
+    * Convert the object key to a time point.
+    *
+    * @key Level 2 data key
+    *
+    * @return Level 2 data time point
+    */
+   virtual std::chrono::system_clock::time_point
+   GetTimePointByKey(const std::string& key) const = 0;
 
 private:
    std::unique_ptr<Level2DataProviderImpl> p;
