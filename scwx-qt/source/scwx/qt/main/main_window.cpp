@@ -80,6 +80,7 @@ public:
    void UpdateRadarProductSelection(common::RadarProductGroup group,
                                     const std::string&        product);
    void UpdateRadarProductSettings();
+   void UpdateRadarSite();
    void UpdateVcp();
 
    MainWindow*       mainWindow_;
@@ -149,6 +150,8 @@ MainWindow::MainWindow(QWidget* parent) :
            &QApplication::focusChanged,
            this,
            [=](QWidget* old, QWidget* now) { p->HandleFocusChange(now); });
+
+   p->HandleFocusChange(p->activeMap_);
 }
 
 MainWindow::~MainWindow()
@@ -355,6 +358,7 @@ void MainWindowImpl::ConfigureMapLayout()
                         activeMap_->GetRadarProductGroup(),
                         activeMap_->GetRadarProductName());
                      UpdateRadarProductSettings();
+                     UpdateRadarSite();
                      UpdateVcp();
                   }
                },
@@ -382,6 +386,7 @@ void MainWindowImpl::HandleFocusChange(QWidget* focused)
       UpdateRadarProductSelection(mapWidget->GetRadarProductGroup(),
                                   mapWidget->GetRadarProductName());
       UpdateRadarProductSettings();
+      UpdateRadarSite();
       UpdateVcp();
    }
 }
@@ -527,6 +532,26 @@ void MainWindowImpl::UpdateRadarProductSettings()
    }
 
    UpdateElevationSelection(currentElevation);
+}
+
+void MainWindowImpl::UpdateRadarSite()
+{
+   std::shared_ptr<config::RadarSite> radarSite = activeMap_->GetRadarSite();
+
+   if (radarSite != nullptr)
+   {
+      mainWindow_->ui->radarSiteValueLabel->setVisible(true);
+      mainWindow_->ui->radarLocationLabel->setVisible(true);
+
+      mainWindow_->ui->radarSiteValueLabel->setText(radarSite->id().c_str());
+      mainWindow_->ui->radarLocationLabel->setText(
+         radarSite->location_name().c_str());
+   }
+   else
+   {
+      mainWindow_->ui->radarSiteValueLabel->setVisible(false);
+      mainWindow_->ui->radarLocationLabel->setVisible(false);
+   }
 }
 
 void MainWindowImpl::UpdateVcp()

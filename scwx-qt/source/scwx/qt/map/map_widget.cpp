@@ -215,9 +215,20 @@ std::string MapWidget::GetRadarProductName() const
    }
 }
 
+std::shared_ptr<config::RadarSite> MapWidget::GetRadarSite() const
+{
+   std::shared_ptr<config::RadarSite> radarSite = nullptr;
+
+   if (p->radarProductManager_ != nullptr)
+   {
+      radarSite = p->radarProductManager_->radar_site();
+   }
+
+   return radarSite;
+}
+
 uint16_t MapWidget::GetVcp() const
 {
-
    if (p->context_->radarProductView_ != nullptr)
    {
       return p->context_->radarProductView_->vcp();

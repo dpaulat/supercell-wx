@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/common/products.hpp>
+#include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/types/radar_product_record.hpp>
 
 #include <chrono>
@@ -33,11 +34,12 @@ public:
    explicit MapWidget(const QMapboxGLSettings&);
    ~MapWidget();
 
-   float                     GetElevation() const;
-   std::vector<float>        GetElevationCuts() const;
-   common::RadarProductGroup GetRadarProductGroup() const;
-   std::string               GetRadarProductName() const;
-   uint16_t                  GetVcp() const;
+   float                              GetElevation() const;
+   std::vector<float>                 GetElevationCuts() const;
+   common::RadarProductGroup          GetRadarProductGroup() const;
+   std::string                        GetRadarProductName() const;
+   std::shared_ptr<config::RadarSite> GetRadarSite() const;
+   uint16_t                           GetVcp() const;
 
    void SelectElevation(float elevation);
    void SelectRadarProduct(common::Level2Product product);

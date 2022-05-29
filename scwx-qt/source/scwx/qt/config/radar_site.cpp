@@ -3,6 +3,7 @@
 #include <scwx/common/sites.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <format>
 #include <unordered_map>
 
 namespace scwx
@@ -88,6 +89,29 @@ std::string RadarSite::state() const
 std::string RadarSite::place() const
 {
    return p->place_;
+}
+
+std::string RadarSite::location_name() const
+{
+   std::string locationName;
+
+   if (p->country_ == "USA")
+   {
+      locationName = std::format("{}, {}", p->place_, p->state_);
+   }
+   else if (std::all_of(p->state_.cbegin(),
+                        p->state_.cend(),
+                        [](char c) { return std::isdigit(c); }))
+   {
+      locationName = std::format("{}, {}", p->place_, p->country_);
+   }
+   else
+   {
+      locationName =
+         std::format("{}, {}, {}", p->place_, p->state_, p->country_);
+   }
+
+   return locationName;
 }
 
 std::shared_ptr<RadarSite> RadarSite::Get(const std::string& id)

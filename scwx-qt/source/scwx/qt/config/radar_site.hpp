@@ -31,6 +31,7 @@ public:
    std::string country() const;
    std::string state() const;
    std::string place() const;
+   std::string location_name() const;
 
    static std::shared_ptr<RadarSite> Get(const std::string& id);
 
