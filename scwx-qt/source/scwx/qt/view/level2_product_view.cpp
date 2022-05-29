@@ -43,11 +43,10 @@ class Level2ProductViewImpl
 public:
    explicit Level2ProductViewImpl(
       common::Level2Product                         product,
-      float                                         elevation,
       std::shared_ptr<manager::RadarProductManager> radarProductManager) :
        product_ {product},
        radarProductManager_ {radarProductManager},
-       selectedElevation_ {elevation},
+       selectedElevation_ {0.0f},
        selectedTime_ {},
        elevationScan_ {nullptr},
        momentDataBlock0_ {nullptr},
@@ -117,10 +116,8 @@ public:
 
 Level2ProductView::Level2ProductView(
    common::Level2Product                         product,
-   float                                         elevation,
    std::shared_ptr<manager::RadarProductManager> radarProductManager) :
-    p(std::make_unique<Level2ProductViewImpl>(
-       product, elevation, radarProductManager))
+    p(std::make_unique<Level2ProductViewImpl>(product, radarProductManager))
 {
 }
 Level2ProductView::~Level2ProductView() = default;
@@ -642,11 +639,9 @@ void Level2ProductView::ComputeSweep()
 
 std::shared_ptr<Level2ProductView> Level2ProductView::Create(
    common::Level2Product                         product,
-   float                                         elevation,
    std::shared_ptr<manager::RadarProductManager> radarProductManager)
 {
-   return std::make_shared<Level2ProductView>(
-      product, elevation, radarProductManager);
+   return std::make_shared<Level2ProductView>(product, radarProductManager);
 }
 
 } // namespace view

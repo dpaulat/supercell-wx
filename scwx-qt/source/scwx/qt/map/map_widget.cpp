@@ -83,6 +83,8 @@ public:
                  const std::string&            before = {});
    void AutoRefreshConnect();
    void AutoRefreshDisconnect();
+   void RadarProductViewConnect();
+   void RadarProductViewDisconnect();
    void SetRadarSite(const std::string& radarSite);
    bool UpdateStoredMapParameters();
 
@@ -132,8 +134,7 @@ MapWidget::MapWidget(const QMapboxGLSettings& settings) :
 
 MapWidget::~MapWidget()
 {
-   // Make sure we have a valid context so we
-   // can delete the QMapboxGL.
+   // Make sure we have a valid context so we can delete the QMapboxGL.
    makeCurrent();
 }
 
@@ -250,68 +251,61 @@ void MapWidget::SelectElevation(float elevation)
 
 void MapWidget::SelectRadarProduct(common::Level2Product product)
 {
-   float currentElevation = 0.0f;
+   bool radarProductViewCreated = false;
 
    std::shared_ptr<view::RadarProductView>& radarProductView =
       p->context_->radarProductView_;
 
-   if (p->context_->radarProductView_ != nullptr)
+   if (radarProductView == nullptr ||
+       radarProductView->GetRadarProductGroup() !=
+          common::RadarProductGroup::Level2 ||
+       p->selectedLevel2Product_ != product)
    {
-      currentElevation = p->context_->radarProductView_->elevation();
-   }
+      p->RadarProductViewDisconnect();
 
-   radarProductView = view::RadarProductViewFactory::Create(
-      product, currentElevation, p->radarProductManager_);
+      radarProductView = view::RadarProductViewFactory::Create(
+         product, p->radarProductManager_);
+
+      p->RadarProductViewConnect();
+
+      radarProductViewCreated = true;
+   }
    radarProductView->SelectTime(p->selectedTime_);
 
    p->selectedLevel2Product_ = product;
 
-   connect(
-      radarProductView.get(),
-      &view::RadarProductView::ColorTableUpdated,
-      this,
-      [&]() { update(); },
-      Qt::QueuedConnection);
-   connect(
-      radarProductView.get(),
-      &view::RadarProductView::SweepComputed,
-      this,
-      [&]()
-      {
-         std::shared_ptr<config::RadarSite> radarSite =
-            p->radarProductManager_->radar_site();
-
-         RadarRangeLayer::Update(
-            p->map_,
-            radarProductView->range(),
-            {radarSite->latitude(), radarSite->longitude()});
-         update();
-         emit RadarSweepUpdated();
-      },
-      Qt::QueuedConnection);
-
-   util::async(
-      [=]()
-      {
-         std::string colorTableFile =
-            manager::SettingsManager::palette_settings()->palette(
-               common::GetLevel2Palette(product));
-         if (!colorTableFile.empty())
-         {
-            std::shared_ptr<common::ColorTable> colorTable =
-               common::ColorTable::Load(colorTableFile);
-            radarProductView->LoadColorTable(colorTable);
-         }
-
-         radarProductView->Initialize();
-      });
-
-   if (p->map_ != nullptr)
+   if (radarProductViewCreated)
    {
-      AddLayers();
+      util::async(
+         [=]()
+         {
+            std::string colorTableFile =
+               manager::SettingsManager::palette_settings()->palette(
+                  common::GetLevel2Palette(product));
+            if (!colorTableFile.empty())
+            {
+               std::shared_ptr<common::ColorTable> colorTable =
+                  common::ColorTable::Load(colorTableFile);
+               radarProductView->LoadColorTable(colorTable);
+            }
+
+            radarProductView->Initialize();
+         });
+
+      if (p->map_ != nullptr)
+      {
+         AddLayers();
+      }
+   }
+   else
+   {
+      radarProductView->Update();
    }
 
-   p->radarProductManager_->EnableLevel2Refresh(true);
+   if (p->autoRefreshEnabled_)
+   {
+      p->radarProductManager_->EnableLevel2Refresh(true);
+   }
 }
 
 void MapWidget::SelectRadarProduct(
@@ -353,7 +347,7 @@ void MapWidget::SelectRadarProduct(
          manager::RadarProductManager::Instance(radarId);
       std::shared_ptr<view::RadarProductView> radarProductView =
          view::RadarProductViewFactory::Create(
-            group, product, productCode, 0.0f, radarProductManager);
+            group, product, productCode, radarProductManager);
 
       if (radarProductView == nullptr)
       {
@@ -361,34 +355,14 @@ void MapWidget::SelectRadarProduct(
          return;
       }
 
+      p->RadarProductViewDisconnect();
+
       p->context_->radarProductView_ = radarProductView;
       p->SetRadarSite(radarId);
       p->selectedTime_ = time;
       radarProductView->SelectTime(p->selectedTime_);
 
-      connect(
-         radarProductView.get(),
-         &view::RadarProductView::ColorTableUpdated,
-         this,
-         [&]() { update(); },
-         Qt::QueuedConnection);
-      connect(
-         radarProductView.get(),
-         &view::RadarProductView::SweepComputed,
-         this,
-         [=]()
-         {
-            std::shared_ptr<config::RadarSite> radarSite =
-               p->radarProductManager_->radar_site();
-
-            RadarRangeLayer::Update(
-               p->map_,
-               radarProductView->range(),
-               {radarSite->latitude(), radarSite->longitude()});
-            update();
-            emit RadarSweepUpdated();
-         },
-         Qt::QueuedConnection);
+      p->RadarProductViewConnect();
 
       util::async(
          [=]()
@@ -448,6 +422,8 @@ void MapWidget::changeStyle()
 
 void MapWidget::AddLayers()
 {
+   logger_->debug("AddLayers()");
+
    // Clear custom layers
    for (const std::string& id : p->layerList_)
    {
@@ -594,6 +570,8 @@ void MapWidget::wheelEvent(QWheelEvent* ev)
 
 void MapWidget::initializeGL()
 {
+   logger_->debug("initializeGL()");
+
    makeCurrent();
    p->context_->gl_.initializeOpenGLFunctions();
 
@@ -653,29 +631,35 @@ void MapWidgetImpl::AutoRefreshConnect()
          this,
          [&](std::chrono::system_clock::time_point latestTime)
          {
-            // Create file request
-            std::shared_ptr<request::NexradFileRequest> request =
-               std::make_shared<request::NexradFileRequest>();
+            if (autoRefreshEnabled_ && context_->radarProductView_ != nullptr &&
+                context_->radarProductView_->GetRadarProductGroup() ==
+                   common::RadarProductGroup::Level2)
+            {
+               // Create file request
+               std::shared_ptr<request::NexradFileRequest> request =
+                  std::make_shared<request::NexradFileRequest>();
 
-            // File request callback
-            connect(request.get(),
-                    &request::NexradFileRequest::RequestComplete,
-                    this,
-                    [&](std::shared_ptr<request::NexradFileRequest> request)
-                    {
-                       // Select loaded record
-                       auto record = request->radar_product_record();
-
-                       if (record != nullptr)
+               // File request callback
+               connect(request.get(),
+                       &request::NexradFileRequest::RequestComplete,
+                       this,
+                       [&](std::shared_ptr<request::NexradFileRequest> request)
                        {
-                          widget_->SelectRadarProduct(record);
-                       }
-                    });
+                          // Select loaded record
+                          auto record = request->radar_product_record();
 
-            // Load file
-            util::async(
-               [=]()
-               { radarProductManager_->LoadLevel2Data(latestTime, request); });
+                          if (record != nullptr)
+                          {
+                             widget_->SelectRadarProduct(record);
+                          }
+                       });
+
+               // Load file
+               util::async(
+                  [=]() {
+                     radarProductManager_->LoadLevel2Data(latestTime, request);
+                  });
+            }
          },
          Qt::QueuedConnection);
    }
@@ -687,6 +671,51 @@ void MapWidgetImpl::AutoRefreshDisconnect()
    {
       disconnect(radarProductManager_.get(),
                  &manager::RadarProductManager::NewLevel2DataAvailable,
+                 this,
+                 nullptr);
+   }
+}
+
+void MapWidgetImpl::RadarProductViewConnect()
+{
+   if (context_->radarProductView_ != nullptr)
+   {
+      connect(
+         context_->radarProductView_.get(),
+         &view::RadarProductView::ColorTableUpdated,
+         this,
+         [&]() { widget_->update(); },
+         Qt::QueuedConnection);
+      connect(
+         context_->radarProductView_.get(),
+         &view::RadarProductView::SweepComputed,
+         this,
+         [&]()
+         {
+            std::shared_ptr<config::RadarSite> radarSite =
+               radarProductManager_->radar_site();
+
+            RadarRangeLayer::Update(
+               map_,
+               context_->radarProductView_->range(),
+               {radarSite->latitude(), radarSite->longitude()});
+            widget_->update();
+            emit widget_->RadarSweepUpdated();
+         },
+         Qt::QueuedConnection);
+   }
+}
+
+void MapWidgetImpl::RadarProductViewDisconnect()
+{
+   if (context_->radarProductView_ != nullptr)
+   {
+      disconnect(context_->radarProductView_.get(),
+                 &view::RadarProductView::ColorTableUpdated,
+                 this,
+                 nullptr);
+      disconnect(context_->radarProductView_.get(),
+                 &view::RadarProductView::SweepComputed,
                  this,
                  nullptr);
    }

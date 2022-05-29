@@ -25,7 +25,6 @@ class Level2ProductView : public RadarProductView
 public:
    explicit Level2ProductView(
       common::Level2Product                         product,
-      float                                         elevation,
       std::shared_ptr<manager::RadarProductManager> radarProductManager);
    ~Level2ProductView();
 
@@ -51,7 +50,6 @@ public:
 
    static std::shared_ptr<Level2ProductView>
    Create(common::Level2Product                         product,
-          float                                         elevation,
           std::shared_ptr<manager::RadarProductManager> radarProductManager);
 
 protected:

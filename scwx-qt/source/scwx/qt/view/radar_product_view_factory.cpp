@@ -35,7 +35,6 @@ std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
    common::RadarProductGroup                     productGroup,
    const std::string&                            productName,
    int16_t                                       productCode,
-   float                                         elevation,
    std::shared_ptr<manager::RadarProductManager> radarProductManager)
 {
    std::shared_ptr<RadarProductView> view = nullptr;
@@ -50,7 +49,7 @@ std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
       }
       else
       {
-         view = Create(product, elevation, radarProductManager);
+         view = Create(product, radarProductManager);
       }
    }
    else if (productGroup == common::RadarProductGroup::Level3)
@@ -75,10 +74,9 @@ std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
 
 std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
    common::Level2Product                         product,
-   float                                         elevation,
    std::shared_ptr<manager::RadarProductManager> radarProductManager)
 {
-   return Level2ProductView::Create(product, elevation, radarProductManager);
+   return Level2ProductView::Create(product, radarProductManager);
 }
 
 } // namespace view
