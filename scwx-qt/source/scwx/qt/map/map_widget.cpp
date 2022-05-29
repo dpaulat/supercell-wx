@@ -57,12 +57,11 @@ public:
        settings_(settings),
        map_(),
        layerList_ {},
-       radarProductManager_ {manager::RadarProductManager::Instance(
-          scwx::qt::manager::SettingsManager::general_settings()
-             ->default_radar_site())},
+       radarProductManager_ {nullptr},
        radarProductLayer_ {nullptr},
        overlayLayer_ {nullptr},
        colorTableLayer_ {nullptr},
+       autoRefreshEnabled_ {true},
        selectedLevel2Product_ {common::Level2Product::Unknown},
        selectedTime_ {},
        lastPos_(),
@@ -74,12 +73,17 @@ public:
        prevBearing_ {0.0},
        prevPitch_ {0.0}
    {
+      SetRadarSite(scwx::qt::manager::SettingsManager::general_settings()
+                      ->default_radar_site());
    }
    ~MapWidgetImpl() = default;
 
    void AddLayer(const std::string&            id,
                  std::shared_ptr<GenericLayer> layer,
                  const std::string&            before = {});
+   void AutoRefreshConnect();
+   void AutoRefreshDisconnect();
+   void SetRadarSite(const std::string& radarSite);
    bool UpdateStoredMapParameters();
 
    common::Level2Product
@@ -99,6 +103,8 @@ public:
    std::shared_ptr<RadarProductLayer> radarProductLayer_;
    std::shared_ptr<OverlayLayer>      overlayLayer_;
    std::shared_ptr<ColorTableLayer>   colorTableLayer_;
+
+   bool autoRefreshEnabled_;
 
    common::Level2Product                 selectedLevel2Product_;
    std::chrono::system_clock::time_point selectedTime_;
@@ -273,35 +279,6 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
       },
       Qt::QueuedConnection);
 
-   connect(
-      p->radarProductManager_.get(),
-      &manager::RadarProductManager::NewLevel2DataAvailable,
-      this,
-      [&](std::chrono::system_clock::time_point latestTime)
-      {
-         std::shared_ptr<request::NexradFileRequest> request =
-            std::make_shared<request::NexradFileRequest>();
-
-         connect(request.get(),
-                 &request::NexradFileRequest::RequestComplete,
-                 this,
-                 [&](std::shared_ptr<request::NexradFileRequest> request)
-                 {
-                    auto record = request->radar_product_record();
-
-                    if (record != nullptr)
-                    {
-                       SelectRadarProduct(record);
-                    }
-                 });
-
-         // TODO: If live data is enabled
-         util::async(
-            [=]()
-            { p->radarProductManager_->LoadLevel2Data(latestTime, request); });
-      },
-      Qt::QueuedConnection);
-
    util::async(
       [=]()
       {
@@ -353,8 +330,8 @@ void MapWidget::SelectRadarProduct(
       common::Level2Product level2Product =
          p->GetLevel2ProductOrDefault(product);
 
-      p->radarProductManager_ = manager::RadarProductManager::Instance(radarId);
-      p->selectedTime_        = time;
+      p->SetRadarSite(radarId);
+      p->selectedTime_ = time;
 
       SelectRadarProduct(level2Product);
    }
@@ -374,8 +351,8 @@ void MapWidget::SelectRadarProduct(
       }
 
       p->context_->radarProductView_ = radarProductView;
-      p->radarProductManager_        = radarProductManager;
-      p->selectedTime_               = time;
+      p->SetRadarSite(radarId);
+      p->selectedTime_ = time;
       radarProductView->SelectTime(p->selectedTime_);
 
       connect(
@@ -652,6 +629,75 @@ void MapWidget::mapChanged(QMapboxGL::MapChange mapChange)
    case QMapboxGL::MapChangeDidFinishLoadingStyle:
       AddLayers();
       break;
+   }
+}
+
+void MapWidgetImpl::AutoRefreshConnect()
+{
+   if (radarProductManager_ != nullptr)
+   {
+      connect(
+         radarProductManager_.get(),
+         &manager::RadarProductManager::NewLevel2DataAvailable,
+         this,
+         [&](std::chrono::system_clock::time_point latestTime)
+         {
+            // Create file request
+            std::shared_ptr<request::NexradFileRequest> request =
+               std::make_shared<request::NexradFileRequest>();
+
+            // File request callback
+            connect(request.get(),
+                    &request::NexradFileRequest::RequestComplete,
+                    this,
+                    [&](std::shared_ptr<request::NexradFileRequest> request)
+                    {
+                       // Select loaded record
+                       auto record = request->radar_product_record();
+
+                       if (record != nullptr)
+                       {
+                          widget_->SelectRadarProduct(record);
+                       }
+                    });
+
+            // Load file
+            util::async(
+               [=]()
+               { radarProductManager_->LoadLevel2Data(latestTime, request); });
+         },
+         Qt::QueuedConnection);
+   }
+}
+
+void MapWidgetImpl::AutoRefreshDisconnect()
+{
+   if (radarProductManager_ != nullptr)
+   {
+      disconnect(radarProductManager_.get(),
+                 &manager::RadarProductManager::NewLevel2DataAvailable,
+                 this,
+                 nullptr);
+   }
+}
+
+void MapWidgetImpl::SetRadarSite(const std::string& radarSite)
+{
+   // Check if radar site has changed
+   if (radarProductManager_ == nullptr ||
+       radarSite != radarProductManager_->radar_site()->id())
+   {
+      // Disconnect signals from old RadarProductManager
+      AutoRefreshDisconnect();
+
+      // Set new RadarProductManager
+      radarProductManager_ = manager::RadarProductManager::Instance(radarSite);
+
+      // Connect signals to new RadarProductManager
+      if (autoRefreshEnabled_)
+      {
+         AutoRefreshConnect();
+      }
    }
 }
 
