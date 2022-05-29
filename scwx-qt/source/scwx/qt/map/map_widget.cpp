@@ -83,6 +83,7 @@ public:
                  const std::string&            before = {});
    void AutoRefreshConnect();
    void AutoRefreshDisconnect();
+   void InitializeNewRadarProductView(const std::string& colorPalette);
    void RadarProductViewConnect();
    void RadarProductViewDisconnect();
    void SetRadarSite(const std::string& radarSite);
@@ -276,26 +277,7 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
 
    if (radarProductViewCreated)
    {
-      util::async(
-         [=]()
-         {
-            std::string colorTableFile =
-               manager::SettingsManager::palette_settings()->palette(
-                  common::GetLevel2Palette(product));
-            if (!colorTableFile.empty())
-            {
-               std::shared_ptr<common::ColorTable> colorTable =
-                  common::ColorTable::Load(colorTableFile);
-               radarProductView->LoadColorTable(colorTable);
-            }
-
-            radarProductView->Initialize();
-         });
-
-      if (p->map_ != nullptr)
-      {
-         AddLayers();
-      }
+      p->InitializeNewRadarProductView(common::GetLevel2Palette(product));
    }
    else
    {
@@ -364,26 +346,7 @@ void MapWidget::SelectRadarProduct(
 
       p->RadarProductViewConnect();
 
-      util::async(
-         [=]()
-         {
-            std::string colorTableFile =
-               manager::SettingsManager::palette_settings()->palette(
-                  common::GetLevel3Palette(productCode));
-            if (!colorTableFile.empty())
-            {
-               std::shared_ptr<common::ColorTable> colorTable =
-                  common::ColorTable::Load(colorTableFile);
-               radarProductView->LoadColorTable(colorTable);
-            }
-
-            radarProductView->Initialize();
-         });
-
-      if (p->map_ != nullptr)
-      {
-         AddLayers();
-      }
+      p->InitializeNewRadarProductView(common::GetLevel3Palette(productCode));
    }
 }
 
@@ -673,6 +636,30 @@ void MapWidgetImpl::AutoRefreshDisconnect()
                  &manager::RadarProductManager::NewLevel2DataAvailable,
                  this,
                  nullptr);
+   }
+}
+
+void MapWidgetImpl::InitializeNewRadarProductView(
+   const std::string& colorPalette)
+{
+   util::async(
+      [=]()
+      {
+         std::string colorTableFile =
+            manager::SettingsManager::palette_settings()->palette(colorPalette);
+         if (!colorTableFile.empty())
+         {
+            std::shared_ptr<common::ColorTable> colorTable =
+               common::ColorTable::Load(colorTableFile);
+            context_->radarProductView_->LoadColorTable(colorTable);
+         }
+
+         context_->radarProductView_->Initialize();
+      });
+
+   if (map_ != nullptr)
+   {
+      widget_->AddLayers();
    }
 }
 

@@ -69,6 +69,8 @@ private:
 
    std::unique_ptr<MapWidgetImpl> p;
 
+   friend class MapWidgetImpl;
+
 private slots:
    void mapChanged(QMapboxGL::MapChange);
 
