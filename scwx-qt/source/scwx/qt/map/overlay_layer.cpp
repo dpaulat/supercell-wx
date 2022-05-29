@@ -168,10 +168,13 @@ void OverlayLayer::Deinitialize()
 
    p->texture_ = GL_INVALID_INDEX;
 
-   disconnect(context()->radarProductView_.get(),
-              &view::RadarProductView::SweepComputed,
-              this,
-              &OverlayLayer::UpdateSweepTimeNextFrame);
+   if (context()->radarProductView_ != nullptr)
+   {
+      disconnect(context()->radarProductView_.get(),
+                 &view::RadarProductView::SweepComputed,
+                 this,
+                 &OverlayLayer::UpdateSweepTimeNextFrame);
+   }
 }
 
 void OverlayLayer::UpdateSweepTimeNextFrame()
