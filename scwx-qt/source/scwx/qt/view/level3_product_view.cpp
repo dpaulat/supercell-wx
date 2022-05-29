@@ -1,5 +1,6 @@
 #include <scwx/qt/view/level3_product_view.hpp>
 #include <scwx/common/constants.hpp>
+#include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/rpg/digital_radial_data_array_packet.hpp>
@@ -17,6 +18,7 @@ namespace view
 {
 
 static const std::string logPrefix_ = "scwx::qt::view::level3_product_view";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 static constexpr uint16_t RANGE_FOLDED = 1u;
 
@@ -130,6 +132,8 @@ void Level3ProductView::Update()
 
 void Level3ProductView::UpdateColorTable()
 {
+   logger_->debug("UpdateColorTable()");
+
    if (p->graphicMessage_ == nullptr || //
        p->colorTable_ == nullptr ||     //
        !p->colorTable_->IsValid())
