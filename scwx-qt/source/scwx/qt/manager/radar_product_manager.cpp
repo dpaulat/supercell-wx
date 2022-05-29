@@ -498,15 +498,25 @@ std::shared_ptr<types::RadarProductRecord>
 RadarProductManagerImpl::GetLevel2ProductRecord(
    std::chrono::system_clock::time_point time)
 {
-   // TODO: Round to minutes
-   std::shared_ptr<types::RadarProductRecord> record =
-      util::GetBoundedElementValue(level2ProductRecords_, time);
+   std::shared_ptr<types::RadarProductRecord> record;
 
-   // Does the record contain the time we are looking for?
-   if (record != nullptr && (time < record->level2_file()->start_time() ||
-                             record->level2_file()->end_time() < time))
+   if (!level2ProductRecords_.empty() &&
+       time == std::chrono::system_clock::time_point {})
    {
-      record = nullptr;
+      // If a default-initialized time point is given, return the latest record
+      record = level2ProductRecords_.rbegin()->second;
+   }
+   else
+   {
+      // TODO: Round to minutes
+      record = util::GetBoundedElementValue(level2ProductRecords_, time);
+
+      // Does the record contain the time we are looking for?
+      if (record != nullptr && (time < record->level2_file()->start_time() ||
+                                record->level2_file()->end_time() < time))
+      {
+         record = nullptr;
+      }
    }
 
    return record;
