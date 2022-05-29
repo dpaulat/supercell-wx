@@ -45,6 +45,7 @@ public:
    void SelectRadarProduct(common::Level2Product product);
    void SelectRadarProduct(std::shared_ptr<types::RadarProductRecord> record);
    void SetActive(bool isActive);
+   void SetAutoRefresh(bool enabled);
    void SetMapParameters(double latitude,
                          double longitude,
                          double zoom,

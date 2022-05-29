@@ -356,6 +356,19 @@ void MapWidget::SetActive(bool isActive)
    update();
 }
 
+void MapWidget::SetAutoRefresh(bool enabled)
+{
+   if (p->autoRefreshEnabled_ != enabled)
+   {
+      p->autoRefreshEnabled_ = enabled;
+
+      if (p->autoRefreshEnabled_)
+      {
+         p->radarProductManager_->EnableLevel2Refresh(true);
+      }
+   }
+}
+
 void MapWidget::SetMapParameters(
    double latitude, double longitude, double zoom, double bearing, double pitch)
 {
@@ -721,10 +734,7 @@ void MapWidgetImpl::SetRadarSite(const std::string& radarSite)
       radarProductManager_ = manager::RadarProductManager::Instance(radarSite);
 
       // Connect signals to new RadarProductManager
-      if (autoRefreshEnabled_)
-      {
-         AutoRefreshConnect();
-      }
+      AutoRefreshConnect();
    }
 }
 

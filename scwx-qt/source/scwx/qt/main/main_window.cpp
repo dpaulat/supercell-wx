@@ -276,6 +276,7 @@ void MainWindow::on_actionOpen_triggered()
 
                if (record != nullptr)
                {
+                  currentMap->SetAutoRefresh(false);
                   currentMap->SelectRadarProduct(record);
                }
                else
