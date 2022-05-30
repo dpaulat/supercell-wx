@@ -34,7 +34,7 @@ public:
    std::pair<size_t, size_t>
    ListObjects(std::chrono::system_clock::time_point date);
    std::shared_ptr<wsr88d::NexradFile> LoadObjectByKey(const std::string& key);
-   size_t                              Refresh();
+   std::pair<size_t, size_t>           Refresh();
 
 protected:
    virtual std::string

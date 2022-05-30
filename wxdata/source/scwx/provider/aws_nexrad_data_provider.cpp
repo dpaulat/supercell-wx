@@ -237,7 +237,7 @@ AwsNexradDataProvider::LoadObjectByKey(const std::string& key)
    return nexradFile;
 }
 
-size_t AwsNexradDataProvider::Refresh()
+std::pair<size_t, size_t> AwsNexradDataProvider::Refresh()
 {
    using namespace std::chrono;
 
@@ -251,14 +251,16 @@ size_t AwsNexradDataProvider::Refresh()
 
    std::unique_lock lock(refreshMutex);
 
-   size_t totalNewObjects = 0;
+   size_t allNewObjects   = 0;
+   size_t allTotalObjects = 0;
 
    // If we haven't gotten any objects from today, first list objects for
    // yesterday, to ensure we haven't missed any objects near midnight
    if (refreshDate < today)
    {
       auto [newObjects, totalObjects] = ListObjects(yesterday);
-      totalNewObjects                 = newObjects;
+      allNewObjects                   = newObjects;
+      allTotalObjects                 = totalObjects;
       if (totalObjects > 0)
       {
          refreshDate = yesterday;
@@ -266,13 +268,14 @@ size_t AwsNexradDataProvider::Refresh()
    }
 
    auto [newObjects, totalObjects] = ListObjects(today);
-   totalNewObjects += newObjects;
+   allNewObjects += newObjects;
+   allTotalObjects += totalObjects;
    if (totalObjects > 0)
    {
       refreshDate = today;
    }
 
-   return totalNewObjects;
+   return std::make_pair(allNewObjects, allTotalObjects);
 }
 
 void AwsNexradDataProvider::Impl::PruneObjects()

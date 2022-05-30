@@ -304,7 +304,7 @@ void RadarProductManagerImpl::RefreshLevel2Data()
    util::async(
       [&]()
       {
-         size_t newObjects = level2DataProvider_->Refresh();
+         auto [newObjects, totalObjects] = level2DataProvider_->Refresh();
 
          std::chrono::milliseconds interval = kRetryInterval_;
 
@@ -325,11 +325,17 @@ void RadarProductManagerImpl::RefreshLevel2Data()
 
             emit self_->NewLevel2DataAvailable(latestTime);
          }
+         else if (level2DataRefreshEnabled_ && totalObjects == 0)
+         {
+            logger_->info("No level 2 data found, disabling refresh");
 
-         std::unique_lock lock(level2DataRefreshTimerMutex_);
+            level2DataRefreshEnabled_ = false;
+         }
 
          if (level2DataRefreshEnabled_)
          {
+            std::unique_lock lock(level2DataRefreshTimerMutex_);
+
             logger_->debug(
                "Scheduled refresh in {:%M:%S}",
                std::chrono::duration_cast<std::chrono::seconds>(interval));

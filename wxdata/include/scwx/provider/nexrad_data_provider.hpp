@@ -84,9 +84,11 @@ public:
     * no objects have been added to the cache for the current date, the previous
     * date is also queried for data.
     *
-    * @return New objects found
+    * @return - New objects found
+    *         - Total objects found
     */
-   virtual size_t Refresh() = 0;
+
+   virtual std::pair<size_t, size_t> Refresh() = 0;
 
    /**
     * Convert the object key to a time point.
