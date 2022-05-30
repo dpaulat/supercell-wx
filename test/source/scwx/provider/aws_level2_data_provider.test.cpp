@@ -44,6 +44,38 @@ TEST(AwsLevel2DataProvider, LoadObjectByKey)
    EXPECT_NE(file, nullptr);
 }
 
+TEST(AwsLevel2DataProvider, Prune)
+{
+   using namespace std::chrono;
+
+   AwsLevel2DataProvider provider("KLSX");
+
+   const auto today     = floor<days>(system_clock::now());
+   const auto yesterday = today - days {1};
+   auto       date      = today + days {1};
+
+   for (size_t i = 0; i < 15; i++)
+   {
+      date -= days {1};
+      provider.ListObjects(date);
+
+      // Expect the cache size to be under the prune threshold
+      EXPECT_LE(provider.cache_size(), 2500);
+   }
+
+   std::string key  = provider.FindLatestKey();
+   auto        time = provider.GetTimePointByKey(key);
+
+   // Expect the most recent key to be after midnight yesterday (was not pruned)
+   EXPECT_GT(time, yesterday);
+
+   key  = provider.FindKey(date + 1h);
+   time = provider.GetTimePointByKey(key);
+
+   // Expect the oldest key to be on the most recently listed date
+   EXPECT_LT(time, date + days {1});
+}
+
 TEST(AwsLevel2DataProvider, Refresh)
 {
    AwsLevel2DataProvider provider("KLSX");

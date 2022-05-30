@@ -24,6 +24,10 @@ static const auto logger_ = util::Logger::Create(logPrefix_);
 static const std::string kDefaultBucketName_ = "noaa-nexrad-level2";
 static const std::string kDefaultRegion_     = "us-east-1";
 
+// Keep at least today, yesterday, and one more date
+static const size_t kMinDatesBeforePruning_ = 4;
+static const size_t kMaxObjects_            = 2500;
+
 class AwsLevel2DataProviderImpl
 {
 public:
@@ -61,7 +65,9 @@ public:
 
    ~AwsLevel2DataProviderImpl() {}
 
+   void PruneObjects();
    void UpdateMetadata();
+   void UpdateObjectDates(std::chrono::system_clock::time_point date);
 
    std::string radarSite_;
    std::string bucketName_;
@@ -71,6 +77,7 @@ public:
 
    std::map<std::chrono::system_clock::time_point, ObjectRecord> objects_;
    std::shared_mutex                                             objectsMutex_;
+   std::list<std::chrono::system_clock::time_point>              objectDates_;
 
    std::chrono::system_clock::time_point lastModified_;
    std::chrono::seconds                  updatePeriod_;
@@ -199,14 +206,19 @@ AwsLevel2DataProvider::ListObjects(std::chrono::system_clock::time_point date)
                totalObjects++;
             }
          });
+
+      if (newObjects > 0)
+      {
+         p->UpdateObjectDates(date);
+         p->PruneObjects();
+         p->UpdateMetadata();
+      }
    }
    else
    {
       logger_->warn("Could not list objects: {}",
                     outcome.GetError().GetMessage());
    }
-
-   p->UpdateMetadata();
 
    return std::make_pair(newObjects, totalObjects);
 }
@@ -278,6 +290,36 @@ size_t AwsLevel2DataProvider::Refresh()
    return totalNewObjects;
 }
 
+void AwsLevel2DataProviderImpl::PruneObjects()
+{
+   using namespace std::chrono;
+
+   auto today     = floor<days>(system_clock::now());
+   auto yesterday = today - days {1};
+
+   std::unique_lock lock(objectsMutex_);
+
+   for (auto it = objectDates_.cbegin();
+        it != objectDates_.cend() && objects_.size() > kMaxObjects_ &&
+        objectDates_.size() >= kMinDatesBeforePruning_;)
+   {
+      if (*it < yesterday)
+      {
+         // Erase oldest keys from objects list
+         auto eraseBegin = objects_.lower_bound(*it);
+         auto eraseEnd   = objects_.lower_bound(*it + days {1});
+         objects_.erase(eraseBegin, eraseEnd);
+
+         // Remove oldest date from object dates list
+         it = objectDates_.erase(it);
+      }
+      else
+      {
+         ++it;
+      }
+   }
+}
+
 void AwsLevel2DataProviderImpl::UpdateMetadata()
 {
    std::shared_lock lock(objectsMutex_);
@@ -296,6 +338,18 @@ void AwsLevel2DataProviderImpl::UpdateMetadata()
 
       updatePeriod_ = std::chrono::duration_cast<std::chrono::seconds>(delta);
    }
+}
+
+void AwsLevel2DataProviderImpl::UpdateObjectDates(
+   std::chrono::system_clock::time_point date)
+{
+   auto day = std::chrono::floor<std::chrono::days>(date);
+
+   std::unique_lock lock(objectsMutex_);
+
+   // Remove any existing occurrences of day, and add to the back of the list
+   objectDates_.remove(day);
+   objectDates_.push_back(day);
 }
 
 std::chrono::system_clock::time_point
