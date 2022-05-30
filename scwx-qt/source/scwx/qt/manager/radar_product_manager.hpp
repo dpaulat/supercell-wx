@@ -64,8 +64,9 @@ public:
             std::shared_ptr<request::NexradFileRequest> request = nullptr);
 
 signals:
-   void
-   NewLevel2DataAvailable(std::chrono::system_clock::time_point latestTime);
+   void NewDataAvailable(common::RadarProductGroup             group,
+                         const std::string&                    product,
+                         std::chrono::system_clock::time_point latestTime);
 
 private:
    std::unique_ptr<RadarProductManagerImpl> p;

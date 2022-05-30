@@ -603,13 +603,15 @@ void MapWidgetImpl::AutoRefreshConnect()
    {
       connect(
          radarProductManager_.get(),
-         &manager::RadarProductManager::NewLevel2DataAvailable,
+         &manager::RadarProductManager::NewDataAvailable,
          this,
-         [&](std::chrono::system_clock::time_point latestTime)
+         [&](common::RadarProductGroup             group,
+             const std::string&                    product,
+             std::chrono::system_clock::time_point latestTime)
          {
             if (autoRefreshEnabled_ && context_->radarProductView_ != nullptr &&
-                context_->radarProductView_->GetRadarProductGroup() ==
-                   common::RadarProductGroup::Level2)
+                group == common::RadarProductGroup::Level2 &&
+                context_->radarProductView_->GetRadarProductGroup() == group)
             {
                // Create file request
                std::shared_ptr<request::NexradFileRequest> request =
@@ -646,7 +648,7 @@ void MapWidgetImpl::AutoRefreshDisconnect()
    if (radarProductManager_ != nullptr)
    {
       disconnect(radarProductManager_.get(),
-                 &manager::RadarProductManager::NewLevel2DataAvailable,
+                 &manager::RadarProductManager::NewDataAvailable,
                  this,
                  nullptr);
    }
