@@ -35,10 +35,12 @@ set(SRC_COMMON source/scwx/common/color_table.cpp
                source/scwx/common/sites.cpp
                source/scwx/common/vcp.cpp)
 set(HDR_PROVIDER include/scwx/provider/aws_level2_data_provider.hpp
+                 include/scwx/provider/aws_level3_data_provider.hpp
                  include/scwx/provider/aws_nexrad_data_provider.hpp
                  include/scwx/provider/nexrad_data_provider.hpp
                  include/scwx/provider/nexrad_data_provider_factory.hpp)
 set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp
+                 source/scwx/provider/aws_level3_data_provider.cpp
                  source/scwx/provider/aws_nexrad_data_provider.cpp
                  source/scwx/provider/nexrad_data_provider.cpp
                  source/scwx/provider/nexrad_data_provider_factory.cpp)
