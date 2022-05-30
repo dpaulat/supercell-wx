@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/wsr88d/ar2v_file.hpp>
+#include <scwx/wsr88d/nexrad_file.hpp>
 
 #include <chrono>
 #include <memory>
@@ -11,19 +11,17 @@ namespace scwx
 namespace provider
 {
 
-class Level2DataProviderImpl;
-
-class Level2DataProvider
+class NexradDataProvider
 {
 public:
-   explicit Level2DataProvider();
-   ~Level2DataProvider();
+   explicit NexradDataProvider();
+   ~NexradDataProvider();
 
-   Level2DataProvider(const Level2DataProvider&) = delete;
-   Level2DataProvider& operator=(const Level2DataProvider&) = delete;
+   NexradDataProvider(const NexradDataProvider&) = delete;
+   NexradDataProvider& operator=(const NexradDataProvider&) = delete;
 
-   Level2DataProvider(Level2DataProvider&&) noexcept;
-   Level2DataProvider& operator=(Level2DataProvider&&) noexcept;
+   NexradDataProvider(NexradDataProvider&&) noexcept;
+   NexradDataProvider& operator=(NexradDataProvider&&) noexcept;
 
    virtual size_t cache_size() const = 0;
 
@@ -49,19 +47,19 @@ public:
     *
     * @param time Upper-bound time for the key search
     *
-    * @return Level 2 data key
+    * @return NEXRAD data key
     */
    virtual std::string FindKey(std::chrono::system_clock::time_point time) = 0;
 
    /**
     * Finds the most recent key in the cache.
     *
-    * @return Level 2 data key
+    * @return NEXRAD data key
     */
    virtual std::string FindLatestKey() = 0;
 
    /**
-    * Lists level 2 objects for the date supplied, and adds them to the cache.
+    * Lists NEXRAD objects for the date supplied, and adds them to the cache.
     *
     * @param date Date for which to list objects
     *
@@ -72,17 +70,17 @@ public:
    ListObjects(std::chrono::system_clock::time_point date) = 0;
 
    /**
-    * Loads a level 2 object by the given key.
+    * Loads a NEXRAD file object by the given key.
     *
-    * @param key Level 2 data key
+    * @param key NEXRAD data key
     *
-    * @return Level 2 data
+    * @return NEXRAD data
     */
-   virtual std::shared_ptr<wsr88d::Ar2vFile>
+   virtual std::shared_ptr<wsr88d::NexradFile>
    LoadObjectByKey(const std::string& key) = 0;
 
    /**
-    * Lists level 2 objects for the current date, and adds them to the cache. If
+    * Lists NEXRAD objects for the current date, and adds them to the cache. If
     * no objects have been added to the cache for the current date, the previous
     * date is also queried for data.
     *
@@ -93,15 +91,16 @@ public:
    /**
     * Convert the object key to a time point.
     *
-    * @key Level 2 data key
+    * @key NEXRAD data key
     *
-    * @return Level 2 data time point
+    * @return NEXRAD data time point
     */
    virtual std::chrono::system_clock::time_point
    GetTimePointByKey(const std::string& key) const = 0;
 
 private:
-   std::unique_ptr<Level2DataProviderImpl> p;
+   class Impl;
+   std::unique_ptr<Impl> p;
 };
 
 } // namespace provider

@@ -1,6 +1,6 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/common/constants.hpp>
-#include <scwx/provider/level2_data_provider_factory.hpp>
+#include <scwx/provider/nexrad_data_provider_factory.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/map.hpp>
 #include <scwx/util/threads.hpp>
@@ -78,7 +78,8 @@ public:
        level2DataRefreshTimer_ {util::io_context()},
        level2DataRefreshTimerMutex_ {},
        level2DataProvider_ {
-          provider::Level2DataProviderFactory::Create(radarId)},
+          provider::NexradDataProviderFactory::CreateLevel2DataProvider(
+             radarId)},
        initializeMutex_ {},
        loadLevel2DataMutex_ {}
    {
@@ -131,7 +132,7 @@ public:
    bool                                          level2DataRefreshEnabled_;
    boost::asio::steady_timer                     level2DataRefreshTimer_;
    std::mutex                                    level2DataRefreshTimerMutex_;
-   std::shared_ptr<provider::Level2DataProvider> level2DataProvider_;
+   std::shared_ptr<provider::NexradDataProvider> level2DataProvider_;
 
    std::mutex initializeMutex_;
    std::mutex loadLevel2DataMutex_;
