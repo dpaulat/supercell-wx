@@ -15,7 +15,7 @@ class NexradDataProvider
 {
 public:
    explicit NexradDataProvider();
-   ~NexradDataProvider();
+   virtual ~NexradDataProvider();
 
    NexradDataProvider(const NexradDataProvider&) = delete;
    NexradDataProvider& operator=(const NexradDataProvider&) = delete;

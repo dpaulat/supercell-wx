@@ -16,7 +16,7 @@ public:
    explicit AwsNexradDataProvider(const std::string& radarSite,
                                   const std::string& bucketName,
                                   const std::string& region);
-   ~AwsNexradDataProvider();
+   virtual ~AwsNexradDataProvider();
 
    AwsNexradDataProvider(const AwsNexradDataProvider&) = delete;
    AwsNexradDataProvider& operator=(const AwsNexradDataProvider&) = delete;

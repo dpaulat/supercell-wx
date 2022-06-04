@@ -23,7 +23,7 @@ class Level3ProductView : public RadarProductView
 
 public:
    explicit Level3ProductView(const std::string& product);
-   ~Level3ProductView();
+   virtual ~Level3ProductView();
 
    const std::vector<boost::gil::rgba8_pixel_t>& color_table() const override;
    uint16_t color_table_min() const override;
