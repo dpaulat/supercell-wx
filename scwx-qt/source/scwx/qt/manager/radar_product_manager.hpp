@@ -36,7 +36,9 @@ public:
    std::shared_ptr<config::RadarSite> radar_site() const;
 
    void Initialize();
-   void EnableLevel2Refresh(bool enabled);
+   void EnableRefresh(common::RadarProductGroup group,
+                      const std::string&        product,
+                      bool                      enabled);
 
    std::tuple<std::shared_ptr<wsr88d::rda::ElevationScan>,
               float,
@@ -53,6 +55,10 @@ public:
    Instance(const std::string& radarSite);
 
    void LoadLevel2Data(
+      std::chrono::system_clock::time_point       time,
+      std::shared_ptr<request::NexradFileRequest> request = nullptr);
+   void LoadLevel3Data(
+      const std::string&                          product,
       std::chrono::system_clock::time_point       time,
       std::shared_ptr<request::NexradFileRequest> request = nullptr);
 

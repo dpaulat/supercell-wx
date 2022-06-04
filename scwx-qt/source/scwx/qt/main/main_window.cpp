@@ -145,6 +145,16 @@ MainWindow::MainWindow(QWidget* parent) :
    {
       p->SelectRadarProduct(p->maps_.at(1), common::Level2Product::Velocity);
    }
+   if (p->maps_.size() > 2 && p->maps_.at(2) != nullptr)
+   {
+      p->maps_.at(2)->SelectRadarProduct(
+         common::RadarProductGroup::Level3, "N0B", 153);
+   }
+   if (p->maps_.size() > 3 && p->maps_.at(3) != nullptr)
+   {
+      p->maps_.at(3)->SelectRadarProduct(
+         common::RadarProductGroup::Level3, "N0G", 154);
+   }
 
    connect(qApp,
            &QApplication::focusChanged,
@@ -415,7 +425,8 @@ void MainWindowImpl::SelectRadarProduct(map::MapWidget*       mapWidget,
       UpdateRadarProductSettings();
    }
 
-   mapWidget->SelectRadarProduct(product);
+   mapWidget->SelectRadarProduct(
+      common::RadarProductGroup::Level2, productName, 0);
 }
 
 void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)

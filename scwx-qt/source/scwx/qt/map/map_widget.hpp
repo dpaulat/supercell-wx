@@ -42,7 +42,9 @@ public:
    uint16_t                           GetVcp() const;
 
    void SelectElevation(float elevation);
-   void SelectRadarProduct(common::Level2Product product);
+   void SelectRadarProduct(common::RadarProductGroup group,
+                           const std::string&        product,
+                           int16_t                   productCode);
    void SelectRadarProduct(std::shared_ptr<types::RadarProductRecord> record);
    void SetActive(bool isActive);
    void SetAutoRefresh(bool enabled);

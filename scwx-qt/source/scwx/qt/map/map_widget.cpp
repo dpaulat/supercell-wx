@@ -250,22 +250,33 @@ void MapWidget::SelectElevation(float elevation)
    }
 }
 
-void MapWidget::SelectRadarProduct(common::Level2Product product)
+void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
+                                   const std::string&        product,
+                                   int16_t                   productCode)
 {
    bool radarProductViewCreated = false;
 
    std::shared_ptr<view::RadarProductView>& radarProductView =
       p->context_->radarProductView_;
 
+   std::string productName {product};
+
+   // Validate level 2 product, set to default if invalid
+   if (group == common::RadarProductGroup::Level2)
+   {
+      common::Level2Product level2Product =
+         p->GetLevel2ProductOrDefault(productName);
+      productName = common::GetLevel2Name(level2Product);
+   }
+
    if (radarProductView == nullptr ||
-       radarProductView->GetRadarProductGroup() !=
-          common::RadarProductGroup::Level2 ||
-       p->selectedLevel2Product_ != product)
+       radarProductView->GetRadarProductGroup() != group ||
+       radarProductView->GetRadarProductName() != productName)
    {
       p->RadarProductViewDisconnect();
 
       radarProductView = view::RadarProductViewFactory::Create(
-         product, p->radarProductManager_);
+         group, productName, productCode, p->radarProductManager_);
 
       p->RadarProductViewConnect();
 
@@ -273,11 +284,18 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
    }
    radarProductView->SelectTime(p->selectedTime_);
 
-   p->selectedLevel2Product_ = product;
+   if (group == common::RadarProductGroup::Level2)
+   {
+      p->selectedLevel2Product_ = common::GetLevel2Product(productName);
+   }
 
    if (radarProductViewCreated)
    {
-      p->InitializeNewRadarProductView(common::GetLevel2Palette(product));
+      const std::string palette =
+         (group == common::RadarProductGroup::Level2) ?
+            common::GetLevel2Palette(common::GetLevel2Product(productName)) :
+            common::GetLevel3Palette(productCode);
+      p->InitializeNewRadarProductView(palette);
    }
    else
    {
@@ -286,7 +304,7 @@ void MapWidget::SelectRadarProduct(common::Level2Product product)
 
    if (p->autoRefreshEnabled_)
    {
-      p->radarProductManager_->EnableLevel2Refresh(true);
+      p->radarProductManager_->EnableRefresh(group, productName, true);
    }
 }
 
@@ -312,42 +330,10 @@ void MapWidget::SelectRadarProduct(
                   product,
                   util::TimeString(time));
 
-   if (group == common::RadarProductGroup::Level2)
-   {
-      common::Level2Product level2Product =
-         p->GetLevel2ProductOrDefault(product);
+   p->SetRadarSite(radarId);
+   p->selectedTime_ = time;
 
-      p->SetRadarSite(radarId);
-      p->selectedTime_ = time;
-
-      SelectRadarProduct(level2Product);
-   }
-   else
-   {
-      // TODO: Combine this with the SelectRadarProduct(Level2Product) function
-      std::shared_ptr<manager::RadarProductManager> radarProductManager =
-         manager::RadarProductManager::Instance(radarId);
-      std::shared_ptr<view::RadarProductView> radarProductView =
-         view::RadarProductViewFactory::Create(
-            group, product, productCode, radarProductManager);
-
-      if (radarProductView == nullptr)
-      {
-         logger_->debug("No view created for product");
-         return;
-      }
-
-      p->RadarProductViewDisconnect();
-
-      p->context_->radarProductView_ = radarProductView;
-      p->SetRadarSite(radarId);
-      p->selectedTime_ = time;
-      radarProductView->SelectTime(p->selectedTime_);
-
-      p->RadarProductViewConnect();
-
-      p->InitializeNewRadarProductView(common::GetLevel3Palette(productCode));
-   }
+   SelectRadarProduct(group, product, productCode);
 }
 
 void MapWidget::SetActive(bool isActive)
@@ -362,9 +348,12 @@ void MapWidget::SetAutoRefresh(bool enabled)
    {
       p->autoRefreshEnabled_ = enabled;
 
-      if (p->autoRefreshEnabled_)
+      if (p->autoRefreshEnabled_ && p->context_->radarProductView_ != nullptr)
       {
-         p->radarProductManager_->EnableLevel2Refresh(true);
+         p->radarProductManager_->EnableRefresh(
+            p->context_->radarProductView_->GetRadarProductGroup(),
+            p->context_->radarProductView_->GetRadarProductName(),
+            true);
       }
    }
 }
@@ -561,7 +550,7 @@ void MapWidget::initializeGL()
    std::shared_ptr<config::RadarSite> radarSite =
       p->radarProductManager_->radar_site();
    p->map_->setCoordinateZoom({radarSite->latitude(), radarSite->longitude()},
-                              9);
+                              7);
    p->UpdateStoredMapParameters();
 
    QString styleUrl = qgetenv("MAPBOX_STYLE_URL");
@@ -610,8 +599,9 @@ void MapWidgetImpl::AutoRefreshConnect()
              std::chrono::system_clock::time_point latestTime)
          {
             if (autoRefreshEnabled_ && context_->radarProductView_ != nullptr &&
-                group == common::RadarProductGroup::Level2 &&
-                context_->radarProductView_->GetRadarProductGroup() == group)
+                context_->radarProductView_->GetRadarProductGroup() == group &&
+                (group == common::RadarProductGroup::Level2 ||
+                 context_->radarProductView_->GetRadarProductName() == product))
             {
                // Create file request
                std::shared_ptr<request::NexradFileRequest> request =
@@ -634,8 +624,18 @@ void MapWidgetImpl::AutoRefreshConnect()
 
                // Load file
                util::async(
-                  [=]() {
-                     radarProductManager_->LoadLevel2Data(latestTime, request);
+                  [=]()
+                  {
+                     if (group == common::RadarProductGroup::Level2)
+                     {
+                        radarProductManager_->LoadLevel2Data(latestTime,
+                                                             request);
+                     }
+                     else
+                     {
+                        radarProductManager_->LoadLevel3Data(
+                           product, latestTime, request);
+                     }
                   });
             }
          },
