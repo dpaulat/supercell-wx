@@ -115,6 +115,11 @@ void Level3RadialView::ComputeSweep()
    // Retrieve message from Radar Product Manager
    std::shared_ptr<wsr88d::rpg::Level3Message> message =
       p->radarProductManager_->GetLevel3Data(p->product_, p->selectedTime_);
+   if (message == nullptr)
+   {
+      logger_->debug("Level 3 data not found");
+      return;
+   }
 
    // A message with radial data should be a Graphic Product Message
    std::shared_ptr<wsr88d::rpg::GraphicProductMessage> gpm =
