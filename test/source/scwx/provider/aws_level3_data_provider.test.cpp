@@ -48,10 +48,12 @@ TEST(AwsLevel3DataProvider, Refresh)
 {
    AwsLevel3DataProvider provider("KLSX", "N0B");
 
-   size_t newObjects = provider.Refresh();
+   auto [newObjects, totalObjects] = provider.Refresh();
 
    EXPECT_GT(newObjects, 0);
+   EXPECT_GT(totalObjects, 0);
    EXPECT_GT(provider.cache_size(), 0);
+   EXPECT_EQ(newObjects, totalObjects);
 }
 
 TEST(AwsLevel3DataProvider, TimePointValid)
@@ -72,8 +74,8 @@ TEST(AwsLevel3DataProvider, TimePointInvalid)
 {
    constexpr std::chrono::system_clock::time_point expectedTime {};
 
-   auto time = AwsLevel3DataProvider::GetTimePointFromKey(
-      "LSX_N0Q_2022-04-30_17-27-34");
+   auto time =
+      AwsLevel3DataProvider::GetTimePointFromKey("LSX_N0Q_2022-04-30_17-27-34");
 
    EXPECT_EQ(time, expectedTime);
 }
