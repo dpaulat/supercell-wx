@@ -19,16 +19,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="203"/>
-        <source>Settings</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="209"/>
-        <source>Declutter</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../source/scwx/qt/main/main_window.ui" line="129"/>
         <source>Radar Site</source>
         <translation type="unfinished"></translation>
@@ -74,27 +64,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="196"/>
-        <source>Elevation</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="234"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="229"/>
         <source>E&amp;xit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="239"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="234"/>
         <source>About &amp;Supercell Wx...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="244"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="239"/>
         <source>&amp;Open...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="247"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="242"/>
         <source>Ctrl+O</source>
         <translation type="unfinished"></translation>
     </message>
@@ -102,8 +87,26 @@
 <context>
     <name>scwx::qt::main::MainWindow</name>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.cpp" line="281"/>
+        <location filename="../source/scwx/qt/main/main_window.cpp" line="243"/>
         <source>Unrecognized NEXRAD Product:</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>scwx::qt::ui::Level2SettingsWidgetImpl</name>
+    <message>
+        <location filename="../source/scwx/qt/ui/level2_settings_widget.cpp" line="37"/>
+        <source>Elevation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../source/scwx/qt/ui/level2_settings_widget.cpp" line="41"/>
+        <source>Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../source/scwx/qt/ui/level2_settings_widget.cpp" line="45"/>
+        <source>Declutter</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

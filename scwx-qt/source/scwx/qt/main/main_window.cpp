@@ -8,6 +8,7 @@
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
+#include <scwx/qt/ui/level2_settings_widget.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/common/products.hpp>
 #include <scwx/common/vcp.hpp>
@@ -39,6 +40,7 @@ public:
        settings_ {},
        activeMap_ {nullptr},
        level2ProductsWidget_ {nullptr},
+       level2SettingsWidget_ {nullptr},
        maps_ {},
        elevationCuts_ {},
        elevationButtonsChanged_ {false},
@@ -71,7 +73,6 @@ public:
 
    void ConfigureMapLayout();
    void HandleFocusChange(QWidget* focused);
-   void NormalizeElevationButtons();
    void SelectElevation(map::MapWidget* mapWidget, float elevation);
    void SelectRadarProduct(map::MapWidget*           mapWidget,
                            common::RadarProductGroup group,
@@ -90,6 +91,7 @@ public:
    map::MapWidget*   activeMap_;
 
    ui::Level2ProductsWidget* level2ProductsWidget_;
+   ui::Level2SettingsWidget* level2SettingsWidget_;
 
    std::vector<map::MapWidget*> maps_;
    std::vector<float>           elevationCuts_;
@@ -125,11 +127,10 @@ MainWindow::MainWindow(QWidget* parent) :
    delete ui->level2ProductFrame;
    ui->level2ProductFrame = p->level2ProductsWidget_;
 
-   QLayout* elevationLayout = new ui::FlowLayout();
-   ui->elevationGroupBox->setLayout(elevationLayout);
-
-   ui->settingsGroupBox->setVisible(false);
-   ui->declutterCheckbox->setVisible(false);
+   // Add Level 2 Settings
+   p->level2SettingsWidget_ = new ui::Level2SettingsWidget(ui->settingsFrame);
+   ui->settingsFrame->layout()->addWidget(p->level2SettingsWidget_);
+   p->level2SettingsWidget_->setVisible(false);
 
    p->SelectRadarProduct(
       p->maps_.at(0),
@@ -168,6 +169,11 @@ MainWindow::MainWindow(QWidget* parent) :
               p->SelectRadarProduct(
                  p->activeMap_, group, productName, productCode);
            });
+   connect(p->level2SettingsWidget_,
+           &ui::Level2SettingsWidget::ElevationSelected,
+           this,
+           [&](float elevation)
+           { p->SelectElevation(p->activeMap_, elevation); });
 
    p->HandleFocusChange(p->activeMap_);
 }
@@ -177,55 +183,11 @@ MainWindow::~MainWindow()
    delete ui;
 }
 
-bool MainWindow::event(QEvent* event)
-{
-   if (event->type() == QEvent::Type::Paint)
-   {
-      if (p->elevationButtonsChanged_)
-      {
-         p->elevationButtonsChanged_ = false;
-      }
-      else if (p->resizeElevationButtons_)
-      {
-         p->NormalizeElevationButtons();
-      }
-   }
-
-   return QMainWindow::event(event);
-}
-
 void MainWindow::showEvent(QShowEvent* event)
 {
    QMainWindow::showEvent(event);
 
-   p->NormalizeElevationButtons();
-
    resizeDocks({ui->radarToolboxDock}, {150}, Qt::Horizontal);
-}
-
-void MainWindowImpl::NormalizeElevationButtons()
-{
-   // Set each elevation cut's tool button to the same size
-   int elevationCutMaxWidth = 0;
-   for (QToolButton* widget :
-        mainWindow_->ui->elevationGroupBox->findChildren<QToolButton*>())
-   {
-      if (widget->isVisible())
-      {
-         elevationCutMaxWidth = std::max(elevationCutMaxWidth, widget->width());
-      }
-   }
-
-   if (elevationCutMaxWidth > 0)
-   {
-      for (QToolButton* widget :
-           mainWindow_->ui->elevationGroupBox->findChildren<QToolButton*>())
-      {
-         widget->setMinimumWidth(elevationCutMaxWidth);
-      }
-
-      resizeElevationButtons_ = false;
-   }
 }
 
 void MainWindow::on_actionOpen_triggered()
@@ -388,12 +350,12 @@ void MainWindowImpl::HandleFocusChange(QWidget* focused)
 
 void MainWindowImpl::SelectElevation(map::MapWidget* mapWidget, float elevation)
 {
-   mapWidget->SelectElevation(elevation);
-
    if (mapWidget == activeMap_)
    {
       UpdateElevationSelection(elevation);
    }
+
+   mapWidget->SelectElevation(elevation);
 }
 
 void MainWindowImpl::SelectRadarProduct(map::MapWidget*           mapWidget,
@@ -401,7 +363,6 @@ void MainWindowImpl::SelectRadarProduct(map::MapWidget*           mapWidget,
                                         const std::string&        productName,
                                         int16_t                   productCode)
 {
-
    logger_->debug("Selecting radar product: {}, {}",
                   common::GetRadarProductGroupName(group),
                   productName);
@@ -432,23 +393,7 @@ void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)
 
 void MainWindowImpl::UpdateElevationSelection(float elevation)
 {
-   QString buttonText {QString::number(elevation, 'f', 1) +
-                       common::Characters::DEGREE};
-
-   for (QToolButton* toolButton :
-        mainWindow_->ui->elevationGroupBox->findChildren<QToolButton*>())
-   {
-      if (toolButton->text() == buttonText)
-      {
-         toolButton->setCheckable(true);
-         toolButton->setChecked(true);
-      }
-      else
-      {
-         toolButton->setChecked(false);
-         toolButton->setCheckable(false);
-      }
-   }
+   level2SettingsWidget_->UpdateElevationSelection(elevation);
 }
 
 void MainWindowImpl::UpdateMapParameters(
@@ -468,39 +413,15 @@ void MainWindowImpl::UpdateRadarProductSelection(
 
 void MainWindowImpl::UpdateRadarProductSettings()
 {
-   float              currentElevation = activeMap_->GetElevation();
-   std::vector<float> elevationCuts    = activeMap_->GetElevationCuts();
-
-   if (elevationCuts_ != elevationCuts)
+   if (activeMap_->GetRadarProductGroup() == common::RadarProductGroup::Level2)
    {
-      for (QToolButton* toolButton :
-           mainWindow_->ui->elevationGroupBox->findChildren<QToolButton*>())
-      {
-         delete toolButton;
-      }
-
-      QLayout* layout = mainWindow_->ui->elevationGroupBox->layout();
-
-      // Create elevation cut tool buttons
-      for (float elevationCut : elevationCuts)
-      {
-         QToolButton* toolButton = new QToolButton();
-         toolButton->setText(QString::number(elevationCut, 'f', 1) +
-                             common::Characters::DEGREE);
-         layout->addWidget(toolButton);
-
-         connect(toolButton,
-                 &QToolButton::clicked,
-                 this,
-                 [=]() { SelectElevation(activeMap_, elevationCut); });
-      }
-
-      elevationCuts_           = elevationCuts;
-      elevationButtonsChanged_ = true;
-      resizeElevationButtons_  = true;
+      level2SettingsWidget_->UpdateSettings(activeMap_);
+      level2SettingsWidget_->setVisible(true);
    }
-
-   UpdateElevationSelection(currentElevation);
+   else
+   {
+      level2SettingsWidget_->setVisible(false);
+   }
 }
 
 void MainWindowImpl::UpdateRadarSite()
