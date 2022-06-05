@@ -7,6 +7,7 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
+#include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/common/products.hpp>
 #include <scwx/common/vcp.hpp>
@@ -37,6 +38,7 @@ public:
        mainWindow_ {mainWindow},
        settings_ {},
        activeMap_ {nullptr},
+       level2ProductsWidget_ {nullptr},
        maps_ {},
        elevationCuts_ {},
        elevationButtonsChanged_ {false},
@@ -70,13 +72,13 @@ public:
    void ConfigureMapLayout();
    void HandleFocusChange(QWidget* focused);
    void NormalizeElevationButtons();
-   void NormalizeLevel2ProductButtons();
    void SelectElevation(map::MapWidget* mapWidget, float elevation);
-   void SelectRadarProduct(map::MapWidget*       mapWidget,
-                           common::Level2Product product);
+   void SelectRadarProduct(map::MapWidget*           mapWidget,
+                           common::RadarProductGroup group,
+                           const std::string&        productName,
+                           int16_t                   productCode);
    void SetActiveMap(map::MapWidget* mapWidget);
    void UpdateElevationSelection(float elevation);
-   void UpdateLevel2ProductSelection(common::Level2Product product);
    void UpdateRadarProductSelection(common::RadarProductGroup group,
                                     const std::string&        product);
    void UpdateRadarProductSettings();
@@ -86,6 +88,8 @@ public:
    MainWindow*       mainWindow_;
    QMapboxGLSettings settings_;
    map::MapWidget*   activeMap_;
+
+   ui::Level2ProductsWidget* level2ProductsWidget_;
 
    std::vector<map::MapWidget*> maps_;
    std::vector<float>           elevationCuts_;
@@ -115,24 +119,11 @@ MainWindow::MainWindow(QWidget* parent) :
    p->ConfigureMapLayout();
 
    // Add Level 2 Products
-   QLayout* level2Layout = new ui::FlowLayout();
-   level2Layout->setContentsMargins(0, 0, 0, 0);
-   ui->level2ProductFrame->setLayout(level2Layout);
-
-   for (common::Level2Product product : common::Level2ProductIterator())
-   {
-      QToolButton* toolButton = new QToolButton();
-      toolButton->setText(
-         QString::fromStdString(common::GetLevel2Name(product)));
-      toolButton->setStatusTip(
-         tr(common::GetLevel2Description(product).c_str()));
-      level2Layout->addWidget(toolButton);
-
-      connect(toolButton,
-              &QToolButton::clicked,
-              this,
-              [=]() { p->SelectRadarProduct(p->activeMap_, product); });
-   }
+   p->level2ProductsWidget_ = new ui::Level2ProductsWidget(this);
+   ui->radarProductGroupBox->layout()->replaceWidget(ui->level2ProductFrame,
+                                                     p->level2ProductsWidget_);
+   delete ui->level2ProductFrame;
+   ui->level2ProductFrame = p->level2ProductsWidget_;
 
    QLayout* elevationLayout = new ui::FlowLayout();
    ui->elevationGroupBox->setLayout(elevationLayout);
@@ -140,26 +131,43 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->settingsGroupBox->setVisible(false);
    ui->declutterCheckbox->setVisible(false);
 
-   p->SelectRadarProduct(p->activeMap_, common::Level2Product::Reflectivity);
+   p->SelectRadarProduct(
+      p->maps_.at(0),
+      common::RadarProductGroup::Level2,
+      common::GetLevel2Name(common::Level2Product::Reflectivity),
+      0);
    if (p->maps_.size() > 1 && p->maps_.at(1) != nullptr)
    {
-      p->SelectRadarProduct(p->maps_.at(1), common::Level2Product::Velocity);
+      p->SelectRadarProduct(
+         p->maps_.at(1),
+         common::RadarProductGroup::Level2,
+         common::GetLevel2Name(common::Level2Product::Velocity),
+         0);
    }
    if (p->maps_.size() > 2 && p->maps_.at(2) != nullptr)
    {
-      p->maps_.at(2)->SelectRadarProduct(
-         common::RadarProductGroup::Level3, "N0B", 153);
+      p->SelectRadarProduct(
+         p->maps_.at(2), common::RadarProductGroup::Level3, "N0B", 153);
    }
    if (p->maps_.size() > 3 && p->maps_.at(3) != nullptr)
    {
-      p->maps_.at(3)->SelectRadarProduct(
-         common::RadarProductGroup::Level3, "N0G", 154);
+      p->SelectRadarProduct(
+         p->maps_.at(3), common::RadarProductGroup::Level3, "N0G", 154);
    }
 
    connect(qApp,
            &QApplication::focusChanged,
            this,
            [=](QWidget* old, QWidget* now) { p->HandleFocusChange(now); });
+   connect(p->level2ProductsWidget_,
+           &ui::Level2ProductsWidget::RadarProductSelected,
+           this,
+           [&](common::RadarProductGroup group,
+               const std::string&        productName,
+               int16_t                   productCode) {
+              p->SelectRadarProduct(
+                 p->activeMap_, group, productName, productCode);
+           });
 
    p->HandleFocusChange(p->activeMap_);
 }
@@ -190,33 +198,9 @@ void MainWindow::showEvent(QShowEvent* event)
 {
    QMainWindow::showEvent(event);
 
-   p->NormalizeLevel2ProductButtons();
    p->NormalizeElevationButtons();
 
    resizeDocks({ui->radarToolboxDock}, {150}, Qt::Horizontal);
-}
-
-void MainWindowImpl::NormalizeLevel2ProductButtons()
-{
-   // Set each level 2 product's tool button to the same size
-   int level2MaxWidth = 0;
-   for (QToolButton* widget :
-        mainWindow_->ui->level2ProductFrame->findChildren<QToolButton*>())
-   {
-      if (widget->isVisible())
-      {
-         level2MaxWidth = std::max(level2MaxWidth, widget->width());
-      }
-   }
-
-   if (level2MaxWidth > 0)
-   {
-      for (QToolButton* widget :
-           mainWindow_->ui->level2ProductFrame->findChildren<QToolButton*>())
-      {
-         widget->setMinimumWidth(level2MaxWidth);
-      }
-   }
 }
 
 void MainWindowImpl::NormalizeElevationButtons()
@@ -412,21 +396,23 @@ void MainWindowImpl::SelectElevation(map::MapWidget* mapWidget, float elevation)
    }
 }
 
-void MainWindowImpl::SelectRadarProduct(map::MapWidget*       mapWidget,
-                                        common::Level2Product product)
+void MainWindowImpl::SelectRadarProduct(map::MapWidget*           mapWidget,
+                                        common::RadarProductGroup group,
+                                        const std::string&        productName,
+                                        int16_t                   productCode)
 {
-   const std::string& productName = common::GetLevel2Name(product);
 
-   logger_->debug("Selecting Level 2 radar product: {}", productName);
+   logger_->debug("Selecting radar product: {}, {}",
+                  common::GetRadarProductGroupName(group),
+                  productName);
 
    if (mapWidget == activeMap_)
    {
-      UpdateLevel2ProductSelection(product);
+      UpdateRadarProductSelection(group, productName);
       UpdateRadarProductSettings();
    }
 
-   mapWidget->SelectRadarProduct(
-      common::RadarProductGroup::Level2, productName, 0);
+   mapWidget->SelectRadarProduct(group, productName, productCode);
 }
 
 void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)
@@ -474,39 +460,10 @@ void MainWindowImpl::UpdateMapParameters(
    }
 }
 
-void MainWindowImpl::UpdateLevel2ProductSelection(common::Level2Product product)
-{
-   const std::string& productName = common::GetLevel2Name(product);
-
-   for (QToolButton* toolButton :
-        mainWindow_->ui->level2ProductFrame->findChildren<QToolButton*>())
-   {
-      if (toolButton->text().toStdString() == productName)
-      {
-         toolButton->setCheckable(true);
-         toolButton->setChecked(true);
-      }
-      else
-      {
-         toolButton->setChecked(false);
-         toolButton->setCheckable(false);
-      }
-   }
-}
-
 void MainWindowImpl::UpdateRadarProductSelection(
    common::RadarProductGroup group, const std::string& product)
 {
-   switch (group)
-   {
-   case common::RadarProductGroup::Level2:
-      UpdateLevel2ProductSelection(common::GetLevel2Product(product));
-      break;
-
-   default:
-      UpdateLevel2ProductSelection(common::Level2Product::Unknown);
-      break;
-   }
+   level2ProductsWidget_->UpdateProductSelection(group, product);
 }
 
 void MainWindowImpl::UpdateRadarProductSettings()

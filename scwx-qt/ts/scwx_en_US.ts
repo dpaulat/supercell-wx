@@ -14,17 +14,17 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="186"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="176"/>
         <source>Level 3</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="213"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="203"/>
         <source>Settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="219"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="209"/>
         <source>Declutter</source>
         <translation type="unfinished"></translation>
     </message>
@@ -74,27 +74,27 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="206"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="196"/>
         <source>Elevation</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="244"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="234"/>
         <source>E&amp;xit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="249"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="239"/>
         <source>About &amp;Supercell Wx...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="254"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="244"/>
         <source>&amp;Open...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="257"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="247"/>
         <source>Ctrl+O</source>
         <translation type="unfinished"></translation>
     </message>
@@ -102,7 +102,7 @@
 <context>
     <name>scwx::qt::main::MainWindow</name>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.cpp" line="297"/>
+        <location filename="../source/scwx/qt/main/main_window.cpp" line="281"/>
         <source>Unrecognized NEXRAD Product:</source>
         <translation type="unfinished"></translation>
     </message>

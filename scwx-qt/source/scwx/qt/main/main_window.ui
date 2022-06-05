@@ -164,16 +164,6 @@
          <widget class="QWidget" name="level2ProductFrame" native="true"/>
         </item>
         <item>
-         <widget class="QFrame" name="frame">
-          <property name="frameShape">
-           <enum>QFrame::StyledPanel</enum>
-          </property>
-          <property name="frameShadow">
-           <enum>QFrame::Raised</enum>
-          </property>
-         </widget>
-        </item>
-        <item>
          <widget class="Line" name="level2Separator">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
