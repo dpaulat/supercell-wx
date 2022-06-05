@@ -31,6 +31,7 @@ public:
    std::shared_ptr<wsr88d::Ar2vFile>     level2_file() const;
    std::shared_ptr<wsr88d::Level3File>   level3_file() const;
    std::shared_ptr<wsr88d::NexradFile>   nexrad_file() const;
+   int16_t                               product_code() const;
    std::string                           radar_id() const;
    std::string                           radar_product() const;
    common::RadarProductGroup             radar_product_group() const;

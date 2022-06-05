@@ -266,12 +266,14 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
    {
       common::Level2Product level2Product =
          p->GetLevel2ProductOrDefault(productName);
-      productName = common::GetLevel2Name(level2Product);
+      productName               = common::GetLevel2Name(level2Product);
+      p->selectedLevel2Product_ = level2Product;
    }
 
    if (radarProductView == nullptr ||
        radarProductView->GetRadarProductGroup() != group ||
-       radarProductView->GetRadarProductName() != productName)
+       radarProductView->GetRadarProductName() != productName ||
+       p->context_->radarProductCode_ != productCode)
    {
       p->RadarProductViewDisconnect();
 
@@ -282,24 +284,27 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
 
       radarProductViewCreated = true;
    }
-   radarProductView->SelectTime(p->selectedTime_);
 
-   if (group == common::RadarProductGroup::Level2)
-   {
-      p->selectedLevel2Product_ = common::GetLevel2Product(productName);
-   }
+   p->context_->radarProductGroup_ = group;
+   p->context_->radarProduct_      = productName;
+   p->context_->radarProductCode_  = productCode;
 
-   if (radarProductViewCreated)
+   if (radarProductView != nullptr)
    {
-      const std::string palette =
-         (group == common::RadarProductGroup::Level2) ?
-            common::GetLevel2Palette(common::GetLevel2Product(productName)) :
-            common::GetLevel3Palette(productCode);
-      p->InitializeNewRadarProductView(palette);
-   }
-   else
-   {
-      radarProductView->Update();
+      radarProductView->SelectTime(p->selectedTime_);
+
+      if (radarProductViewCreated)
+      {
+         const std::string palette =
+            (group == common::RadarProductGroup::Level2) ?
+               common::GetLevel2Palette(common::GetLevel2Product(productName)) :
+               common::GetLevel3Palette(productCode);
+         p->InitializeNewRadarProductView(palette);
+      }
+      else
+      {
+         radarProductView->Update();
+      }
    }
 
    if (p->autoRefreshEnabled_)
@@ -313,16 +318,9 @@ void MapWidget::SelectRadarProduct(
 {
    const std::string                     radarId = record->radar_id();
    common::RadarProductGroup             group = record->radar_product_group();
-   const std::string                     product = record->radar_product();
-   std::chrono::system_clock::time_point time    = record->time();
-
-   int16_t productCode = 0;
-
-   std::shared_ptr<wsr88d::Level3File> level3File = record->level3_file();
-   if (level3File != nullptr && level3File->message() != nullptr)
-   {
-      productCode = level3File->message()->header().message_code();
-   }
+   const std::string                     product     = record->radar_product();
+   std::chrono::system_clock::time_point time        = record->time();
+   int16_t                               productCode = record->product_code();
 
    logger_->debug("SelectRadarProduct: {}, {}, {}, {}",
                   radarId,
@@ -598,10 +596,9 @@ void MapWidgetImpl::AutoRefreshConnect()
              const std::string&                    product,
              std::chrono::system_clock::time_point latestTime)
          {
-            if (autoRefreshEnabled_ && context_->radarProductView_ != nullptr &&
-                context_->radarProductView_->GetRadarProductGroup() == group &&
+            if (autoRefreshEnabled_ && context_->radarProductGroup_ == group &&
                 (group == common::RadarProductGroup::Level2 ||
-                 context_->radarProductView_->GetRadarProductName() == product))
+                 context_->radarProduct_ == product))
             {
                // Create file request
                std::shared_ptr<request::NexradFileRequest> request =

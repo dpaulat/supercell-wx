@@ -29,6 +29,7 @@ public:
    ~RadarProductRecordImpl() {}
 
    std::shared_ptr<wsr88d::NexradFile>   nexradFile_;
+   int16_t                               productCode_;
    std::string                           radarId_;
    std::string                           radarProduct_;
    common::RadarProductGroup             radarProductGroup_;
@@ -51,6 +52,7 @@ RadarProductRecord::RadarProductRecord(
       p->radarProductGroup_ = common::RadarProductGroup::Level2;
       p->radarId_           = level2File->icao();
       p->siteId_            = common::GetSiteId(p->radarId_);
+      p->productCode_       = 0;
       julianDate            = level2File->julian_date();
       milliseconds          = level2File->milliseconds();
    }
@@ -60,6 +62,7 @@ RadarProductRecord::RadarProductRecord(
       p->radarProduct_      = level3File->wmo_header()->product_category();
       p->siteId_            = level3File->wmo_header()->product_designator();
       p->radarId_           = config::GetRadarIdFromSiteId(p->siteId_);
+      p->productCode_       = level3File->message()->header().message_code();
 
       auto descriptionBlock = level3File->message()->description_block();
 
@@ -98,6 +101,11 @@ std::shared_ptr<wsr88d::Level3File> RadarProductRecord::level3_file() const
 std::shared_ptr<wsr88d::NexradFile> RadarProductRecord::nexrad_file() const
 {
    return p->nexradFile_;
+}
+
+int16_t RadarProductRecord::product_code() const
+{
+   return p->productCode_;
 }
 
 std::string RadarProductRecord::radar_id() const

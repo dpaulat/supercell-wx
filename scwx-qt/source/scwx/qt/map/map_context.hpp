@@ -15,7 +15,12 @@ struct MapContext
 {
    explicit MapContext(
       std::shared_ptr<view::RadarProductView> radarProductView = nullptr) :
-       gl_ {}, settings_ {}, radarProductView_ {radarProductView}
+       gl_ {},
+       settings_ {},
+       radarProductView_ {radarProductView},
+       radarProductGroup_ {common::RadarProductGroup::Unknown},
+       radarProduct_ {"???"},
+       radarProductCode_ {0}
    {
    }
    ~MapContext() = default;
@@ -29,6 +34,9 @@ struct MapContext
    gl::OpenGLFunctions                     gl_;
    MapSettings                             settings_;
    std::shared_ptr<view::RadarProductView> radarProductView_;
+   common::RadarProductGroup               radarProductGroup_;
+   std::string                             radarProduct_;
+   int16_t                                 radarProductCode_;
 };
 
 } // namespace map

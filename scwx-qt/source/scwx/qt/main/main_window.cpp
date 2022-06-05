@@ -148,12 +148,12 @@ MainWindow::MainWindow(QWidget* parent) :
    if (p->maps_.size() > 2 && p->maps_.at(2) != nullptr)
    {
       p->SelectRadarProduct(
-         p->maps_.at(2), common::RadarProductGroup::Level3, "N0B", 153);
+         p->maps_.at(2), common::RadarProductGroup::Level3, "N0B", 0);
    }
    if (p->maps_.size() > 3 && p->maps_.at(3) != nullptr)
    {
       p->SelectRadarProduct(
-         p->maps_.at(3), common::RadarProductGroup::Level3, "N0G", 154);
+         p->maps_.at(3), common::RadarProductGroup::Level3, "N0G", 0);
    }
 
    connect(qApp,
