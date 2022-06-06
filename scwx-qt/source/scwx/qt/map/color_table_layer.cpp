@@ -107,7 +107,8 @@ void ColorTableLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = context()->gl_;
 
-   if (!context()->radarProductView_->IsInitialized())
+   if (context()->radarProductView_ == nullptr ||
+       !context()->radarProductView_->IsInitialized())
    {
       // Defer rendering until view is initialized
       return;
