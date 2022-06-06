@@ -64,22 +64,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="229"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="222"/>
         <source>E&amp;xit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="234"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="227"/>
         <source>About &amp;Supercell Wx...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="239"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="232"/>
         <source>&amp;Open...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.ui" line="242"/>
+        <location filename="../source/scwx/qt/main/main_window.ui" line="235"/>
         <source>Ctrl+O</source>
         <translation type="unfinished"></translation>
     </message>
@@ -87,7 +87,7 @@
 <context>
     <name>scwx::qt::main::MainWindow</name>
     <message>
-        <location filename="../source/scwx/qt/main/main_window.cpp" line="243"/>
+        <location filename="../source/scwx/qt/main/main_window.cpp" line="262"/>
         <source>Unrecognized NEXRAD Product:</source>
         <translation type="unfinished"></translation>
     </message>

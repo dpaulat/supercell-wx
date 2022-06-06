@@ -9,6 +9,7 @@
 #include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
+#include <scwx/qt/ui/level3_products_widget.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/common/products.hpp>
 #include <scwx/common/vcp.hpp>
@@ -93,6 +94,8 @@ public:
    ui::Level2ProductsWidget* level2ProductsWidget_;
    ui::Level2SettingsWidget* level2SettingsWidget_;
 
+   ui::Level3ProductsWidget* level3ProductsWidget_;
+
    std::vector<map::MapWidget*> maps_;
    std::vector<float>           elevationCuts_;
 
@@ -126,6 +129,13 @@ MainWindow::MainWindow(QWidget* parent) :
                                                      p->level2ProductsWidget_);
    delete ui->level2ProductFrame;
    ui->level2ProductFrame = p->level2ProductsWidget_;
+
+   // Add Level 3 Products
+   p->level3ProductsWidget_ = new ui::Level3ProductsWidget(this);
+   ui->radarProductGroupBox->layout()->replaceWidget(ui->level3ProductFrame,
+                                                     p->level3ProductsWidget_);
+   delete ui->level3ProductFrame;
+   ui->level3ProductFrame = p->level3ProductsWidget_;
 
    // Add Level 2 Settings
    p->level2SettingsWidget_ = new ui::Level2SettingsWidget(ui->settingsFrame);
@@ -162,6 +172,15 @@ MainWindow::MainWindow(QWidget* parent) :
            [=](QWidget* old, QWidget* now) { p->HandleFocusChange(now); });
    connect(p->level2ProductsWidget_,
            &ui::Level2ProductsWidget::RadarProductSelected,
+           this,
+           [&](common::RadarProductGroup group,
+               const std::string&        productName,
+               int16_t                   productCode) {
+              p->SelectRadarProduct(
+                 p->activeMap_, group, productName, productCode);
+           });
+   connect(p->level3ProductsWidget_,
+           &ui::Level3ProductsWidget::RadarProductSelected,
            this,
            [&](common::RadarProductGroup group,
                const std::string&        productName,
@@ -409,6 +428,7 @@ void MainWindowImpl::UpdateRadarProductSelection(
    common::RadarProductGroup group, const std::string& product)
 {
    level2ProductsWidget_->UpdateProductSelection(group, product);
+   level3ProductsWidget_->UpdateProductSelection(group, product);
 }
 
 void MainWindowImpl::UpdateRadarProductSettings()
