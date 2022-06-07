@@ -10,6 +10,7 @@
 #include <boost/asio.hpp>
 #include <spdlog/spdlog.h>
 #include <QApplication>
+#include <QTranslator>
 
 static const std::string logPrefix_ = "scwx::main";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
@@ -20,7 +21,16 @@ int main(int argc, char* argv[])
    scwx::util::Logger::Initialize();
    spdlog::set_level(spdlog::level::debug);
 
+   QApplication a(argc, argv);
+
    QCoreApplication::setApplicationName("Supercell Wx");
+
+   // Enable internationalization support
+   QTranslator translator;
+   if (translator.load(QLocale(), "scwx", "_", ":/i18n"))
+   {
+      QCoreApplication::installTranslator(&translator);
+   }
 
    // Start the io_context main loop
    boost::asio::io_context& ioContext = scwx::util::io_context();
@@ -56,7 +66,6 @@ int main(int argc, char* argv[])
    // Run Qt main loop
    int result;
    {
-      QApplication               a(argc, argv);
       scwx::qt::main::MainWindow w;
       w.show();
       result = a.exec();

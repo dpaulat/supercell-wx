@@ -16,19 +16,6 @@ find_package(Freetype)
 find_package(geographiclib)
 find_package(glm)
 
-# QtCreator supports the following variables for Android, which are identical to qmake Android variables.
-# Check https://doc.qt.io/qt/deployment-android.html for more information.
-# They need to be set before the find_package( ...) calls below.
-
-#if(ANDROID)
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
-#    if (ANDROID_ABI STREQUAL "armeabi-v7a")
-#        set(ANDROID_EXTRA_LIBS
-#            ${CMAKE_CURRENT_SOURCE_DIR}/path/to/libcrypto.so
-#            ${CMAKE_CURRENT_SOURCE_DIR}/path/to/libssl.so)
-#    endif()
-#endif()
-
 find_package(QT NAMES Qt6
              COMPONENTS Gui
                         LinguistTools
@@ -45,8 +32,6 @@ find_package(Qt${QT_VERSION_MAJOR}
                         OpenGLWidgets
                         Widgets
              REQUIRED)
-
-include(qt6-linguist.cmake)
 
 set(SRC_EXE_MAIN source/scwx/qt/main/main.cpp)
 
@@ -205,9 +190,17 @@ source_group("I18N Files"             FILES ${TS_FILES})
 add_library(scwx-qt OBJECT ${PROJECT_SOURCES})
 set_property(TARGET scwx-qt PROPERTY AUTOMOC ON)
 
-qt_add_executable(supercell-wx ${EXECUTABLE_SOURCES})
+qt_add_translations(scwx-qt TS_FILES ${TS_FILES}
+                    INCLUDE_DIRECTORIES true
+                    LUPDATE_OPTIONS -locations none -no-ui-lines)
 
-qt6_create_translation_scwx(QM_FILES ${scwx-qt_SOURCE_DIR} ${TS_FILES})
+set_target_properties(release_translations PROPERTIES FOLDER qt)
+set_target_properties(scwx-qt_lrelease     PROPERTIES FOLDER qt)
+set_target_properties(scwx-qt_lupdate      PROPERTIES FOLDER qt)
+set_target_properties(scwx-qt_other_files  PROPERTIES FOLDER qt)
+set_target_properties(update_translations  PROPERTIES FOLDER qt)
+
+qt_add_executable(supercell-wx ${EXECUTABLE_SOURCES})
 
 if (WIN32)
     target_compile_definitions(scwx-qt      PUBLIC WIN32_LEAN_AND_MEAN)
