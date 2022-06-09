@@ -1,5 +1,7 @@
 #pragma once
 
+#include <scwx/common/products.hpp>
+
 #include <memory>
 #include <string>
 
@@ -26,10 +28,10 @@ public:
    MapSettings(MapSettings&&) noexcept;
    MapSettings& operator=(MapSettings&&) noexcept;
 
-   size_t      count() const;
-   std::string radar_site(size_t i) const;
-   std::string radar_product_group(size_t i) const;
-   std::string radar_product(size_t i) const;
+   size_t                    count() const;
+   std::string               radar_site(size_t i) const;
+   common::RadarProductGroup radar_product_group(size_t i) const;
+   std::string               radar_product(size_t i) const;
 
    boost::json::value ToJson() const;
 

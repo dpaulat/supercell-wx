@@ -142,28 +142,13 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->settingsFrame->layout()->addWidget(p->level2SettingsWidget_);
    p->level2SettingsWidget_->setVisible(false);
 
-   p->SelectRadarProduct(
-      p->maps_.at(0),
-      common::RadarProductGroup::Level2,
-      common::GetLevel2Name(common::Level2Product::Reflectivity),
-      0);
-   if (p->maps_.size() > 1 && p->maps_.at(1) != nullptr)
+   auto mapSettings = manager::SettingsManager::map_settings();
+   for (size_t i = 0; i < p->maps_.size(); i++)
    {
-      p->SelectRadarProduct(
-         p->maps_.at(1),
-         common::RadarProductGroup::Level2,
-         common::GetLevel2Name(common::Level2Product::Velocity),
-         0);
-   }
-   if (p->maps_.size() > 2 && p->maps_.at(2) != nullptr)
-   {
-      p->SelectRadarProduct(
-         p->maps_.at(2), common::RadarProductGroup::Level3, "N0B", 0);
-   }
-   if (p->maps_.size() > 3 && p->maps_.at(3) != nullptr)
-   {
-      p->SelectRadarProduct(
-         p->maps_.at(3), common::RadarProductGroup::Level3, "N0G", 0);
+      p->SelectRadarProduct(p->maps_.at(i),
+                            mapSettings->radar_product_group(i),
+                            mapSettings->radar_product(i),
+                            0);
    }
 
    connect(qApp,

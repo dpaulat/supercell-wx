@@ -1,7 +1,6 @@
 #include <scwx/qt/settings/map_settings.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/util/json.hpp>
-#include <scwx/common/products.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <array>
@@ -17,10 +16,11 @@ namespace settings
 static const std::string logPrefix_ = "scwx::qt::settings::map_settings";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static constexpr size_t  kCount_                    = 4u;
-static const std::string kDefaultRadarSite_         = "KLSX";
-static const std::string kDefaultRadarProductGroup_ = "L3";
+static constexpr size_t  kCount_            = 4u;
+static const std::string kDefaultRadarSite_ = "KLSX";
 
+static const common::RadarProductGroup kDefaultRadarProductGroup_ =
+   common::RadarProductGroup::Level3;
 static const std::array<std::string, kCount_> kDefaultRadarProduct_ {
    "N0B", "N0G", "N0C", "N0X"};
 
@@ -29,9 +29,9 @@ class MapSettingsImpl
 public:
    struct MapData
    {
-      std::string radarSite_;
-      std::string radarProductGroup_;
-      std::string radarProduct_;
+      std::string               radarSite_;
+      common::RadarProductGroup radarProductGroup_;
+      std::string               radarProduct_;
    };
 
    explicit MapSettingsImpl() { SetDefaults(); }
@@ -72,7 +72,7 @@ std::string MapSettings::radar_site(size_t i) const
    return p->map_[i].radarSite_;
 }
 
-std::string MapSettings::radar_product_group(size_t i) const
+common::RadarProductGroup MapSettings::radar_product_group(size_t i) const
 {
    return p->map_[i].radarProductGroup_;
 }
@@ -118,17 +118,18 @@ std::shared_ptr<MapSettings> MapSettings::Load(const boost::json::value* json,
             MapSettingsImpl::MapData&  mapRecordSettings =
                mapSettings->p->map_[i];
 
+            std::string radarProductGroup;
+
             // Load JSON Elements
             jsonDirty |=
                !util::json::FromJsonString(mapRecord,
                                            "radar_site",
                                            mapRecordSettings.radarSite_,
                                            kDefaultRadarSite_);
-            jsonDirty |=
-               !util::json::FromJsonString(mapRecord,
-                                           "radar_product_group",
-                                           mapRecordSettings.radarProductGroup_,
-                                           kDefaultRadarSite_);
+            jsonDirty |= !util::json::FromJsonString(mapRecord,
+                                                     "radar_product_group",
+                                                     radarProductGroup,
+                                                     kDefaultRadarSite_);
             jsonDirty |=
                !util::json::FromJsonString(mapRecord,
                                            "radar_product",
@@ -143,20 +144,19 @@ std::shared_ptr<MapSettings> MapSettings::Load(const boost::json::value* json,
             }
 
             // Validate Radar Product Group
-            common::RadarProductGroup radarProductGroup =
-               common::GetRadarProductGroup(
-                  mapRecordSettings.radarProductGroup_);
-            if (radarProductGroup == common::RadarProductGroup::Unknown)
+            mapRecordSettings.radarProductGroup_ =
+               common::GetRadarProductGroup(radarProductGroup);
+            if (mapRecordSettings.radarProductGroup_ ==
+                common::RadarProductGroup::Unknown)
             {
                mapRecordSettings.radarProductGroup_ =
                   kDefaultRadarProductGroup_;
-               radarProductGroup =
-                  common::GetRadarProductGroup(kDefaultRadarProductGroup_);
                jsonDirty = true;
             }
 
             // Validate Radar Product
-            if (radarProductGroup == common::RadarProductGroup::Level2 &&
+            if (mapRecordSettings.radarProductGroup_ ==
+                   common::RadarProductGroup::Level2 &&
                 common::GetLevel2Product(mapRecordSettings.radarProduct_) ==
                    common::Level2Product::Unknown)
             {
@@ -200,7 +200,8 @@ void tag_invoke(boost::json::value_from_tag,
                 const MapSettingsImpl::MapData& data)
 {
    jv = {{"radar_site", data.radarSite_},
-         {"radar_product_group", data.radarProductGroup_},
+         {"radar_product_group",
+          common::GetRadarProductGroupName(data.radarProductGroup_)},
          {"radar_product", data.radarProduct_}};
 }
 
