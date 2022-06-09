@@ -1,4 +1,5 @@
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/config/radar_site.hpp>
 
 #include <filesystem>
 #include <fstream>
@@ -17,8 +18,20 @@ static const std::string DEFAULT_SETTINGS_FILE =
 static const std::string TEMP_SETTINGS_FILE =
    std::string(SCWX_TEST_DATA_DIR) + "/json/settings/settings-temp.json";
 
+class SettingsManagerTest : public testing::Test
+{
+   virtual void SetUp() { scwx::qt::config::RadarSite::Initialize(); }
+};
+
 class DefaultSettingsTest : public testing::TestWithParam<std::string>
 {
+   virtual void SetUp() { scwx::qt::config::RadarSite::Initialize(); }
+};
+
+class BadSettingsTest :
+    public testing::TestWithParam<std::pair<std::string, std::string>>
+{
+   virtual void SetUp() { scwx::qt::config::RadarSite::Initialize(); }
 };
 
 void VerifyDefaults()
@@ -45,8 +58,10 @@ void CompareFiles(const std::string& file1, const std::string& file2)
    EXPECT_EQ(buffer1.str(), buffer2.str());
 }
 
-TEST(SettingsManager, CreateJson)
+TEST_F(SettingsManagerTest, CreateJson)
 {
+   scwx::qt::config::RadarSite::Initialize();
+
    std::string filename {TEMP_SETTINGS_FILE};
 
    // Verify file doesn't exist prior to test start
@@ -63,7 +78,7 @@ TEST(SettingsManager, CreateJson)
    EXPECT_EQ(std::filesystem::exists(filename), false);
 }
 
-TEST(SettingsManager, SettingsKeax)
+TEST_F(SettingsManagerTest, SettingsKeax)
 {
    std::string filename(std::string(SCWX_TEST_DATA_DIR) +
                         "/json/settings/settings-keax.json");
@@ -71,6 +86,10 @@ TEST(SettingsManager, SettingsKeax)
    SettingsManager::ReadSettings(filename);
 
    EXPECT_EQ(SettingsManager::general_settings()->default_radar_site(), "KEAX");
+   for (size_t i = 0; i < SettingsManager::map_settings()->count(); ++i)
+   {
+      EXPECT_EQ(SettingsManager::map_settings()->radar_site(i), "KEAX");
+   }
 }
 
 TEST_P(DefaultSettingsTest, DefaultSettings)
@@ -95,39 +114,32 @@ INSTANTIATE_TEST_SUITE_P(SettingsManager,
                                          "settings-empty-groups.json",
                                          "settings-empty-object.json"));
 
-TEST(SettingsManager, SettingsBadMinimum)
+TEST_P(BadSettingsTest, BadSettings)
 {
-   std::string minimumFile(std::string(SCWX_TEST_DATA_DIR) +
-                           "/json/settings/settings-minimum.json");
-   std::string sourceFile(std::string(SCWX_TEST_DATA_DIR) +
-                          "/json/settings/settings-bad-minimum.json");
-   std::string filename {TEMP_SETTINGS_FILE};
+   auto& [goodFilename, badFilename] = GetParam();
+
+   const std::string goodFile(std::string(SCWX_TEST_DATA_DIR) +
+                              "/json/settings/" + goodFilename);
+   const std::string sourceFile(std::string(SCWX_TEST_DATA_DIR) +
+                                "/json/settings/" + badFilename);
+   const std::string filename {TEMP_SETTINGS_FILE};
 
    std::filesystem::copy_file(sourceFile, filename);
 
    SettingsManager::ReadSettings(filename);
 
-   CompareFiles(filename, minimumFile);
+   CompareFiles(filename, goodFile);
 
    std::filesystem::remove(filename);
 }
 
-TEST(SettingsManager, SettingsBadMaximum)
-{
-   std::string maximumFile(std::string(SCWX_TEST_DATA_DIR) +
-                           "/json/settings/settings-maximum.json");
-   std::string sourceFile(std::string(SCWX_TEST_DATA_DIR) +
-                          "/json/settings/settings-bad-maximum.json");
-   std::string filename {TEMP_SETTINGS_FILE};
-
-   std::filesystem::copy_file(sourceFile, filename);
-
-   SettingsManager::ReadSettings(filename);
-
-   CompareFiles(filename, maximumFile);
-
-   std::filesystem::remove(filename);
-}
+INSTANTIATE_TEST_SUITE_P(
+   SettingsManager,
+   BadSettingsTest,
+   testing::Values(
+      std::make_pair("settings-minimum.json", "settings-bad-minimum.json"),
+      std::make_pair("settings-maximum.json", "settings-bad-maximum.json"),
+      std::make_pair("settings-maps.json", "settings-bad-maps.json")));
 
 } // namespace manager
 } // namespace qt

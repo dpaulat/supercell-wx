@@ -20,7 +20,12 @@ namespace SettingsManager
 static const std::string logPrefix_ = "scwx::qt::manager::settings_manager";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+static const std::string kGeneralKey = "general";
+static const std::string kMapKey     = "maps";
+static const std::string kPaletteKey = "palette";
+
 static std::shared_ptr<settings::GeneralSettings> generalSettings_ = nullptr;
+static std::shared_ptr<settings::MapSettings>     mapSettings_     = nullptr;
 static std::shared_ptr<settings::PaletteSettings> paletteSettings_ = nullptr;
 
 static boost::json::value ConvertSettingsToJson();
@@ -79,6 +84,11 @@ std::shared_ptr<settings::GeneralSettings> general_settings()
    return generalSettings_;
 }
 
+std::shared_ptr<settings::MapSettings> map_settings()
+{
+   return mapSettings_;
+}
+
 std::shared_ptr<settings::PaletteSettings> palette_settings()
 {
    return paletteSettings_;
@@ -88,8 +98,9 @@ static boost::json::value ConvertSettingsToJson()
 {
    boost::json::object settingsJson;
 
-   settingsJson["general"] = generalSettings_->ToJson();
-   settingsJson["palette"] = paletteSettings_->ToJson();
+   settingsJson[kGeneralKey] = generalSettings_->ToJson();
+   settingsJson[kMapKey]     = mapSettings_->ToJson();
+   settingsJson[kPaletteKey] = paletteSettings_->ToJson();
 
    return settingsJson;
 }
@@ -99,6 +110,7 @@ static void GenerateDefaultSettings()
    logger_->info("Generating default settings");
 
    generalSettings_ = settings::GeneralSettings::Create();
+   mapSettings_     = settings::MapSettings::Create();
    paletteSettings_ = settings::PaletteSettings::Create();
 }
 
@@ -109,9 +121,11 @@ static bool LoadSettings(const boost::json::object& settingsJson)
    bool jsonDirty = false;
 
    generalSettings_ = settings::GeneralSettings::Load(
-      settingsJson.if_contains("general"), jsonDirty);
+      settingsJson.if_contains(kGeneralKey), jsonDirty);
+   mapSettings_ =
+      settings::MapSettings::Load(settingsJson.if_contains(kMapKey), jsonDirty);
    paletteSettings_ = settings::PaletteSettings::Load(
-      settingsJson.if_contains("palette"), jsonDirty);
+      settingsJson.if_contains(kPaletteKey), jsonDirty);
 
    return jsonDirty;
 }
