@@ -2,6 +2,8 @@
 
 #include <scwx/provider/nexrad_data_provider.hpp>
 
+#include <aws/s3/S3Client.h>
+
 namespace scwx
 {
 namespace provider
@@ -37,6 +39,8 @@ public:
    std::pair<size_t, size_t>           Refresh();
 
 protected:
+   std::shared_ptr<Aws::S3::S3Client> client();
+
    virtual std::string
    GetPrefix(std::chrono::system_clock::time_point date) = 0;
 

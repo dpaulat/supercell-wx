@@ -3,6 +3,9 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
+#include <shared_mutex>
+
+#include <aws/s3/model/ListObjectsV2Request.h>
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 
@@ -18,21 +21,33 @@ static const auto logger_ = util::Logger::Create(logPrefix_);
 static const std::string kDefaultBucketName_ = "unidata-nexrad-level3";
 static const std::string kDefaultRegion_     = "us-east-1";
 
+std::unordered_map<std::string, std::vector<std::string>> productMap_;
+std::shared_mutex                                         productMutex_;
+
 class AwsLevel3DataProvider::Impl
 {
 public:
-   explicit Impl(const std::string& radarSite, const std::string& product) :
+   explicit Impl(AwsLevel3DataProvider* self,
+                 const std::string&     radarSite,
+                 const std::string&     product,
+                 const std::string&     bucketName) :
+       self_ {self},
        radarSite_ {radarSite},
        siteId_ {common::GetSiteId(radarSite_)},
-       product_ {product}
+       product_ {product},
+       bucketName_ {bucketName}
    {
    }
+   ~Impl() = default;
 
-   ~Impl() {}
+   void ListProducts();
+
+   AwsLevel3DataProvider* self_;
 
    std::string radarSite_;
    std::string siteId_;
    std::string product_;
+   std::string bucketName_;
 };
 
 AwsLevel3DataProvider::AwsLevel3DataProvider(const std::string& radarSite,
@@ -46,7 +61,7 @@ AwsLevel3DataProvider::AwsLevel3DataProvider(const std::string& radarSite,
                                              const std::string& bucketName,
                                              const std::string& region) :
     AwsNexradDataProvider(radarSite, bucketName, region),
-    p(std::make_unique<Impl>(radarSite, product))
+    p(std::make_unique<Impl>(this, radarSite, product, bucketName))
 {
 }
 AwsLevel3DataProvider::~AwsLevel3DataProvider() = default;
@@ -101,6 +116,71 @@ AwsLevel3DataProvider::GetTimePointFromKey(const std::string& key)
    }
 
    return time;
+}
+
+void AwsLevel3DataProvider::Impl::ListProducts()
+{
+   std::shared_lock readLock(productMutex_);
+
+   // Only list once per radar site
+   if (productMap_.contains(radarSite_))
+   {
+      return;
+   }
+
+   readLock.unlock();
+
+   // Prefix format: GGG_
+   const std::string prefix = fmt::format("{0}_", siteId_);
+
+   Aws::S3::Model::ListObjectsV2Request request;
+   request.SetBucket(bucketName_);
+   request.SetPrefix(prefix);
+   request.SetDelimiter("_");
+
+   auto outcome = self_->client()->ListObjectsV2(request);
+
+   if (outcome.IsSuccess())
+   {
+      std::unique_lock writeLock(productMutex_);
+
+      // If the product was populated since first checked, don't re-populate
+      if (productMap_.contains(radarSite_))
+      {
+         return;
+      }
+
+      auto& prefixes = outcome.GetResult().GetCommonPrefixes();
+
+      // Create a vector with reserved capacity
+      std::vector<std::string> productList;
+      productList.reserve(prefixes.size());
+
+      std::for_each(prefixes.cbegin(),
+                    prefixes.cend(),
+                    [&](const Aws::S3::Model::CommonPrefix& commonPrefix)
+                    {
+                       // Prefix format: GGG_PPP_
+                       std::string prefix = commonPrefix.GetPrefix();
+                       size_t      left   = prefix.find('_');
+                       size_t      right  = prefix.rfind('_');
+
+                       // If left != npos, right != npos
+                       if (left != std::string::npos && right > left)
+                       {
+                          // The product starts after the left delimeter, and
+                          // ends before the right delimeter.
+                          ++left;
+                          productList.push_back(
+                             prefix.substr(left, right - left));
+                       }
+                    });
+
+      // Remove extra capacity if necessary
+      productList.shrink_to_fit();
+
+      productMap_.emplace(radarSite_, std::move(productList));
+   }
 }
 
 } // namespace provider

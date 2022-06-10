@@ -6,7 +6,6 @@
 
 #include <shared_mutex>
 
-#include <aws/s3/S3Client.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/ListObjectsV2Request.h>
 
@@ -55,7 +54,7 @@ public:
       Aws::Client::ClientConfiguration config;
       config.region = region_;
 
-      client_ = std::make_unique<Aws::S3::S3Client>(config);
+      client_ = std::make_shared<Aws::S3::S3Client>(config);
    }
 
    ~Impl() {}
@@ -68,7 +67,7 @@ public:
    std::string bucketName_;
    std::string region_;
 
-   std::unique_ptr<Aws::S3::S3Client> client_;
+   std::shared_ptr<Aws::S3::S3Client> client_;
 
    std::map<std::chrono::system_clock::time_point, ObjectRecord> objects_;
    std::shared_mutex                                             objectsMutex_;
@@ -94,6 +93,11 @@ AwsNexradDataProvider::operator=(AwsNexradDataProvider&&) noexcept = default;
 size_t AwsNexradDataProvider::cache_size() const
 {
    return p->objects_.size();
+}
+
+std::shared_ptr<Aws::S3::S3Client> AwsNexradDataProvider::client()
+{
+   return p->client_;
 }
 
 std::chrono::seconds AwsNexradDataProvider::update_period() const
