@@ -109,7 +109,6 @@ bool GraphicProductMessage::Parse(std::istream& is)
          }
          catch (const boost::iostreams::bzip2_error& ex)
          {
-            int error = ex.error();
             logger_->warn("Error decompressing data: {}", ex.what());
 
             dataValid = false;

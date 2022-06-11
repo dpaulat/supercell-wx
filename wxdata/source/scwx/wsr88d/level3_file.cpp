@@ -139,8 +139,6 @@ bool Level3FileImpl::DecompressFile(std::istream& is, std::stringstream& ss)
       }
       catch (const boost::iostreams::zlib_error& ex)
       {
-         int error = ex.error();
-
          logger_->warn("Error decompressing data: {}", ex.what());
 
          dataValid = false;

@@ -25,7 +25,7 @@ typedef std::function<std::shared_ptr<Level3Message>(Level3MessageHeader&&,
                                                      std::istream&)>
    CreateLevel3MessageFunction;
 
-static const std::unordered_map<int16_t, CreateLevel3MessageFunction> //
+static const std::unordered_map<int, CreateLevel3MessageFunction> //
    create_ {{2, GeneralStatusMessage::Create},
             {19, GraphicProductMessage::Create},
             {20, GraphicProductMessage::Create},
@@ -140,7 +140,6 @@ std::shared_ptr<Level3Message> Level3MessageFactory::Create(std::istream& is)
    if (messageValid)
    {
       int16_t messageCode = header.message_code();
-      size_t  dataSize = header.length_of_message() - Level3MessageHeader::SIZE;
 
       logger_->debug("Found Message {}", messageCode);
 

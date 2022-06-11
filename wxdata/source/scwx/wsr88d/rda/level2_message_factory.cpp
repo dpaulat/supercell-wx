@@ -28,7 +28,7 @@ typedef std::function<std::shared_ptr<Level2Message>(Level2MessageHeader&&,
                                                      std::istream&)>
    CreateLevel2MessageFunction;
 
-static const std::unordered_map<uint8_t, CreateLevel2MessageFunction> create_ {
+static const std::unordered_map<unsigned int, CreateLevel2MessageFunction> create_ {
    {2, RdaStatusData::Create},
    {3, PerformanceMaintenanceData::Create},
    {5, VolumeCoveragePatternData::Create},

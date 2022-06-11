@@ -120,8 +120,6 @@ bool DigitalPrecipitationDataArrayPacket::Parse(std::istream& is)
 
       for (uint16_t r = 0; r < p->numberOfRows_; r++)
       {
-         size_t rowBytesRead = 0;
-
          auto& row = p->row_[r];
 
          is.read(reinterpret_cast<char*>(&row.numberOfBytes_), 2);

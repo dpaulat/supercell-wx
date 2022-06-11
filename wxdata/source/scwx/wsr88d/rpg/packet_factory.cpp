@@ -40,7 +40,7 @@ static const auto        logger_    = util::Logger::Create(logPrefix_);
 typedef std::function<std::shared_ptr<Packet>(std::istream&)>
    CreateMessageFunction;
 
-static const std::unordered_map<uint16_t, CreateMessageFunction> create_ {
+static const std::unordered_map<unsigned int, CreateMessageFunction> create_ {
    {1, TextAndSpecialSymbolPacket::Create},
    {2, TextAndSpecialSymbolPacket::Create},
    {3, MesocycloneSymbolPacket::Create},

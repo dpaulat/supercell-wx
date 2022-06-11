@@ -77,7 +77,7 @@ static const std::unordered_map<Level3ProductCategory, std::string>
       {Level3ProductCategory::SpecificDifferentialPhase, "N0K"},
       {Level3ProductCategory::CorrelationCoefficient, "N0C"}};
 
-static const std::unordered_map<int16_t, std::string> level3Palette_ {
+static const std::unordered_map<int, std::string> level3Palette_ {
    {19, "BR"},     {20, "BR"},     {27, "BV"},     {30, "SW"},
    {31, "STPIN"},  {32, "BR"},     {37, "BR"},     {38, "BR"},
    {41, "ET"},     {50, "BR"},     {51, "BV"},     {56, "SRV"},

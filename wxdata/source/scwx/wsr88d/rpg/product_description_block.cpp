@@ -18,12 +18,12 @@ static const std::string logPrefix_ =
    "scwx::wsr88d::rpg::product_description_block";
 static const auto logger_ = util::Logger::Create(logPrefix_);
 
-static const std::set<int16_t> compressedProducts_ = {
+static const std::set<int> compressedProducts_ = {
    32,  94,  99,  134, 135, 138, 149, 152, 153, 154, 155,
    159, 161, 163, 165, 167, 168, 170, 172, 173, 174, 175,
    176, 177, 178, 179, 180, 182, 186, 193, 195, 202};
 
-static const std::unordered_map<int16_t, uint16_t> rangeMap_ {
+static const std::unordered_map<int, unsigned int> rangeMap_ {
    {19, 230},  {20, 460},  {27, 230},  {30, 230},  {31, 230},  {32, 230},
    {37, 230},  {38, 460},  {41, 230},  {50, 230},  {51, 230},  {56, 230},
    {57, 230},  {58, 460},  {59, 230},  {61, 230},  {62, 460},  {65, 230},
@@ -38,7 +38,7 @@ static const std::unordered_map<int16_t, uint16_t> rangeMap_ {
    {176, 230}, {177, 230}, {178, 300}, {179, 300}, {180, 89},  {181, 89},
    {182, 89},  {184, 89},  {186, 412}, {193, 460}, {195, 460}, {196, 50}};
 
-static const std::unordered_map<int16_t, uint16_t> xResolutionMap_ {
+static const std::unordered_map<int, unsigned int> xResolutionMap_ {
    {19, 1000},  {20, 2000},  {27, 1000},  {30, 1000},  {31, 2000},  {32, 1000},
    {33, 1000},  {34, 1000},  {37, 1000},  {38, 4000},  {41, 4000},  {50, 1000},
    {51, 1000},  {56, 1000},  {57, 4000},  {65, 4000},  {66, 4000},  {67, 4000},
@@ -52,7 +52,7 @@ static const std::unordered_map<int16_t, uint16_t> xResolutionMap_ {
    {178, 1000}, {179, 1000}, {180, 150},  {181, 150},  {182, 150},  {184, 150},
    {186, 300},  {193, 250},  {195, 1000}};
 
-static const std::unordered_map<int16_t, uint16_t> yResolutionMap_ {{37, 1000},
+static const std::unordered_map<int, unsigned int> yResolutionMap_ {{37, 1000},
                                                                     {38, 4000},
                                                                     {41, 4000},
                                                                     {50, 500},
@@ -255,7 +255,7 @@ uint16_t ProductDescriptionBlock::range_raw() const
    auto it = rangeMap_.find(p->productCode_);
    if (it != rangeMap_.cend())
    {
-      range = it->second;
+      range = static_cast<uint16_t>(it->second);
    }
 
    return range;
@@ -273,7 +273,7 @@ uint16_t ProductDescriptionBlock::x_resolution_raw() const
    auto it = xResolutionMap_.find(p->productCode_);
    if (it != xResolutionMap_.cend())
    {
-      xResolution = it->second;
+      xResolution = static_cast<uint16_t>(it->second);
    }
 
    return xResolution;
@@ -291,7 +291,7 @@ uint16_t ProductDescriptionBlock::y_resolution_raw() const
    auto it = yResolutionMap_.find(p->productCode_);
    if (it != yResolutionMap_.cend())
    {
-      yResolution = it->second;
+      yResolution = static_cast<uint16_t>(it->second);
    }
 
    return yResolution;

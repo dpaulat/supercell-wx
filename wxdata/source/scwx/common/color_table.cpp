@@ -306,17 +306,17 @@ ParseColor(const std::vector<std::string>& tokenList,
 template<typename T>
 T RoundChannel(double value)
 {
-   return std::clamp<int>(std::lround(value),
-                          std::numeric_limits<T>::min(),
-                          std::numeric_limits<T>::max());
+   return static_cast<T>(std::clamp<int>(std::lround(value),
+                                         std::numeric_limits<T>::min(),
+                                         std::numeric_limits<T>::max()));
 }
 
 template<typename T>
 T StringToDecimal(const std::string& str)
 {
-   return std::clamp<int>(std::stoi(str),
-                          std::numeric_limits<T>::min(),
-                          std::numeric_limits<T>::max());
+   return static_cast<T>(std::clamp<int>(std::stoi(str),
+                                         std::numeric_limits<T>::min(),
+                                         std::numeric_limits<T>::max()));
 }
 
 } // namespace common

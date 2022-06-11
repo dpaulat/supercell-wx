@@ -41,7 +41,7 @@ bool CodedLocation::Parse(const StringRange& lines, const std::string& wfo)
    };
 
    bool           dataValid = true;
-   LocationFormat format;
+   LocationFormat format {};
 
    std::vector<std::string> tokenList;
 

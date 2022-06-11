@@ -3,7 +3,9 @@
 #include <memory>
 #include <string>
 
+#pragma warning(push, 0)
 #include <spdlog/logger.h>
+#pragma warning(pop)
 
 namespace scwx
 {

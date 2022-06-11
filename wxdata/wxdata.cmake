@@ -207,9 +207,10 @@ target_include_directories(wxdata PRIVATE ${Boost_INCLUDE_DIR}
                                           ${scwx-data_SOURCE_DIR}/source)
 target_include_directories(wxdata INTERFACE ${scwx-data_SOURCE_DIR}/include)
 
-if(MSVC)
-    target_compile_options(wxdata PRIVATE /W3)
-endif()
+target_compile_options(wxdata PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
+)
 
 target_link_libraries(wxdata PUBLIC AWS::s3
                                     spdlog::spdlog)

@@ -112,9 +112,9 @@ std::shared_ptr<const rda::VolumeCoveragePatternData> Ar2vFile::vcp_data() const
 }
 
 std::tuple<std::shared_ptr<rda::ElevationScan>, float, std::vector<float>>
-Ar2vFile::GetElevationScan(rda::DataBlockType                    dataBlockType,
-                           float                                 elevation,
-                           std::chrono::system_clock::time_point time) const
+Ar2vFile::GetElevationScan(rda::DataBlockType dataBlockType,
+                           float              elevation,
+                           std::chrono::system_clock::time_point /*time*/) const
 {
    logger_->debug("GetElevationScan: {} degrees", elevation);
 
@@ -148,10 +148,10 @@ Ar2vFile::GetElevationScan(rda::DataBlockType                    dataBlockType,
          elevationCuts.push_back(scan.first / scaleFactor);
       }
 
-      uint16_t lowerDelta = std::abs(static_cast<int32_t>(codedElevation) -
-                                     static_cast<int32_t>(lowerBound));
-      uint16_t upperDelta = std::abs(static_cast<int32_t>(codedElevation) -
-                                     static_cast<int32_t>(upperBound));
+      int32_t lowerDelta = std::abs(static_cast<int32_t>(codedElevation) -
+                                    static_cast<int32_t>(lowerBound));
+      int32_t upperDelta = std::abs(static_cast<int32_t>(codedElevation) -
+                                    static_cast<int32_t>(upperBound));
 
       if (lowerDelta < upperDelta)
       {
@@ -278,8 +278,8 @@ size_t Ar2vFileImpl::DecompressLDMRecords(std::istream& is)
       }
       catch (const boost::iostreams::bzip2_error& ex)
       {
-         int error = ex.error();
-         logger_->warn("Error decompressing record {}", numRecords);
+         logger_->warn(
+            "Error decompressing record {}: {}", numRecords, ex.what());
 
          is.seekg(startPosition + std::streampos(recordSize),
                   std::ios_base::beg);

@@ -184,8 +184,6 @@ bool RasterDataPacket::Parse(std::istream& is)
 
       for (uint16_t r = 0; r < p->numberOfRows_; r++)
       {
-         size_t rowBytesRead = 0;
-
          auto& row = p->row_[r];
 
          is.read(reinterpret_cast<char*>(&row.numberOfBytes_), 2);
@@ -219,7 +217,7 @@ bool RasterDataPacket::Parse(std::istream& is)
          uint16_t binCount =
             std::accumulate(row.data_.cbegin(),
                             row.data_.cend(),
-                            0,
+                            static_cast<uint16_t>(0u),
                             [](const uint16_t& a, const uint8_t& b) -> uint16_t
                             { return a + (b >> 4); });
 
