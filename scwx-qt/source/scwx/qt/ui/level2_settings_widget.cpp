@@ -34,8 +34,8 @@ public:
    {
       layout_->setContentsMargins(0, 0, 0, 0);
 
-      elevationGroupBox_       = new QGroupBox(tr("Elevation"), self);
-      QLayout* elevationLayout = new ui::FlowLayout(elevationGroupBox_);
+      elevationGroupBox_ = new QGroupBox(tr("Elevation"), self);
+      new ui::FlowLayout(elevationGroupBox_);
       layout_->addWidget(elevationGroupBox_);
 
       settingsGroupBox_       = new QGroupBox(tr("Settings"), self);

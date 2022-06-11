@@ -2,9 +2,11 @@
 #include <scwx/qt/gl/shader_program.hpp>
 #include <scwx/util/logger.hpp>
 
+#pragma warning(push, 0)
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#pragma warning(pop)
 
 namespace scwx
 {

@@ -1,7 +1,9 @@
 #include <scwx/qt/gl/text_shader.hpp>
 #include <scwx/util/logger.hpp>
 
+#pragma warning(push, 0)
 #include <glm/gtc/type_ptr.hpp>
+#pragma warning(pop)
 
 namespace scwx
 {

@@ -172,7 +172,7 @@ MapWidgetImpl::GetLevel2ProductOrDefault(const std::string& productName) const
    {
       if (context_->radarProductView_ != nullptr)
       {
-         common::Level2Product level2Product = common::GetLevel2Product(
+         level2Product = common::GetLevel2Product(
             context_->radarProductView_->GetRadarProductName());
       }
    }

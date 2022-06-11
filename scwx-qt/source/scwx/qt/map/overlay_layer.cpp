@@ -9,6 +9,7 @@
 #include <chrono>
 #include <execution>
 
+#pragma warning(push, 0)
 #include <boost/date_time.hpp>
 #include <boost/date_time/local_time/local_time.hpp>
 #include <boost/timer/timer.hpp>
@@ -17,6 +18,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <mbgl/util/constants.hpp>
+#pragma warning(pop)
 
 namespace scwx
 {

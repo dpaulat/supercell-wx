@@ -154,7 +154,7 @@ MainWindow::MainWindow(QWidget* parent) :
    connect(qApp,
            &QApplication::focusChanged,
            this,
-           [=](QWidget* old, QWidget* now) { p->HandleFocusChange(now); });
+           [=](QWidget* /*old*/, QWidget* now) { p->HandleFocusChange(now); });
    connect(p->level2ProductsWidget_,
            &ui::Level2ProductsWidget::RadarProductSelected,
            this,
@@ -277,7 +277,7 @@ void MainWindowImpl::ConfigureMapLayout()
 
    maps_.resize(mapCount);
 
-   auto MoveSplitter = [=](int pos, int index)
+   auto MoveSplitter = [=](int /*pos*/, int /*index*/)
    {
       QSplitter* s = dynamic_cast<QSplitter*>(sender());
 

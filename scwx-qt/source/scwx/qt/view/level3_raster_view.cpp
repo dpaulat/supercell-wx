@@ -278,8 +278,6 @@ void Level3RasterView::ComputeSweep()
    dataMoments8.resize(rows * maxColumns * VERTICES_PER_BIN);
 
    // Compute threshold at which to display an individual bin
-   const float    scale        = descriptionBlock->scale();
-   const float    offset       = descriptionBlock->offset();
    const uint16_t snrThreshold = descriptionBlock->threshold();
 
    for (size_t row = 0; row < rasterData->number_of_rows(); ++row)

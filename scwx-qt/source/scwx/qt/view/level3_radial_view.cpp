@@ -254,8 +254,6 @@ void Level3RadialView::ComputeSweep()
    dataMoments8.resize(radials * gates * VERTICES_PER_BIN);
 
    // Compute threshold at which to display an individual bin
-   const float    scale        = descriptionBlock->scale();
-   const float    offset       = descriptionBlock->offset();
    const uint16_t snrThreshold = descriptionBlock->threshold();
 
    // Determine which radial to start at
@@ -268,9 +266,7 @@ void Level3RadialView::ComputeSweep()
       const auto dataMomentsArray8 = radialData->level(radial);
 
       // Compute gate interval
-      const uint16_t dataMomentInterval  = descriptionBlock->x_resolution_raw();
-      const uint16_t dataMomentIntervalH = dataMomentInterval / 2;
-      const uint16_t dataMomentRange     = dataMomentIntervalH;
+      const uint16_t dataMomentInterval = descriptionBlock->x_resolution_raw();
 
       // Compute gate size (number of base gates per bin)
       const uint16_t gateSize = std::max<uint16_t>(

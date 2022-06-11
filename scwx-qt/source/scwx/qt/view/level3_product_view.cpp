@@ -225,27 +225,27 @@ void Level3ProductView::UpdateColorTable()
             uint16_t th = descriptionBlock->data_level_threshold(i);
             if ((th & 0x8000u) == 0)
             {
-               float scale = 1.0f;
+               float scaleFactor = 1.0f;
 
                if (th & 0x4000u)
                {
-                  scale *= 0.01f;
+                  scaleFactor *= 0.01f;
                }
                if (th & 0x2000u)
                {
-                  scale *= 0.05f;
+                  scaleFactor *= 0.05f;
                }
                if (th & 0x1000u)
                {
-                  scale *= 0.1f;
+                  scaleFactor *= 0.1f;
                }
                if (th & 0x0100u)
                {
-                  scale *= -1.0f;
+                  scaleFactor *= -1.0f;
                }
 
                // If bit 0 is zero, then the LSB is numeric
-               f = static_cast<float>(th & 0x00ffu) * scale;
+               f = static_cast<float>(th & 0x00ffu) * scaleFactor;
 
                lut[lutIndex] = p->colorTable_->Color(f);
             }

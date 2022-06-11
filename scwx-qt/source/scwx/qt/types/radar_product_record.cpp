@@ -44,7 +44,7 @@ RadarProductRecord::RadarProductRecord(
    std::shared_ptr<wsr88d::Ar2vFile>   level2File = level2_file();
    std::shared_ptr<wsr88d::Level3File> level3File = level3_file();
 
-   uint16_t julianDate   = 0;
+   uint32_t julianDate   = 0;
    uint32_t milliseconds = 0;
 
    if (level2File != nullptr)

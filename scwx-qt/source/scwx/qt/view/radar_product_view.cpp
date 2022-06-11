@@ -79,7 +79,7 @@ void RadarProductView::Initialize()
    p->initialized_ = true;
 }
 
-void RadarProductView::SelectElevation(float elevation) {}
+void RadarProductView::SelectElevation(float /*elevation*/) {}
 
 bool RadarProductView::IsInitialized() const
 {

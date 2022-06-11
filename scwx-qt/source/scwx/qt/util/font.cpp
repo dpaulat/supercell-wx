@@ -16,6 +16,7 @@
 #include FT_SFNT_NAMES_H
 #include FT_TRUETYPE_IDS_H
 
+#pragma warning(push, 0)
 // #include <freetype-gl.h> (exclude opengl.h)
 #include <platform.h>
 #include <vec234.h>
@@ -23,6 +24,7 @@
 #include <texture-atlas.h>
 #include <texture-font.h>
 #include <ftgl-utils.h>
+#pragma warning(pop)
 
 #ifdef WIN32
 #   include <WinSock2.h>
@@ -179,7 +181,7 @@ float Font::BufferText(std::shared_ptr<FontBuffer> buffer,
    return x;
 }
 
-float Font::Kerning(char c1, char c2) const
+float Font::Kerning(char /*c1*/, char /*c2*/) const
 {
    // TODO
    return 0.0f;

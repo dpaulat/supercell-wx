@@ -215,6 +215,15 @@ target_include_directories(scwx-qt PUBLIC ${scwx-qt_SOURCE_DIR}/source
 
 target_include_directories(supercell-wx PUBLIC ${scwx-qt_SOURCE_DIR}/source)
 
+target_compile_options(scwx-qt PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
+)
+target_compile_options(supercell-wx PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
+)
+
 target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Qt${QT_VERSION_MAJOR}::OpenGLWidgets
                                      Boost::json
