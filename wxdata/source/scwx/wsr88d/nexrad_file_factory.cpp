@@ -6,9 +6,12 @@
 #include <fstream>
 #include <sstream>
 
+#pragma warning(push)
+#pragma warning(disable : 4706)
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
+#pragma warning(pop)
 
 namespace scwx
 {
