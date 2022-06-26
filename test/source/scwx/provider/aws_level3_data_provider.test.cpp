@@ -56,6 +56,16 @@ TEST(AwsLevel3DataProvider, Refresh)
    EXPECT_EQ(newObjects, totalObjects);
 }
 
+TEST(AwsLevel3DataProvider, GetAvailableProducts)
+{
+   AwsLevel3DataProvider provider("KLSX", "N0B");
+
+   provider.RequestAvailableProducts();
+   auto products = provider.GetAvailableProducts();
+
+   EXPECT_GT(products.size(), 0);
+}
+
 TEST(AwsLevel3DataProvider, TimePointValid)
 {
    using namespace std::chrono;

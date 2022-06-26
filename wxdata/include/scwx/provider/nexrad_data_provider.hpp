@@ -100,6 +100,19 @@ public:
    virtual std::chrono::system_clock::time_point
    GetTimePointByKey(const std::string& key) const = 0;
 
+   /**
+    * Requests available NEXRAD products for the current radar site, and adds
+    * the list to the cache.
+    */
+   virtual void RequestAvailableProducts();
+
+   /**
+    * Gets the list of available NEXRAD products for the current radar site.
+    *
+    * @return Available NEXRAD products
+    */
+   virtual std::vector<std::string> GetAvailableProducts();
+
 private:
    class Impl;
    std::unique_ptr<Impl> p;

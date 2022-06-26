@@ -22,5 +22,12 @@ NexradDataProvider::NexradDataProvider(NexradDataProvider&&) noexcept = default;
 NexradDataProvider&
 NexradDataProvider::operator=(NexradDataProvider&&) noexcept = default;
 
+void NexradDataProvider::RequestAvailableProducts() {}
+
+std::vector<std::string> NexradDataProvider::GetAvailableProducts()
+{
+   return {};
+}
+
 } // namespace provider
 } // namespace scwx

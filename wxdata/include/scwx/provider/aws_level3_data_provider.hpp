@@ -33,6 +33,9 @@ public:
    static std::chrono::system_clock::time_point
    GetTimePointFromKey(const std::string& key);
 
+   void                     RequestAvailableProducts();
+   std::vector<std::string> GetAvailableProducts();
+
 protected:
    std::string GetPrefix(std::chrono::system_clock::time_point date);
 

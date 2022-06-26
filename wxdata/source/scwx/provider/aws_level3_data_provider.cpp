@@ -118,6 +118,24 @@ AwsLevel3DataProvider::GetTimePointFromKey(const std::string& key)
    return time;
 }
 
+void AwsLevel3DataProvider::RequestAvailableProducts()
+{
+   p->ListProducts();
+}
+
+std::vector<std::string> AwsLevel3DataProvider::GetAvailableProducts()
+{
+   std::shared_lock readLock(productMutex_);
+
+   auto siteProductMap = productMap_.find(p->radarSite_);
+   if (siteProductMap != productMap_.cend())
+   {
+      return siteProductMap->second;
+   }
+
+   return {};
+}
+
 void AwsLevel3DataProvider::Impl::ListProducts()
 {
    std::shared_lock readLock(productMutex_);
