@@ -26,7 +26,7 @@ public:
    SetColorLevelPacket(SetColorLevelPacket&&) noexcept;
    SetColorLevelPacket& operator=(SetColorLevelPacket&&) noexcept;
 
-   uint16_t packet_code() const;
+   uint16_t packet_code() const override;
    uint16_t color_value_indicator() const;
    uint16_t value_of_contour() const;
 

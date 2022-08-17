@@ -27,7 +27,7 @@ public:
    CellTrendVolumeScanTimes(CellTrendVolumeScanTimes&&) noexcept;
    CellTrendVolumeScanTimes& operator=(CellTrendVolumeScanTimes&&) noexcept;
 
-   uint16_t packet_code() const;
+   uint16_t packet_code() const override;
    uint16_t length_of_block() const;
    uint16_t number_of_volumes() const;
    uint16_t latest_volume_pointer() const;

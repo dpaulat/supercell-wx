@@ -26,7 +26,7 @@ public:
    VectorArrowDataPacket(VectorArrowDataPacket&&) noexcept;
    VectorArrowDataPacket& operator=(VectorArrowDataPacket&&) noexcept;
 
-   uint16_t packet_code() const;
+   uint16_t packet_code() const override;
    uint16_t length_of_block() const;
 
    size_t data_size() const override;

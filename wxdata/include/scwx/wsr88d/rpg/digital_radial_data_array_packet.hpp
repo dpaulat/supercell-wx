@@ -28,7 +28,7 @@ public:
    DigitalRadialDataArrayPacket&
    operator=(DigitalRadialDataArrayPacket&&) noexcept;
 
-   uint16_t packet_code() const;
+   uint16_t packet_code() const override;
    uint16_t index_of_first_range_bin() const;
    uint16_t number_of_range_bins() const;
    int16_t  i_center_of_sweep() const;

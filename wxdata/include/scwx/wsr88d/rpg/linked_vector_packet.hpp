@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 
 namespace scwx
 {
@@ -26,7 +27,7 @@ public:
    LinkedVectorPacket(LinkedVectorPacket&&) noexcept;
    LinkedVectorPacket& operator=(LinkedVectorPacket&&) noexcept;
 
-   uint16_t                packet_code() const;
+   uint16_t                packet_code() const override;
    uint16_t                length_of_block() const;
    std::optional<uint16_t> value_of_vector() const;
 

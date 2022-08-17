@@ -28,7 +28,7 @@ public:
    UnlinkedContourVectorPacket&
    operator=(UnlinkedContourVectorPacket&&) noexcept;
 
-   uint16_t packet_code() const;
+   uint16_t packet_code() const override;
    uint16_t length_of_vectors() const;
 
    size_t data_size() const override;

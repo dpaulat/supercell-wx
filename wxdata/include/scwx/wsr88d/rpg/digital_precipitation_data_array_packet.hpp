@@ -30,7 +30,7 @@ public:
    DigitalPrecipitationDataArrayPacket&
    operator=(DigitalPrecipitationDataArrayPacket&&) noexcept;
 
-   uint16_t packet_code() const;
+   uint16_t packet_code() const override;
    uint16_t number_of_lfm_boxes_in_row() const;
    uint16_t number_of_rows() const;
 

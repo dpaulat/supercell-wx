@@ -27,7 +27,7 @@ public:
    LinkedContourVectorPacket(LinkedContourVectorPacket&&) noexcept;
    LinkedContourVectorPacket& operator=(LinkedContourVectorPacket&&) noexcept;
 
-   uint16_t packet_code() const;
+   uint16_t packet_code() const override;
    uint16_t initial_point_indicator() const;
    uint16_t length_of_vectors() const;
 

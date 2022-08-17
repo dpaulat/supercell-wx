@@ -26,7 +26,7 @@ public:
    RasterDataPacket(RasterDataPacket&&) noexcept;
    RasterDataPacket& operator=(RasterDataPacket&&) noexcept;
 
-   uint16_t packet_code() const;
+   uint16_t packet_code() const override;
    uint16_t op_flag(size_t i) const;
    int16_t  i_coordinate_start() const;
    int16_t  j_coordinate_start() const;

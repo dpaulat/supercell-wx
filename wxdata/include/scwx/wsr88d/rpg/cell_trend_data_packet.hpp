@@ -26,7 +26,7 @@ public:
    CellTrendDataPacket(CellTrendDataPacket&&) noexcept;
    CellTrendDataPacket& operator=(CellTrendDataPacket&&) noexcept;
 
-   uint16_t    packet_code() const;
+   uint16_t    packet_code() const override;
    uint16_t    length_of_block() const;
    std::string cell_id() const;
    int16_t     i_position() const;
