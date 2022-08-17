@@ -12,16 +12,16 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 include(${PROJECT_SOURCE_DIR}/external/cmake-conan/conan.cmake)
 
-conan_cmake_configure(REQUIRES aws-sdk-cpp/1.9.100
+conan_cmake_configure(REQUIRES aws-sdk-cpp/1.9.234
                                boost/1.78.0
-                               freetype/2.11.1
+                               freetype/2.12.1
                                geographiclib/1.52
                                glew/2.2.0
-                               glm/0.9.9.8
+                               glm/cci.20220420
                                gtest/cci.20210126
-                               openssl/1.1.1n
+                               openssl/1.1.1q
                                spdlog/1.10.0
-                               vulkan-loader/1.3.204.1
+                               vulkan-loader/1.3.221
                       GENERATORS cmake
                                  cmake_find_package
                                  cmake_paths
