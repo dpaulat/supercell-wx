@@ -12,7 +12,8 @@ set(SRC_AWIPS_TESTS source/scwx/awips/coded_location.test.cpp
                     source/scwx/awips/coded_time_motion_location.test.cpp
                     source/scwx/awips/pvtec.test.cpp
                     source/scwx/awips/text_product_file.test.cpp)
-set(SRC_COMMON_TESTS source/scwx/common/color_table.test.cpp)
+set(SRC_COMMON_TESTS source/scwx/common/color_table.test.cpp
+                     source/scwx/common/products.test.cpp)
 set(SRC_PROVIDER_TESTS source/scwx/provider/aws_level2_data_provider.test.cpp
                        source/scwx/provider/aws_level3_data_provider.test.cpp)
 set(SRC_QT_CONFIG_TESTS source/scwx/qt/config/radar_site.test.cpp)

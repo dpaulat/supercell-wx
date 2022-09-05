@@ -3,6 +3,7 @@
 #include <scwx/util/iterator.hpp>
 
 #include <string>
+#include <vector>
 
 namespace scwx
 {
@@ -68,6 +69,15 @@ Level3ProductCategory GetLevel3Category(const std::string& categoryName);
 Level3ProductCategory
                    GetLevel3CategoryByProduct(const std::string& productName);
 const std::string& GetLevel3Palette(int16_t productCode);
+
+std::string        GetLevel3ProductByAwipsId(const std::string& awipsId);
+const std::string& GetLevel3ProductDescription(const std::string& productName);
+const std::vector<std::string>&
+GetLevel3ProductsByCategory(Level3ProductCategory category);
+const std::vector<std::string>&
+GetLevel3AwipsIdsByProduct(const std::string& productName);
+
+inline constexpr size_t kLevel3ProductMaxTilts = 9;
 
 } // namespace common
 } // namespace scwx

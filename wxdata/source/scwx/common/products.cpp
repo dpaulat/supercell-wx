@@ -1,5 +1,6 @@
 #include <scwx/common/products.hpp>
 
+#include <algorithm>
 #include <unordered_map>
 
 namespace scwx
@@ -42,6 +43,72 @@ static const std::unordered_map<Level2Product, std::string> level2Palette_ {
    {Level2Product::ClutterFilterPowerRemoved, "???"},
    {Level2Product::Unknown, "???"}};
 
+static const std::unordered_map<int, std::string> level3ProductCodeMap_ {
+   {56, "SRM"},
+   {94, "DR"},
+   {99, "DV"},
+   {153, "SDR"},
+   {154, "SDV"},
+   {159, "DZD"},
+   {161, "DCC"},
+   {163, "DKD"},
+   {165, "DHD"},
+   {166, "ML"},
+   {180, "TDR"},
+   {182, "TDV"}};
+
+static const std::unordered_map<std::string, std::string>
+   level3ProductDescription_ {{"SRM", "Storm Relative Mean Radial Velocity"},
+                              {"DR", "Digital Reflectivity"},
+                              {"DV", "Digital Velocity"},
+                              {"SDR", "Super-Resolution Reflectivity"},
+                              {"SDV", "Super-Resolution Velocity"},
+                              {"DZD", "Digital Differential Reflectivity"},
+                              {"DCC", "Digital Correlation Coefficient"},
+                              {"DKD", "Digital Specific Differential Phase"},
+                              {"DHD", "Digital Hydrometeor Classification"},
+                              {"ML", "Melting Layer"},
+                              {"SW", "Spectrum Width"},
+                              {"TDR", "Digital Reflectivity"},
+                              {"TDV", "Digital Velocity"},
+                              {"?", "Unknown"}};
+
+static const std::unordered_map<std::string, std::vector<std::string>>
+   level3AwipsProducts_ {
+      // Reflectivity
+      {"SDR", {"NXB", "NYB", "NZB", "N0B", "NAB", "N1B", "NBB", "N2B", "N3B"}},
+      {"DR", {"NXQ", "NY", "NZQ", "N0Q", "NAQ", "N1Q", "NBQ", "N2Q", "N3Q"}},
+      {"TDR", {"TZ0", "TZ1", "TZ2"}},
+
+      // Velocity
+      {"SDV", {"NXG", "NYG", "NZG", "N0G", "NAG", "N1G"}},
+      {"DV", {"NXU", "NYU", "NZU", "N0U", "NAU", "N1U", "NBU", "N2U", "N3U"}},
+      {"TDV", {"TV0", "TV1", "TV2"}},
+
+      // Storm Relative Velocity
+      {"SRM", {"N0S", "N1S", "N2S", "N3S"}},
+
+      // Spectrum Width
+      {"SW", {"NSW"}},
+
+      // Differential Reflectivity
+      {"DZD", {"NXX", "NYX", "NZX", "N0X", "NAX", "N1X", "NBX", "N2X", "N3X"}},
+
+      // Correlation Coefficient
+      {"DCC", {"NXC", "NYC", "NZC", "N0C", "NAC", "N1C", "NBC", "N2C", "N3C"}},
+
+      // Specific Differential Phase
+      {"DKD", {"NXK", "NYK", "NZK", "N0K", "NAK", "N1K", "NBK", "N2K", "N3K"}},
+
+      // Digital Hydrometeor Classification
+      {"DHC", {"NXH", "NYH", "NZH", "N0H", "NAH", "N1H", "NBH", "N2H", "N3H"}},
+
+      // Melting Layer
+      {"ML", {"NXM", "NYM", "NZM", "N0M", "NAM", "N1M", "NBM", "N2M", "N3M"}},
+
+      // Unknown
+      {"?", {}}};
+
 static const std::unordered_map<Level3ProductCategory, std::string>
    level3CategoryName_ {
       {Level3ProductCategory::Reflectivity, "REF"},
@@ -67,8 +134,19 @@ static const std::unordered_map<Level3ProductCategory, std::string>
        "Correlation Coefficient"},
       {Level3ProductCategory::Unknown, "?"}};
 
+static const std::unordered_map<Level3ProductCategory, std::vector<std::string>>
+   level3CategoryProductList_ {
+      {Level3ProductCategory::Reflectivity, {"SDR", "DR", "TDR"}},
+      {Level3ProductCategory::Velocity, {"SDV", "DV", "TDV"}},
+      {Level3ProductCategory::StormRelativeVelocity, {"SRM"}},
+      {Level3ProductCategory::SpectrumWidth, {"SW"}},
+      {Level3ProductCategory::DifferentialReflectivity, {"DZD"}},
+      {Level3ProductCategory::SpecificDifferentialPhase, {"DKD"}},
+      {Level3ProductCategory::CorrelationCoefficient, {"DCC"}},
+      {Level3ProductCategory::Unknown, {}}};
+
 static const std::unordered_map<Level3ProductCategory, std::string>
-   level3CategoryDefaultProduct_ {
+   level3CategoryDefaultAwipsId_ {
       {Level3ProductCategory::Reflectivity, "N0B"},
       {Level3ProductCategory::Velocity, "N0G"},
       {Level3ProductCategory::StormRelativeVelocity, "N0S"},
@@ -165,7 +243,7 @@ const std::string& GetLevel3CategoryDescription(Level3ProductCategory category)
 const std::string&
 GetLevel3CategoryDefaultProduct(Level3ProductCategory category)
 {
-   return level3CategoryDefaultProduct_.at(category);
+   return level3CategoryDefaultAwipsId_.at(category);
 }
 
 Level3ProductCategory GetLevel3Category(const std::string& categoryName)
@@ -189,12 +267,12 @@ Level3ProductCategory GetLevel3Category(const std::string& categoryName)
 Level3ProductCategory GetLevel3CategoryByProduct(const std::string& productName)
 {
    auto result = std::find_if(
-      level3CategoryDefaultProduct_.cbegin(),
-      level3CategoryDefaultProduct_.cend(),
+      level3CategoryDefaultAwipsId_.cbegin(),
+      level3CategoryDefaultAwipsId_.cend(),
       [&](const std::pair<Level3ProductCategory, std::string>& pair) -> bool
       { return pair.second == productName; });
 
-   if (result != level3CategoryDefaultProduct_.cend())
+   if (result != level3CategoryDefaultAwipsId_.cend())
    {
       return result->first;
    }
@@ -214,6 +292,68 @@ const std::string& GetLevel3Palette(int16_t productCode)
    else
    {
       return level3Palette_.at(-1);
+   }
+}
+
+std::string GetLevel3ProductByAwipsId(const std::string& awipsId)
+{
+   auto result = std::find_if(
+      level3AwipsProducts_.cbegin(),
+      level3AwipsProducts_.cend(),
+      [&](const std::pair<std::string, std::vector<std::string>>& pair) -> bool
+      {
+         return std::find(pair.second.cbegin(), pair.second.cend(), awipsId) !=
+                pair.second.cend();
+      });
+
+   if (result != level3AwipsProducts_.cend())
+   {
+      return result->first;
+   }
+   else
+   {
+      return "?";
+   }
+}
+
+const std::string& GetLevel3ProductDescription(const std::string& productName)
+{
+   auto it = level3ProductDescription_.find(productName);
+   if (it != level3ProductDescription_.cend())
+   {
+      return it->second;
+   }
+   else
+   {
+      return level3ProductDescription_.at("?");
+   }
+}
+
+const std::vector<std::string>&
+GetLevel3ProductsByCategory(Level3ProductCategory category)
+{
+   auto it = level3CategoryProductList_.find(category);
+   if (it != level3CategoryProductList_.cend())
+   {
+      return it->second;
+   }
+   else
+   {
+      return level3CategoryProductList_.at(Level3ProductCategory::Unknown);
+   }
+}
+
+const std::vector<std::string>&
+GetLevel3AwipsIdsByProduct(const std::string& productName)
+{
+   auto it = level3AwipsProducts_.find(productName);
+   if (it != level3AwipsProducts_.cend())
+   {
+      return it->second;
+   }
+   else
+   {
+      return level3AwipsProducts_.at("?");
    }
 }
 
