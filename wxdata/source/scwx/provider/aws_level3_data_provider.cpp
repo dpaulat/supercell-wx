@@ -21,8 +21,8 @@ static const auto logger_ = util::Logger::Create(logPrefix_);
 static const std::string kDefaultBucketName_ = "unidata-nexrad-level3";
 static const std::string kDefaultRegion_     = "us-east-1";
 
-std::unordered_map<std::string, std::vector<std::string>> productMap_;
-std::shared_mutex                                         productMutex_;
+static std::unordered_map<std::string, std::vector<std::string>> productMap_;
+static std::shared_mutex                                         productMutex_;
 
 class AwsLevel3DataProvider::Impl
 {
@@ -147,6 +147,8 @@ void AwsLevel3DataProvider::Impl::ListProducts()
    }
 
    readLock.unlock();
+
+   logger_->debug("ListProducts()");
 
    // Prefix format: GGG_
    const std::string prefix = fmt::format("{0}_", siteId_);
