@@ -72,6 +72,8 @@ const std::string& GetLevel3Palette(int16_t productCode);
 
 std::string        GetLevel3ProductByAwipsId(const std::string& awipsId);
 const std::string& GetLevel3ProductDescription(const std::string& productName);
+int16_t            GetLevel3ProductCodeByAwipsId(const std::string& awipsId);
+int16_t GetLevel3ProductCodeByProduct(const std::string& productName);
 const std::vector<std::string>&
 GetLevel3ProductsByCategory(Level3ProductCategory category);
 const std::vector<std::string>&

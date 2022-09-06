@@ -54,6 +54,11 @@ std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
    }
    else if (productGroup == common::RadarProductGroup::Level3)
    {
+      if (productCode == 0)
+      {
+         productCode = common::GetLevel3ProductCodeByAwipsId(productName);
+      }
+
       if (level3RadialProducts_.contains(productCode))
       {
          view = Level3RadialView::Create(productName, radarProductManager);

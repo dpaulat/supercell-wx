@@ -329,6 +329,30 @@ const std::string& GetLevel3ProductDescription(const std::string& productName)
    }
 }
 
+int16_t GetLevel3ProductCodeByAwipsId(const std::string& awipsId)
+{
+   const std::string& productName {GetLevel3ProductByAwipsId(awipsId)};
+   const int16_t      productCode {GetLevel3ProductCodeByProduct(productName)};
+
+   return productCode;
+}
+
+int16_t GetLevel3ProductCodeByProduct(const std::string& productName)
+{
+   auto it = std::find_if(level3ProductCodeMap_.cbegin(),
+                          level3ProductCodeMap_.cend(),
+                          [&](auto&& p) { return p.second == productName; });
+
+   if (it != level3ProductCodeMap_.cend())
+   {
+      return static_cast<int16_t>(it->first);
+   }
+   else
+   {
+      return 0;
+   }
+}
+
 const std::vector<std::string>&
 GetLevel3ProductsByCategory(Level3ProductCategory category)
 {
