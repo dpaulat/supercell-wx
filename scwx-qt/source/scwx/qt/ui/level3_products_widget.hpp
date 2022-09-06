@@ -23,6 +23,8 @@ public:
 
    void showEvent(QShowEvent* event) override;
 
+   void UpdateAvailableProducts(
+      const common::Level3ProductCategoryMap& updatedCategoryMap);
    void UpdateProductSelection(common::RadarProductGroup group,
                                const std::string&        productName);
 

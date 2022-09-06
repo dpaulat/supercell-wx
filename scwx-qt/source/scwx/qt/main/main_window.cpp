@@ -73,6 +73,7 @@ public:
    ~MainWindowImpl() = default;
 
    void ConfigureMapLayout();
+   void ConnectMapSignals();
    void HandleFocusChange(QWidget* focused);
    void SelectElevation(map::MapWidget* mapWidget, float elevation);
    void SelectRadarProduct(map::MapWidget*           mapWidget,
@@ -80,6 +81,7 @@ public:
                            const std::string&        productName,
                            int16_t                   productCode);
    void SetActiveMap(map::MapWidget* mapWidget);
+   void UpdateAvailableLevel3Products();
    void UpdateElevationSelection(float elevation);
    void UpdateRadarProductSelection(common::RadarProductGroup group,
                                     const std::string&        product);
@@ -150,6 +152,8 @@ MainWindow::MainWindow(QWidget* parent) :
                             mapSettings->radar_product(i),
                             0);
    }
+
+   p->ConnectMapSignals();
 
    connect(qApp,
            &QApplication::focusChanged,
@@ -301,29 +305,6 @@ void MainWindowImpl::ConfigureMapLayout()
          if (maps_.at(mapIndex) == nullptr)
          {
             maps_[mapIndex] = new map::MapWidget(settings_);
-
-            connect(maps_[mapIndex],
-                    &map::MapWidget::MapParametersChanged,
-                    this,
-                    &MainWindowImpl::UpdateMapParameters);
-
-            connect(
-               maps_[mapIndex],
-               &map::MapWidget::RadarSweepUpdated,
-               this,
-               [=]()
-               {
-                  if (maps_[mapIndex] == activeMap_)
-                  {
-                     UpdateRadarProductSelection(
-                        activeMap_->GetRadarProductGroup(),
-                        activeMap_->GetRadarProductName());
-                     UpdateRadarProductSettings();
-                     UpdateRadarSite();
-                     UpdateVcp();
-                  }
-               },
-               Qt::QueuedConnection);
          }
 
          hs->addWidget(maps_[mapIndex]);
@@ -337,6 +318,50 @@ void MainWindowImpl::ConfigureMapLayout()
    SetActiveMap(maps_.at(0));
 }
 
+void MainWindowImpl::ConnectMapSignals()
+{
+   std::for_each(maps_.cbegin(),
+                 maps_.cend(),
+                 [&](auto& mapWidget)
+                 {
+                    connect(mapWidget,
+                            &map::MapWidget::MapParametersChanged,
+                            this,
+                            &MainWindowImpl::UpdateMapParameters);
+
+                    connect(
+                       mapWidget,
+                       &map::MapWidget::RadarSweepUpdated,
+                       this,
+                       [&]()
+                       {
+                          if (mapWidget == activeMap_)
+                          {
+                             UpdateRadarProductSelection(
+                                mapWidget->GetRadarProductGroup(),
+                                mapWidget->GetRadarProductName());
+                             UpdateRadarProductSettings();
+                             UpdateRadarSite();
+                             UpdateVcp();
+                          }
+                       },
+                       Qt::QueuedConnection);
+
+                    connect(
+                       mapWidget,
+                       &map::MapWidget::Level3ProductsChanged,
+                       this,
+                       [&]()
+                       {
+                          if (mapWidget == activeMap_)
+                          {
+                             UpdateAvailableLevel3Products();
+                          }
+                       },
+                       Qt::QueuedConnection);
+                 });
+}
+
 void MainWindowImpl::HandleFocusChange(QWidget* focused)
 {
    map::MapWidget* mapWidget = dynamic_cast<map::MapWidget*>(focused);
@@ -344,6 +369,7 @@ void MainWindowImpl::HandleFocusChange(QWidget* focused)
    if (mapWidget != nullptr)
    {
       SetActiveMap(mapWidget);
+      UpdateAvailableLevel3Products();
       UpdateRadarProductSelection(mapWidget->GetRadarProductGroup(),
                                   mapWidget->GetRadarProductName());
       UpdateRadarProductSettings();
@@ -393,6 +419,12 @@ void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)
    {
       widget->SetActive(mapWidget == widget);
    }
+}
+
+void MainWindowImpl::UpdateAvailableLevel3Products()
+{
+   level3ProductsWidget_->UpdateAvailableProducts(
+      activeMap_->GetAvailableLevel3Categories());
 }
 
 void MainWindowImpl::UpdateElevationSelection(float elevation)

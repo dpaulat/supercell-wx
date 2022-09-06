@@ -3,7 +3,9 @@
 #include <scwx/util/logger.hpp>
 
 #include <execution>
+#include <shared_mutex>
 
+#include <QMenu>
 #include <QToolButton>
 
 namespace scwx
@@ -22,7 +24,11 @@ class Level3ProductsWidgetImpl : public QObject
 
 public:
    explicit Level3ProductsWidgetImpl(Level3ProductsWidget* self) :
-       self_ {self}, layout_ {new ui::FlowLayout(self)}, categoryButtons_ {}
+       self_ {self},
+       layout_ {new ui::FlowLayout(self)},
+       categoryButtons_ {},
+       availableCategoryMap_ {},
+       availableCategoryMutex_ {}
    {
       layout_->setContentsMargins(0, 0, 0, 0);
 
@@ -42,6 +48,30 @@ public:
                           &QToolButton::clicked,
                           this,
                           [=]() { SelectProductCategory(category); });
+
+         QMenu* categoryMenu = new QMenu();
+         toolButton->setMenu(categoryMenu);
+
+         const auto& products = common::GetLevel3ProductsByCategory(category);
+         auto&       productMenus = categoryMenuMap_[category];
+
+         for (const auto& product : products)
+         {
+            QMenu* productMenu = categoryMenu->addMenu(QString::fromStdString(
+               common::GetLevel3ProductDescription(product)));
+
+            for (size_t tilt = 1; tilt <= common::kLevel3ProductMaxTilts;
+                 ++tilt)
+            {
+               productMenu->addAction(tr("Tilt %1").arg(tilt));
+            }
+
+            productMenus[product] = productMenu;
+
+            productMenu->menuAction()->setVisible(false);
+         }
+
+         toolButton->setEnabled(false);
       }
    }
    ~Level3ProductsWidgetImpl() = default;
@@ -53,6 +83,12 @@ public:
    Level3ProductsWidget*   self_;
    QLayout*                layout_;
    std::list<QToolButton*> categoryButtons_;
+   std::unordered_map<common::Level3ProductCategory,
+                      std::unordered_map<std::string, QMenu*>>
+      categoryMenuMap_;
+
+   common::Level3ProductCategoryMap availableCategoryMap_;
+   std::shared_mutex                availableCategoryMutex_;
 };
 
 Level3ProductsWidget::Level3ProductsWidget(QWidget* parent) :
@@ -103,6 +139,79 @@ void Level3ProductsWidgetImpl::SelectProductCategory(
       common::RadarProductGroup::Level3,
       common::GetLevel3CategoryDefaultProduct(category),
       0);
+}
+
+void Level3ProductsWidget::UpdateAvailableProducts(
+   const common::Level3ProductCategoryMap& updatedCategoryMap)
+{
+   logger_->debug("UpdateAvailableProducts()");
+
+   {
+      std::unique_lock lock {p->availableCategoryMutex_};
+      p->availableCategoryMap_ = updatedCategoryMap;
+   }
+
+   // Iterate through each category tool button
+   std::for_each(
+      // std::execution::par_unseq,
+      p->categoryButtons_.cbegin(),
+      p->categoryButtons_.cend(),
+      [&](QToolButton* toolButton)
+      {
+         const std::string& categoryName = toolButton->text().toStdString();
+         const common::Level3ProductCategory category =
+            common::GetLevel3Category(categoryName);
+
+         auto       availableProductMapIter = updatedCategoryMap.find(category);
+         const bool categoryEnabled =
+            (availableProductMapIter != updatedCategoryMap.cend());
+
+         // Enable category if any products are available
+         toolButton->setEnabled(categoryEnabled);
+
+         if (categoryEnabled)
+         {
+            const auto& availableProductMap = availableProductMapIter->second;
+            auto&       productMenus        = p->categoryMenuMap_.at(category);
+
+            // Iterate through each product menu
+            std::for_each(
+               // std::execution::par_unseq,
+               productMenus.cbegin(),
+               productMenus.cend(),
+               [&](const auto productMenu)
+               {
+                  auto availableAwipsIdIter =
+                     availableProductMap.find(productMenu.first);
+                  const bool productEnabled =
+                     (availableAwipsIdIter != availableProductMap.cend());
+
+                  // Enable product if it has AWIPS IDs available
+                  productMenu.second->menuAction()->setVisible(productEnabled);
+
+                  if (productEnabled)
+                  {
+                     // Determine number of tilts to display
+                     size_t numTilts =
+                        std::min(availableAwipsIdIter->second.size(),
+                                 common::kLevel3ProductMaxTilts);
+                     size_t currentTilt = 0;
+
+                     QList<QAction*> tiltActionList =
+                        productMenu.second->findChildren<QAction*>(
+                           Qt::FindDirectChildrenOnly);
+
+                     for (QAction* tiltAction : tiltActionList)
+                     {
+                        // Set the first n tilts to visible. The QAction list
+                        // includes the productMenu's action, so one is
+                        // added.
+                        tiltAction->setVisible(++currentTilt <= numTilts + 1);
+                     }
+                  }
+               });
+         }
+      });
 }
 
 void Level3ProductsWidget::UpdateProductSelection(
