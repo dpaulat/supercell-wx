@@ -81,9 +81,9 @@ public:
    void AddLayer(const std::string&            id,
                  std::shared_ptr<GenericLayer> layer,
                  const std::string&            before = {});
-   void AutoRefreshConnect();
-   void AutoRefreshDisconnect();
    void InitializeNewRadarProductView(const std::string& colorPalette);
+   void RadarProductManagerConnect();
+   void RadarProductManagerDisconnect();
    void RadarProductViewConnect();
    void RadarProductViewDisconnect();
    void SetRadarSite(const std::string& radarSite);
@@ -139,6 +139,18 @@ MapWidget::~MapWidget()
    makeCurrent();
 }
 
+common::Level3ProductCategoryMap MapWidget::GetAvailableLevel3Categories()
+{
+   if (p->radarProductManager_ != nullptr)
+   {
+      return p->radarProductManager_->GetAvailableLevel3Categories();
+   }
+   else
+   {
+      return {};
+   }
+}
+
 float MapWidget::GetElevation() const
 {
    if (p->context_->radarProductView_ != nullptr)
@@ -190,6 +202,18 @@ MapWidgetImpl::GetLevel2ProductOrDefault(const std::string& productName) const
    }
 
    return level2Product;
+}
+
+std::vector<std::string> MapWidget::GetLevel3Products()
+{
+   if (p->radarProductManager_ != nullptr)
+   {
+      return p->radarProductManager_->GetLevel3Products();
+   }
+   else
+   {
+      return {};
+   }
 }
 
 common::RadarProductGroup MapWidget::GetRadarProductGroup() const
@@ -584,10 +608,15 @@ void MapWidget::mapChanged(QMapboxGL::MapChange mapChange)
    }
 }
 
-void MapWidgetImpl::AutoRefreshConnect()
+void MapWidgetImpl::RadarProductManagerConnect()
 {
    if (radarProductManager_ != nullptr)
    {
+      connect(radarProductManager_.get(),
+              &manager::RadarProductManager::Level3ProductsChanged,
+              this,
+              [&]() { emit widget_->Level3ProductsChanged(); });
+
       connect(
          radarProductManager_.get(),
          &manager::RadarProductManager::NewDataAvailable,
@@ -640,7 +669,7 @@ void MapWidgetImpl::AutoRefreshConnect()
    }
 }
 
-void MapWidgetImpl::AutoRefreshDisconnect()
+void MapWidgetImpl::RadarProductManagerDisconnect()
 {
    if (radarProductManager_ != nullptr)
    {
@@ -727,13 +756,15 @@ void MapWidgetImpl::SetRadarSite(const std::string& radarSite)
        radarSite != radarProductManager_->radar_site()->id())
    {
       // Disconnect signals from old RadarProductManager
-      AutoRefreshDisconnect();
+      RadarProductManagerDisconnect();
 
       // Set new RadarProductManager
       radarProductManager_ = manager::RadarProductManager::Instance(radarSite);
 
       // Connect signals to new RadarProductManager
-      AutoRefreshConnect();
+      RadarProductManagerConnect();
+
+      radarProductManager_->UpdateAvailableProducts();
    }
 }
 

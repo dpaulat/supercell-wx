@@ -34,8 +34,10 @@ public:
    explicit MapWidget(const QMapboxGLSettings&);
    ~MapWidget();
 
+   common::Level3ProductCategoryMap   GetAvailableLevel3Categories();
    float                              GetElevation() const;
    std::vector<float>                 GetElevationCuts() const;
+   std::vector<std::string>           GetLevel3Products();
    common::RadarProductGroup          GetRadarProductGroup() const;
    std::string                        GetRadarProductName() const;
    std::shared_ptr<config::RadarSite> GetRadarSite() const;
@@ -78,6 +80,7 @@ private slots:
    void mapChanged(QMapboxGL::MapChange);
 
 signals:
+   void Level3ProductsChanged();
    void MapParametersChanged(double latitude,
                              double longitude,
                              double zoom,
