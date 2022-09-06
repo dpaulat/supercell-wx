@@ -1,7 +1,6 @@
 #include <scwx/common/products.hpp>
 
 #include <algorithm>
-#include <unordered_map>
 
 namespace scwx
 {

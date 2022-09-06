@@ -3,6 +3,7 @@
 #include <scwx/util/iterator.hpp>
 
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace scwx
@@ -52,6 +53,11 @@ typedef util::Iterator<Level3ProductCategory,
                        Level3ProductCategory::Reflectivity,
                        Level3ProductCategory::CorrelationCoefficient>
    Level3ProductCategoryIterator;
+
+typedef std::unordered_map<
+   common::Level3ProductCategory,
+   std::unordered_map<std::string, std::vector<std::string>>>
+   Level3ProductCategoryMap;
 
 const std::string& GetRadarProductGroupName(RadarProductGroup group);
 RadarProductGroup  GetRadarProductGroup(const std::string& name);

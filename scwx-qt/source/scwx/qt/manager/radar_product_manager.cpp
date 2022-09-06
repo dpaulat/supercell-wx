@@ -45,6 +45,8 @@ static constexpr uint32_t NUM_COORIDNATES_0_5_DEGREE =
 static constexpr uint32_t NUM_COORIDNATES_1_DEGREE =
    NUM_RADIAL_GATES_1_DEGREE * 2;
 
+static const std::string kDefaultLevel3Product_ {"N0B"};
+
 static constexpr std::chrono::seconds kRetryInterval_ {15};
 
 // TODO: Find a way to garbage collect this
@@ -97,6 +99,7 @@ public:
        self_ {self},
        radarId_ {radarId},
        initialized_ {false},
+       level3ProductsInitialized_ {false},
        radarSite_ {config::RadarSite::Get(radarId)},
        coordinates0_5Degree_ {},
        coordinates1Degree_ {},
@@ -109,8 +112,11 @@ public:
        level3ProviderManagerMap_ {},
        level3ProviderManagerMutex_ {},
        initializeMutex_ {},
+       level3ProductsInitializeMutex_ {},
        loadLevel2DataMutex_ {},
-       loadLevel3DataMutex_ {}
+       loadLevel3DataMutex_ {},
+       availableCategoryMap_ {},
+       availableCategoryMutex_ {}
    {
       if (radarSite_ == nullptr)
       {
@@ -137,6 +143,9 @@ public:
    }
 
    RadarProductManager* self_;
+
+   std::shared_ptr<ProviderManager>
+   GetLevel3ProviderManager(const std::string& product);
 
    void EnableRefresh(
       std::shared_ptr<RadarProductManagerImpl::ProviderManager> providerManager,
@@ -165,6 +174,7 @@ public:
 
    std::string radarId_;
    bool        initialized_;
+   bool        level3ProductsInitialized_;
 
    std::shared_ptr<config::RadarSite> radarSite_;
 
@@ -184,8 +194,12 @@ public:
    std::shared_mutex level3ProviderManagerMutex_;
 
    std::mutex initializeMutex_;
+   std::mutex level3ProductsInitializeMutex_;
    std::mutex loadLevel2DataMutex_;
    std::mutex loadLevel3DataMutex_;
+
+   common::Level3ProductCategoryMap availableCategoryMap_;
+   std::shared_mutex                availableCategoryMutex_;
 };
 
 RadarProductManager::RadarProductManager(const std::string& radarId) :
@@ -353,6 +367,30 @@ void RadarProductManager::Initialize()
    p->initialized_ = true;
 }
 
+std::shared_ptr<RadarProductManagerImpl::ProviderManager>
+RadarProductManagerImpl::GetLevel3ProviderManager(const std::string& product)
+{
+   std::unique_lock lock(level3ProviderManagerMutex_);
+
+   if (!level3ProviderManagerMap_.contains(product))
+   {
+      level3ProviderManagerMap_.emplace(
+         std::piecewise_construct,
+         std::forward_as_tuple(product),
+         std::forward_as_tuple(
+            std::make_shared<RadarProductManagerImpl::ProviderManager>(
+               common::RadarProductGroup::Level3, product)));
+      level3ProviderManagerMap_.at(product)->provider_ =
+         provider::NexradDataProviderFactory::CreateLevel3DataProvider(radarId_,
+                                                                       product);
+   }
+
+   std::shared_ptr<RadarProductManagerImpl::ProviderManager> providerManager =
+      level3ProviderManagerMap_.at(product);
+
+   return providerManager;
+}
+
 void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
                                         const std::string&        product,
                                         bool                      enabled)
@@ -363,27 +401,25 @@ void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
    }
    else
    {
-      std::unique_lock lock(p->level3ProviderManagerMutex_);
-
-      if (!p->level3ProviderManagerMap_.contains(product))
-      {
-         p->level3ProviderManagerMap_.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(product),
-            std::forward_as_tuple(
-               std::make_shared<RadarProductManagerImpl::ProviderManager>(
-                  common::RadarProductGroup::Level3, product)));
-         p->level3ProviderManagerMap_.at(product)->provider_ =
-            provider::NexradDataProviderFactory::CreateLevel3DataProvider(
-               p->radarId_, product);
-      }
-
       std::shared_ptr<RadarProductManagerImpl::ProviderManager>
-         providerManager = p->level3ProviderManagerMap_.at(product);
+         providerManager = p->GetLevel3ProviderManager(product);
 
-      lock.unlock();
+      // Only enable refresh on available products
+      util::async(
+         [=]()
+         {
+            providerManager->provider_->RequestAvailableProducts();
+            auto availableProducts =
+               providerManager->provider_->GetAvailableProducts();
 
-      p->EnableRefresh(providerManager, enabled);
+            if (std::find(std::execution::par_unseq,
+                          availableProducts.cbegin(),
+                          availableProducts.cend(),
+                          product) != availableProducts.cend())
+            {
+               p->EnableRefresh(providerManager, enabled);
+            }
+         });
    }
 }
 
@@ -807,6 +843,95 @@ RadarProductManager::GetLevel3Data(const std::string& product,
    }
 
    return message;
+}
+
+common::Level3ProductCategoryMap
+RadarProductManager::GetAvailableLevel3Categories()
+{
+   std::shared_lock lock {p->availableCategoryMutex_};
+
+   return p->availableCategoryMap_;
+}
+
+std::vector<std::string> RadarProductManager::GetLevel3Products()
+{
+   auto level3ProviderManager =
+      p->GetLevel3ProviderManager(kDefaultLevel3Product_);
+   return level3ProviderManager->provider_->GetAvailableProducts();
+}
+
+void RadarProductManager::UpdateAvailableProducts()
+{
+   std::lock_guard<std::mutex> guard(p->level3ProductsInitializeMutex_);
+
+   if (p->level3ProductsInitialized_)
+   {
+      return;
+   }
+
+   // Although not complete here, only initialize once. Signal will be emitted
+   // once complete.
+   p->level3ProductsInitialized_ = true;
+
+   logger_->debug("UpdateAvailableProducts()");
+
+   util::async(
+      [=]()
+      {
+         auto level3ProviderManager =
+            p->GetLevel3ProviderManager(kDefaultLevel3Product_);
+         level3ProviderManager->provider_->RequestAvailableProducts();
+         auto updatedAwipsIdList =
+            level3ProviderManager->provider_->GetAvailableProducts();
+
+         std::unique_lock lock {p->availableCategoryMutex_};
+
+         for (common::Level3ProductCategory category :
+              common::Level3ProductCategoryIterator())
+         {
+            const auto& products =
+               common::GetLevel3ProductsByCategory(category);
+
+            std::unordered_map<std::string, std::vector<std::string>>
+               availableProducts;
+
+            for (const auto& product : products)
+            {
+               const auto& awipsIds =
+                  common::GetLevel3AwipsIdsByProduct(product);
+
+               std::vector<std::string> availableAwipsIds;
+
+               for (const auto& awipsId : awipsIds)
+               {
+                  if (std::find(updatedAwipsIdList.cbegin(),
+                                updatedAwipsIdList.cend(),
+                                awipsId) != updatedAwipsIdList.cend())
+                  {
+                     availableAwipsIds.push_back(awipsId);
+                  }
+               }
+
+               if (!availableAwipsIds.empty())
+               {
+                  availableProducts.insert_or_assign(
+                     product, std::move(availableAwipsIds));
+               }
+            }
+
+            if (!availableProducts.empty())
+            {
+               p->availableCategoryMap_.insert_or_assign(
+                  category, std::move(availableProducts));
+            }
+            else
+            {
+               p->availableCategoryMap_.erase(category);
+            }
+         }
+
+         emit Level3ProductsChanged();
+      });
 }
 
 std::shared_ptr<RadarProductManager>

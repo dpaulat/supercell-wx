@@ -1,5 +1,6 @@
 #pragma once
 
+#include <scwx/common/products.hpp>
 #include <scwx/common/types.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/request/nexrad_file_request.hpp>
@@ -8,6 +9,7 @@
 #include <scwx/wsr88d/level3_file.hpp>
 
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include <QObject>
@@ -69,7 +71,12 @@ public:
    LoadFile(const std::string&                          filename,
             std::shared_ptr<request::NexradFileRequest> request = nullptr);
 
+   common::Level3ProductCategoryMap GetAvailableLevel3Categories();
+   std::vector<std::string>         GetLevel3Products();
+   void                             UpdateAvailableProducts();
+
 signals:
+   void Level3ProductsChanged();
    void NewDataAvailable(common::RadarProductGroup             group,
                          const std::string&                    product,
                          std::chrono::system_clock::time_point latestTime);
