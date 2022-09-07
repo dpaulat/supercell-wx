@@ -1,4 +1,5 @@
 #include <scwx/provider/aws_nexrad_data_provider.hpp>
+#include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/map.hpp>
 #include <scwx/util/time.hpp>
@@ -51,6 +52,9 @@ public:
        lastModified_ {},
        updatePeriod_ {}
    {
+      // Disable HTTP request for region
+      util::SetEnvironment("AWS_EC2_METADATA_DISABLED", "true");
+
       Aws::Client::ClientConfiguration config;
       config.region = region_;
 
