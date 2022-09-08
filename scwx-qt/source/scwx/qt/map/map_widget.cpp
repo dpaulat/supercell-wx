@@ -294,6 +294,11 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
       p->selectedLevel2Product_ = level2Product;
    }
 
+   if (group == common::RadarProductGroup::Level3 && productCode == 0)
+   {
+      productCode = common::GetLevel3ProductCodeByAwipsId(productName);
+   }
+
    if (radarProductView == nullptr ||
        radarProductView->GetRadarProductGroup() != group ||
        radarProductView->GetRadarProductName() != productName ||
