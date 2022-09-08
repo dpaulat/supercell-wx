@@ -144,7 +144,7 @@ void Level3ProductsWidgetImpl::SelectProductCategory(
 void Level3ProductsWidget::UpdateAvailableProducts(
    const common::Level3ProductCategoryMap& updatedCategoryMap)
 {
-   logger_->debug("UpdateAvailableProducts()");
+   logger_->trace("UpdateAvailableProducts()");
 
    {
       std::unique_lock lock {p->availableCategoryMutex_};
