@@ -5,10 +5,13 @@ namespace scwx
 namespace common
 {
 
+/**
+ * @brief Coordinate type to hold latitude and longitude of a location.
+ */
 struct Coordinate
 {
-   double latitude_;
-   double longitude_;
+   double latitude_;  ///< Latitude in degrees
+   double longitude_; ///< Longitude in degrees
 
    Coordinate(double latitude, double longitude) :
        latitude_ {latitude}, longitude_ {longitude}
