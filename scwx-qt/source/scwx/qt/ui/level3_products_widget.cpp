@@ -256,7 +256,7 @@ void Level3ProductsWidget::UpdateProductSelection(
    if (group == common::RadarProductGroup::Level3)
    {
       common::Level3ProductCategory category =
-         common::GetLevel3CategoryByProduct(productName);
+         common::GetLevel3CategoryByAwipsId(productName);
       p->UpdateProductSelection(category);
    }
    else

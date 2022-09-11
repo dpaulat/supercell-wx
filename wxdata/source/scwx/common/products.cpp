@@ -266,12 +266,18 @@ Level3ProductCategory GetLevel3Category(const std::string& categoryName)
 Level3ProductCategory GetLevel3CategoryByProduct(const std::string& productName)
 {
    auto result = std::find_if(
-      level3CategoryDefaultAwipsId_.cbegin(),
-      level3CategoryDefaultAwipsId_.cend(),
-      [&](const std::pair<Level3ProductCategory, std::string>& pair) -> bool
-      { return pair.second == productName; });
+      level3CategoryProductList_.cbegin(),
+      level3CategoryProductList_.cend(),
+      [&](
+         const std::pair<Level3ProductCategory, std::vector<std::string>>& pair)
+         -> bool
+      {
+         return std::find(pair.second.cbegin(),
+                          pair.second.cend(),
+                          productName) != pair.second.cend();
+      });
 
-   if (result != level3CategoryDefaultAwipsId_.cend())
+   if (result != level3CategoryProductList_.cend())
    {
       return result->first;
    }
@@ -279,6 +285,13 @@ Level3ProductCategory GetLevel3CategoryByProduct(const std::string& productName)
    {
       return Level3ProductCategory::Unknown;
    }
+}
+
+Level3ProductCategory GetLevel3CategoryByAwipsId(const std::string& awipsId)
+{
+   std::string productName = GetLevel3ProductByAwipsId(awipsId);
+
+   return GetLevel3CategoryByProduct(productName);
 }
 
 const std::string& GetLevel3Palette(int16_t productCode)
