@@ -63,7 +63,43 @@ public:
             for (size_t tilt = 1; tilt <= common::kLevel3ProductMaxTilts;
                  ++tilt)
             {
-               productMenu->addAction(tr("Tilt %1").arg(tilt));
+               QAction* action =
+                  productMenu->addAction(tr("Tilt %1").arg(tilt));
+
+               QObject::connect(
+                  action,
+                  &QAction::triggered,
+                  this,
+                  [=]()
+                  {
+                     std::shared_lock lock {availableCategoryMutex_};
+
+                     // Find product map associated with current category
+                     auto productMapIt = availableCategoryMap_.find(category);
+                     if (productMapIt != availableCategoryMap_.cend())
+                     {
+                        // Find tilt list associated with current product
+                        auto tiltListIt = productMapIt->second.find(product);
+                        if (tiltListIt != productMapIt->second.cend())
+                        {
+                           // Find AWIPS product in tilt list
+                           if (tilt <= tiltListIt->second.size())
+                           {
+                              std::string awipsProductName =
+                                 tiltListIt->second.at(tilt - 1);
+
+                              self_->UpdateProductSelection(
+                                 common::RadarProductGroup::Level3,
+                                 awipsProductName);
+
+                              emit self_->RadarProductSelected(
+                                 common::RadarProductGroup::Level3,
+                                 awipsProductName,
+                                 0);
+                           }
+                        }
+                     }
+                  });
             }
 
             productMenus[product] = productMenu;
