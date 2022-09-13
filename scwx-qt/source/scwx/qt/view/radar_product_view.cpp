@@ -15,10 +15,11 @@ namespace view
 static const std::string logPrefix_ = "scwx::qt::view::radar_product_view";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+// Default color table should be transparent to prevent flicker
 static const std::vector<boost::gil::rgba8_pixel_t> DEFAULT_COLOR_TABLE = {
-   boost::gil::rgba8_pixel_t(0, 128, 0, 255),
-   boost::gil::rgba8_pixel_t(255, 192, 0, 255),
-   boost::gil::rgba8_pixel_t(255, 0, 0, 255)};
+   boost::gil::rgba8_pixel_t(0, 128, 0, 0),
+   boost::gil::rgba8_pixel_t(255, 192, 0, 0),
+   boost::gil::rgba8_pixel_t(255, 0, 0, 0)};
 static const uint16_t DEFAULT_COLOR_TABLE_MIN = 2u;
 static const uint16_t DEFAULT_COLOR_TABLE_MAX = 255u;
 
