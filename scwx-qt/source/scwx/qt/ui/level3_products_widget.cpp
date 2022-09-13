@@ -27,8 +27,9 @@ public:
        self_ {self},
        layout_ {new ui::FlowLayout(self)},
        categoryButtons_ {},
-       availableCategoryMap_ {},
-       availableCategoryMutex_ {}
+       productTiltMap_ {},
+       awipsProductMap_ {},
+       awipsProductMutex_ {}
    {
       layout_->setContentsMargins(0, 0, 0, 0);
 
@@ -60,11 +61,19 @@ public:
             QMenu* productMenu = categoryMenu->addMenu(QString::fromStdString(
                common::GetLevel3ProductDescription(product)));
 
+            std::vector<QAction*>& productTilts = productTiltMap_[product];
+
             for (size_t tilt = 1; tilt <= common::kLevel3ProductMaxTilts;
                  ++tilt)
             {
                QAction* action =
                   productMenu->addAction(tr("Tilt %1").arg(tilt));
+               action->setCheckable(true);
+
+               std::unique_lock lock {awipsProductMutex_};
+
+               productTilts.push_back(action);
+               awipsProductMap_.emplace(action, "?");
 
                QObject::connect(
                   action,
@@ -72,33 +81,14 @@ public:
                   this,
                   [=]()
                   {
-                     std::shared_lock lock {availableCategoryMutex_};
+                     std::shared_lock lock {awipsProductMutex_};
+                     std::string awipsProductName {awipsProductMap_.at(action)};
 
-                     // Find product map associated with current category
-                     auto productMapIt = availableCategoryMap_.find(category);
-                     if (productMapIt != availableCategoryMap_.cend())
-                     {
-                        // Find tilt list associated with current product
-                        auto tiltListIt = productMapIt->second.find(product);
-                        if (tiltListIt != productMapIt->second.cend())
-                        {
-                           // Find AWIPS product in tilt list
-                           if (tilt <= tiltListIt->second.size())
-                           {
-                              std::string awipsProductName =
-                                 tiltListIt->second.at(tilt - 1);
+                     self_->UpdateProductSelection(
+                        common::RadarProductGroup::Level3, awipsProductName);
 
-                              self_->UpdateProductSelection(
-                                 common::RadarProductGroup::Level3,
-                                 awipsProductName);
-
-                              emit self_->RadarProductSelected(
-                                 common::RadarProductGroup::Level3,
-                                 awipsProductName,
-                                 0);
-                           }
-                        }
-                     }
+                     emit self_->RadarProductSelected(
+                        common::RadarProductGroup::Level3, awipsProductName, 0);
                   });
             }
 
@@ -114,7 +104,8 @@ public:
 
    void NormalizeProductButtons();
    void SelectProductCategory(common::Level3ProductCategory category);
-   void UpdateProductSelection(common::Level3ProductCategory category);
+   void UpdateCategorySelection(common::Level3ProductCategory category);
+   void UpdateProductSelection(const std::string& awipsId);
 
    Level3ProductsWidget*   self_;
    QLayout*                layout_;
@@ -123,8 +114,10 @@ public:
                       std::unordered_map<std::string, QMenu*>>
       categoryMenuMap_;
 
-   common::Level3ProductCategoryMap availableCategoryMap_;
-   std::shared_mutex                availableCategoryMutex_;
+   std::unordered_map<std::string, std::vector<QAction*>> productTiltMap_;
+
+   std::unordered_map<QAction*, std::string> awipsProductMap_;
+   std::shared_mutex                         awipsProductMutex_;
 };
 
 Level3ProductsWidget::Level3ProductsWidget(QWidget* parent) :
@@ -169,7 +162,7 @@ void Level3ProductsWidgetImpl::NormalizeProductButtons()
 void Level3ProductsWidgetImpl::SelectProductCategory(
    common::Level3ProductCategory category)
 {
-   UpdateProductSelection(category);
+   UpdateCategorySelection(category);
 
    emit self_->RadarProductSelected(
       common::RadarProductGroup::Level3,
@@ -182,14 +175,8 @@ void Level3ProductsWidget::UpdateAvailableProducts(
 {
    logger_->trace("UpdateAvailableProducts()");
 
-   {
-      std::unique_lock lock {p->availableCategoryMutex_};
-      p->availableCategoryMap_ = updatedCategoryMap;
-   }
-
    // Iterate through each category tool button
    std::for_each(
-      // std::execution::par_unseq,
       p->categoryButtons_.cbegin(),
       p->categoryButtons_.cend(),
       [&](QToolButton* toolButton)
@@ -212,7 +199,6 @@ void Level3ProductsWidget::UpdateAvailableProducts(
 
             // Iterate through each product menu
             std::for_each(
-               // std::execution::par_unseq,
                productMenus.cbegin(),
                productMenus.cend(),
                [&](const auto productMenu)
@@ -228,21 +214,22 @@ void Level3ProductsWidget::UpdateAvailableProducts(
                   if (productEnabled)
                   {
                      // Determine number of tilts to display
-                     size_t numTilts =
+                     const size_t numTilts =
                         std::min(availableAwipsIdIter->second.size(),
                                  common::kLevel3ProductMaxTilts);
-                     size_t currentTilt = 0;
 
-                     QList<QAction*> tiltActionList =
-                        productMenu.second->findChildren<QAction*>(
-                           Qt::FindDirectChildrenOnly);
+                     const std::vector<QAction*>& tiltActionList =
+                        p->productTiltMap_.at(productMenu.first);
 
-                     for (QAction* tiltAction : tiltActionList)
+                     for (size_t i = 0; i < tiltActionList.size(); i++)
                      {
-                        // Set the first n tilts to visible. The QAction list
-                        // includes the productMenu's action, so one is
-                        // added.
-                        tiltAction->setVisible(++currentTilt <= numTilts + 1);
+                        bool visible = (i < numTilts);
+                        tiltActionList[i]->setVisible(visible);
+
+                        std::unique_lock lock {p->awipsProductMutex_};
+
+                        p->awipsProductMap_[tiltActionList[i]] =
+                           visible ? availableAwipsIdIter->second[i] : "?";
                      }
                   }
                });
@@ -257,15 +244,16 @@ void Level3ProductsWidget::UpdateProductSelection(
    {
       common::Level3ProductCategory category =
          common::GetLevel3CategoryByAwipsId(productName);
-      p->UpdateProductSelection(category);
+      p->UpdateCategorySelection(category);
+      p->UpdateProductSelection(productName);
    }
    else
    {
-      p->UpdateProductSelection(common::Level3ProductCategory::Unknown);
+      p->UpdateCategorySelection(common::Level3ProductCategory::Unknown);
    }
 }
 
-void Level3ProductsWidgetImpl::UpdateProductSelection(
+void Level3ProductsWidgetImpl::UpdateCategorySelection(
    common::Level3ProductCategory category)
 {
    const std::string& categoryName = common::GetLevel3CategoryName(category);
@@ -286,6 +274,17 @@ void Level3ProductsWidgetImpl::UpdateProductSelection(
                        toolButton->setCheckable(false);
                     }
                  });
+}
+
+void Level3ProductsWidgetImpl::UpdateProductSelection(
+   const std::string& awipsId)
+{
+   std::shared_lock lock {awipsProductMutex_};
+
+   std::for_each(awipsProductMap_.cbegin(),
+                 awipsProductMap_.cend(),
+                 [=](const auto& pair)
+                 { pair.first->setChecked(pair.second == awipsId); });
 }
 
 } // namespace ui
