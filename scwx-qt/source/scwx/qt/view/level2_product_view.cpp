@@ -65,20 +65,12 @@ public:
        savedScale_ {0.0f},
        savedOffset_ {0.0f}
    {
-      auto it = blockTypes_.find(product);
-
-      if (it != blockTypes_.end())
-      {
-         dataBlockType_ = it->second;
-      }
-      else
-      {
-         logger_->warn("Unknown product: \"{}\"",
-                       common::GetLevel2Name(product));
-         dataBlockType_ = wsr88d::rda::DataBlockType::Unknown;
-      }
+      SetProduct(product);
    }
    ~Level2ProductViewImpl() = default;
+
+   void SetProduct(const std::string& productName);
+   void SetProduct(common::Level2Product product);
 
    common::Level2Product                         product_;
    wsr88d::rda::DataBlockType                    dataBlockType_;
@@ -249,9 +241,36 @@ void Level2ProductView::SelectElevation(float elevation)
    p->selectedElevation_ = elevation;
 }
 
+void Level2ProductView::SelectProduct(const std::string& productName)
+{
+   p->SetProduct(productName);
+}
+
 void Level2ProductView::SelectTime(std::chrono::system_clock::time_point time)
 {
    p->selectedTime_ = time;
+}
+
+void Level2ProductViewImpl::SetProduct(const std::string& productName)
+{
+   SetProduct(common::GetLevel2Product(productName));
+}
+
+void Level2ProductViewImpl::SetProduct(common::Level2Product product)
+{
+   product_ = product;
+
+   auto it = blockTypes_.find(product);
+
+   if (it != blockTypes_.end())
+   {
+      dataBlockType_ = it->second;
+   }
+   else
+   {
+      logger_->warn("Unknown product: \"{}\"", common::GetLevel2Name(product));
+      dataBlockType_ = wsr88d::rda::DataBlockType::Unknown;
+   }
 }
 
 void Level2ProductView::Update()

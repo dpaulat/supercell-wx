@@ -42,6 +42,7 @@ public:
    virtual void
    LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) = 0;
    virtual void SelectElevation(float elevation);
+   virtual void SelectProduct(const std::string& productName)          = 0;
    virtual void SelectTime(std::chrono::system_clock::time_point time) = 0;
    virtual void Update()                                               = 0;
 

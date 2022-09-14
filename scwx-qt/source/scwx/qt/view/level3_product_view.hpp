@@ -35,6 +35,8 @@ public:
    common::RadarProductGroup GetRadarProductGroup() const override;
    std::string               GetRadarProductName() const override;
 
+   void SelectProduct(const std::string& productName) override;
+
 protected:
    std::shared_ptr<wsr88d::rpg::GraphicProductMessage>
         graphic_product_message() const;

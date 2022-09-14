@@ -301,7 +301,9 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
 
    if (radarProductView == nullptr ||
        radarProductView->GetRadarProductGroup() != group ||
-       radarProductView->GetRadarProductName() != productName ||
+       (radarProductView->GetRadarProductGroup() ==
+           common::RadarProductGroup::Level2 &&
+        radarProductView->GetRadarProductName() != productName) ||
        p->context_->radarProductCode_ != productCode)
    {
       p->RadarProductViewDisconnect();
@@ -312,6 +314,10 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
       p->RadarProductViewConnect();
 
       radarProductViewCreated = true;
+   }
+   else
+   {
+      radarProductView->SelectProduct(productName);
    }
 
    p->context_->radarProductGroup_ = group;

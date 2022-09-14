@@ -27,9 +27,7 @@ class Level3RadialViewImpl
 {
 public:
    explicit Level3RadialViewImpl(
-      const std::string&                            product,
       std::shared_ptr<manager::RadarProductManager> radarProductManager) :
-       product_ {product},
        radarProductManager_ {radarProductManager},
        selectedTime_ {},
        latitude_ {},
@@ -41,7 +39,6 @@ public:
    }
    ~Level3RadialViewImpl() = default;
 
-   std::string                                   product_;
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
    std::chrono::system_clock::time_point selectedTime_;
@@ -61,7 +58,7 @@ Level3RadialView::Level3RadialView(
    const std::string&                            product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager) :
     Level3ProductView(product),
-    p(std::make_unique<Level3RadialViewImpl>(product, radarProductManager))
+    p(std::make_unique<Level3RadialViewImpl>(radarProductManager))
 {
 }
 Level3RadialView::~Level3RadialView() = default;
@@ -114,7 +111,8 @@ void Level3RadialView::ComputeSweep()
 
    // Retrieve message from Radar Product Manager
    std::shared_ptr<wsr88d::rpg::Level3Message> message =
-      p->radarProductManager_->GetLevel3Data(p->product_, p->selectedTime_);
+      p->radarProductManager_->GetLevel3Data(GetRadarProductName(),
+                                             p->selectedTime_);
    if (message == nullptr)
    {
       logger_->debug("Level 3 data not found");

@@ -118,6 +118,11 @@ std::string Level3ProductView::GetRadarProductName() const
    return p->product_;
 }
 
+void Level3ProductView::SelectProduct(const std::string& productName)
+{
+   p->product_ = productName;
+}
+
 void Level3ProductView::LoadColorTable(
    std::shared_ptr<common::ColorTable> colorTable)
 {

@@ -39,6 +39,7 @@ public:
 
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) override;
    void SelectElevation(float elevation) override;
+   void SelectProduct(const std::string& productName) override;
    void SelectTime(std::chrono::system_clock::time_point time) override;
    void Update() override;
 
