@@ -125,6 +125,21 @@ MainWindow::MainWindow(QWidget* parent) :
 
    p->ConfigureMapLayout();
 
+   // Configure Menu
+   ui->menuView->insertAction(ui->actionRadarToolbox,
+                              ui->radarToolboxDock->toggleViewAction());
+   ui->radarToolboxDock->toggleViewAction()->setText(tr("Radar &Toolbox"));
+   ui->actionRadarToolbox->setVisible(false);
+
+   ui->menuView->insertAction(ui->actionResourceExplorer,
+                              ui->resourceExplorerDock->toggleViewAction());
+   ui->resourceExplorerDock->toggleViewAction()->setText(
+      tr("&Resource Explorer"));
+   ui->actionResourceExplorer->setVisible(false);
+
+   // Configure Docks
+   ui->resourceExplorerDock->setVisible(false);
+
    // Add Level 2 Products
    p->level2ProductsWidget_ = new ui::Level2ProductsWidget(this);
    ui->radarProductGroupBox->layout()->replaceWidget(ui->level2ProductFrame,

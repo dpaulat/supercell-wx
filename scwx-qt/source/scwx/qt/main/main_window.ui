@@ -52,13 +52,21 @@
     </property>
     <addaction name="actionAboutSupercellWx"/>
    </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>&amp;View</string>
+    </property>
+    <addaction name="actionRadarToolbox"/>
+    <addaction name="actionResourceExplorer"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuView"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QDockWidget" name="radarToolboxDock">
    <property name="windowTitle">
-    <string>Toolbox</string>
+    <string>Radar Toolbox</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>1</number>
@@ -217,6 +225,15 @@
     </layout>
    </widget>
   </widget>
+  <widget class="QDockWidget" name="resourceExplorerDock">
+   <property name="windowTitle">
+    <string>Resource Explorer</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>8</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents"/>
+  </widget>
   <action name="actionExit">
    <property name="text">
     <string>E&amp;xit</string>
@@ -233,6 +250,16 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="actionRadarToolbox">
+   <property name="text">
+    <string>Radar Toolbox</string>
+   </property>
+  </action>
+  <action name="actionResourceExplorer">
+   <property name="text">
+    <string>&amp;Resource Explorer</string>
    </property>
   </action>
  </widget>
