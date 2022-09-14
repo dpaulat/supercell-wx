@@ -26,6 +26,11 @@ ReturnType GetBoundedElement(std::map<Key, T>& map, Key key)
          // looking for
          element = (--it)->second;
       }
+      else
+      {
+         // The current element is a good substitute
+         element = it->second;
+      }
    }
    else if (map.size() > 0)
    {
