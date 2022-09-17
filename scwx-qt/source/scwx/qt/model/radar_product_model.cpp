@@ -15,8 +15,7 @@ class RadarProductModelImpl
 {
 public:
    explicit RadarProductModelImpl() {}
-
-   ~RadarProductModelImpl() {}
+   ~RadarProductModelImpl() = default;
 };
 
 RadarProductModel::RadarProductModel(QObject* parent) :
@@ -24,6 +23,22 @@ RadarProductModel::RadarProductModel(QObject* parent) :
 {
 }
 RadarProductModel::~RadarProductModel() = default;
+
+int RadarProductModel::rowCount(const QModelIndex& /*parent*/) const
+{
+   return 0;
+}
+
+int RadarProductModel::columnCount(const QModelIndex& /*parent*/) const
+{
+   return 0;
+}
+
+QVariant RadarProductModel::data(const QModelIndex& /*index*/,
+                                 int /*role*/) const
+{
+   return QVariant();
+}
 
 } // namespace model
 } // namespace qt
