@@ -124,8 +124,6 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->vcpValueLabel->setVisible(false);
    ui->vcpDescriptionLabel->setVisible(false);
 
-   p->ConfigureMapLayout();
-
    // Configure Menu
    ui->menuView->insertAction(ui->actionRadarToolbox,
                               ui->radarToolboxDock->toggleViewAction());
@@ -142,6 +140,9 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->resourceExplorerDock->setVisible(false);
 
    ui->resourceTreeView->setModel(new model::RadarProductModel());
+
+   // Configure Map
+   p->ConfigureMapLayout();
 
    // Add Level 2 Products
    p->level2ProductsWidget_ = new ui::Level2ProductsWidget(this);

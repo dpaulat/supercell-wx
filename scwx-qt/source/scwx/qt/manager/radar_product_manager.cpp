@@ -1,4 +1,5 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
+#include <scwx/qt/manager/radar_product_manager_notifier.hpp>
 #include <scwx/common/constants.hpp>
 #include <scwx/provider/nexrad_data_provider_factory.hpp>
 #include <scwx/util/logger.hpp>
@@ -943,6 +944,8 @@ RadarProductManager::Instance(const std::string& radarSite)
    {
       instanceMap_[radarSite] =
          std::make_shared<RadarProductManager>(radarSite);
+      emit RadarProductManagerNotifier::Instance().RadarProductManagerCreated(
+         radarSite);
    }
 
    return instanceMap_[radarSite];
