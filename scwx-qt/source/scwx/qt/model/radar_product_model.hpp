@@ -1,8 +1,6 @@
 #pragma once
 
-#include <memory>
-
-#include <QAbstractTableModel>
+#include <scwx/qt/model/tree_model.hpp>
 
 namespace scwx
 {
@@ -13,25 +11,14 @@ namespace model
 
 class RadarProductModelImpl;
 
-class RadarProductModel : public QAbstractTableModel
+class RadarProductModel : public TreeModel
 {
 public:
    explicit RadarProductModel(QObject* parent = nullptr);
    ~RadarProductModel();
 
-   int rowCount(const QModelIndex& parent = QModelIndex()) const override;
-   int columnCount(const QModelIndex& parent = QModelIndex()) const override;
-
-   QVariant      data(const QModelIndex& index,
-                      int                role = Qt::DisplayRole) const override;
-   Qt::ItemFlags flags(const QModelIndex& index) const override;
-   QVariant      headerData(int             section,
-                            Qt::Orientation orientation,
-                            int             role = Qt::DisplayRole) const override;
-   QModelIndex   index(int                row,
-                       int                column,
-                       const QModelIndex& parent = QModelIndex()) const override;
-   QModelIndex   parent(const QModelIndex& index) const override;
+protected:
+   const std::shared_ptr<TreeItem> root_item() const override;
 
 private:
    std::unique_ptr<RadarProductModelImpl> p;
