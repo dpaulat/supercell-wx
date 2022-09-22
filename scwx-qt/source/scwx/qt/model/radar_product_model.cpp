@@ -48,6 +48,8 @@ RadarProductModelImpl::RadarProductModelImpl(RadarProductModel* self) :
       this,
       [=](const std::string& radarSite)
       {
+         logger_->debug("Adding radar site: {}", radarSite);
+
          const QModelIndex rootIndex =
             self_->createIndex(rootItem_->row(), 0, rootItem_.get());
          const int rootChildren = rootItem_->child_count();
@@ -134,8 +136,7 @@ RadarProductModelImpl::RadarProductModelImpl(RadarProductModel* self) :
                self_->endInsertRows();
             },
             Qt::QueuedConnection);
-      },
-      Qt::QueuedConnection);
+      });
 }
 
 #include "radar_product_model.moc"
