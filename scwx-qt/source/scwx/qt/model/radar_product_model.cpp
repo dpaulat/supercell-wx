@@ -40,7 +40,7 @@ const std::shared_ptr<TreeItem> RadarProductModel::root_item() const
 RadarProductModelImpl::RadarProductModelImpl(RadarProductModel* self) :
     self_ {self},
     rootItem_ {std::make_shared<TreeItem>(
-       std::vector<QVariant> {QObject::tr("Name"), QObject::tr("Info")})}
+       std::vector<QVariant> {QObject::tr("Product")})}
 {
    connect(
       &manager::RadarProductManagerNotifier::Instance(),

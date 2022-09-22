@@ -139,7 +139,7 @@ MainWindow::MainWindow(QWidget* parent) :
    // Configure Docks
    ui->resourceExplorerDock->setVisible(false);
 
-   ui->resourceTreeView->setModel(new model::RadarProductModel());
+   ui->resourceTreeView->setModel(new model::RadarProductModel(this));
 
    // Configure Map
    p->ConfigureMapLayout();
