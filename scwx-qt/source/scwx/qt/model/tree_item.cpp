@@ -28,6 +28,11 @@ TreeItem::TreeItem(const std::vector<QVariant>& data, TreeItem* parent) :
 {
 }
 
+TreeItem::TreeItem(std::initializer_list<QVariant> data, TreeItem* parent) :
+    TreeItem(std::vector<QVariant> {data}, parent)
+{
+}
+
 TreeItem::~TreeItem() {}
 
 TreeItem::TreeItem(TreeItem&&) noexcept            = default;
@@ -37,6 +42,24 @@ void TreeItem::AppendChild(TreeItem* item)
 {
    item->p->parentItem_ = this;
    p->childItems_.push_back(item);
+}
+
+TreeItem* TreeItem::FindChild(int column, const QVariant& data)
+{
+   auto it = std::find_if(p->childItems_.begin(),
+                          p->childItems_.end(),
+                          [&](auto& item) {
+                             return (column < item->column_count() &&
+                                     item->data(column) == data);
+                          });
+
+   TreeItem* item = nullptr;
+   if (it != p->childItems_.end())
+   {
+      item = *it;
+   }
+
+   return item;
 }
 
 const TreeItem* TreeItem::child(int row) const
@@ -49,6 +72,23 @@ const TreeItem* TreeItem::child(int row) const
    }
 
    return item;
+}
+
+TreeItem* TreeItem::child(int row)
+{
+   TreeItem* item = nullptr;
+
+   if (0 <= row && row < p->childItems_.size())
+   {
+      item = p->childItems_[row];
+   }
+
+   return item;
+}
+
+std::vector<TreeItem*> TreeItem::children()
+{
+   return p->childItems_;
 }
 
 int TreeItem::child_count() const

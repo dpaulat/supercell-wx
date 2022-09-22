@@ -17,6 +17,8 @@ class TreeItem
 public:
    explicit TreeItem(const std::vector<QVariant>& data,
                      TreeItem*                    parent = nullptr);
+   explicit TreeItem(std::initializer_list<QVariant> data,
+                     TreeItem*                       parent = nullptr);
    virtual ~TreeItem();
 
    TreeItem(const TreeItem&)            = delete;
@@ -25,14 +27,17 @@ public:
    TreeItem(TreeItem&&) noexcept;
    TreeItem& operator=(TreeItem&&) noexcept;
 
-   void AppendChild(TreeItem* child);
+   void      AppendChild(TreeItem* child);
+   TreeItem* FindChild(int column, const QVariant& data);
 
-   const TreeItem* child(int row) const;
-   int             child_count() const;
-   int             column_count() const;
-   QVariant        data(int column) const;
-   int             row() const;
-   const TreeItem* parent_item() const;
+   const TreeItem*        child(int row) const;
+   TreeItem*              child(int row);
+   std::vector<TreeItem*> children();
+   int                    child_count() const;
+   int                    column_count() const;
+   QVariant               data(int column) const;
+   int                    row() const;
+   const TreeItem*        parent_item() const;
 
 private:
    class Impl;

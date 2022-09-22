@@ -17,7 +17,7 @@ public:
 };
 
 TreeModel::TreeModel(QObject* parent) :
-    QAbstractTableModel(parent), p(std::make_unique<TreeModelImpl>())
+    QAbstractItemModel(parent), p(std::make_unique<TreeModelImpl>())
 {
 }
 TreeModel::~TreeModel() = default;

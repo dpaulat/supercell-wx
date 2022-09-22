@@ -2,7 +2,7 @@
 
 #include <scwx/qt/model/tree_item.hpp>
 
-#include <QAbstractTableModel>
+#include <QAbstractItemModel>
 
 namespace scwx
 {
@@ -13,7 +13,7 @@ namespace model
 
 class TreeModelImpl;
 
-class TreeModel : public QAbstractTableModel
+class TreeModel : public QAbstractItemModel
 {
 public:
    explicit TreeModel(QObject* parent = nullptr);
