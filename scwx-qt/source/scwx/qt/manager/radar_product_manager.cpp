@@ -1,4 +1,5 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
+#include <scwx/qt/manager/radar_product_manager_notifier.hpp>
 #include <scwx/common/constants.hpp>
 #include <scwx/provider/nexrad_data_provider_factory.hpp>
 #include <scwx/util/logger.hpp>
@@ -937,15 +938,29 @@ void RadarProductManager::UpdateAvailableProducts()
 std::shared_ptr<RadarProductManager>
 RadarProductManager::Instance(const std::string& radarSite)
 {
-   std::lock_guard<std::mutex> guard(instanceMutex_);
+   std::shared_ptr<RadarProductManager> instance        = nullptr;
+   bool                                 instanceCreated = false;
 
-   if (!instanceMap_.contains(radarSite))
    {
-      instanceMap_[radarSite] =
-         std::make_shared<RadarProductManager>(radarSite);
+      std::lock_guard<std::mutex> guard(instanceMutex_);
+
+      if (!instanceMap_.contains(radarSite))
+      {
+         instanceMap_[radarSite] =
+            std::make_shared<RadarProductManager>(radarSite);
+         instanceCreated = true;
+      }
+
+      instance = instanceMap_[radarSite];
    }
 
-   return instanceMap_[radarSite];
+   if (instanceCreated)
+   {
+      emit RadarProductManagerNotifier::Instance().RadarProductManagerCreated(
+         radarSite);
+   }
+
+   return instance;
 }
 
 } // namespace manager

@@ -50,9 +50,11 @@ set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
 set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
                 source/scwx/qt/gl/draw/rectangle.cpp)
 set(HDR_MANAGER source/scwx/qt/manager/radar_product_manager.hpp
+                source/scwx/qt/manager/radar_product_manager_notifier.hpp
                 source/scwx/qt/manager/resource_manager.hpp
                 source/scwx/qt/manager/settings_manager.hpp)
 set(SRC_MANAGER source/scwx/qt/manager/radar_product_manager.cpp
+                source/scwx/qt/manager/radar_product_manager_notifier.cpp
                 source/scwx/qt/manager/resource_manager.cpp
                 source/scwx/qt/manager/settings_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/color_table_layer.hpp
@@ -73,6 +75,12 @@ set(SRC_MAP source/scwx/qt/map/color_table_layer.cpp
             source/scwx/qt/map/overlay_layer.cpp
             source/scwx/qt/map/radar_product_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp)
+set(HDR_MODEL source/scwx/qt/model/radar_product_model.hpp
+              source/scwx/qt/model/tree_item.hpp
+              source/scwx/qt/model/tree_model.hpp)
+set(SRC_MODEL source/scwx/qt/model/radar_product_model.cpp
+              source/scwx/qt/model/tree_item.cpp
+              source/scwx/qt/model/tree_model.cpp)
 set(HDR_REQUEST source/scwx/qt/request/nexrad_file_request.hpp)
 set(SRC_REQUEST source/scwx/qt/request/nexrad_file_request.cpp)
 set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp
@@ -140,6 +148,8 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${UI_MAIN}
                     ${HDR_MAP}
                     ${SRC_MAP}
+                    ${HDR_MODEL}
+                    ${SRC_MODEL}
                     ${HDR_REQUEST}
                     ${SRC_REQUEST}
                     ${HDR_SETTINGS}
@@ -172,6 +182,8 @@ source_group("Source Files\\manager"  FILES ${SRC_MANAGER})
 source_group("UI Files\\main"         FILES ${UI_MAIN})
 source_group("Header Files\\map"      FILES ${HDR_MAP})
 source_group("Source Files\\map"      FILES ${SRC_MAP})
+source_group("Header Files\\model"    FILES ${HDR_MODEL})
+source_group("Source Files\\model"    FILES ${SRC_MODEL})
 source_group("Header Files\\request"  FILES ${HDR_REQUEST})
 source_group("Source Files\\request"  FILES ${SRC_REQUEST})
 source_group("Header Files\\settings" FILES ${HDR_SETTINGS})

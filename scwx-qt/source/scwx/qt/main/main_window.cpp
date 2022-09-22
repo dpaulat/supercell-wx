@@ -6,6 +6,7 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/map_widget.hpp>
+#include <scwx/qt/model/radar_product_model.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
@@ -123,6 +124,24 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->vcpValueLabel->setVisible(false);
    ui->vcpDescriptionLabel->setVisible(false);
 
+   // Configure Menu
+   ui->menuView->insertAction(ui->actionRadarToolbox,
+                              ui->radarToolboxDock->toggleViewAction());
+   ui->radarToolboxDock->toggleViewAction()->setText(tr("Radar &Toolbox"));
+   ui->actionRadarToolbox->setVisible(false);
+
+   ui->menuView->insertAction(ui->actionResourceExplorer,
+                              ui->resourceExplorerDock->toggleViewAction());
+   ui->resourceExplorerDock->toggleViewAction()->setText(
+      tr("&Resource Explorer"));
+   ui->actionResourceExplorer->setVisible(false);
+
+   // Configure Docks
+   ui->resourceExplorerDock->setVisible(false);
+
+   ui->resourceTreeView->setModel(new model::RadarProductModel(this));
+
+   // Configure Map
    p->ConfigureMapLayout();
 
    // Add Level 2 Products
