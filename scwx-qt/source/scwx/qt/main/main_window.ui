@@ -235,6 +235,65 @@
    <widget class="QWidget" name="dockWidgetContents">
     <layout class="QVBoxLayout" name="verticalLayout_3">
      <item>
+      <widget class="QFrame" name="frame">
+       <property name="frameShape">
+        <enum>QFrame::StyledPanel</enum>
+       </property>
+       <property name="frameShadow">
+        <enum>QFrame::Raised</enum>
+       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>193</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QToolButton" name="resourceTreeExpandAllButton">
+          <property name="toolTip">
+           <string>Expand All</string>
+          </property>
+          <property name="icon">
+           <iconset resource="../../../../scwx-qt.qrc">
+            <normaloff>:/res/icons/font-awesome-6/square-plus-regular.svg</normaloff>:/res/icons/font-awesome-6/square-plus-regular.svg</iconset>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QToolButton" name="resourceTreeCollapseAllButton">
+          <property name="toolTip">
+           <string>Collapse All</string>
+          </property>
+          <property name="icon">
+           <iconset resource="../../../../scwx-qt.qrc">
+            <normaloff>:/res/icons/font-awesome-6/square-minus-regular.svg</normaloff>:/res/icons/font-awesome-6/square-minus-regular.svg</iconset>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
       <widget class="QTreeView" name="resourceTreeView"/>
      </item>
     </layout>
@@ -269,6 +328,8 @@
    </property>
   </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="../../../../scwx-qt.qrc"/>
+ </resources>
  <connections/>
 </ui>

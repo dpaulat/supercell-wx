@@ -285,6 +285,16 @@ void MainWindow::on_actionExit_triggered()
    close();
 }
 
+void MainWindow::on_resourceTreeCollapseAllButton_clicked()
+{
+   ui->resourceTreeView->collapseAll();
+}
+
+void MainWindow::on_resourceTreeExpandAllButton_clicked()
+{
+   ui->resourceTreeView->expandAll();
+}
+
 void MainWindowImpl::ConfigureMapLayout()
 {
    auto generalSettings = manager::SettingsManager::general_settings();

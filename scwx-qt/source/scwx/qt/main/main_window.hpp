@@ -31,6 +31,8 @@ public:
 private slots:
    void on_actionOpen_triggered();
    void on_actionExit_triggered();
+   void on_resourceTreeCollapseAllButton_clicked();
+   void on_resourceTreeExpandAllButton_clicked();
 
 private:
    std::unique_ptr<MainWindowImpl> p;
