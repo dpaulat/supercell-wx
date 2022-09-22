@@ -22,6 +22,8 @@ protected:
 
 private:
    std::unique_ptr<RadarProductModelImpl> p;
+
+   friend class RadarProductModelImpl;
 };
 
 } // namespace model

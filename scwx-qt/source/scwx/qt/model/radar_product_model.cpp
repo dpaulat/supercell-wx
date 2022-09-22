@@ -48,10 +48,17 @@ RadarProductModelImpl::RadarProductModelImpl(RadarProductModel* self) :
       this,
       [=](const std::string& radarSite)
       {
+         const QModelIndex rootIndex =
+            self_->createIndex(rootItem_->row(), 0, rootItem_.get());
+         const int rootChildren = rootItem_->child_count();
+
+         self_->beginInsertRows(rootIndex, rootChildren, rootChildren);
+
          TreeItem* radarSiteItem =
             new TreeItem({QString::fromStdString(radarSite)});
-
          rootItem_->AppendChild(radarSiteItem);
+
+         self_->endInsertRows();
 
          connect(
             manager::RadarProductManager::Instance(radarSite).get(),
@@ -69,8 +76,18 @@ RadarProductModelImpl::RadarProductModelImpl(RadarProductModel* self) :
 
                if (groupItem == nullptr)
                {
+                  // Existing group item was not found, create it
+                  const QModelIndex radarSiteIndex =
+                     self_->createIndex(radarSiteItem->row(), 0, radarSiteItem);
+                  const int radarSiteChildren = radarSiteItem->child_count();
+
+                  self_->beginInsertRows(
+                     radarSiteIndex, radarSiteChildren, radarSiteChildren);
+
                   groupItem = new TreeItem({groupName});
                   radarSiteItem->AppendChild(groupItem);
+
+                  self_->endInsertRows();
                }
 
                TreeItem* productItem = nullptr;
@@ -88,14 +105,33 @@ RadarProductModelImpl::RadarProductModelImpl(RadarProductModel* self) :
 
                   if (productItem == nullptr)
                   {
+                     // Existing product item was not found, create it
+                     const QModelIndex groupItemIndex =
+                        self_->createIndex(groupItem->row(), 0, groupItem);
+                     const int groupItemChildren = groupItem->child_count();
+
+                     self_->beginInsertRows(
+                        groupItemIndex, groupItemChildren, groupItemChildren);
+
                      productItem = new TreeItem({productName});
                      groupItem->AppendChild(productItem);
+
+                     self_->endInsertRows();
                   }
                }
 
                // Create leaf item for product time
+               const QModelIndex productItemIndex =
+                  self_->createIndex(productItem->row(), 0, productItem);
+               const int productItemChildren = productItem->child_count();
+
+               self_->beginInsertRows(
+                  productItemIndex, productItemChildren, productItemChildren);
+
                productItem->AppendChild(new TreeItem {
                   QString::fromStdString(util::TimeString(latestTime))});
+
+               self_->endInsertRows();
             },
             Qt::QueuedConnection);
       },
