@@ -122,12 +122,14 @@ set(RESOURCE_FILES scwx-qt.qrc)
 
 set(SHADER_FILES gl/color.frag
                  gl/color.vert
+                 gl/geo_line.vert
                  gl/radar.frag
                  gl/radar.vert
                  gl/text.frag
                  gl/text.vert
                  gl/texture1d.frag
-                 gl/texture1d.vert)
+                 gl/texture1d.vert
+                 gl/texture2d.frag)
 
 set(CMAKE_FILES scwx-qt.cmake)
 
