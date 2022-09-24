@@ -46,8 +46,10 @@ set(HDR_GL source/scwx/qt/gl/gl.hpp
 set(SRC_GL source/scwx/qt/gl/shader_program.cpp
            source/scwx/qt/gl/text_shader.cpp)
 set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
+                source/scwx/qt/gl/draw/geo_line.hpp
                 source/scwx/qt/gl/draw/rectangle.hpp)
 set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
+                source/scwx/qt/gl/draw/geo_line.cpp
                 source/scwx/qt/gl/draw/rectangle.cpp)
 set(HDR_MANAGER source/scwx/qt/manager/radar_product_manager.hpp
                 source/scwx/qt/manager/radar_product_manager_notifier.hpp
