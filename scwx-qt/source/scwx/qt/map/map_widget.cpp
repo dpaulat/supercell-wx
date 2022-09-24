@@ -326,7 +326,8 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
 
    if (radarProductView != nullptr)
    {
-      radarProductView->SelectTime(p->selectedTime_);
+      // Always select the latest product available
+      radarProductView->SelectTime({});
 
       if (radarProductViewCreated)
       {

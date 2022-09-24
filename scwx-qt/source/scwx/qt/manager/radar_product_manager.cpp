@@ -747,7 +747,16 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
 
    if (it != level3ProductRecordsMap_.cend())
    {
-      record = util::GetBoundedElementValue(it->second, time);
+      if (time == std::chrono::system_clock::time_point {})
+      {
+         // If a default-initialized time point is given, return the latest
+         // record
+         record = it->second.rbegin()->second;
+      }
+      else
+      {
+         record = util::GetBoundedElementValue(it->second, time);
+      }
    }
 
    return record;
