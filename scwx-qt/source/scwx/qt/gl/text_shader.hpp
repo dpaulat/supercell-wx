@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/qt/gl/shader_program.hpp>
+#include <scwx/qt/map/map_context.hpp>
 #include <scwx/qt/util/font.hpp>
 
 #include <memory>
@@ -24,13 +24,13 @@ enum class TextAlign
 
 class TextShaderImpl;
 
-class TextShader : public ShaderProgram
+class TextShader
 {
 public:
-   explicit TextShader(OpenGLFunctions& gl);
+   explicit TextShader(std::shared_ptr<map::MapContext> context);
    ~TextShader();
 
-   TextShader(const TextShader&) = delete;
+   TextShader(const TextShader&)            = delete;
    TextShader& operator=(const TextShader&) = delete;
 
    TextShader(TextShader&&) noexcept;

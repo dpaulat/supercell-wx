@@ -22,14 +22,15 @@ class DrawLayerImpl
 {
 public:
    explicit DrawLayerImpl(std::shared_ptr<MapContext> context) :
-       shaderProgram_ {context->gl_}, uMVPMatrixLocation_(GL_INVALID_INDEX)
+       shaderProgram_ {nullptr}, uMVPMatrixLocation_(GL_INVALID_INDEX)
    {
    }
 
    ~DrawLayerImpl() {}
 
-   gl::ShaderProgram shaderProgram_;
-   GLint             uMVPMatrixLocation_;
+   std::shared_ptr<gl::ShaderProgram> shaderProgram_;
+
+   GLint uMVPMatrixLocation_;
 
    std::vector<std::shared_ptr<gl::draw::DrawItem>> drawList_;
 };
@@ -42,20 +43,21 @@ DrawLayer::~DrawLayer() = default;
 
 void DrawLayer::Initialize()
 {
-   gl::OpenGLFunctions& gl = context()->gl_;
+   gl::OpenGLFunctions& gl = context()->gl();
 
-   p->shaderProgram_.Load(":/gl/color.vert", ":/gl/color.frag");
+   p->shaderProgram_ =
+      context()->GetShaderProgram(":/gl/color.vert", ":/gl/color.frag");
 
    p->uMVPMatrixLocation_ =
-      gl.glGetUniformLocation(p->shaderProgram_.id(), "uMVPMatrix");
+      gl.glGetUniformLocation(p->shaderProgram_->id(), "uMVPMatrix");
    if (p->uMVPMatrixLocation_ == -1)
    {
       logger_->warn("Could not find uMVPMatrix");
    }
 
-   p->shaderProgram_.Use();
+   p->shaderProgram_->Use();
 
-   for (auto item : p->drawList_)
+   for (auto& item : p->drawList_)
    {
       item->Initialize();
    }
@@ -63,9 +65,9 @@ void DrawLayer::Initialize()
 
 void DrawLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 {
-   gl::OpenGLFunctions& gl = context()->gl_;
+   gl::OpenGLFunctions& gl = context()->gl();
 
-   p->shaderProgram_.Use();
+   p->shaderProgram_->Use();
 
    glm::mat4 projection = glm::ortho(0.0f,
                                      static_cast<float>(params.width),
@@ -75,7 +77,7 @@ void DrawLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
    gl.glUniformMatrix4fv(
       p->uMVPMatrixLocation_, 1, GL_FALSE, glm::value_ptr(projection));
 
-   for (auto item : p->drawList_)
+   for (auto& item : p->drawList_)
    {
       item->Render();
    }
@@ -83,7 +85,7 @@ void DrawLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 
 void DrawLayer::Deinitialize()
 {
-   for (auto item : p->drawList_)
+   for (auto& item : p->drawList_)
    {
       item->Deinitialize();
    }

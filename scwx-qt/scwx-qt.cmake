@@ -73,6 +73,7 @@ set(SRC_MAP source/scwx/qt/map/color_table_layer.cpp
             source/scwx/qt/map/draw_layer.cpp
             source/scwx/qt/map/generic_layer.cpp
             source/scwx/qt/map/layer_wrapper.cpp
+            source/scwx/qt/map/map_context.cpp
             source/scwx/qt/map/map_widget.cpp
             source/scwx/qt/map/overlay_layer.cpp
             source/scwx/qt/map/radar_product_layer.cpp

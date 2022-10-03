@@ -34,12 +34,12 @@ class OverlayLayerImpl
 {
 public:
    explicit OverlayLayerImpl(std::shared_ptr<MapContext> context) :
-       textShader_(context->gl_),
+       textShader_(context),
        font_(util::Font::Create(":/res/fonts/din1451alt.ttf")),
        texture_ {GL_INVALID_INDEX},
-       activeBoxOuter_ {std::make_shared<gl::draw::Rectangle>(context->gl_)},
-       activeBoxInner_ {std::make_shared<gl::draw::Rectangle>(context->gl_)},
-       timeBox_ {std::make_shared<gl::draw::Rectangle>(context->gl_)},
+       activeBoxOuter_ {std::make_shared<gl::draw::Rectangle>(context->gl())},
+       activeBoxInner_ {std::make_shared<gl::draw::Rectangle>(context->gl())},
+       timeBox_ {std::make_shared<gl::draw::Rectangle>(context->gl())},
        sweepTimeString_ {},
        sweepTimeNeedsUpdate_ {true}
    {
@@ -81,7 +81,8 @@ void OverlayLayer::Initialize()
 
    DrawLayer::Initialize();
 
-   gl::OpenGLFunctions& gl = context()->gl_;
+   gl::OpenGLFunctions& gl               = context()->gl();
+   auto                 radarProductView = context()->radar_product_view();
 
    p->textShader_.Initialize();
 
@@ -90,9 +91,9 @@ void OverlayLayer::Initialize()
       p->texture_ = p->font_->GenerateTexture(gl);
    }
 
-   if (context()->radarProductView_ != nullptr)
+   if (radarProductView != nullptr)
    {
-      connect(context()->radarProductView_.get(),
+      connect(radarProductView.get(),
               &view::RadarProductView::SweepComputed,
               this,
               &OverlayLayer::UpdateSweepTimeNextFrame);
@@ -103,14 +104,14 @@ void OverlayLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 {
    constexpr float fontSize = 16.0f;
 
-   gl::OpenGLFunctions& gl = context()->gl_;
+   gl::OpenGLFunctions& gl               = context()->gl();
+   auto                 radarProductView = context()->radar_product_view();
+   auto&                settings         = context()->settings();
 
-   if (p->sweepTimeNeedsUpdate_ && context()->radarProductView_ != nullptr)
+   if (p->sweepTimeNeedsUpdate_ && radarProductView != nullptr)
    {
-      p->sweepTimeString_ =
-         scwx::util::TimeString(context()->radarProductView_->sweep_time(),
-                                std::chrono::current_zone(),
-                                false);
+      p->sweepTimeString_ = scwx::util::TimeString(
+         radarProductView->sweep_time(), std::chrono::current_zone(), false);
       p->sweepTimeNeedsUpdate_ = false;
    }
 
@@ -120,9 +121,9 @@ void OverlayLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
                                      static_cast<float>(params.height));
 
    // Active Box
-   p->activeBoxOuter_->SetVisible(context()->settings_.isActive_);
-   p->activeBoxInner_->SetVisible(context()->settings_.isActive_);
-   if (context()->settings_.isActive_)
+   p->activeBoxOuter_->SetVisible(settings.isActive_);
+   p->activeBoxInner_->SetVisible(settings.isActive_);
+   if (settings.isActive_)
    {
       p->activeBoxOuter_->SetSize(params.width, params.height);
       p->activeBoxInner_->SetSize(params.width - 2.0f, params.height - 2.0f);
@@ -164,15 +165,16 @@ void OverlayLayer::Deinitialize()
 
    DrawLayer::Deinitialize();
 
-   gl::OpenGLFunctions& gl = context()->gl_;
+   gl::OpenGLFunctions& gl               = context()->gl();
+   auto                 radarProductView = context()->radar_product_view();
 
    gl.glDeleteTextures(1, &p->texture_);
 
    p->texture_ = GL_INVALID_INDEX;
 
-   if (context()->radarProductView_ != nullptr)
+   if (radarProductView != nullptr)
    {
-      disconnect(context()->radarProductView_.get(),
+      disconnect(radarProductView.get(),
                  &view::RadarProductView::SweepComputed,
                  this,
                  &OverlayLayer::UpdateSweepTimeNextFrame);

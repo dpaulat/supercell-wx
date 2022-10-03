@@ -21,7 +21,7 @@ class ColorTableLayerImpl
 {
 public:
    explicit ColorTableLayerImpl(std::shared_ptr<MapContext> context) :
-       shaderProgram_(context->gl_),
+       shaderProgram_(nullptr),
        uMVPMatrixLocation_(GL_INVALID_INDEX),
        vbo_ {GL_INVALID_INDEX},
        vao_ {GL_INVALID_INDEX},
@@ -31,7 +31,8 @@ public:
    }
    ~ColorTableLayerImpl() = default;
 
-   gl::ShaderProgram     shaderProgram_;
+   std::shared_ptr<gl::ShaderProgram> shaderProgram_;
+
    GLint                 uMVPMatrixLocation_;
    std::array<GLuint, 2> vbo_;
    GLuint                vao_;
@@ -52,13 +53,14 @@ void ColorTableLayer::Initialize()
 {
    logger_->debug("Initialize()");
 
-   gl::OpenGLFunctions& gl = context()->gl_;
+   gl::OpenGLFunctions& gl = context()->gl();
 
    // Load and configure overlay shader
-   p->shaderProgram_.Load(":/gl/texture1d.vert", ":/gl/texture1d.frag");
+   p->shaderProgram_ =
+      context()->GetShaderProgram(":/gl/texture1d.vert", ":/gl/texture1d.frag");
 
    p->uMVPMatrixLocation_ =
-      gl.glGetUniformLocation(p->shaderProgram_.id(), "uMVPMatrix");
+      gl.glGetUniformLocation(p->shaderProgram_->id(), "uMVPMatrix");
    if (p->uMVPMatrixLocation_ == -1)
    {
       logger_->warn("Could not find uMVPMatrix");
@@ -66,7 +68,7 @@ void ColorTableLayer::Initialize()
 
    gl.glGenTextures(1, &p->texture_);
 
-   p->shaderProgram_.Use();
+   p->shaderProgram_->Use();
 
    // Generate a vertex array object
    gl.glGenVertexArrays(1, &p->vao_);
@@ -99,7 +101,7 @@ void ColorTableLayer::Initialize()
    gl.glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, static_cast<void*>(0));
    gl.glEnableVertexAttribArray(1);
 
-   connect(context()->radarProductView_.get(),
+   connect(context()->radar_product_view().get(),
            &view::RadarProductView::ColorTableUpdated,
            this,
            [=]() { p->colorTableNeedsUpdate_ = true; });
@@ -107,10 +109,11 @@ void ColorTableLayer::Initialize()
 
 void ColorTableLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 {
-   gl::OpenGLFunctions& gl = context()->gl_;
+   gl::OpenGLFunctions& gl               = context()->gl();
+   auto                 radarProductView = context()->radar_product_view();
 
-   if (context()->radarProductView_ == nullptr ||
-       !context()->radarProductView_->IsInitialized())
+   if (context()->radar_product_view() == nullptr ||
+       !context()->radar_product_view()->IsInitialized())
    {
       // Defer rendering until view is initialized
       return;
@@ -121,14 +124,14 @@ void ColorTableLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
                                      0.0f,
                                      static_cast<float>(params.height));
 
-   p->shaderProgram_.Use();
+   p->shaderProgram_->Use();
 
    gl.glUniformMatrix4fv(
       p->uMVPMatrixLocation_, 1, GL_FALSE, glm::value_ptr(projection));
 
    if (p->colorTableNeedsUpdate_)
    {
-      p->colorTable_ = context()->radarProductView_->color_table();
+      p->colorTable_ = radarProductView->color_table();
 
       gl.glActiveTexture(GL_TEXTURE0);
       gl.glBindTexture(GL_TEXTURE_1D, p->texture_);
@@ -145,9 +148,8 @@ void ColorTableLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
       gl.glGenerateMipmap(GL_TEXTURE_1D);
    }
 
-   if (p->colorTable_.size() > 0 &&
-       context()->radarProductView_->sweep_time() !=
-          std::chrono::system_clock::time_point())
+   if (p->colorTable_.size() > 0 && radarProductView->sweep_time() !=
+                                       std::chrono::system_clock::time_point())
    {
       // Color table panel vertices
       const float vertexLX       = 0.0f;
@@ -176,7 +178,7 @@ void ColorTableLayer::Deinitialize()
 {
    logger_->debug("Deinitialize()");
 
-   gl::OpenGLFunctions& gl = context()->gl_;
+   gl::OpenGLFunctions& gl = context()->gl();
 
    gl.glDeleteVertexArrays(1, &p->vao_);
    gl.glDeleteBuffers(2, p->vbo_.data());

@@ -1,4 +1,5 @@
 #include <scwx/qt/gl/text_shader.hpp>
+#include <scwx/qt/gl/shader_program.hpp>
 #include <scwx/util/logger.hpp>
 
 #pragma warning(push, 0)
@@ -18,41 +19,46 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class TextShaderImpl
 {
 public:
-   explicit TextShaderImpl(OpenGLFunctions& gl) :
-       gl_ {gl}, projectionLocation_(GL_INVALID_INDEX)
+   explicit TextShaderImpl(std::shared_ptr<map::MapContext> context) :
+       context_ {context},
+       shaderProgram_ {nullptr},
+       projectionLocation_(GL_INVALID_INDEX)
    {
    }
 
    ~TextShaderImpl() {}
 
-   OpenGLFunctions& gl_;
+   std::shared_ptr<map::MapContext> context_;
+   std::shared_ptr<ShaderProgram>   shaderProgram_;
 
    GLint projectionLocation_;
 };
 
-TextShader::TextShader(OpenGLFunctions& gl) :
-    ShaderProgram(gl), p(std::make_unique<TextShaderImpl>(gl))
+TextShader::TextShader(std::shared_ptr<map::MapContext> context) :
+    p(std::make_unique<TextShaderImpl>(context))
 {
 }
 TextShader::~TextShader() = default;
 
-TextShader::TextShader(TextShader&&) noexcept = default;
+TextShader::TextShader(TextShader&&) noexcept            = default;
 TextShader& TextShader::operator=(TextShader&&) noexcept = default;
 
 bool TextShader::Initialize()
 {
-   OpenGLFunctions& gl = p->gl_;
+   OpenGLFunctions& gl = p->context_->gl();
 
    // Load and configure shader
-   bool success = Load(":/gl/text.vert", ":/gl/text.frag");
+   p->shaderProgram_ =
+      p->context_->GetShaderProgram(":/gl/text.vert", ":/gl/text.frag");
 
-   p->projectionLocation_ = gl.glGetUniformLocation(id(), "projection");
+   p->projectionLocation_ =
+      gl.glGetUniformLocation(p->shaderProgram_->id(), "projection");
    if (p->projectionLocation_ == -1)
    {
       logger_->warn("Could not find projection");
    }
 
-   return success;
+   return true;
 }
 
 void TextShader::RenderText(const std::string&               text,
@@ -65,9 +71,9 @@ void TextShader::RenderText(const std::string&               text,
                             GLuint                           textureId,
                             TextAlign                        align)
 {
-   OpenGLFunctions& gl = p->gl_;
+   OpenGLFunctions& gl = p->context_->gl();
 
-   Use();
+   p->shaderProgram_->Use();
 
    gl.glEnable(GL_BLEND);
    gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -103,7 +109,7 @@ void TextShader::RenderText(const std::string&               text,
 
 void TextShader::SetProjection(const glm::mat4& projection)
 {
-   p->gl_.glUniformMatrix4fv(
+   p->context_->gl().glUniformMatrix4fv(
       p->projectionLocation_, 1, GL_FALSE, glm::value_ptr(projection));
 }
 
