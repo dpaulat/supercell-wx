@@ -12,6 +12,7 @@ layout (location = 2) in vec2 aTexCoord;
 layout (location = 3) in vec4 aModulate;
 
 uniform mat4 uMVPMatrix;
+uniform mat4 uMapMatrix;
 uniform vec2 uMapScreenCoord;
 
 flat out vec2 texCoord;
@@ -32,8 +33,9 @@ void main()
    texCoord = aTexCoord;
    modulate = aModulate;
 
-   vec2 p = latLngToScreenCoordinate(aLatLong) + aXYOffset - uMapScreenCoord;
+   vec2 p = latLngToScreenCoordinate(aLatLong) - uMapScreenCoord;
 
    // Transform the position to screen coordinates
-   gl_Position = uMVPMatrix * vec4(p, 0.0f, 1.0f);
+   gl_Position = uMapMatrix * vec4(p, 0.0f, 1.0f) -
+                 uMVPMatrix * vec4(aXYOffset, 0.0f, 0.0f);
 }
