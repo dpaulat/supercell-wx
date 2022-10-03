@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/qt/map/map_context.hpp>
+#include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/util/font.hpp>
 
 #include <memory>
@@ -27,7 +27,7 @@ class TextShaderImpl;
 class TextShader
 {
 public:
-   explicit TextShader(std::shared_ptr<map::MapContext> context);
+   explicit TextShader(std::shared_ptr<GlContext> context);
    ~TextShader();
 
    TextShader(const TextShader&)            = delete;

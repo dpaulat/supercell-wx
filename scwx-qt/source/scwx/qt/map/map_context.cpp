@@ -1,5 +1,4 @@
 #include <scwx/qt/map/map_context.hpp>
-#include <scwx/util/hash.hpp>
 
 namespace scwx
 {
@@ -12,31 +11,21 @@ class MapContext::Impl
 {
 public:
    explicit Impl(std::shared_ptr<view::RadarProductView> radarProductView) :
-       gl_ {},
        settings_ {},
        radarProductView_ {radarProductView},
        radarProductGroup_ {common::RadarProductGroup::Unknown},
        radarProduct_ {"???"},
-       radarProductCode_ {0},
-       shaderProgramMap_ {},
-       shaderProgramMutex_ {}
+       radarProductCode_ {0}
    {
    }
 
    ~Impl() {}
 
-   gl::OpenGLFunctions                     gl_;
    MapSettings                             settings_;
    std::shared_ptr<view::RadarProductView> radarProductView_;
    common::RadarProductGroup               radarProductGroup_;
    std::string                             radarProduct_;
    int16_t                                 radarProductCode_;
-
-   std::unordered_map<std::pair<std::string, std::string>,
-                      std::shared_ptr<gl::ShaderProgram>,
-                      util::hash<std::pair<std::string, std::string>>>
-              shaderProgramMap_;
-   std::mutex shaderProgramMutex_;
 };
 
 MapContext::MapContext(
@@ -48,11 +37,6 @@ MapContext::~MapContext() = default;
 
 MapContext::MapContext(MapContext&&) noexcept            = default;
 MapContext& MapContext::operator=(MapContext&&) noexcept = default;
-
-gl::OpenGLFunctions& MapContext::gl()
-{
-   return p->gl_;
-}
 
 MapSettings& MapContext::settings()
 {
@@ -99,31 +83,6 @@ void MapContext::set_radar_product(const std::string& radarProduct)
 void MapContext::set_radar_product_code(int16_t radarProductCode)
 {
    p->radarProductCode_ = radarProductCode;
-}
-
-std::shared_ptr<gl::ShaderProgram>
-MapContext::GetShaderProgram(const std::string& vertexPath,
-                             const std::string& fragmentPath)
-{
-   const std::pair<std::string, std::string> key {vertexPath, fragmentPath};
-   std::shared_ptr<gl::ShaderProgram>        shaderProgram;
-
-   std::unique_lock lock(p->shaderProgramMutex_);
-
-   auto it = p->shaderProgramMap_.find(key);
-
-   if (it == p->shaderProgramMap_.end())
-   {
-      shaderProgram = std::make_shared<gl::ShaderProgram>(p->gl_);
-      shaderProgram->Load(vertexPath, fragmentPath);
-      p->shaderProgramMap_[key] = shaderProgram;
-   }
-   else
-   {
-      shaderProgram = it->second;
-   }
-
-   return shaderProgram;
 }
 
 } // namespace map

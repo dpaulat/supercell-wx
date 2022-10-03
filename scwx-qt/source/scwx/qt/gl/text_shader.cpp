@@ -19,7 +19,7 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class TextShaderImpl
 {
 public:
-   explicit TextShaderImpl(std::shared_ptr<map::MapContext> context) :
+   explicit TextShaderImpl(std::shared_ptr<GlContext> context) :
        context_ {context},
        shaderProgram_ {nullptr},
        projectionLocation_(GL_INVALID_INDEX)
@@ -28,13 +28,13 @@ public:
 
    ~TextShaderImpl() {}
 
-   std::shared_ptr<map::MapContext> context_;
-   std::shared_ptr<ShaderProgram>   shaderProgram_;
+   std::shared_ptr<GlContext>     context_;
+   std::shared_ptr<ShaderProgram> shaderProgram_;
 
    GLint projectionLocation_;
 };
 
-TextShader::TextShader(std::shared_ptr<map::MapContext> context) :
+TextShader::TextShader(std::shared_ptr<GlContext> context) :
     p(std::make_unique<TextShaderImpl>(context))
 {
 }

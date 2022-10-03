@@ -41,9 +41,11 @@ set(UI_MAIN  source/scwx/qt/main/main_window.ui)
 set(HDR_CONFIG source/scwx/qt/config/radar_site.hpp)
 set(SRC_CONFIG source/scwx/qt/config/radar_site.cpp)
 set(HDR_GL source/scwx/qt/gl/gl.hpp
+           source/scwx/qt/gl/gl_context.hpp
            source/scwx/qt/gl/shader_program.hpp
            source/scwx/qt/gl/text_shader.hpp)
-set(SRC_GL source/scwx/qt/gl/shader_program.cpp
+set(SRC_GL source/scwx/qt/gl/gl_context.cpp
+           source/scwx/qt/gl/shader_program.cpp
            source/scwx/qt/gl/text_shader.cpp)
 set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
                 source/scwx/qt/gl/draw/geo_line.hpp
