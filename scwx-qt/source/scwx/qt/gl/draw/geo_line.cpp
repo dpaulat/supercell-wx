@@ -36,6 +36,7 @@ public:
        modulateColor_ {std::nullopt},
        shaderProgram_ {nullptr},
        uMVPMatrixLocation_(GL_INVALID_INDEX),
+       uMapScreenCoordLocation_(GL_INVALID_INDEX),
        vao_ {GL_INVALID_INDEX},
        vbo_ {GL_INVALID_INDEX}
    {
@@ -57,6 +58,7 @@ public:
 
    std::shared_ptr<ShaderProgram> shaderProgram_;
    GLint                          uMVPMatrixLocation_;
+   GLint                          uMapScreenCoordLocation_;
 
    GLuint vao_;
    GLuint vbo_;
@@ -86,6 +88,13 @@ void GeoLine::Initialize()
    if (p->uMVPMatrixLocation_ == -1)
    {
       logger_->warn("Could not find uMVPMatrix");
+   }
+
+   p->uMapScreenCoordLocation_ =
+      gl.glGetUniformLocation(p->shaderProgram_->id(), "uMapScreenCoord");
+   if (p->uMapScreenCoordLocation_ == -1)
+   {
+      logger_->warn("Could not find uMapScreenCoord");
    }
 
    gl.glGenVertexArrays(1, &p->vao_);
@@ -146,7 +155,8 @@ void GeoLine::Render(const QMapbox::CustomLayerRenderParameters& params)
 
       p->Update();
       p->shaderProgram_->Use();
-      UseDefaultProjection(params, p->uMVPMatrixLocation_);
+      UseMapProjection(
+         params, p->uMVPMatrixLocation_, p->uMapScreenCoordLocation_);
 
       // Draw line
       gl.glDrawArrays(GL_TRIANGLES, 0, 6);

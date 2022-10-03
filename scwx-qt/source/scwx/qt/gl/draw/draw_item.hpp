@@ -34,6 +34,9 @@ public:
 protected:
    void UseDefaultProjection(const QMapbox::CustomLayerRenderParameters& params,
                              GLint uMVPMatrixLocation);
+   void UseMapProjection(const QMapbox::CustomLayerRenderParameters& params,
+                         GLint uMVPMatrixLocation,
+                         GLint uMapScreenCoordLocation);
 
 private:
    class Impl;
