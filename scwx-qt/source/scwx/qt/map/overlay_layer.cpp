@@ -37,9 +37,9 @@ public:
        textShader_(context),
        font_(util::Font::Create(":/res/fonts/din1451alt.ttf")),
        texture_ {GL_INVALID_INDEX},
-       activeBoxOuter_ {std::make_shared<gl::draw::Rectangle>(context->gl())},
-       activeBoxInner_ {std::make_shared<gl::draw::Rectangle>(context->gl())},
-       timeBox_ {std::make_shared<gl::draw::Rectangle>(context->gl())},
+       activeBoxOuter_ {std::make_shared<gl::draw::Rectangle>(context)},
+       activeBoxInner_ {std::make_shared<gl::draw::Rectangle>(context)},
+       timeBox_ {std::make_shared<gl::draw::Rectangle>(context)},
        sweepTimeString_ {},
        sweepTimeNeedsUpdate_ {true}
    {

@@ -59,7 +59,7 @@ public:
 
 // TODO: OpenGL context with shaders
 GeoLine::GeoLine(OpenGLFunctions& gl) :
-    DrawItem(), p(std::make_unique<Impl>(gl))
+    DrawItem(gl), p(std::make_unique<Impl>(gl))
 {
 }
 GeoLine::~GeoLine() = default;
@@ -118,7 +118,7 @@ void GeoLine::Initialize()
    p->dirty_ = true;
 }
 
-void GeoLine::Render()
+void GeoLine::Render(const QMapbox::CustomLayerRenderParameters&)
 {
    if (p->visible_)
    {

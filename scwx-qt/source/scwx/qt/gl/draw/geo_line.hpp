@@ -27,7 +27,7 @@ public:
    GeoLine& operator=(GeoLine&&) noexcept;
 
    void Initialize() override;
-   void Render() override;
+   void Render(const QMapbox::CustomLayerRenderParameters& params) override;
    void Deinitialize() override;
 
    /**

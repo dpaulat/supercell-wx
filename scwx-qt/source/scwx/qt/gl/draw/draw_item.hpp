@@ -1,6 +1,10 @@
 #pragma once
 
+#include <scwx/qt/gl/gl.hpp>
+
 #include <memory>
+
+#include <QMapbox>
 
 namespace scwx
 {
@@ -11,26 +15,30 @@ namespace gl
 namespace draw
 {
 
-class DrawItemImpl;
-
 class DrawItem
 {
 public:
-   explicit DrawItem();
+   explicit DrawItem(OpenGLFunctions& gl);
    ~DrawItem();
 
-   DrawItem(const DrawItem&) = delete;
+   DrawItem(const DrawItem&)            = delete;
    DrawItem& operator=(const DrawItem&) = delete;
 
    DrawItem(DrawItem&&) noexcept;
    DrawItem& operator=(DrawItem&&) noexcept;
 
-   virtual void Initialize()   = 0;
-   virtual void Render()       = 0;
-   virtual void Deinitialize() = 0;
+   virtual void Initialize()                                               = 0;
+   virtual void Render(const QMapbox::CustomLayerRenderParameters& params) = 0;
+   virtual void Deinitialize()                                             = 0;
+
+protected:
+   void UseDefaultProjection(const QMapbox::CustomLayerRenderParameters& params,
+                             GLint uMVPMatrixLocation);
 
 private:
-   std::unique_ptr<DrawItemImpl> p;
+   class Impl;
+
+   std::unique_ptr<Impl> p;
 };
 
 } // namespace draw

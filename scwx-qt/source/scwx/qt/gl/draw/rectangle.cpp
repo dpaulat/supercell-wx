@@ -1,4 +1,5 @@
 #include <scwx/qt/gl/draw/rectangle.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <optional>
 
@@ -12,6 +13,7 @@ namespace draw
 {
 
 static const std::string logPrefix_ = "scwx::qt::gl::draw::rectangle";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr size_t NUM_RECTANGLES         = 5;
 static constexpr size_t NUM_TRIANGLES          = NUM_RECTANGLES * 2;
@@ -21,11 +23,11 @@ static constexpr size_t POINTS_PER_VERTEX      = 7;
 static constexpr size_t BUFFER_LENGTH =
    NUM_TRIANGLES * VERTICES_PER_TRIANGLE * POINTS_PER_VERTEX;
 
-class RectangleImpl
+class Rectangle::Impl
 {
 public:
-   explicit RectangleImpl(OpenGLFunctions& gl) :
-       gl_ {gl},
+   explicit Impl(std::shared_ptr<GlContext> context) :
+       context_ {context},
        dirty_ {false},
        visible_ {true},
        x_ {0.0f},
@@ -36,14 +38,16 @@ public:
        borderColor_ {0, 0, 0, 0},
        borderWidth_ {0.0f},
        fillColor_ {std::nullopt},
+       shaderProgram_ {nullptr},
+       uMVPMatrixLocation_(GL_INVALID_INDEX),
        vao_ {GL_INVALID_INDEX},
        vbo_ {GL_INVALID_INDEX}
    {
    }
 
-   ~RectangleImpl() {}
+   ~Impl() {}
 
-   OpenGLFunctions& gl_;
+   std::shared_ptr<GlContext> context_;
 
    bool dirty_;
 
@@ -59,25 +63,37 @@ public:
 
    std::optional<boost::gil::rgba8_pixel_t> fillColor_;
 
+   std::shared_ptr<ShaderProgram> shaderProgram_;
+   GLint                          uMVPMatrixLocation_;
+
    GLuint vao_;
    GLuint vbo_;
 
    void Update();
 };
 
-// TODO: OpenGL context with shaders
-Rectangle::Rectangle(OpenGLFunctions& gl) :
-    DrawItem(), p(std::make_unique<RectangleImpl>(gl))
+Rectangle::Rectangle(std::shared_ptr<GlContext> context) :
+    DrawItem(context->gl()), p(std::make_unique<Impl>(context))
 {
 }
 Rectangle::~Rectangle() = default;
 
-Rectangle::Rectangle(Rectangle&&) noexcept = default;
+Rectangle::Rectangle(Rectangle&&) noexcept            = default;
 Rectangle& Rectangle::operator=(Rectangle&&) noexcept = default;
 
 void Rectangle::Initialize()
 {
-   gl::OpenGLFunctions& gl = p->gl_;
+   gl::OpenGLFunctions& gl = p->context_->gl();
+
+   p->shaderProgram_ =
+      p->context_->GetShaderProgram(":/gl/color.vert", ":/gl/color.frag");
+
+   p->uMVPMatrixLocation_ =
+      gl.glGetUniformLocation(p->shaderProgram_->id(), "uMVPMatrix");
+   if (p->uMVPMatrixLocation_ == -1)
+   {
+      logger_->warn("Could not find uMVPMatrix");
+   }
 
    gl.glGenVertexArrays(1, &p->vao_);
    gl.glGenBuffers(1, &p->vbo_);
@@ -106,16 +122,18 @@ void Rectangle::Initialize()
    p->dirty_ = true;
 }
 
-void Rectangle::Render()
+void Rectangle::Render(const QMapbox::CustomLayerRenderParameters& params)
 {
    if (p->visible_)
    {
-      gl::OpenGLFunctions& gl = p->gl_;
+      gl::OpenGLFunctions& gl = p->context_->gl();
 
       gl.glBindVertexArray(p->vao_);
       gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
 
       p->Update();
+      p->shaderProgram_->Use();
+      UseDefaultProjection(params, p->uMVPMatrixLocation_);
 
       if (p->fillColor_.has_value())
       {
@@ -133,7 +151,7 @@ void Rectangle::Render()
 
 void Rectangle::Deinitialize()
 {
-   gl::OpenGLFunctions& gl = p->gl_;
+   gl::OpenGLFunctions& gl = p->context_->gl();
 
    gl.glDeleteVertexArrays(1, &p->vao_);
    gl.glDeleteBuffers(1, &p->vbo_);
@@ -184,11 +202,11 @@ void Rectangle::SetVisible(bool visible)
    p->visible_ = visible;
 }
 
-void RectangleImpl::Update()
+void Rectangle::Impl::Update()
 {
    if (dirty_)
    {
-      gl::OpenGLFunctions& gl = gl_;
+      gl::OpenGLFunctions& gl = context_->gl();
 
       const float lox = x_;
       const float rox = x_ + width_;
