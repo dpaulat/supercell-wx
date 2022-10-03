@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/qt/gl/gl.hpp>
+#include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/gl/draw/draw_item.hpp>
 
 #include <boost/gil.hpp>
@@ -17,7 +17,7 @@ namespace draw
 class GeoLine : public DrawItem
 {
 public:
-   explicit GeoLine(OpenGLFunctions& gl);
+   explicit GeoLine(std::shared_ptr<GlContext> context);
    ~GeoLine();
 
    GeoLine(const GeoLine&)            = delete;

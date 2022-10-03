@@ -1,5 +1,6 @@
 #include <scwx/qt/gl/draw/geo_line.hpp>
 #include <scwx/common/geographic.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <optional>
 
@@ -13,6 +14,7 @@ namespace draw
 {
 
 static const std::string logPrefix_ = "scwx::qt::gl::draw::geo_line";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr size_t kNumRectangles        = 1;
 static constexpr size_t kNumTriangles         = kNumRectangles * 2;
@@ -25,13 +27,15 @@ static constexpr size_t kBufferLength =
 class GeoLine::Impl
 {
 public:
-   explicit Impl(OpenGLFunctions& gl) :
-       gl_ {gl},
+   explicit Impl(std::shared_ptr<GlContext> context) :
+       context_ {context},
        dirty_ {false},
        visible_ {true},
        points_ {},
        width_ {1.0f},
        modulateColor_ {std::nullopt},
+       shaderProgram_ {nullptr},
+       uMVPMatrixLocation_(GL_INVALID_INDEX),
        vao_ {GL_INVALID_INDEX},
        vbo_ {GL_INVALID_INDEX}
    {
@@ -39,7 +43,7 @@ public:
 
    ~Impl() {}
 
-   OpenGLFunctions& gl_;
+   std::shared_ptr<GlContext> context_;
 
    bool dirty_;
 
@@ -51,6 +55,9 @@ public:
 
    // TODO: Texture
 
+   std::shared_ptr<ShaderProgram> shaderProgram_;
+   GLint                          uMVPMatrixLocation_;
+
    GLuint vao_;
    GLuint vbo_;
 
@@ -58,8 +65,8 @@ public:
 };
 
 // TODO: OpenGL context with shaders
-GeoLine::GeoLine(OpenGLFunctions& gl) :
-    DrawItem(gl), p(std::make_unique<Impl>(gl))
+GeoLine::GeoLine(std::shared_ptr<GlContext> context) :
+    DrawItem(context->gl()), p(std::make_unique<Impl>(context))
 {
 }
 GeoLine::~GeoLine() = default;
@@ -69,7 +76,17 @@ GeoLine& GeoLine::operator=(GeoLine&&) noexcept = default;
 
 void GeoLine::Initialize()
 {
-   gl::OpenGLFunctions& gl = p->gl_;
+   gl::OpenGLFunctions& gl = p->context_->gl();
+
+   p->shaderProgram_ = p->context_->GetShaderProgram(":/gl/geo_line.vert",
+                                                     ":/gl/texture2d.frag");
+
+   p->uMVPMatrixLocation_ =
+      gl.glGetUniformLocation(p->shaderProgram_->id(), "uMVPMatrix");
+   if (p->uMVPMatrixLocation_ == -1)
+   {
+      logger_->warn("Could not find uMVPMatrix");
+   }
 
    gl.glGenVertexArrays(1, &p->vao_);
    gl.glGenBuffers(1, &p->vbo_);
@@ -118,16 +135,18 @@ void GeoLine::Initialize()
    p->dirty_ = true;
 }
 
-void GeoLine::Render(const QMapbox::CustomLayerRenderParameters&)
+void GeoLine::Render(const QMapbox::CustomLayerRenderParameters& params)
 {
    if (p->visible_)
    {
-      gl::OpenGLFunctions& gl = p->gl_;
+      gl::OpenGLFunctions& gl = p->context_->gl();
 
       gl.glBindVertexArray(p->vao_);
       gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
 
       p->Update();
+      p->shaderProgram_->Use();
+      UseDefaultProjection(params, p->uMVPMatrixLocation_);
 
       // Draw line
       gl.glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -136,7 +155,7 @@ void GeoLine::Render(const QMapbox::CustomLayerRenderParameters&)
 
 void GeoLine::Deinitialize()
 {
-   gl::OpenGLFunctions& gl = p->gl_;
+   gl::OpenGLFunctions& gl = p->context_->gl();
 
    gl.glDeleteVertexArrays(1, &p->vao_);
    gl.glDeleteBuffers(1, &p->vbo_);
@@ -185,7 +204,7 @@ void GeoLine::Impl::Update()
 {
    if (dirty_)
    {
-      gl::OpenGLFunctions& gl = gl_;
+      gl::OpenGLFunctions& gl = context_->gl();
 
       const float lx = points_[0].latitude_;
       const float rx = points_[1].latitude_;
