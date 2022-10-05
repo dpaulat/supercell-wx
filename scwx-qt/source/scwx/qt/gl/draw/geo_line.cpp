@@ -32,12 +32,13 @@ public:
        dirty_ {false},
        visible_ {true},
        points_ {},
-       width_ {1.0f},
+       width_ {7.0f},
        modulateColor_ {std::nullopt},
        shaderProgram_ {nullptr},
        uMVPMatrixLocation_(GL_INVALID_INDEX),
        uMapMatrixLocation_(GL_INVALID_INDEX),
        uMapScreenCoordLocation_(GL_INVALID_INDEX),
+       texture_ {GL_INVALID_INDEX},
        vao_ {GL_INVALID_INDEX},
        vbo_ {GL_INVALID_INDEX}
    {
@@ -55,13 +56,12 @@ public:
 
    std::optional<boost::gil::rgba8_pixel_t> modulateColor_;
 
-   // TODO: Texture
-
    std::shared_ptr<ShaderProgram> shaderProgram_;
    GLint                          uMVPMatrixLocation_;
    GLint                          uMapMatrixLocation_;
    GLint                          uMapScreenCoordLocation_;
 
+   GLuint texture_;
    GLuint vao_;
    GLuint vbo_;
 
@@ -104,6 +104,9 @@ void GeoLine::Initialize()
    {
       logger_->warn("Could not find uMapScreenCoord");
    }
+
+   p->texture_ =
+      p->context_->GetTexture(":/res/textures/lines/default-1x7.png");
 
    gl.glGenVertexArrays(1, &p->vao_);
    gl.glGenBuffers(1, &p->vbo_);
@@ -166,6 +169,9 @@ void GeoLine::Render(const QMapbox::CustomLayerRenderParameters& params)
       UseDefaultProjection(params, p->uMVPMatrixLocation_);
       UseMapProjection(
          params, p->uMapMatrixLocation_, p->uMapScreenCoordLocation_);
+
+      gl.glActiveTexture(GL_TEXTURE0);
+      gl.glBindTexture(GL_TEXTURE_2D, p->texture_);
 
       // Draw line
       gl.glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -256,12 +262,12 @@ void GeoLine::Impl::Update()
          {                                   //
           // Line
           {
-             {lx, by, -ox, -oy, 0.0f, 0.0f, mc0, mc1, mc2, mc3}, // BL
-             {lx, by, +ox, +oy, 0.0f, 1.0f, mc0, mc1, mc2, mc3}, // TL
-             {rx, ty, -ox, -oy, 1.0f, 0.0f, mc0, mc1, mc2, mc3}, // BR
-             {rx, ty, -ox, -oy, 1.0f, 0.0f, mc0, mc1, mc2, mc3}, // BR
-             {rx, ty, +ox, +oy, 1.0f, 1.0f, mc0, mc1, mc2, mc3}, // TR
-             {lx, by, +ox, +oy, 0.0f, 1.0f, mc0, mc1, mc2, mc3}  // TL
+             {lx, by, -ox, -oy, 0.0f, 1.0f, mc0, mc1, mc2, mc3}, // BL
+             {lx, by, +ox, +oy, 0.0f, 0.0f, mc0, mc1, mc2, mc3}, // TL
+             {rx, ty, -ox, -oy, 1.0f, 1.0f, mc0, mc1, mc2, mc3}, // BR
+             {rx, ty, -ox, -oy, 1.0f, 1.0f, mc0, mc1, mc2, mc3}, // BR
+             {rx, ty, +ox, +oy, 1.0f, 0.0f, mc0, mc1, mc2, mc3}, // TR
+             {lx, by, +ox, +oy, 0.0f, 0.0f, mc0, mc1, mc2, mc3}  // TL
           }};
 
       gl.glBufferData(GL_ARRAY_BUFFER,
