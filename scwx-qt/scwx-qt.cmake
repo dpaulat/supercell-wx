@@ -106,7 +106,8 @@ set(SRC_UI source/scwx/qt/ui/flow_layout.cpp
            source/scwx/qt/ui/level3_products_widget.cpp)
 set(HDR_UTIL source/scwx/qt/util/font.hpp
              source/scwx/qt/util/font_buffer.hpp
-             source/scwx/qt/util/json.hpp)
+             source/scwx/qt/util/json.hpp
+             source/scwx/qt/util/streams.hpp)
 set(SRC_UTIL source/scwx/qt/util/font.cpp
              source/scwx/qt/util/font_buffer.cpp
              source/scwx/qt/util/json.cpp)
