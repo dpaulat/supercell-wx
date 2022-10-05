@@ -28,6 +28,8 @@ public:
    GetShaderProgram(const std::string& vertexPath,
                     const std::string& fragmentPath);
 
+   GLuint GetTexture(const std::string& texturePath);
+
 private:
    class Impl;
 
