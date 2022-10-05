@@ -15,8 +15,8 @@ uniform mat4 uMVPMatrix;
 uniform mat4 uMapMatrix;
 uniform vec2 uMapScreenCoord;
 
-flat out vec2 texCoord;
-flat out vec4 modulate;
+smooth out vec2 texCoord;
+flat   out vec4 modulate;
 
 vec2 latLngToScreenCoordinate(in vec2 latLng)
 {
