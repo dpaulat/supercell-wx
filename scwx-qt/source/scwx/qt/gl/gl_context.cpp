@@ -4,6 +4,7 @@
 #include <scwx/util/logger.hpp>
 
 #pragma warning(push, 0)
+#pragma warning(disable : 4714)
 #include <boost/gil.hpp>
 #include <boost/gil/extension/io/png.hpp>
 #include <boost/iostreams/stream.hpp>
