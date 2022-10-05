@@ -231,7 +231,8 @@ endif()
 
 target_include_directories(scwx-qt PUBLIC ${scwx-qt_SOURCE_DIR}/source
                                           ${FTGL_INCLUDE_DIR}
-                                          ${MBGL_INCLUDE_DIR})
+                                          ${MBGL_INCLUDE_DIR}
+                                          ${STB_INCLUDE_DIR})
 
 target_include_directories(supercell-wx PUBLIC ${scwx-qt_SOURCE_DIR}/source)
 
