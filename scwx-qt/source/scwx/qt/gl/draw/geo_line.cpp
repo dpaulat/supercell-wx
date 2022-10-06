@@ -1,4 +1,5 @@
 #include <scwx/qt/gl/draw/geo_line.hpp>
+#include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -38,7 +39,7 @@ public:
        uMVPMatrixLocation_(GL_INVALID_INDEX),
        uMapMatrixLocation_(GL_INVALID_INDEX),
        uMapScreenCoordLocation_(GL_INVALID_INDEX),
-       texture_ {GL_INVALID_INDEX},
+       texture_ {},
        vao_ {GL_INVALID_INDEX},
        vbo_ {GL_INVALID_INDEX}
    {
@@ -61,7 +62,8 @@ public:
    GLint                          uMapMatrixLocation_;
    GLint                          uMapScreenCoordLocation_;
 
-   GLuint texture_;
+   util::TextureAttributes texture_;
+
    GLuint vao_;
    GLuint vbo_;
 
@@ -106,7 +108,7 @@ void GeoLine::Initialize()
    }
 
    p->texture_ =
-      p->context_->GetTexture(":/res/textures/lines/default-1x7.png");
+      util::TextureAtlas::Instance().GetTextureAttributes("lines/default-1x7");
 
    gl.glGenVertexArrays(1, &p->vao_);
    gl.glGenBuffers(1, &p->vbo_);
@@ -170,9 +172,6 @@ void GeoLine::Render(const QMapbox::CustomLayerRenderParameters& params)
       UseMapProjection(
          params, p->uMapMatrixLocation_, p->uMapScreenCoordLocation_);
 
-      gl.glActiveTexture(GL_TEXTURE0);
-      gl.glBindTexture(GL_TEXTURE_2D, p->texture_);
-
       // Draw line
       gl.glDrawArrays(GL_TRIANGLES, 0, 6);
    }
@@ -231,16 +230,24 @@ void GeoLine::Impl::Update()
    {
       gl::OpenGLFunctions& gl = context_->gl();
 
+      // Latitude and longitude coordinates in degrees
       const float lx = points_[0].latitude_;
       const float rx = points_[1].latitude_;
       const float by = points_[0].longitude_;
       const float ty = points_[1].longitude_;
 
+      // Offset x/y in pixels
       const double i     = points_[1].longitude_ - points_[0].longitude_;
       const double j     = points_[1].latitude_ - points_[0].latitude_;
       const double angle = std::atan2(i, j) * 180.0 / M_PI;
       const float  ox    = width_ * 0.5f * std::cosf(angle);
       const float  oy    = width_ * 0.5f * std::sinf(angle);
+
+      // Texture coordinates
+      const float ls = texture_.sLeft_;
+      const float rs = texture_.sRight_;
+      const float tt = texture_.tTop_;
+      const float bt = texture_.tBottom_;
 
       float mc0 = 1.0f;
       float mc1 = 1.0f;
@@ -262,12 +269,12 @@ void GeoLine::Impl::Update()
          {                                   //
           // Line
           {
-             {lx, by, -ox, -oy, 0.0f, 1.0f, mc0, mc1, mc2, mc3}, // BL
-             {lx, by, +ox, +oy, 0.0f, 0.0f, mc0, mc1, mc2, mc3}, // TL
-             {rx, ty, -ox, -oy, 1.0f, 1.0f, mc0, mc1, mc2, mc3}, // BR
-             {rx, ty, -ox, -oy, 1.0f, 1.0f, mc0, mc1, mc2, mc3}, // BR
-             {rx, ty, +ox, +oy, 1.0f, 0.0f, mc0, mc1, mc2, mc3}, // TR
-             {lx, by, +ox, +oy, 0.0f, 0.0f, mc0, mc1, mc2, mc3}  // TL
+             {lx, by, -ox, -oy, ls, bt, mc0, mc1, mc2, mc3}, // BL
+             {lx, by, +ox, +oy, ls, tt, mc0, mc1, mc2, mc3}, // TL
+             {rx, ty, -ox, -oy, rs, bt, mc0, mc1, mc2, mc3}, // BR
+             {rx, ty, -ox, -oy, rs, bt, mc0, mc1, mc2, mc3}, // BR
+             {rx, ty, +ox, +oy, rs, tt, mc0, mc1, mc2, mc3}, // TR
+             {lx, by, +ox, +oy, ls, tt, mc0, mc1, mc2, mc3}  // TL
           }};
 
       gl.glBufferData(GL_ARRAY_BUFFER,

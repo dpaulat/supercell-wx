@@ -15,10 +15,15 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class DrawLayerImpl
 {
 public:
-   explicit DrawLayerImpl(std::shared_ptr<MapContext> context) {}
+   explicit DrawLayerImpl(std::shared_ptr<MapContext> context) :
+       context_ {context}, drawList_ {}, textureAtlas_ {GL_INVALID_INDEX}
+   {
+   }
    ~DrawLayerImpl() {}
 
+   std::shared_ptr<MapContext>                      context_;
    std::vector<std::shared_ptr<gl::draw::DrawItem>> drawList_;
+   GLuint                                           textureAtlas_;
 };
 
 DrawLayer::DrawLayer(std::shared_ptr<MapContext> context) :
@@ -29,6 +34,8 @@ DrawLayer::~DrawLayer() = default;
 
 void DrawLayer::Initialize()
 {
+   p->textureAtlas_ = p->context_->GetTextureAtlas();
+
    for (auto& item : p->drawList_)
    {
       item->Initialize();
@@ -37,6 +44,11 @@ void DrawLayer::Initialize()
 
 void DrawLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 {
+   gl::OpenGLFunctions& gl = p->context_->gl();
+
+   gl.glActiveTexture(GL_TEXTURE0);
+   gl.glBindTexture(GL_TEXTURE_2D, p->textureAtlas_);
+
    for (auto& item : p->drawList_)
    {
       item->Render(params);
@@ -45,6 +57,8 @@ void DrawLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
 
 void DrawLayer::Deinitialize()
 {
+   p->textureAtlas_ = GL_INVALID_INDEX;
+
    for (auto& item : p->drawList_)
    {
       item->Deinitialize();
