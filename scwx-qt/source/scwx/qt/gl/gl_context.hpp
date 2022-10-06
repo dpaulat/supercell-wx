@@ -29,7 +29,6 @@ public:
                     const std::string& fragmentPath);
 
    GLuint GetTextureAtlas();
-   GLuint GetTexture(const std::string& texturePath);
 
 private:
    class Impl;
