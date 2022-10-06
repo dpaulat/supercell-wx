@@ -1,5 +1,6 @@
 #include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/util/streams.hpp>
+#include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/util/hash.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -29,6 +30,7 @@ public:
        shaderProgramMap_ {},
        shaderProgramMutex_ {},
        textureMap_ {},
+       textureAtlas_ {GL_INVALID_INDEX},
        textureMutex_ {}
    {
    }
@@ -45,6 +47,7 @@ public:
    std::mutex shaderProgramMutex_;
 
    std::unordered_map<std::string, GLuint> textureMap_;
+   GLuint                                  textureAtlas_;
    std::mutex                              textureMutex_;
 };
 
@@ -82,6 +85,18 @@ GlContext::GetShaderProgram(const std::string& vertexPath,
    }
 
    return shaderProgram;
+}
+
+GLuint GlContext::GetTextureAtlas()
+{
+   std::unique_lock lock(p->textureMutex_);
+
+   if (p->textureAtlas_ == GL_INVALID_INDEX)
+   {
+      p->textureAtlas_ = util::TextureAtlas::Instance().BufferAtlas(p->gl_);
+   }
+
+   return p->textureAtlas_;
 }
 
 GLuint GlContext::GetTexture(const std::string& texturePath)

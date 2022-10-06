@@ -28,6 +28,7 @@ public:
    GetShaderProgram(const std::string& vertexPath,
                     const std::string& fragmentPath);
 
+   GLuint GetTextureAtlas();
    GLuint GetTexture(const std::string& texturePath);
 
 private:
