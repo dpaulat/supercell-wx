@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.20)
+
 project(scwx-data)
 
 find_package(AWSSDK)
