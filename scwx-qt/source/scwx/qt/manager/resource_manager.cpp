@@ -1,5 +1,6 @@
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/util/font.hpp>
+#include <scwx/qt/util/texture_atlas.hpp>
 
 namespace scwx
 {
@@ -20,6 +21,13 @@ static void LoadFonts()
 {
    util::Font::Create(":/res/fonts/din1451alt.ttf");
    util::Font::Create(":/res/fonts/din1451alt_g.ttf");
+
+   util::TextureAtlas& textureAtlas = util::TextureAtlas::Instance();
+   textureAtlas.RegisterTexture("lines/default-1x7",
+                                ":/res/textures/lines/default-1x7.png");
+   textureAtlas.RegisterTexture("lines/test-pattern",
+                                ":/res/textures/lines/test-pattern.png");
+   textureAtlas.BuildAtlas(8, 8);
 }
 
 } // namespace ResourceManager

@@ -40,14 +40,19 @@ set(SRC_MAIN source/scwx/qt/main/main_window.cpp)
 set(UI_MAIN  source/scwx/qt/main/main_window.ui)
 set(HDR_CONFIG source/scwx/qt/config/radar_site.hpp)
 set(SRC_CONFIG source/scwx/qt/config/radar_site.cpp)
+set(SRC_EXTERNAL source/scwx/qt/external/stb_rect_pack.cpp)
 set(HDR_GL source/scwx/qt/gl/gl.hpp
+           source/scwx/qt/gl/gl_context.hpp
            source/scwx/qt/gl/shader_program.hpp
            source/scwx/qt/gl/text_shader.hpp)
-set(SRC_GL source/scwx/qt/gl/shader_program.cpp
+set(SRC_GL source/scwx/qt/gl/gl_context.cpp
+           source/scwx/qt/gl/shader_program.cpp
            source/scwx/qt/gl/text_shader.cpp)
 set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
+                source/scwx/qt/gl/draw/geo_line.hpp
                 source/scwx/qt/gl/draw/rectangle.hpp)
 set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
+                source/scwx/qt/gl/draw/geo_line.cpp
                 source/scwx/qt/gl/draw/rectangle.cpp)
 set(HDR_MANAGER source/scwx/qt/manager/radar_product_manager.hpp
                 source/scwx/qt/manager/radar_product_manager_notifier.hpp
@@ -71,6 +76,7 @@ set(SRC_MAP source/scwx/qt/map/color_table_layer.cpp
             source/scwx/qt/map/draw_layer.cpp
             source/scwx/qt/map/generic_layer.cpp
             source/scwx/qt/map/layer_wrapper.cpp
+            source/scwx/qt/map/map_context.cpp
             source/scwx/qt/map/map_widget.cpp
             source/scwx/qt/map/overlay_layer.cpp
             source/scwx/qt/map/radar_product_layer.cpp
@@ -101,10 +107,13 @@ set(SRC_UI source/scwx/qt/ui/flow_layout.cpp
            source/scwx/qt/ui/level3_products_widget.cpp)
 set(HDR_UTIL source/scwx/qt/util/font.hpp
              source/scwx/qt/util/font_buffer.hpp
-             source/scwx/qt/util/json.hpp)
+             source/scwx/qt/util/json.hpp
+             source/scwx/qt/util/streams.hpp
+             source/scwx/qt/util/texture_atlas.hpp)
 set(SRC_UTIL source/scwx/qt/util/font.cpp
              source/scwx/qt/util/font_buffer.cpp
-             source/scwx/qt/util/json.cpp)
+             source/scwx/qt/util/json.cpp
+             source/scwx/qt/util/texture_atlas.cpp)
 set(HDR_VIEW source/scwx/qt/view/level2_product_view.hpp
              source/scwx/qt/view/level3_product_view.hpp
              source/scwx/qt/view/level3_radial_view.hpp
@@ -122,12 +131,14 @@ set(RESOURCE_FILES scwx-qt.qrc)
 
 set(SHADER_FILES gl/color.frag
                  gl/color.vert
+                 gl/geo_line.vert
                  gl/radar.frag
                  gl/radar.vert
                  gl/text.frag
                  gl/text.vert
                  gl/texture1d.frag
-                 gl/texture1d.vert)
+                 gl/texture1d.vert
+                 gl/texture2d.frag)
 
 set(CMAKE_FILES scwx-qt.cmake)
 
@@ -139,6 +150,7 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${SRC_MAIN}
                     ${HDR_CONFIG}
                     ${SRC_CONFIG}
+                    ${SRC_EXTERNAL}
                     ${HDR_GL}
                     ${SRC_GL}
                     ${HDR_GL_DRAW}
@@ -173,6 +185,7 @@ source_group("Header Files\\main"     FILES ${HDR_MAIN})
 source_group("Source Files\\main"     FILES ${SRC_MAIN})
 source_group("Header Files\\config"   FILES ${HDR_CONFIG})
 source_group("Source Files\\config"   FILES ${SRC_CONFIG})
+source_group("Source Files\\external" FILES ${SRC_EXTERNAL})
 source_group("Header Files\\gl"       FILES ${HDR_GL})
 source_group("Source Files\\gl"       FILES ${SRC_GL})
 source_group("Header Files\\gl\\draw" FILES ${HDR_GL_DRAW})
@@ -223,7 +236,8 @@ endif()
 
 target_include_directories(scwx-qt PUBLIC ${scwx-qt_SOURCE_DIR}/source
                                           ${FTGL_INCLUDE_DIR}
-                                          ${MBGL_INCLUDE_DIR})
+                                          ${MBGL_INCLUDE_DIR}
+                                          ${STB_INCLUDE_DIR})
 
 target_include_directories(supercell-wx PUBLIC ${scwx-qt_SOURCE_DIR}/source)
 

@@ -13,19 +13,18 @@ namespace gl
 static const std::string logPrefix_ = "scwx::qt::gl::shader_program";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static constexpr GLsizei INFO_LOG_BUF_SIZE = 512;
+static constexpr GLsizei kInfoLogBufSize = 512;
 
-class ShaderProgramImpl
+class ShaderProgram::Impl
 {
 public:
-   explicit ShaderProgramImpl(OpenGLFunctions& gl) :
-       gl_(gl), id_ {GL_INVALID_INDEX}
+   explicit Impl(OpenGLFunctions& gl) : gl_(gl), id_ {GL_INVALID_INDEX}
    {
       // Create shader program
       id_ = gl_.glCreateProgram();
    }
 
-   ~ShaderProgramImpl()
+   ~Impl()
    {
       // Delete shader program
       gl_.glDeleteProgram(id_);
@@ -37,12 +36,12 @@ public:
 };
 
 ShaderProgram::ShaderProgram(OpenGLFunctions& gl) :
-    p(std::make_unique<ShaderProgramImpl>(gl))
+    p(std::make_unique<Impl>(gl))
 {
 }
 ShaderProgram::~ShaderProgram() = default;
 
-ShaderProgram::ShaderProgram(ShaderProgram&&) noexcept = default;
+ShaderProgram::ShaderProgram(ShaderProgram&&) noexcept            = default;
 ShaderProgram& ShaderProgram::operator=(ShaderProgram&&) noexcept = default;
 
 GLuint ShaderProgram::id() const
@@ -59,7 +58,7 @@ bool ShaderProgram::Load(const std::string& vertexPath,
 
    GLint   glSuccess;
    bool    success = true;
-   char    infoLog[INFO_LOG_BUF_SIZE];
+   char    infoLog[kInfoLogBufSize];
    GLsizei logLength;
 
    QFile vertexFile(vertexPath.c_str());
@@ -102,7 +101,7 @@ bool ShaderProgram::Load(const std::string& vertexPath,
 
    // Check for errors
    gl.glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &glSuccess);
-   gl.glGetShaderInfoLog(vertexShader, INFO_LOG_BUF_SIZE, &logLength, infoLog);
+   gl.glGetShaderInfoLog(vertexShader, kInfoLogBufSize, &logLength, infoLog);
    if (!glSuccess)
    {
       logger_->error("Vertex shader compilation failed: {}", infoLog);
@@ -122,8 +121,7 @@ bool ShaderProgram::Load(const std::string& vertexPath,
 
    // Check for errors
    gl.glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &glSuccess);
-   gl.glGetShaderInfoLog(
-      fragmentShader, INFO_LOG_BUF_SIZE, &logLength, infoLog);
+   gl.glGetShaderInfoLog(fragmentShader, kInfoLogBufSize, &logLength, infoLog);
    if (!glSuccess)
    {
       logger_->error("Fragment shader compilation failed: {}", infoLog);
@@ -142,7 +140,7 @@ bool ShaderProgram::Load(const std::string& vertexPath,
 
       // Check for errors
       gl.glGetProgramiv(p->id_, GL_LINK_STATUS, &glSuccess);
-      gl.glGetProgramInfoLog(p->id_, INFO_LOG_BUF_SIZE, &logLength, infoLog);
+      gl.glGetProgramInfoLog(p->id_, kInfoLogBufSize, &logLength, infoLog);
       if (!glSuccess)
       {
          logger_->error("Shader program link failed: {}", infoLog);

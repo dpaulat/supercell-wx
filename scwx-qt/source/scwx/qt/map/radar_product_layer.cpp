@@ -33,7 +33,7 @@ class RadarProductLayerImpl
 {
 public:
    explicit RadarProductLayerImpl(std::shared_ptr<MapContext> context) :
-       shaderProgram_(context->gl_),
+       shaderProgram_(nullptr),
        uMVPMatrixLocation_(GL_INVALID_INDEX),
        uMapScreenCoordLocation_(GL_INVALID_INDEX),
        uDataMomentOffsetLocation_(GL_INVALID_INDEX),
@@ -50,7 +50,8 @@ public:
    }
    ~RadarProductLayerImpl() = default;
 
-   gl::ShaderProgram     shaderProgram_;
+   std::shared_ptr<gl::ShaderProgram> shaderProgram_;
+
    GLint                 uMVPMatrixLocation_;
    GLint                 uMapScreenCoordLocation_;
    GLint                 uDataMomentOffsetLocation_;
@@ -78,47 +79,48 @@ void RadarProductLayer::Initialize()
 {
    logger_->debug("Initialize()");
 
-   gl::OpenGLFunctions& gl = context()->gl_;
+   gl::OpenGLFunctions& gl = context()->gl();
 
    // Load and configure radar shader
-   p->shaderProgram_.Load(":/gl/radar.vert", ":/gl/radar.frag");
+   p->shaderProgram_ =
+      context()->GetShaderProgram(":/gl/radar.vert", ":/gl/radar.frag");
 
    p->uMVPMatrixLocation_ =
-      gl.glGetUniformLocation(p->shaderProgram_.id(), "uMVPMatrix");
+      gl.glGetUniformLocation(p->shaderProgram_->id(), "uMVPMatrix");
    if (p->uMVPMatrixLocation_ == -1)
    {
       logger_->warn("Could not find uMVPMatrix");
    }
 
    p->uMapScreenCoordLocation_ =
-      gl.glGetUniformLocation(p->shaderProgram_.id(), "uMapScreenCoord");
+      gl.glGetUniformLocation(p->shaderProgram_->id(), "uMapScreenCoord");
    if (p->uMapScreenCoordLocation_ == -1)
    {
       logger_->warn("Could not find uMapScreenCoord");
    }
 
    p->uDataMomentOffsetLocation_ =
-      gl.glGetUniformLocation(p->shaderProgram_.id(), "uDataMomentOffset");
+      gl.glGetUniformLocation(p->shaderProgram_->id(), "uDataMomentOffset");
    if (p->uDataMomentOffsetLocation_ == -1)
    {
       logger_->warn("Could not find uDataMomentOffset");
    }
 
    p->uDataMomentScaleLocation_ =
-      gl.glGetUniformLocation(p->shaderProgram_.id(), "uDataMomentScale");
+      gl.glGetUniformLocation(p->shaderProgram_->id(), "uDataMomentScale");
    if (p->uDataMomentScaleLocation_ == -1)
    {
       logger_->warn("Could not find uDataMomentScale");
    }
 
    p->uCFPEnabledLocation_ =
-      gl.glGetUniformLocation(p->shaderProgram_.id(), "uCFPEnabled");
+      gl.glGetUniformLocation(p->shaderProgram_->id(), "uCFPEnabled");
    if (p->uCFPEnabledLocation_ == -1)
    {
       logger_->warn("Could not find uCFPEnabled");
    }
 
-   p->shaderProgram_.Use();
+   p->shaderProgram_->Use();
 
    // Generate a vertex array object
    gl.glGenVertexArrays(1, &p->vao_);
@@ -138,11 +140,12 @@ void RadarProductLayer::Initialize()
    gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
    gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 
-   connect(context()->radarProductView_.get(),
+   auto radarProductView = context()->radar_product_view();
+   connect(radarProductView.get(),
            &view::RadarProductView::ColorTableUpdated,
            this,
            [=]() { p->colorTableNeedsUpdate_ = true; });
-   connect(context()->radarProductView_.get(),
+   connect(radarProductView.get(),
            &view::RadarProductView::SweepComputed,
            this,
            [=]() { p->sweepNeedsUpdate_ = true; });
@@ -152,12 +155,12 @@ void RadarProductLayer::UpdateSweep()
 {
    logger_->debug("UpdateSweep()");
 
-   gl::OpenGLFunctions& gl = context()->gl_;
+   gl::OpenGLFunctions& gl = context()->gl();
 
    boost::timer::cpu_timer timer;
 
    std::shared_ptr<view::RadarProductView> radarProductView =
-      context()->radarProductView_;
+      context()->radar_product_view();
 
    std::unique_lock sweepLock(radarProductView->sweep_mutex(),
                               std::try_to_lock);
@@ -253,9 +256,9 @@ void RadarProductLayer::UpdateSweep()
 void RadarProductLayer::Render(
    const QMapbox::CustomLayerRenderParameters& params)
 {
-   gl::OpenGLFunctions& gl = context()->gl_;
+   gl::OpenGLFunctions& gl = context()->gl();
 
-   p->shaderProgram_.Use();
+   p->shaderProgram_->Use();
 
    if (p->colorTableNeedsUpdate_)
    {
@@ -300,7 +303,7 @@ void RadarProductLayer::Deinitialize()
 {
    logger_->debug("Deinitialize()");
 
-   gl::OpenGLFunctions& gl = context()->gl_;
+   gl::OpenGLFunctions& gl = context()->gl();
 
    gl.glDeleteVertexArrays(1, &p->vao_);
    gl.glDeleteBuffers(3, p->vbo_.data());
@@ -321,9 +324,9 @@ void RadarProductLayer::UpdateColorTable()
 
    p->colorTableNeedsUpdate_ = false;
 
-   gl::OpenGLFunctions&                    gl = context()->gl_;
+   gl::OpenGLFunctions&                    gl = context()->gl();
    std::shared_ptr<view::RadarProductView> radarProductView =
-      context()->radarProductView_;
+      context()->radar_product_view();
 
    const std::vector<boost::gil::rgba8_pixel_t>& colorTable =
       radarProductView->color_table();

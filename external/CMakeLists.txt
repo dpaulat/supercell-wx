@@ -6,8 +6,10 @@ set_property(DIRECTORY
              PROPERTY CMAKE_CONFIGURE_DEPENDS
              freetype-gl.cmake
              hsluv-c.cmake
-             mapbox-gl-native.cmake)
+             mapbox-gl-native.cmake
+             stb.cmake)
 
 include(freetype-gl.cmake)
 include(hsluv-c.cmake)
 include(mapbox-gl-native.cmake)
+include(stb.cmake)

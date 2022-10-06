@@ -13,6 +13,8 @@ struct Coordinate
    double latitude_;  ///< Latitude in degrees
    double longitude_; ///< Longitude in degrees
 
+   Coordinate() : Coordinate(0.0, 0.0) {}
+
    Coordinate(double latitude, double longitude) :
        latitude_ {latitude}, longitude_ {longitude}
    {

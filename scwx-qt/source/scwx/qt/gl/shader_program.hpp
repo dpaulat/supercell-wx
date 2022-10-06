@@ -16,15 +16,13 @@ namespace qt
 namespace gl
 {
 
-class ShaderProgramImpl;
-
 class ShaderProgram
 {
 public:
    explicit ShaderProgram(OpenGLFunctions& gl);
    virtual ~ShaderProgram();
 
-   ShaderProgram(const ShaderProgram&) = delete;
+   ShaderProgram(const ShaderProgram&)            = delete;
    ShaderProgram& operator=(const ShaderProgram&) = delete;
 
    ShaderProgram(ShaderProgram&&) noexcept;
@@ -37,7 +35,9 @@ public:
    void Use() const;
 
 private:
-   std::unique_ptr<ShaderProgramImpl> p;
+   class Impl;
+
+   std::unique_ptr<Impl> p;
 };
 
 } // namespace gl

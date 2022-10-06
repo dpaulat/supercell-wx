@@ -2,16 +2,20 @@
     <qresource prefix="/">
         <file>gl/color.frag</file>
         <file>gl/color.vert</file>
+        <file>gl/geo_line.vert</file>
         <file>gl/radar.frag</file>
         <file>gl/radar.vert</file>
         <file>gl/text.frag</file>
         <file>gl/text.vert</file>
         <file>gl/texture1d.frag</file>
         <file>gl/texture1d.vert</file>
+        <file>gl/texture2d.frag</file>
         <file>res/config/radar_sites.json</file>
         <file>res/fonts/din1451alt.ttf</file>
         <file>res/fonts/din1451alt_g.ttf</file>
         <file>res/icons/font-awesome-6/square-minus-regular.svg</file>
         <file>res/icons/font-awesome-6/square-plus-regular.svg</file>
+        <file>res/textures/lines/default-1x7.png</file>
+        <file>res/textures/lines/test-pattern.png</file>
     </qresource>
 </RCC>
