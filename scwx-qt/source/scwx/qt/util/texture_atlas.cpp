@@ -23,17 +23,6 @@ namespace util
 static const std::string logPrefix_ = "scwx::qt::util::texture_atlas";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-struct TextureInfo
-{
-   TextureInfo(boost::gil::point_t position, boost::gil::point_t size) :
-       position_ {position}, size_ {size}
-   {
-   }
-
-   boost::gil::point_t position_;
-   boost::gil::point_t size_;
-};
-
 class TextureAtlas::Impl
 {
 public:
@@ -52,9 +41,9 @@ public:
    std::unordered_map<std::string, std::string> texturePathMap_;
    std::shared_mutex                            texturePathMutex_;
 
-   boost::gil::rgba8_image_t                    atlas_;
-   std::unordered_map<std::string, TextureInfo> atlasMap_;
-   std::shared_mutex                            atlasMutex_;
+   boost::gil::rgba8_image_t                          atlas_;
+   std::unordered_map<std::string, TextureAttributes> atlasMap_;
+   std::shared_mutex                                  atlasMutex_;
 };
 
 TextureAtlas::TextureAtlas() : p(std::make_unique<Impl>()) {}
@@ -146,6 +135,11 @@ void TextureAtlas::BuildAtlas(size_t width, size_t height)
    // Populate atlas
    logger_->trace("Populating atlas");
 
+   const float xStep = 1.0f / width;
+   const float yStep = 1.0f / height;
+   const float xMin  = xStep * 0.5f;
+   const float yMin  = yStep * 0.5f;
+
    for (size_t i = 0; i < images.size(); i++)
    {
       // If the image was packed successfully
@@ -164,12 +158,26 @@ void TextureAtlas::BuildAtlas(size_t width, size_t height)
          boost::gil::copy_pixels(imageView, atlasSubView);
 
          // Add texture image to the index
+         const stbrp_coord x = stbrpRects[i].x;
+         const stbrp_coord y = stbrpRects[i].y;
+
+         const float sLeft = x * xStep + xMin;
+         const float sRight =
+            sLeft + static_cast<float>(imageView.width() - 1) / width;
+         const float tTop = y * yStep + yMin;
+         const float tBottom =
+            tTop + static_cast<float>(imageView.height() - 1) / height;
+
          p->atlasMap_.emplace(
             std::piecewise_construct,
             std::forward_as_tuple(images[i].first),
             std::forward_as_tuple(
-               boost::gil::point_t {stbrpRects[i].x, stbrpRects[i].y},
-               boost::gil::point_t {imageView.width(), imageView.height()}));
+               boost::gil::point_t {x, y},
+               boost::gil::point_t {imageView.width(), imageView.height()},
+               sLeft,
+               sRight,
+               tTop,
+               tBottom));
       }
       else
       {
@@ -220,6 +228,20 @@ GLuint TextureAtlas::BufferAtlas(gl::OpenGLFunctions& gl)
    }
 
    return texture;
+}
+
+TextureAttributes TextureAtlas::GetTextureAttributes(const std::string& name)
+{
+   TextureAttributes attr {};
+   std::shared_lock  lock(p->atlasMutex_);
+
+   const auto& it = p->atlasMap_.find(name);
+   if (it != p->atlasMap_.cend())
+   {
+      attr = it->second;
+   }
+
+   return attr;
 }
 
 boost::gil::rgba8_image_t
