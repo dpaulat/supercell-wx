@@ -131,6 +131,8 @@ void TextureAtlas::BuildAtlas(size_t width, size_t height)
    // Clear atlas
    p->atlas_.recreate(width, height);
    boost::gil::rgba8_view_t atlasView = boost::gil::view(p->atlas_);
+   boost::gil::fill_pixels(atlasView,
+                           boost::gil::rgba8_pixel_t {255, 0, 255, 255});
 
    // Populate atlas
    logger_->trace("Populating atlas");
