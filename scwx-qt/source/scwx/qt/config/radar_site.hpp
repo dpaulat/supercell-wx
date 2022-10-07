@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace scwx
 {
@@ -18,7 +19,7 @@ public:
    explicit RadarSite();
    ~RadarSite();
 
-   RadarSite(const RadarSite&) = delete;
+   RadarSite(const RadarSite&)            = delete;
    RadarSite& operator=(const RadarSite&) = delete;
 
    RadarSite(RadarSite&&) noexcept;
@@ -33,7 +34,8 @@ public:
    std::string place() const;
    std::string location_name() const;
 
-   static std::shared_ptr<RadarSite> Get(const std::string& id);
+   static std::shared_ptr<RadarSite>              Get(const std::string& id);
+   static std::vector<std::shared_ptr<RadarSite>> GetAll();
 
    static void   Initialize();
    static size_t ReadConfig(const std::string& path);

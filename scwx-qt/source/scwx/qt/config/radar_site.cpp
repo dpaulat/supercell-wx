@@ -4,6 +4,7 @@
 #include <scwx/util/logger.hpp>
 
 #include <format>
+#include <shared_mutex>
 #include <unordered_map>
 
 namespace scwx
@@ -22,6 +23,7 @@ static const std::string defaultRadarSiteFile_ =
 static std::unordered_map<std::string, std::shared_ptr<RadarSite>>
                                                     radarSiteMap_;
 static std::unordered_map<std::string, std::string> siteIdMap_;
+static std::shared_mutex                            siteMutex_;
 
 static bool ValidateJsonEntry(const boost::json::object& o);
 
@@ -53,7 +55,7 @@ public:
 RadarSite::RadarSite() : p(std::make_unique<RadarSiteImpl>()) {}
 RadarSite::~RadarSite() = default;
 
-RadarSite::RadarSite(RadarSite&&) noexcept = default;
+RadarSite::RadarSite(RadarSite&&) noexcept            = default;
 RadarSite& RadarSite::operator=(RadarSite&&) noexcept = default;
 
 std::string RadarSite::type() const
@@ -116,6 +118,7 @@ std::string RadarSite::location_name() const
 
 std::shared_ptr<RadarSite> RadarSite::Get(const std::string& id)
 {
+   std::shared_lock           lock(siteMutex_);
    std::shared_ptr<RadarSite> radarSite = nullptr;
 
    if (radarSiteMap_.contains(id))
@@ -126,9 +129,25 @@ std::shared_ptr<RadarSite> RadarSite::Get(const std::string& id)
    return radarSite;
 }
 
+std::vector<std::shared_ptr<RadarSite>> RadarSite::GetAll()
+{
+   std::shared_lock                        lock(siteMutex_);
+   std::vector<std::shared_ptr<RadarSite>> radarSites;
+
+   radarSites.reserve(radarSiteMap_.size());
+
+   for (const auto& site : radarSiteMap_)
+   {
+      radarSites.push_back(site.second);
+   }
+
+   return std::move(radarSites);
+}
+
 std::string GetRadarIdFromSiteId(const std::string& siteId)
 {
-   std::string id = "???";
+   std::shared_lock lock(siteMutex_);
+   std::string      id = "???";
 
    if (siteIdMap_.contains(siteId))
    {
@@ -156,6 +175,8 @@ size_t RadarSite::ReadConfig(const std::string& path)
 
    if (dataValid)
    {
+      std::unique_lock lock(siteMutex_);
+
       for (auto& v : j.as_array())
       {
          auto& o = v.as_object();
