@@ -19,32 +19,40 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class RadarSiteDialogImpl
 {
 public:
-   explicit RadarSiteDialogImpl() :
-       radarSiteModel_ {nullptr}, proxyModel_ {nullptr}
+   explicit RadarSiteDialogImpl(RadarSiteDialog* self) :
+       self_ {self},
+       radarSiteModel_ {new model::RadarSiteModel(self_)},
+       proxyModel_ {new QSortFilterProxyModel(self_)}
    {
+      proxyModel_->setSourceModel(radarSiteModel_);
+      proxyModel_->setFilterCaseSensitivity(Qt::CaseInsensitive);
+      proxyModel_->setFilterKeyColumn(-1);
    }
    ~RadarSiteDialogImpl() = default;
 
+   RadarSiteDialog*       self_;
    model::RadarSiteModel* radarSiteModel_;
    QSortFilterProxyModel* proxyModel_;
 };
 
 RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
     QDialog(parent),
-    p(std::make_unique<RadarSiteDialogImpl>()),
+    p(std::make_unique<RadarSiteDialogImpl>(this)),
     ui(new Ui::RadarSiteDialog)
 {
    ui->setupUi(this);
 
-   p->radarSiteModel_ = new model::RadarSiteModel(this);
-   p->proxyModel_     = new QSortFilterProxyModel(this);
-   p->proxyModel_->setSourceModel(p->radarSiteModel_);
+   // Radar Site View
    ui->radarSiteView->setModel(p->proxyModel_);
-
    for (int column = 0; column < p->radarSiteModel_->columnCount(); column++)
    {
       ui->radarSiteView->resizeColumnToContents(column);
    }
+
+   connect(ui->radarSiteFilter,
+           &QLineEdit::textChanged,
+           p->proxyModel_,
+           &QSortFilterProxyModel::setFilterWildcard);
 }
 
 RadarSiteDialog::~RadarSiteDialog()
