@@ -102,11 +102,14 @@ set(SRC_TYPES source/scwx/qt/types/radar_product_record.cpp)
 set(HDR_UI source/scwx/qt/ui/flow_layout.hpp
            source/scwx/qt/ui/level2_products_widget.hpp
            source/scwx/qt/ui/level2_settings_widget.hpp
-           source/scwx/qt/ui/level3_products_widget.hpp)
+           source/scwx/qt/ui/level3_products_widget.hpp
+           source/scwx/qt/ui/radar_site_dialog.hpp)
 set(SRC_UI source/scwx/qt/ui/flow_layout.cpp
            source/scwx/qt/ui/level2_products_widget.cpp
            source/scwx/qt/ui/level2_settings_widget.cpp
-           source/scwx/qt/ui/level3_products_widget.cpp)
+           source/scwx/qt/ui/level3_products_widget.cpp
+           source/scwx/qt/ui/radar_site_dialog.cpp)
+set(UI_UI  source/scwx/qt/ui/radar_site_dialog.ui)
 set(HDR_UTIL source/scwx/qt/util/font.hpp
              source/scwx/qt/util/font_buffer.hpp
              source/scwx/qt/util/json.hpp
@@ -172,6 +175,7 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${SRC_TYPES}
                     ${HDR_UI}
                     ${SRC_UI}
+                    ${UI_UI}
                     ${HDR_UTIL}
                     ${SRC_UTIL}
                     ${HDR_VIEW}
@@ -207,6 +211,7 @@ source_group("Header Files\\types"    FILES ${HDR_TYPES})
 source_group("Source Files\\types"    FILES ${SRC_TYPES})
 source_group("Header Files\\ui"       FILES ${HDR_UI})
 source_group("Source Files\\ui"       FILES ${SRC_UI})
+source_group("UI Files\\ui"           FILES ${UI_UI})
 source_group("Header Files\\util"     FILES ${HDR_UTIL})
 source_group("Source Files\\util"     FILES ${SRC_UTIL})
 source_group("Header Files\\view"     FILES ${HDR_VIEW})

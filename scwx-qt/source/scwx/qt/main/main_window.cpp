@@ -11,6 +11,7 @@
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
 #include <scwx/qt/ui/level3_products_widget.hpp>
+#include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/common/products.hpp>
 #include <scwx/common/vcp.hpp>
@@ -43,6 +44,7 @@ public:
        activeMap_ {nullptr},
        level2ProductsWidget_ {nullptr},
        level2SettingsWidget_ {nullptr},
+       radarSiteDialog_ {nullptr},
        maps_ {},
        elevationCuts_ {},
        elevationButtonsChanged_ {false},
@@ -99,6 +101,8 @@ public:
 
    ui::Level3ProductsWidget* level3ProductsWidget_;
 
+   ui::RadarSiteDialog* radarSiteDialog_;
+
    std::vector<map::MapWidget*> maps_;
    std::vector<float>           elevationCuts_;
 
@@ -143,6 +147,9 @@ MainWindow::MainWindow(QWidget* parent) :
 
    // Configure Map
    p->ConfigureMapLayout();
+
+   // Radar Site Dialog
+   p->radarSiteDialog_ = new ui::RadarSiteDialog(this);
 
    // Add Level 2 Products
    p->level2ProductsWidget_ = new ui::Level2ProductsWidget(this);
@@ -283,6 +290,11 @@ void MainWindow::on_actionOpen_triggered()
 void MainWindow::on_actionExit_triggered()
 {
    close();
+}
+
+void MainWindow::on_radarSiteSelectButton_clicked()
+{
+   p->radarSiteDialog_->show();
 }
 
 void MainWindow::on_resourceTreeCollapseAllButton_clicked()
