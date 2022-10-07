@@ -201,7 +201,7 @@
 	{ "type":"tdwr", "id":"TSDF", "lat":38.046, "lon":-85.61,   "country":"USA", "state":"KY", "place":"Louisville" },
 	{ "type":"tdwr", "id":"TSJU", "lat":18.474, "lon":-66.179,  "country":"USA", "state":"PR", "place":"San Juan" },
 	{ "type":"tdwr", "id":"TSLC", "lat":40.967, "lon":-111.93,  "country":"USA", "state":"UT", "place":"Salt Lake City" },
-	{ "type":"tdwr", "id":"TSTL", "lat":38.805, "lon":-90.489,  "country":"USA", "state":"MO", "place":"St Louis" },
+	{ "type":"tdwr", "id":"TSTL", "lat":38.805, "lon":-90.489,  "country":"USA", "state":"MO", "place":"St. Louis" },
 	{ "type":"tdwr", "id":"TTPA", "lat":27.86,  "lon":-82.518,  "country":"USA", "state":"FL", "place":"Tampa Bay" },
 	{ "type":"tdwr", "id":"TTUL", "lat":36.071, "lon":-95.827,  "country":"USA", "state":"OK", "place":"Tulsa" }
 ]
