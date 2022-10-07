@@ -44,6 +44,7 @@ RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
 
    // Radar Site View
    ui->radarSiteView->setModel(p->proxyModel_);
+   ui->radarSiteView->header()->setSortIndicator(0, Qt::AscendingOrder);
    for (int column = 0; column < p->radarSiteModel_->columnCount(); column++)
    {
       ui->radarSiteView->resizeColumnToContents(column);
