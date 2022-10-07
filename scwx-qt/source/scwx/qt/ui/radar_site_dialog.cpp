@@ -4,6 +4,8 @@
 #include <scwx/qt/model/radar_site_model.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <QSortFilterProxyModel>
+
 namespace scwx
 {
 namespace qt
@@ -17,8 +19,14 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class RadarSiteDialogImpl
 {
 public:
-   explicit RadarSiteDialogImpl() {}
+   explicit RadarSiteDialogImpl() :
+       radarSiteModel_ {nullptr}, proxyModel_ {nullptr}
+   {
+   }
    ~RadarSiteDialogImpl() = default;
+
+   model::RadarSiteModel* radarSiteModel_;
+   QSortFilterProxyModel* proxyModel_;
 };
 
 RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
@@ -28,10 +36,12 @@ RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
 {
    ui->setupUi(this);
 
-   model::RadarSiteModel* radarSiteModel = new model::RadarSiteModel(this);
-   ui->radarSiteView->setModel(radarSiteModel);
+   p->radarSiteModel_ = new model::RadarSiteModel(this);
+   p->proxyModel_     = new QSortFilterProxyModel(this);
+   p->proxyModel_->setSourceModel(p->radarSiteModel_);
+   ui->radarSiteView->setModel(p->proxyModel_);
 
-   for (int column = 0; column < radarSiteModel->columnCount(); column++)
+   for (int column = 0; column < p->radarSiteModel_->columnCount(); column++)
    {
       ui->radarSiteView->resizeColumnToContents(column);
    }
