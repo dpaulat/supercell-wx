@@ -410,9 +410,15 @@ void MapWidget::SetAutoRefresh(bool enabled)
 void MapWidget::SetMapParameters(
    double latitude, double longitude, double zoom, double bearing, double pitch)
 {
-   p->map_->setCoordinateZoom({latitude, longitude}, zoom);
-   p->map_->setBearing(bearing);
-   p->map_->setPitch(pitch);
+   if (p->map_ != nullptr &&
+       (p->prevLatitude_ != latitude || p->prevLongitude_ != longitude ||
+        p->prevZoom_ != zoom || p->prevBearing_ != bearing ||
+        p->prevPitch_ != pitch))
+   {
+      p->map_->setCoordinateZoom({latitude, longitude}, zoom);
+      p->map_->setBearing(bearing);
+      p->map_->setPitch(pitch);
+   }
 }
 
 qreal MapWidget::pixelRatio()
@@ -603,6 +609,11 @@ void MapWidget::initializeGL()
    p->map_->setCoordinateZoom({radarSite->latitude(), radarSite->longitude()},
                               7);
    p->UpdateStoredMapParameters();
+   emit MapParametersChanged(p->prevLatitude_,
+                             p->prevLongitude_,
+                             p->prevZoom_,
+                             p->prevBearing_,
+                             p->prevPitch_);
 
    QString styleUrl = qgetenv("MAPBOX_STYLE_URL");
    if (styleUrl.isEmpty())
