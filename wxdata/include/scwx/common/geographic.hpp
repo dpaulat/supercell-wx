@@ -7,6 +7,9 @@ namespace scwx
 namespace common
 {
 
+constexpr double kMilesPerMeter      = 0.00062137119;
+constexpr double kKilometersPerMeter = 0.001;
+
 /**
  * @brief Coordinate type to hold latitude and longitude of a location.
  */
@@ -32,6 +35,12 @@ enum class DegreeStringType
 {
    Decimal,
    DegreesMinutesSeconds
+};
+
+enum class DistanceType
+{
+   Kilometers,
+   Miles
 };
 
 std::string

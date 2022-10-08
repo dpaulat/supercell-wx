@@ -4,6 +4,10 @@
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <format>
+
+#include <GeographicLib/Geodesic.hpp>
+
 namespace scwx
 {
 namespace qt
@@ -14,7 +18,7 @@ namespace model
 static const std::string logPrefix_ = "scwx::qt::model::radar_site_model";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static constexpr size_t kNumColumns = 7u;
+static constexpr size_t kNumColumns = 8u;
 
 class RadarSiteModelImpl
 {
@@ -23,6 +27,12 @@ public:
    ~RadarSiteModelImpl() = default;
 
    QList<std::shared_ptr<config::RadarSite>> radarSites_;
+
+   GeographicLib::Geodesic geodesic_;
+
+   std::unordered_map<std::string, double> distanceMap_;
+   scwx::common::DistanceType              distanceDisplay_;
+   scwx::common::Coordinate                previousPosition_;
 };
 
 RadarSiteModel::RadarSiteModel(QObject* parent) :
@@ -81,6 +91,26 @@ QVariant RadarSiteModel::data(const QModelIndex& index, int role) const
          }
       case 6:
          return QString::fromStdString(site->type_name());
+      case 7:
+         if (role == Qt::DisplayRole)
+         {
+            if (p->distanceDisplay_ == scwx::common::DistanceType::Miles)
+            {
+               return QString("%1 mi").arg(
+                  static_cast<uint32_t>(p->distanceMap_.at(site->id()) *
+                                        scwx::common::kMilesPerMeter));
+            }
+            else
+            {
+               return QString("%1 km").arg(
+                  static_cast<uint32_t>(p->distanceMap_.at(site->id()) *
+                                        scwx::common::kKilometersPerMeter));
+            }
+         }
+         else
+         {
+            return p->distanceMap_.at(site->id());
+         }
       default:
          break;
       }
@@ -113,6 +143,8 @@ QVariant RadarSiteModel::headerData(int             section,
             return tr("Longitude");
          case 6:
             return tr("Type");
+         case 7:
+            return tr("Distance");
          default:
             break;
          }
@@ -122,7 +154,30 @@ QVariant RadarSiteModel::headerData(int             section,
    return QVariant();
 }
 
-RadarSiteModelImpl::RadarSiteModelImpl() : radarSites_ {}
+void RadarSiteModel::HandleMapUpdate(double latitude, double longitude)
+{
+   logger_->trace("Handle map update: {}, {}", latitude, longitude);
+
+   double distanceInMeters;
+
+   for (const auto& site : p->radarSites_)
+   {
+      p->geodesic_.Inverse(latitude,
+                           longitude,
+                           site->latitude(),
+                           site->longitude(),
+                           distanceInMeters);
+      p->distanceMap_[site->id()] = distanceInMeters;
+   }
+}
+
+RadarSiteModelImpl::RadarSiteModelImpl() :
+    radarSites_ {},
+    geodesic_(GeographicLib::Constants::WGS84_a(),
+              GeographicLib::Constants::WGS84_f()),
+    distanceMap_ {},
+    distanceDisplay_ {scwx::common::DistanceType::Miles},
+    previousPosition_ {}
 {
    // Get all loaded radar sites
    std::vector<std::shared_ptr<config::RadarSite>> radarSites =
@@ -131,6 +186,7 @@ RadarSiteModelImpl::RadarSiteModelImpl() : radarSites_ {}
    // Setup radar site list
    for (auto& site : radarSites)
    {
+      distanceMap_[site->id()] = 0.0;
       radarSites_.emplace_back(std::move(site));
    }
 }

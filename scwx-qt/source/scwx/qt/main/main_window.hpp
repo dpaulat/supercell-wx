@@ -28,6 +28,9 @@ public:
 
    void showEvent(QShowEvent* event) override;
 
+signals:
+   void ActiveMapMoved(double latitude, double longitude);
+
 private slots:
    void on_actionOpen_triggered();
    void on_actionExit_triggered();

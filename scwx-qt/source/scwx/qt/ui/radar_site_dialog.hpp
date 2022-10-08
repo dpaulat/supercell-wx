@@ -24,6 +24,12 @@ public:
    explicit RadarSiteDialog(QWidget* parent = nullptr);
    ~RadarSiteDialog();
 
+protected:
+   void showEvent(QShowEvent*) override;
+
+public slots:
+   void HandleMapUpdate(double latitude, double longitude);
+
 private:
    std::unique_ptr<RadarSiteDialogImpl> p;
    Ui::RadarSiteDialog*                 ui;

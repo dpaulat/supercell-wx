@@ -28,6 +28,8 @@ public:
                        Qt::Orientation orientation,
                        int             role = Qt::DisplayRole) const override;
 
+   void HandleMapUpdate(double latitude, double longitude);
+
 private:
    std::unique_ptr<RadarSiteModelImpl> p;
 

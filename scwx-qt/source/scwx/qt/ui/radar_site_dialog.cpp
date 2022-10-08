@@ -3,6 +3,7 @@
 
 #include <scwx/qt/common/types.hpp>
 #include <scwx/qt/model/radar_site_model.hpp>
+#include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <QSortFilterProxyModel>
@@ -23,7 +24,9 @@ public:
    explicit RadarSiteDialogImpl(RadarSiteDialog* self) :
        self_ {self},
        radarSiteModel_ {new model::RadarSiteModel(self_)},
-       proxyModel_ {new QSortFilterProxyModel(self_)}
+       proxyModel_ {new QSortFilterProxyModel(self_)},
+       mapPosition_ {},
+       mapUpdateDeferred_ {false}
    {
       proxyModel_->setSourceModel(radarSiteModel_);
       proxyModel_->setSortRole(common::SortRole);
@@ -35,6 +38,9 @@ public:
    RadarSiteDialog*       self_;
    model::RadarSiteModel* radarSiteModel_;
    QSortFilterProxyModel* proxyModel_;
+
+   scwx::common::Coordinate mapPosition_;
+   bool                     mapUpdateDeferred_;
 };
 
 RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
@@ -61,6 +67,32 @@ RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
 RadarSiteDialog::~RadarSiteDialog()
 {
    delete ui;
+}
+
+void RadarSiteDialog::showEvent(QShowEvent* event)
+{
+   if (p->mapUpdateDeferred_)
+   {
+      p->radarSiteModel_->HandleMapUpdate(p->mapPosition_.latitude_,
+                                          p->mapPosition_.longitude_);
+      p->mapUpdateDeferred_ = false;
+   }
+
+   QDialog::showEvent(event);
+}
+
+void RadarSiteDialog::HandleMapUpdate(double latitude, double longitude)
+{
+   p->mapPosition_ = {latitude, longitude};
+
+   if (isVisible())
+   {
+      p->radarSiteModel_->HandleMapUpdate(latitude, longitude);
+   }
+   else
+   {
+      p->mapUpdateDeferred_ = true;
+   }
 }
 
 } // namespace ui
