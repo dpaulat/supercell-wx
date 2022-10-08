@@ -69,6 +69,10 @@ RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
            &QLineEdit::textChanged,
            p->proxyModel_,
            &QSortFilterProxyModel::setFilterWildcard);
+   connect(ui->radarSiteView,
+           &QTreeView::doubleClicked,
+           this,
+           [=]() { emit accept(); });
    connect(ui->radarSiteView->selectionModel(),
            &QItemSelectionModel::selectionChanged,
            this,
