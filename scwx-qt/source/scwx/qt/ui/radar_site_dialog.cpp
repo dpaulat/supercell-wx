@@ -6,6 +6,7 @@
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <QPushButton>
 #include <QSortFilterProxyModel>
 
 namespace scwx
@@ -58,10 +59,22 @@ RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
       ui->radarSiteView->resizeColumnToContents(column);
    }
 
+   // Button Box
+   ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
+
    connect(ui->radarSiteFilter,
            &QLineEdit::textChanged,
            p->proxyModel_,
            &QSortFilterProxyModel::setFilterWildcard);
+   connect(ui->radarSiteView->selectionModel(),
+           &QItemSelectionModel::selectionChanged,
+           this,
+           [=](const QItemSelection& selected,
+               const QItemSelection& /* deselected */)
+           {
+              ui->buttonBox->button(QDialogButtonBox::Ok)
+                 ->setEnabled(selected.size() > 0);
+           });
 }
 
 RadarSiteDialog::~RadarSiteDialog()
