@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace scwx
 {
 namespace common
@@ -25,6 +27,19 @@ struct Coordinate
       return latitude_ == o.latitude_ && longitude_ == o.longitude_;
    }
 };
+
+enum class DegreeStringType
+{
+   Decimal,
+   DegreesMinutesSeconds
+};
+
+std::string
+GetLatitudeString(double           latitude,
+                  DegreeStringType type = DegreeStringType::Decimal);
+std::string
+GetLongitudeString(double           longitude,
+                   DegreeStringType type = DegreeStringType::Decimal);
 
 } // namespace common
 } // namespace scwx

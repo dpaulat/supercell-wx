@@ -1,5 +1,7 @@
 #include <scwx/qt/model/radar_site_model.hpp>
+#include <scwx/qt/common/types.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
 namespace scwx
@@ -42,7 +44,8 @@ int RadarSiteModel::columnCount(const QModelIndex& parent) const
 QVariant RadarSiteModel::data(const QModelIndex& index, int role) const
 {
    if (index.isValid() && index.row() >= 0 &&
-       index.row() < p->radarSites_.size() && role == Qt::DisplayRole)
+       index.row() < p->radarSites_.size() &&
+       (role == Qt::DisplayRole || role == common::SortRole))
    {
       const auto& site = p->radarSites_.at(index.row());
 
@@ -57,11 +60,27 @@ QVariant RadarSiteModel::data(const QModelIndex& index, int role) const
       case 3:
          return QString::fromStdString(site->country());
       case 4:
-         return QString("%1").arg(site->latitude());
+         if (role == Qt::DisplayRole)
+         {
+            return QString::fromStdString(
+               scwx::common::GetLatitudeString(site->latitude()));
+         }
+         else
+         {
+            return site->latitude();
+         }
       case 5:
-         return QString("%1").arg(site->longitude());
+         if (role == Qt::DisplayRole)
+         {
+            return QString::fromStdString(
+               scwx::common::GetLongitudeString(site->longitude()));
+         }
+         else
+         {
+            return site->longitude();
+         }
       case 6:
-         return QString::fromStdString(site->type());
+         return QString::fromStdString(site->type_name());
       default:
          break;
       }

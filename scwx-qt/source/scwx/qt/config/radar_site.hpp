@@ -26,6 +26,7 @@ public:
    RadarSite& operator=(RadarSite&&) noexcept;
 
    std::string type() const;
+   std::string type_name() const;
    std::string id() const;
    double      latitude() const;
    double      longitude() const;

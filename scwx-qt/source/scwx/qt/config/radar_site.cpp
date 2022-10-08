@@ -20,6 +20,9 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static const std::string defaultRadarSiteFile_ =
    ":/res/config/radar_sites.json";
 
+static const std::unordered_map<std::string, std::string> typeNameMap_ {
+   {"wsr88d", "WSR-88D"}, {"tdwr", "TDWR"}, {"?", "?"}};
+
 static std::unordered_map<std::string, std::shared_ptr<RadarSite>>
                                                     radarSiteMap_;
 static std::unordered_map<std::string, std::string> siteIdMap_;
@@ -61,6 +64,19 @@ RadarSite& RadarSite::operator=(RadarSite&&) noexcept = default;
 std::string RadarSite::type() const
 {
    return p->type_;
+}
+
+std::string RadarSite::type_name() const
+{
+   auto it = typeNameMap_.find(p->type_);
+   if (it != typeNameMap_.cend())
+   {
+      return it->second;
+   }
+   else
+   {
+      return typeNameMap_.at("?");
+   }
 }
 
 std::string RadarSite::id() const

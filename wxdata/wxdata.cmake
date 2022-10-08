@@ -32,7 +32,9 @@ set(HDR_COMMON include/scwx/common/characters.hpp
                include/scwx/common/sites.hpp
                include/scwx/common/types.hpp
                include/scwx/common/vcp.hpp)
-set(SRC_COMMON source/scwx/common/color_table.cpp
+set(SRC_COMMON source/scwx/common/characters.cpp
+               source/scwx/common/color_table.cpp
+               source/scwx/common/geographic.cpp
                source/scwx/common/products.cpp
                source/scwx/common/sites.cpp
                source/scwx/common/vcp.cpp)

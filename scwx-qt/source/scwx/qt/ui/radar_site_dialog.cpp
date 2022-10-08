@@ -1,6 +1,7 @@
 #include "radar_site_dialog.hpp"
 #include "./ui_radar_site_dialog.h"
 
+#include <scwx/qt/common/types.hpp>
 #include <scwx/qt/model/radar_site_model.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -25,6 +26,7 @@ public:
        proxyModel_ {new QSortFilterProxyModel(self_)}
    {
       proxyModel_->setSourceModel(radarSiteModel_);
+      proxyModel_->setSortRole(common::SortRole);
       proxyModel_->setFilterCaseSensitivity(Qt::CaseInsensitive);
       proxyModel_->setFilterKeyColumn(-1);
    }
