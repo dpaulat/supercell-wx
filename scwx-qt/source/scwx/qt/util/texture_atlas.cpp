@@ -260,7 +260,7 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath)
    if (!imageFile.isOpen())
    {
       logger_->error("Could not open image: {}", imagePath);
-      return std::move(image);
+      return image;
    }
 
    boost::iostreams::stream<util::IoDeviceSource> dataStream(imageFile);
@@ -275,10 +275,10 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath)
    catch (const std::exception& ex)
    {
       logger_->error("Error reading image: {}", ex.what());
-      return std::move(image);
+      return image;
    }
 
-   return std::move(image);
+   return image;
 }
 
 TextureAtlas& TextureAtlas::Instance()

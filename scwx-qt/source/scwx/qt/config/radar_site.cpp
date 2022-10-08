@@ -157,7 +157,7 @@ std::vector<std::shared_ptr<RadarSite>> RadarSite::GetAll()
       radarSites.push_back(site.second);
    }
 
-   return std::move(radarSites);
+   return radarSites;
 }
 
 std::string GetRadarIdFromSiteId(const std::string& siteId)
