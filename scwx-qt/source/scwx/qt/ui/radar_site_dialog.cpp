@@ -27,7 +27,8 @@ public:
        radarSiteModel_ {new model::RadarSiteModel(self_)},
        proxyModel_ {new QSortFilterProxyModel(self_)},
        mapPosition_ {},
-       mapUpdateDeferred_ {false}
+       mapUpdateDeferred_ {false},
+       selectedRadarSite_ {"?"}
    {
       proxyModel_->setSourceModel(radarSiteModel_);
       proxyModel_->setSortRole(common::SortRole);
@@ -42,6 +43,8 @@ public:
 
    scwx::common::Coordinate mapPosition_;
    bool                     mapUpdateDeferred_;
+
+   std::string selectedRadarSite_;
 };
 
 RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
@@ -74,12 +77,40 @@ RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
            {
               ui->buttonBox->button(QDialogButtonBox::Ok)
                  ->setEnabled(selected.size() > 0);
+
+              if (selected.size() > 0)
+              {
+                 QModelIndex selectedIndex =
+                    p->proxyModel_->mapToSource(selected[0].indexes()[0]);
+                 QVariant variantData = p->radarSiteModel_->data(selectedIndex);
+                 if (variantData.typeId() == QMetaType::QString)
+                 {
+                    p->selectedRadarSite_ =
+                       variantData.toString().toStdString();
+                 }
+                 else
+                 {
+                    logger_->warn("Unexpected selection data type");
+                    p->selectedRadarSite_ = "?";
+                 }
+              }
+              else
+              {
+                 p->selectedRadarSite_ = "?";
+              }
+
+              logger_->debug("Selected: {}", p->selectedRadarSite_);
            });
 }
 
 RadarSiteDialog::~RadarSiteDialog()
 {
    delete ui;
+}
+
+std::string RadarSiteDialog::radar_site() const
+{
+   return p->selectedRadarSite_;
 }
 
 void RadarSiteDialog::showEvent(QShowEvent* event)

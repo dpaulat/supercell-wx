@@ -24,6 +24,8 @@ public:
    explicit RadarSiteDialog(QWidget* parent = nullptr);
    ~RadarSiteDialog();
 
+   std::string radar_site() const;
+
 protected:
    void showEvent(QShowEvent*) override;
 
