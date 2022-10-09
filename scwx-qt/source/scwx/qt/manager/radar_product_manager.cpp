@@ -50,8 +50,7 @@ static const std::string kDefaultLevel3Product_ {"N0B"};
 
 static constexpr std::chrono::seconds kRetryInterval_ {15};
 
-// TODO: Find a way to garbage collect this
-static std::unordered_map<std::string, std::shared_ptr<RadarProductManager>>
+static std::unordered_map<std::string, std::weak_ptr<RadarProductManager>>
                   instanceMap_;
 static std::mutex instanceMutex_;
 
@@ -960,14 +959,22 @@ RadarProductManager::Instance(const std::string& radarSite)
    {
       std::lock_guard<std::mutex> guard(instanceMutex_);
 
-      if (!instanceMap_.contains(radarSite))
+      // Look up instance weak pointer
+      auto it = instanceMap_.find(radarSite);
+      if (it != instanceMap_.end())
       {
-         instanceMap_[radarSite] =
-            std::make_shared<RadarProductManager>(radarSite);
-         instanceCreated = true;
+         // Attempt to convert the weak pointer to a shared pointer. It may have
+         // been garbage collected.
+         instance = it->second.lock();
       }
 
-      instance = instanceMap_[radarSite];
+      // If no active instance was found, create a new one
+      if (instance == nullptr)
+      {
+         instance = std::make_shared<RadarProductManager>(radarSite);
+         instanceMap_.insert_or_assign(radarSite, instance);
+         instanceCreated = true;
+      }
    }
 
    if (instanceCreated)

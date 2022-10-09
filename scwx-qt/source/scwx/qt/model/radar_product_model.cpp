@@ -50,17 +50,24 @@ RadarProductModelImpl::RadarProductModelImpl(RadarProductModel* self) :
       {
          logger_->debug("Adding radar site: {}", radarSite);
 
-         const QModelIndex rootIndex =
-            self_->createIndex(rootItem_->row(), 0, rootItem_.get());
-         const int rootChildren = rootItem_->child_count();
+         const QString radarSiteName {QString::fromStdString(radarSite)};
 
-         self_->beginInsertRows(rootIndex, rootChildren, rootChildren);
+         // Find existing radar site item (e.g., KLSX, KEAX)
+         TreeItem* radarSiteItem = rootItem_->FindChild(0, radarSiteName);
 
-         TreeItem* radarSiteItem =
-            new TreeItem({QString::fromStdString(radarSite)});
-         rootItem_->AppendChild(radarSiteItem);
+         if (radarSiteItem == nullptr)
+         {
+            const QModelIndex rootIndex =
+               self_->createIndex(rootItem_->row(), 0, rootItem_.get());
+            const int rootChildren = rootItem_->child_count();
 
-         self_->endInsertRows();
+            self_->beginInsertRows(rootIndex, rootChildren, rootChildren);
+
+            radarSiteItem = new TreeItem({radarSiteName});
+            rootItem_->AppendChild(radarSiteItem);
+
+            self_->endInsertRows();
+         }
 
          connect(
             manager::RadarProductManager::Instance(radarSite).get(),
