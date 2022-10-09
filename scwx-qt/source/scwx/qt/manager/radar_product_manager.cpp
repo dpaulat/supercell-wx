@@ -61,43 +61,56 @@ static std::shared_mutex fileIndexMutex_;
 
 static std::mutex fileLoadMutex_;
 
+class ProviderManager : public QObject
+{
+   Q_OBJECT
+public:
+   explicit ProviderManager(RadarProductManager*      self,
+                            const std::string&        radarId,
+                            common::RadarProductGroup group) :
+       ProviderManager(self, radarId, group, "???")
+   {
+   }
+   explicit ProviderManager(RadarProductManager*      self,
+                            const std::string&        radarId,
+                            common::RadarProductGroup group,
+                            const std::string&        product) :
+       radarId_ {radarId},
+       group_ {group},
+       product_ {product},
+       refreshEnabled_ {false},
+       refreshTimer_ {util::io_context()},
+       refreshTimerMutex_ {},
+       provider_ {nullptr}
+   {
+      connect(this,
+              &ProviderManager::NewDataAvailable,
+              self,
+              &RadarProductManager::NewDataAvailable);
+   }
+   ~ProviderManager() = default;
+
+   std::string name() const;
+
+   void Disable();
+
+   const std::string                             radarId_;
+   const common::RadarProductGroup               group_;
+   const std::string                             product_;
+   bool                                          refreshEnabled_;
+   boost::asio::steady_timer                     refreshTimer_;
+   std::mutex                                    refreshTimerMutex_;
+   std::shared_ptr<provider::NexradDataProvider> provider_;
+
+signals:
+   void NewDataAvailable(common::RadarProductGroup             group,
+                         const std::string&                    product,
+                         std::chrono::system_clock::time_point latestTime);
+};
+
 class RadarProductManagerImpl
 {
 public:
-   struct ProviderManager
-   {
-      explicit ProviderManager(const std::string&        radarId,
-                               common::RadarProductGroup group) :
-          ProviderManager(radarId, group, "???")
-      {
-      }
-      explicit ProviderManager(const std::string&        radarId,
-                               common::RadarProductGroup group,
-                               const std::string&        product) :
-          radarId_ {radarId},
-          group_ {group},
-          product_ {product},
-          refreshEnabled_ {false},
-          refreshTimer_ {util::io_context()},
-          refreshTimerMutex_ {},
-          provider_ {nullptr}
-      {
-      }
-      ~ProviderManager() = default;
-
-      std::string name() const;
-
-      void Disable();
-
-      const std::string                             radarId_;
-      const common::RadarProductGroup               group_;
-      const std::string                             product_;
-      bool                                          refreshEnabled_;
-      boost::asio::steady_timer                     refreshTimer_;
-      std::mutex                                    refreshTimerMutex_;
-      std::shared_ptr<provider::NexradDataProvider> provider_;
-   };
-
    explicit RadarProductManagerImpl(RadarProductManager* self,
                                     const std::string&   radarId) :
        self_ {self},
@@ -112,7 +125,7 @@ public:
        level2ProductRecordMutex_ {},
        level3ProductRecordMutex_ {},
        level2ProviderManager_ {std::make_shared<ProviderManager>(
-          radarId_, common::RadarProductGroup::Level2)},
+          self_, radarId_, common::RadarProductGroup::Level2)},
        level3ProviderManagerMap_ {},
        level3ProviderManagerMutex_ {},
        initializeMutex_ {},
@@ -151,9 +164,8 @@ public:
    std::shared_ptr<ProviderManager>
    GetLevel3ProviderManager(const std::string& product);
 
-   void EnableRefresh(
-      std::shared_ptr<RadarProductManagerImpl::ProviderManager> providerManager,
-      bool                                                      enabled);
+   void EnableRefresh(std::shared_ptr<ProviderManager> providerManager,
+                      bool                             enabled);
    void RefreshData(std::shared_ptr<ProviderManager> providerManager);
 
    std::shared_ptr<types::RadarProductRecord>
@@ -212,7 +224,7 @@ RadarProductManager::RadarProductManager(const std::string& radarId) :
 }
 RadarProductManager::~RadarProductManager() = default;
 
-std::string RadarProductManagerImpl::ProviderManager::name() const
+std::string ProviderManager::name() const
 {
    std::string name;
 
@@ -232,7 +244,7 @@ std::string RadarProductManagerImpl::ProviderManager::name() const
    return name;
 }
 
-void RadarProductManagerImpl::ProviderManager::Disable()
+void ProviderManager::Disable()
 {
    std::unique_lock lock(refreshTimerMutex_);
    refreshEnabled_ = false;
@@ -374,7 +386,7 @@ void RadarProductManager::Initialize()
    p->initialized_ = true;
 }
 
-std::shared_ptr<RadarProductManagerImpl::ProviderManager>
+std::shared_ptr<ProviderManager>
 RadarProductManagerImpl::GetLevel3ProviderManager(const std::string& product)
 {
    std::unique_lock lock(level3ProviderManagerMutex_);
@@ -384,15 +396,14 @@ RadarProductManagerImpl::GetLevel3ProviderManager(const std::string& product)
       level3ProviderManagerMap_.emplace(
          std::piecewise_construct,
          std::forward_as_tuple(product),
-         std::forward_as_tuple(
-            std::make_shared<RadarProductManagerImpl::ProviderManager>(
-               radarId_, common::RadarProductGroup::Level3, product)));
+         std::forward_as_tuple(std::make_shared<ProviderManager>(
+            self_, radarId_, common::RadarProductGroup::Level3, product)));
       level3ProviderManagerMap_.at(product)->provider_ =
          provider::NexradDataProviderFactory::CreateLevel3DataProvider(radarId_,
                                                                        product);
    }
 
-   std::shared_ptr<RadarProductManagerImpl::ProviderManager> providerManager =
+   std::shared_ptr<ProviderManager> providerManager =
       level3ProviderManagerMap_.at(product);
 
    return providerManager;
@@ -408,8 +419,8 @@ void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
    }
    else
    {
-      std::shared_ptr<RadarProductManagerImpl::ProviderManager>
-         providerManager = p->GetLevel3ProviderManager(product);
+      std::shared_ptr<ProviderManager> providerManager =
+         p->GetLevel3ProviderManager(product);
 
       // Only enable refresh on available products
       util::async(
@@ -478,7 +489,7 @@ void RadarProductManagerImpl::RefreshData(
                interval = kRetryInterval_;
             }
 
-            emit self_->NewDataAvailable(
+            emit providerManager->NewDataAvailable(
                providerManager->group_, providerManager->product_, latestTime);
          }
          else if (providerManager->refreshEnabled_ && totalObjects == 0)
@@ -985,6 +996,8 @@ RadarProductManager::Instance(const std::string& radarSite)
 
    return instance;
 }
+
+#include "radar_product_manager.moc"
 
 } // namespace manager
 } // namespace qt
