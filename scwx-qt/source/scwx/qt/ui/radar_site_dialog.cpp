@@ -76,9 +76,17 @@ RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
    connect(ui->radarSiteView->selectionModel(),
            &QItemSelectionModel::selectionChanged,
            this,
-           [=](const QItemSelection& selected,
-               const QItemSelection& /* deselected */)
+           [=](const QItemSelection& selected, const QItemSelection& deselected)
            {
+              if (selected.size() == 0 && deselected.size() == 0)
+              {
+                 // Items which stay selected but change their index are not
+                 // included in selected and deselected. Thus, this signal might
+                 // be emitted with both selected and deselected empty, if only
+                 // the indices of selected items change.
+                 return;
+              }
+
               ui->buttonBox->button(QDialogButtonBox::Ok)
                  ->setEnabled(selected.size() > 0);
 
