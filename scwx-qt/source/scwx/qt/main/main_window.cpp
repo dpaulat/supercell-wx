@@ -415,6 +415,18 @@ void MainWindowImpl::ConnectOtherSignals()
            &MainWindow::ActiveMapMoved,
            radarSiteDialog_,
            &ui::RadarSiteDialog::HandleMapUpdate);
+   connect(radarSiteDialog_,
+           &ui::RadarSiteDialog::accepted,
+           this,
+           [&]()
+           {
+              std::string selectedRadarSite = radarSiteDialog_->radar_site();
+
+              for (map::MapWidget* map : maps_)
+              {
+                 map->SelectRadarSite(selectedRadarSite);
+              }
+           });
 }
 
 void MainWindowImpl::HandleFocusChange(QWidget* focused)

@@ -383,6 +383,38 @@ void MapWidget::SelectRadarProduct(
    SelectRadarProduct(group, product, productCode);
 }
 
+void MapWidget::SelectRadarSite(const std::string& id)
+{
+   logger_->debug("Selecting radar site: {}", id);
+
+   std::shared_ptr<config::RadarSite> radarSite = config::RadarSite::Get(id);
+
+   // Verify radar site is valid and has changed
+   if (radarSite != nullptr &&
+       (p->radarProductManager_ == nullptr ||
+        id != p->radarProductManager_->radar_site()->id()))
+   {
+      auto radarProductView = p->context_->radar_product_view();
+
+      p->map_->setCoordinate({radarSite->latitude(), radarSite->longitude()});
+      p->SetRadarSite(id);
+      p->Update();
+
+      // Select products from new site
+      if (radarProductView != nullptr)
+      {
+         radarProductView->set_radar_product_manager(p->radarProductManager_);
+         SelectRadarProduct(radarProductView->GetRadarProductGroup(),
+                            radarProductView->GetRadarProductName(),
+                            0);
+      }
+
+      AddLayers();
+
+      // TODO: Disable refresh from old site
+   }
+}
+
 void MapWidget::SetActive(bool isActive)
 {
    p->context_->settings().isActive_ = isActive;

@@ -48,6 +48,7 @@ public:
                            const std::string&        product,
                            int16_t                   productCode);
    void SelectRadarProduct(std::shared_ptr<types::RadarProductRecord> record);
+   void SelectRadarSite(const std::string& radarSite);
    void SetActive(bool isActive);
    void SetAutoRefresh(bool enabled);
    void SetMapParameters(double latitude,
