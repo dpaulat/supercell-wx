@@ -18,7 +18,15 @@ namespace model
 static const std::string logPrefix_ = "scwx::qt::model::radar_site_model";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static constexpr size_t kNumColumns = 8u;
+static constexpr size_t kColumnSiteId    = 0u;
+static constexpr size_t kColumnPlace     = 1u;
+static constexpr size_t kColumnState     = 2u;
+static constexpr size_t kColumnCountry   = 3u;
+static constexpr size_t kColumnLatitude  = 4u;
+static constexpr size_t kColumnLongitude = 5u;
+static constexpr size_t kColumnType      = 6u;
+static constexpr size_t kColumnDistance  = 7u;
+static constexpr size_t kNumColumns      = 8u;
 
 class RadarSiteModelImpl
 {
@@ -61,15 +69,15 @@ QVariant RadarSiteModel::data(const QModelIndex& index, int role) const
 
       switch (index.column())
       {
-      case 0:
+      case kColumnSiteId:
          return QString::fromStdString(site->id());
-      case 1:
+      case kColumnPlace:
          return QString::fromStdString(site->place());
-      case 2:
+      case kColumnState:
          return QString::fromStdString(site->state());
-      case 3:
+      case kColumnCountry:
          return QString::fromStdString(site->country());
-      case 4:
+      case kColumnLatitude:
          if (role == Qt::DisplayRole)
          {
             return QString::fromStdString(
@@ -79,7 +87,7 @@ QVariant RadarSiteModel::data(const QModelIndex& index, int role) const
          {
             return site->latitude();
          }
-      case 5:
+      case kColumnLongitude:
          if (role == Qt::DisplayRole)
          {
             return QString::fromStdString(
@@ -89,9 +97,9 @@ QVariant RadarSiteModel::data(const QModelIndex& index, int role) const
          {
             return site->longitude();
          }
-      case 6:
+      case kColumnType:
          return QString::fromStdString(site->type_name());
-      case 7:
+      case kColumnDistance:
          if (role == Qt::DisplayRole)
          {
             if (p->distanceDisplay_ == scwx::common::DistanceType::Miles)
@@ -129,21 +137,21 @@ QVariant RadarSiteModel::headerData(int             section,
       {
          switch (section)
          {
-         case 0:
+         case kColumnSiteId:
             return tr("Site ID");
-         case 1:
+         case kColumnPlace:
             return tr("Place");
-         case 2:
+         case kColumnState:
             return tr("State");
-         case 3:
+         case kColumnCountry:
             return tr("Country");
-         case 4:
+         case kColumnLatitude:
             return tr("Latitude");
-         case 5:
+         case kColumnLongitude:
             return tr("Longitude");
-         case 6:
+         case kColumnType:
             return tr("Type");
-         case 7:
+         case kColumnDistance:
             return tr("Distance");
          default:
             break;
@@ -169,6 +177,11 @@ void RadarSiteModel::HandleMapUpdate(double latitude, double longitude)
                            distanceInMeters);
       p->distanceMap_[site->id()] = distanceInMeters;
    }
+
+   QModelIndex topLeft     = createIndex(0, kColumnDistance);
+   QModelIndex bottomRight = createIndex(rowCount() - 1, kColumnDistance);
+
+   emit dataChanged(topLeft, bottomRight);
 }
 
 RadarSiteModelImpl::RadarSiteModelImpl() :
