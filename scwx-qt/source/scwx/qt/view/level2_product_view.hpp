@@ -2,7 +2,6 @@
 
 #include <scwx/common/color_table.hpp>
 #include <scwx/common/products.hpp>
-#include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/view/radar_product_view.hpp>
 
 #include <chrono>

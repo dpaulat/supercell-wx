@@ -67,12 +67,15 @@ class RadarProductManagerImpl
 public:
    struct ProviderManager
    {
-      explicit ProviderManager(common::RadarProductGroup group) :
-          ProviderManager(group, "???")
+      explicit ProviderManager(const std::string&        radarId,
+                               common::RadarProductGroup group) :
+          ProviderManager(radarId, group, "???")
       {
       }
-      explicit ProviderManager(common::RadarProductGroup group,
+      explicit ProviderManager(const std::string&        radarId,
+                               common::RadarProductGroup group,
                                const std::string&        product) :
+          radarId_ {radarId},
           group_ {group},
           product_ {product},
           refreshEnabled_ {false},
@@ -87,6 +90,7 @@ public:
 
       void Disable();
 
+      const std::string                             radarId_;
       const common::RadarProductGroup               group_;
       const std::string                             product_;
       bool                                          refreshEnabled_;
@@ -108,8 +112,8 @@ public:
        level3ProductRecordsMap_ {},
        level2ProductRecordMutex_ {},
        level3ProductRecordMutex_ {},
-       level2ProviderManager_ {
-          std::make_shared<ProviderManager>(common::RadarProductGroup::Level2)},
+       level2ProviderManager_ {std::make_shared<ProviderManager>(
+          radarId_, common::RadarProductGroup::Level2)},
        level3ProviderManagerMap_ {},
        level3ProviderManagerMutex_ {},
        initializeMutex_ {},
@@ -173,9 +177,9 @@ public:
                   std::shared_ptr<request::NexradFileRequest> request,
                   std::mutex&                                 mutex);
 
-   std::string radarId_;
-   bool        initialized_;
-   bool        level3ProductsInitialized_;
+   const std::string radarId_;
+   bool              initialized_;
+   bool              level3ProductsInitialized_;
 
    std::shared_ptr<config::RadarSite> radarSite_;
 
@@ -215,12 +219,15 @@ std::string RadarProductManagerImpl::ProviderManager::name() const
 
    if (group_ == common::RadarProductGroup::Level3)
    {
-      name = std::format(
-         "{}, {}", common::GetRadarProductGroupName(group_), product_);
+      name = std::format("{}, {}, {}",
+                         radarId_,
+                         common::GetRadarProductGroupName(group_),
+                         product_);
    }
    else
    {
-      name = common::GetRadarProductGroupName(group_);
+      name = std::format(
+         "{}, {}", radarId_, common::GetRadarProductGroupName(group_));
    }
 
    return name;
@@ -380,7 +387,7 @@ RadarProductManagerImpl::GetLevel3ProviderManager(const std::string& product)
          std::forward_as_tuple(product),
          std::forward_as_tuple(
             std::make_shared<RadarProductManagerImpl::ProviderManager>(
-               common::RadarProductGroup::Level3, product)));
+               radarId_, common::RadarProductGroup::Level3, product)));
       level3ProviderManagerMap_.at(product)->provider_ =
          provider::NexradDataProviderFactory::CreateLevel3DataProvider(radarId_,
                                                                        product);

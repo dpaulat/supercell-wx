@@ -26,15 +26,24 @@ static const uint16_t DEFAULT_COLOR_TABLE_MAX = 255u;
 class RadarProductViewImpl
 {
 public:
-   explicit RadarProductViewImpl() : initialized_ {false}, sweepMutex_ {} {}
+   explicit RadarProductViewImpl(
+      std::shared_ptr<manager::RadarProductManager> radarProductManager) :
+       initialized_ {false},
+       sweepMutex_ {},
+       radarProductManager_ {radarProductManager}
+   {
+   }
    ~RadarProductViewImpl() = default;
 
    bool       initialized_;
    std::mutex sweepMutex_;
+
+   std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 };
 
-RadarProductView::RadarProductView() :
-    p(std::make_unique<RadarProductViewImpl>()) {};
+RadarProductView::RadarProductView(
+   std::shared_ptr<manager::RadarProductManager> radarProductManager) :
+    p(std::make_unique<RadarProductViewImpl>(radarProductManager)) {};
 RadarProductView::~RadarProductView() = default;
 
 const std::vector<boost::gil::rgba8_pixel_t>&
@@ -58,6 +67,12 @@ float RadarProductView::elevation() const
    return 0.0f;
 }
 
+std::shared_ptr<manager::RadarProductManager>
+RadarProductView::radar_product_manager() const
+{
+   return p->radarProductManager_;
+}
+
 float RadarProductView::range() const
 {
    return 0.0f;
@@ -71,6 +86,12 @@ std::chrono::system_clock::time_point RadarProductView::sweep_time() const
 std::mutex& RadarProductView::sweep_mutex()
 {
    return p->sweepMutex_;
+}
+
+void RadarProductView::set_radar_product_manager(
+   std::shared_ptr<manager::RadarProductManager> radarProductManager)
+{
+   p->radarProductManager_ = radarProductManager;
 }
 
 void RadarProductView::Initialize()

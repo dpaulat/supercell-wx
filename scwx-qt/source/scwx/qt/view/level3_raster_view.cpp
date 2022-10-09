@@ -26,9 +26,7 @@ static constexpr uint32_t VALUES_PER_VERTEX = 2u;
 class Level3RasterViewImpl
 {
 public:
-   explicit Level3RasterViewImpl(
-      std::shared_ptr<manager::RadarProductManager> radarProductManager) :
-       radarProductManager_ {radarProductManager},
+   explicit Level3RasterViewImpl() :
        selectedTime_ {},
        latitude_ {},
        longitude_ {},
@@ -38,8 +36,6 @@ public:
    {
    }
    ~Level3RasterViewImpl() = default;
-
-   std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
    std::chrono::system_clock::time_point selectedTime_;
 
@@ -57,8 +53,8 @@ public:
 Level3RasterView::Level3RasterView(
    const std::string&                            product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager) :
-    Level3ProductView(product),
-    p(std::make_unique<Level3RasterViewImpl>(radarProductManager))
+    Level3ProductView(product, radarProductManager),
+    p(std::make_unique<Level3RasterViewImpl>())
 {
 }
 Level3RasterView::~Level3RasterView() = default;
@@ -109,10 +105,13 @@ void Level3RasterView::ComputeSweep()
 
    std::scoped_lock sweepLock(sweep_mutex());
 
+   std::shared_ptr<manager::RadarProductManager> radarProductManager =
+      radar_product_manager();
+
    // Retrieve message from Radar Product Manager
    std::shared_ptr<wsr88d::rpg::Level3Message> message =
-      p->radarProductManager_->GetLevel3Data(GetRadarProductName(),
-                                             p->selectedTime_);
+      radarProductManager->GetLevel3Data(GetRadarProductName(),
+                                         p->selectedTime_);
    if (message == nullptr)
    {
       logger_->debug("Level 3 data not found");

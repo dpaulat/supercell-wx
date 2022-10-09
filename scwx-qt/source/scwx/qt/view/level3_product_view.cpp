@@ -53,7 +53,10 @@ public:
    float                               savedOffset_;
 };
 
-Level3ProductView::Level3ProductView(const std::string& product) :
+Level3ProductView::Level3ProductView(
+   const std::string&                            product,
+   std::shared_ptr<manager::RadarProductManager> radarProductManager) :
+    RadarProductView(radarProductManager),
     p(std::make_unique<Level3ProductViewImpl>(product))
 {
 }

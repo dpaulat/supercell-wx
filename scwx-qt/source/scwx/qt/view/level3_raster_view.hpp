@@ -1,7 +1,6 @@
 #pragma once
 
 #include <scwx/qt/view/level3_product_view.hpp>
-#include <scwx/qt/manager/radar_product_manager.hpp>
 
 #include <chrono>
 #include <memory>

@@ -41,11 +41,8 @@ static const std::unordered_map<common::Level2Product,
 class Level2ProductViewImpl
 {
 public:
-   explicit Level2ProductViewImpl(
-      common::Level2Product                         product,
-      std::shared_ptr<manager::RadarProductManager> radarProductManager) :
+   explicit Level2ProductViewImpl(common::Level2Product product) :
        product_ {product},
-       radarProductManager_ {radarProductManager},
        selectedElevation_ {0.0f},
        selectedTime_ {},
        elevationScan_ {nullptr},
@@ -72,9 +69,8 @@ public:
    void SetProduct(const std::string& productName);
    void SetProduct(common::Level2Product product);
 
-   common::Level2Product                         product_;
-   wsr88d::rda::DataBlockType                    dataBlockType_;
-   std::shared_ptr<manager::RadarProductManager> radarProductManager_;
+   common::Level2Product      product_;
+   wsr88d::rda::DataBlockType dataBlockType_;
 
    float                                 selectedElevation_;
    std::chrono::system_clock::time_point selectedTime_;
@@ -109,7 +105,8 @@ public:
 Level2ProductView::Level2ProductView(
    common::Level2Product                         product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager) :
-    p(std::make_unique<Level2ProductViewImpl>(product, radarProductManager))
+    RadarProductView(radarProductManager),
+    p(std::make_unique<Level2ProductViewImpl>(product))
 {
 }
 Level2ProductView::~Level2ProductView() = default;
@@ -375,9 +372,12 @@ void Level2ProductView::ComputeSweep()
 
    std::scoped_lock sweepLock(sweep_mutex());
 
+   std::shared_ptr<manager::RadarProductManager> radarProductManager =
+      radar_product_manager();
+
    std::shared_ptr<wsr88d::rda::ElevationScan> radarData;
    std::tie(radarData, p->elevationCut_, p->elevationCuts_) =
-      p->radarProductManager_->GetLevel2Data(
+      radarProductManager->GetLevel2Data(
          p->dataBlockType_, p->selectedElevation_, p->selectedTime_);
    if (radarData == nullptr || radarData == p->elevationScan_)
    {
@@ -390,7 +390,7 @@ void Level2ProductView::ComputeSweep()
          common::RadialSize::_0_5Degree :
          common::RadialSize::_1Degree;
    const std::vector<float>& coordinates =
-      p->radarProductManager_->coordinates(radialSize);
+      radarProductManager->coordinates(radialSize);
 
    auto radarData0      = (*radarData)[0];
    auto momentData0     = radarData0->moment_data_block(p->dataBlockType_);
@@ -492,7 +492,7 @@ void Level2ProductView::ComputeSweep()
 
       // Compute gate size (number of base 250m gates per bin)
       const uint16_t gateSizeMeters =
-         static_cast<uint16_t>(p->radarProductManager_->gate_size());
+         static_cast<uint16_t>(radarProductManager->gate_size());
       const uint16_t gateSize =
          std::max<uint16_t>(1, dataMomentInterval / gateSizeMeters);
 

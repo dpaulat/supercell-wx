@@ -22,7 +22,9 @@ class Level3ProductView : public RadarProductView
    Q_OBJECT
 
 public:
-   explicit Level3ProductView(const std::string& product);
+   explicit Level3ProductView(
+      const std::string&                            product,
+      std::shared_ptr<manager::RadarProductManager> radarProductManager);
    virtual ~Level3ProductView();
 
    const std::vector<boost::gil::rgba8_pixel_t>& color_table() const override;

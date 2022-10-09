@@ -2,6 +2,7 @@
 
 #include <scwx/common/color_table.hpp>
 #include <scwx/common/products.hpp>
+#include <scwx/qt/manager/radar_product_manager.hpp>
 
 #include <chrono>
 #include <memory>
@@ -24,7 +25,8 @@ class RadarProductView : public QObject
    Q_OBJECT
 
 public:
-   explicit RadarProductView();
+   explicit RadarProductView(
+      std::shared_ptr<manager::RadarProductManager> radarProductManager);
    virtual ~RadarProductView();
 
    virtual const std::vector<boost::gil::rgba8_pixel_t>& color_table() const;
@@ -36,7 +38,11 @@ public:
    virtual uint16_t                              vcp() const      = 0;
    virtual const std::vector<float>&             vertices() const = 0;
 
-   std::mutex& sweep_mutex();
+   std::shared_ptr<manager::RadarProductManager> radar_product_manager() const;
+   std::mutex&                                   sweep_mutex();
+
+   void set_radar_product_manager(
+      std::shared_ptr<manager::RadarProductManager> radarProductManager);
 
    void Initialize();
    virtual void
