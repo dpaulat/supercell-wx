@@ -45,6 +45,7 @@ public:
        level2ProductsWidget_ {nullptr},
        level2SettingsWidget_ {nullptr},
        radarSiteDialog_ {nullptr},
+       radarProductModel_ {nullptr},
        maps_ {},
        elevationCuts_ {},
        elevationButtonsChanged_ {false},
@@ -104,6 +105,8 @@ public:
 
    ui::RadarSiteDialog* radarSiteDialog_;
 
+   std::shared_ptr<model::RadarProductModel> radarProductModel_;
+
    std::vector<map::MapWidget*> maps_;
    std::vector<float>           elevationCuts_;
 
@@ -144,7 +147,7 @@ MainWindow::MainWindow(QWidget* parent) :
    // Configure Docks
    ui->resourceExplorerDock->setVisible(false);
 
-   ui->resourceTreeView->setModel(new model::RadarProductModel(this));
+   p->radarProductModel_ = std::make_shared<model::RadarProductModel>();
 
    // Configure Map
    p->ConfigureMapLayout();

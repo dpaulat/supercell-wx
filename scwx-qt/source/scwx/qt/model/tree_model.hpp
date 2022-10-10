@@ -16,8 +16,14 @@ class TreeModelImpl;
 class TreeModel : public QAbstractItemModel
 {
 public:
-   explicit TreeModel(QObject* parent = nullptr);
+   explicit TreeModel(const std::vector<QVariant>& headerData,
+                      QObject*                     parent = nullptr);
+   explicit TreeModel(std::initializer_list<QVariant> headerData,
+                      QObject*                        parent = nullptr);
    virtual ~TreeModel();
+
+   const TreeItem* root_item() const;
+   TreeItem*       root_item();
 
    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
    int columnCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -33,8 +39,12 @@ public:
                        const QModelIndex& parent = QModelIndex()) const override;
    QModelIndex   parent(const QModelIndex& index) const override;
 
-protected:
-   virtual const std::shared_ptr<TreeItem> root_item() const = 0;
+   bool insertRows(int row, int count, const QModelIndex& parent) override;
+   bool setData(const QModelIndex& index,
+                const QVariant&    value,
+                int                role = Qt::EditRole) override;
+
+   void AppendRow(TreeItem* parent, TreeItem* child);
 
 private:
    friend class TreeModelImpl;

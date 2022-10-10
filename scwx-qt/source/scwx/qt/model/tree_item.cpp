@@ -18,9 +18,9 @@ public:
    }
    ~Impl() { qDeleteAll(childItems_); }
 
-   std::vector<TreeItem*> childItems_;
-   std::vector<QVariant>  itemData_;
-   TreeItem*              parentItem_;
+   QList<TreeItem*>      childItems_;
+   std::vector<QVariant> itemData_;
+   TreeItem*             parentItem_;
 };
 
 TreeItem::TreeItem(const std::vector<QVariant>& data, TreeItem* parent) :
@@ -37,30 +37,6 @@ TreeItem::~TreeItem() {}
 
 TreeItem::TreeItem(TreeItem&&) noexcept            = default;
 TreeItem& TreeItem::operator=(TreeItem&&) noexcept = default;
-
-void TreeItem::AppendChild(TreeItem* item)
-{
-   item->p->parentItem_ = this;
-   p->childItems_.push_back(item);
-}
-
-TreeItem* TreeItem::FindChild(int column, const QVariant& data)
-{
-   auto it = std::find_if(p->childItems_.begin(),
-                          p->childItems_.end(),
-                          [&](auto& item) {
-                             return (column < item->column_count() &&
-                                     item->data(column) == data);
-                          });
-
-   TreeItem* item = nullptr;
-   if (it != p->childItems_.end())
-   {
-      item = *it;
-   }
-
-   return item;
-}
 
 const TreeItem* TreeItem::child(int row) const
 {
@@ -88,7 +64,9 @@ TreeItem* TreeItem::child(int row)
 
 std::vector<TreeItem*> TreeItem::children()
 {
-   return p->childItems_;
+   std::vector<TreeItem*> children(p->childItems_.cbegin(),
+                                   p->childItems_.cend());
+   return children;
 }
 
 int TreeItem::child_count() const
@@ -119,10 +97,7 @@ int TreeItem::row() const
 
    if (p->parentItem_ != nullptr)
    {
-      const auto& childItems = p->parentItem_->p->childItems_;
-      row =
-         std::distance(childItems.cbegin(),
-                       std::find(childItems.cbegin(), childItems.cend(), this));
+      row = p->parentItem_->p->childItems_.indexOf(this);
    }
 
    return row;
@@ -131,6 +106,59 @@ int TreeItem::row() const
 const TreeItem* TreeItem::parent_item() const
 {
    return p->parentItem_;
+}
+
+void TreeItem::AppendChild(TreeItem* item)
+{
+   item->p->parentItem_ = this;
+   p->childItems_.push_back(item);
+}
+
+TreeItem* TreeItem::FindChild(int column, const QVariant& data)
+{
+   auto it = std::find_if(p->childItems_.begin(),
+                          p->childItems_.end(),
+                          [&](auto& item) {
+                             return (column < item->column_count() &&
+                                     item->data(column) == data);
+                          });
+
+   TreeItem* item = nullptr;
+   if (it != p->childItems_.end())
+   {
+      item = *it;
+   }
+
+   return item;
+}
+
+bool TreeItem::InsertChildren(int position, int count, int columns)
+{
+   if (position < 0 || position > p->childItems_.size())
+   {
+      return false;
+   }
+
+   std::vector<QVariant> data(columns);
+
+   for (int row = 0; row < count; ++row)
+   {
+      TreeItem* item = new TreeItem(data, this);
+      p->childItems_.insert(position, item);
+   }
+
+   return true;
+}
+
+bool TreeItem::SetData(int column, const QVariant& value)
+{
+   if (column < 0 || column >= p->itemData_.size())
+   {
+      return false;
+   }
+
+   p->itemData_[column] = value;
+   return true;
 }
 
 } // namespace model

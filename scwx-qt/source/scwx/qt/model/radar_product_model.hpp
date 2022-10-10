@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/qt/model/tree_model.hpp>
+#include <QAbstractItemModel>
 
 namespace scwx
 {
@@ -11,14 +11,13 @@ namespace model
 
 class RadarProductModelImpl;
 
-class RadarProductModel : public TreeModel
+class RadarProductModel
 {
 public:
-   explicit RadarProductModel(QObject* parent = nullptr);
+   explicit RadarProductModel();
    ~RadarProductModel();
 
-protected:
-   const std::shared_ptr<TreeItem> root_item() const override;
+   QAbstractItemModel* model();
 
 private:
    std::unique_ptr<RadarProductModelImpl> p;

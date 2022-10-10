@@ -27,9 +27,6 @@ public:
    TreeItem(TreeItem&&) noexcept;
    TreeItem& operator=(TreeItem&&) noexcept;
 
-   void      AppendChild(TreeItem* child);
-   TreeItem* FindChild(int column, const QVariant& data);
-
    const TreeItem*        child(int row) const;
    TreeItem*              child(int row);
    std::vector<TreeItem*> children();
@@ -38,6 +35,11 @@ public:
    QVariant               data(int column) const;
    int                    row() const;
    const TreeItem*        parent_item() const;
+
+   void      AppendChild(TreeItem* child);
+   TreeItem* FindChild(int column, const QVariant& data);
+   bool      InsertChildren(int position, int count, int columns);
+   bool      SetData(int column, const QVariant& value);
 
 private:
    class Impl;

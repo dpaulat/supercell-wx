@@ -12,20 +12,41 @@ static const std::string logPrefix_ = "scwx::qt::model::tree_model";
 class TreeModelImpl
 {
 public:
-   explicit TreeModelImpl(TreeModel* self) : self_ {self} {};
+   explicit TreeModelImpl(TreeModel*                   self,
+                          const std::vector<QVariant>& headerData) :
+       self_ {self}, rootItem_ {std::make_unique<TreeItem>(headerData)} {};
    ~TreeModelImpl() = default;
 
    const TreeItem* item(const QModelIndex& index) const;
    TreeItem*       item(const QModelIndex& index);
 
-   TreeModel* self_;
+   TreeModel*                self_;
+   std::unique_ptr<TreeItem> rootItem_;
 };
 
-TreeModel::TreeModel(QObject* parent) :
-    QAbstractItemModel(parent), p(std::make_unique<TreeModelImpl>(this))
+TreeModel::TreeModel(const std::vector<QVariant>& headerData, QObject* parent) :
+    QAbstractItemModel(parent),
+    p(std::make_unique<TreeModelImpl>(this, headerData))
 {
 }
+
+TreeModel::TreeModel(std::initializer_list<QVariant> headerData,
+                     QObject*                        parent) :
+    TreeModel(std::vector<QVariant> {headerData}, parent)
+{
+}
+
 TreeModel::~TreeModel() = default;
+
+const TreeItem* TreeModel::root_item() const
+{
+   return p->rootItem_.get();
+}
+
+TreeItem* TreeModel::root_item()
+{
+   return p->rootItem_.get();
+}
 
 int TreeModel::rowCount(const QModelIndex& parent) const
 {
@@ -110,12 +131,64 @@ QModelIndex TreeModel::parent(const QModelIndex& index) const
    const TreeItem* childItem  = p->item(index);
    const TreeItem* parentItem = childItem ? childItem->parent_item() : nullptr;
 
-   if (parentItem == root_item().get() || parentItem == nullptr)
+   if (parentItem == p->rootItem_.get() || parentItem == nullptr)
    {
       return QModelIndex();
    }
 
    return createIndex(parentItem->row(), 0, parentItem);
+}
+
+bool TreeModel::insertRows(int row, int count, const QModelIndex& parent)
+{
+   TreeItem* parentItem = p->item(parent);
+   if (parentItem == nullptr)
+   {
+      return false;
+   }
+
+   beginInsertRows(parent, row, row + count - 1);
+   bool result = parentItem->InsertChildren(row, count, columnCount(parent));
+   endInsertRows();
+
+   return result;
+}
+
+bool TreeModel::setData(const QModelIndex& index,
+                        const QVariant&    value,
+                        int                role)
+{
+   if (!index.isValid() || role != Qt::EditRole)
+   {
+      return false;
+   }
+
+   TreeItem* item = p->item(index);
+   if (item == nullptr)
+   {
+      return false;
+   }
+
+   bool result = item->SetData(index.column(), value);
+
+   if (result)
+   {
+      emit dataChanged(index, index);
+   }
+
+   return result;
+}
+
+void TreeModel::AppendRow(TreeItem* parent, TreeItem* child)
+{
+   const QModelIndex parentIndex = createIndex(parent->row(), 0, parent);
+   const int         childCount  = parent->child_count();
+   const int         first       = childCount;
+   const int         last        = childCount;
+
+   beginInsertRows(parentIndex, first, last);
+   parent->AppendChild(child);
+   endInsertRows();
 }
 
 const TreeItem* TreeModelImpl::item(const QModelIndex& index) const
@@ -129,7 +202,7 @@ const TreeItem* TreeModelImpl::item(const QModelIndex& index) const
          return item;
       }
    }
-   return self_->root_item().get();
+   return rootItem_.get();
 }
 
 TreeItem* TreeModelImpl::item(const QModelIndex& index)
@@ -142,7 +215,7 @@ TreeItem* TreeModelImpl::item(const QModelIndex& index)
          return item;
       }
    }
-   return self_->root_item().get();
+   return rootItem_.get();
 }
 
 } // namespace model
