@@ -12,46 +12,30 @@ static const std::string logPrefix_ = "scwx::qt::model::tree_model";
 class TreeModelImpl
 {
 public:
-   explicit TreeModelImpl() = default;
-   ~TreeModelImpl()         = default;
+   explicit TreeModelImpl(TreeModel* self) : self_ {self} {};
+   ~TreeModelImpl() = default;
+
+   const TreeItem* item(const QModelIndex& index) const;
+   TreeItem*       item(const QModelIndex& index);
+
+   TreeModel* self_;
 };
 
 TreeModel::TreeModel(QObject* parent) :
-    QAbstractItemModel(parent), p(std::make_unique<TreeModelImpl>())
+    QAbstractItemModel(parent), p(std::make_unique<TreeModelImpl>(this))
 {
 }
 TreeModel::~TreeModel() = default;
 
 int TreeModel::rowCount(const QModelIndex& parent) const
 {
-   const TreeItem* parentItem;
-
-   if (parent.isValid())
-   {
-      parentItem = static_cast<const TreeItem*>(parent.constInternalPointer());
-   }
-   else
-   {
-      parentItem = root_item().get();
-   }
-
-   return parentItem->child_count();
+   const TreeItem* parentItem = p->item(parent);
+   return parentItem ? parentItem->child_count() : 0;
 }
 
-int TreeModel::columnCount(const QModelIndex& parent) const
+int TreeModel::columnCount(const QModelIndex& /* parent */) const
 {
-   const TreeItem* parentItem;
-
-   if (parent.isValid())
-   {
-      parentItem = static_cast<const TreeItem*>(parent.constInternalPointer());
-   }
-   else
-   {
-      parentItem = root_item().get();
-   }
-
-   return parentItem->column_count();
+   return root_item()->column_count();
 }
 
 QVariant TreeModel::data(const QModelIndex& index, int role) const
@@ -61,7 +45,7 @@ QVariant TreeModel::data(const QModelIndex& index, int role) const
       return QVariant();
    }
 
-   const TreeItem* item = static_cast<const TreeItem*>(index.internalPointer());
+   const TreeItem* item = p->item(index);
 
    return item->data(index.column());
 }
@@ -96,20 +80,15 @@ TreeModel::headerData(int section, Qt::Orientation orientation, int role) const
 QModelIndex
 TreeModel::index(int row, int column, const QModelIndex& parent) const
 {
-   if (!hasIndex(row, column, parent))
+   if (parent.isValid() && parent.column() != 0)
    {
       return QModelIndex();
    }
 
-   const TreeItem* parentItem;
-
-   if (!parent.isValid())
+   const TreeItem* parentItem = p->item(parent);
+   if (parentItem == nullptr)
    {
-      parentItem = root_item().get();
-   }
-   else
-   {
-      parentItem = static_cast<const TreeItem*>(parent.constInternalPointer());
+      return QModelIndex();
    }
 
    const TreeItem* childItem = parentItem->child(row);
@@ -128,9 +107,8 @@ QModelIndex TreeModel::parent(const QModelIndex& index) const
       return QModelIndex();
    }
 
-   const TreeItem* childItem =
-      static_cast<const TreeItem*>(index.constInternalPointer());
-   const TreeItem* parentItem = childItem->parent_item();
+   const TreeItem* childItem  = p->item(index);
+   const TreeItem* parentItem = childItem ? childItem->parent_item() : nullptr;
 
    if (parentItem == root_item().get() || parentItem == nullptr)
    {
@@ -138,6 +116,33 @@ QModelIndex TreeModel::parent(const QModelIndex& index) const
    }
 
    return createIndex(parentItem->row(), 0, parentItem);
+}
+
+const TreeItem* TreeModelImpl::item(const QModelIndex& index) const
+{
+   if (index.isValid())
+   {
+      const TreeItem* item =
+         static_cast<const TreeItem*>(index.constInternalPointer());
+      if (item != nullptr)
+      {
+         return item;
+      }
+   }
+   return self_->root_item().get();
+}
+
+TreeItem* TreeModelImpl::item(const QModelIndex& index)
+{
+   if (index.isValid())
+   {
+      TreeItem* item = static_cast<TreeItem*>(index.internalPointer());
+      if (item != nullptr)
+      {
+         return item;
+      }
+   }
+   return self_->root_item().get();
 }
 
 } // namespace model

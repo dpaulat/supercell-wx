@@ -22,6 +22,8 @@ public:
    explicit RadarProductModelImpl(RadarProductModel* self);
    ~RadarProductModelImpl() = default;
 
+   void AppendRow(TreeItem* parent, TreeItem* child);
+
    RadarProductModel*        self_;
    std::shared_ptr<TreeItem> rootItem_;
 };
@@ -35,6 +37,18 @@ RadarProductModel::~RadarProductModel() = default;
 const std::shared_ptr<TreeItem> RadarProductModel::root_item() const
 {
    return p->rootItem_;
+}
+
+void RadarProductModelImpl::AppendRow(TreeItem* parent, TreeItem* child)
+{
+   const QModelIndex parentIndex = self_->createIndex(parent->row(), 0, parent);
+   const int         childCount  = parent->child_count();
+   const int         first       = childCount;
+   const int         last        = childCount;
+
+   self_->beginInsertRows(parentIndex, first, last);
+   parent->AppendChild(child);
+   self_->endInsertRows();
 }
 
 RadarProductModelImpl::RadarProductModelImpl(RadarProductModel* self) :
@@ -57,16 +71,8 @@ RadarProductModelImpl::RadarProductModelImpl(RadarProductModel* self) :
 
          if (radarSiteItem == nullptr)
          {
-            const QModelIndex rootIndex =
-               self_->createIndex(rootItem_->row(), 0, rootItem_.get());
-            const int rootChildren = rootItem_->child_count();
-
-            self_->beginInsertRows(rootIndex, rootChildren, rootChildren);
-
             radarSiteItem = new TreeItem({radarSiteName});
-            rootItem_->AppendChild(radarSiteItem);
-
-            self_->endInsertRows();
+            AppendRow(rootItem_.get(), radarSiteItem);
          }
 
          connect(
@@ -86,17 +92,8 @@ RadarProductModelImpl::RadarProductModelImpl(RadarProductModel* self) :
                if (groupItem == nullptr)
                {
                   // Existing group item was not found, create it
-                  const QModelIndex radarSiteIndex =
-                     self_->createIndex(radarSiteItem->row(), 0, radarSiteItem);
-                  const int radarSiteChildren = radarSiteItem->child_count();
-
-                  self_->beginInsertRows(
-                     radarSiteIndex, radarSiteChildren, radarSiteChildren);
-
                   groupItem = new TreeItem({groupName});
-                  radarSiteItem->AppendChild(groupItem);
-
-                  self_->endInsertRows();
+                  AppendRow(radarSiteItem, groupItem);
                }
 
                TreeItem* productItem = nullptr;
@@ -115,32 +112,15 @@ RadarProductModelImpl::RadarProductModelImpl(RadarProductModel* self) :
                   if (productItem == nullptr)
                   {
                      // Existing product item was not found, create it
-                     const QModelIndex groupItemIndex =
-                        self_->createIndex(groupItem->row(), 0, groupItem);
-                     const int groupItemChildren = groupItem->child_count();
-
-                     self_->beginInsertRows(
-                        groupItemIndex, groupItemChildren, groupItemChildren);
-
                      productItem = new TreeItem({productName});
-                     groupItem->AppendChild(productItem);
-
-                     self_->endInsertRows();
+                     AppendRow(groupItem, productItem);
                   }
                }
 
                // Create leaf item for product time
-               const QModelIndex productItemIndex =
-                  self_->createIndex(productItem->row(), 0, productItem);
-               const int productItemChildren = productItem->child_count();
-
-               self_->beginInsertRows(
-                  productItemIndex, productItemChildren, productItemChildren);
-
-               productItem->AppendChild(new TreeItem {
-                  QString::fromStdString(util::TimeString(latestTime))});
-
-               self_->endInsertRows();
+               AppendRow(productItem,
+                         new TreeItem {QString::fromStdString(
+                            util::TimeString(latestTime))});
             },
             Qt::QueuedConnection);
       });

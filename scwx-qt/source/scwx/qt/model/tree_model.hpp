@@ -37,6 +37,7 @@ protected:
    virtual const std::shared_ptr<TreeItem> root_item() const = 0;
 
 private:
+   friend class TreeModelImpl;
    std::unique_ptr<TreeModelImpl> p;
 };
 
