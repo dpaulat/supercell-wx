@@ -191,9 +191,19 @@ void TreeModel::AppendRow(TreeItem* parent, TreeItem* child)
    const int         first       = childCount;
    const int         last        = childCount;
 
+   if (parent == p->rootItem_.get())
+   {
+      beginResetModel();
+   }
+
    beginInsertRows(parentIndex, first, last);
    parent->AppendChild(child);
    endInsertRows();
+
+   if (parent == p->rootItem_.get())
+   {
+      endResetModel();
+   }
 }
 
 const TreeItem* TreeModelImpl::item(const QModelIndex& index) const

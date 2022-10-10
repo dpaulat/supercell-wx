@@ -148,6 +148,7 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->resourceExplorerDock->setVisible(false);
 
    p->radarProductModel_ = std::make_shared<model::RadarProductModel>();
+   ui->resourceTreeView->setModel(p->radarProductModel_->model());
 
    // Configure Map
    p->ConfigureMapLayout();
