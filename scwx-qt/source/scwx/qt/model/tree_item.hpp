@@ -12,6 +12,8 @@ namespace qt
 namespace model
 {
 
+class TreeModel;
+
 class TreeItem
 {
 public:
@@ -36,14 +38,18 @@ public:
    int                    row() const;
    const TreeItem*        parent_item() const;
 
-   void      AppendChild(TreeItem* child);
    TreeItem* FindChild(int column, const QVariant& data);
-   bool      InsertChildren(int position, int count, int columns);
-   bool      SetData(int column, const QVariant& value);
+
+protected:
+   void AppendChild(TreeItem* child);
+   bool InsertChildren(int position, int count, int columns);
+   bool SetData(int column, const QVariant& value);
 
 private:
    class Impl;
    std::unique_ptr<Impl> p;
+
+   friend class TreeModel;
 };
 
 } // namespace model
