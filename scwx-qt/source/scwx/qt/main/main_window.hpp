@@ -32,7 +32,8 @@ signals:
    void ActiveMapMoved(double latitude, double longitude);
 
 private slots:
-   void on_actionOpen_triggered();
+   void on_actionOpenNexrad_triggered();
+   void on_actionOpenTextEvent_triggered();
    void on_actionExit_triggered();
    void on_radarSiteSelectButton_clicked();
    void on_resourceTreeCollapseAllButton_clicked();

@@ -42,7 +42,14 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
-    <addaction name="actionOpen"/>
+    <widget class="QMenu" name="menu_Open">
+     <property name="title">
+      <string>&amp;Open</string>
+     </property>
+     <addaction name="actionOpenNexrad"/>
+     <addaction name="actionOpenTextEvent"/>
+    </widget>
+    <addaction name="menu_Open"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
@@ -309,14 +316,6 @@
     <string>About &amp;Supercell Wx...</string>
    </property>
   </action>
-  <action name="actionOpen">
-   <property name="text">
-    <string>&amp;Open...</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+O</string>
-   </property>
-  </action>
   <action name="actionRadarToolbox">
    <property name="text">
     <string>Radar Toolbox</string>
@@ -325,6 +324,16 @@
   <action name="actionResourceExplorer">
    <property name="text">
     <string>&amp;Resource Explorer</string>
+   </property>
+  </action>
+  <action name="actionOpenNexrad">
+   <property name="text">
+    <string>&amp;NEXRAD Product...</string>
+   </property>
+  </action>
+  <action name="actionOpenTextEvent">
+   <property name="text">
+    <string>Text &amp;Event Product...</string>
    </property>
   </action>
  </widget>

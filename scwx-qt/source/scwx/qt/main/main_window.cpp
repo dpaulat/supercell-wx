@@ -5,6 +5,7 @@
 
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/model/radar_product_model.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
@@ -201,7 +202,7 @@ void MainWindow::showEvent(QShowEvent* event)
    resizeDocks({ui->radarToolboxDock}, {150}, Qt::Horizontal);
 }
 
-void MainWindow::on_actionOpen_triggered()
+void MainWindow::on_actionOpenNexrad_triggered()
 {
    static const std::string nexradFilter = "NEXRAD Products (*)";
 
@@ -260,6 +261,38 @@ void MainWindow::on_actionOpen_triggered()
 
          manager::RadarProductManager::LoadFile(file.toStdString(), request);
       });
+
+   dialog->open();
+}
+
+void MainWindow::on_actionOpenTextEvent_triggered()
+{
+   static const std::string textFilter = "Text Event Products (*.txt)";
+   static const std::string allFilter  = "All Files (*)";
+
+   QFileDialog* dialog = new QFileDialog(this);
+
+   dialog->setFileMode(QFileDialog::ExistingFile);
+   dialog->setNameFilters({tr(textFilter.c_str()), tr(allFilter.c_str())});
+   dialog->setAttribute(Qt::WA_DeleteOnClose);
+
+   // Make sure the parent window properly repaints on close
+   connect(
+      dialog,
+      &QFileDialog::finished,
+      this,
+      [=]() { update(); },
+      Qt::QueuedConnection);
+
+   connect(dialog,
+           &QFileDialog::fileSelected,
+           this,
+           [=](const QString& file)
+           {
+              logger_->info("Selected: {}", file.toStdString());
+              manager::TextEventManager::Instance().LoadFile(
+                 file.toStdString());
+           });
 
    dialog->open();
 }
