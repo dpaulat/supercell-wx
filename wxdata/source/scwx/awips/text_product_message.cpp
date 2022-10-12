@@ -1,7 +1,4 @@
 #include <scwx/awips/text_product_message.hpp>
-#include <scwx/awips/coded_location.hpp>
-#include <scwx/awips/coded_time_motion_location.hpp>
-#include <scwx/awips/pvtec.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/util/streams.hpp>
 
@@ -23,58 +20,6 @@ static const std::string logPrefix_ = "scwx::awips::text_product_message";
 // * <hhmm>_xM_<tz1>_day_mon_<dd>_year_/<hhmm>_xM_<tz2>_day_mon_<dd>_year/
 // Look for hhmm (xM|UTC) to key the date/time string
 static const std::regex reDateTimeString {"^[0-9]{3,4} ([AP]M|UTC)"};
-
-struct Vtec
-{
-   PVtec       pVtec_;
-   std::string hVtec_;
-
-   Vtec() : pVtec_ {}, hVtec_ {} {}
-
-   Vtec(const Vtec&) = delete;
-   Vtec& operator=(const Vtec&) = delete;
-
-   Vtec(Vtec&&) noexcept = default;
-   Vtec& operator=(Vtec&&) noexcept = default;
-};
-
-struct SegmentHeader
-{
-   std::string              ugcString_;
-   std::vector<Vtec>        vtecString_;
-   std::vector<std::string> ugcNames_;
-   std::string              issuanceDateTime_;
-
-   SegmentHeader() :
-       ugcString_ {}, vtecString_ {}, ugcNames_ {}, issuanceDateTime_ {}
-   {
-   }
-
-   SegmentHeader(const SegmentHeader&) = delete;
-   SegmentHeader& operator=(const SegmentHeader&) = delete;
-
-   SegmentHeader(SegmentHeader&&) noexcept = default;
-   SegmentHeader& operator=(SegmentHeader&&) noexcept = default;
-};
-
-struct Segment
-{
-   std::optional<SegmentHeader>           header_;
-   std::vector<std::string>               productContent_;
-   std::optional<CodedLocation>           codedLocation_;
-   std::optional<CodedTimeMotionLocation> codedMotion_;
-
-   Segment() :
-       header_ {}, productContent_ {}, codedLocation_ {}, codedMotion_ {}
-   {
-   }
-
-   Segment(const Segment&) = delete;
-   Segment& operator=(const Segment&) = delete;
-
-   Segment(Segment&&) noexcept = default;
-   Segment& operator=(Segment&&) noexcept = default;
-};
 
 static void ParseCodedInformation(std::shared_ptr<Segment> segment,
                                   const std::string&       wfo);
@@ -111,6 +56,33 @@ TextProductMessage::operator=(TextProductMessage&&) noexcept = default;
 std::shared_ptr<WmoHeader> TextProductMessage::wmo_header() const
 {
    return p->wmoHeader_;
+}
+
+std::vector<std::string> TextProductMessage::mnd_header() const
+{
+   return p->mndHeader_;
+}
+
+std::vector<std::string> TextProductMessage::overview_block() const
+{
+   return p->overviewBlock_;
+}
+
+size_t TextProductMessage::segment_count() const
+{
+   return p->segments_.size();
+}
+
+std::vector<std::shared_ptr<const Segment>> TextProductMessage::segments() const
+{
+   std::vector<std::shared_ptr<const Segment>> segments(p->segments_.cbegin(),
+                                                        p->segments_.cend());
+   return segments;
+}
+
+std::shared_ptr<const Segment> TextProductMessage::segment(size_t s) const
+{
+   return p->segments_[s];
 }
 
 size_t TextProductMessage::data_size() const

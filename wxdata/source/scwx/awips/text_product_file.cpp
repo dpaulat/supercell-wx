@@ -34,6 +34,12 @@ size_t TextProductFile::message_count() const
    return p->messages_.size();
 }
 
+std::vector<std::shared_ptr<TextProductMessage>>
+TextProductFile::messages() const
+{
+   return p->messages_;
+}
+
 std::shared_ptr<TextProductMessage> TextProductFile::message(size_t i) const
 {
    return p->messages_[i];
