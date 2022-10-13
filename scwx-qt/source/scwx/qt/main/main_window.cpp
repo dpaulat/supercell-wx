@@ -7,6 +7,7 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/map/map_widget.hpp>
+#include <scwx/qt/model/alert_model.hpp>
 #include <scwx/qt/model/radar_product_model.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
@@ -20,6 +21,7 @@
 
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QSortFilterProxyModel>
 #include <QSplitter>
 #include <QStandardPaths>
 #include <QToolButton>
@@ -46,6 +48,8 @@ public:
        level2ProductsWidget_ {nullptr},
        level2SettingsWidget_ {nullptr},
        radarSiteDialog_ {nullptr},
+       alertModel_ {std::make_unique<model::AlertModel>()},
+       alertProxyModel_ {std::make_unique<QSortFilterProxyModel>()},
        radarProductModel_ {nullptr},
        maps_ {},
        elevationCuts_ {},
@@ -74,6 +78,11 @@ public:
       settings_.setApiKey(QString {mapboxApiKey.c_str()});
       settings_.setCacheDatabasePath(QString {cacheDbPath.c_str()});
       settings_.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
+
+      alertProxyModel_->setSourceModel(alertModel_.get());
+      alertProxyModel_->setSortRole(Qt::UserRole); // TODO
+      alertProxyModel_->setFilterCaseSensitivity(Qt::CaseInsensitive);
+      alertProxyModel_->setFilterKeyColumn(-1);
    }
    ~MainWindowImpl() = default;
 
@@ -106,7 +115,9 @@ public:
 
    ui::RadarSiteDialog* radarSiteDialog_;
 
-   std::shared_ptr<model::RadarProductModel> radarProductModel_;
+   std::unique_ptr<model::AlertModel>        alertModel_;
+   std::unique_ptr<QSortFilterProxyModel>    alertProxyModel_;
+   std::unique_ptr<model::RadarProductModel> radarProductModel_;
 
    std::vector<map::MapWidget*> maps_;
    std::vector<float>           elevationCuts_;
@@ -156,11 +167,13 @@ MainWindow::MainWindow(QWidget* parent) :
    // Configure Resource Explorer Dock
    ui->resourceExplorerDock->setVisible(false);
 
-   p->radarProductModel_ = std::make_shared<model::RadarProductModel>();
+   p->radarProductModel_ = std::make_unique<model::RadarProductModel>();
    ui->resourceTreeView->setModel(p->radarProductModel_->model());
 
    // Configure Alert Dock
    ui->alertDock->setVisible(false);
+
+   ui->alertView->setModel(p->alertProxyModel_.get());
 
    ui->alertSettings->addAction(ui->actionActiveAlerts);
 
@@ -461,6 +474,20 @@ void MainWindowImpl::ConnectOtherSignals()
            &ui::Level2SettingsWidget::ElevationSelected,
            mainWindow_,
            [&](float elevation) { SelectElevation(activeMap_, elevation); });
+   connect(mainWindow_->ui->alertFilter,
+           &QLineEdit::textChanged,
+           alertProxyModel_.get(),
+           &QSortFilterProxyModel::setFilterWildcard);
+   connect(mainWindow_,
+           &MainWindow::ActiveMapMoved,
+           alertModel_.get(),
+           &model::AlertModel::HandleMapUpdate,
+           Qt::QueuedConnection);
+   connect(&manager::TextEventManager::Instance(),
+           &manager::TextEventManager::AlertUpdated,
+           alertModel_.get(),
+           &model::AlertModel::HandleAlert,
+           Qt::QueuedConnection);
    connect(mainWindow_,
            &MainWindow::ActiveMapMoved,
            radarSiteDialog_,
