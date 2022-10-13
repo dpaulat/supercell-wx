@@ -1,5 +1,8 @@
 #pragma once
 
+#include <scwx/awips/text_product_message.hpp>
+#include <scwx/qt/types/text_event_key.hpp>
+
 #include <memory>
 #include <string>
 
@@ -20,9 +23,15 @@ public:
    explicit TextEventManager();
    ~TextEventManager();
 
+   std::list<std::shared_ptr<awips::TextProductMessage>>
+   message_list(const types::TextEventKey& key) const;
+
    void LoadFile(const std::string& filename);
 
    static TextEventManager& Instance();
+
+signals:
+   void AlertUpdated(const types::TextEventKey& key);
 
 private:
    class Impl;

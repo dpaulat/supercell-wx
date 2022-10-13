@@ -1,13 +1,10 @@
 #include <scwx/qt/manager/text_event_manager.hpp>
-#include <scwx/awips/pvtec.hpp>
 #include <scwx/awips/text_product_file.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
 
 #include <shared_mutex>
 #include <unordered_map>
-
-#include <boost/container_hash/hash.hpp>
 
 namespace scwx
 {
@@ -19,59 +16,45 @@ namespace manager
 static const std::string logPrefix_ = "scwx::qt::manager::text_event_manager";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-struct TextEventKey
-{
-   TextEventKey(const awips::PVtec& pvtec) :
-       officeId_ {pvtec.office_id()},
-       phenomenon_ {pvtec.phenomenon()},
-       significance_ {pvtec.significance()},
-       etn_ {pvtec.event_tracking_number()}
-   {
-   }
-
-   bool operator==(const TextEventKey& o) const;
-
-   std::string         officeId_;
-   awips::Phenomenon   phenomenon_;
-   awips::Significance significance_;
-   int16_t             etn_;
-};
-
-template<class Key>
-struct TextEventHash;
-
-template<>
-struct TextEventHash<TextEventKey>
-{
-   size_t operator()(const TextEventKey& x) const
-   {
-      size_t seed = 0;
-      boost::hash_combine(seed, x.officeId_);
-      boost::hash_combine(seed, x.phenomenon_);
-      boost::hash_combine(seed, x.significance_);
-      boost::hash_combine(seed, x.etn_);
-      return seed;
-   }
-};
-
 class TextEventManager::Impl
 {
 public:
-   explicit Impl() : textEventMap_ {}, textEventMutex_ {} {}
+   explicit Impl(TextEventManager* self) :
+       self_ {self}, textEventMap_ {}, textEventMutex_ {}
+   {
+   }
 
    ~Impl() {}
 
    void HandleMessage(std::shared_ptr<awips::TextProductMessage> message);
 
-   std::unordered_map<TextEventKey,
+   TextEventManager* self_;
+
+   std::unordered_map<types::TextEventKey,
                       std::list<std::shared_ptr<awips::TextProductMessage>>,
-                      TextEventHash<TextEventKey>>
+                      types::TextEventHash<types::TextEventKey>>
                      textEventMap_;
    std::shared_mutex textEventMutex_;
 };
 
-TextEventManager::TextEventManager() : p(std::make_unique<Impl>()) {}
+TextEventManager::TextEventManager() : p(std::make_unique<Impl>(this)) {}
 TextEventManager::~TextEventManager() = default;
+
+std::list<std::shared_ptr<awips::TextProductMessage>>
+TextEventManager::message_list(const types::TextEventKey& key) const
+{
+   std::list<std::shared_ptr<awips::TextProductMessage>> messageList {};
+
+   std::shared_lock lock(p->textEventMutex_);
+
+   auto it = p->textEventMap_.find(key);
+   if (it != p->textEventMap_.cend())
+   {
+      messageList = it->second;
+   }
+
+   return messageList;
+}
 
 void TextEventManager::LoadFile(const std::string& filename)
 {
@@ -114,14 +97,16 @@ void TextEventManager::Impl::HandleMessage(
    std::unique_lock lock(textEventMutex_);
 
    // Find a matching event in the event map
-   auto&        vtecString = segments[0]->header_->vtecString_;
-   TextEventKey key {vtecString[0].pVtec_};
-   auto         it = textEventMap_.find(key);
+   auto&               vtecString = segments[0]->header_->vtecString_;
+   types::TextEventKey key {vtecString[0].pVtec_};
+   auto                it      = textEventMap_.find(key);
+   bool                updated = false;
 
    if (it == textEventMap_.cend())
    {
       // If there was no matching event, add the message to a new event
       textEventMap_.emplace(key, std::list {message});
+      updated = true;
    }
    else if (std::find_if(it->second.cbegin(),
                          it->second.cend(),
@@ -134,19 +119,21 @@ void TextEventManager::Impl::HandleMessage(
       // (WMO header equivalence check), add the updated message to the existing
       // event
       it->second.push_back(message);
+      updated = true;
    };
+
+   lock.unlock();
+
+   if (updated)
+   {
+      emit self_->AlertUpdated(key);
+   }
 }
 
 TextEventManager& TextEventManager::Instance()
 {
    static TextEventManager textEventManager_ {};
    return textEventManager_;
-}
-
-bool TextEventKey::operator==(const TextEventKey& o) const
-{
-   return (officeId_ == o.officeId_ && phenomenon_ == o.phenomenon_ &&
-           significance_ == o.significance_ && etn_ == o.etn_);
 }
 
 } // namespace manager

@@ -100,8 +100,10 @@ set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp
 set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/map_settings.cpp
                  source/scwx/qt/settings/palette_settings.cpp)
-set(HDR_TYPES source/scwx/qt/types/radar_product_record.hpp)
-set(SRC_TYPES source/scwx/qt/types/radar_product_record.cpp)
+set(HDR_TYPES source/scwx/qt/types/radar_product_record.hpp
+              source/scwx/qt/types/text_event_key.hpp)
+set(SRC_TYPES source/scwx/qt/types/radar_product_record.cpp
+              source/scwx/qt/types/text_event_key.cpp)
 set(HDR_UI source/scwx/qt/ui/flow_layout.hpp
            source/scwx/qt/ui/level2_products_widget.hpp
            source/scwx/qt/ui/level2_settings_widget.hpp
