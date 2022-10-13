@@ -84,11 +84,13 @@ set(SRC_MAP source/scwx/qt/map/color_table_layer.cpp
             source/scwx/qt/map/overlay_layer.cpp
             source/scwx/qt/map/radar_product_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp)
-set(HDR_MODEL source/scwx/qt/model/radar_product_model.hpp
+set(HDR_MODEL source/scwx/qt/model/alert_model.hpp
+              source/scwx/qt/model/radar_product_model.hpp
               source/scwx/qt/model/radar_site_model.hpp
               source/scwx/qt/model/tree_item.hpp
               source/scwx/qt/model/tree_model.hpp)
-set(SRC_MODEL source/scwx/qt/model/radar_product_model.cpp
+set(SRC_MODEL source/scwx/qt/model/alert_model.cpp
+              source/scwx/qt/model/radar_product_model.cpp
               source/scwx/qt/model/radar_site_model.cpp
               source/scwx/qt/model/tree_item.cpp
               source/scwx/qt/model/tree_model.cpp)
