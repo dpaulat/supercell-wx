@@ -38,7 +38,6 @@ set(SRC_EXE_MAIN source/scwx/qt/main/main.cpp)
 set(HDR_MAIN source/scwx/qt/main/main_window.hpp)
 set(SRC_MAIN source/scwx/qt/main/main_window.cpp)
 set(UI_MAIN  source/scwx/qt/main/main_window.ui)
-set(HDR_COMMON source/scwx/qt/common/types.hpp)
 set(HDR_CONFIG source/scwx/qt/config/radar_site.hpp)
 set(SRC_CONFIG source/scwx/qt/config/radar_site.cpp)
 set(SRC_EXTERNAL source/scwx/qt/external/stb_rect_pack.cpp)
@@ -102,7 +101,8 @@ set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp
 set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/map_settings.cpp
                  source/scwx/qt/settings/palette_settings.cpp)
-set(HDR_TYPES source/scwx/qt/types/radar_product_record.hpp
+set(HDR_TYPES source/scwx/qt/types/qt_types.hpp
+              source/scwx/qt/types/radar_product_record.hpp
               source/scwx/qt/types/text_event_key.hpp)
 set(SRC_TYPES source/scwx/qt/types/radar_product_record.cpp
               source/scwx/qt/types/text_event_key.cpp)
@@ -160,7 +160,6 @@ set(TS_FILES ts/scwx_en_US.ts)
 
 set(PROJECT_SOURCES ${HDR_MAIN}
                     ${SRC_MAIN}
-                    ${HDR_COMMON}
                     ${HDR_CONFIG}
                     ${SRC_CONFIG}
                     ${SRC_EXTERNAL}
@@ -197,7 +196,6 @@ set(EXECUTABLE_SOURCES ${SRC_EXE_MAIN})
 
 source_group("Header Files\\main"     FILES ${HDR_MAIN})
 source_group("Source Files\\main"     FILES ${SRC_MAIN})
-source_group("Header Files\\common"   FILES ${HDR_COMMON})
 source_group("Header Files\\config"   FILES ${HDR_CONFIG})
 source_group("Source Files\\config"   FILES ${SRC_CONFIG})
 source_group("Source Files\\external" FILES ${SRC_EXTERNAL})

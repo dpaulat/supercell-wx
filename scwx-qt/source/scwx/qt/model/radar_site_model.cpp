@@ -1,6 +1,6 @@
 #include <scwx/qt/model/radar_site_model.hpp>
-#include <scwx/qt/common/types.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/types/qt_types.hpp>
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -63,7 +63,7 @@ QVariant RadarSiteModel::data(const QModelIndex& index, int role) const
 {
    if (index.isValid() && index.row() >= 0 &&
        index.row() < p->radarSites_.size() &&
-       (role == Qt::DisplayRole || role == common::SortRole))
+       (role == Qt::DisplayRole || role == types::SortRole))
    {
       const auto& site = p->radarSites_.at(index.row());
 

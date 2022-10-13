@@ -1,5 +1,5 @@
 #include <scwx/qt/model/alert_model.hpp>
-#include <scwx/qt/common/types.hpp>
+#include <scwx/qt/types/qt_types.hpp>
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -68,7 +68,7 @@ QVariant AlertModel::data(const QModelIndex& index, int role) const
 {
    if (index.isValid() && index.row() >= 0 &&
        index.row() < p->textEventKeys_.size() &&
-       (role == Qt::DisplayRole || role == common::SortRole))
+       (role == Qt::DisplayRole || role == types::SortRole))
    {
       const auto& textEventKey = p->textEventKeys_.at(index.row());
 

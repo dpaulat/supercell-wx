@@ -6,7 +6,7 @@ namespace scwx
 {
 namespace qt
 {
-namespace common
+namespace types
 {
 
 enum ItemDataRole
@@ -14,6 +14,6 @@ enum ItemDataRole
    SortRole = Qt::UserRole
 };
 
-} // namespace common
+} // namespace types
 } // namespace qt
 } // namespace scwx

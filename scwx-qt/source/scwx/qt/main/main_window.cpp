@@ -9,6 +9,7 @@
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/model/alert_model.hpp>
 #include <scwx/qt/model/radar_product_model.hpp>
+#include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
@@ -80,7 +81,7 @@ public:
       settings_.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
 
       alertProxyModel_->setSourceModel(alertModel_.get());
-      alertProxyModel_->setSortRole(Qt::UserRole); // TODO
+      alertProxyModel_->setSortRole(types::SortRole);
       alertProxyModel_->setFilterCaseSensitivity(Qt::CaseInsensitive);
       alertProxyModel_->setFilterKeyColumn(-1);
    }
