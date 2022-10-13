@@ -129,6 +129,9 @@ MainWindow::MainWindow(QWidget* parent) :
 {
    ui->setupUi(this);
 
+   // Assign the bottom left corner to the left dock widget
+   setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
+
    ui->vcpLabel->setVisible(false);
    ui->vcpValueLabel->setVisible(false);
    ui->vcpDescriptionLabel->setVisible(false);
@@ -145,11 +148,21 @@ MainWindow::MainWindow(QWidget* parent) :
       tr("&Resource Explorer"));
    ui->actionResourceExplorer->setVisible(false);
 
-   // Configure Docks
+   ui->menuView->insertAction(ui->actionAlerts,
+                              ui->alertDock->toggleViewAction());
+   ui->alertDock->toggleViewAction()->setText(tr("&Alerts"));
+   ui->actionAlerts->setVisible(false);
+
+   // Configure Resource Explorer Dock
    ui->resourceExplorerDock->setVisible(false);
 
    p->radarProductModel_ = std::make_shared<model::RadarProductModel>();
    ui->resourceTreeView->setModel(p->radarProductModel_->model());
+
+   // Configure Alert Dock
+   ui->alertDock->setVisible(false);
+
+   ui->alertSettings->addAction(ui->actionActiveAlerts);
 
    // Configure Map
    p->ConfigureMapLayout();
