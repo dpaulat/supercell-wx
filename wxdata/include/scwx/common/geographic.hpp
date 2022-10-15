@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace scwx
 {
@@ -42,6 +43,16 @@ enum class DistanceType
    Kilometers,
    Miles
 };
+
+/**
+ * Calculate the geographic midpoint of a set of coordinates. Uses Method A
+ * described at http://www.geomidpoint.com/calculation.html.
+ *
+ * @param coordinates Set of unique coordinates
+ *
+ * @return Centroid
+ */
+Coordinate GetCentroid(const std::vector<Coordinate>& coordinates);
 
 std::string
 GetLatitudeString(double           latitude,

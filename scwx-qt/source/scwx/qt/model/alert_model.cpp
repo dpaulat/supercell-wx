@@ -49,6 +49,10 @@ public:
    GeographicLib::Geodesic geodesic_;
 
    std::unordered_map<types::TextEventKey,
+                      common::Coordinate,
+                      types::TextEventHash<types::TextEventKey>>
+      centroidMap_;
+   std::unordered_map<types::TextEventKey,
                       double,
                       types::TextEventHash<types::TextEventKey>>
                               distanceMap_;
@@ -173,30 +177,43 @@ void AlertModel::HandleAlert(const types::TextEventKey& alertKey)
 
    double distanceInMeters;
 
-   if (!p->textEventKeys_.contains(alertKey))
-   {
-      beginInsertRows(QModelIndex(), 0, 0);
+   // Get the most recent segment for the event
+   auto alertMessages =
+      manager::TextEventManager::Instance().message_list(alertKey);
+   std::shared_ptr<const awips::Segment> alertSegment =
+      alertMessages.back()->segments().back();
 
-      p->textEventKeys_.push_back(alertKey);
+   if (alertSegment->codedLocation_.has_value())
+   {
+      // Update centroid and distance
+      common::Coordinate centroid =
+         common::GetCentroid(alertSegment->codedLocation_->coordinates());
 
       p->geodesic_.Inverse(p->previousPosition_.latitude_,
                            p->previousPosition_.longitude_,
-                           0.0, // TODO: textEvent->latitude(),
-                           0.0, // TODO: textEvent->longitude(),
+                           centroid.latitude_,
+                           centroid.longitude_,
                            distanceInMeters);
 
-      p->distanceMap_[alertKey] = distanceInMeters;
+      p->centroidMap_.insert_or_assign(alertKey, centroid);
+      p->distanceMap_.insert_or_assign(alertKey, distanceInMeters);
+   }
+   else if (!p->centroidMap_.contains(alertKey))
+   {
+      // The alert has no location, so provide a default
+      p->centroidMap_.insert_or_assign(alertKey, common::Coordinate {0.0, 0.0});
+      p->distanceMap_.insert_or_assign(alertKey, 0.0);
+   }
 
+   // Update row
+   if (!p->textEventKeys_.contains(alertKey))
+   {
+      beginInsertRows(QModelIndex(), 0, 0);
+      p->textEventKeys_.push_back(alertKey);
       endInsertRows();
    }
    else
    {
-      p->geodesic_.Inverse(p->previousPosition_.latitude_,
-                           p->previousPosition_.longitude_,
-                           0.0, // TODO: textEvent->latitude(),
-                           0.0, // TODO: textEvent->longitude(),
-                           distanceInMeters);
-
       const int   row         = p->textEventKeys_.indexOf(alertKey);
       QModelIndex topLeft     = createIndex(row, kFirstColumn);
       QModelIndex bottomRight = createIndex(row, kLastColumn);
@@ -213,12 +230,17 @@ void AlertModel::HandleMapUpdate(double latitude, double longitude)
 
    for (const auto& textEvent : p->textEventKeys_)
    {
-      p->geodesic_.Inverse(latitude,
-                           longitude,
-                           0.0, // TODO: textEvent->latitude(),
-                           0.0, // TODO: textEvent->longitude(),
-                           distanceInMeters);
-      p->distanceMap_[textEvent] = distanceInMeters;
+      auto& centroid = p->centroidMap_.at(textEvent);
+
+      if (centroid != common::Coordinate {0.0, 0.0})
+      {
+         p->geodesic_.Inverse(latitude,
+                              longitude,
+                              centroid.latitude_,
+                              centroid.longitude_,
+                              distanceInMeters);
+         p->distanceMap_.insert_or_assign(textEvent, distanceInMeters);
+      }
    }
 
    p->previousPosition_ = {latitude, longitude};
