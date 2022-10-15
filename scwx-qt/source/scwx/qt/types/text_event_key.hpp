@@ -19,7 +19,8 @@ struct TextEventKey
    {
    }
 
-   bool operator==(const TextEventKey& o) const;
+   std::string ToString() const;
+   bool        operator==(const TextEventKey& o) const;
 
    std::string         officeId_;
    awips::Phenomenon   phenomenon_;

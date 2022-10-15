@@ -86,12 +86,22 @@ void TextEventManager::Impl::HandleMessage(
 {
    auto segments = message->segments();
 
-   // If there are no segments, if the first segment has no header, or if there
-   // is no VTEC string, skip this message
-   if (segments.empty() || !segments[0]->header_.has_value() ||
-       segments[0]->header_->vtecString_.empty())
+   // If there are no segments, skip this message
+   if (segments.empty())
    {
       return;
+   }
+
+   for (auto& segment : segments)
+   {
+      // If a segment has no header, or if there is no VTEC string, skip this
+      // message. A segmented message corresponding to a text event should have
+      // this information.
+      if (!segment->header_.has_value() ||
+          segment->header_->vtecString_.empty())
+      {
+         return;
+      }
    }
 
    std::unique_lock lock(textEventMutex_);

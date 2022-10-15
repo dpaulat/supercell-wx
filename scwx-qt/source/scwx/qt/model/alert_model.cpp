@@ -1,7 +1,10 @@
 #include <scwx/qt/model/alert_model.hpp>
+#include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/strings.hpp>
+#include <scwx/util/time.hpp>
 
 #include <format>
 
@@ -35,6 +38,11 @@ class AlertModelImpl
 public:
    explicit AlertModelImpl();
    ~AlertModelImpl() = default;
+
+   static std::string GetCounties(const types::TextEventKey& key);
+   static std::string GetState(const types::TextEventKey& key);
+   static std::string GetStartTime(const types::TextEventKey& key);
+   static std::string GetEndTime(const types::TextEventKey& key);
 
    QList<types::TextEventKey> textEventKeys_;
 
@@ -85,13 +93,16 @@ QVariant AlertModel::data(const QModelIndex& index, int role) const
          return QString::fromStdString(
             awips::GetSignificanceText(textEventKey.significance_));
       case kColumnState:
-         return QString::fromStdString("?");
+         return QString::fromStdString(AlertModelImpl::GetState(textEventKey));
       case kColumnCounties:
-         return QString::fromStdString("?");
+         return QString::fromStdString(
+            AlertModelImpl::GetCounties(textEventKey));
       case kColumnStartTime:
-         return QString::fromStdString("?");
+         return QString::fromStdString(
+            AlertModelImpl::GetStartTime(textEventKey));
       case kColumnEndTime:
-         return QString::fromStdString("?");
+         return QString::fromStdString(
+            AlertModelImpl::GetEndTime(textEventKey));
       case kColumnDistance:
          if (role == Qt::DisplayRole)
          {
@@ -158,11 +169,7 @@ AlertModel::headerData(int section, Qt::Orientation orientation, int role) const
 
 void AlertModel::HandleAlert(const types::TextEventKey& alertKey)
 {
-   logger_->trace("Handle alert: {}, {}, {}, {}",
-                  alertKey.etn_,
-                  alertKey.officeId_,
-                  awips::GetPhenomenonText(alertKey.phenomenon_),
-                  awips::GetSignificanceText(alertKey.significance_));
+   logger_->trace("Handle alert: {}", alertKey.ToString());
 
    double distanceInMeters;
 
@@ -190,7 +197,7 @@ void AlertModel::HandleAlert(const types::TextEventKey& alertKey)
                            0.0, // TODO: textEvent->longitude(),
                            distanceInMeters);
 
-      const int   row         = 0; // TODO
+      const int   row         = p->textEventKeys_.indexOf(alertKey);
       QModelIndex topLeft     = createIndex(row, kFirstColumn);
       QModelIndex bottomRight = createIndex(row, kLastColumn);
 
@@ -230,6 +237,43 @@ AlertModelImpl::AlertModelImpl() :
     distanceDisplay_ {scwx::common::DistanceType::Miles},
     previousPosition_ {}
 {
+}
+
+std::string AlertModelImpl::GetCounties(const types::TextEventKey& key)
+{
+   auto   messageList = manager::TextEventManager::Instance().message_list(key);
+   auto&  lastMessage = messageList.back();
+   size_t segmentCount = lastMessage->segment_count();
+   auto   lastSegment  = lastMessage->segment(segmentCount - 1);
+   return util::ToString(lastSegment->header_->ugc_.fips_ids());
+}
+
+std::string AlertModelImpl::GetState(const types::TextEventKey& key)
+{
+   auto   messageList = manager::TextEventManager::Instance().message_list(key);
+   auto&  lastMessage = messageList.back();
+   size_t segmentCount = lastMessage->segment_count();
+   auto   lastSegment  = lastMessage->segment(segmentCount - 1);
+   return util::ToString(lastSegment->header_->ugc_.states());
+}
+
+std::string AlertModelImpl::GetStartTime(const types::TextEventKey& key)
+{
+   auto  messageList  = manager::TextEventManager::Instance().message_list(key);
+   auto& firstMessage = messageList.front();
+   auto  firstSegment = firstMessage->segment(0);
+   return util::TimeString(
+      firstSegment->header_->vtecString_[0].pVtec_.event_begin());
+}
+
+std::string AlertModelImpl::GetEndTime(const types::TextEventKey& key)
+{
+   auto   messageList = manager::TextEventManager::Instance().message_list(key);
+   auto&  lastMessage = messageList.back();
+   size_t segmentCount = lastMessage->segment_count();
+   auto   lastSegment  = lastMessage->segment(segmentCount - 1);
+   return util::TimeString(
+      lastSegment->header_->vtecString_[0].pVtec_.event_end());
 }
 
 } // namespace model

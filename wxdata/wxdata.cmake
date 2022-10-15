@@ -58,6 +58,7 @@ set(HDR_UTIL include/scwx/util/environment.hpp
              include/scwx/util/map.hpp
              include/scwx/util/rangebuf.hpp
              include/scwx/util/streams.hpp
+             include/scwx/util/strings.hpp
              include/scwx/util/threads.hpp
              include/scwx/util/time.hpp
              include/scwx/util/vectorbuf.hpp)
@@ -67,6 +68,7 @@ set(SRC_UTIL source/scwx/util/environment.cpp
              source/scwx/util/logger.cpp
              source/scwx/util/rangebuf.cpp
              source/scwx/util/streams.cpp
+             source/scwx/util/strings.cpp
              source/scwx/util/time.cpp
              source/scwx/util/threads.cpp
              source/scwx/util/vectorbuf.cpp)
