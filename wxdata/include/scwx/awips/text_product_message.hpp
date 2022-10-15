@@ -2,8 +2,9 @@
 
 #include <scwx/awips/coded_location.hpp>
 #include <scwx/awips/coded_time_motion_location.hpp>
-#include <scwx/awips/pvtec.hpp>
 #include <scwx/awips/message.hpp>
+#include <scwx/awips/pvtec.hpp>
+#include <scwx/awips/ugc.hpp>
 #include <scwx/awips/wmo_header.hpp>
 
 #include <cstdint>
@@ -31,13 +32,18 @@ struct Vtec
 
 struct SegmentHeader
 {
-   std::string              ugcString_;
+   std::vector<std::string> ugcString_;
+   Ugc                      ugc_;
    std::vector<Vtec>        vtecString_;
    std::vector<std::string> ugcNames_;
    std::string              issuanceDateTime_;
 
    SegmentHeader() :
-       ugcString_ {}, vtecString_ {}, ugcNames_ {}, issuanceDateTime_ {}
+       ugcString_ {},
+       ugc_ {},
+       vtecString_ {},
+       ugcNames_ {},
+       issuanceDateTime_ {}
    {
    }
 

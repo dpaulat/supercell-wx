@@ -333,7 +333,9 @@ std::optional<SegmentHeader> TryParseSegmentHeader(std::istream& is)
 {
    // UGC takes the form SSFNNN-NNN>NNN-SSFNNN-DDHHMM- (NWSI 10-1702)
    // Look for SSF(NNN)?[->] to key the UGC string
+   // Look for DDHHMM- to end the UGC string
    static const std::regex reUgcString {"^[A-Z]{2}[CZ]([0-9]{3})?[->]"};
+   static const std::regex reUgcExpiration {"[0-9]{6}-$"};
 
    std::optional<SegmentHeader> header = std::nullopt;
    std::string                  line;
@@ -344,7 +346,18 @@ std::optional<SegmentHeader> TryParseSegmentHeader(std::istream& is)
    if (std::regex_search(line, reUgcString))
    {
       header = SegmentHeader();
-      header->ugcString_.swap(line);
+      header->ugcString_.push_back(line);
+
+      // If UGC is multi-line, continue parsing
+      while (!is.eof() && is.peek() != '\r' &&
+             !std::regex_search(line, reUgcExpiration))
+      {
+         util::getline(is, line);
+         header->ugcString_.push_back(line);
+      }
+
+      // Parse UGC
+      header->ugc_.Parse(header->ugcString_);
    }
 
    if (header.has_value())
