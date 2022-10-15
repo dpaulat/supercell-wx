@@ -23,7 +23,7 @@ public:
    explicit TextEventManager();
    ~TextEventManager();
 
-   std::list<std::shared_ptr<awips::TextProductMessage>>
+   std::vector<std::shared_ptr<awips::TextProductMessage>>
    message_list(const types::TextEventKey& key) const;
 
    void LoadFile(const std::string& filename);
@@ -31,7 +31,7 @@ public:
    static TextEventManager& Instance();
 
 signals:
-   void AlertUpdated(const types::TextEventKey& key);
+   void AlertUpdated(const types::TextEventKey& key, size_t messageIndex);
 
 private:
    class Impl;

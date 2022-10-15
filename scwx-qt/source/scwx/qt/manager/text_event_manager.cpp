@@ -40,17 +40,17 @@ public:
 TextEventManager::TextEventManager() : p(std::make_unique<Impl>(this)) {}
 TextEventManager::~TextEventManager() = default;
 
-std::list<std::shared_ptr<awips::TextProductMessage>>
+std::vector<std::shared_ptr<awips::TextProductMessage>>
 TextEventManager::message_list(const types::TextEventKey& key) const
 {
-   std::list<std::shared_ptr<awips::TextProductMessage>> messageList {};
+   std::vector<std::shared_ptr<awips::TextProductMessage>> messageList {};
 
    std::shared_lock lock(p->textEventMutex_);
 
    auto it = p->textEventMap_.find(key);
    if (it != p->textEventMap_.cend())
    {
-      messageList = it->second;
+      messageList.assign(it->second.begin(), it->second.end());
    }
 
    return messageList;
@@ -109,14 +109,16 @@ void TextEventManager::Impl::HandleMessage(
    // Find a matching event in the event map
    auto&               vtecString = segments[0]->header_->vtecString_;
    types::TextEventKey key {vtecString[0].pVtec_};
-   auto                it      = textEventMap_.find(key);
-   bool                updated = false;
+   size_t              messageIndex = 0;
+   auto                it           = textEventMap_.find(key);
+   bool                updated      = false;
 
    if (it == textEventMap_.cend())
    {
       // If there was no matching event, add the message to a new event
       textEventMap_.emplace(key, std::list {message});
-      updated = true;
+      messageIndex = 0;
+      updated      = true;
    }
    else if (std::find_if(it->second.cbegin(),
                          it->second.cend(),
@@ -128,6 +130,7 @@ void TextEventManager::Impl::HandleMessage(
       // If there was a matching event, and this message has not been stored
       // (WMO header equivalence check), add the updated message to the existing
       // event
+      messageIndex = it->second.size();
       it->second.push_back(message);
       updated = true;
    };
@@ -136,7 +139,7 @@ void TextEventManager::Impl::HandleMessage(
 
    if (updated)
    {
-      emit self_->AlertUpdated(key);
+      emit self_->AlertUpdated(key, messageIndex);
    }
 }
 

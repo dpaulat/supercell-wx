@@ -171,7 +171,8 @@ AlertModel::headerData(int section, Qt::Orientation orientation, int role) const
    return QVariant();
 }
 
-void AlertModel::HandleAlert(const types::TextEventKey& alertKey)
+void AlertModel::HandleAlert(const types::TextEventKey& alertKey,
+                             size_t                     messageIndex)
 {
    logger_->trace("Handle alert: {}", alertKey.ToString());
 
@@ -181,7 +182,7 @@ void AlertModel::HandleAlert(const types::TextEventKey& alertKey)
    auto alertMessages =
       manager::TextEventManager::Instance().message_list(alertKey);
    std::shared_ptr<const awips::Segment> alertSegment =
-      alertMessages.back()->segments().back();
+      alertMessages[messageIndex]->segments().back();
 
    if (alertSegment->codedLocation_.has_value())
    {

@@ -31,7 +31,7 @@ public:
                        int             role = Qt::DisplayRole) const override;
 
 public slots:
-   void HandleAlert(const types::TextEventKey& alertKey);
+   void HandleAlert(const types::TextEventKey& alertKey, size_t messageIndex);
    void HandleMapUpdate(double latitude, double longitude);
 
 private:
