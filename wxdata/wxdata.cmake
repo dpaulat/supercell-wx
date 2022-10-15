@@ -14,6 +14,7 @@ set(HDR_AWIPS include/scwx/awips/coded_location.hpp
               include/scwx/awips/significance.hpp
               include/scwx/awips/text_product_file.hpp
               include/scwx/awips/text_product_message.hpp
+              include/scwx/awips/ugc.hpp
               include/scwx/awips/wmo_header.hpp)
 set(SRC_AWIPS source/scwx/awips/coded_location.cpp
               source/scwx/awips/coded_time_motion_location.cpp
@@ -23,6 +24,7 @@ set(SRC_AWIPS source/scwx/awips/coded_location.cpp
               source/scwx/awips/significance.cpp
               source/scwx/awips/text_product_file.cpp
               source/scwx/awips/text_product_message.cpp
+              source/scwx/awips/ugc.cpp
               source/scwx/awips/wmo_header.cpp)
 set(HDR_COMMON include/scwx/common/characters.hpp
                include/scwx/common/color_table.hpp
