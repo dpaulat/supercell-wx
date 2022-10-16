@@ -439,6 +439,15 @@ void MapWidget::SetAutoRefresh(bool enabled)
    }
 }
 
+void MapWidget::SetMapLocation(double latitude, double longitude)
+{
+   if (p->map_ != nullptr && p->prevLatitude_ != latitude ||
+       p->prevLongitude_ != longitude)
+   {
+      p->map_->setCoordinate({latitude, longitude});
+   }
+}
+
 void MapWidget::SetMapParameters(
    double latitude, double longitude, double zoom, double bearing, double pitch)
 {

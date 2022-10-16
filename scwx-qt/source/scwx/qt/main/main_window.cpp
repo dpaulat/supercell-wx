@@ -470,6 +470,13 @@ void MainWindowImpl::ConnectOtherSignals()
            alertDockWidget_,
            &ui::AlertDockWidget::HandleMapUpdate,
            Qt::QueuedConnection);
+   connect(
+      alertDockWidget_,
+      &ui::AlertDockWidget::MoveMap,
+      this,
+      [=](double latitude, double longitude)
+      { activeMap_->SetMapLocation(latitude, longitude); },
+      Qt::QueuedConnection);
    connect(mainWindow_,
            &MainWindow::ActiveMapMoved,
            radarSiteDialog_,

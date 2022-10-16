@@ -51,6 +51,7 @@ public:
    void SelectRadarSite(const std::string& radarSite);
    void SetActive(bool isActive);
    void SetAutoRefresh(bool enabled);
+   void SetMapLocation(double latitude, double longitude);
    void SetMapParameters(double latitude,
                          double longitude,
                          double zoom,

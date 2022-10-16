@@ -158,9 +158,10 @@ void AlertDockWidgetImpl::ConnectSignals()
    connect(self_->ui->alertGoButton,
            &QPushButton::clicked,
            this,
-           []()
+           [=]()
            {
-              // TODO: Go to alert
+              emit self_->MoveMap(selectedAlertCentroid_.latitude_,
+                                  selectedAlertCentroid_.longitude_);
            });
 }
 

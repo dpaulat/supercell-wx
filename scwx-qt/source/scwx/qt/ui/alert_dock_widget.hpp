@@ -27,6 +27,9 @@ public:
 protected:
    void showEvent(QShowEvent*) override;
 
+signals:
+   void MoveMap(double latitude, double longitude);
+
 public slots:
    void HandleMapUpdate(double latitude, double longitude);
 
