@@ -106,19 +106,22 @@ set(HDR_TYPES source/scwx/qt/types/qt_types.hpp
               source/scwx/qt/types/text_event_key.hpp)
 set(SRC_TYPES source/scwx/qt/types/radar_product_record.cpp
               source/scwx/qt/types/text_event_key.cpp)
-set(HDR_UI source/scwx/qt/ui/alert_dock_widget.hpp
+set(HDR_UI source/scwx/qt/ui/alert_dialog.hpp
+           source/scwx/qt/ui/alert_dock_widget.hpp
            source/scwx/qt/ui/flow_layout.hpp
            source/scwx/qt/ui/level2_products_widget.hpp
            source/scwx/qt/ui/level2_settings_widget.hpp
            source/scwx/qt/ui/level3_products_widget.hpp
            source/scwx/qt/ui/radar_site_dialog.hpp)
-set(SRC_UI source/scwx/qt/ui/alert_dock_widget.cpp
+set(SRC_UI source/scwx/qt/ui/alert_dialog.cpp
+           source/scwx/qt/ui/alert_dock_widget.cpp
            source/scwx/qt/ui/flow_layout.cpp
            source/scwx/qt/ui/level2_products_widget.cpp
            source/scwx/qt/ui/level2_settings_widget.cpp
            source/scwx/qt/ui/level3_products_widget.cpp
            source/scwx/qt/ui/radar_site_dialog.cpp)
-set(UI_UI  source/scwx/qt/ui/alert_dock_widget.ui
+set(UI_UI  source/scwx/qt/ui/alert_dialog.ui
+           source/scwx/qt/ui/alert_dock_widget.ui
            source/scwx/qt/ui/radar_site_dialog.ui)
 set(HDR_UTIL source/scwx/qt/util/font.hpp
              source/scwx/qt/util/font_buffer.hpp

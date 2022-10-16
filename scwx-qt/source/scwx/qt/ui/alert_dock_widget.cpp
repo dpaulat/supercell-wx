@@ -4,6 +4,7 @@
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/model/alert_model.hpp>
 #include <scwx/qt/types/qt_types.hpp>
+#include <scwx/qt/ui/alert_dialog.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <QSortFilterProxyModel>
@@ -26,6 +27,7 @@ public:
        self_ {self},
        alertModel_ {std::make_unique<model::AlertModel>()},
        proxyModel_ {std::make_unique<QSortFilterProxyModel>()},
+       alertDialog_ {new AlertDialog(self)},
        mapPosition_ {},
        mapUpdateDeferred_ {false},
        selectedAlertKey_ {},
@@ -43,6 +45,8 @@ public:
    AlertDockWidget*                       self_;
    std::unique_ptr<model::AlertModel>     alertModel_;
    std::unique_ptr<QSortFilterProxyModel> proxyModel_;
+
+   AlertDialog* alertDialog_;
 
    scwx::common::Coordinate mapPosition_;
    bool                     mapUpdateDeferred_;
@@ -151,9 +155,12 @@ void AlertDockWidgetImpl::ConnectSignals()
    connect(self_->ui->alertViewButton,
            &QPushButton::clicked,
            this,
-           []()
+           [=]()
            {
-              // TODO: View alert
+              // View alert
+              alertDialog_->SelectAlert(selectedAlertKey_,
+                                        selectedAlertCentroid_);
+              alertDialog_->show();
            });
    connect(self_->ui->alertGoButton,
            &QPushButton::clicked,
@@ -163,6 +170,8 @@ void AlertDockWidgetImpl::ConnectSignals()
               emit self_->MoveMap(selectedAlertCentroid_.latitude_,
                                   selectedAlertCentroid_.longitude_);
            });
+   connect(
+      alertDialog_, &AlertDialog::MoveMap, self_, &AlertDockWidget::MoveMap);
 }
 
 #include "alert_dock_widget.moc"

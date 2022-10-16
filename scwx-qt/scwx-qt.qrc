@@ -13,6 +13,10 @@
         <file>res/config/radar_sites.json</file>
         <file>res/fonts/din1451alt.ttf</file>
         <file>res/fonts/din1451alt_g.ttf</file>
+        <file>res/icons/font-awesome-6/angle-left-solid.svg</file>
+        <file>res/icons/font-awesome-6/angle-right-solid.svg</file>
+        <file>res/icons/font-awesome-6/backward-step-solid.svg</file>
+        <file>res/icons/font-awesome-6/forward-step-solid.svg</file>
         <file>res/icons/font-awesome-6/sliders-solid.svg</file>
         <file>res/icons/font-awesome-6/square-minus-regular.svg</file>
         <file>res/icons/font-awesome-6/square-plus-regular.svg</file>
