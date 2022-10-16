@@ -15,10 +15,10 @@ static const std::string logPrefix_ = "scwx::qt::types::text_event_key";
 
 std::string TextEventKey::ToString() const
 {
-   return std::format("{}, {}, {}, {}",
+   return std::format("{}.{}.{}.{}",
                       officeId_,
-                      awips::GetPhenomenonText(phenomenon_),
-                      awips::GetSignificanceText(significance_),
+                      awips::GetPhenomenonCode(phenomenon_),
+                      awips::GetSignificanceCode(significance_),
                       etn_);
 }
 

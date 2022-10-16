@@ -66,6 +66,25 @@ AlertModel::AlertModel(QObject* parent) :
 }
 AlertModel::~AlertModel() = default;
 
+types::TextEventKey AlertModel::key(const QModelIndex& index) const
+{
+   return index.isValid() ? p->textEventKeys_[index.row()] :
+                            types::TextEventKey {};
+}
+
+common::Coordinate AlertModel::centroid(const types::TextEventKey& key) const
+{
+   common::Coordinate centroid {};
+
+   const auto& it = p->centroidMap_.find(key);
+   if (it != p->centroidMap_.cend())
+   {
+      centroid = it->second;
+   }
+
+   return centroid;
+}
+
 int AlertModel::rowCount(const QModelIndex& parent) const
 {
    return parent.isValid() ? 0 : p->textEventKeys_.size();

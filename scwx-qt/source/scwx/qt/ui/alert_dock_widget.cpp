@@ -27,7 +27,9 @@ public:
        alertModel_ {std::make_unique<model::AlertModel>()},
        proxyModel_ {std::make_unique<QSortFilterProxyModel>()},
        mapPosition_ {},
-       mapUpdateDeferred_ {false}
+       mapUpdateDeferred_ {false},
+       selectedAlertKey_ {},
+       selectedAlertCentroid_ {}
    {
       proxyModel_->setSourceModel(alertModel_.get());
       proxyModel_->setSortRole(types::SortRole);
@@ -44,6 +46,9 @@ public:
 
    scwx::common::Coordinate mapPosition_;
    bool                     mapUpdateDeferred_;
+
+   types::TextEventKey selectedAlertKey_;
+   common::Coordinate  selectedAlertCentroid_;
 };
 
 AlertDockWidget::AlertDockWidget(QWidget* parent) :
@@ -56,6 +61,9 @@ AlertDockWidget::AlertDockWidget(QWidget* parent) :
    ui->alertView->setModel(p->proxyModel_.get());
 
    ui->alertSettings->addAction(ui->actionActiveAlerts);
+
+   ui->alertViewButton->setEnabled(false);
+   ui->alertGoButton->setEnabled(false);
 
    p->ConnectSignals();
 }
@@ -115,6 +123,30 @@ void AlertDockWidgetImpl::ConnectSignals()
                  // the indices of selected items change.
                  return;
               }
+
+              bool itemSelected       = selected.size() > 0;
+              bool itemHasCoordinates = false;
+
+              if (itemSelected)
+              {
+                 QModelIndex selectedIndex =
+                    proxyModel_->mapToSource(selected[0].indexes()[0]);
+                 selectedAlertKey_ = alertModel_->key(selectedIndex);
+                 selectedAlertCentroid_ =
+                    alertModel_->centroid(selectedAlertKey_);
+                 itemHasCoordinates =
+                    selectedAlertCentroid_ != common::Coordinate {};
+              }
+              else
+              {
+                 selectedAlertKey_      = {};
+                 selectedAlertCentroid_ = {};
+              }
+
+              self_->ui->alertViewButton->setEnabled(itemSelected);
+              self_->ui->alertGoButton->setEnabled(itemHasCoordinates);
+
+              logger_->debug("Selected: {}", selectedAlertKey_.ToString());
            });
    connect(self_->ui->alertViewButton,
            &QPushButton::clicked,

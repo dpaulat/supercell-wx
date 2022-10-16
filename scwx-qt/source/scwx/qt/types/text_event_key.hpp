@@ -11,6 +11,7 @@ namespace types
 
 struct TextEventKey
 {
+   TextEventKey() : TextEventKey(awips::PVtec {}) {}
    TextEventKey(const awips::PVtec& pvtec) :
        officeId_ {pvtec.office_id()},
        phenomenon_ {pvtec.phenomenon()},

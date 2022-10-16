@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/qt/types/text_event_key.hpp>
+#include <scwx/common/geographic.hpp>
 
 #include <memory>
 
@@ -20,6 +21,9 @@ class AlertModel : public QAbstractTableModel
 public:
    explicit AlertModel(QObject* parent = nullptr);
    ~AlertModel();
+
+   types::TextEventKey key(const QModelIndex& index) const;
+   common::Coordinate  centroid(const types::TextEventKey& key) const;
 
    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
    int columnCount(const QModelIndex& parent = QModelIndex()) const override;
