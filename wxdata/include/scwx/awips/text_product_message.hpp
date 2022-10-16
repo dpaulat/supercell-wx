@@ -87,6 +87,7 @@ public:
    TextProductMessage(TextProductMessage&&) noexcept;
    TextProductMessage& operator=(TextProductMessage&&) noexcept;
 
+   std::string                                 message_content() const;
    std::shared_ptr<WmoHeader>                  wmo_header() const;
    std::vector<std::string>                    mnd_header() const;
    std::vector<std::string>                    overview_block() const;

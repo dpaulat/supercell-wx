@@ -23,6 +23,7 @@ public:
    explicit TextEventManager();
    ~TextEventManager();
 
+   size_t message_count(const types::TextEventKey& key) const;
    std::vector<std::shared_ptr<awips::TextProductMessage>>
    message_list(const types::TextEventKey& key) const;
 

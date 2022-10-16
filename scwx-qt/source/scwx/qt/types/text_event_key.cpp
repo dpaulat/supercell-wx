@@ -13,9 +13,18 @@ namespace types
 
 static const std::string logPrefix_ = "scwx::qt::types::text_event_key";
 
+std::string TextEventKey::ToFullString() const
+{
+   return std::format("{} {} {} {:04}",
+                      officeId_,
+                      awips::GetPhenomenonText(phenomenon_),
+                      awips::GetSignificanceText(significance_),
+                      etn_);
+}
+
 std::string TextEventKey::ToString() const
 {
-   return std::format("{}.{}.{}.{}",
+   return std::format("{}.{}.{}.{:04}",
                       officeId_,
                       awips::GetPhenomenonCode(phenomenon_),
                       awips::GetSignificanceCode(significance_),

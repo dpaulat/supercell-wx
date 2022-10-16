@@ -20,6 +20,7 @@ struct TextEventKey
    {
    }
 
+   std::string ToFullString() const;
    std::string ToString() const;
    bool        operator==(const TextEventKey& o) const;
 

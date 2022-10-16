@@ -40,6 +40,21 @@ public:
 TextEventManager::TextEventManager() : p(std::make_unique<Impl>(this)) {}
 TextEventManager::~TextEventManager() = default;
 
+size_t TextEventManager::message_count(const types::TextEventKey& key) const
+{
+   size_t messageCount = 0u;
+
+   std::shared_lock lock(p->textEventMutex_);
+
+   auto it = p->textEventMap_.find(key);
+   if (it != p->textEventMap_.cend())
+   {
+      messageCount = it->second.size();
+   }
+
+   return messageCount;
+}
+
 std::vector<std::shared_ptr<awips::TextProductMessage>>
 TextEventManager::message_list(const types::TextEventKey& key) const
 {

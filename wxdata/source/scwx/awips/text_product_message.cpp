@@ -6,6 +6,9 @@
 #include <regex>
 #include <string>
 
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/trim.hpp>
+
 namespace scwx
 {
 namespace awips
@@ -34,9 +37,17 @@ static std::optional<Vtec>          TryParseVtecString(std::istream& is);
 class TextProductMessageImpl
 {
 public:
-   explicit TextProductMessageImpl() : wmoHeader_ {} {}
+   explicit TextProductMessageImpl() :
+       messageContent_ {},
+       wmoHeader_ {},
+       mndHeader_ {},
+       overviewBlock_ {},
+       segments_ {}
+   {
+   }
    ~TextProductMessageImpl() = default;
 
+   std::string                           messageContent_;
    std::shared_ptr<WmoHeader>            wmoHeader_;
    std::vector<std::string>              mndHeader_;
    std::vector<std::string>              overviewBlock_;
@@ -52,6 +63,11 @@ TextProductMessage::~TextProductMessage() = default;
 TextProductMessage::TextProductMessage(TextProductMessage&&) noexcept = default;
 TextProductMessage&
 TextProductMessage::operator=(TextProductMessage&&) noexcept = default;
+
+std::string TextProductMessage::message_content() const
+{
+   return p->messageContent_;
+}
 
 std::shared_ptr<WmoHeader> TextProductMessage::wmo_header() const
 {
@@ -93,6 +109,8 @@ size_t TextProductMessage::data_size() const
 bool TextProductMessage::Parse(std::istream& is)
 {
    bool dataValid = true;
+
+   std::streampos messageStart = is.tellg();
 
    p->wmoHeader_ = std::make_shared<WmoHeader>();
    dataValid     = p->wmoHeader_->Parse(is);
@@ -141,6 +159,37 @@ bool TextProductMessage::Parse(std::istream& is)
       {
          p->segments_.push_back(std::move(segment));
       }
+   }
+
+   if (dataValid)
+   {
+      // Store raw message content
+      std::streampos  messageEnd  = is.tellg();
+      std::streamsize messageSize = messageEnd - messageStart;
+      p->messageContent_.resize(messageEnd - messageStart);
+      is.seekg(messageStart);
+      if (is.peek() == common::Characters::SOH)
+      {
+         is.seekg(std::streamoff {1}, std::ios_base::cur);
+         messageSize--;
+      }
+      is.read(p->messageContent_.data(), messageSize);
+
+      // Trim extra characters from raw message
+      while (p->messageContent_.size() > 0 &&
+             (p->messageContent_.back() == common::Characters::NUL ||
+              p->messageContent_.back() == common::Characters::ETX))
+      {
+         p->messageContent_.resize(p->messageContent_.size() - 1);
+      }
+      boost::replace_all(p->messageContent_, "\r\r\n", "\n");
+      boost::trim(p->messageContent_);
+      p->messageContent_.shrink_to_fit();
+   }
+   else
+   {
+      p->messageContent_.resize(0);
+      p->messageContent_.shrink_to_fit();
    }
 
    return dataValid;
