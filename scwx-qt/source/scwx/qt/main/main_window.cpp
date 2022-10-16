@@ -7,9 +7,8 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/map/map_widget.hpp>
-#include <scwx/qt/model/alert_model.hpp>
 #include <scwx/qt/model/radar_product_model.hpp>
-#include <scwx/qt/types/qt_types.hpp>
+#include <scwx/qt/ui/alert_dock_widget.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
@@ -22,7 +21,6 @@
 
 #include <QFileDialog>
 #include <QMessageBox>
-#include <QSortFilterProxyModel>
 #include <QSplitter>
 #include <QStandardPaths>
 #include <QToolButton>
@@ -48,9 +46,8 @@ public:
        activeMap_ {nullptr},
        level2ProductsWidget_ {nullptr},
        level2SettingsWidget_ {nullptr},
+       alertDockWidget_ {nullptr},
        radarSiteDialog_ {nullptr},
-       alertModel_ {std::make_unique<model::AlertModel>()},
-       alertProxyModel_ {std::make_unique<QSortFilterProxyModel>()},
        radarProductModel_ {nullptr},
        maps_ {},
        elevationCuts_ {},
@@ -79,15 +76,11 @@ public:
       settings_.setApiKey(QString {mapboxApiKey.c_str()});
       settings_.setCacheDatabasePath(QString {cacheDbPath.c_str()});
       settings_.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
-
-      alertProxyModel_->setSourceModel(alertModel_.get());
-      alertProxyModel_->setSortRole(types::SortRole);
-      alertProxyModel_->setFilterCaseSensitivity(Qt::CaseInsensitive);
-      alertProxyModel_->setFilterKeyColumn(-1);
    }
    ~MainWindowImpl() = default;
 
    void ConfigureMapLayout();
+   void ConnectAlertSignals();
    void ConnectMapSignals();
    void ConnectOtherSignals();
    void HandleFocusChange(QWidget* focused);
@@ -114,10 +107,9 @@ public:
 
    ui::Level3ProductsWidget* level3ProductsWidget_;
 
+   ui::AlertDockWidget* alertDockWidget_;
    ui::RadarSiteDialog* radarSiteDialog_;
 
-   std::unique_ptr<model::AlertModel>        alertModel_;
-   std::unique_ptr<QSortFilterProxyModel>    alertProxyModel_;
    std::unique_ptr<model::RadarProductModel> radarProductModel_;
 
    std::vector<map::MapWidget*> maps_;
@@ -148,6 +140,11 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->vcpValueLabel->setVisible(false);
    ui->vcpDescriptionLabel->setVisible(false);
 
+   // Configure Alert Dock
+   p->alertDockWidget_ = new ui::AlertDockWidget(this);
+   p->alertDockWidget_->setVisible(false);
+   addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
+
    // Configure Menu
    ui->menuView->insertAction(ui->actionRadarToolbox,
                               ui->radarToolboxDock->toggleViewAction());
@@ -161,8 +158,8 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->actionResourceExplorer->setVisible(false);
 
    ui->menuView->insertAction(ui->actionAlerts,
-                              ui->alertDock->toggleViewAction());
-   ui->alertDock->toggleViewAction()->setText(tr("&Alerts"));
+                              p->alertDockWidget_->toggleViewAction());
+   p->alertDockWidget_->toggleViewAction()->setText(tr("&Alerts"));
    ui->actionAlerts->setVisible(false);
 
    // Configure Resource Explorer Dock
@@ -170,13 +167,6 @@ MainWindow::MainWindow(QWidget* parent) :
 
    p->radarProductModel_ = std::make_unique<model::RadarProductModel>();
    ui->resourceTreeView->setModel(p->radarProductModel_->model());
-
-   // Configure Alert Dock
-   ui->alertDock->setVisible(false);
-
-   ui->alertView->setModel(p->alertProxyModel_.get());
-
-   ui->alertSettings->addAction(ui->actionActiveAlerts);
 
    // Configure Map
    p->ConfigureMapLayout();
@@ -475,19 +465,10 @@ void MainWindowImpl::ConnectOtherSignals()
            &ui::Level2SettingsWidget::ElevationSelected,
            mainWindow_,
            [&](float elevation) { SelectElevation(activeMap_, elevation); });
-   connect(mainWindow_->ui->alertFilter,
-           &QLineEdit::textChanged,
-           alertProxyModel_.get(),
-           &QSortFilterProxyModel::setFilterWildcard);
    connect(mainWindow_,
            &MainWindow::ActiveMapMoved,
-           alertModel_.get(),
-           &model::AlertModel::HandleMapUpdate,
-           Qt::QueuedConnection);
-   connect(&manager::TextEventManager::Instance(),
-           &manager::TextEventManager::AlertUpdated,
-           alertModel_.get(),
-           &model::AlertModel::HandleAlert,
+           alertDockWidget_,
+           &ui::AlertDockWidget::HandleMapUpdate,
            Qt::QueuedConnection);
    connect(mainWindow_,
            &MainWindow::ActiveMapMoved,
