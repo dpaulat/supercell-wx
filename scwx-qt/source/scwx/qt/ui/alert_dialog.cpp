@@ -4,6 +4,8 @@
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <QPushButton>
+
 namespace scwx
 {
 namespace qt
@@ -14,21 +16,28 @@ namespace ui
 static const std::string logPrefix_ = "scwx::qt::ui::alert_dialog";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-class AlertDialogImpl
+class AlertDialogImpl : public QObject
 {
+   Q_OBJECT
 public:
    explicit AlertDialogImpl(AlertDialog* self) :
-       self_ {self}, key_ {}, coordinate_ {}, currentIndex_ {0u}
+       self_ {self},
+       goButton_ {nullptr},
+       key_ {},
+       centroid_ {},
+       currentIndex_ {0u}
    {
    }
    ~AlertDialogImpl() = default;
 
    void ConnectSignals();
    void SelectIndex(size_t newIndex);
+   void UpdateAlertInfo();
 
    AlertDialog*        self_;
+   QPushButton*        goButton_;
    types::TextEventKey key_;
-   common::Coordinate  coordinate_;
+   common::Coordinate  centroid_;
    size_t              currentIndex_;
 };
 
@@ -45,7 +54,7 @@ AlertDialog::AlertDialog(QWidget* parent) :
    ui->alertText->setFont(monospaceFont);
 
    // Add Go button to button box
-   ui->buttonBox->addButton("&Go", QDialogButtonBox::ActionRole);
+   p->goButton_ = ui->buttonBox->addButton("&Go", QDialogButtonBox::ActionRole);
 
    p->ConnectSignals();
 }
@@ -55,13 +64,33 @@ AlertDialog::~AlertDialog()
    delete ui;
 }
 
-void AlertDialogImpl::ConnectSignals() {}
-
-bool AlertDialog::SelectAlert(const types::TextEventKey& key,
-                              const common::Coordinate&  coordinate)
+void AlertDialogImpl::ConnectSignals()
 {
-   p->key_        = key;
-   p->coordinate_ = coordinate;
+   connect(
+      &manager::TextEventManager::Instance(),
+      &manager::TextEventManager::AlertUpdated,
+      this,
+      [=](const types::TextEventKey& key)
+      {
+         if (key == key_)
+         {
+            UpdateAlertInfo();
+         }
+      },
+      Qt::QueuedConnection);
+   connect(goButton_,
+           &QPushButton::clicked,
+           this,
+           [=]()
+           {
+              emit self_->MoveMap(centroid_.latitude_, centroid_.longitude_);
+              self_->close();
+           });
+}
+
+bool AlertDialog::SelectAlert(const types::TextEventKey& key)
+{
+   p->key_ = key;
 
    setWindowTitle(QString::fromStdString(key.ToFullString()));
 
@@ -71,7 +100,7 @@ bool AlertDialog::SelectAlert(const types::TextEventKey& key,
       return false;
    }
 
-   p->SelectIndex(messages.size() - 1);
+   p->SelectIndex(messages.size() - 1u);
 
    return true;
 }
@@ -92,18 +121,60 @@ void AlertDialogImpl::SelectIndex(size_t newIndex)
 
    self_->ui->alertText->setText(
       QString::fromStdString(messages[currentIndex_]->message_content()));
-   self_->ui->messageCountLabel->setText(
-      QObject::tr("%1 of %2").arg(currentIndex_ + 1).arg(messageCount));
 
-   bool firstSelected = (currentIndex_ == 0);
-   bool lastSelected  = (currentIndex_ == messages.size() - 1);
+   UpdateAlertInfo();
+}
+
+void AlertDialogImpl::UpdateAlertInfo()
+{
+   auto   messages = manager::TextEventManager::Instance().message_list(key_);
+   size_t messageCount = messages.size();
+
+   bool firstSelected = (currentIndex_ == 0u);
+   bool lastSelected  = (currentIndex_ == messageCount - 1u);
 
    self_->ui->firstButton->setEnabled(!firstSelected);
    self_->ui->previousButton->setEnabled(!firstSelected);
 
    self_->ui->nextButton->setEnabled(!lastSelected);
    self_->ui->lastButton->setEnabled(!lastSelected);
+
+   self_->ui->messageCountLabel->setText(
+      QObject::tr("%1 of %2").arg(currentIndex_ + 1u).arg(messageCount));
+
+   // Update centroid
+   auto alertSegment = messages[currentIndex_]->segments().back();
+   if (alertSegment->codedLocation_.has_value())
+   {
+      centroid_ =
+         common::GetCentroid(alertSegment->codedLocation_->coordinates());
+   }
+
+   goButton_->setEnabled(centroid_ != common::Coordinate {});
 }
+
+void AlertDialog::on_firstButton_clicked()
+{
+   p->SelectIndex(0);
+}
+
+void AlertDialog::on_previousButton_clicked()
+{
+   p->SelectIndex(p->currentIndex_ - 1u);
+}
+
+void AlertDialog::on_nextButton_clicked()
+{
+   p->SelectIndex(p->currentIndex_ + 1u);
+}
+
+void AlertDialog::on_lastButton_clicked()
+{
+   p->SelectIndex(manager::TextEventManager::Instance().message_count(p->key_) -
+                  1u);
+}
+
+#include "alert_dialog.moc"
 
 } // namespace ui
 } // namespace qt

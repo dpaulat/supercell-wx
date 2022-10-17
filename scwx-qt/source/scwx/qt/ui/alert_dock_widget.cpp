@@ -158,8 +158,7 @@ void AlertDockWidgetImpl::ConnectSignals()
            [=]()
            {
               // View alert
-              alertDialog_->SelectAlert(selectedAlertKey_,
-                                        selectedAlertCentroid_);
+              alertDialog_->SelectAlert(selectedAlertKey_);
               alertDialog_->show();
            });
    connect(self_->ui->alertGoButton,

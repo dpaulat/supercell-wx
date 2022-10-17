@@ -137,9 +137,10 @@ void TextEventManager::Impl::HandleMessage(
    }
    else if (std::find_if(it->second.cbegin(),
                          it->second.cend(),
-                         [=](auto& storedMessage) {
-                            return message->wmo_header() ==
-                                   storedMessage->wmo_header();
+                         [=](auto& storedMessage)
+                         {
+                            return *message->wmo_header().get() ==
+                                   *storedMessage->wmo_header().get();
                          }) == it->second.cend())
    {
       // If there was a matching event, and this message has not been stored

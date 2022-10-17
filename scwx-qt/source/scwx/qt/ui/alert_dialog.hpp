@@ -27,8 +27,13 @@ public:
    explicit AlertDialog(QWidget* parent = nullptr);
    ~AlertDialog();
 
-   bool SelectAlert(const types::TextEventKey& key,
-                    const common::Coordinate&  coordinate);
+   bool SelectAlert(const types::TextEventKey& key);
+
+public slots:
+   void on_firstButton_clicked();
+   void on_previousButton_clicked();
+   void on_nextButton_clicked();
+   void on_lastButton_clicked();
 
 signals:
    void MoveMap(double latitude, double longitude);
