@@ -164,16 +164,33 @@ bool TextProductMessage::Parse(std::istream& is)
    if (dataValid)
    {
       // Store raw message content
-      std::streampos  messageEnd  = is.tellg();
-      std::streamsize messageSize = messageEnd - messageStart;
-      p->messageContent_.resize(messageEnd - messageStart);
-      is.seekg(messageStart);
-      if (is.peek() == common::Characters::SOH)
+      if (is.good())
       {
-         is.seekg(std::streamoff {1}, std::ios_base::cur);
-         messageSize--;
+         // Read content equal to the message size
+         std::streampos  messageEnd  = is.tellg();
+         std::streamsize messageSize = messageEnd - messageStart;
+         p->messageContent_.resize(messageEnd - messageStart);
+         is.seekg(messageStart);
+         if (is.peek() == common::Characters::SOH)
+         {
+            is.seekg(std::streamoff {1}, std::ios_base::cur);
+            messageSize--;
+         }
+         is.read(p->messageContent_.data(), messageSize);
       }
-      is.read(p->messageContent_.data(), messageSize);
+      else
+      {
+         // Read remaining content in the input stream
+         is.clear();
+         is.seekg(messageStart);
+         if (is.peek() == common::Characters::SOH)
+         {
+            is.seekg(std::streamoff {1}, std::ios_base::cur);
+         }
+
+         constexpr std::istreambuf_iterator<char> eos;
+         p->messageContent_ = {std::istreambuf_iterator<char>(is), eos};
+      }
 
       // Trim extra characters from raw message
       while (p->messageContent_.size() > 0 &&
