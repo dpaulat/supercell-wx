@@ -639,6 +639,7 @@ void MapWidget::initializeGL()
    p->context_->gl().initializeOpenGLFunctions();
 
    p->map_.reset(new QMapboxGL(nullptr, p->settings_, size(), pixelRatio()));
+   p->context_->set_map(p->map_);
    connect(p->map_.get(),
            &QMapboxGL::needsRendering,
            p.get(),

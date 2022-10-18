@@ -11,6 +11,7 @@ class MapContext::Impl
 {
 public:
    explicit Impl(std::shared_ptr<view::RadarProductView> radarProductView) :
+       map_ {},
        settings_ {},
        radarProductView_ {radarProductView},
        radarProductGroup_ {common::RadarProductGroup::Unknown},
@@ -21,6 +22,7 @@ public:
 
    ~Impl() {}
 
+   std::weak_ptr<QMapboxGL>                map_;
    MapSettings                             settings_;
    std::shared_ptr<view::RadarProductView> radarProductView_;
    common::RadarProductGroup               radarProductGroup_;
@@ -37,6 +39,11 @@ MapContext::~MapContext() = default;
 
 MapContext::MapContext(MapContext&&) noexcept            = default;
 MapContext& MapContext::operator=(MapContext&&) noexcept = default;
+
+std::weak_ptr<QMapboxGL> MapContext::map() const
+{
+   return p->map_;
+}
 
 MapSettings& MapContext::settings()
 {
@@ -61,6 +68,11 @@ std::string MapContext::radar_product() const
 int16_t MapContext::radar_product_code() const
 {
    return p->radarProductCode_;
+}
+
+void MapContext::set_map(std::shared_ptr<QMapboxGL> map)
+{
+   p->map_ = map;
 }
 
 void MapContext::set_radar_product_view(
