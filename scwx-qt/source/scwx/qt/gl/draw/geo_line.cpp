@@ -3,7 +3,10 @@
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <numbers>
 #include <optional>
+
+#include <GeographicLib/Geodesic.hpp>
 
 namespace scwx
 {
@@ -30,9 +33,12 @@ class GeoLine::Impl
 public:
    explicit Impl(std::shared_ptr<GlContext> context) :
        context_ {context},
+       geodesic_(GeographicLib::Constants::WGS84_a(),
+                 GeographicLib::Constants::WGS84_f()),
        dirty_ {false},
        visible_ {true},
        points_ {},
+       angle_ {},
        width_ {7.0f},
        modulateColor_ {std::nullopt},
        shaderProgram_ {nullptr},
@@ -49,10 +55,13 @@ public:
 
    std::shared_ptr<GlContext> context_;
 
+   GeographicLib::Geodesic geodesic_;
+
    bool dirty_;
 
    bool                              visible_;
    std::array<common::Coordinate, 2> points_;
+   float                             angle_;
    float                             width_;
 
    std::optional<boost::gil::rgba8_pixel_t> modulateColor_;
@@ -197,7 +206,18 @@ void GeoLine::SetPoints(float latitude1,
    {
       p->points_[0] = {latitude1, longitude1};
       p->points_[1] = {latitude2, longitude2};
-      p->dirty_     = true;
+
+      double azi1; // Azimuth at point 1 (degrees)
+      double azi2; // (Forward) azimuth at point 2 (degrees)
+      p->geodesic_.Inverse(p->points_[0].latitude_,
+                           p->points_[0].longitude_,
+                           p->points_[1].latitude_,
+                           p->points_[1].longitude_,
+                           azi1,
+                           azi2);
+      p->angle_ = -azi1 * std::numbers::pi / 180.0;
+
+      p->dirty_ = true;
    }
 }
 
@@ -237,11 +257,8 @@ void GeoLine::Impl::Update()
       const float ty = points_[1].longitude_;
 
       // Offset x/y in pixels
-      const double i     = points_[1].longitude_ - points_[0].longitude_;
-      const double j     = points_[1].latitude_ - points_[0].latitude_;
-      const double angle = std::atan2(i, j) * 180.0 / M_PI;
-      const float  ox    = width_ * 0.5f * std::cosf(angle);
-      const float  oy    = width_ * 0.5f * std::sinf(angle);
+      const float ox = width_ * 0.5f * std::cosf(angle_);
+      const float oy = width_ * 0.5f * std::sinf(angle_);
 
       // Texture coordinates
       const float ls = texture_.sLeft_;
