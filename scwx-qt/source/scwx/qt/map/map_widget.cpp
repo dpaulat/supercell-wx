@@ -2,6 +2,7 @@
 #include <scwx/qt/gl/gl.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/map/alert_layer.hpp>
 #include <scwx/qt/map/color_table_layer.hpp>
 #include <scwx/qt/map/layer_wrapper.hpp>
 #include <scwx/qt/map/overlay_layer.hpp>
@@ -59,6 +60,7 @@ public:
        layerList_ {},
        radarProductManager_ {nullptr},
        radarProductLayer_ {nullptr},
+       alertLayer_ {std::make_shared<AlertLayer>(context_)},
        overlayLayer_ {nullptr},
        colorTableLayer_ {nullptr},
        autoRefreshEnabled_ {true},
@@ -104,6 +106,7 @@ public:
    std::shared_ptr<common::ColorTable> colorTable_;
 
    std::shared_ptr<RadarProductLayer> radarProductLayer_;
+   std::shared_ptr<AlertLayer>        alertLayer_;
    std::shared_ptr<OverlayLayer>      overlayLayer_;
    std::shared_ptr<ColorTableLayer>   colorTableLayer_;
 
@@ -522,6 +525,7 @@ void MapWidget::AddLayers()
       p->AddLayer("colorTable", p->colorTableLayer_);
    }
 
+   p->alertLayer_->AddLayers("colorTable");
    p->overlayLayer_ = std::make_shared<OverlayLayer>(p->context_);
    p->AddLayer("overlay", p->overlayLayer_);
 }

@@ -64,7 +64,8 @@ set(SRC_MANAGER source/scwx/qt/manager/radar_product_manager.cpp
                 source/scwx/qt/manager/resource_manager.cpp
                 source/scwx/qt/manager/settings_manager.cpp
                 source/scwx/qt/manager/text_event_manager.cpp)
-set(HDR_MAP source/scwx/qt/map/color_table_layer.hpp
+set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
+            source/scwx/qt/map/color_table_layer.hpp
             source/scwx/qt/map/draw_layer.hpp
             source/scwx/qt/map/generic_layer.hpp
             source/scwx/qt/map/layer_wrapper.hpp
@@ -74,7 +75,8 @@ set(HDR_MAP source/scwx/qt/map/color_table_layer.hpp
             source/scwx/qt/map/overlay_layer.hpp
             source/scwx/qt/map/radar_product_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp)
-set(SRC_MAP source/scwx/qt/map/color_table_layer.cpp
+set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
+            source/scwx/qt/map/color_table_layer.cpp
             source/scwx/qt/map/draw_layer.cpp
             source/scwx/qt/map/generic_layer.cpp
             source/scwx/qt/map/layer_wrapper.cpp
