@@ -2,6 +2,10 @@
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <unordered_set>
+
+#include <boost/container_hash/hash.hpp>
+
 namespace scwx
 {
 namespace qt
@@ -12,35 +16,71 @@ namespace map
 static const std::string logPrefix_ = "scwx::qt::map::alert_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+static void AddAlertLayer(std::shared_ptr<QMapboxGL> map,
+                          const QString&             idSuffix,
+                          const QString&             sourceId,
+                          const QString&             beforeLayer,
+                          boost::gil::rgba8_pixel_t  outlineColor);
+static QMapbox::Feature
+CreateFeature(const awips::CodedLocation& codedLocation);
 static QMapbox::Coordinate
 GetMapboxCoordinate(const common::Coordinate& coordinate);
 static QMapbox::Coordinates
-GetMapboxCoordinates(const awips::CodedLocation& codedLocation);
+               GetMapboxCoordinates(const awips::CodedLocation& codedLocation);
+static QString GetSuffix(awips::Phenomenon phenomenon, bool alertActive);
+
+static const QVariantMap kEmptyFeatureCollection_ {
+   {"type", "geojson"},
+   {"data", QVariant::fromValue(QList<QMapbox::Feature> {})}};
+static const std::list<awips::Phenomenon> kAlertPhenomena_ {
+   awips::Phenomenon::Marine,
+   awips::Phenomenon::FlashFlood,
+   awips::Phenomenon::SevereThunderstorm,
+   awips::Phenomenon::Tornado};
+
+template<class Key>
+struct AlertTypeHash;
+
+template<>
+struct AlertTypeHash<std::pair<awips::Phenomenon, bool>>
+{
+   size_t operator()(const std::pair<awips::Phenomenon, bool>& x) const;
+};
 
 class AlertLayerHandler : public QObject
 {
-   Q_OBJECT
-public:
-   explicit AlertLayerHandler() :
-       alertSource_ {{"type", "geojson"},
-                     {"data", QVariant::fromValue(QList<QMapbox::Feature> {})}}
+   Q_OBJECT public : explicit AlertLayerHandler() : alertSourceMap_ {}
    {
+      for (auto& phenomenon : kAlertPhenomena_)
+      {
+         for (bool alertActive : {false, true})
+         {
+            alertSourceMap_.emplace(std::make_pair(phenomenon, alertActive),
+                                    kEmptyFeatureCollection_);
+         }
+      }
+
       connect(&manager::TextEventManager::Instance(),
               &manager::TextEventManager::AlertUpdated,
               this,
-              &AlertLayerHandler::HandleAlert);
+              &AlertLayerHandler::HandleAlert,
+              Qt::QueuedConnection);
    }
    ~AlertLayerHandler() = default;
 
    static AlertLayerHandler& Instance();
 
-   QList<QMapbox::Feature>* FeatureList();
+   QList<QMapbox::Feature>* FeatureList(awips::Phenomenon phenomenon,
+                                        bool              alertActive);
    void HandleAlert(const types::TextEventKey& key, size_t messageIndex);
 
-   QVariantMap alertSource_;
+   std::unordered_map<std::pair<awips::Phenomenon, bool>,
+                      QVariantMap,
+                      AlertTypeHash<std::pair<awips::Phenomenon, bool>>>
+      alertSourceMap_;
 
 signals:
-   void AlertsUpdated();
+   void AlertsUpdated(awips::Phenomenon phenomenon, bool alertActive);
 };
 
 class AlertLayerImpl : public QObject
@@ -57,7 +97,7 @@ public:
    }
    ~AlertLayerImpl() = default;
 
-   void UpdateSource();
+   void UpdateSource(awips::Phenomenon phenomenon, bool alertActive);
 
    std::shared_ptr<MapContext> context_;
 };
@@ -102,46 +142,88 @@ void AlertLayer::AddLayers(const std::string& before)
       return;
    }
 
-   if (map->layerExists("alertPolygonLayerBg"))
+   // Add/update GeoJSON sources
+   for (auto& phenomenon : kAlertPhenomena_)
    {
-      map->removeLayer("alertPolygonLayerBg");
-   }
-   if (map->layerExists("alertPolygonLayerFg"))
-   {
-      map->removeLayer("alertPolygonLayerFg");
-   }
-   if (map->sourceExists("alertPolygon"))
-   {
-      map->removeSource("alertPolygon");
+      for (bool alertActive : {false, true})
+      {
+         p->UpdateSource(phenomenon, alertActive);
+      }
    }
 
-   map->addSource("alertPolygon", AlertLayerHandler::Instance().alertSource_);
+   const QString beforeLayer {QString::fromStdString(before)};
 
-   map->addLayer({{"id", "alertPolygonLayerBg"},
-                  {"type", "line"},
-                  {"source", "alertPolygon"}},
-                 QString::fromStdString(before));
-   map->setLayoutProperty("alertPolygonLayerBg", "line-join", "round");
-   map->setLayoutProperty("alertPolygonLayerBg", "line-cap", "round");
-   map->setPaintProperty(
-      "alertPolygonLayerBg", "line-color", "rgba(0, 0, 0, 255)");
-   map->setPaintProperty("alertPolygonLayerBg", "line-width", "5");
+   // Create alert layers
+   const QString ffActiveSuffix =
+      GetSuffix(awips::Phenomenon::FlashFlood, true);
+   const QString ffInactiveSuffix =
+      GetSuffix(awips::Phenomenon::FlashFlood, false);
+   const QString maActiveSuffix   = GetSuffix(awips::Phenomenon::Marine, true);
+   const QString maInactiveSuffix = GetSuffix(awips::Phenomenon::Marine, false);
+   const QString svActiveSuffix =
+      GetSuffix(awips::Phenomenon::SevereThunderstorm, true);
+   const QString svInactiveSuffix =
+      GetSuffix(awips::Phenomenon::SevereThunderstorm, false);
+   const QString toActiveSuffix = GetSuffix(awips::Phenomenon::Tornado, true);
+   const QString toInactiveSuffix =
+      GetSuffix(awips::Phenomenon::Tornado, false);
 
-   map->addLayer({{"id", "alertPolygonLayerFg"},
-                  {"type", "line"},
-                  {"source", "alertPolygon"}},
-                 QString::fromStdString(before));
-   map->setLayoutProperty("alertPolygonLayerFg", "line-join", "round");
-   map->setLayoutProperty("alertPolygonLayerFg", "line-cap", "round");
-   map->setPaintProperty(
-      "alertPolygonLayerFg", "line-color", "rgba(255, 0, 0, 255)");
-   map->setPaintProperty("alertPolygonLayerFg", "line-width", "3");
+   AddAlertLayer(map,
+                 maInactiveSuffix,
+                 QString("alertPolygon-%1").arg(maInactiveSuffix),
+                 beforeLayer,
+                 {127, 63, 0, 255});
+   AddAlertLayer(map,
+                 maActiveSuffix,
+                 QString("alertPolygon-%1").arg(maActiveSuffix),
+                 beforeLayer,
+                 {255, 127, 0, 255});
+   AddAlertLayer(map,
+                 ffInactiveSuffix,
+                 QString("alertPolygon-%1").arg(ffInactiveSuffix),
+                 beforeLayer,
+                 {0, 127, 0, 255});
+   AddAlertLayer(map,
+                 ffActiveSuffix,
+                 QString("alertPolygon-%1").arg(ffActiveSuffix),
+                 beforeLayer,
+                 {0, 255, 0, 255});
+   AddAlertLayer(map,
+                 svInactiveSuffix,
+                 QString("alertPolygon-%1").arg(svInactiveSuffix),
+                 beforeLayer,
+                 {127, 127, 0, 255});
+   AddAlertLayer(map,
+                 svActiveSuffix,
+                 QString("alertPolygon-%1").arg(svActiveSuffix),
+                 beforeLayer,
+                 {255, 255, 0, 255});
+   AddAlertLayer(map,
+                 toInactiveSuffix,
+                 QString("alertPolygon-%1").arg(toInactiveSuffix),
+                 beforeLayer,
+                 {127, 0, 0, 255});
+   AddAlertLayer(map,
+                 toActiveSuffix,
+                 QString("alertPolygon-%1").arg(toActiveSuffix),
+                 beforeLayer,
+                 {255, 0, 0, 255});
 }
 
-QList<QMapbox::Feature>* AlertLayerHandler::FeatureList()
+QList<QMapbox::Feature>*
+AlertLayerHandler::FeatureList(awips::Phenomenon phenomenon, bool alertActive)
 {
-   return reinterpret_cast<QList<QMapbox::Feature>*>(
-      alertSource_["data"].data());
+   QList<QMapbox::Feature>* featureList = nullptr;
+
+   auto key = std::make_pair(phenomenon, alertActive);
+   auto it  = alertSourceMap_.find(key);
+   if (it != alertSourceMap_.cend())
+   {
+      featureList =
+         reinterpret_cast<QList<QMapbox::Feature>*>(it->second["data"].data());
+   }
+
+   return featureList;
 }
 
 void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
@@ -149,7 +231,9 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
 {
    auto message =
       manager::TextEventManager::Instance().message_list(key).at(messageIndex);
-   bool alertUpdated = false;
+   std::unordered_set<std::pair<awips::Phenomenon, bool>,
+                      AlertTypeHash<std::pair<awips::Phenomenon, bool>>>
+      alertsUpdated {};
 
    // TODO: Remove previous items
 
@@ -160,26 +244,28 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
          continue;
       }
 
+      auto&             vtec       = segment->header_->vtecString_.front();
+      auto              action     = vtec.pVtec_.action();
+      awips::Phenomenon phenomenon = vtec.pVtec_.phenomenon();
+      bool alertActive             = (action != awips::PVtec::Action::Canceled);
+
       // Add alert location to polygon list
-      auto mapboxCoordinates =
-         GetMapboxCoordinates(segment->codedLocation_.value());
-
-      FeatureList()->push_back(
-         {QMapbox::Feature::PolygonType,
-          std::initializer_list<QMapbox::CoordinatesCollection> {
-             std::initializer_list<QMapbox::Coordinates> {
-                {mapboxCoordinates}}}});
-
-      alertUpdated = true;
+      auto featureList = FeatureList(phenomenon, alertActive);
+      if (featureList != nullptr)
+      {
+         featureList->push_back(CreateFeature(segment->codedLocation_.value()));
+         alertsUpdated.insert(std::make_pair(phenomenon, alertActive));
+      }
    }
 
-   if (alertUpdated)
+   for (auto& alert : alertsUpdated)
    {
-      emit AlertsUpdated();
+      emit AlertsUpdated(alert.first, alert.second);
    }
 }
 
-void AlertLayerImpl::UpdateSource()
+void AlertLayerImpl::UpdateSource(awips::Phenomenon phenomenon,
+                                  bool              alertActive)
 {
    auto map = context_->map().lock();
    if (map == nullptr)
@@ -187,14 +273,66 @@ void AlertLayerImpl::UpdateSource()
       return;
    }
 
-   map->updateSource("alertPolygon",
-                     AlertLayerHandler::Instance().alertSource_);
+   // Update source, relies on alert source being defined
+   map->updateSource(
+      QString("alertPolygon-%1").arg(GetSuffix(phenomenon, alertActive)),
+      AlertLayerHandler::Instance().alertSourceMap_.at(
+         std::make_pair(phenomenon, alertActive)));
 }
 
 AlertLayerHandler& AlertLayerHandler::Instance()
 {
    static AlertLayerHandler alertLayerHandler {};
    return alertLayerHandler;
+}
+
+static void AddAlertLayer(std::shared_ptr<QMapboxGL> map,
+                          const QString&             idSuffix,
+                          const QString&             sourceId,
+                          const QString&             beforeLayer,
+                          boost::gil::rgba8_pixel_t  outlineColor)
+{
+   QString bgLayerId = QString("alertPolygonLayerBg-%1").arg(idSuffix);
+   QString fgLayerId = QString("alertPolygonLayerFg-%1").arg(idSuffix);
+
+   if (map->layerExists(bgLayerId))
+   {
+      map->removeLayer(bgLayerId);
+   }
+   if (map->layerExists(fgLayerId))
+   {
+      map->removeLayer(fgLayerId);
+   }
+
+   map->addLayer({{"id", bgLayerId}, {"type", "line"}, {"source", sourceId}},
+                 beforeLayer);
+   map->setLayoutProperty(bgLayerId, "line-join", "round");
+   map->setLayoutProperty(bgLayerId, "line-cap", "round");
+   map->setPaintProperty(bgLayerId, "line-color", "rgba(0, 0, 0, 255)");
+   map->setPaintProperty(bgLayerId, "line-width", "5");
+
+   map->addLayer({{"id", fgLayerId}, {"type", "line"}, {"source", sourceId}},
+                 beforeLayer);
+   map->setLayoutProperty(fgLayerId, "line-join", "round");
+   map->setLayoutProperty(fgLayerId, "line-cap", "round");
+   map->setPaintProperty(fgLayerId,
+                         "line-color",
+                         QString("rgba(%1, %2, %3, %4)")
+                            .arg(outlineColor[0])
+                            .arg(outlineColor[1])
+                            .arg(outlineColor[2])
+                            .arg(outlineColor[3]));
+   map->setPaintProperty(fgLayerId, "line-width", "3");
+}
+
+static QMapbox::Feature CreateFeature(const awips::CodedLocation& codedLocation)
+{
+   auto mapboxCoordinates = GetMapboxCoordinates(codedLocation);
+
+   return {
+      QMapbox::Feature::PolygonType,
+      std::initializer_list<QMapbox::CoordinatesCollection> {
+         std::initializer_list<QMapbox::Coordinates> {{mapboxCoordinates}}}};
 }
 
 static QMapbox::Coordinate
@@ -218,6 +356,22 @@ GetMapboxCoordinates(const awips::CodedLocation& codedLocation)
    mapboxCoordinates.back() = GetMapboxCoordinate(scwxCoordinates.front());
 
    return mapboxCoordinates;
+}
+
+static QString GetSuffix(awips::Phenomenon phenomenon, bool alertActive)
+{
+   return QString("-%1.%2")
+      .arg(QString::fromStdString(awips::GetPhenomenonCode(phenomenon)))
+      .arg(alertActive);
+}
+
+size_t AlertTypeHash<std::pair<awips::Phenomenon, bool>>::operator()(
+   const std::pair<awips::Phenomenon, bool>& x) const
+{
+   size_t seed = 0;
+   boost::hash_combine(seed, x.first);
+   boost::hash_combine(seed, x.second);
+   return seed;
 }
 
 } // namespace map
