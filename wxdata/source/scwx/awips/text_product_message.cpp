@@ -245,7 +245,9 @@ void ParseCodedInformation(std::shared_ptr<Segment> segment,
       }
       else if (codedMotionBegin != productContent.cend() &&
                codedMotionEnd == productContent.cend() &&
-               !it->starts_with(" ") /* Continuation line */)
+               !it->starts_with(" ") &&
+               !std::regex_search(*it, std::regex {"^[0-9]"})
+               /* Continuation lines */)
       {
          codedMotionEnd = it;
       }
