@@ -100,7 +100,8 @@ void OverlayLayer::Initialize()
    }
 }
 
-void OverlayLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
+void OverlayLayer::Render(
+   const QMapLibreGL::CustomLayerRenderParameters& params)
 {
    constexpr float fontSize = 16.0f;
 

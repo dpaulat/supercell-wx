@@ -166,7 +166,7 @@ void GeoLine::Initialize()
    p->dirty_ = true;
 }
 
-void GeoLine::Render(const QMapbox::CustomLayerRenderParameters& params)
+void GeoLine::Render(const QMapLibreGL::CustomLayerRenderParameters& params)
 {
    if (p->visible_)
    {

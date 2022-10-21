@@ -5,7 +5,7 @@
 #include <memory>
 
 #include <QObject>
-#include <QMapboxGL>
+#include <QMapLibreGL/QMapLibreGL>
 
 namespace scwx
 {
@@ -24,9 +24,9 @@ public:
    explicit GenericLayer(std::shared_ptr<MapContext> context);
    virtual ~GenericLayer();
 
-   virtual void Initialize()                                        = 0;
-   virtual void Render(const QMapbox::CustomLayerRenderParameters&) = 0;
-   virtual void Deinitialize()                                      = 0;
+   virtual void Initialize()                                            = 0;
+   virtual void Render(const QMapLibreGL::CustomLayerRenderParameters&) = 0;
+   virtual void Deinitialize()                                          = 0;
 
 protected:
    std::shared_ptr<MapContext> context() const;

@@ -18,7 +18,7 @@ public:
    ~OverlayLayer();
 
    void Initialize() override final;
-   void Render(const QMapbox::CustomLayerRenderParameters&) override final;
+   void Render(const QMapLibreGL::CustomLayerRenderParameters&) override final;
    void Deinitialize() override final;
 
 public slots:

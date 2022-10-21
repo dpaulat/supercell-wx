@@ -18,7 +18,7 @@
 #include <boost/timer/timer.hpp>
 #include <fmt/chrono.h>
 #include <GeographicLib/Geodesic.hpp>
-#include <QMapbox>
+#include <QMapLibreGL/QMapLibreGL>
 
 namespace scwx
 {
@@ -304,8 +304,8 @@ void RadarProductManager::Initialize()
    GeographicLib::Geodesic geodesic(GeographicLib::Constants::WGS84_a(),
                                     GeographicLib::Constants::WGS84_f());
 
-   const QMapbox::Coordinate radar(p->radarSite_->latitude(),
-                                   p->radarSite_->longitude());
+   const QMapLibreGL::Coordinate radar(p->radarSite_->latitude(),
+                                       p->radarSite_->longitude());
 
    const float gateSize = gate_size();
 

@@ -19,7 +19,7 @@ public:
    virtual ~DrawLayer();
 
    virtual void Initialize();
-   virtual void Render(const QMapbox::CustomLayerRenderParameters&);
+   virtual void Render(const QMapLibreGL::CustomLayerRenderParameters&);
    virtual void Deinitialize();
 
 protected:

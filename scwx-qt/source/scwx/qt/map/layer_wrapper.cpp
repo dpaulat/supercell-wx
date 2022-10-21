@@ -26,7 +26,7 @@ LayerWrapper::LayerWrapper(std::shared_ptr<GenericLayer> layer) :
 }
 LayerWrapper::~LayerWrapper() = default;
 
-LayerWrapper::LayerWrapper(LayerWrapper&&) noexcept = default;
+LayerWrapper::LayerWrapper(LayerWrapper&&) noexcept            = default;
 LayerWrapper& LayerWrapper::operator=(LayerWrapper&&) noexcept = default;
 
 void LayerWrapper::initialize()
@@ -34,7 +34,8 @@ void LayerWrapper::initialize()
    p->layer_->Initialize();
 }
 
-void LayerWrapper::render(const QMapbox::CustomLayerRenderParameters& params)
+void LayerWrapper::render(
+   const QMapLibreGL::CustomLayerRenderParameters& params)
 {
    p->layer_->Render(params);
 }

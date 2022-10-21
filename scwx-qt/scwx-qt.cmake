@@ -276,7 +276,7 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Qt${QT_VERSION_MAJOR}::OpenGLWidgets
                                      Boost::json
                                      Boost::timer
-                                     qmapboxgl
+                                     qmaplibregl
                                      opengl32
                                      freetype-gl
                                      GeographicLib::GeographicLib

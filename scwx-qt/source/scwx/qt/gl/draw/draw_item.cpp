@@ -36,7 +36,8 @@ DrawItem::DrawItem(DrawItem&&) noexcept            = default;
 DrawItem& DrawItem::operator=(DrawItem&&) noexcept = default;
 
 void DrawItem::UseDefaultProjection(
-   const QMapbox::CustomLayerRenderParameters& params, GLint uMVPMatrixLocation)
+   const QMapLibreGL::CustomLayerRenderParameters& params,
+   GLint                                           uMVPMatrixLocation)
 {
    glm::mat4 projection = glm::ortho(0.0f,
                                      static_cast<float>(params.width),
@@ -49,29 +50,29 @@ void DrawItem::UseDefaultProjection(
 
 // TODO: Refactor to utility class
 static glm::vec2
-LatLongToScreenCoordinate(const QMapbox::Coordinate& coordinate)
+LatLongToScreenCoordinate(const QMapLibreGL::Coordinate& coordinate)
 {
    double latitude = std::clamp(
       coordinate.first, -mbgl::util::LATITUDE_MAX, mbgl::util::LATITUDE_MAX);
    glm::vec2 screen {
       mbgl::util::LONGITUDE_MAX + coordinate.second,
       -(mbgl::util::LONGITUDE_MAX -
-        mbgl::util::RAD2DEG *
+        mbgl::util::RAD2DEG_D *
            std::log(std::tan(M_PI / 4.0 +
                              latitude * M_PI / mbgl::util::DEGREES_MAX)))};
    return screen;
 }
 
 void DrawItem::UseMapProjection(
-   const QMapbox::CustomLayerRenderParameters& params,
-   GLint                                       uMVPMatrixLocation,
-   GLint                                       uMapScreenCoordLocation)
+   const QMapLibreGL::CustomLayerRenderParameters& params,
+   GLint                                           uMVPMatrixLocation,
+   GLint                                           uMapScreenCoordLocation)
 {
    OpenGLFunctions& gl = p->gl_;
 
    // TODO: Refactor to utility class
    const float scale = std::pow(2.0, params.zoom) * 2.0f *
-                       mbgl::util::tileSize / mbgl::util::DEGREES_MAX;
+                       mbgl::util::tileSize_D / mbgl::util::DEGREES_MAX;
    const float xScale = scale / params.width;
    const float yScale = scale / params.height;
 

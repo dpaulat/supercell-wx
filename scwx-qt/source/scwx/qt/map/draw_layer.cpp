@@ -42,7 +42,7 @@ void DrawLayer::Initialize()
    }
 }
 
-void DrawLayer::Render(const QMapbox::CustomLayerRenderParameters& params)
+void DrawLayer::Render(const QMapLibreGL::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = p->context_->gl();
 

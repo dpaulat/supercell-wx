@@ -4,7 +4,7 @@
 
 #include <memory>
 
-#include <QMapbox>
+#include <QMapLibreGL/QMapLibreGL>
 
 namespace scwx
 {
@@ -27,14 +27,16 @@ public:
    DrawItem(DrawItem&&) noexcept;
    DrawItem& operator=(DrawItem&&) noexcept;
 
-   virtual void Initialize()                                               = 0;
-   virtual void Render(const QMapbox::CustomLayerRenderParameters& params) = 0;
-   virtual void Deinitialize()                                             = 0;
+   virtual void Initialize() = 0;
+   virtual void
+   Render(const QMapLibreGL::CustomLayerRenderParameters& params) = 0;
+   virtual void Deinitialize()                                    = 0;
 
 protected:
-   void UseDefaultProjection(const QMapbox::CustomLayerRenderParameters& params,
-                             GLint uMVPMatrixLocation);
-   void UseMapProjection(const QMapbox::CustomLayerRenderParameters& params,
+   void
+   UseDefaultProjection(const QMapLibreGL::CustomLayerRenderParameters& params,
+                        GLint uMVPMatrixLocation);
+   void UseMapProjection(const QMapLibreGL::CustomLayerRenderParameters& params,
                          GLint uMVPMatrixLocation,
                          GLint uMapScreenCoordLocation);
 

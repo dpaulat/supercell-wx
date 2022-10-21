@@ -7,7 +7,7 @@
 #include <chrono>
 #include <memory>
 
-#include <QMapboxGL>
+#include <QMapLibreGL/QMapLibreGL>
 
 #include <QOpenGLWidget>
 #include <QPropertyAnimation>
@@ -31,7 +31,7 @@ class MapWidget : public QOpenGLWidget
    Q_OBJECT
 
 public:
-   explicit MapWidget(const QMapboxGLSettings&);
+   explicit MapWidget(const QMapLibreGL::Settings&);
    ~MapWidget();
 
    common::Level3ProductCategoryMap   GetAvailableLevel3Categories();
@@ -79,7 +79,7 @@ private:
    friend class MapWidgetImpl;
 
 private slots:
-   void mapChanged(QMapboxGL::MapChange);
+   void mapChanged(QMapLibreGL::Map::MapChange);
 
 signals:
    void Level3ProductsChanged();

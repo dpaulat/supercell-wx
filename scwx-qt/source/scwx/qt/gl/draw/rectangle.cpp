@@ -122,7 +122,7 @@ void Rectangle::Initialize()
    p->dirty_ = true;
 }
 
-void Rectangle::Render(const QMapbox::CustomLayerRenderParameters& params)
+void Rectangle::Render(const QMapLibreGL::CustomLayerRenderParameters& params)
 {
    if (p->visible_)
    {

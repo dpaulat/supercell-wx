@@ -27,7 +27,7 @@ public:
    Rectangle& operator=(Rectangle&&) noexcept;
 
    void Initialize() override;
-   void Render(const QMapbox::CustomLayerRenderParameters& params) override;
+   void Render(const QMapLibreGL::CustomLayerRenderParameters& params) override;
    void Deinitialize() override;
 
    void SetBorder(float width, boost::gil::rgba8_pixel_t color);

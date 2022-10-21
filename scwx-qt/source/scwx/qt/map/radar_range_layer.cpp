@@ -14,13 +14,13 @@ namespace map
 static const std::string logPrefix_ = "scwx::qt::map::radar_range_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static std::shared_ptr<QMapbox::Feature>
-GetRangeCircle(float range, QMapbox::Coordinate center);
+static std::shared_ptr<QMapLibreGL::Feature>
+GetRangeCircle(float range, QMapLibreGL::Coordinate center);
 
-void RadarRangeLayer::Add(std::shared_ptr<QMapboxGL> map,
-                          float                      range,
-                          QMapbox::Coordinate        center,
-                          const QString&             before)
+void RadarRangeLayer::Add(std::shared_ptr<QMapLibreGL::Map> map,
+                          float                             range,
+                          QMapLibreGL::Coordinate           center,
+                          const QString&                    before)
 {
    logger_->debug("Add()");
 
@@ -33,7 +33,7 @@ void RadarRangeLayer::Add(std::shared_ptr<QMapboxGL> map,
       map->removeSource("rangeCircleSource");
    }
 
-   std::shared_ptr<QMapbox::Feature> rangeCircle =
+   std::shared_ptr<QMapLibreGL::Feature> rangeCircle =
       GetRangeCircle(range, center);
 
    map->addSource(
@@ -47,19 +47,19 @@ void RadarRangeLayer::Add(std::shared_ptr<QMapboxGL> map,
       "rangeCircleLayer", "line-color", "rgba(128, 128, 128, 128)");
 }
 
-void RadarRangeLayer::Update(std::shared_ptr<QMapboxGL> map,
-                             float                      range,
-                             QMapbox::Coordinate        center)
+void RadarRangeLayer::Update(std::shared_ptr<QMapLibreGL::Map> map,
+                             float                             range,
+                             QMapLibreGL::Coordinate           center)
 {
-   std::shared_ptr<QMapbox::Feature> rangeCircle =
+   std::shared_ptr<QMapLibreGL::Feature> rangeCircle =
       GetRangeCircle(range, center);
 
    map->updateSource("rangeCircleSource",
                      {{"data", QVariant::fromValue(*rangeCircle)}});
 }
 
-static std::shared_ptr<QMapbox::Feature>
-GetRangeCircle(float range, QMapbox::Coordinate center)
+static std::shared_ptr<QMapLibreGL::Feature>
+GetRangeCircle(float range, QMapLibreGL::Coordinate center)
 {
    GeographicLib::Geodesic geodesic(GeographicLib::Constants::WGS84_a(),
                                     GeographicLib::Constants::WGS84_f());
@@ -69,7 +69,7 @@ GetRangeCircle(float range, QMapbox::Coordinate center)
 
    float angle = -angleDeltaH;
 
-   QMapbox::Coordinates geometry;
+   QMapLibreGL::Coordinates geometry;
 
    for (uint16_t azimuth = 0; azimuth <= 720; ++azimuth)
    {
@@ -88,11 +88,11 @@ GetRangeCircle(float range, QMapbox::Coordinate center)
       angle += angleDelta;
    }
 
-   std::shared_ptr<QMapbox::Feature> rangeCircle =
-      std::make_shared<QMapbox::Feature>(
-         QMapbox::Feature::LineStringType,
-         std::initializer_list<QMapbox::CoordinatesCollection> {
-            std::initializer_list<QMapbox::Coordinates> {geometry}});
+   std::shared_ptr<QMapLibreGL::Feature> rangeCircle =
+      std::make_shared<QMapLibreGL::Feature>(
+         QMapLibreGL::Feature::LineStringType,
+         std::initializer_list<QMapLibreGL::CoordinatesCollection> {
+            std::initializer_list<QMapLibreGL::Coordinates> {geometry}});
 
    return rangeCircle;
 }

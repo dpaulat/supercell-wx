@@ -72,7 +72,7 @@ public:
       std::string mapboxApiKey =
          manager::SettingsManager::general_settings()->mapbox_api_key();
 
-      settings_.resetToTemplate(QMapboxGLSettings::MapboxSettings);
+      settings_.resetToTemplate(QMapLibreGL::Settings::MapboxSettings);
       settings_.setApiKey(QString {mapboxApiKey.c_str()});
       settings_.setCacheDatabasePath(QString {cacheDbPath.c_str()});
       settings_.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
@@ -80,7 +80,6 @@ public:
    ~MainWindowImpl() = default;
 
    void ConfigureMapLayout();
-   void ConnectAlertSignals();
    void ConnectMapSignals();
    void ConnectOtherSignals();
    void HandleFocusChange(QWidget* focused);
@@ -98,9 +97,9 @@ public:
    void UpdateRadarSite();
    void UpdateVcp();
 
-   MainWindow*       mainWindow_;
-   QMapboxGLSettings settings_;
-   map::MapWidget*   activeMap_;
+   MainWindow*           mainWindow_;
+   QMapLibreGL::Settings settings_;
+   map::MapWidget*       activeMap_;
 
    ui::Level2ProductsWidget* level2ProductsWidget_;
    ui::Level2SettingsWidget* level2SettingsWidget_;

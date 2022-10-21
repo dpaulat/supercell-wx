@@ -51,8 +51,8 @@ class MapWidgetImpl : public QObject
    Q_OBJECT
 
 public:
-   explicit MapWidgetImpl(MapWidget*               widget,
-                          const QMapboxGLSettings& settings) :
+   explicit MapWidgetImpl(MapWidget*                   widget,
+                          const QMapLibreGL::Settings& settings) :
        context_ {std::make_shared<MapContext>()},
        widget_ {widget},
        settings_(settings),
@@ -96,10 +96,10 @@ public:
 
    std::shared_ptr<MapContext> context_;
 
-   MapWidget*                 widget_;
-   QMapboxGLSettings          settings_;
-   std::shared_ptr<QMapboxGL> map_;
-   std::list<std::string>     layerList_;
+   MapWidget*                        widget_;
+   QMapLibreGL::Settings             settings_;
+   std::shared_ptr<QMapLibreGL::Map> map_;
+   std::list<std::string>            layerList_;
 
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
@@ -130,7 +130,7 @@ public slots:
    void Update();
 };
 
-MapWidget::MapWidget(const QMapboxGLSettings& settings) :
+MapWidget::MapWidget(const QMapLibreGL::Settings& settings) :
     p(std::make_unique<MapWidgetImpl>(this, settings))
 {
    setFocusPolicy(Qt::StrongFocus);
@@ -138,7 +138,7 @@ MapWidget::MapWidget(const QMapboxGLSettings& settings) :
 
 MapWidget::~MapWidget()
 {
-   // Make sure we have a valid context so we can delete the QMapboxGL.
+   // Make sure we have a valid context so we can delete the QMapLibreGL.
    makeCurrent();
 }
 
@@ -534,8 +534,8 @@ void MapWidgetImpl::AddLayer(const std::string&            id,
                              std::shared_ptr<GenericLayer> layer,
                              const std::string&            before)
 {
-   // QMapboxGL::addCustomLayer will take ownership of the std::unique_ptr
-   std::unique_ptr<QMapbox::CustomLayerHostInterface> pHost =
+   // QMapLibreGL::addCustomLayer will take ownership of the std::unique_ptr
+   std::unique_ptr<QMapLibreGL::CustomLayerHostInterface> pHost =
       std::make_unique<LayerWrapper>(layer);
 
    map_->addCustomLayer(id.c_str(), std::move(pHost), before.c_str());
@@ -642,10 +642,11 @@ void MapWidget::initializeGL()
    makeCurrent();
    p->context_->gl().initializeOpenGLFunctions();
 
-   p->map_.reset(new QMapboxGL(nullptr, p->settings_, size(), pixelRatio()));
+   p->map_.reset(
+      new QMapLibreGL::Map(nullptr, p->settings_, size(), pixelRatio()));
    p->context_->set_map(p->map_);
    connect(p->map_.get(),
-           &QMapboxGL::needsRendering,
+           &QMapLibreGL::Map::needsRendering,
            p.get(),
            &MapWidgetImpl::Update);
 
@@ -672,7 +673,10 @@ void MapWidget::initializeGL()
       setWindowTitle(QString("Mapbox GL: ") + styleUrl);
    }
 
-   connect(p->map_.get(), &QMapboxGL::mapChanged, this, &MapWidget::mapChanged);
+   connect(p->map_.get(),
+           &QMapLibreGL::Map::mapChanged,
+           this,
+           &MapWidget::mapChanged);
 }
 
 void MapWidget::paintGL()
@@ -684,11 +688,11 @@ void MapWidget::paintGL()
    p->map_->render();
 }
 
-void MapWidget::mapChanged(QMapboxGL::MapChange mapChange)
+void MapWidget::mapChanged(QMapLibreGL::Map::MapChange mapChange)
 {
    switch (mapChange)
    {
-   case QMapboxGL::MapChangeDidFinishLoadingStyle:
+   case QMapLibreGL::Map::MapChangeDidFinishLoadingStyle:
       AddLayers();
       break;
    }
