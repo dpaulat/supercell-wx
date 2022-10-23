@@ -31,7 +31,7 @@ static QString GetSuffix(awips::Phenomenon phenomenon, bool alertActive);
 
 static const QVariantMap kEmptyFeatureCollection_ {
    {"type", "geojson"},
-   {"data", QVariant::fromValue(QList<QMapLibreGL::Feature> {})}};
+   {"data", QVariant::fromValue(std::list<QMapLibreGL::Feature> {})}};
 static const std::list<awips::Phenomenon> kAlertPhenomena_ {
    awips::Phenomenon::Marine,
    awips::Phenomenon::FlashFlood,
@@ -49,7 +49,9 @@ struct AlertTypeHash<std::pair<awips::Phenomenon, bool>>
 
 class AlertLayerHandler : public QObject
 {
-   Q_OBJECT public : explicit AlertLayerHandler() : alertSourceMap_ {}
+   Q_OBJECT public :
+       explicit AlertLayerHandler() :
+       alertSourceMap_ {}, featureMap_ {}
    {
       for (auto& phenomenon : kAlertPhenomena_)
       {
@@ -70,14 +72,21 @@ class AlertLayerHandler : public QObject
 
    static AlertLayerHandler& Instance();
 
-   QList<QMapLibreGL::Feature>* FeatureList(awips::Phenomenon phenomenon,
-                                            bool              alertActive);
+   std::list<QMapLibreGL::Feature>* FeatureList(awips::Phenomenon phenomenon,
+                                                bool              alertActive);
    void HandleAlert(const types::TextEventKey& key, size_t messageIndex);
 
    std::unordered_map<std::pair<awips::Phenomenon, bool>,
                       QVariantMap,
                       AlertTypeHash<std::pair<awips::Phenomenon, bool>>>
       alertSourceMap_;
+   std::unordered_multimap<
+      types::TextEventKey,
+      std::tuple<awips::Phenomenon,
+                 bool,
+                 std::list<QMapLibreGL::Feature>::iterator>,
+      types::TextEventHash<types::TextEventKey>>
+      featureMap_;
 
 signals:
    void AlertsUpdated(awips::Phenomenon phenomenon, bool alertActive);
@@ -210,16 +219,16 @@ void AlertLayer::AddLayers(const std::string& before)
                  {255, 0, 0, 255});
 }
 
-QList<QMapLibreGL::Feature>*
+std::list<QMapLibreGL::Feature>*
 AlertLayerHandler::FeatureList(awips::Phenomenon phenomenon, bool alertActive)
 {
-   QList<QMapLibreGL::Feature>* featureList = nullptr;
+   std::list<QMapLibreGL::Feature>* featureList = nullptr;
 
    auto key = std::make_pair(phenomenon, alertActive);
    auto it  = alertSourceMap_.find(key);
    if (it != alertSourceMap_.cend())
    {
-      featureList = reinterpret_cast<QList<QMapLibreGL::Feature>*>(
+      featureList = reinterpret_cast<std::list<QMapLibreGL::Feature>*>(
          it->second["data"].data());
    }
 
@@ -235,7 +244,22 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
                       AlertTypeHash<std::pair<awips::Phenomenon, bool>>>
       alertsUpdated {};
 
-   // TODO: Remove previous items
+   // Remove existing features for key
+   auto existingFeatures = featureMap_.equal_range(key);
+   for (auto it = existingFeatures.first; it != existingFeatures.second; ++it)
+   {
+      auto& [phenomenon, alertActive, featureIt] = it->second;
+      auto featureList = FeatureList(phenomenon, alertActive);
+      if (featureList != nullptr)
+      {
+         // Remove existing feature for key
+         featureList->erase(featureIt);
+
+         // Mark alert type as updated
+         alertsUpdated.emplace(phenomenon, alertActive);
+      }
+   }
+   featureMap_.erase(existingFeatures.first, existingFeatures.second);
 
    for (auto segment : message->segments())
    {
@@ -249,17 +273,28 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
       awips::Phenomenon phenomenon = vtec.pVtec_.phenomenon();
       bool alertActive             = (action != awips::PVtec::Action::Canceled);
 
-      // Add alert location to polygon list
       auto featureList = FeatureList(phenomenon, alertActive);
       if (featureList != nullptr)
       {
-         featureList->push_back(CreateFeature(segment->codedLocation_.value()));
-         alertsUpdated.insert(std::make_pair(phenomenon, alertActive));
+         // Add alert location to polygon list
+         auto featureIt = featureList->emplace(
+            featureList->cend(),
+            CreateFeature(segment->codedLocation_.value()));
+
+         // Store iterator for created feature in feature map
+         featureMap_.emplace(
+            std::piecewise_construct,
+            std::forward_as_tuple(key),
+            std::forward_as_tuple(phenomenon, alertActive, featureIt));
+
+         // Mark alert type as updated
+         alertsUpdated.emplace(phenomenon, alertActive);
       }
    }
 
    for (auto& alert : alertsUpdated)
    {
+      // Emit signal for each updated alert type
       emit AlertsUpdated(alert.first, alert.second);
    }
 }
