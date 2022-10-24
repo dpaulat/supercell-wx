@@ -15,6 +15,7 @@ find_package(Boost)
 find_package(Freetype)
 find_package(geographiclib)
 find_package(glm)
+find_package(Python COMPONENTS Interpreter)
 
 find_package(QT NAMES Qt6
              COMPONENTS Gui
@@ -166,6 +167,13 @@ set(JSON_FILES res/config/radar_sites.json)
 
 set(TS_FILES ts/scwx_en_US.ts)
 
+set(COUNTY_DBF_FILES ${SCWX_DIR}/data/db/c_13se22.dbf)
+set(ZONE_DBF_FILES   ${SCWX_DIR}/data/db/fz13se22.dbf
+                     ${SCWX_DIR}/data/db/mz13se22.dbf
+                     ${SCWX_DIR}/data/db/oz22mr22.dbf
+                     ${SCWX_DIR}/data/db/z_13se22.dbf)
+set(COUNTIES_SQLITE_DB ${scwx-qt_BINARY_DIR}/res/db/counties.db)
+
 set(PROJECT_SOURCES ${HDR_MAIN}
                     ${SRC_MAIN}
                     ${HDR_CONFIG}
@@ -239,6 +247,24 @@ source_group("I18N Files"             FILES ${TS_FILES})
 add_library(scwx-qt OBJECT ${PROJECT_SOURCES})
 set_property(TARGET scwx-qt PROPERTY AUTOMOC ON)
 
+add_custom_command(OUTPUT  ${COUNTIES_SQLITE_DB}
+                   COMMAND ${Python_EXECUTABLE}
+                           ${scwx-qt_SOURCE_DIR}/tools/generate_counties_db.py
+                           -c ${COUNTY_DBF_FILES}
+                           -z ${ZONE_DBF_FILES}
+                           -o ${COUNTIES_SQLITE_DB}
+                   DEPENDS ${COUNTY_DB_FILES} ${ZONE_DBF_FILES})
+
+add_custom_target(scwx-qt_generate_counties_db ALL
+                  DEPENDS ${COUNTIES_SQLITE_DB})
+
+add_dependencies(scwx-qt scwx-qt_generate_counties_db)
+
+qt_add_resources(scwx-qt "generated"
+                 PREFIX  "/"
+                 BASE    ${scwx-qt_BINARY_DIR}
+                 FILES   ${COUNTIES_SQLITE_DB})
+
 qt_add_translations(scwx-qt TS_FILES ${TS_FILES}
                     INCLUDE_DIRECTORIES true
                     LUPDATE_OPTIONS -locations none -no-ui-lines)
@@ -248,6 +274,8 @@ set_target_properties(scwx-qt_lrelease     PROPERTIES FOLDER qt)
 set_target_properties(scwx-qt_lupdate      PROPERTIES FOLDER qt)
 set_target_properties(scwx-qt_other_files  PROPERTIES FOLDER qt)
 set_target_properties(update_translations  PROPERTIES FOLDER qt)
+
+set_target_properties(scwx-qt_generate_counties_db PROPERTIES FOLDER generate)
 
 qt_add_executable(supercell-wx ${EXECUTABLE_SOURCES})
 
