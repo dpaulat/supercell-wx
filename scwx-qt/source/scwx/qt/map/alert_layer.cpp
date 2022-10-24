@@ -238,8 +238,15 @@ AlertLayerHandler::FeatureList(awips::Phenomenon phenomenon, bool alertActive)
 void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
                                     size_t                     messageIndex)
 {
-   auto message =
-      manager::TextEventManager::Instance().message_list(key).at(messageIndex);
+   auto& textEventManager = manager::TextEventManager::Instance();
+
+   // Skip alert if there are more messages to be processed
+   if (messageIndex + 1 < textEventManager.message_count(key))
+   {
+      return;
+   }
+
+   auto message = textEventManager.message_list(key).at(messageIndex);
    std::unordered_set<std::pair<awips::Phenomenon, bool>,
                       AlertTypeHash<std::pair<awips::Phenomenon, bool>>>
       alertsUpdated {};
