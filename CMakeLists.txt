@@ -21,6 +21,7 @@ conan_cmake_configure(REQUIRES aws-sdk-cpp/1.9.234
                                gtest/cci.20210126
                                openssl/1.1.1q
                                spdlog/1.10.0
+                               sqlite3/3.39.4
                                vulkan-loader/1.3.221
                       GENERATORS cmake
                                  cmake_find_package

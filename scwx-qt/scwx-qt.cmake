@@ -16,6 +16,7 @@ find_package(Freetype)
 find_package(geographiclib)
 find_package(glm)
 find_package(Python COMPONENTS Interpreter)
+find_package(SQLite3)
 
 find_package(QT NAMES Qt6
              COMPONENTS Gui
@@ -39,8 +40,10 @@ set(SRC_EXE_MAIN source/scwx/qt/main/main.cpp)
 set(HDR_MAIN source/scwx/qt/main/main_window.hpp)
 set(SRC_MAIN source/scwx/qt/main/main_window.cpp)
 set(UI_MAIN  source/scwx/qt/main/main_window.ui)
-set(HDR_CONFIG source/scwx/qt/config/radar_site.hpp)
-set(SRC_CONFIG source/scwx/qt/config/radar_site.cpp)
+set(HDR_CONFIG source/scwx/qt/config/county_database.hpp
+               source/scwx/qt/config/radar_site.hpp)
+set(SRC_CONFIG source/scwx/qt/config/county_database.cpp
+               source/scwx/qt/config/radar_site.cpp)
 set(SRC_EXTERNAL source/scwx/qt/external/stb_rect_pack.cpp)
 set(HDR_GL source/scwx/qt/gl/gl.hpp
            source/scwx/qt/gl/gl_context.hpp
@@ -309,6 +312,7 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      freetype-gl
                                      GeographicLib::GeographicLib
                                      glm::glm
+                                     SQLite::SQLite3
                                      wxdata)
 
 target_link_libraries(supercell-wx PRIVATE scwx-qt
