@@ -14,7 +14,7 @@ namespace qt
 namespace config
 {
 
-static const std::string logPrefix_ = "scwx::qt::settings::radar_site";
+static const std::string logPrefix_ = "scwx::qt::config::radar_site";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static const std::string defaultRadarSiteFile_ =
