@@ -2,6 +2,7 @@
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <shared_mutex>
 #include <unordered_set>
 
 #include <boost/container_hash/hash.hpp>
@@ -86,7 +87,8 @@ class AlertLayerHandler : public QObject
                  bool,
                  std::list<QMapLibreGL::Feature>::iterator>,
       types::TextEventHash<types::TextEventKey>>
-      featureMap_;
+                     featureMap_;
+   std::shared_mutex alertMutex_;
 
 signals:
    void AlertsUpdated(awips::Phenomenon phenomenon, bool alertActive);
@@ -251,6 +253,9 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
                       AlertTypeHash<std::pair<awips::Phenomenon, bool>>>
       alertsUpdated {};
 
+   // Take a unique lock before modifying feature lists
+   std::unique_lock lock(alertMutex_);
+
    // Remove existing features for key
    auto existingFeatures = featureMap_.equal_range(key);
    for (auto it = existingFeatures.first; it != existingFeatures.second; ++it)
@@ -299,6 +304,9 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
       }
    }
 
+   // Release the lock after completing feature list updates
+   lock.unlock();
+
    for (auto& alert : alertsUpdated)
    {
       // Emit signal for each updated alert type
@@ -315,10 +323,15 @@ void AlertLayerImpl::UpdateSource(awips::Phenomenon phenomenon,
       return;
    }
 
+   auto& alertLayerHandler = AlertLayerHandler::Instance();
+
+   // Take a shared lock before using feature lists
+   std::shared_lock lock(alertLayerHandler.alertMutex_);
+
    // Update source, relies on alert source being defined
    map->updateSource(
       QString("alertPolygon-%1").arg(GetSuffix(phenomenon, alertActive)),
-      AlertLayerHandler::Instance().alertSourceMap_.at(
+      alertLayerHandler.alertSourceMap_.at(
          std::make_pair(phenomenon, alertActive)));
 }
 
