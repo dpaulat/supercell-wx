@@ -1,10 +1,13 @@
 #include <scwx/qt/map/alert_layer.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/threads.hpp>
 
+#include <chrono>
 #include <shared_mutex>
 #include <unordered_set>
 
+#include <boost/asio/steady_timer.hpp>
 #include <boost/container_hash/hash.hpp>
 
 namespace scwx
@@ -52,7 +55,10 @@ class AlertLayerHandler : public QObject
 {
    Q_OBJECT public :
        explicit AlertLayerHandler() :
-       alertSourceMap_ {}, featureMap_ {}
+       alertUpdateTimer_ {util::io_context()},
+       alertUpdateTimerActive_ {true},
+       alertSourceMap_ {},
+       featureMap_ {}
    {
       for (auto& phenomenon : kAlertPhenomena_)
       {
@@ -66,8 +72,9 @@ class AlertLayerHandler : public QObject
       connect(&manager::TextEventManager::Instance(),
               &manager::TextEventManager::AlertUpdated,
               this,
-              &AlertLayerHandler::HandleAlert,
-              Qt::QueuedConnection);
+              &AlertLayerHandler::HandleAlert);
+
+      ScheduleAlertUpdate();
    }
    ~AlertLayerHandler() = default;
 
@@ -75,18 +82,25 @@ class AlertLayerHandler : public QObject
 
    std::list<QMapLibreGL::Feature>* FeatureList(awips::Phenomenon phenomenon,
                                                 bool              alertActive);
+
    void HandleAlert(const types::TextEventKey& key, size_t messageIndex);
+   void CancelAlertTimer();
+   void ScheduleAlertUpdate();
+   void UpdateAlerts(const boost::system::error_code& e = {});
+
+   boost::asio::steady_timer alertUpdateTimer_;
+   bool                      alertUpdateTimerActive_;
 
    std::unordered_map<std::pair<awips::Phenomenon, bool>,
                       QVariantMap,
                       AlertTypeHash<std::pair<awips::Phenomenon, bool>>>
       alertSourceMap_;
-   std::unordered_multimap<
-      types::TextEventKey,
-      std::tuple<awips::Phenomenon,
-                 bool,
-                 std::list<QMapLibreGL::Feature>::iterator>,
-      types::TextEventHash<types::TextEventKey>>
+   std::unordered_multimap<types::TextEventKey,
+                           std::tuple<awips::Phenomenon,
+                                      bool,
+                                      std::list<QMapLibreGL::Feature>::iterator,
+                                      std::chrono::system_clock::time_point>,
+                           types::TextEventHash<types::TextEventKey>>
                      featureMap_;
    std::shared_mutex alertMutex_;
 
@@ -106,7 +120,13 @@ public:
               this,
               &AlertLayerImpl::UpdateSource);
    }
-   ~AlertLayerImpl() = default;
+   ~AlertLayerImpl()
+   {
+      // Alert layer should never be destructed until the end of execution, this
+      // allows the alert timer to be cancelled and application cleanup to
+      // continue
+      AlertLayerHandler::Instance().CancelAlertTimer();
+   };
 
    void UpdateSource(awips::Phenomenon phenomenon, bool alertActive);
 
@@ -260,7 +280,7 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
    auto existingFeatures = featureMap_.equal_range(key);
    for (auto it = existingFeatures.first; it != existingFeatures.second; ++it)
    {
-      auto& [phenomenon, alertActive, featureIt] = it->second;
+      auto& [phenomenon, alertActive, featureIt, eventEnd] = it->second;
       auto featureList = FeatureList(phenomenon, alertActive);
       if (featureList != nullptr)
       {
@@ -283,6 +303,7 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
       auto&             vtec       = segment->header_->vtecString_.front();
       auto              action     = vtec.pVtec_.action();
       awips::Phenomenon phenomenon = vtec.pVtec_.phenomenon();
+      auto              eventEnd   = vtec.pVtec_.event_end();
       bool alertActive             = (action != awips::PVtec::Action::Canceled);
 
       auto featureList = FeatureList(phenomenon, alertActive);
@@ -294,10 +315,10 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
             CreateFeature(segment->codedLocation_.value()));
 
          // Store iterator for created feature in feature map
-         featureMap_.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(key),
-            std::forward_as_tuple(phenomenon, alertActive, featureIt));
+         featureMap_.emplace(std::piecewise_construct,
+                             std::forward_as_tuple(key),
+                             std::forward_as_tuple(
+                                phenomenon, alertActive, featureIt, eventEnd));
 
          // Mark alert type as updated
          alertsUpdated.emplace(phenomenon, alertActive);
@@ -312,6 +333,88 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
       // Emit signal for each updated alert type
       emit AlertsUpdated(alert.first, alert.second);
    }
+}
+
+void AlertLayerHandler::UpdateAlerts(const boost::system::error_code& e)
+{
+   logger_->trace("UpdateAlerts");
+
+   if (e == boost::asio::error::operation_aborted)
+   {
+      logger_->debug("Alert update timer cancelled");
+      return;
+   }
+   else if (e != boost::system::errc::success)
+   {
+      logger_->warn("Alert update timer error: {}", e.message());
+      return;
+   }
+
+   // Take a unique lock before modifying feature lists
+   std::unique_lock lock(alertMutex_);
+
+   std::unordered_set<std::pair<awips::Phenomenon, bool>,
+                      AlertTypeHash<std::pair<awips::Phenomenon, bool>>>
+      alertsUpdated {};
+
+   // Evaluate each rendered feature for expiration
+   for (auto it = featureMap_.begin(); it != featureMap_.end();)
+   {
+      auto& [phenomenon, alertActive, featureIt, eventEnd] = it->second;
+
+      // If the event has ended, remove it from the feature list
+      if (eventEnd < std::chrono::system_clock::now())
+      {
+         logger_->debug("Alert expired: {}", it->first.ToString());
+
+         auto featureList = FeatureList(phenomenon, alertActive);
+         if (featureList != nullptr)
+         {
+            // Remove existing feature for key
+            featureList->erase(featureIt);
+
+            // Mark alert type as updated
+            alertsUpdated.emplace(phenomenon, alertActive);
+         }
+
+         // Erase current item and increment iterator
+         it = featureMap_.erase(it);
+      }
+      else
+      {
+         // Current item is not expired, continue
+         ++it;
+      }
+   }
+
+   // Release the lock after completing feature list updates
+   lock.unlock();
+
+   for (auto& alert : alertsUpdated)
+   {
+      // Emit signal for each updated alert type
+      emit AlertsUpdated(alert.first, alert.second);
+   }
+
+   if (alertUpdateTimerActive_)
+   {
+      ScheduleAlertUpdate();
+   }
+}
+
+void AlertLayerHandler::ScheduleAlertUpdate()
+{
+   using namespace std::chrono;
+
+   alertUpdateTimer_.expires_after(15s);
+   alertUpdateTimer_.async_wait([=](const boost::system::error_code& e)
+                                { UpdateAlerts(e); });
+}
+
+void AlertLayerHandler::CancelAlertTimer()
+{
+   alertUpdateTimerActive_ = false;
+   alertUpdateTimer_.cancel();
 }
 
 void AlertLayerImpl::UpdateSource(awips::Phenomenon phenomenon,
