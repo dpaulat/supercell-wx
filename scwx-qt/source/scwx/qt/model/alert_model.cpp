@@ -1,4 +1,5 @@
 #include <scwx/qt/model/alert_model.hpp>
+#include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/common/geographic.hpp>
@@ -174,7 +175,7 @@ AlertModel::headerData(int section, Qt::Orientation orientation, int role) const
          case kColumnState:
             return tr("State");
          case kColumnCounties:
-            return tr("Counties");
+            return tr("Counties / Areas");
          case kColumnStartTime:
             return tr("Start Time");
          case kColumnEndTime:
@@ -287,7 +288,17 @@ std::string AlertModelImpl::GetCounties(const types::TextEventKey& key)
    auto&  lastMessage = messageList.back();
    size_t segmentCount = lastMessage->segment_count();
    auto   lastSegment  = lastMessage->segment(segmentCount - 1);
-   return util::ToString(lastSegment->header_->ugc_.fips_ids());
+   auto   fipsIds      = lastSegment->header_->ugc_.fips_ids();
+
+   std::vector<std::string> counties;
+   counties.reserve(fipsIds.size());
+   for (auto& id : fipsIds)
+   {
+      counties.push_back(config::CountyDatabase::GetCountyName(id));
+   }
+   std::sort(counties.begin(), counties.end());
+
+   return util::ToString(counties);
 }
 
 std::string AlertModelImpl::GetState(const types::TextEventKey& key)

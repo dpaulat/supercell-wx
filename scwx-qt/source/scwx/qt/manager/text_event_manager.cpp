@@ -31,7 +31,7 @@ public:
    TextEventManager* self_;
 
    std::unordered_map<types::TextEventKey,
-                      std::list<std::shared_ptr<awips::TextProductMessage>>,
+                      std::vector<std::shared_ptr<awips::TextProductMessage>>,
                       types::TextEventHash<types::TextEventKey>>
                      textEventMap_;
    std::shared_mutex textEventMutex_;
@@ -131,7 +131,7 @@ void TextEventManager::Impl::HandleMessage(
    if (it == textEventMap_.cend())
    {
       // If there was no matching event, add the message to a new event
-      textEventMap_.emplace(key, std::list {message});
+      textEventMap_.emplace(key, std::vector {message});
       messageIndex = 0;
       updated      = true;
    }

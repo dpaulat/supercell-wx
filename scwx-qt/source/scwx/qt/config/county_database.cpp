@@ -25,11 +25,17 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static const std::string countyDatabaseFilename_ = ":/res/db/counties.db";
 
+static bool                                         initialized_ {false};
 static std::unordered_map<std::string, std::string> countyMap_;
 static std::shared_mutex                            countyMutex_;
 
 void CountyDatabase::Initialize()
 {
+   if (initialized_)
+   {
+      return;
+   }
+
    logger_->debug("Loading database");
 
    // Generate UUID for temporary file
@@ -124,6 +130,8 @@ void CountyDatabase::Initialize()
 
    // Remove temporary file
    std::filesystem::remove(countyDatabaseCache);
+
+   initialized_ = true;
 }
 
 std::string GetCountyName(const std::string& id)

@@ -1,4 +1,5 @@
 #include <scwx/qt/manager/resource_manager.hpp>
+#include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/util/font.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
 
@@ -19,6 +20,8 @@ void PreLoad()
 
 static void LoadFonts()
 {
+   config::CountyDatabase::Initialize();
+
    util::Font::Create(":/res/fonts/din1451alt.ttf");
    util::Font::Create(":/res/fonts/din1451alt_g.ttf");
 

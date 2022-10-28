@@ -32,7 +32,7 @@ static QString GetSuffix(awips::Phenomenon phenomenon, bool alertActive);
 static const QVariantMap kEmptyFeatureCollection_ {
    {"type", "geojson"},
    {"data", QVariant::fromValue(std::list<QMapLibreGL::Feature> {})}};
-static const std::list<awips::Phenomenon> kAlertPhenomena_ {
+static const std::vector<awips::Phenomenon> kAlertPhenomena_ {
    awips::Phenomenon::Marine,
    awips::Phenomenon::FlashFlood,
    awips::Phenomenon::SevereThunderstorm,
