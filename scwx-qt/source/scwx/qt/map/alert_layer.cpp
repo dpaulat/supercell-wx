@@ -56,7 +56,6 @@ class AlertLayerHandler : public QObject
    Q_OBJECT public :
        explicit AlertLayerHandler() :
        alertUpdateTimer_ {util::io_context()},
-       alertUpdateTimerActive_ {true},
        alertSourceMap_ {},
        featureMap_ {}
    {
@@ -73,24 +72,22 @@ class AlertLayerHandler : public QObject
               &manager::TextEventManager::AlertUpdated,
               this,
               &AlertLayerHandler::HandleAlert);
-
-      ScheduleAlertUpdate();
    }
-   ~AlertLayerHandler() = default;
+   ~AlertLayerHandler()
+   {
+      std::unique_lock lock(alertMutex_);
+      alertUpdateTimer_.cancel();
+   }
 
-   static AlertLayerHandler& Instance();
+   static std::shared_ptr<AlertLayerHandler> Instance();
 
    std::list<QMapLibreGL::Feature>* FeatureList(awips::Phenomenon phenomenon,
                                                 bool              alertActive);
 
    void HandleAlert(const types::TextEventKey& key, size_t messageIndex);
-   void CancelAlertTimer();
-   void ScheduleAlertUpdate();
-   void UpdateAlerts(const boost::system::error_code& e = {});
+   void UpdateAlerts();
 
    boost::asio::steady_timer alertUpdateTimer_;
-   bool                      alertUpdateTimerActive_;
-
    std::unordered_map<std::pair<awips::Phenomenon, bool>,
                       QVariantMap,
                       AlertTypeHash<std::pair<awips::Phenomenon, bool>>>
@@ -113,24 +110,19 @@ class AlertLayerImpl : public QObject
    Q_OBJECT
 public:
    explicit AlertLayerImpl(std::shared_ptr<MapContext> context) :
-       context_ {context}
+       context_ {context}, alertLayerHandler_ {AlertLayerHandler::Instance()}
    {
-      connect(&AlertLayerHandler::Instance(),
+      connect(alertLayerHandler_.get(),
               &AlertLayerHandler::AlertsUpdated,
               this,
               &AlertLayerImpl::UpdateSource);
    }
-   ~AlertLayerImpl()
-   {
-      // Alert layer should never be destructed until the end of execution, this
-      // allows the alert timer to be cancelled and application cleanup to
-      // continue
-      AlertLayerHandler::Instance().CancelAlertTimer();
-   };
+   ~AlertLayerImpl() {};
 
    void UpdateSource(awips::Phenomenon phenomenon, bool alertActive);
 
-   std::shared_ptr<MapContext> context_;
+   std::shared_ptr<MapContext>        context_;
+   std::shared_ptr<AlertLayerHandler> alertLayerHandler_;
 };
 
 AlertLayer::AlertLayer(std::shared_ptr<MapContext> context) :
@@ -335,20 +327,9 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
    }
 }
 
-void AlertLayerHandler::UpdateAlerts(const boost::system::error_code& e)
+void AlertLayerHandler::UpdateAlerts()
 {
    logger_->trace("UpdateAlerts");
-
-   if (e == boost::asio::error::operation_aborted)
-   {
-      logger_->debug("Alert update timer cancelled");
-      return;
-   }
-   else if (e != boost::system::errc::success)
-   {
-      logger_->warn("Alert update timer error: {}", e.message());
-      return;
-   }
 
    // Take a unique lock before modifying feature lists
    std::unique_lock lock(alertMutex_);
@@ -387,34 +368,30 @@ void AlertLayerHandler::UpdateAlerts(const boost::system::error_code& e)
       }
    }
 
-   // Release the lock after completing feature list updates
-   lock.unlock();
-
    for (auto& alert : alertsUpdated)
    {
       // Emit signal for each updated alert type
       emit AlertsUpdated(alert.first, alert.second);
    }
 
-   if (alertUpdateTimerActive_)
-   {
-      ScheduleAlertUpdate();
-   }
-}
-
-void AlertLayerHandler::ScheduleAlertUpdate()
-{
    using namespace std::chrono;
-
    alertUpdateTimer_.expires_after(15s);
-   alertUpdateTimer_.async_wait([=](const boost::system::error_code& e)
-                                { UpdateAlerts(e); });
-}
-
-void AlertLayerHandler::CancelAlertTimer()
-{
-   alertUpdateTimerActive_ = false;
-   alertUpdateTimer_.cancel();
+   alertUpdateTimer_.async_wait(
+      [=](const boost::system::error_code& e)
+      {
+         if (e == boost::asio::error::operation_aborted)
+         {
+            logger_->debug("Alert update timer cancelled");
+         }
+         else if (e != boost::system::errc::success)
+         {
+            logger_->warn("Alert update timer error: {}", e.message());
+         }
+         else
+         {
+            UpdateAlerts();
+         }
+      });
 }
 
 void AlertLayerImpl::UpdateSource(awips::Phenomenon phenomenon,
@@ -426,21 +403,34 @@ void AlertLayerImpl::UpdateSource(awips::Phenomenon phenomenon,
       return;
    }
 
-   auto& alertLayerHandler = AlertLayerHandler::Instance();
-
    // Take a shared lock before using feature lists
-   std::shared_lock lock(alertLayerHandler.alertMutex_);
+   std::shared_lock lock(alertLayerHandler_->alertMutex_);
 
    // Update source, relies on alert source being defined
    map->updateSource(
       QString("alertPolygon-%1").arg(GetSuffix(phenomenon, alertActive)),
-      alertLayerHandler.alertSourceMap_.at(
+      alertLayerHandler_->alertSourceMap_.at(
          std::make_pair(phenomenon, alertActive)));
 }
 
-AlertLayerHandler& AlertLayerHandler::Instance()
+std::shared_ptr<AlertLayerHandler> AlertLayerHandler::Instance()
 {
-   static AlertLayerHandler alertLayerHandler {};
+   static std::weak_ptr<AlertLayerHandler> alertLayerHandlerReference {};
+   static std::mutex                       instanceMutex {};
+
+   std::unique_lock lock(instanceMutex);
+
+   std::shared_ptr<AlertLayerHandler> alertLayerHandler =
+      alertLayerHandlerReference.lock();
+
+   if (alertLayerHandler == nullptr)
+   {
+      alertLayerHandler          = std::make_shared<AlertLayerHandler>();
+      alertLayerHandlerReference = alertLayerHandler;
+
+      alertLayerHandler->UpdateAlerts();
+   }
+
    return alertLayerHandler;
 }
 
