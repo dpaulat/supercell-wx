@@ -298,6 +298,12 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
       auto              eventEnd   = vtec.pVtec_.event_end();
       bool alertActive             = (action != awips::PVtec::Action::Canceled);
 
+      // If the event has ended, skip it
+      if (eventEnd < std::chrono::system_clock::now())
+      {
+         continue;
+      }
+
       auto featureList = FeatureList(phenomenon, alertActive);
       if (featureList != nullptr)
       {
