@@ -4,6 +4,8 @@ project(scwx-data)
 
 find_package(AWSSDK)
 find_package(Boost)
+find_package(cpr)
+find_package(LibXml2)
 find_package(spdlog)
 
 set(HDR_AWIPS include/scwx/awips/coded_location.hpp
@@ -40,6 +42,8 @@ set(SRC_COMMON source/scwx/common/characters.cpp
                source/scwx/common/products.cpp
                source/scwx/common/sites.cpp
                source/scwx/common/vcp.cpp)
+set(HDR_NETWORK include/scwx/network/dir_list.hpp)
+set(SRC_NETWORK source/scwx/network/dir_list.cpp)
 set(HDR_PROVIDER include/scwx/provider/aws_level2_data_provider.hpp
                  include/scwx/provider/aws_level3_data_provider.hpp
                  include/scwx/provider/aws_nexrad_data_provider.hpp
@@ -186,6 +190,8 @@ add_library(wxdata OBJECT ${HDR_AWIPS}
                           ${SRC_AWIPS}
                           ${HDR_COMMON}
                           ${SRC_COMMON}
+                          ${HDR_NETWORK}
+                          ${SRC_NETWORK}
                           ${HDR_PROVIDER}
                           ${SRC_PROVIDER}
                           ${HDR_UTIL}
@@ -202,6 +208,8 @@ source_group("Header Files\\awips"       FILES ${HDR_AWIPS})
 source_group("Source Files\\awips"       FILES ${SRC_AWIPS})
 source_group("Header Files\\common"      FILES ${HDR_COMMON})
 source_group("Source Files\\common"      FILES ${SRC_COMMON})
+source_group("Header Files\\network"     FILES ${HDR_NETWORK})
+source_group("Source Files\\network"     FILES ${SRC_NETWORK})
 source_group("Header Files\\provider"    FILES ${HDR_PROVIDER})
 source_group("Source Files\\provider"    FILES ${SRC_PROVIDER})
 source_group("Header Files\\util"        FILES ${HDR_UTIL})
@@ -225,6 +233,8 @@ target_compile_options(wxdata PRIVATE
 )
 
 target_link_libraries(wxdata PUBLIC AWS::s3
+                                    cpr::cpr
+                                    LibXml2::LibXml2
                                     spdlog::spdlog)
 target_link_libraries(wxdata INTERFACE Boost::iostreams
                                        BZip2::BZip2
