@@ -48,12 +48,14 @@ set(HDR_PROVIDER include/scwx/provider/aws_level2_data_provider.hpp
                  include/scwx/provider/aws_level3_data_provider.hpp
                  include/scwx/provider/aws_nexrad_data_provider.hpp
                  include/scwx/provider/nexrad_data_provider.hpp
-                 include/scwx/provider/nexrad_data_provider_factory.hpp)
+                 include/scwx/provider/nexrad_data_provider_factory.hpp
+                 include/scwx/provider/warnings_provider.hpp)
 set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp
                  source/scwx/provider/aws_level3_data_provider.cpp
                  source/scwx/provider/aws_nexrad_data_provider.cpp
                  source/scwx/provider/nexrad_data_provider.cpp
-                 source/scwx/provider/nexrad_data_provider_factory.cpp)
+                 source/scwx/provider/nexrad_data_provider_factory.cpp
+                 source/scwx/provider/warnings_provider.cpp)
 set(HDR_UTIL include/scwx/util/environment.hpp
              include/scwx/util/float.hpp
              include/scwx/util/hash.hpp

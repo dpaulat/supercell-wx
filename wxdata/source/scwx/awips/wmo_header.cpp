@@ -53,7 +53,7 @@ public:
 WmoHeader::WmoHeader() : p(std::make_unique<WmoHeaderImpl>()) {}
 WmoHeader::~WmoHeader() = default;
 
-WmoHeader::WmoHeader(WmoHeader&&) noexcept = default;
+WmoHeader::WmoHeader(WmoHeader&&) noexcept            = default;
 WmoHeader& WmoHeader::operator=(WmoHeader&&) noexcept = default;
 
 bool WmoHeader::operator==(const WmoHeader& o) const
@@ -139,7 +139,7 @@ bool WmoHeader::Parse(std::istream& is)
 
    if (is.eof())
    {
-      logger_->debug("Reached end of file");
+      logger_->trace("Reached end of file");
       headerValid = false;
    }
    else

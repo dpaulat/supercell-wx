@@ -67,7 +67,7 @@ bool TextProductFile::LoadFile(const std::string& filename)
 
 bool TextProductFile::LoadData(std::istream& is)
 {
-   logger_->debug("Loading Data");
+   logger_->trace("Loading Data");
 
    while (!is.eof())
    {
