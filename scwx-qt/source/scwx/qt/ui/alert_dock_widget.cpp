@@ -25,6 +25,7 @@ class AlertDockWidgetImpl : QObject
 public:
    explicit AlertDockWidgetImpl(AlertDockWidget* self) :
        self_ {self},
+       textEventManager_ {manager::TextEventManager::Instance()},
        alertModel_ {std::make_unique<model::AlertModel>()},
        proxyModel_ {std::make_unique<QSortFilterProxyModel>()},
        alertDialog_ {new AlertDialog(self)},
@@ -42,9 +43,10 @@ public:
 
    void ConnectSignals();
 
-   AlertDockWidget*                       self_;
-   std::unique_ptr<model::AlertModel>     alertModel_;
-   std::unique_ptr<QSortFilterProxyModel> proxyModel_;
+   AlertDockWidget*                           self_;
+   std::shared_ptr<manager::TextEventManager> textEventManager_;
+   std::unique_ptr<model::AlertModel>         alertModel_;
+   std::unique_ptr<QSortFilterProxyModel>     proxyModel_;
 
    AlertDialog* alertDialog_;
 
@@ -109,7 +111,7 @@ void AlertDockWidgetImpl::ConnectSignals()
            &QLineEdit::textChanged,
            proxyModel_.get(),
            &QSortFilterProxyModel::setFilterWildcard);
-   connect(&manager::TextEventManager::Instance(),
+   connect(textEventManager_.get(),
            &manager::TextEventManager::AlertUpdated,
            alertModel_.get(),
            &model::AlertModel::HandleAlert,

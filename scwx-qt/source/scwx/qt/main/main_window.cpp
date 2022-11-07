@@ -46,9 +46,11 @@ public:
        activeMap_ {nullptr},
        level2ProductsWidget_ {nullptr},
        level2SettingsWidget_ {nullptr},
+       level3ProductsWidget_ {nullptr},
        alertDockWidget_ {nullptr},
        radarSiteDialog_ {nullptr},
        radarProductModel_ {nullptr},
+       textEventManager_ {manager::TextEventManager::Instance()},
        maps_ {},
        elevationCuts_ {},
        elevationButtonsChanged_ {false},
@@ -109,7 +111,8 @@ public:
    ui::AlertDockWidget* alertDockWidget_;
    ui::RadarSiteDialog* radarSiteDialog_;
 
-   std::unique_ptr<model::RadarProductModel> radarProductModel_;
+   std::unique_ptr<model::RadarProductModel>  radarProductModel_;
+   std::shared_ptr<manager::TextEventManager> textEventManager_;
 
    std::vector<map::MapWidget*> maps_;
    std::vector<float>           elevationCuts_;
@@ -306,8 +309,7 @@ void MainWindow::on_actionOpenTextEvent_triggered()
            [=](const QString& file)
            {
               logger_->info("Selected: {}", file.toStdString());
-              manager::TextEventManager::Instance().LoadFile(
-                 file.toStdString());
+              p->textEventManager_->LoadFile(file.toStdString());
            });
 
    dialog->open();

@@ -45,6 +45,8 @@ public:
    static std::string GetStartTime(const types::TextEventKey& key);
    static std::string GetEndTime(const types::TextEventKey& key);
 
+   std::shared_ptr<manager::TextEventManager> textEventManager_;
+
    QList<types::TextEventKey> textEventKeys_;
 
    GeographicLib::Geodesic geodesic_;
@@ -199,8 +201,7 @@ void AlertModel::HandleAlert(const types::TextEventKey& alertKey,
    double distanceInMeters;
 
    // Get the most recent segment for the event
-   auto alertMessages =
-      manager::TextEventManager::Instance().message_list(alertKey);
+   auto alertMessages = p->textEventManager_->message_list(alertKey);
    std::shared_ptr<const awips::Segment> alertSegment =
       alertMessages[messageIndex]->segments().back();
 
@@ -273,6 +274,7 @@ void AlertModel::HandleMapUpdate(double latitude, double longitude)
 }
 
 AlertModelImpl::AlertModelImpl() :
+    textEventManager_ {manager::TextEventManager::Instance()},
     textEventKeys_ {},
     geodesic_(GeographicLib::Constants::WGS84_a(),
               GeographicLib::Constants::WGS84_f()),
@@ -284,8 +286,8 @@ AlertModelImpl::AlertModelImpl() :
 
 std::string AlertModelImpl::GetCounties(const types::TextEventKey& key)
 {
-   auto   messageList = manager::TextEventManager::Instance().message_list(key);
-   auto&  lastMessage = messageList.back();
+   auto  messageList = manager::TextEventManager::Instance()->message_list(key);
+   auto& lastMessage = messageList.back();
    size_t segmentCount = lastMessage->segment_count();
    auto   lastSegment  = lastMessage->segment(segmentCount - 1);
    auto   fipsIds      = lastSegment->header_->ugc_.fips_ids();
@@ -303,8 +305,8 @@ std::string AlertModelImpl::GetCounties(const types::TextEventKey& key)
 
 std::string AlertModelImpl::GetState(const types::TextEventKey& key)
 {
-   auto   messageList = manager::TextEventManager::Instance().message_list(key);
-   auto&  lastMessage = messageList.back();
+   auto  messageList = manager::TextEventManager::Instance()->message_list(key);
+   auto& lastMessage = messageList.back();
    size_t segmentCount = lastMessage->segment_count();
    auto   lastSegment  = lastMessage->segment(segmentCount - 1);
    return util::ToString(lastSegment->header_->ugc_.states());
@@ -312,7 +314,7 @@ std::string AlertModelImpl::GetState(const types::TextEventKey& key)
 
 std::string AlertModelImpl::GetStartTime(const types::TextEventKey& key)
 {
-   auto  messageList  = manager::TextEventManager::Instance().message_list(key);
+   auto  messageList = manager::TextEventManager::Instance()->message_list(key);
    auto& firstMessage = messageList.front();
    auto  firstSegment = firstMessage->segment(0);
    return util::TimeString(
@@ -321,8 +323,8 @@ std::string AlertModelImpl::GetStartTime(const types::TextEventKey& key)
 
 std::string AlertModelImpl::GetEndTime(const types::TextEventKey& key)
 {
-   auto   messageList = manager::TextEventManager::Instance().message_list(key);
-   auto&  lastMessage = messageList.back();
+   auto  messageList = manager::TextEventManager::Instance()->message_list(key);
+   auto& lastMessage = messageList.back();
    size_t segmentCount = lastMessage->segment_count();
    auto   lastSegment  = lastMessage->segment(segmentCount - 1);
    return util::TimeString(

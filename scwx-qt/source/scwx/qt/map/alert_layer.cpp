@@ -55,6 +55,7 @@ class AlertLayerHandler : public QObject
 {
    Q_OBJECT public :
        explicit AlertLayerHandler() :
+       textEventManager_ {manager::TextEventManager::Instance()},
        alertUpdateTimer_ {util::io_context()},
        alertSourceMap_ {},
        featureMap_ {}
@@ -68,7 +69,7 @@ class AlertLayerHandler : public QObject
          }
       }
 
-      connect(&manager::TextEventManager::Instance(),
+      connect(textEventManager_.get(),
               &manager::TextEventManager::AlertUpdated,
               this,
               &AlertLayerHandler::HandleAlert);
@@ -86,6 +87,8 @@ class AlertLayerHandler : public QObject
 
    void HandleAlert(const types::TextEventKey& key, size_t messageIndex);
    void UpdateAlerts();
+
+   std::shared_ptr<manager::TextEventManager> textEventManager_;
 
    boost::asio::steady_timer alertUpdateTimer_;
    std::unordered_map<std::pair<awips::Phenomenon, bool>,
@@ -252,15 +255,13 @@ AlertLayerHandler::FeatureList(awips::Phenomenon phenomenon, bool alertActive)
 void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
                                     size_t                     messageIndex)
 {
-   auto& textEventManager = manager::TextEventManager::Instance();
-
    // Skip alert if there are more messages to be processed
-   if (messageIndex + 1 < textEventManager.message_count(key))
+   if (messageIndex + 1 < textEventManager_->message_count(key))
    {
       return;
    }
 
-   auto message = textEventManager.message_list(key).at(messageIndex);
+   auto message = textEventManager_->message_list(key).at(messageIndex);
    std::unordered_set<std::pair<awips::Phenomenon, bool>,
                       AlertTypeHash<std::pair<awips::Phenomenon, bool>>>
       alertsUpdated {};

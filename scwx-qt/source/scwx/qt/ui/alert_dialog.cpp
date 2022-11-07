@@ -22,6 +22,7 @@ class AlertDialogImpl : public QObject
 public:
    explicit AlertDialogImpl(AlertDialog* self) :
        self_ {self},
+       textEventManager_ {manager::TextEventManager::Instance()},
        goButton_ {nullptr},
        key_ {},
        centroid_ {},
@@ -34,7 +35,10 @@ public:
    void SelectIndex(size_t newIndex);
    void UpdateAlertInfo();
 
-   AlertDialog*        self_;
+   AlertDialog* self_;
+
+   std::shared_ptr<manager::TextEventManager> textEventManager_;
+
    QPushButton*        goButton_;
    types::TextEventKey key_;
    common::Coordinate  centroid_;
@@ -67,7 +71,7 @@ AlertDialog::~AlertDialog()
 void AlertDialogImpl::ConnectSignals()
 {
    connect(
-      &manager::TextEventManager::Instance(),
+      textEventManager_.get(),
       &manager::TextEventManager::AlertUpdated,
       this,
       [=](const types::TextEventKey& key)
@@ -94,7 +98,7 @@ bool AlertDialog::SelectAlert(const types::TextEventKey& key)
 
    setWindowTitle(QString::fromStdString(key.ToFullString()));
 
-   auto messages = manager::TextEventManager::Instance().message_list(key);
+   auto messages = p->textEventManager_->message_list(key);
    if (messages.empty())
    {
       return false;
@@ -107,15 +111,14 @@ bool AlertDialog::SelectAlert(const types::TextEventKey& key)
 
 void AlertDialogImpl::SelectIndex(size_t newIndex)
 {
-   size_t messageCount =
-      manager::TextEventManager::Instance().message_count(key_);
+   size_t messageCount = textEventManager_->message_count(key_);
 
    if (newIndex >= messageCount)
    {
       return;
    }
 
-   auto messages = manager::TextEventManager::Instance().message_list(key_);
+   auto messages = textEventManager_->message_list(key_);
 
    currentIndex_ = newIndex;
 
@@ -127,7 +130,7 @@ void AlertDialogImpl::SelectIndex(size_t newIndex)
 
 void AlertDialogImpl::UpdateAlertInfo()
 {
-   auto   messages = manager::TextEventManager::Instance().message_list(key_);
+   auto   messages     = textEventManager_->message_list(key_);
    size_t messageCount = messages.size();
 
    bool firstSelected = (currentIndex_ == 0u);
@@ -170,8 +173,7 @@ void AlertDialog::on_nextButton_clicked()
 
 void AlertDialog::on_lastButton_clicked()
 {
-   p->SelectIndex(manager::TextEventManager::Instance().message_count(p->key_) -
-                  1u);
+   p->SelectIndex(p->textEventManager_->message_count(p->key_) - 1u);
 }
 
 #include "alert_dialog.moc"

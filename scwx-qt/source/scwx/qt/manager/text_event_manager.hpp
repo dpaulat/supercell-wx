@@ -29,7 +29,7 @@ public:
 
    void LoadFile(const std::string& filename);
 
-   static TextEventManager& Instance();
+   static std::shared_ptr<TextEventManager> Instance();
 
 signals:
    void AlertUpdated(const types::TextEventKey& key, size_t messageIndex);

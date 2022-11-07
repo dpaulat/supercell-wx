@@ -1,10 +1,13 @@
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/awips/text_product_file.hpp>
+#include <scwx/provider/warnings_provider.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
 
 #include <shared_mutex>
 #include <unordered_map>
+
+#include <boost/asio/steady_timer.hpp>
 
 namespace scwx
 {
@@ -16,25 +19,44 @@ namespace manager
 static const std::string logPrefix_ = "scwx::qt::manager::text_event_manager";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+static const std::string& kDefaultWarningsProviderUrl {
+   "https://warnings.allisonhouse.com"};
+
 class TextEventManager::Impl
 {
 public:
    explicit Impl(TextEventManager* self) :
-       self_ {self}, textEventMap_ {}, textEventMutex_ {}
+       self_ {self},
+       refreshTimer_ {util::io_context()},
+       refreshMutex_ {},
+       textEventMap_ {},
+       textEventMutex_ {},
+       warningsProvider_ {kDefaultWarningsProviderUrl}
    {
+      util::async([=]() { Refresh(); });
    }
 
-   ~Impl() {}
+   ~Impl()
+   {
+      std::unique_lock lock(refreshMutex_);
+      refreshTimer_.cancel();
+   }
 
    void HandleMessage(std::shared_ptr<awips::TextProductMessage> message);
+   void Refresh();
 
    TextEventManager* self_;
+
+   boost::asio::steady_timer refreshTimer_;
+   std::mutex                refreshMutex_;
 
    std::unordered_map<types::TextEventKey,
                       std::vector<std::shared_ptr<awips::TextProductMessage>>,
                       types::TextEventHash<types::TextEventKey>>
                      textEventMap_;
    std::shared_mutex textEventMutex_;
+
+   provider::WarningsProvider warningsProvider_;
 };
 
 TextEventManager::TextEventManager() : p(std::make_unique<Impl>(this)) {}
@@ -159,10 +181,74 @@ void TextEventManager::Impl::HandleMessage(
    }
 }
 
-TextEventManager& TextEventManager::Instance()
+void TextEventManager::Impl::Refresh()
 {
-   static TextEventManager textEventManager_ {};
-   return textEventManager_;
+   using namespace std::chrono;
+
+   logger_->trace("Refresh");
+
+   // Take a unique lock before refreshing
+   std::unique_lock lock(refreshMutex_);
+
+   // Set threshold to last 30 hours
+   auto newerThan = std::chrono::system_clock::now() - 30h;
+
+   // Update the file listing from the warnings provider
+   auto [newFiles, totalFiles] = warningsProvider_.ListFiles(newerThan);
+
+   if (newFiles > 0)
+   {
+      // Load new files
+      auto updatedFiles = warningsProvider_.LoadUpdatedFiles(newerThan);
+
+      // Handle messages
+      for (auto& file : updatedFiles)
+      {
+         for (auto& message : file->messages())
+         {
+            HandleMessage(message);
+         }
+      }
+   }
+
+   // Schedule another update in 15 seconds
+   using namespace std::chrono;
+   refreshTimer_.expires_after(15s);
+   refreshTimer_.async_wait(
+      [=](const boost::system::error_code& e)
+      {
+         if (e == boost::asio::error::operation_aborted)
+         {
+            logger_->debug("Refresh timer cancelled");
+         }
+         else if (e != boost::system::errc::success)
+         {
+            logger_->warn("Refresh timer error: {}", e.message());
+         }
+         else
+         {
+            Refresh();
+         }
+      });
+}
+
+std::shared_ptr<TextEventManager> TextEventManager::Instance()
+{
+   static std::weak_ptr<TextEventManager> textEventManagerReference_ {};
+   static std::mutex                      instanceMutex_ {};
+
+   std::unique_lock lock(instanceMutex_);
+
+   std::shared_ptr<TextEventManager> textEventManager =
+      textEventManagerReference_.lock();
+
+   if (textEventManager == nullptr)
+   {
+      textEventManager           = std::make_shared<TextEventManager>();
+      textEventManagerReference_ = textEventManager;
+   }
+
+   return textEventManager;
 }
 
 } // namespace manager
