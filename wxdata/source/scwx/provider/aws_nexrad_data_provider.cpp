@@ -49,6 +49,7 @@ public:
        client_ {nullptr},
        objects_ {},
        objectsMutex_ {},
+       objectDates_ {},
        lastModified_ {},
        updatePeriod_ {}
    {
