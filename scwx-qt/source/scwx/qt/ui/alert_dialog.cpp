@@ -152,6 +152,10 @@ void AlertDialogImpl::UpdateAlertInfo()
       centroid_ =
          common::GetCentroid(alertSegment->codedLocation_->coordinates());
    }
+   else
+   {
+      centroid_ = common::Coordinate {};
+   }
 
    goButton_->setEnabled(centroid_ != common::Coordinate {});
 }
