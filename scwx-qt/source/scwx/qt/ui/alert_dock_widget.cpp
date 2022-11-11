@@ -3,11 +3,10 @@
 
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/model/alert_model.hpp>
+#include <scwx/qt/model/alert_proxy_model.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/ui/alert_dialog.hpp>
 #include <scwx/util/logger.hpp>
-
-#include <QSortFilterProxyModel>
 
 namespace scwx
 {
@@ -27,7 +26,7 @@ public:
        self_ {self},
        textEventManager_ {manager::TextEventManager::Instance()},
        alertModel_ {std::make_unique<model::AlertModel>()},
-       proxyModel_ {std::make_unique<QSortFilterProxyModel>()},
+       proxyModel_ {std::make_unique<model::AlertProxyModel>()},
        alertDialog_ {new AlertDialog(self)},
        mapPosition_ {},
        mapUpdateDeferred_ {false},
@@ -46,7 +45,7 @@ public:
    AlertDockWidget*                           self_;
    std::shared_ptr<manager::TextEventManager> textEventManager_;
    std::unique_ptr<model::AlertModel>         alertModel_;
-   std::unique_ptr<QSortFilterProxyModel>     proxyModel_;
+   std::unique_ptr<model::AlertProxyModel>    proxyModel_;
 
    AlertDialog* alertDialog_;
 
@@ -65,6 +64,9 @@ AlertDockWidget::AlertDockWidget(QWidget* parent) :
    ui->setupUi(this);
 
    ui->alertView->setModel(p->proxyModel_.get());
+   ui->alertView->header()->setSortIndicator(
+      static_cast<int>(model::AlertModel::Column::Distance),
+      Qt::AscendingOrder);
 
    ui->alertSettings->addAction(ui->actionActiveAlerts);
 
@@ -72,6 +74,9 @@ AlertDockWidget::AlertDockWidget(QWidget* parent) :
    ui->alertGoButton->setEnabled(false);
 
    p->ConnectSignals();
+
+   // Check Active Alerts and trigger signal
+   ui->actionActiveAlerts->trigger();
 }
 
 AlertDockWidget::~AlertDockWidget()
@@ -111,6 +116,10 @@ void AlertDockWidgetImpl::ConnectSignals()
            &QLineEdit::textChanged,
            proxyModel_.get(),
            &QSortFilterProxyModel::setFilterWildcard);
+   connect(self_->ui->actionActiveAlerts,
+           &QAction::triggered,
+           proxyModel_.get(),
+           &model::AlertProxyModel::SetAlertActiveFilter);
    connect(textEventManager_.get(),
            &manager::TextEventManager::AlertUpdated,
            alertModel_.get(),

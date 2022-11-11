@@ -21,18 +21,10 @@ namespace model
 static const std::string logPrefix_ = "scwx::qt::model::alert_model";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static constexpr size_t kColumnEtn          = 0u;
-static constexpr size_t kColumnOfficeId     = 1u;
-static constexpr size_t kColumnPhenomenon   = 2u;
-static constexpr size_t kColumnSignificance = 3u;
-static constexpr size_t kColumnState        = 4u;
-static constexpr size_t kColumnCounties     = 5u;
-static constexpr size_t kColumnStartTime    = 6u;
-static constexpr size_t kColumnEndTime      = 7u;
-static constexpr size_t kColumnDistance     = 8u;
-static constexpr size_t kFirstColumn        = kColumnEtn;
-static constexpr size_t kLastColumn         = kColumnDistance;
-static constexpr size_t kNumColumns         = 9u;
+static constexpr int kFirstColumn = static_cast<int>(AlertModel::Column::Etn);
+static constexpr int kLastColumn =
+   static_cast<int>(AlertModel::Column::Distance);
+static const int kNumColumns = 9;
 
 class AlertModelImpl
 {
@@ -42,8 +34,10 @@ public:
 
    static std::string GetCounties(const types::TextEventKey& key);
    static std::string GetState(const types::TextEventKey& key);
-   static std::string GetStartTime(const types::TextEventKey& key);
-   static std::string GetEndTime(const types::TextEventKey& key);
+   static std::string GetStartTimeString(const types::TextEventKey& key);
+   static std::chrono::system_clock::time_point
+                      GetEndTime(const types::TextEventKey& key);
+   static std::string GetEndTimeString(const types::TextEventKey& key);
 
    std::shared_ptr<manager::TextEventManager> textEventManager_;
 
@@ -95,7 +89,7 @@ int AlertModel::rowCount(const QModelIndex& parent) const
 
 int AlertModel::columnCount(const QModelIndex& parent) const
 {
-   return parent.isValid() ? 0 : static_cast<int>(kNumColumns);
+   return parent.isValid() ? 0 : kNumColumns;
 }
 
 QVariant AlertModel::data(const QModelIndex& index, int role) const
@@ -108,28 +102,44 @@ QVariant AlertModel::data(const QModelIndex& index, int role) const
 
       switch (index.column())
       {
-      case kColumnEtn:
+      case static_cast<int>(Column::Etn):
          return textEventKey.etn_;
-      case kColumnOfficeId:
+
+      case static_cast<int>(Column::OfficeId):
          return QString::fromStdString(textEventKey.officeId_);
-      case kColumnPhenomenon:
+
+      case static_cast<int>(Column::Phenomenon):
          return QString::fromStdString(
             awips::GetPhenomenonText(textEventKey.phenomenon_));
-      case kColumnSignificance:
+
+      case static_cast<int>(Column::Significance):
          return QString::fromStdString(
             awips::GetSignificanceText(textEventKey.significance_));
-      case kColumnState:
+
+      case static_cast<int>(Column::State):
          return QString::fromStdString(AlertModelImpl::GetState(textEventKey));
-      case kColumnCounties:
+
+      case static_cast<int>(Column::Counties):
          return QString::fromStdString(
             AlertModelImpl::GetCounties(textEventKey));
-      case kColumnStartTime:
+
+      case static_cast<int>(Column::StartTime):
          return QString::fromStdString(
-            AlertModelImpl::GetStartTime(textEventKey));
-      case kColumnEndTime:
-         return QString::fromStdString(
-            AlertModelImpl::GetEndTime(textEventKey));
-      case kColumnDistance:
+            AlertModelImpl::GetStartTimeString(textEventKey));
+
+      case static_cast<int>(Column::EndTime):
+         if (role == Qt::DisplayRole)
+         {
+            return QString::fromStdString(
+               AlertModelImpl::GetEndTimeString(textEventKey));
+         }
+         else
+         {
+            return QVariant::fromValue(
+               AlertModelImpl::GetEndTime(textEventKey));
+         }
+
+      case static_cast<int>(Column::Distance):
          if (role == Qt::DisplayRole)
          {
             if (p->distanceDisplay_ == scwx::common::DistanceType::Miles)
@@ -149,6 +159,7 @@ QVariant AlertModel::data(const QModelIndex& index, int role) const
          {
             return p->distanceMap_.at(textEventKey);
          }
+
       default:
          break;
       }
@@ -166,24 +177,33 @@ AlertModel::headerData(int section, Qt::Orientation orientation, int role) const
       {
          switch (section)
          {
-         case kColumnEtn:
+         case static_cast<int>(Column::Etn):
             return tr("ETN");
-         case kColumnOfficeId:
+
+         case static_cast<int>(Column::OfficeId):
             return tr("Office ID");
-         case kColumnPhenomenon:
+
+         case static_cast<int>(Column::Phenomenon):
             return tr("Phenomenon");
-         case kColumnSignificance:
+
+         case static_cast<int>(Column::Significance):
             return tr("Significance");
-         case kColumnState:
+
+         case static_cast<int>(Column::State):
             return tr("State");
-         case kColumnCounties:
+
+         case static_cast<int>(Column::Counties):
             return tr("Counties / Areas");
-         case kColumnStartTime:
+
+         case static_cast<int>(Column::StartTime):
             return tr("Start Time");
-         case kColumnEndTime:
+
+         case static_cast<int>(Column::EndTime):
             return tr("End Time");
-         case kColumnDistance:
+
+         case static_cast<int>(Column::Distance):
             return tr("Distance");
+
          default:
             break;
          }
@@ -267,8 +287,9 @@ void AlertModel::HandleMapUpdate(double latitude, double longitude)
 
    p->previousPosition_ = {latitude, longitude};
 
-   QModelIndex topLeft     = createIndex(0, kColumnDistance);
-   QModelIndex bottomRight = createIndex(rowCount() - 1, kColumnDistance);
+   QModelIndex topLeft = createIndex(0, static_cast<int>(Column::Distance));
+   QModelIndex bottomRight =
+      createIndex(rowCount() - 1, static_cast<int>(Column::Distance));
 
    emit dataChanged(topLeft, bottomRight);
 }
@@ -312,7 +333,7 @@ std::string AlertModelImpl::GetState(const types::TextEventKey& key)
    return util::ToString(lastSegment->header_->ugc_.states());
 }
 
-std::string AlertModelImpl::GetStartTime(const types::TextEventKey& key)
+std::string AlertModelImpl::GetStartTimeString(const types::TextEventKey& key)
 {
    auto  messageList = manager::TextEventManager::Instance()->message_list(key);
    auto& firstMessage = messageList.front();
@@ -321,14 +342,19 @@ std::string AlertModelImpl::GetStartTime(const types::TextEventKey& key)
       firstSegment->header_->vtecString_[0].pVtec_.event_begin());
 }
 
-std::string AlertModelImpl::GetEndTime(const types::TextEventKey& key)
+std::chrono::system_clock::time_point
+AlertModelImpl::GetEndTime(const types::TextEventKey& key)
 {
    auto  messageList = manager::TextEventManager::Instance()->message_list(key);
    auto& lastMessage = messageList.back();
    size_t segmentCount = lastMessage->segment_count();
    auto   lastSegment  = lastMessage->segment(segmentCount - 1);
-   return util::TimeString(
-      lastSegment->header_->vtecString_[0].pVtec_.event_end());
+   return lastSegment->header_->vtecString_[0].pVtec_.event_end();
+}
+
+std::string AlertModelImpl::GetEndTimeString(const types::TextEventKey& key)
+{
+   return util::TimeString(GetEndTime(key));
 }
 
 } // namespace model

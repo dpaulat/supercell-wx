@@ -2,6 +2,7 @@
 
 #include <scwx/qt/types/text_event_key.hpp>
 #include <scwx/common/geographic.hpp>
+#include <scwx/util/iterator.hpp>
 
 #include <memory>
 
@@ -19,6 +20,20 @@ class AlertModelImpl;
 class AlertModel : public QAbstractTableModel
 {
 public:
+   enum class Column : int
+   {
+      Etn          = 0,
+      OfficeId     = 1,
+      Phenomenon   = 2,
+      Significance = 3,
+      State        = 4,
+      Counties     = 5,
+      StartTime    = 6,
+      EndTime      = 7,
+      Distance     = 8
+   };
+   typedef util::Iterator<Column, Column::Etn, Column::Distance> ColumnIterator;
+
    explicit AlertModel(QObject* parent = nullptr);
    ~AlertModel();
 
