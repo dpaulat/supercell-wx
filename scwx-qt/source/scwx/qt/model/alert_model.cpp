@@ -34,6 +34,8 @@ public:
 
    static std::string GetCounties(const types::TextEventKey& key);
    static std::string GetState(const types::TextEventKey& key);
+   static std::chrono::system_clock::time_point
+                      GetStartTime(const types::TextEventKey& key);
    static std::string GetStartTimeString(const types::TextEventKey& key);
    static std::chrono::system_clock::time_point
                       GetEndTime(const types::TextEventKey& key);
@@ -96,7 +98,10 @@ QVariant AlertModel::data(const QModelIndex& index, int role) const
 {
    if (index.isValid() && index.row() >= 0 &&
        index.row() < p->textEventKeys_.size() &&
-       (role == Qt::DisplayRole || role == types::SortRole))
+       (role == Qt::DisplayRole || role == types::SortRole ||
+        (role == types::TimePointRole &&
+         (index.column() == static_cast<int>(Column::StartTime) ||
+          index.column() == static_cast<int>(Column::EndTime)))))
    {
       const auto& textEventKey = p->textEventKeys_.at(index.row());
 
@@ -124,19 +129,27 @@ QVariant AlertModel::data(const QModelIndex& index, int role) const
             AlertModelImpl::GetCounties(textEventKey));
 
       case static_cast<int>(Column::StartTime):
-         return QString::fromStdString(
-            AlertModelImpl::GetStartTimeString(textEventKey));
-
-      case static_cast<int>(Column::EndTime):
-         if (role == Qt::DisplayRole)
+         if (role == types::TimePointRole)
          {
-            return QString::fromStdString(
-               AlertModelImpl::GetEndTimeString(textEventKey));
+            return QVariant::fromValue(
+               AlertModelImpl::GetStartTime(textEventKey));
          }
          else
          {
+            return QString::fromStdString(
+               AlertModelImpl::GetStartTimeString(textEventKey));
+         }
+
+      case static_cast<int>(Column::EndTime):
+         if (role == types::TimePointRole)
+         {
             return QVariant::fromValue(
                AlertModelImpl::GetEndTime(textEventKey));
+         }
+         else
+         {
+            return QString::fromStdString(
+               AlertModelImpl::GetEndTimeString(textEventKey));
          }
 
       case static_cast<int>(Column::Distance):
@@ -333,13 +346,18 @@ std::string AlertModelImpl::GetState(const types::TextEventKey& key)
    return util::ToString(lastSegment->header_->ugc_.states());
 }
 
-std::string AlertModelImpl::GetStartTimeString(const types::TextEventKey& key)
+std::chrono::system_clock::time_point
+AlertModelImpl::GetStartTime(const types::TextEventKey& key)
 {
    auto  messageList = manager::TextEventManager::Instance()->message_list(key);
    auto& firstMessage = messageList.front();
    auto  firstSegment = firstMessage->segment(0);
-   return util::TimeString(
-      firstSegment->header_->vtecString_[0].pVtec_.event_begin());
+   return firstSegment->header_->vtecString_[0].pVtec_.event_begin();
+}
+
+std::string AlertModelImpl::GetStartTimeString(const types::TextEventKey& key)
+{
+   return util::TimeString(GetStartTime(key));
 }
 
 std::chrono::system_clock::time_point

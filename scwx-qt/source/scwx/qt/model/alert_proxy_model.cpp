@@ -49,7 +49,7 @@ bool AlertProxyModel::filterAcceptsRow(int                sourceRow,
 
       // Get source end time
       auto endTime = sourceModel()
-                        ->data(endTimeIndex, qt::types::SortRole)
+                        ->data(endTimeIndex, types::TimePointRole)
                         .value<std::chrono::system_clock::time_point>();
 
       // Compare end time to current
