@@ -76,7 +76,7 @@ AlertDockWidget::AlertDockWidget(QWidget* parent) :
    p->ConnectSignals();
 
    // Check Active Alerts and trigger signal
-   ui->actionActiveAlerts->trigger();
+   ui->actionActiveAlerts->setChecked(true);
 }
 
 AlertDockWidget::~AlertDockWidget()
@@ -117,7 +117,7 @@ void AlertDockWidgetImpl::ConnectSignals()
            proxyModel_.get(),
            &QSortFilterProxyModel::setFilterWildcard);
    connect(self_->ui->actionActiveAlerts,
-           &QAction::triggered,
+           &QAction::toggled,
            proxyModel_.get(),
            &model::AlertProxyModel::SetAlertActiveFilter);
    connect(textEventManager_.get(),
