@@ -2,7 +2,6 @@
 
 #include <scwx/qt/types/text_event_key.hpp>
 #include <scwx/common/geographic.hpp>
-#include <scwx/util/iterator.hpp>
 
 #include <memory>
 
@@ -32,7 +31,6 @@ public:
       EndTime      = 7,
       Distance     = 8
    };
-   typedef util::Iterator<Column, Column::Etn, Column::Distance> ColumnIterator;
 
    explicit AlertModel(QObject* parent = nullptr);
    ~AlertModel();

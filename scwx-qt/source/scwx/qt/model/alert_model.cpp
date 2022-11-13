@@ -10,6 +10,8 @@
 #include <format>
 
 #include <GeographicLib/Geodesic.hpp>
+#include <QApplication>
+#include <QFontMetrics>
 
 namespace scwx
 {
@@ -24,7 +26,7 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static constexpr int kFirstColumn = static_cast<int>(AlertModel::Column::Etn);
 static constexpr int kLastColumn =
    static_cast<int>(AlertModel::Column::Distance);
-static const int kNumColumns = 9;
+static constexpr int kNumColumns = kLastColumn - kFirstColumn + 1;
 
 class AlertModelImpl
 {
@@ -96,15 +98,17 @@ int AlertModel::columnCount(const QModelIndex& parent) const
 
 QVariant AlertModel::data(const QModelIndex& index, int role) const
 {
-   if (index.isValid() && index.row() >= 0 &&
-       index.row() < p->textEventKeys_.size() &&
-       (role == Qt::DisplayRole || role == types::SortRole ||
-        (role == types::TimePointRole &&
-         (index.column() == static_cast<int>(Column::StartTime) ||
-          index.column() == static_cast<int>(Column::EndTime)))))
+   if (!index.isValid() || index.row() < 0 ||
+       index.row() >= p->textEventKeys_.size())
    {
-      const auto& textEventKey = p->textEventKeys_.at(index.row());
+      return QVariant();
+   }
 
+   const auto& textEventKey = p->textEventKeys_.at(index.row());
+
+   if (role == Qt::ItemDataRole::DisplayRole ||
+       role == types::ItemDataRole::SortRole)
+   {
       switch (index.column())
       {
       case static_cast<int>(Column::Etn):
@@ -129,28 +133,12 @@ QVariant AlertModel::data(const QModelIndex& index, int role) const
             AlertModelImpl::GetCounties(textEventKey));
 
       case static_cast<int>(Column::StartTime):
-         if (role == types::TimePointRole)
-         {
-            return QVariant::fromValue(
-               AlertModelImpl::GetStartTime(textEventKey));
-         }
-         else
-         {
-            return QString::fromStdString(
-               AlertModelImpl::GetStartTimeString(textEventKey));
-         }
+         return QString::fromStdString(
+            AlertModelImpl::GetStartTimeString(textEventKey));
 
       case static_cast<int>(Column::EndTime):
-         if (role == types::TimePointRole)
-         {
-            return QVariant::fromValue(
-               AlertModelImpl::GetEndTime(textEventKey));
-         }
-         else
-         {
-            return QString::fromStdString(
-               AlertModelImpl::GetEndTimeString(textEventKey));
-         }
+         return QString::fromStdString(
+            AlertModelImpl::GetEndTimeString(textEventKey));
 
       case static_cast<int>(Column::Distance):
          if (role == Qt::DisplayRole)
@@ -172,6 +160,20 @@ QVariant AlertModel::data(const QModelIndex& index, int role) const
          {
             return p->distanceMap_.at(textEventKey);
          }
+
+      default:
+         break;
+      }
+   }
+   else if (role == types::ItemDataRole::TimePointRole)
+   {
+      switch (index.column())
+      {
+      case static_cast<int>(Column::StartTime):
+         return QVariant::fromValue(AlertModelImpl::GetStartTime(textEventKey));
+
+      case static_cast<int>(Column::EndTime):
+         return QVariant::fromValue(AlertModelImpl::GetEndTime(textEventKey));
 
       default:
          break;
@@ -220,6 +222,51 @@ AlertModel::headerData(int section, Qt::Orientation orientation, int role) const
          default:
             break;
          }
+      }
+   }
+   else if (role == Qt::ItemDataRole::SizeHintRole)
+   {
+      static const QFontMetrics fontMetrics(QApplication::font());
+
+      QSize contentsSize {};
+
+      switch (section)
+      {
+      case static_cast<int>(Column::Etn):
+         contentsSize = fontMetrics.size(0, "0000"); // 24x16
+         break;
+
+      case static_cast<int>(Column::Phenomenon):
+         contentsSize = fontMetrics.size(0, QString(10, 'W'));
+         break;
+
+      case static_cast<int>(Column::State):
+         contentsSize = fontMetrics.size(0, "WW, WW");
+         break;
+
+      case static_cast<int>(Column::Counties):
+         contentsSize = fontMetrics.size(0, QString(15, 'W'));
+         break;
+
+      case static_cast<int>(Column::StartTime):
+      case static_cast<int>(Column::EndTime):
+         contentsSize = fontMetrics.size(0, "0000-00-00 00:00:00");
+         break;
+
+      case static_cast<int>(Column::Distance):
+         contentsSize = fontMetrics.size(0, "00000 km");
+         break;
+
+      default:
+         break;
+      }
+
+      if (contentsSize != QSize {})
+      {
+         // Add padding
+         // TODO: Ideally, derived using the current style, but how?
+         contentsSize += QSize(12, 8);
+         return QVariant(contentsSize);
       }
    }
 

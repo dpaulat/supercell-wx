@@ -67,6 +67,8 @@ AlertDockWidget::AlertDockWidget(QWidget* parent) :
    ui->alertView->header()->setSortIndicator(
       static_cast<int>(model::AlertModel::Column::Distance),
       Qt::AscendingOrder);
+   ui->alertView->header()->resizeSections(
+      QHeaderView::ResizeMode::ResizeToContents);
 
    ui->alertSettings->addAction(ui->actionActiveAlerts);
 
