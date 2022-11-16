@@ -3,6 +3,7 @@
 #include "main_window.hpp"
 #include "./ui_main_window.h"
 
+#include <scwx/qt/main/application.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
@@ -207,6 +208,8 @@ MainWindow::MainWindow(QWidget* parent) :
    p->ConnectMapSignals();
    p->ConnectOtherSignals();
    p->HandleFocusChange(p->activeMap_);
+
+   Application::FinishInitialization();
 }
 
 MainWindow::~MainWindow()

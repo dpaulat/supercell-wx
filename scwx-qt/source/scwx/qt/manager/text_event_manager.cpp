@@ -1,4 +1,5 @@
 #include <scwx/qt/manager/text_event_manager.hpp>
+#include <scwx/qt/main/application.hpp>
 #include <scwx/awips/text_product_file.hpp>
 #include <scwx/provider/warnings_provider.hpp>
 #include <scwx/util/logger.hpp>
@@ -33,7 +34,13 @@ public:
        textEventMutex_ {},
        warningsProvider_ {kDefaultWarningsProviderUrl}
    {
-      util::async([=]() { Refresh(); });
+      util::async(
+         [=]()
+         {
+            main::Application::WaitForInitialization();
+            logger_->debug("Start Refresh");
+            Refresh();
+         });
    }
 
    ~Impl()
