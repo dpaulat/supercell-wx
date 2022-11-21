@@ -13,6 +13,8 @@
 #include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 
+#include <backends/imgui_impl_opengl3.h>
+#include <imgui.h>
 #include <QApplication>
 #include <QColor>
 #include <QDebug>
@@ -682,10 +684,24 @@ void MapWidget::initializeGL()
 void MapWidget::paintGL()
 {
    p->frameDraws_++;
+
+   // Setup ImGui Frame
+   ImGui::GetIO().DisplaySize = {static_cast<float>(size().width()),
+                                 static_cast<float>(size().height())};
+
+   // Start ImGui Frame
+   ImGui_ImplOpenGL3_NewFrame();
+   ImGui::NewFrame();
+
+   // Render QMapLibreGL Map
    p->map_->resize(size());
    p->map_->setFramebufferObject(defaultFramebufferObject(),
                                  size() * pixelRatio());
    p->map_->render();
+
+   // Render ImGui Frame
+   ImGui::Render();
+   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void MapWidget::mapChanged(QMapLibreGL::Map::MapChange mapChange)

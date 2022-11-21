@@ -8,7 +8,8 @@ namespace manager
 {
 namespace ResourceManager
 {
-void PreLoad();
+void Initialize();
+void Shutdown();
 } // namespace ResourceManager
 } // namespace manager
 } // namespace qt

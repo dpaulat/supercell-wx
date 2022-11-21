@@ -21,6 +21,8 @@ int main(int argc, char* argv[])
    scwx::util::Logger::Initialize();
    spdlog::set_level(spdlog::level::debug);
 
+   QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts, true);
+
    QApplication a(argc, argv);
 
    QCoreApplication::setApplicationName("Supercell Wx");
@@ -61,7 +63,7 @@ int main(int argc, char* argv[])
    // Initialize application
    scwx::qt::config::RadarSite::Initialize();
    scwx::qt::manager::SettingsManager::Initialize();
-   scwx::qt::manager::ResourceManager::PreLoad();
+   scwx::qt::manager::ResourceManager::Initialize();
 
    // Run Qt main loop
    int result;
@@ -77,6 +79,9 @@ int main(int argc, char* argv[])
    // Gracefully stop the io_context main loop
    work.reset();
    threadPool.join();
+
+   // Shutdown application
+   scwx::qt::manager::ResourceManager::Shutdown();
 
    // Shutdown AWS SDK
    Aws::ShutdownAPI(awsSdkOptions);
