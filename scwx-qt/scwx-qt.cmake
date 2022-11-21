@@ -293,6 +293,7 @@ endif()
 
 target_include_directories(scwx-qt PUBLIC ${scwx-qt_SOURCE_DIR}/source
                                           ${FTGL_INCLUDE_DIR}
+                                          ${IMGUI_INCLUDE_DIR}
                                           ${MBGL_INCLUDE_DIR}
                                           ${STB_INCLUDE_DIR})
 
@@ -316,6 +317,7 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      freetype-gl
                                      GeographicLib::GeographicLib
                                      glm::glm
+                                     imgui
                                      SQLite::SQLite3
                                      wxdata)
 
