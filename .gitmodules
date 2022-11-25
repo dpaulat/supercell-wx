@@ -22,3 +22,6 @@
 [submodule "external/imgui"]
 	path = external/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "external/imgui-backend-qt"]
+	path = external/imgui-backend-qt
+	url = ../imgui-backend-qt

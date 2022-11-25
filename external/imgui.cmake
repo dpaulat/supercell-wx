@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 3.20)
 set(PROJECT_NAME scwx-imgui)
 
+find_package(QT NAMES Qt6
+             COMPONENTS Gui
+                        Widgets
+             REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR}
+             COMPONENTS Gui
+                        Widgets
+             REQUIRED)
+
 set(IMGUI_SOURCES imgui/imconfig.h
                   imgui/imgui.cpp
                   imgui/imgui.h
@@ -13,12 +22,18 @@ set(IMGUI_SOURCES imgui/imconfig.h
                   imgui/imstb_textedit.h
                   imgui/imstb_truetype.h
                   imgui/backends/imgui_impl_opengl3.cpp
-                  imgui/backends/imgui_impl_opengl3.h)
+                  imgui/backends/imgui_impl_opengl3.h
+                  imgui-backend-qt/backends/imgui_impl_qt.cpp
+                  imgui-backend-qt/backends/imgui_impl_qt.hpp)
 
 add_library(imgui STATIC ${IMGUI_SOURCES})
 
 target_include_directories(imgui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
 
-set(IMGUI_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui PARENT_SCOPE)
+target_link_libraries(imgui PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+
+set(IMGUI_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/imgui
+                       ${CMAKE_CURRENT_SOURCE_DIR}/imgui-backend-qt
+    PARENT_SCOPE)
 
 set_target_properties(imgui PROPERTIES FOLDER imgui)
