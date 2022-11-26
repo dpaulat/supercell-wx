@@ -5,6 +5,7 @@
 #include <scwx/util/logger.hpp>
 
 #include <backends/imgui_impl_opengl3.h>
+#include <backends/imgui_impl_qt.hpp>
 #include <imgui.h>
 #include <QOffscreenSurface>
 #include <QOpenGLContext>
@@ -53,8 +54,20 @@ static void InitializeImGui()
 
    // Initialize ImGui
    ImGui::CreateContext();
+   ImGui_ImplQt_Init();
    ImGui_ImplOpenGL3_Init();
    QOpenGLContext::globalShareContext()->doneCurrent();
+
+   // ImGui Configuration
+   auto& io = ImGui::GetIO();
+
+   // Disable automatic configuration loading/saving
+   io.IniFilename = nullptr;
+
+   // Style
+   auto& style = ImGui::GetStyle();
+
+   style.WindowMinSize = {10.0f, 10.0f};
 }
 
 static void LoadFonts()
@@ -77,6 +90,7 @@ static void ShutdownImGui()
 {
    QOpenGLContext::globalShareContext()->makeCurrent(surface_.get());
    ImGui_ImplOpenGL3_Shutdown();
+   ImGui_ImplQt_Shutdown();
    ImGui::DestroyContext();
    QOpenGLContext::globalShareContext()->doneCurrent();
 }

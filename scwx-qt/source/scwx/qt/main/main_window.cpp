@@ -11,6 +11,7 @@
 #include <scwx/qt/model/radar_product_model.hpp>
 #include <scwx/qt/ui/alert_dock_widget.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
+#include <scwx/qt/ui/imgui_debug_dialog.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
 #include <scwx/qt/ui/level3_products_widget.hpp>
@@ -49,6 +50,7 @@ public:
        level2SettingsWidget_ {nullptr},
        level3ProductsWidget_ {nullptr},
        alertDockWidget_ {nullptr},
+       imGuiDebugDialog_ {nullptr},
        radarSiteDialog_ {nullptr},
        radarProductModel_ {nullptr},
        textEventManager_ {manager::TextEventManager::Instance()},
@@ -109,8 +111,9 @@ public:
 
    ui::Level3ProductsWidget* level3ProductsWidget_;
 
-   ui::AlertDockWidget* alertDockWidget_;
-   ui::RadarSiteDialog* radarSiteDialog_;
+   ui::AlertDockWidget*  alertDockWidget_;
+   ui::ImGuiDebugDialog* imGuiDebugDialog_;
+   ui::RadarSiteDialog*  radarSiteDialog_;
 
    std::unique_ptr<model::RadarProductModel>  radarProductModel_;
    std::shared_ptr<manager::TextEventManager> textEventManager_;
@@ -195,6 +198,9 @@ MainWindow::MainWindow(QWidget* parent) :
    p->level2SettingsWidget_ = new ui::Level2SettingsWidget(ui->settingsFrame);
    ui->settingsFrame->layout()->addWidget(p->level2SettingsWidget_);
    p->level2SettingsWidget_->setVisible(false);
+
+   // ImGui Debug Dialog
+   p->imGuiDebugDialog_ = new ui::ImGuiDebugDialog(this);
 
    auto mapSettings = manager::SettingsManager::map_settings();
    for (size_t i = 0; i < p->maps_.size(); i++)
@@ -321,6 +327,11 @@ void MainWindow::on_actionOpenTextEvent_triggered()
 void MainWindow::on_actionExit_triggered()
 {
    close();
+}
+
+void MainWindow::on_actionImGuiDebug_triggered()
+{
+   p->imGuiDebugDialog_->show();
 }
 
 void MainWindow::on_radarSiteSelectButton_clicked()
