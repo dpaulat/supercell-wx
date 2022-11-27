@@ -1,5 +1,6 @@
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/gl/gl.hpp>
+#include <scwx/qt/manager/imgui_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/alert_layer.hpp>
@@ -61,7 +62,7 @@ public:
        settings_(settings),
        map_(),
        layerList_ {},
-       imGuiContext_ {ImGui::CreateContext()},
+       imGuiRendererInitialized_ {false},
        radarProductManager_ {nullptr},
        radarProductLayer_ {nullptr},
        alertLayer_ {std::make_shared<AlertLayer>(context_)},
@@ -82,14 +83,11 @@ public:
       SetRadarSite(scwx::qt::manager::SettingsManager::general_settings()
                       ->default_radar_site());
 
-      // Set ImGui Context
-      ImGui::SetCurrentContext(imGuiContext_);
-
-      // ImGui Configuration
-      auto& io = ImGui::GetIO();
-
-      // Disable automatic configuration loading/saving
-      io.IniFilename = nullptr;
+      // Create ImGui Context
+      static size_t currentMapId_ {0u};
+      imGuiContextName_ = std::format("Map {}", ++currentMapId_);
+      imGuiContext_ =
+         manager::ImGuiManager::Instance().CreateContext(imGuiContextName_);
 
       // Initialize ImGui Qt backend
       ImGui_ImplQt_Init();
@@ -102,9 +100,14 @@ public:
       ImGui::SetCurrentContext(imGuiContext_);
 
       // Shutdown ImGui Context
-      ImGui_ImplOpenGL3_Shutdown();
+      if (imGuiRendererInitialized_)
+      {
+         ImGui_ImplOpenGL3_Shutdown();
+      }
       ImGui_ImplQt_Shutdown();
-      ImGui::DestroyContext(imGuiContext_);
+
+      // Destroy ImGui Context
+      manager::ImGuiManager::Instance().DestroyContext(imGuiContextName_);
    }
 
    void AddLayer(const std::string&            id,
@@ -129,6 +132,8 @@ public:
    std::list<std::string>            layerList_;
 
    ImGuiContext* imGuiContext_;
+   std::string   imGuiContextName_;
+   bool          imGuiRendererInitialized_;
 
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
@@ -676,6 +681,7 @@ void MapWidget::initializeGL()
    // Initialize ImGui OpenGL3 backend
    ImGui::SetCurrentContext(p->imGuiContext_);
    ImGui_ImplOpenGL3_Init();
+   p->imGuiRendererInitialized_ = true;
 
    p->map_.reset(
       new QMapLibreGL::Map(nullptr, p->settings_, size(), pixelRatio()));

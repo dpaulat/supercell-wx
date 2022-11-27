@@ -1,4 +1,5 @@
 #include <scwx/qt/ui/imgui_debug_widget.hpp>
+#include <scwx/qt/manager/imgui_manager.hpp>
 
 #include <imgui.h>
 #include <backends/imgui_impl_opengl3.h>
@@ -16,17 +17,12 @@ static const std::string logPrefix_ = "scwx::qt::ui::imgui_debug_widget";
 class ImGuiDebugWidgetImpl
 {
 public:
-   explicit ImGuiDebugWidgetImpl(ImGuiDebugWidget* self) :
-       self_ {self}, context_ {ImGui::CreateContext()}
+   explicit ImGuiDebugWidgetImpl(ImGuiDebugWidget* self) : self_ {self}
    {
-      // Set ImGui Context
-      ImGui::SetCurrentContext(context_);
-
-      // ImGui Configuration
-      auto& io = ImGui::GetIO();
-
-      // Disable automatic configuration loading/saving
-      io.IniFilename = nullptr;
+      // Create ImGui Context
+      static size_t currentIndex_ {0u};
+      contextName_ = std::format("ImGui Debug {}", ++currentIndex_);
+      context_ = manager::ImGuiManager::Instance().CreateContext(contextName_);
 
       // Initialize ImGui Qt backend
       ImGui_ImplQt_Init();
@@ -39,15 +35,22 @@ public:
       ImGui::SetCurrentContext(context_);
 
       // Shutdown ImGui Context
-      ImGui_ImplOpenGL3_Shutdown();
+      if (imGuiRendererInitialized_)
+      {
+         ImGui_ImplOpenGL3_Shutdown();
+      }
       ImGui_ImplQt_Shutdown();
-      ImGui::DestroyContext(context_);
+
+      // Destroy ImGui Context
+      manager::ImGuiManager::Instance().DestroyContext(contextName_);
    }
 
    ImGuiDebugWidget* self_;
    ImGuiContext*     context_;
+   std::string       contextName_;
 
    bool firstRender_ {true};
+   bool imGuiRendererInitialized_ {false};
 };
 
 ImGuiDebugWidget::ImGuiDebugWidget(QWidget* parent) :
@@ -57,6 +60,8 @@ ImGuiDebugWidget::ImGuiDebugWidget(QWidget* parent) :
    setFocusPolicy(Qt::StrongFocus);
 }
 
+ImGuiDebugWidget::~ImGuiDebugWidget() {}
+
 void ImGuiDebugWidget::initializeGL()
 {
    makeCurrent();
@@ -64,6 +69,7 @@ void ImGuiDebugWidget::initializeGL()
    // Initialize ImGui OpenGL3 backend
    ImGui::SetCurrentContext(p->context_);
    ImGui_ImplOpenGL3_Init();
+   p->imGuiRendererInitialized_ = true;
 }
 
 void ImGuiDebugWidget::paintGL()
@@ -92,8 +98,6 @@ void ImGuiDebugWidget::paintGL()
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
-
-ImGuiDebugWidget::~ImGuiDebugWidget() {}
 
 } // namespace ui
 } // namespace qt
