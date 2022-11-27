@@ -27,6 +27,7 @@ static void LoadTextures();
 static void ShutdownImGui();
 
 static std::unique_ptr<QOffscreenSurface> surface_ {};
+static ImGuiContext*                      imGuiContext_ {};
 
 void Initialize()
 {
@@ -53,7 +54,7 @@ static void InitializeImGui()
    }
 
    // Initialize ImGui
-   ImGui::CreateContext();
+   imGuiContext_ = ImGui::CreateContext();
    ImGui_ImplQt_Init();
    ImGui_ImplOpenGL3_Init();
    QOpenGLContext::globalShareContext()->doneCurrent();
@@ -89,6 +90,7 @@ static void LoadTextures()
 static void ShutdownImGui()
 {
    QOpenGLContext::globalShareContext()->makeCurrent(surface_.get());
+   ImGui::SetCurrentContext(imGuiContext_);
    ImGui_ImplOpenGL3_Shutdown();
    ImGui_ImplQt_Shutdown();
    ImGui::DestroyContext();

@@ -14,6 +14,7 @@
 #include <scwx/util/time.hpp>
 
 #include <backends/imgui_impl_opengl3.h>
+#include <backends/imgui_impl_qt.hpp>
 #include <imgui.h>
 #include <QApplication>
 #include <QColor>
@@ -60,6 +61,7 @@ public:
        settings_(settings),
        map_(),
        layerList_ {},
+       imGuiContext_ {ImGui::CreateContext()},
        radarProductManager_ {nullptr},
        radarProductLayer_ {nullptr},
        alertLayer_ {std::make_shared<AlertLayer>(context_)},
@@ -79,8 +81,31 @@ public:
    {
       SetRadarSite(scwx::qt::manager::SettingsManager::general_settings()
                       ->default_radar_site());
+
+      // Set ImGui Context
+      ImGui::SetCurrentContext(imGuiContext_);
+
+      // ImGui Configuration
+      auto& io = ImGui::GetIO();
+
+      // Disable automatic configuration loading/saving
+      io.IniFilename = nullptr;
+
+      // Initialize ImGui Qt backend
+      ImGui_ImplQt_Init();
+      ImGui_ImplQt_RegisterWidget(widget_);
    }
-   ~MapWidgetImpl() = default;
+
+   ~MapWidgetImpl()
+   {
+      // Set ImGui Context
+      ImGui::SetCurrentContext(imGuiContext_);
+
+      // Shutdown ImGui Context
+      ImGui_ImplOpenGL3_Shutdown();
+      ImGui_ImplQt_Shutdown();
+      ImGui::DestroyContext(imGuiContext_);
+   }
 
    void AddLayer(const std::string&            id,
                  std::shared_ptr<GenericLayer> layer,
@@ -102,6 +127,8 @@ public:
    QMapLibreGL::Settings             settings_;
    std::shared_ptr<QMapLibreGL::Map> map_;
    std::list<std::string>            layerList_;
+
+   ImGuiContext* imGuiContext_;
 
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
@@ -136,6 +163,8 @@ MapWidget::MapWidget(const QMapLibreGL::Settings& settings) :
     p(std::make_unique<MapWidgetImpl>(this, settings))
 {
    setFocusPolicy(Qt::StrongFocus);
+
+   ImGui_ImplQt_RegisterWidget(this);
 }
 
 MapWidget::~MapWidget()
@@ -644,6 +673,10 @@ void MapWidget::initializeGL()
    makeCurrent();
    p->context_->gl().initializeOpenGLFunctions();
 
+   // Initialize ImGui OpenGL3 backend
+   ImGui::SetCurrentContext(p->imGuiContext_);
+   ImGui_ImplOpenGL3_Init();
+
    p->map_.reset(
       new QMapLibreGL::Map(nullptr, p->settings_, size(), pixelRatio()));
    p->context_->set_map(p->map_);
@@ -686,10 +719,10 @@ void MapWidget::paintGL()
    p->frameDraws_++;
 
    // Setup ImGui Frame
-   ImGui::GetIO().DisplaySize = {static_cast<float>(size().width()),
-                                 static_cast<float>(size().height())};
+   ImGui::SetCurrentContext(p->imGuiContext_);
 
    // Start ImGui Frame
+   ImGui_ImplQt_NewFrame(this);
    ImGui_ImplOpenGL3_NewFrame();
    ImGui::NewFrame();
 
