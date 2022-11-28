@@ -2,6 +2,8 @@
 
 #include <QOpenGLWidget>
 
+struct ImGuiContext;
+
 namespace Ui
 {
 class ImGuiDebugWidget;
@@ -24,6 +26,10 @@ private:
 public:
    explicit ImGuiDebugWidget(QWidget* parent = nullptr);
    ~ImGuiDebugWidget();
+
+   std::string context_name() const;
+
+   void set_current_context(ImGuiContext* context);
 
    void initializeGL() override;
    void paintGL() override;

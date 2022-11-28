@@ -1,4 +1,5 @@
 #include <scwx/qt/model/imgui_context_model.hpp>
+#include <scwx/qt/types/qt_types.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <imgui.h>
@@ -54,6 +55,28 @@ QVariant ImGuiContextModel::data(const QModelIndex& index, int role) const
       return QString("%1: %2")
          .arg(p->contexts_[row].id_)
          .arg(p->contexts_[row].name_.c_str());
+
+   case qt::types::ItemDataRole::RawDataRole:
+      QVariant variant {};
+      variant.setValue(p->contexts_[row]);
+      return variant;
+   }
+
+   return {};
+}
+
+QModelIndex ImGuiContextModel::IndexOf(const std::string& contextName) const
+{
+   // Find context from registry
+   auto it =
+      std::find_if(p->contexts_.begin(),
+                   p->contexts_.end(),
+                   [&](auto& info) { return info.name_ == contextName; });
+
+   if (it != p->contexts_.end())
+   {
+      const int row = it - p->contexts_.begin();
+      return createIndex(row, 0, nullptr);
    }
 
    return {};
@@ -105,11 +128,6 @@ void ImGuiContextModel::DestroyContext(const std::string& name)
       p->contexts_.erase(it);
       endRemoveRows();
    }
-}
-
-std::vector<ImGuiContextInfo> ImGuiContextModel::contexts() const
-{
-   return p->contexts_;
 }
 
 ImGuiContextModel& ImGuiContextModel::Instance()

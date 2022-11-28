@@ -40,10 +40,10 @@ public:
    QVariant data(const QModelIndex& index,
                  int                role = Qt::DisplayRole) const override;
 
+   QModelIndex IndexOf(const std::string& contextName) const;
+
    ImGuiContext* CreateContext(const std::string& name);
    void          DestroyContext(const std::string& name);
-
-   std::vector<ImGuiContextInfo> contexts() const;
 
    static ImGuiContextModel& Instance();
 

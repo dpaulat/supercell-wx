@@ -1,6 +1,8 @@
 #include <scwx/qt/ui/imgui_debug_widget.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
 
+#include <set>
+
 #include <imgui.h>
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_qt.hpp>
@@ -24,6 +26,7 @@ public:
       contextName_ = std::format("ImGui Debug {}", ++currentIndex_);
       context_ =
          model::ImGuiContextModel::Instance().CreateContext(contextName_);
+      currentContext_ = context_;
 
       // Initialize ImGui Qt backend
       ImGui_ImplQt_Init();
@@ -50,8 +53,10 @@ public:
    ImGuiContext*     context_;
    std::string       contextName_;
 
-   bool firstRender_ {true};
-   bool imGuiRendererInitialized_ {false};
+   ImGuiContext* currentContext_;
+
+   std::set<ImGuiContext*> renderedSet_ {};
+   bool                    imGuiRendererInitialized_ {false};
 };
 
 ImGuiDebugWidget::ImGuiDebugWidget(QWidget* parent) :
@@ -62,6 +67,17 @@ ImGuiDebugWidget::ImGuiDebugWidget(QWidget* parent) :
 }
 
 ImGuiDebugWidget::~ImGuiDebugWidget() {}
+
+std::string ImGuiDebugWidget::context_name() const
+{
+   return p->contextName_;
+}
+
+void ImGuiDebugWidget::set_current_context(ImGuiContext* context)
+{
+   p->currentContext_ = context;
+   update();
+}
 
 void ImGuiDebugWidget::initializeGL()
 {
@@ -75,14 +91,14 @@ void ImGuiDebugWidget::initializeGL()
 
 void ImGuiDebugWidget::paintGL()
 {
-   ImGui::SetCurrentContext(p->context_);
+   ImGui::SetCurrentContext(p->currentContext_);
 
    ImGui_ImplQt_NewFrame(this);
    ImGui_ImplOpenGL3_NewFrame();
 
    ImGui::NewFrame();
 
-   if (p->firstRender_)
+   if (!p->renderedSet_.contains(p->currentContext_))
    {
       // Set initial position of demo window
       ImGui::SetNextWindowPos(ImVec2 {width() / 2.0f, height() / 2.0f},
@@ -91,7 +107,8 @@ void ImGuiDebugWidget::paintGL()
       ImGui::Begin("Dear ImGui Demo");
       ImGui::End();
 
-      p->firstRender_ = false;
+      p->renderedSet_.insert(p->currentContext_);
+      update();
    }
 
    ImGui::ShowDemoWindow();

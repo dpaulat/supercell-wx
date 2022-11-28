@@ -2,6 +2,7 @@
 #include "ui_imgui_debug_dialog.h"
 
 #include <scwx/qt/model/imgui_context_model.hpp>
+#include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/ui/imgui_debug_widget.hpp>
 
 namespace scwx
@@ -36,7 +37,26 @@ ImGuiDebugDialog::ImGuiDebugDialog(QWidget* parent) :
    ui->verticalLayout->insertWidget(0, p->imGuiDebugWidget_);
 
    // Context Combo Box
-   ui->contextComboBox->setModel(&model::ImGuiContextModel::Instance());
+   auto& contextModel = model::ImGuiContextModel::Instance();
+   auto  index = contextModel.IndexOf(p->imGuiDebugWidget_->context_name());
+   ui->contextComboBox->setModel(&contextModel);
+   ui->contextComboBox->setCurrentIndex(index.row());
+
+   connect(
+      ui->contextComboBox,
+      &QComboBox::currentIndexChanged,
+      [=](int row)
+      {
+         auto& contextModel = model::ImGuiContextModel::Instance();
+         auto  index        = contextModel.index(row, 0);
+         if (index.isValid())
+         {
+            QVariant data = contextModel.data(index, qt::types::RawDataRole);
+            auto     contextInfo = data.value<model::ImGuiContextInfo>();
+
+            p->imGuiDebugWidget_->set_current_context(contextInfo.context_);
+         }
+      });
 }
 
 ImGuiDebugDialog::~ImGuiDebugDialog()
