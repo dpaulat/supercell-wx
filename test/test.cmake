@@ -21,7 +21,8 @@ set(SRC_PROVIDER_TESTS source/scwx/provider/aws_level2_data_provider.test.cpp
                        source/scwx/provider/warnings_provider.test.cpp)
 set(SRC_QT_CONFIG_TESTS source/scwx/qt/config/county_database.test.cpp
                         source/scwx/qt/config/radar_site.test.cpp)
-set(SRC_QT_MANAGER_TESTS source/scwx/qt/manager/settings_manager.test.cpp)
+set(SRC_QT_MANAGER_TESTS source/scwx/qt/manager/imgui_manager.test.cpp
+                         source/scwx/qt/manager/settings_manager.test.cpp)
 set(SRC_UTIL_TESTS source/scwx/util/float.test.cpp
                    source/scwx/util/rangebuf.test.cpp
                    source/scwx/util/streams.test.cpp

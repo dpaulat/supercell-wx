@@ -12,7 +12,8 @@ namespace types
 enum ItemDataRole
 {
    SortRole = Qt::UserRole,
-   TimePointRole
+   TimePointRole,
+   RawDataRole
 };
 
 } // namespace types

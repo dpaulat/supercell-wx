@@ -35,7 +35,7 @@
      <x>0</x>
      <y>0</y>
      <width>1024</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -67,8 +67,15 @@
     <addaction name="actionResourceExplorer"/>
     <addaction name="actionAlerts"/>
    </widget>
+   <widget class="QMenu" name="menuDebug">
+    <property name="title">
+     <string>&amp;Debug</string>
+    </property>
+    <addaction name="actionImGuiDebug"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
+   <addaction name="menuDebug"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -340,6 +347,11 @@
   <action name="actionAlerts">
    <property name="text">
     <string>&amp;Alerts</string>
+   </property>
+  </action>
+  <action name="actionImGuiDebug">
+   <property name="text">
+    <string>&amp;ImGui Debug</string>
    </property>
   </action>
  </widget>

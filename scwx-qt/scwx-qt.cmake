@@ -93,12 +93,14 @@ set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp)
 set(HDR_MODEL source/scwx/qt/model/alert_model.hpp
               source/scwx/qt/model/alert_proxy_model.hpp
+              source/scwx/qt/model/imgui_context_model.hpp
               source/scwx/qt/model/radar_product_model.hpp
               source/scwx/qt/model/radar_site_model.hpp
               source/scwx/qt/model/tree_item.hpp
               source/scwx/qt/model/tree_model.hpp)
 set(SRC_MODEL source/scwx/qt/model/alert_model.cpp
               source/scwx/qt/model/alert_proxy_model.cpp
+              source/scwx/qt/model/imgui_context_model.cpp
               source/scwx/qt/model/radar_product_model.cpp
               source/scwx/qt/model/radar_site_model.cpp
               source/scwx/qt/model/tree_item.cpp
@@ -119,6 +121,8 @@ set(SRC_TYPES source/scwx/qt/types/radar_product_record.cpp
 set(HDR_UI source/scwx/qt/ui/alert_dialog.hpp
            source/scwx/qt/ui/alert_dock_widget.hpp
            source/scwx/qt/ui/flow_layout.hpp
+           source/scwx/qt/ui/imgui_debug_dialog.hpp
+           source/scwx/qt/ui/imgui_debug_widget.hpp
            source/scwx/qt/ui/level2_products_widget.hpp
            source/scwx/qt/ui/level2_settings_widget.hpp
            source/scwx/qt/ui/level3_products_widget.hpp
@@ -126,12 +130,15 @@ set(HDR_UI source/scwx/qt/ui/alert_dialog.hpp
 set(SRC_UI source/scwx/qt/ui/alert_dialog.cpp
            source/scwx/qt/ui/alert_dock_widget.cpp
            source/scwx/qt/ui/flow_layout.cpp
+           source/scwx/qt/ui/imgui_debug_dialog.cpp
+           source/scwx/qt/ui/imgui_debug_widget.cpp
            source/scwx/qt/ui/level2_products_widget.cpp
            source/scwx/qt/ui/level2_settings_widget.cpp
            source/scwx/qt/ui/level3_products_widget.cpp
            source/scwx/qt/ui/radar_site_dialog.cpp)
 set(UI_UI  source/scwx/qt/ui/alert_dialog.ui
            source/scwx/qt/ui/alert_dock_widget.ui
+           source/scwx/qt/ui/imgui_debug_dialog.ui
            source/scwx/qt/ui/radar_site_dialog.ui)
 set(HDR_UTIL source/scwx/qt/util/font.hpp
              source/scwx/qt/util/font_buffer.hpp
