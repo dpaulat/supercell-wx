@@ -1,6 +1,7 @@
 #include "imgui_debug_dialog.hpp"
 #include "ui_imgui_debug_dialog.h"
 
+#include <scwx/qt/model/imgui_context_model.hpp>
 #include <scwx/qt/ui/imgui_debug_widget.hpp>
 
 namespace scwx
@@ -33,6 +34,9 @@ ImGuiDebugDialog::ImGuiDebugDialog(QWidget* parent) :
    p->imGuiDebugWidget_->setSizePolicy(QSizePolicy::Policy::Expanding,
                                        QSizePolicy::Policy::Expanding);
    ui->verticalLayout->insertWidget(0, p->imGuiDebugWidget_);
+
+   // Context Combo Box
+   ui->contextComboBox->setModel(&model::ImGuiContextModel::Instance());
 }
 
 ImGuiDebugDialog::~ImGuiDebugDialog()

@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include <QObject>
+#include <QAbstractListModel>
 
 struct ImGuiContext;
 
@@ -11,10 +11,10 @@ namespace scwx
 {
 namespace qt
 {
-namespace manager
+namespace model
 {
 
-class ImGuiManagerImpl;
+class ImGuiContextModelImpl;
 
 struct ImGuiContextInfo
 {
@@ -25,31 +25,36 @@ struct ImGuiContextInfo
    bool operator==(const ImGuiContextInfo& o) const;
 };
 
-class ImGuiManager : public QObject
+class ImGuiContextModel : public QAbstractListModel
 {
 private:
    Q_OBJECT
-   Q_DISABLE_COPY(ImGuiManager)
+   Q_DISABLE_COPY(ImGuiContextModel)
 
 public:
-   explicit ImGuiManager();
-   ~ImGuiManager();
+   explicit ImGuiContextModel();
+   ~ImGuiContextModel();
+
+   int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+
+   QVariant data(const QModelIndex& index,
+                 int                role = Qt::DisplayRole) const override;
 
    ImGuiContext* CreateContext(const std::string& name);
    void          DestroyContext(const std::string& name);
 
    std::vector<ImGuiContextInfo> contexts() const;
 
-   static ImGuiManager& Instance();
+   static ImGuiContextModel& Instance();
 
 signals:
    void ContextsUpdated();
 
 private:
-   friend class ImGuiManagerImpl;
-   std::unique_ptr<ImGuiManagerImpl> p;
+   friend class ImGuiContextModelImpl;
+   std::unique_ptr<ImGuiContextModelImpl> p;
 };
 
-} // namespace manager
+} // namespace model
 } // namespace qt
 } // namespace scwx

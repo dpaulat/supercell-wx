@@ -1,6 +1,5 @@
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/gl/gl.hpp>
-#include <scwx/qt/manager/imgui_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/alert_layer.hpp>
@@ -9,6 +8,7 @@
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
+#include <scwx/qt/model/imgui_context_model.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
@@ -87,7 +87,7 @@ public:
       static size_t currentMapId_ {0u};
       imGuiContextName_ = std::format("Map {}", ++currentMapId_);
       imGuiContext_ =
-         manager::ImGuiManager::Instance().CreateContext(imGuiContextName_);
+         model::ImGuiContextModel::Instance().CreateContext(imGuiContextName_);
 
       // Initialize ImGui Qt backend
       ImGui_ImplQt_Init();
@@ -107,7 +107,7 @@ public:
       ImGui_ImplQt_Shutdown();
 
       // Destroy ImGui Context
-      manager::ImGuiManager::Instance().DestroyContext(imGuiContextName_);
+      model::ImGuiContextModel::Instance().DestroyContext(imGuiContextName_);
    }
 
    void AddLayer(const std::string&            id,

@@ -1,5 +1,5 @@
 #include <scwx/qt/ui/imgui_debug_widget.hpp>
-#include <scwx/qt/manager/imgui_manager.hpp>
+#include <scwx/qt/model/imgui_context_model.hpp>
 
 #include <imgui.h>
 #include <backends/imgui_impl_opengl3.h>
@@ -22,7 +22,8 @@ public:
       // Create ImGui Context
       static size_t currentIndex_ {0u};
       contextName_ = std::format("ImGui Debug {}", ++currentIndex_);
-      context_ = manager::ImGuiManager::Instance().CreateContext(contextName_);
+      context_ =
+         model::ImGuiContextModel::Instance().CreateContext(contextName_);
 
       // Initialize ImGui Qt backend
       ImGui_ImplQt_Init();
@@ -42,7 +43,7 @@ public:
       ImGui_ImplQt_Shutdown();
 
       // Destroy ImGui Context
-      manager::ImGuiManager::Instance().DestroyContext(contextName_);
+      model::ImGuiContextModel::Instance().DestroyContext(contextName_);
    }
 
    ImGuiDebugWidget* self_;
