@@ -45,6 +45,8 @@ public:
    ImGuiContext* CreateContext(const std::string& name);
    void          DestroyContext(const std::string& name);
 
+   std::vector<ImGuiContextInfo> contexts() const;
+
    static ImGuiContextModel& Instance();
 
 signals:

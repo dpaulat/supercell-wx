@@ -130,6 +130,11 @@ void ImGuiContextModel::DestroyContext(const std::string& name)
    }
 }
 
+std::vector<ImGuiContextInfo> ImGuiContextModel::contexts() const
+{
+   return p->contexts_;
+}
+
 ImGuiContextModel& ImGuiContextModel::Instance()
 {
    static ImGuiContextModel instance_ {};

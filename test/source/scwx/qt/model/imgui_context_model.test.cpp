@@ -1,4 +1,4 @@
-#include <scwx/qt/manager/imgui_manager.hpp>
+#include <scwx/qt/model/imgui_context_model.hpp>
 
 #include <gtest/gtest.h>
 
@@ -6,18 +6,18 @@ namespace scwx
 {
 namespace qt
 {
-namespace manager
+namespace model
 {
 
-TEST(ImGuiManagerTest, State)
+TEST(ImGuiContextModelTest, State)
 {
-   auto& ImGuiManager = ImGuiManager::Instance();
+   auto& imGuiContextModel = ImGuiContextModel::Instance();
 
-   ImGuiManager.CreateContext("Context One");
-   ImGuiManager.CreateContext("Context Two");
-   ImGuiManager.CreateContext("Context Three");
-   
-   auto contexts = ImGuiManager.contexts();
+   imGuiContextModel.CreateContext("Context One");
+   imGuiContextModel.CreateContext("Context Two");
+   imGuiContextModel.CreateContext("Context Three");
+
+   auto contexts = imGuiContextModel.contexts();
 
    ASSERT_EQ(contexts.size(), 3u);
    EXPECT_EQ(contexts.at(0).id_, 0u);
@@ -30,15 +30,15 @@ TEST(ImGuiManagerTest, State)
    EXPECT_NE(contexts.at(1).context_, nullptr);
    EXPECT_NE(contexts.at(2).context_, nullptr);
 
-   ImGuiManager.DestroyContext("Context Two");
+   imGuiContextModel.DestroyContext("Context Two");
 
-   auto contexts2 = ImGuiManager.contexts();
+   auto contexts2 = imGuiContextModel.contexts();
 
    ASSERT_EQ(contexts2.size(), 2u);
    EXPECT_EQ(contexts2.at(0), contexts.at(0));
    EXPECT_EQ(contexts2.at(1), contexts.at(2));
 }
 
-} // namespace manager
+} // namespace model
 } // namespace qt
 } // namespace scwx
