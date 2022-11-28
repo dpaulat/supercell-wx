@@ -117,16 +117,17 @@ void ImGuiContextModel::DestroyContext(const std::string& name)
 
    if (it != p->contexts_.end())
    {
-      const int position = it - p->contexts_.begin();
-
-      // Destroy context
-      ImGui::SetCurrentContext(it->context_);
-      ImGui::DestroyContext();
+      const int     position = it - p->contexts_.begin();
+      ImGuiContext* context  = it->context_;
 
       // Erase context from index
       beginRemoveRows(QModelIndex(), position, position);
       p->contexts_.erase(it);
       endRemoveRows();
+
+      // Destroy context
+      ImGui::SetCurrentContext(context);
+      ImGui::DestroyContext();
    }
 }
 
