@@ -75,7 +75,22 @@ std::string ImGuiDebugWidget::context_name() const
 
 void ImGuiDebugWidget::set_current_context(ImGuiContext* context)
 {
+   if (context == p->currentContext_)
+   {
+      return;
+   }
+
+   // Unregister widget with current context
+   ImGui::SetCurrentContext(p->currentContext_);
+   ImGui_ImplQt_UnregisterWidget(this);
+
    p->currentContext_ = context;
+
+   // Register widget with new context
+   ImGui::SetCurrentContext(context);
+   ImGui_ImplQt_RegisterWidget(this);
+
+   // Queue an update
    update();
 }
 
