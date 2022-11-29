@@ -2,7 +2,6 @@
 #include <scwx/qt/gl/draw/rectangle.hpp>
 #include <scwx/qt/gl/shader_program.hpp>
 #include <scwx/qt/gl/text_shader.hpp>
-#include <scwx/qt/util/font.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
@@ -17,6 +16,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <imgui.h>
 #include <mbgl/util/constants.hpp>
 #pragma warning(pop)
 
@@ -34,26 +34,16 @@ class OverlayLayerImpl
 {
 public:
    explicit OverlayLayerImpl(std::shared_ptr<MapContext> context) :
-       textShader_(context),
-       font_(util::Font::Create(":/res/fonts/din1451alt.ttf")),
-       texture_ {GL_INVALID_INDEX},
        activeBoxOuter_ {std::make_shared<gl::draw::Rectangle>(context)},
        activeBoxInner_ {std::make_shared<gl::draw::Rectangle>(context)},
-       timeBox_ {std::make_shared<gl::draw::Rectangle>(context)},
        sweepTimeString_ {},
        sweepTimeNeedsUpdate_ {true}
    {
-      // TODO: Manage font at the global level, texture at the view level
    }
    ~OverlayLayerImpl() = default;
 
-   gl::TextShader              textShader_;
-   std::shared_ptr<util::Font> font_;
-   GLuint                      texture_;
-
    std::shared_ptr<gl::draw::Rectangle> activeBoxOuter_;
    std::shared_ptr<gl::draw::Rectangle> activeBoxInner_;
-   std::shared_ptr<gl::draw::Rectangle> timeBox_;
 
    std::string sweepTimeString_;
    bool        sweepTimeNeedsUpdate_;
@@ -62,7 +52,6 @@ public:
 OverlayLayer::OverlayLayer(std::shared_ptr<MapContext> context) :
     DrawLayer(context), p(std::make_unique<OverlayLayerImpl>(context))
 {
-   AddDrawItem(p->timeBox_);
    AddDrawItem(p->activeBoxOuter_);
    AddDrawItem(p->activeBoxInner_);
 
@@ -70,7 +59,6 @@ OverlayLayer::OverlayLayer(std::shared_ptr<MapContext> context) :
    p->activeBoxOuter_->SetBorder(1.0f, {0, 0, 0, 255});
    p->activeBoxInner_->SetBorder(1.0f, {255, 255, 255, 255});
    p->activeBoxInner_->SetPosition(1.0f, 1.0f);
-   p->timeBox_->SetFill({0, 0, 0, 192});
 }
 
 OverlayLayer::~OverlayLayer() = default;
@@ -81,15 +69,7 @@ void OverlayLayer::Initialize()
 
    DrawLayer::Initialize();
 
-   gl::OpenGLFunctions& gl               = context()->gl();
-   auto                 radarProductView = context()->radar_product_view();
-
-   p->textShader_.Initialize();
-
-   if (p->texture_ == GL_INVALID_INDEX)
-   {
-      p->texture_ = p->font_->GenerateTexture(gl);
-   }
+   auto radarProductView = context()->radar_product_view();
 
    if (radarProductView != nullptr)
    {
@@ -103,8 +83,6 @@ void OverlayLayer::Initialize()
 void OverlayLayer::Render(
    const QMapLibreGL::CustomLayerRenderParameters& params)
 {
-   constexpr float fontSize = 16.0f;
-
    gl::OpenGLFunctions& gl               = context()->gl();
    auto                 radarProductView = context()->radar_product_view();
    auto&                settings         = context()->settings();
@@ -130,31 +108,20 @@ void OverlayLayer::Render(
       p->activeBoxInner_->SetSize(params.width - 2.0f, params.height - 2.0f);
    }
 
-   if (p->sweepTimeString_.length() > 0)
-   {
-      const float textLength =
-         p->font_->TextLength(p->sweepTimeString_, fontSize);
-
-      p->timeBox_->SetPosition(static_cast<float>(params.width) - textLength -
-                                  14.0f,
-                               static_cast<float>(params.height) - 22.0f);
-      p->timeBox_->SetSize(textLength + 14.0f, 22.0f);
-   }
-
    DrawLayer::Render(params);
 
    if (p->sweepTimeString_.length() > 0)
    {
       // Render time
-      p->textShader_.RenderText(p->sweepTimeString_,
-                                params.width - 7.0f,
-                                static_cast<float>(params.height) - 16.0f,
-                                fontSize,
-                                projection,
-                                boost::gil::rgba8_pixel_t(255, 255, 255, 204),
-                                p->font_,
-                                p->texture_,
-                                gl::TextAlign::Right);
+      ImGui::SetNextWindowPos(ImVec2 {static_cast<float>(params.width), 0.0f},
+                              ImGuiCond_Always,
+                              ImVec2 {1.0f, 0.0f});
+      ImGui::Begin("Sweep Time",
+                   nullptr,
+                   ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                      ImGuiWindowFlags_AlwaysAutoResize);
+      ImGui::Text(p->sweepTimeString_.c_str());
+      ImGui::End();
    }
 
    SCWX_GL_CHECK_ERROR();
@@ -166,12 +133,7 @@ void OverlayLayer::Deinitialize()
 
    DrawLayer::Deinitialize();
 
-   gl::OpenGLFunctions& gl               = context()->gl();
-   auto                 radarProductView = context()->radar_product_view();
-
-   gl.glDeleteTextures(1, &p->texture_);
-
-   p->texture_ = GL_INVALID_INDEX;
+   auto radarProductView = context()->radar_product_view();
 
    if (radarProductView != nullptr)
    {

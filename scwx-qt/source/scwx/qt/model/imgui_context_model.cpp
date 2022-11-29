@@ -97,8 +97,11 @@ ImGuiContext* ImGuiContextModel::CreateContext(const std::string& name)
    io.IniFilename = nullptr;
 
    // Style
-   auto& style         = ImGui::GetStyle();
-   style.WindowMinSize = {10.0f, 10.0f};
+   auto& style                     = ImGui::GetStyle();
+   style.WindowMinSize             = {10.0f, 10.0f};
+   style.WindowPadding             = {6.0f, 4.0f};
+   style.Colors[ImGuiCol_Text]     = {1.00f, 1.00f, 1.00f, 0.80f};
+   style.Colors[ImGuiCol_WindowBg] = {0.06f, 0.06f, 0.06f, 0.75f};
 
    // Register context
    const int nextPosition = static_cast<int>(p->contexts_.size());
