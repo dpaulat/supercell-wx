@@ -9,6 +9,8 @@ find_package(Qt${QT_VERSION_MAJOR}
              COMPONENTS Gui
                         Widgets
              REQUIRED)
+             
+find_package(Freetype)
 
 set(IMGUI_SOURCES imgui/imconfig.h
                   imgui/imgui.cpp
@@ -23,6 +25,8 @@ set(IMGUI_SOURCES imgui/imconfig.h
                   imgui/imstb_truetype.h
                   imgui/backends/imgui_impl_opengl3.cpp
                   imgui/backends/imgui_impl_opengl3.h
+                  imgui/misc/freetype/imgui_freetype.cpp
+                  imgui/misc/freetype/imgui_freetype.h
                   imgui-backend-qt/backends/imgui_impl_qt.cpp
                   imgui-backend-qt/backends/imgui_impl_qt.hpp)
 
@@ -30,7 +34,10 @@ add_library(imgui STATIC ${IMGUI_SOURCES})
 
 target_include_directories(imgui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
 
-target_link_libraries(imgui PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_compile_definitions(imgui PRIVATE IMGUI_ENABLE_FREETYPE)
+
+target_link_libraries(imgui PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
+                                    Freetype::Freetype)
 
 set(IMGUI_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/imgui
                        ${CMAKE_CURRENT_SOURCE_DIR}/imgui-backend-qt

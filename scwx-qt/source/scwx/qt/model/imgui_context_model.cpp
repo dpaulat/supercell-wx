@@ -22,6 +22,7 @@ public:
    ~ImGuiContextModelImpl() = default;
 
    std::vector<ImGuiContextInfo> contexts_ {};
+   ImFontAtlas                   fontAtlas_ {};
 };
 
 ImGuiContextModel::ImGuiContextModel() :
@@ -86,7 +87,7 @@ ImGuiContext* ImGuiContextModel::CreateContext(const std::string& name)
 {
    static size_t nextId_ {0};
 
-   ImGuiContext* context = ImGui::CreateContext();
+   ImGuiContext* context = ImGui::CreateContext(&p->fontAtlas_);
    ImGui::SetCurrentContext(context);
 
    // ImGui Configuration
@@ -134,6 +135,11 @@ void ImGuiContextModel::DestroyContext(const std::string& name)
 std::vector<ImGuiContextInfo> ImGuiContextModel::contexts() const
 {
    return p->contexts_;
+}
+
+ImFontAtlas* ImGuiContextModel::font_atlas()
+{
+   return &p->fontAtlas_;
 }
 
 ImGuiContextModel& ImGuiContextModel::Instance()

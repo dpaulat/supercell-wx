@@ -1,13 +1,18 @@
 // No suitable standard C++ replacement
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
+// Disable strncpy warning
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <scwx/qt/util/font.hpp>
+#include <scwx/qt/model/imgui_context_model.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <codecvt>
 #include <unordered_map>
 
 #include <boost/timer/timer.hpp>
+#include <imgui.h>
 #include <QFile>
 #include <QFileInfo>
 
@@ -104,6 +109,9 @@ public:
       }
    }
 
+   void CreateImGuiFont(QFile&              fontFile,
+                        QByteArray&         fontData,
+                        std::vector<size_t> fontSizes);
    void ParseNames(FT_Face face);
 
    const std::string resource_;
@@ -116,6 +124,7 @@ public:
 
    ftgl::texture_atlas_t*                 atlas_;
    std::unordered_map<char, TextureGlyph> glyphs_;
+   std::unordered_map<size_t, ImFont*>    imGuiFonts_;
 };
 
 Font::Font(const std::string& resource) :
@@ -240,6 +249,39 @@ GLuint Font::GenerateTexture(gl::OpenGLFunctions& gl)
    return p->atlas_->id;
 }
 
+void FontImpl::CreateImGuiFont(QFile&              fontFile,
+                               QByteArray&         fontData,
+                               std::vector<size_t> fontSizes)
+{
+   QFileInfo    fileInfo(fontFile);
+   ImFontAtlas* fontAtlas = model::ImGuiContextModel::Instance().font_atlas();
+   ImFontConfig fontConfig {};
+
+   // Do not transfer ownership of font data to ImGui, makes const_cast safe
+   fontConfig.FontDataOwnedByAtlas = false;
+
+   for (size_t fontSize : fontSizes)
+   {
+      const float sizePixels = static_cast<float>(fontSize);
+
+      // Assign name to font
+      strncpy(fontConfig.Name,
+              std::format("{}:{}", fileInfo.fileName().toStdString(), fontSize)
+                 .c_str(),
+              sizeof(fontConfig.Name));
+      fontConfig.Name[sizeof(fontConfig.Name) - 1] = 0;
+
+      // Add font to atlas
+      imGuiFonts_.emplace(
+         fontSize,
+         fontAtlas->AddFontFromMemoryTTF(
+            const_cast<void*>(static_cast<const void*>(fontData.constData())),
+            fontData.size(),
+            sizePixels,
+            &fontConfig));
+   }
+}
+
 std::shared_ptr<Font> Font::Create(const std::string& resource)
 {
    logger_->debug("Loading font file: {}", resource);
@@ -264,6 +306,8 @@ std::shared_ptr<Font> Font::Create(const std::string& resource)
 
    font                = std::make_shared<Font>(resource);
    QByteArray fontData = fontFile.readAll();
+
+   font->p->CreateImGuiFont(fontFile, fontData, {16});
 
    font->p->atlas_                   = ftgl::texture_atlas_new(512, 512, 1);
    ftgl::texture_font_t* textureFont = ftgl::texture_font_new_from_memory(

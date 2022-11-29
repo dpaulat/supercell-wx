@@ -5,6 +5,7 @@
 
 #include <QAbstractListModel>
 
+struct ImFontAtlas;
 struct ImGuiContext;
 
 namespace scwx
@@ -46,6 +47,7 @@ public:
    void          DestroyContext(const std::string& name);
 
    std::vector<ImGuiContextInfo> contexts() const;
+   ImFontAtlas*                  font_atlas();
 
    static ImGuiContextModel& Instance();
 
