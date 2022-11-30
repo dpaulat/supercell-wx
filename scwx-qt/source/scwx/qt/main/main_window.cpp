@@ -168,6 +168,9 @@ MainWindow::MainWindow(QWidget* parent) :
    p->alertDockWidget_->toggleViewAction()->setText(tr("&Alerts"));
    ui->actionAlerts->setVisible(false);
 
+   ui->menuDebug->menuAction()->setVisible(
+      manager::SettingsManager::general_settings()->debug_enabled());
+
    // Configure Resource Explorer Dock
    ui->resourceExplorerDock->setVisible(false);
 
