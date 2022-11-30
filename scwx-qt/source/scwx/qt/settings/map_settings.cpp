@@ -59,7 +59,7 @@ public:
 MapSettings::MapSettings() : p(std::make_unique<MapSettingsImpl>()) {}
 MapSettings::~MapSettings() = default;
 
-MapSettings::MapSettings(MapSettings&&) noexcept = default;
+MapSettings::MapSettings(MapSettings&&) noexcept            = default;
 MapSettings& MapSettings::operator=(MapSettings&&) noexcept = default;
 
 size_t MapSettings::count() const
@@ -134,7 +134,7 @@ std::shared_ptr<MapSettings> MapSettings::Load(const boost::json::value* json,
                !util::json::FromJsonString(mapRecord,
                                            "radar_product",
                                            mapRecordSettings.radarProduct_,
-                                           kDefaultRadarSite_);
+                                           kDefaultRadarProduct_[i]);
 
             // Validate Radar Site
             if (config::RadarSite::Get(mapRecordSettings.radarSite_) == nullptr)
