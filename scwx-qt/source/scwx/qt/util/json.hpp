@@ -13,12 +13,22 @@ namespace util
 namespace json
 {
 
+bool FromJsonBool(const boost::json::object& json,
+                  const std::string&         key,
+                  bool&                      value,
+                  const bool                 defaultValue);
 bool FromJsonInt64(const boost::json::object& json,
                    const std::string&         key,
                    int64_t&                   value,
                    const int64_t              defaultValue,
                    std::optional<int64_t>     minValue,
                    std::optional<int64_t>     maxValue);
+bool FromJsonInt64Array(const boost::json::object&  json,
+                        const std::string&          key,
+                        std::vector<int64_t>&       values,
+                        const std::vector<int64_t>& defaultValues,
+                        std::optional<int64_t>      minValue,
+                        std::optional<int64_t>      maxValue);
 bool FromJsonString(const boost::json::object& json,
                     const std::string&         key,
                     std::string&               value,

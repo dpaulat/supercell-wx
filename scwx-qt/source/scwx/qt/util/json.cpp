@@ -3,6 +3,7 @@
 
 #include <fstream>
 
+#include <fmt/ranges.h>
 #include <QFile>
 #include <QTextStream>
 
@@ -32,6 +33,40 @@ static void PrettyPrintJson(std::ostream&             os,
 
 static boost::json::value ReadJsonFile(QFile& file);
 static boost::json::value ReadJsonStream(std::istream& is);
+
+bool FromJsonBool(const boost::json::object& json,
+                  const std::string&         key,
+                  bool&                      value,
+                  const bool                 defaultValue)
+{
+   const boost::json::value* jv    = json.if_contains(key);
+   bool                      dirty = true;
+
+   if (jv != nullptr)
+   {
+      if (jv->is_bool())
+      {
+         value = boost::json::value_to<bool>(*jv);
+         dirty = false;
+      }
+      else
+      {
+         logger_->warn("{} is not a bool ({}), setting to default: {}",
+                       key,
+                       jv->kind(),
+                       defaultValue);
+         value = defaultValue;
+      }
+   }
+   else
+   {
+      logger_->debug(
+         "{} is not present, setting to default: {}", key, defaultValue);
+      value = defaultValue;
+   }
+
+   return !dirty;
+}
 
 bool FromJsonInt64(const boost::json::object& json,
                    const std::string&         key,
@@ -85,6 +120,92 @@ bool FromJsonInt64(const boost::json::object& json,
       logger_->debug(
          "{} is not present, setting to default: {}", key, defaultValue);
       value = defaultValue;
+   }
+
+   return !dirty;
+}
+
+bool FromJsonInt64Array(const boost::json::object&  json,
+                        const std::string&          key,
+                        std::vector<int64_t>&       values,
+                        const std::vector<int64_t>& defaultValues,
+                        std::optional<int64_t>      minValue,
+                        std::optional<int64_t>      maxValue)
+{
+   const boost::json::value* jv    = json.if_contains(key);
+   bool                      dirty = true;
+
+   if (jv != nullptr)
+   {
+      if (jv->is_array())
+      {
+         bool validArray = false;
+
+         try
+         {
+            values     = boost::json::value_to<std::vector<int64_t>>(*jv);
+            validArray = true;
+         }
+         catch (const std::exception& ex)
+         {
+            logger_->warn(
+               "{} is an invalid array of int64 ({}), setting to default: {}",
+               key,
+               ex.what(),
+               defaultValues);
+            values = defaultValues;
+         }
+
+         if (values.empty())
+         {
+            logger_->warn("{} is an empty array, setting to default: {}",
+                          key,
+                          defaultValues);
+            values = defaultValues;
+         }
+         else if (validArray)
+         {
+            dirty = false;
+
+            for (auto& value : values)
+            {
+               if (minValue.has_value() && value < *minValue)
+               {
+                  logger_->warn(
+                     "{0} less than minimum ({1} < {2}), setting to: {2}",
+                     key,
+                     value,
+                     *minValue);
+                  value = *minValue;
+                  dirty = true;
+               }
+               else if (maxValue.has_value() && value > *maxValue)
+               {
+                  logger_->warn(
+                     "{0} greater than maximum ({1} > {2}), setting to: {2}",
+                     key,
+                     value,
+                     *maxValue);
+                  value = *maxValue;
+                  dirty = true;
+               }
+            }
+         }
+      }
+      else
+      {
+         logger_->warn("{} is not an array ({}), setting to default: {}",
+                       key,
+                       jv->kind(),
+                       defaultValues);
+         values = defaultValues;
+      }
+   }
+   else
+   {
+      logger_->debug(
+         "{} is not present, setting to default: {}", key, defaultValues);
+      values = defaultValues;
    }
 
    return !dirty;

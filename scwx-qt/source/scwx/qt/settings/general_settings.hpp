@@ -20,16 +20,18 @@ public:
    explicit GeneralSettings();
    ~GeneralSettings();
 
-   GeneralSettings(const GeneralSettings&) = delete;
+   GeneralSettings(const GeneralSettings&)            = delete;
    GeneralSettings& operator=(const GeneralSettings&) = delete;
 
    GeneralSettings(GeneralSettings&&) noexcept;
    GeneralSettings& operator=(GeneralSettings&&) noexcept;
 
-   std::string default_radar_site() const;
-   int64_t     grid_height() const;
-   int64_t     grid_width() const;
-   std::string mapbox_api_key() const;
+   bool                 debug_enabled() const;
+   std::string          default_radar_site() const;
+   std::vector<int64_t> font_sizes() const;
+   int64_t              grid_height() const;
+   int64_t              grid_width() const;
+   std::string          mapbox_api_key() const;
 
    boost::json::value ToJson() const;
 

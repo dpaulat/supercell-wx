@@ -12,15 +12,19 @@ namespace settings
 static const std::string logPrefix_ = "scwx::qt::settings::general_settings";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static const std::string DEFAULT_DEFAULT_RADAR_SITE = "KLSX";
-static const int64_t     DEFAULT_GRID_WIDTH         = 1;
-static const int64_t     DEFAULT_GRID_HEIGHT        = 1;
-static const std::string DEFAULT_MAPBOX_API_KEY     = "?";
+static constexpr bool             kDefaultDebugEnabled_ {false};
+static const std::string          kDefaultDefaultRadarSite_ {"KLSX"};
+static const std::vector<int64_t> kDefaultFontSizes_ {16};
+static constexpr int64_t          kDefaultGridWidth_ {1};
+static constexpr int64_t          kDefaultGridHeight_ {1};
+static const std::string          kDefaultMapboxApiKey_ {"?"};
 
-static const int64_t GRID_WIDTH_MINIMUM  = 1;
-static const int64_t GRID_WIDTH_MAXIMUM  = 2;
-static const int64_t GRID_HEIGHT_MINIMUM = 1;
-static const int64_t GRID_HEIGHT_MAXIMUM = 2;
+static constexpr int64_t kFontSizeMinimum_ {1};
+static constexpr int64_t kFontSizeMaximum_ {72};
+static constexpr int64_t kGridWidthMinimum_ {1};
+static constexpr int64_t kGridWidthMaximum_ {2};
+static constexpr int64_t kGridHeightMinimum_ {1};
+static constexpr int64_t kGridHeightMaximum_ {2};
 
 class GeneralSettingsImpl
 {
@@ -31,16 +35,20 @@ public:
 
    void SetDefaults()
    {
-      defaultRadarSite_ = DEFAULT_DEFAULT_RADAR_SITE;
-      gridWidth_        = DEFAULT_GRID_WIDTH;
-      gridHeight_       = DEFAULT_GRID_HEIGHT;
-      mapboxApiKey_     = DEFAULT_MAPBOX_API_KEY;
+      debugEnabled_     = kDefaultDebugEnabled_;
+      defaultRadarSite_ = kDefaultDefaultRadarSite_;
+      fontSizes_        = kDefaultFontSizes_;
+      gridWidth_        = kDefaultGridWidth_;
+      gridHeight_       = kDefaultGridHeight_;
+      mapboxApiKey_     = kDefaultMapboxApiKey_;
    }
 
-   std::string defaultRadarSite_;
-   int64_t     gridWidth_;
-   int64_t     gridHeight_;
-   std::string mapboxApiKey_;
+   bool                 debugEnabled_;
+   std::string          defaultRadarSite_;
+   std::vector<int64_t> fontSizes_;
+   int64_t              gridWidth_;
+   int64_t              gridHeight_;
+   std::string          mapboxApiKey_;
 };
 
 GeneralSettings::GeneralSettings() : p(std::make_unique<GeneralSettingsImpl>())
@@ -52,9 +60,19 @@ GeneralSettings::GeneralSettings(GeneralSettings&&) noexcept = default;
 GeneralSettings&
 GeneralSettings::operator=(GeneralSettings&&) noexcept = default;
 
+bool GeneralSettings::debug_enabled() const
+{
+   return p->debugEnabled_;
+}
+
 std::string GeneralSettings::default_radar_site() const
 {
    return p->defaultRadarSite_;
+}
+
+std::vector<int64_t> GeneralSettings::font_sizes() const
+{
+   return p->fontSizes_;
 }
 
 int64_t GeneralSettings::grid_height() const
@@ -76,7 +94,9 @@ boost::json::value GeneralSettings::ToJson() const
 {
    boost::json::object json;
 
+   json["debug_enabled"]      = p->debugEnabled_;
    json["default_radar_site"] = p->defaultRadarSite_;
+   json["font_sizes"]         = boost::json::value_from(p->fontSizes_);
    json["grid_width"]         = p->gridWidth_;
    json["grid_height"]        = p->gridHeight_;
    json["mapbox_api_key"]     = p->mapboxApiKey_;
@@ -89,8 +109,6 @@ std::shared_ptr<GeneralSettings> GeneralSettings::Create()
    std::shared_ptr<GeneralSettings> generalSettings =
       std::make_shared<GeneralSettings>();
 
-   generalSettings->p->SetDefaults();
-
    return generalSettings;
 }
 
@@ -102,28 +120,39 @@ GeneralSettings::Load(const boost::json::value* json, bool& jsonDirty)
 
    if (json != nullptr && json->is_object())
    {
+      jsonDirty |= !util::json::FromJsonBool(json->as_object(),
+                                             "debug_enabled",
+                                             generalSettings->p->debugEnabled_,
+                                             kDefaultDebugEnabled_);
       jsonDirty |=
          !util::json::FromJsonString(json->as_object(),
                                      "default_radar_site",
                                      generalSettings->p->defaultRadarSite_,
-                                     DEFAULT_DEFAULT_RADAR_SITE);
+                                     kDefaultDefaultRadarSite_);
+      jsonDirty |=
+         !util::json::FromJsonInt64Array(json->as_object(),
+                                         "font_sizes",
+                                         generalSettings->p->fontSizes_,
+                                         kDefaultFontSizes_,
+                                         kFontSizeMinimum_,
+                                         kFontSizeMaximum_);
       jsonDirty |= !util::json::FromJsonInt64(json->as_object(),
                                               "grid_width",
                                               generalSettings->p->gridWidth_,
-                                              DEFAULT_GRID_WIDTH,
-                                              GRID_WIDTH_MINIMUM,
-                                              GRID_WIDTH_MAXIMUM);
+                                              kDefaultGridWidth_,
+                                              kGridWidthMinimum_,
+                                              kGridWidthMaximum_);
       jsonDirty |= !util::json::FromJsonInt64(json->as_object(),
                                               "grid_height",
                                               generalSettings->p->gridHeight_,
-                                              DEFAULT_GRID_HEIGHT,
-                                              GRID_HEIGHT_MINIMUM,
-                                              GRID_HEIGHT_MAXIMUM);
+                                              kDefaultGridHeight_,
+                                              kGridHeightMinimum_,
+                                              kGridHeightMaximum_);
       jsonDirty |=
          !util::json::FromJsonString(json->as_object(),
                                      "mapbox_api_key",
                                      generalSettings->p->mapboxApiKey_,
-                                     DEFAULT_MAPBOX_API_KEY,
+                                     kDefaultMapboxApiKey_,
                                      1);
    }
    else
@@ -146,7 +175,9 @@ GeneralSettings::Load(const boost::json::value* json, bool& jsonDirty)
 
 bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
 {
-   return (lhs.p->defaultRadarSite_ == rhs.p->defaultRadarSite_ &&
+   return (lhs.p->debugEnabled_ == rhs.p->debugEnabled_ &&
+           lhs.p->defaultRadarSite_ == rhs.p->defaultRadarSite_ &&
+           lhs.p->fontSizes_ == rhs.p->fontSizes_ &&
            lhs.p->gridWidth_ == rhs.p->gridWidth_ &&
            lhs.p->gridHeight_ == rhs.p->gridHeight_ &&
            lhs.p->mapboxApiKey_ == rhs.p->mapboxApiKey_);

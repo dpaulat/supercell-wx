@@ -111,6 +111,8 @@ TEST_P(DefaultSettingsTest, DefaultSettings)
 INSTANTIATE_TEST_SUITE_P(SettingsManager,
                          DefaultSettingsTest,
                          testing::Values("settings-bad-types.json",
+                                         "settings-bad-types2.json",
+                                         "settings-empty-arrays.json",
                                          "settings-empty-groups.json",
                                          "settings-empty-object.json"));
 
