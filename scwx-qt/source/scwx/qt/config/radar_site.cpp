@@ -175,7 +175,13 @@ std::string GetRadarIdFromSiteId(const std::string& siteId)
 
 void RadarSite::Initialize()
 {
-   ReadConfig(defaultRadarSiteFile_);
+   static bool initialized_ = false;
+
+   if (!initialized_)
+   {
+      ReadConfig(defaultRadarSiteFile_);
+      initialized_ = true;
+   }
 }
 
 size_t RadarSite::ReadConfig(const std::string& path)
