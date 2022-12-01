@@ -34,6 +34,7 @@ signals:
 private slots:
    void on_actionOpenNexrad_triggered();
    void on_actionOpenTextEvent_triggered();
+   void on_actionSettings_triggered();
    void on_actionExit_triggered();
    void on_actionImGuiDebug_triggered();
    void on_radarSiteSelectButton_clicked();

@@ -16,6 +16,7 @@
 #include <scwx/qt/ui/level2_settings_widget.hpp>
 #include <scwx/qt/ui/level3_products_widget.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
+#include <scwx/qt/ui/settings_dialog.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/common/products.hpp>
 #include <scwx/common/vcp.hpp>
@@ -52,6 +53,7 @@ public:
        alertDockWidget_ {nullptr},
        imGuiDebugDialog_ {nullptr},
        radarSiteDialog_ {nullptr},
+       settingsDialog_ {nullptr},
        radarProductModel_ {nullptr},
        textEventManager_ {manager::TextEventManager::Instance()},
        maps_ {},
@@ -114,6 +116,7 @@ public:
    ui::AlertDockWidget*  alertDockWidget_;
    ui::ImGuiDebugDialog* imGuiDebugDialog_;
    ui::RadarSiteDialog*  radarSiteDialog_;
+   ui::SettingsDialog*   settingsDialog_;
 
    std::unique_ptr<model::RadarProductModel>  radarProductModel_;
    std::shared_ptr<manager::TextEventManager> textEventManager_;
@@ -182,6 +185,9 @@ MainWindow::MainWindow(QWidget* parent) :
 
    // Radar Site Dialog
    p->radarSiteDialog_ = new ui::RadarSiteDialog(this);
+
+   // Settings Dialog
+   p->settingsDialog_ = new ui::SettingsDialog(this);
 
    // Add Level 2 Products
    p->level2ProductsWidget_ = new ui::Level2ProductsWidget(this);
@@ -325,6 +331,11 @@ void MainWindow::on_actionOpenTextEvent_triggered()
            });
 
    dialog->open();
+}
+
+void MainWindow::on_actionSettings_triggered()
+{
+   p->settingsDialog_->show();
 }
 
 void MainWindow::on_actionExit_triggered()

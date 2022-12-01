@@ -51,6 +51,8 @@
     </widget>
     <addaction name="menu_Open"/>
     <addaction name="separator"/>
+    <addaction name="actionSettings"/>
+    <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
@@ -352,6 +354,11 @@
   <action name="actionImGuiDebug">
    <property name="text">
     <string>&amp;ImGui Debug</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>&amp;Settings</string>
    </property>
   </action>
  </widget>
