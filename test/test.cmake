@@ -23,6 +23,7 @@ set(SRC_QT_CONFIG_TESTS source/scwx/qt/config/county_database.test.cpp
                         source/scwx/qt/config/radar_site.test.cpp)
 set(SRC_QT_MANAGER_TESTS source/scwx/qt/manager/settings_manager.test.cpp)
 set(SRC_QT_MODEL_TESTS source/scwx/qt/model/imgui_context_model.test.cpp)
+set(SRC_QT_SETTINGS_TESTS source/scwx/qt/settings/settings_variable.test.cpp)
 set(SRC_UTIL_TESTS source/scwx/util/float.test.cpp
                    source/scwx/util/rangebuf.test.cpp
                    source/scwx/util/streams.test.cpp
@@ -41,20 +42,22 @@ add_executable(wxtest ${SRC_MAIN}
                       ${SRC_QT_CONFIG_TESTS}
                       ${SRC_QT_MANAGER_TESTS}
                       ${SRC_QT_MODEL_TESTS}
+                      ${SRC_QT_SETTINGS_TESTS}
                       ${SRC_UTIL_TESTS}
                       ${SRC_WSR88D_TESTS}
                       ${CMAKE_FILES})
 
-source_group("Source Files\\main"        FILES ${SRC_MAIN})
-source_group("Source Files\\awips"       FILES ${SRC_AWIPS_TESTS})
-source_group("Source Files\\common"      FILES ${SRC_COMMON_TESTS})
-source_group("Source Files\\network"     FILES ${SRC_NETWORK_TESTS})
-source_group("Source Files\\provider"    FILES ${SRC_PROVIDER_TESTS})
-source_group("Source Files\\qt\\config"  FILES ${SRC_QT_CONFIG_TESTS})
-source_group("Source Files\\qt\\manager" FILES ${SRC_QT_MANAGER_TESTS})
-source_group("Source Files\\qt\\model"   FILES ${SRC_QT_MODEL_TESTS})
-source_group("Source Files\\util"        FILES ${SRC_UTIL_TESTS})
-source_group("Source Files\\wsr88d"      FILES ${SRC_WSR88D_TESTS})
+source_group("Source Files\\main"         FILES ${SRC_MAIN})
+source_group("Source Files\\awips"        FILES ${SRC_AWIPS_TESTS})
+source_group("Source Files\\common"       FILES ${SRC_COMMON_TESTS})
+source_group("Source Files\\network"      FILES ${SRC_NETWORK_TESTS})
+source_group("Source Files\\provider"     FILES ${SRC_PROVIDER_TESTS})
+source_group("Source Files\\qt\\config"   FILES ${SRC_QT_CONFIG_TESTS})
+source_group("Source Files\\qt\\manager"  FILES ${SRC_QT_MANAGER_TESTS})
+source_group("Source Files\\qt\\model"    FILES ${SRC_QT_MODEL_TESTS})
+source_group("Source Files\\qt\\settings" FILES ${SRC_QT_SETTINGS_TESTS})
+source_group("Source Files\\util"         FILES ${SRC_UTIL_TESTS})
+source_group("Source Files\\wsr88d"       FILES ${SRC_WSR88D_TESTS})
 
 target_include_directories(wxtest PRIVATE ${GTest_INCLUDE_DIRS})
 

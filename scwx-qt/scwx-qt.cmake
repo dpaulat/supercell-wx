@@ -109,10 +109,12 @@ set(HDR_REQUEST source/scwx/qt/request/nexrad_file_request.hpp)
 set(SRC_REQUEST source/scwx/qt/request/nexrad_file_request.cpp)
 set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/map_settings.hpp
-                 source/scwx/qt/settings/palette_settings.hpp)
+                 source/scwx/qt/settings/palette_settings.hpp
+                 source/scwx/qt/settings/settings_variable.hpp)
 set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/map_settings.cpp
-                 source/scwx/qt/settings/palette_settings.cpp)
+                 source/scwx/qt/settings/palette_settings.cpp
+                 source/scwx/qt/settings/settings_variable.cpp)
 set(HDR_TYPES source/scwx/qt/types/qt_types.hpp
               source/scwx/qt/types/radar_product_record.hpp
               source/scwx/qt/types/text_event_key.hpp)
