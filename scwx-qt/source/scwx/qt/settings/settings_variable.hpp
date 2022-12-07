@@ -26,13 +26,15 @@ public:
 
    std::string name() const;
 
-   T    GetValue() const;
-   bool SetValue(const T& value);
-   bool SetValueOrDefault(const T& value);
-   void SetValueToDefault();
+   T            GetValue() const;
+   bool         SetValue(const T& value);
+   virtual bool SetValueOrDefault(const T& value);
+   void         SetValueToDefault();
 
    bool StageValue(const T& value);
    void Commit();
+
+   virtual bool Validate(const T& value) const;
 
    T GetDefault() const;
 
@@ -50,6 +52,9 @@ private:
 template class SettingsVariable<bool>;
 template class SettingsVariable<int64_t>;
 template class SettingsVariable<std::string>;
+
+// Containers are not to be used directly
+template class SettingsVariable<std::vector<int64_t>>;
 #endif
 
 } // namespace settings

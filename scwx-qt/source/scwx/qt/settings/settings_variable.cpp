@@ -20,8 +20,6 @@ public:
 
    ~Impl() {}
 
-   bool Validate(const T& value);
-
    const std::string             name_;
    T                             value_ {};
    T                             default_ {};
@@ -62,7 +60,7 @@ bool SettingsVariable<T>::SetValue(const T& value)
 {
    bool validated = false;
 
-   if (p->Validate(value))
+   if (Validate(value))
    {
       p->value_ = value;
       validated = true;
@@ -76,7 +74,7 @@ bool SettingsVariable<T>::SetValueOrDefault(const T& value)
 {
    bool validated = false;
 
-   if (p->Validate(value))
+   if (Validate(value))
    {
       p->value_ = value;
       validated = true;
@@ -108,7 +106,7 @@ bool SettingsVariable<T>::StageValue(const T& value)
 {
    bool validated = false;
 
-   if (p->Validate(value))
+   if (Validate(value))
    {
       p->staged_ = value;
       validated  = true;
@@ -158,11 +156,12 @@ void SettingsVariable<T>::SetValidator(std::function<bool(const T&)> validator)
 }
 
 template<class T>
-bool SettingsVariable<T>::Impl::Validate(const T& value)
+bool SettingsVariable<T>::Validate(const T& value) const
 {
-   return ((!minimum_.has_value() || value >= minimum_) && // Validate minimum
-           (!maximum_.has_value() || value <= maximum_) && // Validate maximum
-           (validator_ == nullptr || validator_(value)));  // User-validation
+   return (
+      (!p->minimum_.has_value() || value >= p->minimum_) && // Validate minimum
+      (!p->maximum_.has_value() || value <= p->maximum_) && // Validate maximum
+      (p->validator_ == nullptr || p->validator_(value)));  // User-validation
 }
 
 } // namespace settings

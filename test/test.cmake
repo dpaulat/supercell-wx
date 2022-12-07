@@ -23,7 +23,8 @@ set(SRC_QT_CONFIG_TESTS source/scwx/qt/config/county_database.test.cpp
                         source/scwx/qt/config/radar_site.test.cpp)
 set(SRC_QT_MANAGER_TESTS source/scwx/qt/manager/settings_manager.test.cpp)
 set(SRC_QT_MODEL_TESTS source/scwx/qt/model/imgui_context_model.test.cpp)
-set(SRC_QT_SETTINGS_TESTS source/scwx/qt/settings/settings_variable.test.cpp)
+set(SRC_QT_SETTINGS_TESTS source/scwx/qt/settings/settings_container.test.cpp
+                          source/scwx/qt/settings/settings_variable.test.cpp)
 set(SRC_UTIL_TESTS source/scwx/util/float.test.cpp
                    source/scwx/util/rangebuf.test.cpp
                    source/scwx/util/streams.test.cpp
