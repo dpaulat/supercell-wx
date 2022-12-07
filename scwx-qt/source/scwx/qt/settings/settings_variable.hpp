@@ -29,6 +29,7 @@ public:
    T    GetValue() const;
    bool SetValue(const T& value);
    bool SetValueOrDefault(const T& value);
+   void SetValueToDefault();
 
    bool StageValue(const T& value);
    void Commit();
@@ -45,11 +46,11 @@ private:
    std::unique_ptr<Impl> p;
 };
 
-// Instantiated templates:
-//    template class SettingsVariable<bool>;
-//    template class SettingsVariable<int64_t>;
-//    template class SettingsVariable<std::string>;
-//    template class SettingsVariable<std::vector<int64_t>>;
+#ifdef SETTINGS_VARIABLE_IMPLEMENTATION
+template class SettingsVariable<bool>;
+template class SettingsVariable<int64_t>;
+template class SettingsVariable<std::string>;
+#endif
 
 } // namespace settings
 } // namespace qt

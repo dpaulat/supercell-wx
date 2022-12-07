@@ -1,3 +1,5 @@
+#define SETTINGS_VARIABLE_IMPLEMENTATION
+
 #include <scwx/qt/settings/settings_variable.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -7,11 +9,6 @@ namespace qt
 {
 namespace settings
 {
-
-template class SettingsVariable<bool>;
-template class SettingsVariable<int64_t>;
-template class SettingsVariable<std::string>;
-template class SettingsVariable<std::vector<int64_t>>;
 
 static const std::string logPrefix_ = "scwx::qt::settings::settings_variable";
 
@@ -84,12 +81,26 @@ bool SettingsVariable<T>::SetValueOrDefault(const T& value)
       p->value_ = value;
       validated = true;
    }
+   else if (p->minimum_.has_value() && value < p->minimum_)
+   {
+      p->value_ = *p->minimum_;
+   }
+   else if (p->maximum_.has_value() && value > p->maximum_)
+   {
+      p->value_ = *p->maximum_;
+   }
    else
    {
       p->value_ = p->default_;
    }
 
    return validated;
+}
+
+template<class T>
+void SettingsVariable<T>::SetValueToDefault()
+{
+   p->value_ = p->default_;
 }
 
 template<class T>
@@ -111,7 +122,7 @@ void SettingsVariable<T>::Commit()
 {
    if (p->staged_.has_value())
    {
-      p->value_ = std::move(p->staged_.value());
+      p->value_ = std::move(*p->staged_);
       p->staged_.reset();
    }
 }
