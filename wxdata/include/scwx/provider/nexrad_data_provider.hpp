@@ -17,7 +17,7 @@ public:
    explicit NexradDataProvider();
    virtual ~NexradDataProvider();
 
-   NexradDataProvider(const NexradDataProvider&) = delete;
+   NexradDataProvider(const NexradDataProvider&)            = delete;
    NexradDataProvider& operator=(const NexradDataProvider&) = delete;
 
    NexradDataProvider(NexradDataProvider&&) noexcept;
@@ -93,7 +93,7 @@ public:
    /**
     * Convert the object key to a time point.
     *
-    * @key NEXRAD data key
+    * @param key NEXRAD data key
     *
     * @return NEXRAD data time point
     */
