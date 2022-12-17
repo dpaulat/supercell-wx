@@ -11,6 +11,7 @@ namespace settings
 {
 
 static const std::string logPrefix_ = "scwx::qt::settings::settings_container";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 template<class Container>
 class SettingsContainer<Container>::Impl
@@ -61,16 +62,29 @@ bool SettingsContainer<Container>::SetValueOrDefault(const Container& c)
          }
          else if (p->elementMinimum_.has_value() && value < p->elementMinimum_)
          {
+            logger_->warn("{0} less than minimum ({1} < {2}), setting to: {2}",
+                          this->name(),
+                          value,
+                          *p->elementMinimum_);
             validated = false;
             return *p->elementMinimum_;
          }
          else if (p->elementMaximum_.has_value() && value > p->elementMaximum_)
          {
+            logger_->warn(
+               "{0} greater than maximum ({1} > {2}), setting to: {2}",
+               this->name(),
+               value,
+               *p->elementMaximum_);
             validated = false;
             return *p->elementMaximum_;
          }
          else
          {
+            logger_->warn("{} validation failed ({}), setting to default: {}",
+                          this->name(),
+                          value,
+                          p->elementDefault_);
             validated = false;
             return p->elementDefault_;
          }
@@ -141,6 +155,21 @@ bool SettingsContainer<Container>::ValidateElement(const T& value) const
       (!p->elementMaximum_.has_value() || value <= p->elementMaximum_) &&
       // User-validation
       (p->elementValidator_ == nullptr || p->elementValidator_(value)));
+}
+
+template<class Container>
+bool SettingsContainer<Container>::Equals(const SettingsVariableBase& o) const
+{
+   // This is only ever called with SettingsContainer<Container>, so static_cast
+   // is safe
+   const SettingsContainer<Container>& v =
+      static_cast<const SettingsContainer<Container>&>(o);
+
+   // Don't compare validator
+   return SettingsVariable<Container>::Equals(o) &&
+          p->elementDefault_ == v.p->elementDefault_ &&
+          p->elementMinimum_ == v.p->elementMinimum_ &&
+          p->elementMaximum_ == v.p->elementMaximum_;
 }
 
 } // namespace settings
