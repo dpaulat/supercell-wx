@@ -1,6 +1,5 @@
 #include <scwx/qt/settings/palette_settings.hpp>
-#include <scwx/qt/util/json.hpp>
-#include <scwx/util/logger.hpp>
+#include <scwx/qt/settings/settings_variable.hpp>
 
 namespace scwx
 {
@@ -10,7 +9,6 @@ namespace settings
 {
 
 static const std::string logPrefix_ = "scwx::qt::settings::palette_settings";
-static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static const std::vector<std::string> paletteNames_ = {
    // Level 2 / Common Products
@@ -33,29 +31,43 @@ static const std::vector<std::string> paletteNames_ = {
    "VIL",
    "???"};
 
-static const std::string DEFAULT_KEY     = "Default";
-static const std::string DEFAULT_PALETTE = "";
+static const std::string kDefaultKey     = "???";
+static const std::string kDefaultPalette = "";
 
 class PaletteSettingsImpl
 {
 public:
-   explicit PaletteSettingsImpl() {}
-
-   ~PaletteSettingsImpl() {}
-
-   void SetDefaults()
+   explicit PaletteSettingsImpl()
    {
       std::for_each(paletteNames_.cbegin(),
                     paletteNames_.cend(),
                     [&](const std::string& name)
-                    { palette_[name] = DEFAULT_PALETTE; });
+                    {
+                       auto result = palette_.emplace(
+                          name, SettingsVariable<std::string> {name});
+
+                       SettingsVariable<std::string>& settingsVariable =
+                          result.first->second;
+
+                       settingsVariable.SetDefault(kDefaultPalette);
+
+                       variables_.push_back(&settingsVariable);
+                    });
    }
 
-   std::unordered_map<std::string, std::string> palette_;
+   ~PaletteSettingsImpl() {}
+
+   std::unordered_map<std::string, SettingsVariable<std::string>> palette_;
+   std::vector<SettingsVariableBase*>                             variables_;
 };
 
-PaletteSettings::PaletteSettings() : p(std::make_unique<PaletteSettingsImpl>())
+PaletteSettings::PaletteSettings() :
+    SettingsCategory("palette"), p(std::make_unique<PaletteSettingsImpl>())
 {
+   RegisterVariables(p->variables_);
+   SetDefaults();
+
+   p->variables_.clear();
 }
 PaletteSettings::~PaletteSettings() = default;
 
@@ -63,80 +75,21 @@ PaletteSettings::PaletteSettings(PaletteSettings&&) noexcept = default;
 PaletteSettings&
 PaletteSettings::operator=(PaletteSettings&&) noexcept = default;
 
-const std::string& PaletteSettings::palette(const std::string& name) const
+std::string PaletteSettings::palette(const std::string& name) const
 {
    auto palette = p->palette_.find(name);
 
    if (palette == p->palette_.cend())
    {
-      palette = p->palette_.find("Default");
+      palette = p->palette_.find(kDefaultKey);
    }
 
    if (palette == p->palette_.cend())
    {
-      return DEFAULT_PALETTE;
+      return kDefaultPalette;
    }
 
-   return palette->second;
-}
-
-boost::json::value PaletteSettings::ToJson() const
-{
-   boost::json::object json;
-
-   std::for_each(paletteNames_.cbegin(),
-                 paletteNames_.cend(),
-                 [&](const std::string& name)
-                 { json[name] = p->palette_[name]; });
-
-   return json;
-}
-
-std::shared_ptr<PaletteSettings> PaletteSettings::Create()
-{
-   std::shared_ptr<PaletteSettings> generalSettings =
-      std::make_shared<PaletteSettings>();
-
-   generalSettings->p->SetDefaults();
-
-   return generalSettings;
-}
-
-std::shared_ptr<PaletteSettings>
-PaletteSettings::Load(const boost::json::value* json, bool& jsonDirty)
-{
-   std::shared_ptr<PaletteSettings> generalSettings =
-      std::make_shared<PaletteSettings>();
-
-   if (json != nullptr && json->is_object())
-   {
-      std::for_each(paletteNames_.cbegin(),
-                    paletteNames_.cend(),
-                    [&](const std::string& name)
-                    {
-                       jsonDirty |= !util::json::FromJsonString(
-                          json->as_object(),
-                          name,
-                          generalSettings->p->palette_[name],
-                          DEFAULT_PALETTE);
-                    });
-   }
-   else
-   {
-      if (json == nullptr)
-      {
-         logger_->warn("Key is not present, resetting to defaults");
-      }
-      else if (!json->is_object())
-      {
-         logger_->warn("Invalid json, resetting to defaults");
-      }
-
-      generalSettings->p->SetDefaults();
-      jsonDirty = true;
-   }
-
-   return generalSettings;
+   return palette->second.GetValue();
 }
 
 bool operator==(const PaletteSettings& lhs, const PaletteSettings& rhs)

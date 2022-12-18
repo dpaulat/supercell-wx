@@ -1,7 +1,4 @@
 #include <scwx/qt/settings/general_settings.hpp>
-#include <scwx/qt/util/json.hpp>
-#include <scwx/util/logger.hpp>
-
 #include <scwx/qt/settings/settings_container.hpp>
 
 namespace scwx
@@ -12,7 +9,6 @@ namespace settings
 {
 
 static const std::string logPrefix_ = "scwx::qt::settings::general_settings";
-static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 class GeneralSettingsImpl
 {

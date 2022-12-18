@@ -34,6 +34,11 @@ SettingsCategory::SettingsCategory(SettingsCategory&&) noexcept = default;
 SettingsCategory&
 SettingsCategory::operator=(SettingsCategory&&) noexcept = default;
 
+std::string SettingsCategory::name() const
+{
+   return p->name_;
+}
+
 void SettingsCategory::SetDefaults()
 {
    for (auto& variable : p->variables_)
@@ -93,6 +98,13 @@ void SettingsCategory::RegisterVariables(
    std::initializer_list<SettingsVariableBase*> variables)
 {
    p->variables_.insert(p->variables_.end(), variables);
+}
+
+void SettingsCategory::RegisterVariables(
+   std::vector<SettingsVariableBase*> variables)
+{
+   p->variables_.insert(
+      p->variables_.end(), variables.cbegin(), variables.cend());
 }
 
 } // namespace settings

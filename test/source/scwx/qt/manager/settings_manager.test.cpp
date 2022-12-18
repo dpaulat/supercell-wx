@@ -36,13 +36,13 @@ class BadSettingsTest :
 
 void VerifyDefaults()
 {
-   std::shared_ptr<settings::GeneralSettings> defaultGeneralSettings =
-      std::make_shared<settings::GeneralSettings>();
-   std::shared_ptr<settings::PaletteSettings> defaultPaletteSettings =
-      settings::PaletteSettings::Create();
+   settings::GeneralSettings defaultGeneralSettings {};
+   settings::MapSettings     defaultMapSettings {};
+   settings::PaletteSettings defaultPaletteSettings {};
 
-   EXPECT_EQ(*defaultGeneralSettings, *SettingsManager::general_settings());
-   EXPECT_EQ(*defaultPaletteSettings, *SettingsManager::palette_settings());
+   EXPECT_EQ(defaultGeneralSettings, SettingsManager::general_settings());
+   EXPECT_EQ(defaultMapSettings, SettingsManager::map_settings());
+   EXPECT_EQ(defaultPaletteSettings, SettingsManager::palette_settings());
 }
 
 void CompareFiles(const std::string& file1, const std::string& file2)
@@ -85,10 +85,10 @@ TEST_F(SettingsManagerTest, SettingsKeax)
 
    SettingsManager::ReadSettings(filename);
 
-   EXPECT_EQ(SettingsManager::general_settings()->default_radar_site(), "KEAX");
-   for (size_t i = 0; i < SettingsManager::map_settings()->count(); ++i)
+   EXPECT_EQ(SettingsManager::general_settings().default_radar_site(), "KEAX");
+   for (size_t i = 0; i < SettingsManager::map_settings().count(); ++i)
    {
-      EXPECT_EQ(SettingsManager::map_settings()->radar_site(i), "KEAX");
+      EXPECT_EQ(SettingsManager::map_settings().radar_site(i), "KEAX");
    }
 }
 

@@ -1,5 +1,6 @@
 #include <scwx/qt/settings/map_settings.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/settings/settings_variable.hpp>
 #include <scwx/qt/util/json.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -16,11 +17,16 @@ namespace settings
 static const std::string logPrefix_ = "scwx::qt::settings::map_settings";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static constexpr size_t  kCount_            = 4u;
-static const std::string kDefaultRadarSite_ = "KLSX";
+static constexpr std::size_t kCount_            = 4u;
+static const std::string     kDefaultRadarSite_ = "KLSX";
 
-static const common::RadarProductGroup kDefaultRadarProductGroup_ =
+static const std::string kRadarSiteName_ {"radar_site"};
+static const std::string kRadarProductGroupName_ {"radar_product_group"};
+static const std::string kRadarProductName_ {"radar_product"};
+
+static constexpr common::RadarProductGroup kDefaultRadarProductGroup_ =
    common::RadarProductGroup::Level3;
+static const std::string kDefaultRadarProductGroupString_ = "L3";
 static const std::array<std::string, kCount_> kDefaultRadarProduct_ {
    "N0B", "N0G", "N0C", "N0X"};
 
@@ -29,180 +35,182 @@ class MapSettingsImpl
 public:
    struct MapData
    {
-      std::string               radarSite_;
-      common::RadarProductGroup radarProductGroup_;
-      std::string               radarProduct_;
+      SettingsVariable<std::string> radarSite_ {kRadarSiteName_};
+      SettingsVariable<std::string> radarProductGroup_ {
+         kRadarProductGroupName_};
+      SettingsVariable<std::string> radarProduct_ {kRadarProductName_};
    };
 
-   explicit MapSettingsImpl() { SetDefaults(); }
-
-   ~MapSettingsImpl() {}
-
-   void SetDefaults(size_t i)
+   explicit MapSettingsImpl()
    {
-      map_[i].radarSite_         = kDefaultRadarSite_;
-      map_[i].radarProductGroup_ = kDefaultRadarProductGroup_;
-      map_[i].radarProduct_      = kDefaultRadarProduct_[i];
-   }
-
-   void SetDefaults()
-   {
-      for (size_t i = 0; i < kCount_; i++)
+      for (std::size_t i = 0; i < kCount_; i++)
       {
-         SetDefaults(i);
+         map_[i].radarSite_.SetDefault(kDefaultRadarSite_);
+         map_[i].radarProductGroup_.SetDefault(
+            kDefaultRadarProductGroupString_);
+         map_[i].radarProduct_.SetDefault(kDefaultRadarProduct_[i]);
+
+         map_[i].radarSite_.SetValidator(
+            [](const std::string& value)
+            {
+               // Radar site must exist
+               return config::RadarSite::Get(value) != nullptr;
+            });
+
+         map_[i].radarProductGroup_.SetValidator(
+            [](const std::string& value)
+            {
+               // Radar product group must be valid
+               common::RadarProductGroup radarProductGroup =
+                  common::GetRadarProductGroup(value);
+               return radarProductGroup != common::RadarProductGroup::Unknown;
+            });
+
+         map_[i].radarProduct_.SetValidator(
+            [this, i](const std::string& value)
+            {
+               common::RadarProductGroup radarProductGroup =
+                  common::GetRadarProductGroup(
+                     map_[i].radarProductGroup_.GetValue());
+
+               if (radarProductGroup == common::RadarProductGroup::Level2)
+               {
+                  // Radar product must be valid
+                  return common::GetLevel2Product(value) !=
+                         common::Level2Product::Unknown;
+               }
+               else
+               {
+                  // TODO: Validate level 3 product
+                  return true;
+               }
+            });
+
+         variables_.insert(variables_.cend(),
+                           {&map_[i].radarSite_,
+                            &map_[i].radarProductGroup_,
+                            &map_[i].radarProduct_});
       }
    }
 
-   std::array<MapData, kCount_> map_;
+   ~MapSettingsImpl() {}
+
+   void SetDefaults(std::size_t i)
+   {
+      map_[i].radarSite_.SetValueToDefault();
+      map_[i].radarProductGroup_.SetValueToDefault();
+      map_[i].radarProduct_.SetValueToDefault();
+   }
+
+   std::array<MapData, kCount_>       map_ {};
+   std::vector<SettingsVariableBase*> variables_ {};
 };
 
-MapSettings::MapSettings() : p(std::make_unique<MapSettingsImpl>()) {}
+MapSettings::MapSettings() :
+    SettingsCategory("maps"), p(std::make_unique<MapSettingsImpl>())
+{
+   RegisterVariables(p->variables_);
+   SetDefaults();
+
+   p->variables_.clear();
+}
 MapSettings::~MapSettings() = default;
 
 MapSettings::MapSettings(MapSettings&&) noexcept            = default;
 MapSettings& MapSettings::operator=(MapSettings&&) noexcept = default;
 
-size_t MapSettings::count() const
+std::size_t MapSettings::count() const
 {
    return kCount_;
 }
 
-std::string MapSettings::radar_site(size_t i) const
+std::string MapSettings::radar_site(std::size_t i) const
 {
-   return p->map_[i].radarSite_;
+   return p->map_[i].radarSite_.GetValue();
 }
 
-common::RadarProductGroup MapSettings::radar_product_group(size_t i) const
+common::RadarProductGroup MapSettings::radar_product_group(std::size_t i) const
 {
-   return p->map_[i].radarProductGroup_;
+   return common::GetRadarProductGroup(
+      p->map_[i].radarProductGroup_.GetValue());
 }
 
-std::string MapSettings::radar_product(size_t i) const
+std::string MapSettings::radar_product(std::size_t i) const
 {
-   return p->map_[i].radarProduct_;
+   return p->map_[i].radarProduct_.GetValue();
 }
 
-boost::json::value MapSettings::ToJson() const
+bool MapSettings::ReadJson(const boost::json::object& json)
 {
-   boost::json::value json;
+   bool validated = true;
 
-   json = boost::json::value_from(p->map_);
+   const boost::json::value* value = json.if_contains(name());
 
-   return json;
-}
-
-std::shared_ptr<MapSettings> MapSettings::Create()
-{
-   std::shared_ptr<MapSettings> generalSettings =
-      std::make_shared<MapSettings>();
-
-   generalSettings->p->SetDefaults();
-
-   return generalSettings;
-}
-
-std::shared_ptr<MapSettings> MapSettings::Load(const boost::json::value* json,
-                                               bool& jsonDirty)
-{
-   std::shared_ptr<MapSettings> mapSettings = std::make_shared<MapSettings>();
-
-   if (json != nullptr && json->is_array())
+   if (value != nullptr && value->is_array())
    {
-      const boost::json::array& mapArray = json->as_array();
+      const boost::json::array& mapArray = value->as_array();
 
-      for (size_t i = 0; i < kCount_; ++i)
+      for (std::size_t i = 0; i < kCount_; ++i)
       {
          if (i < mapArray.size() && mapArray.at(i).is_object())
          {
             const boost::json::object& mapRecord = mapArray.at(i).as_object();
-            MapSettingsImpl::MapData&  mapRecordSettings =
-               mapSettings->p->map_[i];
-
-            std::string radarProductGroup;
+            MapSettingsImpl::MapData&  mapRecordSettings = p->map_[i];
 
             // Load JSON Elements
-            jsonDirty |=
-               !util::json::FromJsonString(mapRecord,
-                                           "radar_site",
-                                           mapRecordSettings.radarSite_,
-                                           kDefaultRadarSite_);
-            jsonDirty |= !util::json::FromJsonString(mapRecord,
-                                                     "radar_product_group",
-                                                     radarProductGroup,
-                                                     kDefaultRadarSite_);
-            jsonDirty |=
-               !util::json::FromJsonString(mapRecord,
-                                           "radar_product",
-                                           mapRecordSettings.radarProduct_,
-                                           kDefaultRadarProduct_[i]);
+            validated &= mapRecordSettings.radarSite_.ReadValue(mapRecord);
+            validated &=
+               mapRecordSettings.radarProductGroup_.ReadValue(mapRecord);
 
-            // Validate Radar Site
-            if (config::RadarSite::Get(mapRecordSettings.radarSite_) == nullptr)
+            bool productValidated =
+               mapRecordSettings.radarProduct_.ReadValue(mapRecord);
+            if (!productValidated)
             {
-               mapRecordSettings.radarSite_ = kDefaultRadarSite_;
-               jsonDirty                    = true;
+               // Product was set to default, reset group to default to match
+               mapRecordSettings.radarProductGroup_.SetValueToDefault();
+               validated = false;
             }
-
-            // Validate Radar Product Group
-            mapRecordSettings.radarProductGroup_ =
-               common::GetRadarProductGroup(radarProductGroup);
-            if (mapRecordSettings.radarProductGroup_ ==
-                common::RadarProductGroup::Unknown)
-            {
-               mapRecordSettings.radarProductGroup_ =
-                  kDefaultRadarProductGroup_;
-               jsonDirty = true;
-            }
-
-            // Validate Radar Product
-            if (mapRecordSettings.radarProductGroup_ ==
-                   common::RadarProductGroup::Level2 &&
-                common::GetLevel2Product(mapRecordSettings.radarProduct_) ==
-                   common::Level2Product::Unknown)
-            {
-               mapRecordSettings.radarProductGroup_ =
-                  kDefaultRadarProductGroup_;
-               mapRecordSettings.radarProduct_ = kDefaultRadarProduct_[i];
-               jsonDirty                       = true;
-            }
-
-            // TODO: Validate level 3 product
          }
          else
          {
             logger_->warn(
                "Too few array entries, resetting record {} to defaults", i + 1);
-            jsonDirty = true;
-            mapSettings->p->SetDefaults(i);
+            validated = false;
+            p->SetDefaults(i);
          }
       }
    }
    else
    {
-      if (json == nullptr)
+      if (value == nullptr)
       {
          logger_->warn("Key is not present, resetting to defaults");
       }
-      else if (!json->is_array())
+      else if (!value->is_array())
       {
          logger_->warn("Invalid json, resetting to defaults");
       }
 
-      mapSettings->p->SetDefaults();
-      jsonDirty = true;
+      SetDefaults();
+      validated = false;
    }
 
-   return mapSettings;
+   return validated;
+}
+
+void MapSettings::WriteJson(boost::json::object& json) const
+{
+   boost::json::value object = boost::json::value_from(p->map_);
+   json.insert_or_assign(name(), object);
 }
 
 void tag_invoke(boost::json::value_from_tag,
                 boost::json::value&             jv,
                 const MapSettingsImpl::MapData& data)
 {
-   jv = {{"radar_site", data.radarSite_},
-         {"radar_product_group",
-          common::GetRadarProductGroupName(data.radarProductGroup_)},
-         {"radar_product", data.radarProduct_}};
+   jv = {{kRadarSiteName_, data.radarSite_.GetValue()},
+         {kRadarProductGroupName_, data.radarProductGroup_.GetValue()},
+         {kRadarProductName_, data.radarProduct_.GetValue()}};
 }
 
 bool operator==(const MapSettings& lhs, const MapSettings& rhs)

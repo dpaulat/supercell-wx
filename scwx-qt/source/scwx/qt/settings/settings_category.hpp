@@ -26,10 +26,12 @@ public:
    SettingsCategory(SettingsCategory&&) noexcept;
    SettingsCategory& operator=(SettingsCategory&&) noexcept;
 
+   std::string name() const;
+
    /**
     * Set all variables to their defaults.
     */
-   virtual void SetDefaults();
+   void SetDefaults();
 
    /**
     * Reads the variables from the JSON object.
@@ -51,6 +53,7 @@ public:
 protected:
    void
    RegisterVariables(std::initializer_list<SettingsVariableBase*> variables);
+   void RegisterVariables(std::vector<SettingsVariableBase*> variables);
 
 private:
    class Impl;

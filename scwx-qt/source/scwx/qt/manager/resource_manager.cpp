@@ -1,6 +1,5 @@
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/config/county_database.hpp>
-#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
 #include <scwx/qt/util/font.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
@@ -37,12 +36,8 @@ static void LoadFonts()
    util::Font::Create(":/res/fonts/din1451alt.ttf");
    util::Font::Create(":/res/fonts/din1451alt_g.ttf");
 
-   if (manager::SettingsManager::general_settings()->debug_enabled())
-   {
-      ImFontAtlas* fontAtlas =
-         model::ImGuiContextModel::Instance().font_atlas();
-      fontAtlas->AddFontDefault();
-   }
+   ImFontAtlas* fontAtlas = model::ImGuiContextModel::Instance().font_atlas();
+   fontAtlas->AddFontDefault();
 }
 
 static void LoadTextures()

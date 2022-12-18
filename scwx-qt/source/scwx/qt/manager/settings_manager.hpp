@@ -16,9 +16,9 @@ namespace SettingsManager
 void Initialize();
 void ReadSettings(const std::string& settingsPath);
 
-std::shared_ptr<settings::GeneralSettings> general_settings();
-std::shared_ptr<settings::MapSettings>     map_settings();
-std::shared_ptr<settings::PaletteSettings> palette_settings();
+settings::GeneralSettings& general_settings();
+settings::MapSettings&     map_settings();
+settings::PaletteSettings& palette_settings();
 
 } // namespace SettingsManager
 } // namespace manager

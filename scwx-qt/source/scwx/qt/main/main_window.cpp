@@ -77,7 +77,7 @@ public:
       }
 
       std::string mapboxApiKey =
-         manager::SettingsManager::general_settings()->mapbox_api_key();
+         manager::SettingsManager::general_settings().mapbox_api_key();
 
       settings_.resetToTemplate(QMapLibreGL::Settings::MapboxSettings);
       settings_.setApiKey(QString {mapboxApiKey.c_str()});
@@ -172,7 +172,7 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->actionAlerts->setVisible(false);
 
    ui->menuDebug->menuAction()->setVisible(
-      manager::SettingsManager::general_settings()->debug_enabled());
+      manager::SettingsManager::general_settings().debug_enabled());
 
    // Configure Resource Explorer Dock
    ui->resourceExplorerDock->setVisible(false);
@@ -211,12 +211,12 @@ MainWindow::MainWindow(QWidget* parent) :
    // ImGui Debug Dialog
    p->imGuiDebugDialog_ = new ui::ImGuiDebugDialog(this);
 
-   auto mapSettings = manager::SettingsManager::map_settings();
+   auto& mapSettings = manager::SettingsManager::map_settings();
    for (size_t i = 0; i < p->maps_.size(); i++)
    {
       p->SelectRadarProduct(p->maps_.at(i),
-                            mapSettings->radar_product_group(i),
-                            mapSettings->radar_product(i),
+                            mapSettings.radar_product_group(i),
+                            mapSettings.radar_product(i),
                             0);
    }
 
@@ -365,10 +365,10 @@ void MainWindow::on_resourceTreeExpandAllButton_clicked()
 
 void MainWindowImpl::ConfigureMapLayout()
 {
-   auto generalSettings = manager::SettingsManager::general_settings();
+   auto& generalSettings = manager::SettingsManager::general_settings();
 
-   const int64_t gridWidth  = generalSettings->grid_width();
-   const int64_t gridHeight = generalSettings->grid_height();
+   const int64_t gridWidth  = generalSettings.grid_width();
+   const int64_t gridHeight = generalSettings.grid_height();
    const int64_t mapCount   = gridWidth * gridHeight;
 
    size_t mapIndex = 0;

@@ -20,14 +20,6 @@ namespace SettingsManager
 static const std::string logPrefix_ = "scwx::qt::manager::settings_manager";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static const std::string kGeneralKey = "general";
-static const std::string kMapKey     = "maps";
-static const std::string kPaletteKey = "palette";
-
-static std::shared_ptr<settings::GeneralSettings> generalSettings_ = nullptr;
-static std::shared_ptr<settings::MapSettings>     mapSettings_     = nullptr;
-static std::shared_ptr<settings::PaletteSettings> paletteSettings_ = nullptr;
-
 static boost::json::value ConvertSettingsToJson();
 static void               GenerateDefaultSettings();
 static bool               LoadSettings(const boost::json::object& settingsJson);
@@ -79,18 +71,21 @@ void ReadSettings(const std::string& settingsPath)
    };
 }
 
-std::shared_ptr<settings::GeneralSettings> general_settings()
+settings::GeneralSettings& general_settings()
 {
+   static settings::GeneralSettings generalSettings_;
    return generalSettings_;
 }
 
-std::shared_ptr<settings::MapSettings> map_settings()
+settings::MapSettings& map_settings()
 {
+   static settings::MapSettings mapSettings_;
    return mapSettings_;
 }
 
-std::shared_ptr<settings::PaletteSettings> palette_settings()
+settings::PaletteSettings& palette_settings()
 {
+   static settings::PaletteSettings paletteSettings_;
    return paletteSettings_;
 }
 
@@ -98,9 +93,9 @@ static boost::json::value ConvertSettingsToJson()
 {
    boost::json::object settingsJson;
 
-   generalSettings_->WriteJson(settingsJson);
-   settingsJson[kMapKey]     = mapSettings_->ToJson();
-   settingsJson[kPaletteKey] = paletteSettings_->ToJson();
+   general_settings().WriteJson(settingsJson);
+   map_settings().WriteJson(settingsJson);
+   palette_settings().WriteJson(settingsJson);
 
    return settingsJson;
 }
@@ -109,9 +104,9 @@ static void GenerateDefaultSettings()
 {
    logger_->info("Generating default settings");
 
-   generalSettings_ = std::make_shared<settings::GeneralSettings>();
-   mapSettings_     = settings::MapSettings::Create();
-   paletteSettings_ = settings::PaletteSettings::Create();
+   general_settings().SetDefaults();
+   map_settings().SetDefaults();
+   palette_settings().SetDefaults();
 }
 
 static bool LoadSettings(const boost::json::object& settingsJson)
@@ -120,13 +115,9 @@ static bool LoadSettings(const boost::json::object& settingsJson)
 
    bool jsonDirty = false;
 
-   generalSettings_ = std::make_shared<settings::GeneralSettings>();
-
-   jsonDirty |= !generalSettings_->ReadJson(settingsJson);
-   mapSettings_ =
-      settings::MapSettings::Load(settingsJson.if_contains(kMapKey), jsonDirty);
-   paletteSettings_ = settings::PaletteSettings::Load(
-      settingsJson.if_contains(kPaletteKey), jsonDirty);
+   jsonDirty |= !general_settings().ReadJson(settingsJson);
+   jsonDirty |= !map_settings().ReadJson(settingsJson);
+   jsonDirty |= !palette_settings().ReadJson(settingsJson);
 
    return jsonDirty;
 }

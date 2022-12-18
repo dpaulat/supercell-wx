@@ -1,9 +1,9 @@
 #pragma once
 
+#include <scwx/qt/settings/settings_category.hpp>
+
 #include <memory>
 #include <string>
-
-#include <boost/json.hpp>
 
 namespace scwx
 {
@@ -14,25 +14,19 @@ namespace settings
 
 class PaletteSettingsImpl;
 
-class PaletteSettings
+class PaletteSettings : public SettingsCategory
 {
 public:
    explicit PaletteSettings();
    ~PaletteSettings();
 
-   PaletteSettings(const PaletteSettings&) = delete;
+   PaletteSettings(const PaletteSettings&)            = delete;
    PaletteSettings& operator=(const PaletteSettings&) = delete;
 
    PaletteSettings(PaletteSettings&&) noexcept;
    PaletteSettings& operator=(PaletteSettings&&) noexcept;
 
-   const std::string& palette(const std::string& name) const;
-
-   boost::json::value ToJson() const;
-
-   static std::shared_ptr<PaletteSettings> Create();
-   static std::shared_ptr<PaletteSettings> Load(const boost::json::value* json,
-                                                bool& jsonDirty);
+   std::string palette(const std::string& name) const;
 
    friend bool operator==(const PaletteSettings& lhs,
                           const PaletteSettings& rhs);
