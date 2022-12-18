@@ -1,9 +1,9 @@
 #pragma once
 
+#include <scwx/qt/settings/settings_category.hpp>
+
 #include <memory>
 #include <string>
-
-#include <boost/json.hpp>
 
 namespace scwx
 {
@@ -14,7 +14,7 @@ namespace settings
 
 class GeneralSettingsImpl;
 
-class GeneralSettings
+class GeneralSettings : public SettingsCategory
 {
 public:
    explicit GeneralSettings();
@@ -29,15 +29,9 @@ public:
    bool                 debug_enabled() const;
    std::string          default_radar_site() const;
    std::vector<int64_t> font_sizes() const;
-   int64_t              grid_height() const;
-   int64_t              grid_width() const;
+   std::int64_t         grid_height() const;
+   std::int64_t         grid_width() const;
    std::string          mapbox_api_key() const;
-
-   boost::json::value ToJson() const;
-
-   static std::shared_ptr<GeneralSettings> Create();
-   static std::shared_ptr<GeneralSettings> Load(const boost::json::value* json,
-                                                bool& jsonDirty);
 
    friend bool operator==(const GeneralSettings& lhs,
                           const GeneralSettings& rhs);

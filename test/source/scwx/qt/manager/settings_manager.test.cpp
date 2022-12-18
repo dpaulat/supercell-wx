@@ -37,7 +37,7 @@ class BadSettingsTest :
 void VerifyDefaults()
 {
    std::shared_ptr<settings::GeneralSettings> defaultGeneralSettings =
-      settings::GeneralSettings::Create();
+      std::make_shared<settings::GeneralSettings>();
    std::shared_ptr<settings::PaletteSettings> defaultPaletteSettings =
       settings::PaletteSettings::Create();
 

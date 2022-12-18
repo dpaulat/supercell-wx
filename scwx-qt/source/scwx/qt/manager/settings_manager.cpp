@@ -98,7 +98,7 @@ static boost::json::value ConvertSettingsToJson()
 {
    boost::json::object settingsJson;
 
-   settingsJson[kGeneralKey] = generalSettings_->ToJson();
+   generalSettings_->WriteJson(settingsJson);
    settingsJson[kMapKey]     = mapSettings_->ToJson();
    settingsJson[kPaletteKey] = paletteSettings_->ToJson();
 
@@ -109,7 +109,7 @@ static void GenerateDefaultSettings()
 {
    logger_->info("Generating default settings");
 
-   generalSettings_ = settings::GeneralSettings::Create();
+   generalSettings_ = std::make_shared<settings::GeneralSettings>();
    mapSettings_     = settings::MapSettings::Create();
    paletteSettings_ = settings::PaletteSettings::Create();
 }
@@ -120,8 +120,9 @@ static bool LoadSettings(const boost::json::object& settingsJson)
 
    bool jsonDirty = false;
 
-   generalSettings_ = settings::GeneralSettings::Load(
-      settingsJson.if_contains(kGeneralKey), jsonDirty);
+   generalSettings_ = std::make_shared<settings::GeneralSettings>();
+
+   jsonDirty |= !generalSettings_->ReadJson(settingsJson);
    mapSettings_ =
       settings::MapSettings::Load(settingsJson.if_contains(kMapKey), jsonDirty);
    paletteSettings_ = settings::PaletteSettings::Load(
