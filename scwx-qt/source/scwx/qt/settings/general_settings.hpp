@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/qt/settings/settings_category.hpp>
+#include <scwx/qt/settings/settings_container.hpp>
 
 #include <memory>
 #include <string>
@@ -26,12 +27,12 @@ public:
    GeneralSettings(GeneralSettings&&) noexcept;
    GeneralSettings& operator=(GeneralSettings&&) noexcept;
 
-   bool                 debug_enabled() const;
-   std::string          default_radar_site() const;
-   std::vector<int64_t> font_sizes() const;
-   std::int64_t         grid_height() const;
-   std::int64_t         grid_width() const;
-   std::string          mapbox_api_key() const;
+   SettingsVariable<bool>&                       debug_enabled() const;
+   SettingsVariable<std::string>&                default_radar_site() const;
+   SettingsContainer<std::vector<std::int64_t>>& font_sizes() const;
+   SettingsVariable<std::int64_t>&               grid_height() const;
+   SettingsVariable<std::int64_t>&               grid_width() const;
+   SettingsVariable<std::string>&                mapbox_api_key() const;
 
    friend bool operator==(const GeneralSettings& lhs,
                           const GeneralSettings& rhs);

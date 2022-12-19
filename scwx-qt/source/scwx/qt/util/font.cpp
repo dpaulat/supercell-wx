@@ -311,7 +311,7 @@ std::shared_ptr<Font> Font::Create(const std::string& resource)
    font->p->CreateImGuiFont(
       fontFile,
       fontData,
-      manager::SettingsManager::general_settings().font_sizes());
+      manager::SettingsManager::general_settings().font_sizes().GetValue());
 
    font->p->atlas_                   = ftgl::texture_atlas_new(512, 512, 1);
    ftgl::texture_font_t* textureFont = ftgl::texture_font_new_from_memory(

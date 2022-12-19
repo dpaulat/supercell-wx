@@ -85,10 +85,13 @@ TEST_F(SettingsManagerTest, SettingsKeax)
 
    SettingsManager::ReadSettings(filename);
 
-   EXPECT_EQ(SettingsManager::general_settings().default_radar_site(), "KEAX");
+   EXPECT_EQ(
+      SettingsManager::general_settings().default_radar_site().GetValue(),
+      "KEAX");
    for (size_t i = 0; i < SettingsManager::map_settings().count(); ++i)
    {
-      EXPECT_EQ(SettingsManager::map_settings().radar_site(i), "KEAX");
+      EXPECT_EQ(SettingsManager::map_settings().radar_site(i).GetValue(),
+                "KEAX");
    }
 }
 

@@ -75,7 +75,8 @@ PaletteSettings::PaletteSettings(PaletteSettings&&) noexcept = default;
 PaletteSettings&
 PaletteSettings::operator=(PaletteSettings&&) noexcept = default;
 
-std::string PaletteSettings::palette(const std::string& name) const
+SettingsVariable<std::string>&
+PaletteSettings::palette(const std::string& name) const
 {
    auto palette = p->palette_.find(name);
 
@@ -84,12 +85,7 @@ std::string PaletteSettings::palette(const std::string& name) const
       palette = p->palette_.find(kDefaultKey);
    }
 
-   if (palette == p->palette_.cend())
-   {
-      return kDefaultPalette;
-   }
-
-   return palette->second.GetValue();
+   return palette->second;
 }
 
 bool operator==(const PaletteSettings& lhs, const PaletteSettings& rhs)

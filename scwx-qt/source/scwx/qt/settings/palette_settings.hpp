@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/qt/settings/settings_category.hpp>
+#include <scwx/qt/settings/settings_variable.hpp>
 
 #include <memory>
 #include <string>
@@ -26,7 +27,7 @@ public:
    PaletteSettings(PaletteSettings&&) noexcept;
    PaletteSettings& operator=(PaletteSettings&&) noexcept;
 
-   std::string palette(const std::string& name) const;
+   SettingsVariable<std::string>& palette(const std::string& name) const;
 
    friend bool operator==(const PaletteSettings& lhs,
                           const PaletteSettings& rhs);

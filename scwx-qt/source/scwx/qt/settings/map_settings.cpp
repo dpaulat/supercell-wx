@@ -2,6 +2,7 @@
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/settings/settings_variable.hpp>
 #include <scwx/qt/util/json.hpp>
+#include <scwx/common/products.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <array>
@@ -124,20 +125,20 @@ std::size_t MapSettings::count() const
    return kCount_;
 }
 
-std::string MapSettings::radar_site(std::size_t i) const
+SettingsVariable<std::string>& MapSettings::radar_site(std::size_t i) const
 {
-   return p->map_[i].radarSite_.GetValue();
+   return p->map_[i].radarSite_;
 }
 
-common::RadarProductGroup MapSettings::radar_product_group(std::size_t i) const
+SettingsVariable<std::string>&
+MapSettings::radar_product_group(std::size_t i) const
 {
-   return common::GetRadarProductGroup(
-      p->map_[i].radarProductGroup_.GetValue());
+   return p->map_[i].radarProductGroup_;
 }
 
-std::string MapSettings::radar_product(std::size_t i) const
+SettingsVariable<std::string>& MapSettings::radar_product(std::size_t i) const
 {
-   return p->map_[i].radarProduct_.GetValue();
+   return p->map_[i].radarProduct_;
 }
 
 bool MapSettings::ReadJson(const boost::json::object& json)

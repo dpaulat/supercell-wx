@@ -1,7 +1,7 @@
 #pragma once
 
-#include <scwx/common/products.hpp>
 #include <scwx/qt/settings/settings_category.hpp>
+#include <scwx/qt/settings/settings_variable.hpp>
 
 #include <memory>
 #include <string>
@@ -27,10 +27,10 @@ public:
    MapSettings(MapSettings&&) noexcept;
    MapSettings& operator=(MapSettings&&) noexcept;
 
-   std::size_t               count() const;
-   std::string               radar_site(std::size_t i) const;
-   common::RadarProductGroup radar_product_group(std::size_t i) const;
-   std::string               radar_product(std::size_t i) const;
+   std::size_t                    count() const;
+   SettingsVariable<std::string>& radar_site(std::size_t i) const;
+   SettingsVariable<std::string>& radar_product_group(std::size_t i) const;
+   SettingsVariable<std::string>& radar_product(std::size_t i) const;
 
    /**
     * Reads the variables from the JSON object.

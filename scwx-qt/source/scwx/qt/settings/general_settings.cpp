@@ -61,34 +61,35 @@ GeneralSettings::GeneralSettings(GeneralSettings&&) noexcept = default;
 GeneralSettings&
 GeneralSettings::operator=(GeneralSettings&&) noexcept = default;
 
-bool GeneralSettings::debug_enabled() const
+SettingsVariable<bool>& GeneralSettings::debug_enabled() const
 {
-   return p->debugEnabled_.GetValue();
+   return p->debugEnabled_;
 }
 
-std::string GeneralSettings::default_radar_site() const
+SettingsVariable<std::string>& GeneralSettings::default_radar_site() const
 {
-   return p->defaultRadarSite_.GetValue();
+   return p->defaultRadarSite_;
 }
 
-std::vector<std::int64_t> GeneralSettings::font_sizes() const
+SettingsContainer<std::vector<std::int64_t>>&
+GeneralSettings::font_sizes() const
 {
-   return p->fontSizes_.GetValue();
+   return p->fontSizes_;
 }
 
-std::int64_t GeneralSettings::grid_height() const
+SettingsVariable<std::int64_t>& GeneralSettings::grid_height() const
 {
-   return p->gridHeight_.GetValue();
+   return p->gridHeight_;
 }
 
-std::int64_t GeneralSettings::grid_width() const
+SettingsVariable<std::int64_t>& GeneralSettings::grid_width() const
 {
-   return p->gridWidth_.GetValue();
+   return p->gridWidth_;
 }
 
-std::string GeneralSettings::mapbox_api_key() const
+SettingsVariable<std::string>& GeneralSettings::mapbox_api_key() const
 {
-   return p->mapboxApiKey_.GetValue();
+   return p->mapboxApiKey_;
 }
 
 bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)

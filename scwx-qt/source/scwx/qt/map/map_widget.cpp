@@ -81,7 +81,8 @@ public:
        prevPitch_ {0.0}
    {
       SetRadarSite(scwx::qt::manager::SettingsManager::general_settings()
-                      .default_radar_site());
+                      .default_radar_site()
+                      .GetValue());
 
       // Create ImGui Context
       static size_t currentMapId_ {0u};
@@ -835,7 +836,9 @@ void MapWidgetImpl::InitializeNewRadarProductView(
          auto radarProductView = context_->radar_product_view();
 
          std::string colorTableFile =
-            manager::SettingsManager::palette_settings().palette(colorPalette);
+            manager::SettingsManager::palette_settings()
+               .palette(colorPalette)
+               .GetValue();
          if (!colorTableFile.empty())
          {
             std::shared_ptr<common::ColorTable> colorTable =
