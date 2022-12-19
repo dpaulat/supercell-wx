@@ -36,7 +36,7 @@ static const std::array<std::pair<std::string, std::string>, 17>
                       std::pair {"STP", "STP"},
                       std::pair {"STPIN", "STPIN"},
                       std::pair {"VIL", "VIL"},
-                      std::pair {"?", "Default"}};
+                      std::pair {"???", "Default"}};
 
 class SettingsDialogImpl
 {
@@ -44,6 +44,7 @@ public:
    explicit SettingsDialogImpl(SettingsDialog* self) : self_ {self} {}
    ~SettingsDialogImpl() = default;
 
+   void SetupGeneralTab();
    void SetupPalettesColorTablesTab();
    void SetupPalettesAlertsTab();
 
@@ -56,6 +57,9 @@ SettingsDialog::SettingsDialog(QWidget* parent) :
     ui(new Ui::SettingsDialog)
 {
    ui->setupUi(this);
+
+   // General
+   p->SetupGeneralTab();
 
    // Palettes > Color Tables
    p->SetupPalettesColorTablesTab();
@@ -74,6 +78,14 @@ SettingsDialog::~SettingsDialog()
    delete ui;
 }
 
+void SettingsDialogImpl::SetupGeneralTab()
+{
+   self_->ui->resetRadarSiteButton->setVisible(false);
+   self_->ui->resetGridWidthButton->setVisible(false);
+   self_->ui->resetGridHeightButton->setVisible(false);
+   self_->ui->resetMapboxApiKeyButton->setVisible(false);
+}
+
 void SettingsDialogImpl::SetupPalettesColorTablesTab()
 {
    // Palettes > Color Tables
@@ -83,10 +95,17 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
    int colorTableRow = 0;
    for (auto& colorTableType : kColorTableTypes_)
    {
+      QToolButton* resetButton = new QToolButton(self_);
+
+      resetButton->setIcon(
+         QIcon {":/res/icons/font-awesome-6/rotate-left-solid.svg"});
+      resetButton->setVisible(false);
+
       colorTableLayout->addWidget(
          new QLabel(colorTableType.second.c_str(), self_), colorTableRow, 0);
       colorTableLayout->addWidget(new QLineEdit(self_), colorTableRow, 1);
       colorTableLayout->addWidget(new QToolButton(self_), colorTableRow, 2);
+      colorTableLayout->addWidget(resetButton, colorTableRow, 3);
       ++colorTableRow;
    }
 }
@@ -119,6 +138,7 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
 
       QToolButton* activeButton   = new QToolButton(self_);
       QToolButton* inactiveButton = new QToolButton(self_);
+      QToolButton* resetButton    = new QToolButton(self_);
 
       activeFrame->setMinimumWidth(24);
       inactiveFrame->setMinimumWidth(24);
@@ -127,6 +147,10 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
          QIcon {":/res/icons/font-awesome-6/palette-solid.svg"});
       inactiveButton->setIcon(
          QIcon {":/res/icons/font-awesome-6/palette-solid.svg"});
+      resetButton->setIcon(
+         QIcon {":/res/icons/font-awesome-6/rotate-left-solid.svg"});
+
+      resetButton->setVisible(false);
 
       alertsLayout->addWidget(
          new QLabel(QObject::tr(awips::GetPhenomenonText(phenomenon).c_str()),
@@ -139,6 +163,7 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
       alertsLayout->addWidget(inactiveFrame, alertsRow, 4);
       alertsLayout->addWidget(new QLineEdit(self_), alertsRow, 5);
       alertsLayout->addWidget(inactiveButton, alertsRow, 6);
+      alertsLayout->addWidget(resetButton, alertsRow, 7);
       ++alertsRow;
    }
 }

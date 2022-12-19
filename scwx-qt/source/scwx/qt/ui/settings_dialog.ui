@@ -84,7 +84,7 @@
          </sizepolicy>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="general">
          <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -96,7 +96,7 @@
             <property name="frameShadow">
              <enum>QFrame::Raised</enum>
             </property>
-            <layout class="QFormLayout" name="formLayout">
+            <layout class="QGridLayout" name="gridLayout_4">
              <property name="leftMargin">
               <number>0</number>
              </property>
@@ -116,19 +116,6 @@
                </property>
               </widget>
              </item>
-             <item row="0" column="1">
-              <widget class="QComboBox" name="radarSiteComboBox"/>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="label_2">
-               <property name="text">
-                <string>Grid Width</string>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="1">
-              <widget class="QSpinBox" name="gridWidthSpinBox"/>
-             </item>
              <item row="2" column="0">
               <widget class="QLabel" name="label_3">
                <property name="text">
@@ -139,6 +126,59 @@
              <item row="2" column="1">
               <widget class="QSpinBox" name="gridHeightSpinBox"/>
              </item>
+             <item row="1" column="2">
+              <widget class="QToolButton" name="resetGridWidthButton">
+               <property name="text">
+                <string>...</string>
+               </property>
+               <property name="icon">
+                <iconset resource="../../../../scwx-qt.qrc">
+                 <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QLineEdit" name="mapboxApiKeyLineEdit"/>
+             </item>
+             <item row="3" column="2">
+              <widget class="QToolButton" name="resetMapboxApiKeyButton">
+               <property name="text">
+                <string>...</string>
+               </property>
+               <property name="icon">
+                <iconset resource="../../../../scwx-qt.qrc">
+                 <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="2">
+              <widget class="QToolButton" name="resetRadarSiteButton">
+               <property name="text">
+                <string>...</string>
+               </property>
+               <property name="icon">
+                <iconset resource="../../../../scwx-qt.qrc">
+                 <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QSpinBox" name="gridWidthSpinBox"/>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="radarSiteComboBox"/>
+             </item>
+             <item row="2" column="2">
+              <widget class="QToolButton" name="resetGridHeightButton">
+               <property name="text">
+                <string>...</string>
+               </property>
+               <property name="icon">
+                <iconset resource="../../../../scwx-qt.qrc">
+                 <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+               </property>
+              </widget>
+             </item>
              <item row="3" column="0">
               <widget class="QLabel" name="label_4">
                <property name="text">
@@ -146,8 +186,12 @@
                </property>
               </widget>
              </item>
-             <item row="3" column="1">
-              <widget class="QLineEdit" name="mapboxApiKeyLineEdit"/>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_2">
+               <property name="text">
+                <string>Grid Width</string>
+               </property>
+              </widget>
              </item>
             </layout>
            </widget>
@@ -179,7 +223,7 @@
           <item row="0" column="0">
            <widget class="QTabWidget" name="tabWidget">
             <property name="currentIndex">
-             <number>1</number>
+             <number>0</number>
             </property>
             <widget class="QWidget" name="tab">
              <attribute name="title">
@@ -284,6 +328,15 @@
     </widget>
    </item>
   </layout>
+  <action name="actionReset">
+   <property name="icon">
+    <iconset resource="../../../../scwx-qt.qrc">
+     <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Reset</string>
+   </property>
+  </action>
  </widget>
  <resources>
   <include location="../../../../scwx-qt.qrc"/>
