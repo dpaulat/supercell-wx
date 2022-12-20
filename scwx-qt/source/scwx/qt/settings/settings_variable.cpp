@@ -7,6 +7,10 @@
 
 #include <boost/json.hpp>
 #include <fmt/ostream.h>
+#include <QAbstractButton>
+#include <QCoreApplication>
+#include <QLineEdit>
+#include <QWidget>
 
 namespace scwx
 {
@@ -22,9 +26,15 @@ template<class T>
 class SettingsVariable<T>::Impl
 {
 public:
-   explicit Impl() {}
+   explicit Impl()
+   {
+      context_->moveToThread(QCoreApplication::instance()->thread());
+   }
 
    ~Impl() {}
+
+   void UpdateEditWidget();
+   void UpdateResetButton();
 
    T                             value_ {};
    T                             default_ {};
@@ -32,6 +42,12 @@ public:
    std::optional<T>              minimum_ {};
    std::optional<T>              maximum_ {};
    std::function<bool(const T&)> validator_ {nullptr};
+
+   bool stagedValid_ {true};
+
+   std::unique_ptr<QObject> context_ {std::make_unique<QObject>()};
+   QWidget*                 editWidget_ {nullptr};
+   QAbstractButton*         resetButton_ {nullptr};
 };
 
 template<class T>
@@ -128,15 +144,19 @@ void SettingsVariable<T>::SetValueToDefault()
 template<class T>
 bool SettingsVariable<T>::StageValue(const T& value)
 {
-   bool validated = false;
-
    if (Validate(value))
    {
-      p->staged_ = value;
-      validated  = true;
+      p->staged_      = value;
+      p->stagedValid_ = true;
+   }
+   else
+   {
+      p->stagedValid_ = false;
    }
 
-   return validated;
+   p->UpdateResetButton();
+
+   return p->stagedValid_;
 }
 
 template<class T>
@@ -146,7 +166,18 @@ void SettingsVariable<T>::Commit()
    {
       p->value_ = std::move(*p->staged_);
       p->staged_.reset();
+      p->stagedValid_ = true;
    }
+}
+
+template<class T>
+void SettingsVariable<T>::Reset()
+{
+   p->staged_.reset();
+   p->stagedValid_ = true;
+
+   p->UpdateEditWidget();
+   p->UpdateResetButton();
 }
 
 template<class T>
@@ -224,6 +255,93 @@ template<class T>
 void SettingsVariable<T>::WriteValue(boost::json::object& json) const
 {
    json[name()] = boost::json::value_from<T&>(p->value_);
+}
+
+template<class T>
+void SettingsVariable<T>::SetEditWidget(QWidget* widget)
+{
+   p->editWidget_ = widget;
+
+   if (QLineEdit* lineEdit = dynamic_cast<QLineEdit*>(widget))
+   {
+      if constexpr (std::is_same_v<T, std::string>)
+      {
+         // If the line is edited (not programatically changed), stage the new
+         // value
+         QObject::connect(lineEdit,
+                          &QLineEdit::textEdited,
+                          p->context_.get(),
+                          [this](const QString& text)
+                          {
+                             // Attempt to stage the value
+                             StageValue(text.toStdString());
+                          });
+      }
+   }
+
+   p->UpdateEditWidget();
+}
+
+template<class T>
+void SettingsVariable<T>::SetResetButton(QAbstractButton* button)
+{
+   p->resetButton_ = button;
+
+   QObject::connect(p->resetButton_,
+                    &QAbstractButton::clicked,
+                    p->context_.get(),
+                    [this]()
+                    {
+                       if (p->value_ == p->default_)
+                       {
+                          // If the current value is default, reset the staged
+                          // value
+                          Reset();
+                       }
+                       else
+                       {
+                          // Stage the default value
+                          StageValue(p->default_);
+                          p->UpdateEditWidget();
+                       }
+                    });
+
+   p->UpdateResetButton();
+}
+
+template<class T>
+void SettingsVariable<T>::Impl::UpdateEditWidget()
+{
+   // Use the staged value if present, otherwise the current value
+   T& value = staged_.has_value() ? *staged_ : value_;
+
+   if (QLineEdit* lineEdit = dynamic_cast<QLineEdit*>(editWidget_))
+   {
+      if constexpr (std::is_integral_v<T>)
+      {
+         lineEdit->setText(QString::number(value));
+      }
+      else if constexpr (std::is_same_v<T, std::string>)
+      {
+         lineEdit->setText(QString::fromStdString(value));
+      }
+   }
+}
+
+template<class T>
+void SettingsVariable<T>::Impl::UpdateResetButton()
+{
+   if (resetButton_ != nullptr)
+   {
+      if (staged_.has_value())
+      {
+         resetButton_->setVisible(!stagedValid_ || *staged_ != default_);
+      }
+      else
+      {
+         resetButton_->setVisible(value_ != default_);
+      }
+   }
 }
 
 template<class T>

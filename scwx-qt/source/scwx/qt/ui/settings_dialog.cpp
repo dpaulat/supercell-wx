@@ -2,6 +2,7 @@
 #include "ui_settings_dialog.h"
 
 #include <scwx/awips/phenomenon.hpp>
+#include <scwx/qt/manager/settings_manager.hpp>
 
 #include <QToolButton>
 
@@ -80,10 +81,28 @@ SettingsDialog::~SettingsDialog()
 
 void SettingsDialogImpl::SetupGeneralTab()
 {
-   self_->ui->resetRadarSiteButton->setVisible(false);
-   self_->ui->resetGridWidthButton->setVisible(false);
-   self_->ui->resetGridHeightButton->setVisible(false);
-   self_->ui->resetMapboxApiKeyButton->setVisible(false);
+   settings::GeneralSettings& generalSettings =
+      manager::SettingsManager::general_settings();
+
+   generalSettings.default_radar_site().SetEditWidget(
+      self_->ui->radarSiteComboBox);
+   generalSettings.default_radar_site().SetResetButton(
+      self_->ui->resetRadarSiteButton);
+
+   generalSettings.grid_width().SetEditWidget(self_->ui->gridWidthSpinBox);
+   generalSettings.grid_width().SetResetButton(self_->ui->resetGridWidthButton);
+
+   generalSettings.grid_height().SetEditWidget(self_->ui->gridHeightSpinBox);
+   generalSettings.grid_height().SetResetButton(
+      self_->ui->resetGridHeightButton);
+
+   generalSettings.mapbox_api_key().SetEditWidget(
+      self_->ui->mapboxApiKeyLineEdit);
+   generalSettings.mapbox_api_key().SetResetButton(
+      self_->ui->resetMapboxApiKeyButton);
+
+   generalSettings.debug_enabled().SetEditWidget(
+      self_->ui->debugEnabledCheckBox);
 }
 
 void SettingsDialogImpl::SetupPalettesColorTablesTab()
