@@ -3,6 +3,7 @@
 #include <scwx/qt/settings/settings_variable_base.hpp>
 
 #include <functional>
+#include <optional>
 
 class QAbstractButton;
 class QWidget;
@@ -103,6 +104,20 @@ public:
     * @param value Default value
     */
    void SetDefault(const T& value);
+
+   /**
+    * Gets the minimum value of the settings variable, if defined.
+    *
+    * @return Optional minimum value
+    */
+   std::optional<T> GetMinimum() const;
+
+   /**
+    * Gets the maximum value of the settings variable, if defined.
+    *
+    * @return Optional maximum value
+    */
+   std::optional<T> GetMaximum() const;
 
    /**
     * Sets the minimum value of the settings variable.

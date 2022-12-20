@@ -3,8 +3,6 @@
 #include <scwx/qt/settings/settings_variable.hpp>
 #include <scwx/util/logger.hpp>
 
-#include <optional>
-
 #include <boost/json.hpp>
 #include <fmt/ostream.h>
 #include <QAbstractButton>
@@ -200,9 +198,21 @@ void SettingsVariable<T>::SetMinimum(const T& value)
 }
 
 template<class T>
+std::optional<T> SettingsVariable<T>::GetMinimum() const
+{
+   return p->minimum_;
+}
+
+template<class T>
 void SettingsVariable<T>::SetMaximum(const T& value)
 {
    p->maximum_ = value;
+}
+
+template<class T>
+std::optional<T> SettingsVariable<T>::GetMaximum() const
+{
+   return p->maximum_;
 }
 
 template<class T>
