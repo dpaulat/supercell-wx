@@ -2,6 +2,7 @@
 #include "ui_settings_dialog.h"
 
 #include <scwx/awips/phenomenon.hpp>
+#include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 
 #include <QToolButton>
@@ -81,6 +82,25 @@ SettingsDialog::~SettingsDialog()
 
 void SettingsDialogImpl::SetupGeneralTab()
 {
+   auto radarSites = config::RadarSite::GetAll();
+
+   // Sort radar sites by ID
+   std::sort(radarSites.begin(),
+             radarSites.end(),
+             [](const std::shared_ptr<config::RadarSite>& a,
+                const std::shared_ptr<config::RadarSite>& b)
+             { return a->id() < b->id(); });
+
+   // Add sorted radar sites
+   for (std::shared_ptr<config::RadarSite>& radarSite : radarSites)
+   {
+      QString text =
+         QString("%1 (%2)")
+            .arg(QString::fromStdString(radarSite->id()))
+            .arg(QString::fromStdString(radarSite->location_name()));
+      self_->ui->radarSiteComboBox->addItem(text);
+   }
+
    settings::GeneralSettings& generalSettings =
       manager::SettingsManager::general_settings();
 
