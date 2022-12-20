@@ -10,6 +10,7 @@
 #include <QAbstractButton>
 #include <QCoreApplication>
 #include <QLineEdit>
+#include <QSpinBox>
 #include <QWidget>
 
 namespace scwx
@@ -278,6 +279,45 @@ void SettingsVariable<T>::SetEditWidget(QWidget* widget)
                           });
       }
    }
+   else if (QSpinBox* spinBox = dynamic_cast<QSpinBox*>(widget))
+   {
+      if constexpr (std::is_integral_v<T>)
+      {
+         if (p->minimum_.has_value())
+         {
+            spinBox->setMinimum(static_cast<int>(*p->minimum_));
+         }
+         if (p->maximum_.has_value())
+         {
+            spinBox->setMaximum(static_cast<int>(*p->maximum_));
+         }
+
+         // If the spin box is edited, stage a changed value
+         QObject::connect(spinBox,
+                          &QSpinBox::valueChanged,
+                          p->context_.get(),
+                          [this](int i)
+                          {
+                             // If there is a value staged, and the new value is
+                             // the same as the current value, reset the staged
+                             // value
+                             if (p->staged_.has_value() &&
+                                 static_cast<T>(i) == p->value_)
+                             {
+                                Reset();
+                             }
+                             // If there is no staged value, or if the new value
+                             // is different than what is staged, attempt to
+                             // stage the value
+                             else if (!p->staged_.has_value() ||
+                                      static_cast<T>(i) != *p->staged_)
+                             {
+                                StageValue(static_cast<T>(i));
+                             }
+                             // Otherwise, don't process an unchanged value
+                          });
+      }
+   }
 
    p->UpdateEditWidget();
 }
@@ -324,6 +364,13 @@ void SettingsVariable<T>::Impl::UpdateEditWidget()
       else if constexpr (std::is_same_v<T, std::string>)
       {
          lineEdit->setText(QString::fromStdString(value));
+      }
+   }
+   else if (QSpinBox* spinBox = dynamic_cast<QSpinBox*>(editWidget_))
+   {
+      if constexpr (std::is_integral_v<T>)
+      {
+         spinBox->setValue(static_cast<int>(value));
       }
    }
 }
