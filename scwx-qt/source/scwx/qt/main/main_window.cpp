@@ -382,15 +382,12 @@ void MainWindowImpl::ConfigureMapLayout()
 
    auto MoveSplitter = [=](int /*pos*/, int /*index*/)
    {
-      QSplitter* s = dynamic_cast<QSplitter*>(sender());
+      QSplitter* s = static_cast<QSplitter*>(sender());
 
-      if (s != nullptr)
+      auto sizes = s->sizes();
+      for (QSplitter* hs : vs->findChildren<QSplitter*>())
       {
-         auto sizes = s->sizes();
-         for (QSplitter* hs : vs->findChildren<QSplitter*>())
-         {
-            hs->setSizes(sizes);
-         }
+         hs->setSizes(sizes);
       }
    };
 
