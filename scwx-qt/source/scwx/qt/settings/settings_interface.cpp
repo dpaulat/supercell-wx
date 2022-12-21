@@ -4,6 +4,7 @@
 #include <scwx/qt/settings/settings_variable.hpp>
 
 #include <QAbstractButton>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QLineEdit>
@@ -93,6 +94,24 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
 
                              // Attempt to stage the value
                              p->stagedValid_ = p->variable_->StageValue(value);
+                             p->UpdateResetButton();
+
+                             // TODO: Display invalid status
+                          });
+      }
+   }
+   else if (QCheckBox* checkBox = dynamic_cast<QCheckBox*>(widget))
+   {
+      if constexpr (std::is_same_v<T, bool>)
+      {
+         QObject::connect(checkBox,
+                          &QCheckBox::toggled,
+                          p->context_.get(),
+                          [this](bool checked)
+                          {
+                             // Attempt to stage the value
+                             p->stagedValid_ =
+                                p->variable_->StageValue(checked);
                              p->UpdateResetButton();
                           });
       }
@@ -246,6 +265,13 @@ void SettingsInterface<T>::Impl::UpdateEditWidget()
          {
             lineEdit->setText(QString::fromStdString(currentValue));
          }
+      }
+   }
+   else if (QCheckBox* checkBox = dynamic_cast<QCheckBox*>(editWidget_))
+   {
+      if constexpr (std::is_same_v<T, bool>)
+      {
+         checkBox->setChecked(currentValue);
       }
    }
    else if (QComboBox* comboBox = dynamic_cast<QComboBox*>(editWidget_))
