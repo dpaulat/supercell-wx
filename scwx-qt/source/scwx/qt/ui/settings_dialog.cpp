@@ -5,6 +5,7 @@
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/settings/settings_interface.hpp>
+#include <scwx/qt/ui/radar_site_dialog.hpp>
 
 #include <format>
 
@@ -46,14 +47,22 @@ static const std::array<std::pair<std::string, std::string>, 17>
 class SettingsDialogImpl
 {
 public:
-   explicit SettingsDialogImpl(SettingsDialog* self) : self_ {self} {}
+   explicit SettingsDialogImpl(SettingsDialog* self) :
+       self_ {self}, radarSiteDialog_ {new RadarSiteDialog(self)}
+   {
+   }
    ~SettingsDialogImpl() = default;
 
+   void ConnectSignals();
    void SetupGeneralTab();
    void SetupPalettesColorTablesTab();
    void SetupPalettesAlertsTab();
 
-   SettingsDialog* self_;
+   static std::string
+   RadarSiteLabel(std::shared_ptr<config::RadarSite>& radarSite);
+
+   SettingsDialog*  self_;
+   RadarSiteDialog* radarSiteDialog_;
 
    settings::SettingsInterface<std::string>               defaultRadarSite_ {};
    settings::SettingsInterface<std::vector<std::int64_t>> fontSizes_ {};
@@ -82,15 +91,45 @@ SettingsDialog::SettingsDialog(QWidget* parent) :
    // Palettes > Alerts
    p->SetupPalettesAlertsTab();
 
-   connect(ui->listWidget,
-           &QListWidget::currentRowChanged,
-           ui->stackedWidget,
-           &QStackedWidget::setCurrentIndex);
+   p->ConnectSignals();
 }
 
 SettingsDialog::~SettingsDialog()
 {
    delete ui;
+}
+
+void SettingsDialogImpl::ConnectSignals()
+{
+   QObject::connect(self_->ui->listWidget,
+                    &QListWidget::currentRowChanged,
+                    self_->ui->stackedWidget,
+                    &QStackedWidget::setCurrentIndex);
+
+   QObject::connect(self_->ui->radarSiteSelectButton,
+                    &QAbstractButton::clicked,
+                    self_,
+                    [this]() { radarSiteDialog_->show(); });
+
+   QObject::connect(radarSiteDialog_,
+                    &RadarSiteDialog::accepted,
+                    self_,
+                    [this]()
+                    {
+                       std::string id = radarSiteDialog_->radar_site();
+
+                       std::shared_ptr<config::RadarSite> radarSite =
+                          config::RadarSite::Get(id);
+
+                       if (radarSite != nullptr)
+                       {
+                          self_->ui->radarSiteComboBox->setCurrentText(
+                             QString::fromStdString(RadarSiteLabel(radarSite)));
+                       }
+                    });
+
+   // TODO: HandleMapUpdate for RadarSiteDialog, based on currently selected
+   // radar site
 }
 
 void SettingsDialogImpl::SetupGeneralTab()
@@ -107,8 +146,7 @@ void SettingsDialogImpl::SetupGeneralTab()
    // Add sorted radar sites
    for (std::shared_ptr<config::RadarSite>& radarSite : radarSites)
    {
-      QString text = QString::fromStdString(
-         std::format("{} ({})", radarSite->id(), radarSite->location_name()));
+      QString text = QString::fromStdString(RadarSiteLabel(radarSite));
       self_->ui->radarSiteComboBox->addItem(text);
    }
 
@@ -130,8 +168,7 @@ void SettingsDialogImpl::SetupGeneralTab()
          }
 
          // Add location details to the radar site
-         return std::format(
-            "{} ({})", radarSite->id(), radarSite->location_name());
+         return RadarSiteLabel(radarSite);
       });
    defaultRadarSite_.SetMapToValueFunction(
       [](const std::string& text) -> std::string
@@ -266,6 +303,12 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
       alertsLayout->addWidget(resetButton, alertsRow, 7);
       ++alertsRow;
    }
+}
+
+std::string SettingsDialogImpl::RadarSiteLabel(
+   std::shared_ptr<config::RadarSite>& radarSite)
+{
+   return std::format("{} ({})", radarSite->id(), radarSite->location_name());
 }
 
 } // namespace ui
