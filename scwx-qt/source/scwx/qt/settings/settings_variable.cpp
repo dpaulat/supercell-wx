@@ -129,8 +129,15 @@ bool SettingsVariable<T>::StageValue(const T& value)
 
    if (Validate(value))
    {
-      p->staged_ = value;
-      validated  = true;
+      if (p->value_ != value)
+      {
+         p->staged_ = value;
+      }
+      else
+      {
+         p->staged_.reset();
+      }
+      validated = true;
    }
 
    return validated;
