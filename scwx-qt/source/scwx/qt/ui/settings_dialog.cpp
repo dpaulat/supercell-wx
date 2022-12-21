@@ -4,6 +4,7 @@
 #include <scwx/awips/phenomenon.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/settings/settings_interface.hpp>
 
 #include <QToolButton>
 
@@ -51,6 +52,12 @@ public:
    void SetupPalettesAlertsTab();
 
    SettingsDialog* self_;
+
+   settings::SettingsInterface<std::string> defaultRadarSite_ {};
+   settings::SettingsInterface<int64_t>     gridWidth_ {};
+   settings::SettingsInterface<int64_t>     gridHeight_ {};
+   settings::SettingsInterface<std::string> mapboxApiKey_ {};
+   settings::SettingsInterface<bool>        debugEnabled_ {};
 };
 
 SettingsDialog::SettingsDialog(QWidget* parent) :
@@ -104,25 +111,24 @@ void SettingsDialogImpl::SetupGeneralTab()
    settings::GeneralSettings& generalSettings =
       manager::SettingsManager::general_settings();
 
-   generalSettings.default_radar_site().SetEditWidget(
-      self_->ui->radarSiteComboBox);
-   generalSettings.default_radar_site().SetResetButton(
-      self_->ui->resetRadarSiteButton);
+   defaultRadarSite_.SetSettingsVariable(generalSettings.default_radar_site());
+   defaultRadarSite_.SetEditWidget(self_->ui->radarSiteComboBox);
+   defaultRadarSite_.SetResetButton(self_->ui->resetRadarSiteButton);
 
-   generalSettings.grid_width().SetEditWidget(self_->ui->gridWidthSpinBox);
-   generalSettings.grid_width().SetResetButton(self_->ui->resetGridWidthButton);
+   gridWidth_.SetSettingsVariable(generalSettings.grid_width());
+   gridWidth_.SetEditWidget(self_->ui->gridWidthSpinBox);
+   gridWidth_.SetResetButton(self_->ui->resetGridWidthButton);
 
-   generalSettings.grid_height().SetEditWidget(self_->ui->gridHeightSpinBox);
-   generalSettings.grid_height().SetResetButton(
-      self_->ui->resetGridHeightButton);
+   gridHeight_.SetSettingsVariable(generalSettings.grid_height());
+   gridHeight_.SetEditWidget(self_->ui->gridHeightSpinBox);
+   gridHeight_.SetResetButton(self_->ui->resetGridHeightButton);
 
-   generalSettings.mapbox_api_key().SetEditWidget(
-      self_->ui->mapboxApiKeyLineEdit);
-   generalSettings.mapbox_api_key().SetResetButton(
-      self_->ui->resetMapboxApiKeyButton);
+   mapboxApiKey_.SetSettingsVariable(generalSettings.mapbox_api_key());
+   mapboxApiKey_.SetEditWidget(self_->ui->mapboxApiKeyLineEdit);
+   mapboxApiKey_.SetResetButton(self_->ui->resetMapboxApiKeyButton);
 
-   generalSettings.debug_enabled().SetEditWidget(
-      self_->ui->debugEnabledCheckBox);
+   debugEnabled_.SetSettingsVariable(generalSettings.debug_enabled());
+   debugEnabled_.SetEditWidget(self_->ui->debugEnabledCheckBox);
 }
 
 void SettingsDialogImpl::SetupPalettesColorTablesTab()

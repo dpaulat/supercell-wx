@@ -82,6 +82,13 @@ public:
    void Reset();
 
    /**
+    * Gets the staged value of the settings variable, if defined.
+    *
+    * @return Optional staged value
+    */
+   std::optional<T> GetStaged() const;
+
+   /**
     * Validate the value against the defined parameters of the settings
     * variable.
     *
@@ -157,20 +164,6 @@ public:
     * @param json JSON object to write
     */
    virtual void WriteValue(boost::json::object& json) const override;
-
-   /**
-    * Sets the edit widget from the settings dialog.
-    *
-    * @param widget Edit widget
-    */
-   void SetEditWidget(QWidget* widget);
-
-   /**
-    * Sets the reset button from the settings dialog.
-    *
-    * @param button Reset button
-    */
-   void SetResetButton(QAbstractButton* button);
 
 protected:
    virtual bool Equals(const SettingsVariableBase& o) const override;
