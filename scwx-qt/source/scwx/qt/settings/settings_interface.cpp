@@ -4,6 +4,7 @@
 #include <scwx/qt/settings/settings_variable.hpp>
 
 #include <QAbstractButton>
+#include <QComboBox>
 #include <QCoreApplication>
 #include <QLineEdit>
 #include <QSpinBox>
@@ -38,6 +39,9 @@ public:
    std::unique_ptr<QObject> context_ {std::make_unique<QObject>()};
    QWidget*                 editWidget_ {nullptr};
    QAbstractButton*         resetButton_ {nullptr};
+
+   std::function<T(const T&)> mapFromValue_ {nullptr};
+   std::function<T(const T&)> mapToValue_ {nullptr};
 };
 
 template<class T>
@@ -80,9 +84,37 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
                           p->context_.get(),
                           [this](const QString& text)
                           {
+                             // Map to value if required
+                             std::string value {text.toStdString()};
+                             if (p->mapToValue_ != nullptr)
+                             {
+                                value = p->mapToValue_(value);
+                             }
+
                              // Attempt to stage the value
-                             p->stagedValid_ =
-                                p->variable_->StageValue(text.toStdString());
+                             p->stagedValid_ = p->variable_->StageValue(value);
+                             p->UpdateResetButton();
+                          });
+      }
+   }
+   else if (QComboBox* comboBox = dynamic_cast<QComboBox*>(widget))
+   {
+      if constexpr (std::is_same_v<T, std::string>)
+      {
+         QObject::connect(comboBox,
+                          &QComboBox::currentTextChanged,
+                          p->context_.get(),
+                          [this](const QString& text)
+                          {
+                             // Map to value if required
+                             std::string value {text.toStdString()};
+                             if (p->mapToValue_ != nullptr)
+                             {
+                                value = p->mapToValue_(value);
+                             }
+
+                             // Attempt to stage the value
+                             p->stagedValid_ = p->variable_->StageValue(value);
                              p->UpdateResetButton();
                           });
       }
@@ -176,29 +208,66 @@ void SettingsInterface<T>::SetResetButton(QAbstractButton* button)
 }
 
 template<class T>
+void SettingsInterface<T>::SetMapFromValueFunction(
+   std::function<T(const T&)> function)
+{
+   p->mapFromValue_ = function;
+}
+
+template<class T>
+void SettingsInterface<T>::SetMapToValueFunction(
+   std::function<T(const T&)> function)
+{
+   p->mapToValue_ = function;
+}
+
+template<class T>
 void SettingsInterface<T>::Impl::UpdateEditWidget()
 {
    // Use the staged value if present, otherwise the current value
    const std::optional<T> staged       = variable_->GetStaged();
    const T                value        = variable_->GetValue();
-   const T&               displayValue = staged.has_value() ? *staged : value;
+   const T&               currentValue = staged.has_value() ? *staged : value;
 
    if (QLineEdit* lineEdit = dynamic_cast<QLineEdit*>(editWidget_))
    {
       if constexpr (std::is_integral_v<T>)
       {
-         lineEdit->setText(QString::number(displayValue));
+         lineEdit->setText(QString::number(currentValue));
       }
       else if constexpr (std::is_same_v<T, std::string>)
       {
-         lineEdit->setText(QString::fromStdString(displayValue));
+         if (mapFromValue_ != nullptr)
+         {
+            lineEdit->setText(
+               QString::fromStdString(mapFromValue_(currentValue)));
+         }
+         else
+         {
+            lineEdit->setText(QString::fromStdString(currentValue));
+         }
+      }
+   }
+   else if (QComboBox* comboBox = dynamic_cast<QComboBox*>(editWidget_))
+   {
+      if constexpr (std::is_same_v<T, std::string>)
+      {
+         if (mapFromValue_ != nullptr)
+         {
+            comboBox->setCurrentText(
+               QString::fromStdString(mapFromValue_(currentValue)));
+         }
+         else
+         {
+            comboBox->setCurrentText(QString::fromStdString(currentValue));
+         }
       }
    }
    else if (QSpinBox* spinBox = dynamic_cast<QSpinBox*>(editWidget_))
    {
       if constexpr (std::is_integral_v<T>)
       {
-         spinBox->setValue(static_cast<int>(displayValue));
+         spinBox->setValue(static_cast<int>(currentValue));
       }
    }
 }

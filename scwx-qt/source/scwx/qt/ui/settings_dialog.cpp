@@ -6,6 +6,8 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/settings/settings_interface.hpp>
 
+#include <format>
+
 #include <QToolButton>
 
 namespace scwx
@@ -101,10 +103,8 @@ void SettingsDialogImpl::SetupGeneralTab()
    // Add sorted radar sites
    for (std::shared_ptr<config::RadarSite>& radarSite : radarSites)
    {
-      QString text =
-         QString("%1 (%2)")
-            .arg(QString::fromStdString(radarSite->id()))
-            .arg(QString::fromStdString(radarSite->location_name()));
+      QString text = QString::fromStdString(
+         std::format("{} ({})", radarSite->id(), radarSite->location_name()));
       self_->ui->radarSiteComboBox->addItem(text);
    }
 
@@ -112,6 +112,38 @@ void SettingsDialogImpl::SetupGeneralTab()
       manager::SettingsManager::general_settings();
 
    defaultRadarSite_.SetSettingsVariable(generalSettings.default_radar_site());
+   defaultRadarSite_.SetMapFromValueFunction(
+      [](const std::string& id) -> std::string
+      {
+         // Get the radar site associated with the ID
+         std::shared_ptr<config::RadarSite> radarSite =
+            config::RadarSite::Get(id);
+
+         if (radarSite == nullptr)
+         {
+            // No radar site found, just return the ID
+            return id;
+         }
+
+         // Add location details to the radar site
+         return std::format(
+            "{} ({})", radarSite->id(), radarSite->location_name());
+      });
+   defaultRadarSite_.SetMapToValueFunction(
+      [](const std::string& text) -> std::string
+      {
+         // Find the position of location details
+         size_t pos = text.rfind(" (");
+
+         if (pos == std::string::npos)
+         {
+            // No location details found, just return the text
+            return text;
+         }
+
+         // Remove location details from the radar site
+         return text.substr(0, pos);
+      });
    defaultRadarSite_.SetEditWidget(self_->ui->radarSiteComboBox);
    defaultRadarSite_.SetResetButton(self_->ui->resetRadarSiteButton);
 

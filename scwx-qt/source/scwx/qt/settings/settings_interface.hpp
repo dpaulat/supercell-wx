@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -51,6 +52,24 @@ public:
     * @param button Reset button
     */
    void SetResetButton(QAbstractButton* button);
+
+   /**
+    * If the edit widget displays a different value than what is stored in the
+    * settings variable, a mapping function must be provided in order to convert
+    * the value used by the edit widget from the settings value.
+    *
+    * @param function Map from settings value function
+    */
+   void SetMapFromValueFunction(std::function<T(const T&)> function);
+
+   /**
+    * If the edit widget displays a different value than what is stored in the
+    * settings variable, a mapping function must be provided in order to convert
+    * the value used by the edit widget to the settings value.
+    *
+    * @param function Map to settings value function
+    */
+   void SetMapToValueFunction(std::function<T(const T&)> function);
 
 private:
    class Impl;
