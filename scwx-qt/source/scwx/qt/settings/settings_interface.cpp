@@ -3,6 +3,8 @@
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/qt/settings/settings_variable.hpp>
 
+#include <boost/tokenizer.hpp>
+#include <fmt/ranges.h>
 #include <QAbstractButton>
 #include <QCheckBox>
 #include <QComboBox>
@@ -41,8 +43,8 @@ public:
    QWidget*                 editWidget_ {nullptr};
    QAbstractButton*         resetButton_ {nullptr};
 
-   std::function<T(const T&)> mapFromValue_ {nullptr};
-   std::function<T(const T&)> mapToValue_ {nullptr};
+   std::function<std::string(const T&)> mapFromValue_ {nullptr};
+   std::function<T(const std::string&)> mapToValue_ {nullptr};
 };
 
 template<class T>
@@ -98,6 +100,52 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
 
                              // TODO: Display invalid status
                           });
+      }
+      else if constexpr (std::is_same_v<T, std::vector<std::int64_t>>)
+      {
+         // If the line is edited (not programatically changed), stage the new
+         // value
+         QObject::connect(
+            lineEdit,
+            &QLineEdit::textEdited,
+            p->context_.get(),
+            [this](const QString& text)
+            {
+               // Map to value if required
+               T value {};
+               if (p->mapToValue_ != nullptr)
+               {
+                  // User-defined map to value
+                  value = p->mapToValue_(text.toStdString());
+               }
+               else
+               {
+                  // Tokenize string to parse each element
+                  const std::string str {text.toStdString()};
+                  boost::tokenizer  tokens(str);
+                  for (auto it = tokens.begin(); it != tokens.end(); ++it)
+                  {
+                     try
+                     {
+                        // Good value
+                        value.push_back(
+                           static_cast<T::value_type>(std::stoll(*it)));
+                     }
+                     catch (const std::exception&)
+                     {
+                        // Error value
+                        value.push_back(
+                           std::numeric_limits<T::value_type>::min());
+                     }
+                  }
+               }
+
+               // Attempt to stage the value
+               p->stagedValid_ = p->variable_->StageValue(value);
+               p->UpdateResetButton();
+
+               // TODO: Display invalid status
+            });
       }
    }
    else if (QCheckBox* checkBox = dynamic_cast<QCheckBox*>(widget))
@@ -228,14 +276,14 @@ void SettingsInterface<T>::SetResetButton(QAbstractButton* button)
 
 template<class T>
 void SettingsInterface<T>::SetMapFromValueFunction(
-   std::function<T(const T&)> function)
+   std::function<std::string(const T&)> function)
 {
    p->mapFromValue_ = function;
 }
 
 template<class T>
 void SettingsInterface<T>::SetMapToValueFunction(
-   std::function<T(const T&)> function)
+   std::function<T(const std::string&)> function)
 {
    p->mapToValue_ = function;
 }
@@ -264,6 +312,19 @@ void SettingsInterface<T>::Impl::UpdateEditWidget()
          else
          {
             lineEdit->setText(QString::fromStdString(currentValue));
+         }
+      }
+      else if constexpr (std::is_same_v<T, std::vector<std::int64_t>>)
+      {
+         if (mapFromValue_ != nullptr)
+         {
+            lineEdit->setText(
+               QString::fromStdString(mapFromValue_(currentValue)));
+         }
+         else
+         {
+            lineEdit->setText(QString::fromStdString(
+               fmt::format("{}", fmt::join(currentValue, ", "))));
          }
       }
    }

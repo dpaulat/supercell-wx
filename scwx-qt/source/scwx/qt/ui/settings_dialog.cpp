@@ -55,11 +55,12 @@ public:
 
    SettingsDialog* self_;
 
-   settings::SettingsInterface<std::string> defaultRadarSite_ {};
-   settings::SettingsInterface<int64_t>     gridWidth_ {};
-   settings::SettingsInterface<int64_t>     gridHeight_ {};
-   settings::SettingsInterface<std::string> mapboxApiKey_ {};
-   settings::SettingsInterface<bool>        debugEnabled_ {};
+   settings::SettingsInterface<std::string>               defaultRadarSite_ {};
+   settings::SettingsInterface<std::vector<std::int64_t>> fontSizes_ {};
+   settings::SettingsInterface<std::int64_t>              gridWidth_ {};
+   settings::SettingsInterface<std::int64_t>              gridHeight_ {};
+   settings::SettingsInterface<std::string>               mapboxApiKey_ {};
+   settings::SettingsInterface<bool>                      debugEnabled_ {};
 
    std::unordered_map<std::string, settings::SettingsInterface<std::string>>
       colorTables_ {};
@@ -149,6 +150,10 @@ void SettingsDialogImpl::SetupGeneralTab()
       });
    defaultRadarSite_.SetEditWidget(self_->ui->radarSiteComboBox);
    defaultRadarSite_.SetResetButton(self_->ui->resetRadarSiteButton);
+
+   fontSizes_.SetSettingsVariable(generalSettings.font_sizes());
+   fontSizes_.SetEditWidget(self_->ui->fontSizesLineEdit);
+   fontSizes_.SetResetButton(self_->ui->resetFontSizesButton);
 
    gridWidth_.SetSettingsVariable(generalSettings.grid_width());
    gridWidth_.SetEditWidget(self_->ui->gridWidthSpinBox);

@@ -60,7 +60,7 @@ public:
     *
     * @param function Map from settings value function
     */
-   void SetMapFromValueFunction(std::function<T(const T&)> function);
+   void SetMapFromValueFunction(std::function<std::string(const T&)> function);
 
    /**
     * If the edit widget displays a different value than what is stored in the
@@ -69,7 +69,7 @@ public:
     *
     * @param function Map to settings value function
     */
-   void SetMapToValueFunction(std::function<T(const T&)> function);
+   void SetMapToValueFunction(std::function<T(const std::string&)> function);
 
 private:
    class Impl;
