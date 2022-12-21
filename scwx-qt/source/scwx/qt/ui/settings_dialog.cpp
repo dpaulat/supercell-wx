@@ -60,6 +60,9 @@ public:
    settings::SettingsInterface<int64_t>     gridHeight_ {};
    settings::SettingsInterface<std::string> mapboxApiKey_ {};
    settings::SettingsInterface<bool>        debugEnabled_ {};
+
+   std::unordered_map<std::string, settings::SettingsInterface<std::string>>
+      colorTables_ {};
 };
 
 SettingsDialog::SettingsDialog(QWidget* parent) :
@@ -165,6 +168,9 @@ void SettingsDialogImpl::SetupGeneralTab()
 
 void SettingsDialogImpl::SetupPalettesColorTablesTab()
 {
+   settings::PaletteSettings& paletteSettings =
+      manager::SettingsManager::palette_settings();
+
    // Palettes > Color Tables
    QGridLayout* colorTableLayout =
       reinterpret_cast<QGridLayout*>(self_->ui->colorTableContents->layout());
@@ -172,6 +178,7 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
    int colorTableRow = 0;
    for (auto& colorTableType : kColorTableTypes_)
    {
+      QLineEdit*   lineEdit    = new QLineEdit(self_);
       QToolButton* resetButton = new QToolButton(self_);
 
       resetButton->setIcon(
@@ -180,10 +187,21 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
 
       colorTableLayout->addWidget(
          new QLabel(colorTableType.second.c_str(), self_), colorTableRow, 0);
-      colorTableLayout->addWidget(new QLineEdit(self_), colorTableRow, 1);
+      colorTableLayout->addWidget(lineEdit, colorTableRow, 1);
       colorTableLayout->addWidget(new QToolButton(self_), colorTableRow, 2);
       colorTableLayout->addWidget(resetButton, colorTableRow, 3);
       ++colorTableRow;
+
+      // Create settings interface
+      auto result = colorTables_.emplace(
+         colorTableType.first, settings::SettingsInterface<std::string> {});
+      auto& pair       = *result.first;
+      auto& colorTable = pair.second;
+
+      colorTable.SetSettingsVariable(
+         paletteSettings.palette(colorTableType.first));
+      colorTable.SetEditWidget(lineEdit);
+      colorTable.SetResetButton(resetButton);
    }
 }
 
