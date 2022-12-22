@@ -36,9 +36,17 @@ public:
    virtual void SetValueToDefault() = 0;
 
    /**
-    * Sets the current value of the settings variable to the staged value.
+    * Stages the default value of the settings variable.
     */
-   virtual void Commit() = 0;
+   virtual void StageDefault() = 0;
+
+   /**
+    * Sets the current value of the settings variable to the staged value.
+    *
+    * @return true if the staged value was committed, false if no staged value
+    * is present.
+    */
+   virtual bool Commit() = 0;
 
    /**
     * Reads the value from the JSON object. If the read value is out of range,

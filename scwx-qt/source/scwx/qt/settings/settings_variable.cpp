@@ -123,6 +123,19 @@ void SettingsVariable<T>::SetValueToDefault()
 }
 
 template<class T>
+void SettingsVariable<T>::StageDefault()
+{
+   if (p->value_ != p->default_)
+   {
+      p->staged_ = p->default_;
+   }
+   else
+   {
+      p->staged_.reset();
+   }
+}
+
+template<class T>
 bool SettingsVariable<T>::StageValue(const T& value)
 {
    bool validated = false;
@@ -144,13 +157,18 @@ bool SettingsVariable<T>::StageValue(const T& value)
 }
 
 template<class T>
-void SettingsVariable<T>::Commit()
+bool SettingsVariable<T>::Commit()
 {
+   bool committed = false;
+
    if (p->staged_.has_value())
    {
       p->value_ = std::move(*p->staged_);
       p->staged_.reset();
+      committed = true;
    }
+
+   return committed;
 }
 
 template<class T>

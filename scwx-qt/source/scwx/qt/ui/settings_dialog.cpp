@@ -6,6 +6,7 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <format>
 
@@ -17,6 +18,9 @@ namespace qt
 {
 namespace ui
 {
+
+static const std::string logPrefix_ = "scwx::qt::ui::settings_dialog";
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 static const std::array<awips::Phenomenon, 5> kAlertPhenomena_ {
    awips::Phenomenon::FlashFlood,
@@ -48,7 +52,15 @@ class SettingsDialogImpl
 {
 public:
    explicit SettingsDialogImpl(SettingsDialog* self) :
-       self_ {self}, radarSiteDialog_ {new RadarSiteDialog(self)}
+       self_ {self},
+       radarSiteDialog_ {new RadarSiteDialog(self)},
+       settings_ {std::initializer_list<settings::SettingsInterfaceBase*> {
+          &defaultRadarSite_,
+          &fontSizes_,
+          &gridWidth_,
+          &gridHeight_,
+          &mapboxApiKey_,
+          &debugEnabled_}}
    {
    }
    ~SettingsDialogImpl() = default;
@@ -57,6 +69,10 @@ public:
    void SetupGeneralTab();
    void SetupPalettesColorTablesTab();
    void SetupPalettesAlertsTab();
+
+   void ApplyChanges();
+   void DiscardChanges();
+   void ResetToDefault();
 
    static std::string
    RadarSiteLabel(std::shared_ptr<config::RadarSite>& radarSite);
@@ -73,6 +89,8 @@ public:
 
    std::unordered_map<std::string, settings::SettingsInterface<std::string>>
       colorTables_ {};
+
+   std::vector<settings::SettingsInterfaceBase*> settings_;
 };
 
 SettingsDialog::SettingsDialog(QWidget* parent) :
@@ -130,6 +148,33 @@ void SettingsDialogImpl::ConnectSignals()
 
    // TODO: HandleMapUpdate for RadarSiteDialog, based on currently selected
    // radar site
+
+   QObject::connect(
+      self_->ui->buttonBox,
+      &QDialogButtonBox::clicked,
+      self_,
+      [this](QAbstractButton* button)
+      {
+         QDialogButtonBox::ButtonRole role =
+            self_->ui->buttonBox->buttonRole(button);
+
+         switch (role)
+         {
+         case QDialogButtonBox::ButtonRole::AcceptRole: // OK
+         case QDialogButtonBox::ButtonRole::ApplyRole:  // Apply
+            ApplyChanges();
+            break;
+
+         case QDialogButtonBox::ButtonRole::DestructiveRole: // Discard
+         case QDialogButtonBox::ButtonRole::RejectRole:      // Cancel
+            DiscardChanges();
+            break;
+
+         case QDialogButtonBox::ButtonRole::ResetRole: // Restore Defaults
+            ResetToDefault();
+            break;
+         }
+      });
 }
 
 void SettingsDialogImpl::SetupGeneralTab()
@@ -240,6 +285,9 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
       auto& pair       = *result.first;
       auto& colorTable = pair.second;
 
+      // Add to settings list
+      settings_.push_back(&colorTable);
+
       colorTable.SetSettingsVariable(
          paletteSettings.palette(colorTableType.first));
       colorTable.SetEditWidget(lineEdit);
@@ -302,6 +350,43 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
       alertsLayout->addWidget(inactiveButton, alertsRow, 6);
       alertsLayout->addWidget(resetButton, alertsRow, 7);
       ++alertsRow;
+   }
+}
+
+void SettingsDialogImpl::ApplyChanges()
+{
+   logger_->info("Apply settings changes");
+
+   bool committed = false;
+
+   for (auto& setting : settings_)
+   {
+      committed |= setting->Commit();
+   }
+
+   if (committed)
+   {
+      logger_->info("Saving changes");
+   }
+}
+
+void SettingsDialogImpl::DiscardChanges()
+{
+   logger_->info("Discard settings changes");
+
+   for (auto& setting : settings_)
+   {
+      setting->Reset();
+   }
+}
+
+void SettingsDialogImpl::ResetToDefault()
+{
+   logger_->info("Restoring settings to default");
+
+   for (auto& setting : settings_)
+   {
+      setting->StageDefault();
    }
 }
 

@@ -62,6 +62,11 @@ public:
    void SetValueToDefault() override;
 
    /**
+    * Stages the default value of the settings variable.
+    */
+   void StageDefault() override;
+
+   /**
     * Sets the staged value of the settings variable.
     *
     * @param value Value to stage
@@ -73,8 +78,11 @@ public:
 
    /**
     * Sets the current value of the settings variable to the staged value.
+    *
+    * @return true if the staged value was committed, false if no staged value
+    * is present.
     */
-   void Commit();
+   bool Commit();
 
    /**
     * Clears the staged value of the settings variable.

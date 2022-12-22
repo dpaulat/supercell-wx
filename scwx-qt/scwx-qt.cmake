@@ -113,6 +113,7 @@ set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/settings_category.hpp
                  source/scwx/qt/settings/settings_container.hpp
                  source/scwx/qt/settings/settings_interface.hpp
+                 source/scwx/qt/settings/settings_interface_base.hpp
                  source/scwx/qt/settings/settings_variable.hpp
                  source/scwx/qt/settings/settings_variable_base.hpp)
 set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
@@ -121,6 +122,7 @@ set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/settings_category.cpp
                  source/scwx/qt/settings/settings_container.cpp
                  source/scwx/qt/settings/settings_interface.cpp
+                 source/scwx/qt/settings/settings_interface_base.cpp
                  source/scwx/qt/settings/settings_variable.cpp
                  source/scwx/qt/settings/settings_variable_base.cpp)
 set(HDR_TYPES source/scwx/qt/types/qt_types.hpp

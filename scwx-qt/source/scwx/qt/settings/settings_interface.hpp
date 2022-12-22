@@ -1,12 +1,11 @@
 #pragma once
 
+#include <scwx/qt/settings/settings_interface_base.hpp>
+
 #include <functional>
 #include <memory>
 #include <string>
 #include <vector>
-
-class QAbstractButton;
-class QWidget;
 
 namespace scwx
 {
@@ -19,7 +18,7 @@ template<class T>
 class SettingsVariable;
 
 template<class T>
-class SettingsInterface
+class SettingsInterface : public SettingsInterfaceBase
 {
 public:
    explicit SettingsInterface();
@@ -40,18 +39,37 @@ public:
    void SetSettingsVariable(SettingsVariable<T>& variable);
 
    /**
+    * Sets the current value of the associated settings variable to the staged
+    * value.
+    *
+    * @return true if the staged value was committed, false if no staged value
+    * is present.
+    */
+   bool Commit() override;
+
+   /**
+    * Clears the staged value of the associated settings variable.
+    */
+   void Reset() override;
+
+   /**
+    * Stages the default value of the associated settings variable.
+    */
+   void StageDefault() override;
+
+   /**
     * Sets the edit widget from the settings dialog.
     *
     * @param widget Edit widget
     */
-   void SetEditWidget(QWidget* widget);
+   void SetEditWidget(QWidget* widget) override;
 
    /**
     * Sets the reset button from the settings dialog.
     *
     * @param button Reset button
     */
-   void SetResetButton(QAbstractButton* button);
+   void SetResetButton(QAbstractButton* button) override;
 
    /**
     * If the edit widget displays a different value than what is stored in the

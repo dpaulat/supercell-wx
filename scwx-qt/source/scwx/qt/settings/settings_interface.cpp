@@ -48,7 +48,8 @@ public:
 };
 
 template<class T>
-SettingsInterface<T>::SettingsInterface() : p(std::make_unique<Impl>())
+SettingsInterface<T>::SettingsInterface() :
+    SettingsInterfaceBase(), p(std::make_unique<Impl>())
 {
 }
 template<class T>
@@ -64,6 +65,28 @@ template<class T>
 void SettingsInterface<T>::SetSettingsVariable(SettingsVariable<T>& variable)
 {
    p->variable_ = &variable;
+}
+
+template<class T>
+bool SettingsInterface<T>::Commit()
+{
+   return p->variable_->Commit();
+}
+
+template<class T>
+void SettingsInterface<T>::Reset()
+{
+   p->variable_->Reset();
+   p->UpdateEditWidget();
+   p->UpdateResetButton();
+}
+
+template<class T>
+void SettingsInterface<T>::StageDefault()
+{
+   p->variable_->StageDefault();
+   p->UpdateEditWidget();
+   p->UpdateResetButton();
 }
 
 template<class T>
