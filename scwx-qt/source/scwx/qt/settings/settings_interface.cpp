@@ -68,6 +68,12 @@ void SettingsInterface<T>::SetSettingsVariable(SettingsVariable<T>& variable)
 }
 
 template<class T>
+SettingsVariable<T>* SettingsInterface<T>::GetSettingsVariable() const
+{
+   return p->variable_;
+}
+
+template<class T>
 bool SettingsInterface<T>::Commit()
 {
    return p->variable_->Commit();

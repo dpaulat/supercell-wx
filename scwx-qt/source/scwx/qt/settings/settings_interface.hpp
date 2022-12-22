@@ -32,11 +32,18 @@ public:
 
    /**
     * Sets the settings variable associated with the interface. This must be
-    * set prior to setting any widgets.
+    * set prior to calling any other functions.
     *
     * @param variable Settings variable
     */
    void SetSettingsVariable(SettingsVariable<T>& variable);
+
+   /**
+    * Gets the settings variable associated with the interface.
+    *
+    * @return Settings variable
+    */
+   SettingsVariable<T>* GetSettingsVariable() const;
 
    /**
     * Sets the current value of the associated settings variable to the staged

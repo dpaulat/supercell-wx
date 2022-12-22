@@ -70,6 +70,8 @@ public:
    void SetupPalettesColorTablesTab();
    void SetupPalettesAlertsTab();
 
+   void UpdateRadarDialogLocation(const std::string& id);
+
    void ApplyChanges();
    void DiscardChanges();
    void ResetToDefault();
@@ -146,8 +148,12 @@ void SettingsDialogImpl::ConnectSignals()
                        }
                     });
 
-   // TODO: HandleMapUpdate for RadarSiteDialog, based on currently selected
+   // Update the Radar Site dialog "map" location with the currently selected
    // radar site
+   auto& defaultRadarSite = *defaultRadarSite_.GetSettingsVariable();
+   defaultRadarSite.RegisterValueStagedCallback(
+      [this](const std::string& newValue)
+      { UpdateRadarDialogLocation(newValue); });
 
    QObject::connect(
       self_->ui->buttonBox,
@@ -232,6 +238,7 @@ void SettingsDialogImpl::SetupGeneralTab()
       });
    defaultRadarSite_.SetEditWidget(self_->ui->radarSiteComboBox);
    defaultRadarSite_.SetResetButton(self_->ui->resetRadarSiteButton);
+   UpdateRadarDialogLocation(generalSettings.default_radar_site().GetValue());
 
    fontSizes_.SetSettingsVariable(generalSettings.font_sizes());
    fontSizes_.SetEditWidget(self_->ui->fontSizesLineEdit);
@@ -350,6 +357,17 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
       alertsLayout->addWidget(inactiveButton, alertsRow, 6);
       alertsLayout->addWidget(resetButton, alertsRow, 7);
       ++alertsRow;
+   }
+}
+
+void SettingsDialogImpl::UpdateRadarDialogLocation(const std::string& id)
+{
+   std::shared_ptr<config::RadarSite> radarSite = config::RadarSite::Get(id);
+
+   if (radarSite != nullptr)
+   {
+      radarSiteDialog_->HandleMapUpdate(radarSite->latitude(),
+                                        radarSite->longitude());
    }
 }
 

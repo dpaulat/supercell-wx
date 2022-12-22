@@ -29,6 +29,9 @@ public:
    std::optional<T>              minimum_ {};
    std::optional<T>              maximum_ {};
    std::function<bool(const T&)> validator_ {nullptr};
+
+   std::vector<ValueCallbackFunction> valueChangedCallbackFunctions_ {};
+   std::vector<ValueCallbackFunction> valueStagedCallbackFunctions_ {};
 };
 
 template<class T>
@@ -73,6 +76,15 @@ bool SettingsVariable<T>::SetValue(const T& value)
    {
       p->value_ = value;
       validated = true;
+
+      for (auto& callback : p->valueChangedCallbackFunctions_)
+      {
+         callback(p->value_);
+      }
+      for (auto& callback : p->valueStagedCallbackFunctions_)
+      {
+         callback(p->value_);
+      }
    }
 
    return validated;
@@ -113,6 +125,15 @@ bool SettingsVariable<T>::SetValueOrDefault(const T& value)
       p->value_ = p->default_;
    }
 
+   for (auto& callback : p->valueChangedCallbackFunctions_)
+   {
+      callback(p->value_);
+   }
+   for (auto& callback : p->valueStagedCallbackFunctions_)
+   {
+      callback(p->value_);
+   }
+
    return validated;
 }
 
@@ -120,6 +141,15 @@ template<class T>
 void SettingsVariable<T>::SetValueToDefault()
 {
    p->value_ = p->default_;
+
+   for (auto& callback : p->valueChangedCallbackFunctions_)
+   {
+      callback(p->value_);
+   }
+   for (auto& callback : p->valueStagedCallbackFunctions_)
+   {
+      callback(p->value_);
+   }
 }
 
 template<class T>
@@ -132,6 +162,11 @@ void SettingsVariable<T>::StageDefault()
    else
    {
       p->staged_.reset();
+   }
+
+   for (auto& callback : p->valueStagedCallbackFunctions_)
+   {
+      callback(p->default_);
    }
 }
 
@@ -150,7 +185,13 @@ bool SettingsVariable<T>::StageValue(const T& value)
       {
          p->staged_.reset();
       }
+
       validated = true;
+
+      for (auto& callback : p->valueStagedCallbackFunctions_)
+      {
+         callback(value);
+      }
    }
 
    return validated;
@@ -166,6 +207,15 @@ bool SettingsVariable<T>::Commit()
       p->value_ = std::move(*p->staged_);
       p->staged_.reset();
       committed = true;
+
+      for (auto& callback : p->valueChangedCallbackFunctions_)
+      {
+         callback(p->value_);
+      }
+      for (auto& callback : p->valueStagedCallbackFunctions_)
+      {
+         callback(p->value_);
+      }
    }
 
    return committed;
@@ -175,6 +225,11 @@ template<class T>
 void SettingsVariable<T>::Reset()
 {
    p->staged_.reset();
+
+   for (auto& callback : p->valueStagedCallbackFunctions_)
+   {
+      callback(p->value_);
+   }
 }
 
 template<class T>
@@ -263,6 +318,15 @@ bool SettingsVariable<T>::ReadValue(const boost::json::object& json)
       p->value_ = p->default_;
    }
 
+   for (auto& callback : p->valueChangedCallbackFunctions_)
+   {
+      callback(p->value_);
+   }
+   for (auto& callback : p->valueStagedCallbackFunctions_)
+   {
+      callback(p->value_);
+   }
+
    return validated;
 }
 
@@ -270,6 +334,20 @@ template<class T>
 void SettingsVariable<T>::WriteValue(boost::json::object& json) const
 {
    json[name()] = boost::json::value_from<T&>(p->value_);
+}
+
+template<class T>
+void SettingsVariable<T>::RegisterValueChangedCallback(
+   ValueCallbackFunction callback)
+{
+   p->valueChangedCallbackFunctions_.push_back(std::move(callback));
+}
+
+template<class T>
+void SettingsVariable<T>::RegisterValueStagedCallback(
+   ValueCallbackFunction callback)
+{
+   p->valueStagedCallbackFunctions_.push_back(std::move(callback));
 }
 
 template<class T>

@@ -19,6 +19,13 @@ template<class T>
 class SettingsVariable : public SettingsVariableBase
 {
 public:
+   /**
+    * Callback function for when a value changes.
+    *
+    * @param value New value
+    */
+   typedef std::function<void(const T& value)> ValueCallbackFunction;
+
    explicit SettingsVariable(const std::string& name);
    ~SettingsVariable();
 
@@ -172,6 +179,24 @@ public:
     * @param json JSON object to write
     */
    virtual void WriteValue(boost::json::object& json) const override;
+
+   /**
+    * Registers a function to be called when the current value changes. The
+    * current value is passed to the callback function.
+    *
+    * @param callback Function to be called
+    */
+   void RegisterValueChangedCallback(ValueCallbackFunction callback);
+
+   /**
+    * Registers a function to be called when the staged value changes (or a
+    * value is unstaged or committed). The staged value is passed to the
+    * callback function (or in the case of unstaging or committing, the current
+    * value).
+    *
+    * @param callback Function to be called
+    */
+   void RegisterValueStagedCallback(ValueCallbackFunction callback);
 
 protected:
    virtual bool Equals(const SettingsVariableBase& o) const override;
