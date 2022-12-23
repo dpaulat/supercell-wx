@@ -15,6 +15,7 @@ namespace SettingsManager
 
 void Initialize();
 void ReadSettings(const std::string& settingsPath);
+void SaveSettings();
 
 settings::GeneralSettings& general_settings();
 settings::MapSettings&     map_settings();

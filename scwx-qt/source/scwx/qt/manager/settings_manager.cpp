@@ -24,6 +24,9 @@ static boost::json::value ConvertSettingsToJson();
 static void               GenerateDefaultSettings();
 static bool               LoadSettings(const boost::json::object& settingsJson);
 
+static bool        initialized_ {false};
+static std::string settingsPath_ {};
+
 void Initialize()
 {
    std::string appDataPath {
@@ -39,9 +42,10 @@ void Initialize()
       }
    }
 
-   std::string settingsPath {appDataPath + "/settings.json"};
+   settingsPath_ = appDataPath + "/settings.json";
+   initialized_  = true;
 
-   ReadSettings(settingsPath);
+   ReadSettings(settingsPath_);
 }
 
 void ReadSettings(const std::string& settingsPath)
@@ -69,6 +73,17 @@ void ReadSettings(const std::string& settingsPath)
          util::json::WriteJsonFile(settingsPath, settingsJson);
       }
    };
+}
+
+void SaveSettings()
+{
+   if (initialized_)
+   {
+      logger_->info("Saving settings");
+
+      boost::json::value settingsJson = ConvertSettingsToJson();
+      util::json::WriteJsonFile(settingsPath_, settingsJson);
+   }
 }
 
 settings::GeneralSettings& general_settings()

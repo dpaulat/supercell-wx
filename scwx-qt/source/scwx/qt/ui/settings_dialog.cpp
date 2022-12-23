@@ -373,7 +373,7 @@ void SettingsDialogImpl::UpdateRadarDialogLocation(const std::string& id)
 
 void SettingsDialogImpl::ApplyChanges()
 {
-   logger_->info("Apply settings changes");
+   logger_->info("Applying settings changes");
 
    bool committed = false;
 
@@ -384,13 +384,13 @@ void SettingsDialogImpl::ApplyChanges()
 
    if (committed)
    {
-      logger_->info("Saving changes");
+      manager::SettingsManager::SaveSettings();
    }
 }
 
 void SettingsDialogImpl::DiscardChanges()
 {
-   logger_->info("Discard settings changes");
+   logger_->info("Discarding settings changes");
 
    for (auto& setting : settings_)
    {
