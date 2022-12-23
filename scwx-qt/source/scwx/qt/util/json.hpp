@@ -2,7 +2,7 @@
 
 #include <optional>
 
-#include <boost/json.hpp>
+#include <boost/json/value.hpp>
 
 namespace scwx
 {
@@ -12,28 +12,6 @@ namespace util
 {
 namespace json
 {
-
-bool FromJsonBool(const boost::json::object& json,
-                  const std::string&         key,
-                  bool&                      value,
-                  const bool                 defaultValue);
-bool FromJsonInt64(const boost::json::object& json,
-                   const std::string&         key,
-                   int64_t&                   value,
-                   const int64_t              defaultValue,
-                   std::optional<int64_t>     minValue,
-                   std::optional<int64_t>     maxValue);
-bool FromJsonInt64Array(const boost::json::object&  json,
-                        const std::string&          key,
-                        std::vector<int64_t>&       values,
-                        const std::vector<int64_t>& defaultValues,
-                        std::optional<int64_t>      minValue,
-                        std::optional<int64_t>      maxValue);
-bool FromJsonString(const boost::json::object& json,
-                    const std::string&         key,
-                    std::string&               value,
-                    const std::string&         defaultValue,
-                    size_t                     minLength = 0);
 
 boost::json::value ReadJsonFile(const std::string& path);
 void               WriteJsonFile(const std::string&        path,

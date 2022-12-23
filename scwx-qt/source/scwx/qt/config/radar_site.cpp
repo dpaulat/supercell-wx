@@ -7,6 +7,8 @@
 #include <shared_mutex>
 #include <unordered_map>
 
+#include <boost/json.hpp>
+
 namespace scwx
 {
 namespace qt
