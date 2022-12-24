@@ -10,6 +10,7 @@
 
 #include <format>
 
+#include <QFileDialog>
 #include <QToolButton>
 
 namespace scwx
@@ -272,8 +273,11 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
    int colorTableRow = 0;
    for (auto& colorTableType : kColorTableTypes_)
    {
-      QLineEdit*   lineEdit    = new QLineEdit(self_);
-      QToolButton* resetButton = new QToolButton(self_);
+      QLineEdit*   lineEdit       = new QLineEdit(self_);
+      QToolButton* openFileButton = new QToolButton(self_);
+      QToolButton* resetButton    = new QToolButton(self_);
+
+      openFileButton->setText(QObject::tr("..."));
 
       resetButton->setIcon(
          QIcon {":/res/icons/font-awesome-6/rotate-left-solid.svg"});
@@ -282,7 +286,7 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
       colorTableLayout->addWidget(
          new QLabel(colorTableType.second.c_str(), self_), colorTableRow, 0);
       colorTableLayout->addWidget(lineEdit, colorTableRow, 1);
-      colorTableLayout->addWidget(new QToolButton(self_), colorTableRow, 2);
+      colorTableLayout->addWidget(openFileButton, colorTableRow, 2);
       colorTableLayout->addWidget(resetButton, colorTableRow, 3);
       ++colorTableRow;
 
@@ -299,6 +303,40 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
          paletteSettings.palette(colorTableType.first));
       colorTable.SetEditWidget(lineEdit);
       colorTable.SetResetButton(resetButton);
+
+      QObject::connect(
+         openFileButton,
+         &QAbstractButton::clicked,
+         self_,
+         [this, lineEdit]()
+         {
+            static const std::string paletteFilter = "Color Palettes (*.pal)";
+            static const std::string allFilter     = "All Files (*)";
+
+            QFileDialog* dialog = new QFileDialog(self_);
+
+            dialog->setFileMode(QFileDialog::ExistingFile);
+            dialog->setNameFilters({QObject::tr(paletteFilter.c_str()),
+                                    QObject::tr(allFilter.c_str())});
+            dialog->setAttribute(Qt::WA_DeleteOnClose);
+
+            QObject::connect(dialog,
+                             &QFileDialog::fileSelected,
+                             self_,
+                             [this, lineEdit](const QString& file)
+                             {
+                                QString path = QDir::toNativeSeparators(file);
+
+                                logger_->info("Selected palette: {}",
+                                              path.toStdString());
+                                lineEdit->setText(path);
+
+                                // textEdit does not emit the textEdited signal
+                                emit lineEdit->textEdited(path);
+                             });
+
+            dialog->open();
+         });
    }
 }
 
