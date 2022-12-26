@@ -1,5 +1,7 @@
 #include <scwx/qt/map/alert_layer.hpp>
+#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
+#include <scwx/qt/util/color.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
 
@@ -43,18 +45,6 @@ static const std::vector<awips::Phenomenon> kAlertPhenomena_ {
    awips::Phenomenon::SnowSquall,
    awips::Phenomenon::Tornado};
 
-static const std::map<
-   awips::Phenomenon,
-   std::pair<boost::gil::rgba8_pixel_t, boost::gil::rgba8_pixel_t>>
-   kAlertColors_ {
-      {awips::Phenomenon::Marine, {{255, 127, 0, 255}, {127, 63, 0, 255}}},
-      {awips::Phenomenon::FlashFlood, {{0, 255, 0, 255}, {0, 127, 0, 255}}},
-      {awips::Phenomenon::SevereThunderstorm,
-       {{255, 255, 0, 255}, {127, 127, 0, 255}}},
-      {awips::Phenomenon::SnowSquall,
-       {{127, 127, 255, 255}, {63, 63, 127, 255}}},
-      {awips::Phenomenon::Tornado, {{255, 0, 0, 255}, {127, 0, 0, 255}}}};
-
 template<class Key>
 struct AlertTypeHash;
 
@@ -69,7 +59,7 @@ class AlertLayerHandler : public QObject
    Q_OBJECT public :
        explicit AlertLayerHandler() :
        textEventManager_ {manager::TextEventManager::Instance()},
-       alertUpdateTimer_ {util::io_context()},
+       alertUpdateTimer_ {scwx::util::io_context()},
        alertSourceMap_ {},
        featureMap_ {}
    {
@@ -403,10 +393,13 @@ static void AddAlertLayer(std::shared_ptr<QMapLibreGL::Map> map,
                           bool                              alertActive,
                           const QString&                    beforeLayer)
 {
+   settings::PaletteSettings& paletteSettings =
+      manager::SettingsManager::palette_settings();
+
    QString sourceId     = GetSourceId(phenomenon, alertActive);
    QString idSuffix     = GetSuffix(phenomenon, alertActive);
-   auto&   outlineColor = (alertActive) ? kAlertColors_.at(phenomenon).first :
-                                          kAlertColors_.at(phenomenon).second;
+   auto    outlineColor = util::color::ToRgba8PixelT(
+      paletteSettings.alert_color(phenomenon, alertActive).GetValue());
 
    QString bgLayerId = QString("alertPolygonLayerBg-%1").arg(idSuffix);
    QString fgLayerId = QString("alertPolygonLayerFg-%1").arg(idSuffix);
