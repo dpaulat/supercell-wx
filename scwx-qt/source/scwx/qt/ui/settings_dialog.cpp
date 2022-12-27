@@ -2,12 +2,14 @@
 #include "ui_settings_dialog.h"
 
 #include <scwx/awips/phenomenon.hpp>
+#include <scwx/common/color_table.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/util/color.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/threads.hpp>
 
 #include <format>
 
@@ -25,7 +27,15 @@ namespace ui
 static const std::string logPrefix_ = "scwx::qt::ui::settings_dialog";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static const std::array<std::pair<std::string, std::string>, 17>
+struct ColorTableConversions
+{
+   uint16_t rangeMin {0u};
+   uint16_t rangeMax {255u};
+   float    offset {0.0f};
+   float    scale {1.0f};
+};
+
+static const std::array<std::pair<std::string, std::string>, 15>
    kColorTableTypes_ {std::pair {"BR", "BR"},
                       std::pair {"BV", "BV"},
                       std::pair {"SW", "SW"},
@@ -36,13 +46,31 @@ static const std::array<std::pair<std::string, std::string>, 17>
                       std::pair {"DSD", "DSD"},
                       std::pair {"ET", "ET"},
                       std::pair {"OHP", "OHP"},
-                      std::pair {"OHPIN", "OHPIN"},
                       std::pair {"PHI3", "PHI3"},
                       std::pair {"SRV", "SRV"},
                       std::pair {"STP", "STP"},
-                      std::pair {"STPIN", "STPIN"},
                       std::pair {"VIL", "VIL"},
                       std::pair {"???", "Default"}};
+
+// Color table conversions for display, roughly based upon:
+// - ICD for RDA-RPG: Data Moment Characteristics and Conversion for Data Names
+// - ICD for the RPG to Class 1 User
+static const std::unordered_map<std::string, ColorTableConversions>
+   kColorTableConversions_ {{"BR", {0u, 255u, 66.0f, 2.0f}},
+                            {"BV", {0u, 255u, 129.0f, 2.0f}},
+                            {"SW", {0u, 255u, 129.0f, 2.0f}},
+                            {"ZDR", {0u, 1058u, 418.0f, 32.0f}},
+                            {"PHI2", {0u, 1023u, 2.0f, 2.8361f}},
+                            {"CC", {0u, 255u, -60.5f, 300.0f}},
+                            {"DOD", {0u, 255u, 128.0f, 6.0f}},
+                            {"DSD", {0u, 255u, 128.0f, 1.5f}},
+                            {"ET", {0u, 255u, 2.0f, 1.0f}},
+                            {"OHP", {0u, 255u, 0.0f, 2.5f}},
+                            {"PHI3", {0u, 255u, 43.0f, 20.0f}},
+                            {"SRV", {0u, 255u, 128.0f, 2.0f}},
+                            {"STP", {0u, 255u, 0.0f, 1.25f}},
+                            {"VIL", {0u, 255u, 1.0f, 2.5f}},
+                            {"???", {0u, 15u, 0.0f, 1.0f}}};
 
 class SettingsDialogImpl
 {
@@ -88,6 +116,15 @@ public:
    void DiscardChanges();
    void ResetToDefault();
 
+   static QImage
+   GenerateColorTableImage(std::shared_ptr<common::ColorTable> colorTable,
+                           std::uint16_t                       min,
+                           std::uint16_t                       max,
+                           float                               offset,
+                           float                               scale);
+   static void LoadColorTablePreview(const std::string& key,
+                                     const std::string& value,
+                                     QLabel*            imageLabel);
    static std::string
                RadarSiteLabel(std::shared_ptr<config::RadarSite>& radarSite);
    static void SetBackgroundColor(const std::string& value, QFrame* frame);
@@ -291,6 +328,7 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
    int colorTableRow = 0;
    for (auto& colorTableType : kColorTableTypes_)
    {
+      QLabel*      imageLabel     = new QLabel(self_);
       QLineEdit*   lineEdit       = new QLineEdit(self_);
       QToolButton* openFileButton = new QToolButton(self_);
       QToolButton* resetButton    = new QToolButton(self_);
@@ -301,11 +339,16 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
          QIcon {":/res/icons/font-awesome-6/rotate-left-solid.svg"});
       resetButton->setVisible(false);
 
+      imageLabel->setFrameShape(QFrame::Shape::Box);
+      imageLabel->setFrameShadow(QFrame::Shadow::Plain);
+      imageLabel->setVisible(false);
+
       colorTableLayout->addWidget(
          new QLabel(colorTableType.second.c_str(), self_), colorTableRow, 0);
-      colorTableLayout->addWidget(lineEdit, colorTableRow, 1);
-      colorTableLayout->addWidget(openFileButton, colorTableRow, 2);
-      colorTableLayout->addWidget(resetButton, colorTableRow, 3);
+      colorTableLayout->addWidget(imageLabel, colorTableRow, 1);
+      colorTableLayout->addWidget(lineEdit, colorTableRow, 2);
+      colorTableLayout->addWidget(openFileButton, colorTableRow, 3);
+      colorTableLayout->addWidget(resetButton, colorTableRow, 4);
       ++colorTableRow;
 
       // Create settings interface
@@ -317,10 +360,17 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
       // Add to settings list
       settings_.push_back(&colorTable);
 
-      colorTable.SetSettingsVariable(
-         paletteSettings.palette(colorTableType.first));
+      auto& colorTableVariable = paletteSettings.palette(colorTableType.first);
+      colorTable.SetSettingsVariable(colorTableVariable);
       colorTable.SetEditWidget(lineEdit);
       colorTable.SetResetButton(resetButton);
+
+      colorTableVariable.RegisterValueStagedCallback(
+         [colorTableType, imageLabel](const std::string& value)
+         { LoadColorTablePreview(colorTableType.first, value, imageLabel); });
+
+      LoadColorTablePreview(
+         colorTableType.first, colorTableVariable.GetValue(), imageLabel);
 
       QObject::connect(
          openFileButton,
@@ -470,6 +520,68 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
                        self_,
                        [=]() { ShowColorDialog(inactiveEdit, inactiveFrame); });
    }
+}
+
+QImage SettingsDialogImpl::GenerateColorTableImage(
+   std::shared_ptr<common::ColorTable> colorTable,
+   std::uint16_t                       min,
+   std::uint16_t                       max,
+   float                               offset,
+   float                               scale)
+{
+   std::size_t width  = max - min + 1u;
+   std::size_t height = 1u;
+   QImage      image(static_cast<int>(width),
+                static_cast<int>(height),
+                QImage::Format::Format_ARGB32);
+
+   for (std::size_t i = min; i <= max; ++i)
+   {
+      const float               value = (i - offset) / scale;
+      boost::gil::rgba8_pixel_t pixel = colorTable->Color(value);
+      image.setPixel(static_cast<int>(i - min),
+                     0,
+                     qRgba(static_cast<int>(pixel[0]),
+                           static_cast<int>(pixel[1]),
+                           static_cast<int>(pixel[2]),
+                           static_cast<int>(pixel[3])));
+   }
+
+   return image;
+}
+
+void SettingsDialogImpl::LoadColorTablePreview(const std::string& key,
+                                               const std::string& value,
+                                               QLabel*            imageLabel)
+{
+   scwx::util::async(
+      [key, value, imageLabel]()
+      {
+         std::shared_ptr<common::ColorTable> colorTable =
+            common::ColorTable::Load(value);
+         if (colorTable->IsValid())
+         {
+            auto&   conversions = kColorTableConversions_.at(key);
+            QPixmap image =
+               QPixmap::fromImage(GenerateColorTableImage(colorTable,
+                                                          conversions.rangeMin,
+                                                          conversions.rangeMax,
+                                                          conversions.offset,
+                                                          conversions.scale))
+                  .scaled(64, 20);
+            imageLabel->setPixmap(image);
+
+            QMetaObject::invokeMethod(
+               imageLabel, [imageLabel] { imageLabel->setVisible(true); });
+         }
+         else
+         {
+            imageLabel->clear();
+
+            QMetaObject::invokeMethod(
+               imageLabel, [imageLabel] { imageLabel->setVisible(false); });
+         }
+      });
 }
 
 void SettingsDialogImpl::ShowColorDialog(QLineEdit* lineEdit, QFrame* frame)
