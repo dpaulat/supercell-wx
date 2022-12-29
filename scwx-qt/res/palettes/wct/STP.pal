@@ -1,0 +1,22 @@
+; NEXRAD Level-3 palette for product code 170, DAA, One Hour Precip 8-bit
+
+Units: IN
+
+Scale:    0.03937   ; convert internal units (MM) to INCHES
+Color: 8.0   255 255 255
+Color: 6.0   174   0   0
+Color: 4.0   255   0   0
+Color: 3.0   255 170   0
+Color: 2.5   255 255   0
+Color: 2.0    50   0 150
+Color: 1.75    0   0 255
+Color: 1.50  175  50 125
+Color: 1.25  255   0 255
+Color: 1.00    0 143   0
+Color: 0.75    0 255   0
+Color: 0.50    0 175 175
+Color: 0.25    0 255 255
+Color: 0.10  118 118 118
+#Color: 0.01  175 255 250
+Color: 0.01  170 170 170
+Color: 0.0     0   0   0

@@ -1,0 +1,17 @@
+; NEXRAD Level-3 palette for product code 159, NnX, Diff. Reflect, ZDR
+
+Units: DB
+
+Color:   7.9   145  45  150
+Color:   6.0   255 255  255
+Color:   5.0   240 120  180
+Color:   4.0   175   0    0
+Color:   3.0   220  10    5
+Color:   2.0   255 255  100
+Color:   1.5    90 221   98
+Color:   1.0    68 248  212
+Color:   0.25    10  10  155
+Color:   0.0   142 121  181
+Color:   0.0   220 220  220
+Color:  -7.9     0   0    0
+RF:            119   0  125

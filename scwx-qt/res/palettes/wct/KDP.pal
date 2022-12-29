@@ -1,0 +1,19 @@
+; NEXRAD Level-3 palette for product code 163, NxK, Spec. Diff. Phase
+
+Units: DEG/KM
+
+Color: 7.0   255  205  130
+Color: 5.0   255  120   20
+Color: 4.0   255  255    0
+Color: 3.0    10  255   10
+Color: 2.5    20  185   50
+Color: 2.0    98  255  250
+Color: 1.5   150  129  183
+Color: 1.0   235  120  185
+Color: 0.5   231   71   92
+Color: 0.25  165    8   44
+Color: 0.0   115    0   25
+Color: -0.5   75    0    0
+Color: -1.0   75   75   75
+Color: -2.0  118  118  118
+RF:          119    0  125

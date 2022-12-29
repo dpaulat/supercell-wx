@@ -1,0 +1,20 @@
+; NEXRAD Level-3 palette for product code 99
+; L3PC_LONG_RANGE_BASE_VELOCITY_8BIT
+
+Units: KT
+Color: +70   255 0 0
+Color: +60   255 0 0
+Color: +50   210 0 0 
+Color: +40   180 0 0
+Color: +30   150 0 0 
+Color: +20   115 0 0
+Color: +10   70 40 40
+Color:  0     70 70 70
+Color: -10  40 70 40 
+Color: -20  0 115 0
+Color: -30  0 150 0
+Color: -40  0 180 0
+Color: -50  0 210 0
+Color: -60  0 255 0
+Color: -70  0 255 0
+RF:         119 0 125

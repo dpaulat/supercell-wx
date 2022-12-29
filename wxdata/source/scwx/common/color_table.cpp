@@ -68,7 +68,7 @@ public:
 ColorTable::ColorTable() : p(std::make_unique<ColorTableImpl>()) {}
 ColorTable::~ColorTable() = default;
 
-ColorTable::ColorTable(ColorTable&&) noexcept = default;
+ColorTable::ColorTable(ColorTable&&) noexcept            = default;
 ColorTable& ColorTable::operator=(ColorTable&&) noexcept = default;
 
 boost::gil::rgba8_pixel_t ColorTable::rf_color() const
@@ -268,16 +268,19 @@ ParseColor(const std::vector<std::string>& tokenList,
            bool                            hasAlpha)
 {
 
-   uint8_t r;
-   uint8_t g;
-   uint8_t b;
+   uint8_t r {};
+   uint8_t g {};
+   uint8_t b {};
    uint8_t a = 255;
 
    if (colorMode == ColorMode::RGBA)
    {
-      r = StringToDecimal<uint8_t>(tokenList[startIndex + 0]);
-      g = StringToDecimal<uint8_t>(tokenList[startIndex + 1]);
-      b = StringToDecimal<uint8_t>(tokenList[startIndex + 2]);
+      if (tokenList.size() >= startIndex + 3)
+      {
+         r = StringToDecimal<uint8_t>(tokenList[startIndex + 0]);
+         g = StringToDecimal<uint8_t>(tokenList[startIndex + 1]);
+         b = StringToDecimal<uint8_t>(tokenList[startIndex + 2]);
+      }
 
       if (hasAlpha && tokenList.size() >= startIndex + 4)
       {
@@ -286,9 +289,17 @@ ParseColor(const std::vector<std::string>& tokenList,
    }
    else // if (colorMode == ColorMode::HSLuv)
    {
-      double h = std::stod(tokenList[startIndex + 0]);
-      double s = std::stod(tokenList[startIndex + 1]);
-      double l = std::stod(tokenList[startIndex + 2]);
+      double h {};
+      double s {};
+      double l {};
+
+      if (tokenList.size() >= startIndex + 3)
+      {
+         h = std::stod(tokenList[startIndex + 0]);
+         s = std::stod(tokenList[startIndex + 1]);
+         l = std::stod(tokenList[startIndex + 2]);
+      }
+
       double dr;
       double dg;
       double db;

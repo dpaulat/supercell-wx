@@ -1,0 +1,13 @@
+; NEXRAD Level-3 palette for product code 155 - custom super-res l3 product matching l2, produced by AllisonHouse(?)
+
+Units: KT
+
+# Category labels are replaced by categories decoded in product header
+
+Color: 20   255 255 0
+Color: 16   208 112 0
+Color: 12   255 0 0
+Color: 8      0 187 0
+Color: 4    156 156 156
+Color: 0    118 118 118
+RF:         119   0 125

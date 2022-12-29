@@ -1,0 +1,19 @@
+; NEXRAD Level-3 palette for product code 161, NxC, Corr. Coeff. 
+
+
+Units: Unitless
+Scale:  100
+
+Color:  105  255  180  215
+Color:  100  255  180  215
+Color:  100  139   30   77  
+Color:  97   225    3    0
+Color:  95   255  140    0
+Color:  90   255  255    0
+Color:  85   135  215   10
+Color:  80    95  245  100
+Color:  75   120  120  255
+Color:  60    10   10  190
+Color:  45    15   15  140
+Color:  20   100  100  100
+RF:          119   0  125

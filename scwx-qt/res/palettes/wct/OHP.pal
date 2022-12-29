@@ -1,0 +1,20 @@
+; NEXRAD Level-3 palette for product code 169, OHA, One Hour Precip, 16 Levels
+
+Units IN
+
+Scale:    0.03937   ; convert internal units (MM) to INCHES
+Color:  4.0  255 255 255
+Color:  3.0  174 0 0
+Color:  2.75 255 0 0
+Color:  2.5  255 170 0
+Color:  2.25 255 255 0
+Color:  2.0  50 0 150
+Color:  1.75 0 0 255
+Color:  1.5  175 50 125
+Color:  1.25 255 0 255
+Color:  1.0  0 143 0
+Color:  0.75 0 255 0
+Color:  0.5  0 175 175
+Color:  0.3  0 255 255
+Color:  0.1  118 118 118
+Color:  0.0  175 255 250

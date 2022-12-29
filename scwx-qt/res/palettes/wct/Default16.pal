@@ -1,0 +1,18 @@
+; Default 16 color palette
+
+SolidColor:  0   0 0 0
+SolidColor:  1   156 156 156
+SolidColor:  2   118 118 118
+SolidColor:  3   255 170 170
+SolidColor:  4   238 140 140
+SolidColor:  5   201 112 112
+SolidColor:  6   0 251 144
+SolidColor:  7   0 187 0
+SolidColor:  8   255 255 112
+SolidColor:  9   208 208 96
+SolidColor: 10   255 96 96
+SolidColor: 11   218 0 0
+SolidColor: 12   174 0 0
+SolidColor: 13   0 0 255
+SolidColor: 14   255 255 255
+SolidColor: 15   231 0 255

@@ -1,0 +1,22 @@
+; NEXRAD Level-3 palette for product code 134
+
+; DVL DIG VERT INT LIQUID
+
+Units: KG/M2
+
+Color: 75  235 235 235
+Color: 70  153 85 201
+Color: 65  255 0 255
+Color: 60  192 0 0
+Color: 55  214 0 0
+Color: 50  255 0 0
+Color: 45  255 144 0
+Color: 40  231 192 0
+Color: 35  255 255 0
+Color: 30  0 144 0
+Color: 25  0 200 0
+Color: 20  0 255 0
+Color: 15  0 0 246
+Color: 10  1 160 246
+Color: 5   0 236 236
+Color: 0.1  120 120 120

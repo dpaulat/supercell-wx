@@ -1,0 +1,21 @@
+; NEXRAD Level-3 palette for product code 56 - NxS Spectum Width
+
+Units: KT
+
+;Scale:   1.9426     ; converts internal units (M/S) to KTS
+
+RF: 119 0 125
+Color: 75 255 0 0
+Color: 60 208 122 0
+Color: 45 174 0 0
+Color: 30 255 255 0
+Color: 20 255 207 0
+Color: 10  248 135 0
+Color:  0  118 118 118
+Color: -1  205 192 159
+Color: -10  0 143 0
+Color: -20 0 187 0
+Color: -30 0 251 144
+Color: -45 50 0 150
+Color: -60 0 138 255
+Color: -75 0 224 255
