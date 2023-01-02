@@ -156,6 +156,7 @@ set(UI_UI  source/scwx/qt/ui/alert_dialog.ui
            source/scwx/qt/ui/radar_site_dialog.ui
            source/scwx/qt/ui/settings_dialog.ui)
 set(HDR_UTIL source/scwx/qt/util/color.hpp
+             source/scwx/qt/util/file.hpp
              source/scwx/qt/util/font.hpp
              source/scwx/qt/util/font_buffer.hpp
              source/scwx/qt/util/json.hpp
@@ -164,6 +165,7 @@ set(HDR_UTIL source/scwx/qt/util/color.hpp
              source/scwx/qt/util/q_file_buffer.hpp
              source/scwx/qt/util/q_file_input_stream.hpp)
 set(SRC_UTIL source/scwx/qt/util/color.cpp
+             source/scwx/qt/util/file.cpp
              source/scwx/qt/util/font.cpp
              source/scwx/qt/util/font_buffer.cpp
              source/scwx/qt/util/json.cpp

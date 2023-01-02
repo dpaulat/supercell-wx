@@ -1,5 +1,6 @@
 #pragma once
 
+#include <istream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -28,7 +29,7 @@ public:
    explicit ColorTable();
    ~ColorTable();
 
-   ColorTable(const ColorTable&) = delete;
+   ColorTable(const ColorTable&)            = delete;
    ColorTable& operator=(const ColorTable&) = delete;
 
    ColorTable(ColorTable&&) noexcept;
@@ -40,6 +41,7 @@ public:
    bool                      IsValid() const;
 
    static std::shared_ptr<ColorTable> Load(const std::string& filename);
+   static std::shared_ptr<ColorTable> Load(std::istream& is);
 
 private:
    std::unique_ptr<ColorTableImpl> p;

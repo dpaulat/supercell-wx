@@ -9,6 +9,7 @@
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
+#include <scwx/qt/util/file.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
@@ -415,7 +416,7 @@ void MapWidget::SelectRadarProduct(
                   radarId,
                   common::GetRadarProductGroupName(group),
                   product,
-                  util::TimeString(time));
+                  scwx::util::TimeString(time));
 
    p->SetRadarSite(radarId);
    p->selectedTime_ = time;
@@ -796,7 +797,7 @@ void MapWidgetImpl::RadarProductManagerConnect()
                        });
 
                // Load file
-               util::async(
+               scwx::util::async(
                   [=]()
                   {
                      if (group == common::RadarProductGroup::Level2)
@@ -830,7 +831,7 @@ void MapWidgetImpl::RadarProductManagerDisconnect()
 void MapWidgetImpl::InitializeNewRadarProductView(
    const std::string& colorPalette)
 {
-   util::async(
+   scwx::util::async(
       [=]()
       {
          auto radarProductView = context_->radar_product_view();
@@ -841,8 +842,10 @@ void MapWidgetImpl::InitializeNewRadarProductView(
                .GetValue();
          if (!colorTableFile.empty())
          {
+            std::unique_ptr<std::istream> colorTableStream =
+               util::OpenFile(colorTableFile);
             std::shared_ptr<common::ColorTable> colorTable =
-               common::ColorTable::Load(colorTableFile);
+               common::ColorTable::Load(*colorTableStream);
             radarProductView->LoadColorTable(colorTable);
          }
 

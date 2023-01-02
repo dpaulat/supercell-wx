@@ -8,6 +8,7 @@
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/util/color.hpp>
+#include <scwx/qt/util/file.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
 
@@ -557,8 +558,10 @@ void SettingsDialogImpl::LoadColorTablePreview(const std::string& key,
    scwx::util::async(
       [key, value, imageLabel]()
       {
+         std::unique_ptr<std::istream>       is = util::OpenFile(value);
          std::shared_ptr<common::ColorTable> colorTable =
-            common::ColorTable::Load(value);
+            common::ColorTable::Load(*is);
+
          if (colorTable->IsValid())
          {
             auto&   conversions = kColorTableConversions_.at(key);

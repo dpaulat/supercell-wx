@@ -137,13 +137,16 @@ bool ColorTable::IsValid() const
 std::shared_ptr<ColorTable> ColorTable::Load(const std::string& filename)
 {
    logger_->debug("Loading color table: {}", filename);
+   std::ifstream f(filename, std::ios_base::in);
+   return Load(f);
+}
 
+std::shared_ptr<ColorTable> ColorTable::Load(std::istream& is)
+{
    std::shared_ptr<ColorTable> p = std::make_shared<ColorTable>();
 
-   std::ifstream f(filename, std::ios_base::in);
-
    std::string line;
-   while (scwx::util::getline(f, line))
+   while (scwx::util::getline(is, line))
    {
       std::string              token;
       std::istringstream       tokens(line);
