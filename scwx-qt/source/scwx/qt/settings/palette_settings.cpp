@@ -16,26 +16,26 @@ namespace settings
 
 static const std::string logPrefix_ = "scwx::qt::settings::palette_settings";
 
-static const std::vector<std::string> kPaletteNames_ = {
+static const std::unordered_map<std::string, std::string> kDefaultPalettes_ {
    // Level 2 / Common Products
-   "BR",
-   "BV",
-   "SW",
-   "ZDR",
-   "PHI2",
-   "CC",
+   {"BR", ":/res/palettes/wct/DR.pal"},
+   {"BV", ":/res/palettes/wct/DV.pal"},
+   {"SW", ":/res/palettes/wct/SW.pal"},
+   {"ZDR", ":/res/palettes/wct/ZDR.pal"},
+   {"PHI2", ":/res/palettes/wct/KDP2.pal"},
+   {"CC", ":/res/palettes/wct/CC.pal"},
    // Level 3 Products
-   "DOD",
-   "DSD",
-   "ET",
-   "OHP",
-   "OHPIN",
-   "PHI3",
-   "SRV",
-   "STP",
-   "STPIN",
-   "VIL",
-   "???"};
+   {"DOD", ":/res/palettes/wct/DOD_DSD.pal"},
+   {"DSD", ":/res/palettes/wct/DOD_DSD.pal"},
+   {"ET", ":/res/palettes/wct/ET.pal"},
+   {"OHP", ":/res/palettes/wct/OHP.pal"},
+   {"OHPIN", ""},
+   {"PHI3", ":/res/palettes/wct/KDP.pal"},
+   {"SRV", ":/res/palettes/wct/SRV.pal"},
+   {"STP", ":/res/palettes/wct/STP.pal"},
+   {"STPIN", ""},
+   {"VIL", ":/res/palettes/wct/VIL.pal"},
+   {"???", ":/res/palettes/wct/Default16.pal"}};
 
 static const std::map<
    awips::Phenomenon,
@@ -49,7 +49,6 @@ static const std::map<
       {awips::Phenomenon::Tornado, {{255, 0, 0, 255}, {127, 0, 0, 255}}}};
 
 static const std::string       kDefaultKey_ {"???"};
-static const std::string       kDefaultPalette_ {""};
 static const awips::Phenomenon kDefaultPhenomenon_ {awips::Phenomenon::Marine};
 
 class PaletteSettingsImpl
@@ -57,14 +56,17 @@ class PaletteSettingsImpl
 public:
    explicit PaletteSettingsImpl()
    {
-      for (const std::string& name : kPaletteNames_)
+      for (const auto& palette : kDefaultPalettes_)
       {
+         const std::string& name         = palette.first;
+         const std::string& defaultValue = palette.second;
+
          auto result =
             palette_.emplace(name, SettingsVariable<std::string> {name});
 
          SettingsVariable<std::string>& settingsVariable = result.first->second;
 
-         settingsVariable.SetDefault(kDefaultPalette_);
+         settingsVariable.SetDefault(defaultValue);
 
          variables_.push_back(&settingsVariable);
       };
