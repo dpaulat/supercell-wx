@@ -72,6 +72,13 @@ QFileBuffer::~QFileBuffer() = default;
 QFileBuffer::QFileBuffer(QFileBuffer&&) noexcept            = default;
 QFileBuffer& QFileBuffer::operator=(QFileBuffer&&) noexcept = default;
 
+void QFileBuffer::swap(QFileBuffer& other)
+{
+   // Swap the base class and managed implementation pointer
+   std::streambuf::swap(other);
+   p.swap(other.p);
+}
+
 bool QFileBuffer::is_open() const
 {
    return p->file_.isOpen();
@@ -147,7 +154,7 @@ QFileBuffer::int_type QFileBuffer::pbackfail(int_type c)
         traits_type::eq_int_type(traits_type::to_int_type(gptr()[-1]), c)))
    {
       // Just back up position
-      gbump(static_cast<int>(sizeof(char_type)) * -1);
+      gbump(-1);
       return traits_type::not_eof(c);
    }
    else if (!is_open() || traits_type::eq_int_type(traits_type::eof(), c))
@@ -274,7 +281,7 @@ QFileBuffer::int_type QFileBuffer::uflow()
    {
       // Return buffered
       int_type c = traits_type::to_int_type(*gptr());
-      gbump(sizeof(char_type));
+      gbump(1);
       return c;
    }
 

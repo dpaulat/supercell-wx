@@ -29,7 +29,7 @@ public:
    explicit QFileBuffer();
 
    /**
-    * Constructs a new QFileBuffer object, then associated the object with a
+    * Constructs a new QFileBuffer object, then associates the object with a
     * file by calling open(filename, mode). If the open call is successful,
     * is_open() returns true.
     */
@@ -42,6 +42,13 @@ public:
 
    QFileBuffer(QFileBuffer&&) noexcept;
    QFileBuffer& operator=(QFileBuffer&&) noexcept;
+
+   /**
+    * @brief Swaps two QFileBuffer objects
+    *
+    * Exchanges the contents of the QFile buffer with those of the other.
+    */
+   void swap(QFileBuffer& other);
 
    /**
     * @brief Checks if the associated file is open
