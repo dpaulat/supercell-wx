@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>Supercell Wx</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="../../../../scwx-qt.qrc">
+    <normaloff>:/res/icons/scwx-256.ico</normaloff>:/res/icons/scwx-256.ico</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout">
     <property name="leftMargin">
@@ -59,6 +63,11 @@
     <property name="title">
      <string>&amp;Help</string>
     </property>
+    <addaction name="actionUserManual"/>
+    <addaction name="separator"/>
+    <addaction name="actionDiscord"/>
+    <addaction name="actionGitHubRepository"/>
+    <addaction name="separator"/>
     <addaction name="actionAboutSupercellWx"/>
    </widget>
    <widget class="QMenu" name="menuView">
@@ -359,6 +368,33 @@
   <action name="actionSettings">
    <property name="text">
     <string>&amp;Settings</string>
+   </property>
+  </action>
+  <action name="actionUserManual">
+   <property name="icon">
+    <iconset resource="../../../../scwx-qt.qrc">
+     <normaloff>:/res/icons/font-awesome-6/book-solid.svg</normaloff>:/res/icons/font-awesome-6/book-solid.svg</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;User Manual</string>
+   </property>
+  </action>
+  <action name="actionDiscord">
+   <property name="icon">
+    <iconset resource="../../../../scwx-qt.qrc">
+     <normaloff>:/res/icons/font-awesome-6/discord.svg</normaloff>:/res/icons/font-awesome-6/discord.svg</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Discord</string>
+   </property>
+  </action>
+  <action name="actionGitHubRepository">
+   <property name="icon">
+    <iconset resource="../../../../scwx-qt.qrc">
+     <normaloff>:/res/icons/font-awesome-6/github.svg</normaloff>:/res/icons/font-awesome-6/github.svg</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;GitHub Repository</string>
    </property>
   </action>
  </widget>

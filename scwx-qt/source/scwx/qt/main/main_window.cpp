@@ -22,6 +22,7 @@
 #include <scwx/common/vcp.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <QDesktopServices>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QSplitter>
@@ -349,6 +350,23 @@ void MainWindow::on_actionImGuiDebug_triggered()
 {
    p->imGuiDebugDialog_->show();
 }
+
+void MainWindow::on_actionUserManual_triggered()
+{
+   QDesktopServices::openUrl(QUrl {"https://supercell-wx.readthedocs.io/"});
+}
+
+void MainWindow::on_actionDiscord_triggered()
+{
+   QDesktopServices::openUrl(QUrl {"https://discord.gg/snH4tNav7g"});
+}
+
+void MainWindow::on_actionGitHubRepository_triggered()
+{
+   QDesktopServices::openUrl(QUrl {"https://github.com/dpaulat/supercell-wx"});
+}
+
+void MainWindow::on_actionAboutSupercellWx_triggered() {}
 
 void MainWindow::on_radarSiteSelectButton_clicked()
 {

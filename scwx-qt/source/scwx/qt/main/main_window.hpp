@@ -37,6 +37,10 @@ private slots:
    void on_actionSettings_triggered();
    void on_actionExit_triggered();
    void on_actionImGuiDebug_triggered();
+   void on_actionUserManual_triggered();
+   void on_actionDiscord_triggered();
+   void on_actionGitHubRepository_triggered();
+   void on_actionAboutSupercellWx_triggered();
    void on_radarSiteSelectButton_clicked();
    void on_resourceTreeCollapseAllButton_clicked();
    void on_resourceTreeExpandAllButton_clicked();
