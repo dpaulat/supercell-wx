@@ -7,6 +7,8 @@
 
 #include <imgui.h>
 
+#include <QFontDatabase>
+
 namespace scwx
 {
 namespace qt
@@ -15,11 +17,18 @@ namespace manager
 {
 namespace ResourceManager
 {
+
 static const std::string logPrefix_ = "scwx::qt::manager::resource_manager";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static void LoadFonts();
 static void LoadTextures();
+
+static const std::unordered_map<types::Font, std::string> fontNames_ {
+   {types::Font::din1451alt, ":/res/fonts/din1451alt.ttf"},
+   {types::Font::din1451alt_g, ":/res/fonts/din1451alt_g.ttf"}};
+
+static std::unordered_map<types::Font, int> fontIds_ {};
 
 void Initialize()
 {
@@ -31,10 +40,26 @@ void Initialize()
 
 void Shutdown() {}
 
+int FontId(types::Font font)
+{
+   auto it = fontIds_.find(font);
+   if (it != fontIds_.cend())
+   {
+      return it->second;
+   }
+   return -1;
+}
+
 static void LoadFonts()
 {
-   util::Font::Create(":/res/fonts/din1451alt.ttf");
-   util::Font::Create(":/res/fonts/din1451alt_g.ttf");
+   for (auto& fontName : fontNames_)
+   {
+      int fontId = QFontDatabase::addApplicationFont(
+         QString::fromStdString(fontName.second));
+      fontIds_.emplace(fontName.first, fontId);
+
+      util::Font::Create(fontName.second);
+   }
 
    ImFontAtlas* fontAtlas = model::ImGuiContextModel::Instance().font_atlas();
    fontAtlas->AddFontDefault();

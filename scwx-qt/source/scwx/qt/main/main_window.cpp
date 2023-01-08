@@ -11,6 +11,7 @@
 #include <scwx/qt/model/radar_product_model.hpp>
 #include <scwx/qt/ui/alert_dock_widget.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
+#include <scwx/qt/ui/about_dialog.hpp>
 #include <scwx/qt/ui/imgui_debug_dialog.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
@@ -52,6 +53,7 @@ public:
        level2SettingsWidget_ {nullptr},
        level3ProductsWidget_ {nullptr},
        alertDockWidget_ {nullptr},
+       aboutDialog_ {nullptr},
        imGuiDebugDialog_ {nullptr},
        radarSiteDialog_ {nullptr},
        settingsDialog_ {nullptr},
@@ -116,6 +118,7 @@ public:
    ui::Level3ProductsWidget* level3ProductsWidget_;
 
    ui::AlertDockWidget*  alertDockWidget_;
+   ui::AboutDialog*      aboutDialog_;
    ui::ImGuiDebugDialog* imGuiDebugDialog_;
    ui::RadarSiteDialog*  radarSiteDialog_;
    ui::SettingsDialog*   settingsDialog_;
@@ -212,6 +215,9 @@ MainWindow::MainWindow(QWidget* parent) :
 
    // ImGui Debug Dialog
    p->imGuiDebugDialog_ = new ui::ImGuiDebugDialog(this);
+
+   // About Dialog
+   p->aboutDialog_ = new ui::AboutDialog(this);
 
    auto& mapSettings = manager::SettingsManager::map_settings();
    for (size_t i = 0; i < p->maps_.size(); i++)
@@ -366,7 +372,10 @@ void MainWindow::on_actionGitHubRepository_triggered()
    QDesktopServices::openUrl(QUrl {"https://github.com/dpaulat/supercell-wx"});
 }
 
-void MainWindow::on_actionAboutSupercellWx_triggered() {}
+void MainWindow::on_actionAboutSupercellWx_triggered()
+{
+   p->aboutDialog_->show();
+}
 
 void MainWindow::on_radarSiteSelectButton_clicked()
 {
