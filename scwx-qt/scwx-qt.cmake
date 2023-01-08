@@ -314,7 +314,12 @@ set_target_properties(update_translations  PROPERTIES FOLDER qt)
 
 set_target_properties(scwx-qt_generate_counties_db PROPERTIES FOLDER generate)
 
-qt_add_executable(supercell-wx ${EXECUTABLE_SOURCES})
+if (WIN32)
+    set(APP_ICON_RESOURCE_WINDOWS "${scwx-qt_SOURCE_DIR}/res/scwx-qt.rc")
+    qt_add_executable(supercell-wx ${EXECUTABLE_SOURCES} ${APP_ICON_RESOURCE_WINDOWS})
+else()
+    qt_add_executable(supercell-wx ${EXECUTABLE_SOURCES})
+endif()
 
 if (WIN32)
     target_compile_definitions(scwx-qt      PUBLIC WIN32_LEAN_AND_MEAN)
