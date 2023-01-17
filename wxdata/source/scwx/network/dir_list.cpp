@@ -98,7 +98,8 @@ void DirListSAXHandler::StartElement(void*           userData,
                                      const xmlChar*  name,
                                      const xmlChar** attrs)
 {
-   logger_->trace("SAX: Start Element: {}", name);
+   logger_->trace("SAX: Start Element: {}",
+                  reinterpret_cast<const char*>(name));
 
    DirListSAXData* data = reinterpret_cast<DirListSAXData*>(userData);
 
@@ -140,13 +141,14 @@ void DirListSAXHandler::StartElement(void*           userData,
    }
    for (int i = 0; attrs != nullptr && attrs[i] != nullptr; ++i)
    {
-      logger_->trace("     Attribute: {}", attrs[i]);
+      logger_->trace("     Attribute: {}",
+                     reinterpret_cast<const char*>(attrs[i]));
    }
 }
 
 void DirListSAXHandler::EndElement(void* userData, const xmlChar* name)
 {
-   logger_->trace("SAX: End Element: {}", name);
+   logger_->trace("SAX: End Element: {}", reinterpret_cast<const char*>(name));
 
    DirListSAXData* data = reinterpret_cast<DirListSAXData*>(userData);
 

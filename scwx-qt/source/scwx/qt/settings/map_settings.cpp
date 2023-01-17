@@ -8,6 +8,8 @@
 #include <array>
 #include <execution>
 
+#include <boost/json.hpp>
+
 namespace scwx
 {
 namespace qt
