@@ -1,0 +1,33 @@
+cmake_minimum_required(VERSION 3.20)
+set(PROJECT_NAME scwx-aws-sdk-cpp)
+
+set(BUILD_ONLY         "s3")
+set(BUILD_SHARED_LIBS  OFF)
+set(CPP_STANDARD       17)
+set(ENABLE_TESTING     OFF)
+set(ENABLE_UNITY_BUILD ON)
+set(MINIMIZE_SIZE      OFF)
+
+if(NOT CMAKE_EXE_LINKER_FLAGS_DEBUGOPT)
+    set(CMAKE_EXE_LINKER_FLAGS_DEBUGOPT "")
+endif()
+
+add_subdirectory(aws-sdk-cpp)
+
+set_target_properties(uninstall         PROPERTIES EXCLUDE_FROM_ALL True)
+
+set_target_properties(aws-c-auth         PROPERTIES FOLDER aws-sdk-cpp)
+set_target_properties(aws-c-cal          PROPERTIES FOLDER aws-sdk-cpp)
+set_target_properties(aws-c-common       PROPERTIES FOLDER aws-sdk-cpp)
+set_target_properties(aws-c-compression  PROPERTIES FOLDER aws-sdk-cpp)
+set_target_properties(aws-c-event-stream PROPERTIES FOLDER aws-sdk-cpp)
+set_target_properties(aws-checksums      PROPERTIES FOLDER aws-sdk-cpp)
+set_target_properties(aws-c-http         PROPERTIES FOLDER aws-sdk-cpp)
+set_target_properties(aws-c-io           PROPERTIES FOLDER aws-sdk-cpp)
+set_target_properties(aws-c-mqtt         PROPERTIES FOLDER aws-sdk-cpp)
+set_target_properties(aws-cpp-sdk-core   PROPERTIES FOLDER aws-sdk-cpp)
+set_target_properties(aws-cpp-sdk-s3     PROPERTIES FOLDER aws-sdk-cpp)
+set_target_properties(aws-crt-cpp        PROPERTIES FOLDER aws-sdk-cpp)
+set_target_properties(aws-c-s3           PROPERTIES FOLDER aws-sdk-cpp)
+set_target_properties(aws-c-sdkutils     PROPERTIES FOLDER aws-sdk-cpp)
+set_target_properties(uninstall          PROPERTIES FOLDER aws-sdk-cpp/exclude)
