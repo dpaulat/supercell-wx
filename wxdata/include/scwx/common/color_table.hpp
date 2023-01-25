@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include <boost/gil.hpp>
+#include <boost/gil/typedefs.hpp>
 
 namespace scwx
 {

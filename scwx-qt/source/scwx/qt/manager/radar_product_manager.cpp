@@ -13,12 +13,14 @@
 #include <mutex>
 #include <shared_mutex>
 
+#pragma warning(push, 0)
 #include <boost/asio/steady_timer.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 #include <fmt/chrono.h>
 #include <GeographicLib/Geodesic.hpp>
 #include <QMapLibreGL/QMapLibreGL>
+#pragma warning(pop)
 
 namespace scwx
 {

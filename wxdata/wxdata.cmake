@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.20)
 
 project(scwx-data)
 
-find_package(AWSSDK)
 find_package(Boost)
 find_package(cpr)
 find_package(LibXml2)
@@ -234,7 +233,8 @@ target_compile_options(wxdata PRIVATE
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
 
-target_link_libraries(wxdata PUBLIC AWS::s3
+target_link_libraries(wxdata PUBLIC aws-cpp-sdk-core
+                                    aws-cpp-sdk-s3
                                     cpr::cpr
                                     LibXml2::LibXml2
                                     spdlog::spdlog)

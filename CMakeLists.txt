@@ -12,25 +12,23 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 include(${PROJECT_SOURCE_DIR}/external/cmake-conan/conan.cmake)
 
-conan_cmake_configure(REQUIRES aws-sdk-cpp/1.9.234
-                               boost/1.78.0
-                               cpr/1.9.0
+conan_cmake_configure(REQUIRES boost/1.81.0
+                               cpr/1.9.3
                                freetype/2.12.1
                                geographiclib/1.52
                                glew/2.2.0
                                glm/cci.20220420
                                gtest/cci.20210126
                                libcurl/7.85.0
-                               libxml2/2.9.14
-                               openssl/1.1.1q
-                               spdlog/1.10.0
-                               sqlite3/3.39.4
-                               vulkan-loader/1.3.221
+                               libxml2/2.10.3
+                               openssl/1.1.1s
+                               spdlog/1.11.0
+                               sqlite3/3.40.1
+                               vulkan-loader/1.3.236.0
                                zlib/1.2.13
                       GENERATORS cmake
                                  cmake_find_package
                                  cmake_paths
-                      BUILD_REQUIRES cmake/3.22.3
                       IMPORTS "bin, *.dll -> ./bin"
                       IMPORTS "lib, *.dylib -> ./bin"
                       OPTIONS openssl:shared=True)
