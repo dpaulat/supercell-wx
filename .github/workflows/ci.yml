@@ -65,13 +65,13 @@ jobs:
         conan profile new default --detect
 
     - name: Build Supercell Wx
-      shell: bash
+      shell: pwsh
       run: |
         mkdir build
         cd build
-        cmake ../scwx/ \
-          -G Ninja \
-          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
+        cmake ../scwx/ `
+          -G Ninja `
+          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" `
           -DCMAKE_INSTALL_PREFIX="../install"
         ninja supercell-wx wxtest
 
