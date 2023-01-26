@@ -59,7 +59,13 @@ jobs:
         toolset: ${{ matrix.msvc_toolset }}
         vsversion: ${{ matrix.msvc_version }}
 
+    - name: Setup Python Environment
+      run: |
+        pip install conan geopandas
+        conan profile new default --detect
+
     - name: Build Supercell Wx
+      shell: bash
       run: |
         mkdir build
         cd build
