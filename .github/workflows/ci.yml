@@ -78,7 +78,7 @@ jobs:
           --build missing `
           --settings arch=${{ matrix.conan_arch }} `
           --settings build_type=${{ matrix.build_type }} `
-          --settings compiler=${{ matrix.conan_compiler }} `
+          --settings compiler="${{ matrix.conan_compiler }}" `
           --settings compiler.version=${{ matrix.conan_compiler_version }} `
           --settings compiler.runtime=${{ matrix.conan_compiler_runtime }}
 
