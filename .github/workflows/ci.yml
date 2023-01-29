@@ -32,6 +32,10 @@ jobs:
             qt_version: 6.4.2
             qt_arch: win64_msvc2019_64
             qt_tools: ''
+            conan_arch: x86_64
+            conan_compiler: Visual Studio
+            conan_compiler_version: 17
+            conan_compiler_runtime: MD
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -60,9 +64,23 @@ jobs:
         vsversion: ${{ matrix.msvc_version }}
 
     - name: Setup Python Environment
+      shell: pwsh
       run: |
-        pip install conan geopandas
+        pip install geopandas
+
+    - name: Install Conan Packages
+      shell: pwsh
+      run: |
+        pip install conan
         conan profile new default --detect
+        conan install ./scwx/ `
+          --remote conancenter `
+          --build missing `
+          --settings arch=${{ matrix.conan_arch }} `
+          --settings build_type=${{ matrix.build_type }} `
+          --settings compiler=${{ matrix.conan_compiler }} `
+          --settings compiler.version=${{ matrix.conan_compiler_version }} `
+          --settings compiler.runtime=${{ matrix.conan_compiler_runtime }}
 
     - name: Build Supercell Wx
       shell: pwsh
