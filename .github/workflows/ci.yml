@@ -36,6 +36,7 @@ jobs:
             conan_compiler: Visual Studio
             conan_compiler_version: 17
             conan_compiler_runtime: MD
+            artifact_suffix: windows-x64
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -45,7 +46,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
       with:
-        path: scwx
+        path: source
         submodules: recursive
 
     - name: Install Qt
@@ -73,7 +74,7 @@ jobs:
       run: |
         pip install conan
         conan profile new default --detect
-        conan install ./scwx/ `
+        conan install ./source/ `
           --remote conancenter `
           --build missing `
           --settings arch=${{ matrix.conan_arch }} `
@@ -87,11 +88,18 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake ../scwx/ `
+        cmake ../source/ `
           -G Ninja `
           -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" `
-          -DCMAKE_INSTALL_PREFIX="../install"
+          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/supercell-wx"
         ninja supercell-wx wxtest
+        cmake --install . --component supercell-wx
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: supercell-wx-${{ matrix.artifact_suffix }}
+        path: ${{ github.workspace }}/supercell-wx/
 
     - name: Test Supercell Wx
       working-directory: ${{ github.workspace }}/build

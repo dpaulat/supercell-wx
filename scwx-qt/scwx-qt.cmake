@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.21)
 
 project(scwx-qt LANGUAGES CXX)
 
@@ -362,3 +362,25 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
 
 target_link_libraries(supercell-wx PRIVATE scwx-qt
                                            wxdata)
+
+install(TARGETS supercell-wx
+                qmaplibregl
+        RUNTIME_DEPENDENCIES
+          PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-" "qt6"
+          POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
+        RUNTIME
+        COMPONENT supercell-wx)
+
+qt_generate_deploy_app_script(TARGET supercell-wx
+                              FILENAME_VARIABLE deploy_script_scwx
+                              NO_UNSUPPORTED_PLATFORM_ERROR)
+
+qt_generate_deploy_app_script(TARGET qmaplibregl
+                              FILENAME_VARIABLE deploy_script_qmaplibregl
+                              NO_UNSUPPORTED_PLATFORM_ERROR)
+
+install(SCRIPT ${deploy_script_scwx}
+        COMPONENT supercell-wx)
+
+install(SCRIPT ${deploy_script_qmaplibregl}
+        COMPONENT supercell-wx)
