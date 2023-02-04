@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.21)
 set(PROJECT_NAME supercell-wx)
 project(${PROJECT_NAME} C CXX)
 
@@ -12,30 +12,14 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 include(${PROJECT_SOURCE_DIR}/external/cmake-conan/conan.cmake)
 
-conan_cmake_configure(REQUIRES boost/1.81.0
-                               cpr/1.9.3
-                               freetype/2.12.1
-                               geographiclib/1.52
-                               glew/2.2.0
-                               glm/cci.20220420
-                               gtest/cci.20210126
-                               libcurl/7.85.0
-                               libxml2/2.10.3
-                               openssl/1.1.1s
-                               spdlog/1.11.0
-                               sqlite3/3.40.1
-                               vulkan-loader/1.3.236.0
-                               zlib/1.2.13
-                      GENERATORS cmake
-                                 cmake_find_package
-                                 cmake_paths
-                      IMPORTS "bin, *.dll -> ./bin"
-                      IMPORTS "lib, *.dylib -> ./bin"
-                      OPTIONS openssl:shared=True)
+set_property(DIRECTORY
+             APPEND
+             PROPERTY CMAKE_CONFIGURE_DEPENDS
+             conanfile.txt)
 
 conan_cmake_autodetect(settings)
 
-conan_cmake_install(PATH_OR_REFERENCE .
+conan_cmake_install(PATH_OR_REFERENCE ${PROJECT_SOURCE_DIR}
                     BUILD missing
                     REMOTE conancenter
                     SETTINGS ${settings})

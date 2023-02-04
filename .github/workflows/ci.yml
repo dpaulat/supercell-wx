@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'master'
+      - 'develop'
+  pull_request:
+    branches:
+      - 'master'
+      - 'develop'
+
+concurrency:
+  # Cancel in-progress jobs for the same pull request
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - name: win64_msvc2022
+            os: windows-2022
+            build_type: Release
+            compiler: msvc
+            msvc_arch: x64
+            msvc_toolset: 14.34
+            msvc_version: 2022
+            qt_version: 6.4.2
+            qt_arch: win64_msvc2019_64
+            qt_tools: ''
+            conan_arch: x86_64
+            conan_compiler: Visual Studio
+            conan_compiler_version: 17
+            conan_compiler_runtime: MD
+            artifact_suffix: windows-x64
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Setup
+      run: git config --global core.longpaths true
+      
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        path: source
+        submodules: recursive
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ matrix.qt_version }}
+        arch: ${{ matrix.qt_arch }}
+        tools: ${{ matrix.qt_tools }}
+
+    - name: Setup MSVC
+      if: matrix.compiler == 'msvc'
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: ${{ matrix.msvc_arch }}
+        toolset: ${{ matrix.msvc_toolset }}
+        vsversion: ${{ matrix.msvc_version }}
+
+    - name: Setup Python Environment
+      shell: pwsh
+      run: |
+        pip install geopandas
+
+    - name: Install Conan Packages
+      shell: pwsh
+      run: |
+        pip install conan
+        conan profile new default --detect
+        conan install ./source/ `
+          --remote conancenter `
+          --build missing `
+          --settings arch=${{ matrix.conan_arch }} `
+          --settings build_type=${{ matrix.build_type }} `
+          --settings compiler="${{ matrix.conan_compiler }}" `
+          --settings compiler.version=${{ matrix.conan_compiler_version }} `
+          --settings compiler.runtime=${{ matrix.conan_compiler_runtime }}
+
+    - name: Build Supercell Wx
+      shell: pwsh
+      run: |
+        mkdir build
+        cd build
+        cmake ../source/ `
+          -G Ninja `
+          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" `
+          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/supercell-wx"
+        ninja supercell-wx wxtest
+        cmake --install . --component supercell-wx
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: supercell-wx-${{ matrix.artifact_suffix }}
+        path: ${{ github.workspace }}/supercell-wx/
+
+    - name: Test Supercell Wx
+      working-directory: ${{ github.workspace }}/build
+      run: ctest -C ${{ matrix.build_type }} --exclude-regex mbgl-test-runner
