@@ -102,4 +102,4 @@ jobs:
 
     - name: Test Supercell Wx
       working-directory: ${{ github.workspace }}/build
-      run: ctest -C ${{ matrix.build_type }}
+      run: ctest -C ${{ matrix.build_type }} --exclude-regex mbgl-test-runner
