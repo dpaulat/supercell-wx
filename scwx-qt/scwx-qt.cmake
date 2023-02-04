@@ -371,16 +371,16 @@ install(TARGETS supercell-wx
         RUNTIME
         COMPONENT supercell-wx)
 
-qt_generate_deploy_app_script(TARGET supercell-wx
-                              FILENAME_VARIABLE deploy_script_scwx
-                              NO_UNSUPPORTED_PLATFORM_ERROR)
-
 qt_generate_deploy_app_script(TARGET qmaplibregl
                               FILENAME_VARIABLE deploy_script_qmaplibregl
                               NO_UNSUPPORTED_PLATFORM_ERROR)
 
-install(SCRIPT ${deploy_script_scwx}
-        COMPONENT supercell-wx)
+qt_generate_deploy_app_script(TARGET supercell-wx
+                              FILENAME_VARIABLE deploy_script_scwx
+                              NO_UNSUPPORTED_PLATFORM_ERROR)
 
 install(SCRIPT ${deploy_script_qmaplibregl}
+        COMPONENT supercell-wx)
+
+install(SCRIPT ${deploy_script_scwx}
         COMPONENT supercell-wx)
