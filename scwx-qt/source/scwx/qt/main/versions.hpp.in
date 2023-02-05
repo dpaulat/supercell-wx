@@ -1,0 +1,19 @@
+#pragma once
+
+#include <cstdint>
+#include <string>
+
+namespace scwx
+{
+namespace qt
+{
+namespace main
+{
+
+const std::string   kCommitString_ {"${commit_string}"};
+const std::uint16_t kCopyrightYear_ {${copyright_year}u};
+const std::string   kVersionString_ {"${version_string}"};
+
+} // namespace main
+} // namespace qt
+} // namespace scwx

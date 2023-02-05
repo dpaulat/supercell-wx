@@ -31,6 +31,7 @@ conan_basic_setup(TARGETS)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_ALL_NO_LIB")
 
 set(SCWX_DIR ${PROJECT_SOURCE_DIR})
+set(SCWX_VERSION "0.0.1")
 
 option(BUILD_DOCS "Build documentation" OFF)
 

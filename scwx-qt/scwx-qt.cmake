@@ -215,6 +215,10 @@ set(ZONE_DBF_FILES   ${SCWX_DIR}/data/db/fz13se22.dbf
                      ${SCWX_DIR}/data/db/z_13se22.dbf)
 set(COUNTIES_SQLITE_DB ${scwx-qt_BINARY_DIR}/res/db/counties.db)
 
+set(VERSIONS_INPUT  ${scwx-qt_SOURCE_DIR}/source/scwx/qt/main/versions.hpp.in)
+set(VERSIONS_CACHE  ${scwx-qt_BINARY_DIR}/versions_cache.json)
+set(VERSIONS_HEADER ${scwx-qt_BINARY_DIR}/scwx/qt/main/versions.hpp)
+
 set(PROJECT_SOURCES ${HDR_MAIN}
                     ${SRC_MAIN}
                     ${HDR_CONFIG}
@@ -301,6 +305,21 @@ add_custom_target(scwx-qt_generate_counties_db ALL
 
 add_dependencies(scwx-qt scwx-qt_generate_counties_db)
 
+add_custom_command(OUTPUT  ${VERSIONS_HEADER}
+                   COMMAND ${Python_EXECUTABLE}
+                           ${scwx-qt_SOURCE_DIR}/tools/generate_versions.py
+                           -g ${SCWX_DIR}
+                           -v ${SCWX_VERSION}
+                           -c ${VERSIONS_CACHE}
+                           -i ${VERSIONS_INPUT}
+                           -o ${VERSIONS_HEADER}
+                   DEPENDS ${VERSIONS_INPUT})
+
+add_custom_target(scwx-qt_generate_versions ALL
+                  DEPENDS ${VERSIONS_HEADER})
+
+add_dependencies(scwx-qt scwx-qt_generate_versions)
+
 qt_add_resources(scwx-qt "generated"
                  PREFIX  "/"
                  BASE    ${scwx-qt_BINARY_DIR}
@@ -317,6 +336,7 @@ set_target_properties(scwx-qt_other_files  PROPERTIES FOLDER qt)
 set_target_properties(update_translations  PROPERTIES FOLDER qt)
 
 set_target_properties(scwx-qt_generate_counties_db PROPERTIES FOLDER generate)
+set_target_properties(scwx-qt_generate_versions    PROPERTIES FOLDER generate)
 
 if (WIN32)
     set(APP_ICON_RESOURCE_WINDOWS "${scwx-qt_SOURCE_DIR}/res/scwx-qt.rc")
