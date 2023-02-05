@@ -305,15 +305,14 @@ add_custom_target(scwx-qt_generate_counties_db ALL
 
 add_dependencies(scwx-qt scwx-qt_generate_counties_db)
 
-add_custom_command(OUTPUT  ${VERSIONS_HEADER}
+add_custom_command(OUTPUT  ${VERSIONS_HEADER} ${VERSIONS_HEADER}-ALWAYS_RUN
                    COMMAND ${Python_EXECUTABLE}
                            ${scwx-qt_SOURCE_DIR}/tools/generate_versions.py
                            -g ${SCWX_DIR}
                            -v ${SCWX_VERSION}
                            -c ${VERSIONS_CACHE}
                            -i ${VERSIONS_INPUT}
-                           -o ${VERSIONS_HEADER}
-                   DEPENDS ${VERSIONS_INPUT})
+                           -o ${VERSIONS_HEADER})
 
 add_custom_target(scwx-qt_generate_versions ALL
                   DEPENDS ${VERSIONS_HEADER})
