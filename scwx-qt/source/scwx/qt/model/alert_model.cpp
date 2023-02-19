@@ -2,6 +2,7 @@
 #include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/types/qt_types.hpp>
+#include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/strings.hpp>
@@ -9,7 +10,6 @@
 
 #include <format>
 
-#include <GeographicLib/Geodesic.hpp>
 #include <QApplication>
 #include <QFontMetrics>
 
@@ -47,7 +47,7 @@ public:
 
    QList<types::TextEventKey> textEventKeys_;
 
-   GeographicLib::Geodesic geodesic_;
+   const GeographicLib::Geodesic& geodesic_;
 
    std::unordered_map<types::TextEventKey,
                       common::Coordinate,
@@ -357,8 +357,7 @@ void AlertModel::HandleMapUpdate(double latitude, double longitude)
 AlertModelImpl::AlertModelImpl() :
     textEventManager_ {manager::TextEventManager::Instance()},
     textEventKeys_ {},
-    geodesic_(GeographicLib::Constants::WGS84_a(),
-              GeographicLib::Constants::WGS84_f()),
+    geodesic_(util::GeographicLib::DefaultGeodesic()),
     distanceMap_ {},
     distanceDisplay_ {scwx::common::DistanceType::Miles},
     previousPosition_ {}
@@ -381,7 +380,7 @@ std::string AlertModelImpl::GetCounties(const types::TextEventKey& key)
    }
    std::sort(counties.begin(), counties.end());
 
-   return util::ToString(counties);
+   return scwx::util::ToString(counties);
 }
 
 std::string AlertModelImpl::GetState(const types::TextEventKey& key)
@@ -390,7 +389,7 @@ std::string AlertModelImpl::GetState(const types::TextEventKey& key)
    auto& lastMessage = messageList.back();
    size_t segmentCount = lastMessage->segment_count();
    auto   lastSegment  = lastMessage->segment(segmentCount - 1);
-   return util::ToString(lastSegment->header_->ugc_.states());
+   return scwx::util::ToString(lastSegment->header_->ugc_.states());
 }
 
 std::chrono::system_clock::time_point
@@ -404,7 +403,7 @@ AlertModelImpl::GetStartTime(const types::TextEventKey& key)
 
 std::string AlertModelImpl::GetStartTimeString(const types::TextEventKey& key)
 {
-   return util::TimeString(GetStartTime(key));
+   return scwx::util::TimeString(GetStartTime(key));
 }
 
 std::chrono::system_clock::time_point
@@ -419,7 +418,7 @@ AlertModelImpl::GetEndTime(const types::TextEventKey& key)
 
 std::string AlertModelImpl::GetEndTimeString(const types::TextEventKey& key)
 {
-   return util::TimeString(GetEndTime(key));
+   return scwx::util::TimeString(GetEndTime(key));
 }
 
 } // namespace model

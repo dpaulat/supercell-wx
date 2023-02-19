@@ -1,4 +1,5 @@
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/qt/util/json.hpp>
 #include <scwx/common/sites.hpp>
 #include <scwx/util/logger.hpp>
@@ -8,7 +9,6 @@
 #include <unordered_map>
 
 #include <boost/json.hpp>
-#include <GeographicLib/Geodesic.hpp>
 
 namespace scwx
 {
@@ -30,9 +30,6 @@ static std::unordered_map<std::string, std::shared_ptr<RadarSite>>
                                                     radarSiteMap_;
 static std::unordered_map<std::string, std::string> siteIdMap_;
 static std::shared_mutex                            siteMutex_;
-
-static GeographicLib::Geodesic geodesic_ {GeographicLib::Constants::WGS84_a(),
-                                          GeographicLib::Constants::WGS84_f()};
 
 static bool ValidateJsonEntry(const boost::json::object& o);
 
@@ -187,11 +184,11 @@ std::shared_ptr<RadarSite> RadarSite::FindNearest(
       }
 
       // Calculate distance to radar site
-      geodesic_.Inverse(latitude,
-                        longitude,
-                        radarSite->latitude(),
-                        radarSite->longitude(),
-                        distanceInMeters);
+      util::GeographicLib::DefaultGeodesic().Inverse(latitude,
+                                                     longitude,
+                                                     radarSite->latitude(),
+                                                     radarSite->longitude(),
+                                                     distanceInMeters);
 
       // If the radar site is the closer, record it as the closest
       if (nearestRadarSite == nullptr || distanceInMeters < nearestDistance)

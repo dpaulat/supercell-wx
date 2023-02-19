@@ -1,5 +1,6 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager_notifier.hpp>
+#include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/common/constants.hpp>
 #include <scwx/provider/nexrad_data_provider_factory.hpp>
 #include <scwx/util/logger.hpp>
@@ -18,7 +19,6 @@
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 #include <fmt/chrono.h>
-#include <GeographicLib/Geodesic.hpp>
 #include <QMapLibreGL/QMapLibreGL>
 #pragma warning(pop)
 
@@ -81,7 +81,7 @@ public:
        group_ {group},
        product_ {product},
        refreshEnabled_ {false},
-       refreshTimer_ {util::io_context()},
+       refreshTimer_ {scwx::util::io_context()},
        refreshTimerMutex_ {},
        provider_ {nullptr}
    {
@@ -303,8 +303,8 @@ void RadarProductManager::Initialize()
 
    boost::timer::cpu_timer timer;
 
-   GeographicLib::Geodesic geodesic(GeographicLib::Constants::WGS84_a(),
-                                    GeographicLib::Constants::WGS84_f());
+   const GeographicLib::Geodesic& geodesic(
+      util::GeographicLib::DefaultGeodesic());
 
    const QMapLibreGL::Coordinate radar(p->radarSite_->latitude(),
                                        p->radarSite_->longitude());
@@ -425,7 +425,7 @@ void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
          p->GetLevel3ProviderManager(product);
 
       // Only enable refresh on available products
-      util::async(
+      scwx::util::async(
          [=]()
          {
             providerManager->provider_->RequestAvailableProducts();
@@ -467,7 +467,7 @@ void RadarProductManagerImpl::RefreshData(
       providerManager->refreshTimer_.cancel();
    }
 
-   util::async(
+   scwx::util::async(
       [=]()
       {
          auto [newObjects, totalObjects] =
@@ -547,7 +547,7 @@ void RadarProductManagerImpl::LoadProviderData(
 {
    logger_->debug("LoadProviderData: {}, {}",
                   providerManager->name(),
-                  util::TimeString(time));
+                  scwx::util::TimeString(time));
 
    RadarProductManagerImpl::LoadNexradFile(
       [=, &recordMap, &recordMutex, &loadDataMutex]()
@@ -589,7 +589,7 @@ void RadarProductManager::LoadLevel2Data(
    std::chrono::system_clock::time_point       time,
    std::shared_ptr<request::NexradFileRequest> request)
 {
-   logger_->debug("LoadLevel2Data: {}", util::TimeString(time));
+   logger_->debug("LoadLevel2Data: {}", scwx::util::TimeString(time));
 
    p->LoadProviderData(time,
                        p->level2ProviderManager_,
@@ -604,7 +604,7 @@ void RadarProductManager::LoadLevel3Data(
    std::chrono::system_clock::time_point       time,
    std::shared_ptr<request::NexradFileRequest> request)
 {
-   logger_->debug("LoadLevel3Data: {}", util::TimeString(time));
+   logger_->debug("LoadLevel3Data: {}", scwx::util::TimeString(time));
 
    // Look up provider manager
    std::shared_lock providerManagerLock(p->level3ProviderManagerMutex_);
@@ -742,7 +742,7 @@ RadarProductManagerImpl::GetLevel2ProductRecord(
    else
    {
       // TODO: Round to minutes
-      record = util::GetBoundedElementValue(level2ProductRecords_, time);
+      record = scwx::util::GetBoundedElementValue(level2ProductRecords_, time);
 
       // Does the record contain the time we are looking for?
       if (record != nullptr && (time < record->level2_file()->start_time()))
@@ -774,7 +774,7 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
       }
       else
       {
-         record = util::GetBoundedElementValue(it->second, time);
+         record = scwx::util::GetBoundedElementValue(it->second, time);
       }
    }
 
@@ -904,7 +904,7 @@ void RadarProductManager::UpdateAvailableProducts()
 
    logger_->debug("UpdateAvailableProducts()");
 
-   util::async(
+   scwx::util::async(
       [=]()
       {
          auto level3ProviderManager =

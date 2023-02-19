@@ -1,12 +1,11 @@
 #include <scwx/qt/gl/draw/geo_line.hpp>
+#include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <numbers>
 #include <optional>
-
-#include <GeographicLib/Geodesic.hpp>
 
 namespace scwx
 {
@@ -33,8 +32,7 @@ class GeoLine::Impl
 public:
    explicit Impl(std::shared_ptr<GlContext> context) :
        context_ {context},
-       geodesic_(GeographicLib::Constants::WGS84_a(),
-                 GeographicLib::Constants::WGS84_f()),
+       geodesic_ {util::GeographicLib::DefaultGeodesic()},
        dirty_ {false},
        visible_ {true},
        points_ {},
@@ -55,7 +53,7 @@ public:
 
    std::shared_ptr<GlContext> context_;
 
-   GeographicLib::Geodesic geodesic_;
+   const GeographicLib::Geodesic& geodesic_;
 
    bool dirty_;
 
