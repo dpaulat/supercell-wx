@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include <boost/json.hpp>
+#include <GeographicLib/Geodesic.hpp>
 
 namespace scwx
 {
@@ -29,6 +30,9 @@ static std::unordered_map<std::string, std::shared_ptr<RadarSite>>
                                                     radarSiteMap_;
 static std::unordered_map<std::string, std::string> siteIdMap_;
 static std::shared_mutex                            siteMutex_;
+
+static GeographicLib::Geodesic geodesic_ {GeographicLib::Constants::WGS84_a(),
+                                          GeographicLib::Constants::WGS84_f()};
 
 static bool ValidateJsonEntry(const boost::json::object& o);
 
@@ -160,6 +164,44 @@ std::vector<std::shared_ptr<RadarSite>> RadarSite::GetAll()
    }
 
    return radarSites;
+}
+
+std::shared_ptr<RadarSite> RadarSite::FindNearest(
+   double latitude, double longitude, std::optional<std::string> type)
+{
+   std::shared_lock lock(siteMutex_);
+
+   double distanceInMeters;
+
+   std::shared_ptr<RadarSite> nearestRadarSite = nullptr;
+   double                     nearestDistance  = 0.0;
+
+   for (const auto& site : radarSiteMap_)
+   {
+      auto& radarSite = site.second;
+
+      // If the type filter doesn't match, skip
+      if (type.has_value() && radarSite->type() != type)
+      {
+         continue;
+      }
+
+      // Calculate distance to radar site
+      geodesic_.Inverse(latitude,
+                        longitude,
+                        radarSite->latitude(),
+                        radarSite->longitude(),
+                        distanceInMeters);
+
+      // If the radar site is the closer, record it as the closest
+      if (nearestRadarSite == nullptr || distanceInMeters < nearestDistance)
+      {
+         nearestRadarSite = radarSite;
+         nearestDistance  = distanceInMeters;
+      }
+   }
+
+   return nearestRadarSite;
 }
 
 std::string GetRadarIdFromSiteId(const std::string& siteId)
