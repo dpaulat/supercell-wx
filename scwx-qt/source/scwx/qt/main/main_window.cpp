@@ -530,7 +530,12 @@ void MainWindowImpl::ConnectOtherSignals()
       &ui::AlertDockWidget::MoveMap,
       this,
       [=](double latitude, double longitude)
-      { activeMap_->SetMapLocation(latitude, longitude); },
+      {
+         for (map::MapWidget* map : maps_)
+         {
+            map->SetMapLocation(latitude, longitude, true);
+         }
+      },
       Qt::QueuedConnection);
    connect(mainWindow_,
            &MainWindow::ActiveMapMoved,

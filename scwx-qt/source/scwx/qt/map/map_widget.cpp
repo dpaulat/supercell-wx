@@ -424,21 +424,31 @@ void MapWidget::SelectRadarProduct(
    SelectRadarProduct(group, product, productCode);
 }
 
-void MapWidget::SelectRadarSite(const std::string& id)
+void MapWidget::SelectRadarSite(const std::string& id, bool updateCoordinates)
 {
    logger_->debug("Selecting radar site: {}", id);
 
    std::shared_ptr<config::RadarSite> radarSite = config::RadarSite::Get(id);
 
+   SelectRadarSite(radarSite, updateCoordinates);
+}
+
+void MapWidget::SelectRadarSite(std::shared_ptr<config::RadarSite> radarSite,
+                                bool updateCoordinates)
+{
    // Verify radar site is valid and has changed
    if (radarSite != nullptr &&
        (p->radarProductManager_ == nullptr ||
-        id != p->radarProductManager_->radar_site()->id()))
+        radarSite->id() != p->radarProductManager_->radar_site()->id()))
    {
       auto radarProductView = p->context_->radar_product_view();
 
-      p->map_->setCoordinate({radarSite->latitude(), radarSite->longitude()});
-      p->SetRadarSite(id);
+      if (updateCoordinates)
+      {
+         p->map_->setCoordinate(
+            {radarSite->latitude(), radarSite->longitude()});
+      }
+      p->SetRadarSite(radarSite->id());
       p->Update();
 
       // Select products from new site
@@ -480,12 +490,29 @@ void MapWidget::SetAutoRefresh(bool enabled)
    }
 }
 
-void MapWidget::SetMapLocation(double latitude, double longitude)
+void MapWidget::SetMapLocation(double latitude,
+                               double longitude,
+                               bool   updateRadarSite)
 {
    if (p->map_ != nullptr && p->prevLatitude_ != latitude ||
        p->prevLongitude_ != longitude)
    {
+      // Update the map location
       p->map_->setCoordinate({latitude, longitude});
+
+      // If the radar site should be updated based on the new location
+      if (updateRadarSite)
+      {
+         // Find the nearest WSR-88D radar
+         std::shared_ptr<config::RadarSite> nearestRadarSite =
+            config::RadarSite::FindNearest(latitude, longitude, "wsr88d");
+
+         // If found, select it
+         if (nearestRadarSite != nullptr)
+         {
+            SelectRadarSite(nearestRadarSite->id(), false);
+         }
+      }
    }
 }
 
