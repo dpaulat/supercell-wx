@@ -72,7 +72,7 @@ jobs:
     - name: Install Conan Packages
       shell: pwsh
       run: |
-        pip install conan
+        pip install "conan<2.0"
         conan profile new default --detect
         conan install ./source/ `
           --remote conancenter `
