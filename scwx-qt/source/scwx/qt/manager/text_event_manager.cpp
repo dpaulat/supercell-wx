@@ -190,23 +190,18 @@ void TextEventManager::Impl::HandleMessage(
 
 void TextEventManager::Impl::Refresh()
 {
-   using namespace std::chrono;
-
    logger_->trace("Refresh");
 
    // Take a unique lock before refreshing
    std::unique_lock lock(refreshMutex_);
 
-   // Set threshold to last 30 hours
-   auto newerThan = std::chrono::system_clock::now() - 30h;
-
    // Update the file listing from the warnings provider
-   auto [newFiles, totalFiles] = warningsProvider_.ListFiles(newerThan);
+   auto [newFiles, totalFiles] = warningsProvider_.ListFiles();
 
    if (newFiles > 0)
    {
       // Load new files
-      auto updatedFiles = warningsProvider_.LoadUpdatedFiles(newerThan);
+      auto updatedFiles = warningsProvider_.LoadUpdatedFiles();
 
       // Handle messages
       for (auto& file : updatedFiles)

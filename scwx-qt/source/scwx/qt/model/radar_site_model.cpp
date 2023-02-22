@@ -1,12 +1,11 @@
 #include <scwx/qt/model/radar_site_model.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/types/qt_types.hpp>
+#include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <format>
-
-#include <GeographicLib/Geodesic.hpp>
 
 namespace scwx
 {
@@ -36,7 +35,7 @@ public:
 
    QList<std::shared_ptr<config::RadarSite>> radarSites_;
 
-   GeographicLib::Geodesic geodesic_;
+   const GeographicLib::Geodesic& geodesic_;
 
    std::unordered_map<std::string, double> distanceMap_;
    scwx::common::DistanceType              distanceDisplay_;
@@ -186,8 +185,7 @@ void RadarSiteModel::HandleMapUpdate(double latitude, double longitude)
 
 RadarSiteModelImpl::RadarSiteModelImpl() :
     radarSites_ {},
-    geodesic_(GeographicLib::Constants::WGS84_a(),
-              GeographicLib::Constants::WGS84_f()),
+    geodesic_(util::GeographicLib::DefaultGeodesic()),
     distanceMap_ {},
     distanceDisplay_ {scwx::common::DistanceType::Miles},
     previousPosition_ {}

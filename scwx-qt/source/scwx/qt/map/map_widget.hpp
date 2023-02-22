@@ -48,10 +48,40 @@ public:
                            const std::string&        product,
                            int16_t                   productCode);
    void SelectRadarProduct(std::shared_ptr<types::RadarProductRecord> record);
-   void SelectRadarSite(const std::string& radarSite);
+
+   /**
+    * @brief Selects a radar site.
+    *
+    * @param [in] radarSite ID of the requested radar site
+    * @param [in] updateCoordinates Whether to update the map coordinates to the
+    * requested radar site location. Default is true.
+    */
+   void SelectRadarSite(const std::string& id, bool updateCoordinates = true);
+
+   /**
+    * @brief Selects a radar site.
+    *
+    * @param [in] radarSite Shared pointer to the requested radar site
+    * @param [in] updateCoordinates Whether to update the map coordinates to the
+    * requested radar site location. Default is true.
+    */
+   void SelectRadarSite(std::shared_ptr<config::RadarSite> radarSite,
+                        bool updateCoordinates = true);
+
    void SetActive(bool isActive);
    void SetAutoRefresh(bool enabled);
-   void SetMapLocation(double latitude, double longitude);
+
+   /**
+    * @brief Sets the current map location.
+    *
+    * @param [in] latitude Latitude in degrees
+    * @param [in] longitude Longitude in degrees
+    * @param [in] updateRadarSite Whether to update the selected radar site to
+    * the closest WSR-88D site. Default is false.
+    */
+   void SetMapLocation(double latitude,
+                       double longitude,
+                       bool   updateRadarSite = false);
    void SetMapParameters(double latitude,
                          double longitude,
                          double zoom,

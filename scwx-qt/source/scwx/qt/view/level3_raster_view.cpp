@@ -1,4 +1,5 @@
 #include <scwx/qt/view/level3_raster_view.hpp>
+#include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/common/constants.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
@@ -7,7 +8,6 @@
 
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
-#include <GeographicLib/Geodesic.hpp>
 
 namespace scwx
 {
@@ -202,12 +202,12 @@ void Level3RasterView::ComputeSweep()
    p->longitude_ = descriptionBlock->longitude_of_radar();
    p->range_     = descriptionBlock->range();
    p->sweepTime_ =
-      util::TimePoint(descriptionBlock->volume_scan_date(),
-                      descriptionBlock->volume_scan_start_time() * 1000);
+      scwx::util::TimePoint(descriptionBlock->volume_scan_date(),
+                            descriptionBlock->volume_scan_start_time() * 1000);
    p->vcp_ = descriptionBlock->volume_coverage_pattern();
 
-   GeographicLib::Geodesic geodesic(GeographicLib::Constants::WGS84_a(),
-                                    GeographicLib::Constants::WGS84_f());
+   const GeographicLib::Geodesic& geodesic =
+      util::GeographicLib::DefaultGeodesic();
 
    const uint16_t xResolution = descriptionBlock->x_resolution_raw();
    const uint16_t yResolution = descriptionBlock->y_resolution_raw();

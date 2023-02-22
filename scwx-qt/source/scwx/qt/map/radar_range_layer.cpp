@@ -1,7 +1,7 @@
 #include <scwx/qt/map/radar_range_layer.hpp>
+#include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/util/logger.hpp>
 
-#include <GeographicLib/Geodesic.hpp>
 #include <glm/glm.hpp>
 
 namespace scwx
@@ -61,8 +61,8 @@ void RadarRangeLayer::Update(std::shared_ptr<QMapLibreGL::Map> map,
 static std::shared_ptr<QMapLibreGL::Feature>
 GetRangeCircle(float range, QMapLibreGL::Coordinate center)
 {
-   GeographicLib::Geodesic geodesic(GeographicLib::Constants::WGS84_a(),
-                                    GeographicLib::Constants::WGS84_f());
+   const GeographicLib::Geodesic& geodesic(
+      util::GeographicLib::DefaultGeodesic());
 
    constexpr float angleDelta  = 0.5f;
    constexpr float angleDeltaH = angleDelta / 2.0f;

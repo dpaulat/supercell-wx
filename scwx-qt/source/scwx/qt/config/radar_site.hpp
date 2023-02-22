@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -37,6 +38,20 @@ public:
 
    static std::shared_ptr<RadarSite>              Get(const std::string& id);
    static std::vector<std::shared_ptr<RadarSite>> GetAll();
+
+   /**
+    * Find the nearest radar site to the supplied location.
+    *
+    * @param latitude Latitude in degrees
+    * @param longitude Longitude in degrees
+    * @param type Restrict results to optional radar type
+    *
+    * @return Nearest radar site
+    */
+   static std::shared_ptr<RadarSite>
+   FindNearest(double                     latitude,
+               double                     longitude,
+               std::optional<std::string> type = std::nullopt);
 
    static void   Initialize();
    static size_t ReadConfig(const std::string& path);
