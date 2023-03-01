@@ -2,6 +2,12 @@
 #include <scwx/qt/model/alert_model.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/threads.hpp>
+
+#include <chrono>
+#include <mutex>
+
+#include <boost/asio/steady_timer.hpp>
 
 namespace scwx
 {
@@ -16,14 +22,22 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class AlertProxyModelImpl
 {
 public:
-   explicit AlertProxyModelImpl();
-   ~AlertProxyModelImpl() = default;
+   explicit AlertProxyModelImpl(AlertProxyModel* self);
+   ~AlertProxyModelImpl();
+
+   void UpdateAlerts();
+
+   AlertProxyModel* self_;
 
    bool alertActiveFilterEnabled_;
+
+   boost::asio::steady_timer alertUpdateTimer_;
+   std::mutex                alertMutex_ {};
 };
 
 AlertProxyModel::AlertProxyModel(QObject* parent) :
-    QSortFilterProxyModel(parent), p(std::make_unique<AlertProxyModelImpl>())
+    QSortFilterProxyModel(parent),
+    p(std::make_unique<AlertProxyModelImpl>(this))
 {
 }
 AlertProxyModel::~AlertProxyModel() = default;
@@ -63,8 +77,52 @@ bool AlertProxyModel::filterAcceptsRow(int                sourceRow,
           QSortFilterProxyModel::filterAcceptsRow(sourceRow, sourceParent);
 }
 
-AlertProxyModelImpl::AlertProxyModelImpl() : alertActiveFilterEnabled_ {false}
+AlertProxyModelImpl::AlertProxyModelImpl(AlertProxyModel* self) :
+    self_ {self},
+    alertActiveFilterEnabled_ {false},
+    alertUpdateTimer_ {scwx::util::io_context()}
 {
+   // Schedule alert update
+   UpdateAlerts();
+}
+
+AlertProxyModelImpl::~AlertProxyModelImpl()
+{
+   std::unique_lock lock(alertMutex_);
+   alertUpdateTimer_.cancel();
+}
+
+void AlertProxyModelImpl::UpdateAlerts()
+{
+   logger_->trace("UpdateAlerts");
+
+   // Take a unique lock before modifying feature lists
+   std::unique_lock lock(alertMutex_);
+
+   // Re-evaluate for expired alerts
+   if (alertActiveFilterEnabled_)
+   {
+      self_->invalidateRowsFilter();
+   }
+
+   using namespace std::chrono;
+   alertUpdateTimer_.expires_after(15s);
+   alertUpdateTimer_.async_wait(
+      [=](const boost::system::error_code& e)
+      {
+         if (e == boost::asio::error::operation_aborted)
+         {
+            logger_->debug("Alert update timer cancelled");
+         }
+         else if (e != boost::system::errc::success)
+         {
+            logger_->warn("Alert update timer error: {}", e.message());
+         }
+         else
+         {
+            UpdateAlerts();
+         }
+      });
 }
 
 } // namespace model

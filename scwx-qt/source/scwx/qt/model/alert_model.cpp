@@ -310,7 +310,8 @@ void AlertModel::HandleAlert(const types::TextEventKey& alertKey,
    // Update row
    if (!p->textEventKeys_.contains(alertKey))
    {
-      beginInsertRows(QModelIndex(), 0, 0);
+      int newIndex = p->textEventKeys_.size();
+      beginInsertRows(QModelIndex(), newIndex, newIndex);
       p->textEventKeys_.push_back(alertKey);
       endInsertRows();
    }
