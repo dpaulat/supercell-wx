@@ -39,7 +39,7 @@ CodedTimeMotionLocation::CodedTimeMotionLocation() :
 CodedTimeMotionLocation::~CodedTimeMotionLocation() = default;
 
 CodedTimeMotionLocation::CodedTimeMotionLocation(
-   CodedTimeMotionLocation&&) noexcept                    = default;
+   CodedTimeMotionLocation&&) noexcept = default;
 CodedTimeMotionLocation& CodedTimeMotionLocation::operator=(
    CodedTimeMotionLocation&&) noexcept = default;
 
@@ -140,12 +140,23 @@ bool CodedTimeMotionLocation::Parse(const StringRange& lines,
 
       // Speed: <sp>KT
       std::string speed = tokenList.at(3);
-      if (speed.size() >= 3 && speed.size() <= 4 && speed.ends_with("KT"))
+      if (speed.size() >= 3 && speed.size() <= 5 && speed.ends_with("KT"))
       {
          try
          {
-            p->speed_ = static_cast<uint8_t>(
-               std::stoul(speed.substr(0, speed.size() - 2)));
+            // NWSI 10-1701 specifies a valid speed range of 0-99 knots.
+            // However, sometimes text products are published with a larger
+            // value. Instead, allow a value up to 255 knots.
+            auto parsedSpeed = std::stoul(speed.substr(0, speed.size() - 2));
+            if (parsedSpeed <= 255u)
+            {
+               p->speed_ = static_cast<uint8_t>(parsedSpeed);
+            }
+            else
+            {
+               logger_->warn("Invalid speed: \"{}\"", speed);
+               dataValid = false;
+            }
          }
          catch (const std::exception& ex)
          {
