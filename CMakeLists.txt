@@ -33,13 +33,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_ALL_NO_LIB")
 set(SCWX_DIR ${PROJECT_SOURCE_DIR})
 set(SCWX_VERSION "0.0.1")
 
-option(BUILD_DOCS "Build documentation" OFF)
-
 add_subdirectory(external)
 add_subdirectory(wxdata)
 add_subdirectory(scwx-qt)
 add_subdirectory(test)
-
-if(BUILD_DOCS)
-    add_subdirectory(docs)
-endif()
