@@ -20,6 +20,7 @@ cmake_find_package
 cmake_paths
 
 [options]
+libiconv:shared=True
 openssl:shared=True
 
 [imports]
