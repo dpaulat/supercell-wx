@@ -210,11 +210,11 @@ set(JSON_FILES res/config/radar_sites.json)
 
 set(TS_FILES ts/scwx_en_US.ts)
 
-set(COUNTY_DBF_FILES ${SCWX_DIR}/data/db/c_13se22.dbf)
-set(ZONE_DBF_FILES   ${SCWX_DIR}/data/db/fz13se22.dbf
-                     ${SCWX_DIR}/data/db/mz13se22.dbf
-                     ${SCWX_DIR}/data/db/oz22mr22.dbf
-                     ${SCWX_DIR}/data/db/z_13se22.dbf)
+set(COUNTY_DBF_FILES ${SCWX_DIR}/data/db/c_08mr23.dbf)
+set(ZONE_DBF_FILES   ${SCWX_DIR}/data/db/fz08mr23.dbf
+                     ${SCWX_DIR}/data/db/mz08mr23.dbf
+                     ${SCWX_DIR}/data/db/oz08mr23.dbf
+                     ${SCWX_DIR}/data/db/z_08mr23.dbf)
 set(COUNTIES_SQLITE_DB ${scwx-qt_BINARY_DIR}/res/db/counties.db)
 
 set(VERSIONS_INPUT  ${scwx-qt_SOURCE_DIR}/source/scwx/qt/main/versions.hpp.in)
