@@ -16,6 +16,7 @@
 
 #pragma warning(push, 0)
 #include <boost/asio/steady_timer.hpp>
+#include <boost/container_hash/hash.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 #include <fmt/chrono.h>
@@ -166,7 +167,8 @@ public:
    std::shared_ptr<ProviderManager>
    GetLevel3ProviderManager(const std::string& product);
 
-   void EnableRefresh(std::shared_ptr<ProviderManager> providerManager,
+   void EnableRefresh(boost::uuids::uuid               uuid,
+                      std::shared_ptr<ProviderManager> providerManager,
                       bool                             enabled);
    void RefreshData(std::shared_ptr<ProviderManager> providerManager);
 
@@ -218,6 +220,12 @@ public:
 
    common::Level3ProductCategoryMap availableCategoryMap_;
    std::shared_mutex                availableCategoryMutex_;
+
+   std::unordered_map<boost::uuids::uuid,
+                      std::shared_ptr<ProviderManager>,
+                      boost::hash<boost::uuids::uuid>>
+              refreshMap_ {};
+   std::mutex refreshMapMutex_ {};
 };
 
 RadarProductManager::RadarProductManager(const std::string& radarId) :
@@ -248,6 +256,8 @@ std::string ProviderManager::name() const
 
 void ProviderManager::Disable()
 {
+   logger_->debug("Disabling refresh: {}", name());
+
    std::unique_lock lock(refreshTimerMutex_);
    refreshEnabled_ = false;
    refreshTimer_.cancel();
@@ -413,11 +423,12 @@ RadarProductManagerImpl::GetLevel3ProviderManager(const std::string& product)
 
 void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
                                         const std::string&        product,
-                                        bool                      enabled)
+                                        bool                      enabled,
+                                        boost::uuids::uuid        uuid)
 {
    if (group == common::RadarProductGroup::Level2)
    {
-      p->EnableRefresh(p->level2ProviderManager_, enabled);
+      p->EnableRefresh(uuid, p->level2ProviderManager_, enabled);
    }
    else
    {
@@ -437,16 +448,65 @@ void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
                           availableProducts.cend(),
                           product) != availableProducts.cend())
             {
-               p->EnableRefresh(providerManager, enabled);
+               p->EnableRefresh(uuid, providerManager, enabled);
             }
          });
    }
 }
 
 void RadarProductManagerImpl::EnableRefresh(
-   std::shared_ptr<ProviderManager> providerManager, bool enabled)
+   boost::uuids::uuid               uuid,
+   std::shared_ptr<ProviderManager> providerManager,
+   bool                             enabled)
 {
-   if (providerManager->refreshEnabled_ != enabled)
+   // Lock the refresh map
+   std::unique_lock lock {refreshMapMutex_};
+
+   auto currentProviderManager = refreshMap_.find(uuid);
+   if (currentProviderManager != refreshMap_.cend())
+   {
+      // If the enabling refresh for a different product, or disabling refresh
+      if (currentProviderManager->second != providerManager || !enabled)
+      {
+         // Determine number of entries in the map for the current provider
+         // manager
+         auto currentProviderManagerCount = std::count_if(
+            refreshMap_.cbegin(),
+            refreshMap_.cend(),
+            [&](const auto& provider)
+            { return provider.second == currentProviderManager->second; });
+
+         // If this is the last reference to the provider in the refresh map
+         if (currentProviderManagerCount == 1)
+         {
+            // Disable current provider
+            currentProviderManager->second->Disable();
+         }
+
+         // Dissociate uuid from current provider manager
+         refreshMap_.erase(currentProviderManager);
+
+         // If we are enabling a new provider manager
+         if (enabled)
+         {
+            // Associate uuid to providerManager
+            refreshMap_.emplace(uuid, providerManager);
+         }
+      }
+   }
+   else if (enabled)
+   {
+      // We are enabling a new provider manager
+      // Associate uuid to provider manager
+      refreshMap_.emplace(uuid, providerManager);
+   }
+
+   // Release the refresh map mutex
+   lock.unlock();
+
+   // We have already handled a disable request by this point. If enabling, and
+   // the provider manager refresh isn't already enabled, enable it.
+   if (enabled && providerManager->refreshEnabled_ != enabled)
    {
       providerManager->refreshEnabled_ = enabled;
 

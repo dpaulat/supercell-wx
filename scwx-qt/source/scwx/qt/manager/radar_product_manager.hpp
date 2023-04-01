@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <boost/uuid/nil_generator.hpp>
 #include <QObject>
 
 namespace scwx
@@ -38,9 +39,24 @@ public:
    std::shared_ptr<config::RadarSite> radar_site() const;
 
    void Initialize();
+
+   /**
+    * @brief Enables or disables refresh associated with a unique identifier
+    * (UUID) for a given radar product group and product.
+    *
+    * Only a single product refresh can be enabled for a given UUID. If a second
+    * product refresh is enabled for the same UUID, the first product refresh is
+    * disabled (unless still enabled under a different UUID).
+    *
+    * @param [in] group Radar product group
+    * @param [in] product Radar product name
+    * @param [in] enabled Whether to enable refresh
+    * @param [in] uuid Unique identifier. Default is boost::uuids::nil_uuid().
+    */
    void EnableRefresh(common::RadarProductGroup group,
                       const std::string&        product,
-                      bool                      enabled);
+                      bool                      enabled,
+                      boost::uuids::uuid uuid = boost::uuids::nil_uuid());
 
    std::tuple<std::shared_ptr<wsr88d::rda::ElevationScan>,
               float,

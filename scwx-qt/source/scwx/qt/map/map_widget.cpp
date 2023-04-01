@@ -17,6 +17,7 @@
 
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_qt.hpp>
+#include <boost/uuid/random_generator.hpp>
 #include <imgui.h>
 #include <QApplication>
 #include <QColor>
@@ -58,6 +59,7 @@ class MapWidgetImpl : public QObject
 public:
    explicit MapWidgetImpl(MapWidget*                   widget,
                           const QMapLibreGL::Settings& settings) :
+       uuid_ {boost::uuids::random_generator()()},
        context_ {std::make_shared<MapContext>()},
        widget_ {widget},
        settings_(settings),
@@ -125,6 +127,8 @@ public:
 
    common::Level2Product
    GetLevel2ProductOrDefault(const std::string& productName) const;
+
+   boost::uuids::uuid uuid_;
 
    std::shared_ptr<MapContext> context_;
 
@@ -399,7 +403,8 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
 
    if (p->autoRefreshEnabled_)
    {
-      p->radarProductManager_->EnableRefresh(group, productName, true);
+      p->radarProductManager_->EnableRefresh(
+         group, productName, true, p->uuid_);
    }
 }
 
@@ -485,7 +490,8 @@ void MapWidget::SetAutoRefresh(bool enabled)
          p->radarProductManager_->EnableRefresh(
             radarProductView->GetRadarProductGroup(),
             radarProductView->GetRadarProductName(),
-            true);
+            true,
+            p->uuid_);
       }
    }
 }
