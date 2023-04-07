@@ -357,6 +357,11 @@ void MainWindow::on_actionImGuiDebug_triggered()
    p->imGuiDebugDialog_->show();
 }
 
+void MainWindow::on_actionDumpRadarProductRecords_triggered()
+{
+   manager::RadarProductManager::DumpRecords();
+}
+
 void MainWindow::on_actionUserManual_triggered()
 {
    QDesktopServices::openUrl(QUrl {"https://supercell-wx.readthedocs.io/"});

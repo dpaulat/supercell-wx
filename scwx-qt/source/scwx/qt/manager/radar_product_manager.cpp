@@ -54,8 +54,8 @@ static const std::string kDefaultLevel3Product_ {"N0B"};
 static constexpr std::chrono::seconds kRetryInterval_ {15};
 
 static std::unordered_map<std::string, std::weak_ptr<RadarProductManager>>
-                  instanceMap_;
-static std::mutex instanceMutex_;
+                         instanceMap_;
+static std::shared_mutex instanceMutex_;
 
 static std::unordered_map<std::string,
                           std::shared_ptr<types::RadarProductRecord>>
@@ -274,6 +274,58 @@ void RadarProductManager::Cleanup()
       std::unique_lock lock(instanceMutex_);
       instanceMap_.clear();
    }
+}
+
+void RadarProductManager::DumpRecords()
+{
+   scwx::util::async(
+      []
+      {
+         logger_->info("Record Dump");
+
+         std::shared_lock instanceLock {instanceMutex_};
+         for (auto& instance : instanceMap_)
+         {
+            auto radarProductManager = instance.second.lock();
+            if (radarProductManager != nullptr)
+            {
+               logger_->info(" {}", radarProductManager->radar_site()->id());
+               logger_->info("  Level 2");
+
+               {
+                  std::shared_lock level2ProductLock {
+                     radarProductManager->p->level2ProductRecordMutex_};
+
+                  for (auto& record :
+                       radarProductManager->p->level2ProductRecords_)
+                  {
+                     logger_->info("   {}",
+                                   scwx::util::TimeString(record.first));
+                  }
+               }
+
+               logger_->info("  Level 3");
+
+               {
+                  std::shared_lock level3ProductLock {
+                     radarProductManager->p->level3ProductRecordMutex_};
+
+                  for (auto& recordMap :
+                       radarProductManager->p->level3ProductRecordsMap_)
+                  {
+                     // Product Name
+                     logger_->info("   {}", recordMap.first);
+
+                     for (auto& record : recordMap.second)
+                     {
+                        logger_->info("    {}",
+                                      scwx::util::TimeString(record.first));
+                     }
+                  }
+               }
+            }
+         }
+      });
 }
 
 const std::vector<float>&
@@ -1030,7 +1082,7 @@ RadarProductManager::Instance(const std::string& radarSite)
    bool                                 instanceCreated = false;
 
    {
-      std::lock_guard<std::mutex> guard(instanceMutex_);
+      std::unique_lock lock {instanceMutex_};
 
       // Look up instance weak pointer
       auto it = instanceMap_.find(radarSite);

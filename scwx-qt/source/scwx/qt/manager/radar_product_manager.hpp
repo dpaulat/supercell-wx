@@ -34,6 +34,11 @@ public:
 
    static void Cleanup();
 
+   /**
+    * @brief Debug function to dump currently loaded products to the log.
+    */
+   static void DumpRecords();
+
    const std::vector<float>& coordinates(common::RadialSize radialSize) const;
    float                     gate_size() const;
    std::shared_ptr<config::RadarSite> radar_site() const;
