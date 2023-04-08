@@ -598,7 +598,7 @@ void RadarProductManagerImpl::RefreshData(
 
          std::chrono::milliseconds interval = kRetryInterval_;
 
-         if (newObjects > 0)
+         if (totalObjects > 0)
          {
             std::string key = providerManager->provider_->FindLatestKey();
             auto        latestTime =
@@ -614,10 +614,14 @@ void RadarProductManagerImpl::RefreshData(
                interval = kRetryInterval_;
             }
 
-            emit providerManager->NewDataAvailable(
-               providerManager->group_, providerManager->product_, latestTime);
+            if (newObjects > 0)
+            {
+               emit providerManager->NewDataAvailable(providerManager->group_,
+                                                      providerManager->product_,
+                                                      latestTime);
+            }
          }
-         else if (providerManager->refreshEnabled_ && totalObjects == 0)
+         else if (providerManager->refreshEnabled_)
          {
             logger_->info("[{}] No data found, disabling refresh",
                           providerManager->name());
