@@ -883,7 +883,17 @@ RadarProductManagerImpl::GetLevel2ProductRecord(
       if (record == nullptr)
       {
          // Product is expired, reload it
-         self_->LoadLevel2Data(recordPtr->first, nullptr);
+         std::shared_ptr<request::NexradFileRequest> request =
+            std::make_shared<request::NexradFileRequest>();
+
+         QObject::connect(
+            request.get(),
+            &request::NexradFileRequest::RequestComplete,
+            self_,
+            [this](std::shared_ptr<request::NexradFileRequest> request)
+            { emit self_->DataReloaded(request->radar_product_record()); });
+
+         self_->LoadLevel2Data(recordPtr->first, request);
       }
    }
 
@@ -924,7 +934,17 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
       if (record == nullptr)
       {
          // Product is expired, reload it
-         self_->LoadLevel3Data(product, recordPtr->first, nullptr);
+         std::shared_ptr<request::NexradFileRequest> request =
+            std::make_shared<request::NexradFileRequest>();
+
+         QObject::connect(
+            request.get(),
+            &request::NexradFileRequest::RequestComplete,
+            self_,
+            [this](std::shared_ptr<request::NexradFileRequest> request)
+            { emit self_->DataReloaded(request->radar_product_record()); });
+
+         self_->LoadLevel3Data(product, recordPtr->first, request);
       }
    }
 

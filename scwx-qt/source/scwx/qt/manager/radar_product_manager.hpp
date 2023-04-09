@@ -97,6 +97,7 @@ public:
    void                             UpdateAvailableProducts();
 
 signals:
+   void DataReloaded(std::shared_ptr<types::RadarProductRecord> record);
    void Level3ProductsChanged();
    void NewDataAvailable(common::RadarProductGroup             group,
                          const std::string&                    product,

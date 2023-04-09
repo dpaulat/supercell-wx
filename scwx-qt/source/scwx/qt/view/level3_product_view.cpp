@@ -59,6 +59,21 @@ Level3ProductView::Level3ProductView(
     RadarProductView(radarProductManager),
     p(std::make_unique<Level3ProductViewImpl>(product))
 {
+   connect(radarProductManager.get(),
+           &manager::RadarProductManager::DataReloaded,
+           this,
+           [this](std::shared_ptr<types::RadarProductRecord> record)
+           {
+              if (record->radar_product_group() ==
+                     common::RadarProductGroup::Level3 &&
+                  record->radar_product() == p->product_ &&
+                  record->time() == selected_time())
+              {
+                 // If the data associated with the currently selected time is
+                 // reloaded, update the view
+                 Update();
+              }
+           });
 }
 Level3ProductView::~Level3ProductView() = default;
 
