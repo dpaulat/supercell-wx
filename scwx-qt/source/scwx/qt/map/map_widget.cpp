@@ -307,7 +307,7 @@ std::shared_ptr<config::RadarSite> MapWidget::GetRadarSite() const
    return radarSite;
 }
 
-uint16_t MapWidget::GetVcp() const
+std::uint16_t MapWidget::GetVcp() const
 {
    auto radarProductView = p->context_->radar_product_view();
 
@@ -317,7 +317,7 @@ uint16_t MapWidget::GetVcp() const
    }
    else
    {
-      return 0;
+      return 0u;
    }
 }
 
@@ -334,7 +334,8 @@ void MapWidget::SelectElevation(float elevation)
 
 void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
                                    const std::string&        product,
-                                   int16_t                   productCode)
+                                   std::int16_t              productCode,
+                                   std::chrono::system_clock::time_point time)
 {
    bool radarProductViewCreated = false;
 
@@ -384,8 +385,8 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
 
    if (radarProductView != nullptr)
    {
-      // Always select the latest product available
-      radarProductView->SelectTime({});
+      // Select the time associated with the request
+      radarProductView->SelectTime(time);
 
       if (radarProductViewCreated)
       {
