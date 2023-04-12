@@ -258,8 +258,7 @@ void Level3ProductsWidgetImpl::UpdateCategorySelection(
 {
    const std::string& categoryName = common::GetLevel3CategoryName(category);
 
-   std::for_each(std::execution::par_unseq,
-                 categoryButtons_.cbegin(),
+   std::for_each(categoryButtons_.cbegin(),
                  categoryButtons_.cend(),
                  [&](auto& toolButton)
                  {
