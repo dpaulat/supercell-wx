@@ -119,8 +119,7 @@ void Level2ProductsWidgetImpl::UpdateProductSelection(
 {
    const std::string& productName = common::GetLevel2Name(product);
 
-   std::for_each(std::execution::par_unseq,
-                 productButtons_.cbegin(),
+   std::for_each(productButtons_.cbegin(),
                  productButtons_.cend(),
                  [&](auto& toolButton)
                  {
