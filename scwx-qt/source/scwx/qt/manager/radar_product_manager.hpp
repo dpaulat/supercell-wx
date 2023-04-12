@@ -63,14 +63,34 @@ public:
                       bool                      enabled,
                       boost::uuids::uuid uuid = boost::uuids::nil_uuid());
 
+   /**
+    * @brief Get level 2 radar data for a data block type, elevation, and time.
+    *
+    * @param [in] dataBlockType Data block type
+    * @param [in] elevation Elevation tilt
+    * @param [in] time Radar product time
+    *
+    * @return Level 2 radar data, selected elevation cut, available elevation
+    * cuts and selected time
+    */
    std::tuple<std::shared_ptr<wsr88d::rda::ElevationScan>,
               float,
-              std::vector<float>>
+              std::vector<float>,
+              std::chrono::system_clock::time_point>
    GetLevel2Data(wsr88d::rda::DataBlockType            dataBlockType,
                  float                                 elevation,
                  std::chrono::system_clock::time_point time = {});
 
-   std::shared_ptr<wsr88d::rpg::Level3Message>
+   /**
+    * @brief Get level 3 message data for a product and time.
+    *
+    * @param [in] product Radar product name
+    * @param [in] time Radar product time
+    *
+    * @return Level 3 message data and selected time
+    */
+   std::tuple<std::shared_ptr<wsr88d::rpg::Level3Message>,
+              std::chrono::system_clock::time_point>
    GetLevel3Data(const std::string&                    product,
                  std::chrono::system_clock::time_point time = {});
 

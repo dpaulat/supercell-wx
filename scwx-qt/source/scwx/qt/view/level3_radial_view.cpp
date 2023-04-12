@@ -97,9 +97,18 @@ void Level3RadialView::ComputeSweep()
       radar_product_manager();
 
    // Retrieve message from Radar Product Manager
-   std::shared_ptr<wsr88d::rpg::Level3Message> message =
-      radarProductManager->GetLevel3Data(GetRadarProductName(),
-                                         selected_time());
+   std::shared_ptr<wsr88d::rpg::Level3Message> message;
+   std::chrono::system_clock::time_point       requestedTime {selected_time()};
+   std::chrono::system_clock::time_point       foundTime;
+   std::tie(message, foundTime) =
+      radarProductManager->GetLevel3Data(GetRadarProductName(), requestedTime);
+
+   // If a different time was found than what was requested, update it
+   if (requestedTime != foundTime)
+   {
+      SelectTime(foundTime);
+   }
+
    if (message == nullptr)
    {
       logger_->debug("Level 3 data not found");

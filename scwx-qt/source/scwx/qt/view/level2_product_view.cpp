@@ -383,9 +383,18 @@ void Level2ProductView::ComputeSweep()
       radar_product_manager();
 
    std::shared_ptr<wsr88d::rda::ElevationScan> radarData;
-   std::tie(radarData, p->elevationCut_, p->elevationCuts_) =
+   std::chrono::system_clock::time_point       requestedTime {selected_time()};
+   std::chrono::system_clock::time_point       foundTime;
+   std::tie(radarData, p->elevationCut_, p->elevationCuts_, foundTime) =
       radarProductManager->GetLevel2Data(
-         p->dataBlockType_, p->selectedElevation_, selected_time());
+         p->dataBlockType_, p->selectedElevation_, requestedTime);
+
+   // If a different time was found than what was requested, update it
+   if (requestedTime != foundTime)
+   {
+      SelectTime(foundTime);
+   }
+
    if (radarData == nullptr || radarData == p->elevationScan_)
    {
       return;

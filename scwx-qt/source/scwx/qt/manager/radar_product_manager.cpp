@@ -177,10 +177,10 @@ public:
    void RefreshData(std::shared_ptr<ProviderManager> providerManager);
 
    std::shared_ptr<types::RadarProductRecord>
-   GetLevel2ProductRecord(std::chrono::system_clock::time_point time);
+   GetLevel2ProductRecord(std::chrono::system_clock::time_point& time);
    std::shared_ptr<types::RadarProductRecord>
-   GetLevel3ProductRecord(const std::string&                    product,
-                          std::chrono::system_clock::time_point time);
+   GetLevel3ProductRecord(const std::string&                     product,
+                          std::chrono::system_clock::time_point& time);
    std::shared_ptr<types::RadarProductRecord>
    StoreRadarProductRecord(std::shared_ptr<types::RadarProductRecord> record);
    void UpdateRecentRecords(RadarProductRecordList& recentList,
@@ -859,7 +859,7 @@ void RadarProductManagerImpl::LoadNexradFile(
 
 std::shared_ptr<types::RadarProductRecord>
 RadarProductManagerImpl::GetLevel2ProductRecord(
-   std::chrono::system_clock::time_point time)
+   std::chrono::system_clock::time_point& time)
 {
    std::shared_ptr<types::RadarProductRecord> record;
    RadarProductRecordMap::const_pointer       recordPtr {nullptr};
@@ -879,6 +879,7 @@ RadarProductManagerImpl::GetLevel2ProductRecord(
 
    if (recordPtr != nullptr)
    {
+      time   = recordPtr->first;
       record = recordPtr->second.lock();
       if (record == nullptr)
       {
@@ -902,7 +903,7 @@ RadarProductManagerImpl::GetLevel2ProductRecord(
 
 std::shared_ptr<types::RadarProductRecord>
 RadarProductManagerImpl::GetLevel3ProductRecord(
-   const std::string& product, std::chrono::system_clock::time_point time)
+   const std::string& product, std::chrono::system_clock::time_point& time)
 {
    std::shared_ptr<types::RadarProductRecord> record = nullptr;
    RadarProductRecordMap::const_pointer       recordPtr {nullptr};
@@ -930,6 +931,7 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
 
    if (recordPtr != nullptr)
    {
+      time   = recordPtr->first;
       record = recordPtr->second.lock();
       if (record == nullptr)
       {
@@ -1046,7 +1048,8 @@ void RadarProductManagerImpl::UpdateRecentRecords(
 
 std::tuple<std::shared_ptr<wsr88d::rda::ElevationScan>,
            float,
-           std::vector<float>>
+           std::vector<float>,
+           std::chrono::system_clock::time_point>
 RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
                                    float                      elevation,
                                    std::chrono::system_clock::time_point time)
@@ -1065,10 +1068,11 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
             dataBlockType, elevation, time);
    }
 
-   return std::tie(radarData, elevationCut, elevationCuts);
+   return std::tie(radarData, elevationCut, elevationCuts, time);
 }
 
-std::shared_ptr<wsr88d::rpg::Level3Message>
+std::tuple<std::shared_ptr<wsr88d::rpg::Level3Message>,
+           std::chrono::system_clock::time_point>
 RadarProductManager::GetLevel3Data(const std::string& product,
                                    std::chrono::system_clock::time_point time)
 {
@@ -1082,7 +1086,7 @@ RadarProductManager::GetLevel3Data(const std::string& product,
       message = record->level3_file()->message();
    }
 
-   return message;
+   return std::tie(message, time);
 }
 
 common::Level3ProductCategoryMap
