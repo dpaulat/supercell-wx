@@ -59,7 +59,13 @@ Level3ProductView::Level3ProductView(
     RadarProductView(radarProductManager),
     p(std::make_unique<Level3ProductViewImpl>(product))
 {
-   connect(radarProductManager.get(),
+   ConnectRadarProductManager();
+}
+Level3ProductView::~Level3ProductView() = default;
+
+void Level3ProductView::ConnectRadarProductManager()
+{
+   connect(radar_product_manager().get(),
            &manager::RadarProductManager::DataReloaded,
            this,
            [this](std::shared_ptr<types::RadarProductRecord> record)
@@ -75,7 +81,14 @@ Level3ProductView::Level3ProductView(
               }
            });
 }
-Level3ProductView::~Level3ProductView() = default;
+
+void Level3ProductView::DisconnectRadarProductManager()
+{
+   disconnect(radar_product_manager().get(),
+              &manager::RadarProductManager::DataReloaded,
+              this,
+              nullptr);
+}
 
 const std::vector<boost::gil::rgba8_pixel_t>&
 Level3ProductView::color_table() const

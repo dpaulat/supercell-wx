@@ -64,7 +64,9 @@ public:
    GetCfpMomentData() const;
 
 protected:
-   virtual void UpdateColorTable() = 0;
+   virtual void ConnectRadarProductManager()    = 0;
+   virtual void DisconnectRadarProductManager() = 0;
+   virtual void UpdateColorTable()              = 0;
 
 protected slots:
    virtual void ComputeSweep();

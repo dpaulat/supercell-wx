@@ -54,6 +54,8 @@ public:
           std::shared_ptr<manager::RadarProductManager> radarProductManager);
 
 protected:
+   void ConnectRadarProductManager() override;
+   void DisconnectRadarProductManager() override;
    void UpdateColorTable() override;
 
 protected slots:

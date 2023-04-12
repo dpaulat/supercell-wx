@@ -45,6 +45,8 @@ protected:
    void set_graphic_product_message(
       std::shared_ptr<wsr88d::rpg::GraphicProductMessage> gpm);
 
+   void ConnectRadarProductManager() override;
+   void DisconnectRadarProductManager() override;
    void UpdateColorTable() override;
 
 private:

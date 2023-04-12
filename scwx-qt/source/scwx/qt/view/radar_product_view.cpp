@@ -99,7 +99,9 @@ std::mutex& RadarProductView::sweep_mutex()
 void RadarProductView::set_radar_product_manager(
    std::shared_ptr<manager::RadarProductManager> radarProductManager)
 {
+   DisconnectRadarProductManager();
    p->radarProductManager_ = radarProductManager;
+   ConnectRadarProductManager();
 }
 
 void RadarProductView::Initialize()
