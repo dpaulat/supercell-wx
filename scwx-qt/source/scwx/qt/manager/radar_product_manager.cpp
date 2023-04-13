@@ -176,11 +176,13 @@ public:
                       bool                             enabled);
    void RefreshData(std::shared_ptr<ProviderManager> providerManager);
 
-   std::shared_ptr<types::RadarProductRecord>
-   GetLevel2ProductRecord(std::chrono::system_clock::time_point& time);
-   std::shared_ptr<types::RadarProductRecord>
-   GetLevel3ProductRecord(const std::string&                     product,
-                          std::chrono::system_clock::time_point& time);
+   std::tuple<std::shared_ptr<types::RadarProductRecord>,
+              std::chrono::system_clock::time_point>
+   GetLevel2ProductRecord(std::chrono::system_clock::time_point time);
+   std::tuple<std::shared_ptr<types::RadarProductRecord>,
+              std::chrono::system_clock::time_point>
+   GetLevel3ProductRecord(const std::string&                    product,
+                          std::chrono::system_clock::time_point time);
    std::shared_ptr<types::RadarProductRecord>
    StoreRadarProductRecord(std::shared_ptr<types::RadarProductRecord> record);
    void UpdateRecentRecords(RadarProductRecordList& recentList,
@@ -857,12 +859,14 @@ void RadarProductManagerImpl::LoadNexradFile(
       });
 }
 
-std::shared_ptr<types::RadarProductRecord>
+std::tuple<std::shared_ptr<types::RadarProductRecord>,
+           std::chrono::system_clock::time_point>
 RadarProductManagerImpl::GetLevel2ProductRecord(
-   std::chrono::system_clock::time_point& time)
+   std::chrono::system_clock::time_point time)
 {
-   std::shared_ptr<types::RadarProductRecord> record;
+   std::shared_ptr<types::RadarProductRecord> record {nullptr};
    RadarProductRecordMap::const_pointer       recordPtr {nullptr};
+   std::chrono::system_clock::time_point      recordTime {time};
 
    if (!level2ProductRecords_.empty() &&
        time == std::chrono::system_clock::time_point {})
@@ -872,41 +876,53 @@ RadarProductManagerImpl::GetLevel2ProductRecord(
    }
    else
    {
-      // TODO: Round to minutes
       recordPtr =
          scwx::util::GetBoundedElementPointer(level2ProductRecords_, time);
    }
 
    if (recordPtr != nullptr)
    {
-      time   = recordPtr->first;
-      record = recordPtr->second.lock();
-      if (record == nullptr)
+      if (time == std::chrono::system_clock::time_point {} ||
+          time == recordPtr->first)
       {
-         // Product is expired, reload it
-         std::shared_ptr<request::NexradFileRequest> request =
-            std::make_shared<request::NexradFileRequest>();
-
-         QObject::connect(
-            request.get(),
-            &request::NexradFileRequest::RequestComplete,
-            self_,
-            [this](std::shared_ptr<request::NexradFileRequest> request)
-            { emit self_->DataReloaded(request->radar_product_record()); });
-
-         self_->LoadLevel2Data(recordPtr->first, request);
+         recordTime = recordPtr->first;
+         record     = recordPtr->second.lock();
       }
    }
 
-   return record;
+   if (record == nullptr &&
+       recordTime != std::chrono::system_clock::time_point {})
+   {
+      // Product is expired, reload it
+      std::shared_ptr<request::NexradFileRequest> request =
+         std::make_shared<request::NexradFileRequest>();
+
+      QObject::connect(
+         request.get(),
+         &request::NexradFileRequest::RequestComplete,
+         self_,
+         [this](std::shared_ptr<request::NexradFileRequest> request)
+         {
+            if (request->radar_product_record() != nullptr)
+            {
+               emit self_->DataReloaded(request->radar_product_record());
+            }
+         });
+
+      self_->LoadLevel2Data(recordTime, request);
+   }
+
+   return {record, recordTime};
 }
 
-std::shared_ptr<types::RadarProductRecord>
+std::tuple<std::shared_ptr<types::RadarProductRecord>,
+           std::chrono::system_clock::time_point>
 RadarProductManagerImpl::GetLevel3ProductRecord(
-   const std::string& product, std::chrono::system_clock::time_point& time)
+   const std::string& product, std::chrono::system_clock::time_point time)
 {
-   std::shared_ptr<types::RadarProductRecord> record = nullptr;
+   std::shared_ptr<types::RadarProductRecord> record {nullptr};
    RadarProductRecordMap::const_pointer       recordPtr {nullptr};
+   std::chrono::system_clock::time_point      recordTime {time};
 
    std::unique_lock lock {level3ProductRecordMutex_};
 
@@ -931,26 +947,37 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
 
    if (recordPtr != nullptr)
    {
-      time   = recordPtr->first;
-      record = recordPtr->second.lock();
-      if (record == nullptr)
+      if (time == std::chrono::system_clock::time_point {} ||
+          time == recordPtr->first)
       {
-         // Product is expired, reload it
-         std::shared_ptr<request::NexradFileRequest> request =
-            std::make_shared<request::NexradFileRequest>();
-
-         QObject::connect(
-            request.get(),
-            &request::NexradFileRequest::RequestComplete,
-            self_,
-            [this](std::shared_ptr<request::NexradFileRequest> request)
-            { emit self_->DataReloaded(request->radar_product_record()); });
-
-         self_->LoadLevel3Data(product, recordPtr->first, request);
+         recordTime = recordPtr->first;
+         record     = recordPtr->second.lock();
       }
    }
 
-   return record;
+   if (record == nullptr &&
+       recordTime != std::chrono::system_clock::time_point {})
+   {
+      // Product is expired, reload it
+      std::shared_ptr<request::NexradFileRequest> request =
+         std::make_shared<request::NexradFileRequest>();
+
+      QObject::connect(
+         request.get(),
+         &request::NexradFileRequest::RequestComplete,
+         self_,
+         [this](std::shared_ptr<request::NexradFileRequest> request)
+         {
+            if (request->radar_product_record() != nullptr)
+            {
+               emit self_->DataReloaded(request->radar_product_record());
+            }
+         });
+
+      self_->LoadLevel3Data(product, recordTime, request);
+   }
+
+   return {record, recordTime};
 }
 
 std::shared_ptr<types::RadarProductRecord>
@@ -1058,8 +1085,8 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
    float                                       elevationCut = 0.0f;
    std::vector<float>                          elevationCuts;
 
-   std::shared_ptr<types::RadarProductRecord> record =
-      p->GetLevel2ProductRecord(time);
+   std::shared_ptr<types::RadarProductRecord> record;
+   std::tie(record, time) = p->GetLevel2ProductRecord(time);
 
    if (record != nullptr)
    {
@@ -1068,7 +1095,7 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
             dataBlockType, elevation, time);
    }
 
-   return std::tie(radarData, elevationCut, elevationCuts, time);
+   return {radarData, elevationCut, elevationCuts, time};
 }
 
 std::tuple<std::shared_ptr<wsr88d::rpg::Level3Message>,
@@ -1078,15 +1105,15 @@ RadarProductManager::GetLevel3Data(const std::string& product,
 {
    std::shared_ptr<wsr88d::rpg::Level3Message> message = nullptr;
 
-   std::shared_ptr<types::RadarProductRecord> record =
-      p->GetLevel3ProductRecord(product, time);
+   std::shared_ptr<types::RadarProductRecord> record;
+   std::tie(record, time) = p->GetLevel3ProductRecord(product, time);
 
    if (record != nullptr)
    {
       message = record->level3_file()->message();
    }
 
-   return std::tie(message, time);
+   return {message, time};
 }
 
 common::Level3ProductCategoryMap
