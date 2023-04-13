@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <boost/uuid/nil_generator.hpp>
 #include <QObject>
 
 namespace scwx
@@ -33,23 +34,63 @@ public:
 
    static void Cleanup();
 
+   /**
+    * @brief Debug function to dump currently loaded products to the log.
+    */
+   static void DumpRecords();
+
    const std::vector<float>& coordinates(common::RadialSize radialSize) const;
    float                     gate_size() const;
    std::shared_ptr<config::RadarSite> radar_site() const;
 
    void Initialize();
+
+   /**
+    * @brief Enables or disables refresh associated with a unique identifier
+    * (UUID) for a given radar product group and product.
+    *
+    * Only a single product refresh can be enabled for a given UUID. If a second
+    * product refresh is enabled for the same UUID, the first product refresh is
+    * disabled (unless still enabled under a different UUID).
+    *
+    * @param [in] group Radar product group
+    * @param [in] product Radar product name
+    * @param [in] enabled Whether to enable refresh
+    * @param [in] uuid Unique identifier. Default is boost::uuids::nil_uuid().
+    */
    void EnableRefresh(common::RadarProductGroup group,
                       const std::string&        product,
-                      bool                      enabled);
+                      bool                      enabled,
+                      boost::uuids::uuid uuid = boost::uuids::nil_uuid());
 
+   /**
+    * @brief Get level 2 radar data for a data block type, elevation, and time.
+    *
+    * @param [in] dataBlockType Data block type
+    * @param [in] elevation Elevation tilt
+    * @param [in] time Radar product time
+    *
+    * @return Level 2 radar data, selected elevation cut, available elevation
+    * cuts and selected time
+    */
    std::tuple<std::shared_ptr<wsr88d::rda::ElevationScan>,
               float,
-              std::vector<float>>
+              std::vector<float>,
+              std::chrono::system_clock::time_point>
    GetLevel2Data(wsr88d::rda::DataBlockType            dataBlockType,
                  float                                 elevation,
                  std::chrono::system_clock::time_point time = {});
 
-   std::shared_ptr<wsr88d::rpg::Level3Message>
+   /**
+    * @brief Get level 3 message data for a product and time.
+    *
+    * @param [in] product Radar product name
+    * @param [in] time Radar product time
+    *
+    * @return Level 3 message data and selected time
+    */
+   std::tuple<std::shared_ptr<wsr88d::rpg::Level3Message>,
+              std::chrono::system_clock::time_point>
    GetLevel3Data(const std::string&                    product,
                  std::chrono::system_clock::time_point time = {});
 
@@ -76,6 +117,7 @@ public:
    void                             UpdateAvailableProducts();
 
 signals:
+   void DataReloaded(std::shared_ptr<types::RadarProductRecord> record);
    void Level3ProductsChanged();
    void NewDataAvailable(common::RadarProductGroup             group,
                          const std::string&                    product,

@@ -44,7 +44,6 @@ public:
    explicit Level2ProductViewImpl(common::Level2Product product) :
        product_ {product},
        selectedElevation_ {0.0f},
-       selectedTime_ {},
        elevationScan_ {nullptr},
        momentDataBlock0_ {nullptr},
        latitude_ {},
@@ -72,8 +71,7 @@ public:
    common::Level2Product      product_;
    wsr88d::rda::DataBlockType dataBlockType_;
 
-   float                                 selectedElevation_;
-   std::chrono::system_clock::time_point selectedTime_;
+   float selectedElevation_;
 
    std::shared_ptr<wsr88d::rda::ElevationScan>   elevationScan_;
    std::shared_ptr<wsr88d::rda::MomentDataBlock> momentDataBlock0_;
@@ -108,8 +106,35 @@ Level2ProductView::Level2ProductView(
     RadarProductView(radarProductManager),
     p(std::make_unique<Level2ProductViewImpl>(product))
 {
+   ConnectRadarProductManager();
 }
 Level2ProductView::~Level2ProductView() = default;
+
+void Level2ProductView::ConnectRadarProductManager()
+{
+   connect(radar_product_manager().get(),
+           &manager::RadarProductManager::DataReloaded,
+           this,
+           [this](std::shared_ptr<types::RadarProductRecord> record)
+           {
+              if (record->radar_product_group() ==
+                     common::RadarProductGroup::Level2 &&
+                  record->time() == selected_time())
+              {
+                 // If the data associated with the currently selected time is
+                 // reloaded, update the view
+                 Update();
+              }
+           });
+}
+
+void Level2ProductView::DisconnectRadarProductManager()
+{
+   disconnect(radar_product_manager().get(),
+              &manager::RadarProductManager::DataReloaded,
+              this,
+              nullptr);
+}
 
 const std::vector<boost::gil::rgba8_pixel_t>&
 Level2ProductView::color_table() const
@@ -243,11 +268,6 @@ void Level2ProductView::SelectProduct(const std::string& productName)
    p->SetProduct(productName);
 }
 
-void Level2ProductView::SelectTime(std::chrono::system_clock::time_point time)
-{
-   p->selectedTime_ = time;
-}
-
 void Level2ProductViewImpl::SetProduct(const std::string& productName)
 {
    SetProduct(common::GetLevel2Product(productName));
@@ -376,9 +396,18 @@ void Level2ProductView::ComputeSweep()
       radar_product_manager();
 
    std::shared_ptr<wsr88d::rda::ElevationScan> radarData;
-   std::tie(radarData, p->elevationCut_, p->elevationCuts_) =
+   std::chrono::system_clock::time_point       requestedTime {selected_time()};
+   std::chrono::system_clock::time_point       foundTime;
+   std::tie(radarData, p->elevationCut_, p->elevationCuts_, foundTime) =
       radarProductManager->GetLevel2Data(
-         p->dataBlockType_, p->selectedElevation_, p->selectedTime_);
+         p->dataBlockType_, p->selectedElevation_, requestedTime);
+
+   // If a different time was found than what was requested, update it
+   if (requestedTime != foundTime)
+   {
+      SelectTime(foundTime);
+   }
+
    if (radarData == nullptr || radarData == p->elevationScan_)
    {
       return;

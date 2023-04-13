@@ -41,12 +41,23 @@ public:
    common::RadarProductGroup          GetRadarProductGroup() const;
    std::string                        GetRadarProductName() const;
    std::shared_ptr<config::RadarSite> GetRadarSite() const;
-   uint16_t                           GetVcp() const;
+   std::uint16_t                      GetVcp() const;
 
    void SelectElevation(float elevation);
+
+   /**
+    * @brief Selects a radar product.
+    *
+    * @param [in] group Radar product group
+    * @param [in] product Radar product name
+    * @param [in] productCode Radar product code (optional)
+    * @paran [in] time Product time. Default is the latest available.
+    */
    void SelectRadarProduct(common::RadarProductGroup group,
                            const std::string&        product,
-                           int16_t                   productCode);
+                           std::int16_t              productCode      = 0,
+                           std::chrono::system_clock::time_point time = {});
+
    void SelectRadarProduct(std::shared_ptr<types::RadarProductRecord> record);
 
    /**

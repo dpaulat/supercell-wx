@@ -37,6 +37,7 @@ private slots:
    void on_actionSettings_triggered();
    void on_actionExit_triggered();
    void on_actionImGuiDebug_triggered();
+   void on_actionDumpRadarProductRecords_triggered();
    void on_actionUserManual_triggered();
    void on_actionDiscord_triggered();
    void on_actionGitHubRepository_triggered();
@@ -44,6 +45,7 @@ private slots:
    void on_radarSiteSelectButton_clicked();
    void on_resourceTreeCollapseAllButton_clicked();
    void on_resourceTreeExpandAllButton_clicked();
+   void on_resourceTreeView_doubleClicked(const QModelIndex& index);
 
 private:
    std::unique_ptr<MainWindowImpl> p;

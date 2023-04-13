@@ -27,12 +27,11 @@ public:
 
    float                                 range() const override;
    std::chrono::system_clock::time_point sweep_time() const override;
-   uint16_t                              vcp() const override;
+   std::uint16_t                         vcp() const override;
    const std::vector<float>&             vertices() const override;
 
-   void SelectTime(std::chrono::system_clock::time_point time) override;
-
-   std::tuple<const void*, size_t, size_t> GetMomentData() const override;
+   std::tuple<const void*, std::size_t, std::size_t>
+   GetMomentData() const override;
 
    static std::shared_ptr<Level3RasterView>
    Create(const std::string&                            product,

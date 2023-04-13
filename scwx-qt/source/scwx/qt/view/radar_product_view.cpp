@@ -16,12 +16,12 @@ static const std::string logPrefix_ = "scwx::qt::view::radar_product_view";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 // Default color table should be transparent to prevent flicker
-static const std::vector<boost::gil::rgba8_pixel_t> DEFAULT_COLOR_TABLE = {
+static const std::vector<boost::gil::rgba8_pixel_t> kDefaultColorTable_ = {
    boost::gil::rgba8_pixel_t(0, 128, 0, 0),
    boost::gil::rgba8_pixel_t(255, 192, 0, 0),
    boost::gil::rgba8_pixel_t(255, 0, 0, 0)};
-static const uint16_t DEFAULT_COLOR_TABLE_MIN = 2u;
-static const uint16_t DEFAULT_COLOR_TABLE_MAX = 255u;
+static const std::uint16_t kDefaultColorTableMin_ = 2u;
+static const std::uint16_t kDefaultColorTableMax_ = 255u;
 
 class RadarProductViewImpl
 {
@@ -30,6 +30,7 @@ public:
       std::shared_ptr<manager::RadarProductManager> radarProductManager) :
        initialized_ {false},
        sweepMutex_ {},
+       selectedTime_ {},
        radarProductManager_ {radarProductManager}
    {
    }
@@ -37,6 +38,8 @@ public:
 
    bool       initialized_;
    std::mutex sweepMutex_;
+
+   std::chrono::system_clock::time_point selectedTime_;
 
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 };
@@ -49,17 +52,17 @@ RadarProductView::~RadarProductView() = default;
 const std::vector<boost::gil::rgba8_pixel_t>&
 RadarProductView::color_table() const
 {
-   return DEFAULT_COLOR_TABLE;
+   return kDefaultColorTable_;
 }
 
-uint16_t RadarProductView::color_table_min() const
+std::uint16_t RadarProductView::color_table_min() const
 {
-   return DEFAULT_COLOR_TABLE_MIN;
+   return kDefaultColorTableMin_;
 }
 
-uint16_t RadarProductView::color_table_max() const
+std::uint16_t RadarProductView::color_table_max() const
 {
-   return DEFAULT_COLOR_TABLE_MAX;
+   return kDefaultColorTableMax_;
 }
 
 float RadarProductView::elevation() const
@@ -78,6 +81,11 @@ float RadarProductView::range() const
    return 0.0f;
 }
 
+std::chrono::system_clock::time_point RadarProductView::selected_time() const
+{
+   return p->selectedTime_;
+}
+
 std::chrono::system_clock::time_point RadarProductView::sweep_time() const
 {
    return {};
@@ -91,7 +99,9 @@ std::mutex& RadarProductView::sweep_mutex()
 void RadarProductView::set_radar_product_manager(
    std::shared_ptr<manager::RadarProductManager> radarProductManager)
 {
+   DisconnectRadarProductManager();
    p->radarProductManager_ = radarProductManager;
+   ConnectRadarProductManager();
 }
 
 void RadarProductView::Initialize()
@@ -103,6 +113,11 @@ void RadarProductView::Initialize()
 
 void RadarProductView::SelectElevation(float /*elevation*/) {}
 
+void RadarProductView::SelectTime(std::chrono::system_clock::time_point time)
+{
+   p->selectedTime_ = time;
+}
+
 bool RadarProductView::IsInitialized() const
 {
    return p->initialized_;
@@ -113,12 +128,12 @@ std::vector<float> RadarProductView::GetElevationCuts() const
    return {};
 }
 
-std::tuple<const void*, size_t, size_t>
+std::tuple<const void*, std::size_t, std::size_t>
 RadarProductView::GetCfpMomentData() const
 {
    const void* data          = nullptr;
-   size_t      dataSize      = 0;
-   size_t      componentSize = 0;
+   std::size_t dataSize      = 0;
+   std::size_t componentSize = 0;
 
    return std::tie(data, dataSize, componentSize);
 }

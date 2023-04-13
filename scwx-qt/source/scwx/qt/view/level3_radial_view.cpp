@@ -27,25 +27,18 @@ class Level3RadialViewImpl
 {
 public:
    explicit Level3RadialViewImpl() :
-       selectedTime_ {},
-       latitude_ {},
-       longitude_ {},
-       range_ {},
-       vcp_ {},
-       sweepTime_ {}
+       latitude_ {}, longitude_ {}, range_ {}, vcp_ {}, sweepTime_ {}
    {
    }
    ~Level3RadialViewImpl() = default;
 
-   std::chrono::system_clock::time_point selectedTime_;
+   std::vector<float>        vertices_;
+   std::vector<std::uint8_t> dataMoments8_;
 
-   std::vector<float>   vertices_;
-   std::vector<uint8_t> dataMoments8_;
-
-   float    latitude_;
-   float    longitude_;
-   float    range_;
-   uint16_t vcp_;
+   float         latitude_;
+   float         longitude_;
+   float         range_;
+   std::uint16_t vcp_;
 
    std::chrono::system_clock::time_point sweepTime_;
 };
@@ -92,11 +85,6 @@ std::tuple<const void*, size_t, size_t> Level3RadialView::GetMomentData() const
    return std::tie(data, dataSize, componentSize);
 }
 
-void Level3RadialView::SelectTime(std::chrono::system_clock::time_point time)
-{
-   p->selectedTime_ = time;
-}
-
 void Level3RadialView::ComputeSweep()
 {
    logger_->debug("ComputeSweep()");
@@ -109,9 +97,18 @@ void Level3RadialView::ComputeSweep()
       radar_product_manager();
 
    // Retrieve message from Radar Product Manager
-   std::shared_ptr<wsr88d::rpg::Level3Message> message =
-      radarProductManager->GetLevel3Data(GetRadarProductName(),
-                                         p->selectedTime_);
+   std::shared_ptr<wsr88d::rpg::Level3Message> message;
+   std::chrono::system_clock::time_point       requestedTime {selected_time()};
+   std::chrono::system_clock::time_point       foundTime;
+   std::tie(message, foundTime) =
+      radarProductManager->GetLevel3Data(GetRadarProductName(), requestedTime);
+
+   // If a different time was found than what was requested, update it
+   if (requestedTime != foundTime)
+   {
+      SelectTime(foundTime);
+   }
+
    if (message == nullptr)
    {
       logger_->debug("Level 3 data not found");

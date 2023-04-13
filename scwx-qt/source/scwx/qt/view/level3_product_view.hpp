@@ -28,8 +28,8 @@ public:
    virtual ~Level3ProductView();
 
    const std::vector<boost::gil::rgba8_pixel_t>& color_table() const override;
-   uint16_t color_table_min() const override;
-   uint16_t color_table_max() const override;
+   std::uint16_t color_table_min() const override;
+   std::uint16_t color_table_max() const override;
 
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) override;
    void Update() override;
@@ -45,6 +45,8 @@ protected:
    void set_graphic_product_message(
       std::shared_ptr<wsr88d::rpg::GraphicProductMessage> gpm);
 
+   void ConnectRadarProductManager() override;
+   void DisconnectRadarProductManager() override;
    void UpdateColorTable() override;
 
 private:

@@ -105,10 +105,16 @@ RadarProductModelImpl::RadarProductModelImpl(RadarProductModel* self) :
                   }
                }
 
-               // Create leaf item for product time
-               model_->AppendRow(productItem,
-                                 new TreeItem {QString::fromStdString(
-                                    util::TimeString(latestTime))});
+               // Find existing time item (e.g., 2023-04-10 10:11:12)
+               const QString timeString =
+                  QString::fromStdString(util::TimeString(latestTime));
+               TreeItem* timeItem = productItem->FindChild(0, timeString);
+
+               if (timeItem == nullptr)
+               {
+                  // Create leaf item for product time
+                  model_->AppendRow(productItem, new TreeItem {timeString});
+               }
             },
             Qt::QueuedConnection);
       });

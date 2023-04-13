@@ -357,6 +357,11 @@ void MainWindow::on_actionImGuiDebug_triggered()
    p->imGuiDebugDialog_->show();
 }
 
+void MainWindow::on_actionDumpRadarProductRecords_triggered()
+{
+   manager::RadarProductManager::DumpRecords();
+}
+
 void MainWindow::on_actionUserManual_triggered()
 {
    QDesktopServices::openUrl(QUrl {"https://supercell-wx.readthedocs.io/"});
@@ -390,6 +395,67 @@ void MainWindow::on_resourceTreeCollapseAllButton_clicked()
 void MainWindow::on_resourceTreeExpandAllButton_clicked()
 {
    ui->resourceTreeView->expandAll();
+}
+
+void MainWindow::on_resourceTreeView_doubleClicked(const QModelIndex& index)
+{
+   std::string selectedString {index.data().toString().toStdString()};
+   std::chrono::system_clock::time_point time {};
+
+   logger_->debug("Selecting resource: {}",
+                  index.data().toString().toStdString());
+
+   static const std::string timeFormat {"%Y-%m-%d %H:%M:%S"};
+
+   std::istringstream in {selectedString};
+   in >> std::chrono::parse(timeFormat, time);
+
+   if (in.fail())
+   {
+      // Not a time string, ignore double-click
+      return;
+   }
+
+   QModelIndex parent1 = index.parent();
+   QModelIndex parent2 = parent1.parent();
+   QModelIndex parent3 = parent2.parent();
+
+   std::string radarSite {};
+   std::string groupName {};
+   std::string product {};
+
+   if (!parent2.isValid())
+   {
+      // A time entry should be at the third or fourth level
+      logger_->error("Unexpected resource data");
+      return;
+   }
+
+   if (parent3.isValid())
+   {
+      // Level 3 Product
+      radarSite = parent3.data().toString().toStdString();
+      groupName = parent2.data().toString().toStdString();
+      product   = parent1.data().toString().toStdString();
+   }
+   else
+   {
+      // Level 2 Product
+      radarSite = parent2.data().toString().toStdString();
+      groupName = parent1.data().toString().toStdString();
+      // No product index
+   }
+
+   common::RadarProductGroup group = common::GetRadarProductGroup(groupName);
+
+   // Update radar site if different from currently selected
+   if (p->activeMap_->GetRadarSite()->id() != radarSite)
+   {
+      p->activeMap_->SelectRadarSite(radarSite);
+   }
+
+   // Select the updated radar product
+   p->activeMap_->SelectRadarProduct(group, product, 0, time);
 }
 
 void MainWindowImpl::ConfigureMapLayout()

@@ -51,7 +51,6 @@ public:
 
    void NormalizeElevationButtons();
    void SelectElevation(float elevation);
-   void UpdateSettings();
 
    Level2SettingsWidget* self_;
    QLayout*              layout_;
@@ -135,8 +134,7 @@ void Level2SettingsWidget::UpdateElevationSelection(float elevation)
    QString buttonText {QString::number(elevation, 'f', 1) +
                        common::Characters::DEGREE};
 
-   std::for_each(std::execution::par_unseq,
-                 p->elevationButtons_.cbegin(),
+   std::for_each(p->elevationButtons_.cbegin(),
                  p->elevationButtons_.cend(),
                  [&](auto& toolButton)
                  {

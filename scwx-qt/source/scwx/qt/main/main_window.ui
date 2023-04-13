@@ -83,6 +83,8 @@
      <string>&amp;Debug</string>
     </property>
     <addaction name="actionImGuiDebug"/>
+    <addaction name="separator"/>
+    <addaction name="actionDumpRadarProductRecords"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
@@ -395,6 +397,11 @@
    </property>
    <property name="text">
     <string>&amp;GitHub Repository</string>
+   </property>
+  </action>
+  <action name="actionDumpRadarProductRecords">
+   <property name="text">
+    <string>Dump Radar &amp;Product Records</string>
    </property>
   </action>
  </widget>
