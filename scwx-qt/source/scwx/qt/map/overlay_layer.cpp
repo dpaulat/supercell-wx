@@ -110,6 +110,22 @@ void OverlayLayer::Render(
 
    DrawLayer::Render(params);
 
+   if (radarProductView != nullptr)
+   {
+      // Render product name
+      std::string productName = radarProductView->GetRadarProductName();
+      if (productName.length() > 0 && !productName.starts_with('?'))
+      {
+         ImGui::SetNextWindowPos(ImVec2 {0.0f, 0.0f});
+         ImGui::Begin("Product Name",
+                      nullptr,
+                      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                         ImGuiWindowFlags_AlwaysAutoResize);
+         ImGui::Text(productName.c_str());
+         ImGui::End();
+      }
+   }
+
    if (p->sweepTimeString_.length() > 0)
    {
       // Render time
