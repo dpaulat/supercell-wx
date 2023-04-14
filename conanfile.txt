@@ -6,9 +6,9 @@ geographiclib/1.52
 glew/2.2.0
 glm/cci.20220420
 gtest/cci.20210126
-libcurl/7.85.0
+libcurl/7.86.0
 libxml2/2.10.3
-openssl/1.1.1s
+openssl/1.1.1t
 spdlog/1.11.0
 sqlite3/3.40.1
 vulkan-loader/1.3.236.0
