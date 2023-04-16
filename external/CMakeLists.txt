@@ -5,6 +5,7 @@ set_property(DIRECTORY
              APPEND
              PROPERTY CMAKE_CONFIGURE_DEPENDS
              aws-sdk-cpp.cmake
+             date.cmake
              freetype-gl.cmake
              hsluv-c.cmake
              imgui.cmake
@@ -12,6 +13,7 @@ set_property(DIRECTORY
              stb.cmake)
 
 include(aws-sdk-cpp.cmake)
+include(date.cmake)
 include(freetype-gl.cmake)
 include(hsluv-c.cmake)
 include(imgui.cmake)
