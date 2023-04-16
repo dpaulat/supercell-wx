@@ -16,6 +16,7 @@ Supercell Wx uses code from the following dependencies:
 | [cmake-conan](https://github.com/conan-io/cmake-conan) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [cpr](https://github.com/libcpr/cpr) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [CSS Color Parser](https://github.com/deanm/css-color-parser-js) | [MIT License](https://spdx.org/licenses/MIT.html) | Ported to C++ for MapLibre GL Native |
+| [Date](https://github.com/HowardHinnant/date) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [Dear ImGui](https://github.com/ocornut/imgui) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [FreeType](https://freetype.org/) | [Freetype Project License](https://spdx.org/licenses/FTL.html) |
 | [FreeType GL](https://github.com/rougier/freetype-gl) | [BSD 2-Clause with views sentence](https://spdx.org/licenses/BSD-2-Clause-Views.html) |
