@@ -22,7 +22,10 @@
 #include FT_SFNT_NAMES_H
 #include FT_TRUETYPE_IDS_H
 
-#pragma warning(push, 0)
+#if defined(_MSC_VER)
+#   pragma warning(push, 0)
+#endif
+
 // #include <freetype-gl.h> (exclude opengl.h)
 #include <platform.h>
 #include <vec234.h>
@@ -30,7 +33,10 @@
 #include <texture-atlas.h>
 #include <texture-font.h>
 #include <ftgl-utils.h>
-#pragma warning(pop)
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 #ifdef WIN32
 #   include <WinSock2.h>

@@ -5,12 +5,18 @@
 
 #include <fstream>
 
-#pragma warning(push)
-#pragma warning(disable : 4706)
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable : 4706)
+#endif
+
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/zlib.hpp>
-#pragma warning(pop)
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 namespace scwx
 {
@@ -39,7 +45,7 @@ public:
 Level3File::Level3File() : p(std::make_unique<Level3FileImpl>()) {}
 Level3File::~Level3File() = default;
 
-Level3File::Level3File(Level3File&&) noexcept = default;
+Level3File::Level3File(Level3File&&) noexcept            = default;
 Level3File& Level3File::operator=(Level3File&&) noexcept = default;
 
 std::shared_ptr<awips::WmoHeader> Level3File::wmo_header() const

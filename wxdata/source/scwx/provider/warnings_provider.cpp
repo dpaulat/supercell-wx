@@ -6,11 +6,17 @@
 #include <regex>
 #include <shared_mutex>
 
-#pragma warning(push, 0)
+#if defined(_MSC_VER)
+#   pragma warning(push, 0)
+#endif
+
 #define LIBXML_HTML_ENABLED
 #include <cpr/cpr.h>
 #include <libxml/HTMLparser.h>
-#pragma warning(pop)
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 namespace scwx
 {
