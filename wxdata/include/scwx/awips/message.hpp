@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstring>
 #include <execution>
 #include <istream>
 #include <map>
@@ -24,18 +25,18 @@ class Message
 protected:
    explicit Message();
 
-   Message(const Message&) = delete;
+   Message(const Message&)            = delete;
    Message& operator=(const Message&) = delete;
 
    Message(Message&&) noexcept;
    Message& operator=(Message&&) noexcept;
 
-   virtual bool ValidateMessage(std::istream& is, size_t bytesRead) const;
+   virtual bool ValidateMessage(std::istream& is, std::size_t bytesRead) const;
 
 public:
    virtual ~Message();
 
-   virtual size_t data_size() const = 0;
+   virtual std::size_t data_size() const = 0;
 
    virtual bool Parse(std::istream& is) = 0;
 
@@ -55,11 +56,16 @@ public:
 
    static float SwapFloat(float f)
    {
-      return ntohf(*reinterpret_cast<uint32_t*>(&f));
+      std::uint32_t temp;
+      std::memcpy(&temp, &f, sizeof(std::uint32_t));
+      temp = ntohl(temp);
+      std::memcpy(&f, &temp, sizeof(float));
+      return f;
    }
 
-   template<size_t _Size>
-   static void SwapArray(std::array<float, _Size>& arr, size_t size = _Size)
+   template<std::size_t _Size>
+   static void SwapArray(std::array<float, _Size>& arr,
+                         std::size_t               size = _Size)
    {
       std::transform(std::execution::par_unseq,
                      arr.begin(),
@@ -68,34 +74,37 @@ public:
                      [](float f) { return SwapFloat(f); });
    }
 
-   template<size_t _Size>
-   static void SwapArray(std::array<int16_t, _Size>& arr, size_t size = _Size)
+   template<std::size_t _Size>
+   static void SwapArray(std::array<std::int16_t, _Size>& arr,
+                         std::size_t                      size = _Size)
    {
       std::transform(std::execution::par_unseq,
                      arr.begin(),
                      arr.begin() + size,
                      arr.begin(),
-                     [](int16_t u) { return ntohs(u); });
+                     [](std::int16_t u) { return ntohs(u); });
    }
 
-   template<size_t _Size>
-   static void SwapArray(std::array<uint16_t, _Size>& arr, size_t size = _Size)
+   template<std::size_t _Size>
+   static void SwapArray(std::array<std::uint16_t, _Size>& arr,
+                         std::size_t                       size = _Size)
    {
       std::transform(std::execution::par_unseq,
                      arr.begin(),
                      arr.begin() + size,
                      arr.begin(),
-                     [](uint16_t u) { return ntohs(u); });
+                     [](std::uint16_t u) { return ntohs(u); });
    }
 
-   template<size_t _Size>
-   static void SwapArray(std::array<uint32_t, _Size>& arr, size_t size = _Size)
+   template<std::size_t _Size>
+   static void SwapArray(std::array<std::uint32_t, _Size>& arr,
+                         std::size_t                       size = _Size)
    {
       std::transform(std::execution::par_unseq,
                      arr.begin(),
                      arr.begin() + size,
                      arr.begin(),
-                     [](uint32_t u) { return ntohl(u); });
+                     [](std::uint32_t u) { return ntohl(u); });
    }
 
    template<typename T>
@@ -107,13 +116,13 @@ public:
                     [](auto& p) { p.second = SwapFloat(p.second); });
    }
 
-   static void SwapVector(std::vector<uint16_t>& v)
+   static void SwapVector(std::vector<std::uint16_t>& v)
    {
       std::transform(std::execution::par_unseq,
                      v.begin(),
                      v.end(),
                      v.begin(),
-                     [](uint16_t u) { return ntohs(u); });
+                     [](std::uint16_t u) { return ntohs(u); });
    }
 
 private:
