@@ -18,6 +18,7 @@
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_qt.hpp>
 #include <boost/uuid/random_generator.hpp>
+#include <fmt/format.h>
 #include <imgui.h>
 #include <QApplication>
 #include <QColor>
@@ -89,7 +90,7 @@ public:
 
       // Create ImGui Context
       static size_t currentMapId_ {0u};
-      imGuiContextName_ = std::format("Map {}", ++currentMapId_);
+      imGuiContextName_ = fmt::format("Map {}", ++currentMapId_);
       imGuiContext_ =
          model::ImGuiContextModel::Instance().CreateContext(imGuiContextName_);
 

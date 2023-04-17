@@ -13,6 +13,7 @@
 #include <unordered_map>
 
 #include <boost/timer/timer.hpp>
+#include <fmt/format.h>
 #include <imgui.h>
 #include <QFile>
 #include <QFileInfo>
@@ -273,7 +274,7 @@ void FontImpl::CreateImGuiFont(QFile&                      fontFile,
 
       // Assign name to font
       strncpy(fontConfig.Name,
-              std::format("{}:{}", fileInfo.fileName().toStdString(), fontSize)
+              fmt::format("{}:{}", fileInfo.fileName().toStdString(), fontSize)
                  .c_str(),
               sizeof(fontConfig.Name));
       fontConfig.Name[sizeof(fontConfig.Name) - 1] = 0;

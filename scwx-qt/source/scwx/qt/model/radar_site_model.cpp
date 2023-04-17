@@ -5,8 +5,6 @@
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
-#include <format>
-
 namespace scwx
 {
 namespace qt

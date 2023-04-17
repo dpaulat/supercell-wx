@@ -254,14 +254,14 @@ std::string ProviderManager::name() const
 
    if (group_ == common::RadarProductGroup::Level3)
    {
-      name = std::format("{}, {}, {}",
+      name = fmt::format("{}, {}, {}",
                          radarId_,
                          common::GetRadarProductGroupName(group_),
                          product_);
    }
    else
    {
-      name = std::format(
+      name = fmt::format(
          "{}, {}", radarId_, common::GetRadarProductGroupName(group_));
    }
 

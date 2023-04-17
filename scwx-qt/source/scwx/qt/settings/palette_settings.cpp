@@ -2,10 +2,10 @@
 #include <scwx/qt/settings/settings_variable.hpp>
 #include <scwx/qt/util/color.hpp>
 
-#include <format>
 #include <regex>
 
 #include <boost/gil.hpp>
+#include <fmt/format.h>
 
 namespace scwx
 {
@@ -74,8 +74,8 @@ public:
       for (auto& alert : kAlertColors_)
       {
          std::string phenomenonCode = awips::GetPhenomenonCode(alert.first);
-         std::string activeName     = std::format("{}-active", phenomenonCode);
-         std::string inactiveName = std::format("{}-inactive", phenomenonCode);
+         std::string activeName     = fmt::format("{}-active", phenomenonCode);
+         std::string inactiveName = fmt::format("{}-inactive", phenomenonCode);
 
          auto activeResult = activeAlertColor_.emplace(
             alert.first, SettingsVariable<std::string> {activeName});

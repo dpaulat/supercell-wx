@@ -1,8 +1,7 @@
 #include <scwx/qt/types/text_event_key.hpp>
 
-#include <format>
-
 #include <boost/container_hash/hash.hpp>
+#include <fmt/format.h>
 
 namespace scwx
 {
@@ -15,7 +14,7 @@ static const std::string logPrefix_ = "scwx::qt::types::text_event_key";
 
 std::string TextEventKey::ToFullString() const
 {
-   return std::format("{} {} {} {:04}",
+   return fmt::format("{} {} {} {:04}",
                       officeId_,
                       awips::GetPhenomenonText(phenomenon_),
                       awips::GetSignificanceText(significance_),
@@ -24,7 +23,7 @@ std::string TextEventKey::ToFullString() const
 
 std::string TextEventKey::ToString() const
 {
-   return std::format("{}.{}.{}.{:04}",
+   return fmt::format("{}.{}.{}.{:04}",
                       officeId_,
                       awips::GetPhenomenonCode(phenomenon_),
                       awips::GetSignificanceCode(significance_),

@@ -84,7 +84,7 @@ std::vector<std::string> Ugc::fips_ids() const
    {
       for (auto& id : fipsIdList.second)
       {
-         fipsIds.push_back(std::format("{}{}{:03}",
+         fipsIds.push_back(fmt::format("{}{}{:03}",
                                        fipsIdList.first,
                                        ugcFormatMap_.left.at(p->format_),
                                        id));
