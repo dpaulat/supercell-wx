@@ -514,11 +514,13 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
       QObject::connect(activeButton,
                        &QAbstractButton::clicked,
                        self_,
-                       [=]() { ShowColorDialog(activeEdit, activeFrame); });
+                       [=, this]()
+                       { ShowColorDialog(activeEdit, activeFrame); });
       QObject::connect(inactiveButton,
                        &QAbstractButton::clicked,
                        self_,
-                       [=]() { ShowColorDialog(inactiveEdit, inactiveFrame); });
+                       [=, this]()
+                       { ShowColorDialog(inactiveEdit, inactiveFrame); });
    }
 }
 

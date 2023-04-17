@@ -506,7 +506,7 @@ void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
 
       // Only enable refresh on available products
       scwx::util::async(
-         [=]()
+         [=, this]()
          {
             providerManager->provider_->RequestAvailableProducts();
             auto availableProducts =
@@ -597,7 +597,7 @@ void RadarProductManagerImpl::RefreshData(
    }
 
    scwx::util::async(
-      [=]()
+      [=, this]()
       {
          auto [newObjects, totalObjects] =
             providerManager->provider_->Refresh();
@@ -647,7 +647,7 @@ void RadarProductManagerImpl::RefreshData(
             {
                providerManager->refreshTimer_.expires_after(interval);
                providerManager->refreshTimer_.async_wait(
-                  [=](const boost::system::error_code& e)
+                  [=, this](const boost::system::error_code& e)
                   {
                      if (e == boost::system::errc::success)
                      {
@@ -1151,7 +1151,7 @@ void RadarProductManager::UpdateAvailableProducts()
    logger_->debug("UpdateAvailableProducts()");
 
    scwx::util::async(
-      [=]()
+      [this]()
       {
          auto level3ProviderManager =
             p->GetLevel3ProviderManager(kDefaultLevel3Product_);

@@ -163,7 +163,7 @@ void Level3ProductView::LoadColorTable(
 
 void Level3ProductView::Update()
 {
-   util::async([=]() { ComputeSweep(); });
+   util::async([this]() { ComputeSweep(); });
 }
 
 void Level3ProductView::UpdateColorTable()

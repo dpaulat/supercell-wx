@@ -292,7 +292,7 @@ void Level2ProductViewImpl::SetProduct(common::Level2Product product)
 
 void Level2ProductView::Update()
 {
-   util::async([=]() { ComputeSweep(); });
+   util::async([this]() { ComputeSweep(); });
 }
 
 void Level2ProductView::UpdateColorTable()

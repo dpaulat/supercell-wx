@@ -179,7 +179,7 @@ void Level2SettingsWidget::UpdateSettings(map::MapWidget* activeMap)
          connect(toolButton,
                  &QToolButton::clicked,
                  this,
-                 [=]() { p->SelectElevation(elevationCut); });
+                 [=, this]() { p->SelectElevation(elevationCut); });
       }
 
       p->elevationCuts_           = elevationCuts;

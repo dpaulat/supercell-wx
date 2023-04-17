@@ -108,7 +108,7 @@ void AlertProxyModelImpl::UpdateAlerts()
    using namespace std::chrono;
    alertUpdateTimer_.expires_after(15s);
    alertUpdateTimer_.async_wait(
-      [=](const boost::system::error_code& e)
+      [this](const boost::system::error_code& e)
       {
          if (e == boost::asio::error::operation_aborted)
          {

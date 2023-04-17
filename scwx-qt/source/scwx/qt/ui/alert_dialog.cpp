@@ -74,7 +74,7 @@ void AlertDialogImpl::ConnectSignals()
       textEventManager_.get(),
       &manager::TextEventManager::AlertUpdated,
       this,
-      [=](const types::TextEventKey& key)
+      [this](const types::TextEventKey& key)
       {
          if (key == key_)
          {
@@ -85,7 +85,7 @@ void AlertDialogImpl::ConnectSignals()
    connect(goButton_,
            &QPushButton::clicked,
            this,
-           [=]()
+           [this]()
            {
               emit self_->MoveMap(centroid_.latitude_, centroid_.longitude_);
               self_->close();

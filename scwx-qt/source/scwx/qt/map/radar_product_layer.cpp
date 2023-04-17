@@ -149,11 +149,11 @@ void RadarProductLayer::Initialize()
    connect(radarProductView.get(),
            &view::RadarProductView::ColorTableUpdated,
            this,
-           [=]() { p->colorTableNeedsUpdate_ = true; });
+           [this]() { p->colorTableNeedsUpdate_ = true; });
    connect(radarProductView.get(),
            &view::RadarProductView::SweepComputed,
            this,
-           [=]() { p->sweepNeedsUpdate_ = true; });
+           [this]() { p->sweepNeedsUpdate_ = true; });
 }
 
 void RadarProductLayer::UpdateSweep()

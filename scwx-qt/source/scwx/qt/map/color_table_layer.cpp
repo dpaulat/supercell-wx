@@ -110,7 +110,7 @@ void ColorTableLayer::Initialize()
    connect(context()->radar_product_view().get(),
            &view::RadarProductView::ColorTableUpdated,
            this,
-           [=]() { p->colorTableNeedsUpdate_ = true; });
+           [this]() { p->colorTableNeedsUpdate_ = true; });
 }
 
 void ColorTableLayer::Render(

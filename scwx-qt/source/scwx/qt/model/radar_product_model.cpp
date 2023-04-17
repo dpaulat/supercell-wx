@@ -47,7 +47,7 @@ RadarProductModelImpl::RadarProductModelImpl(RadarProductModel* self) :
       &manager::RadarProductManagerNotifier::Instance(),
       &manager::RadarProductManagerNotifier::RadarProductManagerCreated,
       this,
-      [=](const std::string& radarSite)
+      [this](const std::string& radarSite)
       {
          logger_->debug("Adding radar site: {}", radarSite);
 
@@ -67,9 +67,9 @@ RadarProductModelImpl::RadarProductModelImpl(RadarProductModel* self) :
             manager::RadarProductManager::Instance(radarSite).get(),
             &manager::RadarProductManager::NewDataAvailable,
             this,
-            [=](common::RadarProductGroup             group,
-                const std::string&                    product,
-                std::chrono::system_clock::time_point latestTime)
+            [=, this](common::RadarProductGroup             group,
+                      const std::string&                    product,
+                      std::chrono::system_clock::time_point latestTime)
             {
                const QString groupName {QString::fromStdString(
                   common::GetRadarProductGroupName(group))};

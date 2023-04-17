@@ -48,7 +48,7 @@ public:
          QObject::connect(toolButton,
                           &QToolButton::clicked,
                           this,
-                          [=]() { SelectProductCategory(category); });
+                          [=, this]() { SelectProductCategory(category); });
 
          QMenu* categoryMenu = new QMenu();
          toolButton->setMenu(categoryMenu);
@@ -79,7 +79,7 @@ public:
                   action,
                   &QAction::triggered,
                   this,
-                  [=]()
+                  [=, this]()
                   {
                      std::shared_lock lock {awipsProductMutex_};
                      std::string awipsProductName {awipsProductMap_.at(action)};

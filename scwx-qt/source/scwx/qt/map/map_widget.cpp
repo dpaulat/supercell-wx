@@ -797,15 +797,15 @@ void MapWidgetImpl::RadarProductManagerConnect()
       connect(radarProductManager_.get(),
               &manager::RadarProductManager::Level3ProductsChanged,
               this,
-              [&]() { emit widget_->Level3ProductsChanged(); });
+              [this]() { emit widget_->Level3ProductsChanged(); });
 
       connect(
          radarProductManager_.get(),
          &manager::RadarProductManager::NewDataAvailable,
          this,
-         [&](common::RadarProductGroup             group,
-             const std::string&                    product,
-             std::chrono::system_clock::time_point latestTime)
+         [this](common::RadarProductGroup             group,
+                const std::string&                    product,
+                std::chrono::system_clock::time_point latestTime)
          {
             if (autoRefreshEnabled_ &&
                 context_->radar_product_group() == group &&
@@ -817,23 +817,24 @@ void MapWidgetImpl::RadarProductManagerConnect()
                   std::make_shared<request::NexradFileRequest>();
 
                // File request callback
-               connect(request.get(),
-                       &request::NexradFileRequest::RequestComplete,
-                       this,
-                       [&](std::shared_ptr<request::NexradFileRequest> request)
-                       {
-                          // Select loaded record
-                          auto record = request->radar_product_record();
+               connect(
+                  request.get(),
+                  &request::NexradFileRequest::RequestComplete,
+                  this,
+                  [this](std::shared_ptr<request::NexradFileRequest> request)
+                  {
+                     // Select loaded record
+                     auto record = request->radar_product_record();
 
-                          if (record != nullptr)
-                          {
-                             widget_->SelectRadarProduct(record);
-                          }
-                       });
+                     if (record != nullptr)
+                     {
+                        widget_->SelectRadarProduct(record);
+                     }
+                  });
 
                // Load file
                scwx::util::async(
-                  [=]()
+                  [=, this]()
                   {
                      if (group == common::RadarProductGroup::Level2)
                      {
@@ -867,7 +868,7 @@ void MapWidgetImpl::InitializeNewRadarProductView(
    const std::string& colorPalette)
 {
    scwx::util::async(
-      [=]()
+      [=, this]()
       {
          auto radarProductView = context_->radar_product_view();
 
@@ -903,13 +904,13 @@ void MapWidgetImpl::RadarProductViewConnect()
          radarProductView.get(),
          &view::RadarProductView::ColorTableUpdated,
          this,
-         [&]() { widget_->update(); },
+         [this]() { widget_->update(); },
          Qt::QueuedConnection);
       connect(
          radarProductView.get(),
          &view::RadarProductView::SweepComputed,
          this,
-         [=]()
+         [=, this]()
          {
             std::shared_ptr<config::RadarSite> radarSite =
                radarProductManager_->radar_site();

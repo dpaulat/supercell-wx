@@ -45,7 +45,7 @@ ImGuiDebugDialog::ImGuiDebugDialog(QWidget* parent) :
    connect(
       ui->contextComboBox,
       &QComboBox::currentIndexChanged,
-      [=](int row)
+      [this](int row)
       {
          auto& contextModel = model::ImGuiContextModel::Instance();
          auto  index        = contextModel.index(row, 0);
