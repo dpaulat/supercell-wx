@@ -30,6 +30,10 @@
 #include <QStandardPaths>
 #include <QToolButton>
 
+#if !defined(_MSC_VER)
+#   include <date/date.h>
+#endif
+
 namespace scwx
 {
 namespace qt
@@ -407,8 +411,14 @@ void MainWindow::on_resourceTreeView_doubleClicked(const QModelIndex& index)
 
    static const std::string timeFormat {"%Y-%m-%d %H:%M:%S"};
 
+   using namespace std::chrono;
+
+#if !defined(_MSC_VER)
+   using namespace date;
+#endif
+
    std::istringstream in {selectedString};
-   in >> std::chrono::parse(timeFormat, time);
+   in >> parse(timeFormat, time);
 
    if (in.fail())
    {

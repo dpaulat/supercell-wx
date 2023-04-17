@@ -8,6 +8,10 @@
 
 #include <sstream>
 
+#if !defined(_MSC_VER)
+#   include <date/date.h>
+#endif
+
 namespace scwx
 {
 namespace awips
@@ -98,6 +102,10 @@ bool CodedTimeMotionLocation::Parse(const StringRange& lines,
       {
          using namespace std::chrono;
 
+#if !defined(_MSC_VER)
+         using namespace date;
+#endif
+
          static const std::string timeFormat {"%H%MZ"};
 
          std::istringstream in {time};
@@ -106,12 +114,12 @@ bool CodedTimeMotionLocation::Parse(const StringRange& lines,
 
          if (time.size() == 5 && !in.fail())
          {
-            p->time_ = hh_mm_ss {tp};
+            p->time_ = std::chrono::hh_mm_ss {tp};
          }
          else
          {
             logger_->warn("Invalid time: \"{}\"", time);
-            p->time_  = hh_mm_ss<minutes> {};
+            p->time_  = std::chrono::hh_mm_ss<minutes> {};
             dataValid = false;
          }
       }

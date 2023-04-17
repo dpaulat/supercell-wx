@@ -11,6 +11,10 @@
 #include <cpr/cpr.h>
 #include <libxml/HTMLparser.h>
 
+#if !defined(_MSC_VER)
+#   include <date/date.h>
+#endif
+
 #if defined(_MSC_VER)
 #   pragma warning(pop)
 #endif
@@ -177,13 +181,16 @@ void DirListSAXHandler::Characters(void* userData, const xmlChar* ch, int len)
    {
       using namespace std::chrono;
 
+#if !defined(_MSC_VER)
+      using namespace date;
+#endif
+
       // Date time format: yyyy-mm-dd hh:mm
       static const std::string kDateTimeFormat {"%Y-%m-%d %H:%M"};
-      static constexpr size_t  kDateTimeSize {16u};
 
       // Attempt to parse the date time
-      std::istringstream ssCharacters {characters};
-      sys_time<minutes>  mtime;
+      std::istringstream             ssCharacters {characters};
+      std::chrono::sys_time<minutes> mtime;
       ssCharacters >> parse(kDateTimeFormat, mtime);
 
       if (!ssCharacters.fail())

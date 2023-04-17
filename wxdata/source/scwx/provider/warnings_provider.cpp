@@ -14,6 +14,10 @@
 #include <cpr/cpr.h>
 #include <libxml/HTMLparser.h>
 
+#if !defined(_MSC_VER)
+#   include <date/date.h>
+#endif
+
 #if defined(_MSC_VER)
 #   pragma warning(pop)
 #endif
@@ -69,6 +73,10 @@ WarningsProvider::ListFiles(std::chrono::system_clock::time_point newerThan)
 {
    using namespace std::chrono;
 
+#if !defined(_MSC_VER)
+   using namespace date;
+#endif
+
    static const std::regex reWarningsFilename {
       "warnings_[0-9]{8}_[0-9]{2}.txt"};
    static const std::string dateTimeFormat {"warnings_%Y%m%d_%H.txt"};
@@ -104,8 +112,8 @@ WarningsProvider::ListFiles(std::chrono::system_clock::time_point newerThan)
    for (auto& record : warningRecords)
    {
       // Determine start time
-      sys_time<hours>    startTime;
-      std::istringstream ssFilename {record.filename_};
+      std::chrono::sys_time<hours> startTime;
+      std::istringstream           ssFilename {record.filename_};
 
       ssFilename >> parse(dateTimeFormat, startTime);
 

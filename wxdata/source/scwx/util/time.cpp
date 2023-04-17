@@ -22,10 +22,15 @@ std::chrono::system_clock::time_point TimePoint(uint32_t modifiedJulianDate,
 }
 
 std::string TimeString(std::chrono::system_clock::time_point time,
-                       const std::chrono::time_zone*         timeZone,
+                       const time_zone*                      timeZone,
                        bool                                  epochValid)
 {
    using namespace std::chrono;
+
+#if !defined(_MSC_VER)
+   using namespace date;
+#endif
+
    auto               timeInSeconds = time_point_cast<seconds>(time);
    std::ostringstream os;
 

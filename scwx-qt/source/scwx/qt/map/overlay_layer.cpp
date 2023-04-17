@@ -22,6 +22,10 @@
 #include <imgui.h>
 #include <mbgl/util/constants.hpp>
 
+#if !defined(_MSC_VER)
+#   include <date/date.h>
+#endif
+
 #if defined(_MSC_VER)
 #   pragma warning(pop)
 #endif
@@ -95,8 +99,16 @@ void OverlayLayer::Render(
 
    if (p->sweepTimeNeedsUpdate_ && radarProductView != nullptr)
    {
+      const scwx::util::time_zone* currentZone;
+
+#if defined(_MSC_VER)
+      currentZone = std::chrono::current_zone();
+#else
+      currentZone = date::current_zone();
+#endif
+
       p->sweepTimeString_ = scwx::util::TimeString(
-         radarProductView->sweep_time(), std::chrono::current_zone(), false);
+         radarProductView->sweep_time(), currentZone, false);
       p->sweepTimeNeedsUpdate_ = false;
    }
 
