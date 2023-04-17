@@ -63,6 +63,12 @@ struct DirListSAXData
    std::vector<DirListRecord> records_;
 };
 
+// Unspecified fields are initialized to zero, ignore warning
+#if defined(__GNUC__)
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#endif
+
 static htmlSAXHandler saxHandler_ //
    {.startElement = &DirListSAXHandler::StartElement,
     .endElement   = &DirListSAXHandler::EndElement,
@@ -70,6 +76,10 @@ static htmlSAXHandler saxHandler_ //
     .warning      = &DirListSAXHandler::Warning,
     .error        = &DirListSAXHandler::Error,
     .fatalError   = &DirListSAXHandler::Critical};
+
+#if defined(__GNUC__)
+#   pragma GCC diagnostic pop
+#endif
 
 std::vector<DirListRecord> DirList(const std::string& baseUrl)
 {

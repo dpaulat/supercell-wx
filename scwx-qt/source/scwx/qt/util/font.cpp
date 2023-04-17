@@ -27,6 +27,11 @@
 #   pragma warning(push, 0)
 #endif
 
+#if defined(__GNUC__)
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wpedantic"
+#endif
+
 // #include <freetype-gl.h> (exclude opengl.h)
 #include <platform.h>
 #include <vec234.h>
@@ -34,6 +39,10 @@
 #include <texture-atlas.h>
 #include <texture-font.h>
 #include <ftgl-utils.h>
+
+#if defined(__GNUC__)
+#   pragma GCC diagnostic pop
+#endif
 
 #if defined(_MSC_VER)
 #   pragma warning(pop)

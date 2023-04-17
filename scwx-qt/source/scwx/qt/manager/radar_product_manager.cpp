@@ -14,14 +14,20 @@
 #include <mutex>
 #include <shared_mutex>
 
-#pragma warning(push, 0)
+#if defined(_MSC_VER)
+#   pragma warning(push, 0)
+#endif
+
 #include <boost/asio/steady_timer.hpp>
 #include <boost/container_hash/hash.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 #include <fmt/chrono.h>
 #include <QMapLibreGL/QMapLibreGL>
-#pragma warning(pop)
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 namespace scwx
 {

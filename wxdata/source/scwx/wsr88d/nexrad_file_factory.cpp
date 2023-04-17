@@ -11,9 +11,18 @@
 #   pragma warning(disable : 4706)
 #endif
 
+#if defined(__GNUC__)
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wdeprecated-copy"
+#endif
+
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
+
+#if defined(__GNUC__)
+#   pragma GCC diagnostic pop
+#endif
 
 #if defined(_MSC_VER)
 #   pragma warning(pop)
