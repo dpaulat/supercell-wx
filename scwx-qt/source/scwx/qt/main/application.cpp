@@ -1,6 +1,8 @@
 #include <scwx/qt/main/application.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <condition_variable>
+
 namespace scwx
 {
 namespace qt
