@@ -26,12 +26,13 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class ColorTableLayerImpl
 {
 public:
-   explicit ColorTableLayerImpl(std::shared_ptr<MapContext> context) :
+   explicit ColorTableLayerImpl() :
        shaderProgram_(nullptr),
        uMVPMatrixLocation_(GL_INVALID_INDEX),
        vbo_ {GL_INVALID_INDEX},
        vao_ {GL_INVALID_INDEX},
        texture_ {GL_INVALID_INDEX},
+       colorTable_ {},
        colorTableNeedsUpdate_ {true}
    {
    }
@@ -50,7 +51,7 @@ public:
 };
 
 ColorTableLayer::ColorTableLayer(std::shared_ptr<MapContext> context) :
-    GenericLayer(context), p(std::make_unique<ColorTableLayerImpl>(context))
+    GenericLayer(context), p(std::make_unique<ColorTableLayerImpl>())
 {
 }
 ColorTableLayer::~ColorTableLayer() = default;

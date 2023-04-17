@@ -102,11 +102,11 @@ bool VectorArrowDataPacket::Parse(std::istream& is)
 
    // The number of vectors is equal to the size divided by the number of bytes
    // in a vector
-   size_t vectorCount = p->lengthOfBlock_ / 10;
+   std::size_t vectorCount = p->lengthOfBlock_ / 10;
 
    p->arrow_.resize(vectorCount);
 
-   for (int v = 0; v < vectorCount && !is.eof(); v++)
+   for (std::size_t v = 0; v < vectorCount && !is.eof(); v++)
    {
       VectorArrow& arrow = p->arrow_[v];
 

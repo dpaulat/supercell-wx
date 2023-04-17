@@ -158,13 +158,15 @@ void AwsLevel3DataProvider::Impl::ListProducts()
 
    logger_->debug("ListProducts()");
 
+   static const std::string delimiter {"_"};
+
    // Prefix format: GGG_
    const std::string prefix = fmt::format("{0}_", siteId_);
 
    Aws::S3::Model::ListObjectsV2Request request;
    request.SetBucket(bucketName_);
    request.SetPrefix(prefix);
-   request.SetDelimiter("_");
+   request.SetDelimiter(delimiter);
 
    auto outcome = self_->client()->ListObjectsV2(request);
 

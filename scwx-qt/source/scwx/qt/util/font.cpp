@@ -285,7 +285,7 @@ void FontImpl::CreateImGuiFont(QFile&                      fontFile,
       strncpy(fontConfig.Name,
               fmt::format("{}:{}", fileInfo.fileName().toStdString(), fontSize)
                  .c_str(),
-              sizeof(fontConfig.Name));
+              sizeof(fontConfig.Name) - 1);
       fontConfig.Name[sizeof(fontConfig.Name) - 1] = 0;
 
       // Add font to atlas

@@ -235,6 +235,9 @@ void SettingsDialogImpl::ConnectSignals()
          case QDialogButtonBox::ButtonRole::ResetRole: // Restore Defaults
             ResetToDefault();
             break;
+
+         default:
+            break;
          }
       });
 }

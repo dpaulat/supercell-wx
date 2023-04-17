@@ -45,7 +45,7 @@ QVariant ImGuiContextModel::data(const QModelIndex& index, int role) const
    }
 
    const int row = index.row();
-   if (row >= p->contexts_.size() || row < 0)
+   if (row >= static_cast<int>(p->contexts_.size()) || row < 0)
    {
       return {};
    }

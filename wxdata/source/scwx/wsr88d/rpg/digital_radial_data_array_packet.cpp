@@ -64,7 +64,7 @@ DigitalRadialDataArrayPacket::DigitalRadialDataArrayPacket() :
 DigitalRadialDataArrayPacket::~DigitalRadialDataArrayPacket() = default;
 
 DigitalRadialDataArrayPacket::DigitalRadialDataArrayPacket(
-   DigitalRadialDataArrayPacket&&) noexcept                         = default;
+   DigitalRadialDataArrayPacket&&) noexcept = default;
 DigitalRadialDataArrayPacket& DigitalRadialDataArrayPacket::operator=(
    DigitalRadialDataArrayPacket&&) noexcept = default;
 
@@ -158,13 +158,13 @@ bool DigitalRadialDataArrayPacket::Parse(std::istream& is)
          logger_->warn("Invalid packet code: {}", p->packetCode_);
          blockValid = false;
       }
-      if (p->indexOfFirstRangeBin_ < 0 || p->indexOfFirstRangeBin_ > 230)
+      if (p->indexOfFirstRangeBin_ > 230)
       {
          logger_->warn("Invalid index of first range bin: {}",
                        p->indexOfFirstRangeBin_);
          blockValid = false;
       }
-      if (p->numberOfRangeBins_ < 0 || p->numberOfRangeBins_ > 1840)
+      if (p->numberOfRangeBins_ > 1840)
       {
          logger_->warn("Invalid number of range bins: {}",
                        p->numberOfRangeBins_);

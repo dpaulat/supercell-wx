@@ -164,7 +164,7 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
                      {
                         // Error value
                         value.push_back(
-                           std::numeric_limits<T::value_type>::min());
+                           std::numeric_limits<typename T::value_type>::min());
                      }
                   }
                }

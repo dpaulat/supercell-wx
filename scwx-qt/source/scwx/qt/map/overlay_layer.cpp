@@ -112,11 +112,6 @@ void OverlayLayer::Render(
       p->sweepTimeNeedsUpdate_ = false;
    }
 
-   glm::mat4 projection = glm::ortho(0.0f,
-                                     static_cast<float>(params.width),
-                                     0.0f,
-                                     static_cast<float>(params.height));
-
    // Active Box
    p->activeBoxOuter_->SetVisible(settings.isActive_);
    p->activeBoxInner_->SetVisible(settings.isActive_);
@@ -139,7 +134,7 @@ void OverlayLayer::Render(
                       nullptr,
                       ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                          ImGuiWindowFlags_AlwaysAutoResize);
-         ImGui::Text(productName.c_str());
+         ImGui::TextUnformatted(productName.c_str());
          ImGui::End();
       }
    }
@@ -154,7 +149,7 @@ void OverlayLayer::Render(
                    nullptr,
                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                       ImGuiWindowFlags_AlwaysAutoResize);
-      ImGui::Text(p->sweepTimeString_.c_str());
+      ImGui::TextUnformatted(p->sweepTimeString_.c_str());
       ImGui::End();
    }
 

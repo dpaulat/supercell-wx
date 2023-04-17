@@ -29,7 +29,7 @@ static bool                                         initialized_ {false};
 static std::unordered_map<std::string, std::string> countyMap_;
 static std::shared_mutex                            countyMutex_;
 
-void CountyDatabase::Initialize()
+void Initialize()
 {
    if (initialized_)
    {

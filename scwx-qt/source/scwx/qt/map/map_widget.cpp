@@ -502,8 +502,8 @@ void MapWidget::SetMapLocation(double latitude,
                                double longitude,
                                bool   updateRadarSite)
 {
-   if (p->map_ != nullptr && p->prevLatitude_ != latitude ||
-       p->prevLongitude_ != longitude)
+   if (p->map_ != nullptr &&
+       (p->prevLatitude_ != latitude || p->prevLongitude_ != longitude))
    {
       // Update the map location
       p->map_->setCoordinate({latitude, longitude});
@@ -786,6 +786,9 @@ void MapWidget::mapChanged(QMapLibreGL::Map::MapChange mapChange)
    {
    case QMapLibreGL::Map::MapChangeDidFinishLoadingStyle:
       AddLayers();
+      break;
+
+   default:
       break;
    }
 }

@@ -43,7 +43,7 @@ DataBlock::DataBlock(const std::string& dataBlockType,
 }
 DataBlock::~DataBlock() = default;
 
-DataBlock::DataBlock(DataBlock&&) noexcept = default;
+DataBlock::DataBlock(DataBlock&&) noexcept            = default;
 DataBlock& DataBlock::operator=(DataBlock&&) noexcept = default;
 
 class MomentDataBlockImpl
@@ -198,7 +198,7 @@ bool MomentDataBlock::Parse(std::istream& is)
    p->scale_                         = awips::Message::SwapFloat(p->scale_);
    p->offset_                        = awips::Message::SwapFloat(p->offset_);
 
-   if (p->numberOfDataMomentGates_ >= 0 && p->numberOfDataMomentGates_ <= 1840)
+   if (p->numberOfDataMomentGates_ <= 1840)
    {
       if (p->dataWordSize_ == 8)
       {

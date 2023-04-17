@@ -101,11 +101,11 @@ bool WindBarbDataPacket::Parse(std::istream& is)
 
    // The number of vectors is equal to the size divided by the number of bytes
    // in a vector
-   size_t vectorCount = p->lengthOfBlock_ / 10;
+   std::size_t vectorCount = p->lengthOfBlock_ / 10;
 
    p->windBarb_.resize(vectorCount);
 
-   for (int v = 0; v < vectorCount && !is.eof(); v++)
+   for (std::size_t v = 0; v < vectorCount && !is.eof(); v++)
    {
       WindBarb& windBarb = p->windBarb_[v];
 

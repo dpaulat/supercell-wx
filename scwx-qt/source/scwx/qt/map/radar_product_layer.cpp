@@ -37,7 +37,7 @@ LatLongToScreenCoordinate(const QMapLibreGL::Coordinate& coordinate);
 class RadarProductLayerImpl
 {
 public:
-   explicit RadarProductLayerImpl(std::shared_ptr<MapContext> context) :
+   explicit RadarProductLayerImpl() :
        shaderProgram_(nullptr),
        uMVPMatrixLocation_(GL_INVALID_INDEX),
        uMapScreenCoordLocation_(GL_INVALID_INDEX),
@@ -75,7 +75,7 @@ public:
 };
 
 RadarProductLayer::RadarProductLayer(std::shared_ptr<MapContext> context) :
-    GenericLayer(context), p(std::make_unique<RadarProductLayerImpl>(context))
+    GenericLayer(context), p(std::make_unique<RadarProductLayerImpl>())
 {
 }
 RadarProductLayer::~RadarProductLayer() = default;
