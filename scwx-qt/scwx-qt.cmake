@@ -373,7 +373,7 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Boost::json
                                      Boost::timer
                                      qmaplibregl
-                                     opengl32
+                                     $<$<CXX_COMPILER_ID:MSVC>:opengl32>
                                      freetype-gl
                                      GeographicLib::GeographicLib
                                      glm::glm

@@ -3,6 +3,7 @@ set(PROJECT_NAME scwx-mbgl)
 
 set(gtest_disable_pthreads ON)
 set(MBGL_WITH_QT ON)
+set(MBGL_QT_WITH_INTERNAL_ICU ON)
 add_subdirectory(mapbox-gl-native)
 
 find_package(ZLIB)
