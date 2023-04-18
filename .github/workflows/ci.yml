@@ -4,11 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - 'master'
       - 'develop'
   pull_request:
     branches:
-      - 'master'
       - 'develop'
 
 concurrency:
@@ -24,6 +22,8 @@ jobs:
           - name: win64_msvc2022
             os: windows-2022
             build_type: Release
+            env_cc: ''
+            env_cxx: ''
             compiler: msvc
             msvc_arch: x64
             msvc_toolset: 14.34
@@ -34,8 +34,27 @@ jobs:
             conan_arch: x86_64
             conan_compiler: Visual Studio
             conan_compiler_version: 17
-            conan_compiler_runtime: MD
+            conan_compiler_runtime: --settings compiler.runtime=MD
+            conan_package_manager: ''
             artifact_suffix: windows-x64
+          - name: linux64_gcc
+            os: ubuntu-22.04
+            build_type: Release
+            env_cc: gcc-12
+            env_cxx: g++-12
+            compiler: gcc
+            qt_version: 6.4.2
+            qt_arch: gcc_64
+            qt_tools: ''
+            conan_arch: x86_64
+            conan_compiler: gcc
+            conan_compiler_version: 12
+            conan_compiler_runtime: ''
+            conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
+            artifact_suffix: linux-x64
+    env:
+      CC: ${{ matrix.env_cc }}
+      CXX: ${{ matrix.env_cxx }}
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -63,6 +82,13 @@ jobs:
         toolset: ${{ matrix.msvc_toolset }}
         vsversion: ${{ matrix.msvc_version }}
 
+    - name: Setup Ubuntu Environment
+      if: matrix.os == 'ubuntu-22.04'
+      shell: bash
+      run: |
+        sudo apt-get install doxygen \
+                             ninja-build
+
     - name: Setup Python Environment
       shell: pwsh
       run: |
@@ -81,7 +107,8 @@ jobs:
           --settings build_type=${{ matrix.build_type }} `
           --settings compiler="${{ matrix.conan_compiler }}" `
           --settings compiler.version=${{ matrix.conan_compiler_version }} `
-          --settings compiler.runtime=${{ matrix.conan_compiler_runtime }}
+          ${{ matrix.conan_compiler_runtime }} `
+          ${{ matrix.conan_package_manager }}
 
     - name: Build Supercell Wx
       shell: pwsh
