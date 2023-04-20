@@ -3,6 +3,7 @@
 #include <scwx/util/rangebuf.hpp>
 
 #include <istream>
+#include <sstream>
 #include <string>
 
 #if defined(__GNUC__)

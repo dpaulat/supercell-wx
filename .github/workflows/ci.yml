@@ -40,18 +40,19 @@ jobs:
           - name: linux64_gcc
             os: ubuntu-22.04
             build_type: Release
-            env_cc: gcc-12
-            env_cxx: g++-12
+            env_cc: gcc-11
+            env_cxx: g++-11
             compiler: gcc
             qt_version: 6.4.2
             qt_arch: gcc_64
             qt_tools: ''
             conan_arch: x86_64
             conan_compiler: gcc
-            conan_compiler_version: 12
+            conan_compiler_version: 11
             conan_compiler_runtime: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
             artifact_suffix: linux-x64
+    name: ${{ matrix.name }}
     env:
       CC: ${{ matrix.env_cc }}
       CXX: ${{ matrix.env_cxx }}

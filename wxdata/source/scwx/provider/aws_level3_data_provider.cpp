@@ -96,8 +96,7 @@ AwsLevel3DataProvider::GetTimePointFromKey(const std::string& key)
    constexpr size_t offset = 8;
 
    // Filename format is GGG_PPP_YYYY_MM_DD_HH_MM_SS
-   static constexpr size_t formatSize =
-      std::string("YYYY_MM_DD_HH_MM_SS").size();
+   static const size_t formatSize = std::string("YYYY_MM_DD_HH_MM_SS").size();
 
    if (key.size() >= offset + formatSize)
    {

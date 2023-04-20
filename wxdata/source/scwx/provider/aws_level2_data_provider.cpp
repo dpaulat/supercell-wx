@@ -71,7 +71,7 @@ AwsLevel2DataProvider::GetTimePointFromKey(const std::string& key)
       (lastSeparator == std::string::npos) ? 0 : lastSeparator + 5;
 
    // Filename format is GGGGYYYYMMDD_TTTTTT(_V##).gz
-   static constexpr size_t formatSize = std::string("YYYYMMDD_TTTTTT").size();
+   static const size_t formatSize = std::string("YYYYMMDD_TTTTTT").size();
 
    if (key.size() >= offset + formatSize)
    {

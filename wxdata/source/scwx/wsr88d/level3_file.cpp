@@ -4,6 +4,7 @@
 #include <scwx/util/logger.hpp>
 
 #include <fstream>
+#include <sstream>
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
