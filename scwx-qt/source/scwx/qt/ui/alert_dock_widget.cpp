@@ -127,48 +127,48 @@ void AlertDockWidgetImpl::ConnectSignals()
            alertModel_.get(),
            &model::AlertModel::HandleAlert,
            Qt::QueuedConnection);
-   connect(self_->ui->alertView->selectionModel(),
-           &QItemSelectionModel::selectionChanged,
-           this,
-           [=](const QItemSelection& selected, const QItemSelection& deselected)
-           {
-              if (selected.size() == 0 && deselected.size() == 0)
-              {
-                 // Items which stay selected but change their index are not
-                 // included in selected and deselected. Thus, this signal might
-                 // be emitted with both selected and deselected empty, if only
-                 // the indices of selected items change.
-                 return;
-              }
+   connect(
+      self_->ui->alertView->selectionModel(),
+      &QItemSelectionModel::selectionChanged,
+      this,
+      [this](const QItemSelection& selected, const QItemSelection& deselected)
+      {
+         if (selected.size() == 0 && deselected.size() == 0)
+         {
+            // Items which stay selected but change their index are not
+            // included in selected and deselected. Thus, this signal might
+            // be emitted with both selected and deselected empty, if only
+            // the indices of selected items change.
+            return;
+         }
 
-              bool itemSelected       = selected.size() > 0;
-              bool itemHasCoordinates = false;
+         bool itemSelected       = selected.size() > 0;
+         bool itemHasCoordinates = false;
 
-              if (itemSelected)
-              {
-                 QModelIndex selectedIndex =
-                    proxyModel_->mapToSource(selected[0].indexes()[0]);
-                 selectedAlertKey_ = alertModel_->key(selectedIndex);
-                 selectedAlertCentroid_ =
-                    alertModel_->centroid(selectedAlertKey_);
-                 itemHasCoordinates =
-                    selectedAlertCentroid_ != common::Coordinate {};
-              }
-              else
-              {
-                 selectedAlertKey_      = {};
-                 selectedAlertCentroid_ = {};
-              }
+         if (itemSelected)
+         {
+            QModelIndex selectedIndex =
+               proxyModel_->mapToSource(selected[0].indexes()[0]);
+            selectedAlertKey_      = alertModel_->key(selectedIndex);
+            selectedAlertCentroid_ = alertModel_->centroid(selectedAlertKey_);
+            itemHasCoordinates =
+               selectedAlertCentroid_ != common::Coordinate {};
+         }
+         else
+         {
+            selectedAlertKey_      = {};
+            selectedAlertCentroid_ = {};
+         }
 
-              self_->ui->alertViewButton->setEnabled(itemSelected);
-              self_->ui->alertGoButton->setEnabled(itemHasCoordinates);
+         self_->ui->alertViewButton->setEnabled(itemSelected);
+         self_->ui->alertGoButton->setEnabled(itemHasCoordinates);
 
-              logger_->debug("Selected: {}", selectedAlertKey_.ToString());
-           });
+         logger_->debug("Selected: {}", selectedAlertKey_.ToString());
+      });
    connect(self_->ui->alertViewButton,
            &QPushButton::clicked,
            this,
-           [=]()
+           [this]()
            {
               // View alert
               alertDialog_->SelectAlert(selectedAlertKey_);
@@ -177,7 +177,7 @@ void AlertDockWidgetImpl::ConnectSignals()
    connect(self_->ui->alertGoButton,
            &QPushButton::clicked,
            this,
-           [=]()
+           [this]()
            {
               emit self_->MoveMap(selectedAlertCentroid_.latitude_,
                                   selectedAlertCentroid_.longitude_);

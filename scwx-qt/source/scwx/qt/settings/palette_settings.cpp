@@ -2,10 +2,10 @@
 #include <scwx/qt/settings/settings_variable.hpp>
 #include <scwx/qt/util/color.hpp>
 
-#include <format>
 #include <regex>
 
 #include <boost/gil.hpp>
+#include <fmt/format.h>
 
 namespace scwx
 {
@@ -15,6 +15,27 @@ namespace settings
 {
 
 static const std::string logPrefix_ = "scwx::qt::settings::palette_settings";
+
+static const std::array<std::string, 17> kPaletteKeys_ {
+   // Level 2 / Common Products
+   "BR",
+   "BV",
+   "SW",
+   "CC",
+   "ZDR",
+   "PHI2",
+   // Level 3 Products
+   "DOD",
+   "DSD",
+   "ET",
+   "STP",
+   "OHP",
+   "STPIN",
+   "OHPIN",
+   "PHI3",
+   "SRV",
+   "VIL",
+   "???"};
 
 static const std::unordered_map<std::string, std::string> kDefaultPalettes_ {
    // Level 2 / Common Products
@@ -56,10 +77,9 @@ class PaletteSettingsImpl
 public:
    explicit PaletteSettingsImpl()
    {
-      for (const auto& palette : kDefaultPalettes_)
+      for (const auto& name : kPaletteKeys_)
       {
-         const std::string& name         = palette.first;
-         const std::string& defaultValue = palette.second;
+         const std::string& defaultValue = kDefaultPalettes_.at(name);
 
          auto result =
             palette_.emplace(name, SettingsVariable<std::string> {name});
@@ -74,8 +94,8 @@ public:
       for (auto& alert : kAlertColors_)
       {
          std::string phenomenonCode = awips::GetPhenomenonCode(alert.first);
-         std::string activeName     = std::format("{}-active", phenomenonCode);
-         std::string inactiveName = std::format("{}-inactive", phenomenonCode);
+         std::string activeName     = fmt::format("{}-active", phenomenonCode);
+         std::string inactiveName = fmt::format("{}-inactive", phenomenonCode);
 
          auto activeResult = activeAlertColor_.emplace(
             alert.first, SettingsVariable<std::string> {activeName});

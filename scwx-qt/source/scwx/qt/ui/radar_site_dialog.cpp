@@ -72,47 +72,47 @@ RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
    connect(ui->radarSiteView,
            &QTreeView::doubleClicked,
            this,
-           [=]() { emit accept(); });
-   connect(ui->radarSiteView->selectionModel(),
-           &QItemSelectionModel::selectionChanged,
-           this,
-           [=](const QItemSelection& selected, const QItemSelection& deselected)
-           {
-              if (selected.size() == 0 && deselected.size() == 0)
-              {
-                 // Items which stay selected but change their index are not
-                 // included in selected and deselected. Thus, this signal might
-                 // be emitted with both selected and deselected empty, if only
-                 // the indices of selected items change.
-                 return;
-              }
+           [this]() { emit accept(); });
+   connect(
+      ui->radarSiteView->selectionModel(),
+      &QItemSelectionModel::selectionChanged,
+      this,
+      [this](const QItemSelection& selected, const QItemSelection& deselected)
+      {
+         if (selected.size() == 0 && deselected.size() == 0)
+         {
+            // Items which stay selected but change their index are not
+            // included in selected and deselected. Thus, this signal might
+            // be emitted with both selected and deselected empty, if only
+            // the indices of selected items change.
+            return;
+         }
 
-              ui->buttonBox->button(QDialogButtonBox::Ok)
-                 ->setEnabled(selected.size() > 0);
+         ui->buttonBox->button(QDialogButtonBox::Ok)
+            ->setEnabled(selected.size() > 0);
 
-              if (selected.size() > 0)
-              {
-                 QModelIndex selectedIndex =
-                    p->proxyModel_->mapToSource(selected[0].indexes()[0]);
-                 QVariant variantData = p->radarSiteModel_->data(selectedIndex);
-                 if (variantData.typeId() == QMetaType::QString)
-                 {
-                    p->selectedRadarSite_ =
-                       variantData.toString().toStdString();
-                 }
-                 else
-                 {
-                    logger_->warn("Unexpected selection data type");
-                    p->selectedRadarSite_ = "?";
-                 }
-              }
-              else
-              {
-                 p->selectedRadarSite_ = "?";
-              }
+         if (selected.size() > 0)
+         {
+            QModelIndex selectedIndex =
+               p->proxyModel_->mapToSource(selected[0].indexes()[0]);
+            QVariant variantData = p->radarSiteModel_->data(selectedIndex);
+            if (variantData.typeId() == QMetaType::QString)
+            {
+               p->selectedRadarSite_ = variantData.toString().toStdString();
+            }
+            else
+            {
+               logger_->warn("Unexpected selection data type");
+               p->selectedRadarSite_ = std::string {"?"};
+            }
+         }
+         else
+         {
+            p->selectedRadarSite_ = std::string {"?"};
+         }
 
-              logger_->debug("Selected: {}", p->selectedRadarSite_);
-           });
+         logger_->debug("Selected: {}", p->selectedRadarSite_);
+      });
 }
 
 RadarSiteDialog::~RadarSiteDialog()

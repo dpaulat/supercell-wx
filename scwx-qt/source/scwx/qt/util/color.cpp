@@ -1,6 +1,6 @@
 #include <scwx/qt/util/color.hpp>
 
-#include <format>
+#include <fmt/format.h>
 #include <QColor>
 
 namespace scwx
@@ -16,7 +16,7 @@ static const std::string logPrefix_ = "scwx::qt::util::color";
 
 std::string ToArgbString(const boost::gil::rgba8_pixel_t& color)
 {
-   return std::format(
+   return fmt::format(
       "#{:02x}{:02x}{:02x}{:02x}", color[3], color[0], color[1], color[2]);
 }
 

@@ -255,8 +255,8 @@ void GeoLine::Impl::Update()
       const float ty = points_[1].longitude_;
 
       // Offset x/y in pixels
-      const float ox = width_ * 0.5f * std::cosf(angle_);
-      const float oy = width_ * 0.5f * std::sinf(angle_);
+      const float ox = width_ * 0.5f * cosf(angle_);
+      const float oy = width_ * 0.5f * sinf(angle_);
 
       // Texture coordinates
       const float ls = texture_.sLeft_;

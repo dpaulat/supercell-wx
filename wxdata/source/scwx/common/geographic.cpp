@@ -1,8 +1,9 @@
 #include <scwx/common/geographic.hpp>
 #include <scwx/common/characters.hpp>
 
-#include <format>
 #include <numbers>
+
+#include <fmt/format.h>
 
 namespace scwx
 {
@@ -95,7 +96,7 @@ static std::string GetDegreeString(double             degrees,
    {
    case DegreeStringType::Decimal:
       degreeString =
-         std::format("{:.6f}{}{}", degrees, Unicode::kDegree, suffix);
+         fmt::format("{:.6f}{}{}", degrees, Unicode::kDegree, suffix);
       break;
    case DegreeStringType::DegreesMinutesSeconds:
    {
@@ -103,7 +104,7 @@ static std::string GetDegreeString(double             degrees,
       degrees      = (degrees - dd) * 60.0;
       uint32_t mm  = static_cast<uint32_t>(degrees);
       double   ss  = (degrees - mm) * 60.0;
-      degreeString = std::format(
+      degreeString = fmt::format(
          "{}{} {}' {:.2f}\"{}", dd, Unicode::kDegree, mm, ss, suffix);
       break;
    }

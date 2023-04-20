@@ -8,9 +8,18 @@
 #include <fstream>
 #include <sstream>
 
+#if defined(__GNUC__)
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wdeprecated-copy"
+#endif
+
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
+
+#if defined(__GNUC__)
+#   pragma GCC diagnostic pop
+#endif
 
 namespace scwx
 {
@@ -24,35 +33,35 @@ class Ar2vFileImpl
 {
 public:
    explicit Ar2vFileImpl() :
-       tapeFilename_(),
-       extensionNumber_(),
+       tapeFilename_ {},
+       extensionNumber_ {},
        julianDate_ {0},
        milliseconds_ {0},
-       icao_(),
-       rawRecords_(),
+       icao_ {},
        vcpData_ {nullptr},
        radarData_ {},
-       index_ {} {};
+       index_ {},
+       rawRecords_ {} {};
    ~Ar2vFileImpl() = default;
 
-   size_t DecompressLDMRecords(std::istream& is);
-   void   HandleMessage(std::shared_ptr<rda::Level2Message>& message);
-   void   IndexFile();
-   void   ParseLDMRecords();
-   void   ParseLDMRecord(std::istream& is);
-   void   ProcessRadarData(std::shared_ptr<rda::DigitalRadarData> message);
+   std::size_t DecompressLDMRecords(std::istream& is);
+   void        HandleMessage(std::shared_ptr<rda::Level2Message>& message);
+   void        IndexFile();
+   void        ParseLDMRecords();
+   void        ParseLDMRecord(std::istream& is);
+   void        ProcessRadarData(std::shared_ptr<rda::DigitalRadarData> message);
 
-   std::string tapeFilename_;
-   std::string extensionNumber_;
-   uint32_t    julianDate_;
-   uint32_t    milliseconds_;
-   std::string icao_;
+   std::string   tapeFilename_;
+   std::string   extensionNumber_;
+   std::uint32_t julianDate_;
+   std::uint32_t milliseconds_;
+   std::string   icao_;
 
-   std::shared_ptr<rda::VolumeCoveragePatternData>         vcpData_;
-   std::map<uint16_t, std::shared_ptr<rda::ElevationScan>> radarData_;
+   std::shared_ptr<rda::VolumeCoveragePatternData>              vcpData_;
+   std::map<std::uint16_t, std::shared_ptr<rda::ElevationScan>> radarData_;
 
    std::map<rda::DataBlockType,
-            std::map<uint16_t, std::shared_ptr<rda::ElevationScan>>>
+            std::map<std::uint16_t, std::shared_ptr<rda::ElevationScan>>>
       index_;
 
    std::list<std::stringstream> rawRecords_;
@@ -61,7 +70,7 @@ public:
 Ar2vFile::Ar2vFile() : p(std::make_unique<Ar2vFileImpl>()) {}
 Ar2vFile::~Ar2vFile() = default;
 
-Ar2vFile::Ar2vFile(Ar2vFile&&) noexcept = default;
+Ar2vFile::Ar2vFile(Ar2vFile&&) noexcept            = default;
 Ar2vFile& Ar2vFile::operator=(Ar2vFile&&) noexcept = default;
 
 uint32_t Ar2vFile::julian_date() const

@@ -9,6 +9,10 @@
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 
+#if !defined(_MSC_VER)
+#   include <date/date.h>
+#endif
+
 namespace scwx
 {
 namespace provider
@@ -92,12 +96,15 @@ AwsLevel3DataProvider::GetTimePointFromKey(const std::string& key)
    constexpr size_t offset = 8;
 
    // Filename format is GGG_PPP_YYYY_MM_DD_HH_MM_SS
-   static constexpr size_t formatSize =
-      std::string("YYYY_MM_DD_HH_MM_SS").size();
+   static const size_t formatSize = std::string("YYYY_MM_DD_HH_MM_SS").size();
 
    if (key.size() >= offset + formatSize)
    {
       using namespace std::chrono;
+
+#if !defined(_MSC_VER)
+      using namespace date;
+#endif
 
       static const std::string timeFormat {"%Y_%m_%d_%H_%M_%S"};
 
@@ -150,13 +157,15 @@ void AwsLevel3DataProvider::Impl::ListProducts()
 
    logger_->debug("ListProducts()");
 
+   static const std::string delimiter {"_"};
+
    // Prefix format: GGG_
    const std::string prefix = fmt::format("{0}_", siteId_);
 
    Aws::S3::Model::ListObjectsV2Request request;
    request.SetBucket(bucketName_);
    request.SetPrefix(prefix);
-   request.SetDelimiter("_");
+   request.SetDelimiter(delimiter);
 
    auto outcome = self_->client()->ListObjectsV2(request);
 

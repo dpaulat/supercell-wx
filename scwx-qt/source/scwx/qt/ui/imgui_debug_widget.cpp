@@ -6,6 +6,7 @@
 #include <imgui.h>
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_qt.hpp>
+#include <fmt/format.h>
 
 namespace scwx
 {
@@ -23,7 +24,7 @@ public:
    {
       // Create ImGui Context
       static size_t currentIndex_ {0u};
-      contextName_ = std::format("ImGui Debug {}", ++currentIndex_);
+      contextName_ = fmt::format("ImGui Debug {}", ++currentIndex_);
       context_ =
          model::ImGuiContextModel::Instance().CreateContext(contextName_);
       currentContext_ = context_;

@@ -8,7 +8,10 @@
 #include <chrono>
 #include <execution>
 
-#pragma warning(push, 0)
+#if defined(_MSC_VER)
+#   pragma warning(push, 0)
+#endif
+
 #include <boost/date_time.hpp>
 #include <boost/date_time/local_time/local_time.hpp>
 #include <boost/timer/timer.hpp>
@@ -18,7 +21,14 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 #include <mbgl/util/constants.hpp>
-#pragma warning(pop)
+
+#if !defined(_MSC_VER)
+#   include <date/date.h>
+#endif
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 namespace scwx
 {
@@ -89,15 +99,18 @@ void OverlayLayer::Render(
 
    if (p->sweepTimeNeedsUpdate_ && radarProductView != nullptr)
    {
+      const scwx::util::time_zone* currentZone;
+
+#if defined(_MSC_VER)
+      currentZone = std::chrono::current_zone();
+#else
+      currentZone = date::current_zone();
+#endif
+
       p->sweepTimeString_ = scwx::util::TimeString(
-         radarProductView->sweep_time(), std::chrono::current_zone(), false);
+         radarProductView->sweep_time(), currentZone, false);
       p->sweepTimeNeedsUpdate_ = false;
    }
-
-   glm::mat4 projection = glm::ortho(0.0f,
-                                     static_cast<float>(params.width),
-                                     0.0f,
-                                     static_cast<float>(params.height));
 
    // Active Box
    p->activeBoxOuter_->SetVisible(settings.isActive_);
@@ -121,7 +134,7 @@ void OverlayLayer::Render(
                       nullptr,
                       ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                          ImGuiWindowFlags_AlwaysAutoResize);
-         ImGui::Text(productName.c_str());
+         ImGui::TextUnformatted(productName.c_str());
          ImGui::End();
       }
    }
@@ -136,7 +149,7 @@ void OverlayLayer::Render(
                    nullptr,
                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                       ImGuiWindowFlags_AlwaysAutoResize);
-      ImGui::Text(p->sweepTimeString_.c_str());
+      ImGui::TextUnformatted(p->sweepTimeString_.c_str());
       ImGui::End();
    }
 

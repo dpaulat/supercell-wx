@@ -3,11 +3,21 @@
 #include <scwx/network/dir_list.hpp>
 #include <scwx/util/logger.hpp>
 
-#pragma warning(push, 0)
+#if defined(_MSC_VER)
+#   pragma warning(push, 0)
+#endif
+
 #include <boost/algorithm/string/trim.hpp>
 #include <cpr/cpr.h>
 #include <libxml/HTMLparser.h>
-#pragma warning(pop)
+
+#if !defined(_MSC_VER)
+#   include <date/date.h>
+#endif
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 namespace scwx
 {
@@ -53,6 +63,12 @@ struct DirListSAXData
    std::vector<DirListRecord> records_;
 };
 
+// Unspecified fields are initialized to zero, ignore warning
+#if defined(__GNUC__)
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#endif
+
 static htmlSAXHandler saxHandler_ //
    {.startElement = &DirListSAXHandler::StartElement,
     .endElement   = &DirListSAXHandler::EndElement,
@@ -60,6 +76,10 @@ static htmlSAXHandler saxHandler_ //
     .warning      = &DirListSAXHandler::Warning,
     .error        = &DirListSAXHandler::Error,
     .fatalError   = &DirListSAXHandler::Critical};
+
+#if defined(__GNUC__)
+#   pragma GCC diagnostic pop
+#endif
 
 std::vector<DirListRecord> DirList(const std::string& baseUrl)
 {
@@ -171,13 +191,16 @@ void DirListSAXHandler::Characters(void* userData, const xmlChar* ch, int len)
    {
       using namespace std::chrono;
 
+#if !defined(_MSC_VER)
+      using namespace date;
+#endif
+
       // Date time format: yyyy-mm-dd hh:mm
       static const std::string kDateTimeFormat {"%Y-%m-%d %H:%M"};
-      static constexpr size_t  kDateTimeSize {16u};
 
       // Attempt to parse the date time
-      std::istringstream ssCharacters {characters};
-      sys_time<minutes>  mtime;
+      std::istringstream             ssCharacters {characters};
+      std::chrono::sys_time<minutes> mtime;
       ssCharacters >> parse(kDateTimeFormat, mtime);
 
       if (!ssCharacters.fail())

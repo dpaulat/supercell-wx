@@ -4,7 +4,6 @@
 #include <scwx/common/sites.hpp>
 #include <scwx/util/logger.hpp>
 
-#include <format>
 #include <shared_mutex>
 #include <unordered_map>
 
@@ -118,18 +117,18 @@ std::string RadarSite::location_name() const
 
    if (p->country_ == "USA")
    {
-      locationName = std::format("{}, {}", p->place_, p->state_);
+      locationName = fmt::format("{}, {}", p->place_, p->state_);
    }
    else if (std::all_of(p->state_.cbegin(),
                         p->state_.cend(),
                         [](char c) { return std::isdigit(c); }))
    {
-      locationName = std::format("{}, {}", p->place_, p->country_);
+      locationName = fmt::format("{}, {}", p->place_, p->country_);
    }
    else
    {
       locationName =
-         std::format("{}, {}, {}", p->place_, p->state_, p->country_);
+         fmt::format("{}, {}, {}", p->place_, p->state_, p->country_);
    }
 
    return locationName;

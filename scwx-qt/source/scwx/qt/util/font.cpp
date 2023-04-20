@@ -13,6 +13,7 @@
 #include <unordered_map>
 
 #include <boost/timer/timer.hpp>
+#include <fmt/format.h>
 #include <imgui.h>
 #include <QFile>
 #include <QFileInfo>
@@ -22,7 +23,15 @@
 #include FT_SFNT_NAMES_H
 #include FT_TRUETYPE_IDS_H
 
-#pragma warning(push, 0)
+#if defined(_MSC_VER)
+#   pragma warning(push, 0)
+#endif
+
+#if defined(__GNUC__)
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wpedantic"
+#endif
+
 // #include <freetype-gl.h> (exclude opengl.h)
 #include <platform.h>
 #include <vec234.h>
@@ -30,7 +39,14 @@
 #include <texture-atlas.h>
 #include <texture-font.h>
 #include <ftgl-utils.h>
-#pragma warning(pop)
+
+#if defined(__GNUC__)
+#   pragma GCC diagnostic pop
+#endif
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 #ifdef WIN32
 #   include <WinSock2.h>
@@ -267,9 +283,9 @@ void FontImpl::CreateImGuiFont(QFile&                      fontFile,
 
       // Assign name to font
       strncpy(fontConfig.Name,
-              std::format("{}:{}", fileInfo.fileName().toStdString(), fontSize)
+              fmt::format("{}:{}", fileInfo.fileName().toStdString(), fontSize)
                  .c_str(),
-              sizeof(fontConfig.Name));
+              sizeof(fontConfig.Name) - 1);
       fontConfig.Name[sizeof(fontConfig.Name) - 1] = 0;
 
       // Add font to atlas

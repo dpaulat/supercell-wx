@@ -5,6 +5,10 @@
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 
+#if !defined(_MSC_VER)
+#   include <date/date.h>
+#endif
+
 namespace scwx
 {
 namespace provider
@@ -67,11 +71,15 @@ AwsLevel2DataProvider::GetTimePointFromKey(const std::string& key)
       (lastSeparator == std::string::npos) ? 0 : lastSeparator + 5;
 
    // Filename format is GGGGYYYYMMDD_TTTTTT(_V##).gz
-   static constexpr size_t formatSize = std::string("YYYYMMDD_TTTTTT").size();
+   static const size_t formatSize = std::string("YYYYMMDD_TTTTTT").size();
 
    if (key.size() >= offset + formatSize)
    {
       using namespace std::chrono;
+
+#if !defined(_MSC_VER)
+      using namespace date;
+#endif
 
       static const std::string timeFormat {"%Y%m%d_%H%M%S"};
 

@@ -30,6 +30,10 @@
 #include <QStandardPaths>
 #include <QToolButton>
 
+#if !defined(_MSC_VER)
+#   include <date/date.h>
+#endif
+
 namespace scwx
 {
 namespace qt
@@ -265,14 +269,14 @@ void MainWindow::on_actionOpenNexrad_triggered()
       dialog,
       &QFileDialog::finished,
       this,
-      [=]() { update(); },
+      [this]() { update(); },
       Qt::QueuedConnection);
 
    connect(
       dialog,
       &QFileDialog::fileSelected,
       this,
-      [=](const QString& file)
+      [=, this](const QString& file)
       {
          logger_->info("Selected: {}", file.toStdString());
 
@@ -283,7 +287,7 @@ void MainWindow::on_actionOpenNexrad_triggered()
             request.get(),
             &request::NexradFileRequest::RequestComplete,
             this,
-            [=](std::shared_ptr<request::NexradFileRequest> request)
+            [=, this](std::shared_ptr<request::NexradFileRequest> request)
             {
                std::shared_ptr<types::RadarProductRecord> record =
                   request->radar_product_record();
@@ -327,13 +331,13 @@ void MainWindow::on_actionOpenTextEvent_triggered()
       dialog,
       &QFileDialog::finished,
       this,
-      [=]() { update(); },
+      [this]() { update(); },
       Qt::QueuedConnection);
 
    connect(dialog,
            &QFileDialog::fileSelected,
            this,
-           [=](const QString& file)
+           [this](const QString& file)
            {
               logger_->info("Selected: {}", file.toStdString());
               p->textEventManager_->LoadFile(file.toStdString());
@@ -407,8 +411,14 @@ void MainWindow::on_resourceTreeView_doubleClicked(const QModelIndex& index)
 
    static const std::string timeFormat {"%Y-%m-%d %H:%M:%S"};
 
+   using namespace std::chrono;
+
+#if !defined(_MSC_VER)
+   using namespace date;
+#endif
+
    std::istringstream in {selectedString};
-   in >> std::chrono::parse(timeFormat, time);
+   in >> parse(timeFormat, time);
 
    if (in.fail())
    {
@@ -473,7 +483,7 @@ void MainWindowImpl::ConfigureMapLayout()
 
    maps_.resize(mapCount);
 
-   auto MoveSplitter = [=](int /*pos*/, int /*index*/)
+   auto MoveSplitter = [=, this](int /*pos*/, int /*index*/)
    {
       QSplitter* s = static_cast<QSplitter*>(sender());
 
@@ -565,7 +575,7 @@ void MainWindowImpl::ConnectOtherSignals()
    connect(qApp,
            &QApplication::focusChanged,
            mainWindow_,
-           [=](QWidget* /*old*/, QWidget* now) { HandleFocusChange(now); });
+           [this](QWidget* /*old*/, QWidget* now) { HandleFocusChange(now); });
    connect(level2ProductsWidget_,
            &ui::Level2ProductsWidget::RadarProductSelected,
            mainWindow_,
@@ -595,7 +605,7 @@ void MainWindowImpl::ConnectOtherSignals()
       alertDockWidget_,
       &ui::AlertDockWidget::MoveMap,
       this,
-      [=](double latitude, double longitude)
+      [this](double latitude, double longitude)
       {
          for (map::MapWidget* map : maps_)
          {

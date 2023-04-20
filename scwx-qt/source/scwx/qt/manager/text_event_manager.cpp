@@ -35,7 +35,7 @@ public:
        warningsProvider_ {kDefaultWarningsProviderUrl}
    {
       util::async(
-         [=]()
+         [this]()
          {
             main::Application::WaitForInitialization();
             logger_->debug("Start Refresh");
@@ -105,7 +105,7 @@ void TextEventManager::LoadFile(const std::string& filename)
    logger_->debug("LoadFile: {}", filename);
 
    util::async(
-      [=]()
+      [=, this]()
       {
          awips::TextProductFile file;
 
@@ -217,7 +217,7 @@ void TextEventManager::Impl::Refresh()
    using namespace std::chrono;
    refreshTimer_.expires_after(15s);
    refreshTimer_.async_wait(
-      [=](const boost::system::error_code& e)
+      [this](const boost::system::error_code& e)
       {
          if (e == boost::asio::error::operation_aborted)
          {

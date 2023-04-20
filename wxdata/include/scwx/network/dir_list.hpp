@@ -3,6 +3,7 @@
 #include <chrono>
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace scwx
 {

@@ -33,8 +33,12 @@ vectorbuf::pos_type vectorbuf::seekoff(std::streamoff          off,
    off_type   newOffset;
    switch (way)
    {
-   case std::ios_base::beg: newOffset = 0; break;
-   case std::ios_base::end: newOffset = seekDist; break;
+   case std::ios_base::beg:
+      newOffset = 0;
+      break;
+   case std::ios_base::end:
+      newOffset = seekDist;
+      break;
    case std::ios_base::cur:
    {
       constexpr auto BOTH = std::ios_base::in | std::ios_base::out;
@@ -54,9 +58,11 @@ vectorbuf::pos_type vectorbuf::seekoff(std::streamoff          off,
             break;
          }
       }
+      return pos_type(off_type(-1));
    }
 
-   default: return pos_type(off_type(-1));
+   default:
+      return pos_type(off_type(-1));
    }
 
    if (static_cast<unsigned long long>(off) + newOffset >
@@ -80,7 +86,9 @@ vectorbuf::pos_type vectorbuf::seekoff(std::streamoff          off,
 
    if ((which & std::ios_base::out) && pptrOld)
    {
-      setp(seekLow, next, epptr());
+      setp(seekLow, epptr());
+      // If offset is > 4 GB, this won't properly position the put pointer
+      pbump(static_cast<int>(off));
    }
 
    return pos_type(off);

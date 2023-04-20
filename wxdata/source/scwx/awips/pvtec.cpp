@@ -12,6 +12,10 @@
 #include <boost/bimap.hpp>
 #include <boost/bimap/unordered_set_of.hpp>
 
+#if !defined(_MSC_VER)
+#   include <date/date.h>
+#endif
+
 namespace scwx
 {
 namespace awips
@@ -87,7 +91,7 @@ public:
 PVtec::PVtec() : p(std::make_unique<PVtecImpl>()) {}
 PVtec::~PVtec() = default;
 
-PVtec::PVtec(PVtec&&) noexcept = default;
+PVtec::PVtec(PVtec&&) noexcept            = default;
 PVtec& PVtec::operator=(PVtec&&) noexcept = default;
 
 PVtec::ProductType PVtec::fixed_identifier() const
@@ -133,6 +137,10 @@ std::chrono::system_clock::time_point PVtec::event_end() const
 bool PVtec::Parse(const std::string& s)
 {
    using namespace std::chrono;
+
+#if !defined(_MSC_VER)
+   using namespace date;
+#endif
 
    // P-VTEC takes the form:
    // /k.aaa.cccc.pp.s.####.yymmddThhnnZ-yymmddThhnnZ/
@@ -187,8 +195,8 @@ bool PVtec::Parse(const std::string& s)
       std::istringstream ssEventBegin {sEventBegin};
       std::istringstream ssEventEnd {sEventEnd};
 
-      sys_time<minutes> eventBegin;
-      sys_time<minutes> eventEnd;
+      std::chrono::sys_time<minutes> eventBegin;
+      std::chrono::sys_time<minutes> eventEnd;
 
       ssEventBegin >> parse(dateTimeFormat, eventBegin);
       ssEventEnd >> parse(dateTimeFormat, eventEnd);

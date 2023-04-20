@@ -81,7 +81,7 @@ int TreeItem::column_count() const
 
 QVariant TreeItem::data(int column) const
 {
-   if (0 <= column && column < p->itemData_.size())
+   if (0 <= column && column < static_cast<int>(p->itemData_.size()))
    {
       return p->itemData_[column];
    }
@@ -152,7 +152,7 @@ bool TreeItem::InsertChildren(int position, int count, int columns)
 
 bool TreeItem::SetData(int column, const QVariant& value)
 {
-   if (column < 0 || column >= p->itemData_.size())
+   if (column < 0 || column >= static_cast<int>(p->itemData_.size()))
    {
       return false;
    }

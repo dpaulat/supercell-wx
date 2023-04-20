@@ -1,6 +1,7 @@
 #pragma once
 
 #include <istream>
+#include <memory>
 
 namespace scwx
 {

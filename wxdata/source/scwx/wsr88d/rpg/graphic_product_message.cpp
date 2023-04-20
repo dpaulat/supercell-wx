@@ -3,11 +3,21 @@
 #include <scwx/util/rangebuf.hpp>
 
 #include <istream>
+#include <sstream>
 #include <string>
+
+#if defined(__GNUC__)
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wdeprecated-copy"
+#endif
 
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
+
+#if defined(__GNUC__)
+#   pragma GCC diagnostic pop
+#endif
 
 namespace scwx
 {

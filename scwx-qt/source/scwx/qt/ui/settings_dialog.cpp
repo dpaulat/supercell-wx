@@ -12,8 +12,7 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
 
-#include <format>
-
+#include <fmt/format.h>
 #include <QColorDialog>
 #include <QFileDialog>
 #include <QToolButton>
@@ -235,6 +234,9 @@ void SettingsDialogImpl::ConnectSignals()
 
          case QDialogButtonBox::ButtonRole::ResetRole: // Restore Defaults
             ResetToDefault();
+            break;
+
+         default:
             break;
          }
       });
@@ -515,11 +517,13 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
       QObject::connect(activeButton,
                        &QAbstractButton::clicked,
                        self_,
-                       [=]() { ShowColorDialog(activeEdit, activeFrame); });
+                       [=, this]()
+                       { ShowColorDialog(activeEdit, activeFrame); });
       QObject::connect(inactiveButton,
                        &QAbstractButton::clicked,
                        self_,
-                       [=]() { ShowColorDialog(inactiveEdit, inactiveFrame); });
+                       [=, this]()
+                       { ShowColorDialog(inactiveEdit, inactiveFrame); });
    }
 }
 
@@ -622,7 +626,7 @@ void SettingsDialogImpl::SetBackgroundColor(const std::string& value,
                                             QFrame*            frame)
 {
    frame->setStyleSheet(
-      QString::fromStdString(std::format("background-color: {}", value)));
+      QString::fromStdString(fmt::format("background-color: {}", value)));
 }
 
 void SettingsDialogImpl::UpdateRadarDialogLocation(const std::string& id)
@@ -676,7 +680,7 @@ void SettingsDialogImpl::ResetToDefault()
 std::string SettingsDialogImpl::RadarSiteLabel(
    std::shared_ptr<config::RadarSite>& radarSite)
 {
-   return std::format("{} ({})", radarSite->id(), radarSite->location_name());
+   return fmt::format("{} ({})", radarSite->id(), radarSite->location_name());
 }
 
 } // namespace ui

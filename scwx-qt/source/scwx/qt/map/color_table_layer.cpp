@@ -2,10 +2,16 @@
 #include <scwx/qt/gl/shader_program.hpp>
 #include <scwx/util/logger.hpp>
 
-#pragma warning(push, 0)
+#if defined(_MSC_VER)
+#   pragma warning(push, 0)
+#endif
+
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#pragma warning(pop)
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 namespace scwx
 {
@@ -20,12 +26,13 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class ColorTableLayerImpl
 {
 public:
-   explicit ColorTableLayerImpl(std::shared_ptr<MapContext> context) :
+   explicit ColorTableLayerImpl() :
        shaderProgram_(nullptr),
        uMVPMatrixLocation_(GL_INVALID_INDEX),
        vbo_ {GL_INVALID_INDEX},
        vao_ {GL_INVALID_INDEX},
        texture_ {GL_INVALID_INDEX},
+       colorTable_ {},
        colorTableNeedsUpdate_ {true}
    {
    }
@@ -44,7 +51,7 @@ public:
 };
 
 ColorTableLayer::ColorTableLayer(std::shared_ptr<MapContext> context) :
-    GenericLayer(context), p(std::make_unique<ColorTableLayerImpl>(context))
+    GenericLayer(context), p(std::make_unique<ColorTableLayerImpl>())
 {
 }
 ColorTableLayer::~ColorTableLayer() = default;
@@ -104,7 +111,7 @@ void ColorTableLayer::Initialize()
    connect(context()->radar_product_view().get(),
            &view::RadarProductView::ColorTableUpdated,
            this,
-           [=]() { p->colorTableNeedsUpdate_ = true; });
+           [this]() { p->colorTableNeedsUpdate_ = true; });
 }
 
 void ColorTableLayer::Render(

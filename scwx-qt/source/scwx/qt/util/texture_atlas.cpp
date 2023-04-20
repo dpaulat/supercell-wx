@@ -5,13 +5,19 @@
 #include <shared_mutex>
 #include <unordered_map>
 
-#pragma warning(push, 0)
-#pragma warning(disable : 4714)
+#if defined(_MSC_VER)
+#   pragma warning(push, 0)
+#   pragma warning(disable : 4714)
+#endif
+
 #include <boost/gil/extension/io/png.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <stb_rect_pack.h>
 #include <QFile>
-#pragma warning(pop)
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 namespace scwx
 {

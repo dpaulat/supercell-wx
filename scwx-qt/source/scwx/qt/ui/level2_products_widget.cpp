@@ -39,7 +39,7 @@ public:
          QObject::connect(toolButton,
                           &QToolButton::clicked,
                           this,
-                          [=]() { SelectProduct(product); });
+                          [=, this]() { SelectProduct(product); });
       }
    }
    ~Level2ProductsWidgetImpl() = default;

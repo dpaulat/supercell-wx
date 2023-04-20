@@ -246,6 +246,10 @@ if (WIN32)
     target_link_libraries(wxdata INTERFACE Ws2_32)
 endif()
 
+if (NOT MSVC)
+    target_link_libraries(wxdata PUBLIC date::date-tz)
+endif()
+
 set_target_properties(wxdata PROPERTIES CXX_STANDARD 20
                                         CXX_STANDARD_REQUIRED ON
                                         CXX_EXTENSIONS OFF)
