@@ -389,8 +389,12 @@ install(TARGETS supercell-wx
         RUNTIME_DEPENDENCIES
           PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-" "qt6"
           POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
+                               "^(/usr)?/lib/.*\\.so(\\..*)?"
         RUNTIME
-        COMPONENT supercell-wx)
+          COMPONENT supercell-wx
+        LIBRARY
+          COMPONENT supercell-wx
+          OPTIONAL)
 
 qt_generate_deploy_app_script(TARGET qmaplibregl
                               FILENAME_VARIABLE deploy_script_qmaplibregl
