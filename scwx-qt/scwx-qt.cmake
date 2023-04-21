@@ -384,6 +384,9 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
 target_link_libraries(supercell-wx PRIVATE scwx-qt
                                            wxdata)
 
+# Set DT_RUNPATH for Linux targets
+set(CMAKE_INSTALL_RPATH "\$ORIGIN/../lib")
+
 install(TARGETS supercell-wx
                 qmaplibregl
         RUNTIME_DEPENDENCIES
