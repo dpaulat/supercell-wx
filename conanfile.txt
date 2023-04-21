@@ -21,6 +21,7 @@ cmake_paths
 
 [options]
 libiconv:shared=True
+openssl:no_module=True
 openssl:shared=True
 
 [imports]
