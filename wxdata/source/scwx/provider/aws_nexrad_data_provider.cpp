@@ -50,6 +50,8 @@ public:
        objects_ {},
        objectsMutex_ {},
        objectDates_ {},
+       refreshMutex_ {},
+       refreshDate_ {},
        lastModified_ {},
        updatePeriod_ {}
    {
@@ -77,6 +79,9 @@ public:
    std::map<std::chrono::system_clock::time_point, ObjectRecord> objects_;
    std::shared_mutex                                             objectsMutex_;
    std::list<std::chrono::system_clock::time_point>              objectDates_;
+
+   std::mutex                            refreshMutex_;
+   std::chrono::system_clock::time_point refreshDate_;
 
    std::chrono::system_clock::time_point lastModified_;
    std::chrono::seconds                  updatePeriod_;
@@ -252,27 +257,24 @@ std::pair<size_t, size_t> AwsNexradDataProvider::Refresh()
 
    logger_->debug("Refresh()");
 
-   static std::mutex               refreshMutex;
-   static system_clock::time_point refreshDate {};
-
    auto today     = floor<days>(system_clock::now());
    auto yesterday = today - days {1};
 
-   std::unique_lock lock(refreshMutex);
+   std::unique_lock lock(p->refreshMutex_);
 
    size_t allNewObjects   = 0;
    size_t allTotalObjects = 0;
 
    // If we haven't gotten any objects from today, first list objects for
    // yesterday, to ensure we haven't missed any objects near midnight
-   if (refreshDate < today)
+   if (p->refreshDate_ < today)
    {
       auto [newObjects, totalObjects] = ListObjects(yesterday);
       allNewObjects                   = newObjects;
       allTotalObjects                 = totalObjects;
       if (totalObjects > 0)
       {
-         refreshDate = yesterday;
+         p->refreshDate_ = yesterday;
       }
    }
 
@@ -281,7 +283,7 @@ std::pair<size_t, size_t> AwsNexradDataProvider::Refresh()
    allTotalObjects += totalObjects;
    if (totalObjects > 0)
    {
-      refreshDate = today;
+      p->refreshDate_ = today;
    }
 
    return std::make_pair(allNewObjects, allTotalObjects);
