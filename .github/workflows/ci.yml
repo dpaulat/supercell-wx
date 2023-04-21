@@ -26,7 +26,7 @@ jobs:
             env_cxx: ''
             compiler: msvc
             msvc_arch: x64
-            msvc_toolset: 14.34
+            msvc_toolset: 14.35
             msvc_version: 2022
             qt_version: 6.5.0
             qt_arch: win64_msvc2019_64
