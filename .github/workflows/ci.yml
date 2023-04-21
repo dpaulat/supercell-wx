@@ -28,7 +28,7 @@ jobs:
             msvc_arch: x64
             msvc_toolset: 14.34
             msvc_version: 2022
-            qt_version: 6.4.2
+            qt_version: 6.5.0
             qt_arch: win64_msvc2019_64
             qt_tools: ''
             conan_arch: x86_64
@@ -43,7 +43,7 @@ jobs:
             env_cc: gcc-11
             env_cxx: g++-11
             compiler: gcc
-            qt_version: 6.4.2
+            qt_version: 6.5.0
             qt_arch: gcc_64
             qt_tools: ''
             conan_arch: x86_64
