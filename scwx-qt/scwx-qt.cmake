@@ -385,7 +385,8 @@ target_link_libraries(supercell-wx PRIVATE scwx-qt
                                            wxdata)
 
 # Set DT_RUNPATH for Linux targets
-set(CMAKE_INSTALL_RPATH "\$ORIGIN/../lib")
+set_target_properties(qmaplibregl  PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
+set_target_properties(supercell-wx PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
 
 install(TARGETS supercell-wx
                 qmaplibregl
