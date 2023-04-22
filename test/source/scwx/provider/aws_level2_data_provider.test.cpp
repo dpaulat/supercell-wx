@@ -48,7 +48,7 @@ TEST(AwsLevel2DataProvider, Prune)
 {
    using namespace std::chrono;
 
-   AwsLevel2DataProvider provider("KLSX");
+   AwsLevel2DataProvider provider("KEAX");
 
    const auto today     = floor<days>(system_clock::now());
    const auto yesterday = today - days {1};
