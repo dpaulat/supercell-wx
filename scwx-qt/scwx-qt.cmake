@@ -402,12 +402,12 @@ install(TARGETS supercell-wx
 # NO_TRANSLATIONS is needed for Qt 6.5.0 (will be fixed in 6.5.1)
 # https://bugreports.qt.io/browse/QTBUG-112204
 qt_generate_deploy_app_script(TARGET qmaplibregl
-                              FILENAME_VARIABLE deploy_script_qmaplibregl
+                              OUTPUT_SCRIPT deploy_script_qmaplibregl
                               NO_TRANSLATIONS
                               NO_UNSUPPORTED_PLATFORM_ERROR)
 
 qt_generate_deploy_app_script(TARGET supercell-wx
-                              FILENAME_VARIABLE deploy_script_scwx
+                              OUTPUT_SCRIPT deploy_script_scwx
                               NO_TRANSLATIONS
                               NO_UNSUPPORTED_PLATFORM_ERROR)
 
