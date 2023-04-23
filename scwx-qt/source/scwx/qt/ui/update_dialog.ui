@@ -112,13 +112,6 @@
     <widget class="QTextBrowser" name="releaseNotesText"/>
    </item>
    <item>
-    <widget class="QCheckBox" name="enableUpdatesCheckBox">
-     <property name="text">
-      <string>&amp;Enable Update Notifications</string>
-     </property>
-    </widget>
-   </item>
-   <item>
     <widget class="QFrame" name="bottomFrame">
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
