@@ -21,6 +21,7 @@ public:
       gridWidth_.SetDefault(1);
       gridHeight_.SetDefault(1);
       mapboxApiKey_.SetDefault("?");
+      updateNotificationsEnabled_.SetDefault(true);
 
       fontSizes_.SetElementMinimum(1);
       fontSizes_.SetElementMaximum(72);
@@ -42,6 +43,7 @@ public:
    SettingsVariable<std::int64_t>               gridWidth_ {"grid_width"};
    SettingsVariable<std::int64_t>               gridHeight_ {"grid_height"};
    SettingsVariable<std::string> mapboxApiKey_ {"mapbox_api_key"};
+   SettingsVariable<bool> updateNotificationsEnabled_ {"update_notifications"};
 };
 
 GeneralSettings::GeneralSettings() :
@@ -52,7 +54,8 @@ GeneralSettings::GeneralSettings() :
                       &p->fontSizes_,
                       &p->gridWidth_,
                       &p->gridHeight_,
-                      &p->mapboxApiKey_});
+                      &p->mapboxApiKey_,
+                      &p->updateNotificationsEnabled_});
    SetDefaults();
 }
 GeneralSettings::~GeneralSettings() = default;
@@ -92,6 +95,11 @@ SettingsVariable<std::string>& GeneralSettings::mapbox_api_key() const
    return p->mapboxApiKey_;
 }
 
+SettingsVariable<bool>& GeneralSettings::update_notifications_enabled() const
+{
+   return p->updateNotificationsEnabled_;
+}
+
 bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
 {
    return (lhs.p->debugEnabled_ == rhs.p->debugEnabled_ &&
@@ -99,7 +107,9 @@ bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
            lhs.p->fontSizes_ == rhs.p->fontSizes_ &&
            lhs.p->gridWidth_ == rhs.p->gridWidth_ &&
            lhs.p->gridHeight_ == rhs.p->gridHeight_ &&
-           lhs.p->mapboxApiKey_ == rhs.p->mapboxApiKey_);
+           lhs.p->mapboxApiKey_ == rhs.p->mapboxApiKey_ &&
+           lhs.p->updateNotificationsEnabled_ ==
+              rhs.p->updateNotificationsEnabled_);
 }
 
 } // namespace settings

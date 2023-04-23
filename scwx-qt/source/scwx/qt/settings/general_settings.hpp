@@ -33,6 +33,7 @@ public:
    SettingsVariable<std::int64_t>&               grid_height() const;
    SettingsVariable<std::int64_t>&               grid_width() const;
    SettingsVariable<std::string>&                mapbox_api_key() const;
+   SettingsVariable<bool>& update_notifications_enabled() const;
 
    friend bool operator==(const GeneralSettings& lhs,
                           const GeneralSettings& rhs);

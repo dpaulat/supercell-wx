@@ -506,9 +506,14 @@ void MainWindow::on_resourceTreeView_doubleClicked(const QModelIndex& index)
 
 void MainWindowImpl::AsyncSetup()
 {
+   auto& generalSettings = manager::SettingsManager::general_settings();
+
    // Check for updates
-   scwx::util::async(
-      [this]() { updateManager_->CheckForUpdates(main::kVersionString_); });
+   if (generalSettings.update_notifications_enabled().GetValue())
+   {
+      scwx::util::async(
+         [this]() { updateManager_->CheckForUpdates(main::kVersionString_); });
+   }
 }
 
 void MainWindowImpl::ConfigureMapLayout()
