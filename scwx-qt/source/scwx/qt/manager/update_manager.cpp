@@ -24,7 +24,7 @@ static const std::string kScwxReleaseEndpoint {
 class UpdateManager::Impl
 {
 public:
-   explicit Impl(UpdateManager* self) : self_ {self}, releases_ {} {}
+   explicit Impl(UpdateManager* self) : self_ {self} {}
 
    ~Impl() {}
 
@@ -38,9 +38,11 @@ public:
 
    UpdateManager* self_;
 
-   std::vector<types::gh::Release> releases_;
-   types::gh::Release              latestRelease_;
-   std::string                     latestVersion_;
+   std::mutex updateMutex_ {};
+
+   std::vector<types::gh::Release> releases_ {};
+   types::gh::Release              latestRelease_ {};
+   std::string                     latestVersion_ {};
 };
 
 UpdateManager::UpdateManager() : p(std::make_unique<Impl>(this)) {}
@@ -97,6 +99,8 @@ boost::json::value UpdateManager::Impl::ParseResponseText(const std::string& s)
 
 bool UpdateManager::CheckForUpdates(const std::string& currentVersion)
 {
+   std::unique_lock lock(p->updateMutex_);
+
    logger_->info("Checking for updates");
 
    // Query GitHub for releases
