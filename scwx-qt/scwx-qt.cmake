@@ -64,12 +64,14 @@ set(HDR_MANAGER source/scwx/qt/manager/radar_product_manager.hpp
                 source/scwx/qt/manager/radar_product_manager_notifier.hpp
                 source/scwx/qt/manager/resource_manager.hpp
                 source/scwx/qt/manager/settings_manager.hpp
-                source/scwx/qt/manager/text_event_manager.hpp)
+                source/scwx/qt/manager/text_event_manager.hpp
+                source/scwx/qt/manager/update_manager.hpp)
 set(SRC_MANAGER source/scwx/qt/manager/radar_product_manager.cpp
                 source/scwx/qt/manager/radar_product_manager_notifier.cpp
                 source/scwx/qt/manager/resource_manager.cpp
                 source/scwx/qt/manager/settings_manager.cpp
-                source/scwx/qt/manager/text_event_manager.cpp)
+                source/scwx/qt/manager/text_event_manager.cpp
+                source/scwx/qt/manager/update_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/color_table_layer.hpp
             source/scwx/qt/map/draw_layer.hpp
