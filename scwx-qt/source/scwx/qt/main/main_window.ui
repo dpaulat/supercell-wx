@@ -68,6 +68,7 @@
     <addaction name="actionDiscord"/>
     <addaction name="actionGitHubRepository"/>
     <addaction name="separator"/>
+    <addaction name="actionCheckForUpdates"/>
     <addaction name="actionAboutSupercellWx"/>
    </widget>
    <widget class="QMenu" name="menuView">
@@ -402,6 +403,11 @@
   <action name="actionDumpRadarProductRecords">
    <property name="text">
     <string>Dump Radar &amp;Product Records</string>
+   </property>
+  </action>
+  <action name="actionCheckForUpdates">
+   <property name="text">
+    <string>&amp;Check for Updates</string>
    </property>
   </action>
  </widget>

@@ -64,12 +64,14 @@ set(HDR_MANAGER source/scwx/qt/manager/radar_product_manager.hpp
                 source/scwx/qt/manager/radar_product_manager_notifier.hpp
                 source/scwx/qt/manager/resource_manager.hpp
                 source/scwx/qt/manager/settings_manager.hpp
-                source/scwx/qt/manager/text_event_manager.hpp)
+                source/scwx/qt/manager/text_event_manager.hpp
+                source/scwx/qt/manager/update_manager.hpp)
 set(SRC_MANAGER source/scwx/qt/manager/radar_product_manager.cpp
                 source/scwx/qt/manager/radar_product_manager_notifier.cpp
                 source/scwx/qt/manager/resource_manager.cpp
                 source/scwx/qt/manager/settings_manager.cpp
-                source/scwx/qt/manager/text_event_manager.cpp)
+                source/scwx/qt/manager/text_event_manager.cpp
+                source/scwx/qt/manager/update_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/color_table_layer.hpp
             source/scwx/qt/map/draw_layer.hpp
@@ -126,10 +128,12 @@ set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/settings_variable.cpp
                  source/scwx/qt/settings/settings_variable_base.cpp)
 set(HDR_TYPES source/scwx/qt/types/font_types.hpp
+              source/scwx/qt/types/github_types.hpp
               source/scwx/qt/types/qt_types.hpp
               source/scwx/qt/types/radar_product_record.hpp
               source/scwx/qt/types/text_event_key.hpp)
-set(SRC_TYPES source/scwx/qt/types/radar_product_record.cpp
+set(SRC_TYPES source/scwx/qt/types/github_types.cpp
+              source/scwx/qt/types/radar_product_record.cpp
               source/scwx/qt/types/text_event_key.cpp)
 set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/alert_dialog.hpp
@@ -141,7 +145,8 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/level2_settings_widget.hpp
            source/scwx/qt/ui/level3_products_widget.hpp
            source/scwx/qt/ui/radar_site_dialog.hpp
-           source/scwx/qt/ui/settings_dialog.hpp)
+           source/scwx/qt/ui/settings_dialog.hpp
+           source/scwx/qt/ui/update_dialog.hpp)
 set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/alert_dialog.cpp
            source/scwx/qt/ui/alert_dock_widget.cpp
@@ -152,13 +157,15 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/level2_settings_widget.cpp
            source/scwx/qt/ui/level3_products_widget.cpp
            source/scwx/qt/ui/radar_site_dialog.cpp
-           source/scwx/qt/ui/settings_dialog.cpp)
+           source/scwx/qt/ui/settings_dialog.cpp
+           source/scwx/qt/ui/update_dialog.cpp)
 set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/alert_dialog.ui
            source/scwx/qt/ui/alert_dock_widget.ui
            source/scwx/qt/ui/imgui_debug_dialog.ui
            source/scwx/qt/ui/radar_site_dialog.ui
-           source/scwx/qt/ui/settings_dialog.ui)
+           source/scwx/qt/ui/settings_dialog.ui
+           source/scwx/qt/ui/update_dialog.ui)
 set(HDR_UTIL source/scwx/qt/util/color.hpp
              source/scwx/qt/util/file.hpp
              source/scwx/qt/util/font.hpp

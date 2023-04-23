@@ -4,9 +4,11 @@
 #include "./ui_main_window.h"
 
 #include <scwx/qt/main/application.hpp>
+#include <scwx/qt/main/versions.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
+#include <scwx/qt/manager/update_manager.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/model/radar_product_model.hpp>
 #include <scwx/qt/ui/alert_dock_widget.hpp>
@@ -18,10 +20,12 @@
 #include <scwx/qt/ui/level3_products_widget.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/ui/settings_dialog.hpp>
+#include <scwx/qt/ui/update_dialog.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/common/products.hpp>
 #include <scwx/common/vcp.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/threads.hpp>
 
 #include <QDesktopServices>
 #include <QFileDialog>
@@ -61,8 +65,10 @@ public:
        imGuiDebugDialog_ {nullptr},
        radarSiteDialog_ {nullptr},
        settingsDialog_ {nullptr},
+       updateDialog_ {nullptr},
        radarProductModel_ {nullptr},
        textEventManager_ {manager::TextEventManager::Instance()},
+       updateManager_ {manager::UpdateManager::Instance()},
        maps_ {},
        elevationCuts_ {},
        elevationButtonsChanged_ {false},
@@ -94,6 +100,7 @@ public:
    }
    ~MainWindowImpl() = default;
 
+   void AsyncSetup();
    void ConfigureMapLayout();
    void ConnectMapSignals();
    void ConnectOtherSignals();
@@ -126,9 +133,11 @@ public:
    ui::ImGuiDebugDialog* imGuiDebugDialog_;
    ui::RadarSiteDialog*  radarSiteDialog_;
    ui::SettingsDialog*   settingsDialog_;
+   ui::UpdateDialog*     updateDialog_;
 
    std::unique_ptr<model::RadarProductModel>  radarProductModel_;
    std::shared_ptr<manager::TextEventManager> textEventManager_;
+   std::shared_ptr<manager::UpdateManager>    updateManager_;
 
    std::vector<map::MapWidget*> maps_;
    std::vector<float>           elevationCuts_;
@@ -223,6 +232,9 @@ MainWindow::MainWindow(QWidget* parent) :
    // About Dialog
    p->aboutDialog_ = new ui::AboutDialog(this);
 
+   // Update Dialog
+   p->updateDialog_ = new ui::UpdateDialog(this);
+
    auto& mapSettings = manager::SettingsManager::map_settings();
    for (size_t i = 0; i < p->maps_.size(); i++)
    {
@@ -236,6 +248,7 @@ MainWindow::MainWindow(QWidget* parent) :
    p->ConnectMapSignals();
    p->ConnectOtherSignals();
    p->HandleFocusChange(p->activeMap_);
+   p->AsyncSetup();
 
    Application::FinishInitialization();
 }
@@ -381,6 +394,29 @@ void MainWindow::on_actionGitHubRepository_triggered()
    QDesktopServices::openUrl(QUrl {"https://github.com/dpaulat/supercell-wx"});
 }
 
+void MainWindow::on_actionCheckForUpdates_triggered()
+{
+   scwx::util::async(
+      [this]()
+      {
+         if (!p->updateManager_->CheckForUpdates(main::kVersionString_))
+         {
+            QMetaObject::invokeMethod(
+               this,
+               [this]()
+               {
+                  QMessageBox* messageBox = new QMessageBox(this);
+                  messageBox->setIcon(QMessageBox::Icon::Information);
+                  messageBox->setWindowTitle(tr("Check for Updates"));
+                  messageBox->setText(tr("Supercell Wx is up to date."));
+                  messageBox->setStandardButtons(
+                     QMessageBox::StandardButton::Ok);
+                  messageBox->show();
+               });
+         }
+      });
+}
+
 void MainWindow::on_actionAboutSupercellWx_triggered()
 {
    p->aboutDialog_->show();
@@ -466,6 +502,18 @@ void MainWindow::on_resourceTreeView_doubleClicked(const QModelIndex& index)
 
    // Select the updated radar product
    p->activeMap_->SelectRadarProduct(group, product, 0, time);
+}
+
+void MainWindowImpl::AsyncSetup()
+{
+   auto& generalSettings = manager::SettingsManager::general_settings();
+
+   // Check for updates
+   if (generalSettings.update_notifications_enabled().GetValue())
+   {
+      scwx::util::async(
+         [this]() { updateManager_->CheckForUpdates(main::kVersionString_); });
+   }
 }
 
 void MainWindowImpl::ConfigureMapLayout()
@@ -628,6 +676,15 @@ void MainWindowImpl::ConnectOtherSignals()
               {
                  map->SelectRadarSite(selectedRadarSite);
               }
+           });
+   connect(updateManager_.get(),
+           &manager::UpdateManager::UpdateAvailable,
+           this,
+           [this](const std::string&        latestVersion,
+                  const types::gh::Release& latestRelease)
+           {
+              updateDialog_->UpdateReleaseInfo(latestVersion, latestRelease);
+              updateDialog_->show();
            });
 }
 

@@ -225,6 +225,13 @@
            </widget>
           </item>
           <item>
+           <widget class="QCheckBox" name="enableUpdateNotificationsCheckBox">
+            <property name="text">
+             <string>Update Notifications Enabled</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QCheckBox" name="debugEnabledCheckBox">
             <property name="text">
              <string>Debug Enabled</string>
@@ -268,8 +275,8 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>489</width>
-                   <height>382</height>
+                   <width>66</width>
+                   <height>18</height>
                   </rect>
                  </property>
                  <layout class="QGridLayout" name="gridLayout_3">

@@ -84,6 +84,7 @@ public:
           &gridWidth_,
           &gridHeight_,
           &mapboxApiKey_,
+          &updateNotificationsEnabled_,
           &debugEnabled_}}
    {
       // Configure default alert phenomena colors
@@ -137,7 +138,8 @@ public:
    settings::SettingsInterface<std::int64_t>              gridWidth_ {};
    settings::SettingsInterface<std::int64_t>              gridHeight_ {};
    settings::SettingsInterface<std::string>               mapboxApiKey_ {};
-   settings::SettingsInterface<bool>                      debugEnabled_ {};
+   settings::SettingsInterface<bool> updateNotificationsEnabled_ {};
+   settings::SettingsInterface<bool> debugEnabled_ {};
 
    std::unordered_map<std::string, settings::SettingsInterface<std::string>>
       colorTables_ {};
@@ -314,6 +316,11 @@ void SettingsDialogImpl::SetupGeneralTab()
    mapboxApiKey_.SetSettingsVariable(generalSettings.mapbox_api_key());
    mapboxApiKey_.SetEditWidget(self_->ui->mapboxApiKeyLineEdit);
    mapboxApiKey_.SetResetButton(self_->ui->resetMapboxApiKeyButton);
+
+   updateNotificationsEnabled_.SetSettingsVariable(
+      generalSettings.update_notifications_enabled());
+   updateNotificationsEnabled_.SetEditWidget(
+      self_->ui->enableUpdateNotificationsCheckBox);
 
    debugEnabled_.SetSettingsVariable(generalSettings.debug_enabled());
    debugEnabled_.SetEditWidget(self_->ui->debugEnabledCheckBox);
