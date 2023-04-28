@@ -23,6 +23,7 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static boost::json::value ConvertSettingsToJson();
 static void               GenerateDefaultSettings();
 static bool               LoadSettings(const boost::json::object& settingsJson);
+static void               ValidateSettings();
 
 static bool        initialized_ {false};
 static std::string settingsPath_ {};
@@ -46,6 +47,7 @@ void Initialize()
    initialized_  = true;
 
    ReadSettings(settingsPath_);
+   ValidateSettings();
 }
 
 void ReadSettings(const std::string& settingsPath)
@@ -135,6 +137,45 @@ static bool LoadSettings(const boost::json::object& settingsJson)
    jsonDirty |= !palette_settings().ReadJson(settingsJson);
 
    return jsonDirty;
+}
+
+static void ValidateSettings()
+{
+   logger_->debug("Validating settings");
+
+   bool settingsChanged = false;
+
+   auto& generalSettings = general_settings();
+
+   // Validate map provider
+   std::string mapProvider    = generalSettings.map_provider().GetValue();
+   std::string mapboxApiKey   = generalSettings.mapbox_api_key().GetValue();
+   std::string maptilerApiKey = generalSettings.maptiler_api_key().GetValue();
+
+   if (mapProvider == "maptiler" && //
+       mapboxApiKey.size() > 1 &&   //
+       maptilerApiKey == "?")
+   {
+      logger_->info("Setting Map Provider to Mapbox based on API key settings");
+
+      generalSettings.map_provider().SetValue("mapbox");
+      settingsChanged = true;
+   }
+   else if (mapProvider == "mapbox" &&   //
+            maptilerApiKey.size() > 1 && //
+            mapboxApiKey == "?")
+   {
+      logger_->info(
+         "Setting Map Provider to MapTiler based on API key settings");
+
+      generalSettings.map_provider().SetValue("maptiler");
+      settingsChanged = true;
+   }
+
+   if (settingsChanged)
+   {
+      SaveSettings();
+   }
 }
 
 } // namespace SettingsManager
