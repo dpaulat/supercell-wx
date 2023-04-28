@@ -12,6 +12,7 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
 
+#include <boost/algorithm/string.hpp>
 #include <fmt/format.h>
 #include <QColorDialog>
 #include <QFileDialog>
@@ -34,6 +35,8 @@ struct ColorTableConversions
    float    offset {0.0f};
    float    scale {1.0f};
 };
+
+static const std::array<std::string, 2> kMapProviders_ {"Mapbox", "MapTiler"};
 
 static const std::array<std::pair<std::string, std::string>, 15>
    kColorTableTypes_ {std::pair {"BR", "BR"},
@@ -83,7 +86,9 @@ public:
           &fontSizes_,
           &gridWidth_,
           &gridHeight_,
+          &mapProvider_,
           &mapboxApiKey_,
+          &mapTilerApiKey_,
           &updateNotificationsEnabled_,
           &debugEnabled_}}
    {
@@ -137,7 +142,9 @@ public:
    settings::SettingsInterface<std::vector<std::int64_t>> fontSizes_ {};
    settings::SettingsInterface<std::int64_t>              gridWidth_ {};
    settings::SettingsInterface<std::int64_t>              gridHeight_ {};
+   settings::SettingsInterface<std::string>               mapProvider_ {};
    settings::SettingsInterface<std::string>               mapboxApiKey_ {};
+   settings::SettingsInterface<std::string>               mapTilerApiKey_ {};
    settings::SettingsInterface<bool> updateNotificationsEnabled_ {};
    settings::SettingsInterface<bool> debugEnabled_ {};
 
@@ -313,9 +320,47 @@ void SettingsDialogImpl::SetupGeneralTab()
    gridHeight_.SetEditWidget(self_->ui->gridHeightSpinBox);
    gridHeight_.SetResetButton(self_->ui->resetGridHeightButton);
 
+   for (const auto& mapProvider : kMapProviders_)
+   {
+      self_->ui->mapProviderComboBox->addItem(
+         QString::fromStdString(mapProvider));
+   }
+
+   mapProvider_.SetSettingsVariable(generalSettings.map_provider());
+   mapProvider_.SetMapFromValueFunction(
+      [](const std::string& text) -> std::string
+      {
+         auto it = std::find_if(kMapProviders_.cbegin(),
+                                kMapProviders_.cend(),
+                                [&text](const std::string& mapProvider)
+                                { return boost::iequals(text, mapProvider); });
+
+         if (it == kMapProviders_.cend())
+         {
+            // Map provider label not found, return unknown
+            return "?";
+         }
+
+         // Return map provider label
+         return *it;
+      });
+   mapProvider_.SetMapToValueFunction(
+      [](std::string text) -> std::string
+      {
+         // Convert label to lower case and return
+         boost::to_lower(text);
+         return text;
+      });
+   mapProvider_.SetEditWidget(self_->ui->mapProviderComboBox);
+   mapProvider_.SetResetButton(self_->ui->resetMapProviderButton);
+
    mapboxApiKey_.SetSettingsVariable(generalSettings.mapbox_api_key());
    mapboxApiKey_.SetEditWidget(self_->ui->mapboxApiKeyLineEdit);
    mapboxApiKey_.SetResetButton(self_->ui->resetMapboxApiKeyButton);
+
+   mapTilerApiKey_.SetSettingsVariable(generalSettings.maptiler_api_key());
+   mapTilerApiKey_.SetEditWidget(self_->ui->mapTilerApiKeyLineEdit);
+   mapTilerApiKey_.SetResetButton(self_->ui->resetMapTilerApiKeyButton);
 
    updateNotificationsEnabled_.SetSettingsVariable(
       generalSettings.update_notifications_enabled());
