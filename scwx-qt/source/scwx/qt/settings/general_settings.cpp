@@ -1,6 +1,8 @@
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/settings_container.hpp>
 
+#include <array>
+
 namespace scwx
 {
 namespace qt
@@ -9,6 +11,9 @@ namespace settings
 {
 
 static const std::string logPrefix_ = "scwx::qt::settings::general_settings";
+
+static const std::array<std::string, 2> kMapProviderValues_ {"mapbox",
+                                                             "maptiler"};
 
 class GeneralSettingsImpl
 {
@@ -20,7 +25,9 @@ public:
       fontSizes_.SetDefault({16});
       gridWidth_.SetDefault(1);
       gridHeight_.SetDefault(1);
+      mapProvider_.SetDefault("maptiler");
       mapboxApiKey_.SetDefault("?");
+      maptilerApiKey_.SetDefault("?");
       updateNotificationsEnabled_.SetDefault(true);
 
       fontSizes_.SetElementMinimum(1);
@@ -31,8 +38,17 @@ public:
       gridWidth_.SetMaximum(2);
       gridHeight_.SetMinimum(1);
       gridHeight_.SetMaximum(2);
+      mapProvider_.SetValidator(
+         [](const std::string& value)
+         {
+            return std::find(kMapProviderValues_.cbegin(),
+                             kMapProviderValues_.cend(),
+                             value) != kMapProviderValues_.cend();
+         });
       mapboxApiKey_.SetValidator([](const std::string& value)
                                  { return !value.empty(); });
+      maptilerApiKey_.SetValidator([](const std::string& value)
+                                   { return !value.empty(); });
    }
 
    ~GeneralSettingsImpl() {}
@@ -42,7 +58,9 @@ public:
    SettingsContainer<std::vector<std::int64_t>> fontSizes_ {"font_sizes"};
    SettingsVariable<std::int64_t>               gridWidth_ {"grid_width"};
    SettingsVariable<std::int64_t>               gridHeight_ {"grid_height"};
+   SettingsVariable<std::string>                mapProvider_ {"map_provider"};
    SettingsVariable<std::string> mapboxApiKey_ {"mapbox_api_key"};
+   SettingsVariable<std::string> maptilerApiKey_ {"maptiler_api_key"};
    SettingsVariable<bool> updateNotificationsEnabled_ {"update_notifications"};
 };
 
@@ -54,7 +72,9 @@ GeneralSettings::GeneralSettings() :
                       &p->fontSizes_,
                       &p->gridWidth_,
                       &p->gridHeight_,
+                      &p->mapProvider_,
                       &p->mapboxApiKey_,
+                      &p->maptilerApiKey_,
                       &p->updateNotificationsEnabled_});
    SetDefaults();
 }
@@ -90,9 +110,19 @@ SettingsVariable<std::int64_t>& GeneralSettings::grid_width() const
    return p->gridWidth_;
 }
 
+SettingsVariable<std::string>& GeneralSettings::map_provider() const
+{
+   return p->mapProvider_;
+}
+
 SettingsVariable<std::string>& GeneralSettings::mapbox_api_key() const
 {
    return p->mapboxApiKey_;
+}
+
+SettingsVariable<std::string>& GeneralSettings::maptiler_api_key() const
+{
+   return p->maptilerApiKey_;
 }
 
 SettingsVariable<bool>& GeneralSettings::update_notifications_enabled() const
@@ -107,7 +137,9 @@ bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
            lhs.p->fontSizes_ == rhs.p->fontSizes_ &&
            lhs.p->gridWidth_ == rhs.p->gridWidth_ &&
            lhs.p->gridHeight_ == rhs.p->gridHeight_ &&
+           lhs.p->mapProvider_ == rhs.p->mapProvider_ &&
            lhs.p->mapboxApiKey_ == rhs.p->mapboxApiKey_ &&
+           lhs.p->maptilerApiKey_ == rhs.p->maptilerApiKey_ &&
            lhs.p->updateNotificationsEnabled_ ==
               rhs.p->updateNotificationsEnabled_);
 }
