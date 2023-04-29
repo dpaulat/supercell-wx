@@ -9,6 +9,7 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/manager/update_manager.hpp>
+#include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/model/radar_product_model.hpp>
 #include <scwx/qt/ui/alert_dock_widget.hpp>
@@ -74,10 +75,18 @@ public:
        elevationButtonsChanged_ {false},
        resizeElevationButtons_ {false}
    {
+      map::MapProvider mapProvider =
+         map::GetMapProvider(manager::SettingsManager::general_settings()
+                                .map_provider()
+                                .GetValue());
+      const map::MapProviderInfo& mapProviderInfo =
+         map::GetMapProviderInfo(mapProvider);
+
       std::string appDataPath {
          QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
             .toStdString()};
-      std::string cacheDbPath {appDataPath + "/mbgl-cache.db"};
+      std::string cacheDbPath {appDataPath + "/" +
+                               mapProviderInfo.cacheDbName_};
 
       if (!std::filesystem::exists(appDataPath))
       {
@@ -89,12 +98,10 @@ public:
          }
       }
 
-      std::string mapboxApiKey = manager::SettingsManager::general_settings()
-                                    .mapbox_api_key()
-                                    .GetValue();
+      std::string mapProviderApiKey = map::GetMapProviderApiKey(mapProvider);
 
-      settings_.resetToTemplate(QMapLibreGL::Settings::MapboxSettings);
-      settings_.setApiKey(QString {mapboxApiKey.c_str()});
+      settings_.resetToTemplate(mapProviderInfo.settingsTemplate_);
+      settings_.setApiKey(QString {mapProviderApiKey.c_str()});
       settings_.setCacheDatabasePath(QString {cacheDbPath.c_str()});
       settings_.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
    }
