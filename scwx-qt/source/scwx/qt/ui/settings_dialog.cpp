@@ -329,16 +329,13 @@ void SettingsDialogImpl::SetupGeneralTab()
    mapProvider_.SetMapFromValueFunction(
       [](const std::string& text) -> std::string
       {
-         auto it = std::find_if(
-            map::MapProviderIterator().begin(),
-            map::MapProviderIterator().end(),
-            [&text](map::MapProvider mapProvider)
-            { return boost::iequals(text, GetMapProviderName(mapProvider)); });
-
-         if (it != map::MapProviderIterator().end())
+         for (map::MapProvider mapProvider : map::MapProviderIterator())
          {
-            // Return map provider label
-            return GetMapProviderName(*it);
+            if (boost::iequals(text, map::GetMapProviderName(mapProvider)))
+            {
+               // Return map provider label
+               return GetMapProviderName(mapProvider);
+            }
          }
 
          // Map provider label not found, return unknown

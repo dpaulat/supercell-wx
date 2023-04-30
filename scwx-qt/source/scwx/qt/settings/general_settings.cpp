@@ -41,15 +41,21 @@ public:
       mapProvider_.SetValidator(
          [](const std::string& value)
          {
-            return std::find_if(map::MapProviderIterator().begin(),
-                                map::MapProviderIterator().end(),
-                                [&value](map::MapProvider mapProvider)
-                                {
-                                   std::string mapProviderName =
-                                      map::GetMapProviderName(mapProvider);
-                                   boost::to_lower(mapProviderName);
-                                   return value == mapProviderName;
-                                }) != map::MapProviderIterator().end();
+            for (map::MapProvider mapProvider : map::MapProviderIterator())
+            {
+               // If the value is equal to a lower case map provider name
+               std::string mapProviderName =
+                  map::GetMapProviderName(mapProvider);
+               boost::to_lower(mapProviderName);
+               if (value == mapProviderName)
+               {
+                  // Regard as a match, valid
+                  return true;
+               }
+            }
+
+            // No match found, invalid
+            return false;
          });
       mapboxApiKey_.SetValidator([](const std::string& value)
                                  { return !value.empty(); });

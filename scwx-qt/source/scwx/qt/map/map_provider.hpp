@@ -19,8 +19,9 @@ enum class MapProvider
    MapTiler,
    Unknown
 };
-typedef util::Iterator<MapProvider, MapProvider::Mapbox, MapProvider::MapTiler>
-   MapProviderIterator;
+typedef scwx::util::
+   Iterator<MapProvider, MapProvider::Mapbox, MapProvider::MapTiler>
+      MapProviderIterator;
 
 struct MapStyle
 {
