@@ -64,6 +64,7 @@ public:
        selectedTime_ {},
        lastPos_(),
        currentStyleIndex_ {0},
+       currentStyle_ {nullptr},
        frameDraws_(0),
        prevLatitude_ {0.0},
        prevLongitude_ {0.0},
@@ -148,8 +149,9 @@ public:
    common::Level2Product                 selectedLevel2Product_;
    std::chrono::system_clock::time_point selectedTime_;
 
-   QPointF lastPos_;
-   uint8_t currentStyleIndex_;
+   QPointF         lastPos_;
+   std::size_t     currentStyleIndex_;
+   const MapStyle* currentStyle_;
 
    uint64_t frameDraws_;
 
@@ -257,6 +259,18 @@ std::vector<std::string> MapWidget::GetLevel3Products()
    else
    {
       return {};
+   }
+}
+
+std::string MapWidget::GetMapStyle() const
+{
+   if (p->currentStyle_ != nullptr)
+   {
+      return p->currentStyle_->name_;
+   }
+   else
+   {
+      return "?";
    }
 }
 
@@ -530,6 +544,32 @@ void MapWidget::SetMapParameters(
    }
 }
 
+void MapWidget::SetMapStyle(const std::string& styleName)
+{
+   const auto& mapProviderInfo = GetMapProviderInfo(p->mapProvider_);
+   auto&       styles          = mapProviderInfo.mapStyles_;
+
+   for (size_t i = 0u; i < styles.size(); ++i)
+   {
+      if (styles[i].name_ == styleName)
+      {
+         p->currentStyleIndex_ = i;
+         p->currentStyle_      = &styles[i];
+
+         logger_->debug("Updating style: {}", styles[i].name_);
+
+         p->map_->setStyleUrl(styles[i].url_.c_str());
+
+         if (++p->currentStyleIndex_ == styles.size())
+         {
+            p->currentStyleIndex_ = 0;
+         }
+
+         break;
+      }
+   }
+}
+
 qreal MapWidget::pixelRatio()
 {
    return devicePixelRatioF();
@@ -540,6 +580,8 @@ void MapWidget::changeStyle()
    const auto& mapProviderInfo = GetMapProviderInfo(p->mapProvider_);
    auto&       styles          = mapProviderInfo.mapStyles_;
 
+   p->currentStyle_ = &styles[p->currentStyleIndex_];
+
    logger_->debug("Updating style: {}", styles[p->currentStyleIndex_].name_);
 
    p->map_->setStyleUrl(styles[p->currentStyleIndex_].url_.c_str());
@@ -548,6 +590,8 @@ void MapWidget::changeStyle()
    {
       p->currentStyleIndex_ = 0;
    }
+
+   emit MapStyleChanged(p->currentStyle_->name_);
 }
 
 void MapWidget::AddLayers()
@@ -571,8 +615,7 @@ void MapWidget::AddLayers()
       std::shared_ptr<config::RadarSite> radarSite =
          p->radarProductManager_->radar_site();
 
-      const auto& mapStyle =
-         GetMapProviderInfo(p->mapProvider_).mapStyles_[p->currentStyleIndex_];
+      const auto& mapStyle = *p->currentStyle_;
 
       std::string before = "ferry";
 

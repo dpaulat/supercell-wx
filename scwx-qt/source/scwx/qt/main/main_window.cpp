@@ -75,12 +75,12 @@ public:
        elevationButtonsChanged_ {false},
        resizeElevationButtons_ {false}
    {
-      map::MapProvider mapProvider =
+      mapProvider_ =
          map::GetMapProvider(manager::SettingsManager::general_settings()
                                 .map_provider()
                                 .GetValue());
       const map::MapProviderInfo& mapProviderInfo =
-         map::GetMapProviderInfo(mapProvider);
+         map::GetMapProviderInfo(mapProvider_);
 
       std::string appDataPath {
          QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
@@ -98,7 +98,7 @@ public:
          }
       }
 
-      std::string mapProviderApiKey = map::GetMapProviderApiKey(mapProvider);
+      std::string mapProviderApiKey = map::GetMapProviderApiKey(mapProvider_);
 
       settings_.resetToTemplate(mapProviderInfo.settingsTemplate_);
       settings_.setApiKey(QString {mapProviderApiKey.c_str()});
@@ -112,6 +112,7 @@ public:
    void ConnectMapSignals();
    void ConnectOtherSignals();
    void HandleFocusChange(QWidget* focused);
+   void PopulateMapStyles();
    void SelectElevation(map::MapWidget* mapWidget, float elevation);
    void SelectRadarProduct(map::MapWidget*           mapWidget,
                            common::RadarProductGroup group,
@@ -120,6 +121,7 @@ public:
    void SetActiveMap(map::MapWidget* mapWidget);
    void UpdateAvailableLevel3Products();
    void UpdateElevationSelection(float elevation);
+   void UpdateMapStyle(const std::string& styleName);
    void UpdateRadarProductSelection(common::RadarProductGroup group,
                                     const std::string&        product);
    void UpdateRadarProductSettings();
@@ -128,6 +130,7 @@ public:
 
    MainWindow*           mainWindow_;
    QMapLibreGL::Settings settings_;
+   map::MapProvider      mapProvider_;
    map::MapWidget*       activeMap_;
 
    ui::Level2ProductsWidget* level2ProductsWidget_;
@@ -252,6 +255,7 @@ MainWindow::MainWindow(QWidget* parent) :
                             0);
    }
 
+   p->PopulateMapStyles();
    p->ConnectMapSignals();
    p->ConnectOtherSignals();
    p->HandleFocusChange(p->activeMap_);
@@ -593,6 +597,11 @@ void MainWindowImpl::ConnectMapSignals()
          },
          Qt::QueuedConnection);
 
+      connect(mapWidget,
+              &map::MapWidget::MapStyleChanged,
+              this,
+              &MainWindowImpl::UpdateMapStyle);
+
       connect(
          mapWidget,
          &map::MapWidget::RadarSweepUpdated,
@@ -631,6 +640,11 @@ void MainWindowImpl::ConnectOtherSignals()
            &QApplication::focusChanged,
            mainWindow_,
            [this](QWidget* /*old*/, QWidget* now) { HandleFocusChange(now); });
+   connect(mainWindow_->ui->mapStyleComboBox,
+           &QComboBox::currentTextChanged,
+           mainWindow_,
+           [&](const QString& text)
+           { activeMap_->SetMapStyle(text.toStdString()); });
    connect(level2ProductsWidget_,
            &ui::Level2ProductsWidget::RadarProductSelected,
            mainWindow_,
@@ -703,11 +717,22 @@ void MainWindowImpl::HandleFocusChange(QWidget* focused)
    {
       SetActiveMap(mapWidget);
       UpdateAvailableLevel3Products();
+      UpdateMapStyle(mapWidget->GetMapStyle());
       UpdateRadarProductSelection(mapWidget->GetRadarProductGroup(),
                                   mapWidget->GetRadarProductName());
       UpdateRadarProductSettings();
       UpdateRadarSite();
       UpdateVcp();
+   }
+}
+
+void MainWindowImpl::PopulateMapStyles()
+{
+   const auto& mapProviderInfo = map::GetMapProviderInfo(mapProvider_);
+   for (const auto& mapStyle : mapProviderInfo.mapStyles_)
+   {
+      mainWindow_->ui->mapStyleComboBox->addItem(
+         QString::fromStdString(mapStyle.name_));
    }
 }
 
@@ -771,6 +796,16 @@ void MainWindowImpl::UpdateMapParameters(
    for (map::MapWidget* map : maps_)
    {
       map->SetMapParameters(latitude, longitude, zoom, bearing, pitch);
+   }
+}
+
+void MainWindowImpl::UpdateMapStyle(const std::string& styleName)
+{
+   int index = mainWindow_->ui->mapStyleComboBox->findText(
+      QString::fromStdString(styleName));
+   if (index != -1)
+   {
+      mainWindow_->ui->mapStyleComboBox->setCurrentIndex(index);
    }
 }
 

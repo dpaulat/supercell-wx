@@ -185,6 +185,25 @@
       </widget>
      </item>
      <item>
+      <widget class="QGroupBox" name="mapSettingsGroupBox">
+       <property name="title">
+        <string>Map Settings</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_5">
+        <item>
+         <widget class="QLabel" name="mapStyleLabel">
+          <property name="text">
+           <string>Map Style</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="mapStyleComboBox"/>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
       <widget class="QGroupBox" name="radarProductGroupBox">
        <property name="title">
         <string>Radar Products</string>

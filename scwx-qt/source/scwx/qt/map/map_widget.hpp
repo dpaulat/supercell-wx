@@ -38,6 +38,7 @@ public:
    float                              GetElevation() const;
    std::vector<float>                 GetElevationCuts() const;
    std::vector<std::string>           GetLevel3Products();
+   std::string                        GetMapStyle() const;
    common::RadarProductGroup          GetRadarProductGroup() const;
    std::string                        GetRadarProductName() const;
    std::shared_ptr<config::RadarSite> GetRadarSite() const;
@@ -98,6 +99,7 @@ public:
                          double zoom,
                          double bearing,
                          double pitch);
+   void SetMapStyle(const std::string& styleName);
 
 private:
    void  changeStyle();
@@ -129,6 +131,7 @@ signals:
                              double zoom,
                              double bearing,
                              double pitch);
+   void MapStyleChanged(const std::string& styleName);
    void RadarSweepUpdated();
 };
 
