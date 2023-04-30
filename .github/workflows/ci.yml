@@ -31,6 +31,7 @@ jobs:
             msvc_version: 2022
             qt_version: 6.5.0
             qt_arch: win64_msvc2019_64
+            qt_modules: qtimageformats
             qt_tools: ''
             conan_arch: x86_64
             conan_compiler: Visual Studio
@@ -46,6 +47,7 @@ jobs:
             compiler: gcc
             qt_version: 6.5.0
             qt_arch: gcc_64
+            qt_modules: qtimageformats
             qt_tools: ''
             conan_arch: x86_64
             conan_compiler: gcc
@@ -74,6 +76,7 @@ jobs:
       with:
         version: ${{ matrix.qt_version }}
         arch: ${{ matrix.qt_arch }}
+        modules: ${{ matrix.qt_modules }}
         tools: ${{ matrix.qt_tools }}
 
     - name: Setup MSVC
