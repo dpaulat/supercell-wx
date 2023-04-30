@@ -19,9 +19,7 @@ static const std::unordered_map<MapProvider, std::string> mapProviderName_ {
 
 // Draw below tunnels, ferries and roads
 static const std::vector<std::string> mapboxDrawBelow_ {
-   "tunnel", "ferry", "road"};
-static const std::vector<std::string> maptilerDrawBelow_ {
-   "tunnel", "ferry", "road"};
+   "tunnel.*", "ferry.*", "road.*"};
 
 static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
    {MapProvider::Mapbox,
@@ -56,25 +54,25 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
           QMapLibreGL::Settings::SettingsTemplate::MapTilerSettings},
        .mapStyles_ {{.name_ {"Satellite"},
                      .url_ {"maptiler://maps/hybrid"},
-                     .drawBelow_ {maptilerDrawBelow_}},
+                     .drawBelow_ {"tunnel"}},
                     {.name_ {"Streets"},
                      .url_ {"maptiler://maps/streets-v2"},
-                     .drawBelow_ {maptilerDrawBelow_}},
+                     .drawBelow_ {"aeroway"}},
                     {.name_ {"Basic"},
                      .url_ {"maptiler://maps/basic-v2"},
-                     .drawBelow_ {maptilerDrawBelow_}},
+                     .drawBelow_ {"railway_transit_tunnel"}},
                     {.name_ {"Bright"},
                      .url_ {"maptiler://maps/bright-v2"},
-                     .drawBelow_ {maptilerDrawBelow_}},
+                     .drawBelow_ {"ferry"}},
                     {.name_ {"Outdoor"},
                      .url_ {"maptiler://maps/outdoor-v2"},
-                     .drawBelow_ {maptilerDrawBelow_}},
+                     .drawBelow_ {"aeroway_runway"}},
                     {.name_ {"Topo"},
                      .url_ {"maptiler://maps/topo-v2"},
-                     .drawBelow_ {maptilerDrawBelow_}},
+                     .drawBelow_ {"aeroway_runway"}},
                     {.name_ {"Winter"},
                      .url_ {"maptiler://maps/winter-v2"},
-                     .drawBelow_ {maptilerDrawBelow_}}}}},
+                     .drawBelow_ {"aeroway_runway"}}}}},
    {MapProvider::Unknown, MapProviderInfo {}}};
 
 MapProvider GetMapProvider(const std::string& name)

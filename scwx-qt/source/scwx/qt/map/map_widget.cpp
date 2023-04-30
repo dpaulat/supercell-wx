@@ -16,6 +16,8 @@
 #include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 
+#include <regex>
+
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_qt.hpp>
 #include <boost/uuid/random_generator.hpp>
@@ -619,18 +621,22 @@ void MapWidget::AddLayers()
 
       std::string before = "ferry";
 
-      for (const QString& layer : p->map_->layerIds())
+      for (const QString& qlayer : p->map_->layerIds())
       {
+         const std::string layer = qlayer.toStdString();
+
          // Draw below layers defined in map style
-         auto it = std::find_if(
-            mapStyle.drawBelow_.cbegin(),
-            mapStyle.drawBelow_.cend(),
-            [&layer](const std::string& styleLayer) -> bool
-            { return layer.startsWith(QString::fromStdString(styleLayer)); });
+         auto it = std::find_if(mapStyle.drawBelow_.cbegin(),
+                                mapStyle.drawBelow_.cend(),
+                                [&layer](const std::string& styleLayer) -> bool
+                                {
+                                   std::regex re {styleLayer};
+                                   return std::regex_match(layer, re);
+                                });
 
          if (it != mapStyle.drawBelow_.cend())
          {
-            before = layer.toStdString();
+            before = layer;
             break;
          }
       }
