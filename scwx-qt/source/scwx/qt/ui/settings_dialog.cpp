@@ -5,6 +5,7 @@
 #include <scwx/common/color_table.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/util/color.hpp>
@@ -35,8 +36,6 @@ struct ColorTableConversions
    float    offset {0.0f};
    float    scale {1.0f};
 };
-
-static const std::array<std::string, 2> kMapProviders_ {"Mapbox", "MapTiler"};
 
 static const std::array<std::pair<std::string, std::string>, 15>
    kColorTableTypes_ {std::pair {"BR", "BR"},
@@ -320,29 +319,30 @@ void SettingsDialogImpl::SetupGeneralTab()
    gridHeight_.SetEditWidget(self_->ui->gridHeightSpinBox);
    gridHeight_.SetResetButton(self_->ui->resetGridHeightButton);
 
-   for (const auto& mapProvider : kMapProviders_)
+   for (const auto& mapProvider : map::MapProviderIterator())
    {
       self_->ui->mapProviderComboBox->addItem(
-         QString::fromStdString(mapProvider));
+         QString::fromStdString(map::GetMapProviderName(mapProvider)));
    }
 
    mapProvider_.SetSettingsVariable(generalSettings.map_provider());
    mapProvider_.SetMapFromValueFunction(
       [](const std::string& text) -> std::string
       {
-         auto it = std::find_if(kMapProviders_.cbegin(),
-                                kMapProviders_.cend(),
-                                [&text](const std::string& mapProvider)
-                                { return boost::iequals(text, mapProvider); });
+         auto it = std::find_if(
+            map::MapProviderIterator().begin(),
+            map::MapProviderIterator().end(),
+            [&text](map::MapProvider mapProvider)
+            { return boost::iequals(text, GetMapProviderName(mapProvider)); });
 
-         if (it == kMapProviders_.cend())
+         if (it != map::MapProviderIterator().end())
          {
-            // Map provider label not found, return unknown
-            return "?";
+            // Return map provider label
+            return GetMapProviderName(*it);
          }
 
-         // Return map provider label
-         return *it;
+         // Map provider label not found, return unknown
+         return "?";
       });
    mapProvider_.SetMapToValueFunction(
       [](std::string text) -> std::string

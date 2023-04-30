@@ -1,7 +1,10 @@
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/settings_container.hpp>
+#include <scwx/qt/map/map_provider.hpp>
 
 #include <array>
+
+#include <boost/algorithm/string.hpp>
 
 namespace scwx
 {
@@ -11,9 +14,6 @@ namespace settings
 {
 
 static const std::string logPrefix_ = "scwx::qt::settings::general_settings";
-
-static const std::array<std::string, 2> kMapProviderValues_ {"mapbox",
-                                                             "maptiler"};
 
 class GeneralSettingsImpl
 {
@@ -41,9 +41,15 @@ public:
       mapProvider_.SetValidator(
          [](const std::string& value)
          {
-            return std::find(kMapProviderValues_.cbegin(),
-                             kMapProviderValues_.cend(),
-                             value) != kMapProviderValues_.cend();
+            return std::find_if(map::MapProviderIterator().begin(),
+                                map::MapProviderIterator().end(),
+                                [&value](map::MapProvider mapProvider)
+                                {
+                                   std::string mapProviderName =
+                                      map::GetMapProviderName(mapProvider);
+                                   boost::to_lower(mapProviderName);
+                                   return value == mapProviderName;
+                                }) != map::MapProviderIterator().end();
          });
       mapboxApiKey_.SetValidator([](const std::string& value)
                                  { return !value.empty(); });
