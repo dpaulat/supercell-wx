@@ -15,7 +15,7 @@ Supercell Wx uses code from the following dependencies:
 | [bzip2](https://sourceware.org/bzip2/) | [bzip2 and libbzip2 License v1.0.6](https://spdx.org/licenses/bzip2-1.0.6.html) |
 | [cmake-conan](https://github.com/conan-io/cmake-conan) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [cpr](https://github.com/libcpr/cpr) | [MIT License](https://spdx.org/licenses/MIT.html) |
-| [CSS Color Parser](https://github.com/deanm/css-color-parser-js) | [MIT License](https://spdx.org/licenses/MIT.html) | Ported to C++ for MapLibre GL Native |
+| [CSS Color Parser](https://github.com/deanm/css-color-parser-js) | [MIT License](https://spdx.org/licenses/MIT.html) | Ported to C++ for MapLibre Native |
 | [Date](https://github.com/HowardHinnant/date) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [Dear ImGui](https://github.com/ocornut/imgui) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [FreeType](https://freetype.org/) | [Freetype Project License](https://spdx.org/licenses/FTL.html) |
@@ -29,8 +29,8 @@ Supercell Wx uses code from the following dependencies:
 | [libiconv](https://www.gnu.org/software/libiconv/) | [GNU Lesser General Public License v2.1 or later](https://spdx.org/licenses/LGPL-2.1-or-later.html) |
 | [libpng](http://libpng.org/pub/png/libpng.html) | [PNG Reference Library version 2](https://spdx.org/licenses/libpng-2.0.html) |
 | [libxml2](http://xmlsoft.org/) | [MIT License](https://spdx.org/licenses/MIT.html) |
-| [MapLibre GL Native](https://maplibre.org/projects/maplibre-native/) | [BSD 2-Clause "Simplified" License](https://spdx.org/licenses/BSD-2-Clause.html) |
-| [nunicode](https://bitbucket.org/alekseyt/nunicode/src/master/) | [MIT License](https://spdx.org/licenses/MIT.html) | Modified for MapLibre GL Native |
+| [MapLibre Native](https://maplibre.org/projects/maplibre-native/) | [BSD 2-Clause "Simplified" License](https://spdx.org/licenses/BSD-2-Clause.html) |
+| [nunicode](https://bitbucket.org/alekseyt/nunicode/src/master/) | [MIT License](https://spdx.org/licenses/MIT.html) | Modified for MapLibre Native |
 | [OpenSSL](https://www.openssl.org/) | [OpenSSL License](https://spdx.org/licenses/OpenSSL.html) |
 | [Qt](https://www.qt.io/) | [GNU Lesser General Public License v3.0 only](https://spdx.org/licenses/LGPL-3.0-only.html) | Qt Core, Qt GUI, Qt Network, Qt OpenGL, Qt SQL, Qt SVG, Qt Widgets<br/>Additional Licenses: https://doc.qt.io/qt-6/licenses-used-in-qt.html |
 | [spdlog](https://github.com/gabime/spdlog) | [MIT License](https://spdx.org/licenses/MIT.html) |

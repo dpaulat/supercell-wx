@@ -5,6 +5,7 @@
 #include <scwx/qt/map/alert_layer.hpp>
 #include <scwx/qt/map/color_table_layer.hpp>
 #include <scwx/qt/map/layer_wrapper.hpp>
+#include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
@@ -14,6 +15,8 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
+
+#include <regex>
 
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_qt.hpp>
@@ -39,20 +42,6 @@ namespace map
 static const std::string logPrefix_ = "scwx::qt::map::map_widget";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-typedef std::pair<std::string, std::string> MapStyle;
-
-// clang-format off
-static const MapStyle streets          { "mapbox://styles/mapbox/streets-v11",           "Streets"};
-static const MapStyle outdoors         { "mapbox://styles/mapbox/outdoors-v11",          "Outdoors"};
-static const MapStyle light            { "mapbox://styles/mapbox/light-v10",             "Light"};
-static const MapStyle dark             { "mapbox://styles/mapbox/dark-v10",              "Dark" };
-static const MapStyle satellite        { "mapbox://styles/mapbox/satellite-v9",          "Satellite" };
-static const MapStyle satelliteStreets { "mapbox://styles/mapbox/satellite-streets-v11", "Satellite Streets" };
-// clang-format on
-
-static const std::array<MapStyle, 6> mapboxStyles_ = {
-   {streets, outdoors, light, dark, satellite, satelliteStreets}};
-
 class MapWidgetImpl : public QObject
 {
    Q_OBJECT
@@ -77,6 +66,7 @@ public:
        selectedTime_ {},
        lastPos_(),
        currentStyleIndex_ {0},
+       currentStyle_ {nullptr},
        frameDraws_(0),
        prevLatitude_ {0.0},
        prevLongitude_ {0.0},
@@ -84,9 +74,10 @@ public:
        prevBearing_ {0.0},
        prevPitch_ {0.0}
    {
-      SetRadarSite(scwx::qt::manager::SettingsManager::general_settings()
-                      .default_radar_site()
-                      .GetValue());
+      auto& generalSettings =
+         scwx::qt::manager::SettingsManager::general_settings();
+
+      SetRadarSite(generalSettings.default_radar_site().GetValue());
 
       // Create ImGui Context
       static size_t currentMapId_ {0u};
@@ -97,6 +88,9 @@ public:
       // Initialize ImGui Qt backend
       ImGui_ImplQt_Init();
       ImGui_ImplQt_RegisterWidget(widget_);
+
+      // Set Map Provider Details
+      mapProvider_ = GetMapProvider(generalSettings.map_provider().GetValue());
    }
 
    ~MapWidgetImpl()
@@ -134,6 +128,7 @@ public:
    std::shared_ptr<MapContext> context_;
 
    MapWidget*                        widget_;
+   MapProvider                       mapProvider_;
    QMapLibreGL::Settings             settings_;
    std::shared_ptr<QMapLibreGL::Map> map_;
    std::list<std::string>            layerList_;
@@ -156,8 +151,9 @@ public:
    common::Level2Product                 selectedLevel2Product_;
    std::chrono::system_clock::time_point selectedTime_;
 
-   QPointF lastPos_;
-   uint8_t currentStyleIndex_;
+   QPointF         lastPos_;
+   std::size_t     currentStyleIndex_;
+   const MapStyle* currentStyle_;
 
    uint64_t frameDraws_;
 
@@ -265,6 +261,18 @@ std::vector<std::string> MapWidget::GetLevel3Products()
    else
    {
       return {};
+   }
+}
+
+std::string MapWidget::GetMapStyle() const
+{
+   if (p->currentStyle_ != nullptr)
+   {
+      return p->currentStyle_->name_;
+   }
+   else
+   {
+      return "?";
    }
 }
 
@@ -538,6 +546,32 @@ void MapWidget::SetMapParameters(
    }
 }
 
+void MapWidget::SetMapStyle(const std::string& styleName)
+{
+   const auto& mapProviderInfo = GetMapProviderInfo(p->mapProvider_);
+   auto&       styles          = mapProviderInfo.mapStyles_;
+
+   for (size_t i = 0u; i < styles.size(); ++i)
+   {
+      if (styles[i].name_ == styleName)
+      {
+         p->currentStyleIndex_ = i;
+         p->currentStyle_      = &styles[i];
+
+         logger_->debug("Updating style: {}", styles[i].name_);
+
+         p->map_->setStyleUrl(styles[i].url_.c_str());
+
+         if (++p->currentStyleIndex_ == styles.size())
+         {
+            p->currentStyleIndex_ = 0;
+         }
+
+         break;
+      }
+   }
+}
+
 qreal MapWidget::pixelRatio()
 {
    return devicePixelRatioF();
@@ -545,16 +579,21 @@ qreal MapWidget::pixelRatio()
 
 void MapWidget::changeStyle()
 {
-   auto& styles = mapboxStyles_;
+   const auto& mapProviderInfo = GetMapProviderInfo(p->mapProvider_);
+   auto&       styles          = mapProviderInfo.mapStyles_;
 
-   p->map_->setStyleUrl(styles[p->currentStyleIndex_].first.c_str());
-   setWindowTitle(QString("Mapbox GL: ") +
-                  styles[p->currentStyleIndex_].second.c_str());
+   p->currentStyle_ = &styles[p->currentStyleIndex_];
+
+   logger_->debug("Updating style: {}", styles[p->currentStyleIndex_].name_);
+
+   p->map_->setStyleUrl(styles[p->currentStyleIndex_].url_.c_str());
 
    if (++p->currentStyleIndex_ == styles.size())
    {
       p->currentStyleIndex_ = 0;
    }
+
+   emit MapStyleChanged(p->currentStyle_->name_);
 }
 
 void MapWidget::AddLayers()
@@ -578,15 +617,26 @@ void MapWidget::AddLayers()
       std::shared_ptr<config::RadarSite> radarSite =
          p->radarProductManager_->radar_site();
 
+      const auto& mapStyle = *p->currentStyle_;
+
       std::string before = "ferry";
 
-      for (const QString& layer : p->map_->layerIds())
+      for (const QString& qlayer : p->map_->layerIds())
       {
-         // Draw below tunnels, ferries and roads
-         if (layer.startsWith("tunnel") || layer.startsWith("ferry") ||
-             layer.startsWith("road"))
+         const std::string layer = qlayer.toStdString();
+
+         // Draw below layers defined in map style
+         auto it = std::find_if(mapStyle.drawBelow_.cbegin(),
+                                mapStyle.drawBelow_.cend(),
+                                [&layer](const std::string& styleLayer) -> bool
+                                {
+                                   std::regex re {styleLayer};
+                                   return std::regex_match(layer, re);
+                                });
+
+         if (it != mapStyle.drawBelow_.cend())
          {
-            before = layer.toStdString();
+            before = layer;
             break;
          }
       }
@@ -740,16 +790,8 @@ void MapWidget::initializeGL()
                              p->prevBearing_,
                              p->prevPitch_);
 
-   QString styleUrl = qgetenv("MAPBOX_STYLE_URL");
-   if (styleUrl.isEmpty())
-   {
-      changeStyle();
-   }
-   else
-   {
-      p->map_->setStyleUrl(styleUrl);
-      setWindowTitle(QString("Mapbox GL: ") + styleUrl);
-   }
+   // Update style
+   changeStyle();
 
    connect(p->map_.get(),
            &QMapLibreGL::Map::mapChanged,

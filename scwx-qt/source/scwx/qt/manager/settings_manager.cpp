@@ -1,10 +1,12 @@
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/util/json.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <filesystem>
 #include <fstream>
 
+#include <boost/algorithm/string.hpp>
 #include <QDir>
 #include <QStandardPaths>
 
@@ -23,6 +25,7 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static boost::json::value ConvertSettingsToJson();
 static void               GenerateDefaultSettings();
 static bool               LoadSettings(const boost::json::object& settingsJson);
+static void               ValidateSettings();
 
 static bool        initialized_ {false};
 static std::string settingsPath_ {};
@@ -46,6 +49,7 @@ void Initialize()
    initialized_  = true;
 
    ReadSettings(settingsPath_);
+   ValidateSettings();
 }
 
 void ReadSettings(const std::string& settingsPath)
@@ -135,6 +139,47 @@ static bool LoadSettings(const boost::json::object& settingsJson)
    jsonDirty |= !palette_settings().ReadJson(settingsJson);
 
    return jsonDirty;
+}
+
+static void ValidateSettings()
+{
+   logger_->debug("Validating settings");
+
+   bool settingsChanged = false;
+
+   auto& generalSettings = general_settings();
+
+   // Validate map provider
+   std::string mapProviderName = generalSettings.map_provider().GetValue();
+   std::string mapboxApiKey    = generalSettings.mapbox_api_key().GetValue();
+   std::string maptilerApiKey  = generalSettings.maptiler_api_key().GetValue();
+
+   map::MapProvider mapProvider = map::GetMapProvider(mapProviderName);
+   std::string      mapApiKey   = map::GetMapProviderApiKey(mapProvider);
+
+   if (mapApiKey == "?")
+   {
+      for (map::MapProvider newProvider : map::MapProviderIterator())
+      {
+         if (mapProvider != newProvider &&
+             map::GetMapProviderApiKey(newProvider).size() > 1)
+         {
+            logger_->info(
+               "Setting Map Provider to {} based on API key settings",
+               map::GetMapProviderName(newProvider));
+
+            std::string newProviderName {GetMapProviderName(newProvider)};
+            boost::to_lower(newProviderName);
+            generalSettings.map_provider().SetValue(newProviderName);
+            settingsChanged = true;
+         }
+      }
+   }
+
+   if (settingsChanged)
+   {
+      SaveSettings();
+   }
 }
 
 } // namespace SettingsManager
