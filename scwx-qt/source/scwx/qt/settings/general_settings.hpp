@@ -28,6 +28,7 @@ public:
    GeneralSettings& operator=(GeneralSettings&&) noexcept;
 
    SettingsVariable<bool>&                       debug_enabled() const;
+   SettingsVariable<std::string>&                default_alert_action() const;
    SettingsVariable<std::string>&                default_radar_site() const;
    SettingsContainer<std::vector<std::int64_t>>& font_sizes() const;
    SettingsVariable<std::int64_t>&               grid_height() const;
