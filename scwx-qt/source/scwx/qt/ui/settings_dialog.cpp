@@ -7,6 +7,7 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/settings/settings_interface.hpp>
+#include <scwx/qt/types/alert_types.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/util/color.hpp>
 #include <scwx/qt/util/file.hpp>
@@ -88,6 +89,7 @@ public:
           &mapProvider_,
           &mapboxApiKey_,
           &mapTilerApiKey_,
+          &defaultAlertAction_,
           &updateNotificationsEnabled_,
           &debugEnabled_}}
    {
@@ -144,8 +146,9 @@ public:
    settings::SettingsInterface<std::string>               mapProvider_ {};
    settings::SettingsInterface<std::string>               mapboxApiKey_ {};
    settings::SettingsInterface<std::string>               mapTilerApiKey_ {};
-   settings::SettingsInterface<bool> updateNotificationsEnabled_ {};
-   settings::SettingsInterface<bool> debugEnabled_ {};
+   settings::SettingsInterface<std::string> defaultAlertAction_ {};
+   settings::SettingsInterface<bool>        updateNotificationsEnabled_ {};
+   settings::SettingsInterface<bool>        debugEnabled_ {};
 
    std::unordered_map<std::string, settings::SettingsInterface<std::string>>
       colorTables_ {};
@@ -331,10 +334,13 @@ void SettingsDialogImpl::SetupGeneralTab()
       {
          for (map::MapProvider mapProvider : map::MapProviderIterator())
          {
-            if (boost::iequals(text, map::GetMapProviderName(mapProvider)))
+            const std::string mapProviderName =
+               map::GetMapProviderName(mapProvider);
+
+            if (boost::iequals(text, mapProviderName))
             {
                // Return map provider label
-               return GetMapProviderName(mapProvider);
+               return mapProviderName;
             }
          }
 
@@ -358,6 +364,42 @@ void SettingsDialogImpl::SetupGeneralTab()
    mapTilerApiKey_.SetSettingsVariable(generalSettings.maptiler_api_key());
    mapTilerApiKey_.SetEditWidget(self_->ui->mapTilerApiKeyLineEdit);
    mapTilerApiKey_.SetResetButton(self_->ui->resetMapTilerApiKeyButton);
+
+   for (const auto& alertAction : types::AlertActionIterator())
+   {
+      self_->ui->defaultAlertActionComboBox->addItem(
+         QString::fromStdString(types::GetAlertActionName(alertAction)));
+   }
+
+   defaultAlertAction_.SetSettingsVariable(
+      generalSettings.default_alert_action());
+   defaultAlertAction_.SetMapFromValueFunction(
+      [](const std::string& text) -> std::string
+      {
+         for (types::AlertAction alertAction : types::AlertActionIterator())
+         {
+            const std::string alertActionName =
+               types::GetAlertActionName(alertAction);
+
+            if (boost::iequals(text, alertActionName))
+            {
+               // Return alert action label
+               return alertActionName;
+            }
+         }
+
+         // Alert action label not found, return unknown
+         return "?";
+      });
+   defaultAlertAction_.SetMapToValueFunction(
+      [](std::string text) -> std::string
+      {
+         // Convert label to lower case and return
+         boost::to_lower(text);
+         return text;
+      });
+   defaultAlertAction_.SetEditWidget(self_->ui->defaultAlertActionComboBox);
+   defaultAlertAction_.SetResetButton(self_->ui->resetDefaultAlertActionButton);
 
    updateNotificationsEnabled_.SetSettingsVariable(
       generalSettings.update_notifications_enabled());

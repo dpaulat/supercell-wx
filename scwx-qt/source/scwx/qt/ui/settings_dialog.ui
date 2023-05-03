@@ -109,39 +109,58 @@
              <property name="bottomMargin">
               <number>0</number>
              </property>
+             <item row="5" column="2">
+              <widget class="QComboBox" name="mapProviderComboBox"/>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_5">
+               <property name="text">
+                <string>Font Sizes</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="2">
+              <widget class="QComboBox" name="radarSiteComboBox"/>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label">
+               <property name="text">
+                <string>Default Radar Site</string>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="4">
+              <widget class="QToolButton" name="resetMapProviderButton">
+               <property name="text">
+                <string>...</string>
+               </property>
+               <property name="icon">
+                <iconset resource="../../../../scwx-qt.qrc">
+                 <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+               </property>
+              </widget>
+             </item>
              <item row="1" column="2">
               <widget class="QLineEdit" name="fontSizesLineEdit"/>
              </item>
-             <item row="0" column="3">
-              <widget class="QToolButton" name="radarSiteSelectButton">
+             <item row="6" column="0">
+              <widget class="QLabel" name="label_4">
                <property name="text">
-                <string>...</string>
+                <string>Mapbox API Key</string>
                </property>
               </widget>
              </item>
-             <item row="0" column="4">
-              <widget class="QToolButton" name="resetRadarSiteButton">
+             <item row="7" column="0">
+              <widget class="QLabel" name="label_6">
                <property name="text">
-                <string>...</string>
-               </property>
-               <property name="icon">
-                <iconset resource="../../../../scwx-qt.qrc">
-                 <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+                <string>MapTiler API Key</string>
                </property>
               </widget>
              </item>
-             <item row="2" column="4">
-              <widget class="QToolButton" name="resetGridWidthButton">
-               <property name="text">
-                <string>...</string>
-               </property>
-               <property name="icon">
-                <iconset resource="../../../../scwx-qt.qrc">
-                 <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
-               </property>
-              </widget>
+             <item row="2" column="2">
+              <widget class="QSpinBox" name="gridWidthSpinBox"/>
              </item>
-             <item row="6" column="4">
+             <item row="7" column="4">
               <widget class="QToolButton" name="resetMapTilerApiKeyButton">
                <property name="text">
                 <string>...</string>
@@ -152,17 +171,10 @@
                </property>
               </widget>
              </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="label_5">
+             <item row="0" column="3">
+              <widget class="QToolButton" name="radarSiteSelectButton">
                <property name="text">
-                <string>Font Sizes</string>
-               </property>
-              </widget>
-             </item>
-             <item row="6" column="0">
-              <widget class="QLabel" name="label_6">
-               <property name="text">
-                <string>MapTiler API Key</string>
+                <string>...</string>
                </property>
               </widget>
              </item>
@@ -177,8 +189,22 @@
                </property>
               </widget>
              </item>
-             <item row="2" column="2">
-              <widget class="QSpinBox" name="gridWidthSpinBox"/>
+             <item row="7" column="2">
+              <widget class="QLineEdit" name="mapTilerApiKeyLineEdit"/>
+             </item>
+             <item row="3" column="2">
+              <widget class="QSpinBox" name="gridHeightSpinBox"/>
+             </item>
+             <item row="0" column="4">
+              <widget class="QToolButton" name="resetRadarSiteButton">
+               <property name="text">
+                <string>...</string>
+               </property>
+               <property name="icon">
+                <iconset resource="../../../../scwx-qt.qrc">
+                 <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+               </property>
+              </widget>
              </item>
              <item row="3" column="0">
               <widget class="QLabel" name="label_3">
@@ -199,12 +225,9 @@
               </widget>
              </item>
              <item row="6" column="2">
-              <widget class="QLineEdit" name="mapTilerApiKeyLineEdit"/>
+              <widget class="QLineEdit" name="mapboxApiKeyLineEdit"/>
              </item>
-             <item row="0" column="2">
-              <widget class="QComboBox" name="radarSiteComboBox"/>
-             </item>
-             <item row="5" column="4">
+             <item row="6" column="4">
               <widget class="QToolButton" name="resetMapboxApiKeyButton">
                <property name="text">
                 <string>...</string>
@@ -215,19 +238,6 @@
                </property>
               </widget>
              </item>
-             <item row="5" column="2">
-              <widget class="QLineEdit" name="mapboxApiKeyLineEdit"/>
-             </item>
-             <item row="5" column="0">
-              <widget class="QLabel" name="label_4">
-               <property name="text">
-                <string>Mapbox API Key</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="2">
-              <widget class="QSpinBox" name="gridHeightSpinBox"/>
-             </item>
              <item row="2" column="0">
               <widget class="QLabel" name="label_2">
                <property name="text">
@@ -235,25 +245,36 @@
                </property>
               </widget>
              </item>
-             <item row="0" column="0">
-              <widget class="QLabel" name="label">
-               <property name="text">
-                <string>Default Radar Site</string>
-               </property>
-              </widget>
-             </item>
-             <item row="4" column="0">
+             <item row="5" column="0">
               <widget class="QLabel" name="label_7">
                <property name="text">
                 <string>Map Provider</string>
                </property>
               </widget>
              </item>
-             <item row="4" column="2">
-              <widget class="QComboBox" name="mapProviderComboBox"/>
+             <item row="2" column="4">
+              <widget class="QToolButton" name="resetGridWidthButton">
+               <property name="text">
+                <string>...</string>
+               </property>
+               <property name="icon">
+                <iconset resource="../../../../scwx-qt.qrc">
+                 <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+               </property>
+              </widget>
              </item>
-             <item row="4" column="4">
-              <widget class="QToolButton" name="resetMapProviderButton">
+             <item row="8" column="0">
+              <widget class="QLabel" name="defaultAlertActionLabel">
+               <property name="text">
+                <string>Default Alert Action</string>
+               </property>
+              </widget>
+             </item>
+             <item row="8" column="2">
+              <widget class="QComboBox" name="defaultAlertActionComboBox"/>
+             </item>
+             <item row="8" column="4">
+              <widget class="QToolButton" name="resetDefaultAlertActionButton">
                <property name="text">
                 <string>...</string>
                </property>

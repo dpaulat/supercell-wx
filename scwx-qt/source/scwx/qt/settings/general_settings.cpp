@@ -1,6 +1,7 @@
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/settings_container.hpp>
 #include <scwx/qt/map/map_provider.hpp>
+#include <scwx/qt/types/alert_types.hpp>
 
 #include <array>
 
@@ -20,12 +21,21 @@ class GeneralSettingsImpl
 public:
    explicit GeneralSettingsImpl()
    {
+      std::string defaultDefaultAlertActionValue =
+         types::GetAlertActionName(types::AlertAction::Go);
+      std::string defaultMapProviderValue =
+         map::GetMapProviderName(map::MapProvider::MapTiler);
+
+      boost::to_lower(defaultDefaultAlertActionValue);
+      boost::to_lower(defaultMapProviderValue);
+
       debugEnabled_.SetDefault(false);
+      defaultAlertAction_.SetDefault(defaultDefaultAlertActionValue);
       defaultRadarSite_.SetDefault("KLSX");
       fontSizes_.SetDefault({16});
       gridWidth_.SetDefault(1);
       gridHeight_.SetDefault(1);
-      mapProvider_.SetDefault("maptiler");
+      mapProvider_.SetDefault(defaultMapProviderValue);
       mapboxApiKey_.SetDefault("?");
       maptilerApiKey_.SetDefault("?");
       updateNotificationsEnabled_.SetDefault(true);
@@ -38,6 +48,26 @@ public:
       gridWidth_.SetMaximum(2);
       gridHeight_.SetMinimum(1);
       gridHeight_.SetMaximum(2);
+
+      defaultAlertAction_.SetValidator(
+         [](const std::string& value)
+         {
+            for (types::AlertAction alertAction : types::AlertActionIterator())
+            {
+               // If the value is equal to a lower case alert action name
+               std::string alertActionName =
+                  types::GetAlertActionName(alertAction);
+               boost::to_lower(alertActionName);
+               if (value == alertActionName)
+               {
+                  // Regard as a match, valid
+                  return true;
+               }
+            }
+
+            // No match found, invalid
+            return false;
+         });
       mapProvider_.SetValidator(
          [](const std::string& value)
          {
@@ -66,6 +96,7 @@ public:
    ~GeneralSettingsImpl() {}
 
    SettingsVariable<bool>        debugEnabled_ {"debug_enabled"};
+   SettingsVariable<std::string> defaultAlertAction_ {"default_alert_action"};
    SettingsVariable<std::string> defaultRadarSite_ {"default_radar_site"};
    SettingsContainer<std::vector<std::int64_t>> fontSizes_ {"font_sizes"};
    SettingsVariable<std::int64_t>               gridWidth_ {"grid_width"};
@@ -80,6 +111,7 @@ GeneralSettings::GeneralSettings() :
     SettingsCategory("general"), p(std::make_unique<GeneralSettingsImpl>())
 {
    RegisterVariables({&p->debugEnabled_,
+                      &p->defaultAlertAction_,
                       &p->defaultRadarSite_,
                       &p->fontSizes_,
                       &p->gridWidth_,
@@ -99,6 +131,11 @@ GeneralSettings::operator=(GeneralSettings&&) noexcept = default;
 SettingsVariable<bool>& GeneralSettings::debug_enabled() const
 {
    return p->debugEnabled_;
+}
+
+SettingsVariable<std::string>& GeneralSettings::default_alert_action() const
+{
+   return p->defaultAlertAction_;
 }
 
 SettingsVariable<std::string>& GeneralSettings::default_radar_site() const
@@ -145,6 +182,7 @@ SettingsVariable<bool>& GeneralSettings::update_notifications_enabled() const
 bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
 {
    return (lhs.p->debugEnabled_ == rhs.p->debugEnabled_ &&
+           lhs.p->defaultAlertAction_ == rhs.p->defaultAlertAction_ &&
            lhs.p->defaultRadarSite_ == rhs.p->defaultRadarSite_ &&
            lhs.p->fontSizes_ == rhs.p->fontSizes_ &&
            lhs.p->gridWidth_ == rhs.p->gridWidth_ &&

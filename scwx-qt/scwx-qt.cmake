@@ -129,12 +129,14 @@ set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/settings_interface_base.cpp
                  source/scwx/qt/settings/settings_variable.cpp
                  source/scwx/qt/settings/settings_variable_base.cpp)
-set(HDR_TYPES source/scwx/qt/types/font_types.hpp
+set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
+              source/scwx/qt/types/font_types.hpp
               source/scwx/qt/types/github_types.hpp
               source/scwx/qt/types/qt_types.hpp
               source/scwx/qt/types/radar_product_record.hpp
               source/scwx/qt/types/text_event_key.hpp)
-set(SRC_TYPES source/scwx/qt/types/github_types.cpp
+set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
+              source/scwx/qt/types/github_types.cpp
               source/scwx/qt/types/radar_product_record.cpp
               source/scwx/qt/types/text_event_key.cpp)
 set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
