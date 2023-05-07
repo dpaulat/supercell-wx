@@ -76,6 +76,7 @@
      <string>&amp;View</string>
     </property>
     <addaction name="actionRadarToolbox"/>
+    <addaction name="actionAnimationToolbox"/>
     <addaction name="actionResourceExplorer"/>
     <addaction name="actionAlerts"/>
    </widget>
@@ -359,7 +360,7 @@
   </action>
   <action name="actionRadarToolbox">
    <property name="text">
-    <string>Radar Toolbox</string>
+    <string>Radar &amp;Toolbox</string>
    </property>
   </action>
   <action name="actionResourceExplorer">
@@ -427,6 +428,11 @@
   <action name="actionCheckForUpdates">
    <property name="text">
     <string>&amp;Check for Updates</string>
+   </property>
+  </action>
+  <action name="actionAnimationToolbox">
+   <property name="text">
+    <string>A&amp;nimation Toolbox</string>
    </property>
   </action>
  </widget>

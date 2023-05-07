@@ -15,6 +15,7 @@
 #include <scwx/qt/ui/alert_dock_widget.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/qt/ui/about_dialog.hpp>
+#include <scwx/qt/ui/animation_dock_widget.hpp>
 #include <scwx/qt/ui/imgui_debug_dialog.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
@@ -62,6 +63,7 @@ public:
        level2SettingsWidget_ {nullptr},
        level3ProductsWidget_ {nullptr},
        alertDockWidget_ {nullptr},
+       animationDockWidget_ {nullptr},
        aboutDialog_ {nullptr},
        imGuiDebugDialog_ {nullptr},
        radarSiteDialog_ {nullptr},
@@ -138,12 +140,13 @@ public:
 
    ui::Level3ProductsWidget* level3ProductsWidget_;
 
-   ui::AlertDockWidget*  alertDockWidget_;
-   ui::AboutDialog*      aboutDialog_;
-   ui::ImGuiDebugDialog* imGuiDebugDialog_;
-   ui::RadarSiteDialog*  radarSiteDialog_;
-   ui::SettingsDialog*   settingsDialog_;
-   ui::UpdateDialog*     updateDialog_;
+   ui::AlertDockWidget*     alertDockWidget_;
+   ui::AnimationDockWidget* animationDockWidget_;
+   ui::AboutDialog*         aboutDialog_;
+   ui::ImGuiDebugDialog*    imGuiDebugDialog_;
+   ui::RadarSiteDialog*     radarSiteDialog_;
+   ui::SettingsDialog*      settingsDialog_;
+   ui::UpdateDialog*        updateDialog_;
 
    std::unique_ptr<model::RadarProductModel>  radarProductModel_;
    std::shared_ptr<manager::TextEventManager> textEventManager_;
@@ -182,11 +185,22 @@ MainWindow::MainWindow(QWidget* parent) :
    p->alertDockWidget_->setVisible(false);
    addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
 
+   // Animation Dock Widget
+   p->animationDockWidget_ = new ui::AnimationDockWidget(this);
+   p->animationDockWidget_->setVisible(true);
+   addDockWidget(Qt::LeftDockWidgetArea, p->animationDockWidget_);
+
    // Configure Menu
    ui->menuView->insertAction(ui->actionRadarToolbox,
                               ui->radarToolboxDock->toggleViewAction());
    ui->radarToolboxDock->toggleViewAction()->setText(tr("Radar &Toolbox"));
    ui->actionRadarToolbox->setVisible(false);
+
+   ui->menuView->insertAction(ui->actionAnimationToolbox,
+                              p->animationDockWidget_->toggleViewAction());
+   p->animationDockWidget_->toggleViewAction()->setText(
+      tr("A&nimation Toolbox"));
+   ui->actionAnimationToolbox->setVisible(false);
 
    ui->menuView->insertAction(ui->actionResourceExplorer,
                               ui->resourceExplorerDock->toggleViewAction());
@@ -273,7 +287,7 @@ void MainWindow::showEvent(QShowEvent* event)
 {
    QMainWindow::showEvent(event);
 
-   resizeDocks({ui->radarToolboxDock}, {150}, Qt::Horizontal);
+   resizeDocks({ui->radarToolboxDock}, {188}, Qt::Horizontal);
 }
 
 void MainWindow::on_actionOpenNexrad_triggered()
