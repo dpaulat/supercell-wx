@@ -17,7 +17,15 @@ set_property(DIRECTORY
              PROPERTY CMAKE_CONFIGURE_DEPENDS
              conanfile.txt)
 
-conan_cmake_autodetect(settings)
+# Don't use RelWithDebInfo Conan packages
+if (${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
+    set(conan_build_type "Release")
+else()
+    set(conan_build_type ${CMAKE_BUILD_TYPE})
+endif()
+
+conan_cmake_autodetect(settings
+                       BUILD_TYPE ${conan_build_type})
 
 conan_cmake_install(PATH_OR_REFERENCE ${PROJECT_SOURCE_DIR}
                     BUILD missing
