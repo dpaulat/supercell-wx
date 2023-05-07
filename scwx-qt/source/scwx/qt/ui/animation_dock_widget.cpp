@@ -3,6 +3,8 @@
 
 #include <scwx/util/logger.hpp>
 
+#include <QTimer>
+
 namespace scwx
 {
 namespace qt
@@ -26,6 +28,44 @@ AnimationDockWidget::AnimationDockWidget(QWidget* parent) :
     ui(new Ui::AnimationDockWidget)
 {
    ui->setupUi(this);
+
+   // Set date/time edit enabled/disabled
+   ui->dateEdit->setEnabled(ui->archiveViewRadioButton->isChecked());
+   ui->timeEdit->setEnabled(ui->archiveViewRadioButton->isChecked());
+
+   // Update date/time edit enabled/disabled based on Archive View radio button
+   connect(ui->archiveViewRadioButton,
+           &QRadioButton::toggled,
+           this,
+           [this](bool checked)
+           {
+              ui->dateEdit->setEnabled(checked);
+              ui->timeEdit->setEnabled(checked);
+           });
+
+   // Set current date/time
+   QDateTime currentDateTime = QDateTime::currentDateTimeUtc();
+   ui->dateEdit->setDate(currentDateTime.date());
+   ui->timeEdit->setTime(currentDateTime.time());
+   ui->dateEdit->setMaximumDate(currentDateTime.date());
+
+   // Update maximum date on a timer
+   QTimer* maxDateTimer = new QTimer(this);
+   connect(maxDateTimer,
+           &QTimer::timeout,
+           this,
+           [this]()
+           {
+              // Update maximum date to today
+              QDate currentDate = QDateTime::currentDateTimeUtc().date();
+              if (ui->dateEdit->maximumDate() != currentDate)
+              {
+                 ui->dateEdit->setMaximumDate(currentDate);
+              }
+           });
+
+   // Evaluate every 15 seconds, every second is unnecessary
+   maxDateTimer->start(15000);
 }
 
 AnimationDockWidget::~AnimationDockWidget()
