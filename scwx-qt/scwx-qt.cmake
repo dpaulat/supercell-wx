@@ -132,6 +132,7 @@ set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
 set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/font_types.hpp
               source/scwx/qt/types/github_types.hpp
+              source/scwx/qt/types/map_types.hpp
               source/scwx/qt/types/qt_types.hpp
               source/scwx/qt/types/radar_product_record.hpp
               source/scwx/qt/types/text_event_key.hpp)
