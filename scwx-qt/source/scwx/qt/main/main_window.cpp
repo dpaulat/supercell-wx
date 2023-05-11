@@ -397,7 +397,7 @@ void MainWindow::on_actionUserManual_triggered()
 
 void MainWindow::on_actionDiscord_triggered()
 {
-   QDesktopServices::openUrl(QUrl {"https://discord.gg/snH4tNav7g"});
+   QDesktopServices::openUrl(QUrl {"https://discord.gg/vFMV76brwU"});
 }
 
 void MainWindow::on_actionGitHubRepository_triggered()

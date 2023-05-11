@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/dpaulat/supercell-wx/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/dpaulat/supercell-wx/actions/workflows/ci.yml)
 [![Documentation Status](https://readthedocs.org/projects/supercell-wx/badge/?version=latest)](https://supercell-wx.readthedocs.io/en/latest/?badge=latest)
-[![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=flat&logo=discord&logoColor=white&labelColor=%235865f2)](https://discord.gg/snH4tNav7g)
+[![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=flat&logo=discord&logoColor=white&labelColor=%235865f2)](https://discord.gg/vFMV76brwU)
 
 Supercell Wx is a free, open source application to visualize live NEXRAD Level 2
 and Level 3 data, and severe weather alerts. It displays continuously updating
