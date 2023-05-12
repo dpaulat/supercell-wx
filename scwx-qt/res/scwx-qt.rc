@@ -22,7 +22,7 @@ BEGIN
             VALUE "InternalName", "scwx"
             VALUE "OriginalFilename", "supercell-wx.exe"
             VALUE "ProductName", "Supercell Wx"
-            VALUE "ProductVersion", "0.1.0.0"
+            VALUE "ProductVersion", "0.1.2.0"
         END
     END
     BLOCK "VarFileInfo"
