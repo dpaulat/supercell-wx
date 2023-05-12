@@ -811,6 +811,9 @@ void MapWidget::paintGL()
    ImGui_ImplOpenGL3_NewFrame();
    ImGui::NewFrame();
 
+   // Update pixel ratio
+   p->context_->set_pixel_ratio(pixelRatio());
+
    // Render QMapLibreGL Map
    p->map_->resize(size());
    p->map_->setFramebufferObject(defaultFramebufferObject(),

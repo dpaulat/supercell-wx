@@ -66,9 +66,6 @@ OverlayLayer::OverlayLayer(std::shared_ptr<MapContext> context) :
    AddDrawItem(p->activeBoxInner_);
 
    p->activeBoxOuter_->SetPosition(0.0f, 0.0f);
-   p->activeBoxOuter_->SetBorder(1.0f, {0, 0, 0, 255});
-   p->activeBoxInner_->SetBorder(1.0f, {255, 255, 255, 255});
-   p->activeBoxInner_->SetPosition(1.0f, 1.0f);
 }
 
 OverlayLayer::~OverlayLayer() = default;
@@ -96,6 +93,7 @@ void OverlayLayer::Render(
    gl::OpenGLFunctions& gl               = context()->gl();
    auto                 radarProductView = context()->radar_product_view();
    auto&                settings         = context()->settings();
+   const float          pixelRatio       = context()->pixel_ratio();
 
    if (p->sweepTimeNeedsUpdate_ && radarProductView != nullptr)
    {
@@ -118,7 +116,13 @@ void OverlayLayer::Render(
    if (settings.isActive_)
    {
       p->activeBoxOuter_->SetSize(params.width, params.height);
-      p->activeBoxInner_->SetSize(params.width - 2.0f, params.height - 2.0f);
+      p->activeBoxInner_->SetSize(params.width - (2.0f * pixelRatio),
+                                  params.height - (2.0f * pixelRatio));
+
+      p->activeBoxInner_->SetPosition(1.0f * pixelRatio, 1.0f * pixelRatio);
+
+      p->activeBoxOuter_->SetBorder(1.0f * pixelRatio, {0, 0, 0, 255});
+      p->activeBoxInner_->SetBorder(1.0f * pixelRatio, {255, 255, 255, 255});
    }
 
    DrawLayer::Render(params);

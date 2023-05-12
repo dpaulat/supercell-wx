@@ -13,6 +13,7 @@ public:
    explicit Impl(std::shared_ptr<view::RadarProductView> radarProductView) :
        map_ {},
        settings_ {},
+       pixelRatio_ {1.0f},
        radarProductView_ {radarProductView},
        radarProductGroup_ {common::RadarProductGroup::Unknown},
        radarProduct_ {"???"},
@@ -24,6 +25,7 @@ public:
 
    std::weak_ptr<QMapLibreGL::Map>         map_;
    MapSettings                             settings_;
+   float                                   pixelRatio_;
    std::shared_ptr<view::RadarProductView> radarProductView_;
    common::RadarProductGroup               radarProductGroup_;
    std::string                             radarProduct_;
@@ -50,6 +52,11 @@ MapSettings& MapContext::settings()
    return p->settings_;
 }
 
+float MapContext::pixel_ratio() const
+{
+   return p->pixelRatio_;
+}
+
 std::shared_ptr<view::RadarProductView> MapContext::radar_product_view() const
 {
    return p->radarProductView_;
@@ -73,6 +80,11 @@ int16_t MapContext::radar_product_code() const
 void MapContext::set_map(std::shared_ptr<QMapLibreGL::Map> map)
 {
    p->map_ = map;
+}
+
+void MapContext::set_pixel_ratio(float pixelRatio)
+{
+   p->pixelRatio_ = pixelRatio;
 }
 
 void MapContext::set_radar_product_view(

@@ -28,12 +28,14 @@ public:
 
    std::weak_ptr<QMapLibreGL::Map>         map() const;
    MapSettings&                            settings();
+   float                                   pixel_ratio() const;
    std::shared_ptr<view::RadarProductView> radar_product_view() const;
    common::RadarProductGroup               radar_product_group() const;
    std::string                             radar_product() const;
    int16_t                                 radar_product_code() const;
 
    void set_map(std::shared_ptr<QMapLibreGL::Map> map);
+   void set_pixel_ratio(float pixelRatio);
    void set_radar_product_view(
       std::shared_ptr<view::RadarProductView> radarProductView);
    void set_radar_product_group(common::RadarProductGroup radarProductGroup);
