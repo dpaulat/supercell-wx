@@ -367,39 +367,69 @@ AlertModelImpl::AlertModelImpl() :
 
 std::string AlertModelImpl::GetCounties(const types::TextEventKey& key)
 {
-   auto  messageList = manager::TextEventManager::Instance()->message_list(key);
-   auto& lastMessage = messageList.back();
-   size_t segmentCount = lastMessage->segment_count();
-   auto   lastSegment  = lastMessage->segment(segmentCount - 1);
-   auto   fipsIds      = lastSegment->header_->ugc_.fips_ids();
+   auto messageList = manager::TextEventManager::Instance()->message_list(key);
 
-   std::vector<std::string> counties;
-   counties.reserve(fipsIds.size());
-   for (auto& id : fipsIds)
+   if (messageList.size() > 0)
    {
-      counties.push_back(config::CountyDatabase::GetCountyName(id));
-   }
-   std::sort(counties.begin(), counties.end());
+      auto&  lastMessage  = messageList.back();
+      size_t segmentCount = lastMessage->segment_count();
+      auto   lastSegment  = lastMessage->segment(segmentCount - 1);
+      auto   fipsIds      = lastSegment->header_->ugc_.fips_ids();
 
-   return scwx::util::ToString(counties);
+      std::vector<std::string> counties;
+      counties.reserve(fipsIds.size());
+      for (auto& id : fipsIds)
+      {
+         counties.push_back(config::CountyDatabase::GetCountyName(id));
+      }
+      std::sort(counties.begin(), counties.end());
+
+      return scwx::util::ToString(counties);
+   }
+   else
+   {
+      logger_->warn("GetCounties(): No message associated with key: {}",
+                    key.ToString());
+      return {};
+   }
 }
 
 std::string AlertModelImpl::GetState(const types::TextEventKey& key)
 {
-   auto  messageList = manager::TextEventManager::Instance()->message_list(key);
-   auto& lastMessage = messageList.back();
-   size_t segmentCount = lastMessage->segment_count();
-   auto   lastSegment  = lastMessage->segment(segmentCount - 1);
-   return scwx::util::ToString(lastSegment->header_->ugc_.states());
+   auto messageList = manager::TextEventManager::Instance()->message_list(key);
+
+   if (messageList.size() > 0)
+   {
+      auto&  lastMessage  = messageList.back();
+      size_t segmentCount = lastMessage->segment_count();
+      auto   lastSegment  = lastMessage->segment(segmentCount - 1);
+      return scwx::util::ToString(lastSegment->header_->ugc_.states());
+   }
+   else
+   {
+      logger_->warn("GetState(): No message associated with key: {}",
+                    key.ToString());
+      return {};
+   }
 }
 
 std::chrono::system_clock::time_point
 AlertModelImpl::GetStartTime(const types::TextEventKey& key)
 {
-   auto  messageList = manager::TextEventManager::Instance()->message_list(key);
-   auto& firstMessage = messageList.front();
-   auto  firstSegment = firstMessage->segment(0);
-   return firstSegment->header_->vtecString_[0].pVtec_.event_begin();
+   auto messageList = manager::TextEventManager::Instance()->message_list(key);
+
+   if (messageList.size() > 0)
+   {
+      auto& firstMessage = messageList.front();
+      auto  firstSegment = firstMessage->segment(0);
+      return firstSegment->header_->vtecString_[0].pVtec_.event_begin();
+   }
+   else
+   {
+      logger_->warn("GetStartTime(): No message associated with key: {}",
+                    key.ToString());
+      return {};
+   }
 }
 
 std::string AlertModelImpl::GetStartTimeString(const types::TextEventKey& key)
@@ -410,11 +440,21 @@ std::string AlertModelImpl::GetStartTimeString(const types::TextEventKey& key)
 std::chrono::system_clock::time_point
 AlertModelImpl::GetEndTime(const types::TextEventKey& key)
 {
-   auto  messageList = manager::TextEventManager::Instance()->message_list(key);
-   auto& lastMessage = messageList.back();
-   size_t segmentCount = lastMessage->segment_count();
-   auto   lastSegment  = lastMessage->segment(segmentCount - 1);
-   return lastSegment->header_->vtecString_[0].pVtec_.event_end();
+   auto messageList = manager::TextEventManager::Instance()->message_list(key);
+
+   if (messageList.size() > 0)
+   {
+      auto&  lastMessage  = messageList.back();
+      size_t segmentCount = lastMessage->segment_count();
+      auto   lastSegment  = lastMessage->segment(segmentCount - 1);
+      return lastSegment->header_->vtecString_[0].pVtec_.event_end();
+   }
+   else
+   {
+      logger_->warn("GetEndTime(): No message associated with key: {}",
+                    key.ToString());
+      return {};
+   }
 }
 
 std::string AlertModelImpl::GetEndTimeString(const types::TextEventKey& key)
