@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace scwx
 {
 namespace qt
@@ -12,6 +14,8 @@ enum class MapTime
    Live,
    Archive
 };
+
+std::string GetMapTimeName(MapTime mapTime);
 
 } // namespace types
 } // namespace qt
