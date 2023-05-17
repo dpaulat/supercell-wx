@@ -20,23 +20,26 @@ public:
                                   const std::string& region);
    virtual ~AwsNexradDataProvider();
 
-   AwsNexradDataProvider(const AwsNexradDataProvider&) = delete;
+   AwsNexradDataProvider(const AwsNexradDataProvider&)            = delete;
    AwsNexradDataProvider& operator=(const AwsNexradDataProvider&) = delete;
 
    AwsNexradDataProvider(AwsNexradDataProvider&&) noexcept;
    AwsNexradDataProvider& operator=(AwsNexradDataProvider&&) noexcept;
 
-   size_t cache_size() const;
+   size_t cache_size() const override;
 
-   std::chrono::system_clock::time_point last_modified() const;
-   std::chrono::seconds                  update_period() const;
+   std::chrono::system_clock::time_point last_modified() const override;
+   std::chrono::seconds                  update_period() const override;
 
-   std::string FindKey(std::chrono::system_clock::time_point time);
-   std::string FindLatestKey();
+   std::string FindKey(std::chrono::system_clock::time_point time) override;
+   std::string FindLatestKey() override;
+   std::vector<std::chrono::system_clock::time_point>
+   GetTimePointsByDate(std::chrono::system_clock::time_point date) override;
    std::pair<size_t, size_t>
-   ListObjects(std::chrono::system_clock::time_point date);
-   std::shared_ptr<wsr88d::NexradFile> LoadObjectByKey(const std::string& key);
-   std::pair<size_t, size_t>           Refresh();
+   ListObjects(std::chrono::system_clock::time_point date) override;
+   std::shared_ptr<wsr88d::NexradFile>
+                             LoadObjectByKey(const std::string& key) override;
+   std::pair<size_t, size_t> Refresh() override;
 
 protected:
    std::shared_ptr<Aws::S3::S3Client> client();

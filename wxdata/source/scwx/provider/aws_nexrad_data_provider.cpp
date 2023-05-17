@@ -9,6 +9,7 @@
 
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/ListObjectsV2Request.h>
+#include <fmt/chrono.h>
 
 namespace scwx
 {
@@ -154,6 +155,45 @@ std::string AwsNexradDataProvider::FindLatestKey()
    }
 
    return key;
+}
+
+std::vector<std::chrono::system_clock::time_point>
+AwsNexradDataProvider::GetTimePointsByDate(
+   std::chrono::system_clock::time_point date)
+{
+   const auto day = std::chrono::floor<std::chrono::days>(date);
+
+   std::vector<std::chrono::system_clock::time_point> timePoints {};
+
+   logger_->debug("GetTimePointsByDate: {}", day);
+
+   std::shared_lock lock(p->objectsMutex_);
+
+   // Is the date present in the date list?
+   if (std::find(p->objectDates_.cbegin(), p->objectDates_.cend(), day) ==
+       p->objectDates_.cend())
+   {
+      // Temporarily unlock mutex
+      lock.unlock();
+
+      // List objects, since the date is not present in the date list
+      ListObjects(date);
+
+      // Re-lock mutex
+      lock.lock();
+   }
+
+   // Determine objects to retrieve
+   auto objectsBegin = p->objects_.lower_bound(day);
+   auto objectsEnd   = p->objects_.lower_bound(day + std::chrono::days {1});
+
+   // Copy time points to destination vector
+   std::transform(objectsBegin,
+                  objectsEnd,
+                  std::back_inserter(timePoints),
+                  [](const auto& object) { return object.first; });
+
+   return timePoints;
 }
 
 std::pair<size_t, size_t>

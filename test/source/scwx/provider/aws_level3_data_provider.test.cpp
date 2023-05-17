@@ -66,6 +66,26 @@ TEST(AwsLevel3DataProvider, GetAvailableProducts)
    EXPECT_GT(products.size(), 0);
 }
 
+TEST(AwsLevel3DataProvider, GetTimePointsByDate)
+{
+   using namespace std::chrono;
+   using sys_days = time_point<system_clock, days>;
+
+   const auto date     = sys_days {2021y / May / 27d};
+   const auto tomorrow = date + days {1};
+
+   AwsLevel3DataProvider provider("KLSX", "N0Q");
+
+   auto timePoints = provider.GetTimePointsByDate(date);
+
+   EXPECT_GT(timePoints.size(), 0);
+   for (auto timePoint : timePoints)
+   {
+      EXPECT_GE(timePoint, date);
+      EXPECT_LT(timePoint, tomorrow);
+   }
+}
+
 TEST(AwsLevel3DataProvider, TimePointValid)
 {
    using namespace std::chrono;

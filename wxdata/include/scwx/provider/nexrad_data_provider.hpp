@@ -102,6 +102,17 @@ public:
    GetTimePointByKey(const std::string& key) const = 0;
 
    /**
+    * Gets NEXRAD data time points for the date supplied. Lists and adds them
+    * to the cache if required.
+    *
+    * @param date Date for which to get NEXRAD data time points
+    *
+    * @return NEXRAD data time points
+    */
+   virtual std::vector<std::chrono::system_clock::time_point>
+   GetTimePointsByDate(std::chrono::system_clock::time_point date) = 0;
+
+   /**
     * Requests available NEXRAD products for the current radar site, and adds
     * the list to the cache.
     */
