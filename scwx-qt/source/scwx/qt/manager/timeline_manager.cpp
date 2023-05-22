@@ -26,6 +26,7 @@ public:
 
    void SelectTime(std::chrono::system_clock::time_point selectedTime = {});
 
+   std::string                           radarSite_ {"?"};
    std::chrono::system_clock::time_point pinnedTime_ {};
    std::chrono::system_clock::time_point currentTime_ {};
    types::MapTime                        viewType_ {types::MapTime::Live};
@@ -35,6 +36,11 @@ public:
 
 TimelineManager::TimelineManager() : p(std::make_unique<Impl>(this)) {}
 TimelineManager::~TimelineManager() = default;
+
+void TimelineManager::SetRadarSite(const std::string& radarSite)
+{
+   p->radarSite_ = radarSite;
+}
 
 void TimelineManager::SetDateTime(
    std::chrono::system_clock::time_point dateTime)

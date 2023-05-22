@@ -25,6 +25,8 @@ public:
    static std::shared_ptr<TimelineManager> Instance();
 
 public slots:
+   void SetRadarSite(const std::string& radarSite);
+
    void SetDateTime(std::chrono::system_clock::time_point dateTime);
    void SetViewType(types::MapTime viewType);
 
