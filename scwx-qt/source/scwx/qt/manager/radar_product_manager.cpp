@@ -13,6 +13,7 @@
 #include <execution>
 #include <mutex>
 #include <shared_mutex>
+#include <unordered_set>
 
 #if defined(_MSC_VER)
 #   pragma warning(push, 0)
@@ -244,8 +245,8 @@ public:
    std::unordered_map<boost::uuids::uuid,
                       std::shared_ptr<ProviderManager>,
                       boost::hash<boost::uuids::uuid>>
-              refreshMap_ {};
-   std::mutex refreshMapMutex_ {};
+                     refreshMap_ {};
+   std::shared_mutex refreshMapMutex_ {};
 };
 
 RadarProductManager::RadarProductManager(const std::string& radarId) :
@@ -674,6 +675,66 @@ void RadarProductManagerImpl::RefreshData(
             }
          }
       });
+}
+
+std::set<std::chrono::system_clock::time_point>
+RadarProductManager::GetActiveVolumeTimes(
+   std::chrono::system_clock::time_point time)
+{
+   std::unordered_set<std::shared_ptr<provider::NexradDataProvider>>
+                                                   providers {};
+   std::set<std::chrono::system_clock::time_point> volumeTimes;
+   std::mutex                                      volumeTimesMutex {};
+
+   // Lock the refresh map
+   std::shared_lock refreshLock {p->refreshMapMutex_};
+
+   // For each entry in the refresh map (refresh is enabled)
+   for (auto& refreshEntry : p->refreshMap_)
+   {
+      // Add the provider for the current entry
+      providers.insert(refreshEntry.second->provider_);
+   }
+
+   // Unlock the refresh map
+   refreshLock.unlock();
+
+   // For each provider (in parallel)
+   std::for_each(
+      std::execution::par_unseq,
+      providers.begin(),
+      providers.end(),
+      [&](const std::shared_ptr<provider::NexradDataProvider>& provider)
+      {
+         const auto today     = std::chrono::floor<std::chrono::days>(time);
+         const auto yesterday = today - std::chrono::days {1};
+         const auto dates     = {yesterday, today};
+
+         // For today and yesterday (in parallel)
+         std::for_each(std::execution::par_unseq,
+                       dates.begin(),
+                       dates.end(),
+                       [&](const auto& date)
+                       {
+                          // Query the provider for volume time points
+                          auto timePoints = provider->GetTimePointsByDate(date);
+
+                          // TODO: Note, this will miss volume times present in
+                          // Level 2 products with a second scan
+
+                          // Lock the merged volume time list
+                          std::unique_lock volumeTimesLock {volumeTimesMutex};
+
+                          // Copy time points to the merged list
+                          std::copy(
+                             timePoints.begin(),
+                             timePoints.end(),
+                             std::inserter(volumeTimes, volumeTimes.end()));
+                       });
+      });
+
+   // Return merged volume times list
+   return volumeTimes;
 }
 
 void RadarProductManagerImpl::LoadProviderData(

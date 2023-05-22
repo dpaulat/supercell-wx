@@ -9,6 +9,7 @@
 #include <scwx/wsr88d/level3_file.hpp>
 
 #include <memory>
+#include <set>
 #include <unordered_map>
 #include <vector>
 
@@ -62,6 +63,17 @@ public:
                       const std::string&        product,
                       bool                      enabled,
                       boost::uuids::uuid uuid = boost::uuids::nil_uuid());
+
+   /**
+    * @brief Gets a merged list of the volume times for products with refresh
+    * enabled. The volume times will be for the current and previous day.
+    *
+    * @param [in] time Current date to provide to volume time query
+    *
+    * @return Merged list of active volume times
+    */
+   std::set<std::chrono::system_clock::time_point>
+   GetActiveVolumeTimes(std::chrono::system_clock::time_point time);
 
    /**
     * @brief Get level 2 radar data for a data block type, elevation, and time.
