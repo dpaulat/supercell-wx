@@ -66,7 +66,7 @@ public:
 
    /**
     * @brief Gets a merged list of the volume times for products with refresh
-    * enabled. The volume times will be for the current and previous day.
+    * enabled. The volume times will be for the previous, current and next day.
     *
     * @param [in] time Current date to provide to volume time query
     *

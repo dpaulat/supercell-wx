@@ -708,9 +708,10 @@ RadarProductManager::GetActiveVolumeTimes(
       {
          const auto today     = std::chrono::floor<std::chrono::days>(time);
          const auto yesterday = today - std::chrono::days {1};
-         const auto dates     = {yesterday, today};
+         const auto tomorrow  = today + std::chrono::days {1};
+         const auto dates     = {yesterday, today, tomorrow};
 
-         // For today and yesterday (in parallel)
+         // For yesterday, today and tomorrow (in parallel)
          std::for_each(std::execution::par_unseq,
                        dates.begin(),
                        dates.end(),
