@@ -1,7 +1,11 @@
 #include <scwx/qt/manager/timeline_manager.hpp>
+#include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/map.hpp>
 #include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
+
+#include <mutex>
 
 #include <fmt/chrono.h>
 
@@ -28,10 +32,13 @@ public:
 
    std::string                           radarSite_ {"?"};
    std::chrono::system_clock::time_point pinnedTime_ {};
-   std::chrono::system_clock::time_point currentTime_ {};
+   std::chrono::system_clock::time_point currentAdjustedTime_ {};
+   std::chrono::system_clock::time_point currentSelectedTime_ {};
    types::MapTime                        viewType_ {types::MapTime::Live};
    std::chrono::minutes                  loopTime_ {30};
    double                                loopSpeed_ {1.0};
+
+   std::mutex selectTimeMutex_ {};
 };
 
 TimelineManager::TimelineManager() : p(std::make_unique<Impl>(this)) {}
@@ -123,13 +130,42 @@ void TimelineManager::AnimationStepEnd()
 void TimelineManager::Impl::SelectTime(
    std::chrono::system_clock::time_point selectedTime)
 {
-   if (currentTime_ == selectedTime)
+   if (currentSelectedTime_ == selectedTime)
    {
       // Nothing to do
       return;
    }
 
-   currentTime_ = selectedTime;
+   scwx::util::async(
+      [=, this]()
+      {
+         // Take a lock for time selection
+         std::unique_lock lock {selectTimeMutex_};
+
+         // Request active volume times
+         auto radarProductManager =
+            manager::RadarProductManager::Instance(radarSite_);
+         auto volumeTimes =
+            radarProductManager->GetActiveVolumeTimes(selectedTime);
+
+         // Find the best match bounded time
+         auto elementPtr =
+            util::GetBoundedElementPointer(volumeTimes, selectedTime);
+
+         if (elementPtr != nullptr)
+         {
+            // If the time was found, select it
+            currentAdjustedTime_ = *elementPtr;
+            currentSelectedTime_ = selectedTime;
+
+            emit self_->TimeUpdated(currentAdjustedTime_);
+         }
+         else
+         {
+            // No volume time was found
+            logger_->info("No volume scan found for {}", selectedTime);
+         }
+      });
 }
 
 std::shared_ptr<TimelineManager> TimelineManager::Instance()
