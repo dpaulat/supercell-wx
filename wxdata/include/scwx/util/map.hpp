@@ -8,19 +8,20 @@ namespace scwx
 namespace util
 {
 
-template<class Key, class T, class ReturnType = std::map<Key, T>::const_pointer>
-ReturnType GetBoundedElementPointer(std::map<Key, T>& map, const Key& key)
+template<class Container, class ReturnType = Container::const_pointer>
+ReturnType GetBoundedElementPointer(Container& container,
+                                    const typename Container::key_type& key)
 {
    ReturnType elementPtr {nullptr};
 
    // Find the first element greater than the key requested
-   auto it = map.upper_bound(key);
+   auto it = container.upper_bound(key);
 
    // An element with a key greater was found
-   if (it != map.cend())
+   if (it != container.cend())
    {
       // Are there elements prior to this element?
-      if (it != map.cbegin())
+      if (it != container.cbegin())
       {
          // Get the element immediately preceding, this the element we are
          // looking for
@@ -32,11 +33,11 @@ ReturnType GetBoundedElementPointer(std::map<Key, T>& map, const Key& key)
          elementPtr = &(*it);
       }
    }
-   else if (map.size() > 0)
+   else if (container.size() > 0)
    {
       // An element with a key greater was not found. If it exists, it must be
       // the last element.
-      elementPtr = &(*map.rbegin());
+      elementPtr = &(*container.rbegin());
    }
 
    return elementPtr;
@@ -48,8 +49,8 @@ ReturnType GetBoundedElement(std::map<Key, T>& map, const Key& key)
    ReturnType element;
 
    typename std::map<Key, T>::pointer elementPtr =
-      GetBoundedElementPointer<Key, T, typename std::map<Key, T>::pointer>(map,
-                                                                           key);
+      GetBoundedElementPointer<std::map<Key, T>,
+                               typename std::map<Key, T>::pointer>(map, key);
    if (elementPtr != nullptr)
    {
       element = elementPtr->second;
