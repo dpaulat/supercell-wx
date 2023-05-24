@@ -60,9 +60,14 @@ AnimationDockWidget::AnimationDockWidget(QWidget* parent) :
 
    // Set current date/time
    QDateTime currentDateTime = QDateTime::currentDateTimeUtc();
-   ui->dateEdit->setDate(currentDateTime.date());
-   ui->timeEdit->setTime(currentDateTime.time());
+   QDate     currentDate     = currentDateTime.date();
+   QTime     currentTime     = currentDateTime.time();
+   ui->dateEdit->setDate(currentDate);
+   ui->timeEdit->setTime(currentTime);
    ui->dateEdit->setMaximumDate(currentDateTime.date());
+   p->selectedDate_ = currentDate.toStdSysDays();
+   p->selectedTime_ =
+      std::chrono::seconds(currentTime.msecsSinceStartOfDay() / 1000);
 
    // Update maximum date on a timer
    QTimer* maxDateTimer = new QTimer(this);
