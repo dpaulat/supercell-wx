@@ -31,9 +31,10 @@ public:
    void SelectTime(std::chrono::system_clock::time_point selectedTime = {});
 
    std::string                           radarSite_ {"?"};
+   std::string                           previousRadarSite_ {"?"};
    std::chrono::system_clock::time_point pinnedTime_ {};
-   std::chrono::system_clock::time_point currentAdjustedTime_ {};
-   std::chrono::system_clock::time_point currentSelectedTime_ {};
+   std::chrono::system_clock::time_point adjustedTime_ {};
+   std::chrono::system_clock::time_point selectedTime_ {};
    types::MapTime                        viewType_ {types::MapTime::Live};
    std::chrono::minutes                  loopTime_ {30};
    double                                loopSpeed_ {1.0};
@@ -47,6 +48,17 @@ TimelineManager::~TimelineManager() = default;
 void TimelineManager::SetRadarSite(const std::string& radarSite)
 {
    p->radarSite_ = radarSite;
+
+   if (p->viewType_ == types::MapTime::Live)
+   {
+      // If the selected view type is live, select the current products
+      p->SelectTime();
+   }
+   else
+   {
+      // If the selected view type is archive, select using the selected time
+      p->SelectTime(p->selectedTime_);
+   }
 }
 
 void TimelineManager::SetDateTime(
@@ -130,7 +142,7 @@ void TimelineManager::AnimationStepEnd()
 void TimelineManager::Impl::SelectTime(
    std::chrono::system_clock::time_point selectedTime)
 {
-   if (currentSelectedTime_ == selectedTime)
+   if (selectedTime_ == selectedTime && radarSite_ == previousRadarSite_)
    {
       // Nothing to do
       return;
@@ -154,17 +166,26 @@ void TimelineManager::Impl::SelectTime(
 
          if (elementPtr != nullptr)
          {
-            // If the time was found, select it
-            currentAdjustedTime_ = *elementPtr;
-            currentSelectedTime_ = selectedTime;
+            selectedTime_ = selectedTime;
 
-            emit self_->TimeUpdated(currentAdjustedTime_);
+            // If the adjusted time changed, or if a new radar site has been
+            // selected
+            if (adjustedTime_ != *elementPtr ||
+                radarSite_ != previousRadarSite_)
+            {
+               // If the time was found, select it
+               adjustedTime_ = *elementPtr;
+
+               emit self_->TimeUpdated(adjustedTime_);
+            }
          }
          else
          {
             // No volume time was found
             logger_->info("No volume scan found for {}", selectedTime);
          }
+
+         previousRadarSite_ = radarSite_;
       });
 }
 
