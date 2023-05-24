@@ -80,6 +80,13 @@ public:
    void SelectRadarSite(std::shared_ptr<config::RadarSite> radarSite,
                         bool updateCoordinates = true);
 
+   /**
+    * @brief Selects the time associated with the active radar product.
+    *
+    * @param [in] time Product time
+    */
+   void SelectTime(std::chrono::system_clock::time_point time);
+
    void SetActive(bool isActive);
    void SetAutoRefresh(bool enabled);
 
@@ -132,6 +139,7 @@ signals:
                              double bearing,
                              double pitch);
    void MapStyleChanged(const std::string& styleName);
+   void RadarSiteUpdated(std::shared_ptr<config::RadarSite> radarSite);
    void RadarSweepUpdated();
 };
 

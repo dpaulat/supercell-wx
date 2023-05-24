@@ -63,7 +63,6 @@ public:
        colorTableLayer_ {nullptr},
        autoRefreshEnabled_ {true},
        selectedLevel2Product_ {common::Level2Product::Unknown},
-       selectedTime_ {},
        lastPos_(),
        currentStyleIndex_ {0},
        currentStyle_ {nullptr},
@@ -148,8 +147,7 @@ public:
 
    bool autoRefreshEnabled_;
 
-   common::Level2Product                 selectedLevel2Product_;
-   std::chrono::system_clock::time_point selectedTime_;
+   common::Level2Product selectedLevel2Product_;
 
    QPointF         lastPos_;
    std::size_t     currentStyleIndex_;
@@ -434,9 +432,8 @@ void MapWidget::SelectRadarProduct(
                   scwx::util::TimeString(time));
 
    p->SetRadarSite(radarId);
-   p->selectedTime_ = time;
 
-   SelectRadarProduct(group, product, productCode);
+   SelectRadarProduct(group, product, productCode, time);
 }
 
 void MapWidget::SelectRadarSite(const std::string& id, bool updateCoordinates)
@@ -478,6 +475,23 @@ void MapWidget::SelectRadarSite(std::shared_ptr<config::RadarSite> radarSite,
       AddLayers();
 
       // TODO: Disable refresh from old site
+
+      emit RadarSiteUpdated(radarSite);
+   }
+}
+
+void MapWidget::SelectTime(std::chrono::system_clock::time_point time)
+{
+   auto radarProductView = p->context_->radar_product_view();
+
+   // If there is an active radar product view
+   if (radarProductView != nullptr)
+   {
+      // Select the time associated with the active radar product
+      radarProductView->SelectTime(time);
+
+      // Trigger an update of the radar product view
+      radarProductView->Update();
    }
 }
 
