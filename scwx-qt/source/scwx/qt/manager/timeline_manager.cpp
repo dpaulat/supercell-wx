@@ -24,7 +24,11 @@ class TimelineManager::Impl
 public:
    explicit Impl(TimelineManager* self) : self_ {self} {}
 
-   ~Impl() {}
+   ~Impl()
+   {
+      // Lock mutexes before destroying
+      std::unique_lock selectTimeLock {selectTimeMutex_};
+   }
 
    TimelineManager* self_;
 
