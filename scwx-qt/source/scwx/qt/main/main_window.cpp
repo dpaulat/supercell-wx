@@ -8,6 +8,7 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
+#include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/manager/update_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_widget.hpp>
@@ -71,6 +72,7 @@ public:
        updateDialog_ {nullptr},
        radarProductModel_ {nullptr},
        textEventManager_ {manager::TextEventManager::Instance()},
+       timelineManager_ {manager::TimelineManager::Instance()},
        updateManager_ {manager::UpdateManager::Instance()},
        maps_ {},
        elevationCuts_ {},
@@ -111,6 +113,7 @@ public:
 
    void AsyncSetup();
    void ConfigureMapLayout();
+   void ConnectAnimationSignals();
    void ConnectMapSignals();
    void ConnectOtherSignals();
    void HandleFocusChange(QWidget* focused);
@@ -150,6 +153,7 @@ public:
 
    std::unique_ptr<model::RadarProductModel>  radarProductModel_;
    std::shared_ptr<manager::TextEventManager> textEventManager_;
+   std::shared_ptr<manager::TimelineManager>  timelineManager_;
    std::shared_ptr<manager::UpdateManager>    updateManager_;
 
    std::vector<map::MapWidget*> maps_;
@@ -271,6 +275,7 @@ MainWindow::MainWindow(QWidget* parent) :
 
    p->PopulateMapStyles();
    p->ConnectMapSignals();
+   p->ConnectAnimationSignals();
    p->ConnectOtherSignals();
    p->HandleFocusChange(p->activeMap_);
    p->AsyncSetup();
@@ -645,6 +650,73 @@ void MainWindowImpl::ConnectMapSignals()
             }
          },
          Qt::QueuedConnection);
+   }
+}
+
+void MainWindowImpl::ConnectAnimationSignals()
+{
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::DateTimeChanged,
+           timelineManager_.get(),
+           &manager::TimelineManager::SetDateTime);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::ViewTypeChanged,
+           timelineManager_.get(),
+           &manager::TimelineManager::SetViewType);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::LoopTimeChanged,
+           timelineManager_.get(),
+           &manager::TimelineManager::SetLoopTime);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::LoopSpeedChanged,
+           timelineManager_.get(),
+           &manager::TimelineManager::SetLoopSpeed);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::AnimationStepBeginSelected,
+           timelineManager_.get(),
+           &manager::TimelineManager::AnimationStepBegin);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::AnimationStepBackSelected,
+           timelineManager_.get(),
+           &manager::TimelineManager::AnimationStepBack);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::AnimationPlaySelected,
+           timelineManager_.get(),
+           &manager::TimelineManager::AnimationPlay);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::AnimationPauseSelected,
+           timelineManager_.get(),
+           &manager::TimelineManager::AnimationPause);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::AnimationStepNextSelected,
+           timelineManager_.get(),
+           &manager::TimelineManager::AnimationStepNext);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::AnimationStepEndSelected,
+           timelineManager_.get(),
+           &manager::TimelineManager::AnimationStepEnd);
+
+   connect(timelineManager_.get(),
+           &manager::TimelineManager::TimeUpdated,
+           [this](std::chrono::system_clock::time_point dateTime)
+           {
+              for (auto map : maps_)
+              {
+                 map->SelectTime(dateTime);
+              }
+           });
+
+   for (auto map : maps_)
+   {
+      connect(map,
+              &map::MapWidget::RadarSiteUpdated,
+              [this, map](std::shared_ptr<config::RadarSite> radarSite)
+              {
+                 if (map == activeMap_)
+                 {
+                    timelineManager_->SetRadarSite(radarSite->id());
+                 }
+              });
    }
 }
 
