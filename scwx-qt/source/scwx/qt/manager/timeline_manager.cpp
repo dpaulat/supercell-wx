@@ -180,6 +180,8 @@ void TimelineManager::Impl::SelectTime(
                // If the time was found, select it
                adjustedTime_ = *elementPtr;
 
+               logger_->debug("Time updated: {}", adjustedTime_);
+
                emit self_->TimeUpdated(adjustedTime_);
             }
          }
