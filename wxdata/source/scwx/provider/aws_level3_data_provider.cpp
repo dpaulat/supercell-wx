@@ -78,6 +78,11 @@ AwsLevel3DataProvider::operator=(AwsLevel3DataProvider&&) noexcept = default;
 std::string
 AwsLevel3DataProvider::GetPrefix(std::chrono::system_clock::time_point date)
 {
+   if (date < std::chrono::system_clock::time_point {})
+   {
+      date = std::chrono::system_clock::time_point {};
+   }
+
    return fmt::format(
       "{0}_{1}_{2:%Y_%m_%d}_", p->siteId_, p->product_, fmt::gmtime(date));
 }

@@ -52,6 +52,11 @@ AwsLevel2DataProvider::operator=(AwsLevel2DataProvider&&) noexcept = default;
 std::string
 AwsLevel2DataProvider::GetPrefix(std::chrono::system_clock::time_point date)
 {
+   if (date < std::chrono::system_clock::time_point {})
+   {
+      date = std::chrono::system_clock::time_point {};
+   }
+
    return fmt::format("{0:%Y/%m/%d}/{1}/", fmt::gmtime(date), p->radarSite_);
 }
 
