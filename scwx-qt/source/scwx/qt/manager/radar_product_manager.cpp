@@ -699,6 +699,11 @@ RadarProductManager::GetActiveVolumeTimes(
    // Unlock the refresh map
    refreshLock.unlock();
 
+   const auto today     = std::chrono::floor<std::chrono::days>(time);
+   const auto yesterday = today - std::chrono::days {1};
+   const auto tomorrow  = today + std::chrono::days {1};
+   const auto dates     = {yesterday, today, tomorrow};
+
    // For each provider (in parallel)
    std::for_each(
       std::execution::par_unseq,
@@ -706,11 +711,6 @@ RadarProductManager::GetActiveVolumeTimes(
       providers.end(),
       [&](const std::shared_ptr<provider::NexradDataProvider>& provider)
       {
-         const auto today     = std::chrono::floor<std::chrono::days>(time);
-         const auto yesterday = today - std::chrono::days {1};
-         const auto tomorrow  = today + std::chrono::days {1};
-         const auto dates     = {yesterday, today, tomorrow};
-
          // For yesterday, today and tomorrow (in parallel)
          std::for_each(std::execution::par_unseq,
                        dates.begin(),
