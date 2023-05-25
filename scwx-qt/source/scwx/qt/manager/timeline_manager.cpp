@@ -151,6 +151,18 @@ void TimelineManager::Impl::SelectTime(
       // Nothing to do
       return;
    }
+   else if (selectedTime == std::chrono::system_clock::time_point {})
+   {
+      // If a default time point is given, reset to a live view
+      selectedTime_ = selectedTime;
+      adjustedTime_ = selectedTime;
+
+      logger_->debug("Time updated: Live");
+
+      emit self_->TimeUpdated(selectedTime);
+
+      return;
+   }
 
    scwx::util::async(
       [=, this]()
