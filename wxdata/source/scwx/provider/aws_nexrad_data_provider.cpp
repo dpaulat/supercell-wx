@@ -165,7 +165,7 @@ AwsNexradDataProvider::GetTimePointsByDate(
 
    std::vector<std::chrono::system_clock::time_point> timePoints {};
 
-   logger_->debug("GetTimePointsByDate: {}", day);
+   logger_->debug("GetTimePointsByDate: {}", util::TimeString(date));
 
    std::shared_lock lock(p->objectsMutex_);
 
@@ -177,7 +177,11 @@ AwsNexradDataProvider::GetTimePointsByDate(
       lock.unlock();
 
       // List objects, since the date is not present in the date list
-      ListObjects(date);
+      auto [success, newObjects, totalObjects] = ListObjects(date);
+      if (success)
+      {
+         p->UpdateObjectDates(date);
+      }
 
       // Re-lock mutex
       lock.lock();
@@ -196,7 +200,7 @@ AwsNexradDataProvider::GetTimePointsByDate(
    return timePoints;
 }
 
-std::pair<size_t, size_t>
+std::tuple<bool, size_t, size_t>
 AwsNexradDataProvider::ListObjects(std::chrono::system_clock::time_point date)
 {
    const std::string prefix {GetPrefix(date)};
@@ -262,7 +266,7 @@ AwsNexradDataProvider::ListObjects(std::chrono::system_clock::time_point date)
                     outcome.GetError().GetMessage());
    }
 
-   return std::make_pair(newObjects, totalObjects);
+   return {outcome.IsSuccess(), newObjects, totalObjects};
 }
 
 std::shared_ptr<wsr88d::NexradFile>
@@ -309,16 +313,16 @@ std::pair<size_t, size_t> AwsNexradDataProvider::Refresh()
    // yesterday, to ensure we haven't missed any objects near midnight
    if (p->refreshDate_ < today)
    {
-      auto [newObjects, totalObjects] = ListObjects(yesterday);
-      allNewObjects                   = newObjects;
-      allTotalObjects                 = totalObjects;
+      auto [success, newObjects, totalObjects] = ListObjects(yesterday);
+      allNewObjects                            = newObjects;
+      allTotalObjects                          = totalObjects;
       if (totalObjects > 0)
       {
          p->refreshDate_ = yesterday;
       }
    }
 
-   auto [newObjects, totalObjects] = ListObjects(today);
+   auto [success, newObjects, totalObjects] = ListObjects(today);
    allNewObjects += newObjects;
    allTotalObjects += totalObjects;
    if (totalObjects > 0)

@@ -64,10 +64,11 @@ public:
     *
     * @param date Date for which to list objects
     *
-    * @return - New objects found for the given date
+    * @return - Whether query was successful
+    *         - New objects found for the given date
     *         - Total objects found for the given date
     */
-   virtual std::pair<size_t, size_t>
+   virtual std::tuple<bool, size_t, size_t>
    ListObjects(std::chrono::system_clock::time_point date) = 0;
 
    /**

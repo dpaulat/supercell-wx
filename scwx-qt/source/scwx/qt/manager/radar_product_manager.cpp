@@ -683,8 +683,14 @@ RadarProductManager::GetActiveVolumeTimes(
 {
    std::unordered_set<std::shared_ptr<provider::NexradDataProvider>>
                                                    providers {};
-   std::set<std::chrono::system_clock::time_point> volumeTimes;
+   std::set<std::chrono::system_clock::time_point> volumeTimes {};
    std::mutex                                      volumeTimesMutex {};
+
+   // Return a default set of volume times if the default time point is given
+   if (time == std::chrono::system_clock::time_point {})
+   {
+      return volumeTimes;
+   }
 
    // Lock the refresh map
    std::shared_lock refreshLock {p->refreshMapMutex_};
@@ -717,6 +723,12 @@ RadarProductManager::GetActiveVolumeTimes(
                        dates.end(),
                        [&](const auto& date)
                        {
+                          // Don't query for a time point in the future
+                          if (date > std::chrono::system_clock::now())
+                          {
+                             return;
+                          }
+
                           // Query the provider for volume time points
                           auto timePoints = provider->GetTimePointsByDate(date);
 
