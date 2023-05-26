@@ -41,7 +41,9 @@ public slots:
    void AnimationStepEnd();
 
 signals:
-   void TimeUpdated(std::chrono::system_clock::time_point dateTime);
+   void SelectedTimeUpdated(std::chrono::system_clock::time_point dateTime);
+   void VolumeTimeUpdated(std::chrono::system_clock::time_point dateTime);
+
    void ViewTypeUpdated(types::MapTime viewType);
 
 private:

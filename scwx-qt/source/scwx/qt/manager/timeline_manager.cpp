@@ -159,7 +159,8 @@ void TimelineManager::Impl::SelectTime(
 
       logger_->debug("Time updated: Live");
 
-      emit self_->TimeUpdated(selectedTime);
+      emit self_->VolumeTimeUpdated(selectedTime);
+      emit self_->SelectedTimeUpdated(selectedTime);
 
       return;
    }
@@ -182,7 +183,6 @@ void TimelineManager::Impl::SelectTime(
 
          if (elementPtr != nullptr)
          {
-            selectedTime_ = selectedTime;
 
             // If the adjusted time changed, or if a new radar site has been
             // selected
@@ -192,16 +192,24 @@ void TimelineManager::Impl::SelectTime(
                // If the time was found, select it
                adjustedTime_ = *elementPtr;
 
-               logger_->debug("Time updated: {}", adjustedTime_);
+               logger_->debug("Volume time updated: {}",
+                              scwx::util::TimeString(adjustedTime_));
 
-               emit self_->TimeUpdated(adjustedTime_);
+               emit self_->VolumeTimeUpdated(adjustedTime_);
             }
          }
          else
          {
             // No volume time was found
-            logger_->info("No volume scan found for {}", selectedTime);
+            logger_->info("No volume scan found for {}",
+                          scwx::util::TimeString(selectedTime));
          }
+
+         logger_->trace("Selected time updated: {}",
+                        scwx::util::TimeString(selectedTime));
+
+         selectedTime_ = selectedTime;
+         emit self_->SelectedTimeUpdated(selectedTime);
 
          previousRadarSite_ = radarSite_;
       });
