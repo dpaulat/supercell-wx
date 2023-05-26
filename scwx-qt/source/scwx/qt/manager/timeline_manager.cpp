@@ -33,6 +33,7 @@ public:
    TimelineManager* self_;
 
    void SelectTime(std::chrono::system_clock::time_point selectedTime = {});
+   void StepBack();
 
    std::string                           radarSite_ {"?"};
    std::string                           previousRadarSite_ {"?"};
@@ -51,6 +52,12 @@ TimelineManager::~TimelineManager() = default;
 
 void TimelineManager::SetRadarSite(const std::string& radarSite)
 {
+   if (p->radarSite_ == radarSite)
+   {
+      // No action needed
+      return;
+   }
+
    logger_->debug("SetRadarSite: {}", radarSite);
 
    p->radarSite_ = radarSite;
@@ -123,6 +130,8 @@ void TimelineManager::AnimationStepBegin()
 void TimelineManager::AnimationStepBack()
 {
    logger_->debug("AnimationStepBack");
+
+   p->StepBack();
 }
 
 void TimelineManager::AnimationPlay()
@@ -214,6 +223,60 @@ void TimelineManager::Impl::SelectTime(
          emit self_->SelectedTimeUpdated(selectedTime);
 
          previousRadarSite_ = radarSite_;
+      });
+}
+
+void TimelineManager::Impl::StepBack()
+{
+   scwx::util::async(
+      [this]()
+      {
+         // Take a lock for time selection
+         std::unique_lock lock {selectTimeMutex_};
+
+         // Determine time to get active volume times
+         std::chrono::system_clock::time_point queryTime = adjustedTime_;
+         if (queryTime == std::chrono::system_clock::time_point {})
+         {
+            queryTime = std::chrono::system_clock::now();
+         }
+
+         // Request active volume times
+         auto radarProductManager =
+            manager::RadarProductManager::Instance(radarSite_);
+         auto volumeTimes =
+            radarProductManager->GetActiveVolumeTimes(queryTime);
+
+         std::set<std::chrono::system_clock::time_point>::const_iterator it;
+
+         if (adjustedTime_ == std::chrono::system_clock::time_point {})
+         {
+            // If the adjusted time is live, get the last element in the set
+            it = volumeTimes.cend();
+            if (!volumeTimes.empty())
+            {
+               --it;
+            }
+         }
+         else
+         {
+            // Get the current element in the set
+            it = scwx::util::GetBoundedElementIterator(volumeTimes,
+                                                       adjustedTime_);
+         }
+
+         // Only if we aren't at the beginning of the volume times set
+         if (it != volumeTimes.cbegin())
+         {
+            // Select the previous time
+            adjustedTime_ = *(--it);
+            selectedTime_ = adjustedTime_;
+
+            logger_->debug("Volume time updated: {}",
+                           scwx::util::TimeString(adjustedTime_));
+
+            emit self_->VolumeTimeUpdated(adjustedTime_);
+         }
       });
 }
 
