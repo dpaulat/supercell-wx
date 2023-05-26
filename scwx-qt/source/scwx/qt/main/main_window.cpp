@@ -705,19 +705,6 @@ void MainWindowImpl::ConnectAnimationSignals()
                  map->SelectTime(dateTime);
               }
            });
-
-   for (auto map : maps_)
-   {
-      connect(map,
-              &map::MapWidget::RadarSiteUpdated,
-              [this, map](std::shared_ptr<config::RadarSite> radarSite)
-              {
-                 if (map == activeMap_)
-                 {
-                    timelineManager_->SetRadarSite(radarSite->id());
-                 }
-              });
-   }
 }
 
 void MainWindowImpl::ConnectOtherSignals()
@@ -927,11 +914,15 @@ void MainWindowImpl::UpdateRadarSite()
       mainWindow_->ui->radarSiteValueLabel->setText(radarSite->id().c_str());
       mainWindow_->ui->radarLocationLabel->setText(
          radarSite->location_name().c_str());
+
+      timelineManager_->SetRadarSite(radarSite->id());
    }
    else
    {
       mainWindow_->ui->radarSiteValueLabel->setVisible(false);
       mainWindow_->ui->radarLocationLabel->setVisible(false);
+
+      timelineManager_->SetRadarSite("?");
    }
 }
 

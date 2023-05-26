@@ -51,6 +51,8 @@ TimelineManager::~TimelineManager() = default;
 
 void TimelineManager::SetRadarSite(const std::string& radarSite)
 {
+   logger_->debug("SetRadarSite: {}", radarSite);
+
    p->radarSite_ = radarSite;
 
    if (p->viewType_ == types::MapTime::Live)
