@@ -165,13 +165,14 @@ AwsNexradDataProvider::GetTimePointsByDate(
 
    std::vector<std::chrono::system_clock::time_point> timePoints {};
 
-   logger_->debug("GetTimePointsByDate: {}", util::TimeString(date));
+   logger_->trace("GetTimePointsByDate: {}", util::TimeString(date));
 
    std::shared_lock lock(p->objectsMutex_);
 
    // Is the date present in the date list?
-   if (std::find(p->objectDates_.cbegin(), p->objectDates_.cend(), day) ==
-       p->objectDates_.cend())
+   auto currentDateIterator =
+      std::find(p->objectDates_.cbegin(), p->objectDates_.cend(), day);
+   if (currentDateIterator == p->objectDates_.cend())
    {
       // Temporarily unlock mutex
       lock.unlock();
@@ -196,6 +197,16 @@ AwsNexradDataProvider::GetTimePointsByDate(
                   objectsEnd,
                   std::back_inserter(timePoints),
                   [](const auto& object) { return object.first; });
+
+   // Unlock mutex, finished
+   lock.unlock();
+
+   // If we haven't updated the most recently queried dates yet, because the
+   // date was already cached, update
+   if (currentDateIterator != p->objectDates_.cend())
+   {
+      p->UpdateObjectDates(date);
+   }
 
    return timePoints;
 }
