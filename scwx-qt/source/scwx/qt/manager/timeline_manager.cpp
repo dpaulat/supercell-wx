@@ -19,6 +19,12 @@ namespace manager
 static const std::string logPrefix_ = "scwx::qt::manager::timeline_manager";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+enum class Direction
+{
+   Back,
+   Next
+};
+
 class TimelineManager::Impl
 {
 public:
@@ -33,7 +39,7 @@ public:
    TimelineManager* self_;
 
    void SelectTime(std::chrono::system_clock::time_point selectedTime = {});
-   void StepBack();
+   void Step(Direction direction);
 
    std::string                           radarSite_ {"?"};
    std::string                           previousRadarSite_ {"?"};
@@ -131,7 +137,7 @@ void TimelineManager::AnimationStepBack()
 {
    logger_->debug("AnimationStepBack");
 
-   p->StepBack();
+   p->Step(Direction::Back);
 }
 
 void TimelineManager::AnimationPlay()
@@ -147,6 +153,8 @@ void TimelineManager::AnimationPause()
 void TimelineManager::AnimationStepNext()
 {
    logger_->debug("AnimationStepNext");
+
+   p->Step(Direction::Next);
 }
 
 void TimelineManager::AnimationStepEnd()
@@ -226,10 +234,10 @@ void TimelineManager::Impl::SelectTime(
       });
 }
 
-void TimelineManager::Impl::StepBack()
+void TimelineManager::Impl::Step(Direction direction)
 {
    scwx::util::async(
-      [this]()
+      [=, this]()
       {
          // Take a lock for time selection
          std::unique_lock lock {selectTimeMutex_};
@@ -247,16 +255,18 @@ void TimelineManager::Impl::StepBack()
          auto volumeTimes =
             radarProductManager->GetActiveVolumeTimes(queryTime);
 
+         if (volumeTimes.empty())
+         {
+            logger_->debug("No products to step through");
+            return;
+         }
+
          std::set<std::chrono::system_clock::time_point>::const_iterator it;
 
          if (adjustedTime_ == std::chrono::system_clock::time_point {})
          {
             // If the adjusted time is live, get the last element in the set
-            it = volumeTimes.cend();
-            if (!volumeTimes.empty())
-            {
-               --it;
-            }
+            it = std::prev(volumeTimes.cend());
          }
          else
          {
@@ -265,17 +275,37 @@ void TimelineManager::Impl::StepBack()
                                                        adjustedTime_);
          }
 
-         // Only if we aren't at the beginning of the volume times set
-         if (it != volumeTimes.cbegin())
+         if (direction == Direction::Back)
          {
-            // Select the previous time
-            adjustedTime_ = *(--it);
-            selectedTime_ = adjustedTime_;
+            // Only if we aren't at the beginning of the volume times set
+            if (it != volumeTimes.cbegin())
+            {
+               // Select the previous time
+               adjustedTime_ = *(--it);
+               selectedTime_ = adjustedTime_;
 
-            logger_->debug("Volume time updated: {}",
-                           scwx::util::TimeString(adjustedTime_));
+               logger_->debug("Volume time updated: {}",
+                              scwx::util::TimeString(adjustedTime_));
 
-            emit self_->VolumeTimeUpdated(adjustedTime_);
+               emit self_->VolumeTimeUpdated(adjustedTime_);
+               emit self_->SelectedTimeUpdated(adjustedTime_);
+            }
+         }
+         else
+         {
+            // Only if we aren't at the end of the volume times set
+            if (it != std::prev(volumeTimes.cend()))
+            {
+               // Select the next time
+               adjustedTime_ = *(++it);
+               selectedTime_ = adjustedTime_;
+
+               logger_->debug("Volume time updated: {}",
+                              scwx::util::TimeString(adjustedTime_));
+
+               emit self_->VolumeTimeUpdated(adjustedTime_);
+               emit self_->SelectedTimeUpdated(adjustedTime_);
+            }
          }
       });
 }
