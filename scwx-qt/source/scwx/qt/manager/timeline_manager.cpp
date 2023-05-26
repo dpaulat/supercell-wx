@@ -131,6 +131,18 @@ void TimelineManager::SetLoopSpeed(double loopSpeed)
 void TimelineManager::AnimationStepBegin()
 {
    logger_->debug("AnimationStepBegin");
+
+   if (p->viewType_ == types::MapTime::Live ||
+       p->pinnedTime_ == std::chrono::system_clock::time_point {})
+   {
+      // If the selected view type is live, select the current products
+      p->SelectTime(std::chrono::system_clock::now() - p->loopTime_);
+   }
+   else
+   {
+      // If the selected view type is archive, select using the pinned time
+      p->SelectTime(p->pinnedTime_ - p->loopTime_);
+   }
 }
 
 void TimelineManager::AnimationStepBack()
@@ -160,6 +172,17 @@ void TimelineManager::AnimationStepNext()
 void TimelineManager::AnimationStepEnd()
 {
    logger_->debug("AnimationStepEnd");
+
+   if (p->viewType_ == types::MapTime::Live)
+   {
+      // If the selected view type is live, select the current products
+      p->SelectTime();
+   }
+   else
+   {
+      // If the selected view type is archive, select using the pinned time
+      p->SelectTime(p->pinnedTime_);
+   }
 }
 
 void TimelineManager::Impl::SelectTime(
