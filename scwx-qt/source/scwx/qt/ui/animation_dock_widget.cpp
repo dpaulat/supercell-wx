@@ -1,6 +1,7 @@
 #include "animation_dock_widget.hpp"
 #include "ui_animation_dock_widget.h"
 
+#include <scwx/qt/util/time.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <QTimer>
@@ -65,7 +66,7 @@ AnimationDockWidget::AnimationDockWidget(QWidget* parent) :
    ui->dateEdit->setDate(currentDate);
    ui->timeEdit->setTime(currentTime);
    ui->dateEdit->setMaximumDate(currentDateTime.date());
-   p->selectedDate_ = currentDate.toStdSysDays();
+   p->selectedDate_ = util::SysDays(currentDate);
    p->selectedTime_ =
       std::chrono::seconds(currentTime.msecsSinceStartOfDay() / 1000);
 
@@ -129,7 +130,7 @@ void AnimationDockWidgetImpl::ConnectSignals()
       {
          if (date.isValid())
          {
-            selectedDate_ = date.toStdSysDays();
+            selectedDate_ = util::SysDays(date);
             emit self_->DateTimeChanged(selectedDate_ + selectedTime_);
          }
       });

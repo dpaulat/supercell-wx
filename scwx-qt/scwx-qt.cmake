@@ -186,7 +186,8 @@ set(HDR_UTIL source/scwx/qt/util/color.hpp
              source/scwx/qt/util/streams.hpp
              source/scwx/qt/util/texture_atlas.hpp
              source/scwx/qt/util/q_file_buffer.hpp
-             source/scwx/qt/util/q_file_input_stream.hpp)
+             source/scwx/qt/util/q_file_input_stream.hpp
+             source/scwx/qt/util/time.hpp)
 set(SRC_UTIL source/scwx/qt/util/color.cpp
              source/scwx/qt/util/file.cpp
              source/scwx/qt/util/font.cpp
@@ -195,7 +196,8 @@ set(SRC_UTIL source/scwx/qt/util/color.cpp
              source/scwx/qt/util/json.cpp
              source/scwx/qt/util/texture_atlas.cpp
              source/scwx/qt/util/q_file_buffer.cpp
-             source/scwx/qt/util/q_file_input_stream.cpp)
+             source/scwx/qt/util/q_file_input_stream.cpp
+             source/scwx/qt/util/time.cpp)
 set(HDR_VIEW source/scwx/qt/view/level2_product_view.hpp
              source/scwx/qt/view/level3_product_view.hpp
              source/scwx/qt/view/level3_radial_view.hpp
