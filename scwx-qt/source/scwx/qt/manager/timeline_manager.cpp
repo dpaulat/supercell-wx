@@ -261,25 +261,38 @@ void TimelineManager::Impl::Play()
          // Determine loop start time and current position in the loop
          std::chrono::system_clock::time_point startTime = endTime - loopTime_;
          std::chrono::system_clock::time_point currentTime = selectedTime_;
-
-         // Unlock prior to selecting time
-         lock.unlock();
+         std::chrono::system_clock::time_point newTime;
 
          if (currentTime < startTime || currentTime >= endTime)
          {
             // If the currently selected time is out of the loop, select the
             // start time
-            SelectTime(startTime);
+            newTime = startTime;
          }
          else
          {
             // If the currently selected time is in the loop, increment
-            SelectTime(currentTime + 1min);
+            newTime = currentTime + 1min;
          }
 
-         // Determine repeat interval (loop speed of 1.0 is 1 minute per second)
-         std::chrono::milliseconds interval =
-            std::chrono::milliseconds(std::lroundl(1000.0 / loopSpeed_));
+         // Unlock prior to selecting time
+         lock.unlock();
+
+         // Select the time
+         SelectTime(newTime);
+
+         std::chrono::milliseconds interval;
+         if (newTime != endTime)
+         {
+            // Determine repeat interval (speed of 1.0 is 1 minute per second)
+            interval =
+               std::chrono::milliseconds(std::lroundl(1000.0 / loopSpeed_));
+         }
+         else
+         {
+            // Pause for 2.5 seconds at the end of the loop
+            interval = std::chrono::milliseconds(2500);
+         }
 
          std::unique_lock animationTimerLock {animationTimerMutex_};
 
