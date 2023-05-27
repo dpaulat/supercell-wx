@@ -28,6 +28,9 @@ public:
    explicit AnimationDockWidget(QWidget* parent = nullptr);
    ~AnimationDockWidget();
 
+public slots:
+   void UpdateAnimationState(types::AnimationState state);
+
 signals:
    void ViewTypeChanged(types::MapTime viewType);
    void DateTimeChanged(std::chrono::system_clock::time_point dateTime);
@@ -37,7 +40,6 @@ signals:
 
    void AnimationStepBeginSelected();
    void AnimationStepBackSelected();
-   void AnimationPauseSelected();
    void AnimationPlaySelected();
    void AnimationStepNextSelected();
    void AnimationStepEndSelected();

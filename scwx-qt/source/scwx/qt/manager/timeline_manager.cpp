@@ -42,6 +42,7 @@ public:
 
    TimelineManager* self_;
 
+   void Pause();
    void Play();
    void SelectTime(std::chrono::system_clock::time_point selectedTime = {});
    void Step(Direction direction);
@@ -55,6 +56,7 @@ public:
    std::chrono::minutes                  loopTime_ {30};
    double                                loopSpeed_ {1.0};
 
+   types::AnimationState     animationState_ {types::AnimationState::Pause};
    boost::asio::steady_timer animationTimer_ {scwx::util::io_context()};
    std::mutex                animationTimerMutex_ {};
 
@@ -145,6 +147,8 @@ void TimelineManager::AnimationStepBegin()
 {
    logger_->debug("AnimationStepBegin");
 
+   p->Pause();
+
    if (p->viewType_ == types::MapTime::Live ||
        p->pinnedTime_ == std::chrono::system_clock::time_point {})
    {
@@ -162,31 +166,37 @@ void TimelineManager::AnimationStepBack()
 {
    logger_->debug("AnimationStepBack");
 
+   p->Pause();
    p->Step(Direction::Back);
 }
 
-void TimelineManager::AnimationPlay()
+void TimelineManager::AnimationPlayPause()
 {
-   logger_->debug("AnimationPlay");
-
-   p->Play();
-}
-
-void TimelineManager::AnimationPause()
-{
-   logger_->debug("AnimationPause");
+   if (p->animationState_ == types::AnimationState::Pause)
+   {
+      logger_->debug("AnimationPlay");
+      p->Play();
+   }
+   else
+   {
+      logger_->debug("AnimationPause");
+      p->Pause();
+   }
 }
 
 void TimelineManager::AnimationStepNext()
 {
    logger_->debug("AnimationStepNext");
 
+   p->Pause();
    p->Step(Direction::Next);
 }
 
 void TimelineManager::AnimationStepEnd()
 {
    logger_->debug("AnimationStepEnd");
+
+   p->Pause();
 
    if (p->viewType_ == types::MapTime::Live)
    {
@@ -200,9 +210,28 @@ void TimelineManager::AnimationStepEnd()
    }
 }
 
+void TimelineManager::Impl::Pause()
+{
+   // Cancel animation
+   std::unique_lock animationTimerLock {animationTimerMutex_};
+   animationTimer_.cancel();
+
+   if (animationState_ != types::AnimationState::Pause)
+   {
+      animationState_ = types::AnimationState::Pause;
+      emit self_->AnimationStateUpdated(animationState_);
+   }
+}
+
 void TimelineManager::Impl::Play()
 {
    using namespace std::chrono_literals;
+
+   if (animationState_ != types::AnimationState::Play)
+   {
+      animationState_ = types::AnimationState::Play;
+      emit self_->AnimationStateUpdated(animationState_);
+   }
 
    {
       std::unique_lock animationTimerLock {animationTimerMutex_};
@@ -260,7 +289,10 @@ void TimelineManager::Impl::Play()
             {
                if (e == boost::system::errc::success)
                {
-                  Play();
+                  if (animationState_ == types::AnimationState::Play)
+                  {
+                     Play();
+                  }
                }
                else if (e == boost::asio::error::operation_aborted)
                {

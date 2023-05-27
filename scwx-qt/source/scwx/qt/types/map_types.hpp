@@ -9,6 +9,12 @@ namespace qt
 namespace types
 {
 
+enum class AnimationState
+{
+   Play,
+   Pause
+};
+
 enum class MapTime
 {
    Live,

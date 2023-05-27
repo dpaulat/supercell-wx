@@ -16,21 +16,18 @@ namespace ui
 static const std::string logPrefix_ = "scwx::qt::ui::animation_dock_widget";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-enum class AnimationState
-{
-   Play,
-   Pause
-};
-
 class AnimationDockWidgetImpl
 {
 public:
    explicit AnimationDockWidgetImpl(AnimationDockWidget* self) : self_ {self} {}
    ~AnimationDockWidgetImpl() = default;
 
+   const QIcon kPauseIcon_ {":/res/icons/font-awesome-6/pause-solid.svg"};
+   const QIcon kPlayIcon_ {":/res/icons/font-awesome-6/play-solid.svg"};
+
    AnimationDockWidget* self_;
 
-   AnimationState animationState_ {AnimationState::Pause};
+   types::AnimationState animationState_ {types::AnimationState::Pause};
 
    std::chrono::sys_days selectedDate_ {};
    std::chrono::seconds  selectedTime_ {};
@@ -171,17 +168,7 @@ void AnimationDockWidgetImpl::ConnectSignals()
    QObject::connect(self_->ui->playButton,
                     &QAbstractButton::clicked,
                     self_,
-                    [this]()
-                    {
-                       if (animationState_ == AnimationState::Pause)
-                       {
-                          emit self_->AnimationPlaySelected();
-                       }
-                       else
-                       {
-                          emit self_->AnimationPauseSelected();
-                       }
-                    });
+                    [this]() { emit self_->AnimationPlaySelected(); });
    QObject::connect(self_->ui->stepNextButton,
                     &QAbstractButton::clicked,
                     self_,
@@ -190,6 +177,21 @@ void AnimationDockWidgetImpl::ConnectSignals()
                     &QAbstractButton::clicked,
                     self_,
                     [this]() { emit self_->AnimationStepEndSelected(); });
+}
+
+void AnimationDockWidget::UpdateAnimationState(types::AnimationState state)
+{
+   // Update icon to opposite of state
+   switch (state)
+   {
+   case types::AnimationState::Pause:
+      ui->playButton->setIcon(p->kPlayIcon_);
+      break;
+
+   case types::AnimationState::Play:
+      ui->playButton->setIcon(p->kPauseIcon_);
+      break;
+   }
 }
 
 } // namespace ui

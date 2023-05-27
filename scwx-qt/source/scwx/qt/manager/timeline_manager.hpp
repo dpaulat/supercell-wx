@@ -35,8 +35,7 @@ public slots:
 
    void AnimationStepBegin();
    void AnimationStepBack();
-   void AnimationPlay();
-   void AnimationPause();
+   void AnimationPlayPause();
    void AnimationStepNext();
    void AnimationStepEnd();
 
@@ -44,6 +43,7 @@ signals:
    void SelectedTimeUpdated(std::chrono::system_clock::time_point dateTime);
    void VolumeTimeUpdated(std::chrono::system_clock::time_point dateTime);
 
+   void AnimationStateUpdated(types::AnimationState state);
    void ViewTypeUpdated(types::MapTime viewType);
 
 private:

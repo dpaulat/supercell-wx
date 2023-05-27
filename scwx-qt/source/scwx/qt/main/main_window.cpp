@@ -682,11 +682,7 @@ void MainWindowImpl::ConnectAnimationSignals()
    connect(animationDockWidget_,
            &ui::AnimationDockWidget::AnimationPlaySelected,
            timelineManager_.get(),
-           &manager::TimelineManager::AnimationPlay);
-   connect(animationDockWidget_,
-           &ui::AnimationDockWidget::AnimationPauseSelected,
-           timelineManager_.get(),
-           &manager::TimelineManager::AnimationPause);
+           &manager::TimelineManager::AnimationPlayPause);
    connect(animationDockWidget_,
            &ui::AnimationDockWidget::AnimationStepNextSelected,
            timelineManager_.get(),
@@ -705,6 +701,11 @@ void MainWindowImpl::ConnectAnimationSignals()
                  map->SelectTime(dateTime);
               }
            });
+
+   connect(timelineManager_.get(),
+           &manager::TimelineManager::AnimationStateUpdated,
+           animationDockWidget_,
+           &ui::AnimationDockWidget::UpdateAnimationState);
 }
 
 void MainWindowImpl::ConnectOtherSignals()
