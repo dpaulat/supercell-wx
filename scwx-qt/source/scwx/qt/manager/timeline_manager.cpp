@@ -7,6 +7,7 @@
 
 #include <mutex>
 
+#include <boost/asio/steady_timer.hpp>
 #include <fmt/chrono.h>
 
 namespace scwx
@@ -33,11 +34,15 @@ public:
    ~Impl()
    {
       // Lock mutexes before destroying
+      std::unique_lock animationTimerLock {animationTimerMutex_};
+      animationTimer_.cancel();
+
       std::unique_lock selectTimeLock {selectTimeMutex_};
    }
 
    TimelineManager* self_;
 
+   void Play();
    void SelectTime(std::chrono::system_clock::time_point selectedTime = {});
    void Step(Direction direction);
 
@@ -49,6 +54,9 @@ public:
    types::MapTime                        viewType_ {types::MapTime::Live};
    std::chrono::minutes                  loopTime_ {30};
    double                                loopSpeed_ {1.0};
+
+   boost::asio::steady_timer animationTimer_ {scwx::util::io_context()};
+   std::mutex                animationTimerMutex_ {};
 
    std::mutex selectTimeMutex_ {};
 };
@@ -125,6 +133,11 @@ void TimelineManager::SetLoopSpeed(double loopSpeed)
 {
    logger_->debug("SetLoopSpeed: {}", loopSpeed);
 
+   if (loopSpeed < 1.0)
+   {
+      loopSpeed = 1.0;
+   }
+
    p->loopSpeed_ = loopSpeed;
 }
 
@@ -155,6 +168,8 @@ void TimelineManager::AnimationStepBack()
 void TimelineManager::AnimationPlay()
 {
    logger_->debug("AnimationPlay");
+
+   p->Play();
 }
 
 void TimelineManager::AnimationPause()
@@ -183,6 +198,80 @@ void TimelineManager::AnimationStepEnd()
       // If the selected view type is archive, select using the pinned time
       p->SelectTime(p->pinnedTime_);
    }
+}
+
+void TimelineManager::Impl::Play()
+{
+   using namespace std::chrono_literals;
+
+   {
+      std::unique_lock animationTimerLock {animationTimerMutex_};
+      animationTimer_.cancel();
+   }
+
+   scwx::util::async(
+      [this]()
+      {
+         // Take a lock for time selection
+         std::unique_lock lock {selectTimeMutex_};
+
+         // Determine loop end time
+         std::chrono::system_clock::time_point endTime;
+
+         if (viewType_ == types::MapTime::Live ||
+             pinnedTime_ == std::chrono::system_clock::time_point {})
+         {
+            endTime = std::chrono::floor<std::chrono::minutes>(
+               std::chrono::system_clock::now());
+         }
+         else
+         {
+            endTime = pinnedTime_;
+         }
+
+         // Determine loop start time and current position in the loop
+         std::chrono::system_clock::time_point startTime = endTime - loopTime_;
+         std::chrono::system_clock::time_point currentTime = selectedTime_;
+
+         // Unlock prior to selecting time
+         lock.unlock();
+
+         if (currentTime < startTime || currentTime >= endTime)
+         {
+            // If the currently selected time is out of the loop, select the
+            // start time
+            SelectTime(startTime);
+         }
+         else
+         {
+            // If the currently selected time is in the loop, increment
+            SelectTime(currentTime + 1min);
+         }
+
+         // Determine repeat interval (loop speed of 1.0 is 1 minute per second)
+         std::chrono::milliseconds interval =
+            std::chrono::milliseconds(std::lroundl(1000.0 / loopSpeed_));
+
+         std::unique_lock animationTimerLock {animationTimerMutex_};
+
+         animationTimer_.expires_after(interval);
+         animationTimer_.async_wait(
+            [this](const boost::system::error_code& e)
+            {
+               if (e == boost::system::errc::success)
+               {
+                  Play();
+               }
+               else if (e == boost::asio::error::operation_aborted)
+               {
+                  logger_->debug("Play timer cancelled");
+               }
+               else
+               {
+                  logger_->warn("Play timer error: {}", e.message());
+               }
+            });
+      });
 }
 
 void TimelineManager::Impl::SelectTime(
