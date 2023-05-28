@@ -126,7 +126,15 @@ public:
 
    common::Level3ProductCategoryMap GetAvailableLevel3Categories();
    std::vector<std::string>         GetLevel3Products();
-   void                             UpdateAvailableProducts();
+
+   /**
+    * @brief Set the maximum number of products of each type that may be cached.
+    *
+    * @param [in] cacheLimit The maximum number of products of each type
+    */
+   void SetCacheLimit(std::size_t cacheLimit);
+
+   void UpdateAvailableProducts();
 
 signals:
    void DataReloaded(std::shared_ptr<types::RadarProductRecord> record);

@@ -42,6 +42,13 @@ public:
 
    TimelineManager* self_;
 
+   std::pair<std::chrono::system_clock::time_point,
+             std::chrono::system_clock::time_point>
+        GetLoopStartAndEndTimes();
+   void UpdateCacheLimit(
+      std::shared_ptr<manager::RadarProductManager> radarProductManager,
+      const std::set<std::chrono::system_clock::time_point>& volumeTimes);
+
    void Pause();
    void Play();
    void SelectTime(std::chrono::system_clock::time_point selectedTime = {});
@@ -223,6 +230,45 @@ void TimelineManager::Impl::Pause()
    }
 }
 
+std::pair<std::chrono::system_clock::time_point,
+          std::chrono::system_clock::time_point>
+TimelineManager::Impl::GetLoopStartAndEndTimes()
+{
+   // Determine loop end time
+   std::chrono::system_clock::time_point endTime;
+
+   if (viewType_ == types::MapTime::Live ||
+       pinnedTime_ == std::chrono::system_clock::time_point {})
+   {
+      endTime = std::chrono::floor<std::chrono::minutes>(
+         std::chrono::system_clock::now());
+   }
+   else
+   {
+      endTime = pinnedTime_;
+   }
+
+   // Determine loop start time and current position in the loop
+   std::chrono::system_clock::time_point startTime = endTime - loopTime_;
+
+   return {startTime, endTime};
+}
+
+void TimelineManager::Impl::UpdateCacheLimit(
+   std::shared_ptr<manager::RadarProductManager>          radarProductManager,
+   const std::set<std::chrono::system_clock::time_point>& volumeTimes)
+{
+   // Calculate the number of volume scans in the loop
+   auto [startTime, endTime] = GetLoopStartAndEndTimes();
+   auto startIter = util::GetBoundedElementIterator(volumeTimes, startTime);
+   auto endIter   = util::GetBoundedElementIterator(volumeTimes, endTime);
+   std::size_t numVolumeScans = std::distance(startIter, endIter) + 1;
+
+   // Dynamically update maximum cached volume scans to 1.5x the loop length
+   radarProductManager->SetCacheLimit(
+      static_cast<std::size_t>(numVolumeScans * 1.5));
+}
+
 void TimelineManager::Impl::Play()
 {
    using namespace std::chrono_literals;
@@ -244,22 +290,7 @@ void TimelineManager::Impl::Play()
          // Take a lock for time selection
          std::unique_lock lock {selectTimeMutex_};
 
-         // Determine loop end time
-         std::chrono::system_clock::time_point endTime;
-
-         if (viewType_ == types::MapTime::Live ||
-             pinnedTime_ == std::chrono::system_clock::time_point {})
-         {
-            endTime = std::chrono::floor<std::chrono::minutes>(
-               std::chrono::system_clock::now());
-         }
-         else
-         {
-            endTime = pinnedTime_;
-         }
-
-         // Determine loop start time and current position in the loop
-         std::chrono::system_clock::time_point startTime = endTime - loopTime_;
+         auto [startTime, endTime] = GetLoopStartAndEndTimes();
          std::chrono::system_clock::time_point currentTime = selectedTime_;
          std::chrono::system_clock::time_point newTime;
 
@@ -353,6 +384,9 @@ void TimelineManager::Impl::SelectTime(
          auto volumeTimes =
             radarProductManager->GetActiveVolumeTimes(selectedTime);
 
+         // Dynamically update maximum cached volume scans
+         UpdateCacheLimit(radarProductManager, volumeTimes);
+
          // Find the best match bounded time
          auto elementPtr =
             util::GetBoundedElementPointer(volumeTimes, selectedTime);
@@ -417,6 +451,9 @@ void TimelineManager::Impl::Step(Direction direction)
             logger_->debug("No products to step through");
             return;
          }
+
+         // Dynamically update maximum cached volume scans
+         UpdateCacheLimit(radarProductManager, volumeTimes);
 
          std::set<std::chrono::system_clock::time_point>::const_iterator it;
 

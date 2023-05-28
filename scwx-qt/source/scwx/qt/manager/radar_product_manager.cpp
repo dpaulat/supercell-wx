@@ -216,6 +216,7 @@ public:
    bool              level3ProductsInitialized_;
 
    std::shared_ptr<config::RadarSite> radarSite_;
+   std::size_t                        cacheLimit_ {6u};
 
    std::vector<float> coordinates0_5Degree_;
    std::vector<float> coordinates1Degree_;
@@ -1135,7 +1136,7 @@ void RadarProductManagerImpl::UpdateRecentRecords(
    RadarProductRecordList&                    recentList,
    std::shared_ptr<types::RadarProductRecord> record)
 {
-   static constexpr std::size_t kRecentListMaxSize_ {2u};
+   const std::size_t recentListMaxSize {cacheLimit_};
 
    auto it = std::find(recentList.cbegin(), recentList.cend(), record);
    if (it != recentList.cbegin() && it != recentList.cend())
@@ -1150,7 +1151,7 @@ void RadarProductManagerImpl::UpdateRecentRecords(
       recentList.push_front(record);
    }
 
-   while (recentList.size() > kRecentListMaxSize_)
+   while (recentList.size() > recentListMaxSize)
    {
       // Remove from the end of the list while it's too big
       recentList.pop_back();
@@ -1213,6 +1214,11 @@ std::vector<std::string> RadarProductManager::GetLevel3Products()
    auto level3ProviderManager =
       p->GetLevel3ProviderManager(kDefaultLevel3Product_);
    return level3ProviderManager->provider_->GetAvailableProducts();
+}
+
+void RadarProductManager::SetCacheLimit(size_t cacheLimit)
+{
+   p->cacheLimit_ = cacheLimit;
 }
 
 void RadarProductManager::UpdateAvailableProducts()
