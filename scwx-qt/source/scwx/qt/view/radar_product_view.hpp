@@ -51,7 +51,7 @@ public:
    virtual void SelectElevation(float elevation);
    virtual void SelectProduct(const std::string& productName) = 0;
    void         SelectTime(std::chrono::system_clock::time_point time);
-   virtual void Update() = 0;
+   void         Update();
 
    bool IsInitialized() const;
 

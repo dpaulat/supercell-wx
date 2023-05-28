@@ -39,7 +39,6 @@ public:
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) override;
    void SelectElevation(float elevation) override;
    void SelectProduct(const std::string& productName) override;
-   void Update() override;
 
    common::RadarProductGroup GetRadarProductGroup() const override;
    std::string               GetRadarProductName() const override;

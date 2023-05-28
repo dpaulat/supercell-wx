@@ -1,7 +1,6 @@
 #include <scwx/qt/view/level3_product_view.hpp>
 #include <scwx/common/constants.hpp>
 #include <scwx/util/logger.hpp>
-#include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/rpg/digital_radial_data_array_packet.hpp>
 #include <scwx/wsr88d/rpg/graphic_product_message.hpp>
@@ -159,11 +158,6 @@ void Level3ProductView::LoadColorTable(
 {
    p->colorTable_ = colorTable;
    UpdateColorTable();
-}
-
-void Level3ProductView::Update()
-{
-   util::async([this]() { ComputeSweep(); });
 }
 
 void Level3ProductView::UpdateColorTable()
