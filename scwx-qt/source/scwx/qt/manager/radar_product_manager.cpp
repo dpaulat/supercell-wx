@@ -1013,7 +1013,7 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
 
    auto it = level3ProductRecordsMap_.find(product);
 
-   if (it != level3ProductRecordsMap_.cend())
+   if (it != level3ProductRecordsMap_.cend() && !it->second.empty())
    {
       if (time == std::chrono::system_clock::time_point {})
       {
