@@ -61,7 +61,7 @@ public:
    std::chrono::system_clock::time_point selectedTime_ {};
    types::MapTime                        viewType_ {types::MapTime::Live};
    std::chrono::minutes                  loopTime_ {30};
-   double                                loopSpeed_ {1.0};
+   double                                loopSpeed_ {5.0};
 
    types::AnimationState     animationState_ {types::AnimationState::Pause};
    boost::asio::steady_timer animationTimer_ {scwx::util::io_context()};

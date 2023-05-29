@@ -85,6 +85,10 @@ AnimationDockWidget::AnimationDockWidget(QWidget* parent) :
    // Evaluate every 15 seconds, every second is unnecessary
    maxDateTimer->start(15000);
 
+   // Set loop defaults
+   ui->loopTimeSpinBox->setValue(30);
+   ui->loopSpeedSpinBox->setValue(5.0);
+
    // Connect widget signals
    p->ConnectSignals();
 }
