@@ -156,8 +156,9 @@ TextProductMessage::segment_event_begin(std::size_t s) const
                hours {beginHour} + minutes {beginMinute};
 
             // If the begin date is after the end date, assume the start time
-            // was the previous month
-            if (eventBegin > eventEnd)
+            // was the previous month (give a 1 day grace period for expiring
+            // events in the past)
+            if (eventBegin > eventEnd + 24h)
             {
                // If the current end month is January
                if (endDate.month() == January)
