@@ -130,14 +130,15 @@ TextProductMessage::segment_event_begin(std::size_t s) const
          std::string wmoDateTime = wmo_header()->date_time();
 
          bool          wmoDateTimeValid = false;
-         unsigned long dayOfMonth       = 0;
+         unsigned int  dayOfMonth       = 0;
          unsigned long beginHour        = 0;
          unsigned long beginMinute      = 0;
 
          try
          {
             // WMO date time is in the format DDHHMM
-            dayOfMonth       = std::stoul(wmoDateTime.substr(0, 2));
+            dayOfMonth =
+               static_cast<unsigned int>(std::stoul(wmoDateTime.substr(0, 2)));
             beginHour        = std::stoul(wmoDateTime.substr(2, 2));
             beginMinute      = std::stoul(wmoDateTime.substr(4, 2));
             wmoDateTimeValid = true;
@@ -162,9 +163,11 @@ TextProductMessage::segment_event_begin(std::size_t s) const
                if (endDate.month() == January)
                {
                   // The begin month must be December of last year
-                  eventBegin = sys_days {year {(endDate.year() - 1y).count()} /
-                                         December / day {dayOfMonth}} +
-                               hours {beginHour} + minutes {beginMinute};
+                  eventBegin =
+                     sys_days {
+                        year {static_cast<int>((endDate.year() - 1y).count())} /
+                        December / day {dayOfMonth}} +
+                     hours {beginHour} + minutes {beginMinute};
                }
                else
                {
