@@ -366,6 +366,7 @@ void TimelineManager::Impl::SelectTime(
 
       logger_->debug("Time updated: Live");
 
+      emit self_->LiveStateUpdated(true);
       emit self_->VolumeTimeUpdated(selectedTime);
       emit self_->SelectedTimeUpdated(selectedTime);
 
@@ -390,6 +391,9 @@ void TimelineManager::Impl::SelectTime(
          // Find the best match bounded time
          auto elementPtr =
             util::GetBoundedElementPointer(volumeTimes, selectedTime);
+
+         // The timeline is no longer live
+         emit self_->LiveStateUpdated(false);
 
          if (elementPtr != nullptr)
          {
@@ -469,6 +473,13 @@ void TimelineManager::Impl::Step(Direction direction)
                                                        adjustedTime_);
          }
 
+         if (it == volumeTimes.cend())
+         {
+            // Should not get here, but protect against an error
+            logger_->error("No suitable volume time found");
+            return;
+         }
+
          if (direction == Direction::Back)
          {
             // Only if we aren't at the beginning of the volume times set
@@ -481,6 +492,7 @@ void TimelineManager::Impl::Step(Direction direction)
                logger_->debug("Volume time updated: {}",
                               scwx::util::TimeString(adjustedTime_));
 
+               emit self_->LiveStateUpdated(false);
                emit self_->VolumeTimeUpdated(adjustedTime_);
                emit self_->SelectedTimeUpdated(adjustedTime_);
             }
@@ -497,6 +509,7 @@ void TimelineManager::Impl::Step(Direction direction)
                logger_->debug("Volume time updated: {}",
                               scwx::util::TimeString(adjustedTime_));
 
+               emit self_->LiveStateUpdated(false);
                emit self_->VolumeTimeUpdated(adjustedTime_);
                emit self_->SelectedTimeUpdated(adjustedTime_);
             }

@@ -706,6 +706,20 @@ void MainWindowImpl::ConnectAnimationSignals()
            &manager::TimelineManager::AnimationStateUpdated,
            animationDockWidget_,
            &ui::AnimationDockWidget::UpdateAnimationState);
+
+   connect(timelineManager_.get(),
+           &manager::TimelineManager::LiveStateUpdated,
+           animationDockWidget_,
+           &ui::AnimationDockWidget::UpdateLiveState);
+   connect(timelineManager_.get(),
+           &manager::TimelineManager::LiveStateUpdated,
+           [this](bool isLive)
+           {
+              for (auto map : maps_)
+              {
+                 map->SetAutoUpdate(isLive);
+              }
+           });
 }
 
 void MainWindowImpl::ConnectOtherSignals()

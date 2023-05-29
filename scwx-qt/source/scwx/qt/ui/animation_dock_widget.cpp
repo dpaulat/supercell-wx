@@ -198,6 +198,22 @@ void AnimationDockWidget::UpdateAnimationState(types::AnimationState state)
    }
 }
 
+void AnimationDockWidget::UpdateLiveState(bool isLive)
+{
+   static const QString prefix   = tr("Auto Update");
+   static const QString disabled = tr("Disabled");
+   static const QString enabled  = tr("Enabled");
+
+   if (isLive)
+   {
+      ui->autoUpdateLabel->setText(QString("%1: %2").arg(prefix).arg(enabled));
+   }
+   else
+   {
+      ui->autoUpdateLabel->setText(QString("%1: %2").arg(prefix).arg(disabled));
+   }
+}
+
 } // namespace ui
 } // namespace qt
 } // namespace scwx

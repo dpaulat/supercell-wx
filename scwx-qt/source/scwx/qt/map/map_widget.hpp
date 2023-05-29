@@ -89,6 +89,7 @@ public:
 
    void SetActive(bool isActive);
    void SetAutoRefresh(bool enabled);
+   void SetAutoUpdate(bool enabled);
 
    /**
     * @brief Sets the current map location.

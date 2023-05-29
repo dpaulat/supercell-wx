@@ -62,6 +62,7 @@ public:
        overlayLayer_ {nullptr},
        colorTableLayer_ {nullptr},
        autoRefreshEnabled_ {true},
+       autoUpdateEnabled_ {true},
        selectedLevel2Product_ {common::Level2Product::Unknown},
        lastPos_(),
        currentStyleIndex_ {0},
@@ -146,6 +147,7 @@ public:
    std::shared_ptr<ColorTableLayer>   colorTableLayer_;
 
    bool autoRefreshEnabled_;
+   bool autoUpdateEnabled_;
 
    common::Level2Product selectedLevel2Product_;
 
@@ -520,6 +522,11 @@ void MapWidget::SetAutoRefresh(bool enabled)
    }
 }
 
+void MapWidget::SetAutoUpdate(bool enabled)
+{
+   p->autoUpdateEnabled_ = enabled;
+}
+
 void MapWidget::SetMapLocation(double latitude,
                                double longitude,
                                bool   updateRadarSite)
@@ -869,7 +876,7 @@ void MapWidgetImpl::RadarProductManagerConnect()
                 const std::string&                    product,
                 std::chrono::system_clock::time_point latestTime)
          {
-            if (autoRefreshEnabled_ &&
+            if (autoUpdateEnabled_ &&
                 context_->radar_product_group() == group &&
                 (group == common::RadarProductGroup::Level2 ||
                  context_->radar_product() == product))

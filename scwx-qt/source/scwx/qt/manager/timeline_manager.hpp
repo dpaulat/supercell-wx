@@ -44,6 +44,7 @@ signals:
    void VolumeTimeUpdated(std::chrono::system_clock::time_point dateTime);
 
    void AnimationStateUpdated(types::AnimationState state);
+   void LiveStateUpdated(bool isLive);
    void ViewTypeUpdated(types::MapTime viewType);
 
 private:
