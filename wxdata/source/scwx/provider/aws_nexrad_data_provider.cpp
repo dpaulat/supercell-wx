@@ -20,8 +20,9 @@ static const std::string logPrefix_ =
    "scwx::provider::aws_nexrad_data_provider";
 static const auto logger_ = util::Logger::Create(logPrefix_);
 
-// Keep at least today, yesterday, and one more date
-static const size_t kMinDatesBeforePruning_ = 4;
+// Keep at least today, yesterday, and three more dates (archived volume scan
+// list size)
+static const size_t kMinDatesBeforePruning_ = 6;
 static const size_t kMaxObjects_            = 2500;
 
 class AwsNexradDataProvider::Impl
