@@ -876,7 +876,7 @@ void MapWidgetImpl::RadarProductManagerConnect()
                 const std::string&                    product,
                 std::chrono::system_clock::time_point latestTime)
          {
-            if (autoUpdateEnabled_ &&
+            if (autoRefreshEnabled_ &&
                 context_->radar_product_group() == group &&
                 (group == common::RadarProductGroup::Level2 ||
                  context_->radar_product() == product))
@@ -886,20 +886,23 @@ void MapWidgetImpl::RadarProductManagerConnect()
                   std::make_shared<request::NexradFileRequest>();
 
                // File request callback
-               connect(
-                  request.get(),
-                  &request::NexradFileRequest::RequestComplete,
-                  this,
-                  [this](std::shared_ptr<request::NexradFileRequest> request)
-                  {
-                     // Select loaded record
-                     auto record = request->radar_product_record();
-
-                     if (record != nullptr)
+               if (autoUpdateEnabled_)
+               {
+                  connect(
+                     request.get(),
+                     &request::NexradFileRequest::RequestComplete,
+                     this,
+                     [this](std::shared_ptr<request::NexradFileRequest> request)
                      {
-                        widget_->SelectRadarProduct(record);
-                     }
-                  });
+                        // Select loaded record
+                        auto record = request->radar_product_record();
+
+                        if (record != nullptr)
+                        {
+                           widget_->SelectRadarProduct(record);
+                        }
+                     });
+               }
 
                // Load file
                scwx::util::async(
