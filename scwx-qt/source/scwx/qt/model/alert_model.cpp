@@ -421,8 +421,7 @@ AlertModelImpl::GetStartTime(const types::TextEventKey& key)
    if (messageList.size() > 0)
    {
       auto& firstMessage = messageList.front();
-      auto  firstSegment = firstMessage->segment(0);
-      return firstSegment->header_->vtecString_[0].pVtec_.event_begin();
+      return firstMessage->segment_event_begin(0);
    }
    else
    {
