@@ -57,6 +57,7 @@ Supercell Wx uses assets from the following sources:
 | ------ | ------- | ----- |
 | [Font Awesome Free](https://fontawesome.com/) | CC BY 4.0 License |
 | [NOAA's Weather and Climate Toolkit](https://www.ncdc.noaa.gov/wct/) | Public Domain | Default Color Tables |
+| [Supercell thunderstorm with dramatic clouds](https://www.shutterstock.com/image-photo/supercell-thunderstorm-dramatic-clouds-1354353521) | Shutterstock Standard License | Photo by John Sirlin
 
 Services
 --------
