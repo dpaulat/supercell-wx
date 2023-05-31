@@ -205,6 +205,7 @@ public:
                          std::shared_mutex&                    recordMutex,
                          std::mutex&                           loadDataMutex,
                          std::shared_ptr<request::NexradFileRequest> request);
+   void PopulateLevel2ProductTimes(std::chrono::system_clock::time_point time);
 
    static void
    LoadNexradFile(CreateNexradFileFunction                    load,
@@ -944,6 +945,59 @@ void RadarProductManagerImpl::LoadNexradFile(
       });
 }
 
+void RadarProductManagerImpl::PopulateLevel2ProductTimes(
+   std::chrono::system_clock::time_point time)
+{
+   const auto today     = std::chrono::floor<std::chrono::days>(time);
+   const auto yesterday = today - std::chrono::days {1};
+   const auto tomorrow  = today + std::chrono::days {1};
+   const auto dates     = {yesterday, today, tomorrow};
+
+   std::set<std::chrono::system_clock::time_point> volumeTimes {};
+   std::mutex                                      volumeTimesMutex {};
+
+   // For yesterday, today and tomorrow (in parallel)
+   std::for_each(std::execution::par_unseq,
+                 dates.begin(),
+                 dates.end(),
+                 [&, this](const auto& date)
+                 {
+                    // Don't query for a time point in the future
+                    if (date > std::chrono::system_clock::now())
+                    {
+                       return;
+                    }
+
+                    // Query the provider for volume time points
+                    auto timePoints =
+                       level2ProviderManager_->provider_->GetTimePointsByDate(
+                          date);
+
+                    // Lock the merged volume time list
+                    std::unique_lock volumeTimesLock {volumeTimesMutex};
+
+                    // Copy time points to the merged list
+                    std::copy(timePoints.begin(),
+                              timePoints.end(),
+                              std::inserter(volumeTimes, volumeTimes.end()));
+                 });
+
+   // Lock the level 2 product record map
+   std::unique_lock lock {level2ProductRecordMutex_};
+
+   // Merge volume times into map
+   std::transform(
+      volumeTimes.cbegin(),
+      volumeTimes.cend(),
+      std::inserter(level2ProductRecords_, level2ProductRecords_.begin()),
+      [](const std::chrono::system_clock::time_point& time)
+      {
+         return std::pair<std::chrono::system_clock::time_point,
+                          std::weak_ptr<types::RadarProductRecord>>(
+            time, std::weak_ptr<types::RadarProductRecord> {});
+      });
+}
+
 std::tuple<std::shared_ptr<types::RadarProductRecord>,
            std::chrono::system_clock::time_point>
 RadarProductManagerImpl::GetLevel2ProductRecord(
@@ -952,6 +1006,9 @@ RadarProductManagerImpl::GetLevel2ProductRecord(
    std::shared_ptr<types::RadarProductRecord> record {nullptr};
    RadarProductRecordMap::const_pointer       recordPtr {nullptr};
    std::chrono::system_clock::time_point      recordTime {time};
+
+   // Ensure Level 2 product records are updated
+   PopulateLevel2ProductTimes(time);
 
    if (!level2ProductRecords_.empty() &&
        time == std::chrono::system_clock::time_point {})
@@ -967,12 +1024,9 @@ RadarProductManagerImpl::GetLevel2ProductRecord(
 
    if (recordPtr != nullptr)
    {
-      if (time == std::chrono::system_clock::time_point {} ||
-          time == recordPtr->first)
-      {
-         recordTime = recordPtr->first;
-         record     = recordPtr->second.lock();
-      }
+      // Don't check for an exact time match for level 2 products
+      recordTime = recordPtr->first;
+      record     = recordPtr->second.lock();
    }
 
    if (record == nullptr &&

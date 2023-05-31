@@ -849,7 +849,8 @@ void MainWindowImpl::SelectRadarProduct(map::MapWidget*           mapWidget,
       UpdateRadarProductSettings();
    }
 
-   mapWidget->SelectRadarProduct(group, productName, productCode);
+   mapWidget->SelectRadarProduct(
+      group, productName, productCode, mapWidget->GetSelectedTime());
 }
 
 void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)

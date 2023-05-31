@@ -34,15 +34,16 @@ public:
    explicit MapWidget(const QMapLibreGL::Settings&);
    ~MapWidget();
 
-   common::Level3ProductCategoryMap   GetAvailableLevel3Categories();
-   float                              GetElevation() const;
-   std::vector<float>                 GetElevationCuts() const;
-   std::vector<std::string>           GetLevel3Products();
-   std::string                        GetMapStyle() const;
-   common::RadarProductGroup          GetRadarProductGroup() const;
-   std::string                        GetRadarProductName() const;
-   std::shared_ptr<config::RadarSite> GetRadarSite() const;
-   std::uint16_t                      GetVcp() const;
+   common::Level3ProductCategoryMap      GetAvailableLevel3Categories();
+   float                                 GetElevation() const;
+   std::vector<float>                    GetElevationCuts() const;
+   std::vector<std::string>              GetLevel3Products();
+   std::string                           GetMapStyle() const;
+   common::RadarProductGroup             GetRadarProductGroup() const;
+   std::string                           GetRadarProductName() const;
+   std::shared_ptr<config::RadarSite>    GetRadarSite() const;
+   std::chrono::system_clock::time_point GetSelectedTime() const;
+   std::uint16_t                         GetVcp() const;
 
    void SelectElevation(float elevation);
 

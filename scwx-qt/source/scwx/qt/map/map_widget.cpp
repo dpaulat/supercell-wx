@@ -316,6 +316,21 @@ std::shared_ptr<config::RadarSite> MapWidget::GetRadarSite() const
    return radarSite;
 }
 
+std::chrono::system_clock::time_point MapWidget::GetSelectedTime() const
+{
+   auto radarProductView = p->context_->radar_product_view();
+   std::chrono::system_clock::time_point time;
+
+   // If there is an active radar product view
+   if (radarProductView != nullptr)
+   {
+      // Select the time associated with the active radar product
+      time = radarProductView->GetSelectedTime();
+   }
+
+   return time;
+}
+
 std::uint16_t MapWidget::GetVcp() const
 {
    auto radarProductView = p->context_->radar_product_view();

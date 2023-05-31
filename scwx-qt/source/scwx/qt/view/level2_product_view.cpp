@@ -119,7 +119,8 @@ void Level2ProductView::ConnectRadarProductManager()
            {
               if (record->radar_product_group() ==
                      common::RadarProductGroup::Level2 &&
-                  record->time() == selected_time())
+                  std::chrono::floor<std::chrono::seconds>(record->time()) ==
+                     selected_time())
               {
                  // If the data associated with the currently selected time is
                  // reloaded, update the view
