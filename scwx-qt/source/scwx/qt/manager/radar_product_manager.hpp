@@ -9,6 +9,7 @@
 #include <scwx/wsr88d/level3_file.hpp>
 
 #include <memory>
+#include <set>
 #include <unordered_map>
 #include <vector>
 
@@ -64,6 +65,17 @@ public:
                       boost::uuids::uuid uuid = boost::uuids::nil_uuid());
 
    /**
+    * @brief Gets a merged list of the volume times for products with refresh
+    * enabled. The volume times will be for the previous, current and next day.
+    *
+    * @param [in] time Current date to provide to volume time query
+    *
+    * @return Merged list of active volume times
+    */
+   std::set<std::chrono::system_clock::time_point>
+   GetActiveVolumeTimes(std::chrono::system_clock::time_point time);
+
+   /**
     * @brief Get level 2 radar data for a data block type, elevation, and time.
     *
     * @param [in] dataBlockType Data block type
@@ -114,7 +126,15 @@ public:
 
    common::Level3ProductCategoryMap GetAvailableLevel3Categories();
    std::vector<std::string>         GetLevel3Products();
-   void                             UpdateAvailableProducts();
+
+   /**
+    * @brief Set the maximum number of products of each type that may be cached.
+    *
+    * @param [in] cacheLimit The maximum number of products of each type
+    */
+   void SetCacheLimit(std::size_t cacheLimit);
+
+   void UpdateAvailableProducts();
 
 signals:
    void DataReloaded(std::shared_ptr<types::RadarProductRecord> record);

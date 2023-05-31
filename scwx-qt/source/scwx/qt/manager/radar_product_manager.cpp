@@ -13,6 +13,7 @@
 #include <execution>
 #include <mutex>
 #include <shared_mutex>
+#include <unordered_set>
 
 #if defined(_MSC_VER)
 #   pragma warning(push, 0)
@@ -204,6 +205,7 @@ public:
                          std::shared_mutex&                    recordMutex,
                          std::mutex&                           loadDataMutex,
                          std::shared_ptr<request::NexradFileRequest> request);
+   void PopulateLevel2ProductTimes(std::chrono::system_clock::time_point time);
 
    static void
    LoadNexradFile(CreateNexradFileFunction                    load,
@@ -215,6 +217,7 @@ public:
    bool              level3ProductsInitialized_;
 
    std::shared_ptr<config::RadarSite> radarSite_;
+   std::size_t                        cacheLimit_ {6u};
 
    std::vector<float> coordinates0_5Degree_;
    std::vector<float> coordinates1Degree_;
@@ -244,8 +247,8 @@ public:
    std::unordered_map<boost::uuids::uuid,
                       std::shared_ptr<ProviderManager>,
                       boost::hash<boost::uuids::uuid>>
-              refreshMap_ {};
-   std::mutex refreshMapMutex_ {};
+                     refreshMap_ {};
+   std::shared_mutex refreshMapMutex_ {};
 };
 
 RadarProductManager::RadarProductManager(const std::string& radarId) :
@@ -676,6 +679,79 @@ void RadarProductManagerImpl::RefreshData(
       });
 }
 
+std::set<std::chrono::system_clock::time_point>
+RadarProductManager::GetActiveVolumeTimes(
+   std::chrono::system_clock::time_point time)
+{
+   std::unordered_set<std::shared_ptr<provider::NexradDataProvider>>
+                                                   providers {};
+   std::set<std::chrono::system_clock::time_point> volumeTimes {};
+   std::mutex                                      volumeTimesMutex {};
+
+   // Return a default set of volume times if the default time point is given
+   if (time == std::chrono::system_clock::time_point {})
+   {
+      return volumeTimes;
+   }
+
+   // Lock the refresh map
+   std::shared_lock refreshLock {p->refreshMapMutex_};
+
+   // For each entry in the refresh map (refresh is enabled)
+   for (auto& refreshEntry : p->refreshMap_)
+   {
+      // Add the provider for the current entry
+      providers.insert(refreshEntry.second->provider_);
+   }
+
+   // Unlock the refresh map
+   refreshLock.unlock();
+
+   const auto today     = std::chrono::floor<std::chrono::days>(time);
+   const auto yesterday = today - std::chrono::days {1};
+   const auto tomorrow  = today + std::chrono::days {1};
+   const auto dates     = {yesterday, today, tomorrow};
+
+   // For each provider (in parallel)
+   std::for_each(
+      std::execution::par_unseq,
+      providers.begin(),
+      providers.end(),
+      [&](const std::shared_ptr<provider::NexradDataProvider>& provider)
+      {
+         // For yesterday, today and tomorrow (in parallel)
+         std::for_each(std::execution::par_unseq,
+                       dates.begin(),
+                       dates.end(),
+                       [&](const auto& date)
+                       {
+                          // Don't query for a time point in the future
+                          if (date > std::chrono::system_clock::now())
+                          {
+                             return;
+                          }
+
+                          // Query the provider for volume time points
+                          auto timePoints = provider->GetTimePointsByDate(date);
+
+                          // TODO: Note, this will miss volume times present in
+                          // Level 2 products with a second scan
+
+                          // Lock the merged volume time list
+                          std::unique_lock volumeTimesLock {volumeTimesMutex};
+
+                          // Copy time points to the merged list
+                          std::copy(
+                             timePoints.begin(),
+                             timePoints.end(),
+                             std::inserter(volumeTimes, volumeTimes.end()));
+                       });
+      });
+
+   // Return merged volume times list
+   return volumeTimes;
+}
+
 void RadarProductManagerImpl::LoadProviderData(
    std::chrono::system_clock::time_point       time,
    std::shared_ptr<ProviderManager>            providerManager,
@@ -869,6 +945,59 @@ void RadarProductManagerImpl::LoadNexradFile(
       });
 }
 
+void RadarProductManagerImpl::PopulateLevel2ProductTimes(
+   std::chrono::system_clock::time_point time)
+{
+   const auto today     = std::chrono::floor<std::chrono::days>(time);
+   const auto yesterday = today - std::chrono::days {1};
+   const auto tomorrow  = today + std::chrono::days {1};
+   const auto dates     = {yesterday, today, tomorrow};
+
+   std::set<std::chrono::system_clock::time_point> volumeTimes {};
+   std::mutex                                      volumeTimesMutex {};
+
+   // For yesterday, today and tomorrow (in parallel)
+   std::for_each(std::execution::par_unseq,
+                 dates.begin(),
+                 dates.end(),
+                 [&, this](const auto& date)
+                 {
+                    // Don't query for a time point in the future
+                    if (date > std::chrono::system_clock::now())
+                    {
+                       return;
+                    }
+
+                    // Query the provider for volume time points
+                    auto timePoints =
+                       level2ProviderManager_->provider_->GetTimePointsByDate(
+                          date);
+
+                    // Lock the merged volume time list
+                    std::unique_lock volumeTimesLock {volumeTimesMutex};
+
+                    // Copy time points to the merged list
+                    std::copy(timePoints.begin(),
+                              timePoints.end(),
+                              std::inserter(volumeTimes, volumeTimes.end()));
+                 });
+
+   // Lock the level 2 product record map
+   std::unique_lock lock {level2ProductRecordMutex_};
+
+   // Merge volume times into map
+   std::transform(
+      volumeTimes.cbegin(),
+      volumeTimes.cend(),
+      std::inserter(level2ProductRecords_, level2ProductRecords_.begin()),
+      [](const std::chrono::system_clock::time_point& time)
+      {
+         return std::pair<std::chrono::system_clock::time_point,
+                          std::weak_ptr<types::RadarProductRecord>>(
+            time, std::weak_ptr<types::RadarProductRecord> {});
+      });
+}
+
 std::tuple<std::shared_ptr<types::RadarProductRecord>,
            std::chrono::system_clock::time_point>
 RadarProductManagerImpl::GetLevel2ProductRecord(
@@ -877,6 +1006,9 @@ RadarProductManagerImpl::GetLevel2ProductRecord(
    std::shared_ptr<types::RadarProductRecord> record {nullptr};
    RadarProductRecordMap::const_pointer       recordPtr {nullptr};
    std::chrono::system_clock::time_point      recordTime {time};
+
+   // Ensure Level 2 product records are updated
+   PopulateLevel2ProductTimes(time);
 
    if (!level2ProductRecords_.empty() &&
        time == std::chrono::system_clock::time_point {})
@@ -892,12 +1024,9 @@ RadarProductManagerImpl::GetLevel2ProductRecord(
 
    if (recordPtr != nullptr)
    {
-      if (time == std::chrono::system_clock::time_point {} ||
-          time == recordPtr->first)
-      {
-         recordTime = recordPtr->first;
-         record     = recordPtr->second.lock();
-      }
+      // Don't check for an exact time match for level 2 products
+      recordTime = recordPtr->first;
+      record     = recordPtr->second.lock();
    }
 
    if (record == nullptr &&
@@ -938,7 +1067,7 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
 
    auto it = level3ProductRecordsMap_.find(product);
 
-   if (it != level3ProductRecordsMap_.cend())
+   if (it != level3ProductRecordsMap_.cend() && !it->second.empty())
    {
       if (time == std::chrono::system_clock::time_point {})
       {
@@ -1061,7 +1190,7 @@ void RadarProductManagerImpl::UpdateRecentRecords(
    RadarProductRecordList&                    recentList,
    std::shared_ptr<types::RadarProductRecord> record)
 {
-   static constexpr std::size_t kRecentListMaxSize_ {2u};
+   const std::size_t recentListMaxSize {cacheLimit_};
 
    auto it = std::find(recentList.cbegin(), recentList.cend(), record);
    if (it != recentList.cbegin() && it != recentList.cend())
@@ -1076,7 +1205,7 @@ void RadarProductManagerImpl::UpdateRecentRecords(
       recentList.push_front(record);
    }
 
-   while (recentList.size() > kRecentListMaxSize_)
+   while (recentList.size() > recentListMaxSize)
    {
       // Remove from the end of the list while it's too big
       recentList.pop_back();
@@ -1139,6 +1268,11 @@ std::vector<std::string> RadarProductManager::GetLevel3Products()
    auto level3ProviderManager =
       p->GetLevel3ProviderManager(kDefaultLevel3Product_);
    return level3ProviderManager->provider_->GetAvailableProducts();
+}
+
+void RadarProductManager::SetCacheLimit(size_t cacheLimit)
+{
+   p->cacheLimit_ = cacheLimit;
 }
 
 void RadarProductManager::UpdateAvailableProducts()

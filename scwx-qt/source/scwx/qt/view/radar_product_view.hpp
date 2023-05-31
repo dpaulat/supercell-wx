@@ -51,7 +51,7 @@ public:
    virtual void SelectElevation(float elevation);
    virtual void SelectProduct(const std::string& productName) = 0;
    void         SelectTime(std::chrono::system_clock::time_point time);
-   virtual void Update() = 0;
+   void         Update();
 
    bool IsInitialized() const;
 
@@ -61,7 +61,8 @@ public:
    virtual std::tuple<const void*, std::size_t, std::size_t>
    GetMomentData() const = 0;
    virtual std::tuple<const void*, std::size_t, std::size_t>
-   GetCfpMomentData() const;
+                                         GetCfpMomentData() const;
+   std::chrono::system_clock::time_point GetSelectedTime() const;
 
 protected:
    virtual void ConnectRadarProductManager()    = 0;

@@ -108,7 +108,11 @@ Level2ProductView::Level2ProductView(
 {
    ConnectRadarProductManager();
 }
-Level2ProductView::~Level2ProductView() = default;
+
+Level2ProductView::~Level2ProductView()
+{
+   std::unique_lock sweepLock {sweep_mutex()};
+}
 
 void Level2ProductView::ConnectRadarProductManager()
 {
@@ -119,7 +123,8 @@ void Level2ProductView::ConnectRadarProductManager()
            {
               if (record->radar_product_group() ==
                      common::RadarProductGroup::Level2 &&
-                  record->time() == selected_time())
+                  std::chrono::floor<std::chrono::seconds>(record->time()) ==
+                     selected_time())
               {
                  // If the data associated with the currently selected time is
                  // reloaded, update the view
@@ -288,11 +293,6 @@ void Level2ProductViewImpl::SetProduct(common::Level2Product product)
       logger_->warn("Unknown product: \"{}\"", common::GetLevel2Name(product));
       dataBlockType_ = wsr88d::rda::DataBlockType::Unknown;
    }
-}
-
-void Level2ProductView::Update()
-{
-   util::async([this]() { ComputeSweep(); });
 }
 
 void Level2ProductView::UpdateColorTable()

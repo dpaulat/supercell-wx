@@ -32,7 +32,6 @@ public:
    std::uint16_t color_table_max() const override;
 
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) override;
-   void Update() override;
 
    common::RadarProductGroup GetRadarProductGroup() const override;
    std::string               GetRadarProductName() const override;

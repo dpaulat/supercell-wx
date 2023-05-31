@@ -91,11 +91,14 @@ public:
    std::shared_ptr<WmoHeader>                  wmo_header() const;
    std::vector<std::string>                    mnd_header() const;
    std::vector<std::string>                    overview_block() const;
-   size_t                                      segment_count() const;
+   std::size_t                                 segment_count() const;
    std::vector<std::shared_ptr<const Segment>> segments() const;
-   std::shared_ptr<const Segment>              segment(size_t s) const;
+   std::shared_ptr<const Segment>              segment(std::size_t s) const;
 
-   size_t data_size() const;
+   std::chrono::system_clock::time_point
+   segment_event_begin(std::size_t s) const;
+
+   std::size_t data_size() const;
 
    bool Parse(std::istream& is) override;
 

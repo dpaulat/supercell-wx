@@ -8,6 +8,7 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
+#include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/manager/update_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_widget.hpp>
@@ -15,6 +16,7 @@
 #include <scwx/qt/ui/alert_dock_widget.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/qt/ui/about_dialog.hpp>
+#include <scwx/qt/ui/animation_dock_widget.hpp>
 #include <scwx/qt/ui/imgui_debug_dialog.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
@@ -62,6 +64,7 @@ public:
        level2SettingsWidget_ {nullptr},
        level3ProductsWidget_ {nullptr},
        alertDockWidget_ {nullptr},
+       animationDockWidget_ {nullptr},
        aboutDialog_ {nullptr},
        imGuiDebugDialog_ {nullptr},
        radarSiteDialog_ {nullptr},
@@ -69,6 +72,7 @@ public:
        updateDialog_ {nullptr},
        radarProductModel_ {nullptr},
        textEventManager_ {manager::TextEventManager::Instance()},
+       timelineManager_ {manager::TimelineManager::Instance()},
        updateManager_ {manager::UpdateManager::Instance()},
        maps_ {},
        elevationCuts_ {},
@@ -109,6 +113,7 @@ public:
 
    void AsyncSetup();
    void ConfigureMapLayout();
+   void ConnectAnimationSignals();
    void ConnectMapSignals();
    void ConnectOtherSignals();
    void HandleFocusChange(QWidget* focused);
@@ -138,15 +143,17 @@ public:
 
    ui::Level3ProductsWidget* level3ProductsWidget_;
 
-   ui::AlertDockWidget*  alertDockWidget_;
-   ui::AboutDialog*      aboutDialog_;
-   ui::ImGuiDebugDialog* imGuiDebugDialog_;
-   ui::RadarSiteDialog*  radarSiteDialog_;
-   ui::SettingsDialog*   settingsDialog_;
-   ui::UpdateDialog*     updateDialog_;
+   ui::AlertDockWidget*     alertDockWidget_;
+   ui::AnimationDockWidget* animationDockWidget_;
+   ui::AboutDialog*         aboutDialog_;
+   ui::ImGuiDebugDialog*    imGuiDebugDialog_;
+   ui::RadarSiteDialog*     radarSiteDialog_;
+   ui::SettingsDialog*      settingsDialog_;
+   ui::UpdateDialog*        updateDialog_;
 
    std::unique_ptr<model::RadarProductModel>  radarProductModel_;
    std::shared_ptr<manager::TextEventManager> textEventManager_;
+   std::shared_ptr<manager::TimelineManager>  timelineManager_;
    std::shared_ptr<manager::UpdateManager>    updateManager_;
 
    std::vector<map::MapWidget*> maps_;
@@ -182,11 +189,22 @@ MainWindow::MainWindow(QWidget* parent) :
    p->alertDockWidget_->setVisible(false);
    addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
 
+   // Animation Dock Widget
+   p->animationDockWidget_ = new ui::AnimationDockWidget(this);
+   p->animationDockWidget_->setVisible(true);
+   addDockWidget(Qt::LeftDockWidgetArea, p->animationDockWidget_);
+
    // Configure Menu
    ui->menuView->insertAction(ui->actionRadarToolbox,
                               ui->radarToolboxDock->toggleViewAction());
    ui->radarToolboxDock->toggleViewAction()->setText(tr("Radar &Toolbox"));
    ui->actionRadarToolbox->setVisible(false);
+
+   ui->menuView->insertAction(ui->actionAnimationToolbox,
+                              p->animationDockWidget_->toggleViewAction());
+   p->animationDockWidget_->toggleViewAction()->setText(
+      tr("A&nimation Toolbox"));
+   ui->actionAnimationToolbox->setVisible(false);
 
    ui->menuView->insertAction(ui->actionResourceExplorer,
                               ui->resourceExplorerDock->toggleViewAction());
@@ -257,6 +275,7 @@ MainWindow::MainWindow(QWidget* parent) :
 
    p->PopulateMapStyles();
    p->ConnectMapSignals();
+   p->ConnectAnimationSignals();
    p->ConnectOtherSignals();
    p->HandleFocusChange(p->activeMap_);
    p->AsyncSetup();
@@ -273,7 +292,7 @@ void MainWindow::showEvent(QShowEvent* event)
 {
    QMainWindow::showEvent(event);
 
-   resizeDocks({ui->radarToolboxDock}, {150}, Qt::Horizontal);
+   resizeDocks({ui->radarToolboxDock}, {188}, Qt::Horizontal);
 }
 
 void MainWindow::on_actionOpenNexrad_triggered()
@@ -634,6 +653,75 @@ void MainWindowImpl::ConnectMapSignals()
    }
 }
 
+void MainWindowImpl::ConnectAnimationSignals()
+{
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::DateTimeChanged,
+           timelineManager_.get(),
+           &manager::TimelineManager::SetDateTime);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::ViewTypeChanged,
+           timelineManager_.get(),
+           &manager::TimelineManager::SetViewType);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::LoopTimeChanged,
+           timelineManager_.get(),
+           &manager::TimelineManager::SetLoopTime);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::LoopSpeedChanged,
+           timelineManager_.get(),
+           &manager::TimelineManager::SetLoopSpeed);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::AnimationStepBeginSelected,
+           timelineManager_.get(),
+           &manager::TimelineManager::AnimationStepBegin);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::AnimationStepBackSelected,
+           timelineManager_.get(),
+           &manager::TimelineManager::AnimationStepBack);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::AnimationPlaySelected,
+           timelineManager_.get(),
+           &manager::TimelineManager::AnimationPlayPause);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::AnimationStepNextSelected,
+           timelineManager_.get(),
+           &manager::TimelineManager::AnimationStepNext);
+   connect(animationDockWidget_,
+           &ui::AnimationDockWidget::AnimationStepEndSelected,
+           timelineManager_.get(),
+           &manager::TimelineManager::AnimationStepEnd);
+
+   connect(timelineManager_.get(),
+           &manager::TimelineManager::VolumeTimeUpdated,
+           [this](std::chrono::system_clock::time_point dateTime)
+           {
+              for (auto map : maps_)
+              {
+                 map->SelectTime(dateTime);
+              }
+           });
+
+   connect(timelineManager_.get(),
+           &manager::TimelineManager::AnimationStateUpdated,
+           animationDockWidget_,
+           &ui::AnimationDockWidget::UpdateAnimationState);
+
+   connect(timelineManager_.get(),
+           &manager::TimelineManager::LiveStateUpdated,
+           animationDockWidget_,
+           &ui::AnimationDockWidget::UpdateLiveState);
+   connect(timelineManager_.get(),
+           &manager::TimelineManager::LiveStateUpdated,
+           [this](bool isLive)
+           {
+              for (auto map : maps_)
+              {
+                 map->SetAutoUpdate(isLive);
+              }
+           });
+}
+
 void MainWindowImpl::ConnectOtherSignals()
 {
    connect(qApp,
@@ -761,7 +849,8 @@ void MainWindowImpl::SelectRadarProduct(map::MapWidget*           mapWidget,
       UpdateRadarProductSettings();
    }
 
-   mapWidget->SelectRadarProduct(group, productName, productCode);
+   mapWidget->SelectRadarProduct(
+      group, productName, productCode, mapWidget->GetSelectedTime());
 }
 
 void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)
@@ -841,11 +930,15 @@ void MainWindowImpl::UpdateRadarSite()
       mainWindow_->ui->radarSiteValueLabel->setText(radarSite->id().c_str());
       mainWindow_->ui->radarLocationLabel->setText(
          radarSite->location_name().c_str());
+
+      timelineManager_->SetRadarSite(radarSite->id());
    }
    else
    {
       mainWindow_->ui->radarSiteValueLabel->setVisible(false);
       mainWindow_->ui->radarLocationLabel->setVisible(false);
+
+      timelineManager_->SetRadarSite("?");
    }
 }
 

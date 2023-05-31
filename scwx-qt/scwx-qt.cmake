@@ -65,12 +65,14 @@ set(HDR_MANAGER source/scwx/qt/manager/radar_product_manager.hpp
                 source/scwx/qt/manager/resource_manager.hpp
                 source/scwx/qt/manager/settings_manager.hpp
                 source/scwx/qt/manager/text_event_manager.hpp
+                source/scwx/qt/manager/timeline_manager.hpp
                 source/scwx/qt/manager/update_manager.hpp)
 set(SRC_MANAGER source/scwx/qt/manager/radar_product_manager.cpp
                 source/scwx/qt/manager/radar_product_manager_notifier.cpp
                 source/scwx/qt/manager/resource_manager.cpp
                 source/scwx/qt/manager/settings_manager.cpp
                 source/scwx/qt/manager/text_event_manager.cpp
+                source/scwx/qt/manager/timeline_manager.cpp
                 source/scwx/qt/manager/update_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/color_table_layer.hpp
@@ -132,16 +134,19 @@ set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
 set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/font_types.hpp
               source/scwx/qt/types/github_types.hpp
+              source/scwx/qt/types/map_types.hpp
               source/scwx/qt/types/qt_types.hpp
               source/scwx/qt/types/radar_product_record.hpp
               source/scwx/qt/types/text_event_key.hpp)
 set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/github_types.cpp
+              source/scwx/qt/types/map_types.cpp
               source/scwx/qt/types/radar_product_record.cpp
               source/scwx/qt/types/text_event_key.cpp)
 set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/alert_dialog.hpp
            source/scwx/qt/ui/alert_dock_widget.hpp
+           source/scwx/qt/ui/animation_dock_widget.hpp
            source/scwx/qt/ui/flow_layout.hpp
            source/scwx/qt/ui/imgui_debug_dialog.hpp
            source/scwx/qt/ui/imgui_debug_widget.hpp
@@ -154,6 +159,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
 set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/alert_dialog.cpp
            source/scwx/qt/ui/alert_dock_widget.cpp
+           source/scwx/qt/ui/animation_dock_widget.cpp
            source/scwx/qt/ui/flow_layout.cpp
            source/scwx/qt/ui/imgui_debug_dialog.cpp
            source/scwx/qt/ui/imgui_debug_widget.cpp
@@ -166,6 +172,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
 set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/alert_dialog.ui
            source/scwx/qt/ui/alert_dock_widget.ui
+           source/scwx/qt/ui/animation_dock_widget.ui
            source/scwx/qt/ui/imgui_debug_dialog.ui
            source/scwx/qt/ui/radar_site_dialog.ui
            source/scwx/qt/ui/settings_dialog.ui
@@ -179,7 +186,8 @@ set(HDR_UTIL source/scwx/qt/util/color.hpp
              source/scwx/qt/util/streams.hpp
              source/scwx/qt/util/texture_atlas.hpp
              source/scwx/qt/util/q_file_buffer.hpp
-             source/scwx/qt/util/q_file_input_stream.hpp)
+             source/scwx/qt/util/q_file_input_stream.hpp
+             source/scwx/qt/util/time.hpp)
 set(SRC_UTIL source/scwx/qt/util/color.cpp
              source/scwx/qt/util/file.cpp
              source/scwx/qt/util/font.cpp
@@ -188,7 +196,8 @@ set(SRC_UTIL source/scwx/qt/util/color.cpp
              source/scwx/qt/util/json.cpp
              source/scwx/qt/util/texture_atlas.cpp
              source/scwx/qt/util/q_file_buffer.cpp
-             source/scwx/qt/util/q_file_input_stream.cpp)
+             source/scwx/qt/util/q_file_input_stream.cpp
+             source/scwx/qt/util/time.cpp)
 set(HDR_VIEW source/scwx/qt/view/level2_product_view.hpp
              source/scwx/qt/view/level3_product_view.hpp
              source/scwx/qt/view/level3_radial_view.hpp
@@ -378,6 +387,15 @@ target_compile_options(supercell-wx PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
+
+if (MSVC)
+    # Produce PDB file for debug
+    target_compile_options(scwx-qt PRIVATE "$<$<CONFIG:Release>:/Zi>")
+    target_compile_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:/Zi>")
+    target_link_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
+    target_link_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:/OPT:REF>")
+    target_link_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
+endif()
 
 target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Qt${QT_VERSION_MAJOR}::OpenGLWidgets

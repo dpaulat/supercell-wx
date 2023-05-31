@@ -1,5 +1,6 @@
 #include <scwx/awips/text_product_message.hpp>
 #include <scwx/common/characters.hpp>
+#include <scwx/util/logger.hpp>
 #include <scwx/util/streams.hpp>
 
 #include <istream>
@@ -15,6 +16,7 @@ namespace awips
 {
 
 static const std::string logPrefix_ = "scwx::awips::text_product_message";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 // Issuance date/time takes one of the following forms:
 // * <hhmm>_xM_<tz>_day_mon_<dd>_year
@@ -99,6 +101,91 @@ std::vector<std::shared_ptr<const Segment>> TextProductMessage::segments() const
 std::shared_ptr<const Segment> TextProductMessage::segment(size_t s) const
 {
    return p->segments_[s];
+}
+
+std::chrono::system_clock::time_point
+TextProductMessage::segment_event_begin(std::size_t s) const
+{
+   std::chrono::system_clock::time_point eventBegin {};
+
+   auto& header = segment(s)->header_;
+   if (header.has_value() && !header->vtecString_.empty())
+   {
+      // Determine event begin from P-VTEC string
+      eventBegin = header->vtecString_[0].pVtec_.event_begin();
+
+      // If event begin is 000000T0000Z
+      if (eventBegin == std::chrono::system_clock::time_point {})
+      {
+         using namespace std::chrono;
+
+         // Determine event end from P-VTEC string
+         system_clock::time_point eventEnd =
+            header->vtecString_[0].pVtec_.event_end();
+
+         auto           endDays = floor<days>(eventEnd);
+         year_month_day endDate {endDays};
+
+         // Determine WMO date/time
+         std::string wmoDateTime = wmo_header()->date_time();
+
+         bool          wmoDateTimeValid = false;
+         unsigned int  dayOfMonth       = 0;
+         unsigned long beginHour        = 0;
+         unsigned long beginMinute      = 0;
+
+         try
+         {
+            // WMO date time is in the format DDHHMM
+            dayOfMonth =
+               static_cast<unsigned int>(std::stoul(wmoDateTime.substr(0, 2)));
+            beginHour        = std::stoul(wmoDateTime.substr(2, 2));
+            beginMinute      = std::stoul(wmoDateTime.substr(4, 2));
+            wmoDateTimeValid = true;
+         }
+         catch (const std::exception&)
+         {
+            logger_->warn("Malformed WMO date/time: {}", wmoDateTime);
+         }
+
+         if (wmoDateTimeValid)
+         {
+            // Combine end date year and month with WMO date time
+            eventBegin =
+               sys_days {endDate.year() / endDate.month() / day {dayOfMonth}} +
+               hours {beginHour} + minutes {beginMinute};
+
+            // If the begin date is after the end date, assume the start time
+            // was the previous month (give a 1 day grace period for expiring
+            // events in the past)
+            if (eventBegin > eventEnd + 24h)
+            {
+               // If the current end month is January
+               if (endDate.month() == January)
+               {
+                  // The begin month must be December of last year
+                  eventBegin =
+                     sys_days {
+                        year {static_cast<int>((endDate.year() - 1y).count())} /
+                        December / day {dayOfMonth}} +
+                     hours {beginHour} + minutes {beginMinute};
+               }
+               else
+               {
+                  // Back up one month
+                  eventBegin =
+                     sys_days {endDate.year() /
+                               month {static_cast<unsigned int>(
+                                  (endDate.month() - month {1}).count())} /
+                               day {dayOfMonth}} +
+                     hours {beginHour} + minutes {beginMinute};
+               }
+            }
+         }
+      }
+   }
+
+   return eventBegin;
 }
 
 size_t TextProductMessage::data_size() const

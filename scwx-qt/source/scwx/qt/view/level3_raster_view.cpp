@@ -50,7 +50,11 @@ Level3RasterView::Level3RasterView(
     p(std::make_unique<Level3RasterViewImpl>())
 {
 }
-Level3RasterView::~Level3RasterView() = default;
+
+Level3RasterView::~Level3RasterView()
+{
+   std::unique_lock sweepLock {sweep_mutex()};
+}
 
 float Level3RasterView::range() const
 {

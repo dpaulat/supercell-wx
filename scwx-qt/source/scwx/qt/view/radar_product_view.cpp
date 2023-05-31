@@ -2,6 +2,7 @@
 #include <scwx/common/constants.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <boost/asio.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 
@@ -35,6 +36,8 @@ public:
    {
    }
    ~RadarProductViewImpl() = default;
+
+   boost::asio::thread_pool threadPool_ {1};
 
    bool       initialized_;
    std::mutex sweepMutex_;
@@ -118,6 +121,11 @@ void RadarProductView::SelectTime(std::chrono::system_clock::time_point time)
    p->selectedTime_ = time;
 }
 
+void RadarProductView::Update()
+{
+   boost::asio::post(p->threadPool_, [this]() { ComputeSweep(); });
+}
+
 bool RadarProductView::IsInitialized() const
 {
    return p->initialized_;
@@ -136,6 +144,11 @@ RadarProductView::GetCfpMomentData() const
    std::size_t componentSize = 0;
 
    return std::tie(data, dataSize, componentSize);
+}
+
+std::chrono::system_clock::time_point RadarProductView::GetSelectedTime() const
+{
+   return p->selectedTime_;
 }
 
 void RadarProductView::ComputeSweep()

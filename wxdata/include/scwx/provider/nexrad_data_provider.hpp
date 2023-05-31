@@ -64,10 +64,11 @@ public:
     *
     * @param date Date for which to list objects
     *
-    * @return - New objects found for the given date
+    * @return - Whether query was successful
+    *         - New objects found for the given date
     *         - Total objects found for the given date
     */
-   virtual std::pair<size_t, size_t>
+   virtual std::tuple<bool, size_t, size_t>
    ListObjects(std::chrono::system_clock::time_point date) = 0;
 
    /**
@@ -100,6 +101,17 @@ public:
     */
    virtual std::chrono::system_clock::time_point
    GetTimePointByKey(const std::string& key) const = 0;
+
+   /**
+    * Gets NEXRAD data time points for the date supplied. Lists and adds them
+    * to the cache if required.
+    *
+    * @param date Date for which to get NEXRAD data time points
+    *
+    * @return NEXRAD data time points
+    */
+   virtual std::vector<std::chrono::system_clock::time_point>
+   GetTimePointsByDate(std::chrono::system_clock::time_point date) = 0;
 
    /**
     * Requests available NEXRAD products for the current radar site, and adds

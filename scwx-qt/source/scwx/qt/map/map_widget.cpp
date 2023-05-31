@@ -62,8 +62,8 @@ public:
        overlayLayer_ {nullptr},
        colorTableLayer_ {nullptr},
        autoRefreshEnabled_ {true},
+       autoUpdateEnabled_ {true},
        selectedLevel2Product_ {common::Level2Product::Unknown},
-       selectedTime_ {},
        lastPos_(),
        currentStyleIndex_ {0},
        currentStyle_ {nullptr},
@@ -147,9 +147,9 @@ public:
    std::shared_ptr<ColorTableLayer>   colorTableLayer_;
 
    bool autoRefreshEnabled_;
+   bool autoUpdateEnabled_;
 
-   common::Level2Product                 selectedLevel2Product_;
-   std::chrono::system_clock::time_point selectedTime_;
+   common::Level2Product selectedLevel2Product_;
 
    QPointF         lastPos_;
    std::size_t     currentStyleIndex_;
@@ -316,6 +316,21 @@ std::shared_ptr<config::RadarSite> MapWidget::GetRadarSite() const
    return radarSite;
 }
 
+std::chrono::system_clock::time_point MapWidget::GetSelectedTime() const
+{
+   auto radarProductView = p->context_->radar_product_view();
+   std::chrono::system_clock::time_point time;
+
+   // If there is an active radar product view
+   if (radarProductView != nullptr)
+   {
+      // Select the time associated with the active radar product
+      time = radarProductView->GetSelectedTime();
+   }
+
+   return time;
+}
+
 std::uint16_t MapWidget::GetVcp() const
 {
    auto radarProductView = p->context_->radar_product_view();
@@ -434,9 +449,8 @@ void MapWidget::SelectRadarProduct(
                   scwx::util::TimeString(time));
 
    p->SetRadarSite(radarId);
-   p->selectedTime_ = time;
 
-   SelectRadarProduct(group, product, productCode);
+   SelectRadarProduct(group, product, productCode, time);
 }
 
 void MapWidget::SelectRadarSite(const std::string& id, bool updateCoordinates)
@@ -478,6 +492,23 @@ void MapWidget::SelectRadarSite(std::shared_ptr<config::RadarSite> radarSite,
       AddLayers();
 
       // TODO: Disable refresh from old site
+
+      emit RadarSiteUpdated(radarSite);
+   }
+}
+
+void MapWidget::SelectTime(std::chrono::system_clock::time_point time)
+{
+   auto radarProductView = p->context_->radar_product_view();
+
+   // If there is an active radar product view
+   if (radarProductView != nullptr)
+   {
+      // Select the time associated with the active radar product
+      radarProductView->SelectTime(time);
+
+      // Trigger an update of the radar product view
+      radarProductView->Update();
    }
 }
 
@@ -504,6 +535,11 @@ void MapWidget::SetAutoRefresh(bool enabled)
             p->uuid_);
       }
    }
+}
+
+void MapWidget::SetAutoUpdate(bool enabled)
+{
+   p->autoUpdateEnabled_ = enabled;
 }
 
 void MapWidget::SetMapLocation(double latitude,
@@ -865,20 +901,23 @@ void MapWidgetImpl::RadarProductManagerConnect()
                   std::make_shared<request::NexradFileRequest>();
 
                // File request callback
-               connect(
-                  request.get(),
-                  &request::NexradFileRequest::RequestComplete,
-                  this,
-                  [this](std::shared_ptr<request::NexradFileRequest> request)
-                  {
-                     // Select loaded record
-                     auto record = request->radar_product_record();
-
-                     if (record != nullptr)
+               if (autoUpdateEnabled_)
+               {
+                  connect(
+                     request.get(),
+                     &request::NexradFileRequest::RequestComplete,
+                     this,
+                     [this](std::shared_ptr<request::NexradFileRequest> request)
                      {
-                        widget_->SelectRadarProduct(record);
-                     }
-                  });
+                        // Select loaded record
+                        auto record = request->radar_product_record();
+
+                        if (record != nullptr)
+                        {
+                           widget_->SelectRadarProduct(record);
+                        }
+                     });
+               }
 
                // Load file
                scwx::util::async(

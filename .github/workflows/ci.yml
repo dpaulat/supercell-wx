@@ -127,11 +127,40 @@ jobs:
         ninja supercell-wx wxtest
         cmake --install . --component supercell-wx
 
-    - name: Upload Artifacts
+    - name: Collect Artifacts
+      if: matrix.os == 'ubuntu-22.04'
+      shell: bash
+      run: |
+        pushd supercell-wx/
+        cd lib/
+        ln -s libssl.so.3 libssl.so
+        cd ..
+        mkdir -p plugins/sqldrivers/
+        cd plugins/sqldrivers/
+        cp "${RUNNER_WORKSPACE}/Qt/${{ matrix.qt_version }}/${{ matrix.qt_arch }}/plugins/sqldrivers/libqsqlite.so" .
+        popd
+        tar -czf supercell-wx-${{ matrix.artifact_suffix }}.tar.gz supercell-wx/
+
+    - name: Upload Artifacts (Windows)
+      if: matrix.os == 'windows-2022'
       uses: actions/upload-artifact@v3
       with:
         name: supercell-wx-${{ matrix.artifact_suffix }}
         path: ${{ github.workspace }}/supercell-wx/
+
+    - name: Upload Debug Artifacts (Windows)
+      if: matrix.os == 'windows-2022'
+      uses: actions/upload-artifact@v3
+      with:
+        name: supercell-wx-debug-${{ matrix.artifact_suffix }}
+        path: ${{ github.workspace }}/build/bin/*.pdb
+
+    - name: Upload Artifacts (Linux)
+      if: matrix.os == 'ubuntu-22.04'
+      uses: actions/upload-artifact@v3
+      with:
+        name: supercell-wx-${{ matrix.artifact_suffix }}
+        path: ${{ github.workspace }}/supercell-wx-${{ matrix.artifact_suffix }}.tar.gz
 
     - name: Test Supercell Wx
       working-directory: ${{ github.workspace }}/build
