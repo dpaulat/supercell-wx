@@ -50,7 +50,11 @@ Level3RadialView::Level3RadialView(
     p(std::make_unique<Level3RadialViewImpl>())
 {
 }
-Level3RadialView::~Level3RadialView() = default;
+
+Level3RadialView::~Level3RadialView()
+{
+   std::unique_lock sweepLock {sweep_mutex()};
+}
 
 float Level3RadialView::range() const
 {
@@ -150,8 +154,8 @@ void Level3RadialView::ComputeSweep()
       return;
    }
 
-   // A message with radial data should either have a Digital Radial Data Array
-   // Packet, or a Radial Data Array Packet (TODO)
+   // A message with radial data should either have a Digital Radial Data
+   // Array Packet, or a Radial Data Array Packet (TODO)
    std::shared_ptr<wsr88d::rpg::DigitalRadialDataArrayPacket>
                                                   digitalDataPacket = nullptr;
    std::shared_ptr<wsr88d::rpg::RadialDataPacket> radialDataPacket  = nullptr;

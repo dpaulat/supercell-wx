@@ -108,7 +108,11 @@ Level2ProductView::Level2ProductView(
 {
    ConnectRadarProductManager();
 }
-Level2ProductView::~Level2ProductView() = default;
+
+Level2ProductView::~Level2ProductView()
+{
+   std::unique_lock sweepLock {sweep_mutex()};
+}
 
 void Level2ProductView::ConnectRadarProductManager()
 {
