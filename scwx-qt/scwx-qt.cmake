@@ -388,6 +388,15 @@ target_compile_options(supercell-wx PRIVATE
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
 
+if (MSVC)
+    # Produce PDB file for debug
+    target_compile_options(scwx-qt PRIVATE "$<$<CONFIG:Release>:/Zi>")
+    target_compile_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:/Zi>")
+    target_link_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
+    target_link_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:/OPT:REF>")
+    target_link_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
+endif()
+
 target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Qt${QT_VERSION_MAJOR}::OpenGLWidgets
                                      Boost::json

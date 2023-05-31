@@ -10,6 +10,15 @@ find_package(ZLIB)
 target_include_directories(mbgl-core PRIVATE ${ZLIB_INCLUDE_DIRS})
 target_link_libraries(mbgl-core INTERFACE ${ZLIB_LIBRARIES})
 
+if (MSVC)
+    # Produce PDB file for debug
+    target_compile_options(mbgl-core PRIVATE "$<$<CONFIG:Release>:/Zi>")
+    target_compile_options(qmaplibregl PRIVATE "$<$<CONFIG:Release>:/Zi>")
+    target_link_options(qmaplibregl PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
+    target_link_options(qmaplibregl PRIVATE "$<$<CONFIG:Release>:/OPT:REF>")
+    target_link_options(qmaplibregl PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
+endif()
+
 set(MBGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mapbox-gl-native/include
                      ${CMAKE_CURRENT_SOURCE_DIR}/mapbox-gl-native/platform/qt/include PARENT_SCOPE)
 

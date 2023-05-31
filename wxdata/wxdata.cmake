@@ -233,6 +233,11 @@ target_compile_options(wxdata PRIVATE
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
 
+if (MSVC)
+    # Produce PDB file for debug
+    target_compile_options(wxdata PRIVATE "$<$<CONFIG:Release>:/Zi>")
+endif()
+
 target_link_libraries(wxdata PUBLIC aws-cpp-sdk-core
                                     aws-cpp-sdk-s3
                                     cpr::cpr
