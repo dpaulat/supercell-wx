@@ -1,4 +1,5 @@
 #include <scwx/qt/view/level3_radial_view.hpp>
+#include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/common/constants.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
@@ -19,21 +20,37 @@ namespace view
 static const std::string logPrefix_ = "scwx::qt::view::level3_radial_view";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static constexpr uint16_t RANGE_FOLDED      = 1u;
-static constexpr uint32_t VERTICES_PER_BIN  = 6u;
-static constexpr uint32_t VALUES_PER_VERTEX = 2u;
+static constexpr std::uint32_t kMaxRadialGates_ =
+   common::MAX_0_5_DEGREE_RADIALS * common::MAX_DATA_MOMENT_GATES;
+static constexpr std::uint32_t kMaxCoordinates_ = kMaxRadialGates_ * 2u;
+
+static constexpr std::uint16_t RANGE_FOLDED      = 1u;
+static constexpr std::uint32_t VERTICES_PER_BIN  = 6u;
+static constexpr std::uint32_t VALUES_PER_VERTEX = 2u;
 
 class Level3RadialViewImpl
 {
 public:
-   explicit Level3RadialViewImpl() :
-       latitude_ {}, longitude_ {}, range_ {}, vcp_ {}, sweepTime_ {}
+   explicit Level3RadialViewImpl(Level3RadialView* self) :
+       self_ {self},
+       latitude_ {},
+       longitude_ {},
+       range_ {},
+       vcp_ {},
+       sweepTime_ {}
    {
+      coordinates_.resize(kMaxCoordinates_);
    }
    ~Level3RadialViewImpl() = default;
 
-   std::vector<float>        vertices_;
-   std::vector<std::uint8_t> dataMoments8_;
+   void ComputeCoordinates(
+      std::shared_ptr<wsr88d::rpg::GenericRadialDataPacket> radialData);
+
+   Level3RadialView* self_;
+
+   std::vector<float>        coordinates_ {};
+   std::vector<float>        vertices_ {};
+   std::vector<std::uint8_t> dataMoments8_ {};
 
    float         latitude_;
    float         longitude_;
@@ -47,7 +64,7 @@ Level3RadialView::Level3RadialView(
    const std::string&                            product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager) :
     Level3ProductView(product, radarProductManager),
-    p(std::make_unique<Level3RadialViewImpl>())
+    p(std::make_unique<Level3RadialViewImpl>(this))
 {
 }
 
@@ -155,7 +172,7 @@ void Level3RadialView::ComputeSweep()
    }
 
    // A message with radial data should either have a Digital Radial Data
-   // Array Packet, or a Radial Data Array Packet (TODO)
+   // Array Packet, or a Radial Data Array Packet
    std::shared_ptr<wsr88d::rpg::DigitalRadialDataArrayPacket>
                                                   digitalDataPacket = nullptr;
    std::shared_ptr<wsr88d::rpg::RadialDataPacket> radialDataPacket  = nullptr;
@@ -205,20 +222,32 @@ void Level3RadialView::ComputeSweep()
       return;
    }
 
-   // Assume the number of radials should be 360 or 720
-   const size_t radials = radialData->number_of_radials();
-   if (radials != 360 && radials != 720)
+   // Valid number of radials is 1-720
+   size_t radials = radialData->number_of_radials();
+   if (radials < 1 || radials > 720)
    {
       logger_->warn("Unsupported number of radials: {}", radials);
       return;
    }
 
-   const common::RadialSize radialSize =
-      (radials == common::MAX_0_5_DEGREE_RADIALS) ?
-         common::RadialSize::_0_5Degree :
-         common::RadialSize::_1Degree;
+   common::RadialSize radialSize;
+   if (radials == common::MAX_0_5_DEGREE_RADIALS)
+   {
+      radialSize = common::RadialSize::_0_5Degree;
+   }
+   else if (radials == common::MAX_1_DEGREE_RADIALS)
+   {
+      radialSize = common::RadialSize::_1Degree;
+   }
+   else
+   {
+      radialSize = common::RadialSize::NonStandard;
+   }
+
    const std::vector<float>& coordinates =
-      radarProductManager->coordinates(radialSize);
+      (radialSize == common::RadialSize::NonStandard) ?
+         p->coordinates_ :
+         radarProductManager->coordinates(radialSize);
 
    // There should be a positive number of range bins in radial data
    const uint16_t gates = radialData->number_of_range_bins();
@@ -232,8 +261,8 @@ void Level3RadialView::ComputeSweep()
    p->longitude_ = descriptionBlock->longitude_of_radar();
    p->range_     = descriptionBlock->range();
    p->sweepTime_ =
-      util::TimePoint(descriptionBlock->volume_scan_date(),
-                      descriptionBlock->volume_scan_start_time() * 1000);
+      scwx::util::TimePoint(descriptionBlock->volume_scan_date(),
+                            descriptionBlock->volume_scan_start_time() * 1000);
    p->vcp_ = descriptionBlock->volume_coverage_pattern();
 
    // Calculate vertices
@@ -255,9 +284,18 @@ void Level3RadialView::ComputeSweep()
    const uint16_t snrThreshold = descriptionBlock->threshold();
 
    // Determine which radial to start at
-   const float    radialMultiplier = radials / 360.0f;
-   const float    startAngle       = radialData->start_angle(0);
-   const uint16_t startRadial = std::lroundf(startAngle * radialMultiplier);
+   std::uint16_t startRadial;
+   if (radialSize == common::RadialSize::NonStandard)
+   {
+      p->ComputeCoordinates(radialData);
+      startRadial = 0;
+   }
+   else
+   {
+      const float radialMultiplier = radials / 360.0f;
+      const float startAngle       = radialData->start_angle(0);
+      startRadial = std::lroundf(startAngle * radialMultiplier);
+   }
 
    for (uint16_t radial = 0; radial < radialData->number_of_radials(); radial++)
    {
@@ -369,6 +407,73 @@ void Level3RadialView::ComputeSweep()
    UpdateColorTable();
 
    emit SweepComputed();
+}
+
+void Level3RadialViewImpl::ComputeCoordinates(
+   std::shared_ptr<wsr88d::rpg::GenericRadialDataPacket> radialData)
+{
+   logger_->debug("ComputeCoordinates()");
+
+   boost::timer::cpu_timer timer;
+
+   const GeographicLib::Geodesic& geodesic(
+      util::GeographicLib::DefaultGeodesic());
+
+   auto         radarProductManager = self_->radar_product_manager();
+   auto         radarSite           = radarProductManager->radar_site();
+   const float  gateSize            = radarProductManager->gate_size();
+   const double radarLatitude       = radarSite->latitude();
+   const double radarLongitude      = radarSite->longitude();
+
+   // Calculate azimuth coordinates
+   timer.start();
+
+   const std::uint16_t numRadials     = radialData->number_of_radials();
+   const std::uint16_t numRangeBins   = radialData->number_of_range_bins();
+   const std::uint32_t numRadialGates = numRadials * numRangeBins;
+   const std::uint32_t maxRadialGates =
+      numRadials * common::MAX_DATA_MOMENT_GATES;
+
+   auto radialGates = boost::irange<uint32_t>(0, maxRadialGates);
+
+   std::for_each(
+      std::execution::par_unseq,
+      radialGates.begin(),
+      radialGates.end(),
+      [&](std::uint32_t radialGate)
+      {
+         const std::uint16_t gate = static_cast<std::uint16_t>(
+            radialGate % common::MAX_DATA_MOMENT_GATES);
+
+         if (gate >= numRadialGates)
+         {
+            return;
+         }
+
+         const std::uint16_t radial = static_cast<std::uint16_t>(
+            radialGate / common::MAX_DATA_MOMENT_GATES);
+
+         const float deltaAngle =
+            (radial == 0) ? radialData->start_angle(0) -
+                               radialData->start_angle(numRadials - 1) :
+                            radialData->delta_angle(radial);
+
+         const float angle =
+            radialData->start_angle(radial) - (deltaAngle * 0.5f);
+         const float       range  = (gate + 1) * gateSize;
+         const std::size_t offset = radialGate * 2;
+
+         double latitude;
+         double longitude;
+
+         geodesic.Direct(
+            radarLatitude, radarLongitude, angle, range, latitude, longitude);
+
+         coordinates_[offset]     = latitude;
+         coordinates_[offset + 1] = longitude;
+      });
+   timer.stop();
+   logger_->debug("Coordinates calculated in {}", timer.format(6, "%ws"));
 }
 
 std::shared_ptr<Level3RadialView> Level3RadialView::Create(
