@@ -363,9 +363,9 @@ RadarProductManager::coordinates(common::RadialSize radialSize) const
       return p->coordinates0_5Degree_;
    case common::RadialSize::_1Degree:
       return p->coordinates1Degree_;
+   default:
+      throw std::invalid_argument("Invalid radial size");
    }
-
-   throw std::invalid_argument("Invalid radial size");
 }
 
 float RadarProductManager::gate_size() const
