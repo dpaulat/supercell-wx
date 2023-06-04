@@ -1,4 +1,5 @@
 #include <scwx/qt/view/level2_product_view.hpp>
+#include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/common/constants.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
@@ -16,6 +17,10 @@ namespace view
 
 static const std::string logPrefix_ = "scwx::qt::view::level2_product_view";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
+
+static constexpr std::uint32_t kMaxRadialGates_ =
+   common::MAX_0_5_DEGREE_RADIALS * common::MAX_DATA_MOMENT_GATES;
+static constexpr std::uint32_t kMaxCoordinates_ = kMaxRadialGates_ * 2u;
 
 static constexpr uint16_t RANGE_FOLDED      = 1u;
 static constexpr uint32_t VERTICES_PER_BIN  = 6u;
@@ -41,7 +46,9 @@ static const std::unordered_map<common::Level2Product,
 class Level2ProductViewImpl
 {
 public:
-   explicit Level2ProductViewImpl(common::Level2Product product) :
+   explicit Level2ProductViewImpl(Level2ProductView*    self,
+                                  common::Level2Product product) :
+       self_ {self},
        product_ {product},
        selectedElevation_ {0.0f},
        elevationScan_ {nullptr},
@@ -61,12 +68,19 @@ public:
        savedScale_ {0.0f},
        savedOffset_ {0.0f}
    {
+      coordinates_.resize(kMaxCoordinates_);
+
       SetProduct(product);
    }
    ~Level2ProductViewImpl() = default;
 
+   void
+   ComputeCoordinates(std::shared_ptr<wsr88d::rda::ElevationScan> radarData);
+
    void SetProduct(const std::string& productName);
    void SetProduct(common::Level2Product product);
+
+   Level2ProductView* self_;
 
    common::Level2Product      product_;
    wsr88d::rda::DataBlockType dataBlockType_;
@@ -76,10 +90,11 @@ public:
    std::shared_ptr<wsr88d::rda::ElevationScan>   elevationScan_;
    std::shared_ptr<wsr88d::rda::MomentDataBlock> momentDataBlock0_;
 
-   std::vector<float>    vertices_;
-   std::vector<uint8_t>  dataMoments8_;
-   std::vector<uint16_t> dataMoments16_;
-   std::vector<uint8_t>  cfpMoments_;
+   std::vector<float>    coordinates_ {};
+   std::vector<float>    vertices_ {};
+   std::vector<uint8_t>  dataMoments8_ {};
+   std::vector<uint16_t> dataMoments16_ {};
+   std::vector<uint8_t>  cfpMoments_ {};
 
    float              latitude_;
    float              longitude_;
@@ -104,7 +119,7 @@ Level2ProductView::Level2ProductView(
    common::Level2Product                         product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager) :
     RadarProductView(radarProductManager),
-    p(std::make_unique<Level2ProductViewImpl>(product))
+    p(std::make_unique<Level2ProductViewImpl>(this, product))
 {
    ConnectRadarProductManager();
 }
@@ -413,16 +428,14 @@ void Level2ProductView::ComputeSweep()
       return;
    }
 
-   const size_t             radials = radarData->size();
-   const common::RadialSize radialSize =
-      (radials == common::MAX_0_5_DEGREE_RADIALS) ?
-         common::RadialSize::_0_5Degree :
-         common::RadialSize::_1Degree;
-   const std::vector<float>& coordinates =
-      radarProductManager->coordinates(radialSize);
+   const size_t radials = radarData->size();
 
-   auto radarData0      = (*radarData)[0];
-   auto momentData0     = radarData0->moment_data_block(p->dataBlockType_);
+   p->ComputeCoordinates(radarData);
+
+   const std::vector<float>& coordinates = p->coordinates_;
+
+   auto& radarData0     = (*radarData)[0];
+   auto  momentData0    = radarData0->moment_data_block(p->dataBlockType_);
    p->elevationScan_    = radarData;
    p->momentDataBlock0_ = momentData0;
 
@@ -442,8 +455,8 @@ void Level2ProductView::ComputeSweep()
    p->range_ =
       momentData0->data_moment_range() +
       momentData0->data_moment_range_sample_interval() * (gates - 0.5f);
-   p->sweepTime_ = util::TimePoint(radarData0->modified_julian_date(),
-                                   radarData0->collection_time());
+   p->sweepTime_ = scwx::util::TimePoint(radarData0->modified_julian_date(),
+                                         radarData0->collection_time());
    p->vcp_       = volumeData0->volume_coverage_pattern_number();
 
    // Calculate vertices
@@ -492,16 +505,10 @@ void Level2ProductView::ComputeSweep()
    const uint16_t snrThreshold =
       std::max<int16_t>(2, momentData0->snr_threshold_raw());
 
-   // Azimuth resolution spacing:
-   //   1 = 0.5 degrees
-   //   2 = 1.0 degrees
-   const float radialMultiplier =
-      2.0f / std::clamp<int8_t>(radarData0->azimuth_resolution_spacing(), 1, 2);
+   // Start radial is always 0, as coordinates are calculated for each sweep
+   constexpr std::uint16_t startRadial = 0u;
 
-   const float    startAngle  = radarData0->azimuth_angle();
-   const uint16_t startRadial = std::lroundf(startAngle * radialMultiplier);
-
-   for (auto radialPair : *radarData)
+   for (auto& radialPair : *radarData)
    {
       uint16_t radial     = radialPair.first;
       auto     radialData = radialPair.second;
@@ -683,6 +690,84 @@ void Level2ProductView::ComputeSweep()
    UpdateColorTable();
 
    emit SweepComputed();
+}
+
+void Level2ProductViewImpl::ComputeCoordinates(
+   std::shared_ptr<wsr88d::rda::ElevationScan> radarData)
+{
+   logger_->debug("ComputeCoordinates()");
+
+   boost::timer::cpu_timer timer;
+
+   const GeographicLib::Geodesic& geodesic(
+      util::GeographicLib::DefaultGeodesic());
+
+   auto         radarProductManager = self_->radar_product_manager();
+   auto         radarSite           = radarProductManager->radar_site();
+   const float  gateSize            = radarProductManager->gate_size();
+   const double radarLatitude       = radarSite->latitude();
+   const double radarLongitude      = radarSite->longitude();
+
+   // Calculate azimuth coordinates
+   timer.start();
+
+   auto& radarData0  = (*radarData)[0];
+   auto  momentData0 = radarData0->moment_data_block(dataBlockType_);
+
+   const std::uint16_t numRadials =
+      static_cast<std::uint16_t>(radarData->size());
+   const std::uint16_t numRangeBins =
+      momentData0->number_of_data_moment_gates();
+
+   auto radials = boost::irange<std::uint32_t>(0u, numRadials);
+   auto gates   = boost::irange<std::uint32_t>(0u, numRangeBins);
+
+   std::for_each(
+      std::execution::par_unseq,
+      radials.begin(),
+      radials.end(),
+      [&](std::uint32_t radial)
+      {
+         // Angles are ordered clockwise, delta should be positive
+         float deltaAngle =
+            (radial == 0) ? (*radarData)[0]->azimuth_angle() -
+                               (*radarData)[numRadials - 1]->azimuth_angle() :
+                            (*radarData)[radial]->azimuth_angle() -
+                               (*radarData)[radial - 1]->azimuth_angle();
+         while (deltaAngle < 0.0f)
+         {
+            deltaAngle += 360.0f;
+         }
+
+         const float angle =
+            (*radarData)[radial]->azimuth_angle() - (deltaAngle * 0.5f);
+
+         std::for_each(std::execution::par_unseq,
+                       gates.begin(),
+                       gates.end(),
+                       [&](std::uint32_t gate)
+                       {
+                          const std::uint32_t radialGate =
+                             radial * common::MAX_DATA_MOMENT_GATES + gate;
+                          const float       range  = (gate + 1) * gateSize;
+                          const std::size_t offset = radialGate * 2;
+
+                          double latitude;
+                          double longitude;
+
+                          geodesic.Direct(radarLatitude,
+                                          radarLongitude,
+                                          angle,
+                                          range,
+                                          latitude,
+                                          longitude);
+
+                          coordinates_[offset]     = latitude;
+                          coordinates_[offset + 1] = longitude;
+                       });
+      });
+   timer.stop();
+   logger_->debug("Coordinates calculated in {}", timer.format(6, "%ws"));
 }
 
 std::shared_ptr<Level2ProductView> Level2ProductView::Create(
