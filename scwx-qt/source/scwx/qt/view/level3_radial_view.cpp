@@ -428,50 +428,61 @@ void Level3RadialViewImpl::ComputeCoordinates(
    // Calculate azimuth coordinates
    timer.start();
 
-   const std::uint16_t numRadials     = radialData->number_of_radials();
-   const std::uint16_t numRangeBins   = radialData->number_of_range_bins();
-   const std::uint32_t numRadialGates = numRadials * numRangeBins;
-   const std::uint32_t maxRadialGates =
-      numRadials * common::MAX_DATA_MOMENT_GATES;
+   const std::uint16_t numRadials   = radialData->number_of_radials();
+   const std::uint16_t numRangeBins = radialData->number_of_range_bins();
 
-   auto radialGates = boost::irange<uint32_t>(0, maxRadialGates);
+   auto radials = boost::irange<std::uint32_t>(0u, numRadials);
+   auto gates   = boost::irange<std::uint32_t>(0u, numRangeBins);
 
-   std::for_each(
-      std::execution::par_unseq,
-      radialGates.begin(),
-      radialGates.end(),
-      [&](std::uint32_t radialGate)
-      {
-         const std::uint16_t gate = static_cast<std::uint16_t>(
-            radialGate % common::MAX_DATA_MOMENT_GATES);
+   std::for_each(std::execution::par_unseq,
+                 radials.begin(),
+                 radials.end(),
+                 [&](std::uint32_t radial)
+                 {
+                    float deltaAngle;
+                    if (radial == 0)
+                    {
+                       // Angles are ordered clockwise, delta should be positive
+                       deltaAngle = radialData->start_angle(0) -
+                                    radialData->start_angle(numRadials - 1);
+                       while (deltaAngle < 0.0f)
+                       {
+                          deltaAngle += 360.0f;
+                       }
+                    }
+                    else
+                    {
+                       deltaAngle = radialData->delta_angle(radial);
+                    }
 
-         if (gate >= numRadialGates)
-         {
-            return;
-         }
+                    const float angle =
+                       radialData->start_angle(radial) - (deltaAngle * 0.5f);
 
-         const std::uint16_t radial = static_cast<std::uint16_t>(
-            radialGate / common::MAX_DATA_MOMENT_GATES);
+                    std::for_each(std::execution::par_unseq,
+                                  gates.begin(),
+                                  gates.end(),
+                                  [&](std::uint32_t gate)
+                                  {
+                                     const std::uint32_t radialGate =
+                                        radial * common::MAX_DATA_MOMENT_GATES +
+                                        gate;
+                                     const float range = (gate + 1) * gateSize;
+                                     const std::size_t offset = radialGate * 2;
 
-         const float deltaAngle =
-            (radial == 0) ? radialData->start_angle(0) -
-                               radialData->start_angle(numRadials - 1) :
-                            radialData->delta_angle(radial);
+                                     double latitude;
+                                     double longitude;
 
-         const float angle =
-            radialData->start_angle(radial) - (deltaAngle * 0.5f);
-         const float       range  = (gate + 1) * gateSize;
-         const std::size_t offset = radialGate * 2;
+                                     geodesic.Direct(radarLatitude,
+                                                     radarLongitude,
+                                                     angle,
+                                                     range,
+                                                     latitude,
+                                                     longitude);
 
-         double latitude;
-         double longitude;
-
-         geodesic.Direct(
-            radarLatitude, radarLongitude, angle, range, latitude, longitude);
-
-         coordinates_[offset]     = latitude;
-         coordinates_[offset + 1] = longitude;
-      });
+                                     coordinates_[offset]     = latitude;
+                                     coordinates_[offset + 1] = longitude;
+                                  });
+                 });
    timer.stop();
    logger_->debug("Coordinates calculated in {}", timer.format(6, "%ws"));
 }
