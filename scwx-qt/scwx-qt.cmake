@@ -401,6 +401,9 @@ if (MSVC)
     target_link_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
     target_link_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:/OPT:REF>")
     target_link_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
+else()
+    target_compile_options(scwx-qt PRIVATE "$<$<CONFIG:Release>:-g>")
+    target_compile_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:-g>")
 endif()
 
 target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets

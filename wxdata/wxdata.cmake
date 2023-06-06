@@ -240,6 +240,8 @@ target_compile_options(wxdata PRIVATE
 if (MSVC)
     # Produce PDB file for debug
     target_compile_options(wxdata PRIVATE "$<$<CONFIG:Release>:/Zi>")
+else()
+    target_compile_options(wxdata PRIVATE "$<$<CONFIG:Release>:-g>")
 endif()
 
 target_link_libraries(wxdata PUBLIC aws-cpp-sdk-core

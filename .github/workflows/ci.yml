@@ -125,6 +125,24 @@ jobs:
           -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" `
           -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/supercell-wx"
         ninja supercell-wx wxtest
+
+    - name: Separate Debug Symbols (Linux)
+      if: matrix.os == 'ubuntu-22.04'
+      shell: bash
+      run: |
+        cd build/
+        cd bin/
+        objcopy --only-keep-debug supercell-wx supercell-wx.debug
+        objcopy --strip-debug --strip-unneeded supercell-wx
+        cd ..
+        cd lib/
+        objcopy --only-keep-debug libQMapLibreGL.so libQMapLibreGL.so.debug
+        objcopy --strip-debug --strip-unneeded libQMapLibreGL.so
+
+    - name: Install Supercell Wx
+      shell: pwsh
+      run: |
+        cd build
         cmake --install . --component supercell-wx
 
     - name: Collect Artifacts
@@ -161,6 +179,15 @@ jobs:
       with:
         name: supercell-wx-${{ matrix.artifact_suffix }}
         path: ${{ github.workspace }}/supercell-wx-${{ matrix.artifact_suffix }}.tar.gz
+
+    - name: Upload Debug Artifacts (Linux)
+      if: matrix.os == 'ubuntu-22.04'
+      uses: actions/upload-artifact@v3
+      with:
+        name: supercell-wx-debug-${{ matrix.artifact_suffix }}
+        path: |
+          ${{ github.workspace }}/build/bin/*.debug
+          ${{ github.workspace }}/build/lib/*.debug
 
     - name: Test Supercell Wx
       working-directory: ${{ github.workspace }}/build
