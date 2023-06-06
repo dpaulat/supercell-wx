@@ -126,7 +126,7 @@ void Level2SettingsWidgetImpl::SelectElevation(float elevation)
 {
    self_->UpdateElevationSelection(elevation);
 
-   emit self_->ElevationSelected(elevation);
+   Q_EMIT self_->ElevationSelected(elevation);
 }
 
 void Level2SettingsWidget::UpdateElevationSelection(float elevation)

@@ -406,7 +406,7 @@ void Level3RadialView::ComputeSweep()
 
    UpdateColorTable();
 
-   emit SweepComputed();
+   Q_EMIT SweepComputed();
 }
 
 void Level3RadialViewImpl::ComputeCoordinates(

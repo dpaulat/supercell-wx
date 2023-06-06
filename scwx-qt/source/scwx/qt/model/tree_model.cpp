@@ -178,7 +178,7 @@ bool TreeModel::setData(const QModelIndex& index,
 
    if (result)
    {
-      emit dataChanged(index, index);
+      Q_EMIT dataChanged(index, index);
    }
 
    return result;

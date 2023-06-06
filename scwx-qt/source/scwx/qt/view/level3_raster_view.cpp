@@ -335,7 +335,7 @@ void Level3RasterView::ComputeSweep()
 
    UpdateColorTable();
 
-   emit SweepComputed();
+   Q_EMIT SweepComputed();
 }
 
 std::shared_ptr<Level3RasterView> Level3RasterView::Create(

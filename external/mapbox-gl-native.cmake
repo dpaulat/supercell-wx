@@ -17,6 +17,9 @@ if (MSVC)
     target_link_options(qmaplibregl PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
     target_link_options(qmaplibregl PRIVATE "$<$<CONFIG:Release>:/OPT:REF>")
     target_link_options(qmaplibregl PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
+else()
+    target_compile_options(mbgl-core PRIVATE "$<$<CONFIG:Release>:-g>")
+    target_compile_options(qmaplibregl PRIVATE "$<$<CONFIG:Release>:-g>")
 endif()
 
 set(MBGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mapbox-gl-native/include

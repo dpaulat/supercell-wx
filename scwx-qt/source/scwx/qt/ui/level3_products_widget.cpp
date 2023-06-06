@@ -87,7 +87,7 @@ public:
                      self_->UpdateProductSelection(
                         common::RadarProductGroup::Level3, awipsProductName);
 
-                     emit self_->RadarProductSelected(
+                     Q_EMIT self_->RadarProductSelected(
                         common::RadarProductGroup::Level3, awipsProductName, 0);
                   });
             }
@@ -164,7 +164,7 @@ void Level3ProductsWidgetImpl::SelectProductCategory(
 {
    UpdateCategorySelection(category);
 
-   emit self_->RadarProductSelected(
+   Q_EMIT self_->RadarProductSelected(
       common::RadarProductGroup::Level3,
       common::GetLevel3CategoryDefaultProduct(category),
       0);

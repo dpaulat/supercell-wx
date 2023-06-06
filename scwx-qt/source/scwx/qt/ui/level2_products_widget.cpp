@@ -96,7 +96,7 @@ void Level2ProductsWidgetImpl::SelectProduct(common::Level2Product product)
 {
    UpdateProductSelection(product);
 
-   emit self_->RadarProductSelected(
+   Q_EMIT self_->RadarProductSelected(
       common::RadarProductGroup::Level2, common::GetLevel2Name(product), 0);
 }
 

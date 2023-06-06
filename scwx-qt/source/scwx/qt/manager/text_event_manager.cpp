@@ -184,7 +184,7 @@ void TextEventManager::Impl::HandleMessage(
 
    if (updated)
    {
-      emit self_->AlertUpdated(key, messageIndex);
+      Q_EMIT self_->AlertUpdated(key, messageIndex);
    }
 }
 

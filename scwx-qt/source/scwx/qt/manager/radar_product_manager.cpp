@@ -631,9 +631,10 @@ void RadarProductManagerImpl::RefreshData(
 
             if (newObjects > 0)
             {
-               emit providerManager->NewDataAvailable(providerManager->group_,
-                                                      providerManager->product_,
-                                                      latestTime);
+               Q_EMIT providerManager->NewDataAvailable(
+                  providerManager->group_,
+                  providerManager->product_,
+                  latestTime);
             }
          }
          else if (providerManager->refreshEnabled_)
@@ -904,7 +905,7 @@ void RadarProductManager::LoadFile(
    else if (request != nullptr)
    {
       request->set_radar_product_record(existingRecord);
-      emit request->RequestComplete(request);
+      Q_EMIT request->RequestComplete(request);
    }
 }
 
@@ -940,7 +941,7 @@ void RadarProductManagerImpl::LoadNexradFile(
          if (request != nullptr)
          {
             request->set_radar_product_record(record);
-            emit request->RequestComplete(request);
+            Q_EMIT request->RequestComplete(request);
          }
       });
 }
@@ -1044,7 +1045,7 @@ RadarProductManagerImpl::GetLevel2ProductRecord(
          {
             if (request->radar_product_record() != nullptr)
             {
-               emit self_->DataReloaded(request->radar_product_record());
+               Q_EMIT self_->DataReloaded(request->radar_product_record());
             }
          });
 
@@ -1109,7 +1110,7 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
          {
             if (request->radar_product_record() != nullptr)
             {
-               emit self_->DataReloaded(request->radar_product_record());
+               Q_EMIT self_->DataReloaded(request->radar_product_record());
             }
          });
 
@@ -1345,7 +1346,7 @@ void RadarProductManager::UpdateAvailableProducts()
             }
          }
 
-         emit Level3ProductsChanged();
+         Q_EMIT Level3ProductsChanged();
       });
 }
 
@@ -1378,7 +1379,7 @@ RadarProductManager::Instance(const std::string& radarSite)
 
    if (instanceCreated)
    {
-      emit RadarProductManagerNotifier::Instance().RadarProductManagerCreated(
+      Q_EMIT RadarProductManagerNotifier::Instance().RadarProductManagerCreated(
          radarSite);
    }
 

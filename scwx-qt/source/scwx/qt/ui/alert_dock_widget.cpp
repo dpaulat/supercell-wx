@@ -184,8 +184,8 @@ void AlertDockWidgetImpl::ConnectSignals()
                  {
                  case types::AlertAction::Go:
                     // Move map
-                    emit self_->MoveMap(selectedAlertCentroid_.latitude_,
-                                        selectedAlertCentroid_.longitude_);
+                    Q_EMIT self_->MoveMap(selectedAlertCentroid_.latitude_,
+                                          selectedAlertCentroid_.longitude_);
                     break;
 
                  case types::AlertAction::View:
@@ -214,8 +214,8 @@ void AlertDockWidgetImpl::ConnectSignals()
            this,
            [this]()
            {
-              emit self_->MoveMap(selectedAlertCentroid_.latitude_,
-                                  selectedAlertCentroid_.longitude_);
+              Q_EMIT self_->MoveMap(selectedAlertCentroid_.latitude_,
+                                    selectedAlertCentroid_.longitude_);
            });
    connect(
       alertDialog_, &AlertDialog::MoveMap, self_, &AlertDockWidget::MoveMap);

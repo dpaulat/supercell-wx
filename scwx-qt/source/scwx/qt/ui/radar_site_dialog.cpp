@@ -72,7 +72,7 @@ RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
    connect(ui->radarSiteView,
            &QTreeView::doubleClicked,
            this,
-           [this]() { emit accept(); });
+           [this]() { Q_EMIT accept(); });
    connect(
       ui->radarSiteView->selectionModel(),
       &QItemSelectionModel::selectionChanged,

@@ -371,6 +371,12 @@ if (WIN32)
     target_compile_definitions(supercell-wx PUBLIC WIN32_LEAN_AND_MEAN)
 endif()
 
+if (NOT MSVC)
+    # Qt emit keyword is incompatible with TBB
+    target_compile_definitions(scwx-qt      PRIVATE QT_NO_EMIT)
+    target_compile_definitions(supercell-wx PRIVATE QT_NO_EMIT)
+endif()
+
 target_include_directories(scwx-qt PUBLIC ${scwx-qt_SOURCE_DIR}/source
                                           ${FTGL_INCLUDE_DIR}
                                           ${IMGUI_INCLUDE_DIRS}
@@ -395,6 +401,9 @@ if (MSVC)
     target_link_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
     target_link_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:/OPT:REF>")
     target_link_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
+else()
+    target_compile_options(scwx-qt PRIVATE "$<$<CONFIG:Release>:-g>")
+    target_compile_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:-g>")
 endif()
 
 target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets

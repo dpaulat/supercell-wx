@@ -178,7 +178,7 @@ void RadarSiteModel::HandleMapUpdate(double latitude, double longitude)
    QModelIndex topLeft     = createIndex(0, kColumnDistance);
    QModelIndex bottomRight = createIndex(rowCount() - 1, kColumnDistance);
 
-   emit dataChanged(topLeft, bottomRight);
+   Q_EMIT dataChanged(topLeft, bottomRight);
 }
 
 RadarSiteModelImpl::RadarSiteModelImpl() :

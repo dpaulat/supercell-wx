@@ -87,7 +87,7 @@ void AlertDialogImpl::ConnectSignals()
            this,
            [this]()
            {
-              emit self_->MoveMap(centroid_.latitude_, centroid_.longitude_);
+              Q_EMIT self_->MoveMap(centroid_.latitude_, centroid_.longitude_);
               self_->close();
            });
 }

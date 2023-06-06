@@ -494,7 +494,7 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
                                 lineEdit->setText(path);
 
                                 // setText does not emit the textEdited signal
-                                emit lineEdit->textEdited(path);
+                                Q_EMIT lineEdit->textEdited(path);
                              });
 
             dialog->open();
@@ -707,7 +707,7 @@ void SettingsDialogImpl::ShowColorDialog(QLineEdit* lineEdit, QFrame* frame)
          lineEdit->setText(colorName);
 
          // setText does not emit the textEdited signal
-         emit lineEdit->textEdited(colorName);
+         Q_EMIT lineEdit->textEdited(colorName);
       });
 
    dialog->open();

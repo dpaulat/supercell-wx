@@ -321,7 +321,7 @@ void AlertModel::HandleAlert(const types::TextEventKey& alertKey,
       QModelIndex topLeft     = createIndex(row, kFirstColumn);
       QModelIndex bottomRight = createIndex(row, kLastColumn);
 
-      emit dataChanged(topLeft, bottomRight);
+      Q_EMIT dataChanged(topLeft, bottomRight);
    }
 }
 
@@ -352,7 +352,7 @@ void AlertModel::HandleMapUpdate(double latitude, double longitude)
    QModelIndex bottomRight =
       createIndex(rowCount() - 1, static_cast<int>(Column::Distance));
 
-   emit dataChanged(topLeft, bottomRight);
+   Q_EMIT dataChanged(topLeft, bottomRight);
 }
 
 AlertModelImpl::AlertModelImpl() :

@@ -493,7 +493,7 @@ void MapWidget::SelectRadarSite(std::shared_ptr<config::RadarSite> radarSite,
 
       // TODO: Disable refresh from old site
 
-      emit RadarSiteUpdated(radarSite);
+      Q_EMIT RadarSiteUpdated(radarSite);
    }
 }
 
@@ -629,7 +629,7 @@ void MapWidget::changeStyle()
       p->currentStyleIndex_ = 0;
    }
 
-   emit MapStyleChanged(p->currentStyle_->name_);
+   Q_EMIT MapStyleChanged(p->currentStyle_->name_);
 }
 
 void MapWidget::AddLayers()
@@ -820,11 +820,11 @@ void MapWidget::initializeGL()
    p->map_->setCoordinateZoom({radarSite->latitude(), radarSite->longitude()},
                               7);
    p->UpdateStoredMapParameters();
-   emit MapParametersChanged(p->prevLatitude_,
-                             p->prevLongitude_,
-                             p->prevZoom_,
-                             p->prevBearing_,
-                             p->prevPitch_);
+   Q_EMIT MapParametersChanged(p->prevLatitude_,
+                               p->prevLongitude_,
+                               p->prevZoom_,
+                               p->prevBearing_,
+                               p->prevPitch_);
 
    // Update style
    changeStyle();
@@ -881,7 +881,7 @@ void MapWidgetImpl::RadarProductManagerConnect()
       connect(radarProductManager_.get(),
               &manager::RadarProductManager::Level3ProductsChanged,
               this,
-              [this]() { emit widget_->Level3ProductsChanged(); });
+              [this]() { Q_EMIT widget_->Level3ProductsChanged(); });
 
       connect(
          radarProductManager_.get(),
@@ -1007,7 +1007,7 @@ void MapWidgetImpl::RadarProductViewConnect()
                radarProductView->range(),
                {radarSite->latitude(), radarSite->longitude()});
             widget_->update();
-            emit widget_->RadarSweepUpdated();
+            Q_EMIT widget_->RadarSweepUpdated();
          },
          Qt::QueuedConnection);
    }
@@ -1055,7 +1055,7 @@ void MapWidgetImpl::Update()
 
    if (UpdateStoredMapParameters())
    {
-      emit widget_->MapParametersChanged(
+      Q_EMIT widget_->MapParametersChanged(
          prevLatitude_, prevLongitude_, prevZoom_, prevBearing_, prevPitch_);
    }
 }

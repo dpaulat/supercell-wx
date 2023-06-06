@@ -611,7 +611,7 @@ void MainWindowImpl::ConnectMapSignals()
          {
             if (mapWidget == activeMap_)
             {
-               emit mainWindow_->ActiveMapMoved(latitude, longitude);
+               Q_EMIT mainWindow_->ActiveMapMoved(latitude, longitude);
             }
          },
          Qt::QueuedConnection);
