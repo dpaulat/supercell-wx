@@ -155,7 +155,7 @@ void RadarProductView::ComputeSweep()
 {
    logger_->debug("ComputeSweep()");
 
-   emit SweepComputed();
+   Q_EMIT SweepComputed();
 }
 
 } // namespace view

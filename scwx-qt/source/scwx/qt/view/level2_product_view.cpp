@@ -391,7 +391,7 @@ void Level2ProductView::UpdateColorTable()
    p->savedOffset_     = offset;
    p->savedScale_      = scale;
 
-   emit ColorTableUpdated();
+   Q_EMIT ColorTableUpdated();
 }
 
 void Level2ProductView::ComputeSweep()
@@ -689,7 +689,7 @@ void Level2ProductView::ComputeSweep()
 
    UpdateColorTable();
 
-   emit SweepComputed();
+   Q_EMIT SweepComputed();
 }
 
 void Level2ProductViewImpl::ComputeCoordinates(

@@ -108,7 +108,7 @@ void AnimationDockWidgetImpl::ConnectSignals()
                     {
                        if (checked)
                        {
-                          emit self_->ViewTypeChanged(types::MapTime::Live);
+                          Q_EMIT self_->ViewTypeChanged(types::MapTime::Live);
                        }
                     });
    QObject::connect(self_->ui->archiveViewRadioButton,
@@ -118,7 +118,8 @@ void AnimationDockWidgetImpl::ConnectSignals()
                     {
                        if (checked)
                        {
-                          emit self_->ViewTypeChanged(types::MapTime::Archive);
+                          Q_EMIT self_->ViewTypeChanged(
+                             types::MapTime::Archive);
                        }
                     });
 
@@ -132,7 +133,7 @@ void AnimationDockWidgetImpl::ConnectSignals()
          if (date.isValid())
          {
             selectedDate_ = util::SysDays(date);
-            emit self_->DateTimeChanged(selectedDate_ + selectedTime_);
+            Q_EMIT self_->DateTimeChanged(selectedDate_ + selectedTime_);
          }
       });
    QObject::connect(
@@ -145,7 +146,7 @@ void AnimationDockWidgetImpl::ConnectSignals()
          {
             selectedTime_ =
                std::chrono::seconds(time.msecsSinceStartOfDay() / 1000);
-            emit self_->DateTimeChanged(selectedDate_ + selectedTime_);
+            Q_EMIT self_->DateTimeChanged(selectedDate_ + selectedTime_);
          }
       });
 
@@ -153,34 +154,35 @@ void AnimationDockWidgetImpl::ConnectSignals()
    QObject::connect(self_->ui->loopTimeSpinBox,
                     &QSpinBox::valueChanged,
                     self_,
-                    [this](int i)
-                    { emit self_->LoopTimeChanged(std::chrono::minutes(i)); });
+                    [this](int i) {
+                       Q_EMIT self_->LoopTimeChanged(std::chrono::minutes(i));
+                    });
    QObject::connect(self_->ui->loopSpeedSpinBox,
                     &QDoubleSpinBox::valueChanged,
                     self_,
-                    [this](double d) { emit self_->LoopSpeedChanged(d); });
+                    [this](double d) { Q_EMIT self_->LoopSpeedChanged(d); });
 
    // Animation controls
    QObject::connect(self_->ui->beginButton,
                     &QAbstractButton::clicked,
                     self_,
-                    [this]() { emit self_->AnimationStepBeginSelected(); });
+                    [this]() { Q_EMIT self_->AnimationStepBeginSelected(); });
    QObject::connect(self_->ui->stepBackButton,
                     &QAbstractButton::clicked,
                     self_,
-                    [this]() { emit self_->AnimationStepBackSelected(); });
+                    [this]() { Q_EMIT self_->AnimationStepBackSelected(); });
    QObject::connect(self_->ui->playButton,
                     &QAbstractButton::clicked,
                     self_,
-                    [this]() { emit self_->AnimationPlaySelected(); });
+                    [this]() { Q_EMIT self_->AnimationPlaySelected(); });
    QObject::connect(self_->ui->stepNextButton,
                     &QAbstractButton::clicked,
                     self_,
-                    [this]() { emit self_->AnimationStepNextSelected(); });
+                    [this]() { Q_EMIT self_->AnimationStepNextSelected(); });
    QObject::connect(self_->ui->endButton,
                     &QAbstractButton::clicked,
                     self_,
-                    [this]() { emit self_->AnimationStepEndSelected(); });
+                    [this]() { Q_EMIT self_->AnimationStepEndSelected(); });
 }
 
 void AnimationDockWidget::UpdateAnimationState(types::AnimationState state)

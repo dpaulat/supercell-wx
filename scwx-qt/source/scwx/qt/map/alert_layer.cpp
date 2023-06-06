@@ -278,7 +278,7 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
    for (auto& alert : alertsUpdated)
    {
       // Emit signal for each updated alert type
-      emit AlertsUpdated(alert.first, alert.second);
+      Q_EMIT AlertsUpdated(alert.first, alert.second);
    }
 }
 
@@ -326,7 +326,7 @@ void AlertLayerHandler::UpdateAlerts()
    for (auto& alert : alertsUpdated)
    {
       // Emit signal for each updated alert type
-      emit AlertsUpdated(alert.first, alert.second);
+      Q_EMIT AlertsUpdated(alert.first, alert.second);
    }
 
    using namespace std::chrono;

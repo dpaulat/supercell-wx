@@ -121,7 +121,7 @@ bool UpdateManager::CheckForUpdates(const std::string& currentVersion)
          p->latestRelease_ = *latestRelease;
          p->latestVersion_ = latestVersion;
          newRelease        = true;
-         emit UpdateAvailable(latestVersion, *latestRelease);
+         Q_EMIT UpdateAvailable(latestVersion, *latestRelease);
       }
    }
 

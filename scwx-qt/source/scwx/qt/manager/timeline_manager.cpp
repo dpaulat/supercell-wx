@@ -226,7 +226,7 @@ void TimelineManager::Impl::Pause()
    if (animationState_ != types::AnimationState::Pause)
    {
       animationState_ = types::AnimationState::Pause;
-      emit self_->AnimationStateUpdated(animationState_);
+      Q_EMIT self_->AnimationStateUpdated(animationState_);
    }
 }
 
@@ -276,7 +276,7 @@ void TimelineManager::Impl::Play()
    if (animationState_ != types::AnimationState::Play)
    {
       animationState_ = types::AnimationState::Play;
-      emit self_->AnimationStateUpdated(animationState_);
+      Q_EMIT self_->AnimationStateUpdated(animationState_);
    }
 
    {
@@ -366,9 +366,9 @@ void TimelineManager::Impl::SelectTime(
 
       logger_->debug("Time updated: Live");
 
-      emit self_->LiveStateUpdated(true);
-      emit self_->VolumeTimeUpdated(selectedTime);
-      emit self_->SelectedTimeUpdated(selectedTime);
+      Q_EMIT self_->LiveStateUpdated(true);
+      Q_EMIT self_->VolumeTimeUpdated(selectedTime);
+      Q_EMIT self_->SelectedTimeUpdated(selectedTime);
 
       return;
    }
@@ -393,7 +393,7 @@ void TimelineManager::Impl::SelectTime(
             util::GetBoundedElementPointer(volumeTimes, selectedTime);
 
          // The timeline is no longer live
-         emit self_->LiveStateUpdated(false);
+         Q_EMIT self_->LiveStateUpdated(false);
 
          if (elementPtr != nullptr)
          {
@@ -409,7 +409,7 @@ void TimelineManager::Impl::SelectTime(
                logger_->debug("Volume time updated: {}",
                               scwx::util::TimeString(adjustedTime_));
 
-               emit self_->VolumeTimeUpdated(adjustedTime_);
+               Q_EMIT self_->VolumeTimeUpdated(adjustedTime_);
             }
          }
          else
@@ -423,7 +423,7 @@ void TimelineManager::Impl::SelectTime(
                         scwx::util::TimeString(selectedTime));
 
          selectedTime_ = selectedTime;
-         emit self_->SelectedTimeUpdated(selectedTime);
+         Q_EMIT self_->SelectedTimeUpdated(selectedTime);
 
          previousRadarSite_ = radarSite_;
       });
@@ -492,9 +492,9 @@ void TimelineManager::Impl::Step(Direction direction)
                logger_->debug("Volume time updated: {}",
                               scwx::util::TimeString(adjustedTime_));
 
-               emit self_->LiveStateUpdated(false);
-               emit self_->VolumeTimeUpdated(adjustedTime_);
-               emit self_->SelectedTimeUpdated(adjustedTime_);
+               Q_EMIT self_->LiveStateUpdated(false);
+               Q_EMIT self_->VolumeTimeUpdated(adjustedTime_);
+               Q_EMIT self_->SelectedTimeUpdated(adjustedTime_);
             }
          }
          else
@@ -509,9 +509,9 @@ void TimelineManager::Impl::Step(Direction direction)
                logger_->debug("Volume time updated: {}",
                               scwx::util::TimeString(adjustedTime_));
 
-               emit self_->LiveStateUpdated(false);
-               emit self_->VolumeTimeUpdated(adjustedTime_);
-               emit self_->SelectedTimeUpdated(adjustedTime_);
+               Q_EMIT self_->LiveStateUpdated(false);
+               Q_EMIT self_->VolumeTimeUpdated(adjustedTime_);
+               Q_EMIT self_->SelectedTimeUpdated(adjustedTime_);
             }
          }
       });

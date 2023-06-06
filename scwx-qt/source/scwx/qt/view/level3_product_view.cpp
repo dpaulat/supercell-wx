@@ -305,7 +305,7 @@ void Level3ProductView::UpdateColorTable()
    p->savedOffset_     = offset;
    p->savedScale_      = scale;
 
-   emit ColorTableUpdated();
+   Q_EMIT ColorTableUpdated();
 }
 
 } // namespace view
