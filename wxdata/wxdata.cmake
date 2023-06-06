@@ -7,6 +7,10 @@ find_package(cpr)
 find_package(LibXml2)
 find_package(spdlog)
 
+if (NOT MSVC)
+    find_package(TBB)
+endif()
+
 set(HDR_AWIPS include/scwx/awips/coded_location.hpp
               include/scwx/awips/coded_time_motion_location.hpp
               include/scwx/awips/message.hpp
@@ -252,7 +256,8 @@ if (WIN32)
 endif()
 
 if (NOT MSVC)
-    target_link_libraries(wxdata PUBLIC date::date-tz)
+    target_link_libraries(wxdata PUBLIC date::date-tz
+                                        TBB::tbb)
 endif()
 
 set_target_properties(wxdata PROPERTIES CXX_STANDARD 20
