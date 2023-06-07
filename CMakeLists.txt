@@ -15,7 +15,7 @@ include(${PROJECT_SOURCE_DIR}/external/cmake-conan/conan.cmake)
 set_property(DIRECTORY
              APPEND
              PROPERTY CMAKE_CONFIGURE_DEPENDS
-             conanfile.txt)
+             conanfile.py)
 
 # Don't use RelWithDebInfo Conan packages
 if (${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
