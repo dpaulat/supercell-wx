@@ -728,13 +728,14 @@ void Level2ProductViewImpl::ComputeCoordinates(
       radials.end(),
       [&](std::uint32_t radial)
       {
-         // Angles are ordered clockwise, delta should be positive
+         // Angles are ordered clockwise, delta should be positive. Only correct
+         // less than -90 degrees, this should cover any "overlap" scenarios.
          float deltaAngle =
             (radial == 0) ? (*radarData)[0]->azimuth_angle() -
                                (*radarData)[numRadials - 1]->azimuth_angle() :
                             (*radarData)[radial]->azimuth_angle() -
                                (*radarData)[radial - 1]->azimuth_angle();
-         while (deltaAngle < 0.0f)
+         while (deltaAngle < -90.0f)
          {
             deltaAngle += 360.0f;
          }
