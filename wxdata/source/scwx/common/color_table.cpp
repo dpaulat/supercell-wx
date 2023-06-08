@@ -9,6 +9,7 @@
 #include <optional>
 #include <sstream>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/gil.hpp>
 
 #include <hsluv.h>
@@ -180,37 +181,37 @@ std::shared_ptr<ColorTable> ColorTable::Load(std::istream& is)
 
 void ColorTable::ProcessLine(const std::vector<std::string>& tokenList)
 {
-   if (tokenList[0] == "Product:")
+   if (boost::iequals(tokenList[0], "Product:"))
    {
       // Product: string
       p->product_ = tokenList[1];
    }
-   else if (tokenList[0] == "Units:")
+   else if (boost::iequals(tokenList[0], "Units:"))
    {
       // Units: string
       p->units_ = tokenList[1];
    }
-   else if (tokenList[0] == "Scale:")
+   else if (boost::iequals(tokenList[0], "Scale:"))
    {
       // Scale: float
       p->scale_ = std::stof(tokenList[1]);
    }
-   else if (tokenList[0] == "Offset:")
+   else if (boost::iequals(tokenList[0], "Offset:"))
    {
       // Offset: float
       p->offset_ = std::stof(tokenList[1]);
    }
-   else if (tokenList[0] == "Step:")
+   else if (boost::iequals(tokenList[0], "Step:"))
    {
       // Step: number
       p->step_ = std::stol(tokenList[1]);
    }
-   else if (tokenList[0] == "RF:")
+   else if (boost::iequals(tokenList[0], "RF:"))
    {
       // RF: R G B [A]
       p->rfColor_ = ParseColor(tokenList, 1, p->colorMode_);
    }
-   else if (tokenList[0] == "Color:")
+   else if (boost::iequals(tokenList[0], "Color:"))
    {
       // Color: value R G B [R G B]
       float key = std::stof(tokenList[1]);
@@ -226,7 +227,7 @@ void ColorTable::ProcessLine(const std::vector<std::string>& tokenList)
 
       p->colorMap_[key] = std::make_pair(color1, color2);
    }
-   else if (tokenList[0] == "Color4:")
+   else if (boost::iequals(tokenList[0], "Color4:"))
    {
       // Color4: value R G B A [R G B A]
       float key = std::stof(tokenList[1]);
@@ -242,7 +243,7 @@ void ColorTable::ProcessLine(const std::vector<std::string>& tokenList)
 
       p->colorMap_[key] = std::make_pair(color1, color2);
    }
-   else if (tokenList[0] == "SolidColor:")
+   else if (boost::iequals(tokenList[0], "SolidColor:"))
    {
       // SolidColor: value R G B
       float key = std::stof(tokenList[1]);
@@ -252,7 +253,7 @@ void ColorTable::ProcessLine(const std::vector<std::string>& tokenList)
 
       p->colorMap_[key] = std::make_pair(color1, color1);
    }
-   else if (tokenList[0] == "SolidColor4:")
+   else if (boost::iequals(tokenList[0], "SolidColor4:"))
    {
       // SolidColor4: value R G B A
       float key = std::stof(tokenList[1]);
