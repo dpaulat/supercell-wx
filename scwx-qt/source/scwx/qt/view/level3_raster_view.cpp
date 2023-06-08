@@ -116,6 +116,7 @@ void Level3RasterView::ComputeSweep()
    if (message == nullptr)
    {
       logger_->debug("Level 3 data not found");
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::NotLoaded);
       return;
    }
 
@@ -125,11 +126,13 @@ void Level3RasterView::ComputeSweep()
    if (gpm == nullptr)
    {
       logger_->warn("Graphic Product Message not found");
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
       return;
    }
    else if (gpm == graphic_product_message())
    {
       // Skip if this is the message we previously processed
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::NoChange);
       return;
    }
    set_graphic_product_message(gpm);
@@ -143,6 +146,7 @@ void Level3RasterView::ComputeSweep()
    if (descriptionBlock == nullptr || symbologyBlock == nullptr)
    {
       logger_->warn("Missing blocks");
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
       return;
    }
 
@@ -151,6 +155,7 @@ void Level3RasterView::ComputeSweep()
    if (numberOfLayers < 1)
    {
       logger_->warn("No layers present in symbology block");
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
       return;
    }
 
@@ -182,6 +187,7 @@ void Level3RasterView::ComputeSweep()
    if (rasterData == nullptr)
    {
       logger_->debug("No raster data found");
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
       return;
    }
 
@@ -196,6 +202,7 @@ void Level3RasterView::ComputeSweep()
    if (maxColumns == 0)
    {
       logger_->debug("No raster bins found");
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
       return;
    }
 

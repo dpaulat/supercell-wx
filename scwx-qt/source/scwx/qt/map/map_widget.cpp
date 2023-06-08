@@ -1010,6 +1010,10 @@ void MapWidgetImpl::RadarProductViewConnect()
             Q_EMIT widget_->RadarSweepUpdated();
          },
          Qt::QueuedConnection);
+      connect(radarProductView.get(),
+              &view::RadarProductView::SweepNotComputed,
+              widget_,
+              &MapWidget::RadarSweepNotUpdated);
    }
 }
 
@@ -1026,6 +1030,10 @@ void MapWidgetImpl::RadarProductViewDisconnect()
       disconnect(radarProductView.get(),
                  &view::RadarProductView::SweepComputed,
                  this,
+                 nullptr);
+      disconnect(radarProductView.get(),
+                 &view::RadarProductView::SweepNotComputed,
+                 widget_,
                  nullptr);
    }
 }
