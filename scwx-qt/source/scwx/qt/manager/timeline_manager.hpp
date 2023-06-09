@@ -24,6 +24,8 @@ public:
 
    static std::shared_ptr<TimelineManager> Instance();
 
+   void SetMapCount(std::size_t mapCount);
+
 public slots:
    void SetRadarSite(const std::string& radarSite);
 
@@ -38,6 +40,11 @@ public slots:
    void AnimationPlayPause();
    void AnimationStepNext();
    void AnimationStepEnd();
+
+   void ReceiveRadarSweepUpdated(std::size_t mapIndex);
+   void ReceiveRadarSweepNotUpdated(std::size_t           mapIndex,
+                                    types::NoUpdateReason reason);
+   void ReceiveMapWidgetPainted(std::size_t mapIndex);
 
 signals:
    void SelectedTimeUpdated(std::chrono::system_clock::time_point dateTime);

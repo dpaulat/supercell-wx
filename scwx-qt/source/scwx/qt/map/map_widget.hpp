@@ -145,6 +145,7 @@ signals:
    void RadarSiteUpdated(std::shared_ptr<config::RadarSite> radarSite);
    void RadarSweepUpdated();
    void RadarSweepNotUpdated(types::NoUpdateReason reason);
+   void WidgetPainted();
 };
 
 } // namespace map

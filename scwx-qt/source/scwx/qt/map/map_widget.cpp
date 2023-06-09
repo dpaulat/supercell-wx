@@ -859,6 +859,9 @@ void MapWidget::paintGL()
    // Render ImGui Frame
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+   // Paint complete
+   Q_EMIT WidgetPainted();
 }
 
 void MapWidget::mapChanged(QMapLibreGL::Map::MapChange mapChange)
