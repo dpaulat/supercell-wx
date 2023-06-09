@@ -38,6 +38,7 @@ signals:
 
    void LoopTimeChanged(std::chrono::minutes loopTime);
    void LoopSpeedChanged(double loopSpeed);
+   void LoopDelayChanged(std::chrono::milliseconds loopDelay);
 
    void AnimationStepBeginSelected();
    void AnimationStepBackSelected();

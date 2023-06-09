@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>200</width>
-    <height>337</height>
+    <height>348</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -130,13 +130,6 @@
           <property name="bottomMargin">
            <number>0</number>
           </property>
-          <item row="0" column="0">
-           <widget class="QLabel" name="loopTimeLabel">
-            <property name="text">
-             <string>Loop Time</string>
-            </property>
-           </widget>
-          </item>
           <item row="0" column="1">
            <widget class="QSpinBox" name="loopTimeSpinBox">
             <property name="correctionMode">
@@ -153,6 +146,13 @@
             </property>
             <property name="value">
              <number>30</number>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="loopTimeLabel">
+            <property name="text">
+             <string>Loop Time</string>
             </property>
            </widget>
           </item>
@@ -176,6 +176,32 @@
             </property>
             <property name="value">
              <double>1.000000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="loopDelayLabel">
+            <property name="text">
+             <string>Loop Delay</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QDoubleSpinBox" name="loopDelaySpinBox">
+            <property name="suffix">
+             <string> sec</string>
+            </property>
+            <property name="decimals">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <double>15.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.100000000000000</double>
+            </property>
+            <property name="value">
+             <double>2.500000000000000</double>
             </property>
            </widget>
           </item>

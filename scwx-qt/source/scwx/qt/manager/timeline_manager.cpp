@@ -71,6 +71,7 @@ public:
    types::MapTime                        viewType_ {types::MapTime::Live};
    std::chrono::minutes                  loopTime_ {30};
    double                                loopSpeed_ {5.0};
+   std::chrono::milliseconds             loopDelay_ {2500};
 
    bool                    radarSweepMonitorActive_ {false};
    std::mutex              radarSweepMonitorMutex_ {};
@@ -168,6 +169,13 @@ void TimelineManager::SetLoopSpeed(double loopSpeed)
    }
 
    p->loopSpeed_ = loopSpeed;
+}
+
+void TimelineManager::SetLoopDelay(std::chrono::milliseconds loopDelay)
+{
+   logger_->debug("SetLoopDelay: {}", loopDelay);
+
+   p->loopDelay_ = loopDelay;
 }
 
 void TimelineManager::AnimationStepBegin()
@@ -417,8 +425,8 @@ void TimelineManager::Impl::Play()
          }
          else
          {
-            // Pause for 2.5 seconds at the end of the loop
-            interval = std::chrono::milliseconds(2500);
+            // Pause at the end of the loop
+            interval = loopDelay_;
          }
 
          animationTimer_.expires_after(interval);
