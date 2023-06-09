@@ -133,6 +133,7 @@ void Level3RadialView::ComputeSweep()
    if (message == nullptr)
    {
       logger_->debug("Level 3 data not found");
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::NotLoaded);
       return;
    }
 
@@ -142,11 +143,13 @@ void Level3RadialView::ComputeSweep()
    if (gpm == nullptr)
    {
       logger_->warn("Graphic Product Message not found");
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
       return;
    }
    else if (gpm == graphic_product_message())
    {
       // Skip if this is the message we previously processed
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::NoChange);
       return;
    }
    set_graphic_product_message(gpm);
@@ -160,6 +163,7 @@ void Level3RadialView::ComputeSweep()
    if (descriptionBlock == nullptr || symbologyBlock == nullptr)
    {
       logger_->warn("Missing blocks");
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
       return;
    }
 
@@ -168,6 +172,7 @@ void Level3RadialView::ComputeSweep()
    if (numberOfLayers < 1)
    {
       logger_->warn("No layers present in symbology block");
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
       return;
    }
 
@@ -219,6 +224,7 @@ void Level3RadialView::ComputeSweep()
    else
    {
       logger_->debug("No radial data found");
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
       return;
    }
 
@@ -227,6 +233,7 @@ void Level3RadialView::ComputeSweep()
    if (radials < 1 || radials > 720)
    {
       logger_->warn("Unsupported number of radials: {}", radials);
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
       return;
    }
 
@@ -254,6 +261,7 @@ void Level3RadialView::ComputeSweep()
    if (gates < 1)
    {
       logger_->warn("No range bins in radial data");
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
       return;
    }
 

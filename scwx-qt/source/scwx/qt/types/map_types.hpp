@@ -21,6 +21,14 @@ enum class MapTime
    Archive
 };
 
+enum class NoUpdateReason
+{
+   NoChange,
+   NotLoaded,
+   InvalidProduct,
+   InvalidData
+};
+
 std::string GetMapTimeName(MapTime mapTime);
 
 } // namespace types

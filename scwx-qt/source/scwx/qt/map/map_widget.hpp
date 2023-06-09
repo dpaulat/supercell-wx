@@ -2,6 +2,7 @@
 
 #include <scwx/common/products.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/types/map_types.hpp>
 #include <scwx/qt/types/radar_product_record.hpp>
 
 #include <chrono>
@@ -143,6 +144,8 @@ signals:
    void MapStyleChanged(const std::string& styleName);
    void RadarSiteUpdated(std::shared_ptr<config::RadarSite> radarSite);
    void RadarSweepUpdated();
+   void RadarSweepNotUpdated(types::NoUpdateReason reason);
+   void WidgetPainted();
 };
 
 } // namespace map

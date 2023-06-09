@@ -3,6 +3,7 @@
 #include <scwx/common/color_table.hpp>
 #include <scwx/common/products.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
+#include <scwx/qt/types/map_types.hpp>
 
 #include <chrono>
 #include <memory>
@@ -75,6 +76,7 @@ protected slots:
 signals:
    void ColorTableUpdated();
    void SweepComputed();
+   void SweepNotComputed(types::NoUpdateReason reason);
 
 private:
    std::unique_ptr<RadarProductViewImpl> p;

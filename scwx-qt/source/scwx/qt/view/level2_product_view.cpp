@@ -402,6 +402,7 @@ void Level2ProductView::ComputeSweep()
 
    if (p->dataBlockType_ == wsr88d::rda::DataBlockType::Unknown)
    {
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidProduct);
       return;
    }
 
@@ -423,8 +424,14 @@ void Level2ProductView::ComputeSweep()
       SelectTime(foundTime);
    }
 
-   if (radarData == nullptr || radarData == p->elevationScan_)
+   if (radarData == nullptr)
    {
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::NotLoaded);
+      return;
+   }
+   if (radarData == p->elevationScan_)
+   {
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::NoChange);
       return;
    }
 
@@ -443,6 +450,7 @@ void Level2ProductView::ComputeSweep()
    {
       logger_->warn("No moment data for {}",
                     common::GetLevel2Name(p->product_));
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
       return;
    }
 

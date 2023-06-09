@@ -560,6 +560,7 @@ void MainWindowImpl::ConfigureMapLayout()
    vs->setHandleWidth(1);
 
    maps_.resize(mapCount);
+   timelineManager_->SetMapCount(mapCount);
 
    auto MoveSplitter = [=, this](int /*pos*/, int /*index*/)
    {
@@ -720,6 +721,23 @@ void MainWindowImpl::ConnectAnimationSignals()
                  map->SetAutoUpdate(isLive);
               }
            });
+
+   for (std::size_t i = 0; i < maps_.size(); i++)
+   {
+      connect(maps_[i],
+              &map::MapWidget::RadarSweepUpdated,
+              timelineManager_.get(),
+              [=, this]() { timelineManager_->ReceiveRadarSweepUpdated(i); });
+      connect(maps_[i],
+              &map::MapWidget::RadarSweepNotUpdated,
+              timelineManager_.get(),
+              [=, this](types::NoUpdateReason reason)
+              { timelineManager_->ReceiveRadarSweepNotUpdated(i, reason); });
+      connect(maps_[i],
+              &map::MapWidget::WidgetPainted,
+              timelineManager_.get(),
+              [=, this]() { timelineManager_->ReceiveMapWidgetPainted(i); });
+   }
 }
 
 void MainWindowImpl::ConnectOtherSignals()

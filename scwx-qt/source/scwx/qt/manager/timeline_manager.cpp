@@ -5,6 +5,7 @@
 #include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 
+#include <condition_variable>
 #include <mutex>
 
 #include <boost/asio/steady_timer.hpp>
@@ -25,6 +26,9 @@ enum class Direction
    Back,
    Next
 };
+
+// Wait up to 5 seconds for radar sweeps to update
+static constexpr std::chrono::seconds kRadarSweepMonitorTimeout_ {5};
 
 class TimelineManager::Impl
 {
@@ -49,11 +53,16 @@ public:
       std::shared_ptr<manager::RadarProductManager> radarProductManager,
       const std::set<std::chrono::system_clock::time_point>& volumeTimes);
 
+   void RadarSweepMonitorDisable();
+   void RadarSweepMonitorReset();
+   void RadarSweepMonitorWait(std::unique_lock<std::mutex>& lock);
+
    void Pause();
    void Play();
    void SelectTime(std::chrono::system_clock::time_point selectedTime = {});
    void Step(Direction direction);
 
+   std::size_t                           mapCount_ {0};
    std::string                           radarSite_ {"?"};
    std::string                           previousRadarSite_ {"?"};
    std::chrono::system_clock::time_point pinnedTime_ {};
@@ -62,6 +71,12 @@ public:
    types::MapTime                        viewType_ {types::MapTime::Live};
    std::chrono::minutes                  loopTime_ {30};
    double                                loopSpeed_ {5.0};
+
+   bool                    radarSweepMonitorActive_ {false};
+   std::mutex              radarSweepMonitorMutex_ {};
+   std::condition_variable radarSweepMonitorCondition_ {};
+   std::set<std::size_t>   radarSweepsUpdated_ {};
+   std::set<std::size_t>   radarSweepsComplete_ {};
 
    types::AnimationState     animationState_ {types::AnimationState::Pause};
    boost::asio::steady_timer animationTimer_ {scwx::util::io_context()};
@@ -72,6 +87,11 @@ public:
 
 TimelineManager::TimelineManager() : p(std::make_unique<Impl>(this)) {}
 TimelineManager::~TimelineManager() = default;
+
+void TimelineManager::SetMapCount(std::size_t mapCount)
+{
+   p->mapCount_ = mapCount;
+}
 
 void TimelineManager::SetRadarSite(const std::string& radarSite)
 {
@@ -217,6 +237,87 @@ void TimelineManager::AnimationStepEnd()
    }
 }
 
+void TimelineManager::Impl::RadarSweepMonitorDisable()
+{
+   radarSweepMonitorActive_ = false;
+}
+
+void TimelineManager::Impl::RadarSweepMonitorReset()
+{
+   radarSweepsUpdated_.clear();
+   radarSweepsComplete_.clear();
+
+   radarSweepMonitorActive_ = true;
+}
+
+void TimelineManager::Impl::RadarSweepMonitorWait(
+   std::unique_lock<std::mutex>& lock)
+{
+   radarSweepMonitorCondition_.wait_for(lock, kRadarSweepMonitorTimeout_);
+   radarSweepMonitorActive_ = false;
+}
+
+void TimelineManager::ReceiveRadarSweepUpdated(std::size_t mapIndex)
+{
+   if (!p->radarSweepMonitorActive_)
+   {
+      return;
+   }
+
+   std::unique_lock lock {p->radarSweepMonitorMutex_};
+
+   // Radar sweep is updated, but still needs painted
+   p->radarSweepsUpdated_.insert(mapIndex);
+}
+
+void TimelineManager::ReceiveRadarSweepNotUpdated(
+   std::size_t mapIndex, types::NoUpdateReason /* reason */)
+{
+   if (!p->radarSweepMonitorActive_)
+   {
+      return;
+   }
+
+   std::unique_lock lock {p->radarSweepMonitorMutex_};
+
+   // Radar sweep is complete, no painting will occur
+   p->radarSweepsComplete_.insert(mapIndex);
+
+   // If all sweeps have completed rendering
+   if (p->radarSweepsComplete_.size() == p->mapCount_)
+   {
+      // Notify monitors
+      p->radarSweepMonitorActive_ = false;
+      p->radarSweepMonitorCondition_.notify_all();
+   }
+}
+
+void TimelineManager::ReceiveMapWidgetPainted(std::size_t mapIndex)
+{
+   if (!p->radarSweepMonitorActive_)
+   {
+      return;
+   }
+
+   std::unique_lock lock {p->radarSweepMonitorMutex_};
+
+   // If the radar sweep has been updated
+   if (p->radarSweepsUpdated_.contains(mapIndex))
+   {
+      // Mark the radar sweep complete
+      p->radarSweepsUpdated_.erase(mapIndex);
+      p->radarSweepsComplete_.insert(mapIndex);
+
+      // If all sweeps have completed rendering
+      if (p->radarSweepsComplete_.size() == p->mapCount_)
+      {
+         // Notify monitors
+         p->radarSweepMonitorActive_ = false;
+         p->radarSweepMonitorCondition_.notify_all();
+      }
+   }
+}
+
 void TimelineManager::Impl::Pause()
 {
    // Cancel animation
@@ -306,12 +407,7 @@ void TimelineManager::Impl::Play()
             newTime = currentTime + 1min;
          }
 
-         // Unlock prior to selecting time
-         lock.unlock();
-
-         // Select the time
-         SelectTime(newTime);
-
+         // Calculate the interval until the next update, prior to selecting
          std::chrono::milliseconds interval;
          if (newTime != endTime)
          {
@@ -325,9 +421,16 @@ void TimelineManager::Impl::Play()
             interval = std::chrono::milliseconds(2500);
          }
 
+         animationTimer_.expires_after(interval);
+
+         // Unlock prior to selecting time
+         lock.unlock();
+
+         // Select the time
+         SelectTime(newTime);
+
          std::unique_lock animationTimerLock {animationTimerMutex_};
 
-         animationTimer_.expires_after(interval);
          animationTimer_.async_wait(
             [this](const boost::system::error_code& e)
             {
@@ -360,15 +463,30 @@ void TimelineManager::Impl::SelectTime(
    }
    else if (selectedTime == std::chrono::system_clock::time_point {})
    {
-      // If a default time point is given, reset to a live view
-      selectedTime_ = selectedTime;
-      adjustedTime_ = selectedTime;
+      scwx::util::async(
+         [=, this]()
+         {
+            // Take a lock for time selection
+            std::unique_lock lock {selectTimeMutex_};
 
-      logger_->debug("Time updated: Live");
+            // If a default time point is given, reset to a live view
+            selectedTime_ = selectedTime;
+            adjustedTime_ = selectedTime;
 
-      Q_EMIT self_->LiveStateUpdated(true);
-      Q_EMIT self_->VolumeTimeUpdated(selectedTime);
-      Q_EMIT self_->SelectedTimeUpdated(selectedTime);
+            logger_->debug("Time updated: Live");
+
+            std::unique_lock radarSweepMonitorLock {radarSweepMonitorMutex_};
+
+            // Reset radar sweep monitor in preparation for update
+            RadarSweepMonitorReset();
+
+            Q_EMIT self_->LiveStateUpdated(true);
+            Q_EMIT self_->VolumeTimeUpdated(selectedTime);
+            Q_EMIT self_->SelectedTimeUpdated(selectedTime);
+
+            // Wait for radar sweeps to update
+            RadarSweepMonitorWait(radarSweepMonitorLock);
+         });
 
       return;
    }
@@ -395,9 +513,15 @@ void TimelineManager::Impl::SelectTime(
          // The timeline is no longer live
          Q_EMIT self_->LiveStateUpdated(false);
 
+         bool volumeTimeUpdated = false;
+
+         std::unique_lock radarSweepMonitorLock {radarSweepMonitorMutex_};
+
+         // Reset radar sweep monitor in preparation for update
+         RadarSweepMonitorReset();
+
          if (elementPtr != nullptr)
          {
-
             // If the adjusted time changed, or if a new radar site has been
             // selected
             if (adjustedTime_ != *elementPtr ||
@@ -409,6 +533,7 @@ void TimelineManager::Impl::SelectTime(
                logger_->debug("Volume time updated: {}",
                               scwx::util::TimeString(adjustedTime_));
 
+               volumeTimeUpdated = true;
                Q_EMIT self_->VolumeTimeUpdated(adjustedTime_);
             }
          }
@@ -426,6 +551,16 @@ void TimelineManager::Impl::SelectTime(
          Q_EMIT self_->SelectedTimeUpdated(selectedTime);
 
          previousRadarSite_ = radarSite_;
+
+         if (volumeTimeUpdated)
+         {
+            // Wait for radar sweeps to update
+            RadarSweepMonitorWait(radarSweepMonitorLock);
+         }
+         else
+         {
+            RadarSweepMonitorDisable();
+         }
       });
 }
 
