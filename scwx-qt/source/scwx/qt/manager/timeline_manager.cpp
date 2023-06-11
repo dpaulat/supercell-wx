@@ -59,8 +59,11 @@ public:
 
    void Pause();
    void Play();
-   void SelectTime(std::chrono::system_clock::time_point selectedTime = {});
-   void Step(Direction direction);
+   void
+   SelectTimeAsync(std::chrono::system_clock::time_point selectedTime = {});
+   std::pair<bool, bool>
+        SelectTime(std::chrono::system_clock::time_point selectedTime = {});
+   void StepAsync(Direction direction);
 
    std::size_t                           mapCount_ {0};
    std::string                           radarSite_ {"?"};
@@ -114,7 +117,7 @@ void TimelineManager::SetRadarSite(const std::string& radarSite)
    else
    {
       // If the selected view type is archive, select using the selected time
-      p->SelectTime(p->selectedTime_);
+      p->SelectTimeAsync(p->selectedTime_);
    }
 }
 
@@ -128,7 +131,7 @@ void TimelineManager::SetDateTime(
    if (p->viewType_ == types::MapTime::Archive)
    {
       // Only select if the view type is archive
-      p->SelectTime(dateTime);
+      p->SelectTimeAsync(dateTime);
    }
 
    // Ignore a date/time selection if the view type is live
@@ -148,7 +151,7 @@ void TimelineManager::SetViewType(types::MapTime viewType)
    else
    {
       // If the selected view type is archive, select using the pinned time
-      p->SelectTime(p->pinnedTime_);
+      p->SelectTimeAsync(p->pinnedTime_);
    }
 }
 
@@ -188,12 +191,12 @@ void TimelineManager::AnimationStepBegin()
        p->pinnedTime_ == std::chrono::system_clock::time_point {})
    {
       // If the selected view type is live, select the current products
-      p->SelectTime(std::chrono::system_clock::now() - p->loopTime_);
+      p->SelectTimeAsync(std::chrono::system_clock::now() - p->loopTime_);
    }
    else
    {
       // If the selected view type is archive, select using the pinned time
-      p->SelectTime(p->pinnedTime_ - p->loopTime_);
+      p->SelectTimeAsync(p->pinnedTime_ - p->loopTime_);
    }
 }
 
@@ -202,7 +205,7 @@ void TimelineManager::AnimationStepBack()
    logger_->debug("AnimationStepBack");
 
    p->Pause();
-   p->Step(Direction::Back);
+   p->StepAsync(Direction::Back);
 }
 
 void TimelineManager::AnimationPlayPause()
@@ -224,7 +227,7 @@ void TimelineManager::AnimationStepNext()
    logger_->debug("AnimationStepNext");
 
    p->Pause();
-   p->Step(Direction::Next);
+   p->StepAsync(Direction::Next);
 }
 
 void TimelineManager::AnimationStepEnd()
@@ -241,7 +244,7 @@ void TimelineManager::AnimationStepEnd()
    else
    {
       // If the selected view type is archive, select using the pinned time
-      p->SelectTime(p->pinnedTime_);
+      p->SelectTimeAsync(p->pinnedTime_);
    }
 }
 
@@ -415,30 +418,50 @@ void TimelineManager::Impl::Play()
             newTime = currentTime + 1min;
          }
 
+         // Unlock prior to selecting time
+         lock.unlock();
+
+         // Lock radar sweep monitor
+         std::unique_lock radarSweepMonitorLock {radarSweepMonitorMutex_};
+
+         // Reset radar sweep monitor in preparation for update
+         RadarSweepMonitorReset();
+
+         // Select the time
+         auto selectTimeStart = std::chrono::steady_clock::now();
+         auto [volumeTimeUpdated, selectedTimeUpdated] = SelectTime(newTime);
+         auto selectTimeEnd = std::chrono::steady_clock::now();
+         auto elapsedTime   = selectTimeEnd - selectTimeStart;
+
+         if (volumeTimeUpdated)
+         {
+            // Wait for radar sweeps to update
+            RadarSweepMonitorWait(radarSweepMonitorLock);
+         }
+         else
+         {
+            // Disable radar sweep monitor
+            RadarSweepMonitorDisable();
+         }
+
          // Calculate the interval until the next update, prior to selecting
          std::chrono::milliseconds interval;
          if (newTime != endTime)
          {
             // Determine repeat interval (speed of 1.0 is 1 minute per second)
-            interval =
-               std::chrono::milliseconds(std::lroundl(1000.0 / loopSpeed_));
+            interval = std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::milliseconds(std::lroundl(1000.0 / loopSpeed_)) -
+               elapsedTime);
          }
          else
          {
             // Pause at the end of the loop
-            interval = loopDelay_;
+            interval = std::chrono::duration_cast<std::chrono::milliseconds>(
+               loopDelay_ - elapsedTime);
          }
 
-         animationTimer_.expires_after(interval);
-
-         // Unlock prior to selecting time
-         lock.unlock();
-
-         // Select the time
-         SelectTime(newTime);
-
          std::unique_lock animationTimerLock {animationTimerMutex_};
-
+         animationTimer_.expires_after(interval);
          animationTimer_.async_wait(
             [this](const boost::system::error_code& e)
             {
@@ -461,118 +484,94 @@ void TimelineManager::Impl::Play()
       });
 }
 
-void TimelineManager::Impl::SelectTime(
+void TimelineManager::Impl::SelectTimeAsync(
    std::chrono::system_clock::time_point selectedTime)
 {
+   scwx::util::async([=, this]() { SelectTime(selectedTime); });
+}
+
+std::pair<bool, bool> TimelineManager::Impl::SelectTime(
+   std::chrono::system_clock::time_point selectedTime)
+{
+   bool volumeTimeUpdated   = false;
+   bool selectedTimeUpdated = false;
+
    if (selectedTime_ == selectedTime && radarSite_ == previousRadarSite_)
    {
       // Nothing to do
-      return;
+      return {volumeTimeUpdated, selectedTimeUpdated};
    }
    else if (selectedTime == std::chrono::system_clock::time_point {})
    {
-      scwx::util::async(
-         [=, this]()
-         {
-            // Take a lock for time selection
-            std::unique_lock lock {selectTimeMutex_};
+      // If a default time point is given, reset to a live view
+      selectedTime_      = selectedTime;
+      adjustedTime_      = selectedTime;
+      previousRadarSite_ = radarSite_;
 
-            // If a default time point is given, reset to a live view
-            selectedTime_ = selectedTime;
-            adjustedTime_ = selectedTime;
+      logger_->debug("Time updated: Live");
 
-            logger_->debug("Time updated: Live");
+      Q_EMIT self_->LiveStateUpdated(true);
+      Q_EMIT self_->VolumeTimeUpdated(selectedTime);
+      Q_EMIT self_->SelectedTimeUpdated(selectedTime);
 
-            std::unique_lock radarSweepMonitorLock {radarSweepMonitorMutex_};
+      volumeTimeUpdated   = true;
+      selectedTimeUpdated = true;
 
-            // Reset radar sweep monitor in preparation for update
-            RadarSweepMonitorReset();
-
-            Q_EMIT self_->LiveStateUpdated(true);
-            Q_EMIT self_->VolumeTimeUpdated(selectedTime);
-            Q_EMIT self_->SelectedTimeUpdated(selectedTime);
-
-            // Wait for radar sweeps to update
-            RadarSweepMonitorWait(radarSweepMonitorLock);
-         });
-
-      return;
+      return {volumeTimeUpdated, selectedTimeUpdated};
    }
 
-   scwx::util::async(
-      [=, this]()
+   // Take a lock for time selection
+   std::unique_lock lock {selectTimeMutex_};
+
+   // Request active volume times
+   auto radarProductManager =
+      manager::RadarProductManager::Instance(radarSite_);
+   auto volumeTimes = radarProductManager->GetActiveVolumeTimes(selectedTime);
+
+   // Dynamically update maximum cached volume scans
+   UpdateCacheLimit(radarProductManager, volumeTimes);
+
+   // Find the best match bounded time
+   auto elementPtr = util::GetBoundedElementPointer(volumeTimes, selectedTime);
+
+   // The timeline is no longer live
+   Q_EMIT self_->LiveStateUpdated(false);
+
+   if (elementPtr != nullptr)
+   {
+      // If the adjusted time changed, or if a new radar site has been selected
+      if (adjustedTime_ != *elementPtr || radarSite_ != previousRadarSite_)
       {
-         // Take a lock for time selection
-         std::unique_lock lock {selectTimeMutex_};
+         // If the time was found, select it
+         adjustedTime_ = *elementPtr;
 
-         // Request active volume times
-         auto radarProductManager =
-            manager::RadarProductManager::Instance(radarSite_);
-         auto volumeTimes =
-            radarProductManager->GetActiveVolumeTimes(selectedTime);
+         logger_->debug("Volume time updated: {}",
+                        scwx::util::TimeString(adjustedTime_));
 
-         // Dynamically update maximum cached volume scans
-         UpdateCacheLimit(radarProductManager, volumeTimes);
+         volumeTimeUpdated = true;
+         Q_EMIT self_->VolumeTimeUpdated(adjustedTime_);
+      }
+   }
+   else
+   {
+      // No volume time was found
+      logger_->info("No volume scan found for {}",
+                    scwx::util::TimeString(selectedTime));
+   }
 
-         // Find the best match bounded time
-         auto elementPtr =
-            util::GetBoundedElementPointer(volumeTimes, selectedTime);
+   logger_->trace("Selected time updated: {}",
+                  scwx::util::TimeString(selectedTime));
 
-         // The timeline is no longer live
-         Q_EMIT self_->LiveStateUpdated(false);
+   selectedTime_       = selectedTime;
+   selectedTimeUpdated = true;
+   Q_EMIT self_->SelectedTimeUpdated(selectedTime);
 
-         bool volumeTimeUpdated = false;
+   previousRadarSite_ = radarSite_;
 
-         std::unique_lock radarSweepMonitorLock {radarSweepMonitorMutex_};
-
-         // Reset radar sweep monitor in preparation for update
-         RadarSweepMonitorReset();
-
-         if (elementPtr != nullptr)
-         {
-            // If the adjusted time changed, or if a new radar site has been
-            // selected
-            if (adjustedTime_ != *elementPtr ||
-                radarSite_ != previousRadarSite_)
-            {
-               // If the time was found, select it
-               adjustedTime_ = *elementPtr;
-
-               logger_->debug("Volume time updated: {}",
-                              scwx::util::TimeString(adjustedTime_));
-
-               volumeTimeUpdated = true;
-               Q_EMIT self_->VolumeTimeUpdated(adjustedTime_);
-            }
-         }
-         else
-         {
-            // No volume time was found
-            logger_->info("No volume scan found for {}",
-                          scwx::util::TimeString(selectedTime));
-         }
-
-         logger_->trace("Selected time updated: {}",
-                        scwx::util::TimeString(selectedTime));
-
-         selectedTime_ = selectedTime;
-         Q_EMIT self_->SelectedTimeUpdated(selectedTime);
-
-         previousRadarSite_ = radarSite_;
-
-         if (volumeTimeUpdated)
-         {
-            // Wait for radar sweeps to update
-            RadarSweepMonitorWait(radarSweepMonitorLock);
-         }
-         else
-         {
-            RadarSweepMonitorDisable();
-         }
-      });
+   return {volumeTimeUpdated, selectedTimeUpdated};
 }
 
-void TimelineManager::Impl::Step(Direction direction)
+void TimelineManager::Impl::StepAsync(Direction direction)
 {
    scwx::util::async(
       [=, this]()
