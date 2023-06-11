@@ -1192,15 +1192,17 @@ void RadarProductManagerImpl::UpdateRecentRecords(
    std::shared_ptr<types::RadarProductRecord> record)
 {
    const std::size_t recentListMaxSize {cacheLimit_};
+   bool              iteratorErased = false;
 
    auto it = std::find(recentList.cbegin(), recentList.cend(), record);
    if (it != recentList.cbegin() && it != recentList.cend())
    {
       // If the record exists beyond the front of the list, remove it
       recentList.erase(it);
+      iteratorErased = true;
    }
 
-   if (recentList.size() == 0 || it != recentList.cbegin())
+   if (iteratorErased || recentList.size() == 0 || it != recentList.cbegin())
    {
       // Add the record to the front of the list, unless it's already there
       recentList.push_front(record);
