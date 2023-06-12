@@ -210,7 +210,8 @@ public:
    static void
    LoadNexradFile(CreateNexradFileFunction                    load,
                   std::shared_ptr<request::NexradFileRequest> request,
-                  std::mutex&                                 mutex);
+                  std::mutex&                                 mutex,
+                  std::chrono::system_clock::time_point       time = {});
 
    const std::string radarId_;
    bool              initialized_;
@@ -801,7 +802,8 @@ void RadarProductManagerImpl::LoadProviderData(
          return nexradFile;
       },
       request,
-      loadDataMutex);
+      loadDataMutex,
+      time);
 }
 
 void RadarProductManager::LoadLevel2Data(
@@ -912,7 +914,8 @@ void RadarProductManager::LoadFile(
 void RadarProductManagerImpl::LoadNexradFile(
    CreateNexradFileFunction                    load,
    std::shared_ptr<request::NexradFileRequest> request,
-   std::mutex&                                 mutex)
+   std::mutex&                                 mutex,
+   std::chrono::system_clock::time_point       time)
 {
    scwx::util::async(
       [=, &mutex]()
@@ -928,6 +931,15 @@ void RadarProductManagerImpl::LoadNexradFile(
          if (fileValid)
          {
             record = types::RadarProductRecord::Create(nexradFile);
+
+            // If the time is already determined, override the time in the file.
+            // Sometimes, level 2 data has been seen to be a few seconds off
+            // between filename and file data. Overriding this can help prevent
+            // issues with locating and storing the correct records.
+            if (time != std::chrono::system_clock::time_point {})
+            {
+               record->set_time(time);
+            }
 
             std::shared_ptr<RadarProductManager> manager =
                RadarProductManager::Instance(record->radar_id());

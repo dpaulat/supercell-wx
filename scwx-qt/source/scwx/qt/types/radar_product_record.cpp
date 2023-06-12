@@ -133,6 +133,11 @@ std::chrono::system_clock::time_point RadarProductRecord::time() const
    return p->time_;
 }
 
+void RadarProductRecord::set_time(std::chrono::system_clock::time_point time)
+{
+   p->time_ = time;
+}
+
 std::shared_ptr<RadarProductRecord>
 RadarProductRecord::Create(std::shared_ptr<wsr88d::NexradFile> nexradFile)
 {
