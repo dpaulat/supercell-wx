@@ -129,7 +129,14 @@ void Initialize()
    sqlite3_close(db);
 
    // Remove temporary file
-   std::filesystem::remove(countyDatabaseCache);
+   std::error_code err;
+
+   if (!std::filesystem::remove(countyDatabaseCache, err)) {
+      logger_->error(
+          "Unable to remove cached copy of database, error code: {} error category: {}",
+          err.value(),
+          err.category().name());
+   }
 
    initialized_ = true;
 }
