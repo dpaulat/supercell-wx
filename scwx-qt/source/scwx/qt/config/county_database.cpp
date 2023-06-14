@@ -132,7 +132,7 @@ void Initialize()
    std::error_code err;
 
    if (!std::filesystem::remove(countyDatabaseCache, err)) {
-      logger_->error(
+      logger_->warn(
           "Unable to remove cached copy of database, error code: {} error category: {}",
           err.value(),
           err.category().name());
