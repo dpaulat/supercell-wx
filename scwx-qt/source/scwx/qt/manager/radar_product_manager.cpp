@@ -210,7 +210,8 @@ public:
    static void
    LoadNexradFile(CreateNexradFileFunction                    load,
                   std::shared_ptr<request::NexradFileRequest> request,
-                  std::mutex&                                 mutex);
+                  std::mutex&                                 mutex,
+                  std::chrono::system_clock::time_point       time = {});
 
    const std::string radarId_;
    bool              initialized_;
@@ -801,7 +802,8 @@ void RadarProductManagerImpl::LoadProviderData(
          return nexradFile;
       },
       request,
-      loadDataMutex);
+      loadDataMutex,
+      time);
 }
 
 void RadarProductManager::LoadLevel2Data(
@@ -912,7 +914,8 @@ void RadarProductManager::LoadFile(
 void RadarProductManagerImpl::LoadNexradFile(
    CreateNexradFileFunction                    load,
    std::shared_ptr<request::NexradFileRequest> request,
-   std::mutex&                                 mutex)
+   std::mutex&                                 mutex,
+   std::chrono::system_clock::time_point       time)
 {
    scwx::util::async(
       [=, &mutex]()
@@ -928,6 +931,15 @@ void RadarProductManagerImpl::LoadNexradFile(
          if (fileValid)
          {
             record = types::RadarProductRecord::Create(nexradFile);
+
+            // If the time is already determined, override the time in the file.
+            // Sometimes, level 2 data has been seen to be a few seconds off
+            // between filename and file data. Overriding this can help prevent
+            // issues with locating and storing the correct records.
+            if (time != std::chrono::system_clock::time_point {})
+            {
+               record->set_time(time);
+            }
 
             std::shared_ptr<RadarProductManager> manager =
                RadarProductManager::Instance(record->radar_id());
@@ -1192,15 +1204,17 @@ void RadarProductManagerImpl::UpdateRecentRecords(
    std::shared_ptr<types::RadarProductRecord> record)
 {
    const std::size_t recentListMaxSize {cacheLimit_};
+   bool              iteratorErased = false;
 
    auto it = std::find(recentList.cbegin(), recentList.cend(), record);
    if (it != recentList.cbegin() && it != recentList.cend())
    {
       // If the record exists beyond the front of the list, remove it
       recentList.erase(it);
+      iteratorErased = true;
    }
 
-   if (recentList.size() == 0 || it != recentList.cbegin())
+   if (iteratorErased || recentList.size() == 0 || it != recentList.cbegin())
    {
       // Add the record to the front of the list, unless it's already there
       recentList.push_front(record);

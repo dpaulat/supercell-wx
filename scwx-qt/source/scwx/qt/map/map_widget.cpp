@@ -1053,6 +1053,9 @@ void MapWidgetImpl::SetRadarSite(const std::string& radarSite)
       // Set new RadarProductManager
       radarProductManager_ = manager::RadarProductManager::Instance(radarSite);
 
+      // Re-enable auto-update
+      autoUpdateEnabled_ = true;
+
       // Connect signals to new RadarProductManager
       RadarProductManagerConnect();
 

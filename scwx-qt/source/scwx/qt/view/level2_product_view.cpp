@@ -725,7 +725,8 @@ void Level2ProductViewImpl::ComputeCoordinates(
    const std::uint16_t numRadials =
       static_cast<std::uint16_t>(radarData->size());
    const std::uint16_t numRangeBins =
-      momentData0->number_of_data_moment_gates();
+      std::max(momentData0->number_of_data_moment_gates() + 1u,
+               common::MAX_DATA_MOMENT_GATES);
 
    auto radials = boost::irange<std::uint32_t>(0u, numRadials);
    auto gates   = boost::irange<std::uint32_t>(0u, numRangeBins);

@@ -673,6 +673,10 @@ void MainWindowImpl::ConnectAnimationSignals()
            timelineManager_.get(),
            &manager::TimelineManager::SetLoopSpeed);
    connect(animationDockWidget_,
+           &ui::AnimationDockWidget::LoopDelayChanged,
+           timelineManager_.get(),
+           &manager::TimelineManager::SetLoopDelay);
+   connect(animationDockWidget_,
            &ui::AnimationDockWidget::AnimationStepBeginSelected,
            timelineManager_.get(),
            &manager::TimelineManager::AnimationStepBegin);

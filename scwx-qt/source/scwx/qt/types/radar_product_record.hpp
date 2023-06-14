@@ -22,7 +22,7 @@ public:
    explicit RadarProductRecord(std::shared_ptr<wsr88d::NexradFile> nexradFile);
    ~RadarProductRecord();
 
-   RadarProductRecord(const RadarProductRecord&) = delete;
+   RadarProductRecord(const RadarProductRecord&)            = delete;
    RadarProductRecord& operator=(const RadarProductRecord&) = delete;
 
    RadarProductRecord(RadarProductRecord&&) noexcept;
@@ -37,6 +37,8 @@ public:
    common::RadarProductGroup             radar_product_group() const;
    std::string                           site_id() const;
    std::chrono::system_clock::time_point time() const;
+
+   void set_time(std::chrono::system_clock::time_point time);
 
    static std::shared_ptr<RadarProductRecord>
    Create(std::shared_ptr<wsr88d::NexradFile> nexradFile);

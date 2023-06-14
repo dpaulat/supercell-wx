@@ -88,6 +88,7 @@ AnimationDockWidget::AnimationDockWidget(QWidget* parent) :
    // Set loop defaults
    ui->loopTimeSpinBox->setValue(30);
    ui->loopSpeedSpinBox->setValue(5.0);
+   ui->loopDelaySpinBox->setValue(2.5);
 
    // Connect widget signals
    p->ConnectSignals();
@@ -161,6 +162,15 @@ void AnimationDockWidgetImpl::ConnectSignals()
                     &QDoubleSpinBox::valueChanged,
                     self_,
                     [this](double d) { Q_EMIT self_->LoopSpeedChanged(d); });
+   QObject::connect(
+      self_->ui->loopDelaySpinBox,
+      &QDoubleSpinBox::valueChanged,
+      self_,
+      [this](double d)
+      {
+         Q_EMIT self_->LoopDelayChanged(std::chrono::milliseconds(
+            static_cast<typename std::chrono::milliseconds::rep>(d * 1000.0)));
+      });
 
    // Animation controls
    QObject::connect(self_->ui->beginButton,

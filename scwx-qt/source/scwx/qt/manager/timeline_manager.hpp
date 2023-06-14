@@ -34,6 +34,7 @@ public slots:
 
    void SetLoopTime(std::chrono::minutes loopTime);
    void SetLoopSpeed(double loopSpeed);
+   void SetLoopDelay(std::chrono::milliseconds loopDelay);
 
    void AnimationStepBegin();
    void AnimationStepBack();
