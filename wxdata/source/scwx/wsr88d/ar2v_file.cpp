@@ -422,6 +422,12 @@ void Ar2vFileImpl::IndexFile()
       std::shared_ptr<rda::DigitalRadarData> radial0 =
          (*elevationCut.second)[0];
 
+      if (radial0 == nullptr)
+      {
+         logger_->warn("Empty radial data");
+         continue;
+      }
+
       for (rda::DataBlockType dataBlockType :
            rda::MomentDataBlockTypeIterator())
       {
