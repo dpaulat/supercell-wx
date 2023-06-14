@@ -4,6 +4,7 @@
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/basic_file_sink.h>
 
 namespace scwx
 {
@@ -19,12 +20,18 @@ void Initialize()
 
 std::shared_ptr<spdlog::logger> Create(const std::string& name)
 {
-   // Create a shared sink
-   static auto sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+   // Create stdout sink
+   static auto stdoutSink =
+      std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+
+   // Create file sink
+   static auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+      "supercell-wx.log", true);
 
    // Create the logger
+   std::vector<spdlog::sink_ptr>   sinks = {stdoutSink, fileSink};
    std::shared_ptr<spdlog::logger> logger =
-      std::make_shared<spdlog::logger>(name, sink);
+      std::make_shared<spdlog::logger>(name, begin(sinks), end(sinks));
 
    // Register the logger, so it can be retrieved later using spdlog::get()
    spdlog::register_logger(logger);
