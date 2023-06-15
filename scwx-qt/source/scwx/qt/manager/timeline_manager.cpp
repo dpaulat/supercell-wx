@@ -1,5 +1,6 @@
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
+#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/map.hpp>
 #include <scwx/util/threads.hpp>
@@ -33,7 +34,15 @@ static constexpr std::chrono::seconds kRadarSweepMonitorTimeout_ {5};
 class TimelineManager::Impl
 {
 public:
-   explicit Impl(TimelineManager* self) : self_ {self} {}
+   explicit Impl(TimelineManager* self) : self_ {self}
+   {
+      auto& generalSettings = SettingsManager::general_settings();
+
+      loopDelay_ =
+         std::chrono::milliseconds(generalSettings.loop_delay().GetValue());
+      loopSpeed_ = generalSettings.loop_speed().GetValue();
+      loopTime_  = std::chrono::minutes(generalSettings.loop_time().GetValue());
+   }
 
    ~Impl()
    {
@@ -72,9 +81,9 @@ public:
    std::chrono::system_clock::time_point adjustedTime_ {};
    std::chrono::system_clock::time_point selectedTime_ {};
    types::MapTime                        viewType_ {types::MapTime::Live};
-   std::chrono::minutes                  loopTime_ {30};
-   double                                loopSpeed_ {5.0};
-   std::chrono::milliseconds             loopDelay_ {2500};
+   std::chrono::minutes                  loopTime_;
+   double                                loopSpeed_;
+   std::chrono::milliseconds             loopDelay_;
 
    bool                    radarSweepMonitorActive_ {false};
    std::mutex              radarSweepMonitorMutex_ {};

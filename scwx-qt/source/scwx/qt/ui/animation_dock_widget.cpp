@@ -1,6 +1,7 @@
 #include "animation_dock_widget.hpp"
 #include "ui_animation_dock_widget.h"
 
+#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/util/time.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -86,9 +87,11 @@ AnimationDockWidget::AnimationDockWidget(QWidget* parent) :
    maxDateTimer->start(15000);
 
    // Set loop defaults
-   ui->loopTimeSpinBox->setValue(30);
-   ui->loopSpeedSpinBox->setValue(5.0);
-   ui->loopDelaySpinBox->setValue(2.5);
+   auto& generalSettings = manager::SettingsManager::general_settings();
+   ui->loopTimeSpinBox->setValue(generalSettings.loop_time().GetValue());
+   ui->loopSpeedSpinBox->setValue(generalSettings.loop_speed().GetValue());
+   ui->loopDelaySpinBox->setValue(generalSettings.loop_delay().GetValue() *
+                                  0.001);
 
    // Connect widget signals
    p->ConnectSignals();
@@ -152,22 +155,33 @@ void AnimationDockWidgetImpl::ConnectSignals()
       });
 
    // Loop controls
-   QObject::connect(self_->ui->loopTimeSpinBox,
-                    &QSpinBox::valueChanged,
-                    self_,
-                    [this](int i) {
-                       Q_EMIT self_->LoopTimeChanged(std::chrono::minutes(i));
-                    });
-   QObject::connect(self_->ui->loopSpeedSpinBox,
-                    &QDoubleSpinBox::valueChanged,
-                    self_,
-                    [this](double d) { Q_EMIT self_->LoopSpeedChanged(d); });
+   QObject::connect(
+      self_->ui->loopTimeSpinBox,
+      &QSpinBox::valueChanged,
+      self_,
+      [this](int i)
+      {
+         manager::SettingsManager::general_settings().loop_time().StageValue(i);
+         Q_EMIT self_->LoopTimeChanged(std::chrono::minutes(i));
+      });
+   QObject::connect(
+      self_->ui->loopSpeedSpinBox,
+      &QDoubleSpinBox::valueChanged,
+      self_,
+      [this](double d)
+      {
+         manager::SettingsManager::general_settings().loop_speed().StageValue(
+            d);
+         Q_EMIT self_->LoopSpeedChanged(d);
+      });
    QObject::connect(
       self_->ui->loopDelaySpinBox,
       &QDoubleSpinBox::valueChanged,
       self_,
       [this](double d)
       {
+         manager::SettingsManager::general_settings().loop_delay().StageValue(
+            static_cast<std::int64_t>(d * 1000.0));
          Q_EMIT self_->LoopDelayChanged(std::chrono::milliseconds(
             static_cast<typename std::chrono::milliseconds::rep>(d * 1000.0)));
       });

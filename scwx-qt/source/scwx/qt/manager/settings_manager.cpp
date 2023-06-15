@@ -90,6 +90,18 @@ void SaveSettings()
    }
 }
 
+void Shutdown()
+{
+   bool dataChanged = false;
+
+   dataChanged |= general_settings().Shutdown();
+
+   if (dataChanged)
+   {
+      SaveSettings();
+   }
+}
+
 settings::GeneralSettings& general_settings()
 {
    static settings::GeneralSettings generalSettings_;

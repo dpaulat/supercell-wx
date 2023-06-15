@@ -23,6 +23,36 @@ TEST(SettingsVariableTest, Boolean)
    EXPECT_EQ(boolVariable.GetValue(), false);
 }
 
+TEST(SettingsVariableTest, Double)
+{
+   SettingsVariable<double> doubleVariable {"double"};
+   doubleVariable.SetDefault(4.2);
+   doubleVariable.SetMinimum(1.0);
+   doubleVariable.SetMaximum(9.9);
+   doubleVariable.SetValue(5.0);
+
+   EXPECT_EQ(doubleVariable.name(), "double");
+   EXPECT_EQ(doubleVariable.GetValue(), 5.0);
+   EXPECT_EQ(doubleVariable.SetValue(0), false);
+   EXPECT_EQ(doubleVariable.GetValue(), 5.0);
+   EXPECT_EQ(doubleVariable.SetValueOrDefault(0.0), false); // < Minimum
+   EXPECT_EQ(doubleVariable.GetValue(), 1.0);
+   EXPECT_EQ(doubleVariable.SetValueOrDefault(10.0), false); // > Maximum
+   EXPECT_EQ(doubleVariable.GetValue(), 9.9);
+   doubleVariable.SetValueToDefault();
+   EXPECT_EQ(doubleVariable.GetValue(), 4.2);
+   EXPECT_EQ(doubleVariable.SetValue(4.3), true);
+   EXPECT_EQ(doubleVariable.GetValue(), 4.3);
+   EXPECT_EQ(doubleVariable.SetValueOrDefault(5.7), true);
+   EXPECT_EQ(doubleVariable.GetValue(), 5.7);
+
+   EXPECT_EQ(doubleVariable.StageValue(0.0), false);
+   EXPECT_EQ(doubleVariable.StageValue(5.0), true);
+   EXPECT_EQ(doubleVariable.GetValue(), 5.7);
+   doubleVariable.Commit();
+   EXPECT_EQ(doubleVariable.GetValue(), 5.0);
+}
+
 TEST(SettingsVariableTest, Integer)
 {
    SettingsVariable<int64_t> intVariable {"int64_t"};

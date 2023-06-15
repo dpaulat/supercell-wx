@@ -82,6 +82,7 @@ int main(int argc, char* argv[])
 
    // Shutdown application
    scwx::qt::manager::ResourceManager::Shutdown();
+   scwx::qt::manager::SettingsManager::Shutdown();
 
    // Shutdown AWS SDK
    Aws::ShutdownAPI(awsSdkOptions);

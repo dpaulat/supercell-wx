@@ -33,6 +33,9 @@ public:
       defaultAlertAction_.SetDefault(defaultDefaultAlertActionValue);
       defaultRadarSite_.SetDefault("KLSX");
       fontSizes_.SetDefault({16});
+      loopDelay_.SetDefault(2500);
+      loopSpeed_.SetDefault(5.0);
+      loopTime_.SetDefault(30);
       gridWidth_.SetDefault(1);
       gridHeight_.SetDefault(1);
       mapProvider_.SetDefault(defaultMapProviderValue);
@@ -48,6 +51,12 @@ public:
       gridWidth_.SetMaximum(2);
       gridHeight_.SetMinimum(1);
       gridHeight_.SetMaximum(2);
+      loopDelay_.SetMinimum(0);
+      loopDelay_.SetMaximum(15000);
+      loopSpeed_.SetMinimum(1.0);
+      loopSpeed_.SetMaximum(99.99);
+      loopTime_.SetMinimum(1);
+      loopTime_.SetMaximum(1440);
 
       defaultAlertAction_.SetValidator(
          [](const std::string& value)
@@ -101,6 +110,9 @@ public:
    SettingsContainer<std::vector<std::int64_t>> fontSizes_ {"font_sizes"};
    SettingsVariable<std::int64_t>               gridWidth_ {"grid_width"};
    SettingsVariable<std::int64_t>               gridHeight_ {"grid_height"};
+   SettingsVariable<std::int64_t>               loopDelay_ {"loop_delay"};
+   SettingsVariable<double>                     loopSpeed_ {"loop_speed"};
+   SettingsVariable<std::int64_t>               loopTime_ {"loop_time"};
    SettingsVariable<std::string>                mapProvider_ {"map_provider"};
    SettingsVariable<std::string> mapboxApiKey_ {"mapbox_api_key"};
    SettingsVariable<std::string> maptilerApiKey_ {"maptiler_api_key"};
@@ -116,6 +128,9 @@ GeneralSettings::GeneralSettings() :
                       &p->fontSizes_,
                       &p->gridWidth_,
                       &p->gridHeight_,
+                      &p->loopDelay_,
+                      &p->loopSpeed_,
+                      &p->loopTime_,
                       &p->mapProvider_,
                       &p->mapboxApiKey_,
                       &p->maptilerApiKey_,
@@ -159,6 +174,21 @@ SettingsVariable<std::int64_t>& GeneralSettings::grid_width() const
    return p->gridWidth_;
 }
 
+SettingsVariable<std::int64_t>& GeneralSettings::loop_delay() const
+{
+   return p->loopDelay_;
+}
+
+SettingsVariable<double>& GeneralSettings::loop_speed() const
+{
+   return p->loopSpeed_;
+}
+
+SettingsVariable<std::int64_t>& GeneralSettings::loop_time() const
+{
+   return p->loopTime_;
+}
+
 SettingsVariable<std::string>& GeneralSettings::map_provider() const
 {
    return p->mapProvider_;
@@ -179,6 +209,18 @@ SettingsVariable<bool>& GeneralSettings::update_notifications_enabled() const
    return p->updateNotificationsEnabled_;
 }
 
+bool GeneralSettings::Shutdown()
+{
+   bool dataChanged = false;
+
+   // Commit settings that are managed separate from the settings dialog
+   dataChanged |= p->loopDelay_.Commit();
+   dataChanged |= p->loopSpeed_.Commit();
+   dataChanged |= p->loopTime_.Commit();
+
+   return dataChanged;
+}
+
 bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
 {
    return (lhs.p->debugEnabled_ == rhs.p->debugEnabled_ &&
@@ -187,6 +229,9 @@ bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
            lhs.p->fontSizes_ == rhs.p->fontSizes_ &&
            lhs.p->gridWidth_ == rhs.p->gridWidth_ &&
            lhs.p->gridHeight_ == rhs.p->gridHeight_ &&
+           lhs.p->loopDelay_ == rhs.p->loopDelay_ &&
+           lhs.p->loopSpeed_ == rhs.p->loopSpeed_ &&
+           lhs.p->loopTime_ == rhs.p->loopTime_ &&
            lhs.p->mapProvider_ == rhs.p->mapProvider_ &&
            lhs.p->mapboxApiKey_ == rhs.p->mapboxApiKey_ &&
            lhs.p->maptilerApiKey_ == rhs.p->maptilerApiKey_ &&
