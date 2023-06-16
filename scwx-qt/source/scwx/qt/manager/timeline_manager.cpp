@@ -3,13 +3,14 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/map.hpp>
-#include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 
 #include <condition_variable>
 #include <mutex>
 
+#include <boost/asio/post.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/thread_pool.hpp>
 #include <fmt/chrono.h>
 
 namespace scwx
@@ -74,6 +75,9 @@ public:
         SelectTime(std::chrono::system_clock::time_point selectedTime = {});
    void StepAsync(Direction direction);
 
+   boost::asio::thread_pool playThreadPool_ {1};
+   boost::asio::thread_pool selectThreadPool_ {1};
+
    std::size_t                           mapCount_ {0};
    std::string                           radarSite_ {"?"};
    std::string                           previousRadarSite_ {"?"};
@@ -92,7 +96,7 @@ public:
    std::set<std::size_t>   radarSweepsComplete_ {};
 
    types::AnimationState     animationState_ {types::AnimationState::Pause};
-   boost::asio::steady_timer animationTimer_ {scwx::util::io_context()};
+   boost::asio::steady_timer animationTimer_ {playThreadPool_};
    std::mutex                animationTimerMutex_ {};
 
    std::mutex selectTimeMutex_ {};
@@ -290,10 +294,11 @@ void TimelineManager::ReceiveRadarSweepUpdated(std::size_t mapIndex)
    p->radarSweepsUpdated_.insert(mapIndex);
 }
 
-void TimelineManager::ReceiveRadarSweepNotUpdated(
-   std::size_t mapIndex, types::NoUpdateReason /* reason */)
+void TimelineManager::ReceiveRadarSweepNotUpdated(std::size_t mapIndex,
+                                                  types::NoUpdateReason reason)
 {
-   if (!p->radarSweepMonitorActive_)
+   if (!p->radarSweepMonitorActive_ ||
+       reason == types::NoUpdateReason::NotLoaded)
    {
       return;
    }
@@ -405,7 +410,8 @@ void TimelineManager::Impl::Play()
       animationTimer_.cancel();
    }
 
-   scwx::util::async(
+   boost::asio::post(
+      playThreadPool_,
       [this]()
       {
          // Take a lock for time selection
@@ -496,7 +502,8 @@ void TimelineManager::Impl::Play()
 void TimelineManager::Impl::SelectTimeAsync(
    std::chrono::system_clock::time_point selectedTime)
 {
-   scwx::util::async([=, this]() { SelectTime(selectedTime); });
+   boost::asio::post(selectThreadPool_,
+                     [=, this]() { SelectTime(selectedTime); });
 }
 
 std::pair<bool, bool> TimelineManager::Impl::SelectTime(
@@ -582,7 +589,8 @@ std::pair<bool, bool> TimelineManager::Impl::SelectTime(
 
 void TimelineManager::Impl::StepAsync(Direction direction)
 {
-   scwx::util::async(
+   boost::asio::post(
+      selectThreadPool_,
       [=, this]()
       {
          // Take a lock for time selection
