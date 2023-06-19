@@ -176,28 +176,28 @@ bool WmoHeader::Parse(std::istream& is)
 
       if (wmoTokenList.size() < 3 || wmoTokenList.size() > 4)
       {
-         logger_->debug("Invalid number of WMO tokens");
+         logger_->warn("Invalid number of WMO tokens");
          headerValid = false;
       }
       else if (wmoTokenList[0].size() != 6)
       {
-         logger_->debug("WMO identifier malformed");
+         logger_->warn("WMO identifier malformed");
          headerValid = false;
       }
       else if (wmoTokenList[1].size() != 4)
       {
-         logger_->debug("ICAO malformed");
+         logger_->warn("ICAO malformed");
          headerValid = false;
       }
       else if (wmoTokenList[2].size() != 6)
       {
-         logger_->debug("Date/time malformed");
+         logger_->warn("Date/time malformed");
          headerValid = false;
       }
       else if (wmoTokenList.size() == 4 && wmoTokenList[3].size() != 3)
       {
          // BBB indicator is optional
-         logger_->debug("BBB indicator malformed");
+         logger_->warn("BBB indicator malformed");
          headerValid = false;
       }
       else
@@ -226,7 +226,7 @@ bool WmoHeader::Parse(std::istream& is)
    {
       if (awipsLine.size() != 6)
       {
-         logger_->debug("AWIPS Identifier Line bad size");
+         logger_->warn("AWIPS Identifier Line bad size");
          headerValid = false;
       }
       else

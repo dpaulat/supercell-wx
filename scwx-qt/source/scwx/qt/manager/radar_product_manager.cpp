@@ -792,7 +792,16 @@ void RadarProductManagerImpl::LoadProviderData(
          if (existingRecord == nullptr)
          {
             std::string key = providerManager->provider_->FindKey(time);
-            nexradFile      = providerManager->provider_->LoadObjectByKey(key);
+
+            if (!key.empty())
+            {
+               nexradFile = providerManager->provider_->LoadObjectByKey(key);
+            }
+            else
+            {
+               logger_->warn("Attempting to load object without key: {}",
+                             scwx::util::TimeString(time));
+            }
          }
          else
          {
@@ -1042,7 +1051,7 @@ RadarProductManagerImpl::GetLevel2ProductRecord(
       record     = recordPtr->second.lock();
    }
 
-   if (record == nullptr &&
+   if (recordPtr != nullptr && record == nullptr &&
        recordTime != std::chrono::system_clock::time_point {})
    {
       // Product is expired, reload it
@@ -1107,7 +1116,7 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
       }
    }
 
-   if (record == nullptr &&
+   if (recordPtr != nullptr && record == nullptr &&
        recordTime != std::chrono::system_clock::time_point {})
    {
       // Product is expired, reload it
