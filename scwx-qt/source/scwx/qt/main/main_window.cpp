@@ -711,7 +711,10 @@ void MainWindowImpl::ConnectAnimationSignals()
            &manager::TimelineManager::AnimationStateUpdated,
            animationDockWidget_,
            &ui::AnimationDockWidget::UpdateAnimationState);
-
+   connect(timelineManager_.get(),
+           &manager::TimelineManager::ViewTypeUpdated,
+           animationDockWidget_,
+           &ui::AnimationDockWidget::UpdateViewType);
    connect(timelineManager_.get(),
            &manager::TimelineManager::LiveStateUpdated,
            animationDockWidget_,

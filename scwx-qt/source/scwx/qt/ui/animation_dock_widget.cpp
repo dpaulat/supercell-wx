@@ -20,20 +20,34 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class AnimationDockWidgetImpl
 {
 public:
-   explicit AnimationDockWidgetImpl(AnimationDockWidget* self) : self_ {self} {}
+   explicit AnimationDockWidgetImpl(AnimationDockWidget* self) : self_ {self}
+   {
+      static const QString prefix   = QObject::tr("Auto Update");
+      static const QString disabled = QObject::tr("Disabled");
+      static const QString enabled  = QObject::tr("Enabled");
+
+      enabledString_  = QString("%1: %2").arg(prefix).arg(enabled);
+      disabledString_ = QString("%1: %2").arg(prefix).arg(disabled);
+   }
    ~AnimationDockWidgetImpl() = default;
 
    const QIcon kPauseIcon_ {":/res/icons/font-awesome-6/pause-solid.svg"};
    const QIcon kPlayIcon_ {":/res/icons/font-awesome-6/play-solid.svg"};
 
+   QString enabledString_;
+   QString disabledString_;
+
    AnimationDockWidget* self_;
 
    types::AnimationState animationState_ {types::AnimationState::Pause};
+   types::MapTime        viewType_ {types::MapTime::Live};
+   bool                  isLive_ {true};
 
    std::chrono::sys_days selectedDate_ {};
    std::chrono::seconds  selectedTime_ {};
 
    void ConnectSignals();
+   void UpdateAutoUpdateLabel();
 };
 
 AnimationDockWidget::AnimationDockWidget(QWidget* parent) :
@@ -211,32 +225,56 @@ void AnimationDockWidgetImpl::ConnectSignals()
 
 void AnimationDockWidget::UpdateAnimationState(types::AnimationState state)
 {
-   // Update icon to opposite of state
-   switch (state)
+   if (p->animationState_ != state)
    {
-   case types::AnimationState::Pause:
-      ui->playButton->setIcon(p->kPlayIcon_);
-      break;
+      // Update icon to opposite of state
+      switch (state)
+      {
+      case types::AnimationState::Pause:
+         ui->playButton->setIcon(p->kPlayIcon_);
+         break;
 
-   case types::AnimationState::Play:
-      ui->playButton->setIcon(p->kPauseIcon_);
-      break;
+      case types::AnimationState::Play:
+         ui->playButton->setIcon(p->kPauseIcon_);
+         break;
+      }
+
+      p->animationState_ = state;
+      p->UpdateAutoUpdateLabel();
    }
 }
 
 void AnimationDockWidget::UpdateLiveState(bool isLive)
 {
-   static const QString prefix   = tr("Auto Update");
-   static const QString disabled = tr("Disabled");
-   static const QString enabled  = tr("Enabled");
-
-   if (isLive)
+   if (p->isLive_ != isLive)
    {
-      ui->autoUpdateLabel->setText(QString("%1: %2").arg(prefix).arg(enabled));
+      p->isLive_ = isLive;
+      p->UpdateAutoUpdateLabel();
+   }
+}
+
+void AnimationDockWidget::UpdateViewType(types::MapTime viewType)
+{
+   if (p->viewType_ != viewType)
+   {
+      p->viewType_ = viewType;
+      p->UpdateAutoUpdateLabel();
+   }
+}
+
+void AnimationDockWidgetImpl::UpdateAutoUpdateLabel()
+{
+   // Display "Auto Update: Enabled" if:
+   // - The map is live, and auto-updating (map widget update)
+   // - "Live" is selected, and the map is playing (timeline manager update)
+   if (isLive_ || (viewType_ == types::MapTime::Live &&
+                   animationState_ == types::AnimationState::Play))
+   {
+      self_->ui->autoUpdateLabel->setText(enabledString_);
    }
    else
    {
-      ui->autoUpdateLabel->setText(QString("%1: %2").arg(prefix).arg(disabled));
+      self_->ui->autoUpdateLabel->setText(disabledString_);
    }
 }
 

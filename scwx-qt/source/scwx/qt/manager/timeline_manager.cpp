@@ -166,6 +166,8 @@ void TimelineManager::SetViewType(types::MapTime viewType)
       // If the selected view type is archive, select using the pinned time
       p->SelectTimeAsync(p->pinnedTime_);
    }
+
+   Q_EMIT ViewTypeUpdated(viewType);
 }
 
 void TimelineManager::SetLoopTime(std::chrono::minutes loopTime)
