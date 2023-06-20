@@ -486,7 +486,8 @@ void MapWidget::SelectRadarSite(std::shared_ptr<config::RadarSite> radarSite,
          radarProductView->set_radar_product_manager(p->radarProductManager_);
          SelectRadarProduct(radarProductView->GetRadarProductGroup(),
                             radarProductView->GetRadarProductName(),
-                            0);
+                            0,
+                            radarProductView->selected_time());
       }
 
       AddLayers();
@@ -1052,9 +1053,6 @@ void MapWidgetImpl::SetRadarSite(const std::string& radarSite)
 
       // Set new RadarProductManager
       radarProductManager_ = manager::RadarProductManager::Instance(radarSite);
-
-      // Re-enable auto-update
-      autoUpdateEnabled_ = true;
 
       // Connect signals to new RadarProductManager
       RadarProductManagerConnect();
