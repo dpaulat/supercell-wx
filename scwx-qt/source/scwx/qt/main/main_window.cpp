@@ -793,6 +793,8 @@ void MainWindowImpl::ConnectOtherSignals()
          {
             map->SetMapLocation(latitude, longitude, true);
          }
+
+         UpdateRadarSite();
       },
       Qt::QueuedConnection);
    connect(mainWindow_,
@@ -810,6 +812,8 @@ void MainWindowImpl::ConnectOtherSignals()
               {
                  map->SelectRadarSite(selectedRadarSite);
               }
+
+              UpdateRadarSite();
            });
    connect(updateManager_.get(),
            &manager::UpdateManager::UpdateAvailable,

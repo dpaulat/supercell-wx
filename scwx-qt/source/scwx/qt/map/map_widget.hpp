@@ -54,12 +54,14 @@ public:
     * @param [in] group Radar product group
     * @param [in] product Radar product name
     * @param [in] productCode Radar product code (optional)
-    * @paran [in] time Product time. Default is the latest available.
+    * @param [in] time Product time. Default is the latest available.
+    * @param [in] update Whether to update the radar product view on selection
     */
    void SelectRadarProduct(common::RadarProductGroup group,
                            const std::string&        product,
-                           std::int16_t              productCode      = 0,
-                           std::chrono::system_clock::time_point time = {});
+                           std::int16_t              productCode        = 0,
+                           std::chrono::system_clock::time_point time   = {},
+                           bool                                  update = true);
 
    void SelectRadarProduct(std::shared_ptr<types::RadarProductRecord> record);
 
