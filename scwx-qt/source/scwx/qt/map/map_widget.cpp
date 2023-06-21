@@ -359,7 +359,8 @@ void MapWidget::SelectElevation(float elevation)
 void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
                                    const std::string&        product,
                                    std::int16_t              productCode,
-                                   std::chrono::system_clock::time_point time)
+                                   std::chrono::system_clock::time_point time,
+                                   bool                                  update)
 {
    bool radarProductViewCreated = false;
 
@@ -420,7 +421,7 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
                common::GetLevel3Palette(productCode);
          p->InitializeNewRadarProductView(palette);
       }
-      else
+      else if (update)
       {
          radarProductView->Update();
       }
@@ -486,7 +487,9 @@ void MapWidget::SelectRadarSite(std::shared_ptr<config::RadarSite> radarSite,
          radarProductView->set_radar_product_manager(p->radarProductManager_);
          SelectRadarProduct(radarProductView->GetRadarProductGroup(),
                             radarProductView->GetRadarProductName(),
-                            0);
+                            0,
+                            radarProductView->selected_time(),
+                            false);
       }
 
       AddLayers();
@@ -1052,9 +1055,6 @@ void MapWidgetImpl::SetRadarSite(const std::string& radarSite)
 
       // Set new RadarProductManager
       radarProductManager_ = manager::RadarProductManager::Instance(radarSite);
-
-      // Re-enable auto-update
-      autoUpdateEnabled_ = true;
 
       // Connect signals to new RadarProductManager
       RadarProductManagerConnect();

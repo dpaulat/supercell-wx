@@ -31,6 +31,7 @@ public:
 public slots:
    void UpdateAnimationState(types::AnimationState state);
    void UpdateLiveState(bool isLive);
+   void UpdateViewType(types::MapTime viewType);
 
 signals:
    void ViewTypeChanged(types::MapTime viewType);

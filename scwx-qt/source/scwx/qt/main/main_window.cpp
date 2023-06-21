@@ -211,6 +211,7 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->resourceExplorerDock->toggleViewAction()->setText(
       tr("&Resource Explorer"));
    ui->actionResourceExplorer->setVisible(false);
+   ui->resourceExplorerDock->toggleViewAction()->setVisible(false);
 
    ui->menuView->insertAction(ui->actionAlerts,
                               p->alertDockWidget_->toggleViewAction());
@@ -711,7 +712,10 @@ void MainWindowImpl::ConnectAnimationSignals()
            &manager::TimelineManager::AnimationStateUpdated,
            animationDockWidget_,
            &ui::AnimationDockWidget::UpdateAnimationState);
-
+   connect(timelineManager_.get(),
+           &manager::TimelineManager::ViewTypeUpdated,
+           animationDockWidget_,
+           &ui::AnimationDockWidget::UpdateViewType);
    connect(timelineManager_.get(),
            &manager::TimelineManager::LiveStateUpdated,
            animationDockWidget_,
@@ -790,6 +794,8 @@ void MainWindowImpl::ConnectOtherSignals()
          {
             map->SetMapLocation(latitude, longitude, true);
          }
+
+         UpdateRadarSite();
       },
       Qt::QueuedConnection);
    connect(mainWindow_,
@@ -807,6 +813,8 @@ void MainWindowImpl::ConnectOtherSignals()
               {
                  map->SelectRadarSite(selectedRadarSite);
               }
+
+              UpdateRadarSite();
            });
    connect(updateManager_.get(),
            &manager::UpdateManager::UpdateAvailable,
