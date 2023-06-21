@@ -1,3 +1,5 @@
+#define NOMINMAX
+
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
@@ -392,9 +394,10 @@ void TimelineManager::Impl::UpdateCacheLimit(
    auto endIter   = util::GetBoundedElementIterator(volumeTimes, endTime);
    std::size_t numVolumeScans = std::distance(startIter, endIter) + 1;
 
-   // Dynamically update maximum cached volume scans to 1.5x the loop length
-   radarProductManager->SetCacheLimit(
-      static_cast<std::size_t>(numVolumeScans * 1.5));
+   // Dynamically update maximum cached volume scans to the lesser of
+   // either 1.5x the loop length or 5 greater than the loop length
+   radarProductManager->SetCacheLimit(std::min(
+      static_cast<std::size_t>(numVolumeScans * 1.5), numVolumeScans + 5u));
 }
 
 void TimelineManager::Impl::Play()
