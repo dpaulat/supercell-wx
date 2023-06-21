@@ -211,6 +211,7 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->resourceExplorerDock->toggleViewAction()->setText(
       tr("&Resource Explorer"));
    ui->actionResourceExplorer->setVisible(false);
+   ui->resourceExplorerDock->toggleViewAction()->setVisible(false);
 
    ui->menuView->insertAction(ui->actionAlerts,
                               p->alertDockWidget_->toggleViewAction());
