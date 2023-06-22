@@ -3,12 +3,13 @@
 #include <scwx/awips/text_product_file.hpp>
 #include <scwx/provider/warnings_provider.hpp>
 #include <scwx/util/logger.hpp>
-#include <scwx/util/threads.hpp>
 
 #include <shared_mutex>
 #include <unordered_map>
 
+#include <boost/asio/post.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/thread_pool.hpp>
 
 namespace scwx
 {
@@ -28,19 +29,19 @@ class TextEventManager::Impl
 public:
    explicit Impl(TextEventManager* self) :
        self_ {self},
-       refreshTimer_ {util::io_context()},
+       refreshTimer_ {threadPool_},
        refreshMutex_ {},
        textEventMap_ {},
        textEventMutex_ {},
        warningsProvider_ {kDefaultWarningsProviderUrl}
    {
-      util::async(
-         [this]()
-         {
-            main::Application::WaitForInitialization();
-            logger_->debug("Start Refresh");
-            Refresh();
-         });
+      boost::asio::post(threadPool_,
+                        [this]()
+                        {
+                           main::Application::WaitForInitialization();
+                           logger_->debug("Start Refresh");
+                           Refresh();
+                        });
    }
 
    ~Impl()
@@ -51,6 +52,8 @@ public:
 
    void HandleMessage(std::shared_ptr<awips::TextProductMessage> message);
    void Refresh();
+
+   boost::asio::thread_pool threadPool_ {1u};
 
    TextEventManager* self_;
 
@@ -104,25 +107,25 @@ void TextEventManager::LoadFile(const std::string& filename)
 {
    logger_->debug("LoadFile: {}", filename);
 
-   util::async(
-      [=, this]()
-      {
-         awips::TextProductFile file;
+   boost::asio::post(p->threadPool_,
+                     [=, this]()
+                     {
+                        awips::TextProductFile file;
 
-         // Load file
-         bool fileLoaded = file.LoadFile(filename);
-         if (!fileLoaded)
-         {
-            return;
-         }
+                        // Load file
+                        bool fileLoaded = file.LoadFile(filename);
+                        if (!fileLoaded)
+                        {
+                           return;
+                        }
 
-         // Process messages
-         auto messages = file.messages();
-         for (auto& message : messages)
-         {
-            p->HandleMessage(message);
-         }
-      });
+                        // Process messages
+                        auto messages = file.messages();
+                        for (auto& message : messages)
+                        {
+                           p->HandleMessage(message);
+                        }
+                     });
 }
 
 void TextEventManager::Impl::HandleMessage(

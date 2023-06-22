@@ -28,8 +28,9 @@
 #include <scwx/common/products.hpp>
 #include <scwx/common/vcp.hpp>
 #include <scwx/util/logger.hpp>
-#include <scwx/util/threads.hpp>
 
+#include <boost/asio/post.hpp>
+#include <boost/asio/thread_pool.hpp>
 #include <QDesktopServices>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -133,6 +134,8 @@ public:
    void UpdateRadarProductSettings();
    void UpdateRadarSite();
    void UpdateVcp();
+
+   boost::asio::thread_pool threadPool_ {1u};
 
    MainWindow*           mainWindow_;
    QMapLibreGL::Settings settings_;
@@ -429,7 +432,8 @@ void MainWindow::on_actionGitHubRepository_triggered()
 
 void MainWindow::on_actionCheckForUpdates_triggered()
 {
-   scwx::util::async(
+   boost::asio::post(
+      p->threadPool_,
       [this]()
       {
          if (!p->updateManager_->CheckForUpdates(main::kVersionString_))
@@ -544,7 +548,8 @@ void MainWindowImpl::AsyncSetup()
    // Check for updates
    if (generalSettings.update_notifications_enabled().GetValue())
    {
-      scwx::util::async(
+      boost::asio::post(
+         threadPool_,
          [this]() { updateManager_->CheckForUpdates(main::kVersionString_); });
    }
 }

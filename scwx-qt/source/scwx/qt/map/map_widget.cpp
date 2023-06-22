@@ -13,13 +13,14 @@
 #include <scwx/qt/util/file.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
 #include <scwx/util/logger.hpp>
-#include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 
 #include <regex>
 
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_qt.hpp>
+#include <boost/asio/post.hpp>
+#include <boost/asio/thread_pool.hpp>
 #include <boost/uuid/random_generator.hpp>
 #include <fmt/format.h>
 #include <imgui.h>
@@ -122,6 +123,8 @@ public:
 
    common::Level2Product
    GetLevel2ProductOrDefault(const std::string& productName) const;
+
+   boost::asio::thread_pool threadPool_ {1u};
 
    boost::uuids::uuid uuid_;
 
@@ -939,7 +942,8 @@ void MapWidgetImpl::RadarProductManagerConnect()
                }
 
                // Load file
-               scwx::util::async(
+               boost::asio::post(
+                  threadPool_,
                   [=, this]()
                   {
                      if (group == common::RadarProductGroup::Level2)
@@ -973,26 +977,26 @@ void MapWidgetImpl::RadarProductManagerDisconnect()
 void MapWidgetImpl::InitializeNewRadarProductView(
    const std::string& colorPalette)
 {
-   scwx::util::async(
-      [=, this]()
-      {
-         auto radarProductView = context_->radar_product_view();
+   boost::asio::post(threadPool_,
+                     [=, this]()
+                     {
+                        auto radarProductView = context_->radar_product_view();
 
-         std::string colorTableFile =
-            manager::SettingsManager::palette_settings()
-               .palette(colorPalette)
-               .GetValue();
-         if (!colorTableFile.empty())
-         {
-            std::unique_ptr<std::istream> colorTableStream =
-               util::OpenFile(colorTableFile);
-            std::shared_ptr<common::ColorTable> colorTable =
-               common::ColorTable::Load(*colorTableStream);
-            radarProductView->LoadColorTable(colorTable);
-         }
+                        std::string colorTableFile =
+                           manager::SettingsManager::palette_settings()
+                              .palette(colorPalette)
+                              .GetValue();
+                        if (!colorTableFile.empty())
+                        {
+                           std::unique_ptr<std::istream> colorTableStream =
+                              util::OpenFile(colorTableFile);
+                           std::shared_ptr<common::ColorTable> colorTable =
+                              common::ColorTable::Load(*colorTableStream);
+                           radarProductView->LoadColorTable(colorTable);
+                        }
 
-         radarProductView->Initialize();
-      });
+                        radarProductView->Initialize();
+                     });
 
    if (map_ != nullptr)
    {
