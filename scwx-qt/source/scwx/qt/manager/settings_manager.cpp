@@ -95,6 +95,7 @@ void Shutdown()
    bool dataChanged = false;
 
    dataChanged |= general_settings().Shutdown();
+   dataChanged |= map_settings().Shutdown();
 
    if (dataChanged)
    {

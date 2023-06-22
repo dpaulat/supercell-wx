@@ -111,6 +111,7 @@ public:
                          double zoom,
                          double bearing,
                          double pitch);
+   void SetInitialMapStyle(const std::string& styleName);
    void SetMapStyle(const std::string& styleName);
 
 private:

@@ -154,6 +154,7 @@ public:
    QPointF         lastPos_;
    std::size_t     currentStyleIndex_;
    const MapStyle* currentStyle_;
+   std::string     initialStyleName_ {};
 
    uint64_t frameDraws_;
 
@@ -585,6 +586,11 @@ void MapWidget::SetMapParameters(
    }
 }
 
+void MapWidget::SetInitialMapStyle(const std::string& styleName)
+{
+   p->initialStyleName_ = styleName;
+}
+
 void MapWidget::SetMapStyle(const std::string& styleName)
 {
    const auto& mapProviderInfo = GetMapProviderInfo(p->mapProvider_);
@@ -830,7 +836,14 @@ void MapWidget::initializeGL()
                                p->prevPitch_);
 
    // Update style
-   changeStyle();
+   if (p->initialStyleName_.empty())
+   {
+      changeStyle();
+   }
+   else
+   {
+      SetMapStyle(p->initialStyleName_);
+   }
 
    connect(p->map_.get(),
            &QMapLibreGL::Map::mapChanged,
