@@ -929,12 +929,18 @@ void MapWidgetImpl::RadarProductManagerConnect()
                      request.get(),
                      &request::NexradFileRequest::RequestComplete,
                      this,
-                     [this](std::shared_ptr<request::NexradFileRequest> request)
+                     [=,
+                      this](std::shared_ptr<request::NexradFileRequest> request)
                      {
                         // Select loaded record
                         auto record = request->radar_product_record();
 
-                        if (record != nullptr)
+                        // Validate record, and verify current map context still
+                        // displays product
+                        if (record != nullptr &&
+                            context_->radar_product_group() == group &&
+                            (group == common::RadarProductGroup::Level2 ||
+                             context_->radar_product() == product))
                         {
                            widget_->SelectRadarProduct(record);
                         }
