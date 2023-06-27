@@ -17,18 +17,6 @@
    <property name="spacing">
     <number>0</number>
    </property>
-   <property name="leftMargin">
-    <number>0</number>
-   </property>
-   <property name="topMargin">
-    <number>0</number>
-   </property>
-   <property name="rightMargin">
-    <number>0</number>
-   </property>
-   <property name="bottomMargin">
-    <number>0</number>
-   </property>
    <item>
     <widget class="QFrame" name="titleFrame">
      <property name="frameShape">
@@ -51,49 +39,22 @@
        <number>1</number>
       </property>
       <item>
-       <widget class="QLabel" name="arrowLabel">
-        <property name="minimumSize">
-         <size>
-          <width>16</width>
-          <height>0</height>
-         </size>
+       <widget class="QPushButton" name="titleButton">
+        <property name="styleSheet">
+         <string notr="true">background: transparent; border: none; color: palette(window-text); text-align: left;</string>
         </property>
-        <property name="maximumSize">
-         <size>
-          <width>8</width>
-          <height>16</height>
-         </size>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="pixmap">
-         <pixmap resource="../../../../scwx-qt.qrc">:/res/icons/font-awesome-6/angle-down-solid.svg</pixmap>
-        </property>
-        <property name="scaledContents">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="titleLabel">
         <property name="text">
          <string>Title</string>
         </property>
+        <property name="icon">
+         <iconset resource="../../../../scwx-qt.qrc">
+          <normaloff>:/res/icons/font-awesome-6/angle-right-solid.svg</normaloff>
+          <normalon>:/res/icons/font-awesome-6/angle-down-solid.svg</normalon>:/res/icons/font-awesome-6/angle-right-solid.svg</iconset>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
        </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
       </item>
      </layout>
     </widget>

@@ -39,7 +39,7 @@ CollapsibleGroup::CollapsibleGroup(const QString& title, QWidget* parent) :
     ui(new Ui::CollapsibleGroup)
 {
    ui->setupUi(this);
-   ui->titleLabel->setText(title);
+   ui->titleButton->setText(title);
    p->Initialize();
 }
 
@@ -51,6 +51,21 @@ CollapsibleGroup::~CollapsibleGroup()
 void CollapsibleGroupImpl::Initialize()
 {
    self_->Expand();
+
+   QObject::connect(self_->ui->titleButton,
+                    &QAbstractButton::toggled,
+                    self_,
+                    [this](bool checked)
+                    {
+                       if (checked)
+                       {
+                          self_->Expand();
+                       }
+                       else
+                       {
+                          self_->Collapse();
+                       }
+                    });
 }
 
 void CollapsibleGroup::SetContentsLayout(QLayout* layout)
@@ -60,14 +75,16 @@ void CollapsibleGroup::SetContentsLayout(QLayout* layout)
 
 void CollapsibleGroup::SetTitle(const QString& title)
 {
-   ui->titleLabel->setText(title);
+   ui->titleButton->setText(title);
 }
 
 void CollapsibleGroup::Collapse()
 {
    // Update the title frame
-   ui->arrowLabel->setMaximumSize(8, 16);
-   ui->arrowLabel->setPixmap(p->kCollapsedIcon_.pixmap(8, 16));
+   if (ui->titleButton->isChecked())
+   {
+      ui->titleButton->setChecked(false);
+   }
 
    // Hide the group contents
    ui->contentsFrame->setVisible(false);
@@ -76,8 +93,10 @@ void CollapsibleGroup::Collapse()
 void CollapsibleGroup::Expand()
 {
    // Update the title frame
-   ui->arrowLabel->setMaximumSize(16, 16);
-   ui->arrowLabel->setPixmap(p->kExpandedIcon_.pixmap(16, 16));
+   if (!ui->titleButton->isChecked())
+   {
+      ui->titleButton->setChecked(true);
+   }
 
    // Show the group contents
    ui->contentsFrame->setVisible(true);
