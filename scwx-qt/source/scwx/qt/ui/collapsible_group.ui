@@ -17,6 +17,18 @@
    <property name="spacing">
     <number>0</number>
    </property>
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
    <item>
     <widget class="QFrame" name="titleFrame">
      <property name="frameShape">
@@ -48,8 +60,8 @@
         </property>
         <property name="icon">
          <iconset resource="../../../../scwx-qt.qrc">
-          <normaloff>:/res/icons/font-awesome-6/angle-right-solid.svg</normaloff>
-          <normalon>:/res/icons/font-awesome-6/angle-down-solid.svg</normalon>:/res/icons/font-awesome-6/angle-right-solid.svg</iconset>
+          <normaloff>:/res/icons/font-awesome-6/square-caret-right-regular.svg</normaloff>
+          <normalon>:/res/icons/font-awesome-6/square-caret-down-regular.svg</normalon>:/res/icons/font-awesome-6/square-caret-right-regular.svg</iconset>
         </property>
         <property name="checkable">
          <bool>true</bool>

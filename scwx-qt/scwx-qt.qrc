@@ -15,7 +15,6 @@
         <file>res/fonts/din1451alt_g.ttf</file>
         <file>res/icons/scwx-256.ico</file>
         <file>res/icons/scwx-256.png</file>
-        <file>res/icons/font-awesome-6/angle-down-solid.svg</file>
         <file>res/icons/font-awesome-6/angle-left-solid.svg</file>
         <file>res/icons/font-awesome-6/angle-right-solid.svg</file>
         <file>res/icons/font-awesome-6/backward-step-solid.svg</file>
@@ -29,6 +28,8 @@
         <file>res/icons/font-awesome-6/play-solid.svg</file>
         <file>res/icons/font-awesome-6/rotate-left-solid.svg</file>
         <file>res/icons/font-awesome-6/sliders-solid.svg</file>
+        <file>res/icons/font-awesome-6/square-caret-down-regular.svg</file>
+        <file>res/icons/font-awesome-6/square-caret-right-regular.svg</file>
         <file>res/icons/font-awesome-6/square-minus-regular.svg</file>
         <file>res/icons/font-awesome-6/square-plus-regular.svg</file>
         <file>res/palettes/wct/CC.pal</file>

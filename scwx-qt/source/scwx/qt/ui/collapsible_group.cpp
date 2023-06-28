@@ -15,11 +15,7 @@ public:
    ~CollapsibleGroupImpl() = default;
 
    void Initialize();
-
-   const QIcon kCollapsedIcon_ {
-      ":/res/icons/font-awesome-6/angle-right-solid.svg"};
-   const QIcon kExpandedIcon_ {
-      ":/res/icons/font-awesome-6/angle-down-solid.svg"};
+   void SetExpanded(bool expanded);
 
    CollapsibleGroup* self_;
 };
@@ -52,20 +48,12 @@ void CollapsibleGroupImpl::Initialize()
 {
    self_->Expand();
 
-   QObject::connect(self_->ui->titleButton,
-                    &QAbstractButton::toggled,
-                    self_,
-                    [this](bool checked)
-                    {
-                       if (checked)
-                       {
-                          self_->Expand();
-                       }
-                       else
-                       {
-                          self_->Collapse();
-                       }
-                    });
+   QObject::connect(
+      self_->ui->titleButton,
+      &QAbstractButton::toggled,
+      self_,
+      [this](bool checked) { SetExpanded(checked); },
+      Qt::DirectConnection);
 }
 
 void CollapsibleGroup::SetContentsLayout(QLayout* layout)
@@ -85,9 +73,6 @@ void CollapsibleGroup::Collapse()
    {
       ui->titleButton->setChecked(false);
    }
-
-   // Hide the group contents
-   ui->contentsFrame->setVisible(false);
 }
 
 void CollapsibleGroup::Expand()
@@ -97,9 +82,12 @@ void CollapsibleGroup::Expand()
    {
       ui->titleButton->setChecked(true);
    }
+}
 
-   // Show the group contents
-   ui->contentsFrame->setVisible(true);
+void CollapsibleGroupImpl::SetExpanded(bool expanded)
+{
+   // Update contents visibility
+   self_->ui->contentsFrame->setVisible(expanded);
 }
 
 } // namespace ui
