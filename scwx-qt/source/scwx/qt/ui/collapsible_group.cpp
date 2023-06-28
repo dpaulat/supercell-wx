@@ -56,6 +56,11 @@ void CollapsibleGroupImpl::Initialize()
    self_->Expand();
 }
 
+QLayout* CollapsibleGroup::GetContentsLayout()
+{
+   return ui->contentsFrame->layout();
+}
+
 void CollapsibleGroup::SetContentsLayout(QLayout* layout)
 {
    ui->contentsFrame->setLayout(layout);

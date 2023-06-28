@@ -79,6 +79,7 @@
      <property name="frameShadow">
       <enum>QFrame::Sunken</enum>
      </property>
+     <layout class="QVBoxLayout" name="contentsLayout"/>
     </widget>
    </item>
   </layout>

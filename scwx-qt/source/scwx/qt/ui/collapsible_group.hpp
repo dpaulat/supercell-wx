@@ -25,8 +25,9 @@ public:
    explicit CollapsibleGroup(const QString& title, QWidget* parent = nullptr);
    ~CollapsibleGroup();
 
-   void SetContentsLayout(QLayout* contents);
-   void SetTitle(const QString& title);
+   QLayout* GetContentsLayout();
+   void     SetContentsLayout(QLayout* contents);
+   void     SetTitle(const QString& title);
 
 public slots:
    void Collapse();
