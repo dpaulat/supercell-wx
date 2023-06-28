@@ -46,14 +46,14 @@ CollapsibleGroup::~CollapsibleGroup()
 
 void CollapsibleGroupImpl::Initialize()
 {
-   self_->Expand();
-
    QObject::connect(
       self_->ui->titleButton,
       &QAbstractButton::toggled,
       self_,
       [this](bool checked) { SetExpanded(checked); },
       Qt::DirectConnection);
+
+   self_->Expand();
 }
 
 void CollapsibleGroup::SetContentsLayout(QLayout* layout)
