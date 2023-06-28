@@ -13,10 +13,11 @@
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/model/radar_product_model.hpp>
-#include <scwx/qt/ui/alert_dock_widget.hpp>
-#include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/qt/ui/about_dialog.hpp>
+#include <scwx/qt/ui/alert_dock_widget.hpp>
 #include <scwx/qt/ui/animation_dock_widget.hpp>
+#include <scwx/qt/ui/collapsible_group.hpp>
+#include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/qt/ui/imgui_debug_dialog.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
@@ -61,6 +62,10 @@ public:
        mainWindow_ {mainWindow},
        settings_ {},
        activeMap_ {nullptr},
+       mapSettingsGroup_ {nullptr},
+       level2ProductsGroup_ {nullptr},
+       level2SettingsGroup_ {nullptr},
+       level3ProductsGroup_ {nullptr},
        level2ProductsWidget_ {nullptr},
        level2SettingsWidget_ {nullptr},
        level3ProductsWidget_ {nullptr},
@@ -142,6 +147,10 @@ public:
    map::MapProvider      mapProvider_;
    map::MapWidget*       activeMap_;
 
+   ui::CollapsibleGroup*     mapSettingsGroup_;
+   ui::CollapsibleGroup*     level2ProductsGroup_;
+   ui::CollapsibleGroup*     level2SettingsGroup_;
+   ui::CollapsibleGroup*     level3ProductsGroup_;
    ui::Level2ProductsWidget* level2ProductsWidget_;
    ui::Level2SettingsWidget* level2SettingsWidget_;
 
@@ -240,24 +249,49 @@ MainWindow::MainWindow(QWidget* parent) :
    // Settings Dialog
    p->settingsDialog_ = new ui::SettingsDialog(this);
 
+   // Map Settings
+   p->mapSettingsGroup_ = new ui::CollapsibleGroup(tr("Map Settings"), this);
+   p->mapSettingsGroup_->GetContentsLayout()->addWidget(ui->mapStyleLabel);
+   p->mapSettingsGroup_->GetContentsLayout()->addWidget(ui->mapStyleComboBox);
+   ui->radarToolboxScrollAreaContents->layout()->replaceWidget(
+      ui->mapSettingsGroupBox, p->mapSettingsGroup_);
+   ui->mapSettingsGroupBox->setVisible(false);
+
    // Add Level 2 Products
+   p->level2ProductsGroup_ =
+      new ui::CollapsibleGroup(tr("Level 2 Products"), this);
    p->level2ProductsWidget_ = new ui::Level2ProductsWidget(this);
-   ui->radarProductGroupBox->layout()->replaceWidget(ui->level2ProductFrame,
-                                                     p->level2ProductsWidget_);
-   delete ui->level2ProductFrame;
-   ui->level2ProductFrame = p->level2ProductsWidget_;
+   p->level2ProductsGroup_->GetContentsLayout()->addWidget(
+      p->level2ProductsWidget_);
+   ui->radarToolboxScrollAreaContents->layout()->addWidget(
+      p->level2ProductsGroup_);
 
    // Add Level 3 Products
+   p->level3ProductsGroup_ =
+      new ui::CollapsibleGroup(tr("Level 3 Products"), this);
    p->level3ProductsWidget_ = new ui::Level3ProductsWidget(this);
-   ui->radarProductGroupBox->layout()->replaceWidget(ui->level3ProductFrame,
-                                                     p->level3ProductsWidget_);
-   delete ui->level3ProductFrame;
-   ui->level3ProductFrame = p->level3ProductsWidget_;
+   p->level3ProductsGroup_->GetContentsLayout()->addWidget(
+      p->level3ProductsWidget_);
+   ui->radarToolboxScrollAreaContents->layout()->addWidget(
+      p->level3ProductsGroup_);
 
    // Add Level 2 Settings
-   p->level2SettingsWidget_ = new ui::Level2SettingsWidget(ui->settingsFrame);
-   ui->settingsFrame->layout()->addWidget(p->level2SettingsWidget_);
-   p->level2SettingsWidget_->setVisible(false);
+   p->level2SettingsGroup_ =
+      new ui::CollapsibleGroup(tr("Level 2 Settings"), this);
+   p->level2SettingsWidget_ = new ui::Level2SettingsWidget(this);
+   p->level2SettingsGroup_->GetContentsLayout()->addWidget(
+      p->level2SettingsWidget_);
+   ui->radarToolboxScrollAreaContents->layout()->addWidget(
+      p->level2SettingsGroup_);
+   p->level2SettingsGroup_->setVisible(false);
+   ui->radarToolboxScrollAreaContents->layout()->addWidget(
+      p->level2SettingsGroup_);
+
+   // Reset toolbox spacer at the bottom
+   ui->radarToolboxScrollAreaContents->layout()->removeItem(
+      ui->radarToolboxSpacer);
+   ui->radarToolboxScrollAreaContents->layout()->addItem(
+      ui->radarToolboxSpacer);
 
    // ImGui Debug Dialog
    p->imGuiDebugDialog_ = new ui::ImGuiDebugDialog(this);
@@ -1011,11 +1045,11 @@ void MainWindowImpl::UpdateRadarProductSettings()
    if (activeMap_->GetRadarProductGroup() == common::RadarProductGroup::Level2)
    {
       level2SettingsWidget_->UpdateSettings(activeMap_);
-      level2SettingsWidget_->setVisible(true);
+      level2SettingsGroup_->setVisible(true);
    }
    else
    {
-      level2SettingsWidget_->setVisible(false);
+      level2SettingsGroup_->setVisible(false);
    }
 }
 
