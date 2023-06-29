@@ -4,7 +4,7 @@
 
 #include <chrono>
 
-#include <QDockWidget>
+#include <QFrame>
 
 namespace Ui
 {
@@ -20,7 +20,7 @@ namespace ui
 
 class AnimationDockWidgetImpl;
 
-class AnimationDockWidget : public QDockWidget
+class AnimationDockWidget : public QFrame
 {
    Q_OBJECT
 

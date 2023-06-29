@@ -51,7 +51,7 @@ public:
 };
 
 AnimationDockWidget::AnimationDockWidget(QWidget* parent) :
-    QDockWidget(parent),
+    QFrame(parent),
     p {std::make_unique<AnimationDockWidgetImpl>(this)},
     ui(new Ui::AnimationDockWidget)
 {

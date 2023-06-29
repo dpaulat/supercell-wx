@@ -66,6 +66,7 @@ public:
        level2ProductsGroup_ {nullptr},
        level2SettingsGroup_ {nullptr},
        level3ProductsGroup_ {nullptr},
+       timelineGroup_ {nullptr},
        level2ProductsWidget_ {nullptr},
        level2SettingsWidget_ {nullptr},
        level3ProductsWidget_ {nullptr},
@@ -151,6 +152,7 @@ public:
    ui::CollapsibleGroup*     level2ProductsGroup_;
    ui::CollapsibleGroup*     level2SettingsGroup_;
    ui::CollapsibleGroup*     level3ProductsGroup_;
+   ui::CollapsibleGroup*     timelineGroup_;
    ui::Level2ProductsWidget* level2ProductsWidget_;
    ui::Level2SettingsWidget* level2SettingsWidget_;
 
@@ -202,21 +204,13 @@ MainWindow::MainWindow(QWidget* parent) :
    p->alertDockWidget_->setVisible(false);
    addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
 
-   // Animation Dock Widget
-   p->animationDockWidget_ = new ui::AnimationDockWidget(this);
-   p->animationDockWidget_->setVisible(true);
-   addDockWidget(Qt::LeftDockWidgetArea, p->animationDockWidget_);
-
    // Configure Menu
    ui->menuView->insertAction(ui->actionRadarToolbox,
                               ui->radarToolboxDock->toggleViewAction());
    ui->radarToolboxDock->toggleViewAction()->setText(tr("Radar &Toolbox"));
    ui->actionRadarToolbox->setVisible(false);
 
-   ui->menuView->insertAction(ui->actionAnimationToolbox,
-                              p->animationDockWidget_->toggleViewAction());
-   p->animationDockWidget_->toggleViewAction()->setText(
-      tr("A&nimation Toolbox"));
+   // Deprecated: Hide Animation Toolbox Selection
    ui->actionAnimationToolbox->setVisible(false);
 
    ui->menuView->insertAction(ui->actionResourceExplorer,
@@ -286,6 +280,12 @@ MainWindow::MainWindow(QWidget* parent) :
    p->level2SettingsGroup_->setVisible(false);
    ui->radarToolboxScrollAreaContents->layout()->addWidget(
       p->level2SettingsGroup_);
+
+   // Timeline
+   p->timelineGroup_       = new ui::CollapsibleGroup(tr("Timeline"), this);
+   p->animationDockWidget_ = new ui::AnimationDockWidget(this);
+   p->timelineGroup_->GetContentsLayout()->addWidget(p->animationDockWidget_);
+   ui->radarToolboxScrollAreaContents->layout()->addWidget(p->timelineGroup_);
 
    // Reset toolbox spacer at the bottom
    ui->radarToolboxScrollAreaContents->layout()->removeItem(
