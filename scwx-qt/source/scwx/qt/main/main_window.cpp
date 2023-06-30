@@ -212,9 +212,6 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->radarToolboxDock->toggleViewAction()->setText(tr("Radar &Toolbox"));
    ui->actionRadarToolbox->setVisible(false);
 
-   // Deprecated: Hide Animation Toolbox Selection
-   ui->actionAnimationToolbox->setVisible(false);
-
    ui->menuView->insertAction(ui->actionResourceExplorer,
                               ui->resourceExplorerDock->toggleViewAction());
    ui->resourceExplorerDock->toggleViewAction()->setText(
