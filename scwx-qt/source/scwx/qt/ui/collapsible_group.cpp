@@ -15,7 +15,6 @@ public:
    ~CollapsibleGroupImpl() = default;
 
    void Initialize();
-   void SetExpanded(bool expanded);
 
    const QIcon kCollapsedIcon_ {
       ":/res/icons/font-awesome-6/square-caret-right-regular.svg"};
@@ -60,10 +59,10 @@ void CollapsibleGroupImpl::Initialize()
       self_->ui->titleButton,
       &QAbstractButton::clicked,
       self_,
-      [this]() { SetExpanded(!expanded_); },
+      [this]() { self_->SetExpanded(!expanded_); },
       Qt::DirectConnection);
 
-   self_->Expand();
+   self_->SetExpanded(true);
 }
 
 QLayout* CollapsibleGroup::GetContentsLayout()
@@ -81,28 +80,21 @@ void CollapsibleGroup::SetTitle(const QString& title)
    ui->titleButton->setText(title);
 }
 
-void CollapsibleGroup::Collapse()
-{
-   // Update the title frame
-   p->SetExpanded(false);
-}
-
-void CollapsibleGroup::Expand()
-{
-   // Update the title frame
-   p->SetExpanded(true);
-}
-
-void CollapsibleGroupImpl::SetExpanded(bool expanded)
+void CollapsibleGroup::SetExpanded(bool expanded)
 {
    // Update icon
-   self_->ui->titleButton->setIcon(kIcon_.at(expanded));
+   ui->titleButton->setIcon(p->kIcon_.at(expanded));
 
    // Update contents visibility
-   self_->ui->contentsFrame->setVisible(expanded);
+   ui->contentsFrame->setVisible(expanded);
 
    // Update internal state
-   expanded_ = expanded;
+   if (p->expanded_ != expanded)
+   {
+      p->expanded_ = expanded;
+
+      Q_EMIT StateChanged(expanded);
+   }
 }
 
 } // namespace ui

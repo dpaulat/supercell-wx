@@ -30,8 +30,10 @@ public:
    void     SetTitle(const QString& title);
 
 public slots:
-   void Collapse();
-   void Expand();
+   void SetExpanded(bool expanded);
+
+signals:
+   void StateChanged(bool expanded);
 
 private:
    friend class CollapsibleGroupImpl;
