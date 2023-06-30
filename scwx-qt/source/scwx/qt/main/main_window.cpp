@@ -225,6 +225,8 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->menuDebug->menuAction()->setVisible(
       manager::SettingsManager::general_settings().debug_enabled().GetValue());
 
+   ui->menuHelp->insertAction(ui->actionShowLogs, nullptr);
+
    // Configure Resource Explorer Dock
    ui->resourceExplorerDock->setVisible(false);
 
