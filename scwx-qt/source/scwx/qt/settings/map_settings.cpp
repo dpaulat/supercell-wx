@@ -23,10 +23,12 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static constexpr std::size_t kCount_            = 4u;
 static const std::string     kDefaultRadarSite_ = "KLSX";
 
+static const std::string kMapStyleName_ {"map_style"};
 static const std::string kRadarSiteName_ {"radar_site"};
 static const std::string kRadarProductGroupName_ {"radar_product_group"};
 static const std::string kRadarProductName_ {"radar_product"};
 
+static const std::string                   kDefaultMapStyle_ {"?"};
 static constexpr common::RadarProductGroup kDefaultRadarProductGroup_ =
    common::RadarProductGroup::Level3;
 static const std::string kDefaultRadarProductGroupString_ = "L3";
@@ -38,6 +40,7 @@ class MapSettingsImpl
 public:
    struct MapData
    {
+      SettingsVariable<std::string> mapStyle_ {kMapStyleName_};
       SettingsVariable<std::string> radarSite_ {kRadarSiteName_};
       SettingsVariable<std::string> radarProductGroup_ {
          kRadarProductGroupName_};
@@ -48,6 +51,7 @@ public:
    {
       for (std::size_t i = 0; i < kCount_; i++)
       {
+         map_[i].mapStyle_.SetDefault(kDefaultMapStyle_);
          map_[i].radarSite_.SetDefault(kDefaultRadarSite_);
          map_[i].radarProductGroup_.SetDefault(
             kDefaultRadarProductGroupString_);
@@ -90,7 +94,8 @@ public:
             });
 
          variables_.insert(variables_.cend(),
-                           {&map_[i].radarSite_,
+                           {&map_[i].mapStyle_,
+                            &map_[i].radarSite_,
                             &map_[i].radarProductGroup_,
                             &map_[i].radarProduct_});
       }
@@ -100,6 +105,7 @@ public:
 
    void SetDefaults(std::size_t i)
    {
+      map_[i].mapStyle_.SetValueToDefault();
       map_[i].radarSite_.SetValueToDefault();
       map_[i].radarProductGroup_.SetValueToDefault();
       map_[i].radarProduct_.SetValueToDefault();
@@ -127,6 +133,11 @@ std::size_t MapSettings::count() const
    return kCount_;
 }
 
+SettingsVariable<std::string>& MapSettings::map_style(std::size_t i) const
+{
+   return p->map_[i].mapStyle_;
+}
+
 SettingsVariable<std::string>& MapSettings::radar_site(std::size_t i) const
 {
    return p->map_[i].radarSite_;
@@ -141,6 +152,21 @@ MapSettings::radar_product_group(std::size_t i) const
 SettingsVariable<std::string>& MapSettings::radar_product(std::size_t i) const
 {
    return p->map_[i].radarProduct_;
+}
+
+bool MapSettings::Shutdown()
+{
+   bool dataChanged = false;
+
+   // Commit settings that are managed separate from the settings dialog
+   for (std::size_t i = 0; i < kCount_; ++i)
+   {
+      MapSettingsImpl::MapData& mapRecordSettings = p->map_[i];
+
+      dataChanged |= mapRecordSettings.mapStyle_.Commit();
+   }
+
+   return dataChanged;
 }
 
 bool MapSettings::ReadJson(const boost::json::object& json)
@@ -161,6 +187,7 @@ bool MapSettings::ReadJson(const boost::json::object& json)
             MapSettingsImpl::MapData&  mapRecordSettings = p->map_[i];
 
             // Load JSON Elements
+            validated &= mapRecordSettings.mapStyle_.ReadValue(mapRecord);
             validated &= mapRecordSettings.radarSite_.ReadValue(mapRecord);
             validated &=
                mapRecordSettings.radarProductGroup_.ReadValue(mapRecord);
@@ -211,7 +238,8 @@ void tag_invoke(boost::json::value_from_tag,
                 boost::json::value&             jv,
                 const MapSettingsImpl::MapData& data)
 {
-   jv = {{kRadarSiteName_, data.radarSite_.GetValue()},
+   jv = {{kMapStyleName_, data.mapStyle_.GetValue()},
+         {kRadarSiteName_, data.radarSite_.GetValue()},
          {kRadarProductGroupName_, data.radarProductGroup_.GetValue()},
          {kRadarProductName_, data.radarProduct_.GetValue()}};
 }
@@ -224,7 +252,8 @@ bool operator==(const MapSettings& lhs, const MapSettings& rhs)
 bool operator==(const MapSettingsImpl::MapData& lhs,
                 const MapSettingsImpl::MapData& rhs)
 {
-   return (lhs.radarSite_ == rhs.radarSite_ &&
+   return (lhs.mapStyle_ == rhs.mapStyle_ && //
+           lhs.radarSite_ == rhs.radarSite_ &&
            lhs.radarProductGroup_ == rhs.radarProductGroup_ &&
            lhs.radarProduct_ == rhs.radarProduct_);
 }

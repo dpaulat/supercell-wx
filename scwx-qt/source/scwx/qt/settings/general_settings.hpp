@@ -33,6 +33,9 @@ public:
    SettingsContainer<std::vector<std::int64_t>>& font_sizes() const;
    SettingsVariable<std::int64_t>&               grid_height() const;
    SettingsVariable<std::int64_t>&               grid_width() const;
+   SettingsVariable<std::int64_t>&               loop_delay() const;
+   SettingsVariable<double>&                     loop_speed() const;
+   SettingsVariable<std::int64_t>&               loop_time() const;
    SettingsVariable<std::string>&                map_provider() const;
    SettingsVariable<std::string>&                mapbox_api_key() const;
    SettingsVariable<std::string>&                maptiler_api_key() const;
@@ -40,6 +43,8 @@ public:
 
    friend bool operator==(const GeneralSettings& lhs,
                           const GeneralSettings& rhs);
+
+   bool Shutdown();
 
 private:
    std::unique_ptr<GeneralSettingsImpl> p;

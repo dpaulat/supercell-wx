@@ -8,6 +8,11 @@
 #include <fstream>
 #include <sstream>
 
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable : 4702)
+#endif
+
 #if defined(__GNUC__)
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wdeprecated-copy"
@@ -19,6 +24,10 @@
 
 #if defined(__GNUC__)
 #   pragma GCC diagnostic pop
+#endif
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
 #endif
 
 namespace scwx

@@ -19,7 +19,9 @@
 #   pragma warning(push, 0)
 #endif
 
+#include <boost/asio/post.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/thread_pool.hpp>
 #include <boost/container_hash/hash.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
@@ -91,7 +93,7 @@ public:
        group_ {group},
        product_ {product},
        refreshEnabled_ {false},
-       refreshTimer_ {scwx::util::io_context()},
+       refreshTimer_ {threadPool_},
        refreshTimerMutex_ {},
        provider_ {nullptr}
    {
@@ -105,6 +107,8 @@ public:
    std::string name() const;
 
    void Disable();
+
+   boost::asio::thread_pool threadPool_ {1u};
 
    const std::string                             radarId_;
    const common::RadarProductGroup               group_;
@@ -179,6 +183,8 @@ public:
 
    RadarProductManager* self_;
 
+   boost::asio::thread_pool threadPool_ {4u};
+
    std::shared_ptr<ProviderManager>
    GetLevel3ProviderManager(const std::string& product);
 
@@ -199,6 +205,10 @@ public:
    void UpdateRecentRecords(RadarProductRecordList& recentList,
                             std::shared_ptr<types::RadarProductRecord> record);
 
+   void LoadNexradFileAsync(CreateNexradFileFunction                    load,
+                            std::shared_ptr<request::NexradFileRequest> request,
+                            std::mutex&                                 mutex,
+                            std::chrono::system_clock::time_point       time);
    void LoadProviderData(std::chrono::system_clock::time_point time,
                          std::shared_ptr<ProviderManager>      providerManager,
                          RadarProductRecordMap&                recordMap,
@@ -206,6 +216,14 @@ public:
                          std::mutex&                           loadDataMutex,
                          std::shared_ptr<request::NexradFileRequest> request);
    void PopulateLevel2ProductTimes(std::chrono::system_clock::time_point time);
+   void PopulateLevel3ProductTimes(const std::string& product,
+                                   std::chrono::system_clock::time_point time);
+
+   static void
+   PopulateProductTimes(std::shared_ptr<ProviderManager> providerManager,
+                        RadarProductRecordMap&           productRecordMap,
+                        std::shared_mutex&               productRecordMutex,
+                        std::chrono::system_clock::time_point time);
 
    static void
    LoadNexradFile(CreateNexradFileFunction                    load,
@@ -515,7 +533,8 @@ void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
          p->GetLevel3ProviderManager(product);
 
       // Only enable refresh on available products
-      scwx::util::async(
+      boost::asio::post(
+         p->threadPool_,
          [=, this]()
          {
             providerManager->provider_->RequestAvailableProducts();
@@ -606,7 +625,8 @@ void RadarProductManagerImpl::RefreshData(
       providerManager->refreshTimer_.cancel();
    }
 
-   scwx::util::async(
+   boost::asio::post(
+      threadPool_,
       [=, this]()
       {
          auto [newObjects, totalObjects] =
@@ -766,9 +786,8 @@ void RadarProductManagerImpl::LoadProviderData(
                   providerManager->name(),
                   scwx::util::TimeString(time));
 
-   RadarProductManagerImpl::LoadNexradFile(
-      [=, &recordMap, &recordMutex, &loadDataMutex]()
-         -> std::shared_ptr<wsr88d::NexradFile>
+   LoadNexradFileAsync(
+      [=, &recordMap, &recordMutex]() -> std::shared_ptr<wsr88d::NexradFile>
       {
          std::shared_ptr<types::RadarProductRecord> existingRecord = nullptr;
          std::shared_ptr<wsr88d::NexradFile>        nexradFile     = nullptr;
@@ -792,7 +811,16 @@ void RadarProductManagerImpl::LoadProviderData(
          if (existingRecord == nullptr)
          {
             std::string key = providerManager->provider_->FindKey(time);
-            nexradFile      = providerManager->provider_->LoadObjectByKey(key);
+
+            if (!key.empty())
+            {
+               nexradFile = providerManager->provider_->LoadObjectByKey(key);
+            }
+            else
+            {
+               logger_->warn("Attempting to load object without key: {}",
+                             scwx::util::TimeString(time));
+            }
          }
          else
          {
@@ -857,11 +885,15 @@ void RadarProductManager::LoadData(
 {
    logger_->debug("LoadData()");
 
-   RadarProductManagerImpl::LoadNexradFile(
-      [=, &is]() -> std::shared_ptr<wsr88d::NexradFile>
-      { return wsr88d::NexradFileFactory::Create(is); },
-      request,
-      fileLoadMutex_);
+   scwx::util::async(
+      [=, &is]()
+      {
+         RadarProductManagerImpl::LoadNexradFile(
+            [=, &is]() -> std::shared_ptr<wsr88d::NexradFile>
+            { return wsr88d::NexradFileFactory::Create(is); },
+            request,
+            fileLoadMutex_);
+      });
 }
 
 void RadarProductManager::LoadFile(
@@ -898,11 +930,15 @@ void RadarProductManager::LoadFile(
                           }
                        });
 
-      RadarProductManagerImpl::LoadNexradFile(
-         [=]() -> std::shared_ptr<wsr88d::NexradFile>
-         { return wsr88d::NexradFileFactory::Create(filename); },
-         request,
-         fileLoadMutex_);
+      scwx::util::async(
+         [=]()
+         {
+            RadarProductManagerImpl::LoadNexradFile(
+               [=]() -> std::shared_ptr<wsr88d::NexradFile>
+               { return wsr88d::NexradFileFactory::Create(filename); },
+               request,
+               fileLoadMutex_);
+         });
    }
    else if (request != nullptr)
    {
@@ -911,54 +947,90 @@ void RadarProductManager::LoadFile(
    }
 }
 
+void RadarProductManagerImpl::LoadNexradFileAsync(
+   CreateNexradFileFunction                    load,
+   std::shared_ptr<request::NexradFileRequest> request,
+   std::mutex&                                 mutex,
+   std::chrono::system_clock::time_point       time)
+{
+   boost::asio::post(threadPool_,
+                     [=, &mutex]()
+                     { LoadNexradFile(load, request, mutex, time); });
+}
+
 void RadarProductManagerImpl::LoadNexradFile(
    CreateNexradFileFunction                    load,
    std::shared_ptr<request::NexradFileRequest> request,
    std::mutex&                                 mutex,
    std::chrono::system_clock::time_point       time)
 {
-   scwx::util::async(
-      [=, &mutex]()
+   std::unique_lock lock {mutex};
+
+   std::shared_ptr<wsr88d::NexradFile> nexradFile = load();
+
+   std::shared_ptr<types::RadarProductRecord> record = nullptr;
+
+   bool fileValid = (nexradFile != nullptr);
+
+   if (fileValid)
+   {
+      record = types::RadarProductRecord::Create(nexradFile);
+
+      // If the time is already determined, override the time in the file.
+      // Sometimes, level 2 data has been seen to be a few seconds off
+      // between filename and file data. Overriding this can help prevent
+      // issues with locating and storing the correct records.
+      if (time != std::chrono::system_clock::time_point {})
       {
-         std::unique_lock lock {mutex};
+         record->set_time(time);
+      }
 
-         std::shared_ptr<wsr88d::NexradFile> nexradFile = load();
+      std::shared_ptr<RadarProductManager> manager =
+         RadarProductManager::Instance(record->radar_id());
 
-         std::shared_ptr<types::RadarProductRecord> record = nullptr;
+      manager->Initialize();
+      record = manager->p->StoreRadarProductRecord(record);
+   }
 
-         bool fileValid = (nexradFile != nullptr);
+   lock.unlock();
 
-         if (fileValid)
-         {
-            record = types::RadarProductRecord::Create(nexradFile);
-
-            // If the time is already determined, override the time in the file.
-            // Sometimes, level 2 data has been seen to be a few seconds off
-            // between filename and file data. Overriding this can help prevent
-            // issues with locating and storing the correct records.
-            if (time != std::chrono::system_clock::time_point {})
-            {
-               record->set_time(time);
-            }
-
-            std::shared_ptr<RadarProductManager> manager =
-               RadarProductManager::Instance(record->radar_id());
-
-            manager->Initialize();
-            record = manager->p->StoreRadarProductRecord(record);
-         }
-
-         lock.unlock();
-
-         if (request != nullptr)
-         {
-            request->set_radar_product_record(record);
-            Q_EMIT request->RequestComplete(request);
-         }
-      });
+   if (request != nullptr)
+   {
+      request->set_radar_product_record(record);
+      Q_EMIT request->RequestComplete(request);
+   }
 }
 
 void RadarProductManagerImpl::PopulateLevel2ProductTimes(
+   std::chrono::system_clock::time_point time)
+{
+   PopulateProductTimes(level2ProviderManager_,
+                        level2ProductRecords_,
+                        level2ProductRecordMutex_,
+                        time);
+}
+
+void RadarProductManagerImpl::PopulateLevel3ProductTimes(
+   const std::string& product, std::chrono::system_clock::time_point time)
+{
+   // Get provider manager
+   auto level3ProviderManager = GetLevel3ProviderManager(product);
+
+   // Get product records
+   std::unique_lock level3ProductRecordLock {level3ProductRecordMutex_};
+   auto&            level3ProductRecords = level3ProductRecordsMap_[product];
+   level3ProductRecordLock.unlock();
+
+   PopulateProductTimes(level3ProviderManager,
+                        level3ProductRecords,
+                        level3ProductRecordMutex_,
+                        time);
+}
+
+void RadarProductManagerImpl::PopulateProductTimes(
+   std::shared_ptr<ProviderManager>      providerManager,
+   RadarProductRecordMap&                productRecordMap,
+   std::shared_mutex&                    productRecordMutex,
    std::chrono::system_clock::time_point time)
 {
    const auto today     = std::chrono::floor<std::chrono::days>(time);
@@ -973,7 +1045,7 @@ void RadarProductManagerImpl::PopulateLevel2ProductTimes(
    std::for_each(std::execution::par_unseq,
                  dates.begin(),
                  dates.end(),
-                 [&, this](const auto& date)
+                 [&](const auto& date)
                  {
                     // Don't query for a time point in the future
                     if (date > std::chrono::system_clock::now())
@@ -983,8 +1055,7 @@ void RadarProductManagerImpl::PopulateLevel2ProductTimes(
 
                     // Query the provider for volume time points
                     auto timePoints =
-                       level2ProviderManager_->provider_->GetTimePointsByDate(
-                          date);
+                       providerManager->provider_->GetTimePointsByDate(date);
 
                     // Lock the merged volume time list
                     std::unique_lock volumeTimesLock {volumeTimesMutex};
@@ -995,20 +1066,19 @@ void RadarProductManagerImpl::PopulateLevel2ProductTimes(
                               std::inserter(volumeTimes, volumeTimes.end()));
                  });
 
-   // Lock the level 2 product record map
-   std::unique_lock lock {level2ProductRecordMutex_};
+   // Lock the product record map
+   std::unique_lock lock {productRecordMutex};
 
    // Merge volume times into map
-   std::transform(
-      volumeTimes.cbegin(),
-      volumeTimes.cend(),
-      std::inserter(level2ProductRecords_, level2ProductRecords_.begin()),
-      [](const std::chrono::system_clock::time_point& time)
-      {
-         return std::pair<std::chrono::system_clock::time_point,
-                          std::weak_ptr<types::RadarProductRecord>>(
-            time, std::weak_ptr<types::RadarProductRecord> {});
-      });
+   std::transform(volumeTimes.cbegin(),
+                  volumeTimes.cend(),
+                  std::inserter(productRecordMap, productRecordMap.begin()),
+                  [](const std::chrono::system_clock::time_point& time)
+                  {
+                     return std::pair<std::chrono::system_clock::time_point,
+                                      std::weak_ptr<types::RadarProductRecord>>(
+                        time, std::weak_ptr<types::RadarProductRecord> {});
+                  });
 }
 
 std::tuple<std::shared_ptr<types::RadarProductRecord>,
@@ -1042,7 +1112,7 @@ RadarProductManagerImpl::GetLevel2ProductRecord(
       record     = recordPtr->second.lock();
    }
 
-   if (record == nullptr &&
+   if (recordPtr != nullptr && record == nullptr &&
        recordTime != std::chrono::system_clock::time_point {})
    {
       // Product is expired, reload it
@@ -1076,6 +1146,9 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
    RadarProductRecordMap::const_pointer       recordPtr {nullptr};
    std::chrono::system_clock::time_point      recordTime {time};
 
+   // Ensure Level 3 product records are updated
+   PopulateLevel3ProductTimes(product, time);
+
    std::unique_lock lock {level3ProductRecordMutex_};
 
    auto it = level3ProductRecordsMap_.find(product);
@@ -1099,15 +1172,12 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
 
    if (recordPtr != nullptr)
    {
-      if (time == std::chrono::system_clock::time_point {} ||
-          time == recordPtr->first)
-      {
-         recordTime = recordPtr->first;
-         record     = recordPtr->second.lock();
-      }
+      // Don't check for an exact time match for level 3 products
+      recordTime = recordPtr->first;
+      record     = recordPtr->second.lock();
    }
 
-   if (record == nullptr &&
+   if (recordPtr != nullptr && record == nullptr &&
        recordTime != std::chrono::system_clock::time_point {})
    {
       // Product is expired, reload it
@@ -1305,7 +1375,8 @@ void RadarProductManager::UpdateAvailableProducts()
 
    logger_->debug("UpdateAvailableProducts()");
 
-   scwx::util::async(
+   boost::asio::post(
+      p->threadPool_,
       [this]()
       {
          auto level3ProviderManager =

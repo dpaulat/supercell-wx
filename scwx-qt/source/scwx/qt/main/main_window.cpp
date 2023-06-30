@@ -28,8 +28,9 @@
 #include <scwx/common/products.hpp>
 #include <scwx/common/vcp.hpp>
 #include <scwx/util/logger.hpp>
-#include <scwx/util/threads.hpp>
 
+#include <boost/asio/post.hpp>
+#include <boost/asio/thread_pool.hpp>
 #include <QDesktopServices>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -113,6 +114,7 @@ public:
 
    void AsyncSetup();
    void ConfigureMapLayout();
+   void ConfigureMapStyles();
    void ConnectAnimationSignals();
    void ConnectMapSignals();
    void ConnectOtherSignals();
@@ -132,6 +134,8 @@ public:
    void UpdateRadarProductSettings();
    void UpdateRadarSite();
    void UpdateVcp();
+
+   boost::asio::thread_pool threadPool_ {1u};
 
    MainWindow*           mainWindow_;
    QMapLibreGL::Settings settings_;
@@ -211,6 +215,7 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->resourceExplorerDock->toggleViewAction()->setText(
       tr("&Resource Explorer"));
    ui->actionResourceExplorer->setVisible(false);
+   ui->resourceExplorerDock->toggleViewAction()->setVisible(false);
 
    ui->menuView->insertAction(ui->actionAlerts,
                               p->alertDockWidget_->toggleViewAction());
@@ -274,6 +279,7 @@ MainWindow::MainWindow(QWidget* parent) :
    }
 
    p->PopulateMapStyles();
+   p->ConfigureMapStyles();
    p->ConnectMapSignals();
    p->ConnectAnimationSignals();
    p->ConnectOtherSignals();
@@ -426,7 +432,8 @@ void MainWindow::on_actionGitHubRepository_triggered()
 
 void MainWindow::on_actionCheckForUpdates_triggered()
 {
-   scwx::util::async(
+   boost::asio::post(
+      p->threadPool_,
       [this]()
       {
          if (!p->updateManager_->CheckForUpdates(main::kVersionString_))
@@ -541,7 +548,8 @@ void MainWindowImpl::AsyncSetup()
    // Check for updates
    if (generalSettings.update_notifications_enabled().GetValue())
    {
-      scwx::util::async(
+      boost::asio::post(
+         threadPool_,
          [this]() { updateManager_->CheckForUpdates(main::kVersionString_); });
    }
 }
@@ -596,6 +604,39 @@ void MainWindowImpl::ConfigureMapLayout()
    SetActiveMap(maps_.at(0));
 }
 
+void MainWindowImpl::ConfigureMapStyles()
+{
+   const auto& mapProviderInfo = map::GetMapProviderInfo(mapProvider_);
+   auto&       mapSettings     = manager::SettingsManager::map_settings();
+
+   for (std::size_t i = 0; i < maps_.size(); i++)
+   {
+      std::string styleName = mapSettings.map_style(i).GetValue();
+
+      if (std::find_if(mapProviderInfo.mapStyles_.cbegin(),
+                       mapProviderInfo.mapStyles_.cend(),
+                       [&](const auto& mapStyle) {
+                          return mapStyle.name_ == styleName;
+                       }) != mapProviderInfo.mapStyles_.cend())
+      {
+         // Initialize map style from settings
+         maps_.at(i)->SetInitialMapStyle(styleName);
+
+         // Update the active map's style
+         if (maps_[i] == activeMap_)
+         {
+            UpdateMapStyle(styleName);
+         }
+      }
+      else if (!mapProviderInfo.mapStyles_.empty())
+      {
+         // Stage first valid map style from map provider
+         mapSettings.map_style(i).StageValue(
+            mapProviderInfo.mapStyles_.at(0).name_);
+      }
+   }
+}
+
 void MainWindowImpl::ConnectMapSignals()
 {
    for (const auto& mapWidget : maps_)
@@ -620,7 +661,13 @@ void MainWindowImpl::ConnectMapSignals()
       connect(mapWidget,
               &map::MapWidget::MapStyleChanged,
               this,
-              &MainWindowImpl::UpdateMapStyle);
+              [&](const std::string& mapStyle)
+              {
+                 if (mapWidget == activeMap_)
+                 {
+                    UpdateMapStyle(mapStyle);
+                 }
+              });
 
       connect(
          mapWidget,
@@ -711,7 +758,10 @@ void MainWindowImpl::ConnectAnimationSignals()
            &manager::TimelineManager::AnimationStateUpdated,
            animationDockWidget_,
            &ui::AnimationDockWidget::UpdateAnimationState);
-
+   connect(timelineManager_.get(),
+           &manager::TimelineManager::ViewTypeUpdated,
+           animationDockWidget_,
+           &ui::AnimationDockWidget::UpdateViewType);
    connect(timelineManager_.get(),
            &manager::TimelineManager::LiveStateUpdated,
            animationDockWidget_,
@@ -754,7 +804,21 @@ void MainWindowImpl::ConnectOtherSignals()
            &QComboBox::currentTextChanged,
            mainWindow_,
            [&](const QString& text)
-           { activeMap_->SetMapStyle(text.toStdString()); });
+           {
+              activeMap_->SetMapStyle(text.toStdString());
+
+              // Update settings for active map
+              for (std::size_t i = 0; i < maps_.size(); ++i)
+              {
+                 if (maps_[i] == activeMap_)
+                 {
+                    auto& mapSettings =
+                       manager::SettingsManager::map_settings();
+                    mapSettings.map_style(i).StageValue(text.toStdString());
+                    break;
+                 }
+              }
+           });
    connect(level2ProductsWidget_,
            &ui::Level2ProductsWidget::RadarProductSelected,
            mainWindow_,
@@ -790,6 +854,8 @@ void MainWindowImpl::ConnectOtherSignals()
          {
             map->SetMapLocation(latitude, longitude, true);
          }
+
+         UpdateRadarSite();
       },
       Qt::QueuedConnection);
    connect(mainWindow_,
@@ -807,6 +873,8 @@ void MainWindowImpl::ConnectOtherSignals()
               {
                  map->SelectRadarSite(selectedRadarSite);
               }
+
+              UpdateRadarSite();
            });
    connect(updateManager_.get(),
            &manager::UpdateManager::UpdateAvailable,
@@ -917,6 +985,17 @@ void MainWindowImpl::UpdateMapStyle(const std::string& styleName)
    if (index != -1)
    {
       mainWindow_->ui->mapStyleComboBox->setCurrentIndex(index);
+
+      // Update settings for active map
+      for (std::size_t i = 0; i < maps_.size(); ++i)
+      {
+         if (maps_[i] == activeMap_)
+         {
+            auto& mapSettings = manager::SettingsManager::map_settings();
+            mapSettings.map_style(i).StageValue(styleName);
+            break;
+         }
+      }
    }
 }
 

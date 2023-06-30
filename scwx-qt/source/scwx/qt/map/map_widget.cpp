@@ -13,13 +13,14 @@
 #include <scwx/qt/util/file.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
 #include <scwx/util/logger.hpp>
-#include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 
 #include <regex>
 
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_qt.hpp>
+#include <boost/asio/post.hpp>
+#include <boost/asio/thread_pool.hpp>
 #include <boost/uuid/random_generator.hpp>
 #include <fmt/format.h>
 #include <imgui.h>
@@ -123,6 +124,8 @@ public:
    common::Level2Product
    GetLevel2ProductOrDefault(const std::string& productName) const;
 
+   boost::asio::thread_pool threadPool_ {1u};
+
    boost::uuids::uuid uuid_;
 
    std::shared_ptr<MapContext> context_;
@@ -154,6 +157,7 @@ public:
    QPointF         lastPos_;
    std::size_t     currentStyleIndex_;
    const MapStyle* currentStyle_;
+   std::string     initialStyleName_ {};
 
    uint64_t frameDraws_;
 
@@ -359,7 +363,8 @@ void MapWidget::SelectElevation(float elevation)
 void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
                                    const std::string&        product,
                                    std::int16_t              productCode,
-                                   std::chrono::system_clock::time_point time)
+                                   std::chrono::system_clock::time_point time,
+                                   bool                                  update)
 {
    bool radarProductViewCreated = false;
 
@@ -420,7 +425,7 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
                common::GetLevel3Palette(productCode);
          p->InitializeNewRadarProductView(palette);
       }
-      else
+      else if (update)
       {
          radarProductView->Update();
       }
@@ -486,7 +491,9 @@ void MapWidget::SelectRadarSite(std::shared_ptr<config::RadarSite> radarSite,
          radarProductView->set_radar_product_manager(p->radarProductManager_);
          SelectRadarProduct(radarProductView->GetRadarProductGroup(),
                             radarProductView->GetRadarProductName(),
-                            0);
+                            0,
+                            radarProductView->selected_time(),
+                            false);
       }
 
       AddLayers();
@@ -580,6 +587,11 @@ void MapWidget::SetMapParameters(
       p->map_->setBearing(bearing);
       p->map_->setPitch(pitch);
    }
+}
+
+void MapWidget::SetInitialMapStyle(const std::string& styleName)
+{
+   p->initialStyleName_ = styleName;
 }
 
 void MapWidget::SetMapStyle(const std::string& styleName)
@@ -827,7 +839,14 @@ void MapWidget::initializeGL()
                                p->prevPitch_);
 
    // Update style
-   changeStyle();
+   if (p->initialStyleName_.empty())
+   {
+      changeStyle();
+   }
+   else
+   {
+      SetMapStyle(p->initialStyleName_);
+   }
 
    connect(p->map_.get(),
            &QMapLibreGL::Map::mapChanged,
@@ -910,12 +929,18 @@ void MapWidgetImpl::RadarProductManagerConnect()
                      request.get(),
                      &request::NexradFileRequest::RequestComplete,
                      this,
-                     [this](std::shared_ptr<request::NexradFileRequest> request)
+                     [=,
+                      this](std::shared_ptr<request::NexradFileRequest> request)
                      {
                         // Select loaded record
                         auto record = request->radar_product_record();
 
-                        if (record != nullptr)
+                        // Validate record, and verify current map context still
+                        // displays product
+                        if (record != nullptr &&
+                            context_->radar_product_group() == group &&
+                            (group == common::RadarProductGroup::Level2 ||
+                             context_->radar_product() == product))
                         {
                            widget_->SelectRadarProduct(record);
                         }
@@ -923,7 +948,8 @@ void MapWidgetImpl::RadarProductManagerConnect()
                }
 
                // Load file
-               scwx::util::async(
+               boost::asio::post(
+                  threadPool_,
                   [=, this]()
                   {
                      if (group == common::RadarProductGroup::Level2)
@@ -957,26 +983,26 @@ void MapWidgetImpl::RadarProductManagerDisconnect()
 void MapWidgetImpl::InitializeNewRadarProductView(
    const std::string& colorPalette)
 {
-   scwx::util::async(
-      [=, this]()
-      {
-         auto radarProductView = context_->radar_product_view();
+   boost::asio::post(threadPool_,
+                     [=, this]()
+                     {
+                        auto radarProductView = context_->radar_product_view();
 
-         std::string colorTableFile =
-            manager::SettingsManager::palette_settings()
-               .palette(colorPalette)
-               .GetValue();
-         if (!colorTableFile.empty())
-         {
-            std::unique_ptr<std::istream> colorTableStream =
-               util::OpenFile(colorTableFile);
-            std::shared_ptr<common::ColorTable> colorTable =
-               common::ColorTable::Load(*colorTableStream);
-            radarProductView->LoadColorTable(colorTable);
-         }
+                        std::string colorTableFile =
+                           manager::SettingsManager::palette_settings()
+                              .palette(colorPalette)
+                              .GetValue();
+                        if (!colorTableFile.empty())
+                        {
+                           std::unique_ptr<std::istream> colorTableStream =
+                              util::OpenFile(colorTableFile);
+                           std::shared_ptr<common::ColorTable> colorTable =
+                              common::ColorTable::Load(*colorTableStream);
+                           radarProductView->LoadColorTable(colorTable);
+                        }
 
-         radarProductView->Initialize();
-      });
+                        radarProductView->Initialize();
+                     });
 
    if (map_ != nullptr)
    {
@@ -1052,9 +1078,6 @@ void MapWidgetImpl::SetRadarSite(const std::string& radarSite)
 
       // Set new RadarProductManager
       radarProductManager_ = manager::RadarProductManager::Instance(radarSite);
-
-      // Re-enable auto-update
-      autoUpdateEnabled_ = true;
 
       // Connect signals to new RadarProductManager
       RadarProductManagerConnect();

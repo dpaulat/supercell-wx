@@ -208,6 +208,7 @@ private:
 
 #ifdef SETTINGS_VARIABLE_IMPLEMENTATION
 template class SettingsVariable<bool>;
+template class SettingsVariable<double>;
 template class SettingsVariable<std::int64_t>;
 template class SettingsVariable<std::string>;
 

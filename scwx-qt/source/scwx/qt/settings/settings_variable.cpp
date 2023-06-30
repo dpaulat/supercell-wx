@@ -51,7 +51,8 @@ SettingsVariable<T>::operator=(SettingsVariable&&) noexcept = default;
 template<class T>
 inline auto FormatParameter(const T& value)
 {
-   if constexpr (std::is_integral_v<T> || std::is_same_v<T, std::string>)
+   if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T> ||
+                 std::is_same_v<T, std::string>)
    {
       return value;
    }

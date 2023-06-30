@@ -111,7 +111,8 @@ void Level2SettingsWidgetImpl::NormalizeElevationButtons()
                     }
                  });
 
-   if (elevationCutMaxWidth > 0)
+   // Don't resize the buttons if the size is out of expected ranges
+   if (0 < elevationCutMaxWidth && elevationCutMaxWidth < 100)
    {
       std::for_each(elevationButtons_.cbegin(),
                     elevationButtons_.cend(),

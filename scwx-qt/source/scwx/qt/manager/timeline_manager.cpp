@@ -1,14 +1,18 @@
+#define NOMINMAX
+
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
+#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/map.hpp>
-#include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 
 #include <condition_variable>
 #include <mutex>
 
+#include <boost/asio/post.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/thread_pool.hpp>
 #include <fmt/chrono.h>
 
 namespace scwx
@@ -33,7 +37,15 @@ static constexpr std::chrono::seconds kRadarSweepMonitorTimeout_ {5};
 class TimelineManager::Impl
 {
 public:
-   explicit Impl(TimelineManager* self) : self_ {self} {}
+   explicit Impl(TimelineManager* self) : self_ {self}
+   {
+      auto& generalSettings = SettingsManager::general_settings();
+
+      loopDelay_ =
+         std::chrono::milliseconds(generalSettings.loop_delay().GetValue());
+      loopSpeed_ = generalSettings.loop_speed().GetValue();
+      loopTime_  = std::chrono::minutes(generalSettings.loop_time().GetValue());
+   }
 
    ~Impl()
    {
@@ -65,6 +77,9 @@ public:
         SelectTime(std::chrono::system_clock::time_point selectedTime = {});
    void StepAsync(Direction direction);
 
+   boost::asio::thread_pool playThreadPool_ {1};
+   boost::asio::thread_pool selectThreadPool_ {1};
+
    std::size_t                           mapCount_ {0};
    std::string                           radarSite_ {"?"};
    std::string                           previousRadarSite_ {"?"};
@@ -72,9 +87,9 @@ public:
    std::chrono::system_clock::time_point adjustedTime_ {};
    std::chrono::system_clock::time_point selectedTime_ {};
    types::MapTime                        viewType_ {types::MapTime::Live};
-   std::chrono::minutes                  loopTime_ {30};
-   double                                loopSpeed_ {5.0};
-   std::chrono::milliseconds             loopDelay_ {2500};
+   std::chrono::minutes                  loopTime_;
+   double                                loopSpeed_;
+   std::chrono::milliseconds             loopDelay_;
 
    bool                    radarSweepMonitorActive_ {false};
    std::mutex              radarSweepMonitorMutex_ {};
@@ -83,7 +98,7 @@ public:
    std::set<std::size_t>   radarSweepsComplete_ {};
 
    types::AnimationState     animationState_ {types::AnimationState::Pause};
-   boost::asio::steady_timer animationTimer_ {scwx::util::io_context()};
+   boost::asio::steady_timer animationTimer_ {playThreadPool_};
    std::mutex                animationTimerMutex_ {};
 
    std::mutex selectTimeMutex_ {};
@@ -153,6 +168,8 @@ void TimelineManager::SetViewType(types::MapTime viewType)
       // If the selected view type is archive, select using the pinned time
       p->SelectTimeAsync(p->pinnedTime_);
    }
+
+   Q_EMIT ViewTypeUpdated(viewType);
 }
 
 void TimelineManager::SetLoopTime(std::chrono::minutes loopTime)
@@ -281,10 +298,11 @@ void TimelineManager::ReceiveRadarSweepUpdated(std::size_t mapIndex)
    p->radarSweepsUpdated_.insert(mapIndex);
 }
 
-void TimelineManager::ReceiveRadarSweepNotUpdated(
-   std::size_t mapIndex, types::NoUpdateReason /* reason */)
+void TimelineManager::ReceiveRadarSweepNotUpdated(std::size_t mapIndex,
+                                                  types::NoUpdateReason reason)
 {
-   if (!p->radarSweepMonitorActive_)
+   if (!p->radarSweepMonitorActive_ ||
+       reason == types::NoUpdateReason::NotLoaded)
    {
       return;
    }
@@ -376,9 +394,10 @@ void TimelineManager::Impl::UpdateCacheLimit(
    auto endIter   = util::GetBoundedElementIterator(volumeTimes, endTime);
    std::size_t numVolumeScans = std::distance(startIter, endIter) + 1;
 
-   // Dynamically update maximum cached volume scans to 1.5x the loop length
-   radarProductManager->SetCacheLimit(
-      static_cast<std::size_t>(numVolumeScans * 1.5));
+   // Dynamically update maximum cached volume scans to the lesser of
+   // either 1.5x the loop length or 5 greater than the loop length
+   radarProductManager->SetCacheLimit(std::min(
+      static_cast<std::size_t>(numVolumeScans * 1.5), numVolumeScans + 5u));
 }
 
 void TimelineManager::Impl::Play()
@@ -396,7 +415,8 @@ void TimelineManager::Impl::Play()
       animationTimer_.cancel();
    }
 
-   scwx::util::async(
+   boost::asio::post(
+      playThreadPool_,
       [this]()
       {
          // Take a lock for time selection
@@ -487,7 +507,8 @@ void TimelineManager::Impl::Play()
 void TimelineManager::Impl::SelectTimeAsync(
    std::chrono::system_clock::time_point selectedTime)
 {
-   scwx::util::async([=, this]() { SelectTime(selectedTime); });
+   boost::asio::post(selectThreadPool_,
+                     [=, this]() { SelectTime(selectedTime); });
 }
 
 std::pair<bool, bool> TimelineManager::Impl::SelectTime(
@@ -573,7 +594,8 @@ std::pair<bool, bool> TimelineManager::Impl::SelectTime(
 
 void TimelineManager::Impl::StepAsync(Direction direction)
 {
-   scwx::util::async(
+   boost::asio::post(
+      selectThreadPool_,
       [=, this]()
       {
          // Take a lock for time selection
