@@ -13,6 +13,7 @@
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/model/radar_product_model.hpp>
+#include <scwx/qt/settings/ui_settings.hpp>
 #include <scwx/qt/ui/about_dialog.hpp>
 #include <scwx/qt/ui/alert_dock_widget.hpp>
 #include <scwx/qt/ui/animation_dock_widget.hpp>
@@ -121,6 +122,7 @@ public:
    void AsyncSetup();
    void ConfigureMapLayout();
    void ConfigureMapStyles();
+   void ConfigureUiSettings();
    void ConnectAnimationSignals();
    void ConnectMapSignals();
    void ConnectOtherSignals();
@@ -314,6 +316,7 @@ MainWindow::MainWindow(QWidget* parent) :
 
    p->PopulateMapStyles();
    p->ConfigureMapStyles();
+   p->ConfigureUiSettings();
    p->ConnectMapSignals();
    p->ConnectAnimationSignals();
    p->ConnectOtherSignals();
@@ -669,6 +672,42 @@ void MainWindowImpl::ConfigureMapStyles()
             mapProviderInfo.mapStyles_.at(0).name_);
       }
    }
+}
+
+void MainWindowImpl::ConfigureUiSettings()
+{
+   auto& uiSettings = settings::UiSettings::Instance();
+
+   level2ProductsGroup_->SetExpanded(
+      uiSettings.level2_products_expanded().GetValue());
+   level2SettingsGroup_->SetExpanded(
+      uiSettings.level2_settings_expanded().GetValue());
+   level3ProductsGroup_->SetExpanded(
+      uiSettings.level3_products_expanded().GetValue());
+   mapSettingsGroup_->SetExpanded(
+      uiSettings.map_settings_expanded().GetValue());
+   timelineGroup_->SetExpanded(uiSettings.timeline_expanded().GetValue());
+
+   connect(level2ProductsGroup_,
+           &ui::CollapsibleGroup::StateChanged,
+           [&](bool expanded)
+           { uiSettings.level2_products_expanded().StageValue(expanded); });
+   connect(level2SettingsGroup_,
+           &ui::CollapsibleGroup::StateChanged,
+           [&](bool expanded)
+           { uiSettings.level2_settings_expanded().StageValue(expanded); });
+   connect(level3ProductsGroup_,
+           &ui::CollapsibleGroup::StateChanged,
+           [&](bool expanded)
+           { uiSettings.level3_products_expanded().StageValue(expanded); });
+   connect(mapSettingsGroup_,
+           &ui::CollapsibleGroup::StateChanged,
+           [&](bool expanded)
+           { uiSettings.map_settings_expanded().StageValue(expanded); });
+   connect(timelineGroup_,
+           &ui::CollapsibleGroup::StateChanged,
+           [&](bool expanded)
+           { uiSettings.timeline_expanded().StageValue(expanded); });
 }
 
 void MainWindowImpl::ConnectMapSignals()
