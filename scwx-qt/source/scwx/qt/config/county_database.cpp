@@ -131,11 +131,10 @@ void Initialize()
    // Remove temporary file
    std::error_code err;
 
-   if (!std::filesystem::remove(countyDatabaseCache, err)) {
-      logger_->warn(
-          "Unable to remove cached copy of database, error code: {} error category: {}",
-          err.value(),
-          err.category().name());
+   if (!std::filesystem::remove(countyDatabaseCache, err))
+   {
+      logger_->warn("Unable to remove cached copy of database, error: {}",
+                    err.message());
    }
 
    initialized_ = true;

@@ -361,7 +361,13 @@ set_target_properties(scwx-qt_generate_versions    PROPERTIES FOLDER generate)
 
 if (WIN32)
     set(APP_ICON_RESOURCE_WINDOWS "${scwx-qt_SOURCE_DIR}/res/scwx-qt.rc")
-    qt_add_executable(supercell-wx ${EXECUTABLE_SOURCES} ${APP_ICON_RESOURCE_WINDOWS})
+
+    # If this is a release build, specify WIN32 so a console window is not launched.
+    if (CMAKE_BUILD_TYPE STREQUAL "Release")
+        qt_add_executable(supercell-wx WIN32 ${EXECUTABLE_SOURCES} ${APP_ICON_RESOURCE_WINDOWS})
+    else()
+        qt_add_executable(supercell-wx ${EXECUTABLE_SOURCES} ${APP_ICON_RESOURCE_WINDOWS})
+    endif()
 else()
     qt_add_executable(supercell-wx ${EXECUTABLE_SOURCES})
 endif()
