@@ -121,7 +121,8 @@ set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/settings_interface.hpp
                  source/scwx/qt/settings/settings_interface_base.hpp
                  source/scwx/qt/settings/settings_variable.hpp
-                 source/scwx/qt/settings/settings_variable_base.hpp)
+                 source/scwx/qt/settings/settings_variable_base.hpp
+                 source/scwx/qt/settings/ui_settings.hpp)
 set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/map_settings.cpp
                  source/scwx/qt/settings/palette_settings.cpp
@@ -130,7 +131,8 @@ set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/settings_interface.cpp
                  source/scwx/qt/settings/settings_interface_base.cpp
                  source/scwx/qt/settings/settings_variable.cpp
-                 source/scwx/qt/settings/settings_variable_base.cpp)
+                 source/scwx/qt/settings/settings_variable_base.cpp
+                 source/scwx/qt/settings/ui_settings.cpp)
 set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/font_types.hpp
               source/scwx/qt/types/github_types.hpp
@@ -147,6 +149,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/alert_dialog.hpp
            source/scwx/qt/ui/alert_dock_widget.hpp
            source/scwx/qt/ui/animation_dock_widget.hpp
+           source/scwx/qt/ui/collapsible_group.hpp
            source/scwx/qt/ui/flow_layout.hpp
            source/scwx/qt/ui/imgui_debug_dialog.hpp
            source/scwx/qt/ui/imgui_debug_widget.hpp
@@ -160,6 +163,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/alert_dialog.cpp
            source/scwx/qt/ui/alert_dock_widget.cpp
            source/scwx/qt/ui/animation_dock_widget.cpp
+           source/scwx/qt/ui/collapsible_group.cpp
            source/scwx/qt/ui/flow_layout.cpp
            source/scwx/qt/ui/imgui_debug_dialog.cpp
            source/scwx/qt/ui/imgui_debug_widget.cpp
@@ -173,6 +177,7 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/alert_dialog.ui
            source/scwx/qt/ui/alert_dock_widget.ui
            source/scwx/qt/ui/animation_dock_widget.ui
+           source/scwx/qt/ui/collapsible_group.ui
            source/scwx/qt/ui/imgui_debug_dialog.ui
            source/scwx/qt/ui/radar_site_dialog.ui
            source/scwx/qt/ui/settings_dialog.ui

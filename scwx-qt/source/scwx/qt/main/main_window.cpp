@@ -13,10 +13,12 @@
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/model/radar_product_model.hpp>
-#include <scwx/qt/ui/alert_dock_widget.hpp>
-#include <scwx/qt/ui/flow_layout.hpp>
+#include <scwx/qt/settings/ui_settings.hpp>
 #include <scwx/qt/ui/about_dialog.hpp>
+#include <scwx/qt/ui/alert_dock_widget.hpp>
 #include <scwx/qt/ui/animation_dock_widget.hpp>
+#include <scwx/qt/ui/collapsible_group.hpp>
+#include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/qt/ui/imgui_debug_dialog.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
@@ -61,6 +63,11 @@ public:
        mainWindow_ {mainWindow},
        settings_ {},
        activeMap_ {nullptr},
+       mapSettingsGroup_ {nullptr},
+       level2ProductsGroup_ {nullptr},
+       level2SettingsGroup_ {nullptr},
+       level3ProductsGroup_ {nullptr},
+       timelineGroup_ {nullptr},
        level2ProductsWidget_ {nullptr},
        level2SettingsWidget_ {nullptr},
        level3ProductsWidget_ {nullptr},
@@ -115,6 +122,7 @@ public:
    void AsyncSetup();
    void ConfigureMapLayout();
    void ConfigureMapStyles();
+   void ConfigureUiSettings();
    void ConnectAnimationSignals();
    void ConnectMapSignals();
    void ConnectOtherSignals();
@@ -142,6 +150,11 @@ public:
    map::MapProvider      mapProvider_;
    map::MapWidget*       activeMap_;
 
+   ui::CollapsibleGroup*     mapSettingsGroup_;
+   ui::CollapsibleGroup*     level2ProductsGroup_;
+   ui::CollapsibleGroup*     level2SettingsGroup_;
+   ui::CollapsibleGroup*     level3ProductsGroup_;
+   ui::CollapsibleGroup*     timelineGroup_;
    ui::Level2ProductsWidget* level2ProductsWidget_;
    ui::Level2SettingsWidget* level2SettingsWidget_;
 
@@ -193,22 +206,11 @@ MainWindow::MainWindow(QWidget* parent) :
    p->alertDockWidget_->setVisible(false);
    addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
 
-   // Animation Dock Widget
-   p->animationDockWidget_ = new ui::AnimationDockWidget(this);
-   p->animationDockWidget_->setVisible(true);
-   addDockWidget(Qt::LeftDockWidgetArea, p->animationDockWidget_);
-
    // Configure Menu
    ui->menuView->insertAction(ui->actionRadarToolbox,
                               ui->radarToolboxDock->toggleViewAction());
    ui->radarToolboxDock->toggleViewAction()->setText(tr("Radar &Toolbox"));
    ui->actionRadarToolbox->setVisible(false);
-
-   ui->menuView->insertAction(ui->actionAnimationToolbox,
-                              p->animationDockWidget_->toggleViewAction());
-   p->animationDockWidget_->toggleViewAction()->setText(
-      tr("A&nimation Toolbox"));
-   ui->actionAnimationToolbox->setVisible(false);
 
    ui->menuView->insertAction(ui->actionResourceExplorer,
                               ui->resourceExplorerDock->toggleViewAction());
@@ -240,24 +242,55 @@ MainWindow::MainWindow(QWidget* parent) :
    // Settings Dialog
    p->settingsDialog_ = new ui::SettingsDialog(this);
 
+   // Map Settings
+   p->mapSettingsGroup_ = new ui::CollapsibleGroup(tr("Map Settings"), this);
+   p->mapSettingsGroup_->GetContentsLayout()->addWidget(ui->mapStyleLabel);
+   p->mapSettingsGroup_->GetContentsLayout()->addWidget(ui->mapStyleComboBox);
+   ui->radarToolboxScrollAreaContents->layout()->replaceWidget(
+      ui->mapSettingsGroupBox, p->mapSettingsGroup_);
+   ui->mapSettingsGroupBox->setVisible(false);
+
    // Add Level 2 Products
+   p->level2ProductsGroup_ =
+      new ui::CollapsibleGroup(tr("Level 2 Products"), this);
    p->level2ProductsWidget_ = new ui::Level2ProductsWidget(this);
-   ui->radarProductGroupBox->layout()->replaceWidget(ui->level2ProductFrame,
-                                                     p->level2ProductsWidget_);
-   delete ui->level2ProductFrame;
-   ui->level2ProductFrame = p->level2ProductsWidget_;
+   p->level2ProductsGroup_->GetContentsLayout()->addWidget(
+      p->level2ProductsWidget_);
+   ui->radarToolboxScrollAreaContents->layout()->addWidget(
+      p->level2ProductsGroup_);
 
    // Add Level 3 Products
+   p->level3ProductsGroup_ =
+      new ui::CollapsibleGroup(tr("Level 3 Products"), this);
    p->level3ProductsWidget_ = new ui::Level3ProductsWidget(this);
-   ui->radarProductGroupBox->layout()->replaceWidget(ui->level3ProductFrame,
-                                                     p->level3ProductsWidget_);
-   delete ui->level3ProductFrame;
-   ui->level3ProductFrame = p->level3ProductsWidget_;
+   p->level3ProductsGroup_->GetContentsLayout()->addWidget(
+      p->level3ProductsWidget_);
+   ui->radarToolboxScrollAreaContents->layout()->addWidget(
+      p->level3ProductsGroup_);
 
    // Add Level 2 Settings
-   p->level2SettingsWidget_ = new ui::Level2SettingsWidget(ui->settingsFrame);
-   ui->settingsFrame->layout()->addWidget(p->level2SettingsWidget_);
-   p->level2SettingsWidget_->setVisible(false);
+   p->level2SettingsGroup_ =
+      new ui::CollapsibleGroup(tr("Level 2 Settings"), this);
+   p->level2SettingsWidget_ = new ui::Level2SettingsWidget(this);
+   p->level2SettingsGroup_->GetContentsLayout()->addWidget(
+      p->level2SettingsWidget_);
+   ui->radarToolboxScrollAreaContents->layout()->addWidget(
+      p->level2SettingsGroup_);
+   p->level2SettingsGroup_->setVisible(false);
+   ui->radarToolboxScrollAreaContents->layout()->addWidget(
+      p->level2SettingsGroup_);
+
+   // Timeline
+   p->timelineGroup_       = new ui::CollapsibleGroup(tr("Timeline"), this);
+   p->animationDockWidget_ = new ui::AnimationDockWidget(this);
+   p->timelineGroup_->GetContentsLayout()->addWidget(p->animationDockWidget_);
+   ui->radarToolboxScrollAreaContents->layout()->addWidget(p->timelineGroup_);
+
+   // Reset toolbox spacer at the bottom
+   ui->radarToolboxScrollAreaContents->layout()->removeItem(
+      ui->radarToolboxSpacer);
+   ui->radarToolboxScrollAreaContents->layout()->addItem(
+      ui->radarToolboxSpacer);
 
    // ImGui Debug Dialog
    p->imGuiDebugDialog_ = new ui::ImGuiDebugDialog(this);
@@ -280,6 +313,7 @@ MainWindow::MainWindow(QWidget* parent) :
 
    p->PopulateMapStyles();
    p->ConfigureMapStyles();
+   p->ConfigureUiSettings();
    p->ConnectMapSignals();
    p->ConnectAnimationSignals();
    p->ConnectOtherSignals();
@@ -635,6 +669,42 @@ void MainWindowImpl::ConfigureMapStyles()
             mapProviderInfo.mapStyles_.at(0).name_);
       }
    }
+}
+
+void MainWindowImpl::ConfigureUiSettings()
+{
+   auto& uiSettings = settings::UiSettings::Instance();
+
+   level2ProductsGroup_->SetExpanded(
+      uiSettings.level2_products_expanded().GetValue());
+   level2SettingsGroup_->SetExpanded(
+      uiSettings.level2_settings_expanded().GetValue());
+   level3ProductsGroup_->SetExpanded(
+      uiSettings.level3_products_expanded().GetValue());
+   mapSettingsGroup_->SetExpanded(
+      uiSettings.map_settings_expanded().GetValue());
+   timelineGroup_->SetExpanded(uiSettings.timeline_expanded().GetValue());
+
+   connect(level2ProductsGroup_,
+           &ui::CollapsibleGroup::StateChanged,
+           [&](bool expanded)
+           { uiSettings.level2_products_expanded().StageValue(expanded); });
+   connect(level2SettingsGroup_,
+           &ui::CollapsibleGroup::StateChanged,
+           [&](bool expanded)
+           { uiSettings.level2_settings_expanded().StageValue(expanded); });
+   connect(level3ProductsGroup_,
+           &ui::CollapsibleGroup::StateChanged,
+           [&](bool expanded)
+           { uiSettings.level3_products_expanded().StageValue(expanded); });
+   connect(mapSettingsGroup_,
+           &ui::CollapsibleGroup::StateChanged,
+           [&](bool expanded)
+           { uiSettings.map_settings_expanded().StageValue(expanded); });
+   connect(timelineGroup_,
+           &ui::CollapsibleGroup::StateChanged,
+           [&](bool expanded)
+           { uiSettings.timeline_expanded().StageValue(expanded); });
 }
 
 void MainWindowImpl::ConnectMapSignals()
@@ -1011,11 +1081,11 @@ void MainWindowImpl::UpdateRadarProductSettings()
    if (activeMap_->GetRadarProductGroup() == common::RadarProductGroup::Level2)
    {
       level2SettingsWidget_->UpdateSettings(activeMap_);
-      level2SettingsWidget_->setVisible(true);
+      level2SettingsGroup_->setVisible(true);
    }
    else
    {
-      level2SettingsWidget_->setVisible(false);
+      level2SettingsGroup_->setVisible(false);
    }
 }
 

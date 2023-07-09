@@ -76,7 +76,6 @@
      <string>&amp;View</string>
     </property>
     <addaction name="actionRadarToolbox"/>
-    <addaction name="actionAnimationToolbox"/>
     <addaction name="actionResourceExplorer"/>
     <addaction name="actionAlerts"/>
    </widget>
@@ -121,7 +120,7 @@
         <enum>QFrame::NoFrame</enum>
        </property>
        <property name="horizontalScrollBarPolicy">
-        <enum>Qt::ScrollBarAlwaysOff</enum>
+        <enum>Qt::ScrollBarAsNeeded</enum>
        </property>
        <property name="sizeAdjustPolicy">
         <enum>QAbstractScrollArea::AdjustToContents</enum>
@@ -134,8 +133,8 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>175</width>
-          <height>696</height>
+          <width>157</width>
+          <height>702</height>
          </rect>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -237,60 +236,6 @@
             <item>
              <widget class="QComboBox" name="mapStyleComboBox"/>
             </item>
-           </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QGroupBox" name="radarProductGroupBox">
-           <property name="title">
-            <string>Radar Products</string>
-           </property>
-           <layout class="QVBoxLayout" name="verticalLayout">
-            <item>
-             <widget class="QLabel" name="level2Label">
-              <property name="text">
-               <string>Level 2</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QWidget" name="level2ProductFrame" native="true"/>
-            </item>
-            <item>
-             <widget class="Line" name="level2Separator">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="level3Label">
-              <property name="text">
-               <string>Level 3</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QWidget" name="level3ProductFrame" native="true"/>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QWidget" name="settingsFrame" native="true">
-           <layout class="QVBoxLayout" name="verticalLayout_4">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
            </layout>
           </widget>
          </item>
@@ -468,11 +413,6 @@
   <action name="actionCheckForUpdates">
    <property name="text">
     <string>&amp;Check for Updates</string>
-   </property>
-  </action>
-  <action name="actionAnimationToolbox">
-   <property name="text">
-    <string>A&amp;nimation Toolbox</string>
    </property>
   </action>
  </widget>
