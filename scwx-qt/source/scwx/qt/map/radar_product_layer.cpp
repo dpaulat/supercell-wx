@@ -77,6 +77,15 @@ public:
 RadarProductLayer::RadarProductLayer(std::shared_ptr<MapContext> context) :
     GenericLayer(context), p(std::make_unique<RadarProductLayerImpl>())
 {
+   auto radarProductView = context->radar_product_view();
+   connect(radarProductView.get(),
+           &view::RadarProductView::ColorTableUpdated,
+           this,
+           [this]() { p->colorTableNeedsUpdate_ = true; });
+   connect(radarProductView.get(),
+           &view::RadarProductView::SweepComputed,
+           this,
+           [this]() { p->sweepNeedsUpdate_ = true; });
 }
 RadarProductLayer::~RadarProductLayer() = default;
 
@@ -144,16 +153,6 @@ void RadarProductLayer::Initialize()
    gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
    gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
    gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-
-   auto radarProductView = context()->radar_product_view();
-   connect(radarProductView.get(),
-           &view::RadarProductView::ColorTableUpdated,
-           this,
-           [this]() { p->colorTableNeedsUpdate_ = true; });
-   connect(radarProductView.get(),
-           &view::RadarProductView::SweepComputed,
-           this,
-           [this]() { p->sweepNeedsUpdate_ = true; });
 }
 
 void RadarProductLayer::UpdateSweep()
