@@ -7,7 +7,8 @@ namespace scwx
 namespace util
 {
 
-void SetEnvironment(const std::string& name, const std::string& value);
+std::string GetEnvironment(const std::string& name);
+void        SetEnvironment(const std::string& name, const std::string& value);
 
 } // namespace util
 } // namespace scwx

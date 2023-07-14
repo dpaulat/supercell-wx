@@ -13,6 +13,40 @@ namespace util
 static const std::string logPrefix_ {"scwx::util::environment"};
 static const auto        logger_ = util::Logger::Create(logPrefix_);
 
+std::string GetEnvironment(const std::string& name)
+{
+   std::string value {};
+
+#ifdef _WIN32
+   std::size_t       requiredSize;
+   std::vector<char> data {};
+
+   // Determine environment variable size
+   getenv_s(&requiredSize, nullptr, 0, name.c_str());
+   if (requiredSize == 0)
+   {
+      // Environment variable is not set
+      return value;
+   }
+
+   // Request environment variable
+   data.resize(requiredSize);
+   getenv_s(&requiredSize, data.data(), requiredSize, name.c_str());
+
+   // Store environment variable
+   value = data.data();
+#else
+   const char* data = getenv(name.c_str());
+
+   if (data != nullptr)
+   {
+      value = data;
+   }
+#endif
+
+   return value;
+}
+
 void SetEnvironment(const std::string& name, const std::string& value)
 {
 #ifdef _WIN32
