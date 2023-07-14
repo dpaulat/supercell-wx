@@ -674,13 +674,14 @@ void MapWidget::AddLayers()
          const std::string layer = qlayer.toStdString();
 
          // Draw below layers defined in map style
-         auto it = std::find_if(mapStyle.drawBelow_.cbegin(),
-                                mapStyle.drawBelow_.cend(),
-                                [&layer](const std::string& styleLayer) -> bool
-                                {
-                                   std::regex re {styleLayer};
-                                   return std::regex_match(layer, re);
-                                });
+         auto it = std::find_if(
+            mapStyle.drawBelow_.cbegin(),
+            mapStyle.drawBelow_.cend(),
+            [&layer](const std::string& styleLayer) -> bool
+            {
+               std::regex re {styleLayer, std::regex_constants::icase};
+               return std::regex_match(layer, re);
+            });
 
          if (it != mapStyle.drawBelow_.cend())
          {
