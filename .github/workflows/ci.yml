@@ -191,4 +191,7 @@ jobs:
 
     - name: Test Supercell Wx
       working-directory: ${{ github.workspace }}/build
+      env:
+        MAPBOX_API_KEY:   ${{ secrets.MAPBOX_API_KEY }}
+        MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
       run: ctest -C ${{ matrix.build_type }} --exclude-regex mbgl-test-runner

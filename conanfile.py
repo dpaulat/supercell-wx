@@ -8,7 +8,7 @@ class SupercellWxConan(ConanFile):
                   "geographiclib/1.52",
                   "glew/2.2.0",
                   "glm/cci.20220420",
-                  "gtest/cci.20210126",
+                  "gtest/1.13.0",
                   "libcurl/7.86.0",
                   "libxml2/2.10.3",
                   "openssl/3.1.0",
