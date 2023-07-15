@@ -3,8 +3,8 @@
 IDI_ICON1               ICON    "icons\\scwx-256.ico"
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,1,0,0
- PRODUCTVERSION 0,1,0,0
+ FILEVERSION 0,2,2,0
+ PRODUCTVERSION 0,2,2,0
  FILEFLAGS 0x0L
  FILEFLAGSMASK 0x3fL
  FILEOS 0x00040004L
@@ -17,12 +17,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Dan Paulat"
             VALUE "FileDescription", "Supercell Wx"
-            VALUE "FileVersion", "0.2.1.0"
+            VALUE "FileVersion", "0.2.2.0"
             VALUE "LegalCopyright", "Copyright (C) 2021-2023 Dan Paulat"
             VALUE "InternalName", "scwx"
             VALUE "OriginalFilename", "supercell-wx.exe"
             VALUE "ProductName", "Supercell Wx"
-            VALUE "ProductVersion", "0.2.1.0"
+            VALUE "ProductVersion", "0.2.2.0"
         END
     END
     BLOCK "VarFileInfo"
