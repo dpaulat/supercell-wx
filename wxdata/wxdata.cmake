@@ -45,6 +45,11 @@ set(SRC_COMMON source/scwx/common/characters.cpp
                source/scwx/common/products.cpp
                source/scwx/common/sites.cpp
                source/scwx/common/vcp.cpp)
+set(HDR_GR include/scwx/gr/color.hpp
+           include/scwx/gr/gr_types.hpp
+           include/scwx/gr/placefile.hpp)
+set(SRC_GR source/scwx/gr/color.cpp
+           source/scwx/gr/placefile.cpp)
 set(HDR_NETWORK include/scwx/network/dir_list.hpp)
 set(SRC_NETWORK source/scwx/network/dir_list.cpp)
 set(HDR_PROVIDER include/scwx/provider/aws_level2_data_provider.hpp
@@ -195,6 +200,8 @@ add_library(wxdata OBJECT ${HDR_AWIPS}
                           ${SRC_AWIPS}
                           ${HDR_COMMON}
                           ${SRC_COMMON}
+                          ${HDR_GR}
+                          ${SRC_GR}
                           ${HDR_NETWORK}
                           ${SRC_NETWORK}
                           ${HDR_PROVIDER}
@@ -213,6 +220,8 @@ source_group("Header Files\\awips"       FILES ${HDR_AWIPS})
 source_group("Source Files\\awips"       FILES ${SRC_AWIPS})
 source_group("Header Files\\common"      FILES ${HDR_COMMON})
 source_group("Source Files\\common"      FILES ${SRC_COMMON})
+source_group("Header Files\\gr"          FILES ${HDR_GR})
+source_group("Source Files\\gr"          FILES ${SRC_GR})
 source_group("Header Files\\network"     FILES ${HDR_NETWORK})
 source_group("Source Files\\network"     FILES ${SRC_NETWORK})
 source_group("Header Files\\provider"    FILES ${HDR_PROVIDER})
