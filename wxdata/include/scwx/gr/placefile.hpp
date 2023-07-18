@@ -33,7 +33,7 @@ public:
    Placefile(Placefile&&) noexcept;
    Placefile& operator=(Placefile&&) noexcept;
 
-   bool                      IsValid() const;
+   bool IsValid() const;
 
    static std::shared_ptr<Placefile> Load(const std::string& filename);
    static std::shared_ptr<Placefile> Load(std::istream& is);
@@ -43,5 +43,5 @@ private:
    std::unique_ptr<Impl> p;
 };
 
-} // namespace common
+} // namespace gr
 } // namespace scwx

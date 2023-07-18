@@ -110,11 +110,20 @@ std::shared_ptr<Placefile> Placefile::Load(std::istream& is)
    while (scwx::util::getline(is, line))
    {
       // Find position of comment (;)
-      std::size_t lineEnd = line.find(';');
-      if (lineEnd == std::string::npos)
+      bool inQuotes = false;
+      for (std::size_t i = 0; i < line.size(); ++i)
       {
-         // Remove comment
-         line.erase(lineEnd);
+         if (!inQuotes && line[i] == ';')
+         {
+            // Remove comment
+            line.erase(i);
+            break;
+         }
+         else if (line[i] == '"')
+         {
+            // Toggle quote state
+            inQuotes = !inQuotes;
+         }
       }
 
       // Remove extra spacing from line
