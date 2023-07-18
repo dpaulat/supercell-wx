@@ -2,14 +2,13 @@
 #include <scwx/gr/color.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/streams.hpp>
+#include <scwx/util/strings.hpp>
 
 #include <fstream>
-#include <regex>
 #include <sstream>
 #include <unordered_map>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/tokenizer.hpp>
 #include <boost/units/base_units/metric/nautical_mile.hpp>
 #include <boost/units/quantity.hpp>
 #include <boost/units/systems/si/length.hpp>
@@ -45,17 +44,17 @@ public:
 
    struct DrawItem
    {
+      boost::units::quantity<boost::units::si::length> threshold_ {};
    };
 
    struct PlaceDrawItem : DrawItem
    {
-      boost::units::quantity<boost::units::si::length> threshold_ {};
-      boost::gil::rgba8_pixel_t                        color_ {};
-      double                                           latitude_ {};
-      double                                           longitude_ {};
-      double                                           x_ {};
-      double                                           y_ {};
-      std::string                                      text_ {};
+      boost::gil::rgba8_pixel_t color_ {};
+      double                    latitude_ {};
+      double                    longitude_ {};
+      double                    x_ {};
+      double                    y_ {};
+      std::string               text_ {};
    };
 
    void ParseLocation(const std::string& latitudeToken,
@@ -64,8 +63,7 @@ public:
                       double&            longitude,
                       double&            x,
                       double&            y);
-   void ProcessLine(const std::string&              line,
-                    const std::vector<std::string>& tokenList);
+   void ProcessLine(const std::string& line);
 
    std::chrono::seconds refresh_ {-1};
 
@@ -129,30 +127,21 @@ std::shared_ptr<Placefile> Placefile::Load(std::istream& is)
       // Remove extra spacing from line
       boost::trim(line);
 
-      boost::char_separator<char> delimiter(", ");
-      boost::tokenizer            tokens(line, delimiter);
-      std::vector<std::string>    tokenList;
-
-      for (auto& token : tokens)
-      {
-         tokenList.push_back(token);
-      }
-
-      if (tokenList.size() >= 1)
+      if (line.size() >= 1)
       {
          try
          {
             switch (placefile->p->currentStatement_)
             {
             case DrawingStatement::Standard:
-               placefile->p->ProcessLine(line, tokenList);
+               placefile->p->ProcessLine(line);
                break;
 
             case DrawingStatement::Line:
             case DrawingStatement::Triangles:
             case DrawingStatement::Image:
             case DrawingStatement::Polygon:
-               if (boost::iequals(tokenList[0], "End:"))
+               if (boost::istarts_with(line, "End:"))
                {
                   placefile->p->currentStatement_ = DrawingStatement::Standard;
                }
@@ -169,28 +158,53 @@ std::shared_ptr<Placefile> Placefile::Load(std::istream& is)
    return placefile;
 }
 
-void Placefile::Impl::ProcessLine(const std::string&              line,
-                                  const std::vector<std::string>& tokenList)
+void Placefile::Impl::ProcessLine(const std::string& line)
 {
+   static const std::string thresholdKey_ {"Threshold:"};
+   static const std::string hsluvKey_ {"HSLuv:"};
+   static const std::string colorKey_ {"Color:"};
+   static const std::string refreshKey_ {"Refresh:"};
+   static const std::string refreshSecondsKey_ {"RefreshSeconds:"};
+   static const std::string placeKey_ {"Place:"};
+   static const std::string iconFileKey_ {"IconFile:"};
+   static const std::string iconKey_ {"Icon:"};
+   static const std::string fontKey_ {"Font:"};
+   static const std::string textKey_ {"Text:"};
+   static const std::string objectKey_ {"Object:"};
+   static const std::string endKey_ {"End:"};
+   static const std::string lineKey_ {"Line:"};
+   static const std::string trianglesKey_ {"Triangles:"};
+   static const std::string imageKey_ {"Image:"};
+   static const std::string polygonKey_ {"Polygon:"};
+
    currentStatement_ = DrawingStatement::Standard;
 
-   if (boost::iequals(tokenList[0], "Threshold:"))
+   // When tokenizing, add one additional delimiter to discard unexpected
+   // parameters (where appropriate)
+
+   if (boost::istarts_with(line, thresholdKey_))
    {
       // Threshold: nautical_miles
-      if (tokenList.size() >= 2)
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {" "}, thresholdKey_.size());
+
+      if (tokenList.size() >= 1)
       {
          threshold_ =
             static_cast<boost::units::quantity<boost::units::si::length>>(
-               std::stod(tokenList[1]) *
+               std::stod(tokenList[0]) *
                boost::units::metric::nautical_mile_base_unit::unit_type());
       }
    }
-   else if (boost::iequals(tokenList[0], "HSLuv:"))
+   else if (boost::istarts_with(line, hsluvKey_))
    {
       // HSLuv: value
-      if (tokenList.size() >= 2)
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {" "}, hsluvKey_.size());
+
+      if (tokenList.size() >= 1)
       {
-         if (boost::iequals(tokenList[1], "true"))
+         if (boost::iequals(tokenList[0], "true"))
          {
             colorMode_ = ColorMode::HSLuv;
          }
@@ -200,52 +214,60 @@ void Placefile::Impl::ProcessLine(const std::string&              line,
          }
       }
    }
-   else if (boost::iequals(tokenList[0], "Color:"))
+   else if (boost::istarts_with(line, colorKey_))
    {
-      // Color: red green blue
-      if (tokenList.size() >= 2)
+      // Color: red green blue [alpha]
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {" ", " ", " ", " "}, colorKey_.size());
+
+      if (tokenList.size() >= 3)
       {
-         color_ = ParseColor(tokenList, 1, colorMode_);
+         color_ = ParseColor(tokenList, 0, colorMode_);
       }
    }
-   else if (boost::iequals(tokenList[0], "Refresh:"))
+   else if (boost::istarts_with(line, refreshKey_))
    {
       // Refresh: minutes
-      if (tokenList.size() >= 2)
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {" "}, refreshKey_.size());
+
+      if (tokenList.size() >= 1)
       {
-         refresh_ = std::chrono::minutes {std::stoi(tokenList[1])};
+         refresh_ = std::chrono::minutes {std::stoi(tokenList[0])};
       }
    }
-   else if (boost::iequals(tokenList[0], "RefreshSeconds:"))
+   else if (boost::istarts_with(line, refreshSecondsKey_))
    {
       // RefreshSeconds: seconds
-      if (tokenList.size() >= 2)
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {" "}, refreshSecondsKey_.size());
+
+      if (tokenList.size() >= 1)
       {
-         refresh_ = std::chrono::seconds {std::stoi(tokenList[1])};
+         refresh_ = std::chrono::seconds {std::stoi(tokenList[0])};
       }
    }
-   else if (boost::iequals(tokenList[0], "Place:"))
+   else if (boost::istarts_with(line, placeKey_))
    {
       // Place: latitude, longitude, string with spaces
-      std::regex  re {"Place:\\s*([+\\-0-9\\.]+),\\s*([+\\-0-9\\.]+),\\s*(.+)"};
-      std::smatch match;
-      std::regex_match(line, match, re);
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {",", ","}, placeKey_.size());
 
-      if (match.size() >= 4)
+      if (tokenList.size() >= 3)
       {
          std::shared_ptr<PlaceDrawItem> di = std::make_shared<PlaceDrawItem>();
 
          di->threshold_ = threshold_;
          di->color_     = color_;
 
-         ParseLocation(match[1].str(),
-                       match[2].str(),
+         ParseLocation(tokenList[0],
+                       tokenList[1],
                        di->latitude_,
                        di->longitude_,
                        di->x_,
                        di->y_);
 
-         di->text_ = match[3].str();
+         di->text_.swap(tokenList[2]);
 
          drawItems_.emplace_back(std::move(di));
       }
@@ -254,46 +276,45 @@ void Placefile::Impl::ProcessLine(const std::string&              line,
          logger_->warn("Place statement malformed: {}", line);
       }
    }
-   else if (boost::iequals(tokenList[0], "IconFile:"))
+   else if (boost::istarts_with(line, iconFileKey_))
    {
       // IconFile: fileNumber, iconWidth, iconHeight, hotX, hotY, fileName
 
       // TODO
    }
-   else if (boost::iequals(tokenList[0], "Icon:"))
+   else if (boost::istarts_with(line, iconKey_))
    {
       // Icon: lat, lon, angle, fileNumber, iconNumber, hoverText
 
       // TODO
    }
-   else if (boost::iequals(tokenList[0], "Font:"))
+   else if (boost::istarts_with(line, fontKey_))
    {
       // Font: fontNumber, pixels, flags, "face"
 
       // TODO
    }
-   else if (boost::iequals(tokenList[0], "Text:"))
+   else if (boost::istarts_with(line, textKey_))
    {
       // Text: lat, lon, fontNumber, "string", "hover"
 
       // TODO
    }
-   else if (boost::iequals(tokenList[0], "Object:"))
+   else if (boost::istarts_with(line, objectKey_))
    {
       // Object: lat, lon
       //    ...
       // End:
-      std::regex  re {"Object:\\s*([+\\-0-9\\.]+),\\s*([+\\-0-9\\.]+)"};
-      std::smatch match;
-      std::regex_match(line, match, re);
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {",", ","}, objectKey_.size());
 
       double latitude {};
       double longitude {};
 
-      if (match.size() >= 3)
+      if (tokenList.size() >= 2)
       {
-         latitude  = std::stod(match[1].str());
-         longitude = std::stod(match[2].str());
+         latitude  = std::stod(tokenList[0]);
+         longitude = std::stod(tokenList[1]);
       }
       else
       {
@@ -302,7 +323,7 @@ void Placefile::Impl::ProcessLine(const std::string&              line,
 
       objectStack_.emplace_back(Object {latitude, longitude});
    }
-   else if (boost::iequals(tokenList[0], "End:"))
+   else if (boost::istarts_with(line, endKey_))
    {
       // Object End
       if (!objectStack_.empty())
@@ -314,7 +335,7 @@ void Placefile::Impl::ProcessLine(const std::string&              line,
          logger_->warn("End found without Object");
       }
    }
-   else if (boost::iequals(tokenList[0], "Line:"))
+   else if (boost::istarts_with(line, lineKey_))
    {
       // Line: width, flags [, hover_text]
       //    lat, lon
@@ -324,7 +345,7 @@ void Placefile::Impl::ProcessLine(const std::string&              line,
 
       // TODO
    }
-   else if (boost::iequals(tokenList[0], "Triangles:"))
+   else if (boost::istarts_with(line, trianglesKey_))
    {
       // Triangles:
       //    lat, lon [, r, g, b [,a]]
@@ -334,7 +355,7 @@ void Placefile::Impl::ProcessLine(const std::string&              line,
 
       // TODO
    }
-   else if (boost::iequals(tokenList[0], "Image:"))
+   else if (boost::istarts_with(line, imageKey_))
    {
       // Image: image_file
       //    lat, lon, Tu [, Tv ]
@@ -344,7 +365,7 @@ void Placefile::Impl::ProcessLine(const std::string&              line,
 
       // TODO
    }
-   else if (boost::iequals(tokenList[0], "Polygon:"))
+   else if (boost::istarts_with(line, polygonKey_))
    {
       // Polygon:
       //    lat1, lon1 [, r, g, b [,a]] ; start of the first contour
@@ -359,6 +380,10 @@ void Placefile::Impl::ProcessLine(const std::string&              line,
       currentStatement_ = DrawingStatement::Polygon;
 
       // TODO
+   }
+   else
+   {
+      logger_->warn("Unknown statement: {}", line);
    }
 }
 
