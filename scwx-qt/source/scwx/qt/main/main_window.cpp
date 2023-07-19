@@ -5,6 +5,7 @@
 
 #include <scwx/qt/main/application.hpp>
 #include <scwx/qt/main/versions.hpp>
+#include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
@@ -79,6 +80,7 @@ public:
        settingsDialog_ {nullptr},
        updateDialog_ {nullptr},
        radarProductModel_ {nullptr},
+       placefileManager_ {manager::PlacefileManager::Instance()},
        textEventManager_ {manager::TextEventManager::Instance()},
        timelineManager_ {manager::TimelineManager::Instance()},
        updateManager_ {manager::UpdateManager::Instance()},
@@ -169,6 +171,7 @@ public:
    ui::UpdateDialog*        updateDialog_;
 
    std::unique_ptr<model::RadarProductModel>  radarProductModel_;
+   std::shared_ptr<manager::PlacefileManager> placefileManager_;
    std::shared_ptr<manager::TextEventManager> textEventManager_;
    std::shared_ptr<manager::TimelineManager>  timelineManager_;
    std::shared_ptr<manager::UpdateManager>    updateManager_;
@@ -394,6 +397,28 @@ void MainWindow::on_actionOpenNexrad_triggered()
 
          manager::RadarProductManager::LoadFile(file.toStdString(), request);
       });
+
+   dialog->open();
+}
+
+void MainWindow::on_actionOpenPlacefile_triggered()
+{
+   static const std::string placefileFilter = "Placefiles (*)";
+
+   QFileDialog* dialog = new QFileDialog(this);
+
+   dialog->setFileMode(QFileDialog::ExistingFile);
+   dialog->setNameFilter(tr(placefileFilter.c_str()));
+   dialog->setAttribute(Qt::WA_DeleteOnClose);
+
+   connect(dialog,
+           &QFileDialog::fileSelected,
+           this,
+           [this](const QString& file)
+           {
+              logger_->info("Selected: {}", file.toStdString());
+              p->placefileManager_->LoadFile(file.toStdString());
+           });
 
    dialog->open();
 }
