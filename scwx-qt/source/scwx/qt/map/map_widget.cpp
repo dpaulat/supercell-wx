@@ -7,6 +7,7 @@
 #include <scwx/qt/map/layer_wrapper.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/overlay_layer.hpp>
+#include <scwx/qt/map/placefile_layer.hpp>
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
@@ -61,6 +62,7 @@ public:
        radarProductLayer_ {nullptr},
        alertLayer_ {std::make_shared<AlertLayer>(context_)},
        overlayLayer_ {nullptr},
+       placefileLayer_ {nullptr},
        colorTableLayer_ {nullptr},
        autoRefreshEnabled_ {true},
        autoUpdateEnabled_ {true},
@@ -147,6 +149,7 @@ public:
    std::shared_ptr<RadarProductLayer> radarProductLayer_;
    std::shared_ptr<AlertLayer>        alertLayer_;
    std::shared_ptr<OverlayLayer>      overlayLayer_;
+   std::shared_ptr<PlacefileLayer>    placefileLayer_;
    std::shared_ptr<ColorTableLayer>   colorTableLayer_;
 
    bool autoRefreshEnabled_;
@@ -698,6 +701,10 @@ void MapWidget::AddLayers()
    }
 
    p->alertLayer_->AddLayers("colorTable");
+
+   p->placefileLayer_ = std::make_shared<PlacefileLayer>(p->context_);
+   p->AddLayer("placefile", p->placefileLayer_);
+
    p->overlayLayer_ = std::make_shared<OverlayLayer>(p->context_);
    p->AddLayer("overlay", p->overlayLayer_);
 }

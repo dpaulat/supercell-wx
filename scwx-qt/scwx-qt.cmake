@@ -86,6 +86,7 @@ set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/map_settings.hpp
             source/scwx/qt/map/map_widget.hpp
             source/scwx/qt/map/overlay_layer.hpp
+            source/scwx/qt/map/placefile_layer.hpp
             source/scwx/qt/map/radar_product_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp)
 set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
@@ -97,6 +98,7 @@ set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/map_provider.cpp
             source/scwx/qt/map/map_widget.cpp
             source/scwx/qt/map/overlay_layer.cpp
+            source/scwx/qt/map/placefile_layer.cpp
             source/scwx/qt/map/radar_product_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp)
 set(HDR_MODEL source/scwx/qt/model/alert_model.hpp
