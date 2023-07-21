@@ -1,5 +1,6 @@
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/gl/shader_program.hpp>
+#include <scwx/qt/util/maplibre.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <execution>
@@ -30,9 +31,6 @@ static constexpr uint32_t MAX_DATA_MOMENT_GATES = 1840;
 
 static const std::string logPrefix_ = "scwx::qt::map::radar_product_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
-
-static glm::vec2
-LatLongToScreenCoordinate(const QMapLibreGL::Coordinate& coordinate);
 
 class RadarProductLayerImpl
 {
@@ -287,7 +285,7 @@ void RadarProductLayer::Render(
 
    gl.glUniform2fv(p->uMapScreenCoordLocation_,
                    1,
-                   glm::value_ptr(LatLongToScreenCoordinate(
+                   glm::value_ptr(util::maplibre::LatLongToScreenCoordinate(
                       {params.latitude, params.longitude})));
 
    gl.glUniformMatrix4fv(
@@ -353,22 +351,6 @@ void RadarProductLayer::UpdateColorTable()
 
    gl.glUniform1ui(p->uDataMomentOffsetLocation_, rangeMin);
    gl.glUniform1f(p->uDataMomentScaleLocation_, scale);
-}
-
-static glm::vec2
-LatLongToScreenCoordinate(const QMapLibreGL::Coordinate& coordinate)
-{
-   static constexpr double RAD2DEG_D = 180.0 / M_PI;
-
-   double latitude = std::clamp(
-      coordinate.first, -mbgl::util::LATITUDE_MAX, mbgl::util::LATITUDE_MAX);
-   glm::vec2 screen {
-      mbgl::util::LONGITUDE_MAX + coordinate.second,
-      -(mbgl::util::LONGITUDE_MAX -
-        RAD2DEG_D *
-           std::log(std::tan(M_PI / 4.0 +
-                             latitude * M_PI / mbgl::util::DEGREES_MAX)))};
-   return screen;
 }
 
 } // namespace map
