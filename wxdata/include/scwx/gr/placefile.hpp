@@ -6,6 +6,8 @@
 #include <vector>
 
 #include <boost/gil/typedefs.hpp>
+#include <boost/units/quantity.hpp>
+#include <boost/units/systems/si/length.hpp>
 
 namespace scwx
 {
@@ -33,7 +35,45 @@ public:
    Placefile(Placefile&&) noexcept;
    Placefile& operator=(Placefile&&) noexcept;
 
+   enum class ItemType
+   {
+      Place,
+      Icon,
+      Font,
+      Text,
+      Line,
+      Triangles,
+      Image,
+      Polygon,
+      Unknown
+   };
+
+   struct DrawItem
+   {
+      ItemType itemType_ {ItemType::Unknown};
+      boost::units::quantity<boost::units::si::length> threshold_ {};
+   };
+
+   struct PlaceDrawItem : DrawItem
+   {
+      PlaceDrawItem() { itemType_ = ItemType::Place; }
+
+      boost::gil::rgba8_pixel_t color_ {};
+      double                    latitude_ {};
+      double                    longitude_ {};
+      double                    x_ {};
+      double                    y_ {};
+      std::string               text_ {};
+   };
+
    bool IsValid() const;
+
+   /**
+    * @brief Gets the list of draw items defined in the placefile
+    *
+    * @return vector of draw item pointers
+    */
+   std::vector<std::shared_ptr<DrawItem>> GetDrawItems();
 
    static std::shared_ptr<Placefile> Load(const std::string& filename);
    static std::shared_ptr<Placefile> Load(std::istream& is);

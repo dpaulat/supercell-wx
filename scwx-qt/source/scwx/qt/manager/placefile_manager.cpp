@@ -61,6 +61,24 @@ public:
 PlacefileManager::PlacefileManager() : p(std::make_unique<Impl>(this)) {}
 PlacefileManager::~PlacefileManager() = default;
 
+std::vector<std::shared_ptr<gr::Placefile>>
+PlacefileManager::GetActivePlacefiles()
+{
+   std::vector<std::shared_ptr<gr::Placefile>> placefiles;
+
+   std::shared_lock lock {p->placefileRecordLock_};
+
+   for (const auto& record : p->placefileRecords_)
+   {
+      if (record->enabled_)
+      {
+         placefiles.emplace_back(record->placefile_);
+      }
+   }
+
+   return placefiles;
+}
+
 void PlacefileManager::LoadFile(const std::string& filename)
 {
    logger_->debug("LoadFile: {}", filename);

@@ -10,8 +10,6 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/units/base_units/metric/nautical_mile.hpp>
-#include <boost/units/quantity.hpp>
-#include <boost/units/systems/si/length.hpp>
 
 namespace scwx
 {
@@ -40,21 +38,6 @@ public:
    {
       double x_ {};
       double y_ {};
-   };
-
-   struct DrawItem
-   {
-      boost::units::quantity<boost::units::si::length> threshold_ {};
-   };
-
-   struct PlaceDrawItem : DrawItem
-   {
-      boost::gil::rgba8_pixel_t color_ {};
-      double                    latitude_ {};
-      double                    longitude_ {};
-      double                    x_ {};
-      double                    y_ {};
-      std::string               text_ {};
    };
 
    void ParseLocation(const std::string& latitudeToken,
@@ -91,6 +74,11 @@ Placefile& Placefile::operator=(Placefile&&) noexcept = default;
 bool Placefile::IsValid() const
 {
    return p->drawItems_.size() > 0;
+}
+
+std::vector<std::shared_ptr<Placefile::DrawItem>> Placefile::GetDrawItems()
+{
+   return p->drawItems_;
 }
 
 std::shared_ptr<Placefile> Placefile::Load(const std::string& filename)

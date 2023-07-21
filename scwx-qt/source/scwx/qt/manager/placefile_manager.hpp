@@ -1,7 +1,6 @@
 #pragma once
 
-#include <memory>
-#include <string>
+#include <scwx/gr/placefile.hpp>
 
 #include <QObject>
 
@@ -19,6 +18,13 @@ class PlacefileManager : public QObject
 public:
    explicit PlacefileManager();
    ~PlacefileManager();
+
+   /**
+    * @brief Gets a list of active placefiles
+    *
+    * @return Vector of placefile pointers
+    */
+   std::vector<std::shared_ptr<gr::Placefile>> GetActivePlacefiles();
 
    void LoadFile(const std::string& filename);
 

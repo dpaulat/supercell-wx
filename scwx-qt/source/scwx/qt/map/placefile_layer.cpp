@@ -1,8 +1,12 @@
 #include <scwx/qt/map/placefile_layer.hpp>
+#include <scwx/qt/manager/placefile_manager.hpp>
+#include <scwx/qt/util/geographic_lib.hpp>
+#include <scwx/qt/util/maplibre.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <fmt/format.h>
 #include <imgui.h>
+#include <mbgl/util/constants.hpp>
 
 namespace scwx
 {
@@ -20,13 +24,21 @@ public:
    explicit Impl(std::shared_ptr<MapContext> context) {};
    ~Impl() = default;
 
-   void RenderText(const std::string&        text,
-                   const std::string&        hoverText,
-                   boost::gil::rgba8_pixel_t color,
-                   float                     x,
-                   float                     y);
+   void RenderPlace(const QMapLibreGL::CustomLayerRenderParameters& params,
+                    std::shared_ptr<gr::Placefile::PlaceDrawItem>   place);
+
+   void RenderText(const QMapLibreGL::CustomLayerRenderParameters& params,
+                   const std::string&                              text,
+                   const std::string&                              hoverText,
+                   boost::gil::rgba8_pixel_t                       color,
+                   float                                           x,
+                   float                                           y);
 
    std::uint32_t textId_ {};
+   glm::vec2     mapScreenCoordLocation_ {};
+   float         mapScale_ {1.0f};
+   float         halfWidth_ {};
+   float         halfHeight_ {};
 };
 
 PlacefileLayer::PlacefileLayer(std::shared_ptr<MapContext> context) :
@@ -43,13 +55,42 @@ void PlacefileLayer::Initialize()
    DrawLayer::Initialize();
 }
 
-void PlacefileLayer::Impl::RenderText(const std::string&        text,
-                                      const std::string&        hoverText,
-                                      boost::gil::rgba8_pixel_t color,
-                                      float                     x,
-                                      float                     y)
+void PlacefileLayer::Impl::RenderPlace(
+   const QMapLibreGL::CustomLayerRenderParameters& params,
+   std::shared_ptr<gr::Placefile::PlaceDrawItem>   place)
+{
+   auto distance = util::GeographicLib::GetDistance(
+      params.latitude, params.longitude, place->latitude_, place->longitude_);
+
+   if (distance < place->threshold_)
+   {
+      const auto screenCoordinates =
+         (util::maplibre::LatLongToScreenCoordinate(
+             {place->latitude_, place->longitude_}) -
+          mapScreenCoordLocation_) *
+         mapScale_;
+
+      RenderText(params,
+                 place->text_,
+                 "",
+                 place->color_,
+                 screenCoordinates.x + place->x_ + halfWidth_,
+                 screenCoordinates.y + place->y_ + halfHeight_);
+   }
+}
+
+void PlacefileLayer::Impl::RenderText(
+   const QMapLibreGL::CustomLayerRenderParameters& params,
+   const std::string&                              text,
+   const std::string&                              hoverText,
+   boost::gil::rgba8_pixel_t                       color,
+   float                                           x,
+   float                                           y)
 {
    const std::string windowName {fmt::format("PlacefileText-{}", ++textId_)};
+
+   // Convert screen to ImGui coordinates
+   y = params.height - y;
 
    // Setup "window" to hold text
    ImGui::SetNextWindowPos(
@@ -87,7 +128,33 @@ void PlacefileLayer::Render(
    // Reset text ID per frame
    p->textId_ = 0;
 
+   // Update map screen coordinate and scale information
+   p->mapScreenCoordLocation_ = util::maplibre::LatLongToScreenCoordinate(
+      {params.latitude, params.longitude});
+   p->mapScale_ = std::pow(2.0, params.zoom) * mbgl::util::tileSize_D /
+                  mbgl::util::DEGREES_MAX;
+   p->halfWidth_  = params.width * 0.5f;
+   p->halfHeight_ = params.height * 0.5f;
+
+   std::shared_ptr<manager::PlacefileManager> placefileManager =
+      manager::PlacefileManager::Instance();
+
    // Render text
+   for (auto& placefile : placefileManager->GetActivePlacefiles())
+   {
+      for (auto& drawItem : placefile->GetDrawItems())
+      {
+         switch (drawItem->itemType_)
+         {
+         case gr::Placefile::ItemType::Place:
+            p->RenderPlace(
+               params,
+               std::static_pointer_cast<gr::Placefile::PlaceDrawItem>(
+                  drawItem));
+            break;
+         }
+      }
+   }
 
    SCWX_GL_CHECK_ERROR();
 }
