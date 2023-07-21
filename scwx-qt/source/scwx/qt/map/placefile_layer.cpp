@@ -24,8 +24,9 @@ public:
    explicit Impl(std::shared_ptr<MapContext> context) {};
    ~Impl() = default;
 
-   void RenderPlace(const QMapLibreGL::CustomLayerRenderParameters& params,
-                    std::shared_ptr<gr::Placefile::PlaceDrawItem>   place);
+   void
+   RenderTextDrawItem(const QMapLibreGL::CustomLayerRenderParameters& params,
+                      std::shared_ptr<gr::Placefile::TextDrawItem>    di);
 
    void RenderText(const QMapLibreGL::CustomLayerRenderParameters& params,
                    const std::string&                              text,
@@ -55,27 +56,26 @@ void PlacefileLayer::Initialize()
    DrawLayer::Initialize();
 }
 
-void PlacefileLayer::Impl::RenderPlace(
+void PlacefileLayer::Impl::RenderTextDrawItem(
    const QMapLibreGL::CustomLayerRenderParameters& params,
-   std::shared_ptr<gr::Placefile::PlaceDrawItem>   place)
+   std::shared_ptr<gr::Placefile::TextDrawItem>    di)
 {
    auto distance = util::GeographicLib::GetDistance(
-      params.latitude, params.longitude, place->latitude_, place->longitude_);
+      params.latitude, params.longitude, di->latitude_, di->longitude_);
 
-   if (distance < place->threshold_)
+   if (distance < di->threshold_)
    {
-      const auto screenCoordinates =
-         (util::maplibre::LatLongToScreenCoordinate(
-             {place->latitude_, place->longitude_}) -
-          mapScreenCoordLocation_) *
-         mapScale_;
+      const auto screenCoordinates = (util::maplibre::LatLongToScreenCoordinate(
+                                         {di->latitude_, di->longitude_}) -
+                                      mapScreenCoordLocation_) *
+                                     mapScale_;
 
       RenderText(params,
-                 place->text_,
-                 "",
-                 place->color_,
-                 screenCoordinates.x + place->x_ + halfWidth_,
-                 screenCoordinates.y + place->y_ + halfHeight_);
+                 di->text_,
+                 di->hoverText_,
+                 di->color_,
+                 screenCoordinates.x + di->x_ + halfWidth_,
+                 screenCoordinates.y + di->y_ + halfHeight_);
    }
 }
 
@@ -146,11 +146,10 @@ void PlacefileLayer::Render(
       {
          switch (drawItem->itemType_)
          {
-         case gr::Placefile::ItemType::Place:
-            p->RenderPlace(
+         case gr::Placefile::ItemType::Text:
+            p->RenderTextDrawItem(
                params,
-               std::static_pointer_cast<gr::Placefile::PlaceDrawItem>(
-                  drawItem));
+               std::static_pointer_cast<gr::Placefile::TextDrawItem>(drawItem));
             break;
          }
       }

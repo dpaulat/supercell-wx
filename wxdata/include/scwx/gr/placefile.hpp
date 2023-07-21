@@ -37,7 +37,6 @@ public:
 
    enum class ItemType
    {
-      Place,
       Icon,
       Font,
       Text,
@@ -54,16 +53,18 @@ public:
       boost::units::quantity<boost::units::si::length> threshold_ {};
    };
 
-   struct PlaceDrawItem : DrawItem
+   struct TextDrawItem : DrawItem
    {
-      PlaceDrawItem() { itemType_ = ItemType::Place; }
+      TextDrawItem() { itemType_ = ItemType::Text; }
 
       boost::gil::rgba8_pixel_t color_ {};
       double                    latitude_ {};
       double                    longitude_ {};
       double                    x_ {};
       double                    y_ {};
+      std::size_t               fontNumber_ {0u};
       std::string               text_ {};
+      std::string               hoverText_ {};
    };
 
    bool IsValid() const;

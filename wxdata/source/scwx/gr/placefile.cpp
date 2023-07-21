@@ -48,6 +48,8 @@ public:
                       double&            y);
    void ProcessLine(const std::string& line);
 
+   static void TrimQuotes(std::string& s);
+
    std::chrono::seconds refresh_ {-1};
 
    // Parsing state
@@ -243,7 +245,7 @@ void Placefile::Impl::ProcessLine(const std::string& line)
 
       if (tokenList.size() >= 3)
       {
-         std::shared_ptr<PlaceDrawItem> di = std::make_shared<PlaceDrawItem>();
+         std::shared_ptr<TextDrawItem> di = std::make_shared<TextDrawItem>();
 
          di->threshold_ = threshold_;
          di->color_     = color_;
@@ -255,6 +257,7 @@ void Placefile::Impl::ProcessLine(const std::string& line)
                        di->x_,
                        di->y_);
 
+         ProcessEscapeCharacters(tokenList[2]);
          di->text_.swap(tokenList[2]);
 
          drawItems_.emplace_back(std::move(di));
@@ -285,8 +288,46 @@ void Placefile::Impl::ProcessLine(const std::string& line)
    else if (boost::istarts_with(line, textKey_))
    {
       // Text: lat, lon, fontNumber, "string", "hover"
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {",", ",", ",", ",", ","}, textKey_.size());
 
-      // TODO
+      std::shared_ptr<TextDrawItem> di = nullptr;
+
+      if (tokenList.size() >= 4)
+      {
+         di = std::make_shared<TextDrawItem>();
+
+         di->threshold_ = threshold_;
+         di->color_     = color_;
+
+         ParseLocation(tokenList[0],
+                       tokenList[1],
+                       di->latitude_,
+                       di->longitude_,
+                       di->x_,
+                       di->y_);
+
+         di->fontNumber_ = std::stoul(tokenList[2]);
+
+         ProcessEscapeCharacters(tokenList[3]);
+         TrimQuotes(tokenList[3]);
+         di->text_.swap(tokenList[3]);
+      }
+      if (tokenList.size() >= 5)
+      {
+         ProcessEscapeCharacters(tokenList[4]);
+         TrimQuotes(tokenList[4]);
+         di->hoverText_.swap(tokenList[4]);
+      }
+
+      if (di != nullptr)
+      {
+         drawItems_.emplace_back(std::move(di));
+      }
+      else
+      {
+         logger_->warn("Text statement malformed: {}", line);
+      }
    }
    else if (boost::istarts_with(line, objectKey_))
    {
@@ -406,6 +447,20 @@ void Placefile::Impl::ParseLocation(const std::string& latitudeToken,
          x += objectStack_[i].x_;
          y += objectStack_[i].y_;
       }
+   }
+}
+
+void Placefile::Impl::ProcessEscapeCharacters(std::string& s)
+{
+   boost::replace_all(s, "\\n", "\n");
+}
+
+void Placefile::Impl::TrimQuotes(std::string& s)
+{
+   if (s.size() >= 2 && s.front() == '"' && s.back() == '"')
+   {
+      s.erase(s.size() - 1);
+      s.erase(0, 1);
    }
 }
 
