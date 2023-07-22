@@ -48,6 +48,7 @@ public:
                       double&            y);
    void ProcessLine(const std::string& line);
 
+   static void ProcessEscapeCharacters(std::string& s);
    static void TrimQuotes(std::string& s);
 
    std::chrono::seconds refresh_ {-1};
@@ -61,8 +62,8 @@ public:
    DrawingStatement          currentStatement_ {DrawingStatement::Standard};
 
    // References
-   std::unordered_map<std::size_t, bool> iconFiles_ {};
-   std::unordered_map<std::size_t, bool> fonts_ {};
+   std::unordered_map<std::size_t, bool>                  iconFiles_ {};
+   std::unordered_map<std::size_t, std::shared_ptr<Font>> fonts_ {};
 
    std::vector<std::shared_ptr<DrawItem>> drawItems_ {};
 };
@@ -282,8 +283,26 @@ void Placefile::Impl::ProcessLine(const std::string& line)
    else if (boost::istarts_with(line, fontKey_))
    {
       // Font: fontNumber, pixels, flags, "face"
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {",", ",", ",", ","}, fontKey_.size());
 
-      // TODO
+      if (tokenList.size() >= 4)
+      {
+         std::shared_ptr<Font> font = std::make_shared<Font>();
+
+         font->fontNumber_ = std::stoul(tokenList[0]);
+         font->pixels_     = std::stoul(tokenList[1]);
+         font->flags_      = std::stoi(tokenList[2]);
+
+         TrimQuotes(tokenList[3]);
+         font->face_.swap(tokenList[3]);
+
+         fonts_.insert_or_assign(font->fontNumber_, font);
+      }
+      else
+      {
+         logger_->warn("Font statement malformed: {}", line);
+      }
    }
    else if (boost::istarts_with(line, textKey_))
    {

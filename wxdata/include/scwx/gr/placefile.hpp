@@ -47,6 +47,14 @@ public:
       Unknown
    };
 
+   struct Font
+   {
+      std::size_t  fontNumber_ {};
+      std::size_t  pixels_ {};
+      std::int32_t flags_ {};
+      std::string  face_ {};
+   };
+
    struct DrawItem
    {
       ItemType itemType_ {ItemType::Unknown};
