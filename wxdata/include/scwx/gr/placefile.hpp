@@ -84,6 +84,9 @@ public:
     */
    std::vector<std::shared_ptr<DrawItem>> GetDrawItems();
 
+   std::unordered_map<std::size_t, std::shared_ptr<Font>> fonts();
+   std::shared_ptr<Font>                                  font(std::size_t i);
+
    static std::shared_ptr<Placefile> Load(const std::string& filename);
    static std::shared_ptr<Placefile> Load(std::istream& is);
 

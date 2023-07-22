@@ -84,6 +84,22 @@ std::vector<std::shared_ptr<Placefile::DrawItem>> Placefile::GetDrawItems()
    return p->drawItems_;
 }
 
+std::unordered_map<std::size_t, std::shared_ptr<Placefile::Font>>
+Placefile::fonts()
+{
+   return p->fonts_;
+}
+
+std::shared_ptr<Placefile::Font> Placefile::font(std::size_t i)
+{
+   auto it = p->fonts_.find(i);
+   if (it != p->fonts_.cend())
+   {
+      return it->second;
+   }
+   return nullptr;
+}
+
 std::shared_ptr<Placefile> Placefile::Load(const std::string& filename)
 {
    logger_->debug("Loading placefile: {}", filename);
