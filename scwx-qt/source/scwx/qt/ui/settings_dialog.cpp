@@ -8,6 +8,7 @@
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/qt/types/alert_types.hpp>
+#include <scwx/qt/ui/placefile_settings_widget.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/util/color.hpp>
 #include <scwx/qt/util/file.hpp>
@@ -115,6 +116,7 @@ public:
    void SetupGeneralTab();
    void SetupPalettesColorTablesTab();
    void SetupPalettesAlertsTab();
+   void SetupPlacefilesTab();
 
    void ShowColorDialog(QLineEdit* lineEdit, QFrame* frame = nullptr);
    void UpdateRadarDialogLocation(const std::string& id);
@@ -136,8 +138,9 @@ public:
                RadarSiteLabel(std::shared_ptr<config::RadarSite>& radarSite);
    static void SetBackgroundColor(const std::string& value, QFrame* frame);
 
-   SettingsDialog*  self_;
-   RadarSiteDialog* radarSiteDialog_;
+   SettingsDialog*          self_;
+   PlacefileSettingsWidget* placefileSettingsWidget_;
+   RadarSiteDialog*         radarSiteDialog_;
 
    settings::SettingsInterface<std::string>               defaultRadarSite_ {};
    settings::SettingsInterface<std::vector<std::int64_t>> fontSizes_ {};
@@ -177,6 +180,9 @@ SettingsDialog::SettingsDialog(QWidget* parent) :
 
    // Palettes > Alerts
    p->SetupPalettesAlertsTab();
+
+   // Placefiles
+   p->SetupPlacefilesTab();
 
    p->ConnectSignals();
 }
@@ -616,6 +622,12 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
                        [=, this]()
                        { ShowColorDialog(inactiveEdit, inactiveFrame); });
    }
+}
+
+void SettingsDialogImpl::SetupPlacefilesTab()
+{
+   placefileSettingsWidget_ = new PlacefileSettingsWidget(self_);
+   self_->ui->placefiles->layout()->addWidget(placefileSettingsWidget_);
 }
 
 QImage SettingsDialogImpl::GenerateColorTableImage(

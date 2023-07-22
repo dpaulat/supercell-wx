@@ -160,6 +160,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/level2_products_widget.hpp
            source/scwx/qt/ui/level2_settings_widget.hpp
            source/scwx/qt/ui/level3_products_widget.hpp
+           source/scwx/qt/ui/placefile_settings_widget.hpp
            source/scwx/qt/ui/radar_site_dialog.hpp
            source/scwx/qt/ui/settings_dialog.hpp
            source/scwx/qt/ui/update_dialog.hpp)
@@ -174,6 +175,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/level2_products_widget.cpp
            source/scwx/qt/ui/level2_settings_widget.cpp
            source/scwx/qt/ui/level3_products_widget.cpp
+           source/scwx/qt/ui/placefile_settings_widget.cpp
            source/scwx/qt/ui/radar_site_dialog.cpp
            source/scwx/qt/ui/settings_dialog.cpp
            source/scwx/qt/ui/update_dialog.cpp)
@@ -183,6 +185,7 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/animation_dock_widget.ui
            source/scwx/qt/ui/collapsible_group.ui
            source/scwx/qt/ui/imgui_debug_dialog.ui
+           source/scwx/qt/ui/placefile_settings_widget.ui
            source/scwx/qt/ui/radar_site_dialog.ui
            source/scwx/qt/ui/settings_dialog.ui
            source/scwx/qt/ui/update_dialog.ui)
