@@ -51,6 +51,7 @@ public:
    static void ProcessEscapeCharacters(std::string& s);
    static void TrimQuotes(std::string& s);
 
+   std::string          title_ {};
    std::chrono::seconds refresh_ {-1};
 
    // Parsing state
@@ -84,6 +85,11 @@ std::vector<std::shared_ptr<Placefile::DrawItem>> Placefile::GetDrawItems()
    return p->drawItems_;
 }
 
+std::string Placefile::title() const
+{
+   return p->title_;
+}
+
 std::unordered_map<std::size_t, std::shared_ptr<Placefile::Font>>
 Placefile::fonts()
 {
@@ -104,12 +110,15 @@ std::shared_ptr<Placefile> Placefile::Load(const std::string& filename)
 {
    logger_->debug("Loading placefile: {}", filename);
    std::ifstream f(filename, std::ios_base::in);
-   return Load(f);
+   return Load(filename, f);
 }
 
-std::shared_ptr<Placefile> Placefile::Load(std::istream& is)
+std::shared_ptr<Placefile> Placefile::Load(const std::string& name,
+                                           std::istream&      is)
 {
    std::shared_ptr<Placefile> placefile = std::make_shared<Placefile>();
+
+   placefile->p->title_ = name;
 
    std::string line;
    while (scwx::util::getline(is, line))
@@ -167,6 +176,7 @@ std::shared_ptr<Placefile> Placefile::Load(std::istream& is)
 
 void Placefile::Impl::ProcessLine(const std::string& line)
 {
+   static const std::string titleKey_ {"Title:"};
    static const std::string thresholdKey_ {"Threshold:"};
    static const std::string hsluvKey_ {"HSLuv:"};
    static const std::string colorKey_ {"Color:"};
@@ -189,7 +199,13 @@ void Placefile::Impl::ProcessLine(const std::string& line)
    // When tokenizing, add one additional delimiter to discard unexpected
    // parameters (where appropriate)
 
-   if (boost::istarts_with(line, thresholdKey_))
+   if (boost::istarts_with(line, titleKey_))
+   {
+      // Title: title
+      title_ = line.substr(titleKey_.size());
+      boost::trim(title_);
+   }
+   else if (boost::istarts_with(line, thresholdKey_))
    {
       // Threshold: nautical_miles
       std::vector<std::string> tokenList =
@@ -393,10 +409,6 @@ void Placefile::Impl::ProcessLine(const std::string& line)
       if (!objectStack_.empty())
       {
          objectStack_.pop_back();
-      }
-      else
-      {
-         logger_->warn("End found without Object");
       }
    }
    else if (boost::istarts_with(line, lineKey_))
