@@ -26,9 +26,11 @@ static void LoadTextures();
 
 static const std::unordered_map<types::Font, std::string> fontNames_ {
    {types::Font::din1451alt, ":/res/fonts/din1451alt.ttf"},
-   {types::Font::din1451alt_g, ":/res/fonts/din1451alt_g.ttf"}};
+   {types::Font::din1451alt_g, ":/res/fonts/din1451alt_g.ttf"},
+   {types::Font::Inconsolata_Regular, ":/res/fonts/Inconsolata-Regular.ttf"}};
 
-static std::unordered_map<types::Font, int> fontIds_ {};
+static std::unordered_map<types::Font, int>                         fontIds_ {};
+static std::unordered_map<types::Font, std::shared_ptr<util::Font>> fonts_ {};
 
 void Initialize()
 {
@@ -50,6 +52,16 @@ int FontId(types::Font font)
    return -1;
 }
 
+std::shared_ptr<util::Font> Font(types::Font font)
+{
+   auto it = fonts_.find(font);
+   if (it != fonts_.cend())
+   {
+      return it->second;
+   }
+   return nullptr;
+}
+
 static void LoadFonts()
 {
    for (auto& fontName : fontNames_)
@@ -58,7 +70,8 @@ static void LoadFonts()
          QString::fromStdString(fontName.second));
       fontIds_.emplace(fontName.first, fontId);
 
-      util::Font::Create(fontName.second);
+      auto font = util::Font::Create(fontName.second);
+      fonts_.emplace(fontName.first, font);
    }
 
    ImFontAtlas* fontAtlas = model::ImGuiContextModel::Instance().font_atlas();

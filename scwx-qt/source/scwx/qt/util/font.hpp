@@ -6,7 +6,9 @@
 #include <memory>
 #include <string>
 
-#include <boost/gil.hpp>
+#include <boost/gil/typedefs.hpp>
+
+struct ImFont;
 
 namespace scwx
 {
@@ -23,10 +25,10 @@ public:
    explicit Font(const std::string& resource);
    ~Font();
 
-   Font(const Font&) = delete;
+   Font(const Font&)            = delete;
    Font& operator=(const Font&) = delete;
 
-   Font(Font&&)  = delete;
+   Font(Font&&)            = delete;
    Font& operator=(Font&&) = delete;
 
    float BufferText(std::shared_ptr<FontBuffer> buffer,
@@ -37,6 +39,8 @@ public:
                     boost::gil::rgba8_pixel_t   color) const;
    float Kerning(char c1, char c2) const;
    float TextLength(const std::string& text, float pointSize) const;
+
+   ImFont* ImGuiFont(std::size_t fontPixelSize);
 
    GLuint GenerateTexture(gl::OpenGLFunctions& gl);
 

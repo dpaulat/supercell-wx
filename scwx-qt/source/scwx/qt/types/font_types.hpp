@@ -10,7 +10,8 @@ namespace types
 enum class Font
 {
    din1451alt,
-   din1451alt_g
+   din1451alt_g,
+   Inconsolata_Regular
 };
 
 } // namespace types

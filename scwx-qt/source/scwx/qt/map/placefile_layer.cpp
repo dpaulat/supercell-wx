@@ -1,5 +1,7 @@
 #include <scwx/qt/map/placefile_layer.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
+#include <scwx/qt/manager/resource_manager.hpp>
+#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/util/logger.hpp>
@@ -40,6 +42,7 @@ public:
    float         mapScale_ {1.0f};
    float         halfWidth_ {};
    float         halfHeight_ {};
+   ImFont*       monospaceFont_ {};
 };
 
 PlacefileLayer::PlacefileLayer(std::shared_ptr<MapContext> context) :
@@ -110,7 +113,9 @@ void PlacefileLayer::Impl::RenderText(
    if (!hoverText.empty() && ImGui::IsItemHovered())
    {
       ImGui::BeginTooltip();
+      ImGui::PushFont(monospaceFont_);
       ImGui::TextUnformatted(hoverText.c_str());
+      ImGui::PopFont();
       ImGui::EndTooltip();
    }
 
@@ -135,6 +140,18 @@ void PlacefileLayer::Render(
                   mbgl::util::DEGREES_MAX;
    p->halfWidth_  = params.width * 0.5f;
    p->halfHeight_ = params.height * 0.5f;
+
+   // Get monospace font pointer
+   std::size_t fontSize = 16;
+   auto        fontSizes =
+      manager::SettingsManager::general_settings().font_sizes().GetValue();
+   if (fontSizes.size() > 0)
+   {
+      fontSize = fontSizes[0];
+   }
+   auto monospace =
+      manager::ResourceManager::Font(types::Font::Inconsolata_Regular);
+   p->monospaceFont_ = monospace->ImGuiFont(fontSize);
 
    std::shared_ptr<manager::PlacefileManager> placefileManager =
       manager::PlacefileManager::Instance();

@@ -299,6 +299,16 @@ void FontImpl::CreateImGuiFont(QFile&                      fontFile,
    }
 }
 
+ImFont* Font::ImGuiFont(std::size_t fontPixelSize)
+{
+   auto it = p->imGuiFonts_.find(fontPixelSize);
+   if (it != p->imGuiFonts_.cend())
+   {
+      return it->second;
+   }
+   return nullptr;
+}
+
 std::shared_ptr<Font> Font::Create(const std::string& resource)
 {
    logger_->debug("Loading font file: {}", resource);

@@ -13,6 +13,7 @@
         <file>res/config/radar_sites.json</file>
         <file>res/fonts/din1451alt.ttf</file>
         <file>res/fonts/din1451alt_g.ttf</file>
+        <file>res/fonts/Inconsolata-Regular.ttf</file>
         <file>res/icons/scwx-256.ico</file>
         <file>res/icons/scwx-256.png</file>
         <file>res/icons/font-awesome-6/angle-left-solid.svg</file>
