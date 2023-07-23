@@ -117,6 +117,7 @@ void PlacefileManager::LoadFile(const std::string& filename)
                std::make_unique<PlacefileRecord>(filename, placefile));
 
             Q_EMIT PlacefileEnabled(filename, record->enabled_);
+            Q_EMIT PlacefileUpdated(filename);
          }
       });
 }

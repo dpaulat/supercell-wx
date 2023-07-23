@@ -1,8 +1,12 @@
 #include "placefile_settings_widget.hpp"
 #include "ui_placefile_settings_widget.h"
 
+#include <scwx/qt/model/placefile_model.hpp>
+#include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/ui/open_url_dialog.hpp>
 #include <scwx/util/logger.hpp>
+
+#include <QSortFilterProxyModel>
 
 namespace scwx
 {
@@ -18,15 +22,25 @@ class PlacefileSettingsWidgetImpl
 {
 public:
    explicit PlacefileSettingsWidgetImpl(PlacefileSettingsWidget* self) :
-       self_ {self}
+       self_ {self},
+       openUrlDialog_ {new OpenUrlDialog(QObject::tr("Add Placefile"), self_)},
+       placefileModel_ {new model::PlacefileModel(self_)},
+       placefileProxyModel_ {new QSortFilterProxyModel(self_)}
    {
+      placefileProxyModel_->setSourceModel(placefileModel_);
+      placefileProxyModel_->setSortRole(types::SortRole);
+      placefileProxyModel_->setFilterCaseSensitivity(Qt::CaseInsensitive);
+      placefileProxyModel_->setFilterKeyColumn(-1);
    }
    ~PlacefileSettingsWidgetImpl() = default;
 
    void ConnectSignals();
 
    PlacefileSettingsWidget* self_;
-   OpenUrlDialog*           openUrlDialog_ {nullptr};
+   OpenUrlDialog*           openUrlDialog_;
+
+   model::PlacefileModel* placefileModel_;
+   QSortFilterProxyModel* placefileProxyModel_;
 };
 
 PlacefileSettingsWidget::PlacefileSettingsWidget(QWidget* parent) :
@@ -36,7 +50,14 @@ PlacefileSettingsWidget::PlacefileSettingsWidget(QWidget* parent) :
 {
    ui->setupUi(this);
 
-   p->openUrlDialog_ = new OpenUrlDialog("Add Placefile", this);
+   ui->placefileView->setModel(p->placefileProxyModel_);
+   ui->placefileView->header()->setSortIndicator(
+      static_cast<int>(model::PlacefileModel::Column::Url), Qt::AscendingOrder);
+
+   ui->placefileView->resizeColumnToContents(
+      static_cast<int>(model::PlacefileModel::Column::Enabled));
+   ui->placefileView->resizeColumnToContents(
+      static_cast<int>(model::PlacefileModel::Column::Thresholds));
 
    p->ConnectSignals();
 }
@@ -59,6 +80,11 @@ void PlacefileSettingsWidgetImpl::ConnectSignals()
       self_,
       [this]()
       { logger_->info("Add URL: {}", openUrlDialog_->url().toStdString()); });
+
+   QObject::connect(self_->ui->placefileFilter,
+                    &QLineEdit::textChanged,
+                    placefileProxyModel_,
+                    &QSortFilterProxyModel::setFilterWildcard);
 }
 
 } // namespace ui

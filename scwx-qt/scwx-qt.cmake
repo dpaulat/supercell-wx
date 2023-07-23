@@ -104,6 +104,7 @@ set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
 set(HDR_MODEL source/scwx/qt/model/alert_model.hpp
               source/scwx/qt/model/alert_proxy_model.hpp
               source/scwx/qt/model/imgui_context_model.hpp
+              source/scwx/qt/model/placefile_model.hpp
               source/scwx/qt/model/radar_product_model.hpp
               source/scwx/qt/model/radar_site_model.hpp
               source/scwx/qt/model/tree_item.hpp
@@ -111,6 +112,7 @@ set(HDR_MODEL source/scwx/qt/model/alert_model.hpp
 set(SRC_MODEL source/scwx/qt/model/alert_model.cpp
               source/scwx/qt/model/alert_proxy_model.cpp
               source/scwx/qt/model/imgui_context_model.cpp
+              source/scwx/qt/model/placefile_model.cpp
               source/scwx/qt/model/radar_product_model.cpp
               source/scwx/qt/model/radar_site_model.cpp
               source/scwx/qt/model/tree_item.cpp
