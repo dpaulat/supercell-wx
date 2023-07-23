@@ -74,7 +74,7 @@ Qt::ItemFlags PlacefileModel::flags(const QModelIndex& index) const
 QVariant PlacefileModel::data(const QModelIndex& index, int role) const
 {
    if (!index.isValid() || index.row() < 0 ||
-       index.row() >= p->placefileNames_.size())
+       static_cast<std::size_t>(index.row()) >= p->placefileNames_.size())
    {
       return QVariant();
    }

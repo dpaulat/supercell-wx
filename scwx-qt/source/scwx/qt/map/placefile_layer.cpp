@@ -23,7 +23,7 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class PlacefileLayer::Impl
 {
 public:
-   explicit Impl(std::shared_ptr<MapContext> context) {};
+   explicit Impl() {};
    ~Impl() = default;
 
    void
@@ -46,7 +46,7 @@ public:
 };
 
 PlacefileLayer::PlacefileLayer(std::shared_ptr<MapContext> context) :
-    DrawLayer(context), p(std::make_unique<PlacefileLayer::Impl>(context))
+    DrawLayer(context), p(std::make_unique<PlacefileLayer::Impl>())
 {
 }
 
@@ -167,6 +167,9 @@ void PlacefileLayer::Render(
             p->RenderTextDrawItem(
                params,
                std::static_pointer_cast<gr::Placefile::TextDrawItem>(drawItem));
+            break;
+
+         default:
             break;
          }
       }
