@@ -159,6 +159,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/flow_layout.hpp
            source/scwx/qt/ui/imgui_debug_dialog.hpp
            source/scwx/qt/ui/imgui_debug_widget.hpp
+           source/scwx/qt/ui/left_elided_item_delegate.hpp
            source/scwx/qt/ui/level2_products_widget.hpp
            source/scwx/qt/ui/level2_settings_widget.hpp
            source/scwx/qt/ui/level3_products_widget.hpp
@@ -175,6 +176,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/flow_layout.cpp
            source/scwx/qt/ui/imgui_debug_dialog.cpp
            source/scwx/qt/ui/imgui_debug_widget.cpp
+           source/scwx/qt/ui/left_elided_item_delegate.cpp
            source/scwx/qt/ui/level2_products_widget.cpp
            source/scwx/qt/ui/level2_settings_widget.cpp
            source/scwx/qt/ui/level3_products_widget.cpp

@@ -3,6 +3,7 @@
 
 #include <scwx/qt/model/placefile_model.hpp>
 #include <scwx/qt/types/qt_types.hpp>
+#include <scwx/qt/ui/left_elided_item_delegate.hpp>
 #include <scwx/qt/ui/open_url_dialog.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -25,7 +26,8 @@ public:
        self_ {self},
        openUrlDialog_ {new OpenUrlDialog(QObject::tr("Add Placefile"), self_)},
        placefileModel_ {new model::PlacefileModel(self_)},
-       placefileProxyModel_ {new QSortFilterProxyModel(self_)}
+       placefileProxyModel_ {new QSortFilterProxyModel(self_)},
+       leftElidedItemDelegate_ {new LeftElidedItemDelegate(self_)}
    {
       placefileProxyModel_->setSourceModel(placefileModel_);
       placefileProxyModel_->setSortRole(types::SortRole);
@@ -39,8 +41,9 @@ public:
    PlacefileSettingsWidget* self_;
    OpenUrlDialog*           openUrlDialog_;
 
-   model::PlacefileModel* placefileModel_;
-   QSortFilterProxyModel* placefileProxyModel_;
+   model::PlacefileModel*  placefileModel_;
+   QSortFilterProxyModel*  placefileProxyModel_;
+   LeftElidedItemDelegate* leftElidedItemDelegate_;
 };
 
 PlacefileSettingsWidget::PlacefileSettingsWidget(QWidget* parent) :
@@ -58,6 +61,12 @@ PlacefileSettingsWidget::PlacefileSettingsWidget(QWidget* parent) :
       static_cast<int>(model::PlacefileModel::Column::Enabled));
    ui->placefileView->resizeColumnToContents(
       static_cast<int>(model::PlacefileModel::Column::Thresholds));
+   ui->placefileView->resizeColumnToContents(
+      static_cast<int>(model::PlacefileModel::Column::Url));
+
+   ui->placefileView->setItemDelegateForColumn(
+      static_cast<int>(model::PlacefileModel::Column::Url),
+      p->leftElidedItemDelegate_);
 
    p->ConnectSignals();
 }

@@ -3,6 +3,9 @@
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <QApplication>
+#include <QFontMetrics>
+
 namespace scwx
 {
 namespace qt
@@ -79,6 +82,7 @@ QVariant PlacefileModel::data(const QModelIndex& index, int role) const
    const auto& placefileName = p->placefileNames_.at(index.row());
 
    if (role == Qt::ItemDataRole::DisplayRole ||
+       role == Qt::ItemDataRole::ToolTipRole ||
        role == types::ItemDataRole::SortRole)
    {
       switch (index.column())
@@ -150,6 +154,27 @@ QVariant PlacefileModel::headerData(int             section,
          default:
             break;
          }
+      }
+   }
+   else if (role == Qt::ItemDataRole::SizeHintRole)
+   {
+      static const QFontMetrics fontMetrics(QApplication::font());
+
+      QSize contentsSize {};
+
+      switch (section)
+      {
+      case static_cast<int>(Column::Url):
+         contentsSize = fontMetrics.size(0, QString(15, 'W'));
+         break;
+
+      default:
+         break;
+      }
+
+      if (contentsSize != QSize {})
+      {
+         return contentsSize;
       }
    }
 
