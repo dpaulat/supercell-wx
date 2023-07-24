@@ -110,15 +110,12 @@ std::shared_ptr<Placefile> Placefile::Load(const std::string& filename)
 {
    logger_->debug("Loading placefile: {}", filename);
    std::ifstream f(filename, std::ios_base::in);
-   return Load(filename, f);
+   return Load(f);
 }
 
-std::shared_ptr<Placefile> Placefile::Load(const std::string& name,
-                                           std::istream&      is)
+std::shared_ptr<Placefile> Placefile::Load(std::istream& is)
 {
    std::shared_ptr<Placefile> placefile = std::make_shared<Placefile>();
-
-   placefile->p->title_ = name;
 
    std::string line;
    while (scwx::util::getline(is, line))

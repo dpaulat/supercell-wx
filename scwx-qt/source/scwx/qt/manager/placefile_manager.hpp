@@ -19,6 +19,10 @@ public:
    explicit PlacefileManager();
    ~PlacefileManager();
 
+   bool PlacefileEnabled(const std::string& name);
+   bool PlacefileThresholded(const std::string& name);
+   std::shared_ptr<const gr::Placefile> Placefile(const std::string& name);
+
    /**
     * @brief Gets a list of active placefiles
     *
@@ -26,6 +30,7 @@ public:
     */
    std::vector<std::shared_ptr<gr::Placefile>> GetActivePlacefiles();
 
+   void AddUrl(const std::string& urlString);
    void LoadFile(const std::string& filename);
 
    static std::shared_ptr<PlacefileManager> Instance();

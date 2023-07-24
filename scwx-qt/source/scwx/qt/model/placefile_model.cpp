@@ -90,14 +90,14 @@ QVariant PlacefileModel::data(const QModelIndex& index, int role) const
       case static_cast<int>(Column::Enabled):
          if (role == types::ItemDataRole::SortRole)
          {
-            return true; // TODO
+            return p->placefileManager_->PlacefileEnabled(placefileName);
          }
          break;
 
       case static_cast<int>(Column::Thresholds):
          if (role == types::ItemDataRole::SortRole)
          {
-            return true; // TODO
+            return p->placefileManager_->PlacefileThresholded(placefileName);
          }
          break;
 
@@ -105,7 +105,14 @@ QVariant PlacefileModel::data(const QModelIndex& index, int role) const
          return QString::fromStdString(placefileName);
 
       case static_cast<int>(Column::Description):
+      {
+         auto placefile = p->placefileManager_->Placefile(placefileName);
+         if (placefile != nullptr)
+         {
+            return QString::fromStdString(placefile->title());
+         }
          return QString {};
+      }
 
       default:
          break;
@@ -116,10 +123,10 @@ QVariant PlacefileModel::data(const QModelIndex& index, int role) const
       switch (index.column())
       {
       case static_cast<int>(Column::Enabled):
-         return true; // TODO
+         return p->placefileManager_->PlacefileEnabled(placefileName);
 
       case static_cast<int>(Column::Thresholds):
-         return true; // TODO
+         return p->placefileManager_->PlacefileThresholded(placefileName);
 
       default:
          break;
@@ -133,7 +140,7 @@ QVariant PlacefileModel::headerData(int             section,
                                     Qt::Orientation orientation,
                                     int             role) const
 {
-   if (role == Qt::DisplayRole)
+   if (role == Qt::ItemDataRole::DisplayRole)
    {
       if (orientation == Qt::Horizontal)
       {

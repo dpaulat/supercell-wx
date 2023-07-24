@@ -89,8 +89,7 @@ public:
    std::shared_ptr<Font>                                  font(std::size_t i);
 
    static std::shared_ptr<Placefile> Load(const std::string& filename);
-   static std::shared_ptr<Placefile> Load(const std::string& name,
-                                          std::istream&      is);
+   static std::shared_ptr<Placefile> Load(std::istream& is);
 
 private:
    class Impl;

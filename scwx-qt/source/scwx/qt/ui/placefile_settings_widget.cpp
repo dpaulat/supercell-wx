@@ -1,6 +1,7 @@
 #include "placefile_settings_widget.hpp"
 #include "ui_placefile_settings_widget.h"
 
+#include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/model/placefile_model.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/ui/left_elided_item_delegate.hpp>
@@ -40,6 +41,9 @@ public:
 
    PlacefileSettingsWidget* self_;
    OpenUrlDialog*           openUrlDialog_;
+
+   std::shared_ptr<manager::PlacefileManager> placefileManager_ {
+      manager::PlacefileManager::Instance()};
 
    model::PlacefileModel*  placefileModel_;
    QSortFilterProxyModel*  placefileProxyModel_;
@@ -88,7 +92,7 @@ void PlacefileSettingsWidgetImpl::ConnectSignals()
       &OpenUrlDialog::accepted,
       self_,
       [this]()
-      { logger_->info("Add URL: {}", openUrlDialog_->url().toStdString()); });
+      { placefileManager_->AddUrl(openUrlDialog_->url().toStdString()); });
 
    QObject::connect(self_->ui->placefileFilter,
                     &QLineEdit::textChanged,
