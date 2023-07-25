@@ -21,10 +21,9 @@ class PlacefileModel : public QAbstractTableModel
 public:
    enum class Column : int
    {
-      Enabled     = 0,
-      Thresholds  = 1,
-      Url         = 2,
-      Description = 3
+      Enabled    = 0,
+      Thresholds = 1,
+      Placefile  = 2
    };
 
    explicit PlacefileModel(QObject* parent = nullptr);

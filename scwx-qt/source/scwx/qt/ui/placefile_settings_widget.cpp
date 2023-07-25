@@ -58,19 +58,21 @@ PlacefileSettingsWidget::PlacefileSettingsWidget(QWidget* parent) :
    ui->setupUi(this);
 
    ui->placefileView->setModel(p->placefileProxyModel_);
-   ui->placefileView->header()->setSortIndicator(
-      static_cast<int>(model::PlacefileModel::Column::Url), Qt::AscendingOrder);
 
-   ui->placefileView->resizeColumnToContents(
-      static_cast<int>(model::PlacefileModel::Column::Enabled));
-   ui->placefileView->resizeColumnToContents(
-      static_cast<int>(model::PlacefileModel::Column::Thresholds));
-   ui->placefileView->resizeColumnToContents(
-      static_cast<int>(model::PlacefileModel::Column::Url));
+   auto placefileViewHeader = ui->placefileView->header();
 
-   ui->placefileView->setItemDelegateForColumn(
-      static_cast<int>(model::PlacefileModel::Column::Url),
-      p->leftElidedItemDelegate_);
+   placefileViewHeader->setMinimumSectionSize(10);
+   placefileViewHeader->setSortIndicator(
+      static_cast<int>(model::PlacefileModel::Column::Placefile),
+      Qt::AscendingOrder);
+
+   // Enabled and Thresholds columns have a fixed size (checkbox)
+   placefileViewHeader->setSectionResizeMode(
+      static_cast<int>(model::PlacefileModel::Column::Enabled),
+      QHeaderView::ResizeMode::ResizeToContents);
+   placefileViewHeader->setSectionResizeMode(
+      static_cast<int>(model::PlacefileModel::Column::Thresholds),
+      QHeaderView::ResizeMode::ResizeToContents);
 
    p->ConnectSignals();
 }

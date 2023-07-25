@@ -164,15 +164,18 @@ void PlacefileManager::AddUrl(const std::string& urlString)
 
 void PlacefileManager::LoadFile(const std::string& filename)
 {
-   logger_->debug("LoadFile: {}", filename);
+   const std::string placefileName =
+      QDir::toNativeSeparators(QString::fromStdString(filename)).toStdString();
+
+   logger_->debug("LoadFile: {}", placefileName);
 
    boost::asio::post(
       p->threadPool_,
-      [=, this]()
+      [placefileName, this]()
       {
          // Load file
          std::shared_ptr<gr::Placefile> placefile =
-            gr::Placefile::Load(filename);
+            gr::Placefile::Load(placefileName);
 
          if (placefile == nullptr)
          {
@@ -182,7 +185,7 @@ void PlacefileManager::LoadFile(const std::string& filename)
          std::unique_lock lock(p->placefileRecordLock_);
 
          // Determine if the placefile has been loaded previously
-         auto it = p->placefileRecordMap_.find(filename);
+         auto it = p->placefileRecordMap_.find(placefileName);
          if (it != p->placefileRecordMap_.end())
          {
             // If the placefile has been loaded previously, update it
@@ -190,19 +193,19 @@ void PlacefileManager::LoadFile(const std::string& filename)
 
             lock.unlock();
 
-            Q_EMIT PlacefileUpdated(filename);
+            Q_EMIT PlacefileUpdated(placefileName);
          }
          else
          {
             // If this is a new placefile, add it
             auto& record = p->placefileRecords_.emplace_back(
-               std::make_shared<PlacefileRecord>(filename, placefile));
-            p->placefileRecordMap_.insert_or_assign(filename, record);
+               std::make_shared<PlacefileRecord>(placefileName, placefile));
+            p->placefileRecordMap_.insert_or_assign(placefileName, record);
 
             lock.unlock();
 
-            Q_EMIT PlacefileEnabled(filename, record->enabled_);
-            Q_EMIT PlacefileUpdated(filename);
+            Q_EMIT PlacefileEnabled(placefileName, record->enabled_);
+            Q_EMIT PlacefileUpdated(placefileName);
          }
       });
 }

@@ -4,7 +4,10 @@
 #include <scwx/util/logger.hpp>
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QFontMetrics>
+#include <QStyle>
+#include <QStyleOption>
 
 namespace scwx
 {
@@ -19,7 +22,7 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static constexpr int kFirstColumn =
    static_cast<int>(PlacefileModel::Column::Enabled);
 static constexpr int kLastColumn =
-   static_cast<int>(PlacefileModel::Column::Description);
+   static_cast<int>(PlacefileModel::Column::Placefile);
 static constexpr int kNumColumns = kLastColumn - kFirstColumn + 1;
 
 class PlacefileModelImpl
@@ -82,37 +85,68 @@ QVariant PlacefileModel::data(const QModelIndex& index, int role) const
    const auto& placefileName = p->placefileNames_.at(index.row());
 
    if (role == Qt::ItemDataRole::DisplayRole ||
-       role == Qt::ItemDataRole::ToolTipRole ||
-       role == types::ItemDataRole::SortRole)
+       role == Qt::ItemDataRole::ToolTipRole)
    {
+      static const QString enabledString  = QObject::tr("Enabled");
+      static const QString disabledString = QObject::tr("Disabled");
+
+      static const QString thresholdsEnabledString =
+         QObject::tr("Thresholds Enabled");
+      static const QString thresholdsDisabledString =
+         QObject::tr("Thresholds Disabled");
+
       switch (index.column())
       {
       case static_cast<int>(Column::Enabled):
-         if (role == types::ItemDataRole::SortRole)
+         if (role == Qt::ItemDataRole::ToolTipRole)
          {
-            return p->placefileManager_->PlacefileEnabled(placefileName);
+            return p->placefileManager_->PlacefileEnabled(placefileName) ?
+                      enabledString :
+                      disabledString;
          }
          break;
 
       case static_cast<int>(Column::Thresholds):
-         if (role == types::ItemDataRole::SortRole)
+         if (role == Qt::ItemDataRole::ToolTipRole)
          {
-            return p->placefileManager_->PlacefileThresholded(placefileName);
+            return p->placefileManager_->PlacefileThresholded(placefileName) ?
+                      thresholdsEnabledString :
+                      thresholdsDisabledString;
          }
          break;
 
-      case static_cast<int>(Column::Url):
-         return QString::fromStdString(placefileName);
-
-      case static_cast<int>(Column::Description):
+      case static_cast<int>(Column::Placefile):
       {
-         auto placefile = p->placefileManager_->Placefile(placefileName);
+         std::string description = placefileName;
+         auto        placefile = p->placefileManager_->Placefile(placefileName);
          if (placefile != nullptr)
          {
-            return QString::fromStdString(placefile->title());
+            std::string title = placefile->title();
+            if (!title.empty())
+            {
+               description = title + '\n' + description;
+            }
          }
-         return QString {};
+
+         return QString::fromStdString(description);
       }
+
+      default:
+         break;
+      }
+   }
+   else if (role == types::ItemDataRole::SortRole)
+   {
+      switch (index.column())
+      {
+      case static_cast<int>(Column::Enabled):
+         return p->placefileManager_->PlacefileEnabled(placefileName);
+
+      case static_cast<int>(Column::Thresholds):
+         return p->placefileManager_->PlacefileThresholded(placefileName);
+
+      case static_cast<int>(Column::Placefile):
+         return QString::fromStdString(placefileName);
 
       default:
          break;
@@ -123,10 +157,16 @@ QVariant PlacefileModel::data(const QModelIndex& index, int role) const
       switch (index.column())
       {
       case static_cast<int>(Column::Enabled):
-         return p->placefileManager_->PlacefileEnabled(placefileName);
+         return static_cast<int>(
+            p->placefileManager_->PlacefileEnabled(placefileName) ?
+               Qt::CheckState::Checked :
+               Qt::CheckState::Unchecked);
 
       case static_cast<int>(Column::Thresholds):
-         return p->placefileManager_->PlacefileThresholded(placefileName);
+         return static_cast<int>(
+            p->placefileManager_->PlacefileThresholded(placefileName) ?
+               Qt::CheckState::Checked :
+               Qt::CheckState::Unchecked);
 
       default:
          break;
@@ -147,41 +187,53 @@ QVariant PlacefileModel::headerData(int             section,
          switch (section)
          {
          case static_cast<int>(Column::Enabled):
-            return tr("Enabled");
+            return tr("E");
 
          case static_cast<int>(Column::Thresholds):
-            return tr("Thresholds");
+            return tr("T");
 
-         case static_cast<int>(Column::Url):
-            return tr("URL");
-
-         case static_cast<int>(Column::Description):
-            return tr("Description");
+         case static_cast<int>(Column::Placefile):
+            return tr("Placefile");
 
          default:
             break;
          }
       }
    }
-   else if (role == Qt::ItemDataRole::SizeHintRole)
+   else if (role == Qt::ItemDataRole::ToolTipRole)
    {
-      static const QFontMetrics fontMetrics(QApplication::font());
-
-      QSize contentsSize {};
-
       switch (section)
       {
-      case static_cast<int>(Column::Url):
-         contentsSize = fontMetrics.size(0, QString(15, 'W'));
-         break;
+      case static_cast<int>(Column::Enabled):
+         return tr("Enabled");
+
+      case static_cast<int>(Column::Thresholds):
+         return tr("Thresholds");
 
       default:
          break;
       }
-
-      if (contentsSize != QSize {})
+   }
+   else if (role == Qt::ItemDataRole::SizeHintRole)
+   {
+      switch (section)
       {
-         return contentsSize;
+      case static_cast<int>(Column::Enabled):
+      case static_cast<int>(Column::Thresholds):
+      {
+         static const QCheckBox checkBox {};
+         QStyleOptionButton     option {};
+         option.initFrom(&checkBox);
+
+         // Width values from QCheckBox
+         return QApplication::style()->sizeFromContents(
+            QStyle::ContentsType::CT_CheckBox,
+            &option,
+            {option.iconSize.width() + 4, 0});
+      }
+
+      default:
+         break;
       }
    }
 
