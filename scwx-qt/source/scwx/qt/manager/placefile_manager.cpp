@@ -10,6 +10,7 @@
 #include <boost/asio/post.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/thread_pool.hpp>
+#include <cpr/cpr.h>
 
 namespace scwx
 {
@@ -21,8 +22,10 @@ namespace manager
 static const std::string logPrefix_ = "scwx::qt::manager::placefile_manager";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-class PlacefileRecord
+class PlacefileRecord : public QObject
 {
+   Q_OBJECT
+
 public:
    explicit PlacefileRecord(const std::string&             name,
                             std::shared_ptr<gr::Placefile> placefile,
@@ -36,7 +39,9 @@ public:
       refreshTimer_.cancel();
    }
 
-   void Update(std::shared_ptr<gr::Placefile> placefile);
+   void Update();
+   void UpdateAsync();
+   void UpdatePlacefile(std::shared_ptr<gr::Placefile> placefile);
 
    std::string                    name_;
    std::shared_ptr<gr::Placefile> placefile_;
@@ -45,6 +50,10 @@ public:
    boost::asio::thread_pool       threadPool_ {1u};
    boost::asio::steady_timer      refreshTimer_ {threadPool_};
    std::mutex                     refreshMutex_ {};
+
+signals:
+   void Updated(const std::string&             name,
+                std::shared_ptr<gr::Placefile> placefile);
 };
 
 class PlacefileManager::Impl
@@ -54,6 +63,8 @@ public:
    ~Impl() {}
 
    static std::string NormalizeUrl(const std::string& urlString);
+
+   void ConnectRecordSignals(std::shared_ptr<PlacefileRecord> record);
 
    boost::asio::thread_pool threadPool_ {1u};
 
@@ -158,7 +169,34 @@ void PlacefileManager::set_placefile_url(const std::string& name,
       lock.unlock();
 
       Q_EMIT PlacefileRenamed(name, normalizedUrl);
+
+      // Queue a placefile update
+      placefileRecord->UpdateAsync();
    }
+}
+
+void PlacefileManager::Impl::ConnectRecordSignals(
+   std::shared_ptr<PlacefileRecord> record)
+{
+   QObject::connect(
+      record.get(),
+      &PlacefileRecord::Updated,
+      self_,
+      [this](const std::string& name, std::shared_ptr<gr::Placefile> placefile)
+      {
+         PlacefileRecord* sender =
+            static_cast<PlacefileRecord*>(self_->sender());
+
+         // Check the name matches, in case the name updated
+         if (sender->name_ == name)
+         {
+            // Update the placefile
+            sender->placefile_ = placefile;
+
+            // Notify slots of the placefile update
+            Q_EMIT self_->PlacefileUpdated(name);
+         }
+      });
 }
 
 std::vector<std::shared_ptr<gr::Placefile>>
@@ -200,13 +238,17 @@ void PlacefileManager::AddUrl(const std::string& urlString)
    logger_->info("AddUrl: {}", normalizedUrl);
 
    // Add an empty placefile record for the new URL
-   auto placefileRecord = p->placefileRecords_.emplace_back(
+   auto& record = p->placefileRecords_.emplace_back(
       std::make_shared<PlacefileRecord>(normalizedUrl, nullptr, false));
-   p->placefileRecordMap_.insert_or_assign(normalizedUrl, placefileRecord);
+   p->placefileRecordMap_.insert_or_assign(normalizedUrl, record);
+   p->ConnectRecordSignals(record);
 
    lock.unlock();
 
    Q_EMIT PlacefileUpdated(normalizedUrl);
+
+   // Queue a placefile update
+   record->UpdateAsync();
 }
 
 void PlacefileManager::LoadFile(const std::string& filename)
@@ -236,7 +278,7 @@ void PlacefileManager::LoadFile(const std::string& filename)
          if (it != p->placefileRecordMap_.end())
          {
             // If the placefile has been loaded previously, update it
-            it->second->Update(placefile);
+            it->second->UpdatePlacefile(placefile);
 
             lock.unlock();
 
@@ -248,6 +290,7 @@ void PlacefileManager::LoadFile(const std::string& filename)
             auto& record = p->placefileRecords_.emplace_back(
                std::make_shared<PlacefileRecord>(placefileName, placefile));
             p->placefileRecordMap_.insert_or_assign(placefileName, record);
+            p->ConnectRecordSignals(record);
 
             lock.unlock();
 
@@ -257,7 +300,54 @@ void PlacefileManager::LoadFile(const std::string& filename)
       });
 }
 
-void PlacefileRecord::Update(std::shared_ptr<gr::Placefile> placefile)
+void PlacefileRecord::Update()
+{
+   // Make a copy of name in the event it changes.
+   const std::string name {name_};
+
+   std::shared_ptr<gr::Placefile> updatedPlacefile {};
+
+   QUrl url = QUrl::fromUserInput(QString::fromStdString(name));
+   if (url.isLocalFile())
+   {
+      updatedPlacefile = gr::Placefile::Load(name);
+   }
+   else
+   {
+      // TODO: Update hard coded parameters
+      auto response = cpr::Get(
+         cpr::Url {name},
+         cpr::Header {{"User-Agent", "Supercell Wx/0.2.2"}},
+         cpr::Parameters {
+            {"version", "1.2"}, {"lat", "38.699"}, {"lon", "-90.683"}});
+
+      if (response.status_code == cpr::status::HTTP_OK)
+      {
+         std::istringstream responseBody {response.text};
+         updatedPlacefile = gr::Placefile::Load(name, responseBody);
+      }
+      else
+      {
+         logger_->warn("Error loading placefile: {}", response.error.message);
+      }
+   }
+
+   if (updatedPlacefile != nullptr)
+   {
+      Q_EMIT Updated(name, updatedPlacefile);
+   }
+
+   // TODO: Update refresh timer
+   // TODO: Can running this function out of sync with an existing refresh timer
+   // cause issues?
+}
+
+void PlacefileRecord::UpdateAsync()
+{
+   boost::asio::post(threadPool_, [this]() { Update(); });
+}
+
+void PlacefileRecord::UpdatePlacefile(std::shared_ptr<gr::Placefile> placefile)
 {
    // Update placefile
    placefile_ = placefile;
@@ -305,3 +395,5 @@ std::string PlacefileManager::Impl::NormalizeUrl(const std::string& urlString)
 } // namespace manager
 } // namespace qt
 } // namespace scwx
+
+#include "placefile_manager.moc"
