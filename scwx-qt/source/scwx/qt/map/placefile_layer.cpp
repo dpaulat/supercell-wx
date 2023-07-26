@@ -104,7 +104,8 @@ void PlacefileLayer::Impl::RenderText(
       ImVec2 {x, y}, ImGuiCond_Always, ImVec2 {0.5f, 0.5f});
    ImGui::Begin(windowName.c_str(),
                 nullptr,
-                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav |
+                ImGuiWindowFlags_AlwaysAutoResize |
+                   ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav |
                    ImGuiWindowFlags_NoBackground);
 
    // Render text
