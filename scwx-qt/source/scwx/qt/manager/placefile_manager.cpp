@@ -53,6 +53,8 @@ public:
    explicit Impl(PlacefileManager* self) : self_ {self} {}
    ~Impl() {}
 
+   static std::string NormalizeUrl(const std::string& urlString);
+
    boost::asio::thread_pool threadPool_ {1u};
 
    PlacefileManager* self_;
@@ -138,22 +140,24 @@ void PlacefileManager::set_placefile_thresholded(const std::string& name,
 void PlacefileManager::set_placefile_url(const std::string& name,
                                          const std::string& newUrl)
 {
+   std::string normalizedUrl = Impl::NormalizeUrl(newUrl);
+
    std::unique_lock lock(p->placefileRecordLock_);
 
    auto it    = p->placefileRecordMap_.find(name);
-   auto itNew = p->placefileRecordMap_.find(newUrl);
+   auto itNew = p->placefileRecordMap_.find(normalizedUrl);
    if (it != p->placefileRecordMap_.cend() &&
        itNew == p->placefileRecordMap_.cend())
    {
       auto placefileRecord        = it->second;
-      placefileRecord->name_      = newUrl;
+      placefileRecord->name_      = normalizedUrl;
       placefileRecord->placefile_ = nullptr;
       p->placefileRecordMap_.erase(it);
-      p->placefileRecordMap_.emplace(newUrl, placefileRecord);
+      p->placefileRecordMap_.emplace(normalizedUrl, placefileRecord);
 
       lock.unlock();
 
-      Q_EMIT PlacefileRenamed(name, newUrl);
+      Q_EMIT PlacefileRenamed(name, normalizedUrl);
    }
 }
 
@@ -177,18 +181,7 @@ PlacefileManager::GetActivePlacefiles()
 
 void PlacefileManager::AddUrl(const std::string& urlString)
 {
-   std::string normalizedUrl;
-
-   // Normalize URL string
-   QUrl url = QUrl::fromUserInput(QString::fromStdString(urlString));
-   if (url.isLocalFile())
-   {
-      normalizedUrl = QDir::toNativeSeparators(url.toLocalFile()).toStdString();
-   }
-   else
-   {
-      normalizedUrl = urlString;
-   }
+   std::string normalizedUrl = Impl::NormalizeUrl(urlString);
 
    std::unique_lock lock(p->placefileRecordLock_);
 
@@ -289,6 +282,24 @@ std::shared_ptr<PlacefileManager> PlacefileManager::Instance()
    }
 
    return placefileManager;
+}
+
+std::string PlacefileManager::Impl::NormalizeUrl(const std::string& urlString)
+{
+   std::string normalizedUrl;
+
+   // Normalize URL string
+   QUrl url = QUrl::fromUserInput(QString::fromStdString(urlString));
+   if (url.isLocalFile())
+   {
+      normalizedUrl = QDir::toNativeSeparators(url.toLocalFile()).toStdString();
+   }
+   else
+   {
+      normalizedUrl = urlString;
+   }
+
+   return normalizedUrl;
 }
 
 } // namespace manager
