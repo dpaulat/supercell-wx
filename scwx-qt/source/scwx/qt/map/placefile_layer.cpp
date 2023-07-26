@@ -42,6 +42,7 @@ public:
    float         mapScale_ {1.0f};
    float         halfWidth_ {};
    float         halfHeight_ {};
+   bool          thresholded_ {true};
    ImFont*       monospaceFont_ {};
 };
 
@@ -63,8 +64,11 @@ void PlacefileLayer::Impl::RenderTextDrawItem(
    const QMapLibreGL::CustomLayerRenderParameters& params,
    std::shared_ptr<gr::Placefile::TextDrawItem>    di)
 {
-   auto distance = util::GeographicLib::GetDistance(
-      params.latitude, params.longitude, di->latitude_, di->longitude_);
+   auto distance =
+      (thresholded_) ?
+         util::GeographicLib::GetDistance(
+            params.latitude, params.longitude, di->latitude_, di->longitude_) :
+         0;
 
    if (distance < di->threshold_)
    {
@@ -145,7 +149,11 @@ void PlacefileLayer::Render(
    std::size_t fontSize = 16;
    auto        fontSizes =
       manager::SettingsManager::general_settings().font_sizes().GetValue();
-   if (fontSizes.size() > 0)
+   if (fontSizes.size() > 1)
+   {
+      fontSize = fontSizes[1];
+   }
+   else if (fontSizes.size() > 0)
    {
       fontSize = fontSizes[0];
    }
@@ -159,6 +167,9 @@ void PlacefileLayer::Render(
    // Render text
    for (auto& placefile : placefileManager->GetActivePlacefiles())
    {
+      p->thresholded_ =
+         placefileManager->placefile_thresholded(placefile->name());
+
       for (auto& drawItem : placefile->GetDrawItems())
       {
          switch (drawItem->itemType_)

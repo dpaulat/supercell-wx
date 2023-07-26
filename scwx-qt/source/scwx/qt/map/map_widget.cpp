@@ -1,5 +1,6 @@
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/gl/gl.hpp>
+#include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/alert_layer.hpp>
@@ -94,6 +95,8 @@ public:
 
       // Set Map Provider Details
       mapProvider_ = GetMapProvider(generalSettings.map_provider().GetValue());
+
+      ConnectSignals();
    }
 
    ~MapWidgetImpl()
@@ -115,6 +118,7 @@ public:
    void AddLayer(const std::string&            id,
                  std::shared_ptr<GenericLayer> layer,
                  const std::string&            before = {});
+   void ConnectSignals();
    void InitializeNewRadarProductView(const std::string& colorPalette);
    void RadarProductManagerConnect();
    void RadarProductManagerDisconnect();
@@ -142,6 +146,8 @@ public:
    std::string   imGuiContextName_;
    bool          imGuiRendererInitialized_;
 
+   std::shared_ptr<manager::PlacefileManager> placefileManager_ {
+      manager::PlacefileManager::Instance()};
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
    std::shared_ptr<common::ColorTable> colorTable_;
@@ -186,6 +192,22 @@ MapWidget::~MapWidget()
 {
    // Make sure we have a valid context so we can delete the QMapLibreGL.
    makeCurrent();
+}
+
+void MapWidgetImpl::ConnectSignals()
+{
+   connect(placefileManager_.get(),
+           &manager::PlacefileManager::PlacefileEnabled,
+           widget_,
+           [this]() { widget_->update(); });
+   connect(placefileManager_.get(),
+           &manager::PlacefileManager::PlacefileRenamed,
+           widget_,
+           [this]() { widget_->update(); });
+   connect(placefileManager_.get(),
+           &manager::PlacefileManager::PlacefileUpdated,
+           widget_,
+           [this]() { widget_->update(); });
 }
 
 common::Level3ProductCategoryMap MapWidget::GetAvailableLevel3Categories()
