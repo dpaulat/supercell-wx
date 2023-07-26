@@ -41,6 +41,16 @@ PlacefileModel::PlacefileModel(QObject* parent) :
     QAbstractTableModel(parent), p(std::make_unique<PlacefileModelImpl>())
 {
    connect(p->placefileManager_.get(),
+           &manager::PlacefileManager::PlacefileEnabled,
+           this,
+           &PlacefileModel::HandlePlacefileUpdate);
+
+   connect(p->placefileManager_.get(),
+           &manager::PlacefileManager::PlacefileRenamed,
+           this,
+           &PlacefileModel::HandlePlacefileRenamed);
+
+   connect(p->placefileManager_.get(),
            &manager::PlacefileManager::PlacefileUpdated,
            this,
            &PlacefileModel::HandlePlacefileUpdate);
@@ -65,7 +75,12 @@ Qt::ItemFlags PlacefileModel::flags(const QModelIndex& index) const
    {
    case static_cast<int>(Column::Enabled):
    case static_cast<int>(Column::Thresholds):
-      flags |= Qt::ItemFlag::ItemIsUserCheckable;
+      flags |= Qt::ItemFlag::ItemIsUserCheckable | Qt::ItemFlag::ItemIsEditable;
+      break;
+
+   case static_cast<int>(Column::Placefile):
+      flags |= Qt::ItemFlag::ItemIsEditable;
+      break;
 
    default:
       break;
@@ -76,6 +91,14 @@ Qt::ItemFlags PlacefileModel::flags(const QModelIndex& index) const
 
 QVariant PlacefileModel::data(const QModelIndex& index, int role) const
 {
+   static const QString enabledString  = QObject::tr("Enabled");
+   static const QString disabledString = QObject::tr("Disabled");
+
+   static const QString thresholdsEnabledString =
+      QObject::tr("Thresholds Enabled");
+   static const QString thresholdsDisabledString =
+      QObject::tr("Thresholds Disabled");
+
    if (!index.isValid() || index.row() < 0 ||
        static_cast<std::size_t>(index.row()) >= p->placefileNames_.size())
    {
@@ -84,41 +107,54 @@ QVariant PlacefileModel::data(const QModelIndex& index, int role) const
 
    const auto& placefileName = p->placefileNames_.at(index.row());
 
-   if (role == Qt::ItemDataRole::DisplayRole ||
-       role == Qt::ItemDataRole::ToolTipRole)
+   switch (index.column())
    {
-      static const QString enabledString  = QObject::tr("Enabled");
-      static const QString disabledString = QObject::tr("Disabled");
-
-      static const QString thresholdsEnabledString =
-         QObject::tr("Thresholds Enabled");
-      static const QString thresholdsDisabledString =
-         QObject::tr("Thresholds Disabled");
-
-      switch (index.column())
+   case static_cast<int>(Column::Enabled):
+      if (role == Qt::ItemDataRole::ToolTipRole)
       {
-      case static_cast<int>(Column::Enabled):
-         if (role == Qt::ItemDataRole::ToolTipRole)
-         {
-            return p->placefileManager_->PlacefileEnabled(placefileName) ?
-                      enabledString :
-                      disabledString;
-         }
-         break;
+         return p->placefileManager_->placefile_enabled(placefileName) ?
+                   enabledString :
+                   disabledString;
+      }
+      else if (role == Qt::ItemDataRole::CheckStateRole)
+      {
+         return static_cast<int>(
+            p->placefileManager_->placefile_enabled(placefileName) ?
+               Qt::CheckState::Checked :
+               Qt::CheckState::Unchecked);
+      }
+      else if (role == types::ItemDataRole::SortRole)
+      {
+         return p->placefileManager_->placefile_enabled(placefileName);
+      }
+      break;
 
-      case static_cast<int>(Column::Thresholds):
-         if (role == Qt::ItemDataRole::ToolTipRole)
-         {
-            return p->placefileManager_->PlacefileThresholded(placefileName) ?
-                      thresholdsEnabledString :
-                      thresholdsDisabledString;
-         }
-         break;
+   case static_cast<int>(Column::Thresholds):
+      if (role == Qt::ItemDataRole::ToolTipRole)
+      {
+         return p->placefileManager_->placefile_thresholded(placefileName) ?
+                   thresholdsEnabledString :
+                   thresholdsDisabledString;
+      }
+      else if (role == Qt::ItemDataRole::CheckStateRole)
+      {
+         return static_cast<int>(
+            p->placefileManager_->placefile_thresholded(placefileName) ?
+               Qt::CheckState::Checked :
+               Qt::CheckState::Unchecked);
+      }
+      else if (role == types::ItemDataRole::SortRole)
+      {
+         return p->placefileManager_->placefile_thresholded(placefileName);
+      }
+      break;
 
-      case static_cast<int>(Column::Placefile):
+   case static_cast<int>(Column::Placefile):
+      if (role == Qt::ItemDataRole::DisplayRole ||
+          role == Qt::ItemDataRole::ToolTipRole)
       {
          std::string description = placefileName;
-         auto        placefile = p->placefileManager_->Placefile(placefileName);
+         auto        placefile = p->placefileManager_->placefile(placefileName);
          if (placefile != nullptr)
          {
             std::string title = placefile->title();
@@ -130,47 +166,15 @@ QVariant PlacefileModel::data(const QModelIndex& index, int role) const
 
          return QString::fromStdString(description);
       }
-
-      default:
-         break;
-      }
-   }
-   else if (role == types::ItemDataRole::SortRole)
-   {
-      switch (index.column())
+      else if (role == Qt::ItemDataRole::EditRole ||
+               role == types::ItemDataRole::SortRole)
       {
-      case static_cast<int>(Column::Enabled):
-         return p->placefileManager_->PlacefileEnabled(placefileName);
-
-      case static_cast<int>(Column::Thresholds):
-         return p->placefileManager_->PlacefileThresholded(placefileName);
-
-      case static_cast<int>(Column::Placefile):
          return QString::fromStdString(placefileName);
-
-      default:
-         break;
       }
-   }
-   else if (role == Qt::ItemDataRole::CheckStateRole)
-   {
-      switch (index.column())
-      {
-      case static_cast<int>(Column::Enabled):
-         return static_cast<int>(
-            p->placefileManager_->PlacefileEnabled(placefileName) ?
-               Qt::CheckState::Checked :
-               Qt::CheckState::Unchecked);
+      break;
 
-      case static_cast<int>(Column::Thresholds):
-         return static_cast<int>(
-            p->placefileManager_->PlacefileThresholded(placefileName) ?
-               Qt::CheckState::Checked :
-               Qt::CheckState::Unchecked);
-
-      default:
-         break;
-      }
+   default:
+      break;
    }
 
    return QVariant();
@@ -238,6 +242,82 @@ QVariant PlacefileModel::headerData(int             section,
    }
 
    return QVariant();
+}
+
+bool PlacefileModel::setData(const QModelIndex& index,
+                             const QVariant&    value,
+                             int                role)
+{
+   if (!index.isValid() || index.row() < 0 ||
+       static_cast<std::size_t>(index.row()) >= p->placefileNames_.size())
+   {
+      return false;
+   }
+
+   const auto& placefileName = p->placefileNames_.at(index.row());
+
+   switch (index.column())
+   {
+   case static_cast<int>(Column::Enabled):
+      if (role == Qt::ItemDataRole::CheckStateRole)
+      {
+         p->placefileManager_->set_placefile_enabled(placefileName,
+                                                     value.toBool());
+         return true;
+      }
+      break;
+
+   case static_cast<int>(Column::Thresholds):
+      if (role == Qt::ItemDataRole::CheckStateRole)
+      {
+         p->placefileManager_->set_placefile_thresholded(placefileName,
+                                                         value.toBool());
+         return true;
+      }
+      break;
+
+   case static_cast<int>(Column::Placefile):
+      if (role == Qt::ItemDataRole::EditRole)
+      {
+         p->placefileManager_->set_placefile_url(
+            placefileName, value.toString().toStdString());
+         return true;
+      }
+      break;
+
+   default:
+      break;
+   }
+
+   return true;
+}
+
+void PlacefileModel::HandlePlacefileRenamed(const std::string& oldName,
+                                            const std::string& newName)
+{
+   auto it =
+      std::find(p->placefileNames_.begin(), p->placefileNames_.end(), oldName);
+
+   if (it != p->placefileNames_.end())
+   {
+      // Placefile exists, mark row as updated
+      const int   row         = std::distance(p->placefileNames_.begin(), it);
+      QModelIndex topLeft     = createIndex(row, kFirstColumn);
+      QModelIndex bottomRight = createIndex(row, kLastColumn);
+
+      // Rename placefile
+      *it = newName;
+
+      Q_EMIT dataChanged(topLeft, bottomRight);
+   }
+   else
+   {
+      // Placefile is new, append row
+      const int newIndex = static_cast<int>(p->placefileNames_.size());
+      beginInsertRows(QModelIndex(), newIndex, newIndex);
+      p->placefileNames_.push_back(newName);
+      endInsertRows();
+   }
 }
 
 void PlacefileModel::HandlePlacefileUpdate(const std::string& name)

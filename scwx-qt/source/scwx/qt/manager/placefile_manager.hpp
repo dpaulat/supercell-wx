@@ -19,9 +19,13 @@ public:
    explicit PlacefileManager();
    ~PlacefileManager();
 
-   bool PlacefileEnabled(const std::string& name);
-   bool PlacefileThresholded(const std::string& name);
-   std::shared_ptr<const gr::Placefile> Placefile(const std::string& name);
+   bool placefile_enabled(const std::string& name);
+   bool placefile_thresholded(const std::string& name);
+   std::shared_ptr<const gr::Placefile> placefile(const std::string& name);
+
+   void set_placefile_enabled(const std::string& name, bool enabled);
+   void set_placefile_thresholded(const std::string& name, bool thresholded);
+   void set_placefile_url(const std::string& name, const std::string& newUrl);
 
    /**
     * @brief Gets a list of active placefiles
@@ -37,6 +41,8 @@ public:
 
 signals:
    void PlacefileEnabled(const std::string& name, bool enabled);
+   void PlacefileRenamed(const std::string& oldName,
+                         const std::string& newName);
    void PlacefileUpdated(const std::string& name);
 
 private:

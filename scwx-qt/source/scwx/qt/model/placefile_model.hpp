@@ -40,7 +40,13 @@ public:
                        Qt::Orientation orientation,
                        int             role = Qt::DisplayRole) const override;
 
+   bool setData(const QModelIndex& index,
+                const QVariant&    value,
+                int                role = Qt::EditRole) override;
+
 public slots:
+   void HandlePlacefileRenamed(const std::string& oldName,
+                               const std::string& newName);
    void HandlePlacefileUpdate(const std::string& name);
 
 private:

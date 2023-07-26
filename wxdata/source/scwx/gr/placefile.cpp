@@ -51,6 +51,7 @@ public:
    static void ProcessEscapeCharacters(std::string& s);
    static void TrimQuotes(std::string& s);
 
+   std::string          name_ {};
    std::string          title_ {};
    std::chrono::seconds refresh_ {-1};
 
@@ -85,6 +86,11 @@ std::vector<std::shared_ptr<Placefile::DrawItem>> Placefile::GetDrawItems()
    return p->drawItems_;
 }
 
+std::string Placefile::name() const
+{
+   return p->name_;
+}
+
 std::string Placefile::title() const
 {
    return p->title_;
@@ -110,12 +116,15 @@ std::shared_ptr<Placefile> Placefile::Load(const std::string& filename)
 {
    logger_->debug("Loading placefile: {}", filename);
    std::ifstream f(filename, std::ios_base::in);
-   return Load(f);
+   return Load(filename, f);
 }
 
-std::shared_ptr<Placefile> Placefile::Load(std::istream& is)
+std::shared_ptr<Placefile> Placefile::Load(const std::string& name,
+                                           std::istream&      is)
 {
    std::shared_ptr<Placefile> placefile = std::make_shared<Placefile>();
+
+   placefile->p->name_ = name;
 
    std::string line;
    while (scwx::util::getline(is, line))

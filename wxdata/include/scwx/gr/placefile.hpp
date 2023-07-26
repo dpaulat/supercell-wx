@@ -84,12 +84,14 @@ public:
     */
    std::vector<std::shared_ptr<DrawItem>> GetDrawItems();
 
+   std::string                                            name() const;
    std::string                                            title() const;
    std::unordered_map<std::size_t, std::shared_ptr<Font>> fonts();
    std::shared_ptr<Font>                                  font(std::size_t i);
 
    static std::shared_ptr<Placefile> Load(const std::string& filename);
-   static std::shared_ptr<Placefile> Load(std::istream& is);
+   static std::shared_ptr<Placefile> Load(const std::string& name,
+                                          std::istream&      is);
 
 private:
    class Impl;

@@ -66,7 +66,7 @@ public:
 PlacefileManager::PlacefileManager() : p(std::make_unique<Impl>(this)) {}
 PlacefileManager::~PlacefileManager() = default;
 
-bool PlacefileManager::PlacefileEnabled(const std::string& name)
+bool PlacefileManager::placefile_enabled(const std::string& name)
 {
    std::shared_lock lock(p->placefileRecordLock_);
 
@@ -78,7 +78,7 @@ bool PlacefileManager::PlacefileEnabled(const std::string& name)
    return false;
 }
 
-bool PlacefileManager::PlacefileThresholded(const std::string& name)
+bool PlacefileManager::placefile_thresholded(const std::string& name)
 {
    std::shared_lock lock(p->placefileRecordLock_);
 
@@ -91,7 +91,7 @@ bool PlacefileManager::PlacefileThresholded(const std::string& name)
 }
 
 std::shared_ptr<const gr::Placefile>
-PlacefileManager::Placefile(const std::string& name)
+PlacefileManager::placefile(const std::string& name)
 {
    std::shared_lock lock(p->placefileRecordLock_);
 
@@ -103,6 +103,60 @@ PlacefileManager::Placefile(const std::string& name)
    return nullptr;
 }
 
+void PlacefileManager::set_placefile_enabled(const std::string& name,
+                                             bool               enabled)
+{
+   std::shared_lock lock(p->placefileRecordLock_);
+
+   auto it = p->placefileRecordMap_.find(name);
+   if (it != p->placefileRecordMap_.cend())
+   {
+      it->second->enabled_ = enabled;
+
+      lock.unlock();
+
+      Q_EMIT PlacefileEnabled(name, enabled);
+   }
+}
+
+void PlacefileManager::set_placefile_thresholded(const std::string& name,
+                                                 bool               thresholded)
+{
+   std::shared_lock lock(p->placefileRecordLock_);
+
+   auto it = p->placefileRecordMap_.find(name);
+   if (it != p->placefileRecordMap_.cend())
+   {
+      it->second->thresholded_ = thresholded;
+
+      lock.unlock();
+
+      Q_EMIT PlacefileUpdated(name);
+   }
+}
+
+void PlacefileManager::set_placefile_url(const std::string& name,
+                                         const std::string& newUrl)
+{
+   std::unique_lock lock(p->placefileRecordLock_);
+
+   auto it    = p->placefileRecordMap_.find(name);
+   auto itNew = p->placefileRecordMap_.find(newUrl);
+   if (it != p->placefileRecordMap_.cend() &&
+       itNew == p->placefileRecordMap_.cend())
+   {
+      auto placefileRecord        = it->second;
+      placefileRecord->name_      = newUrl;
+      placefileRecord->placefile_ = nullptr;
+      p->placefileRecordMap_.erase(it);
+      p->placefileRecordMap_.emplace(newUrl, placefileRecord);
+
+      lock.unlock();
+
+      Q_EMIT PlacefileRenamed(name, newUrl);
+   }
+}
+
 std::vector<std::shared_ptr<gr::Placefile>>
 PlacefileManager::GetActivePlacefiles()
 {
@@ -112,7 +166,7 @@ PlacefileManager::GetActivePlacefiles()
 
    for (const auto& record : p->placefileRecords_)
    {
-      if (record->enabled_)
+      if (record->enabled_ && record->placefile_ != nullptr)
       {
          placefiles.emplace_back(record->placefile_);
       }
