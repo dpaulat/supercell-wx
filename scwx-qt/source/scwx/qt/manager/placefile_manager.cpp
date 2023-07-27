@@ -7,9 +7,11 @@
 
 #include <QDir>
 #include <QUrl>
+#include <boost/algorithm/string.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/thread_pool.hpp>
+#include <boost/tokenizer.hpp>
 #include <cpr/cpr.h>
 
 namespace scwx
@@ -314,21 +316,62 @@ void PlacefileRecord::Update()
    }
    else
    {
-      // TODO: Update hard coded parameters
-      auto response = cpr::Get(
-         cpr::Url {name},
-         cpr::Header {{"User-Agent", "Supercell Wx/0.2.2"}},
-         cpr::Parameters {
-            {"version", "1.2"}, {"lat", "38.699"}, {"lon", "-90.683"}});
+      std::string decodedUrl {name};
+      auto        queryPos = decodedUrl.find('?');
+      if (queryPos != std::string::npos)
+      {
+         decodedUrl.erase(queryPos);
+      }
 
-      if (response.status_code == cpr::status::HTTP_OK)
+      // TODO: Update hard coded parameters
+      auto parameters = cpr::Parameters {
+         {"version", "1.2"}, {"lat", "38.699"}, {"lon", "-90.683"}};
+
+      // Iterate through each query parameter in the URL
+      if (url.hasQuery())
+      {
+         auto query = url.query(QUrl::ComponentFormattingOption::FullyEncoded)
+                         .toStdString();
+
+         boost::char_separator<char> delimiter("&");
+         boost::tokenizer            tokens(query, delimiter);
+
+         for (auto& token : tokens)
+         {
+            std::vector<std::string> split {};
+            boost::split(split, token, boost::is_any_of("="));
+            if (split.size() >= 2)
+            {
+               // Token is a key=value parameter
+               parameters.Add({split[0], split[1]});
+            }
+            else
+            {
+               // Token is a single key with no value
+               parameters.Add({token, {}});
+            }
+         }
+      }
+
+      // Send HTTP GET request
+      // TODO: Update hard coded User-Agent
+      auto response =
+         cpr::Get(cpr::Url {decodedUrl},
+                  cpr::Header {{"User-Agent", "SupercellWx/0.2.2"}},
+                  parameters);
+
+      if (cpr::status::is_success(response.status_code))
       {
          std::istringstream responseBody {response.text};
          updatedPlacefile = gr::Placefile::Load(name, responseBody);
       }
+      else if (response.status_code == 0)
+      {
+         logger_->error("Error loading placefile: {}", response.error.message);
+      }
       else
       {
-         logger_->warn("Error loading placefile: {}", response.error.message);
+         logger_->error("Error loading placefile: {}", response.status_line);
       }
    }
 
