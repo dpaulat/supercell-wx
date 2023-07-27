@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/gr/placefile.hpp>
+#include <scwx/qt/config/radar_site.hpp>
 
 #include <QObject>
 
@@ -26,6 +27,8 @@ public:
    void set_placefile_enabled(const std::string& name, bool enabled);
    void set_placefile_thresholded(const std::string& name, bool thresholded);
    void set_placefile_url(const std::string& name, const std::string& newUrl);
+
+   void SetRadarSite(std::shared_ptr<config::RadarSite> radarSite);
 
    /**
     * @brief Gets a list of active placefiles

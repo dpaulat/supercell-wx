@@ -1136,6 +1136,8 @@ void MainWindowImpl::UpdateRadarSite()
 
       timelineManager_->SetRadarSite("?");
    }
+
+   placefileManager_->SetRadarSite(radarSite);
 }
 
 void MainWindowImpl::UpdateVcp()
