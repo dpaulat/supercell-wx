@@ -7,6 +7,7 @@
 
 #include <boost/gil/typedefs.hpp>
 #include <boost/units/quantity.hpp>
+#include <boost/units/systems/angle/degrees.hpp>
 #include <boost/units/systems/si/length.hpp>
 
 namespace scwx
@@ -47,6 +48,16 @@ public:
       Unknown
    };
 
+   struct IconFile
+   {
+      std::size_t fileNumber_ {};
+      std::size_t iconWidth_ {};
+      std::size_t iconHeight_ {};
+      std::size_t hotX_ {};
+      std::size_t hotY_ {};
+      std::string filename_ {};
+   };
+
    struct Font
    {
       std::size_t  fontNumber_ {};
@@ -59,6 +70,20 @@ public:
    {
       ItemType itemType_ {ItemType::Unknown};
       boost::units::quantity<boost::units::si::length> threshold_ {};
+   };
+
+   struct IconDrawItem : DrawItem
+   {
+      IconDrawItem() { itemType_ = ItemType::Icon; }
+
+      double                                                    latitude_ {};
+      double                                                    longitude_ {};
+      double                                                    x_ {};
+      double                                                    y_ {};
+      boost::units::quantity<boost::units::degree::plane_angle> angle_ {};
+      std::size_t fileNumber_ {0u};
+      std::size_t iconNumber_ {0u};
+      std::string hoverText_ {};
    };
 
    struct TextDrawItem : DrawItem

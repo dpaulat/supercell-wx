@@ -64,8 +64,8 @@ public:
    DrawingStatement          currentStatement_ {DrawingStatement::Standard};
 
    // References
-   std::unordered_map<std::size_t, bool>                  iconFiles_ {};
-   std::unordered_map<std::size_t, std::shared_ptr<Font>> fonts_ {};
+   std::unordered_map<std::size_t, std::shared_ptr<IconFile>> iconFiles_ {};
+   std::unordered_map<std::size_t, std::shared_ptr<Font>>     fonts_ {};
 
    std::vector<std::shared_ptr<DrawItem>> drawItems_ {};
 };
@@ -184,6 +184,7 @@ void Placefile::Impl::ProcessLine(const std::string& line)
 {
    static const std::string titleKey_ {"Title:"};
    static const std::string thresholdKey_ {"Threshold:"};
+   static const std::string timeRangeKey_ {"TimeRange:"};
    static const std::string hsluvKey_ {"HSLuv:"};
    static const std::string colorKey_ {"Color:"};
    static const std::string refreshKey_ {"Refresh:"};
@@ -224,6 +225,12 @@ void Placefile::Impl::ProcessLine(const std::string& line)
                std::stod(tokenList[0]) *
                boost::units::metric::nautical_mile_base_unit::unit_type());
       }
+   }
+   else if (boost::istarts_with(line, timeRangeKey_))
+   {
+      // TimeRange: start_time end_time
+
+      // TODO
    }
    else if (boost::istarts_with(line, hsluvKey_))
    {
@@ -309,14 +316,73 @@ void Placefile::Impl::ProcessLine(const std::string& line)
    else if (boost::istarts_with(line, iconFileKey_))
    {
       // IconFile: fileNumber, iconWidth, iconHeight, hotX, hotY, fileName
+      std::vector<std::string> tokenList = util::ParseTokens(
+         line, {",", ",", ",", ",", ","}, iconFileKey_.size());
 
-      // TODO
+      if (tokenList.size() >= 6)
+      {
+         std::shared_ptr<IconFile> iconFile = std::make_shared<IconFile>();
+
+         iconFile->fileNumber_ = std::stoul(tokenList[0]);
+         iconFile->iconWidth_  = std::stoul(tokenList[1]);
+         iconFile->iconHeight_ = std::stoul(tokenList[2]);
+         iconFile->hotX_       = std::stoul(tokenList[3]);
+         iconFile->hotY_       = std::stoul(tokenList[4]);
+
+         TrimQuotes(tokenList[5]);
+         iconFile->filename_.swap(tokenList[5]);
+
+         iconFiles_.insert_or_assign(iconFile->fileNumber_, iconFile);
+      }
+      else
+      {
+         logger_->warn("IconFile statement malformed: {}", line);
+      }
    }
    else if (boost::istarts_with(line, iconKey_))
    {
       // Icon: lat, lon, angle, fileNumber, iconNumber, hoverText
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {",", ",", ",", ",", ","}, iconKey_.size());
 
-      // TODO
+      std::shared_ptr<IconDrawItem> di = nullptr;
+
+      if (tokenList.size() >= 5)
+      {
+         di = std::make_shared<IconDrawItem>();
+
+         di->threshold_ = threshold_;
+
+         ParseLocation(tokenList[0],
+                       tokenList[1],
+                       di->latitude_,
+                       di->longitude_,
+                       di->x_,
+                       di->y_);
+
+         di->angle_ = static_cast<
+            boost::units::quantity<boost::units::degree::plane_angle>>(
+            std::stod(tokenList[2]) *
+            boost::units::angle::degree_base_unit::unit_type());
+
+         di->fileNumber_ = std::stoul(tokenList[3]);
+         di->iconNumber_ = std::stoul(tokenList[4]);
+      }
+      if (tokenList.size() >= 6)
+      {
+         ProcessEscapeCharacters(tokenList[5]);
+         TrimQuotes(tokenList[5]);
+         di->hoverText_.swap(tokenList[5]);
+      }
+
+      if (di != nullptr)
+      {
+         drawItems_.emplace_back(std::move(di));
+      }
+      else
+      {
+         logger_->warn("Icon statement malformed: {}", line);
+      }
    }
    else if (boost::istarts_with(line, fontKey_))
    {
