@@ -1,8 +1,10 @@
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/main/main_window.hpp>
+#include <scwx/qt/main/versions.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/network/cpr.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
 
@@ -26,6 +28,8 @@ int main(int argc, char* argv[])
    QApplication a(argc, argv);
 
    QCoreApplication::setApplicationName("Supercell Wx");
+   scwx::network::cpr::SetUserAgent(
+      fmt::format("SupercellWx/{}", scwx::qt::main::kVersionString_));
 
    // Enable internationalization support
    QTranslator translator;

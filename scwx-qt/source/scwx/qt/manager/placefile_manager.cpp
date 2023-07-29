@@ -1,11 +1,14 @@
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/gr/placefile.hpp>
+#include <scwx/network/cpr.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <shared_mutex>
 #include <vector>
 
 #include <QDir>
+#include <QGuiApplication>
+#include <QScreen>
 #include <QUrl>
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/post.hpp>
@@ -340,9 +343,12 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
          return;
       }
 
+      auto dpi = QGuiApplication::primaryScreen()->logicalDotsPerInch();
+
       // Specify parameters
       auto parameters = cpr::Parameters {
          {"version", "1.2"}, // Placefile Version Supported
+         {"dpi", fmt::format("{:0.0f}", dpi)},
          {"lat", fmt::format("{:0.3f}", p->radarSite_->latitude())},
          {"lon", fmt::format("{:0.3f}", p->radarSite_->longitude())}};
 
@@ -373,11 +379,8 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
       }
 
       // Send HTTP GET request
-      // TODO: Update hard coded User-Agent
       auto response =
-         cpr::Get(cpr::Url {decodedUrl},
-                  cpr::Header {{"User-Agent", "SupercellWx/0.2.2"}},
-                  parameters);
+         cpr::Get(cpr::Url {decodedUrl}, network::cpr::GetHeader(), parameters);
 
       if (cpr::status::is_success(response.status_code))
       {

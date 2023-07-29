@@ -50,8 +50,10 @@ set(HDR_GR include/scwx/gr/color.hpp
            include/scwx/gr/placefile.hpp)
 set(SRC_GR source/scwx/gr/color.cpp
            source/scwx/gr/placefile.cpp)
-set(HDR_NETWORK include/scwx/network/dir_list.hpp)
-set(SRC_NETWORK source/scwx/network/dir_list.cpp)
+set(HDR_NETWORK include/scwx/network/cpr.hpp
+                include/scwx/network/dir_list.hpp)
+set(SRC_NETWORK source/scwx/network/cpr.cpp
+                source/scwx/network/dir_list.cpp)
 set(HDR_PROVIDER include/scwx/provider/aws_level2_data_provider.hpp
                  include/scwx/provider/aws_level3_data_provider.hpp
                  include/scwx/provider/aws_nexrad_data_provider.hpp
