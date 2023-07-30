@@ -5,9 +5,8 @@
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/util/logger.hpp>
 
-#include <imgui.h>
-
 #include <QFontDatabase>
+#include <imgui.h>
 
 namespace scwx
 {
@@ -60,6 +59,12 @@ std::shared_ptr<util::Font> Font(types::Font font)
       return it->second;
    }
    return nullptr;
+}
+
+void LoadImageResource(const std::string& urlString)
+{
+   util::TextureAtlas& textureAtlas = util::TextureAtlas::Instance();
+   textureAtlas.CacheTexture(urlString, urlString);
 }
 
 static void LoadFonts()

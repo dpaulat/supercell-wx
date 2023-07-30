@@ -46,7 +46,8 @@ set(HDR_CONFIG source/scwx/qt/config/county_database.hpp
                source/scwx/qt/config/radar_site.hpp)
 set(SRC_CONFIG source/scwx/qt/config/county_database.cpp
                source/scwx/qt/config/radar_site.cpp)
-set(SRC_EXTERNAL source/scwx/qt/external/stb_rect_pack.cpp)
+set(SRC_EXTERNAL source/scwx/qt/external/stb_image.cpp
+                 source/scwx/qt/external/stb_rect_pack.cpp)
 set(HDR_GL source/scwx/qt/gl/gl.hpp
            source/scwx/qt/gl/gl_context.hpp
            source/scwx/qt/gl/shader_program.hpp
@@ -203,6 +204,7 @@ set(HDR_UTIL source/scwx/qt/util/color.hpp
              source/scwx/qt/util/geographic_lib.hpp
              source/scwx/qt/util/json.hpp
              source/scwx/qt/util/maplibre.hpp
+             source/scwx/qt/util/network.hpp
              source/scwx/qt/util/streams.hpp
              source/scwx/qt/util/texture_atlas.hpp
              source/scwx/qt/util/q_file_buffer.hpp
@@ -215,6 +217,7 @@ set(SRC_UTIL source/scwx/qt/util/color.cpp
              source/scwx/qt/util/geographic_lib.cpp
              source/scwx/qt/util/json.cpp
              source/scwx/qt/util/maplibre.cpp
+             source/scwx/qt/util/network.cpp
              source/scwx/qt/util/texture_atlas.cpp
              source/scwx/qt/util/q_file_buffer.cpp
              source/scwx/qt/util/q_file_input_stream.cpp

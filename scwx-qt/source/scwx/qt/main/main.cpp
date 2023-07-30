@@ -10,6 +10,7 @@
 
 #include <aws/core/Aws.h>
 #include <boost/asio.hpp>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <QApplication>
 #include <QTranslator>

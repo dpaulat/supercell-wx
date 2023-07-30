@@ -18,6 +18,8 @@ void Shutdown();
 int                         FontId(types::Font font);
 std::shared_ptr<util::Font> Font(types::Font font);
 
+void LoadImageResource(const std::string& urlString);
+
 } // namespace ResourceManager
 } // namespace manager
 } // namespace qt

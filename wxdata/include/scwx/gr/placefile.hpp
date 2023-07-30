@@ -109,6 +109,8 @@ public:
     */
    std::vector<std::shared_ptr<DrawItem>> GetDrawItems();
 
+   std::vector<std::shared_ptr<const IconFile>> icon_files();
+
    std::string                                            name() const;
    std::string                                            title() const;
    std::unordered_map<std::size_t, std::shared_ptr<Font>> fonts();

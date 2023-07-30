@@ -1,4 +1,6 @@
 #include <scwx/qt/manager/placefile_manager.hpp>
+#include <scwx/qt/manager/resource_manager.hpp>
+#include <scwx/qt/util/network.hpp>
 #include <scwx/gr/placefile.hpp>
 #include <scwx/network/cpr.hpp>
 #include <scwx/util/logger.hpp>
@@ -35,7 +37,7 @@ public:
    explicit Impl(PlacefileManager* self) : self_ {self} {}
    ~Impl() {}
 
-   static std::string NormalizeUrl(const std::string& urlString);
+   static void LoadResources(const std::shared_ptr<gr::Placefile>& placefile);
 
    boost::asio::thread_pool threadPool_ {1u};
 
@@ -67,7 +69,7 @@ public:
 
    void Update();
    void UpdateAsync();
-   void UpdatePlacefile(std::shared_ptr<gr::Placefile> placefile);
+   void UpdatePlacefile(const std::shared_ptr<gr::Placefile>& placefile);
 
    Impl* p;
 
@@ -78,10 +80,6 @@ public:
    boost::asio::thread_pool       threadPool_ {1u};
    boost::asio::steady_timer      refreshTimer_ {threadPool_};
    std::mutex                     refreshMutex_ {};
-
-signals:
-   void Updated(const std::string&             name,
-                std::shared_ptr<gr::Placefile> placefile);
 };
 
 PlacefileManager::PlacefileManager() : p(std::make_unique<Impl>(this)) {}
@@ -167,7 +165,7 @@ void PlacefileManager::set_placefile_thresholded(const std::string& name,
 void PlacefileManager::set_placefile_url(const std::string& name,
                                          const std::string& newUrl)
 {
-   std::string normalizedUrl = Impl::NormalizeUrl(newUrl);
+   std::string normalizedUrl = util::network::NormalizeUrl(newUrl);
 
    std::unique_lock lock(p->placefileRecordLock_);
 
@@ -235,7 +233,7 @@ PlacefileManager::GetActivePlacefiles()
 
 void PlacefileManager::AddUrl(const std::string& urlString)
 {
-   std::string normalizedUrl = Impl::NormalizeUrl(urlString);
+   std::string normalizedUrl = util::network::NormalizeUrl(urlString);
 
    std::unique_lock lock(p->placefileRecordLock_);
 
@@ -318,6 +316,8 @@ void PlacefileManager::LoadFile(const std::string& filename)
 
 void PlacefileManager::Impl::PlacefileRecord::Update()
 {
+   logger_->debug("Update: {}", name_);
+
    // Make a copy of name in the event it changes.
    const std::string name {name_};
 
@@ -399,6 +399,9 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
 
    if (updatedPlacefile != nullptr)
    {
+      // Load placefile resources
+      Impl::LoadResources(updatedPlacefile);
+
       // Check the name matches, in case the name updated
       if (name_ == name)
       {
@@ -421,7 +424,7 @@ void PlacefileManager::Impl::PlacefileRecord::UpdateAsync()
 }
 
 void PlacefileManager::Impl::PlacefileRecord::UpdatePlacefile(
-   std::shared_ptr<gr::Placefile> placefile)
+   const std::shared_ptr<gr::Placefile>& placefile)
 {
    // Update placefile
    placefile_ = placefile;
@@ -448,22 +451,22 @@ std::shared_ptr<PlacefileManager> PlacefileManager::Instance()
    return placefileManager;
 }
 
-std::string PlacefileManager::Impl::NormalizeUrl(const std::string& urlString)
+void PlacefileManager::Impl::LoadResources(
+   const std::shared_ptr<gr::Placefile>& placefile)
 {
-   std::string normalizedUrl;
+   const auto iconFiles = placefile->icon_files();
 
-   // Normalize URL string
-   QUrl url = QUrl::fromUserInput(QString::fromStdString(urlString));
-   if (url.isLocalFile())
-   {
-      normalizedUrl = QDir::toNativeSeparators(url.toLocalFile()).toStdString();
-   }
-   else
-   {
-      normalizedUrl = urlString;
-   }
+   const QUrl baseUrl =
+      QUrl::fromUserInput(QString::fromStdString(placefile->name()));
 
-   return normalizedUrl;
+   // TODO: Parallelize
+   for (auto& iconFile : iconFiles)
+   {
+      QUrl fileUrl     = QUrl(QString::fromStdString(iconFile->filename_));
+      QUrl resolvedUrl = baseUrl.resolved(fileUrl);
+
+      ResourceManager::LoadImageResource(resolvedUrl.toString().toStdString());
+   }
 }
 
 } // namespace manager

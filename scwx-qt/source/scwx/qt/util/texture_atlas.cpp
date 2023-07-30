@@ -1,5 +1,6 @@
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/qt/util/streams.hpp>
+#include <scwx/network/cpr.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <shared_mutex>
@@ -13,8 +14,11 @@
 
 #include <boost/gil/extension/io/png.hpp>
 #include <boost/iostreams/stream.hpp>
+#include <cpr/cpr.h>
+#include <stb_image.h>
 #include <stb_rect_pack.h>
 #include <QFile>
+#include <QUrl>
 
 #if defined(_MSC_VER)
 #   pragma warning(pop)
@@ -48,6 +52,9 @@ public:
    std::unordered_map<std::string, std::string> texturePathMap_;
    std::shared_mutex                            texturePathMutex_;
 
+   std::shared_mutex textureCacheMutex_;
+   std::unordered_map<std::string, boost::gil::rgba8_image_t> textureCache_;
+
    boost::gil::rgba8_image_t                          atlas_;
    std::unordered_map<std::string, TextureAttributes> atlasMap_;
    std::shared_mutex                                  atlasMutex_;
@@ -64,6 +71,34 @@ void TextureAtlas::RegisterTexture(const std::string& name,
 {
    std::unique_lock lock(p->texturePathMutex_);
    p->texturePathMap_.insert_or_assign(name, path);
+}
+
+bool TextureAtlas::CacheTexture(const std::string& name,
+                                const std::string& path)
+{
+   // If the image is already loaded, we don't need to load it again
+   {
+      std::shared_lock lock(p->textureCacheMutex_);
+
+      if (p->textureCache_.contains(path))
+      {
+         return false;
+      }
+   }
+
+   // Attempt to load the image
+   boost::gil::rgba8_image_t image = TextureAtlas::Impl::LoadImage(path);
+
+   // If the image is valid
+   if (image.width() > 0 && image.height() > 0)
+   {
+      // Store it in the texture cache
+      std::unique_lock lock(p->textureCacheMutex_);
+
+      p->textureCache_.emplace(name, std::move(image));
+   }
+
+   return true;
 }
 
 void TextureAtlas::BuildAtlas(size_t width, size_t height)
@@ -108,6 +143,11 @@ void TextureAtlas::BuildAtlas(size_t width, size_t height)
                           images.emplace_back(pair.first, std::move(image));
                        }
                     });
+   }
+
+   // TODO: Cached images
+   {
+
    }
 
    // Pack images
@@ -260,29 +300,86 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath)
 
    boost::gil::rgba8_image_t image;
 
-   QFile imageFile(imagePath.c_str());
+   QUrl url = QUrl::fromUserInput(QString::fromStdString(imagePath));
 
-   imageFile.open(QIODevice::ReadOnly);
-
-   if (!imageFile.isOpen())
+   if (url.isLocalFile())
    {
-      logger_->error("Could not open image: {}", imagePath);
-      return image;
+      QFile imageFile(imagePath.c_str());
+
+      imageFile.open(QIODevice::ReadOnly);
+
+      if (!imageFile.isOpen())
+      {
+         logger_->error("Could not open image: {}", imagePath);
+         return image;
+      }
+
+      boost::iostreams::stream<util::IoDeviceSource> dataStream(imageFile);
+
+      try
+      {
+         boost::gil::read_and_convert_image(
+            dataStream, image, boost::gil::png_tag());
+      }
+      catch (const std::exception& ex)
+      {
+         logger_->error("Error reading image: {}", ex.what());
+         return image;
+      }
    }
-
-   boost::iostreams::stream<util::IoDeviceSource> dataStream(imageFile);
-
-   boost::gil::image<boost::gil::rgba8_pixel_t, false> x;
-
-   try
+   else
    {
-      boost::gil::read_and_convert_image(
-         dataStream, image, boost::gil::png_tag());
-   }
-   catch (const std::exception& ex)
-   {
-      logger_->error("Error reading image: {}", ex.what());
-      return image;
+      auto response = cpr::Get(cpr::Url {imagePath}, network::cpr::GetHeader());
+
+      if (cpr::status::is_success(response.status_code))
+      {
+         // Use stbi, since we can only guess the image format
+         static constexpr int desiredChannels = 4;
+
+         int width;
+         int height;
+         int numChannels;
+
+         unsigned char* pixelData = stbi_load_from_memory(
+            reinterpret_cast<const unsigned char*>(response.text.data()),
+            static_cast<int>(
+               std::clamp<std::size_t>(response.text.size(), 0, INT32_MAX)),
+            &width,
+            &height,
+            &numChannels,
+            desiredChannels);
+
+         if (pixelData == nullptr)
+         {
+            logger_->error("Error loading image: {}", stbi_failure_reason());
+            return image;
+         }
+
+         // Create a view pointing to the STB image data
+         auto imageView = boost::gil::interleaved_view(
+            width,
+            height,
+            reinterpret_cast<boost::gil::rgba8_pixel_t*>(pixelData),
+            width * desiredChannels);
+
+         // Copy the view to the destination image
+         image = boost::gil::rgba8_image_t(imageView);
+
+         if (numChannels == 3)
+         {
+            // TODO: If no alpha channel, replace black with transparent
+         }
+
+         stbi_image_free(pixelData);
+      }
+      else if (response.status_code == 0)
+      {
+         logger_->error("Error loading image: {}", response.error.message);
+      }
+      else
+      {
+         logger_->error("Error loading image: {}", response.status_line);
+      }
    }
 
    return image;

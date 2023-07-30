@@ -67,6 +67,7 @@ public:
    static TextureAtlas& Instance();
 
    void   RegisterTexture(const std::string& name, const std::string& path);
+   bool   CacheTexture(const std::string& name, const std::string& path);
    void   BuildAtlas(size_t width, size_t height);
    GLuint BufferAtlas(gl::OpenGLFunctions& gl);
 

@@ -86,6 +86,19 @@ std::vector<std::shared_ptr<Placefile::DrawItem>> Placefile::GetDrawItems()
    return p->drawItems_;
 }
 
+std::vector<std::shared_ptr<const Placefile::IconFile>> Placefile::icon_files()
+{
+   std::vector<std::shared_ptr<const Placefile::IconFile>> iconFiles {};
+   iconFiles.reserve(p->iconFiles_.size());
+
+   std::transform(p->iconFiles_.begin(),
+                  p->iconFiles_.end(),
+                  std::back_inserter(iconFiles),
+                  [](auto& iconFile) { return iconFile.second; });
+
+   return iconFiles;
+}
+
 std::string Placefile::name() const
 {
    return p->name_;
