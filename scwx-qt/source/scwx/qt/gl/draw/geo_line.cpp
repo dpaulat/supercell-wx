@@ -27,6 +27,8 @@ static constexpr size_t kPointsPerVertex      = 10;
 static constexpr size_t kBufferLength =
    kNumTriangles * kVerticesPerTriangle * kPointsPerVertex;
 
+static const std::string kTextureName = "lines/default-1x7";
+
 class GeoLine::Impl
 {
 public:
@@ -115,7 +117,7 @@ void GeoLine::Initialize()
    }
 
    p->texture_ =
-      util::TextureAtlas::Instance().GetTextureAttributes("lines/default-1x7");
+      util::TextureAtlas::Instance().GetTextureAttributes(kTextureName);
 
    gl.glGenVertexArrays(1, &p->vao_);
    gl.glGenBuffers(1, &p->vbo_);
@@ -247,6 +249,9 @@ void GeoLine::Impl::Update()
    if (dirty_)
    {
       gl::OpenGLFunctions& gl = context_->gl();
+
+      texture_ =
+         util::TextureAtlas::Instance().GetTextureAttributes(kTextureName);
 
       // Latitude and longitude coordinates in degrees
       const float lx = points_[0].latitude_;

@@ -5,6 +5,9 @@
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <execution>
+#include <mutex>
+
 #include <QFontDatabase>
 #include <imgui.h>
 
@@ -61,10 +64,36 @@ std::shared_ptr<util::Font> Font(types::Font font)
    return nullptr;
 }
 
-void LoadImageResource(const std::string& urlString)
+bool LoadImageResource(const std::string& urlString)
 {
    util::TextureAtlas& textureAtlas = util::TextureAtlas::Instance();
-   textureAtlas.CacheTexture(urlString, urlString);
+   return textureAtlas.CacheTexture(urlString, urlString);
+}
+
+void LoadImageResources(const std::vector<std::string>& urlStrings)
+{
+   std::mutex m {};
+   bool       textureCached = false;
+
+   std::for_each(std::execution::par_unseq,
+                 urlStrings.begin(),
+                 urlStrings.end(),
+                 [&](auto& urlString)
+                 {
+                    bool value = LoadImageResource(urlString);
+
+                    if (value)
+                    {
+                       std::unique_lock lock {m};
+                       textureCached = true;
+                    }
+                 });
+
+   if (textureCached)
+   {
+      util::TextureAtlas& textureAtlas = util::TextureAtlas::Instance();
+      textureAtlas.BuildAtlas(1024, 1024);
+   }
 }
 
 static void LoadFonts()
@@ -90,7 +119,7 @@ static void LoadTextures()
                                 ":/res/textures/lines/default-1x7.png");
    textureAtlas.RegisterTexture("lines/test-pattern",
                                 ":/res/textures/lines/test-pattern.png");
-   textureAtlas.BuildAtlas(8, 8);
+   textureAtlas.BuildAtlas(1024, 1024);
 }
 
 } // namespace ResourceManager

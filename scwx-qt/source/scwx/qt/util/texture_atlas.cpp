@@ -5,6 +5,7 @@
 
 #include <shared_mutex>
 #include <unordered_map>
+#include <variant>
 
 #if defined(_MSC_VER)
 #   pragma warning(push, 0)
@@ -111,8 +112,11 @@ void TextureAtlas::BuildAtlas(size_t width, size_t height)
       return;
    }
 
-   std::vector<std::pair<std::string, boost::gil::rgba8_image_t>> images;
-   std::vector<stbrp_rect>                                        stbrpRects;
+   std::vector<std::pair<
+      std::string,
+      std::variant<boost::gil::rgba8_image_t, boost::gil::rgba8_image_t*>>>
+                           images;
+   std::vector<stbrp_rect> stbrpRects;
 
    // Load images
    {
@@ -145,9 +149,33 @@ void TextureAtlas::BuildAtlas(size_t width, size_t height)
                     });
    }
 
-   // TODO: Cached images
-   {
+   // Cached images
 
+   // Take a read lock on the texture cache map. The read lock must persist
+   // through atlas population, as a pointer to the image is taken and used.
+   std::shared_lock textureCacheLock(p->textureCacheMutex_);
+
+   {
+      // For each cached texture
+      for (auto& texture : p->textureCache_)
+      {
+         auto& image = texture.second;
+
+         if (image.width() > 0u && image.height() > 0u)
+         {
+            // Store STB rectangle pack data in a vector
+            stbrpRects.push_back(
+               stbrp_rect {0,
+                           static_cast<stbrp_coord>(image.width()),
+                           static_cast<stbrp_coord>(image.height()),
+                           0,
+                           0,
+                           0});
+
+            // Store image data in a vector
+            images.emplace_back(texture.first, &image);
+         }
+      }
    }
 
    // Pack images
@@ -195,8 +223,22 @@ void TextureAtlas::BuildAtlas(size_t width, size_t height)
       if (stbrpRects[i].was_packed != 0)
       {
          // Populate the atlas
-         boost::gil::rgba8c_view_t imageView =
-            boost::gil::const_view(images[i].second);
+         boost::gil::rgba8c_view_t imageView;
+
+         // Retrieve the image
+         if (std::holds_alternative<boost::gil::rgba8_image_t>(
+                images[i].second))
+         {
+            imageView = boost::gil::const_view(
+               std::get<boost::gil::rgba8_image_t>(images[i].second));
+         }
+         else if (std::holds_alternative<boost::gil::rgba8_image_t*>(
+                     images[i].second))
+         {
+            imageView = boost::gil::const_view(
+               *std::get<boost::gil::rgba8_image_t*>(images[i].second));
+         }
+
          boost::gil::rgba8_view_t atlasSubView =
             boost::gil::subimage_view(atlasView,
                                       stbrpRects[i].x,

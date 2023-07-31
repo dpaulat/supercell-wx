@@ -459,14 +459,23 @@ void PlacefileManager::Impl::LoadResources(
    const QUrl baseUrl =
       QUrl::fromUserInput(QString::fromStdString(placefile->name()));
 
-   // TODO: Parallelize
-   for (auto& iconFile : iconFiles)
-   {
-      QUrl fileUrl     = QUrl(QString::fromStdString(iconFile->filename_));
-      QUrl resolvedUrl = baseUrl.resolved(fileUrl);
+   std::vector<std::string> urlStrings;
+   urlStrings.reserve(iconFiles.size());
 
-      ResourceManager::LoadImageResource(resolvedUrl.toString().toStdString());
-   }
+   std::transform(iconFiles.cbegin(),
+                  iconFiles.cend(),
+                  std::back_inserter(urlStrings),
+                  [&baseUrl](auto& iconFile)
+                  {
+                     // Resolve target URL relative to base URL
+                     QUrl fileUrl =
+                        QUrl(QString::fromStdString(iconFile->filename_));
+                     QUrl resolvedUrl = baseUrl.resolved(fileUrl);
+
+                     return resolvedUrl.toString().toStdString();
+                  });
+
+   ResourceManager::LoadImageResources(urlStrings);
 }
 
 } // namespace manager
