@@ -1,4 +1,5 @@
 #include <scwx/qt/map/placefile_layer.hpp>
+#include <scwx/qt/gl/draw/placefile_icons.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
@@ -23,12 +24,18 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class PlacefileLayer::Impl
 {
 public:
-   explicit Impl() {};
+   explicit Impl(std::shared_ptr<MapContext> context) :
+       placefileIcons_ {std::make_shared<gl::draw::PlacefileIcons>(context)}
+   {
+   }
    ~Impl() = default;
 
    void
+   RenderIconDrawItem(const QMapLibreGL::CustomLayerRenderParameters& params,
+                      const std::shared_ptr<gr::Placefile::IconDrawItem>& di);
+   void
    RenderTextDrawItem(const QMapLibreGL::CustomLayerRenderParameters& params,
-                      std::shared_ptr<gr::Placefile::TextDrawItem>    di);
+                      const std::shared_ptr<gr::Placefile::TextDrawItem>& di);
 
    void RenderText(const QMapLibreGL::CustomLayerRenderParameters& params,
                    const std::string&                              text,
@@ -44,11 +51,14 @@ public:
    float         halfHeight_ {};
    bool          thresholded_ {true};
    ImFont*       monospaceFont_ {};
+
+   std::shared_ptr<gl::draw::PlacefileIcons> placefileIcons_;
 };
 
 PlacefileLayer::PlacefileLayer(std::shared_ptr<MapContext> context) :
-    DrawLayer(context), p(std::make_unique<PlacefileLayer::Impl>())
+    DrawLayer(context), p(std::make_unique<PlacefileLayer::Impl>(context))
 {
+   AddDrawItem(p->placefileIcons_);
 }
 
 PlacefileLayer::~PlacefileLayer() = default;
@@ -60,9 +70,25 @@ void PlacefileLayer::Initialize()
    DrawLayer::Initialize();
 }
 
+void PlacefileLayer::Impl::RenderIconDrawItem(
+   const QMapLibreGL::CustomLayerRenderParameters&     params,
+   const std::shared_ptr<gr::Placefile::IconDrawItem>& di)
+{
+   auto distance =
+      (thresholded_) ?
+         util::GeographicLib::GetDistance(
+            params.latitude, params.longitude, di->latitude_, di->longitude_) :
+         0;
+
+   if (distance < di->threshold_)
+   {
+      placefileIcons_->AddIcon(di);
+   }
+}
+
 void PlacefileLayer::Impl::RenderTextDrawItem(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
-   std::shared_ptr<gr::Placefile::TextDrawItem>    di)
+   const QMapLibreGL::CustomLayerRenderParameters&     params,
+   const std::shared_ptr<gr::Placefile::TextDrawItem>& di)
 {
    auto distance =
       (thresholded_) ?
@@ -133,10 +159,11 @@ void PlacefileLayer::Render(
 {
    gl::OpenGLFunctions& gl = context()->gl();
 
-   DrawLayer::Render(params);
-
    // Reset text ID per frame
    p->textId_ = 0;
+
+   // Reset graphics
+   p->placefileIcons_->Reset();
 
    // Update map screen coordinate and scale information
    p->mapScreenCoordLocation_ = util::maplibre::LatLongToScreenCoordinate(
@@ -171,6 +198,9 @@ void PlacefileLayer::Render(
       p->thresholded_ =
          placefileManager->placefile_thresholded(placefile->name());
 
+      p->placefileIcons_->SetIconFiles(placefile->icon_files(),
+                                       placefile->name());
+
       for (auto& drawItem : placefile->GetDrawItems())
       {
          switch (drawItem->itemType_)
@@ -181,11 +211,19 @@ void PlacefileLayer::Render(
                std::static_pointer_cast<gr::Placefile::TextDrawItem>(drawItem));
             break;
 
+         case gr::Placefile::ItemType::Icon:
+            p->RenderIconDrawItem(
+               params,
+               std::static_pointer_cast<gr::Placefile::IconDrawItem>(drawItem));
+            break;
+
          default:
             break;
          }
       }
    }
+
+   DrawLayer::Render(params);
 
    SCWX_GL_CHECK_ERROR();
 }
