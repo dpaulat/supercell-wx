@@ -92,7 +92,7 @@ void LoadImageResources(const std::vector<std::string>& urlStrings)
    if (textureCached)
    {
       util::TextureAtlas& textureAtlas = util::TextureAtlas::Instance();
-      textureAtlas.BuildAtlas(1024, 1024);
+      textureAtlas.BuildAtlas(2048, 2048);
    }
 }
 
@@ -119,7 +119,7 @@ static void LoadTextures()
                                 ":/res/textures/lines/default-1x7.png");
    textureAtlas.RegisterTexture("lines/test-pattern",
                                 ":/res/textures/lines/test-pattern.png");
-   textureAtlas.BuildAtlas(1024, 1024);
+   textureAtlas.BuildAtlas(2048, 2048);
 }
 
 } // namespace ResourceManager

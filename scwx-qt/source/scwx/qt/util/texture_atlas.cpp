@@ -3,6 +3,7 @@
 #include <scwx/network/cpr.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <execution>
 #include <shared_mutex>
 #include <unordered_map>
 #include <variant>
@@ -404,18 +405,31 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath)
          }
 
          // Create a view pointing to the STB image data
-         auto imageView = boost::gil::interleaved_view(
+         auto stbView = boost::gil::interleaved_view(
             width,
             height,
             reinterpret_cast<boost::gil::rgba8_pixel_t*>(pixelData),
             width * desiredChannels);
 
          // Copy the view to the destination image
-         image = boost::gil::rgba8_image_t(imageView);
+         image      = boost::gil::rgba8_image_t(stbView);
+         auto& view = boost::gil::view(image);
 
+         // If no alpha channel, replace black with transparent
          if (numChannels == 3)
          {
-            // TODO: If no alpha channel, replace black with transparent
+            std::for_each(
+               std::execution::par_unseq,
+               view.begin(),
+               view.end(),
+               [](boost::gil::rgba8_pixel_t& pixel)
+               {
+                  static const boost::gil::rgba8_pixel_t kBlack {0, 0, 0, 255};
+                  if (pixel == kBlack)
+                  {
+                     pixel[3] = 0;
+                  }
+               });
          }
 
          stbi_image_free(pixelData);
