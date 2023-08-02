@@ -342,12 +342,12 @@ void PlacefileIcons::Impl::Update()
          buffer.insert(buffer.end(),
                        {
                           // Icon
-                          lat, lon, lx, by, ls, bt, mc0, mc1, mc2, mc3, a, // BL
-                          lat, lon, lx, ty, ls, tt, mc0, mc1, mc2, mc3, a, // TL
-                          lat, lon, rx, by, rs, bt, mc0, mc1, mc2, mc3, a, // BR
-                          lat, lon, rx, by, rs, bt, mc0, mc1, mc2, mc3, a, // BR
-                          lat, lon, rx, ty, rs, tt, mc0, mc1, mc2, mc3, a, // TR
-                          lat, lon, lx, ty, ls, tt, mc0, mc1, mc2, mc3, a  // TL
+                          lat, lon, lx, by, rs, tt, mc0, mc1, mc2, mc3, a, // BL
+                          lat, lon, lx, ty, rs, bt, mc0, mc1, mc2, mc3, a, // TL
+                          lat, lon, rx, by, ls, tt, mc0, mc1, mc2, mc3, a, // BR
+                          lat, lon, rx, by, ls, tt, mc0, mc1, mc2, mc3, a, // BR
+                          lat, lon, rx, ty, ls, bt, mc0, mc1, mc2, mc3, a, // TR
+                          lat, lon, lx, ty, rs, bt, mc0, mc1, mc2, mc3, a  // TL
                        });
 
          numVertices_ += 6;
