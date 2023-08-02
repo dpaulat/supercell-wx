@@ -38,27 +38,22 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class TextureAtlas::Impl
 {
 public:
-   explicit Impl() :
-       texturePathMap_ {},
-       texturePathMutex_ {},
-       atlas_ {},
-       atlasMap_ {},
-       atlasMutex_ {}
-   {
-   }
+   explicit Impl() {}
    ~Impl() {}
 
    static boost::gil::rgba8_image_t LoadImage(const std::string& imagePath);
 
-   std::unordered_map<std::string, std::string> texturePathMap_;
-   std::shared_mutex                            texturePathMutex_;
+   std::unordered_map<std::string, std::string> texturePathMap_ {};
+   std::shared_mutex                            texturePathMutex_ {};
 
-   std::shared_mutex textureCacheMutex_;
-   std::unordered_map<std::string, boost::gil::rgba8_image_t> textureCache_;
+   std::shared_mutex textureCacheMutex_ {};
+   std::unordered_map<std::string, boost::gil::rgba8_image_t> textureCache_ {};
 
-   boost::gil::rgba8_image_t                          atlas_;
-   std::unordered_map<std::string, TextureAttributes> atlasMap_;
-   std::shared_mutex                                  atlasMutex_;
+   boost::gil::rgba8_image_t                          atlas_ {};
+   std::unordered_map<std::string, TextureAttributes> atlasMap_ {};
+   std::shared_mutex                                  atlasMutex_ {};
+
+   bool needsBuffered_ {true};
 };
 
 TextureAtlas::TextureAtlas() : p(std::make_unique<Impl>()) {}
@@ -66,6 +61,11 @@ TextureAtlas::~TextureAtlas() = default;
 
 TextureAtlas::TextureAtlas(TextureAtlas&&) noexcept            = default;
 TextureAtlas& TextureAtlas::operator=(TextureAtlas&&) noexcept = default;
+
+bool TextureAtlas::NeedsBuffered() const
+{
+   return p->needsBuffered_;
+}
 
 void TextureAtlas::RegisterTexture(const std::string& name,
                                    const std::string& path)
@@ -275,6 +275,9 @@ void TextureAtlas::BuildAtlas(size_t width, size_t height)
          logger_->warn("Unable to pack texture: {}", images[i].first);
       }
    }
+
+   // Mark the need to buffer the atlas
+   p->needsBuffered_ = true;
 }
 
 GLuint TextureAtlas::BufferAtlas(gl::OpenGLFunctions& gl)
@@ -317,6 +320,9 @@ GLuint TextureAtlas::BufferAtlas(gl::OpenGLFunctions& gl)
                       GL_UNSIGNED_BYTE,
                       pixelData.data());
    }
+
+   // Atlas has been successfully buffered
+   p->needsBuffered_ = false;
 
    return texture;
 }

@@ -343,11 +343,11 @@ void PlacefileIcons::Impl::Update()
                        {
                           // Icon
                           lat, lon, lx, by, ls, bt, mc0, mc1, mc2, mc3, a, // BL
-                          lat, lon, lx, by, ls, tt, mc0, mc1, mc2, mc3, a, // TL
-                          lat, lon, rx, ty, rs, bt, mc0, mc1, mc2, mc3, a, // BR
-                          lat, lon, rx, ty, rs, bt, mc0, mc1, mc2, mc3, a, // BR
+                          lat, lon, lx, ty, ls, tt, mc0, mc1, mc2, mc3, a, // TL
+                          lat, lon, rx, by, rs, bt, mc0, mc1, mc2, mc3, a, // BR
+                          lat, lon, rx, by, rs, bt, mc0, mc1, mc2, mc3, a, // BR
                           lat, lon, rx, ty, rs, tt, mc0, mc1, mc2, mc3, a, // TR
-                          lat, lon, lx, by, ls, tt, mc0, mc1, mc2, mc3, a  // TL
+                          lat, lon, lx, ty, ls, tt, mc0, mc1, mc2, mc3, a  // TL
                        });
 
          numVertices_ += 6;

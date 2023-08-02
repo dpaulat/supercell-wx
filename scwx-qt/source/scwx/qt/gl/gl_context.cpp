@@ -77,9 +77,11 @@ GLuint GlContext::GetTextureAtlas()
 {
    std::unique_lock lock(p->textureMutex_);
 
-   if (p->textureAtlas_ == GL_INVALID_INDEX)
+   auto& textureAtlas = util::TextureAtlas::Instance();
+
+   if (p->textureAtlas_ == GL_INVALID_INDEX || textureAtlas.NeedsBuffered())
    {
-      p->textureAtlas_ = util::TextureAtlas::Instance().BufferAtlas(p->gl_);
+      p->textureAtlas_ = textureAtlas.BufferAtlas(p->gl_);
    }
 
    return p->textureAtlas_;

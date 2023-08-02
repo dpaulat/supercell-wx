@@ -45,6 +45,7 @@ void DrawLayer::Initialize()
 void DrawLayer::Render(const QMapLibreGL::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = p->context_->gl();
+   p->textureAtlas_        = p->context_->GetTextureAtlas();
 
    gl.glActiveTexture(GL_TEXTURE0);
    gl.glBindTexture(GL_TEXTURE_2D, p->textureAtlas_);
