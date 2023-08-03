@@ -52,6 +52,7 @@ struct PlacefileIconInfo
 
       numIcons_ = columns_ * rows_;
 
+      // Pixel size
       float xFactor = 0.0f;
       float yFactor = 0.0f;
 
@@ -221,6 +222,10 @@ void PlacefileIcons::Render(
       UseMapProjection(
          params, p->uMapMatrixLocation_, p->uMapScreenCoordLocation_);
 
+      // Don't interpolate texture coordinates
+      gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
       // Draw icons
       gl.glDrawArrays(GL_TRIANGLES, 0, p->numVertices_);
    }
@@ -312,10 +317,10 @@ void PlacefileIcons::Impl::Update()
             static_cast<float>(icon.iconFile_->iconHeight_) * 0.5f;
 
          // Final X/Y offsets in pixels
-         const float lx = x - hw;
-         const float rx = x + hw;
-         const float by = y - hh;
-         const float ty = y + hh;
+         const float lx = std::roundf(x - hw);
+         const float rx = std::roundf(x + hw);
+         const float by = std::roundf(y - hh);
+         const float ty = std::roundf(y + hh);
 
          // Angle in degrees
          // TODO: Properly convert
