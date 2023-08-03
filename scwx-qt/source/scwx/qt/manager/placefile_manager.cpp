@@ -76,7 +76,7 @@ public:
    std::string                    name_;
    std::shared_ptr<gr::Placefile> placefile_;
    bool                           enabled_;
-   bool                           thresholded_ {true};
+   bool                           thresholded_ {false};
    boost::asio::thread_pool       threadPool_ {1u};
    boost::asio::steady_timer      refreshTimer_ {threadPool_};
    std::mutex                     refreshMutex_ {};
