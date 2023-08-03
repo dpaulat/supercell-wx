@@ -109,7 +109,7 @@ bool PlacefileManager::placefile_thresholded(const std::string& name)
    return false;
 }
 
-std::shared_ptr<const gr::Placefile>
+std::shared_ptr<gr::Placefile>
 PlacefileManager::placefile(const std::string& name)
 {
    std::shared_lock lock(p->placefileRecordLock_);

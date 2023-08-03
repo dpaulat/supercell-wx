@@ -24,11 +24,18 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class PlacefileLayer::Impl
 {
 public:
-   explicit Impl(std::shared_ptr<MapContext> context) :
+   explicit Impl(PlacefileLayer*             self,
+                 std::shared_ptr<MapContext> context,
+                 const std::string&          placefileName) :
+       self_ {self},
+       placefileName_ {placefileName},
        placefileIcons_ {std::make_shared<gl::draw::PlacefileIcons>(context)}
    {
+      ConnectSignals();
    }
    ~Impl() = default;
+
+   void ConnectSignals();
 
    void
    RenderIconDrawItem(const QMapLibreGL::CustomLayerRenderParameters& params,
@@ -44,6 +51,11 @@ public:
                    float                                           x,
                    float                                           y);
 
+   PlacefileLayer* self_;
+
+   std::string placefileName_;
+   bool        dirty_ {true};
+
    std::uint32_t textId_ {};
    glm::vec2     mapScreenCoordLocation_ {};
    float         mapScale_ {1.0f};
@@ -55,13 +67,42 @@ public:
    std::shared_ptr<gl::draw::PlacefileIcons> placefileIcons_;
 };
 
-PlacefileLayer::PlacefileLayer(std::shared_ptr<MapContext> context) :
-    DrawLayer(context), p(std::make_unique<PlacefileLayer::Impl>(context))
+PlacefileLayer::PlacefileLayer(std::shared_ptr<MapContext> context,
+                               const std::string&          placefileName) :
+    DrawLayer(context),
+    p(std::make_unique<PlacefileLayer::Impl>(this, context, placefileName))
 {
    AddDrawItem(p->placefileIcons_);
 }
 
 PlacefileLayer::~PlacefileLayer() = default;
+
+void PlacefileLayer::Impl::ConnectSignals()
+{
+   auto placefileManager = manager::PlacefileManager::Instance();
+
+   QObject::connect(placefileManager.get(),
+                    &manager::PlacefileManager::PlacefileUpdated,
+                    self_,
+                    [this](const std::string& name)
+                    {
+                       if (name == placefileName_)
+                       {
+                          dirty_ = true;
+                       }
+                    });
+}
+
+std::string PlacefileLayer::placefile_name() const
+{
+   return p->placefileName_;
+}
+
+void PlacefileLayer::set_placefile_name(const std::string& placefileName)
+{
+   p->placefileName_ = placefileName;
+   p->dirty_         = true;
+}
 
 void PlacefileLayer::Initialize()
 {
@@ -74,6 +115,11 @@ void PlacefileLayer::Impl::RenderIconDrawItem(
    const QMapLibreGL::CustomLayerRenderParameters&     params,
    const std::shared_ptr<gr::Placefile::IconDrawItem>& di)
 {
+   if (!dirty_)
+   {
+      return;
+   }
+
    auto distance =
       (thresholded_) ?
          util::GeographicLib::GetDistance(
@@ -162,9 +208,6 @@ void PlacefileLayer::Render(
    // Reset text ID per frame
    p->textId_ = 0;
 
-   // Reset graphics
-   p->placefileIcons_->Reset();
-
    // Update map screen coordinate and scale information
    p->mapScreenCoordLocation_ = util::maplibre::LatLongToScreenCoordinate(
       {params.latitude, params.longitude});
@@ -192,14 +235,21 @@ void PlacefileLayer::Render(
    std::shared_ptr<manager::PlacefileManager> placefileManager =
       manager::PlacefileManager::Instance();
 
-   // Render text
-   for (auto& placefile : placefileManager->GetActivePlacefiles())
+   auto placefile = placefileManager->placefile(p->placefileName_);
+
+   // Render placefile
+   if (placefile != nullptr)
    {
       p->thresholded_ =
          placefileManager->placefile_thresholded(placefile->name());
 
-      p->placefileIcons_->SetIconFiles(placefile->icon_files(),
-                                       placefile->name());
+      if (p->dirty_)
+      {
+         // Reset Placefile Icons
+         p->placefileIcons_->Reset();
+         p->placefileIcons_->SetIconFiles(placefile->icon_files(),
+                                          placefile->name());
+      }
 
       for (auto& drawItem : placefile->GetDrawItems())
       {

@@ -18,6 +18,7 @@
 #include <scwx/util/time.hpp>
 
 #include <regex>
+#include <set>
 
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_qt.hpp>
@@ -124,11 +125,15 @@ public:
    void RadarProductManagerDisconnect();
    void RadarProductViewConnect();
    void RadarProductViewDisconnect();
+   void RemovePlacefileLayer(const std::string& placefileName);
    void SetRadarSite(const std::string& radarSite);
+   void UpdatePlacefileLayers();
    bool UpdateStoredMapParameters();
 
    common::Level2Product
    GetLevel2ProductOrDefault(const std::string& productName) const;
+
+   static std::string GetPlacefileLayerName(const std::string& placefileName);
 
    boost::asio::thread_pool threadPool_ {1u};
 
@@ -157,6 +162,9 @@ public:
    std::shared_ptr<OverlayLayer>      overlayLayer_;
    std::shared_ptr<PlacefileLayer>    placefileLayer_;
    std::shared_ptr<ColorTableLayer>   colorTableLayer_;
+
+   std::set<std::string>                      enabledPlacefiles_ {};
+   std::list<std::shared_ptr<PlacefileLayer>> placefileLayers_ {};
 
    bool autoRefreshEnabled_;
    bool autoUpdateEnabled_;
@@ -199,11 +207,28 @@ void MapWidgetImpl::ConnectSignals()
    connect(placefileManager_.get(),
            &manager::PlacefileManager::PlacefileEnabled,
            widget_,
-           [this]() { widget_->update(); });
+           [this](const std::string& name, bool enabled)
+           {
+              if (enabled && !enabledPlacefiles_.contains(name))
+              {
+                 enabledPlacefiles_.emplace(name);
+                 UpdatePlacefileLayers();
+              }
+              else if (!enabled && enabledPlacefiles_.contains(name))
+              {
+                 enabledPlacefiles_.erase(name);
+                 RemovePlacefileLayer(name);
+              }
+              widget_->update();
+           });
    connect(placefileManager_.get(),
            &manager::PlacefileManager::PlacefileRenamed,
            widget_,
-           [this]() { widget_->update(); });
+           [this]()
+           {
+              // TODO
+              widget_->update();
+           });
    connect(placefileManager_.get(),
            &manager::PlacefileManager::PlacefileUpdated,
            widget_,
@@ -679,6 +704,7 @@ void MapWidget::AddLayers()
       p->map_->removeLayer(id.c_str());
    }
    p->layerList_.clear();
+   p->placefileLayers_.clear();
 
    auto radarProductView = p->context_->radar_product_view();
 
@@ -724,11 +750,66 @@ void MapWidget::AddLayers()
 
    p->alertLayer_->AddLayers("colorTable");
 
-   p->placefileLayer_ = std::make_shared<PlacefileLayer>(p->context_);
-   p->AddLayer("placefile", p->placefileLayer_);
+   p->UpdatePlacefileLayers();
 
    p->overlayLayer_ = std::make_shared<OverlayLayer>(p->context_);
    p->AddLayer("overlay", p->overlayLayer_);
+}
+
+void MapWidgetImpl::RemovePlacefileLayer(const std::string& placefileName)
+{
+   std::string layerName = GetPlacefileLayerName(placefileName);
+
+   // Remove layer from map
+   map_->removeLayer(layerName.c_str());
+
+   // Remove layer from internal layer list
+   auto layerIt = std::find(layerList_.begin(), layerList_.end(), layerName);
+   if (layerIt != layerList_.end())
+   {
+      layerList_.erase(layerIt);
+   }
+
+   // Determine if a layer exists for the placefile
+   auto placefileIt =
+      std::find_if(placefileLayers_.begin(),
+                   placefileLayers_.end(),
+                   [&placefileName](auto& layer)
+                   { return placefileName == layer->placefile_name(); });
+   if (placefileIt != placefileLayers_.end())
+   {
+      placefileLayers_.erase(placefileIt);
+   }
+}
+
+void MapWidgetImpl::UpdatePlacefileLayers()
+{
+   // Loop through enabled placefiles
+   for (auto& placefileName : enabledPlacefiles_)
+   {
+      // Determine if a layer exists for the placefile
+      auto it = std::find_if(placefileLayers_.begin(),
+                             placefileLayers_.end(),
+                             [&placefileName](auto& layer) {
+                                return placefileName == layer->placefile_name();
+                             });
+
+      // If the layer doesn't exist, create it
+      if (it == placefileLayers_.end())
+      {
+         std::shared_ptr<PlacefileLayer> placefileLayer =
+            std::make_shared<PlacefileLayer>(context_, placefileName);
+         placefileLayers_.push_back(placefileLayer);
+         AddLayer(
+            GetPlacefileLayerName(placefileName), placefileLayer, "colorTable");
+      }
+   }
+}
+
+std::string
+MapWidgetImpl::GetPlacefileLayerName(const std::string& placefileName)
+{
+   return fmt::format("placefile-{}", placefileName);
 }
 
 void MapWidgetImpl::AddLayer(const std::string&            id,

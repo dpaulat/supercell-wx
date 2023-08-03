@@ -22,7 +22,7 @@ public:
 
    bool placefile_enabled(const std::string& name);
    bool placefile_thresholded(const std::string& name);
-   std::shared_ptr<const gr::Placefile> placefile(const std::string& name);
+   std::shared_ptr<gr::Placefile> placefile(const std::string& name);
 
    void set_placefile_enabled(const std::string& name, bool enabled);
    void set_placefile_thresholded(const std::string& name, bool thresholded);

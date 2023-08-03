@@ -2,6 +2,8 @@
 
 #include <scwx/qt/map/draw_layer.hpp>
 
+#include <string>
+
 namespace scwx
 {
 namespace qt
@@ -12,8 +14,13 @@ namespace map
 class PlacefileLayer : public DrawLayer
 {
 public:
-   explicit PlacefileLayer(std::shared_ptr<MapContext> context);
+   explicit PlacefileLayer(std::shared_ptr<MapContext> context,
+                           const std::string&          placefileName);
    ~PlacefileLayer();
+
+   std::string placefile_name() const;
+
+   void set_placefile_name(const std::string& placefileName);
 
    void Initialize() override final;
    void Render(const QMapLibreGL::CustomLayerRenderParameters&) override final;
