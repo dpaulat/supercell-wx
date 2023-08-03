@@ -211,11 +211,13 @@ void MapWidgetImpl::ConnectSignals()
            {
               if (enabled && !enabledPlacefiles_.contains(name))
               {
+                 // Placefile enabled, add layer
                  enabledPlacefiles_.emplace(name);
                  UpdatePlacefileLayers();
               }
               else if (!enabled && enabledPlacefiles_.contains(name))
               {
+                 // Placefile disabled, remove layer
                  enabledPlacefiles_.erase(name);
                  RemovePlacefileLayer(name);
               }
@@ -224,9 +226,20 @@ void MapWidgetImpl::ConnectSignals()
    connect(placefileManager_.get(),
            &manager::PlacefileManager::PlacefileRenamed,
            widget_,
-           [this]()
+           [this](const std::string& oldName, const std::string& newName)
            {
-              // TODO
+              if (enabledPlacefiles_.contains(oldName))
+              {
+                 // Remove old placefile layer
+                 enabledPlacefiles_.erase(oldName);
+                 RemovePlacefileLayer(oldName);
+              }
+              if (!enabledPlacefiles_.contains(newName))
+              {
+                 // Add new placefile layer
+                 enabledPlacefiles_.emplace(newName);
+                 UpdatePlacefileLayers();
+              }
               widget_->update();
            });
    connect(placefileManager_.get(),
