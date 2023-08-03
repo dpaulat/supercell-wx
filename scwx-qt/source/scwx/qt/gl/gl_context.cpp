@@ -35,6 +35,8 @@ public:
 
    GLuint     textureAtlas_;
    std::mutex textureMutex_;
+
+   std::uint64_t textureBufferCount_ {};
 };
 
 GlContext::GlContext() : p(std::make_unique<Impl>()) {}
@@ -79,9 +81,11 @@ GLuint GlContext::GetTextureAtlas()
 
    auto& textureAtlas = util::TextureAtlas::Instance();
 
-   if (p->textureAtlas_ == GL_INVALID_INDEX || textureAtlas.NeedsBuffered())
+   if (p->textureAtlas_ == GL_INVALID_INDEX ||
+       p->textureBufferCount_ != textureAtlas.BuildCount())
    {
-      p->textureAtlas_ = textureAtlas.BufferAtlas(p->gl_);
+      p->textureBufferCount_ = textureAtlas.BuildCount();
+      p->textureAtlas_       = textureAtlas.BufferAtlas(p->gl_);
    }
 
    return p->textureAtlas_;

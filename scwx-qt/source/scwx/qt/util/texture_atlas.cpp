@@ -54,7 +54,7 @@ public:
    std::unordered_map<std::string, TextureAttributes> atlasMap_ {};
    std::shared_mutex                                  atlasMutex_ {};
 
-   bool needsBuffered_ {true};
+   std::uint64_t buildCount_ {0u};
 };
 
 TextureAtlas::TextureAtlas() : p(std::make_unique<Impl>()) {}
@@ -63,9 +63,9 @@ TextureAtlas::~TextureAtlas() = default;
 TextureAtlas::TextureAtlas(TextureAtlas&&) noexcept            = default;
 TextureAtlas& TextureAtlas::operator=(TextureAtlas&&) noexcept = default;
 
-bool TextureAtlas::NeedsBuffered() const
+std::uint64_t TextureAtlas::BuildCount() const
 {
-   return p->needsBuffered_;
+   return p->buildCount_;
 }
 
 void TextureAtlas::RegisterTexture(const std::string& name,
@@ -278,7 +278,7 @@ void TextureAtlas::BuildAtlas(size_t width, size_t height)
    }
 
    // Mark the need to buffer the atlas
-   p->needsBuffered_ = true;
+   ++p->buildCount_;
 }
 
 GLuint TextureAtlas::BufferAtlas(gl::OpenGLFunctions& gl)
@@ -321,9 +321,6 @@ GLuint TextureAtlas::BufferAtlas(gl::OpenGLFunctions& gl)
                       GL_UNSIGNED_BYTE,
                       pixelData.data());
    }
-
-   // Atlas has been successfully buffered
-   p->needsBuffered_ = false;
 
    return texture;
 }

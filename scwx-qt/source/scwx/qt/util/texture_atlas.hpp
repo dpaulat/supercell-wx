@@ -66,7 +66,7 @@ public:
 
    static TextureAtlas& Instance();
 
-   bool NeedsBuffered() const;
+   std::uint64_t BuildCount() const;
 
    void   RegisterTexture(const std::string& name, const std::string& path);
    bool   CacheTexture(const std::string& name, const std::string& path);
