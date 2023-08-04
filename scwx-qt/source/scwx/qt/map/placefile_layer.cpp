@@ -166,7 +166,8 @@ void PlacefileLayer::Impl::RenderText(
    float                                           x,
    float                                           y)
 {
-   const std::string windowName {fmt::format("PlacefileText-{}", ++textId_)};
+   const std::string windowName {
+      fmt::format("PlacefileText-{}-{}", placefileName_, ++textId_)};
 
    // Convert screen to ImGui coordinates
    y = params.height - y;
