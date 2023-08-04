@@ -205,6 +205,9 @@ void PlacefileLayer::Render(
 {
    gl::OpenGLFunctions& gl = context()->gl();
 
+   // Set OpenGL blend mode for transparency
+   gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
    // Reset text ID per frame
    p->textId_ = 0;
 
