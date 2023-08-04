@@ -134,6 +134,9 @@ void ColorTableLayer::Render(
 
    p->shaderProgram_->Use();
 
+   // Set OpenGL blend mode for transparency
+   gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
    gl.glUniformMatrix4fv(
       p->uMVPMatrixLocation_, 1, GL_FALSE, glm::value_ptr(projection));
 

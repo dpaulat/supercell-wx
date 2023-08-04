@@ -264,6 +264,9 @@ void RadarProductLayer::Render(
 
    p->shaderProgram_->Use();
 
+   // Set OpenGL blend mode for transparency
+   gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
    if (p->colorTableNeedsUpdate_)
    {
       UpdateColorTable();
