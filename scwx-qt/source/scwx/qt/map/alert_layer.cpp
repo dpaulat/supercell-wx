@@ -413,11 +413,14 @@ static void AddAlertLayer(std::shared_ptr<QMapLibreGL::Map> map,
       map->removeLayer(fgLayerId);
    }
 
+   const float opacity = outlineColor[3] / 255.0f;
+
    map->addLayer({{"id", bgLayerId}, {"type", "line"}, {"source", sourceId}},
                  beforeLayer);
    map->setLayoutProperty(bgLayerId, "line-join", "round");
    map->setLayoutProperty(bgLayerId, "line-cap", "round");
    map->setPaintProperty(bgLayerId, "line-color", "rgba(0, 0, 0, 255)");
+   map->setPaintProperty(bgLayerId, "line-opacity", QString("%1").arg(opacity));
    map->setPaintProperty(bgLayerId, "line-width", "5");
 
    map->addLayer({{"id", fgLayerId}, {"type", "line"}, {"source", sourceId}},
@@ -431,6 +434,7 @@ static void AddAlertLayer(std::shared_ptr<QMapLibreGL::Map> map,
                             .arg(outlineColor[1])
                             .arg(outlineColor[2])
                             .arg(outlineColor[3]));
+   map->setPaintProperty(fgLayerId, "line-opacity", QString("%1").arg(opacity));
    map->setPaintProperty(fgLayerId, "line-width", "3");
 }
 
