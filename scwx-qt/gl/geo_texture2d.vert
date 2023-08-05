@@ -37,6 +37,6 @@ void main()
    vec2 p = latLngToScreenCoordinate(aLatLong) - uMapScreenCoord;
 
    // Transform the position to screen coordinates
-   gl_Position = uMapMatrix * vec4(p, 0.0f, 1.0f) -
+   gl_Position = uMapMatrix * vec4(p, 0.0f, 1.0f) +
                  uMVPMatrix * vec4(aXYOffset, 0.0f, 0.0f);
 }

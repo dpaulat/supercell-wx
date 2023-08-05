@@ -311,16 +311,19 @@ void PlacefileIcons::Impl::Update()
          const float x = static_cast<float>(di->x_);
          const float y = static_cast<float>(di->y_);
 
-         // Half icon size
-         const float hw = static_cast<float>(icon.iconFile_->iconWidth_) * 0.5f;
-         const float hh =
-            static_cast<float>(icon.iconFile_->iconHeight_) * 0.5f;
+         // Icon size
+         const float iw = static_cast<float>(icon.iconFile_->iconWidth_);
+         const float ih = static_cast<float>(icon.iconFile_->iconHeight_);
+
+         // Hot X/Y (zero-based icon center)
+         const float hx = static_cast<float>(icon.iconFile_->hotX_);
+         const float hy = static_cast<float>(icon.iconFile_->hotY_);
 
          // Final X/Y offsets in pixels
-         const float lx = std::roundf(x - hw);
-         const float rx = std::roundf(x + hw);
-         const float by = std::roundf(y - hh);
-         const float ty = std::roundf(y + hh);
+         const float lx = std::roundf(x - hx);
+         const float rx = std::roundf(lx + iw);
+         const float ty = std::roundf(y + hy);
+         const float by = std::roundf(ty - ih);
 
          // Angle in degrees
          // TODO: Properly convert
@@ -347,12 +350,12 @@ void PlacefileIcons::Impl::Update()
          buffer.insert(buffer.end(),
                        {
                           // Icon
-                          lat, lon, lx, by, rs, tt, mc0, mc1, mc2, mc3, a, // BL
-                          lat, lon, lx, ty, rs, bt, mc0, mc1, mc2, mc3, a, // TL
-                          lat, lon, rx, by, ls, tt, mc0, mc1, mc2, mc3, a, // BR
-                          lat, lon, rx, by, ls, tt, mc0, mc1, mc2, mc3, a, // BR
-                          lat, lon, rx, ty, ls, bt, mc0, mc1, mc2, mc3, a, // TR
-                          lat, lon, lx, ty, rs, bt, mc0, mc1, mc2, mc3, a  // TL
+                          lat, lon, lx, by, ls, bt, mc0, mc1, mc2, mc3, a, // BL
+                          lat, lon, lx, ty, ls, tt, mc0, mc1, mc2, mc3, a, // TL
+                          lat, lon, rx, by, rs, bt, mc0, mc1, mc2, mc3, a, // BR
+                          lat, lon, rx, by, rs, bt, mc0, mc1, mc2, mc3, a, // BR
+                          lat, lon, rx, ty, rs, tt, mc0, mc1, mc2, mc3, a, // TR
+                          lat, lon, lx, ty, ls, tt, mc0, mc1, mc2, mc3, a  // TL
                        });
 
          numVertices_ += 6;
