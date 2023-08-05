@@ -54,6 +54,23 @@ void DrawItem::UseDefaultProjection(
       uMVPMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection));
 }
 
+void DrawItem::UseRotationProjection(
+   const QMapLibreGL::CustomLayerRenderParameters& params,
+   GLint                                           uMVPMatrixLocation)
+{
+   glm::mat4 projection = glm::ortho(0.0f,
+                                     static_cast<float>(params.width),
+                                     0.0f,
+                                     static_cast<float>(params.height));
+
+   projection = glm::rotate(projection,
+                            glm::radians<float>(params.bearing),
+                            glm::vec3(0.0f, 0.0f, 1.0f));
+
+   p->gl_.glUniformMatrix4fv(
+      uMVPMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection));
+}
+
 // TODO: Refactor to utility class
 static glm::vec2
 LatLongToScreenCoordinate(const QMapLibreGL::Coordinate& coordinate)

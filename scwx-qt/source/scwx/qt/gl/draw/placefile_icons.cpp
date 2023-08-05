@@ -218,7 +218,7 @@ void PlacefileIcons::Render(
 
       p->Update();
       p->shaderProgram_->Use();
-      UseDefaultProjection(params, p->uMVPMatrixLocation_);
+      UseRotationProjection(params, p->uMVPMatrixLocation_);
       UseMapProjection(
          params, p->uMapMatrixLocation_, p->uMapScreenCoordLocation_);
 

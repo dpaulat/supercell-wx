@@ -36,6 +36,9 @@ protected:
    void
    UseDefaultProjection(const QMapLibreGL::CustomLayerRenderParameters& params,
                         GLint uMVPMatrixLocation);
+   void
+   UseRotationProjection(const QMapLibreGL::CustomLayerRenderParameters& params,
+                         GLint uMVPMatrixLocation);
    void UseMapProjection(const QMapLibreGL::CustomLayerRenderParameters& params,
                          GLint uMVPMatrixLocation,
                          GLint uMapScreenCoordLocation);
