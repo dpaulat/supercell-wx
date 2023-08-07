@@ -46,6 +46,7 @@ public:
                       double&            longitude,
                       double&            x,
                       double&            y);
+   void ProcessElement(const std::string& line);
    void ProcessLine(const std::string& line);
 
    static void ProcessEscapeCharacters(std::string& s);
@@ -62,6 +63,7 @@ public:
    ColorMode                 colorMode_ {ColorMode::RGBA};
    std::vector<Object>       objectStack_ {};
    DrawingStatement          currentStatement_ {DrawingStatement::Standard};
+   std::shared_ptr<DrawItem> currentDrawItem_ {nullptr};
 
    // References
    std::unordered_map<std::size_t, std::shared_ptr<IconFile>> iconFiles_ {};
@@ -179,6 +181,11 @@ std::shared_ptr<Placefile> Placefile::Load(const std::string& name,
                if (boost::istarts_with(line, "End:"))
                {
                   placefile->p->currentStatement_ = DrawingStatement::Standard;
+                  placefile->p->currentDrawItem_  = nullptr;
+               }
+               else if (placefile->p->currentDrawItem_ != nullptr)
+               {
+                  placefile->p->ProcessElement(line);
                }
                break;
             }
@@ -502,9 +509,39 @@ void Placefile::Impl::ProcessLine(const std::string& line)
       //    lat, lon
       //    ...
       // End:
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {",", ","}, lineKey_.size());
+
       currentStatement_ = DrawingStatement::Line;
 
-      // TODO
+      std::shared_ptr<LineDrawItem> di = nullptr;
+
+      if (tokenList.size() >= 2)
+      {
+         di = std::make_shared<LineDrawItem>();
+
+         di->threshold_ = threshold_;
+         di->color_     = color_;
+
+         di->width_ = std::stoul(tokenList[0]);
+         di->flags_ = std::stoul(tokenList[1]);
+      }
+      if (tokenList.size() >= 3)
+      {
+         ProcessEscapeCharacters(tokenList[2]);
+         TrimQuotes(tokenList[2]);
+         di->hoverText_.swap(tokenList[2]);
+      }
+
+      if (di != nullptr)
+      {
+         currentDrawItem_ = di;
+         drawItems_.emplace_back(std::move(di));
+      }
+      else
+      {
+         logger_->warn("Line statement malformed: {}", line);
+      }
    }
    else if (boost::istarts_with(line, trianglesKey_))
    {
@@ -545,6 +582,33 @@ void Placefile::Impl::ProcessLine(const std::string& line)
    else
    {
       logger_->warn("Unknown statement: {}", line);
+   }
+}
+
+void Placefile::Impl::ProcessElement(const std::string& line)
+{
+   if (currentStatement_ == DrawingStatement::Line)
+   {
+      // Line: width, flags [, hover_text]
+      //    lat, lon
+      //    ...
+      // End:
+      std::vector<std::string> tokenList = util::ParseTokens(line, {",", ","});
+
+      if (tokenList.size() >= 2)
+      {
+         LineDrawItem::Element element;
+
+         ParseLocation(tokenList[0],
+                       tokenList[1],
+                       element.latitude_,
+                       element.longitude_,
+                       element.x_,
+                       element.y_);
+
+         std::static_pointer_cast<LineDrawItem>(currentDrawItem_)
+            ->elements_.emplace_back(std::move(element));
+      }
    }
 }
 

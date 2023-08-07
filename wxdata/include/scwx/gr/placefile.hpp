@@ -100,6 +100,26 @@ public:
       std::string               hoverText_ {};
    };
 
+   struct LineDrawItem : DrawItem
+   {
+      LineDrawItem() { itemType_ = ItemType::Line; }
+
+      boost::gil::rgba8_pixel_t color_ {};
+      double                    width_ {};
+      std::int32_t              flags_ {};
+      std::string               hoverText_ {};
+
+      struct Element
+      {
+         double latitude_ {};
+         double longitude_ {};
+         double x_ {};
+         double y_ {};
+      };
+
+      std::vector<Element> elements_ {};
+   };
+
    bool IsValid() const;
 
    /**
