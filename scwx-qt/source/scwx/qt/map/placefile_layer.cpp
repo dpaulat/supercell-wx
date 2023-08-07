@@ -5,6 +5,7 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/qt/util/maplibre.hpp>
+#include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <fmt/format.h>
@@ -59,6 +60,8 @@ public:
    std::uint32_t textId_ {};
    glm::vec2     mapScreenCoordLocation_ {};
    float         mapScale_ {1.0f};
+   float         mapBearingCos_ {1.0f};
+   float         mapBearingSin_ {0.0f};
    float         halfWidth_ {};
    float         halfHeight_ {};
    bool          thresholded_ {true};
@@ -149,12 +152,23 @@ void PlacefileLayer::Impl::RenderTextDrawItem(
                                       mapScreenCoordLocation_) *
                                      mapScale_;
 
+      // Rotate text according to map rotation
+      float rotatedX = screenCoordinates.x;
+      float rotatedY = screenCoordinates.y;
+      if (params.bearing != 0.0)
+      {
+         rotatedX = screenCoordinates.x * mapBearingCos_ -
+                    screenCoordinates.y * mapBearingSin_;
+         rotatedY = screenCoordinates.x * mapBearingSin_ +
+                    screenCoordinates.y * mapBearingCos_;
+      }
+
       RenderText(params,
                  di->text_,
                  di->hoverText_,
                  di->color_,
-                 screenCoordinates.x + di->x_ + halfWidth_,
-                 screenCoordinates.y + di->y_ + halfHeight_);
+                 rotatedX + di->x_ + halfWidth_,
+                 rotatedY + di->y_ + halfHeight_);
    }
 }
 
@@ -217,8 +231,10 @@ void PlacefileLayer::Render(
       {params.latitude, params.longitude});
    p->mapScale_ = std::pow(2.0, params.zoom) * mbgl::util::tileSize_D /
                   mbgl::util::DEGREES_MAX;
-   p->halfWidth_  = params.width * 0.5f;
-   p->halfHeight_ = params.height * 0.5f;
+   p->mapBearingCos_ = std::cosf(params.bearing * common::kDegreesToRadians);
+   p->mapBearingSin_ = std::sinf(params.bearing * common::kDegreesToRadians);
+   p->halfWidth_     = params.width * 0.5f;
+   p->halfHeight_    = params.height * 0.5f;
 
    // Get monospace font pointer
    std::size_t fontSize = 16;
