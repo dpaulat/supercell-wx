@@ -78,16 +78,6 @@ void TextureAtlas::RegisterTexture(const std::string& name,
 bool TextureAtlas::CacheTexture(const std::string& name,
                                 const std::string& path)
 {
-   // If the image is already loaded, we don't need to load it again
-   {
-      std::shared_lock lock(p->textureCacheMutex_);
-
-      if (p->textureCache_.contains(path))
-      {
-         return false;
-      }
-   }
-
    // Attempt to load the image
    boost::gil::rgba8_image_t image = TextureAtlas::Impl::LoadImage(path);
 
@@ -97,10 +87,12 @@ bool TextureAtlas::CacheTexture(const std::string& name,
       // Store it in the texture cache
       std::unique_lock lock(p->textureCacheMutex_);
 
-      p->textureCache_.emplace(name, std::move(image));
+      p->textureCache_.insert_or_assign(name, std::move(image));
+
+      return true;
    }
 
-   return true;
+   return false;
 }
 
 void TextureAtlas::BuildAtlas(size_t width, size_t height)
