@@ -2,6 +2,7 @@
 
 #include <istream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -118,6 +119,44 @@ public:
       };
 
       std::vector<Element> elements_ {};
+   };
+
+   struct TrianglesDrawItem : DrawItem
+   {
+      TrianglesDrawItem() { itemType_ = ItemType::Triangles; }
+
+      boost::gil::rgba8_pixel_t color_ {};
+
+      struct Element
+      {
+         double latitude_ {};
+         double longitude_ {};
+         double x_ {};
+         double y_ {};
+
+         std::optional<boost::gil::rgba8_pixel_t> color_ {};
+      };
+
+      std::vector<Element> elements_ {};
+   };
+
+   struct PolygonDrawItem : DrawItem
+   {
+      PolygonDrawItem() { itemType_ = ItemType::Polygon; }
+
+      boost::gil::rgba8_pixel_t color_ {};
+
+      struct Element
+      {
+         double latitude_ {};
+         double longitude_ {};
+         double x_ {};
+         double y_ {};
+
+         std::optional<boost::gil::rgba8_pixel_t> color_ {};
+      };
+
+      std::vector<std::vector<Element>> contours_ {};
    };
 
    bool IsValid() const;

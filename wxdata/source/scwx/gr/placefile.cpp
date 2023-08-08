@@ -47,6 +47,7 @@ public:
                       double&            x,
                       double&            y);
    void ProcessElement(const std::string& line);
+   void ProcessElementEnd();
    void ProcessLine(const std::string& line);
 
    static void ProcessEscapeCharacters(std::string& s);
@@ -64,6 +65,7 @@ public:
    std::vector<Object>       objectStack_ {};
    DrawingStatement          currentStatement_ {DrawingStatement::Standard};
    std::shared_ptr<DrawItem> currentDrawItem_ {nullptr};
+   std::vector<PolygonDrawItem::Element> currentPolygonContour_ {};
 
    // References
    std::unordered_map<std::size_t, std::shared_ptr<IconFile>> iconFiles_ {};
@@ -180,6 +182,8 @@ std::shared_ptr<Placefile> Placefile::Load(const std::string& name,
             case DrawingStatement::Polygon:
                if (boost::istarts_with(line, "End:"))
                {
+                  placefile->p->ProcessElementEnd();
+
                   placefile->p->currentStatement_ = DrawingStatement::Standard;
                   placefile->p->currentDrawItem_  = nullptr;
                }
@@ -551,7 +555,14 @@ void Placefile::Impl::ProcessLine(const std::string& line)
       // End:
       currentStatement_ = DrawingStatement::Triangles;
 
-      // TODO
+      std::shared_ptr<TrianglesDrawItem> di =
+         std::make_shared<TrianglesDrawItem>();
+
+      di->threshold_ = threshold_;
+      di->color_     = color_;
+
+      currentDrawItem_ = di;
+      drawItems_.emplace_back(std::move(di));
    }
    else if (boost::istarts_with(line, imageKey_))
    {
@@ -577,7 +588,13 @@ void Placefile::Impl::ProcessLine(const std::string& line)
       // End:
       currentStatement_ = DrawingStatement::Polygon;
 
-      // TODO
+      std::shared_ptr<PolygonDrawItem> di = std::make_shared<PolygonDrawItem>();
+
+      di->threshold_ = threshold_;
+      di->color_     = color_;
+
+      currentDrawItem_ = di;
+      drawItems_.emplace_back(std::move(di));
    }
    else
    {
@@ -608,6 +625,120 @@ void Placefile::Impl::ProcessElement(const std::string& line)
 
          std::static_pointer_cast<LineDrawItem>(currentDrawItem_)
             ->elements_.emplace_back(std::move(element));
+      }
+      else
+      {
+         logger_->warn("Line sub-statement malformed: {}", line);
+      }
+   }
+   else if (currentStatement_ == DrawingStatement::Triangles)
+   {
+      // Triangles:
+      //    lat, lon [, r, g, b [,a]]
+      //    ...
+      // End:
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {",", ",", ",", ",", ",", ","});
+
+      TrianglesDrawItem::Element element;
+
+      if (tokenList.size() >= 5)
+      {
+         element.color_ = ParseColor(tokenList, 2, colorMode_);
+      }
+
+      if (tokenList.size() >= 2)
+      {
+         ParseLocation(tokenList[0],
+                       tokenList[1],
+                       element.latitude_,
+                       element.longitude_,
+                       element.x_,
+                       element.y_);
+
+         std::static_pointer_cast<TrianglesDrawItem>(currentDrawItem_)
+            ->elements_.emplace_back(std::move(element));
+      }
+      else
+      {
+         logger_->warn("Triangles sub-statement malformed: {}", line);
+      }
+   }
+   else if (currentStatement_ == DrawingStatement::Polygon)
+   {
+      // Polygon:
+      //    lat1, lon1 [, r, g, b [,a]] ; start of the first contour
+      //    ...
+      //    lat1, lon1                  ; repeating the first point closes the
+      //                                ; contour
+      //
+      //    lat2, lon2                  ; next point starts a new contour
+      //    ...
+      //    lat2, lon2                  ; and repeating it ends the contour
+      // End:
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {",", ",", ",", ",", ",", ","});
+
+      PolygonDrawItem::Element element;
+
+      if (tokenList.size() >= 5)
+      {
+         element.color_ = ParseColor(tokenList, 2, colorMode_);
+      }
+
+      if (tokenList.size() >= 2)
+      {
+         ParseLocation(tokenList[0],
+                       tokenList[1],
+                       element.latitude_,
+                       element.longitude_,
+                       element.x_,
+                       element.y_);
+
+         currentPolygonContour_.emplace_back(std::move(element));
+
+         if (currentPolygonContour_.size() >= 2)
+         {
+            auto& first = currentPolygonContour_.front();
+            auto& last  = currentPolygonContour_.back();
+
+            // Repeating the first point closes the contour
+            if (first.latitude_ == last.latitude_ &&
+                first.longitude_ == last.longitude_ && //
+                first.x_ == last.x_ &&                 //
+                first.y_ == last.y_)
+            {
+               auto& contours =
+                  std::static_pointer_cast<PolygonDrawItem>(currentDrawItem_)
+                     ->contours_;
+
+               auto& newContour = contours.emplace_back(
+                  std::vector<PolygonDrawItem::Element> {});
+               newContour.swap(currentPolygonContour_);
+            }
+         }
+      }
+      else
+      {
+         logger_->warn("Polygon sub-statement malformed: {}", line);
+      }
+   }
+}
+
+void Placefile::Impl::ProcessElementEnd()
+{
+   if (currentStatement_ == DrawingStatement::Polygon)
+   {
+      // Complete the current contour when ending the Polygon statement
+      if (!currentPolygonContour_.empty())
+      {
+         auto& contours =
+            std::static_pointer_cast<PolygonDrawItem>(currentDrawItem_)
+               ->contours_;
+
+         auto& newContour =
+            contours.emplace_back(std::vector<PolygonDrawItem::Element> {});
+         newContour.swap(currentPolygonContour_);
       }
    }
 }
