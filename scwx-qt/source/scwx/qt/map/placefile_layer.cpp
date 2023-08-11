@@ -1,5 +1,6 @@
 #include <scwx/qt/map/placefile_layer.hpp>
 #include <scwx/qt/gl/draw/placefile_icons.hpp>
+#include <scwx/qt/gl/draw/placefile_polygons.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
@@ -30,7 +31,9 @@ public:
                  const std::string&          placefileName) :
        self_ {self},
        placefileName_ {placefileName},
-       placefileIcons_ {std::make_shared<gl::draw::PlacefileIcons>(context)}
+       placefileIcons_ {std::make_shared<gl::draw::PlacefileIcons>(context)},
+       placefilePolygons_ {
+          std::make_shared<gl::draw::PlacefilePolygons>(context)}
    {
       ConnectSignals();
    }
@@ -41,6 +44,9 @@ public:
    void
    RenderIconDrawItem(const QMapLibreGL::CustomLayerRenderParameters& params,
                       const std::shared_ptr<gr::Placefile::IconDrawItem>& di);
+   void RenderPolygonDrawItem(
+      const QMapLibreGL::CustomLayerRenderParameters&        params,
+      const std::shared_ptr<gr::Placefile::PolygonDrawItem>& di);
    void
    RenderTextDrawItem(const QMapLibreGL::CustomLayerRenderParameters& params,
                       const std::shared_ptr<gr::Placefile::TextDrawItem>& di);
@@ -67,7 +73,8 @@ public:
    bool          thresholded_ {true};
    ImFont*       monospaceFont_ {};
 
-   std::shared_ptr<gl::draw::PlacefileIcons> placefileIcons_;
+   std::shared_ptr<gl::draw::PlacefileIcons>    placefileIcons_;
+   std::shared_ptr<gl::draw::PlacefilePolygons> placefilePolygons_;
 };
 
 PlacefileLayer::PlacefileLayer(std::shared_ptr<MapContext> context,
@@ -76,6 +83,7 @@ PlacefileLayer::PlacefileLayer(std::shared_ptr<MapContext> context,
     p(std::make_unique<PlacefileLayer::Impl>(this, context, placefileName))
 {
    AddDrawItem(p->placefileIcons_);
+   AddDrawItem(p->placefilePolygons_);
 }
 
 PlacefileLayer::~PlacefileLayer() = default;
@@ -132,6 +140,28 @@ void PlacefileLayer::Impl::RenderIconDrawItem(
    if (distance < di->threshold_)
    {
       placefileIcons_->AddIcon(di);
+   }
+}
+
+void PlacefileLayer::Impl::RenderPolygonDrawItem(
+   const QMapLibreGL::CustomLayerRenderParameters&        params,
+   const std::shared_ptr<gr::Placefile::PolygonDrawItem>& di)
+{
+   if (!dirty_)
+   {
+      return;
+   }
+
+   auto distance = (thresholded_) ?
+                      util::GeographicLib::GetDistance(params.latitude,
+                                                       params.longitude,
+                                                       di->center_.latitude_,
+                                                       di->center_.longitude_) :
+                      0;
+
+   if (distance < di->threshold_)
+   {
+      placefilePolygons_->AddPolygon(di);
    }
 }
 
@@ -269,6 +299,9 @@ void PlacefileLayer::Render(
          p->placefileIcons_->Reset();
          p->placefileIcons_->SetIconFiles(placefile->icon_files(),
                                           placefile->name());
+
+         // Reset Placefile Polygons
+         p->placefilePolygons_->StartPolygons();
       }
 
       for (auto& drawItem : placefile->GetDrawItems())
@@ -287,9 +320,22 @@ void PlacefileLayer::Render(
                std::static_pointer_cast<gr::Placefile::IconDrawItem>(drawItem));
             break;
 
+         case gr::Placefile::ItemType::Polygon:
+            p->RenderPolygonDrawItem(
+               params,
+               std::static_pointer_cast<gr::Placefile::PolygonDrawItem>(
+                  drawItem));
+            break;
+
          default:
             break;
          }
+      }
+
+      if (p->dirty_)
+      {
+         // Finish Placefile Polygons
+         p->placefilePolygons_->FinishPolygons();
       }
    }
 

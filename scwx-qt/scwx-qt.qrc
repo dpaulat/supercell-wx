@@ -4,6 +4,7 @@
         <file>gl/color.vert</file>
         <file>gl/geo_line.vert</file>
         <file>gl/geo_texture2d.vert</file>
+        <file>gl/map_color.vert</file>
         <file>gl/radar.frag</file>
         <file>gl/radar.vert</file>
         <file>gl/text.frag</file>

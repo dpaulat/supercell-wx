@@ -729,16 +729,29 @@ void Placefile::Impl::ProcessElementEnd()
 {
    if (currentStatement_ == DrawingStatement::Polygon)
    {
+      auto di = std::static_pointer_cast<PolygonDrawItem>(currentDrawItem_);
+
       // Complete the current contour when ending the Polygon statement
       if (!currentPolygonContour_.empty())
       {
-         auto& contours =
-            std::static_pointer_cast<PolygonDrawItem>(currentDrawItem_)
-               ->contours_;
+         auto& contours = di->contours_;
 
          auto& newContour =
             contours.emplace_back(std::vector<PolygonDrawItem::Element> {});
          newContour.swap(currentPolygonContour_);
+      }
+
+      if (!di->contours_.empty())
+      {
+         std::vector<common::Coordinate> coordinates {};
+         std::transform(di->contours_[0].cbegin(),
+                        di->contours_[0].cend(),
+                        std::back_inserter(coordinates),
+                        [](auto& element) {
+                           return common::Coordinate {element.latitude_,
+                                                      element.longitude_};
+                        });
+         di->center_ = GetCentroid(coordinates);
       }
    }
 }

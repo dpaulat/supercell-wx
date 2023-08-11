@@ -1,5 +1,7 @@
 #pragma once
 
+#include <scwx/common/geographic.hpp>
+
 #include <istream>
 #include <memory>
 #include <optional>
@@ -157,6 +159,7 @@ public:
       };
 
       std::vector<std::vector<Element>> contours_ {};
+      scwx::common::Coordinate          center_ {};
    };
 
    bool IsValid() const;
