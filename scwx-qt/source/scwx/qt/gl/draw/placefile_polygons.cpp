@@ -7,6 +7,10 @@
 #include <GL/glu.h>
 #include <boost/container/stable_vector.hpp>
 
+#if defined(_WIN32)
+typedef void (*_GLUfuncptr)(void);
+#endif
+
 namespace scwx
 {
 namespace qt
@@ -52,10 +56,10 @@ public:
 
       gluTessCallback(tessellator_, //
                       GLU_TESS_COMBINE_DATA,
-                      (GLvoid(*)()) & TessellateCombineCallback);
+                      (_GLUfuncptr) &TessellateCombineCallback);
       gluTessCallback(tessellator_, //
                       GLU_TESS_VERTEX_DATA,
-                      (GLvoid(*)()) & TessellateVertexCallback);
+                      (_GLUfuncptr) &TessellateVertexCallback);
 
       // Force GLU_TRIANGLES
       gluTessCallback(tessellator_, //
@@ -64,7 +68,7 @@ public:
 
       gluTessCallback(tessellator_, //
                       GLU_TESS_ERROR,
-                      (GLvoid(*)()) & TessellateErrorCallback);
+                      (_GLUfuncptr) &TessellateErrorCallback);
    }
 
    ~Impl() { gluDeleteTess(tessellator_); }
@@ -328,8 +332,6 @@ void PlacefilePolygons::Impl::TessellateCombineCallback(GLdouble coords[3],
                                                         void*    polygonData)
 {
    static constexpr std::size_t r = kTessVertexR_;
-   static constexpr std::size_t g = kTessVertexG_;
-   static constexpr std::size_t b = kTessVertexB_;
    static constexpr std::size_t a = kTessVertexA_;
 
    Impl* self = static_cast<Impl*>(polygonData);

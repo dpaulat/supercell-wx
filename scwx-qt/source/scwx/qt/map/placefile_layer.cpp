@@ -261,8 +261,8 @@ void PlacefileLayer::Render(
       {params.latitude, params.longitude});
    p->mapScale_ = std::pow(2.0, params.zoom) * mbgl::util::tileSize_D /
                   mbgl::util::DEGREES_MAX;
-   p->mapBearingCos_ = std::cosf(params.bearing * common::kDegreesToRadians);
-   p->mapBearingSin_ = std::sinf(params.bearing * common::kDegreesToRadians);
+   p->mapBearingCos_ = cosf(params.bearing * common::kDegreesToRadians);
+   p->mapBearingSin_ = sinf(params.bearing * common::kDegreesToRadians);
    p->halfWidth_     = params.width * 0.5f;
    p->halfHeight_    = params.height * 0.5f;
 
