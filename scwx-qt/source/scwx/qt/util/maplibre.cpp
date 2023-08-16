@@ -1,5 +1,6 @@
 #include <scwx/qt/util/maplibre.hpp>
 
+#include <QMapLibreGL/utils.hpp>
 #include <mbgl/util/constants.hpp>
 
 namespace scwx
@@ -10,6 +11,13 @@ namespace util
 {
 namespace maplibre
 {
+
+boost::units::quantity<boost::units::si::length>
+GetMapDistance(const QMapLibreGL::CustomLayerRenderParameters& params)
+{
+   return QMapLibreGL::metersPerPixelAtLatitude(params.latitude, params.zoom) *
+          (params.width + params.height) / 2.0 * boost::units::si::meters;
+}
 
 glm::vec2 LatLongToScreenCoordinate(const QMapLibreGL::Coordinate& coordinate)
 {
