@@ -1,7 +1,8 @@
 #include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
-#include <scwx/util/hash.hpp>
 #include <scwx/util/logger.hpp>
+
+#include <boost/container_hash/hash.hpp>
 
 namespace scwx
 {
@@ -25,11 +26,12 @@ public:
    }
    ~Impl() {}
 
+   static std::size_t
+   GetShaderKey(std::initializer_list<std::pair<GLenum, std::string>> shaders);
+
    gl::OpenGLFunctions gl_;
 
-   std::unordered_map<std::pair<std::string, std::string>,
-                      std::shared_ptr<gl::ShaderProgram>,
-                      scwx::util::hash<std::pair<std::string, std::string>>>
+   std::unordered_map<std::size_t, std::shared_ptr<gl::ShaderProgram>>
               shaderProgramMap_;
    std::mutex shaderProgramMutex_;
 
@@ -54,8 +56,15 @@ std::shared_ptr<gl::ShaderProgram>
 GlContext::GetShaderProgram(const std::string& vertexPath,
                             const std::string& fragmentPath)
 {
-   const std::pair<std::string, std::string> key {vertexPath, fragmentPath};
-   std::shared_ptr<gl::ShaderProgram>        shaderProgram;
+   return GetShaderProgram(
+      {{GL_VERTEX_SHADER, vertexPath}, {GL_FRAGMENT_SHADER, fragmentPath}});
+}
+
+std::shared_ptr<gl::ShaderProgram> GlContext::GetShaderProgram(
+   std::initializer_list<std::pair<GLenum, std::string>> shaders)
+{
+   const auto                         key = Impl::GetShaderKey(shaders);
+   std::shared_ptr<gl::ShaderProgram> shaderProgram;
 
    std::unique_lock lock(p->shaderProgramMutex_);
 
@@ -64,7 +73,7 @@ GlContext::GetShaderProgram(const std::string& vertexPath,
    if (it == p->shaderProgramMap_.end())
    {
       shaderProgram = std::make_shared<gl::ShaderProgram>(p->gl_);
-      shaderProgram->Load(vertexPath, fragmentPath);
+      shaderProgram->Load(shaders);
       p->shaderProgramMap_[key] = shaderProgram;
    }
    else
@@ -89,6 +98,18 @@ GLuint GlContext::GetTextureAtlas()
    }
 
    return p->textureAtlas_;
+}
+
+std::size_t GlContext::Impl::GetShaderKey(
+   std::initializer_list<std::pair<GLenum, std::string>> shaders)
+{
+   std::size_t seed = 0;
+   for (auto& shader : shaders)
+   {
+      boost::hash_combine(seed, shader.first);
+      boost::hash_combine(seed, shader.second);
+   }
+   return seed;
 }
 
 } // namespace gl

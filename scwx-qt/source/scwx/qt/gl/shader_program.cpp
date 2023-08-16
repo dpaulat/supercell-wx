@@ -109,7 +109,7 @@ bool ShaderProgram::Load(
       std::string shaderSource  = shaderStream.readAll().toStdString();
       const char* shaderSourceC = shaderSource.c_str();
 
-      // Create a vertex shader
+      // Create a shader
       GLuint shaderId = gl.glCreateShader(shader.first);
       shaderIds.push_back(shaderId);
 
