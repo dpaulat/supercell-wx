@@ -1,4 +1,5 @@
 #include <scwx/qt/gl/draw/placefile_icons.hpp>
+#include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -84,6 +85,7 @@ public:
        uMVPMatrixLocation_(GL_INVALID_INDEX),
        uMapMatrixLocation_(GL_INVALID_INDEX),
        uMapScreenCoordLocation_(GL_INVALID_INDEX),
+       uMapDistanceLocation_(GL_INVALID_INDEX),
        vao_ {GL_INVALID_INDEX},
        vbo_ {GL_INVALID_INDEX},
        numVertices_ {0}
@@ -95,6 +97,7 @@ public:
    std::shared_ptr<GlContext> context_;
 
    bool dirty_ {false};
+   bool thresholded_ {false};
 
    boost::unordered_flat_map<std::size_t, const PlacefileIconInfo>
       iconFiles_ {};
@@ -105,9 +108,10 @@ public:
    GLint                          uMVPMatrixLocation_;
    GLint                          uMapMatrixLocation_;
    GLint                          uMapScreenCoordLocation_;
+   GLint                          uMapDistanceLocation_;
 
-   GLuint vao_;
-   GLuint vbo_;
+   GLuint                vao_;
+   std::array<GLuint, 2> vbo_;
 
    GLsizei numVertices_;
 
@@ -123,39 +127,32 @@ PlacefileIcons::~PlacefileIcons() = default;
 PlacefileIcons::PlacefileIcons(PlacefileIcons&&) noexcept            = default;
 PlacefileIcons& PlacefileIcons::operator=(PlacefileIcons&&) noexcept = default;
 
+void PlacefileIcons::set_thresholded(bool thresholded)
+{
+   p->thresholded_ = thresholded;
+}
+
 void PlacefileIcons::Initialize()
 {
    gl::OpenGLFunctions& gl = p->context_->gl();
 
-   p->shaderProgram_ = p->context_->GetShaderProgram(":/gl/geo_texture2d.vert",
-                                                     ":/gl/texture2d.frag");
+   p->shaderProgram_ = p->context_->GetShaderProgram(
+      {{GL_VERTEX_SHADER, ":/gl/geo_texture2d.vert"},
+       {GL_GEOMETRY_SHADER, ":/gl/threshold.geom"},
+       {GL_FRAGMENT_SHADER, ":/gl/texture2d.frag"}});
 
-   p->uMVPMatrixLocation_ =
-      gl.glGetUniformLocation(p->shaderProgram_->id(), "uMVPMatrix");
-   if (p->uMVPMatrixLocation_ == -1)
-   {
-      logger_->warn("Could not find uMVPMatrix");
-   }
-
-   p->uMapMatrixLocation_ =
-      gl.glGetUniformLocation(p->shaderProgram_->id(), "uMapMatrix");
-   if (p->uMapMatrixLocation_ == -1)
-   {
-      logger_->warn("Could not find uMapMatrix");
-   }
-
+   p->uMVPMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMVPMatrix");
+   p->uMapMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMapMatrix");
    p->uMapScreenCoordLocation_ =
-      gl.glGetUniformLocation(p->shaderProgram_->id(), "uMapScreenCoord");
-   if (p->uMapScreenCoordLocation_ == -1)
-   {
-      logger_->warn("Could not find uMapScreenCoord");
-   }
+      p->shaderProgram_->GetUniformLocation("uMapScreenCoord");
+   p->uMapDistanceLocation_ =
+      p->shaderProgram_->GetUniformLocation("uMapDistance");
 
    gl.glGenVertexArrays(1, &p->vao_);
-   gl.glGenBuffers(1, &p->vbo_);
+   gl.glGenBuffers(2, p->vbo_.data());
 
    gl.glBindVertexArray(p->vao_);
-   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
+   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
    gl.glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
 
    // aLatLong
@@ -203,6 +200,17 @@ void PlacefileIcons::Initialize()
                             reinterpret_cast<void*>(10 * sizeof(float)));
    gl.glEnableVertexAttribArray(4);
 
+   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
+   gl.glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
+
+   // aThreshold
+   gl.glVertexAttribIPointer(5, //
+                             1,
+                             GL_INT,
+                             0,
+                             static_cast<void*>(0));
+   gl.glEnableVertexAttribArray(5);
+
    p->dirty_ = true;
 }
 
@@ -214,13 +222,27 @@ void PlacefileIcons::Render(
       gl::OpenGLFunctions& gl = p->context_->gl();
 
       gl.glBindVertexArray(p->vao_);
-      gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
 
       p->Update();
       p->shaderProgram_->Use();
       UseRotationProjection(params, p->uMVPMatrixLocation_);
       UseMapProjection(
          params, p->uMapMatrixLocation_, p->uMapScreenCoordLocation_);
+
+      if (p->thresholded_)
+      {
+         // If thresholding is enabled, set the map distance
+         // TODO: nautical miles
+         auto mapDistance =
+            util::maplibre::GetMapDistance(params).value() / 1852.0f;
+         gl.glUniform1f(p->uMapDistanceLocation_,
+                        static_cast<float>(mapDistance));
+      }
+      else
+      {
+         // If thresholding is disabled, set the map distance to 0
+         gl.glUniform1f(p->uMapDistanceLocation_, 0.0f);
+      }
 
       // Don't interpolate texture coordinates
       gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -236,7 +258,7 @@ void PlacefileIcons::Deinitialize()
    gl::OpenGLFunctions& gl = p->context_->gl();
 
    gl.glDeleteVertexArrays(1, &p->vao_);
-   gl.glDeleteBuffers(1, &p->vbo_);
+   gl.glDeleteBuffers(2, p->vbo_.data());
 }
 
 void PlacefileIcons::SetIconFiles(
@@ -279,8 +301,11 @@ void PlacefileIcons::Impl::Update()
    if (dirty_)
    {
       static std::vector<float> buffer {};
+      static std::vector<GLint> thresholds {};
       buffer.clear();
       buffer.reserve(iconList_.size() * kBufferLength);
+      thresholds.clear();
+      thresholds.reserve(iconList_.size() * kVerticesPerRectangle);
       numVertices_ = 0;
 
       for (auto& di : iconList_)
@@ -302,6 +327,10 @@ void PlacefileIcons::Impl::Update()
             logger_->trace("Invalid icon number: {}", di->iconNumber_);
             continue;
          }
+
+         // TODO: nautical miles
+         GLint threshold =
+            static_cast<GLint>(std::roundf(di->threshold_.value() / 1852.0f));
 
          // Latitude and longitude coordinates in degrees
          const float lat = static_cast<float>(di->latitude_);
@@ -357,15 +386,31 @@ void PlacefileIcons::Impl::Update()
                           lat, lon, rx, ty, rs, tt, mc0, mc1, mc2, mc3, a, // TR
                           lat, lon, lx, ty, ls, tt, mc0, mc1, mc2, mc3, a  // TL
                        });
+         thresholds.insert(thresholds.end(),
+                           {threshold, //
+                            threshold,
+                            threshold,
+                            threshold,
+                            threshold,
+                            threshold});
 
          numVertices_ += 6;
       }
 
       gl::OpenGLFunctions& gl = context_->gl();
 
+      // Buffer vertex data
+      gl.glBindBuffer(GL_ARRAY_BUFFER, vbo_[0]);
       gl.glBufferData(GL_ARRAY_BUFFER,
                       sizeof(float) * buffer.size(),
                       buffer.data(),
+                      GL_DYNAMIC_DRAW);
+
+      // Buffer threshold data
+      gl.glBindBuffer(GL_ARRAY_BUFFER, vbo_[1]);
+      gl.glBufferData(GL_ARRAY_BUFFER,
+                      sizeof(GLint) * thresholds.size(),
+                      thresholds.data(),
                       GL_DYNAMIC_DRAW);
 
       dirty_ = false;

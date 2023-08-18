@@ -56,6 +56,16 @@ GLuint ShaderProgram::id() const
    return p->id_;
 }
 
+GLint ShaderProgram::GetUniformLocation(const std::string& name)
+{
+   GLint location = p->gl_.glGetUniformLocation(p->id_, name.c_str());
+   if (location == -1)
+   {
+      logger_->warn("Could not find {}", name);
+   }
+   return location;
+}
+
 std::string ShaderProgram::Impl::ShaderName(GLenum type)
 {
    auto it = kShaderNames_.find(type);

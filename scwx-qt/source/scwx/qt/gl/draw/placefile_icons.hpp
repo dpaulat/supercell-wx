@@ -27,6 +27,8 @@ public:
    PlacefileIcons(PlacefileIcons&&) noexcept;
    PlacefileIcons& operator=(PlacefileIcons&&) noexcept;
 
+   void set_thresholded(bool thresholded);
+
    void Initialize() override;
    void Render(const QMapLibreGL::CustomLayerRenderParameters& params) override;
    void Deinitialize() override;

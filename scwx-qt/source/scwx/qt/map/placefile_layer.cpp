@@ -4,11 +4,11 @@
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
-#include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <boost/units/base_units/metric/nautical_mile.hpp>
 #include <fmt/format.h>
 #include <imgui.h>
 #include <mbgl/util/constants.hpp>
@@ -41,12 +41,8 @@ public:
 
    void ConnectSignals();
 
-   void
-   RenderIconDrawItem(const QMapLibreGL::CustomLayerRenderParameters& params,
-                      const std::shared_ptr<gr::Placefile::IconDrawItem>& di);
-   void RenderPolygonDrawItem(
-      const QMapLibreGL::CustomLayerRenderParameters&        params,
-      const std::shared_ptr<gr::Placefile::PolygonDrawItem>& di);
+   void AddIcon(const std::shared_ptr<gr::Placefile::IconDrawItem>& di);
+   void AddPolygon(const std::shared_ptr<gr::Placefile::PolygonDrawItem>& di);
    void
    RenderTextDrawItem(const QMapLibreGL::CustomLayerRenderParameters& params,
                       const std::shared_ptr<gr::Placefile::TextDrawItem>& di);
@@ -72,6 +68,8 @@ public:
    float         halfHeight_ {};
    bool          thresholded_ {true};
    ImFont*       monospaceFont_ {};
+
+   boost::units::quantity<boost::units::si::length> mapDistance_ {};
 
    std::shared_ptr<gl::draw::PlacefileIcons>    placefileIcons_;
    std::shared_ptr<gl::draw::PlacefilePolygons> placefilePolygons_;
@@ -122,8 +120,7 @@ void PlacefileLayer::Initialize()
    DrawLayer::Initialize();
 }
 
-void PlacefileLayer::Impl::RenderIconDrawItem(
-   const QMapLibreGL::CustomLayerRenderParameters&     params,
+void PlacefileLayer::Impl::AddIcon(
    const std::shared_ptr<gr::Placefile::IconDrawItem>& di)
 {
    if (!dirty_)
@@ -131,51 +128,25 @@ void PlacefileLayer::Impl::RenderIconDrawItem(
       return;
    }
 
-   auto distance =
-      (thresholded_) ?
-         util::GeographicLib::GetDistance(
-            params.latitude, params.longitude, di->latitude_, di->longitude_) :
-         0;
-
-   if (distance < di->threshold_)
-   {
-      placefileIcons_->AddIcon(di);
-   }
+   placefileIcons_->AddIcon(di);
 }
 
-void PlacefileLayer::Impl::RenderPolygonDrawItem(
-   const QMapLibreGL::CustomLayerRenderParameters&        params,
+void PlacefileLayer::Impl::AddPolygon(
    const std::shared_ptr<gr::Placefile::PolygonDrawItem>& di)
 {
    if (!dirty_)
    {
       return;
-   }
+   };
 
-   auto distance = (thresholded_) ?
-                      util::GeographicLib::GetDistance(params.latitude,
-                                                       params.longitude,
-                                                       di->center_.latitude_,
-                                                       di->center_.longitude_) :
-                      0;
-
-   if (distance < di->threshold_)
-   {
-      placefilePolygons_->AddPolygon(di);
-   }
+   placefilePolygons_->AddPolygon(di);
 }
 
 void PlacefileLayer::Impl::RenderTextDrawItem(
    const QMapLibreGL::CustomLayerRenderParameters&     params,
    const std::shared_ptr<gr::Placefile::TextDrawItem>& di)
 {
-   auto distance =
-      (thresholded_) ?
-         util::GeographicLib::GetDistance(
-            params.latitude, params.longitude, di->latitude_, di->longitude_) :
-         0;
-
-   if (distance < di->threshold_)
+   if (!thresholded_ || mapDistance_ <= di->threshold_)
    {
       const auto screenCoordinates = (util::maplibre::LatLongToScreenCoordinate(
                                          {di->latitude_, di->longitude_}) -
@@ -265,6 +236,7 @@ void PlacefileLayer::Render(
    p->mapBearingSin_ = sinf(params.bearing * common::kDegreesToRadians);
    p->halfWidth_     = params.width * 0.5f;
    p->halfHeight_    = params.height * 0.5f;
+   p->mapDistance_   = util::maplibre::GetMapDistance(params);
 
    // Get monospace font pointer
    std::size_t fontSize = 16;
@@ -292,6 +264,8 @@ void PlacefileLayer::Render(
    {
       p->thresholded_ =
          placefileManager->placefile_thresholded(placefile->name());
+      p->placefileIcons_->set_thresholded(p->thresholded_);
+      p->placefilePolygons_->set_thresholded(p->thresholded_);
 
       if (p->dirty_)
       {
@@ -315,14 +289,12 @@ void PlacefileLayer::Render(
             break;
 
          case gr::Placefile::ItemType::Icon:
-            p->RenderIconDrawItem(
-               params,
+            p->AddIcon(
                std::static_pointer_cast<gr::Placefile::IconDrawItem>(drawItem));
             break;
 
          case gr::Placefile::ItemType::Polygon:
-            p->RenderPolygonDrawItem(
-               params,
+            p->AddPolygon(
                std::static_pointer_cast<gr::Placefile::PolygonDrawItem>(
                   drawItem));
             break;

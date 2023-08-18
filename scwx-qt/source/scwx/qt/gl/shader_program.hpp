@@ -30,6 +30,8 @@ public:
 
    GLuint id() const;
 
+   GLint GetUniformLocation(const std::string& name);
+
    bool Load(const std::string& vertexPath, const std::string& fragmentPath);
    bool Load(std::initializer_list<std::pair<GLenum, std::string>> shaderPaths);
 

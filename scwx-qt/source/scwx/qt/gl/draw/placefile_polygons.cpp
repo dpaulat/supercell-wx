@@ -6,6 +6,7 @@
 
 #include <GL/glu.h>
 #include <boost/container/stable_vector.hpp>
+#include <boost/units/base_units/metric/nautical_mile.hpp>
 
 #if defined(_WIN32)
 typedef void (*_GLUfuncptr)(void);
@@ -48,6 +49,7 @@ public:
        uMVPMatrixLocation_(GL_INVALID_INDEX),
        uMapMatrixLocation_(GL_INVALID_INDEX),
        uMapScreenCoordLocation_(GL_INVALID_INDEX),
+       uMapDistanceLocation_(GL_INVALID_INDEX),
        vao_ {GL_INVALID_INDEX},
        vbo_ {GL_INVALID_INDEX},
        numVertices_ {0}
@@ -88,6 +90,7 @@ public:
    std::shared_ptr<GlContext> context_;
 
    bool dirty_ {false};
+   bool thresholded_ {false};
 
    std::vector<std::shared_ptr<const gr::Placefile::PolygonDrawItem>>
       polygonList_ {};
@@ -96,7 +99,9 @@ public:
 
    std::mutex           bufferMutex_ {};
    std::vector<GLfloat> currentBuffer_ {};
+   std::vector<GLint>   currentThresholdBuffer_ {};
    std::vector<GLfloat> newBuffer_ {};
+   std::vector<GLint>   newThresholdBuffer_ {};
 
    GLUtesselator* tessellator_;
 
@@ -104,13 +109,14 @@ public:
    GLint                          uMVPMatrixLocation_;
    GLint                          uMapMatrixLocation_;
    GLint                          uMapScreenCoordLocation_;
+   GLint                          uMapDistanceLocation_;
 
-   GLuint vao_;
-   GLuint vbo_;
+   GLuint                vao_;
+   std::array<GLuint, 2> vbo_;
 
    GLsizei numVertices_;
 
-   boost::gil::rgba8_pixel_t currentColor_ {255, 255, 255, 255};
+   GLint currentThreshold_;
 };
 
 PlacefilePolygons::PlacefilePolygons(std::shared_ptr<GlContext> context) :
@@ -123,39 +129,32 @@ PlacefilePolygons::PlacefilePolygons(PlacefilePolygons&&) noexcept = default;
 PlacefilePolygons&
 PlacefilePolygons::operator=(PlacefilePolygons&&) noexcept = default;
 
+void PlacefilePolygons::set_thresholded(bool thresholded)
+{
+   p->thresholded_ = thresholded;
+}
+
 void PlacefilePolygons::Initialize()
 {
    gl::OpenGLFunctions& gl = p->context_->gl();
 
-   p->shaderProgram_ =
-      p->context_->GetShaderProgram(":/gl/map_color.vert", ":/gl/color.frag");
+   p->shaderProgram_ = p->context_->GetShaderProgram(
+      {{GL_VERTEX_SHADER, ":/gl/map_color.vert"},
+       {GL_GEOMETRY_SHADER, ":/gl/threshold.geom"},
+       {GL_FRAGMENT_SHADER, ":/gl/color.frag"}});
 
-   p->uMVPMatrixLocation_ =
-      gl.glGetUniformLocation(p->shaderProgram_->id(), "uMVPMatrix");
-   if (p->uMVPMatrixLocation_ == -1)
-   {
-      logger_->warn("Could not find uMVPMatrix");
-   }
-
-   p->uMapMatrixLocation_ =
-      gl.glGetUniformLocation(p->shaderProgram_->id(), "uMapMatrix");
-   if (p->uMapMatrixLocation_ == -1)
-   {
-      logger_->warn("Could not find uMapMatrix");
-   }
-
+   p->uMVPMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMVPMatrix");
+   p->uMapMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMapMatrix");
    p->uMapScreenCoordLocation_ =
-      gl.glGetUniformLocation(p->shaderProgram_->id(), "uMapScreenCoord");
-   if (p->uMapScreenCoordLocation_ == -1)
-   {
-      logger_->warn("Could not find uMapScreenCoord");
-   }
+      p->shaderProgram_->GetUniformLocation("uMapScreenCoord");
+   p->uMapDistanceLocation_ =
+      p->shaderProgram_->GetUniformLocation("uMapDistance");
 
    gl.glGenVertexArrays(1, &p->vao_);
-   gl.glGenBuffers(1, &p->vbo_);
+   gl.glGenBuffers(2, p->vbo_.data());
 
    gl.glBindVertexArray(p->vao_);
-   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
+   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
    gl.glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
 
    // aScreenCoord
@@ -185,24 +184,49 @@ void PlacefilePolygons::Initialize()
                             reinterpret_cast<void*>(4 * sizeof(float)));
    gl.glEnableVertexAttribArray(2);
 
+   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
+   gl.glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
+
+   // aThreshold
+   gl.glVertexAttribIPointer(3, //
+                             1,
+                             GL_INT,
+                             0,
+                             static_cast<void*>(0));
+   gl.glEnableVertexAttribArray(3);
+
    p->dirty_ = true;
 }
 
 void PlacefilePolygons::Render(
    const QMapLibreGL::CustomLayerRenderParameters& params)
 {
-   if (!p->polygonList_.empty())
+   if (!p->currentBuffer_.empty())
    {
       gl::OpenGLFunctions& gl = p->context_->gl();
 
       gl.glBindVertexArray(p->vao_);
-      gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
 
       p->Update();
       p->shaderProgram_->Use();
       UseRotationProjection(params, p->uMVPMatrixLocation_);
       UseMapProjection(
          params, p->uMapMatrixLocation_, p->uMapScreenCoordLocation_);
+
+      if (p->thresholded_)
+      {
+         // If thresholding is enabled, set the map distance
+         // TODO: nautical miles
+         auto mapDistance =
+            util::maplibre::GetMapDistance(params).value() / 1852.0f;
+         gl.glUniform1f(p->uMapDistanceLocation_,
+                        static_cast<float>(mapDistance));
+      }
+      else
+      {
+         // If thresholding is disabled, set the map distance to 0
+         gl.glUniform1f(p->uMapDistanceLocation_, 0.0f);
+      }
 
       // Draw icons
       gl.glDrawArrays(GL_TRIANGLES, 0, p->numVertices_);
@@ -214,13 +238,14 @@ void PlacefilePolygons::Deinitialize()
    gl::OpenGLFunctions& gl = p->context_->gl();
 
    gl.glDeleteVertexArrays(1, &p->vao_);
-   gl.glDeleteBuffers(1, &p->vbo_);
+   gl.glDeleteBuffers(2, p->vbo_.data());
 }
 
 void PlacefilePolygons::StartPolygons()
 {
    // Clear the new buffer
    p->newBuffer_.clear();
+   p->newThresholdBuffer_.clear();
 
    // Clear the polygon list
    p->polygonList_.clear();
@@ -242,6 +267,7 @@ void PlacefilePolygons::FinishPolygons()
 
    // Swap buffers
    p->currentBuffer_.swap(p->newBuffer_);
+   p->currentThresholdBuffer_.swap(p->newThresholdBuffer_);
 
    // Mark the draw item dirty
    p->dirty_ = true;
@@ -255,9 +281,18 @@ void PlacefilePolygons::Impl::Update()
 
       std::unique_lock lock {bufferMutex_};
 
+      // Buffer vertex data
+      gl.glBindBuffer(GL_ARRAY_BUFFER, vbo_[0]);
       gl.glBufferData(GL_ARRAY_BUFFER,
                       sizeof(GLfloat) * currentBuffer_.size(),
                       currentBuffer_.data(),
+                      GL_DYNAMIC_DRAW);
+
+      // Buffer threshold data
+      gl.glBindBuffer(GL_ARRAY_BUFFER, vbo_[1]);
+      gl.glBufferData(GL_ARRAY_BUFFER,
+                      sizeof(GLint) * currentThresholdBuffer_.size(),
+                      currentThresholdBuffer_.data(),
                       GL_DYNAMIC_DRAW);
 
       numVertices_ =
@@ -275,6 +310,10 @@ void PlacefilePolygons::Impl::Tessellate(
 
    // Default color to "Color" statement
    boost::gil::rgba8_pixel_t lastColor = di->color_;
+
+   // TODO: nautical miles
+   currentThreshold_ =
+      static_cast<GLint>(std::roundf(di->threshold_.value() / 1852.0f));
 
    gluTessBeginPolygon(tessellator_, this);
 
@@ -322,6 +361,7 @@ void PlacefilePolygons::Impl::Tessellate(
    while (newBuffer_.size() % kVerticesPerTriangle != 0)
    {
       newBuffer_.pop_back();
+      newThresholdBuffer_.pop_back();
    }
 }
 
@@ -382,6 +422,7 @@ void PlacefilePolygons::Impl::TessellateVertexCallback(void* vertexData,
                             static_cast<float>(data[kTessVertexG_]),
                             static_cast<float>(data[kTessVertexB_]),
                             static_cast<float>(data[kTessVertexA_])});
+   self->newThresholdBuffer_.push_back(self->currentThreshold_);
 }
 
 void PlacefilePolygons::Impl::TessellateErrorCallback(GLenum errorCode)
