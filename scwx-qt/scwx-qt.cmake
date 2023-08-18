@@ -252,7 +252,8 @@ set(SHADER_FILES gl/color.frag
                  gl/text.vert
                  gl/texture1d.frag
                  gl/texture1d.vert
-                 gl/texture2d.frag)
+                 gl/texture2d.frag
+                 gl/threshold.geom)
 
 set(CMAKE_FILES scwx-qt.cmake)
 

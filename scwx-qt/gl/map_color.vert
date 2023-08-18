@@ -3,17 +3,29 @@
 layout (location = 0) in vec2 aScreenCoord;
 layout (location = 1) in vec2 aXYOffset;
 layout (location = 2) in vec4 aColor;
+layout (location = 3) in int  aThreshold;
 
 uniform mat4 uMVPMatrix;
 uniform mat4 uMapMatrix;
 uniform vec2 uMapScreenCoord;
 
-out vec4 color;
+out VertexData
+{
+   int  threshold;
+   vec2 texCoord;
+   vec4 color;
+} vsOut;
+
+smooth out vec4 color;
 
 void main()
 {
-   // Pass the color to the fragment shader
-   color = aColor;
+   // Pass the threshold and color to the geometry shader
+   vsOut.threshold = aThreshold;
+
+   // Pass the color to the geometry and fragment shaders
+   vsOut.color = aColor;
+   color       = aColor;
 
    vec2 p = aScreenCoord - uMapScreenCoord;
 

@@ -6,11 +6,11 @@ precision mediump float;
 uniform sampler2D uTexture;
 
 smooth in vec2 texCoord;
-flat   in vec4 modulate;
+smooth in vec4 color;
 
 layout (location = 0) out vec4 fragColor;
 
 void main()
 {
-   fragColor = texture(uTexture, texCoord) * modulate;
+   fragColor = texture(uTexture, texCoord) * color;
 }

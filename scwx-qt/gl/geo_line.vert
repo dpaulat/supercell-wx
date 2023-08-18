@@ -16,7 +16,7 @@ uniform mat4 uMapMatrix;
 uniform vec2 uMapScreenCoord;
 
 smooth out vec2 texCoord;
-flat   out vec4 modulate;
+smooth out vec4 color;
 
 vec2 latLngToScreenCoordinate(in vec2 latLng)
 {
@@ -31,7 +31,7 @@ void main()
 {
    // Pass the texture coordinate and color modulate to the fragment shader
    texCoord = aTexCoord;
-   modulate = aModulate;
+   color    = aModulate;
 
    vec2 p = latLngToScreenCoordinate(aLatLong) - uMapScreenCoord;
 

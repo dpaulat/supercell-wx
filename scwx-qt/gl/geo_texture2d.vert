@@ -12,13 +12,21 @@ layout (location = 1) in vec2  aXYOffset;
 layout (location = 2) in vec2  aTexCoord;
 layout (location = 3) in vec4  aModulate;
 layout (location = 4) in float aAngleDeg;
+layout (location = 5) in int   aThreshold;
 
 uniform mat4 uMVPMatrix;
 uniform mat4 uMapMatrix;
 uniform vec2 uMapScreenCoord;
 
+out VertexData
+{
+   int  threshold;
+   vec2 texCoord;
+   vec4 color;
+} vsOut;
+
 smooth out vec2 texCoord;
-flat   out vec4 modulate;
+smooth out vec4 color;
 
 vec2 latLngToScreenCoordinate(in vec2 latLng)
 {
@@ -31,9 +39,15 @@ vec2 latLngToScreenCoordinate(in vec2 latLng)
 
 void main()
 {
-   // Pass the texture coordinate and color modulate to the fragment shader
-   texCoord = aTexCoord;
-   modulate = aModulate;
+   // Pass the threshold to the geometry shader
+   vsOut.threshold = aThreshold;
+
+   // Pass the texture coordinate and color modulate to the geometry and
+   // fragment shaders
+   vsOut.texCoord = aTexCoord;
+   vsOut.color    = aModulate;
+   texCoord       = aTexCoord;
+   color          = aModulate;
 
    vec2 p = latLngToScreenCoordinate(aLatLong) - uMapScreenCoord;
 

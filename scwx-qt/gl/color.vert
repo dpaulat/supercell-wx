@@ -4,7 +4,7 @@ layout (location = 1) in vec4 aColor;
 
 uniform mat4 uMVPMatrix;
 
-out vec4 color;
+smooth out vec4 color;
 
 void main()
 {
