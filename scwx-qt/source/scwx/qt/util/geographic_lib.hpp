@@ -1,8 +1,7 @@
 #pragma once
 
 #include <GeographicLib/Geodesic.hpp>
-#include <boost/units/quantity.hpp>
-#include <boost/units/systems/si/length.hpp>
+#include <units/length.h>
 
 namespace scwx
 {
@@ -30,7 +29,7 @@ const ::GeographicLib::Geodesic& DefaultGeodesic();
  *
  * @return distance between point 1 and point 2
  */
-boost::units::quantity<boost::units::si::length>
+units::length::meters<double>
 GetDistance(double lat1, double lon1, double lat2, double lon2);
 
 } // namespace GeographicLib

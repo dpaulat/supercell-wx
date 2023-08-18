@@ -9,9 +9,8 @@
 #include <vector>
 
 #include <boost/gil/typedefs.hpp>
-#include <boost/units/quantity.hpp>
-#include <boost/units/systems/angle/degrees.hpp>
-#include <boost/units/systems/si/length.hpp>
+#include <units/angle.h>
+#include <units/length.h>
 
 namespace scwx
 {
@@ -71,22 +70,22 @@ public:
 
    struct DrawItem
    {
-      ItemType itemType_ {ItemType::Unknown};
-      boost::units::quantity<boost::units::si::length> threshold_ {};
+      ItemType                              itemType_ {ItemType::Unknown};
+      units::length::nautical_miles<double> threshold_ {};
    };
 
    struct IconDrawItem : DrawItem
    {
       IconDrawItem() { itemType_ = ItemType::Icon; }
 
-      double                                                    latitude_ {};
-      double                                                    longitude_ {};
-      double                                                    x_ {};
-      double                                                    y_ {};
-      boost::units::quantity<boost::units::degree::plane_angle> angle_ {};
-      std::size_t fileNumber_ {0u};
-      std::size_t iconNumber_ {0u};
-      std::string hoverText_ {};
+      double                 latitude_ {};
+      double                 longitude_ {};
+      double                 x_ {};
+      double                 y_ {};
+      units::degrees<double> angle_ {};
+      std::size_t            fileNumber_ {0u};
+      std::size_t            iconNumber_ {0u};
+      std::string            hoverText_ {};
    };
 
    struct TextDrawItem : DrawItem

@@ -9,7 +9,8 @@
 #include <unordered_map>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/units/base_units/metric/nautical_mile.hpp>
+
+using namespace units::literals;
 
 namespace scwx
 {
@@ -58,11 +59,10 @@ public:
    std::chrono::seconds refresh_ {-1};
 
    // Parsing state
-   boost::units::quantity<boost::units::si::length> threshold_ {
-      999.0 * boost::units::metric::nautical_mile_base_unit::unit_type()};
-   boost::gil::rgba8_pixel_t color_ {255, 255, 255, 255};
-   ColorMode                 colorMode_ {ColorMode::RGBA};
-   std::vector<Object>       objectStack_ {};
+   units::length::nautical_miles<double> threshold_ {999.0_nmi};
+   boost::gil::rgba8_pixel_t             color_ {255, 255, 255, 255};
+   ColorMode                             colorMode_ {ColorMode::RGBA};
+   std::vector<Object>                   objectStack_ {};
    DrawingStatement          currentStatement_ {DrawingStatement::Standard};
    std::shared_ptr<DrawItem> currentDrawItem_ {nullptr};
    std::vector<PolygonDrawItem::Element> currentPolygonContour_ {};
@@ -245,9 +245,7 @@ void Placefile::Impl::ProcessLine(const std::string& line)
       if (tokenList.size() >= 1)
       {
          threshold_ =
-            static_cast<boost::units::quantity<boost::units::si::length>>(
-               std::stod(tokenList[0]) *
-               boost::units::metric::nautical_mile_base_unit::unit_type());
+            units::length::nautical_miles<double>(std::stod(tokenList[0]));
       }
    }
    else if (boost::istarts_with(line, timeRangeKey_))
@@ -384,10 +382,7 @@ void Placefile::Impl::ProcessLine(const std::string& line)
                        di->x_,
                        di->y_);
 
-         di->angle_ = static_cast<
-            boost::units::quantity<boost::units::degree::plane_angle>>(
-            std::stod(tokenList[2]) *
-            boost::units::angle::degree_base_unit::unit_type());
+         di->angle_ = units::angle::degrees<double>(std::stod(tokenList[2]));
 
          di->fileNumber_ = std::stoul(tokenList[3]);
          di->iconNumber_ = std::stoul(tokenList[4]);

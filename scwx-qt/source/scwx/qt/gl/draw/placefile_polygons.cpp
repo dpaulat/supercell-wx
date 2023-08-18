@@ -6,7 +6,6 @@
 
 #include <GL/glu.h>
 #include <boost/container/stable_vector.hpp>
-#include <boost/units/base_units/metric/nautical_mile.hpp>
 
 #if defined(_WIN32)
 typedef void (*_GLUfuncptr)(void);
@@ -216,11 +215,9 @@ void PlacefilePolygons::Render(
       if (p->thresholded_)
       {
          // If thresholding is enabled, set the map distance
-         // TODO: nautical miles
-         auto mapDistance =
-            util::maplibre::GetMapDistance(params).value() / 1852.0f;
-         gl.glUniform1f(p->uMapDistanceLocation_,
-                        static_cast<float>(mapDistance));
+         units::length::nautical_miles<float> mapDistance =
+            util::maplibre::GetMapDistance(params);
+         gl.glUniform1f(p->uMapDistanceLocation_, mapDistance.value());
       }
       else
       {
@@ -311,9 +308,9 @@ void PlacefilePolygons::Impl::Tessellate(
    // Default color to "Color" statement
    boost::gil::rgba8_pixel_t lastColor = di->color_;
 
-   // TODO: nautical miles
-   currentThreshold_ =
-      static_cast<GLint>(std::roundf(di->threshold_.value() / 1852.0f));
+   // Current threshold
+   units::length::nautical_miles<double> threshold = di->threshold_;
+   currentThreshold_ = static_cast<GLint>(std::round(threshold.value()));
 
    gluTessBeginPolygon(tessellator_, this);
 

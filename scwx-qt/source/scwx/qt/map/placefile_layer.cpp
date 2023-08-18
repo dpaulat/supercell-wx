@@ -8,7 +8,6 @@
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
-#include <boost/units/base_units/metric/nautical_mile.hpp>
 #include <fmt/format.h>
 #include <imgui.h>
 #include <mbgl/util/constants.hpp>
@@ -69,7 +68,7 @@ public:
    bool          thresholded_ {true};
    ImFont*       monospaceFont_ {};
 
-   boost::units::quantity<boost::units::si::length> mapDistance_ {};
+   units::length::nautical_miles<double> mapDistance_ {};
 
    std::shared_ptr<gl::draw::PlacefileIcons>    placefileIcons_;
    std::shared_ptr<gl::draw::PlacefilePolygons> placefilePolygons_;

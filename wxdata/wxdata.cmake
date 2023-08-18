@@ -259,7 +259,8 @@ target_link_libraries(wxdata PUBLIC aws-cpp-sdk-core
                                     aws-cpp-sdk-s3
                                     cpr::cpr
                                     LibXml2::LibXml2
-                                    spdlog::spdlog)
+                                    spdlog::spdlog
+                                    units::units)
 target_link_libraries(wxdata INTERFACE Boost::iostreams
                                        BZip2::BZip2
                                        hsluv-c)

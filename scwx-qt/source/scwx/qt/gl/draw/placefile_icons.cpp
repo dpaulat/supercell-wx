@@ -232,11 +232,9 @@ void PlacefileIcons::Render(
       if (p->thresholded_)
       {
          // If thresholding is enabled, set the map distance
-         // TODO: nautical miles
-         auto mapDistance =
-            util::maplibre::GetMapDistance(params).value() / 1852.0f;
-         gl.glUniform1f(p->uMapDistanceLocation_,
-                        static_cast<float>(mapDistance));
+         units::length::nautical_miles<float> mapDistance =
+            util::maplibre::GetMapDistance(params);
+         gl.glUniform1f(p->uMapDistanceLocation_, mapDistance.value());
       }
       else
       {
@@ -328,9 +326,10 @@ void PlacefileIcons::Impl::Update()
             continue;
          }
 
-         // TODO: nautical miles
-         GLint threshold =
-            static_cast<GLint>(std::roundf(di->threshold_.value() / 1852.0f));
+         // Threshold value
+         units::length::nautical_miles<double> threshold = di->threshold_;
+         GLint                                 thresholdValue =
+            static_cast<GLint>(std::round(threshold.value()));
 
          // Latitude and longitude coordinates in degrees
          const float lat = static_cast<float>(di->latitude_);
@@ -355,8 +354,8 @@ void PlacefileIcons::Impl::Update()
          const float by = std::roundf(ty - ih);
 
          // Angle in degrees
-         // TODO: Properly convert
-         const float a = static_cast<float>(di->angle_.value());
+         units::angle::degrees<float> angle = di->angle_;
+         const float                  a     = angle.value();
 
          // Texture coordinates
          const std::size_t iconRow    = (di->iconNumber_ - 1) / icon.columns_;
@@ -387,12 +386,12 @@ void PlacefileIcons::Impl::Update()
                           lat, lon, lx, ty, ls, tt, mc0, mc1, mc2, mc3, a  // TL
                        });
          thresholds.insert(thresholds.end(),
-                           {threshold, //
-                            threshold,
-                            threshold,
-                            threshold,
-                            threshold,
-                            threshold});
+                           {thresholdValue, //
+                            thresholdValue,
+                            thresholdValue,
+                            thresholdValue,
+                            thresholdValue,
+                            thresholdValue});
 
          numVertices_ += 6;
       }
