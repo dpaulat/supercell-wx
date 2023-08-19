@@ -5,6 +5,8 @@
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <boost/asio/post.hpp>
+#include <boost/asio/thread_pool.hpp>
 
 namespace scwx
 {
@@ -36,14 +38,12 @@ public:
 
    void ConnectSignals();
 
-   void AddIcon(const std::shared_ptr<gr::Placefile::IconDrawItem>& di);
-   void AddPolygon(const std::shared_ptr<gr::Placefile::PolygonDrawItem>& di);
-   void AddText(const std::shared_ptr<gr::Placefile::TextDrawItem>& di);
-
+   boost::asio::thread_pool threadPool_ {1};
 
    PlacefileLayer* self_;
 
    std::string placefileName_;
+   std::mutex  dataMutex_ {};
    bool        dirty_ {true};
 
    std::shared_ptr<gl::draw::PlacefileIcons>    placefileIcons_;
@@ -74,7 +74,7 @@ void PlacefileLayer::Impl::ConnectSignals()
                     {
                        if (name == placefileName_)
                        {
-                          dirty_ = true;
+                          self_->ReloadData();
                        }
                     });
 }
@@ -97,39 +97,6 @@ void PlacefileLayer::Initialize()
    logger_->debug("Initialize()");
 
    DrawLayer::Initialize();
-}
-
-void PlacefileLayer::Impl::AddIcon(
-   const std::shared_ptr<gr::Placefile::IconDrawItem>& di)
-{
-   if (!dirty_)
-   {
-      return;
-   }
-
-   placefileIcons_->AddIcon(di);
-}
-
-void PlacefileLayer::Impl::AddPolygon(
-   const std::shared_ptr<gr::Placefile::PolygonDrawItem>& di)
-{
-   if (!dirty_)
-   {
-      return;
-   };
-
-   placefilePolygons_->AddPolygon(di);
-}
-
-void PlacefileLayer::Impl::AddText(
-   const std::shared_ptr<gr::Placefile::TextDrawItem>& di)
-{
-   if (!dirty_)
-   {
-      return;
-   };
-
-   placefileText_->AddText(di);
 }
 
 void PlacefileLayer::Render(
@@ -161,42 +128,29 @@ void PlacefileLayer::Render(
          p->placefileIcons_->SetIconFiles(placefile->icon_files(),
                                           placefile->name());
 
-         // Reset Placefile Polygons
-         p->placefilePolygons_->StartPolygons();
-
          // Reset Placefile Text
          p->placefileText_->Reset();
-      }
 
-      for (auto& drawItem : placefile->GetDrawItems())
-      {
-         switch (drawItem->itemType_)
+         for (auto& drawItem : placefile->GetDrawItems())
          {
-         case gr::Placefile::ItemType::Text:
-            p->AddText(
-               std::static_pointer_cast<gr::Placefile::TextDrawItem>(drawItem));
-            break;
+            switch (drawItem->itemType_)
+            {
+            case gr::Placefile::ItemType::Text:
+               p->placefileText_->AddText(
+                  std::static_pointer_cast<gr::Placefile::TextDrawItem>(
+                     drawItem));
+               break;
 
-         case gr::Placefile::ItemType::Icon:
-            p->AddIcon(
-               std::static_pointer_cast<gr::Placefile::IconDrawItem>(drawItem));
-            break;
+            case gr::Placefile::ItemType::Icon:
+               p->placefileIcons_->AddIcon(
+                  std::static_pointer_cast<gr::Placefile::IconDrawItem>(
+                     drawItem));
+               break;
 
-         case gr::Placefile::ItemType::Polygon:
-            p->AddPolygon(
-               std::static_pointer_cast<gr::Placefile::PolygonDrawItem>(
-                  drawItem));
-            break;
-
-         default:
-            break;
+            default:
+               break;
+            }
          }
-      }
-
-      if (p->dirty_)
-      {
-         // Finish Placefile Polygons
-         p->placefilePolygons_->FinishPolygons();
       }
    }
 
@@ -210,6 +164,59 @@ void PlacefileLayer::Deinitialize()
    logger_->debug("Deinitialize()");
 
    DrawLayer::Deinitialize();
+}
+
+void PlacefileLayer::ReloadData()
+{
+   // TODO: No longer needed after moving Icon and Text Render items here
+   p->dirty_ = true;
+
+   boost::asio::post(
+      p->threadPool_,
+      [this]()
+      {
+         logger_->debug("ReloadData: {}", p->placefileName_);
+
+         std::unique_lock lock {p->dataMutex_};
+
+         std::shared_ptr<manager::PlacefileManager> placefileManager =
+            manager::PlacefileManager::Instance();
+
+         auto placefile = placefileManager->placefile(p->placefileName_);
+         if (placefile == nullptr)
+         {
+            return;
+         }
+
+         // Reset Placefile Polygons
+         p->placefilePolygons_->StartPolygons();
+
+         for (auto& drawItem : placefile->GetDrawItems())
+         {
+            switch (drawItem->itemType_)
+            {
+            case gr::Placefile::ItemType::Text:
+               // TODO
+               break;
+
+            case gr::Placefile::ItemType::Icon:
+               // TODO
+               break;
+
+            case gr::Placefile::ItemType::Polygon:
+               p->placefilePolygons_->AddPolygon(
+                  std::static_pointer_cast<gr::Placefile::PolygonDrawItem>(
+                     drawItem));
+               break;
+
+            default:
+               break;
+            }
+         }
+
+         // Finish Placefile Polygons
+         p->placefilePolygons_->FinishPolygons();
+      });
 }
 
 } // namespace map

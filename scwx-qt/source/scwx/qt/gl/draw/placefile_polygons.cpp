@@ -91,9 +91,6 @@ public:
    bool dirty_ {false};
    bool thresholded_ {false};
 
-   std::vector<std::shared_ptr<const gr::Placefile::PolygonDrawItem>>
-      polygonList_ {};
-
    boost::container::stable_vector<TessVertexArray> tessCombineBuffer_ {};
 
    std::mutex           bufferMutex_ {};
@@ -243,9 +240,6 @@ void PlacefilePolygons::StartPolygons()
    // Clear the new buffer
    p->newBuffer_.clear();
    p->newThresholdBuffer_.clear();
-
-   // Clear the polygon list
-   p->polygonList_.clear();
 }
 
 void PlacefilePolygons::AddPolygon(
@@ -253,7 +247,6 @@ void PlacefilePolygons::AddPolygon(
 {
    if (di != nullptr)
    {
-      p->polygonList_.emplace_back(di);
       p->Tessellate(di);
    }
 }

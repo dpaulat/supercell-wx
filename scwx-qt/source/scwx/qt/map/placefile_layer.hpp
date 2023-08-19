@@ -26,6 +26,8 @@ public:
    void Render(const QMapLibreGL::CustomLayerRenderParameters&) override final;
    void Deinitialize() override final;
 
+   void ReloadData();
+
 private:
    class Impl;
    std::unique_ptr<Impl> p;
