@@ -199,7 +199,11 @@
               </widget>
              </item>
              <item row="7" column="2">
-              <widget class="QLineEdit" name="mapTilerApiKeyLineEdit"/>
+              <widget class="QLineEdit" name="mapTilerApiKeyLineEdit">
+               <property name="echoMode">
+                <enum>QLineEdit::Password</enum>
+               </property>
+              </widget>
              </item>
              <item row="3" column="2">
               <widget class="QSpinBox" name="gridHeightSpinBox"/>
@@ -234,7 +238,11 @@
               </widget>
              </item>
              <item row="6" column="2">
-              <widget class="QLineEdit" name="mapboxApiKeyLineEdit"/>
+              <widget class="QLineEdit" name="mapboxApiKeyLineEdit">
+               <property name="echoMode">
+                <enum>QLineEdit::Password</enum>
+               </property>
+              </widget>
              </item>
              <item row="6" column="4">
               <widget class="QToolButton" name="resetMapboxApiKeyButton">
@@ -347,8 +355,8 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>481</width>
-                   <height>382</height>
+                   <width>66</width>
+                   <height>18</height>
                   </rect>
                  </property>
                  <layout class="QGridLayout" name="gridLayout_3">
