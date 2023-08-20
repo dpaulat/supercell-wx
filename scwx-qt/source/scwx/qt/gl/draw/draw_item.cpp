@@ -1,4 +1,5 @@
 #include <scwx/qt/gl/draw/draw_item.hpp>
+#include <scwx/qt/util/maplibre.hpp>
 
 #include <string>
 
@@ -82,23 +83,6 @@ void DrawItem::UseRotationProjection(
       uMVPMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection));
 }
 
-// TODO: Refactor to utility class
-static glm::vec2
-LatLongToScreenCoordinate(const QMapLibreGL::Coordinate& coordinate)
-{
-   static constexpr double RAD2DEG_D = 180.0 / M_PI;
-
-   double latitude = std::clamp(
-      coordinate.first, -mbgl::util::LATITUDE_MAX, mbgl::util::LATITUDE_MAX);
-   glm::vec2 screen {
-      mbgl::util::LONGITUDE_MAX + coordinate.second,
-      -(mbgl::util::LONGITUDE_MAX -
-        RAD2DEG_D *
-           std::log(std::tan(M_PI / 4.0 +
-                             latitude * M_PI / mbgl::util::DEGREES_MAX)))};
-   return screen;
-}
-
 void DrawItem::UseMapProjection(
    const QMapLibreGL::CustomLayerRenderParameters& params,
    GLint                                           uMVPMatrixLocation,
@@ -120,7 +104,7 @@ void DrawItem::UseMapProjection(
 
    gl.glUniform2fv(uMapScreenCoordLocation,
                    1,
-                   glm::value_ptr(LatLongToScreenCoordinate(
+                   glm::value_ptr(util::maplibre::LatLongToScreenCoordinate(
                       {params.latitude, params.longitude})));
 
    gl.glUniformMatrix4fv(
