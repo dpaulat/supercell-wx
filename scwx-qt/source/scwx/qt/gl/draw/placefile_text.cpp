@@ -205,6 +205,8 @@ void PlacefileText::Impl::RenderText(
 
 void PlacefileText::Deinitialize()
 {
+   std::unique_lock lock {p->listMutex_};
+
    // Clear the text list
    p->textList_.clear();
 }

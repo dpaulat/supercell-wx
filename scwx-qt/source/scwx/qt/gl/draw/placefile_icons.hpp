@@ -34,6 +34,11 @@ public:
    void Deinitialize() override;
 
    /**
+    * Resets and prepares the draw item for adding a new set of icons.
+    */
+   void StartIcons();
+
+   /**
     * Configures the textures for drawing the placefile icons.
     *
     * @param [in] iconFiles A list of icon files
@@ -52,9 +57,9 @@ public:
    void AddIcon(const std::shared_ptr<gr::Placefile::IconDrawItem>& di);
 
    /**
-    * Resets the list of icons in preparation for rendering a new frame.
+    * Finalizes the draw item after adding new icons.
     */
-   void Reset();
+   void FinishIcons();
 
 private:
    class Impl;

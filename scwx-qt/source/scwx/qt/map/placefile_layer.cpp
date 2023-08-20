@@ -44,7 +44,6 @@ public:
 
    std::string placefileName_;
    std::mutex  dataMutex_ {};
-   bool        dirty_ {true};
 
    std::shared_ptr<gl::draw::PlacefileIcons>    placefileIcons_;
    std::shared_ptr<gl::draw::PlacefilePolygons> placefilePolygons_;
@@ -89,9 +88,9 @@ std::string PlacefileLayer::placefile_name() const
 void PlacefileLayer::set_placefile_name(const std::string& placefileName)
 {
    p->placefileName_ = placefileName;
-   p->dirty_         = true;
-
    p->placefileText_->set_placefile_name(placefileName);
+
+   ReloadData();
 }
 
 void PlacefileLayer::Initialize()
@@ -122,29 +121,6 @@ void PlacefileLayer::Render(
       p->placefileIcons_->set_thresholded(thresholded);
       p->placefilePolygons_->set_thresholded(thresholded);
       p->placefileText_->set_thresholded(thresholded);
-
-      if (p->dirty_)
-      {
-         // Reset Placefile Icons
-         p->placefileIcons_->Reset();
-         p->placefileIcons_->SetIconFiles(placefile->icon_files(),
-                                          placefile->name());
-
-         for (auto& drawItem : placefile->GetDrawItems())
-         {
-            switch (drawItem->itemType_)
-            {
-            case gr::Placefile::ItemType::Icon:
-               p->placefileIcons_->AddIcon(
-                  std::static_pointer_cast<gr::Placefile::IconDrawItem>(
-                     drawItem));
-               break;
-
-            default:
-               break;
-            }
-         }
-      }
    }
 
    DrawLayer::Render(params);
@@ -161,9 +137,6 @@ void PlacefileLayer::Deinitialize()
 
 void PlacefileLayer::ReloadData()
 {
-   // TODO: No longer needed after moving Icon Render items here
-   p->dirty_ = true;
-
    boost::asio::post(
       p->threadPool_,
       [this]()
@@ -182,8 +155,12 @@ void PlacefileLayer::ReloadData()
          }
 
          // Start draw items
+         p->placefileIcons_->StartIcons();
          p->placefilePolygons_->StartPolygons();
          p->placefileText_->StartText();
+
+         p->placefileIcons_->SetIconFiles(placefile->icon_files(),
+                                          placefile->name());
 
          for (auto& drawItem : placefile->GetDrawItems())
          {
@@ -196,7 +173,9 @@ void PlacefileLayer::ReloadData()
                break;
 
             case gr::Placefile::ItemType::Icon:
-               // TODO
+               p->placefileIcons_->AddIcon(
+                  std::static_pointer_cast<gr::Placefile::IconDrawItem>(
+                     drawItem));
                break;
 
             case gr::Placefile::ItemType::Polygon:
@@ -211,6 +190,7 @@ void PlacefileLayer::ReloadData()
          }
 
          // Finish draw items
+         p->placefileIcons_->FinishIcons();
          p->placefilePolygons_->FinishPolygons();
          p->placefileText_->FinishText();
 

@@ -234,6 +234,8 @@ void PlacefilePolygons::Deinitialize()
    gl.glDeleteVertexArrays(1, &p->vao_);
    gl.glDeleteBuffers(2, p->vbo_.data());
 
+   std::unique_lock lock {p->bufferMutex_};
+
    // Clear the current buffers
    p->currentBuffer_.clear();
    p->currentThresholdBuffer_.clear();
