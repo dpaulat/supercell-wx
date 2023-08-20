@@ -233,11 +233,15 @@ void PlacefilePolygons::Deinitialize()
 
    gl.glDeleteVertexArrays(1, &p->vao_);
    gl.glDeleteBuffers(2, p->vbo_.data());
+
+   // Clear the current buffers
+   p->currentBuffer_.clear();
+   p->currentThresholdBuffer_.clear();
 }
 
 void PlacefilePolygons::StartPolygons()
 {
-   // Clear the new buffer
+   // Clear the new buffers
    p->newBuffer_.clear();
    p->newThresholdBuffer_.clear();
 }
@@ -258,6 +262,10 @@ void PlacefilePolygons::FinishPolygons()
    // Swap buffers
    p->currentBuffer_.swap(p->newBuffer_);
    p->currentThresholdBuffer_.swap(p->newThresholdBuffer_);
+
+   // Clear the new buffers
+   p->newBuffer_.clear();
+   p->newThresholdBuffer_.clear();
 
    // Mark the draw item dirty
    p->dirty_ = true;

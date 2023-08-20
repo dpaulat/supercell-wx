@@ -59,6 +59,8 @@ PlacefileLayer::PlacefileLayer(std::shared_ptr<MapContext> context,
    AddDrawItem(p->placefileIcons_);
    AddDrawItem(p->placefilePolygons_);
    AddDrawItem(p->placefileText_);
+
+   ReloadData();
 }
 
 PlacefileLayer::~PlacefileLayer() = default;
@@ -128,19 +130,10 @@ void PlacefileLayer::Render(
          p->placefileIcons_->SetIconFiles(placefile->icon_files(),
                                           placefile->name());
 
-         // Reset Placefile Text
-         p->placefileText_->Reset();
-
          for (auto& drawItem : placefile->GetDrawItems())
          {
             switch (drawItem->itemType_)
             {
-            case gr::Placefile::ItemType::Text:
-               p->placefileText_->AddText(
-                  std::static_pointer_cast<gr::Placefile::TextDrawItem>(
-                     drawItem));
-               break;
-
             case gr::Placefile::ItemType::Icon:
                p->placefileIcons_->AddIcon(
                   std::static_pointer_cast<gr::Placefile::IconDrawItem>(
@@ -168,7 +161,7 @@ void PlacefileLayer::Deinitialize()
 
 void PlacefileLayer::ReloadData()
 {
-   // TODO: No longer needed after moving Icon and Text Render items here
+   // TODO: No longer needed after moving Icon Render items here
    p->dirty_ = true;
 
    boost::asio::post(
@@ -188,15 +181,18 @@ void PlacefileLayer::ReloadData()
             return;
          }
 
-         // Reset Placefile Polygons
+         // Start draw items
          p->placefilePolygons_->StartPolygons();
+         p->placefileText_->StartText();
 
          for (auto& drawItem : placefile->GetDrawItems())
          {
             switch (drawItem->itemType_)
             {
             case gr::Placefile::ItemType::Text:
-               // TODO
+               p->placefileText_->AddText(
+                  std::static_pointer_cast<gr::Placefile::TextDrawItem>(
+                     drawItem));
                break;
 
             case gr::Placefile::ItemType::Icon:
@@ -214,8 +210,11 @@ void PlacefileLayer::ReloadData()
             }
          }
 
-         // Finish Placefile Polygons
+         // Finish draw items
          p->placefilePolygons_->FinishPolygons();
+         p->placefileText_->FinishText();
+
+         Q_EMIT DataReloaded();
       });
 }
 

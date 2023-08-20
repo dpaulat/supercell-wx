@@ -815,6 +815,12 @@ void MapWidgetImpl::UpdatePlacefileLayers()
          placefileLayers_.push_back(placefileLayer);
          AddLayer(
             GetPlacefileLayerName(placefileName), placefileLayer, "colorTable");
+
+         // When the layer updates, trigger a map widget update
+         connect(placefileLayer.get(),
+                 &PlacefileLayer::DataReloaded,
+                 widget_,
+                 [this]() { widget_->update(); });
       }
    }
 }

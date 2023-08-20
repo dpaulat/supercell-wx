@@ -13,6 +13,8 @@ namespace map
 
 class PlacefileLayer : public DrawLayer
 {
+   Q_OBJECT
+
 public:
    explicit PlacefileLayer(std::shared_ptr<MapContext> context,
                            const std::string&          placefileName);
@@ -27,6 +29,9 @@ public:
    void Deinitialize() override final;
 
    void ReloadData();
+
+signals:
+   void DataReloaded();
 
 private:
    class Impl;

@@ -34,6 +34,11 @@ public:
    void Deinitialize() override;
 
    /**
+    * Resets and prepares the draw item for adding a new set of text.
+    */
+   void StartText();
+
+   /**
     * Adds placefile text to the internal draw list.
     *
     * @param [in] di Placefile icon
@@ -41,9 +46,9 @@ public:
    void AddText(const std::shared_ptr<gr::Placefile::TextDrawItem>& di);
 
    /**
-    * Resets the list of text in preparation for rendering a new frame.
+    * Finalizes the draw item after adding new text.
     */
-   void Reset();
+   void FinishText();
 
 private:
    class Impl;

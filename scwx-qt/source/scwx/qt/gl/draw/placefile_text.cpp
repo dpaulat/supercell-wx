@@ -45,7 +45,6 @@ public:
 
    std::string placefileName_;
 
-   bool dirty_ {false};
    bool thresholded_ {false};
 
    std::uint32_t textId_ {};
@@ -59,9 +58,9 @@ public:
 
    units::length::nautical_miles<double> mapDistance_ {};
 
+   std::mutex listMutex_ {};
    std::vector<std::shared_ptr<const gr::Placefile::TextDrawItem>> textList_ {};
-
-   void Update();
+   std::vector<std::shared_ptr<const gr::Placefile::TextDrawItem>> newList_ {};
 };
 
 PlacefileText::PlacefileText(std::shared_ptr<GlContext> context,
@@ -84,18 +83,15 @@ void PlacefileText::set_thresholded(bool thresholded)
    p->thresholded_ = thresholded;
 }
 
-void PlacefileText::Initialize()
-{
-   p->dirty_ = true;
-}
+void PlacefileText::Initialize() {}
 
 void PlacefileText::Render(
    const QMapLibreGL::CustomLayerRenderParameters& params)
 {
+   std::unique_lock lock {p->listMutex_};
+
    if (!p->textList_.empty())
    {
-      p->Update();
-
       // Reset text ID per frame
       p->textId_ = 0;
 
@@ -209,7 +205,14 @@ void PlacefileText::Impl::RenderText(
 
 void PlacefileText::Deinitialize()
 {
-   Reset();
+   // Clear the text list
+   p->textList_.clear();
+}
+
+void PlacefileText::StartText()
+{
+   // Clear the new list
+   p->newList_.clear();
 }
 
 void PlacefileText::AddText(
@@ -217,21 +220,19 @@ void PlacefileText::AddText(
 {
    if (di != nullptr)
    {
-      p->textList_.emplace_back(di);
-      p->dirty_ = true;
+      p->newList_.emplace_back(di);
    }
 }
 
-void PlacefileText::Reset()
+void PlacefileText::FinishText()
 {
-   // Clear the icon list, and mark the draw item dirty
-   p->textList_.clear();
-   p->dirty_ = true;
-}
+   std::unique_lock lock {p->listMutex_};
 
-void PlacefileText::Impl::Update()
-{
-   dirty_ = false;
+   // Swap text lists
+   p->textList_.swap(p->newList_);
+
+   // Clear the new list
+   p->newList_.clear();
 }
 
 } // namespace draw
