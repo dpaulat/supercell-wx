@@ -24,6 +24,8 @@ public:
    std::shared_ptr<MapContext>                      context_;
    std::vector<std::shared_ptr<gl::draw::DrawItem>> drawList_;
    GLuint                                           textureAtlas_;
+
+   std::uint64_t textureAtlasBuildCount_ {};
 };
 
 DrawLayer::DrawLayer(std::shared_ptr<MapContext> context) :
@@ -47,13 +49,21 @@ void DrawLayer::Render(const QMapLibreGL::CustomLayerRenderParameters& params)
    gl::OpenGLFunctions& gl = p->context_->gl();
    p->textureAtlas_        = p->context_->GetTextureAtlas();
 
+   // Determine if the texture atlas changed since last render
+   std::uint64_t newTextureAtlasBuildCount =
+      p->context_->texture_buffer_count();
+   bool textureAtlasChanged =
+      newTextureAtlasBuildCount != p->textureAtlasBuildCount_;
+
    gl.glActiveTexture(GL_TEXTURE0);
    gl.glBindTexture(GL_TEXTURE_2D, p->textureAtlas_);
 
    for (auto& item : p->drawList_)
    {
-      item->Render(params);
+      item->Render(params, textureAtlasChanged);
    }
+
+   p->textureAtlasBuildCount_ = newTextureAtlasBuildCount;
 }
 
 void DrawLayer::Deinitialize()

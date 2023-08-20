@@ -41,6 +41,17 @@ DrawItem::~DrawItem() = default;
 DrawItem::DrawItem(DrawItem&&) noexcept            = default;
 DrawItem& DrawItem::operator=(DrawItem&&) noexcept = default;
 
+void DrawItem::Render(
+   const QMapLibreGL::CustomLayerRenderParameters& /* params */)
+{
+}
+
+void DrawItem::Render(const QMapLibreGL::CustomLayerRenderParameters& params,
+                      bool /* textureAtlasChanged */)
+{
+   Render(params);
+}
+
 void DrawItem::UseDefaultProjection(
    const QMapLibreGL::CustomLayerRenderParameters& params,
    GLint                                           uMVPMatrixLocation)

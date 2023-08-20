@@ -28,9 +28,10 @@ public:
    DrawItem& operator=(DrawItem&&) noexcept;
 
    virtual void Initialize() = 0;
-   virtual void
-   Render(const QMapLibreGL::CustomLayerRenderParameters& params) = 0;
-   virtual void Deinitialize()                                    = 0;
+   virtual void Render(const QMapLibreGL::CustomLayerRenderParameters& params);
+   virtual void Render(const QMapLibreGL::CustomLayerRenderParameters& params,
+                       bool textureAtlasChanged);
+   virtual void Deinitialize() = 0;
 
 protected:
    void

@@ -52,6 +52,11 @@ gl::OpenGLFunctions& GlContext::gl()
    return p->gl_;
 }
 
+std::uint64_t GlContext::texture_buffer_count() const
+{
+   return p->textureBufferCount_;
+}
+
 std::shared_ptr<gl::ShaderProgram>
 GlContext::GetShaderProgram(const std::string& vertexPath,
                             const std::string& fragmentPath)

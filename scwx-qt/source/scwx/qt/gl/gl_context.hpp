@@ -24,6 +24,8 @@ public:
 
    gl::OpenGLFunctions& gl();
 
+   std::uint64_t texture_buffer_count() const;
+
    std::shared_ptr<gl::ShaderProgram>
    GetShaderProgram(const std::string& vertexPath,
                     const std::string& fragmentPath);

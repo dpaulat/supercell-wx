@@ -37,8 +37,6 @@ struct PlacefileIconInfo
       auto baseUrl = QUrl::fromUserInput(QString::fromStdString(baseUrlString));
       auto relativeUrl = QUrl(QString::fromStdString(iconFile->filename_));
       resolvedUrl_     = baseUrl.resolved(relativeUrl).toString().toStdString();
-
-      UpdateTextureInfo();
    }
 
    void UpdateTextureInfo();
@@ -78,10 +76,9 @@ public:
 
    std::mutex iconMutex_;
 
-   boost::unordered_flat_map<std::size_t, const PlacefileIconInfo>
+   boost::unordered_flat_map<std::size_t, PlacefileIconInfo>
       currentIconFiles_ {};
-   boost::unordered_flat_map<std::size_t, const PlacefileIconInfo>
-      newIconFiles_ {};
+   boost::unordered_flat_map<std::size_t, PlacefileIconInfo> newIconFiles_ {};
 
    std::vector<std::shared_ptr<const gr::Placefile::IconDrawItem>>
       currentIconList_ {};
@@ -103,7 +100,7 @@ public:
    GLsizei numVertices_;
 
    void UpdateBuffers();
-   void Update();
+   void Update(bool textureAtlasChanged);
 };
 
 PlacefileIcons::PlacefileIcons(std::shared_ptr<GlContext> context) :
@@ -203,7 +200,8 @@ void PlacefileIcons::Initialize()
 }
 
 void PlacefileIcons::Render(
-   const QMapLibreGL::CustomLayerRenderParameters& params)
+   const QMapLibreGL::CustomLayerRenderParameters& params,
+   bool                                            textureAtlasChanged)
 {
    std::unique_lock lock {p->iconMutex_};
 
@@ -213,7 +211,7 @@ void PlacefileIcons::Render(
 
       gl.glBindVertexArray(p->vao_);
 
-      p->Update();
+      p->Update(textureAtlasChanged);
       p->shaderProgram_->Use();
       UseRotationProjection(params, p->uMVPMatrixLocation_);
       UseMapProjection(
@@ -329,8 +327,6 @@ void PlacefileIcons::FinishIcons()
    p->newIconList_.clear();
    p->newIconFiles_.clear();
 
-   p->UpdateBuffers();
-
    // Mark the draw item dirty
    p->dirty_ = true;
 }
@@ -434,8 +430,21 @@ void PlacefileIcons::Impl::UpdateBuffers()
    dirty_ = true;
 }
 
-void PlacefileIcons::Impl::Update()
+void PlacefileIcons::Impl::Update(bool textureAtlasChanged)
 {
+   // If the texture atlas has changed
+   if (textureAtlasChanged)
+   {
+      // Update texture coordinates
+      for (auto& iconFile : currentIconFiles_)
+      {
+         iconFile.second.UpdateTextureInfo();
+      }
+
+      // Update OpenGL buffer data
+      UpdateBuffers();
+   }
+
    if (dirty_)
    {
       gl::OpenGLFunctions& gl = context_->gl();
