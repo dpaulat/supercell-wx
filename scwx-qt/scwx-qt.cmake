@@ -58,12 +58,14 @@ set(SRC_GL source/scwx/qt/gl/gl_context.cpp
 set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
                 source/scwx/qt/gl/draw/geo_line.hpp
                 source/scwx/qt/gl/draw/placefile_icons.hpp
+                source/scwx/qt/gl/draw/placefile_lines.hpp
                 source/scwx/qt/gl/draw/placefile_polygons.hpp
                 source/scwx/qt/gl/draw/placefile_text.hpp
                 source/scwx/qt/gl/draw/rectangle.hpp)
 set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
                 source/scwx/qt/gl/draw/geo_line.cpp
                 source/scwx/qt/gl/draw/placefile_icons.cpp
+                source/scwx/qt/gl/draw/placefile_lines.cpp
                 source/scwx/qt/gl/draw/placefile_polygons.cpp
                 source/scwx/qt/gl/draw/placefile_text.cpp
                 source/scwx/qt/gl/draw/rectangle.cpp)

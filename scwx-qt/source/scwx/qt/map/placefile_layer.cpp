@@ -1,5 +1,6 @@
 #include <scwx/qt/map/placefile_layer.hpp>
 #include <scwx/qt/gl/draw/placefile_icons.hpp>
+#include <scwx/qt/gl/draw/placefile_lines.hpp>
 #include <scwx/qt/gl/draw/placefile_polygons.hpp>
 #include <scwx/qt/gl/draw/placefile_text.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
@@ -27,6 +28,7 @@ public:
        self_ {self},
        placefileName_ {placefileName},
        placefileIcons_ {std::make_shared<gl::draw::PlacefileIcons>(context)},
+       placefileLines_ {std::make_shared<gl::draw::PlacefileLines>(context)},
        placefilePolygons_ {
           std::make_shared<gl::draw::PlacefilePolygons>(context)},
        placefileText_ {
@@ -46,6 +48,7 @@ public:
    std::mutex  dataMutex_ {};
 
    std::shared_ptr<gl::draw::PlacefileIcons>    placefileIcons_;
+   std::shared_ptr<gl::draw::PlacefileLines>    placefileLines_;
    std::shared_ptr<gl::draw::PlacefilePolygons> placefilePolygons_;
    std::shared_ptr<gl::draw::PlacefileText>     placefileText_;
 };
@@ -56,6 +59,7 @@ PlacefileLayer::PlacefileLayer(std::shared_ptr<MapContext> context,
     p(std::make_unique<PlacefileLayer::Impl>(this, context, placefileName))
 {
    AddDrawItem(p->placefileIcons_);
+   AddDrawItem(p->placefileLines_);
    AddDrawItem(p->placefilePolygons_);
    AddDrawItem(p->placefileText_);
 
@@ -119,6 +123,7 @@ void PlacefileLayer::Render(
       bool thresholded =
          placefileManager->placefile_thresholded(placefile->name());
       p->placefileIcons_->set_thresholded(thresholded);
+      p->placefileLines_->set_thresholded(thresholded);
       p->placefilePolygons_->set_thresholded(thresholded);
       p->placefileText_->set_thresholded(thresholded);
    }
@@ -156,6 +161,7 @@ void PlacefileLayer::ReloadData()
 
          // Start draw items
          p->placefileIcons_->StartIcons();
+         p->placefileLines_->StartLines();
          p->placefilePolygons_->StartPolygons();
          p->placefileText_->StartText();
 
@@ -178,6 +184,12 @@ void PlacefileLayer::ReloadData()
                      drawItem));
                break;
 
+            case gr::Placefile::ItemType::Line:
+               p->placefileLines_->AddLine(
+                  std::static_pointer_cast<gr::Placefile::LineDrawItem>(
+                     drawItem));
+               break;
+
             case gr::Placefile::ItemType::Polygon:
                p->placefilePolygons_->AddPolygon(
                   std::static_pointer_cast<gr::Placefile::PolygonDrawItem>(
@@ -191,6 +203,7 @@ void PlacefileLayer::ReloadData()
 
          // Finish draw items
          p->placefileIcons_->FinishIcons();
+         p->placefileLines_->FinishLines();
          p->placefilePolygons_->FinishPolygons();
          p->placefileText_->FinishText();
 

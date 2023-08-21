@@ -1,6 +1,7 @@
 #pragma once
 
 #include <GeographicLib/Geodesic.hpp>
+#include <units/angle.h>
 #include <units/length.h>
 
 namespace scwx
@@ -18,6 +19,19 @@ namespace GeographicLib
  * @return WGS84 ellipsoid geodesic
  */
 const ::GeographicLib::Geodesic& DefaultGeodesic();
+
+/**
+ * Get the angle between two points.
+ *
+ * @param [in] lat1 latitude of point 1 (degrees)
+ * @param [in] lon1 longitude of point 1 (degrees)
+ * @param [in] lat2 latitude of point 2 (degrees)
+ * @param [in] lon2 longitude of point 2 (degrees)
+ *
+ * @return angle between point 1 and point 2
+ */
+units::angle::degrees<double>
+GetAngle(double lat1, double lon1, double lat2, double lon2);
 
 /**
  * Get the distance between two points.
