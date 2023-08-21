@@ -433,7 +433,7 @@ void PlacefileIcons::Impl::UpdateBuffers()
 void PlacefileIcons::Impl::Update(bool textureAtlasChanged)
 {
    // If the texture atlas has changed
-   if (textureAtlasChanged)
+   if (dirty_ || textureAtlasChanged)
    {
       // Update texture coordinates
       for (auto& iconFile : currentIconFiles_)
@@ -443,10 +443,7 @@ void PlacefileIcons::Impl::Update(bool textureAtlasChanged)
 
       // Update OpenGL buffer data
       UpdateBuffers();
-   }
 
-   if (dirty_)
-   {
       gl::OpenGLFunctions& gl = context_->gl();
 
       // Buffer vertex data
