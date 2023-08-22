@@ -28,8 +28,7 @@ public:
    void set_thresholded(bool thresholded);
 
    void Initialize() override;
-   void Render(const QMapLibreGL::CustomLayerRenderParameters& params,
-               bool textureAtlasChanged) override;
+   void Render(const QMapLibreGL::CustomLayerRenderParameters& params) override;
    void Deinitialize() override;
 
    /**

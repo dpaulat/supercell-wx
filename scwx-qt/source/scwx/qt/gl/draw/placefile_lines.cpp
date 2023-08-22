@@ -1,11 +1,7 @@
 #include <scwx/qt/gl/draw/placefile_lines.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/qt/util/maplibre.hpp>
-#include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/util/logger.hpp>
-
-#include <QUrl>
-#include <boost/unordered/unordered_flat_map.hpp>
 
 namespace scwx
 {
@@ -23,11 +19,11 @@ static constexpr std::size_t kNumRectangles        = 1;
 static constexpr std::size_t kNumTriangles         = kNumRectangles * 2;
 static constexpr std::size_t kVerticesPerTriangle  = 3;
 static constexpr std::size_t kVerticesPerRectangle = kVerticesPerTriangle * 2;
-static constexpr std::size_t kPointsPerVertex      = 11;
+static constexpr std::size_t kPointsPerVertex      = 9;
 static constexpr std::size_t kBufferLength =
    kNumTriangles * kVerticesPerTriangle * kPointsPerVertex;
 
-static const std::string kTextureName_ = "lines/default-1x7";
+static const boost::gil::rgba8_pixel_t kBlack_ {0, 0, 0, 255};
 
 class PlacefileLines::Impl
 {
@@ -47,23 +43,29 @@ public:
 
    ~Impl() {}
 
+   void BufferLine(const gr::Placefile::LineDrawItem::Element& e1,
+                   const gr::Placefile::LineDrawItem::Element& e2,
+                   const float                                 width,
+                   const float                                 angle,
+                   const boost::gil::rgba8_pixel_t             color,
+                   const GLint                                 threshold);
+   void UpdateBuffers(std::shared_ptr<const gr::Placefile::LineDrawItem>);
+   void Update();
+
    std::shared_ptr<GlContext> context_;
 
    bool dirty_ {false};
    bool thresholded_ {false};
 
-   std::mutex lineMutex_;
-
-   std::vector<std::shared_ptr<const gr::Placefile::LineDrawItem>>
-      currentLineList_ {};
-   std::vector<std::shared_ptr<const gr::Placefile::LineDrawItem>>
-      newLineList_ {};
+   std::mutex lineMutex_ {};
 
    std::size_t currentNumLines_ {};
    std::size_t newNumLines_ {};
 
-   std::vector<float> lineBuffer_ {};
-   std::vector<GLint> thresholdBuffer_ {};
+   std::vector<float> currentLinesBuffer_ {};
+   std::vector<GLint> currentThresholdBuffer_ {};
+   std::vector<float> newLinesBuffer_ {};
+   std::vector<GLint> newThresholdBuffer_ {};
 
    std::shared_ptr<ShaderProgram> shaderProgram_;
    GLint                          uMVPMatrixLocation_;
@@ -75,9 +77,6 @@ public:
    std::array<GLuint, 2> vbo_;
 
    GLsizei numVertices_;
-
-   void UpdateBuffers();
-   void Update(bool textureAtlasChanged);
 };
 
 PlacefileLines::PlacefileLines(std::shared_ptr<GlContext> context) :
@@ -135,22 +134,13 @@ void PlacefileLines::Initialize()
                             reinterpret_cast<void*>(2 * sizeof(float)));
    gl.glEnableVertexAttribArray(1);
 
-   // aTexCoord
-   gl.glVertexAttribPointer(2,
-                            2,
-                            GL_FLOAT,
-                            GL_FALSE,
-                            kPointsPerVertex * sizeof(float),
-                            reinterpret_cast<void*>(4 * sizeof(float)));
-   gl.glEnableVertexAttribArray(2);
-
    // aModulate
    gl.glVertexAttribPointer(3,
                             4,
                             GL_FLOAT,
                             GL_FALSE,
                             kPointsPerVertex * sizeof(float),
-                            reinterpret_cast<void*>(6 * sizeof(float)));
+                            reinterpret_cast<void*>(4 * sizeof(float)));
    gl.glEnableVertexAttribArray(3);
 
    // aAngle
@@ -159,7 +149,7 @@ void PlacefileLines::Initialize()
                             GL_FLOAT,
                             GL_FALSE,
                             kPointsPerVertex * sizeof(float),
-                            reinterpret_cast<void*>(10 * sizeof(float)));
+                            reinterpret_cast<void*>(8 * sizeof(float)));
    gl.glEnableVertexAttribArray(4);
 
    gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
@@ -171,25 +161,23 @@ void PlacefileLines::Initialize()
                              GL_INT,
                              0,
                              static_cast<void*>(0));
-   gl.glVertexAttribDivisor(5, 2); // One value per rectangle
    gl.glEnableVertexAttribArray(5);
 
    p->dirty_ = true;
 }
 
 void PlacefileLines::Render(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
-   bool                                            textureAtlasChanged)
+   const QMapLibreGL::CustomLayerRenderParameters& params)
 {
    std::unique_lock lock {p->lineMutex_};
 
-   if (!p->currentLineList_.empty())
+   if (p->currentNumLines_ > 0)
    {
       gl::OpenGLFunctions& gl = p->context_->gl();
 
       gl.glBindVertexArray(p->vao_);
 
-      p->Update(textureAtlasChanged);
+      p->Update();
       p->shaderProgram_->Use();
       UseRotationProjection(params, p->uMVPMatrixLocation_);
       UseMapProjection(
@@ -208,10 +196,6 @@ void PlacefileLines::Render(
          gl.glUniform1f(p->uMapDistanceLocation_, 0.0f);
       }
 
-      // Interpolate texture coordinates
-      gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
       // Draw icons
       gl.glDrawArrays(GL_TRIANGLES, 0, p->numVertices_);
    }
@@ -226,15 +210,15 @@ void PlacefileLines::Deinitialize()
 
    std::unique_lock lock {p->lineMutex_};
 
-   p->currentLineList_.clear();
-   p->lineBuffer_.clear();
-   p->thresholdBuffer_.clear();
+   p->currentLinesBuffer_.clear();
+   p->currentThresholdBuffer_.clear();
 }
 
 void PlacefileLines::StartLines()
 {
-   // Clear the new buffer
-   p->newLineList_.clear();
+   // Clear the new buffers
+   p->newLinesBuffer_.clear();
+   p->newThresholdBuffer_.clear();
 
    p->newNumLines_ = 0u;
 }
@@ -242,13 +226,10 @@ void PlacefileLines::StartLines()
 void PlacefileLines::AddLine(
    const std::shared_ptr<gr::Placefile::LineDrawItem>& di)
 {
-   if (di != nullptr)
+   if (di != nullptr && !di->elements_.empty())
    {
-      p->newLineList_.emplace_back(di);
-      if (!di->elements_.empty())
-      {
-         p->newNumLines_ += di->elements_.size() - 1;
-      }
+      p->UpdateBuffers(di);
+      p->newNumLines_ += (di->elements_.size() - 1) * 2;
    }
 }
 
@@ -257,124 +238,141 @@ void PlacefileLines::FinishLines()
    std::unique_lock lock {p->lineMutex_};
 
    // Swap buffers
-   p->currentLineList_.swap(p->newLineList_);
+   p->currentLinesBuffer_.swap(p->newLinesBuffer_);
+   p->currentThresholdBuffer_.swap(p->newThresholdBuffer_);
 
    // Clear the new buffers
-   p->newLineList_.clear();
+   p->newLinesBuffer_.clear();
+   p->newThresholdBuffer_.clear();
 
    // Update the number of lines
    p->currentNumLines_ = p->newNumLines_;
+   p->numVertices_ =
+      static_cast<GLsizei>(p->currentNumLines_ * kVerticesPerRectangle);
 
    // Mark the draw item dirty
    p->dirty_ = true;
 }
 
-void PlacefileLines::Impl::UpdateBuffers()
+void PlacefileLines::Impl::UpdateBuffers(
+   std::shared_ptr<const gr::Placefile::LineDrawItem> di)
 {
-   auto texture =
-      util::TextureAtlas::Instance().GetTextureAttributes(kTextureName_);
+   // Threshold value
+   units::length::nautical_miles<double> threshold = di->threshold_;
+   GLint thresholdValue = static_cast<GLint>(std::round(threshold.value()));
 
-   // Texture coordinates (rotated)
-   const float ls = texture.tTop_;
-   const float rs = texture.tBottom_;
-   const float tt = texture.sLeft_;
-   const float bt = texture.sRight_;
+   std::vector<float> angles {};
+   angles.reserve(di->elements_.size() - 1);
 
-   lineBuffer_.clear();
-   lineBuffer_.reserve(currentNumLines_ * kBufferLength);
-   thresholdBuffer_.clear();
-   thresholdBuffer_.reserve(currentNumLines_);
-   numVertices_ = 0;
-
-   for (auto& di : currentLineList_)
+   // For each element pair inside a Line statement, render a black line
+   for (std::size_t i = 0; i < di->elements_.size() - 1; ++i)
    {
-      // Threshold value
-      units::length::nautical_miles<double> threshold = di->threshold_;
-      GLint thresholdValue = static_cast<GLint>(std::round(threshold.value()));
+      // Latitude and longitude coordinates in degrees
+      const float lat1 = static_cast<float>(di->elements_[i].latitude_);
+      const float lon1 = static_cast<float>(di->elements_[i].longitude_);
+      const float lat2 = static_cast<float>(di->elements_[i + 1].latitude_);
+      const float lon2 = static_cast<float>(di->elements_[i + 1].longitude_);
 
-      // TODO: Angle in degrees
-      // const float a = 0.0f;
+      // Calculate angle
+      const units::angle::degrees<double> angle =
+         util::GeographicLib::GetAngle(lat1, lon1, lat2, lon2);
+      float angleValue = angle.value();
+      angles.push_back(angleValue);
 
-      // Line width / half width
-      const float lw = static_cast<float>(di->width_);
-      const float hw = lw * 0.5f;
-
-      // For each element pair inside a Line statement
-      for (std::size_t i = 0; i < di->elements_.size() - 1; ++i)
-      {
-         // Latitude and longitude coordinates in degrees
-         const float lat1 = static_cast<float>(di->elements_[i].latitude_);
-         const float lon1 = static_cast<float>(di->elements_[i].longitude_);
-         const float lat2 = static_cast<float>(di->elements_[i + 1].latitude_);
-         const float lon2 = static_cast<float>(di->elements_[i + 1].longitude_);
-
-         // TODO: Base X/Y offsets in pixels
-         // const float x1 = static_cast<float>(di->elements_[i].x_);
-         // const float y1 = static_cast<float>(di->elements_[i].y_);
-         // const float x2 = static_cast<float>(di->elements_[i + 1].x_);
-         // const float y2 = static_cast<float>(di->elements_[i + 1].y_);
-
-         // TODO: Refactor this to placefile update time instead of buffer time
-         const units::angle::degrees<double> angle =
-            util::GeographicLib::GetAngle(lat1, lon1, lat2, lon2);
-         const float a = static_cast<float>(angle.value());
-
-         // Final X/Y offsets in pixels
-         const float lx = -hw;
-         const float rx = +hw;
-         const float ty = +hw;
-         const float by = -hw;
-
-         // Modulate color
-         const float mc0 = di->color_[0] / 255.0f;
-         const float mc1 = di->color_[1] / 255.0f;
-         const float mc2 = di->color_[2] / 255.0f;
-         const float mc3 = di->color_[3] / 255.0f;
-
-         lineBuffer_.insert(
-            lineBuffer_.end(),
-            {
-               // Icon
-               lat1, lon1, lx, by, ls, bt, mc0, mc1, mc2, mc3, a, // BL
-               lat2, lon2, lx, ty, ls, tt, mc0, mc1, mc2, mc3, a, // TL
-               lat1, lon1, rx, by, rs, bt, mc0, mc1, mc2, mc3, a, // BR
-               lat1, lon1, rx, by, rs, bt, mc0, mc1, mc2, mc3, a, // BR
-               lat2, lon2, rx, ty, rs, tt, mc0, mc1, mc2, mc3, a, // TR
-               lat2, lon2, lx, ty, ls, tt, mc0, mc1, mc2, mc3, a  // TL
-            });
-         thresholdBuffer_.push_back(thresholdValue);
-      }
+      BufferLine(di->elements_[i],
+                 di->elements_[i + 1],
+                 di->width_ + 2,
+                 static_cast<float>(angleValue),
+                 kBlack_,
+                 thresholdValue);
    }
 
-   dirty_ = true;
+   // For each element pair inside a Line statement, render a colored line
+   for (std::size_t i = 0; i < di->elements_.size() - 1; ++i)
+   {
+      float angleValue = angles[i];
+
+      BufferLine(di->elements_[i],
+                 di->elements_[i + 1],
+                 di->width_,
+                 static_cast<float>(angleValue),
+                 di->color_,
+                 thresholdValue);
+   }
 }
 
-void PlacefileLines::Impl::Update(bool textureAtlasChanged)
+void PlacefileLines::Impl::BufferLine(
+   const gr::Placefile::LineDrawItem::Element& e1,
+   const gr::Placefile::LineDrawItem::Element& e2,
+   const float                                 width,
+   const float                                 angle,
+   const boost::gil::rgba8_pixel_t             color,
+   const GLint                                 threshold)
 {
-   // If the texture atlas has changed
-   if (dirty_ || textureAtlasChanged)
-   {
-      // Update OpenGL buffer data
-      UpdateBuffers();
+   // Latitude and longitude coordinates in degrees
+   const float lat1 = static_cast<float>(e1.latitude_);
+   const float lon1 = static_cast<float>(e1.longitude_);
+   const float lat2 = static_cast<float>(e2.latitude_);
+   const float lon2 = static_cast<float>(e2.longitude_);
 
+   // TODO: Base X/Y offsets in pixels
+   // const float x1 = static_cast<float>(e1.x_);
+   // const float y1 = static_cast<float>(e1.y_);
+   // const float x2 = static_cast<float>(e2.x_);
+   // const float y2 = static_cast<float>(e2.y_);
+
+   // Angle
+   const float a = angle;
+
+   // Final X/Y offsets in pixels
+   const float hw = width * 0.5f;
+   const float lx = -hw;
+   const float rx = +hw;
+   const float ty = +hw;
+   const float by = -hw;
+
+   // Modulate color
+   const float mc0 = color[0] / 255.0f;
+   const float mc1 = color[1] / 255.0f;
+   const float mc2 = color[2] / 255.0f;
+   const float mc3 = color[3] / 255.0f;
+
+   // Update buffers
+   newLinesBuffer_.insert(newLinesBuffer_.end(),
+                          {
+                             // Line
+                             lat1, lon1, lx, by, mc0, mc1, mc2, mc3, a, // BL
+                             lat2, lon2, lx, ty, mc0, mc1, mc2, mc3, a, // TL
+                             lat1, lon1, rx, by, mc0, mc1, mc2, mc3, a, // BR
+                             lat1, lon1, rx, by, mc0, mc1, mc2, mc3, a, // BR
+                             lat2, lon2, rx, ty, mc0, mc1, mc2, mc3, a, // TR
+                             lat2, lon2, lx, ty, mc0, mc1, mc2, mc3, a  // TL
+                          });
+   newThresholdBuffer_.insert(
+      newThresholdBuffer_.end(),
+      {threshold, threshold, threshold, threshold, threshold, threshold});
+}
+
+void PlacefileLines::Impl::Update()
+{
+   // If the placefile has been updated
+   if (dirty_)
+   {
       gl::OpenGLFunctions& gl = context_->gl();
 
-      // Buffer vertex data
+      // Buffer lines data
       gl.glBindBuffer(GL_ARRAY_BUFFER, vbo_[0]);
       gl.glBufferData(GL_ARRAY_BUFFER,
-                      sizeof(float) * lineBuffer_.size(),
-                      lineBuffer_.data(),
+                      sizeof(float) * currentLinesBuffer_.size(),
+                      currentLinesBuffer_.data(),
                       GL_DYNAMIC_DRAW);
 
       // Buffer threshold data
       gl.glBindBuffer(GL_ARRAY_BUFFER, vbo_[1]);
       gl.glBufferData(GL_ARRAY_BUFFER,
-                      sizeof(GLint) * thresholdBuffer_.size(),
-                      thresholdBuffer_.data(),
+                      sizeof(GLint) * currentThresholdBuffer_.size(),
+                      currentThresholdBuffer_.data(),
                       GL_DYNAMIC_DRAW);
-
-      numVertices_ =
-         static_cast<GLsizei>(lineBuffer_.size() / kVerticesPerRectangle);
    }
 
    dirty_ = false;
