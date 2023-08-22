@@ -230,9 +230,9 @@ void PlacefileIcons::Render(
          gl.glUniform1f(p->uMapDistanceLocation_, 0.0f);
       }
 
-      // Don't interpolate texture coordinates
-      gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      // Interpolate texture coordinates
+      gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
       // Draw icons
       gl.glDrawArrays(GL_TRIANGLES, 0, p->numVertices_);
