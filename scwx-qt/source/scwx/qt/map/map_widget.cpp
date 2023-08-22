@@ -191,6 +191,10 @@ public slots:
 MapWidget::MapWidget(const QMapLibreGL::Settings& settings) :
     p(std::make_unique<MapWidgetImpl>(this, settings))
 {
+   QSurfaceFormat surfaceFormat = QSurfaceFormat::defaultFormat();
+   surfaceFormat.setSamples(4);
+   setFormat(surfaceFormat);
+
    setFocusPolicy(Qt::StrongFocus);
 
    ImGui_ImplQt_RegisterWidget(this);
