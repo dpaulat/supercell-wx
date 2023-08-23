@@ -1,5 +1,6 @@
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
+#include <scwx/qt/main/application.hpp>
 #include <scwx/qt/util/json.hpp>
 #include <scwx/qt/util/network.hpp>
 #include <scwx/gr/placefile.hpp>
@@ -131,8 +132,10 @@ PlacefileManager::PlacefileManager() : p(std::make_unique<Impl>(this))
    boost::asio::post(p->threadPool_,
                      [this]()
                      {
-                        // Read placefile settings on startup
                         p->InitializePlacefileSettings();
+
+                        // Read placefile settings on startup
+                        main::Application::WaitForInitialization();
                         p->ReadPlacefileSettings();
                      });
 }
@@ -396,6 +399,11 @@ void PlacefileManager::AddUrl(const std::string& urlString,
    p->placefileRecordMap_.insert_or_assign(normalizedUrl, record);
 
    lock.unlock();
+
+   if (enabled)
+   {
+      Q_EMIT PlacefileEnabled(normalizedUrl, record->enabled_);
+   }
 
    Q_EMIT PlacefileUpdated(normalizedUrl);
 
