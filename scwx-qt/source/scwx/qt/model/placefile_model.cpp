@@ -46,6 +46,11 @@ PlacefileModel::PlacefileModel(QObject* parent) :
            &PlacefileModel::HandlePlacefileUpdate);
 
    connect(p->placefileManager_.get(),
+           &manager::PlacefileManager::PlacefileRemoved,
+           this,
+           &PlacefileModel::HandlePlacefileRemoved);
+
+   connect(p->placefileManager_.get(),
            &manager::PlacefileManager::PlacefileRenamed,
            this,
            &PlacefileModel::HandlePlacefileRenamed);
@@ -290,6 +295,24 @@ bool PlacefileModel::setData(const QModelIndex& index,
    }
 
    return true;
+}
+
+void PlacefileModel::HandlePlacefileRemoved(const std::string& name)
+{
+   auto it =
+      std::find(p->placefileNames_.begin(), p->placefileNames_.end(), name);
+
+   if (it != p->placefileNames_.end())
+   {
+      // Placefile exists, delete row
+      const int   row         = std::distance(p->placefileNames_.begin(), it);
+      QModelIndex topLeft     = createIndex(row, kFirstColumn);
+      QModelIndex bottomRight = createIndex(row, kLastColumn);
+
+      beginRemoveRows(QModelIndex(), row, row);
+      p->placefileNames_.erase(it);
+      endRemoveRows();
+   }
 }
 
 void PlacefileModel::HandlePlacefileRenamed(const std::string& oldName,

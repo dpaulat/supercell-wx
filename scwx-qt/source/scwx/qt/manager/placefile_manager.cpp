@@ -314,6 +314,33 @@ void PlacefileManager::LoadFile(const std::string& filename)
       });
 }
 
+void PlacefileManager::RemoveUrl(const std::string& urlString)
+{
+   std::unique_lock lock(p->placefileRecordLock_);
+
+   // Determine if the placefile has been loaded previously
+   auto it = std::find_if(p->placefileRecords_.begin(),
+                          p->placefileRecords_.end(),
+                          [&urlString](auto& record)
+                          { return record->name_ == urlString; });
+   if (it == p->placefileRecords_.end())
+   {
+      logger_->debug("Placefile doesn't exist: {}", urlString);
+      return;
+   }
+
+   // Placefile exists, proceed with removing
+   logger_->info("RemoveUrl: {}", urlString);
+
+   // Remove record
+   p->placefileRecords_.erase(it);
+   p->placefileRecordMap_.erase(urlString);
+
+   lock.unlock();
+
+   Q_EMIT PlacefileRemoved(urlString);
+}
+
 void PlacefileManager::Impl::PlacefileRecord::Update()
 {
    logger_->debug("Update: {}", name_);

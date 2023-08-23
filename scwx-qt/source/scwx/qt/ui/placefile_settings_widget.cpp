@@ -31,8 +31,9 @@ public:
        leftElidedItemDelegate_ {new LeftElidedItemDelegate(self_)}
    {
       placefileProxyModel_->setSourceModel(placefileModel_);
-      placefileProxyModel_->setSortRole(types::SortRole);
-      placefileProxyModel_->setFilterCaseSensitivity(Qt::CaseInsensitive);
+      placefileProxyModel_->setSortRole(types::ItemDataRole::SortRole);
+      placefileProxyModel_->setFilterCaseSensitivity(
+         Qt::CaseSensitivity::CaseInsensitive);
       placefileProxyModel_->setFilterKeyColumn(-1);
    }
    ~PlacefileSettingsWidgetImpl() = default;
@@ -56,6 +57,8 @@ PlacefileSettingsWidget::PlacefileSettingsWidget(QWidget* parent) :
     ui(new Ui::PlacefileSettingsWidget)
 {
    ui->setupUi(this);
+
+   ui->removeButton->setEnabled(false);
 
    ui->placefileView->setModel(p->placefileProxyModel_);
 
@@ -89,6 +92,31 @@ void PlacefileSettingsWidgetImpl::ConnectSignals()
                     self_,
                     [this]() { openUrlDialog_->open(); });
 
+   QObject::connect(self_->ui->removeButton,
+                    &QPushButton::clicked,
+                    self_,
+                    [this]()
+                    {
+                       auto selectionModel =
+                          self_->ui->placefileView->selectionModel();
+
+                       // Get selected URL string
+                       QModelIndex selected =
+                          selectionModel
+                             ->selectedRows(static_cast<int>(
+                                model::PlacefileModel::Column::Placefile))
+                             .first();
+                       QVariant data = self_->ui->placefileView->model()->data(
+                          selected, types::ItemDataRole::SortRole);
+                       std::string urlString = data.toString().toStdString();
+
+                       // Remove Placefile
+                       if (!urlString.empty())
+                       {
+                          placefileManager_->RemoveUrl(urlString);
+                       }
+                    });
+
    QObject::connect(
       openUrlDialog_,
       &OpenUrlDialog::accepted,
@@ -100,6 +128,25 @@ void PlacefileSettingsWidgetImpl::ConnectSignals()
                     &QLineEdit::textChanged,
                     placefileProxyModel_,
                     &QSortFilterProxyModel::setFilterWildcard);
+
+   QObject::connect(
+      self_->ui->placefileView->selectionModel(),
+      &QItemSelectionModel::selectionChanged,
+      self_,
+      [this](const QItemSelection& selected, const QItemSelection& deselected)
+      {
+         if (selected.size() == 0 && deselected.size() == 0)
+         {
+            // Items which stay selected but change their index are not
+            // included in selected and deselected. Thus, this signal might
+            // be emitted with both selected and deselected empty, if only
+            // the indices of selected items change.
+            return;
+         }
+
+         bool itemSelected = selected.size() > 0;
+         self_->ui->removeButton->setEnabled(itemSelected);
+      });
 }
 
 } // namespace ui

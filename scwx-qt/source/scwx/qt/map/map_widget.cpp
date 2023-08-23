@@ -228,6 +228,19 @@ void MapWidgetImpl::ConnectSignals()
               widget_->update();
            });
    connect(placefileManager_.get(),
+           &manager::PlacefileManager::PlacefileRemoved,
+           widget_,
+           [this](const std::string& name)
+           {
+              if (enabledPlacefiles_.contains(name))
+              {
+                 // Placefile removed, remove layer
+                 enabledPlacefiles_.erase(name);
+                 RemovePlacefileLayer(name);
+              }
+              widget_->update();
+           });
+   connect(placefileManager_.get(),
            &manager::PlacefileManager::PlacefileRenamed,
            widget_,
            [this](const std::string& oldName, const std::string& newName)

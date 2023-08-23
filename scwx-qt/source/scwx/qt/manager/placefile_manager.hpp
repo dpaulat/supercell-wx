@@ -39,11 +39,13 @@ public:
 
    void AddUrl(const std::string& urlString);
    void LoadFile(const std::string& filename);
+   void RemoveUrl(const std::string& urlString);
 
    static std::shared_ptr<PlacefileManager> Instance();
 
 signals:
    void PlacefileEnabled(const std::string& name, bool enabled);
+   void PlacefileRemoved(const std::string& name);
    void PlacefileRenamed(const std::string& oldName,
                          const std::string& newName);
    void PlacefileUpdated(const std::string& name);

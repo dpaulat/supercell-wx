@@ -45,6 +45,7 @@ public:
                 int                role = Qt::EditRole) override;
 
 public slots:
+   void HandlePlacefileRemoved(const std::string& name);
    void HandlePlacefileRenamed(const std::string& oldName,
                                const std::string& newName);
    void HandlePlacefileUpdate(const std::string& name);
