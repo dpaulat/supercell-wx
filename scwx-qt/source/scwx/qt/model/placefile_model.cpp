@@ -159,14 +159,11 @@ QVariant PlacefileModel::data(const QModelIndex& index, int role) const
           role == Qt::ItemDataRole::ToolTipRole)
       {
          std::string description = placefileName;
-         auto        placefile = p->placefileManager_->placefile(placefileName);
-         if (placefile != nullptr)
+         std::string title =
+            p->placefileManager_->placefile_title(placefileName);
+         if (!title.empty())
          {
-            std::string title = placefile->title();
-            if (!title.empty())
-            {
-               description = title + '\n' + description;
-            }
+            description = title + '\n' + description;
          }
 
          return QString::fromStdString(description);

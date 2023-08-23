@@ -1,5 +1,6 @@
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
+#include <scwx/qt/util/json.hpp>
 #include <scwx/qt/util/network.hpp>
 #include <scwx/gr/placefile.hpp>
 #include <scwx/network/cpr.hpp>
@@ -11,11 +12,13 @@
 #include <QDir>
 #include <QGuiApplication>
 #include <QScreen>
+#include <QStandardPaths>
 #include <QUrl>
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/thread_pool.hpp>
+#include <boost/json.hpp>
 #include <boost/tokenizer.hpp>
 #include <cpr/cpr.h>
 
@@ -29,6 +32,11 @@ namespace manager
 static const std::string logPrefix_ = "scwx::qt::manager::placefile_manager";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+static const std::string kEnabledName_     = "enabled";
+static const std::string kThresholdedName_ = "thresholded";
+static const std::string kTitleName_       = "title";
+static const std::string kNameName_        = "name";
+
 class PlacefileManager::Impl
 {
 public:
@@ -37,11 +45,17 @@ public:
    explicit Impl(PlacefileManager* self) : self_ {self} {}
    ~Impl() {}
 
+   void InitializePlacefileSettings();
+   void ReadPlacefileSettings();
+   void WritePlacefileSettings();
+
    static void LoadResources(const std::shared_ptr<gr::Placefile>& placefile);
 
    boost::asio::thread_pool threadPool_ {1u};
 
    PlacefileManager* self_;
+
+   std::string placefileSettingsPath_ {};
 
    std::shared_ptr<config::RadarSite> radarSite_ {};
 
@@ -57,8 +71,15 @@ public:
    explicit PlacefileRecord(Impl*                          impl,
                             const std::string&             name,
                             std::shared_ptr<gr::Placefile> placefile,
-                            bool                           enabled = true) :
-       p {impl}, name_ {name}, placefile_ {placefile}, enabled_ {enabled}
+                            const std::string&             title   = {},
+                            bool                           enabled = false,
+                            bool thresholded                       = false) :
+       p {impl},
+       name_ {name},
+       placefile_ {placefile},
+       title_ {title},
+       enabled_ {enabled},
+       thresholded_ {thresholded}
    {
    }
    ~PlacefileRecord()
@@ -71,19 +92,56 @@ public:
    void UpdateAsync();
    void UpdatePlacefile(const std::shared_ptr<gr::Placefile>& placefile);
 
+   friend void tag_invoke(boost::json::value_from_tag,
+                          boost::json::value&                     jv,
+                          const std::shared_ptr<PlacefileRecord>& record)
+   {
+      jv = {{kEnabledName_, record->enabled_},
+            {kThresholdedName_, record->thresholded_},
+            {kTitleName_, record->title_},
+            {kNameName_, record->name_}};
+   }
+
+   friend PlacefileRecord tag_invoke(boost::json::value_to_tag<PlacefileRecord>,
+                                     const boost::json::value& jv)
+   {
+      return PlacefileRecord {
+         nullptr,
+         boost::json::value_to<std::string>(jv.at(kNameName_)),
+         nullptr,
+         boost::json::value_to<std::string>(jv.at(kTitleName_)),
+         jv.at(kEnabledName_).as_bool(),
+         jv.at(kThresholdedName_).as_bool()};
+   }
+
    Impl* p;
 
    std::string                    name_;
+   std::string                    title_;
    std::shared_ptr<gr::Placefile> placefile_;
    bool                           enabled_;
-   bool                           thresholded_ {false};
+   bool                           thresholded_;
    boost::asio::thread_pool       threadPool_ {1u};
    boost::asio::steady_timer      refreshTimer_ {threadPool_};
    std::mutex                     refreshMutex_ {};
 };
 
-PlacefileManager::PlacefileManager() : p(std::make_unique<Impl>(this)) {}
-PlacefileManager::~PlacefileManager() = default;
+PlacefileManager::PlacefileManager() : p(std::make_unique<Impl>(this))
+{
+   boost::asio::post(p->threadPool_,
+                     [this]()
+                     {
+                        // Read placefile settings on startup
+                        p->InitializePlacefileSettings();
+                        p->ReadPlacefileSettings();
+                     });
+}
+
+PlacefileManager::~PlacefileManager()
+{
+   // Write placefile settings on shutdown
+   p->WritePlacefileSettings();
+};
 
 bool PlacefileManager::placefile_enabled(const std::string& name)
 {
@@ -107,6 +165,18 @@ bool PlacefileManager::placefile_thresholded(const std::string& name)
       return it->second->thresholded_;
    }
    return false;
+}
+
+std::string PlacefileManager::placefile_title(const std::string& name)
+{
+   std::shared_lock lock(p->placefileRecordLock_);
+
+   auto it = p->placefileRecordMap_.find(name);
+   if (it != p->placefileRecordMap_.cend())
+   {
+      return it->second->title_;
+   }
+   return {};
 }
 
 std::shared_ptr<gr::Placefile>
@@ -189,6 +259,71 @@ void PlacefileManager::set_placefile_url(const std::string& name,
    }
 }
 
+void PlacefileManager::Impl::InitializePlacefileSettings()
+{
+   std::string appDataPath {
+      QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
+         .toStdString()};
+
+   if (!std::filesystem::exists(appDataPath))
+   {
+      if (!std::filesystem::create_directories(appDataPath))
+      {
+         logger_->error("Unable to create application data directory: \"{}\"",
+                        appDataPath);
+      }
+   }
+
+   placefileSettingsPath_ = appDataPath + "/placefiles.json";
+}
+
+void PlacefileManager::Impl::ReadPlacefileSettings()
+{
+   logger_->info("Reading placefile settings");
+
+   boost::json::value placefileJson = nullptr;
+
+   // Determine if placefile settings exists
+   if (std::filesystem::exists(placefileSettingsPath_))
+   {
+      placefileJson = util::json::ReadJsonFile(placefileSettingsPath_);
+   }
+
+   // If placefile settings was successfully read
+   if (placefileJson != nullptr && placefileJson.is_array())
+   {
+      // For each placefile entry
+      auto& placefileArray = placefileJson.as_array();
+      for (auto& placefileEntry : placefileArray)
+      {
+         try
+         {
+            // Convert placefile entry to a record
+            PlacefileRecord record =
+               boost::json::value_to<PlacefileRecord>(placefileEntry);
+
+            self_->AddUrl(record.name_,
+                          record.title_,
+                          record.enabled_,
+                          record.thresholded_);
+         }
+         catch (const std::exception& ex)
+         {
+            logger_->warn("Invalid placefile entry: {}", ex.what());
+         }
+      }
+   }
+}
+
+void PlacefileManager::Impl::WritePlacefileSettings()
+{
+   logger_->info("Saving placefile settings");
+
+   std::shared_lock lock {placefileRecordLock_};
+   auto             placefileJson = boost::json::value_from(placefileRecords_);
+   util::json::WriteJsonFile(placefileSettingsPath_, placefileJson);
+}
+
 void PlacefileManager::SetRadarSite(
    std::shared_ptr<config::RadarSite> radarSite)
 {
@@ -231,7 +366,10 @@ PlacefileManager::GetActivePlacefiles()
    return placefiles;
 }
 
-void PlacefileManager::AddUrl(const std::string& urlString)
+void PlacefileManager::AddUrl(const std::string& urlString,
+                              const std::string& title,
+                              bool               enabled,
+                              bool               thresholded)
 {
    std::string normalizedUrl = util::network::NormalizeUrl(urlString);
 
@@ -254,7 +392,7 @@ void PlacefileManager::AddUrl(const std::string& urlString)
    // Add an empty placefile record for the new URL
    auto& record =
       p->placefileRecords_.emplace_back(std::make_shared<Impl::PlacefileRecord>(
-         p.get(), normalizedUrl, nullptr, false));
+         p.get(), normalizedUrl, nullptr, title, enabled, thresholded));
    p->placefileRecordMap_.insert_or_assign(normalizedUrl, record);
 
    lock.unlock();
@@ -303,7 +441,7 @@ void PlacefileManager::LoadFile(const std::string& filename)
             // If this is a new placefile, add it
             auto& record = p->placefileRecords_.emplace_back(
                std::make_shared<Impl::PlacefileRecord>(
-                  p.get(), placefileName, placefile));
+                  p.get(), placefileName, placefile, placefile->title(), true));
             p->placefileRecordMap_.insert_or_assign(placefileName, record);
 
             lock.unlock();
@@ -434,6 +572,7 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
       {
          // Update the placefile
          placefile_ = updatedPlacefile;
+         title_     = placefile_->title();
 
          // Notify slots of the placefile update
          Q_EMIT p->self_->PlacefileUpdated(name);
