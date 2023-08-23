@@ -77,8 +77,8 @@ public:
                             bool thresholded                       = false) :
        p {impl},
        name_ {name},
-       placefile_ {placefile},
        title_ {title},
+       placefile_ {placefile},
        enabled_ {enabled},
        thresholded_ {thresholded}
    {

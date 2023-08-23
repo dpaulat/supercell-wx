@@ -302,9 +302,7 @@ void PlacefileModel::HandlePlacefileRemoved(const std::string& name)
    if (it != p->placefileNames_.end())
    {
       // Placefile exists, delete row
-      const int   row         = std::distance(p->placefileNames_.begin(), it);
-      QModelIndex topLeft     = createIndex(row, kFirstColumn);
-      QModelIndex bottomRight = createIndex(row, kLastColumn);
+      const int row = std::distance(p->placefileNames_.begin(), it);
 
       beginRemoveRows(QModelIndex(), row, row);
       p->placefileNames_.erase(it);
