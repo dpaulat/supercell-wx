@@ -16,8 +16,8 @@ namespace draw
 class PlacefileText : public DrawItem
 {
 public:
-   explicit PlacefileText(std::shared_ptr<GlContext> context,
-                          const std::string&         placefileName);
+   explicit PlacefileText(const std::shared_ptr<GlContext>& context,
+                          const std::string&                placefileName);
    ~PlacefileText();
 
    PlacefileText(const PlacefileText&)            = delete;

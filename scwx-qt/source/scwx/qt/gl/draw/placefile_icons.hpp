@@ -18,7 +18,7 @@ namespace draw
 class PlacefileIcons : public DrawItem
 {
 public:
-   explicit PlacefileIcons(std::shared_ptr<GlContext> context);
+   explicit PlacefileIcons(const std::shared_ptr<GlContext>& context);
    ~PlacefileIcons();
 
    PlacefileIcons(const PlacefileIcons&)            = delete;

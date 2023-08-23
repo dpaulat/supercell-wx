@@ -28,7 +28,7 @@ public:
    std::uint64_t textureAtlasBuildCount_ {};
 };
 
-DrawLayer::DrawLayer(std::shared_ptr<MapContext> context) :
+DrawLayer::DrawLayer(const std::shared_ptr<MapContext>& context) :
     GenericLayer(context), p(std::make_unique<DrawLayerImpl>(context))
 {
 }
@@ -76,7 +76,7 @@ void DrawLayer::Deinitialize()
    }
 }
 
-void DrawLayer::AddDrawItem(std::shared_ptr<gl::draw::DrawItem> drawItem)
+void DrawLayer::AddDrawItem(const std::shared_ptr<gl::draw::DrawItem>& drawItem)
 {
    p->drawList_.push_back(drawItem);
 }

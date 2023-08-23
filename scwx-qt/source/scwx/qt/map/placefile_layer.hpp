@@ -16,8 +16,8 @@ class PlacefileLayer : public DrawLayer
    Q_OBJECT
 
 public:
-   explicit PlacefileLayer(std::shared_ptr<MapContext> context,
-                           const std::string&          placefileName);
+   explicit PlacefileLayer(const std::shared_ptr<MapContext>& context,
+                           const std::string&                 placefileName);
    ~PlacefileLayer();
 
    std::string placefile_name() const;

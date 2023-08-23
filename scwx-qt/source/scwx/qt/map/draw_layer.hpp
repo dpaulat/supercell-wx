@@ -15,7 +15,7 @@ class DrawLayerImpl;
 class DrawLayer : public GenericLayer
 {
 public:
-   explicit DrawLayer(std::shared_ptr<MapContext> context);
+   explicit DrawLayer(const std::shared_ptr<MapContext>& context);
    virtual ~DrawLayer();
 
    virtual void Initialize();
@@ -23,7 +23,7 @@ public:
    virtual void Deinitialize();
 
 protected:
-   void AddDrawItem(std::shared_ptr<gl::draw::DrawItem> drawItem);
+   void AddDrawItem(const std::shared_ptr<gl::draw::DrawItem>& drawItem);
 
 private:
    std::unique_ptr<DrawLayerImpl> p;

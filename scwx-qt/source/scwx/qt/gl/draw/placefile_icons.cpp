@@ -54,7 +54,7 @@ struct PlacefileIconInfo
 class PlacefileIcons::Impl
 {
 public:
-   explicit Impl(std::shared_ptr<GlContext> context) :
+   explicit Impl(const std::shared_ptr<GlContext>& context) :
        context_ {context},
        shaderProgram_ {nullptr},
        uMVPMatrixLocation_(GL_INVALID_INDEX),
@@ -68,6 +68,9 @@ public:
    }
 
    ~Impl() {}
+
+   void UpdateBuffers();
+   void Update(bool textureAtlasChanged);
 
    std::shared_ptr<GlContext> context_;
 
@@ -98,12 +101,9 @@ public:
    std::array<GLuint, 2> vbo_;
 
    GLsizei numVertices_;
-
-   void UpdateBuffers();
-   void Update(bool textureAtlasChanged);
 };
 
-PlacefileIcons::PlacefileIcons(std::shared_ptr<GlContext> context) :
+PlacefileIcons::PlacefileIcons(const std::shared_ptr<GlContext>& context) :
     DrawItem(context->gl()), p(std::make_unique<Impl>(context))
 {
 }

@@ -23,8 +23,8 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class PlacefileText::Impl
 {
 public:
-   explicit Impl(std::shared_ptr<GlContext> context,
-                 const std::string&         placefileName) :
+   explicit Impl(const std::shared_ptr<GlContext>& context,
+                 const std::string&                placefileName) :
        context_ {context}, placefileName_ {placefileName}
    {
    }
@@ -63,8 +63,8 @@ public:
    std::vector<std::shared_ptr<const gr::Placefile::TextDrawItem>> newList_ {};
 };
 
-PlacefileText::PlacefileText(std::shared_ptr<GlContext> context,
-                             const std::string&         placefileName) :
+PlacefileText::PlacefileText(const std::shared_ptr<GlContext>& context,
+                             const std::string&                placefileName) :
     DrawItem(context->gl()), p(std::make_unique<Impl>(context, placefileName))
 {
 }

@@ -28,7 +28,7 @@ static const boost::gil::rgba8_pixel_t kBlack_ {0, 0, 0, 255};
 class PlacefileLines::Impl
 {
 public:
-   explicit Impl(std::shared_ptr<GlContext> context) :
+   explicit Impl(const std::shared_ptr<GlContext>& context) :
        context_ {context},
        shaderProgram_ {nullptr},
        uMVPMatrixLocation_(GL_INVALID_INDEX),
@@ -49,7 +49,8 @@ public:
                    const float                                 angle,
                    const boost::gil::rgba8_pixel_t             color,
                    const GLint                                 threshold);
-   void UpdateBuffers(std::shared_ptr<const gr::Placefile::LineDrawItem>);
+   void
+   UpdateBuffers(const std::shared_ptr<const gr::Placefile::LineDrawItem>& di);
    void Update();
 
    std::shared_ptr<GlContext> context_;
@@ -79,7 +80,7 @@ public:
    GLsizei numVertices_;
 };
 
-PlacefileLines::PlacefileLines(std::shared_ptr<GlContext> context) :
+PlacefileLines::PlacefileLines(const std::shared_ptr<GlContext>& context) :
     DrawItem(context->gl()), p(std::make_unique<Impl>(context))
 {
 }
@@ -255,7 +256,7 @@ void PlacefileLines::FinishLines()
 }
 
 void PlacefileLines::Impl::UpdateBuffers(
-   std::shared_ptr<const gr::Placefile::LineDrawItem> di)
+   const std::shared_ptr<const gr::Placefile::LineDrawItem>& di)
 {
    // Threshold value
    units::length::nautical_miles<double> threshold = di->threshold_;

@@ -42,7 +42,7 @@ typedef std::array<GLdouble, kTessVertexSize_> TessVertexArray;
 class PlacefilePolygons::Impl
 {
 public:
-   explicit Impl(std::shared_ptr<GlContext> context) :
+   explicit Impl(const std::shared_ptr<GlContext>& context) :
        context_ {context},
        shaderProgram_ {nullptr},
        uMVPMatrixLocation_(GL_INVALID_INDEX),
@@ -115,7 +115,8 @@ public:
    GLint currentThreshold_;
 };
 
-PlacefilePolygons::PlacefilePolygons(std::shared_ptr<GlContext> context) :
+PlacefilePolygons::PlacefilePolygons(
+   const std::shared_ptr<GlContext>& context) :
     DrawItem(context->gl()), p(std::make_unique<Impl>(context))
 {
 }

@@ -22,9 +22,9 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class PlacefileLayer::Impl
 {
 public:
-   explicit Impl(PlacefileLayer*             self,
-                 std::shared_ptr<MapContext> context,
-                 const std::string&          placefileName) :
+   explicit Impl(PlacefileLayer*                    self,
+                 const std::shared_ptr<MapContext>& context,
+                 const std::string&                 placefileName) :
        self_ {self},
        placefileName_ {placefileName},
        placefileIcons_ {std::make_shared<gl::draw::PlacefileIcons>(context)},
@@ -53,8 +53,8 @@ public:
    std::shared_ptr<gl::draw::PlacefileText>     placefileText_;
 };
 
-PlacefileLayer::PlacefileLayer(std::shared_ptr<MapContext> context,
-                               const std::string&          placefileName) :
+PlacefileLayer::PlacefileLayer(const std::shared_ptr<MapContext>& context,
+                               const std::string& placefileName) :
     DrawLayer(context),
     p(std::make_unique<PlacefileLayer::Impl>(this, context, placefileName))
 {

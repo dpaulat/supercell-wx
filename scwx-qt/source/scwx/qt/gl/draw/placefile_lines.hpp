@@ -16,7 +16,7 @@ namespace draw
 class PlacefileLines : public DrawItem
 {
 public:
-   explicit PlacefileLines(std::shared_ptr<GlContext> context);
+   explicit PlacefileLines(const std::shared_ptr<GlContext>& context);
    ~PlacefileLines();
 
    PlacefileLines(const PlacefileLines&)            = delete;

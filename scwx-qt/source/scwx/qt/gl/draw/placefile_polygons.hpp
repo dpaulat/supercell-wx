@@ -18,7 +18,7 @@ namespace draw
 class PlacefilePolygons : public DrawItem
 {
 public:
-   explicit PlacefilePolygons(std::shared_ptr<GlContext> context);
+   explicit PlacefilePolygons(const std::shared_ptr<GlContext>& context);
    ~PlacefilePolygons();
 
    PlacefilePolygons(const PlacefilePolygons&)            = delete;
