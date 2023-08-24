@@ -113,6 +113,11 @@ std::string Placefile::title() const
    return p->title_;
 }
 
+std::chrono::seconds Placefile::refresh() const
+{
+   return p->refresh_;
+}
+
 std::unordered_map<std::size_t, std::shared_ptr<Placefile::Font>>
 Placefile::fonts()
 {

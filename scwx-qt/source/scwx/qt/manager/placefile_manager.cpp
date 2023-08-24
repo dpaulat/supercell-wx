@@ -22,6 +22,7 @@
 #include <boost/json.hpp>
 #include <boost/tokenizer.hpp>
 #include <cpr/cpr.h>
+#include <fmt/chrono.h>
 
 namespace scwx
 {
@@ -85,10 +86,16 @@ public:
    }
    ~PlacefileRecord()
    {
-      std::unique_lock lock(refreshMutex_);
+      std::unique_lock refreshLock(refreshMutex_);
+      std::unique_lock timerLock(timerMutex_);
       refreshTimer_.cancel();
    }
 
+   bool                 refresh_enabled() const;
+   std::chrono::seconds refresh_time() const;
+
+   void CancelRefresh();
+   void ScheduleRefresh();
    void Update();
    void UpdateAsync();
    void UpdatePlacefile(const std::shared_ptr<gr::Placefile>& placefile);
@@ -125,6 +132,10 @@ public:
    boost::asio::thread_pool       threadPool_ {1u};
    boost::asio::steady_timer      refreshTimer_ {threadPool_};
    std::mutex                     refreshMutex_ {};
+   std::mutex                     timerMutex_ {};
+
+   std::string                           lastRadarSite_ {};
+   std::chrono::system_clock::time_point lastUpdateTime_ {};
 };
 
 PlacefileManager::PlacefileManager() : p(std::make_unique<Impl>(this))
@@ -210,11 +221,26 @@ void PlacefileManager::set_placefile_enabled(const std::string& name,
 
       Q_EMIT PlacefileEnabled(name, enabled);
 
+      using namespace std::chrono_literals;
+
       // Update the placefile
-      // TODO: Only update if it's out of date, or if the radar site has changed
       if (enabled)
       {
-         it->second->UpdateAsync();
+         if (p->radarSite_ != nullptr &&
+             record->lastRadarSite_ != p->radarSite_->id())
+         {
+            // If the radar site has changed, update now
+            record->UpdateAsync();
+         }
+         else
+         {
+            // Otherwise, schedule an update
+            record->ScheduleRefresh();
+         }
+      }
+      else if (!enabled)
+      {
+         record->CancelRefresh();
       }
    }
 }
@@ -260,6 +286,31 @@ void PlacefileManager::set_placefile_url(const std::string& name,
       // Queue a placefile update
       placefileRecord->UpdateAsync();
    }
+}
+
+bool PlacefileManager::Impl::PlacefileRecord::refresh_enabled() const
+{
+   if (placefile_ != nullptr)
+   {
+      using namespace std::chrono_literals;
+      return placefile_->refresh() > 0s;
+   }
+
+   return false;
+}
+
+std::chrono::seconds
+PlacefileManager::Impl::PlacefileRecord::refresh_time() const
+{
+   using namespace std::chrono_literals;
+
+   if (refresh_enabled())
+   {
+      // Don't refresh more often than every 15 seconds
+      return std::max(placefile_->refresh(), 15s);
+   }
+
+   return -1s;
 }
 
 void PlacefileManager::Impl::InitializePlacefileSettings()
@@ -407,8 +458,11 @@ void PlacefileManager::AddUrl(const std::string& urlString,
 
    Q_EMIT PlacefileUpdated(normalizedUrl);
 
-   // Queue a placefile update
-   record->UpdateAsync();
+   // Queue a placefile update, either if enabled, or if we don't know the title
+   if (enabled || title.empty())
+   {
+      record->UpdateAsync();
+   }
 }
 
 void PlacefileManager::LoadFile(const std::string& filename)
@@ -490,6 +544,9 @@ void PlacefileManager::RemoveUrl(const std::string& urlString)
 void PlacefileManager::Impl::PlacefileRecord::Update()
 {
    logger_->debug("Update: {}", name_);
+
+   // Take unique lock before refreshing
+   std::unique_lock lock {refreshMutex_};
 
    // Make a copy of name in the event it changes.
    const std::string name {name_};
@@ -579,17 +636,66 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
       if (name_ == name)
       {
          // Update the placefile
-         placefile_ = updatedPlacefile;
-         title_     = placefile_->title();
+         placefile_      = updatedPlacefile;
+         title_          = placefile_->title();
+         lastUpdateTime_ = std::chrono::system_clock::now();
+
+         if (p->radarSite_ != nullptr)
+         {
+            lastRadarSite_ = p->radarSite_->id();
+         }
 
          // Notify slots of the placefile update
          Q_EMIT p->self_->PlacefileUpdated(name);
       }
    }
 
-   // TODO: Update refresh timer
-   // TODO: Can running this function out of sync with an existing refresh timer
-   // cause issues?
+   // Update refresh timer
+   ScheduleRefresh();
+}
+
+void PlacefileManager::Impl::PlacefileRecord::ScheduleRefresh()
+{
+   using namespace std::chrono_literals;
+
+   if (!enabled_ || !refresh_enabled())
+   {
+      // Refresh is disabled
+      return;
+   }
+
+   std::unique_lock lock {timerMutex_};
+
+   auto nextUpdateTime      = lastUpdateTime_ + refresh_time();
+   auto timeUntilNextUpdate = nextUpdateTime - std::chrono::system_clock::now();
+
+   logger_->debug(
+      "Scheduled refresh in {:%M:%S} ({})",
+      std::chrono::duration_cast<std::chrono::seconds>(timeUntilNextUpdate),
+      name_);
+
+   refreshTimer_.expires_after(timeUntilNextUpdate);
+   refreshTimer_.async_wait(
+      [this](const boost::system::error_code& e)
+      {
+         if (e == boost::asio::error::operation_aborted)
+         {
+            logger_->debug("Refresh timer cancelled");
+         }
+         else if (e != boost::system::errc::success)
+         {
+            logger_->warn("Refresh timer error: {}", e.message());
+         }
+         else
+         {
+            Update();
+         }
+      });
+}
+
+void PlacefileManager::Impl::PlacefileRecord::CancelRefresh()
+{
+   refreshTimer_.cancel();
 }
 
 void PlacefileManager::Impl::PlacefileRecord::UpdateAsync()
@@ -603,7 +709,8 @@ void PlacefileManager::Impl::PlacefileRecord::UpdatePlacefile(
    // Update placefile
    placefile_ = placefile;
 
-   // TODO: Update refresh timer
+   // Update refresh timer
+   ScheduleRefresh();
 }
 
 std::shared_ptr<PlacefileManager> PlacefileManager::Instance()

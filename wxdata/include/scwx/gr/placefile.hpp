@@ -2,6 +2,7 @@
 
 #include <scwx/common/geographic.hpp>
 
+#include <chrono>
 #include <istream>
 #include <memory>
 #include <optional>
@@ -174,6 +175,7 @@ public:
 
    std::string                                            name() const;
    std::string                                            title() const;
+   std::chrono::seconds                                   refresh() const;
    std::unordered_map<std::size_t, std::shared_ptr<Font>> fonts();
    std::shared_ptr<Font>                                  font(std::size_t i);
 
