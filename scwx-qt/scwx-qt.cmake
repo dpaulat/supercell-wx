@@ -399,6 +399,21 @@ target_compile_options(supercell-wx PRIVATE
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
 
+# Address Sanitizer options
+if (SCWX_ADDRESS_SANITIZER)
+    target_compile_options(scwx-qt PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/fsanitize=address>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address -fsanitize-recover=address>
+    )
+    target_compile_options(supercell-wx PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/fsanitize=address>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address -fsanitize-recover=address>
+    )
+    target_link_options(supercell-wx PRIVATE
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address>
+    )
+endif()
+
 if (MSVC)
     # Produce PDB file for debug
     target_compile_options(scwx-qt PRIVATE "$<$<CONFIG:Release>:/Zi>")

@@ -265,3 +265,11 @@ endif()
 set_target_properties(wxdata PROPERTIES CXX_STANDARD 20
                                         CXX_STANDARD_REQUIRED ON
                                         CXX_EXTENSIONS OFF)
+
+# Address Sanitizer options
+if (SCWX_ADDRESS_SANITIZER)
+    target_compile_options(wxdata PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/fsanitize=address>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address -fsanitize-recover=address>
+    )
+endif()
