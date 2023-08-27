@@ -277,7 +277,7 @@ void PlacefileManager::set_placefile_url(const std::string& name,
       placefileRecord->name_      = normalizedUrl;
       placefileRecord->placefile_ = nullptr;
       p->placefileRecordMap_.erase(it);
-      p->placefileRecordMap_.emplace(normalizedUrl, placefileRecord);
+      p->placefileRecordMap_.insert_or_assign(normalizedUrl, placefileRecord);
 
       lock.unlock();
 
@@ -413,7 +413,7 @@ PlacefileManager::GetActivePlacefiles()
    {
       if (record->enabled_ && record->placefile_ != nullptr)
       {
-         placefiles.emplace_back(record->placefile_);
+         placefiles.push_back(record->placefile_);
       }
    }
 
@@ -695,6 +695,7 @@ void PlacefileManager::Impl::PlacefileRecord::ScheduleRefresh()
 
 void PlacefileManager::Impl::PlacefileRecord::CancelRefresh()
 {
+   std::unique_lock lock {timerMutex_};
    refreshTimer_.cancel();
 }
 
