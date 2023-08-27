@@ -18,9 +18,13 @@ public:
    explicit DrawLayer(const std::shared_ptr<MapContext>& context);
    virtual ~DrawLayer();
 
-   virtual void Initialize();
-   virtual void Render(const QMapLibreGL::CustomLayerRenderParameters&);
-   virtual void Deinitialize();
+   virtual void Initialize() override;
+   virtual void
+   Render(const QMapLibreGL::CustomLayerRenderParameters&) override;
+   virtual void Deinitialize() override;
+
+   virtual bool RunMousePicking(
+      const QMapLibreGL::CustomLayerRenderParameters& params) override;
 
 protected:
    void AddDrawItem(const std::shared_ptr<gl::draw::DrawItem>& drawItem);

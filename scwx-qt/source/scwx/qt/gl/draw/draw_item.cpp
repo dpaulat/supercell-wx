@@ -53,6 +53,13 @@ void DrawItem::Render(const QMapLibreGL::CustomLayerRenderParameters& params,
    Render(params);
 }
 
+bool DrawItem::RunMousePicking(
+   const QMapLibreGL::CustomLayerRenderParameters& /* params */)
+{
+   // By default, the draw item is not picked
+   return false;
+}
+
 void DrawItem::UseDefaultProjection(
    const QMapLibreGL::CustomLayerRenderParameters& params,
    GLint                                           uMVPMatrixLocation)

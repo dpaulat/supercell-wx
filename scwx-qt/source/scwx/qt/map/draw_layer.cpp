@@ -76,6 +76,26 @@ void DrawLayer::Deinitialize()
    }
 }
 
+bool DrawLayer::RunMousePicking(
+   const QMapLibreGL::CustomLayerRenderParameters& params)
+{
+   bool itemPicked = false;
+
+   // For each draw item in the draw list in reverse
+   for (auto it = p->drawList_.rbegin(); it != p->drawList_.rend(); ++it)
+   {
+      // Run mouse picking on each draw item
+      if ((*it)->RunMousePicking(params))
+      {
+         // If a draw item was picked, don't process additional items
+         itemPicked = true;
+         break;
+      }
+   }
+
+   return itemPicked;
+}
+
 void DrawLayer::AddDrawItem(const std::shared_ptr<gl::draw::DrawItem>& drawItem)
 {
    p->drawList_.push_back(drawItem);

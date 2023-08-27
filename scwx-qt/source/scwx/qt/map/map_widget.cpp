@@ -126,6 +126,7 @@ public:
    void RadarProductViewConnect();
    void RadarProductViewDisconnect();
    void RemovePlacefileLayer(const std::string& placefileName);
+   void RunMousePicking();
    void SetRadarSite(const std::string& radarSite);
    void UpdatePlacefileLayers();
    bool UpdateStoredMapParameters();
@@ -1022,12 +1023,34 @@ void MapWidget::paintGL()
                                  size() * pixelRatio());
    p->map_->render();
 
+   // Perform mouse picking
+   p->RunMousePicking();
+
    // Render ImGui Frame
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
    // Paint complete
    Q_EMIT WidgetPainted();
+}
+
+void MapWidgetImpl::RunMousePicking()
+{
+   const QMapLibreGL::CustomLayerRenderParameters params =
+      context_->render_parameters();
+
+   // For each layer in reverse
+   // TODO: All Generic Layers, not just Placefile Layers
+   for (auto it = placefileLayers_.rbegin(); it != placefileLayers_.rend();
+        ++it)
+   {
+      // Run mouse picking for each layer
+      if ((*it)->RunMousePicking(params))
+      {
+         // If a draw item was picked, don't process additional layers
+         break;
+      }
+   }
 }
 
 void MapWidget::mapChanged(QMapLibreGL::Map::MapChange mapChange)

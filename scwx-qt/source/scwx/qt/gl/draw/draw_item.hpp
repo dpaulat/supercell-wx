@@ -33,6 +33,16 @@ public:
                        bool textureAtlasChanged);
    virtual void Deinitialize() = 0;
 
+   /**
+    * @brief Run mouse picking on the draw item.
+    *
+    * @param [in] params Custom layer render parameters
+    *
+    * @return true if the draw item was picked, otherwise false
+    */
+   virtual bool
+   RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params);
+
 protected:
    void
    UseDefaultProjection(const QMapLibreGL::CustomLayerRenderParameters& params,

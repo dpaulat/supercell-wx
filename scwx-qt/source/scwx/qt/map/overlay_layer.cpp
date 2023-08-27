@@ -95,6 +95,8 @@ void OverlayLayer::Render(
    auto&                settings         = context()->settings();
    const float          pixelRatio       = context()->pixel_ratio();
 
+   context()->set_render_parameters(params);
+
    if (p->sweepTimeNeedsUpdate_ && radarProductView != nullptr)
    {
       const scwx::util::time_zone* currentZone;

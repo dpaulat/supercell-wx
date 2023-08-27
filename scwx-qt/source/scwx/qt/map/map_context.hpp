@@ -26,13 +26,14 @@ public:
    MapContext(MapContext&&) noexcept;
    MapContext& operator=(MapContext&&) noexcept;
 
-   std::weak_ptr<QMapLibreGL::Map>         map() const;
-   MapSettings&                            settings();
-   float                                   pixel_ratio() const;
-   std::shared_ptr<view::RadarProductView> radar_product_view() const;
-   common::RadarProductGroup               radar_product_group() const;
-   std::string                             radar_product() const;
-   int16_t                                 radar_product_code() const;
+   std::weak_ptr<QMapLibreGL::Map>          map() const;
+   MapSettings&                             settings();
+   float                                    pixel_ratio() const;
+   std::shared_ptr<view::RadarProductView>  radar_product_view() const;
+   common::RadarProductGroup                radar_product_group() const;
+   std::string                              radar_product() const;
+   int16_t                                  radar_product_code() const;
+   QMapLibreGL::CustomLayerRenderParameters render_parameters() const;
 
    void set_map(std::shared_ptr<QMapLibreGL::Map> map);
    void set_pixel_ratio(float pixelRatio);
@@ -41,6 +42,8 @@ public:
    void set_radar_product_group(common::RadarProductGroup radarProductGroup);
    void set_radar_product(const std::string& radarProduct);
    void set_radar_product_code(int16_t radarProductCode);
+   void set_render_parameters(
+      const QMapLibreGL::CustomLayerRenderParameters& params);
 
 private:
    class Impl;

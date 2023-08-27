@@ -28,6 +28,16 @@ public:
    virtual void Render(const QMapLibreGL::CustomLayerRenderParameters&) = 0;
    virtual void Deinitialize()                                          = 0;
 
+   /**
+    * @brief Run mouse picking on the layer.
+    *
+    * @param [in] params Custom layer render parameters
+    *
+    * @return true if a draw item was picked, otherwise false
+    */
+   virtual bool
+   RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params);
+
 protected:
    std::shared_ptr<MapContext> context() const;
 
