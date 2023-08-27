@@ -33,6 +33,9 @@ public:
    void Render(const QMapLibreGL::CustomLayerRenderParameters& params) override;
    void Deinitialize() override;
 
+   bool RunMousePicking(
+      const QMapLibreGL::CustomLayerRenderParameters& params) override;
+
    /**
     * Resets and prepares the draw item for adding a new set of text.
     */

@@ -55,6 +55,7 @@ public:
    float         halfWidth_ {};
    float         halfHeight_ {};
    ImFont*       monospaceFont_ {};
+   std::string   hoverText_ {};
 
    units::length::nautical_miles<double> mapDistance_ {};
 
@@ -94,6 +95,7 @@ void PlacefileText::Render(
    {
       // Reset text ID per frame
       p->textId_ = 0;
+      p->hoverText_.clear();
 
       // Update map screen coordinate and scale information
       p->mapScreenCoordLocation_ = util::maplibre::LatLongToScreenCoordinate(
@@ -189,14 +191,10 @@ void PlacefileText::Impl::RenderText(
    ImGui::TextUnformatted(text.c_str());
    ImGui::PopStyleColor();
 
-   // Create tooltip for hover text
+   // Store hover text for mouse picking pass
    if (!hoverText.empty() && ImGui::IsItemHovered())
    {
-      ImGui::BeginTooltip();
-      ImGui::PushFont(monospaceFont_);
-      ImGui::TextUnformatted(hoverText.c_str());
-      ImGui::PopFont();
-      ImGui::EndTooltip();
+      hoverText_ = hoverText;
    }
 
    // End window
@@ -209,6 +207,26 @@ void PlacefileText::Deinitialize()
 
    // Clear the text list
    p->textList_.clear();
+}
+
+bool PlacefileText::RunMousePicking(
+   const QMapLibreGL::CustomLayerRenderParameters& /* params */)
+{
+   bool itemPicked = false;
+
+   // Create tooltip for hover text
+   if (!p->hoverText_.empty())
+   {
+      itemPicked = true;
+
+      ImGui::BeginTooltip();
+      ImGui::PushFont(p->monospaceFont_);
+      ImGui::TextUnformatted(p->hoverText_.c_str());
+      ImGui::PopFont();
+      ImGui::EndTooltip();
+   }
+
+   return itemPicked;
 }
 
 void PlacefileText::StartText()
