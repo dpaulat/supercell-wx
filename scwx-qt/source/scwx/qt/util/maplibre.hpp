@@ -15,6 +15,8 @@ namespace maplibre
 
 units::length::meters<double>
 GetMapDistance(const QMapLibreGL::CustomLayerRenderParameters& params);
+glm::mat4 GetMapMatrix(const QMapLibreGL::CustomLayerRenderParameters& params);
+glm::vec2 GetMapScale(const QMapLibreGL::CustomLayerRenderParameters& params);
 glm::vec2 LatLongToScreenCoordinate(const QMapLibreGL::Coordinate& coordinate);
 
 } // namespace maplibre

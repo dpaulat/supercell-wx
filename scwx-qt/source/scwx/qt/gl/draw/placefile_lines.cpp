@@ -1,7 +1,11 @@
 #include <scwx/qt/gl/draw/placefile_lines.hpp>
+#include <scwx/qt/manager/resource_manager.hpp>
+#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/util/logger.hpp>
+
+#include <imgui.h>
 
 namespace scwx
 {
@@ -28,6 +32,15 @@ static const boost::gil::rgba8_pixel_t kBlack_ {0, 0, 0, 255};
 class PlacefileLines::Impl
 {
 public:
+   struct LineHoverEntry
+   {
+      std::string hoverText_;
+      glm::vec2   p1_;
+      glm::vec2   p2_;
+      glm::mat2   rotate_;
+      float       width_;
+   };
+
    explicit Impl(const std::shared_ptr<GlContext>& context) :
        context_ {context},
        shaderProgram_ {nullptr},
@@ -46,9 +59,10 @@ public:
    void BufferLine(const gr::Placefile::LineDrawItem::Element& e1,
                    const gr::Placefile::LineDrawItem::Element& e2,
                    const float                                 width,
-                   const float                                 angle,
+                   const units::angle::degrees<double>         angle,
                    const boost::gil::rgba8_pixel_t             color,
-                   const GLint                                 threshold);
+                   const GLint                                 threshold,
+                   const std::string&                          hoverText = {});
    void
    UpdateBuffers(const std::shared_ptr<const gr::Placefile::LineDrawItem>& di);
    void Update();
@@ -67,6 +81,9 @@ public:
    std::vector<GLint> currentThresholdBuffer_ {};
    std::vector<float> newLinesBuffer_ {};
    std::vector<GLint> newThresholdBuffer_ {};
+
+   std::vector<LineHoverEntry> currentHoverLines_ {};
+   std::vector<LineHoverEntry> newHoverLines_ {};
 
    std::shared_ptr<ShaderProgram> shaderProgram_;
    GLint                          uMVPMatrixLocation_;
@@ -213,6 +230,125 @@ void PlacefileLines::Deinitialize()
 
    p->currentLinesBuffer_.clear();
    p->currentThresholdBuffer_.clear();
+   p->currentHoverLines_.clear();
+}
+
+void DrawTooltip(const std::string& hoverText)
+{
+   // Get monospace font pointer
+   std::size_t fontSize = 16;
+   auto        fontSizes =
+      manager::SettingsManager::general_settings().font_sizes().GetValue();
+   if (fontSizes.size() > 1)
+   {
+      fontSize = fontSizes[1];
+   }
+   else if (fontSizes.size() > 0)
+   {
+      fontSize = fontSizes[0];
+   }
+   auto monospace =
+      manager::ResourceManager::Font(types::Font::Inconsolata_Regular);
+   auto monospaceFont = monospace->ImGuiFont(fontSize);
+
+   ImGui::BeginTooltip();
+   ImGui::PushFont(monospaceFont);
+   ImGui::TextUnformatted(hoverText.c_str());
+   ImGui::PopFont();
+   ImGui::EndTooltip();
+}
+
+bool IsPointInPolygon(const std::vector<glm::vec2> vertices,
+                      const glm::vec2&             point)
+{
+   bool inPolygon = true;
+
+   // For each vertex, assume counterclockwise order
+   for (std::size_t i = 0; i < vertices.size(); ++i)
+   {
+      const auto& p1 = vertices[i];
+      const auto& p2 =
+         (i == vertices.size() - 1) ? vertices[0] : vertices[i + 1];
+
+      // Test which side of edge point lies on
+      const float a = -(p2.y - p1.y);
+      const float b = p2.x - p1.x;
+      const float c = -(a * p1.x + b * p1.y);
+      const float d = a * point.x + b * point.y + c;
+
+      // If d < 0, the point is on the right-hand side, and outside of the
+      // polygon
+      if (d < 0)
+      {
+         inPolygon = false;
+         break;
+      }
+   }
+
+   return inPolygon;
+}
+
+bool PlacefileLines::RunMousePicking(
+   const QMapLibreGL::CustomLayerRenderParameters& params,
+   const glm::vec2&                                mousePos)
+{
+   std::unique_lock lock {p->lineMutex_};
+
+   bool itemPicked = false;
+
+   // Calculate map scale, remove width and height from original calculation
+   glm::vec2 scale = util::maplibre::GetMapScale(params);
+   scale = 1.0f / glm::vec2 {scale.x * params.width, scale.y * params.height};
+
+   // Scale and rotate the identity matrix to create the map matrix
+   glm::mat4 mapMatrix {1.0f};
+   mapMatrix = glm::scale(mapMatrix, glm::vec3 {scale, 1.0f});
+   mapMatrix = glm::rotate(mapMatrix,
+                           glm::radians<float>(params.bearing),
+                           glm::vec3(0.0f, 0.0f, 1.0f));
+
+   // For each pickable line
+   for (auto& line : p->currentHoverLines_)
+   {
+      // Initialize vertices
+      glm::vec2 bl = line.p1_;
+      glm::vec2 br = bl;
+      glm::vec2 tl = line.p2_;
+      glm::vec2 tr = tl;
+
+      // Calculate offsets
+      // - Offset is half the line width (pixels) in each direction
+      // - Rotate the offset at each vertex
+      // - Multiply the offset by the map matrix
+      const float     hw = line.width_ * 0.5f;
+      const glm::vec2 otl =
+         mapMatrix *
+         glm::vec4 {line.rotate_ * glm::vec2 {-hw, -hw}, 0.0f, 1.0f};
+      const glm::vec2 obl =
+         mapMatrix * glm::vec4 {line.rotate_ * glm::vec2 {-hw, hw}, 0.0f, 1.0f};
+      const glm::vec2 obr =
+         mapMatrix * glm::vec4 {line.rotate_ * glm::vec2 {hw, hw}, 0.0f, 1.0f};
+      const glm::vec2 otr =
+         mapMatrix * glm::vec4 {line.rotate_ * glm::vec2 {hw, -hw}, 0.0f, 1.0f};
+
+      // Offset vertices
+      tl += otl;
+      bl += obl;
+      br += obr;
+      tr += otr;
+
+      // TODO: X/Y offsets
+
+      // Test point against polygon bounds
+      if (IsPointInPolygon({tl, bl, br, tr}, mousePos))
+      {
+         itemPicked = true;
+         DrawTooltip(line.hoverText_);
+         break;
+      }
+   }
+
+   return itemPicked;
 }
 
 void PlacefileLines::StartLines()
@@ -220,6 +356,7 @@ void PlacefileLines::StartLines()
    // Clear the new buffers
    p->newLinesBuffer_.clear();
    p->newThresholdBuffer_.clear();
+   p->newHoverLines_.clear();
 
    p->newNumLines_ = 0u;
 }
@@ -241,10 +378,12 @@ void PlacefileLines::FinishLines()
    // Swap buffers
    p->currentLinesBuffer_.swap(p->newLinesBuffer_);
    p->currentThresholdBuffer_.swap(p->newThresholdBuffer_);
+   p->currentHoverLines_.swap(p->newHoverLines_);
 
    // Clear the new buffers
    p->newLinesBuffer_.clear();
    p->newThresholdBuffer_.clear();
+   p->newHoverLines_.clear();
 
    // Update the number of lines
    p->currentNumLines_ = p->newNumLines_;
@@ -262,7 +401,7 @@ void PlacefileLines::Impl::UpdateBuffers(
    units::length::nautical_miles<double> threshold = di->threshold_;
    GLint thresholdValue = static_cast<GLint>(std::round(threshold.value()));
 
-   std::vector<float> angles {};
+   std::vector<units::angle::degrees<double>> angles {};
    angles.reserve(di->elements_.size() - 1);
 
    // For each element pair inside a Line statement, render a black line
@@ -277,26 +416,27 @@ void PlacefileLines::Impl::UpdateBuffers(
       // Calculate angle
       const units::angle::degrees<double> angle =
          util::GeographicLib::GetAngle(lat1, lon1, lat2, lon2);
-      float angleValue = angle.value();
-      angles.push_back(angleValue);
+      angles.push_back(angle);
 
+      // Buffer line with hover text
       BufferLine(di->elements_[i],
                  di->elements_[i + 1],
                  di->width_ + 2,
-                 static_cast<float>(angleValue),
+                 angle,
                  kBlack_,
-                 thresholdValue);
+                 thresholdValue,
+                 di->hoverText_);
    }
 
    // For each element pair inside a Line statement, render a colored line
    for (std::size_t i = 0; i < di->elements_.size() - 1; ++i)
    {
-      float angleValue = angles[i];
+      auto angle = angles[i];
 
       BufferLine(di->elements_[i],
                  di->elements_[i + 1],
                  di->width_,
-                 static_cast<float>(angleValue),
+                 angle,
                  di->color_,
                  thresholdValue);
    }
@@ -306,9 +446,10 @@ void PlacefileLines::Impl::BufferLine(
    const gr::Placefile::LineDrawItem::Element& e1,
    const gr::Placefile::LineDrawItem::Element& e2,
    const float                                 width,
-   const float                                 angle,
+   const units::angle::degrees<double>         angle,
    const boost::gil::rgba8_pixel_t             color,
-   const GLint                                 threshold)
+   const GLint                                 threshold,
+   const std::string&                          hoverText)
 {
    // Latitude and longitude coordinates in degrees
    const float lat1 = static_cast<float>(e1.latitude_);
@@ -323,7 +464,7 @@ void PlacefileLines::Impl::BufferLine(
    // const float y2 = static_cast<float>(e2.y_);
 
    // Angle
-   const float a = angle;
+   const float a = static_cast<float>(angle.value());
 
    // Final X/Y offsets in pixels
    const float hw = width * 0.5f;
@@ -352,6 +493,22 @@ void PlacefileLines::Impl::BufferLine(
    newThresholdBuffer_.insert(
       newThresholdBuffer_.end(),
       {threshold, threshold, threshold, threshold, threshold, threshold});
+
+   if (!hoverText.empty())
+   {
+      const units::angle::radians<double> radians = angle;
+
+      const auto sc1 = util::maplibre::LatLongToScreenCoordinate({lat1, lon1});
+      const auto sc2 = util::maplibre::LatLongToScreenCoordinate({lat2, lon2});
+
+      const float cosAngle = cosf(static_cast<float>(radians.value()));
+      const float sinAngle = sinf(static_cast<float>(radians.value()));
+
+      const glm::mat2 rotate {cosAngle, -sinAngle, sinAngle, cosAngle};
+
+      newHoverLines_.emplace_back(
+         LineHoverEntry {hoverText, sc1, sc2, rotate, width});
+   }
 }
 
 void PlacefileLines::Impl::Update()

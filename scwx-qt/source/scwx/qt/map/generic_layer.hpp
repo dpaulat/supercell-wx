@@ -6,6 +6,7 @@
 
 #include <QObject>
 #include <QMapLibreGL/QMapLibreGL>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace scwx
 {
@@ -32,11 +33,13 @@ public:
     * @brief Run mouse picking on the layer.
     *
     * @param [in] params Custom layer render parameters
+    * @param [in] mousePos Mouse cursor location in map screen coordinates
     *
     * @return true if a draw item was picked, otherwise false
     */
    virtual bool
-   RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params);
+   RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params,
+                   const glm::vec2&                                mousePos);
 
 protected:
    std::shared_ptr<MapContext> context() const;

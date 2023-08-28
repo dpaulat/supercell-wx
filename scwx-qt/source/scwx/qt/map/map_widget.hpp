@@ -119,7 +119,9 @@ private:
    qreal pixelRatio();
 
    // QWidget implementation.
+   void enterEvent(QEnterEvent* ev) override final;
    void keyPressEvent(QKeyEvent* ev) override final;
+   void leaveEvent(QEvent* ev) override final;
    void mousePressEvent(QMouseEvent* ev) override final;
    void mouseMoveEvent(QMouseEvent* ev) override final;
    void wheelEvent(QWheelEvent* ev) override final;

@@ -54,7 +54,8 @@ void DrawItem::Render(const QMapLibreGL::CustomLayerRenderParameters& params,
 }
 
 bool DrawItem::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& /* params */)
+   const QMapLibreGL::CustomLayerRenderParameters& /* params */,
+   const glm::vec2& /* mousePos */)
 {
    // By default, the draw item is not picked
    return false;
@@ -97,17 +98,7 @@ void DrawItem::UseMapProjection(
 {
    OpenGLFunctions& gl = p->gl_;
 
-   // TODO: Refactor to utility class
-   const float scale = std::pow(2.0, params.zoom) * 2.0f *
-                       mbgl::util::tileSize_D / mbgl::util::DEGREES_MAX;
-   const float xScale = scale / params.width;
-   const float yScale = scale / params.height;
-
-   glm::mat4 uMVPMatrix(1.0f);
-   uMVPMatrix = glm::scale(uMVPMatrix, glm::vec3(xScale, yScale, 1.0f));
-   uMVPMatrix = glm::rotate(uMVPMatrix,
-                            glm::radians<float>(params.bearing),
-                            glm::vec3(0.0f, 0.0f, 1.0f));
+   const glm::mat4 uMVPMatrix = util::maplibre::GetMapMatrix(params);
 
    gl.glUniform2fv(uMapScreenCoordLocation,
                    1,

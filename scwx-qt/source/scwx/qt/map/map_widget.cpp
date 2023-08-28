@@ -13,6 +13,7 @@
 #include <scwx/qt/map/radar_range_layer.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
 #include <scwx/qt/util/file.hpp>
+#include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
@@ -172,6 +173,7 @@ public:
 
    common::Level2Product selectedLevel2Product_;
 
+   bool            hasMouse_ {false};
    QPointF         lastPos_;
    std::size_t     currentStyleIndex_;
    const MapStyle* currentStyle_;
@@ -862,6 +864,16 @@ void MapWidgetImpl::AddLayer(const std::string&            id,
    layerList_.push_back(id);
 }
 
+void MapWidget::enterEvent(QEnterEvent* /* ev */)
+{
+   p->hasMouse_ = true;
+}
+
+void MapWidget::leaveEvent(QEvent* /* ev */)
+{
+   p->hasMouse_ = false;
+}
+
 void MapWidget::keyPressEvent(QKeyEvent* ev)
 {
    switch (ev->key())
@@ -1024,7 +1036,10 @@ void MapWidget::paintGL()
    p->map_->render();
 
    // Perform mouse picking
-   p->RunMousePicking();
+   if (p->hasMouse_)
+   {
+      p->RunMousePicking();
+   }
 
    // Render ImGui Frame
    ImGui::Render();
@@ -1039,13 +1054,17 @@ void MapWidgetImpl::RunMousePicking()
    const QMapLibreGL::CustomLayerRenderParameters params =
       context_->render_parameters();
 
+   auto coordinate = map_->coordinateForPixel(lastPos_);
+   auto mouseScreenCoordinate =
+      util::maplibre::LatLongToScreenCoordinate(coordinate);
+
    // For each layer in reverse
    // TODO: All Generic Layers, not just Placefile Layers
    for (auto it = placefileLayers_.rbegin(); it != placefileLayers_.rend();
         ++it)
    {
       // Run mouse picking for each layer
-      if ((*it)->RunMousePicking(params))
+      if ((*it)->RunMousePicking(params, mouseScreenCoordinate))
       {
          // If a draw item was picked, don't process additional layers
          break;

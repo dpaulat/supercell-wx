@@ -210,7 +210,8 @@ void PlacefileText::Deinitialize()
 }
 
 bool PlacefileText::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& /* params */)
+   const QMapLibreGL::CustomLayerRenderParameters& /* params */,
+   const glm::vec2& /* mousePos */)
 {
    bool itemPicked = false;
 

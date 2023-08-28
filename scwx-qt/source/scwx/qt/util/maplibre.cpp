@@ -20,6 +20,29 @@ GetMapDistance(const QMapLibreGL::CustomLayerRenderParameters& params)
       (params.width + params.height) / 2.0);
 }
 
+glm::mat4 GetMapMatrix(const QMapLibreGL::CustomLayerRenderParameters& params)
+{
+   glm::vec2 scale = GetMapScale(params);
+
+   glm::mat4 mapMatrix(1.0f);
+   mapMatrix = glm::scale(mapMatrix, glm::vec3(scale, 1.0f));
+   mapMatrix = glm::rotate(mapMatrix,
+                           glm::radians<float>(params.bearing),
+                           glm::vec3(0.0f, 0.0f, 1.0f));
+
+   return mapMatrix;
+}
+
+glm::vec2 GetMapScale(const QMapLibreGL::CustomLayerRenderParameters& params)
+{
+   const float scale = std::pow(2.0, params.zoom) * 2.0f *
+                       mbgl::util::tileSize_D / mbgl::util::DEGREES_MAX;
+   const float xScale = scale / params.width;
+   const float yScale = scale / params.height;
+
+   return glm::vec2 {xScale, yScale};
+}
+
 glm::vec2 LatLongToScreenCoordinate(const QMapLibreGL::Coordinate& coordinate)
 {
    static constexpr double RAD2DEG_D = 180.0 / M_PI;
