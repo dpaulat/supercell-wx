@@ -4,6 +4,8 @@
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <execution>
+
 namespace scwx
 {
 namespace qt
@@ -255,37 +257,42 @@ bool PlacefileLines::RunMousePicking(
                            glm::vec3(0.0f, 0.0f, 1.0f));
 
    // For each pickable line
-   for (auto& line : p->currentHoverLines_)
-   {
-      // Initialize vertices
-      glm::vec2 bl = line.p1_;
-      glm::vec2 br = bl;
-      glm::vec2 tl = line.p2_;
-      glm::vec2 tr = tl;
-
-      // Calculate offsets
-      // - Pre-rotated offset is half the line width (pixels) in each direction
-      // - Multiply the offset by the scaled and rotated map matrix
-      const glm::vec2 otl = mapMatrix * glm::vec4 {line.otl_, 0.0f, 1.0f};
-      const glm::vec2 obl = mapMatrix * glm::vec4 {line.obl_, 0.0f, 1.0f};
-      const glm::vec2 obr = mapMatrix * glm::vec4 {line.obr_, 0.0f, 1.0f};
-      const glm::vec2 otr = mapMatrix * glm::vec4 {line.otr_, 0.0f, 1.0f};
-
-      // Offset vertices
-      tl += otl;
-      bl += obl;
-      br += obr;
-      tr += otr;
-
-      // TODO: X/Y offsets
-
-      // Test point against polygon bounds
-      if (util::maplibre::IsPointInPolygon({tl, bl, br, tr}, mousePos))
+   auto it = std::find_if(
+      std::execution::par_unseq,
+      p->currentHoverLines_.cbegin(),
+      p->currentHoverLines_.cend(),
+      [&mapMatrix, &mousePos](const auto& line)
       {
-         itemPicked = true;
-         util::ImGui::Instance().DrawTooltip(line.di_->hoverText_);
-         break;
-      }
+         // Initialize vertices
+         glm::vec2 bl = line.p1_;
+         glm::vec2 br = bl;
+         glm::vec2 tl = line.p2_;
+         glm::vec2 tr = tl;
+
+         // Calculate offsets
+         // - Rotated offset is half the line width (pixels) in each direction
+         // - Multiply the offset by the scaled and rotated map matrix
+         const glm::vec2 otl = mapMatrix * glm::vec4 {line.otl_, 0.0f, 1.0f};
+         const glm::vec2 obl = mapMatrix * glm::vec4 {line.obl_, 0.0f, 1.0f};
+         const glm::vec2 obr = mapMatrix * glm::vec4 {line.obr_, 0.0f, 1.0f};
+         const glm::vec2 otr = mapMatrix * glm::vec4 {line.otr_, 0.0f, 1.0f};
+
+         // Offset vertices
+         tl += otl;
+         bl += obl;
+         br += obr;
+         tr += otr;
+
+         // TODO: X/Y offsets
+
+         // Test point against polygon bounds
+         return util::maplibre::IsPointInPolygon({tl, bl, br, tr}, mousePos);
+      });
+
+   if (it != p->currentHoverLines_.cend())
+   {
+      itemPicked = true;
+      util::ImGui::Instance().DrawTooltip(it->di_->hoverText_);
    }
 
    return itemPicked;
