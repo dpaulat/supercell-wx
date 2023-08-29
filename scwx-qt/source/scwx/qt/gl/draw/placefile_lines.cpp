@@ -34,11 +34,15 @@ class PlacefileLines::Impl
 public:
    struct LineHoverEntry
    {
-      std::string hoverText_;
-      glm::vec2   p1_;
-      glm::vec2   p2_;
-      glm::mat2   rotate_;
-      float       width_;
+      std::shared_ptr<const gr::Placefile::LineDrawItem> di_;
+
+      glm::vec2 p1_;
+      glm::vec2 p2_;
+      glm::vec2 otl_;
+      glm::vec2 otr_;
+      glm::vec2 obl_;
+      glm::vec2 obr_;
+      float     width_;
    };
 
    explicit Impl(const std::shared_ptr<GlContext>& context) :
@@ -56,13 +60,14 @@ public:
 
    ~Impl() {}
 
-   void BufferLine(const gr::Placefile::LineDrawItem::Element& e1,
-                   const gr::Placefile::LineDrawItem::Element& e2,
-                   const float                                 width,
-                   const units::angle::degrees<double>         angle,
-                   const boost::gil::rgba8_pixel_t             color,
-                   const GLint                                 threshold,
-                   const std::string&                          hoverText = {});
+   void BufferLine(const std::shared_ptr<const gr::Placefile::LineDrawItem>& di,
+                   const gr::Placefile::LineDrawItem::Element&               e1,
+                   const gr::Placefile::LineDrawItem::Element&               e2,
+                   const float                         width,
+                   const units::angle::degrees<double> angle,
+                   const boost::gil::rgba8_pixel_t     color,
+                   const GLint                         threshold,
+                   bool                                bufferHover = false);
    void
    UpdateBuffers(const std::shared_ptr<const gr::Placefile::LineDrawItem>& di);
    void Update();
@@ -298,7 +303,7 @@ bool PlacefileLines::RunMousePicking(
 
    // Calculate map scale, remove width and height from original calculation
    glm::vec2 scale = util::maplibre::GetMapScale(params);
-   scale = 1.0f / glm::vec2 {scale.x * params.width, scale.y * params.height};
+   scale = 2.0f / glm::vec2 {scale.x * params.width, scale.y * params.height};
 
    // Scale and rotate the identity matrix to create the map matrix
    glm::mat4 mapMatrix {1.0f};
@@ -317,19 +322,12 @@ bool PlacefileLines::RunMousePicking(
       glm::vec2 tr = tl;
 
       // Calculate offsets
-      // - Offset is half the line width (pixels) in each direction
-      // - Rotate the offset at each vertex
-      // - Multiply the offset by the map matrix
-      const float     hw = line.width_ * 0.5f;
-      const glm::vec2 otl =
-         mapMatrix *
-         glm::vec4 {line.rotate_ * glm::vec2 {-hw, -hw}, 0.0f, 1.0f};
-      const glm::vec2 obl =
-         mapMatrix * glm::vec4 {line.rotate_ * glm::vec2 {-hw, hw}, 0.0f, 1.0f};
-      const glm::vec2 obr =
-         mapMatrix * glm::vec4 {line.rotate_ * glm::vec2 {hw, hw}, 0.0f, 1.0f};
-      const glm::vec2 otr =
-         mapMatrix * glm::vec4 {line.rotate_ * glm::vec2 {hw, -hw}, 0.0f, 1.0f};
+      // - Pre-rotated offset is half the line width (pixels) in each direction
+      // - Multiply the offset by the scaled and rotated map matrix
+      const glm::vec2 otl = mapMatrix * glm::vec4 {line.otl_, 0.0f, 1.0f};
+      const glm::vec2 obl = mapMatrix * glm::vec4 {line.obl_, 0.0f, 1.0f};
+      const glm::vec2 obr = mapMatrix * glm::vec4 {line.obr_, 0.0f, 1.0f};
+      const glm::vec2 otr = mapMatrix * glm::vec4 {line.otr_, 0.0f, 1.0f};
 
       // Offset vertices
       tl += otl;
@@ -343,7 +341,7 @@ bool PlacefileLines::RunMousePicking(
       if (IsPointInPolygon({tl, bl, br, tr}, mousePos))
       {
          itemPicked = true;
-         DrawTooltip(line.hoverText_);
+         DrawTooltip(line.di_->hoverText_);
          break;
       }
    }
@@ -419,13 +417,14 @@ void PlacefileLines::Impl::UpdateBuffers(
       angles.push_back(angle);
 
       // Buffer line with hover text
-      BufferLine(di->elements_[i],
+      BufferLine(di,
+                 di->elements_[i],
                  di->elements_[i + 1],
                  di->width_ + 2,
                  angle,
                  kBlack_,
                  thresholdValue,
-                 di->hoverText_);
+                 true);
    }
 
    // For each element pair inside a Line statement, render a colored line
@@ -433,7 +432,8 @@ void PlacefileLines::Impl::UpdateBuffers(
    {
       auto angle = angles[i];
 
-      BufferLine(di->elements_[i],
+      BufferLine(di,
+                 di->elements_[i],
                  di->elements_[i + 1],
                  di->width_,
                  angle,
@@ -443,13 +443,14 @@ void PlacefileLines::Impl::UpdateBuffers(
 }
 
 void PlacefileLines::Impl::BufferLine(
-   const gr::Placefile::LineDrawItem::Element& e1,
-   const gr::Placefile::LineDrawItem::Element& e2,
-   const float                                 width,
-   const units::angle::degrees<double>         angle,
-   const boost::gil::rgba8_pixel_t             color,
-   const GLint                                 threshold,
-   const std::string&                          hoverText)
+   const std::shared_ptr<const gr::Placefile::LineDrawItem>& di,
+   const gr::Placefile::LineDrawItem::Element&               e1,
+   const gr::Placefile::LineDrawItem::Element&               e2,
+   const float                                               width,
+   const units::angle::degrees<double>                       angle,
+   const boost::gil::rgba8_pixel_t                           color,
+   const GLint                                               threshold,
+   bool                                                      bufferHover)
 {
    // Latitude and longitude coordinates in degrees
    const float lat1 = static_cast<float>(e1.latitude_);
@@ -494,7 +495,7 @@ void PlacefileLines::Impl::BufferLine(
       newThresholdBuffer_.end(),
       {threshold, threshold, threshold, threshold, threshold, threshold});
 
-   if (!hoverText.empty())
+   if (bufferHover && !di->hoverText_.empty())
    {
       const units::angle::radians<double> radians = angle;
 
@@ -506,8 +507,13 @@ void PlacefileLines::Impl::BufferLine(
 
       const glm::mat2 rotate {cosAngle, -sinAngle, sinAngle, cosAngle};
 
+      const glm::vec2 otl = rotate * glm::vec2 {-hw, +hw};
+      const glm::vec2 otr = rotate * glm::vec2 {+hw, +hw};
+      const glm::vec2 obl = rotate * glm::vec2 {-hw, -hw};
+      const glm::vec2 obr = rotate * glm::vec2 {+hw, -hw};
+
       newHoverLines_.emplace_back(
-         LineHoverEntry {hoverText, sc1, sc2, rotate, width});
+         LineHoverEntry {di, sc1, sc2, otl, otr, obl, obr, width});
    }
 }
 
