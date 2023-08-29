@@ -43,6 +43,36 @@ glm::vec2 GetMapScale(const QMapLibreGL::CustomLayerRenderParameters& params)
    return glm::vec2 {xScale, yScale};
 }
 
+bool IsPointInPolygon(const std::vector<glm::vec2>& vertices,
+                      const glm::vec2&              point)
+{
+   bool inPolygon = true;
+
+   // For each vertex, assume counterclockwise order
+   for (std::size_t i = 0; i < vertices.size(); ++i)
+   {
+      const auto& p1 = vertices[i];
+      const auto& p2 =
+         (i == vertices.size() - 1) ? vertices[0] : vertices[i + 1];
+
+      // Test which side of edge point lies on
+      const float a = -(p2.y - p1.y);
+      const float b = p2.x - p1.x;
+      const float c = -(a * p1.x + b * p1.y);
+      const float d = a * point.x + b * point.y + c;
+
+      // If d < 0, the point is on the right-hand side, and outside of the
+      // polygon
+      if (d < 0)
+      {
+         inPolygon = false;
+         break;
+      }
+   }
+
+   return inPolygon;
+}
+
 glm::vec2 LatLongToScreenCoordinate(const QMapLibreGL::Coordinate& coordinate)
 {
    static constexpr double RAD2DEG_D = 180.0 / M_PI;

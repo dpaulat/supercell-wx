@@ -1,11 +1,8 @@
 #include <scwx/qt/gl/draw/placefile_lines.hpp>
-#include <scwx/qt/manager/resource_manager.hpp>
-#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
+#include <scwx/qt/util/imgui.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/util/logger.hpp>
-
-#include <imgui.h>
 
 namespace scwx
 {
@@ -238,61 +235,6 @@ void PlacefileLines::Deinitialize()
    p->currentHoverLines_.clear();
 }
 
-void DrawTooltip(const std::string& hoverText)
-{
-   // Get monospace font pointer
-   std::size_t fontSize = 16;
-   auto        fontSizes =
-      manager::SettingsManager::general_settings().font_sizes().GetValue();
-   if (fontSizes.size() > 1)
-   {
-      fontSize = fontSizes[1];
-   }
-   else if (fontSizes.size() > 0)
-   {
-      fontSize = fontSizes[0];
-   }
-   auto monospace =
-      manager::ResourceManager::Font(types::Font::Inconsolata_Regular);
-   auto monospaceFont = monospace->ImGuiFont(fontSize);
-
-   ImGui::BeginTooltip();
-   ImGui::PushFont(monospaceFont);
-   ImGui::TextUnformatted(hoverText.c_str());
-   ImGui::PopFont();
-   ImGui::EndTooltip();
-}
-
-bool IsPointInPolygon(const std::vector<glm::vec2> vertices,
-                      const glm::vec2&             point)
-{
-   bool inPolygon = true;
-
-   // For each vertex, assume counterclockwise order
-   for (std::size_t i = 0; i < vertices.size(); ++i)
-   {
-      const auto& p1 = vertices[i];
-      const auto& p2 =
-         (i == vertices.size() - 1) ? vertices[0] : vertices[i + 1];
-
-      // Test which side of edge point lies on
-      const float a = -(p2.y - p1.y);
-      const float b = p2.x - p1.x;
-      const float c = -(a * p1.x + b * p1.y);
-      const float d = a * point.x + b * point.y + c;
-
-      // If d < 0, the point is on the right-hand side, and outside of the
-      // polygon
-      if (d < 0)
-      {
-         inPolygon = false;
-         break;
-      }
-   }
-
-   return inPolygon;
-}
-
 bool PlacefileLines::RunMousePicking(
    const QMapLibreGL::CustomLayerRenderParameters& params,
    const glm::vec2&                                mousePos)
@@ -338,10 +280,10 @@ bool PlacefileLines::RunMousePicking(
       // TODO: X/Y offsets
 
       // Test point against polygon bounds
-      if (IsPointInPolygon({tl, bl, br, tr}, mousePos))
+      if (util::maplibre::IsPointInPolygon({tl, bl, br, tr}, mousePos))
       {
          itemPicked = true;
-         DrawTooltip(line.di_->hoverText_);
+         util::ImGui::Instance().DrawTooltip(line.di_->hoverText_);
          break;
       }
    }
@@ -430,13 +372,11 @@ void PlacefileLines::Impl::UpdateBuffers(
    // For each element pair inside a Line statement, render a colored line
    for (std::size_t i = 0; i < di->elements_.size() - 1; ++i)
    {
-      auto angle = angles[i];
-
       BufferLine(di,
                  di->elements_[i],
                  di->elements_[i + 1],
                  di->width_,
-                 angle,
+                 angles[i],
                  di->color_,
                  thresholdValue);
    }

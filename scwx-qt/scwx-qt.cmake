@@ -210,6 +210,7 @@ set(HDR_UTIL source/scwx/qt/util/color.hpp
              source/scwx/qt/util/font.hpp
              source/scwx/qt/util/font_buffer.hpp
              source/scwx/qt/util/geographic_lib.hpp
+             source/scwx/qt/util/imgui.hpp
              source/scwx/qt/util/json.hpp
              source/scwx/qt/util/maplibre.hpp
              source/scwx/qt/util/network.hpp
@@ -223,6 +224,7 @@ set(SRC_UTIL source/scwx/qt/util/color.cpp
              source/scwx/qt/util/font.cpp
              source/scwx/qt/util/font_buffer.cpp
              source/scwx/qt/util/geographic_lib.cpp
+             source/scwx/qt/util/imgui.cpp
              source/scwx/qt/util/json.cpp
              source/scwx/qt/util/maplibre.cpp
              source/scwx/qt/util/network.cpp

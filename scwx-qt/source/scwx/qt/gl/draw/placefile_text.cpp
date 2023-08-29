@@ -1,6 +1,5 @@
 #include <scwx/qt/gl/draw/placefile_text.hpp>
-#include <scwx/qt/manager/resource_manager.hpp>
-#include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/util/imgui.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -54,7 +53,6 @@ public:
    float         mapBearingSin_ {0.0f};
    float         halfWidth_ {};
    float         halfHeight_ {};
-   ImFont*       monospaceFont_ {};
    std::string   hoverText_ {};
 
    units::length::nautical_miles<double> mapDistance_ {};
@@ -107,22 +105,6 @@ void PlacefileText::Render(
       p->halfWidth_     = params.width * 0.5f;
       p->halfHeight_    = params.height * 0.5f;
       p->mapDistance_   = util::maplibre::GetMapDistance(params);
-
-      // Get monospace font pointer
-      std::size_t fontSize = 16;
-      auto        fontSizes =
-         manager::SettingsManager::general_settings().font_sizes().GetValue();
-      if (fontSizes.size() > 1)
-      {
-         fontSize = fontSizes[1];
-      }
-      else if (fontSizes.size() > 0)
-      {
-         fontSize = fontSizes[0];
-      }
-      auto monospace =
-         manager::ResourceManager::Font(types::Font::Inconsolata_Regular);
-      p->monospaceFont_ = monospace->ImGuiFont(fontSize);
 
       for (auto& di : p->textList_)
       {
@@ -219,12 +201,7 @@ bool PlacefileText::RunMousePicking(
    if (!p->hoverText_.empty())
    {
       itemPicked = true;
-
-      ImGui::BeginTooltip();
-      ImGui::PushFont(p->monospaceFont_);
-      ImGui::TextUnformatted(p->hoverText_.c_str());
-      ImGui::PopFont();
-      ImGui::EndTooltip();
+      util::ImGui::Instance().DrawTooltip(p->hoverText_);
    }
 
    return itemPicked;
