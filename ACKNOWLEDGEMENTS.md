@@ -36,6 +36,8 @@ Supercell Wx uses code from the following dependencies:
 | [spdlog](https://github.com/gabime/spdlog) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [SQLite](https://www.sqlite.org/) | Public Domain |
 | [stb](https://github.com/nothings/stb) | Public Domain |
+| [TextFlowCpp](https://github.com/catchorg/textflowcpp) | [Boost Software License 1.0](https://spdx.org/licenses/BSL-1.0.html) |
+| [Units](https://github.com/nholthaus/units) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [Vulkan SDK](https://www.vulkan.org/) | [Apache License 2.0](https://spdx.org/licenses/Apache-2.0.html) |
 | [zlib](https://zlib.net/) | [zlib License](https://spdx.org/licenses/Zlib.html) |
 

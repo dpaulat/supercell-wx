@@ -5,6 +5,7 @@
 
 #include <mutex>
 
+#include <TextFlow.hpp>
 #include <imgui.h>
 
 namespace scwx
@@ -85,11 +86,16 @@ void ImGui::Impl::UpdateMonospaceFont()
 
 void ImGui::DrawTooltip(const std::string& hoverText)
 {
+   static constexpr std::size_t kDefaultWidth = 80u;
+
    p->Initialize();
+
+   auto wrappedText =
+      TextFlow::Column(hoverText).width(kDefaultWidth).toString();
 
    ::ImGui::BeginTooltip();
    ::ImGui::PushFont(p->monospaceFont_);
-   ::ImGui::TextUnformatted(hoverText.c_str());
+   ::ImGui::TextUnformatted(wrappedText.c_str());
    ::ImGui::PopFont();
    ::ImGui::EndTooltip();
 }
