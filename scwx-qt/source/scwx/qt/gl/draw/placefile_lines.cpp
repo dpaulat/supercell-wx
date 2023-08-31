@@ -259,8 +259,8 @@ bool PlacefileLines::RunMousePicking(
    // For each pickable line
    auto it = std::find_if(
       std::execution::par_unseq,
-      p->currentHoverLines_.cbegin(),
-      p->currentHoverLines_.cend(),
+      p->currentHoverLines_.crbegin(),
+      p->currentHoverLines_.crend(),
       [&mapMatrix, &mousePos](const auto& line)
       {
          // Initialize vertices
@@ -289,7 +289,7 @@ bool PlacefileLines::RunMousePicking(
          return util::maplibre::IsPointInPolygon({tl, bl, br, tr}, mousePos);
       });
 
-   if (it != p->currentHoverLines_.cend())
+   if (it != p->currentHoverLines_.crend())
    {
       itemPicked = true;
       util::ImGui::Instance().DrawTooltip(it->di_->hoverText_);
