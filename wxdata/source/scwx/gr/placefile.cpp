@@ -1,3 +1,8 @@
+// Enable chrono formatters
+#ifndef __cpp_lib_format
+#   define __cpp_lib_format 202110L
+#endif
+
 #include <scwx/gr/placefile.hpp>
 #include <scwx/gr/color.hpp>
 #include <scwx/util/logger.hpp>
@@ -9,6 +14,10 @@
 #include <unordered_map>
 
 #include <boost/algorithm/string.hpp>
+
+#if !defined(_MSC_VER)
+#   include <date/date.h>
+#endif
 
 using namespace units::literals;
 
@@ -59,10 +68,13 @@ public:
    std::chrono::seconds refresh_ {-1};
 
    // Parsing state
-   units::length::nautical_miles<double> threshold_ {999.0_nmi};
-   boost::gil::rgba8_pixel_t             color_ {255, 255, 255, 255};
-   ColorMode                             colorMode_ {ColorMode::RGBA};
-   std::vector<Object>                   objectStack_ {};
+   units::length::nautical_miles<double>       threshold_ {999.0_nmi};
+   boost::gil::rgba8_pixel_t                   color_ {255, 255, 255, 255};
+   ColorMode                                   colorMode_ {ColorMode::RGBA};
+   std::chrono::sys_time<std::chrono::seconds> startTime_ {};
+   std::chrono::sys_time<std::chrono::seconds> endTime_ {};
+
+   std::vector<Object>       objectStack_ {};
    DrawingStatement          currentStatement_ {DrawingStatement::Standard};
    std::shared_ptr<DrawItem> currentDrawItem_ {nullptr};
    std::vector<PolygonDrawItem::Element> currentPolygonContour_ {};
@@ -256,8 +268,46 @@ void Placefile::Impl::ProcessLine(const std::string& line)
    else if (boost::istarts_with(line, timeRangeKey_))
    {
       // TimeRange: start_time end_time
+      //   (YYYY-MM-DDThh:mm:ss)
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {" ", " "}, timeRangeKey_.size());
 
-      // TODO
+      if (tokenList.size() >= 2)
+      {
+         using namespace std::chrono;
+
+#if !defined(_MSC_VER)
+         using namespace date;
+#endif
+
+         static const std::string dateTimeFormat {"%Y-%m-%dT%H:%M:%S"};
+
+         std::istringstream ssStartTime {tokenList[0]};
+         std::istringstream ssEndTime {tokenList[1]};
+
+         std::chrono::sys_time<seconds> startTime;
+         std::chrono::sys_time<seconds> endTime;
+
+         ssStartTime >> parse(dateTimeFormat, startTime);
+         ssEndTime >> parse(dateTimeFormat, endTime);
+
+         if (!ssStartTime.fail() && !ssEndTime.fail())
+         {
+            startTime_ = startTime;
+            endTime_   = endTime;
+         }
+         else
+         {
+            startTime_ = {};
+            endTime_   = {};
+
+            logger_->warn("TimeRange statement parse error: {}", line);
+         }
+      }
+      else
+      {
+         logger_->warn("TimeRange statement malformed: {}", line);
+      }
    }
    else if (boost::istarts_with(line, hsluvKey_))
    {
@@ -322,6 +372,8 @@ void Placefile::Impl::ProcessLine(const std::string& line)
 
          di->threshold_ = threshold_;
          di->color_     = color_;
+         di->startTime_ = startTime_;
+         di->endTime_   = endTime_;
 
          ParseLocation(tokenList[0],
                        tokenList[1],
@@ -379,6 +431,8 @@ void Placefile::Impl::ProcessLine(const std::string& line)
          di = std::make_shared<IconDrawItem>();
 
          di->threshold_ = threshold_;
+         di->startTime_ = startTime_;
+         di->endTime_   = endTime_;
 
          ParseLocation(tokenList[0],
                        tokenList[1],
@@ -446,6 +500,8 @@ void Placefile::Impl::ProcessLine(const std::string& line)
 
          di->threshold_ = threshold_;
          di->color_     = color_;
+         di->startTime_ = startTime_;
+         di->endTime_   = endTime_;
 
          ParseLocation(tokenList[0],
                        tokenList[1],
@@ -526,6 +582,8 @@ void Placefile::Impl::ProcessLine(const std::string& line)
 
          di->threshold_ = threshold_;
          di->color_     = color_;
+         di->startTime_ = startTime_;
+         di->endTime_   = endTime_;
 
          di->width_ = std::stoul(tokenList[0]);
          di->flags_ = std::stoul(tokenList[1]);
@@ -560,6 +618,8 @@ void Placefile::Impl::ProcessLine(const std::string& line)
 
       di->threshold_ = threshold_;
       di->color_     = color_;
+      di->startTime_ = startTime_;
+      di->endTime_   = endTime_;
 
       currentDrawItem_ = di;
       drawItems_.emplace_back(std::move(di));
@@ -582,6 +642,8 @@ void Placefile::Impl::ProcessLine(const std::string& line)
          di = std::make_shared<ImageDrawItem>();
 
          di->threshold_ = threshold_;
+         di->startTime_ = startTime_;
+         di->endTime_   = endTime_;
 
          TrimQuotes(tokenList[0]);
          di->imageFile_.swap(tokenList[0]);
@@ -612,6 +674,8 @@ void Placefile::Impl::ProcessLine(const std::string& line)
 
       di->threshold_ = threshold_;
       di->color_     = color_;
+      di->startTime_ = startTime_;
+      di->endTime_   = endTime_;
 
       currentDrawItem_ = di;
       drawItems_.emplace_back(std::move(di));

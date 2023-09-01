@@ -71,8 +71,10 @@ public:
 
    struct DrawItem
    {
-      ItemType                              itemType_ {ItemType::Unknown};
-      units::length::nautical_miles<double> threshold_ {};
+      ItemType                                    itemType_ {ItemType::Unknown};
+      units::length::nautical_miles<double>       threshold_ {};
+      std::chrono::sys_time<std::chrono::seconds> startTime_ {};
+      std::chrono::sys_time<std::chrono::seconds> endTime_ {};
    };
 
    struct IconDrawItem : DrawItem
