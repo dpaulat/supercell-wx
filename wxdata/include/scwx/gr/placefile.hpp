@@ -142,6 +142,25 @@ public:
       std::vector<Element> elements_ {};
    };
 
+   struct ImageDrawItem : DrawItem
+   {
+      ImageDrawItem() { itemType_ = ItemType::Image; }
+
+      std::string imageFile_ {};
+
+      struct Element
+      {
+         double latitude_ {};
+         double longitude_ {};
+         double x_ {};
+         double y_ {};
+         double tu_ {};
+         double tv_ {};
+      };
+
+      std::vector<Element> elements_ {};
+   };
+
    struct PolygonDrawItem : DrawItem
    {
       PolygonDrawItem() { itemType_ = ItemType::Polygon; }

@@ -570,9 +570,29 @@ void Placefile::Impl::ProcessLine(const std::string& line)
       //    lat, lon, Tu [, Tv ]
       //    ...
       // End:
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {" "}, imageKey_.size());
+
       currentStatement_ = DrawingStatement::Image;
 
-      // TODO
+      std::shared_ptr<ImageDrawItem> di = nullptr;
+
+      if (tokenList.size() >= 1)
+      {
+         di = std::make_shared<ImageDrawItem>();
+
+         di->threshold_ = threshold_;
+
+         TrimQuotes(tokenList[0]);
+         di->imageFile_.swap(tokenList[0]);
+
+         currentDrawItem_ = di;
+         drawItems_.emplace_back(std::move(di));
+      }
+      else
+      {
+         logger_->warn("Image statement malformed: {}", line);
+      }
    }
    else if (boost::istarts_with(line, polygonKey_))
    {
@@ -662,6 +682,48 @@ void Placefile::Impl::ProcessElement(const std::string& line)
       else
       {
          logger_->warn("Triangles sub-statement malformed: {}", line);
+      }
+   }
+   else if (currentStatement_ == DrawingStatement::Image)
+   {
+      // Image: image_file
+      //    lat, lon, Tu [, Tv ]
+      //    ...
+      // End:
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {",", ",", ",", ","});
+
+      ImageDrawItem::Element element;
+
+      if (tokenList.size() >= 3)
+      {
+         ParseLocation(tokenList[0],
+                       tokenList[1],
+                       element.latitude_,
+                       element.longitude_,
+                       element.x_,
+                       element.y_);
+
+         element.tu_ = std::stod(tokenList[2]);
+      }
+
+      if (tokenList.size() >= 4)
+      {
+         element.tv_ = std::stod(tokenList[3]);
+      }
+      else
+      {
+         element.tv_ = element.tu_;
+      }
+
+      if (tokenList.size() >= 3)
+      {
+         std::static_pointer_cast<ImageDrawItem>(currentDrawItem_)
+            ->elements_.emplace_back(std::move(element));
+      }
+      else
+      {
+         logger_->warn("Image sub-statement malformed: {}", line);
       }
    }
    else if (currentStatement_ == DrawingStatement::Polygon)
