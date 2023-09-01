@@ -41,7 +41,6 @@ public:
       glm::vec2 otr_;
       glm::vec2 obl_;
       glm::vec2 obr_;
-      float     width_;
    };
 
    explicit Impl(const std::shared_ptr<GlContext>& context) :
@@ -237,67 +236,6 @@ void PlacefileLines::Deinitialize()
    p->currentHoverLines_.clear();
 }
 
-bool PlacefileLines::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
-   const glm::vec2&                                mousePos)
-{
-   std::unique_lock lock {p->lineMutex_};
-
-   bool itemPicked = false;
-
-   // Calculate map scale, remove width and height from original calculation
-   glm::vec2 scale = util::maplibre::GetMapScale(params);
-   scale = 2.0f / glm::vec2 {scale.x * params.width, scale.y * params.height};
-
-   // Scale and rotate the identity matrix to create the map matrix
-   glm::mat4 mapMatrix {1.0f};
-   mapMatrix = glm::scale(mapMatrix, glm::vec3 {scale, 1.0f});
-   mapMatrix = glm::rotate(mapMatrix,
-                           glm::radians<float>(params.bearing),
-                           glm::vec3(0.0f, 0.0f, 1.0f));
-
-   // For each pickable line
-   auto it = std::find_if(
-      std::execution::par_unseq,
-      p->currentHoverLines_.crbegin(),
-      p->currentHoverLines_.crend(),
-      [&mapMatrix, &mousePos](const auto& line)
-      {
-         // Initialize vertices
-         glm::vec2 bl = line.p1_;
-         glm::vec2 br = bl;
-         glm::vec2 tl = line.p2_;
-         glm::vec2 tr = tl;
-
-         // Calculate offsets
-         // - Rotated offset is half the line width (pixels) in each direction
-         // - Multiply the offset by the scaled and rotated map matrix
-         const glm::vec2 otl = mapMatrix * glm::vec4 {line.otl_, 0.0f, 1.0f};
-         const glm::vec2 obl = mapMatrix * glm::vec4 {line.obl_, 0.0f, 1.0f};
-         const glm::vec2 obr = mapMatrix * glm::vec4 {line.obr_, 0.0f, 1.0f};
-         const glm::vec2 otr = mapMatrix * glm::vec4 {line.otr_, 0.0f, 1.0f};
-
-         // Offset vertices
-         tl += otl;
-         bl += obl;
-         br += obr;
-         tr += otr;
-
-         // TODO: X/Y offsets
-
-         // Test point against polygon bounds
-         return util::maplibre::IsPointInPolygon({tl, bl, br, tr}, mousePos);
-      });
-
-   if (it != p->currentHoverLines_.crend())
-   {
-      itemPicked = true;
-      util::ImGui::Instance().DrawTooltip(it->di_->hoverText_);
-   }
-
-   return itemPicked;
-}
-
 void PlacefileLines::StartLines()
 {
    // Clear the new buffers
@@ -460,7 +398,7 @@ void PlacefileLines::Impl::BufferLine(
       const glm::vec2 obr = rotate * glm::vec2 {+hw, -hw};
 
       newHoverLines_.emplace_back(
-         LineHoverEntry {di, sc1, sc2, otl, otr, obl, obr, width});
+         LineHoverEntry {di, sc1, sc2, otl, otr, obl, obr});
    }
 }
 
@@ -487,6 +425,67 @@ void PlacefileLines::Impl::Update()
    }
 
    dirty_ = false;
+}
+
+bool PlacefileLines::RunMousePicking(
+   const QMapLibreGL::CustomLayerRenderParameters& params,
+   const glm::vec2&                                mousePos)
+{
+   std::unique_lock lock {p->lineMutex_};
+
+   bool itemPicked = false;
+
+   // Calculate map scale, remove width and height from original calculation
+   glm::vec2 scale = util::maplibre::GetMapScale(params);
+   scale = 2.0f / glm::vec2 {scale.x * params.width, scale.y * params.height};
+
+   // Scale and rotate the identity matrix to create the map matrix
+   glm::mat4 mapMatrix {1.0f};
+   mapMatrix = glm::scale(mapMatrix, glm::vec3 {scale, 1.0f});
+   mapMatrix = glm::rotate(mapMatrix,
+                           glm::radians<float>(params.bearing),
+                           glm::vec3(0.0f, 0.0f, 1.0f));
+
+   // For each pickable line
+   auto it = std::find_if(
+      std::execution::par_unseq,
+      p->currentHoverLines_.crbegin(),
+      p->currentHoverLines_.crend(),
+      [&mapMatrix, &mousePos](const auto& line)
+      {
+         // Initialize vertices
+         glm::vec2 bl = line.p1_;
+         glm::vec2 br = bl;
+         glm::vec2 tl = line.p2_;
+         glm::vec2 tr = tl;
+
+         // Calculate offsets
+         // - Rotated offset is half the line width (pixels) in each direction
+         // - Multiply the offset by the scaled and rotated map matrix
+         const glm::vec2 otl = mapMatrix * glm::vec4 {line.otl_, 0.0f, 1.0f};
+         const glm::vec2 obl = mapMatrix * glm::vec4 {line.obl_, 0.0f, 1.0f};
+         const glm::vec2 obr = mapMatrix * glm::vec4 {line.obr_, 0.0f, 1.0f};
+         const glm::vec2 otr = mapMatrix * glm::vec4 {line.otr_, 0.0f, 1.0f};
+
+         // Offset vertices
+         tl += otl;
+         bl += obl;
+         br += obr;
+         tr += otr;
+
+         // TODO: X/Y offsets
+
+         // Test point against polygon bounds
+         return util::maplibre::IsPointInPolygon({tl, bl, br, tr}, mousePos);
+      });
+
+   if (it != p->currentHoverLines_.crend())
+   {
+      itemPicked = true;
+      util::ImGui::Instance().DrawTooltip(it->di_->hoverText_);
+   }
+
+   return itemPicked;
 }
 
 } // namespace draw
