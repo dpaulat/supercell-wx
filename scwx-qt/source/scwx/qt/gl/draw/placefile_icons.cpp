@@ -1,7 +1,10 @@
 #include <scwx/qt/gl/draw/placefile_icons.hpp>
+#include <scwx/qt/util/imgui.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/util/logger.hpp>
+
+#include <execution>
 
 #include <QUrl>
 #include <boost/unordered/unordered_flat_map.hpp>
@@ -54,6 +57,17 @@ struct PlacefileIconInfo
 class PlacefileIcons::Impl
 {
 public:
+   struct IconHoverEntry
+   {
+      std::shared_ptr<const gr::Placefile::IconDrawItem> di_;
+
+      glm::vec2 p_;
+      glm::vec2 otl_;
+      glm::vec2 otr_;
+      glm::vec2 obl_;
+      glm::vec2 obr_;
+   };
+
    explicit Impl(const std::shared_ptr<GlContext>& context) :
        context_ {context},
        shaderProgram_ {nullptr},
@@ -87,6 +101,8 @@ public:
       currentIconList_ {};
    std::vector<std::shared_ptr<const gr::Placefile::IconDrawItem>>
       newIconList_ {};
+
+   std::vector<IconHoverEntry> hoverIcons_ {};
 
    std::vector<float> iconBuffer_ {};
    std::vector<GLint> thresholdBuffer_ {};
@@ -250,6 +266,7 @@ void PlacefileIcons::Deinitialize()
 
    p->currentIconList_.clear();
    p->currentIconFiles_.clear();
+   p->hoverIcons_.clear();
    p->iconBuffer_.clear();
    p->thresholdBuffer_.clear();
 }
@@ -337,6 +354,7 @@ void PlacefileIcons::Impl::UpdateBuffers()
    iconBuffer_.reserve(currentIconList_.size() * kBufferLength);
    thresholdBuffer_.clear();
    thresholdBuffer_.reserve(currentIconList_.size() * kVerticesPerRectangle);
+   hoverIcons_.clear();
    numVertices_ = 0;
 
    for (auto& di : currentIconList_)
@@ -425,6 +443,25 @@ void PlacefileIcons::Impl::UpdateBuffers()
                                thresholdValue,
                                thresholdValue,
                                thresholdValue});
+
+      if (!di->hoverText_.empty())
+      {
+         const units::angle::radians<double> radians = angle;
+
+         const auto sc = util::maplibre::LatLongToScreenCoordinate({lat, lon});
+
+         const float cosAngle = cosf(static_cast<float>(radians.value()));
+         const float sinAngle = sinf(static_cast<float>(radians.value()));
+
+         const glm::mat2 rotate {cosAngle, -sinAngle, sinAngle, cosAngle};
+
+         const glm::vec2 otl = rotate * glm::vec2 {lx, ty};
+         const glm::vec2 otr = rotate * glm::vec2 {rx, ty};
+         const glm::vec2 obl = rotate * glm::vec2 {lx, by};
+         const glm::vec2 obr = rotate * glm::vec2 {rx, by};
+
+         hoverIcons_.emplace_back(IconHoverEntry {di, sc, otl, otr, obl, obr});
+      }
    }
 
    dirty_ = true;
@@ -465,6 +502,65 @@ void PlacefileIcons::Impl::Update(bool textureAtlasChanged)
    }
 
    dirty_ = false;
+}
+
+bool PlacefileIcons::RunMousePicking(
+   const QMapLibreGL::CustomLayerRenderParameters& params,
+   const glm::vec2&                                mousePos)
+{
+   std::unique_lock lock {p->iconMutex_};
+
+   bool itemPicked = false;
+
+   // Calculate map scale, remove width and height from original calculation
+   glm::vec2 scale = util::maplibre::GetMapScale(params);
+   scale = 2.0f / glm::vec2 {scale.x * params.width, scale.y * params.height};
+
+   // Scale and rotate the identity matrix to create the map matrix
+   glm::mat4 mapMatrix {1.0f};
+   mapMatrix = glm::scale(mapMatrix, glm::vec3 {scale, 1.0f});
+   mapMatrix = glm::rotate(mapMatrix,
+                           glm::radians<float>(params.bearing),
+                           glm::vec3(0.0f, 0.0f, 1.0f));
+
+   // For each pickable icon
+   auto it = std::find_if(
+      std::execution::par_unseq,
+      p->hoverIcons_.crbegin(),
+      p->hoverIcons_.crend(),
+      [&mapMatrix, &mousePos](const auto& icon)
+      {
+         // Initialize vertices
+         glm::vec2 bl = icon.p_;
+         glm::vec2 br = bl;
+         glm::vec2 tl = br;
+         glm::vec2 tr = tl;
+
+         // Calculate offsets
+         // - Rotated offset is based on final X/Y offsets (pixels)
+         // - Multiply the offset by the scaled and rotated map matrix
+         const glm::vec2 otl = mapMatrix * glm::vec4 {icon.otl_, 0.0f, 1.0f};
+         const glm::vec2 obl = mapMatrix * glm::vec4 {icon.obl_, 0.0f, 1.0f};
+         const glm::vec2 obr = mapMatrix * glm::vec4 {icon.obr_, 0.0f, 1.0f};
+         const glm::vec2 otr = mapMatrix * glm::vec4 {icon.otr_, 0.0f, 1.0f};
+
+         // Offset vertices
+         tl += otl;
+         bl += obl;
+         br += obr;
+         tr += otr;
+
+         // Test point against polygon bounds
+         return util::maplibre::IsPointInPolygon({tl, bl, br, tr}, mousePos);
+      });
+
+   if (it != p->hoverIcons_.crend())
+   {
+      itemPicked = true;
+      util::ImGui::Instance().DrawTooltip(it->di_->hoverText_);
+   }
+
+   return itemPicked;
 }
 
 } // namespace draw

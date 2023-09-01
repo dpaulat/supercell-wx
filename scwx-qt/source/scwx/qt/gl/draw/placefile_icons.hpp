@@ -34,6 +34,9 @@ public:
                bool textureAtlasChanged) override;
    void Deinitialize() override;
 
+   bool RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params,
+                        const glm::vec2& mousePos) override;
+
    /**
     * Resets and prepares the draw item for adding a new set of icons.
     */
