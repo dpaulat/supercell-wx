@@ -1,5 +1,6 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
+#include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
 #include <scwx/qt/util/json.hpp>
 #include <scwx/util/logger.hpp>
@@ -130,6 +131,7 @@ static boost::json::value ConvertSettingsToJson()
    general_settings().WriteJson(settingsJson);
    map_settings().WriteJson(settingsJson);
    palette_settings().WriteJson(settingsJson);
+   settings::TextSettings::Instance().WriteJson(settingsJson);
    settings::UiSettings::Instance().WriteJson(settingsJson);
 
    return settingsJson;
@@ -142,6 +144,7 @@ static void GenerateDefaultSettings()
    general_settings().SetDefaults();
    map_settings().SetDefaults();
    palette_settings().SetDefaults();
+   settings::TextSettings::Instance().SetDefaults();
    settings::UiSettings::Instance().SetDefaults();
 }
 
@@ -154,6 +157,7 @@ static bool LoadSettings(const boost::json::object& settingsJson)
    jsonDirty |= !general_settings().ReadJson(settingsJson);
    jsonDirty |= !map_settings().ReadJson(settingsJson);
    jsonDirty |= !palette_settings().ReadJson(settingsJson);
+   jsonDirty |= !settings::TextSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::UiSettings::Instance().ReadJson(settingsJson);
 
    return jsonDirty;

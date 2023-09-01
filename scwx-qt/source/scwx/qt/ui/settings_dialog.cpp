@@ -7,6 +7,7 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/settings/settings_interface.hpp>
+#include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/types/alert_types.hpp>
 #include <scwx/qt/ui/placefile_settings_widget.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
@@ -92,7 +93,8 @@ public:
           &mapTilerApiKey_,
           &defaultAlertAction_,
           &updateNotificationsEnabled_,
-          &debugEnabled_}}
+          &debugEnabled_,
+          &hoverTextWrap_}}
    {
       // Configure default alert phenomena colors
       auto& paletteSettings = manager::SettingsManager::palette_settings();
@@ -117,6 +119,7 @@ public:
    void SetupPalettesColorTablesTab();
    void SetupPalettesAlertsTab();
    void SetupPlacefilesTab();
+   void SetupTextTab();
 
    void ShowColorDialog(QLineEdit* lineEdit, QFrame* frame = nullptr);
    void UpdateRadarDialogLocation(const std::string& id);
@@ -139,7 +142,7 @@ public:
    static void SetBackgroundColor(const std::string& value, QFrame* frame);
 
    SettingsDialog*          self_;
-   PlacefileSettingsWidget* placefileSettingsWidget_;
+   PlacefileSettingsWidget* placefileSettingsWidget_ {nullptr};
    RadarSiteDialog*         radarSiteDialog_;
 
    settings::SettingsInterface<std::string>               defaultRadarSite_ {};
@@ -162,6 +165,8 @@ public:
                       settings::SettingsInterface<std::string>>
       inactiveAlertColors_ {};
 
+   settings::SettingsInterface<std::int64_t> hoverTextWrap_ {};
+
    std::vector<settings::SettingsInterfaceBase*> settings_;
 };
 
@@ -180,6 +185,9 @@ SettingsDialog::SettingsDialog(QWidget* parent) :
 
    // Palettes > Alerts
    p->SetupPalettesAlertsTab();
+
+   // Text
+   p->SetupTextTab();
 
    // Placefiles
    p->SetupPlacefilesTab();
@@ -628,6 +636,15 @@ void SettingsDialogImpl::SetupPlacefilesTab()
 {
    placefileSettingsWidget_ = new PlacefileSettingsWidget(self_);
    self_->ui->placefiles->layout()->addWidget(placefileSettingsWidget_);
+}
+
+void SettingsDialogImpl::SetupTextTab()
+{
+   settings::TextSettings& textSettings = settings::TextSettings::Instance();
+
+   hoverTextWrap_.SetSettingsVariable(textSettings.hover_text_wrap());
+   hoverTextWrap_.SetEditWidget(self_->ui->hoverTextWrapSpinBox);
+   hoverTextWrap_.SetResetButton(self_->ui->resetHoverTextWrapButton);
 }
 
 QImage SettingsDialogImpl::GenerateColorTableImage(
