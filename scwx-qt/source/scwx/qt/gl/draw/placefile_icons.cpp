@@ -523,13 +523,33 @@ bool PlacefileIcons::RunMousePicking(
                            glm::radians<float>(params.bearing),
                            glm::vec3(0.0f, 0.0f, 1.0f));
 
+   units::length::meters<double> mapDistance =
+      (p->thresholded_) ? util::maplibre::GetMapDistance(params) :
+                          units::length::meters<double> {0.0};
+
    // For each pickable icon
    auto it = std::find_if(
       std::execution::par_unseq,
       p->hoverIcons_.crbegin(),
       p->hoverIcons_.crend(),
-      [&mapMatrix, &mousePos](const auto& icon)
+      [&mapDistance, &mapMatrix, &mousePos](const auto& icon)
       {
+         if (
+            // Placefile is thresholded
+            mapDistance > units::length::meters<double> {0.0} &&
+
+            // Placefile threshold is < 999 nmi
+            static_cast<int>(std::round(
+               units::length::nautical_miles<double> {icon.di_->threshold_}
+                  .value())) < 999 &&
+
+            // Map distance is beyond the threshold
+            icon.di_->threshold_ < mapDistance)
+         {
+            // Icon is not pickable
+            return false;
+         }
+
          // Initialize vertices
          glm::vec2 bl = icon.p_;
          glm::vec2 br = bl;
