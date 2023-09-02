@@ -56,7 +56,7 @@ void DrawLayer::Render(const QMapLibreGL::CustomLayerRenderParameters& params)
       newTextureAtlasBuildCount != p->textureAtlasBuildCount_;
 
    gl.glActiveTexture(GL_TEXTURE0);
-   gl.glBindTexture(GL_TEXTURE_2D, p->textureAtlas_);
+   gl.glBindTexture(GL_TEXTURE_2D_ARRAY, p->textureAtlas_);
 
    for (auto& item : p->drawList_)
    {

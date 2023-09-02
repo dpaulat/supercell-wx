@@ -92,8 +92,8 @@ void GeoLine::Initialize()
 {
    gl::OpenGLFunctions& gl = p->context_->gl();
 
-   p->shaderProgram_ = p->context_->GetShaderProgram(":/gl/geo_line.vert",
-                                                     ":/gl/texture2d.frag");
+   p->shaderProgram_ = p->context_->GetShaderProgram(
+      ":/gl/geo_line.vert", ":/gl/texture2d_array.frag");
 
    p->uMVPMatrixLocation_ =
       gl.glGetUniformLocation(p->shaderProgram_->id(), "uMVPMatrix");

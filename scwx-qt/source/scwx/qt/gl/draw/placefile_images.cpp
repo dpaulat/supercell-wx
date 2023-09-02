@@ -129,7 +129,7 @@ void PlacefileImages::Initialize()
    p->shaderProgram_ = p->context_->GetShaderProgram(
       {{GL_VERTEX_SHADER, ":/gl/geo_texture2d.vert"},
        {GL_GEOMETRY_SHADER, ":/gl/threshold.geom"},
-       {GL_FRAGMENT_SHADER, ":/gl/texture2d.frag"}});
+       {GL_FRAGMENT_SHADER, ":/gl/texture2d_array.frag"}});
 
    p->uMVPMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMVPMatrix");
    p->uMapMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMapMatrix");
@@ -230,8 +230,8 @@ void PlacefileImages::Render(
       }
 
       // Interpolate texture coordinates
-      gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      gl.glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      gl.glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
       // Draw images
       gl.glDrawArrays(GL_TRIANGLES, 0, p->numVertices_);

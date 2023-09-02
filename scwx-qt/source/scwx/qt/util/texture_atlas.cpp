@@ -296,18 +296,21 @@ GLuint TextureAtlas::BufferAtlas(gl::OpenGLFunctions& gl)
       lock.unlock();
 
       gl.glGenTextures(1, &texture);
-      gl.glBindTexture(GL_TEXTURE_2D, texture);
+      gl.glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
 
-      gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-      gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      gl.glTexParameteri(
+         GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      gl.glTexParameteri(
+         GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      gl.glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      gl.glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-      gl.glTexImage2D(GL_TEXTURE_2D,
+      gl.glTexImage3D(GL_TEXTURE_2D_ARRAY,
                       0,
                       GL_RGBA,
                       view.width(),
                       view.height(),
+                      1u,
                       0,
                       GL_RGBA,
                       GL_UNSIGNED_BYTE,
