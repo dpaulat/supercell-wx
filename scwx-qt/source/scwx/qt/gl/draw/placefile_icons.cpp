@@ -25,9 +25,12 @@ static constexpr std::size_t kNumRectangles        = 1;
 static constexpr std::size_t kNumTriangles         = kNumRectangles * 2;
 static constexpr std::size_t kVerticesPerTriangle  = 3;
 static constexpr std::size_t kVerticesPerRectangle = kVerticesPerTriangle * 2;
-static constexpr std::size_t kPointsPerVertex      = 11;
-static constexpr std::size_t kBufferLength =
+static constexpr std::size_t kPointsPerVertex      = 9;
+static constexpr std::size_t kPointsPerTexCoord    = 2;
+static constexpr std::size_t kIconBufferLength =
    kNumTriangles * kVerticesPerTriangle * kPointsPerVertex;
+static constexpr std::size_t kTextureBufferLength =
+   kNumTriangles * kVerticesPerTriangle * kPointsPerTexCoord;
 
 struct PlacefileIconInfo
 {
@@ -84,6 +87,7 @@ public:
    ~Impl() {}
 
    void UpdateBuffers();
+   void UpdateTextureBuffer();
    void Update(bool textureAtlasChanged);
 
    std::shared_ptr<GlContext> context_;
@@ -101,11 +105,18 @@ public:
       currentIconList_ {};
    std::vector<std::shared_ptr<const gr::Placefile::IconDrawItem>>
       newIconList_ {};
+   std::vector<std::shared_ptr<const gr::Placefile::IconDrawItem>>
+      newValidIconList_ {};
 
-   std::vector<IconHoverEntry> hoverIcons_ {};
+   std::vector<float> currentIconBuffer_ {};
+   std::vector<GLint> currentThresholdBuffer_ {};
+   std::vector<float> newIconBuffer_ {};
+   std::vector<GLint> newThresholdBuffer_ {};
 
-   std::vector<float> iconBuffer_ {};
-   std::vector<GLint> thresholdBuffer_ {};
+   std::vector<float> textureBuffer_ {};
+
+   std::vector<IconHoverEntry> currentHoverIcons_ {};
+   std::vector<IconHoverEntry> newHoverIcons_ {};
 
    std::shared_ptr<ShaderProgram> shaderProgram_;
    GLint                          uMVPMatrixLocation_;
@@ -114,7 +125,7 @@ public:
    GLint                          uMapDistanceLocation_;
 
    GLuint                vao_;
-   std::array<GLuint, 2> vbo_;
+   std::array<GLuint, 3> vbo_;
 
    GLsizei numVertices_;
 };
@@ -150,7 +161,7 @@ void PlacefileIcons::Initialize()
       p->shaderProgram_->GetUniformLocation("uMapDistance");
 
    gl.glGenVertexArrays(1, &p->vao_);
-   gl.glGenBuffers(2, p->vbo_.data());
+   gl.glGenBuffers(static_cast<GLsizei>(p->vbo_.size()), p->vbo_.data());
 
    gl.glBindVertexArray(p->vao_);
    gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
@@ -174,22 +185,13 @@ void PlacefileIcons::Initialize()
                             reinterpret_cast<void*>(2 * sizeof(float)));
    gl.glEnableVertexAttribArray(1);
 
-   // aTexCoord
-   gl.glVertexAttribPointer(2,
-                            2,
-                            GL_FLOAT,
-                            GL_FALSE,
-                            kPointsPerVertex * sizeof(float),
-                            reinterpret_cast<void*>(4 * sizeof(float)));
-   gl.glEnableVertexAttribArray(2);
-
    // aModulate
    gl.glVertexAttribPointer(3,
                             4,
                             GL_FLOAT,
                             GL_FALSE,
                             kPointsPerVertex * sizeof(float),
-                            reinterpret_cast<void*>(6 * sizeof(float)));
+                            reinterpret_cast<void*>(4 * sizeof(float)));
    gl.glEnableVertexAttribArray(3);
 
    // aAngle
@@ -198,10 +200,22 @@ void PlacefileIcons::Initialize()
                             GL_FLOAT,
                             GL_FALSE,
                             kPointsPerVertex * sizeof(float),
-                            reinterpret_cast<void*>(10 * sizeof(float)));
+                            reinterpret_cast<void*>(8 * sizeof(float)));
    gl.glEnableVertexAttribArray(4);
 
    gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
+   gl.glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
+
+   // aTexCoord
+   gl.glVertexAttribPointer(2,
+                            2,
+                            GL_FLOAT,
+                            GL_FALSE,
+                            kPointsPerTexCoord * sizeof(float),
+                            static_cast<void*>(0));
+   gl.glEnableVertexAttribArray(2);
+
+   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[2]);
    gl.glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
 
    // aThreshold
@@ -260,15 +274,16 @@ void PlacefileIcons::Deinitialize()
    gl::OpenGLFunctions& gl = p->context_->gl();
 
    gl.glDeleteVertexArrays(1, &p->vao_);
-   gl.glDeleteBuffers(2, p->vbo_.data());
+   gl.glDeleteBuffers(static_cast<GLsizei>(p->vbo_.size()), p->vbo_.data());
 
    std::unique_lock lock {p->iconMutex_};
 
    p->currentIconList_.clear();
    p->currentIconFiles_.clear();
-   p->hoverIcons_.clear();
-   p->iconBuffer_.clear();
-   p->thresholdBuffer_.clear();
+   p->currentHoverIcons_.clear();
+   p->currentIconBuffer_.clear();
+   p->currentThresholdBuffer_.clear();
+   p->textureBuffer_.clear();
 }
 
 void PlacefileIconInfo::UpdateTextureInfo()
@@ -306,7 +321,11 @@ void PlacefileIcons::StartIcons()
 {
    // Clear the new buffer
    p->newIconList_.clear();
+   p->newValidIconList_.clear();
    p->newIconFiles_.clear();
+   p->newIconBuffer_.clear();
+   p->newThresholdBuffer_.clear();
+   p->newHoverIcons_.clear();
 }
 
 void PlacefileIcons::SetIconFiles(
@@ -334,15 +353,31 @@ void PlacefileIcons::AddIcon(
 
 void PlacefileIcons::FinishIcons()
 {
+   // Update icon files
+   for (auto& iconFile : p->newIconFiles_)
+   {
+      iconFile.second.UpdateTextureInfo();
+   }
+
+   // Update buffers
+   p->UpdateBuffers();
+
    std::unique_lock lock {p->iconMutex_};
 
    // Swap buffers
-   p->currentIconList_.swap(p->newIconList_);
+   p->currentIconList_.swap(p->newValidIconList_);
    p->currentIconFiles_.swap(p->newIconFiles_);
+   p->currentIconBuffer_.swap(p->newIconBuffer_);
+   p->currentThresholdBuffer_.swap(p->newThresholdBuffer_);
+   p->currentHoverIcons_.swap(p->newHoverIcons_);
 
    // Clear the new buffers
    p->newIconList_.clear();
+   p->newValidIconList_.clear();
    p->newIconFiles_.clear();
+   p->newIconBuffer_.clear();
+   p->newThresholdBuffer_.clear();
+   p->newHoverIcons_.clear();
 
    // Mark the draw item dirty
    p->dirty_ = true;
@@ -350,17 +385,15 @@ void PlacefileIcons::FinishIcons()
 
 void PlacefileIcons::Impl::UpdateBuffers()
 {
-   iconBuffer_.clear();
-   iconBuffer_.reserve(currentIconList_.size() * kBufferLength);
-   thresholdBuffer_.clear();
-   thresholdBuffer_.reserve(currentIconList_.size() * kVerticesPerRectangle);
-   hoverIcons_.clear();
-   numVertices_ = 0;
+   newIconBuffer_.clear();
+   newIconBuffer_.reserve(newIconList_.size() * kIconBufferLength);
+   newThresholdBuffer_.clear();
+   newThresholdBuffer_.reserve(newIconList_.size() * kVerticesPerRectangle);
 
-   for (auto& di : currentIconList_)
+   for (auto& di : newIconList_)
    {
-      auto it = currentIconFiles_.find(di->fileNumber_);
-      if (it == currentIconFiles_.cend())
+      auto it = newIconFiles_.find(di->fileNumber_);
+      if (it == newIconFiles_.cend())
       {
          // No file found
          logger_->trace("Could not find file number: {}", di->fileNumber_);
@@ -376,6 +409,9 @@ void PlacefileIcons::Impl::UpdateBuffers()
          logger_->trace("Invalid icon number: {}", di->iconNumber_);
          continue;
       }
+
+      // Icon is valid, add to valid icon list
+      newValidIconList_.push_back(di);
 
       // Threshold value
       units::length::nautical_miles<double> threshold = di->threshold_;
@@ -407,42 +443,29 @@ void PlacefileIcons::Impl::UpdateBuffers()
       units::angle::degrees<float> angle = di->angle_;
       const float                  a     = angle.value();
 
-      // Texture coordinates
-      const std::size_t iconRow    = (di->iconNumber_ - 1) / icon.columns_;
-      const std::size_t iconColumn = (di->iconNumber_ - 1) % icon.columns_;
-
-      const float iconX = iconColumn * icon.scaledWidth_;
-      const float iconY = iconRow * icon.scaledHeight_;
-
-      const float ls = icon.texture_.sLeft_ + iconX;
-      const float rs = ls + icon.scaledWidth_;
-      const float tt = icon.texture_.tTop_ + iconY;
-      const float bt = tt + icon.scaledHeight_;
-
       // Fixed modulate color
       const float mc0 = 1.0f;
       const float mc1 = 1.0f;
       const float mc2 = 1.0f;
       const float mc3 = 1.0f;
 
-      iconBuffer_.insert(
-         iconBuffer_.end(),
-         {
-            // Icon
-            lat, lon, lx, by, ls, bt, mc0, mc1, mc2, mc3, a, // BL
-            lat, lon, lx, ty, ls, tt, mc0, mc1, mc2, mc3, a, // TL
-            lat, lon, rx, by, rs, bt, mc0, mc1, mc2, mc3, a, // BR
-            lat, lon, rx, by, rs, bt, mc0, mc1, mc2, mc3, a, // BR
-            lat, lon, rx, ty, rs, tt, mc0, mc1, mc2, mc3, a, // TR
-            lat, lon, lx, ty, ls, tt, mc0, mc1, mc2, mc3, a  // TL
-         });
-      thresholdBuffer_.insert(thresholdBuffer_.end(),
-                              {thresholdValue, //
-                               thresholdValue,
-                               thresholdValue,
-                               thresholdValue,
-                               thresholdValue,
-                               thresholdValue});
+      newIconBuffer_.insert(newIconBuffer_.end(),
+                            {
+                               // Icon
+                               lat, lon, lx, by, mc0, mc1, mc2, mc3, a, // BL
+                               lat, lon, lx, ty, mc0, mc1, mc2, mc3, a, // TL
+                               lat, lon, rx, by, mc0, mc1, mc2, mc3, a, // BR
+                               lat, lon, rx, by, mc0, mc1, mc2, mc3, a, // BR
+                               lat, lon, rx, ty, mc0, mc1, mc2, mc3, a, // TR
+                               lat, lon, lx, ty, mc0, mc1, mc2, mc3, a  // TL
+                            });
+      newThresholdBuffer_.insert(newThresholdBuffer_.end(),
+                                 {thresholdValue, //
+                                  thresholdValue,
+                                  thresholdValue,
+                                  thresholdValue,
+                                  thresholdValue,
+                                  thresholdValue});
 
       if (!di->hoverText_.empty())
       {
@@ -460,15 +483,105 @@ void PlacefileIcons::Impl::UpdateBuffers()
          const glm::vec2 obl = rotate * glm::vec2 {lx, by};
          const glm::vec2 obr = rotate * glm::vec2 {rx, by};
 
-         hoverIcons_.emplace_back(IconHoverEntry {di, sc, otl, otr, obl, obr});
+         newHoverIcons_.emplace_back(
+            IconHoverEntry {di, sc, otl, otr, obl, obr});
       }
    }
+}
 
-   dirty_ = true;
+void PlacefileIcons::Impl::UpdateTextureBuffer()
+{
+   textureBuffer_.clear();
+   textureBuffer_.reserve(currentIconList_.size() * kTextureBufferLength);
+
+   for (auto& di : currentIconList_)
+   {
+      auto it = currentIconFiles_.find(di->fileNumber_);
+      if (it == currentIconFiles_.cend())
+      {
+         // No file found
+         logger_->trace("Could not find file number: {}", di->fileNumber_);
+
+         // Should not get here, but insert empty data to match up with data
+         // already buffered
+
+         // clang-format off
+         textureBuffer_.insert(
+            textureBuffer_.end(),
+            {
+               // Icon
+               0.0f, 0.0f, // BL
+               0.0f, 0.0f, // TL
+               0.0f, 0.0f, // BR
+               0.0f, 0.0f, // BR
+               0.0f, 0.0f, // TR
+               0.0f, 0.0f  // TL
+            });
+         // clang-format on
+
+         continue;
+      }
+
+      auto& icon = it->second;
+
+      // Validate icon
+      if (di->iconNumber_ == 0 || di->iconNumber_ > icon.numIcons_)
+      {
+         // No icon found
+         logger_->trace("Invalid icon number: {}", di->iconNumber_);
+
+         // Will get here if a texture changes, and the texture shrunk such that
+         // the icon is no longer found
+
+         // clang-format off
+         textureBuffer_.insert(
+            textureBuffer_.end(),
+            {
+               // Icon
+               0.0f, 0.0f, // BL
+               0.0f, 0.0f, // TL
+               0.0f, 0.0f, // BR
+               0.0f, 0.0f, // BR
+               0.0f, 0.0f, // TR
+               0.0f, 0.0f  // TL
+            });
+         // clang-format on
+
+         continue;
+      }
+
+      // Texture coordinates
+      const std::size_t iconRow    = (di->iconNumber_ - 1) / icon.columns_;
+      const std::size_t iconColumn = (di->iconNumber_ - 1) % icon.columns_;
+
+      const float iconX = iconColumn * icon.scaledWidth_;
+      const float iconY = iconRow * icon.scaledHeight_;
+
+      const float ls = icon.texture_.sLeft_ + iconX;
+      const float rs = ls + icon.scaledWidth_;
+      const float tt = icon.texture_.tTop_ + iconY;
+      const float bt = tt + icon.scaledHeight_;
+
+      // clang-format off
+      textureBuffer_.insert(
+         textureBuffer_.end(),
+         {
+            // Icon
+            ls, bt, // BL
+            ls, tt, // TL
+            rs, bt, // BR
+            rs, bt, // BR
+            rs, tt, // TR
+            ls, tt  // TL
+         });
+      // clang-format on
+   }
 }
 
 void PlacefileIcons::Impl::Update(bool textureAtlasChanged)
 {
+   gl::OpenGLFunctions& gl = context_->gl();
+
    // If the texture atlas has changed
    if (dirty_ || textureAtlasChanged)
    {
@@ -478,27 +591,36 @@ void PlacefileIcons::Impl::Update(bool textureAtlasChanged)
          iconFile.second.UpdateTextureInfo();
       }
 
-      // Update OpenGL buffer data
-      UpdateBuffers();
+      // Update OpenGL texture buffer data
+      UpdateTextureBuffer();
 
-      gl::OpenGLFunctions& gl = context_->gl();
+      // Buffer texture data
+      gl.glBindBuffer(GL_ARRAY_BUFFER, vbo_[1]);
+      gl.glBufferData(GL_ARRAY_BUFFER,
+                      sizeof(float) * textureBuffer_.size(),
+                      textureBuffer_.data(),
+                      GL_DYNAMIC_DRAW);
+   }
 
+   // If buffers need updating
+   if (dirty_)
+   {
       // Buffer vertex data
       gl.glBindBuffer(GL_ARRAY_BUFFER, vbo_[0]);
       gl.glBufferData(GL_ARRAY_BUFFER,
-                      sizeof(float) * iconBuffer_.size(),
-                      iconBuffer_.data(),
+                      sizeof(float) * currentIconBuffer_.size(),
+                      currentIconBuffer_.data(),
                       GL_DYNAMIC_DRAW);
 
       // Buffer threshold data
-      gl.glBindBuffer(GL_ARRAY_BUFFER, vbo_[1]);
+      gl.glBindBuffer(GL_ARRAY_BUFFER, vbo_[2]);
       gl.glBufferData(GL_ARRAY_BUFFER,
-                      sizeof(GLint) * thresholdBuffer_.size(),
-                      thresholdBuffer_.data(),
+                      sizeof(GLint) * currentThresholdBuffer_.size(),
+                      currentThresholdBuffer_.data(),
                       GL_DYNAMIC_DRAW);
 
-      numVertices_ =
-         static_cast<GLsizei>(iconBuffer_.size() / kVerticesPerRectangle);
+      numVertices_ = static_cast<GLsizei>(currentIconBuffer_.size() /
+                                          kVerticesPerRectangle);
    }
 
    dirty_ = false;
@@ -530,8 +652,8 @@ bool PlacefileIcons::RunMousePicking(
    // For each pickable icon
    auto it = std::find_if(
       std::execution::par_unseq,
-      p->hoverIcons_.crbegin(),
-      p->hoverIcons_.crend(),
+      p->currentHoverIcons_.crbegin(),
+      p->currentHoverIcons_.crend(),
       [&mapDistance, &mapMatrix, &mousePos](const auto& icon)
       {
          if (
@@ -574,7 +696,7 @@ bool PlacefileIcons::RunMousePicking(
          return util::maplibre::IsPointInPolygon({tl, bl, br, tr}, mousePos);
       });
 
-   if (it != p->hoverIcons_.crend())
+   if (it != p->currentHoverIcons_.crend())
    {
       itemPicked = true;
       util::ImGui::Instance().DrawTooltip(it->di_->hoverText_);

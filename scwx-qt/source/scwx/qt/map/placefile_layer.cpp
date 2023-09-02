@@ -62,10 +62,10 @@ PlacefileLayer::PlacefileLayer(const std::shared_ptr<MapContext>& context,
     DrawLayer(context),
     p(std::make_unique<PlacefileLayer::Impl>(this, context, placefileName))
 {
-   AddDrawItem(p->placefileIcons_);
    AddDrawItem(p->placefilePolygons_);
    AddDrawItem(p->placefileTriangles_);
    AddDrawItem(p->placefileLines_);
+   AddDrawItem(p->placefileIcons_);
    AddDrawItem(p->placefileText_);
 
    ReloadData();
