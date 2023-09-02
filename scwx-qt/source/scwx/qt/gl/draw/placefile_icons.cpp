@@ -499,11 +499,9 @@ void PlacefileIcons::Impl::UpdateTextureBuffer()
       auto it = currentIconFiles_.find(di->fileNumber_);
       if (it == currentIconFiles_.cend())
       {
-         // No file found
-         logger_->trace("Could not find file number: {}", di->fileNumber_);
-
-         // Should not get here, but insert empty data to match up with data
-         // already buffered
+         // No file found. Should not get here, but insert empty data to match
+         // up with data already buffered
+         logger_->error("Could not find file number: {}", di->fileNumber_);
 
          // clang-format off
          textureBuffer_.insert(
