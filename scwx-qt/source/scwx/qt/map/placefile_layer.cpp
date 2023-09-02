@@ -1,5 +1,6 @@
 #include <scwx/qt/map/placefile_layer.hpp>
 #include <scwx/qt/gl/draw/placefile_icons.hpp>
+#include <scwx/qt/gl/draw/placefile_images.hpp>
 #include <scwx/qt/gl/draw/placefile_lines.hpp>
 #include <scwx/qt/gl/draw/placefile_polygons.hpp>
 #include <scwx/qt/gl/draw/placefile_triangles.hpp>
@@ -29,6 +30,7 @@ public:
        self_ {self},
        placefileName_ {placefileName},
        placefileIcons_ {std::make_shared<gl::draw::PlacefileIcons>(context)},
+       placefileImages_ {std::make_shared<gl::draw::PlacefileImages>(context)},
        placefileLines_ {std::make_shared<gl::draw::PlacefileLines>(context)},
        placefilePolygons_ {
           std::make_shared<gl::draw::PlacefilePolygons>(context)},
@@ -51,6 +53,7 @@ public:
    std::mutex  dataMutex_ {};
 
    std::shared_ptr<gl::draw::PlacefileIcons>     placefileIcons_;
+   std::shared_ptr<gl::draw::PlacefileImages>    placefileImages_;
    std::shared_ptr<gl::draw::PlacefileLines>     placefileLines_;
    std::shared_ptr<gl::draw::PlacefilePolygons>  placefilePolygons_;
    std::shared_ptr<gl::draw::PlacefileTriangles> placefileTriangles_;
@@ -62,6 +65,7 @@ PlacefileLayer::PlacefileLayer(const std::shared_ptr<MapContext>& context,
     DrawLayer(context),
     p(std::make_unique<PlacefileLayer::Impl>(this, context, placefileName))
 {
+   AddDrawItem(p->placefileImages_);
    AddDrawItem(p->placefilePolygons_);
    AddDrawItem(p->placefileTriangles_);
    AddDrawItem(p->placefileLines_);
@@ -128,6 +132,7 @@ void PlacefileLayer::Render(
       bool thresholded =
          placefileManager->placefile_thresholded(placefile->name());
       p->placefileIcons_->set_thresholded(thresholded);
+      p->placefileImages_->set_thresholded(thresholded);
       p->placefileLines_->set_thresholded(thresholded);
       p->placefilePolygons_->set_thresholded(thresholded);
       p->placefileTriangles_->set_thresholded(thresholded);
@@ -167,6 +172,7 @@ void PlacefileLayer::ReloadData()
 
          // Start draw items
          p->placefileIcons_->StartIcons();
+         p->placefileImages_->StartImages(placefile->name());
          p->placefileLines_->StartLines();
          p->placefilePolygons_->StartPolygons();
          p->placefileTriangles_->StartTriangles();
@@ -203,6 +209,12 @@ void PlacefileLayer::ReloadData()
                      drawItem));
                break;
 
+            case gr::Placefile::ItemType::Image:
+               p->placefileImages_->AddImage(
+                  std::static_pointer_cast<gr::Placefile::ImageDrawItem>(
+                     drawItem));
+               break;
+
             case gr::Placefile::ItemType::Triangles:
                p->placefileTriangles_->AddTriangles(
                   std::static_pointer_cast<gr::Placefile::TrianglesDrawItem>(
@@ -216,6 +228,7 @@ void PlacefileLayer::ReloadData()
 
          // Finish draw items
          p->placefileIcons_->FinishIcons();
+         p->placefileImages_->FinishImages();
          p->placefileLines_->FinishLines();
          p->placefilePolygons_->FinishPolygons();
          p->placefileTriangles_->FinishTriangles();

@@ -737,13 +737,15 @@ void PlacefileManager::Impl::LoadResources(
    const std::shared_ptr<gr::Placefile>& placefile)
 {
    const auto iconFiles = placefile->icon_files();
+   const auto drawItems = placefile->GetDrawItems();
 
    const QUrl baseUrl =
       QUrl::fromUserInput(QString::fromStdString(placefile->name()));
 
-   std::vector<std::string> urlStrings;
+   std::vector<std::string> urlStrings {};
    urlStrings.reserve(iconFiles.size());
 
+   // Resolve Icon Files
    std::transform(iconFiles.cbegin(),
                   iconFiles.cend(),
                   std::back_inserter(urlStrings),
@@ -756,6 +758,34 @@ void PlacefileManager::Impl::LoadResources(
 
                      return resolvedUrl.toString().toStdString();
                   });
+
+   // Resolve Image Files
+   for (auto& di : drawItems)
+   {
+      switch (di->itemType_)
+      {
+      case gr::Placefile::ItemType::Image:
+      {
+         const std::string& imageFile =
+            std::static_pointer_cast<gr::Placefile::ImageDrawItem>(di)
+               ->imageFile_;
+
+         QUrl        fileUrl     = QUrl(QString::fromStdString(imageFile));
+         QUrl        resolvedUrl = baseUrl.resolved(fileUrl);
+         std::string urlString   = resolvedUrl.toString().toStdString();
+
+         if (std::find(urlStrings.cbegin(), urlStrings.cend(), urlString) ==
+             urlStrings.cend())
+         {
+            urlStrings.push_back(urlString);
+         }
+         break;
+      }
+
+      default:
+         break;
+      }
+   }
 
    ResourceManager::LoadImageResources(urlStrings);
 }
