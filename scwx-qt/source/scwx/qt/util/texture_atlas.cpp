@@ -474,11 +474,6 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath)
                });
          }
 
-         boost::gil::write_view(
-            fmt::format("gil-{}.png", url.fileName().toStdString()),
-            image._view,
-            boost::gil::png_tag());
-
          stbi_image_free(pixelData);
       }
       else if (response.status_code == 0)
