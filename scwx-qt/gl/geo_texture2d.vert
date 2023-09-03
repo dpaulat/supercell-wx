@@ -9,7 +9,7 @@
 
 layout (location = 0) in vec2  aLatLong;
 layout (location = 1) in vec2  aXYOffset;
-layout (location = 2) in vec2  aTexCoord;
+layout (location = 2) in vec3  aTexCoord;
 layout (location = 3) in vec4  aModulate;
 layout (location = 4) in float aAngleDeg;
 layout (location = 5) in int   aThreshold;
@@ -21,11 +21,11 @@ uniform vec2 uMapScreenCoord;
 out VertexData
 {
    int  threshold;
-   vec2 texCoord;
+   vec3 texCoord;
    vec4 color;
 } vsOut;
 
-smooth out vec2 texCoord;
+smooth out vec3 texCoord;
 smooth out vec4 color;
 
 vec2 latLngToScreenCoordinate(in vec2 latLng)

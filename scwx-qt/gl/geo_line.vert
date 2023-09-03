@@ -8,14 +8,14 @@
 
 layout (location = 0) in vec2 aLatLong;
 layout (location = 1) in vec2 aXYOffset;
-layout (location = 2) in vec2 aTexCoord;
+layout (location = 2) in vec3 aTexCoord;
 layout (location = 3) in vec4 aModulate;
 
 uniform mat4 uMVPMatrix;
 uniform mat4 uMapMatrix;
 uniform vec2 uMapScreenCoord;
 
-smooth out vec2 texCoord;
+smooth out vec3 texCoord;
 smooth out vec4 color;
 
 vec2 latLngToScreenCoordinate(in vec2 latLng)

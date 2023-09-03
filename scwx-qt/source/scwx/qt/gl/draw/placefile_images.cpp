@@ -23,7 +23,7 @@ static constexpr std::size_t kNumTriangles         = kNumRectangles * 2;
 static constexpr std::size_t kVerticesPerTriangle  = 3;
 static constexpr std::size_t kVerticesPerRectangle = kVerticesPerTriangle * 2;
 static constexpr std::size_t kPointsPerVertex      = 8;
-static constexpr std::size_t kPointsPerTexCoord    = 2;
+static constexpr std::size_t kPointsPerTexCoord    = 3;
 static constexpr std::size_t kImageBufferLength =
    kNumTriangles * kVerticesPerTriangle * kPointsPerVertex;
 static constexpr std::size_t kTextureBufferLength =
@@ -177,7 +177,7 @@ void PlacefileImages::Initialize()
 
    // aTexCoord
    gl.glVertexAttribPointer(2,
-                            2,
+                            3,
                             GL_FLOAT,
                             GL_FALSE,
                             kPointsPerTexCoord * sizeof(float),
@@ -367,6 +367,8 @@ void PlacefileImages::Impl::UpdateTextureBuffer()
                                            currentImageFiles_.cbegin()->second :
                                            it->second;
 
+      const float r = static_cast<float>(image.texture_.layerId_);
+
       // Limit processing to groups of 3 (triangles)
       std::size_t numElements = di->elements_.size() - di->elements_.size() % 3;
       for (std::size_t i = 0; i < numElements; ++i)
@@ -379,7 +381,7 @@ void PlacefileImages::Impl::UpdateTextureBuffer()
          const float t =
             image.texture_.tTop_ + (image.scaledHeight_ * element.tv_);
 
-         textureBuffer_.insert(textureBuffer_.end(), {s, t});
+         textureBuffer_.insert(textureBuffer_.end(), {s, t, r});
       }
    }
 }

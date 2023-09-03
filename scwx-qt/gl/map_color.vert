@@ -12,7 +12,7 @@ uniform vec2 uMapScreenCoord;
 out VertexData
 {
    int  threshold;
-   vec2 texCoord;
+   vec3 texCoord;
    vec4 color;
 } vsOut;
 

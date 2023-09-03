@@ -26,7 +26,7 @@ static constexpr std::size_t kNumTriangles         = kNumRectangles * 2;
 static constexpr std::size_t kVerticesPerTriangle  = 3;
 static constexpr std::size_t kVerticesPerRectangle = kVerticesPerTriangle * 2;
 static constexpr std::size_t kPointsPerVertex      = 9;
-static constexpr std::size_t kPointsPerTexCoord    = 2;
+static constexpr std::size_t kPointsPerTexCoord    = 3;
 static constexpr std::size_t kIconBufferLength =
    kNumTriangles * kVerticesPerTriangle * kPointsPerVertex;
 static constexpr std::size_t kTextureBufferLength =
@@ -208,7 +208,7 @@ void PlacefileIcons::Initialize()
 
    // aTexCoord
    gl.glVertexAttribPointer(2,
-                            2,
+                            3,
                             GL_FLOAT,
                             GL_FALSE,
                             kPointsPerTexCoord * sizeof(float),
@@ -508,12 +508,12 @@ void PlacefileIcons::Impl::UpdateTextureBuffer()
             textureBuffer_.end(),
             {
                // Icon
-               0.0f, 0.0f, // BL
-               0.0f, 0.0f, // TL
-               0.0f, 0.0f, // BR
-               0.0f, 0.0f, // BR
-               0.0f, 0.0f, // TR
-               0.0f, 0.0f  // TL
+               0.0f, 0.0f, 0.0f, // BL
+               0.0f, 0.0f, 0.0f, // TL
+               0.0f, 0.0f, 0.0f, // BR
+               0.0f, 0.0f, 0.0f, // BR
+               0.0f, 0.0f, 0.0f, // TR
+               0.0f, 0.0f, 0.0f  // TL
             });
          // clang-format on
 
@@ -536,12 +536,12 @@ void PlacefileIcons::Impl::UpdateTextureBuffer()
             textureBuffer_.end(),
             {
                // Icon
-               0.0f, 0.0f, // BL
-               0.0f, 0.0f, // TL
-               0.0f, 0.0f, // BR
-               0.0f, 0.0f, // BR
-               0.0f, 0.0f, // TR
-               0.0f, 0.0f  // TL
+               0.0f, 0.0f, 0.0f, // BL
+               0.0f, 0.0f, 0.0f, // TL
+               0.0f, 0.0f, 0.0f, // BR
+               0.0f, 0.0f, 0.0f, // BR
+               0.0f, 0.0f, 0.0f, // TR
+               0.0f, 0.0f, 0.0f  // TL
             });
          // clang-format on
 
@@ -559,18 +559,19 @@ void PlacefileIcons::Impl::UpdateTextureBuffer()
       const float rs = ls + icon.scaledWidth_;
       const float tt = icon.texture_.tTop_ + iconY;
       const float bt = tt + icon.scaledHeight_;
+      const float r  = static_cast<float>(icon.texture_.layerId_);
 
       // clang-format off
       textureBuffer_.insert(
          textureBuffer_.end(),
          {
             // Icon
-            ls, bt, // BL
-            ls, tt, // TL
-            rs, bt, // BR
-            rs, bt, // BR
-            rs, tt, // TR
-            ls, tt  // TL
+            ls, bt, r, // BL
+            ls, tt, r, // TL
+            rs, bt, r, // BR
+            rs, bt, r, // BR
+            rs, tt, r, // TR
+            ls, tt, r  // TL
          });
       // clang-format on
    }

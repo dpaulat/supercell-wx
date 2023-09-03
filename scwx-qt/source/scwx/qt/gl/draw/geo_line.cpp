@@ -23,7 +23,7 @@ static constexpr size_t kNumRectangles        = 1;
 static constexpr size_t kNumTriangles         = kNumRectangles * 2;
 static constexpr size_t kVerticesPerTriangle  = 3;
 static constexpr size_t kVerticesPerRectangle = kVerticesPerTriangle * 2;
-static constexpr size_t kPointsPerVertex      = 10;
+static constexpr size_t kPointsPerVertex      = 11;
 static constexpr size_t kBufferLength =
    kNumTriangles * kVerticesPerTriangle * kPointsPerVertex;
 
@@ -147,7 +147,7 @@ void GeoLine::Initialize()
 
    // aTexCoord
    gl.glVertexAttribPointer(2,
-                            2,
+                            3,
                             GL_FLOAT,
                             GL_FALSE,
                             kPointsPerVertex * sizeof(float),
@@ -160,7 +160,7 @@ void GeoLine::Initialize()
                             GL_FLOAT,
                             GL_FALSE,
                             kPointsPerVertex * sizeof(float),
-                            reinterpret_cast<void*>(6 * sizeof(float)));
+                            reinterpret_cast<void*>(7 * sizeof(float)));
    gl.glEnableVertexAttribArray(3);
 
    p->dirty_ = true;
@@ -264,6 +264,8 @@ void GeoLine::Impl::Update()
       const float oy = width_ * 0.5f * sinf(angle_);
 
       // Texture coordinates
+      static constexpr float r = 0.0f;
+
       const float ls = texture_.sLeft_;
       const float rs = texture_.sRight_;
       const float tt = texture_.tTop_;
@@ -289,12 +291,12 @@ void GeoLine::Impl::Update()
          {                                   //
           // Line
           {
-             {lx, by, -ox, -oy, ls, bt, mc0, mc1, mc2, mc3}, // BL
-             {lx, by, +ox, +oy, ls, tt, mc0, mc1, mc2, mc3}, // TL
-             {rx, ty, -ox, -oy, rs, bt, mc0, mc1, mc2, mc3}, // BR
-             {rx, ty, -ox, -oy, rs, bt, mc0, mc1, mc2, mc3}, // BR
-             {rx, ty, +ox, +oy, rs, tt, mc0, mc1, mc2, mc3}, // TR
-             {lx, by, +ox, +oy, ls, tt, mc0, mc1, mc2, mc3}  // TL
+             {lx, by, -ox, -oy, ls, bt, r, mc0, mc1, mc2, mc3}, // BL
+             {lx, by, +ox, +oy, ls, tt, r, mc0, mc1, mc2, mc3}, // TL
+             {rx, ty, -ox, -oy, rs, bt, r, mc0, mc1, mc2, mc3}, // BR
+             {rx, ty, -ox, -oy, rs, bt, r, mc0, mc1, mc2, mc3}, // BR
+             {rx, ty, +ox, +oy, rs, tt, r, mc0, mc1, mc2, mc3}, // TR
+             {lx, by, +ox, +oy, ls, tt, r, mc0, mc1, mc2, mc3}  // TL
           }};
 
       gl.glBufferData(GL_ARRAY_BUFFER,

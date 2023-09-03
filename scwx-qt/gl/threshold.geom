@@ -8,11 +8,11 @@ uniform float uMapDistance;
 in VertexData
 {
    int  threshold;
-   vec2 texCoord;
+   vec3 texCoord;
    vec4 color;
 } gsIn[];
 
-smooth out vec2 texCoord;
+smooth out vec3 texCoord;
 smooth out vec4 color;
 
 void main()

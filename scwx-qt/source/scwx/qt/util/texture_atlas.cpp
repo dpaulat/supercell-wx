@@ -50,7 +50,7 @@ public:
    std::shared_mutex textureCacheMutex_ {};
    std::unordered_map<std::string, boost::gil::rgba8_image_t> textureCache_ {};
 
-   boost::gil::rgba8_image_t                          atlas_ {};
+   std::vector<boost::gil::rgba8_image_t>             atlasArray_ {};
    std::unordered_map<std::string, TextureAttributes> atlasMap_ {};
    std::shared_mutex                                  atlasMutex_ {};
 
@@ -95,7 +95,7 @@ bool TextureAtlas::CacheTexture(const std::string& name,
    return false;
 }
 
-void TextureAtlas::BuildAtlas(size_t width, size_t height)
+void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
 {
    logger_->debug("Building {}x{} texture atlas", width, height);
 
@@ -105,11 +105,13 @@ void TextureAtlas::BuildAtlas(size_t width, size_t height)
       return;
    }
 
-   std::vector<std::pair<
+   typedef std::vector<std::pair<
       std::string,
       std::variant<boost::gil::rgba8_image_t, boost::gil::rgba8_image_t*>>>
-                           images;
-   std::vector<stbrp_rect> stbrpRects;
+      ImageVector;
+
+   ImageVector             images {};
+   std::vector<stbrp_rect> stbrpRects {};
 
    // Load images
    {
@@ -171,103 +173,142 @@ void TextureAtlas::BuildAtlas(size_t width, size_t height)
       }
    }
 
-   // Pack images
-   {
-      logger_->trace("Packing {} images", images.size());
-
-      // Optimal number of nodes = width
-      stbrp_context           stbrpContext;
-      std::vector<stbrp_node> stbrpNodes(width);
-
-      stbrp_init_target(&stbrpContext,
-                        static_cast<int>(width),
-                        static_cast<int>(height),
-                        stbrpNodes.data(),
-                        static_cast<int>(stbrpNodes.size()));
-
-      // Pack loaded textures
-      stbrp_pack_rects(
-         &stbrpContext, stbrpRects.data(), static_cast<int>(stbrpRects.size()));
-   }
-
-   // Lock atlas
-   std::unique_lock lock(p->atlasMutex_);
-
-   // Clear index
-   p->atlasMap_.clear();
-
-   // Clear atlas
-   p->atlas_.recreate(width, height);
-   boost::gil::rgba8_view_t atlasView = boost::gil::view(p->atlas_);
-   boost::gil::fill_pixels(atlasView,
-                           boost::gil::rgba8_pixel_t {255, 0, 255, 255});
-
-   // Populate atlas
-   logger_->trace("Populating atlas");
+   // GL_MAX_ARRAY_TEXTURE_LAYERS is guaranteed to be at least 256 in OpenGL 3.3
+   constexpr std::size_t kMaxLayers = 256u;
 
    const float xStep = 1.0f / width;
    const float yStep = 1.0f / height;
    const float xMin  = xStep * 0.5f;
    const float yMin  = yStep * 0.5f;
 
-   for (size_t i = 0; i < images.size(); i++)
+   // Optimal number of nodes = width
+   stbrp_context           stbrpContext;
+   std::vector<stbrp_node> stbrpNodes(width);
+   ImageVector             unpackedImages {};
+   std::vector<stbrp_rect> unpackedRects {};
+
+   std::vector<boost::gil::rgba8_image_t>             newAtlasArray {};
+   std::unordered_map<std::string, TextureAttributes> newAtlasMap {};
+
+   for (std::size_t layer = 0; layer < kMaxLayers; ++layer)
    {
-      // If the image was packed successfully
-      if (stbrpRects[i].was_packed != 0)
+      logger_->trace("Processing layer {}", layer);
+
+      // Pack images
       {
-         // Populate the atlas
-         boost::gil::rgba8c_view_t imageView;
+         logger_->trace("Packing {} images", images.size());
 
-         // Retrieve the image
-         if (std::holds_alternative<boost::gil::rgba8_image_t>(
-                images[i].second))
+         stbrp_init_target(&stbrpContext,
+                           static_cast<int>(width),
+                           static_cast<int>(height),
+                           stbrpNodes.data(),
+                           static_cast<int>(stbrpNodes.size()));
+
+         // Pack loaded textures
+         stbrp_pack_rects(&stbrpContext,
+                          stbrpRects.data(),
+                          static_cast<int>(stbrpRects.size()));
+      }
+
+      // Clear atlas
+      auto& atlas =
+         newAtlasArray.emplace_back(boost::gil::rgba8_image_t(width, height));
+      boost::gil::rgba8_view_t atlasView = boost::gil::view(atlas);
+      boost::gil::fill_pixels(atlasView,
+                              boost::gil::rgba8_pixel_t {255, 0, 255, 255});
+
+      // Populate atlas
+      logger_->trace("Populating atlas");
+
+      for (std::size_t i = 0; i < images.size(); ++i)
+      {
+         // If the image was packed successfully
+         if (stbrpRects[i].was_packed != 0)
          {
-            imageView = boost::gil::const_view(
-               std::get<boost::gil::rgba8_image_t>(images[i].second));
+            // Populate the atlas
+            boost::gil::rgba8c_view_t imageView;
+
+            // Retrieve the image
+            if (std::holds_alternative<boost::gil::rgba8_image_t>(
+                   images[i].second))
+            {
+               imageView = boost::gil::const_view(
+                  std::get<boost::gil::rgba8_image_t>(images[i].second));
+            }
+            else if (std::holds_alternative<boost::gil::rgba8_image_t*>(
+                        images[i].second))
+            {
+               imageView = boost::gil::const_view(
+                  *std::get<boost::gil::rgba8_image_t*>(images[i].second));
+            }
+
+            boost::gil::rgba8_view_t atlasSubView =
+               boost::gil::subimage_view(atlasView,
+                                         stbrpRects[i].x,
+                                         stbrpRects[i].y,
+                                         imageView.width(),
+                                         imageView.height());
+
+            boost::gil::copy_pixels(imageView, atlasSubView);
+
+            // Add texture image to the index
+            const stbrp_coord x = stbrpRects[i].x;
+            const stbrp_coord y = stbrpRects[i].y;
+
+            const float sLeft = x * xStep + xMin;
+            const float sRight =
+               sLeft + static_cast<float>(imageView.width() - 1) / width;
+            const float tTop = y * yStep + yMin;
+            const float tBottom =
+               tTop + static_cast<float>(imageView.height() - 1) / height;
+
+            newAtlasMap.emplace(
+               std::piecewise_construct,
+               std::forward_as_tuple(images[i].first),
+               std::forward_as_tuple(
+                  layer,
+                  boost::gil::point_t {x, y},
+                  boost::gil::point_t {imageView.width(), imageView.height()},
+                  sLeft,
+                  sRight,
+                  tTop,
+                  tBottom));
          }
-         else if (std::holds_alternative<boost::gil::rgba8_image_t*>(
-                     images[i].second))
+         else
          {
-            imageView = boost::gil::const_view(
-               *std::get<boost::gil::rgba8_image_t*>(images[i].second));
+            unpackedImages.push_back(std::move(images[i]));
+            unpackedRects.push_back(stbrpRects[i]);
          }
+      }
 
-         boost::gil::rgba8_view_t atlasSubView =
-            boost::gil::subimage_view(atlasView,
-                                      stbrpRects[i].x,
-                                      stbrpRects[i].y,
-                                      imageView.width(),
-                                      imageView.height());
-
-         boost::gil::copy_pixels(imageView, atlasSubView);
-
-         // Add texture image to the index
-         const stbrp_coord x = stbrpRects[i].x;
-         const stbrp_coord y = stbrpRects[i].y;
-
-         const float sLeft = x * xStep + xMin;
-         const float sRight =
-            sLeft + static_cast<float>(imageView.width() - 1) / width;
-         const float tTop = y * yStep + yMin;
-         const float tBottom =
-            tTop + static_cast<float>(imageView.height() - 1) / height;
-
-         p->atlasMap_.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(images[i].first),
-            std::forward_as_tuple(
-               boost::gil::point_t {x, y},
-               boost::gil::point_t {imageView.width(), imageView.height()},
-               sLeft,
-               sRight,
-               tTop,
-               tBottom));
+      if (unpackedImages.empty())
+      {
+         // All images have been packed into the texture atlas
+         break;
+      }
+      else if (layer == kMaxLayers - 1u)
+      {
+         // Some images were unable to be packed into the texture atlas
+         for (auto& image : unpackedImages)
+         {
+            logger_->warn("Unable to pack texture: {}", image.first);
+         }
       }
       else
       {
-         logger_->warn("Unable to pack texture: {}", images[i].first);
+         // Swap in unpacked images for processing the next atlas layer
+         images.swap(unpackedImages);
+         stbrpRects.swap(unpackedRects);
+         unpackedImages.clear();
+         unpackedRects.clear();
       }
    }
+
+   // Lock atlas
+   std::unique_lock lock(p->atlasMutex_);
+
+   p->atlasArray_.swap(newAtlasArray);
+   p->atlasMap_.swap(newAtlasMap);
 
    // Mark the need to buffer the atlas
    ++p->buildCount_;
@@ -279,19 +320,28 @@ GLuint TextureAtlas::BufferAtlas(gl::OpenGLFunctions& gl)
 
    std::shared_lock lock(p->atlasMutex_);
 
-   if (p->atlas_.width() > 0u && p->atlas_.height() > 0u)
+   if (p->atlasArray_.size() > 0u && p->atlasArray_[0].width() > 0 &&
+       p->atlasArray_[0].height() > 0)
    {
-      boost::gil::rgba8_view_t               view = boost::gil::view(p->atlas_);
-      std::vector<boost::gil::rgba8_pixel_t> pixelData(view.width() *
-                                                       view.height());
+      const std::size_t numLayers = p->atlasArray_.size();
+      const std::size_t width     = p->atlasArray_[0].width();
+      const std::size_t height    = p->atlasArray_[0].height();
+      const std::size_t layerSize = width * height;
 
-      boost::gil::copy_pixels(
-         view,
-         boost::gil::interleaved_view(view.width(),
-                                      view.height(),
-                                      pixelData.data(),
-                                      view.width() *
-                                         sizeof(boost::gil::rgba8_pixel_t)));
+      std::vector<boost::gil::rgba8_pixel_t> pixelData {layerSize * numLayers};
+
+      for (std::size_t i = 0; i < numLayers; ++i)
+      {
+         boost::gil::rgba8_view_t view = boost::gil::view(p->atlasArray_[i]);
+
+         boost::gil::copy_pixels(
+            view,
+            boost::gil::interleaved_view(view.width(),
+                                         view.height(),
+                                         pixelData.data() + (i * layerSize),
+                                         view.width() *
+                                            sizeof(boost::gil::rgba8_pixel_t)));
+      }
 
       lock.unlock();
 
@@ -308,9 +358,9 @@ GLuint TextureAtlas::BufferAtlas(gl::OpenGLFunctions& gl)
       gl.glTexImage3D(GL_TEXTURE_2D_ARRAY,
                       0,
                       GL_RGBA,
-                      view.width(),
-                      view.height(),
-                      1u,
+                      static_cast<GLsizei>(width),
+                      static_cast<GLsizei>(height),
+                      static_cast<GLsizei>(numLayers),
                       0,
                       GL_RGBA,
                       GL_UNSIGNED_BYTE,
@@ -423,6 +473,11 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath)
                   }
                });
          }
+
+         boost::gil::write_view(
+            fmt::format("gil-{}.png", url.fileName().toStdString()),
+            image._view,
+            boost::gil::png_tag());
 
          stbi_image_free(pixelData);
       }
