@@ -586,7 +586,11 @@ void Placefile::Impl::ProcessLine(const std::string& line)
          di->endTime_   = endTime_;
 
          di->width_ = std::stoul(tokenList[0]);
-         di->flags_ = std::stoul(tokenList[1]);
+
+         if (!tokenList[1].empty())
+         {
+            di->flags_ = std::stoul(tokenList[1]);
+         }
       }
       if (tokenList.size() >= 3)
       {
