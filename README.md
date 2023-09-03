@@ -11,7 +11,7 @@ continuously updating weather data on top of a responsive map, providing the
 capability to monitor weather events using reflectivity, velocity, and other
 products.
 
-Please be sure to check out the documentation before getting started: [Supercell-Wx Documentation](https://supercell-wx.rtfd.io/)
+Please be sure to check out the documentation before getting started: [Supercell Wx Documentation](https://supercell-wx.rtfd.io/)
 
 ![image](https://supercell-wx.readthedocs.io/en/latest/_images/initial-setup-03-initial-configured-small.png)
 
@@ -32,7 +32,7 @@ Supercell Wx supports the following 64-bit operating systems:
 
 Supercell Wx requires the following Linux dependencies:
 
-- Linux/X11 (Wayland works fine too) with support for GCC 11 and OpenGL
+- Linux/X11 (Wayland works too) with support for GCC 11 and OpenGL 3.3
 - X11/XCB libraries including xcb-cursor
  
 ## FAQ
@@ -41,14 +41,14 @@ Frequently asked questions:
 
 - Q: Why is the map black when loading for the first time?
   
-  - A. You must obtain a free API key from either (or both) [MapTiler](https://cloud.maptiler.com/auth/widget?next=https://cloud.maptiler.com/maps/) which reuqires no credit/debit card, or [Mapbox](https://account.mapbox.com/) which does require a credit/debit card, but as of writing, you will get 200K free requests per month, which you will never go over by yourself.
+  - A. You must obtain a free API key from either (or both) [MapTiler](https://cloud.maptiler.com/auth/widget?next=https://cloud.maptiler.com/maps/) which currently does not require a credit/debit card, or [Mapbox](https://account.mapbox.com/) which ***does*** require a credit/debit card, but as of writing, you will receive 200K free requests per month, which should be sufficient for an individual user.
 
-- Q: How come when I change my color table or API key, nothing happens after hitting apply?
+- Q: Why is it that when I change my color table, API key, grid width/height settings, nothing happens after hitting apply?
 
-  - A. As of right now, you must restart Supercell-Wx in order to apply these changes. In future iterations, this will no longer be an issue.
+  - A. As of right now, you must restart Supercell Wx in order to apply these changes. In future iterations, this will no longer be an issue.
    
 - Q. Is it possible to get dark mode?
  
   - A. In Windows, make sure to set the flag `-style fusion` at the end of the target path of the .exe
     - Example: `C:\Users\Administrator\Desktop\Supercell-Wx\bin\supercell-wx.exe -style fusion`
-  - A. In Linux, if you're using KDE, it should automatically follow your theme settings.
+  - A. In Linux, if you're using KDE, Supercell Wx should automatically follow your theme settings.
