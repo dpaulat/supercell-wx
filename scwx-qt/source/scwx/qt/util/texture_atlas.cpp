@@ -211,14 +211,15 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
       }
 
       // Clear atlas
-      auto& atlas =
-         newAtlasArray.emplace_back(boost::gil::rgba8_image_t(width, height));
-      boost::gil::rgba8_view_t atlasView = boost::gil::view(atlas);
+      boost::gil::rgba8_image_t atlas(width, height);
+      boost::gil::rgba8_view_t  atlasView = boost::gil::view(atlas);
       boost::gil::fill_pixels(atlasView,
                               boost::gil::rgba8_pixel_t {255, 0, 255, 255});
 
       // Populate atlas
       logger_->trace("Populating atlas");
+
+      std::size_t numPackedImages = 0u;
 
       for (std::size_t i = 0; i < images.size(); ++i)
       {
@@ -273,6 +274,8 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
                   sRight,
                   tTop,
                   tBottom));
+
+            numPackedImages++;
          }
          else
          {
@@ -281,12 +284,18 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
          }
       }
 
+      if (numPackedImages > 0u)
+      {
+         // The new atlas layer has images that were able to be packed
+         newAtlasArray.emplace_back(std::move(atlas));
+      }
+
       if (unpackedImages.empty())
       {
          // All images have been packed into the texture atlas
          break;
       }
-      else if (layer == kMaxLayers - 1u)
+      else if (layer == kMaxLayers - 1u || numPackedImages == 0u)
       {
          // Some images were unable to be packed into the texture atlas
          for (auto& image : unpackedImages)
