@@ -46,6 +46,8 @@ public:
    bool dirty_ {false};
    bool thresholded_ {false};
 
+   std::chrono::system_clock::time_point selectedTime_ {};
+
    std::mutex bufferMutex_ {};
 
    std::vector<GLfloat> currentBuffer_ {};
@@ -75,6 +77,12 @@ PlacefileTriangles::~PlacefileTriangles() = default;
 PlacefileTriangles::PlacefileTriangles(PlacefileTriangles&&) noexcept = default;
 PlacefileTriangles&
 PlacefileTriangles::operator=(PlacefileTriangles&&) noexcept = default;
+
+void PlacefileTriangles::set_selected_time(
+   std::chrono::system_clock::time_point selectedTime)
+{
+   p->selectedTime_ = selectedTime;
+}
 
 void PlacefileTriangles::set_thresholded(bool thresholded)
 {

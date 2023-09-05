@@ -46,6 +46,8 @@ public:
 
    bool thresholded_ {false};
 
+   std::chrono::system_clock::time_point selectedTime_ {};
+
    std::uint32_t textId_ {};
    glm::vec2     mapScreenCoordLocation_ {};
    float         mapScale_ {1.0f};
@@ -75,6 +77,12 @@ PlacefileText& PlacefileText::operator=(PlacefileText&&) noexcept = default;
 void PlacefileText::set_placefile_name(const std::string& placefileName)
 {
    p->placefileName_ = placefileName;
+}
+
+void PlacefileText::set_selected_time(
+   std::chrono::system_clock::time_point selectedTime)
+{
+   p->selectedTime_ = selectedTime;
 }
 
 void PlacefileText::set_thresholded(bool thresholded)
@@ -117,7 +125,15 @@ void PlacefileText::Impl::RenderTextDrawItem(
    const QMapLibreGL::CustomLayerRenderParameters&           params,
    const std::shared_ptr<const gr::Placefile::TextDrawItem>& di)
 {
-   if (!thresholded_ || mapDistance_ <= di->threshold_)
+   // If no time has been selected, use the current time
+   std::chrono::system_clock::time_point selectedTime =
+      (selectedTime_ == std::chrono::system_clock::time_point {}) ?
+         std::chrono::system_clock::now() :
+         selectedTime_;
+
+   if ((!thresholded_ || mapDistance_ <= di->threshold_) &&
+       (di->startTime_ == std::chrono::system_clock::time_point {} ||
+        (di->startTime_ <= selectedTime && selectedTime < di->endTime_)))
    {
       const auto screenCoordinates = (util::maplibre::LatLongToScreenCoordinate(
                                          {di->latitude_, di->longitude_}) -

@@ -77,6 +77,8 @@ public:
    bool dirty_ {false};
    bool thresholded_ {false};
 
+   std::chrono::system_clock::time_point selectedTime_ {};
+
    std::mutex imageMutex_;
 
    boost::unordered_flat_map<std::string, PlacefileImageInfo>
@@ -116,6 +118,12 @@ PlacefileImages::~PlacefileImages() = default;
 PlacefileImages::PlacefileImages(PlacefileImages&&) noexcept = default;
 PlacefileImages&
 PlacefileImages::operator=(PlacefileImages&&) noexcept = default;
+
+void PlacefileImages::set_selected_time(
+   std::chrono::system_clock::time_point selectedTime)
+{
+   p->selectedTime_ = selectedTime;
+}
 
 void PlacefileImages::set_thresholded(bool thresholded)
 {

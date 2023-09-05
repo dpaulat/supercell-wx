@@ -25,6 +25,7 @@ public:
    PlacefileTriangles(PlacefileTriangles&&) noexcept;
    PlacefileTriangles& operator=(PlacefileTriangles&&) noexcept;
 
+   void set_selected_time(std::chrono::system_clock::time_point selectedTime);
    void set_thresholded(bool thresholded);
 
    void Initialize() override;

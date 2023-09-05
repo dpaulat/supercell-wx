@@ -840,6 +840,15 @@ void MainWindowImpl::ConnectAnimationSignals()
            &manager::TimelineManager::AnimationStepEnd);
 
    connect(timelineManager_.get(),
+           &manager::TimelineManager::SelectedTimeUpdated,
+           [this]()
+           {
+              for (auto map : maps_)
+              {
+                 map->update();
+              }
+           });
+   connect(timelineManager_.get(),
            &manager::TimelineManager::VolumeTimeUpdated,
            [this](std::chrono::system_clock::time_point dateTime)
            {

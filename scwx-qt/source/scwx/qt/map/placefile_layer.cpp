@@ -6,6 +6,7 @@
 #include <scwx/qt/gl/draw/placefile_triangles.hpp>
 #include <scwx/qt/gl/draw/placefile_text.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
+#include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <boost/asio/post.hpp>
@@ -58,6 +59,8 @@ public:
    std::shared_ptr<gl::draw::PlacefilePolygons>  placefilePolygons_;
    std::shared_ptr<gl::draw::PlacefileTriangles> placefileTriangles_;
    std::shared_ptr<gl::draw::PlacefileText>      placefileText_;
+
+   std::chrono::system_clock::time_point selectedTime_ {};
 };
 
 PlacefileLayer::PlacefileLayer(const std::shared_ptr<MapContext>& context,
@@ -80,6 +83,7 @@ PlacefileLayer::~PlacefileLayer() = default;
 void PlacefileLayer::Impl::ConnectSignals()
 {
    auto placefileManager = manager::PlacefileManager::Instance();
+   auto timelineManager  = manager::TimelineManager::Instance();
 
    QObject::connect(placefileManager.get(),
                     &manager::PlacefileManager::PlacefileUpdated,
@@ -91,6 +95,12 @@ void PlacefileLayer::Impl::ConnectSignals()
                           self_->ReloadData();
                        }
                     });
+
+   QObject::connect(timelineManager.get(),
+                    &manager::TimelineManager::SelectedTimeUpdated,
+                    self_,
+                    [this](std::chrono::system_clock::time_point dateTime)
+                    { selectedTime_ = dateTime; });
 }
 
 std::string PlacefileLayer::placefile_name() const
@@ -137,6 +147,13 @@ void PlacefileLayer::Render(
       p->placefilePolygons_->set_thresholded(thresholded);
       p->placefileTriangles_->set_thresholded(thresholded);
       p->placefileText_->set_thresholded(thresholded);
+
+      p->placefileIcons_->set_selected_time(p->selectedTime_);
+      p->placefileImages_->set_selected_time(p->selectedTime_);
+      p->placefileLines_->set_selected_time(p->selectedTime_);
+      p->placefilePolygons_->set_selected_time(p->selectedTime_);
+      p->placefileTriangles_->set_selected_time(p->selectedTime_);
+      p->placefileText_->set_selected_time(p->selectedTime_);
    }
 
    DrawLayer::Render(params);

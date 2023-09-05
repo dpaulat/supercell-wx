@@ -25,6 +25,7 @@ public:
    PlacefileImages(PlacefileImages&&) noexcept;
    PlacefileImages& operator=(PlacefileImages&&) noexcept;
 
+   void set_selected_time(std::chrono::system_clock::time_point selectedTime);
    void set_thresholded(bool thresholded);
 
    void Initialize() override;

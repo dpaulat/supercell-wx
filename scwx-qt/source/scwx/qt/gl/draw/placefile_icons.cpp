@@ -95,6 +95,8 @@ public:
    bool dirty_ {false};
    bool thresholded_ {false};
 
+   std::chrono::system_clock::time_point selectedTime_ {};
+
    std::mutex iconMutex_;
 
    boost::unordered_flat_map<std::size_t, PlacefileIconInfo>
@@ -138,6 +140,12 @@ PlacefileIcons::~PlacefileIcons() = default;
 
 PlacefileIcons::PlacefileIcons(PlacefileIcons&&) noexcept            = default;
 PlacefileIcons& PlacefileIcons::operator=(PlacefileIcons&&) noexcept = default;
+
+void PlacefileIcons::set_selected_time(
+   std::chrono::system_clock::time_point selectedTime)
+{
+   p->selectedTime_ = selectedTime;
+}
 
 void PlacefileIcons::set_thresholded(bool thresholded)
 {

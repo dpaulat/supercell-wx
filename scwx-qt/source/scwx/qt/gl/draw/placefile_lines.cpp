@@ -75,6 +75,8 @@ public:
    bool dirty_ {false};
    bool thresholded_ {false};
 
+   std::chrono::system_clock::time_point selectedTime_ {};
+
    std::mutex lineMutex_ {};
 
    std::size_t currentNumLines_ {};
@@ -108,6 +110,12 @@ PlacefileLines::~PlacefileLines() = default;
 
 PlacefileLines::PlacefileLines(PlacefileLines&&) noexcept            = default;
 PlacefileLines& PlacefileLines::operator=(PlacefileLines&&) noexcept = default;
+
+void PlacefileLines::set_selected_time(
+   std::chrono::system_clock::time_point selectedTime)
+{
+   p->selectedTime_ = selectedTime;
+}
 
 void PlacefileLines::set_thresholded(bool thresholded)
 {

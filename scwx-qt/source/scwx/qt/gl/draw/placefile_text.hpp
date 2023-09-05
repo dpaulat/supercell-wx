@@ -27,6 +27,7 @@ public:
    PlacefileText& operator=(PlacefileText&&) noexcept;
 
    void set_placefile_name(const std::string& placefileName);
+   void set_selected_time(std::chrono::system_clock::time_point selectedTime);
    void set_thresholded(bool thresholded);
 
    void Initialize() override;

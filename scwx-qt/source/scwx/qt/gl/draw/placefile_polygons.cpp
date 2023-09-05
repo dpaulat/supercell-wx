@@ -91,6 +91,8 @@ public:
    bool dirty_ {false};
    bool thresholded_ {false};
 
+   std::chrono::system_clock::time_point selectedTime_ {};
+
    boost::container::stable_vector<TessVertexArray> tessCombineBuffer_ {};
 
    std::mutex           bufferMutex_ {};
@@ -125,6 +127,12 @@ PlacefilePolygons::~PlacefilePolygons() = default;
 PlacefilePolygons::PlacefilePolygons(PlacefilePolygons&&) noexcept = default;
 PlacefilePolygons&
 PlacefilePolygons::operator=(PlacefilePolygons&&) noexcept = default;
+
+void PlacefilePolygons::set_selected_time(
+   std::chrono::system_clock::time_point selectedTime)
+{
+   p->selectedTime_ = selectedTime;
+}
 
 void PlacefilePolygons::set_thresholded(bool thresholded)
 {
