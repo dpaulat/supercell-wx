@@ -19,6 +19,9 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static constexpr std::size_t kVerticesPerTriangle = 3;
 static constexpr std::size_t kPointsPerVertex     = 8;
 
+// Threshold, start time, end time
+static constexpr std::size_t kIntegersPerVertex_ = 3;
+
 class PlacefileTriangles::Impl
 {
 public:
@@ -29,6 +32,7 @@ public:
        uMapMatrixLocation_(GL_INVALID_INDEX),
        uMapScreenCoordLocation_(GL_INVALID_INDEX),
        uMapDistanceLocation_(GL_INVALID_INDEX),
+       uSelectedTimeLocation_(GL_INVALID_INDEX),
        vao_ {GL_INVALID_INDEX},
        vbo_ {GL_INVALID_INDEX},
        numVertices_ {0}
@@ -51,15 +55,16 @@ public:
    std::mutex bufferMutex_ {};
 
    std::vector<GLfloat> currentBuffer_ {};
-   std::vector<GLint>   currentThresholdBuffer_ {};
+   std::vector<GLint>   currentIntegerBuffer_ {};
    std::vector<GLfloat> newBuffer_ {};
-   std::vector<GLint>   newThresholdBuffer_ {};
+   std::vector<GLint>   newIntegerBuffer_ {};
 
    std::shared_ptr<ShaderProgram> shaderProgram_;
    GLint                          uMVPMatrixLocation_;
    GLint                          uMapMatrixLocation_;
    GLint                          uMapScreenCoordLocation_;
    GLint                          uMapDistanceLocation_;
+   GLint                          uSelectedTimeLocation_;
 
    GLuint                vao_;
    std::array<GLuint, 2> vbo_;
@@ -104,6 +109,8 @@ void PlacefileTriangles::Initialize()
       p->shaderProgram_->GetUniformLocation("uMapScreenCoord");
    p->uMapDistanceLocation_ =
       p->shaderProgram_->GetUniformLocation("uMapDistance");
+   p->uSelectedTimeLocation_ =
+      p->shaderProgram_->GetUniformLocation("uSelectedTime");
 
    gl.glGenVertexArrays(1, &p->vao_);
    gl.glGenBuffers(2, p->vbo_.data());
@@ -146,9 +153,17 @@ void PlacefileTriangles::Initialize()
    gl.glVertexAttribIPointer(3, //
                              1,
                              GL_INT,
-                             0,
+                             kIntegersPerVertex_ * sizeof(GLint),
                              static_cast<void*>(0));
    gl.glEnableVertexAttribArray(3);
+
+   // aTimeRange
+   gl.glVertexAttribIPointer(4, //
+                             2,
+                             GL_INT,
+                             kIntegersPerVertex_ * sizeof(GLint),
+                             reinterpret_cast<void*>(1 * sizeof(GLint)));
+   gl.glEnableVertexAttribArray(4);
 
    p->dirty_ = true;
 }
@@ -181,6 +196,17 @@ void PlacefileTriangles::Render(
          gl.glUniform1f(p->uMapDistanceLocation_, 0.0f);
       }
 
+      // Selected time
+      std::chrono::system_clock::time_point selectedTime =
+         (p->selectedTime_ == std::chrono::system_clock::time_point {}) ?
+            std::chrono::system_clock::now() :
+            p->selectedTime_;
+      gl.glUniform1i(
+         p->uSelectedTimeLocation_,
+         static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
+                               selectedTime.time_since_epoch())
+                               .count()));
+
       // Draw icons
       gl.glDrawArrays(GL_TRIANGLES, 0, p->numVertices_);
    }
@@ -197,14 +223,14 @@ void PlacefileTriangles::Deinitialize()
 
    // Clear the current buffers
    p->currentBuffer_.clear();
-   p->currentThresholdBuffer_.clear();
+   p->currentIntegerBuffer_.clear();
 }
 
 void PlacefileTriangles::StartTriangles()
 {
    // Clear the new buffers
    p->newBuffer_.clear();
-   p->newThresholdBuffer_.clear();
+   p->newIntegerBuffer_.clear();
 }
 
 void PlacefileTriangles::AddTriangles(
@@ -222,11 +248,11 @@ void PlacefileTriangles::FinishTriangles()
 
    // Swap buffers
    p->currentBuffer_.swap(p->newBuffer_);
-   p->currentThresholdBuffer_.swap(p->newThresholdBuffer_);
+   p->currentIntegerBuffer_.swap(p->newIntegerBuffer_);
 
    // Clear the new buffers
    p->newBuffer_.clear();
-   p->newThresholdBuffer_.clear();
+   p->newIntegerBuffer_.clear();
 
    // Mark the draw item dirty
    p->dirty_ = true;
@@ -238,6 +264,16 @@ void PlacefileTriangles::Impl::UpdateBuffers(
    // Threshold value
    units::length::nautical_miles<double> threshold = di->threshold_;
    GLint thresholdValue = static_cast<GLint>(std::round(threshold.value()));
+
+   // Start and end time
+   GLint startTime =
+      static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
+                            di->startTime_.time_since_epoch())
+                            .count());
+   GLint endTime =
+      static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
+                            di->endTime_.time_since_epoch())
+                            .count());
 
    // Default color to "Color" statement
    boost::gil::rgba8_pixel_t lastColor = di->color_;
@@ -268,14 +304,15 @@ void PlacefileTriangles::Impl::UpdateBuffers(
       newBuffer_.insert(
          newBuffer_.end(),
          {screenCoordinate.x, screenCoordinate.y, x, y, r, g, b, a});
-      newThresholdBuffer_.push_back(thresholdValue);
+      newIntegerBuffer_.insert(newIntegerBuffer_.end(),
+                               {thresholdValue, startTime, endTime});
    }
 
    // Remove extra vertices that don't correspond to a full triangle
    while (newBuffer_.size() % kVerticesPerTriangle != 0)
    {
       newBuffer_.pop_back();
-      newThresholdBuffer_.pop_back();
+      newIntegerBuffer_.pop_back();
    }
 }
 
@@ -297,8 +334,8 @@ void PlacefileTriangles::Impl::Update()
       // Buffer threshold data
       gl.glBindBuffer(GL_ARRAY_BUFFER, vbo_[1]);
       gl.glBufferData(GL_ARRAY_BUFFER,
-                      sizeof(GLint) * currentThresholdBuffer_.size(),
-                      currentThresholdBuffer_.data(),
+                      sizeof(GLint) * currentIntegerBuffer_.size(),
+                      currentIntegerBuffer_.data(),
                       GL_DYNAMIC_DRAW);
 
       numVertices_ =
