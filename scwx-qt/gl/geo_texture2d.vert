@@ -13,6 +13,7 @@ layout (location = 2) in vec3  aTexCoord;
 layout (location = 3) in vec4  aModulate;
 layout (location = 4) in float aAngleDeg;
 layout (location = 5) in int   aThreshold;
+layout (location = 6) in ivec2 aTimeRange;
 
 uniform mat4 uMVPMatrix;
 uniform mat4 uMapMatrix;
@@ -20,9 +21,10 @@ uniform vec2 uMapScreenCoord;
 
 out VertexData
 {
-   int  threshold;
-   vec3 texCoord;
-   vec4 color;
+   int   threshold;
+   vec3  texCoord;
+   vec4  color;
+   ivec2 timeRange;
 } vsOut;
 
 smooth out vec3 texCoord;
@@ -39,8 +41,9 @@ vec2 latLngToScreenCoordinate(in vec2 latLng)
 
 void main()
 {
-   // Pass the threshold to the geometry shader
+   // Pass the threshold and time range to the geometry shader
    vsOut.threshold = aThreshold;
+   vsOut.timeRange = aTimeRange;
 
    // Pass the texture coordinate and color modulate to the geometry and
    // fragment shaders

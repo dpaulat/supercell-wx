@@ -1,9 +1,10 @@
 #version 330 core
 
-layout (location = 0) in vec2 aScreenCoord;
-layout (location = 1) in vec2 aXYOffset;
-layout (location = 2) in vec4 aColor;
-layout (location = 3) in int  aThreshold;
+layout (location = 0) in vec2  aScreenCoord;
+layout (location = 1) in vec2  aXYOffset;
+layout (location = 2) in vec4  aColor;
+layout (location = 3) in int   aThreshold;
+layout (location = 4) in ivec2 aTimeRange;
 
 uniform mat4 uMVPMatrix;
 uniform mat4 uMapMatrix;
@@ -11,17 +12,19 @@ uniform vec2 uMapScreenCoord;
 
 out VertexData
 {
-   int  threshold;
-   vec3 texCoord;
-   vec4 color;
+   int   threshold;
+   vec3  texCoord;
+   vec4  color;
+   ivec2 timeRange;
 } vsOut;
 
 smooth out vec4 color;
 
 void main()
 {
-   // Pass the threshold and color to the geometry shader
+   // Pass the threshold and time range to the geometry shader
    vsOut.threshold = aThreshold;
+   vsOut.timeRange = aTimeRange;
 
    // Pass the color to the geometry and fragment shaders
    vsOut.color = aColor;
