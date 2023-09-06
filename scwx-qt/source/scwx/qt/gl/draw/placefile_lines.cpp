@@ -26,6 +26,9 @@ static constexpr std::size_t kPointsPerVertex      = 9;
 static constexpr std::size_t kBufferLength =
    kNumTriangles * kVerticesPerTriangle * kPointsPerVertex;
 
+// Threshold, start time, end time
+static constexpr std::size_t kIntegersPerVertex_ = 3;
+
 static const boost::gil::rgba8_pixel_t kBlack_ {0, 0, 0, 255};
 
 class PlacefileLines::Impl
@@ -50,6 +53,7 @@ public:
        uMapMatrixLocation_(GL_INVALID_INDEX),
        uMapScreenCoordLocation_(GL_INVALID_INDEX),
        uMapDistanceLocation_(GL_INVALID_INDEX),
+       uSelectedTimeLocation_(GL_INVALID_INDEX),
        vao_ {GL_INVALID_INDEX},
        vbo_ {GL_INVALID_INDEX},
        numVertices_ {0}
@@ -65,6 +69,8 @@ public:
                    const units::angle::degrees<double> angle,
                    const boost::gil::rgba8_pixel_t     color,
                    const GLint                         threshold,
+                   const GLint                         startTime,
+                   const GLint                         endTime,
                    bool                                bufferHover = false);
    void
    UpdateBuffers(const std::shared_ptr<const gr::Placefile::LineDrawItem>& di);
@@ -83,9 +89,9 @@ public:
    std::size_t newNumLines_ {};
 
    std::vector<float> currentLinesBuffer_ {};
-   std::vector<GLint> currentThresholdBuffer_ {};
+   std::vector<GLint> currentIntegerBuffer_ {};
    std::vector<float> newLinesBuffer_ {};
-   std::vector<GLint> newThresholdBuffer_ {};
+   std::vector<GLint> newIntegerBuffer_ {};
 
    std::vector<LineHoverEntry> currentHoverLines_ {};
    std::vector<LineHoverEntry> newHoverLines_ {};
@@ -95,6 +101,7 @@ public:
    GLint                          uMapMatrixLocation_;
    GLint                          uMapScreenCoordLocation_;
    GLint                          uMapDistanceLocation_;
+   GLint                          uSelectedTimeLocation_;
 
    GLuint                vao_;
    std::array<GLuint, 2> vbo_;
@@ -137,6 +144,8 @@ void PlacefileLines::Initialize()
       p->shaderProgram_->GetUniformLocation("uMapScreenCoord");
    p->uMapDistanceLocation_ =
       p->shaderProgram_->GetUniformLocation("uMapDistance");
+   p->uSelectedTimeLocation_ =
+      p->shaderProgram_->GetUniformLocation("uSelectedTime");
 
    gl.glGenVertexArrays(1, &p->vao_);
    gl.glGenBuffers(2, p->vbo_.data());
@@ -188,9 +197,17 @@ void PlacefileLines::Initialize()
    gl.glVertexAttribIPointer(5, //
                              1,
                              GL_INT,
-                             0,
+                             kIntegersPerVertex_ * sizeof(GLint),
                              static_cast<void*>(0));
    gl.glEnableVertexAttribArray(5);
+
+   // aTimeRange
+   gl.glVertexAttribIPointer(6, //
+                             2,
+                             GL_INT,
+                             kIntegersPerVertex_ * sizeof(GLint),
+                             reinterpret_cast<void*>(1 * sizeof(GLint)));
+   gl.glEnableVertexAttribArray(6);
 
    p->dirty_ = true;
 }
@@ -225,6 +242,17 @@ void PlacefileLines::Render(
          gl.glUniform1f(p->uMapDistanceLocation_, 0.0f);
       }
 
+      // Selected time
+      std::chrono::system_clock::time_point selectedTime =
+         (p->selectedTime_ == std::chrono::system_clock::time_point {}) ?
+            std::chrono::system_clock::now() :
+            p->selectedTime_;
+      gl.glUniform1i(
+         p->uSelectedTimeLocation_,
+         static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
+                               selectedTime.time_since_epoch())
+                               .count()));
+
       // Draw icons
       gl.glDrawArrays(GL_TRIANGLES, 0, p->numVertices_);
    }
@@ -240,7 +268,7 @@ void PlacefileLines::Deinitialize()
    std::unique_lock lock {p->lineMutex_};
 
    p->currentLinesBuffer_.clear();
-   p->currentThresholdBuffer_.clear();
+   p->currentIntegerBuffer_.clear();
    p->currentHoverLines_.clear();
 }
 
@@ -248,7 +276,7 @@ void PlacefileLines::StartLines()
 {
    // Clear the new buffers
    p->newLinesBuffer_.clear();
-   p->newThresholdBuffer_.clear();
+   p->newIntegerBuffer_.clear();
    p->newHoverLines_.clear();
 
    p->newNumLines_ = 0u;
@@ -270,12 +298,12 @@ void PlacefileLines::FinishLines()
 
    // Swap buffers
    p->currentLinesBuffer_.swap(p->newLinesBuffer_);
-   p->currentThresholdBuffer_.swap(p->newThresholdBuffer_);
+   p->currentIntegerBuffer_.swap(p->newIntegerBuffer_);
    p->currentHoverLines_.swap(p->newHoverLines_);
 
    // Clear the new buffers
    p->newLinesBuffer_.clear();
-   p->newThresholdBuffer_.clear();
+   p->newIntegerBuffer_.clear();
    p->newHoverLines_.clear();
 
    // Update the number of lines
@@ -293,6 +321,16 @@ void PlacefileLines::Impl::UpdateBuffers(
    // Threshold value
    units::length::nautical_miles<double> threshold = di->threshold_;
    GLint thresholdValue = static_cast<GLint>(std::round(threshold.value()));
+
+   // Start and end time
+   GLint startTime =
+      static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
+                            di->startTime_.time_since_epoch())
+                            .count());
+   GLint endTime =
+      static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
+                            di->endTime_.time_since_epoch())
+                            .count());
 
    std::vector<units::angle::degrees<double>> angles {};
    angles.reserve(di->elements_.size() - 1);
@@ -319,6 +357,8 @@ void PlacefileLines::Impl::UpdateBuffers(
                  angle,
                  kBlack_,
                  thresholdValue,
+                 startTime,
+                 endTime,
                  true);
    }
 
@@ -331,7 +371,9 @@ void PlacefileLines::Impl::UpdateBuffers(
                  di->width_,
                  angles[i],
                  di->color_,
-                 thresholdValue);
+                 thresholdValue,
+                 startTime,
+                 endTime);
    }
 }
 
@@ -343,6 +385,8 @@ void PlacefileLines::Impl::BufferLine(
    const units::angle::degrees<double>                       angle,
    const boost::gil::rgba8_pixel_t                           color,
    const GLint                                               threshold,
+   const GLint                                               startTime,
+   const GLint                                               endTime,
    bool                                                      bufferHover)
 {
    // Latitude and longitude coordinates in degrees
@@ -384,9 +428,25 @@ void PlacefileLines::Impl::BufferLine(
                              lat2, lon2, rx, ty, mc0, mc1, mc2, mc3, a, // TR
                              lat2, lon2, lx, ty, mc0, mc1, mc2, mc3, a  // TL
                           });
-   newThresholdBuffer_.insert(
-      newThresholdBuffer_.end(),
-      {threshold, threshold, threshold, threshold, threshold, threshold});
+   newIntegerBuffer_.insert(newIntegerBuffer_.end(),
+                            {threshold,
+                             startTime,
+                             endTime,
+                             threshold,
+                             startTime,
+                             endTime,
+                             threshold,
+                             startTime,
+                             endTime,
+                             threshold,
+                             startTime,
+                             endTime,
+                             threshold,
+                             startTime,
+                             endTime,
+                             threshold,
+                             startTime,
+                             endTime});
 
    if (bufferHover && !di->hoverText_.empty())
    {
@@ -427,8 +487,8 @@ void PlacefileLines::Impl::Update()
       // Buffer threshold data
       gl.glBindBuffer(GL_ARRAY_BUFFER, vbo_[1]);
       gl.glBufferData(GL_ARRAY_BUFFER,
-                      sizeof(GLint) * currentThresholdBuffer_.size(),
-                      currentThresholdBuffer_.data(),
+                      sizeof(GLint) * currentIntegerBuffer_.size(),
+                      currentIntegerBuffer_.data(),
                       GL_DYNAMIC_DRAW);
    }
 
@@ -458,24 +518,41 @@ bool PlacefileLines::RunMousePicking(
       (p->thresholded_) ? util::maplibre::GetMapDistance(params) :
                           units::length::meters<double> {0.0};
 
+   // If no time has been selected, use the current time
+   std::chrono::system_clock::time_point selectedTime =
+      (p->selectedTime_ == std::chrono::system_clock::time_point {}) ?
+         std::chrono::system_clock::now() :
+         p->selectedTime_;
+
    // For each pickable line
    auto it = std::find_if(
       std::execution::par_unseq,
       p->currentHoverLines_.crbegin(),
       p->currentHoverLines_.crend(),
-      [&mapDistance, &mapMatrix, &mousePos](const auto& line)
+      [&mapDistance, &selectedTime, &mapMatrix, &mousePos](const auto& line)
       {
-         if (
-            // Placefile is thresholded
-            mapDistance > units::length::meters<double> {0.0} &&
+         if ((
+                // Placefile is thresholded
+                mapDistance > units::length::meters<double> {0.0} &&
 
-            // Placefile threshold is < 999 nmi
-            static_cast<int>(std::round(
-               units::length::nautical_miles<double> {line.di_->threshold_}
-                  .value())) < 999 &&
+                // Placefile threshold is < 999 nmi
+                static_cast<int>(std::round(
+                   units::length::nautical_miles<double> {line.di_->threshold_}
+                      .value())) < 999 &&
 
-            // Map distance is beyond the threshold
-            line.di_->threshold_ < mapDistance)
+                // Map distance is beyond the threshold
+                line.di_->threshold_ < mapDistance) ||
+
+             (
+                // Line has a start time
+                line.di_->startTime_ !=
+                   std::chrono::system_clock::time_point {} &&
+
+                // The time range has not yet started
+                (selectedTime < line.di_->startTime_ ||
+
+                 // The time range has ended
+                 line.di_->endTime_ <= selectedTime)))
          {
             // Line is not pickable
             return false;
