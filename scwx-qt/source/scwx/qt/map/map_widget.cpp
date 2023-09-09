@@ -255,7 +255,8 @@ void MapWidgetImpl::ConnectSignals()
                  enabledPlacefiles_.erase(oldName);
                  RemovePlacefileLayer(oldName);
               }
-              if (!enabledPlacefiles_.contains(newName))
+              if (!enabledPlacefiles_.contains(newName) &&
+                  placefileManager_->placefile_enabled(newName))
               {
                  // Add new placefile layer
                  enabledPlacefiles_.emplace(newName);
