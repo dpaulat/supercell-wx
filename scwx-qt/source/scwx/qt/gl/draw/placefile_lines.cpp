@@ -497,7 +497,9 @@ void PlacefileLines::Impl::Update()
 
 bool PlacefileLines::RunMousePicking(
    const QMapLibreGL::CustomLayerRenderParameters& params,
-   const glm::vec2&                                mousePos)
+   const QPointF& /* mouseLocalPos */,
+   const QPointF& /* mouseGlobalPos */,
+   const glm::vec2& mouseCoords)
 {
    std::unique_lock lock {p->lineMutex_};
 
@@ -529,7 +531,7 @@ bool PlacefileLines::RunMousePicking(
       std::execution::par_unseq,
       p->currentHoverLines_.crbegin(),
       p->currentHoverLines_.crend(),
-      [&mapDistance, &selectedTime, &mapMatrix, &mousePos](const auto& line)
+      [&mapDistance, &selectedTime, &mapMatrix, &mouseCoords](const auto& line)
       {
          if ((
                 // Placefile is thresholded
@@ -581,7 +583,7 @@ bool PlacefileLines::RunMousePicking(
          // TODO: X/Y offsets
 
          // Test point against polygon bounds
-         return util::maplibre::IsPointInPolygon({tl, bl, br, tr}, mousePos);
+         return util::maplibre::IsPointInPolygon({tl, bl, br, tr}, mouseCoords);
       });
 
    if (it != p->currentHoverLines_.crend())

@@ -78,7 +78,9 @@ void DrawLayer::Deinitialize()
 
 bool DrawLayer::RunMousePicking(
    const QMapLibreGL::CustomLayerRenderParameters& params,
-   const glm::vec2&                                mousePos)
+   const QPointF&                                  mouseLocalPos,
+   const QPointF&                                  mouseGlobalPos,
+   const glm::vec2&                                mouseCoords)
 {
    bool itemPicked = false;
 
@@ -86,7 +88,8 @@ bool DrawLayer::RunMousePicking(
    for (auto it = p->drawList_.rbegin(); it != p->drawList_.rend(); ++it)
    {
       // Run mouse picking on each draw item
-      if ((*it)->RunMousePicking(params, mousePos))
+      if ((*it)->RunMousePicking(
+             params, mouseLocalPos, mouseGlobalPos, mouseCoords))
       {
          // If a draw item was picked, don't process additional items
          itemPicked = true;

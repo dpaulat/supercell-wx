@@ -36,7 +36,9 @@ public:
    void Deinitialize() override;
 
    bool RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params,
-                        const glm::vec2& mousePos) override;
+                        const QPointF&   mouseLocalPos,
+                        const QPointF&   mouseGlobalPos,
+                        const glm::vec2& mouseCoords) override;
 
    /**
     * Resets and prepares the draw item for adding a new set of icons.

@@ -25,7 +25,9 @@ public:
 
    virtual bool
    RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params,
-                   const glm::vec2& mousePos) override;
+                   const QPointF&   mouseLocalPos,
+                   const QPointF&   mouseGlobalPos,
+                   const glm::vec2& mouseCoords) override;
 
 protected:
    void AddDrawItem(const std::shared_ptr<gl::draw::DrawItem>& drawItem);

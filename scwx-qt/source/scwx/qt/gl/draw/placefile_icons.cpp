@@ -684,7 +684,9 @@ void PlacefileIcons::Impl::Update(bool textureAtlasChanged)
 
 bool PlacefileIcons::RunMousePicking(
    const QMapLibreGL::CustomLayerRenderParameters& params,
-   const glm::vec2&                                mousePos)
+   const QPointF& /* mouseLocalPos */,
+   const QPointF& /* mouseGlobalPos */,
+   const glm::vec2& mouseCoords)
 {
    std::unique_lock lock {p->iconMutex_};
 
@@ -716,7 +718,7 @@ bool PlacefileIcons::RunMousePicking(
       std::execution::par_unseq,
       p->currentHoverIcons_.crbegin(),
       p->currentHoverIcons_.crend(),
-      [&mapDistance, &selectedTime, &mapMatrix, &mousePos](const auto& icon)
+      [&mapDistance, &selectedTime, &mapMatrix, &mouseCoords](const auto& icon)
       {
          if ((
                 // Placefile is thresholded
@@ -766,7 +768,7 @@ bool PlacefileIcons::RunMousePicking(
          tr += otr;
 
          // Test point against polygon bounds
-         return util::maplibre::IsPointInPolygon({tl, bl, br, tr}, mousePos);
+         return util::maplibre::IsPointInPolygon({tl, bl, br, tr}, mouseCoords);
       });
 
    if (it != p->currentHoverIcons_.crend())

@@ -55,7 +55,9 @@ void DrawItem::Render(const QMapLibreGL::CustomLayerRenderParameters& params,
 
 bool DrawItem::RunMousePicking(
    const QMapLibreGL::CustomLayerRenderParameters& /* params */,
-   const glm::vec2& /* mousePos */)
+   const QPointF& /* mouseLocalPos */,
+   const QPointF& /* mouseGlobalPos */,
+   const glm::vec2& /* mouseCoords */)
 {
    // By default, the draw item is not picked
    return false;

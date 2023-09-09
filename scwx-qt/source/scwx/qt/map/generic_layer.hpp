@@ -33,13 +33,17 @@ public:
     * @brief Run mouse picking on the layer.
     *
     * @param [in] params Custom layer render parameters
-    * @param [in] mousePos Mouse cursor location in map screen coordinates
+    * @param [in] mouseLocalPos Mouse cursor widget position
+    * @param [in] mouseGlobalPos Mouse cursor screen position
+    * @param [in] mouseCoords Mouse cursor location in map screen coordinates
     *
     * @return true if a draw item was picked, otherwise false
     */
    virtual bool
    RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params,
-                   const glm::vec2&                                mousePos);
+                   const QPointF&   mouseLocalPos,
+                   const QPointF&   mouseGlobalPos,
+                   const glm::vec2& mouseCoords);
 
 protected:
    std::shared_ptr<MapContext> context() const;

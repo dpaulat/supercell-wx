@@ -70,7 +70,6 @@ public:
        autoRefreshEnabled_ {true},
        autoUpdateEnabled_ {true},
        selectedLevel2Product_ {common::Level2Product::Unknown},
-       lastPos_(),
        currentStyleIndex_ {0},
        currentStyle_ {nullptr},
        frameDraws_(0),
@@ -174,7 +173,8 @@ public:
    common::Level2Product selectedLevel2Product_;
 
    bool            hasMouse_ {false};
-   QPointF         lastPos_;
+   QPointF         lastPos_ {};
+   QPointF         lastGlobalPos_ {};
    std::size_t     currentStyleIndex_;
    const MapStyle* currentStyle_;
    std::string     initialStyleName_ {};
@@ -898,7 +898,8 @@ void MapWidget::keyPressEvent(QKeyEvent* ev)
 
 void MapWidget::mousePressEvent(QMouseEvent* ev)
 {
-   p->lastPos_ = ev->position();
+   p->lastPos_       = ev->position();
+   p->lastGlobalPos_ = ev->globalPosition();
 
    if (ev->type() == QEvent::MouseButtonPress)
    {
@@ -944,7 +945,8 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
       }
    }
 
-   p->lastPos_ = ev->position();
+   p->lastPos_       = ev->position();
+   p->lastGlobalPos_ = ev->globalPosition();
    ev->accept();
 }
 
@@ -1064,7 +1066,8 @@ void MapWidgetImpl::RunMousePicking()
         ++it)
    {
       // Run mouse picking for each layer
-      if ((*it)->RunMousePicking(params, mouseScreenCoordinate))
+      if ((*it)->RunMousePicking(
+             params, lastPos_, lastGlobalPos_, mouseScreenCoordinate))
       {
          // If a draw item was picked, don't process additional layers
          break;
