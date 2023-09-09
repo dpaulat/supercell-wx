@@ -1,7 +1,7 @@
 #include <scwx/qt/gl/draw/placefile_lines.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
-#include <scwx/qt/util/imgui.hpp>
 #include <scwx/qt/util/maplibre.hpp>
+#include <scwx/qt/util/tooltip.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <execution>
@@ -498,7 +498,7 @@ void PlacefileLines::Impl::Update()
 bool PlacefileLines::RunMousePicking(
    const QMapLibreGL::CustomLayerRenderParameters& params,
    const QPointF& /* mouseLocalPos */,
-   const QPointF& /* mouseGlobalPos */,
+   const QPointF&   mouseGlobalPos,
    const glm::vec2& mouseCoords)
 {
    std::unique_lock lock {p->lineMutex_};
@@ -589,7 +589,7 @@ bool PlacefileLines::RunMousePicking(
    if (it != p->currentHoverLines_.crend())
    {
       itemPicked = true;
-      util::ImGui::Instance().DrawTooltip(it->di_->hoverText_);
+      util::tooltip::Show(it->di_->hoverText_, mouseGlobalPos);
    }
 
    return itemPicked;

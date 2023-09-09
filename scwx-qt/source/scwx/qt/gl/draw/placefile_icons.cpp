@@ -1,7 +1,7 @@
 #include <scwx/qt/gl/draw/placefile_icons.hpp>
-#include <scwx/qt/util/imgui.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
+#include <scwx/qt/util/tooltip.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <execution>
@@ -685,7 +685,7 @@ void PlacefileIcons::Impl::Update(bool textureAtlasChanged)
 bool PlacefileIcons::RunMousePicking(
    const QMapLibreGL::CustomLayerRenderParameters& params,
    const QPointF& /* mouseLocalPos */,
-   const QPointF& /* mouseGlobalPos */,
+   const QPointF&   mouseGlobalPos,
    const glm::vec2& mouseCoords)
 {
    std::unique_lock lock {p->iconMutex_};
@@ -774,7 +774,7 @@ bool PlacefileIcons::RunMousePicking(
    if (it != p->currentHoverIcons_.crend())
    {
       itemPicked = true;
-      util::ImGui::Instance().DrawTooltip(it->di_->hoverText_);
+      util::tooltip::Show(it->di_->hoverText_, mouseGlobalPos);
    }
 
    return itemPicked;

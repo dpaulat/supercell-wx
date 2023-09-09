@@ -14,6 +14,7 @@
 #include <scwx/qt/model/imgui_context_model.hpp>
 #include <scwx/qt/util/file.hpp>
 #include <scwx/qt/util/maplibre.hpp>
+#include <scwx/qt/util/tooltip.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
@@ -1062,6 +1063,7 @@ void MapWidgetImpl::RunMousePicking()
 
    // For each layer in reverse
    // TODO: All Generic Layers, not just Placefile Layers
+   bool itemPicked = false;
    for (auto it = placefileLayers_.rbegin(); it != placefileLayers_.rend();
         ++it)
    {
@@ -1070,8 +1072,15 @@ void MapWidgetImpl::RunMousePicking()
              params, lastPos_, lastGlobalPos_, mouseScreenCoordinate))
       {
          // If a draw item was picked, don't process additional layers
+         itemPicked = true;
          break;
       }
+   }
+
+   // If no draw item was picked, hide the tooltip
+   if (!itemPicked)
+   {
+      util::tooltip::Hide();
    }
 }
 

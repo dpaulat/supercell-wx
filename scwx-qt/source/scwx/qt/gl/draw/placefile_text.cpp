@@ -1,6 +1,6 @@
 #include <scwx/qt/gl/draw/placefile_text.hpp>
-#include <scwx/qt/util/imgui.hpp>
 #include <scwx/qt/util/maplibre.hpp>
+#include <scwx/qt/util/tooltip.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <fmt/format.h>
@@ -210,7 +210,7 @@ void PlacefileText::Deinitialize()
 bool PlacefileText::RunMousePicking(
    const QMapLibreGL::CustomLayerRenderParameters& /* params */,
    const QPointF& /* mouseLocalPos */,
-   const QPointF& /* mouseGlobalPos */,
+   const QPointF& mouseGlobalPos,
    const glm::vec2& /* mouseCoords */)
 {
    bool itemPicked = false;
@@ -219,7 +219,7 @@ bool PlacefileText::RunMousePicking(
    if (!p->hoverText_.empty())
    {
       itemPicked = true;
-      util::ImGui::Instance().DrawTooltip(p->hoverText_);
+      util::tooltip::Show(p->hoverText_, mouseGlobalPos);
    }
 
    return itemPicked;

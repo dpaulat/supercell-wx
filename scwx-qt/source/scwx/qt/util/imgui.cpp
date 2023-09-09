@@ -1,12 +1,10 @@
 #include <scwx/qt/util/imgui.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
-#include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <mutex>
 
-#include <TextFlow.hpp>
 #include <imgui.h>
 
 namespace scwx
@@ -89,23 +87,9 @@ void ImGui::DrawTooltip(const std::string& hoverText)
 {
    p->Initialize();
 
-   std::size_t textWidth = static_cast<std::size_t>(
-      settings::TextSettings::Instance().hover_text_wrap().GetValue());
-
-   // Wrap text if enabled
-   std::string wrappedText {};
-   if (textWidth > 0)
-   {
-      wrappedText = TextFlow::Column(hoverText).width(textWidth).toString();
-   }
-
-   // Display text is either wrapped or unwrapped text (do this to avoid copy
-   // when not wrapping)
-   const std::string& displayText = (textWidth > 0) ? wrappedText : hoverText;
-
    ::ImGui::BeginTooltip();
    ::ImGui::PushFont(p->monospaceFont_);
-   ::ImGui::TextUnformatted(displayText.c_str());
+   ::ImGui::TextUnformatted(hoverText.c_str());
    ::ImGui::PopFont();
    ::ImGui::EndTooltip();
 }
