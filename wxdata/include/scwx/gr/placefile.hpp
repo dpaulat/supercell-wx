@@ -81,14 +81,15 @@ public:
    {
       IconDrawItem() { itemType_ = ItemType::Icon; }
 
-      double                 latitude_ {};
-      double                 longitude_ {};
-      double                 x_ {};
-      double                 y_ {};
-      units::degrees<double> angle_ {};
-      std::size_t            fileNumber_ {0u};
-      std::size_t            iconNumber_ {0u};
-      std::string            hoverText_ {};
+      boost::gil::rgba8_pixel_t modulate_ {};
+      double                    latitude_ {};
+      double                    longitude_ {};
+      double                    x_ {};
+      double                    y_ {};
+      units::degrees<double>    angle_ {};
+      std::size_t               fileNumber_ {0u};
+      std::size_t               iconNumber_ {0u};
+      std::string               hoverText_ {};
    };
 
    struct TextDrawItem : DrawItem

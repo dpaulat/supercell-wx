@@ -488,11 +488,11 @@ void PlacefileIcons::Impl::UpdateBuffers()
       units::angle::degrees<float> angle = di->angle_;
       const float                  a     = angle.value();
 
-      // Fixed modulate color
-      const float mc0 = 1.0f;
-      const float mc1 = 1.0f;
-      const float mc2 = 1.0f;
-      const float mc3 = 1.0f;
+      // Modulate color
+      const float mc0 = di->modulate_[0] / 255.0f;
+      const float mc1 = di->modulate_[1] / 255.0f;
+      const float mc2 = di->modulate_[2] / 255.0f;
+      const float mc3 = di->modulate_[3] / 255.0f;
 
       newIconBuffer_.insert(newIconBuffer_.end(),
                             {

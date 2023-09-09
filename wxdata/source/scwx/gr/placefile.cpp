@@ -68,9 +68,10 @@ public:
    std::chrono::seconds refresh_ {-1};
 
    // Parsing state
-   units::length::nautical_miles<double>       threshold_ {999.0_nmi};
-   boost::gil::rgba8_pixel_t                   color_ {255, 255, 255, 255};
-   ColorMode                                   colorMode_ {ColorMode::RGBA};
+   units::length::nautical_miles<double> threshold_ {999.0_nmi};
+   boost::gil::rgba8_pixel_t             color_ {255, 255, 255, 255};
+   boost::gil::rgba8_pixel_t             iconModulate_ {255, 255, 255, 255};
+   ColorMode                             colorMode_ {ColorMode::RGBA};
    std::chrono::sys_time<std::chrono::seconds> startTime_ {};
    std::chrono::sys_time<std::chrono::seconds> endTime_ {};
 
@@ -242,6 +243,8 @@ void Placefile::Impl::ProcessLine(const std::string& line)
    static const std::string imageKey_ {"Image:"};
    static const std::string polygonKey_ {"Polygon:"};
 
+   static const std::string scwxModulateIconKey_ {"scwx-ModulateIcon:"};
+
    currentStatement_ = DrawingStatement::Standard;
 
    // When tokenizing, add one additional delimiter to discard unexpected
@@ -336,6 +339,18 @@ void Placefile::Impl::ProcessLine(const std::string& line)
       if (tokenList.size() >= 3)
       {
          color_ = ParseColor(tokenList, 0, colorMode_);
+      }
+   }
+   else if (boost::istarts_with(line, scwxModulateIconKey_))
+   {
+      // Supercell Wx Extension
+      // scwx-ModulateIcon: red green blue [alpha]
+      std::vector<std::string> tokenList = util::ParseTokens(
+         line, {" ", " ", " ", " "}, scwxModulateIconKey_.size());
+
+      if (tokenList.size() >= 3)
+      {
+         iconModulate_ = ParseColor(tokenList, 0, colorMode_);
       }
    }
    else if (boost::istarts_with(line, refreshKey_))
@@ -433,6 +448,7 @@ void Placefile::Impl::ProcessLine(const std::string& line)
          di->threshold_ = threshold_;
          di->startTime_ = startTime_;
          di->endTime_   = endTime_;
+         di->modulate_  = iconModulate_;
 
          ParseLocation(tokenList[0],
                        tokenList[1],
@@ -686,7 +702,7 @@ void Placefile::Impl::ProcessLine(const std::string& line)
    }
    else
    {
-      logger_->warn("Unknown statement: {}", line);
+      logger_->trace("Unknown statement: {}", line);
    }
 }
 
