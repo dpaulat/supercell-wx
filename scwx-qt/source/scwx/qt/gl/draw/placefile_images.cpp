@@ -472,8 +472,8 @@ void PlacefileImages::Impl::Update(bool textureAtlasChanged)
                       currentIntegerBuffer_.data(),
                       GL_DYNAMIC_DRAW);
 
-      numVertices_ = static_cast<GLsizei>(currentImageBuffer_.size() /
-                                          kVerticesPerRectangle);
+      numVertices_ =
+         static_cast<GLsizei>(currentImageBuffer_.size() / kPointsPerVertex);
    }
 
    dirty_ = false;
