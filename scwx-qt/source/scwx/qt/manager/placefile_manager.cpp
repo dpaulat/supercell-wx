@@ -577,7 +577,7 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
 
       // Specify parameters
       auto parameters = cpr::Parameters {
-         {"version", "1.2"}, // Placefile Version Supported
+         {"version", "1.5"}, // Placefile Version Supported
          {"dpi", fmt::format("{:0.0f}", dpi)},
          {"lat", fmt::format("{:0.3f}", p->radarSite_->latitude())},
          {"lon", fmt::format("{:0.3f}", p->radarSite_->longitude())}};
