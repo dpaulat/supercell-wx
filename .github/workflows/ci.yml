@@ -27,7 +27,6 @@ jobs:
             env_cxx: ''
             compiler: msvc
             msvc_arch: x64
-            msvc_toolset: 14.36
             msvc_version: 2022
             qt_version: 6.5.0
             qt_arch: win64_msvc2019_64
@@ -84,7 +83,6 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: ${{ matrix.msvc_arch }}
-        toolset: ${{ matrix.msvc_toolset }}
         vsversion: ${{ matrix.msvc_version }}
 
     - name: Setup Ubuntu Environment
