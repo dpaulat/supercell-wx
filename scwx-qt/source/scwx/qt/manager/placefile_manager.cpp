@@ -585,7 +585,7 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
       // Iterate through each query parameter in the URL
       if (url.hasQuery())
       {
-         auto query = url.query(QUrl::ComponentFormattingOption::FullyEncoded)
+         auto query = url.query(QUrl::ComponentFormattingOption::PrettyDecoded)
                          .toStdString();
 
          boost::char_separator<char> delimiter("&");
