@@ -26,10 +26,14 @@ public:
    }
    ~Impl() {}
 
+   void InitializeGL();
+
    static std::size_t
    GetShaderKey(std::initializer_list<std::pair<GLenum, std::string>> shaders);
 
    gl::OpenGLFunctions gl_;
+
+   bool glInitialized_ {false};
 
    std::unordered_map<std::size_t, std::shared_ptr<gl::ShaderProgram>>
               shaderProgramMap_;
@@ -55,6 +59,18 @@ gl::OpenGLFunctions& GlContext::gl()
 std::uint64_t GlContext::texture_buffer_count() const
 {
    return p->textureBufferCount_;
+}
+
+void GlContext::Impl::InitializeGL()
+{
+   if (glInitialized_)
+   {
+      return;
+   }
+
+   gl_.glGenTextures(1, &textureAtlas_);
+
+   glInitialized_ = true;
 }
 
 std::shared_ptr<gl::ShaderProgram>
@@ -91,15 +107,16 @@ std::shared_ptr<gl::ShaderProgram> GlContext::GetShaderProgram(
 
 GLuint GlContext::GetTextureAtlas()
 {
+   p->InitializeGL();
+
    std::unique_lock lock(p->textureMutex_);
 
    auto& textureAtlas = util::TextureAtlas::Instance();
 
-   if (p->textureAtlas_ == GL_INVALID_INDEX ||
-       p->textureBufferCount_ != textureAtlas.BuildCount())
+   if (p->textureBufferCount_ != textureAtlas.BuildCount())
    {
       p->textureBufferCount_ = textureAtlas.BuildCount();
-      p->textureAtlas_       = textureAtlas.BufferAtlas(p->gl_);
+      textureAtlas.BufferAtlas(p->gl_, p->textureAtlas_);
    }
 
    return p->textureAtlas_;

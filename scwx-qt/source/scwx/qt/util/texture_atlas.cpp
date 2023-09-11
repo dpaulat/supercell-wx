@@ -323,10 +323,8 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
    ++p->buildCount_;
 }
 
-GLuint TextureAtlas::BufferAtlas(gl::OpenGLFunctions& gl)
+void TextureAtlas::BufferAtlas(gl::OpenGLFunctions& gl, GLuint texture)
 {
-   GLuint texture = GL_INVALID_INDEX;
-
    std::shared_lock lock(p->atlasMutex_);
 
    if (p->atlasArray_.size() > 0u && p->atlasArray_[0].width() > 0 &&
@@ -354,7 +352,6 @@ GLuint TextureAtlas::BufferAtlas(gl::OpenGLFunctions& gl)
 
       lock.unlock();
 
-      gl.glGenTextures(1, &texture);
       gl.glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
 
       gl.glTexParameteri(
@@ -375,8 +372,6 @@ GLuint TextureAtlas::BufferAtlas(gl::OpenGLFunctions& gl)
                       GL_UNSIGNED_BYTE,
                       pixelData.data());
    }
-
-   return texture;
 }
 
 TextureAttributes TextureAtlas::GetTextureAttributes(const std::string& name)

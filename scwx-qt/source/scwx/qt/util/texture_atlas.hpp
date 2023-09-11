@@ -72,10 +72,10 @@ public:
 
    std::uint64_t BuildCount() const;
 
-   void   RegisterTexture(const std::string& name, const std::string& path);
-   bool   CacheTexture(const std::string& name, const std::string& path);
-   void   BuildAtlas(std::size_t width, std::size_t height);
-   GLuint BufferAtlas(gl::OpenGLFunctions& gl);
+   void RegisterTexture(const std::string& name, const std::string& path);
+   bool CacheTexture(const std::string& name, const std::string& path);
+   void BuildAtlas(std::size_t width, std::size_t height);
+   void BufferAtlas(gl::OpenGLFunctions& gl, GLuint texture);
 
    TextureAttributes GetTextureAttributes(const std::string& name);
 
