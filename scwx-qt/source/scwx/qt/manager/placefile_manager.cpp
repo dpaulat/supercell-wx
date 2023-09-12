@@ -356,10 +356,13 @@ void PlacefileManager::Impl::ReadPlacefileSettings()
             PlacefileRecord record =
                boost::json::value_to<PlacefileRecord>(placefileEntry);
 
-            self_->AddUrl(record.name_,
-                          record.title_,
-                          record.enabled_,
-                          record.thresholded_);
+            if (!record.name_.empty())
+            {
+               self_->AddUrl(record.name_,
+                             record.title_,
+                             record.enabled_,
+                             record.thresholded_);
+            }
          }
          catch (const std::exception& ex)
          {

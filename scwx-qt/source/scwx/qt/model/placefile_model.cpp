@@ -257,6 +257,7 @@ bool PlacefileModel::setData(const QModelIndex& index,
    }
 
    const auto& placefileName = p->placefileNames_.at(index.row());
+   bool        result        = false;
 
    switch (index.column())
    {
@@ -265,7 +266,7 @@ bool PlacefileModel::setData(const QModelIndex& index,
       {
          p->placefileManager_->set_placefile_enabled(placefileName,
                                                      value.toBool());
-         return true;
+         result = true;
       }
       break;
 
@@ -274,16 +275,20 @@ bool PlacefileModel::setData(const QModelIndex& index,
       {
          p->placefileManager_->set_placefile_thresholded(placefileName,
                                                          value.toBool());
-         return true;
+         result = true;
       }
       break;
 
    case static_cast<int>(Column::Placefile):
       if (role == Qt::ItemDataRole::EditRole)
       {
-         p->placefileManager_->set_placefile_url(
-            placefileName, value.toString().toStdString());
-         return true;
+         QString str = value.toString();
+         if (!str.isEmpty())
+         {
+            p->placefileManager_->set_placefile_url(placefileName,
+                                                    str.toStdString());
+            result = true;
+         }
       }
       break;
 
@@ -291,7 +296,12 @@ bool PlacefileModel::setData(const QModelIndex& index,
       break;
    }
 
-   return true;
+   if (result)
+   {
+      Q_EMIT dataChanged(index, index);
+   }
+
+   return result;
 }
 
 void PlacefileModel::HandlePlacefileRemoved(const std::string& name)
