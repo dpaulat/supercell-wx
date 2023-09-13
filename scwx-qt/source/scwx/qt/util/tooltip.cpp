@@ -1,6 +1,7 @@
 #include <scwx/qt/util/tooltip.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
+#include <scwx/qt/types/font_types.hpp>
 #include <scwx/qt/util/imgui.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -101,21 +102,22 @@ void Show(const std::string& text, const QPointF& mouseGlobalPos)
    else if (tooltipMethod_ == TooltipMethod::QLabel)
    {
       // Get monospace font size
-      std::size_t fontSize = 16;
-      auto        fontSizes =
+      units::font_size::pixels<double> fontSize {16};
+      auto                             fontSizes =
          manager::SettingsManager::general_settings().font_sizes().GetValue();
       if (fontSizes.size() > 1)
       {
-         fontSize = fontSizes[1];
+         fontSize = units::font_size::pixels<double> {fontSizes[1]};
       }
       else if (fontSizes.size() > 0)
       {
-         fontSize = fontSizes[0];
+         fontSize = units::font_size::pixels<double> {fontSizes[0]};
       }
 
       // Configure the label
-      tooltipLabel_->setFont(
-         QFont("Inconsolata", static_cast<int>(std::round(fontSize * 0.72))));
+      QFont font("Inconsolata");
+      font.setPointSizeF(units::font_size::points<double>(fontSize).value());
+      tooltipLabel_->setFont(font);
       tooltipLabel_->setText(QString::fromStdString(displayText));
 
       // Get the screen the label will be displayed on

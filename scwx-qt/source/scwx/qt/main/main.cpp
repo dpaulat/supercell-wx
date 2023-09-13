@@ -1,3 +1,5 @@
+#define NOMINMAX
+
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/main/main_window.hpp>
 #include <scwx/qt/main/versions.hpp>
