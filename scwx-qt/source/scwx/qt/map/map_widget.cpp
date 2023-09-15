@@ -174,6 +174,7 @@ public:
    common::Level2Product selectedLevel2Product_;
 
    bool            hasMouse_ {false};
+   bool            lastItemPicked_ {false};
    QPointF         lastPos_ {};
    QPointF         lastGlobalPos_ {};
    std::size_t     currentStyleIndex_;
@@ -1044,6 +1045,13 @@ void MapWidget::paintGL()
    {
       p->RunMousePicking();
    }
+   else if (p->lastItemPicked_)
+   {
+      // Hide the tooltip when losing focus
+      util::tooltip::Hide();
+
+      p->lastItemPicked_ = false;
+   }
 
    // Render ImGui Frame
    ImGui::Render();
@@ -1083,6 +1091,8 @@ void MapWidgetImpl::RunMousePicking()
    {
       util::tooltip::Hide();
    }
+
+   lastItemPicked_ = itemPicked;
 }
 
 void MapWidget::mapChanged(QMapLibreGL::Map::MapChange mapChange)
