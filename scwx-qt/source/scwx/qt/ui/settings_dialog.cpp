@@ -9,6 +9,7 @@
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/types/alert_types.hpp>
+#include <scwx/qt/types/text_types.hpp>
 #include <scwx/qt/ui/placefile_settings_widget.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/util/color.hpp>
@@ -94,7 +95,8 @@ public:
           &defaultAlertAction_,
           &updateNotificationsEnabled_,
           &debugEnabled_,
-          &hoverTextWrap_}}
+          &hoverTextWrap_,
+          &tooltipMethod_}}
    {
       // Configure default alert phenomena colors
       auto& paletteSettings = manager::SettingsManager::palette_settings();
@@ -166,6 +168,7 @@ public:
       inactiveAlertColors_ {};
 
    settings::SettingsInterface<std::int64_t> hoverTextWrap_ {};
+   settings::SettingsInterface<std::string>  tooltipMethod_ {};
 
    std::vector<settings::SettingsInterfaceBase*> settings_;
 };
@@ -645,6 +648,42 @@ void SettingsDialogImpl::SetupTextTab()
    hoverTextWrap_.SetSettingsVariable(textSettings.hover_text_wrap());
    hoverTextWrap_.SetEditWidget(self_->ui->hoverTextWrapSpinBox);
    hoverTextWrap_.SetResetButton(self_->ui->resetHoverTextWrapButton);
+
+   for (const auto& tooltipMethod : types::TooltipMethodIterator())
+   {
+      self_->ui->tooltipMethodComboBox->addItem(
+         QString::fromStdString(types::GetTooltipMethodName(tooltipMethod)));
+   }
+
+   tooltipMethod_.SetSettingsVariable(textSettings.tooltip_method());
+   tooltipMethod_.SetMapFromValueFunction(
+      [](const std::string& text) -> std::string
+      {
+         for (types::TooltipMethod tooltipMethod :
+              types::TooltipMethodIterator())
+         {
+            const std::string tooltipMethodName =
+               types::GetTooltipMethodName(tooltipMethod);
+
+            if (boost::iequals(text, tooltipMethodName))
+            {
+               // Return tooltip method label
+               return tooltipMethodName;
+            }
+         }
+
+         // Tooltip method label not found, return unknown
+         return "?";
+      });
+   tooltipMethod_.SetMapToValueFunction(
+      [](std::string text) -> std::string
+      {
+         // Convert label to lower case and return
+         boost::to_lower(text);
+         return text;
+      });
+   tooltipMethod_.SetEditWidget(self_->ui->tooltipMethodComboBox);
+   tooltipMethod_.SetResetButton(self_->ui->resetTooltipMethodButton);
 }
 
 QImage SettingsDialogImpl::GenerateColorTableImage(

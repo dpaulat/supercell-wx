@@ -2,6 +2,7 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/types/font_types.hpp>
+#include <scwx/qt/types/text_types.hpp>
 #include <scwx/qt/util/imgui.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -22,15 +23,6 @@ namespace tooltip
 
 static const std::string logPrefix_ = "scwx::qt::util::tooltip";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
-
-enum class TooltipMethod
-{
-   ImGui,
-   QToolTip,
-   QLabel
-};
-
-static TooltipMethod tooltipMethod_ = TooltipMethod::ImGui;
 
 static std::unique_ptr<QLabel>  tooltipLabel_  = nullptr;
 static std::unique_ptr<QWidget> tooltipParent_ = nullptr;
@@ -68,8 +60,12 @@ void Show(const std::string& text, const QPointF& mouseGlobalPos)
 {
    Initialize();
 
-   std::size_t textWidth = static_cast<std::size_t>(
-      settings::TextSettings::Instance().hover_text_wrap().GetValue());
+   auto& textSettings = settings::TextSettings::Instance();
+
+   std::size_t textWidth =
+      static_cast<std::size_t>(textSettings.hover_text_wrap().GetValue());
+   types::TooltipMethod tooltipMethod =
+      types::GetTooltipMethod(textSettings.tooltip_method().GetValue());
 
    // Wrap text if enabled
    std::string wrappedText {};
@@ -82,11 +78,11 @@ void Show(const std::string& text, const QPointF& mouseGlobalPos)
    // when not wrapping)
    const std::string& displayText = (textWidth > 0) ? wrappedText : text;
 
-   if (tooltipMethod_ == TooltipMethod::ImGui)
+   if (tooltipMethod == types::TooltipMethod::ImGui)
    {
       util::ImGui::Instance().DrawTooltip(displayText);
    }
-   else if (tooltipMethod_ == TooltipMethod::QToolTip)
+   else if (tooltipMethod == types::TooltipMethod::QToolTip)
    {
       static std::size_t id = 0;
       QToolTip::showText(
@@ -99,7 +95,7 @@ void Show(const std::string& text, const QPointF& mouseGlobalPos)
          {},
          std::numeric_limits<int>::max());
    }
-   else if (tooltipMethod_ == TooltipMethod::QLabel)
+   else if (tooltipMethod == types::TooltipMethod::QLabel)
    {
       // Get monospace font size
       units::font_size::pixels<double> fontSize {16};

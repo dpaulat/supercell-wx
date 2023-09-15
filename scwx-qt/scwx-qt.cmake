@@ -160,12 +160,14 @@ set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/map_types.hpp
               source/scwx/qt/types/qt_types.hpp
               source/scwx/qt/types/radar_product_record.hpp
-              source/scwx/qt/types/text_event_key.hpp)
+              source/scwx/qt/types/text_event_key.hpp
+              source/scwx/qt/types/text_types.hpp)
 set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/github_types.cpp
               source/scwx/qt/types/map_types.cpp
               source/scwx/qt/types/radar_product_record.cpp
-              source/scwx/qt/types/text_event_key.cpp)
+              source/scwx/qt/types/text_event_key.cpp
+              source/scwx/qt/types/text_types.cpp)
 set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/alert_dialog.hpp
            source/scwx/qt/ui/alert_dock_widget.hpp

@@ -26,6 +26,7 @@ public:
    TextSettings& operator=(TextSettings&&) noexcept;
 
    SettingsVariable<std::int64_t>& hover_text_wrap() const;
+   SettingsVariable<std::string>& tooltip_method() const;
 
    static TextSettings& Instance();
 
