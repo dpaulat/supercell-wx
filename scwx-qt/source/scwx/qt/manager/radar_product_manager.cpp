@@ -102,7 +102,7 @@ public:
               self,
               &RadarProductManager::NewDataAvailable);
    }
-   ~ProviderManager() = default;
+   ~ProviderManager() { threadPool_.join(); };
 
    std::string name() const;
 
@@ -179,6 +179,8 @@ public:
       // Lock other mutexes before destroying, ensure loading is complete
       std::unique_lock loadLevel2DataLock {loadLevel2DataMutex_};
       std::unique_lock loadLevel3DataLock {loadLevel3DataMutex_};
+
+      threadPool_.join();
    }
 
    RadarProductManager* self_;
