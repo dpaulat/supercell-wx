@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 set(PROJECT_NAME scwx-aws-sdk-cpp)
 
+set(AWS_SDK_WARNINGS_ARE_ERRORS OFF)
 set(BUILD_ONLY         "s3")
 set(BUILD_SHARED_LIBS  OFF)
 set(CPP_STANDARD       17)
@@ -9,6 +10,7 @@ set(ENABLE_UNITY_BUILD ON)
 set(MINIMIZE_SIZE      OFF)
 
 # Some variables also need set in the cache... set them all!
+set(AWS_SDK_WARNINGS_ARE_ERRORS OFF CACHE BOOL "Compiler warning is treated as an error. Try turning this off when observing errors on a new or uncommon compiler")
 set(BUILD_ONLY         "s3" CACHE STRING "A semi-colon delimited list of the projects to build")
 set(BUILD_SHARED_LIBS  OFF  CACHE BOOL   "If enabled, all aws sdk libraries will be build as shared objects; otherwise all Aws libraries will be built as static objects")
 set(CPP_STANDARD       "17" CACHE STRING "Flag to upgrade the C++ standard used. The default is 11. The minimum is 11.")
