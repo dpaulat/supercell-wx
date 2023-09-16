@@ -41,6 +41,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_ALL_NO_LIB")
 set(SCWX_DIR ${PROJECT_SOURCE_DIR})
 set(SCWX_VERSION "0.2.2")
 
+option(SCWX_ADDRESS_SANITIZER "Build with Address Sanitizer" OFF)
+
 add_subdirectory(external)
 add_subdirectory(wxdata)
 add_subdirectory(scwx-qt)

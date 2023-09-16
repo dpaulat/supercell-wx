@@ -6,7 +6,7 @@
 	url = https://github.com/conan-io/cmake-conan.git
 [submodule "test/data"]
 	path = test/data
-	url = ../supercell-wx-test-data
+	url = https://github.com/dpaulat/supercell-wx-test-data
 [submodule "external/hsluv-c"]
 	path = external/hsluv-c
 	url = https://github.com/hsluv/hsluv-c.git
@@ -18,13 +18,13 @@
 	url = https://github.com/nothings/stb.git
 [submodule "data"]
 	path = data
-	url = ../supercell-wx-data
+	url = https://github.com/dpaulat/supercell-wx-data
 [submodule "external/imgui"]
 	path = external/imgui
 	url = https://github.com/ocornut/imgui.git
 [submodule "external/imgui-backend-qt"]
 	path = external/imgui-backend-qt
-	url = ../imgui-backend-qt
+	url = https://github.com/dpaulat/imgui-backend-qt
 [submodule "external/aws-sdk-cpp"]
 	path = external/aws-sdk-cpp
 	url = https://github.com/aws/aws-sdk-cpp.git
