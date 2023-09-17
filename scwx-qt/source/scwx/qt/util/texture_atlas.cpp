@@ -6,7 +6,6 @@
 #include <execution>
 #include <shared_mutex>
 #include <unordered_map>
-#include <variant>
 
 #if defined(_MSC_VER)
 #   pragma warning(push, 0)
@@ -26,6 +25,10 @@
 #   pragma warning(pop)
 #endif
 
+#if defined(LoadImage)
+#   undef LoadImage
+#endif
+
 namespace scwx
 {
 namespace qt
@@ -42,13 +45,15 @@ public:
    explicit Impl() {}
    ~Impl() {}
 
-   static boost::gil::rgba8_image_t LoadImage(const std::string& imagePath);
+   static std::shared_ptr<boost::gil::rgba8_image_t>
+   LoadImage(const std::string& imagePath);
 
    std::unordered_map<std::string, std::string> texturePathMap_ {};
    std::shared_mutex                            texturePathMutex_ {};
 
    std::shared_mutex textureCacheMutex_ {};
-   std::unordered_map<std::string, boost::gil::rgba8_image_t> textureCache_ {};
+   std::unordered_map<std::string, std::shared_ptr<boost::gil::rgba8_image_t>>
+      textureCache_ {};
 
    std::vector<boost::gil::rgba8_image_t>             atlasArray_ {};
    std::unordered_map<std::string, TextureAttributes> atlasMap_ {};
@@ -79,10 +84,11 @@ bool TextureAtlas::CacheTexture(const std::string& name,
                                 const std::string& path)
 {
    // Attempt to load the image
-   boost::gil::rgba8_image_t image = TextureAtlas::Impl::LoadImage(path);
+   std::shared_ptr<boost::gil::rgba8_image_t> image =
+      TextureAtlas::Impl::LoadImage(path);
 
    // If the image is valid
-   if (image.width() > 0 && image.height() > 0)
+   if (image != nullptr && image->width() > 0 && image->height() > 0)
    {
       // Store it in the texture cache
       std::unique_lock lock(p->textureCacheMutex_);
@@ -105,9 +111,8 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
       return;
    }
 
-   typedef std::vector<std::pair<
-      std::string,
-      std::variant<boost::gil::rgba8_image_t, boost::gil::rgba8_image_t*>>>
+   typedef std::vector<
+      std::pair<std::string, std::shared_ptr<boost::gil::rgba8_image_t>>>
       ImageVector;
 
    ImageVector             images {};
@@ -119,56 +124,56 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
       std::shared_lock lock(p->texturePathMutex_);
 
       // For each registered texture
-      std::for_each(p->texturePathMap_.cbegin(),
-                    p->texturePathMap_.cend(),
-                    [&](const auto& pair)
-                    {
-                       // Load texture image
-                       boost::gil::rgba8_image_t image =
-                          Impl::LoadImage(pair.second);
+      std::for_each(
+         p->texturePathMap_.cbegin(),
+         p->texturePathMap_.cend(),
+         [&](const auto& pair)
+         {
+            // Load texture image
+            std::shared_ptr<boost::gil::rgba8_image_t> image =
+               Impl::LoadImage(pair.second);
 
-                       if (image.width() > 0u && image.height() > 0u)
-                       {
-                          // Store STB rectangle pack data in a vector
-                          stbrpRects.push_back(stbrp_rect {
-                             0,
-                             static_cast<stbrp_coord>(image.width()),
-                             static_cast<stbrp_coord>(image.height()),
-                             0,
-                             0,
-                             0});
+            if (image != nullptr && image->width() > 0u && image->height() > 0u)
+            {
+               // Store STB rectangle pack data in a vector
+               stbrpRects.push_back(
+                  stbrp_rect {0,
+                              static_cast<stbrp_coord>(image->width()),
+                              static_cast<stbrp_coord>(image->height()),
+                              0,
+                              0,
+                              0});
 
-                          // Store image data in a vector
-                          images.emplace_back(pair.first, std::move(image));
-                       }
-                    });
+               // Store image data in a vector
+               images.emplace_back(pair.first, std::move(image));
+            }
+         });
    }
 
    // Cached images
-
-   // Take a read lock on the texture cache map. The read lock must persist
-   // through atlas population, as a pointer to the image is taken and used.
-   std::shared_lock textureCacheLock(p->textureCacheMutex_);
-
    {
+      // Take a read lock on the texture cache map while adding textures images
+      // to the atlas vector.
+      std::shared_lock textureCacheLock(p->textureCacheMutex_);
+
       // For each cached texture
       for (auto& texture : p->textureCache_)
       {
          auto& image = texture.second;
 
-         if (image.width() > 0u && image.height() > 0u)
+         if (image != nullptr && image->width() > 0u && image->height() > 0u)
          {
             // Store STB rectangle pack data in a vector
             stbrpRects.push_back(
                stbrp_rect {0,
-                           static_cast<stbrp_coord>(image.width()),
-                           static_cast<stbrp_coord>(image.height()),
+                           static_cast<stbrp_coord>(image->width()),
+                           static_cast<stbrp_coord>(image->height()),
                            0,
                            0,
                            0});
 
             // Store image data in a vector
-            images.emplace_back(texture.first, &image);
+            images.push_back({texture.first, image});
          }
       }
    }
@@ -227,21 +232,8 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
          if (stbrpRects[i].was_packed != 0)
          {
             // Populate the atlas
-            boost::gil::rgba8c_view_t imageView;
-
-            // Retrieve the image
-            if (std::holds_alternative<boost::gil::rgba8_image_t>(
-                   images[i].second))
-            {
-               imageView = boost::gil::const_view(
-                  std::get<boost::gil::rgba8_image_t>(images[i].second));
-            }
-            else if (std::holds_alternative<boost::gil::rgba8_image_t*>(
-                        images[i].second))
-            {
-               imageView = boost::gil::const_view(
-                  *std::get<boost::gil::rgba8_image_t*>(images[i].second));
-            }
+            boost::gil::rgba8c_view_t imageView =
+               boost::gil::const_view(*images[i].second);
 
             boost::gil::rgba8_view_t atlasSubView =
                boost::gil::subimage_view(atlasView,
@@ -388,12 +380,13 @@ TextureAttributes TextureAtlas::GetTextureAttributes(const std::string& name)
    return attr;
 }
 
-boost::gil::rgba8_image_t
+std::shared_ptr<boost::gil::rgba8_image_t>
 TextureAtlas::Impl::LoadImage(const std::string& imagePath)
 {
    logger_->debug("Loading image: {}", imagePath);
 
-   boost::gil::rgba8_image_t image;
+   std::shared_ptr<boost::gil::rgba8_image_t> image =
+      std::make_shared<boost::gil::rgba8_image_t>();
 
    QUrl url = QUrl::fromUserInput(QString::fromStdString(imagePath));
 
@@ -406,7 +399,7 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath)
       if (!imageFile.isOpen())
       {
          logger_->error("Could not open image: {}", imagePath);
-         return image;
+         return nullptr;
       }
 
       boost::iostreams::stream<util::IoDeviceSource> dataStream(imageFile);
@@ -414,12 +407,12 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath)
       try
       {
          boost::gil::read_and_convert_image(
-            dataStream, image, boost::gil::png_tag());
+            dataStream, *image, boost::gil::png_tag());
       }
       catch (const std::exception& ex)
       {
          logger_->error("Error reading image: {}", ex.what());
-         return image;
+         return nullptr;
       }
    }
    else
@@ -447,7 +440,7 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath)
          if (pixelData == nullptr)
          {
             logger_->error("Error loading image: {}", stbi_failure_reason());
-            return image;
+            return nullptr;
          }
 
          // Create a view pointing to the STB image data
@@ -458,8 +451,8 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath)
             width * desiredChannels);
 
          // Copy the view to the destination image
-         image      = boost::gil::rgba8_image_t(stbView);
-         auto& view = boost::gil::view(image);
+         *image     = boost::gil::rgba8_image_t(stbView);
+         auto& view = boost::gil::view(*image);
 
          // If no alpha channel, replace black with transparent
          if (numChannels == 3)
