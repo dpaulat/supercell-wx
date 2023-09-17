@@ -281,7 +281,12 @@ void TimelineManager::Impl::RadarSweepMonitorReset()
 void TimelineManager::Impl::RadarSweepMonitorWait(
    std::unique_lock<std::mutex>& lock)
 {
-   radarSweepMonitorCondition_.wait_for(lock, kRadarSweepMonitorTimeout_);
+   std::cv_status status =
+      radarSweepMonitorCondition_.wait_for(lock, kRadarSweepMonitorTimeout_);
+   if (status == std::cv_status::timeout)
+   {
+      logger_->debug("Radar sweep monitor timed out");
+   }
    radarSweepMonitorActive_ = false;
 }
 
