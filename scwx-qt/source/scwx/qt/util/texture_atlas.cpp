@@ -15,6 +15,7 @@
 
 #include <boost/gil/extension/io/png.hpp>
 #include <boost/iostreams/stream.hpp>
+#include <boost/timer/timer.hpp>
 #include <cpr/cpr.h>
 #include <stb_image.h>
 #include <stb_rect_pack.h>
@@ -107,6 +108,9 @@ TextureAtlas::CacheTexture(const std::string& name, const std::string& path)
 void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
 {
    logger_->debug("Building {}x{} texture atlas", width, height);
+
+   boost::timer::cpu_timer timer {};
+   timer.start();
 
    if (width > INT_MAX || height > INT_MAX)
    {
@@ -297,6 +301,9 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
 
    // Mark the need to buffer the atlas
    ++p->buildCount_;
+
+   timer.stop();
+   logger_->debug("Texture atlas built in {}", timer.format(6, "%ws"));
 }
 
 void TextureAtlas::BufferAtlas(gl::OpenGLFunctions& gl, GLuint texture)
