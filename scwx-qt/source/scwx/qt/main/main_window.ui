@@ -51,7 +51,6 @@
       <string>&amp;Open</string>
      </property>
      <addaction name="actionOpenNexrad"/>
-     <addaction name="actionOpenPlacefile"/>
      <addaction name="actionOpenTextEvent"/>
     </widget>
     <addaction name="menu_Open"/>
@@ -414,11 +413,6 @@
   <action name="actionCheckForUpdates">
    <property name="text">
     <string>&amp;Check for Updates</string>
-   </property>
-  </action>
-  <action name="actionOpenPlacefile">
-   <property name="text">
-    <string>&amp;Placefile...</string>
    </property>
   </action>
  </widget>

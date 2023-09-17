@@ -42,7 +42,6 @@ public:
                const std::string& title       = {},
                bool               enabled     = false,
                bool               thresholded = false);
-   void LoadFile(const std::string& filename);
    void RemoveUrl(const std::string& urlString);
 
    static std::shared_ptr<PlacefileManager> Instance();

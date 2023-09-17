@@ -33,7 +33,6 @@ signals:
 
 private slots:
    void on_actionOpenNexrad_triggered();
-   void on_actionOpenPlacefile_triggered();
    void on_actionOpenTextEvent_triggered();
    void on_actionSettings_triggered();
    void on_actionExit_triggered();

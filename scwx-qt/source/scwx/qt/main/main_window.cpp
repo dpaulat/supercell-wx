@@ -401,28 +401,6 @@ void MainWindow::on_actionOpenNexrad_triggered()
    dialog->open();
 }
 
-void MainWindow::on_actionOpenPlacefile_triggered()
-{
-   static const std::string placefileFilter = "Placefiles (*)";
-
-   QFileDialog* dialog = new QFileDialog(this);
-
-   dialog->setFileMode(QFileDialog::ExistingFile);
-   dialog->setNameFilter(tr(placefileFilter.c_str()));
-   dialog->setAttribute(Qt::WA_DeleteOnClose);
-
-   connect(dialog,
-           &QFileDialog::fileSelected,
-           this,
-           [this](const QString& file)
-           {
-              logger_->info("Selected: {}", file.toStdString());
-              p->placefileManager_->LoadFile(file.toStdString());
-           });
-
-   dialog->open();
-}
-
 void MainWindow::on_actionOpenTextEvent_triggered()
 {
    static const std::string textFilter = "Text Event Products (*.txt)";

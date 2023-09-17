@@ -99,7 +99,6 @@ public:
    void ScheduleRefresh();
    void Update();
    void UpdateAsync();
-   void UpdatePlacefile(const std::shared_ptr<gr::Placefile>& placefile);
 
    friend void tag_invoke(boost::json::value_from_tag,
                           boost::json::value&                     jv,
@@ -472,55 +471,6 @@ void PlacefileManager::AddUrl(const std::string& urlString,
    }
 }
 
-void PlacefileManager::LoadFile(const std::string& filename)
-{
-   const std::string placefileName =
-      QDir::toNativeSeparators(QString::fromStdString(filename)).toStdString();
-
-   logger_->debug("LoadFile: {}", placefileName);
-
-   boost::asio::post(
-      p->threadPool_,
-      [placefileName, this]()
-      {
-         // Load file
-         std::shared_ptr<gr::Placefile> placefile =
-            gr::Placefile::Load(placefileName);
-
-         if (placefile == nullptr)
-         {
-            return;
-         }
-
-         std::unique_lock lock(p->placefileRecordLock_);
-
-         // Determine if the placefile has been loaded previously
-         auto it = p->placefileRecordMap_.find(placefileName);
-         if (it != p->placefileRecordMap_.end())
-         {
-            // If the placefile has been loaded previously, update it
-            it->second->UpdatePlacefile(placefile);
-
-            lock.unlock();
-
-            Q_EMIT PlacefileUpdated(placefileName);
-         }
-         else
-         {
-            // If this is a new placefile, add it
-            auto& record = p->placefileRecords_.emplace_back(
-               std::make_shared<Impl::PlacefileRecord>(
-                  p.get(), placefileName, placefile, placefile->title(), true));
-            p->placefileRecordMap_.insert_or_assign(placefileName, record);
-
-            lock.unlock();
-
-            Q_EMIT PlacefileEnabled(placefileName, record->enabled_);
-            Q_EMIT PlacefileUpdated(placefileName);
-         }
-      });
-}
-
 void PlacefileManager::RemoveUrl(const std::string& urlString)
 {
    std::unique_lock lock(p->placefileRecordLock_);
@@ -713,16 +663,6 @@ void PlacefileManager::Impl::PlacefileRecord::CancelRefresh()
 void PlacefileManager::Impl::PlacefileRecord::UpdateAsync()
 {
    boost::asio::post(threadPool_, [this]() { Update(); });
-}
-
-void PlacefileManager::Impl::PlacefileRecord::UpdatePlacefile(
-   const std::shared_ptr<gr::Placefile>& placefile)
-{
-   // Update placefile
-   placefile_ = placefile;
-
-   // Update refresh timer
-   ScheduleRefresh();
 }
 
 std::shared_ptr<PlacefileManager> PlacefileManager::Instance()
