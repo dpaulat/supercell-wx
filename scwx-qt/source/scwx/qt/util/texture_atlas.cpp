@@ -48,11 +48,12 @@ public:
    static std::shared_ptr<boost::gil::rgba8_image_t>
    LoadImage(const std::string& imagePath);
 
-   std::unordered_map<std::string, std::string> texturePathMap_ {};
-   std::shared_mutex                            texturePathMutex_ {};
+   std::vector<std::shared_ptr<boost::gil::rgba8_image_t>>
+                     registeredTextures_ {};
+   std::shared_mutex registeredTextureMutex_ {};
 
    std::shared_mutex textureCacheMutex_ {};
-   std::unordered_map<std::string, std::shared_ptr<boost::gil::rgba8_image_t>>
+   std::unordered_map<std::string, std::weak_ptr<boost::gil::rgba8_image_t>>
       textureCache_ {};
 
    std::vector<boost::gil::rgba8_image_t>             atlasArray_ {};
@@ -76,12 +77,14 @@ std::uint64_t TextureAtlas::BuildCount() const
 void TextureAtlas::RegisterTexture(const std::string& name,
                                    const std::string& path)
 {
-   std::unique_lock lock(p->texturePathMutex_);
-   p->texturePathMap_.insert_or_assign(name, path);
+   std::unique_lock lock(p->registeredTextureMutex_);
+
+   std::shared_ptr<boost::gil::rgba8_image_t> image = CacheTexture(name, path);
+   p->registeredTextures_.emplace_back(std::move(image));
 }
 
-bool TextureAtlas::CacheTexture(const std::string& name,
-                                const std::string& path)
+std::shared_ptr<boost::gil::rgba8_image_t>
+TextureAtlas::CacheTexture(const std::string& name, const std::string& path)
 {
    // Attempt to load the image
    std::shared_ptr<boost::gil::rgba8_image_t> image =
@@ -93,12 +96,12 @@ bool TextureAtlas::CacheTexture(const std::string& name,
       // Store it in the texture cache
       std::unique_lock lock(p->textureCacheMutex_);
 
-      p->textureCache_.insert_or_assign(name, std::move(image));
+      p->textureCache_.insert_or_assign(name, image);
 
-      return true;
+      return image;
    }
 
-   return false;
+   return nullptr;
 }
 
 void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
@@ -118,50 +121,28 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
    ImageVector             images {};
    std::vector<stbrp_rect> stbrpRects {};
 
-   // Load images
-   {
-      // Take a read lock on the texture path map
-      std::shared_lock lock(p->texturePathMutex_);
-
-      // For each registered texture
-      std::for_each(
-         p->texturePathMap_.cbegin(),
-         p->texturePathMap_.cend(),
-         [&](const auto& pair)
-         {
-            // Load texture image
-            std::shared_ptr<boost::gil::rgba8_image_t> image =
-               Impl::LoadImage(pair.second);
-
-            if (image != nullptr && image->width() > 0u && image->height() > 0u)
-            {
-               // Store STB rectangle pack data in a vector
-               stbrpRects.push_back(
-                  stbrp_rect {0,
-                              static_cast<stbrp_coord>(image->width()),
-                              static_cast<stbrp_coord>(image->height()),
-                              0,
-                              0,
-                              0});
-
-               // Store image data in a vector
-               images.emplace_back(pair.first, std::move(image));
-            }
-         });
-   }
-
    // Cached images
    {
-      // Take a read lock on the texture cache map while adding textures images
-      // to the atlas vector.
-      std::shared_lock textureCacheLock(p->textureCacheMutex_);
+      // Take a lock on the texture cache map while adding textures images to
+      // the atlas vector.
+      std::unique_lock textureCacheLock(p->textureCacheMutex_);
 
       // For each cached texture
-      for (auto& texture : p->textureCache_)
+      for (auto it = p->textureCache_.begin(); it != p->textureCache_.end();)
       {
-         auto& image = texture.second;
+         auto& texture = *it;
+         auto  image   = texture.second.lock();
 
-         if (image != nullptr && image->width() > 0u && image->height() > 0u)
+         if (image == nullptr)
+         {
+            logger_->trace("Removing texture from the cache: {}",
+                           texture.first);
+
+            // If the image is no longer cached, erase the iterator and continue
+            it = p->textureCache_.erase(it);
+            continue;
+         }
+         else if (image->width() > 0u && image->height() > 0u)
          {
             // Store STB rectangle pack data in a vector
             stbrpRects.push_back(
@@ -175,6 +156,9 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
             // Store image data in a vector
             images.push_back({texture.first, image});
          }
+
+         // Increment iterator
+         ++it;
       }
    }
 

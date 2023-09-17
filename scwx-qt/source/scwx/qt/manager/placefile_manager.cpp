@@ -51,7 +51,8 @@ public:
    void ReadPlacefileSettings();
    void WritePlacefileSettings();
 
-   static void LoadResources(const std::shared_ptr<gr::Placefile>& placefile);
+   static std::vector<std::shared_ptr<boost::gil::rgba8_image_t>>
+   LoadResources(const std::shared_ptr<gr::Placefile>& placefile);
 
    boost::asio::thread_pool threadPool_ {1u};
 
@@ -133,6 +134,8 @@ public:
    boost::asio::steady_timer      refreshTimer_ {threadPool_};
    std::mutex                     refreshMutex_ {};
    std::mutex                     timerMutex_ {};
+
+   std::vector<std::shared_ptr<boost::gil::rgba8_image_t>> images_ {};
 
    std::string                           lastRadarSite_ {};
    std::chrono::system_clock::time_point lastUpdateTime_ {};
@@ -276,6 +279,7 @@ void PlacefileManager::set_placefile_url(const std::string& name,
       auto placefileRecord        = it->second;
       placefileRecord->name_      = normalizedUrl;
       placefileRecord->placefile_ = nullptr;
+      placefileRecord->images_.clear();
       p->placefileRecordMap_.erase(it);
       p->placefileRecordMap_.insert_or_assign(normalizedUrl, placefileRecord);
 
@@ -633,7 +637,7 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
    if (updatedPlacefile != nullptr)
    {
       // Load placefile resources
-      Impl::LoadResources(updatedPlacefile);
+      auto newImages = Impl::LoadResources(updatedPlacefile);
 
       // Check the name matches, in case the name updated
       if (name_ == name)
@@ -642,6 +646,10 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
          placefile_      = updatedPlacefile;
          title_          = placefile_->title();
          lastUpdateTime_ = std::chrono::system_clock::now();
+
+         // Update image resources
+         images_.swap(newImages);
+         newImages.clear();
 
          if (p->radarSite_ != nullptr)
          {
@@ -736,7 +744,8 @@ std::shared_ptr<PlacefileManager> PlacefileManager::Instance()
    return placefileManager;
 }
 
-void PlacefileManager::Impl::LoadResources(
+std::vector<std::shared_ptr<boost::gil::rgba8_image_t>>
+PlacefileManager::Impl::LoadResources(
    const std::shared_ptr<gr::Placefile>& placefile)
 {
    const auto iconFiles = placefile->icon_files();
@@ -790,7 +799,7 @@ void PlacefileManager::Impl::LoadResources(
       }
    }
 
-   ResourceManager::LoadImageResources(urlStrings);
+   return ResourceManager::LoadImageResources(urlStrings);
 }
 
 } // namespace manager

@@ -64,36 +64,40 @@ std::shared_ptr<util::Font> Font(types::Font font)
    return nullptr;
 }
 
-bool LoadImageResource(const std::string& urlString)
+std::shared_ptr<boost::gil::rgba8_image_t>
+LoadImageResource(const std::string& urlString)
 {
    util::TextureAtlas& textureAtlas = util::TextureAtlas::Instance();
    return textureAtlas.CacheTexture(urlString, urlString);
 }
 
-void LoadImageResources(const std::vector<std::string>& urlStrings)
+std::vector<std::shared_ptr<boost::gil::rgba8_image_t>>
+LoadImageResources(const std::vector<std::string>& urlStrings)
 {
-   std::mutex m {};
-   bool       textureCached = false;
+   std::mutex                                              m {};
+   std::vector<std::shared_ptr<boost::gil::rgba8_image_t>> images {};
 
    std::for_each(std::execution::par_unseq,
                  urlStrings.begin(),
                  urlStrings.end(),
                  [&](auto& urlString)
                  {
-                    bool value = LoadImageResource(urlString);
+                    auto image = LoadImageResource(urlString);
 
-                    if (value)
+                    if (image != nullptr)
                     {
                        std::unique_lock lock {m};
-                       textureCached = true;
+                       images.emplace_back(std::move(image));
                     }
                  });
 
-   if (textureCached)
+   if (!images.empty())
    {
       util::TextureAtlas& textureAtlas = util::TextureAtlas::Instance();
       textureAtlas.BuildAtlas(2048, 2048);
    }
+
+   return images;
 }
 
 static void LoadFonts()
