@@ -45,7 +45,7 @@ public:
    class PlacefileRecord;
 
    explicit Impl(PlacefileManager* self) : self_ {self} {}
-   ~Impl() {}
+   ~Impl() { threadPool_.join(); }
 
    void InitializePlacefileSettings();
    void ReadPlacefileSettings();

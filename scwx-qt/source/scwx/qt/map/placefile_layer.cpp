@@ -42,7 +42,7 @@ public:
    {
       ConnectSignals();
    }
-   ~Impl() = default;
+   ~Impl() { threadPool_.join(); }
 
    void ConnectSignals();
 
