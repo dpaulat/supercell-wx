@@ -115,6 +115,8 @@ public:
 
       // Destroy ImGui Context
       model::ImGuiContextModel::Instance().DestroyContext(imGuiContextName_);
+
+      threadPool_.join();
    }
 
    void AddLayer(const std::string&            id,

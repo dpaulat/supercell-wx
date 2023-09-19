@@ -35,7 +35,7 @@ public:
        radarProductManager_ {radarProductManager}
    {
    }
-   ~RadarProductViewImpl() = default;
+   ~RadarProductViewImpl() { threadPool_.join(); }
 
    boost::asio::thread_pool threadPool_ {1};
 
