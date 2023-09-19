@@ -117,7 +117,7 @@ public:
       settings_.setCacheDatabasePath(QString {cacheDbPath.c_str()});
       settings_.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
    }
-   ~MainWindowImpl() = default;
+   ~MainWindowImpl() { threadPool_.join(); }
 
    void AsyncSetup();
    void ConfigureMapLayout();

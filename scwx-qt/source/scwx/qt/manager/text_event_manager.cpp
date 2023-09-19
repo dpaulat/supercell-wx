@@ -48,6 +48,9 @@ public:
    {
       std::unique_lock lock(refreshMutex_);
       refreshTimer_.cancel();
+      lock.unlock();
+
+      threadPool_.join();
    }
 
    void HandleMessage(std::shared_ptr<awips::TextProductMessage> message);
