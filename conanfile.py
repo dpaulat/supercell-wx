@@ -4,6 +4,7 @@ class SupercellWxConan(ConanFile):
     settings   = ("os", "compiler", "build_type", "arch")
     requires   = ("boost/1.81.0",
                   "cpr/1.9.3",
+                  "fontconfig/2.14.2",
                   "freetype/2.12.1",
                   "geographiclib/1.52",
                   "glew/2.2.0",

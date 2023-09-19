@@ -12,6 +12,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Boost)
+find_package(Fontconfig)
 find_package(Freetype)
 find_package(geographiclib)
 find_package(glm)
@@ -476,6 +477,7 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Boost::timer
                                      qmaplibregl
                                      $<$<CXX_COMPILER_ID:MSVC>:opengl32>
+                                     Fontconfig::Fontconfig
                                      freetype-gl
                                      GeographicLib::GeographicLib
                                      glm::glm
