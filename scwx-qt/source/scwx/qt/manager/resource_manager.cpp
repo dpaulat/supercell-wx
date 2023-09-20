@@ -6,9 +6,14 @@
 #include <scwx/util/logger.hpp>
 
 #include <execution>
+#include <filesystem>
 #include <mutex>
 
+#include <QFile>
+#include <QFileInfo>
 #include <QFontDatabase>
+#include <QStandardPaths>
+#include <fontconfig/fontconfig.h>
 #include <imgui.h>
 
 namespace scwx
@@ -23,6 +28,9 @@ namespace ResourceManager
 static const std::string logPrefix_ = "scwx::qt::manager::resource_manager";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+static void InitializeFonts();
+static void InitializeFontCache();
+static void LoadFcApplicationFont(const std::string& fontFilename);
 static void LoadFonts();
 static void LoadTextures();
 
@@ -31,6 +39,8 @@ static const std::unordered_map<types::Font, std::string> fontNames_ {
    {types::Font::din1451alt_g, ":/res/fonts/din1451alt_g.ttf"},
    {types::Font::Inconsolata_Regular, ":/res/fonts/Inconsolata-Regular.ttf"}};
 
+static std::string fontCachePath_ {};
+
 static std::unordered_map<types::Font, int>                         fontIds_ {};
 static std::unordered_map<types::Font, std::shared_ptr<util::Font>> fonts_ {};
 
@@ -38,11 +48,17 @@ void Initialize()
 {
    config::CountyDatabase::Initialize();
 
+   InitializeFonts();
+
    LoadFonts();
    LoadTextures();
 }
 
-void Shutdown() {}
+void Shutdown()
+{
+   // Finalize Fontconfig
+   FcFini();
+}
 
 int FontId(types::Font font)
 {
@@ -100,6 +116,38 @@ LoadImageResources(const std::vector<std::string>& urlStrings)
    return images;
 }
 
+static void InitializeFonts()
+{
+   // Create a directory to store local fonts
+   InitializeFontCache();
+
+   // Initialize Fontconfig
+   FcConfig* fcConfig = FcInitLoadConfigAndFonts();
+   FcConfigSetCurrent(fcConfig);
+}
+
+static void InitializeFontCache()
+{
+   std::string cachePath {
+      QStandardPaths::writableLocation(QStandardPaths::CacheLocation)
+         .toStdString() +
+      "/fonts"};
+
+   fontCachePath_ = cachePath + "/";
+
+   if (!std::filesystem::exists(cachePath))
+   {
+      std::error_code error;
+      if (!std::filesystem::create_directories(cachePath, error))
+      {
+         logger_->error("Unable to create font cache directory: \"{}\" ({})",
+                        cachePath,
+                        error.message());
+         fontCachePath_.clear();
+      }
+   }
+}
+
 static void LoadFonts()
 {
    for (auto& fontName : fontNames_)
@@ -108,12 +156,60 @@ static void LoadFonts()
          QString::fromStdString(fontName.second));
       fontIds_.emplace(fontName.first, fontId);
 
+      LoadFcApplicationFont(fontName.second);
+
       auto font = util::Font::Create(fontName.second);
       fonts_.emplace(fontName.first, font);
    }
 
    ImFontAtlas* fontAtlas = model::ImGuiContextModel::Instance().font_atlas();
    fontAtlas->AddFontDefault();
+}
+
+static void LoadFcApplicationFont(const std::string& fontFilename)
+{
+   // If the font cache failed to create, don't attempt to cache any fonts
+   if (fontCachePath_.empty())
+   {
+      return;
+   }
+
+   // Make a copy of the font in the cache (if it doesn't exist)
+   QFile     fontFile(QString::fromStdString(fontFilename));
+   QFileInfo fontFileInfo(fontFile);
+
+   QFile       cacheFile(QString::fromStdString(fontCachePath_) +
+                   fontFileInfo.fileName());
+   QFileInfo   cacheFileInfo(cacheFile);
+   std::string cacheFilename = cacheFile.fileName().toStdString();
+
+   if (fontFile.exists())
+   {
+      // If the file has not been cached, or the font file size has changed
+      if (!cacheFile.exists() || fontFileInfo.size() != cacheFileInfo.size())
+      {
+         logger_->info("Caching font: {}", fontFilename);
+         if (!fontFile.copy(cacheFile.fileName()))
+         {
+            logger_->error("Could not cache font: {}", fontFilename);
+            return;
+         }
+      }
+   }
+   else
+   {
+      logger_->error("Font does not exist: {}", fontFilename);
+      return;
+   }
+
+   // Load the file into fontconfig (FcConfigAppFontAddFile)
+   FcBool result = FcConfigAppFontAddFile(
+      nullptr, reinterpret_cast<const FcChar8*>(cacheFilename.c_str()));
+   if (!result)
+   {
+      logger_->error("Could not load font into fontconfig database",
+                     fontFilename);
+   }
 }
 
 static void LoadTextures()
