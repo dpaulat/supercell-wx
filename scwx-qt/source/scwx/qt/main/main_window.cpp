@@ -179,6 +179,8 @@ public:
    std::vector<map::MapWidget*> maps_;
    std::vector<float>           elevationCuts_;
 
+   std::chrono::system_clock::time_point volumeTime_ {};
+
    bool elevationButtonsChanged_;
    bool resizeElevationButtons_;
 
@@ -832,6 +834,7 @@ void MainWindowImpl::ConnectAnimationSignals()
            {
               for (auto map : maps_)
               {
+                 volumeTime_ = dateTime;
                  map->SelectTime(dateTime);
               }
            });
@@ -1021,8 +1024,7 @@ void MainWindowImpl::SelectRadarProduct(map::MapWidget*           mapWidget,
       UpdateRadarProductSettings();
    }
 
-   mapWidget->SelectRadarProduct(
-      group, productName, productCode, mapWidget->GetSelectedTime());
+   mapWidget->SelectRadarProduct(group, productName, productCode, volumeTime_);
 }
 
 void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)
