@@ -43,6 +43,7 @@ static const std::unordered_map<Level2Product, std::string> level2Palette_ {
    {Level2Product::Unknown, "???"}};
 
 static const std::unordered_map<int, std::string> level3ProductCodeMap_ {
+   {37, "NCR"},
    {56, "SRM"},
    {94, "DR"},
    {99, "DV"},
@@ -62,6 +63,7 @@ static const std::unordered_map<std::string, std::string>
                               {"DV", "Digital Velocity"},
                               {"SDR", "Super-Resolution Reflectivity"},
                               {"SDV", "Super-Resolution Velocity"},
+                              {"NCR", "Composite Reflectivity"},
                               {"DZD", "Digital Differential Reflectivity"},
                               {"DCC", "Digital Correlation Coefficient"},
                               {"DKD", "Digital Specific Differential Phase"},
@@ -76,8 +78,9 @@ static const std::unordered_map<std::string, std::vector<std::string>>
    level3AwipsProducts_ {
       // Reflectivity
       {"SDR", {"NXB", "NYB", "NZB", "N0B", "NAB", "N1B", "NBB", "N2B", "N3B"}},
-      {"DR", {"NXQ", "NY", "NZQ", "N0Q", "NAQ", "N1Q", "NBQ", "N2Q", "N3Q"}},
+      {"DR", {"NXQ", "NYQ", "NZQ", "N0Q", "NAQ", "N1Q", "NBQ", "N2Q", "N3Q"}},
       {"TDR", {"TZ0", "TZ1", "TZ2"}},
+      {"NCR", {"NCR"}},
 
       // Velocity
       {"SDV", {"NXG", "NYG", "NZG", "N0G", "NAG", "N1G"}},
@@ -135,7 +138,7 @@ static const std::unordered_map<Level3ProductCategory, std::string>
 
 static const std::unordered_map<Level3ProductCategory, std::vector<std::string>>
    level3CategoryProductList_ {
-      {Level3ProductCategory::Reflectivity, {"SDR", "DR", "TDR"}},
+      {Level3ProductCategory::Reflectivity, {"SDR", "DR", "TDR", "NCR"}},
       {Level3ProductCategory::Velocity, {"SDV", "DV", "TDV"}},
       {Level3ProductCategory::StormRelativeVelocity, {"SRM"}},
       {Level3ProductCategory::SpectrumWidth, {"SW"}},
