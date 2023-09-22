@@ -9,7 +9,7 @@ set(freetype-gl_WITH_GLEW      ON)
 set(freetype-gl_WITH_GLAD      OFF)
 set(freetype-gl_USE_VAO        ON)
 set(freetype-gl_BUILD_DEMOS    OFF)
-set(freetype-gl_BUILD_APIDOC   ON)
+set(freetype-gl_BUILD_APIDOC   OFF)
 set(freetype-gl_BUILD_HARFBUZZ OFF)
 set(freetype-gl_BUILD_MAKEFONT ON)
 set(freetype-gl_BUILD_TESTS    OFF)
@@ -110,9 +110,12 @@ target_include_directories(makefont    PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/freet
 
 set(FTGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/freetype-gl PARENT_SCOPE)
 
-set_target_properties(doc      PROPERTIES EXCLUDE_FROM_ALL True)
 set_target_properties(makefont PROPERTIES EXCLUDE_FROM_ALL True)
 
 set_target_properties(freetype-gl PROPERTIES FOLDER ftgl)
 set_target_properties(makefont    PROPERTIES FOLDER ftgl)
-set_target_properties(doc         PROPERTIES FOLDER ftgl)
+
+if(freetype-gl_BUILD_APIDOC)
+    set_target_properties(doc PROPERTIES EXCLUDE_FROM_ALL True)
+    set_target_properties(doc PROPERTIES FOLDER ftgl)
+endif()
