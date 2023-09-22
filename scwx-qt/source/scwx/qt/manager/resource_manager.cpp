@@ -34,7 +34,7 @@ static void LoadFcApplicationFont(const std::string& fontFilename);
 static void LoadFonts();
 static void LoadTextures();
 
-static const std::unordered_map<types::Font, std::string> fontNames_ {
+static const std::vector<std::pair<types::Font, std::string>> fontNames_ {
    {types::Font::din1451alt, ":/res/fonts/din1451alt.ttf"},
    {types::Font::din1451alt_g, ":/res/fonts/din1451alt_g.ttf"},
    {types::Font::Inconsolata_Regular, ":/res/fonts/Inconsolata-Regular.ttf"}};
