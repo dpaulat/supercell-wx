@@ -34,6 +34,8 @@ static void LoadFcApplicationFont(const std::string& fontFilename);
 static void LoadFonts();
 static void LoadTextures();
 
+static const std::string kFcTrueType_ {"TrueType"};
+
 static const std::vector<std::pair<types::Font, std::string>> fontNames_ {
    {types::Font::din1451alt, ":/res/fonts/din1451alt.ttf"},
    {types::Font::din1451alt_g, ":/res/fonts/din1451alt_g.ttf"},
@@ -43,6 +45,9 @@ static std::string fontCachePath_ {};
 
 static std::unordered_map<types::Font, int>                         fontIds_ {};
 static std::unordered_map<types::Font, std::shared_ptr<util::Font>> fonts_ {};
+
+static FcFontSet*   fcFontSet_ {nullptr};
+static FcObjectSet* fcObjectSet_ {nullptr};
 
 void Initialize()
 {
@@ -78,6 +83,72 @@ std::shared_ptr<util::Font> Font(types::Font font)
       return it->second;
    }
    return nullptr;
+}
+
+void LoadFontResource(const std::string&               family,
+                      const std::vector<std::string>&  styles,
+                      units::font_size::points<double> size)
+{
+   const std::string styleString = fmt::format("{}", fmt::join(styles, " "));
+   const std::string fontString =
+      fmt::format("{}-{}:{}", family, size.value(), styleString);
+
+   logger_->debug("LoadFontResource: {}", fontString);
+
+   // Build fontconfig pattern
+   FcPattern* pattern = FcPatternCreate();
+
+   FcPatternAddString(
+      pattern, FC_FAMILY, reinterpret_cast<const FcChar8*>(family.c_str()));
+   FcPatternAddDouble(pattern, FC_SIZE, size.value());
+   FcPatternAddString(pattern,
+                      FC_FONTFORMAT,
+                      reinterpret_cast<const FcChar8*>(kFcTrueType_.c_str()));
+
+   if (!styles.empty())
+   {
+      FcPatternAddString(pattern,
+                         FC_STYLE,
+                         reinterpret_cast<const FcChar8*>(styleString.c_str()));
+   }
+
+   // Perform font pattern match substitution
+   FcConfigSubstitute(nullptr, pattern, FcMatchPattern);
+   FcDefaultSubstitute(pattern);
+
+   // Find matching font
+   FcResult    result;
+   FcPattern*  match = FcFontMatch(nullptr, pattern, &result);
+   std::string fontFile {};
+
+   if (match != nullptr)
+   {
+      FcChar8* fcFamily;
+      FcChar8* fcStyle;
+      FcChar8* fcFile;
+
+      // Match was found, get properties
+      if (FcPatternGetString(match, FC_FAMILY, 0, &fcFamily) == FcResultMatch &&
+          FcPatternGetString(match, FC_STYLE, 0, &fcStyle) == FcResultMatch &&
+          FcPatternGetString(match, FC_FILE, 0, &fcFile) == FcResultMatch)
+      {
+         fontFile = reinterpret_cast<char*>(fcFile);
+
+         logger_->debug("Found matching font: {}:{} ({})",
+                        reinterpret_cast<char*>(fcFamily),
+                        reinterpret_cast<char*>(fcStyle),
+                        fontFile);
+      }
+   }
+
+   if (fontFile.empty())
+   {
+      logger_->warn("Could not find matching font: {}", fontString);
+   }
+
+   // Cleanup
+   FcPatternDestroy(match);
+   FcPatternDestroy(pattern);
 }
 
 std::shared_ptr<boost::gil::rgba8_image_t>

@@ -67,6 +67,9 @@ public:
       std::size_t  pixels_ {};
       std::int32_t flags_ {};
       std::string  face_ {};
+
+      bool IsBold() { return flags_ & 1; }
+      bool IsItalic() { return flags_ & 2; }
    };
 
    struct DrawItem

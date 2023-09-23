@@ -51,8 +51,10 @@ public:
    void ReadPlacefileSettings();
    void WritePlacefileSettings();
 
+   static void
+   LoadFontResources(const std::shared_ptr<gr::Placefile>& placefile);
    static std::vector<std::shared_ptr<boost::gil::rgba8_image_t>>
-   LoadResources(const std::shared_ptr<gr::Placefile>& placefile);
+   LoadImageResources(const std::shared_ptr<gr::Placefile>& placefile);
 
    boost::asio::thread_pool threadPool_ {1u};
 
@@ -587,7 +589,8 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
    if (updatedPlacefile != nullptr)
    {
       // Load placefile resources
-      auto newImages = Impl::LoadResources(updatedPlacefile);
+      Impl::LoadFontResources(updatedPlacefile);
+      auto newImages = Impl::LoadImageResources(updatedPlacefile);
 
       // Check the name matches, in case the name updated
       if (name_ == name)
@@ -684,8 +687,31 @@ std::shared_ptr<PlacefileManager> PlacefileManager::Instance()
    return placefileManager;
 }
 
+void PlacefileManager::Impl::LoadFontResources(
+   const std::shared_ptr<gr::Placefile>& placefile)
+{
+   auto fonts = placefile->fonts();
+
+   for (auto& font : fonts)
+   {
+      units::font_size::pixels<double> size {font.second->pixels_};
+      std::vector<std::string>         styles {};
+
+      if (font.second->IsBold())
+      {
+         styles.push_back("bold");
+      }
+      if (font.second->IsItalic())
+      {
+         styles.push_back("italic");
+      }
+
+      ResourceManager::LoadFontResource(font.second->face_, styles, size);
+   }
+}
+
 std::vector<std::shared_ptr<boost::gil::rgba8_image_t>>
-PlacefileManager::Impl::LoadResources(
+PlacefileManager::Impl::LoadImageResources(
    const std::shared_ptr<gr::Placefile>& placefile)
 {
    const auto iconFiles = placefile->icon_files();
