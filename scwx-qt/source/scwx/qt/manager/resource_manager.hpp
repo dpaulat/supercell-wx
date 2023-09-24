@@ -22,9 +22,6 @@ void Shutdown();
 int                         FontId(types::Font font);
 std::shared_ptr<util::Font> Font(types::Font font);
 
-void LoadFontResource(const std::string&               family,
-                      const std::vector<std::string>&  styles,
-                      units::font_size::points<double> size);
 std::shared_ptr<boost::gil::rgba8_image_t>
 LoadImageResource(const std::string& urlString);
 std::vector<std::shared_ptr<boost::gil::rgba8_image_t>>

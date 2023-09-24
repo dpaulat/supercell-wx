@@ -1,4 +1,5 @@
 #include <scwx/qt/manager/placefile_manager.hpp>
+#include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/main/application.hpp>
 #include <scwx/qt/util/json.hpp>
@@ -706,7 +707,7 @@ void PlacefileManager::Impl::LoadFontResources(
          styles.push_back("italic");
       }
 
-      ResourceManager::LoadFontResource(font.second->face_, styles, size);
+      FontManager::Instance().GetImGuiFont(font.second->face_, styles, size);
    }
 }
 

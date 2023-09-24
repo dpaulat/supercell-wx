@@ -19,7 +19,14 @@ public:
    explicit FontManager();
    ~FontManager();
 
-   static std::shared_ptr<FontManager> Instance();
+   std::shared_ptr<types::ImGuiFont>
+   GetImGuiFont(const std::string&               family,
+                const std::vector<std::string>&  styles,
+                units::font_size::points<double> size);
+
+   void LoadApplicationFont(const std::string& filename);
+
+   static FontManager& Instance();
 
 private:
    class Impl;
