@@ -74,7 +74,8 @@ set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
                 source/scwx/qt/gl/draw/placefile_text.cpp
                 source/scwx/qt/gl/draw/placefile_triangles.cpp
                 source/scwx/qt/gl/draw/rectangle.cpp)
-set(HDR_MANAGER source/scwx/qt/manager/placefile_manager.hpp
+set(HDR_MANAGER source/scwx/qt/manager/font_manager.hpp
+                source/scwx/qt/manager/placefile_manager.hpp
                 source/scwx/qt/manager/radar_product_manager.hpp
                 source/scwx/qt/manager/radar_product_manager_notifier.hpp
                 source/scwx/qt/manager/resource_manager.hpp
@@ -82,7 +83,8 @@ set(HDR_MANAGER source/scwx/qt/manager/placefile_manager.hpp
                 source/scwx/qt/manager/text_event_manager.hpp
                 source/scwx/qt/manager/timeline_manager.hpp
                 source/scwx/qt/manager/update_manager.hpp)
-set(SRC_MANAGER source/scwx/qt/manager/placefile_manager.cpp
+set(SRC_MANAGER source/scwx/qt/manager/font_manager.cpp
+                source/scwx/qt/manager/placefile_manager.cpp
                 source/scwx/qt/manager/radar_product_manager.cpp
                 source/scwx/qt/manager/radar_product_manager_notifier.cpp
                 source/scwx/qt/manager/resource_manager.cpp
@@ -158,6 +160,7 @@ set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
 set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/font_types.hpp
               source/scwx/qt/types/github_types.hpp
+              source/scwx/qt/types/imgui_font.hpp
               source/scwx/qt/types/map_types.hpp
               source/scwx/qt/types/qt_types.hpp
               source/scwx/qt/types/radar_product_record.hpp
@@ -165,6 +168,7 @@ set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/text_types.hpp)
 set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/github_types.cpp
+              source/scwx/qt/types/imgui_font.cpp
               source/scwx/qt/types/map_types.cpp
               source/scwx/qt/types/radar_product_record.cpp
               source/scwx/qt/types/text_event_key.cpp
