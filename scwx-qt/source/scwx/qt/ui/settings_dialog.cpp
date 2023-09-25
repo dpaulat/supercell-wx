@@ -21,6 +21,7 @@
 #include <fmt/format.h>
 #include <QColorDialog>
 #include <QFileDialog>
+#include <QFontDialog>
 #include <QToolButton>
 
 namespace scwx
@@ -84,6 +85,7 @@ public:
    explicit SettingsDialogImpl(SettingsDialog* self) :
        self_ {self},
        radarSiteDialog_ {new RadarSiteDialog(self)},
+       fontDialog_ {new QFontDialog(self)},
        settings_ {std::initializer_list<settings::SettingsInterfaceBase*> {
           &defaultRadarSite_,
           &fontSizes_,
@@ -113,6 +115,9 @@ public:
             QColor(QString::fromStdString(
                paletteSettings.alert_color(phenomenon, false).GetDefault())));
       }
+
+      // Configure font dialog
+      fontDialog_->setOptions(QFontDialog::FontDialogOption::ScalableFonts);
    }
    ~SettingsDialogImpl() = default;
 
@@ -146,6 +151,7 @@ public:
    SettingsDialog*          self_;
    PlacefileSettingsWidget* placefileSettingsWidget_ {nullptr};
    RadarSiteDialog*         radarSiteDialog_;
+   QFontDialog*             fontDialog_;
 
    settings::SettingsInterface<std::string>               defaultRadarSite_ {};
    settings::SettingsInterface<std::vector<std::int64_t>> fontSizes_ {};
@@ -231,6 +237,18 @@ void SettingsDialogImpl::ConnectSignals()
                              QString::fromStdString(RadarSiteLabel(radarSite)));
                        }
                     });
+
+   QObject::connect(self_->ui->fontSelectButton,
+                    &QAbstractButton::clicked,
+                    self_,
+                    [this]() { fontDialog_->show(); });
+
+   QObject::connect(
+      fontDialog_,
+      &QFontDialog::fontSelected,
+      self_,
+      [this](const QFont& font)
+      { logger_->debug("Selected font: {}", font.toString().toStdString()); });
 
    // Update the Radar Site dialog "map" location with the currently selected
    // radar site
