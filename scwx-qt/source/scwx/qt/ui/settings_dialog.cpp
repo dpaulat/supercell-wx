@@ -22,6 +22,7 @@
 #include <QColorDialog>
 #include <QFileDialog>
 #include <QFontDialog>
+#include <QStandardItemModel>
 #include <QToolButton>
 
 namespace scwx
@@ -86,6 +87,7 @@ public:
        self_ {self},
        radarSiteDialog_ {new RadarSiteDialog(self)},
        fontDialog_ {new QFontDialog(self)},
+       fontCategoryModel_ {new QStandardItemModel(self)},
        settings_ {std::initializer_list<settings::SettingsInterfaceBase*> {
           &defaultRadarSite_,
           &fontSizes_,
@@ -153,6 +155,8 @@ public:
    RadarSiteDialog*         radarSiteDialog_;
    QFontDialog*             fontDialog_;
 
+   QStandardItemModel* fontCategoryModel_;
+
    settings::SettingsInterface<std::string>               defaultRadarSite_ {};
    settings::SettingsInterface<std::vector<std::int64_t>> fontSizes_ {};
    settings::SettingsInterface<std::int64_t>              gridWidth_ {};
@@ -172,6 +176,15 @@ public:
    std::unordered_map<awips::Phenomenon,
                       settings::SettingsInterface<std::string>>
       inactiveAlertColors_ {};
+
+   std::unordered_map<types::FontCategory,
+                      settings::SettingsInterface<std::string>>
+      fontFamilies_ {};
+   std::unordered_map<types::FontCategory,
+                      settings::SettingsInterface<std::string>>
+      fontStyles_ {};
+   std::unordered_map<types::FontCategory, settings::SettingsInterface<double>>
+      fontPointSizes_ {};
 
    settings::SettingsInterface<std::int64_t> hoverTextWrap_ {};
    settings::SettingsInterface<std::string>  tooltipMethod_ {};
@@ -662,6 +675,37 @@ void SettingsDialogImpl::SetupPlacefilesTab()
 void SettingsDialogImpl::SetupTextTab()
 {
    settings::TextSettings& textSettings = settings::TextSettings::Instance();
+
+   self_->ui->fontListView->setModel(fontCategoryModel_);
+   for (const auto& fontCategory : types::FontCategoryIterator())
+   {
+      // Add font category to list view
+      fontCategoryModel_->appendRow(new QStandardItem(
+         QString::fromStdString(types::GetFontCategoryName(fontCategory))));
+
+      // Create settings interface
+      auto fontFamilyResult = fontFamilies_.emplace(
+         fontCategory, settings::SettingsInterface<std::string> {});
+      auto fontStyleResult = fontStyles_.emplace(
+         fontCategory, settings::SettingsInterface<std::string> {});
+      auto fontSizeResult = fontPointSizes_.emplace(
+         fontCategory, settings::SettingsInterface<double> {});
+
+      auto& fontFamily = (*fontFamilyResult.first).second;
+      auto& fontStyle  = (*fontStyleResult.first).second;
+      auto& fontSize   = (*fontSizeResult.first).second;
+
+      // Add to settings list
+      settings_.push_back(&fontFamily);
+      settings_.push_back(&fontStyle);
+      settings_.push_back(&fontSize);
+
+      // Set settings variables
+      fontFamily.SetSettingsVariable(textSettings.font_family(fontCategory));
+      fontStyle.SetSettingsVariable(textSettings.font_style(fontCategory));
+      fontSize.SetSettingsVariable(textSettings.font_point_size(fontCategory));
+   }
+   self_->ui->fontListView->setCurrentIndex(fontCategoryModel_->index(0, 0));
 
    hoverTextWrap_.SetSettingsVariable(textSettings.hover_text_wrap());
    hoverTextWrap_.SetEditWidget(self_->ui->hoverTextWrapSpinBox);

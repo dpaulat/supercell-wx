@@ -2,6 +2,7 @@
 
 #include <scwx/qt/settings/settings_category.hpp>
 #include <scwx/qt/settings/settings_variable.hpp>
+#include <scwx/qt/types/text_types.hpp>
 
 #include <memory>
 #include <string>
@@ -25,8 +26,15 @@ public:
    TextSettings(TextSettings&&) noexcept;
    TextSettings& operator=(TextSettings&&) noexcept;
 
+   SettingsVariable<std::string>&
+   font_family(types::FontCategory fontCategory) const;
+   SettingsVariable<std::string>&
+   font_style(types::FontCategory fontCategory) const;
+   SettingsVariable<double>&
+   font_point_size(types::FontCategory fontCategory) const;
+
    SettingsVariable<std::int64_t>& hover_text_wrap() const;
-   SettingsVariable<std::string>& tooltip_method() const;
+   SettingsVariable<std::string>&  tooltip_method() const;
 
    static TextSettings& Instance();
 
