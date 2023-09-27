@@ -2,6 +2,8 @@
 #include <scwx/qt/util/json.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <algorithm>
+
 namespace scwx
 {
 namespace qt
@@ -21,6 +23,8 @@ public:
 
    const std::string name_;
 
+   std::vector<std::pair<std::string, std::vector<SettingsCategory*>>>
+                                      subcategoryArrays_;
    std::vector<SettingsVariableBase*> variables_;
 };
 
@@ -41,6 +45,16 @@ std::string SettingsCategory::name() const
 
 void SettingsCategory::SetDefaults()
 {
+   // Set subcategory array defaults
+   for (auto& subcategoryArray : p->subcategoryArrays_)
+   {
+      for (auto& subcategory : subcategoryArray.second)
+      {
+         subcategory->SetDefaults();
+      }
+   }
+
+   // Set variable defaults
    for (auto& variable : p->variables_)
    {
       variable->SetValueToDefault();
@@ -57,6 +71,47 @@ bool SettingsCategory::ReadJson(const boost::json::object& json)
    {
       const boost::json::object& object = value->as_object();
 
+      // Read subcategory arrays
+      for (auto& subcategoryArray : p->subcategoryArrays_)
+      {
+         const boost::json::value* arrayValue =
+            object.if_contains(subcategoryArray.first);
+
+         if (arrayValue != nullptr && arrayValue->is_object())
+         {
+            const boost::json::object& arrayObject = arrayValue->as_object();
+
+            for (auto& subcategory : subcategoryArray.second)
+            {
+               validated &= subcategory->ReadJson(arrayObject);
+            }
+         }
+         else
+         {
+            if (arrayValue == nullptr)
+            {
+               logger_->debug(
+                  "Subcategory array key {} is not present, resetting to "
+                  "defaults",
+                  subcategoryArray.first);
+            }
+            else if (!arrayValue->is_object())
+            {
+               logger_->warn(
+                  "Invalid json for subcategory array key {}, resetting to "
+                  "defaults",
+                  p->name_);
+            }
+
+            for (auto& subcategory : subcategoryArray.second)
+            {
+               subcategory->SetDefaults();
+            }
+            validated = false;
+         }
+      }
+
+      // Read variables
       for (auto& variable : p->variables_)
       {
          validated &= variable->ReadValue(object);
@@ -66,8 +121,8 @@ bool SettingsCategory::ReadJson(const boost::json::object& json)
    {
       if (value == nullptr)
       {
-         logger_->warn("Key {} is not present, resetting to defaults",
-                       p->name_);
+         logger_->debug("Key {} is not present, resetting to defaults",
+                        p->name_);
       }
       else if (!value->is_object())
       {
@@ -86,12 +141,38 @@ void SettingsCategory::WriteJson(boost::json::object& json) const
 {
    boost::json::object object;
 
+   // Write subcategory arrays
+   for (auto& subcategoryArray : p->subcategoryArrays_)
+   {
+      boost::json::object arrayObject;
+
+      for (auto& subcategory : subcategoryArray.second)
+      {
+         subcategory->WriteJson(arrayObject);
+      }
+
+      object.insert_or_assign(subcategoryArray.first, arrayObject);
+   }
+
+   // Write variables
    for (auto& variable : p->variables_)
    {
       variable->WriteValue(object);
    }
 
    json.insert_or_assign(p->name_, object);
+}
+
+void SettingsCategory::RegisterSubcategoryArray(
+   const std::string& name, std::vector<SettingsCategory>& subcategories)
+{
+   auto& newSubcategories = p->subcategoryArrays_.emplace_back(
+      name, std::vector<SettingsCategory*> {});
+
+   std::transform(subcategories.begin(),
+                  subcategories.end(),
+                  std::back_inserter(newSubcategories.second),
+                  [](SettingsCategory& subcategory) { return &subcategory; });
 }
 
 void SettingsCategory::RegisterVariables(

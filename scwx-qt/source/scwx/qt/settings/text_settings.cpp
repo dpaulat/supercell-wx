@@ -82,6 +82,7 @@ public:
    TextSettings* self_;
 
    std::unordered_map<types::FontCategory, FontData> fontData_ {};
+   std::vector<SettingsCategory>                     fontSettings_ {};
 
    SettingsVariable<std::int64_t> hoverTextWrap_ {"hover_text_wrap"};
    SettingsVariable<std::string>  tooltipMethod_ {"tooltip_method"};
@@ -120,8 +121,15 @@ void TextSettings::Impl::InitializeFontVariables()
       font.fontPointSize_.SetMinimum(6.0);
       font.fontPointSize_.SetMaximum(72.0);
 
-      // TODO: Variable registration
+      // Variable registration
+      auto& settings = fontSettings_.emplace_back(
+         SettingsCategory {types::GetFontCategoryName(fontCategory)});
+
+      settings.RegisterVariables(
+         {&font.fontFamily_, &font.fontStyle_, &font.fontPointSize_});
    }
+
+   self_->RegisterSubcategoryArray("fonts", fontSettings_);
 }
 
 SettingsVariable<std::string>&
