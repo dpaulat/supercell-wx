@@ -9,6 +9,7 @@
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/types/alert_types.hpp>
+#include <scwx/qt/types/font_types.hpp>
 #include <scwx/qt/types/text_types.hpp>
 #include <scwx/qt/ui/placefile_settings_widget.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
@@ -119,7 +120,10 @@ public:
       }
 
       // Configure font dialog
-      fontDialog_->setOptions(QFontDialog::FontDialogOption::ScalableFonts);
+      fontDialog_->setOptions(
+         QFontDialog::FontDialogOption::DontUseNativeDialog |
+         QFontDialog::FontDialogOption::ScalableFonts);
+      fontDialog_->setWindowModality(Qt::WindowModality::WindowModal);
    }
    ~SettingsDialogImpl() = default;
 
@@ -132,6 +136,10 @@ public:
 
    void ShowColorDialog(QLineEdit* lineEdit, QFrame* frame = nullptr);
    void UpdateRadarDialogLocation(const std::string& id);
+
+   QFont GetSelectedFont();
+   void  SelectFontCategory(types::FontCategory fontCategory);
+   void  UpdateFontDisplayData();
 
    void ApplyChanges();
    void DiscardChanges();
@@ -156,6 +164,8 @@ public:
    QFontDialog*             fontDialog_;
 
    QStandardItemModel* fontCategoryModel_;
+
+   types::FontCategory selectedFontCategory_ {types::FontCategory::Unknown};
 
    settings::SettingsInterface<std::string>               defaultRadarSite_ {};
    settings::SettingsInterface<std::vector<std::int64_t>> fontSizes_ {};
@@ -251,24 +261,72 @@ void SettingsDialogImpl::ConnectSignals()
                        }
                     });
 
-   QObject::connect(self_->ui->fontSelectButton,
-                    &QAbstractButton::clicked,
-                    self_,
-                    [this]() { fontDialog_->show(); });
-
-   QObject::connect(
-      fontDialog_,
-      &QFontDialog::fontSelected,
-      self_,
-      [this](const QFont& font)
-      { logger_->debug("Selected font: {}", font.toString().toStdString()); });
-
    // Update the Radar Site dialog "map" location with the currently selected
    // radar site
    auto& defaultRadarSite = *defaultRadarSite_.GetSettingsVariable();
    defaultRadarSite.RegisterValueStagedCallback(
       [this](const std::string& newValue)
       { UpdateRadarDialogLocation(newValue); });
+
+   QObject::connect(
+      self_->ui->fontListView->selectionModel(),
+      &QItemSelectionModel::selectionChanged,
+      self_,
+      [this](const QItemSelection& selected, const QItemSelection& deselected)
+      {
+         if (selected.size() == 0 && deselected.size() == 0)
+         {
+            // Items which stay selected but change their index are not
+            // included in selected and deselected. Thus, this signal might
+            // be emitted with both selected and deselected empty, if only
+            // the indices of selected items change.
+            return;
+         }
+
+         if (selected.size() > 0)
+         {
+            QModelIndex selectedIndex = selected[0].indexes()[0];
+            QVariant    variantData =
+               self_->ui->fontListView->model()->data(selectedIndex);
+            if (variantData.typeId() == QMetaType::QString)
+            {
+               types::FontCategory fontCategory =
+                  types::GetFontCategory(variantData.toString().toStdString());
+               SelectFontCategory(fontCategory);
+               UpdateFontDisplayData();
+            }
+         }
+      });
+
+   QObject::connect(self_->ui->fontSelectButton,
+                    &QAbstractButton::clicked,
+                    self_,
+                    [this]()
+                    {
+                       fontDialog_->setCurrentFont(GetSelectedFont());
+                       fontDialog_->show();
+                    });
+
+   QObject::connect(fontDialog_,
+                    &QFontDialog::fontSelected,
+                    self_,
+                    [this](const QFont& font)
+                    {
+                       logger_->debug("Selected font: {}",
+                                      font.toString().toStdString());
+
+                       fontFamilies_.at(selectedFontCategory_)
+                          .GetSettingsVariable()
+                          ->StageValue(font.family().toStdString());
+                       fontStyles_.at(selectedFontCategory_)
+                          .GetSettingsVariable()
+                          ->StageValue(font.styleName().toStdString());
+                       fontPointSizes_.at(selectedFontCategory_)
+                          .GetSettingsVariable()
+                          ->StageValue(font.pointSizeF());
+
+                       UpdateFontDisplayData();
+                    });
 
    QObject::connect(
       self_->ui->buttonBox,
@@ -706,6 +764,8 @@ void SettingsDialogImpl::SetupTextTab()
       fontSize.SetSettingsVariable(textSettings.font_point_size(fontCategory));
    }
    self_->ui->fontListView->setCurrentIndex(fontCategoryModel_->index(0, 0));
+   SelectFontCategory(*types::FontCategoryIterator().begin());
+   UpdateFontDisplayData();
 
    hoverTextWrap_.SetSettingsVariable(textSettings.hover_text_wrap());
    hoverTextWrap_.SetEditWidget(self_->ui->hoverTextWrapSpinBox);
@@ -859,6 +919,73 @@ void SettingsDialogImpl::UpdateRadarDialogLocation(const std::string& id)
       radarSiteDialog_->HandleMapUpdate(radarSite->latitude(),
                                         radarSite->longitude());
    }
+}
+
+QFont SettingsDialogImpl::GetSelectedFont()
+{
+   std::string fontFamily = fontFamilies_.at(selectedFontCategory_)
+                               .GetSettingsVariable()
+                               ->GetStagedOrValue();
+   std::string fontStyle = fontStyles_.at(selectedFontCategory_)
+                              .GetSettingsVariable()
+                              ->GetStagedOrValue();
+   units::font_size::points<double> fontSize {
+      fontPointSizes_.at(selectedFontCategory_)
+         .GetSettingsVariable()
+         ->GetStagedOrValue()};
+
+   QFont font(QString::fromStdString(fontFamily));
+   font.setStyleName(QString::fromStdString(fontStyle));
+   font.setPointSizeF(fontSize.value());
+
+   return font;
+}
+
+void SettingsDialogImpl::SelectFontCategory(types::FontCategory fontCategory)
+{
+   if (selectedFontCategory_ != types::FontCategory::Unknown &&
+       selectedFontCategory_ != fontCategory)
+   {
+      auto& fontFamily = fontFamilies_.at(selectedFontCategory_);
+      auto& fontStyle  = fontStyles_.at(selectedFontCategory_);
+      auto& fontSize   = fontPointSizes_.at(selectedFontCategory_);
+
+      fontFamily.SetResetButton(nullptr);
+      fontStyle.SetResetButton(nullptr);
+      fontSize.SetResetButton(nullptr);
+
+      fontFamily.SetEditWidget(nullptr);
+      fontStyle.SetEditWidget(nullptr);
+      fontSize.SetEditWidget(nullptr);
+   }
+
+   if (selectedFontCategory_ != fontCategory)
+   {
+      auto& fontFamily = fontFamilies_.at(fontCategory);
+      auto& fontStyle  = fontStyles_.at(fontCategory);
+      auto& fontSize   = fontPointSizes_.at(fontCategory);
+
+      fontFamily.SetResetButton(self_->ui->resetFontButton);
+      fontStyle.SetResetButton(self_->ui->resetFontButton);
+      fontSize.SetResetButton(self_->ui->resetFontButton);
+
+      fontFamily.SetEditWidget(self_->ui->fontNameLabel);
+      fontStyle.SetEditWidget(self_->ui->fontStyleLabel);
+      fontSize.SetEditWidget(self_->ui->fontSizeLabel);
+   }
+
+   selectedFontCategory_ = fontCategory;
+}
+
+void SettingsDialogImpl::UpdateFontDisplayData()
+{
+   QFont font = GetSelectedFont();
+
+   self_->ui->fontNameLabel->setText(font.family());
+   self_->ui->fontStyleLabel->setText(font.styleName());
+   self_->ui->fontSizeLabel->setText(QString::number(font.pointSizeF()));
+
+   self_->ui->fontPreviewLabel->setFont(font);
 }
 
 void SettingsDialogImpl::ApplyChanges()

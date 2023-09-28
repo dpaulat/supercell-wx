@@ -79,6 +79,13 @@ public:
 
    void InitializeFontVariables();
 
+   friend bool operator==(const FontData& lhs, const FontData& rhs)
+   {
+      return (lhs.fontFamily_ == rhs.fontFamily_ &&
+              lhs.fontStyle_ == rhs.fontStyle_ &&
+              lhs.fontPointSize_ == rhs.fontPointSize_);
+   }
+
    TextSettings* self_;
 
    std::unordered_map<types::FontCategory, FontData> fontData_ {};
@@ -168,7 +175,8 @@ TextSettings& TextSettings::Instance()
 
 bool operator==(const TextSettings& lhs, const TextSettings& rhs)
 {
-   return (lhs.p->hoverTextWrap_ == rhs.p->hoverTextWrap_ &&
+   return (lhs.p->fontData_ == rhs.p->fontData_ &&
+           lhs.p->hoverTextWrap_ == rhs.p->hoverTextWrap_ &&
            lhs.p->tooltipMethod_ == rhs.p->tooltipMethod_);
 }
 

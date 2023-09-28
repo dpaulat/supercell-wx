@@ -102,7 +102,7 @@
          </sizepolicy>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>2</number>
         </property>
         <widget class="QWidget" name="general">
          <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -468,35 +468,15 @@
                 <property name="bottomMargin">
                  <number>0</number>
                 </property>
-                <item row="2" column="1">
-                 <spacer name="horizontalSpacer_2">
-                  <property name="orientation">
-                   <enum>Qt::Horizontal</enum>
-                  </property>
-                  <property name="sizeHint" stdset="0">
-                   <size>
-                    <width>40</width>
-                    <height>20</height>
-                   </size>
-                  </property>
-                 </spacer>
-                </item>
-                <item row="2" column="0">
-                 <widget class="QPushButton" name="resetAllFontsButton">
-                  <property name="text">
-                   <string>Reset All Fonts</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="1" column="0" colspan="3">
-                 <widget class="QListView" name="fontListView"/>
-                </item>
-                <item row="0" column="0" colspan="3">
+                <item row="0" column="0" colspan="2">
                  <widget class="QLabel" name="label_10">
                   <property name="text">
                    <string>Display Item:</string>
                   </property>
                  </widget>
+                </item>
+                <item row="1" column="0" colspan="2">
+                 <widget class="QListView" name="fontListView"/>
                 </item>
                </layout>
               </widget>
@@ -538,10 +518,10 @@
                 <item row="7" column="0" colspan="5">
                  <widget class="QFrame" name="frame_7">
                   <property name="frameShape">
-                   <enum>QFrame::StyledPanel</enum>
+                   <enum>QFrame::Panel</enum>
                   </property>
                   <property name="frameShadow">
-                   <enum>QFrame::Raised</enum>
+                   <enum>QFrame::Plain</enum>
                   </property>
                   <layout class="QVBoxLayout" name="verticalLayout_7">
                    <item>

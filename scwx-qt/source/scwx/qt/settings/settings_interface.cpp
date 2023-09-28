@@ -9,6 +9,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
+#include <QLabel>
 #include <QLineEdit>
 #include <QSpinBox>
 #include <QWidget>
@@ -32,6 +33,9 @@ public:
    }
 
    ~Impl() {}
+
+   template<class U>
+   void SetWidgetText(U* widget, const T& currentValue);
 
    void UpdateEditWidget();
    void UpdateResetButton();
@@ -104,6 +108,11 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
    }
 
    p->editWidget_ = widget;
+
+   if (widget == nullptr)
+   {
+      return;
+   }
 
    if (QLineEdit* lineEdit = dynamic_cast<QLineEdit*>(widget))
    {
@@ -274,33 +283,36 @@ void SettingsInterface<T>::SetResetButton(QAbstractButton* button)
 
    p->resetButton_ = button;
 
-   QObject::connect(p->resetButton_,
-                    &QAbstractButton::clicked,
-                    p->context_.get(),
-                    [this]()
-                    {
-                       T defaultValue = p->variable_->GetDefault();
-
-                       if (p->variable_->GetValue() == defaultValue)
+   if (p->resetButton_ != nullptr)
+   {
+      QObject::connect(p->resetButton_,
+                       &QAbstractButton::clicked,
+                       p->context_.get(),
+                       [this]()
                        {
-                          // If the current value is default, reset the staged
-                          // value
-                          p->variable_->Reset();
-                          p->stagedValid_ = true;
-                          p->UpdateEditWidget();
-                          p->UpdateResetButton();
-                       }
-                       else
-                       {
-                          // Stage the default value
-                          p->stagedValid_ =
-                             p->variable_->StageValue(defaultValue);
-                          p->UpdateEditWidget();
-                          p->UpdateResetButton();
-                       }
-                    });
+                          T defaultValue = p->variable_->GetDefault();
 
-   p->UpdateResetButton();
+                          if (p->variable_->GetValue() == defaultValue)
+                          {
+                             // If the current value is default, reset the
+                             // staged value
+                             p->variable_->Reset();
+                             p->stagedValid_ = true;
+                             p->UpdateEditWidget();
+                             p->UpdateResetButton();
+                          }
+                          else
+                          {
+                             // Stage the default value
+                             p->stagedValid_ =
+                                p->variable_->StageValue(defaultValue);
+                             p->UpdateEditWidget();
+                             p->UpdateResetButton();
+                          }
+                       });
+
+      p->UpdateResetButton();
+   }
 }
 
 template<class T>
@@ -318,6 +330,39 @@ void SettingsInterface<T>::SetMapToValueFunction(
 }
 
 template<class T>
+template<class U>
+void SettingsInterface<T>::Impl::SetWidgetText(U* widget, const T& currentValue)
+{
+   if constexpr (std::is_integral_v<T>)
+   {
+      widget->setText(QString::number(currentValue));
+   }
+   else if constexpr (std::is_same_v<T, std::string>)
+   {
+      if (mapFromValue_ != nullptr)
+      {
+         widget->setText(QString::fromStdString(mapFromValue_(currentValue)));
+      }
+      else
+      {
+         widget->setText(QString::fromStdString(currentValue));
+      }
+   }
+   else if constexpr (std::is_same_v<T, std::vector<std::int64_t>>)
+   {
+      if (mapFromValue_ != nullptr)
+      {
+         widget->setText(QString::fromStdString(mapFromValue_(currentValue)));
+      }
+      else
+      {
+         widget->setText(QString::fromStdString(
+            fmt::format("{}", fmt::join(currentValue, ", "))));
+      }
+   }
+}
+
+template<class T>
 void SettingsInterface<T>::Impl::UpdateEditWidget()
 {
    // Use the staged value if present, otherwise the current value
@@ -327,35 +372,11 @@ void SettingsInterface<T>::Impl::UpdateEditWidget()
 
    if (QLineEdit* lineEdit = dynamic_cast<QLineEdit*>(editWidget_))
    {
-      if constexpr (std::is_integral_v<T>)
-      {
-         lineEdit->setText(QString::number(currentValue));
-      }
-      else if constexpr (std::is_same_v<T, std::string>)
-      {
-         if (mapFromValue_ != nullptr)
-         {
-            lineEdit->setText(
-               QString::fromStdString(mapFromValue_(currentValue)));
-         }
-         else
-         {
-            lineEdit->setText(QString::fromStdString(currentValue));
-         }
-      }
-      else if constexpr (std::is_same_v<T, std::vector<std::int64_t>>)
-      {
-         if (mapFromValue_ != nullptr)
-         {
-            lineEdit->setText(
-               QString::fromStdString(mapFromValue_(currentValue)));
-         }
-         else
-         {
-            lineEdit->setText(QString::fromStdString(
-               fmt::format("{}", fmt::join(currentValue, ", "))));
-         }
-      }
+      SetWidgetText(lineEdit, currentValue);
+   }
+   else if (QLabel* label = dynamic_cast<QLabel*>(editWidget_))
+   {
+      SetWidgetText(label, currentValue);
    }
    else if (QCheckBox* checkBox = dynamic_cast<QCheckBox*>(editWidget_))
    {

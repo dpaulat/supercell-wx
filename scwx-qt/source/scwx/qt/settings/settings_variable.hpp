@@ -104,6 +104,14 @@ public:
    std::optional<T> GetStaged() const;
 
    /**
+    * Gets the staged value of the settings variable, if defined, otherwise the
+    * current value.
+    *
+    * @return Staged value or current value
+    */
+   T GetStagedOrValue() const;
+
+   /**
     * Validate the value against the defined parameters of the settings
     * variable.
     *
