@@ -446,7 +446,7 @@
             <property name="frameShadow">
              <enum>QFrame::Plain</enum>
             </property>
-            <layout class="QGridLayout" name="gridLayout_8" columnstretch="1,1">
+            <layout class="QGridLayout" name="gridLayout_8" columnstretch="2,3">
              <item row="0" column="0">
               <widget class="QFrame" name="frame_5">
                <property name="frameShape">

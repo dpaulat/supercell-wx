@@ -312,18 +312,24 @@ void SettingsDialogImpl::ConnectSignals()
                     self_,
                     [this](const QFont& font)
                     {
-                       logger_->debug("Selected font: {}",
-                                      font.toString().toStdString());
-
                        fontFamilies_.at(selectedFontCategory_)
-                          .GetSettingsVariable()
-                          ->StageValue(font.family().toStdString());
+                          .StageValue(font.family().toStdString());
                        fontStyles_.at(selectedFontCategory_)
-                          .GetSettingsVariable()
-                          ->StageValue(font.styleName().toStdString());
+                          .StageValue(font.styleName().toStdString());
                        fontPointSizes_.at(selectedFontCategory_)
-                          .GetSettingsVariable()
-                          ->StageValue(font.pointSizeF());
+                          .StageValue(font.pointSizeF());
+
+                       UpdateFontDisplayData();
+                    });
+
+   QObject::connect(self_->ui->resetFontButton,
+                    &QAbstractButton::clicked,
+                    self_,
+                    [this]()
+                    {
+                       fontFamilies_.at(selectedFontCategory_).StageDefault();
+                       fontStyles_.at(selectedFontCategory_).StageDefault();
+                       fontPointSizes_.at(selectedFontCategory_).StageDefault();
 
                        UpdateFontDisplayData();
                     });
@@ -943,37 +949,6 @@ QFont SettingsDialogImpl::GetSelectedFont()
 
 void SettingsDialogImpl::SelectFontCategory(types::FontCategory fontCategory)
 {
-   if (selectedFontCategory_ != types::FontCategory::Unknown &&
-       selectedFontCategory_ != fontCategory)
-   {
-      auto& fontFamily = fontFamilies_.at(selectedFontCategory_);
-      auto& fontStyle  = fontStyles_.at(selectedFontCategory_);
-      auto& fontSize   = fontPointSizes_.at(selectedFontCategory_);
-
-      fontFamily.SetResetButton(nullptr);
-      fontStyle.SetResetButton(nullptr);
-      fontSize.SetResetButton(nullptr);
-
-      fontFamily.SetEditWidget(nullptr);
-      fontStyle.SetEditWidget(nullptr);
-      fontSize.SetEditWidget(nullptr);
-   }
-
-   if (selectedFontCategory_ != fontCategory)
-   {
-      auto& fontFamily = fontFamilies_.at(fontCategory);
-      auto& fontStyle  = fontStyles_.at(fontCategory);
-      auto& fontSize   = fontPointSizes_.at(fontCategory);
-
-      fontFamily.SetResetButton(self_->ui->resetFontButton);
-      fontStyle.SetResetButton(self_->ui->resetFontButton);
-      fontSize.SetResetButton(self_->ui->resetFontButton);
-
-      fontFamily.SetEditWidget(self_->ui->fontNameLabel);
-      fontStyle.SetEditWidget(self_->ui->fontStyleLabel);
-      fontSize.SetEditWidget(self_->ui->fontSizeLabel);
-   }
-
    selectedFontCategory_ = fontCategory;
 }
 
@@ -986,6 +961,17 @@ void SettingsDialogImpl::UpdateFontDisplayData()
    self_->ui->fontSizeLabel->setText(QString::number(font.pointSizeF()));
 
    self_->ui->fontPreviewLabel->setFont(font);
+
+   if (selectedFontCategory_ != types::FontCategory::Unknown)
+   {
+      auto& fontFamily = fontFamilies_.at(selectedFontCategory_);
+      auto& fontStyle  = fontStyles_.at(selectedFontCategory_);
+      auto& fontSize   = fontPointSizes_.at(selectedFontCategory_);
+
+      self_->ui->resetFontButton->setVisible(!fontFamily.IsDefault() ||
+                                             !fontStyle.IsDefault() ||
+                                             !fontSize.IsDefault());
+   }
 }
 
 void SettingsDialogImpl::ApplyChanges()

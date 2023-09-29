@@ -27,7 +27,7 @@ template<class T>
 class SettingsInterface<T>::Impl
 {
 public:
-   explicit Impl()
+   explicit Impl(SettingsInterface* self) : self_ {self}
    {
       context_->moveToThread(QCoreApplication::instance()->thread());
    }
@@ -39,6 +39,8 @@ public:
 
    void UpdateEditWidget();
    void UpdateResetButton();
+
+   SettingsInterface<T>* self_;
 
    SettingsVariable<T>* variable_ {nullptr};
    bool                 stagedValid_ {true};
@@ -53,17 +55,27 @@ public:
 
 template<class T>
 SettingsInterface<T>::SettingsInterface() :
-    SettingsInterfaceBase(), p(std::make_unique<Impl>())
+    SettingsInterfaceBase(), p(std::make_unique<Impl>(this))
 {
 }
 template<class T>
 SettingsInterface<T>::~SettingsInterface() = default;
 
 template<class T>
-SettingsInterface<T>::SettingsInterface(SettingsInterface&&) noexcept = default;
+SettingsInterface<T>::SettingsInterface(SettingsInterface&& o) noexcept :
+    p {std::move(o.p)}
+{
+   p->self_ = this;
+}
+
 template<class T>
 SettingsInterface<T>&
-SettingsInterface<T>::operator=(SettingsInterface&&) noexcept = default;
+SettingsInterface<T>::operator=(SettingsInterface&& o) noexcept
+{
+   p        = std::move(o.p);
+   p->self_ = this;
+   return *this;
+}
 
 template<class T>
 void SettingsInterface<T>::SetSettingsVariable(SettingsVariable<T>& variable)
@@ -75,6 +87,27 @@ template<class T>
 SettingsVariable<T>* SettingsInterface<T>::GetSettingsVariable() const
 {
    return p->variable_;
+}
+
+template<class T>
+bool SettingsInterface<T>::IsDefault()
+{
+   bool isDefault = false;
+
+   const std::optional<T> staged       = p->variable_->GetStaged();
+   const T                defaultValue = p->variable_->GetDefault();
+   const T                value        = p->variable_->GetValue();
+
+   if (staged.has_value())
+   {
+      isDefault = (p->stagedValid_ && *staged == defaultValue);
+   }
+   else
+   {
+      isDefault = (value == defaultValue);
+   }
+
+   return isDefault;
 }
 
 template<class T>
@@ -95,6 +128,14 @@ template<class T>
 void SettingsInterface<T>::StageDefault()
 {
    p->variable_->StageDefault();
+   p->UpdateEditWidget();
+   p->UpdateResetButton();
+}
+
+template<class T>
+void SettingsInterface<T>::StageValue(const T& value)
+{
+   p->variable_->StageValue(value);
    p->UpdateEditWidget();
    p->UpdateResetButton();
 }
@@ -412,20 +453,9 @@ void SettingsInterface<T>::Impl::UpdateEditWidget()
 template<class T>
 void SettingsInterface<T>::Impl::UpdateResetButton()
 {
-   const std::optional<T> staged       = variable_->GetStaged();
-   const T                defaultValue = variable_->GetDefault();
-   const T                value        = variable_->GetValue();
-
    if (resetButton_ != nullptr)
    {
-      if (staged.has_value())
-      {
-         resetButton_->setVisible(!stagedValid_ || *staged != defaultValue);
-      }
-      else
-      {
-         resetButton_->setVisible(value != defaultValue);
-      }
+      resetButton_->setVisible(!self_->IsDefault());
    }
 }
 
