@@ -1,5 +1,6 @@
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/gl/gl.hpp>
+#include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
@@ -1028,6 +1029,10 @@ void MapWidget::paintGL()
    // Setup ImGui Frame
    ImGui::SetCurrentContext(p->imGuiContext_);
 
+   // Lock ImGui font atlas prior to new ImGui frame
+   std::shared_lock imguiFontAtlasLock {
+      manager::FontManager::Instance().imgui_font_atlas_mutex()};
+
    // Start ImGui Frame
    ImGui_ImplQt_NewFrame(this);
    ImGui_ImplOpenGL3_NewFrame();
@@ -1058,6 +1063,9 @@ void MapWidget::paintGL()
    // Render ImGui Frame
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+   // Unlock ImGui font atlas after rendering
+   imguiFontAtlasLock.unlock();
 
    // Paint complete
    Q_EMIT WidgetPainted();

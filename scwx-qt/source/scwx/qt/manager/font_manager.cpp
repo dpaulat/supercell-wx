@@ -45,11 +45,18 @@ public:
                                    const std::vector<std::string>& styles);
 
    std::string fontCachePath_ {};
+
+   std::shared_mutex imguiFontAtlasMutex_ {};
 };
 
 FontManager::FontManager() : p(std::make_unique<Impl>()) {}
 
 FontManager::~FontManager() {};
+
+std::shared_mutex& FontManager::imgui_font_atlas_mutex()
+{
+   return p->imguiFontAtlasMutex_;
+}
 
 std::shared_ptr<types::ImGuiFont>
 FontManager::GetImGuiFont(const std::string&               family,

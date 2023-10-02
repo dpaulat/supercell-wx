@@ -1,4 +1,5 @@
 #include <scwx/qt/ui/imgui_debug_widget.hpp>
+#include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
 
 #include <set>
@@ -109,6 +110,10 @@ void ImGuiDebugWidget::paintGL()
 {
    ImGui::SetCurrentContext(p->currentContext_);
 
+   // Lock ImGui font atlas prior to new ImGui frame
+   std::shared_lock imguiFontAtlasLock {
+      manager::FontManager::Instance().imgui_font_atlas_mutex()};
+
    ImGui_ImplQt_NewFrame(this);
    ImGui_ImplOpenGL3_NewFrame();
 
@@ -131,6 +136,9 @@ void ImGuiDebugWidget::paintGL()
 
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+   // Unlock ImGui font atlas after rendering
+   imguiFontAtlasLock.unlock();
 }
 
 } // namespace ui

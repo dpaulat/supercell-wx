@@ -2,6 +2,8 @@
 
 #include <scwx/qt/types/imgui_font.hpp>
 
+#include <shared_mutex>
+
 #include <QObject>
 
 namespace scwx
@@ -18,6 +20,8 @@ class FontManager : public QObject
 public:
    explicit FontManager();
    ~FontManager();
+
+   std::shared_mutex& imgui_font_atlas_mutex();
 
    std::shared_ptr<types::ImGuiFont>
    GetImGuiFont(const std::string&               family,
