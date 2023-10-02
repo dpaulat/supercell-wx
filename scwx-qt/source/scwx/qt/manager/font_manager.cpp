@@ -2,10 +2,13 @@
 #include <scwx/util/logger.hpp>
 
 #include <filesystem>
+#include <fstream>
 
 #include <QFile>
 #include <QFileInfo>
 #include <QStandardPaths>
+#include <boost/container_hash/hash.hpp>
+#include <boost/unordered/unordered_flat_map.hpp>
 #include <fontconfig/fontconfig.h>
 
 namespace scwx
@@ -27,6 +30,18 @@ struct FontRecord
    std::string filename_ {};
 };
 
+template<class Key>
+struct FontRecordHash;
+
+template<class Key>
+struct FontRecordKeyEqual;
+
+template<>
+struct FontRecordHash<std::pair<FontRecord, int>>
+{
+   size_t operator()(const std::pair<FontRecord, int>& x) const;
+};
+
 class FontManager::Impl
 {
 public:
@@ -41,12 +56,24 @@ public:
    void InitializeFontCache();
    void InitializeFontconfig();
 
+   const std::vector<std::uint8_t>& GetRawFontData(const std::string& filename);
+
    static FontRecord MatchFontFile(const std::string&              family,
                                    const std::vector<std::string>& styles);
 
    std::string fontCachePath_ {};
 
    std::shared_mutex imguiFontAtlasMutex_ {};
+
+   boost::unordered_flat_map<std::pair<FontRecord, int>,
+                             std::shared_ptr<types::ImGuiFont>,
+                             FontRecordHash<std::pair<FontRecord, int>>>
+                     imguiFonts_ {};
+   std::shared_mutex imguiFontsMutex_ {};
+
+   boost::unordered_flat_map<std::string, std::vector<std::uint8_t>>
+              rawFontData_ {};
+   std::mutex rawFontDataMutex_ {};
 };
 
 FontManager::FontManager() : p(std::make_unique<Impl>()) {}
@@ -71,10 +98,67 @@ FontManager::GetImGuiFont(const std::string&               family,
 
    FontRecord fontRecord = Impl::MatchFontFile(family, styles);
 
-   // TODO:
-   Q_UNUSED(fontRecord);
+   // Only allow whole pixels, and clamp to 6-72 pt
+   units::font_size::pixels<double> pixels {size};
+   int imFontSize = std::clamp(static_cast<int>(pixels.value()), 8, 96);
+
+   // Search for a loaded ImGui font
+   {
+      std::shared_lock imguiFontLock {p->imguiFontsMutex_};
+
+      // Search for the associated ImGui font
+      auto it = p->imguiFonts_.find(std::make_pair(fontRecord, imFontSize));
+      if (it != p->imguiFonts_.end())
+      {
+         return it->second;
+      }
+
+      // No ImGui font was found, we need to create one
+   }
+
+   // Get raw font data
+   const auto& rawFontData = p->GetRawFontData(fontRecord.filename_);
+
+   // TODO: Create an ImGui font
+   // TODO: imguiFontLock could be acquired during a render loop, when the font
+   // atlas is already locked. Lock the font atlas first. Unless it's already
+   // locked. It might need to be reentrant?
+   // TODO: Search for font once more, to prevent loading the same font twice
+   Q_UNUSED(rawFontData);
 
    return nullptr;
+}
+
+const std::vector<std::uint8_t>&
+FontManager::Impl::GetRawFontData(const std::string& filename)
+{
+   std::unique_lock rawFontDataLock {rawFontDataMutex_};
+
+   auto it = rawFontData_.find(filename);
+   if (it != rawFontData_.end())
+   {
+      // Raw font data has already been loaded
+      return it->second;
+   }
+
+   // Raw font data needs to be loaded
+   std::basic_ifstream<std::uint8_t> ifs {filename, std::ios::binary};
+   ifs.seekg(0, std::ios_base::end);
+   std::size_t dataSize = ifs.tellg();
+   ifs.seekg(0, std::ios_base::beg);
+
+   // Store the font data in a buffer
+   std::vector<std::uint8_t> buffer {};
+   buffer.reserve(dataSize);
+   std::copy(std::istreambuf_iterator<std::uint8_t>(ifs),
+             std::istreambuf_iterator<std::uint8_t>(),
+             std::back_inserter(buffer));
+
+   // Place the buffer in the cache
+   auto result = rawFontData_.emplace(filename, std::move(buffer));
+
+   // Return the cached buffer
+   return it->second;
 }
 
 void FontManager::LoadApplicationFont(const std::string& filename)
@@ -225,6 +309,24 @@ FontManager& FontManager::Instance()
 {
    static FontManager instance_ {};
    return instance_;
+}
+
+size_t FontRecordHash<std::pair<FontRecord, int>>::operator()(
+   const std::pair<FontRecord, int>& x) const
+{
+   size_t seed = 0;
+   boost::hash_combine(seed, x.first.family_);
+   boost::hash_combine(seed, x.first.style_);
+   boost::hash_combine(seed, x.first.filename_);
+   boost::hash_combine(seed, x.second);
+   return seed;
+}
+
+bool operator==(const FontRecord& lhs, const FontRecord& rhs)
+{
+   return lhs.family_ == rhs.family_ && //
+          lhs.style_ == rhs.style_ &&   //
+          lhs.filename_ == rhs.filename_;
 }
 
 } // namespace manager
