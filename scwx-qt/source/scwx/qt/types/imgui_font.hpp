@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <scwx/qt/types/font_types.hpp>
 
@@ -17,9 +18,9 @@ namespace types
 class ImGuiFont
 {
 public:
-   explicit ImGuiFont(const std::string&    fontName,
-                      const std::string&    fontData,
-                      units::pixels<double> size);
+   explicit ImGuiFont(const std::string&               fontName,
+                      const std::vector<std::uint8_t>& fontData,
+                      units::font_size::pixels<int>    size);
    ~ImGuiFont();
 
    ImGuiFont(const ImGuiFont&)            = delete;

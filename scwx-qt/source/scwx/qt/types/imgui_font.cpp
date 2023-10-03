@@ -23,9 +23,9 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class ImGuiFont::Impl
 {
 public:
-   explicit Impl(const std::string&    fontName,
-                 const std::string&    fontData,
-                 units::pixels<double> size) :
+   explicit Impl(const std::string&               fontName,
+                 const std::vector<std::uint8_t>& fontData,
+                 units::font_size::pixels<int>    size) :
        fontName_ {fontName}, size_ {size}
    {
       CreateImGuiFont(fontData);
@@ -33,23 +33,23 @@ public:
 
    ~Impl() {}
 
-   void CreateImGuiFont(const std::string& fontData);
+   void CreateImGuiFont(const std::vector<std::uint8_t>& fontData);
 
-   const std::string           fontName_;
-   const units::pixels<double> size_;
+   const std::string                   fontName_;
+   const units::font_size::pixels<int> size_;
 
    ImFont* imFont_ {nullptr};
 };
 
-ImGuiFont::ImGuiFont(const std::string&    fontName,
-                     const std::string&    fontData,
-                     units::pixels<double> size) :
+ImGuiFont::ImGuiFont(const std::string&               fontName,
+                     const std::vector<std::uint8_t>& fontData,
+                     units::font_size::pixels<int>    size) :
     p(std::make_unique<Impl>(fontName, fontData, size))
 {
 }
 ImGuiFont::~ImGuiFont() = default;
 
-void ImGuiFont::Impl::CreateImGuiFont(const std::string& fontData)
+void ImGuiFont::Impl::CreateImGuiFont(const std::vector<std::uint8_t>& fontData)
 {
    logger_->debug("Creating Font: {}", fontName_);
 
@@ -66,7 +66,7 @@ void ImGuiFont::Impl::CreateImGuiFont(const std::string& fontData)
    fontConfig.Name[sizeof(fontConfig.Name) - 1] = 0;
 
    imFont_ = fontAtlas->AddFontFromMemoryTTF(
-      const_cast<void*>(static_cast<const void*>(fontData.c_str())),
+      const_cast<void*>(static_cast<const void*>(fontData.data())),
       static_cast<int>(std::clamp<std::size_t>(
          fontData.size(), 0, std::numeric_limits<int>::max())),
       sizePixels,

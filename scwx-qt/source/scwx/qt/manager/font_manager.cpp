@@ -30,16 +30,15 @@ struct FontRecord
    std::string filename_ {};
 };
 
+typedef std::pair<FontRecord, units::font_size::pixels<int>> FontRecordPair;
+
 template<class Key>
 struct FontRecordHash;
 
-template<class Key>
-struct FontRecordKeyEqual;
-
 template<>
-struct FontRecordHash<std::pair<FontRecord, int>>
+struct FontRecordHash<FontRecordPair>
 {
-   size_t operator()(const std::pair<FontRecord, int>& x) const;
+   size_t operator()(const FontRecordPair& x) const;
 };
 
 class FontManager::Impl
@@ -65,9 +64,9 @@ public:
 
    std::shared_mutex imguiFontAtlasMutex_ {};
 
-   boost::unordered_flat_map<std::pair<FontRecord, int>,
+   boost::unordered_flat_map<FontRecordPair,
                              std::shared_ptr<types::ImGuiFont>,
-                             FontRecordHash<std::pair<FontRecord, int>>>
+                             FontRecordHash<FontRecordPair>>
                      imguiFonts_ {};
    std::shared_mutex imguiFontsMutex_ {};
 
@@ -88,7 +87,8 @@ std::shared_mutex& FontManager::imgui_font_atlas_mutex()
 std::shared_ptr<types::ImGuiFont>
 FontManager::GetImGuiFont(const std::string&               family,
                           const std::vector<std::string>&  styles,
-                          units::font_size::points<double> size)
+                          units::font_size::points<double> size,
+                          bool                             loadIfNotFound)
 {
    const std::string styleString = fmt::format("{}", fmt::join(styles, " "));
    const std::string fontString =
@@ -100,14 +100,16 @@ FontManager::GetImGuiFont(const std::string&               family,
 
    // Only allow whole pixels, and clamp to 6-72 pt
    units::font_size::pixels<double> pixels {size};
-   int imFontSize = std::clamp(static_cast<int>(pixels.value()), 8, 96);
+   units::font_size::pixels<int>    imFontSize {
+      std::clamp(static_cast<int>(pixels.value()), 8, 96)};
+   auto imguiFontKey = std::make_pair(fontRecord, imFontSize);
 
    // Search for a loaded ImGui font
    {
       std::shared_lock imguiFontLock {p->imguiFontsMutex_};
 
       // Search for the associated ImGui font
-      auto it = p->imguiFonts_.find(std::make_pair(fontRecord, imFontSize));
+      auto it = p->imguiFonts_.find(imguiFontKey);
       if (it != p->imguiFonts_.end())
       {
          return it->second;
@@ -116,17 +118,38 @@ FontManager::GetImGuiFont(const std::string&               family,
       // No ImGui font was found, we need to create one
    }
 
+   // No font was found, return an empty shared pointer if not loading
+   if (!loadIfNotFound)
+   {
+      return nullptr;
+   }
+
    // Get raw font data
    const auto& rawFontData = p->GetRawFontData(fontRecord.filename_);
 
-   // TODO: Create an ImGui font
-   // TODO: imguiFontLock could be acquired during a render loop, when the font
-   // atlas is already locked. Lock the font atlas first. Unless it's already
-   // locked. It might need to be reentrant?
-   // TODO: Search for font once more, to prevent loading the same font twice
-   Q_UNUSED(rawFontData);
+   // The font atlas mutex might already be locked within an ImGui render frame.
+   // Lock the font atlas mutex before the fonts mutex to prevent deadlock.
+   std::unique_lock imguiFontAtlasLock {p->imguiFontAtlasMutex_};
+   std::unique_lock imguiFontsLock {p->imguiFontsMutex_};
 
-   return nullptr;
+   // Search for the associated ImGui font again, to prevent loading the same
+   // font twice
+   auto it = p->imguiFonts_.find(imguiFontKey);
+   if (it != p->imguiFonts_.end())
+   {
+      return it->second;
+   }
+
+   // Create an ImGui font
+   std::shared_ptr<types::ImGuiFont> imguiFont =
+      std::make_shared<types::ImGuiFont>(
+         fontRecord.filename_, rawFontData, imFontSize);
+
+   // Store the ImGui font
+   p->imguiFonts_.insert_or_assign(imguiFontKey, imguiFont);
+
+   // Return the ImGui font
+   return imguiFont;
 }
 
 const std::vector<std::uint8_t>&
@@ -311,14 +334,13 @@ FontManager& FontManager::Instance()
    return instance_;
 }
 
-size_t FontRecordHash<std::pair<FontRecord, int>>::operator()(
-   const std::pair<FontRecord, int>& x) const
+size_t FontRecordHash<FontRecordPair>::operator()(const FontRecordPair& x) const
 {
    size_t seed = 0;
    boost::hash_combine(seed, x.first.family_);
    boost::hash_combine(seed, x.first.style_);
    boost::hash_combine(seed, x.first.filename_);
-   boost::hash_combine(seed, x.second);
+   boost::hash_combine(seed, x.second.value());
    return seed;
 }
 

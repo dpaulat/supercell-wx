@@ -26,7 +26,8 @@ public:
    std::shared_ptr<types::ImGuiFont>
    GetImGuiFont(const std::string&               family,
                 const std::vector<std::string>&  styles,
-                units::font_size::points<double> size);
+                units::font_size::points<double> size,
+                bool                             loadIfNotFound = false);
 
    void LoadApplicationFont(const std::string& filename);
 
