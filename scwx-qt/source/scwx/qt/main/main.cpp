@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
 
    // Initialize application
    scwx::qt::config::RadarSite::Initialize();
-   scwx::qt::manager::SettingsManager::Initialize();
+   scwx::qt::manager::SettingsManager::Instance().Initialize();
    scwx::qt::manager::ResourceManager::Initialize();
 
    // Run Qt main loop
@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
 
    // Shutdown application
    scwx::qt::manager::ResourceManager::Shutdown();
-   scwx::qt::manager::SettingsManager::Shutdown();
+   scwx::qt::manager::SettingsManager::Instance().Shutdown();
 
    // Shutdown AWS SDK
    Aws::ShutdownAPI(awsSdkOptions);

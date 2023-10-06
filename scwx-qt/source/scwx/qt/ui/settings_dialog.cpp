@@ -989,7 +989,7 @@ void SettingsDialogImpl::ApplyChanges()
 
    if (committed)
    {
-      manager::SettingsManager::SaveSettings();
+      manager::SettingsManager::Instance().SaveSettings();
    }
 }
 

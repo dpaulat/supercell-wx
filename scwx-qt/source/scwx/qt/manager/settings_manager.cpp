@@ -21,21 +21,33 @@ namespace qt
 {
 namespace manager
 {
-namespace SettingsManager
-{
 
 static const std::string logPrefix_ = "scwx::qt::manager::settings_manager";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static boost::json::value ConvertSettingsToJson();
-static void               GenerateDefaultSettings();
-static bool               LoadSettings(const boost::json::object& settingsJson);
-static void               ValidateSettings();
+class SettingsManager::Impl
+{
+public:
+   explicit Impl(SettingsManager* self) : self_ {self} {}
+   ~Impl() = default;
 
-static bool        initialized_ {false};
-static std::string settingsPath_ {};
+   void ValidateSettings();
 
-void Initialize()
+   static boost::json::value ConvertSettingsToJson();
+   static void               GenerateDefaultSettings();
+   static bool LoadSettings(const boost::json::object& settingsJson);
+
+   SettingsManager* self_;
+
+   bool        initialized_ {false};
+   std::string settingsPath_ {};
+};
+
+SettingsManager::SettingsManager() : p(std::make_unique<Impl>(this)) {}
+
+SettingsManager::~SettingsManager() {};
+
+void SettingsManager::Initialize()
 {
    std::string appDataPath {
       QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
@@ -50,14 +62,14 @@ void Initialize()
       }
    }
 
-   settingsPath_ = appDataPath + "/settings.json";
-   initialized_  = true;
+   p->settingsPath_ = appDataPath + "/settings.json";
+   p->initialized_  = true;
 
-   ReadSettings(settingsPath_);
-   ValidateSettings();
+   ReadSettings(p->settingsPath_);
+   p->ValidateSettings();
 }
 
-void ReadSettings(const std::string& settingsPath)
+void SettingsManager::ReadSettings(const std::string& settingsPath)
 {
    boost::json::value settingsJson = nullptr;
 
@@ -68,34 +80,34 @@ void ReadSettings(const std::string& settingsPath)
 
    if (settingsJson == nullptr || !settingsJson.is_object())
    {
-      GenerateDefaultSettings();
-      settingsJson = ConvertSettingsToJson();
+      Impl::GenerateDefaultSettings();
+      settingsJson = Impl::ConvertSettingsToJson();
       util::json::WriteJsonFile(settingsPath, settingsJson);
    }
    else
    {
-      bool jsonDirty = LoadSettings(settingsJson.as_object());
+      bool jsonDirty = Impl::LoadSettings(settingsJson.as_object());
 
       if (jsonDirty)
       {
-         settingsJson = ConvertSettingsToJson();
+         settingsJson = Impl::ConvertSettingsToJson();
          util::json::WriteJsonFile(settingsPath, settingsJson);
       }
    };
 }
 
-void SaveSettings()
+void SettingsManager::SaveSettings()
 {
-   if (initialized_)
+   if (p->initialized_)
    {
       logger_->info("Saving settings");
 
-      boost::json::value settingsJson = ConvertSettingsToJson();
-      util::json::WriteJsonFile(settingsPath_, settingsJson);
+      boost::json::value settingsJson = Impl::ConvertSettingsToJson();
+      util::json::WriteJsonFile(p->settingsPath_, settingsJson);
    }
 }
 
-void Shutdown()
+void SettingsManager::Shutdown()
 {
    bool dataChanged = false;
 
@@ -109,7 +121,7 @@ void Shutdown()
    }
 }
 
-static boost::json::value ConvertSettingsToJson()
+boost::json::value SettingsManager::Impl::ConvertSettingsToJson()
 {
    boost::json::object settingsJson;
 
@@ -122,7 +134,7 @@ static boost::json::value ConvertSettingsToJson()
    return settingsJson;
 }
 
-static void GenerateDefaultSettings()
+void SettingsManager::Impl::GenerateDefaultSettings()
 {
    logger_->info("Generating default settings");
 
@@ -133,7 +145,8 @@ static void GenerateDefaultSettings()
    settings::UiSettings::Instance().SetDefaults();
 }
 
-static bool LoadSettings(const boost::json::object& settingsJson)
+bool SettingsManager::Impl::LoadSettings(
+   const boost::json::object& settingsJson)
 {
    logger_->info("Loading settings");
 
@@ -148,7 +161,7 @@ static bool LoadSettings(const boost::json::object& settingsJson)
    return jsonDirty;
 }
 
-static void ValidateSettings()
+void SettingsManager::Impl::ValidateSettings()
 {
    logger_->debug("Validating settings");
 
@@ -185,11 +198,16 @@ static void ValidateSettings()
 
    if (settingsChanged)
    {
-      SaveSettings();
+      self_->SaveSettings();
    }
 }
 
-} // namespace SettingsManager
+SettingsManager& SettingsManager::Instance()
+{
+   static SettingsManager instance_ {};
+   return instance_;
+}
+
 } // namespace manager
 } // namespace qt
 } // namespace scwx

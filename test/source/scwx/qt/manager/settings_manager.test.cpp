@@ -76,7 +76,7 @@ TEST_F(SettingsManagerTest, CreateJson)
    // Verify file doesn't exist prior to test start
    EXPECT_EQ(std::filesystem::exists(filename), false);
 
-   SettingsManager::ReadSettings(filename);
+   SettingsManager::Instance().ReadSettings(filename);
 
    EXPECT_EQ(std::filesystem::exists(filename), true);
 
@@ -92,7 +92,7 @@ TEST_F(SettingsManagerTest, SettingsKeax)
    std::string filename(std::string(SCWX_TEST_DATA_DIR) +
                         "/json/settings/settings-keax.json");
 
-   SettingsManager::ReadSettings(filename);
+   SettingsManager::Instance().ReadSettings(filename);
 
    EXPECT_EQ(
       settings::GeneralSettings::Instance().default_radar_site().GetValue(),
@@ -112,7 +112,7 @@ TEST_P(DefaultSettingsTest, DefaultSettings)
 
    std::filesystem::copy_file(sourceFile, filename);
 
-   SettingsManager::ReadSettings(filename);
+   SettingsManager::Instance().ReadSettings(filename);
 
    VerifyDefaults();
    CompareFiles(filename, DEFAULT_SETTINGS_FILE);
@@ -140,7 +140,7 @@ TEST_P(BadSettingsTest, BadSettings)
 
    std::filesystem::copy_file(sourceFile, filename);
 
-   SettingsManager::ReadSettings(filename);
+   SettingsManager::Instance().ReadSettings(filename);
 
    CompareFiles(filename, goodFile);
 
