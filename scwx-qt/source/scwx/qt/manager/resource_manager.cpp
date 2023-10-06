@@ -119,6 +119,8 @@ static void LoadFonts()
 
    ImFontAtlas* fontAtlas = model::ImGuiContextModel::Instance().font_atlas();
    fontAtlas->AddFontDefault();
+
+   fontManager.InitializeFonts();
 }
 
 static void LoadTextures()
