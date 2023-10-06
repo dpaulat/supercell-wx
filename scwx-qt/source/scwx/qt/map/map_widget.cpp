@@ -124,6 +124,7 @@ public:
                  std::shared_ptr<GenericLayer> layer,
                  const std::string&            before = {});
    void ConnectSignals();
+   void ImGuiCheckFonts();
    void InitializeNewRadarProductView(const std::string& colorPalette);
    void RadarProductManagerConnect();
    void RadarProductManagerDisconnect();
@@ -1043,16 +1044,8 @@ void MapWidget::paintGL()
    // Start ImGui Frame
    ImGui_ImplQt_NewFrame(this);
    ImGui_ImplOpenGL3_NewFrame();
+   p->ImGuiCheckFonts();
    ImGui::NewFrame();
-
-   // Update ImGui Fonts if required
-   std::uint64_t currentImGuiFontsBuildCount =
-      manager::FontManager::Instance().imgui_fonts_build_count();
-   if (p->imGuiFontsBuildCount_ != currentImGuiFontsBuildCount)
-   {
-      ImGui_ImplOpenGL3_DestroyFontsTexture();
-      ImGui_ImplOpenGL3_CreateFontsTexture();
-   }
 
    // Update pixel ratio
    p->context_->set_pixel_ratio(pixelRatio());
@@ -1085,6 +1078,22 @@ void MapWidget::paintGL()
 
    // Paint complete
    Q_EMIT WidgetPainted();
+}
+
+void MapWidgetImpl::ImGuiCheckFonts()
+{
+   // Update ImGui Fonts if required
+   std::uint64_t currentImGuiFontsBuildCount =
+      manager::FontManager::Instance().imgui_fonts_build_count();
+
+   if (imGuiFontsBuildCount_ != currentImGuiFontsBuildCount ||
+       !model::ImGuiContextModel::Instance().font_atlas()->IsBuilt())
+   {
+      ImGui_ImplOpenGL3_DestroyFontsTexture();
+      ImGui_ImplOpenGL3_CreateFontsTexture();
+   }
+
+   imGuiFontsBuildCount_ = currentImGuiFontsBuildCount;
 }
 
 void MapWidgetImpl::RunMousePicking()
