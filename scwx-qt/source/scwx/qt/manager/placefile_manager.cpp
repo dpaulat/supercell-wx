@@ -707,7 +707,7 @@ void PlacefileManager::Impl::LoadFontResources(
          styles.push_back("italic");
       }
 
-      FontManager::Instance().GetImGuiFont(font.second->face_, styles, size);
+      FontManager::Instance().LoadImGuiFont(font.second->face_, styles, size);
    }
 }
 

@@ -64,6 +64,8 @@ public:
 
    std::shared_mutex imguiFontAtlasMutex_ {};
 
+   std::uint64_t imguiFontsBuildCount_ {};
+
    boost::unordered_flat_map<FontRecordPair,
                              std::shared_ptr<types::ImGuiFont>,
                              FontRecordHash<FontRecordPair>>
@@ -73,6 +75,12 @@ public:
    boost::unordered_flat_map<std::string, std::vector<std::uint8_t>>
               rawFontData_ {};
    std::mutex rawFontDataMutex_ {};
+
+   std::shared_ptr<types::ImGuiFont> defaultFont_ {};
+   boost::unordered_flat_map<types::FontCategory,
+                             std::shared_ptr<types::ImGuiFont>>
+              fontCategoryMap_ {};
+   std::mutex fontCategoryMutex_ {};
 };
 
 FontManager::FontManager() : p(std::make_unique<Impl>()) {}
@@ -84,11 +92,30 @@ std::shared_mutex& FontManager::imgui_font_atlas_mutex()
    return p->imguiFontAtlasMutex_;
 }
 
+std::uint64_t FontManager::imgui_fonts_build_count() const
+{
+   return p->imguiFontsBuildCount_;
+}
+
 std::shared_ptr<types::ImGuiFont>
-FontManager::GetImGuiFont(const std::string&               family,
-                          const std::vector<std::string>&  styles,
-                          units::font_size::points<double> size,
-                          bool                             loadIfNotFound)
+FontManager::GetImGuiFont(types::FontCategory fontCategory)
+{
+   std::unique_lock lock {p->fontCategoryMutex_};
+
+   auto it = p->fontCategoryMap_.find(fontCategory);
+   if (it != p->fontCategoryMap_.cend())
+   {
+      return it->second;
+   }
+
+   return p->defaultFont_;
+}
+
+std::shared_ptr<types::ImGuiFont>
+FontManager::LoadImGuiFont(const std::string&               family,
+                           const std::vector<std::string>&  styles,
+                           units::font_size::points<double> size,
+                           bool                             loadIfNotFound)
 {
    const std::string styleString = fmt::format("{}", fmt::join(styles, " "));
    const std::string fontString =
@@ -148,6 +175,9 @@ FontManager::GetImGuiFont(const std::string&               family,
    // Store the ImGui font
    p->imguiFonts_.insert_or_assign(imguiFontKey, imguiFont);
 
+   // Increment ImGui font build count
+   ++p->imguiFontsBuildCount_;
+
    // Return the ImGui font
    return imguiFont;
 }
@@ -181,7 +211,7 @@ FontManager::Impl::GetRawFontData(const std::string& filename)
    auto result = rawFontData_.emplace(filename, std::move(buffer));
 
    // Return the cached buffer
-   return it->second;
+   return result.first->second;
 }
 
 void FontManager::LoadApplicationFont(const std::string& filename)

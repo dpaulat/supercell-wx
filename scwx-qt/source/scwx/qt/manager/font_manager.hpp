@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/qt/types/imgui_font.hpp>
+#include <scwx/qt/types/text_types.hpp>
 
 #include <shared_mutex>
 
@@ -22,12 +23,15 @@ public:
    ~FontManager();
 
    std::shared_mutex& imgui_font_atlas_mutex();
+   std::uint64_t      imgui_fonts_build_count() const;
 
    std::shared_ptr<types::ImGuiFont>
-   GetImGuiFont(const std::string&               family,
-                const std::vector<std::string>&  styles,
-                units::font_size::points<double> size,
-                bool                             loadIfNotFound = false);
+   GetImGuiFont(types::FontCategory fontCategory);
+   std::shared_ptr<types::ImGuiFont>
+   LoadImGuiFont(const std::string&               family,
+                 const std::vector<std::string>&  styles,
+                 units::font_size::points<double> size,
+                 bool                             loadIfNotFound = true);
 
    void LoadApplicationFont(const std::string& filename);
 

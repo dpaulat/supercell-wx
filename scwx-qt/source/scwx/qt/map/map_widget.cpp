@@ -155,6 +155,7 @@ public:
    ImGuiContext* imGuiContext_;
    std::string   imGuiContextName_;
    bool          imGuiRendererInitialized_;
+   std::uint64_t imGuiFontsBuildCount_ {};
 
    std::shared_ptr<manager::PlacefileManager> placefileManager_ {
       manager::PlacefileManager::Instance()};
@@ -981,9 +982,15 @@ void MapWidget::initializeGL()
    makeCurrent();
    p->context_->gl().initializeOpenGLFunctions();
 
+   // Lock ImGui font atlas prior to new ImGui frame
+   std::shared_lock imguiFontAtlasLock {
+      manager::FontManager::Instance().imgui_font_atlas_mutex()};
+
    // Initialize ImGui OpenGL3 backend
    ImGui::SetCurrentContext(p->imGuiContext_);
    ImGui_ImplOpenGL3_Init();
+   p->imGuiFontsBuildCount_ =
+      manager::FontManager::Instance().imgui_fonts_build_count();
    p->imGuiRendererInitialized_ = true;
 
    p->map_.reset(
@@ -1037,6 +1044,15 @@ void MapWidget::paintGL()
    ImGui_ImplQt_NewFrame(this);
    ImGui_ImplOpenGL3_NewFrame();
    ImGui::NewFrame();
+
+   // Update ImGui Fonts if required
+   std::uint64_t currentImGuiFontsBuildCount =
+      manager::FontManager::Instance().imgui_fonts_build_count();
+   if (p->imGuiFontsBuildCount_ != currentImGuiFontsBuildCount)
+   {
+      ImGui_ImplOpenGL3_DestroyFontsTexture();
+      ImGui_ImplOpenGL3_CreateFontsTexture();
+   }
 
    // Update pixel ratio
    p->context_->set_pixel_ratio(pixelRatio());
