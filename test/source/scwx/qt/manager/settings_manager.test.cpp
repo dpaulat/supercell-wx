@@ -1,5 +1,10 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/settings/map_settings.hpp>
+#include <scwx/qt/settings/palette_settings.hpp>
+#include <scwx/qt/settings/text_settings.hpp>
+#include <scwx/qt/settings/ui_settings.hpp>
 
 #include <filesystem>
 #include <fstream>
@@ -39,10 +44,14 @@ void VerifyDefaults()
    settings::GeneralSettings defaultGeneralSettings {};
    settings::MapSettings     defaultMapSettings {};
    settings::PaletteSettings defaultPaletteSettings {};
+   settings::TextSettings    defaultTextSettings {};
+   settings::UiSettings      defaultUiSettings {};
 
-   EXPECT_EQ(defaultGeneralSettings, SettingsManager::general_settings());
-   EXPECT_EQ(defaultMapSettings, SettingsManager::map_settings());
-   EXPECT_EQ(defaultPaletteSettings, SettingsManager::palette_settings());
+   EXPECT_EQ(defaultGeneralSettings, settings::GeneralSettings::Instance());
+   EXPECT_EQ(defaultMapSettings, settings::MapSettings::Instance());
+   EXPECT_EQ(defaultPaletteSettings, settings::PaletteSettings::Instance());
+   EXPECT_EQ(defaultTextSettings, settings::TextSettings::Instance());
+   EXPECT_EQ(defaultUiSettings, settings::UiSettings::Instance());
 }
 
 void CompareFiles(const std::string& file1, const std::string& file2)
@@ -86,11 +95,11 @@ TEST_F(SettingsManagerTest, SettingsKeax)
    SettingsManager::ReadSettings(filename);
 
    EXPECT_EQ(
-      SettingsManager::general_settings().default_radar_site().GetValue(),
+      settings::GeneralSettings::Instance().default_radar_site().GetValue(),
       "KEAX");
-   for (size_t i = 0; i < SettingsManager::map_settings().count(); ++i)
+   for (size_t i = 0; i < settings::MapSettings::Instance().count(); ++i)
    {
-      EXPECT_EQ(SettingsManager::map_settings().radar_site(i).GetValue(),
+      EXPECT_EQ(settings::MapSettings::Instance().radar_site(i).GetValue(),
                 "KEAX");
    }
 }

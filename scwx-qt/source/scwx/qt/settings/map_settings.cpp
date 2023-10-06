@@ -35,7 +35,7 @@ static const std::string kDefaultRadarProductGroupString_ = "L3";
 static const std::array<std::string, kCount_> kDefaultRadarProduct_ {
    "N0B", "N0G", "N0C", "N0X"};
 
-class MapSettingsImpl
+class MapSettings::Impl
 {
 public:
    struct MapData
@@ -47,7 +47,7 @@ public:
       SettingsVariable<std::string> radarProduct_ {kRadarProductName_};
    };
 
-   explicit MapSettingsImpl()
+   explicit Impl()
    {
       for (std::size_t i = 0; i < kCount_; i++)
       {
@@ -101,7 +101,7 @@ public:
       }
    }
 
-   ~MapSettingsImpl() {}
+   ~Impl() {}
 
    void SetDefaults(std::size_t i)
    {
@@ -111,12 +111,30 @@ public:
       map_[i].radarProduct_.SetValueToDefault();
    }
 
+   friend void tag_invoke(boost::json::value_from_tag,
+                          boost::json::value& jv,
+                          const MapData&      data)
+   {
+      jv = {{kMapStyleName_, data.mapStyle_.GetValue()},
+            {kRadarSiteName_, data.radarSite_.GetValue()},
+            {kRadarProductGroupName_, data.radarProductGroup_.GetValue()},
+            {kRadarProductName_, data.radarProduct_.GetValue()}};
+   }
+
+   friend bool operator==(const MapData& lhs, const MapData& rhs)
+   {
+      return (lhs.mapStyle_ == rhs.mapStyle_ && //
+              lhs.radarSite_ == rhs.radarSite_ &&
+              lhs.radarProductGroup_ == rhs.radarProductGroup_ &&
+              lhs.radarProduct_ == rhs.radarProduct_);
+   }
+
    std::array<MapData, kCount_>       map_ {};
    std::vector<SettingsVariableBase*> variables_ {};
 };
 
 MapSettings::MapSettings() :
-    SettingsCategory("maps"), p(std::make_unique<MapSettingsImpl>())
+    SettingsCategory("maps"), p(std::make_unique<Impl>())
 {
    RegisterVariables(p->variables_);
    SetDefaults();
@@ -161,7 +179,7 @@ bool MapSettings::Shutdown()
    // Commit settings that are managed separate from the settings dialog
    for (std::size_t i = 0; i < kCount_; ++i)
    {
-      MapSettingsImpl::MapData& mapRecordSettings = p->map_[i];
+      Impl::MapData& mapRecordSettings = p->map_[i];
 
       dataChanged |= mapRecordSettings.mapStyle_.Commit();
    }
@@ -184,7 +202,7 @@ bool MapSettings::ReadJson(const boost::json::object& json)
          if (i < mapArray.size() && mapArray.at(i).is_object())
          {
             const boost::json::object& mapRecord = mapArray.at(i).as_object();
-            MapSettingsImpl::MapData&  mapRecordSettings = p->map_[i];
+            Impl::MapData&             mapRecordSettings = p->map_[i];
 
             // Load JSON Elements
             validated &= mapRecordSettings.mapStyle_.ReadValue(mapRecord);
@@ -234,28 +252,15 @@ void MapSettings::WriteJson(boost::json::object& json) const
    json.insert_or_assign(name(), object);
 }
 
-void tag_invoke(boost::json::value_from_tag,
-                boost::json::value&             jv,
-                const MapSettingsImpl::MapData& data)
+MapSettings& MapSettings::Instance()
 {
-   jv = {{kMapStyleName_, data.mapStyle_.GetValue()},
-         {kRadarSiteName_, data.radarSite_.GetValue()},
-         {kRadarProductGroupName_, data.radarProductGroup_.GetValue()},
-         {kRadarProductName_, data.radarProduct_.GetValue()}};
+   static MapSettings mapSettings_;
+   return mapSettings_;
 }
 
 bool operator==(const MapSettings& lhs, const MapSettings& rhs)
 {
    return (lhs.p->map_ == rhs.p->map_);
-}
-
-bool operator==(const MapSettingsImpl::MapData& lhs,
-                const MapSettingsImpl::MapData& rhs)
-{
-   return (lhs.mapStyle_ == rhs.mapStyle_ && //
-           lhs.radarSite_ == rhs.radarSite_ &&
-           lhs.radarProductGroup_ == rhs.radarProductGroup_ &&
-           lhs.radarProduct_ == rhs.radarProduct_);
 }
 
 } // namespace settings

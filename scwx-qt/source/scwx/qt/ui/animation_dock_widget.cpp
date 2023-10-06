@@ -1,7 +1,7 @@
 #include "animation_dock_widget.hpp"
 #include "ui_animation_dock_widget.h"
 
-#include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/util/time.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -101,7 +101,7 @@ AnimationDockWidget::AnimationDockWidget(QWidget* parent) :
    maxDateTimer->start(15000);
 
    // Set loop defaults
-   auto& generalSettings = manager::SettingsManager::general_settings();
+   auto& generalSettings = settings::GeneralSettings::Instance();
    ui->loopTimeSpinBox->setValue(generalSettings.loop_time().GetValue());
    ui->loopSpeedSpinBox->setValue(generalSettings.loop_speed().GetValue());
    ui->loopDelaySpinBox->setValue(generalSettings.loop_delay().GetValue() *
@@ -175,7 +175,7 @@ void AnimationDockWidgetImpl::ConnectSignals()
       self_,
       [this](int i)
       {
-         manager::SettingsManager::general_settings().loop_time().StageValue(i);
+         settings::GeneralSettings::Instance().loop_time().StageValue(i);
          Q_EMIT self_->LoopTimeChanged(std::chrono::minutes(i));
       });
    QObject::connect(
@@ -184,8 +184,7 @@ void AnimationDockWidgetImpl::ConnectSignals()
       self_,
       [this](double d)
       {
-         manager::SettingsManager::general_settings().loop_speed().StageValue(
-            d);
+         settings::GeneralSettings::Instance().loop_speed().StageValue(d);
          Q_EMIT self_->LoopSpeedChanged(d);
       });
    QObject::connect(
@@ -194,7 +193,7 @@ void AnimationDockWidgetImpl::ConnectSignals()
       self_,
       [this](double d)
       {
-         manager::SettingsManager::general_settings().loop_delay().StageValue(
+         settings::GeneralSettings::Instance().loop_delay().StageValue(
             static_cast<std::int64_t>(d * 1000.0));
          Q_EMIT self_->LoopDelayChanged(std::chrono::milliseconds(
             static_cast<typename std::chrono::milliseconds::rep>(d * 1000.0)));

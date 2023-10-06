@@ -1,5 +1,5 @@
 #include <scwx/qt/util/tooltip.hpp>
-#include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/types/font_types.hpp>
 #include <scwx/qt/types/text_types.hpp>
@@ -100,7 +100,7 @@ void Show(const std::string& text, const QPointF& mouseGlobalPos)
       // Get monospace font size
       units::font_size::pixels<double> fontSize {16};
       auto                             fontSizes =
-         manager::SettingsManager::general_settings().font_sizes().GetValue();
+         settings::GeneralSettings::Instance().font_sizes().GetValue();
       if (fontSizes.size() > 1)
       {
          fontSize = units::font_size::pixels<double> {fontSizes[1]};

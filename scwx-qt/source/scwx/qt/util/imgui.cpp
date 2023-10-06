@@ -1,6 +1,6 @@
 #include <scwx/qt/util/imgui.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
-#include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <mutex>
@@ -48,7 +48,7 @@ void ImGui::Impl::Initialize()
 
    // Configure monospace font
    UpdateMonospaceFont();
-   manager::SettingsManager::general_settings()
+   settings::GeneralSettings::Instance()
       .font_sizes()
       .RegisterValueChangedCallback([this](const std::vector<std::int64_t>&)
                                     { UpdateMonospaceFont(); });
@@ -61,7 +61,7 @@ void ImGui::Impl::UpdateMonospaceFont()
    // Get monospace font size
    std::size_t fontSize = 16;
    auto        fontSizes =
-      manager::SettingsManager::general_settings().font_sizes().GetValue();
+      settings::GeneralSettings::Instance().font_sizes().GetValue();
    if (fontSizes.size() > 1)
    {
       fontSize = fontSizes[1];

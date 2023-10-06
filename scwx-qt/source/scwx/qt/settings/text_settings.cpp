@@ -169,8 +169,8 @@ SettingsVariable<std::string>& TextSettings::tooltip_method() const
 
 TextSettings& TextSettings::Instance()
 {
-   static TextSettings TextSettings_;
-   return TextSettings_;
+   static TextSettings textSettings_;
+   return textSettings_;
 }
 
 bool operator==(const TextSettings& lhs, const TextSettings& rhs)

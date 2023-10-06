@@ -13,8 +13,6 @@ namespace qt
 namespace settings
 {
 
-class MapSettingsImpl;
-
 class MapSettings : public SettingsCategory
 {
 public:
@@ -52,10 +50,13 @@ public:
     */
    void WriteJson(boost::json::object& json) const override;
 
+   static MapSettings& Instance();
+
    friend bool operator==(const MapSettings& lhs, const MapSettings& rhs);
 
 private:
-   std::unique_ptr<MapSettingsImpl> p;
+   class Impl;
+   std::unique_ptr<Impl> p;
 };
 
 } // namespace settings

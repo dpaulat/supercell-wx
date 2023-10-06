@@ -3,7 +3,6 @@
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
-#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/alert_layer.hpp>
 #include <scwx/qt/map/color_table_layer.hpp>
 #include <scwx/qt/map/layer_wrapper.hpp>
@@ -13,6 +12,8 @@
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/util/file.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/tooltip.hpp>
@@ -81,8 +82,7 @@ public:
        prevBearing_ {0.0},
        prevPitch_ {0.0}
    {
-      auto& generalSettings =
-         scwx::qt::manager::SettingsManager::general_settings();
+      auto& generalSettings = settings::GeneralSettings::Instance();
 
       SetRadarSite(generalSettings.default_radar_site().GetValue());
 
@@ -1227,7 +1227,7 @@ void MapWidgetImpl::InitializeNewRadarProductView(
                         auto radarProductView = context_->radar_product_view();
 
                         std::string colorTableFile =
-                           manager::SettingsManager::palette_settings()
+                           settings::PaletteSettings::Instance()
                               .palette(colorPalette)
                               .GetValue();
                         if (!colorTableFile.empty())

@@ -1,10 +1,10 @@
 #include "alert_dock_widget.hpp"
 #include "ui_alert_dock_widget.h"
 
-#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/model/alert_model.hpp>
 #include <scwx/qt/model/alert_proxy_model.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/alert_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/ui/alert_dialog.hpp>
@@ -175,10 +175,10 @@ void AlertDockWidgetImpl::ConnectSignals()
               // If an item is selected
               if (selectedAlertKey_ != types::TextEventKey {})
               {
-                 types::AlertAction alertAction = types::GetAlertAction(
-                    manager::SettingsManager::general_settings()
-                       .default_alert_action()
-                       .GetValue());
+                 types::AlertAction alertAction =
+                    types::GetAlertAction(settings::GeneralSettings::Instance()
+                                             .default_alert_action()
+                                             .GetValue());
 
                  switch (alertAction)
                  {

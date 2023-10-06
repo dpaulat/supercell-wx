@@ -6,6 +6,8 @@
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/types/alert_types.hpp>
@@ -104,7 +106,7 @@ public:
           &tooltipMethod_}}
    {
       // Configure default alert phenomena colors
-      auto& paletteSettings = manager::SettingsManager::palette_settings();
+      auto& paletteSettings = settings::PaletteSettings::Instance();
       int   index           = 0;
 
       for (auto& phenomenon : settings::PaletteSettings::alert_phenomena())
@@ -384,7 +386,7 @@ void SettingsDialogImpl::SetupGeneralTab()
    }
 
    settings::GeneralSettings& generalSettings =
-      manager::SettingsManager::general_settings();
+      settings::GeneralSettings::Instance();
 
    defaultRadarSite_.SetSettingsVariable(generalSettings.default_radar_site());
    defaultRadarSite_.SetMapFromValueFunction(
@@ -525,7 +527,7 @@ void SettingsDialogImpl::SetupGeneralTab()
 void SettingsDialogImpl::SetupPalettesColorTablesTab()
 {
    settings::PaletteSettings& paletteSettings =
-      manager::SettingsManager::palette_settings();
+      settings::PaletteSettings::Instance();
 
    // Palettes > Color Tables
    QGridLayout* colorTableLayout =
@@ -617,7 +619,7 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
 void SettingsDialogImpl::SetupPalettesAlertsTab()
 {
    settings::PaletteSettings& paletteSettings =
-      manager::SettingsManager::palette_settings();
+      settings::PaletteSettings::Instance();
 
    // Palettes > Alerts
    QGridLayout* alertsLayout =

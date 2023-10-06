@@ -1,6 +1,6 @@
 #include <scwx/qt/map/alert_layer.hpp>
-#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
+#include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/util/color.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
@@ -394,7 +394,7 @@ static void AddAlertLayer(std::shared_ptr<QMapLibreGL::Map> map,
                           const QString&                    beforeLayer)
 {
    settings::PaletteSettings& paletteSettings =
-      manager::SettingsManager::palette_settings();
+      settings::PaletteSettings::Instance();
 
    QString sourceId     = GetSourceId(phenomenon, alertActive);
    QString idSuffix     = GetSuffix(phenomenon, alertActive);

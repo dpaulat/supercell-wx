@@ -1,5 +1,8 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/settings/map_settings.hpp>
+#include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
 #include <scwx/qt/util/json.hpp>
@@ -96,8 +99,8 @@ void Shutdown()
 {
    bool dataChanged = false;
 
-   dataChanged |= general_settings().Shutdown();
-   dataChanged |= map_settings().Shutdown();
+   dataChanged |= settings::GeneralSettings::Instance().Shutdown();
+   dataChanged |= settings::MapSettings::Instance().Shutdown();
    dataChanged |= settings::UiSettings::Instance().Shutdown();
 
    if (dataChanged)
@@ -106,31 +109,13 @@ void Shutdown()
    }
 }
 
-settings::GeneralSettings& general_settings()
-{
-   static settings::GeneralSettings generalSettings_;
-   return generalSettings_;
-}
-
-settings::MapSettings& map_settings()
-{
-   static settings::MapSettings mapSettings_;
-   return mapSettings_;
-}
-
-settings::PaletteSettings& palette_settings()
-{
-   static settings::PaletteSettings paletteSettings_;
-   return paletteSettings_;
-}
-
 static boost::json::value ConvertSettingsToJson()
 {
    boost::json::object settingsJson;
 
-   general_settings().WriteJson(settingsJson);
-   map_settings().WriteJson(settingsJson);
-   palette_settings().WriteJson(settingsJson);
+   settings::GeneralSettings::Instance().WriteJson(settingsJson);
+   settings::MapSettings::Instance().WriteJson(settingsJson);
+   settings::PaletteSettings::Instance().WriteJson(settingsJson);
    settings::TextSettings::Instance().WriteJson(settingsJson);
    settings::UiSettings::Instance().WriteJson(settingsJson);
 
@@ -141,9 +126,9 @@ static void GenerateDefaultSettings()
 {
    logger_->info("Generating default settings");
 
-   general_settings().SetDefaults();
-   map_settings().SetDefaults();
-   palette_settings().SetDefaults();
+   settings::GeneralSettings::Instance().SetDefaults();
+   settings::MapSettings::Instance().SetDefaults();
+   settings::PaletteSettings::Instance().SetDefaults();
    settings::TextSettings::Instance().SetDefaults();
    settings::UiSettings::Instance().SetDefaults();
 }
@@ -154,9 +139,9 @@ static bool LoadSettings(const boost::json::object& settingsJson)
 
    bool jsonDirty = false;
 
-   jsonDirty |= !general_settings().ReadJson(settingsJson);
-   jsonDirty |= !map_settings().ReadJson(settingsJson);
-   jsonDirty |= !palette_settings().ReadJson(settingsJson);
+   jsonDirty |= !settings::GeneralSettings::Instance().ReadJson(settingsJson);
+   jsonDirty |= !settings::MapSettings::Instance().ReadJson(settingsJson);
+   jsonDirty |= !settings::PaletteSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::TextSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::UiSettings::Instance().ReadJson(settingsJson);
 
@@ -169,7 +154,7 @@ static void ValidateSettings()
 
    bool settingsChanged = false;
 
-   auto& generalSettings = general_settings();
+   auto& generalSettings = settings::GeneralSettings::Instance();
 
    // Validate map provider
    std::string mapProviderName = generalSettings.map_provider().GetValue();

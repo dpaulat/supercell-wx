@@ -5,8 +5,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <scwx/qt/util/font.hpp>
-#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <codecvt>
@@ -337,7 +337,7 @@ std::shared_ptr<Font> Font::Create(const std::string& resource)
    font->p->CreateImGuiFont(
       fontFile,
       fontData,
-      manager::SettingsManager::general_settings().font_sizes().GetValue());
+      settings::GeneralSettings::Instance().font_sizes().GetValue());
 
    font->p->atlas_                   = ftgl::texture_atlas_new(512, 512, 1);
    ftgl::texture_font_t* textureFont = ftgl::texture_font_new_from_memory(
