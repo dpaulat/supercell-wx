@@ -1,4 +1,6 @@
 #include <scwx/qt/manager/font_manager.hpp>
+#include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <filesystem>
@@ -9,6 +11,7 @@
 #include <QStandardPaths>
 #include <boost/container_hash/hash.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>
+#include <boost/unordered/unordered_flat_set.hpp>
 #include <fontconfig/fontconfig.h>
 
 namespace scwx
@@ -44,21 +47,26 @@ struct FontRecordHash<FontRecordPair>
 class FontManager::Impl
 {
 public:
-   explicit Impl()
+   explicit Impl(FontManager* self) : self_ {self}
    {
       InitializeFontCache();
       InitializeFontconfig();
+      ConnectSignals();
    }
    ~Impl() { FinalizeFontconfig(); }
 
+   void ConnectSignals();
    void FinalizeFontconfig();
    void InitializeFontCache();
    void InitializeFontconfig();
+   void UpdateImGuiFont(types::FontCategory fontCategory);
 
    const std::vector<std::uint8_t>& GetRawFontData(const std::string& filename);
 
    static FontRecord MatchFontFile(const std::string&              family,
                                    const std::vector<std::string>& styles);
+
+   FontManager* self_;
 
    std::string fontCachePath_ {};
 
@@ -81,11 +89,81 @@ public:
                              std::shared_ptr<types::ImGuiFont>>
               fontCategoryMap_ {};
    std::mutex fontCategoryMutex_ {};
+
+   boost::unordered_flat_set<types::FontCategory> dirtyFonts_ {};
+   std::mutex                                     dirtyFontsMutex_ {};
 };
 
-FontManager::FontManager() : p(std::make_unique<Impl>()) {}
+FontManager::FontManager() : p(std::make_unique<Impl>(this)) {}
 
 FontManager::~FontManager() {};
+
+void FontManager::Impl::ConnectSignals()
+{
+   auto& textSettings = settings::TextSettings::Instance();
+
+   for (auto fontCategory : types::FontCategoryIterator())
+   {
+      textSettings.font_family(fontCategory)
+         .RegisterValueChangedCallback(
+            [this, fontCategory](const auto&)
+            {
+               std::unique_lock lock {dirtyFontsMutex_};
+               dirtyFonts_.insert(fontCategory);
+            });
+      textSettings.font_style(fontCategory)
+         .RegisterValueChangedCallback(
+            [this, fontCategory](const auto&)
+            {
+               std::unique_lock lock {dirtyFontsMutex_};
+               dirtyFonts_.insert(fontCategory);
+            });
+      textSettings.font_point_size(fontCategory)
+         .RegisterValueChangedCallback(
+            [this, fontCategory](const auto&)
+            {
+               std::unique_lock lock {dirtyFontsMutex_};
+               dirtyFonts_.insert(fontCategory);
+            });
+   }
+
+   QObject::connect(
+      &SettingsManager::Instance(),
+      &SettingsManager::SettingsSaved,
+      self_,
+      [this]()
+      {
+         std::scoped_lock lock {dirtyFontsMutex_, fontCategoryMutex_};
+
+         for (auto fontCategory : dirtyFonts_)
+         {
+            UpdateImGuiFont(fontCategory);
+         }
+
+         dirtyFonts_.clear();
+      });
+}
+
+void FontManager::InitializeFonts()
+{
+   for (auto fontCategory : types::FontCategoryIterator())
+   {
+      p->UpdateImGuiFont(fontCategory);
+   }
+}
+
+void FontManager::Impl::UpdateImGuiFont(types::FontCategory fontCategory)
+{
+   auto& textSettings = settings::TextSettings::Instance();
+
+   auto family = textSettings.font_family(fontCategory).GetValue();
+   auto styles = textSettings.font_style(fontCategory).GetValue();
+   units::font_size::points<double> size {
+      textSettings.font_point_size(fontCategory).GetValue()};
+
+   fontCategoryMap_.insert_or_assign(
+      fontCategory, self_->LoadImGuiFont(family, {styles}, size));
+}
 
 std::shared_mutex& FontManager::imgui_font_atlas_mutex()
 {

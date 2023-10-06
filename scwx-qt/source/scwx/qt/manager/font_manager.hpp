@@ -17,6 +17,7 @@ namespace manager
 class FontManager : public QObject
 {
    Q_OBJECT
+   Q_DISABLE_COPY_MOVE(FontManager)
 
 public:
    explicit FontManager();
@@ -34,6 +35,7 @@ public:
                  bool                             loadIfNotFound = true);
 
    void LoadApplicationFont(const std::string& filename);
+   void InitializeFonts();
 
    static FontManager& Instance();
 

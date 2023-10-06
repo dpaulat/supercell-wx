@@ -28,6 +28,9 @@ public:
 
    static SettingsManager& Instance();
 
+signals:
+   void SettingsSaved();
+
 private:
    class Impl;
    std::unique_ptr<Impl> p;

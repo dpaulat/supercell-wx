@@ -104,6 +104,8 @@ void SettingsManager::SaveSettings()
 
       boost::json::value settingsJson = Impl::ConvertSettingsToJson();
       util::json::WriteJsonFile(p->settingsPath_, settingsJson);
+
+      Q_EMIT SettingsSaved();
    }
 }
 
