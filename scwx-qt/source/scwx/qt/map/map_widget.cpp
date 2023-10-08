@@ -1032,6 +1032,9 @@ void MapWidget::initializeGL()
 
 void MapWidget::paintGL()
 {
+   auto defaultFont = manager::FontManager::Instance().GetImGuiFont(
+      types::FontCategory::Default);
+
    p->frameDraws_++;
 
    // Setup ImGui Frame
@@ -1046,6 +1049,9 @@ void MapWidget::paintGL()
    ImGui_ImplOpenGL3_NewFrame();
    p->ImGuiCheckFonts();
    ImGui::NewFrame();
+
+   // Set default font
+   ImGui::PushFont(defaultFont->font());
 
    // Update pixel ratio
    p->context_->set_pixel_ratio(pixelRatio());
@@ -1068,6 +1074,9 @@ void MapWidget::paintGL()
 
       p->lastItemPicked_ = false;
    }
+
+   // Pop default font
+   ImGui::PopFont();
 
    // Render ImGui Frame
    ImGui::Render();

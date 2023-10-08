@@ -5,6 +5,7 @@
 
 #include <shared_mutex>
 
+#include <QFont>
 #include <QObject>
 
 namespace scwx
@@ -36,6 +37,8 @@ public:
 
    void LoadApplicationFont(const std::string& filename);
    void InitializeFonts();
+
+   static QFont GetQFont(types::FontCategory fontCategory);
 
    static FontManager& Instance();
 

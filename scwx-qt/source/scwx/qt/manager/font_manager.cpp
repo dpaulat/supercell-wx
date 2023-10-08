@@ -189,6 +189,22 @@ FontManager::GetImGuiFont(types::FontCategory fontCategory)
    return p->defaultFont_;
 }
 
+QFont FontManager::GetQFont(types::FontCategory fontCategory)
+{
+   auto& textSettings = settings::TextSettings::Instance();
+
+   auto family = textSettings.font_family(fontCategory).GetValue();
+   auto styles = textSettings.font_style(fontCategory).GetValue();
+   units::font_size::points<double> size {
+      textSettings.font_point_size(fontCategory).GetValue()};
+
+   QFont font(QString::fromStdString(family));
+   font.setStyleName(QString::fromStdString(styles));
+   font.setPointSizeF(size.value());
+
+   return font;
+}
+
 std::shared_ptr<types::ImGuiFont>
 FontManager::LoadImGuiFont(const std::string&               family,
                            const std::vector<std::string>&  styles,
