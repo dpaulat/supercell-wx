@@ -126,9 +126,6 @@ public:
       }
    }
 
-   void CreateImGuiFont(QFile&                      fontFile,
-                        QByteArray&                 fontData,
-                        const std::vector<int64_t>& fontSizes);
    void ParseNames(FT_Face face);
 
    const std::string resource_;
@@ -266,39 +263,6 @@ GLuint Font::GenerateTexture(gl::OpenGLFunctions& gl)
    return p->atlas_->id;
 }
 
-void FontImpl::CreateImGuiFont(QFile&                      fontFile,
-                               QByteArray&                 fontData,
-                               const std::vector<int64_t>& fontSizes)
-{
-   QFileInfo    fileInfo(fontFile);
-   ImFontAtlas* fontAtlas = model::ImGuiContextModel::Instance().font_atlas();
-   ImFontConfig fontConfig {};
-
-   // Do not transfer ownership of font data to ImGui, makes const_cast safe
-   fontConfig.FontDataOwnedByAtlas = false;
-
-   for (int64_t fontSize : fontSizes)
-   {
-      const float sizePixels = static_cast<float>(fontSize);
-
-      // Assign name to font
-      strncpy(fontConfig.Name,
-              fmt::format("{}:{}", fileInfo.fileName().toStdString(), fontSize)
-                 .c_str(),
-              sizeof(fontConfig.Name) - 1);
-      fontConfig.Name[sizeof(fontConfig.Name) - 1] = 0;
-
-      // Add font to atlas
-      imGuiFonts_.emplace(
-         fontSize,
-         fontAtlas->AddFontFromMemoryTTF(
-            const_cast<void*>(static_cast<const void*>(fontData.constData())),
-            fontData.size(),
-            sizePixels,
-            &fontConfig));
-   }
-}
-
 ImFont* Font::ImGuiFont(std::size_t fontPixelSize)
 {
    auto it = p->imGuiFonts_.find(fontPixelSize);
@@ -333,11 +297,6 @@ std::shared_ptr<Font> Font::Create(const std::string& resource)
 
    font                = std::make_shared<Font>(resource);
    QByteArray fontData = fontFile.readAll();
-
-   font->p->CreateImGuiFont(
-      fontFile,
-      fontData,
-      settings::GeneralSettings::Instance().font_sizes().GetValue());
 
    font->p->atlas_                   = ftgl::texture_atlas_new(512, 512, 1);
    ftgl::texture_font_t* textureFont = ftgl::texture_font_new_from_memory(

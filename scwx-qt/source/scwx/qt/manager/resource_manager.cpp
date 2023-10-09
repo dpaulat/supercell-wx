@@ -117,9 +117,6 @@ static void LoadFonts()
       fonts_.emplace(fontName.first, font);
    }
 
-   ImFontAtlas* fontAtlas = model::ImGuiContextModel::Instance().font_atlas();
-   fontAtlas->AddFontDefault();
-
    fontManager.InitializeFonts();
 }
 
