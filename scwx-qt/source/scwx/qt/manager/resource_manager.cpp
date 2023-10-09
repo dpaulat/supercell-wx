@@ -8,7 +8,6 @@
 #include <execution>
 #include <mutex>
 
-#include <QFontDatabase>
 #include <imgui.h>
 
 namespace scwx
@@ -31,8 +30,6 @@ static const std::vector<std::pair<types::Font, std::string>> fontNames_ {
    {types::Font::din1451alt_g, ":/res/fonts/din1451alt_g.ttf"},
    {types::Font::Inconsolata_Regular, ":/res/fonts/Inconsolata-Regular.ttf"}};
 
-static std::unordered_map<types::Font, int> fontIds_ {};
-
 void Initialize()
 {
    config::CountyDatabase::Initialize();
@@ -42,16 +39,6 @@ void Initialize()
 }
 
 void Shutdown() {}
-
-int FontId(types::Font font)
-{
-   auto it = fontIds_.find(font);
-   if (it != fontIds_.cend())
-   {
-      return it->second;
-   }
-   return -1;
-}
 
 std::shared_ptr<boost::gil::rgba8_image_t>
 LoadImageResource(const std::string& urlString)
@@ -95,11 +82,7 @@ static void LoadFonts()
 
    for (auto& fontName : fontNames_)
    {
-      int fontId = QFontDatabase::addApplicationFont(
-         QString::fromStdString(fontName.second));
-      fontIds_.emplace(fontName.first, fontId);
-
-      fontManager.LoadApplicationFont(fontName.second);
+      fontManager.LoadApplicationFont(fontName.first, fontName.second);
    }
 
    fontManager.InitializeFonts();

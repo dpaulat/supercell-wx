@@ -18,8 +18,6 @@ namespace ResourceManager
 void Initialize();
 void Shutdown();
 
-int FontId(types::Font font);
-
 std::shared_ptr<boost::gil::rgba8_image_t>
 LoadImageResource(const std::string& urlString);
 std::vector<std::shared_ptr<boost::gil::rgba8_image_t>>

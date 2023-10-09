@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/qt/types/imgui_font.hpp>
+#include <scwx/qt/types/font_types.hpp>
 #include <scwx/qt/types/text_types.hpp>
 
 #include <shared_mutex>
@@ -27,6 +28,7 @@ public:
    std::shared_mutex& imgui_font_atlas_mutex();
    std::uint64_t      imgui_fonts_build_count() const;
 
+   int GetFontId(types::Font font) const;
    std::shared_ptr<types::ImGuiFont>
    GetImGuiFont(types::FontCategory fontCategory);
    std::shared_ptr<types::ImGuiFont>
@@ -35,7 +37,7 @@ public:
                  units::font_size::points<double> size,
                  bool                             loadIfNotFound = true);
 
-   void LoadApplicationFont(const std::string& filename);
+   void LoadApplicationFont(types::Font font, const std::string& filename);
    void InitializeFonts();
 
    static QFont GetQFont(types::FontCategory fontCategory);

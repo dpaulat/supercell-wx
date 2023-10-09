@@ -8,6 +8,7 @@
 
 #include <QFile>
 #include <QFileInfo>
+#include <QFontDatabase>
 #include <QStandardPaths>
 #include <boost/container_hash/hash.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>
@@ -92,6 +93,8 @@ public:
 
    boost::unordered_flat_set<types::FontCategory> dirtyFonts_ {};
    std::mutex                                     dirtyFontsMutex_ {};
+
+   boost::unordered_flat_map<types::Font, int> fontIds_ {};
 };
 
 FontManager::FontManager() : p(std::make_unique<Impl>(this)) {}
@@ -173,6 +176,16 @@ std::shared_mutex& FontManager::imgui_font_atlas_mutex()
 std::uint64_t FontManager::imgui_fonts_build_count() const
 {
    return p->imguiFontsBuildCount_;
+}
+
+int FontManager::GetFontId(types::Font font) const
+{
+   auto it = p->fontIds_.find(font);
+   if (it != p->fontIds_.cend())
+   {
+      return it->second;
+   }
+   return -1;
 }
 
 std::shared_ptr<types::ImGuiFont>
@@ -322,7 +335,8 @@ FontManager::Impl::GetRawFontData(const std::string& filename)
    return result.first->second;
 }
 
-void FontManager::LoadApplicationFont(const std::string& filename)
+void FontManager::LoadApplicationFont(types::Font        font,
+                                      const std::string& filename)
 {
    // If the font cache failed to create, don't attempt to cache any fonts
    if (p->fontCachePath_.empty())
@@ -357,6 +371,11 @@ void FontManager::LoadApplicationFont(const std::string& filename)
       logger_->error("Font does not exist: {}", filename);
       return;
    }
+
+   // Load the file into the Qt Font Database
+   int fontId =
+      QFontDatabase::addApplicationFont(QString::fromStdString(cacheFilename));
+   p->fontIds_.emplace(font, fontId);
 
    // Load the file into fontconfig
    FcBool result = FcConfigAppFontAddFile(
