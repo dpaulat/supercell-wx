@@ -1,4 +1,6 @@
 #include <scwx/qt/gl/draw/placefile_text.hpp>
+#include <scwx/qt/manager/font_manager.hpp>
+#include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/tooltip.hpp>
 #include <scwx/util/logger.hpp>
@@ -37,6 +39,7 @@ public:
                    const std::string&                              text,
                    const std::string&                              hoverText,
                    boost::gil::rgba8_pixel_t                       color,
+                   std::size_t                                     fontNumber,
                    float                                           x,
                    float                                           y);
 
@@ -62,6 +65,9 @@ public:
    std::mutex listMutex_ {};
    std::vector<std::shared_ptr<const gr::Placefile::TextDrawItem>> textList_ {};
    std::vector<std::shared_ptr<const gr::Placefile::TextDrawItem>> newList_ {};
+
+   std::vector<std::shared_ptr<types::ImGuiFont>> fonts_ {};
+   std::vector<std::shared_ptr<types::ImGuiFont>> newFonts_ {};
 };
 
 PlacefileText::PlacefileText(const std::shared_ptr<GlContext>& context,
@@ -155,6 +161,7 @@ void PlacefileText::Impl::RenderTextDrawItem(
                  di->text_,
                  di->hoverText_,
                  di->color_,
+                 std::clamp<std::size_t>(di->fontNumber_, 1, 8),
                  rotatedX + di->x_ + halfWidth_,
                  rotatedY + di->y_ + halfHeight_);
    }
@@ -165,6 +172,7 @@ void PlacefileText::Impl::RenderText(
    const std::string&                              text,
    const std::string&                              hoverText,
    boost::gil::rgba8_pixel_t                       color,
+   std::size_t                                     fontNumber,
    float                                           x,
    float                                           y)
 {
@@ -184,10 +192,12 @@ void PlacefileText::Impl::RenderText(
                    ImGuiWindowFlags_NoBackground);
 
    // Render text
+   ImGui::PushFont(fonts_[fontNumber - 1]->font());
    ImGui::PushStyleColor(ImGuiCol_Text,
                          IM_COL32(color[0], color[1], color[2], color[3]));
    ImGui::TextUnformatted(text.c_str());
    ImGui::PopStyleColor();
+   ImGui::PopFont();
 
    // Store hover text for mouse picking pass
    if (!hoverText.empty() && ImGui::IsItemHovered())
@@ -231,6 +241,28 @@ void PlacefileText::StartText()
    p->newList_.clear();
 }
 
+void PlacefileText::SetFonts(
+   const boost::unordered_flat_map<std::size_t,
+                                   std::shared_ptr<types::ImGuiFont>>& fonts)
+{
+   auto defaultFont = manager::FontManager::Instance().GetImGuiFont(
+      types::FontCategory::Default);
+
+   // Valid font numbers are from 1 to 8, place in 0-based font vector
+   for (std::size_t i = 1; i <= 8; ++i)
+   {
+      auto it = fonts.find(i);
+      if (it != fonts.cend())
+      {
+         p->newFonts_.push_back(it->second);
+      }
+      else
+      {
+         p->newFonts_.push_back(defaultFont);
+      }
+   }
+}
+
 void PlacefileText::AddText(
    const std::shared_ptr<gr::Placefile::TextDrawItem>& di)
 {
@@ -246,9 +278,11 @@ void PlacefileText::FinishText()
 
    // Swap text lists
    p->textList_.swap(p->newList_);
+   p->fonts_.swap(p->newFonts_);
 
    // Clear the new list
    p->newList_.clear();
+   p->newFonts_.clear();
 }
 
 } // namespace draw

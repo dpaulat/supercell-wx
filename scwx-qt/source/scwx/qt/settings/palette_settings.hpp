@@ -14,8 +14,6 @@ namespace qt
 namespace settings
 {
 
-class PaletteSettingsImpl;
-
 class PaletteSettings : public SettingsCategory
 {
 public:
@@ -34,11 +32,14 @@ public:
 
    static const std::vector<awips::Phenomenon>& alert_phenomena();
 
+   static PaletteSettings& Instance();
+
    friend bool operator==(const PaletteSettings& lhs,
                           const PaletteSettings& rhs);
 
 private:
-   std::unique_ptr<PaletteSettingsImpl> p;
+   class Impl;
+   std::unique_ptr<Impl> p;
 };
 
 } // namespace settings

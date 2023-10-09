@@ -1,7 +1,7 @@
 #include "about_dialog.hpp"
 #include "ui_about_dialog.h"
 #include <scwx/qt/main/versions.hpp>
-#include <scwx/qt/manager/resource_manager.hpp>
+#include <scwx/qt/manager/font_manager.hpp>
 
 #include <QFontDatabase>
 
@@ -27,7 +27,7 @@ AboutDialog::AboutDialog(QWidget* parent) :
    ui->setupUi(this);
 
    int titleFontId =
-      manager::ResourceManager::FontId(types::Font::din1451alt_g);
+      manager::FontManager::Instance().GetFontId(types::Font::din1451alt_g);
    QString titleFontFamily =
       QFontDatabase::applicationFontFamilies(titleFontId).at(0);
    QFont titleFont(titleFontFamily, 14);

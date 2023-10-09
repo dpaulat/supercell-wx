@@ -2,7 +2,10 @@
 
 #include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/gl/draw/draw_item.hpp>
+#include <scwx/qt/types/imgui_font.hpp>
 #include <scwx/gr/placefile.hpp>
+
+#include <boost/unordered/unordered_flat_map.hpp>
 
 namespace scwx
 {
@@ -43,6 +46,16 @@ public:
     * Resets and prepares the draw item for adding a new set of text.
     */
    void StartText();
+
+   /**
+    * Configures the fonts for drawing the placefile text.
+    *
+    * @param [in] fonts A map of ImGui fonts
+    */
+   void
+   SetFonts(const boost::unordered_flat_map<std::size_t,
+                                            std::shared_ptr<types::ImGuiFont>>&
+               fonts);
 
    /**
     * Adds placefile text to the internal draw list.

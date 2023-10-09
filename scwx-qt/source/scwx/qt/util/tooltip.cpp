@@ -1,8 +1,6 @@
 #include <scwx/qt/util/tooltip.hpp>
-#include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
-#include <scwx/qt/types/font_types.hpp>
-#include <scwx/qt/types/text_types.hpp>
 #include <scwx/qt/util/imgui.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -84,12 +82,22 @@ void Show(const std::string& text, const QPointF& mouseGlobalPos)
    }
    else if (tooltipMethod == types::TooltipMethod::QToolTip)
    {
+      QString fontFamily = QString::fromStdString(
+         textSettings.font_family(types::FontCategory::Tooltip).GetValue());
+      QString fontStyle = QString::fromStdString(
+         textSettings.font_style(types::FontCategory::Tooltip).GetValue());
+      double fontPointSize =
+         textSettings.font_point_size(types::FontCategory::Tooltip).GetValue();
+
       static std::size_t id = 0;
       QToolTip::showText(
          mouseGlobalPos.toPoint(),
-         QString("<span id='%1' style='font-family:\"%2\"'>%3</span>")
+         QString("<span id='%1' style='font-family:\"%2\"; font-style:\"%3\"; "
+                 "font-size:\"%4pt\";'>%5</span>")
             .arg(++id)
-            .arg("Inconsolata")
+            .arg(fontFamily)
+            .arg(fontStyle)
+            .arg(fontPointSize)
             .arg(QString::fromStdString(displayText).replace("\n", "<br/>")),
          tooltipParent_.get(),
          {},
@@ -97,22 +105,9 @@ void Show(const std::string& text, const QPointF& mouseGlobalPos)
    }
    else if (tooltipMethod == types::TooltipMethod::QLabel)
    {
-      // Get monospace font size
-      units::font_size::pixels<double> fontSize {16};
-      auto                             fontSizes =
-         manager::SettingsManager::general_settings().font_sizes().GetValue();
-      if (fontSizes.size() > 1)
-      {
-         fontSize = units::font_size::pixels<double> {fontSizes[1]};
-      }
-      else if (fontSizes.size() > 0)
-      {
-         fontSize = units::font_size::pixels<double> {fontSizes[0]};
-      }
-
       // Configure the label
-      QFont font("Inconsolata");
-      font.setPointSizeF(units::font_size::points<double>(fontSize).value());
+      QFont font = manager::FontManager::Instance().GetQFont(
+         types::FontCategory::Tooltip);
       tooltipLabel_->setFont(font);
       tooltipLabel_->setText(QString::fromStdString(displayText));
 

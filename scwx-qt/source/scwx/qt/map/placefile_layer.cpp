@@ -197,6 +197,8 @@ void PlacefileLayer::ReloadData()
 
          p->placefileIcons_->SetIconFiles(placefile->icon_files(),
                                           placefile->name());
+         p->placefileText_->SetFonts(
+            placefileManager->placefile_fonts(p->placefileName_));
 
          for (auto& drawItem : placefile->GetDrawItems())
          {

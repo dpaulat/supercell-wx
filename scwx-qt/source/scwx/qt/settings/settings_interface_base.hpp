@@ -25,9 +25,17 @@ public:
    SettingsInterfaceBase& operator=(SettingsInterfaceBase&&) noexcept;
 
    /**
+    * Gets whether the staged value (or current value, if none staged) is
+    * set to the default value.
+    *
+    * @return true if the settings variable is set to default, otherwise false.
+    */
+   virtual bool IsDefault() = 0;
+
+   /**
     * Sets the current value of the associated settings variable to the staged
     * value.
-    * 
+    *
     * @return true if the staged value was committed, false if no staged value
     * is present.
     */

@@ -1,8 +1,8 @@
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/gl/gl.hpp>
+#include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
-#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/alert_layer.hpp>
 #include <scwx/qt/map/color_table_layer.hpp>
 #include <scwx/qt/map/layer_wrapper.hpp>
@@ -12,6 +12,8 @@
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/util/file.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/tooltip.hpp>
@@ -80,8 +82,7 @@ public:
        prevBearing_ {0.0},
        prevPitch_ {0.0}
    {
-      auto& generalSettings =
-         scwx::qt::manager::SettingsManager::general_settings();
+      auto& generalSettings = settings::GeneralSettings::Instance();
 
       SetRadarSite(generalSettings.default_radar_site().GetValue());
 
@@ -123,6 +124,7 @@ public:
                  std::shared_ptr<GenericLayer> layer,
                  const std::string&            before = {});
    void ConnectSignals();
+   void ImGuiCheckFonts();
    void InitializeNewRadarProductView(const std::string& colorPalette);
    void RadarProductManagerConnect();
    void RadarProductManagerDisconnect();
@@ -154,6 +156,7 @@ public:
    ImGuiContext* imGuiContext_;
    std::string   imGuiContextName_;
    bool          imGuiRendererInitialized_;
+   std::uint64_t imGuiFontsBuildCount_ {};
 
    std::shared_ptr<manager::PlacefileManager> placefileManager_ {
       manager::PlacefileManager::Instance()};
@@ -980,9 +983,15 @@ void MapWidget::initializeGL()
    makeCurrent();
    p->context_->gl().initializeOpenGLFunctions();
 
+   // Lock ImGui font atlas prior to new ImGui frame
+   std::shared_lock imguiFontAtlasLock {
+      manager::FontManager::Instance().imgui_font_atlas_mutex()};
+
    // Initialize ImGui OpenGL3 backend
    ImGui::SetCurrentContext(p->imGuiContext_);
    ImGui_ImplOpenGL3_Init();
+   p->imGuiFontsBuildCount_ =
+      manager::FontManager::Instance().imgui_fonts_build_count();
    p->imGuiRendererInitialized_ = true;
 
    p->map_.reset(
@@ -1023,15 +1032,26 @@ void MapWidget::initializeGL()
 
 void MapWidget::paintGL()
 {
+   auto defaultFont = manager::FontManager::Instance().GetImGuiFont(
+      types::FontCategory::Default);
+
    p->frameDraws_++;
 
    // Setup ImGui Frame
    ImGui::SetCurrentContext(p->imGuiContext_);
 
+   // Lock ImGui font atlas prior to new ImGui frame
+   std::shared_lock imguiFontAtlasLock {
+      manager::FontManager::Instance().imgui_font_atlas_mutex()};
+
    // Start ImGui Frame
    ImGui_ImplQt_NewFrame(this);
    ImGui_ImplOpenGL3_NewFrame();
+   p->ImGuiCheckFonts();
    ImGui::NewFrame();
+
+   // Set default font
+   ImGui::PushFont(defaultFont->font());
 
    // Update pixel ratio
    p->context_->set_pixel_ratio(pixelRatio());
@@ -1055,12 +1075,34 @@ void MapWidget::paintGL()
       p->lastItemPicked_ = false;
    }
 
+   // Pop default font
+   ImGui::PopFont();
+
    // Render ImGui Frame
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+   // Unlock ImGui font atlas after rendering
+   imguiFontAtlasLock.unlock();
+
    // Paint complete
    Q_EMIT WidgetPainted();
+}
+
+void MapWidgetImpl::ImGuiCheckFonts()
+{
+   // Update ImGui Fonts if required
+   std::uint64_t currentImGuiFontsBuildCount =
+      manager::FontManager::Instance().imgui_fonts_build_count();
+
+   if (imGuiFontsBuildCount_ != currentImGuiFontsBuildCount ||
+       !model::ImGuiContextModel::Instance().font_atlas()->IsBuilt())
+   {
+      ImGui_ImplOpenGL3_DestroyFontsTexture();
+      ImGui_ImplOpenGL3_CreateFontsTexture();
+   }
+
+   imGuiFontsBuildCount_ = currentImGuiFontsBuildCount;
 }
 
 void MapWidgetImpl::RunMousePicking()
@@ -1203,7 +1245,7 @@ void MapWidgetImpl::InitializeNewRadarProductView(
                         auto radarProductView = context_->radar_product_view();
 
                         std::string colorTableFile =
-                           manager::SettingsManager::palette_settings()
+                           settings::PaletteSettings::Instance()
                               .palette(colorPalette)
                               .GetValue();
                         if (!colorTableFile.empty())

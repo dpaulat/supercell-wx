@@ -2,8 +2,10 @@
 
 #include <scwx/gr/placefile.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/types/imgui_font.hpp>
 
 #include <QObject>
+#include <boost/unordered/unordered_flat_map.hpp>
 
 namespace scwx
 {
@@ -24,6 +26,8 @@ public:
    bool        placefile_thresholded(const std::string& name);
    std::string placefile_title(const std::string& name);
    std::shared_ptr<gr::Placefile> placefile(const std::string& name);
+   boost::unordered_flat_map<std::size_t, std::shared_ptr<types::ImGuiFont>>
+   placefile_fonts(const std::string& name);
 
    void set_placefile_enabled(const std::string& name, bool enabled);
    void set_placefile_thresholded(const std::string& name, bool thresholded);

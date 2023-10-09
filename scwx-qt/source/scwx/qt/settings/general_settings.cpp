@@ -16,10 +16,10 @@ namespace settings
 
 static const std::string logPrefix_ = "scwx::qt::settings::general_settings";
 
-class GeneralSettingsImpl
+class GeneralSettings::Impl
 {
 public:
-   explicit GeneralSettingsImpl()
+   explicit Impl()
    {
       std::string defaultDefaultAlertActionValue =
          types::GetAlertActionName(types::AlertAction::Go);
@@ -102,7 +102,7 @@ public:
                                    { return !value.empty(); });
    }
 
-   ~GeneralSettingsImpl() {}
+   ~Impl() {}
 
    SettingsVariable<bool>        debugEnabled_ {"debug_enabled"};
    SettingsVariable<std::string> defaultAlertAction_ {"default_alert_action"};
@@ -120,7 +120,7 @@ public:
 };
 
 GeneralSettings::GeneralSettings() :
-    SettingsCategory("general"), p(std::make_unique<GeneralSettingsImpl>())
+    SettingsCategory("general"), p(std::make_unique<Impl>())
 {
    RegisterVariables({&p->debugEnabled_,
                       &p->defaultAlertAction_,
@@ -219,6 +219,12 @@ bool GeneralSettings::Shutdown()
    dataChanged |= p->loopTime_.Commit();
 
    return dataChanged;
+}
+
+GeneralSettings& GeneralSettings::Instance()
+{
+   static GeneralSettings generalSettings_;
+   return generalSettings_;
 }
 
 bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)

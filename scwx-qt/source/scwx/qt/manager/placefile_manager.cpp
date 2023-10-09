@@ -1,4 +1,5 @@
 #include <scwx/qt/manager/placefile_manager.hpp>
+#include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/main/application.hpp>
 #include <scwx/qt/util/json.hpp>
@@ -51,8 +52,11 @@ public:
    void ReadPlacefileSettings();
    void WritePlacefileSettings();
 
+   static boost::unordered_flat_map<std::size_t,
+                                    std::shared_ptr<types::ImGuiFont>>
+   LoadFontResources(const std::shared_ptr<gr::Placefile>& placefile);
    static std::vector<std::shared_ptr<boost::gil::rgba8_image_t>>
-   LoadResources(const std::shared_ptr<gr::Placefile>& placefile);
+   LoadImageResources(const std::shared_ptr<gr::Placefile>& placefile);
 
    boost::asio::thread_pool threadPool_ {1u};
 
@@ -63,7 +67,7 @@ public:
    std::shared_ptr<config::RadarSite> radarSite_ {};
 
    std::vector<std::shared_ptr<PlacefileRecord>> placefileRecords_ {};
-   std::unordered_map<std::string, std::shared_ptr<PlacefileRecord>>
+   boost::unordered_flat_map<std::string, std::shared_ptr<PlacefileRecord>>
                      placefileRecordMap_ {};
    std::shared_mutex placefileRecordLock_ {};
 };
@@ -133,6 +137,10 @@ public:
    boost::asio::steady_timer      refreshTimer_ {threadPool_};
    std::mutex                     refreshMutex_ {};
    std::mutex                     timerMutex_ {};
+
+   boost::unordered_flat_map<std::size_t, std::shared_ptr<types::ImGuiFont>>
+              fonts_ {};
+   std::mutex fontsMutex_ {};
 
    std::vector<std::shared_ptr<boost::gil::rgba8_image_t>> images_ {};
 
@@ -208,6 +216,20 @@ PlacefileManager::placefile(const std::string& name)
    return nullptr;
 }
 
+boost::unordered_flat_map<std::size_t, std::shared_ptr<types::ImGuiFont>>
+PlacefileManager::placefile_fonts(const std::string& name)
+{
+   std::shared_lock lock(p->placefileRecordLock_);
+
+   auto it = p->placefileRecordMap_.find(name);
+   if (it != p->placefileRecordMap_.cend())
+   {
+      std::unique_lock fontsLock {it->second->fontsMutex_};
+      return it->second->fonts_;
+   }
+   return {};
+}
+
 void PlacefileManager::set_placefile_enabled(const std::string& name,
                                              bool               enabled)
 {
@@ -278,6 +300,7 @@ void PlacefileManager::set_placefile_url(const std::string& name,
       auto placefileRecord        = it->second;
       placefileRecord->name_      = normalizedUrl;
       placefileRecord->placefile_ = nullptr;
+      placefileRecord->fonts_.clear();
       placefileRecord->images_.clear();
       p->placefileRecordMap_.erase(it);
       p->placefileRecordMap_.insert_or_assign(normalizedUrl, placefileRecord);
@@ -587,7 +610,8 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
    if (updatedPlacefile != nullptr)
    {
       // Load placefile resources
-      auto newImages = Impl::LoadResources(updatedPlacefile);
+      auto newFonts  = Impl::LoadFontResources(updatedPlacefile);
+      auto newImages = Impl::LoadImageResources(updatedPlacefile);
 
       // Check the name matches, in case the name updated
       if (name_ == name)
@@ -596,6 +620,13 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
          placefile_      = updatedPlacefile;
          title_          = placefile_->title();
          lastUpdateTime_ = std::chrono::system_clock::now();
+
+         // Update font resources
+         {
+            std::unique_lock fontsLock {fontsMutex_};
+            fonts_.swap(newFonts);
+            newFonts.clear();
+         }
 
          // Update image resources
          images_.swap(newImages);
@@ -684,8 +715,38 @@ std::shared_ptr<PlacefileManager> PlacefileManager::Instance()
    return placefileManager;
 }
 
+boost::unordered_flat_map<std::size_t, std::shared_ptr<types::ImGuiFont>>
+PlacefileManager::Impl::LoadFontResources(
+   const std::shared_ptr<gr::Placefile>& placefile)
+{
+   boost::unordered_flat_map<std::size_t, std::shared_ptr<types::ImGuiFont>>
+        imGuiFonts {};
+   auto fonts = placefile->fonts();
+
+   for (auto& font : fonts)
+   {
+      units::font_size::pixels<double> size {font.second->pixels_};
+      std::vector<std::string>         styles {};
+
+      if (font.second->IsBold())
+      {
+         styles.push_back("bold");
+      }
+      if (font.second->IsItalic())
+      {
+         styles.push_back("italic");
+      }
+
+      auto imGuiFont = FontManager::Instance().LoadImGuiFont(
+         font.second->face_, styles, size);
+      imGuiFonts.emplace(font.first, std::move(imGuiFont));
+   }
+
+   return imGuiFonts;
+}
+
 std::vector<std::shared_ptr<boost::gil::rgba8_image_t>>
-PlacefileManager::Impl::LoadResources(
+PlacefileManager::Impl::LoadImageResources(
    const std::shared_ptr<gr::Placefile>& placefile)
 {
    const auto iconFiles = placefile->icon_files();

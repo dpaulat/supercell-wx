@@ -7,13 +7,14 @@
 #include <scwx/qt/main/versions.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
-#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/manager/update_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/model/radar_product_model.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/settings/map_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
 #include <scwx/qt/ui/about_dialog.hpp>
 #include <scwx/qt/ui/alert_dock_widget.hpp>
@@ -89,10 +90,8 @@ public:
        elevationButtonsChanged_ {false},
        resizeElevationButtons_ {false}
    {
-      mapProvider_ =
-         map::GetMapProvider(manager::SettingsManager::general_settings()
-                                .map_provider()
-                                .GetValue());
+      mapProvider_ = map::GetMapProvider(
+         settings::GeneralSettings::Instance().map_provider().GetValue());
       const map::MapProviderInfo& mapProviderInfo =
          map::GetMapProviderInfo(mapProvider_);
 
@@ -230,7 +229,7 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->actionAlerts->setVisible(false);
 
    ui->menuDebug->menuAction()->setVisible(
-      manager::SettingsManager::general_settings().debug_enabled().GetValue());
+      settings::GeneralSettings::Instance().debug_enabled().GetValue());
 
    // Configure Resource Explorer Dock
    ui->resourceExplorerDock->setVisible(false);
@@ -306,7 +305,7 @@ MainWindow::MainWindow(QWidget* parent) :
    // Update Dialog
    p->updateDialog_ = new ui::UpdateDialog(this);
 
-   auto& mapSettings = manager::SettingsManager::map_settings();
+   auto& mapSettings = settings::MapSettings::Instance();
    for (size_t i = 0; i < p->maps_.size(); i++)
    {
       p->SelectRadarProduct(p->maps_.at(i),
@@ -582,7 +581,7 @@ void MainWindow::on_resourceTreeView_doubleClicked(const QModelIndex& index)
 
 void MainWindowImpl::AsyncSetup()
 {
-   auto& generalSettings = manager::SettingsManager::general_settings();
+   auto& generalSettings = settings::GeneralSettings::Instance();
 
    // Check for updates
    if (generalSettings.update_notifications_enabled().GetValue())
@@ -595,7 +594,7 @@ void MainWindowImpl::AsyncSetup()
 
 void MainWindowImpl::ConfigureMapLayout()
 {
-   auto& generalSettings = manager::SettingsManager::general_settings();
+   auto& generalSettings = settings::GeneralSettings::Instance();
 
    const int64_t gridWidth  = generalSettings.grid_width().GetValue();
    const int64_t gridHeight = generalSettings.grid_height().GetValue();
@@ -646,7 +645,7 @@ void MainWindowImpl::ConfigureMapLayout()
 void MainWindowImpl::ConfigureMapStyles()
 {
    const auto& mapProviderInfo = map::GetMapProviderInfo(mapProvider_);
-   auto&       mapSettings     = manager::SettingsManager::map_settings();
+   auto&       mapSettings     = settings::MapSettings::Instance();
 
    for (std::size_t i = 0; i < maps_.size(); i++)
    {
@@ -897,8 +896,7 @@ void MainWindowImpl::ConnectOtherSignals()
               {
                  if (maps_[i] == activeMap_)
                  {
-                    auto& mapSettings =
-                       manager::SettingsManager::map_settings();
+                    auto& mapSettings = settings::MapSettings::Instance();
                     mapSettings.map_style(i).StageValue(text.toStdString());
                     break;
                  }
@@ -1075,7 +1073,7 @@ void MainWindowImpl::UpdateMapStyle(const std::string& styleName)
       {
          if (maps_[i] == activeMap_)
          {
-            auto& mapSettings = manager::SettingsManager::map_settings();
+            auto& mapSettings = settings::MapSettings::Instance();
             mapSettings.map_style(i).StageValue(styleName);
             break;
          }

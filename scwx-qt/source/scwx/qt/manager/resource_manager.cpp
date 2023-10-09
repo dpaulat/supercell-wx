@@ -1,14 +1,13 @@
 #include <scwx/qt/manager/resource_manager.hpp>
+#include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
-#include <scwx/qt/util/font.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <execution>
 #include <mutex>
 
-#include <QFontDatabase>
 #include <imgui.h>
 
 namespace scwx
@@ -26,13 +25,10 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static void LoadFonts();
 static void LoadTextures();
 
-static const std::unordered_map<types::Font, std::string> fontNames_ {
+static const std::vector<std::pair<types::Font, std::string>> fontNames_ {
    {types::Font::din1451alt, ":/res/fonts/din1451alt.ttf"},
    {types::Font::din1451alt_g, ":/res/fonts/din1451alt_g.ttf"},
    {types::Font::Inconsolata_Regular, ":/res/fonts/Inconsolata-Regular.ttf"}};
-
-static std::unordered_map<types::Font, int>                         fontIds_ {};
-static std::unordered_map<types::Font, std::shared_ptr<util::Font>> fonts_ {};
 
 void Initialize()
 {
@@ -43,26 +39,6 @@ void Initialize()
 }
 
 void Shutdown() {}
-
-int FontId(types::Font font)
-{
-   auto it = fontIds_.find(font);
-   if (it != fontIds_.cend())
-   {
-      return it->second;
-   }
-   return -1;
-}
-
-std::shared_ptr<util::Font> Font(types::Font font)
-{
-   auto it = fonts_.find(font);
-   if (it != fonts_.cend())
-   {
-      return it->second;
-   }
-   return nullptr;
-}
 
 std::shared_ptr<boost::gil::rgba8_image_t>
 LoadImageResource(const std::string& urlString)
@@ -102,18 +78,14 @@ LoadImageResources(const std::vector<std::string>& urlStrings)
 
 static void LoadFonts()
 {
+   auto& fontManager = FontManager::Instance();
+
    for (auto& fontName : fontNames_)
    {
-      int fontId = QFontDatabase::addApplicationFont(
-         QString::fromStdString(fontName.second));
-      fontIds_.emplace(fontName.first, fontId);
-
-      auto font = util::Font::Create(fontName.second);
-      fonts_.emplace(fontName.first, font);
+      fontManager.LoadApplicationFont(fontName.first, fontName.second);
    }
 
-   ImFontAtlas* fontAtlas = model::ImGuiContextModel::Instance().font_atlas();
-   fontAtlas->AddFontDefault();
+   fontManager.InitializeFonts();
 }
 
 static void LoadTextures()

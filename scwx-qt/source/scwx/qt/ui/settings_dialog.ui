@@ -127,27 +127,7 @@
              <property name="bottomMargin">
               <number>0</number>
              </property>
-             <item row="5" column="2">
-              <widget class="QComboBox" name="mapProviderComboBox"/>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="label_5">
-               <property name="text">
-                <string>Font Sizes</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="2">
-              <widget class="QComboBox" name="radarSiteComboBox"/>
-             </item>
-             <item row="0" column="0">
-              <widget class="QLabel" name="label">
-               <property name="text">
-                <string>Default Radar Site</string>
-               </property>
-              </widget>
-             </item>
-             <item row="5" column="4">
+             <item row="4" column="4">
               <widget class="QToolButton" name="resetMapProviderButton">
                <property name="text">
                 <string>...</string>
@@ -158,45 +138,14 @@
                </property>
               </widget>
              </item>
-             <item row="1" column="2">
-              <widget class="QLineEdit" name="fontSizesLineEdit"/>
-             </item>
-             <item row="6" column="0">
-              <widget class="QLabel" name="label_4">
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_2">
                <property name="text">
-                <string>Mapbox API Key</string>
+                <string>Grid Width</string>
                </property>
               </widget>
              </item>
-             <item row="7" column="0">
-              <widget class="QLabel" name="label_6">
-               <property name="text">
-                <string>MapTiler API Key</string>
-               </property>
-              </widget>
-             </item>
-             <item row="2" column="2">
-              <widget class="QSpinBox" name="gridWidthSpinBox"/>
-             </item>
-             <item row="7" column="4">
-              <widget class="QToolButton" name="resetMapTilerApiKeyButton">
-               <property name="text">
-                <string>...</string>
-               </property>
-               <property name="icon">
-                <iconset resource="../../../../scwx-qt.qrc">
-                 <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="3">
-              <widget class="QToolButton" name="radarSiteSelectButton">
-               <property name="text">
-                <string>...</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="4">
+             <item row="2" column="4">
               <widget class="QToolButton" name="resetGridHeightButton">
                <property name="text">
                 <string>...</string>
@@ -206,16 +155,6 @@
                  <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
                </property>
               </widget>
-             </item>
-             <item row="7" column="2">
-              <widget class="QLineEdit" name="mapTilerApiKeyLineEdit">
-               <property name="echoMode">
-                <enum>QLineEdit::Password</enum>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="2">
-              <widget class="QSpinBox" name="gridHeightSpinBox"/>
              </item>
              <item row="0" column="4">
               <widget class="QToolButton" name="resetRadarSiteButton">
@@ -228,32 +167,14 @@
                </property>
               </widget>
              </item>
-             <item row="3" column="0">
-              <widget class="QLabel" name="label_3">
+             <item row="6" column="0">
+              <widget class="QLabel" name="label_6">
                <property name="text">
-                <string>Grid Height</string>
+                <string>MapTiler API Key</string>
                </property>
               </widget>
              </item>
-             <item row="1" column="4">
-              <widget class="QToolButton" name="resetFontSizesButton">
-               <property name="text">
-                <string>...</string>
-               </property>
-               <property name="icon">
-                <iconset resource="../../../../scwx-qt.qrc">
-                 <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
-               </property>
-              </widget>
-             </item>
-             <item row="6" column="2">
-              <widget class="QLineEdit" name="mapboxApiKeyLineEdit">
-               <property name="echoMode">
-                <enum>QLineEdit::Password</enum>
-               </property>
-              </widget>
-             </item>
-             <item row="6" column="4">
+             <item row="5" column="4">
               <widget class="QToolButton" name="resetMapboxApiKeyButton">
                <property name="text">
                 <string>...</string>
@@ -264,21 +185,97 @@
                </property>
               </widget>
              </item>
+             <item row="2" column="2">
+              <widget class="QSpinBox" name="gridHeightSpinBox"/>
+             </item>
+             <item row="1" column="2">
+              <widget class="QSpinBox" name="gridWidthSpinBox"/>
+             </item>
              <item row="2" column="0">
-              <widget class="QLabel" name="label_2">
+              <widget class="QLabel" name="label_3">
                <property name="text">
-                <string>Grid Width</string>
+                <string>Grid Height</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label">
+               <property name="text">
+                <string>Default Radar Site</string>
+               </property>
+              </widget>
+             </item>
+             <item row="6" column="2">
+              <widget class="QLineEdit" name="mapTilerApiKeyLineEdit">
+               <property name="echoMode">
+                <enum>QLineEdit::Password</enum>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="2">
+              <widget class="QLineEdit" name="mapboxApiKeyLineEdit">
+               <property name="echoMode">
+                <enum>QLineEdit::Password</enum>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="0">
+              <widget class="QLabel" name="defaultAlertActionLabel">
+               <property name="text">
+                <string>Default Alert Action</string>
                </property>
               </widget>
              </item>
              <item row="5" column="0">
+              <widget class="QLabel" name="label_4">
+               <property name="text">
+                <string>Mapbox API Key</string>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="4">
+              <widget class="QToolButton" name="resetDefaultAlertActionButton">
+               <property name="text">
+                <string>...</string>
+               </property>
+               <property name="icon">
+                <iconset resource="../../../../scwx-qt.qrc">
+                 <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="2">
+              <widget class="QComboBox" name="mapProviderComboBox"/>
+             </item>
+             <item row="0" column="3">
+              <widget class="QToolButton" name="radarSiteSelectButton">
+               <property name="text">
+                <string>...</string>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="0">
               <widget class="QLabel" name="label_7">
                <property name="text">
                 <string>Map Provider</string>
                </property>
               </widget>
              </item>
-             <item row="2" column="4">
+             <item row="6" column="4">
+              <widget class="QToolButton" name="resetMapTilerApiKeyButton">
+               <property name="text">
+                <string>...</string>
+               </property>
+               <property name="icon">
+                <iconset resource="../../../../scwx-qt.qrc">
+                 <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="2">
+              <widget class="QComboBox" name="defaultAlertActionComboBox"/>
+             </item>
+             <item row="1" column="4">
               <widget class="QToolButton" name="resetGridWidthButton">
                <property name="text">
                 <string>...</string>
@@ -289,26 +286,8 @@
                </property>
               </widget>
              </item>
-             <item row="8" column="0">
-              <widget class="QLabel" name="defaultAlertActionLabel">
-               <property name="text">
-                <string>Default Alert Action</string>
-               </property>
-              </widget>
-             </item>
-             <item row="8" column="2">
-              <widget class="QComboBox" name="defaultAlertActionComboBox"/>
-             </item>
-             <item row="8" column="4">
-              <widget class="QToolButton" name="resetDefaultAlertActionButton">
-               <property name="text">
-                <string>...</string>
-               </property>
-               <property name="icon">
-                <iconset resource="../../../../scwx-qt.qrc">
-                 <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
-               </property>
-              </widget>
+             <item row="0" column="2">
+              <widget class="QComboBox" name="radarSiteComboBox"/>
              </item>
             </layout>
            </widget>
@@ -438,6 +417,194 @@
         </widget>
         <widget class="QWidget" name="text">
          <layout class="QVBoxLayout" name="verticalLayout_5">
+          <item>
+           <widget class="QFrame" name="frame_4">
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Plain</enum>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_8" columnstretch="2,3">
+             <item row="0" column="0">
+              <widget class="QFrame" name="frame_5">
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_9">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item row="0" column="0" colspan="2">
+                 <widget class="QLabel" name="label_10">
+                  <property name="text">
+                   <string>Display Item:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="0" colspan="2">
+                 <widget class="QListView" name="fontListView"/>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QFrame" name="frame_6">
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_6">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item row="8" column="0">
+                 <spacer name="verticalSpacer_5">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>40</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item row="7" column="0" colspan="5">
+                 <widget class="QFrame" name="frame_7">
+                  <property name="frameShape">
+                   <enum>QFrame::Panel</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Plain</enum>
+                  </property>
+                  <layout class="QVBoxLayout" name="verticalLayout_7">
+                   <item>
+                    <widget class="QLabel" name="fontPreviewLabel">
+                     <property name="text">
+                      <string>Tornado Warning expires in 15 minutes</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignCenter</set>
+                     </property>
+                     <property name="wordWrap">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+                <item row="0" column="3">
+                 <widget class="QToolButton" name="fontSelectButton">
+                  <property name="text">
+                   <string>...</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="3" column="2">
+                 <widget class="QLabel" name="fontStyleLabel">
+                  <property name="text">
+                   <string>[Style]</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="2">
+                 <widget class="QLabel" name="fontNameLabel">
+                  <property name="text">
+                   <string>[Font Name]</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="5" column="2">
+                 <widget class="QLabel" name="fontSizeLabel">
+                  <property name="text">
+                   <string>[Size]</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="0">
+                 <widget class="QLabel" name="label_11">
+                  <property name="text">
+                   <string>Font:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="3" column="0">
+                 <widget class="QLabel" name="label_15">
+                  <property name="text">
+                   <string>Style:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="5" column="0">
+                 <widget class="QLabel" name="label_18">
+                  <property name="text">
+                   <string>Size:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="6" column="0" colspan="2">
+                 <widget class="QLabel" name="label_13">
+                  <property name="text">
+                   <string>Preview:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="6" column="2">
+                 <spacer name="horizontalSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item row="0" column="4">
+                 <widget class="QToolButton" name="resetFontButton">
+                  <property name="text">
+                   <string>...</string>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="../../../../scwx-qt.qrc">
+                    <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
           <item>
            <widget class="QFrame" name="frame_3">
             <property name="frameShape">

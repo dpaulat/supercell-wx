@@ -1,4 +1,5 @@
 #include <scwx/qt/ui/imgui_debug_widget.hpp>
+#include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
 
 #include <set>
@@ -50,6 +51,8 @@ public:
       model::ImGuiContextModel::Instance().DestroyContext(contextName_);
    }
 
+   void ImGuiCheckFonts();
+
    ImGuiDebugWidget* self_;
    ImGuiContext*     context_;
    std::string       contextName_;
@@ -58,6 +61,7 @@ public:
 
    std::set<ImGuiContext*> renderedSet_ {};
    bool                    imGuiRendererInitialized_ {false};
+   std::uint64_t           imGuiFontsBuildCount_ {};
 };
 
 ImGuiDebugWidget::ImGuiDebugWidget(QWidget* parent) :
@@ -102,6 +106,8 @@ void ImGuiDebugWidget::initializeGL()
    // Initialize ImGui OpenGL3 backend
    ImGui::SetCurrentContext(p->context_);
    ImGui_ImplOpenGL3_Init();
+   p->imGuiFontsBuildCount_ =
+      manager::FontManager::Instance().imgui_fonts_build_count();
    p->imGuiRendererInitialized_ = true;
 }
 
@@ -109,9 +115,13 @@ void ImGuiDebugWidget::paintGL()
 {
    ImGui::SetCurrentContext(p->currentContext_);
 
+   // Lock ImGui font atlas prior to new ImGui frame
+   std::shared_lock imguiFontAtlasLock {
+      manager::FontManager::Instance().imgui_font_atlas_mutex()};
+
    ImGui_ImplQt_NewFrame(this);
    ImGui_ImplOpenGL3_NewFrame();
-
+   p->ImGuiCheckFonts();
    ImGui::NewFrame();
 
    if (!p->renderedSet_.contains(p->currentContext_))
@@ -131,6 +141,29 @@ void ImGuiDebugWidget::paintGL()
 
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+   // Unlock ImGui font atlas after rendering
+   imguiFontAtlasLock.unlock();
+}
+
+void ImGuiDebugWidgetImpl::ImGuiCheckFonts()
+{
+   // Update ImGui Fonts if required
+   std::uint64_t currentImGuiFontsBuildCount =
+      manager::FontManager::Instance().imgui_fonts_build_count();
+
+   if ((context_ == currentContext_ &&
+        imGuiFontsBuildCount_ != currentImGuiFontsBuildCount) ||
+       !model::ImGuiContextModel::Instance().font_atlas()->IsBuilt())
+   {
+      ImGui_ImplOpenGL3_DestroyFontsTexture();
+      ImGui_ImplOpenGL3_CreateFontsTexture();
+   }
+
+   if (context_ == currentContext_)
+   {
+      imGuiFontsBuildCount_ = currentImGuiFontsBuildCount;
+   }
 }
 
 } // namespace ui

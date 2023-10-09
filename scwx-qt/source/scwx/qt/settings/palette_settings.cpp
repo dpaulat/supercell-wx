@@ -72,10 +72,10 @@ static const std::map<
 static const std::string       kDefaultKey_ {"???"};
 static const awips::Phenomenon kDefaultPhenomenon_ {awips::Phenomenon::Marine};
 
-class PaletteSettingsImpl
+class PaletteSettings::Impl
 {
 public:
-   explicit PaletteSettingsImpl()
+   explicit Impl()
    {
       for (const auto& name : kPaletteKeys_)
       {
@@ -120,7 +120,7 @@ public:
       }
    }
 
-   ~PaletteSettingsImpl() {}
+   ~Impl() {}
 
    static bool ValidateColor(const std::string& value);
 
@@ -132,14 +132,14 @@ public:
    std::vector<SettingsVariableBase*> variables_ {};
 };
 
-bool PaletteSettingsImpl::ValidateColor(const std::string& value)
+bool PaletteSettings::Impl::ValidateColor(const std::string& value)
 {
    static const std::regex re {"#[0-9A-Za-z]{8}"};
    return std::regex_match(value, re);
 }
 
 PaletteSettings::PaletteSettings() :
-    SettingsCategory("palette"), p(std::make_unique<PaletteSettingsImpl>())
+    SettingsCategory("palette"), p(std::make_unique<Impl>())
 {
    RegisterVariables(p->variables_);
    SetDefaults();
@@ -198,6 +198,12 @@ const std::vector<awips::Phenomenon>& PaletteSettings::alert_phenomena()
       awips::Phenomenon::Tornado};
 
    return kAlertPhenomena_;
+}
+
+PaletteSettings& PaletteSettings::Instance()
+{
+   static PaletteSettings paletteSettings_;
+   return paletteSettings_;
 }
 
 bool operator==(const PaletteSettings& lhs, const PaletteSettings& rhs)
