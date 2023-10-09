@@ -2,7 +2,6 @@
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
-#include <scwx/qt/util/font.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -32,8 +31,7 @@ static const std::vector<std::pair<types::Font, std::string>> fontNames_ {
    {types::Font::din1451alt_g, ":/res/fonts/din1451alt_g.ttf"},
    {types::Font::Inconsolata_Regular, ":/res/fonts/Inconsolata-Regular.ttf"}};
 
-static std::unordered_map<types::Font, int>                         fontIds_ {};
-static std::unordered_map<types::Font, std::shared_ptr<util::Font>> fonts_ {};
+static std::unordered_map<types::Font, int> fontIds_ {};
 
 void Initialize()
 {
@@ -53,16 +51,6 @@ int FontId(types::Font font)
       return it->second;
    }
    return -1;
-}
-
-std::shared_ptr<util::Font> Font(types::Font font)
-{
-   auto it = fonts_.find(font);
-   if (it != fonts_.cend())
-   {
-      return it->second;
-   }
-   return nullptr;
 }
 
 std::shared_ptr<boost::gil::rgba8_image_t>
@@ -112,9 +100,6 @@ static void LoadFonts()
       fontIds_.emplace(fontName.first, fontId);
 
       fontManager.LoadApplicationFont(fontName.second);
-
-      auto font = util::Font::Create(fontName.second);
-      fonts_.emplace(fontName.first, font);
    }
 
    fontManager.InitializeFonts();

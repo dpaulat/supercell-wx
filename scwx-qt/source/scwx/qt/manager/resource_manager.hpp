@@ -1,7 +1,6 @@
 #pragma once
 
 #include <scwx/qt/types/font_types.hpp>
-#include <scwx/qt/util/font.hpp>
 
 #include <vector>
 
@@ -19,8 +18,7 @@ namespace ResourceManager
 void Initialize();
 void Shutdown();
 
-int                         FontId(types::Font font);
-std::shared_ptr<util::Font> Font(types::Font font);
+int FontId(types::Font font);
 
 std::shared_ptr<boost::gil::rgba8_image_t>
 LoadImageResource(const std::string& urlString);
