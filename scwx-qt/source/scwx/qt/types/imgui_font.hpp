@@ -18,9 +18,9 @@ namespace types
 class ImGuiFont
 {
 public:
-   explicit ImGuiFont(const std::string&               fontName,
-                      const std::vector<std::uint8_t>& fontData,
-                      units::font_size::pixels<int>    size);
+   explicit ImGuiFont(const std::string&            fontName,
+                      const std::vector<char>&      fontData,
+                      units::font_size::pixels<int> size);
    ~ImGuiFont();
 
    ImGuiFont(const ImGuiFont&)            = delete;

@@ -62,7 +62,7 @@ public:
    void InitializeFontconfig();
    void UpdateImGuiFont(types::FontCategory fontCategory);
 
-   const std::vector<std::uint8_t>& GetRawFontData(const std::string& filename);
+   const std::vector<char>& GetRawFontData(const std::string& filename);
 
    static FontRecord MatchFontFile(const std::string&              family,
                                    const std::vector<std::string>& styles);
@@ -81,8 +81,7 @@ public:
                      imguiFonts_ {};
    std::shared_mutex imguiFontsMutex_ {};
 
-   boost::unordered_flat_map<std::string, std::vector<std::uint8_t>>
-              rawFontData_ {};
+   boost::unordered_flat_map<std::string, std::vector<char>> rawFontData_ {};
    std::mutex rawFontDataMutex_ {};
 
    std::shared_ptr<types::ImGuiFont> defaultFont_ {};
@@ -303,7 +302,7 @@ FontManager::LoadImGuiFont(const std::string&               family,
    return imguiFont;
 }
 
-const std::vector<std::uint8_t>&
+const std::vector<char>&
 FontManager::Impl::GetRawFontData(const std::string& filename)
 {
    std::unique_lock rawFontDataLock {rawFontDataMutex_};
@@ -316,16 +315,16 @@ FontManager::Impl::GetRawFontData(const std::string& filename)
    }
 
    // Raw font data needs to be loaded
-   std::basic_ifstream<std::uint8_t> ifs {filename, std::ios::binary};
+   std::basic_ifstream<char> ifs {filename, std::ios::binary};
    ifs.seekg(0, std::ios_base::end);
    std::size_t dataSize = ifs.tellg();
    ifs.seekg(0, std::ios_base::beg);
 
    // Store the font data in a buffer
-   std::vector<std::uint8_t> buffer {};
+   std::vector<char> buffer {};
    buffer.reserve(dataSize);
-   std::copy(std::istreambuf_iterator<std::uint8_t>(ifs),
-             std::istreambuf_iterator<std::uint8_t>(),
+   std::copy(std::istreambuf_iterator<char>(ifs),
+             std::istreambuf_iterator<char>(),
              std::back_inserter(buffer));
 
    // Place the buffer in the cache

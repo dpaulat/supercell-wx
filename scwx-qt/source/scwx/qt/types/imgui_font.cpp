@@ -23,9 +23,9 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class ImGuiFont::Impl
 {
 public:
-   explicit Impl(const std::string&               fontName,
-                 const std::vector<std::uint8_t>& fontData,
-                 units::font_size::pixels<int>    size) :
+   explicit Impl(const std::string&            fontName,
+                 const std::vector<char>&      fontData,
+                 units::font_size::pixels<int> size) :
        fontName_ {fontName}, size_ {size}
    {
       CreateImGuiFont(fontData);
@@ -33,7 +33,7 @@ public:
 
    ~Impl() {}
 
-   void CreateImGuiFont(const std::vector<std::uint8_t>& fontData);
+   void CreateImGuiFont(const std::vector<char>& fontData);
 
    const std::string                   fontName_;
    const units::font_size::pixels<int> size_;
@@ -41,15 +41,15 @@ public:
    ImFont* imFont_ {nullptr};
 };
 
-ImGuiFont::ImGuiFont(const std::string&               fontName,
-                     const std::vector<std::uint8_t>& fontData,
-                     units::font_size::pixels<int>    size) :
+ImGuiFont::ImGuiFont(const std::string&            fontName,
+                     const std::vector<char>&      fontData,
+                     units::font_size::pixels<int> size) :
     p(std::make_unique<Impl>(fontName, fontData, size))
 {
 }
 ImGuiFont::~ImGuiFont() = default;
 
-void ImGuiFont::Impl::CreateImGuiFont(const std::vector<std::uint8_t>& fontData)
+void ImGuiFont::Impl::CreateImGuiFont(const std::vector<char>& fontData)
 {
    logger_->debug("Creating Font: {}", fontName_);
 
