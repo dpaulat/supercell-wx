@@ -261,10 +261,24 @@ FontManager::LoadImGuiFont(const std::string&               family,
       return it->second;
    }
 
+   // Define a name for the ImGui font
+   std::string fontName;
+   try
+   {
+      fontName = fmt::format(
+         "{}:{}",
+         std::filesystem::path(fontRecord.filename_).filename().string(),
+         imFontSize.value());
+   }
+   catch (const std::exception& ex)
+   {
+      logger_->warn(ex.what());
+      fontName = fmt::format("{}:{}", fontRecord.filename_, imFontSize.value());
+   }
+
    // Create an ImGui font
    std::shared_ptr<types::ImGuiFont> imguiFont =
-      std::make_shared<types::ImGuiFont>(
-         fontRecord.filename_, rawFontData, imFontSize);
+      std::make_shared<types::ImGuiFont>(fontName, rawFontData, imFontSize);
 
    // Store the ImGui font
    p->imguiFonts_.insert_or_assign(imguiFontKey, imguiFont);
