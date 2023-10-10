@@ -1,6 +1,7 @@
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
+#include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <filesystem>
@@ -50,6 +51,7 @@ class FontManager::Impl
 public:
    explicit Impl(FontManager* self) : self_ {self}
    {
+      InitializeEnvironment();
       InitializeFontCache();
       InitializeFontconfig();
       ConnectSignals();
@@ -58,6 +60,7 @@ public:
 
    void ConnectSignals();
    void FinalizeFontconfig();
+   void InitializeEnvironment();
    void InitializeFontCache();
    void InitializeFontconfig();
    void UpdateImGuiFont(types::FontCategory fontCategory);
@@ -383,6 +386,21 @@ void FontManager::LoadApplicationFont(types::Font        font,
    {
       logger_->error("Could not load font into fontconfig database", filename);
    }
+}
+
+void FontManager::Impl::InitializeEnvironment()
+{
+#if defined(__linux__)
+   // Because of the way Fontconfig is built with Conan, FONTCONFIG_PATH must be
+   // defined on Linux to ensure fonts can be found
+   static const std::string kFontconfigPathKey {"FONTCONFIG_PATH"};
+
+   std::string fontconfigPath = scwx::util::GetEnvironment(kFontconfigPathKey);
+   if (fontconfigPath.empty())
+   {
+      scwx::util::SetEnvironment(kFontconfigPathKey, "/etc/fonts");
+   }
+#endif
 }
 
 void FontManager::Impl::InitializeFontCache()
