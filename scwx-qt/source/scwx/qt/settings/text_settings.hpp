@@ -34,6 +34,7 @@ public:
    font_point_size(types::FontCategory fontCategory) const;
 
    SettingsVariable<std::int64_t>& hover_text_wrap() const;
+   SettingsVariable<bool>&         placefile_text_drop_shadow_enabled() const;
    SettingsVariable<std::string>&  tooltip_method() const;
 
    static TextSettings& Instance();

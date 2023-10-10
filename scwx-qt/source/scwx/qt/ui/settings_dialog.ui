@@ -626,19 +626,15 @@
              <property name="bottomMargin">
               <number>0</number>
              </property>
-             <item row="1" column="0">
-              <widget class="QLabel" name="label_8">
-               <property name="text">
-                <string>Hover text character wrap (0 to disable)</string>
-               </property>
-              </widget>
-             </item>
              <item row="1" column="1">
               <widget class="QSpinBox" name="hoverTextWrapSpinBox">
                <property name="maximum">
                 <number>999</number>
                </property>
               </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="tooltipMethodComboBox"/>
              </item>
              <item row="1" column="2">
               <widget class="QToolButton" name="resetHoverTextWrapButton">
@@ -658,8 +654,12 @@
                </property>
               </widget>
              </item>
-             <item row="0" column="1">
-              <widget class="QComboBox" name="tooltipMethodComboBox"/>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_8">
+               <property name="text">
+                <string>Hover text character wrap (0 to disable)</string>
+               </property>
+              </widget>
              </item>
              <item row="0" column="2">
               <widget class="QToolButton" name="resetTooltipMethodButton">
@@ -669,6 +669,13 @@
                <property name="icon">
                 <iconset resource="../../../../scwx-qt.qrc">
                  <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0" colspan="2">
+              <widget class="QCheckBox" name="placefileTextDropShadowCheckBox">
+               <property name="text">
+                <string>Placefile Text Drop Shadow</string>
                </property>
               </widget>
              </item>

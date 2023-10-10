@@ -49,6 +49,7 @@ public:
       hoverTextWrap_.SetDefault(80);
       hoverTextWrap_.SetMinimum(0);
       hoverTextWrap_.SetMaximum(999);
+      placefileTextDropShadowEnabled_.SetDefault(true);
       tooltipMethod_.SetDefault(defaultTooltipMethodValue);
 
       tooltipMethod_.SetValidator(
@@ -93,12 +94,17 @@ public:
 
    SettingsVariable<std::int64_t> hoverTextWrap_ {"hover_text_wrap"};
    SettingsVariable<std::string>  tooltipMethod_ {"tooltip_method"};
+
+   SettingsVariable<bool> placefileTextDropShadowEnabled_ {
+      "placefile_text_drop_shadow_enabled"};
 };
 
 TextSettings::TextSettings() :
     SettingsCategory("text"), p(std::make_unique<Impl>(this))
 {
-   RegisterVariables({&p->hoverTextWrap_, &p->tooltipMethod_});
+   RegisterVariables({&p->hoverTextWrap_,
+                      &p->placefileTextDropShadowEnabled_,
+                      &p->tooltipMethod_});
    SetDefaults();
 }
 TextSettings::~TextSettings() = default;
@@ -162,6 +168,11 @@ SettingsVariable<std::int64_t>& TextSettings::hover_text_wrap() const
    return p->hoverTextWrap_;
 }
 
+SettingsVariable<bool>& TextSettings::placefile_text_drop_shadow_enabled() const
+{
+   return p->placefileTextDropShadowEnabled_;
+}
+
 SettingsVariable<std::string>& TextSettings::tooltip_method() const
 {
    return p->tooltipMethod_;
@@ -177,6 +188,8 @@ bool operator==(const TextSettings& lhs, const TextSettings& rhs)
 {
    return (lhs.p->fontData_ == rhs.p->fontData_ &&
            lhs.p->hoverTextWrap_ == rhs.p->hoverTextWrap_ &&
+           lhs.p->placefileTextDropShadowEnabled_ ==
+              rhs.p->placefileTextDropShadowEnabled_ &&
            lhs.p->tooltipMethod_ == rhs.p->tooltipMethod_);
 }
 
