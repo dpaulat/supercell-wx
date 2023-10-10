@@ -99,6 +99,7 @@ public:
           &mapboxApiKey_,
           &mapTilerApiKey_,
           &defaultAlertAction_,
+          &antiAliasingEnabled_,
           &updateNotificationsEnabled_,
           &debugEnabled_,
           &hoverTextWrap_,
@@ -176,6 +177,7 @@ public:
    settings::SettingsInterface<std::string>  mapboxApiKey_ {};
    settings::SettingsInterface<std::string>  mapTilerApiKey_ {};
    settings::SettingsInterface<std::string>  defaultAlertAction_ {};
+   settings::SettingsInterface<bool>         antiAliasingEnabled_ {};
    settings::SettingsInterface<bool>         updateNotificationsEnabled_ {};
    settings::SettingsInterface<bool>         debugEnabled_ {};
 
@@ -510,6 +512,10 @@ void SettingsDialogImpl::SetupGeneralTab()
       });
    defaultAlertAction_.SetEditWidget(self_->ui->defaultAlertActionComboBox);
    defaultAlertAction_.SetResetButton(self_->ui->resetDefaultAlertActionButton);
+
+   antiAliasingEnabled_.SetSettingsVariable(
+      generalSettings.anti_aliasing_enabled());
+   antiAliasingEnabled_.SetEditWidget(self_->ui->antiAliasingEnabledCheckBox);
 
    updateNotificationsEnabled_.SetSettingsVariable(
       generalSettings.update_notifications_enabled());

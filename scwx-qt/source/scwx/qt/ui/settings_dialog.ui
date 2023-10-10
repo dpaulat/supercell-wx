@@ -293,6 +293,13 @@
            </widget>
           </item>
           <item>
+           <widget class="QCheckBox" name="antiAliasingEnabledCheckBox">
+            <property name="text">
+             <string>Anti-Aliasing Enabled</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QCheckBox" name="enableUpdateNotificationsCheckBox">
             <property name="text">
              <string>Update Notifications Enabled</string>

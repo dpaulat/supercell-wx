@@ -25,6 +25,7 @@ public:
    GeneralSettings(GeneralSettings&&) noexcept;
    GeneralSettings& operator=(GeneralSettings&&) noexcept;
 
+   SettingsVariable<bool>&                       anti_aliasing_enabled() const;
    SettingsVariable<bool>&                       debug_enabled() const;
    SettingsVariable<std::string>&                default_alert_action() const;
    SettingsVariable<std::string>&                default_radar_site() const;

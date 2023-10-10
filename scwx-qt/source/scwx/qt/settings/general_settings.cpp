@@ -29,6 +29,7 @@ public:
       boost::to_lower(defaultDefaultAlertActionValue);
       boost::to_lower(defaultMapProviderValue);
 
+      antiAliasingEnabled_.SetDefault(true);
       debugEnabled_.SetDefault(false);
       defaultAlertAction_.SetDefault(defaultDefaultAlertActionValue);
       defaultRadarSite_.SetDefault("KLSX");
@@ -104,6 +105,7 @@ public:
 
    ~Impl() {}
 
+   SettingsVariable<bool>        antiAliasingEnabled_ {"anti_aliasing_enabled"};
    SettingsVariable<bool>        debugEnabled_ {"debug_enabled"};
    SettingsVariable<std::string> defaultAlertAction_ {"default_alert_action"};
    SettingsVariable<std::string> defaultRadarSite_ {"default_radar_site"};
@@ -122,7 +124,8 @@ public:
 GeneralSettings::GeneralSettings() :
     SettingsCategory("general"), p(std::make_unique<Impl>())
 {
-   RegisterVariables({&p->debugEnabled_,
+   RegisterVariables({&p->antiAliasingEnabled_,
+                      &p->debugEnabled_,
                       &p->defaultAlertAction_,
                       &p->defaultRadarSite_,
                       &p->fontSizes_,
@@ -142,6 +145,11 @@ GeneralSettings::~GeneralSettings() = default;
 GeneralSettings::GeneralSettings(GeneralSettings&&) noexcept = default;
 GeneralSettings&
 GeneralSettings::operator=(GeneralSettings&&) noexcept = default;
+
+SettingsVariable<bool>& GeneralSettings::anti_aliasing_enabled() const
+{
+   return p->antiAliasingEnabled_;
+}
 
 SettingsVariable<bool>& GeneralSettings::debug_enabled() const
 {
@@ -229,7 +237,8 @@ GeneralSettings& GeneralSettings::Instance()
 
 bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
 {
-   return (lhs.p->debugEnabled_ == rhs.p->debugEnabled_ &&
+   return (lhs.p->antiAliasingEnabled_ == rhs.p->antiAliasingEnabled_ &&
+           lhs.p->debugEnabled_ == rhs.p->debugEnabled_ &&
            lhs.p->defaultAlertAction_ == rhs.p->defaultAlertAction_ &&
            lhs.p->defaultRadarSite_ == rhs.p->defaultRadarSite_ &&
            lhs.p->fontSizes_ == rhs.p->fontSizes_ &&
