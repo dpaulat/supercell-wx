@@ -6,6 +6,7 @@
 
 #include <execution>
 
+#include <QDir>
 #include <QUrl>
 #include <boost/unordered/unordered_flat_map.hpp>
 
@@ -44,7 +45,8 @@ struct PlacefileIconInfo
    {
       // Resolve using base URL
       auto baseUrl = QUrl::fromUserInput(QString::fromStdString(baseUrlString));
-      auto relativeUrl = QUrl(QString::fromStdString(iconFile->filename_));
+      auto relativeUrl = QUrl(QDir::fromNativeSeparators(
+         QString::fromStdString(iconFile->filename_)));
       resolvedUrl_     = baseUrl.resolved(relativeUrl).toString().toStdString();
    }
 

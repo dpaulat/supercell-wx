@@ -765,8 +765,9 @@ PlacefileManager::Impl::LoadImageResources(
                   [&baseUrl](auto& iconFile)
                   {
                      // Resolve target URL relative to base URL
-                     QUrl fileUrl =
-                        QUrl(QString::fromStdString(iconFile->filename_));
+                     QString filePath =
+                        QString::fromStdString(iconFile->filename_);
+                     QUrl fileUrl = QUrl(QDir::fromNativeSeparators(filePath));
                      QUrl resolvedUrl = baseUrl.resolved(fileUrl);
 
                      return resolvedUrl.toString().toStdString();
@@ -783,7 +784,8 @@ PlacefileManager::Impl::LoadImageResources(
             std::static_pointer_cast<gr::Placefile::ImageDrawItem>(di)
                ->imageFile_;
 
-         QUrl        fileUrl     = QUrl(QString::fromStdString(imageFile));
+         QString     filePath    = QString::fromStdString(imageFile);
+         QUrl        fileUrl     = QUrl(QDir::fromNativeSeparators(filePath));
          QUrl        resolvedUrl = baseUrl.resolved(fileUrl);
          std::string urlString   = resolvedUrl.toString().toStdString();
 

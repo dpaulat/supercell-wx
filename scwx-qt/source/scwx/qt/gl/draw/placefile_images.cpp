@@ -3,6 +3,7 @@
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <QDir>
 #include <QUrl>
 #include <boost/unordered/unordered_flat_map.hpp>
 
@@ -39,8 +40,9 @@ struct PlacefileImageInfo
    {
       // Resolve using base URL
       auto baseUrl = QUrl::fromUserInput(QString::fromStdString(baseUrlString));
-      auto relativeUrl = QUrl(QString::fromStdString(imageFile));
-      resolvedUrl_     = baseUrl.resolved(relativeUrl).toString().toStdString();
+      auto relativeUrl =
+         QUrl(QDir::fromNativeSeparators(QString::fromStdString(imageFile)));
+      resolvedUrl_ = baseUrl.resolved(relativeUrl).toString().toStdString();
    }
 
    void UpdateTextureInfo();
