@@ -82,15 +82,6 @@
            <normaloff>:/res/icons/font-awesome-6/font-solid.svg</normaloff>:/res/icons/font-awesome-6/font-solid.svg</iconset>
          </property>
         </item>
-        <item>
-         <property name="text">
-          <string>Placefiles</string>
-         </property>
-         <property name="icon">
-          <iconset resource="../../../../scwx-qt.qrc">
-           <normaloff>:/res/icons/font-awesome-6/earth-americas-solid.svg</normaloff>:/res/icons/font-awesome-6/earth-americas-solid.svg</iconset>
-         </property>
-        </item>
        </widget>
       </item>
       <item>
@@ -350,7 +341,7 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>481</width>
+                   <width>512</width>
                    <height>382</height>
                   </rect>
                  </property>
@@ -702,22 +693,6 @@
             </property>
            </spacer>
           </item>
-         </layout>
-        </widget>
-        <widget class="QWidget" name="placefiles">
-         <layout class="QVBoxLayout" name="verticalLayout_4">
-          <property name="leftMargin">
-           <number>0</number>
-          </property>
-          <property name="topMargin">
-           <number>0</number>
-          </property>
-          <property name="rightMargin">
-           <number>0</number>
-          </property>
-          <property name="bottomMargin">
-           <number>0</number>
-          </property>
          </layout>
         </widget>
        </widget>

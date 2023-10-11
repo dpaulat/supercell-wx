@@ -25,6 +25,7 @@
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
 #include <scwx/qt/ui/level3_products_widget.hpp>
+#include <scwx/qt/ui/placefile_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/ui/settings_dialog.hpp>
 #include <scwx/qt/ui/update_dialog.hpp>
@@ -77,6 +78,7 @@ public:
        animationDockWidget_ {nullptr},
        aboutDialog_ {nullptr},
        imGuiDebugDialog_ {nullptr},
+       placefileDialog_ {nullptr},
        radarSiteDialog_ {nullptr},
        settingsDialog_ {nullptr},
        updateDialog_ {nullptr},
@@ -165,6 +167,7 @@ public:
    ui::AnimationDockWidget* animationDockWidget_;
    ui::AboutDialog*         aboutDialog_;
    ui::ImGuiDebugDialog*    imGuiDebugDialog_;
+   ui::PlacefileDialog*     placefileDialog_;
    ui::RadarSiteDialog*     radarSiteDialog_;
    ui::SettingsDialog*      settingsDialog_;
    ui::UpdateDialog*        updateDialog_;
@@ -242,6 +245,9 @@ MainWindow::MainWindow(QWidget* parent) :
 
    // Radar Site Dialog
    p->radarSiteDialog_ = new ui::RadarSiteDialog(this);
+
+   // Placefile Manager Dialog
+   p->placefileDialog_ = new ui::PlacefileDialog(this);
 
    // Settings Dialog
    p->settingsDialog_ = new ui::SettingsDialog(this);
@@ -441,6 +447,11 @@ void MainWindow::on_actionSettings_triggered()
 void MainWindow::on_actionExit_triggered()
 {
    close();
+}
+
+void MainWindow::on_actionPlacefileManager_triggered()
+{
+   p->placefileDialog_->show();
 }
 
 void MainWindow::on_actionImGuiDebug_triggered()
