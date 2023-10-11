@@ -10,6 +10,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QFontDatabase>
+#include <QGuiApplication>
 #include <QStandardPaths>
 #include <boost/container_hash/hash.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>
@@ -64,6 +65,7 @@ public:
    void InitializeFontCache();
    void InitializeFontconfig();
    void UpdateImGuiFont(types::FontCategory fontCategory);
+   void UpdateQFont(types::FontCategory fontCategory);
 
    const std::vector<char>& GetRawFontData(const std::string& filename);
 
@@ -90,7 +92,9 @@ public:
    std::shared_ptr<types::ImGuiFont> defaultFont_ {};
    boost::unordered_flat_map<types::FontCategory,
                              std::shared_ptr<types::ImGuiFont>>
-              fontCategoryMap_ {};
+      fontCategoryImguiFontMap_ {};
+   boost::unordered_flat_map<types::FontCategory, QFont>
+              fontCategoryQFontMap_ {};
    std::mutex fontCategoryMutex_ {};
 
    boost::unordered_flat_set<types::FontCategory> dirtyFonts_ {};
@@ -143,6 +147,7 @@ void FontManager::Impl::ConnectSignals()
          for (auto fontCategory : dirtyFonts_)
          {
             UpdateImGuiFont(fontCategory);
+            UpdateQFont(fontCategory);
          }
 
          dirtyFonts_.clear();
@@ -154,6 +159,7 @@ void FontManager::InitializeFonts()
    for (auto fontCategory : types::FontCategoryIterator())
    {
       p->UpdateImGuiFont(fontCategory);
+      p->UpdateQFont(fontCategory);
    }
 }
 
@@ -166,8 +172,25 @@ void FontManager::Impl::UpdateImGuiFont(types::FontCategory fontCategory)
    units::font_size::points<double> size {
       textSettings.font_point_size(fontCategory).GetValue()};
 
-   fontCategoryMap_.insert_or_assign(
+   fontCategoryImguiFontMap_.insert_or_assign(
       fontCategory, self_->LoadImGuiFont(family, {styles}, size));
+}
+
+void FontManager::Impl::UpdateQFont(types::FontCategory fontCategory)
+{
+   auto& textSettings = settings::TextSettings::Instance();
+
+   auto family = textSettings.font_family(fontCategory).GetValue();
+   auto styles = textSettings.font_style(fontCategory).GetValue();
+   units::font_size::points<double> size {
+      textSettings.font_point_size(fontCategory).GetValue()};
+
+   QFont font = QFontDatabase::font(QString::fromStdString(family),
+                                    QString::fromStdString(styles),
+                                    static_cast<int>(size.value()));
+   font.setPointSizeF(size.value());
+
+   fontCategoryQFontMap_.insert_or_assign(fontCategory, font);
 }
 
 std::shared_mutex& FontManager::imgui_font_atlas_mutex()
@@ -195,8 +218,8 @@ FontManager::GetImGuiFont(types::FontCategory fontCategory)
 {
    std::unique_lock lock {p->fontCategoryMutex_};
 
-   auto it = p->fontCategoryMap_.find(fontCategory);
-   if (it != p->fontCategoryMap_.cend())
+   auto it = p->fontCategoryImguiFontMap_.find(fontCategory);
+   if (it != p->fontCategoryImguiFontMap_.cend())
    {
       return it->second;
    }
@@ -206,18 +229,15 @@ FontManager::GetImGuiFont(types::FontCategory fontCategory)
 
 QFont FontManager::GetQFont(types::FontCategory fontCategory)
 {
-   auto& textSettings = settings::TextSettings::Instance();
+   std::unique_lock lock {p->fontCategoryMutex_};
 
-   auto family = textSettings.font_family(fontCategory).GetValue();
-   auto styles = textSettings.font_style(fontCategory).GetValue();
-   units::font_size::points<double> size {
-      textSettings.font_point_size(fontCategory).GetValue()};
+   auto it = p->fontCategoryQFontMap_.find(fontCategory);
+   if (it != p->fontCategoryQFontMap_.cend())
+   {
+      return it->second;
+   }
 
-   QFont font(QString::fromStdString(family));
-   font.setStyleName(QString::fromStdString(styles));
-   font.setPointSizeF(size.value());
-
-   return font;
+   return QGuiApplication::font();
 }
 
 std::shared_ptr<types::ImGuiFont>

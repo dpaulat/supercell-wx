@@ -24,6 +24,7 @@
 #include <fmt/format.h>
 #include <QColorDialog>
 #include <QFileDialog>
+#include <QFontDatabase>
 #include <QFontDialog>
 #include <QStandardItemModel>
 #include <QToolButton>
@@ -949,8 +950,9 @@ QFont SettingsDialogImpl::GetSelectedFont()
          .GetSettingsVariable()
          ->GetStagedOrValue()};
 
-   QFont font(QString::fromStdString(fontFamily));
-   font.setStyleName(QString::fromStdString(fontStyle));
+   QFont font = QFontDatabase::font(QString::fromStdString(fontFamily),
+                                    QString::fromStdString(fontStyle),
+                                    static_cast<int>(fontSize.value()));
    font.setPointSizeF(fontSize.value());
 
    return font;

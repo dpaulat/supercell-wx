@@ -30,7 +30,8 @@ public:
 
    int GetFontId(types::Font font) const;
    std::shared_ptr<types::ImGuiFont>
-   GetImGuiFont(types::FontCategory fontCategory);
+         GetImGuiFont(types::FontCategory fontCategory);
+   QFont GetQFont(types::FontCategory fontCategory);
    std::shared_ptr<types::ImGuiFont>
    LoadImGuiFont(const std::string&               family,
                  const std::vector<std::string>&  styles,
@@ -39,8 +40,6 @@ public:
 
    void LoadApplicationFont(types::Font font, const std::string& filename);
    void InitializeFonts();
-
-   static QFont GetQFont(types::FontCategory fontCategory);
 
    static FontManager& Instance();
 
