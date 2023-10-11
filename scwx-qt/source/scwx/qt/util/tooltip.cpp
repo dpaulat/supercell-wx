@@ -110,6 +110,7 @@ void Show(const std::string& text, const QPointF& mouseGlobalPos)
          types::FontCategory::Tooltip);
       tooltipLabel_->setFont(font);
       tooltipLabel_->setText(QString::fromStdString(displayText));
+      tooltipLabel_->resize(tooltipLabel_->sizeHint());
 
       // Get the screen the label will be displayed on
       QScreen* screen = QGuiApplication::screenAt(mouseGlobalPos.toPoint());
