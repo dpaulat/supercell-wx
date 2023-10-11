@@ -22,6 +22,7 @@
 #include <scwx/qt/ui/collapsible_group.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/qt/ui/imgui_debug_dialog.hpp>
+#include <scwx/qt/ui/layer_dialog.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
 #include <scwx/qt/ui/level3_products_widget.hpp>
@@ -78,6 +79,7 @@ public:
        animationDockWidget_ {nullptr},
        aboutDialog_ {nullptr},
        imGuiDebugDialog_ {nullptr},
+       layerDialog_ {nullptr},
        placefileDialog_ {nullptr},
        radarSiteDialog_ {nullptr},
        settingsDialog_ {nullptr},
@@ -167,6 +169,7 @@ public:
    ui::AnimationDockWidget* animationDockWidget_;
    ui::AboutDialog*         aboutDialog_;
    ui::ImGuiDebugDialog*    imGuiDebugDialog_;
+   ui::LayerDialog*         layerDialog_;
    ui::PlacefileDialog*     placefileDialog_;
    ui::RadarSiteDialog*     radarSiteDialog_;
    ui::SettingsDialog*      settingsDialog_;
@@ -248,6 +251,9 @@ MainWindow::MainWindow(QWidget* parent) :
 
    // Placefile Manager Dialog
    p->placefileDialog_ = new ui::PlacefileDialog(this);
+
+   // Layer Dialog
+   p->layerDialog_ = new ui::LayerDialog(this);
 
    // Settings Dialog
    p->settingsDialog_ = new ui::SettingsDialog(this);
@@ -452,6 +458,11 @@ void MainWindow::on_actionExit_triggered()
 void MainWindow::on_actionPlacefileManager_triggered()
 {
    p->placefileDialog_->show();
+}
+
+void MainWindow::on_actionLayerManager_triggered()
+{
+   p->layerDialog_->show();
 }
 
 void MainWindow::on_actionImGuiDebug_triggered()

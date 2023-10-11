@@ -20,8 +20,12 @@
         <file>res/fonts/Inconsolata-Regular.ttf</file>
         <file>res/icons/scwx-256.ico</file>
         <file>res/icons/scwx-256.png</file>
+        <file>res/icons/font-awesome-6/angle-down-solid.svg</file>
         <file>res/icons/font-awesome-6/angle-left-solid.svg</file>
         <file>res/icons/font-awesome-6/angle-right-solid.svg</file>
+        <file>res/icons/font-awesome-6/angle-up-solid.svg</file>
+        <file>res/icons/font-awesome-6/angles-down-solid.svg</file>
+        <file>res/icons/font-awesome-6/angles-up-solid.svg</file>
         <file>res/icons/font-awesome-6/backward-step-solid.svg</file>
         <file>res/icons/font-awesome-6/book-solid.svg</file>
         <file>res/icons/font-awesome-6/discord.svg</file>

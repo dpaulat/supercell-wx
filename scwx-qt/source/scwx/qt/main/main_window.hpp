@@ -37,6 +37,7 @@ private slots:
    void on_actionSettings_triggered();
    void on_actionExit_triggered();
    void on_actionPlacefileManager_triggered();
+   void on_actionLayerManager_triggered();
    void on_actionImGuiDebug_triggered();
    void on_actionDumpRadarProductRecords_triggered();
    void on_actionUserManual_triggered();
