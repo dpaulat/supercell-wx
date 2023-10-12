@@ -36,7 +36,14 @@
        <number>0</number>
       </property>
       <item>
-       <widget class="QTreeView" name="layerTreeView"/>
+       <widget class="QTreeView" name="layerTreeView">
+        <property name="alternatingRowColors">
+         <bool>true</bool>
+        </property>
+        <property name="selectionMode">
+         <enum>QAbstractItemView::ContiguousSelection</enum>
+        </property>
+       </widget>
       </item>
       <item>
        <widget class="QFrame" name="frame_2">

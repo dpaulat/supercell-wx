@@ -1,6 +1,7 @@
 #include "layer_dialog.hpp"
 #include "ui_layer_dialog.h"
 
+#include <scwx/qt/model/layer_model.hpp>
 #include <scwx/util/logger.hpp>
 
 namespace scwx
@@ -16,16 +17,41 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class LayerDialogImpl
 {
 public:
-   explicit LayerDialogImpl() {}
+   explicit LayerDialogImpl(LayerDialog* self) :
+       layerModel_ {new model::LayerModel(self)}
+   {
+   }
    ~LayerDialogImpl() = default;
+
+   model::LayerModel* layerModel_;
 };
 
 LayerDialog::LayerDialog(QWidget* parent) :
     QDialog(parent),
-    p {std::make_unique<LayerDialogImpl>()},
+    p {std::make_unique<LayerDialogImpl>(this)},
     ui(new Ui::LayerDialog)
 {
    ui->setupUi(this);
+
+   ui->layerTreeView->setModel(p->layerModel_);
+
+   auto layerViewHeader = ui->layerTreeView->header();
+
+   layerViewHeader->setMinimumSectionSize(10);
+
+   // Enabled columns have a fixed size (checkbox)
+   layerViewHeader->setSectionResizeMode(
+      static_cast<int>(model::LayerModel::Column::EnabledMap1),
+      QHeaderView::ResizeMode::ResizeToContents);
+   layerViewHeader->setSectionResizeMode(
+      static_cast<int>(model::LayerModel::Column::EnabledMap2),
+      QHeaderView::ResizeMode::ResizeToContents);
+   layerViewHeader->setSectionResizeMode(
+      static_cast<int>(model::LayerModel::Column::EnabledMap3),
+      QHeaderView::ResizeMode::ResizeToContents);
+   layerViewHeader->setSectionResizeMode(
+      static_cast<int>(model::LayerModel::Column::EnabledMap4),
+      QHeaderView::ResizeMode::ResizeToContents);
 }
 
 LayerDialog::~LayerDialog()

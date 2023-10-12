@@ -19,6 +19,7 @@ class LayerDialogImpl;
 class LayerDialog : public QDialog
 {
    Q_OBJECT
+   Q_DISABLE_COPY_MOVE(LayerDialog)
 
 public:
    explicit LayerDialog(QWidget* parent = nullptr);
