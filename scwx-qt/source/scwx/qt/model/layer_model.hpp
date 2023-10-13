@@ -17,6 +17,8 @@ namespace model
 
 class LayerModel : public QAbstractTableModel
 {
+   Q_DISABLE_COPY_MOVE(LayerModel)
+
 public:
    enum class Column : int
    {
@@ -31,14 +33,6 @@ public:
    };
    typedef scwx::util::Iterator<Column, Column::Order, Column::Description>
       ColumnIterator;
-
-   enum class LayerType
-   {
-      Map,
-      Radar,
-      Alert,
-      Placefile
-   };
 
    explicit LayerModel(QObject* parent = nullptr);
    ~LayerModel();

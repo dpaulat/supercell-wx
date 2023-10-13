@@ -1,5 +1,6 @@
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
+#include <scwx/qt/types/map_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -27,34 +28,52 @@ static constexpr int kLastColumn =
    static_cast<int>(LayerModel::Column::Description);
 static constexpr int kNumColumns = kLastColumn - kFirstColumn + 1;
 
-static const std::unordered_map<LayerModel::LayerType, std::string>
-   layerTypeNames_ {{LayerModel::LayerType::Map, "Map"},
-                    {LayerModel::LayerType::Radar, "Radar"},
-                    {LayerModel::LayerType::Alert, "Alert"},
-                    {LayerModel::LayerType::Placefile, "Placefile"}};
+static constexpr std::size_t kMapCount_ = 4u;
 
-typedef std::variant<std::monostate, std::string, awips::Phenomenon>
-   LayerDescription;
-typedef boost::container::devector<
-   std::pair<LayerModel::LayerType, LayerDescription>>
-   LayerVector;
+typedef std::
+   variant<std::monostate, types::Layer, awips::Phenomenon, std::string>
+      LayerDescription;
 
 class LayerModel::Impl
 {
 public:
-   explicit Impl()
+   struct LayerInfo
    {
-      layers_.emplace_back(LayerType::Alert, awips::Phenomenon::Tornado);
-      layers_.emplace_back(LayerType::Alert, awips::Phenomenon::SnowSquall);
-      layers_.emplace_back(LayerType::Alert,
-                           awips::Phenomenon::SevereThunderstorm);
-      layers_.emplace_back(LayerType::Alert, awips::Phenomenon::FlashFlood);
-      layers_.emplace_back(LayerType::Alert, awips::Phenomenon::Marine);
-      layers_.emplace_back(LayerType::Map, "Map Overlay");
-      layers_.emplace_back(LayerType::Radar, std::monostate {});
-      layers_.emplace_back(LayerType::Map, "Map Underlay");
+      types::LayerType             type_;
+      LayerDescription             description_;
+      bool                         movable_;
+      std::array<bool, kMapCount_> displayed_ {true, true, true, true};
+   };
+
+   typedef boost::container::devector<LayerInfo> LayerVector;
+
+   explicit Impl(LayerModel* self) : self_ {self}
+   {
+      layers_.emplace_back(
+         types::LayerType::Information, types::Layer::MapOverlay, false);
+      layers_.emplace_back(
+         types::LayerType::Information, types::Layer::ColorTable, false);
+      layers_.emplace_back(
+         types::LayerType::Alert, awips::Phenomenon::Tornado, true);
+      layers_.emplace_back(
+         types::LayerType::Alert, awips::Phenomenon::SnowSquall, true);
+      layers_.emplace_back(
+         types::LayerType::Alert, awips::Phenomenon::SevereThunderstorm, true);
+      layers_.emplace_back(
+         types::LayerType::Alert, awips::Phenomenon::FlashFlood, true);
+      layers_.emplace_back(
+         types::LayerType::Alert, awips::Phenomenon::Marine, true);
+      layers_.emplace_back(
+         types::LayerType::Map, types::Layer::MapSymbology, false);
+      layers_.emplace_back(types::LayerType::Radar, std::monostate {}, true);
+      layers_.emplace_back(
+         types::LayerType::Map, types::Layer::MapUnderlay, false);
    }
    ~Impl() = default;
+
+   void AddPlacefile(const std::string& name);
+
+   LayerModel* self_;
 
    std::shared_ptr<manager::PlacefileManager> placefileManager_ {
       manager::PlacefileManager::Instance()};
@@ -63,7 +82,7 @@ public:
 };
 
 LayerModel::LayerModel(QObject* parent) :
-    QAbstractTableModel(parent), p(std::make_unique<Impl>())
+    QAbstractTableModel(parent), p(std::make_unique<Impl>(this))
 {
    connect(p->placefileManager_.get(),
            &manager::PlacefileManager::PlacefileEnabled,
@@ -101,13 +120,25 @@ Qt::ItemFlags LayerModel::flags(const QModelIndex& index) const
 {
    Qt::ItemFlags flags = QAbstractTableModel::flags(index);
 
+   if (!index.isValid() || index.row() < 0 ||
+       static_cast<std::size_t>(index.row()) >= p->layers_.size())
+   {
+      return flags;
+   }
+
+   const auto& layer = p->layers_.at(index.row());
+
    switch (index.column())
    {
    case static_cast<int>(Column::DisplayMap1):
    case static_cast<int>(Column::DisplayMap2):
    case static_cast<int>(Column::DisplayMap3):
    case static_cast<int>(Column::DisplayMap4):
-      flags |= Qt::ItemFlag::ItemIsUserCheckable | Qt::ItemFlag::ItemIsEditable;
+      if (layer.type_ != types::LayerType::Map)
+      {
+         flags |=
+            Qt::ItemFlag::ItemIsUserCheckable | Qt::ItemFlag::ItemIsEditable;
+      }
       break;
 
    default:
@@ -131,8 +162,7 @@ QVariant LayerModel::data(const QModelIndex& index, int role) const
       return QVariant();
    }
 
-   const auto& layer   = p->layers_.at(index.row());
-   bool        enabled = true; // TODO
+   const auto& layer = p->layers_.at(index.row());
 
    switch (index.column())
    {
@@ -147,15 +177,21 @@ QVariant LayerModel::data(const QModelIndex& index, int role) const
    case static_cast<int>(Column::DisplayMap2):
    case static_cast<int>(Column::DisplayMap3):
    case static_cast<int>(Column::DisplayMap4):
-      // TODO
-      if (role == Qt::ItemDataRole::ToolTipRole)
+      if (layer.type_ != types::LayerType::Map)
       {
-         return enabled ? displayedString : hiddenString;
-      }
-      else if (role == Qt::ItemDataRole::CheckStateRole)
-      {
-         return static_cast<int>(enabled ? Qt::CheckState::Checked :
-                                           Qt::CheckState::Unchecked);
+         bool displayed =
+            layer.displayed_[index.column() -
+                             static_cast<int>(Column::DisplayMap1)];
+
+         if (role == Qt::ItemDataRole::ToolTipRole)
+         {
+            return displayed ? displayedString : hiddenString;
+         }
+         else if (role == Qt::ItemDataRole::CheckStateRole)
+         {
+            return static_cast<int>(displayed ? Qt::CheckState::Checked :
+                                                Qt::CheckState::Unchecked);
+         }
       }
       break;
 
@@ -163,7 +199,7 @@ QVariant LayerModel::data(const QModelIndex& index, int role) const
       if (role == Qt::ItemDataRole::DisplayRole ||
           role == Qt::ItemDataRole::ToolTipRole)
       {
-         return QString::fromStdString(layerTypeNames_.at(layer.first));
+         return QString::fromStdString(types::GetLayerTypeName(layer.type_));
       }
       break;
 
@@ -171,16 +207,12 @@ QVariant LayerModel::data(const QModelIndex& index, int role) const
       if (role == Qt::ItemDataRole::DisplayRole ||
           role == Qt::ItemDataRole::ToolTipRole)
       {
-         if (layer.first == LayerType::Placefile)
+         if (layer.type_ == types::LayerType::Placefile)
          {
             return p->placefileManager_->placefile_enabled(
-                      std::get<std::string>(layer.second)) ?
+                      std::get<std::string>(layer.description_)) ?
                       enabledString :
                       disabledString;
-         }
-         else
-         {
-            return enabledString;
          }
       }
       break;
@@ -189,10 +221,11 @@ QVariant LayerModel::data(const QModelIndex& index, int role) const
       if (role == Qt::ItemDataRole::DisplayRole ||
           role == Qt::ItemDataRole::ToolTipRole)
       {
-         if (layer.first == LayerType::Placefile)
+         if (layer.type_ == types::LayerType::Placefile)
          {
-            std::string placefileName = std::get<std::string>(layer.second);
-            std::string description   = placefileName;
+            std::string placefileName =
+               std::get<std::string>(layer.description_);
+            std::string description = placefileName;
             std::string title =
                p->placefileManager_->placefile_title(placefileName);
             if (!title.empty())
@@ -204,15 +237,21 @@ QVariant LayerModel::data(const QModelIndex& index, int role) const
          }
          else
          {
-            if (std::holds_alternative<std::string>(layer.second))
+            if (std::holds_alternative<std::string>(layer.description_))
             {
                return QString::fromStdString(
-                  std::get<std::string>(layer.second));
+                  std::get<std::string>(layer.description_));
             }
-            else if (std::holds_alternative<awips::Phenomenon>(layer.second))
+            else if (std::holds_alternative<types::Layer>(layer.description_))
+            {
+               return QString::fromStdString(types::GetLayerName(
+                  std::get<types::Layer>(layer.description_)));
+            }
+            else if (std::holds_alternative<awips::Phenomenon>(
+                        layer.description_))
             {
                return QString::fromStdString(awips::GetPhenomenonText(
-                  std::get<awips::Phenomenon>(layer.second)));
+                  std::get<awips::Phenomenon>(layer.description_)));
             }
          }
       }
@@ -321,8 +360,8 @@ bool LayerModel::setData(const QModelIndex& index,
       return false;
    }
 
-   const auto& layer  = p->layers_.at(index.row());
-   bool        result = false;
+   auto& layer  = p->layers_.at(index.row());
+   bool  result = false;
 
    switch (index.column())
    {
@@ -332,9 +371,10 @@ bool LayerModel::setData(const QModelIndex& index,
    case static_cast<int>(Column::DisplayMap4):
       if (role == Qt::ItemDataRole::CheckStateRole)
       {
-         // TODO
-         Q_UNUSED(layer);
-         Q_UNUSED(value);
+         layer.displayed_[index.column() -
+                          static_cast<int>(Column::DisplayMap1)] =
+            value.toBool();
+         result = true;
       }
       break;
 
@@ -352,13 +392,14 @@ bool LayerModel::setData(const QModelIndex& index,
 
 void LayerModel::HandlePlacefileRemoved(const std::string& name)
 {
-   auto it = std::find_if(p->layers_.begin(),
-                          p->layers_.end(),
-                          [&name](const auto& layer)
-                          {
-                             return layer.first == LayerType::Placefile &&
-                                    std::get<std::string>(layer.second) == name;
-                          });
+   auto it =
+      std::find_if(p->layers_.begin(),
+                   p->layers_.end(),
+                   [&name](const auto& layer)
+                   {
+                      return layer.type_ == types::LayerType::Placefile &&
+                             std::get<std::string>(layer.description_) == name;
+                   });
 
    if (it != p->layers_.end())
    {
@@ -374,14 +415,14 @@ void LayerModel::HandlePlacefileRemoved(const std::string& name)
 void LayerModel::HandlePlacefileRenamed(const std::string& oldName,
                                         const std::string& newName)
 {
-   auto it =
-      std::find_if(p->layers_.begin(),
-                   p->layers_.end(),
-                   [&oldName](const auto& layer)
-                   {
-                      return layer.first == LayerType::Placefile &&
-                             std::get<std::string>(layer.second) == oldName;
-                   });
+   auto it = std::find_if(
+      p->layers_.begin(),
+      p->layers_.end(),
+      [&oldName](const auto& layer)
+      {
+         return layer.type_ == types::LayerType::Placefile &&
+                std::get<std::string>(layer.description_) == oldName;
+      });
 
    if (it != p->layers_.end())
    {
@@ -391,28 +432,27 @@ void LayerModel::HandlePlacefileRenamed(const std::string& oldName,
       QModelIndex bottomRight = createIndex(row, kLastColumn);
 
       // Rename placefile
-      it->second = newName;
+      it->description_ = newName;
 
       Q_EMIT dataChanged(topLeft, bottomRight);
    }
    else
    {
-      // Placefile is new, prepend row
-      beginInsertRows(QModelIndex(), 0, 0);
-      p->layers_.push_front({LayerType::Placefile, newName});
-      endInsertRows();
+      // Placefile doesn't exist, add row
+      p->AddPlacefile(newName);
    }
 }
 
 void LayerModel::HandlePlacefileUpdate(const std::string& name)
 {
-   auto it = std::find_if(p->layers_.begin(),
-                          p->layers_.end(),
-                          [&name](const auto& layer)
-                          {
-                             return layer.first == LayerType::Placefile &&
-                                    std::get<std::string>(layer.second) == name;
-                          });
+   auto it =
+      std::find_if(p->layers_.begin(),
+                   p->layers_.end(),
+                   [&name](const auto& layer)
+                   {
+                      return layer.type_ == types::LayerType::Placefile &&
+                             std::get<std::string>(layer.description_) == name;
+                   });
 
    if (it != p->layers_.end())
    {
@@ -425,11 +465,32 @@ void LayerModel::HandlePlacefileUpdate(const std::string& name)
    }
    else
    {
-      // Placefile is new, prepend row
-      beginInsertRows(QModelIndex(), 0, 0);
-      p->layers_.push_front({LayerType::Placefile, name});
-      endInsertRows();
+      // Placefile doesn't exist, add row
+      p->AddPlacefile(name);
    }
+}
+
+void LayerModel::Impl::AddPlacefile(const std::string& name)
+{
+   // Insert after color table
+   auto insertPosition = std::find_if(
+      layers_.begin(),
+      layers_.end(),
+      [](const Impl::LayerInfo& layerInfo)
+      {
+         return std::holds_alternative<types::Layer>(layerInfo.description_) &&
+                std::get<types::Layer>(layerInfo.description_) ==
+                   types::Layer::ColorTable;
+      });
+   if (insertPosition != layers_.end())
+   {
+      ++insertPosition;
+   }
+
+   // Placefile is new, add row
+   self_->beginInsertRows(QModelIndex(), 0, 0);
+   layers_.insert(insertPosition, {types::LayerType::Placefile, name});
+   self_->endInsertRows();
 }
 
 } // namespace model
