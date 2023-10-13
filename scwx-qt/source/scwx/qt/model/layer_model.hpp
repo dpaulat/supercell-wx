@@ -2,6 +2,7 @@
 
 #include <scwx/qt/types/text_event_key.hpp>
 #include <scwx/common/geographic.hpp>
+#include <scwx/util/iterator.hpp>
 
 #include <memory>
 
@@ -14,21 +15,22 @@ namespace qt
 namespace model
 {
 
-class LayerModelImpl;
-
 class LayerModel : public QAbstractTableModel
 {
 public:
    enum class Column : int
    {
       Order       = 0,
-      EnabledMap1 = 1,
-      EnabledMap2 = 2,
-      EnabledMap3 = 3,
-      EnabledMap4 = 4,
+      DisplayMap1 = 1,
+      DisplayMap2 = 2,
+      DisplayMap3 = 3,
+      DisplayMap4 = 4,
       Type        = 5,
-      Description = 6
+      Enabled     = 6,
+      Description = 7
    };
+   typedef scwx::util::Iterator<Column, Column::Order, Column::Description>
+      ColumnIterator;
 
    enum class LayerType
    {
@@ -63,8 +65,8 @@ public slots:
    void HandlePlacefileUpdate(const std::string& name);
 
 private:
-   friend class LayerModelImpl;
-   std::unique_ptr<LayerModelImpl> p;
+   class Impl;
+   std::unique_ptr<Impl> p;
 };
 
 } // namespace model

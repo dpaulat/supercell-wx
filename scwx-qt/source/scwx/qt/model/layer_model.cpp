@@ -10,6 +10,7 @@
 #include <QFontMetrics>
 #include <QStyle>
 #include <QStyleOption>
+#include <boost/container/devector.hpp>
 
 namespace scwx
 {
@@ -32,21 +33,37 @@ static const std::unordered_map<LayerModel::LayerType, std::string>
                     {LayerModel::LayerType::Alert, "Alert"},
                     {LayerModel::LayerType::Placefile, "Placefile"}};
 
-class LayerModelImpl
+typedef std::variant<std::monostate, std::string, awips::Phenomenon>
+   LayerDescription;
+typedef boost::container::devector<
+   std::pair<LayerModel::LayerType, LayerDescription>>
+   LayerVector;
+
+class LayerModel::Impl
 {
 public:
-   explicit LayerModelImpl() {}
-   ~LayerModelImpl() = default;
+   explicit Impl()
+   {
+      layers_.emplace_back(LayerType::Alert, awips::Phenomenon::Tornado);
+      layers_.emplace_back(LayerType::Alert, awips::Phenomenon::SnowSquall);
+      layers_.emplace_back(LayerType::Alert,
+                           awips::Phenomenon::SevereThunderstorm);
+      layers_.emplace_back(LayerType::Alert, awips::Phenomenon::FlashFlood);
+      layers_.emplace_back(LayerType::Alert, awips::Phenomenon::Marine);
+      layers_.emplace_back(LayerType::Map, "Map Overlay");
+      layers_.emplace_back(LayerType::Radar, std::monostate {});
+      layers_.emplace_back(LayerType::Map, "Map Underlay");
+   }
+   ~Impl() = default;
 
    std::shared_ptr<manager::PlacefileManager> placefileManager_ {
       manager::PlacefileManager::Instance()};
 
-   std::vector<std::pair<LayerModel::LayerType, std::variant<std::string>>>
-      layers_ {};
+   LayerVector layers_ {};
 };
 
 LayerModel::LayerModel(QObject* parent) :
-    QAbstractTableModel(parent), p(std::make_unique<LayerModelImpl>())
+    QAbstractTableModel(parent), p(std::make_unique<Impl>())
 {
    connect(p->placefileManager_.get(),
            &manager::PlacefileManager::PlacefileEnabled,
@@ -86,10 +103,10 @@ Qt::ItemFlags LayerModel::flags(const QModelIndex& index) const
 
    switch (index.column())
    {
-   case static_cast<int>(Column::EnabledMap1):
-   case static_cast<int>(Column::EnabledMap2):
-   case static_cast<int>(Column::EnabledMap3):
-   case static_cast<int>(Column::EnabledMap4):
+   case static_cast<int>(Column::DisplayMap1):
+   case static_cast<int>(Column::DisplayMap2):
+   case static_cast<int>(Column::DisplayMap3):
+   case static_cast<int>(Column::DisplayMap4):
       flags |= Qt::ItemFlag::ItemIsUserCheckable | Qt::ItemFlag::ItemIsEditable;
       break;
 
@@ -105,6 +122,9 @@ QVariant LayerModel::data(const QModelIndex& index, int role) const
    static const QString enabledString  = QObject::tr("Enabled");
    static const QString disabledString = QObject::tr("Disabled");
 
+   static const QString displayedString = QObject::tr("Displayed");
+   static const QString hiddenString    = QObject::tr("Hidden");
+
    if (!index.isValid() || index.row() < 0 ||
        static_cast<std::size_t>(index.row()) >= p->layers_.size())
    {
@@ -119,18 +139,18 @@ QVariant LayerModel::data(const QModelIndex& index, int role) const
    case static_cast<int>(Column::Order):
       if (role == Qt::ItemDataRole::DisplayRole)
       {
-         return index.row();
+         return index.row() + 1;
       }
       break;
 
-   case static_cast<int>(Column::EnabledMap1):
-   case static_cast<int>(Column::EnabledMap2):
-   case static_cast<int>(Column::EnabledMap3):
-   case static_cast<int>(Column::EnabledMap4):
+   case static_cast<int>(Column::DisplayMap1):
+   case static_cast<int>(Column::DisplayMap2):
+   case static_cast<int>(Column::DisplayMap3):
+   case static_cast<int>(Column::DisplayMap4):
       // TODO
       if (role == Qt::ItemDataRole::ToolTipRole)
       {
-         return enabled ? enabledString : disabledString;
+         return enabled ? displayedString : hiddenString;
       }
       else if (role == Qt::ItemDataRole::CheckStateRole)
       {
@@ -144,6 +164,24 @@ QVariant LayerModel::data(const QModelIndex& index, int role) const
           role == Qt::ItemDataRole::ToolTipRole)
       {
          return QString::fromStdString(layerTypeNames_.at(layer.first));
+      }
+      break;
+
+   case static_cast<int>(Column::Enabled):
+      if (role == Qt::ItemDataRole::DisplayRole ||
+          role == Qt::ItemDataRole::ToolTipRole)
+      {
+         if (layer.first == LayerType::Placefile)
+         {
+            return p->placefileManager_->placefile_enabled(
+                      std::get<std::string>(layer.second)) ?
+                      enabledString :
+                      disabledString;
+         }
+         else
+         {
+            return enabledString;
+         }
       }
       break;
 
@@ -171,6 +209,11 @@ QVariant LayerModel::data(const QModelIndex& index, int role) const
                return QString::fromStdString(
                   std::get<std::string>(layer.second));
             }
+            else if (std::holds_alternative<awips::Phenomenon>(layer.second))
+            {
+               return QString::fromStdString(awips::GetPhenomenonText(
+                  std::get<awips::Phenomenon>(layer.second)));
+            }
          }
       }
       break;
@@ -191,20 +234,23 @@ LayerModel::headerData(int section, Qt::Orientation orientation, int role) const
       {
          switch (section)
          {
-         case static_cast<int>(Column::EnabledMap1):
+         case static_cast<int>(Column::DisplayMap1):
             return tr("1");
 
-         case static_cast<int>(Column::EnabledMap2):
+         case static_cast<int>(Column::DisplayMap2):
             return tr("2");
 
-         case static_cast<int>(Column::EnabledMap3):
+         case static_cast<int>(Column::DisplayMap3):
             return tr("3");
 
-         case static_cast<int>(Column::EnabledMap4):
+         case static_cast<int>(Column::DisplayMap4):
             return tr("4");
 
          case static_cast<int>(Column::Type):
             return tr("Type");
+
+         case static_cast<int>(Column::Enabled):
+            return tr("Enabled");
 
          case static_cast<int>(Column::Description):
             return tr("Description");
@@ -221,17 +267,17 @@ LayerModel::headerData(int section, Qt::Orientation orientation, int role) const
       case static_cast<int>(Column::Order):
          return tr("Order");
 
-      case static_cast<int>(Column::EnabledMap1):
-         return tr("Enabled on Map 1");
+      case static_cast<int>(Column::DisplayMap1):
+         return tr("Display on Map 1");
 
-      case static_cast<int>(Column::EnabledMap2):
-         return tr("Enabled on Map 2");
+      case static_cast<int>(Column::DisplayMap2):
+         return tr("Display on Map 2");
 
-      case static_cast<int>(Column::EnabledMap3):
-         return tr("Enabled on Map 3");
+      case static_cast<int>(Column::DisplayMap3):
+         return tr("Display on Map 3");
 
-      case static_cast<int>(Column::EnabledMap4):
-         return tr("Enabled on Map 4");
+      case static_cast<int>(Column::DisplayMap4):
+         return tr("Display on Map 4");
 
       default:
          break;
@@ -241,10 +287,10 @@ LayerModel::headerData(int section, Qt::Orientation orientation, int role) const
    {
       switch (section)
       {
-      case static_cast<int>(Column::EnabledMap1):
-      case static_cast<int>(Column::EnabledMap2):
-      case static_cast<int>(Column::EnabledMap3):
-      case static_cast<int>(Column::EnabledMap4):
+      case static_cast<int>(Column::DisplayMap1):
+      case static_cast<int>(Column::DisplayMap2):
+      case static_cast<int>(Column::DisplayMap3):
+      case static_cast<int>(Column::DisplayMap4):
       {
          static const QCheckBox checkBox {};
          QStyleOptionButton     option {};
@@ -280,10 +326,10 @@ bool LayerModel::setData(const QModelIndex& index,
 
    switch (index.column())
    {
-   case static_cast<int>(Column::EnabledMap1):
-   case static_cast<int>(Column::EnabledMap2):
-   case static_cast<int>(Column::EnabledMap3):
-   case static_cast<int>(Column::EnabledMap4):
+   case static_cast<int>(Column::DisplayMap1):
+   case static_cast<int>(Column::DisplayMap2):
+   case static_cast<int>(Column::DisplayMap3):
+   case static_cast<int>(Column::DisplayMap4):
       if (role == Qt::ItemDataRole::CheckStateRole)
       {
          // TODO
@@ -351,10 +397,9 @@ void LayerModel::HandlePlacefileRenamed(const std::string& oldName,
    }
    else
    {
-      // Placefile is new, append row
-      const int newIndex = static_cast<int>(p->layers_.size());
-      beginInsertRows(QModelIndex(), newIndex, newIndex);
-      p->layers_.push_back({LayerType::Placefile, newName});
+      // Placefile is new, prepend row
+      beginInsertRows(QModelIndex(), 0, 0);
+      p->layers_.push_front({LayerType::Placefile, newName});
       endInsertRows();
    }
 }
@@ -380,10 +425,9 @@ void LayerModel::HandlePlacefileUpdate(const std::string& name)
    }
    else
    {
-      // Placefile is new, append row
-      const int newIndex = static_cast<int>(p->layers_.size());
-      beginInsertRows(QModelIndex(), newIndex, newIndex);
-      p->layers_.push_back({LayerType::Placefile, name});
+      // Placefile is new, prepend row
+      beginInsertRows(QModelIndex(), 0, 0);
+      p->layers_.push_front({LayerType::Placefile, name});
       endInsertRows();
    }
 }

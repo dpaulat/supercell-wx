@@ -39,19 +39,16 @@ LayerDialog::LayerDialog(QWidget* parent) :
 
    layerViewHeader->setMinimumSectionSize(10);
 
-   // Enabled columns have a fixed size (checkbox)
-   layerViewHeader->setSectionResizeMode(
-      static_cast<int>(model::LayerModel::Column::EnabledMap1),
-      QHeaderView::ResizeMode::ResizeToContents);
-   layerViewHeader->setSectionResizeMode(
-      static_cast<int>(model::LayerModel::Column::EnabledMap2),
-      QHeaderView::ResizeMode::ResizeToContents);
-   layerViewHeader->setSectionResizeMode(
-      static_cast<int>(model::LayerModel::Column::EnabledMap3),
-      QHeaderView::ResizeMode::ResizeToContents);
-   layerViewHeader->setSectionResizeMode(
-      static_cast<int>(model::LayerModel::Column::EnabledMap4),
-      QHeaderView::ResizeMode::ResizeToContents);
+   // Give small columns a fixed size
+   for (auto column : model::LayerModel::ColumnIterator())
+   {
+      if (column != model::LayerModel::Column::Description)
+      {
+         layerViewHeader->setSectionResizeMode(
+            static_cast<int>(column),
+            QHeaderView::ResizeMode::ResizeToContents);
+      }
+   }
 }
 
 LayerDialog::~LayerDialog()
