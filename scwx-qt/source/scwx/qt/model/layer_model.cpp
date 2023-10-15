@@ -4,14 +4,16 @@
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <set>
 #include <variant>
 
 #include <QApplication>
 #include <QCheckBox>
 #include <QFontMetrics>
+#include <QIODevice>
+#include <QMimeData>
 #include <QStyle>
 #include <QStyleOption>
-#include <boost/container/devector.hpp>
 
 namespace scwx
 {
@@ -30,6 +32,8 @@ static constexpr int kNumColumns = kLastColumn - kFirstColumn + 1;
 
 static constexpr std::size_t kMapCount_ = 4u;
 
+static const QString kMimeFormat {"application/x.scwx-layer-model"};
+
 typedef std::
    variant<std::monostate, types::Layer, awips::Phenomenon, std::string>
       LayerDescription;
@@ -45,7 +49,7 @@ public:
       std::array<bool, kMapCount_> displayed_ {true, true, true, true};
    };
 
-   typedef boost::container::devector<LayerInfo> LayerVector;
+   typedef std::vector<LayerInfo> LayerVector;
 
    explicit Impl(LayerModel* self) : self_ {self}
    {
@@ -145,7 +149,19 @@ Qt::ItemFlags LayerModel::flags(const QModelIndex& index) const
       break;
    }
 
+   if (layer.movable_)
+   {
+      flags |= Qt::ItemFlag::ItemIsDragEnabled;
+   }
+
+   flags |= Qt::ItemFlag::ItemIsDropEnabled;
+
    return flags;
+}
+
+Qt::DropActions LayerModel::supportedDropActions() const
+{
+   return Qt::DropAction::MoveAction;
 }
 
 QVariant LayerModel::data(const QModelIndex& index, int role) const
@@ -390,6 +406,117 @@ bool LayerModel::setData(const QModelIndex& index,
    return result;
 }
 
+QStringList LayerModel::mimeTypes() const
+{
+   return {kMimeFormat};
+}
+
+QMimeData* LayerModel::mimeData(const QModelIndexList& indexes) const
+{
+   // Get parent QMimeData
+   QMimeData* mimeData = QAbstractTableModel::mimeData(indexes);
+
+   // Generate LayerModel data
+   QByteArray    data {};
+   QDataStream   stream(&data, QIODevice::WriteOnly);
+   std::set<int> rows {};
+
+   for (auto& index : indexes)
+   {
+      if (!rows.contains(index.row()))
+      {
+         rows.insert(index.row());
+         stream << index.row();
+      }
+   }
+
+   // Set LayerModel data in QMimeData
+   mimeData->setData(kMimeFormat, data);
+
+   return mimeData;
+}
+
+bool LayerModel::dropMimeData(const QMimeData* data,
+                              Qt::DropAction /* action */,
+                              int /* row */,
+                              int /* column */,
+                              const QModelIndex& parent)
+{
+   QByteArray       mimeData = data->data(kMimeFormat);
+   QDataStream      stream(&mimeData, QIODevice::ReadOnly);
+   std::vector<int> sourceRows {};
+
+   // Read source rows from QMimeData
+   while (!stream.atEnd())
+   {
+      int sourceRow;
+      stream >> sourceRow;
+      sourceRows.push_back(sourceRow);
+   }
+
+   // Ensure rows are in numerical order
+   std::sort(sourceRows.begin(), sourceRows.end());
+
+   if (sourceRows.back() >= p->layers_.size())
+   {
+      logger_->error("Cannot perform drop action, invalid source rows");
+      return false;
+   }
+
+   // Nothing to insert
+   if (sourceRows.empty())
+   {
+      return false;
+   }
+
+   // Create a copy of the layers to insert (don't insert in-place)
+   std::vector<Impl::LayerInfo> newLayers {};
+   for (auto& sourceRow : sourceRows)
+   {
+      newLayers.push_back(p->layers_.at(sourceRow));
+   }
+
+   // Insert the copied layers
+   auto insertPosition = p->layers_.begin() + parent.row();
+   beginInsertRows(QModelIndex(),
+                   parent.row(),
+                   parent.row() + static_cast<int>(sourceRows.size()) - 1);
+   p->layers_.insert(insertPosition, newLayers.begin(), newLayers.end());
+   endInsertRows();
+
+   return true;
+}
+
+bool LayerModel::removeRows(int row, int count, const QModelIndex& parent)
+{
+   // Validate count
+   if (count <= 0)
+   {
+      return false;
+   }
+
+   // Remove rows
+   auto erasePosition = p->layers_.begin() + row;
+   for (int i = 0; i < count; ++i)
+   {
+      if (erasePosition->movable_)
+      {
+         // Remove the current row if movable
+         beginRemoveRows(parent, row, row);
+         erasePosition = p->layers_.erase(erasePosition);
+         endRemoveRows();
+      }
+      else
+      {
+         // Don't remove immovable rows
+         ++erasePosition;
+         ++row;
+      }
+   }
+
+   return true;
+}
+
 void LayerModel::HandlePlacefileRemoved(const std::string& name)
 {
    auto it =
@@ -489,7 +616,7 @@ void LayerModel::Impl::AddPlacefile(const std::string& name)
 
    // Placefile is new, add row
    self_->beginInsertRows(QModelIndex(), 0, 0);
-   layers_.insert(insertPosition, {types::LayerType::Placefile, name});
+   layers_.insert(insertPosition, {types::LayerType::Placefile, name, true});
    self_->endInsertRows();
 }
 
