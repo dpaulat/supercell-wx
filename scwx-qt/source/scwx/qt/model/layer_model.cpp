@@ -164,6 +164,18 @@ Qt::DropActions LayerModel::supportedDropActions() const
    return Qt::DropAction::MoveAction;
 }
 
+bool LayerModel::IsMovable(int row) const
+{
+   bool movable = false;
+
+   if (0 <= row && static_cast<std::size_t>(row) < p->layers_.size())
+   {
+      movable = p->layers_.at(row).movable_;
+   }
+
+   return movable;
+}
+
 QVariant LayerModel::data(const QModelIndex& index, int role) const
 {
    static const QString enabledString  = QObject::tr("Enabled");

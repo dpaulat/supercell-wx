@@ -43,6 +43,8 @@ public:
    Qt::ItemFlags   flags(const QModelIndex& index) const override;
    Qt::DropActions supportedDropActions() const override;
 
+   bool IsMovable(int row) const;
+
    QVariant data(const QModelIndex& index,
                  int                role = Qt::DisplayRole) const override;
    QVariant headerData(int             section,
