@@ -24,6 +24,9 @@ public:
    ~LayerDialogImpl() = default;
 
    void ConnectSignals();
+   void UpdateMoveButtonsEnabled();
+
+   std::vector<int> GetSelectedRows();
 
    LayerDialog*       self_;
    model::LayerModel* layerModel_;
@@ -69,53 +72,140 @@ LayerDialog::~LayerDialog()
 
 void LayerDialogImpl::ConnectSignals()
 {
+   QObject::connect(self_->ui->layerTreeView->selectionModel(),
+                    &QItemSelectionModel::selectionChanged,
+                    self_,
+                    [this](const QItemSelection& /* selected */,
+                           const QItemSelection& /* deselected */)
+                    { UpdateMoveButtonsEnabled(); });
+
+   QObject::connect(layerModel_,
+                    &QAbstractItemModel::rowsMoved,
+                    self_,
+                    [this]()
+                    {
+                       UpdateMoveButtonsEnabled();
+
+                       auto selectedRows = GetSelectedRows();
+                       if (!selectedRows.empty())
+                       {
+                          self_->ui->layerTreeView->scrollTo(
+                             layerModel_->index(selectedRows.front(), 0));
+                       }
+                    });
+
    QObject::connect(
-      self_->ui->layerTreeView->selectionModel(),
-      &QItemSelectionModel::selectionChanged,
+      self_->ui->moveTopButton,
+      &QAbstractButton::clicked,
       self_,
-      [this](const QItemSelection& /* selected */,
-             const QItemSelection& /* deselected */)
+      [this]()
       {
-         QModelIndexList selectedRows =
-            self_->ui->layerTreeView->selectionModel()->selectedRows();
+         auto selectedRows     = GetSelectedRows();
+         int  sourceRow        = selectedRows.front();
+         int  count            = static_cast<int>(selectedRows.size());
+         int  destinationChild = 0;
 
-         bool itemsSelected    = selectedRows.size() > 0;
-         bool itemsMovableUp   = itemsSelected;
-         bool itemsMovableDown = itemsSelected;
-         int  rowCount         = layerModel_->rowCount();
+         layerModel_->moveRows(
+            QModelIndex(), sourceRow, count, QModelIndex(), destinationChild);
+      });
+   QObject::connect(
+      self_->ui->moveUpButton,
+      &QAbstractButton::clicked,
+      self_,
+      [this]()
+      {
+         auto selectedRows     = GetSelectedRows();
+         int  sourceRow        = selectedRows.front();
+         int  count            = static_cast<int>(selectedRows.size());
+         int  destinationChild = sourceRow - 1;
 
-         for (auto& rowIndex : selectedRows)
+         layerModel_->moveRows(
+            QModelIndex(), sourceRow, count, QModelIndex(), destinationChild);
+      });
+   QObject::connect(
+      self_->ui->moveDownButton,
+      &QAbstractButton::clicked,
+      self_,
+      [this]()
+      {
+         auto selectedRows     = GetSelectedRows();
+         int  sourceRow        = selectedRows.front();
+         int  count            = static_cast<int>(selectedRows.size());
+         int  destinationChild = selectedRows.back() + 2;
+
+         layerModel_->moveRows(
+            QModelIndex(), sourceRow, count, QModelIndex(), destinationChild);
+      });
+   QObject::connect(
+      self_->ui->moveBottomButton,
+      &QAbstractButton::clicked,
+      self_,
+      [this]()
+      {
+         auto selectedRows     = GetSelectedRows();
+         int  sourceRow        = selectedRows.front();
+         int  count            = static_cast<int>(selectedRows.size());
+         int  destinationChild = layerModel_->rowCount();
+
+         layerModel_->moveRows(
+            QModelIndex(), sourceRow, count, QModelIndex(), destinationChild);
+      });
+}
+
+std::vector<int> LayerDialogImpl::GetSelectedRows()
+{
+   QModelIndexList selectedRows =
+      self_->ui->layerTreeView->selectionModel()->selectedRows();
+   std::vector<int> rows {};
+   for (auto& selectedRow : selectedRows)
+   {
+      rows.push_back(selectedRow.row());
+   }
+   std::sort(rows.begin(), rows.end());
+   return rows;
+}
+
+void LayerDialogImpl::UpdateMoveButtonsEnabled()
+{
+   QModelIndexList selectedRows =
+      self_->ui->layerTreeView->selectionModel()->selectedRows();
+
+   bool itemsSelected    = selectedRows.size() > 0;
+   bool itemsMovableUp   = itemsSelected;
+   bool itemsMovableDown = itemsSelected;
+   int  rowCount         = layerModel_->rowCount();
+
+   for (auto& rowIndex : selectedRows)
+   {
+      int row = rowIndex.row();
+      if (!layerModel_->IsMovable(row))
+      {
+         // If an item in the selection is not movable, disable all moves
+         itemsMovableUp   = false;
+         itemsMovableDown = false;
+         break;
+      }
+      else
+      {
+         // If the first row is selected, items cannot be moved up
+         if (row == 0)
          {
-            int row = rowIndex.row();
-            if (!layerModel_->IsMovable(row))
-            {
-               // If an item in the selection is not movable, disable all moves
-               itemsMovableUp   = false;
-               itemsMovableDown = false;
-               break;
-            }
-            else
-            {
-               // If the first row is selected, items cannot be moved up
-               if (row == 0)
-               {
-                  itemsMovableUp = false;
-               }
-
-               // If the last row is selected, items cannot be moved down
-               if (row == rowCount - 1)
-               {
-                  itemsMovableDown = false;
-               }
-            }
+            itemsMovableUp = false;
          }
 
-         // Enable move buttons according to selection
-         self_->ui->moveTopButton->setEnabled(itemsMovableUp);
-         self_->ui->moveUpButton->setEnabled(itemsMovableUp);
-         self_->ui->moveDownButton->setEnabled(itemsMovableDown);
-         self_->ui->moveBottomButton->setEnabled(itemsMovableDown);
-      });
+         // If the last row is selected, items cannot be moved down
+         if (row == rowCount - 1)
+         {
+            itemsMovableDown = false;
+         }
+      }
+   }
+
+   // Enable move buttons according to selection
+   self_->ui->moveTopButton->setEnabled(itemsMovableUp);
+   self_->ui->moveUpButton->setEnabled(itemsMovableUp);
+   self_->ui->moveDownButton->setEnabled(itemsMovableDown);
+   self_->ui->moveBottomButton->setEnabled(itemsMovableDown);
 }
 
 } // namespace ui

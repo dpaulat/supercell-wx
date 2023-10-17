@@ -529,6 +529,62 @@ bool LayerModel::removeRows(int row, int count, const QModelIndex& parent)
    return true;
 }
 
+bool LayerModel::moveRows(const QModelIndex& sourceParent,
+                          int                sourceRow,
+                          int                count,
+                          const QModelIndex& destinationParent,
+                          int                destinationChild)
+{
+   bool moved = false;
+
+   if (sourceParent != destinationParent ||     // Only accept internal moves
+       count < 1 ||                             // Minimum selection size of 1
+       sourceRow < 0 ||                         // Valid source row (start)
+       sourceRow + count > p->layers_.size() || // Valid source row (end)
+       destinationChild < 0 ||                  // Valid destination row
+       destinationChild > p->layers_.size())
+   {
+      return false;
+   }
+
+   if (destinationChild < sourceRow)
+   {
+      // Move up
+      auto first  = p->layers_.begin() + destinationChild;
+      auto middle = p->layers_.begin() + sourceRow;
+      auto last   = middle + count;
+
+      beginMoveRows(sourceParent,
+                    sourceRow,
+                    sourceRow + count - 1,
+                    destinationParent,
+                    destinationChild);
+      std::rotate(first, middle, last);
+      endMoveRows();
+
+      moved = true;
+   }
+   else if (sourceRow + count < destinationChild)
+   {
+      // Move down
+      auto first  = p->layers_.begin() + sourceRow;
+      auto middle = first + count;
+      auto last   = p->layers_.begin() + destinationChild;
+
+      beginMoveRows(sourceParent,
+                    sourceRow,
+                    sourceRow + count - 1,
+                    destinationParent,
+                    destinationChild);
+      std::rotate(first, middle, last);
+      endMoveRows();
+
+      moved = true;
+   }
+
+   return moved;
+}
+
 void LayerModel::HandlePlacefileRemoved(const std::string& name)
 {
    auto it =
