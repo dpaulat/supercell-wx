@@ -50,7 +50,7 @@
          <bool>true</bool>
         </property>
         <property name="selectionMode">
-         <enum>QAbstractItemView::ContiguousSelection</enum>
+         <enum>QAbstractItemView::ExtendedSelection</enum>
         </property>
         <property name="indentation">
          <number>0</number>
@@ -176,7 +176,7 @@
        <number>0</number>
       </property>
       <item>
-       <widget class="QLineEdit" name="lineEdit">
+       <widget class="QLineEdit" name="layerFilter">
         <property name="placeholderText">
          <string>Filter</string>
         </property>

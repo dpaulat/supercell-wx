@@ -4,6 +4,8 @@
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <QSortFilterProxyModel>
+
 namespace scwx
 {
 namespace qt
@@ -18,18 +20,26 @@ class LayerDialogImpl
 {
 public:
    explicit LayerDialogImpl(LayerDialog* self) :
-       self_ {self}, layerModel_ {new model::LayerModel(self)}
+       self_ {self},
+       layerModel_ {new model::LayerModel(self)},
+       layerProxyModel_ {new QSortFilterProxyModel(self_)}
    {
+      layerProxyModel_->setSourceModel(layerModel_);
+      layerProxyModel_->setFilterCaseSensitivity(
+         Qt::CaseSensitivity::CaseInsensitive);
+      layerProxyModel_->setFilterKeyColumn(-1);
    }
    ~LayerDialogImpl() = default;
 
    void ConnectSignals();
    void UpdateMoveButtonsEnabled();
 
-   std::vector<int> GetSelectedRows();
+   std::vector<int>              GetSelectedRows();
+   std::vector<std::vector<int>> GetContiguousRows();
 
-   LayerDialog*       self_;
-   model::LayerModel* layerModel_;
+   LayerDialog*           self_;
+   model::LayerModel*     layerModel_;
+   QSortFilterProxyModel* layerProxyModel_;
 };
 
 LayerDialog::LayerDialog(QWidget* parent) :
@@ -39,7 +49,7 @@ LayerDialog::LayerDialog(QWidget* parent) :
 {
    ui->setupUi(this);
 
-   ui->layerTreeView->setModel(p->layerModel_);
+   ui->layerTreeView->setModel(p->layerProxyModel_);
 
    auto layerViewHeader = ui->layerTreeView->header();
 
@@ -72,6 +82,11 @@ LayerDialog::~LayerDialog()
 
 void LayerDialogImpl::ConnectSignals()
 {
+   QObject::connect(self_->ui->layerFilter,
+                    &QLineEdit::textChanged,
+                    layerProxyModel_,
+                    &QSortFilterProxyModel::setFilterWildcard);
+
    QObject::connect(self_->ui->layerTreeView->selectionModel(),
                     &QItemSelectionModel::selectionChanged,
                     self_,
@@ -94,61 +109,111 @@ void LayerDialogImpl::ConnectSignals()
                        }
                     });
 
-   QObject::connect(
+   QObject::connect( //
       self_->ui->moveTopButton,
       &QAbstractButton::clicked,
       self_,
       [this]()
       {
-         auto selectedRows     = GetSelectedRows();
-         int  sourceRow        = selectedRows.front();
-         int  count            = static_cast<int>(selectedRows.size());
+         auto contiguousRows   = GetContiguousRows();
          int  destinationChild = 0;
 
-         layerModel_->moveRows(
-            QModelIndex(), sourceRow, count, QModelIndex(), destinationChild);
+         for (auto& selectedRows : contiguousRows)
+         {
+            int sourceRow = selectedRows.front();
+            int count     = static_cast<int>(selectedRows.size());
+
+            layerModel_->moveRows(QModelIndex(),
+                                  sourceRow,
+                                  count,
+                                  QModelIndex(),
+                                  destinationChild);
+
+            // Next set of rows should follow rows just added
+            destinationChild += count;
+         }
       });
-   QObject::connect(
+   QObject::connect( //
       self_->ui->moveUpButton,
       &QAbstractButton::clicked,
       self_,
       [this]()
       {
-         auto selectedRows     = GetSelectedRows();
-         int  sourceRow        = selectedRows.front();
-         int  count            = static_cast<int>(selectedRows.size());
-         int  destinationChild = sourceRow - 1;
+         auto contiguousRows   = GetContiguousRows();
+         int  destinationChild = -1;
 
-         layerModel_->moveRows(
-            QModelIndex(), sourceRow, count, QModelIndex(), destinationChild);
+         for (auto& selectedRows : contiguousRows)
+         {
+            int sourceRow = selectedRows.front();
+            int count     = static_cast<int>(selectedRows.size());
+            if (destinationChild == -1)
+            {
+               destinationChild = sourceRow - 1;
+            }
+
+            layerModel_->moveRows(QModelIndex(),
+                                  sourceRow,
+                                  count,
+                                  QModelIndex(),
+                                  destinationChild);
+
+            // Next set of rows should follow rows just added
+            destinationChild += count;
+         }
       });
-   QObject::connect(
+   QObject::connect( //
       self_->ui->moveDownButton,
       &QAbstractButton::clicked,
       self_,
       [this]()
       {
-         auto selectedRows     = GetSelectedRows();
-         int  sourceRow        = selectedRows.front();
-         int  count            = static_cast<int>(selectedRows.size());
-         int  destinationChild = selectedRows.back() + 2;
+         auto contiguousRows   = GetContiguousRows();
+         int  destinationChild = 0;
+         int  offset           = 0;
+         if (!contiguousRows.empty())
+         {
+            destinationChild = contiguousRows.back().back() + 2;
+         }
 
-         layerModel_->moveRows(
-            QModelIndex(), sourceRow, count, QModelIndex(), destinationChild);
+         for (auto& selectedRows : contiguousRows)
+         {
+            int sourceRow = selectedRows.front() - offset;
+            int count     = static_cast<int>(selectedRows.size());
+
+            layerModel_->moveRows(QModelIndex(),
+                                  sourceRow,
+                                  count,
+                                  QModelIndex(),
+                                  destinationChild);
+
+            // Next set of rows should be offset
+            offset += count;
+         }
       });
-   QObject::connect(
+   QObject::connect( //
       self_->ui->moveBottomButton,
       &QAbstractButton::clicked,
       self_,
       [this]()
       {
-         auto selectedRows     = GetSelectedRows();
-         int  sourceRow        = selectedRows.front();
-         int  count            = static_cast<int>(selectedRows.size());
+         auto contiguousRows   = GetContiguousRows();
          int  destinationChild = layerModel_->rowCount();
+         int  offset           = 0;
 
-         layerModel_->moveRows(
-            QModelIndex(), sourceRow, count, QModelIndex(), destinationChild);
+         for (auto& selectedRows : contiguousRows)
+         {
+            int sourceRow = selectedRows.front() - offset;
+            int count     = static_cast<int>(selectedRows.size());
+
+            layerModel_->moveRows(QModelIndex(),
+                                  sourceRow,
+                                  count,
+                                  QModelIndex(),
+                                  destinationChild);
+
+            // Next set of rows should be offset
+            offset += count;
+         }
       });
 }
 
@@ -159,10 +224,40 @@ std::vector<int> LayerDialogImpl::GetSelectedRows()
    std::vector<int> rows {};
    for (auto& selectedRow : selectedRows)
    {
-      rows.push_back(selectedRow.row());
+      rows.push_back(layerProxyModel_->mapToSource(selectedRow).row());
    }
    std::sort(rows.begin(), rows.end());
    return rows;
+}
+
+std::vector<std::vector<int>> LayerDialogImpl::GetContiguousRows()
+{
+   std::vector<std::vector<int>> contiguousRows {};
+   std::vector<int>              currentContiguousRows {};
+   auto                          rows = GetSelectedRows();
+
+   for (auto& row : rows)
+   {
+      // Next row is not contiguous with current row set
+      if (!currentContiguousRows.empty() &&
+          currentContiguousRows.back() + 1 < row)
+      {
+         // Add current row set to contiguous rows, and reset current set
+         contiguousRows.emplace_back(std::move(currentContiguousRows));
+         currentContiguousRows.clear();
+      }
+
+      // Add row to current row set
+      currentContiguousRows.push_back(row);
+   }
+
+   if (!currentContiguousRows.empty())
+   {
+      // Add remaining rows to contiguous rows
+      contiguousRows.emplace_back(currentContiguousRows);
+   }
+
+   return contiguousRows;
 }
 
 void LayerDialogImpl::UpdateMoveButtonsEnabled()
@@ -177,7 +272,7 @@ void LayerDialogImpl::UpdateMoveButtonsEnabled()
 
    for (auto& rowIndex : selectedRows)
    {
-      int row = rowIndex.row();
+      int row = layerProxyModel_->mapToSource(rowIndex).row();
       if (!layerModel_->IsMovable(row))
       {
          // If an item in the selection is not movable, disable all moves
