@@ -2,8 +2,10 @@
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/types/map_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
+#include <scwx/qt/util/json.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <filesystem>
 #include <set>
 #include <variant>
 
@@ -14,6 +16,8 @@
 #include <QMimeData>
 #include <QStyle>
 #include <QStyleOption>
+#include <QStandardPaths>
+#include <boost/json.hpp>
 
 namespace scwx
 {
@@ -33,6 +37,11 @@ static constexpr int kNumColumns = kLastColumn - kFirstColumn + 1;
 static constexpr std::size_t kMapCount_ = 4u;
 
 static const QString kMimeFormat {"application/x.scwx-layer-model"};
+
+static const std::string kTypeName_ {"type"};
+static const std::string kDescriptionName_ {"description"};
+static const std::string kMovableName_ {"movable"};
+static const std::string kDisplayedName_ {"displayed"};
 
 typedef std::
    variant<std::monostate, types::Layer, awips::Phenomenon, std::string>
@@ -76,8 +85,39 @@ public:
    ~Impl() = default;
 
    void AddPlacefile(const std::string& name);
+   void InitializeLayerSettings();
+   void WriteLayerSettings();
+
+   friend void tag_invoke(boost::json::value_from_tag,
+                          boost::json::value& jv,
+                          const LayerInfo&    record)
+   {
+      std::string description {};
+
+      if (std::holds_alternative<awips::Phenomenon>(record.description_))
+      {
+         description = awips::GetPhenomenonCode(
+            std::get<awips::Phenomenon>(record.description_));
+      }
+      else if (std::holds_alternative<types::Layer>(record.description_))
+      {
+         description =
+            types::GetLayerName(std::get<types::Layer>(record.description_));
+      }
+      else if (std::holds_alternative<std::string>(record.description_))
+      {
+         description = std::get<std::string>(record.description_);
+      }
+
+      jv = {{kTypeName_, types::GetLayerTypeName(record.type_)},
+            {kDescriptionName_, description},
+            {kMovableName_, record.movable_},
+            {kDisplayedName_, boost::json::value_from(record.displayed_)}};
+   }
 
    LayerModel* self_;
+
+   std::string layerSettingsPath_ {};
 
    std::shared_ptr<manager::PlacefileManager> placefileManager_ {
       manager::PlacefileManager::Instance()};
@@ -107,8 +147,41 @@ LayerModel::LayerModel(QObject* parent) :
            &manager::PlacefileManager::PlacefileUpdated,
            this,
            &LayerModel::HandlePlacefileUpdate);
+
+   p->InitializeLayerSettings();
 }
-LayerModel::~LayerModel() = default;
+
+LayerModel::~LayerModel()
+{
+   // Write layer settings on shutdown
+   p->WriteLayerSettings();
+};
+
+void LayerModel::Impl::InitializeLayerSettings()
+{
+   std::string appDataPath {
+      QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
+         .toStdString()};
+
+   if (!std::filesystem::exists(appDataPath))
+   {
+      if (!std::filesystem::create_directories(appDataPath))
+      {
+         logger_->error("Unable to create application data directory: \"{}\"",
+                        appDataPath);
+      }
+   }
+
+   layerSettingsPath_ = appDataPath + "/layers.json";
+}
+
+void LayerModel::Impl::WriteLayerSettings()
+{
+   logger_->info("Saving layer settings");
+
+   auto layerJson = boost::json::value_from(layers_);
+   util::json::WriteJsonFile(layerSettingsPath_, layerJson);
+}
 
 int LayerModel::rowCount(const QModelIndex& parent) const
 {
