@@ -94,6 +94,10 @@ public:
       std::unique_lock refreshLock(refreshMutex_);
       std::unique_lock timerLock(timerMutex_);
       refreshTimer_.cancel();
+      timerLock.unlock();
+      refreshLock.unlock();
+
+      threadPool_.join();
    }
 
    bool                 refresh_enabled() const;
