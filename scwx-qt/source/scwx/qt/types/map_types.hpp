@@ -15,7 +15,8 @@ enum class LayerType
    Radar,
    Alert,
    Placefile,
-   Information
+   Information,
+   Unknown
 };
 
 enum class Layer
@@ -23,7 +24,8 @@ enum class Layer
    MapOverlay,
    ColorTable,
    MapSymbology,
-   MapUnderlay
+   MapUnderlay,
+   Unknown
 };
 
 enum class AnimationState
@@ -46,8 +48,12 @@ enum class NoUpdateReason
    InvalidData
 };
 
+LayerType   GetLayerType(const std::string& name);
 std::string GetLayerTypeName(LayerType layerType);
+
+Layer       GetLayer(const std::string& name);
 std::string GetLayerName(Layer layer);
+
 std::string GetMapTimeName(MapTime mapTime);
 
 } // namespace types
