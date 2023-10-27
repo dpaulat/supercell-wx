@@ -17,14 +17,21 @@ static const std::unordered_map<LayerType, std::string> layerTypeName_ {
    {LayerType::Alert, "Alert"},
    {LayerType::Placefile, "Placefile"},
    {LayerType::Information, "Information"},
+   {LayerType::Data, "Data"},
    {LayerType::Unknown, "?"}};
 
-static const std::unordered_map<Layer, std::string> layerName_ {
-   {Layer::MapOverlay, "Map Overlay"},
-   {Layer::ColorTable, "Color Table"},
-   {Layer::MapSymbology, "Map Symbology"},
-   {Layer::MapUnderlay, "Map Underlay"},
-   {Layer::Unknown, "?"}};
+static const std::unordered_map<DataLayer, std::string> dataLayerName_ {
+   {DataLayer::RadarRange, "Radar Range"}, {DataLayer::Unknown, "?"}};
+
+static const std::unordered_map<InformationLayer, std::string>
+   informationLayerName_ {{InformationLayer::MapOverlay, "Map Overlay"},
+                          {InformationLayer::ColorTable, "Color Table"},
+                          {InformationLayer::Unknown, "?"}};
+
+static const std::unordered_map<MapLayer, std::string> mapLayerName_ {
+   {MapLayer::MapSymbology, "Map Symbology"},
+   {MapLayer::MapUnderlay, "Map Underlay"},
+   {MapLayer::Unknown, "?"}};
 
 LayerType GetLayerType(const std::string& name)
 {
@@ -49,27 +56,73 @@ std::string GetLayerTypeName(LayerType layerType)
    return layerTypeName_.at(layerType);
 }
 
-Layer GetLayer(const std::string& name)
+DataLayer GetDataLayer(const std::string& name)
 {
    auto result =
-      std::find_if(layerName_.cbegin(),
-                   layerName_.cend(),
-                   [&](const std::pair<Layer, std::string>& pair) -> bool
+      std::find_if(dataLayerName_.cbegin(),
+                   dataLayerName_.cend(),
+                   [&](const std::pair<DataLayer, std::string>& pair) -> bool
                    { return boost::iequals(pair.second, name); });
 
-   if (result != layerName_.cend())
+   if (result != dataLayerName_.cend())
    {
       return result->first;
    }
    else
    {
-      return Layer::Unknown;
+      return DataLayer::Unknown;
    }
 }
 
-std::string GetLayerName(Layer layer)
+std::string GetDataLayerName(DataLayer layer)
 {
-   return layerName_.at(layer);
+   return dataLayerName_.at(layer);
+}
+
+InformationLayer GetInformationLayer(const std::string& name)
+{
+   auto result = std::find_if(
+      informationLayerName_.cbegin(),
+      informationLayerName_.cend(),
+      [&](const std::pair<InformationLayer, std::string>& pair) -> bool
+      { return boost::iequals(pair.second, name); });
+
+   if (result != informationLayerName_.cend())
+   {
+      return result->first;
+   }
+   else
+   {
+      return InformationLayer::Unknown;
+   }
+}
+
+std::string GetInformationLayerName(InformationLayer layer)
+{
+   return informationLayerName_.at(layer);
+}
+
+MapLayer GetMapLayer(const std::string& name)
+{
+   auto result =
+      std::find_if(mapLayerName_.cbegin(),
+                   mapLayerName_.cend(),
+                   [&](const std::pair<MapLayer, std::string>& pair) -> bool
+                   { return boost::iequals(pair.second, name); });
+
+   if (result != mapLayerName_.cend())
+   {
+      return result->first;
+   }
+   else
+   {
+      return MapLayer::Unknown;
+   }
+}
+
+std::string GetMapLayerName(MapLayer layer)
+{
+   return mapLayerName_.at(layer);
 }
 
 } // namespace types

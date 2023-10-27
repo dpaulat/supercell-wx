@@ -44,9 +44,13 @@ static const std::string kDescriptionName_ {"description"};
 static const std::string kMovableName_ {"movable"};
 static const std::string kDisplayedName_ {"displayed"};
 
-typedef std::
-   variant<std::monostate, types::Layer, awips::Phenomenon, std::string>
-      LayerDescription;
+typedef std::variant<std::monostate,
+                     types::DataLayer,
+                     types::InformationLayer,
+                     types::MapLayer,
+                     awips::Phenomenon,
+                     std::string>
+   LayerDescription;
 
 struct LayerInfo
 {
@@ -59,23 +63,24 @@ struct LayerInfo
 typedef boost::container::stable_vector<LayerInfo> LayerVector;
 
 static const std::vector<LayerInfo> kDefaultLayers_ {
-   {types::LayerType::Information, types::Layer::MapOverlay, false},
-   {types::LayerType::Information, types::Layer::ColorTable, false},
+   {types::LayerType::Information, types::InformationLayer::MapOverlay, false},
+   {types::LayerType::Information, types::InformationLayer::ColorTable, false},
+   {types::LayerType::Data, types::DataLayer::RadarRange, true},
    {types::LayerType::Alert, awips::Phenomenon::Tornado, true},
    {types::LayerType::Alert, awips::Phenomenon::SnowSquall, true},
    {types::LayerType::Alert, awips::Phenomenon::SevereThunderstorm, true},
    {types::LayerType::Alert, awips::Phenomenon::FlashFlood, true},
    {types::LayerType::Alert, awips::Phenomenon::Marine, true},
-   {types::LayerType::Map, types::Layer::MapSymbology, false},
+   {types::LayerType::Map, types::MapLayer::MapSymbology, false},
    {types::LayerType::Radar, std::monostate {}, true},
-   {types::LayerType::Map, types::Layer::MapUnderlay, false},
+   {types::LayerType::Map, types::MapLayer::MapUnderlay, false},
 };
 
 static const std::vector<LayerInfo> kImmovableLayers_ {
-   {types::LayerType::Information, types::Layer::MapOverlay, false},
-   {types::LayerType::Information, types::Layer::ColorTable, false},
-   {types::LayerType::Map, types::Layer::MapSymbology, false},
-   {types::LayerType::Map, types::Layer::MapUnderlay, false},
+   {types::LayerType::Information, types::InformationLayer::MapOverlay, false},
+   {types::LayerType::Information, types::InformationLayer::ColorTable, false},
+   {types::LayerType::Map, types::MapLayer::MapSymbology, false},
+   {types::LayerType::Map, types::MapLayer::MapUnderlay, false},
 };
 
 static const std::array<awips::Phenomenon, 5> kAlertPhenomena_ {
@@ -206,8 +211,40 @@ void LayerModel::Impl::ReadLayerSettings()
 
 void LayerModel::Impl::ValidateLayerSettings(LayerVector& layers)
 {
+   // Validate layer properties
+   for (auto it = layers.begin(); it != layers.end();)
+   {
+      // If the layer is invalid, remove it
+      if (it->type_ == types::LayerType::Unknown ||
+          (std::holds_alternative<types::DataLayer>(it->description_) &&
+           std::get<types::DataLayer>(it->description_) ==
+              types::DataLayer::Unknown) ||
+          (std::holds_alternative<types::InformationLayer>(it->description_) &&
+           std::get<types::InformationLayer>(it->description_) ==
+              types::InformationLayer::Unknown) ||
+          (std::holds_alternative<types::MapLayer>(it->description_) &&
+           std::get<types::MapLayer>(it->description_) ==
+              types::MapLayer::Unknown) ||
+          (std::holds_alternative<awips::Phenomenon>(it->description_) &&
+           std::get<awips::Phenomenon>(it->description_) ==
+              awips::Phenomenon::Unknown))
+      {
+         // Erase the current layer and continue
+         it = layers.erase(it);
+         continue;
+      }
+
+      // Ensure layers are appropriately marked movable
+      it->movable_ = (it->type_ != types::LayerType::Information &&
+                      it->type_ != types::LayerType::Map);
+
+      // Continue to the next layer
+      ++it;
+   }
+
    // Validate immovable layers
    std::vector<LayerVector::iterator> immovableIterators {};
+   LayerVector::iterator              colorTableIterator {};
    LayerVector::iterator              mapSymbologyIterator {};
    LayerVector::iterator              mapUnderlayIterator {};
    for (auto& immovableLayer : kImmovableLayers_)
@@ -253,15 +290,27 @@ void LayerModel::Impl::ValidateLayerSettings(LayerVector& layers)
       }
 
       // Store positional iterators
-      if (it->type_ == types::LayerType::Map)
+      if (it->type_ == types::LayerType::Information)
       {
-         switch (std::get<types::Layer>(it->description_))
+         switch (std::get<types::InformationLayer>(it->description_))
          {
-         case types::Layer::MapSymbology:
+         case types::InformationLayer::ColorTable:
+            colorTableIterator = it;
+            break;
+
+         default:
+            break;
+         }
+      }
+      else if (it->type_ == types::LayerType::Map)
+      {
+         switch (std::get<types::MapLayer>(it->description_))
+         {
+         case types::MapLayer::MapSymbology:
             mapSymbologyIterator = it;
             break;
 
-         case types::Layer::MapUnderlay:
+         case types::MapLayer::MapUnderlay:
             mapUnderlayIterator = it;
             break;
 
@@ -274,7 +323,36 @@ void LayerModel::Impl::ValidateLayerSettings(LayerVector& layers)
       immovableIterators.push_back(it);
    }
 
+   // Validate data layers
+   std::vector<LayerVector::iterator> dataIterators {};
+   for (const auto& dataLayer : types::DataLayerIterator())
+   {
+      // Find the data layer
+      auto it = std::find_if(layers.begin(),
+                             layers.end(),
+                             [&dataLayer](const LayerInfo& layer)
+                             {
+                                return layer.type_ == types::LayerType::Data &&
+                                       std::get<types::DataLayer>(
+                                          layer.description_) == dataLayer;
+                             });
+
+      if (it == layers.end())
+      {
+         // If this is the first data layer, insert after the color table layer,
+         // otherwise, insert after the previous data layer
+         LayerVector::iterator insertPosition = dataIterators.empty() ?
+                                                   colorTableIterator + 1 :
+                                                   dataIterators.back() + 1;
+         it =
+            layers.insert(insertPosition, {types::LayerType::Data, dataLayer});
+      }
+
+      dataIterators.push_back(it);
+   }
+
    // Validate alert layers
+   std::vector<LayerVector::iterator> alertIterators {};
    for (auto& phenomenon : kAlertPhenomena_)
    {
       // Find the alert layer
@@ -289,16 +367,24 @@ void LayerModel::Impl::ValidateLayerSettings(LayerVector& layers)
 
       if (it == layers.end())
       {
-         layers.insert(mapSymbologyIterator,
-                       {types::LayerType::Alert, phenomenon});
+         // Insert before the map symbology layer
+         it = layers.insert(mapSymbologyIterator,
+                            {types::LayerType::Alert, phenomenon});
       }
+
+      alertIterators.push_back(it);
    }
 
-   // Ensure layers are appropriately marked movable
-   for (auto& layer : layers)
+   // Validate the radar layer
+   auto it = std::find_if(layers.begin(),
+                          layers.end(),
+                          [](const LayerInfo& layer)
+                          { return layer.type_ == types::LayerType::Radar; });
+   if (it == layers.end())
    {
-      layer.movable_ = (layer.type_ != types::LayerType::Information &&
-                        layer.type_ != types::LayerType::Map);
+      // Insert before the map underlay layer
+      it = layers.insert(mapUnderlayIterator,
+                         {types::LayerType::Radar, std::monostate {}});
    }
 }
 
@@ -470,10 +556,23 @@ QVariant LayerModel::data(const QModelIndex& index, int role) const
                return QString::fromStdString(
                   std::get<std::string>(layer.description_));
             }
-            else if (std::holds_alternative<types::Layer>(layer.description_))
+            else if (std::holds_alternative<types::DataLayer>(
+                        layer.description_))
             {
-               return QString::fromStdString(types::GetLayerName(
-                  std::get<types::Layer>(layer.description_)));
+               return QString::fromStdString(types::GetDataLayerName(
+                  std::get<types::DataLayer>(layer.description_)));
+            }
+            else if (std::holds_alternative<types::InformationLayer>(
+                        layer.description_))
+            {
+               return QString::fromStdString(types::GetInformationLayerName(
+                  std::get<types::InformationLayer>(layer.description_)));
+            }
+            else if (std::holds_alternative<types::MapLayer>(
+                        layer.description_))
+            {
+               return QString::fromStdString(types::GetMapLayerName(
+                  std::get<types::MapLayer>(layer.description_)));
             }
             else if (std::holds_alternative<awips::Phenomenon>(
                         layer.description_))
@@ -873,9 +972,10 @@ void LayerModel::Impl::AddPlacefile(const std::string& name)
       layers_.end(),
       [](const LayerInfo& layerInfo)
       {
-         return std::holds_alternative<types::Layer>(layerInfo.description_) &&
-                std::get<types::Layer>(layerInfo.description_) ==
-                   types::Layer::ColorTable;
+         return std::holds_alternative<types::InformationLayer>(
+                   layerInfo.description_) &&
+                std::get<types::InformationLayer>(layerInfo.description_) ==
+                   types::InformationLayer::ColorTable;
       });
    if (insertPosition != layers_.end())
    {
@@ -899,10 +999,21 @@ void tag_invoke(boost::json::value_from_tag,
       description = awips::GetPhenomenonCode(
          std::get<awips::Phenomenon>(record.description_));
    }
-   else if (std::holds_alternative<types::Layer>(record.description_))
+   else if (std::holds_alternative<types::DataLayer>(record.description_))
+   {
+      description = types::GetDataLayerName(
+         std::get<types::DataLayer>(record.description_));
+   }
+   else if (std::holds_alternative<types::InformationLayer>(
+               record.description_))
+   {
+      description = types::GetInformationLayerName(
+         std::get<types::InformationLayer>(record.description_));
+   }
+   else if (std::holds_alternative<types::MapLayer>(record.description_))
    {
       description =
-         types::GetLayerName(std::get<types::Layer>(record.description_));
+         types::GetMapLayerName(std::get<types::MapLayer>(record.description_));
    }
    else if (std::holds_alternative<std::string>(record.description_))
    {
@@ -940,10 +1051,17 @@ LayerInfo tag_invoke(boost::json::value_to_tag<LayerInfo>,
 
    LayerDescription description {};
 
-   if (layerType == types::LayerType::Map ||
-       layerType == types::LayerType::Information)
+   if (layerType == types::LayerType::Map)
    {
-      description = types::GetLayer(descriptionName);
+      description = types::GetMapLayer(descriptionName);
+   }
+   else if (layerType == types::LayerType::Information)
+   {
+      description = types::GetInformationLayer(descriptionName);
+   }
+   else if (layerType == types::LayerType::Data)
+   {
+      description = types::GetDataLayer(descriptionName);
    }
    else if (layerType == types::LayerType::Radar)
    {
