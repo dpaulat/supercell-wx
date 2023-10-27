@@ -71,6 +71,13 @@ static const std::vector<LayerInfo> kDefaultLayers_ {
    {types::LayerType::Map, types::Layer::MapUnderlay, false},
 };
 
+static const std::vector<LayerInfo> kImmovableLayers_ {
+   {types::LayerType::Information, types::Layer::MapOverlay, false},
+   {types::LayerType::Information, types::Layer::ColorTable, false},
+   {types::LayerType::Map, types::Layer::MapSymbology, false},
+   {types::LayerType::Map, types::Layer::MapUnderlay, false},
+};
+
 class LayerModel::Impl
 {
 public:
@@ -192,8 +199,56 @@ void LayerModel::Impl::ReadLayerSettings()
 
 void LayerModel::Impl::ValidateLayerSettings(LayerVector& layers)
 {
-   // TODO
-   Q_UNUSED(layers);
+   // Validate immovable layers
+   std::vector<LayerVector::iterator> immovableIterators {};
+   for (auto& immovableLayer : kImmovableLayers_)
+   {
+      // Set the default displayed state for a layer that is not found
+      std::array<bool, kMapCount_> displayed {true, true, true, true};
+
+      // Find the immovable layer
+      auto it = std::find_if(layers.begin(),
+                             layers.end(),
+                             [&immovableLayer](const LayerInfo& layer)
+                             {
+                                return layer.type_ == immovableLayer.type_ &&
+                                       layer.description_ ==
+                                          immovableLayer.description_;
+                             });
+
+      // If the immovable layer is out of order
+      if (!immovableIterators.empty() && immovableIterators.back() > it)
+      {
+         // Save the displayed state of the immovable layer
+         displayed = it->displayed_;
+
+         // Remove the layer from the list, to re-add it later
+         layers.erase(it);
+
+         // Treat the layer as not found
+         it = layers.end();
+      }
+
+      // If the immovable layer is not found
+      if (it == layers.end())
+      {
+         // If this is the first immovable layer, insert at the beginning,
+         // otherwise, insert after the previous immovable layer
+         LayerVector::iterator insertPosition =
+            immovableIterators.empty() ? layers.begin() :
+                                         immovableIterators.back() + 1;
+         it = layers.insert(insertPosition, immovableLayer);
+
+         // Restore the displayed state of the immovable layer
+         it->displayed_ = displayed;
+      }
+
+      // Add the immovable iterator to the list
+      immovableIterators.push_back(it);
+
+      // Ensure the layer is marked immovable
+      it->movable_ = false;
+   }
 }
 
 void LayerModel::Impl::WriteLayerSettings()
