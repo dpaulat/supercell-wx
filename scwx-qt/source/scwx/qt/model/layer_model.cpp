@@ -52,7 +52,7 @@ struct LayerInfo
 {
    types::LayerType             type_;
    LayerDescription             description_;
-   bool                         movable_;
+   bool                         movable_ {true};
    std::array<bool, kMapCount_> displayed_ {true, true, true, true};
 };
 
@@ -77,6 +77,13 @@ static const std::vector<LayerInfo> kImmovableLayers_ {
    {types::LayerType::Map, types::Layer::MapSymbology, false},
    {types::LayerType::Map, types::Layer::MapUnderlay, false},
 };
+
+static const std::array<awips::Phenomenon, 5> kAlertPhenomena_ {
+   awips::Phenomenon::Tornado,
+   awips::Phenomenon::SnowSquall,
+   awips::Phenomenon::SevereThunderstorm,
+   awips::Phenomenon::FlashFlood,
+   awips::Phenomenon::Marine};
 
 class LayerModel::Impl
 {
@@ -201,6 +208,8 @@ void LayerModel::Impl::ValidateLayerSettings(LayerVector& layers)
 {
    // Validate immovable layers
    std::vector<LayerVector::iterator> immovableIterators {};
+   LayerVector::iterator              mapSymbologyIterator {};
+   LayerVector::iterator              mapUnderlayIterator {};
    for (auto& immovableLayer : kImmovableLayers_)
    {
       // Set the default displayed state for a layer that is not found
@@ -243,11 +252,53 @@ void LayerModel::Impl::ValidateLayerSettings(LayerVector& layers)
          it->displayed_ = displayed;
       }
 
+      // Store positional iterators
+      if (it->type_ == types::LayerType::Map)
+      {
+         switch (std::get<types::Layer>(it->description_))
+         {
+         case types::Layer::MapSymbology:
+            mapSymbologyIterator = it;
+            break;
+
+         case types::Layer::MapUnderlay:
+            mapUnderlayIterator = it;
+            break;
+
+         default:
+            break;
+         }
+      }
+
       // Add the immovable iterator to the list
       immovableIterators.push_back(it);
+   }
 
-      // Ensure the layer is marked immovable
-      it->movable_ = false;
+   // Validate alert layers
+   for (auto& phenomenon : kAlertPhenomena_)
+   {
+      // Find the alert layer
+      auto it = std::find_if(layers.begin(),
+                             layers.end(),
+                             [&phenomenon](const LayerInfo& layer)
+                             {
+                                return layer.type_ == types::LayerType::Alert &&
+                                       std::get<awips::Phenomenon>(
+                                          layer.description_) == phenomenon;
+                             });
+
+      if (it == layers.end())
+      {
+         layers.insert(mapSymbologyIterator,
+                       {types::LayerType::Alert, phenomenon});
+      }
+   }
+
+   // Ensure layers are appropriately marked movable
+   for (auto& layer : layers)
+   {
+      layer.movable_ = (layer.type_ != types::LayerType::Information &&
+                        layer.type_ != types::LayerType::Map);
    }
 }
 
