@@ -1,6 +1,6 @@
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
-#include <scwx/qt/types/map_types.hpp>
+#include <scwx/qt/types/layer_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/util/json.hpp>
 #include <scwx/util/logger.hpp>
