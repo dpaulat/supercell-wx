@@ -17,6 +17,7 @@
 #include <QStyle>
 #include <QStyleOption>
 #include <QStandardPaths>
+#include <boost/container/stable_vector.hpp>
 #include <boost/json.hpp>
 
 namespace scwx
@@ -47,73 +48,41 @@ typedef std::
    variant<std::monostate, types::Layer, awips::Phenomenon, std::string>
       LayerDescription;
 
+struct LayerInfo
+{
+   types::LayerType             type_;
+   LayerDescription             description_;
+   bool                         movable_;
+   std::array<bool, kMapCount_> displayed_ {true, true, true, true};
+};
+
+typedef boost::container::stable_vector<LayerInfo> LayerVector;
+
+static const std::vector<LayerInfo> kDefaultLayers_ {
+   {types::LayerType::Information, types::Layer::MapOverlay, false},
+   {types::LayerType::Information, types::Layer::ColorTable, false},
+   {types::LayerType::Alert, awips::Phenomenon::Tornado, true},
+   {types::LayerType::Alert, awips::Phenomenon::SnowSquall, true},
+   {types::LayerType::Alert, awips::Phenomenon::SevereThunderstorm, true},
+   {types::LayerType::Alert, awips::Phenomenon::FlashFlood, true},
+   {types::LayerType::Alert, awips::Phenomenon::Marine, true},
+   {types::LayerType::Map, types::Layer::MapSymbology, false},
+   {types::LayerType::Radar, std::monostate {}, true},
+   {types::LayerType::Map, types::Layer::MapUnderlay, false},
+};
+
 class LayerModel::Impl
 {
 public:
-   struct LayerInfo
-   {
-      types::LayerType             type_;
-      LayerDescription             description_;
-      bool                         movable_;
-      std::array<bool, kMapCount_> displayed_ {true, true, true, true};
-   };
-
-   typedef std::vector<LayerInfo> LayerVector;
-
-   explicit Impl(LayerModel* self) : self_ {self}
-   {
-      layers_.emplace_back(
-         types::LayerType::Information, types::Layer::MapOverlay, false);
-      layers_.emplace_back(
-         types::LayerType::Information, types::Layer::ColorTable, false);
-      layers_.emplace_back(
-         types::LayerType::Alert, awips::Phenomenon::Tornado, true);
-      layers_.emplace_back(
-         types::LayerType::Alert, awips::Phenomenon::SnowSquall, true);
-      layers_.emplace_back(
-         types::LayerType::Alert, awips::Phenomenon::SevereThunderstorm, true);
-      layers_.emplace_back(
-         types::LayerType::Alert, awips::Phenomenon::FlashFlood, true);
-      layers_.emplace_back(
-         types::LayerType::Alert, awips::Phenomenon::Marine, true);
-      layers_.emplace_back(
-         types::LayerType::Map, types::Layer::MapSymbology, false);
-      layers_.emplace_back(types::LayerType::Radar, std::monostate {}, true);
-      layers_.emplace_back(
-         types::LayerType::Map, types::Layer::MapUnderlay, false);
-   }
+   explicit Impl(LayerModel* self) : self_ {self} {}
    ~Impl() = default;
 
    void AddPlacefile(const std::string& name);
    void InitializeLayerSettings();
+   void ReadLayerSettings();
    void WriteLayerSettings();
 
-   friend void tag_invoke(boost::json::value_from_tag,
-                          boost::json::value& jv,
-                          const LayerInfo&    record)
-   {
-      std::string description {};
-
-      if (std::holds_alternative<awips::Phenomenon>(record.description_))
-      {
-         description = awips::GetPhenomenonCode(
-            std::get<awips::Phenomenon>(record.description_));
-      }
-      else if (std::holds_alternative<types::Layer>(record.description_))
-      {
-         description =
-            types::GetLayerName(std::get<types::Layer>(record.description_));
-      }
-      else if (std::holds_alternative<std::string>(record.description_))
-      {
-         description = std::get<std::string>(record.description_);
-      }
-
-      jv = {{kTypeName_, types::GetLayerTypeName(record.type_)},
-            {kDescriptionName_, description},
-            {kMovableName_, record.movable_},
-            {kDisplayedName_, boost::json::value_from(record.displayed_)}};
-   }
+   static void ValidateLayerSettings(LayerVector& layers);
 
    LayerModel* self_;
 
@@ -149,6 +118,12 @@ LayerModel::LayerModel(QObject* parent) :
            &LayerModel::HandlePlacefileUpdate);
 
    p->InitializeLayerSettings();
+   p->ReadLayerSettings();
+
+   if (p->layers_.empty())
+   {
+      p->layers_.assign(kDefaultLayers_.cbegin(), kDefaultLayers_.cend());
+   }
 }
 
 LayerModel::~LayerModel()
@@ -173,6 +148,52 @@ void LayerModel::Impl::InitializeLayerSettings()
    }
 
    layerSettingsPath_ = appDataPath + "/layers.json";
+}
+
+void LayerModel::Impl::ReadLayerSettings()
+{
+   logger_->info("Reading layer settings");
+
+   boost::json::value layerJson = nullptr;
+   LayerVector        newLayers {};
+
+   // Determine if layer settings exists
+   if (std::filesystem::exists(layerSettingsPath_))
+   {
+      layerJson = util::json::ReadJsonFile(layerSettingsPath_);
+   }
+
+   // If layer settings was successfully read
+   if (layerJson != nullptr && layerJson.is_array())
+   {
+      // For each layer entry
+      auto& layerArray = layerJson.as_array();
+      for (auto& layerEntry : layerArray)
+      {
+         try
+         {
+            // Convert layer entry to a LayerInfo record, and add to new layers
+            newLayers.emplace_back(
+               boost::json::value_to<LayerInfo>(layerEntry));
+         }
+         catch (const std::exception& ex)
+         {
+            logger_->warn("Invalid layer entry: {}", ex.what());
+         }
+      }
+
+      // Validate and correct read layers
+      ValidateLayerSettings(newLayers);
+
+      // Assign read layers
+      layers_.swap(newLayers);
+   }
+}
+
+void LayerModel::Impl::ValidateLayerSettings(LayerVector& layers)
+{
+   // TODO
+   Q_UNUSED(layers);
 }
 
 void LayerModel::Impl::WriteLayerSettings()
@@ -555,7 +576,7 @@ bool LayerModel::dropMimeData(const QMimeData* data,
    }
 
    // Create a copy of the layers to insert (don't insert in-place)
-   std::vector<Impl::LayerInfo> newLayers {};
+   std::vector<LayerInfo> newLayers {};
    for (auto& sourceRow : sourceRows)
    {
       newLayers.push_back(p->layers_.at(sourceRow));
@@ -744,7 +765,7 @@ void LayerModel::Impl::AddPlacefile(const std::string& name)
    auto insertPosition = std::find_if(
       layers_.begin(),
       layers_.end(),
-      [](const Impl::LayerInfo& layerInfo)
+      [](const LayerInfo& layerInfo)
       {
          return std::holds_alternative<types::Layer>(layerInfo.description_) &&
                 std::get<types::Layer>(layerInfo.description_) ==
@@ -759,6 +780,83 @@ void LayerModel::Impl::AddPlacefile(const std::string& name)
    self_->beginInsertRows(QModelIndex(), 0, 0);
    layers_.insert(insertPosition, {types::LayerType::Placefile, name, true});
    self_->endInsertRows();
+}
+
+void tag_invoke(boost::json::value_from_tag,
+                boost::json::value& jv,
+                const LayerInfo&    record)
+{
+   std::string description {};
+
+   if (std::holds_alternative<awips::Phenomenon>(record.description_))
+   {
+      description = awips::GetPhenomenonCode(
+         std::get<awips::Phenomenon>(record.description_));
+   }
+   else if (std::holds_alternative<types::Layer>(record.description_))
+   {
+      description =
+         types::GetLayerName(std::get<types::Layer>(record.description_));
+   }
+   else if (std::holds_alternative<std::string>(record.description_))
+   {
+      description = std::get<std::string>(record.description_);
+   }
+
+   jv = {{kTypeName_, types::GetLayerTypeName(record.type_)},
+         {kDescriptionName_, description},
+         {kMovableName_, record.movable_},
+         {kDisplayedName_, boost::json::value_from(record.displayed_)}};
+}
+
+template<typename T, std::size_t n>
+std::array<T, n> tag_invoke(boost::json::value_to_tag<std::array<T, n>>,
+                            const boost::json::value& jv)
+{
+   std::array<T, n>   array {};
+   boost::json::array jsonArray = jv.as_array();
+
+   for (std::size_t i = 0; i < n && i < jsonArray.size(); ++i)
+   {
+      array[i] = jsonArray[i];
+   }
+
+   return array;
+}
+
+LayerInfo tag_invoke(boost::json::value_to_tag<LayerInfo>,
+                     const boost::json::value& jv)
+{
+   const types::LayerType layerType = types::GetLayerType(
+      boost::json::value_to<std::string>(jv.at(kTypeName_)));
+   const std::string descriptionName =
+      boost::json::value_to<std::string>(jv.at(kDescriptionName_));
+
+   LayerDescription description {};
+
+   if (layerType == types::LayerType::Map ||
+       layerType == types::LayerType::Information)
+   {
+      description = types::GetLayer(descriptionName);
+   }
+   else if (layerType == types::LayerType::Radar)
+   {
+      description = std::monostate {};
+   }
+   else if (layerType == types::LayerType::Alert)
+   {
+      description = awips::GetPhenomenon(descriptionName);
+   }
+   else
+   {
+      description = descriptionName;
+   }
+
+   return LayerInfo {
+      layerType,
+      description,
+      jv.at(kMovableName_).as_bool(),
+      boost::json::value_to<std::array<bool, 4>>(jv.at(kDisplayedName_))};
 }
 
 } // namespace model
