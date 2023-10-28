@@ -396,6 +396,40 @@ void LayerModel::Impl::WriteLayerSettings()
    util::json::WriteJsonFile(layerSettingsPath_, layerJson);
 }
 
+void LayerModel::ResetLayers()
+{
+   // Initialize a new layer vector from the default
+   LayerVector newLayers {};
+   newLayers.assign(kDefaultLayers_.cbegin(), kDefaultLayers_.cend());
+
+   auto colorTableIterator = std::find_if(
+      newLayers.begin(),
+      newLayers.end(),
+      [](const LayerInfo& layerInfo)
+      {
+         return std::holds_alternative<types::InformationLayer>(
+                   layerInfo.description_) &&
+                std::get<types::InformationLayer>(layerInfo.description_) ==
+                   types::InformationLayer::ColorTable;
+      });
+
+   // Add all existing placefile layers
+   for (auto it = p->layers_.rbegin(); it != p->layers_.rend(); ++it)
+   {
+      if (it->type_ == types::LayerType::Placefile)
+      {
+         newLayers.insert(
+            colorTableIterator + 1,
+            {it->type_, it->description_, it->movable_, it->displayed_});
+      }
+   }
+
+   // Swap the model
+   beginResetModel();
+   p->layers_.swap(newLayers);
+   endResetModel();
+}
+
 int LayerModel::rowCount(const QModelIndex& parent) const
 {
    return parent.isValid() ? 0 : static_cast<int>(p->layers_.size());

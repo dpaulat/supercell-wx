@@ -4,6 +4,7 @@
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <QPushButton>
 #include <QSortFilterProxyModel>
 
 namespace scwx
@@ -82,6 +83,12 @@ LayerDialog::~LayerDialog()
 
 void LayerDialogImpl::ConnectSignals()
 {
+   QObject::connect(
+      self_->ui->buttonBox->button(QDialogButtonBox::StandardButton::Reset),
+      &QAbstractButton::clicked,
+      self_,
+      [this]() { layerModel_->ResetLayers(); });
+
    QObject::connect(self_->ui->layerFilter,
                     &QLineEdit::textChanged,
                     layerProxyModel_,
