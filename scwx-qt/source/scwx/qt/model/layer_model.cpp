@@ -839,7 +839,7 @@ bool LayerModel::dropMimeData(const QMimeData* data,
    // Ensure rows are in numerical order
    std::sort(sourceRows.begin(), sourceRows.end());
 
-   if (sourceRows.back() >= p->layers_.size())
+   if (sourceRows.back() >= static_cast<int>(p->layers_.size()))
    {
       logger_->error("Cannot perform drop action, invalid source rows");
       return false;
@@ -907,12 +907,13 @@ bool LayerModel::moveRows(const QModelIndex& sourceParent,
 {
    bool moved = false;
 
-   if (sourceParent != destinationParent ||     // Only accept internal moves
-       count < 1 ||                             // Minimum selection size of 1
-       sourceRow < 0 ||                         // Valid source row (start)
-       sourceRow + count > p->layers_.size() || // Valid source row (end)
-       destinationChild < 0 ||                  // Valid destination row
-       destinationChild > p->layers_.size())
+   if (sourceParent != destinationParent || // Only accept internal moves
+       count < 1 ||                         // Minimum selection size of 1
+       sourceRow < 0 ||                     // Valid source row (start)
+       sourceRow + count >
+          static_cast<int>(p->layers_.size()) || // Valid source row (end)
+       destinationChild < 0 ||                   // Valid destination row
+       destinationChild > static_cast<int>(p->layers_.size()))
    {
       return false;
    }
