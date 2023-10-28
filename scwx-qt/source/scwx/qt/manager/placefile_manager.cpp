@@ -162,6 +162,7 @@ PlacefileManager::PlacefileManager() : p(std::make_unique<Impl>(this))
                         // Read placefile settings on startup
                         main::Application::WaitForInitialization();
                         p->ReadPlacefileSettings();
+                        Q_EMIT PlacefilesInitialized();
                      });
 }
 

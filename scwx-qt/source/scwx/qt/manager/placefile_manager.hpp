@@ -51,6 +51,7 @@ public:
    static std::shared_ptr<PlacefileManager> Instance();
 
 signals:
+   void PlacefilesInitialized();
    void PlacefileEnabled(const std::string& name, bool enabled);
    void PlacefileRemoved(const std::string& name);
    void PlacefileRenamed(const std::string& oldName,

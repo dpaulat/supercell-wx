@@ -99,6 +99,7 @@ public:
    void AddPlacefile(const std::string& name);
    void InitializeLayerSettings();
    void ReadLayerSettings();
+   void SynchronizePlacefileLayers();
    void WriteLayerSettings();
 
    static void ValidateLayerSettings(LayerVector& layers);
@@ -106,6 +107,9 @@ public:
    LayerModel* self_;
 
    std::string layerSettingsPath_ {};
+
+   bool                     placefilesInitialized_ {false};
+   std::vector<std::string> initialPlacefiles_ {};
 
    std::shared_ptr<manager::PlacefileManager> placefileManager_ {
       manager::PlacefileManager::Instance()};
@@ -116,6 +120,11 @@ public:
 LayerModel::LayerModel(QObject* parent) :
     QAbstractTableModel(parent), p(std::make_unique<Impl>(this))
 {
+   connect(p->placefileManager_.get(),
+           &manager::PlacefileManager::PlacefilesInitialized,
+           this,
+           [this]() { p->SynchronizePlacefileLayers(); });
+
    connect(p->placefileManager_.get(),
            &manager::PlacefileManager::PlacefileEnabled,
            this,
@@ -428,6 +437,34 @@ void LayerModel::ResetLayers()
    beginResetModel();
    p->layers_.swap(newLayers);
    endResetModel();
+}
+
+void LayerModel::Impl::SynchronizePlacefileLayers()
+{
+   placefilesInitialized_ = true;
+
+   int row = 0;
+   for (auto it = layers_.begin(); it != layers_.end();)
+   {
+      if (it->type_ == types::LayerType::Placefile &&
+          std::find(initialPlacefiles_.begin(),
+                    initialPlacefiles_.end(),
+                    std::get<std::string>(it->description_)) ==
+             initialPlacefiles_.end())
+      {
+         // If the placefile layer was not loaded by the placefile manager,
+         // erase it
+         self_->beginRemoveRows(QModelIndex(), row, row);
+         it = layers_.erase(it);
+         self_->endRemoveRows();
+         continue;
+      }
+
+      ++it;
+      ++row;
+   }
+
+   initialPlacefiles_.clear();
 }
 
 int LayerModel::rowCount(const QModelIndex& parent) const
@@ -973,6 +1010,11 @@ void LayerModel::HandlePlacefileRenamed(const std::string& oldName,
 
 void LayerModel::HandlePlacefileUpdate(const std::string& name)
 {
+   if (!p->placefilesInitialized_)
+   {
+      p->initialPlacefiles_.push_back(name);
+   }
+
    auto it =
       std::find_if(p->layers_.begin(),
                    p->layers_.end(),
