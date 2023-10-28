@@ -1117,6 +1117,24 @@ LayerInfo tag_invoke(boost::json::value_to_tag<LayerInfo>,
       boost::json::value_to<std::array<bool, 4>>(jv.at(kDisplayedName_))};
 }
 
+std::shared_ptr<LayerModel> LayerModel::Instance()
+{
+   static std::weak_ptr<LayerModel> layerModelReference_ {};
+   static std::mutex                instanceMutex_ {};
+
+   std::unique_lock lock(instanceMutex_);
+
+   std::shared_ptr<LayerModel> layerModel = layerModelReference_.lock();
+
+   if (layerModel == nullptr)
+   {
+      layerModel           = std::make_shared<LayerModel>();
+      layerModelReference_ = layerModel;
+   }
+
+   return layerModel;
+}
+
 } // namespace model
 } // namespace qt
 } // namespace scwx

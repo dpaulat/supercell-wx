@@ -74,6 +74,8 @@ public:
                  const QModelIndex& destinationParent,
                  int                destinationChild) override;
 
+   static std::shared_ptr<LayerModel> Instance();
+
 public slots:
    void HandlePlacefileRemoved(const std::string& name);
    void HandlePlacefileRenamed(const std::string& oldName,

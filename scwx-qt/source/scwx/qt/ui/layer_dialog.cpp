@@ -22,10 +22,10 @@ class LayerDialogImpl
 public:
    explicit LayerDialogImpl(LayerDialog* self) :
        self_ {self},
-       layerModel_ {new model::LayerModel(self)},
+       layerModel_ {model::LayerModel::Instance()},
        layerProxyModel_ {new QSortFilterProxyModel(self_)}
    {
-      layerProxyModel_->setSourceModel(layerModel_);
+      layerProxyModel_->setSourceModel(layerModel_.get());
       layerProxyModel_->setFilterCaseSensitivity(
          Qt::CaseSensitivity::CaseInsensitive);
       layerProxyModel_->setFilterKeyColumn(-1);
@@ -38,9 +38,9 @@ public:
    std::vector<int>              GetSelectedRows();
    std::vector<std::vector<int>> GetContiguousRows();
 
-   LayerDialog*           self_;
-   model::LayerModel*     layerModel_;
-   QSortFilterProxyModel* layerProxyModel_;
+   LayerDialog*                       self_;
+   std::shared_ptr<model::LayerModel> layerModel_;
+   QSortFilterProxyModel*             layerProxyModel_;
 };
 
 LayerDialog::LayerDialog(QWidget* parent) :
@@ -101,7 +101,7 @@ void LayerDialogImpl::ConnectSignals()
                            const QItemSelection& /* deselected */)
                     { UpdateMoveButtonsEnabled(); });
 
-   QObject::connect(layerModel_,
+   QObject::connect(layerModel_.get(),
                     &QAbstractItemModel::rowsMoved,
                     self_,
                     [this]()
