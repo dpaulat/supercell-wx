@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/json.hpp>
 
 namespace scwx
 {
@@ -32,6 +33,11 @@ static const std::unordered_map<MapLayer, std::string> mapLayerName_ {
    {MapLayer::MapSymbology, "Map Symbology"},
    {MapLayer::MapUnderlay, "Map Underlay"},
    {MapLayer::Unknown, "?"}};
+
+static const std::string kTypeName_ {"type"};
+static const std::string kDescriptionName_ {"description"};
+static const std::string kMovableName_ {"movable"};
+static const std::string kDisplayedName_ {"displayed"};
 
 LayerType GetLayerType(const std::string& name)
 {
@@ -123,6 +129,83 @@ MapLayer GetMapLayer(const std::string& name)
 std::string GetMapLayerName(MapLayer layer)
 {
    return mapLayerName_.at(layer);
+}
+
+void tag_invoke(boost::json::value_from_tag,
+                boost::json::value& jv,
+                const LayerInfo&    record)
+{
+   std::string description {};
+
+   if (std::holds_alternative<awips::Phenomenon>(record.description_))
+   {
+      description = awips::GetPhenomenonCode(
+         std::get<awips::Phenomenon>(record.description_));
+   }
+   else if (std::holds_alternative<DataLayer>(record.description_))
+   {
+      description = GetDataLayerName(std::get<DataLayer>(record.description_));
+   }
+   else if (std::holds_alternative<InformationLayer>(record.description_))
+   {
+      description = GetInformationLayerName(
+         std::get<InformationLayer>(record.description_));
+   }
+   else if (std::holds_alternative<MapLayer>(record.description_))
+   {
+      description = GetMapLayerName(std::get<MapLayer>(record.description_));
+   }
+   else if (std::holds_alternative<std::string>(record.description_))
+   {
+      description = std::get<std::string>(record.description_);
+   }
+
+   jv = {{kTypeName_, GetLayerTypeName(record.type_)},
+         {kDescriptionName_, description},
+         {kMovableName_, record.movable_},
+         {kDisplayedName_, boost::json::value_from(record.displayed_)}};
+}
+
+LayerInfo tag_invoke(boost::json::value_to_tag<LayerInfo>,
+                     const boost::json::value& jv)
+{
+   const LayerType layerType =
+      GetLayerType(boost::json::value_to<std::string>(jv.at(kTypeName_)));
+   const std::string descriptionName =
+      boost::json::value_to<std::string>(jv.at(kDescriptionName_));
+
+   LayerDescription description {};
+
+   if (layerType == LayerType::Map)
+   {
+      description = GetMapLayer(descriptionName);
+   }
+   else if (layerType == LayerType::Information)
+   {
+      description = GetInformationLayer(descriptionName);
+   }
+   else if (layerType == LayerType::Data)
+   {
+      description = GetDataLayer(descriptionName);
+   }
+   else if (layerType == LayerType::Radar)
+   {
+      description = std::monostate {};
+   }
+   else if (layerType == LayerType::Alert)
+   {
+      description = awips::GetPhenomenon(descriptionName);
+   }
+   else
+   {
+      description = descriptionName;
+   }
+
+   return LayerInfo {
+      layerType,
+      description,
+      jv.at(kMovableName_).as_bool(),
+      boost::json::value_to<std::array<bool, 4>>(jv.at(kDisplayedName_))};
 }
 
 } // namespace types

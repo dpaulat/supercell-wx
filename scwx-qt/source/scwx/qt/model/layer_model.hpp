@@ -1,7 +1,6 @@
 #pragma once
 
-#include <scwx/qt/types/text_event_key.hpp>
-#include <scwx/common/geographic.hpp>
+#include <scwx/qt/types/layer_types.hpp>
 #include <scwx/util/iterator.hpp>
 
 #include <memory>
@@ -36,6 +35,8 @@ public:
 
    explicit LayerModel(QObject* parent = nullptr);
    ~LayerModel();
+
+   types::LayerVector GetLayers() const;
 
    void ResetLayers();
 

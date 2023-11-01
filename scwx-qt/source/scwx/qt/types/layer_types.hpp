@@ -1,8 +1,15 @@
 #pragma once
 
+#include <scwx/awips/phenomenon.hpp>
 #include <scwx/util/iterator.hpp>
 
+#include <array>
 #include <string>
+#include <variant>
+
+#include <boost/container/stable_vector.hpp>
+#include <boost/json/conversion.hpp>
+#include <boost/json/value.hpp>
 
 namespace scwx
 {
@@ -45,6 +52,24 @@ enum class MapLayer
    Unknown
 };
 
+typedef std::variant<std::monostate,
+                     DataLayer,
+                     InformationLayer,
+                     MapLayer,
+                     awips::Phenomenon,
+                     std::string>
+   LayerDescription;
+
+struct LayerInfo
+{
+   LayerType           type_;
+   LayerDescription    description_;
+   bool                movable_ {true};
+   std::array<bool, 4> displayed_ {true, true, true, true};
+};
+
+typedef boost::container::stable_vector<LayerInfo> LayerVector;
+
 LayerType   GetLayerType(const std::string& name);
 std::string GetLayerTypeName(LayerType layerType);
 
@@ -56,6 +81,12 @@ std::string      GetInformationLayerName(InformationLayer layer);
 
 MapLayer    GetMapLayer(const std::string& name);
 std::string GetMapLayerName(MapLayer layer);
+
+void      tag_invoke(boost::json::value_from_tag,
+                     boost::json::value& jv,
+                     const LayerInfo&    record);
+LayerInfo tag_invoke(boost::json::value_to_tag<LayerInfo>,
+                     const boost::json::value& jv);
 
 } // namespace types
 } // namespace qt
