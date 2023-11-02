@@ -601,35 +601,8 @@ QVariant LayerModel::data(const QModelIndex& index, int role) const
          }
          else
          {
-            if (std::holds_alternative<std::string>(layer.description_))
-            {
-               return QString::fromStdString(
-                  std::get<std::string>(layer.description_));
-            }
-            else if (std::holds_alternative<types::DataLayer>(
-                        layer.description_))
-            {
-               return QString::fromStdString(types::GetDataLayerName(
-                  std::get<types::DataLayer>(layer.description_)));
-            }
-            else if (std::holds_alternative<types::InformationLayer>(
-                        layer.description_))
-            {
-               return QString::fromStdString(types::GetInformationLayerName(
-                  std::get<types::InformationLayer>(layer.description_)));
-            }
-            else if (std::holds_alternative<types::MapLayer>(
-                        layer.description_))
-            {
-               return QString::fromStdString(types::GetMapLayerName(
-                  std::get<types::MapLayer>(layer.description_)));
-            }
-            else if (std::holds_alternative<awips::Phenomenon>(
-                        layer.description_))
-            {
-               return QString::fromStdString(awips::GetPhenomenonText(
-                  std::get<awips::Phenomenon>(layer.description_)));
-            }
+            return QString::fromStdString(
+               types::GetLayerDescriptionName(layer.description_));
          }
       }
       break;

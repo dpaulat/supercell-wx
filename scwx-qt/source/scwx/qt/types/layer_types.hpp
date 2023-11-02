@@ -82,6 +82,10 @@ std::string      GetInformationLayerName(InformationLayer layer);
 MapLayer    GetMapLayer(const std::string& name);
 std::string GetMapLayerName(MapLayer layer);
 
+std::string GetLayerDescriptionName(LayerDescription description);
+
+std::string GetLayerName(LayerType type, LayerDescription description);
+
 void      tag_invoke(boost::json::value_from_tag,
                      boost::json::value& jv,
                      const LayerInfo&    record);

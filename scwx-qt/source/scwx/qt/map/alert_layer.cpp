@@ -1,6 +1,7 @@
 #include <scwx/qt/map/alert_layer.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/settings/palette_settings.hpp>
+#include <scwx/qt/types/layer_types.hpp>
 #include <scwx/qt/util/color.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
@@ -132,33 +133,31 @@ public:
 };
 
 AlertLayer::AlertLayer(std::shared_ptr<MapContext> context) :
-    DrawLayer(context), p(std::make_unique<AlertLayerImpl>(context))
+    p(std::make_unique<AlertLayerImpl>(context))
 {
 }
 
 AlertLayer::~AlertLayer() = default;
 
-void AlertLayer::Initialize()
+void AlertLayer::AddLayers(awips::Phenomenon  phenomenon,
+                           const std::string& before)
 {
-   logger_->debug("Initialize()");
+   logger_->debug("AddLayers(): {}", awips::GetPhenomenonCode(phenomenon));
 
-   DrawLayer::Initialize();
-}
+   auto map = p->context_->map().lock();
+   if (map == nullptr)
+   {
+      return;
+   }
 
-void AlertLayer::Render(const QMapLibreGL::CustomLayerRenderParameters& params)
-{
-   gl::OpenGLFunctions& gl = context()->gl();
+   const QString beforeLayer {QString::fromStdString(before)};
 
-   DrawLayer::Render(params);
-
-   SCWX_GL_CHECK_ERROR();
-}
-
-void AlertLayer::Deinitialize()
-{
-   logger_->debug("Deinitialize()");
-
-   DrawLayer::Deinitialize();
+   // Add/update GeoJSON sources and create layers
+   for (bool alertActive : {false, true})
+   {
+      p->UpdateSource(phenomenon, alertActive);
+      AddAlertLayer(map, phenomenon, alertActive, beforeLayer);
+   }
 }
 
 void AlertLayer::AddLayers(const std::string& before)
@@ -396,13 +395,16 @@ static void AddAlertLayer(std::shared_ptr<QMapLibreGL::Map> map,
    settings::PaletteSettings& paletteSettings =
       settings::PaletteSettings::Instance();
 
+   QString layerPrefix = QString::fromStdString(
+      types::GetLayerName(types::LayerType::Alert, phenomenon));
+
    QString sourceId     = GetSourceId(phenomenon, alertActive);
    QString idSuffix     = GetSuffix(phenomenon, alertActive);
    auto    outlineColor = util::color::ToRgba8PixelT(
       paletteSettings.alert_color(phenomenon, alertActive).GetValue());
 
-   QString bgLayerId = QString("alertPolygonLayerBg-%1").arg(idSuffix);
-   QString fgLayerId = QString("alertPolygonLayerFg-%1").arg(idSuffix);
+   QString bgLayerId = QString("%1::bg-%2").arg(layerPrefix).arg(idSuffix);
+   QString fgLayerId = QString("%1::fg-%2").arg(layerPrefix).arg(idSuffix);
 
    if (map->layerExists(bgLayerId))
    {

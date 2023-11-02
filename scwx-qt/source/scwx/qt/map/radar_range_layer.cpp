@@ -1,4 +1,5 @@
 #include <scwx/qt/map/radar_range_layer.hpp>
+#include <scwx/qt/types/layer_types.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -22,11 +23,14 @@ void RadarRangeLayer::Add(std::shared_ptr<QMapLibreGL::Map> map,
                           QMapLibreGL::Coordinate           center,
                           const QString&                    before)
 {
+   static const QString layerId = QString::fromStdString(types::GetLayerName(
+      types::LayerType::Data, types::DataLayer::RadarRange));
+
    logger_->debug("Add()");
 
-   if (map->layerExists("rangeCircleLayer"))
+   if (map->layerExists(layerId))
    {
-      map->removeLayer("rangeCircleLayer");
+      map->removeLayer(layerId);
    }
    if (map->sourceExists("rangeCircleSource"))
    {
@@ -39,12 +43,10 @@ void RadarRangeLayer::Add(std::shared_ptr<QMapLibreGL::Map> map,
    map->addSource(
       "rangeCircleSource",
       {{"type", "geojson"}, {"data", QVariant::fromValue(*rangeCircle)}});
-   map->addLayer({{"id", "rangeCircleLayer"},
-                  {"type", "line"},
-                  {"source", "rangeCircleSource"}},
-                 before);
-   map->setPaintProperty(
-      "rangeCircleLayer", "line-color", "rgba(128, 128, 128, 128)");
+   map->addLayer(
+      {{"id", layerId}, {"type", "line"}, {"source", "rangeCircleSource"}},
+      before);
+   map->setPaintProperty(layerId, "line-color", "rgba(128, 128, 128, 128)");
 }
 
 void RadarRangeLayer::Update(std::shared_ptr<QMapLibreGL::Map> map,

@@ -4,6 +4,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/json.hpp>
+#include <fmt/format.h>
 
 namespace scwx
 {
@@ -129,6 +130,46 @@ MapLayer GetMapLayer(const std::string& name)
 std::string GetMapLayerName(MapLayer layer)
 {
    return mapLayerName_.at(layer);
+}
+
+std::string GetLayerDescriptionName(LayerDescription description)
+{
+   if (std::holds_alternative<std::string>(description))
+   {
+      return std::get<std::string>(description);
+   }
+   else if (std::holds_alternative<DataLayer>(description))
+   {
+      return GetDataLayerName(std::get<DataLayer>(description));
+   }
+   else if (std::holds_alternative<InformationLayer>(description))
+   {
+      return GetInformationLayerName(std::get<InformationLayer>(description));
+   }
+   else if (std::holds_alternative<MapLayer>(description))
+   {
+      return GetMapLayerName(std::get<MapLayer>(description));
+   }
+   else if (std::holds_alternative<awips::Phenomenon>(description))
+   {
+      return awips::GetPhenomenonText(std::get<awips::Phenomenon>(description));
+   }
+   else if (std::holds_alternative<std::monostate>(description))
+   {
+      return "";
+   }
+   else
+   {
+      return "?";
+   }
+}
+
+std::string GetLayerName(types::LayerType        type,
+                         types::LayerDescription description)
+{
+   return fmt::format("scwx.{}.{}",
+                      types::GetLayerTypeName(type),
+                      types::GetLayerDescriptionName(description));
 }
 
 void tag_invoke(boost::json::value_from_tag,
