@@ -973,7 +973,7 @@ void MapWidgetImpl::AddPlacefileLayer(const std::string& placefileName,
 std::string
 MapWidgetImpl::GetPlacefileLayerName(const std::string& placefileName)
 {
-   return fmt::format("placefile-{}", placefileName);
+   return types::GetLayerName(types::LayerType::Placefile, placefileName);
 }
 
 void MapWidgetImpl::AddLayer(const std::string&            id,
