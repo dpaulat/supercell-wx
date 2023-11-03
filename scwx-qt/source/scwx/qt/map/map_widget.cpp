@@ -859,8 +859,12 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
    }
    else if (type == types::LayerType::Placefile)
    {
-      // Add the placefile layer
-      AddPlacefileLayer(std::get<std::string>(description), before);
+      // If the placefile is enabled, add the placefile layer
+      std::string placefileName = std::get<std::string>(description);
+      if (placefileManager_->placefile_enabled(placefileName))
+      {
+         AddPlacefileLayer(placefileName, before);
+      }
    }
    else if (type == types::LayerType::Information)
    {
