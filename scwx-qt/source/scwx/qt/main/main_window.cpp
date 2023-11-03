@@ -650,7 +650,7 @@ void MainWindowImpl::ConfigureMapLayout()
       {
          if (maps_.at(mapIndex) == nullptr)
          {
-            maps_[mapIndex] = new map::MapWidget(settings_);
+            maps_[mapIndex] = new map::MapWidget(mapIndex, settings_);
          }
 
          hs->addWidget(maps_[mapIndex]);

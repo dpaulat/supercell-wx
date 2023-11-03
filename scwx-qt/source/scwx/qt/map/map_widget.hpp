@@ -32,7 +32,7 @@ class MapWidget : public QOpenGLWidget
    Q_OBJECT
 
 public:
-   explicit MapWidget(const QMapLibreGL::Settings&);
+   explicit MapWidget(std::size_t id, const QMapLibreGL::Settings&);
    ~MapWidget();
 
    common::Level3ProductCategoryMap      GetAvailableLevel3Categories();
@@ -129,8 +129,6 @@ private:
    // QOpenGLWidget implementation.
    void initializeGL() override final;
    void paintGL() override final;
-
-   void AddLayers();
 
    std::unique_ptr<MapWidgetImpl> p;
 
