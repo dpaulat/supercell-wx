@@ -85,6 +85,7 @@
     </property>
     <addaction name="actionImGuiDebug"/>
     <addaction name="separator"/>
+    <addaction name="actionDumpLayerList"/>
     <addaction name="actionDumpRadarProductRecords"/>
    </widget>
    <widget class="QMenu" name="menuTools">
@@ -439,6 +440,11 @@
    </property>
    <property name="text">
     <string>&amp;Layer Manager</string>
+   </property>
+  </action>
+  <action name="actionDumpLayerList">
+   <property name="text">
+    <string>Dump &amp;Layer List</string>
    </property>
   </action>
  </widget>

@@ -754,6 +754,11 @@ void MapWidget::changeStyle()
    Q_EMIT MapStyleChanged(p->currentStyle_->name_);
 }
 
+void MapWidget::DumpLayerList() const
+{
+   logger_->debug("Layers: {}", p->map_->layerIds().join(", ").toStdString());
+}
+
 std::string MapWidgetImpl::FindMapSymbologyLayer()
 {
    std::string before = "ferry";

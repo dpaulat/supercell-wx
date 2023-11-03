@@ -470,6 +470,11 @@ void MainWindow::on_actionImGuiDebug_triggered()
    p->imGuiDebugDialog_->show();
 }
 
+void MainWindow::on_actionDumpLayerList_triggered()
+{
+   p->activeMap_->DumpLayerList();
+}
+
 void MainWindow::on_actionDumpRadarProductRecords_triggered()
 {
    manager::RadarProductManager::DumpRecords();

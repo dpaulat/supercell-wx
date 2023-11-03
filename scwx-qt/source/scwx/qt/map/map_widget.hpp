@@ -35,6 +35,8 @@ public:
    explicit MapWidget(std::size_t id, const QMapLibreGL::Settings&);
    ~MapWidget();
 
+   void DumpLayerList() const;
+
    common::Level3ProductCategoryMap      GetAvailableLevel3Categories();
    float                                 GetElevation() const;
    std::vector<float>                    GetElevationCuts() const;
