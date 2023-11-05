@@ -47,9 +47,6 @@ private slots:
    void on_actionCheckForUpdates_triggered();
    void on_actionAboutSupercellWx_triggered();
    void on_radarSiteSelectButton_clicked();
-   void on_resourceTreeCollapseAllButton_clicked();
-   void on_resourceTreeExpandAllButton_clicked();
-   void on_resourceTreeView_doubleClicked(const QModelIndex& index);
 
 private:
    std::unique_ptr<MainWindowImpl> p;

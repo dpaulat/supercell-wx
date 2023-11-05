@@ -76,7 +76,6 @@
      <string>&amp;View</string>
     </property>
     <addaction name="actionRadarToolbox"/>
-    <addaction name="actionResourceExplorer"/>
     <addaction name="actionAlerts"/>
    </widget>
    <widget class="QMenu" name="menuDebug">
@@ -268,80 +267,6 @@
     </layout>
    </widget>
   </widget>
-  <widget class="QDockWidget" name="resourceExplorerDock">
-   <property name="windowTitle">
-    <string>Resource Explorer</string>
-   </property>
-   <attribute name="dockWidgetArea">
-    <number>2</number>
-   </attribute>
-   <widget class="QWidget" name="dockWidgetContents">
-    <layout class="QVBoxLayout" name="verticalLayout_3">
-     <item>
-      <widget class="QFrame" name="frame">
-       <property name="frameShape">
-        <enum>QFrame::StyledPanel</enum>
-       </property>
-       <property name="frameShadow">
-        <enum>QFrame::Raised</enum>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <property name="leftMargin">
-         <number>0</number>
-        </property>
-        <property name="topMargin">
-         <number>0</number>
-        </property>
-        <property name="rightMargin">
-         <number>0</number>
-        </property>
-        <property name="bottomMargin">
-         <number>0</number>
-        </property>
-        <item>
-         <spacer name="horizontalSpacer">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>193</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QToolButton" name="resourceTreeExpandAllButton">
-          <property name="toolTip">
-           <string>Expand All</string>
-          </property>
-          <property name="icon">
-           <iconset resource="../../../../scwx-qt.qrc">
-            <normaloff>:/res/icons/font-awesome-6/square-plus-regular.svg</normaloff>:/res/icons/font-awesome-6/square-plus-regular.svg</iconset>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QToolButton" name="resourceTreeCollapseAllButton">
-          <property name="toolTip">
-           <string>Collapse All</string>
-          </property>
-          <property name="icon">
-           <iconset resource="../../../../scwx-qt.qrc">
-            <normaloff>:/res/icons/font-awesome-6/square-minus-regular.svg</normaloff>:/res/icons/font-awesome-6/square-minus-regular.svg</iconset>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <widget class="QTreeView" name="resourceTreeView"/>
-     </item>
-    </layout>
-   </widget>
-  </widget>
   <action name="actionExit">
    <property name="text">
     <string>E&amp;xit</string>
@@ -355,11 +280,6 @@
   <action name="actionRadarToolbox">
    <property name="text">
     <string>Radar &amp;Toolbox</string>
-   </property>
-  </action>
-  <action name="actionResourceExplorer">
-   <property name="text">
-    <string>&amp;Resource Explorer</string>
    </property>
   </action>
   <action name="actionOpenNexrad">

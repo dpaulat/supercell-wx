@@ -12,7 +12,6 @@
 #include <scwx/qt/manager/update_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_widget.hpp>
-#include <scwx/qt/model/radar_product_model.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/map_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
@@ -84,7 +83,6 @@ public:
        radarSiteDialog_ {nullptr},
        settingsDialog_ {nullptr},
        updateDialog_ {nullptr},
-       radarProductModel_ {nullptr},
        placefileManager_ {manager::PlacefileManager::Instance()},
        textEventManager_ {manager::TextEventManager::Instance()},
        timelineManager_ {manager::TimelineManager::Instance()},
@@ -175,7 +173,6 @@ public:
    ui::SettingsDialog*      settingsDialog_;
    ui::UpdateDialog*        updateDialog_;
 
-   std::unique_ptr<model::RadarProductModel>  radarProductModel_;
    std::shared_ptr<manager::PlacefileManager> placefileManager_;
    std::shared_ptr<manager::TextEventManager> textEventManager_;
    std::shared_ptr<manager::TimelineManager>  timelineManager_;
@@ -222,13 +219,6 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->radarToolboxDock->toggleViewAction()->setText(tr("Radar &Toolbox"));
    ui->actionRadarToolbox->setVisible(false);
 
-   ui->menuView->insertAction(ui->actionResourceExplorer,
-                              ui->resourceExplorerDock->toggleViewAction());
-   ui->resourceExplorerDock->toggleViewAction()->setText(
-      tr("&Resource Explorer"));
-   ui->actionResourceExplorer->setVisible(false);
-   ui->resourceExplorerDock->toggleViewAction()->setVisible(false);
-
    ui->menuView->insertAction(ui->actionAlerts,
                               p->alertDockWidget_->toggleViewAction());
    p->alertDockWidget_->toggleViewAction()->setText(tr("&Alerts"));
@@ -236,12 +226,6 @@ MainWindow::MainWindow(QWidget* parent) :
 
    ui->menuDebug->menuAction()->setVisible(
       settings::GeneralSettings::Instance().debug_enabled().GetValue());
-
-   // Configure Resource Explorer Dock
-   ui->resourceExplorerDock->setVisible(false);
-
-   p->radarProductModel_ = std::make_unique<model::RadarProductModel>();
-   ui->resourceTreeView->setModel(p->radarProductModel_->model());
 
    // Configure Map
    p->ConfigureMapLayout();
@@ -527,83 +511,6 @@ void MainWindow::on_actionAboutSupercellWx_triggered()
 void MainWindow::on_radarSiteSelectButton_clicked()
 {
    p->radarSiteDialog_->show();
-}
-
-void MainWindow::on_resourceTreeCollapseAllButton_clicked()
-{
-   ui->resourceTreeView->collapseAll();
-}
-
-void MainWindow::on_resourceTreeExpandAllButton_clicked()
-{
-   ui->resourceTreeView->expandAll();
-}
-
-void MainWindow::on_resourceTreeView_doubleClicked(const QModelIndex& index)
-{
-   std::string selectedString {index.data().toString().toStdString()};
-   std::chrono::system_clock::time_point time {};
-
-   logger_->debug("Selecting resource: {}",
-                  index.data().toString().toStdString());
-
-   static const std::string timeFormat {"%Y-%m-%d %H:%M:%S"};
-
-   using namespace std::chrono;
-
-#if !defined(_MSC_VER)
-   using namespace date;
-#endif
-
-   std::istringstream in {selectedString};
-   in >> parse(timeFormat, time);
-
-   if (in.fail())
-   {
-      // Not a time string, ignore double-click
-      return;
-   }
-
-   QModelIndex parent1 = index.parent();
-   QModelIndex parent2 = parent1.parent();
-   QModelIndex parent3 = parent2.parent();
-
-   std::string radarSite {};
-   std::string groupName {};
-   std::string product {};
-
-   if (!parent2.isValid())
-   {
-      // A time entry should be at the third or fourth level
-      logger_->error("Unexpected resource data");
-      return;
-   }
-
-   if (parent3.isValid())
-   {
-      // Level 3 Product
-      radarSite = parent3.data().toString().toStdString();
-      groupName = parent2.data().toString().toStdString();
-      product   = parent1.data().toString().toStdString();
-   }
-   else
-   {
-      // Level 2 Product
-      radarSite = parent2.data().toString().toStdString();
-      groupName = parent1.data().toString().toStdString();
-      // No product index
-   }
-
-   common::RadarProductGroup group = common::GetRadarProductGroup(groupName);
-
-   // Update radar site if different from currently selected
-   if (p->activeMap_->GetRadarSite()->id() != radarSite)
-   {
-      p->activeMap_->SelectRadarSite(radarSite);
-   }
-
-   // Select the updated radar product
-   p->activeMap_->SelectRadarProduct(group, product, 0, time);
 }
 
 void MainWindowImpl::AsyncSetup()
