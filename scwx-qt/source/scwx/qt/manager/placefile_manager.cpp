@@ -436,24 +436,6 @@ void PlacefileManager::SetRadarSite(
    }
 }
 
-std::vector<std::shared_ptr<gr::Placefile>>
-PlacefileManager::GetActivePlacefiles()
-{
-   std::vector<std::shared_ptr<gr::Placefile>> placefiles;
-
-   std::shared_lock lock {p->placefileRecordLock_};
-
-   for (const auto& record : p->placefileRecords_)
-   {
-      if (record->enabled_ && record->placefile_ != nullptr)
-      {
-         placefiles.push_back(record->placefile_);
-      }
-   }
-
-   return placefiles;
-}
-
 void PlacefileManager::AddUrl(const std::string& urlString,
                               const std::string& title,
                               bool               enabled,

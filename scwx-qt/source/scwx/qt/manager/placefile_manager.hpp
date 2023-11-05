@@ -35,13 +35,6 @@ public:
 
    void SetRadarSite(std::shared_ptr<config::RadarSite> radarSite);
 
-   /**
-    * @brief Gets a list of active placefiles
-    *
-    * @return Vector of placefile pointers
-    */
-   std::vector<std::shared_ptr<gr::Placefile>> GetActivePlacefiles();
-
    void AddUrl(const std::string& urlString,
                const std::string& title       = {},
                bool               enabled     = false,
