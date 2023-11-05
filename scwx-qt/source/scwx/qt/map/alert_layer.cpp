@@ -23,10 +23,11 @@ namespace map
 static const std::string logPrefix_ = "scwx::qt::map::alert_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static void AddAlertLayer(std::shared_ptr<QMapLibreGL::Map> map,
-                          awips::Phenomenon                 phenomenon,
-                          bool                              alertActive,
-                          const QString&                    beforeLayer);
+static std::vector<std::string>
+AddAlertLayer(std::shared_ptr<QMapLibreGL::Map> map,
+              awips::Phenomenon                 phenomenon,
+              bool                              alertActive,
+              const QString&                    beforeLayer);
 static QMapLibreGL::Feature
 CreateFeature(const awips::CodedLocation& codedLocation);
 static QMapLibreGL::Coordinate
@@ -139,15 +140,17 @@ AlertLayer::AlertLayer(std::shared_ptr<MapContext> context) :
 
 AlertLayer::~AlertLayer() = default;
 
-void AlertLayer::AddLayers(awips::Phenomenon  phenomenon,
-                           const std::string& before)
+std::vector<std::string> AlertLayer::AddLayers(awips::Phenomenon  phenomenon,
+                                               const std::string& before)
 {
    logger_->debug("AddLayers(): {}", awips::GetPhenomenonCode(phenomenon));
+
+   std::vector<std::string> layers {};
 
    auto map = p->context_->map().lock();
    if (map == nullptr)
    {
-      return;
+      return layers;
    }
 
    const QString beforeLayer {QString::fromStdString(before)};
@@ -156,31 +159,11 @@ void AlertLayer::AddLayers(awips::Phenomenon  phenomenon,
    for (bool alertActive : {false, true})
    {
       p->UpdateSource(phenomenon, alertActive);
-      AddAlertLayer(map, phenomenon, alertActive, beforeLayer);
-   }
-}
-
-void AlertLayer::AddLayers(const std::string& before)
-{
-   logger_->debug("AddLayers()");
-
-   auto map = p->context_->map().lock();
-   if (map == nullptr)
-   {
-      return;
+      auto newLayers = AddAlertLayer(map, phenomenon, alertActive, beforeLayer);
+      layers.insert(layers.end(), newLayers.cbegin(), newLayers.cend());
    }
 
-   const QString beforeLayer {QString::fromStdString(before)};
-
-   // Add/update GeoJSON sources and create layers
-   for (auto& phenomenon : kAlertPhenomena_)
-   {
-      for (bool alertActive : {false, true})
-      {
-         p->UpdateSource(phenomenon, alertActive);
-         AddAlertLayer(map, phenomenon, alertActive, beforeLayer);
-      }
-   }
+   return layers;
 }
 
 std::list<QMapLibreGL::Feature>*
@@ -387,10 +370,11 @@ std::shared_ptr<AlertLayerHandler> AlertLayerHandler::Instance()
    return alertLayerHandler;
 }
 
-static void AddAlertLayer(std::shared_ptr<QMapLibreGL::Map> map,
-                          awips::Phenomenon                 phenomenon,
-                          bool                              alertActive,
-                          const QString&                    beforeLayer)
+static std::vector<std::string>
+AddAlertLayer(std::shared_ptr<QMapLibreGL::Map> map,
+              awips::Phenomenon                 phenomenon,
+              bool                              alertActive,
+              const QString&                    beforeLayer)
 {
    settings::PaletteSettings& paletteSettings =
       settings::PaletteSettings::Instance();
@@ -438,6 +422,8 @@ static void AddAlertLayer(std::shared_ptr<QMapLibreGL::Map> map,
                             .arg(outlineColor[3]));
    map->setPaintProperty(fgLayerId, "line-opacity", QString("%1").arg(opacity));
    map->setPaintProperty(fgLayerId, "line-width", "3");
+
+   return {bgLayerId.toStdString(), fgLayerId.toStdString()};
 }
 
 static QMapLibreGL::Feature

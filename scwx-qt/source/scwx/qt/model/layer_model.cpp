@@ -71,6 +71,10 @@ public:
    ~Impl() = default;
 
    void AddPlacefile(const std::string& name);
+   void HandlePlacefileRemoved(const std::string& name);
+   void HandlePlacefileRenamed(const std::string& oldName,
+                               const std::string& newName);
+   void HandlePlacefileUpdate(const std::string& name, Column column);
    void InitializeLayerSettings();
    void ReadLayerSettings();
    void SynchronizePlacefileLayers();
@@ -102,22 +106,26 @@ LayerModel::LayerModel(QObject* parent) :
    connect(p->placefileManager_.get(),
            &manager::PlacefileManager::PlacefileEnabled,
            this,
-           &LayerModel::HandlePlacefileUpdate);
+           [this](const std::string& name, bool /* enabled */)
+           { p->HandlePlacefileUpdate(name, Column::Enabled); });
 
    connect(p->placefileManager_.get(),
            &manager::PlacefileManager::PlacefileRemoved,
            this,
-           &LayerModel::HandlePlacefileRemoved);
+           [this](const std::string& name)
+           { p->HandlePlacefileRemoved(name); });
 
    connect(p->placefileManager_.get(),
            &manager::PlacefileManager::PlacefileRenamed,
            this,
-           &LayerModel::HandlePlacefileRenamed);
+           [this](const std::string& oldName, const std::string& newName)
+           { p->HandlePlacefileRenamed(oldName, newName); });
 
    connect(p->placefileManager_.get(),
            &manager::PlacefileManager::PlacefileUpdated,
            this,
-           &LayerModel::HandlePlacefileUpdate);
+           [this](const std::string& name)
+           { p->HandlePlacefileUpdate(name, Column::Description); });
 
    p->InitializeLayerSettings();
    p->ReadLayerSettings();
@@ -908,88 +916,92 @@ bool LayerModel::moveRows(const QModelIndex& sourceParent,
    return moved;
 }
 
-void LayerModel::HandlePlacefileRemoved(const std::string& name)
+void LayerModel::Impl::HandlePlacefileRemoved(const std::string& name)
 {
    auto it =
-      std::find_if(p->layers_.begin(),
-                   p->layers_.end(),
+      std::find_if(layers_.begin(),
+                   layers_.end(),
                    [&name](const auto& layer)
                    {
                       return layer.type_ == types::LayerType::Placefile &&
                              std::get<std::string>(layer.description_) == name;
                    });
 
-   if (it != p->layers_.end())
+   if (it != layers_.end())
    {
       // Placefile exists, delete row
-      const int row = std::distance(p->layers_.begin(), it);
+      const int row = std::distance(layers_.begin(), it);
 
-      beginRemoveRows(QModelIndex(), row, row);
-      p->layers_.erase(it);
-      endRemoveRows();
+      self_->beginRemoveRows(QModelIndex(), row, row);
+      layers_.erase(it);
+      self_->endRemoveRows();
    }
 }
 
-void LayerModel::HandlePlacefileRenamed(const std::string& oldName,
-                                        const std::string& newName)
+void LayerModel::Impl::HandlePlacefileRenamed(const std::string& oldName,
+                                              const std::string& newName)
 {
    auto it = std::find_if(
-      p->layers_.begin(),
-      p->layers_.end(),
+      layers_.begin(),
+      layers_.end(),
       [&oldName](const auto& layer)
       {
          return layer.type_ == types::LayerType::Placefile &&
                 std::get<std::string>(layer.description_) == oldName;
       });
 
-   if (it != p->layers_.end())
+   if (it != layers_.end())
    {
       // Placefile exists, mark row as updated
-      const int   row         = std::distance(p->layers_.begin(), it);
-      QModelIndex topLeft     = createIndex(row, kFirstColumn);
-      QModelIndex bottomRight = createIndex(row, kLastColumn);
+      const int   row = std::distance(layers_.begin(), it);
+      QModelIndex topLeft =
+         self_->createIndex(row, static_cast<int>(Column::Description));
+      QModelIndex bottomRight =
+         self_->createIndex(row, static_cast<int>(Column::Description));
 
       // Rename placefile
       it->description_ = newName;
 
-      Q_EMIT dataChanged(topLeft, bottomRight);
+      Q_EMIT self_->dataChanged(topLeft, bottomRight);
    }
    else
    {
       // Placefile doesn't exist, add row
-      p->AddPlacefile(newName);
+      AddPlacefile(newName);
    }
 }
 
-void LayerModel::HandlePlacefileUpdate(const std::string& name)
+void LayerModel::Impl::HandlePlacefileUpdate(const std::string& name,
+                                             Column             column)
 {
-   if (!p->placefilesInitialized_)
+   if (!placefilesInitialized_)
    {
-      p->initialPlacefiles_.push_back(name);
+      initialPlacefiles_.push_back(name);
    }
 
    auto it =
-      std::find_if(p->layers_.begin(),
-                   p->layers_.end(),
+      std::find_if(layers_.begin(),
+                   layers_.end(),
                    [&name](const auto& layer)
                    {
                       return layer.type_ == types::LayerType::Placefile &&
                              std::get<std::string>(layer.description_) == name;
                    });
 
-   if (it != p->layers_.end())
+   if (it != layers_.end())
    {
       // Placefile exists, mark row as updated
-      const int   row         = std::distance(p->layers_.begin(), it);
-      QModelIndex topLeft     = createIndex(row, kFirstColumn);
-      QModelIndex bottomRight = createIndex(row, kLastColumn);
+      const int   row     = std::distance(layers_.begin(), it);
+      QModelIndex topLeft = self_->createIndex(row, static_cast<int>(column));
+      QModelIndex bottomRight =
+         self_->createIndex(row, static_cast<int>(column));
 
-      Q_EMIT dataChanged(topLeft, bottomRight);
+      Q_EMIT self_->dataChanged(topLeft, bottomRight);
    }
    else
    {
       // Placefile doesn't exist, add row
-      p->AddPlacefile(name);
+      AddPlacefile(name);
    }
 }
 

@@ -131,7 +131,7 @@ public:
                  const std::string&            before = {});
    void AddLayers();
    void AddPlacefileLayer(const std::string& placefileName,
-                          const std::string& before = "colorTable");
+                          const std::string& before);
    void ConnectSignals();
    void ImGuiCheckFonts();
    void InitializeNewRadarProductView(const std::string& colorPalette);
@@ -139,11 +139,9 @@ public:
    void RadarProductManagerDisconnect();
    void RadarProductViewConnect();
    void RadarProductViewDisconnect();
-   void RemovePlacefileLayer(const std::string& placefileName);
    void RunMousePicking();
    void SetRadarSite(const std::string& radarSite);
    void UpdateLoadedStyle();
-   void UpdatePlacefileLayers();
    bool UpdateStoredMapParameters();
 
    std::string FindMapSymbologyLayer();
@@ -174,6 +172,9 @@ public:
    bool          imGuiRendererInitialized_;
    std::uint64_t imGuiFontsBuildCount_ {};
 
+   std::shared_ptr<model::LayerModel> layerModel_ {
+      model::LayerModel::Instance()};
+
    std::shared_ptr<manager::PlacefileManager> placefileManager_ {
       manager::PlacefileManager::Instance()};
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
@@ -186,7 +187,6 @@ public:
    std::shared_ptr<PlacefileLayer>    placefileLayer_;
    std::shared_ptr<ColorTableLayer>   colorTableLayer_;
 
-   std::set<std::string>                      enabledPlacefiles_ {};
    std::list<std::shared_ptr<PlacefileLayer>> placefileLayers_ {};
 
    bool autoRefreshEnabled_;
@@ -238,61 +238,58 @@ MapWidget::~MapWidget()
 void MapWidgetImpl::ConnectSignals()
 {
    connect(placefileManager_.get(),
-           &manager::PlacefileManager::PlacefileEnabled,
-           widget_,
-           [this](const std::string& name, bool enabled)
-           {
-              if (enabled && !enabledPlacefiles_.contains(name))
-              {
-                 // Placefile enabled, add layer
-                 enabledPlacefiles_.emplace(name);
-                 UpdatePlacefileLayers();
-              }
-              else if (!enabled && enabledPlacefiles_.contains(name))
-              {
-                 // Placefile disabled, remove layer
-                 enabledPlacefiles_.erase(name);
-                 RemovePlacefileLayer(name);
-              }
-              widget_->update();
-           });
-   connect(placefileManager_.get(),
-           &manager::PlacefileManager::PlacefileRemoved,
-           widget_,
-           [this](const std::string& name)
-           {
-              if (enabledPlacefiles_.contains(name))
-              {
-                 // Placefile removed, remove layer
-                 enabledPlacefiles_.erase(name);
-                 RemovePlacefileLayer(name);
-              }
-              widget_->update();
-           });
-   connect(placefileManager_.get(),
-           &manager::PlacefileManager::PlacefileRenamed,
-           widget_,
-           [this](const std::string& oldName, const std::string& newName)
-           {
-              if (enabledPlacefiles_.contains(oldName))
-              {
-                 // Remove old placefile layer
-                 enabledPlacefiles_.erase(oldName);
-                 RemovePlacefileLayer(oldName);
-              }
-              if (!enabledPlacefiles_.contains(newName) &&
-                  placefileManager_->placefile_enabled(newName))
-              {
-                 // Add new placefile layer
-                 enabledPlacefiles_.emplace(newName);
-                 UpdatePlacefileLayers();
-              }
-              widget_->update();
-           });
-   connect(placefileManager_.get(),
            &manager::PlacefileManager::PlacefileUpdated,
            widget_,
            [this]() { widget_->update(); });
+
+   // When the layer model changes, update the layers
+   connect(layerModel_.get(),
+           &QAbstractItemModel::dataChanged,
+           widget_,
+           [this](const QModelIndex& topLeft,
+                  const QModelIndex& bottomRight,
+                  const QList<int>& /* roles */)
+           {
+              static const int enabledColumn =
+                 static_cast<int>(model::LayerModel::Column::Enabled);
+              const int displayColumn =
+                 static_cast<int>(model::LayerModel::Column::DisplayMap1) +
+                 static_cast<int>(id_);
+
+              // Update layers if the displayed or enabled state of the layer
+              // has changed
+              if ((topLeft.column() <= displayColumn &&
+                   displayColumn <= bottomRight.column()) ||
+                  (topLeft.column() <= enabledColumn &&
+                   enabledColumn <= bottomRight.column()))
+              {
+                 AddLayers();
+              }
+           });
+   connect(layerModel_.get(),
+           &QAbstractItemModel::modelReset,
+           widget_,
+           [this]() { AddLayers(); });
+   connect(layerModel_.get(),
+           &QAbstractItemModel::rowsInserted,
+           widget_,
+           [this](const QModelIndex& /* parent */, //
+                  int /* first */,
+                  int /* last */) { AddLayers(); });
+   connect(layerModel_.get(),
+           &QAbstractItemModel::rowsMoved,
+           widget_,
+           [this](const QModelIndex& /* sourceParent */,
+                  int /* sourceStart */,
+                  int /* sourceEnd */,
+                  const QModelIndex& /* destinationParent */,
+                  int /* destinationRow */) { AddLayers(); });
+   connect(layerModel_.get(),
+           &QAbstractItemModel::rowsRemoved,
+           widget_,
+           [this](const QModelIndex& /* parent */, //
+                  int /* first */,
+                  int /* last */) { AddLayers(); });
 }
 
 common::Level3ProductCategoryMap MapWidget::GetAvailableLevel3Categories()
@@ -756,7 +753,7 @@ void MapWidget::changeStyle()
 
 void MapWidget::DumpLayerList() const
 {
-   logger_->debug("Layers: {}", p->map_->layerIds().join(", ").toStdString());
+   logger_->info("Layers: {}", p->map_->layerIds().join(", ").toStdString());
 }
 
 std::string MapWidgetImpl::FindMapSymbologyLayer()
@@ -789,6 +786,12 @@ std::string MapWidgetImpl::FindMapSymbologyLayer()
 
 void MapWidgetImpl::AddLayers()
 {
+   if (styleLayers_.isEmpty())
+   {
+      // Skip if the map has not yet been initialized
+      return;
+   }
+
    logger_->debug("Add Layers");
 
    // Clear custom layers
@@ -855,7 +858,9 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
    else if (type == types::LayerType::Alert)
    {
       // Add the alert layer for the phenomenon
-      alertLayer_->AddLayers(std::get<awips::Phenomenon>(description), before);
+      auto newLayers = alertLayer_->AddLayers(
+         std::get<awips::Phenomenon>(description), before);
+      layerList_.insert(layerList_.end(), newLayers.cbegin(), newLayers.cend());
    }
    else if (type == types::LayerType::Placefile)
    {
@@ -904,57 +909,12 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
                radarProductView->range(),
                {radarSite->latitude(), radarSite->longitude()},
                QString::fromStdString(before));
+            layerList_.push_back(types::GetLayerName(type, description));
          }
          break;
 
       default:
          break;
-      }
-   }
-}
-
-void MapWidgetImpl::RemovePlacefileLayer(const std::string& placefileName)
-{
-   std::string layerName = GetPlacefileLayerName(placefileName);
-
-   // Remove layer from map
-   map_->removeLayer(layerName.c_str());
-
-   // Remove layer from internal layer list
-   auto layerIt = std::find(layerList_.begin(), layerList_.end(), layerName);
-   if (layerIt != layerList_.end())
-   {
-      layerList_.erase(layerIt);
-   }
-
-   // Determine if a layer exists for the placefile
-   auto placefileIt =
-      std::find_if(placefileLayers_.begin(),
-                   placefileLayers_.end(),
-                   [&placefileName](auto& layer)
-                   { return placefileName == layer->placefile_name(); });
-   if (placefileIt != placefileLayers_.end())
-   {
-      placefileLayers_.erase(placefileIt);
-   }
-}
-
-void MapWidgetImpl::UpdatePlacefileLayers()
-{
-   // Loop through enabled placefiles
-   for (auto& placefileName : enabledPlacefiles_)
-   {
-      // Determine if a layer exists for the placefile
-      auto it = std::find_if(placefileLayers_.begin(),
-                             placefileLayers_.end(),
-                             [&placefileName](auto& layer) {
-                                return placefileName == layer->placefile_name();
-                             });
-
-      // If the layer doesn't exist, create it
-      if (it == placefileLayers_.end())
-      {
-         AddPlacefileLayer(placefileName);
       }
    }
 }
@@ -988,9 +948,16 @@ void MapWidgetImpl::AddLayer(const std::string&            id,
    std::unique_ptr<QMapLibreGL::CustomLayerHostInterface> pHost =
       std::make_unique<LayerWrapper>(layer);
 
-   map_->addCustomLayer(id.c_str(), std::move(pHost), before.c_str());
+   try
+   {
+      map_->addCustomLayer(id.c_str(), std::move(pHost), before.c_str());
 
-   layerList_.push_back(id);
+      layerList_.push_back(id);
+   }
+   catch (const std::exception&)
+   {
+      // When dragging and dropping, a temporary duplicate layer exists
+   }
 }
 
 void MapWidget::enterEvent(QEnterEvent* /* ev */)

@@ -77,12 +77,6 @@ public:
 
    static std::shared_ptr<LayerModel> Instance();
 
-public slots:
-   void HandlePlacefileRemoved(const std::string& name);
-   void HandlePlacefileRenamed(const std::string& oldName,
-                               const std::string& newName);
-   void HandlePlacefileUpdate(const std::string& name);
-
 private:
    class Impl;
    std::unique_ptr<Impl> p;

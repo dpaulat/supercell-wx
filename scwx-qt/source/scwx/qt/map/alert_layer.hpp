@@ -4,6 +4,8 @@
 #include <scwx/qt/map/map_context.hpp>
 
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace scwx
 {
@@ -20,8 +22,8 @@ public:
    explicit AlertLayer(std::shared_ptr<MapContext> context);
    ~AlertLayer();
 
-   void AddLayers(awips::Phenomenon phenomenon, const std::string& before = {});
-   void AddLayers(const std::string& before = {});
+   std::vector<std::string> AddLayers(awips::Phenomenon  phenomenon,
+                                      const std::string& before = {});
 
 private:
    std::unique_ptr<AlertLayerImpl> p;
