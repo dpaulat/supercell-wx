@@ -24,9 +24,13 @@ public:
 
    gl::OpenGLFunctions& gl();
 
+   std::uint64_t texture_buffer_count() const;
+
    std::shared_ptr<gl::ShaderProgram>
    GetShaderProgram(const std::string& vertexPath,
                     const std::string& fragmentPath);
+   std::shared_ptr<gl::ShaderProgram> GetShaderProgram(
+      std::initializer_list<std::pair<GLenum, std::string>> shaders);
 
    GLuint GetTextureAtlas();
 

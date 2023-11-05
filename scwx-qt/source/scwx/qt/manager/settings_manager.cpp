@@ -1,5 +1,9 @@
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/settings/map_settings.hpp>
+#include <scwx/qt/settings/palette_settings.hpp>
+#include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
 #include <scwx/qt/util/json.hpp>
 #include <scwx/util/logger.hpp>
@@ -17,21 +21,33 @@ namespace qt
 {
 namespace manager
 {
-namespace SettingsManager
-{
 
 static const std::string logPrefix_ = "scwx::qt::manager::settings_manager";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static boost::json::value ConvertSettingsToJson();
-static void               GenerateDefaultSettings();
-static bool               LoadSettings(const boost::json::object& settingsJson);
-static void               ValidateSettings();
+class SettingsManager::Impl
+{
+public:
+   explicit Impl(SettingsManager* self) : self_ {self} {}
+   ~Impl() = default;
 
-static bool        initialized_ {false};
-static std::string settingsPath_ {};
+   void ValidateSettings();
 
-void Initialize()
+   static boost::json::value ConvertSettingsToJson();
+   static void               GenerateDefaultSettings();
+   static bool LoadSettings(const boost::json::object& settingsJson);
+
+   SettingsManager* self_;
+
+   bool        initialized_ {false};
+   std::string settingsPath_ {};
+};
+
+SettingsManager::SettingsManager() : p(std::make_unique<Impl>(this)) {}
+
+SettingsManager::~SettingsManager() {};
+
+void SettingsManager::Initialize()
 {
    std::string appDataPath {
       QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
@@ -46,14 +62,14 @@ void Initialize()
       }
    }
 
-   settingsPath_ = appDataPath + "/settings.json";
-   initialized_  = true;
+   p->settingsPath_ = appDataPath + "/settings.json";
+   p->initialized_  = true;
 
-   ReadSettings(settingsPath_);
-   ValidateSettings();
+   ReadSettings(p->settingsPath_);
+   p->ValidateSettings();
 }
 
-void ReadSettings(const std::string& settingsPath)
+void SettingsManager::ReadSettings(const std::string& settingsPath)
 {
    boost::json::value settingsJson = nullptr;
 
@@ -64,39 +80,41 @@ void ReadSettings(const std::string& settingsPath)
 
    if (settingsJson == nullptr || !settingsJson.is_object())
    {
-      GenerateDefaultSettings();
-      settingsJson = ConvertSettingsToJson();
+      Impl::GenerateDefaultSettings();
+      settingsJson = Impl::ConvertSettingsToJson();
       util::json::WriteJsonFile(settingsPath, settingsJson);
    }
    else
    {
-      bool jsonDirty = LoadSettings(settingsJson.as_object());
+      bool jsonDirty = Impl::LoadSettings(settingsJson.as_object());
 
       if (jsonDirty)
       {
-         settingsJson = ConvertSettingsToJson();
+         settingsJson = Impl::ConvertSettingsToJson();
          util::json::WriteJsonFile(settingsPath, settingsJson);
       }
    };
 }
 
-void SaveSettings()
+void SettingsManager::SaveSettings()
 {
-   if (initialized_)
+   if (p->initialized_)
    {
       logger_->info("Saving settings");
 
-      boost::json::value settingsJson = ConvertSettingsToJson();
-      util::json::WriteJsonFile(settingsPath_, settingsJson);
+      boost::json::value settingsJson = Impl::ConvertSettingsToJson();
+      util::json::WriteJsonFile(p->settingsPath_, settingsJson);
+
+      Q_EMIT SettingsSaved();
    }
 }
 
-void Shutdown()
+void SettingsManager::Shutdown()
 {
    bool dataChanged = false;
 
-   dataChanged |= general_settings().Shutdown();
-   dataChanged |= map_settings().Shutdown();
+   dataChanged |= settings::GeneralSettings::Instance().Shutdown();
+   dataChanged |= settings::MapSettings::Instance().Shutdown();
    dataChanged |= settings::UiSettings::Instance().Shutdown();
 
    if (dataChanged)
@@ -105,67 +123,53 @@ void Shutdown()
    }
 }
 
-settings::GeneralSettings& general_settings()
-{
-   static settings::GeneralSettings generalSettings_;
-   return generalSettings_;
-}
-
-settings::MapSettings& map_settings()
-{
-   static settings::MapSettings mapSettings_;
-   return mapSettings_;
-}
-
-settings::PaletteSettings& palette_settings()
-{
-   static settings::PaletteSettings paletteSettings_;
-   return paletteSettings_;
-}
-
-static boost::json::value ConvertSettingsToJson()
+boost::json::value SettingsManager::Impl::ConvertSettingsToJson()
 {
    boost::json::object settingsJson;
 
-   general_settings().WriteJson(settingsJson);
-   map_settings().WriteJson(settingsJson);
-   palette_settings().WriteJson(settingsJson);
+   settings::GeneralSettings::Instance().WriteJson(settingsJson);
+   settings::MapSettings::Instance().WriteJson(settingsJson);
+   settings::PaletteSettings::Instance().WriteJson(settingsJson);
+   settings::TextSettings::Instance().WriteJson(settingsJson);
    settings::UiSettings::Instance().WriteJson(settingsJson);
 
    return settingsJson;
 }
 
-static void GenerateDefaultSettings()
+void SettingsManager::Impl::GenerateDefaultSettings()
 {
    logger_->info("Generating default settings");
 
-   general_settings().SetDefaults();
-   map_settings().SetDefaults();
-   palette_settings().SetDefaults();
+   settings::GeneralSettings::Instance().SetDefaults();
+   settings::MapSettings::Instance().SetDefaults();
+   settings::PaletteSettings::Instance().SetDefaults();
+   settings::TextSettings::Instance().SetDefaults();
    settings::UiSettings::Instance().SetDefaults();
 }
 
-static bool LoadSettings(const boost::json::object& settingsJson)
+bool SettingsManager::Impl::LoadSettings(
+   const boost::json::object& settingsJson)
 {
    logger_->info("Loading settings");
 
    bool jsonDirty = false;
 
-   jsonDirty |= !general_settings().ReadJson(settingsJson);
-   jsonDirty |= !map_settings().ReadJson(settingsJson);
-   jsonDirty |= !palette_settings().ReadJson(settingsJson);
+   jsonDirty |= !settings::GeneralSettings::Instance().ReadJson(settingsJson);
+   jsonDirty |= !settings::MapSettings::Instance().ReadJson(settingsJson);
+   jsonDirty |= !settings::PaletteSettings::Instance().ReadJson(settingsJson);
+   jsonDirty |= !settings::TextSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::UiSettings::Instance().ReadJson(settingsJson);
 
    return jsonDirty;
 }
 
-static void ValidateSettings()
+void SettingsManager::Impl::ValidateSettings()
 {
    logger_->debug("Validating settings");
 
    bool settingsChanged = false;
 
-   auto& generalSettings = general_settings();
+   auto& generalSettings = settings::GeneralSettings::Instance();
 
    // Validate map provider
    std::string mapProviderName = generalSettings.map_provider().GetValue();
@@ -196,11 +200,16 @@ static void ValidateSettings()
 
    if (settingsChanged)
    {
-      SaveSettings();
+      self_->SaveSettings();
    }
 }
 
-} // namespace SettingsManager
+SettingsManager& SettingsManager::Instance()
+{
+   static SettingsManager instance_ {};
+   return instance_;
+}
+
 } // namespace manager
 } // namespace qt
 } // namespace scwx

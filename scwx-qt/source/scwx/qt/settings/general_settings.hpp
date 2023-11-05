@@ -13,8 +13,6 @@ namespace qt
 namespace settings
 {
 
-class GeneralSettingsImpl;
-
 class GeneralSettings : public SettingsCategory
 {
 public:
@@ -27,6 +25,7 @@ public:
    GeneralSettings(GeneralSettings&&) noexcept;
    GeneralSettings& operator=(GeneralSettings&&) noexcept;
 
+   SettingsVariable<bool>&                       anti_aliasing_enabled() const;
    SettingsVariable<bool>&                       debug_enabled() const;
    SettingsVariable<std::string>&                default_alert_action() const;
    SettingsVariable<std::string>&                default_radar_site() const;
@@ -41,13 +40,16 @@ public:
    SettingsVariable<std::string>&                maptiler_api_key() const;
    SettingsVariable<bool>& update_notifications_enabled() const;
 
+   static GeneralSettings& Instance();
+
    friend bool operator==(const GeneralSettings& lhs,
                           const GeneralSettings& rhs);
 
    bool Shutdown();
 
 private:
-   std::unique_ptr<GeneralSettingsImpl> p;
+   class Impl;
+   std::unique_ptr<Impl> p;
 };
 
 } // namespace settings

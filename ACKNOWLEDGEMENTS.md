@@ -18,6 +18,7 @@ Supercell Wx uses code from the following dependencies:
 | [CSS Color Parser](https://github.com/deanm/css-color-parser-js) | [MIT License](https://spdx.org/licenses/MIT.html) | Ported to C++ for MapLibre Native |
 | [Date](https://github.com/HowardHinnant/date) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [Dear ImGui](https://github.com/ocornut/imgui) | [MIT License](https://spdx.org/licenses/MIT.html) |
+| [fontconfig](http://fontconfig.org/) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [FreeType](https://freetype.org/) | [Freetype Project License](https://spdx.org/licenses/FTL.html) |
 | [FreeType GL](https://github.com/rougier/freetype-gl) | [BSD 2-Clause with views sentence](https://spdx.org/licenses/BSD-2-Clause-Views.html) |
 | [GeographicLib](https://geographiclib.sourceforge.io/) | [MIT License](https://spdx.org/licenses/MIT.html) |
@@ -36,6 +37,8 @@ Supercell Wx uses code from the following dependencies:
 | [spdlog](https://github.com/gabime/spdlog) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [SQLite](https://www.sqlite.org/) | Public Domain |
 | [stb](https://github.com/nothings/stb) | Public Domain |
+| [TextFlowCpp](https://github.com/catchorg/textflowcpp) | [Boost Software License 1.0](https://spdx.org/licenses/BSL-1.0.html) |
+| [Units](https://github.com/nholthaus/units) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [Vulkan SDK](https://www.vulkan.org/) | [Apache License 2.0](https://spdx.org/licenses/Apache-2.0.html) |
 | [zlib](https://zlib.net/) | [zlib License](https://spdx.org/licenses/Zlib.html) |
 
@@ -55,7 +58,9 @@ Supercell Wx uses assets from the following sources:
 
 | Source | License | Notes |
 | ------ | ------- | ----- |
+| Alte DIN 1451 Mittelschrift | SIL Open Font License |
 | [Font Awesome Free](https://fontawesome.com/) | CC BY 4.0 License |
+| [Inconsolata](https://fonts.google.com/specimen/Inconsolata) | SIL Open Font License |
 | [NOAA's Weather and Climate Toolkit](https://www.ncdc.noaa.gov/wct/) | Public Domain | Default Color Tables |
 | [Supercell thunderstorm with dramatic clouds](https://www.shutterstock.com/image-photo/supercell-thunderstorm-dramatic-clouds-1354353521) | Shutterstock Standard License | Photo by John Sirlin
 

@@ -15,6 +15,7 @@ set(SRC_AWIPS_TESTS source/scwx/awips/coded_location.test.cpp
                     source/scwx/awips/ugc.test.cpp)
 set(SRC_COMMON_TESTS source/scwx/common/color_table.test.cpp
                      source/scwx/common/products.test.cpp)
+set(SRC_GR_TESTS source/scwx/gr/placefile.test.cpp)
 set(SRC_NETWORK_TESTS source/scwx/network/dir_list.test.cpp)
 set(SRC_PROVIDER_TESTS source/scwx/provider/aws_level2_data_provider.test.cpp
                        source/scwx/provider/aws_level3_data_provider.test.cpp
@@ -31,6 +32,7 @@ set(SRC_QT_UTIL_TESTS source/scwx/qt/util/q_file_input_stream.test.cpp)
 set(SRC_UTIL_TESTS source/scwx/util/float.test.cpp
                    source/scwx/util/rangebuf.test.cpp
                    source/scwx/util/streams.test.cpp
+                   source/scwx/util/strings.test.cpp
                    source/scwx/util/vectorbuf.test.cpp)
 set(SRC_WSR88D_TESTS source/scwx/wsr88d/ar2v_file.test.cpp
                      source/scwx/wsr88d/level3_file.test.cpp
@@ -41,6 +43,7 @@ set(CMAKE_FILES test.cmake)
 add_executable(wxtest ${SRC_MAIN}
                       ${SRC_AWIPS_TESTS}
                       ${SRC_COMMON_TESTS}
+                      ${SRC_GR_TESTS}
                       ${SRC_NETWORK_TESTS}
                       ${SRC_PROVIDER_TESTS}
                       ${SRC_QT_CONFIG_TESTS}
@@ -56,6 +59,7 @@ add_executable(wxtest ${SRC_MAIN}
 source_group("Source Files\\main"         FILES ${SRC_MAIN})
 source_group("Source Files\\awips"        FILES ${SRC_AWIPS_TESTS})
 source_group("Source Files\\common"       FILES ${SRC_COMMON_TESTS})
+source_group("Source Files\\gr"           FILES ${SRC_GR_TESTS})
 source_group("Source Files\\network"      FILES ${SRC_NETWORK_TESTS})
 source_group("Source Files\\provider"     FILES ${SRC_PROVIDER_TESTS})
 source_group("Source Files\\qt\\config"   FILES ${SRC_QT_CONFIG_TESTS})

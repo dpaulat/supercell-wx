@@ -31,3 +31,9 @@
 [submodule "external/date"]
 	path = external/date
 	url = https://github.com/HowardHinnant/date.git
+[submodule "external/units"]
+	path = external/units
+	url = https://github.com/nholthaus/units.git
+[submodule "external/textflowcpp"]
+	path = external/textflowcpp
+	url = https://github.com/catchorg/textflowcpp.git

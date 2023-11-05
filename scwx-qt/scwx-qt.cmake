@@ -12,6 +12,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Boost)
+find_package(Fontconfig)
 find_package(Freetype)
 find_package(geographiclib)
 find_package(glm)
@@ -46,7 +47,8 @@ set(HDR_CONFIG source/scwx/qt/config/county_database.hpp
                source/scwx/qt/config/radar_site.hpp)
 set(SRC_CONFIG source/scwx/qt/config/county_database.cpp
                source/scwx/qt/config/radar_site.cpp)
-set(SRC_EXTERNAL source/scwx/qt/external/stb_rect_pack.cpp)
+set(SRC_EXTERNAL source/scwx/qt/external/stb_image.cpp
+                 source/scwx/qt/external/stb_rect_pack.cpp)
 set(HDR_GL source/scwx/qt/gl/gl.hpp
            source/scwx/qt/gl/gl_context.hpp
            source/scwx/qt/gl/shader_program.hpp
@@ -56,18 +58,34 @@ set(SRC_GL source/scwx/qt/gl/gl_context.cpp
            source/scwx/qt/gl/text_shader.cpp)
 set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
                 source/scwx/qt/gl/draw/geo_line.hpp
+                source/scwx/qt/gl/draw/placefile_icons.hpp
+                source/scwx/qt/gl/draw/placefile_images.hpp
+                source/scwx/qt/gl/draw/placefile_lines.hpp
+                source/scwx/qt/gl/draw/placefile_polygons.hpp
+                source/scwx/qt/gl/draw/placefile_text.hpp
+                source/scwx/qt/gl/draw/placefile_triangles.hpp
                 source/scwx/qt/gl/draw/rectangle.hpp)
 set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
                 source/scwx/qt/gl/draw/geo_line.cpp
+                source/scwx/qt/gl/draw/placefile_icons.cpp
+                source/scwx/qt/gl/draw/placefile_images.cpp
+                source/scwx/qt/gl/draw/placefile_lines.cpp
+                source/scwx/qt/gl/draw/placefile_polygons.cpp
+                source/scwx/qt/gl/draw/placefile_text.cpp
+                source/scwx/qt/gl/draw/placefile_triangles.cpp
                 source/scwx/qt/gl/draw/rectangle.cpp)
-set(HDR_MANAGER source/scwx/qt/manager/radar_product_manager.hpp
+set(HDR_MANAGER source/scwx/qt/manager/font_manager.hpp
+                source/scwx/qt/manager/placefile_manager.hpp
+                source/scwx/qt/manager/radar_product_manager.hpp
                 source/scwx/qt/manager/radar_product_manager_notifier.hpp
                 source/scwx/qt/manager/resource_manager.hpp
                 source/scwx/qt/manager/settings_manager.hpp
                 source/scwx/qt/manager/text_event_manager.hpp
                 source/scwx/qt/manager/timeline_manager.hpp
                 source/scwx/qt/manager/update_manager.hpp)
-set(SRC_MANAGER source/scwx/qt/manager/radar_product_manager.cpp
+set(SRC_MANAGER source/scwx/qt/manager/font_manager.cpp
+                source/scwx/qt/manager/placefile_manager.cpp
+                source/scwx/qt/manager/radar_product_manager.cpp
                 source/scwx/qt/manager/radar_product_manager_notifier.cpp
                 source/scwx/qt/manager/resource_manager.cpp
                 source/scwx/qt/manager/settings_manager.cpp
@@ -84,6 +102,7 @@ set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/map_settings.hpp
             source/scwx/qt/map/map_widget.hpp
             source/scwx/qt/map/overlay_layer.hpp
+            source/scwx/qt/map/placefile_layer.hpp
             source/scwx/qt/map/radar_product_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp)
 set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
@@ -95,11 +114,14 @@ set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/map_provider.cpp
             source/scwx/qt/map/map_widget.cpp
             source/scwx/qt/map/overlay_layer.cpp
+            source/scwx/qt/map/placefile_layer.cpp
             source/scwx/qt/map/radar_product_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp)
 set(HDR_MODEL source/scwx/qt/model/alert_model.hpp
               source/scwx/qt/model/alert_proxy_model.hpp
               source/scwx/qt/model/imgui_context_model.hpp
+              source/scwx/qt/model/layer_model.hpp
+              source/scwx/qt/model/placefile_model.hpp
               source/scwx/qt/model/radar_product_model.hpp
               source/scwx/qt/model/radar_site_model.hpp
               source/scwx/qt/model/tree_item.hpp
@@ -107,6 +129,8 @@ set(HDR_MODEL source/scwx/qt/model/alert_model.hpp
 set(SRC_MODEL source/scwx/qt/model/alert_model.cpp
               source/scwx/qt/model/alert_proxy_model.cpp
               source/scwx/qt/model/imgui_context_model.cpp
+              source/scwx/qt/model/layer_model.cpp
+              source/scwx/qt/model/placefile_model.cpp
               source/scwx/qt/model/radar_product_model.cpp
               source/scwx/qt/model/radar_site_model.cpp
               source/scwx/qt/model/tree_item.cpp
@@ -122,6 +146,7 @@ set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/settings_interface_base.hpp
                  source/scwx/qt/settings/settings_variable.hpp
                  source/scwx/qt/settings/settings_variable_base.hpp
+                 source/scwx/qt/settings/text_settings.hpp
                  source/scwx/qt/settings/ui_settings.hpp)
 set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/map_settings.cpp
@@ -132,19 +157,26 @@ set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/settings_interface_base.cpp
                  source/scwx/qt/settings/settings_variable.cpp
                  source/scwx/qt/settings/settings_variable_base.cpp
+                 source/scwx/qt/settings/text_settings.cpp
                  source/scwx/qt/settings/ui_settings.cpp)
 set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/font_types.hpp
               source/scwx/qt/types/github_types.hpp
+              source/scwx/qt/types/imgui_font.hpp
+              source/scwx/qt/types/layer_types.hpp
               source/scwx/qt/types/map_types.hpp
               source/scwx/qt/types/qt_types.hpp
               source/scwx/qt/types/radar_product_record.hpp
-              source/scwx/qt/types/text_event_key.hpp)
+              source/scwx/qt/types/text_event_key.hpp
+              source/scwx/qt/types/text_types.hpp)
 set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/github_types.cpp
+              source/scwx/qt/types/imgui_font.cpp
+              source/scwx/qt/types/layer_types.cpp
               source/scwx/qt/types/map_types.cpp
               source/scwx/qt/types/radar_product_record.cpp
-              source/scwx/qt/types/text_event_key.cpp)
+              source/scwx/qt/types/text_event_key.cpp
+              source/scwx/qt/types/text_types.cpp)
 set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/alert_dialog.hpp
            source/scwx/qt/ui/alert_dock_widget.hpp
@@ -153,9 +185,14 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/flow_layout.hpp
            source/scwx/qt/ui/imgui_debug_dialog.hpp
            source/scwx/qt/ui/imgui_debug_widget.hpp
+           source/scwx/qt/ui/layer_dialog.hpp
+           source/scwx/qt/ui/left_elided_item_delegate.hpp
            source/scwx/qt/ui/level2_products_widget.hpp
            source/scwx/qt/ui/level2_settings_widget.hpp
            source/scwx/qt/ui/level3_products_widget.hpp
+           source/scwx/qt/ui/open_url_dialog.hpp
+           source/scwx/qt/ui/placefile_dialog.hpp
+           source/scwx/qt/ui/placefile_settings_widget.hpp
            source/scwx/qt/ui/radar_site_dialog.hpp
            source/scwx/qt/ui/settings_dialog.hpp
            source/scwx/qt/ui/update_dialog.hpp)
@@ -167,9 +204,14 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/flow_layout.cpp
            source/scwx/qt/ui/imgui_debug_dialog.cpp
            source/scwx/qt/ui/imgui_debug_widget.cpp
+           source/scwx/qt/ui/layer_dialog.cpp
+           source/scwx/qt/ui/left_elided_item_delegate.cpp
            source/scwx/qt/ui/level2_products_widget.cpp
            source/scwx/qt/ui/level2_settings_widget.cpp
            source/scwx/qt/ui/level3_products_widget.cpp
+           source/scwx/qt/ui/open_url_dialog.cpp
+           source/scwx/qt/ui/placefile_dialog.cpp
+           source/scwx/qt/ui/placefile_settings_widget.cpp
            source/scwx/qt/ui/radar_site_dialog.cpp
            source/scwx/qt/ui/settings_dialog.cpp
            source/scwx/qt/ui/update_dialog.cpp)
@@ -179,6 +221,10 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/animation_dock_widget.ui
            source/scwx/qt/ui/collapsible_group.ui
            source/scwx/qt/ui/imgui_debug_dialog.ui
+           source/scwx/qt/ui/layer_dialog.ui
+           source/scwx/qt/ui/open_url_dialog.ui
+           source/scwx/qt/ui/placefile_dialog.ui
+           source/scwx/qt/ui/placefile_settings_widget.ui
            source/scwx/qt/ui/radar_site_dialog.ui
            source/scwx/qt/ui/settings_dialog.ui
            source/scwx/qt/ui/update_dialog.ui)
@@ -187,22 +233,30 @@ set(HDR_UTIL source/scwx/qt/util/color.hpp
              source/scwx/qt/util/font.hpp
              source/scwx/qt/util/font_buffer.hpp
              source/scwx/qt/util/geographic_lib.hpp
+             source/scwx/qt/util/imgui.hpp
              source/scwx/qt/util/json.hpp
+             source/scwx/qt/util/maplibre.hpp
+             source/scwx/qt/util/network.hpp
              source/scwx/qt/util/streams.hpp
              source/scwx/qt/util/texture_atlas.hpp
              source/scwx/qt/util/q_file_buffer.hpp
              source/scwx/qt/util/q_file_input_stream.hpp
-             source/scwx/qt/util/time.hpp)
+             source/scwx/qt/util/time.hpp
+             source/scwx/qt/util/tooltip.hpp)
 set(SRC_UTIL source/scwx/qt/util/color.cpp
              source/scwx/qt/util/file.cpp
              source/scwx/qt/util/font.cpp
              source/scwx/qt/util/font_buffer.cpp
              source/scwx/qt/util/geographic_lib.cpp
+             source/scwx/qt/util/imgui.cpp
              source/scwx/qt/util/json.cpp
+             source/scwx/qt/util/maplibre.cpp
+             source/scwx/qt/util/network.cpp
              source/scwx/qt/util/texture_atlas.cpp
              source/scwx/qt/util/q_file_buffer.cpp
              source/scwx/qt/util/q_file_input_stream.cpp
-             source/scwx/qt/util/time.cpp)
+             source/scwx/qt/util/time.cpp
+             source/scwx/qt/util/tooltip.cpp)
 set(HDR_VIEW source/scwx/qt/view/level2_product_view.hpp
              source/scwx/qt/view/level3_product_view.hpp
              source/scwx/qt/view/level3_radial_view.hpp
@@ -221,13 +275,17 @@ set(RESOURCE_FILES scwx-qt.qrc)
 set(SHADER_FILES gl/color.frag
                  gl/color.vert
                  gl/geo_line.vert
+                 gl/geo_texture2d.vert
+                 gl/map_color.vert
                  gl/radar.frag
                  gl/radar.vert
                  gl/text.frag
                  gl/text.vert
                  gl/texture1d.frag
                  gl/texture1d.vert
-                 gl/texture2d.frag)
+                 gl/texture2d.frag
+                 gl/texture2d_array.frag
+                 gl/threshold.geom)
 
 set(CMAKE_FILES scwx-qt.cmake)
 
@@ -386,7 +444,8 @@ target_include_directories(scwx-qt PUBLIC ${scwx-qt_SOURCE_DIR}/source
                                           ${FTGL_INCLUDE_DIR}
                                           ${IMGUI_INCLUDE_DIRS}
                                           ${MBGL_INCLUDE_DIR}
-                                          ${STB_INCLUDE_DIR})
+                                          ${STB_INCLUDE_DIR}
+                                          ${TEXTFLOWCPP_INCLUDE_DIR})
 
 target_include_directories(supercell-wx PUBLIC ${scwx-qt_SOURCE_DIR}/source)
 
@@ -432,6 +491,7 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Boost::timer
                                      qmaplibregl
                                      $<$<CXX_COMPILER_ID:MSVC>:opengl32>
+                                     Fontconfig::Fontconfig
                                      freetype-gl
                                      GeographicLib::GeographicLib
                                      glm::glm

@@ -46,6 +46,14 @@ public:
    SettingsVariable<T>* GetSettingsVariable() const;
 
    /**
+    * Gets whether the staged value (or current value, if none staged) is
+    * set to the default value.
+    *
+    * @return true if the settings variable is set to default, otherwise false.
+    */
+   bool IsDefault() override;
+
+   /**
     * Sets the current value of the associated settings variable to the staged
     * value.
     *
@@ -63,6 +71,11 @@ public:
     * Stages the default value of the associated settings variable.
     */
    void StageDefault() override;
+
+   /**
+    * Stages a value to the associated settings variable.
+    */
+   void StageValue(const T& value);
 
    /**
     * Sets the edit widget from the settings dialog.
@@ -103,6 +116,7 @@ private:
 
 #ifdef SETTINGS_INTERFACE_IMPLEMENTATION
 template class SettingsInterface<bool>;
+template class SettingsInterface<double>;
 template class SettingsInterface<std::int64_t>;
 template class SettingsInterface<std::string>;
 

@@ -11,6 +11,8 @@ namespace common
 constexpr double kMilesPerMeter      = 0.00062137119;
 constexpr double kKilometersPerMeter = 0.001;
 
+constexpr double kDegreesToRadians = 0.0174532925199432957692369055556;
+
 /**
  * @brief Coordinate type to hold latitude and longitude of a location.
  */

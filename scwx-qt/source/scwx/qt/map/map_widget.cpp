@@ -1,21 +1,29 @@
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/gl/gl.hpp>
+#include <scwx/qt/manager/font_manager.hpp>
+#include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
-#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/alert_layer.hpp>
 #include <scwx/qt/map/color_table_layer.hpp>
 #include <scwx/qt/map/layer_wrapper.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/overlay_layer.hpp>
+#include <scwx/qt/map/placefile_layer.hpp>
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
+#include <scwx/qt/model/layer_model.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/util/file.hpp>
+#include <scwx/qt/util/maplibre.hpp>
+#include <scwx/qt/util/tooltip.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
 #include <regex>
+#include <set>
 
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_qt.hpp>
@@ -49,7 +57,9 @@ class MapWidgetImpl : public QObject
 
 public:
    explicit MapWidgetImpl(MapWidget*                   widget,
+                          std::size_t                  id,
                           const QMapLibreGL::Settings& settings) :
+       id_ {id},
        uuid_ {boost::uuids::random_generator()()},
        context_ {std::make_shared<MapContext>()},
        widget_ {widget},
@@ -61,11 +71,11 @@ public:
        radarProductLayer_ {nullptr},
        alertLayer_ {std::make_shared<AlertLayer>(context_)},
        overlayLayer_ {nullptr},
+       placefileLayer_ {nullptr},
        colorTableLayer_ {nullptr},
        autoRefreshEnabled_ {true},
        autoUpdateEnabled_ {true},
        selectedLevel2Product_ {common::Level2Product::Unknown},
-       lastPos_(),
        currentStyleIndex_ {0},
        currentStyle_ {nullptr},
        frameDraws_(0),
@@ -75,8 +85,7 @@ public:
        prevBearing_ {0.0},
        prevPitch_ {0.0}
    {
-      auto& generalSettings =
-         scwx::qt::manager::SettingsManager::general_settings();
+      auto& generalSettings = settings::GeneralSettings::Instance();
 
       SetRadarSite(generalSettings.default_radar_site().GetValue());
 
@@ -92,6 +101,8 @@ public:
 
       // Set Map Provider Details
       mapProvider_ = GetMapProvider(generalSettings.map_provider().GetValue());
+
+      ConnectSignals();
    }
 
    ~MapWidgetImpl()
@@ -112,22 +123,37 @@ public:
       threadPool_.join();
    }
 
+   void AddLayer(types::LayerType        type,
+                 types::LayerDescription description,
+                 const std::string&      before = {});
    void AddLayer(const std::string&            id,
                  std::shared_ptr<GenericLayer> layer,
                  const std::string&            before = {});
+   void AddLayers();
+   void AddPlacefileLayer(const std::string& placefileName,
+                          const std::string& before);
+   void ConnectSignals();
+   void ImGuiCheckFonts();
    void InitializeNewRadarProductView(const std::string& colorPalette);
    void RadarProductManagerConnect();
    void RadarProductManagerDisconnect();
    void RadarProductViewConnect();
    void RadarProductViewDisconnect();
+   void RunMousePicking();
    void SetRadarSite(const std::string& radarSite);
+   void UpdateLoadedStyle();
    bool UpdateStoredMapParameters();
+
+   std::string FindMapSymbologyLayer();
 
    common::Level2Product
    GetLevel2ProductOrDefault(const std::string& productName) const;
 
+   static std::string GetPlacefileLayerName(const std::string& placefileName);
+
    boost::asio::thread_pool threadPool_ {1u};
 
+   std::size_t        id_;
    boost::uuids::uuid uuid_;
 
    std::shared_ptr<MapContext> context_;
@@ -138,10 +164,19 @@ public:
    std::shared_ptr<QMapLibreGL::Map> map_;
    std::list<std::string>            layerList_;
 
+   QStringList        styleLayers_;
+   types::LayerVector customLayers_;
+
    ImGuiContext* imGuiContext_;
    std::string   imGuiContextName_;
    bool          imGuiRendererInitialized_;
+   std::uint64_t imGuiFontsBuildCount_ {};
 
+   std::shared_ptr<model::LayerModel> layerModel_ {
+      model::LayerModel::Instance()};
+
+   std::shared_ptr<manager::PlacefileManager> placefileManager_ {
+      manager::PlacefileManager::Instance()};
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
    std::shared_ptr<common::ColorTable> colorTable_;
@@ -149,14 +184,20 @@ public:
    std::shared_ptr<RadarProductLayer> radarProductLayer_;
    std::shared_ptr<AlertLayer>        alertLayer_;
    std::shared_ptr<OverlayLayer>      overlayLayer_;
+   std::shared_ptr<PlacefileLayer>    placefileLayer_;
    std::shared_ptr<ColorTableLayer>   colorTableLayer_;
+
+   std::list<std::shared_ptr<PlacefileLayer>> placefileLayers_ {};
 
    bool autoRefreshEnabled_;
    bool autoUpdateEnabled_;
 
    common::Level2Product selectedLevel2Product_;
 
-   QPointF         lastPos_;
+   bool            hasMouse_ {false};
+   bool            lastItemPicked_ {false};
+   QPointF         lastPos_ {};
+   QPointF         lastGlobalPos_ {};
    std::size_t     currentStyleIndex_;
    const MapStyle* currentStyle_;
    std::string     initialStyleName_ {};
@@ -173,9 +214,16 @@ public slots:
    void Update();
 };
 
-MapWidget::MapWidget(const QMapLibreGL::Settings& settings) :
-    p(std::make_unique<MapWidgetImpl>(this, settings))
+MapWidget::MapWidget(std::size_t id, const QMapLibreGL::Settings& settings) :
+    p(std::make_unique<MapWidgetImpl>(this, id, settings))
 {
+   if (settings::GeneralSettings::Instance().anti_aliasing_enabled().GetValue())
+   {
+      QSurfaceFormat surfaceFormat = QSurfaceFormat::defaultFormat();
+      surfaceFormat.setSamples(4);
+      setFormat(surfaceFormat);
+   }
+
    setFocusPolicy(Qt::StrongFocus);
 
    ImGui_ImplQt_RegisterWidget(this);
@@ -185,6 +233,63 @@ MapWidget::~MapWidget()
 {
    // Make sure we have a valid context so we can delete the QMapLibreGL.
    makeCurrent();
+}
+
+void MapWidgetImpl::ConnectSignals()
+{
+   connect(placefileManager_.get(),
+           &manager::PlacefileManager::PlacefileUpdated,
+           widget_,
+           [this]() { widget_->update(); });
+
+   // When the layer model changes, update the layers
+   connect(layerModel_.get(),
+           &QAbstractItemModel::dataChanged,
+           widget_,
+           [this](const QModelIndex& topLeft,
+                  const QModelIndex& bottomRight,
+                  const QList<int>& /* roles */)
+           {
+              static const int enabledColumn =
+                 static_cast<int>(model::LayerModel::Column::Enabled);
+              const int displayColumn =
+                 static_cast<int>(model::LayerModel::Column::DisplayMap1) +
+                 static_cast<int>(id_);
+
+              // Update layers if the displayed or enabled state of the layer
+              // has changed
+              if ((topLeft.column() <= displayColumn &&
+                   displayColumn <= bottomRight.column()) ||
+                  (topLeft.column() <= enabledColumn &&
+                   enabledColumn <= bottomRight.column()))
+              {
+                 AddLayers();
+              }
+           });
+   connect(layerModel_.get(),
+           &QAbstractItemModel::modelReset,
+           widget_,
+           [this]() { AddLayers(); });
+   connect(layerModel_.get(),
+           &QAbstractItemModel::rowsInserted,
+           widget_,
+           [this](const QModelIndex& /* parent */, //
+                  int /* first */,
+                  int /* last */) { AddLayers(); });
+   connect(layerModel_.get(),
+           &QAbstractItemModel::rowsMoved,
+           widget_,
+           [this](const QModelIndex& /* sourceParent */,
+                  int /* sourceStart */,
+                  int /* sourceEnd */,
+                  const QModelIndex& /* destinationParent */,
+                  int /* destinationRow */) { AddLayers(); });
+   connect(layerModel_.get(),
+           &QAbstractItemModel::rowsRemoved,
+           widget_,
+           [this](const QModelIndex& /* parent */, //
+                  int /* first */,
+                  int /* last */) { AddLayers(); });
 }
 
 common::Level3ProductCategoryMap MapWidget::GetAvailableLevel3Categories()
@@ -498,7 +603,7 @@ void MapWidget::SelectRadarSite(std::shared_ptr<config::RadarSite> radarSite,
                             false);
       }
 
-      AddLayers();
+      p->AddLayers();
 
       // TODO: Disable refresh from old site
 
@@ -646,62 +751,193 @@ void MapWidget::changeStyle()
    Q_EMIT MapStyleChanged(p->currentStyle_->name_);
 }
 
-void MapWidget::AddLayers()
+void MapWidget::DumpLayerList() const
 {
-   logger_->debug("AddLayers()");
+   logger_->info("Layers: {}", p->map_->layerIds().join(", ").toStdString());
+}
+
+std::string MapWidgetImpl::FindMapSymbologyLayer()
+{
+   std::string before = "ferry";
+
+   for (const QString& qlayer : styleLayers_)
+   {
+      const std::string layer = qlayer.toStdString();
+
+      // Draw below layers defined in map style
+      auto it = std::find_if(
+         currentStyle_->drawBelow_.cbegin(),
+         currentStyle_->drawBelow_.cend(),
+         [&layer](const std::string& styleLayer) -> bool
+         {
+            std::regex re {styleLayer, std::regex_constants::icase};
+            return std::regex_match(layer, re);
+         });
+
+      if (it != currentStyle_->drawBelow_.cend())
+      {
+         before = layer;
+         break;
+      }
+   }
+
+   return before;
+}
+
+void MapWidgetImpl::AddLayers()
+{
+   if (styleLayers_.isEmpty())
+   {
+      // Skip if the map has not yet been initialized
+      return;
+   }
+
+   logger_->debug("Add Layers");
 
    // Clear custom layers
-   for (const std::string& id : p->layerList_)
+   for (const std::string& id : layerList_)
    {
-      p->map_->removeLayer(id.c_str());
+      map_->removeLayer(id.c_str());
    }
-   p->layerList_.clear();
+   layerList_.clear();
+   placefileLayers_.clear();
 
-   auto radarProductView = p->context_->radar_product_view();
+   // Update custom layer list from model
+   customLayers_ = model::LayerModel::Instance()->GetLayers();
 
-   if (radarProductView != nullptr)
+   // Start by drawing layers before any style-defined layers
+   std::string before = styleLayers_.front().toStdString();
+
+   // Loop through each custom layer in reverse order
+   for (auto it = customLayers_.crbegin(); it != customLayers_.crend(); ++it)
    {
-      p->radarProductLayer_ = std::make_shared<RadarProductLayer>(p->context_);
-      p->colorTableLayer_   = std::make_shared<ColorTableLayer>(p->context_);
-
-      std::shared_ptr<config::RadarSite> radarSite =
-         p->radarProductManager_->radar_site();
-
-      const auto& mapStyle = *p->currentStyle_;
-
-      std::string before = "ferry";
-
-      for (const QString& qlayer : p->map_->layerIds())
+      if (it->type_ == types::LayerType::Map)
       {
-         const std::string layer = qlayer.toStdString();
-
-         // Draw below layers defined in map style
-         auto it = std::find_if(
-            mapStyle.drawBelow_.cbegin(),
-            mapStyle.drawBelow_.cend(),
-            [&layer](const std::string& styleLayer) -> bool
-            {
-               std::regex re {styleLayer, std::regex_constants::icase};
-               return std::regex_match(layer, re);
-            });
-
-         if (it != mapStyle.drawBelow_.cend())
+         // Style-defined map layers
+         switch (std::get<types::MapLayer>(it->description_))
          {
-            before = layer;
+         // Subsequent layers are drawn underneath the map symbology layer
+         case types::MapLayer::MapUnderlay:
+            before = FindMapSymbologyLayer();
+            break;
+
+         // Subsequent layers are drawn after all style-defined layers
+         case types::MapLayer::MapSymbology:
+            before = "";
+            break;
+
+         default:
             break;
          }
       }
-
-      p->AddLayer("radar", p->radarProductLayer_, before);
-      RadarRangeLayer::Add(p->map_,
-                           radarProductView->range(),
-                           {radarSite->latitude(), radarSite->longitude()});
-      p->AddLayer("colorTable", p->colorTableLayer_);
+      else if (it->displayed_[id_])
+      {
+         // If the layer is displayed for the current map, add it
+         AddLayer(it->type_, it->description_, before);
+      }
    }
+}
 
-   p->alertLayer_->AddLayers("colorTable");
-   p->overlayLayer_ = std::make_shared<OverlayLayer>(p->context_);
-   p->AddLayer("overlay", p->overlayLayer_);
+void MapWidgetImpl::AddLayer(types::LayerType        type,
+                             types::LayerDescription description,
+                             const std::string&      before)
+{
+   std::string layerName = types::GetLayerName(type, description);
+
+   auto radarProductView = context_->radar_product_view();
+
+   if (type == types::LayerType::Radar)
+   {
+      // If there is a radar product view, create the radar product layer
+      if (radarProductView != nullptr)
+      {
+         radarProductLayer_ = std::make_shared<RadarProductLayer>(context_);
+         AddLayer(layerName, radarProductLayer_, before);
+      }
+   }
+   else if (type == types::LayerType::Alert)
+   {
+      // Add the alert layer for the phenomenon
+      auto newLayers = alertLayer_->AddLayers(
+         std::get<awips::Phenomenon>(description), before);
+      layerList_.insert(layerList_.end(), newLayers.cbegin(), newLayers.cend());
+   }
+   else if (type == types::LayerType::Placefile)
+   {
+      // If the placefile is enabled, add the placefile layer
+      std::string placefileName = std::get<std::string>(description);
+      if (placefileManager_->placefile_enabled(placefileName))
+      {
+         AddPlacefileLayer(placefileName, before);
+      }
+   }
+   else if (type == types::LayerType::Information)
+   {
+      switch (std::get<types::InformationLayer>(description))
+      {
+      // Create the map overlay layer
+      case types::InformationLayer::MapOverlay:
+         overlayLayer_ = std::make_shared<OverlayLayer>(context_);
+         AddLayer(layerName, overlayLayer_, before);
+         break;
+
+      // If there is a radar product view, create the color table layer
+      case types::InformationLayer::ColorTable:
+         if (radarProductView != nullptr)
+         {
+            colorTableLayer_ = std::make_shared<ColorTableLayer>(context_);
+            AddLayer(layerName, colorTableLayer_, before);
+         }
+         break;
+
+      default:
+         break;
+      }
+   }
+   else if (type == types::LayerType::Data)
+   {
+      switch (std::get<types::DataLayer>(description))
+      {
+      // If there is a radar product view, create the radar range layer
+      case types::DataLayer::RadarRange:
+         if (radarProductView != nullptr)
+         {
+            std::shared_ptr<config::RadarSite> radarSite =
+               radarProductManager_->radar_site();
+            RadarRangeLayer::Add(
+               map_,
+               radarProductView->range(),
+               {radarSite->latitude(), radarSite->longitude()},
+               QString::fromStdString(before));
+            layerList_.push_back(types::GetLayerName(type, description));
+         }
+         break;
+
+      default:
+         break;
+      }
+   }
+}
+
+void MapWidgetImpl::AddPlacefileLayer(const std::string& placefileName,
+                                      const std::string& before)
+{
+   std::shared_ptr<PlacefileLayer> placefileLayer =
+      std::make_shared<PlacefileLayer>(context_, placefileName);
+   placefileLayers_.push_back(placefileLayer);
+   AddLayer(GetPlacefileLayerName(placefileName), placefileLayer, before);
+
+   // When the layer updates, trigger a map widget update
+   connect(placefileLayer.get(),
+           &PlacefileLayer::DataReloaded,
+           widget_,
+           [this]() { widget_->update(); });
+}
+
+std::string
+MapWidgetImpl::GetPlacefileLayerName(const std::string& placefileName)
+{
+   return types::GetLayerName(types::LayerType::Placefile, placefileName);
 }
 
 void MapWidgetImpl::AddLayer(const std::string&            id,
@@ -712,9 +948,26 @@ void MapWidgetImpl::AddLayer(const std::string&            id,
    std::unique_ptr<QMapLibreGL::CustomLayerHostInterface> pHost =
       std::make_unique<LayerWrapper>(layer);
 
-   map_->addCustomLayer(id.c_str(), std::move(pHost), before.c_str());
+   try
+   {
+      map_->addCustomLayer(id.c_str(), std::move(pHost), before.c_str());
 
-   layerList_.push_back(id);
+      layerList_.push_back(id);
+   }
+   catch (const std::exception&)
+   {
+      // When dragging and dropping, a temporary duplicate layer exists
+   }
+}
+
+void MapWidget::enterEvent(QEnterEvent* /* ev */)
+{
+   p->hasMouse_ = true;
+}
+
+void MapWidget::leaveEvent(QEvent* /* ev */)
+{
+   p->hasMouse_ = false;
 }
 
 void MapWidget::keyPressEvent(QKeyEvent* ev)
@@ -741,7 +994,8 @@ void MapWidget::keyPressEvent(QKeyEvent* ev)
 
 void MapWidget::mousePressEvent(QMouseEvent* ev)
 {
-   p->lastPos_ = ev->position();
+   p->lastPos_       = ev->position();
+   p->lastGlobalPos_ = ev->globalPosition();
 
    if (ev->type() == QEvent::MouseButtonPress)
    {
@@ -787,7 +1041,8 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
       }
    }
 
-   p->lastPos_ = ev->position();
+   p->lastPos_       = ev->position();
+   p->lastGlobalPos_ = ev->globalPosition();
    ev->accept();
 }
 
@@ -816,9 +1071,15 @@ void MapWidget::initializeGL()
    makeCurrent();
    p->context_->gl().initializeOpenGLFunctions();
 
+   // Lock ImGui font atlas prior to new ImGui frame
+   std::shared_lock imguiFontAtlasLock {
+      manager::FontManager::Instance().imgui_font_atlas_mutex()};
+
    // Initialize ImGui OpenGL3 backend
    ImGui::SetCurrentContext(p->imGuiContext_);
    ImGui_ImplOpenGL3_Init();
+   p->imGuiFontsBuildCount_ =
+      manager::FontManager::Instance().imgui_fonts_build_count();
    p->imGuiRendererInitialized_ = true;
 
    p->map_.reset(
@@ -859,15 +1120,26 @@ void MapWidget::initializeGL()
 
 void MapWidget::paintGL()
 {
+   auto defaultFont = manager::FontManager::Instance().GetImGuiFont(
+      types::FontCategory::Default);
+
    p->frameDraws_++;
 
    // Setup ImGui Frame
    ImGui::SetCurrentContext(p->imGuiContext_);
 
+   // Lock ImGui font atlas prior to new ImGui frame
+   std::shared_lock imguiFontAtlasLock {
+      manager::FontManager::Instance().imgui_font_atlas_mutex()};
+
    // Start ImGui Frame
    ImGui_ImplQt_NewFrame(this);
    ImGui_ImplOpenGL3_NewFrame();
+   p->ImGuiCheckFonts();
    ImGui::NewFrame();
+
+   // Set default font
+   ImGui::PushFont(defaultFont->font());
 
    // Update pixel ratio
    p->context_->set_pixel_ratio(pixelRatio());
@@ -878,12 +1150,81 @@ void MapWidget::paintGL()
                                  size() * pixelRatio());
    p->map_->render();
 
+   // Perform mouse picking
+   if (p->hasMouse_)
+   {
+      p->RunMousePicking();
+   }
+   else if (p->lastItemPicked_)
+   {
+      // Hide the tooltip when losing focus
+      util::tooltip::Hide();
+
+      p->lastItemPicked_ = false;
+   }
+
+   // Pop default font
+   ImGui::PopFont();
+
    // Render ImGui Frame
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+   // Unlock ImGui font atlas after rendering
+   imguiFontAtlasLock.unlock();
+
    // Paint complete
    Q_EMIT WidgetPainted();
+}
+
+void MapWidgetImpl::ImGuiCheckFonts()
+{
+   // Update ImGui Fonts if required
+   std::uint64_t currentImGuiFontsBuildCount =
+      manager::FontManager::Instance().imgui_fonts_build_count();
+
+   if (imGuiFontsBuildCount_ != currentImGuiFontsBuildCount ||
+       !model::ImGuiContextModel::Instance().font_atlas()->IsBuilt())
+   {
+      ImGui_ImplOpenGL3_DestroyFontsTexture();
+      ImGui_ImplOpenGL3_CreateFontsTexture();
+   }
+
+   imGuiFontsBuildCount_ = currentImGuiFontsBuildCount;
+}
+
+void MapWidgetImpl::RunMousePicking()
+{
+   const QMapLibreGL::CustomLayerRenderParameters params =
+      context_->render_parameters();
+
+   auto coordinate = map_->coordinateForPixel(lastPos_);
+   auto mouseScreenCoordinate =
+      util::maplibre::LatLongToScreenCoordinate(coordinate);
+
+   // For each layer in reverse
+   // TODO: All Generic Layers, not just Placefile Layers
+   bool itemPicked = false;
+   for (auto it = placefileLayers_.rbegin(); it != placefileLayers_.rend();
+        ++it)
+   {
+      // Run mouse picking for each layer
+      if ((*it)->RunMousePicking(
+             params, lastPos_, lastGlobalPos_, mouseScreenCoordinate))
+      {
+         // If a draw item was picked, don't process additional layers
+         itemPicked = true;
+         break;
+      }
+   }
+
+   // If no draw item was picked, hide the tooltip
+   if (!itemPicked)
+   {
+      util::tooltip::Hide();
+   }
+
+   lastItemPicked_ = itemPicked;
 }
 
 void MapWidget::mapChanged(QMapLibreGL::Map::MapChange mapChange)
@@ -891,12 +1232,18 @@ void MapWidget::mapChanged(QMapLibreGL::Map::MapChange mapChange)
    switch (mapChange)
    {
    case QMapLibreGL::Map::MapChangeDidFinishLoadingStyle:
-      AddLayers();
+      p->UpdateLoadedStyle();
+      p->AddLayers();
       break;
 
    default:
       break;
    }
+}
+
+void MapWidgetImpl::UpdateLoadedStyle()
+{
+   styleLayers_ = map_->layerIds();
 }
 
 void MapWidgetImpl::RadarProductManagerConnect()
@@ -992,7 +1339,7 @@ void MapWidgetImpl::InitializeNewRadarProductView(
                         auto radarProductView = context_->radar_product_view();
 
                         std::string colorTableFile =
-                           manager::SettingsManager::palette_settings()
+                           settings::PaletteSettings::Instance()
                               .palette(colorPalette)
                               .GetValue();
                         if (!colorTableFile.empty())
@@ -1009,7 +1356,7 @@ void MapWidgetImpl::InitializeNewRadarProductView(
 
    if (map_ != nullptr)
    {
-      widget_->AddLayers();
+      AddLayers();
    }
 }
 

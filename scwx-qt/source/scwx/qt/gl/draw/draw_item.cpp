@@ -1,4 +1,5 @@
 #include <scwx/qt/gl/draw/draw_item.hpp>
+#include <scwx/qt/util/maplibre.hpp>
 
 #include <string>
 
@@ -41,6 +42,27 @@ DrawItem::~DrawItem() = default;
 DrawItem::DrawItem(DrawItem&&) noexcept            = default;
 DrawItem& DrawItem::operator=(DrawItem&&) noexcept = default;
 
+void DrawItem::Render(
+   const QMapLibreGL::CustomLayerRenderParameters& /* params */)
+{
+}
+
+void DrawItem::Render(const QMapLibreGL::CustomLayerRenderParameters& params,
+                      bool /* textureAtlasChanged */)
+{
+   Render(params);
+}
+
+bool DrawItem::RunMousePicking(
+   const QMapLibreGL::CustomLayerRenderParameters& /* params */,
+   const QPointF& /* mouseLocalPos */,
+   const QPointF& /* mouseGlobalPos */,
+   const glm::vec2& /* mouseCoords */)
+{
+   // By default, the draw item is not picked
+   return false;
+}
+
 void DrawItem::UseDefaultProjection(
    const QMapLibreGL::CustomLayerRenderParameters& params,
    GLint                                           uMVPMatrixLocation)
@@ -54,21 +76,21 @@ void DrawItem::UseDefaultProjection(
       uMVPMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection));
 }
 
-// TODO: Refactor to utility class
-static glm::vec2
-LatLongToScreenCoordinate(const QMapLibreGL::Coordinate& coordinate)
+void DrawItem::UseRotationProjection(
+   const QMapLibreGL::CustomLayerRenderParameters& params,
+   GLint                                           uMVPMatrixLocation)
 {
-   static constexpr double RAD2DEG_D = 180.0 / M_PI;
+   glm::mat4 projection = glm::ortho(0.0f,
+                                     static_cast<float>(params.width),
+                                     0.0f,
+                                     static_cast<float>(params.height));
 
-   double latitude = std::clamp(
-      coordinate.first, -mbgl::util::LATITUDE_MAX, mbgl::util::LATITUDE_MAX);
-   glm::vec2 screen {
-      mbgl::util::LONGITUDE_MAX + coordinate.second,
-      -(mbgl::util::LONGITUDE_MAX -
-        RAD2DEG_D *
-           std::log(std::tan(M_PI / 4.0 +
-                             latitude * M_PI / mbgl::util::DEGREES_MAX)))};
-   return screen;
+   projection = glm::rotate(projection,
+                            glm::radians<float>(params.bearing),
+                            glm::vec3(0.0f, 0.0f, 1.0f));
+
+   p->gl_.glUniformMatrix4fv(
+      uMVPMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection));
 }
 
 void DrawItem::UseMapProjection(
@@ -78,21 +100,11 @@ void DrawItem::UseMapProjection(
 {
    OpenGLFunctions& gl = p->gl_;
 
-   // TODO: Refactor to utility class
-   const float scale = std::pow(2.0, params.zoom) * 2.0f *
-                       mbgl::util::tileSize_D / mbgl::util::DEGREES_MAX;
-   const float xScale = scale / params.width;
-   const float yScale = scale / params.height;
-
-   glm::mat4 uMVPMatrix(1.0f);
-   uMVPMatrix = glm::scale(uMVPMatrix, glm::vec3(xScale, yScale, 1.0f));
-   uMVPMatrix = glm::rotate(uMVPMatrix,
-                            glm::radians<float>(params.bearing),
-                            glm::vec3(0.0f, 0.0f, 1.0f));
+   const glm::mat4 uMVPMatrix = util::maplibre::GetMapMatrix(params);
 
    gl.glUniform2fv(uMapScreenCoordLocation,
                    1,
-                   glm::value_ptr(LatLongToScreenCoordinate(
+                   glm::value_ptr(util::maplibre::LatLongToScreenCoordinate(
                       {params.latitude, params.longitude})));
 
    gl.glUniformMatrix4fv(

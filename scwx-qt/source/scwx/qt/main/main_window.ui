@@ -85,10 +85,19 @@
     </property>
     <addaction name="actionImGuiDebug"/>
     <addaction name="separator"/>
+    <addaction name="actionDumpLayerList"/>
     <addaction name="actionDumpRadarProductRecords"/>
+   </widget>
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>&amp;Tools</string>
+    </property>
+    <addaction name="actionPlacefileManager"/>
+    <addaction name="actionLayerManager"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
+   <addaction name="menuTools"/>
    <addaction name="menuDebug"/>
    <addaction name="menuHelp"/>
   </widget>
@@ -413,6 +422,29 @@
   <action name="actionCheckForUpdates">
    <property name="text">
     <string>&amp;Check for Updates</string>
+   </property>
+  </action>
+  <action name="actionPlacefileManager">
+   <property name="icon">
+    <iconset resource="../../../../scwx-qt.qrc">
+     <normaloff>:/res/icons/font-awesome-6/earth-americas-solid.svg</normaloff>:/res/icons/font-awesome-6/earth-americas-solid.svg</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Placefile Manager</string>
+   </property>
+  </action>
+  <action name="actionLayerManager">
+   <property name="icon">
+    <iconset resource="../../../../scwx-qt.qrc">
+     <normaloff>:/res/icons/font-awesome-6/layer-group-solid.svg</normaloff>:/res/icons/font-awesome-6/layer-group-solid.svg</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Layer Manager</string>
+   </property>
+  </action>
+  <action name="actionDumpLayerList">
+   <property name="text">
+    <string>Dump &amp;Layer List</string>
    </property>
   </action>
  </widget>

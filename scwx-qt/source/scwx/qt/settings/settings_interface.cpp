@@ -9,6 +9,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
+#include <QLabel>
 #include <QLineEdit>
 #include <QSpinBox>
 #include <QWidget>
@@ -26,15 +27,20 @@ template<class T>
 class SettingsInterface<T>::Impl
 {
 public:
-   explicit Impl()
+   explicit Impl(SettingsInterface* self) : self_ {self}
    {
       context_->moveToThread(QCoreApplication::instance()->thread());
    }
 
    ~Impl() {}
 
+   template<class U>
+   void SetWidgetText(U* widget, const T& currentValue);
+
    void UpdateEditWidget();
    void UpdateResetButton();
+
+   SettingsInterface<T>* self_;
 
    SettingsVariable<T>* variable_ {nullptr};
    bool                 stagedValid_ {true};
@@ -49,17 +55,27 @@ public:
 
 template<class T>
 SettingsInterface<T>::SettingsInterface() :
-    SettingsInterfaceBase(), p(std::make_unique<Impl>())
+    SettingsInterfaceBase(), p(std::make_unique<Impl>(this))
 {
 }
 template<class T>
 SettingsInterface<T>::~SettingsInterface() = default;
 
 template<class T>
-SettingsInterface<T>::SettingsInterface(SettingsInterface&&) noexcept = default;
+SettingsInterface<T>::SettingsInterface(SettingsInterface&& o) noexcept :
+    p {std::move(o.p)}
+{
+   p->self_ = this;
+}
+
 template<class T>
 SettingsInterface<T>&
-SettingsInterface<T>::operator=(SettingsInterface&&) noexcept = default;
+SettingsInterface<T>::operator=(SettingsInterface&& o) noexcept
+{
+   p        = std::move(o.p);
+   p->self_ = this;
+   return *this;
+}
 
 template<class T>
 void SettingsInterface<T>::SetSettingsVariable(SettingsVariable<T>& variable)
@@ -71,6 +87,27 @@ template<class T>
 SettingsVariable<T>* SettingsInterface<T>::GetSettingsVariable() const
 {
    return p->variable_;
+}
+
+template<class T>
+bool SettingsInterface<T>::IsDefault()
+{
+   bool isDefault = false;
+
+   const std::optional<T> staged       = p->variable_->GetStaged();
+   const T                defaultValue = p->variable_->GetDefault();
+   const T                value        = p->variable_->GetValue();
+
+   if (staged.has_value())
+   {
+      isDefault = (p->stagedValid_ && *staged == defaultValue);
+   }
+   else
+   {
+      isDefault = (value == defaultValue);
+   }
+
+   return isDefault;
 }
 
 template<class T>
@@ -96,6 +133,14 @@ void SettingsInterface<T>::StageDefault()
 }
 
 template<class T>
+void SettingsInterface<T>::StageValue(const T& value)
+{
+   p->variable_->StageValue(value);
+   p->UpdateEditWidget();
+   p->UpdateResetButton();
+}
+
+template<class T>
 void SettingsInterface<T>::SetEditWidget(QWidget* widget)
 {
    if (p->editWidget_ != nullptr)
@@ -104,6 +149,11 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
    }
 
    p->editWidget_ = widget;
+
+   if (widget == nullptr)
+   {
+      return;
+   }
 
    if (QLineEdit* lineEdit = dynamic_cast<QLineEdit*>(widget))
    {
@@ -274,33 +324,36 @@ void SettingsInterface<T>::SetResetButton(QAbstractButton* button)
 
    p->resetButton_ = button;
 
-   QObject::connect(p->resetButton_,
-                    &QAbstractButton::clicked,
-                    p->context_.get(),
-                    [this]()
-                    {
-                       T defaultValue = p->variable_->GetDefault();
-
-                       if (p->variable_->GetValue() == defaultValue)
+   if (p->resetButton_ != nullptr)
+   {
+      QObject::connect(p->resetButton_,
+                       &QAbstractButton::clicked,
+                       p->context_.get(),
+                       [this]()
                        {
-                          // If the current value is default, reset the staged
-                          // value
-                          p->variable_->Reset();
-                          p->stagedValid_ = true;
-                          p->UpdateEditWidget();
-                          p->UpdateResetButton();
-                       }
-                       else
-                       {
-                          // Stage the default value
-                          p->stagedValid_ =
-                             p->variable_->StageValue(defaultValue);
-                          p->UpdateEditWidget();
-                          p->UpdateResetButton();
-                       }
-                    });
+                          T defaultValue = p->variable_->GetDefault();
 
-   p->UpdateResetButton();
+                          if (p->variable_->GetValue() == defaultValue)
+                          {
+                             // If the current value is default, reset the
+                             // staged value
+                             p->variable_->Reset();
+                             p->stagedValid_ = true;
+                             p->UpdateEditWidget();
+                             p->UpdateResetButton();
+                          }
+                          else
+                          {
+                             // Stage the default value
+                             p->stagedValid_ =
+                                p->variable_->StageValue(defaultValue);
+                             p->UpdateEditWidget();
+                             p->UpdateResetButton();
+                          }
+                       });
+
+      p->UpdateResetButton();
+   }
 }
 
 template<class T>
@@ -318,6 +371,39 @@ void SettingsInterface<T>::SetMapToValueFunction(
 }
 
 template<class T>
+template<class U>
+void SettingsInterface<T>::Impl::SetWidgetText(U* widget, const T& currentValue)
+{
+   if constexpr (std::is_integral_v<T>)
+   {
+      widget->setText(QString::number(currentValue));
+   }
+   else if constexpr (std::is_same_v<T, std::string>)
+   {
+      if (mapFromValue_ != nullptr)
+      {
+         widget->setText(QString::fromStdString(mapFromValue_(currentValue)));
+      }
+      else
+      {
+         widget->setText(QString::fromStdString(currentValue));
+      }
+   }
+   else if constexpr (std::is_same_v<T, std::vector<std::int64_t>>)
+   {
+      if (mapFromValue_ != nullptr)
+      {
+         widget->setText(QString::fromStdString(mapFromValue_(currentValue)));
+      }
+      else
+      {
+         widget->setText(QString::fromStdString(
+            fmt::format("{}", fmt::join(currentValue, ", "))));
+      }
+   }
+}
+
+template<class T>
 void SettingsInterface<T>::Impl::UpdateEditWidget()
 {
    // Use the staged value if present, otherwise the current value
@@ -327,35 +413,11 @@ void SettingsInterface<T>::Impl::UpdateEditWidget()
 
    if (QLineEdit* lineEdit = dynamic_cast<QLineEdit*>(editWidget_))
    {
-      if constexpr (std::is_integral_v<T>)
-      {
-         lineEdit->setText(QString::number(currentValue));
-      }
-      else if constexpr (std::is_same_v<T, std::string>)
-      {
-         if (mapFromValue_ != nullptr)
-         {
-            lineEdit->setText(
-               QString::fromStdString(mapFromValue_(currentValue)));
-         }
-         else
-         {
-            lineEdit->setText(QString::fromStdString(currentValue));
-         }
-      }
-      else if constexpr (std::is_same_v<T, std::vector<std::int64_t>>)
-      {
-         if (mapFromValue_ != nullptr)
-         {
-            lineEdit->setText(
-               QString::fromStdString(mapFromValue_(currentValue)));
-         }
-         else
-         {
-            lineEdit->setText(QString::fromStdString(
-               fmt::format("{}", fmt::join(currentValue, ", "))));
-         }
-      }
+      SetWidgetText(lineEdit, currentValue);
+   }
+   else if (QLabel* label = dynamic_cast<QLabel*>(editWidget_))
+   {
+      SetWidgetText(label, currentValue);
    }
    else if (QCheckBox* checkBox = dynamic_cast<QCheckBox*>(editWidget_))
    {
@@ -391,20 +453,9 @@ void SettingsInterface<T>::Impl::UpdateEditWidget()
 template<class T>
 void SettingsInterface<T>::Impl::UpdateResetButton()
 {
-   const std::optional<T> staged       = variable_->GetStaged();
-   const T                defaultValue = variable_->GetDefault();
-   const T                value        = variable_->GetValue();
-
    if (resetButton_ != nullptr)
    {
-      if (staged.has_value())
-      {
-         resetButton_->setVisible(!stagedValid_ || *staged != defaultValue);
-      }
-      else
-      {
-         resetButton_->setVisible(value != defaultValue);
-      }
+      resetButton_->setVisible(!self_->IsDefault());
    }
 }
 

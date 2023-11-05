@@ -6,8 +6,13 @@
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/settings/settings_interface.hpp>
+#include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/types/alert_types.hpp>
+#include <scwx/qt/types/font_types.hpp>
+#include <scwx/qt/types/text_types.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/util/color.hpp>
 #include <scwx/qt/util/file.hpp>
@@ -18,6 +23,9 @@
 #include <fmt/format.h>
 #include <QColorDialog>
 #include <QFileDialog>
+#include <QFontDatabase>
+#include <QFontDialog>
+#include <QStandardItemModel>
 #include <QToolButton>
 
 namespace scwx
@@ -81,20 +89,25 @@ public:
    explicit SettingsDialogImpl(SettingsDialog* self) :
        self_ {self},
        radarSiteDialog_ {new RadarSiteDialog(self)},
+       fontDialog_ {new QFontDialog(self)},
+       fontCategoryModel_ {new QStandardItemModel(self)},
        settings_ {std::initializer_list<settings::SettingsInterfaceBase*> {
           &defaultRadarSite_,
-          &fontSizes_,
           &gridWidth_,
           &gridHeight_,
           &mapProvider_,
           &mapboxApiKey_,
           &mapTilerApiKey_,
           &defaultAlertAction_,
+          &antiAliasingEnabled_,
           &updateNotificationsEnabled_,
-          &debugEnabled_}}
+          &debugEnabled_,
+          &hoverTextWrap_,
+          &tooltipMethod_,
+          &placefileTextDropShadowEnabled_}}
    {
       // Configure default alert phenomena colors
-      auto& paletteSettings = manager::SettingsManager::palette_settings();
+      auto& paletteSettings = settings::PaletteSettings::Instance();
       int   index           = 0;
 
       for (auto& phenomenon : settings::PaletteSettings::alert_phenomena())
@@ -108,6 +121,12 @@ public:
             QColor(QString::fromStdString(
                paletteSettings.alert_color(phenomenon, false).GetDefault())));
       }
+
+      // Configure font dialog
+      fontDialog_->setOptions(
+         QFontDialog::FontDialogOption::DontUseNativeDialog |
+         QFontDialog::FontDialogOption::ScalableFonts);
+      fontDialog_->setWindowModality(Qt::WindowModality::WindowModal);
    }
    ~SettingsDialogImpl() = default;
 
@@ -115,9 +134,14 @@ public:
    void SetupGeneralTab();
    void SetupPalettesColorTablesTab();
    void SetupPalettesAlertsTab();
+   void SetupTextTab();
 
    void ShowColorDialog(QLineEdit* lineEdit, QFrame* frame = nullptr);
    void UpdateRadarDialogLocation(const std::string& id);
+
+   QFont GetSelectedFont();
+   void  SelectFontCategory(types::FontCategory fontCategory);
+   void  UpdateFontDisplayData();
 
    void ApplyChanges();
    void DiscardChanges();
@@ -138,17 +162,22 @@ public:
 
    SettingsDialog*  self_;
    RadarSiteDialog* radarSiteDialog_;
+   QFontDialog*     fontDialog_;
 
-   settings::SettingsInterface<std::string>               defaultRadarSite_ {};
-   settings::SettingsInterface<std::vector<std::int64_t>> fontSizes_ {};
-   settings::SettingsInterface<std::int64_t>              gridWidth_ {};
-   settings::SettingsInterface<std::int64_t>              gridHeight_ {};
-   settings::SettingsInterface<std::string>               mapProvider_ {};
-   settings::SettingsInterface<std::string>               mapboxApiKey_ {};
-   settings::SettingsInterface<std::string>               mapTilerApiKey_ {};
-   settings::SettingsInterface<std::string> defaultAlertAction_ {};
-   settings::SettingsInterface<bool>        updateNotificationsEnabled_ {};
-   settings::SettingsInterface<bool>        debugEnabled_ {};
+   QStandardItemModel* fontCategoryModel_;
+
+   types::FontCategory selectedFontCategory_ {types::FontCategory::Unknown};
+
+   settings::SettingsInterface<std::string>  defaultRadarSite_ {};
+   settings::SettingsInterface<std::int64_t> gridWidth_ {};
+   settings::SettingsInterface<std::int64_t> gridHeight_ {};
+   settings::SettingsInterface<std::string>  mapProvider_ {};
+   settings::SettingsInterface<std::string>  mapboxApiKey_ {};
+   settings::SettingsInterface<std::string>  mapTilerApiKey_ {};
+   settings::SettingsInterface<std::string>  defaultAlertAction_ {};
+   settings::SettingsInterface<bool>         antiAliasingEnabled_ {};
+   settings::SettingsInterface<bool>         updateNotificationsEnabled_ {};
+   settings::SettingsInterface<bool>         debugEnabled_ {};
 
    std::unordered_map<std::string, settings::SettingsInterface<std::string>>
       colorTables_ {};
@@ -158,6 +187,19 @@ public:
    std::unordered_map<awips::Phenomenon,
                       settings::SettingsInterface<std::string>>
       inactiveAlertColors_ {};
+
+   std::unordered_map<types::FontCategory,
+                      settings::SettingsInterface<std::string>>
+      fontFamilies_ {};
+   std::unordered_map<types::FontCategory,
+                      settings::SettingsInterface<std::string>>
+      fontStyles_ {};
+   std::unordered_map<types::FontCategory, settings::SettingsInterface<double>>
+      fontPointSizes_ {};
+
+   settings::SettingsInterface<std::int64_t> hoverTextWrap_ {};
+   settings::SettingsInterface<std::string>  tooltipMethod_ {};
+   settings::SettingsInterface<bool>         placefileTextDropShadowEnabled_ {};
 
    std::vector<settings::SettingsInterfaceBase*> settings_;
 };
@@ -177,6 +219,9 @@ SettingsDialog::SettingsDialog(QWidget* parent) :
 
    // Palettes > Alerts
    p->SetupPalettesAlertsTab();
+
+   // Text
+   p->SetupTextTab();
 
    p->ConnectSignals();
 }
@@ -221,6 +266,72 @@ void SettingsDialogImpl::ConnectSignals()
    defaultRadarSite.RegisterValueStagedCallback(
       [this](const std::string& newValue)
       { UpdateRadarDialogLocation(newValue); });
+
+   QObject::connect(
+      self_->ui->fontListView->selectionModel(),
+      &QItemSelectionModel::selectionChanged,
+      self_,
+      [this](const QItemSelection& selected, const QItemSelection& deselected)
+      {
+         if (selected.size() == 0 && deselected.size() == 0)
+         {
+            // Items which stay selected but change their index are not
+            // included in selected and deselected. Thus, this signal might
+            // be emitted with both selected and deselected empty, if only
+            // the indices of selected items change.
+            return;
+         }
+
+         if (selected.size() > 0)
+         {
+            QModelIndex selectedIndex = selected[0].indexes()[0];
+            QVariant    variantData =
+               self_->ui->fontListView->model()->data(selectedIndex);
+            if (variantData.typeId() == QMetaType::QString)
+            {
+               types::FontCategory fontCategory =
+                  types::GetFontCategory(variantData.toString().toStdString());
+               SelectFontCategory(fontCategory);
+               UpdateFontDisplayData();
+            }
+         }
+      });
+
+   QObject::connect(self_->ui->fontSelectButton,
+                    &QAbstractButton::clicked,
+                    self_,
+                    [this]()
+                    {
+                       fontDialog_->setCurrentFont(GetSelectedFont());
+                       fontDialog_->show();
+                    });
+
+   QObject::connect(fontDialog_,
+                    &QFontDialog::fontSelected,
+                    self_,
+                    [this](const QFont& font)
+                    {
+                       fontFamilies_.at(selectedFontCategory_)
+                          .StageValue(font.family().toStdString());
+                       fontStyles_.at(selectedFontCategory_)
+                          .StageValue(font.styleName().toStdString());
+                       fontPointSizes_.at(selectedFontCategory_)
+                          .StageValue(font.pointSizeF());
+
+                       UpdateFontDisplayData();
+                    });
+
+   QObject::connect(self_->ui->resetFontButton,
+                    &QAbstractButton::clicked,
+                    self_,
+                    [this]()
+                    {
+                       fontFamilies_.at(selectedFontCategory_).StageDefault();
+                       fontStyles_.at(selectedFontCategory_).StageDefault();
+                       fontPointSizes_.at(selectedFontCategory_).StageDefault();
+
+                       UpdateFontDisplayData();
+                    });
 
    QObject::connect(
       self_->ui->buttonBox,
@@ -272,7 +383,7 @@ void SettingsDialogImpl::SetupGeneralTab()
    }
 
    settings::GeneralSettings& generalSettings =
-      manager::SettingsManager::general_settings();
+      settings::GeneralSettings::Instance();
 
    defaultRadarSite_.SetSettingsVariable(generalSettings.default_radar_site());
    defaultRadarSite_.SetMapFromValueFunction(
@@ -309,10 +420,6 @@ void SettingsDialogImpl::SetupGeneralTab()
    defaultRadarSite_.SetEditWidget(self_->ui->radarSiteComboBox);
    defaultRadarSite_.SetResetButton(self_->ui->resetRadarSiteButton);
    UpdateRadarDialogLocation(generalSettings.default_radar_site().GetValue());
-
-   fontSizes_.SetSettingsVariable(generalSettings.font_sizes());
-   fontSizes_.SetEditWidget(self_->ui->fontSizesLineEdit);
-   fontSizes_.SetResetButton(self_->ui->resetFontSizesButton);
 
    gridWidth_.SetSettingsVariable(generalSettings.grid_width());
    gridWidth_.SetEditWidget(self_->ui->gridWidthSpinBox);
@@ -401,6 +508,10 @@ void SettingsDialogImpl::SetupGeneralTab()
    defaultAlertAction_.SetEditWidget(self_->ui->defaultAlertActionComboBox);
    defaultAlertAction_.SetResetButton(self_->ui->resetDefaultAlertActionButton);
 
+   antiAliasingEnabled_.SetSettingsVariable(
+      generalSettings.anti_aliasing_enabled());
+   antiAliasingEnabled_.SetEditWidget(self_->ui->antiAliasingEnabledCheckBox);
+
    updateNotificationsEnabled_.SetSettingsVariable(
       generalSettings.update_notifications_enabled());
    updateNotificationsEnabled_.SetEditWidget(
@@ -413,7 +524,7 @@ void SettingsDialogImpl::SetupGeneralTab()
 void SettingsDialogImpl::SetupPalettesColorTablesTab()
 {
    settings::PaletteSettings& paletteSettings =
-      manager::SettingsManager::palette_settings();
+      settings::PaletteSettings::Instance();
 
    // Palettes > Color Tables
    QGridLayout* colorTableLayout =
@@ -505,7 +616,7 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
 void SettingsDialogImpl::SetupPalettesAlertsTab()
 {
    settings::PaletteSettings& paletteSettings =
-      manager::SettingsManager::palette_settings();
+      settings::PaletteSettings::Instance();
 
    // Palettes > Alerts
    QGridLayout* alertsLayout =
@@ -616,6 +727,89 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
                        [=, this]()
                        { ShowColorDialog(inactiveEdit, inactiveFrame); });
    }
+}
+
+void SettingsDialogImpl::SetupTextTab()
+{
+   settings::TextSettings& textSettings = settings::TextSettings::Instance();
+
+   self_->ui->fontListView->setModel(fontCategoryModel_);
+   for (const auto& fontCategory : types::FontCategoryIterator())
+   {
+      // Add font category to list view
+      fontCategoryModel_->appendRow(new QStandardItem(
+         QString::fromStdString(types::GetFontCategoryName(fontCategory))));
+
+      // Create settings interface
+      auto fontFamilyResult = fontFamilies_.emplace(
+         fontCategory, settings::SettingsInterface<std::string> {});
+      auto fontStyleResult = fontStyles_.emplace(
+         fontCategory, settings::SettingsInterface<std::string> {});
+      auto fontSizeResult = fontPointSizes_.emplace(
+         fontCategory, settings::SettingsInterface<double> {});
+
+      auto& fontFamily = (*fontFamilyResult.first).second;
+      auto& fontStyle  = (*fontStyleResult.first).second;
+      auto& fontSize   = (*fontSizeResult.first).second;
+
+      // Add to settings list
+      settings_.push_back(&fontFamily);
+      settings_.push_back(&fontStyle);
+      settings_.push_back(&fontSize);
+
+      // Set settings variables
+      fontFamily.SetSettingsVariable(textSettings.font_family(fontCategory));
+      fontStyle.SetSettingsVariable(textSettings.font_style(fontCategory));
+      fontSize.SetSettingsVariable(textSettings.font_point_size(fontCategory));
+   }
+   self_->ui->fontListView->setCurrentIndex(fontCategoryModel_->index(0, 0));
+   SelectFontCategory(*types::FontCategoryIterator().begin());
+   UpdateFontDisplayData();
+
+   hoverTextWrap_.SetSettingsVariable(textSettings.hover_text_wrap());
+   hoverTextWrap_.SetEditWidget(self_->ui->hoverTextWrapSpinBox);
+   hoverTextWrap_.SetResetButton(self_->ui->resetHoverTextWrapButton);
+
+   for (const auto& tooltipMethod : types::TooltipMethodIterator())
+   {
+      self_->ui->tooltipMethodComboBox->addItem(
+         QString::fromStdString(types::GetTooltipMethodName(tooltipMethod)));
+   }
+
+   tooltipMethod_.SetSettingsVariable(textSettings.tooltip_method());
+   tooltipMethod_.SetMapFromValueFunction(
+      [](const std::string& text) -> std::string
+      {
+         for (types::TooltipMethod tooltipMethod :
+              types::TooltipMethodIterator())
+         {
+            const std::string tooltipMethodName =
+               types::GetTooltipMethodName(tooltipMethod);
+
+            if (boost::iequals(text, tooltipMethodName))
+            {
+               // Return tooltip method label
+               return tooltipMethodName;
+            }
+         }
+
+         // Tooltip method label not found, return unknown
+         return "?";
+      });
+   tooltipMethod_.SetMapToValueFunction(
+      [](std::string text) -> std::string
+      {
+         // Convert label to lower case and return
+         boost::to_lower(text);
+         return text;
+      });
+   tooltipMethod_.SetEditWidget(self_->ui->tooltipMethodComboBox);
+   tooltipMethod_.SetResetButton(self_->ui->resetTooltipMethodButton);
+
+   placefileTextDropShadowEnabled_.SetSettingsVariable(
+      textSettings.placefile_text_drop_shadow_enabled());
+   placefileTextDropShadowEnabled_.SetEditWidget(
+      self_->ui->placefileTextDropShadowCheckBox);
 }
 
 QImage SettingsDialogImpl::GenerateColorTableImage(
@@ -731,6 +925,54 @@ void SettingsDialogImpl::UpdateRadarDialogLocation(const std::string& id)
    }
 }
 
+QFont SettingsDialogImpl::GetSelectedFont()
+{
+   std::string fontFamily = fontFamilies_.at(selectedFontCategory_)
+                               .GetSettingsVariable()
+                               ->GetStagedOrValue();
+   std::string fontStyle = fontStyles_.at(selectedFontCategory_)
+                              .GetSettingsVariable()
+                              ->GetStagedOrValue();
+   units::font_size::points<double> fontSize {
+      fontPointSizes_.at(selectedFontCategory_)
+         .GetSettingsVariable()
+         ->GetStagedOrValue()};
+
+   QFont font = QFontDatabase::font(QString::fromStdString(fontFamily),
+                                    QString::fromStdString(fontStyle),
+                                    static_cast<int>(fontSize.value()));
+   font.setPointSizeF(fontSize.value());
+
+   return font;
+}
+
+void SettingsDialogImpl::SelectFontCategory(types::FontCategory fontCategory)
+{
+   selectedFontCategory_ = fontCategory;
+}
+
+void SettingsDialogImpl::UpdateFontDisplayData()
+{
+   QFont font = GetSelectedFont();
+
+   self_->ui->fontNameLabel->setText(font.family());
+   self_->ui->fontStyleLabel->setText(font.styleName());
+   self_->ui->fontSizeLabel->setText(QString::number(font.pointSizeF()));
+
+   self_->ui->fontPreviewLabel->setFont(font);
+
+   if (selectedFontCategory_ != types::FontCategory::Unknown)
+   {
+      auto& fontFamily = fontFamilies_.at(selectedFontCategory_);
+      auto& fontStyle  = fontStyles_.at(selectedFontCategory_);
+      auto& fontSize   = fontPointSizes_.at(selectedFontCategory_);
+
+      self_->ui->resetFontButton->setVisible(!fontFamily.IsDefault() ||
+                                             !fontStyle.IsDefault() ||
+                                             !fontSize.IsDefault());
+   }
+}
+
 void SettingsDialogImpl::ApplyChanges()
 {
    logger_->info("Applying settings changes");
@@ -744,7 +986,7 @@ void SettingsDialogImpl::ApplyChanges()
 
    if (committed)
    {
-      manager::SettingsManager::SaveSettings();
+      manager::SettingsManager::Instance().SaveSettings();
    }
 }
 

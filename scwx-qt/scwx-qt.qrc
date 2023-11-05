@@ -3,6 +3,8 @@
         <file>gl/color.frag</file>
         <file>gl/color.vert</file>
         <file>gl/geo_line.vert</file>
+        <file>gl/geo_texture2d.vert</file>
+        <file>gl/map_color.vert</file>
         <file>gl/radar.frag</file>
         <file>gl/radar.vert</file>
         <file>gl/text.frag</file>
@@ -10,19 +12,29 @@
         <file>gl/texture1d.frag</file>
         <file>gl/texture1d.vert</file>
         <file>gl/texture2d.frag</file>
+        <file>gl/texture2d_array.frag</file>
+        <file>gl/threshold.geom</file>
         <file>res/config/radar_sites.json</file>
         <file>res/fonts/din1451alt.ttf</file>
         <file>res/fonts/din1451alt_g.ttf</file>
+        <file>res/fonts/Inconsolata-Regular.ttf</file>
         <file>res/icons/scwx-256.ico</file>
         <file>res/icons/scwx-256.png</file>
+        <file>res/icons/font-awesome-6/angle-down-solid.svg</file>
         <file>res/icons/font-awesome-6/angle-left-solid.svg</file>
         <file>res/icons/font-awesome-6/angle-right-solid.svg</file>
+        <file>res/icons/font-awesome-6/angle-up-solid.svg</file>
+        <file>res/icons/font-awesome-6/angles-down-solid.svg</file>
+        <file>res/icons/font-awesome-6/angles-up-solid.svg</file>
         <file>res/icons/font-awesome-6/backward-step-solid.svg</file>
         <file>res/icons/font-awesome-6/book-solid.svg</file>
         <file>res/icons/font-awesome-6/discord.svg</file>
+        <file>res/icons/font-awesome-6/earth-americas-solid.svg</file>
+        <file>res/icons/font-awesome-6/font-solid.svg</file>
         <file>res/icons/font-awesome-6/forward-step-solid.svg</file>
         <file>res/icons/font-awesome-6/gears-solid.svg</file>
         <file>res/icons/font-awesome-6/github.svg</file>
+        <file>res/icons/font-awesome-6/layer-group-solid.svg</file>
         <file>res/icons/font-awesome-6/palette-solid.svg</file>
         <file>res/icons/font-awesome-6/pause-solid.svg</file>
         <file>res/icons/font-awesome-6/play-solid.svg</file>

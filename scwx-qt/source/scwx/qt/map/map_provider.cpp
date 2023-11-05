@@ -1,5 +1,5 @@
 #include <scwx/qt/map/map_provider.hpp>
-#include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 
 #include <unordered_map>
 
@@ -128,12 +128,10 @@ std::string GetMapProviderApiKey(MapProvider mapProvider)
    switch (mapProvider)
    {
    case MapProvider::Mapbox:
-      return manager::SettingsManager::general_settings()
-         .mapbox_api_key()
-         .GetValue();
+      return settings::GeneralSettings::Instance().mapbox_api_key().GetValue();
 
    case MapProvider::MapTiler:
-      return manager::SettingsManager::general_settings()
+      return settings::GeneralSettings::Instance()
          .maptiler_api_key()
          .GetValue();
 

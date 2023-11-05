@@ -23,13 +23,14 @@ public:
 
    ~Impl() {}
 
-   std::weak_ptr<QMapLibreGL::Map>         map_;
-   MapSettings                             settings_;
-   float                                   pixelRatio_;
-   std::shared_ptr<view::RadarProductView> radarProductView_;
-   common::RadarProductGroup               radarProductGroup_;
-   std::string                             radarProduct_;
-   int16_t                                 radarProductCode_;
+   std::weak_ptr<QMapLibreGL::Map>          map_;
+   MapSettings                              settings_;
+   float                                    pixelRatio_;
+   std::shared_ptr<view::RadarProductView>  radarProductView_;
+   common::RadarProductGroup                radarProductGroup_;
+   std::string                              radarProduct_;
+   int16_t                                  radarProductCode_;
+   QMapLibreGL::CustomLayerRenderParameters renderParameters_ {};
 };
 
 MapContext::MapContext(
@@ -77,6 +78,11 @@ int16_t MapContext::radar_product_code() const
    return p->radarProductCode_;
 }
 
+QMapLibreGL::CustomLayerRenderParameters MapContext::render_parameters() const
+{
+   return p->renderParameters_;
+}
+
 void MapContext::set_map(std::shared_ptr<QMapLibreGL::Map> map)
 {
    p->map_ = map;
@@ -107,6 +113,12 @@ void MapContext::set_radar_product(const std::string& radarProduct)
 void MapContext::set_radar_product_code(int16_t radarProductCode)
 {
    p->radarProductCode_ = radarProductCode;
+}
+
+void MapContext::set_render_parameters(
+   const QMapLibreGL::CustomLayerRenderParameters& params)
+{
+   p->renderParameters_ = params;
 }
 
 } // namespace map

@@ -2,7 +2,7 @@
 
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
-#include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/map.hpp>
 #include <scwx/util/time.hpp>
@@ -39,7 +39,7 @@ class TimelineManager::Impl
 public:
    explicit Impl(TimelineManager* self) : self_ {self}
    {
-      auto& generalSettings = SettingsManager::general_settings();
+      auto& generalSettings = settings::GeneralSettings::Instance();
 
       loopDelay_ =
          std::chrono::milliseconds(generalSettings.loop_delay().GetValue());
@@ -281,7 +281,12 @@ void TimelineManager::Impl::RadarSweepMonitorReset()
 void TimelineManager::Impl::RadarSweepMonitorWait(
    std::unique_lock<std::mutex>& lock)
 {
-   radarSweepMonitorCondition_.wait_for(lock, kRadarSweepMonitorTimeout_);
+   std::cv_status status =
+      radarSweepMonitorCondition_.wait_for(lock, kRadarSweepMonitorTimeout_);
+   if (status == std::cv_status::timeout)
+   {
+      logger_->debug("Radar sweep monitor timed out");
+   }
    radarSweepMonitorActive_ = false;
 }
 

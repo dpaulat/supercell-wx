@@ -24,9 +24,11 @@ public:
    std::shared_ptr<MapContext>                      context_;
    std::vector<std::shared_ptr<gl::draw::DrawItem>> drawList_;
    GLuint                                           textureAtlas_;
+
+   std::uint64_t textureAtlasBuildCount_ {};
 };
 
-DrawLayer::DrawLayer(std::shared_ptr<MapContext> context) :
+DrawLayer::DrawLayer(const std::shared_ptr<MapContext>& context) :
     GenericLayer(context), p(std::make_unique<DrawLayerImpl>(context))
 {
 }
@@ -45,14 +47,23 @@ void DrawLayer::Initialize()
 void DrawLayer::Render(const QMapLibreGL::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = p->context_->gl();
+   p->textureAtlas_        = p->context_->GetTextureAtlas();
+
+   // Determine if the texture atlas changed since last render
+   std::uint64_t newTextureAtlasBuildCount =
+      p->context_->texture_buffer_count();
+   bool textureAtlasChanged =
+      newTextureAtlasBuildCount != p->textureAtlasBuildCount_;
 
    gl.glActiveTexture(GL_TEXTURE0);
-   gl.glBindTexture(GL_TEXTURE_2D, p->textureAtlas_);
+   gl.glBindTexture(GL_TEXTURE_2D_ARRAY, p->textureAtlas_);
 
    for (auto& item : p->drawList_)
    {
-      item->Render(params);
+      item->Render(params, textureAtlasChanged);
    }
+
+   p->textureAtlasBuildCount_ = newTextureAtlasBuildCount;
 }
 
 void DrawLayer::Deinitialize()
@@ -65,7 +76,31 @@ void DrawLayer::Deinitialize()
    }
 }
 
-void DrawLayer::AddDrawItem(std::shared_ptr<gl::draw::DrawItem> drawItem)
+bool DrawLayer::RunMousePicking(
+   const QMapLibreGL::CustomLayerRenderParameters& params,
+   const QPointF&                                  mouseLocalPos,
+   const QPointF&                                  mouseGlobalPos,
+   const glm::vec2&                                mouseCoords)
+{
+   bool itemPicked = false;
+
+   // For each draw item in the draw list in reverse
+   for (auto it = p->drawList_.rbegin(); it != p->drawList_.rend(); ++it)
+   {
+      // Run mouse picking on each draw item
+      if ((*it)->RunMousePicking(
+             params, mouseLocalPos, mouseGlobalPos, mouseCoords))
+      {
+         // If a draw item was picked, don't process additional items
+         itemPicked = true;
+         break;
+      }
+   }
+
+   return itemPicked;
+}
+
+void DrawLayer::AddDrawItem(const std::shared_ptr<gl::draw::DrawItem>& drawItem)
 {
    p->drawList_.push_back(drawItem);
 }

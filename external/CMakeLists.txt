@@ -10,7 +10,9 @@ set_property(DIRECTORY
              hsluv-c.cmake
              imgui.cmake
              mapbox-gl-native.cmake
-             stb.cmake)
+             stb.cmake
+             textflowcpp.cmake
+             units.cmake)
 
 include(aws-sdk-cpp.cmake)
 include(date.cmake)
@@ -19,3 +21,5 @@ include(hsluv-c.cmake)
 include(imgui.cmake)
 include(mapbox-gl-native.cmake)
 include(stb.cmake)
+include(textflowcpp.cmake)
+include(units.cmake)

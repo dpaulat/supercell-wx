@@ -240,6 +240,12 @@ std::optional<T> SettingsVariable<T>::GetStaged() const
 }
 
 template<class T>
+T SettingsVariable<T>::GetStagedOrValue() const
+{
+   return p->staged_.value_or(GetValue());
+}
+
+template<class T>
 T SettingsVariable<T>::GetDefault() const
 {
    return p->default_;

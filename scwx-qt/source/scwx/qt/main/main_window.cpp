@@ -5,14 +5,16 @@
 
 #include <scwx/qt/main/application.hpp>
 #include <scwx/qt/main/versions.hpp>
+#include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
-#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/manager/update_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/model/radar_product_model.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/settings/map_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
 #include <scwx/qt/ui/about_dialog.hpp>
 #include <scwx/qt/ui/alert_dock_widget.hpp>
@@ -20,9 +22,11 @@
 #include <scwx/qt/ui/collapsible_group.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/qt/ui/imgui_debug_dialog.hpp>
+#include <scwx/qt/ui/layer_dialog.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
 #include <scwx/qt/ui/level3_products_widget.hpp>
+#include <scwx/qt/ui/placefile_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/ui/settings_dialog.hpp>
 #include <scwx/qt/ui/update_dialog.hpp>
@@ -75,10 +79,13 @@ public:
        animationDockWidget_ {nullptr},
        aboutDialog_ {nullptr},
        imGuiDebugDialog_ {nullptr},
+       layerDialog_ {nullptr},
+       placefileDialog_ {nullptr},
        radarSiteDialog_ {nullptr},
        settingsDialog_ {nullptr},
        updateDialog_ {nullptr},
        radarProductModel_ {nullptr},
+       placefileManager_ {manager::PlacefileManager::Instance()},
        textEventManager_ {manager::TextEventManager::Instance()},
        timelineManager_ {manager::TimelineManager::Instance()},
        updateManager_ {manager::UpdateManager::Instance()},
@@ -87,10 +94,8 @@ public:
        elevationButtonsChanged_ {false},
        resizeElevationButtons_ {false}
    {
-      mapProvider_ =
-         map::GetMapProvider(manager::SettingsManager::general_settings()
-                                .map_provider()
-                                .GetValue());
+      mapProvider_ = map::GetMapProvider(
+         settings::GeneralSettings::Instance().map_provider().GetValue());
       const map::MapProviderInfo& mapProviderInfo =
          map::GetMapProviderInfo(mapProvider_);
 
@@ -164,11 +169,14 @@ public:
    ui::AnimationDockWidget* animationDockWidget_;
    ui::AboutDialog*         aboutDialog_;
    ui::ImGuiDebugDialog*    imGuiDebugDialog_;
+   ui::LayerDialog*         layerDialog_;
+   ui::PlacefileDialog*     placefileDialog_;
    ui::RadarSiteDialog*     radarSiteDialog_;
    ui::SettingsDialog*      settingsDialog_;
    ui::UpdateDialog*        updateDialog_;
 
    std::unique_ptr<model::RadarProductModel>  radarProductModel_;
+   std::shared_ptr<manager::PlacefileManager> placefileManager_;
    std::shared_ptr<manager::TextEventManager> textEventManager_;
    std::shared_ptr<manager::TimelineManager>  timelineManager_;
    std::shared_ptr<manager::UpdateManager>    updateManager_;
@@ -227,7 +235,7 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->actionAlerts->setVisible(false);
 
    ui->menuDebug->menuAction()->setVisible(
-      manager::SettingsManager::general_settings().debug_enabled().GetValue());
+      settings::GeneralSettings::Instance().debug_enabled().GetValue());
 
    // Configure Resource Explorer Dock
    ui->resourceExplorerDock->setVisible(false);
@@ -240,6 +248,12 @@ MainWindow::MainWindow(QWidget* parent) :
 
    // Radar Site Dialog
    p->radarSiteDialog_ = new ui::RadarSiteDialog(this);
+
+   // Placefile Manager Dialog
+   p->placefileDialog_ = new ui::PlacefileDialog(this);
+
+   // Layer Dialog
+   p->layerDialog_ = new ui::LayerDialog(this);
 
    // Settings Dialog
    p->settingsDialog_ = new ui::SettingsDialog(this);
@@ -303,7 +317,7 @@ MainWindow::MainWindow(QWidget* parent) :
    // Update Dialog
    p->updateDialog_ = new ui::UpdateDialog(this);
 
-   auto& mapSettings = manager::SettingsManager::map_settings();
+   auto& mapSettings = settings::MapSettings::Instance();
    for (size_t i = 0; i < p->maps_.size(); i++)
    {
       p->SelectRadarProduct(p->maps_.at(i),
@@ -441,9 +455,24 @@ void MainWindow::on_actionExit_triggered()
    close();
 }
 
+void MainWindow::on_actionPlacefileManager_triggered()
+{
+   p->placefileDialog_->show();
+}
+
+void MainWindow::on_actionLayerManager_triggered()
+{
+   p->layerDialog_->show();
+}
+
 void MainWindow::on_actionImGuiDebug_triggered()
 {
    p->imGuiDebugDialog_->show();
+}
+
+void MainWindow::on_actionDumpLayerList_triggered()
+{
+   p->activeMap_->DumpLayerList();
 }
 
 void MainWindow::on_actionDumpRadarProductRecords_triggered()
@@ -579,7 +608,7 @@ void MainWindow::on_resourceTreeView_doubleClicked(const QModelIndex& index)
 
 void MainWindowImpl::AsyncSetup()
 {
-   auto& generalSettings = manager::SettingsManager::general_settings();
+   auto& generalSettings = settings::GeneralSettings::Instance();
 
    // Check for updates
    if (generalSettings.update_notifications_enabled().GetValue())
@@ -592,7 +621,7 @@ void MainWindowImpl::AsyncSetup()
 
 void MainWindowImpl::ConfigureMapLayout()
 {
-   auto& generalSettings = manager::SettingsManager::general_settings();
+   auto& generalSettings = settings::GeneralSettings::Instance();
 
    const int64_t gridWidth  = generalSettings.grid_width().GetValue();
    const int64_t gridHeight = generalSettings.grid_height().GetValue();
@@ -626,7 +655,7 @@ void MainWindowImpl::ConfigureMapLayout()
       {
          if (maps_.at(mapIndex) == nullptr)
          {
-            maps_[mapIndex] = new map::MapWidget(settings_);
+            maps_[mapIndex] = new map::MapWidget(mapIndex, settings_);
          }
 
          hs->addWidget(maps_[mapIndex]);
@@ -643,7 +672,7 @@ void MainWindowImpl::ConfigureMapLayout()
 void MainWindowImpl::ConfigureMapStyles()
 {
    const auto& mapProviderInfo = map::GetMapProviderInfo(mapProvider_);
-   auto&       mapSettings     = manager::SettingsManager::map_settings();
+   auto&       mapSettings     = settings::MapSettings::Instance();
 
    for (std::size_t i = 0; i < maps_.size(); i++)
    {
@@ -817,6 +846,15 @@ void MainWindowImpl::ConnectAnimationSignals()
            &manager::TimelineManager::AnimationStepEnd);
 
    connect(timelineManager_.get(),
+           &manager::TimelineManager::SelectedTimeUpdated,
+           [this]()
+           {
+              for (auto map : maps_)
+              {
+                 map->update();
+              }
+           });
+   connect(timelineManager_.get(),
            &manager::TimelineManager::VolumeTimeUpdated,
            [this](std::chrono::system_clock::time_point dateTime)
            {
@@ -885,8 +923,7 @@ void MainWindowImpl::ConnectOtherSignals()
               {
                  if (maps_[i] == activeMap_)
                  {
-                    auto& mapSettings =
-                       manager::SettingsManager::map_settings();
+                    auto& mapSettings = settings::MapSettings::Instance();
                     mapSettings.map_style(i).StageValue(text.toStdString());
                     break;
                  }
@@ -1063,7 +1100,7 @@ void MainWindowImpl::UpdateMapStyle(const std::string& styleName)
       {
          if (maps_[i] == activeMap_)
          {
-            auto& mapSettings = manager::SettingsManager::map_settings();
+            auto& mapSettings = settings::MapSettings::Instance();
             mapSettings.map_style(i).StageValue(styleName);
             break;
          }
@@ -1113,6 +1150,8 @@ void MainWindowImpl::UpdateRadarSite()
 
       timelineManager_->SetRadarSite("?");
    }
+
+   placefileManager_->SetRadarSite(radarSite);
 }
 
 void MainWindowImpl::UpdateVcp()

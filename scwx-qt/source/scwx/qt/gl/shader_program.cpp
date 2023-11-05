@@ -15,6 +15,11 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr GLsizei kInfoLogBufSize = 512;
 
+static const std::unordered_map<GLenum, std::string> kShaderNames_ {
+   {GL_VERTEX_SHADER, "vertex"},
+   {GL_GEOMETRY_SHADER, "geometry"},
+   {GL_FRAGMENT_SHADER, "fragment"}};
+
 class ShaderProgram::Impl
 {
 public:
@@ -29,6 +34,8 @@ public:
       // Delete shader program
       gl_.glDeleteProgram(id_);
    }
+
+   static std::string ShaderName(GLenum type);
 
    OpenGLFunctions& gl_;
 
@@ -49,10 +56,37 @@ GLuint ShaderProgram::id() const
    return p->id_;
 }
 
+GLint ShaderProgram::GetUniformLocation(const std::string& name)
+{
+   GLint location = p->gl_.glGetUniformLocation(p->id_, name.c_str());
+   if (location == -1)
+   {
+      logger_->warn("Could not find {}", name);
+   }
+   return location;
+}
+
+std::string ShaderProgram::Impl::ShaderName(GLenum type)
+{
+   auto it = kShaderNames_.find(type);
+   if (it != kShaderNames_.cend())
+   {
+      return it->second;
+   }
+   return fmt::format("{:#06x}", type);
+}
+
 bool ShaderProgram::Load(const std::string& vertexPath,
                          const std::string& fragmentPath)
 {
-   logger_->debug("Load: {}, {}", vertexPath, fragmentPath);
+   return Load({{GL_VERTEX_SHADER, vertexPath}, //
+                {GL_FRAGMENT_SHADER, fragmentPath}});
+}
+
+bool ShaderProgram::Load(
+   std::initializer_list<std::pair<GLenum, std::string>> shaders)
+{
+   logger_->debug("Load()");
 
    OpenGLFunctions& gl = p->gl_;
 
@@ -61,81 +95,59 @@ bool ShaderProgram::Load(const std::string& vertexPath,
    char    infoLog[kInfoLogBufSize];
    GLsizei logLength;
 
-   QFile vertexFile(vertexPath.c_str());
-   QFile fragmentFile(fragmentPath.c_str());
+   std::vector<GLuint> shaderIds {};
 
-   vertexFile.open(QIODevice::ReadOnly | QIODevice::Text);
-   fragmentFile.open(QIODevice::ReadOnly | QIODevice::Text);
-
-   if (!vertexFile.isOpen())
+   for (auto& shader : shaders)
    {
-      logger_->error("Could not load vertex shader: {}", vertexPath);
-      return false;
-   }
+      logger_->debug("Loading {} shader: {}",
+                     Impl::ShaderName(shader.first),
+                     shader.second);
 
-   if (!fragmentFile.isOpen())
-   {
-      logger_->error("Could not load fragment shader: {}", fragmentPath);
-      return false;
-   }
+      QFile file(shader.second.c_str());
+      file.open(QIODevice::ReadOnly | QIODevice::Text);
 
-   QTextStream vertexShaderStream(&vertexFile);
-   QTextStream fragmentShaderStream(&fragmentFile);
+      if (!file.isOpen())
+      {
+         logger_->error("Could not load shader");
+         success = false;
+         break;
+      }
 
-   vertexShaderStream.setEncoding(QStringConverter::Utf8);
-   fragmentShaderStream.setEncoding(QStringConverter::Utf8);
+      QTextStream shaderStream(&file);
+      shaderStream.setEncoding(QStringConverter::Utf8);
 
-   std::string vertexShaderSource = vertexShaderStream.readAll().toStdString();
-   std::string fragmentShaderSource =
-      fragmentShaderStream.readAll().toStdString();
+      std::string shaderSource  = shaderStream.readAll().toStdString();
+      const char* shaderSourceC = shaderSource.c_str();
 
-   const char* vertexShaderSourceC   = vertexShaderSource.c_str();
-   const char* fragmentShaderSourceC = fragmentShaderSource.c_str();
+      // Create a shader
+      GLuint shaderId = gl.glCreateShader(shader.first);
+      shaderIds.push_back(shaderId);
 
-   // Create a vertex shader
-   GLuint vertexShader = gl.glCreateShader(GL_VERTEX_SHADER);
+      // Attach the shader source code and compile the shader
+      gl.glShaderSource(shaderId, 1, &shaderSourceC, NULL);
+      gl.glCompileShader(shaderId);
 
-   // Attach the shader source code and compile the shader
-   gl.glShaderSource(vertexShader, 1, &vertexShaderSourceC, NULL);
-   gl.glCompileShader(vertexShader);
-
-   // Check for errors
-   gl.glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &glSuccess);
-   gl.glGetShaderInfoLog(vertexShader, kInfoLogBufSize, &logLength, infoLog);
-   if (!glSuccess)
-   {
-      logger_->error("Vertex shader compilation failed: {}", infoLog);
-      success = false;
-   }
-   else if (logLength > 0)
-   {
-      logger_->error("Vertex shader compiled with warnings: {}", infoLog);
-   }
-
-   // Create a fragment shader
-   GLuint fragmentShader = gl.glCreateShader(GL_FRAGMENT_SHADER);
-
-   // Attach the shader source and compile the shader
-   gl.glShaderSource(fragmentShader, 1, &fragmentShaderSourceC, NULL);
-   gl.glCompileShader(fragmentShader);
-
-   // Check for errors
-   gl.glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &glSuccess);
-   gl.glGetShaderInfoLog(fragmentShader, kInfoLogBufSize, &logLength, infoLog);
-   if (!glSuccess)
-   {
-      logger_->error("Fragment shader compilation failed: {}", infoLog);
-      success = false;
-   }
-   else if (logLength > 0)
-   {
-      logger_->error("Fragment shader compiled with warnings: {}", infoLog);
+      // Check for errors
+      gl.glGetShaderiv(shaderId, GL_COMPILE_STATUS, &glSuccess);
+      gl.glGetShaderInfoLog(shaderId, kInfoLogBufSize, &logLength, infoLog);
+      if (!glSuccess)
+      {
+         logger_->error("Shader compilation failed: {}", infoLog);
+         success = false;
+         break;
+      }
+      else if (logLength > 0)
+      {
+         logger_->error("Shader compiled with warnings: {}", infoLog);
+      }
    }
 
    if (success)
    {
-      gl.glAttachShader(p->id_, vertexShader);
-      gl.glAttachShader(p->id_, fragmentShader);
+      for (auto& shaderId : shaderIds)
+      {
+         gl.glAttachShader(p->id_, shaderId);
+      }
       gl.glLinkProgram(p->id_);
 
       // Check for errors
@@ -153,8 +165,10 @@ bool ShaderProgram::Load(const std::string& vertexPath,
    }
 
    // Delete shaders
-   gl.glDeleteShader(vertexShader);
-   gl.glDeleteShader(fragmentShader);
+   for (auto& shaderId : shaderIds)
+   {
+      gl.glDeleteShader(shaderId);
+   }
 
    return success;
 }

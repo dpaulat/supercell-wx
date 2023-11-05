@@ -18,6 +18,25 @@ const ::GeographicLib::Geodesic& DefaultGeodesic()
    return geodesic_;
 }
 
+units::angle::degrees<double>
+GetAngle(double lat1, double lon1, double lat2, double lon2)
+{
+   double azi1;
+   double azi2;
+   DefaultGeodesic().Inverse(lat1, lon1, lat2, lon2, azi1, azi2);
+
+   return units::angle::degrees<double> {azi1};
+}
+
+units::length::meters<double>
+GetDistance(double lat1, double lon1, double lat2, double lon2)
+{
+   double distance;
+   DefaultGeodesic().Inverse(lat1, lon1, lat2, lon2, distance);
+
+   return units::length::meters<double> {distance};
+}
+
 } // namespace GeographicLib
 } // namespace util
 } // namespace qt

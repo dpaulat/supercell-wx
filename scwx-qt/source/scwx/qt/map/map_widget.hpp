@@ -32,8 +32,10 @@ class MapWidget : public QOpenGLWidget
    Q_OBJECT
 
 public:
-   explicit MapWidget(const QMapLibreGL::Settings&);
+   explicit MapWidget(std::size_t id, const QMapLibreGL::Settings&);
    ~MapWidget();
+
+   void DumpLayerList() const;
 
    common::Level3ProductCategoryMap      GetAvailableLevel3Categories();
    float                                 GetElevation() const;
@@ -119,7 +121,9 @@ private:
    qreal pixelRatio();
 
    // QWidget implementation.
+   void enterEvent(QEnterEvent* ev) override final;
    void keyPressEvent(QKeyEvent* ev) override final;
+   void leaveEvent(QEvent* ev) override final;
    void mousePressEvent(QMouseEvent* ev) override final;
    void mouseMoveEvent(QMouseEvent* ev) override final;
    void wheelEvent(QWheelEvent* ev) override final;
@@ -127,8 +131,6 @@ private:
    // QOpenGLWidget implementation.
    void initializeGL() override final;
    void paintGL() override final;
-
-   void AddLayers();
 
    std::unique_ptr<MapWidgetImpl> p;
 
