@@ -37,6 +37,9 @@ public:
    Create(const std::string&                            product,
           std::shared_ptr<manager::RadarProductManager> radarProductManager);
 
+protected:
+   boost::asio::thread_pool& thread_pool() override;
+
 protected slots:
    void ComputeSweep() override;
 

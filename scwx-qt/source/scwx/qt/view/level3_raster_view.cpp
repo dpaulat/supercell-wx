@@ -30,7 +30,9 @@ public:
        latitude_ {}, longitude_ {}, range_ {}, vcp_ {}, sweepTime_ {}
    {
    }
-   ~Level3RasterViewImpl() = default;
+   ~Level3RasterViewImpl() { threadPool_.join(); };
+
+   boost::asio::thread_pool threadPool_ {1u};
 
    std::vector<float>   vertices_;
    std::vector<uint8_t> dataMoments8_;
@@ -54,6 +56,11 @@ Level3RasterView::Level3RasterView(
 Level3RasterView::~Level3RasterView()
 {
    std::unique_lock sweepLock {sweep_mutex()};
+}
+
+boost::asio::thread_pool& Level3RasterView::thread_pool()
+{
+   return p->threadPool_;
 }
 
 float Level3RasterView::range() const

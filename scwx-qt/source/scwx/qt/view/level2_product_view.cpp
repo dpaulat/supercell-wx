@@ -72,7 +72,7 @@ public:
 
       SetProduct(product);
    }
-   ~Level2ProductViewImpl() = default;
+   ~Level2ProductViewImpl() { threadPool_.join(); };
 
    void
    ComputeCoordinates(std::shared_ptr<wsr88d::rda::ElevationScan> radarData);
@@ -81,6 +81,8 @@ public:
    void SetProduct(common::Level2Product product);
 
    Level2ProductView* self_;
+
+   boost::asio::thread_pool threadPool_ {1u};
 
    common::Level2Product      product_;
    wsr88d::rda::DataBlockType dataBlockType_;
@@ -154,6 +156,11 @@ void Level2ProductView::DisconnectRadarProductManager()
               &manager::RadarProductManager::DataReloaded,
               this,
               nullptr);
+}
+
+boost::asio::thread_pool& Level2ProductView::thread_pool()
+{
+   return p->threadPool_;
 }
 
 const std::vector<boost::gil::rgba8_pixel_t>&

@@ -41,12 +41,14 @@ public:
    {
       coordinates_.resize(kMaxCoordinates_);
    }
-   ~Level3RadialViewImpl() = default;
+   ~Level3RadialViewImpl() { threadPool_.join(); };
 
    void ComputeCoordinates(
       std::shared_ptr<wsr88d::rpg::GenericRadialDataPacket> radialData);
 
    Level3RadialView* self_;
+
+   boost::asio::thread_pool threadPool_ {1u};
 
    std::vector<float>        coordinates_ {};
    std::vector<float>        vertices_ {};
@@ -71,6 +73,11 @@ Level3RadialView::Level3RadialView(
 Level3RadialView::~Level3RadialView()
 {
    std::unique_lock sweepLock {sweep_mutex()};
+}
+
+boost::asio::thread_pool& Level3RadialView::thread_pool()
+{
+   return p->threadPool_;
 }
 
 float Level3RadialView::range() const

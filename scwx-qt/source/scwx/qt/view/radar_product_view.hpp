@@ -11,6 +11,7 @@
 #include <vector>
 
 #include <QObject>
+#include <boost/asio/thread_pool.hpp>
 
 namespace scwx
 {
@@ -66,6 +67,8 @@ public:
    std::chrono::system_clock::time_point GetSelectedTime() const;
 
 protected:
+   virtual boost::asio::thread_pool& thread_pool() = 0;
+
    virtual void ConnectRadarProductManager()    = 0;
    virtual void DisconnectRadarProductManager() = 0;
    virtual void UpdateColorTable()              = 0;

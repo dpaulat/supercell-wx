@@ -35,9 +35,7 @@ public:
        radarProductManager_ {radarProductManager}
    {
    }
-   ~RadarProductViewImpl() { threadPool_.join(); }
-
-   boost::asio::thread_pool threadPool_ {1};
+   ~RadarProductViewImpl() {}
 
    bool       initialized_;
    std::mutex sweepMutex_;
@@ -123,7 +121,7 @@ void RadarProductView::SelectTime(std::chrono::system_clock::time_point time)
 
 void RadarProductView::Update()
 {
-   boost::asio::post(p->threadPool_, [this]() { ComputeSweep(); });
+   boost::asio::post(thread_pool(), [this]() { ComputeSweep(); });
 }
 
 bool RadarProductView::IsInitialized() const

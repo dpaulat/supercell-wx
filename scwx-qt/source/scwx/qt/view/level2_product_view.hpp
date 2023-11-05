@@ -53,6 +53,8 @@ public:
           std::shared_ptr<manager::RadarProductManager> radarProductManager);
 
 protected:
+   boost::asio::thread_pool& thread_pool() override;
+
    void ConnectRadarProductManager() override;
    void DisconnectRadarProductManager() override;
    void UpdateColorTable() override;
