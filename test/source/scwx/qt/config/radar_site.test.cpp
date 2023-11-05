@@ -28,7 +28,7 @@ size_t RadarSiteTest::numSites_ {0u};
 TEST_F(RadarSiteTest, DefaultConfig)
 {
    ASSERT_GT(numSites_, 0);
-   EXPECT_EQ(numSites_, 204);
+   EXPECT_EQ(numSites_, 205);
 
    std::shared_ptr<RadarSite> radarSite = RadarSite::Get("KLSX");
 
