@@ -508,6 +508,17 @@ void PlacefileManager::RemoveUrl(const std::string& urlString)
    Q_EMIT PlacefileRemoved(urlString);
 }
 
+void PlacefileManager::Refresh(const std::string& name)
+{
+   std::shared_lock lock {p->placefileRecordLock_};
+
+   auto it = p->placefileRecordMap_.find(name);
+   if (it != p->placefileRecordMap_.cend())
+   {
+      it->second->UpdateAsync();
+   }
+}
+
 void PlacefileManager::Impl::PlacefileRecord::Update()
 {
    logger_->debug("Update: {}", name_);

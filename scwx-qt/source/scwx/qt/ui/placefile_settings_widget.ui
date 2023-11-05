@@ -84,7 +84,17 @@
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>&amp;Remove</string>
+         <string>R&amp;emove</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="refreshButton">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>&amp;Refresh</string>
         </property>
        </widget>
       </item>

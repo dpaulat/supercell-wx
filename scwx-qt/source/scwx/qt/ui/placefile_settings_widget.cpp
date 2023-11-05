@@ -56,6 +56,7 @@ PlacefileSettingsWidget::PlacefileSettingsWidget(QWidget* parent) :
    ui->setupUi(this);
 
    ui->removeButton->setEnabled(false);
+   ui->refreshButton->setEnabled(false);
 
    ui->placefileView->setModel(p->placefileProxyModel_);
 
@@ -114,6 +115,31 @@ void PlacefileSettingsWidgetImpl::ConnectSignals()
                        }
                     });
 
+   QObject::connect(self_->ui->refreshButton,
+                    &QPushButton::clicked,
+                    self_,
+                    [this]()
+                    {
+                       auto selectionModel =
+                          self_->ui->placefileView->selectionModel();
+
+                       // Get selected URL string
+                       QModelIndex selected =
+                          selectionModel
+                             ->selectedRows(static_cast<int>(
+                                model::PlacefileModel::Column::Placefile))
+                             .first();
+                       QVariant data = self_->ui->placefileView->model()->data(
+                          selected, types::ItemDataRole::SortRole);
+                       std::string urlString = data.toString().toStdString();
+
+                       // Refresh placefile
+                       if (!urlString.empty())
+                       {
+                          placefileManager_->Refresh(urlString);
+                       }
+                    });
+
    QObject::connect(
       openUrlDialog_,
       &OpenUrlDialog::accepted,
@@ -143,6 +169,7 @@ void PlacefileSettingsWidgetImpl::ConnectSignals()
 
          bool itemSelected = selected.size() > 0;
          self_->ui->removeButton->setEnabled(itemSelected);
+         self_->ui->refreshButton->setEnabled(itemSelected);
       });
 }
 

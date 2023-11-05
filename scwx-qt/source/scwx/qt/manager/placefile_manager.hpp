@@ -41,6 +41,8 @@ public:
                bool               thresholded = false);
    void RemoveUrl(const std::string& urlString);
 
+   void Refresh(const std::string& name);
+
    static std::shared_ptr<PlacefileManager> Instance();
 
 signals:
