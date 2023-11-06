@@ -1026,12 +1026,7 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
 
    if (!delta.isNull())
    {
-      if (ev->buttons() == Qt::LeftButton &&
-          ev->modifiers() & Qt::ShiftModifier)
-      {
-         p->map_->pitchBy(delta.y());
-      }
-      else if (ev->buttons() == Qt::LeftButton)
+      if (ev->buttons() == Qt::LeftButton)
       {
          p->map_->moveBy(delta);
       }
