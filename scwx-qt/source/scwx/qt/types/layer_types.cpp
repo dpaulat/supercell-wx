@@ -152,7 +152,7 @@ std::string GetLayerDescriptionName(LayerDescription description)
    }
    else if (std::holds_alternative<awips::Phenomenon>(description))
    {
-      return awips::GetPhenomenonCode(std::get<awips::Phenomenon>(description));
+      return awips::GetPhenomenonText(std::get<awips::Phenomenon>(description));
    }
    else if (std::holds_alternative<std::monostate>(description))
    {
