@@ -2,6 +2,7 @@
 #include "ui_layer_dialog.h"
 
 #include <scwx/qt/model/layer_model.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <QPushButton>
@@ -33,6 +34,7 @@ public:
    ~LayerDialogImpl() = default;
 
    void ConnectSignals();
+   void UpdateMapDisplayColumns();
    void UpdateMoveButtonsEnabled();
 
    std::vector<int>              GetSelectedRows();
@@ -73,12 +75,33 @@ LayerDialog::LayerDialog(QWidget* parent) :
    ui->moveDownButton->setEnabled(false);
    ui->moveBottomButton->setEnabled(false);
 
+   p->UpdateMapDisplayColumns();
+
    p->ConnectSignals();
 }
 
 LayerDialog::~LayerDialog()
 {
    delete ui;
+}
+
+void LayerDialogImpl::UpdateMapDisplayColumns()
+{
+   auto&        generalSettings = settings::GeneralSettings::Instance();
+   std::int64_t gridWidth       = generalSettings.grid_width().GetValue();
+   std::int64_t gridHeight      = generalSettings.grid_height().GetValue();
+   int          mapCount        = static_cast<int>(gridWidth * gridHeight);
+
+   int displayMap1Column =
+      static_cast<int>(model::LayerModel::Column::DisplayMap1);
+
+   // For each 0-based map index, 1-3 (excluding 0, always displayed)
+   for (int mapIndex = 1; mapIndex < 4; ++mapIndex)
+   {
+      const int  column = displayMap1Column + mapIndex;
+      const bool hide   = mapIndex >= mapCount;
+      self_->ui->layerTreeView->setColumnHidden(column, hide);
+   }
 }
 
 void LayerDialogImpl::ConnectSignals()
