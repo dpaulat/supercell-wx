@@ -6,6 +6,7 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/ui/setup/setup_wizard.hpp>
 #include <scwx/network/cpr.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
@@ -70,6 +71,16 @@ int main(int argc, char* argv[])
    // Initialize application
    scwx::qt::config::RadarSite::Initialize();
    scwx::qt::manager::SettingsManager::Instance().Initialize();
+
+   // Run initial setup if required
+   if (scwx::qt::ui::setup::SetupWizard::IsSetupRequired())
+   {
+      scwx::qt::ui::setup::SetupWizard w;
+      w.show();
+      a.exec();
+   }
+
+   // Run further application initialization
    scwx::qt::manager::ResourceManager::Initialize();
 
    // Run Qt main loop

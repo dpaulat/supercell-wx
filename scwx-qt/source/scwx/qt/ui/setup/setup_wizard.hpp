@@ -14,8 +14,17 @@ namespace setup
 class SetupWizard : public QWizard
 {
 public:
+   enum class Page : int
+   {
+      Welcome = 0,
+      Map,
+      Finish
+   };
+
    explicit SetupWizard(QWidget* parent = nullptr);
    ~SetupWizard();
+
+   static bool IsSetupRequired();
 
 private:
    class Impl;
