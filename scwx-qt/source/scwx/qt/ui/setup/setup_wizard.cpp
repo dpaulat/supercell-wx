@@ -1,6 +1,7 @@
 #include <scwx/qt/ui/setup/setup_wizard.hpp>
 #include <scwx/qt/ui/setup/finish_page.hpp>
-#include <scwx/qt/ui/setup/map_page.hpp>
+#include <scwx/qt/ui/setup/map_layout_page.hpp>
+#include <scwx/qt/ui/setup/map_provider_page.hpp>
 #include <scwx/qt/ui/setup/welcome_page.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 
@@ -35,7 +36,8 @@ SetupWizard::SetupWizard(QWidget* parent) :
    setOption(QWizard::WizardOption::HaveHelpButton);
 
    setPage(static_cast<int>(Page::Welcome), new WelcomePage(this));
-   setPage(static_cast<int>(Page::Map), new MapPage(this));
+   setPage(static_cast<int>(Page::MapProvider), new MapProviderPage(this));
+   setPage(static_cast<int>(Page::MapLayout), new MapLayoutPage(this));
    setPage(static_cast<int>(Page::Finish), new FinishPage(this));
 
 #if !defined(Q_OS_MAC)

@@ -11,11 +11,11 @@ namespace ui
 namespace setup
 {
 
-class MapPage : public QWizardPage
+class MapProviderPage : public QWizardPage
 {
 public:
-   explicit MapPage(QWidget* parent = nullptr);
-   ~MapPage();
+   explicit MapProviderPage(QWidget* parent = nullptr);
+   ~MapProviderPage();
 
 private:
    class Impl;

@@ -227,11 +227,13 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/settings_dialog.ui
            source/scwx/qt/ui/update_dialog.ui)
 set(HDR_UI_SETUP source/scwx/qt/ui/setup/finish_page.hpp
-                 source/scwx/qt/ui/setup/map_page.hpp
+                 source/scwx/qt/ui/setup/map_layout_page.hpp
+                 source/scwx/qt/ui/setup/map_provider_page.hpp
                  source/scwx/qt/ui/setup/setup_wizard.hpp
                  source/scwx/qt/ui/setup/welcome_page.hpp)
 set(SRC_UI_SETUP source/scwx/qt/ui/setup/finish_page.cpp
-                 source/scwx/qt/ui/setup/map_page.cpp
+                 source/scwx/qt/ui/setup/map_layout_page.cpp
+                 source/scwx/qt/ui/setup/map_provider_page.cpp
                  source/scwx/qt/ui/setup/setup_wizard.cpp
                  source/scwx/qt/ui/setup/welcome_page.cpp)
 set(HDR_UTIL source/scwx/qt/util/color.hpp

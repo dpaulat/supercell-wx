@@ -1,4 +1,4 @@
-#include <scwx/qt/ui/setup/map_page.hpp>
+#include <scwx/qt/ui/setup/map_layout_page.hpp>
 
 namespace scwx
 {
@@ -9,21 +9,21 @@ namespace ui
 namespace setup
 {
 
-class MapPage::Impl
+class MapLayoutPage::Impl
 {
 public:
    explicit Impl() = default;
    ~Impl()         = default;
 };
 
-MapPage::MapPage(QWidget* parent) :
+MapLayoutPage::MapLayoutPage(QWidget* parent) :
     QWizardPage(parent), p {std::make_shared<Impl>()}
 {
-   setTitle(tr("Map Configuration"));
-   setSubTitle(tr("Configure the Supercell Wx map provider and basic layout."));
+   setTitle(tr("Map Layout"));
+   setSubTitle(tr("Configure the Supercell Wx map layout."));
 }
 
-MapPage::~MapPage() = default;
+MapLayoutPage::~MapLayoutPage() = default;
 
 } // namespace setup
 } // namespace ui

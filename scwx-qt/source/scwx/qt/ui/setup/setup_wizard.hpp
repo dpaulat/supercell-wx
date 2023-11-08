@@ -17,7 +17,8 @@ public:
    enum class Page : int
    {
       Welcome = 0,
-      Map,
+      MapProvider,
+      MapLayout,
       Finish
    };
 
