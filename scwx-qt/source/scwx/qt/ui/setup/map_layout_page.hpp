@@ -17,6 +17,8 @@ public:
    explicit MapLayoutPage(QWidget* parent = nullptr);
    ~MapLayoutPage();
 
+   bool validatePage() override;
+
 private:
    class Impl;
    std::shared_ptr<Impl> p;

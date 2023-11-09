@@ -110,10 +110,10 @@ MapProviderPage::MapProviderPage(QWidget* parent) :
 
    // Description
    p->descriptionLabel_->setText(
-      ("You must get an API key from the map provider. After creating an "
-       "account and reviewing terms of service, create an API key (or public "
-       "token) with default scopes (unless one is created for you). Enter "
-       "this API key here."));
+      tr("You must get an API key from the map provider. After creating an "
+         "account and reviewing terms of service, create an API key (or public "
+         "token) with default scopes (unless one is created for you). Enter "
+         "this API key here."));
    p->descriptionLabel_->setWordWrap(true);
 
    // API Key Button
@@ -165,7 +165,7 @@ void MapProviderPage::Impl::SetupMapProviderGroup(MapProviderGroup& group,
    group.apiKeyLabel_ = new QLabel(self_);
    group.apiKeyEdit_  = new QLineEdit(self_);
 
-   group.apiKeyLabel_->setText("API Key");
+   group.apiKeyLabel_->setText(tr("API Key"));
 
    mapProviderLayout_->addWidget(group.apiKeyLabel_, row, 0, 1, 1);
    mapProviderLayout_->addWidget(group.apiKeyEdit_, row, 1, 1, 1);
