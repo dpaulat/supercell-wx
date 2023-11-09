@@ -1,6 +1,10 @@
 #include <scwx/qt/ui/setup/map_provider_page.hpp>
+#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/settings/settings_interface.hpp>
+
+#include <unordered_map>
 
 #include <QComboBox>
 #include <QDesktopServices>
@@ -12,6 +16,7 @@
 #include <QPushButton>
 #include <QUrl>
 #include <QVBoxLayout>
+#include <boost/algorithm/string.hpp>
 
 namespace scwx
 {
@@ -22,6 +27,10 @@ namespace ui
 namespace setup
 {
 
+static const std::unordered_map<map::MapProvider, QUrl> kUrl_ {
+   {map::MapProvider::Mapbox, QUrl {"https://www.mapbox.com/"}},
+   {map::MapProvider::MapTiler, QUrl {"https://www.maptiler.com/"}}};
+
 struct MapProviderGroup
 {
    QLabel*    apiKeyLabel_ {};
@@ -31,15 +40,16 @@ struct MapProviderGroup
 class MapProviderPage::Impl
 {
 public:
-   explicit Impl() = default;
-   ~Impl()         = default;
+   explicit Impl(MapProviderPage* self) : self_ {self} {};
+   ~Impl() = default;
 
    void        SelectMapProvider(const QString& text);
    void        SelectMapProvider(map::MapProvider mapProvider);
-   void        SetupMapProviderGroup(MapProviderPage*  parent,
-                                     MapProviderGroup& group,
-                                     int               row);
+   void        SetupMapProviderGroup(MapProviderGroup& group, int row);
+   void        SetupSettingsInterface();
    static void SetGroupVisible(MapProviderGroup& group, bool visible);
+
+   MapProviderPage* self_;
 
    QLayout* layout_ {};
 
@@ -57,22 +67,30 @@ public:
    MapProviderGroup maptilerGroup_ {};
 
    map::MapProvider currentMapProvider_ {};
+
+   settings::SettingsInterface<std::string> mapProvider_ {};
+   settings::SettingsInterface<std::string> mapboxApiKey_ {};
+   settings::SettingsInterface<std::string> mapTilerApiKey_ {};
+
+   std::unordered_map<map::MapProvider, MapProviderGroup&> providerGroup_ {
+      {map::MapProvider::Mapbox, mapboxGroup_},
+      {map::MapProvider::MapTiler, maptilerGroup_}};
 };
 
 MapProviderPage::MapProviderPage(QWidget* parent) :
-    QWizardPage(parent), p {std::make_shared<Impl>()}
+    QWizardPage(parent), p {std::make_shared<Impl>(this)}
 {
    setTitle(tr("Map Provider"));
    setSubTitle(tr("Configure the Supercell Wx map provider."));
 
-   p->mapProviderFrame_    = new QFrame(parent);
-   p->mapProviderLayout_   = new QGridLayout(parent);
-   p->mapProviderLabel_    = new QLabel(parent);
-   p->mapProviderComboBox_ = new QComboBox(parent);
-   p->descriptionLabel_    = new QLabel(parent);
-   p->buttonFrame_         = new QFrame(parent);
-   p->buttonLayout_        = new QHBoxLayout(parent);
-   p->apiKeyButton_        = new QPushButton(parent);
+   p->mapProviderFrame_    = new QFrame(this);
+   p->mapProviderLayout_   = new QGridLayout(p->mapProviderFrame_);
+   p->mapProviderLabel_    = new QLabel(this);
+   p->mapProviderComboBox_ = new QComboBox(this);
+   p->descriptionLabel_    = new QLabel(this);
+   p->buttonFrame_         = new QFrame(this);
+   p->buttonLayout_        = new QHBoxLayout(p->buttonFrame_);
+   p->apiKeyButton_        = new QPushButton(this);
    p->buttonSpacer_ =
       new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
@@ -104,9 +122,20 @@ MapProviderPage::MapProviderPage(QWidget* parent) :
    p->buttonLayout_->addItem(p->buttonSpacer_);
    p->buttonFrame_->setLayout(p->buttonLayout_);
 
-   p->SetupMapProviderGroup(this, p->mapboxGroup_, 1);
-   p->SetupMapProviderGroup(this, p->maptilerGroup_, 2);
+   p->SetupMapProviderGroup(p->mapboxGroup_, 1);
+   p->SetupMapProviderGroup(p->maptilerGroup_, 2);
 
+   // Overall layout
+   p->layout_ = new QVBoxLayout(this);
+   p->layout_->addWidget(p->mapProviderFrame_);
+   p->layout_->addWidget(p->descriptionLabel_);
+   p->layout_->addWidget(p->buttonFrame_);
+   setLayout(p->layout_);
+
+   // Configure settings interface
+   p->SetupSettingsInterface();
+
+   // Connect signals
    connect(p->mapProviderComboBox_,
            &QComboBox::currentTextChanged,
            this,
@@ -116,51 +145,74 @@ MapProviderPage::MapProviderPage(QWidget* parent) :
            &QAbstractButton::clicked,
            this,
            [this]()
-           {
-              switch (p->currentMapProvider_)
-              {
-              case map::MapProvider::Mapbox:
-                 QDesktopServices::openUrl(QUrl {"https://www.mapbox.com/"});
-                 break;
-
-              case map::MapProvider::MapTiler:
-                 QDesktopServices::openUrl(QUrl {"https://www.maptiler.com/"});
-                 break;
-
-              default:
-                 break;
-              }
-           });
+           { QDesktopServices::openUrl(kUrl_.at(p->currentMapProvider_)); });
 
    // Map provider value
-   map::MapProvider defaultMapProvider = map::GetMapProvider(
-      settings::GeneralSettings::Instance().map_provider().GetDefault());
-   std::string defaultMapProviderName =
-      map::GetMapProviderName(defaultMapProvider);
+   map::MapProvider currentMapProvider = map::GetMapProvider(
+      settings::GeneralSettings::Instance().map_provider().GetValue());
+   std::string currentMapProviderName =
+      map::GetMapProviderName(currentMapProvider);
    p->mapProviderComboBox_->setCurrentText(
-      QString::fromStdString(defaultMapProviderName));
-   p->SelectMapProvider(defaultMapProvider);
-
-   p->layout_ = new QVBoxLayout(this);
-   p->layout_->addWidget(p->mapProviderFrame_);
-   p->layout_->addWidget(p->descriptionLabel_);
-   p->layout_->addWidget(p->buttonFrame_);
-   setLayout(p->layout_);
+      QString::fromStdString(currentMapProviderName));
+   p->SelectMapProvider(currentMapProvider);
 }
 
 MapProviderPage::~MapProviderPage() = default;
 
-void MapProviderPage::Impl::SetupMapProviderGroup(MapProviderPage*  parent,
-                                                  MapProviderGroup& group,
+void MapProviderPage::Impl::SetupMapProviderGroup(MapProviderGroup& group,
                                                   int               row)
 {
-   group.apiKeyLabel_ = new QLabel(parent);
-   group.apiKeyEdit_  = new QLineEdit(parent);
+   group.apiKeyLabel_ = new QLabel(self_);
+   group.apiKeyEdit_  = new QLineEdit(self_);
 
    group.apiKeyLabel_->setText("API Key");
 
    mapProviderLayout_->addWidget(group.apiKeyLabel_, row, 0, 1, 1);
    mapProviderLayout_->addWidget(group.apiKeyEdit_, row, 1, 1, 1);
+
+   QObject::connect(group.apiKeyEdit_,
+                    &QLineEdit::textChanged,
+                    self_,
+                    &QWizardPage::completeChanged);
+}
+
+void MapProviderPage::Impl::SetupSettingsInterface()
+{
+   auto& generalSettings = settings::GeneralSettings::Instance();
+
+   mapProvider_.SetSettingsVariable(generalSettings.map_provider());
+   mapProvider_.SetMapFromValueFunction(
+      [](const std::string& text) -> std::string
+      {
+         for (map::MapProvider mapProvider : map::MapProviderIterator())
+         {
+            const std::string mapProviderName =
+               map::GetMapProviderName(mapProvider);
+
+            if (boost::iequals(text, mapProviderName))
+            {
+               // Return map provider label
+               return mapProviderName;
+            }
+         }
+
+         // Map provider label not found, return unknown
+         return "?";
+      });
+   mapProvider_.SetMapToValueFunction(
+      [](std::string text) -> std::string
+      {
+         // Convert label to lower case and return
+         boost::to_lower(text);
+         return text;
+      });
+   mapProvider_.SetEditWidget(mapProviderComboBox_);
+
+   mapboxApiKey_.SetSettingsVariable(generalSettings.mapbox_api_key());
+   mapboxApiKey_.SetEditWidget(mapboxGroup_.apiKeyEdit_);
+
+   mapTilerApiKey_.SetSettingsVariable(generalSettings.maptiler_api_key());
+   mapTilerApiKey_.SetEditWidget(maptilerGroup_.apiKeyEdit_);
 }
 
 void MapProviderPage::Impl::SelectMapProvider(const QString& text)
@@ -192,6 +244,8 @@ void MapProviderPage::Impl::SelectMapProvider(map::MapProvider mapProvider)
       tr("Get %1 API Key").arg(QString::fromStdString(name)));
 
    currentMapProvider_ = mapProvider;
+
+   Q_EMIT self_->completeChanged();
 }
 
 void MapProviderPage::Impl::SetGroupVisible(MapProviderGroup& group,
@@ -199,6 +253,29 @@ void MapProviderPage::Impl::SetGroupVisible(MapProviderGroup& group,
 {
    group.apiKeyLabel_->setVisible(visible);
    group.apiKeyEdit_->setVisible(visible);
+}
+
+bool MapProviderPage::isComplete() const
+{
+   return p->providerGroup_.at(p->currentMapProvider_)
+             .apiKeyEdit_->text()
+             .size() > 1;
+}
+
+bool MapProviderPage::validatePage()
+{
+   bool committed = false;
+
+   committed |= p->mapProvider_.Commit();
+   committed |= p->mapboxApiKey_.Commit();
+   committed |= p->mapTilerApiKey_.Commit();
+
+   if (committed)
+   {
+      manager::SettingsManager::Instance().SaveSettings();
+   }
+
+   return true;
 }
 
 } // namespace setup
