@@ -32,11 +32,13 @@ void ImGui::DrawTooltip(const std::string& hoverText)
    auto tooltipFont = manager::FontManager::Instance().GetImGuiFont(
       types::FontCategory::Tooltip);
 
-   ::ImGui::BeginTooltip();
-   ::ImGui::PushFont(tooltipFont->font());
-   ::ImGui::TextUnformatted(hoverText.c_str());
-   ::ImGui::PopFont();
-   ::ImGui::EndTooltip();
+   if (::ImGui::BeginTooltip())
+   {
+      ::ImGui::PushFont(tooltipFont->font());
+      ::ImGui::TextUnformatted(hoverText.c_str());
+      ::ImGui::PopFont();
+      ::ImGui::EndTooltip();
+   }
 }
 
 ImGui& ImGui::Instance()
