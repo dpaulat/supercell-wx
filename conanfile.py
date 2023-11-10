@@ -2,21 +2,21 @@ from conans import ConanFile
 
 class SupercellWxConan(ConanFile):
     settings   = ("os", "compiler", "build_type", "arch")
-    requires   = ("boost/1.81.0",
-                  "cpr/1.9.3",
+    requires   = ("boost/1.83.0",
+                  "cpr/1.10.4",
                   "fontconfig/2.14.2",
-                  "freetype/2.12.1",
+                  "freetype/2.13.0",
                   "geographiclib/1.52",
                   "glew/2.2.0",
-                  "glm/cci.20220420",
-                  "gtest/1.13.0",
+                  "glm/cci.20230113",
+                  "gtest/1.14.0",
                   "libcurl/7.86.0",
-                  "libxml2/2.10.3",
-                  "openssl/3.1.0",
-                  "spdlog/1.11.0",
-                  "sqlite3/3.40.1",
-                  "vulkan-loader/1.3.236.0",
-                  "zlib/1.2.13")
+                  "libxml2/2.10.4",
+                  "openssl/3.1.4",
+                  "spdlog/1.12.0",
+                  "sqlite3/3.44.0",
+                  "vulkan-loader/1.3.243.0",
+                  "zlib/1.3")
     generators = ("cmake",
                   "cmake_find_package",
                   "cmake_paths")
@@ -26,7 +26,7 @@ class SupercellWxConan(ConanFile):
 
     def requirements(self):
         if self.settings.os == "Linux":
-            self.requires("onetbb/2021.9.0")
+            self.requires("onetbb/2021.10.0")
 
     def imports(self):
         self.copy("*.dll", dst="bin", src="bin")
