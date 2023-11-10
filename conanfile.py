@@ -8,7 +8,7 @@ class SupercellWxConan(ConanFile):
                   "freetype/2.13.0",
                   "geographiclib/1.52",
                   "glew/2.2.0",
-                  "glm/cci.20230113",
+                  "glm/0.9.9.8",
                   "gtest/1.14.0",
                   "libcurl/7.86.0",
                   "libxml2/2.10.4",
