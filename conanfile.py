@@ -3,7 +3,7 @@ from conans import ConanFile
 class SupercellWxConan(ConanFile):
     settings   = ("os", "compiler", "build_type", "arch")
     requires   = ("boost/1.83.0",
-                  "cpr/1.10.4",
+                  "cpr/1.10.5",
                   "fontconfig/2.14.2",
                   "freetype/2.13.0",
                   "geographiclib/1.52",
