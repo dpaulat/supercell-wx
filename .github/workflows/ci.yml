@@ -28,7 +28,7 @@ jobs:
             compiler: msvc
             msvc_arch: x64
             msvc_version: 2022
-            qt_version: 6.5.3
+            qt_version: 6.6.0
             qt_arch: win64_msvc2019_64
             qt_modules: qtimageformats
             qt_tools: ''
@@ -44,7 +44,7 @@ jobs:
             env_cc: gcc-11
             env_cxx: g++-11
             compiler: gcc
-            qt_version: 6.5.3
+            qt_version: 6.6.0
             qt_arch: gcc_64
             qt_modules: qtimageformats
             qt_tools: ''
