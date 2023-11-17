@@ -1,3 +1,5 @@
+#define _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING
+
 #include <scwx/provider/aws_level3_data_provider.hpp>
 #include <scwx/common/sites.hpp>
 #include <scwx/util/logger.hpp>
@@ -5,6 +7,7 @@
 
 #include <shared_mutex>
 
+#include <aws/s3/S3Client.h>
 #include <aws/s3/model/ListObjectsV2Request.h>
 #include <fmt/chrono.h>
 #include <fmt/format.h>

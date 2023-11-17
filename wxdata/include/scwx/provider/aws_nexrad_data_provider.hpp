@@ -2,7 +2,13 @@
 
 #include <scwx/provider/nexrad_data_provider.hpp>
 
-#include <aws/s3/S3Client.h>
+namespace Aws
+{
+namespace S3
+{
+class S3Client;
+} // namespace S3
+} // namespace Aws
 
 namespace scwx
 {

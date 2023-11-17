@@ -1,3 +1,5 @@
+#define _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING
+
 #include <scwx/provider/aws_nexrad_data_provider.hpp>
 #include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
@@ -7,6 +9,7 @@
 
 #include <shared_mutex>
 
+#include <aws/s3/S3Client.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/ListObjectsV2Request.h>
 #include <fmt/chrono.h>

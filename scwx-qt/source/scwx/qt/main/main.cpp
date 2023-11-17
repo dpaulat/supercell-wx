@@ -1,4 +1,5 @@
 #define NOMINMAX
+#define _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING
 
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/main/main_window.hpp>
