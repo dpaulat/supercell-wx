@@ -1,7 +1,6 @@
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/gl/draw/rectangle.hpp>
 #include <scwx/qt/gl/shader_program.hpp>
-#include <scwx/qt/gl/text_shader.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 

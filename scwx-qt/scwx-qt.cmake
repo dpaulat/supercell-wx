@@ -13,8 +13,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Boost)
 find_package(Fontconfig)
-find_package(Freetype)
 find_package(geographiclib)
+find_package(GLEW)
 find_package(glm)
 find_package(Python COMPONENTS Interpreter)
 find_package(SQLite3)
@@ -51,11 +51,9 @@ set(SRC_EXTERNAL source/scwx/qt/external/stb_image.cpp
                  source/scwx/qt/external/stb_rect_pack.cpp)
 set(HDR_GL source/scwx/qt/gl/gl.hpp
            source/scwx/qt/gl/gl_context.hpp
-           source/scwx/qt/gl/shader_program.hpp
-           source/scwx/qt/gl/text_shader.hpp)
+           source/scwx/qt/gl/shader_program.hpp)
 set(SRC_GL source/scwx/qt/gl/gl_context.cpp
-           source/scwx/qt/gl/shader_program.cpp
-           source/scwx/qt/gl/text_shader.cpp)
+           source/scwx/qt/gl/shader_program.cpp)
 set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
                 source/scwx/qt/gl/draw/geo_line.hpp
                 source/scwx/qt/gl/draw/placefile_icons.hpp
@@ -238,8 +236,6 @@ set(SRC_UI_SETUP source/scwx/qt/ui/setup/finish_page.cpp
                  source/scwx/qt/ui/setup/welcome_page.cpp)
 set(HDR_UTIL source/scwx/qt/util/color.hpp
              source/scwx/qt/util/file.hpp
-             source/scwx/qt/util/font.hpp
-             source/scwx/qt/util/font_buffer.hpp
              source/scwx/qt/util/geographic_lib.hpp
              source/scwx/qt/util/imgui.hpp
              source/scwx/qt/util/json.hpp
@@ -253,8 +249,6 @@ set(HDR_UTIL source/scwx/qt/util/color.hpp
              source/scwx/qt/util/tooltip.hpp)
 set(SRC_UTIL source/scwx/qt/util/color.cpp
              source/scwx/qt/util/file.cpp
-             source/scwx/qt/util/font.cpp
-             source/scwx/qt/util/font_buffer.cpp
              source/scwx/qt/util/geographic_lib.cpp
              source/scwx/qt/util/imgui.cpp
              source/scwx/qt/util/json.cpp
@@ -287,8 +281,6 @@ set(SHADER_FILES gl/color.frag
                  gl/map_color.vert
                  gl/radar.frag
                  gl/radar.vert
-                 gl/text.frag
-                 gl/text.vert
                  gl/texture1d.frag
                  gl/texture1d.vert
                  gl/texture2d.frag
@@ -504,8 +496,8 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      qmaplibregl
                                      $<$<CXX_COMPILER_ID:MSVC>:opengl32>
                                      Fontconfig::Fontconfig
-                                     freetype-gl
                                      GeographicLib::GeographicLib
+                                     GLEW::GLEW
                                      glm::glm
                                      imgui
                                      SQLite::SQLite3

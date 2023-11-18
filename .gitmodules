@@ -10,9 +10,6 @@
 [submodule "external/hsluv-c"]
 	path = external/hsluv-c
 	url = https://github.com/hsluv/hsluv-c.git
-[submodule "external/freetype-gl"]
-	path = external/freetype-gl
-	url = https://github.com/rougier/freetype-gl.git
 [submodule "external/stb"]
 	path = external/stb
 	url = https://github.com/nothings/stb.git

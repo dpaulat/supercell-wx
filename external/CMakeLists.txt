@@ -6,7 +6,6 @@ set_property(DIRECTORY
              PROPERTY CMAKE_CONFIGURE_DEPENDS
              aws-sdk-cpp.cmake
              date.cmake
-             freetype-gl.cmake
              hsluv-c.cmake
              imgui.cmake
              mapbox-gl-native.cmake
@@ -16,7 +15,6 @@ set_property(DIRECTORY
 
 include(aws-sdk-cpp.cmake)
 include(date.cmake)
-include(freetype-gl.cmake)
 include(hsluv-c.cmake)
 include(imgui.cmake)
 include(mapbox-gl-native.cmake)

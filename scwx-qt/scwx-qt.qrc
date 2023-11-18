@@ -7,8 +7,6 @@
         <file>gl/map_color.vert</file>
         <file>gl/radar.frag</file>
         <file>gl/radar.vert</file>
-        <file>gl/text.frag</file>
-        <file>gl/text.vert</file>
         <file>gl/texture1d.frag</file>
         <file>gl/texture1d.vert</file>
         <file>gl/texture2d.frag</file>
