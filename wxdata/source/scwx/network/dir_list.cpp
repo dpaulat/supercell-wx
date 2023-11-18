@@ -100,11 +100,20 @@ std::vector<DirListRecord> DirList(const std::string& baseUrl)
    }
    else
    {
-      htmlDocPtr doc = htmlSAXParseDoc(
-         reinterpret_cast<const xmlChar*>(response.text.c_str()),
-         nullptr,
-         &saxHandler_,
-         &saxData);
+      htmlParserCtxtPtr ctxt = htmlNewSAXParserCtxt(&saxHandler_, &saxData);
+      htmlDocPtr        doc  = nullptr;
+
+      if (ctxt != nullptr)
+      {
+         doc = htmlCtxtReadDoc(
+            ctxt,
+            reinterpret_cast<const xmlChar*>(response.text.c_str()),
+            baseUrl.c_str(),
+            nullptr,
+            HTML_PARSE_NONET);
+         htmlFreeParserCtxt(ctxt);
+      }
+
       if (doc != nullptr)
       {
          xmlFreeDoc(doc);
