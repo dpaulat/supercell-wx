@@ -66,6 +66,9 @@ public:
                                          GetCfpMomentData() const;
    std::chrono::system_clock::time_point GetSelectedTime() const;
 
+   virtual std::vector<std::pair<std::string, std::string>>
+   GetDescriptionFields() const;
+
 protected:
    virtual boost::asio::thread_pool& thread_pool() = 0;
 

@@ -44,9 +44,7 @@ class OverlayLayerImpl
 public:
    explicit OverlayLayerImpl(std::shared_ptr<MapContext> context) :
        activeBoxOuter_ {std::make_shared<gl::draw::Rectangle>(context)},
-       activeBoxInner_ {std::make_shared<gl::draw::Rectangle>(context)},
-       sweepTimeString_ {},
-       sweepTimeNeedsUpdate_ {true}
+       activeBoxInner_ {std::make_shared<gl::draw::Rectangle>(context)}
    {
    }
    ~OverlayLayerImpl() = default;
@@ -54,8 +52,9 @@ public:
    std::shared_ptr<gl::draw::Rectangle> activeBoxOuter_;
    std::shared_ptr<gl::draw::Rectangle> activeBoxInner_;
 
-   std::string sweepTimeString_;
-   bool        sweepTimeNeedsUpdate_;
+   std::string sweepTimeString_ {};
+   bool        sweepTimeNeedsUpdate_ {true};
+   bool        sweepTimePicked_ {false};
 };
 
 OverlayLayer::OverlayLayer(std::shared_ptr<MapContext> context) :
@@ -95,6 +94,8 @@ void OverlayLayer::Render(
    const float          pixelRatio       = context()->pixel_ratio();
 
    context()->set_render_parameters(params);
+
+   p->sweepTimePicked_ = false;
 
    if (p->sweepTimeNeedsUpdate_ && radarProductView != nullptr)
    {
@@ -154,7 +155,38 @@ void OverlayLayer::Render(
                    nullptr,
                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                       ImGuiWindowFlags_AlwaysAutoResize);
-      ImGui::TextUnformatted(p->sweepTimeString_.c_str());
+
+      if (ImGui::IsWindowHovered())
+      {
+         // Show a detailed product description when the sweep time is hovered
+         p->sweepTimePicked_ = true;
+
+         auto fields = radarProductView->GetDescriptionFields();
+         if (fields.empty())
+         {
+            ImGui::TextUnformatted(p->sweepTimeString_.c_str());
+         }
+         else
+         {
+            if (ImGui::BeginTable("Description Fields", 2))
+            {
+               for (auto& field : fields)
+               {
+                  ImGui::TableNextRow();
+                  ImGui::TableNextColumn();
+                  ImGui::TextUnformatted(field.first.c_str());
+                  ImGui::TableNextColumn();
+                  ImGui::TextUnformatted(field.second.c_str());
+               }
+               ImGui::EndTable();
+            }
+         }
+      }
+      else
+      {
+         ImGui::TextUnformatted(p->sweepTimeString_.c_str());
+      }
+
       ImGui::End();
    }
 
@@ -176,6 +208,16 @@ void OverlayLayer::Deinitialize()
                  this,
                  &OverlayLayer::UpdateSweepTimeNextFrame);
    }
+}
+
+bool OverlayLayer::RunMousePicking(
+   const QMapLibreGL::CustomLayerRenderParameters& /* params */,
+   const QPointF& /* mouseLocalPos */,
+   const QPointF& /* mouseGlobalPos */,
+   const glm::vec2& /* mouseCoords */)
+{
+   // If sweep time was picked, don't process additional items
+   return p->sweepTimePicked_;
 }
 
 void OverlayLayer::UpdateSweepTimeNextFrame()

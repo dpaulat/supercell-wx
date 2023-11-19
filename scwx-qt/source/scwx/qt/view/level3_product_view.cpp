@@ -9,6 +9,10 @@
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 
+#if !defined(_MSC_VER)
+#   include <date/date.h>
+#endif
+
 namespace scwx
 {
 namespace qt
@@ -151,6 +155,44 @@ std::string Level3ProductView::GetRadarProductName() const
 void Level3ProductView::SelectProduct(const std::string& productName)
 {
    p->product_ = productName;
+}
+
+std::vector<std::pair<std::string, std::string>>
+Level3ProductView::GetDescriptionFields() const
+{
+   std::vector<std::pair<std::string, std::string>> description {};
+
+   if (p->graphicMessage_ != nullptr)
+   {
+      const scwx::util::time_zone* currentZone;
+
+#if defined(_MSC_VER)
+      currentZone = std::chrono::current_zone();
+#else
+      currentZone = date::current_zone();
+#endif
+
+      auto descriptionBlock = p->graphicMessage_->description_block();
+
+      if (descriptionBlock != nullptr)
+      {
+         auto volumeTime = scwx::util::TimePoint(
+            descriptionBlock->volume_scan_date(),
+            descriptionBlock->volume_scan_start_time() * 1000);
+         auto productTime = scwx::util::TimePoint(
+            descriptionBlock->generation_date_of_product(),
+            descriptionBlock->generation_time_of_product() * 1000);
+
+         description.emplace_back(
+            "Volume Time",
+            scwx::util::TimeString(volumeTime, currentZone, false));
+         description.emplace_back(
+            "Product Time",
+            scwx::util::TimeString(productTime, currentZone, false));
+      }
+   }
+
+   return description;
 }
 
 void Level3ProductView::LoadColorTable(

@@ -144,6 +144,12 @@ RadarProductView::GetCfpMomentData() const
    return std::tie(data, dataSize, componentSize);
 }
 
+std::vector<std::pair<std::string, std::string>>
+RadarProductView::GetDescriptionFields() const
+{
+   return {};
+}
+
 std::chrono::system_clock::time_point RadarProductView::GetSelectedTime() const
 {
    return p->selectedTime_;

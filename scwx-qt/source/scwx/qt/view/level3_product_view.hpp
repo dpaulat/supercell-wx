@@ -38,6 +38,9 @@ public:
 
    void SelectProduct(const std::string& productName) override;
 
+   std::vector<std::pair<std::string, std::string>>
+   GetDescriptionFields() const override;
+
 protected:
    std::shared_ptr<wsr88d::rpg::GraphicProductMessage>
         graphic_product_message() const;
