@@ -250,7 +250,7 @@ target_compile_options(wxdata PRIVATE
 
 if (MSVC)
     # Don't include Windows macros
-    target_compile_options(wxdata PRIVATE /D "NOMINMAX")
+    target_compile_options(wxdata PRIVATE -DNOMINMAX)
 
     # Enable multi-processor compilation
     target_compile_options(wxdata PRIVATE "/MP")

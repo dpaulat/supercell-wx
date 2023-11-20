@@ -464,8 +464,8 @@ target_compile_options(supercell-wx PRIVATE
 
 if (MSVC)
     # Don't include Windows macros
-    target_compile_options(scwx-qt PRIVATE /D "NOMINMAX")
-    target_compile_options(supercell-wx PRIVATE /D "NOMINMAX")
+    target_compile_options(scwx-qt PRIVATE -DNOMINMAX)
+    target_compile_options(supercell-wx PRIVATE -DNOMINMAX)
 
     # Enable multi-processor compilation
     target_compile_options(scwx-qt PRIVATE "/MP")
