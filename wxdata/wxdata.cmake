@@ -251,6 +251,9 @@ target_compile_options(wxdata PRIVATE
 if (MSVC)
     # Don't include Windows macros
     target_compile_options(wxdata PRIVATE /D "NOMINMAX")
+
+    # Enable multi-processor compilation
+    target_compile_options(wxdata PRIVATE "/MP")
 endif()
 
 if (MSVC)
