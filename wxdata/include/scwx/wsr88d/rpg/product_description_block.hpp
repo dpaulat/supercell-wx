@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <memory>
 
+#include <units/angle.h>
+
 namespace scwx
 {
 namespace wsr88d
@@ -20,7 +22,7 @@ public:
    explicit ProductDescriptionBlock();
    ~ProductDescriptionBlock();
 
-   ProductDescriptionBlock(const ProductDescriptionBlock&) = delete;
+   ProductDescriptionBlock(const ProductDescriptionBlock&)            = delete;
    ProductDescriptionBlock& operator=(const ProductDescriptionBlock&) = delete;
 
    ProductDescriptionBlock(ProductDescriptionBlock&&) noexcept;
@@ -61,6 +63,8 @@ public:
 
    float log_offset() const;
    float log_scale() const;
+
+   units::angle::degrees<double> elevation() const;
 
    bool IsCompressionEnabled() const;
 

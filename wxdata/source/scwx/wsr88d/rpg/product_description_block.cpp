@@ -139,7 +139,7 @@ ProductDescriptionBlock::ProductDescriptionBlock() :
 ProductDescriptionBlock::~ProductDescriptionBlock() = default;
 
 ProductDescriptionBlock::ProductDescriptionBlock(
-   ProductDescriptionBlock&&) noexcept                    = default;
+   ProductDescriptionBlock&&) noexcept = default;
 ProductDescriptionBlock& ProductDescriptionBlock::operator=(
    ProductDescriptionBlock&&) noexcept = default;
 
@@ -588,6 +588,18 @@ float ProductDescriptionBlock::log_scale() const
    }
 
    return logScale;
+}
+
+units::angle::degrees<double> ProductDescriptionBlock::elevation() const
+{
+   double elevation = 0.0;
+
+   if (p->elevationNumber_ > 0)
+   {
+      elevation = p->parameters_[2] * 0.1;
+   }
+
+   return units::angle::degrees<double> {elevation};
 }
 
 bool ProductDescriptionBlock::IsCompressionEnabled() const

@@ -1,4 +1,5 @@
 #include <scwx/qt/view/level3_product_view.hpp>
+#include <scwx/common/characters.hpp>
 #include <scwx/common/constants.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
@@ -8,6 +9,7 @@
 
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
+#include <fmt/format.h>
 
 #if !defined(_MSC_VER)
 #   include <date/date.h>
@@ -189,6 +191,22 @@ Level3ProductView::GetDescriptionFields() const
          description.emplace_back(
             "Product Time",
             scwx::util::TimeString(productTime, currentZone, false));
+
+         description.emplace_back(
+            "Sequence Number",
+            fmt::format("{}", descriptionBlock->sequence_number()));
+         description.emplace_back(
+            "Volume Scan",
+            fmt::format("{}", descriptionBlock->volume_scan_number()));
+
+         if (descriptionBlock->elevation_number() > 0)
+         {
+            description.emplace_back(
+               "Elevation",
+               fmt::format("{}{}",
+                           descriptionBlock->elevation().value(),
+                           common::Unicode::kDegree));
+         }
       }
    }
 
