@@ -83,6 +83,14 @@ endif()
 
 target_compile_definitions(wxtest PRIVATE SCWX_TEST_DATA_DIR="${SCWX_DIR}/test/data")
 
+if (MSVC)
+    # Don't include Windows macros
+    target_compile_options(wxtest PRIVATE -DNOMINMAX)
+
+    # Enable multi-processor compilation
+    target_compile_options(wxtest PRIVATE "/MP")
+endif()
+
 gtest_discover_tests(wxtest)
 
 target_link_libraries(wxtest GTest::gtest
