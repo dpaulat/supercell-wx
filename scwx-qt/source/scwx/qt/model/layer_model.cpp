@@ -39,6 +39,10 @@ static const QString kMimeFormat {"application/x.scwx-layer-model"};
 static const std::vector<types::LayerInfo> kDefaultLayers_ {
    {types::LayerType::Information, types::InformationLayer::MapOverlay, false},
    {types::LayerType::Information, types::InformationLayer::ColorTable, false},
+   {types::LayerType::Information,
+    types::InformationLayer::RadarSite,
+    false,
+    {false, false, false, false}},
    {types::LayerType::Data, types::DataLayer::RadarRange, true},
    {types::LayerType::Alert, awips::Phenomenon::Tornado, true},
    {types::LayerType::Alert, awips::Phenomenon::SnowSquall, true},
@@ -53,6 +57,10 @@ static const std::vector<types::LayerInfo> kDefaultLayers_ {
 static const std::vector<types::LayerInfo> kImmovableLayers_ {
    {types::LayerType::Information, types::InformationLayer::MapOverlay, false},
    {types::LayerType::Information, types::InformationLayer::ColorTable, false},
+   {types::LayerType::Information,
+    types::InformationLayer::RadarSite,
+    false,
+    {false, false, false, false}},
    {types::LayerType::Map, types::MapLayer::MapSymbology, false},
    {types::LayerType::Map, types::MapLayer::MapUnderlay, false},
 };
@@ -235,13 +243,13 @@ void LayerModel::Impl::ValidateLayerSettings(types::LayerVector& layers)
 
    // Validate immovable layers
    std::vector<types::LayerVector::iterator> immovableIterators {};
-   types::LayerVector::iterator              colorTableIterator {};
+   types::LayerVector::iterator              radarSiteIterator {};
    types::LayerVector::iterator              mapSymbologyIterator {};
    types::LayerVector::iterator              mapUnderlayIterator {};
    for (auto& immovableLayer : kImmovableLayers_)
    {
       // Set the default displayed state for a layer that is not found
-      std::array<bool, kMapCount_> displayed {true, true, true, true};
+      std::array<bool, kMapCount_> displayed = immovableLayer.displayed_;
 
       // Find the immovable layer
       auto it = std::find_if(layers.begin(),
@@ -285,8 +293,8 @@ void LayerModel::Impl::ValidateLayerSettings(types::LayerVector& layers)
       {
          switch (std::get<types::InformationLayer>(it->description_))
          {
-         case types::InformationLayer::ColorTable:
-            colorTableIterator = it;
+         case types::InformationLayer::RadarSite:
+            radarSiteIterator = it;
             break;
 
          default:
@@ -330,10 +338,10 @@ void LayerModel::Impl::ValidateLayerSettings(types::LayerVector& layers)
 
       if (it == layers.end())
       {
-         // If this is the first data layer, insert after the color table layer,
+         // If this is the first data layer, insert after the radar site layer,
          // otherwise, insert after the previous data layer
          types::LayerVector::iterator insertPosition =
-            dataIterators.empty() ? colorTableIterator + 1 :
+            dataIterators.empty() ? radarSiteIterator + 1 :
                                     dataIterators.back() + 1;
          it =
             layers.insert(insertPosition, {types::LayerType::Data, dataLayer});
@@ -398,7 +406,7 @@ void LayerModel::ResetLayers()
    types::LayerVector newLayers {};
    newLayers.assign(kDefaultLayers_.cbegin(), kDefaultLayers_.cend());
 
-   auto colorTableIterator = std::find_if(
+   auto radarSiteIterator = std::find_if(
       newLayers.begin(),
       newLayers.end(),
       [](const types::LayerInfo& layerInfo)
@@ -406,7 +414,7 @@ void LayerModel::ResetLayers()
          return std::holds_alternative<types::InformationLayer>(
                    layerInfo.description_) &&
                 std::get<types::InformationLayer>(layerInfo.description_) ==
-                   types::InformationLayer::ColorTable;
+                   types::InformationLayer::RadarSite;
       });
 
    // Add all existing placefile layers
@@ -415,7 +423,7 @@ void LayerModel::ResetLayers()
       if (it->type_ == types::LayerType::Placefile)
       {
          newLayers.insert(
-            colorTableIterator + 1,
+            radarSiteIterator + 1,
             {it->type_, it->description_, it->movable_, it->displayed_});
       }
    }
@@ -1007,7 +1015,7 @@ void LayerModel::Impl::HandlePlacefileUpdate(const std::string& name,
 
 void LayerModel::Impl::AddPlacefile(const std::string& name)
 {
-   // Insert after color table
+   // Insert after radar site
    auto insertPosition = std::find_if(
       layers_.begin(),
       layers_.end(),
@@ -1016,7 +1024,7 @@ void LayerModel::Impl::AddPlacefile(const std::string& name)
          return std::holds_alternative<types::InformationLayer>(
                    layerInfo.description_) &&
                 std::get<types::InformationLayer>(layerInfo.description_) ==
-                   types::InformationLayer::ColorTable;
+                   types::InformationLayer::RadarSite;
       });
    if (insertPosition != layers_.end())
    {

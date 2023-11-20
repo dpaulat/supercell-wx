@@ -11,6 +11,7 @@
 #include <scwx/qt/map/placefile_layer.hpp>
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
+#include <scwx/qt/map/radar_site_layer.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
@@ -186,6 +187,7 @@ public:
    std::shared_ptr<OverlayLayer>      overlayLayer_;
    std::shared_ptr<PlacefileLayer>    placefileLayer_;
    std::shared_ptr<ColorTableLayer>   colorTableLayer_;
+   std::shared_ptr<RadarSiteLayer>    radarSiteLayer_ {nullptr};
 
    std::list<std::shared_ptr<PlacefileLayer>> placefileLayers_ {};
 
@@ -888,6 +890,12 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
             colorTableLayer_ = std::make_shared<ColorTableLayer>(context_);
             AddLayer(layerName, colorTableLayer_, before);
          }
+         break;
+
+      // Create the radar site layer
+      case types::InformationLayer::RadarSite:
+         radarSiteLayer_ = std::make_shared<RadarSiteLayer>(context_);
+         AddLayer(layerName, radarSiteLayer_, before);
          break;
 
       default:
