@@ -462,6 +462,12 @@ target_compile_options(supercell-wx PRIVATE
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
 
+if (MSVC)
+    # Don't include Windows macros
+    target_compile_options(scwx-qt PRIVATE /D "NOMINMAX")
+    target_compile_options(supercell-wx PRIVATE /D "NOMINMAX")
+endif()
+
 # Address Sanitizer options
 if (SCWX_ADDRESS_SANITIZER)
     target_compile_options(scwx-qt PRIVATE

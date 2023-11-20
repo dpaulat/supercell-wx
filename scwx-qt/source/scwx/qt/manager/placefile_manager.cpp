@@ -1,5 +1,3 @@
-#define NOMINMAX
-
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>

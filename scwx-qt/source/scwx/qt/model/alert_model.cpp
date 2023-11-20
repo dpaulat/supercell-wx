@@ -1,5 +1,3 @@
-#define NOMINMAX
-
 #include <scwx/qt/model/alert_model.hpp>
 #include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>

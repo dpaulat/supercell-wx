@@ -249,6 +249,11 @@ target_compile_options(wxdata PRIVATE
 )
 
 if (MSVC)
+    # Don't include Windows macros
+    target_compile_options(wxdata PRIVATE /D "NOMINMAX")
+endif()
+
+if (MSVC)
     # Produce PDB file for debug
     target_compile_options(wxdata PRIVATE "$<$<CONFIG:Release>:/Zi>")
 else()
