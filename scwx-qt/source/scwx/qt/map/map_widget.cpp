@@ -11,6 +11,7 @@
 #include <scwx/qt/map/placefile_layer.hpp>
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
+#include <scwx/qt/map/radar_site_layer.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
@@ -164,6 +165,8 @@ public:
    std::shared_ptr<QMapLibreGL::Map> map_;
    std::list<std::string>            layerList_;
 
+   std::vector<std::shared_ptr<GenericLayer>> genericLayers_ {};
+
    QStringList        styleLayers_;
    types::LayerVector customLayers_;
 
@@ -186,6 +189,7 @@ public:
    std::shared_ptr<OverlayLayer>      overlayLayer_;
    std::shared_ptr<PlacefileLayer>    placefileLayer_;
    std::shared_ptr<ColorTableLayer>   colorTableLayer_;
+   std::shared_ptr<RadarSiteLayer>    radarSiteLayer_ {nullptr};
 
    std::list<std::shared_ptr<PlacefileLayer>> placefileLayers_ {};
 
@@ -800,6 +804,7 @@ void MapWidgetImpl::AddLayers()
       map_->removeLayer(id.c_str());
    }
    layerList_.clear();
+   genericLayers_.clear();
    placefileLayers_.clear();
 
    // Update custom layer list from model
@@ -890,6 +895,16 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
          }
          break;
 
+      // Create the radar site layer
+      case types::InformationLayer::RadarSite:
+         radarSiteLayer_ = std::make_shared<RadarSiteLayer>(context_);
+         AddLayer(layerName, radarSiteLayer_, before);
+         connect(radarSiteLayer_.get(),
+                 &RadarSiteLayer::RadarSiteSelected,
+                 widget_,
+                 &MapWidget::RadarSiteRequested);
+         break;
+
       default:
          break;
       }
@@ -953,6 +968,7 @@ void MapWidgetImpl::AddLayer(const std::string&            id,
       map_->addCustomLayer(id.c_str(), std::move(pHost), before.c_str());
 
       layerList_.push_back(id);
+      genericLayers_.push_back(layer);
    }
    catch (const std::exception&)
    {
@@ -1198,10 +1214,8 @@ void MapWidgetImpl::RunMousePicking()
       util::maplibre::LatLongToScreenCoordinate(coordinate);
 
    // For each layer in reverse
-   // TODO: All Generic Layers, not just Placefile Layers
    bool itemPicked = false;
-   for (auto it = placefileLayers_.rbegin(); it != placefileLayers_.rend();
-        ++it)
+   for (auto it = genericLayers_.rbegin(); it != genericLayers_.rend(); ++it)
    {
       // Run mouse picking for each layer
       if ((*it)->RunMousePicking(

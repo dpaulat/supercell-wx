@@ -147,6 +147,7 @@ signals:
                              double bearing,
                              double pitch);
    void MapStyleChanged(const std::string& styleName);
+   void RadarSiteRequested(const std::string& id);
    void RadarSiteUpdated(std::shared_ptr<config::RadarSite> radarSite);
    void RadarSweepUpdated();
    void RadarSweepNotUpdated(types::NoUpdateReason reason);

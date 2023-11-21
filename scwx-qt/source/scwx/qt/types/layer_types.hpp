@@ -41,6 +41,7 @@ typedef scwx::util::
 enum class InformationLayer
 {
    MapOverlay,
+   RadarSite,
    ColorTable,
    Unknown
 };
