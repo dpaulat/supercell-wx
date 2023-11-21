@@ -1,6 +1,7 @@
 #include <scwx/qt/map/radar_site_layer.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/util/maplibre.hpp>
+#include <scwx/qt/util/tooltip.hpp>
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -21,11 +22,16 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class RadarSiteLayer::Impl
 {
 public:
-   explicit Impl(std::shared_ptr<MapContext> context) {}
+   explicit Impl(RadarSiteLayer* self, std::shared_ptr<MapContext> context) :
+       self_ {self}
+   {
+   }
    ~Impl() = default;
 
    void RenderRadarSite(const QMapLibreGL::CustomLayerRenderParameters& params,
                         std::shared_ptr<config::RadarSite>& radarSite);
+
+   RadarSiteLayer* self_;
 
    std::vector<std::shared_ptr<config::RadarSite>> radarSites_ {};
 
@@ -35,10 +41,12 @@ public:
    float     mapBearingSin_ {0.0f};
    float     halfWidth_ {};
    float     halfHeight_ {};
+
+   std::string hoverText_ {};
 };
 
 RadarSiteLayer::RadarSiteLayer(std::shared_ptr<MapContext> context) :
-    DrawLayer(context), p(std::make_unique<Impl>(context))
+    DrawLayer(context), p(std::make_unique<Impl>(this, context))
 {
 }
 
@@ -68,10 +76,17 @@ void RadarSiteLayer::Render(
    p->halfWidth_     = params.width * 0.5f;
    p->halfHeight_    = params.height * 0.5f;
 
+   p->hoverText_.clear();
+
+   // Radar site ImGui windows shouldn't have padding
+   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2 {0.0f, 0.0f});
+
    for (auto& radarSite : p->radarSites_)
    {
       p->RenderRadarSite(params, radarSite);
    }
+
+   ImGui::PopStyleVar();
 
    SCWX_GL_CHECK_ERROR();
 }
@@ -112,12 +127,21 @@ void RadarSiteLayer::Impl::RenderRadarSite(
                        ImGuiWindowFlags_AlwaysAutoResize))
    {
       // Render text
-      ImGui::TextUnformatted(radarSite->id().c_str());
+      if (ImGui::Button(radarSite->id().c_str()))
+      {
+         Q_EMIT self_->RadarSiteSelected(radarSite->id());
+      }
 
       // Store hover text for mouse picking pass
       if (ImGui::IsItemHovered())
       {
-         // TODO
+         hoverText_ =
+            fmt::format("{} ({})\n{}\n{}, {}",
+                        radarSite->id(),
+                        radarSite->type_name(),
+                        radarSite->location_name(),
+                        common::GetLatitudeString(radarSite->latitude()),
+                        common::GetLongitudeString(radarSite->longitude()));
       }
 
       // End window
@@ -135,10 +159,15 @@ void RadarSiteLayer::Deinitialize()
 bool RadarSiteLayer::RunMousePicking(
    const QMapLibreGL::CustomLayerRenderParameters& /* params */,
    const QPointF& /* mouseLocalPos */,
-   const QPointF& /* mouseGlobalPos */,
+   const QPointF& mouseGlobalPos,
    const glm::vec2& /* mouseCoords */)
 {
-   // TODO
+   if (!p->hoverText_.empty())
+   {
+      util::tooltip::Show(p->hoverText_, mouseGlobalPos);
+      return true;
+   }
+
    return false;
 }
 

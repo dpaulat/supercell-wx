@@ -11,6 +11,9 @@ namespace map
 
 class RadarSiteLayer : public DrawLayer
 {
+   Q_OBJECT
+   Q_DISABLE_COPY_MOVE(RadarSiteLayer)
+
 public:
    explicit RadarSiteLayer(std::shared_ptr<MapContext> context);
    ~RadarSiteLayer();
@@ -23,6 +26,9 @@ public:
                         const QPointF&   mouseLocalPos,
                         const QPointF&   mouseGlobalPos,
                         const glm::vec2& mouseCoords) override final;
+
+signals:
+   void RadarSiteSelected(const std::string& id);
 
 private:
    class Impl;
