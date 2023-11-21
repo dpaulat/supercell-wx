@@ -25,6 +25,7 @@ find_package(QT NAMES Qt6
                         Network
                         OpenGL
                         OpenGLWidgets
+                        Positioning
                         Widgets REQUIRED)
 
 find_package(Qt${QT_VERSION_MAJOR}
@@ -33,6 +34,7 @@ find_package(Qt${QT_VERSION_MAJOR}
                         Network
                         OpenGL
                         OpenGLWidgets
+                        Positioning
                         Widgets
              REQUIRED)
 
@@ -503,6 +505,7 @@ endif()
 
 target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Qt${QT_VERSION_MAJOR}::OpenGLWidgets
+                                     Qt${QT_VERSION_MAJOR}::Positioning
                                      Boost::json
                                      Boost::timer
                                      qmaplibregl
