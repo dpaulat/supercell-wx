@@ -22,10 +22,7 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class RadarSiteLayer::Impl
 {
 public:
-   explicit Impl(RadarSiteLayer* self, std::shared_ptr<MapContext> context) :
-       self_ {self}
-   {
-   }
+   explicit Impl(RadarSiteLayer* self) : self_ {self} {}
    ~Impl() = default;
 
    void RenderRadarSite(const QMapLibreGL::CustomLayerRenderParameters& params,
@@ -46,7 +43,7 @@ public:
 };
 
 RadarSiteLayer::RadarSiteLayer(std::shared_ptr<MapContext> context) :
-    DrawLayer(context), p(std::make_unique<Impl>(this, context))
+    DrawLayer(context), p(std::make_unique<Impl>(this))
 {
 }
 
