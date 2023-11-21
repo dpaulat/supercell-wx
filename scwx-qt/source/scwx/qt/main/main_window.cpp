@@ -807,6 +807,18 @@ void MainWindowImpl::ConnectAnimationSignals()
               &map::MapWidget::WidgetPainted,
               timelineManager_.get(),
               [=, this]() { timelineManager_->ReceiveMapWidgetPainted(i); });
+      connect(maps_[i],
+              &map::MapWidget::RadarSiteRequested,
+              this,
+              [this](const std::string& id)
+              {
+                 for (map::MapWidget* map : maps_)
+                 {
+                    map->SelectRadarSite(id);
+                 }
+
+                 UpdateRadarSite();
+              });
    }
 }
 

@@ -899,6 +899,10 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
       case types::InformationLayer::RadarSite:
          radarSiteLayer_ = std::make_shared<RadarSiteLayer>(context_);
          AddLayer(layerName, radarSiteLayer_, before);
+         connect(radarSiteLayer_.get(),
+                 &RadarSiteLayer::RadarSiteSelected,
+                 widget_,
+                 &MapWidget::RadarSiteRequested);
          break;
 
       default:
