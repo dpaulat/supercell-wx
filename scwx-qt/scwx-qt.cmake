@@ -76,6 +76,7 @@ set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
                 source/scwx/qt/gl/draw/rectangle.cpp)
 set(HDR_MANAGER source/scwx/qt/manager/font_manager.hpp
                 source/scwx/qt/manager/placefile_manager.hpp
+                source/scwx/qt/manager/position_manager.hpp
                 source/scwx/qt/manager/radar_product_manager.hpp
                 source/scwx/qt/manager/radar_product_manager_notifier.hpp
                 source/scwx/qt/manager/resource_manager.hpp
@@ -85,6 +86,7 @@ set(HDR_MANAGER source/scwx/qt/manager/font_manager.hpp
                 source/scwx/qt/manager/update_manager.hpp)
 set(SRC_MANAGER source/scwx/qt/manager/font_manager.cpp
                 source/scwx/qt/manager/placefile_manager.cpp
+                source/scwx/qt/manager/position_manager.cpp
                 source/scwx/qt/manager/radar_product_manager.cpp
                 source/scwx/qt/manager/radar_product_manager_notifier.cpp
                 source/scwx/qt/manager/resource_manager.cpp
