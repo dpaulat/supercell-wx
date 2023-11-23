@@ -350,23 +350,20 @@ void IconInfo::UpdateTextureInfo()
    {
       columns_ = texture_.size_.x / iconWidth_;
       rows_    = texture_.size_.y / iconHeight_;
-
-      if (hotX_ == -1 || hotY_ == -1)
-      {
-         hotX_ = static_cast<std::int32_t>(iconWidth_ / 2);
-         hotY_ = static_cast<std::int32_t>(iconHeight_ / 2);
-      }
    }
    else
    {
       columns_ = 1u;
       rows_    = 1u;
 
-      if (hotX_ == -1 || hotY_ == -1)
-      {
-         hotX_ = static_cast<std::int32_t>(texture_.size_.x / 2);
-         hotY_ = static_cast<std::int32_t>(texture_.size_.y / 2);
-      }
+      iconWidth_  = static_cast<std::size_t>(texture_.size_.x);
+      iconHeight_ = static_cast<std::size_t>(texture_.size_.y);
+   }
+
+   if (hotX_ == -1 || hotY_ == -1)
+   {
+      hotX_ = static_cast<std::int32_t>(iconWidth_ / 2);
+      hotY_ = static_cast<std::int32_t>(iconHeight_ / 2);
    }
 
    numIcons_ = columns_ * rows_;
