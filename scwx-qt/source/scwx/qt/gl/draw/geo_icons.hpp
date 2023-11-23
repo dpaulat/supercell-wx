@@ -43,6 +43,13 @@ public:
                         const glm::vec2& mouseCoords) override;
 
    /**
+    * Sets the visibility of the geo icons.
+    *
+    * @param [in] visible Icon visibility
+    */
+   void SetVisible(bool visible);
+
+   /**
     * Resets and prepares the draw item for adding a new set of icon sheets.
     */
    void StartIconSheets();
@@ -91,24 +98,39 @@ public:
     * @param [in] iconSheet The name of the icon sheet in the texture atlas
     * @param [in] iconIndex The zero-based index of the icon in the icon sheet
     */
-   void SetIconTexture(const std::shared_ptr<GeoIconDrawItem>& di,
-                       const std::string&                      iconSheet,
-                       std::size_t                             iconIndex);
+   static void SetIconTexture(const std::shared_ptr<GeoIconDrawItem>& di,
+                              const std::string&                      iconSheet,
+                              std::size_t iconIndex);
 
    /**
     * Sets the location of a geo icon.
     *
     * @param [in] di Geo icon draw item
-    * @param [in] latitude The latitude of the geo icon.
-    * @param [in] longitude The longitude of the geo icon.
-    * @param [in] xOffset The x-offset of the geo icon. Default is 0.
-    * @param [in] yOffset The y-offset of the geo icon. Default is 0.
+    * @param [in] latitude The latitude of the geo icon in degrees.
+    * @param [in] longitude The longitude of the geo icon in degrees.
+    * @param [in] xOffset The x-offset of the geo icon in pixels. Default is 0.
+    * @param [in] yOffset The y-offset of the geo icon in pixels. Default is 0.
     */
-   void SetIconLocation(const std::shared_ptr<GeoIconDrawItem>& di,
-                        units::angle::degrees<double>           latitude,
-                        units::angle::degrees<double>           longitude,
-                        double                                  xOffset = 0.0,
-                        double                                  yOffset = 0.0);
+   static void SetIconLocation(const std::shared_ptr<GeoIconDrawItem>& di,
+                               units::angle::degrees<double>           latitude,
+                               units::angle::degrees<double> longitude,
+                               double                        xOffset = 0.0,
+                               double                        yOffset = 0.0);
+
+   /**
+    * Sets the location of a geo icon.
+    *
+    * @param [in] di Geo icon draw item
+    * @param [in] latitude The latitude of the geo icon in degrees.
+    * @param [in] longitude The longitude of the geo icon in degrees.
+    * @param [in] xOffset The x-offset of the geo icon in pixels. Default is 0.
+    * @param [in] yOffset The y-offset of the geo icon in pixels. Default is 0.
+    */
+   static void SetIconLocation(const std::shared_ptr<GeoIconDrawItem>& di,
+                               double                                  latitude,
+                               double longitude,
+                               double xOffset = 0.0,
+                               double yOffset = 0.0);
 
    /**
     * Sets the angle of a geo icon.
@@ -116,8 +138,8 @@ public:
     * @param [in] di Geo icon draw item
     * @param [in] angle Angle in degrees
     */
-   void SetIconAngle(const std::shared_ptr<GeoIconDrawItem>& di,
-                     units::angle::degrees<double>           angle);
+   static void SetIconAngle(const std::shared_ptr<GeoIconDrawItem>& di,
+                            units::angle::degrees<double>           angle);
 
    /**
     * Sets the modulate color of a geo icon.
@@ -125,8 +147,8 @@ public:
     * @param [in] di Geo icon draw item
     * @param [in] modulate Modulate color
     */
-   void SetIconModulate(const std::shared_ptr<GeoIconDrawItem>& di,
-                        boost::gil::rgba8_pixel_t               modulate);
+   static void SetIconModulate(const std::shared_ptr<GeoIconDrawItem>& di,
+                               boost::gil::rgba8_pixel_t modulate);
 
    /**
     * Sets the hover text of a geo icon.
@@ -134,17 +156,8 @@ public:
     * @param [in] di Geo icon draw item
     * @param [in] text Hover text
     */
-   void SetIconHoverText(const std::shared_ptr<GeoIconDrawItem>& di,
-                         const std::string&                      text);
-
-   /**
-    * Sets the visibility of a geo icon.
-    *
-    * @param [in] di Geo icon draw item
-    * @param [in] visible Icon visibility
-    */
-   void SetIconVisible(const std::shared_ptr<GeoIconDrawItem>& di,
-                       bool                                    visible);
+   static void SetIconHoverText(const std::shared_ptr<GeoIconDrawItem>& di,
+                                const std::string&                      text);
 
    /**
     * Finalizes the draw item after adding new icons.

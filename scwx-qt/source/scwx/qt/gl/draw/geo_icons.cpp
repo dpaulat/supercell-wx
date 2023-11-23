@@ -70,8 +70,7 @@ struct GeoIconDrawItem
    std::chrono::sys_time<std::chrono::seconds> startTime_ {};
    std::chrono::sys_time<std::chrono::seconds> endTime_ {};
 
-   bool                      visible_ {};
-   boost::gil::rgba8_pixel_t modulate_ {};
+   boost::gil::rgba8_pixel_t modulate_ {255, 255, 255, 255};
    double                    latitude_ {};
    double                    longitude_ {};
    double                    x_ {};
@@ -118,6 +117,7 @@ public:
 
    std::shared_ptr<GlContext> context_;
 
+   bool visible_ {true};
    bool dirty_ {false};
    bool thresholded_ {false};
 
@@ -273,6 +273,11 @@ void GeoIcons::Initialize()
 void GeoIcons::Render(const QMapLibreGL::CustomLayerRenderParameters& params,
                       bool textureAtlasChanged)
 {
+   if (!p->visible_)
+   {
+      return;
+   }
+
    std::unique_lock lock {p->iconMutex_};
 
    if (!p->currentIconList_.empty())
@@ -380,6 +385,11 @@ void IconInfo::UpdateTextureInfo()
    scaledHeight_ = iconHeight_ * yFactor;
 }
 
+void GeoIcons::SetVisible(bool visible)
+{
+   p->visible_ = visible;
+}
+
 void GeoIcons::StartIconSheets()
 {
    // Clear the new buffer
@@ -454,6 +464,18 @@ void GeoIcons::SetIconLocation(const std::shared_ptr<GeoIconDrawItem>& di,
    di->y_         = yOffset;
 }
 
+void GeoIcons::SetIconLocation(const std::shared_ptr<GeoIconDrawItem>& di,
+                               double                                  latitude,
+                               double longitude,
+                               double xOffset,
+                               double yOffset)
+{
+   di->latitude_  = latitude;
+   di->longitude_ = longitude;
+   di->x_         = xOffset;
+   di->y_         = yOffset;
+}
+
 void GeoIcons::SetIconAngle(const std::shared_ptr<GeoIconDrawItem>& di,
                             units::angle::degrees<double>           angle)
 {
@@ -470,12 +492,6 @@ void GeoIcons::SetIconHoverText(const std::shared_ptr<GeoIconDrawItem>& di,
                                 const std::string&                      text)
 {
    di->hoverText_ = text;
-}
-
-void GeoIcons::SetIconVisible(const std::shared_ptr<GeoIconDrawItem>& di,
-                              bool                                    visible)
-{
-   di->visible_ = visible;
 }
 
 void GeoIcons::FinishIcons()
@@ -512,12 +528,6 @@ void GeoIcons::Impl::UpdateBuffers()
 
    for (auto& di : newIconList_)
    {
-      // Skip hidden icons
-      if (!di->visible_)
-      {
-         continue;
-      }
-
       auto it = currentIconSheets_.find(di->iconSheet_);
       if (it == currentIconSheets_.cend())
       {
