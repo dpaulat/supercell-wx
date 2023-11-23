@@ -1,25 +1,15 @@
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/gl/draw/rectangle.hpp>
-#include <scwx/qt/gl/shader_program.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
 #include <chrono>
-#include <execution>
 
 #if defined(_MSC_VER)
 #   pragma warning(push, 0)
 #endif
 
-#include <boost/date_time.hpp>
-#include <boost/date_time/local_time/local_time.hpp>
-#include <boost/timer/timer.hpp>
-#include <GeographicLib/Geodesic.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
-#include <mbgl/util/constants.hpp>
 
 #if !defined(_MSC_VER)
 #   include <date/date.h>
