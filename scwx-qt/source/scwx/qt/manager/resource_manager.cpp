@@ -2,6 +2,7 @@
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
+#include <scwx/qt/types/texture_types.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -91,10 +92,19 @@ static void LoadFonts()
 static void LoadTextures()
 {
    util::TextureAtlas& textureAtlas = util::TextureAtlas::Instance();
-   textureAtlas.RegisterTexture("lines/default-1x7",
-                                ":/res/textures/lines/default-1x7.png");
-   textureAtlas.RegisterTexture("lines/test-pattern",
-                                ":/res/textures/lines/test-pattern.png");
+
+   for (auto imageTexture : types::ImageTextureIterator())
+   {
+      textureAtlas.RegisterTexture(GetTextureName(imageTexture),
+                                   GetTexturePath(imageTexture));
+   }
+
+   for (auto lineTexture : types::LineTextureIterator())
+   {
+      textureAtlas.RegisterTexture(GetTextureName(lineTexture),
+                                   GetTexturePath(lineTexture));
+   }
+
    textureAtlas.BuildAtlas(2048, 2048);
 }
 
