@@ -57,6 +57,7 @@ set(HDR_GL source/scwx/qt/gl/gl.hpp
 set(SRC_GL source/scwx/qt/gl/gl_context.cpp
            source/scwx/qt/gl/shader_program.cpp)
 set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
+                source/scwx/qt/gl/draw/geo_icons.hpp
                 source/scwx/qt/gl/draw/geo_line.hpp
                 source/scwx/qt/gl/draw/placefile_icons.hpp
                 source/scwx/qt/gl/draw/placefile_images.hpp
@@ -66,6 +67,7 @@ set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
                 source/scwx/qt/gl/draw/placefile_triangles.hpp
                 source/scwx/qt/gl/draw/rectangle.hpp)
 set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
+                source/scwx/qt/gl/draw/geo_icons.cpp
                 source/scwx/qt/gl/draw/geo_line.cpp
                 source/scwx/qt/gl/draw/placefile_icons.cpp
                 source/scwx/qt/gl/draw/placefile_images.cpp
