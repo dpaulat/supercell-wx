@@ -35,7 +35,6 @@
 
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
-#include <boost/uuid/random_generator.hpp>
 #include <QDesktopServices>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -63,7 +62,6 @@ class MainWindowImpl : public QObject
 
 public:
    explicit MainWindowImpl(MainWindow* mainWindow) :
-       uuid_ {boost::uuids::random_generator()()},
        mainWindow_ {mainWindow},
        settings_ {},
        activeMap_ {nullptr},
@@ -124,7 +122,7 @@ public:
 
       if (settings::GeneralSettings::Instance().track_location().GetValue())
       {
-         positionManager_->TrackLocation(uuid_, true);
+         positionManager_->TrackLocation(true);
       }
    }
    ~MainWindowImpl() { threadPool_.join(); }
@@ -154,8 +152,6 @@ public:
    void UpdateVcp();
 
    boost::asio::thread_pool threadPool_ {1u};
-
-   boost::uuids::uuid uuid_;
 
    MainWindow*           mainWindow_;
    QMapLibreGL::Settings settings_;
@@ -872,13 +868,8 @@ void MainWindowImpl::ConnectOtherSignals()
               settings::GeneralSettings::Instance().track_location().StageValue(
                  trackingEnabled);
 
-              for (std::size_t i = 0; i < maps_.size(); ++i)
-              {
-                 // maps_[i]->SetTrackLocation(trackingEnabled);
-              }
-
-              // Turn on location tracking (location manager)
-              positionManager_->TrackLocation(uuid_, trackingEnabled);
+              // Turn on location tracking
+              positionManager_->TrackLocation(trackingEnabled);
            });
    connect(level2ProductsWidget_,
            &ui::Level2ProductsWidget::RadarProductSelected,

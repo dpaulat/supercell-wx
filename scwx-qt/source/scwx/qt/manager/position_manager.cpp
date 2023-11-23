@@ -4,6 +4,7 @@
 
 #include <set>
 
+#include <boost/uuid/random_generator.hpp>
 #include <QGeoPositionInfoSource>
 
 namespace scwx
@@ -19,7 +20,8 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class PositionManager::Impl
 {
 public:
-   explicit Impl(PositionManager* self) : self_ {self}
+   explicit Impl(PositionManager* self) :
+       self_ {self}, trackingUuid_ {boost::uuids::random_generator()()}
    {
       // TODO: macOS requires permission
       geoPositionInfoSource_ =
@@ -55,6 +57,9 @@ public:
 
    PositionManager* self_;
 
+   boost::uuids::uuid trackingUuid_;
+   bool               trackingEnabled_ {false};
+
    std::set<boost::uuids::uuid> uuids_ {};
 
    QGeoPositionInfoSource* geoPositionInfoSource_ {};
@@ -69,15 +74,20 @@ QGeoPositionInfo PositionManager::position() const
    return p->position_;
 }
 
-void PositionManager::TrackLocation(boost::uuids::uuid uuid,
-                                    bool               trackingEnabled)
+bool PositionManager::IsLocationTracked()
+{
+   return p->trackingEnabled_;
+}
+
+void PositionManager::EnablePositionUpdates(boost::uuids::uuid uuid,
+                                            bool               enabled)
 {
    if (p->geoPositionInfoSource_ == nullptr)
    {
       return;
    }
 
-   if (trackingEnabled)
+   if (enabled)
    {
       if (p->uuids_.empty())
       {
@@ -95,6 +105,13 @@ void PositionManager::TrackLocation(boost::uuids::uuid uuid,
          p->geoPositionInfoSource_->stopUpdates();
       }
    }
+}
+
+void PositionManager::TrackLocation(bool trackingEnabled)
+{
+   p->trackingEnabled_ = trackingEnabled;
+   EnablePositionUpdates(p->trackingUuid_, trackingEnabled);
+   Q_EMIT LocationTrackingChanged(trackingEnabled);
 }
 
 std::shared_ptr<PositionManager> PositionManager::Instance()

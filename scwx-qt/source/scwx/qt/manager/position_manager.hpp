@@ -25,11 +25,15 @@ public:
 
    QGeoPositionInfo position() const;
 
-   void TrackLocation(boost::uuids::uuid uuid, bool trackingEnabled);
+   bool IsLocationTracked();
+
+   void EnablePositionUpdates(boost::uuids::uuid uuid, bool enabled);
+   void TrackLocation(bool trackingEnabled);
 
    static std::shared_ptr<PositionManager> Instance();
 
 signals:
+   void LocationTrackingChanged(bool trackingEnabled);
    void PositionUpdated(const QGeoPositionInfo& info);
 
 private:
