@@ -2,6 +2,7 @@
 #include <scwx/qt/settings/settings_container.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/types/alert_types.hpp>
+#include <scwx/qt/types/qt_types.hpp>
 
 #include <array>
 
@@ -25,9 +26,12 @@ public:
          types::GetAlertActionName(types::AlertAction::Go);
       std::string defaultMapProviderValue =
          map::GetMapProviderName(map::MapProvider::MapTiler);
+      std::string defaultThemeValue =
+         types::GetUiStyleName(types::UiStyle::Default);
 
       boost::to_lower(defaultDefaultAlertActionValue);
       boost::to_lower(defaultMapProviderValue);
+      boost::to_lower(defaultThemeValue);
 
       antiAliasingEnabled_.SetDefault(true);
       debugEnabled_.SetDefault(false);
@@ -42,6 +46,7 @@ public:
       mapProvider_.SetDefault(defaultMapProviderValue);
       mapboxApiKey_.SetDefault("?");
       maptilerApiKey_.SetDefault("?");
+      theme_.SetDefault(defaultThemeValue);
       trackLocation_.SetDefault(false);
       updateNotificationsEnabled_.SetDefault(true);
 
@@ -102,6 +107,24 @@ public:
                                  { return !value.empty(); });
       maptilerApiKey_.SetValidator([](const std::string& value)
                                    { return !value.empty(); });
+      theme_.SetValidator(
+         [](const std::string& value)
+         {
+            for (types::UiStyle uiStyle : types::UiStyleIterator())
+            {
+               // If the value is equal to a lower case UI style name
+               std::string uiStyleName = types::GetUiStyleName(uiStyle);
+               boost::to_lower(uiStyleName);
+               if (value == uiStyleName)
+               {
+                  // Regard as a match, valid
+                  return true;
+               }
+            }
+
+            // No match found, invalid
+            return false;
+         });
    }
 
    ~Impl() {}
@@ -119,6 +142,7 @@ public:
    SettingsVariable<std::string>                mapProvider_ {"map_provider"};
    SettingsVariable<std::string> mapboxApiKey_ {"mapbox_api_key"};
    SettingsVariable<std::string> maptilerApiKey_ {"maptiler_api_key"};
+   SettingsVariable<std::string> theme_ {"theme"};
    SettingsVariable<bool>        trackLocation_ {"track_location"};
    SettingsVariable<bool> updateNotificationsEnabled_ {"update_notifications"};
 };
@@ -139,6 +163,7 @@ GeneralSettings::GeneralSettings() :
                       &p->mapProvider_,
                       &p->mapboxApiKey_,
                       &p->maptilerApiKey_,
+                      &p->theme_,
                       &p->trackLocation_,
                       &p->updateNotificationsEnabled_});
    SetDefaults();
@@ -215,6 +240,11 @@ SettingsVariable<std::string>& GeneralSettings::maptiler_api_key() const
    return p->maptilerApiKey_;
 }
 
+SettingsVariable<std::string>& GeneralSettings::theme() const
+{
+   return p->theme_;
+}
+
 SettingsVariable<bool>& GeneralSettings::track_location() const
 {
    return p->trackLocation_;
@@ -259,6 +289,7 @@ bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
            lhs.p->mapProvider_ == rhs.p->mapProvider_ &&
            lhs.p->mapboxApiKey_ == rhs.p->mapboxApiKey_ &&
            lhs.p->maptilerApiKey_ == rhs.p->maptilerApiKey_ &&
+           lhs.p->theme_ == rhs.p->theme_ &&
            lhs.p->trackLocation_ == rhs.p->trackLocation_ &&
            lhs.p->updateNotificationsEnabled_ ==
               rhs.p->updateNotificationsEnabled_);

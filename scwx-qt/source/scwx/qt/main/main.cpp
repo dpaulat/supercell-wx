@@ -6,6 +6,8 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/ui/setup/setup_wizard.hpp>
 #include <scwx/network/cpr.hpp>
 #include <scwx/util/logger.hpp>
@@ -71,6 +73,15 @@ int main(int argc, char* argv[])
    // Initialize application
    scwx::qt::config::RadarSite::Initialize();
    scwx::qt::manager::SettingsManager::Instance().Initialize();
+
+   // Theme
+   auto uiStyle = scwx::qt::types::GetUiStyle(
+      scwx::qt::settings::GeneralSettings::Instance().theme().GetValue());
+   if (uiStyle != scwx::qt::types::UiStyle::Default)
+   {
+      QApplication::setStyle(
+         QString::fromStdString(scwx::qt::types::GetUiStyleName(uiStyle)));
+   }
 
    // Run initial setup if required
    if (scwx::qt::ui::setup::SetupWizard::IsSetupRequired())

@@ -12,6 +12,7 @@
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/types/alert_types.hpp>
 #include <scwx/qt/types/font_types.hpp>
+#include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/types/text_types.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/util/color.hpp>
@@ -98,6 +99,7 @@ public:
           &mapProvider_,
           &mapboxApiKey_,
           &mapTilerApiKey_,
+          &theme_,
           &defaultAlertAction_,
           &antiAliasingEnabled_,
           &updateNotificationsEnabled_,
@@ -175,6 +177,7 @@ public:
    settings::SettingsInterface<std::string>  mapboxApiKey_ {};
    settings::SettingsInterface<std::string>  mapTilerApiKey_ {};
    settings::SettingsInterface<std::string>  defaultAlertAction_ {};
+   settings::SettingsInterface<std::string>  theme_ {};
    settings::SettingsInterface<bool>         antiAliasingEnabled_ {};
    settings::SettingsInterface<bool>         updateNotificationsEnabled_ {};
    settings::SettingsInterface<bool>         debugEnabled_ {};
@@ -366,6 +369,43 @@ void SettingsDialogImpl::ConnectSignals()
 
 void SettingsDialogImpl::SetupGeneralTab()
 {
+   settings::GeneralSettings& generalSettings =
+      settings::GeneralSettings::Instance();
+
+   for (const auto& uiStyle : types::UiStyleIterator())
+   {
+      self_->ui->themeComboBox->addItem(
+         QString::fromStdString(types::GetUiStyleName(uiStyle)));
+   }
+
+   theme_.SetSettingsVariable(generalSettings.theme());
+   theme_.SetMapFromValueFunction(
+      [](const std::string& text) -> std::string
+      {
+         for (types::UiStyle uiStyle : types::UiStyleIterator())
+         {
+            const std::string uiStyleName = types::GetUiStyleName(uiStyle);
+
+            if (boost::iequals(text, uiStyleName))
+            {
+               // Return UI style label
+               return uiStyleName;
+            }
+         }
+
+         // UI style label not found, return unknown
+         return "?";
+      });
+   theme_.SetMapToValueFunction(
+      [](std::string text) -> std::string
+      {
+         // Convert label to lower case and return
+         boost::to_lower(text);
+         return text;
+      });
+   theme_.SetEditWidget(self_->ui->themeComboBox);
+   theme_.SetResetButton(self_->ui->resetThemeButton);
+
    auto radarSites = config::RadarSite::GetAll();
 
    // Sort radar sites by ID
@@ -381,9 +421,6 @@ void SettingsDialogImpl::SetupGeneralTab()
       QString text = QString::fromStdString(RadarSiteLabel(radarSite));
       self_->ui->radarSiteComboBox->addItem(text);
    }
-
-   settings::GeneralSettings& generalSettings =
-      settings::GeneralSettings::Instance();
 
    defaultRadarSite_.SetSettingsVariable(generalSettings.default_radar_site());
    defaultRadarSite_.SetMapFromValueFunction(

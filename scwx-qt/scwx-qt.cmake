@@ -179,6 +179,7 @@ set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/imgui_font.cpp
               source/scwx/qt/types/layer_types.cpp
               source/scwx/qt/types/map_types.cpp
+              source/scwx/qt/types/qt_types.cpp
               source/scwx/qt/types/radar_product_record.cpp
               source/scwx/qt/types/text_event_key.cpp
               source/scwx/qt/types/text_types.cpp
