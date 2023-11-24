@@ -59,6 +59,6 @@
         <file>res/palettes/wct/ZDR.pal</file>
         <file>res/textures/lines/default-1x7.png</file>
         <file>res/textures/lines/test-pattern.png</file>
-        <file>res/textures/images/crosshairs-32.png</file>
+        <file>res/textures/images/crosshairs-24.png</file>
     </qresource>
 </RCC>

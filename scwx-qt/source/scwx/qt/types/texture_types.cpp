@@ -16,8 +16,8 @@ struct TextureInfo
 };
 
 static const std::unordered_map<ImageTexture, TextureInfo> imageTextureInfo_ {
-   {ImageTexture::Crosshairs32,
-    {"images/crosshairs-32", ":/res/textures/images/crosshairs-32.png"}}};
+   {ImageTexture::Crosshairs24,
+    {"images/crosshairs-24", ":/res/textures/images/crosshairs-24.png"}}};
 
 static const std::unordered_map<LineTexture, TextureInfo> lineTextureInfo_ {
    {LineTexture::Default1x7,

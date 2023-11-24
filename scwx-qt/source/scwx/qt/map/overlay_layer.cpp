@@ -41,7 +41,7 @@ public:
        activeBoxInner_ {std::make_shared<gl::draw::Rectangle>(context)},
        icons_ {std::make_shared<gl::draw::GeoIcons>(context)},
        locationIconName_ {
-          types::GetTextureName(types::ImageTexture::Crosshairs32)}
+          types::GetTextureName(types::ImageTexture::Crosshairs24)}
    {
    }
    ~OverlayLayerImpl() = default;
@@ -101,6 +101,8 @@ void OverlayLayer::Initialize()
    p->locationIcon_ = p->icons_->AddIcon();
    gl::draw::GeoIcons::SetIconTexture(
       p->locationIcon_, p->locationIconName_, 0);
+   gl::draw::GeoIcons::SetIconAngle(p->locationIcon_,
+                                    units::angle::degrees<double> {45.0});
    gl::draw::GeoIcons::SetIconLocation(
       p->locationIcon_, coordinate.latitude(), coordinate.longitude());
    p->icons_->FinishIcons();
