@@ -39,7 +39,7 @@
      <x>0</x>
      <y>0</y>
      <width>1024</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -142,7 +142,7 @@
           <x>0</x>
           <y>0</y>
           <width>157</width>
-          <height>702</height>
+          <height>697</height>
          </rect>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -243,6 +243,13 @@
             </item>
             <item>
              <widget class="QComboBox" name="mapStyleComboBox"/>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="trackLocationCheckBox">
+              <property name="text">
+               <string>Track Location</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </widget>

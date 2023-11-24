@@ -969,6 +969,11 @@ void MapWidgetImpl::AddLayer(const std::string&            id,
 
       layerList_.push_back(id);
       genericLayers_.push_back(layer);
+
+      connect(layer.get(),
+              &GenericLayer::NeedsRendering,
+              widget_,
+              [this]() { widget_->update(); });
    }
    catch (const std::exception&)
    {

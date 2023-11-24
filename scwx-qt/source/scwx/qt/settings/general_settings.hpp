@@ -38,6 +38,7 @@ public:
    SettingsVariable<std::string>&                map_provider() const;
    SettingsVariable<std::string>&                mapbox_api_key() const;
    SettingsVariable<std::string>&                maptiler_api_key() const;
+   SettingsVariable<bool>&                       track_location() const;
    SettingsVariable<bool>& update_notifications_enabled() const;
 
    static GeneralSettings& Instance();

@@ -42,6 +42,7 @@ public:
       mapProvider_.SetDefault(defaultMapProviderValue);
       mapboxApiKey_.SetDefault("?");
       maptilerApiKey_.SetDefault("?");
+      trackLocation_.SetDefault(false);
       updateNotificationsEnabled_.SetDefault(true);
 
       fontSizes_.SetElementMinimum(1);
@@ -118,6 +119,7 @@ public:
    SettingsVariable<std::string>                mapProvider_ {"map_provider"};
    SettingsVariable<std::string> mapboxApiKey_ {"mapbox_api_key"};
    SettingsVariable<std::string> maptilerApiKey_ {"maptiler_api_key"};
+   SettingsVariable<bool>        trackLocation_ {"track_location"};
    SettingsVariable<bool> updateNotificationsEnabled_ {"update_notifications"};
 };
 
@@ -137,6 +139,7 @@ GeneralSettings::GeneralSettings() :
                       &p->mapProvider_,
                       &p->mapboxApiKey_,
                       &p->maptilerApiKey_,
+                      &p->trackLocation_,
                       &p->updateNotificationsEnabled_});
    SetDefaults();
 }
@@ -212,6 +215,11 @@ SettingsVariable<std::string>& GeneralSettings::maptiler_api_key() const
    return p->maptilerApiKey_;
 }
 
+SettingsVariable<bool>& GeneralSettings::track_location() const
+{
+   return p->trackLocation_;
+}
+
 SettingsVariable<bool>& GeneralSettings::update_notifications_enabled() const
 {
    return p->updateNotificationsEnabled_;
@@ -225,6 +233,7 @@ bool GeneralSettings::Shutdown()
    dataChanged |= p->loopDelay_.Commit();
    dataChanged |= p->loopSpeed_.Commit();
    dataChanged |= p->loopTime_.Commit();
+   dataChanged |= p->trackLocation_.Commit();
 
    return dataChanged;
 }
@@ -250,6 +259,7 @@ bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
            lhs.p->mapProvider_ == rhs.p->mapProvider_ &&
            lhs.p->mapboxApiKey_ == rhs.p->mapboxApiKey_ &&
            lhs.p->maptilerApiKey_ == rhs.p->maptilerApiKey_ &&
+           lhs.p->trackLocation_ == rhs.p->trackLocation_ &&
            lhs.p->updateNotificationsEnabled_ ==
               rhs.p->updateNotificationsEnabled_);
 }

@@ -25,6 +25,7 @@ find_package(QT NAMES Qt6
                         Network
                         OpenGL
                         OpenGLWidgets
+                        Positioning
                         Widgets REQUIRED)
 
 find_package(Qt${QT_VERSION_MAJOR}
@@ -33,6 +34,7 @@ find_package(Qt${QT_VERSION_MAJOR}
                         Network
                         OpenGL
                         OpenGLWidgets
+                        Positioning
                         Widgets
              REQUIRED)
 
@@ -55,6 +57,7 @@ set(HDR_GL source/scwx/qt/gl/gl.hpp
 set(SRC_GL source/scwx/qt/gl/gl_context.cpp
            source/scwx/qt/gl/shader_program.cpp)
 set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
+                source/scwx/qt/gl/draw/geo_icons.hpp
                 source/scwx/qt/gl/draw/geo_line.hpp
                 source/scwx/qt/gl/draw/placefile_icons.hpp
                 source/scwx/qt/gl/draw/placefile_images.hpp
@@ -64,6 +67,7 @@ set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
                 source/scwx/qt/gl/draw/placefile_triangles.hpp
                 source/scwx/qt/gl/draw/rectangle.hpp)
 set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
+                source/scwx/qt/gl/draw/geo_icons.cpp
                 source/scwx/qt/gl/draw/geo_line.cpp
                 source/scwx/qt/gl/draw/placefile_icons.cpp
                 source/scwx/qt/gl/draw/placefile_images.cpp
@@ -74,6 +78,7 @@ set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
                 source/scwx/qt/gl/draw/rectangle.cpp)
 set(HDR_MANAGER source/scwx/qt/manager/font_manager.hpp
                 source/scwx/qt/manager/placefile_manager.hpp
+                source/scwx/qt/manager/position_manager.hpp
                 source/scwx/qt/manager/radar_product_manager.hpp
                 source/scwx/qt/manager/radar_product_manager_notifier.hpp
                 source/scwx/qt/manager/resource_manager.hpp
@@ -83,6 +88,7 @@ set(HDR_MANAGER source/scwx/qt/manager/font_manager.hpp
                 source/scwx/qt/manager/update_manager.hpp)
 set(SRC_MANAGER source/scwx/qt/manager/font_manager.cpp
                 source/scwx/qt/manager/placefile_manager.cpp
+                source/scwx/qt/manager/position_manager.cpp
                 source/scwx/qt/manager/radar_product_manager.cpp
                 source/scwx/qt/manager/radar_product_manager_notifier.cpp
                 source/scwx/qt/manager/resource_manager.cpp
@@ -166,7 +172,8 @@ set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/qt_types.hpp
               source/scwx/qt/types/radar_product_record.hpp
               source/scwx/qt/types/text_event_key.hpp
-              source/scwx/qt/types/text_types.hpp)
+              source/scwx/qt/types/text_types.hpp
+              source/scwx/qt/types/texture_types.hpp)
 set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/github_types.cpp
               source/scwx/qt/types/imgui_font.cpp
@@ -174,7 +181,8 @@ set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/map_types.cpp
               source/scwx/qt/types/radar_product_record.cpp
               source/scwx/qt/types/text_event_key.cpp
-              source/scwx/qt/types/text_types.cpp)
+              source/scwx/qt/types/text_types.cpp
+              source/scwx/qt/types/texture_types.cpp)
 set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/alert_dialog.hpp
            source/scwx/qt/ui/alert_dock_widget.hpp
@@ -503,6 +511,7 @@ endif()
 
 target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Qt${QT_VERSION_MAJOR}::OpenGLWidgets
+                                     Qt${QT_VERSION_MAJOR}::Positioning
                                      Boost::json
                                      Boost::timer
                                      qmaplibregl

@@ -4,6 +4,7 @@
 #include <scwx/qt/main/application.hpp>
 #include <scwx/qt/main/versions.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
+#include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/manager/timeline_manager.hpp>
@@ -82,6 +83,7 @@ public:
        settingsDialog_ {nullptr},
        updateDialog_ {nullptr},
        placefileManager_ {manager::PlacefileManager::Instance()},
+       positionManager_ {manager::PositionManager::Instance()},
        textEventManager_ {manager::TextEventManager::Instance()},
        timelineManager_ {manager::TimelineManager::Instance()},
        updateManager_ {manager::UpdateManager::Instance()},
@@ -117,6 +119,11 @@ public:
       settings_.setApiKey(QString {mapProviderApiKey.c_str()});
       settings_.setCacheDatabasePath(QString {cacheDbPath.c_str()});
       settings_.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
+
+      if (settings::GeneralSettings::Instance().track_location().GetValue())
+      {
+         positionManager_->TrackLocation(true);
+      }
    }
    ~MainWindowImpl() { threadPool_.join(); }
 
@@ -172,6 +179,7 @@ public:
    ui::UpdateDialog*        updateDialog_;
 
    std::shared_ptr<manager::PlacefileManager> placefileManager_;
+   std::shared_ptr<manager::PositionManager>  positionManager_;
    std::shared_ptr<manager::TextEventManager> textEventManager_;
    std::shared_ptr<manager::TimelineManager>  timelineManager_;
    std::shared_ptr<manager::UpdateManager>    updateManager_;
@@ -244,9 +252,13 @@ MainWindow::MainWindow(QWidget* parent) :
    p->mapSettingsGroup_ = new ui::CollapsibleGroup(tr("Map Settings"), this);
    p->mapSettingsGroup_->GetContentsLayout()->addWidget(ui->mapStyleLabel);
    p->mapSettingsGroup_->GetContentsLayout()->addWidget(ui->mapStyleComboBox);
+   p->mapSettingsGroup_->GetContentsLayout()->addWidget(
+      ui->trackLocationCheckBox);
    ui->radarToolboxScrollAreaContents->layout()->replaceWidget(
       ui->mapSettingsGroupBox, p->mapSettingsGroup_);
    ui->mapSettingsGroupBox->setVisible(false);
+   ui->trackLocationCheckBox->setChecked(
+      settings::GeneralSettings::Instance().track_location().GetValue());
 
    // Add Level 2 Products
    p->level2ProductsGroup_ =
@@ -845,6 +857,19 @@ void MainWindowImpl::ConnectOtherSignals()
                     break;
                  }
               }
+           });
+   connect(mainWindow_->ui->trackLocationCheckBox,
+           &QCheckBox::stateChanged,
+           mainWindow_,
+           [this](int state)
+           {
+              bool trackingEnabled = (state == Qt::CheckState::Checked);
+
+              settings::GeneralSettings::Instance().track_location().StageValue(
+                 trackingEnabled);
+
+              // Turn on location tracking
+              positionManager_->TrackLocation(trackingEnabled);
            });
    connect(level2ProductsWidget_,
            &ui::Level2ProductsWidget::RadarProductSelected,

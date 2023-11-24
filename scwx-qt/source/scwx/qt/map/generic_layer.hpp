@@ -45,6 +45,9 @@ public:
                    const QPointF&   mouseGlobalPos,
                    const glm::vec2& mouseCoords);
 
+signals:
+   void NeedsRendering();
+
 protected:
    std::shared_ptr<MapContext> context() const;
 

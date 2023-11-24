@@ -1,25 +1,19 @@
 #include <scwx/qt/map/overlay_layer.hpp>
+#include <scwx/qt/gl/draw/geo_icons.hpp>
 #include <scwx/qt/gl/draw/rectangle.hpp>
-#include <scwx/qt/gl/shader_program.hpp>
+#include <scwx/qt/manager/position_manager.hpp>
+#include <scwx/qt/types/texture_types.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
 #include <chrono>
-#include <execution>
 
 #if defined(_MSC_VER)
 #   pragma warning(push, 0)
 #endif
 
-#include <boost/date_time.hpp>
-#include <boost/date_time/local_time/local_time.hpp>
-#include <boost/timer/timer.hpp>
-#include <GeographicLib/Geodesic.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
-#include <mbgl/util/constants.hpp>
+#include <QGeoPositionInfo>
 
 #if !defined(_MSC_VER)
 #   include <date/date.h>
@@ -44,13 +38,24 @@ class OverlayLayerImpl
 public:
    explicit OverlayLayerImpl(std::shared_ptr<MapContext> context) :
        activeBoxOuter_ {std::make_shared<gl::draw::Rectangle>(context)},
-       activeBoxInner_ {std::make_shared<gl::draw::Rectangle>(context)}
+       activeBoxInner_ {std::make_shared<gl::draw::Rectangle>(context)},
+       icons_ {std::make_shared<gl::draw::GeoIcons>(context)},
+       locationIconName_ {
+          types::GetTextureName(types::ImageTexture::Crosshairs24)}
    {
    }
    ~OverlayLayerImpl() = default;
 
+   std::shared_ptr<manager::PositionManager> positionManager_ {
+      manager::PositionManager::Instance()};
+   QGeoPositionInfo currentPosition_ {};
+
    std::shared_ptr<gl::draw::Rectangle> activeBoxOuter_;
    std::shared_ptr<gl::draw::Rectangle> activeBoxInner_;
+   std::shared_ptr<gl::draw::GeoIcons>  icons_;
+
+   const std::string&                         locationIconName_;
+   std::shared_ptr<gl::draw::GeoIconDrawItem> locationIcon_ {};
 
    std::string sweepTimeString_ {};
    bool        sweepTimeNeedsUpdate_ {true};
@@ -62,6 +67,7 @@ OverlayLayer::OverlayLayer(std::shared_ptr<MapContext> context) :
 {
    AddDrawItem(p->activeBoxOuter_);
    AddDrawItem(p->activeBoxInner_);
+   AddDrawItem(p->icons_);
 
    p->activeBoxOuter_->SetPosition(0.0f, 0.0f);
 }
@@ -83,6 +89,45 @@ void OverlayLayer::Initialize()
               this,
               &OverlayLayer::UpdateSweepTimeNextFrame);
    }
+
+   p->currentPosition_ = p->positionManager_->position();
+   auto coordinate     = p->currentPosition_.coordinate();
+
+   p->icons_->StartIconSheets();
+   p->icons_->AddIconSheet(p->locationIconName_);
+   p->icons_->FinishIconSheets();
+
+   p->icons_->StartIcons();
+   p->locationIcon_ = p->icons_->AddIcon();
+   gl::draw::GeoIcons::SetIconTexture(
+      p->locationIcon_, p->locationIconName_, 0);
+   gl::draw::GeoIcons::SetIconAngle(p->locationIcon_,
+                                    units::angle::degrees<double> {45.0});
+   gl::draw::GeoIcons::SetIconLocation(
+      p->locationIcon_, coordinate.latitude(), coordinate.longitude());
+   p->icons_->FinishIcons();
+
+   connect(p->positionManager_.get(),
+           &manager::PositionManager::LocationTrackingChanged,
+           this,
+           [this]() { Q_EMIT NeedsRendering(); });
+   connect(p->positionManager_.get(),
+           &manager::PositionManager::PositionUpdated,
+           this,
+           [this](const QGeoPositionInfo& position)
+           {
+              auto coordinate = position.coordinate();
+              if (position.isValid() &&
+                  p->currentPosition_.coordinate() != coordinate)
+              {
+                 gl::draw::GeoIcons::SetIconLocation(p->locationIcon_,
+                                                     coordinate.latitude(),
+                                                     coordinate.longitude());
+                 p->icons_->FinishIcons();
+                 Q_EMIT NeedsRendering();
+              }
+              p->currentPosition_ = position;
+           });
 }
 
 void OverlayLayer::Render(
@@ -94,6 +139,9 @@ void OverlayLayer::Render(
    const float          pixelRatio       = context()->pixel_ratio();
 
    context()->set_render_parameters(params);
+
+   // Set OpenGL blend mode for transparency
+   gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
    p->sweepTimePicked_ = false;
 
@@ -126,6 +174,10 @@ void OverlayLayer::Render(
       p->activeBoxOuter_->SetBorder(1.0f * pixelRatio, {0, 0, 0, 255});
       p->activeBoxInner_->SetBorder(1.0f * pixelRatio, {255, 255, 255, 255});
    }
+
+   // Location Icon
+   p->icons_->SetVisible(p->currentPosition_.isValid() &&
+                         p->positionManager_->IsLocationTracked());
 
    DrawLayer::Render(params);
 
@@ -208,6 +260,17 @@ void OverlayLayer::Deinitialize()
                  this,
                  &OverlayLayer::UpdateSweepTimeNextFrame);
    }
+
+   disconnect(p->positionManager_.get(),
+              &manager::PositionManager::LocationTrackingChanged,
+              this,
+              nullptr);
+   disconnect(p->positionManager_.get(),
+              &manager::PositionManager::PositionUpdated,
+              this,
+              nullptr);
+
+   p->locationIcon_ = nullptr;
 }
 
 bool OverlayLayer::RunMousePicking(
