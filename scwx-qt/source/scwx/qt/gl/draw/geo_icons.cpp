@@ -120,6 +120,7 @@ public:
    bool visible_ {true};
    bool dirty_ {false};
    bool thresholded_ {false};
+   bool lastTextureAtlasChanged_ {false};
 
    std::chrono::system_clock::time_point selectedTime_ {};
 
@@ -275,6 +276,11 @@ void GeoIcons::Render(const QMapLibreGL::CustomLayerRenderParameters& params,
 {
    if (!p->visible_)
    {
+      if (textureAtlasChanged)
+      {
+         p->lastTextureAtlasChanged_ = true;
+      }
+
       return;
    }
 
@@ -504,8 +510,8 @@ void GeoIcons::FinishIcons()
    p->currentIntegerBuffer_.swap(p->newIntegerBuffer_);
    p->currentHoverIcons_.swap(p->newHoverIcons_);
 
-   // Clear the new buffers
-   p->newIconList_.clear();
+   // Clear the new buffers, except the full icon list (used to update buffers
+   // without re-adding icons)
    p->newValidIconList_.clear();
    p->newIconBuffer_.clear();
    p->newIntegerBuffer_.clear();
@@ -522,6 +528,8 @@ void GeoIcons::Impl::UpdateBuffers()
    newIntegerBuffer_.clear();
    newIntegerBuffer_.reserve(newIconList_.size() * kVerticesPerRectangle *
                              kIntegersPerVertex_);
+   newValidIconList_.clear();
+   newHoverIcons_.clear();
 
    for (auto& di : newIconList_)
    {
@@ -737,7 +745,7 @@ void GeoIcons::Impl::Update(bool textureAtlasChanged)
    gl::OpenGLFunctions& gl = context_->gl();
 
    // If the texture atlas has changed
-   if (dirty_ || textureAtlasChanged)
+   if (dirty_ || textureAtlasChanged || lastTextureAtlasChanged_)
    {
       // Update texture coordinates
       for (auto& iconSheet : currentIconSheets_)
@@ -754,6 +762,8 @@ void GeoIcons::Impl::Update(bool textureAtlasChanged)
                       sizeof(float) * textureBuffer_.size(),
                       textureBuffer_.data(),
                       GL_DYNAMIC_DRAW);
+
+      lastTextureAtlasChanged_ = false;
    }
 
    // If buffers need updating

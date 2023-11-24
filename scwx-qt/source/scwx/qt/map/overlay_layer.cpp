@@ -123,6 +123,7 @@ void OverlayLayer::Initialize()
                  gl::draw::GeoIcons::SetIconLocation(p->locationIcon_,
                                                      coordinate.latitude(),
                                                      coordinate.longitude());
+                 p->icons_->FinishIcons();
                  Q_EMIT NeedsRendering();
               }
               p->currentPosition_ = position;
