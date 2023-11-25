@@ -13,7 +13,7 @@ class SupercellWxConan(ConanFile):
                   "libxml2/2.11.5",
                   "openssl/3.1.4",
                   "spdlog/1.12.0",
-                  "sqlite3/3.44.1",
+                  "sqlite3/3.44.2",
                   "vulkan-loader/1.3.243.0",
                   "zlib/1.3")
     generators = ("cmake",
