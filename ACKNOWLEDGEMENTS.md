@@ -59,6 +59,7 @@ Supercell Wx uses assets from the following sources:
 | Source | License | Notes |
 | ------ | ------- | ----- |
 | Alte DIN 1451 Mittelschrift | SIL Open Font License |
+| [EAS Attention Signal](https://en.wikipedia.org/wiki/File:Emergency_Alert_System_Attention_Signal_20s.ogg) | Public Domain |
 | [Font Awesome Free](https://fontawesome.com/) | CC BY 4.0 License |
 | [Inconsolata](https://fonts.google.com/specimen/Inconsolata) | SIL Open Font License |
 | [NOAA's Weather and Climate Toolkit](https://www.ncdc.noaa.gov/wct/) | Public Domain | Default Color Tables |

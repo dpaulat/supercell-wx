@@ -12,6 +12,7 @@
         <file>gl/texture2d.frag</file>
         <file>gl/texture2d_array.frag</file>
         <file>gl/threshold.geom</file>
+        <file>res/audio/wikimedia/Emergency_Alert_System_Attention_Signal_20s.ogg</file>
         <file>res/config/radar_sites.json</file>
         <file>res/fonts/din1451alt.ttf</file>
         <file>res/fonts/din1451alt_g.ttf</file>
