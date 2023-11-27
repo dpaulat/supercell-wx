@@ -3,6 +3,7 @@
 
 #include <QAudioDevice>
 #include <QAudioOutput>
+#include <QMediaDevices>
 #include <QMediaPlayer>
 #include <QUrl>
 
@@ -21,14 +22,14 @@ class MediaManager::Impl
 public:
    explicit Impl(MediaManager* self) :
        self_ {self},
+       mediaDevices_ {new QMediaDevices(self)},
        mediaPlayer_ {new QMediaPlayer(self)},
        audioOutput_ {new QAudioOutput(self)}
    {
-      audioOutput_->setVolume(1.0f);
-      mediaPlayer_->setAudioOutput(audioOutput_);
-
       logger_->debug("Audio device: {}",
                      audioOutput_->device().description().toStdString());
+
+      mediaPlayer_->setAudioOutput(audioOutput_);
 
       ConnectSignals();
    }
@@ -39,8 +40,9 @@ public:
 
    MediaManager* self_;
 
-   QMediaPlayer* mediaPlayer_;
-   QAudioOutput* audioOutput_;
+   QMediaDevices* mediaDevices_;
+   QMediaPlayer*  mediaPlayer_;
+   QAudioOutput*  audioOutput_;
 };
 
 MediaManager::MediaManager() : p(std::make_unique<Impl>(this)) {}
@@ -48,6 +50,13 @@ MediaManager::~MediaManager() = default;
 
 void MediaManager::Impl::ConnectSignals()
 {
+   QObject::connect(
+      mediaDevices_,
+      &QMediaDevices::audioOutputsChanged,
+      self_,
+      [this]()
+      { audioOutput_->setDevice(QMediaDevices::defaultAudioOutput()); });
+
    QObject::connect(audioOutput_,
                     &QAudioOutput::deviceChanged,
                     self_,
