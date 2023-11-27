@@ -22,6 +22,7 @@ find_package(SQLite3)
 find_package(QT NAMES Qt6
              COMPONENTS Gui
                         LinguistTools
+                        Multimedia
                         Network
                         OpenGL
                         OpenGLWidgets
@@ -31,6 +32,7 @@ find_package(QT NAMES Qt6
 find_package(Qt${QT_VERSION_MAJOR}
              COMPONENTS Gui
                         LinguistTools
+                        Multimedia
                         Network
                         OpenGL
                         OpenGLWidgets
@@ -512,6 +514,7 @@ endif()
 
 target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Qt${QT_VERSION_MAJOR}::OpenGLWidgets
+                                     Qt${QT_VERSION_MAJOR}::Multimedia
                                      Qt${QT_VERSION_MAJOR}::Positioning
                                      Boost::json
                                      Boost::timer
