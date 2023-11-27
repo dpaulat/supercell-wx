@@ -1,5 +1,7 @@
 #pragma once
 
+#include <scwx/qt/types/media_types.hpp>
+
 #include <memory>
 
 #include <QObject>
@@ -19,6 +21,8 @@ class MediaManager : public QObject
 public:
    explicit MediaManager();
    ~MediaManager();
+
+   void Play(types::AudioFile media);
 
    static std::shared_ptr<MediaManager> Instance();
 
