@@ -11,7 +11,7 @@ class SupercellWxConan(ConanFile):
                   "gtest/1.14.0",
                   "libcurl/8.4.0",
                   "libxml2/2.11.5",
-                  "openssl/3.1.4",
+                  "openssl/3.2.0",
                   "spdlog/1.12.0",
                   "sqlite3/3.44.2",
                   "vulkan-loader/1.3.243.0",
