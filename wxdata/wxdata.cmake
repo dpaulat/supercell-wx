@@ -66,7 +66,8 @@ set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp
                  source/scwx/provider/nexrad_data_provider.cpp
                  source/scwx/provider/nexrad_data_provider_factory.cpp
                  source/scwx/provider/warnings_provider.cpp)
-set(HDR_UTIL include/scwx/util/environment.hpp
+set(HDR_UTIL include/scwx/util/enum.hpp
+             include/scwx/util/environment.hpp
              include/scwx/util/float.hpp
              include/scwx/util/hash.hpp
              include/scwx/util/iterator.hpp
