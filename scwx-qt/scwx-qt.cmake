@@ -145,18 +145,21 @@ set(SRC_MODEL source/scwx/qt/model/alert_model.cpp
               source/scwx/qt/model/tree_model.cpp)
 set(HDR_REQUEST source/scwx/qt/request/nexrad_file_request.hpp)
 set(SRC_REQUEST source/scwx/qt/request/nexrad_file_request.cpp)
-set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp
+set(HDR_SETTINGS source/scwx/qt/settings/audio_settings.hpp
+                 source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/map_settings.hpp
                  source/scwx/qt/settings/palette_settings.hpp
                  source/scwx/qt/settings/settings_category.hpp
                  source/scwx/qt/settings/settings_container.hpp
+                 source/scwx/qt/settings/settings_definitions.hpp
                  source/scwx/qt/settings/settings_interface.hpp
                  source/scwx/qt/settings/settings_interface_base.hpp
                  source/scwx/qt/settings/settings_variable.hpp
                  source/scwx/qt/settings/settings_variable_base.hpp
                  source/scwx/qt/settings/text_settings.hpp
                  source/scwx/qt/settings/ui_settings.hpp)
-set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
+set(SRC_SETTINGS source/scwx/qt/settings/audio_settings.cpp
+                 source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/map_settings.cpp
                  source/scwx/qt/settings/palette_settings.cpp
                  source/scwx/qt/settings/settings_category.cpp
