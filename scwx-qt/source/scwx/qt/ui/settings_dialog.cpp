@@ -6,12 +6,14 @@
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
+#include <scwx/qt/settings/audio_settings.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/types/alert_types.hpp>
 #include <scwx/qt/types/font_types.hpp>
+#include <scwx/qt/types/location_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/types/text_types.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
@@ -84,6 +86,24 @@ static const std::unordered_map<std::string, ColorTableConversions>
                             {"VIL", {0u, 255u, 1.0f, 2.5f}},
                             {"???", {0u, 15u, 0.0f, 1.0f}}};
 
+#define SCWX_ENUM_MAP_FROM_VALUE(Type, Iterator, ToName)                       \
+   [](const std::string& text) -> std::string                                  \
+   {                                                                           \
+      for (Type enumValue : Iterator)                                          \
+      {                                                                        \
+         const std::string enumName = ToName(enumValue);                       \
+                                                                               \
+         if (boost::iequals(text, enumName))                                   \
+         {                                                                     \
+            /* Return label */                                                 \
+            return enumName;                                                   \
+         }                                                                     \
+      }                                                                        \
+                                                                               \
+      /* Label not found, return unknown */                                    \
+      return "?";                                                              \
+   }
+
 class SettingsDialogImpl
 {
 public:
@@ -104,6 +124,9 @@ public:
           &antiAliasingEnabled_,
           &updateNotificationsEnabled_,
           &debugEnabled_,
+          &alertAudioLocationMethod_,
+          &alertAudioLatitude_,
+          &alertAudioLongitude_,
           &hoverTextWrap_,
           &tooltipMethod_,
           &placefileTextDropShadowEnabled_}}
@@ -136,6 +159,7 @@ public:
    void SetupGeneralTab();
    void SetupPalettesColorTablesTab();
    void SetupPalettesAlertsTab();
+   void SetupAudioTab();
    void SetupTextTab();
 
    void ShowColorDialog(QLineEdit* lineEdit, QFrame* frame = nullptr);
@@ -191,6 +215,13 @@ public:
                       settings::SettingsInterface<std::string>>
       inactiveAlertColors_ {};
 
+   settings::SettingsInterface<std::string> alertAudioLocationMethod_ {};
+   settings::SettingsInterface<double>      alertAudioLatitude_ {};
+   settings::SettingsInterface<double>      alertAudioLongitude_ {};
+
+   std::unordered_map<awips::Phenomenon, settings::SettingsInterface<bool>>
+      alertAudioEnabled_ {};
+
    std::unordered_map<types::FontCategory,
                       settings::SettingsInterface<std::string>>
       fontFamilies_ {};
@@ -222,6 +253,9 @@ SettingsDialog::SettingsDialog(QWidget* parent) :
 
    // Palettes > Alerts
    p->SetupPalettesAlertsTab();
+
+   // Audio
+   p->SetupAudioTab();
 
    // Text
    p->SetupTextTab();
@@ -763,6 +797,70 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
                        self_,
                        [=, this]()
                        { ShowColorDialog(inactiveEdit, inactiveFrame); });
+   }
+}
+
+void SettingsDialogImpl::SetupAudioTab()
+{
+   settings::AudioSettings& audioSettings = settings::AudioSettings::Instance();
+
+   for (const auto& locationMethod : types::LocationMethodIterator())
+   {
+      self_->ui->alertAudioLocationMethodComboBox->addItem(
+         QString::fromStdString(types::GetLocationMethodName(locationMethod)));
+   }
+
+   alertAudioLocationMethod_.SetSettingsVariable(
+      audioSettings.alert_location_method());
+   alertAudioLocationMethod_.SetMapFromValueFunction(
+      SCWX_ENUM_MAP_FROM_VALUE(types::LocationMethod,
+                               types::LocationMethodIterator(),
+                               types::GetLocationMethodName));
+   alertAudioLocationMethod_.SetMapToValueFunction(
+      [](std::string text) -> std::string
+      {
+         // Convert label to lower case and return
+         boost::to_lower(text);
+         return text;
+      });
+   alertAudioLocationMethod_.SetEditWidget(
+      self_->ui->alertAudioLocationMethodComboBox);
+   alertAudioLocationMethod_.SetResetButton(
+      self_->ui->resetAlertAudioLocationMethodButton);
+
+   alertAudioLatitude_.SetSettingsVariable(audioSettings.alert_latitude());
+   alertAudioLatitude_.SetEditWidget(self_->ui->alertAudioLatitudeSpinBox);
+   alertAudioLatitude_.SetResetButton(self_->ui->resetAlertAudioLatitudeButton);
+
+   alertAudioLongitude_.SetSettingsVariable(audioSettings.alert_longitude());
+   alertAudioLongitude_.SetEditWidget(self_->ui->alertAudioLongitudeSpinBox);
+   alertAudioLongitude_.SetResetButton(
+      self_->ui->resetAlertAudioLongitudeButton);
+
+   auto alertAudioLayout =
+      static_cast<QGridLayout*>(self_->ui->alertAudioGroupBox->layout());
+
+   for (const auto& phenomenon : types::GetAlertAudioPhenomena())
+   {
+      QCheckBox* alertAudioCheckbox = new QCheckBox(self_);
+      alertAudioCheckbox->setText(
+         QString::fromStdString(awips::GetPhenomenonText(phenomenon)));
+
+      static_cast<QGridLayout*>(self_->ui->alertAudioGroupBox->layout())
+         ->addWidget(
+            alertAudioCheckbox, alertAudioLayout->rowCount(), 0, 1, -1);
+
+      // Create settings interface
+      auto result = alertAudioEnabled_.emplace(
+         phenomenon, settings::SettingsInterface<bool> {});
+      auto& alertAudioEnabled = result.first->second;
+
+      // Add to settings list
+      settings_.push_back(&alertAudioEnabled);
+
+      alertAudioEnabled.SetSettingsVariable(
+         audioSettings.alert_enabled(phenomenon));
+      alertAudioEnabled.SetEditWidget(alertAudioCheckbox);
    }
 }
 

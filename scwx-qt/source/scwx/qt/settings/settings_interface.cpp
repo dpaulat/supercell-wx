@@ -180,6 +180,32 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
                              // TODO: Display invalid status
                           });
       }
+      else if constexpr (std::is_same_v<T, double>)
+      {
+         // If the line is edited (not programatically changed), stage the new
+         // value
+         QObject::connect(lineEdit,
+                          &QLineEdit::textEdited,
+                          p->context_.get(),
+                          [this](const QString& text)
+                          {
+                             // Convert to a double
+                             bool   ok;
+                             double value = text.toDouble(&ok);
+                             if (ok)
+                             {
+                                // Attempt to stage the value
+                                p->stagedValid_ =
+                                   p->variable_->StageValue(value);
+                                p->UpdateResetButton();
+                             }
+                             else
+                             {
+                                p->stagedValid_ = false;
+                                p->UpdateResetButton();
+                             }
+                          });
+      }
       else if constexpr (std::is_same_v<T, std::vector<std::int64_t>>)
       {
          // If the line is edited (not programatically changed), stage the new
@@ -310,6 +336,52 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
             });
       }
    }
+   else if (QDoubleSpinBox* doubleSpinBox =
+               dynamic_cast<QDoubleSpinBox*>(widget))
+   {
+      if constexpr (std::is_floating_point_v<T>)
+      {
+         const std::optional<T> minimum = p->variable_->GetMinimum();
+         const std::optional<T> maximum = p->variable_->GetMaximum();
+
+         if (minimum.has_value())
+         {
+            doubleSpinBox->setMinimum(static_cast<double>(*minimum));
+         }
+         if (maximum.has_value())
+         {
+            doubleSpinBox->setMaximum(static_cast<double>(*maximum));
+         }
+
+         // If the spin box is edited, stage a changed value
+         QObject::connect(
+            doubleSpinBox,
+            &QDoubleSpinBox::valueChanged,
+            p->context_.get(),
+            [this](double d)
+            {
+               const T                value  = p->variable_->GetValue();
+               const std::optional<T> staged = p->variable_->GetStaged();
+
+               // If there is a value staged, and the new value is the same as
+               // the current value, reset the staged value
+               if (staged.has_value() && static_cast<T>(d) == value)
+               {
+                  p->variable_->Reset();
+                  p->stagedValid_ = true;
+                  p->UpdateResetButton();
+               }
+               // If there is no staged value, or if the new value is different
+               // than what is staged, attempt to stage the value
+               else if (!staged.has_value() || static_cast<T>(d) != *staged)
+               {
+                  p->stagedValid_ = p->variable_->StageValue(static_cast<T>(d));
+                  p->UpdateResetButton();
+               }
+               // Otherwise, don't process an unchanged value
+            });
+      }
+   }
 
    p->UpdateEditWidget();
 }
@@ -375,6 +447,10 @@ template<class U>
 void SettingsInterface<T>::Impl::SetWidgetText(U* widget, const T& currentValue)
 {
    if constexpr (std::is_integral_v<T>)
+   {
+      widget->setText(QString::number(currentValue));
+   }
+   else if constexpr (std::is_floating_point_v<T>)
    {
       widget->setText(QString::number(currentValue));
    }
@@ -446,6 +522,14 @@ void SettingsInterface<T>::Impl::UpdateEditWidget()
       if constexpr (std::is_integral_v<T>)
       {
          spinBox->setValue(static_cast<int>(currentValue));
+      }
+   }
+   else if (QDoubleSpinBox* doubleSpinBox =
+               dynamic_cast<QDoubleSpinBox*>(editWidget_))
+   {
+      if constexpr (std::is_floating_point_v<T>)
+      {
+         doubleSpinBox->setValue(static_cast<double>(currentValue));
       }
    }
 }
