@@ -4,6 +4,7 @@
 #include <scwx/awips/phenomenon.hpp>
 #include <scwx/common/color_table.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/settings/audio_settings.hpp>
@@ -28,6 +29,7 @@
 #include <QFileDialog>
 #include <QFontDatabase>
 #include <QFontDialog>
+#include <QGeoPositionInfo>
 #include <QStandardItemModel>
 #include <QToolButton>
 
@@ -193,6 +195,9 @@ public:
    QStandardItemModel* fontCategoryModel_;
 
    types::FontCategory selectedFontCategory_ {types::FontCategory::Unknown};
+
+   std::shared_ptr<manager::PositionManager> positionManager_ {
+      manager::PositionManager::Instance()};
 
    settings::SettingsInterface<std::string>  defaultRadarSite_ {};
    settings::SettingsInterface<std::int64_t> gridWidth_ {};
@@ -802,6 +807,27 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
 
 void SettingsDialogImpl::SetupAudioTab()
 {
+   QObject::connect(self_->ui->alertAudioLocationMethodComboBox,
+                    &QComboBox::currentTextChanged,
+                    self_,
+                    [this](const QString& text)
+                    {
+                       types::LocationMethod locationMethod =
+                          types::GetLocationMethod(text.toStdString());
+
+                       bool coordinateEntryEnabled =
+                          locationMethod == types::LocationMethod::Fixed;
+
+                       self_->ui->alertAudioLatitudeSpinBox->setEnabled(
+                          coordinateEntryEnabled);
+                       self_->ui->alertAudioLongitudeSpinBox->setEnabled(
+                          coordinateEntryEnabled);
+                       self_->ui->resetAlertAudioLatitudeButton->setEnabled(
+                          coordinateEntryEnabled);
+                       self_->ui->resetAlertAudioLongitudeButton->setEnabled(
+                          coordinateEntryEnabled);
+                    });
+
    settings::AudioSettings& audioSettings = settings::AudioSettings::Instance();
 
    for (const auto& locationMethod : types::LocationMethodIterator())
@@ -862,6 +888,28 @@ void SettingsDialogImpl::SetupAudioTab()
          audioSettings.alert_enabled(phenomenon));
       alertAudioEnabled.SetEditWidget(alertAudioCheckbox);
    }
+
+   QObject::connect(
+      positionManager_.get(),
+      &manager::PositionManager::PositionUpdated,
+      self_,
+      [this](const QGeoPositionInfo& info)
+      {
+         settings::AudioSettings& audioSettings =
+            settings::AudioSettings::Instance();
+
+         if (info.isValid() &&
+             types::GetLocationMethod(
+                audioSettings.alert_location_method().GetValue()) ==
+                types::LocationMethod::Track)
+         {
+            QGeoCoordinate coordinate = info.coordinate();
+            self_->ui->alertAudioLatitudeSpinBox->setValue(
+               coordinate.latitude());
+            self_->ui->alertAudioLongitudeSpinBox->setValue(
+               coordinate.longitude());
+         }
+      });
 }
 
 void SettingsDialogImpl::SetupTextTab()
