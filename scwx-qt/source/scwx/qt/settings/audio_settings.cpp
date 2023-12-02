@@ -17,8 +17,7 @@ namespace settings
 static const std::string logPrefix_ = "scwx::qt::settings::audio_settings";
 
 static const bool              kDefaultAlertEnabled_ {false};
-static const awips::Phenomenon kDefaultPhenomenon_ {
-   awips::Phenomenon::FlashFlood};
+static const awips::Phenomenon kDefaultPhenomenon_ {awips::Phenomenon::Unknown};
 
 class AudioSettings::Impl
 {
@@ -58,6 +57,10 @@ public:
 
          variables_.push_back(&variable);
       }
+
+      // Create a default disabled alert, not stored in the settings file
+      alertEnabled_.emplace(kDefaultPhenomenon_,
+                            SettingsVariable<bool> {"alert_disabled"});
    }
 
    ~Impl() {}
