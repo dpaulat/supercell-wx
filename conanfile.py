@@ -6,6 +6,7 @@ class SupercellWxConan(ConanFile):
                   "cpr/1.10.5",
                   "fontconfig/2.14.2",
                   "geographiclib/2.3",
+                  "geos/3.12.0",
                   "glew/2.2.0",
                   "glm/cci.20230113",
                   "gtest/1.14.0",
@@ -19,7 +20,8 @@ class SupercellWxConan(ConanFile):
     generators = ("cmake",
                   "cmake_find_package",
                   "cmake_paths")
-    default_options = {"libiconv:shared"  : True,
+    default_options = {"geos:shared"      : True,
+                       "libiconv:shared"  : True,
                        "openssl:no_module": True,
                        "openssl:shared"   : True}
 

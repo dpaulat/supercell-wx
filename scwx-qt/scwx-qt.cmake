@@ -14,6 +14,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Boost)
 find_package(Fontconfig)
 find_package(geographiclib)
+find_package(geos)
 find_package(GLEW)
 find_package(glm)
 find_package(Python COMPONENTS Interpreter)
@@ -533,6 +534,8 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      $<$<CXX_COMPILER_ID:MSVC>:opengl32>
                                      Fontconfig::Fontconfig
                                      GeographicLib::GeographicLib
+                                     GEOS::geos
+                                     GEOS::geos_cxx_flags
                                      GLEW::GLEW
                                      glm::glm
                                      imgui
