@@ -30,7 +30,7 @@ bool AreaContainsPoint(const std::vector<common::Coordinate>& area,
                        const common::Coordinate&              point)
 {
    // Cannot have an area with just two points
-   if (area.size() <= 2 || area.size() == 3 && area.front() == area.back())
+   if (area.size() <= 2 || (area.size() == 3 && area.front() == area.back()))
    {
       return false;
    }
