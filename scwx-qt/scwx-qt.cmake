@@ -323,6 +323,7 @@ set(ZONE_DBF_FILES   ${SCWX_DIR}/data/db/fz19se23.dbf
                      ${SCWX_DIR}/data/db/mz19se23.dbf
                      ${SCWX_DIR}/data/db/oz08mr23.dbf
                      ${SCWX_DIR}/data/db/z_19se23.dbf)
+set(STATE_DBF_FILES  ${SCWX_DIR}/data/db/s_08mr23.dbf)
 set(COUNTIES_SQLITE_DB ${scwx-qt_BINARY_DIR}/res/db/counties.db)
 
 set(VERSIONS_INPUT  ${scwx-qt_SOURCE_DIR}/source/scwx/qt/main/versions.hpp.in)
@@ -411,8 +412,12 @@ add_custom_command(OUTPUT  ${COUNTIES_SQLITE_DB}
                            ${scwx-qt_SOURCE_DIR}/tools/generate_counties_db.py
                            -c ${COUNTY_DBF_FILES}
                            -z ${ZONE_DBF_FILES}
+                           -s ${STATE_DBF_FILES}
                            -o ${COUNTIES_SQLITE_DB}
-                   DEPENDS ${COUNTY_DB_FILES} ${ZONE_DBF_FILES})
+                   DEPENDS ${scwx-qt_SOURCE_DIR}/tools/generate_counties_db.py
+                           ${COUNTY_DB_FILES}
+                           ${STATE_DBF_FILES}
+                           ${ZONE_DBF_FILES})
 
 add_custom_target(scwx-qt_generate_counties_db ALL
                   DEPENDS ${COUNTIES_SQLITE_DB})

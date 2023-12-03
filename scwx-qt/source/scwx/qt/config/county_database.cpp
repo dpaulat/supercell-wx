@@ -28,6 +28,7 @@ static const std::string countyDatabaseFilename_ = ":/res/db/counties.db";
 static bool                                         initialized_ {false};
 static std::unordered_map<std::string, std::string> countyMap_;
 static std::shared_mutex                            countyMutex_;
+static std::unordered_map<std::string, std::string> stateMap_;
 
 void Initialize()
 {
@@ -108,7 +109,41 @@ void Initialize()
          else
          {
             logger_->error(
-               "Database format error, invalid number of columns: {}", columns);
+               "County database format error, invalid number of columns: {}",
+               columns);
+            status = -1;
+         }
+
+         return status;
+      },
+      nullptr,
+      &errorMessage);
+   if (rc != SQLITE_OK)
+   {
+      logger_->error("SQL error: {}", errorMessage);
+      sqlite3_free(errorMessage);
+   }
+
+   // Query database for states
+   rc = sqlite3_exec(
+      db,
+      "SELECT * FROM states",
+      [](void* /* param */,
+         int    columns,
+         char** columnText,
+         char** /* columnName */) -> int
+      {
+         int status = 0;
+
+         if (columns == 2)
+         {
+            stateMap_.emplace(columnText[0], columnText[1]);
+         }
+         else
+         {
+            logger_->error(
+               "State database format error, invalid number of columns: {}",
+               columns);
             status = -1;
          }
 
@@ -129,13 +164,11 @@ void Initialize()
    sqlite3_close(db);
 
    // Remove temporary file
-   std::error_code err;
-
-   if (!std::filesystem::remove(countyDatabaseCache, err)) {
-      logger_->warn(
-          "Unable to remove cached copy of database, error code: {} error category: {}",
-          err.value(),
-          err.category().name());
+   std::error_code error;
+   if (!std::filesystem::remove(countyDatabaseCache, error))
+   {
+      logger_->warn("Unable to remove cached copy of database: {}",
+                    error.message());
    }
 
    initialized_ = true;

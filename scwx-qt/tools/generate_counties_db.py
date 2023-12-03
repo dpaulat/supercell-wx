@@ -26,6 +26,14 @@ def ParseArguments():
                         nargs   = "+",
                         default = [],
                         type    = pathlib.Path)
+    parser.add_argument("-s", "--state_dbf",
+                        metavar = "filename",
+                        help    = "input state database",
+                        dest    = "inputStateDbs_",
+                        action  = "extend",
+                        nargs   = "+",
+                        default = [],
+                        type    = pathlib.Path)
     parser.add_argument("-o", "--output_db",
                         metavar  = "filename",
                         help     = "output sqlite database",
@@ -47,10 +55,13 @@ def Prepare(dbInfo, outputDb):
 
     dbInfo.sqlCursor_     = dbInfo.sqlConnection_.cursor()
 
-    # Create database table
+    # Create database tables
     dbInfo.sqlCursor_.execute("""CREATE TABLE counties(
         id   TEXT NOT NULL PRIMARY KEY,
         name TEXT)""")
+    dbInfo.sqlCursor_.execute("""CREATE TABLE states(
+        state TEXT NOT NULL PRIMARY KEY,
+        name  TEXT NOT NULL)""")
 
 def ProcessCountiesDbf(dbInfo, dbfFilename):
     # County area type
@@ -71,6 +82,22 @@ def ProcessCountiesDbf(dbInfo, dbfFilename):
             dbInfo.sqlCursor_.execute("INSERT INTO counties VALUES (?, ?)", (fipsId, row.COUNTYNAME))
         except:
             print("Skipping duplicate county:", fipsId, row.COUNTYNAME)
+
+def ProcessStateDbf(dbInfo, dbfFilename):
+    print("Processing states and territories file:", dbfFilename)
+
+    # Read dataframe
+    dbfTable = gpd.read_file(filename        = dbfFilename,
+                             include_fields  = ["STATE", "NAME"],
+                             ignore_geometry = True)
+    dbfTable.drop_duplicates(inplace=True)
+
+    for row in dbfTable.itertuples():
+        # Insert data into database
+        try:
+            dbInfo.sqlCursor_.execute("INSERT INTO states VALUES (?, ?)", (row.STATE, row.NAME))
+        except:
+            print("Error inserting row:", row.STATE, row.NAME)
 
 def ProcessZoneDbf(dbInfo, dbfFilename):
     print("Processing zone file:", dbfFilename)
@@ -117,5 +144,8 @@ for countyDb in args.inputCountyDbs_:
 
 for zoneDb in args.inputZoneDbs_:
     ProcessZoneDbf(dbInfo, zoneDb)
+
+for stateDb in args.inputStateDbs_:
+    ProcessStateDbf(dbInfo, stateDb)
 
 PostProcess(dbInfo)
