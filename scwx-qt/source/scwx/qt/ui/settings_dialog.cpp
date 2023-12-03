@@ -853,6 +853,47 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioSoundFile_.SetEditWidget(self_->ui->alertAudioSoundLineEdit);
    alertAudioSoundFile_.SetResetButton(self_->ui->resetAlertAudioSoundButton);
 
+   QObject::connect(
+      self_->ui->alertAudioSoundSelectButton,
+      &QAbstractButton::clicked,
+      self_,
+      [this]()
+      {
+         static const std::string audioFilter =
+            "Audio Files (*.3ga *.669 *.a52 *.aac *.ac3 *.adt *.adts *.aif "
+            "*.aifc *.aiff *.amb *.amr *.aob *.ape *.au *.awb *.caf *.dts "
+            "*.flac *.it *.kar *.m4a *.m4b *.m4p *.m5p *.mid *.mka *.mlp *.mod "
+            "*.mpa *.mp1 *.mp2 *.mp3 *.mpc *.mpga *.mus *.oga *.ogg *.oma "
+            "*.opus *.qcp *.ra *.rmi *.s3m *.sid *.spx *.tak *.thd *.tta *.voc "
+            "*.vqf *.w64 *.wav *.wma *.wv *.xa *.xm)";
+         static const std::string allFilter = "All Files (*)";
+
+         QFileDialog* dialog = new QFileDialog(self_);
+
+         dialog->setFileMode(QFileDialog::ExistingFile);
+         dialog->setNameFilters(
+            {QObject::tr(audioFilter.c_str()), QObject::tr(allFilter.c_str())});
+         dialog->setAttribute(Qt::WA_DeleteOnClose);
+
+         QObject::connect(
+            dialog,
+            &QFileDialog::fileSelected,
+            self_,
+            [this](const QString& file)
+            {
+               QString path = QDir::toNativeSeparators(file);
+
+               logger_->info("Selected alert sound file: {}",
+                             path.toStdString());
+               self_->ui->alertAudioSoundLineEdit->setText(path);
+
+               // setText does not emit the textEdited signal
+               Q_EMIT self_->ui->alertAudioSoundLineEdit->textEdited(path);
+            });
+
+         dialog->open();
+      });
+
    for (const auto& locationMethod : types::LocationMethodIterator())
    {
       self_->ui->alertAudioLocationMethodComboBox->addItem(
