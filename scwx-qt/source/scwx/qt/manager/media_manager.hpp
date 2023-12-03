@@ -23,6 +23,8 @@ public:
    ~MediaManager();
 
    void Play(types::AudioFile media);
+   void Play(const std::string& mediaPath);
+   void Stop();
 
    static std::shared_ptr<MediaManager> Instance();
 

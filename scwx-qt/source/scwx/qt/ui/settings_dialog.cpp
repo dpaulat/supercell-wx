@@ -4,6 +4,7 @@
 #include <scwx/awips/phenomenon.hpp>
 #include <scwx/common/color_table.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/manager/media_manager.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
@@ -126,6 +127,7 @@ public:
           &antiAliasingEnabled_,
           &updateNotificationsEnabled_,
           &debugEnabled_,
+          &alertAudioSoundFile_,
           &alertAudioLocationMethod_,
           &alertAudioLatitude_,
           &alertAudioLongitude_,
@@ -196,6 +198,8 @@ public:
 
    types::FontCategory selectedFontCategory_ {types::FontCategory::Unknown};
 
+   std::shared_ptr<manager::MediaManager> mediaManager_ {
+      manager::MediaManager::Instance()};
    std::shared_ptr<manager::PositionManager> positionManager_ {
       manager::PositionManager::Instance()};
 
@@ -220,6 +224,7 @@ public:
                       settings::SettingsInterface<std::string>>
       inactiveAlertColors_ {};
 
+   settings::SettingsInterface<std::string> alertAudioSoundFile_ {};
    settings::SettingsInterface<std::string> alertAudioLocationMethod_ {};
    settings::SettingsInterface<double>      alertAudioLatitude_ {};
    settings::SettingsInterface<double>      alertAudioLongitude_ {};
@@ -308,6 +313,20 @@ void SettingsDialogImpl::ConnectSignals()
    defaultRadarSite.RegisterValueStagedCallback(
       [this](const std::string& newValue)
       { UpdateRadarDialogLocation(newValue); });
+
+   QObject::connect(
+      self_->ui->alertAudioSoundTestButton,
+      &QAbstractButton::clicked,
+      self_,
+      [this]()
+      {
+         mediaManager_->Play(
+            self_->ui->alertAudioSoundLineEdit->text().toStdString());
+      });
+   QObject::connect(self_->ui->alertAudioSoundStopButton,
+                    &QAbstractButton::clicked,
+                    self_,
+                    [this]() { mediaManager_->Stop(); });
 
    QObject::connect(
       self_->ui->fontListView->selectionModel(),
@@ -829,6 +848,10 @@ void SettingsDialogImpl::SetupAudioTab()
                     });
 
    settings::AudioSettings& audioSettings = settings::AudioSettings::Instance();
+
+   alertAudioSoundFile_.SetSettingsVariable(audioSettings.alert_sound_file());
+   alertAudioSoundFile_.SetEditWidget(self_->ui->alertAudioSoundLineEdit);
+   alertAudioSoundFile_.SetResetButton(self_->ui->resetAlertAudioSoundButton);
 
    for (const auto& locationMethod : types::LocationMethodIterator())
    {

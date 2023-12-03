@@ -81,13 +81,31 @@ void MediaManager::Impl::ConnectSignals()
 void MediaManager::Play(types::AudioFile media)
 {
    const std::string path = types::GetMediaPath(media);
+}
 
-   logger_->debug("Playing audio: {}", path);
+void MediaManager::Play(const std::string& mediaPath)
+{
+   logger_->debug("Playing audio: {}", mediaPath);
 
-   p->mediaPlayer_->setSource(
-      QUrl(QString("qrc:%1").arg(QString::fromStdString(path))));
+   if (mediaPath.starts_with(':'))
+   {
+      p->mediaPlayer_->setSource(
+         QUrl(QString("qrc%1").arg(QString::fromStdString(mediaPath))));
+   }
+   else
+   {
+      p->mediaPlayer_->setSource(
+         QUrl::fromLocalFile(QString::fromStdString(mediaPath)));
+   }
+
+   p->mediaPlayer_->setPosition(0);
 
    QMetaObject::invokeMethod(p->mediaPlayer_, &QMediaPlayer::play);
+}
+
+void MediaManager::Stop()
+{
+   QMetaObject::invokeMethod(p->mediaPlayer_, &QMediaPlayer::stop);
 }
 
 std::shared_ptr<MediaManager> MediaManager::Instance()
