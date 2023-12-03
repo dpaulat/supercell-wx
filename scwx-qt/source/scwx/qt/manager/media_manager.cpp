@@ -84,7 +84,8 @@ void MediaManager::Play(types::AudioFile media)
 
    logger_->debug("Playing audio: {}", path);
 
-   p->mediaPlayer_->setSource(QUrl(QString::fromStdString(path)));
+   p->mediaPlayer_->setSource(
+      QUrl(QString("qrc:%1").arg(QString::fromStdString(path))));
 
    QMetaObject::invokeMethod(p->mediaPlayer_, &QMediaPlayer::play);
 }

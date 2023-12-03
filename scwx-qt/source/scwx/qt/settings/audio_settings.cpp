@@ -3,6 +3,7 @@
 #include <scwx/qt/settings/settings_variable.hpp>
 #include <scwx/qt/types/alert_types.hpp>
 #include <scwx/qt/types/location_types.hpp>
+#include <scwx/qt/types/media_types.hpp>
 
 #include <boost/algorithm/string.hpp>
 #include <fmt/format.h>
@@ -24,11 +25,14 @@ class AudioSettings::Impl
 public:
    explicit Impl()
    {
+      std::string defaultAlertSoundFileValue =
+         types::GetMediaPath(types::AudioFile::EasAttentionSignal);
       std::string defaultAlertLocationMethodValue =
          types::GetLocationMethodName(types::LocationMethod::Fixed);
 
       boost::to_lower(defaultAlertLocationMethodValue);
 
+      alertSoundFile_.SetDefault(defaultAlertSoundFileValue);
       alertLocationMethod_.SetDefault(defaultAlertLocationMethodValue);
       alertLatitude_.SetDefault(0.0);
       alertLongitude_.SetDefault(0.0);
@@ -65,6 +69,7 @@ public:
 
    ~Impl() {}
 
+   SettingsVariable<std::string> alertSoundFile_ {"alert_sound_file"};
    SettingsVariable<std::string> alertLocationMethod_ {"alert_location_method"};
    SettingsVariable<double>      alertLatitude_ {"alert_latitude"};
    SettingsVariable<double>      alertLongitude_ {"alert_longitude"};
@@ -77,8 +82,10 @@ public:
 AudioSettings::AudioSettings() :
     SettingsCategory("audio"), p(std::make_unique<Impl>())
 {
-   RegisterVariables(
-      {&p->alertLocationMethod_, &p->alertLatitude_, &p->alertLongitude_});
+   RegisterVariables({&p->alertSoundFile_,
+                      &p->alertLocationMethod_,
+                      &p->alertLatitude_,
+                      &p->alertLongitude_});
    RegisterVariables(p->variables_);
    SetDefaults();
 
@@ -88,6 +95,11 @@ AudioSettings::~AudioSettings() = default;
 
 AudioSettings::AudioSettings(AudioSettings&&) noexcept            = default;
 AudioSettings& AudioSettings::operator=(AudioSettings&&) noexcept = default;
+
+SettingsVariable<std::string>& AudioSettings::alert_sound_file() const
+{
+   return p->alertSoundFile_;
+}
 
 SettingsVariable<std::string>& AudioSettings::alert_location_method() const
 {
@@ -123,7 +135,8 @@ AudioSettings& AudioSettings::Instance()
 
 bool operator==(const AudioSettings& lhs, const AudioSettings& rhs)
 {
-   return (lhs.p->alertLocationMethod_ == rhs.p->alertLocationMethod_ &&
+   return (lhs.p->alertSoundFile_ == rhs.p->alertSoundFile_ &&
+           lhs.p->alertLocationMethod_ == rhs.p->alertLocationMethod_ &&
            lhs.p->alertLatitude_ == rhs.p->alertLatitude_ &&
            lhs.p->alertLongitude_ == rhs.p->alertLongitude_ &&
            lhs.p->alertEnabled_ == rhs.p->alertEnabled_);

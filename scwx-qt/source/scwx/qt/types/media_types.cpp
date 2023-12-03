@@ -11,7 +11,7 @@ namespace types
 
 static const std::unordered_map<AudioFile, std::string> audioFileInfo_ {
    {AudioFile::EasAttentionSignal,
-    "qrc:/res/audio/wikimedia/"
+    ":/res/audio/wikimedia/"
     "Emergency_Alert_System_Attention_Signal_20s.ogg"}};
 
 const std::string& GetMediaPath(AudioFile audioFile)

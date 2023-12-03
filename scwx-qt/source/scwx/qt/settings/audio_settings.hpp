@@ -26,6 +26,7 @@ public:
    AudioSettings(AudioSettings&&) noexcept;
    AudioSettings& operator=(AudioSettings&&) noexcept;
 
+   SettingsVariable<std::string>& alert_sound_file() const;
    SettingsVariable<std::string>& alert_location_method() const;
    SettingsVariable<double>&      alert_latitude() const;
    SettingsVariable<double>&      alert_longitude() const;
