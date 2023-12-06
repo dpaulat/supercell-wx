@@ -1,7 +1,6 @@
 #include <scwx/qt/config/county_database.hpp>
 #include <scwx/util/logger.hpp>
 
-#include <shared_mutex>
 #include <unordered_map>
 
 #include <boost/uuid/uuid.hpp>
@@ -25,9 +24,12 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static const std::string countyDatabaseFilename_ = ":/res/db/counties.db";
 
+typedef std::unordered_map<std::string, std::string> CountyMap;
+typedef std::unordered_map<std::string, CountyMap>   StateMap;
+typedef std::unordered_map<char, StateMap>           FormatMap;
+
 static bool                                         initialized_ {false};
-static std::unordered_map<std::string, std::string> countyMap_;
-static std::shared_mutex                            countyMutex_;
+static FormatMap                                    countyDatabase_;
 static std::unordered_map<std::string, std::string> stateMap_;
 
 void Initialize()
@@ -88,8 +90,8 @@ void Initialize()
       return;
    }
 
-   // Database is open, acquire lock
-   std::unique_lock lock(countyMutex_);
+   // Ensure counties exists
+   countyDatabase_.emplace('C', StateMap {});
 
    // Query database for counties
    rc = sqlite3_exec(
@@ -102,15 +104,24 @@ void Initialize()
       {
          int status = 0;
 
-         if (columns == 2)
+         if (columns == 2 && std::strlen(columnText[0]) == 6)
          {
-            countyMap_.emplace(columnText[0], columnText[1]);
+            std::string fipsId = columnText[0];
+            std::string state  = fipsId.substr(0, 2);
+            char        type   = fipsId.at(2);
+
+            countyDatabase_[type][state].emplace(fipsId, columnText[1]);
          }
-         else
+         else if (columns != 2)
          {
             logger_->error(
                "County database format error, invalid number of columns: {}",
                columns);
+            status = -1;
+         }
+         else
+         {
+            logger_->error("Invalid FIPS ID: {}", columnText[0]);
             status = -1;
          }
 
@@ -157,9 +168,6 @@ void Initialize()
       sqlite3_free(errorMessage);
    }
 
-   // Finished populating county map, release lock
-   lock.unlock();
-
    // Close database
    sqlite3_close(db);
 
@@ -176,15 +184,45 @@ void Initialize()
 
 std::string GetCountyName(const std::string& id)
 {
-   std::shared_lock lock(countyMutex_);
-
-   auto it = countyMap_.find(id);
-   if (it != countyMap_.cend())
+   if (id.length() > 3)
    {
-      return it->second;
+      // SSFNNN
+      char        format = id.at(2);
+      std::string state  = id.substr(0, 2);
+
+      auto stateIt = countyDatabase_.find(format);
+      if (stateIt != countyDatabase_.cend())
+      {
+         StateMap& states   = stateIt->second;
+         auto      countyIt = states.find(state);
+         if (countyIt != states.cend())
+         {
+            CountyMap& counties = countyIt->second;
+            auto       it       = counties.find(id);
+            if (it != counties.cend())
+            {
+               return it->second;
+            }
+         }
+      }
    }
 
    return id;
+}
+
+std::unordered_map<std::string, std::string>
+GetCounties(const std::string& state)
+{
+   std::unordered_map<std::string, std::string> counties {};
+
+   StateMap& states = countyDatabase_.at('C');
+   auto      it     = states.find(state);
+   if (it != states.cend())
+   {
+      counties = it->second;
+   }
+
+   return counties;
 }
 
 } // namespace CountyDatabase
