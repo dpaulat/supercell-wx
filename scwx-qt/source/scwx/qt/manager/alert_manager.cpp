@@ -48,7 +48,8 @@ public:
 
    ~Impl() { threadPool_.join(); }
 
-   common::Coordinate CurrentCoordinate() const;
+   common::Coordinate
+        CurrentCoordinate(types::LocationMethod locationMethod) const;
    void HandleAlert(const types::TextEventKey& key, size_t messageIndex) const;
    void UpdateLocationTracking(const std::string& value) const;
 
@@ -68,13 +69,11 @@ public:
 AlertManager::AlertManager() : p(std::make_unique<Impl>(this)) {}
 AlertManager::~AlertManager() = default;
 
-common::Coordinate AlertManager::Impl::CurrentCoordinate() const
+common::Coordinate AlertManager::Impl::CurrentCoordinate(
+   types::LocationMethod locationMethod) const
 {
    settings::AudioSettings& audioSettings = settings::AudioSettings::Instance();
    common::Coordinate       coordinate {};
-
-   types::LocationMethod locationMethod = types::GetLocationMethod(
-      audioSettings.alert_location_method().GetValue());
 
    if (locationMethod == types::LocationMethod::Fixed)
    {
@@ -105,7 +104,10 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
    }
 
    settings::AudioSettings& audioSettings = settings::AudioSettings::Instance();
-   common::Coordinate       currentCoordinate = CurrentCoordinate();
+   types::LocationMethod    locationMethod = types::GetLocationMethod(
+      audioSettings.alert_location_method().GetValue());
+   common::Coordinate currentCoordinate = CurrentCoordinate(locationMethod);
+   std::string        alertCounty = audioSettings.alert_county().GetValue();
 
    auto message = textEventManager_->message_list(key).at(messageIndex);
 
@@ -130,11 +132,27 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
          continue;
       }
 
-      // Determine if the alert is active at the current coordinte
-      auto alertCoordinates = segment->codedLocation_->coordinates();
+      bool activeAtLocation = false;
 
-      if (util::GeographicLib::AreaContainsPoint(alertCoordinates,
-                                                 currentCoordinate))
+      if (locationMethod == types::LocationMethod::Fixed ||
+          locationMethod == types::LocationMethod::Track)
+      {
+
+         // Determine if the alert is active at the current coordinte
+         auto alertCoordinates = segment->codedLocation_->coordinates();
+
+         activeAtLocation = util::GeographicLib::AreaContainsPoint(
+            alertCoordinates, currentCoordinate);
+      }
+      else if (locationMethod == types::LocationMethod::County)
+      {
+         // Determine if the alert contains the current county
+         auto fipsIds = segment->header_->ugc_.fips_ids();
+         auto it = std::find(fipsIds.cbegin(), fipsIds.cend(), alertCounty);
+         activeAtLocation = it != fipsIds.cend();
+      }
+
+      if (activeAtLocation)
       {
          logger_->info("Alert active at current location: {} {}.{} {}",
                        vtec.pVtec_.office_id(),
