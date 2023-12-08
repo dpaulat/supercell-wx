@@ -1,9 +1,9 @@
 #include <scwx/qt/ui/setup/setup_wizard.hpp>
+#include <scwx/qt/ui/setup/audio_codec_page.hpp>
 #include <scwx/qt/ui/setup/finish_page.hpp>
 #include <scwx/qt/ui/setup/map_layout_page.hpp>
 #include <scwx/qt/ui/setup/map_provider_page.hpp>
 #include <scwx/qt/ui/setup/welcome_page.hpp>
-#include <scwx/qt/settings/general_settings.hpp>
 
 #include <QDesktopServices>
 #include <QUrl>
@@ -38,6 +38,7 @@ SetupWizard::SetupWizard(QWidget* parent) :
    setPage(static_cast<int>(Page::Welcome), new WelcomePage(this));
    setPage(static_cast<int>(Page::MapProvider), new MapProviderPage(this));
    setPage(static_cast<int>(Page::MapLayout), new MapLayoutPage(this));
+   setPage(static_cast<int>(Page::AudioCodec), new AudioCodecPage(this));
    setPage(static_cast<int>(Page::Finish), new FinishPage(this));
 
 #if !defined(Q_OS_MAC)
@@ -55,16 +56,43 @@ SetupWizard::SetupWizard(QWidget* parent) :
 
 SetupWizard::~SetupWizard() = default;
 
+int SetupWizard::nextId() const
+{
+   int nextId = currentId();
+
+   while (true)
+   {
+      switch (++nextId)
+      {
+      case static_cast<int>(Page::MapProvider):
+      case static_cast<int>(Page::MapLayout):
+         if (MapProviderPage::IsRequired())
+         {
+            return nextId;
+         }
+         break;
+
+      case static_cast<int>(Page::AudioCodec):
+         if (AudioCodecPage::IsRequired())
+         {
+            return nextId;
+         }
+         break;
+
+      case static_cast<int>(Page::Finish):
+         return nextId;
+
+      default:
+         return -1;
+      }
+   }
+
+   return -1;
+}
+
 bool SetupWizard::IsSetupRequired()
 {
-   auto& generalSettings = settings::GeneralSettings::Instance();
-
-   std::string mapboxApiKey   = generalSettings.mapbox_api_key().GetValue();
-   std::string maptilerApiKey = generalSettings.maptiler_api_key().GetValue();
-
-   // Setup is required if either API key is empty, or contains a single
-   // character ("?")
-   return (mapboxApiKey.size() <= 1 && maptilerApiKey.size() <= 1);
+   return (MapProviderPage::IsRequired() || AudioCodecPage::IsRequired());
 }
 
 } // namespace setup

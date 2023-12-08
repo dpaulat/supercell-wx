@@ -278,6 +278,18 @@ bool MapProviderPage::validatePage()
    return true;
 }
 
+bool MapProviderPage::IsRequired()
+{
+   auto& generalSettings = settings::GeneralSettings::Instance();
+
+   std::string mapboxApiKey   = generalSettings.mapbox_api_key().GetValue();
+   std::string maptilerApiKey = generalSettings.maptiler_api_key().GetValue();
+
+   // Setup is required if either API key is empty, or contains a single
+   // character ("?")
+   return (mapboxApiKey.size() <= 1 && maptilerApiKey.size() <= 1);
+}
+
 } // namespace setup
 } // namespace ui
 } // namespace qt
