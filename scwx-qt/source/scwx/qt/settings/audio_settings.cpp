@@ -37,6 +37,7 @@ public:
       alertLocationMethod_.SetDefault(defaultAlertLocationMethodValue);
       alertLatitude_.SetDefault(0.0);
       alertLongitude_.SetDefault(0.0);
+      ignoreMissingCodecs_.SetDefault(false);
 
       alertLatitude_.SetMinimum(-90.0);
       alertLatitude_.SetMaximum(90.0);
@@ -83,6 +84,7 @@ public:
    SettingsVariable<double>      alertLatitude_ {"alert_latitude"};
    SettingsVariable<double>      alertLongitude_ {"alert_longitude"};
    SettingsVariable<std::string> alertCounty_ {"alert_county"};
+   SettingsVariable<bool>        ignoreMissingCodecs_ {"ignore_missing_codecs"};
 
    std::unordered_map<awips::Phenomenon, SettingsVariable<bool>>
                                       alertEnabled_ {};
@@ -96,7 +98,8 @@ AudioSettings::AudioSettings() :
                       &p->alertLocationMethod_,
                       &p->alertLatitude_,
                       &p->alertLongitude_,
-                      &p->alertCounty_});
+                      &p->alertCounty_,
+                      &p->ignoreMissingCodecs_});
    RegisterVariables(p->variables_);
    SetDefaults();
 
@@ -141,6 +144,11 @@ AudioSettings::alert_enabled(awips::Phenomenon phenomenon) const
       alert = p->alertEnabled_.find(kDefaultPhenomenon_);
    }
    return alert->second;
+}
+
+SettingsVariable<bool>& AudioSettings::ignore_missing_codecs() const
+{
+   return p->ignoreMissingCodecs_;
 }
 
 AudioSettings& AudioSettings::Instance()

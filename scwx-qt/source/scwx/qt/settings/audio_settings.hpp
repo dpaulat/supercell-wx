@@ -32,6 +32,7 @@ public:
    SettingsVariable<double>&      alert_longitude() const;
    SettingsVariable<std::string>& alert_county() const;
    SettingsVariable<bool>& alert_enabled(awips::Phenomenon phenomenon) const;
+   SettingsVariable<bool>& ignore_missing_codecs() const;
 
    static AudioSettings& Instance();
 
