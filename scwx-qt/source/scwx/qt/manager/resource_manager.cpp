@@ -1,6 +1,5 @@
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/manager/font_manager.hpp>
-#include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
 #include <scwx/qt/types/texture_types.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
@@ -33,8 +32,6 @@ static const std::vector<std::pair<types::Font, std::string>> fontNames_ {
 
 void Initialize()
 {
-   config::CountyDatabase::Initialize();
-
    LoadFonts();
    LoadTextures();
 }

@@ -11,15 +11,14 @@ namespace ui
 namespace setup
 {
 
-class MapProviderPage : public QWizardPage
+class AudioCodecPage : public QWizardPage
 {
-   Q_DISABLE_COPY_MOVE(MapProviderPage)
+   Q_DISABLE_COPY_MOVE(AudioCodecPage)
 
 public:
-   explicit MapProviderPage(QWidget* parent = nullptr);
-   ~MapProviderPage();
+   explicit AudioCodecPage(QWidget* parent = nullptr);
+   ~AudioCodecPage();
 
-   bool isComplete() const override;
    bool validatePage() override;
 
    static bool IsRequired();

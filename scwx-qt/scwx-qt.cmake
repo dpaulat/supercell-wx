@@ -14,6 +14,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Boost)
 find_package(Fontconfig)
 find_package(geographiclib)
+find_package(geos)
 find_package(GLEW)
 find_package(glm)
 find_package(Python COMPONENTS Interpreter)
@@ -22,6 +23,7 @@ find_package(SQLite3)
 find_package(QT NAMES Qt6
              COMPONENTS Gui
                         LinguistTools
+                        Multimedia
                         Network
                         OpenGL
                         OpenGLWidgets
@@ -31,6 +33,7 @@ find_package(QT NAMES Qt6
 find_package(Qt${QT_VERSION_MAJOR}
              COMPONENTS Gui
                         LinguistTools
+                        Multimedia
                         Network
                         OpenGL
                         OpenGLWidgets
@@ -76,7 +79,9 @@ set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
                 source/scwx/qt/gl/draw/placefile_text.cpp
                 source/scwx/qt/gl/draw/placefile_triangles.cpp
                 source/scwx/qt/gl/draw/rectangle.cpp)
-set(HDR_MANAGER source/scwx/qt/manager/font_manager.hpp
+set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
+                source/scwx/qt/manager/font_manager.hpp
+                source/scwx/qt/manager/media_manager.hpp
                 source/scwx/qt/manager/placefile_manager.hpp
                 source/scwx/qt/manager/position_manager.hpp
                 source/scwx/qt/manager/radar_product_manager.hpp
@@ -86,7 +91,9 @@ set(HDR_MANAGER source/scwx/qt/manager/font_manager.hpp
                 source/scwx/qt/manager/text_event_manager.hpp
                 source/scwx/qt/manager/timeline_manager.hpp
                 source/scwx/qt/manager/update_manager.hpp)
-set(SRC_MANAGER source/scwx/qt/manager/font_manager.cpp
+set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
+                source/scwx/qt/manager/font_manager.cpp
+                source/scwx/qt/manager/media_manager.cpp
                 source/scwx/qt/manager/placefile_manager.cpp
                 source/scwx/qt/manager/position_manager.cpp
                 source/scwx/qt/manager/radar_product_manager.cpp
@@ -141,18 +148,21 @@ set(SRC_MODEL source/scwx/qt/model/alert_model.cpp
               source/scwx/qt/model/tree_model.cpp)
 set(HDR_REQUEST source/scwx/qt/request/nexrad_file_request.hpp)
 set(SRC_REQUEST source/scwx/qt/request/nexrad_file_request.cpp)
-set(HDR_SETTINGS source/scwx/qt/settings/general_settings.hpp
+set(HDR_SETTINGS source/scwx/qt/settings/audio_settings.hpp
+                 source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/map_settings.hpp
                  source/scwx/qt/settings/palette_settings.hpp
                  source/scwx/qt/settings/settings_category.hpp
                  source/scwx/qt/settings/settings_container.hpp
+                 source/scwx/qt/settings/settings_definitions.hpp
                  source/scwx/qt/settings/settings_interface.hpp
                  source/scwx/qt/settings/settings_interface_base.hpp
                  source/scwx/qt/settings/settings_variable.hpp
                  source/scwx/qt/settings/settings_variable_base.hpp
                  source/scwx/qt/settings/text_settings.hpp
                  source/scwx/qt/settings/ui_settings.hpp)
-set(SRC_SETTINGS source/scwx/qt/settings/general_settings.cpp
+set(SRC_SETTINGS source/scwx/qt/settings/audio_settings.cpp
+                 source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/map_settings.cpp
                  source/scwx/qt/settings/palette_settings.cpp
                  source/scwx/qt/settings/settings_category.cpp
@@ -168,7 +178,9 @@ set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/github_types.hpp
               source/scwx/qt/types/imgui_font.hpp
               source/scwx/qt/types/layer_types.hpp
+              source/scwx/qt/types/location_types.hpp
               source/scwx/qt/types/map_types.hpp
+              source/scwx/qt/types/media_types.hpp
               source/scwx/qt/types/qt_types.hpp
               source/scwx/qt/types/radar_product_record.hpp
               source/scwx/qt/types/text_event_key.hpp
@@ -178,7 +190,9 @@ set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/github_types.cpp
               source/scwx/qt/types/imgui_font.cpp
               source/scwx/qt/types/layer_types.cpp
+              source/scwx/qt/types/location_types.cpp
               source/scwx/qt/types/map_types.cpp
+              source/scwx/qt/types/media_types.cpp
               source/scwx/qt/types/qt_types.cpp
               source/scwx/qt/types/radar_product_record.cpp
               source/scwx/qt/types/text_event_key.cpp
@@ -189,6 +203,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/alert_dock_widget.hpp
            source/scwx/qt/ui/animation_dock_widget.hpp
            source/scwx/qt/ui/collapsible_group.hpp
+           source/scwx/qt/ui/county_dialog.hpp
            source/scwx/qt/ui/flow_layout.hpp
            source/scwx/qt/ui/imgui_debug_dialog.hpp
            source/scwx/qt/ui/imgui_debug_widget.hpp
@@ -208,6 +223,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/alert_dock_widget.cpp
            source/scwx/qt/ui/animation_dock_widget.cpp
            source/scwx/qt/ui/collapsible_group.cpp
+           source/scwx/qt/ui/county_dialog.cpp
            source/scwx/qt/ui/flow_layout.cpp
            source/scwx/qt/ui/imgui_debug_dialog.cpp
            source/scwx/qt/ui/imgui_debug_widget.cpp
@@ -227,6 +243,7 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/alert_dock_widget.ui
            source/scwx/qt/ui/animation_dock_widget.ui
            source/scwx/qt/ui/collapsible_group.ui
+           source/scwx/qt/ui/county_dialog.ui
            source/scwx/qt/ui/imgui_debug_dialog.ui
            source/scwx/qt/ui/layer_dialog.ui
            source/scwx/qt/ui/open_url_dialog.ui
@@ -235,12 +252,14 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/radar_site_dialog.ui
            source/scwx/qt/ui/settings_dialog.ui
            source/scwx/qt/ui/update_dialog.ui)
-set(HDR_UI_SETUP source/scwx/qt/ui/setup/finish_page.hpp
+set(HDR_UI_SETUP source/scwx/qt/ui/setup/audio_codec_page.hpp
+                 source/scwx/qt/ui/setup/finish_page.hpp
                  source/scwx/qt/ui/setup/map_layout_page.hpp
                  source/scwx/qt/ui/setup/map_provider_page.hpp
                  source/scwx/qt/ui/setup/setup_wizard.hpp
                  source/scwx/qt/ui/setup/welcome_page.hpp)
-set(SRC_UI_SETUP source/scwx/qt/ui/setup/finish_page.cpp
+set(SRC_UI_SETUP source/scwx/qt/ui/setup/audio_codec_page.cpp
+                 source/scwx/qt/ui/setup/finish_page.cpp
                  source/scwx/qt/ui/setup/map_layout_page.cpp
                  source/scwx/qt/ui/setup/map_provider_page.cpp
                  source/scwx/qt/ui/setup/setup_wizard.cpp
@@ -309,6 +328,7 @@ set(ZONE_DBF_FILES   ${SCWX_DIR}/data/db/fz19se23.dbf
                      ${SCWX_DIR}/data/db/mz19se23.dbf
                      ${SCWX_DIR}/data/db/oz08mr23.dbf
                      ${SCWX_DIR}/data/db/z_19se23.dbf)
+set(STATE_DBF_FILES  ${SCWX_DIR}/data/db/s_08mr23.dbf)
 set(COUNTIES_SQLITE_DB ${scwx-qt_BINARY_DIR}/res/db/counties.db)
 
 set(VERSIONS_INPUT  ${scwx-qt_SOURCE_DIR}/source/scwx/qt/main/versions.hpp.in)
@@ -397,8 +417,12 @@ add_custom_command(OUTPUT  ${COUNTIES_SQLITE_DB}
                            ${scwx-qt_SOURCE_DIR}/tools/generate_counties_db.py
                            -c ${COUNTY_DBF_FILES}
                            -z ${ZONE_DBF_FILES}
+                           -s ${STATE_DBF_FILES}
                            -o ${COUNTIES_SQLITE_DB}
-                   DEPENDS ${COUNTY_DB_FILES} ${ZONE_DBF_FILES})
+                   DEPENDS ${scwx-qt_SOURCE_DIR}/tools/generate_counties_db.py
+                           ${COUNTY_DB_FILES}
+                           ${STATE_DBF_FILES}
+                           ${ZONE_DBF_FILES})
 
 add_custom_target(scwx-qt_generate_counties_db ALL
                   DEPENDS ${COUNTIES_SQLITE_DB})
@@ -512,6 +536,7 @@ endif()
 
 target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Qt${QT_VERSION_MAJOR}::OpenGLWidgets
+                                     Qt${QT_VERSION_MAJOR}::Multimedia
                                      Qt${QT_VERSION_MAJOR}::Positioning
                                      Boost::json
                                      Boost::timer
@@ -519,6 +544,8 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      $<$<CXX_COMPILER_ID:MSVC>:opengl32>
                                      Fontconfig::Fontconfig
                                      GeographicLib::GeographicLib
+                                     GEOS::geos
+                                     GEOS::geos_cxx_flags
                                      GLEW::GLEW
                                      glm::glm
                                      imgui

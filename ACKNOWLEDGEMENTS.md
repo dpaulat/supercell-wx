@@ -22,6 +22,7 @@ Supercell Wx uses code from the following dependencies:
 | [FreeType](https://freetype.org/) | [Freetype Project License](https://spdx.org/licenses/FTL.html) |
 | [FreeType GL](https://github.com/rougier/freetype-gl) | [BSD 2-Clause with views sentence](https://spdx.org/licenses/BSD-2-Clause-Views.html) |
 | [GeographicLib](https://geographiclib.sourceforge.io/) | [MIT License](https://spdx.org/licenses/MIT.html) |
+| [geos](https://libgeos.org/) | [GNU Lesser General Public License v2.1 or later](https://spdx.org/licenses/LGPL-2.1-or-later.html) |
 | [GLEW](https://www.opengl.org/sdk/libs/GLEW/) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [GLM](https://github.com/g-truc/glm) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [GoogleTest](https://google.github.io/googletest/) | [BSD 3-Clause "New" or "Revised" License](https://spdx.org/licenses/BSD-3-Clause.html) |
@@ -33,7 +34,7 @@ Supercell Wx uses code from the following dependencies:
 | [MapLibre Native](https://maplibre.org/projects/maplibre-native/) | [BSD 2-Clause "Simplified" License](https://spdx.org/licenses/BSD-2-Clause.html) |
 | [nunicode](https://bitbucket.org/alekseyt/nunicode/src/master/) | [MIT License](https://spdx.org/licenses/MIT.html) | Modified for MapLibre Native |
 | [OpenSSL](https://www.openssl.org/) | [OpenSSL License](https://spdx.org/licenses/OpenSSL.html) |
-| [Qt](https://www.qt.io/) | [GNU Lesser General Public License v3.0 only](https://spdx.org/licenses/LGPL-3.0-only.html) | Qt Core, Qt GUI, Qt Network, Qt OpenGL, Qt SQL, Qt SVG, Qt Widgets<br/>Additional Licenses: https://doc.qt.io/qt-6/licenses-used-in-qt.html |
+| [Qt](https://www.qt.io/) | [GNU Lesser General Public License v3.0 only](https://spdx.org/licenses/LGPL-3.0-only.html) | Qt Core, Qt GUI, Qt Multimedia, Qt Network, Qt OpenGL, Qt Positioning, Qt SQL, Qt SVG, Qt Widgets<br/>Additional Licenses: https://doc.qt.io/qt-6/licenses-used-in-qt.html |
 | [spdlog](https://github.com/gabime/spdlog) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [SQLite](https://www.sqlite.org/) | Public Domain |
 | [stb](https://github.com/nothings/stb) | Public Domain |
@@ -59,6 +60,7 @@ Supercell Wx uses assets from the following sources:
 | Source | License | Notes |
 | ------ | ------- | ----- |
 | Alte DIN 1451 Mittelschrift | SIL Open Font License |
+| [EAS Attention Signal](https://en.wikipedia.org/wiki/File:Emergency_Alert_System_Attention_Signal_20s.ogg) | Public Domain |
 | [Font Awesome Free](https://fontawesome.com/) | CC BY 4.0 License |
 | [Inconsolata](https://fonts.google.com/specimen/Inconsolata) | SIL Open Font License |
 | [NOAA's Weather and Climate Toolkit](https://www.ncdc.noaa.gov/wct/) | Public Domain | Default Color Tables |

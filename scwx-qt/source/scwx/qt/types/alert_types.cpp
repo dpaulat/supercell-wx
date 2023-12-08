@@ -37,6 +37,17 @@ std::string GetAlertActionName(AlertAction alertAction)
    return alertActionName_.at(alertAction);
 }
 
+const std::vector<awips::Phenomenon>& GetAlertAudioPhenomena()
+{
+   static const std::vector<awips::Phenomenon> phenomena_ {
+      awips::Phenomenon::FlashFlood,
+      awips::Phenomenon::SevereThunderstorm,
+      awips::Phenomenon::SnowSquall,
+      awips::Phenomenon::Tornado};
+
+   return phenomena_;
+}
+
 } // namespace types
 } // namespace qt
 } // namespace scwx

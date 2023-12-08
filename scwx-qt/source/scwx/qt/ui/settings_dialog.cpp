@@ -3,17 +3,23 @@
 
 #include <scwx/awips/phenomenon.hpp>
 #include <scwx/common/color_table.hpp>
+#include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/manager/media_manager.hpp>
+#include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
+#include <scwx/qt/settings/audio_settings.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/types/alert_types.hpp>
 #include <scwx/qt/types/font_types.hpp>
+#include <scwx/qt/types/location_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/types/text_types.hpp>
+#include <scwx/qt/ui/county_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/util/color.hpp>
 #include <scwx/qt/util/file.hpp>
@@ -26,6 +32,7 @@
 #include <QFileDialog>
 #include <QFontDatabase>
 #include <QFontDialog>
+#include <QGeoPositionInfo>
 #include <QStandardItemModel>
 #include <QToolButton>
 
@@ -84,12 +91,31 @@ static const std::unordered_map<std::string, ColorTableConversions>
                             {"VIL", {0u, 255u, 1.0f, 2.5f}},
                             {"???", {0u, 15u, 0.0f, 1.0f}}};
 
+#define SCWX_ENUM_MAP_FROM_VALUE(Type, Iterator, ToName)                       \
+   [](const std::string& text) -> std::string                                  \
+   {                                                                           \
+      for (Type enumValue : Iterator)                                          \
+      {                                                                        \
+         const std::string enumName = ToName(enumValue);                       \
+                                                                               \
+         if (boost::iequals(text, enumName))                                   \
+         {                                                                     \
+            /* Return label */                                                 \
+            return enumName;                                                   \
+         }                                                                     \
+      }                                                                        \
+                                                                               \
+      /* Label not found, return unknown */                                    \
+      return "?";                                                              \
+   }
+
 class SettingsDialogImpl
 {
 public:
    explicit SettingsDialogImpl(SettingsDialog* self) :
        self_ {self},
        radarSiteDialog_ {new RadarSiteDialog(self)},
+       countyDialog_ {new CountyDialog(self)},
        fontDialog_ {new QFontDialog(self)},
        fontCategoryModel_ {new QStandardItemModel(self)},
        settings_ {std::initializer_list<settings::SettingsInterfaceBase*> {
@@ -104,6 +130,11 @@ public:
           &antiAliasingEnabled_,
           &updateNotificationsEnabled_,
           &debugEnabled_,
+          &alertAudioSoundFile_,
+          &alertAudioLocationMethod_,
+          &alertAudioLatitude_,
+          &alertAudioLongitude_,
+          &alertAudioCounty_,
           &hoverTextWrap_,
           &tooltipMethod_,
           &placefileTextDropShadowEnabled_}}
@@ -136,6 +167,7 @@ public:
    void SetupGeneralTab();
    void SetupPalettesColorTablesTab();
    void SetupPalettesAlertsTab();
+   void SetupAudioTab();
    void SetupTextTab();
 
    void ShowColorDialog(QLineEdit* lineEdit, QFrame* frame = nullptr);
@@ -164,11 +196,17 @@ public:
 
    SettingsDialog*  self_;
    RadarSiteDialog* radarSiteDialog_;
+   CountyDialog*    countyDialog_;
    QFontDialog*     fontDialog_;
 
    QStandardItemModel* fontCategoryModel_;
 
    types::FontCategory selectedFontCategory_ {types::FontCategory::Unknown};
+
+   std::shared_ptr<manager::MediaManager> mediaManager_ {
+      manager::MediaManager::Instance()};
+   std::shared_ptr<manager::PositionManager> positionManager_ {
+      manager::PositionManager::Instance()};
 
    settings::SettingsInterface<std::string>  defaultRadarSite_ {};
    settings::SettingsInterface<std::int64_t> gridWidth_ {};
@@ -190,6 +228,15 @@ public:
    std::unordered_map<awips::Phenomenon,
                       settings::SettingsInterface<std::string>>
       inactiveAlertColors_ {};
+
+   settings::SettingsInterface<std::string> alertAudioSoundFile_ {};
+   settings::SettingsInterface<std::string> alertAudioLocationMethod_ {};
+   settings::SettingsInterface<double>      alertAudioLatitude_ {};
+   settings::SettingsInterface<double>      alertAudioLongitude_ {};
+   settings::SettingsInterface<std::string> alertAudioCounty_ {};
+
+   std::unordered_map<awips::Phenomenon, settings::SettingsInterface<bool>>
+      alertAudioEnabled_ {};
 
    std::unordered_map<types::FontCategory,
                       settings::SettingsInterface<std::string>>
@@ -222,6 +269,9 @@ SettingsDialog::SettingsDialog(QWidget* parent) :
 
    // Palettes > Alerts
    p->SetupPalettesAlertsTab();
+
+   // Audio
+   p->SetupAudioTab();
 
    // Text
    p->SetupTextTab();
@@ -269,6 +319,20 @@ void SettingsDialogImpl::ConnectSignals()
    defaultRadarSite.RegisterValueStagedCallback(
       [this](const std::string& newValue)
       { UpdateRadarDialogLocation(newValue); });
+
+   QObject::connect(
+      self_->ui->alertAudioSoundTestButton,
+      &QAbstractButton::clicked,
+      self_,
+      [this]()
+      {
+         mediaManager_->Play(
+            self_->ui->alertAudioSoundLineEdit->text().toStdString());
+      });
+   QObject::connect(self_->ui->alertAudioSoundStopButton,
+                    &QAbstractButton::clicked,
+                    self_,
+                    [this]() { mediaManager_->Stop(); });
 
    QObject::connect(
       self_->ui->fontListView->selectionModel(),
@@ -764,6 +828,211 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
                        [=, this]()
                        { ShowColorDialog(inactiveEdit, inactiveFrame); });
    }
+}
+
+void SettingsDialogImpl::SetupAudioTab()
+{
+   QObject::connect(
+      self_->ui->alertAudioLocationMethodComboBox,
+      &QComboBox::currentTextChanged,
+      self_,
+      [this](const QString& text)
+      {
+         types::LocationMethod locationMethod =
+            types::GetLocationMethod(text.toStdString());
+
+         bool coordinateEntryEnabled =
+            locationMethod == types::LocationMethod::Fixed;
+         bool countyEntryEnabled =
+            locationMethod == types::LocationMethod::County;
+
+         self_->ui->alertAudioLatitudeSpinBox->setEnabled(
+            coordinateEntryEnabled);
+         self_->ui->alertAudioLongitudeSpinBox->setEnabled(
+            coordinateEntryEnabled);
+         self_->ui->resetAlertAudioLatitudeButton->setEnabled(
+            coordinateEntryEnabled);
+         self_->ui->resetAlertAudioLongitudeButton->setEnabled(
+            coordinateEntryEnabled);
+
+         self_->ui->alertAudioCountyLineEdit->setEnabled(countyEntryEnabled);
+         self_->ui->alertAudioCountySelectButton->setEnabled(
+            countyEntryEnabled);
+         self_->ui->resetAlertAudioCountyButton->setEnabled(countyEntryEnabled);
+      });
+
+   settings::AudioSettings& audioSettings = settings::AudioSettings::Instance();
+
+   alertAudioSoundFile_.SetSettingsVariable(audioSettings.alert_sound_file());
+   alertAudioSoundFile_.SetEditWidget(self_->ui->alertAudioSoundLineEdit);
+   alertAudioSoundFile_.SetResetButton(self_->ui->resetAlertAudioSoundButton);
+
+   QObject::connect(
+      self_->ui->alertAudioSoundSelectButton,
+      &QAbstractButton::clicked,
+      self_,
+      [this]()
+      {
+         static const std::string audioFilter =
+            "Audio Files (*.3ga *.669 *.a52 *.aac *.ac3 *.adt *.adts *.aif "
+            "*.aifc *.aiff *.amb *.amr *.aob *.ape *.au *.awb *.caf *.dts "
+            "*.flac *.it *.kar *.m4a *.m4b *.m4p *.m5p *.mid *.mka *.mlp *.mod "
+            "*.mpa *.mp1 *.mp2 *.mp3 *.mpc *.mpga *.mus *.oga *.ogg *.oma "
+            "*.opus *.qcp *.ra *.rmi *.s3m *.sid *.spx *.tak *.thd *.tta *.voc "
+            "*.vqf *.w64 *.wav *.wma *.wv *.xa *.xm)";
+         static const std::string allFilter = "All Files (*)";
+
+         QFileDialog* dialog = new QFileDialog(self_);
+
+         dialog->setFileMode(QFileDialog::ExistingFile);
+         dialog->setNameFilters(
+            {QObject::tr(audioFilter.c_str()), QObject::tr(allFilter.c_str())});
+         dialog->setAttribute(Qt::WA_DeleteOnClose);
+
+         QObject::connect(
+            dialog,
+            &QFileDialog::fileSelected,
+            self_,
+            [this](const QString& file)
+            {
+               QString path = QDir::toNativeSeparators(file);
+
+               logger_->info("Selected alert sound file: {}",
+                             path.toStdString());
+               self_->ui->alertAudioSoundLineEdit->setText(path);
+
+               // setText does not emit the textEdited signal
+               Q_EMIT self_->ui->alertAudioSoundLineEdit->textEdited(path);
+            });
+
+         dialog->open();
+      });
+
+   for (const auto& locationMethod : types::LocationMethodIterator())
+   {
+      self_->ui->alertAudioLocationMethodComboBox->addItem(
+         QString::fromStdString(types::GetLocationMethodName(locationMethod)));
+   }
+
+   alertAudioLocationMethod_.SetSettingsVariable(
+      audioSettings.alert_location_method());
+   alertAudioLocationMethod_.SetMapFromValueFunction(
+      SCWX_ENUM_MAP_FROM_VALUE(types::LocationMethod,
+                               types::LocationMethodIterator(),
+                               types::GetLocationMethodName));
+   alertAudioLocationMethod_.SetMapToValueFunction(
+      [](std::string text) -> std::string
+      {
+         // Convert label to lower case and return
+         boost::to_lower(text);
+         return text;
+      });
+   alertAudioLocationMethod_.SetEditWidget(
+      self_->ui->alertAudioLocationMethodComboBox);
+   alertAudioLocationMethod_.SetResetButton(
+      self_->ui->resetAlertAudioLocationMethodButton);
+
+   alertAudioLatitude_.SetSettingsVariable(audioSettings.alert_latitude());
+   alertAudioLatitude_.SetEditWidget(self_->ui->alertAudioLatitudeSpinBox);
+   alertAudioLatitude_.SetResetButton(self_->ui->resetAlertAudioLatitudeButton);
+
+   alertAudioLongitude_.SetSettingsVariable(audioSettings.alert_longitude());
+   alertAudioLongitude_.SetEditWidget(self_->ui->alertAudioLongitudeSpinBox);
+   alertAudioLongitude_.SetResetButton(
+      self_->ui->resetAlertAudioLongitudeButton);
+
+   auto alertAudioLayout =
+      static_cast<QGridLayout*>(self_->ui->alertAudioGroupBox->layout());
+
+   for (const auto& phenomenon : types::GetAlertAudioPhenomena())
+   {
+      QCheckBox* alertAudioCheckbox = new QCheckBox(self_);
+      alertAudioCheckbox->setText(
+         QString::fromStdString(awips::GetPhenomenonText(phenomenon)));
+
+      static_cast<QGridLayout*>(self_->ui->alertAudioGroupBox->layout())
+         ->addWidget(
+            alertAudioCheckbox, alertAudioLayout->rowCount(), 0, 1, -1);
+
+      // Create settings interface
+      auto result = alertAudioEnabled_.emplace(
+         phenomenon, settings::SettingsInterface<bool> {});
+      auto& alertAudioEnabled = result.first->second;
+
+      // Add to settings list
+      settings_.push_back(&alertAudioEnabled);
+
+      alertAudioEnabled.SetSettingsVariable(
+         audioSettings.alert_enabled(phenomenon));
+      alertAudioEnabled.SetEditWidget(alertAudioCheckbox);
+   }
+
+   QObject::connect(
+      positionManager_.get(),
+      &manager::PositionManager::PositionUpdated,
+      self_,
+      [this](const QGeoPositionInfo& info)
+      {
+         settings::AudioSettings& audioSettings =
+            settings::AudioSettings::Instance();
+
+         if (info.isValid() &&
+             types::GetLocationMethod(
+                audioSettings.alert_location_method().GetValue()) ==
+                types::LocationMethod::Track)
+         {
+            QGeoCoordinate coordinate = info.coordinate();
+            self_->ui->alertAudioLatitudeSpinBox->setValue(
+               coordinate.latitude());
+            self_->ui->alertAudioLongitudeSpinBox->setValue(
+               coordinate.longitude());
+         }
+      });
+
+   QObject::connect(
+      self_->ui->alertAudioCountySelectButton,
+      &QAbstractButton::clicked,
+      self_,
+      [this]()
+      {
+         std::string countyId =
+            self_->ui->alertAudioCountyLineEdit->text().toStdString();
+
+         if (countyId.length() >= 2)
+         {
+            countyDialog_->SelectState(countyId.substr(0, 2));
+         }
+
+         countyDialog_->show();
+      });
+   QObject::connect(countyDialog_,
+                    &CountyDialog::accepted,
+                    self_,
+                    [this]()
+                    {
+                       std::string countyId  = countyDialog_->county_fips_id();
+                       QString     qCountyId = QString::fromStdString(countyId);
+                       self_->ui->alertAudioCountyLineEdit->setText(qCountyId);
+
+                       // setText does not emit the textEdited signal
+                       Q_EMIT self_->ui->alertAudioCountyLineEdit->textEdited(
+                          qCountyId);
+                    });
+   QObject::connect(self_->ui->alertAudioCountyLineEdit,
+                    &QLineEdit::textChanged,
+                    self_,
+                    [this](const QString& text)
+                    {
+                       std::string countyName =
+                          config::CountyDatabase::GetCountyName(
+                             text.toStdString());
+                       self_->ui->alertAudioCountyLabel->setText(
+                          QString::fromStdString(countyName));
+                    });
+
+   alertAudioCounty_.SetSettingsVariable(audioSettings.alert_county());
+   alertAudioCounty_.SetEditWidget(self_->ui->alertAudioCountyLineEdit);
+   alertAudioCounty_.SetResetButton(self_->ui->resetAlertAudioCountyButton);
 }
 
 void SettingsDialogImpl::SetupTextTab()

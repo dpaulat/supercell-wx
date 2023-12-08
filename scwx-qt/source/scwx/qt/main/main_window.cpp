@@ -3,6 +3,7 @@
 
 #include <scwx/qt/main/application.hpp>
 #include <scwx/qt/main/versions.hpp>
+#include <scwx/qt/manager/alert_manager.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
@@ -82,6 +83,7 @@ public:
        radarSiteDialog_ {nullptr},
        settingsDialog_ {nullptr},
        updateDialog_ {nullptr},
+       alertManager_ {manager::AlertManager::Instance()},
        placefileManager_ {manager::PlacefileManager::Instance()},
        positionManager_ {manager::PositionManager::Instance()},
        textEventManager_ {manager::TextEventManager::Instance()},
@@ -178,6 +180,7 @@ public:
    ui::SettingsDialog*      settingsDialog_;
    ui::UpdateDialog*        updateDialog_;
 
+   std::shared_ptr<manager::AlertManager>     alertManager_;
    std::shared_ptr<manager::PlacefileManager> placefileManager_;
    std::shared_ptr<manager::PositionManager>  positionManager_;
    std::shared_ptr<manager::TextEventManager> textEventManager_;

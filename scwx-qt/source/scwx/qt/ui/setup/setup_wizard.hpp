@@ -19,11 +19,14 @@ public:
       Welcome = 0,
       MapProvider,
       MapLayout,
+      AudioCodec,
       Finish
    };
 
    explicit SetupWizard(QWidget* parent = nullptr);
    ~SetupWizard();
+
+   int nextId() const override;
 
    static bool IsSetupRequired();
 

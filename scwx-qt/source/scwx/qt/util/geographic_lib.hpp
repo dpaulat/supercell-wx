@@ -1,5 +1,9 @@
 #pragma once
 
+#include <scwx/common/geographic.hpp>
+
+#include <vector>
+
 #include <GeographicLib/Geodesic.hpp>
 #include <units/angle.h>
 #include <units/length.h>
@@ -19,6 +23,18 @@ namespace GeographicLib
  * @return WGS84 ellipsoid geodesic
  */
 const ::GeographicLib::Geodesic& DefaultGeodesic();
+
+/**
+ * Determine if an area/ring, oriented in either direction, contains a point. A
+ * point lying on the area boundary is considered to be inside the area.
+ *
+ * @param [in] area A vector of Coordinates representing the area
+ * @param [in] point The point to check against the area
+ *
+ * @return true if point is inside the area
+ */
+bool AreaContainsPoint(const std::vector<common::Coordinate>& area,
+                       const common::Coordinate&              point);
 
 /**
  * Get the angle between two points.
