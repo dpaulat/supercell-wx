@@ -1,3 +1,4 @@
+#include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/settings/audio_settings.hpp>
 #include <scwx/qt/settings/settings_definitions.hpp>
 #include <scwx/qt/settings/settings_variable.hpp>
@@ -47,6 +48,14 @@ public:
                                       types::LocationMethodIterator(),
                                       types::GetLocationMethodName));
 
+      alertCounty_.SetValidator(
+         [](const std::string& value)
+         {
+            // Empty, or county exists in the database
+            return value.empty() ||
+                   config::CountyDatabase::GetCountyName(value) != value;
+         });
+
       for (auto& phenomenon : types::GetAlertAudioPhenomena())
       {
          std::string phenomenonCode = awips::GetPhenomenonCode(phenomenon);
@@ -73,6 +82,7 @@ public:
    SettingsVariable<std::string> alertLocationMethod_ {"alert_location_method"};
    SettingsVariable<double>      alertLatitude_ {"alert_latitude"};
    SettingsVariable<double>      alertLongitude_ {"alert_longitude"};
+   SettingsVariable<std::string> alertCounty_ {"alert_county"};
 
    std::unordered_map<awips::Phenomenon, SettingsVariable<bool>>
                                       alertEnabled_ {};
@@ -85,7 +95,8 @@ AudioSettings::AudioSettings() :
    RegisterVariables({&p->alertSoundFile_,
                       &p->alertLocationMethod_,
                       &p->alertLatitude_,
-                      &p->alertLongitude_});
+                      &p->alertLongitude_,
+                      &p->alertCounty_});
    RegisterVariables(p->variables_);
    SetDefaults();
 
@@ -116,6 +127,11 @@ SettingsVariable<double>& AudioSettings::alert_longitude() const
    return p->alertLongitude_;
 }
 
+SettingsVariable<std::string>& AudioSettings::alert_county() const
+{
+   return p->alertCounty_;
+}
+
 SettingsVariable<bool>&
 AudioSettings::alert_enabled(awips::Phenomenon phenomenon) const
 {
@@ -139,6 +155,7 @@ bool operator==(const AudioSettings& lhs, const AudioSettings& rhs)
            lhs.p->alertLocationMethod_ == rhs.p->alertLocationMethod_ &&
            lhs.p->alertLatitude_ == rhs.p->alertLatitude_ &&
            lhs.p->alertLongitude_ == rhs.p->alertLongitude_ &&
+           lhs.p->alertCounty_ == rhs.p->alertCounty_ &&
            lhs.p->alertEnabled_ == rhs.p->alertEnabled_);
 }
 

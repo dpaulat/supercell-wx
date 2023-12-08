@@ -30,6 +30,7 @@ public:
    SettingsVariable<std::string>& alert_location_method() const;
    SettingsVariable<double>&      alert_latitude() const;
    SettingsVariable<double>&      alert_longitude() const;
+   SettingsVariable<std::string>& alert_county() const;
    SettingsVariable<bool>& alert_enabled(awips::Phenomenon phenomenon) const;
 
    static AudioSettings& Instance();

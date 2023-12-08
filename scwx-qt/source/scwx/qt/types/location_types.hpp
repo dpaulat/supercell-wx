@@ -15,10 +15,11 @@ enum class LocationMethod
 {
    Fixed,
    Track,
+   County,
    Unknown
 };
 typedef scwx::util::
-   Iterator<LocationMethod, LocationMethod::Fixed, LocationMethod::Track>
+   Iterator<LocationMethod, LocationMethod::Fixed, LocationMethod::County>
       LocationMethodIterator;
 
 LocationMethod     GetLocationMethod(const std::string& name);

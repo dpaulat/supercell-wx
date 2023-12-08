@@ -3,6 +3,7 @@
 
 #include <scwx/awips/phenomenon.hpp>
 #include <scwx/common/color_table.hpp>
+#include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/manager/media_manager.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
@@ -18,6 +19,7 @@
 #include <scwx/qt/types/location_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/types/text_types.hpp>
+#include <scwx/qt/ui/county_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/util/color.hpp>
 #include <scwx/qt/util/file.hpp>
@@ -113,6 +115,7 @@ public:
    explicit SettingsDialogImpl(SettingsDialog* self) :
        self_ {self},
        radarSiteDialog_ {new RadarSiteDialog(self)},
+       countyDialog_ {new CountyDialog(self)},
        fontDialog_ {new QFontDialog(self)},
        fontCategoryModel_ {new QStandardItemModel(self)},
        settings_ {std::initializer_list<settings::SettingsInterfaceBase*> {
@@ -131,6 +134,7 @@ public:
           &alertAudioLocationMethod_,
           &alertAudioLatitude_,
           &alertAudioLongitude_,
+          &alertAudioCounty_,
           &hoverTextWrap_,
           &tooltipMethod_,
           &placefileTextDropShadowEnabled_}}
@@ -192,6 +196,7 @@ public:
 
    SettingsDialog*  self_;
    RadarSiteDialog* radarSiteDialog_;
+   CountyDialog*    countyDialog_;
    QFontDialog*     fontDialog_;
 
    QStandardItemModel* fontCategoryModel_;
@@ -228,6 +233,7 @@ public:
    settings::SettingsInterface<std::string> alertAudioLocationMethod_ {};
    settings::SettingsInterface<double>      alertAudioLatitude_ {};
    settings::SettingsInterface<double>      alertAudioLongitude_ {};
+   settings::SettingsInterface<std::string> alertAudioCounty_ {};
 
    std::unordered_map<awips::Phenomenon, settings::SettingsInterface<bool>>
       alertAudioEnabled_ {};
@@ -826,26 +832,34 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
 
 void SettingsDialogImpl::SetupAudioTab()
 {
-   QObject::connect(self_->ui->alertAudioLocationMethodComboBox,
-                    &QComboBox::currentTextChanged,
-                    self_,
-                    [this](const QString& text)
-                    {
-                       types::LocationMethod locationMethod =
-                          types::GetLocationMethod(text.toStdString());
+   QObject::connect(
+      self_->ui->alertAudioLocationMethodComboBox,
+      &QComboBox::currentTextChanged,
+      self_,
+      [this](const QString& text)
+      {
+         types::LocationMethod locationMethod =
+            types::GetLocationMethod(text.toStdString());
 
-                       bool coordinateEntryEnabled =
-                          locationMethod == types::LocationMethod::Fixed;
+         bool coordinateEntryEnabled =
+            locationMethod == types::LocationMethod::Fixed;
+         bool countyEntryEnabled =
+            locationMethod == types::LocationMethod::County;
 
-                       self_->ui->alertAudioLatitudeSpinBox->setEnabled(
-                          coordinateEntryEnabled);
-                       self_->ui->alertAudioLongitudeSpinBox->setEnabled(
-                          coordinateEntryEnabled);
-                       self_->ui->resetAlertAudioLatitudeButton->setEnabled(
-                          coordinateEntryEnabled);
-                       self_->ui->resetAlertAudioLongitudeButton->setEnabled(
-                          coordinateEntryEnabled);
-                    });
+         self_->ui->alertAudioLatitudeSpinBox->setEnabled(
+            coordinateEntryEnabled);
+         self_->ui->alertAudioLongitudeSpinBox->setEnabled(
+            coordinateEntryEnabled);
+         self_->ui->resetAlertAudioLatitudeButton->setEnabled(
+            coordinateEntryEnabled);
+         self_->ui->resetAlertAudioLongitudeButton->setEnabled(
+            coordinateEntryEnabled);
+
+         self_->ui->alertAudioCountyLineEdit->setEnabled(countyEntryEnabled);
+         self_->ui->alertAudioCountySelectButton->setEnabled(
+            countyEntryEnabled);
+         self_->ui->resetAlertAudioCountyButton->setEnabled(countyEntryEnabled);
+      });
 
    settings::AudioSettings& audioSettings = settings::AudioSettings::Instance();
 
@@ -927,6 +941,10 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioLongitude_.SetResetButton(
       self_->ui->resetAlertAudioLongitudeButton);
 
+   alertAudioCounty_.SetSettingsVariable(audioSettings.alert_county());
+   alertAudioCounty_.SetEditWidget(self_->ui->alertAudioCountyLineEdit);
+   alertAudioCounty_.SetResetButton(self_->ui->resetAlertAudioCountyButton);
+
    auto alertAudioLayout =
       static_cast<QGridLayout*>(self_->ui->alertAudioGroupBox->layout());
 
@@ -974,6 +992,47 @@ void SettingsDialogImpl::SetupAudioTab()
                coordinate.longitude());
          }
       });
+
+   QObject::connect(
+      self_->ui->alertAudioCountySelectButton,
+      &QAbstractButton::clicked,
+      self_,
+      [this]()
+      {
+         std::string countyId =
+            self_->ui->alertAudioCountyLineEdit->text().toStdString();
+
+         if (countyId.length() >= 2)
+         {
+            countyDialog_->SelectState(countyId.substr(0, 2));
+         }
+
+         countyDialog_->show();
+      });
+   QObject::connect(countyDialog_,
+                    &CountyDialog::accepted,
+                    self_,
+                    [this]()
+                    {
+                       std::string countyId  = countyDialog_->county_fips_id();
+                       QString     qCountyId = QString::fromStdString(countyId);
+                       self_->ui->alertAudioCountyLineEdit->setText(qCountyId);
+
+                       // setText does not emit the textEdited signal
+                       Q_EMIT self_->ui->alertAudioCountyLineEdit->textEdited(
+                          qCountyId);
+                    });
+   QObject::connect(self_->ui->alertAudioCountyLineEdit,
+                    &QLineEdit::textChanged,
+                    self_,
+                    [this](const QString& text)
+                    {
+                       std::string countyName =
+                          config::CountyDatabase::GetCountyName(
+                             text.toStdString());
+                       self_->ui->alertAudioCountyLabel->setText(
+                          QString::fromStdString(countyName));
+                    });
 }
 
 void SettingsDialogImpl::SetupTextTab()
