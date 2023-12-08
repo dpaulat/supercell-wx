@@ -1,5 +1,6 @@
 #define _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING
 
+#include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/main/main_window.hpp>
 #include <scwx/qt/main/versions.hpp>
@@ -72,6 +73,7 @@ int main(int argc, char* argv[])
 
    // Initialize application
    scwx::qt::config::RadarSite::Initialize();
+   scwx::qt::config::CountyDatabase::Initialize();
    scwx::qt::manager::SettingsManager::Instance().Initialize();
 
    // Theme
