@@ -941,10 +941,6 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioLongitude_.SetResetButton(
       self_->ui->resetAlertAudioLongitudeButton);
 
-   alertAudioCounty_.SetSettingsVariable(audioSettings.alert_county());
-   alertAudioCounty_.SetEditWidget(self_->ui->alertAudioCountyLineEdit);
-   alertAudioCounty_.SetResetButton(self_->ui->resetAlertAudioCountyButton);
-
    auto alertAudioLayout =
       static_cast<QGridLayout*>(self_->ui->alertAudioGroupBox->layout());
 
@@ -1033,6 +1029,10 @@ void SettingsDialogImpl::SetupAudioTab()
                        self_->ui->alertAudioCountyLabel->setText(
                           QString::fromStdString(countyName));
                     });
+
+   alertAudioCounty_.SetSettingsVariable(audioSettings.alert_county());
+   alertAudioCounty_.SetEditWidget(self_->ui->alertAudioCountyLineEdit);
+   alertAudioCounty_.SetResetButton(self_->ui->resetAlertAudioCountyButton);
 }
 
 void SettingsDialogImpl::SetupTextTab()
