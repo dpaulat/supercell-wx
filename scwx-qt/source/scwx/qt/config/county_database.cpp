@@ -225,6 +225,11 @@ GetCounties(const std::string& state)
    return counties;
 }
 
+const std::unordered_map<std::string, std::string>& GetStates()
+{
+   return stateMap_;
+}
+
 } // namespace CountyDatabase
 } // namespace config
 } // namespace qt
