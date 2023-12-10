@@ -208,7 +208,9 @@ PaletteSettings& PaletteSettings::Instance()
 
 bool operator==(const PaletteSettings& lhs, const PaletteSettings& rhs)
 {
-   return lhs.p->palette_ == rhs.p->palette_;
+   return (lhs.p->palette_ == rhs.p->palette_ &&
+           lhs.p->activeAlertColor_ == rhs.p->activeAlertColor_ &&
+           lhs.p->inactiveAlertColor_ == rhs.p->inactiveAlertColor_);
 }
 
 } // namespace settings
