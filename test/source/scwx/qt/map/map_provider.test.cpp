@@ -2,13 +2,12 @@
 #include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
 
-#include <regex>
-
 #include <QCoreApplication>
 #include <QMapLibreGL/QMapLibreGL>
 #include <QTimer>
 
 #include <gtest/gtest.h>
+#include <re2/re2.h>
 
 namespace scwx
 {
@@ -108,14 +107,15 @@ TEST_P(ByMapProviderTest, MapProviderLayers)
             const std::string layer = qlayer.toStdString();
 
             // Draw below layers defined in map style
-            auto it = std::find_if(
-               mapStyle.drawBelow_.cbegin(),
-               mapStyle.drawBelow_.cend(),
-               [&layer](const std::string& styleLayer) -> bool
-               {
-                  std::regex re {styleLayer, std::regex_constants::icase};
-                  return std::regex_match(layer, re);
-               });
+            auto it =
+               std::find_if(mapStyle.drawBelow_.cbegin(),
+                            mapStyle.drawBelow_.cend(),
+                            [&layer](const std::string& styleLayer) -> bool
+                            {
+                               // Perform case insensitive matching
+                               RE2 re {"(?i)" + styleLayer};
+                               return RE2::FullMatch(layer, re);
+                            });
 
             if (it != mapStyle.drawBelow_.cend())
             {

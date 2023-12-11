@@ -23,7 +23,6 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
-#include <regex>
 #include <set>
 
 #include <backends/imgui_impl_opengl3.h>
@@ -33,6 +32,7 @@
 #include <boost/uuid/random_generator.hpp>
 #include <fmt/format.h>
 #include <imgui.h>
+#include <re2/re2.h>
 #include <QApplication>
 #include <QColor>
 #include <QDebug>
@@ -769,14 +769,14 @@ std::string MapWidgetImpl::FindMapSymbologyLayer()
       const std::string layer = qlayer.toStdString();
 
       // Draw below layers defined in map style
-      auto it = std::find_if(
-         currentStyle_->drawBelow_.cbegin(),
-         currentStyle_->drawBelow_.cend(),
-         [&layer](const std::string& styleLayer) -> bool
-         {
-            std::regex re {styleLayer, std::regex_constants::icase};
-            return std::regex_match(layer, re);
-         });
+      auto it = std::find_if(currentStyle_->drawBelow_.cbegin(),
+                             currentStyle_->drawBelow_.cend(),
+                             [&layer](const std::string& styleLayer) -> bool
+                             {
+                                // Perform case-insensitive matching
+                                RE2 re {"(?i)" + styleLayer};
+                                return RE2::FullMatch(layer, re);
+                             });
 
       if (it != currentStyle_->drawBelow_.cend())
       {

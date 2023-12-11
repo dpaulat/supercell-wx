@@ -2,10 +2,9 @@
 #include <scwx/qt/settings/settings_variable.hpp>
 #include <scwx/qt/util/color.hpp>
 
-#include <regex>
-
 #include <boost/gil.hpp>
 #include <fmt/format.h>
+#include <re2/re2.h>
 
 namespace scwx
 {
@@ -134,8 +133,8 @@ public:
 
 bool PaletteSettings::Impl::ValidateColor(const std::string& value)
 {
-   static const std::regex re {"#[0-9A-Za-z]{8}"};
-   return std::regex_match(value, re);
+   static constexpr LazyRE2 re = {"#[0-9A-Fa-f]{8}"};
+   return RE2::FullMatch(value, *re);
 }
 
 PaletteSettings::PaletteSettings() :
