@@ -2,12 +2,12 @@
 #include <scwx/util/logger.hpp>
 
 #include <map>
-#include <regex>
 
 #include <boost/assign.hpp>
 #include <boost/bimap.hpp>
 #include <boost/bimap/unordered_set_of.hpp>
 #include <boost/tokenizer.hpp>
+#include <re2/re2.h>
 
 namespace scwx
 {
@@ -104,10 +104,10 @@ bool Ugc::Parse(const std::vector<std::string>& ugcString)
    bool dataValid = false;
 
    // UGC takes the form SSFNNN-NNN>NNN-SSFNNN-DDHHMM- (NWSI 10-1702)
-   static const std::regex reStart {"[A-Z]{2}[CZ]([0-9]{3}|ALL)"};
-   static const std::regex reAnyFipsId {"([0-9]{3}|ALL)"};
-   static const std::regex reSpecificFipsId {"(?!0{3})[0-9]{3}"};
-   static const std::regex reProductExpiration {"[0-9]{6}"};
+   static constexpr LazyRE2 reStart          = {"[A-Z]{2}[CZ]([0-9]{3}|ALL)"};
+   static constexpr LazyRE2 reAnyFipsId      = {"([0-9]{3}|ALL)"};
+   static constexpr LazyRE2 reSpecificFipsId = {"[0-9]{3}"};
+   static constexpr LazyRE2 reProductExpiration = {"[0-9]{6}"};
 
    std::stringstream ugcStream;
    for (auto& line : ugcString)
@@ -131,7 +131,7 @@ bool Ugc::Parse(const std::vector<std::string>& ugcString)
    for (auto& token : tokens)
    {
       // Product Expiration is the final token
-      if (std::regex_match(token, reProductExpiration))
+      if (RE2::FullMatch(token, *reProductExpiration))
       {
          p->productExpiration_ = token;
          dataValid             = true;
@@ -153,7 +153,7 @@ bool Ugc::Parse(const std::vector<std::string>& ugcString)
 
       // Look for the start of the UGC string (may be multiple per UGC string
       // for multiple states, territories, or marine area)
-      if (std::regex_match(firstToken, reStart))
+      if (RE2::FullMatch(firstToken, *reStart))
       {
          currentState  = firstToken.substr(0, 2);
          currentFormat = ugcFormatMap_.right.at(firstToken.at(2));
@@ -167,7 +167,7 @@ bool Ugc::Parse(const std::vector<std::string>& ugcString)
       }
       // Look for additional FIPS IDs in the UGC string
       else if (!currentState.empty() &&
-               std::regex_match(firstToken, reAnyFipsId))
+               RE2::FullMatch(firstToken, *reAnyFipsId))
       {
          firstFipsId = firstToken;
       }
@@ -188,7 +188,8 @@ bool Ugc::Parse(const std::vector<std::string>& ugcString)
       {
          std::string secondToken {(++tokenIt).current_token()};
 
-         if (std::regex_match(secondToken, reSpecificFipsId))
+         if (RE2::FullMatch(secondToken, *reSpecificFipsId) &&
+             secondToken != "000")
          {
             secondFipsId = secondToken;
          }
