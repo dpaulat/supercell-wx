@@ -3,7 +3,6 @@
 #include <scwx/util/logger.hpp>
 
 #include <ranges>
-#include <regex>
 #include <shared_mutex>
 
 #if defined(_MSC_VER)
@@ -13,6 +12,7 @@
 #define LIBXML_HTML_ENABLED
 #include <cpr/cpr.h>
 #include <libxml/HTMLparser.h>
+#include <re2/re2.h>
 
 #if !defined(_MSC_VER)
 #   include <date/date.h>
@@ -77,7 +77,7 @@ WarningsProvider::ListFiles(std::chrono::system_clock::time_point newerThan)
    using namespace date;
 #endif
 
-   static const std::regex reWarningsFilename {
+   static constexpr LazyRE2 reWarningsFilename = {
       "warnings_[0-9]{8}_[0-9]{2}.txt"};
    static const std::string dateTimeFormat {"warnings_%Y%m%d_%H.txt"};
 
@@ -101,7 +101,7 @@ WarningsProvider::ListFiles(std::chrono::system_clock::time_point newerThan)
          [](auto& record)
          {
             return record.type_ == std::filesystem::file_type::regular &&
-                   std::regex_match(record.filename_, reWarningsFilename);
+                   RE2::FullMatch(record.filename_, *reWarningsFilename);
          });
 
    std::unique_lock lock(p->filesMutex_);

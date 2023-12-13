@@ -2,10 +2,10 @@
 #include <scwx/util/logger.hpp>
 
 #include <mutex>
-#include <regex>
 
 #include <boost/json.hpp>
 #include <cpr/cpr.h>
+#include <re2/re2.h>
 
 namespace scwx
 {
@@ -61,16 +61,10 @@ std::string UpdateManager::latest_version() const
 std::string
 UpdateManager::Impl::GetVersionString(const std::string& releaseName)
 {
-   static const std::regex re {"\\d+\\.\\d+\\.\\d+"};
-   std::string             versionString {};
-   std::smatch             m;
+   static constexpr LazyRE2 re = {"(\\d+\\.\\d+\\.\\d+)"};
+   std::string              versionString {};
 
-   std::regex_search(releaseName, m, re);
-
-   if (!m.empty())
-   {
-      versionString = m[0].str();
-   }
+   RE2::PartialMatch(releaseName, *re, &versionString);
 
    return versionString;
 }

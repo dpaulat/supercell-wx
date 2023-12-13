@@ -4,11 +4,11 @@
 #include <scwx/util/streams.hpp>
 
 #include <istream>
-#include <regex>
 #include <string>
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <re2/re2.h>
 
 namespace scwx
 {
@@ -24,7 +24,7 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 // Segment Header only:
 // * <hhmm>_xM_<tz1>_day_mon_<dd>_year_/<hhmm>_xM_<tz2>_day_mon_<dd>_year/
 // Look for hhmm (xM|UTC) to key the date/time string
-static const std::regex reDateTimeString {"^[0-9]{3,4} ([AP]M|UTC)"};
+static constexpr LazyRE2 reDateTimeString = {"^[0-9]{3,4} ([AP]M|UTC)"};
 
 static void ParseCodedInformation(std::shared_ptr<Segment> segment,
                                   const std::string&       wfo);
@@ -333,7 +333,7 @@ void ParseCodedInformation(std::shared_ptr<Segment> segment,
       else if (codedMotionBegin != productContent.cend() &&
                codedMotionEnd == productContent.cend() &&
                !it->starts_with(" ") &&
-               !std::regex_search(*it, std::regex {"^[0-9]"})
+               !(it->length() > 0 && std::isdigit(it->at(0)))
                /* Continuation lines */)
       {
          codedMotionEnd = it;
@@ -448,7 +448,7 @@ std::vector<std::string> TryParseMndHeader(std::istream& is)
    }
 
    if (!mndHeader.empty() &&
-       !std::regex_search(mndHeader.back(), reDateTimeString))
+       !RE2::PartialMatch(mndHeader.back(), *reDateTimeString))
    {
       // MND Header should end with an Issuance Date/Time Line
       mndHeader.clear();
@@ -489,8 +489,8 @@ std::optional<SegmentHeader> TryParseSegmentHeader(std::istream& is)
    // UGC takes the form SSFNNN-NNN>NNN-SSFNNN-DDHHMM- (NWSI 10-1702)
    // Look for SSF(NNN)?[->] to key the UGC string
    // Look for DDHHMM- to end the UGC string
-   static const std::regex reUgcString {"^[A-Z]{2}[CZ]([0-9]{3})?[->]"};
-   static const std::regex reUgcExpiration {"[0-9]{6}-$"};
+   static constexpr LazyRE2 reUgcString     = {"^[A-Z]{2}[CZ]([0-9]{3})?[->]"};
+   static constexpr LazyRE2 reUgcExpiration = {"[0-9]{6}-$"};
 
    std::optional<SegmentHeader> header = std::nullopt;
    std::string                  line;
@@ -498,14 +498,14 @@ std::optional<SegmentHeader> TryParseSegmentHeader(std::istream& is)
 
    util::getline(is, line);
 
-   if (std::regex_search(line, reUgcString))
+   if (RE2::PartialMatch(line, *reUgcString))
    {
       header = SegmentHeader();
       header->ugcString_.push_back(line);
 
       // If UGC is multi-line, continue parsing
       while (!is.eof() && is.peek() != '\r' &&
-             !std::regex_search(line, reUgcExpiration))
+             !RE2::PartialMatch(line, *reUgcExpiration))
       {
          util::getline(is, line);
          header->ugcString_.push_back(line);
@@ -526,7 +526,7 @@ std::optional<SegmentHeader> TryParseSegmentHeader(std::istream& is)
       while (!is.eof() && is.peek() != '\r')
       {
          util::getline(is, line);
-         if (!std::regex_search(line, reDateTimeString))
+         if (!RE2::PartialMatch(line, *reDateTimeString))
          {
             header->ugcNames_.push_back(line);
          }
@@ -553,12 +553,12 @@ std::optional<Vtec> TryParseVtecString(std::istream& is)
    // P-VTEC takes the form /k.aaa.cccc.pp.s.####.yymmddThhnnZB-yymmddThhnnZE/
    // (NWSI 10-1703)
    // Look for /k. to key the P-VTEC string
-   static const std::regex rePVtecString {"^/[OTEX]\\."};
+   static constexpr LazyRE2 rePVtecString = {"^/[OTEX]\\."};
 
    // H-VTEC takes the form
    // /nwsli.s.ic.yymmddThhnnZB.yymmddThhnnZC.yymmddThhnnZE.fr/ (NWSI 10-1703)
    // Look for /nwsli. to key the H-VTEC string
-   static const std::regex reHVtecString {"^/[A-Z0-9]{5}\\."};
+   static constexpr LazyRE2 reHVtecString = {"^/[A-Z0-9]{5}\\."};
 
    std::optional<Vtec> vtec = std::nullopt;
    std::string         line;
@@ -566,7 +566,7 @@ std::optional<Vtec> TryParseVtecString(std::istream& is)
 
    util::getline(is, line);
 
-   if (std::regex_search(line, rePVtecString))
+   if (RE2::PartialMatch(line, *rePVtecString))
    {
       bool vtecValid;
 
@@ -577,7 +577,7 @@ std::optional<Vtec> TryParseVtecString(std::istream& is)
 
       util::getline(is, line);
 
-      if (std::regex_search(line, reHVtecString))
+      if (RE2::PartialMatch(line, *reHVtecString))
       {
          vtec->hVtec_.swap(line);
       }
