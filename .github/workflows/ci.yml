@@ -159,28 +159,28 @@ jobs:
 
     - name: Upload Artifacts (Windows)
       if: matrix.os == 'windows-2022'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: supercell-wx-${{ matrix.artifact_suffix }}
         path: ${{ github.workspace }}/supercell-wx/
 
     - name: Upload Debug Artifacts (Windows)
       if: matrix.os == 'windows-2022'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: supercell-wx-debug-${{ matrix.artifact_suffix }}
         path: ${{ github.workspace }}/build/bin/*.pdb
 
     - name: Upload Artifacts (Linux)
       if: matrix.os == 'ubuntu-22.04'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: supercell-wx-${{ matrix.artifact_suffix }}
         path: ${{ github.workspace }}/supercell-wx-${{ matrix.artifact_suffix }}.tar.gz
 
     - name: Upload Debug Artifacts (Linux)
       if: matrix.os == 'ubuntu-22.04'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: supercell-wx-debug-${{ matrix.artifact_suffix }}
         path: |
