@@ -46,6 +46,7 @@ private slots:
    void on_actionGitHubRepository_triggered();
    void on_actionCheckForUpdates_triggered();
    void on_actionAboutSupercellWx_triggered();
+   void on_radarSiteHomeButton_clicked();
    void on_radarSiteSelectButton_clicked();
 
 private:

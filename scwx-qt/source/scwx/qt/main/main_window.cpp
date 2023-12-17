@@ -521,6 +521,19 @@ void MainWindow::on_actionAboutSupercellWx_triggered()
    p->aboutDialog_->show();
 }
 
+void MainWindow::on_radarSiteHomeButton_clicked()
+{
+   std::string homeRadarSite =
+      settings::GeneralSettings::Instance().default_radar_site().GetValue();
+
+   for (map::MapWidget* map : p->maps_)
+   {
+      map->SelectRadarSite(homeRadarSite);
+   }
+
+   p->UpdateRadarSite();
+}
+
 void MainWindow::on_radarSiteSelectButton_clicked()
 {
    p->radarSiteDialog_->show();
