@@ -5,6 +5,8 @@
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <QIcon>
+
 namespace scwx
 {
 namespace qt
@@ -15,15 +17,11 @@ namespace model
 static const std::string logPrefix_ = "scwx::qt::model::radar_site_model";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static constexpr size_t kColumnSiteId    = 0u;
-static constexpr size_t kColumnPlace     = 1u;
-static constexpr size_t kColumnState     = 2u;
-static constexpr size_t kColumnCountry   = 3u;
-static constexpr size_t kColumnLatitude  = 4u;
-static constexpr size_t kColumnLongitude = 5u;
-static constexpr size_t kColumnType      = 6u;
-static constexpr size_t kColumnDistance  = 7u;
-static constexpr size_t kNumColumns      = 8u;
+static constexpr int kFirstColumn =
+   static_cast<int>(RadarSiteModel::Column::SiteId);
+static constexpr int kLastColumn =
+   static_cast<int>(RadarSiteModel::Column::Favorite);
+static constexpr int kNumColumns = kLastColumn - kFirstColumn + 1;
 
 class RadarSiteModelImpl
 {
@@ -32,12 +30,15 @@ public:
    ~RadarSiteModelImpl() = default;
 
    QList<std::shared_ptr<config::RadarSite>> radarSites_;
+   std::vector<bool>                         favorites_;
 
    const GeographicLib::Geodesic& geodesic_;
 
    std::unordered_map<std::string, double> distanceMap_;
    scwx::common::DistanceType              distanceDisplay_;
    scwx::common::Coordinate                previousPosition_;
+
+   QIcon starIcon_ {":/res/icons/font-awesome-6/star-solid.svg"};
 };
 
 RadarSiteModel::RadarSiteModel(QObject* parent) :
@@ -53,28 +54,32 @@ int RadarSiteModel::rowCount(const QModelIndex& parent) const
 
 int RadarSiteModel::columnCount(const QModelIndex& parent) const
 {
-   return parent.isValid() ? 0 : static_cast<int>(kNumColumns);
+   return parent.isValid() ? 0 : kNumColumns;
 }
 
 QVariant RadarSiteModel::data(const QModelIndex& index, int role) const
 {
-   if (index.isValid() && index.row() >= 0 &&
-       index.row() < p->radarSites_.size() &&
-       (role == Qt::DisplayRole || role == types::SortRole))
+   if (!index.isValid() || index.row() < 0 ||
+       index.row() >= p->radarSites_.size())
    {
-      const auto& site = p->radarSites_.at(index.row());
+      return QVariant();
+   }
 
+   const auto& site = p->radarSites_.at(index.row());
+
+   if (role == Qt::DisplayRole || role == types::SortRole)
+   {
       switch (index.column())
       {
-      case kColumnSiteId:
+      case static_cast<int>(Column::SiteId):
          return QString::fromStdString(site->id());
-      case kColumnPlace:
+      case static_cast<int>(Column::Place):
          return QString::fromStdString(site->place());
-      case kColumnState:
+      case static_cast<int>(Column::State):
          return QString::fromStdString(site->state());
-      case kColumnCountry:
+      case static_cast<int>(Column::Country):
          return QString::fromStdString(site->country());
-      case kColumnLatitude:
+      case static_cast<int>(Column::Latitude):
          if (role == Qt::DisplayRole)
          {
             return QString::fromStdString(
@@ -84,7 +89,7 @@ QVariant RadarSiteModel::data(const QModelIndex& index, int role) const
          {
             return site->latitude();
          }
-      case kColumnLongitude:
+      case static_cast<int>(Column::Longitude):
          if (role == Qt::DisplayRole)
          {
             return QString::fromStdString(
@@ -94,9 +99,9 @@ QVariant RadarSiteModel::data(const QModelIndex& index, int role) const
          {
             return site->longitude();
          }
-      case kColumnType:
+      case static_cast<int>(Column::Type):
          return QString::fromStdString(site->type_name());
-      case kColumnDistance:
+      case static_cast<int>(Column::Distance):
          if (role == Qt::DisplayRole)
          {
             if (p->distanceDisplay_ == scwx::common::DistanceType::Miles)
@@ -116,6 +121,26 @@ QVariant RadarSiteModel::data(const QModelIndex& index, int role) const
          {
             return p->distanceMap_.at(site->id());
          }
+      case static_cast<int>(Column::Favorite):
+         if (role == types::SortRole)
+         {
+            return QVariant(p->favorites_.at(index.row()));
+         }
+         break;
+      default:
+         break;
+      }
+   }
+   else if (role == Qt::DecorationRole)
+   {
+      switch (index.column())
+      {
+      case static_cast<int>(Column::Favorite):
+         if (p->favorites_.at(index.row()))
+         {
+            return p->starIcon_;
+         }
+         break;
       default:
          break;
       }
@@ -134,22 +159,35 @@ QVariant RadarSiteModel::headerData(int             section,
       {
          switch (section)
          {
-         case kColumnSiteId:
+         case static_cast<int>(Column::SiteId):
             return tr("Site ID");
-         case kColumnPlace:
+         case static_cast<int>(Column::Place):
             return tr("Place");
-         case kColumnState:
+         case static_cast<int>(Column::State):
             return tr("State");
-         case kColumnCountry:
+         case static_cast<int>(Column::Country):
             return tr("Country");
-         case kColumnLatitude:
+         case static_cast<int>(Column::Latitude):
             return tr("Latitude");
-         case kColumnLongitude:
+         case static_cast<int>(Column::Longitude):
             return tr("Longitude");
-         case kColumnType:
+         case static_cast<int>(Column::Type):
             return tr("Type");
-         case kColumnDistance:
+         case static_cast<int>(Column::Distance):
             return tr("Distance");
+         default:
+            break;
+         }
+      }
+   }
+   else if (role == Qt::DecorationRole)
+   {
+      if (orientation == Qt::Horizontal)
+      {
+         switch (section)
+         {
+         case static_cast<int>(Column::Favorite):
+            return p->starIcon_;
          default:
             break;
          }
@@ -175,10 +213,19 @@ void RadarSiteModel::HandleMapUpdate(double latitude, double longitude)
       p->distanceMap_[site->id()] = distanceInMeters;
    }
 
-   QModelIndex topLeft     = createIndex(0, kColumnDistance);
-   QModelIndex bottomRight = createIndex(rowCount() - 1, kColumnDistance);
+   QModelIndex topLeft = createIndex(0, static_cast<int>(Column::Distance));
+   QModelIndex bottomRight =
+      createIndex(rowCount() - 1, static_cast<int>(Column::Distance));
 
    Q_EMIT dataChanged(topLeft, bottomRight);
+}
+
+void RadarSiteModel::ToggleFavorite(int row)
+{
+   if (row >= 0 && row < p->favorites_.size())
+   {
+      p->favorites_.at(row) = !p->favorites_.at(row);
+   }
 }
 
 RadarSiteModelImpl::RadarSiteModelImpl() :
@@ -197,6 +244,7 @@ RadarSiteModelImpl::RadarSiteModelImpl() :
    {
       distanceMap_[site->id()] = 0.0;
       radarSites_.emplace_back(std::move(site));
+      favorites_.emplace_back(false);
    }
 }
 

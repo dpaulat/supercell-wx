@@ -16,6 +16,19 @@ class RadarSiteModelImpl;
 class RadarSiteModel : public QAbstractTableModel
 {
 public:
+   enum class Column : int
+   {
+      SiteId    = 0,
+      Place     = 1,
+      State     = 2,
+      Country   = 3,
+      Latitude  = 4,
+      Longitude = 5,
+      Type      = 6,
+      Distance  = 7,
+      Favorite  = 8
+   };
+
    explicit RadarSiteModel(QObject* parent = nullptr);
    ~RadarSiteModel();
 
@@ -29,6 +42,7 @@ public:
                        int             role = Qt::DisplayRole) const override;
 
    void HandleMapUpdate(double latitude, double longitude);
+   void ToggleFavorite(int row);
 
 private:
    std::unique_ptr<RadarSiteModelImpl> p;

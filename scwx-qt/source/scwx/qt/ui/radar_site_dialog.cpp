@@ -70,9 +70,22 @@ RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
            p->proxyModel_,
            &QSortFilterProxyModel::setFilterWildcard);
    connect(ui->radarSiteView,
-           &QTreeView::doubleClicked,
+           &QAbstractItemView::doubleClicked,
            this,
            [this]() { Q_EMIT accept(); });
+   connect(ui->radarSiteView,
+           &QAbstractItemView::pressed,
+           this,
+           [this](const QModelIndex& index)
+           {
+              QModelIndex selectedIndex = p->proxyModel_->mapToSource(index);
+
+              if (selectedIndex.column() ==
+                  static_cast<int>(model::RadarSiteModel::Column::Favorite))
+              {
+                 p->radarSiteModel_->ToggleFavorite(selectedIndex.row());
+              }
+           });
    connect(
       ui->radarSiteView->selectionModel(),
       &QItemSelectionModel::selectionChanged,
