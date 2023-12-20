@@ -90,10 +90,7 @@ public:
        textEventManager_ {manager::TextEventManager::Instance()},
        timelineManager_ {manager::TimelineManager::Instance()},
        updateManager_ {manager::UpdateManager::Instance()},
-       maps_ {},
-       elevationCuts_ {},
-       elevationButtonsChanged_ {false},
-       resizeElevationButtons_ {false}
+       maps_ {}
    {
       mapProvider_ = map::GetMapProvider(
          settings::GeneralSettings::Instance().map_provider().GetValue());
@@ -195,12 +192,8 @@ public:
    QMenu* radarSitePresetsMenu_ {nullptr};
 
    std::vector<map::MapWidget*> maps_;
-   std::vector<float>           elevationCuts_;
 
    std::chrono::system_clock::time_point volumeTime_ {};
-
-   bool elevationButtonsChanged_;
-   bool resizeElevationButtons_;
 
 public slots:
    void UpdateMapParameters(double latitude,
