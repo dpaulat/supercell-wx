@@ -24,13 +24,13 @@ class RadarSiteDialogImpl
 public:
    explicit RadarSiteDialogImpl(RadarSiteDialog* self) :
        self_ {self},
-       radarSiteModel_ {new model::RadarSiteModel(self_)},
        proxyModel_ {new QSortFilterProxyModel(self_)},
+       radarSiteModel_ {model::RadarSiteModel::Instance()},
        mapPosition_ {},
        mapUpdateDeferred_ {false},
        selectedRadarSite_ {"?"}
    {
-      proxyModel_->setSourceModel(radarSiteModel_);
+      proxyModel_->setSourceModel(radarSiteModel_.get());
       proxyModel_->setSortRole(types::SortRole);
       proxyModel_->setFilterCaseSensitivity(Qt::CaseInsensitive);
       proxyModel_->setFilterKeyColumn(-1);
@@ -38,8 +38,9 @@ public:
    ~RadarSiteDialogImpl() = default;
 
    RadarSiteDialog*       self_;
-   model::RadarSiteModel* radarSiteModel_;
    QSortFilterProxyModel* proxyModel_;
+
+   std::shared_ptr<model::RadarSiteModel> radarSiteModel_;
 
    scwx::common::Coordinate mapPosition_;
    bool                     mapUpdateDeferred_;
@@ -70,9 +71,22 @@ RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
            p->proxyModel_,
            &QSortFilterProxyModel::setFilterWildcard);
    connect(ui->radarSiteView,
-           &QTreeView::doubleClicked,
+           &QAbstractItemView::doubleClicked,
            this,
            [this]() { Q_EMIT accept(); });
+   connect(ui->radarSiteView,
+           &QAbstractItemView::pressed,
+           this,
+           [this](const QModelIndex& index)
+           {
+              QModelIndex selectedIndex = p->proxyModel_->mapToSource(index);
+
+              if (selectedIndex.column() ==
+                  static_cast<int>(model::RadarSiteModel::Column::Preset))
+              {
+                 p->radarSiteModel_->TogglePreset(selectedIndex.row());
+              }
+           });
    connect(
       ui->radarSiteView->selectionModel(),
       &QItemSelectionModel::selectionChanged,
