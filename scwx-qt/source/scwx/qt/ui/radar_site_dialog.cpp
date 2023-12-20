@@ -24,8 +24,8 @@ class RadarSiteDialogImpl
 public:
    explicit RadarSiteDialogImpl(RadarSiteDialog* self) :
        self_ {self},
-       radarSiteModel_ {model::RadarSiteModel::Instance()},
        proxyModel_ {new QSortFilterProxyModel(self_)},
+       radarSiteModel_ {model::RadarSiteModel::Instance()},
        mapPosition_ {},
        mapUpdateDeferred_ {false},
        selectedRadarSite_ {"?"}
