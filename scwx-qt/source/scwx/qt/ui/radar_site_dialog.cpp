@@ -82,9 +82,9 @@ RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
               QModelIndex selectedIndex = p->proxyModel_->mapToSource(index);
 
               if (selectedIndex.column() ==
-                  static_cast<int>(model::RadarSiteModel::Column::Favorite))
+                  static_cast<int>(model::RadarSiteModel::Column::Preset))
               {
-                 p->radarSiteModel_->ToggleFavorite(selectedIndex.row());
+                 p->radarSiteModel_->TogglePreset(selectedIndex.row());
               }
            });
    connect(

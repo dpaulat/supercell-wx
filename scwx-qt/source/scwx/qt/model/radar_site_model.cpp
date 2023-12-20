@@ -2,10 +2,16 @@
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
+#include <scwx/qt/util/json.hpp>
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <filesystem>
+
+#include <boost/json.hpp>
+#include <boost/algorithm/string.hpp>
 #include <QIcon>
+#include <QStandardPaths>
 
 namespace scwx
 {
@@ -20,17 +26,40 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static constexpr int kFirstColumn =
    static_cast<int>(RadarSiteModel::Column::SiteId);
 static constexpr int kLastColumn =
-   static_cast<int>(RadarSiteModel::Column::Favorite);
+   static_cast<int>(RadarSiteModel::Column::Preset);
 static constexpr int kNumColumns = kLastColumn - kFirstColumn + 1;
 
 class RadarSiteModelImpl
 {
 public:
-   explicit RadarSiteModelImpl();
+   explicit RadarSiteModelImpl() :
+       radarSites_ {},
+       geodesic_(util::GeographicLib::DefaultGeodesic()),
+       distanceMap_ {},
+       distanceDisplay_ {scwx::common::DistanceType::Miles},
+       previousPosition_ {}
+   {
+      // Get all loaded radar sites
+      std::vector<std::shared_ptr<config::RadarSite>> radarSites =
+         config::RadarSite::GetAll();
+
+      // Setup radar site list
+      for (auto& site : radarSites)
+      {
+         distanceMap_[site->id()] = 0.0;
+         radarSites_.emplace_back(std::move(site));
+      }
+   }
    ~RadarSiteModelImpl() = default;
 
+   void InitializePresets();
+   void ReadPresets();
+   void WritePresets();
+
    QList<std::shared_ptr<config::RadarSite>> radarSites_;
-   std::vector<bool>                         favorites_;
+   std::unordered_set<std::string>           presets_ {};
+
+   std::string presetsPath_ {};
 
    const GeographicLib::Geodesic& geodesic_;
 
@@ -44,8 +73,88 @@ public:
 RadarSiteModel::RadarSiteModel(QObject* parent) :
     QAbstractTableModel(parent), p(std::make_unique<RadarSiteModelImpl>())
 {
+   p->InitializePresets();
+   p->ReadPresets();
 }
-RadarSiteModel::~RadarSiteModel() = default;
+
+RadarSiteModel::~RadarSiteModel()
+{
+   // Write presets on shutdown
+   p->WritePresets();
+};
+
+std::unordered_set<std::string> RadarSiteModel::presets() const
+{
+   return p->presets_;
+}
+
+void RadarSiteModelImpl::InitializePresets()
+{
+   std::string appDataPath {
+      QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
+         .toStdString()};
+
+   if (!std::filesystem::exists(appDataPath))
+   {
+      if (!std::filesystem::create_directories(appDataPath))
+      {
+         logger_->error("Unable to create application data directory: \"{}\"",
+                        appDataPath);
+      }
+   }
+
+   presetsPath_ = appDataPath + "/radar-presets.json";
+}
+
+void RadarSiteModelImpl::ReadPresets()
+{
+   logger_->info("Reading presets");
+
+   boost::json::value presetsJson = nullptr;
+
+   // Determine if presets exists
+   if (std::filesystem::exists(presetsPath_))
+   {
+      presetsJson = util::json::ReadJsonFile(presetsPath_);
+   }
+
+   // If presets was successfully read
+   if (presetsJson != nullptr && presetsJson.is_array())
+   {
+      auto& presetsArray = presetsJson.as_array();
+      for (auto& presetsEntry : presetsArray)
+      {
+         if (presetsEntry.is_string())
+         {
+            // Get radar site ID from JSON value
+            std::string preset =
+               boost::json::value_to<std::string>(presetsEntry);
+            boost::to_upper(preset);
+
+            // Find the preset in the list of radar sites
+            auto it = std::find_if(
+               radarSites_.cbegin(),
+               radarSites_.cend(),
+               [&preset](const std::shared_ptr<config::RadarSite>& radarSite)
+               { return (radarSite->id() == preset); });
+
+            // If a match, add to the presets
+            if (it != radarSites_.cend())
+            {
+               presets_.insert(preset);
+            }
+         }
+      }
+   }
+}
+
+void RadarSiteModelImpl::WritePresets()
+{
+   logger_->info("Saving presets");
+
+   auto presetsJson = boost::json::value_from(presets_);
+   util::json::WriteJsonFile(presetsPath_, presetsJson);
+}
 
 int RadarSiteModel::rowCount(const QModelIndex& parent) const
 {
@@ -121,10 +230,10 @@ QVariant RadarSiteModel::data(const QModelIndex& index, int role) const
          {
             return p->distanceMap_.at(site->id());
          }
-      case static_cast<int>(Column::Favorite):
+      case static_cast<int>(Column::Preset):
          if (role == types::SortRole)
          {
-            return QVariant(p->favorites_.at(index.row()));
+            return QVariant(p->presets_.contains(site->id()));
          }
          break;
       default:
@@ -135,8 +244,8 @@ QVariant RadarSiteModel::data(const QModelIndex& index, int role) const
    {
       switch (index.column())
       {
-      case static_cast<int>(Column::Favorite):
-         if (p->favorites_.at(index.row()))
+      case static_cast<int>(Column::Preset):
+         if (p->presets_.contains(site->id()))
          {
             return p->starIcon_;
          }
@@ -186,7 +295,7 @@ QVariant RadarSiteModel::headerData(int             section,
       {
          switch (section)
          {
-         case static_cast<int>(Column::Favorite):
+         case static_cast<int>(Column::Preset):
             return p->starIcon_;
          default:
             break;
@@ -220,37 +329,25 @@ void RadarSiteModel::HandleMapUpdate(double latitude, double longitude)
    Q_EMIT dataChanged(topLeft, bottomRight);
 }
 
-void RadarSiteModel::ToggleFavorite(int row)
+void RadarSiteModel::TogglePreset(int row)
 {
-   if (row >= 0 && row < p->favorites_.size())
+   if (row >= 0 && row < p->radarSites_.size())
    {
-      bool isFavorite       = !p->favorites_.at(row);
-      p->favorites_.at(row) = isFavorite;
+      std::string siteId   = p->radarSites_.at(row)->id();
+      bool        isPreset = false;
 
-      QModelIndex index = createIndex(row, static_cast<int>(Column::Favorite));
+      // Attempt to erase the radar site from presets
+      if (p->presets_.erase(siteId) == 0)
+      {
+         // If the radar site did not exist, add it
+         p->presets_.insert(siteId);
+         isPreset = true;
+      }
+
+      QModelIndex index = createIndex(row, static_cast<int>(Column::Preset));
       Q_EMIT dataChanged(index, index);
 
-      Q_EMIT FavoriteToggled(p->radarSites_.at(row)->id(), isFavorite);
-   }
-}
-
-RadarSiteModelImpl::RadarSiteModelImpl() :
-    radarSites_ {},
-    geodesic_(util::GeographicLib::DefaultGeodesic()),
-    distanceMap_ {},
-    distanceDisplay_ {scwx::common::DistanceType::Miles},
-    previousPosition_ {}
-{
-   // Get all loaded radar sites
-   std::vector<std::shared_ptr<config::RadarSite>> radarSites =
-      config::RadarSite::GetAll();
-
-   // Setup radar site list
-   for (auto& site : radarSites)
-   {
-      distanceMap_[site->id()] = 0.0;
-      radarSites_.emplace_back(std::move(site));
-      favorites_.emplace_back(false);
+      Q_EMIT PresetToggled(siteId, isPreset);
    }
 }
 

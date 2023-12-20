@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <unordered_set>
 
 #include <QAbstractTableModel>
 
@@ -28,11 +29,13 @@ public:
       Longitude = 5,
       Type      = 6,
       Distance  = 7,
-      Favorite  = 8
+      Preset    = 8
    };
 
    explicit RadarSiteModel(QObject* parent = nullptr);
    ~RadarSiteModel();
+
+   std::unordered_set<std::string> presets() const;
 
    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
    int columnCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -44,12 +47,12 @@ public:
                        int             role = Qt::DisplayRole) const override;
 
    void HandleMapUpdate(double latitude, double longitude);
-   void ToggleFavorite(int row);
+   void TogglePreset(int row);
 
    static std::shared_ptr<RadarSiteModel> Instance();
 
 signals:
-   void FavoriteToggled(const std::string& siteId, bool isFavorite);
+   void PresetToggled(const std::string& siteId, bool isPreset);
 
 private:
    std::unique_ptr<RadarSiteModelImpl> p;

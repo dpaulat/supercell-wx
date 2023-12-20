@@ -130,6 +130,7 @@ public:
    }
    ~MainWindowImpl() { threadPool_.join(); }
 
+   void AddRadarSitePreset(const std::string& id);
    void AsyncSetup();
    void ConfigureMapLayout();
    void ConfigureMapStyles();
@@ -190,8 +191,8 @@ public:
 
    std::shared_ptr<model::RadarSiteModel> radarSiteModel_ {
       model::RadarSiteModel::Instance()};
-   std::map<std::string, std::shared_ptr<QAction>> radarSiteFavoriteActions_ {};
-   QMenu* radarSiteFavoriteMenu_ {nullptr};
+   std::map<std::string, std::shared_ptr<QAction>> radarSitePresetsActions_ {};
+   QMenu* radarSitePresetsMenu_ {nullptr};
 
    std::vector<map::MapWidget*> maps_;
    std::vector<float>           elevationCuts_;
@@ -223,10 +224,17 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->vcpLabel->setVisible(false);
    ui->vcpValueLabel->setVisible(false);
    ui->vcpDescriptionLabel->setVisible(false);
-   ui->radarSiteFavoriteButton->setVisible(false);
 
-   p->radarSiteFavoriteMenu_ = new QMenu(this);
-   ui->radarSiteFavoriteButton->setMenu(p->radarSiteFavoriteMenu_);
+   p->radarSitePresetsMenu_ = new QMenu(this);
+   ui->radarSitePresetsButton->setMenu(p->radarSitePresetsMenu_);
+
+   auto radarSitePresets = p->radarSiteModel_->presets();
+   for (auto preset : radarSitePresets)
+   {
+      p->AddRadarSitePreset(preset);
+   }
+
+   ui->radarSitePresetsButton->setVisible(!radarSitePresets.empty());
 
    // Configure Alert Dock
    p->alertDockWidget_ = new ui::AlertDockWidget(this);
@@ -955,58 +963,27 @@ void MainWindowImpl::ConnectOtherSignals()
 
               UpdateRadarSite();
            });
-   connect(
-      radarSiteModel_.get(),
-      &model::RadarSiteModel::FavoriteToggled,
-      [this](const std::string& siteId, bool isFavorite)
-      {
-         if (isFavorite && !radarSiteFavoriteActions_.contains(siteId))
-         {
-            auto        radarSite = config::RadarSite::Get(siteId);
-            std::string actionText =
-               fmt::format("{}: {}", siteId, radarSite->location_name());
+   connect(radarSiteModel_.get(),
+           &model::RadarSiteModel::PresetToggled,
+           [this](const std::string& siteId, bool isPreset)
+           {
+              if (isPreset && !radarSitePresetsActions_.contains(siteId))
+              {
+                 AddRadarSitePreset(siteId);
+              }
+              else if (!isPreset)
+              {
+                 auto entry = radarSitePresetsActions_.find(siteId);
+                 if (entry != radarSitePresetsActions_.cend())
+                 {
+                    radarSitePresetsMenu_->removeAction(entry->second.get());
+                    radarSitePresetsActions_.erase(entry);
+                 }
+              }
 
-            auto pair = radarSiteFavoriteActions_.emplace(
-               siteId,
-               std::make_shared<QAction>(QString::fromStdString(actionText)));
-            auto& action = pair.first->second;
-
-            QAction* before = nullptr;
-
-            // If the radar site is not at the end
-            if (pair.first != std::prev(radarSiteFavoriteActions_.cend()))
-            {
-               // Insert before the next entry in the list
-               before = std::next(pair.first)->second.get();
-            }
-
-            radarSiteFavoriteMenu_->insertAction(before, action.get());
-
-            connect(action.get(),
-                    &QAction::triggered,
-                    [this, siteId]()
-                    {
-                       for (map::MapWidget* map : maps_)
-                       {
-                          map->SelectRadarSite(siteId);
-                       }
-
-                       UpdateRadarSite();
-                    });
-         }
-         else if (!isFavorite)
-         {
-            auto entry = radarSiteFavoriteActions_.find(siteId);
-            if (entry != radarSiteFavoriteActions_.cend())
-            {
-               radarSiteFavoriteMenu_->removeAction(entry->second.get());
-               radarSiteFavoriteActions_.erase(entry);
-            }
-         }
-
-         mainWindow_->ui->radarSiteFavoriteButton->setVisible(
-            !radarSiteFavoriteActions_.empty());
-      });
+              mainWindow_->ui->radarSitePresetsButton->setVisible(
+                 !radarSitePresetsActions_.empty());
+           });
    connect(updateManager_.get(),
            &manager::UpdateManager::UpdateAvailable,
            this,
@@ -1015,6 +992,40 @@ void MainWindowImpl::ConnectOtherSignals()
            {
               updateDialog_->UpdateReleaseInfo(latestVersion, latestRelease);
               updateDialog_->show();
+           });
+}
+
+void MainWindowImpl::AddRadarSitePreset(const std::string& siteId)
+{
+   auto        radarSite = config::RadarSite::Get(siteId);
+   std::string actionText =
+      fmt::format("{}: {}", siteId, radarSite->location_name());
+
+   auto pair = radarSitePresetsActions_.emplace(
+      siteId, std::make_shared<QAction>(QString::fromStdString(actionText)));
+   auto& action = pair.first->second;
+
+   QAction* before = nullptr;
+
+   // If the radar site is not at the end
+   if (pair.first != std::prev(radarSitePresetsActions_.cend()))
+   {
+      // Insert before the next entry in the list
+      before = std::next(pair.first)->second.get();
+   }
+
+   radarSitePresetsMenu_->insertAction(before, action.get());
+
+   connect(action.get(),
+           &QAction::triggered,
+           [this, siteId]()
+           {
+              for (map::MapWidget* map : maps_)
+              {
+                 map->SelectRadarSite(siteId);
+              }
+
+              UpdateRadarSite();
            });
 }
 

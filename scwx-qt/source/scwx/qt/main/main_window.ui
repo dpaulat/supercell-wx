@@ -235,7 +235,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QToolButton" name="radarSiteFavoriteButton">
+                <widget class="QToolButton" name="radarSitePresetsButton">
                  <property name="maximumSize">
                   <size>
                    <width>16777215</width>
