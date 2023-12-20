@@ -224,7 +224,13 @@ void RadarSiteModel::ToggleFavorite(int row)
 {
    if (row >= 0 && row < p->favorites_.size())
    {
-      p->favorites_.at(row) = !p->favorites_.at(row);
+      bool isFavorite       = !p->favorites_.at(row);
+      p->favorites_.at(row) = isFavorite;
+
+      QModelIndex index = createIndex(row, static_cast<int>(Column::Favorite));
+      Q_EMIT dataChanged(index, index);
+
+      Q_EMIT FavoriteToggled(p->radarSites_.at(row)->id(), isFavorite);
    }
 }
 
@@ -246,6 +252,25 @@ RadarSiteModelImpl::RadarSiteModelImpl() :
       radarSites_.emplace_back(std::move(site));
       favorites_.emplace_back(false);
    }
+}
+
+std::shared_ptr<RadarSiteModel> RadarSiteModel::Instance()
+{
+   static std::weak_ptr<RadarSiteModel> radarSiteModelReference_ {};
+   static std::mutex                    instanceMutex_ {};
+
+   std::unique_lock lock(instanceMutex_);
+
+   std::shared_ptr<RadarSiteModel> radarSiteModel =
+      radarSiteModelReference_.lock();
+
+   if (radarSiteModel == nullptr)
+   {
+      radarSiteModel           = std::make_shared<RadarSiteModel>();
+      radarSiteModelReference_ = radarSiteModel;
+   }
+
+   return radarSiteModel;
 }
 
 } // namespace model

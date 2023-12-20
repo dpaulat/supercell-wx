@@ -15,6 +15,8 @@ class RadarSiteModelImpl;
 
 class RadarSiteModel : public QAbstractTableModel
 {
+   Q_OBJECT
+
 public:
    enum class Column : int
    {
@@ -43,6 +45,11 @@ public:
 
    void HandleMapUpdate(double latitude, double longitude);
    void ToggleFavorite(int row);
+
+   static std::shared_ptr<RadarSiteModel> Instance();
+
+signals:
+   void FavoriteToggled(const std::string& siteId, bool isFavorite);
 
 private:
    std::unique_ptr<RadarSiteModelImpl> p;

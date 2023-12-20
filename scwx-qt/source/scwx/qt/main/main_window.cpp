@@ -12,6 +12,7 @@
 #include <scwx/qt/manager/update_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_widget.hpp>
+#include <scwx/qt/model/radar_site_model.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/map_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
@@ -187,6 +188,11 @@ public:
    std::shared_ptr<manager::TimelineManager>  timelineManager_;
    std::shared_ptr<manager::UpdateManager>    updateManager_;
 
+   std::shared_ptr<model::RadarSiteModel> radarSiteModel_ {
+      model::RadarSiteModel::Instance()};
+   std::map<std::string, std::shared_ptr<QAction>> radarSiteFavoriteActions_ {};
+   QMenu* radarSiteFavoriteMenu_ {nullptr};
+
    std::vector<map::MapWidget*> maps_;
    std::vector<float>           elevationCuts_;
 
@@ -213,9 +219,14 @@ MainWindow::MainWindow(QWidget* parent) :
    // Assign the bottom left corner to the left dock widget
    setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
 
+   // Configure Radar Site Box
    ui->vcpLabel->setVisible(false);
    ui->vcpValueLabel->setVisible(false);
    ui->vcpDescriptionLabel->setVisible(false);
+   ui->radarSiteFavoriteButton->setVisible(false);
+
+   p->radarSiteFavoriteMenu_ = new QMenu(this);
+   ui->radarSiteFavoriteButton->setMenu(p->radarSiteFavoriteMenu_);
 
    // Configure Alert Dock
    p->alertDockWidget_ = new ui::AlertDockWidget(this);
@@ -944,6 +955,58 @@ void MainWindowImpl::ConnectOtherSignals()
 
               UpdateRadarSite();
            });
+   connect(
+      radarSiteModel_.get(),
+      &model::RadarSiteModel::FavoriteToggled,
+      [this](const std::string& siteId, bool isFavorite)
+      {
+         if (isFavorite && !radarSiteFavoriteActions_.contains(siteId))
+         {
+            auto        radarSite = config::RadarSite::Get(siteId);
+            std::string actionText =
+               fmt::format("{}: {}", siteId, radarSite->location_name());
+
+            auto pair = radarSiteFavoriteActions_.emplace(
+               siteId,
+               std::make_shared<QAction>(QString::fromStdString(actionText)));
+            auto& action = pair.first->second;
+
+            QAction* before = nullptr;
+
+            // If the radar site is not at the end
+            if (pair.first != std::prev(radarSiteFavoriteActions_.cend()))
+            {
+               // Insert before the next entry in the list
+               before = std::next(pair.first)->second.get();
+            }
+
+            radarSiteFavoriteMenu_->insertAction(before, action.get());
+
+            connect(action.get(),
+                    &QAction::triggered,
+                    [this, siteId]()
+                    {
+                       for (map::MapWidget* map : maps_)
+                       {
+                          map->SelectRadarSite(siteId);
+                       }
+
+                       UpdateRadarSite();
+                    });
+         }
+         else if (!isFavorite)
+         {
+            auto entry = radarSiteFavoriteActions_.find(siteId);
+            if (entry != radarSiteFavoriteActions_.cend())
+            {
+               radarSiteFavoriteMenu_->removeAction(entry->second.get());
+               radarSiteFavoriteActions_.erase(entry);
+            }
+         }
+
+         mainWindow_->ui->radarSiteFavoriteButton->setVisible(
+            !radarSiteFavoriteActions_.empty());
+      });
    connect(updateManager_.get(),
            &manager::UpdateManager::UpdateAvailable,
            this,

@@ -24,13 +24,13 @@ class RadarSiteDialogImpl
 public:
    explicit RadarSiteDialogImpl(RadarSiteDialog* self) :
        self_ {self},
-       radarSiteModel_ {new model::RadarSiteModel(self_)},
+       radarSiteModel_ {model::RadarSiteModel::Instance()},
        proxyModel_ {new QSortFilterProxyModel(self_)},
        mapPosition_ {},
        mapUpdateDeferred_ {false},
        selectedRadarSite_ {"?"}
    {
-      proxyModel_->setSourceModel(radarSiteModel_);
+      proxyModel_->setSourceModel(radarSiteModel_.get());
       proxyModel_->setSortRole(types::SortRole);
       proxyModel_->setFilterCaseSensitivity(Qt::CaseInsensitive);
       proxyModel_->setFilterKeyColumn(-1);
@@ -38,8 +38,9 @@ public:
    ~RadarSiteDialogImpl() = default;
 
    RadarSiteDialog*       self_;
-   model::RadarSiteModel* radarSiteModel_;
    QSortFilterProxyModel* proxyModel_;
+
+   std::shared_ptr<model::RadarSiteModel> radarSiteModel_;
 
    scwx::common::Coordinate mapPosition_;
    bool                     mapUpdateDeferred_;
