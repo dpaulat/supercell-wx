@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.24)
 set(PROJECT_NAME supercell-wx)
 project(${PROJECT_NAME}
         VERSION      0.4.3
