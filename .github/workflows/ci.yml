@@ -33,9 +33,10 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning
             qt_tools: ''
             conan_arch: x86_64
-            conan_compiler: Visual Studio
-            conan_compiler_version: 17
-            conan_compiler_runtime: --settings compiler.runtime=MD
+            conan_compiler: msvc
+            conan_compiler_version: 193
+            conan_compiler_cppstd: 20
+            conan_compiler_runtime: --settings compiler.runtime=dynamic
             conan_package_manager: ''
             artifact_suffix: windows-x64
           - name: linux64_gcc
@@ -51,6 +52,7 @@ jobs:
             conan_arch: x86_64
             conan_compiler: gcc
             conan_compiler_version: 11
+            conan_compiler_cppstd: 20
             conan_compiler_runtime: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
             artifact_suffix: linux-x64
@@ -101,7 +103,7 @@ jobs:
     - name: Install Conan Packages
       shell: pwsh
       run: |
-        pip install "conan<2.0"
+        pip install conan
         conan profile new default --detect
         conan install ./source/ `
           --remote conancenter `
@@ -110,6 +112,7 @@ jobs:
           --settings build_type=${{ matrix.build_type }} `
           --settings compiler="${{ matrix.conan_compiler }}" `
           --settings compiler.version=${{ matrix.conan_compiler_version }} `
+          --settings compiler.cppstd=${{ matrix.conan_compiler_cppstd }} `
           ${{ matrix.conan_compiler_runtime }} `
           ${{ matrix.conan_package_manager }}
 
