@@ -1,4 +1,5 @@
-from conans import ConanFile
+from conan import ConanFile
+from conan.tools.files import copy
 
 class SupercellWxConan(ConanFile):
     settings   = ("os", "compiler", "build_type", "arch")
@@ -19,19 +20,18 @@ class SupercellWxConan(ConanFile):
                   "sqlite3/3.46.0",
                   "vulkan-loader/1.3.243.0",
                   "zlib/1.3.1")
-    generators = ("cmake",
-                  "cmake_find_package",
-                  "cmake_paths")
-    default_options = {"geos:shared"      : True,
-                       "libiconv:shared"  : True,
-                       "openssl:no_module": True,
-                       "openssl:shared"   : True}
+    generators = ("CMakeDeps")
+    default_options = {"geos/*:shared"      : True,
+                       "libiconv/*:shared"  : True,
+                       "openssl/*:no_module": True,
+                       "openssl/*:shared"   : True}
 
     def requirements(self):
         if self.settings.os == "Linux":
             self.requires("onetbb/2021.12.0")
 
-    def imports(self):
-        self.copy("*.dll", dst="bin", src="bin")
-        self.copy("*.dylib", dst="bin", src="lib")
-        self.copy("license*", dst="licenses", src=".", folder=True, ignore_case=True)
+    def generate(self):
+        for dep in self.dependencies.values():
+            if dep.cpp_info.libdirs:
+                copy(self, "*.dll", dep.cpp_info.libdirs[0], self.build_folder)
+                copy(self, "*.dylib", dep.cpp_info.libdirs[0], self.build_folder)
