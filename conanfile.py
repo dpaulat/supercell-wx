@@ -1,4 +1,5 @@
 from conan import ConanFile
+from conan.tools.cmake import CMake
 from conan.tools.files import copy
 
 class SupercellWxConan(ConanFile):
@@ -35,3 +36,12 @@ class SupercellWxConan(ConanFile):
             if dep.cpp_info.libdirs:
                 copy(self, "*.dll", dep.cpp_info.libdirs[0], self.build_folder)
                 copy(self, "*.dylib", dep.cpp_info.libdirs[0], self.build_folder)
+
+    def build(self):
+        cmake = CMake(self)
+        cmake.configure()
+        cmake.build()
+
+    def package(self):
+        cmake = CMake(self)
+        cmake.install()

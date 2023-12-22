@@ -11,6 +11,10 @@ set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0079 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0148 OLD) # aws-sdk-cpp uses FindPythonInterp
 
+include(tools/scwx_config.cmake)
+
+scwx_output_dirs_setup()
+
 enable_testing()
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
