@@ -1,4 +1,5 @@
 from conan import ConanFile
+from conan.tools.cmake import CMake
 from conan.tools.files import copy
 
 class SupercellWxConan(ConanFile):
@@ -6,6 +7,7 @@ class SupercellWxConan(ConanFile):
     requires   = ("boost/1.83.0",
                   "cpr/1.10.5",
                   "fontconfig/2.14.2",
+                  "freetype/2.13.2",
                   "geographiclib/2.3",
                   "geos/3.12.0",
                   "glew/2.2.0",
@@ -34,3 +36,12 @@ class SupercellWxConan(ConanFile):
             if dep.cpp_info.libdirs:
                 copy(self, "*.dll", dep.cpp_info.libdirs[0], self.build_folder)
                 copy(self, "*.dylib", dep.cpp_info.libdirs[0], self.build_folder)
+
+    def build(self):
+        cmake = CMake(self)
+        cmake.configure()
+        cmake.build()
+
+    def package(self):
+        cmake = CMake(self)
+        cmake.install()
