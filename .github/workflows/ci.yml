@@ -108,7 +108,7 @@ jobs:
       shell: pwsh
       run: |
         pip install conan
-        conan profile new default --detect
+        conan profile detect
         conan install ./source/ `
           --remote conancenter `
           --build missing `
@@ -136,6 +136,7 @@ jobs:
       shell: bash
       run: |
         cd build/
+        cd Release/
         cd bin/
         objcopy --only-keep-debug supercell-wx supercell-wx.debug
         objcopy --strip-debug --strip-unneeded supercell-wx
@@ -180,7 +181,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: supercell-wx-debug-${{ matrix.artifact_suffix }}
-        path: ${{ github.workspace }}/build/bin/*.pdb
+        path: ${{ github.workspace }}/build/Release/bin/*.pdb
 
     - name: Upload Artifacts (Linux)
       if: matrix.os == 'ubuntu-22.04'
@@ -195,8 +196,8 @@ jobs:
       with:
         name: supercell-wx-debug-${{ matrix.artifact_suffix }}
         path: |
-          ${{ github.workspace }}/build/bin/*.debug
-          ${{ github.workspace }}/build/lib/*.debug
+          ${{ github.workspace }}/build/Release/bin/*.debug
+          ${{ github.workspace }}/build/Release/lib/*.debug
 
     - name: Build Installer (Windows)
       if: matrix.os == 'windows-2022'
