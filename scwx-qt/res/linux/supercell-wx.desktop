@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Supercell Wx
+Comment=Weather Radar and Data Viewer
+Exec=supercell-wx
+Icon=supercell-wx
+Categories=Network;Science;
