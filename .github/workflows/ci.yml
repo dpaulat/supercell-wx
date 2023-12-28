@@ -91,6 +91,7 @@ jobs:
       shell: bash
       run: |
         sudo apt-get install doxygen \
+                             libfuse2 \
                              ninja-build
 
     - name: Setup Python Environment
