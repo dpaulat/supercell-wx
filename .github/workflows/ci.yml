@@ -58,6 +58,7 @@ jobs:
     env:
       CC: ${{ matrix.env_cc }}
       CXX: ${{ matrix.env_cxx }}
+      SCWX_VERSION: v0.3.0
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -90,6 +91,7 @@ jobs:
       shell: bash
       run: |
         sudo apt-get install doxygen \
+                             libfuse2 \
                              ninja-build
 
     - name: Setup Python Environment
@@ -151,9 +153,13 @@ jobs:
         cd lib/
         ln -s libssl.so.3 libssl.so
         cd ..
-        mkdir -p plugins/sqldrivers/
-        cd plugins/sqldrivers/
-        cp "${RUNNER_WORKSPACE}/Qt/${{ matrix.qt_version }}/${{ matrix.qt_arch }}/plugins/sqldrivers/libqsqlite.so" .
+        mkdir -p plugins/
+        cd plugins/
+        mkdir -p platformthemes/
+        mkdir -p sqldrivers/
+        cp "${RUNNER_WORKSPACE}/Qt/${{ matrix.qt_version }}/${{ matrix.qt_arch }}/plugins/platformthemes/libqgtk3.so" platformthemes/
+        cp "${RUNNER_WORKSPACE}/Qt/${{ matrix.qt_version }}/${{ matrix.qt_arch }}/plugins/sqldrivers/libqsqlite.so" sqldrivers/
+        cd ..
         popd
         tar -czf supercell-wx-${{ matrix.artifact_suffix }}.tar.gz supercell-wx/
 
@@ -186,6 +192,37 @@ jobs:
         path: |
           ${{ github.workspace }}/build/bin/*.debug
           ${{ github.workspace }}/build/lib/*.debug
+
+    - name: Build AppImage (Linux)
+      if: matrix.os == 'ubuntu-22.04'
+      env:
+        APPIMAGE_DIR: ${{ github.workspace }}/supercell-wx/
+        LDAI_UPDATE_INFORMATION: gh-releases-zsync|dpaulat|supercell-wx|latest|*x86_64.AppImage.zsync
+        LDAI_OUTPUT: supercell-wx-${{ env.SCWX_VERSION }}-x86_64.AppImage
+        LINUXDEPLOY_OUTPUT_APP_NAME: supercell-wx
+        LINUXDEPLOY_OUTPUT_VERSION: ${{ env.SCWX_VERSION }}
+      shell: bash
+      run: |
+        wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+        chmod +x linuxdeploy-x86_64.AppImage
+        cp "${{ github.workspace }}/source/scwx-qt/res/icons/scwx-256.png" supercell-wx.png
+        cp "${{ github.workspace }}/source/scwx-qt/res/linux/supercell-wx.desktop" .
+        pushd "${{ env.APPIMAGE_DIR }}"
+        mkdir -p usr/
+        mv bin/ usr/
+        mv lib/ usr/
+        mv plugins/ usr/
+        popd
+        ./linuxdeploy-x86_64.AppImage --appdir ${{ env.APPIMAGE_DIR }} -i supercell-wx.png -d supercell-wx.desktop
+        ./linuxdeploy-x86_64.AppImage --appdir ${{ env.APPIMAGE_DIR }} --output appimage
+        rm -f linuxdeploy-x86_64.AppImage
+
+    - name: Upload AppImage (Linux)
+      if: matrix.os == 'ubuntu-22.04'
+      uses: actions/upload-artifact@v4
+      with:
+        name: supercell-wx-appimage-x64
+        path: ${{ github.workspace }}/*-x86_64.AppImage*
 
     - name: Test Supercell Wx
       working-directory: ${{ github.workspace }}/build
