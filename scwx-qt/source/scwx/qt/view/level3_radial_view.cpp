@@ -454,24 +454,7 @@ void Level3RadialViewImpl::ComputeCoordinates(
                  radials.end(),
                  [&](std::uint32_t radial)
                  {
-                    float deltaAngle;
-                    if (radial == 0)
-                    {
-                       // Angles are ordered clockwise, delta should be positive
-                       deltaAngle = radialData->start_angle(0) -
-                                    radialData->start_angle(numRadials - 1);
-                       while (deltaAngle < 0.0f)
-                       {
-                          deltaAngle += 360.0f;
-                       }
-                    }
-                    else
-                    {
-                       deltaAngle = radialData->delta_angle(radial);
-                    }
-
-                    const float angle =
-                       radialData->start_angle(radial) - (deltaAngle * 0.5f);
+                    const float angle = radialData->start_angle(radial);
 
                     std::for_each(std::execution::par_unseq,
                                   gates.begin(),

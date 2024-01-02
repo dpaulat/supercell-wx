@@ -738,51 +738,38 @@ void Level2ProductViewImpl::ComputeCoordinates(
    auto radials = boost::irange<std::uint32_t>(0u, numRadials);
    auto gates   = boost::irange<std::uint32_t>(0u, numRangeBins);
 
-   std::for_each(
-      std::execution::par_unseq,
-      radials.begin(),
-      radials.end(),
-      [&](std::uint32_t radial)
-      {
-         // Angles are ordered clockwise, delta should be positive. Only correct
-         // less than -90 degrees, this should cover any "overlap" scenarios.
-         float deltaAngle =
-            (radial == 0) ? (*radarData)[0]->azimuth_angle() -
-                               (*radarData)[numRadials - 1]->azimuth_angle() :
-                            (*radarData)[radial]->azimuth_angle() -
-                               (*radarData)[radial - 1]->azimuth_angle();
-         while (deltaAngle < -90.0f)
-         {
-            deltaAngle += 360.0f;
-         }
+   std::for_each(std::execution::par_unseq,
+                 radials.begin(),
+                 radials.end(),
+                 [&](std::uint32_t radial)
+                 {
+                    const float angle = (*radarData)[radial]->azimuth_angle();
 
-         const float angle =
-            (*radarData)[radial]->azimuth_angle() - (deltaAngle * 0.5f);
+                    std::for_each(std::execution::par_unseq,
+                                  gates.begin(),
+                                  gates.end(),
+                                  [&](std::uint32_t gate)
+                                  {
+                                     const std::uint32_t radialGate =
+                                        radial * common::MAX_DATA_MOMENT_GATES +
+                                        gate;
+                                     const float range = (gate + 1) * gateSize;
+                                     const std::size_t offset = radialGate * 2;
 
-         std::for_each(std::execution::par_unseq,
-                       gates.begin(),
-                       gates.end(),
-                       [&](std::uint32_t gate)
-                       {
-                          const std::uint32_t radialGate =
-                             radial * common::MAX_DATA_MOMENT_GATES + gate;
-                          const float       range  = (gate + 1) * gateSize;
-                          const std::size_t offset = radialGate * 2;
+                                     double latitude;
+                                     double longitude;
 
-                          double latitude;
-                          double longitude;
+                                     geodesic.Direct(radarLatitude,
+                                                     radarLongitude,
+                                                     angle,
+                                                     range,
+                                                     latitude,
+                                                     longitude);
 
-                          geodesic.Direct(radarLatitude,
-                                          radarLongitude,
-                                          angle,
-                                          range,
-                                          latitude,
-                                          longitude);
-
-                          coordinates_[offset]     = latitude;
-                          coordinates_[offset + 1] = longitude;
-                       });
-      });
+                                     coordinates_[offset]     = latitude;
+                                     coordinates_[offset + 1] = longitude;
+                                  });
+                 });
    timer.stop();
    logger_->debug("Coordinates calculated in {}", timer.format(6, "%ws"));
 }

@@ -440,7 +440,7 @@ void RadarProductManager::Initialize()
          const uint16_t radial =
             static_cast<uint16_t>(radialGate / common::MAX_DATA_MOMENT_GATES);
 
-         const float  angle  = radial * 0.5f - 0.25f; // 0.5 degree radial
+         const float  angle  = radial * 0.5f; // 0.5 degree radial
          const float  range  = (gate + 1) * gateSize;
          const size_t offset = radialGate * 2;
 
@@ -477,7 +477,7 @@ void RadarProductManager::Initialize()
          const uint16_t radial =
             static_cast<uint16_t>(radialGate / common::MAX_DATA_MOMENT_GATES);
 
-         const float  angle  = radial * 1.0f - 0.5f; // 1 degree radial
+         const float  angle  = radial * 1.0f; // 1 degree radial
          const float  range  = (gate + 1) * gateSize;
          const size_t offset = radialGate * 2;
 
