@@ -512,18 +512,22 @@ Level3RadialView::GetBinLevel(const common::Coordinate& coordinate) const
       return std::nullopt;
    }
 
+   auto         radarProductManager = radar_product_manager();
+   auto         radarSite           = radarProductManager->radar_site();
+   const double radarLatitude       = radarSite->latitude();
+   const double radarLongitude      = radarSite->longitude();
+
    // Determine distance and azimuth of coordinate relative to radar location
    double s12;  // Distance (meters)
    double azi1; // Azimuth (degrees)
    double azi2; // Unused
-   util::GeographicLib::DefaultGeodesic().Inverse(
-      descriptionBlock->latitude_of_radar(),
-      descriptionBlock->longitude_of_radar(),
-      coordinate.latitude_,
-      coordinate.longitude_,
-      s12,
-      azi1,
-      azi2);
+   util::GeographicLib::DefaultGeodesic().Inverse(radarLatitude,
+                                                  radarLongitude,
+                                                  coordinate.latitude_,
+                                                  coordinate.longitude_,
+                                                  s12,
+                                                  azi1,
+                                                  azi2);
 
    if (std::isnan(azi1))
    {
@@ -553,11 +557,11 @@ Level3RadialView::GetBinLevel(const common::Coordinate& coordinate) const
    // Find Radial
    const std::uint16_t numRadials = radialData->number_of_radials();
    std::uint16_t       radial     = numRadials;
-   float               nextAngle  = radialData->start_angle(0);
+   double              nextAngle  = radialData->start_angle(0);
    for (std::uint16_t i = 0; i < numRadials; ++i)
    {
-      float startAngle = nextAngle;
-      nextAngle        = radialData->start_angle((i + 1) % numRadials);
+      double startAngle = nextAngle;
+      nextAngle         = radialData->start_angle((i + 1) % numRadials);
 
       if (startAngle < nextAngle)
       {
