@@ -1,5 +1,12 @@
 call tools\setup-common.bat
-mkdir build-release
-cd build-release
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CONFIGURATION_TYPES=Release -DCMAKE_PREFIX_PATH=C:/Qt/6.6.1/msvc2019_64 ..
+
+set build_dir=build-release
+set build_type=Release
+set qt_version=6.6.1
+
+mkdir %build_dir%
+cmake -B %build_dir% -S . ^
+    -DCMAKE_BUILD_TYPE=%build_type% ^
+    -DCMAKE_CONFIGURATION_TYPES=%build_type% ^
+    -DCMAKE_PREFIX_PATH=C:/Qt/%qt_version%/msvc2019_64
 pause
