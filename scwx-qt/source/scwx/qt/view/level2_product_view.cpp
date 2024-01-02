@@ -774,6 +774,14 @@ void Level2ProductViewImpl::ComputeCoordinates(
    logger_->debug("Coordinates calculated in {}", timer.format(6, "%ws"));
 }
 
+std::optional<std::uint16_t>
+Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
+{
+   // TODO
+   Q_UNUSED(coordinate);
+   return std::nullopt;
+}
+
 std::shared_ptr<Level2ProductView> Level2ProductView::Create(
    common::Level2Product                         product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager)

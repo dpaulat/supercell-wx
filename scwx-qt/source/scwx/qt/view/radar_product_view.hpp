@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/common/color_table.hpp>
+#include <scwx/common/geographic.hpp>
 #include <scwx/common/products.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/types/map_types.hpp>
@@ -8,6 +9,7 @@
 #include <chrono>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <vector>
 
 #include <QObject>
@@ -63,7 +65,9 @@ public:
    virtual std::tuple<const void*, std::size_t, std::size_t>
    GetMomentData() const = 0;
    virtual std::tuple<const void*, std::size_t, std::size_t>
-                                         GetCfpMomentData() const;
+   GetCfpMomentData() const;
+   virtual std::optional<std::uint16_t>
+   GetBinLevel(const common::Coordinate& coordinate) const = 0;
    std::chrono::system_clock::time_point GetSelectedTime() const;
 
    virtual std::vector<std::pair<std::string, std::string>>

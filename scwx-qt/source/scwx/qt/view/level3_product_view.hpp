@@ -15,8 +15,6 @@ namespace qt
 namespace view
 {
 
-class Level3ProductViewImpl;
-
 class Level3ProductView : public RadarProductView
 {
    Q_OBJECT
@@ -52,7 +50,8 @@ protected:
    void UpdateColorTable() override;
 
 private:
-   std::unique_ptr<Level3ProductViewImpl> p;
+   class Impl;
+   std::unique_ptr<Impl> p;
 };
 
 } // namespace view

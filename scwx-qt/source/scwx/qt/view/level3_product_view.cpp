@@ -27,10 +27,10 @@ static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 static constexpr uint16_t RANGE_FOLDED = 1u;
 
-class Level3ProductViewImpl
+class Level3ProductView::Impl
 {
 public:
-   explicit Level3ProductViewImpl(const std::string& product) :
+   explicit Impl(const std::string& product) :
        product_ {product},
        graphicMessage_ {nullptr},
        colorTable_ {},
@@ -42,7 +42,7 @@ public:
        savedOffset_ {0.0f}
    {
    }
-   ~Level3ProductViewImpl() = default;
+   ~Impl() = default;
 
    std::string product_;
 
@@ -61,8 +61,7 @@ public:
 Level3ProductView::Level3ProductView(
    const std::string&                            product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager) :
-    RadarProductView(radarProductManager),
-    p(std::make_unique<Level3ProductViewImpl>(product))
+    RadarProductView(radarProductManager), p(std::make_unique<Impl>(product))
 {
    ConnectRadarProductManager();
 }

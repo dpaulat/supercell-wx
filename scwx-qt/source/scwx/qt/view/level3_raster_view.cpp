@@ -352,6 +352,14 @@ void Level3RasterView::ComputeSweep()
    Q_EMIT SweepComputed();
 }
 
+std::optional<std::uint16_t>
+Level3RasterView::GetBinLevel(const common::Coordinate& coordinate) const
+{
+   // TODO
+   Q_UNUSED(coordinate);
+   return std::nullopt;
+}
+
 std::shared_ptr<Level3RasterView> Level3RasterView::Create(
    const std::string&                            product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager)

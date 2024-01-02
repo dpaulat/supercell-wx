@@ -47,6 +47,8 @@ public:
    GetMomentData() const override;
    std::tuple<const void*, std::size_t, std::size_t>
    GetCfpMomentData() const override;
+   std::optional<std::uint16_t>
+   GetBinLevel(const common::Coordinate& coordinate) const override;
 
    static std::shared_ptr<Level2ProductView>
    Create(common::Level2Product                         product,
