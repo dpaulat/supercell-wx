@@ -157,7 +157,8 @@ bool RadarSiteLayer::RunMousePicking(
    const QMapLibreGL::CustomLayerRenderParameters& /* params */,
    const QPointF& /* mouseLocalPos */,
    const QPointF& mouseGlobalPos,
-   const glm::vec2& /* mouseCoords */)
+   const glm::vec2& /* mouseCoords */,
+   const common::Coordinate& /* mouseGeoCoords */)
 {
    if (!p->hoverText_.empty())
    {

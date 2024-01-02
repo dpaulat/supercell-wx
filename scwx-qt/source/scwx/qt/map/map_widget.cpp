@@ -1215,8 +1215,11 @@ void MapWidgetImpl::RunMousePicking()
    for (auto it = genericLayers_.rbegin(); it != genericLayers_.rend(); ++it)
    {
       // Run mouse picking for each layer
-      if ((*it)->RunMousePicking(
-             params, lastPos_, lastGlobalPos_, mouseScreenCoordinate))
+      if ((*it)->RunMousePicking(params,
+                                 lastPos_,
+                                 lastGlobalPos_,
+                                 mouseScreenCoordinate,
+                                 {coordinate.first, coordinate.second}))
       {
          // If a draw item was picked, don't process additional layers
          itemPicked = true;

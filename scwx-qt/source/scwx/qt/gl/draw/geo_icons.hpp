@@ -38,9 +38,10 @@ public:
    void Deinitialize() override;
 
    bool RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params,
-                        const QPointF&   mouseLocalPos,
-                        const QPointF&   mouseGlobalPos,
-                        const glm::vec2& mouseCoords) override;
+                        const QPointF&            mouseLocalPos,
+                        const QPointF&            mouseGlobalPos,
+                        const glm::vec2&          mouseCoords,
+                        const common::Coordinate& mouseGeoCoords) override;
 
    /**
     * Sets the visibility of the geo icons.

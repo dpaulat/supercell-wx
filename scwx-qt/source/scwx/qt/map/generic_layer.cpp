@@ -30,7 +30,8 @@ bool GenericLayer::RunMousePicking(
    const QMapLibreGL::CustomLayerRenderParameters& /* params */,
    const QPointF& /* mouseLocalPos */,
    const QPointF& /* mouseGlobalPos */,
-   const glm::vec2& /* mousePos */)
+   const glm::vec2& /* mousePos */,
+   const common::Coordinate& /* mouseGeoCoords */)
 {
    // By default, the layer has nothing to pick
    return false;

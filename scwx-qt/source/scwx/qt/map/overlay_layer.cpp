@@ -277,7 +277,8 @@ bool OverlayLayer::RunMousePicking(
    const QMapLibreGL::CustomLayerRenderParameters& /* params */,
    const QPointF& /* mouseLocalPos */,
    const QPointF& /* mouseGlobalPos */,
-   const glm::vec2& /* mouseCoords */)
+   const glm::vec2& /* mouseCoords */,
+   const common::Coordinate& /* mouseGeoCoords */)
 {
    // If sweep time was picked, don't process additional items
    return p->sweepTimePicked_;
