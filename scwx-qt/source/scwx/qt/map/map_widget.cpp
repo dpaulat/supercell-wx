@@ -998,14 +998,6 @@ void MapWidget::keyPressEvent(QKeyEvent* ev)
    case Qt::Key_S:
       changeStyle();
       break;
-   case Qt::Key_L:
-   {
-      for (const QString& layer : p->map_->layerIds())
-      {
-         qDebug() << "Layer: " << layer;
-      }
-   }
-   break;
    default:
       break;
    }
