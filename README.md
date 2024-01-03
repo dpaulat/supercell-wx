@@ -54,4 +54,4 @@ Frequently asked questions:
   - A. In Linux, if you're using KDE, Supercell Wx should automatically follow your theme settings.
     
 - Q: How can I contribute?
-  - A. Head to [Developer Setup](https://supercell-wx.readthedocs.io/en/stable/development/developer-setup.html) to configure the supercell-wx development environment for your IDE. Currently Visual Studio and Visual Studio Code are supported, with support for other IDE's being added down the road
+  - A. Head to [Developer Setup](https://supercell-wx.readthedocs.io/en/stable/development/developer-setup.html) and [Contributing](CONTRIBUTING.md) to configure the Supercell Wx development environment for your IDE. Currently Visual Studio and Visual Studio Code are recommended, with other IDEs remaining untested at this time.
