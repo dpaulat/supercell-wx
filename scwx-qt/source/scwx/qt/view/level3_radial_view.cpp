@@ -556,33 +556,38 @@ Level3RadialView::GetBinLevel(const common::Coordinate& coordinate) const
 
    // Find Radial
    const std::uint16_t numRadials = radialData->number_of_radials();
-   std::uint16_t       radial     = numRadials;
-   double              nextAngle  = radialData->start_angle(0);
-   for (std::uint16_t i = 0; i < numRadials; ++i)
-   {
-      double startAngle = nextAngle;
-      nextAngle         = radialData->start_angle((i + 1) % numRadials);
+   auto                radials = boost::irange<std::uint32_t>(0u, numRadials);
 
-      if (startAngle < nextAngle)
+   auto radial = std::find_if( //
+      std::execution::par_unseq,
+      radials.begin(),
+      radials.end(),
+      [&](std::uint32_t i)
       {
-         if (startAngle <= azi1 && azi1 < nextAngle)
-         {
-            radial = i;
-            break;
-         }
-      }
-      else
-      {
-         // If the bin crosses 0/360 degrees, special handling is needed
-         if (startAngle <= azi1 || azi1 < nextAngle)
-         {
-            radial = i;
-            break;
-         }
-      }
-   }
+         bool   found      = false;
+         double startAngle = radialData->start_angle(i);
+         double nextAngle  = radialData->start_angle((i + 1) % numRadials);
 
-   if (radial == numRadials)
+         if (startAngle < nextAngle)
+         {
+            if (startAngle <= azi1 && azi1 < nextAngle)
+            {
+               found = true;
+            }
+         }
+         else
+         {
+            // If the bin crosses 0/360 degrees, special handling is needed
+            if (startAngle <= azi1 || azi1 < nextAngle)
+            {
+               found = true;
+            }
+         }
+
+         return found;
+      });
+
+   if (radial == radials.end())
    {
       // No radial was found (not likely to happen without a gap in data)
       return std::nullopt;
@@ -590,7 +595,7 @@ Level3RadialView::GetBinLevel(const common::Coordinate& coordinate) const
 
    // Compute threshold at which to display an individual bin
    const std::uint16_t snrThreshold = descriptionBlock->threshold();
-   const std::uint8_t  level        = radialData->level(radial).at(gate);
+   const std::uint8_t  level        = radialData->level(*radial).at(gate);
 
    if (level < snrThreshold && level != RANGE_FOLDED)
    {
