@@ -52,3 +52,6 @@ Frequently asked questions:
   - A. In Windows, make sure to set the flag `-style fusion` at the end of the target path of the .exe
     - Example: `C:\Users\Administrator\Desktop\Supercell-Wx\bin\supercell-wx.exe -style fusion`
   - A. In Linux, if you're using KDE, Supercell Wx should automatically follow your theme settings.
+    
+- Q: How can I contribute?
+  - A. Head to [Developer Setup](https://supercell-wx.readthedocs.io/en/stable/development/developer-setup.html) and [Contributing](CONTRIBUTING.md) to configure the Supercell Wx development environment for your IDE. Currently Visual Studio and Visual Studio Code are recommended, with other IDEs remaining untested at this time.
