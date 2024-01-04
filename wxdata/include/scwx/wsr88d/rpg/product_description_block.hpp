@@ -1,9 +1,11 @@
 #pragma once
 
 #include <scwx/awips/message.hpp>
+#include <scwx/wsr88d/rpg/rpg_types.hpp>
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 
 #include <units/angle.h>
 
@@ -60,6 +62,9 @@ public:
    float    offset() const;
    float    scale() const;
    uint16_t number_of_levels() const;
+
+   std::optional<DataLevelCode> data_level_code(std::uint8_t level) const;
+   std::optional<float>         data_value(std::uint8_t level) const;
 
    float log_offset() const;
    float log_scale() const;

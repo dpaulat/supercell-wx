@@ -7,6 +7,8 @@
 #include <scwx/wsr88d/rpg/graphic_product_message.hpp>
 #include <scwx/wsr88d/rpg/radial_data_packet.hpp>
 
+#include <limits>
+
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 #include <fmt/format.h>
@@ -240,15 +242,22 @@ void Level3ProductView::UpdateColorTable()
       return;
    }
 
-   int16_t  productCode = descriptionBlock->product_code();
-   float    offset      = descriptionBlock->offset();
-   float    scale       = descriptionBlock->scale();
-   uint16_t threshold   = descriptionBlock->threshold();
+   std::int16_t productCode = descriptionBlock->product_code();
+   float        offset      = descriptionBlock->offset();
+   float        scale       = descriptionBlock->scale();
+   std::uint8_t threshold   = static_cast<std::uint8_t>(
+      std::clamp<std::uint16_t>(descriptionBlock->threshold(),
+                                std::numeric_limits<std::uint8_t>::min(),
+                                std::numeric_limits<std::uint8_t>::max()));
 
-   // If the threshold is 2, the range min should be set to 1 for range folding
-   uint16_t rangeMin       = std::min<uint16_t>(1, threshold);
-   uint16_t numberOfLevels = descriptionBlock->number_of_levels();
-   uint16_t rangeMax       = (numberOfLevels > 0) ? numberOfLevels - 1 : 0;
+   // If the threshold is 2, the range min should be set to 1 for range
+   // folding
+   std::uint8_t  rangeMin       = std::min<std::uint8_t>(1, threshold);
+   std::uint16_t numberOfLevels = descriptionBlock->number_of_levels();
+   std::uint8_t  rangeMax       = static_cast<std::uint8_t>(
+      std::clamp<std::uint16_t>((numberOfLevels > 0) ? numberOfLevels - 1 : 0,
+                                std::numeric_limits<std::uint8_t>::min(),
+                                std::numeric_limits<std::uint8_t>::max()));
 
    if (p->savedColorTable_ == p->colorTable_ && //
        p->savedOffset_ == offset &&             //
@@ -274,7 +283,8 @@ void Level3ProductView::UpdateColorTable()
       [&](uint16_t i)
       {
          const size_t lutIndex = i - *dataRange.begin();
-         float        f;
+
+         std::optional<float> f = descriptionBlock->data_value(i);
 
          // Different products use different scale/offset formulas
          if (numberOfLevels > 16 || productCode == 34)
@@ -285,28 +295,14 @@ void Level3ProductView::UpdateColorTable()
             }
             else
             {
-               switch (descriptionBlock->product_code())
+               if (f.has_value())
                {
-               case 159:
-               case 161:
-               case 163:
-               case 167:
-               case 168:
-               case 170:
-               case 172:
-               case 173:
-               case 174:
-               case 175:
-               case 176:
-                  f = (i - offset) / scale;
-                  break;
-
-               default:
-                  f = i * scale + offset;
-                  break;
+                  lut[lutIndex] = p->colorTable_->Color(f.value());
                }
-
-               lut[lutIndex] = p->colorTable_->Color(f);
+               else
+               {
+                  lut[lutIndex] = boost::gil::rgba8_pixel_t {0, 0, 0, 0};
+               }
             }
          }
          else
@@ -314,29 +310,15 @@ void Level3ProductView::UpdateColorTable()
             uint16_t th = descriptionBlock->data_level_threshold(i);
             if ((th & 0x8000u) == 0)
             {
-               float scaleFactor = 1.0f;
-
-               if (th & 0x4000u)
-               {
-                  scaleFactor *= 0.01f;
-               }
-               if (th & 0x2000u)
-               {
-                  scaleFactor *= 0.05f;
-               }
-               if (th & 0x1000u)
-               {
-                  scaleFactor *= 0.1f;
-               }
-               if (th & 0x0100u)
-               {
-                  scaleFactor *= -1.0f;
-               }
-
                // If bit 0 is zero, then the LSB is numeric
-               f = static_cast<float>(th & 0x00ffu) * scaleFactor;
-
-               lut[lutIndex] = p->colorTable_->Color(f);
+               if (f.has_value())
+               {
+                  lut[lutIndex] = p->colorTable_->Color(f.value());
+               }
+               else
+               {
+                  lut[lutIndex] = boost::gil::rgba8_pixel_t {0, 0, 0, 0};
+               }
             }
             else
             {
