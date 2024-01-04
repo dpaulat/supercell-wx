@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace scwx
 {
 namespace wsr88d
@@ -52,6 +54,9 @@ enum class DataLevelCode
 
    Unknown
 };
+
+const std::string& GetDataLevelCodeName(DataLevelCode dataLevelCode);
+const std::string& GetDataLevelCodeShortName(DataLevelCode dataLevelCode);
 
 } // namespace rpg
 } // namespace wsr88d
