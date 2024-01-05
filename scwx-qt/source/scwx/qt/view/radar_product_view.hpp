@@ -34,6 +34,7 @@ public:
       std::shared_ptr<manager::RadarProductManager> radarProductManager);
    virtual ~RadarProductView();
 
+   virtual std::shared_ptr<common::ColorTable> color_table() const = 0;
    virtual const std::vector<boost::gil::rgba8_pixel_t>&
                                                  color_table_lut() const;
    virtual std::uint16_t                         color_table_min() const;

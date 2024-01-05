@@ -96,6 +96,11 @@ void Level3ProductView::DisconnectRadarProductManager()
               nullptr);
 }
 
+std::shared_ptr<common::ColorTable> Level3ProductView::color_table() const
+{
+   return p->colorTable_;
+}
+
 const std::vector<boost::gil::rgba8_pixel_t>&
 Level3ProductView::color_table_lut() const
 {

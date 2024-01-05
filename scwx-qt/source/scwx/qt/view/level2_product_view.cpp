@@ -163,6 +163,11 @@ boost::asio::thread_pool& Level2ProductView::thread_pool()
    return p->threadPool_;
 }
 
+std::shared_ptr<common::ColorTable> Level2ProductView::color_table() const
+{
+   return p->colorTable_;
+}
+
 const std::vector<boost::gil::rgba8_pixel_t>&
 Level2ProductView::color_table_lut() const
 {
