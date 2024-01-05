@@ -5,6 +5,7 @@
 #include <scwx/common/products.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/types/map_types.hpp>
+#include <scwx/wsr88d/wsr88d_types.hpp>
 
 #include <chrono>
 #include <memory>
@@ -66,8 +67,13 @@ public:
    GetMomentData() const = 0;
    virtual std::tuple<const void*, std::size_t, std::size_t>
    GetCfpMomentData() const;
+
    virtual std::optional<std::uint16_t>
    GetBinLevel(const common::Coordinate& coordinate) const = 0;
+   virtual std::optional<wsr88d::DataLevelCode>
+                                GetDataLevelCode(std::uint16_t level) const = 0;
+   virtual std::optional<float> GetDataValue(std::uint16_t level) const     = 0;
+
    std::chrono::system_clock::time_point GetSelectedTime() const;
 
    virtual std::vector<std::pair<std::string, std::string>>

@@ -782,6 +782,21 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
    return std::nullopt;
 }
 
+std::optional<wsr88d::DataLevelCode>
+Level2ProductView::GetDataLevelCode(std::uint16_t level) const
+{
+   // TODO
+   Q_UNUSED(level);
+   return std::nullopt;
+}
+
+std::optional<float> Level2ProductView::GetDataValue(std::uint16_t level) const
+{
+   // TODO
+   Q_UNUSED(level);
+   return std::nullopt;
+}
+
 std::shared_ptr<Level2ProductView> Level2ProductView::Create(
    common::Level2Product                         product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager)
