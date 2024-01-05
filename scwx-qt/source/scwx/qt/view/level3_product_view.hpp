@@ -25,7 +25,8 @@ public:
       std::shared_ptr<manager::RadarProductManager> radarProductManager);
    virtual ~Level3ProductView();
 
-   const std::vector<boost::gil::rgba8_pixel_t>& color_table() const override;
+   const std::vector<boost::gil::rgba8_pixel_t>&
+                 color_table_lut() const override;
    std::uint16_t color_table_min() const override;
    std::uint16_t color_table_max() const override;
 
@@ -47,7 +48,7 @@ protected:
 
    void ConnectRadarProductManager() override;
    void DisconnectRadarProductManager() override;
-   void UpdateColorTable() override;
+   void UpdateColorTableLut() override;
 
 private:
    class Impl;

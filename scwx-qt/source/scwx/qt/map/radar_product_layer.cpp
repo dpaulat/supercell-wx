@@ -77,7 +77,7 @@ RadarProductLayer::RadarProductLayer(std::shared_ptr<MapContext> context) :
 {
    auto radarProductView = context->radar_product_view();
    connect(radarProductView.get(),
-           &view::RadarProductView::ColorTableUpdated,
+           &view::RadarProductView::ColorTableLutUpdated,
            this,
            [this]() { p->colorTableNeedsUpdate_ = true; });
    connect(radarProductView.get(),
@@ -334,7 +334,7 @@ void RadarProductLayer::UpdateColorTable()
       context()->radar_product_view();
 
    const std::vector<boost::gil::rgba8_pixel_t>& colorTable =
-      radarProductView->color_table();
+      radarProductView->color_table_lut();
    const uint16_t rangeMin = radarProductView->color_table_min();
    const uint16_t rangeMax = radarProductView->color_table_max();
 

@@ -347,7 +347,7 @@ void Level3RasterView::ComputeSweep()
    timer.stop();
    logger_->debug("Vertices calculated in {}", timer.format(6, "%ws"));
 
-   UpdateColorTable();
+   UpdateColorTableLut();
 
    Q_EMIT SweepComputed();
 }

@@ -34,7 +34,8 @@ public:
       std::shared_ptr<manager::RadarProductManager> radarProductManager);
    virtual ~RadarProductView();
 
-   virtual const std::vector<boost::gil::rgba8_pixel_t>& color_table() const;
+   virtual const std::vector<boost::gil::rgba8_pixel_t>&
+                                                 color_table_lut() const;
    virtual std::uint16_t                         color_table_min() const;
    virtual std::uint16_t                         color_table_max() const;
    virtual float                                 elevation() const;
@@ -84,13 +85,13 @@ protected:
 
    virtual void ConnectRadarProductManager()    = 0;
    virtual void DisconnectRadarProductManager() = 0;
-   virtual void UpdateColorTable()              = 0;
+   virtual void UpdateColorTableLut()           = 0;
 
 protected slots:
    virtual void ComputeSweep();
 
 signals:
-   void ColorTableUpdated();
+   void ColorTableLutUpdated();
    void SweepComputed();
    void SweepNotComputed(types::NoUpdateReason reason);
 

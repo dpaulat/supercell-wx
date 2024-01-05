@@ -164,11 +164,11 @@ boost::asio::thread_pool& Level2ProductView::thread_pool()
 }
 
 const std::vector<boost::gil::rgba8_pixel_t>&
-Level2ProductView::color_table() const
+Level2ProductView::color_table_lut() const
 {
    if (p->colorTableLut_.size() == 0)
    {
-      return RadarProductView::color_table();
+      return RadarProductView::color_table_lut();
    }
    else
    {
@@ -282,7 +282,7 @@ void Level2ProductView::LoadColorTable(
    std::shared_ptr<common::ColorTable> colorTable)
 {
    p->colorTable_ = colorTable;
-   UpdateColorTable();
+   UpdateColorTableLut();
 }
 
 void Level2ProductView::SelectElevation(float elevation)
@@ -317,7 +317,7 @@ void Level2ProductViewImpl::SetProduct(common::Level2Product product)
    }
 }
 
-void Level2ProductView::UpdateColorTable()
+void Level2ProductView::UpdateColorTableLut()
 {
    if (p->momentDataBlock0_ == nullptr || //
        p->colorTable_ == nullptr ||       //
@@ -398,7 +398,7 @@ void Level2ProductView::UpdateColorTable()
    p->savedOffset_     = offset;
    p->savedScale_      = scale;
 
-   Q_EMIT ColorTableUpdated();
+   Q_EMIT ColorTableLutUpdated();
 }
 
 void Level2ProductView::ComputeSweep()
@@ -702,7 +702,7 @@ void Level2ProductView::ComputeSweep()
    timer.stop();
    logger_->debug("Vertices calculated in {}", timer.format(6, "%ws"));
 
-   UpdateColorTable();
+   UpdateColorTableLut();
 
    Q_EMIT SweepComputed();
 }

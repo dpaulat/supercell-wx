@@ -182,8 +182,6 @@ public:
       manager::PlacefileManager::Instance()};
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
-   std::shared_ptr<common::ColorTable> colorTable_;
-
    std::shared_ptr<RadarProductLayer> radarProductLayer_;
    std::shared_ptr<AlertLayer>        alertLayer_;
    std::shared_ptr<OverlayLayer>      overlayLayer_;
@@ -1377,7 +1375,7 @@ void MapWidgetImpl::RadarProductViewConnect()
    {
       connect(
          radarProductView.get(),
-         &view::RadarProductView::ColorTableUpdated,
+         &view::RadarProductView::ColorTableLutUpdated,
          this,
          [this]() { widget_->update(); },
          Qt::QueuedConnection);
@@ -1412,7 +1410,7 @@ void MapWidgetImpl::RadarProductViewDisconnect()
    if (radarProductView != nullptr)
    {
       disconnect(radarProductView.get(),
-                 &view::RadarProductView::ColorTableUpdated,
+                 &view::RadarProductView::ColorTableLutUpdated,
                  this,
                  nullptr);
       disconnect(radarProductView.get(),

@@ -97,11 +97,11 @@ void Level3ProductView::DisconnectRadarProductManager()
 }
 
 const std::vector<boost::gil::rgba8_pixel_t>&
-Level3ProductView::color_table() const
+Level3ProductView::color_table_lut() const
 {
    if (p->colorTableLut_.size() == 0)
    {
-      return RadarProductView::color_table();
+      return RadarProductView::color_table_lut();
    }
    else
    {
@@ -218,10 +218,10 @@ void Level3ProductView::LoadColorTable(
    std::shared_ptr<common::ColorTable> colorTable)
 {
    p->colorTable_ = colorTable;
-   UpdateColorTable();
+   UpdateColorTableLut();
 }
 
-void Level3ProductView::UpdateColorTable()
+void Level3ProductView::UpdateColorTableLut()
 {
    logger_->debug("UpdateColorTable()");
 
@@ -346,7 +346,7 @@ void Level3ProductView::UpdateColorTable()
    p->savedOffset_     = offset;
    p->savedScale_      = scale;
 
-   Q_EMIT ColorTableUpdated();
+   Q_EMIT ColorTableLutUpdated();
 }
 
 } // namespace view
