@@ -1,6 +1,7 @@
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/gl/shader_program.hpp>
 #include <scwx/qt/util/maplibre.hpp>
+#include <scwx/qt/util/tooltip.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <execution>
@@ -9,11 +10,14 @@
 #   pragma warning(push, 0)
 #endif
 
+#include <boost/algorithm/string.hpp>
 #include <boost/timer/timer.hpp>
+#include <fmt/format.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <mbgl/util/constants.hpp>
+#include <QGuiApplication>
 
 #if defined(_MSC_VER)
 #   pragma warning(pop)
@@ -321,6 +325,104 @@ void RadarProductLayer::Deinitialize()
    p->vao_                       = GL_INVALID_INDEX;
    p->vbo_                       = {GL_INVALID_INDEX};
    p->texture_                   = GL_INVALID_INDEX;
+}
+
+bool RadarProductLayer::RunMousePicking(
+   const QMapLibreGL::CustomLayerRenderParameters& /* params */,
+   const QPointF& /* mouseLocalPos */,
+   const QPointF& mouseGlobalPos,
+   const glm::vec2& /* mouseCoords */,
+   const common::Coordinate& mouseGeoCoords)
+{
+   bool itemPicked = false;
+
+   if (QGuiApplication::keyboardModifiers() &
+       Qt::KeyboardModifier::ShiftModifier)
+   {
+      std::shared_ptr<view::RadarProductView> radarProductView =
+         context()->radar_product_view();
+
+      std::optional<std::uint16_t> binLevel =
+         radarProductView->GetBinLevel(mouseGeoCoords);
+
+      if (binLevel.has_value())
+      {
+         // Hovering over a bin on the map
+         std::optional<wsr88d::DataLevelCode> code =
+            radarProductView->GetDataLevelCode(binLevel.value());
+         std::optional<float> value =
+            radarProductView->GetDataValue(binLevel.value());
+
+         if (code.has_value() && code.value() != wsr88d::DataLevelCode::Blank)
+         {
+            // Level has associated data level code
+            std::string codeName = wsr88d::GetDataLevelCodeName(code.value());
+            std::string codeShortName =
+               wsr88d::GetDataLevelCodeShortName(code.value());
+            std::string hoverText;
+
+            if (codeName != codeShortName && !codeShortName.empty())
+            {
+               // There is a unique long and short name for the code
+               hoverText = fmt::format("{}: {}", codeShortName, codeName);
+            }
+            else
+            {
+               // Otherwise, only use the long name (always present)
+               hoverText = codeName;
+            }
+
+            // Show the tooltip
+            util::tooltip::Show(hoverText, mouseGlobalPos);
+
+            itemPicked = true;
+         }
+         else if (value.has_value())
+         {
+            // Level has associated data value
+            float       f = value.value();
+            std::string units {};
+            std::string hoverText;
+
+            std::shared_ptr<common::ColorTable> colorTable =
+               radarProductView->color_table();
+
+            if (colorTable != nullptr)
+            {
+               // Scale data value according to the color table, and get units
+               f     = f * colorTable->scale() + colorTable->offset();
+               units = colorTable->units();
+            }
+
+            if (units.empty() ||          //
+                units.starts_with("?") || //
+                boost::iequals(units, "NONE") ||
+                boost::iequals(units, "UNITLESS"))
+            {
+               // Don't display a units value that wasn't intended to be
+               // displayed
+               hoverText = fmt::format("{}", f);
+            }
+            else if (std::isalpha(units.at(0)))
+            {
+               // dBZ, Kts, etc.
+               hoverText = fmt::format("{} {}", f, units);
+            }
+            else
+            {
+               // %, etc.
+               hoverText = fmt::format("{}{}", f, units);
+            }
+
+            // Show the tooltip
+            util::tooltip::Show(hoverText, mouseGlobalPos);
+
+            itemPicked = true;
+         }
+      }
+   }
+
+   return itemPicked;
 }
 
 void RadarProductLayer::UpdateColorTable()
