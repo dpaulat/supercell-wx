@@ -1,12 +1,10 @@
-#include <scwx/wsr88d/rpg/rpg_types.hpp>
+#include <scwx/wsr88d/wsr88d_types.hpp>
 
 #include <unordered_map>
 
 namespace scwx
 {
 namespace wsr88d
-{
-namespace rpg
 {
 
 static const std::unordered_map<DataLevelCode, std::string> dataLevelCodeName_ {
@@ -109,6 +107,5 @@ const std::string& GetDataLevelCodeShortName(DataLevelCode dataLevelCode)
    return dataLevelCodeShortName_.at(dataLevelCode);
 }
 
-} // namespace rpg
 } // namespace wsr88d
 } // namespace scwx

@@ -6,8 +6,6 @@ namespace scwx
 {
 namespace wsr88d
 {
-namespace rpg
-{
 
 enum class DataLevelCode
 {
@@ -58,6 +56,5 @@ enum class DataLevelCode
 const std::string& GetDataLevelCodeName(DataLevelCode dataLevelCode);
 const std::string& GetDataLevelCodeShortName(DataLevelCode dataLevelCode);
 
-} // namespace rpg
 } // namespace wsr88d
 } // namespace scwx

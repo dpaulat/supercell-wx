@@ -1,7 +1,7 @@
 #pragma once
 
 #include <scwx/awips/message.hpp>
-#include <scwx/wsr88d/rpg/rpg_types.hpp>
+#include <scwx/wsr88d/wsr88d_types.hpp>
 
 #include <cstdint>
 #include <memory>

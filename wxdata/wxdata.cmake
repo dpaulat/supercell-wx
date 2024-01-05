@@ -93,11 +93,13 @@ set(SRC_UTIL source/scwx/util/environment.cpp
 set(HDR_WSR88D include/scwx/wsr88d/ar2v_file.hpp
                include/scwx/wsr88d/level3_file.hpp
                include/scwx/wsr88d/nexrad_file.hpp
-               include/scwx/wsr88d/nexrad_file_factory.hpp)
+               include/scwx/wsr88d/nexrad_file_factory.hpp
+               include/scwx/wsr88d/wsr88d_types.hpp)
 set(SRC_WSR88D source/scwx/wsr88d/ar2v_file.cpp
                source/scwx/wsr88d/level3_file.cpp
                source/scwx/wsr88d/nexrad_file.cpp
-               source/scwx/wsr88d/nexrad_file_factory.cpp)
+               source/scwx/wsr88d/nexrad_file_factory.cpp
+               source/scwx/wsr88d/wsr88d_types.cpp)
 set(HDR_WSR88D_RDA include/scwx/wsr88d/rda/clutter_filter_bypass_map.hpp
                    include/scwx/wsr88d/rda/clutter_filter_map.hpp
                    include/scwx/wsr88d/rda/digital_radar_data.hpp
@@ -146,7 +148,6 @@ set(HDR_WSR88D_RPG include/scwx/wsr88d/rpg/ccb_header.hpp
                    include/scwx/wsr88d/rpg/radar_coded_message.hpp
                    include/scwx/wsr88d/rpg/radial_data_packet.hpp
                    include/scwx/wsr88d/rpg/raster_data_packet.hpp
-                   include/scwx/wsr88d/rpg/rpg_types.hpp
                    include/scwx/wsr88d/rpg/scit_forecast_data_packet.hpp
                    include/scwx/wsr88d/rpg/set_color_level_packet.hpp
                    include/scwx/wsr88d/rpg/special_graphic_symbol_packet.hpp
@@ -186,7 +187,6 @@ set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/ccb_header.cpp
                    source/scwx/wsr88d/rpg/radar_coded_message.cpp
                    source/scwx/wsr88d/rpg/radial_data_packet.cpp
                    source/scwx/wsr88d/rpg/raster_data_packet.cpp
-                   source/scwx/wsr88d/rpg/rpg_types.cpp
                    source/scwx/wsr88d/rpg/scit_forecast_data_packet.cpp
                    source/scwx/wsr88d/rpg/set_color_level_packet.cpp
                    source/scwx/wsr88d/rpg/special_graphic_symbol_packet.cpp
