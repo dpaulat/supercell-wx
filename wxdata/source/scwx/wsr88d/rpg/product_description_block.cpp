@@ -23,6 +23,25 @@ static const std::set<int> compressedProducts_ = {
    159, 161, 163, 165, 167, 168, 170, 172, 173, 174, 175,
    176, 177, 178, 179, 180, 182, 186, 193, 195, 202};
 
+static const std::set<int> uncodedDataLevelProducts_ = {32,
+                                                        34,
+                                                        81,
+                                                        93,
+                                                        94,
+                                                        99,
+                                                        134,
+                                                        135,
+                                                        138,
+                                                        153,
+                                                        154,
+                                                        155,
+                                                        159,
+                                                        161,
+                                                        163,
+                                                        177,
+                                                        193,
+                                                        195};
+
 static const std::unordered_map<int, unsigned int> rangeMap_ {
    {19, 230},  {20, 460},  {27, 230},  {30, 230},  {31, 230},  {32, 230},
    {37, 230},  {38, 460},  {41, 230},  {50, 230},  {51, 230},  {56, 230},
@@ -884,7 +903,8 @@ ProductDescriptionBlock::data_level_code(std::uint8_t level) const
    }
 
    // Different products use different scale/offset formulas
-   if (number_of_levels() <= 16 && p->productCode_ != 34 && level < 16)
+   if (number_of_levels() <= 16 && level < 16 &&
+       !uncodedDataLevelProducts_.contains(p->productCode_))
    {
       uint16_t th = data_level_threshold(level);
       if ((th & 0x8000u))
@@ -953,7 +973,8 @@ ProductDescriptionBlock::data_value(std::uint8_t level) const
    float f;
 
    // Different products use different scale/offset formulas
-   if (numberOfLevels > 16 || p->productCode_ == 34)
+   if (numberOfLevels > 16 ||
+       uncodedDataLevelProducts_.contains(p->productCode_))
    {
       switch (p->productCode_)
       {
