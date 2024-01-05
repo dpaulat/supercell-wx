@@ -72,6 +72,21 @@ ColorTable::~ColorTable() = default;
 ColorTable::ColorTable(ColorTable&&) noexcept            = default;
 ColorTable& ColorTable::operator=(ColorTable&&) noexcept = default;
 
+std::string ColorTable::units() const
+{
+   return p->units_;
+}
+
+float ColorTable::scale() const
+{
+   return p->scale_;
+}
+
+float ColorTable::offset() const
+{
+   return p->offset_;
+}
+
 boost::gil::rgba8_pixel_t ColorTable::rf_color() const
 {
    return p->rfColor_;

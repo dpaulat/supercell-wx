@@ -35,6 +35,9 @@ public:
    ColorTable(ColorTable&&) noexcept;
    ColorTable& operator=(ColorTable&&) noexcept;
 
+   std::string               units() const;
+   float                     scale() const;
+   float                     offset() const;
    boost::gil::rgba8_pixel_t rf_color() const;
 
    boost::gil::rgba8_pixel_t Color(float value) const;
