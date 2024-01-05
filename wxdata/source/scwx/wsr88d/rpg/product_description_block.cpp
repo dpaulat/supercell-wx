@@ -884,7 +884,7 @@ ProductDescriptionBlock::data_level_code(std::uint8_t level) const
    }
 
    // Different products use different scale/offset formulas
-   if (number_of_levels() <= 16 && p->productCode_ != 34)
+   if (number_of_levels() <= 16 && p->productCode_ != 34 && level < 16)
    {
       uint16_t th = data_level_threshold(level);
       if ((th & 0x8000u))
@@ -976,7 +976,7 @@ ProductDescriptionBlock::data_value(std::uint8_t level) const
          break;
       }
    }
-   else
+   else if (level < 16)
    {
       std::uint16_t th = data_level_threshold(level);
       if ((th & 0x8000u) == 0)
