@@ -247,10 +247,9 @@ void Level3ProductView::UpdateColorTableLut()
       return;
    }
 
-   std::int16_t productCode = descriptionBlock->product_code();
-   float        offset      = descriptionBlock->offset();
-   float        scale       = descriptionBlock->scale();
-   std::uint8_t threshold   = static_cast<std::uint8_t>(
+   float        offset    = descriptionBlock->offset();
+   float        scale     = descriptionBlock->scale();
+   std::uint8_t threshold = static_cast<std::uint8_t>(
       std::clamp<std::uint16_t>(descriptionBlock->threshold(),
                                 std::numeric_limits<std::uint8_t>::min(),
                                 std::numeric_limits<std::uint8_t>::max()));
@@ -292,7 +291,7 @@ void Level3ProductView::UpdateColorTableLut()
          std::optional<float> f = descriptionBlock->data_value(i);
 
          // Different products use different scale/offset formulas
-         if (numberOfLevels > 16 || productCode == 34)
+         if (numberOfLevels > 16 || !descriptionBlock->IsDataLevelCoded())
          {
             if (i == RANGE_FOLDED && threshold > RANGE_FOLDED)
             {
@@ -312,34 +311,20 @@ void Level3ProductView::UpdateColorTableLut()
          }
          else
          {
-            uint16_t th = descriptionBlock->data_level_threshold(i);
-            if ((th & 0x8000u) == 0)
+            std::optional<wsr88d::DataLevelCode> dataLevelCode =
+               descriptionBlock->data_level_code(i);
+
+            if (dataLevelCode == wsr88d::DataLevelCode::RangeFolded)
             {
-               // If bit 0 is zero, then the LSB is numeric
-               if (f.has_value())
-               {
-                  lut[lutIndex] = p->colorTable_->Color(f.value());
-               }
-               else
-               {
-                  lut[lutIndex] = boost::gil::rgba8_pixel_t {0, 0, 0, 0};
-               }
+               lut[lutIndex] = p->colorTable_->rf_color();
+            }
+            else if (f.has_value())
+            {
+               lut[lutIndex] = p->colorTable_->Color(f.value());
             }
             else
             {
-               // If bit 0 is one, then the LSB is coded
-               uint16_t lsb = th & 0x00ffu;
-
-               switch (lsb)
-               {
-               case 3: // RF
-                  lut[lutIndex] = p->colorTable_->rf_color();
-                  break;
-
-               default: // Ignore other values
-                  lut[lutIndex] = boost::gil::rgba8_pixel_t {0, 0, 0, 0};
-                  break;
-               }
+               lut[lutIndex] = boost::gil::rgba8_pixel_t {0, 0, 0, 0};
             }
          }
       });

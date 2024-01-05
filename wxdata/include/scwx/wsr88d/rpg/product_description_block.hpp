@@ -72,6 +72,7 @@ public:
    units::angle::degrees<double> elevation() const;
 
    bool IsCompressionEnabled() const;
+   bool IsDataLevelCoded() const;
 
    size_t data_size() const override;
 

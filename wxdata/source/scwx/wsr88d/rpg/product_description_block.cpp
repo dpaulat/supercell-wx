@@ -633,6 +633,11 @@ bool ProductDescriptionBlock::IsCompressionEnabled() const
    return isCompressed;
 }
 
+bool ProductDescriptionBlock::IsDataLevelCoded() const
+{
+   return !uncodedDataLevelProducts_.contains(p->productCode_);
+}
+
 size_t ProductDescriptionBlock::data_size() const
 {
    return SIZE;
