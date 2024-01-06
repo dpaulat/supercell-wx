@@ -975,7 +975,7 @@ ProductDescriptionBlock::data_value(std::uint8_t level) const
       return std::nullopt;
    }
 
-   float f;
+   std::optional<float> f = std::nullopt;
 
    // Different products use different scale/offset formulas
    if (numberOfLevels > 16 ||
