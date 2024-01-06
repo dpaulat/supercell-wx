@@ -50,6 +50,11 @@ enum class DataLevelCode
    Z8,
    SI,
 
+   // Clutter Filter Power Removed
+   ClutterFilterNotApplied,
+   ClutterFilterApplied,
+   DualPolVariablesFiltered,
+
    Unknown
 };
 

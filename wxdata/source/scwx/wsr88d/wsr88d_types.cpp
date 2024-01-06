@@ -50,6 +50,11 @@ static const std::unordered_map<DataLevelCode, std::string> dataLevelCodeName_ {
    {DataLevelCode::Z8, "R(Z) * 0.8"},
    {DataLevelCode::SI, "R(Z) * multiplier"},
 
+   // Clutter Filter Power Removed
+   {DataLevelCode::ClutterFilterNotApplied, "Clutter Filter Not Applied"},
+   {DataLevelCode::ClutterFilterApplied, "Clutter Filter Applied"},
+   {DataLevelCode::DualPolVariablesFiltered, "Dual Pol Variables Filtered"},
+
    {DataLevelCode::Unknown, "?"}};
 
 static const std::unordered_map<DataLevelCode, std::string>
@@ -94,6 +99,11 @@ static const std::unordered_map<DataLevelCode, std::string>
       {DataLevelCode::Z6, "Z6"},
       {DataLevelCode::Z8, "Z8"},
       {DataLevelCode::SI, "SI"},
+
+      // Clutter Filter Power Removed
+      {DataLevelCode::ClutterFilterNotApplied, ""},
+      {DataLevelCode::ClutterFilterApplied, ""},
+      {DataLevelCode::DualPolVariablesFiltered, ""},
 
       {DataLevelCode::Unknown, "?"}};
 
