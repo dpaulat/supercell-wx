@@ -353,7 +353,9 @@ bool RadarProductLayer::RunMousePicking(
          std::optional<float> value =
             radarProductView->GetDataValue(binLevel.value());
 
-         if (code.has_value() && code.value() != wsr88d::DataLevelCode::Blank)
+         if (code.has_value() && //
+             code.value() != wsr88d::DataLevelCode::Blank &&
+             code.value() != wsr88d::DataLevelCode::NoData)
          {
             // Level has associated data level code
             std::string codeName = wsr88d::GetDataLevelCodeName(code.value());
