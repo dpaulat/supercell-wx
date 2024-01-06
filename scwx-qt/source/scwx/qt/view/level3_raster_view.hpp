@@ -35,9 +35,6 @@ public:
 
    std::optional<std::uint16_t>
    GetBinLevel(const common::Coordinate& coordinate) const override;
-   std::optional<wsr88d::DataLevelCode>
-                        GetDataLevelCode(std::uint16_t level) const override;
-   std::optional<float> GetDataValue(std::uint16_t level) const override;
 
    static std::shared_ptr<Level3RasterView>
    Create(const std::string&                            product,

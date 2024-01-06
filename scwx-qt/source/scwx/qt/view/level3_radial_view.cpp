@@ -605,53 +605,6 @@ Level3RadialView::GetBinLevel(const common::Coordinate& coordinate) const
    return level;
 }
 
-std::optional<wsr88d::DataLevelCode>
-Level3RadialView::GetDataLevelCode(std::uint16_t level) const
-{
-   if (level > std::numeric_limits<std::uint8_t>::max())
-   {
-      return std::nullopt;
-   }
-
-   auto gpm = graphic_product_message();
-   if (gpm == nullptr)
-   {
-      return std::nullopt;
-   }
-
-   std::shared_ptr<wsr88d::rpg::ProductDescriptionBlock> descriptionBlock =
-      gpm->description_block();
-   if (descriptionBlock == nullptr)
-   {
-      return std::nullopt;
-   }
-
-   return descriptionBlock->data_level_code(static_cast<std::uint8_t>(level));
-}
-
-std::optional<float> Level3RadialView::GetDataValue(std::uint16_t level) const
-{
-   if (level > std::numeric_limits<std::uint8_t>::max())
-   {
-      return std::nullopt;
-   }
-
-   auto gpm = graphic_product_message();
-   if (gpm == nullptr)
-   {
-      return std::nullopt;
-   }
-
-   std::shared_ptr<wsr88d::rpg::ProductDescriptionBlock> descriptionBlock =
-      gpm->description_block();
-   if (descriptionBlock == nullptr)
-   {
-      return std::nullopt;
-   }
-
-   return descriptionBlock->data_value(static_cast<std::uint8_t>(level));
-}
-
 std::shared_ptr<Level3RadialView> Level3RadialView::Create(
    const std::string&                            product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager)

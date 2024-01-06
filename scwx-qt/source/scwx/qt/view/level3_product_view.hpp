@@ -36,6 +36,10 @@ public:
    common::RadarProductGroup GetRadarProductGroup() const override;
    std::string               GetRadarProductName() const override;
 
+   std::optional<wsr88d::DataLevelCode>
+                        GetDataLevelCode(std::uint16_t level) const override;
+   std::optional<float> GetDataValue(std::uint16_t level) const override;
+
    void SelectProduct(const std::string& productName) override;
 
    std::vector<std::pair<std::string, std::string>>

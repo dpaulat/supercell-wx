@@ -360,21 +360,6 @@ Level3RasterView::GetBinLevel(const common::Coordinate& coordinate) const
    return std::nullopt;
 }
 
-std::optional<wsr88d::DataLevelCode>
-Level3RasterView::GetDataLevelCode(std::uint16_t level) const
-{
-   // TODO
-   Q_UNUSED(level);
-   return std::nullopt;
-}
-
-std::optional<float> Level3RasterView::GetDataValue(std::uint16_t level) const
-{
-   // TODO
-   Q_UNUSED(level);
-   return std::nullopt;
-}
-
 std::shared_ptr<Level3RasterView> Level3RasterView::Create(
    const std::string&                            product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager)
