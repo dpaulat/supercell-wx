@@ -8,6 +8,7 @@
 
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
+#include <units/angle.h>
 
 namespace scwx
 {
@@ -36,6 +37,8 @@ public:
 
    std::vector<float>   vertices_;
    std::vector<uint8_t> dataMoments8_;
+
+   std::shared_ptr<wsr88d::rpg::RasterDataPacket> lastRasterData_ {};
 
    float    latitude_;
    float    longitude_;
@@ -198,6 +201,8 @@ void Level3RasterView::ComputeSweep()
       return;
    }
 
+   p->lastRasterData_ = rasterData;
+
    // Calculate raster grid size
    const uint16_t rows       = rasterData->number_of_rows();
    size_t         maxColumns = 0;
@@ -355,9 +360,82 @@ void Level3RasterView::ComputeSweep()
 std::optional<std::uint16_t>
 Level3RasterView::GetBinLevel(const common::Coordinate& coordinate) const
 {
-   // TODO
-   Q_UNUSED(coordinate);
-   return std::nullopt;
+   auto gpm = graphic_product_message();
+   if (gpm == nullptr)
+   {
+      return std::nullopt;
+   }
+
+   std::shared_ptr<wsr88d::rpg::ProductDescriptionBlock> descriptionBlock =
+      gpm->description_block();
+   if (descriptionBlock == nullptr)
+   {
+      return std::nullopt;
+   }
+
+   std::shared_ptr<wsr88d::rpg::RasterDataPacket> rasterData =
+      p->lastRasterData_;
+   if (rasterData == nullptr)
+   {
+      return std::nullopt;
+   }
+
+   auto         radarProductManager = radar_product_manager();
+   auto         radarSite           = radarProductManager->radar_site();
+   const double radarLatitude       = radarSite->latitude();
+   const double radarLongitude      = radarSite->longitude();
+
+   // Determine distance and azimuth of coordinate relative to radar location
+   double s12;  // Distance (meters)
+   double azi1; // Azimuth (degrees)
+   double azi2; // Unused
+   util::GeographicLib::DefaultGeodesic().Inverse(radarLatitude,
+                                                  radarLongitude,
+                                                  coordinate.latitude_,
+                                                  coordinate.longitude_,
+                                                  s12,
+                                                  azi1,
+                                                  azi2);
+
+   if (std::isnan(azi1))
+   {
+      // If a problem occurred with the geodesic inverse calculation
+      return std::nullopt;
+   }
+
+   units::angle::radians<double> azi1Rads = units::angle::degrees<double>(azi1);
+
+   double j = -std::cos(azi1Rads.value()) * s12;
+   double i = std::sin(azi1Rads.value()) * s12;
+
+   const uint32_t xResolution = descriptionBlock->x_resolution_raw();
+   const uint32_t yResolution = descriptionBlock->y_resolution_raw();
+   double         iStart =
+      (-rasterData->i_coordinate_start() - 1.0 - p->range_) * 1000.0;
+   double jStart =
+      (rasterData->j_coordinate_start() + 1.0 + p->range_) * 1000.0;
+
+   i -= iStart;
+   j += jStart;
+
+   std::uint32_t col = static_cast<std::uint32_t>(i / xResolution);
+   std::uint32_t row = static_cast<std::uint32_t>(j / yResolution);
+
+   if (row > rasterData->number_of_rows())
+   {
+      // Coordinate is beyond radar range (latitude)
+      return std::nullopt;
+   }
+
+   auto& momentData = rasterData->level(static_cast<std::uint16_t>(row));
+
+   if (col > momentData.size())
+   {
+      // Coordinate is beyond radar range (longitude)
+      return std::nullopt;
+   }
+
+   return momentData[col];
 }
 
 std::shared_ptr<Level3RasterView> Level3RasterView::Create(
