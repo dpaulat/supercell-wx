@@ -27,7 +27,9 @@ public:
       std::shared_ptr<manager::RadarProductManager> radarProductManager);
    ~Level2ProductView();
 
-   const std::vector<boost::gil::rgba8_pixel_t>& color_table() const override;
+   std::shared_ptr<common::ColorTable> color_table() const override;
+   const std::vector<boost::gil::rgba8_pixel_t>&
+                                         color_table_lut() const override;
    std::uint16_t                         color_table_min() const override;
    std::uint16_t                         color_table_max() const override;
    float                                 elevation() const override;
@@ -48,6 +50,12 @@ public:
    std::tuple<const void*, std::size_t, std::size_t>
    GetCfpMomentData() const override;
 
+   std::optional<std::uint16_t>
+   GetBinLevel(const common::Coordinate& coordinate) const override;
+   std::optional<wsr88d::DataLevelCode>
+                        GetDataLevelCode(std::uint16_t level) const override;
+   std::optional<float> GetDataValue(std::uint16_t level) const override;
+
    static std::shared_ptr<Level2ProductView>
    Create(common::Level2Product                         product,
           std::shared_ptr<manager::RadarProductManager> radarProductManager);
@@ -57,7 +65,7 @@ protected:
 
    void ConnectRadarProductManager() override;
    void DisconnectRadarProductManager() override;
-   void UpdateColorTable() override;
+   void UpdateColorTableLut() override;
 
 protected slots:
    void ComputeSweep() override;

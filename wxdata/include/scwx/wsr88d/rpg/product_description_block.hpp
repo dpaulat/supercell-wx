@@ -1,9 +1,11 @@
 #pragma once
 
 #include <scwx/awips/message.hpp>
+#include <scwx/wsr88d/wsr88d_types.hpp>
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 
 #include <units/angle.h>
 
@@ -61,12 +63,16 @@ public:
    float    scale() const;
    uint16_t number_of_levels() const;
 
+   std::optional<DataLevelCode> data_level_code(std::uint8_t level) const;
+   std::optional<float>         data_value(std::uint8_t level) const;
+
    float log_offset() const;
    float log_scale() const;
 
    units::angle::degrees<double> elevation() const;
 
    bool IsCompressionEnabled() const;
+   bool IsDataLevelCoded() const;
 
    size_t data_size() const override;
 

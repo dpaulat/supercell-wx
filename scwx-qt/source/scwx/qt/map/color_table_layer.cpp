@@ -109,7 +109,7 @@ void ColorTableLayer::Initialize()
    gl.glEnableVertexAttribArray(1);
 
    connect(context()->radar_product_view().get(),
-           &view::RadarProductView::ColorTableUpdated,
+           &view::RadarProductView::ColorTableLutUpdated,
            this,
            [this]() { p->colorTableNeedsUpdate_ = true; });
 }
@@ -142,7 +142,7 @@ void ColorTableLayer::Render(
 
    if (p->colorTableNeedsUpdate_)
    {
-      p->colorTable_ = radarProductView->color_table();
+      p->colorTable_ = radarProductView->color_table_lut();
 
       gl.glActiveTexture(GL_TEXTURE0);
       gl.glBindTexture(GL_TEXTURE_1D, p->texture_);

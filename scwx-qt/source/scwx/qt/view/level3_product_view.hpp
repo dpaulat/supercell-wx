@@ -15,8 +15,6 @@ namespace qt
 namespace view
 {
 
-class Level3ProductViewImpl;
-
 class Level3ProductView : public RadarProductView
 {
    Q_OBJECT
@@ -27,7 +25,9 @@ public:
       std::shared_ptr<manager::RadarProductManager> radarProductManager);
    virtual ~Level3ProductView();
 
-   const std::vector<boost::gil::rgba8_pixel_t>& color_table() const override;
+   std::shared_ptr<common::ColorTable> color_table() const override;
+   const std::vector<boost::gil::rgba8_pixel_t>&
+                 color_table_lut() const override;
    std::uint16_t color_table_min() const override;
    std::uint16_t color_table_max() const override;
 
@@ -35,6 +35,10 @@ public:
 
    common::RadarProductGroup GetRadarProductGroup() const override;
    std::string               GetRadarProductName() const override;
+
+   std::optional<wsr88d::DataLevelCode>
+                        GetDataLevelCode(std::uint16_t level) const override;
+   std::optional<float> GetDataValue(std::uint16_t level) const override;
 
    void SelectProduct(const std::string& productName) override;
 
@@ -49,10 +53,11 @@ protected:
 
    void ConnectRadarProductManager() override;
    void DisconnectRadarProductManager() override;
-   void UpdateColorTable() override;
+   void UpdateColorTableLut() override;
 
 private:
-   std::unique_ptr<Level3ProductViewImpl> p;
+   class Impl;
+   std::unique_ptr<Impl> p;
 };
 
 } // namespace view

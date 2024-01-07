@@ -21,10 +21,12 @@ public:
    void Render(const QMapLibreGL::CustomLayerRenderParameters&) override final;
    void Deinitialize() override final;
 
-   bool RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params,
-                        const QPointF&   mouseLocalPos,
-                        const QPointF&   mouseGlobalPos,
-                        const glm::vec2& mouseCoords) override final;
+   bool
+   RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params,
+                   const QPointF&            mouseLocalPos,
+                   const QPointF&            mouseGlobalPos,
+                   const glm::vec2&          mouseCoords,
+                   const common::Coordinate& mouseGeoCoords) override final;
 
 public slots:
    void UpdateSweepTimeNextFrame();

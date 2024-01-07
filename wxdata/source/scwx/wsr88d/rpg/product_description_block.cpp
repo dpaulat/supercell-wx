@@ -23,6 +23,25 @@ static const std::set<int> compressedProducts_ = {
    159, 161, 163, 165, 167, 168, 170, 172, 173, 174, 175,
    176, 177, 178, 179, 180, 182, 186, 193, 195, 202};
 
+static const std::set<int> uncodedDataLevelProducts_ = {32,
+                                                        34,
+                                                        81,
+                                                        93,
+                                                        94,
+                                                        99,
+                                                        134,
+                                                        135,
+                                                        138,
+                                                        153,
+                                                        154,
+                                                        155,
+                                                        159,
+                                                        161,
+                                                        163,
+                                                        177,
+                                                        193,
+                                                        195};
+
 static const std::unordered_map<int, unsigned int> rangeMap_ {
    {19, 230},  {20, 460},  {27, 230},  {30, 230},  {31, 230},  {32, 230},
    {37, 230},  {38, 460},  {41, 230},  {50, 230},  {51, 230},  {56, 230},
@@ -614,6 +633,11 @@ bool ProductDescriptionBlock::IsCompressionEnabled() const
    return isCompressed;
 }
 
+bool ProductDescriptionBlock::IsDataLevelCoded() const
+{
+   return !uncodedDataLevelProducts_.contains(p->productCode_);
+}
+
 size_t ProductDescriptionBlock::data_size() const
 {
    return SIZE;
@@ -703,6 +727,318 @@ bool ProductDescriptionBlock::Parse(std::istream& is)
    }
 
    return blockValid;
+}
+
+std::optional<DataLevelCode>
+ProductDescriptionBlock::data_level_code(std::uint8_t level) const
+{
+   switch (p->productCode_)
+   {
+   case 32:
+   case 93:
+   case 94:
+   case 99:
+   case 153:
+   case 154:
+   case 155:
+   case 159:
+   case 161:
+   case 163:
+   case 167:
+   case 168:
+   case 195:
+      switch (level)
+      {
+      case 0:
+         return DataLevelCode::BelowThreshold;
+      case 1:
+         return DataLevelCode::RangeFolded;
+      default:
+         break;
+      }
+      break;
+
+   case 81:
+      switch (level)
+      {
+      case 0:
+         return DataLevelCode::NoAccumulation;
+      case 255:
+         return DataLevelCode::OutsideCoverageArea;
+      default:
+         break;
+      }
+      break;
+
+   case 134:
+      switch (level)
+      {
+      case 0:
+         return DataLevelCode::BelowThreshold;
+      case 1:
+         return DataLevelCode::FlaggedData;
+      case 255:
+         return DataLevelCode::Reserved;
+      default:
+         break;
+      }
+      break;
+
+   case 135:
+      switch (level)
+      {
+      case 0:
+         return DataLevelCode::BelowThreshold;
+      case 1:
+         return DataLevelCode::BadData;
+      default:
+         break;
+      }
+      break;
+
+   case 138:
+      switch (level)
+      {
+      case 0:
+         return DataLevelCode::NoAccumulation;
+      default:
+         break;
+      }
+      break;
+
+   case 165:
+   case 177:
+      switch (level)
+      {
+      case 0:
+         return DataLevelCode::BelowThreshold;
+      case 10:
+         return DataLevelCode::Biological;
+      case 20:
+         return DataLevelCode::AnomalousPropagationGroundClutter;
+      case 30:
+         return DataLevelCode::IceCrystals;
+      case 40:
+         return DataLevelCode::DrySnow;
+      case 50:
+         return DataLevelCode::WetSnow;
+      case 60:
+         return DataLevelCode::LightAndOrModerateRain;
+      case 70:
+         return DataLevelCode::HeavyRain;
+      case 80:
+         return DataLevelCode::BigDrops;
+      case 90:
+         return DataLevelCode::Graupel;
+      case 100:
+         return DataLevelCode::SmallHail;
+      case 110:
+         return DataLevelCode::LargeHail;
+      case 120:
+         return DataLevelCode::GiantHail;
+      case 140:
+         return DataLevelCode::UnknownClassification;
+      case 150:
+         return DataLevelCode::RangeFolded;
+      }
+      break;
+
+   case 170:
+   case 172:
+   case 173:
+   case 174:
+   case 175:
+      switch (level)
+      {
+      case 0:
+         return DataLevelCode::NoData;
+      default:
+         break;
+      }
+      break;
+
+   case 193:
+      switch (level)
+      {
+      case 0:
+         return DataLevelCode::BelowThreshold;
+      case 1:
+         return DataLevelCode::RangeFolded;
+      case 2:
+         return DataLevelCode::EditRemove;
+      case 254:
+         return DataLevelCode::ChaffDetection;
+      default:
+         break;
+      }
+      break;
+
+   case 197:
+      switch (level)
+      {
+      case 0:
+         return DataLevelCode::NoPrecipitation;
+      case 10:
+         return DataLevelCode::Unfilled;
+      case 20:
+         return DataLevelCode::Convective;
+      case 30:
+         return DataLevelCode::Tropical;
+      case 40:
+         return DataLevelCode::SpecificAttenuation;
+      case 50:
+         return DataLevelCode::KL;
+      case 60:
+         return DataLevelCode::KH;
+      case 70:
+         return DataLevelCode::Z1;
+      case 80:
+         return DataLevelCode::Z6;
+      case 90:
+         return DataLevelCode::Z8;
+      case 100:
+         return DataLevelCode::SI;
+      default:
+         break;
+      }
+      break;
+
+   default:
+      break;
+   }
+
+   // Different products use different scale/offset formulas
+   if (number_of_levels() <= 16 && level < 16 &&
+       !uncodedDataLevelProducts_.contains(p->productCode_))
+   {
+      uint16_t th = data_level_threshold(level);
+      if ((th & 0x8000u))
+      {
+         // If bit 0 is one, then the LSB is coded
+         uint16_t lsb = th & 0x00ffu;
+
+         switch (lsb)
+         {
+         case 0:
+            return DataLevelCode::Blank;
+         case 1:
+            return DataLevelCode::BelowThreshold;
+         case 2:
+            return DataLevelCode::NoData;
+         case 3:
+            return DataLevelCode::RangeFolded;
+         case 4:
+            return DataLevelCode::Biological;
+         case 5:
+            return DataLevelCode::AnomalousPropagationGroundClutter;
+         case 6:
+            return DataLevelCode::IceCrystals;
+         case 7:
+            return DataLevelCode::Graupel;
+         case 8:
+            return DataLevelCode::WetSnow;
+         case 9:
+            return DataLevelCode::DrySnow;
+         case 10:
+            return DataLevelCode::LightAndOrModerateRain;
+         case 11:
+            return DataLevelCode::HeavyRain;
+         case 12:
+            return DataLevelCode::BigDrops;
+         case 13:
+            return DataLevelCode::SmallHail;
+         case 14:
+            return DataLevelCode::UnknownClassification;
+         case 15:
+            return DataLevelCode::LargeHail;
+         case 16:
+            return DataLevelCode::GiantHail;
+         default:
+            break;
+         }
+      }
+   }
+
+   return std::nullopt;
+}
+
+std::optional<float>
+ProductDescriptionBlock::data_value(std::uint8_t level) const
+{
+   float         dataOffset     = offset();
+   float         dataScale      = scale();
+   std::uint16_t dataThreshold  = threshold();
+   std::uint16_t numberOfLevels = number_of_levels();
+
+   if (level < dataThreshold)
+   {
+      return std::nullopt;
+   }
+
+   std::optional<float> f = std::nullopt;
+
+   // Different products use different scale/offset formulas
+   if (numberOfLevels > 16 ||
+       uncodedDataLevelProducts_.contains(p->productCode_))
+   {
+      switch (p->productCode_)
+      {
+      case 159:
+      case 161:
+      case 163:
+      case 167:
+      case 168:
+      case 170:
+      case 172:
+      case 173:
+      case 174:
+      case 175:
+      case 176:
+         f = (level - dataOffset) / dataScale;
+         break;
+
+      default:
+         f = level * dataScale + dataOffset;
+         break;
+      }
+   }
+   else if (level < 16)
+   {
+      std::uint16_t th = data_level_threshold(level);
+      if ((th & 0x8000u) == 0)
+      {
+         float scaleFactor = 1.0f;
+
+         if (th & 0x4000u)
+         {
+            scaleFactor *= 0.01f;
+         }
+         if (th & 0x2000u)
+         {
+            scaleFactor *= 0.05f;
+         }
+         if (th & 0x1000u)
+         {
+            scaleFactor *= 0.1f;
+         }
+         if (th & 0x0100u)
+         {
+            scaleFactor *= -1.0f;
+         }
+
+         // If bit 0 is zero, then the LSB is numeric
+         f = static_cast<float>(th & 0x00ffu) * scaleFactor;
+      }
+      else
+      {
+         // If bit 0 is one, then the LSB is coded
+         std::uint16_t lsb = th & 0x00ffu;
+
+         f = static_cast<float>(lsb);
+      }
+   }
+
+   return f;
 }
 
 } // namespace rpg

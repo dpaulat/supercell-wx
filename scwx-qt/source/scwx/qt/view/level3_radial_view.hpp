@@ -13,8 +13,6 @@ namespace qt
 namespace view
 {
 
-class Level3RadialViewImpl;
-
 class Level3RadialView : public Level3ProductView
 {
    Q_OBJECT
@@ -33,6 +31,9 @@ public:
    std::tuple<const void*, std::size_t, std::size_t>
    GetMomentData() const override;
 
+   std::optional<std::uint16_t>
+   GetBinLevel(const common::Coordinate& coordinate) const override;
+
    static std::shared_ptr<Level3RadialView>
    Create(const std::string&                            product,
           std::shared_ptr<manager::RadarProductManager> radarProductManager);
@@ -44,7 +45,8 @@ protected slots:
    void ComputeSweep() override;
 
 private:
-   std::unique_ptr<Level3RadialViewImpl> p;
+   class Impl;
+   std::unique_ptr<Impl> p;
 };
 
 } // namespace view

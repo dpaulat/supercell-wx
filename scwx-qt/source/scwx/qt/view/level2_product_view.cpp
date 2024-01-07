@@ -163,12 +163,17 @@ boost::asio::thread_pool& Level2ProductView::thread_pool()
    return p->threadPool_;
 }
 
+std::shared_ptr<common::ColorTable> Level2ProductView::color_table() const
+{
+   return p->colorTable_;
+}
+
 const std::vector<boost::gil::rgba8_pixel_t>&
-Level2ProductView::color_table() const
+Level2ProductView::color_table_lut() const
 {
    if (p->colorTableLut_.size() == 0)
    {
-      return RadarProductView::color_table();
+      return RadarProductView::color_table_lut();
    }
    else
    {
@@ -282,7 +287,7 @@ void Level2ProductView::LoadColorTable(
    std::shared_ptr<common::ColorTable> colorTable)
 {
    p->colorTable_ = colorTable;
-   UpdateColorTable();
+   UpdateColorTableLut();
 }
 
 void Level2ProductView::SelectElevation(float elevation)
@@ -317,7 +322,7 @@ void Level2ProductViewImpl::SetProduct(common::Level2Product product)
    }
 }
 
-void Level2ProductView::UpdateColorTable()
+void Level2ProductView::UpdateColorTableLut()
 {
    if (p->momentDataBlock0_ == nullptr || //
        p->colorTable_ == nullptr ||       //
@@ -398,7 +403,7 @@ void Level2ProductView::UpdateColorTable()
    p->savedOffset_     = offset;
    p->savedScale_      = scale;
 
-   Q_EMIT ColorTableUpdated();
+   Q_EMIT ColorTableLutUpdated();
 }
 
 void Level2ProductView::ComputeSweep()
@@ -463,7 +468,6 @@ void Level2ProductView::ComputeSweep()
 
    const uint32_t gates = momentData0->number_of_data_moment_gates();
 
-   auto radialData0 = radarData0->radial_data_block();
    auto volumeData0 = radarData0->volume_data_block();
    p->latitude_     = volumeData0->latitude();
    p->longitude_    = volumeData0->longitude();
@@ -702,7 +706,7 @@ void Level2ProductView::ComputeSweep()
    timer.stop();
    logger_->debug("Vertices calculated in {}", timer.format(6, "%ws"));
 
-   UpdateColorTable();
+   UpdateColorTableLut();
 
    Q_EMIT SweepComputed();
 }
@@ -738,53 +742,248 @@ void Level2ProductViewImpl::ComputeCoordinates(
    auto radials = boost::irange<std::uint32_t>(0u, numRadials);
    auto gates   = boost::irange<std::uint32_t>(0u, numRangeBins);
 
-   std::for_each(
+   std::for_each(std::execution::par_unseq,
+                 radials.begin(),
+                 radials.end(),
+                 [&](std::uint32_t radial)
+                 {
+                    const float angle = (*radarData)[radial]->azimuth_angle();
+
+                    std::for_each(std::execution::par_unseq,
+                                  gates.begin(),
+                                  gates.end(),
+                                  [&](std::uint32_t gate)
+                                  {
+                                     const std::uint32_t radialGate =
+                                        radial * common::MAX_DATA_MOMENT_GATES +
+                                        gate;
+                                     const float range = (gate + 1) * gateSize;
+                                     const std::size_t offset = radialGate * 2;
+
+                                     double latitude;
+                                     double longitude;
+
+                                     geodesic.Direct(radarLatitude,
+                                                     radarLongitude,
+                                                     angle,
+                                                     range,
+                                                     latitude,
+                                                     longitude);
+
+                                     coordinates_[offset]     = latitude;
+                                     coordinates_[offset + 1] = longitude;
+                                  });
+                 });
+   timer.stop();
+   logger_->debug("Coordinates calculated in {}", timer.format(6, "%ws"));
+}
+
+std::optional<std::uint16_t>
+Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
+{
+   auto radarData     = p->elevationScan_;
+   auto dataBlockType = p->dataBlockType_;
+
+   if (radarData == nullptr)
+   {
+      return std::nullopt;
+   }
+
+   auto         radarProductManager = radar_product_manager();
+   auto         radarSite           = radarProductManager->radar_site();
+   const double radarLatitude       = radarSite->latitude();
+   const double radarLongitude      = radarSite->longitude();
+
+   // Determine distance and azimuth of coordinate relative to radar location
+   double s12;  // Distance (meters)
+   double azi1; // Azimuth (degrees)
+   double azi2; // Unused
+   util::GeographicLib::DefaultGeodesic().Inverse(radarLatitude,
+                                                  radarLongitude,
+                                                  coordinate.latitude_,
+                                                  coordinate.longitude_,
+                                                  s12,
+                                                  azi1,
+                                                  azi2);
+
+   if (std::isnan(azi1))
+   {
+      // If a problem occurred with the geodesic inverse calculation
+      return std::nullopt;
+   }
+
+   // Azimuth is returned as [-180, 180) from the geodesic inverse, we need a
+   // range of [0, 360)
+   while (azi1 < 0.0)
+   {
+      azi1 += 360.0;
+   }
+
+   // Find Radial
+   const std::uint16_t numRadials =
+      static_cast<std::uint16_t>(radarData->size());
+   auto radials = boost::irange<std::uint32_t>(0u, numRadials);
+
+   auto radial = std::find_if( //
       std::execution::par_unseq,
       radials.begin(),
       radials.end(),
-      [&](std::uint32_t radial)
+      [&](std::uint32_t i)
       {
-         // Angles are ordered clockwise, delta should be positive. Only correct
-         // less than -90 degrees, this should cover any "overlap" scenarios.
-         float deltaAngle =
-            (radial == 0) ? (*radarData)[0]->azimuth_angle() -
-                               (*radarData)[numRadials - 1]->azimuth_angle() :
-                            (*radarData)[radial]->azimuth_angle() -
-                               (*radarData)[radial - 1]->azimuth_angle();
-         while (deltaAngle < -90.0f)
+         bool        found      = false;
+         const float startAngle = (*radarData)[i]->azimuth_angle();
+         const float nextAngle =
+            (*radarData)[(i + 1) % numRadials]->azimuth_angle();
+
+         if (startAngle < nextAngle)
          {
-            deltaAngle += 360.0f;
+            if (startAngle <= azi1 && azi1 < nextAngle)
+            {
+               found = true;
+            }
+         }
+         else
+         {
+            // If the bin crosses 0/360 degrees, special handling is needed
+            if (startAngle <= azi1 || azi1 < nextAngle)
+            {
+               found = true;
+            }
          }
 
-         const float angle =
-            (*radarData)[radial]->azimuth_angle() - (deltaAngle * 0.5f);
-
-         std::for_each(std::execution::par_unseq,
-                       gates.begin(),
-                       gates.end(),
-                       [&](std::uint32_t gate)
-                       {
-                          const std::uint32_t radialGate =
-                             radial * common::MAX_DATA_MOMENT_GATES + gate;
-                          const float       range  = (gate + 1) * gateSize;
-                          const std::size_t offset = radialGate * 2;
-
-                          double latitude;
-                          double longitude;
-
-                          geodesic.Direct(radarLatitude,
-                                          radarLongitude,
-                                          angle,
-                                          range,
-                                          latitude,
-                                          longitude);
-
-                          coordinates_[offset]     = latitude;
-                          coordinates_[offset + 1] = longitude;
-                       });
+         return found;
       });
-   timer.stop();
-   logger_->debug("Coordinates calculated in {}", timer.format(6, "%ws"));
+
+   if (radial == radials.end())
+   {
+      // No radial was found (not likely to happen without a gap in data)
+      return std::nullopt;
+   }
+
+   // Compute gate interval
+   auto momentData = (*radarData)[*radial]->moment_data_block(dataBlockType);
+   const std::uint16_t dataMomentRange = momentData->data_moment_range_raw();
+   const std::uint16_t dataMomentInterval =
+      momentData->data_moment_range_sample_interval_raw();
+   const std::uint16_t dataMomentIntervalH = dataMomentInterval / 2;
+
+   // Compute gate size (number of base 250m gates per bin)
+   const std::uint16_t gateSizeMeters =
+      static_cast<std::uint16_t>(radarProductManager->gate_size());
+
+   // Compute gate range [startGate, endGate)
+   const std::uint16_t startGate =
+      (dataMomentRange - dataMomentIntervalH) / gateSizeMeters;
+   const std::uint16_t numberOfDataMomentGates =
+      momentData->number_of_data_moment_gates();
+
+   const std::uint16_t gate = s12 / dataMomentInterval - startGate;
+
+   if (gate > numberOfDataMomentGates || gate > common::MAX_DATA_MOMENT_GATES)
+   {
+      // Coordinate is beyond radar range
+      return std::nullopt;
+   }
+
+   // Compute threshold at which to display an individual bin (minimum of 2)
+   const std::uint16_t snrThreshold =
+      std::max<std::int16_t>(2, momentData->snr_threshold_raw());
+   std::uint16_t level;
+
+   if (momentData->data_word_size() == 8)
+   {
+      level =
+         reinterpret_cast<const uint8_t*>(momentData->data_moments())[gate];
+   }
+   else
+   {
+      level =
+         reinterpret_cast<const uint16_t*>(momentData->data_moments())[gate];
+   }
+
+   if (level < snrThreshold && level != RANGE_FOLDED)
+   {
+      return std::nullopt;
+   }
+
+   return level;
+}
+
+std::optional<wsr88d::DataLevelCode>
+Level2ProductView::GetDataLevelCode(std::uint16_t level) const
+{
+   switch (p->product_)
+   {
+   case common::Level2Product::Reflectivity:
+   case common::Level2Product::Velocity:
+   case common::Level2Product::SpectrumWidth:
+   case common::Level2Product::DifferentialReflectivity:
+   case common::Level2Product::DifferentialPhase:
+   case common::Level2Product::CorrelationCoefficient:
+      if (level == RANGE_FOLDED)
+      {
+         return wsr88d::DataLevelCode::RangeFolded;
+      }
+      break;
+
+   case common::Level2Product::ClutterFilterPowerRemoved:
+      switch (level)
+      {
+      case 0:
+         return wsr88d::DataLevelCode::ClutterFilterNotApplied;
+      case 1:
+         return wsr88d::DataLevelCode::ClutterFilterApplied;
+      case 2:
+         return wsr88d::DataLevelCode::DualPolVariablesFiltered;
+      case 3:
+      case 4:
+      case 5:
+      case 6:
+      case 7:
+         return wsr88d::DataLevelCode::Reserved;
+      default:
+         break;
+      }
+      break;
+
+   default:
+      break;
+   }
+
+   return std::nullopt;
+}
+
+std::optional<float> Level2ProductView::GetDataValue(std::uint16_t level) const
+{
+   const float   offset    = p->momentDataBlock0_->offset();
+   const float   scale     = p->momentDataBlock0_->scale();
+   std::uint16_t threshold = std::numeric_limits<std::uint16_t>::max();
+
+   switch (p->product_)
+   {
+   case common::Level2Product::Reflectivity:
+   case common::Level2Product::Velocity:
+   case common::Level2Product::SpectrumWidth:
+   case common::Level2Product::DifferentialReflectivity:
+   case common::Level2Product::DifferentialPhase:
+   case common::Level2Product::CorrelationCoefficient:
+      threshold = 2;
+      break;
+
+   case common::Level2Product::ClutterFilterPowerRemoved:
+      threshold = 8;
+      break;
+
+   default:
+      break;
+   }
+
+   if (level < threshold)
+   {
+      return std::nullopt;
+   }
+
+   return (level - offset) / scale;
 }
 
 std::shared_ptr<Level2ProductView> Level2ProductView::Create(

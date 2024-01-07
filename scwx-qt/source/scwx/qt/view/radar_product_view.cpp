@@ -51,7 +51,7 @@ RadarProductView::RadarProductView(
 RadarProductView::~RadarProductView() = default;
 
 const std::vector<boost::gil::rgba8_pixel_t>&
-RadarProductView::color_table() const
+RadarProductView::color_table_lut() const
 {
    return kDefaultColorTable_;
 }

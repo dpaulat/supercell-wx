@@ -688,7 +688,8 @@ bool PlacefileIcons::RunMousePicking(
    const QMapLibreGL::CustomLayerRenderParameters& params,
    const QPointF& /* mouseLocalPos */,
    const QPointF&   mouseGlobalPos,
-   const glm::vec2& mouseCoords)
+   const glm::vec2& mouseCoords,
+   const common::Coordinate& /* mouseGeoCoords */)
 {
    std::unique_lock lock {p->iconMutex_};
 

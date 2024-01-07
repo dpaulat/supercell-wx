@@ -28,10 +28,10 @@ static constexpr std::uint16_t RANGE_FOLDED      = 1u;
 static constexpr std::uint32_t VERTICES_PER_BIN  = 6u;
 static constexpr std::uint32_t VALUES_PER_VERTEX = 2u;
 
-class Level3RadialViewImpl
+class Level3RadialView::Impl
 {
 public:
-   explicit Level3RadialViewImpl(Level3RadialView* self) :
+   explicit Impl(Level3RadialView* self) :
        self_ {self},
        latitude_ {},
        longitude_ {},
@@ -41,10 +41,10 @@ public:
    {
       coordinates_.resize(kMaxCoordinates_);
    }
-   ~Level3RadialViewImpl() { threadPool_.join(); };
+   ~Impl() { threadPool_.join(); };
 
    void ComputeCoordinates(
-      std::shared_ptr<wsr88d::rpg::GenericRadialDataPacket> radialData);
+      const std::shared_ptr<wsr88d::rpg::GenericRadialDataPacket>& radialData);
 
    Level3RadialView* self_;
 
@@ -53,6 +53,8 @@ public:
    std::vector<float>        coordinates_ {};
    std::vector<float>        vertices_ {};
    std::vector<std::uint8_t> dataMoments8_ {};
+
+   std::shared_ptr<wsr88d::rpg::GenericRadialDataPacket> lastRadialData_ {};
 
    float         latitude_;
    float         longitude_;
@@ -66,7 +68,7 @@ Level3RadialView::Level3RadialView(
    const std::string&                            product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager) :
     Level3ProductView(product, radarProductManager),
-    p(std::make_unique<Level3RadialViewImpl>(this))
+    p(std::make_unique<Impl>(this))
 {
 }
 
@@ -234,6 +236,8 @@ void Level3RadialView::ComputeSweep()
       Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
       return;
    }
+
+   p->lastRadialData_ = radialData;
 
    // Valid number of radials is 1-720
    size_t radials = radialData->number_of_radials();
@@ -419,13 +423,13 @@ void Level3RadialView::ComputeSweep()
    timer.stop();
    logger_->debug("Vertices calculated in {}", timer.format(6, "%ws"));
 
-   UpdateColorTable();
+   UpdateColorTableLut();
 
    Q_EMIT SweepComputed();
 }
 
-void Level3RadialViewImpl::ComputeCoordinates(
-   std::shared_ptr<wsr88d::rpg::GenericRadialDataPacket> radialData)
+void Level3RadialView::Impl::ComputeCoordinates(
+   const std::shared_ptr<wsr88d::rpg::GenericRadialDataPacket>& radialData)
 {
    logger_->debug("ComputeCoordinates()");
 
@@ -454,24 +458,7 @@ void Level3RadialViewImpl::ComputeCoordinates(
                  radials.end(),
                  [&](std::uint32_t radial)
                  {
-                    float deltaAngle;
-                    if (radial == 0)
-                    {
-                       // Angles are ordered clockwise, delta should be positive
-                       deltaAngle = radialData->start_angle(0) -
-                                    radialData->start_angle(numRadials - 1);
-                       while (deltaAngle < 0.0f)
-                       {
-                          deltaAngle += 360.0f;
-                       }
-                    }
-                    else
-                    {
-                       deltaAngle = radialData->delta_angle(radial);
-                    }
-
-                    const float angle =
-                       radialData->start_angle(radial) - (deltaAngle * 0.5f);
+                    const float angle = radialData->start_angle(radial);
 
                     std::for_each(std::execution::par_unseq,
                                   gates.begin(),
@@ -500,6 +487,122 @@ void Level3RadialViewImpl::ComputeCoordinates(
                  });
    timer.stop();
    logger_->debug("Coordinates calculated in {}", timer.format(6, "%ws"));
+}
+
+std::optional<std::uint16_t>
+Level3RadialView::GetBinLevel(const common::Coordinate& coordinate) const
+{
+   auto gpm = graphic_product_message();
+   if (gpm == nullptr)
+   {
+      return std::nullopt;
+   }
+
+   std::shared_ptr<wsr88d::rpg::ProductDescriptionBlock> descriptionBlock =
+      gpm->description_block();
+   if (descriptionBlock == nullptr)
+   {
+      return std::nullopt;
+   }
+
+   std::shared_ptr<wsr88d::rpg::GenericRadialDataPacket> radialData =
+      p->lastRadialData_;
+   if (radialData == nullptr)
+   {
+      return std::nullopt;
+   }
+
+   auto         radarProductManager = radar_product_manager();
+   auto         radarSite           = radarProductManager->radar_site();
+   const double radarLatitude       = radarSite->latitude();
+   const double radarLongitude      = radarSite->longitude();
+
+   // Determine distance and azimuth of coordinate relative to radar location
+   double s12;  // Distance (meters)
+   double azi1; // Azimuth (degrees)
+   double azi2; // Unused
+   util::GeographicLib::DefaultGeodesic().Inverse(radarLatitude,
+                                                  radarLongitude,
+                                                  coordinate.latitude_,
+                                                  coordinate.longitude_,
+                                                  s12,
+                                                  azi1,
+                                                  azi2);
+
+   if (std::isnan(azi1))
+   {
+      // If a problem occurred with the geodesic inverse calculation
+      return std::nullopt;
+   }
+
+   // Azimuth is returned as [-180, 180) from the geodesic inverse, we need a
+   // range of [0, 360)
+   while (azi1 < 0.0)
+   {
+      azi1 += 360.0;
+   }
+
+   // Compute gate interval
+   const std::uint16_t gates = radialData->number_of_range_bins();
+   const std::uint16_t dataMomentInterval =
+      descriptionBlock->x_resolution_raw();
+   std::uint16_t gate = s12 / dataMomentInterval;
+
+   if (gate >= gates)
+   {
+      // Coordinate is beyond radar range
+      return std::nullopt;
+   }
+
+   // Find Radial
+   const std::uint16_t numRadials = radialData->number_of_radials();
+   auto                radials = boost::irange<std::uint32_t>(0u, numRadials);
+
+   auto radial = std::find_if( //
+      std::execution::par_unseq,
+      radials.begin(),
+      radials.end(),
+      [&](std::uint32_t i)
+      {
+         bool   found      = false;
+         double startAngle = radialData->start_angle(i);
+         double nextAngle  = radialData->start_angle((i + 1) % numRadials);
+
+         if (startAngle < nextAngle)
+         {
+            if (startAngle <= azi1 && azi1 < nextAngle)
+            {
+               found = true;
+            }
+         }
+         else
+         {
+            // If the bin crosses 0/360 degrees, special handling is needed
+            if (startAngle <= azi1 || azi1 < nextAngle)
+            {
+               found = true;
+            }
+         }
+
+         return found;
+      });
+
+   if (radial == radials.end())
+   {
+      // No radial was found (not likely to happen without a gap in data)
+      return std::nullopt;
+   }
+
+   // Compute threshold at which to display an individual bin
+   const std::uint16_t snrThreshold = descriptionBlock->threshold();
+   const std::uint8_t  level        = radialData->level(*radial).at(gate);
+
+   if (level < snrThreshold && level != RANGE_FOLDED)
+   {
+      return std::nullopt;
+   }
+
+   return level;
 }
 
 std::shared_ptr<Level3RadialView> Level3RadialView::Create(

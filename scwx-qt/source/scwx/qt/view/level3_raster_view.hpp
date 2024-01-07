@@ -33,6 +33,9 @@ public:
    std::tuple<const void*, std::size_t, std::size_t>
    GetMomentData() const override;
 
+   std::optional<std::uint16_t>
+   GetBinLevel(const common::Coordinate& coordinate) const override;
+
    static std::shared_ptr<Level3RasterView>
    Create(const std::string&                            product,
           std::shared_ptr<manager::RadarProductManager> radarProductManager);

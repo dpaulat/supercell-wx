@@ -7,6 +7,8 @@
 #include <scwx/wsr88d/rpg/graphic_product_message.hpp>
 #include <scwx/wsr88d/rpg/radial_data_packet.hpp>
 
+#include <limits>
+
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 #include <fmt/format.h>
@@ -27,10 +29,10 @@ static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 static constexpr uint16_t RANGE_FOLDED = 1u;
 
-class Level3ProductViewImpl
+class Level3ProductView::Impl
 {
 public:
-   explicit Level3ProductViewImpl(const std::string& product) :
+   explicit Impl(const std::string& product) :
        product_ {product},
        graphicMessage_ {nullptr},
        colorTable_ {},
@@ -42,7 +44,7 @@ public:
        savedOffset_ {0.0f}
    {
    }
-   ~Level3ProductViewImpl() = default;
+   ~Impl() = default;
 
    std::string product_;
 
@@ -61,8 +63,7 @@ public:
 Level3ProductView::Level3ProductView(
    const std::string&                            product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager) :
-    RadarProductView(radarProductManager),
-    p(std::make_unique<Level3ProductViewImpl>(product))
+    RadarProductView(radarProductManager), p(std::make_unique<Impl>(product))
 {
    ConnectRadarProductManager();
 }
@@ -95,12 +96,17 @@ void Level3ProductView::DisconnectRadarProductManager()
               nullptr);
 }
 
+std::shared_ptr<common::ColorTable> Level3ProductView::color_table() const
+{
+   return p->colorTable_;
+}
+
 const std::vector<boost::gil::rgba8_pixel_t>&
-Level3ProductView::color_table() const
+Level3ProductView::color_table_lut() const
 {
    if (p->colorTableLut_.size() == 0)
    {
-      return RadarProductView::color_table();
+      return RadarProductView::color_table_lut();
    }
    else
    {
@@ -217,10 +223,10 @@ void Level3ProductView::LoadColorTable(
    std::shared_ptr<common::ColorTable> colorTable)
 {
    p->colorTable_ = colorTable;
-   UpdateColorTable();
+   UpdateColorTableLut();
 }
 
-void Level3ProductView::UpdateColorTable()
+void Level3ProductView::UpdateColorTableLut()
 {
    logger_->debug("UpdateColorTable()");
 
@@ -241,15 +247,21 @@ void Level3ProductView::UpdateColorTable()
       return;
    }
 
-   int16_t  productCode = descriptionBlock->product_code();
-   float    offset      = descriptionBlock->offset();
-   float    scale       = descriptionBlock->scale();
-   uint16_t threshold   = descriptionBlock->threshold();
+   float        offset    = descriptionBlock->offset();
+   float        scale     = descriptionBlock->scale();
+   std::uint8_t threshold = static_cast<std::uint8_t>(
+      std::clamp<std::uint16_t>(descriptionBlock->threshold(),
+                                std::numeric_limits<std::uint8_t>::min(),
+                                std::numeric_limits<std::uint8_t>::max()));
 
-   // If the threshold is 2, the range min should be set to 1 for range folding
-   uint16_t rangeMin       = std::min<uint16_t>(1, threshold);
-   uint16_t numberOfLevels = descriptionBlock->number_of_levels();
-   uint16_t rangeMax       = (numberOfLevels > 0) ? numberOfLevels - 1 : 0;
+   // If the threshold is 2, the range min should be set to 1 for range
+   // folding
+   std::uint8_t  rangeMin       = std::min<std::uint8_t>(1, threshold);
+   std::uint16_t numberOfLevels = descriptionBlock->number_of_levels();
+   std::uint8_t  rangeMax       = static_cast<std::uint8_t>(
+      std::clamp<std::uint16_t>((numberOfLevels > 0) ? numberOfLevels - 1 : 0,
+                                std::numeric_limits<std::uint8_t>::min(),
+                                std::numeric_limits<std::uint8_t>::max()));
 
    if (p->savedColorTable_ == p->colorTable_ && //
        p->savedOffset_ == offset &&             //
@@ -275,10 +287,11 @@ void Level3ProductView::UpdateColorTable()
       [&](uint16_t i)
       {
          const size_t lutIndex = i - *dataRange.begin();
-         float        f;
+
+         std::optional<float> f = descriptionBlock->data_value(i);
 
          // Different products use different scale/offset formulas
-         if (numberOfLevels > 16 || productCode == 34)
+         if (numberOfLevels > 16 || !descriptionBlock->IsDataLevelCoded())
          {
             if (i == RANGE_FOLDED && threshold > RANGE_FOLDED)
             {
@@ -286,74 +299,32 @@ void Level3ProductView::UpdateColorTable()
             }
             else
             {
-               switch (descriptionBlock->product_code())
+               if (f.has_value())
                {
-               case 159:
-               case 161:
-               case 163:
-               case 167:
-               case 168:
-               case 170:
-               case 172:
-               case 173:
-               case 174:
-               case 175:
-               case 176:
-                  f = (i - offset) / scale;
-                  break;
-
-               default:
-                  f = i * scale + offset;
-                  break;
+                  lut[lutIndex] = p->colorTable_->Color(f.value());
                }
-
-               lut[lutIndex] = p->colorTable_->Color(f);
+               else
+               {
+                  lut[lutIndex] = boost::gil::rgba8_pixel_t {0, 0, 0, 0};
+               }
             }
          }
          else
          {
-            uint16_t th = descriptionBlock->data_level_threshold(i);
-            if ((th & 0x8000u) == 0)
+            std::optional<wsr88d::DataLevelCode> dataLevelCode =
+               descriptionBlock->data_level_code(i);
+
+            if (dataLevelCode == wsr88d::DataLevelCode::RangeFolded)
             {
-               float scaleFactor = 1.0f;
-
-               if (th & 0x4000u)
-               {
-                  scaleFactor *= 0.01f;
-               }
-               if (th & 0x2000u)
-               {
-                  scaleFactor *= 0.05f;
-               }
-               if (th & 0x1000u)
-               {
-                  scaleFactor *= 0.1f;
-               }
-               if (th & 0x0100u)
-               {
-                  scaleFactor *= -1.0f;
-               }
-
-               // If bit 0 is zero, then the LSB is numeric
-               f = static_cast<float>(th & 0x00ffu) * scaleFactor;
-
-               lut[lutIndex] = p->colorTable_->Color(f);
+               lut[lutIndex] = p->colorTable_->rf_color();
+            }
+            else if (f.has_value())
+            {
+               lut[lutIndex] = p->colorTable_->Color(f.value());
             }
             else
             {
-               // If bit 0 is one, then the LSB is coded
-               uint16_t lsb = th & 0x00ffu;
-
-               switch (lsb)
-               {
-               case 3: // RF
-                  lut[lutIndex] = p->colorTable_->rf_color();
-                  break;
-
-               default: // Ignore other values
-                  lut[lutIndex] = boost::gil::rgba8_pixel_t {0, 0, 0, 0};
-                  break;
-               }
+               lut[lutIndex] = boost::gil::rgba8_pixel_t {0, 0, 0, 0};
             }
          }
       });
@@ -365,7 +336,54 @@ void Level3ProductView::UpdateColorTable()
    p->savedOffset_     = offset;
    p->savedScale_      = scale;
 
-   Q_EMIT ColorTableUpdated();
+   Q_EMIT ColorTableLutUpdated();
+}
+
+std::optional<wsr88d::DataLevelCode>
+Level3ProductView::GetDataLevelCode(std::uint16_t level) const
+{
+   if (level > std::numeric_limits<std::uint8_t>::max())
+   {
+      return std::nullopt;
+   }
+
+   auto gpm = graphic_product_message();
+   if (gpm == nullptr)
+   {
+      return std::nullopt;
+   }
+
+   std::shared_ptr<wsr88d::rpg::ProductDescriptionBlock> descriptionBlock =
+      gpm->description_block();
+   if (descriptionBlock == nullptr)
+   {
+      return std::nullopt;
+   }
+
+   return descriptionBlock->data_level_code(static_cast<std::uint8_t>(level));
+}
+
+std::optional<float> Level3ProductView::GetDataValue(std::uint16_t level) const
+{
+   if (level > std::numeric_limits<std::uint8_t>::max())
+   {
+      return std::nullopt;
+   }
+
+   auto gpm = graphic_product_message();
+   if (gpm == nullptr)
+   {
+      return std::nullopt;
+   }
+
+   std::shared_ptr<wsr88d::rpg::ProductDescriptionBlock> descriptionBlock =
+      gpm->description_block();
+   if (descriptionBlock == nullptr)
+   {
+      return std::nullopt;
+   }
+
+   return descriptionBlock->data_value(static_cast<std::uint8_t>(level));
 }
 
 } // namespace view

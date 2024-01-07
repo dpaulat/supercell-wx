@@ -182,8 +182,6 @@ public:
       manager::PlacefileManager::Instance()};
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
-   std::shared_ptr<common::ColorTable> colorTable_;
-
    std::shared_ptr<RadarProductLayer> radarProductLayer_;
    std::shared_ptr<AlertLayer>        alertLayer_;
    std::shared_ptr<OverlayLayer>      overlayLayer_;
@@ -998,14 +996,6 @@ void MapWidget::keyPressEvent(QKeyEvent* ev)
    case Qt::Key_S:
       changeStyle();
       break;
-   case Qt::Key_L:
-   {
-      for (const QString& layer : p->map_->layerIds())
-      {
-         qDebug() << "Layer: " << layer;
-      }
-   }
-   break;
    default:
       break;
    }
@@ -1223,8 +1213,11 @@ void MapWidgetImpl::RunMousePicking()
    for (auto it = genericLayers_.rbegin(); it != genericLayers_.rend(); ++it)
    {
       // Run mouse picking for each layer
-      if ((*it)->RunMousePicking(
-             params, lastPos_, lastGlobalPos_, mouseScreenCoordinate))
+      if ((*it)->RunMousePicking(params,
+                                 lastPos_,
+                                 lastGlobalPos_,
+                                 mouseScreenCoordinate,
+                                 {coordinate.first, coordinate.second}))
       {
          // If a draw item was picked, don't process additional layers
          itemPicked = true;
@@ -1237,6 +1230,9 @@ void MapWidgetImpl::RunMousePicking()
    {
       util::tooltip::Hide();
    }
+
+   Q_EMIT widget_->MouseCoordinateChanged(
+      {coordinate.first, coordinate.second});
 
    lastItemPicked_ = itemPicked;
 }
@@ -1382,7 +1378,7 @@ void MapWidgetImpl::RadarProductViewConnect()
    {
       connect(
          radarProductView.get(),
-         &view::RadarProductView::ColorTableUpdated,
+         &view::RadarProductView::ColorTableLutUpdated,
          this,
          [this]() { widget_->update(); },
          Qt::QueuedConnection);
@@ -1417,7 +1413,7 @@ void MapWidgetImpl::RadarProductViewDisconnect()
    if (radarProductView != nullptr)
    {
       disconnect(radarProductView.get(),
-                 &view::RadarProductView::ColorTableUpdated,
+                 &view::RadarProductView::ColorTableLutUpdated,
                  this,
                  nullptr);
       disconnect(radarProductView.get(),
