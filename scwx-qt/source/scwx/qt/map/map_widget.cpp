@@ -1231,6 +1231,9 @@ void MapWidgetImpl::RunMousePicking()
       util::tooltip::Hide();
    }
 
+   Q_EMIT widget_->MouseCoordinateChanged(
+      {coordinate.first, coordinate.second});
+
    lastItemPicked_ = itemPicked;
 }
 

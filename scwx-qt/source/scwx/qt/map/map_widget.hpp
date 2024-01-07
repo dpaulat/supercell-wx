@@ -1,5 +1,6 @@
 #pragma once
 
+#include <scwx/common/geographic.hpp>
 #include <scwx/common/products.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/types/map_types.hpp>
@@ -147,6 +148,7 @@ signals:
                              double bearing,
                              double pitch);
    void MapStyleChanged(const std::string& styleName);
+   void MouseCoordinateChanged(common::Coordinate coordinate);
    void RadarSiteRequested(const std::string& id);
    void RadarSiteUpdated(std::shared_ptr<config::RadarSite> radarSite);
    void RadarSweepUpdated();

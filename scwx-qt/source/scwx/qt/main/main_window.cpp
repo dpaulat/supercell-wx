@@ -34,6 +34,7 @@
 #include <scwx/common/products.hpp>
 #include <scwx/common/vcp.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/time.hpp>
 
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
@@ -42,6 +43,7 @@
 #include <QMessageBox>
 #include <QSplitter>
 #include <QStandardPaths>
+#include <QTimer>
 #include <QToolButton>
 
 #if !defined(_MSC_VER)
@@ -125,7 +127,11 @@ public:
          positionManager_->TrackLocation(true);
       }
    }
-   ~MainWindowImpl() { threadPool_.join(); }
+   ~MainWindowImpl()
+   {
+      clockTimer_.stop();
+      threadPool_.join();
+   }
 
    void AddRadarSitePreset(const std::string& id);
    void AsyncSetup();
@@ -169,6 +175,9 @@ public:
 
    ui::Level3ProductsWidget* level3ProductsWidget_;
 
+   QLabel* coordinateLabel_ {nullptr};
+   QLabel* timeLabel_ {nullptr};
+
    ui::AlertDockWidget*     alertDockWidget_;
    ui::AnimationDockWidget* animationDockWidget_;
    ui::AboutDialog*         aboutDialog_;
@@ -178,6 +187,8 @@ public:
    ui::RadarSiteDialog*     radarSiteDialog_;
    ui::SettingsDialog*      settingsDialog_;
    ui::UpdateDialog*        updateDialog_;
+
+   QTimer clockTimer_ {};
 
    std::shared_ptr<manager::AlertManager>     alertManager_;
    std::shared_ptr<manager::PlacefileManager> placefileManager_;
@@ -316,6 +327,25 @@ MainWindow::MainWindow(QWidget* parent) :
       ui->radarToolboxSpacer);
    ui->radarToolboxScrollAreaContents->layout()->addItem(
       ui->radarToolboxSpacer);
+
+   // Status Bar
+   QWidget* statusBarWidget = new QWidget(this);
+
+   p->coordinateLabel_ = new QLabel(this);
+   p->coordinateLabel_->setFrameShape(QFrame::Shape::Box);
+   p->coordinateLabel_->setFrameShadow(QFrame::Shadow::Sunken);
+   p->coordinateLabel_->setVisible(false);
+
+   p->timeLabel_ = new QLabel(this);
+   p->timeLabel_->setFrameShape(QFrame::Shape::Box);
+   p->timeLabel_->setFrameShadow(QFrame::Shadow::Sunken);
+   p->timeLabel_->setVisible(false);
+
+   QGridLayout* statusBarLayout = new QGridLayout(statusBarWidget);
+   statusBarLayout->setContentsMargins(0, 0, 0, 0);
+   statusBarLayout->addWidget(p->coordinateLabel_, 0, 0);
+   statusBarLayout->addWidget(p->timeLabel_, 0, 1);
+   ui->statusbar->addPermanentWidget(statusBarWidget);
 
    // ImGui Debug Dialog
    p->imGuiDebugDialog_ = new ui::ImGuiDebugDialog(this);
@@ -715,6 +745,21 @@ void MainWindowImpl::ConnectMapSignals()
                  }
               });
 
+      connect(mapWidget,
+              &map::MapWidget::MouseCoordinateChanged,
+              this,
+              [this](common::Coordinate coordinate)
+              {
+                 const QString latitude = QString::fromStdString(
+                    common::GetLatitudeString(coordinate.latitude_));
+                 const QString longitude = QString::fromStdString(
+                    common::GetLongitudeString(coordinate.longitude_));
+
+                 coordinateLabel_->setText(
+                    QString("%1, %2").arg(latitude).arg(longitude));
+                 coordinateLabel_->setVisible(true);
+              });
+
       connect(
          mapWidget,
          &map::MapWidget::RadarSweepUpdated,
@@ -986,6 +1031,17 @@ void MainWindowImpl::ConnectOtherSignals()
               updateDialog_->UpdateReleaseInfo(latestVersion, latestRelease);
               updateDialog_->show();
            });
+
+   connect(&clockTimer_,
+           &QTimer::timeout,
+           this,
+           [this]()
+           {
+              timeLabel_->setText(QString("%1 UTC").arg(QString::fromStdString(
+                 util::TimeString(std::chrono::system_clock::now()))));
+              timeLabel_->setVisible(true);
+           });
+   clockTimer_.start(1000);
 }
 
 void MainWindowImpl::AddRadarSitePreset(const std::string& siteId)
