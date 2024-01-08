@@ -3,7 +3,7 @@
 #include <scwx/awips/message.hpp>
 #include <scwx/wsr88d/rda/level2_message_header.hpp>
 
-#ifdef WIN32
+#ifdef _WIN32
 #   include <WinSock2.h>
 #else
 #   include <arpa/inet.h>

@@ -294,7 +294,7 @@ set_target_properties(wxdata PROPERTIES CXX_STANDARD 20
 # Address Sanitizer options
 if (SCWX_ADDRESS_SANITIZER)
     target_compile_options(wxdata PRIVATE
-        $<$<CXX_COMPILER_ID:MSVC>:/fsanitize=address>
+        $<$<CXX_COMPILER_ID:MSVC>:/fsanitize=address /EHsc /D_DISABLE_STRING_ANNOTATION /D_DISABLE_VECTOR_ANNOTATION>
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address -fsanitize-recover=address>
     )
 endif()

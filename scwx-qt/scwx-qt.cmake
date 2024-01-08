@@ -510,11 +510,11 @@ endif()
 # Address Sanitizer options
 if (SCWX_ADDRESS_SANITIZER)
     target_compile_options(scwx-qt PRIVATE
-        $<$<CXX_COMPILER_ID:MSVC>:/fsanitize=address>
+        $<$<CXX_COMPILER_ID:MSVC>:/fsanitize=address /EHsc /D_DISABLE_STRING_ANNOTATION /D_DISABLE_VECTOR_ANNOTATION>
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address -fsanitize-recover=address>
     )
     target_compile_options(supercell-wx PRIVATE
-        $<$<CXX_COMPILER_ID:MSVC>:/fsanitize=address>
+        $<$<CXX_COMPILER_ID:MSVC>:/fsanitize=address /EHsc /D_DISABLE_STRING_ANNOTATION /D_DISABLE_VECTOR_ANNOTATION>
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address -fsanitize-recover=address>
     )
     target_link_options(supercell-wx PRIVATE
