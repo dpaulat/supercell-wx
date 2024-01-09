@@ -342,6 +342,11 @@ bool RadarProductLayer::RunMousePicking(
       std::shared_ptr<view::RadarProductView> radarProductView =
          context()->radar_product_view();
 
+      if (radarProductView == nullptr)
+      {
+         return itemPicked;
+      }
+
       std::optional<std::uint16_t> binLevel =
          radarProductView->GetBinLevel(mouseGeoCoords);
 
