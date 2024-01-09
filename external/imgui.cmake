@@ -39,6 +39,13 @@ target_compile_definitions(imgui PRIVATE IMGUI_ENABLE_FREETYPE)
 target_link_libraries(imgui PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
                                     Freetype::Freetype)
 
+if (MSVC)
+    # Produce PDB file for debug
+    target_compile_options(imgui PRIVATE "$<$<CONFIG:Release>:/Zi>")
+else()
+    target_compile_options(imgui PRIVATE "$<$<CONFIG:Release>:-g>")
+endif()
+
 set(IMGUI_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/imgui
                        ${CMAKE_CURRENT_SOURCE_DIR}/imgui-backend-qt
     PARENT_SCOPE)
