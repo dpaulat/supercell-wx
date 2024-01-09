@@ -148,7 +148,17 @@ signals:
                              double bearing,
                              double pitch);
    void MapStyleChanged(const std::string& styleName);
+
+   /**
+    * This signal is emitted when the mouse moves to a different geographic
+    * coordinate within the map widget. This signal is emitted during paintGL(),
+    * and must be connected using a connection type of queued if the slot
+    * triggers a repaint.
+    *
+    * @param [in] coordinate Geographic coordinate of the mouse
+    */
    void MouseCoordinateChanged(common::Coordinate coordinate);
+
    void RadarSiteRequested(const std::string& id);
    void RadarSiteUpdated(std::shared_ptr<config::RadarSite> radarSite);
    void RadarSweepUpdated();

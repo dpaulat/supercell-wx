@@ -745,20 +745,22 @@ void MainWindowImpl::ConnectMapSignals()
                  }
               });
 
-      connect(mapWidget,
-              &map::MapWidget::MouseCoordinateChanged,
-              this,
-              [this](common::Coordinate coordinate)
-              {
-                 const QString latitude = QString::fromStdString(
-                    common::GetLatitudeString(coordinate.latitude_));
-                 const QString longitude = QString::fromStdString(
-                    common::GetLongitudeString(coordinate.longitude_));
+      connect(
+         mapWidget,
+         &map::MapWidget::MouseCoordinateChanged,
+         this,
+         [this](common::Coordinate coordinate)
+         {
+            const QString latitude = QString::fromStdString(
+               common::GetLatitudeString(coordinate.latitude_));
+            const QString longitude = QString::fromStdString(
+               common::GetLongitudeString(coordinate.longitude_));
 
-                 coordinateLabel_->setText(
-                    QString("%1, %2").arg(latitude).arg(longitude));
-                 coordinateLabel_->setVisible(true);
-              });
+            coordinateLabel_->setText(
+               QString("%1, %2").arg(latitude).arg(longitude));
+            coordinateLabel_->setVisible(true);
+         },
+         Qt::QueuedConnection);
 
       connect(
          mapWidget,
