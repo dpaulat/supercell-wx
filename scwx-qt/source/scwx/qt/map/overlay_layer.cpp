@@ -208,7 +208,7 @@ void OverlayLayer::Render(
                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                       ImGuiWindowFlags_AlwaysAutoResize);
 
-      if (ImGui::IsWindowHovered())
+      if (radarProductView != nullptr && ImGui::IsWindowHovered())
       {
          // Show a detailed product description when the sweep time is hovered
          p->sweepTimePicked_ = true;
