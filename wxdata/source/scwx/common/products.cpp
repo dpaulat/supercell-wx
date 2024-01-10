@@ -67,7 +67,8 @@ static const std::unordered_map<std::string, std::string>
                               {"DZD", "Digital Differential Reflectivity"},
                               {"DCC", "Digital Correlation Coefficient"},
                               {"DKD", "Digital Specific Differential Phase"},
-                              {"DHD", "Digital Hydrometeor Classification"},
+                              {"DHC", "Digital Hydrometeor Classification"},
+                              {"HHC", "Hybrid Hydrometeor Classification"},
                               {"ML", "Melting Layer"},
                               {"SW", "Spectrum Width"},
                               {"TDR", "Digital Reflectivity"},
@@ -102,8 +103,9 @@ static const std::unordered_map<std::string, std::vector<std::string>>
       // Specific Differential Phase
       {"DKD", {"NXK", "NYK", "NZK", "N0K", "NAK", "N1K", "NBK", "N2K", "N3K"}},
 
-      // Digital Hydrometeor Classification
+      // Hydrometeor Classification
       {"DHC", {"NXH", "NYH", "NZH", "N0H", "NAH", "N1H", "NBH", "N2H", "N3H"}},
+      {"HHC", {"HHC"}},
 
       // Melting Layer
       {"ML", {"NXM", "NYM", "NZM", "N0M", "NAM", "N1M", "NBM", "N2M", "N3M"}},
@@ -120,6 +122,7 @@ static const std::unordered_map<Level3ProductCategory, std::string>
       {Level3ProductCategory::DifferentialReflectivity, "ZDR"},
       {Level3ProductCategory::SpecificDifferentialPhase, "KDP"},
       {Level3ProductCategory::CorrelationCoefficient, "CC"},
+      {Level3ProductCategory::HydrometeorClassification, "HC"},
       {Level3ProductCategory::Unknown, "?"}};
 
 static const std::unordered_map<Level3ProductCategory, std::string>
@@ -134,6 +137,8 @@ static const std::unordered_map<Level3ProductCategory, std::string>
        "Specific Differential Phase"},
       {Level3ProductCategory::CorrelationCoefficient,
        "Correlation Coefficient"},
+      {Level3ProductCategory::HydrometeorClassification,
+       "Hydrometeor Classification"},
       {Level3ProductCategory::Unknown, "?"}};
 
 static const std::unordered_map<Level3ProductCategory, std::vector<std::string>>
@@ -145,6 +150,7 @@ static const std::unordered_map<Level3ProductCategory, std::vector<std::string>>
       {Level3ProductCategory::DifferentialReflectivity, {"DZD"}},
       {Level3ProductCategory::SpecificDifferentialPhase, {"DKD"}},
       {Level3ProductCategory::CorrelationCoefficient, {"DCC"}},
+      {Level3ProductCategory::HydrometeorClassification, {"DHC", "HHC"}},
       {Level3ProductCategory::Unknown, {}}};
 
 static const std::unordered_map<Level3ProductCategory, std::string>
@@ -155,7 +161,8 @@ static const std::unordered_map<Level3ProductCategory, std::string>
       {Level3ProductCategory::SpectrumWidth, "NSW"},
       {Level3ProductCategory::DifferentialReflectivity, "N0X"},
       {Level3ProductCategory::SpecificDifferentialPhase, "N0K"},
-      {Level3ProductCategory::CorrelationCoefficient, "N0C"}};
+      {Level3ProductCategory::CorrelationCoefficient, "N0C"},
+      {Level3ProductCategory::HydrometeorClassification, "N0H"}};
 
 static const std::unordered_map<int, std::string> level3Palette_ {
    {19, "BR"},     {20, "BR"},     {27, "BV"},     {30, "SW"},
@@ -169,10 +176,10 @@ static const std::unordered_map<int, std::string> level3Palette_ {
    {137, "BR"},    {138, "STPIN"}, {144, "OHPIN"}, {145, "OHPIN"},
    {146, "STPIN"}, {150, "STPIN"}, {151, "STPIN"}, {153, "BR"},
    {154, "BV"},    {155, "SW"},    {159, "ZDR"},   {161, "CC"},
-   {163, "PHI3"},  {165, "???"},   {167, "CC"},    {168, "PHI3"},
+   {163, "PHI3"},  {165, "HC"},    {167, "CC"},    {168, "PHI3"},
    {169, "OHPIN"}, {170, "STP"},   {171, "STPIN"}, {172, "STP"},
    {173, "STP"},   {174, "DOD"},   {175, "DSD"},   {176, "???"},
-   {177, "???"},   {178, "???"},   {179, "???"},   {180, "BR"},
+   {177, "HC"},    {178, "???"},   {179, "???"},   {180, "BR"},
    {181, "BR"},    {182, "BV"},    {184, "SW"},    {186, "BR"},
    {193, "BR"},    {195, "BR"},    {-1, "???"}};
 

@@ -1,0 +1,17 @@
+; WCT Palette for Hydrometeor Classification adapted for Supercell Wx
+
+SolidColor:	 10	156	156	156 ; BI = Biological
+SolidColor:	 20	118	118	118 ; GC = Anomalous Propagation/Ground Clutter
+SolidColor:	 30	255	176	176 ; IC = Ice Crystals
+SolidColor:	 40	  0	255	255 ; DS = Dry Snow
+SolidColor:	 50	  0	144	255 ; WS = Wet Snow
+SolidColor:	 60	  0	251	144 ; RA = Light and/or Moderate Rain
+SolidColor:	 70	  0	187	  0 ; HR = Heavy Rain
+SolidColor:	 80	208	208	 96 ; BD = Big Drops
+SolidColor:	 90	210	132	132 ; GR = Graupel
+SolidColor:	100	255	  0	  0 ; HA = Small Hail
+SolidColor:	110	160	 20	 20 ; LH = Large Hail
+SolidColor:	120	255	255	  0 ; GH = Giant Hail
+SolidColor:	130	  0	  0	  0 ; TBD
+SolidColor:	140	231	  0	255 ; UK = Unknown Classification
+SolidColor:	150	119	  0	125 ; RF = Range Folded

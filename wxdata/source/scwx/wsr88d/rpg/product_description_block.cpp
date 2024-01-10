@@ -572,6 +572,11 @@ uint16_t ProductDescriptionBlock::number_of_levels() const
       numberOfLevels = p->halfword(36);
       break;
 
+   case 165:
+   case 177:
+      numberOfLevels = 160;
+      break;
+
    case 178:
    case 179:
       numberOfLevels = 71;
