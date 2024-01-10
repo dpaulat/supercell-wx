@@ -365,6 +365,11 @@ uint16_t ProductDescriptionBlock::threshold() const
    case 176:
       threshold = p->halfword(37);
       break;
+
+   case 165:
+   case 177:
+      threshold = 10;
+      break;
    }
 
    return threshold;
