@@ -47,11 +47,12 @@ enum class Level3ProductCategory
    DifferentialReflectivity,
    SpecificDifferentialPhase,
    CorrelationCoefficient,
+   HydrometeorClassification,
    Unknown
 };
 typedef util::Iterator<Level3ProductCategory,
                        Level3ProductCategory::Reflectivity,
-                       Level3ProductCategory::CorrelationCoefficient>
+                       Level3ProductCategory::HydrometeorClassification>
    Level3ProductCategoryIterator;
 
 typedef std::unordered_map<
@@ -74,9 +75,8 @@ GetLevel3CategoryDefaultProduct(Level3ProductCategory category);
 Level3ProductCategory GetLevel3Category(const std::string& categoryName);
 Level3ProductCategory
 GetLevel3CategoryByProduct(const std::string& productName);
-Level3ProductCategory
-GetLevel3CategoryByAwipsId(const std::string& awipsId);
-const std::string& GetLevel3Palette(int16_t productCode);
+Level3ProductCategory GetLevel3CategoryByAwipsId(const std::string& awipsId);
+const std::string&    GetLevel3Palette(int16_t productCode);
 
 std::string        GetLevel3ProductByAwipsId(const std::string& awipsId);
 const std::string& GetLevel3ProductDescription(const std::string& productName);

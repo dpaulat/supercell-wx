@@ -365,6 +365,11 @@ uint16_t ProductDescriptionBlock::threshold() const
    case 176:
       threshold = p->halfword(37);
       break;
+
+   case 165:
+   case 177:
+      threshold = 10;
+      break;
    }
 
    return threshold;
@@ -570,6 +575,11 @@ uint16_t ProductDescriptionBlock::number_of_levels() const
    case 175:
    case 176:
       numberOfLevels = p->halfword(36);
+      break;
+
+   case 165:
+   case 177:
+      numberOfLevels = 160;
       break;
 
    case 178:

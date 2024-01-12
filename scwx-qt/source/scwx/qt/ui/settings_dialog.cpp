@@ -54,7 +54,7 @@ struct ColorTableConversions
    float    scale {1.0f};
 };
 
-static const std::array<std::pair<std::string, std::string>, 15>
+static const std::array<std::pair<std::string, std::string>, 16>
    kColorTableTypes_ {std::pair {"BR", "BR"},
                       std::pair {"BV", "BV"},
                       std::pair {"SW", "SW"},
@@ -64,6 +64,7 @@ static const std::array<std::pair<std::string, std::string>, 15>
                       std::pair {"DOD", "DOD"},
                       std::pair {"DSD", "DSD"},
                       std::pair {"ET", "ET"},
+                      std::pair {"HC", "HC"},
                       std::pair {"OHP", "OHP"},
                       std::pair {"PHI3", "KDP"},
                       std::pair {"SRV", "SRV"},
@@ -84,6 +85,7 @@ static const std::unordered_map<std::string, ColorTableConversions>
                             {"DOD", {0u, 255u, 128.0f, 1.5f}},
                             {"DSD", {0u, 255u, 128.0f, 1.5f}},
                             {"ET", {0u, 255u, 2.0f, 1.0f}},
+                            {"HC", {10u, 160u, 0.0f, 1.0f}},
                             {"OHP", {0u, 255u, 0.0f, 2.5f}},
                             {"PHI3", {0u, 255u, 43.0f, 20.0f}},
                             {"SRV", {0u, 255u, 128.0f, 2.0f}},
