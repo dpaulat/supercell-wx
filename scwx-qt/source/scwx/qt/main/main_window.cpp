@@ -1217,6 +1217,9 @@ void MainWindowImpl::UpdateRadarSite()
 
    if (radarSite != nullptr)
    {
+      mainWindow_->setWindowTitle(
+         tr("Supercell Wx - %1").arg(QString::fromStdString(radarSite->id())));
+
       mainWindow_->ui->radarSiteValueLabel->setVisible(true);
       mainWindow_->ui->radarLocationLabel->setVisible(true);
 
@@ -1228,6 +1231,8 @@ void MainWindowImpl::UpdateRadarSite()
    }
    else
    {
+      mainWindow_->setWindowTitle(tr("Supercell Wx"));
+
       mainWindow_->ui->radarSiteValueLabel->setVisible(false);
       mainWindow_->ui->radarLocationLabel->setVisible(false);
 
