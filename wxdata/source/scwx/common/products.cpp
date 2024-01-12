@@ -52,8 +52,9 @@ static const std::unordered_map<int, std::string> level3ProductCodeMap_ {
    {159, "DZD"},
    {161, "DCC"},
    {163, "DKD"},
-   {165, "DHD"},
+   {165, "DHC"},
    {166, "ML"},
+   {177, "HHC"},
    {180, "TDR"},
    {182, "TDV"}};
 
