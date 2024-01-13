@@ -129,6 +129,15 @@ public:
                                boost::gil::rgba8_pixel_t            modulate);
 
    /**
+    * Sets the modulate color of an icon.
+    *
+    * @param [in] di Icon draw item
+    * @param [in] modulate Modulate color
+    */
+   static void SetIconModulate(const std::shared_ptr<IconDrawItem>& di,
+                               boost::gil::rgba32f_pixel_t          modulate);
+
+   /**
     * Sets the hover text of an icon.
     *
     * @param [in] di Icon draw item

@@ -41,15 +41,15 @@ struct GeoIconDrawItem
    std::chrono::sys_time<std::chrono::seconds> startTime_ {};
    std::chrono::sys_time<std::chrono::seconds> endTime_ {};
 
-   boost::gil::rgba8_pixel_t modulate_ {255, 255, 255, 255};
-   double                    latitude_ {};
-   double                    longitude_ {};
-   double                    x_ {};
-   double                    y_ {};
-   units::degrees<double>    angle_ {};
-   std::string               iconSheet_ {};
-   std::size_t               iconIndex_ {};
-   std::string               hoverText_ {};
+   boost::gil::rgba32f_pixel_t modulate_ {1.0f, 1.0f, 1.0f, 1.0f};
+   double                      latitude_ {};
+   double                      longitude_ {};
+   double                      x_ {};
+   double                      y_ {};
+   units::degrees<double>      angle_ {};
+   std::string                 iconSheet_ {};
+   std::size_t                 iconIndex_ {};
+   std::string                 hoverText_ {};
 };
 
 class GeoIcons::Impl
@@ -420,6 +420,15 @@ void GeoIcons::SetIconAngle(const std::shared_ptr<GeoIconDrawItem>& di,
 void GeoIcons::SetIconModulate(const std::shared_ptr<GeoIconDrawItem>& di,
                                boost::gil::rgba8_pixel_t               modulate)
 {
+   di->modulate_ = {modulate[0] / 255.0f,
+                    modulate[1] / 255.0f,
+                    modulate[2] / 255.0f,
+                    modulate[3] / 255.0f};
+}
+
+void GeoIcons::SetIconModulate(const std::shared_ptr<GeoIconDrawItem>& di,
+                               boost::gil::rgba32f_pixel_t             modulate)
+{
    di->modulate_ = modulate;
 }
 
@@ -527,10 +536,10 @@ void GeoIcons::Impl::UpdateBuffers()
       const float                  a     = angle.value();
 
       // Modulate color
-      const float mc0 = di->modulate_[0] / 255.0f;
-      const float mc1 = di->modulate_[1] / 255.0f;
-      const float mc2 = di->modulate_[2] / 255.0f;
-      const float mc3 = di->modulate_[3] / 255.0f;
+      const float mc0 = di->modulate_[0];
+      const float mc1 = di->modulate_[1];
+      const float mc2 = di->modulate_[2];
+      const float mc3 = di->modulate_[3];
 
       newIconBuffer_.insert(newIconBuffer_.end(),
                             {

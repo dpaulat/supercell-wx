@@ -152,6 +152,15 @@ public:
                                boost::gil::rgba8_pixel_t modulate);
 
    /**
+    * Sets the modulate color of a geo icon.
+    *
+    * @param [in] di Geo icon draw item
+    * @param [in] modulate Modulate color
+    */
+   static void SetIconModulate(const std::shared_ptr<GeoIconDrawItem>& di,
+                               boost::gil::rgba32f_pixel_t modulate);
+
+   /**
     * Sets the hover text of a geo icon.
     *
     * @param [in] di Geo icon draw item
