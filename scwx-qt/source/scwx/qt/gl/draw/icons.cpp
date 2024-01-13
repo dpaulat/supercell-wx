@@ -1,4 +1,4 @@
-#include <scwx/qt/gl/draw/geo_icons.hpp>
+#include <scwx/qt/gl/draw/icons.hpp>
 #include <scwx/qt/types/icon_types.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
@@ -18,7 +18,7 @@ namespace gl
 namespace draw
 {
 
-static const std::string logPrefix_ = "scwx::qt::gl::draw::geo_icons";
+static const std::string logPrefix_ = "scwx::qt::gl::draw::icons";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr std::size_t kNumRectangles        = 1;
@@ -32,18 +32,9 @@ static constexpr std::size_t kIconBufferLength =
 static constexpr std::size_t kTextureBufferLength =
    kNumTriangles * kVerticesPerTriangle * kPointsPerTexCoord;
 
-// Threshold, start time, end time
-static constexpr std::size_t kIntegersPerVertex_ = 3;
-
-struct GeoIconDrawItem
+struct IconDrawItem
 {
-   units::length::nautical_miles<double>       threshold_ {};
-   std::chrono::sys_time<std::chrono::seconds> startTime_ {};
-   std::chrono::sys_time<std::chrono::seconds> endTime_ {};
-
    boost::gil::rgba8_pixel_t modulate_ {255, 255, 255, 255};
-   double                    latitude_ {};
-   double                    longitude_ {};
    double                    x_ {};
    double                    y_ {};
    units::degrees<double>    angle_ {};
@@ -52,14 +43,13 @@ struct GeoIconDrawItem
    std::string               hoverText_ {};
 };
 
-class GeoIcons::Impl
+class Icons::Impl
 {
 public:
    struct IconHoverEntry
    {
-      std::shared_ptr<GeoIconDrawItem> di_;
+      std::shared_ptr<IconDrawItem> di_;
 
-      glm::vec2 p_;
       glm::vec2 otl_;
       glm::vec2 otr_;
       glm::vec2 obl_;
@@ -70,10 +60,6 @@ public:
        context_ {context},
        shaderProgram_ {nullptr},
        uMVPMatrixLocation_(GL_INVALID_INDEX),
-       uMapMatrixLocation_(GL_INVALID_INDEX),
-       uMapScreenCoordLocation_(GL_INVALID_INDEX),
-       uMapDistanceLocation_(GL_INVALID_INDEX),
-       uSelectedTimeLocation_(GL_INVALID_INDEX),
        vao_ {GL_INVALID_INDEX},
        vbo_ {GL_INVALID_INDEX},
        numVertices_ {0}
@@ -90,10 +76,7 @@ public:
 
    bool visible_ {true};
    bool dirty_ {false};
-   bool thresholded_ {false};
    bool lastTextureAtlasChanged_ {false};
-
-   std::chrono::system_clock::time_point selectedTime_ {};
 
    std::mutex iconMutex_;
 
@@ -101,14 +84,12 @@ public:
       currentIconSheets_ {};
    boost::unordered_flat_map<std::string, types::IconInfo> newIconSheets_ {};
 
-   std::vector<std::shared_ptr<GeoIconDrawItem>> currentIconList_ {};
-   std::vector<std::shared_ptr<GeoIconDrawItem>> newIconList_ {};
-   std::vector<std::shared_ptr<GeoIconDrawItem>> newValidIconList_ {};
+   std::vector<std::shared_ptr<IconDrawItem>> currentIconList_ {};
+   std::vector<std::shared_ptr<IconDrawItem>> newIconList_ {};
+   std::vector<std::shared_ptr<IconDrawItem>> newValidIconList_ {};
 
    std::vector<float> currentIconBuffer_ {};
-   std::vector<GLint> currentIntegerBuffer_ {};
    std::vector<float> newIconBuffer_ {};
-   std::vector<GLint> newIntegerBuffer_ {};
 
    std::vector<float> textureBuffer_ {};
 
@@ -117,54 +98,31 @@ public:
 
    std::shared_ptr<ShaderProgram> shaderProgram_;
    GLint                          uMVPMatrixLocation_;
-   GLint                          uMapMatrixLocation_;
-   GLint                          uMapScreenCoordLocation_;
-   GLint                          uMapDistanceLocation_;
-   GLint                          uSelectedTimeLocation_;
 
    GLuint                vao_;
-   std::array<GLuint, 3> vbo_;
+   std::array<GLuint, 2> vbo_;
 
    GLsizei numVertices_;
 };
 
-GeoIcons::GeoIcons(const std::shared_ptr<GlContext>& context) :
+Icons::Icons(const std::shared_ptr<GlContext>& context) :
     DrawItem(context->gl()), p(std::make_unique<Impl>(context))
 {
 }
-GeoIcons::~GeoIcons() = default;
+Icons::~Icons() = default;
 
-GeoIcons::GeoIcons(GeoIcons&&) noexcept            = default;
-GeoIcons& GeoIcons::operator=(GeoIcons&&) noexcept = default;
+Icons::Icons(Icons&&) noexcept            = default;
+Icons& Icons::operator=(Icons&&) noexcept = default;
 
-void GeoIcons::set_selected_time(
-   std::chrono::system_clock::time_point selectedTime)
-{
-   p->selectedTime_ = selectedTime;
-}
-
-void GeoIcons::set_thresholded(bool thresholded)
-{
-   p->thresholded_ = thresholded;
-}
-
-void GeoIcons::Initialize()
+void Icons::Initialize()
 {
    gl::OpenGLFunctions& gl = p->context_->gl();
 
    p->shaderProgram_ = p->context_->GetShaderProgram(
-      {{GL_VERTEX_SHADER, ":/gl/geo_texture2d.vert"},
-       {GL_GEOMETRY_SHADER, ":/gl/threshold.geom"},
+      {{GL_VERTEX_SHADER, ":/gl/texture2d_array.vert"},
        {GL_FRAGMENT_SHADER, ":/gl/texture2d_array.frag"}});
 
    p->uMVPMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMVPMatrix");
-   p->uMapMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMapMatrix");
-   p->uMapScreenCoordLocation_ =
-      p->shaderProgram_->GetUniformLocation("uMapScreenCoord");
-   p->uMapDistanceLocation_ =
-      p->shaderProgram_->GetUniformLocation("uMapDistance");
-   p->uSelectedTimeLocation_ =
-      p->shaderProgram_->GetUniformLocation("uSelectedTime");
 
    gl.glGenVertexArrays(1, &p->vao_);
    gl.glGenBuffers(static_cast<GLsizei>(p->vbo_.size()), p->vbo_.data());
@@ -173,13 +131,13 @@ void GeoIcons::Initialize()
    gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
    gl.glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
 
-   // aLatLong
+   // aVertex
    gl.glVertexAttribPointer(0,
                             2,
                             GL_FLOAT,
                             GL_FALSE,
                             kPointsPerVertex * sizeof(float),
-                            static_cast<void*>(0));
+                            reinterpret_cast<void*>(0));
    gl.glEnableVertexAttribArray(0);
 
    // aXYOffset
@@ -221,30 +179,11 @@ void GeoIcons::Initialize()
                             static_cast<void*>(0));
    gl.glEnableVertexAttribArray(2);
 
-   gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[2]);
-   gl.glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
-
-   // aThreshold
-   gl.glVertexAttribIPointer(5, //
-                             1,
-                             GL_INT,
-                             0,
-                             static_cast<void*>(0));
-   gl.glEnableVertexAttribArray(5);
-
-   // aTimeRange
-   gl.glVertexAttribIPointer(6, //
-                             2,
-                             GL_INT,
-                             kIntegersPerVertex_ * sizeof(GLint),
-                             reinterpret_cast<void*>(1 * sizeof(GLint)));
-   gl.glEnableVertexAttribArray(6);
-
    p->dirty_ = true;
 }
 
-void GeoIcons::Render(const QMapLibreGL::CustomLayerRenderParameters& params,
-                      bool textureAtlasChanged)
+void Icons::Render(const QMapLibreGL::CustomLayerRenderParameters& params,
+                   bool textureAtlasChanged)
 {
    if (!p->visible_)
    {
@@ -266,33 +205,7 @@ void GeoIcons::Render(const QMapLibreGL::CustomLayerRenderParameters& params,
 
       p->Update(textureAtlasChanged);
       p->shaderProgram_->Use();
-      UseRotationProjection(params, p->uMVPMatrixLocation_);
-      UseMapProjection(
-         params, p->uMapMatrixLocation_, p->uMapScreenCoordLocation_);
-
-      if (p->thresholded_)
-      {
-         // If thresholding is enabled, set the map distance
-         units::length::nautical_miles<float> mapDistance =
-            util::maplibre::GetMapDistance(params);
-         gl.glUniform1f(p->uMapDistanceLocation_, mapDistance.value());
-      }
-      else
-      {
-         // If thresholding is disabled, set the map distance to 0
-         gl.glUniform1f(p->uMapDistanceLocation_, 0.0f);
-      }
-
-      // Selected time
-      std::chrono::system_clock::time_point selectedTime =
-         (p->selectedTime_ == std::chrono::system_clock::time_point {}) ?
-            std::chrono::system_clock::now() :
-            p->selectedTime_;
-      gl.glUniform1i(
-         p->uSelectedTimeLocation_,
-         static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
-                               selectedTime.time_since_epoch())
-                               .count()));
+      UseDefaultProjection(params, p->uMVPMatrixLocation_);
 
       // Interpolate texture coordinates
       gl.glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -303,7 +216,7 @@ void GeoIcons::Render(const QMapLibreGL::CustomLayerRenderParameters& params,
    }
 }
 
-void GeoIcons::Deinitialize()
+void Icons::Deinitialize()
 {
    gl::OpenGLFunctions& gl = p->context_->gl();
 
@@ -316,26 +229,25 @@ void GeoIcons::Deinitialize()
    p->currentIconSheets_.clear();
    p->currentHoverIcons_.clear();
    p->currentIconBuffer_.clear();
-   p->currentIntegerBuffer_.clear();
    p->textureBuffer_.clear();
 }
 
-void GeoIcons::SetVisible(bool visible)
+void Icons::SetVisible(bool visible)
 {
    p->visible_ = visible;
 }
 
-void GeoIcons::StartIconSheets()
+void Icons::StartIconSheets()
 {
    // Clear the new buffer
    p->newIconSheets_.clear();
 }
 
-void GeoIcons::AddIconSheet(const std::string& name,
-                            std::size_t        iconWidth,
-                            std::size_t        iconHeight,
-                            std::int32_t       hotX,
-                            std::int32_t       hotY)
+void Icons::AddIconSheet(const std::string& name,
+                         std::size_t        iconWidth,
+                         std::size_t        iconHeight,
+                         std::int32_t       hotX,
+                         std::int32_t       hotY)
 {
    // Populate icon sheet map
    p->newIconSheets_.emplace(std::piecewise_construct,
@@ -344,7 +256,7 @@ void GeoIcons::AddIconSheet(const std::string& name,
                                 name, iconWidth, iconHeight, hotX, hotY}));
 }
 
-void GeoIcons::FinishIconSheets()
+void Icons::FinishIconSheets()
 {
    // Update icon sheets
    for (auto& iconSheet : p->newIconSheets_)
@@ -364,72 +276,55 @@ void GeoIcons::FinishIconSheets()
    p->dirty_ = true;
 }
 
-void GeoIcons::StartIcons()
+void Icons::StartIcons()
 {
    // Clear the new buffer
    p->newIconList_.clear();
    p->newValidIconList_.clear();
    p->newIconBuffer_.clear();
-   p->newIntegerBuffer_.clear();
    p->newHoverIcons_.clear();
 }
 
-std::shared_ptr<GeoIconDrawItem> GeoIcons::AddIcon()
+std::shared_ptr<IconDrawItem> Icons::AddIcon()
 {
-   return p->newIconList_.emplace_back(std::make_shared<GeoIconDrawItem>());
+   return p->newIconList_.emplace_back(std::make_shared<IconDrawItem>());
 }
 
-void GeoIcons::SetIconTexture(const std::shared_ptr<GeoIconDrawItem>& di,
-                              const std::string&                      iconSheet,
-                              std::size_t                             iconIndex)
+void Icons::SetIconTexture(const std::shared_ptr<IconDrawItem>& di,
+                           const std::string&                   iconSheet,
+                           std::size_t                          iconIndex)
 {
    di->iconSheet_ = iconSheet;
    di->iconIndex_ = iconIndex;
 }
 
-void GeoIcons::SetIconLocation(const std::shared_ptr<GeoIconDrawItem>& di,
-                               units::angle::degrees<double>           latitude,
-                               units::angle::degrees<double> longitude,
-                               double                        xOffset,
-                               double                        yOffset)
+void Icons::SetIconLocation(const std::shared_ptr<IconDrawItem>& di,
+                            double                               x,
+                            double                               y)
 {
-   di->latitude_  = latitude.value();
-   di->longitude_ = longitude.value();
-   di->x_         = xOffset;
-   di->y_         = yOffset;
+   di->x_ = x;
+   di->y_ = y;
 }
 
-void GeoIcons::SetIconLocation(const std::shared_ptr<GeoIconDrawItem>& di,
-                               double                                  latitude,
-                               double longitude,
-                               double xOffset,
-                               double yOffset)
-{
-   di->latitude_  = latitude;
-   di->longitude_ = longitude;
-   di->x_         = xOffset;
-   di->y_         = yOffset;
-}
-
-void GeoIcons::SetIconAngle(const std::shared_ptr<GeoIconDrawItem>& di,
-                            units::angle::degrees<double>           angle)
+void Icons::SetIconAngle(const std::shared_ptr<IconDrawItem>& di,
+                         units::angle::degrees<double>        angle)
 {
    di->angle_ = angle;
 }
 
-void GeoIcons::SetIconModulate(const std::shared_ptr<GeoIconDrawItem>& di,
-                               boost::gil::rgba8_pixel_t               modulate)
+void Icons::SetIconModulate(const std::shared_ptr<IconDrawItem>& di,
+                            boost::gil::rgba8_pixel_t            modulate)
 {
    di->modulate_ = modulate;
 }
 
-void GeoIcons::SetIconHoverText(const std::shared_ptr<GeoIconDrawItem>& di,
-                                const std::string&                      text)
+void Icons::SetIconHoverText(const std::shared_ptr<IconDrawItem>& di,
+                             const std::string&                   text)
 {
    di->hoverText_ = text;
 }
 
-void GeoIcons::FinishIcons()
+void Icons::FinishIcons()
 {
    // Update buffers
    p->UpdateBuffers();
@@ -439,27 +334,22 @@ void GeoIcons::FinishIcons()
    // Swap buffers
    p->currentIconList_.swap(p->newValidIconList_);
    p->currentIconBuffer_.swap(p->newIconBuffer_);
-   p->currentIntegerBuffer_.swap(p->newIntegerBuffer_);
    p->currentHoverIcons_.swap(p->newHoverIcons_);
 
    // Clear the new buffers, except the full icon list (used to update buffers
    // without re-adding icons)
    p->newValidIconList_.clear();
    p->newIconBuffer_.clear();
-   p->newIntegerBuffer_.clear();
    p->newHoverIcons_.clear();
 
    // Mark the draw item dirty
    p->dirty_ = true;
 }
 
-void GeoIcons::Impl::UpdateBuffers()
+void Icons::Impl::UpdateBuffers()
 {
    newIconBuffer_.clear();
    newIconBuffer_.reserve(newIconList_.size() * kIconBufferLength);
-   newIntegerBuffer_.clear();
-   newIntegerBuffer_.reserve(newIconList_.size() * kVerticesPerRectangle *
-                             kIntegersPerVertex_);
    newValidIconList_.clear();
    newHoverIcons_.clear();
 
@@ -486,24 +376,6 @@ void GeoIcons::Impl::UpdateBuffers()
       // Icon is valid, add to valid icon list
       newValidIconList_.push_back(di);
 
-      // Threshold value
-      units::length::nautical_miles<double> threshold = di->threshold_;
-      GLint thresholdValue = static_cast<GLint>(std::round(threshold.value()));
-
-      // Start and end time
-      GLint startTime =
-         static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
-                               di->startTime_.time_since_epoch())
-                               .count());
-      GLint endTime =
-         static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
-                               di->endTime_.time_since_epoch())
-                               .count());
-
-      // Latitude and longitude coordinates in degrees
-      const float lat = static_cast<float>(di->latitude_);
-      const float lon = static_cast<float>(di->longitude_);
-
       // Base X/Y offsets in pixels
       const float x = static_cast<float>(di->x_);
       const float y = static_cast<float>(di->y_);
@@ -517,9 +389,9 @@ void GeoIcons::Impl::UpdateBuffers()
       const float hy = static_cast<float>(icon.hotY_);
 
       // Final X/Y offsets in pixels
-      const float lx = std::roundf(x - hx);
+      const float lx = std::roundf(-hx);
       const float rx = std::roundf(lx + iw);
-      const float ty = std::roundf(y + hy);
+      const float ty = std::roundf(+hy);
       const float by = std::roundf(ty - ih);
 
       // Angle in degrees
@@ -535,38 +407,17 @@ void GeoIcons::Impl::UpdateBuffers()
       newIconBuffer_.insert(newIconBuffer_.end(),
                             {
                                // Icon
-                               lat, lon, lx, by, mc0, mc1, mc2, mc3, a, // BL
-                               lat, lon, lx, ty, mc0, mc1, mc2, mc3, a, // TL
-                               lat, lon, rx, by, mc0, mc1, mc2, mc3, a, // BR
-                               lat, lon, rx, by, mc0, mc1, mc2, mc3, a, // BR
-                               lat, lon, rx, ty, mc0, mc1, mc2, mc3, a, // TR
-                               lat, lon, lx, ty, mc0, mc1, mc2, mc3, a  // TL
+                               x, y, lx, by, mc0, mc1, mc2, mc3, a, // BL
+                               x, y, lx, ty, mc0, mc1, mc2, mc3, a, // TL
+                               x, y, rx, by, mc0, mc1, mc2, mc3, a, // BR
+                               x, y, rx, by, mc0, mc1, mc2, mc3, a, // BR
+                               x, y, rx, ty, mc0, mc1, mc2, mc3, a, // TR
+                               x, y, lx, ty, mc0, mc1, mc2, mc3, a  // TL
                             });
-      newIntegerBuffer_.insert(newIntegerBuffer_.end(),
-                               {thresholdValue,
-                                startTime,
-                                endTime,
-                                thresholdValue,
-                                startTime,
-                                endTime,
-                                thresholdValue,
-                                startTime,
-                                endTime,
-                                thresholdValue,
-                                startTime,
-                                endTime,
-                                thresholdValue,
-                                startTime,
-                                endTime,
-                                thresholdValue,
-                                startTime,
-                                endTime});
 
       if (!di->hoverText_.empty())
       {
          const units::angle::radians<double> radians = angle;
-
-         const auto sc = util::maplibre::LatLongToScreenCoordinate({lat, lon});
 
          const float cosAngle = cosf(static_cast<float>(radians.value()));
          const float sinAngle = sinf(static_cast<float>(radians.value()));
@@ -578,13 +429,12 @@ void GeoIcons::Impl::UpdateBuffers()
          const glm::vec2 obl = rotate * glm::vec2 {lx, by};
          const glm::vec2 obr = rotate * glm::vec2 {rx, by};
 
-         newHoverIcons_.emplace_back(
-            IconHoverEntry {di, sc, otl, otr, obl, obr});
+         newHoverIcons_.emplace_back(IconHoverEntry {di, otl, otr, obl, obr});
       }
    }
 }
 
-void GeoIcons::Impl::UpdateTextureBuffer()
+void Icons::Impl::UpdateTextureBuffer()
 {
    textureBuffer_.clear();
    textureBuffer_.reserve(currentIconList_.size() * kTextureBufferLength);
@@ -672,7 +522,7 @@ void GeoIcons::Impl::UpdateTextureBuffer()
    }
 }
 
-void GeoIcons::Impl::Update(bool textureAtlasChanged)
+void Icons::Impl::Update(bool textureAtlasChanged)
 {
    gl::OpenGLFunctions& gl = context_->gl();
 
@@ -708,13 +558,6 @@ void GeoIcons::Impl::Update(bool textureAtlasChanged)
                       currentIconBuffer_.data(),
                       GL_DYNAMIC_DRAW);
 
-      // Buffer threshold data
-      gl.glBindBuffer(GL_ARRAY_BUFFER, vbo_[2]);
-      gl.glBufferData(GL_ARRAY_BUFFER,
-                      sizeof(GLint) * currentIntegerBuffer_.size(),
-                      currentIntegerBuffer_.data(),
-                      GL_DYNAMIC_DRAW);
-
       numVertices_ =
          static_cast<GLsizei>(currentIconBuffer_.size() / kPointsPerVertex);
    }
@@ -722,94 +565,44 @@ void GeoIcons::Impl::Update(bool textureAtlasChanged)
    dirty_ = false;
 }
 
-bool GeoIcons::RunMousePicking(
+bool Icons::RunMousePicking(
    const QMapLibreGL::CustomLayerRenderParameters& params,
-   const QPointF& /* mouseLocalPos */,
-   const QPointF&   mouseGlobalPos,
-   const glm::vec2& mouseCoords,
+   const QPointF&                                  mouseLocalPos,
+   const QPointF&                                  mouseGlobalPos,
+   const glm::vec2& /* mouseCoords */,
    const common::Coordinate& /* mouseGeoCoords */)
 {
    std::unique_lock lock {p->iconMutex_};
 
    bool itemPicked = false;
 
-   // Calculate map scale, remove width and height from original calculation
-   glm::vec2 scale = util::maplibre::GetMapScale(params);
-   scale = 2.0f / glm::vec2 {scale.x * params.width, scale.y * params.height};
-
-   // Scale and rotate the identity matrix to create the map matrix
-   glm::mat4 mapMatrix {1.0f};
-   mapMatrix = glm::scale(mapMatrix, glm::vec3 {scale, 1.0f});
-   mapMatrix = glm::rotate(mapMatrix,
-                           glm::radians<float>(params.bearing),
-                           glm::vec3(0.0f, 0.0f, 1.0f));
-
-   units::length::meters<double> mapDistance =
-      (p->thresholded_) ? util::maplibre::GetMapDistance(params) :
-                          units::length::meters<double> {0.0};
-
-   // If no time has been selected, use the current time
-   std::chrono::system_clock::time_point selectedTime =
-      (p->selectedTime_ == std::chrono::system_clock::time_point {}) ?
-         std::chrono::system_clock::now() :
-         p->selectedTime_;
+   // Convert local coordinates to icon coordinates
+   glm::vec2 mouseLocalCoords {mouseLocalPos.x(),
+                               params.height - mouseLocalPos.y()};
 
    // For each pickable icon
-   auto it = std::find_if(
+   auto it = std::find_if( //
       std::execution::par_unseq,
       p->currentHoverIcons_.crbegin(),
       p->currentHoverIcons_.crend(),
-      [&mapDistance, &selectedTime, &mapMatrix, &mouseCoords](const auto& icon)
+      [&mouseLocalCoords](const auto& icon)
       {
-         if ((
-                // Geo icon is thresholded
-                mapDistance > units::length::meters<double> {0.0} &&
-
-                // Geo icon threshold is < 999 nmi
-                static_cast<int>(std::round(
-                   units::length::nautical_miles<double> {icon.di_->threshold_}
-                      .value())) < 999 &&
-
-                // Map distance is beyond the threshold
-                icon.di_->threshold_ < mapDistance) ||
-
-             (
-                // Geo icon has a start time
-                icon.di_->startTime_ !=
-                   std::chrono::system_clock::time_point {} &&
-
-                // The time range has not yet started
-                (selectedTime < icon.di_->startTime_ ||
-
-                 // The time range has ended
-                 icon.di_->endTime_ <= selectedTime)))
-         {
-            // Icon is not pickable
-            return false;
-         }
-
          // Initialize vertices
-         glm::vec2 bl = icon.p_;
+         glm::vec2 bl = {static_cast<float>(icon.di_->x_),
+                         static_cast<float>(icon.di_->y_)};
          glm::vec2 br = bl;
          glm::vec2 tl = br;
          glm::vec2 tr = tl;
 
-         // Calculate offsets
-         // - Rotated offset is based on final X/Y offsets (pixels)
-         // - Multiply the offset by the scaled and rotated map matrix
-         const glm::vec2 otl = mapMatrix * glm::vec4 {icon.otl_, 0.0f, 1.0f};
-         const glm::vec2 obl = mapMatrix * glm::vec4 {icon.obl_, 0.0f, 1.0f};
-         const glm::vec2 obr = mapMatrix * glm::vec4 {icon.obr_, 0.0f, 1.0f};
-         const glm::vec2 otr = mapMatrix * glm::vec4 {icon.otr_, 0.0f, 1.0f};
-
          // Offset vertices
-         tl += otl;
-         bl += obl;
-         br += obr;
-         tr += otr;
+         tl += icon.otl_;
+         bl += icon.obl_;
+         br += icon.obr_;
+         tr += icon.otr_;
 
          // Test point against polygon bounds
-         return util::maplibre::IsPointInPolygon({tl, bl, br, tr}, mouseCoords);
+         return util::maplibre::IsPointInPolygon({tl, bl, br, tr},
+                                                 mouseLocalCoords);
       });
 
    if (it != p->currentHoverIcons_.crend())

@@ -62,6 +62,7 @@ set(SRC_GL source/scwx/qt/gl/gl_context.cpp
 set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
                 source/scwx/qt/gl/draw/geo_icons.hpp
                 source/scwx/qt/gl/draw/geo_line.hpp
+                source/scwx/qt/gl/draw/icons.hpp
                 source/scwx/qt/gl/draw/placefile_icons.hpp
                 source/scwx/qt/gl/draw/placefile_images.hpp
                 source/scwx/qt/gl/draw/placefile_lines.hpp
@@ -72,6 +73,7 @@ set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
 set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
                 source/scwx/qt/gl/draw/geo_icons.cpp
                 source/scwx/qt/gl/draw/geo_line.cpp
+                source/scwx/qt/gl/draw/icons.cpp
                 source/scwx/qt/gl/draw/placefile_icons.cpp
                 source/scwx/qt/gl/draw/placefile_images.cpp
                 source/scwx/qt/gl/draw/placefile_lines.cpp
@@ -176,6 +178,7 @@ set(SRC_SETTINGS source/scwx/qt/settings/audio_settings.cpp
 set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/font_types.hpp
               source/scwx/qt/types/github_types.hpp
+              source/scwx/qt/types/icon_types.hpp
               source/scwx/qt/types/imgui_font.hpp
               source/scwx/qt/types/layer_types.hpp
               source/scwx/qt/types/location_types.hpp
@@ -188,6 +191,7 @@ set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/texture_types.hpp)
 set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/github_types.cpp
+              source/scwx/qt/types/icon_types.cpp
               source/scwx/qt/types/imgui_font.cpp
               source/scwx/qt/types/layer_types.cpp
               source/scwx/qt/types/location_types.cpp
@@ -315,6 +319,7 @@ set(SHADER_FILES gl/color.frag
                  gl/texture1d.vert
                  gl/texture2d.frag
                  gl/texture2d_array.frag
+                 gl/texture2d_array.vert
                  gl/threshold.geom)
 
 set(CMAKE_FILES scwx-qt.cmake)
