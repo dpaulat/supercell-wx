@@ -16,6 +16,10 @@ struct TextureInfo
 };
 
 static const std::unordered_map<ImageTexture, TextureInfo> imageTextureInfo_ {
+   {ImageTexture::CardinalPoint24,
+    {"images/cardinal-point-24", ":/res/icons/flaticon/cardinal-point-24.png"}},
+   {ImageTexture::Compass24,
+    {"images/compass-24", ":/res/icons/flaticon/compass-24.png"}},
    {ImageTexture::Crosshairs24,
     {"images/crosshairs-24", ":/res/textures/images/crosshairs-24.png"}}};
 
