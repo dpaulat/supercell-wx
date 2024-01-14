@@ -11,6 +11,7 @@
         <file>gl/texture1d.vert</file>
         <file>gl/texture2d.frag</file>
         <file>gl/texture2d_array.frag</file>
+        <file>gl/texture2d_array.vert</file>
         <file>gl/threshold.geom</file>
         <file>res/audio/wikimedia/Emergency_Alert_System_Attention_Signal_20s.ogg</file>
         <file>res/config/radar_sites.json</file>
@@ -20,6 +21,8 @@
         <file>res/icons/scwx-64.png</file>
         <file>res/icons/scwx-256.ico</file>
         <file>res/icons/scwx-256.png</file>
+        <file>res/icons/flaticon/cardinal-point-24.png</file>
+        <file>res/icons/flaticon/compass-24.png</file>
         <file>res/icons/font-awesome-6/angle-down-solid.svg</file>
         <file>res/icons/font-awesome-6/angle-left-solid.svg</file>
         <file>res/icons/font-awesome-6/angle-right-solid.svg</file>

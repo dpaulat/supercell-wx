@@ -1,5 +1,6 @@
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/gl/draw/geo_icons.hpp>
+#include <scwx/qt/gl/draw/icons.hpp>
 #include <scwx/qt/gl/draw/rectangle.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/types/texture_types.hpp>
@@ -14,6 +15,7 @@
 
 #include <imgui.h>
 #include <QGeoPositionInfo>
+#include <QMouseEvent>
 
 #if !defined(_MSC_VER)
 #   include <date/date.h>
@@ -39,9 +41,8 @@ public:
    explicit OverlayLayerImpl(std::shared_ptr<MapContext> context) :
        activeBoxOuter_ {std::make_shared<gl::draw::Rectangle>(context)},
        activeBoxInner_ {std::make_shared<gl::draw::Rectangle>(context)},
-       icons_ {std::make_shared<gl::draw::GeoIcons>(context)},
-       locationIconName_ {
-          types::GetTextureName(types::ImageTexture::Crosshairs24)}
+       geoIcons_ {std::make_shared<gl::draw::GeoIcons>(context)},
+       icons_ {std::make_shared<gl::draw::Icons>(context)}
    {
    }
    ~OverlayLayerImpl() = default;
@@ -52,10 +53,24 @@ public:
 
    std::shared_ptr<gl::draw::Rectangle> activeBoxOuter_;
    std::shared_ptr<gl::draw::Rectangle> activeBoxInner_;
-   std::shared_ptr<gl::draw::GeoIcons>  icons_;
+   std::shared_ptr<gl::draw::GeoIcons>  geoIcons_;
+   std::shared_ptr<gl::draw::Icons>     icons_;
 
-   const std::string&                         locationIconName_;
+   const std::string& locationIconName_ {
+      types::GetTextureName(types::ImageTexture::Crosshairs24)};
    std::shared_ptr<gl::draw::GeoIconDrawItem> locationIcon_ {};
+
+   const std::string& cardinalPointIconName_ {
+      types::GetTextureName(types::ImageTexture::CardinalPoint24)};
+   const std::string& compassIconName_ {
+      types::GetTextureName(types::ImageTexture::Compass24)};
+   std::shared_ptr<gl::draw::IconDrawItem> compassIcon_ {};
+   bool                                    compassIconDirty_ {false};
+   double                                  lastBearing_ {0.0};
+
+   double lastWidth_ {0.0};
+   double lastHeight_ {0.0};
+   float  lastFontSize_ {0.0f};
 
    std::string sweepTimeString_ {};
    bool        sweepTimeNeedsUpdate_ {true};
@@ -67,6 +82,7 @@ OverlayLayer::OverlayLayer(std::shared_ptr<MapContext> context) :
 {
    AddDrawItem(p->activeBoxOuter_);
    AddDrawItem(p->activeBoxInner_);
+   AddDrawItem(p->geoIcons_);
    AddDrawItem(p->icons_);
 
    p->activeBoxOuter_->SetPosition(0.0f, 0.0f);
@@ -93,18 +109,74 @@ void OverlayLayer::Initialize()
    p->currentPosition_ = p->positionManager_->position();
    auto coordinate     = p->currentPosition_.coordinate();
 
-   p->icons_->StartIconSheets();
-   p->icons_->AddIconSheet(p->locationIconName_);
-   p->icons_->FinishIconSheets();
+   // Geo Icons
+   p->geoIcons_->StartIconSheets();
+   p->geoIcons_->AddIconSheet(p->locationIconName_);
+   p->geoIcons_->FinishIconSheets();
 
-   p->icons_->StartIcons();
-   p->locationIcon_ = p->icons_->AddIcon();
+   p->geoIcons_->StartIcons();
+   p->locationIcon_ = p->geoIcons_->AddIcon();
    gl::draw::GeoIcons::SetIconTexture(
       p->locationIcon_, p->locationIconName_, 0);
    gl::draw::GeoIcons::SetIconAngle(p->locationIcon_,
                                     units::angle::degrees<double> {45.0});
    gl::draw::GeoIcons::SetIconLocation(
       p->locationIcon_, coordinate.latitude(), coordinate.longitude());
+   p->geoIcons_->FinishIcons();
+
+   // Icons
+   p->icons_->StartIconSheets();
+   p->icons_->AddIconSheet(p->cardinalPointIconName_);
+   p->icons_->AddIconSheet(p->compassIconName_);
+   p->icons_->FinishIconSheets();
+
+   p->icons_->StartIcons();
+   p->compassIcon_ = p->icons_->AddIcon();
+   gl::draw::Icons::SetIconTexture(
+      p->compassIcon_, p->cardinalPointIconName_, 0);
+   gl::draw::Icons::RegisterEventHandler(
+      p->compassIcon_,
+      [this](QEvent* ev)
+      {
+         switch (ev->type())
+         {
+         case QEvent::Type::Enter:
+            // Highlight icon on mouse enter
+            gl::draw::Icons::SetIconModulate(
+               p->compassIcon_,
+               boost::gil::rgba32f_pixel_t {1.5f, 1.5f, 1.5f, 1.0f});
+            p->compassIconDirty_ = true;
+            break;
+
+         case QEvent::Type::Leave:
+            // Restore icon on mouse leave
+            gl::draw::Icons::SetIconModulate(
+               p->compassIcon_,
+               boost::gil::rgba32f_pixel_t {1.0f, 1.0f, 1.0f, 1.0f});
+            p->compassIconDirty_ = true;
+            break;
+
+         case QEvent::Type::MouseButtonPress:
+         {
+            // Reset bearing on mouse button press
+            QMouseEvent* mouseEvent = reinterpret_cast<QMouseEvent*>(ev);
+            if (mouseEvent->buttons() == Qt::MouseButton::LeftButton &&
+                p->lastBearing_ != 0.0)
+            {
+               auto map = context()->map().lock();
+               if (map != nullptr)
+               {
+                  map->setBearing(0.0);
+               }
+               ev->accept();
+            }
+            break;
+         }
+
+         default:
+            break;
+         }
+      });
    p->icons_->FinishIcons();
 
    connect(p->positionManager_.get(),
@@ -123,7 +195,7 @@ void OverlayLayer::Initialize()
                  gl::draw::GeoIcons::SetIconLocation(p->locationIcon_,
                                                      coordinate.latitude(),
                                                      coordinate.longitude());
-                 p->icons_->FinishIcons();
+                 p->geoIcons_->FinishIcons();
                  Q_EMIT NeedsRendering();
               }
               p->currentPosition_ = position;
@@ -176,8 +248,48 @@ void OverlayLayer::Render(
    }
 
    // Location Icon
-   p->icons_->SetVisible(p->currentPosition_.isValid() &&
-                         p->positionManager_->IsLocationTracked());
+   p->geoIcons_->SetVisible(p->currentPosition_.isValid() &&
+                            p->positionManager_->IsLocationTracked());
+
+   // Compass Icon
+   if (params.width != p->lastWidth_ || params.height != p->lastHeight_ ||
+       ImGui::GetFontSize() != p->lastFontSize_)
+   {
+      // Set the compass icon in the upper right, below the sweep time window
+      gl::draw::Icons::SetIconLocation(p->compassIcon_,
+                                       params.width - 24,
+                                       params.height -
+                                          (ImGui::GetFontSize() + 32));
+      p->compassIconDirty_ = true;
+   }
+   if (params.bearing != p->lastBearing_)
+   {
+      if (params.bearing == 0.0)
+      {
+         // Use cardinal point icon when bearing is oriented north-up
+         gl::draw::Icons::SetIconTexture(
+            p->compassIcon_, p->cardinalPointIconName_, 0);
+         gl::draw::Icons::SetIconAngle(p->compassIcon_,
+                                       units::angle::degrees<double> {0.0});
+      }
+      else
+      {
+         // Use rotated compass icon when bearing is rotated away from north-up
+         gl::draw::Icons::SetIconTexture(
+            p->compassIcon_, p->compassIconName_, 0);
+         gl::draw::Icons::SetIconAngle(
+            p->compassIcon_,
+            units::angle::degrees<double> {-45 - params.bearing});
+      }
+
+      // Mark icon for re-drawing
+      p->compassIconDirty_ = true;
+   }
+   if (p->compassIconDirty_)
+   {
+      // Update icon render buffers
+      p->icons_->FinishIcons();
+   }
 
    DrawLayer::Render(params);
 
@@ -242,6 +354,11 @@ void OverlayLayer::Render(
       ImGui::End();
    }
 
+   p->lastWidth_    = params.width;
+   p->lastHeight_   = params.height;
+   p->lastBearing_  = params.bearing;
+   p->lastFontSize_ = ImGui::GetFontSize();
+
    SCWX_GL_CHECK_ERROR();
 }
 
@@ -274,14 +391,25 @@ void OverlayLayer::Deinitialize()
 }
 
 bool OverlayLayer::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& /* params */,
-   const QPointF& /* mouseLocalPos */,
-   const QPointF& /* mouseGlobalPos */,
-   const glm::vec2& /* mouseCoords */,
-   const common::Coordinate& /* mouseGeoCoords */)
+   const QMapLibreGL::CustomLayerRenderParameters& params,
+   const QPointF&                                  mouseLocalPos,
+   const QPointF&                                  mouseGlobalPos,
+   const glm::vec2&                                mouseCoords,
+   const common::Coordinate&                       mouseGeoCoords,
+   std::shared_ptr<types::EventHandler>&           eventHandler)
 {
    // If sweep time was picked, don't process additional items
-   return p->sweepTimePicked_;
+   if (p->sweepTimePicked_)
+   {
+      return true;
+   }
+
+   return DrawLayer::RunMousePicking(params,
+                                     mouseLocalPos,
+                                     mouseGlobalPos,
+                                     mouseCoords,
+                                     mouseGeoCoords,
+                                     eventHandler);
 }
 
 void OverlayLayer::UpdateSweepTimeNextFrame()

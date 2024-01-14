@@ -13,10 +13,12 @@ namespace types
 
 enum class ImageTexture
 {
+   CardinalPoint24,
+   Compass24,
    Crosshairs24
 };
 typedef scwx::util::Iterator<ImageTexture,
-                             ImageTexture::Crosshairs24,
+                             ImageTexture::CardinalPoint24,
                              ImageTexture::Crosshairs24>
    ImageTextureIterator;
 

@@ -37,11 +37,13 @@ public:
                bool textureAtlasChanged) override;
    void Deinitialize() override;
 
-   bool RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params,
-                        const QPointF&            mouseLocalPos,
-                        const QPointF&            mouseGlobalPos,
-                        const glm::vec2&          mouseCoords,
-                        const common::Coordinate& mouseGeoCoords) override;
+   bool
+   RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params,
+                   const QPointF&                        mouseLocalPos,
+                   const QPointF&                        mouseGlobalPos,
+                   const glm::vec2&                      mouseCoords,
+                   const common::Coordinate&             mouseGeoCoords,
+                   std::shared_ptr<types::EventHandler>& eventHandler) override;
 
    /**
     * Sets the visibility of the geo icons.
@@ -150,6 +152,15 @@ public:
     */
    static void SetIconModulate(const std::shared_ptr<GeoIconDrawItem>& di,
                                boost::gil::rgba8_pixel_t modulate);
+
+   /**
+    * Sets the modulate color of a geo icon.
+    *
+    * @param [in] di Geo icon draw item
+    * @param [in] modulate Modulate color
+    */
+   static void SetIconModulate(const std::shared_ptr<GeoIconDrawItem>& di,
+                               boost::gil::rgba32f_pixel_t modulate);
 
    /**
     * Sets the hover text of a geo icon.

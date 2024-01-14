@@ -31,7 +31,8 @@ bool GenericLayer::RunMousePicking(
    const QPointF& /* mouseLocalPos */,
    const QPointF& /* mouseGlobalPos */,
    const glm::vec2& /* mousePos */,
-   const common::Coordinate& /* mouseGeoCoords */)
+   const common::Coordinate& /* mouseGeoCoords */,
+   std::shared_ptr<types::EventHandler>& /* eventHandler */)
 {
    // By default, the layer has nothing to pick
    return false;

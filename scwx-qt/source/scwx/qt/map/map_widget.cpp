@@ -98,7 +98,6 @@ public:
 
       // Initialize ImGui Qt backend
       ImGui_ImplQt_Init();
-      ImGui_ImplQt_RegisterWidget(widget_);
 
       // Set Map Provider Details
       mapProvider_ = GetMapProvider(generalSettings.map_provider().GetValue());
@@ -203,6 +202,8 @@ public:
    std::size_t     currentStyleIndex_;
    const MapStyle* currentStyle_;
    std::string     initialStyleName_ {};
+
+   std::shared_ptr<types::EventHandler> pickedEventHandler_ {nullptr};
 
    uint64_t frameDraws_;
 
@@ -979,6 +980,17 @@ void MapWidgetImpl::AddLayer(const std::string&            id,
    }
 }
 
+bool MapWidget::event(QEvent* e)
+{
+   if (p->pickedEventHandler_ != nullptr &&
+       p->pickedEventHandler_->event_ != nullptr)
+   {
+      p->pickedEventHandler_->event_(e);
+   }
+
+   return QOpenGLWidget::event(e);
+}
+
 void MapWidget::enterEvent(QEnterEvent* /* ev */)
 {
    p->hasMouse_ = true;
@@ -1083,6 +1095,7 @@ void MapWidget::initializeGL()
 
    // Initialize ImGui OpenGL3 backend
    ImGui::SetCurrentContext(p->imGuiContext_);
+   ImGui_ImplQt_RegisterWidget(this);
    ImGui_ImplOpenGL3_Init();
    p->imGuiFontsBuildCount_ =
       manager::FontManager::Instance().imgui_fonts_build_count();
@@ -1209,7 +1222,8 @@ void MapWidgetImpl::RunMousePicking()
       util::maplibre::LatLongToScreenCoordinate(coordinate);
 
    // For each layer in reverse
-   bool itemPicked = false;
+   bool                                 itemPicked   = false;
+   std::shared_ptr<types::EventHandler> eventHandler = nullptr;
    for (auto it = genericLayers_.rbegin(); it != genericLayers_.rend(); ++it)
    {
       // Run mouse picking for each layer
@@ -1217,7 +1231,8 @@ void MapWidgetImpl::RunMousePicking()
                                  lastPos_,
                                  lastGlobalPos_,
                                  mouseScreenCoordinate,
-                                 {coordinate.first, coordinate.second}))
+                                 {coordinate.first, coordinate.second},
+                                 eventHandler))
       {
          // If a draw item was picked, don't process additional layers
          itemPicked = true;
@@ -1229,6 +1244,43 @@ void MapWidgetImpl::RunMousePicking()
    if (!itemPicked)
    {
       util::tooltip::Hide();
+
+      if (pickedEventHandler_ != nullptr)
+      {
+         // Send leave event to picked event handler
+         if (pickedEventHandler_->event_ != nullptr)
+         {
+            QEvent event(QEvent::Type::Leave);
+            pickedEventHandler_->event_(&event);
+         }
+
+         // Reset picked event handler
+         pickedEventHandler_ = nullptr;
+      }
+   }
+   else if (eventHandler != nullptr)
+   {
+      // If the event handler changed
+      if (pickedEventHandler_ != eventHandler)
+      {
+         // Send leave event to old event handler
+         if (pickedEventHandler_ != nullptr &&
+             pickedEventHandler_->event_ != nullptr)
+         {
+            QEvent event(QEvent::Type::Leave);
+            pickedEventHandler_->event_(&event);
+         }
+
+         // Send enter event to new event handler
+         if (eventHandler->event_ != nullptr)
+         {
+            QEvent event(QEvent::Type::Enter);
+            eventHandler->event_(&event);
+         }
+
+         // Store picked event handler
+         pickedEventHandler_ = eventHandler;
+      }
    }
 
    Q_EMIT widget_->MouseCoordinateChanged(
