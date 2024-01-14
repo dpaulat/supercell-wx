@@ -42,12 +42,7 @@ public:
        activeBoxOuter_ {std::make_shared<gl::draw::Rectangle>(context)},
        activeBoxInner_ {std::make_shared<gl::draw::Rectangle>(context)},
        geoIcons_ {std::make_shared<gl::draw::GeoIcons>(context)},
-       icons_ {std::make_shared<gl::draw::Icons>(context)},
-       cardinalPointIconName_ {
-          types::GetTextureName(types::ImageTexture::CardinalPoint24)},
-       compassIconName_ {types::GetTextureName(types::ImageTexture::Compass24)},
-       locationIconName_ {
-          types::GetTextureName(types::ImageTexture::Crosshairs24)}
+       icons_ {std::make_shared<gl::draw::Icons>(context)}
    {
    }
    ~OverlayLayerImpl() = default;
@@ -61,11 +56,14 @@ public:
    std::shared_ptr<gl::draw::GeoIcons>  geoIcons_;
    std::shared_ptr<gl::draw::Icons>     icons_;
 
-   const std::string&                         locationIconName_;
+   const std::string& locationIconName_ {
+      types::GetTextureName(types::ImageTexture::Crosshairs24)};
    std::shared_ptr<gl::draw::GeoIconDrawItem> locationIcon_ {};
 
-   const std::string&                      cardinalPointIconName_;
-   const std::string&                      compassIconName_;
+   const std::string& cardinalPointIconName_ {
+      types::GetTextureName(types::ImageTexture::CardinalPoint24)};
+   const std::string& compassIconName_ {
+      types::GetTextureName(types::ImageTexture::Compass24)};
    std::shared_ptr<gl::draw::IconDrawItem> compassIcon_ {};
    bool                                    compassIconDirty_ {false};
    double                                  lastBearing_ {0.0};
@@ -174,6 +172,9 @@ void OverlayLayer::Initialize()
             }
             break;
          }
+
+         default:
+            break;
          }
       });
    p->icons_->FinishIcons();
