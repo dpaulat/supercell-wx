@@ -77,5 +77,5 @@ Supercell Wx connects to the following services:
 | ------- | ----- |
 | [AllisonHouse LLC](https://www.allisonhouse.com/) | Severe weather warnings |
 | [Mapbox](https://www.mapbox.com/) | Vector map tiles |
+| [MapTiler](https://www.maptiler.com/) | Vector map tiles |
 | [NEXRAD on AWS](https://registry.opendata.aws/noaa-nexrad/) | Real-time and archival data from the Next Generation Weather Radar (NEXRAD) network. |
-
