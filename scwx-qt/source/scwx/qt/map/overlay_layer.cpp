@@ -72,6 +72,7 @@ public:
 
    double lastWidth_ {0.0};
    double lastHeight_ {0.0};
+   float  lastFontSize_ {0.0f};
 
    std::string sweepTimeString_ {};
    bool        sweepTimeNeedsUpdate_ {true};
@@ -142,6 +143,7 @@ void OverlayLayer::Initialize()
          switch (ev->type())
          {
          case QEvent::Type::Enter:
+            // Highlight icon on mouse enter
             gl::draw::Icons::SetIconModulate(
                p->compassIcon_,
                boost::gil::rgba32f_pixel_t {1.5f, 1.5f, 1.5f, 1.0f});
@@ -149,6 +151,7 @@ void OverlayLayer::Initialize()
             break;
 
          case QEvent::Type::Leave:
+            // Restore icon on mouse leave
             gl::draw::Icons::SetIconModulate(
                p->compassIcon_,
                boost::gil::rgba32f_pixel_t {1.0f, 1.0f, 1.0f, 1.0f});
@@ -157,6 +160,7 @@ void OverlayLayer::Initialize()
 
          case QEvent::Type::MouseButtonPress:
          {
+            // Reset bearing on mouse button press
             QMouseEvent* mouseEvent = reinterpret_cast<QMouseEvent*>(ev);
             if (mouseEvent->buttons() == Qt::MouseButton::LeftButton &&
                 p->lastBearing_ != 0.0)
@@ -247,16 +251,21 @@ void OverlayLayer::Render(
                             p->positionManager_->IsLocationTracked());
 
    // Compass Icon
-   if (params.width != p->lastWidth_ || params.height != p->lastHeight_)
+   if (params.width != p->lastWidth_ || params.height != p->lastHeight_ ||
+       ImGui::GetFontSize() != p->lastFontSize_)
    {
-      gl::draw::Icons::SetIconLocation(
-         p->compassIcon_, params.width - 24, params.height - 48);
+      // Set the compass icon in the upper right, below the sweep time window
+      gl::draw::Icons::SetIconLocation(p->compassIcon_,
+                                       params.width - 24,
+                                       params.height -
+                                          (ImGui::GetFontSize() + 32));
       p->compassIconDirty_ = true;
    }
    if (params.bearing != p->lastBearing_)
    {
       if (params.bearing == 0.0)
       {
+         // Use cardinal point icon when bearing is oriented north-up
          gl::draw::Icons::SetIconTexture(
             p->compassIcon_, p->cardinalPointIconName_, 0);
          gl::draw::Icons::SetIconAngle(p->compassIcon_,
@@ -264,16 +273,20 @@ void OverlayLayer::Render(
       }
       else
       {
+         // Use rotated compass icon when bearing is rotated away from north-up
          gl::draw::Icons::SetIconTexture(
             p->compassIcon_, p->compassIconName_, 0);
          gl::draw::Icons::SetIconAngle(
             p->compassIcon_,
             units::angle::degrees<double> {-45 - params.bearing});
       }
+
+      // Mark icon for re-drawing
       p->compassIconDirty_ = true;
    }
    if (p->compassIconDirty_)
    {
+      // Update icon render buffers
       p->icons_->FinishIcons();
    }
 
@@ -340,9 +353,10 @@ void OverlayLayer::Render(
       ImGui::End();
    }
 
-   p->lastWidth_   = params.width;
-   p->lastHeight_  = params.height;
-   p->lastBearing_ = params.bearing;
+   p->lastWidth_    = params.width;
+   p->lastHeight_   = params.height;
+   p->lastBearing_  = params.bearing;
+   p->lastFontSize_ = ImGui::GetFontSize();
 
    SCWX_GL_CHECK_ERROR();
 }
