@@ -233,7 +233,7 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->radarSitePresetsButton->setMenu(p->radarSitePresetsMenu_);
 
    auto radarSitePresets = p->radarSiteModel_->presets();
-   for (auto preset : radarSitePresets)
+   for (auto& preset : radarSitePresets)
    {
       p->AddRadarSitePreset(preset);
    }
