@@ -387,7 +387,7 @@ void MainWindow::showEvent(QShowEvent* event)
 {
    QMainWindow::showEvent(event);
 
-   resizeDocks({ui->radarToolboxDock}, {188}, Qt::Horizontal);
+   resizeDocks({ui->radarToolboxDock}, {194}, Qt::Horizontal);
 }
 
 void MainWindow::on_actionOpenNexrad_triggered()
