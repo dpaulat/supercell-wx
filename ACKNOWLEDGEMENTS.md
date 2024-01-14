@@ -52,6 +52,7 @@ Supercell Wx derives code from the following sources:
 | Source | License |
 | ------ | ------- |
 | [Color Table File Specification](http://www.grlevelx.com/manuals/color_tables/files_color_table.htm) | Used with permission |
+| [Place File Specification](https://www.grlevelx.com/manuals/gis/files_places.htm) | Used with permission |
 
 Assets
 ------
