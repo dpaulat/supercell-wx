@@ -158,7 +158,8 @@ bool RadarSiteLayer::RunMousePicking(
    const QPointF& /* mouseLocalPos */,
    const QPointF& mouseGlobalPos,
    const glm::vec2& /* mouseCoords */,
-   const common::Coordinate& /* mouseGeoCoords */)
+   const common::Coordinate& /* mouseGeoCoords */,
+   std::shared_ptr<types::EventHandler>& /* eventHandler */)
 {
    if (!p->hoverText_.empty())
    {

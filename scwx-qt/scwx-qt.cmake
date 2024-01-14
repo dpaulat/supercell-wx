@@ -176,6 +176,7 @@ set(SRC_SETTINGS source/scwx/qt/settings/audio_settings.cpp
                  source/scwx/qt/settings/text_settings.cpp
                  source/scwx/qt/settings/ui_settings.cpp)
 set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
+              source/scwx/qt/types/event_types.hpp
               source/scwx/qt/types/font_types.hpp
               source/scwx/qt/types/github_types.hpp
               source/scwx/qt/types/icon_types.hpp

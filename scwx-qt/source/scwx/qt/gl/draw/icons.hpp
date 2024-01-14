@@ -6,6 +6,8 @@
 #include <boost/gil.hpp>
 #include <units/angle.h>
 
+class QEvent;
+
 namespace scwx
 {
 namespace qt
@@ -34,11 +36,13 @@ public:
                bool textureAtlasChanged) override;
    void Deinitialize() override;
 
-   bool RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params,
-                        const QPointF&            mouseLocalPos,
-                        const QPointF&            mouseGlobalPos,
-                        const glm::vec2&          mouseCoords,
-                        const common::Coordinate& mouseGeoCoords) override;
+   bool
+   RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params,
+                   const QPointF&                        mouseLocalPos,
+                   const QPointF&                        mouseGlobalPos,
+                   const glm::vec2&                      mouseCoords,
+                   const common::Coordinate&             mouseGeoCoords,
+                   std::shared_ptr<types::EventHandler>& eventHandler) override;
 
    /**
     * Sets the visibility of the icons.
@@ -150,6 +154,16 @@ public:
     * Finalizes the draw item after adding new icons.
     */
    void FinishIcons();
+
+   /**
+    * Registers an event handler for an icon.
+    *
+    * @param [in] di Icon draw item
+    * @param [in] eventHandler Event handler function
+    */
+   static void
+   RegisterEventHandler(const std::shared_ptr<IconDrawItem>& di,
+                        const std::function<void(QEvent*)>&  eventHandler);
 
 private:
    class Impl;

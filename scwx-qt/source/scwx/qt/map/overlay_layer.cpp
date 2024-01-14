@@ -274,14 +274,25 @@ void OverlayLayer::Deinitialize()
 }
 
 bool OverlayLayer::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& /* params */,
-   const QPointF& /* mouseLocalPos */,
-   const QPointF& /* mouseGlobalPos */,
-   const glm::vec2& /* mouseCoords */,
-   const common::Coordinate& /* mouseGeoCoords */)
+   const QMapLibreGL::CustomLayerRenderParameters& params,
+   const QPointF&                                  mouseLocalPos,
+   const QPointF&                                  mouseGlobalPos,
+   const glm::vec2&                                mouseCoords,
+   const common::Coordinate&                       mouseGeoCoords,
+   std::shared_ptr<types::EventHandler>&           eventHandler)
 {
    // If sweep time was picked, don't process additional items
-   return p->sweepTimePicked_;
+   if (p->sweepTimePicked_)
+   {
+      return true;
+   }
+
+   return DrawLayer::RunMousePicking(params,
+                                     mouseLocalPos,
+                                     mouseGlobalPos,
+                                     mouseCoords,
+                                     mouseGeoCoords,
+                                     eventHandler);
 }
 
 void OverlayLayer::UpdateSweepTimeNextFrame()

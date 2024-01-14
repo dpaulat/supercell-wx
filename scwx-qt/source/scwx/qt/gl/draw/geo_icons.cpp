@@ -736,7 +736,8 @@ bool GeoIcons::RunMousePicking(
    const QPointF& /* mouseLocalPos */,
    const QPointF&   mouseGlobalPos,
    const glm::vec2& mouseCoords,
-   const common::Coordinate& /* mouseGeoCoords */)
+   const common::Coordinate& /* mouseGeoCoords */,
+   std::shared_ptr<types::EventHandler>& /* eventHandler */)
 {
    std::unique_lock lock {p->iconMutex_};
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/qt/gl/gl.hpp>
+#include <scwx/qt/types/event_types.hpp>
 #include <scwx/common/geographic.hpp>
 
 #include <memory>
@@ -43,15 +44,17 @@ public:
     * @param [in] mouseGlobalPos Mouse cursor screen position
     * @param [in] mouseCoords Mouse cursor location in map screen coordinates
     * @param [in] mouseGeoCoords Mouse cursor location in geographic coordinates
+    * @param [out] eventHandler Event handler associated with picked draw item
     *
     * @return true if the draw item was picked, otherwise false
     */
    virtual bool
    RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params,
-                   const QPointF&            mouseLocalPos,
-                   const QPointF&            mouseGlobalPos,
-                   const glm::vec2&          mouseCoords,
-                   const common::Coordinate& mouseGeoCoords);
+                   const QPointF&                        mouseLocalPos,
+                   const QPointF&                        mouseGlobalPos,
+                   const glm::vec2&                      mouseCoords,
+                   const common::Coordinate&             mouseGeoCoords,
+                   std::shared_ptr<types::EventHandler>& eventHandler);
 
 protected:
    void

@@ -32,7 +32,7 @@ static constexpr std::size_t kIconBufferLength =
 static constexpr std::size_t kTextureBufferLength =
    kNumTriangles * kVerticesPerTriangle * kPointsPerTexCoord;
 
-struct IconDrawItem
+struct IconDrawItem : types::EventHandler
 {
    boost::gil::rgba32f_pixel_t modulate_ {1.0f, 1.0f, 1.0f, 1.0f};
    double                      x_ {};
@@ -424,7 +424,7 @@ void Icons::Impl::UpdateBuffers()
                                x, y, lx, ty, mc0, mc1, mc2, mc3, a  // TL
                             });
 
-      if (!di->hoverText_.empty())
+      if (!di->hoverText_.empty() || di->event_ != nullptr)
       {
          const units::angle::radians<double> radians = angle;
 
@@ -579,7 +579,8 @@ bool Icons::RunMousePicking(
    const QPointF&                                  mouseLocalPos,
    const QPointF&                                  mouseGlobalPos,
    const glm::vec2& /* mouseCoords */,
-   const common::Coordinate& /* mouseGeoCoords */)
+   const common::Coordinate& /* mouseGeoCoords */,
+   std::shared_ptr<types::EventHandler>& eventHandler)
 {
    std::unique_lock lock {p->iconMutex_};
 
@@ -617,10 +618,27 @@ bool Icons::RunMousePicking(
    if (it != p->currentHoverIcons_.crend())
    {
       itemPicked = true;
-      util::tooltip::Show(it->di_->hoverText_, mouseGlobalPos);
+
+      if (!it->di_->hoverText_.empty())
+      {
+         // Show tooltip
+         util::tooltip::Show(it->di_->hoverText_, mouseGlobalPos);
+      }
+      if (it->di_->event_ != nullptr)
+      {
+         // Register event handler
+         eventHandler = it->di_;
+      }
    }
 
    return itemPicked;
+}
+
+void Icons::RegisterEventHandler(
+   const std::shared_ptr<IconDrawItem>& di,
+   const std::function<void(QEvent*)>&  eventHandler)
+{
+   di->event_ = eventHandler;
 }
 
 } // namespace draw
