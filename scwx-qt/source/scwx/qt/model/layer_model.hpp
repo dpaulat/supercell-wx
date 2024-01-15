@@ -16,6 +16,7 @@ namespace model
 
 class LayerModel : public QAbstractTableModel
 {
+   Q_OBJECT
    Q_DISABLE_COPY_MOVE(LayerModel)
 
 public:
@@ -36,7 +37,12 @@ public:
    explicit LayerModel(QObject* parent = nullptr);
    ~LayerModel();
 
+   types::LayerInfo   GetLayerInfo(types::LayerType        type,
+                                   types::LayerDescription description) const;
    types::LayerVector GetLayers() const;
+   void               SetLayerDisplayed(types::LayerType        type,
+                                        types::LayerDescription description,
+                                        bool                    displayed);
 
    void ResetLayers();
 
@@ -76,6 +82,9 @@ public:
                  int                destinationChild) override;
 
    static std::shared_ptr<LayerModel> Instance();
+
+signals:
+   void LayerDisplayChanged(types::LayerInfo layer);
 
 private:
    class Impl;

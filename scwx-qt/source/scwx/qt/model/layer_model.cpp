@@ -395,9 +395,61 @@ void LayerModel::Impl::WriteLayerSettings()
    util::json::WriteJsonFile(layerSettingsPath_, layerJson);
 }
 
+types::LayerInfo
+LayerModel::GetLayerInfo(types::LayerType        type,
+                         types::LayerDescription description) const
+{
+   // Find the matching layer
+   auto it = std::find_if(p->layers_.begin(),
+                          p->layers_.end(),
+                          [&](const types::LayerInfo& layer) {
+                             return layer.type_ == type &&
+                                    layer.description_ == description;
+                          });
+   if (it != p->layers_.end())
+   {
+      // Return the layer info
+      return *it;
+   }
+
+   return {};
+}
+
 types::LayerVector LayerModel::GetLayers() const
 {
    return p->layers_;
+}
+
+void LayerModel::SetLayerDisplayed(types::LayerType        type,
+                                   types::LayerDescription description,
+                                   bool                    displayed)
+{
+   // Find the matching layer
+   auto it = std::find_if(p->layers_.begin(),
+                          p->layers_.end(),
+                          [&](const types::LayerInfo& layer) {
+                             return layer.type_ == type &&
+                                    layer.description_ == description;
+                          });
+
+   if (it != p->layers_.end())
+   {
+      // Find the row
+      const int   row = std::distance(p->layers_.begin(), it);
+      QModelIndex topLeft =
+         createIndex(row, static_cast<int>(Column::DisplayMap1));
+      QModelIndex bottomRight =
+         createIndex(row, static_cast<int>(Column::DisplayMap4));
+
+      // Set the layer to displayed
+      for (std::size_t i = 0; i < kMapCount_; ++i)
+      {
+         it->displayed_[i] = displayed;
+      }
+
+      // Notify observers
+      Q_EMIT dataChanged(topLeft, bottomRight);
+   }
 }
 
 void LayerModel::ResetLayers()
@@ -751,6 +803,7 @@ bool LayerModel::setData(const QModelIndex& index,
    if (result)
    {
       Q_EMIT dataChanged(index, index);
+      Q_EMIT LayerDisplayChanged(layer);
    }
 
    return result;

@@ -12,6 +12,7 @@
 #include <scwx/qt/manager/update_manager.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_widget.hpp>
+#include <scwx/qt/model/layer_model.hpp>
 #include <scwx/qt/model/radar_site_model.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/map_settings.hpp>
@@ -35,6 +36,8 @@
 #include <scwx/common/vcp.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
+
+#include <set>
 
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
@@ -142,6 +145,7 @@ public:
    void ConnectMapSignals();
    void ConnectOtherSignals();
    void HandleFocusChange(QWidget* focused);
+   void InitializeLayerDisplayActions();
    void PopulateMapStyles();
    void SelectElevation(map::MapWidget* mapWidget, float elevation);
    void SelectRadarProduct(map::MapWidget*           mapWidget,
@@ -197,10 +201,16 @@ public:
    std::shared_ptr<manager::TimelineManager>  timelineManager_;
    std::shared_ptr<manager::UpdateManager>    updateManager_;
 
+   std::shared_ptr<model::LayerModel> layerModel_ {
+      model::LayerModel::Instance()};
    std::shared_ptr<model::RadarSiteModel> radarSiteModel_ {
       model::RadarSiteModel::Instance()};
    std::map<std::string, std::shared_ptr<QAction>> radarSitePresetsActions_ {};
    QMenu* radarSitePresetsMenu_ {nullptr};
+
+   std::set<std::tuple<types::LayerType, types::LayerDescription, QAction*>>
+        layerActions_ {};
+   bool layerActionsInitialized_ {false};
 
    std::vector<map::MapWidget*> maps_;
 
@@ -220,6 +230,8 @@ MainWindow::MainWindow(QWidget* parent) :
     ui(new Ui::MainWindow)
 {
    ui->setupUi(this);
+
+   p->InitializeLayerDisplayActions();
 
    // Assign the bottom left corner to the left dock widget
    setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
@@ -492,6 +504,26 @@ void MainWindow::on_actionSettings_triggered()
 void MainWindow::on_actionExit_triggered()
 {
    close();
+}
+
+void MainWindow::on_actionColorTable_triggered(bool checked)
+{
+   p->layerModel_->SetLayerDisplayed(types::LayerType::Information,
+                                     types::InformationLayer::ColorTable,
+                                     checked);
+}
+
+void MainWindow::on_actionRadarRange_triggered(bool checked)
+{
+   p->layerModel_->SetLayerDisplayed(
+      types::LayerType::Data, types::DataLayer::RadarRange, checked);
+}
+
+void MainWindow::on_actionRadarSites_triggered(bool checked)
+{
+   p->layerModel_->SetLayerDisplayed(types::LayerType::Information,
+                                     types::InformationLayer::RadarSite,
+                                     checked);
 }
 
 void MainWindow::on_actionPlacefileManager_triggered()
@@ -989,6 +1021,39 @@ void MainWindowImpl::ConnectOtherSignals()
            &MainWindow::ActiveMapMoved,
            radarSiteDialog_,
            &ui::RadarSiteDialog::HandleMapUpdate);
+   connect(layerModel_.get(),
+           &model::LayerModel::LayerDisplayChanged,
+           this,
+           [this](types::LayerInfo layer)
+           {
+              // Find matching layer action
+              auto it =
+                 std::find_if(layerActions_.begin(),
+                              layerActions_.end(),
+                              [&](const auto& layerAction)
+                              {
+                                 const auto& [type, description, action] =
+                                    layerAction;
+                                 return layer.type_ == type &&
+                                        layer.description_ == description;
+                              });
+
+              // If matching layer action was found
+              if (it != layerActions_.end())
+              {
+                 // Check the action if the layer is displayed on any map
+                 bool anyDisplayed = std::find(layer.displayed_.begin(),
+                                               layer.displayed_.end(),
+                                               true) != layer.displayed_.end();
+
+                 auto& action = std::get<2>(*it);
+                 action->setChecked(anyDisplayed);
+              }
+           });
+   connect(layerModel_.get(),
+           &QAbstractItemModel::modelReset,
+           this,
+           [this]() { InitializeLayerDisplayActions(); });
    connect(radarSiteDialog_,
            &ui::RadarSiteDialog::accepted,
            this,
@@ -1044,6 +1109,36 @@ void MainWindowImpl::ConnectOtherSignals()
               timeLabel_->setVisible(true);
            });
    clockTimer_.start(1000);
+}
+
+void MainWindowImpl::InitializeLayerDisplayActions()
+{
+   if (!layerActionsInitialized_)
+   {
+      layerActions_.emplace(types::LayerType::Information,
+                            types::InformationLayer::ColorTable,
+                            mainWindow_->ui->actionColorTable);
+      layerActions_.emplace(types::LayerType::Information,
+                            types::InformationLayer::RadarSite,
+                            mainWindow_->ui->actionRadarSites);
+      layerActions_.emplace(types::LayerType::Data,
+                            types::DataLayer::RadarRange,
+                            mainWindow_->ui->actionRadarRange);
+      layerActionsInitialized_ = true;
+   }
+
+   for (auto& layerAction : layerActions_)
+   {
+      auto& [type, description, action] = layerAction;
+
+      types::LayerInfo layer = layerModel_->GetLayerInfo(type, description);
+
+      bool anyDisplayed =
+         std::find(layer.displayed_.begin(), layer.displayed_.end(), true) !=
+         layer.displayed_.end();
+
+      action->setChecked(anyDisplayed);
+   }
 }
 
 void MainWindowImpl::AddRadarSitePreset(const std::string& siteId)

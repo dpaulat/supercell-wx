@@ -37,8 +37,8 @@ public:
    void UpdateMapDisplayColumns();
    void UpdateMoveButtonsEnabled();
 
-   std::vector<int>              GetSelectedRows();
-   std::vector<std::vector<int>> GetContiguousRows();
+   std::vector<int>              GetSelectedRows() const;
+   std::vector<std::vector<int>> GetContiguousRows() const;
 
    LayerDialog*                       self_;
    std::shared_ptr<model::LayerModel> layerModel_;
@@ -247,7 +247,7 @@ void LayerDialogImpl::ConnectSignals()
       });
 }
 
-std::vector<int> LayerDialogImpl::GetSelectedRows()
+std::vector<int> LayerDialogImpl::GetSelectedRows() const
 {
    QModelIndexList selectedRows =
       self_->ui->layerTreeView->selectionModel()->selectedRows();
@@ -260,7 +260,7 @@ std::vector<int> LayerDialogImpl::GetSelectedRows()
    return rows;
 }
 
-std::vector<std::vector<int>> LayerDialogImpl::GetContiguousRows()
+std::vector<std::vector<int>> LayerDialogImpl::GetContiguousRows() const
 {
    std::vector<std::vector<int>> contiguousRows {};
    std::vector<int>              currentContiguousRows {};

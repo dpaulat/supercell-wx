@@ -75,8 +75,18 @@
     <property name="title">
      <string>&amp;View</string>
     </property>
+    <widget class="QMenu" name="menuMapLayers">
+     <property name="title">
+      <string>&amp;Map Layers</string>
+     </property>
+     <addaction name="actionColorTable"/>
+     <addaction name="actionRadarSites"/>
+     <addaction name="actionRadarRange"/>
+    </widget>
     <addaction name="actionRadarToolbox"/>
     <addaction name="actionAlerts"/>
+    <addaction name="separator"/>
+    <addaction name="menuMapLayers"/>
    </widget>
    <widget class="QMenu" name="menuDebug">
     <property name="title">
@@ -166,7 +176,7 @@
            <property name="frameShadow">
             <enum>QFrame::Raised</enum>
            </property>
-           <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,0,0,0">
+           <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,0,0">
             <item row="0" column="2">
              <widget class="QLabel" name="radarSiteValueLabel">
               <property name="sizePolicy">
@@ -445,6 +455,30 @@
   <action name="actionDumpLayerList">
    <property name="text">
     <string>Dump &amp;Layer List</string>
+   </property>
+  </action>
+  <action name="actionRadarRange">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Radar &amp;Range</string>
+   </property>
+  </action>
+  <action name="actionColorTable">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Color Table</string>
+   </property>
+  </action>
+  <action name="actionRadarSites">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Radar &amp;Sites</string>
    </property>
   </action>
  </widget>
