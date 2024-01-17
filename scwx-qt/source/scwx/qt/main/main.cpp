@@ -75,6 +75,7 @@ int main(int argc, char* argv[])
    scwx::qt::config::RadarSite::Initialize();
    scwx::qt::config::CountyDatabase::Initialize();
    scwx::qt::manager::SettingsManager::Instance().Initialize();
+   scwx::qt::manager::ResourceManager::Initialize();
 
    // Theme
    auto uiStyle = scwx::qt::types::GetUiStyle(
@@ -92,9 +93,6 @@ int main(int argc, char* argv[])
       w.show();
       a.exec();
    }
-
-   // Run further application initialization
-   scwx::qt::manager::ResourceManager::Initialize();
 
    // Run Qt main loop
    int result;
