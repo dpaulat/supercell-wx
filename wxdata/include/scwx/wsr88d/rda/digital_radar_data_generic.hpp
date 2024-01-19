@@ -34,10 +34,11 @@ class MomentDataBlockImpl;
 class RadialDataBlockImpl;
 class VolumeDataBlockImpl;
 
-class DigitalRadarData;
-class DigitalRadarDataImpl;
+class DigitalRadarDataGeneric;
+class DigitalRadarDataGenericImpl;
 
-typedef std::map<uint16_t, std::shared_ptr<DigitalRadarData>> ElevationScan;
+typedef std::map<uint16_t, std::shared_ptr<DigitalRadarDataGeneric>>
+   ElevationScan;
 
 class DataBlock
 {
@@ -46,7 +47,7 @@ protected:
                       const std::string& dataName);
    ~DataBlock();
 
-   DataBlock(const DataBlock&) = delete;
+   DataBlock(const DataBlock&)            = delete;
    DataBlock& operator=(const DataBlock&) = delete;
 
    DataBlock(DataBlock&&) noexcept;
@@ -63,7 +64,7 @@ public:
                                const std::string& dataName);
    ~ElevationDataBlock();
 
-   ElevationDataBlock(const ElevationDataBlock&) = delete;
+   ElevationDataBlock(const ElevationDataBlock&)            = delete;
    ElevationDataBlock& operator=(const ElevationDataBlock&) = delete;
 
    ElevationDataBlock(ElevationDataBlock&&) noexcept;
@@ -87,7 +88,7 @@ public:
                             const std::string& dataName);
    ~MomentDataBlock();
 
-   MomentDataBlock(const MomentDataBlock&) = delete;
+   MomentDataBlock(const MomentDataBlock&)            = delete;
    MomentDataBlock& operator=(const MomentDataBlock&) = delete;
 
    MomentDataBlock(MomentDataBlock&&) noexcept;
@@ -123,7 +124,7 @@ public:
                             const std::string& dataName);
    ~RadialDataBlock();
 
-   RadialDataBlock(const RadialDataBlock&) = delete;
+   RadialDataBlock(const RadialDataBlock&)            = delete;
    RadialDataBlock& operator=(const RadialDataBlock&) = delete;
 
    RadialDataBlock(RadialDataBlock&&) noexcept;
@@ -149,7 +150,7 @@ public:
                             const std::string& dataName);
    ~VolumeDataBlock();
 
-   VolumeDataBlock(const VolumeDataBlock&) = delete;
+   VolumeDataBlock(const VolumeDataBlock&)            = delete;
    VolumeDataBlock& operator=(const VolumeDataBlock&) = delete;
 
    VolumeDataBlock(VolumeDataBlock&&) noexcept;
@@ -170,17 +171,17 @@ private:
    bool Parse(std::istream& is);
 };
 
-class DigitalRadarData : public Level2Message
+class DigitalRadarDataGeneric : public Level2Message
 {
 public:
-   explicit DigitalRadarData();
-   ~DigitalRadarData();
+   explicit DigitalRadarDataGeneric();
+   ~DigitalRadarDataGeneric();
 
-   DigitalRadarData(const DigitalRadarData&) = delete;
-   DigitalRadarData& operator=(const DigitalRadarData&) = delete;
+   DigitalRadarDataGeneric(const DigitalRadarDataGeneric&)            = delete;
+   DigitalRadarDataGeneric& operator=(const DigitalRadarDataGeneric&) = delete;
 
-   DigitalRadarData(DigitalRadarData&&) noexcept;
-   DigitalRadarData& operator=(DigitalRadarData&&) noexcept;
+   DigitalRadarDataGeneric(DigitalRadarDataGeneric&&) noexcept;
+   DigitalRadarDataGeneric& operator=(DigitalRadarDataGeneric&&) noexcept;
 
    std::string radar_identifier() const;
    uint32_t    collection_time() const;
@@ -205,11 +206,11 @@ public:
 
    bool Parse(std::istream& is);
 
-   static std::shared_ptr<DigitalRadarData> Create(Level2MessageHeader&& header,
-                                                   std::istream&         is);
+   static std::shared_ptr<DigitalRadarDataGeneric>
+   Create(Level2MessageHeader&& header, std::istream& is);
 
 private:
-   std::unique_ptr<DigitalRadarDataImpl> p;
+   std::unique_ptr<DigitalRadarDataGenericImpl> p;
 };
 
 } // namespace rda

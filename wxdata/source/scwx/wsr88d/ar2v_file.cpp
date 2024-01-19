@@ -58,7 +58,8 @@ public:
    void        IndexFile();
    void        ParseLDMRecords();
    void        ParseLDMRecord(std::istream& is);
-   void        ProcessRadarData(std::shared_ptr<rda::DigitalRadarData> message);
+   void        ProcessRadarData(
+             const std::shared_ptr<rda::DigitalRadarDataGeneric>& message);
 
    std::string   tapeFilename_;
    std::string   extensionNumber_;
@@ -108,7 +109,7 @@ std::chrono::system_clock::time_point Ar2vFile::end_time() const
 
    if (p->radarData_.size() > 0)
    {
-      std::shared_ptr<rda::DigitalRadarData> lastRadial =
+      std::shared_ptr<rda::DigitalRadarDataGeneric> lastRadial =
          p->radarData_.crbegin()->second->crbegin()->second;
 
       endTime = util::TimePoint(lastRadial->modified_julian_date(),
@@ -389,7 +390,7 @@ void Ar2vFileImpl::HandleMessage(std::shared_ptr<rda::Level2Message>& message)
 
    case static_cast<uint8_t>(rda::MessageId::DigitalRadarData):
       ProcessRadarData(
-         std::static_pointer_cast<rda::DigitalRadarData>(message));
+         std::static_pointer_cast<rda::DigitalRadarDataGeneric>(message));
       break;
 
    default:
@@ -398,7 +399,7 @@ void Ar2vFileImpl::HandleMessage(std::shared_ptr<rda::Level2Message>& message)
 }
 
 void Ar2vFileImpl::ProcessRadarData(
-   std::shared_ptr<rda::DigitalRadarData> message)
+   const std::shared_ptr<rda::DigitalRadarDataGeneric>& message)
 {
    uint16_t azimuthIndex   = message->azimuth_number() - 1;
    uint16_t elevationIndex = message->elevation_number() - 1;
@@ -421,14 +422,14 @@ void Ar2vFileImpl::IndexFile()
       return;
    }
 
-   for (auto elevationCut : radarData_)
+   for (auto& elevationCut : radarData_)
    {
       uint16_t elevationAngle =
          vcpData_->elevation_angle_raw(elevationCut.first);
       rda::WaveformType waveformType =
          vcpData_->waveform_type(elevationCut.first);
 
-      std::shared_ptr<rda::DigitalRadarData> radial0 =
+      std::shared_ptr<rda::DigitalRadarDataGeneric>& radial0 =
          (*elevationCut.second)[0];
 
       if (radial0 == nullptr)

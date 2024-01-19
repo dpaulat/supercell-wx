@@ -4,7 +4,7 @@
 #include <scwx/util/vectorbuf.hpp>
 #include <scwx/wsr88d/rda/clutter_filter_bypass_map.hpp>
 #include <scwx/wsr88d/rda/clutter_filter_map.hpp>
-#include <scwx/wsr88d/rda/digital_radar_data.hpp>
+#include <scwx/wsr88d/rda/digital_radar_data_generic.hpp>
 #include <scwx/wsr88d/rda/performance_maintenance_data.hpp>
 #include <scwx/wsr88d/rda/rda_adaptation_data.hpp>
 #include <scwx/wsr88d/rda/rda_status_data.hpp>
@@ -28,14 +28,14 @@ typedef std::function<std::shared_ptr<Level2Message>(Level2MessageHeader&&,
                                                      std::istream&)>
    CreateLevel2MessageFunction;
 
-static const std::unordered_map<unsigned int, CreateLevel2MessageFunction> create_ {
-   {2, RdaStatusData::Create},
-   {3, PerformanceMaintenanceData::Create},
-   {5, VolumeCoveragePatternData::Create},
-   {13, ClutterFilterBypassMap::Create},
-   {15, ClutterFilterMap::Create},
-   {18, RdaAdaptationData::Create},
-   {31, DigitalRadarData::Create}};
+static const std::unordered_map<unsigned int, CreateLevel2MessageFunction>
+   create_ {{2, RdaStatusData::Create},
+            {3, PerformanceMaintenanceData::Create},
+            {5, VolumeCoveragePatternData::Create},
+            {13, ClutterFilterBypassMap::Create},
+            {15, ClutterFilterMap::Create},
+            {18, RdaAdaptationData::Create},
+            {31, DigitalRadarDataGeneric::Create}};
 
 struct Level2MessageFactory::Context
 {

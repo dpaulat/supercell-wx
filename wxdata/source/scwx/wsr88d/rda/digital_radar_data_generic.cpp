@@ -1,4 +1,4 @@
-#include <scwx/wsr88d/rda/digital_radar_data.hpp>
+#include <scwx/wsr88d/rda/digital_radar_data_generic.hpp>
 #include <scwx/util/logger.hpp>
 
 namespace scwx
@@ -8,8 +8,9 @@ namespace wsr88d
 namespace rda
 {
 
-static const std::string logPrefix_ = "scwx::wsr88d::rda::digital_radar_data";
-static const auto        logger_    = util::Logger::Create(logPrefix_);
+static const std::string logPrefix_ =
+   "scwx::wsr88d::rda::digital_radar_data_generic";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 static const std::unordered_map<std::string, DataBlockType> strToDataBlock_ {
    {"VOL", DataBlockType::Volume},
@@ -493,10 +494,10 @@ bool RadialDataBlock::Parse(std::istream& is)
    return dataBlockValid;
 }
 
-class DigitalRadarDataImpl
+class DigitalRadarDataGenericImpl
 {
 public:
-   explicit DigitalRadarDataImpl() :
+   explicit DigitalRadarDataGenericImpl() :
        radarIdentifier_ {},
        collectionTime_ {0},
        modifiedJulianDate_ {0},
@@ -517,7 +518,7 @@ public:
        elevationDataBlock_ {nullptr},
        radialDataBlock_ {nullptr},
        momentDataBlock_ {} {};
-   ~DigitalRadarDataImpl() = default;
+   ~DigitalRadarDataGenericImpl() = default;
 
    std::string              radarIdentifier_;
    uint32_t                 collectionTime_;
@@ -543,109 +544,112 @@ public:
       momentDataBlock_;
 };
 
-DigitalRadarData::DigitalRadarData() :
-    Level2Message(), p(std::make_unique<DigitalRadarDataImpl>())
+DigitalRadarDataGeneric::DigitalRadarDataGeneric() :
+    Level2Message(), p(std::make_unique<DigitalRadarDataGenericImpl>())
 {
 }
-DigitalRadarData::~DigitalRadarData() = default;
+DigitalRadarDataGeneric::~DigitalRadarDataGeneric() = default;
 
-DigitalRadarData::DigitalRadarData(DigitalRadarData&&) noexcept = default;
-DigitalRadarData&
-DigitalRadarData::operator=(DigitalRadarData&&) noexcept = default;
+DigitalRadarDataGeneric::DigitalRadarDataGeneric(
+   DigitalRadarDataGeneric&&) noexcept = default;
+DigitalRadarDataGeneric& DigitalRadarDataGeneric::operator=(
+   DigitalRadarDataGeneric&&) noexcept = default;
 
-std::string DigitalRadarData::radar_identifier() const
+std::string DigitalRadarDataGeneric::radar_identifier() const
 {
    return p->radarIdentifier_;
 }
 
-uint32_t DigitalRadarData::collection_time() const
+uint32_t DigitalRadarDataGeneric::collection_time() const
 {
    return p->collectionTime_;
 }
 
-uint16_t DigitalRadarData::modified_julian_date() const
+uint16_t DigitalRadarDataGeneric::modified_julian_date() const
 {
    return p->modifiedJulianDate_;
 }
 
-uint16_t DigitalRadarData::azimuth_number() const
+uint16_t DigitalRadarDataGeneric::azimuth_number() const
 {
    return p->azimuthNumber_;
 }
 
-float DigitalRadarData::azimuth_angle() const
+float DigitalRadarDataGeneric::azimuth_angle() const
 {
    return p->azimuthAngle_;
 }
 
-uint8_t DigitalRadarData::compression_indicator() const
+uint8_t DigitalRadarDataGeneric::compression_indicator() const
 {
    return p->compressionIndicator_;
 }
 
-uint16_t DigitalRadarData::radial_length() const
+uint16_t DigitalRadarDataGeneric::radial_length() const
 {
    return p->radialLength_;
 }
 
-uint8_t DigitalRadarData::azimuth_resolution_spacing() const
+uint8_t DigitalRadarDataGeneric::azimuth_resolution_spacing() const
 {
    return p->azimuthResolutionSpacing_;
 }
 
-uint8_t DigitalRadarData::radial_status() const
+uint8_t DigitalRadarDataGeneric::radial_status() const
 {
    return p->radialStatus_;
 }
 
-uint8_t DigitalRadarData::elevation_number() const
+uint8_t DigitalRadarDataGeneric::elevation_number() const
 {
    return p->elevationNumber_;
 }
 
-uint8_t DigitalRadarData::cut_sector_number() const
+uint8_t DigitalRadarDataGeneric::cut_sector_number() const
 {
    return p->cutSectorNumber_;
 }
 
-float DigitalRadarData::elevation_angle() const
+float DigitalRadarDataGeneric::elevation_angle() const
 {
    return p->elevationAngle_;
 }
 
-uint8_t DigitalRadarData::radial_spot_blanking_status() const
+uint8_t DigitalRadarDataGeneric::radial_spot_blanking_status() const
 {
    return p->radialSpotBlankingStatus_;
 }
 
-uint8_t DigitalRadarData::azimuth_indexing_mode() const
+uint8_t DigitalRadarDataGeneric::azimuth_indexing_mode() const
 {
    return p->azimuthIndexingMode_;
 }
 
-uint16_t DigitalRadarData::data_block_count() const
+uint16_t DigitalRadarDataGeneric::data_block_count() const
 {
    return p->dataBlockCount_;
 }
 
 std::shared_ptr<ElevationDataBlock>
-DigitalRadarData::elevation_data_block() const
+DigitalRadarDataGeneric::elevation_data_block() const
 {
    return p->elevationDataBlock_;
 }
 
-std::shared_ptr<RadialDataBlock> DigitalRadarData::radial_data_block() const
+std::shared_ptr<RadialDataBlock>
+DigitalRadarDataGeneric::radial_data_block() const
 {
    return p->radialDataBlock_;
 }
 
-std::shared_ptr<VolumeDataBlock> DigitalRadarData::volume_data_block() const
+std::shared_ptr<VolumeDataBlock>
+DigitalRadarDataGeneric::volume_data_block() const
 {
    return p->volumeDataBlock_;
 }
 
 std::shared_ptr<MomentDataBlock>
-DigitalRadarData::moment_data_block(DataBlockType type) const
+DigitalRadarDataGeneric::moment_data_block(DataBlockType type) const
 {
    std::shared_ptr<MomentDataBlock> momentDataBlock = nullptr;
 
@@ -658,7 +662,7 @@ DigitalRadarData::moment_data_block(DataBlockType type) const
    return momentDataBlock;
 }
 
-bool DigitalRadarData::Parse(std::istream& is)
+bool DigitalRadarDataGeneric::Parse(std::istream& is)
 {
    logger_->trace("Parsing Digital Radar Data (Message Type 31)");
 
@@ -784,11 +788,11 @@ bool DigitalRadarData::Parse(std::istream& is)
    return messageValid;
 }
 
-std::shared_ptr<DigitalRadarData>
-DigitalRadarData::Create(Level2MessageHeader&& header, std::istream& is)
+std::shared_ptr<DigitalRadarDataGeneric>
+DigitalRadarDataGeneric::Create(Level2MessageHeader&& header, std::istream& is)
 {
-   std::shared_ptr<DigitalRadarData> message =
-      std::make_shared<DigitalRadarData>();
+   std::shared_ptr<DigitalRadarDataGeneric> message =
+      std::make_shared<DigitalRadarDataGeneric>();
    message->set_header(std::move(header));
 
    if (!message->Parse(is))
