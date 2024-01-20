@@ -705,7 +705,7 @@ bool DigitalRadarDataGeneric::Parse(std::istream& is)
    }
    if (p->elevationNumber_ < 1 || p->elevationNumber_ > 32)
    {
-      logger_->warn("Invalid elevation number: ", p->elevationNumber_);
+      logger_->warn("Invalid elevation number: {}", p->elevationNumber_);
       messageValid = false;
    }
    if (p->dataBlockCount_ < 4 || p->dataBlockCount_ > 10)
