@@ -133,11 +133,6 @@ bool Level2MessageHeader::Parse(std::istream& is)
          logger_->warn("Invalid message size: {}", p->messageSize_);
          headerValid = false;
       }
-      if (p->julianDate_ < 1)
-      {
-         logger_->warn("Invalid date: {}", p->julianDate_);
-         headerValid = false;
-      }
       if (p->millisecondsOfDay_ > 86'399'999u)
       {
          logger_->warn("Invalid milliseconds: {}", p->millisecondsOfDay_);
