@@ -4,6 +4,7 @@
 #include <scwx/util/vectorbuf.hpp>
 #include <scwx/wsr88d/rda/clutter_filter_bypass_map.hpp>
 #include <scwx/wsr88d/rda/clutter_filter_map.hpp>
+#include <scwx/wsr88d/rda/digital_radar_data.hpp>
 #include <scwx/wsr88d/rda/digital_radar_data_generic.hpp>
 #include <scwx/wsr88d/rda/performance_maintenance_data.hpp>
 #include <scwx/wsr88d/rda/rda_adaptation_data.hpp>
@@ -29,7 +30,8 @@ typedef std::function<std::shared_ptr<Level2Message>(Level2MessageHeader&&,
    CreateLevel2MessageFunction;
 
 static const std::unordered_map<unsigned int, CreateLevel2MessageFunction>
-   create_ {{2, RdaStatusData::Create},
+   create_ {{1, DigitalRadarData::Create},
+            {2, RdaStatusData::Create},
             {3, PerformanceMaintenanceData::Create},
             {5, VolumeCoveragePatternData::Create},
             {13, ClutterFilterBypassMap::Create},
