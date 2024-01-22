@@ -64,7 +64,8 @@ public:
       util::SetEnvironment("AWS_EC2_METADATA_DISABLED", "true");
 
       Aws::Client::ClientConfiguration config;
-      config.region = region_;
+      config.region           = region_;
+      config.connectTimeoutMs = 10000;
 
       client_ = std::make_shared<Aws::S3::S3Client>(config);
    }
