@@ -556,7 +556,7 @@ std::uint8_t DigitalRadarDataGeneric::radial_status() const
    return p->radialStatus_;
 }
 
-std::uint8_t DigitalRadarDataGeneric::elevation_number() const
+std::uint16_t DigitalRadarDataGeneric::elevation_number() const
 {
    return p->elevationNumber_;
 }

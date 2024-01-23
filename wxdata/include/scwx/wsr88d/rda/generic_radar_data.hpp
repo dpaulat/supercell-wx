@@ -53,6 +53,8 @@ public:
    virtual std::uint32_t         collection_time() const                = 0;
    virtual std::uint16_t         modified_julian_date() const           = 0;
    virtual units::degrees<float> azimuth_angle() const                  = 0;
+   virtual std::uint16_t         azimuth_number() const                 = 0;
+   virtual std::uint16_t         elevation_number() const               = 0;
    virtual std::uint16_t         volume_coverage_pattern_number() const = 0;
 
    virtual std::shared_ptr<MomentDataBlock>

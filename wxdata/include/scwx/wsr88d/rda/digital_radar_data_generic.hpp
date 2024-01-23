@@ -36,7 +36,7 @@ public:
    std::uint16_t         radial_length() const;
    std::uint8_t          azimuth_resolution_spacing() const;
    std::uint8_t          radial_status() const;
-   std::uint8_t          elevation_number() const;
+   std::uint16_t         elevation_number() const;
    std::uint8_t          cut_sector_number() const;
    units::degrees<float> elevation_angle() const;
    std::uint8_t          radial_spot_blanking_status() const;

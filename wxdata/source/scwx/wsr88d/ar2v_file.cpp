@@ -1,5 +1,5 @@
 #include <scwx/wsr88d/ar2v_file.hpp>
-#include <scwx/wsr88d/rda/digital_radar_data_generic.hpp>
+#include <scwx/wsr88d/rda/digital_radar_data.hpp>
 #include <scwx/wsr88d/rda/level2_message_factory.hpp>
 #include <scwx/wsr88d/rda/rda_types.hpp>
 #include <scwx/util/logger.hpp>
@@ -59,8 +59,7 @@ public:
    void        IndexFile();
    void        ParseLDMRecords();
    void        ParseLDMRecord(std::istream& is);
-   void        ProcessRadarData(
-             const std::shared_ptr<rda::DigitalRadarDataGeneric>& message);
+   void ProcessRadarData(const std::shared_ptr<rda::GenericRadarData>& message);
 
    std::string   tapeFilename_;
    std::string   extensionNumber_;
@@ -391,9 +390,10 @@ void Ar2vFileImpl::HandleMessage(std::shared_ptr<rda::Level2Message>& message)
          std::static_pointer_cast<rda::VolumeCoveragePatternData>(message);
       break;
 
+   case static_cast<std::uint8_t>(rda::MessageId::DigitalRadarData):
    case static_cast<std::uint8_t>(rda::MessageId::DigitalRadarDataGeneric):
       ProcessRadarData(
-         std::static_pointer_cast<rda::DigitalRadarDataGeneric>(message));
+         std::static_pointer_cast<rda::GenericRadarData>(message));
       break;
 
    default:
@@ -402,7 +402,7 @@ void Ar2vFileImpl::HandleMessage(std::shared_ptr<rda::Level2Message>& message)
 }
 
 void Ar2vFileImpl::ProcessRadarData(
-   const std::shared_ptr<rda::DigitalRadarDataGeneric>& message)
+   const std::shared_ptr<rda::GenericRadarData>& message)
 {
    std::uint16_t azimuthIndex   = message->azimuth_number() - 1;
    std::uint16_t elevationIndex = message->elevation_number() - 1;
@@ -419,18 +419,10 @@ void Ar2vFileImpl::IndexFile()
 {
    logger_->debug("Indexing file");
 
-   if (vcpData_ == nullptr)
-   {
-      logger_->warn("Cannot index file without VCP data");
-      return;
-   }
-
    for (auto& elevationCut : radarData_)
    {
-      std::uint16_t elevationAngle =
-         vcpData_->elevation_angle_raw(elevationCut.first);
-      rda::WaveformType waveformType =
-         vcpData_->waveform_type(elevationCut.first);
+      std::uint16_t     elevationAngle {};
+      rda::WaveformType waveformType = rda::WaveformType::Unknown;
 
       std::shared_ptr<rda::GenericRadarData>& radial0 =
          (*elevationCut.second)[0];
@@ -439,6 +431,26 @@ void Ar2vFileImpl::IndexFile()
       {
          logger_->warn("Empty radial data");
          continue;
+      }
+
+      std::shared_ptr<rda::DigitalRadarData> digitalRadarData0 = nullptr;
+
+      if (vcpData_ != nullptr)
+      {
+         elevationAngle = vcpData_->elevation_angle_raw(elevationCut.first);
+         waveformType   = vcpData_->waveform_type(elevationCut.first);
+      }
+      else if ((digitalRadarData0 =
+                   std::dynamic_pointer_cast<rda::DigitalRadarData>(
+                      (*elevationCut.second)[0])) != nullptr)
+      {
+         elevationAngle = digitalRadarData0->elevation_angle_raw();
+      }
+      else
+      {
+         // Return here, because we should only have a single message type
+         logger_->warn("Cannot index file without VCP data");
+         return;
       }
 
       for (rda::DataBlockType dataBlockType :
