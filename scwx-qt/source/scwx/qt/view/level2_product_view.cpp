@@ -90,7 +90,7 @@ public:
    float selectedElevation_;
 
    std::shared_ptr<wsr88d::rda::ElevationScan> elevationScan_;
-   std::shared_ptr<wsr88d::rda::DigitalRadarDataGeneric::MomentDataBlock>
+   std::shared_ptr<wsr88d::rda::GenericRadarData::MomentDataBlock>
       momentDataBlock0_;
 
    std::vector<float>    coordinates_ {};
@@ -469,15 +469,15 @@ void Level2ProductView::ComputeSweep()
 
    const uint32_t gates = momentData0->number_of_data_moment_gates();
 
-   auto volumeData0 = radarData0->volume_data_block();
-   p->latitude_     = volumeData0->latitude();
-   p->longitude_    = volumeData0->longitude();
+   auto radarSite = radarProductManager->radar_site();
+   p->latitude_   = radarSite->latitude();
+   p->longitude_  = radarSite->longitude();
    p->range_ =
       momentData0->data_moment_range() +
       momentData0->data_moment_range_sample_interval() * (gates - 0.5f);
    p->sweepTime_ = scwx::util::TimePoint(radarData0->modified_julian_date(),
                                          radarData0->collection_time());
-   p->vcp_       = volumeData0->volume_coverage_pattern_number();
+   p->vcp_       = radarData0->volume_coverage_pattern_number();
 
    // Calculate vertices
    timer.start();

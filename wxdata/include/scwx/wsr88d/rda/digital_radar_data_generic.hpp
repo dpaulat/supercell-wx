@@ -1,10 +1,6 @@
 #pragma once
 
-#include <scwx/util/iterator.hpp>
-#include <scwx/wsr88d/rda/level2_message.hpp>
-
-#include <units/angle.h>
-#include <units/length.h>
+#include <scwx/wsr88d/rda/generic_radar_data.hpp>
 
 namespace scwx
 {
@@ -13,30 +9,7 @@ namespace wsr88d
 namespace rda
 {
 
-enum class DataBlockType
-{
-   Volume,
-   Elevation,
-   Radial,
-   MomentRef,
-   MomentVel,
-   MomentSw,
-   MomentZdr,
-   MomentPhi,
-   MomentRho,
-   MomentCfp,
-   Unknown
-};
-typedef util::
-   Iterator<DataBlockType, DataBlockType::MomentRef, DataBlockType::MomentCfp>
-      MomentDataBlockTypeIterator;
-
-class DigitalRadarDataGeneric;
-
-typedef std::map<std::uint16_t, std::shared_ptr<DigitalRadarDataGeneric>>
-   ElevationScan;
-
-class DigitalRadarDataGeneric : public Level2Message
+class DigitalRadarDataGeneric : public GenericRadarData
 {
 public:
    class DataBlock;
@@ -69,11 +42,13 @@ public:
    std::uint8_t          radial_spot_blanking_status() const;
    std::uint8_t          azimuth_indexing_mode() const;
    std::uint16_t         data_block_count() const;
+   std::uint16_t         volume_coverage_pattern_number() const;
 
    std::shared_ptr<ElevationDataBlock> elevation_data_block() const;
    std::shared_ptr<RadialDataBlock>    radial_data_block() const;
    std::shared_ptr<VolumeDataBlock>    volume_data_block() const;
-   std::shared_ptr<MomentDataBlock> moment_data_block(DataBlockType type) const;
+   std::shared_ptr<GenericRadarData::MomentDataBlock>
+   moment_data_block(DataBlockType type) const;
 
    bool Parse(std::istream& is);
 
@@ -128,7 +103,9 @@ private:
    bool Parse(std::istream& is);
 };
 
-class DigitalRadarDataGeneric::MomentDataBlock : public DataBlock
+class DigitalRadarDataGeneric::MomentDataBlock :
+    public DataBlock,
+    public GenericRadarData::MomentDataBlock
 {
 public:
    explicit MomentDataBlock(const std::string& dataBlockType,

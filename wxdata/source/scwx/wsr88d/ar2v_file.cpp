@@ -1,4 +1,5 @@
 #include <scwx/wsr88d/ar2v_file.hpp>
+#include <scwx/wsr88d/rda/digital_radar_data_generic.hpp>
 #include <scwx/wsr88d/rda/level2_message_factory.hpp>
 #include <scwx/wsr88d/rda/rda_types.hpp>
 #include <scwx/util/logger.hpp>
@@ -109,7 +110,7 @@ std::chrono::system_clock::time_point Ar2vFile::end_time() const
 
    if (p->radarData_.size() > 0)
    {
-      std::shared_ptr<rda::DigitalRadarDataGeneric> lastRadial =
+      std::shared_ptr<rda::GenericRadarData> lastRadial =
          p->radarData_.crbegin()->second->crbegin()->second;
 
       endTime = util::TimePoint(lastRadial->modified_julian_date(),
@@ -431,7 +432,7 @@ void Ar2vFileImpl::IndexFile()
       rda::WaveformType waveformType =
          vcpData_->waveform_type(elevationCut.first);
 
-      std::shared_ptr<rda::DigitalRadarDataGeneric>& radial0 =
+      std::shared_ptr<rda::GenericRadarData>& radial0 =
          (*elevationCut.second)[0];
 
       if (radial0 == nullptr)

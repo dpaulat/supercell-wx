@@ -1,7 +1,7 @@
 #pragma once
 
 #include <scwx/wsr88d/nexrad_file.hpp>
-#include <scwx/wsr88d/rda/digital_radar_data_generic.hpp>
+#include <scwx/wsr88d/rda/generic_radar_data.hpp>
 #include <scwx/wsr88d/rda/volume_coverage_pattern_data.hpp>
 
 #include <chrono>

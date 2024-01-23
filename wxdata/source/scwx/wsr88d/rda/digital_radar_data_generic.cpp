@@ -501,7 +501,7 @@ public:
 };
 
 DigitalRadarDataGeneric::DigitalRadarDataGeneric() :
-    Level2Message(), p(std::make_unique<Impl>())
+    GenericRadarData(), p(std::make_unique<Impl>())
 {
 }
 DigitalRadarDataGeneric::~DigitalRadarDataGeneric() = default;
@@ -586,6 +586,18 @@ std::uint16_t DigitalRadarDataGeneric::data_block_count() const
    return p->dataBlockCount_;
 }
 
+std::uint16_t DigitalRadarDataGeneric::volume_coverage_pattern_number() const
+{
+   std::uint16_t vcpNumber = 0;
+
+   if (p->volumeDataBlock_ != nullptr)
+   {
+      vcpNumber = p->volumeDataBlock_->volume_coverage_pattern_number();
+   }
+
+   return vcpNumber;
+}
+
 std::shared_ptr<DigitalRadarDataGeneric::ElevationDataBlock>
 DigitalRadarDataGeneric::elevation_data_block() const
 {
@@ -604,7 +616,7 @@ DigitalRadarDataGeneric::volume_data_block() const
    return p->volumeDataBlock_;
 }
 
-std::shared_ptr<DigitalRadarDataGeneric::MomentDataBlock>
+std::shared_ptr<GenericRadarData::MomentDataBlock>
 DigitalRadarDataGeneric::moment_data_block(DataBlockType type) const
 {
    std::shared_ptr<MomentDataBlock> momentDataBlock = nullptr;
