@@ -20,6 +20,8 @@ constexpr float kRangeScale = 0.001f;
 class DigitalRadarData::Impl
 {
 public:
+   class MomentDataBlock;
+
    explicit Impl() {};
    ~Impl() = default;
 
@@ -49,13 +51,59 @@ public:
    std::uint16_t tover_ {};
    std::uint16_t radialSpotBlankingStatus_ {};
 
-   std::vector<std::uint8_t> reflectivity_ {};
-   std::vector<std::uint8_t> dopplerVelocity_ {};
-   std::vector<std::uint8_t> dopplerSpectrumWidth_ {};
+   std::shared_ptr<MomentDataBlock> reflectivityDataBlock_ {nullptr};
+   std::shared_ptr<MomentDataBlock> dopplerVelocityDataBlock_ {nullptr};
+   std::shared_ptr<MomentDataBlock> dopplerSpectrumWidthDataBlock_ {nullptr};
+};
+
+class DigitalRadarData::Impl::MomentDataBlock :
+    public GenericRadarData::MomentDataBlock
+{
+public:
+   explicit MomentDataBlock(const DigitalRadarData* self, DataBlockType type);
+   ~MomentDataBlock() = default;
+
+   MomentDataBlock(const MomentDataBlock&)            = delete;
+   MomentDataBlock& operator=(const MomentDataBlock&) = delete;
+
+   MomentDataBlock(MomentDataBlock&&) noexcept            = default;
+   MomentDataBlock& operator=(MomentDataBlock&&) noexcept = default;
+
+   std::uint16_t            number_of_data_moment_gates() const;
+   units::kilometers<float> data_moment_range() const;
+   std::uint16_t            data_moment_range_raw() const;
+   units::kilometers<float> data_moment_range_sample_interval() const;
+   std::uint16_t            data_moment_range_sample_interval_raw() const;
+   std::int16_t             snr_threshold_raw() const;
+   std::uint8_t             data_word_size() const;
+   float                    scale() const;
+   float                    offset() const;
+   const void*              data_moments() const;
+
+   std::vector<std::uint8_t>& data_moment_vector() const;
+
+private:
+   class Impl;
+   std::unique_ptr<Impl> p;
+};
+
+class DigitalRadarData::Impl::MomentDataBlock::Impl
+{
+public:
+   explicit Impl() {};
+   ~Impl() = default;
+
+   std::uint16_t numberOfDataMomentGates_ {};
+   std::uint16_t dataMomentRange_ {};
+   std::uint16_t dataMomentRangeSampleInterval_ {};
+   float         scale_ {};
+   float         offset_ {};
+
+   std::vector<std::uint8_t> dataMoments_ {};
 };
 
 DigitalRadarData::DigitalRadarData() :
-    Level2Message(), p(std::make_unique<Impl>())
+    GenericRadarData(), p(std::make_unique<Impl>())
 {
 }
 DigitalRadarData::~DigitalRadarData() = default;
@@ -222,6 +270,151 @@ std::uint16_t DigitalRadarData::radial_spot_blanking_status() const
    return p->radialSpotBlankingStatus_;
 }
 
+std::shared_ptr<GenericRadarData::MomentDataBlock>
+DigitalRadarData::moment_data_block(DataBlockType type) const
+{
+   std::shared_ptr<GenericRadarData::MomentDataBlock> block = nullptr;
+
+   switch (type)
+   {
+   case DataBlockType::MomentRef:
+      block = p->reflectivityDataBlock_;
+      break;
+
+   case DataBlockType::MomentVel:
+      block = p->dopplerVelocityDataBlock_;
+      break;
+
+   case DataBlockType::MomentSw:
+      block = p->dopplerSpectrumWidthDataBlock_;
+      break;
+
+   default:
+      break;
+   }
+
+   return block;
+}
+
+DigitalRadarData::Impl::MomentDataBlock::MomentDataBlock(
+   const DigitalRadarData* self, DataBlockType type)
+{
+   switch (type)
+   {
+   case DataBlockType::MomentRef:
+      p->numberOfDataMomentGates_ = self->number_of_surveillance_bins();
+      p->dataMomentRange_         = self->surveillance_range_raw();
+      p->dataMomentRangeSampleInterval_ =
+         self->surveillance_range_sample_interval_raw();
+
+      // Table III-E Base Data Scaling
+      // Rnum = (R / 2) - 33.0
+      p->scale_  = 2.0f;
+      p->offset_ = 66.0f; // (33.0 * 2)
+      break;
+
+   case DataBlockType::MomentVel:
+      p->numberOfDataMomentGates_ = self->number_of_doppler_bins();
+      p->dataMomentRange_         = self->doppler_range_raw();
+      p->dataMomentRangeSampleInterval_ =
+         self->doppler_range_sample_interval_raw();
+
+      // Table III-E Base Data Scaling
+      if (self->doppler_velocity_resolution() == 2) // 2 = 0.5 m/s
+      {
+         // Vnum = (V / 2) - 64.5
+         p->scale_  = 2.0f;
+         p->offset_ = 129.0f; // (64.5 * 2)
+      }
+      else // 4 = 1.0 m/s
+      {
+         // Vnum = V - 129.0
+         p->scale_  = 1.0f;
+         p->offset_ = 129.0f;
+      }
+      break;
+
+   case DataBlockType::MomentSw:
+      p->numberOfDataMomentGates_ = self->number_of_doppler_bins();
+      p->dataMomentRange_         = self->doppler_range_raw();
+      p->dataMomentRangeSampleInterval_ =
+         self->doppler_range_sample_interval_raw();
+
+      // Table III-E Base Data Scaling
+      // SWnum = (SW / 2) - 64.5
+      p->scale_  = 2.0f;
+      p->offset_ = 129.0f; // (64.5 * 2)
+      break;
+   }
+}
+std::uint16_t
+DigitalRadarData::Impl::MomentDataBlock::number_of_data_moment_gates() const
+{
+   return p->numberOfDataMomentGates_;
+}
+
+units::kilometers<float>
+DigitalRadarData::Impl::MomentDataBlock::data_moment_range() const
+{
+   return units::kilometers<float> {p->dataMomentRange_ * kRangeScale};
+}
+
+std::uint16_t
+DigitalRadarData::Impl::MomentDataBlock::data_moment_range_raw() const
+{
+   return p->dataMomentRange_;
+}
+
+units::kilometers<float>
+DigitalRadarData::Impl::MomentDataBlock::data_moment_range_sample_interval()
+   const
+{
+   return units::kilometers<float> {p->dataMomentRangeSampleInterval_ *
+                                    kRangeScale};
+}
+
+std::uint16_t
+DigitalRadarData::Impl::MomentDataBlock::data_moment_range_sample_interval_raw()
+   const
+{
+   return p->dataMomentRangeSampleInterval_;
+}
+
+std::int16_t DigitalRadarData::Impl::MomentDataBlock::snr_threshold_raw() const
+{
+   // Table III Digital Radar Data (Message Type 1) Note 10:
+   // Value of 00 (prior to scaling) is Signal Below Threshold, value of 01
+   // (prior to scaling) is Signal Overlaid
+   return 2;
+}
+
+std::uint8_t DigitalRadarData::Impl::MomentDataBlock::data_word_size() const
+{
+   // Data moments are 8-bit for Digital Radar Data
+   return 8;
+}
+
+float DigitalRadarData::Impl::MomentDataBlock::scale() const
+{
+   return p->scale_;
+}
+
+float DigitalRadarData::Impl::MomentDataBlock::offset() const
+{
+   return p->offset_;
+}
+
+const void* DigitalRadarData::Impl::MomentDataBlock::data_moments() const
+{
+   return p->dataMoments_.data();
+}
+
+std::vector<std::uint8_t>&
+DigitalRadarData::Impl::MomentDataBlock::data_moment_vector() const
+{
+   return p->dataMoments_;
+}
+
 bool DigitalRadarData::Parse(std::istream& is)
 {
    logger_->trace("Parsing Digital Radar Data (Message Type 1)");
@@ -337,31 +530,46 @@ bool DigitalRadarData::Parse(std::istream& is)
 
    if (messageValid && p->surveillancePointer_ != 0)
    {
+      p->reflectivityDataBlock_ = std::make_shared<Impl::MomentDataBlock>(
+         this, DataBlockType::MomentRef);
+      auto& reflectivity = p->reflectivityDataBlock_->data_moment_vector();
+
       is.seekg(isBegin + std::streamoff(p->surveillancePointer_),
                std::ios_base::beg);
 
-      p->reflectivity_.resize(p->numberOfSurveillanceBins_);
-      is.read(reinterpret_cast<char*>(p->reflectivity_.data()),
+      reflectivity.resize(p->numberOfSurveillanceBins_);
+      is.read(reinterpret_cast<char*>(reflectivity.data()),
               p->numberOfSurveillanceBins_);
    }
 
    if (messageValid && p->velocityPointer_ != 0)
    {
+      p->dopplerVelocityDataBlock_ = std::make_shared<Impl::MomentDataBlock>(
+         this, DataBlockType::MomentVel);
+      auto& dopplerVelocity =
+         p->dopplerVelocityDataBlock_->data_moment_vector();
+
       is.seekg(isBegin + std::streamoff(p->velocityPointer_),
                std::ios_base::beg);
 
-      p->dopplerVelocity_.resize(p->numberOfDopplerBins_);
-      is.read(reinterpret_cast<char*>(p->dopplerVelocity_.data()),
+      dopplerVelocity.resize(p->numberOfDopplerBins_);
+      is.read(reinterpret_cast<char*>(dopplerVelocity.data()),
               p->numberOfDopplerBins_);
    }
 
    if (messageValid && p->spectralWidthPointer_ != 0)
    {
+      p->dopplerSpectrumWidthDataBlock_ =
+         std::make_shared<Impl::MomentDataBlock>(this,
+                                                 DataBlockType::MomentVel);
+      auto& dopplerSpectrumWidth =
+         p->dopplerSpectrumWidthDataBlock_->data_moment_vector();
+
       is.seekg(isBegin + std::streamoff(p->spectralWidthPointer_),
                std::ios_base::beg);
 
-      p->dopplerSpectrumWidth_.resize(p->numberOfDopplerBins_);
-      is.read(reinterpret_cast<char*>(p->dopplerSpectrumWidth_.data()),
+      dopplerSpectrumWidth.resize(p->numberOfDopplerBins_);
+      is.read(reinterpret_cast<char*>(dopplerSpectrumWidth.data()),
               p->numberOfDopplerBins_);
    }
 

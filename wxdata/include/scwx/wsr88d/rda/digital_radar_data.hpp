@@ -1,9 +1,6 @@
 #pragma once
 
-#include <scwx/wsr88d/rda/level2_message.hpp>
-
-#include <units/angle.h>
-#include <units/length.h>
+#include <scwx/wsr88d/rda/generic_radar_data.hpp>
 
 namespace scwx
 {
@@ -12,7 +9,7 @@ namespace wsr88d
 namespace rda
 {
 
-class DigitalRadarData : public Level2Message
+class DigitalRadarData : public GenericRadarData
 {
 public:
    explicit DigitalRadarData();
@@ -55,6 +52,9 @@ public:
    std::uint16_t            atmos() const;
    std::uint16_t            tover() const;
    std::uint16_t            radial_spot_blanking_status() const;
+
+   std::shared_ptr<GenericRadarData::MomentDataBlock>
+   moment_data_block(DataBlockType type) const;
 
    bool Parse(std::istream& is);
 
