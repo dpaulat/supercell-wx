@@ -297,7 +297,8 @@ DigitalRadarData::moment_data_block(DataBlockType type) const
 }
 
 DigitalRadarData::Impl::MomentDataBlock::MomentDataBlock(
-   const DigitalRadarData* self, DataBlockType type)
+   const DigitalRadarData* self, DataBlockType type) :
+    p(std::make_unique<Impl>())
 {
    switch (type)
    {
