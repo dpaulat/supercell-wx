@@ -89,8 +89,9 @@ public:
 
    float selectedElevation_;
 
-   std::shared_ptr<wsr88d::rda::ElevationScan>   elevationScan_;
-   std::shared_ptr<wsr88d::rda::MomentDataBlock> momentDataBlock0_;
+   std::shared_ptr<wsr88d::rda::ElevationScan> elevationScan_;
+   std::shared_ptr<wsr88d::rda::DigitalRadarDataGeneric::MomentDataBlock>
+      momentDataBlock0_;
 
    std::vector<float>    coordinates_ {};
    std::vector<float>    vertices_ {};

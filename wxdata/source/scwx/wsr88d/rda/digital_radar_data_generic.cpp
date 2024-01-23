@@ -24,11 +24,11 @@ static const std::unordered_map<std::string, DataBlockType> strToDataBlock_ {
    {"RHO", DataBlockType::MomentRho},
    {"CFP", DataBlockType::MomentCfp}};
 
-class DataBlockImpl
+class DigitalRadarDataGeneric::DataBlock::Impl
 {
 public:
-   explicit DataBlockImpl(const std::string& dataBlockType,
-                          const std::string& dataName) :
+   explicit Impl(const std::string& dataBlockType,
+                 const std::string& dataName) :
        dataBlockType_ {dataBlockType}, dataName_ {dataName}
    {
    }
@@ -37,110 +37,106 @@ public:
    std::string dataName_;
 };
 
-DataBlock::DataBlock(const std::string& dataBlockType,
-                     const std::string& dataName) :
-    p(std::make_unique<DataBlockImpl>(dataBlockType, dataName))
+DigitalRadarDataGeneric::DataBlock::DataBlock(const std::string& dataBlockType,
+                                              const std::string& dataName) :
+    p(std::make_unique<Impl>(dataBlockType, dataName))
 {
 }
-DataBlock::~DataBlock() = default;
+DigitalRadarDataGeneric::DataBlock::~DataBlock() = default;
 
-DataBlock::DataBlock(DataBlock&&) noexcept            = default;
-DataBlock& DataBlock::operator=(DataBlock&&) noexcept = default;
+DigitalRadarDataGeneric::DataBlock::DataBlock(DataBlock&&) noexcept = default;
+DigitalRadarDataGeneric::DataBlock&
+DigitalRadarDataGeneric::DataBlock::operator=(DataBlock&&) noexcept = default;
 
-class MomentDataBlockImpl
+class DigitalRadarDataGeneric::MomentDataBlock::Impl
 {
 public:
-   explicit MomentDataBlockImpl() :
-       numberOfDataMomentGates_ {0},
-       dataMomentRange_ {0},
-       dataMomentRangeSampleInterval_ {0},
-       tover_ {0},
-       snrThreshold_ {0},
-       controlFlags_ {0},
-       dataWordSize_ {0},
-       scale_ {0.0f},
-       offset_ {0.0f}
-   {
-   }
+   explicit Impl() {}
 
-   uint16_t numberOfDataMomentGates_;
-   uint16_t dataMomentRange_;
-   uint16_t dataMomentRangeSampleInterval_;
-   uint16_t tover_;
-   int16_t  snrThreshold_;
-   uint8_t  controlFlags_;
-   uint8_t  dataWordSize_;
-   float    scale_;
-   float    offset_;
+   std::uint16_t numberOfDataMomentGates_ {0};
+   std::uint16_t dataMomentRange_ {0};
+   std::uint16_t dataMomentRangeSampleInterval_ {0};
+   std::uint16_t tover_ {0};
+   std::int16_t  snrThreshold_ {0};
+   std::uint8_t  controlFlags_ {0};
+   std::uint8_t  dataWordSize_ {0};
+   float         scale_ {0.0f};
+   float         offset_ {0.0f};
 
-   std::vector<uint8_t>  momentGates8_;
-   std::vector<uint16_t> momentGates16_;
+   std::vector<std::uint8_t>  momentGates8_ {};
+   std::vector<std::uint16_t> momentGates16_ {};
 };
 
-MomentDataBlock::MomentDataBlock(const std::string& dataBlockType,
-                                 const std::string& dataName) :
-    DataBlock(dataBlockType, dataName),
-    p(std::make_unique<MomentDataBlockImpl>())
+DigitalRadarDataGeneric::MomentDataBlock::MomentDataBlock(
+   const std::string& dataBlockType, const std::string& dataName) :
+    DataBlock(dataBlockType, dataName), p(std::make_unique<Impl>())
 {
 }
-MomentDataBlock::~MomentDataBlock() = default;
+DigitalRadarDataGeneric::MomentDataBlock::~MomentDataBlock() = default;
 
-MomentDataBlock::MomentDataBlock(MomentDataBlock&&) noexcept = default;
-MomentDataBlock&
-MomentDataBlock::operator=(MomentDataBlock&&) noexcept = default;
+DigitalRadarDataGeneric::MomentDataBlock::MomentDataBlock(
+   MomentDataBlock&&) noexcept = default;
+DigitalRadarDataGeneric::MomentDataBlock&
+DigitalRadarDataGeneric::MomentDataBlock::operator=(
+   MomentDataBlock&&) noexcept = default;
 
-uint16_t MomentDataBlock::number_of_data_moment_gates() const
+std::uint16_t
+DigitalRadarDataGeneric::MomentDataBlock::number_of_data_moment_gates() const
 {
    return p->numberOfDataMomentGates_;
 }
 
-units::kilometers<float> MomentDataBlock::data_moment_range() const
+units::kilometers<float>
+DigitalRadarDataGeneric::MomentDataBlock::data_moment_range() const
 {
    return units::kilometers<float> {p->dataMomentRange_ * 0.001f};
 }
 
-uint16_t MomentDataBlock::data_moment_range_raw() const
+std::uint16_t
+DigitalRadarDataGeneric::MomentDataBlock::data_moment_range_raw() const
 {
    return p->dataMomentRange_;
 }
 
 units::kilometers<float>
-MomentDataBlock::data_moment_range_sample_interval() const
+DigitalRadarDataGeneric::MomentDataBlock::data_moment_range_sample_interval()
+   const
 {
    return units::kilometers<float> {p->dataMomentRangeSampleInterval_ * 0.001f};
 }
 
-uint16_t MomentDataBlock::data_moment_range_sample_interval_raw() const
+std::uint16_t DigitalRadarDataGeneric::MomentDataBlock::
+   data_moment_range_sample_interval_raw() const
 {
    return p->dataMomentRangeSampleInterval_;
 }
 
-float MomentDataBlock::snr_threshold() const
+float DigitalRadarDataGeneric::MomentDataBlock::snr_threshold() const
 {
    return p->snrThreshold_ * 0.1f;
 }
 
-int16_t MomentDataBlock::snr_threshold_raw() const
+std::int16_t DigitalRadarDataGeneric::MomentDataBlock::snr_threshold_raw() const
 {
    return p->snrThreshold_;
 }
 
-uint8_t MomentDataBlock::data_word_size() const
+std::uint8_t DigitalRadarDataGeneric::MomentDataBlock::data_word_size() const
 {
    return p->dataWordSize_;
 }
 
-float MomentDataBlock::scale() const
+float DigitalRadarDataGeneric::MomentDataBlock::scale() const
 {
    return p->scale_;
 }
 
-float MomentDataBlock::offset() const
+float DigitalRadarDataGeneric::MomentDataBlock::offset() const
 {
    return p->offset_;
 }
 
-const void* MomentDataBlock::data_moments() const
+const void* DigitalRadarDataGeneric::MomentDataBlock::data_moments() const
 {
    const void* dataMoments;
 
@@ -160,10 +156,11 @@ const void* MomentDataBlock::data_moments() const
    return dataMoments;
 }
 
-std::shared_ptr<MomentDataBlock>
-MomentDataBlock::Create(const std::string& dataBlockType,
-                        const std::string& dataName,
-                        std::istream&      is)
+std::shared_ptr<DigitalRadarDataGeneric::MomentDataBlock>
+DigitalRadarDataGeneric::MomentDataBlock::Create(
+   const std::string& dataBlockType,
+   const std::string& dataName,
+   std::istream&      is)
 {
    std::shared_ptr<MomentDataBlock> p =
       std::make_shared<MomentDataBlock>(dataBlockType, dataName);
@@ -176,7 +173,7 @@ MomentDataBlock::Create(const std::string& dataBlockType,
    return p;
 }
 
-bool MomentDataBlock::Parse(std::istream& is)
+bool DigitalRadarDataGeneric::MomentDataBlock::Parse(std::istream& is)
 {
    bool dataBlockValid = true;
 
@@ -231,74 +228,61 @@ bool MomentDataBlock::Parse(std::istream& is)
    return dataBlockValid;
 }
 
-class VolumeDataBlockImpl
+class DigitalRadarDataGeneric::VolumeDataBlock::Impl
 {
 public:
-   explicit VolumeDataBlockImpl() :
-       lrtup_ {0},
-       versionNumberMajor_ {0},
-       versionNumberMinor_ {0},
-       latitude_ {0.0f},
-       longitude_ {0.0f},
-       siteHeight_ {0},
-       feedhornHeight_ {0},
-       calibrationConstant_ {0.0f},
-       horizontaShvTxPower_ {0.0f},
-       verticalShvTxPower_ {0.0f},
-       systemDifferentialReflectivity_ {0.0f},
-       initialSystemDifferentialPhase_ {0.0f},
-       volumeCoveragePatternNumber_ {0},
-       processingStatus_ {0}
-   {
-   }
+   explicit Impl() {}
 
-   uint16_t lrtup_;
-   uint8_t  versionNumberMajor_;
-   uint8_t  versionNumberMinor_;
-   float    latitude_;
-   float    longitude_;
-   int16_t  siteHeight_;
-   uint16_t feedhornHeight_;
-   float    calibrationConstant_;
-   float    horizontaShvTxPower_;
-   float    verticalShvTxPower_;
-   float    systemDifferentialReflectivity_;
-   float    initialSystemDifferentialPhase_;
-   uint16_t volumeCoveragePatternNumber_;
-   uint16_t processingStatus_;
+   std::uint16_t lrtup_ {0};
+   std::uint8_t  versionNumberMajor_ {0};
+   std::uint8_t  versionNumberMinor_ {0};
+   float         latitude_ {0.0f};
+   float         longitude_ {0.0f};
+   std::int16_t  siteHeight_ {0};
+   std::uint16_t feedhornHeight_ {0};
+   float         calibrationConstant_ {0.0f};
+   float         horizontaShvTxPower_ {0.0f};
+   float         verticalShvTxPower_ {0.0f};
+   float         systemDifferentialReflectivity_ {0.0f};
+   float         initialSystemDifferentialPhase_ {0.0f};
+   std::uint16_t volumeCoveragePatternNumber_ {0};
+   std::uint16_t processingStatus_ {0};
 };
 
-VolumeDataBlock::VolumeDataBlock(const std::string& dataBlockType,
-                                 const std::string& dataName) :
-    DataBlock(dataBlockType, dataName),
-    p(std::make_unique<VolumeDataBlockImpl>())
+DigitalRadarDataGeneric::VolumeDataBlock::VolumeDataBlock(
+   const std::string& dataBlockType, const std::string& dataName) :
+    DataBlock(dataBlockType, dataName), p(std::make_unique<Impl>())
 {
 }
-VolumeDataBlock::~VolumeDataBlock() = default;
+DigitalRadarDataGeneric::VolumeDataBlock::~VolumeDataBlock() = default;
 
-VolumeDataBlock::VolumeDataBlock(VolumeDataBlock&&) noexcept = default;
-VolumeDataBlock&
-VolumeDataBlock::operator=(VolumeDataBlock&&) noexcept = default;
+DigitalRadarDataGeneric::VolumeDataBlock::VolumeDataBlock(
+   VolumeDataBlock&&) noexcept = default;
+DigitalRadarDataGeneric::VolumeDataBlock&
+DigitalRadarDataGeneric::VolumeDataBlock::operator=(
+   VolumeDataBlock&&) noexcept = default;
 
-float VolumeDataBlock::latitude() const
+float DigitalRadarDataGeneric::VolumeDataBlock::latitude() const
 {
    return p->latitude_;
 }
 
-float VolumeDataBlock::longitude() const
+float DigitalRadarDataGeneric::VolumeDataBlock::longitude() const
 {
    return p->longitude_;
 }
 
-uint16_t VolumeDataBlock::volume_coverage_pattern_number() const
+std::uint16_t
+DigitalRadarDataGeneric::VolumeDataBlock::volume_coverage_pattern_number() const
 {
    return p->volumeCoveragePatternNumber_;
 }
 
-std::shared_ptr<VolumeDataBlock>
-VolumeDataBlock::Create(const std::string& dataBlockType,
-                        const std::string& dataName,
-                        std::istream&      is)
+std::shared_ptr<DigitalRadarDataGeneric::VolumeDataBlock>
+DigitalRadarDataGeneric::VolumeDataBlock::Create(
+   const std::string& dataBlockType,
+   const std::string& dataName,
+   std::istream&      is)
 {
    std::shared_ptr<VolumeDataBlock> p =
       std::make_shared<VolumeDataBlock>(dataBlockType, dataName);
@@ -311,7 +295,7 @@ VolumeDataBlock::Create(const std::string& dataBlockType,
    return p;
 }
 
-bool VolumeDataBlock::Parse(std::istream& is)
+bool DigitalRadarDataGeneric::VolumeDataBlock::Parse(std::istream& is)
 {
    bool dataBlockValid = true;
 
@@ -351,35 +335,34 @@ bool VolumeDataBlock::Parse(std::istream& is)
    return dataBlockValid;
 }
 
-class ElevationDataBlockImpl
+class DigitalRadarDataGeneric::ElevationDataBlock::Impl
 {
 public:
-   explicit ElevationDataBlockImpl() :
-       lrtup_ {0}, atmos_ {0}, calibrationConstant_ {0.0f}
-   {
-   }
+   explicit Impl() {}
 
-   uint16_t lrtup_;
-   int16_t  atmos_;
-   float    calibrationConstant_;
+   std::uint16_t lrtup_ {0};
+   std::int16_t  atmos_ {0};
+   float         calibrationConstant_ {0.0f};
 };
 
-ElevationDataBlock::ElevationDataBlock(const std::string& dataBlockType,
-                                       const std::string& dataName) :
-    DataBlock(dataBlockType, dataName),
-    p(std::make_unique<ElevationDataBlockImpl>())
+DigitalRadarDataGeneric::ElevationDataBlock::ElevationDataBlock(
+   const std::string& dataBlockType, const std::string& dataName) :
+    DataBlock(dataBlockType, dataName), p(std::make_unique<Impl>())
 {
 }
-ElevationDataBlock::~ElevationDataBlock() = default;
+DigitalRadarDataGeneric::ElevationDataBlock::~ElevationDataBlock() = default;
 
-ElevationDataBlock::ElevationDataBlock(ElevationDataBlock&&) noexcept = default;
-ElevationDataBlock&
-ElevationDataBlock::operator=(ElevationDataBlock&&) noexcept = default;
+DigitalRadarDataGeneric::ElevationDataBlock::ElevationDataBlock(
+   ElevationDataBlock&&) noexcept = default;
+DigitalRadarDataGeneric::ElevationDataBlock&
+DigitalRadarDataGeneric::ElevationDataBlock::operator=(
+   ElevationDataBlock&&) noexcept = default;
 
-std::shared_ptr<ElevationDataBlock>
-ElevationDataBlock::Create(const std::string& dataBlockType,
-                           const std::string& dataName,
-                           std::istream&      is)
+std::shared_ptr<DigitalRadarDataGeneric::ElevationDataBlock>
+DigitalRadarDataGeneric::ElevationDataBlock::Create(
+   const std::string& dataBlockType,
+   const std::string& dataName,
+   std::istream&      is)
 {
    std::shared_ptr<ElevationDataBlock> p =
       std::make_shared<ElevationDataBlock>(dataBlockType, dataName);
@@ -392,7 +375,7 @@ ElevationDataBlock::Create(const std::string& dataBlockType,
    return p;
 }
 
-bool ElevationDataBlock::Parse(std::istream& is)
+bool DigitalRadarDataGeneric::ElevationDataBlock::Parse(std::istream& is)
 {
    bool dataBlockValid = true;
 
@@ -407,52 +390,44 @@ bool ElevationDataBlock::Parse(std::istream& is)
    return dataBlockValid;
 }
 
-class RadialDataBlockImpl
+class DigitalRadarDataGeneric::RadialDataBlock::Impl
 {
 public:
-   explicit RadialDataBlockImpl() :
-       lrtup_ {0},
-       unambigiousRange_ {0},
-       noiseLevelHorizontal_ {0.0f},
-       noiseLevelVertical_ {0.0f},
-       nyquistVelocity_ {0},
-       radialFlags_ {0},
-       calibrationConstantHorizontal_ {0.0f},
-       calibrationConstantVertical_ {0.0f}
-   {
-   }
+   explicit Impl() {}
 
-   uint16_t lrtup_;
-   uint16_t unambigiousRange_;
-   float    noiseLevelHorizontal_;
-   float    noiseLevelVertical_;
-   uint16_t nyquistVelocity_;
-   uint16_t radialFlags_;
-   float    calibrationConstantHorizontal_;
-   float    calibrationConstantVertical_;
+   std::uint16_t lrtup_ {0};
+   std::uint16_t unambigiousRange_ {0};
+   float         noiseLevelHorizontal_ {0.0f};
+   float         noiseLevelVertical_ {0.0f};
+   std::uint16_t nyquistVelocity_ {0};
+   std::uint16_t radialFlags_ {0};
+   float         calibrationConstantHorizontal_ {0.0f};
+   float         calibrationConstantVertical_ {0.0f};
 };
 
-RadialDataBlock::RadialDataBlock(const std::string& dataBlockType,
-                                 const std::string& dataName) :
-    DataBlock(dataBlockType, dataName),
-    p(std::make_unique<RadialDataBlockImpl>())
+DigitalRadarDataGeneric::RadialDataBlock::RadialDataBlock(
+   const std::string& dataBlockType, const std::string& dataName) :
+    DataBlock(dataBlockType, dataName), p(std::make_unique<Impl>())
 {
 }
-RadialDataBlock::~RadialDataBlock() = default;
+DigitalRadarDataGeneric::RadialDataBlock::~RadialDataBlock() = default;
 
-RadialDataBlock::RadialDataBlock(RadialDataBlock&&) noexcept = default;
-RadialDataBlock&
-RadialDataBlock::operator=(RadialDataBlock&&) noexcept = default;
+DigitalRadarDataGeneric::RadialDataBlock::RadialDataBlock(
+   RadialDataBlock&&) noexcept = default;
+DigitalRadarDataGeneric::RadialDataBlock&
+DigitalRadarDataGeneric::RadialDataBlock::operator=(
+   RadialDataBlock&&) noexcept = default;
 
-float RadialDataBlock::unambiguous_range() const
+float DigitalRadarDataGeneric::RadialDataBlock::unambiguous_range() const
 {
    return p->unambigiousRange_ / 10.0f;
 }
 
-std::shared_ptr<RadialDataBlock>
-RadialDataBlock::Create(const std::string& dataBlockType,
-                        const std::string& dataName,
-                        std::istream&      is)
+std::shared_ptr<DigitalRadarDataGeneric::RadialDataBlock>
+DigitalRadarDataGeneric::RadialDataBlock::Create(
+   const std::string& dataBlockType,
+   const std::string& dataName,
+   std::istream&      is)
 {
    std::shared_ptr<RadialDataBlock> p =
       std::make_shared<RadialDataBlock>(dataBlockType, dataName);
@@ -465,7 +440,7 @@ RadialDataBlock::Create(const std::string& dataBlockType,
    return p;
 }
 
-bool RadialDataBlock::Parse(std::istream& is)
+bool DigitalRadarDataGeneric::RadialDataBlock::Parse(std::istream& is)
 {
    bool dataBlockValid = true;
 
@@ -495,58 +470,38 @@ bool RadialDataBlock::Parse(std::istream& is)
    return dataBlockValid;
 }
 
-class DigitalRadarDataGenericImpl
+class DigitalRadarDataGeneric::Impl
 {
 public:
-   explicit DigitalRadarDataGenericImpl() :
-       radarIdentifier_ {},
-       collectionTime_ {0},
-       modifiedJulianDate_ {0},
-       azimuthNumber_ {0},
-       azimuthAngle_ {0.0f},
-       compressionIndicator_ {0},
-       radialLength_ {0},
-       azimuthResolutionSpacing_ {0},
-       radialStatus_ {0},
-       elevationNumber_ {0},
-       cutSectorNumber_ {0},
-       elevationAngle_ {0.0f},
-       radialSpotBlankingStatus_ {0},
-       azimuthIndexingMode_ {0},
-       dataBlockCount_ {0},
-       dataBlockPointer_ {0},
-       volumeDataBlock_ {nullptr},
-       elevationDataBlock_ {nullptr},
-       radialDataBlock_ {nullptr},
-       momentDataBlock_ {} {};
-   ~DigitalRadarDataGenericImpl() = default;
+   explicit Impl() {};
+   ~Impl() = default;
 
-   std::string              radarIdentifier_;
-   uint32_t                 collectionTime_;
-   uint16_t                 modifiedJulianDate_;
-   uint16_t                 azimuthNumber_;
-   float                    azimuthAngle_;
-   uint8_t                  compressionIndicator_;
-   uint16_t                 radialLength_;
-   uint8_t                  azimuthResolutionSpacing_;
-   uint8_t                  radialStatus_;
-   uint8_t                  elevationNumber_;
-   uint8_t                  cutSectorNumber_;
-   float                    elevationAngle_;
-   uint8_t                  radialSpotBlankingStatus_;
-   uint8_t                  azimuthIndexingMode_;
-   uint16_t                 dataBlockCount_;
-   std::array<uint32_t, 10> dataBlockPointer_;
+   std::string                   radarIdentifier_ {};
+   std::uint32_t                 collectionTime_ {0};
+   std::uint16_t                 modifiedJulianDate_ {0};
+   std::uint16_t                 azimuthNumber_ {0};
+   float                         azimuthAngle_ {0.0f};
+   std::uint8_t                  compressionIndicator_ {0};
+   std::uint16_t                 radialLength_ {0};
+   std::uint8_t                  azimuthResolutionSpacing_ {0};
+   std::uint8_t                  radialStatus_ {0};
+   std::uint8_t                  elevationNumber_ {0};
+   std::uint8_t                  cutSectorNumber_ {0};
+   float                         elevationAngle_ {0.0f};
+   std::uint8_t                  radialSpotBlankingStatus_ {0};
+   std::uint8_t                  azimuthIndexingMode_ {0};
+   std::uint16_t                 dataBlockCount_ {0};
+   std::array<std::uint32_t, 10> dataBlockPointer_ {0};
 
-   std::shared_ptr<VolumeDataBlock>    volumeDataBlock_;
-   std::shared_ptr<ElevationDataBlock> elevationDataBlock_;
-   std::shared_ptr<RadialDataBlock>    radialDataBlock_;
+   std::shared_ptr<VolumeDataBlock>    volumeDataBlock_ {nullptr};
+   std::shared_ptr<ElevationDataBlock> elevationDataBlock_ {nullptr};
+   std::shared_ptr<RadialDataBlock>    radialDataBlock_ {nullptr};
    std::unordered_map<DataBlockType, std::shared_ptr<MomentDataBlock>>
-      momentDataBlock_;
+      momentDataBlock_ {};
 };
 
 DigitalRadarDataGeneric::DigitalRadarDataGeneric() :
-    Level2Message(), p(std::make_unique<DigitalRadarDataGenericImpl>())
+    Level2Message(), p(std::make_unique<Impl>())
 {
 }
 DigitalRadarDataGeneric::~DigitalRadarDataGeneric() = default;
@@ -561,17 +516,17 @@ std::string DigitalRadarDataGeneric::radar_identifier() const
    return p->radarIdentifier_;
 }
 
-uint32_t DigitalRadarDataGeneric::collection_time() const
+std::uint32_t DigitalRadarDataGeneric::collection_time() const
 {
    return p->collectionTime_;
 }
 
-uint16_t DigitalRadarDataGeneric::modified_julian_date() const
+std::uint16_t DigitalRadarDataGeneric::modified_julian_date() const
 {
    return p->modifiedJulianDate_;
 }
 
-uint16_t DigitalRadarDataGeneric::azimuth_number() const
+std::uint16_t DigitalRadarDataGeneric::azimuth_number() const
 {
    return p->azimuthNumber_;
 }
@@ -581,32 +536,32 @@ units::degrees<float> DigitalRadarDataGeneric::azimuth_angle() const
    return units::degrees<float> {p->azimuthAngle_};
 }
 
-uint8_t DigitalRadarDataGeneric::compression_indicator() const
+std::uint8_t DigitalRadarDataGeneric::compression_indicator() const
 {
    return p->compressionIndicator_;
 }
 
-uint16_t DigitalRadarDataGeneric::radial_length() const
+std::uint16_t DigitalRadarDataGeneric::radial_length() const
 {
    return p->radialLength_;
 }
 
-uint8_t DigitalRadarDataGeneric::azimuth_resolution_spacing() const
+std::uint8_t DigitalRadarDataGeneric::azimuth_resolution_spacing() const
 {
    return p->azimuthResolutionSpacing_;
 }
 
-uint8_t DigitalRadarDataGeneric::radial_status() const
+std::uint8_t DigitalRadarDataGeneric::radial_status() const
 {
    return p->radialStatus_;
 }
 
-uint8_t DigitalRadarDataGeneric::elevation_number() const
+std::uint8_t DigitalRadarDataGeneric::elevation_number() const
 {
    return p->elevationNumber_;
 }
 
-uint8_t DigitalRadarDataGeneric::cut_sector_number() const
+std::uint8_t DigitalRadarDataGeneric::cut_sector_number() const
 {
    return p->cutSectorNumber_;
 }
@@ -616,40 +571,40 @@ units::degrees<float> DigitalRadarDataGeneric::elevation_angle() const
    return units::degrees<float> {p->elevationAngle_};
 }
 
-uint8_t DigitalRadarDataGeneric::radial_spot_blanking_status() const
+std::uint8_t DigitalRadarDataGeneric::radial_spot_blanking_status() const
 {
    return p->radialSpotBlankingStatus_;
 }
 
-uint8_t DigitalRadarDataGeneric::azimuth_indexing_mode() const
+std::uint8_t DigitalRadarDataGeneric::azimuth_indexing_mode() const
 {
    return p->azimuthIndexingMode_;
 }
 
-uint16_t DigitalRadarDataGeneric::data_block_count() const
+std::uint16_t DigitalRadarDataGeneric::data_block_count() const
 {
    return p->dataBlockCount_;
 }
 
-std::shared_ptr<ElevationDataBlock>
+std::shared_ptr<DigitalRadarDataGeneric::ElevationDataBlock>
 DigitalRadarDataGeneric::elevation_data_block() const
 {
    return p->elevationDataBlock_;
 }
 
-std::shared_ptr<RadialDataBlock>
+std::shared_ptr<DigitalRadarDataGeneric::RadialDataBlock>
 DigitalRadarDataGeneric::radial_data_block() const
 {
    return p->radialDataBlock_;
 }
 
-std::shared_ptr<VolumeDataBlock>
+std::shared_ptr<DigitalRadarDataGeneric::VolumeDataBlock>
 DigitalRadarDataGeneric::volume_data_block() const
 {
    return p->volumeDataBlock_;
 }
 
-std::shared_ptr<MomentDataBlock>
+std::shared_ptr<DigitalRadarDataGeneric::MomentDataBlock>
 DigitalRadarDataGeneric::moment_data_block(DataBlockType type) const
 {
    std::shared_ptr<MomentDataBlock> momentDataBlock = nullptr;
@@ -667,8 +622,8 @@ bool DigitalRadarDataGeneric::Parse(std::istream& is)
 {
    logger_->trace("Parsing Digital Radar Data (Message Type 31)");
 
-   bool   messageValid = true;
-   size_t bytesRead    = 0;
+   bool        messageValid = true;
+   std::size_t bytesRead    = 0;
 
    std::streampos isBegin = is.tellg();
 
