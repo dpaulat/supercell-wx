@@ -83,12 +83,12 @@ Ar2vFile::~Ar2vFile() = default;
 Ar2vFile::Ar2vFile(Ar2vFile&&) noexcept            = default;
 Ar2vFile& Ar2vFile::operator=(Ar2vFile&&) noexcept = default;
 
-uint32_t Ar2vFile::julian_date() const
+std::uint32_t Ar2vFile::julian_date() const
 {
    return p->julianDate_;
 }
 
-uint32_t Ar2vFile::milliseconds() const
+std::uint32_t Ar2vFile::milliseconds() const
 {
    return p->milliseconds_;
 }
@@ -119,7 +119,7 @@ std::chrono::system_clock::time_point Ar2vFile::end_time() const
    return endTime;
 }
 
-std::map<uint16_t, std::shared_ptr<rda::ElevationScan>>
+std::map<std::uint16_t, std::shared_ptr<rda::ElevationScan>>
 Ar2vFile::radar_data() const
 {
    return p->radarData_;
@@ -143,15 +143,15 @@ Ar2vFile::GetElevationScan(rda::DataBlockType dataBlockType,
    float                               elevationCut  = 0.0f;
    std::vector<float>                  elevationCuts;
 
-   uint16_t codedElevation =
-      static_cast<uint16_t>(std::lroundf(elevation * scaleFactor));
+   std::uint16_t codedElevation =
+      static_cast<std::uint16_t>(std::lroundf(elevation * scaleFactor));
 
    if (p->index_.contains(dataBlockType))
    {
       auto scans = p->index_.at(dataBlockType);
 
-      uint16_t lowerBound = scans.cbegin()->first;
-      uint16_t upperBound = scans.crbegin()->first;
+      std::uint16_t lowerBound = scans.cbegin()->first;
+      std::uint16_t upperBound = scans.crbegin()->first;
 
       for (auto scan : scans)
       {
@@ -167,10 +167,12 @@ Ar2vFile::GetElevationScan(rda::DataBlockType dataBlockType,
          elevationCuts.push_back(scan.first / scaleFactor);
       }
 
-      int32_t lowerDelta = std::abs(static_cast<int32_t>(codedElevation) -
-                                    static_cast<int32_t>(lowerBound));
-      int32_t upperDelta = std::abs(static_cast<int32_t>(codedElevation) -
-                                    static_cast<int32_t>(upperBound));
+      std::int32_t lowerDelta =
+         std::abs(static_cast<std::int32_t>(codedElevation) -
+                  static_cast<std::int32_t>(lowerBound));
+      std::int32_t upperDelta =
+         std::abs(static_cast<std::int32_t>(codedElevation) -
+                  static_cast<std::int32_t>(upperBound));
 
       if (lowerDelta < upperDelta)
       {
@@ -257,17 +259,17 @@ bool Ar2vFile::LoadData(std::istream& is)
    return dataValid;
 }
 
-size_t Ar2vFileImpl::DecompressLDMRecords(std::istream& is)
+std::size_t Ar2vFileImpl::DecompressLDMRecords(std::istream& is)
 {
    logger_->debug("Decompressing LDM Records");
 
-   size_t numRecords = 0;
+   std::size_t numRecords = 0;
 
    while (is.peek() != EOF)
    {
       std::streampos startPosition = is.tellg();
-      int32_t        controlWord   = 0;
-      size_t         recordSize;
+      std::int32_t   controlWord   = 0;
+      std::size_t    recordSize;
 
       is.read(reinterpret_cast<char*>(&controlWord), 4);
 
@@ -316,7 +318,7 @@ void Ar2vFileImpl::ParseLDMRecords()
 {
    logger_->debug("Parsing LDM Records");
 
-   size_t count = 0;
+   std::size_t count = 0;
 
    for (auto it = rawRecords_.begin(); it != rawRecords_.end(); it++)
    {
@@ -340,8 +342,8 @@ void Ar2vFileImpl::ParseLDMRecord(std::istream& is)
 
    while (!is.eof())
    {
-      off_t    offset   = 0;
-      uint16_t nextSize = 0u;
+      off_t         offset   = 0;
+      std::uint16_t nextSize = 0u;
       do
       {
          is.read(reinterpret_cast<char*>(&nextSize), 2);
@@ -383,12 +385,12 @@ void Ar2vFileImpl::HandleMessage(std::shared_ptr<rda::Level2Message>& message)
 {
    switch (message->header().message_type())
    {
-   case static_cast<uint8_t>(rda::MessageId::VolumeCoveragePatternData):
+   case static_cast<std::uint8_t>(rda::MessageId::VolumeCoveragePatternData):
       vcpData_ =
          std::static_pointer_cast<rda::VolumeCoveragePatternData>(message);
       break;
 
-   case static_cast<uint8_t>(rda::MessageId::DigitalRadarDataGeneric):
+   case static_cast<std::uint8_t>(rda::MessageId::DigitalRadarDataGeneric):
       ProcessRadarData(
          std::static_pointer_cast<rda::DigitalRadarDataGeneric>(message));
       break;
@@ -401,8 +403,8 @@ void Ar2vFileImpl::HandleMessage(std::shared_ptr<rda::Level2Message>& message)
 void Ar2vFileImpl::ProcessRadarData(
    const std::shared_ptr<rda::DigitalRadarDataGeneric>& message)
 {
-   uint16_t azimuthIndex   = message->azimuth_number() - 1;
-   uint16_t elevationIndex = message->elevation_number() - 1;
+   std::uint16_t azimuthIndex   = message->azimuth_number() - 1;
+   std::uint16_t elevationIndex = message->elevation_number() - 1;
 
    if (radarData_[elevationIndex] == nullptr)
    {
@@ -424,7 +426,7 @@ void Ar2vFileImpl::IndexFile()
 
    for (auto& elevationCut : radarData_)
    {
-      uint16_t elevationAngle =
+      std::uint16_t elevationAngle =
          vcpData_->elevation_angle_raw(elevationCut.first);
       rda::WaveformType waveformType =
          vcpData_->waveform_type(elevationCut.first);
