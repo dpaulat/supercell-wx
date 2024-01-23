@@ -7,8 +7,9 @@ namespace wsr88d
 namespace rda
 {
 
-enum class MessageId : uint8_t
+enum class MessageId : std::uint8_t
 {
+   DigitalRadarData           = 1,
    RdaStatusData              = 2,
    PerformanceMaintenanceData = 3,
    VolumeCoveragePatternData  = 5,
