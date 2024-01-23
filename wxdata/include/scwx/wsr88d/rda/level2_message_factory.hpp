@@ -27,18 +27,18 @@ private:
    explicit Level2MessageFactory() = delete;
    ~Level2MessageFactory()         = delete;
 
-   Level2MessageFactory(const Level2MessageFactory&) = delete;
+   Level2MessageFactory(const Level2MessageFactory&)            = delete;
    Level2MessageFactory& operator=(const Level2MessageFactory&) = delete;
 
-   Level2MessageFactory(Level2MessageFactory&&) noexcept = delete;
+   Level2MessageFactory(Level2MessageFactory&&) noexcept            = delete;
    Level2MessageFactory& operator=(Level2MessageFactory&&) noexcept = delete;
 
 public:
    struct Context;
 
    static std::shared_ptr<Context> CreateContext();
-   static Level2MessageInfo        Create(std::istream&            is,
-                                          std::shared_ptr<Context> ctx);
+   static Level2MessageInfo        Create(std::istream&             is,
+                                          std::shared_ptr<Context>& ctx);
 };
 
 } // namespace rda

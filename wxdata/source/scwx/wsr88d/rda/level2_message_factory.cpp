@@ -62,8 +62,8 @@ Level2MessageFactory::CreateContext()
    return std::make_shared<Context>();
 }
 
-Level2MessageInfo Level2MessageFactory::Create(std::istream&            is,
-                                               std::shared_ptr<Context> ctx)
+Level2MessageInfo Level2MessageFactory::Create(std::istream&             is,
+                                               std::shared_ptr<Context>& ctx)
 {
    Level2MessageInfo   info;
    Level2MessageHeader header;
