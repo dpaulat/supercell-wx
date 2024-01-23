@@ -530,7 +530,7 @@ void Level2ProductView::ComputeSweep()
    for (auto& radialPair : *radarData)
    {
       uint16_t radial     = radialPair.first;
-      auto     radialData = radialPair.second;
+      auto&    radialData = radialPair.second;
       auto     momentData = radialData->moment_data_block(p->dataBlockType_);
 
       if (momentData0->data_word_size() != momentData->data_word_size())
