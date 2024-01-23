@@ -148,12 +148,12 @@ Ar2vFile::GetElevationScan(rda::DataBlockType dataBlockType,
 
    if (p->index_.contains(dataBlockType))
    {
-      auto scans = p->index_.at(dataBlockType);
+      auto& scans = p->index_.at(dataBlockType);
 
       std::uint16_t lowerBound = scans.cbegin()->first;
       std::uint16_t upperBound = scans.crbegin()->first;
 
-      for (auto scan : scans)
+      for (auto& scan : scans)
       {
          if (scan.first > lowerBound && scan.first <= codedElevation)
          {
