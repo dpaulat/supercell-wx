@@ -1,6 +1,6 @@
 #include <scwx/wsr88d/ar2v_file.hpp>
 #include <scwx/wsr88d/rda/level2_message_factory.hpp>
-#include <scwx/wsr88d/rda/types.hpp>
+#include <scwx/wsr88d/rda/rda_types.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/rangebuf.hpp>
 #include <scwx/util/time.hpp>
