@@ -11,6 +11,12 @@ namespace rda
 static const std::string logPrefix_ = "scwx::wsr88d::rda::digital_radar_data";
 static const auto        logger_    = util::Logger::Create(logPrefix_);
 
+// Table III-A Angle Data Format
+constexpr float kAngleDataScale = 0.0054931640625f;
+
+// Table III-B Range Format
+constexpr float kRangeScale = 0.001f;
+
 class DigitalRadarData::Impl
 {
 public:
@@ -73,9 +79,14 @@ std::uint16_t DigitalRadarData::unambiguous_range() const
    return p->unambiguousRange_;
 }
 
-std::uint16_t DigitalRadarData::azimuth_angle() const
+std::uint16_t DigitalRadarData::azimuth_angle_raw() const
 {
    return p->azimuthAngle_;
+}
+
+units::degrees<float> DigitalRadarData::azimuth_angle() const
+{
+   return units::degrees<float> {p->azimuthAngle_ * kAngleDataScale};
 }
 
 std::uint16_t DigitalRadarData::azimuth_number() const
@@ -88,9 +99,14 @@ std::uint16_t DigitalRadarData::radial_status() const
    return p->radialStatus_;
 }
 
-std::uint16_t DigitalRadarData::elevation_angle() const
+std::uint16_t DigitalRadarData::elevation_angle_raw() const
 {
    return p->elevationAngle_;
+}
+
+units::degrees<float> DigitalRadarData::elevation_angle() const
+{
+   return units::degrees<float> {p->elevationAngle_ * kAngleDataScale};
 }
 
 std::uint16_t DigitalRadarData::elevation_number() const
@@ -98,24 +114,47 @@ std::uint16_t DigitalRadarData::elevation_number() const
    return p->elevationNumber_;
 }
 
-std::uint16_t DigitalRadarData::surveillance_range() const
+std::uint16_t DigitalRadarData::surveillance_range_raw() const
 {
    return p->surveillanceRange_;
 }
 
-std::uint16_t DigitalRadarData::doppler_range() const
+units::kilometers<float> DigitalRadarData::surveillance_range() const
+{
+   return units::kilometers<float> {p->surveillanceRange_ * kRangeScale};
+}
+
+std::uint16_t DigitalRadarData::doppler_range_raw() const
 {
    return p->dopplerRange_;
 }
 
-std::uint16_t DigitalRadarData::surveillance_range_sample_interval() const
+units::kilometers<float> DigitalRadarData::doppler_range() const
+{
+   return units::kilometers<float> {p->dopplerRange_ * kRangeScale};
+}
+
+std::uint16_t DigitalRadarData::surveillance_range_sample_interval_raw() const
 {
    return p->surveillanceRangeSampleInterval_;
 }
 
-std::uint16_t DigitalRadarData::doppler_range_sample_interval() const
+units::kilometers<float>
+DigitalRadarData::surveillance_range_sample_interval() const
+{
+   return units::kilometers<float> {p->surveillanceRangeSampleInterval_ *
+                                    kRangeScale};
+}
+
+std::uint16_t DigitalRadarData::doppler_range_sample_interval_raw() const
 {
    return p->dopplerRangeSampleInterval_;
+}
+
+units::kilometers<float> DigitalRadarData::doppler_range_sample_interval() const
+{
+   return units::kilometers<float> {p->dopplerRangeSampleInterval_ *
+                                    kRangeScale};
 }
 
 std::uint16_t DigitalRadarData::number_of_surveillance_bins() const
