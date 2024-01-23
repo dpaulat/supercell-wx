@@ -14,7 +14,7 @@ enum class MessageId : uint8_t
    VolumeCoveragePatternData  = 5,
    ClutterFilterMap           = 15,
    RdaAdaptationData          = 18,
-   DigitalRadarData           = 31
+   DigitalRadarDataGeneric    = 31
 };
 
 } // namespace rda

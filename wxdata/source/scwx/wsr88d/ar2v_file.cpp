@@ -388,7 +388,7 @@ void Ar2vFileImpl::HandleMessage(std::shared_ptr<rda::Level2Message>& message)
          std::static_pointer_cast<rda::VolumeCoveragePatternData>(message);
       break;
 
-   case static_cast<uint8_t>(rda::MessageId::DigitalRadarData):
+   case static_cast<uint8_t>(rda::MessageId::DigitalRadarDataGeneric):
       ProcessRadarData(
          std::static_pointer_cast<rda::DigitalRadarDataGeneric>(message));
       break;
