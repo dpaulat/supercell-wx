@@ -94,9 +94,9 @@ uint16_t MomentDataBlock::number_of_data_moment_gates() const
    return p->numberOfDataMomentGates_;
 }
 
-float MomentDataBlock::data_moment_range() const
+units::kilometers<float> MomentDataBlock::data_moment_range() const
 {
-   return p->dataMomentRange_ * 0.001f;
+   return units::kilometers<float> {p->dataMomentRange_ * 0.001f};
 }
 
 uint16_t MomentDataBlock::data_moment_range_raw() const
@@ -104,9 +104,10 @@ uint16_t MomentDataBlock::data_moment_range_raw() const
    return p->dataMomentRange_;
 }
 
-float MomentDataBlock::data_moment_range_sample_interval() const
+units::kilometers<float>
+MomentDataBlock::data_moment_range_sample_interval() const
 {
-   return p->dataMomentRangeSampleInterval_ * 0.001f;
+   return units::kilometers<float> {p->dataMomentRangeSampleInterval_ * 0.001f};
 }
 
 uint16_t MomentDataBlock::data_moment_range_sample_interval_raw() const
@@ -575,9 +576,9 @@ uint16_t DigitalRadarDataGeneric::azimuth_number() const
    return p->azimuthNumber_;
 }
 
-float DigitalRadarDataGeneric::azimuth_angle() const
+units::degrees<float> DigitalRadarDataGeneric::azimuth_angle() const
 {
-   return p->azimuthAngle_;
+   return units::degrees<float> {p->azimuthAngle_};
 }
 
 uint8_t DigitalRadarDataGeneric::compression_indicator() const
@@ -610,9 +611,9 @@ uint8_t DigitalRadarDataGeneric::cut_sector_number() const
    return p->cutSectorNumber_;
 }
 
-float DigitalRadarDataGeneric::elevation_angle() const
+units::degrees<float> DigitalRadarDataGeneric::elevation_angle() const
 {
-   return p->elevationAngle_;
+   return units::degrees<float> {p->elevationAngle_};
 }
 
 uint8_t DigitalRadarDataGeneric::radial_spot_blanking_status() const

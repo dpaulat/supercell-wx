@@ -3,6 +3,9 @@
 #include <scwx/util/iterator.hpp>
 #include <scwx/wsr88d/rda/level2_message.hpp>
 
+#include <units/angle.h>
+#include <units/length.h>
+
 namespace scwx
 {
 namespace wsr88d
@@ -94,17 +97,17 @@ public:
    MomentDataBlock(MomentDataBlock&&) noexcept;
    MomentDataBlock& operator=(MomentDataBlock&&) noexcept;
 
-   uint16_t    number_of_data_moment_gates() const;
-   float       data_moment_range() const;
-   uint16_t    data_moment_range_raw() const;
-   float       data_moment_range_sample_interval() const;
-   uint16_t    data_moment_range_sample_interval_raw() const;
-   float       snr_threshold() const;
-   int16_t     snr_threshold_raw() const;
-   uint8_t     data_word_size() const;
-   float       scale() const;
-   float       offset() const;
-   const void* data_moments() const;
+   uint16_t                 number_of_data_moment_gates() const;
+   units::kilometers<float> data_moment_range() const;
+   uint16_t                 data_moment_range_raw() const;
+   units::kilometers<float> data_moment_range_sample_interval() const;
+   uint16_t                 data_moment_range_sample_interval_raw() const;
+   float                    snr_threshold() const;
+   int16_t                  snr_threshold_raw() const;
+   uint8_t                  data_word_size() const;
+   float                    scale() const;
+   float                    offset() const;
+   const void*              data_moments() const;
 
    static std::shared_ptr<MomentDataBlock>
    Create(const std::string& dataBlockType,
@@ -183,21 +186,21 @@ public:
    DigitalRadarDataGeneric(DigitalRadarDataGeneric&&) noexcept;
    DigitalRadarDataGeneric& operator=(DigitalRadarDataGeneric&&) noexcept;
 
-   std::string radar_identifier() const;
-   uint32_t    collection_time() const;
-   uint16_t    modified_julian_date() const;
-   uint16_t    azimuth_number() const;
-   float       azimuth_angle() const;
-   uint8_t     compression_indicator() const;
-   uint16_t    radial_length() const;
-   uint8_t     azimuth_resolution_spacing() const;
-   uint8_t     radial_status() const;
-   uint8_t     elevation_number() const;
-   uint8_t     cut_sector_number() const;
-   float       elevation_angle() const;
-   uint8_t     radial_spot_blanking_status() const;
-   uint8_t     azimuth_indexing_mode() const;
-   uint16_t    data_block_count() const;
+   std::string           radar_identifier() const;
+   uint32_t              collection_time() const;
+   uint16_t              modified_julian_date() const;
+   uint16_t              azimuth_number() const;
+   units::degrees<float> azimuth_angle() const;
+   uint8_t               compression_indicator() const;
+   uint16_t              radial_length() const;
+   uint8_t               azimuth_resolution_spacing() const;
+   uint8_t               radial_status() const;
+   uint8_t               elevation_number() const;
+   uint8_t               cut_sector_number() const;
+   units::degrees<float> elevation_angle() const;
+   uint8_t               radial_spot_blanking_status() const;
+   uint8_t               azimuth_indexing_mode() const;
+   uint16_t              data_block_count() const;
 
    std::shared_ptr<ElevationDataBlock> elevation_data_block() const;
    std::shared_ptr<RadialDataBlock>    radial_data_block() const;

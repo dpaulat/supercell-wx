@@ -98,12 +98,12 @@ public:
    std::vector<uint16_t> dataMoments16_ {};
    std::vector<uint8_t>  cfpMoments_ {};
 
-   float              latitude_;
-   float              longitude_;
-   float              elevationCut_;
-   std::vector<float> elevationCuts_;
-   float              range_;
-   uint16_t           vcp_;
+   float                    latitude_;
+   float                    longitude_;
+   float                    elevationCut_;
+   std::vector<float>       elevationCuts_;
+   units::kilometers<float> range_;
+   uint16_t                 vcp_;
 
    std::chrono::system_clock::time_point sweepTime_;
 
@@ -212,7 +212,7 @@ float Level2ProductView::elevation() const
 
 float Level2ProductView::range() const
 {
-   return p->range_;
+   return p->range_.value();
 }
 
 std::chrono::system_clock::time_point Level2ProductView::sweep_time() const
@@ -747,7 +747,8 @@ void Level2ProductViewImpl::ComputeCoordinates(
                  radials.end(),
                  [&](std::uint32_t radial)
                  {
-                    const float angle = (*radarData)[radial]->azimuth_angle();
+                    const units::degrees<float> angle =
+                       (*radarData)[radial]->azimuth_angle();
 
                     std::for_each(std::execution::par_unseq,
                                   gates.begin(),
@@ -765,7 +766,7 @@ void Level2ProductViewImpl::ComputeCoordinates(
 
                                      geodesic.Direct(radarLatitude,
                                                      radarLongitude,
-                                                     angle,
+                                                     angle.value(),
                                                      range,
                                                      latitude,
                                                      longitude);
@@ -830,14 +831,15 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
       radials.end(),
       [&](std::uint32_t i)
       {
-         bool        found      = false;
-         const float startAngle = (*radarData)[i]->azimuth_angle();
-         const float nextAngle =
+         bool                        found = false;
+         const units::degrees<float> startAngle =
+            (*radarData)[i]->azimuth_angle();
+         const units::degrees<float> nextAngle =
             (*radarData)[(i + 1) % numRadials]->azimuth_angle();
 
          if (startAngle < nextAngle)
          {
-            if (startAngle <= azi1 && azi1 < nextAngle)
+            if (startAngle.value() <= azi1 && azi1 < nextAngle.value())
             {
                found = true;
             }
@@ -845,7 +847,7 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
          else
          {
             // If the bin crosses 0/360 degrees, special handling is needed
-            if (startAngle <= azi1 || azi1 < nextAngle)
+            if (startAngle.value() <= azi1 || azi1 < nextAngle.value())
             {
                found = true;
             }
