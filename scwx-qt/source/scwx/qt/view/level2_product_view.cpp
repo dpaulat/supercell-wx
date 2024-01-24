@@ -541,10 +541,11 @@ void Level2ProductView::ComputeSweep()
       }
 
       // Compute gate interval
-      const uint16_t dataMomentRange = momentData->data_moment_range_raw();
-      const uint16_t dataMomentInterval =
+      const std::uint16_t dataMomentInterval =
          momentData->data_moment_range_sample_interval_raw();
-      const uint16_t dataMomentIntervalH = dataMomentInterval / 2;
+      const std::uint16_t dataMomentIntervalH = dataMomentInterval / 2;
+      const std::uint16_t dataMomentRange =
+         std::max(momentData->data_moment_range_raw(), dataMomentIntervalH);
 
       // Compute gate size (number of base 250m gates per bin)
       const uint16_t gateSizeMeters =
@@ -865,10 +866,11 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
 
    // Compute gate interval
    auto momentData = (*radarData)[*radial]->moment_data_block(dataBlockType);
-   const std::uint16_t dataMomentRange = momentData->data_moment_range_raw();
    const std::uint16_t dataMomentInterval =
       momentData->data_moment_range_sample_interval_raw();
    const std::uint16_t dataMomentIntervalH = dataMomentInterval / 2;
+   const std::uint16_t dataMomentRange =
+      std::max(momentData->data_moment_range_raw(), dataMomentIntervalH);
 
    // Compute gate size (number of base 250m gates per bin)
    const std::uint16_t gateSizeMeters =
