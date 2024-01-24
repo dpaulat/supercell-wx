@@ -17,16 +17,23 @@ std::string GetVcpDescription(uint16_t vcp)
    case 31:
    case 32:
    case 35:
-   case 90: return CLEAR_AIR_MODE;
+   case 90:
+      return CLEAR_AIR_MODE;
 
+   case 11:
    case 12:
+   case 21:
    case 80:
    case 112:
    case 121:
+   case 211:
    case 212:
-   case 215: return PRECIPITATION_MODE;
+   case 215:
+   case 221:
+      return PRECIPITATION_MODE;
 
-   default: return "?";
+   default:
+      return "?";
    }
 }
 
