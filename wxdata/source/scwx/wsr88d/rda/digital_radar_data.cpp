@@ -346,6 +346,9 @@ DigitalRadarData::Impl::MomentDataBlock::MomentDataBlock(
       p->scale_  = 2.0f;
       p->offset_ = 129.0f; // (64.5 * 2)
       break;
+
+   default:
+      break;
    }
 }
 std::uint16_t
