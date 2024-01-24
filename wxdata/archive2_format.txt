@@ -1,0 +1,509 @@
+[Image] NEXRAD DOCUMENTATION
+----------------------------------------------------------------------------
+
+                         LEVEL II TAPE DOCUMENTATION
+
+                              WSR-88D BASE DATA
+
+INTRODUCTION:
+
+Weather Surveillance Radar - 1988 Doppler (WSR-88D), or NEXt Generation
+RADar (NEXRAD), Level II data are the base digital data produced by the
+signal processor (mean radial velocity, reflectivity, and spectrum width) at
+the full spatial and temporal resolution of the radar. Level II data also
+contain status messages, performance/maintenance data, volume scan strategy,
+clutter filter bypass map, and wideband communication console messages.
+These are the same data transmitted over high-speed, wideband communications
+to the WSR-88D Radar Product Generator (RPG) for processing by the
+meteorological analysis algorithms.
+
+Initially it was thought that Level II recorders would be used at selected
+sites, and only when significant weather events were taking place. As system
+development progressed, it became evident that the Level II data would be of
+vital importance to ensure proper calibration of the radars and for use by
+researchers to investigate events in more detail than would be possible by
+using the Level III products. The Level II data can also be used to test
+revised algorithms that may later be applied to operational use.
+
+The NEXRAD agencies (Departments of Commerce, Defense, and Transportation)
+recognized the value of Level II data. In June 1994, the agencies agreed to
+record Level II data throughout the WSR-88D network. The Level II recording
+is not essential to the operational use of the WSR-88D system. The NEXRAD
+agencies agreed to certain procedures to minimize the impact of Level II
+data collection on the operations of base weather stations, forecast offices
+and FAA control locations. The priority of Level II recorder maintenance,
+reloading of tapes and continuous recording of data will be assigned by the
+local site management.
+
+RECORDING:
+
+The vast amounts of data collected at the Radar Data Acquisition (RDA) site
+made it mandatory that the most economical recording devices and media
+available at that time be used. It was determined that EXABYTE tape drives
+and 8mm tapes provided the most viable system. Depending on operation of the
+radar, the recorder model used, and station requirements, one tape may be
+filled every 1.8 days for each site. Data grade tapes are used for recording
+and archiving. Initially, sites were equipped with EXABYTE 8200 recorders.
+These tapes can contain up to 2.3 gigabytes per tape. Later, EXABYTE 8500
+recorders were installed which record at higher density with up to 4.7
+gigabytes per tape. Also available are 8500c (capable of recording in a
+standard compressed mode), and 8505 which is a half height drive fully
+downward compatible. The 8505 records up 4.7 gigabytes in an uncompressed
+mode.
+
+PROCESSING AND ARCHIVING:
+
+The Level II recorder system consists of an 8mm reorder, 10-tape jukebox
+(automated sequential loading of new tapes), an uninterruptable power supply
+ans a controller board seated in the RDA computer. Under jukebox operation
+the 10-tape supply will last 11 to 27 days depending on the radar scanning
+strategies used. Tapes are received at the National Climatic Data Center
+(NCDC) from the individual sites in 10-tape cases. Incoming tapes are
+processed on a series of 8505 EXABYTE drives, reblocked, cataloged,
+inventoried, and archived. The original tapes are sent to an off-site
+storage facility for security back-up to the NCDC NEXRAD files.
+
+SPECIAL NOTE:
+
+The WSR-88D is a very complex system. Program modifications and engineering
+changes are rather constant features during the phase-in process. Some early
+pre-production models experienced considerable difficulties in the recording
+of Level II data. Even today, tapes are received that contain spurious,
+erroneous, or illegal configurations. We have attempted to recover as much
+data as possible from these problem tapes. The user is cautioned that these
+anomalies may be encountered while reading the archive tapes. Special care
+must be taken to ensure that illegal configurations do not contaminate any
+summaries or statistical studies.
+
+NCDC will be glad to assist in solving problems encountered in reading the
+tapes, but technical questions about the data themselves must be addressed
+to the:
+
+     NWS/Operational Support Facility
+     Operations Branch
+     1200 Westheimer Dr.
+     Norman, OK 73069
+
+     Telephone: (405) 366-6530
+     FAX:       (405) 366-6550
+
+Definitive information about all aspects of the Doppler radar is contained
+in Federal Meteorological Handbook No. 11 (FMH-11), Volumes A through D.
+These may be ordered from the National Climatic Data Center.
+
+DATA AVAILABILITY:
+
+As stated previously, all NCDC archives are being generated on EXABYTE 8505
+drives. Users must specify whether they require 8200 or 8500 mode tapes. If
+copies are requested in the 8200 mode, two or more output tapes may be
+required. A header record will appear on each output tape.
+
+Each 8mm tape records approximately 10 hours of Volume Coverage Pattern 11
+(VCP 11), 18 hours of VCP 21, or 40 hours of VCP 31 or 32 using the EXABYTE
+8200 mode. Using the EXABYTE 8500 mode doubles both the storage capacity and
+number of hours of data possible per 8mm tape.
+
+FORMAT:
+
+HEADER FILE: The first file on tape contains only one 31616 byte record.
+This record is called the header record.
+
+HEADER RECORD: This 31616 byte "physical record" is divided into 494
+"logical records" of 64 bytes each with position 1 as the first byte.
+
+POSITIONS      FORMAT             DESCRIPTION
+
+1 -  8         C*8       Always ARCHIVE2
+
+9 - 12         C*4       4-letter site ID.  e.g. KLMB
+
+13 - 18        C*6       NCDC tape number.  e.g. N00001
+
+19                       Blank
+
+20 - 28        C*9       Date tape written. dd-MMM-yy e.g. 19-FEB-93
+
+29                       Blank
+
+30 - 37        C*8       Time tape written. hh:mm:ss. e.g. 10:22:59
+                         (local time)
+
+38                       Blank
+
+39 - 43        C*5       Data Center writing tape:  RDASC or NCDC
+                         (Left justified, blank filled)
+
+44 - 48        C*5       WBAN Number of this NEXRAD site. (This is a unique
+                         5-digit number assigned at NCDC.  Numbers are
+                         contained in the NCDC NEXRAD Station History file
+                         (WSR-88D RDA LOCATIONS). The file also contains the
+                         four letter site ID, Latitude, Longitude, Elevation,
+                         and Standard location name.)
+
+49 - 53        C*5       Tape output mode. Current values are 8200, 8500,
+                         8500C
+
+54 - 58        C*5       A volume number to be used for copies and extractions
+                         of data from tapes. The form would be VOL01,  VOL02,
+                         VOL03 ....VOLnn.
+
+59 - 64                  Blank  (Available for future use.)
+
+65 - 31616               May be used for internal controls or other
+                         information at each archive center. Information of
+                         value to users will be documented at the time of tape
+                         shipment.
+
+During the process of copying archive tapes, positions 1-18 and 44-48 will
+be duplicated. New values will be written in positions 19-43 and 49-58.
+
+DATA FILES:
+
+A new data file is created upon completion of a volume scan. A data file
+contains a title, a complete radar volume scan (360 degree revolutions at
+each specified elevation cut) of base data, digital radar data message, and
+any control/response messages from the RDA to the RPG. The title is the
+first record located in each data file and contains a file name, creation
+date, and creation time. After the title record through the remainder of the
+data file, variable length records containing base data intermixed with
+control/response messages are recorded. Messages and base data are
+distinguishable by a message header coded for either digital radar base data
+or one of the thirteen types of messages. The message header uses a format
+common to both data and messages and is included in each 2432 byte packet.
+Depending on the predefined volume scan strategy (selected elevations, sweep
+rate, pulse rate etc.) used during the collection period, each data file
+could contain either five, six, or ten minutes of base data.
+Control/response messages are used during actual operations and are of
+limited use for post analyses.
+
+DATA TYPES SUPPORTED WITHIN DATA FILES:
+
+A Concurrent minicomputer serves as the host computer for generation of all
+Archive Level II data. Depending on the computer used for reading the tapes,
+the data types may be different from those used in the Concurrent system.
+The Concurrent computer byte (8 bits) structure places bit 0 as the left
+most bit and designates bit 0 as the Most Significant Bit (MSB). Bit 7 for a
+byte, bit 15 for a halfword (2 bytes), bit 31 for a fullword (4 bytes) and
+bit 63 for a double word (8 bytes) are all the Least Significant Bit (LSB)
+for their respective data formats.
+
+Level II is recorded using the following data types:
+
+     Unsigned byte (byte) - number ranging from 0-255
+
+     Character (C) - Standard ASCII characters
+
+     Signed Short Integer (I*2) - Most Significant Bit (MSB) is the sign bit
+     (bit 0). (1-Negative, 0-Positive).
+
+     Signed Long Integer (I*4) - MSB (bit 0) is the sign bit.
+
+     Single Precision Real (R*4) - MSB (bit 0) is the sign bit (positive),
+     bit 1-7 is the exponent in excess-64 notation format, and bit 8-31 is
+     the fraction field. An example may be helpful:
+
+     Starting with 4180 69E8 (hex), the sign bit = 0 (positive), the
+     exponent = +1 [e.g. 41 (hex) converted to 65 (dec) - 64 (excess 64
+     notation) = +1], and the fraction 8069E8 (hex) shifted by exponent of
+     +1 gives 8.069E8 (hex). To convert 8.069E8 (hex) to decimal, start with
+     the whole number 8 (hex) which in this case equals 8 (dec). Next, the
+     precision of the fraction .069E8 must be noted. This fraction has 5
+     digits of precision. Next, the fraction portion in hex (069E8) is
+     converted to decimal (27112) and divided by 16 raised to the power of
+     the precision of the fraction (5). In other words 27112/(16**5) =
+     .02585 plus the whole number 8, gives 8.02585 in decimal.
+
+DATA RECORDS:
+
+Within the data file, base data and control/response messages are stored
+using a variable record-length structure. The convention here is to begin
+with byte 0 as the first byte. Included as the first record of each data
+file is a volume scan title containing the following information:
+
+Bytes     Format    Description
+
+0-8       C*9       Filename (root) - "ARCHIVE2."
+
+9-11      C*3       Filename (extension) - "1", "2", etc.
+
+12-15     I*4       Modified Julian Date referenced from 1/1/70
+
+16-19     I*4       Time - Milliseconds from midnight (UTC) of the day
+                    when the file was created.
+
+20-23               Unused
+
+All remaining records in the data file are composed of data and
+command/response messages which are initially stored in separate 2432 byte
+packets within an RDA memory buffer. During the archive process the packets
+are copied from memory and grouped together to form a record. Record lengths
+are variable and are always sized in multiples of the 2432 byte packets.
+During the reblocking process, physical records are set to 31616 bytes (2432
+x 13).
+
+The following example shows a portion of one packet which includes
+Concurrent computer Channel Terminal Manager (CTM) information, a message
+header, and a digital radar data message containing reflectivity only.
+
+0000 0000 0980 0000 0002 0000 04B8 0001
+0060 1E9E 04B0 1841 0001 0001 0480 14A2
+1E9E 1234 6530 0059 0001 0058 0001 0000
+FE89 03E8 00FA 01CC 0000 0001 4180 69E8
+0064 0000 0000 0000 0015 0000 0000 0000
+0000 0064 0000 0000 0000 FFF4 0064 0000
+0000 0000 0000 0000 0000 0000 0000 0000
+0000 0000 0000 0000 0000 0000 0000 0000
+005A 5A00 0070 6D51 6455 6060 4F54 0040
+5C3F 4049 4900 4D42 4349 434E 4B3D 4430
+4340 3F3D 4644 4443 3A3D 473F 3A3A 3D3D
+3C45 3A43 433C 3E43 413C 393F 3F40 4038
+     (etc.)
+
+Using the above example, each portion of the packet is described in detail.
+Remember, this packet may be one of several contained in one record within
+the data file.
+
+     Bytes 0-11 (halfwords 1-6)            Channel Terminal Manager (CTM)
+                                           information:
+0000 0000 0980 0000 0002 0000 04B8 0001
+0060 1E9E 04B0 1841 0001 0001 0480 14A2    Archive II (the data tape) is a
+1E9E 1234 6530 0059 0001 0058 0001 0000    copy of messages or data packets
+FE89 03E8 00FA 01CC 0000 0001 4180 69E8    prepared for transmission from the
+0064 0000 0000 0000 0015 0000 0000 0000    RDA to the RPG.  CTM information is
+0000 0064 0000 0000 0000 FFF4 0064 0000    attached to a message or data
+0000 0000 0000 0000 0000 0000 0000 0000    packet for checking data integrity
+0000 0000 0000 0000 0000 0000 0000 0000    during the transmission process
+005A 5A00 0070 6D51 6455 6060 4F54 0040    and is of no importance to the base
+5C3F 4049 4900 4D42 4349 434E 4B3D 4430    data (omit or read past these
+4340 3F3D 4644 4443 3A3D 473F 3A3A 3D3D    bytes).
+3C45 3A43 433C 3E43 413C 393F 3F40 4038
+     (etc.)
+
+     Bytes 12-27 (halfwords 7-14)          Message Header:
+
+0000 0000 0980 0000 0002 0000 04B8 0001    This information is
+0060 1E9E 04B0 1841 0001 0001 0480 14A2    used to identify
+1E9E 1234 6530 0059 0001 0058 0001 0000    either base data or one of thirteen
+FE89 03E8 00FA 01CC 0000 0001 4180 69E8    types of messages that may follow
+0064 0000 0000 0000 0015 0000 0000 0000    in bytes 28 - 2431.  This header
+0000 0064 0000 0000 0000 FFF4 0064 0000    includes the information indicated
+0000 0000 0000 0000 0000 0000 0000 0000    below:
+0000 0000 0000 0000 0000 0000 0000 0000
+005A 5A00 0070 6D51 6455 6060 4F54 0040
+5C3F 4049 4900 4D42 4349 434E 4B3D 4430
+4340 3F3D 4644 4443 3A3D 473F 3A3A 3D3D
+3C45 3A43 433C 3E43 413C 393F 3F40 4038
+     (etc.)
+
+Halfword Format    Description
+
+7         I*2       Message size in halfwords measured from this
+                    halfword to the end of the record.
+
+8         I*1       (Left Byte) Channel ID:
+                         0 = Non-Redundant Site
+                         1 = Redundant Site Channel 1
+                         2 = Redundant Site Channel 2
+
+8         I*1       (Right Byte) Message type, where:
+                         1 = DIGITAL RADAR DATA (This message
+                             may contain a combination of either
+                             reflectivity, aliased velocity, or
+                             spectrum width)
+                         2 = RDA STATUS DATA.
+                         3 = PERFORMANCE/MAINTENANCE DATA.
+                         4 = CONSOLE MESSAGE - RDA TO RPG.
+                         5 = MAINTENANCE LOG DATA.
+                         6 = RDA CONTROL COMMANDS.
+                         7 = VOLUME COVERAGE PATTERN.
+                         8 = CLUTTER CENSOR ZONES.
+                         9 = REQUEST FOR DATA.
+                         10 = CONSOLE MESSAGE - RPG TO RDA.
+                         11 = LOOP BACK TEST  - RDA TO RPG.
+                         12 = LOOP BACK TEST  - RPG TO RDA.
+                         13 = CLUTTER FILTER BYPASS MAP - RDA to RPG.
+                         14 = EDITED CLUTTER FILTER BYPASS MAP - RPG to RDA.
+
+9         I*2       I.D. Sequence = 0 to 7FFF, then roll over back to 0.
+
+10        I*2       Modified Julian date starting from 1/1/70.
+
+11-12     I*4       Generation time of messages in milliseconds of day past
+                    midnight (UTC).  This time may be different than time
+                    listed in halfwords 15-16 defined below.
+
+13        I*2       Number of message segments.  Messages larger than message
+                    size (halfword 7 defined above) are segmented and
+                    recorded in separate data packets.
+
+14        I*2       Message segment number.
+
+     Bytes 28-127 (halfwords 15-64)        Digital Radar Data Header:
+
+0000 0000 0980 0000 0002 0000 04B8 0001    This information describes the
+0060 1E9E 04B0 1841 0001 0001 0480 14A2    date, time, azimuth,
+1E9E 1234 6530 0059 0001 0058 0001 0000    elevation, and type
+FE89 03E8 00FA 01CC 0000 0001 4180 69E8    of base data included
+0064 0000 0000 0000 0015 0000 0000 0000    in the radial.  This
+0000 0064 0000 0000 0000 FFF4 0064 0000    header includes the
+0000 0000 0000 0000 0000 0000 0000 0000    following
+0000 0000 0000 0000 0000 0000 0000 0000    information:
+005A 5A00 0070 6D51 6455 6060 4F54 0040
+5C3F 4049 4900 4D42 4349 434E 4B3D 4430
+4340 3F3D 4644 4443 3A3D 473F 3A3A 3D3D
+3C45 3A43 433C 3E43 413C 393F 3F40 4038
+     (etc.)
+
+Halfword Format    Description
+
+15-16     I*4       Collection time for this radial in
+                    milliseconds of the day from midnight (UTC).
+
+17        I*2       Modified Julian date referenced from 1/1/70.
+
+18        I*2       Unambiguous range (scaled: Value/10. = KM).
+
+19        I*2       Azimuth angle (coded: [Value/8.]*[180./4096.] = DEG).
+                    An azimuth of "0 degrees" points to true north while "90
+                    degrees" points east.  Rotation is always clockwise as
+                    viewed from above the radar.
+
+20        I*2       Radial number within the elevation scan.
+
+21        I*2       Radial status where:
+                         0 = START OF NEW ELEVATION.
+                         1 = INTERMEDIATE RADIAL.
+                         2 = END OF ELEVATION.
+                         3 = BEGINNING OF VOLUME SCAN.
+                         4 = END OF VOLUME SCAN.
+
+22        I*2       Elevation angle (coded:[Value/8.]*[180./4096.] = DEG).
+                    An elevation of "0 degree" is parallel to the pedestal
+                    base while "90 degrees" is perpendicular to the pedestal
+                    base.
+
+23        I*2       RDA elevation number within the volume scan.
+
+24        I*2       Range to first gate of reflectivity data (METERS).
+                    Range may be negative to account for system delays
+                    in transmitter and/or receiver components.
+
+25        I*2       Range to first gate of Doppler data.
+                    Doppler data - velocity and spectrum width (METERS).
+                    Range may be negative to account for system delays in
+                    transmitter and/or receiver components.
+
+26        I*2       Reflectivity data gate size (METERS).
+
+27        I*2       Doppler data gate size (METERS).
+
+28        I*2       Number of reflectivity gates.
+
+29        I*2       Number of velocity and/or spectrum width data gates.
+
+30        I*2       Sector number within cut.
+
+31-32     R*4       System gain calibration constant (dB biased).
+
+33        I*2       Reflectivity data pointer (byte # from the start of
+                    digital radar data message header).  This pointer
+                    locates the beginning of reflectivity data.
+
+34        I*2       Velocity data pointer (byte # from the start of digital
+                    radar data message header).  This pointer locates
+                    beginning of velocity data.
+
+35        I*2       Spectrum-width pointer (byte # from the start of
+                    digital radar data message header).  This pointer
+                    locates beginning of spectrum-width data.
+
+36        I*2       Doppler velocity resolution.
+                         Value of:      2 = 0.5 m/s
+                                        4 = 1.0
+
+37        I*2       Volume coverage pattern.
+                         Value of:   11 = 16 elev. scans/ 5 mins.
+                                     21 = 11 elev. scans/ 6 mins.
+                                     31 = 8 elev. scans/ 10 mins.
+                                     32 = 7 elev. scans/ 10 mins.
+
+38-41               Unused.  Reserved for V&V Simulator.
+
+42        I*2       Reflectivity data pointer for Archive II playback.
+                    Archive II playback pointer used exclusively by RDA.
+
+43        I*2       Velocity data pointer for Archive II playback.
+                    Archive II playback pointer used exclusively by RDA.
+
+44        I*2       Spectrum-width data pointer for Archive II playback.
+                    Archive II playback pointer used exclusively by RDA.
+
+45        I*2       Nyquist velocity (scaled: Value/100. = M/S).
+
+46        I*2       Atmospheric attenuation factor (scaled:
+                    [Value/1000. = dB/KM]).
+
+47        I*2       Threshold parameter for minimum difference in echo
+                    power between two resolution volumes for them not
+                    to be labeled range ambiguous (i.e.,overlaid)
+                    [Value/10. = Watts].
+
+48-64               Unused.
+
+     Bytes 128-2431 (halfwords 65-1216)    Base Data:
+
+0000 0000 0980 0000 0002 0000 04B8 0001    This information includes the three
+0060 1E9E 04B0 1841 0001 0001 0480 14A2    base data moments; reflectivity,
+1E9E 1234 6530 0059 0001 0058 0001 0000    velocity and spectrum width.
+FE89 03E8 00FA 01CC 0000 0001 4180 69E8    Depending on the collection method,
+0064 0000 0000 0000 0015 0000 0000 0000    up to three base data moments may
+0000 0064 0000 0000 0000 FFF4 0064 0000    exist in this section of the
+0000 0000 0000 0000 0000 0000 0000 0000    packet. (For this example, only
+0000 0000 0000 0000 0000 0000 0000 0000    reflectivity is present.) Base data
+005A 5A00 0070 6D51 6455 6060 4F54 0040    is coded and placed
+5C3F 4049 4900 4D42 4349 434E 4B3D 4430    in a single byte and
+4340 3F3D 4644 4443 3A3D 473F 3A3A 3D3D    is archived in the
+3C45 3A43 433C 3E43 413C 393F 3F40 4038    following format:
+     (etc.)
+
+Halfword Format    Description
+
+65-294    BYTE      Reflectivity data (0 - 460 gates) (coded:
+                    [((Value-2)/2.)-32. = dBZ], for Value of 0 or
+                    1 see note below).
+
+65-754    BYTE      Doppler velocity data (coded: for doppler velocity
+                    resolution of 0.5 M/S, [((Value-2)/2.)-63.5 = M/S];
+                    for doppler resolution of 1.0 M/S, [(Value-2)-127.]
+                    = M/S], for Value of 0 or 1 see note below), (0 - 92
+                    gates).  Starting data location depends on length of
+                    the reflectivity field, stop location depends on length
+                    of the velocity field.  Velocity data is range unambiguous
+                    out to 230 KM.
+
+65-1214   BYTE      Doppler spectrum width (coded: [((Value - 2)/2.)-63.5
+                    = M/S], for Value of 0 or 1 see note below), (0 - 920
+                    gates).  Starting data location depends on length of
+                    the reflectivity and velocity fields, stop location
+                    depends on length of the spectrum width field.  Spectrum
+                    width is range unambiguous out to 230 KM.
+
+                    Four bytes of trailer characters referred to the Frame
+                    Check Sequence (FCS) follow the data.  In cases where
+                    the three moments are not all present or the number of
+                    gates for each moment have been reduced, the record is
+                    padded out to a constant size of 1216 halfwords (2432
+                    bytes) following the trailer characters.
+
+Note:
+
+Any base data value of 0 is data below Signal to Noise Ratio(SNR) thresholds
+set for that specific base data. Any base data value of 1 is data considered
+range ambiguous (i.e., overlaid).
+----------------------------------------------------------------------------
+[Image] NEXRAD DOCUMENTATION
+
+----------------------------------------------------------------------------
+http://www.ncdc.noaa.gov/pub/data/nexrad/tapeii.html
+Created by Dick Cram (dcram@ncdc.noaa.gov)
+Last updated 18 April 96
