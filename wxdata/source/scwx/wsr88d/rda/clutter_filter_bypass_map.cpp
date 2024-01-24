@@ -78,19 +78,22 @@ bool ClutterFilterBypassMap::Parse(std::istream& is)
 
    if (p->mapGenerationDate_ < 1)
    {
-      logger_->warn("Invalid date: {}", p->mapGenerationDate_);
+      logger_->trace("Ignoring empty message");
       messageValid = false;
    }
-   if (p->mapGenerationTime_ > 1440)
+   else
    {
-      logger_->warn("Invalid time: {}", p->mapGenerationTime_);
-      messageValid = false;
-   }
-   if (numElevationSegments < 1 || numElevationSegments > 5)
-   {
-      logger_->warn("Invalid number of elevation segments: {}",
-                    numElevationSegments);
-      messageValid = false;
+      if (p->mapGenerationTime_ > 1440)
+      {
+         logger_->warn("Invalid time: {}", p->mapGenerationTime_);
+         messageValid = false;
+      }
+      if (numElevationSegments < 1 || numElevationSegments > 5)
+      {
+         logger_->warn("Invalid number of elevation segments: {}",
+                       numElevationSegments);
+         messageValid = false;
+      }
    }
 
    if (!messageValid)
