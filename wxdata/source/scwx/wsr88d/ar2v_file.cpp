@@ -355,13 +355,13 @@ void Ar2vFileImpl::ParseLDMRecord(std::istream& is)
          {
             is.seekg(-2, std::ios_base::cur);
          }
-      } while (!is.eof() && nextSize == 0u);
+      } while (!is.eof() && !is.fail() && nextSize == 0u);
 
-      if (!is.eof() && offset != 0)
+      if (!is.eof() && !is.fail() && offset != 0)
       {
          logger_->trace("Next record offset by {} bytes", offset);
       }
-      else if (is.eof())
+      else if (is.eof() || is.fail())
       {
          break;
       }
