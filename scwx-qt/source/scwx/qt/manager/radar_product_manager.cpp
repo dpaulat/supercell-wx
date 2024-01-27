@@ -231,7 +231,8 @@ public:
    LoadNexradFile(CreateNexradFileFunction                    load,
                   std::shared_ptr<request::NexradFileRequest> request,
                   std::mutex&                                 mutex,
-                  std::chrono::system_clock::time_point       time = {});
+                  std::chrono::system_clock::time_point       time    = {},
+                  const std::string&                          radarId = {});
 
    const std::string radarId_;
    bool              initialized_;
@@ -957,14 +958,15 @@ void RadarProductManagerImpl::LoadNexradFileAsync(
 {
    boost::asio::post(threadPool_,
                      [=, &mutex]()
-                     { LoadNexradFile(load, request, mutex, time); });
+                     { LoadNexradFile(load, request, mutex, time, radarId_); });
 }
 
 void RadarProductManagerImpl::LoadNexradFile(
    CreateNexradFileFunction                    load,
    std::shared_ptr<request::NexradFileRequest> request,
    std::mutex&                                 mutex,
-   std::chrono::system_clock::time_point       time)
+   std::chrono::system_clock::time_point       time,
+   const std::string&                          radarId)
 {
    std::unique_lock lock {mutex};
 
@@ -987,8 +989,14 @@ void RadarProductManagerImpl::LoadNexradFile(
          record->set_time(time);
       }
 
+      std::string recordRadarId = (record->radar_id());
+      if (recordRadarId.empty())
+      {
+         recordRadarId = radarId;
+      }
+
       std::shared_ptr<RadarProductManager> manager =
-         RadarProductManager::Instance(record->radar_id());
+         RadarProductManager::Instance(recordRadarId);
 
       manager->Initialize();
       record = manager->p->StoreRadarProductRecord(record);

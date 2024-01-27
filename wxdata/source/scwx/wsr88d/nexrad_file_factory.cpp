@@ -114,13 +114,9 @@ std::shared_ptr<NexradFile> NexradFileFactory::Create(std::istream& is)
 
    if (dataValid)
    {
-      if (buffer.starts_with("AR2V"))
+      if (buffer.starts_with("AR2V") || buffer.starts_with("ARCHIVE2"))
       {
          message = std::make_shared<Ar2vFile>();
-      }
-      else if (buffer.starts_with("ARCHIVE2"))
-      {
-         logger_->warn("ARCHIVE2 format not supported");
       }
       else
       {
