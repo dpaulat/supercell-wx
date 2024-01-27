@@ -890,7 +890,7 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
    const std::int32_t gate = s12 / dataMomentInterval - startGate;
 
    if (gate < 0 || gate > numberOfDataMomentGates ||
-       gate > common::MAX_DATA_MOMENT_GATES)
+       gate > static_cast<std::int32_t>(common::MAX_DATA_MOMENT_GATES))
    {
       // Coordinate is beyond radar range
       return std::nullopt;
