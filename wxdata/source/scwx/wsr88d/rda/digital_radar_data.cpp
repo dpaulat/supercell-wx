@@ -33,8 +33,8 @@ public:
    std::uint16_t radialStatus_ {};
    std::uint16_t elevationAngle_ {};
    std::uint16_t elevationNumber_ {};
-   std::uint16_t surveillanceRange_ {};
-   std::uint16_t dopplerRange_ {};
+   std::int16_t  surveillanceRange_ {};
+   std::int16_t  dopplerRange_ {};
    std::uint16_t surveillanceRangeSampleInterval_ {};
    std::uint16_t dopplerRangeSampleInterval_ {};
    std::uint16_t numberOfSurveillanceBins_ {};
@@ -71,7 +71,7 @@ public:
 
    std::uint16_t            number_of_data_moment_gates() const;
    units::kilometers<float> data_moment_range() const;
-   std::uint16_t            data_moment_range_raw() const;
+   std::int16_t             data_moment_range_raw() const;
    units::kilometers<float> data_moment_range_sample_interval() const;
    std::uint16_t            data_moment_range_sample_interval_raw() const;
    std::int16_t             snr_threshold_raw() const;
@@ -94,7 +94,7 @@ public:
    ~Impl() = default;
 
    std::uint16_t numberOfDataMomentGates_ {};
-   std::uint16_t dataMomentRange_ {};
+   std::int16_t  dataMomentRange_ {};
    std::uint16_t dataMomentRangeSampleInterval_ {};
    float         scale_ {};
    float         offset_ {};
@@ -162,7 +162,7 @@ std::uint16_t DigitalRadarData::elevation_number() const
    return p->elevationNumber_;
 }
 
-std::uint16_t DigitalRadarData::surveillance_range_raw() const
+std::int16_t DigitalRadarData::surveillance_range_raw() const
 {
    return p->surveillanceRange_;
 }
@@ -172,7 +172,7 @@ units::kilometers<float> DigitalRadarData::surveillance_range() const
    return units::kilometers<float> {p->surveillanceRange_ * kRangeScale};
 }
 
-std::uint16_t DigitalRadarData::doppler_range_raw() const
+std::int16_t DigitalRadarData::doppler_range_raw() const
 {
    return p->dopplerRange_;
 }
@@ -363,7 +363,7 @@ DigitalRadarData::Impl::MomentDataBlock::data_moment_range() const
    return units::kilometers<float> {p->dataMomentRange_ * kRangeScale};
 }
 
-std::uint16_t
+std::int16_t
 DigitalRadarData::Impl::MomentDataBlock::data_moment_range_raw() const
 {
    return p->dataMomentRange_;

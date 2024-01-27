@@ -120,7 +120,7 @@ public:
 
    std::uint16_t            number_of_data_moment_gates() const;
    units::kilometers<float> data_moment_range() const;
-   std::uint16_t            data_moment_range_raw() const;
+   std::int16_t             data_moment_range_raw() const;
    units::kilometers<float> data_moment_range_sample_interval() const;
    std::uint16_t            data_moment_range_sample_interval_raw() const;
    float                    snr_threshold() const;

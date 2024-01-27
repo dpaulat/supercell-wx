@@ -522,17 +522,17 @@ void Level2ProductView::ComputeSweep()
    }
 
    // Compute threshold at which to display an individual bin (minimum of 2)
-   const uint16_t snrThreshold =
-      std::max<int16_t>(2, momentData0->snr_threshold_raw());
+   const std::uint16_t snrThreshold =
+      std::max<std::int16_t>(2, momentData0->snr_threshold_raw());
 
    // Start radial is always 0, as coordinates are calculated for each sweep
    constexpr std::uint16_t startRadial = 0u;
 
    for (auto& radialPair : *radarData)
    {
-      uint16_t radial     = radialPair.first;
-      auto&    radialData = radialPair.second;
-      auto     momentData = radialData->moment_data_block(p->dataBlockType_);
+      std::uint16_t radial     = radialPair.first;
+      auto&         radialData = radialPair.second;
+      auto momentData = radialData->moment_data_block(p->dataBlockType_);
 
       if (momentData0->data_word_size() != momentData->data_word_size())
       {
@@ -541,65 +541,70 @@ void Level2ProductView::ComputeSweep()
       }
 
       // Compute gate interval
-      const std::uint16_t dataMomentInterval =
+      const std::int32_t dataMomentInterval =
          momentData->data_moment_range_sample_interval_raw();
-      const std::uint16_t dataMomentIntervalH = dataMomentInterval / 2;
-      const std::uint16_t dataMomentRange =
-         std::max(momentData->data_moment_range_raw(), dataMomentIntervalH);
+      const std::int32_t dataMomentIntervalH = dataMomentInterval / 2;
+      const std::int32_t dataMomentRange     = std::max<std::int32_t>(
+         momentData->data_moment_range_raw(), dataMomentIntervalH);
 
       // Compute gate size (number of base 250m gates per bin)
-      const uint16_t gateSizeMeters =
-         static_cast<uint16_t>(radarProductManager->gate_size());
-      const uint16_t gateSize =
-         std::max<uint16_t>(1, dataMomentInterval / gateSizeMeters);
+      const std::int32_t gateSizeMeters =
+         static_cast<std::int32_t>(radarProductManager->gate_size());
+      const std::int32_t gateSize =
+         std::max<std::int32_t>(1, dataMomentInterval / gateSizeMeters);
 
       // Compute gate range [startGate, endGate)
-      const uint16_t startGate =
+      const std::int32_t startGate =
          (dataMomentRange - dataMomentIntervalH) / gateSizeMeters;
-      const uint16_t numberOfDataMomentGates =
-         std::min<uint16_t>(momentData->number_of_data_moment_gates(),
-                            static_cast<uint16_t>(gates));
-      const uint16_t endGate =
-         std::min<uint16_t>(startGate + numberOfDataMomentGates * gateSize,
-                            common::MAX_DATA_MOMENT_GATES);
+      const std::int32_t numberOfDataMomentGates =
+         std::min<std::int32_t>(momentData->number_of_data_moment_gates(),
+                                static_cast<std::int32_t>(gates));
+      const std::int32_t endGate = std::min<std::int32_t>(
+         startGate + numberOfDataMomentGates * gateSize,
+         static_cast<std::int32_t>(common::MAX_DATA_MOMENT_GATES));
 
-      const uint8_t*  dataMomentsArray8  = nullptr;
-      const uint16_t* dataMomentsArray16 = nullptr;
-      const uint8_t*  cfpMomentsArray    = nullptr;
+      const std::uint8_t*  dataMomentsArray8  = nullptr;
+      const std::uint16_t* dataMomentsArray16 = nullptr;
+      const std::uint8_t*  cfpMomentsArray    = nullptr;
 
       if (momentData->data_word_size() == 8)
       {
          dataMomentsArray8 =
-            reinterpret_cast<const uint8_t*>(momentData->data_moments());
+            reinterpret_cast<const std::uint8_t*>(momentData->data_moments());
       }
       else
       {
          dataMomentsArray16 =
-            reinterpret_cast<const uint16_t*>(momentData->data_moments());
+            reinterpret_cast<const std::uint16_t*>(momentData->data_moments());
       }
 
       if (cfpMoments.size() > 0)
       {
-         cfpMomentsArray = reinterpret_cast<const uint8_t*>(
+         cfpMomentsArray = reinterpret_cast<const std::uint8_t*>(
             radialData->moment_data_block(wsr88d::rda::DataBlockType::MomentCfp)
                ->data_moments());
       }
 
-      for (uint16_t gate = startGate, i = 0; gate + gateSize <= endGate;
+      for (std::int32_t gate = startGate, i = 0; gate + gateSize <= endGate;
            gate += gateSize, ++i)
       {
-         size_t vertexCount = (gate > 0) ? 6 : 3;
+         if (gate < 0)
+         {
+            continue;
+         }
+
+         std::size_t vertexCount = (gate > 0) ? 6 : 3;
 
          // Store data moment value
          if (dataMomentsArray8 != nullptr)
          {
-            uint8_t dataValue = dataMomentsArray8[i];
+            std::uint8_t dataValue = dataMomentsArray8[i];
             if (dataValue < snrThreshold && dataValue != RANGE_FOLDED)
             {
                continue;
             }
 
-            for (size_t m = 0; m < vertexCount; m++)
+            for (std::size_t m = 0; m < vertexCount; m++)
             {
                dataMoments8[mIndex++] = dataMomentsArray8[i];
 
@@ -611,13 +616,13 @@ void Level2ProductView::ComputeSweep()
          }
          else
          {
-            uint16_t dataValue = dataMomentsArray16[i];
+            std::uint16_t dataValue = dataMomentsArray16[i];
             if (dataValue < snrThreshold && dataValue != RANGE_FOLDED)
             {
                continue;
             }
 
-            for (size_t m = 0; m < vertexCount; m++)
+            for (std::size_t m = 0; m < vertexCount; m++)
             {
                dataMoments16[mIndex++] = dataMomentsArray16[i];
             }
@@ -626,18 +631,18 @@ void Level2ProductView::ComputeSweep()
          // Store vertices
          if (gate > 0)
          {
-            const uint16_t baseCoord = gate - 1;
+            const std::uint16_t baseCoord = gate - 1;
 
-            size_t offset1 = ((startRadial + radial) % radials *
-                                 common::MAX_DATA_MOMENT_GATES +
-                              baseCoord) *
-                             2;
-            size_t offset2 = offset1 + gateSize * 2;
-            size_t offset3 = (((startRadial + radial + 1) % radials) *
-                                 common::MAX_DATA_MOMENT_GATES +
-                              baseCoord) *
-                             2;
-            size_t offset4 = offset3 + gateSize * 2;
+            std::size_t offset1 = ((startRadial + radial) % radials *
+                                      common::MAX_DATA_MOMENT_GATES +
+                                   baseCoord) *
+                                  2;
+            std::size_t offset2 = offset1 + gateSize * 2;
+            std::size_t offset3 = (((startRadial + radial + 1) % radials) *
+                                      common::MAX_DATA_MOMENT_GATES +
+                                   baseCoord) *
+                                  2;
+            std::size_t offset4 = offset3 + gateSize * 2;
 
             vertices[vIndex++] = coordinates[offset1];
             vertices[vIndex++] = coordinates[offset1 + 1];
@@ -661,16 +666,16 @@ void Level2ProductView::ComputeSweep()
          }
          else
          {
-            const uint16_t baseCoord = gate;
+            const std::uint16_t baseCoord = gate;
 
-            size_t offset1 = ((startRadial + radial) % radials *
-                                 common::MAX_DATA_MOMENT_GATES +
-                              baseCoord) *
-                             2;
-            size_t offset2 = (((startRadial + radial + 1) % radials) *
-                                 common::MAX_DATA_MOMENT_GATES +
-                              baseCoord) *
-                             2;
+            std::size_t offset1 = ((startRadial + radial) % radials *
+                                      common::MAX_DATA_MOMENT_GATES +
+                                   baseCoord) *
+                                  2;
+            std::size_t offset2 = (((startRadial + radial + 1) % radials) *
+                                      common::MAX_DATA_MOMENT_GATES +
+                                   baseCoord) *
+                                  2;
 
             vertices[vIndex++] = p->latitude_;
             vertices[vIndex++] = p->longitude_;
@@ -866,25 +871,26 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
 
    // Compute gate interval
    auto momentData = (*radarData)[*radial]->moment_data_block(dataBlockType);
-   const std::uint16_t dataMomentInterval =
+   const std::int32_t dataMomentInterval =
       momentData->data_moment_range_sample_interval_raw();
-   const std::uint16_t dataMomentIntervalH = dataMomentInterval / 2;
-   const std::uint16_t dataMomentRange =
-      std::max(momentData->data_moment_range_raw(), dataMomentIntervalH);
+   const std::int32_t dataMomentIntervalH = dataMomentInterval / 2;
+   const std::int32_t dataMomentRange     = std::max<std::int32_t>(
+      momentData->data_moment_range_raw(), dataMomentIntervalH);
 
    // Compute gate size (number of base 250m gates per bin)
-   const std::uint16_t gateSizeMeters =
-      static_cast<std::uint16_t>(radarProductManager->gate_size());
+   const std::int32_t gateSizeMeters =
+      static_cast<std::int32_t>(radarProductManager->gate_size());
 
    // Compute gate range [startGate, endGate)
-   const std::uint16_t startGate =
+   const std::int32_t startGate =
       (dataMomentRange - dataMomentIntervalH) / gateSizeMeters;
-   const std::uint16_t numberOfDataMomentGates =
+   const std::int32_t numberOfDataMomentGates =
       momentData->number_of_data_moment_gates();
 
-   const std::uint16_t gate = s12 / dataMomentInterval - startGate;
+   const std::int32_t gate = s12 / dataMomentInterval - startGate;
 
-   if (gate > numberOfDataMomentGates || gate > common::MAX_DATA_MOMENT_GATES)
+   if (gate < 0 || gate > numberOfDataMomentGates ||
+       gate > common::MAX_DATA_MOMENT_GATES)
    {
       // Coordinate is beyond radar range
       return std::nullopt;

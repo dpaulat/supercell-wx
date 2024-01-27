@@ -79,7 +79,7 @@ public:
 
    virtual std::uint16_t            number_of_data_moment_gates() const = 0;
    virtual units::kilometers<float> data_moment_range() const           = 0;
-   virtual std::uint16_t            data_moment_range_raw() const       = 0;
+   virtual std::int16_t             data_moment_range_raw() const       = 0;
    virtual units::kilometers<float>
                          data_moment_range_sample_interval() const     = 0;
    virtual std::uint16_t data_moment_range_sample_interval_raw() const = 0;

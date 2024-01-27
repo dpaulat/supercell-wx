@@ -31,9 +31,9 @@ public:
    std::uint16_t            elevation_angle_raw() const;
    units::degrees<float>    elevation_angle() const;
    std::uint16_t            elevation_number() const;
-   std::uint16_t            surveillance_range_raw() const;
+   std::int16_t             surveillance_range_raw() const;
    units::kilometers<float> surveillance_range() const;
-   std::uint16_t            doppler_range_raw() const;
+   std::int16_t             doppler_range_raw() const;
    units::kilometers<float> doppler_range() const;
    std::uint16_t            surveillance_range_sample_interval_raw() const;
    units::kilometers<float> surveillance_range_sample_interval() const;

@@ -54,7 +54,7 @@ public:
    explicit Impl() {}
 
    std::uint16_t numberOfDataMomentGates_ {0};
-   std::uint16_t dataMomentRange_ {0};
+   std::int16_t  dataMomentRange_ {0};
    std::uint16_t dataMomentRangeSampleInterval_ {0};
    std::uint16_t tover_ {0};
    std::int16_t  snrThreshold_ {0};
@@ -92,7 +92,7 @@ DigitalRadarDataGeneric::MomentDataBlock::data_moment_range() const
    return units::kilometers<float> {p->dataMomentRange_ * 0.001f};
 }
 
-std::uint16_t
+std::int16_t
 DigitalRadarDataGeneric::MomentDataBlock::data_moment_range_raw() const
 {
    return p->dataMomentRange_;
