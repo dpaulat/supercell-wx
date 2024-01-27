@@ -70,6 +70,30 @@ Level2MessageInfo Level2MessageFactory::Create(std::istream&             is,
    info.headerValid  = header.Parse(is);
    info.messageValid = info.headerValid;
 
+   std::uint16_t segment       = 0;
+   std::uint16_t totalSegments = 0;
+   std::size_t   dataSize      = 0;
+
+   if (info.headerValid)
+   {
+      if (header.message_size() == 65535)
+      {
+         segment       = 1;
+         totalSegments = 1;
+         dataSize =
+            (static_cast<std::size_t>(header.number_of_message_segments())
+             << 16) +
+            header.message_segment_number();
+      }
+      else
+      {
+         segment       = header.message_segment_number();
+         totalSegments = header.number_of_message_segments();
+         dataSize      = static_cast<std::size_t>(header.message_size()) * 2 -
+                    Level2MessageHeader::SIZE;
+      }
+   }
+
    if (info.headerValid && create_.find(header.message_type()) == create_.end())
    {
       logger_->warn("Unknown message type: {}",
@@ -79,10 +103,7 @@ Level2MessageInfo Level2MessageFactory::Create(std::istream&             is,
 
    if (info.messageValid)
    {
-      uint16_t segment       = header.message_segment_number();
-      uint16_t totalSegments = header.number_of_message_segments();
-      uint8_t  messageType   = header.message_type();
-      size_t   dataSize = header.message_size() * 2 - Level2MessageHeader::SIZE;
+      std::uint8_t messageType = header.message_type();
 
       std::istream* messageStream = nullptr;
 
@@ -165,8 +186,7 @@ Level2MessageInfo Level2MessageFactory::Create(std::istream&             is,
    else if (info.headerValid)
    {
       // Seek to the end of the current message
-      is.seekg(header.message_size() * 2 - rda::Level2MessageHeader::SIZE,
-               std::ios_base::cur);
+      is.seekg(dataSize, std::ios_base::cur);
    }
 
    if (info.message == nullptr)

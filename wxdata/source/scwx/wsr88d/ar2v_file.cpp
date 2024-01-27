@@ -19,6 +19,7 @@
 #   pragma GCC diagnostic ignored "-Wdeprecated-copy"
 #endif
 
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
@@ -42,16 +43,7 @@ static const auto        logger_    = util::Logger::Create(logPrefix_);
 class Ar2vFileImpl
 {
 public:
-   explicit Ar2vFileImpl() :
-       tapeFilename_ {},
-       extensionNumber_ {},
-       julianDate_ {0},
-       milliseconds_ {0},
-       icao_ {},
-       vcpData_ {nullptr},
-       radarData_ {},
-       index_ {},
-       rawRecords_ {} {};
+   explicit Ar2vFileImpl() {};
    ~Ar2vFileImpl() = default;
 
    std::size_t DecompressLDMRecords(std::istream& is);
@@ -61,20 +53,22 @@ public:
    void        ParseLDMRecord(std::istream& is);
    void ProcessRadarData(const std::shared_ptr<rda::GenericRadarData>& message);
 
-   std::string   tapeFilename_;
-   std::string   extensionNumber_;
-   std::uint32_t julianDate_;
-   std::uint32_t milliseconds_;
-   std::string   icao_;
+   std::string   tapeFilename_ {};
+   std::string   extensionNumber_ {};
+   std::uint32_t julianDate_ {0};
+   std::uint32_t milliseconds_ {0};
+   std::string   icao_ {};
 
-   std::shared_ptr<rda::VolumeCoveragePatternData>              vcpData_;
-   std::map<std::uint16_t, std::shared_ptr<rda::ElevationScan>> radarData_;
+   std::size_t messageCount_ {0};
+
+   std::shared_ptr<rda::VolumeCoveragePatternData>              vcpData_ {};
+   std::map<std::uint16_t, std::shared_ptr<rda::ElevationScan>> radarData_ {};
 
    std::map<rda::DataBlockType,
             std::map<std::uint16_t, std::shared_ptr<rda::ElevationScan>>>
-      index_;
+      index_ {};
 
-   std::list<std::stringstream> rawRecords_;
+   std::list<std::stringstream> rawRecords_ {};
 };
 
 Ar2vFile::Ar2vFile() : p(std::make_unique<Ar2vFileImpl>()) {}
@@ -96,6 +90,11 @@ std::uint32_t Ar2vFile::milliseconds() const
 std::string Ar2vFile::icao() const
 {
    return p->icao_;
+}
+
+std::size_t Ar2vFile::message_count() const
+{
+   return p->messageCount_;
 }
 
 std::chrono::system_clock::time_point Ar2vFile::start_time() const
@@ -235,6 +234,10 @@ bool Ar2vFile::LoadData(std::istream& is)
       dataValid = false;
    }
 
+   // Trim spaces and null characters from the end of the ICAO
+   boost::trim_right_if(p->icao_,
+                        [](char x) { return std::isspace(x) || x == '\0'; });
+
    if (dataValid)
    {
       logger_->debug("Filename:  {}", p->tapeFilename_);
@@ -334,55 +337,71 @@ void Ar2vFileImpl::ParseLDMRecords()
 
 void Ar2vFileImpl::ParseLDMRecord(std::istream& is)
 {
+   static constexpr std::size_t kDefaultSegmentSize = 2432;
+   static constexpr std::size_t kCtmHeaderSize      = 12;
+
    auto ctx = rda::Level2MessageFactory::CreateContext();
 
-   // The communications manager inserts an extra 12 bytes at the beginning
-   // of each record
-   is.seekg(12, std::ios_base::cur);
-
-   while (!is.eof())
+   while (!is.eof() && !is.fail())
    {
-      off_t         offset   = 0;
-      std::uint16_t nextSize = 0u;
-      do
+      // The communications manager inserts an extra 12 bytes at the beginning
+      // of each record
+      is.seekg(kCtmHeaderSize, std::ios_base::cur);
+
+      // Each message requires 2432 bytes of storage, with the exception of
+      // Message Types 29 and 31.
+      std::size_t messageSize = kDefaultSegmentSize - kCtmHeaderSize;
+
+      // Mark current position
+      std::streampos messageStart = is.tellg();
+
+      // Parse the header
+      rda::Level2MessageHeader messageHeader;
+      bool                     headerValid = messageHeader.Parse(is);
+      is.seekg(messageStart, std::ios_base::beg);
+
+      if (headerValid)
       {
-         is.read(reinterpret_cast<char*>(&nextSize), 2);
-         if (nextSize == 0)
+         std::uint8_t messageType = messageHeader.message_type();
+
+         // Each message requires 2432 bytes of storage, with the exception of
+         // Message Types 29 and 31.
+         if (messageType == 29 || messageType == 31)
          {
-            offset += 2;
+            if (messageHeader.message_size() == 65535)
+            {
+               messageSize = (static_cast<std::size_t>(
+                                 messageHeader.number_of_message_segments())
+                              << 16) +
+                             messageHeader.message_segment_number();
+            }
+            else
+            {
+               messageSize =
+                  static_cast<std::size_t>(messageHeader.message_size()) * 2;
+            }
          }
-         else
+
+         // Parse the current message
+         rda::Level2MessageInfo msgInfo =
+            rda::Level2MessageFactory::Create(is, ctx);
+
+         if (msgInfo.messageValid)
          {
-            is.seekg(-2, std::ios_base::cur);
+            HandleMessage(msgInfo.message);
          }
-      } while (!is.eof() && !is.fail() && nextSize == 0u);
-
-      if (!is.eof() && !is.fail() && offset != 0)
-      {
-         logger_->trace("Next record offset by {} bytes", offset);
-      }
-      else if (is.eof() || is.fail())
-      {
-         break;
       }
 
-      rda::Level2MessageInfo msgInfo =
-         rda::Level2MessageFactory::Create(is, ctx);
-      if (!msgInfo.headerValid)
-      {
-         // Invalid message
-         break;
-      }
-
-      if (msgInfo.messageValid)
-      {
-         HandleMessage(msgInfo.message);
-      }
+      // Skip to next message
+      is.seekg(messageStart + static_cast<std::streampos>(messageSize),
+               std::ios_base::beg);
    }
 }
 
 void Ar2vFileImpl::HandleMessage(std::shared_ptr<rda::Level2Message>& message)
 {
+   ++messageCount_;
+
    switch (message->header().message_type())
    {
    case static_cast<std::uint8_t>(rda::MessageId::VolumeCoveragePatternData):

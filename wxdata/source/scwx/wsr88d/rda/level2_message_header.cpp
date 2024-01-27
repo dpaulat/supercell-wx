@@ -130,7 +130,10 @@ bool Level2MessageHeader::Parse(std::istream& is)
    {
       if (p->messageSize_ < 9)
       {
-         logger_->warn("Invalid message size: {}", p->messageSize_);
+         if (p->messageSize_ != 0)
+         {
+            logger_->warn("Invalid message size: {}", p->messageSize_);
+         }
          headerValid = false;
       }
       if (p->millisecondsOfDay_ > 86'399'999u)

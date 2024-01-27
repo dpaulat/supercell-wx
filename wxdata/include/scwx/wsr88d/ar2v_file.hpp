@@ -32,15 +32,18 @@ public:
    Ar2vFile(Ar2vFile&&) noexcept;
    Ar2vFile& operator=(Ar2vFile&&) noexcept;
 
-   uint32_t    julian_date() const;
-   uint32_t    milliseconds() const;
-   std::string icao() const;
+   std::uint32_t julian_date() const;
+   std::uint32_t milliseconds() const;
+   std::string   icao() const;
+
+   std::size_t message_count() const;
 
    std::chrono::system_clock::time_point start_time() const;
    std::chrono::system_clock::time_point end_time() const;
 
-   std::map<uint16_t, std::shared_ptr<rda::ElevationScan>> radar_data() const;
-   std::shared_ptr<const rda::VolumeCoveragePatternData>   vcp_data() const;
+   std::map<std::uint16_t, std::shared_ptr<rda::ElevationScan>>
+                                                         radar_data() const;
+   std::shared_ptr<const rda::VolumeCoveragePatternData> vcp_data() const;
 
    std::tuple<std::shared_ptr<rda::ElevationScan>, float, std::vector<float>>
    GetElevationScan(rda::DataBlockType                    dataBlockType,
