@@ -957,7 +957,7 @@ void RadarProductManagerImpl::LoadNexradFileAsync(
    std::chrono::system_clock::time_point       time)
 {
    boost::asio::post(threadPool_,
-                     [=, &mutex]()
+                     [=, this, &mutex]()
                      { LoadNexradFile(load, request, mutex, time, radarId_); });
 }
 
