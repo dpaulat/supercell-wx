@@ -18,7 +18,7 @@ class SupercellWxConan(ConanFile):
                   "spdlog/1.13.0",
                   "sqlite3/3.45.0",
                   "vulkan-loader/1.3.243.0",
-                  "zlib/1.3")
+                  "zlib/1.3.1")
     generators = ("cmake",
                   "cmake_find_package",
                   "cmake_paths")
