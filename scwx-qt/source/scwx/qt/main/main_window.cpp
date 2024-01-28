@@ -886,9 +886,9 @@ void MainWindowImpl::ConnectAnimationSignals()
            &manager::TimelineManager::VolumeTimeUpdated,
            [this](std::chrono::system_clock::time_point dateTime)
            {
+              volumeTime_ = dateTime;
               for (auto map : maps_)
               {
-                 volumeTime_ = dateTime;
                  map->SelectTime(dateTime);
               }
            });
