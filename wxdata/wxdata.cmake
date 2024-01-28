@@ -103,17 +103,21 @@ set(SRC_WSR88D source/scwx/wsr88d/ar2v_file.cpp
 set(HDR_WSR88D_RDA include/scwx/wsr88d/rda/clutter_filter_bypass_map.hpp
                    include/scwx/wsr88d/rda/clutter_filter_map.hpp
                    include/scwx/wsr88d/rda/digital_radar_data.hpp
+                   include/scwx/wsr88d/rda/digital_radar_data_generic.hpp
+                   include/scwx/wsr88d/rda/generic_radar_data.hpp
                    include/scwx/wsr88d/rda/level2_message.hpp
                    include/scwx/wsr88d/rda/level2_message_factory.hpp
                    include/scwx/wsr88d/rda/level2_message_header.hpp
                    include/scwx/wsr88d/rda/performance_maintenance_data.hpp
                    include/scwx/wsr88d/rda/rda_adaptation_data.hpp
                    include/scwx/wsr88d/rda/rda_status_data.hpp
-                   include/scwx/wsr88d/rda/types.hpp
+                   include/scwx/wsr88d/rda/rda_types.hpp
                    include/scwx/wsr88d/rda/volume_coverage_pattern_data.hpp)
 set(SRC_WSR88D_RDA source/scwx/wsr88d/rda/clutter_filter_bypass_map.cpp
                    source/scwx/wsr88d/rda/clutter_filter_map.cpp
                    source/scwx/wsr88d/rda/digital_radar_data.cpp
+                   source/scwx/wsr88d/rda/digital_radar_data_generic.cpp
+                   source/scwx/wsr88d/rda/generic_radar_data.cpp
                    source/scwx/wsr88d/rda/level2_message.cpp
                    source/scwx/wsr88d/rda/level2_message_factory.cpp
                    source/scwx/wsr88d/rda/level2_message_header.cpp

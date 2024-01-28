@@ -102,7 +102,7 @@ VolumeCoveragePatternData::VolumeCoveragePatternData() :
 VolumeCoveragePatternData::~VolumeCoveragePatternData() = default;
 
 VolumeCoveragePatternData::VolumeCoveragePatternData(
-   VolumeCoveragePatternData&&) noexcept                      = default;
+   VolumeCoveragePatternData&&) noexcept = default;
 VolumeCoveragePatternData& VolumeCoveragePatternData::operator=(
    VolumeCoveragePatternData&&) noexcept = default;
 
@@ -419,16 +419,24 @@ bool VolumeCoveragePatternData::Parse(std::istream& is)
    p->vcpSequencing_       = ntohs(p->vcpSequencing_);
    p->vcpSupplementalData_ = ntohs(p->vcpSupplementalData_);
 
-   if (messageSize < 34 || messageSize > 747)
+   if (messageSize == 0)
    {
-      logger_->warn("Invalid message size: {}", messageSize);
+      logger_->trace("Ignoring empty message");
       messageValid = false;
    }
-   if (numberOfElevationCuts < 1 || numberOfElevationCuts > 32)
+   else
    {
-      logger_->warn("Invalid number of elevation cuts: {}",
-                    numberOfElevationCuts);
-      messageValid = false;
+      if (messageSize < 34 || messageSize > 747)
+      {
+         logger_->warn("Invalid message size: {}", messageSize);
+         messageValid = false;
+      }
+      if (numberOfElevationCuts < 1 || numberOfElevationCuts > 32)
+      {
+         logger_->warn("Invalid number of elevation cuts: {}",
+                       numberOfElevationCuts);
+         messageValid = false;
+      }
    }
 
    if (!messageValid)

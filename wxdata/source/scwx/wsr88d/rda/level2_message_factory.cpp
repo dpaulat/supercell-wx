@@ -5,6 +5,7 @@
 #include <scwx/wsr88d/rda/clutter_filter_bypass_map.hpp>
 #include <scwx/wsr88d/rda/clutter_filter_map.hpp>
 #include <scwx/wsr88d/rda/digital_radar_data.hpp>
+#include <scwx/wsr88d/rda/digital_radar_data_generic.hpp>
 #include <scwx/wsr88d/rda/performance_maintenance_data.hpp>
 #include <scwx/wsr88d/rda/rda_adaptation_data.hpp>
 #include <scwx/wsr88d/rda/rda_status_data.hpp>
@@ -28,14 +29,15 @@ typedef std::function<std::shared_ptr<Level2Message>(Level2MessageHeader&&,
                                                      std::istream&)>
    CreateLevel2MessageFunction;
 
-static const std::unordered_map<unsigned int, CreateLevel2MessageFunction> create_ {
-   {2, RdaStatusData::Create},
-   {3, PerformanceMaintenanceData::Create},
-   {5, VolumeCoveragePatternData::Create},
-   {13, ClutterFilterBypassMap::Create},
-   {15, ClutterFilterMap::Create},
-   {18, RdaAdaptationData::Create},
-   {31, DigitalRadarData::Create}};
+static const std::unordered_map<unsigned int, CreateLevel2MessageFunction>
+   create_ {{1, DigitalRadarData::Create},
+            {2, RdaStatusData::Create},
+            {3, PerformanceMaintenanceData::Create},
+            {5, VolumeCoveragePatternData::Create},
+            {13, ClutterFilterBypassMap::Create},
+            {15, ClutterFilterMap::Create},
+            {18, RdaAdaptationData::Create},
+            {31, DigitalRadarDataGeneric::Create}};
 
 struct Level2MessageFactory::Context
 {
@@ -51,6 +53,7 @@ struct Level2MessageFactory::Context
    size_t            bufferedSize_;
    util::vectorbuf   messageBuffer_;
    std::istream      messageBufferStream_;
+   bool              bufferingData_ {false};
 };
 
 std::shared_ptr<Level2MessageFactory::Context>
@@ -59,13 +62,37 @@ Level2MessageFactory::CreateContext()
    return std::make_shared<Context>();
 }
 
-Level2MessageInfo Level2MessageFactory::Create(std::istream&            is,
-                                               std::shared_ptr<Context> ctx)
+Level2MessageInfo Level2MessageFactory::Create(std::istream&             is,
+                                               std::shared_ptr<Context>& ctx)
 {
    Level2MessageInfo   info;
    Level2MessageHeader header;
    info.headerValid  = header.Parse(is);
    info.messageValid = info.headerValid;
+
+   std::uint16_t segment       = 0;
+   std::uint16_t totalSegments = 0;
+   std::size_t   dataSize      = 0;
+
+   if (info.headerValid)
+   {
+      if (header.message_size() == 65535)
+      {
+         segment       = 1;
+         totalSegments = 1;
+         dataSize =
+            (static_cast<std::size_t>(header.number_of_message_segments())
+             << 16) +
+            header.message_segment_number();
+      }
+      else
+      {
+         segment       = header.message_segment_number();
+         totalSegments = header.number_of_message_segments();
+         dataSize      = static_cast<std::size_t>(header.message_size()) * 2 -
+                    Level2MessageHeader::SIZE;
+      }
+   }
 
    if (info.headerValid && create_.find(header.message_type()) == create_.end())
    {
@@ -76,10 +103,7 @@ Level2MessageInfo Level2MessageFactory::Create(std::istream&            is,
 
    if (info.messageValid)
    {
-      uint16_t segment       = header.message_segment_number();
-      uint16_t totalSegments = header.number_of_message_segments();
-      uint8_t  messageType   = header.message_type();
-      size_t   dataSize = header.message_size() * 2 - Level2MessageHeader::SIZE;
+      std::uint8_t messageType = header.message_type();
 
       std::istream* messageStream = nullptr;
 
@@ -100,38 +124,51 @@ Level2MessageInfo Level2MessageFactory::Create(std::istream&            is,
             // Estimate total message size
             ctx->messageData_.resize(dataSize * totalSegments);
             ctx->messageBufferStream_.clear();
-            ctx->bufferedSize_ = 0;
+            ctx->bufferedSize_  = 0;
+            ctx->bufferingData_ = true;
          }
-
-         if (ctx->messageData_.capacity() < ctx->bufferedSize_ + dataSize)
+         else if (!ctx->bufferingData_)
          {
-            logger_->debug("Bad size estimate, increasing size");
-
-            // Estimate remaining size
-            uint16_t remainingSegments =
-               std::max<uint16_t>(totalSegments - segment + 1, 100u);
-            size_t remainingSize = remainingSegments * dataSize;
-
-            ctx->messageData_.resize(ctx->bufferedSize_ + remainingSize);
-         }
-
-         is.read(ctx->messageData_.data() + ctx->bufferedSize_, dataSize);
-         ctx->bufferedSize_ += dataSize;
-
-         if (is.eof())
-         {
-            logger_->warn("End of file reached trying to buffer message");
+            // Segment number did not start at 1
+            logger_->trace("Ignoring Segment {}/{}, did not start at 1",
+                           segment,
+                           totalSegments);
             info.messageValid = false;
-            ctx->messageData_.shrink_to_fit();
-            ctx->bufferedSize_ = 0;
          }
-         else if (segment == totalSegments)
-         {
-            ctx->messageBuffer_.update_read_pointers(ctx->bufferedSize_);
-            header.set_message_size(static_cast<uint16_t>(
-               ctx->bufferedSize_ / 2 + Level2MessageHeader::SIZE));
 
-            messageStream = &ctx->messageBufferStream_;
+         if (ctx->bufferingData_)
+         {
+            if (ctx->messageData_.capacity() < ctx->bufferedSize_ + dataSize)
+            {
+               logger_->debug("Bad size estimate, increasing size");
+
+               // Estimate remaining size
+               uint16_t remainingSegments =
+                  std::max<uint16_t>(totalSegments - segment + 1, 100u);
+               size_t remainingSize = remainingSegments * dataSize;
+
+               ctx->messageData_.resize(ctx->bufferedSize_ + remainingSize);
+            }
+
+            is.read(ctx->messageData_.data() + ctx->bufferedSize_, dataSize);
+            ctx->bufferedSize_ += dataSize;
+
+            if (is.eof())
+            {
+               logger_->warn("End of file reached trying to buffer message");
+               info.messageValid = false;
+               ctx->messageData_.shrink_to_fit();
+               ctx->bufferedSize_  = 0;
+               ctx->bufferingData_ = false;
+            }
+            else if (segment == totalSegments)
+            {
+               ctx->messageBuffer_.update_read_pointers(ctx->bufferedSize_);
+               header.set_message_size(static_cast<uint16_t>(
+                  ctx->bufferedSize_ / 2 + Level2MessageHeader::SIZE));
+
+               messageStream = &ctx->messageBufferStream_;
+            }
          }
       }
 
@@ -142,14 +179,14 @@ Level2MessageInfo Level2MessageFactory::Create(std::istream&            is,
          ctx->messageData_.resize(0);
          ctx->messageData_.shrink_to_fit();
          ctx->messageBufferStream_.clear();
-         ctx->bufferedSize_ = 0;
+         ctx->bufferedSize_  = 0;
+         ctx->bufferingData_ = false;
       }
    }
    else if (info.headerValid)
    {
       // Seek to the end of the current message
-      is.seekg(header.message_size() * 2 - rda::Level2MessageHeader::SIZE,
-               std::ios_base::cur);
+      is.seekg(dataSize, std::ios_base::cur);
    }
 
    if (info.message == nullptr)

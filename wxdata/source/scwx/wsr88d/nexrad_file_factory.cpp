@@ -70,9 +70,9 @@ std::shared_ptr<NexradFile> NexradFileFactory::Create(std::istream& is)
    std::string       buffer;
    bool              dataValid;
 
-   buffer.resize(4);
+   buffer.resize(8);
 
-   is.read(buffer.data(), 4);
+   is.read(buffer.data(), 8);
    dataValid = is.good();
    is.seekg(pisBegin, std::ios_base::beg);
 
@@ -89,7 +89,7 @@ std::shared_ptr<NexradFile> NexradFileFactory::Create(std::istream& is)
          pis      = &ss;
          pisBegin = ss.tellg();
 
-         ss.read(buffer.data(), 4);
+         ss.read(buffer.data(), 8);
          dataValid = ss.good();
          ss.seekg(pisBegin, std::ios_base::beg);
 
@@ -114,7 +114,7 @@ std::shared_ptr<NexradFile> NexradFileFactory::Create(std::istream& is)
 
    if (dataValid)
    {
-      if (buffer.starts_with("AR2V"))
+      if (buffer.starts_with("AR2V") || buffer.starts_with("ARCHIVE2"))
       {
          message = std::make_shared<Ar2vFile>();
       }

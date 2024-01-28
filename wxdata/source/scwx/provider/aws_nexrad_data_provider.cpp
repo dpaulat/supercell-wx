@@ -246,7 +246,8 @@ AwsNexradDataProvider::ListObjects(std::chrono::system_clock::time_point date)
          {
             std::string key = object.GetKey();
 
-            if (!key.ends_with("_MDM"))
+            if (key.find("NWS_NEXRAD_") == std::string::npos &&
+                !key.ends_with("_MDM"))
             {
                auto time = GetTimePointByKey(key);
 

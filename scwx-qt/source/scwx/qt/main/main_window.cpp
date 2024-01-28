@@ -430,8 +430,12 @@ void MainWindow::on_actionOpenNexrad_triggered()
       {
          logger_->info("Selected: {}", file.toStdString());
 
+         auto        radarSite = p->activeMap_->GetRadarSite();
+         std::string currentRadarSite =
+            (radarSite != nullptr) ? radarSite->id() : std::string {};
+
          std::shared_ptr<request::NexradFileRequest> request =
-            std::make_shared<request::NexradFileRequest>();
+            std::make_shared<request::NexradFileRequest>(currentRadarSite);
 
          connect( //
             request.get(),
@@ -882,9 +886,9 @@ void MainWindowImpl::ConnectAnimationSignals()
            &manager::TimelineManager::VolumeTimeUpdated,
            [this](std::chrono::system_clock::time_point dateTime)
            {
+              volumeTime_ = dateTime;
               for (auto map : maps_)
               {
-                 volumeTime_ = dateTime;
                  map->SelectTime(dateTime);
               }
            });
