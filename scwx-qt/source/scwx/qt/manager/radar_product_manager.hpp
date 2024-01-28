@@ -42,6 +42,7 @@ public:
 
    const std::vector<float>& coordinates(common::RadialSize radialSize) const;
    float                     gate_size() const;
+   std::string               radar_id() const;
    std::shared_ptr<config::RadarSite> radar_site() const;
 
    void Initialize();
@@ -110,19 +111,19 @@ public:
    Instance(const std::string& radarSite);
 
    void LoadLevel2Data(
-      std::chrono::system_clock::time_point       time,
-      std::shared_ptr<request::NexradFileRequest> request = nullptr);
+      std::chrono::system_clock::time_point              time,
+      const std::shared_ptr<request::NexradFileRequest>& request = nullptr);
    void LoadLevel3Data(
-      const std::string&                          product,
-      std::chrono::system_clock::time_point       time,
-      std::shared_ptr<request::NexradFileRequest> request = nullptr);
+      const std::string&                                 product,
+      std::chrono::system_clock::time_point              time,
+      const std::shared_ptr<request::NexradFileRequest>& request = nullptr);
 
-   static void
-   LoadData(std::istream&                               is,
-            std::shared_ptr<request::NexradFileRequest> request = nullptr);
-   static void
-   LoadFile(const std::string&                          filename,
-            std::shared_ptr<request::NexradFileRequest> request = nullptr);
+   static void LoadData(
+      std::istream&                                      is,
+      const std::shared_ptr<request::NexradFileRequest>& request = nullptr);
+   static void LoadFile(
+      const std::string&                                 filename,
+      const std::shared_ptr<request::NexradFileRequest>& request = nullptr);
 
    common::Level3ProductCategoryMap GetAvailableLevel3Categories();
    std::vector<std::string>         GetLevel3Products();

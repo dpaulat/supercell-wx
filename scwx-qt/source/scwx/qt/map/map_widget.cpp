@@ -1332,7 +1332,8 @@ void MapWidgetImpl::RadarProductManagerConnect()
             {
                // Create file request
                std::shared_ptr<request::NexradFileRequest> request =
-                  std::make_shared<request::NexradFileRequest>();
+                  std::make_shared<request::NexradFileRequest>(
+                     radarProductManager_->radar_id());
 
                // File request callback
                if (autoUpdateEnabled_)

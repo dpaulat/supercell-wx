@@ -9,21 +9,30 @@ namespace request
 
 static const std::string logPrefix_ = "scwx::qt::request::nexrad_file_request";
 
-class NexradFileRequestImpl
+class NexradFileRequest::Impl
 {
 public:
-   explicit NexradFileRequestImpl() : radarProductRecord_ {nullptr} {}
+   explicit Impl(const std::string& currentRadarSite) :
+       currentRadarSite_ {currentRadarSite}
+   {
+   }
+   ~Impl() = default;
 
-   ~NexradFileRequestImpl() {}
+   const std::string currentRadarSite_;
 
-   std::shared_ptr<types::RadarProductRecord> radarProductRecord_;
+   std::shared_ptr<types::RadarProductRecord> radarProductRecord_ {nullptr};
 };
 
-NexradFileRequest::NexradFileRequest() :
-    p(std::make_unique<NexradFileRequestImpl>())
+NexradFileRequest::NexradFileRequest(const std::string& currentRadarSite) :
+    p(std::make_unique<Impl>(currentRadarSite))
 {
 }
 NexradFileRequest::~NexradFileRequest() = default;
+
+std::string NexradFileRequest::current_radar_site() const
+{
+   return p->currentRadarSite_;
+}
 
 std::shared_ptr<types::RadarProductRecord>
 NexradFileRequest::radar_product_record() const
@@ -32,7 +41,7 @@ NexradFileRequest::radar_product_record() const
 }
 
 void NexradFileRequest::set_radar_product_record(
-   std::shared_ptr<types::RadarProductRecord> record)
+   const std::shared_ptr<types::RadarProductRecord>& record)
 {
    p->radarProductRecord_ = record;
 }

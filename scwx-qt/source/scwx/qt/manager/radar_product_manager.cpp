@@ -207,16 +207,18 @@ public:
    void UpdateRecentRecords(RadarProductRecordList& recentList,
                             std::shared_ptr<types::RadarProductRecord> record);
 
-   void LoadNexradFileAsync(CreateNexradFileFunction                    load,
-                            std::shared_ptr<request::NexradFileRequest> request,
-                            std::mutex&                                 mutex,
-                            std::chrono::system_clock::time_point       time);
-   void LoadProviderData(std::chrono::system_clock::time_point time,
+   void LoadNexradFileAsync(
+      CreateNexradFileFunction                           load,
+      const std::shared_ptr<request::NexradFileRequest>& request,
+      std::mutex&                                        mutex,
+      std::chrono::system_clock::time_point              time);
+   void
+        LoadProviderData(std::chrono::system_clock::time_point time,
                          std::shared_ptr<ProviderManager>      providerManager,
                          RadarProductRecordMap&                recordMap,
                          std::shared_mutex&                    recordMutex,
                          std::mutex&                           loadDataMutex,
-                         std::shared_ptr<request::NexradFileRequest> request);
+                         const std::shared_ptr<request::NexradFileRequest>& request);
    void PopulateLevel2ProductTimes(std::chrono::system_clock::time_point time);
    void PopulateLevel3ProductTimes(const std::string& product,
                                    std::chrono::system_clock::time_point time);
@@ -228,11 +230,10 @@ public:
                         std::chrono::system_clock::time_point time);
 
    static void
-   LoadNexradFile(CreateNexradFileFunction                    load,
-                  std::shared_ptr<request::NexradFileRequest> request,
-                  std::mutex&                                 mutex,
-                  std::chrono::system_clock::time_point       time    = {},
-                  const std::string&                          radarId = {});
+   LoadNexradFile(CreateNexradFileFunction                           load,
+                  const std::shared_ptr<request::NexradFileRequest>& request,
+                  std::mutex&                                        mutex,
+                  std::chrono::system_clock::time_point              time = {});
 
    const std::string radarId_;
    bool              initialized_;
@@ -393,6 +394,11 @@ RadarProductManager::coordinates(common::RadialSize radialSize) const
 float RadarProductManager::gate_size() const
 {
    return (p->radarSite_->type() == "tdwr") ? 150.0f : 250.0f;
+}
+
+std::string RadarProductManager::radar_id() const
+{
+   return p->radarId_;
 }
 
 std::shared_ptr<config::RadarSite> RadarProductManager::radar_site() const
@@ -778,12 +784,12 @@ RadarProductManager::GetActiveVolumeTimes(
 }
 
 void RadarProductManagerImpl::LoadProviderData(
-   std::chrono::system_clock::time_point       time,
-   std::shared_ptr<ProviderManager>            providerManager,
-   RadarProductRecordMap&                      recordMap,
-   std::shared_mutex&                          recordMutex,
-   std::mutex&                                 loadDataMutex,
-   std::shared_ptr<request::NexradFileRequest> request)
+   std::chrono::system_clock::time_point              time,
+   std::shared_ptr<ProviderManager>                   providerManager,
+   RadarProductRecordMap&                             recordMap,
+   std::shared_mutex&                                 recordMutex,
+   std::mutex&                                        loadDataMutex,
+   const std::shared_ptr<request::NexradFileRequest>& request)
 {
    logger_->debug("LoadProviderData: {}, {}",
                   providerManager->name(),
@@ -838,8 +844,8 @@ void RadarProductManagerImpl::LoadProviderData(
 }
 
 void RadarProductManager::LoadLevel2Data(
-   std::chrono::system_clock::time_point       time,
-   std::shared_ptr<request::NexradFileRequest> request)
+   std::chrono::system_clock::time_point              time,
+   const std::shared_ptr<request::NexradFileRequest>& request)
 {
    logger_->debug("LoadLevel2Data: {}", scwx::util::TimeString(time));
 
@@ -852,9 +858,9 @@ void RadarProductManager::LoadLevel2Data(
 }
 
 void RadarProductManager::LoadLevel3Data(
-   const std::string&                          product,
-   std::chrono::system_clock::time_point       time,
-   std::shared_ptr<request::NexradFileRequest> request)
+   const std::string&                                 product,
+   std::chrono::system_clock::time_point              time,
+   const std::shared_ptr<request::NexradFileRequest>& request)
 {
    logger_->debug("LoadLevel3Data: {}", scwx::util::TimeString(time));
 
@@ -884,7 +890,7 @@ void RadarProductManager::LoadLevel3Data(
 }
 
 void RadarProductManager::LoadData(
-   std::istream& is, std::shared_ptr<request::NexradFileRequest> request)
+   std::istream& is, const std::shared_ptr<request::NexradFileRequest>& request)
 {
    logger_->debug("LoadData()");
 
@@ -900,8 +906,8 @@ void RadarProductManager::LoadData(
 }
 
 void RadarProductManager::LoadFile(
-   const std::string&                          filename,
-   std::shared_ptr<request::NexradFileRequest> request)
+   const std::string&                                 filename,
+   const std::shared_ptr<request::NexradFileRequest>& request)
 {
    logger_->debug("LoadFile: {}", filename);
 
@@ -951,22 +957,21 @@ void RadarProductManager::LoadFile(
 }
 
 void RadarProductManagerImpl::LoadNexradFileAsync(
-   CreateNexradFileFunction                    load,
-   std::shared_ptr<request::NexradFileRequest> request,
-   std::mutex&                                 mutex,
-   std::chrono::system_clock::time_point       time)
+   CreateNexradFileFunction                           load,
+   const std::shared_ptr<request::NexradFileRequest>& request,
+   std::mutex&                                        mutex,
+   std::chrono::system_clock::time_point              time)
 {
    boost::asio::post(threadPool_,
-                     [=, this, &mutex]()
-                     { LoadNexradFile(load, request, mutex, time, radarId_); });
+                     [=, &mutex]()
+                     { LoadNexradFile(load, request, mutex, time); });
 }
 
 void RadarProductManagerImpl::LoadNexradFile(
-   CreateNexradFileFunction                    load,
-   std::shared_ptr<request::NexradFileRequest> request,
-   std::mutex&                                 mutex,
-   std::chrono::system_clock::time_point       time,
-   const std::string&                          radarId)
+   CreateNexradFileFunction                           load,
+   const std::shared_ptr<request::NexradFileRequest>& request,
+   std::mutex&                                        mutex,
+   std::chrono::system_clock::time_point              time)
 {
    std::unique_lock lock {mutex};
 
@@ -992,7 +997,7 @@ void RadarProductManagerImpl::LoadNexradFile(
       std::string recordRadarId = (record->radar_id());
       if (recordRadarId.empty())
       {
-         recordRadarId = radarId;
+         recordRadarId = request->current_radar_site();
       }
 
       std::shared_ptr<RadarProductManager> manager =
@@ -1127,7 +1132,7 @@ RadarProductManagerImpl::GetLevel2ProductRecord(
    {
       // Product is expired, reload it
       std::shared_ptr<request::NexradFileRequest> request =
-         std::make_shared<request::NexradFileRequest>();
+         std::make_shared<request::NexradFileRequest>(radarId_);
 
       QObject::connect(
          request.get(),
@@ -1192,7 +1197,7 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
    {
       // Product is expired, reload it
       std::shared_ptr<request::NexradFileRequest> request =
-         std::make_shared<request::NexradFileRequest>();
+         std::make_shared<request::NexradFileRequest>(radarId_);
 
       QObject::connect(
          request.get(),
