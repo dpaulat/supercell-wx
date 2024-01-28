@@ -94,7 +94,7 @@ AwsLevel2DataProvider::GetTimePointFromKey(const std::string& key)
 
       if (in.fail())
       {
-         logger_->trace("Invalid time: \"{}\"", timeStr);
+         logger_->warn("Invalid time: \"{}\"", timeStr);
       }
    }
    else
