@@ -1048,7 +1048,14 @@ void RadarProductManagerImpl::PopulateProductTimes(
    std::shared_mutex&                    productRecordMutex,
    std::chrono::system_clock::time_point time)
 {
-   const auto today     = std::chrono::floor<std::chrono::days>(time);
+   const auto today = std::chrono::floor<std::chrono::days>(time);
+
+   // Don't query for the epoch
+   if (today == std::chrono::system_clock::time_point {})
+   {
+      return;
+   }
+
    const auto yesterday = today - std::chrono::days {1};
    const auto tomorrow  = today + std::chrono::days {1};
    const auto dates     = {yesterday, today, tomorrow};
