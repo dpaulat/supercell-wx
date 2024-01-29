@@ -139,7 +139,8 @@ public:
           &alertAudioCounty_,
           &hoverTextWrap_,
           &tooltipMethod_,
-          &placefileTextDropShadowEnabled_}}
+          &placefileTextDropShadowEnabled_,
+          &radarSiteHoverTextEnabled_}}
    {
       // Configure default alert phenomena colors
       auto& paletteSettings = settings::PaletteSettings::Instance();
@@ -252,6 +253,7 @@ public:
    settings::SettingsInterface<std::int64_t> hoverTextWrap_ {};
    settings::SettingsInterface<std::string>  tooltipMethod_ {};
    settings::SettingsInterface<bool>         placefileTextDropShadowEnabled_ {};
+   settings::SettingsInterface<bool>         radarSiteHoverTextEnabled_ {};
 
    std::vector<settings::SettingsInterfaceBase*> settings_;
 };
@@ -1118,6 +1120,11 @@ void SettingsDialogImpl::SetupTextTab()
       textSettings.placefile_text_drop_shadow_enabled());
    placefileTextDropShadowEnabled_.SetEditWidget(
       self_->ui->placefileTextDropShadowCheckBox);
+
+   radarSiteHoverTextEnabled_.SetSettingsVariable(
+      textSettings.radar_site_hover_text_enabled());
+   radarSiteHoverTextEnabled_.SetEditWidget(
+      self_->ui->radarSiteHoverTextCheckBox);
 }
 
 QImage SettingsDialogImpl::GenerateColorTableImage(

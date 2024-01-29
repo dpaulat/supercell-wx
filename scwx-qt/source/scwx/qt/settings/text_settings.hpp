@@ -35,6 +35,7 @@ public:
 
    SettingsVariable<std::int64_t>& hover_text_wrap() const;
    SettingsVariable<bool>&         placefile_text_drop_shadow_enabled() const;
+   SettingsVariable<bool>&         radar_site_hover_text_enabled() const;
    SettingsVariable<std::string>&  tooltip_method() const;
 
    static TextSettings& Instance();

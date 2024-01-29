@@ -1,5 +1,6 @@
 #include <scwx/qt/map/radar_site_layer.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/tooltip.hpp>
 #include <scwx/common/geographic.hpp>
@@ -130,7 +131,10 @@ void RadarSiteLayer::Impl::RenderRadarSite(
       }
 
       // Store hover text for mouse picking pass
-      if (ImGui::IsItemHovered())
+      if (settings::TextSettings::Instance()
+             .radar_site_hover_text_enabled()
+             .GetValue() &&
+          ImGui::IsItemHovered())
       {
          hoverText_ =
             fmt::format("{} ({})\n{}\n{}, {}",

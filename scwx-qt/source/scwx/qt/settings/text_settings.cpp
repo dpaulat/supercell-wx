@@ -50,6 +50,7 @@ public:
       hoverTextWrap_.SetMinimum(0);
       hoverTextWrap_.SetMaximum(999);
       placefileTextDropShadowEnabled_.SetDefault(true);
+      radarSiteHoverTextEnabled_.SetDefault(true);
       tooltipMethod_.SetDefault(defaultTooltipMethodValue);
 
       tooltipMethod_.SetValidator(
@@ -97,6 +98,8 @@ public:
 
    SettingsVariable<bool> placefileTextDropShadowEnabled_ {
       "placefile_text_drop_shadow_enabled"};
+   SettingsVariable<bool> radarSiteHoverTextEnabled_ {
+      "radar_site_hover_text_enabled"};
 };
 
 TextSettings::TextSettings() :
@@ -104,6 +107,7 @@ TextSettings::TextSettings() :
 {
    RegisterVariables({&p->hoverTextWrap_,
                       &p->placefileTextDropShadowEnabled_,
+                      &p->radarSiteHoverTextEnabled_,
                       &p->tooltipMethod_});
    SetDefaults();
 }
@@ -173,6 +177,11 @@ SettingsVariable<bool>& TextSettings::placefile_text_drop_shadow_enabled() const
    return p->placefileTextDropShadowEnabled_;
 }
 
+SettingsVariable<bool>& TextSettings::radar_site_hover_text_enabled() const
+{
+   return p->radarSiteHoverTextEnabled_;
+}
+
 SettingsVariable<std::string>& TextSettings::tooltip_method() const
 {
    return p->tooltipMethod_;
@@ -190,6 +199,8 @@ bool operator==(const TextSettings& lhs, const TextSettings& rhs)
            lhs.p->hoverTextWrap_ == rhs.p->hoverTextWrap_ &&
            lhs.p->placefileTextDropShadowEnabled_ ==
               rhs.p->placefileTextDropShadowEnabled_ &&
+           lhs.p->radarSiteHoverTextEnabled_ ==
+              rhs.p->radarSiteHoverTextEnabled_ &&
            lhs.p->tooltipMethod_ == rhs.p->tooltipMethod_);
 }
 
