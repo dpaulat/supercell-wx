@@ -152,7 +152,7 @@ set(HDR_WSR88D_RPG include/scwx/wsr88d/rpg/ccb_header.hpp
                    include/scwx/wsr88d/rpg/radar_coded_message.hpp
                    include/scwx/wsr88d/rpg/radial_data_packet.hpp
                    include/scwx/wsr88d/rpg/raster_data_packet.hpp
-                   include/scwx/wsr88d/rpg/scit_forecast_data_packet.hpp
+                   include/scwx/wsr88d/rpg/scit_data_packet.hpp
                    include/scwx/wsr88d/rpg/set_color_level_packet.hpp
                    include/scwx/wsr88d/rpg/special_graphic_symbol_packet.hpp
                    include/scwx/wsr88d/rpg/sti_circle_symbol_packet.hpp
@@ -191,7 +191,7 @@ set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/ccb_header.cpp
                    source/scwx/wsr88d/rpg/radar_coded_message.cpp
                    source/scwx/wsr88d/rpg/radial_data_packet.cpp
                    source/scwx/wsr88d/rpg/raster_data_packet.cpp
-                   source/scwx/wsr88d/rpg/scit_forecast_data_packet.cpp
+                   source/scwx/wsr88d/rpg/scit_data_packet.cpp
                    source/scwx/wsr88d/rpg/set_color_level_packet.cpp
                    source/scwx/wsr88d/rpg/special_graphic_symbol_packet.cpp
                    source/scwx/wsr88d/rpg/sti_circle_symbol_packet.cpp
