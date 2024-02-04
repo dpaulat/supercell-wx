@@ -15,53 +15,45 @@ static const std::string logPrefix_ =
    "scwx::wsr88d::rpg::text_and_special_symbol_packet";
 static const auto logger_ = util::Logger::Create(logPrefix_);
 
-class TextAndSpecialSymbolPacketImpl
+class TextAndSpecialSymbolPacket::Impl
 {
 public:
-   explicit TextAndSpecialSymbolPacketImpl() :
-       packetCode_ {0},
-       lengthOfBlock_ {0},
-       valueOfText_ {0},
-       startI_ {0},
-       startJ_ {0},
-       text_ {}
-   {
-   }
-   ~TextAndSpecialSymbolPacketImpl() = default;
+   explicit Impl() {}
+   ~Impl() = default;
 
-   uint16_t packetCode_;
-   uint16_t lengthOfBlock_;
-   uint16_t valueOfText_;
-   int16_t  startI_;
-   int16_t  startJ_;
+   std::uint16_t packetCode_ {0};
+   std::uint16_t lengthOfBlock_ {0};
+   std::uint16_t valueOfText_ {0};
+   std::int16_t  startI_ {0};
+   std::int16_t  startJ_ {0};
 
-   std::string text_;
+   std::string text_ {};
 };
 
 TextAndSpecialSymbolPacket::TextAndSpecialSymbolPacket() :
-    p(std::make_unique<TextAndSpecialSymbolPacketImpl>())
+    p(std::make_unique<Impl>())
 {
 }
 TextAndSpecialSymbolPacket::~TextAndSpecialSymbolPacket() = default;
 
 TextAndSpecialSymbolPacket::TextAndSpecialSymbolPacket(
-   TextAndSpecialSymbolPacket&&) noexcept                       = default;
+   TextAndSpecialSymbolPacket&&) noexcept = default;
 TextAndSpecialSymbolPacket& TextAndSpecialSymbolPacket::operator=(
    TextAndSpecialSymbolPacket&&) noexcept = default;
 
-uint16_t TextAndSpecialSymbolPacket::packet_code() const
+std::uint16_t TextAndSpecialSymbolPacket::packet_code() const
 {
    return p->packetCode_;
 }
 
-uint16_t TextAndSpecialSymbolPacket::length_of_block() const
+std::uint16_t TextAndSpecialSymbolPacket::length_of_block() const
 {
    return p->lengthOfBlock_;
 }
 
-std::optional<uint16_t> TextAndSpecialSymbolPacket::value_of_text() const
+std::optional<std::uint16_t> TextAndSpecialSymbolPacket::value_of_text() const
 {
-   std::optional<uint16_t> value;
+   std::optional<std::uint16_t> value;
 
    if (p->packetCode_ == 8)
    {
@@ -71,12 +63,12 @@ std::optional<uint16_t> TextAndSpecialSymbolPacket::value_of_text() const
    return value;
 }
 
-int16_t TextAndSpecialSymbolPacket::start_i() const
+std::int16_t TextAndSpecialSymbolPacket::start_i() const
 {
    return p->startI_;
 }
 
-int16_t TextAndSpecialSymbolPacket::start_j() const
+std::int16_t TextAndSpecialSymbolPacket::start_j() const
 {
    return p->startJ_;
 }
@@ -86,7 +78,43 @@ std::string TextAndSpecialSymbolPacket::text() const
    return p->text_;
 }
 
-size_t TextAndSpecialSymbolPacket::data_size() const
+SpecialSymbol TextAndSpecialSymbolPacket::special_symbol() const
+{
+   SpecialSymbol symbol = SpecialSymbol::None;
+
+   if (!p->text_.empty())
+   {
+      switch (p->text_.at(0))
+      {
+      case '!': // 0x21
+         symbol = SpecialSymbol::PastStormCellPosition;
+         break;
+
+      case '"': // 0x22
+         symbol = SpecialSymbol::CurrentStormCellPosition;
+         break;
+
+      case '#': // 0x23
+         symbol = SpecialSymbol::ForecastStormCellPosition;
+         break;
+
+      case '$': // 0x24
+         symbol = SpecialSymbol::PastMdaPosition;
+         break;
+
+      case '%': // 0x25
+         symbol = SpecialSymbol::ForecastMdaPosition;
+         break;
+
+      default:
+         break;
+      }
+   }
+
+   return symbol;
+}
+
+std::size_t TextAndSpecialSymbolPacket::data_size() const
 {
    return p->lengthOfBlock_ + 4u;
 }
