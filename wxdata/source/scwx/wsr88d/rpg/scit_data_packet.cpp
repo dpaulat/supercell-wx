@@ -1,4 +1,5 @@
 #include <scwx/wsr88d/rpg/scit_data_packet.hpp>
+#include <scwx/wsr88d/rpg/packet_factory.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <istream>
@@ -20,11 +21,10 @@ static const std::set<std::uint16_t> packetCodes_ = {23, 24};
 class ScitDataPacket::Impl
 {
 public:
-   explicit Impl() : data_ {}, recordCount_ {0} {}
+   explicit Impl() {}
    ~Impl() = default;
 
-   std::vector<std::uint8_t> data_;
-   size_t                    recordCount_;
+   std::vector<std::shared_ptr<Packet>> packetList_ {};
 };
 
 ScitDataPacket::ScitDataPacket() : p(std::make_unique<Impl>()) {}
@@ -33,14 +33,14 @@ ScitDataPacket::~ScitDataPacket() = default;
 ScitDataPacket::ScitDataPacket(ScitDataPacket&&) noexcept            = default;
 ScitDataPacket& ScitDataPacket::operator=(ScitDataPacket&&) noexcept = default;
 
-const std::vector<std::uint8_t>& ScitDataPacket::data() const
+std::vector<std::shared_ptr<Packet>> ScitDataPacket::packet_list() const
 {
-   return p->data_;
+   return p->packetList_;
 }
 
 size_t ScitDataPacket::RecordCount() const
 {
-   return p->recordCount_;
+   return p->packetList_.size();
 }
 
 bool ScitDataPacket::ParseData(std::istream& is)
@@ -55,9 +55,42 @@ bool ScitDataPacket::ParseData(std::istream& is)
 
    if (blockValid)
    {
-      p->recordCount_ = length_of_block();
-      p->data_.resize(p->recordCount_);
-      is.read(reinterpret_cast<char*>(p->data_.data()), p->recordCount_);
+      std::uint32_t  bytesRead     = 0;
+      std::uint32_t  lengthOfBlock = length_of_block();
+      std::streampos dataStart     = is.tellg();
+      std::streampos dataEnd =
+         dataStart + static_cast<std::streamoff>(lengthOfBlock);
+
+      while (bytesRead < lengthOfBlock)
+      {
+         std::shared_ptr<Packet> packet = PacketFactory::Create(is);
+         if (packet != nullptr)
+         {
+            p->packetList_.push_back(packet);
+            bytesRead += static_cast<std::uint32_t>(packet->data_size());
+         }
+         else
+         {
+            break;
+         }
+      }
+
+      if (bytesRead < lengthOfBlock)
+      {
+         logger_->trace("Block bytes read smaller than size: {} < {} bytes",
+                        bytesRead,
+                        lengthOfBlock);
+         blockValid = false;
+         is.seekg(dataEnd, std::ios_base::beg);
+      }
+      if (bytesRead > lengthOfBlock)
+      {
+         logger_->warn("Block bytes read larger than size: {} > {} bytes",
+                       bytesRead,
+                       lengthOfBlock);
+         blockValid = false;
+         is.seekg(dataEnd, std::ios_base::beg);
+      }
    }
 
    return blockValid;

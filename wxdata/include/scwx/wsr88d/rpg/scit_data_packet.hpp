@@ -24,7 +24,7 @@ public:
    ScitDataPacket(ScitDataPacket&&) noexcept;
    ScitDataPacket& operator=(ScitDataPacket&&) noexcept;
 
-   const std::vector<std::uint8_t>& data() const;
+   std::vector<std::shared_ptr<Packet>> packet_list() const;
 
    std::size_t RecordCount() const override;
 
