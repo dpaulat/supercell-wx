@@ -8,6 +8,7 @@
 #include <scwx/qt/map/layer_wrapper.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/overlay_layer.hpp>
+#include <scwx/qt/map/overlay_product_layer.hpp>
 #include <scwx/qt/map/placefile_layer.hpp>
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
@@ -181,12 +182,13 @@ public:
       manager::PlacefileManager::Instance()};
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
-   std::shared_ptr<RadarProductLayer> radarProductLayer_;
-   std::shared_ptr<AlertLayer>        alertLayer_;
-   std::shared_ptr<OverlayLayer>      overlayLayer_;
-   std::shared_ptr<PlacefileLayer>    placefileLayer_;
-   std::shared_ptr<ColorTableLayer>   colorTableLayer_;
-   std::shared_ptr<RadarSiteLayer>    radarSiteLayer_ {nullptr};
+   std::shared_ptr<RadarProductLayer>   radarProductLayer_;
+   std::shared_ptr<AlertLayer>          alertLayer_;
+   std::shared_ptr<OverlayLayer>        overlayLayer_;
+   std::shared_ptr<OverlayProductLayer> overlayProductLayer_ {nullptr};
+   std::shared_ptr<PlacefileLayer>      placefileLayer_;
+   std::shared_ptr<ColorTableLayer>     colorTableLayer_;
+   std::shared_ptr<RadarSiteLayer>      radarSiteLayer_ {nullptr};
 
    std::list<std::shared_ptr<PlacefileLayer>> placefileLayers_ {};
 
@@ -912,6 +914,16 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
    {
       switch (std::get<types::DataLayer>(description))
       {
+      // If there is a radar product view, create the overlay product layer
+      case types::DataLayer::OverlayProduct:
+         if (radarProductView != nullptr)
+         {
+            overlayProductLayer_ =
+               std::make_shared<OverlayProductLayer>(context_);
+            AddLayer(layerName, overlayProductLayer_, before);
+         }
+         break;
+
       // If there is a radar product view, create the radar range layer
       case types::DataLayer::RadarRange:
          if (radarProductView != nullptr)

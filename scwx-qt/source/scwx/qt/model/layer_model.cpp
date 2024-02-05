@@ -43,6 +43,7 @@ static const std::vector<types::LayerInfo> kDefaultLayers_ {
     types::InformationLayer::RadarSite,
     false,
     {false, false, false, false}},
+   {types::LayerType::Data, types::DataLayer::OverlayProduct, true},
    {types::LayerType::Data, types::DataLayer::RadarRange, true},
    {types::LayerType::Alert, awips::Phenomenon::Tornado, true},
    {types::LayerType::Alert, awips::Phenomenon::SnowSquall, true},
