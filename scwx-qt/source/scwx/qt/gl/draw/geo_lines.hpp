@@ -14,17 +14,17 @@ namespace gl
 namespace draw
 {
 
-class GeoLine : public DrawItem
+class GeoLines : public DrawItem
 {
 public:
-   explicit GeoLine(std::shared_ptr<GlContext> context);
-   ~GeoLine();
+   explicit GeoLines(std::shared_ptr<GlContext> context);
+   ~GeoLines();
 
-   GeoLine(const GeoLine&)            = delete;
-   GeoLine& operator=(const GeoLine&) = delete;
+   GeoLines(const GeoLines&)            = delete;
+   GeoLines& operator=(const GeoLines&) = delete;
 
-   GeoLine(GeoLine&&) noexcept;
-   GeoLine& operator=(GeoLine&&) noexcept;
+   GeoLines(GeoLines&&) noexcept;
+   GeoLines& operator=(GeoLines&&) noexcept;
 
    void Initialize() override;
    void Render(const QMapLibreGL::CustomLayerRenderParameters& params) override;

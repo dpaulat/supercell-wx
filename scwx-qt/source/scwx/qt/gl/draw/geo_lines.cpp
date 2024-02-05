@@ -1,4 +1,4 @@
-#include <scwx/qt/gl/draw/geo_line.hpp>
+#include <scwx/qt/gl/draw/geo_lines.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/common/geographic.hpp>
@@ -16,7 +16,7 @@ namespace gl
 namespace draw
 {
 
-static const std::string logPrefix_ = "scwx::qt::gl::draw::geo_line";
+static const std::string logPrefix_ = "scwx::qt::gl::draw::geo_lines";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr size_t kNumRectangles        = 1;
@@ -29,7 +29,7 @@ static constexpr size_t kBufferLength =
 
 static const std::string kTextureName = "lines/default-1x7";
 
-class GeoLine::Impl
+class GeoLines::Impl
 {
 public:
    explicit Impl(std::shared_ptr<GlContext> context) :
@@ -79,16 +79,16 @@ public:
    void Update();
 };
 
-GeoLine::GeoLine(std::shared_ptr<GlContext> context) :
+GeoLines::GeoLines(std::shared_ptr<GlContext> context) :
     DrawItem(context->gl()), p(std::make_unique<Impl>(context))
 {
 }
-GeoLine::~GeoLine() = default;
+GeoLines::~GeoLines() = default;
 
-GeoLine::GeoLine(GeoLine&&) noexcept            = default;
-GeoLine& GeoLine::operator=(GeoLine&&) noexcept = default;
+GeoLines::GeoLines(GeoLines&&) noexcept            = default;
+GeoLines& GeoLines::operator=(GeoLines&&) noexcept = default;
 
-void GeoLine::Initialize()
+void GeoLines::Initialize()
 {
    gl::OpenGLFunctions& gl = p->context_->gl();
 
@@ -166,7 +166,7 @@ void GeoLine::Initialize()
    p->dirty_ = true;
 }
 
-void GeoLine::Render(const QMapLibreGL::CustomLayerRenderParameters& params)
+void GeoLines::Render(const QMapLibreGL::CustomLayerRenderParameters& params)
 {
    if (p->visible_)
    {
@@ -186,7 +186,7 @@ void GeoLine::Render(const QMapLibreGL::CustomLayerRenderParameters& params)
    }
 }
 
-void GeoLine::Deinitialize()
+void GeoLines::Deinitialize()
 {
    gl::OpenGLFunctions& gl = p->context_->gl();
 
@@ -194,10 +194,10 @@ void GeoLine::Deinitialize()
    gl.glDeleteBuffers(1, &p->vbo_);
 }
 
-void GeoLine::SetPoints(float latitude1,
-                        float longitude1,
-                        float latitude2,
-                        float longitude2)
+void GeoLines::SetPoints(float latitude1,
+                         float longitude1,
+                         float latitude2,
+                         float longitude2)
 {
    if (p->points_[0].latitude_ != latitude1 ||
        p->points_[0].longitude_ != longitude1 ||
@@ -221,7 +221,7 @@ void GeoLine::SetPoints(float latitude1,
    }
 }
 
-void GeoLine::SetModulateColor(boost::gil::rgba8_pixel_t color)
+void GeoLines::SetModulateColor(boost::gil::rgba8_pixel_t color)
 {
    if (p->modulateColor_ != color)
    {
@@ -230,7 +230,7 @@ void GeoLine::SetModulateColor(boost::gil::rgba8_pixel_t color)
    }
 }
 
-void GeoLine::SetWidth(float width)
+void GeoLines::SetWidth(float width)
 {
    if (p->width_ != width)
    {
@@ -239,12 +239,12 @@ void GeoLine::SetWidth(float width)
    }
 }
 
-void GeoLine::SetVisible(bool visible)
+void GeoLines::SetVisible(bool visible)
 {
    p->visible_ = visible;
 }
 
-void GeoLine::Impl::Update()
+void GeoLines::Impl::Update()
 {
    if (dirty_)
    {
