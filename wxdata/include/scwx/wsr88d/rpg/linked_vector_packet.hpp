@@ -6,6 +6,8 @@
 #include <memory>
 #include <optional>
 
+#include <units/length.h>
+
 namespace scwx
 {
 namespace wsr88d
@@ -21,17 +23,27 @@ public:
    explicit LinkedVectorPacket();
    ~LinkedVectorPacket();
 
-   LinkedVectorPacket(const LinkedVectorPacket&) = delete;
+   LinkedVectorPacket(const LinkedVectorPacket&)            = delete;
    LinkedVectorPacket& operator=(const LinkedVectorPacket&) = delete;
 
    LinkedVectorPacket(LinkedVectorPacket&&) noexcept;
    LinkedVectorPacket& operator=(LinkedVectorPacket&&) noexcept;
 
-   uint16_t                packet_code() const override;
-   uint16_t                length_of_block() const;
-   std::optional<uint16_t> value_of_vector() const;
+   std::uint16_t                packet_code() const override;
+   std::uint16_t                length_of_block() const;
+   std::optional<std::uint16_t> value_of_vector() const;
 
-   size_t data_size() const override;
+   std::int16_t              start_i() const;
+   std::int16_t              start_j() const;
+   std::vector<std::int16_t> end_i() const;
+   std::vector<std::int16_t> end_j() const;
+
+   units::kilometers<double>              start_i_km() const;
+   units::kilometers<double>              start_j_km() const;
+   std::vector<units::kilometers<double>> end_i_km() const;
+   std::vector<units::kilometers<double>> end_j_km() const;
+
+   std::size_t data_size() const override;
 
    bool Parse(std::istream& is) override;
 
