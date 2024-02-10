@@ -50,6 +50,19 @@ units::angle::degrees<double>
 GetAngle(double lat1, double lon1, double lat2, double lon2);
 
 /**
+ * Get a coordinate from an (i, j) offset.
+ *
+ * @param [in] center The center coordinate from which i and j are offset
+ * @param [in] i The easting offset in meters
+ * @param [in] j The northing offset in meters
+ * 
+ * @return offset coordinate
+ */
+common::Coordinate GetCoordinate(const common::Coordinate& center,
+                                 units::meters<double>     i,
+                                 units::meters<double>     j);
+
+/**
  * Get the distance between two points.
  *
  * @param [in] lat1 latitude of point 1 (degrees)
