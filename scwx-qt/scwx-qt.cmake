@@ -63,6 +63,7 @@ set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
                 source/scwx/qt/gl/draw/geo_icons.hpp
                 source/scwx/qt/gl/draw/geo_lines.hpp
                 source/scwx/qt/gl/draw/icons.hpp
+                source/scwx/qt/gl/draw/linked_vectors.hpp
                 source/scwx/qt/gl/draw/placefile_icons.hpp
                 source/scwx/qt/gl/draw/placefile_images.hpp
                 source/scwx/qt/gl/draw/placefile_lines.hpp
@@ -74,6 +75,7 @@ set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
                 source/scwx/qt/gl/draw/geo_icons.cpp
                 source/scwx/qt/gl/draw/geo_lines.cpp
                 source/scwx/qt/gl/draw/icons.cpp
+                source/scwx/qt/gl/draw/linked_vectors.cpp
                 source/scwx/qt/gl/draw/placefile_icons.cpp
                 source/scwx/qt/gl/draw/placefile_images.cpp
                 source/scwx/qt/gl/draw/placefile_lines.cpp

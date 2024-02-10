@@ -123,6 +123,17 @@ GeoLines::~GeoLines() = default;
 GeoLines::GeoLines(GeoLines&&) noexcept            = default;
 GeoLines& GeoLines::operator=(GeoLines&&) noexcept = default;
 
+void GeoLines::set_selected_time(
+   std::chrono::system_clock::time_point selectedTime)
+{
+   p->selectedTime_ = selectedTime;
+}
+
+void GeoLines::set_thresholded(bool thresholded)
+{
+   p->thresholded_ = thresholded;
+}
+
 void GeoLines::Initialize()
 {
    gl::OpenGLFunctions& gl = p->context_->gl();
