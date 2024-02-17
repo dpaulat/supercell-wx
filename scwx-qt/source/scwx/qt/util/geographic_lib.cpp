@@ -92,6 +92,23 @@ GetAngle(double lat1, double lon1, double lat2, double lon2)
    return units::angle::degrees<double> {azi1};
 }
 
+common::Coordinate GetCoordinate(const common::Coordinate&     center,
+                                 units::angle::degrees<double> angle,
+                                 units::length::meters<double> distance)
+{
+   double latitude;
+   double longitude;
+
+   DefaultGeodesic().Direct(center.latitude_,
+                            center.longitude_,
+                            angle.value(),
+                            distance.value(),
+                            latitude,
+                            longitude);
+
+   return {latitude, longitude};
+}
+
 common::Coordinate GetCoordinate(const common::Coordinate& center,
                                  units::meters<double>     i,
                                  units::meters<double>     j)

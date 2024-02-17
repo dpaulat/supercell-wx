@@ -69,6 +69,10 @@ public:
 
    std::vector<std::shared_ptr<LinkedVectorDrawItem>> vectorList_ {};
    std::shared_ptr<GeoLines>                          geoLines_;
+
+   bool                                  ticksEnabled_ {false};
+   units::length::nautical_miles<double> tickRadius_ {1.0};
+   units::length::nautical_miles<double> tickRadiusIncrement_ {1.0};
 };
 
 LinkedVectors::LinkedVectors(std::shared_ptr<GlContext> context) :
@@ -179,14 +183,19 @@ void LinkedVectors::FinishVectors()
    {
       for (auto& di : p->vectorList_)
       {
+         auto tickRadius = p->tickRadius_;
+
          for (std::size_t i = 0; i < di->coordinates_.size() - 1; ++i)
          {
             auto borderLine = p->geoLines_->AddLine();
 
-            const double& latitude1  = di->coordinates_[i].latitude_;
-            const double& longitude1 = di->coordinates_[i].longitude_;
-            const double& latitude2  = di->coordinates_[i + 1].latitude_;
-            const double& longitude2 = di->coordinates_[i + 1].longitude_;
+            const common::Coordinate& coordinate1 = di->coordinates_[i];
+            const common::Coordinate& coordinate2 = di->coordinates_[i + 1];
+
+            const double& latitude1  = coordinate1.latitude_;
+            const double& longitude1 = coordinate1.longitude_;
+            const double& latitude2  = coordinate2.latitude_;
+            const double& longitude2 = coordinate2.longitude_;
 
             GeoLines::SetLineLocation(
                borderLine, latitude1, longitude1, latitude2, longitude2);
@@ -197,6 +206,36 @@ void LinkedVectors::FinishVectors()
             GeoLines::SetLineHoverText(borderLine, di->hoverText_);
 
             di->borderDrawItems_.emplace_back(std::move(borderLine));
+
+            if (p->ticksEnabled_)
+            {
+               auto angle = util::GeographicLib::GetAngle(
+                  latitude1, longitude1, latitude2, longitude2);
+               auto angle1 = angle + units::angle::degrees<double>(90.0);
+               auto angle2 = angle - units::angle::degrees<double>(90.0);
+
+               auto tickCoord1 = util::GeographicLib::GetCoordinate(
+                  coordinate2, angle1, tickRadius);
+               auto tickCoord2 = util::GeographicLib::GetCoordinate(
+                  coordinate2, angle2, tickRadius);
+
+               const double& tickLat1 = tickCoord1.latitude_;
+               const double& tickLon1 = tickCoord1.longitude_;
+               const double& tickLat2 = tickCoord2.latitude_;
+               const double& tickLon2 = tickCoord2.longitude_;
+
+               auto tickBorderLine = p->geoLines_->AddLine();
+
+               GeoLines::SetLineLocation(
+                  tickBorderLine, tickLat1, tickLon1, tickLat2, tickLon2);
+
+               GeoLines::SetLineModulate(tickBorderLine, kBlack);
+               GeoLines::SetLineWidth(tickBorderLine, di->width_ + 2.0f);
+               GeoLines::SetLineVisible(tickBorderLine, di->visible_);
+               GeoLines::SetLineHoverText(tickBorderLine, di->hoverText_);
+
+               tickRadius += p->tickRadiusIncrement_;
+            }
          }
       }
    }
@@ -204,14 +243,19 @@ void LinkedVectors::FinishVectors()
    // Generate geo lines
    for (auto& di : p->vectorList_)
    {
+      auto tickRadius = p->tickRadius_;
+
       for (std::size_t i = 0; i < di->coordinates_.size() - 1; ++i)
       {
          auto geoLine = p->geoLines_->AddLine();
 
-         const double& latitude1  = di->coordinates_[i].latitude_;
-         const double& longitude1 = di->coordinates_[i].longitude_;
-         const double& latitude2  = di->coordinates_[i + 1].latitude_;
-         const double& longitude2 = di->coordinates_[i + 1].longitude_;
+         const common::Coordinate& coordinate1 = di->coordinates_[i];
+         const common::Coordinate& coordinate2 = di->coordinates_[i + 1];
+
+         const double& latitude1  = coordinate1.latitude_;
+         const double& longitude1 = coordinate1.longitude_;
+         const double& latitude2  = coordinate2.latitude_;
+         const double& longitude2 = coordinate2.longitude_;
 
          GeoLines::SetLineLocation(
             geoLine, latitude1, longitude1, latitude2, longitude2);
@@ -227,6 +271,41 @@ void LinkedVectors::FinishVectors()
          }
 
          di->lineDrawItems_.emplace_back(std::move(geoLine));
+
+         if (p->ticksEnabled_)
+         {
+            auto angle = util::GeographicLib::GetAngle(
+               latitude1, longitude1, latitude2, longitude2);
+            auto angle1 = angle + units::angle::degrees<double>(90.0);
+            auto angle2 = angle - units::angle::degrees<double>(90.0);
+
+            auto tickCoord1 = util::GeographicLib::GetCoordinate(
+               coordinate2, angle1, tickRadius);
+            auto tickCoord2 = util::GeographicLib::GetCoordinate(
+               coordinate2, angle2, tickRadius);
+
+            const double& tickLat1 = tickCoord1.latitude_;
+            const double& tickLon1 = tickCoord1.longitude_;
+            const double& tickLat2 = tickCoord2.latitude_;
+            const double& tickLon2 = tickCoord2.longitude_;
+
+            auto tickGeoLine = p->geoLines_->AddLine();
+
+            GeoLines::SetLineLocation(
+               tickGeoLine, tickLat1, tickLon1, tickLat2, tickLon2);
+
+            GeoLines::SetLineModulate(tickGeoLine, di->modulate_);
+            GeoLines::SetLineWidth(tickGeoLine, di->width_);
+            GeoLines::SetLineVisible(tickGeoLine, di->visible_);
+
+            // If the border is not enabled, this line must have hover text
+            if (!p->borderEnabled_)
+            {
+               GeoLines::SetLineHoverText(tickGeoLine, di->hoverText_);
+            }
+
+            tickRadius += p->tickRadiusIncrement_;
+         }
       }
    }
 
