@@ -3,7 +3,9 @@
 #include <scwx/qt/gl/draw/icons.hpp>
 #include <scwx/qt/gl/draw/rectangle.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
+#include <scwx/qt/map/map_settings.hpp>
 #include <scwx/qt/types/texture_types.hpp>
+#include <scwx/qt/view/radar_product_view.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 

@@ -1,5 +1,6 @@
 #include <scwx/qt/map/color_table_layer.hpp>
 #include <scwx/qt/gl/shader_program.hpp>
+#include <scwx/qt/view/radar_product_view.hpp>
 #include <scwx/util/logger.hpp>
 
 #if defined(_MSC_VER)

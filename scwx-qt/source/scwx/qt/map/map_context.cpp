@@ -1,4 +1,6 @@
 #include <scwx/qt/map/map_context.hpp>
+#include <scwx/qt/map/map_settings.hpp>
+#include <scwx/qt/view/radar_product_view.hpp>
 
 namespace scwx
 {

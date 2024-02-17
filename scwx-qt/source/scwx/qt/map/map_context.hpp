@@ -1,8 +1,7 @@
 #pragma once
 
 #include <scwx/qt/gl/gl_context.hpp>
-#include <scwx/qt/map/map_settings.hpp>
-#include <scwx/qt/view/radar_product_view.hpp>
+#include <scwx/common/products.hpp>
 
 #include <QMapLibreGL/QMapLibreGL>
 
@@ -10,8 +9,17 @@ namespace scwx
 {
 namespace qt
 {
+namespace view
+{
+
+class RadarProductView;
+
+} // namespace view
+
 namespace map
 {
+
+struct MapSettings;
 
 class MapContext : public gl::GlContext
 {
