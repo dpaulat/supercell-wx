@@ -126,6 +126,7 @@ void LinkedVectors::StartVectors()
 {
    // Start a new set of geo lines
    p->geoLines_->StartLines();
+   p->vectorList_.clear();
 }
 
 std::shared_ptr<LinkedVectorDrawItem> LinkedVectors::AddVector(
