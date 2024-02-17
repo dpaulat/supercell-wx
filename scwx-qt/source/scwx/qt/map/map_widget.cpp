@@ -442,7 +442,7 @@ std::chrono::system_clock::time_point MapWidget::GetSelectedTime() const
    if (radarProductView != nullptr)
    {
       // Select the time associated with the active radar product
-      time = radarProductView->GetSelectedTime();
+      time = radarProductView->selected_time();
    }
 
    return time;

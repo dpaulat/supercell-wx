@@ -76,8 +76,6 @@ public:
                                 GetDataLevelCode(std::uint16_t level) const = 0;
    virtual std::optional<float> GetDataValue(std::uint16_t level) const     = 0;
 
-   std::chrono::system_clock::time_point GetSelectedTime() const;
-
    virtual std::vector<std::pair<std::string, std::string>>
    GetDescriptionFields() const;
 
