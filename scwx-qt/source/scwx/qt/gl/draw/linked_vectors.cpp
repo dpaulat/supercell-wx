@@ -193,6 +193,7 @@ void LinkedVectors::FinishVectors()
             GeoLines::SetLineModulate(borderLine, kBlack);
             GeoLines::SetLineWidth(borderLine, di->width_ + 2.0f);
             GeoLines::SetLineVisible(borderLine, di->visible_);
+            GeoLines::SetLineHoverText(borderLine, di->hoverText_);
 
             di->borderDrawItems_.emplace_back(std::move(borderLine));
          }
@@ -217,7 +218,12 @@ void LinkedVectors::FinishVectors()
          GeoLines::SetLineModulate(geoLine, di->modulate_);
          GeoLines::SetLineWidth(geoLine, di->width_);
          GeoLines::SetLineVisible(geoLine, di->visible_);
-         GeoLines::SetLineHoverText(geoLine, di->hoverText_);
+
+         // If the border is not enabled, this line must have hover text instead
+         if (!p->borderEnabled_)
+         {
+            GeoLines::SetLineHoverText(geoLine, di->hoverText_);
+         }
 
          di->lineDrawItems_.emplace_back(std::move(geoLine));
       }
