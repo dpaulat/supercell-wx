@@ -21,6 +21,7 @@
 #include <scwx/qt/util/file.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/tooltip.hpp>
+#include <scwx/qt/view/overlay_product_view.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
@@ -88,6 +89,14 @@ public:
        prevBearing_ {0.0},
        prevPitch_ {0.0}
    {
+      // Create views
+      auto overlayProductView = std::make_shared<view::OverlayProductView>();
+      overlayProductView->SetAutoRefresh(autoRefreshEnabled_);
+      overlayProductView->SetAutoUpdate(autoUpdateEnabled_);
+
+      // Initialize context
+      context_->set_overlay_product_view(overlayProductView);
+
       auto& generalSettings = settings::GeneralSettings::Instance();
 
       SetRadarSite(generalSettings.default_radar_site().GetValue());
@@ -621,6 +630,9 @@ void MapWidget::SelectTime(std::chrono::system_clock::time_point time)
 {
    auto radarProductView = p->context_->radar_product_view();
 
+   // Update other views
+   p->context_->overlay_product_view()->SelectTime(time);
+
    // If there is an active radar product view
    if (radarProductView != nullptr)
    {
@@ -654,12 +666,16 @@ void MapWidget::SetAutoRefresh(bool enabled)
             true,
             p->uuid_);
       }
+
+      p->context_->overlay_product_view()->SetAutoRefresh(enabled);
    }
 }
 
 void MapWidget::SetAutoUpdate(bool enabled)
 {
    p->autoUpdateEnabled_ = enabled;
+
+   p->context_->overlay_product_view()->SetAutoUpdate(enabled);
 }
 
 void MapWidget::SetMapLocation(double latitude,
@@ -1504,6 +1520,10 @@ void MapWidgetImpl::SetRadarSite(const std::string& radarSite)
 
       // Set new RadarProductManager
       radarProductManager_ = manager::RadarProductManager::Instance(radarSite);
+
+      // Update views
+      context_->overlay_product_view()->set_radar_product_manager(
+         radarProductManager_);
 
       // Connect signals to new RadarProductManager
       RadarProductManagerConnect();
