@@ -34,7 +34,9 @@ struct LinkedVectorDrawItem
          boost::make_zip_iterator(
             boost::make_tuple(endI.begin(), endJ.begin())),
          boost::make_zip_iterator(boost::make_tuple(endI.end(), endJ.end())),
-         [this, &center](const auto& p)
+         [this,
+          &center](const boost::tuple<units::length::kilometers<double>,
+                                      units::length::kilometers<double>>& p)
          {
             coordinates_.push_back(util::GeographicLib::GetCoordinate(
                center, p.get<0>(), p.get<1>()));
