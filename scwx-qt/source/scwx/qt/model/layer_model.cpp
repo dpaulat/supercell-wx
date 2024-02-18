@@ -43,7 +43,6 @@ static const std::vector<types::LayerInfo> kDefaultLayers_ {
     types::InformationLayer::RadarSite,
     false,
     {false, false, false, false}},
-   {types::LayerType::Data, types::DataLayer::OverlayProduct, true},
    {types::LayerType::Data, types::DataLayer::RadarRange, true},
    {types::LayerType::Alert, awips::Phenomenon::Tornado, true},
    {types::LayerType::Alert, awips::Phenomenon::SnowSquall, true},
@@ -51,6 +50,7 @@ static const std::vector<types::LayerInfo> kDefaultLayers_ {
    {types::LayerType::Alert, awips::Phenomenon::FlashFlood, true},
    {types::LayerType::Alert, awips::Phenomenon::Marine, true},
    {types::LayerType::Map, types::MapLayer::MapSymbology, false},
+   {types::LayerType::Data, types::DataLayer::OverlayProduct, true},
    {types::LayerType::Radar, std::monostate {}, true},
    {types::LayerType::Map, types::MapLayer::MapUnderlay, false},
 };
@@ -244,9 +244,6 @@ void LayerModel::Impl::ValidateLayerSettings(types::LayerVector& layers)
 
    // Validate immovable layers
    std::vector<types::LayerVector::iterator> immovableIterators {};
-   types::LayerVector::iterator              radarSiteIterator {};
-   types::LayerVector::iterator              mapSymbologyIterator {};
-   types::LayerVector::iterator              mapUnderlayIterator {};
    for (auto& immovableLayer : kImmovableLayers_)
    {
       // Set the default displayed state for a layer that is not found
@@ -289,102 +286,35 @@ void LayerModel::Impl::ValidateLayerSettings(types::LayerVector& layers)
          it->displayed_ = displayed;
       }
 
-      // Store positional iterators
-      if (it->type_ == types::LayerType::Information)
-      {
-         switch (std::get<types::InformationLayer>(it->description_))
-         {
-         case types::InformationLayer::RadarSite:
-            radarSiteIterator = it;
-            break;
-
-         default:
-            break;
-         }
-      }
-      else if (it->type_ == types::LayerType::Map)
-      {
-         switch (std::get<types::MapLayer>(it->description_))
-         {
-         case types::MapLayer::MapSymbology:
-            mapSymbologyIterator = it;
-            break;
-
-         case types::MapLayer::MapUnderlay:
-            mapUnderlayIterator = it;
-            break;
-
-         default:
-            break;
-         }
-      }
-
       // Add the immovable iterator to the list
       immovableIterators.push_back(it);
    }
 
-   // Validate data layers
-   std::vector<types::LayerVector::iterator> dataIterators {};
-   for (const auto& dataLayer : types::DataLayerIterator())
+   // Validate the remainder of the default layer list
+   auto previousLayer = layers.end();
+   for (auto defaultIt = kDefaultLayers_.rbegin();
+        defaultIt != kDefaultLayers_.rend();
+        ++defaultIt)
    {
-      // Find the data layer
-      auto it = std::find_if(layers.begin(),
-                             layers.end(),
-                             [&dataLayer](const types::LayerInfo& layer)
-                             {
-                                return layer.type_ == types::LayerType::Data &&
-                                       std::get<types::DataLayer>(
-                                          layer.description_) == dataLayer;
-                             });
+      // Find the default layer in the current layer list
+      auto currentIt =
+         std::find_if(layers.begin(),
+                      layers.end(),
+                      [&defaultIt](const types::LayerInfo& layer)
+                      {
+                         return layer.type_ == defaultIt->type_ &&
+                                layer.description_ == defaultIt->description_;
+                      });
 
-      if (it == layers.end())
+      // If the default layer was not found in the current layer list
+      if (currentIt == layers.end())
       {
-         // If this is the first data layer, insert after the radar site layer,
-         // otherwise, insert after the previous data layer
-         types::LayerVector::iterator insertPosition =
-            dataIterators.empty() ? radarSiteIterator + 1 :
-                                    dataIterators.back() + 1;
-         it =
-            layers.insert(insertPosition, {types::LayerType::Data, dataLayer});
+         // Insert before the previously found layer
+         currentIt = layers.insert(previousLayer, *defaultIt);
       }
 
-      dataIterators.push_back(it);
-   }
-
-   // Validate alert layers
-   std::vector<types::LayerVector::iterator> alertIterators {};
-   for (auto& phenomenon : kAlertPhenomena_)
-   {
-      // Find the alert layer
-      auto it = std::find_if(layers.begin(),
-                             layers.end(),
-                             [&phenomenon](const types::LayerInfo& layer)
-                             {
-                                return layer.type_ == types::LayerType::Alert &&
-                                       std::get<awips::Phenomenon>(
-                                          layer.description_) == phenomenon;
-                             });
-
-      if (it == layers.end())
-      {
-         // Insert before the map symbology layer
-         it = layers.insert(mapSymbologyIterator,
-                            {types::LayerType::Alert, phenomenon});
-      }
-
-      alertIterators.push_back(it);
-   }
-
-   // Validate the radar layer
-   auto it = std::find_if(layers.begin(),
-                          layers.end(),
-                          [](const types::LayerInfo& layer)
-                          { return layer.type_ == types::LayerType::Radar; });
-   if (it == layers.end())
-   {
-      // Insert before the map underlay layer
-      it = layers.insert(mapUnderlayIterator,
-                         {types::LayerType::Radar, std::monostate {}});
+      // Store the current layer as the previous
+      previousLayer = currentIt;
    }
 }
 
