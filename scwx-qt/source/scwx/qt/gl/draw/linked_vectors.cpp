@@ -50,6 +50,10 @@ struct LinkedVectorDrawItem
    float                       width_ {5.0f};
    bool                        visible_ {true};
    std::string                 hoverText_ {};
+
+   bool                                  ticksEnabled_ {false};
+   units::length::nautical_miles<double> tickRadius_ {1.0};
+   units::length::nautical_miles<double> tickRadiusIncrement_ {0.0};
 };
 
 class LinkedVectors::Impl
@@ -69,10 +73,6 @@ public:
 
    std::vector<std::shared_ptr<LinkedVectorDrawItem>> vectorList_ {};
    std::shared_ptr<GeoLines>                          geoLines_;
-
-   bool                                  ticksEnabled_ {false};
-   units::length::nautical_miles<double> tickRadius_ {1.0};
-   units::length::nautical_miles<double> tickRadiusIncrement_ {1.0};
 };
 
 LinkedVectors::LinkedVectors(std::shared_ptr<GlContext> context) :
@@ -176,6 +176,26 @@ void LinkedVectors::SetVectorHoverText(
    di->hoverText_ = text;
 }
 
+void LinkedVectors::SetVectorTicksEnabled(
+   const std::shared_ptr<LinkedVectorDrawItem>& di, bool enabled)
+{
+   di->ticksEnabled_ = enabled;
+}
+
+void LinkedVectors::SetVectorTickRadius(
+   const std::shared_ptr<LinkedVectorDrawItem>& di,
+   units::length::meters<double>                radius)
+{
+   di->tickRadius_ = radius;
+}
+
+void LinkedVectors::SetVectorTickRadiusIncrement(
+   const std::shared_ptr<LinkedVectorDrawItem>& di,
+   units::length::meters<double>                radiusIncrement)
+{
+   di->tickRadiusIncrement_ = radiusIncrement;
+}
+
 void LinkedVectors::FinishVectors()
 {
    // Generate borders
@@ -183,7 +203,7 @@ void LinkedVectors::FinishVectors()
    {
       for (auto& di : p->vectorList_)
       {
-         auto tickRadius = p->tickRadius_;
+         auto tickRadius = di->tickRadius_;
 
          for (std::size_t i = 0; i < di->coordinates_.size() - 1; ++i)
          {
@@ -207,7 +227,7 @@ void LinkedVectors::FinishVectors()
 
             di->borderDrawItems_.emplace_back(std::move(borderLine));
 
-            if (p->ticksEnabled_)
+            if (di->ticksEnabled_)
             {
                auto angle = util::GeographicLib::GetAngle(
                   latitude1, longitude1, latitude2, longitude2);
@@ -234,7 +254,7 @@ void LinkedVectors::FinishVectors()
                GeoLines::SetLineVisible(tickBorderLine, di->visible_);
                GeoLines::SetLineHoverText(tickBorderLine, di->hoverText_);
 
-               tickRadius += p->tickRadiusIncrement_;
+               tickRadius += di->tickRadiusIncrement_;
             }
          }
       }
@@ -243,7 +263,7 @@ void LinkedVectors::FinishVectors()
    // Generate geo lines
    for (auto& di : p->vectorList_)
    {
-      auto tickRadius = p->tickRadius_;
+      auto tickRadius = di->tickRadius_;
 
       for (std::size_t i = 0; i < di->coordinates_.size() - 1; ++i)
       {
@@ -272,7 +292,7 @@ void LinkedVectors::FinishVectors()
 
          di->lineDrawItems_.emplace_back(std::move(geoLine));
 
-         if (p->ticksEnabled_)
+         if (di->ticksEnabled_)
          {
             auto angle = util::GeographicLib::GetAngle(
                latitude1, longitude1, latitude2, longitude2);
@@ -304,7 +324,7 @@ void LinkedVectors::FinishVectors()
                GeoLines::SetLineHoverText(tickGeoLine, di->hoverText_);
             }
 
-            tickRadius += p->tickRadiusIncrement_;
+            tickRadius += di->tickRadiusIncrement_;
          }
       }
    }

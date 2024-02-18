@@ -37,6 +37,7 @@ public:
       const common::Coordinate&                   center,
       const std::string&                          hoverText,
       boost::gil::rgba32f_pixel_t                 color,
+      bool                                        tickRadiusIncrement,
       std::shared_ptr<gl::draw::LinkedVectors>&   linkedVectors);
    static void HandleScitDataPacket(
       const std::shared_ptr<wsr88d::rpg::Packet>& packet,
@@ -220,10 +221,12 @@ void OverlayProductLayer::Impl::HandleScitDataPacket(
    if (scitDataPacket != nullptr)
    {
       boost::gil::rgba32f_pixel_t color {1.0f, 1.0f, 1.0f, 1.0f};
+      bool                        tickRadiusIncrement = true;
       if (scitDataPacket->packet_code() ==
           static_cast<std::uint16_t>(wsr88d::rpg::PacketCode::ScitPastData))
       {
-         color = {0.5f, 0.5f, 0.5f, 1.0f};
+         color               = {0.5f, 0.5f, 0.5f, 1.0f};
+         tickRadiusIncrement = false;
       }
 
       for (auto& subpacket : scitDataPacket->packet_list())
@@ -232,8 +235,12 @@ void OverlayProductLayer::Impl::HandleScitDataPacket(
          {
          case static_cast<std::uint16_t>(
             wsr88d::rpg::PacketCode::LinkedVectorNoValue):
-            HandleLinkedVectorPacket(
-               subpacket, center, stormId, color, linkedVectors);
+            HandleLinkedVectorPacket(subpacket,
+                                     center,
+                                     stormId,
+                                     color,
+                                     tickRadiusIncrement,
+                                     linkedVectors);
             break;
 
          default:
@@ -254,6 +261,7 @@ void OverlayProductLayer::Impl::HandleLinkedVectorPacket(
    const common::Coordinate&                   center,
    const std::string&                          hoverText,
    boost::gil::rgba32f_pixel_t                 color,
+   bool                                        tickRadiusIncrement,
    std::shared_ptr<gl::draw::LinkedVectors>&   linkedVectors)
 {
    auto linkedVectorPacket =
@@ -265,6 +273,20 @@ void OverlayProductLayer::Impl::HandleLinkedVectorPacket(
       gl::draw::LinkedVectors::SetVectorWidth(di, 1.0f);
       gl::draw::LinkedVectors::SetVectorModulate(di, color);
       gl::draw::LinkedVectors::SetVectorHoverText(di, hoverText);
+      gl::draw::LinkedVectors::SetVectorTicksEnabled(di, true);
+      gl::draw::LinkedVectors::SetVectorTickRadius(
+         di, units::length::nautical_miles<double> {1.0});
+
+      if (tickRadiusIncrement)
+      {
+         gl::draw::LinkedVectors::SetVectorTickRadiusIncrement(
+            di, units::length::nautical_miles<double> {1.0});
+      }
+      else
+      {
+         gl::draw::LinkedVectors::SetVectorTickRadiusIncrement(
+            di, units::length::nautical_miles<double> {0.0});
+      }
    }
    else
    {

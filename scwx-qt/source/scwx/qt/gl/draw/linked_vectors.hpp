@@ -4,6 +4,7 @@
 #include <scwx/qt/gl/draw/draw_item.hpp>
 
 #include <boost/gil.hpp>
+#include <units/length.h>
 
 namespace scwx
 {
@@ -130,6 +131,36 @@ public:
    static void
    SetVectorHoverText(const std::shared_ptr<LinkedVectorDrawItem>& di,
                       const std::string&                           text);
+
+   /**
+    * Sets the presence of ticks on the linked vector.
+    *
+    * @param [in] di Linked vector draw item
+    * @param [in] enabled Ticks enabled
+    */
+   static void
+   SetVectorTicksEnabled(const std::shared_ptr<LinkedVectorDrawItem>& di,
+                         bool                                         enabled);
+
+   /**
+    * Sets the tick radius of the linked vector.
+    *
+    * @param [in] di Linked vector draw item
+    * @param [in] radius Length of the tick extending beyond the linked vector
+    */
+   static void
+   SetVectorTickRadius(const std::shared_ptr<LinkedVectorDrawItem>& di,
+                       units::length::meters<double>                radius);
+
+   /**
+    * Sets the tick radius increment of the linked vector.
+    *
+    * @param [in] di Linked vector draw item
+    * @param [in] radiusIncrement Length increment of each tick beyond the first
+    */
+   static void
+   SetVectorTickRadiusIncrement(const std::shared_ptr<LinkedVectorDrawItem>& di,
+                                units::length::meters<double> radiusIncrement);
 
    /**
     * Finalizes the draw item after adding new linked vectors.
