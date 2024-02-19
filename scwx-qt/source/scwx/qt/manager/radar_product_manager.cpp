@@ -62,7 +62,8 @@ static constexpr uint32_t NUM_COORIDNATES_1_DEGREE =
 
 static const std::string kDefaultLevel3Product_ {"N0B"};
 
-static constexpr std::chrono::seconds kRetryInterval_ {15};
+static constexpr std::chrono::seconds kFastRetryInterval_ {15};
+static constexpr std::chrono::seconds kSlowRetryInterval_ {120};
 
 static std::unordered_map<std::string, std::weak_ptr<RadarProductManager>>
                          instanceMap_;
@@ -638,10 +639,12 @@ void RadarProductManagerImpl::RefreshData(
       threadPool_,
       [=, this]()
       {
+         using namespace std::chrono_literals;
+
          auto [newObjects, totalObjects] =
             providerManager->provider_->Refresh();
 
-         std::chrono::milliseconds interval = kRetryInterval_;
+         std::chrono::milliseconds interval = kFastRetryInterval_;
 
          if (totalObjects > 0)
          {
@@ -651,12 +654,25 @@ void RadarProductManagerImpl::RefreshData(
 
             auto updatePeriod = providerManager->provider_->update_period();
             auto lastModified = providerManager->provider_->last_modified();
+            auto sinceLastModified =
+               std::chrono::system_clock::now() - lastModified;
+
+            // For the default interval, assume products are updated at a
+            // constant rate. Expect the next product at a time based on the
+            // previous two.
             interval = std::chrono::duration_cast<std::chrono::milliseconds>(
-               updatePeriod -
-               (std::chrono::system_clock::now() - lastModified));
-            if (interval < std::chrono::milliseconds {kRetryInterval_})
+               updatePeriod - sinceLastModified);
+
+            if (updatePeriod > 0s && sinceLastModified > updatePeriod * 5)
             {
-               interval = kRetryInterval_;
+               // If it has been at least 5 update periods since the file has
+               // been last modified, slow the retry period
+               interval = kSlowRetryInterval_;
+            }
+            else if (interval < std::chrono::milliseconds {kFastRetryInterval_})
+            {
+               // The interval should be no quicker than the fast retry interval
+               interval = kFastRetryInterval_;
             }
 
             if (newObjects > 0)
@@ -669,10 +685,10 @@ void RadarProductManagerImpl::RefreshData(
          }
          else if (providerManager->refreshEnabled_)
          {
-            logger_->info("[{}] No data found, disabling refresh",
-                          providerManager->name());
+            logger_->info("[{}] No data found", providerManager->name());
 
-            providerManager->refreshEnabled_ = false;
+            // If no data is found, retry at the slow retry interval
+            interval = kSlowRetryInterval_;
          }
 
          if (providerManager->refreshEnabled_)
