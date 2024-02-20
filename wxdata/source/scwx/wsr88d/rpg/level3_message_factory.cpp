@@ -5,6 +5,7 @@
 #include <scwx/wsr88d/rpg/general_status_message.hpp>
 #include <scwx/wsr88d/rpg/graphic_product_message.hpp>
 #include <scwx/wsr88d/rpg/radar_coded_message.hpp>
+#include <scwx/wsr88d/rpg/storm_tracking_information_message.hpp>
 #include <scwx/wsr88d/rpg/tabular_product_message.hpp>
 
 #include <unordered_map>
@@ -44,7 +45,7 @@ static const std::unordered_map<int, CreateLevel3MessageFunction> //
             {51, GraphicProductMessage::Create},
             {56, GraphicProductMessage::Create},
             {57, GraphicProductMessage::Create},
-            {58, GraphicProductMessage::Create},
+            {58, StormTrackingInformationMessage::Create},
             {59, GraphicProductMessage::Create},
             {61, GraphicProductMessage::Create},
             {62, TabularProductMessage::Create},
