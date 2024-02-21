@@ -31,6 +31,8 @@ public:
 
    size_t data_size() const override;
 
+   const std::vector<std::vector<std::string>>& page_list() const;
+
    bool Parse(std::istream& is);
    bool Parse(std::istream& is, bool skipHeader);
 
