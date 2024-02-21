@@ -10,6 +10,12 @@
 
 #include <scwx/util/time.hpp>
 
+#include <sstream>
+
+#if !defined(_MSC_VER)
+#   include <date/date.h>
+#endif
+
 namespace scwx
 {
 namespace util
@@ -54,6 +60,34 @@ std::string TimeString(std::chrono::system_clock::time_point time,
 
    return os.str();
 }
+
+template<typename T>
+std::optional<std::chrono::sys_time<T>>
+TryParseDateTime(const std::string& dateTimeFormat, const std::string& str)
+{
+   using namespace std::chrono;
+
+#if !defined(_MSC_VER)
+   using namespace date;
+#endif
+
+   std::optional<std::chrono::sys_time<T>> value = std::nullopt;
+   std::chrono::sys_time<T>                dateTime;
+   std::istringstream                      ssDateTime {str};
+
+   ssDateTime >> parse(dateTimeFormat, dateTime);
+
+   if (!ssDateTime.fail())
+   {
+      value = dateTime;
+   }
+
+   return value;
+}
+
+template std::optional<std::chrono::sys_time<std::chrono::seconds>>
+TryParseDateTime<std::chrono::seconds>(const std::string& dateTimeFormat,
+                                       const std::string& str);
 
 } // namespace util
 } // namespace scwx

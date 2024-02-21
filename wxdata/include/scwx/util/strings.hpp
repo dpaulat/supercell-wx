@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -28,6 +29,9 @@ std::vector<std::string> ParseTokens(const std::string&       s,
                                      std::size_t              pos = 0);
 
 std::string ToString(const std::vector<std::string>& v);
+
+template<typename T>
+std::optional<T> TryParseUnsignedLong(const std::string& str);
 
 } // namespace util
 } // namespace scwx
