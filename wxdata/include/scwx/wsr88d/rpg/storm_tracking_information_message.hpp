@@ -22,21 +22,21 @@ public:
    {
       struct Position
       {
-         std::optional<units::angle::degrees<float>>         azimuth_ {};
-         std::optional<units::length::nautical_miles<float>> range_ {};
+         std::optional<units::angle::degrees<std::uint16_t>> azimuth_ {};
+         std::optional<units::length::nautical_miles<std::uint16_t>> range_ {};
       };
 
-      Position                                     currentPosition_ {};
-      std::optional<units::angle::degrees<float>>  direction_;
-      std::optional<units::velocity::knots<float>> speed_;
+      Position                                             currentPosition_ {};
+      std::optional<units::angle::degrees<std::uint16_t>>  direction_;
+      std::optional<units::velocity::knots<std::uint16_t>> speed_;
 
       std::array<Position, 4> forecastPosition_ {};
 
       std::optional<units::length::nautical_miles<float>> forecastError_ {};
       std::optional<units::length::nautical_miles<float>> meanError_ {};
 
-      std::optional<std::int16_t>               maxDbz_ {};
-      std::optional<units::length::feet<float>> maxDbzHeight_ {};
+      std::optional<std::int16_t>                       maxDbz_ {};
+      std::optional<units::length::feet<std::uint32_t>> maxDbzHeight_ {};
    };
 
    explicit StormTrackingInformationMessage();

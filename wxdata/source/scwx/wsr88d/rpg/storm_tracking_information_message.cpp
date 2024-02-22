@@ -143,9 +143,110 @@ void StormTrackingInformationMessage::Impl::ParseStormPositionForecastPage(
       // clang-format on
       else if (i >= 7 && line.size() >= 80)
       {
-         // TODO: STI Record
          std::string stormId = line.substr(2, 2);
-         (void) (stormId);
+
+         if (std::isupper(stormId[0]) && std::isdigit(stormId[1]))
+         {
+            auto& record = stiRecords_[stormId];
+
+            if (record.currentPosition_.azimuth_ == std::nullopt)
+            {
+               // Current Position: Azimuth (Degrees)
+               auto azimuth =
+                  util::TryParseUnsignedLong<std::uint16_t>(line.substr(9, 3));
+               if (azimuth.has_value())
+               {
+                  record.currentPosition_.azimuth_ =
+                     units::angle::degrees<std::uint16_t> {azimuth.value()};
+               }
+            }
+            if (record.currentPosition_.range_ == std::nullopt)
+            {
+               // Current Position: Range (Nautical Miles)
+               auto range =
+                  util::TryParseUnsignedLong<std::uint16_t>(line.substr(13, 3));
+               if (range.has_value())
+               {
+                  record.currentPosition_.range_ =
+                     units::length::nautical_miles<std::uint16_t> {
+                        range.value()};
+               }
+            }
+            if (record.direction_ == std::nullopt)
+            {
+               // Movement: Direction (Degrees)
+               auto direction =
+                  util::TryParseUnsignedLong<std::uint16_t>(line.substr(19, 3));
+               if (direction.has_value())
+               {
+                  record.direction_ =
+                     units::angle::degrees<std::uint16_t> {direction.value()};
+               }
+            }
+            if (record.speed_ == std::nullopt)
+            {
+               // Movement: Speed (Knots)
+               auto speed =
+                  util::TryParseUnsignedLong<std::uint16_t>(line.substr(23, 3));
+               if (speed.has_value())
+               {
+                  record.speed_ =
+                     units::velocity::knots<std::uint16_t> {speed.value()};
+               }
+            }
+            for (std::size_t j = 0; j < record.forecastPosition_.size(); ++j)
+            {
+               const std::size_t positionOffset = j * 10;
+
+               if (record.forecastPosition_[j].azimuth_ == std::nullopt)
+               {
+                  // Forecast Position: Azimuth (Degrees)
+                  std::size_t offset = 31 + positionOffset;
+
+                  auto azimuth = util::TryParseUnsignedLong<std::uint16_t>(
+                     line.substr(offset, 3));
+                  if (azimuth.has_value())
+                  {
+                     record.forecastPosition_[j].azimuth_ =
+                        units::angle::degrees<std::uint16_t> {azimuth.value()};
+                  }
+               }
+               if (record.forecastPosition_[j].range_ == std::nullopt)
+               {
+                  // Forecast Position: Range (Nautical Miles)
+                  std::size_t offset = 35 + positionOffset;
+
+                  auto range = util::TryParseUnsignedLong<std::uint16_t>(
+                     line.substr(offset, 3));
+                  if (range.has_value())
+                  {
+                     record.forecastPosition_[j].range_ =
+                        units::length::nautical_miles<std::uint16_t> {
+                           range.value()};
+                  }
+               }
+            }
+            if (record.forecastError_ == std::nullopt)
+            {
+               // Forecast Error (Nautical Miles)
+               auto forecastError = util::TryParseFloat(line.substr(71, 4));
+               if (forecastError.has_value())
+               {
+                  record.forecastError_ = units::length::nautical_miles<float> {
+                     forecastError.value()};
+               }
+            }
+            if (record.meanError_ == std::nullopt)
+            {
+               // Mean Error (Nautical Miles)
+               auto meanError = util::TryParseFloat(line.substr(76, 4));
+               if (meanError.has_value())
+               {
+                  record.meanError_ =
+                     units::length::nautical_miles<float> {meanError.value()};
+               }
+            }
+         }
       }
    }
 }

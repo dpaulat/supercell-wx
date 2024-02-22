@@ -88,6 +88,21 @@ std::string ToString(const std::vector<std::string>& v)
    return value;
 }
 
+std::optional<float> TryParseFloat(const std::string& str)
+{
+   std::optional<float> value = std::nullopt;
+
+   try
+   {
+      value = static_cast<float>(std::stof(str));
+   }
+   catch (const std::exception&)
+   {
+   }
+
+   return value;
+}
+
 template<typename T>
 std::optional<T> TryParseUnsignedLong(const std::string& str)
 {

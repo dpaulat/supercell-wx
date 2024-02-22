@@ -30,6 +30,8 @@ std::vector<std::string> ParseTokens(const std::string&       s,
 
 std::string ToString(const std::vector<std::string>& v);
 
+std::optional<float> TryParseFloat(const std::string& str);
+
 template<typename T>
 std::optional<T> TryParseUnsignedLong(const std::string& str);
 
