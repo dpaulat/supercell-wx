@@ -137,77 +137,78 @@ void OverlayProductView::Impl::LoadProduct(
 
    if (autoUpdate)
    {
-      connect(request.get(),
-              &request::NexradFileRequest::RequestComplete,
-              self_,
-              [=, this](std::shared_ptr<request::NexradFileRequest> request)
-              {
-                 using namespace std::chrono_literals;
+      connect(
+         request.get(),
+         &request::NexradFileRequest::RequestComplete,
+         self_,
+         [=, this](std::shared_ptr<request::NexradFileRequest> request)
+         {
+            using namespace std::chrono_literals;
 
-                 // Select loaded record
-                 const auto& record = request->radar_product_record();
+            // Select loaded record
+            const auto& record = request->radar_product_record();
 
-                 // Validate record
-                 if (record != nullptr)
-                 {
-                    auto productTime = record->time();
-                    auto level3File  = record->level3_file();
-                    if (level3File != nullptr)
-                    {
-                       const auto& header = level3File->message()->header();
-                       productTime =
-                          util::TimePoint(header.date_of_message(),
-                                          header.time_of_message() * 1000);
-                    }
+            // Validate record
+            if (record != nullptr)
+            {
+               auto productTime = record->time();
+               auto level3File  = record->level3_file();
+               if (level3File != nullptr)
+               {
+                  const auto& header = level3File->message()->header();
+                  productTime        = util::TimePoint(
+                     header.date_of_message(), header.time_of_message() * 1000);
+               }
 
-                    // If the record is from the last 30 minutes
-                    if (productTime + 30min >= time ||
-                        productTime + 30min >= std::chrono::system_clock::now())
-                    {
-                       // Store loaded record
-                       std::unique_lock lock {recordMutex_};
+               // If the record is from the last 30 minutes
+               if (productTime + 30min >= std::chrono::system_clock::now() ||
+                   (selectedTime_ != std::chrono::system_clock::time_point {} &&
+                    productTime + 30min >= selectedTime_))
+               {
+                  // Store loaded record
+                  std::unique_lock lock {recordMutex_};
 
-                       auto it = recordMap_.find(product);
-                       if (it == recordMap_.cend() || it->second != record)
-                       {
-                          recordMap_.insert_or_assign(product, record);
+                  auto it = recordMap_.find(product);
+                  if (it == recordMap_.cend() || it->second != record)
+                  {
+                     recordMap_.insert_or_assign(product, record);
 
-                          lock.unlock();
+                     lock.unlock();
 
-                          Q_EMIT self_->ProductUpdated(product);
-                       }
-                    }
-                    else
-                    {
-                       // If product is more than 30 minutes old, discard
-                       std::unique_lock lock {recordMutex_};
-                       std::size_t elementsRemoved = recordMap_.erase(product);
-                       lock.unlock();
+                     Q_EMIT self_->ProductUpdated(product);
+                  }
+               }
+               else
+               {
+                  // If product is more than 30 minutes old, discard
+                  std::unique_lock lock {recordMutex_};
+                  std::size_t      elementsRemoved = recordMap_.erase(product);
+                  lock.unlock();
 
-                       if (elementsRemoved > 0)
-                       {
-                          Q_EMIT self_->ProductUpdated(product);
-                       }
+                  if (elementsRemoved > 0)
+                  {
+                     Q_EMIT self_->ProductUpdated(product);
+                  }
 
-                       logger_->trace("Discarding stale data: {}",
-                                      util::TimeString(productTime));
-                    }
-                 }
-                 else
-                 {
-                    // If the product doesn't exist, erase the stale product
-                    std::unique_lock lock {recordMutex_};
-                    std::size_t elementsRemoved = recordMap_.erase(product);
-                    lock.unlock();
+                  logger_->trace("Discarding stale data: {}",
+                                 util::TimeString(productTime));
+               }
+            }
+            else
+            {
+               // If the product doesn't exist, erase the stale product
+               std::unique_lock lock {recordMutex_};
+               std::size_t      elementsRemoved = recordMap_.erase(product);
+               lock.unlock();
 
-                    if (elementsRemoved > 0)
-                    {
-                       Q_EMIT self_->ProductUpdated(product);
-                    }
+               if (elementsRemoved > 0)
+               {
+                  Q_EMIT self_->ProductUpdated(product);
+               }
 
-                    logger_->trace("Removing stale product");
-                 }
-              });
+               logger_->trace("Removing stale product");
+            }
+         });
    }
 
    // Load file
