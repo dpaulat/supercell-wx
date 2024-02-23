@@ -1,9 +1,11 @@
 #pragma once
 
 #include <scwx/awips/message.hpp>
+#include <scwx/wsr88d/rpg/packet.hpp>
 
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 namespace scwx
 {
@@ -30,6 +32,8 @@ public:
    int16_t block_divider() const;
 
    size_t data_size() const override;
+
+   const std::vector<std::vector<std::shared_ptr<Packet>>>& page_list() const;
 
    bool Parse(std::istream& is);
 
