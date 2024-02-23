@@ -1,6 +1,9 @@
+#define STRINGS_IMPLEMENTATION
+
 #include <scwx/util/strings.hpp>
 
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/lexical_cast.hpp>
 
 namespace scwx
 {
@@ -88,29 +91,15 @@ std::string ToString(const std::vector<std::string>& v)
    return value;
 }
 
-std::optional<float> TryParseFloat(const std::string& str)
-{
-   std::optional<float> value = std::nullopt;
-
-   try
-   {
-      value = static_cast<float>(std::stof(str));
-   }
-   catch (const std::exception&)
-   {
-   }
-
-   return value;
-}
-
 template<typename T>
-std::optional<T> TryParseUnsignedLong(const std::string& str)
+std::optional<T> TryParseNumeric(const std::string& str)
 {
    std::optional<T> value = std::nullopt;
 
    try
    {
-      value = static_cast<T>(std::stoul(str));
+      auto trimmed = boost::algorithm::trim_copy(str);
+      value        = boost::lexical_cast<T>(trimmed);
    }
    catch (const std::exception&)
    {
@@ -118,9 +107,6 @@ std::optional<T> TryParseUnsignedLong(const std::string& str)
 
    return value;
 }
-
-template std::optional<std::uint16_t>
-TryParseUnsignedLong<std::uint16_t>(const std::string& str);
 
 } // namespace util
 } // namespace scwx

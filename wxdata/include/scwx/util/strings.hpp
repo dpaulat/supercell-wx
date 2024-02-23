@@ -30,10 +30,14 @@ std::vector<std::string> ParseTokens(const std::string&       s,
 
 std::string ToString(const std::vector<std::string>& v);
 
-std::optional<float> TryParseFloat(const std::string& str);
-
 template<typename T>
-std::optional<T> TryParseUnsignedLong(const std::string& str);
+std::optional<T> TryParseNumeric(const std::string& str);
+
+#if defined(STRINGS_IMPLEMENTATION)
+template std::optional<std::uint16_t> TryParseNumeric(const std::string& str);
+template std::optional<std::uint32_t> TryParseNumeric(const std::string& str);
+template std::optional<float>         TryParseNumeric(const std::string& str);
+#endif
 
 } // namespace util
 } // namespace scwx
