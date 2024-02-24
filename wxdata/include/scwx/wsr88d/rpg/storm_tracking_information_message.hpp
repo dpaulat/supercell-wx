@@ -51,6 +51,32 @@ public:
    StormTrackingInformationMessage&
    operator=(StormTrackingInformationMessage&&) noexcept;
 
+   std::optional<std::uint16_t>                               radar_id() const;
+   std::optional<std::chrono::sys_time<std::chrono::seconds>> date_time() const;
+   std::optional<std::uint16_t> num_storm_cells() const;
+
+   std::optional<units::angle::degrees<std::uint16_t>>
+   default_direction() const;
+   std::optional<units::velocity::meters_per_second<float>>
+                                                minimum_speed() const;
+   std::optional<units::velocity::knots<float>> default_speed() const;
+   std::optional<units::length::kilometers<std::uint16_t>>
+                                       allowable_error() const;
+   std::optional<std::chrono::minutes> maximum_time() const;
+   std::optional<std::chrono::minutes> forecast_interval() const;
+   std::optional<std::uint16_t>        number_of_past_volumes() const;
+   std::optional<std::uint16_t>        number_of_intervals() const;
+   std::optional<units::velocity::meters_per_second<float>>
+                                       correlation_speed() const;
+   std::optional<std::chrono::minutes> error_interval() const;
+
+   std::optional<units::length::kilometers<float>> filter_kernel_size() const;
+   std::optional<float>                            filter_fraction() const;
+   std::optional<bool> reflectivity_filtered() const;
+
+   std::shared_ptr<const StiRecord>
+   sti_record(const std::string& stormId) const;
+
    bool Parse(std::istream& is) override;
 
    static std::shared_ptr<StormTrackingInformationMessage>

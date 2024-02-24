@@ -24,6 +24,8 @@ public:
    explicit Impl() {}
    ~Impl() = default;
 
+   std::shared_ptr<StiRecord>& GetOrCreateStiRecord(const std::string& stormId);
+
    void ParseGraphicBlock(
       const std::shared_ptr<const GraphicAlphanumericBlock>& block);
    void ParseTabularBlock(
@@ -58,7 +60,7 @@ public:
    std::optional<float>                            filterFraction_ {};
    std::optional<bool>                             reflectivityFiltered_ {};
 
-   std::unordered_map<std::string, StiRecord> stiRecords_ {};
+   std::unordered_map<std::string, std::shared_ptr<StiRecord>> stiRecords_ {};
 };
 
 StormTrackingInformationMessage::StormTrackingInformationMessage() :
@@ -71,6 +73,126 @@ StormTrackingInformationMessage::StormTrackingInformationMessage(
    StormTrackingInformationMessage&&) noexcept = default;
 StormTrackingInformationMessage& StormTrackingInformationMessage::operator=(
    StormTrackingInformationMessage&&) noexcept = default;
+
+std::optional<std::uint16_t> StormTrackingInformationMessage::radar_id() const
+{
+   return p->radarId_;
+}
+
+std::optional<std::chrono::sys_time<std::chrono::seconds>>
+StormTrackingInformationMessage::date_time() const
+{
+   return p->dateTime_;
+}
+
+std::optional<std::uint16_t>
+StormTrackingInformationMessage::num_storm_cells() const
+{
+   return p->numStormCells_;
+}
+
+std::optional<units::angle::degrees<std::uint16_t>>
+StormTrackingInformationMessage::default_direction() const
+{
+   return p->defaultDirection_;
+}
+
+std::optional<units::velocity::meters_per_second<float>>
+StormTrackingInformationMessage::minimum_speed() const
+{
+   return p->minimumSpeed_;
+}
+
+std::optional<units::velocity::knots<float>>
+StormTrackingInformationMessage::default_speed() const
+{
+   return p->defaultSpeed_;
+}
+
+std::optional<units::length::kilometers<std::uint16_t>>
+StormTrackingInformationMessage::allowable_error() const
+{
+   return p->allowableError_;
+}
+
+std::optional<std::chrono::minutes>
+StormTrackingInformationMessage::maximum_time() const
+{
+   return p->maximumTime_;
+}
+
+std::optional<std::chrono::minutes>
+StormTrackingInformationMessage::forecast_interval() const
+{
+   return p->forecastInterval_;
+}
+
+std::optional<std::uint16_t>
+StormTrackingInformationMessage::number_of_past_volumes() const
+{
+   return p->numberOfPastVolumes_;
+}
+
+std::optional<std::uint16_t>
+StormTrackingInformationMessage::number_of_intervals() const
+{
+   return p->numberOfIntervals_;
+}
+
+std::optional<units::velocity::meters_per_second<float>>
+StormTrackingInformationMessage::correlation_speed() const
+{
+   return p->correlationSpeed_;
+}
+
+std::optional<std::chrono::minutes>
+StormTrackingInformationMessage::error_interval() const
+{
+   return p->errorInterval_;
+}
+
+std::optional<units::length::kilometers<float>>
+StormTrackingInformationMessage::filter_kernel_size() const
+{
+   return p->filterKernelSize_;
+}
+
+std::optional<float> StormTrackingInformationMessage::filter_fraction() const
+{
+   return p->filterFraction_;
+}
+
+std::optional<bool>
+StormTrackingInformationMessage::reflectivity_filtered() const
+{
+   return p->reflectivityFiltered_;
+}
+
+std::shared_ptr<const StormTrackingInformationMessage::StiRecord>
+StormTrackingInformationMessage::sti_record(const std::string& stormId) const
+{
+   std::shared_ptr<const StiRecord> record = nullptr;
+
+   auto it = p->stiRecords_.find(stormId);
+   if (it != p->stiRecords_.cend())
+   {
+      record = it->second;
+   }
+
+   return record;
+}
+
+std::shared_ptr<StormTrackingInformationMessage::StiRecord>&
+StormTrackingInformationMessage::Impl::GetOrCreateStiRecord(
+   const std::string& stormId)
+{
+   auto& record = stiRecords_[stormId];
+   if (record == nullptr)
+   {
+      record = std::make_shared<StiRecord>();
+   }
+   return record;
+}
 
 bool StormTrackingInformationMessage::Parse(std::istream& is)
 {
@@ -167,28 +289,28 @@ void StormTrackingInformationMessage::Impl::HandleTextUniformPacket(
               i < stormIds.size();
               ++i, azOffset += kStride, ranOffset += kStride)
          {
-            auto& record = stiRecords_[stormIds[i]];
+            auto& record = GetOrCreateStiRecord(stormIds[i]);
 
-            if (!record.currentPosition_.azimuth_.has_value())
+            if (!record->currentPosition_.azimuth_.has_value())
             {
                // Current Position: Azimuth (Degrees) (I3)
                auto azimuth = util::TryParseNumeric<std::uint16_t>(
                   text.substr(azOffset, 3));
                if (azimuth.has_value())
                {
-                  record.currentPosition_.azimuth_ =
+                  record->currentPosition_.azimuth_ =
                      units::angle::degrees<std::uint16_t> {azimuth.value()};
                }
             }
 
-            if (!record.currentPosition_.range_.has_value())
+            if (!record->currentPosition_.range_.has_value())
             {
                // Current Position: Range (Nautical Miles) (I3)
                auto range = util::TryParseNumeric<std::uint16_t>(
                   text.substr(ranOffset, 3));
                if (range.has_value())
                {
-                  record.currentPosition_.range_ =
+                  record->currentPosition_.range_ =
                      units::length::nautical_miles<std::uint16_t> {
                         range.value()};
                }
@@ -209,28 +331,28 @@ void StormTrackingInformationMessage::Impl::HandleTextUniformPacket(
               i < stormIds.size();
               ++i, dirOffset += kStride, speedOffset += kStride)
          {
-            auto& record = stiRecords_[stormIds[i]];
+            auto& record = GetOrCreateStiRecord(stormIds[i]);
 
-            if (!record.direction_.has_value())
+            if (!record->direction_.has_value())
             {
                // Movement: Direction (Degrees) (I3)
                auto direction = util::TryParseNumeric<std::uint16_t>(
                   text.substr(dirOffset, 3));
                if (direction.has_value())
                {
-                  record.direction_ =
+                  record->direction_ =
                      units::angle::degrees<std::uint16_t> {direction.value()};
                }
             }
 
-            if (!record.speed_.has_value())
+            if (!record->speed_.has_value())
             {
                // Movement: Speed (Knots) (I3)
                auto speed = util::TryParseNumeric<std::uint16_t>(
                   text.substr(speedOffset, 3));
                if (speed.has_value())
                {
-                  record.speed_ =
+                  record->speed_ =
                      units::velocity::knots<std::uint16_t> {speed.value()};
                }
             }
@@ -250,28 +372,29 @@ void StormTrackingInformationMessage::Impl::HandleTextUniformPacket(
               i < stormIds.size();
               ++i, errOffset += kStride, meanOffset += kStride)
          {
-            auto& record = stiRecords_[stormIds[i]];
+            auto& record = GetOrCreateStiRecord(stormIds[i]);
 
-            if (!record.forecastError_.has_value())
+            if (!record->forecastError_.has_value())
             {
                // Forecast Error (Nautical Miles) (F4.1)
                auto forecastError =
                   util::TryParseNumeric<float>(text.substr(errOffset, 4));
                if (forecastError.has_value())
                {
-                  record.forecastError_ = units::length::nautical_miles<float> {
-                     forecastError.value()};
+                  record->forecastError_ =
+                     units::length::nautical_miles<float> {
+                        forecastError.value()};
                }
             }
 
-            if (!record.meanError_.has_value())
+            if (!record->meanError_.has_value())
             {
                // Mean Error (Nautical Miles) (F4.1)
                auto meanError =
                   util::TryParseNumeric<float>(text.substr(meanOffset, 4));
                if (meanError.has_value())
                {
-                  record.meanError_ =
+                  record->meanError_ =
                      units::length::nautical_miles<float> {meanError.value()};
                }
             }
@@ -291,10 +414,10 @@ void StormTrackingInformationMessage::Impl::HandleTextUniformPacket(
               i < stormIds.size();
               ++i, dbzmOffset += kStride, hgtOffset += kStride)
          {
-            auto& record = stiRecords_[stormIds[i]];
+            auto& record = GetOrCreateStiRecord(stormIds[i]);
 
             // Maximum dBZ (I2)
-            record.maxDbz_ =
+            record->maxDbz_ =
                util::TryParseNumeric<std::uint16_t>(text.substr(dbzmOffset, 2));
 
             // Maximum dBZ Height (Feet) (F4.1)
@@ -302,7 +425,7 @@ void StormTrackingInformationMessage::Impl::HandleTextUniformPacket(
                util::TryParseNumeric<float>(text.substr(hgtOffset, 4));
             if (height.has_value())
             {
-               record.maxDbzHeight_ = units::length::feet<std::uint32_t> {
+               record->maxDbzHeight_ = units::length::feet<std::uint32_t> {
                   static_cast<std::uint32_t>(height.value() * 1000.0f)};
             }
          }
@@ -380,58 +503,58 @@ void StormTrackingInformationMessage::Impl::ParseStormPositionForecastPage(
 
          if (std::isupper(stormId[0]) && std::isdigit(stormId[1]))
          {
-            auto& record = stiRecords_[stormId];
+            auto& record = GetOrCreateStiRecord(stormId);
 
-            if (!record.currentPosition_.azimuth_.has_value())
+            if (!record->currentPosition_.azimuth_.has_value())
             {
                // Current Position: Azimuth (Degrees) (I3)
                auto azimuth =
                   util::TryParseNumeric<std::uint16_t>(line.substr(9, 3));
                if (azimuth.has_value())
                {
-                  record.currentPosition_.azimuth_ =
+                  record->currentPosition_.azimuth_ =
                      units::angle::degrees<std::uint16_t> {azimuth.value()};
                }
             }
-            if (!record.currentPosition_.range_.has_value())
+            if (!record->currentPosition_.range_.has_value())
             {
                // Current Position: Range (Nautical Miles) (I3)
                auto range =
                   util::TryParseNumeric<std::uint16_t>(line.substr(13, 3));
                if (range.has_value())
                {
-                  record.currentPosition_.range_ =
+                  record->currentPosition_.range_ =
                      units::length::nautical_miles<std::uint16_t> {
                         range.value()};
                }
             }
-            if (!record.direction_.has_value())
+            if (!record->direction_.has_value())
             {
                // Movement: Direction (Degrees) (I3)
                auto direction =
                   util::TryParseNumeric<std::uint16_t>(line.substr(19, 3));
                if (direction.has_value())
                {
-                  record.direction_ =
+                  record->direction_ =
                      units::angle::degrees<std::uint16_t> {direction.value()};
                }
             }
-            if (!record.speed_.has_value())
+            if (!record->speed_.has_value())
             {
                // Movement: Speed (Knots) (I3)
                auto speed =
                   util::TryParseNumeric<std::uint16_t>(line.substr(23, 3));
                if (speed.has_value())
                {
-                  record.speed_ =
+                  record->speed_ =
                      units::velocity::knots<std::uint16_t> {speed.value()};
                }
             }
-            for (std::size_t j = 0; j < record.forecastPosition_.size(); ++j)
+            for (std::size_t j = 0; j < record->forecastPosition_.size(); ++j)
             {
                const std::size_t positionOffset = j * 10;
 
-               if (!record.forecastPosition_[j].azimuth_.has_value())
+               if (!record->forecastPosition_[j].azimuth_.has_value())
                {
                   // Forecast Position: Azimuth (Degrees) (I3)
                   std::size_t offset = 31 + positionOffset;
@@ -440,11 +563,11 @@ void StormTrackingInformationMessage::Impl::ParseStormPositionForecastPage(
                      line.substr(offset, 3));
                   if (azimuth.has_value())
                   {
-                     record.forecastPosition_[j].azimuth_ =
+                     record->forecastPosition_[j].azimuth_ =
                         units::angle::degrees<std::uint16_t> {azimuth.value()};
                   }
                }
-               if (!record.forecastPosition_[j].range_.has_value())
+               if (!record->forecastPosition_[j].range_.has_value())
                {
                   // Forecast Position: Range (Nautical Miles) (I3)
                   std::size_t offset = 35 + positionOffset;
@@ -453,31 +576,32 @@ void StormTrackingInformationMessage::Impl::ParseStormPositionForecastPage(
                      line.substr(offset, 3));
                   if (range.has_value())
                   {
-                     record.forecastPosition_[j].range_ =
+                     record->forecastPosition_[j].range_ =
                         units::length::nautical_miles<std::uint16_t> {
                            range.value()};
                   }
                }
             }
-            if (!record.forecastError_.has_value())
+            if (!record->forecastError_.has_value())
             {
                // Forecast Error (Nautical Miles) (F4.1)
                auto forecastError =
                   util::TryParseNumeric<float>(line.substr(71, 4));
                if (forecastError.has_value())
                {
-                  record.forecastError_ = units::length::nautical_miles<float> {
-                     forecastError.value()};
+                  record->forecastError_ =
+                     units::length::nautical_miles<float> {
+                        forecastError.value()};
                }
             }
-            if (!record.meanError_.has_value())
+            if (!record->meanError_.has_value())
             {
                // Mean Error (Nautical Miles) (F4.1)
                auto meanError =
                   util::TryParseNumeric<float>(line.substr(76, 4));
                if (meanError.has_value())
                {
-                  record.meanError_ =
+                  record->meanError_ =
                      units::length::nautical_miles<float> {meanError.value()};
                }
             }
@@ -515,9 +639,8 @@ void StormTrackingInformationMessage::Impl::ParseStormCellTrackingDataPage(
                units::velocity::meters_per_second<float> {threshold.value()};
          }
       }
-      // clang-format off
+
       // "   36.0   (KTS) DEFAULT (SPEED)           20    (KM) ALLOWABLE ERROR"
-      // clang-format on
       if (i == 3 && line.size() >= 68)
       {
          // Default Speed (Knots) (F4.1)
@@ -535,6 +658,7 @@ void StormTrackingInformationMessage::Impl::ParseStormCellTrackingDataPage(
                units::length::kilometers<std::uint16_t> {error.value()};
          }
       }
+
       // clang-format off
       // "     20   (MIN) TIME (MAXIMUM)            15   (MIN) FORECAST INTERVAL"
       // clang-format on
@@ -555,6 +679,7 @@ void StormTrackingInformationMessage::Impl::ParseStormCellTrackingDataPage(
             forecastInterval_ = std::chrono::minutes {interval.value()};
          }
       }
+
       // clang-format off
       // "     10         NUMBER OF PAST VOLUMES     4         NUMBER OF INTERVALS"
       // clang-format on
@@ -568,9 +693,8 @@ void StormTrackingInformationMessage::Impl::ParseStormCellTrackingDataPage(
          numberOfIntervals_ =
             util::TryParseNumeric<std::uint16_t>(line.substr(42, 2));
       }
-      // clang-format off
+
       // "   30.0   (M/S) CORRELATION SPEED         15   (MIN) ERROR INTERVAL"
-      // clang-format on
       if (i == 6 && line.size() >= 67)
       {
          // Correlation Speed (m/s) (F4.1)
@@ -589,6 +713,7 @@ void StormTrackingInformationMessage::Impl::ParseStormCellTrackingDataPage(
             errorInterval_ = std::chrono::minutes {interval.value()};
          }
       }
+
       // clang-format off
       // "    7.0   (KM)  FILTER KERNEL SIZE       0.5         THRESH (FILTER FRACTION)"
       // clang-format on
@@ -605,9 +730,8 @@ void StormTrackingInformationMessage::Impl::ParseStormCellTrackingDataPage(
          // Minimum Speed (Threshold) (m/s) (F4.1)
          filterFraction_ = util::TryParseNumeric<float>(line.substr(40, 4));
       }
-      // clang-format off
+
       // "    Yes         REFLECTIVITY FILTERED"
-      // clang-format on
       if (i == 12 && line.size() >= 37)
       {
          if (line.substr(4, 3) == "Yes")
