@@ -21,8 +21,9 @@ static const boost::gil::rgba32f_pixel_t kBlack {0.0f, 0.0f, 0.0f, 1.0f};
 struct LinkedVectorDrawItem
 {
    LinkedVectorDrawItem(
-      const common::Coordinate&                               center,
-      const std::shared_ptr<wsr88d::rpg::LinkedVectorPacket>& vectorPacket)
+      const common::Coordinate& center,
+      const std::shared_ptr<const wsr88d::rpg::LinkedVectorPacket>&
+         vectorPacket)
    {
       coordinates_.push_back(util::GeographicLib::GetCoordinate(
          center, vectorPacket->start_i_km(), vectorPacket->start_j_km()));
@@ -136,8 +137,8 @@ void LinkedVectors::StartVectors()
 }
 
 std::shared_ptr<LinkedVectorDrawItem> LinkedVectors::AddVector(
-   const common::Coordinate&                               center,
-   const std::shared_ptr<wsr88d::rpg::LinkedVectorPacket>& vectorPacket)
+   const common::Coordinate&                                     center,
+   const std::shared_ptr<const wsr88d::rpg::LinkedVectorPacket>& vectorPacket)
 {
    return p->vectorList_.emplace_back(
       std::make_shared<LinkedVectorDrawItem>(center, vectorPacket));

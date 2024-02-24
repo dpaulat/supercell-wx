@@ -2,12 +2,13 @@
 #include <scwx/qt/gl/draw/linked_vectors.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/view/overlay_product_view.hpp>
-#include <scwx/wsr88d/rpg/graphic_product_message.hpp>
 #include <scwx/wsr88d/rpg/linked_vector_packet.hpp>
 #include <scwx/wsr88d/rpg/rpg_types.hpp>
 #include <scwx/wsr88d/rpg/scit_data_packet.hpp>
 #include <scwx/wsr88d/rpg/storm_id_symbol_packet.hpp>
+#include <scwx/wsr88d/rpg/storm_tracking_information_message.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/time.hpp>
 
 namespace scwx
 {
@@ -33,20 +34,33 @@ public:
    void UpdateStormTrackingInformation();
 
    static void HandleLinkedVectorPacket(
-      const std::shared_ptr<wsr88d::rpg::Packet>& packet,
-      const common::Coordinate&                   center,
-      const std::string&                          hoverText,
-      boost::gil::rgba32f_pixel_t                 color,
-      bool                                        tickRadiusIncrement,
-      std::shared_ptr<gl::draw::LinkedVectors>&   linkedVectors);
+      const std::shared_ptr<const wsr88d::rpg::Packet>& packet,
+      const common::Coordinate&                         center,
+      const std::string&                                hoverText,
+      boost::gil::rgba32f_pixel_t                       color,
+      units::length::nautical_miles<float>              tickRadius,
+      units::length::nautical_miles<float>              tickRadiusIncrement,
+      std::shared_ptr<gl::draw::LinkedVectors>&         linkedVectors);
    static void HandleScitDataPacket(
-      const std::shared_ptr<wsr88d::rpg::Packet>& packet,
-      const common::Coordinate&                   center,
-      const std::string&                          stormId,
-      std::shared_ptr<gl::draw::LinkedVectors>&   linkedVectors);
-   static void
-   HandleStormIdPacket(const std::shared_ptr<wsr88d::rpg::Packet>& packet,
-                       std::string&                                stormId);
+      const std::shared_ptr<const wsr88d::rpg::StormTrackingInformationMessage>&
+                                                        sti,
+      const std::shared_ptr<const wsr88d::rpg::Packet>& packet,
+      const common::Coordinate&                         center,
+      const std::string&                                stormId,
+      const std::string&                                hoverText,
+      std::shared_ptr<gl::draw::LinkedVectors>&         linkedVectors);
+
+   static void HandleStormIdPacket(
+      const std::shared_ptr<const wsr88d::rpg::StormTrackingInformationMessage>&
+                                                        sti,
+      const std::shared_ptr<const wsr88d::rpg::Packet>& packet,
+      std::string&                                      stormId,
+      std::string&                                      hoverText);
+
+   static std::string BuildHoverText(
+      const std::shared_ptr<
+         const scwx::wsr88d::rpg::StormTrackingInformationMessage>& sti,
+      std::string&                                                  stormId);
 
    OverlayProductLayer* self_;
 
@@ -122,21 +136,21 @@ void OverlayProductLayer::Impl::UpdateStormTrackingInformation()
    float latitude  = 0.0f;
    float longitude = 0.0f;
 
-   std::shared_ptr<wsr88d::Level3File>                 l3File = nullptr;
-   std::shared_ptr<wsr88d::rpg::GraphicProductMessage> gpm    = nullptr;
-   std::shared_ptr<wsr88d::rpg::ProductSymbologyBlock> psb    = nullptr;
+   std::shared_ptr<wsr88d::Level3File> l3File                        = nullptr;
+   std::shared_ptr<wsr88d::rpg::StormTrackingInformationMessage> sti = nullptr;
+   std::shared_ptr<wsr88d::rpg::ProductSymbologyBlock>           psb = nullptr;
    if (record != nullptr)
    {
       l3File = record->level3_file();
    }
    if (l3File != nullptr)
    {
-      gpm = std::dynamic_pointer_cast<wsr88d::rpg::GraphicProductMessage>(
-         l3File->message());
+      sti = std::dynamic_pointer_cast<
+         wsr88d::rpg::StormTrackingInformationMessage>(l3File->message());
    }
-   if (gpm != nullptr)
+   if (sti != nullptr)
    {
-      psb = gpm->symbology_block();
+      psb = sti->symbology_block();
    }
 
    linkedVectors_->StartVectors();
@@ -155,6 +169,7 @@ void OverlayProductLayer::Impl::UpdateStormTrackingInformation()
       }
 
       std::string stormId = "?";
+      std::string hoverText {};
 
       for (std::size_t i = 0; i < psb->number_of_layers(); ++i)
       {
@@ -164,15 +179,19 @@ void OverlayProductLayer::Impl::UpdateStormTrackingInformation()
             switch (packet->packet_code())
             {
             case static_cast<std::uint16_t>(wsr88d::rpg::PacketCode::StormId):
-               HandleStormIdPacket(packet, stormId);
+               HandleStormIdPacket(sti, packet, stormId, hoverText);
                break;
 
             case static_cast<std::uint16_t>(
                wsr88d::rpg::PacketCode::ScitPastData):
             case static_cast<std::uint16_t>(
                wsr88d::rpg::PacketCode::ScitForecastData):
-               HandleScitDataPacket(
-                  packet, {latitude, longitude}, stormId, linkedVectors_);
+               HandleScitDataPacket(sti,
+                                    packet,
+                                    {latitude, longitude},
+                                    stormId,
+                                    hoverText,
+                                    linkedVectors_);
                break;
 
             default:
@@ -192,41 +211,63 @@ void OverlayProductLayer::Impl::UpdateStormTrackingInformation()
 }
 
 void OverlayProductLayer::Impl::HandleStormIdPacket(
-   const std::shared_ptr<wsr88d::rpg::Packet>& packet, std::string& stormId)
+   const std::shared_ptr<const wsr88d::rpg::StormTrackingInformationMessage>&
+                                                     sti,
+   const std::shared_ptr<const wsr88d::rpg::Packet>& packet,
+   std::string&                                      stormId,
+   std::string&                                      hoverText)
 {
    auto stormIdPacket =
-      std::dynamic_pointer_cast<wsr88d::rpg::StormIdSymbolPacket>(packet);
+      std::dynamic_pointer_cast<const wsr88d::rpg::StormIdSymbolPacket>(packet);
 
    if (stormIdPacket != nullptr && stormIdPacket->RecordCount() > 0)
    {
-      stormId = stormIdPacket->storm_id(0);
+      stormId   = stormIdPacket->storm_id(0);
+      hoverText = BuildHoverText(sti, stormId);
    }
    else
    {
       logger_->warn("Invalid Storm ID Packet");
 
       stormId = "?";
+      hoverText.clear();
    }
 }
 
 void OverlayProductLayer::Impl::HandleScitDataPacket(
-   const std::shared_ptr<wsr88d::rpg::Packet>& packet,
-   const common::Coordinate&                   center,
-   const std::string&                          stormId,
-   std::shared_ptr<gl::draw::LinkedVectors>&   linkedVectors)
+   const std::shared_ptr<const wsr88d::rpg::StormTrackingInformationMessage>&
+                                                     sti,
+   const std::shared_ptr<const wsr88d::rpg::Packet>& packet,
+   const common::Coordinate&                         center,
+   const std::string&                                stormId,
+   const std::string&                                hoverText,
+   std::shared_ptr<gl::draw::LinkedVectors>&         linkedVectors)
 {
    auto scitDataPacket =
-      std::dynamic_pointer_cast<wsr88d::rpg::ScitDataPacket>(packet);
+      std::dynamic_pointer_cast<const wsr88d::rpg::ScitDataPacket>(packet);
 
    if (scitDataPacket != nullptr)
    {
       boost::gil::rgba32f_pixel_t color {1.0f, 1.0f, 1.0f, 1.0f};
-      bool                        tickRadiusIncrement = true;
+
+      units::length::nautical_miles<float> tickRadius {0.5f};
+      units::length::nautical_miles<float> tickRadiusIncrement {0.0f};
+
+      auto stiRecord = sti->sti_record(stormId);
+
       if (scitDataPacket->packet_code() ==
           static_cast<std::uint16_t>(wsr88d::rpg::PacketCode::ScitPastData))
       {
-         color               = {0.5f, 0.5f, 0.5f, 1.0f};
-         tickRadiusIncrement = false;
+         // If this is past data, the default tick radius and increment with a
+         // darker color
+         color = {0.5f, 0.5f, 0.5f, 1.0f};
+      }
+      else if (stiRecord != nullptr && stiRecord->meanError_.has_value())
+      {
+         // If this is forecast data, use the mean error as the radius (minimum
+         // of the default value), incrementing by the mean error
+         tickRadiusIncrement = stiRecord->meanError_.value();
+         tickRadius          = std::max(tickRadius, tickRadiusIncrement);
       }
 
       for (auto& subpacket : scitDataPacket->packet_list())
@@ -237,8 +278,9 @@ void OverlayProductLayer::Impl::HandleScitDataPacket(
             wsr88d::rpg::PacketCode::LinkedVectorNoValue):
             HandleLinkedVectorPacket(subpacket,
                                      center,
-                                     stormId,
+                                     hoverText,
                                      color,
+                                     tickRadius,
                                      tickRadiusIncrement,
                                      linkedVectors);
             break;
@@ -257,15 +299,16 @@ void OverlayProductLayer::Impl::HandleScitDataPacket(
 }
 
 void OverlayProductLayer::Impl::HandleLinkedVectorPacket(
-   const std::shared_ptr<wsr88d::rpg::Packet>& packet,
-   const common::Coordinate&                   center,
-   const std::string&                          hoverText,
-   boost::gil::rgba32f_pixel_t                 color,
-   bool                                        tickRadiusIncrement,
-   std::shared_ptr<gl::draw::LinkedVectors>&   linkedVectors)
+   const std::shared_ptr<const wsr88d::rpg::Packet>& packet,
+   const common::Coordinate&                         center,
+   const std::string&                                hoverText,
+   boost::gil::rgba32f_pixel_t                       color,
+   units::length::nautical_miles<float>              tickRadius,
+   units::length::nautical_miles<float>              tickRadiusIncrement,
+   std::shared_ptr<gl::draw::LinkedVectors>&         linkedVectors)
 {
    auto linkedVectorPacket =
-      std::dynamic_pointer_cast<wsr88d::rpg::LinkedVectorPacket>(packet);
+      std::dynamic_pointer_cast<const wsr88d::rpg::LinkedVectorPacket>(packet);
 
    if (linkedVectorPacket != nullptr)
    {
@@ -274,24 +317,74 @@ void OverlayProductLayer::Impl::HandleLinkedVectorPacket(
       gl::draw::LinkedVectors::SetVectorModulate(di, color);
       gl::draw::LinkedVectors::SetVectorHoverText(di, hoverText);
       gl::draw::LinkedVectors::SetVectorTicksEnabled(di, true);
-      gl::draw::LinkedVectors::SetVectorTickRadius(
-         di, units::length::nautical_miles<double> {1.0});
-
-      if (tickRadiusIncrement)
-      {
-         gl::draw::LinkedVectors::SetVectorTickRadiusIncrement(
-            di, units::length::nautical_miles<double> {1.0});
-      }
-      else
-      {
-         gl::draw::LinkedVectors::SetVectorTickRadiusIncrement(
-            di, units::length::nautical_miles<double> {0.0});
-      }
+      gl::draw::LinkedVectors::SetVectorTickRadius(di, tickRadius);
+      gl::draw::LinkedVectors::SetVectorTickRadiusIncrement(
+         di, tickRadiusIncrement);
    }
    else
    {
       logger_->warn("Invalid Linked Vector Packet");
    }
+}
+
+std::string OverlayProductLayer::Impl::BuildHoverText(
+   const std::shared_ptr<
+      const scwx::wsr88d::rpg::StormTrackingInformationMessage>& sti,
+   std::string&                                                  stormId)
+{
+   std::string hoverText = fmt::format("Storm ID: {}", stormId);
+
+   auto stiRecord = sti->sti_record(stormId);
+
+   if (stiRecord != nullptr)
+   {
+      if (stiRecord->direction_.has_value() && stiRecord->speed_.has_value())
+      {
+         hoverText +=
+            fmt::format("\nMovement: {} @ {}",
+                        units::to_string(stiRecord->direction_.value()),
+                        units::to_string(stiRecord->speed_.value()));
+      }
+
+      if (stiRecord->maxDbz_.has_value() &&
+          stiRecord->maxDbzHeight_.has_value())
+      {
+         hoverText +=
+            fmt::format("\nMax dBZ: {} ({} kft)",
+                        stiRecord->maxDbz_.value(),
+                        stiRecord->maxDbzHeight_.value().value() / 1000.0f);
+      }
+
+      if (stiRecord->forecastError_.has_value())
+      {
+         hoverText +=
+            fmt::format("\nForecast Error: {}",
+                        units::to_string(stiRecord->forecastError_.value()));
+      }
+
+      if (stiRecord->meanError_.has_value())
+      {
+         hoverText +=
+            fmt::format("\nMean Error: {}",
+                        units::to_string(stiRecord->meanError_.value()));
+      }
+   }
+
+   auto dateTime = sti->date_time();
+   if (dateTime.has_value())
+   {
+      hoverText +=
+         fmt::format("\nDate/Time: {}", util::TimeString(dateTime.value()));
+   }
+
+   auto forecastInterval = sti->forecast_interval();
+   if (forecastInterval.has_value())
+   {
+      hoverText += fmt::format("\nForecast Interval: {} min",
+                               forecastInterval.value().count());
+   }
+
+   return hoverText;
 }
 
 bool OverlayProductLayer::RunMousePicking(

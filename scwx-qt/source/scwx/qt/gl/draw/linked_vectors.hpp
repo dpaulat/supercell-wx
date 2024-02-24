@@ -82,9 +82,10 @@ public:
     *
     * @return Linked vector draw item
     */
-   std::shared_ptr<LinkedVectorDrawItem> AddVector(
-      const common::Coordinate&                               center,
-      const std::shared_ptr<wsr88d::rpg::LinkedVectorPacket>& vectorPacket);
+   std::shared_ptr<LinkedVectorDrawItem>
+   AddVector(const common::Coordinate& center,
+             const std::shared_ptr<const wsr88d::rpg::LinkedVectorPacket>&
+                vectorPacket);
 
    /**
     * Sets the modulate color of a linked vector.
