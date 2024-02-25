@@ -433,7 +433,7 @@ void StormTrackingInformationMessage::Impl::HandleTextUniformPacket(
    }
    else
    {
-      logger_->warn("Invalid Text Uniform Packet");
+      logger_->debug("No storm text present");
    }
 }
 

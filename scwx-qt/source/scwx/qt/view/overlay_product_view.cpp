@@ -32,6 +32,7 @@ public:
                     std::chrono::system_clock::time_point time,
                     bool                                  autoUpdate);
    void ResetProducts();
+   void Update(const std::string& product);
    void UpdateAutoRefresh(bool enabled) const;
 
    OverlayProductView* self_;
@@ -46,9 +47,9 @@ public:
 
    std::shared_ptr<manager::RadarProductManager> radarProductManager_ {nullptr};
 
-   std::unordered_map<std::string, std::shared_ptr<types::RadarProductRecord>>
-              recordMap_ {};
-   std::mutex recordMutex_ {};
+   std::unordered_map<std::string, std::shared_ptr<wsr88d::rpg::Level3Message>>
+              messageMap_ {};
+   std::mutex messageMutex_ {};
 };
 
 OverlayProductView::OverlayProductView() : p(std::make_unique<Impl>(this)) {};
@@ -60,13 +61,13 @@ OverlayProductView::radar_product_manager() const
    return p->radarProductManager_;
 }
 
-std::shared_ptr<types::RadarProductRecord>
-OverlayProductView::radar_product_record(const std::string& product) const
+std::shared_ptr<wsr88d::rpg::Level3Message>
+OverlayProductView::radar_product_message(const std::string& product) const
 {
-   std::unique_lock lock {p->recordMutex_};
+   std::unique_lock lock {p->messageMutex_};
 
-   auto it = p->recordMap_.find(product);
-   if (it != p->recordMap_.cend())
+   auto it = p->messageMap_.find(product);
+   if (it != p->messageMap_.cend())
    {
       return it->second;
    }
@@ -94,6 +95,23 @@ void OverlayProductView::set_radar_product_manager(
 
 void OverlayProductView::Impl::ConnectRadarProductManager()
 {
+   connect(radarProductManager_.get(),
+           &manager::RadarProductManager::DataReloaded,
+           self_,
+           [this](std::shared_ptr<types::RadarProductRecord> record)
+           {
+              if (record->radar_product_group() ==
+                     common::RadarProductGroup::Level3 &&
+                  record->radar_product() == kNst_ &&
+                  std::chrono::floor<std::chrono::seconds>(record->time()) ==
+                     selectedTime_)
+              {
+                 // If the data associated with the currently selected time is
+                 // reloaded, update the view
+                 Update(record->radar_product());
+              }
+           });
+
    connect(
       radarProductManager_.get(),
       &manager::RadarProductManager::NewDataAvailable,
@@ -148,17 +166,24 @@ void OverlayProductView::Impl::LoadProduct(
             // Select loaded record
             const auto& record = request->radar_product_record();
 
-            // Validate record
+            std::shared_ptr<wsr88d::Level3File>         level3File = nullptr;
+            std::shared_ptr<wsr88d::rpg::Level3Message> message    = nullptr;
+
             if (record != nullptr)
             {
-               auto productTime = record->time();
-               auto level3File  = record->level3_file();
-               if (level3File != nullptr)
-               {
-                  const auto& header = level3File->message()->header();
-                  productTime        = util::TimePoint(
-                     header.date_of_message(), header.time_of_message() * 1000);
-               }
+               level3File = record->level3_file();
+            }
+            if (level3File != nullptr)
+            {
+               message = level3File->message();
+            }
+
+            // Validate record
+            if (message != nullptr)
+            {
+               const auto& header      = message->header();
+               auto        productTime = util::TimePoint(
+                  header.date_of_message(), header.time_of_message() * 1000);
 
                // If the record is from the last 30 minutes
                if (productTime + 30min >= std::chrono::system_clock::now() ||
@@ -166,12 +191,12 @@ void OverlayProductView::Impl::LoadProduct(
                     productTime + 30min >= selectedTime_))
                {
                   // Store loaded record
-                  std::unique_lock lock {recordMutex_};
+                  std::unique_lock lock {messageMutex_};
 
-                  auto it = recordMap_.find(product);
-                  if (it == recordMap_.cend() || it->second != record)
+                  auto it = messageMap_.find(product);
+                  if (it == messageMap_.cend() || it->second != message)
                   {
-                     recordMap_.insert_or_assign(product, record);
+                     messageMap_.insert_or_assign(product, message);
 
                      lock.unlock();
 
@@ -181,8 +206,8 @@ void OverlayProductView::Impl::LoadProduct(
                else
                {
                   // If product is more than 30 minutes old, discard
-                  std::unique_lock lock {recordMutex_};
-                  std::size_t      elementsRemoved = recordMap_.erase(product);
+                  std::unique_lock lock {messageMutex_};
+                  std::size_t      elementsRemoved = messageMap_.erase(product);
                   lock.unlock();
 
                   if (elementsRemoved > 0)
@@ -197,8 +222,8 @@ void OverlayProductView::Impl::LoadProduct(
             else
             {
                // If the product doesn't exist, erase the stale product
-               std::unique_lock lock {recordMutex_};
-               std::size_t      elementsRemoved = recordMap_.erase(product);
+               std::unique_lock lock {messageMutex_};
+               std::size_t      elementsRemoved = messageMap_.erase(product);
                lock.unlock();
 
                if (elementsRemoved > 0)
@@ -220,8 +245,8 @@ void OverlayProductView::Impl::LoadProduct(
 
 void OverlayProductView::Impl::ResetProducts()
 {
-   std::unique_lock lock {recordMutex_};
-   recordMap_.clear();
+   std::unique_lock lock {messageMutex_};
+   messageMap_.clear();
    lock.unlock();
 
    Q_EMIT self_->ProductUpdated(kNst_);
@@ -232,7 +257,7 @@ void OverlayProductView::SelectTime(std::chrono::system_clock::time_point time)
    if (time != p->selectedTime_)
    {
       p->selectedTime_ = time;
-      p->LoadProduct(kNst_, time, true);
+      p->Update(kNst_);
    }
 }
 
@@ -242,6 +267,35 @@ void OverlayProductView::SetAutoRefresh(bool enabled)
    {
       p->autoRefreshEnabled_ = enabled;
       p->UpdateAutoRefresh(enabled);
+   }
+}
+
+void OverlayProductView::Impl::Update(const std::string& product)
+{
+   // Retrieve message from Radar Product Manager
+   std::shared_ptr<wsr88d::rpg::Level3Message> message;
+   std::chrono::system_clock::time_point       requestedTime {selectedTime_};
+   std::chrono::system_clock::time_point       foundTime;
+   std::tie(message, foundTime) =
+      radarProductManager_->GetLevel3Data(product, requestedTime);
+
+   if (message == nullptr)
+   {
+      logger_->debug("{} data not found", product);
+      return;
+   }
+
+   std::unique_lock lock {messageMutex_};
+
+   // Update message in map
+   auto it = messageMap_.find(product);
+   if (it == messageMap_.cend() || it->second != message)
+   {
+      messageMap_.insert_or_assign(product, message);
+
+      lock.unlock();
+
+      Q_EMIT self_->ProductUpdated(product);
    }
 }
 

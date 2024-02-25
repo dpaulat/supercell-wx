@@ -1,7 +1,5 @@
 #pragma once
 
-#include <scwx/qt/types/radar_product_record.hpp>
-
 #include <chrono>
 #include <memory>
 
@@ -9,6 +7,16 @@
 
 namespace scwx
 {
+namespace wsr88d
+{
+namespace rpg
+{
+
+class Level3Message;
+
+} // namespace rpg
+} // namespace wsr88d
+
 namespace qt
 {
 namespace manager
@@ -30,8 +38,8 @@ public:
    virtual ~OverlayProductView();
 
    std::shared_ptr<manager::RadarProductManager> radar_product_manager() const;
-   std::shared_ptr<types::RadarProductRecord>
-   radar_product_record(const std::string& product) const;
+   std::shared_ptr<wsr88d::rpg::Level3Message>
+   radar_product_message(const std::string& product) const;
    std::chrono::system_clock::time_point selected_time() const;
 
    void set_radar_product_manager(

@@ -131,22 +131,17 @@ void OverlayProductLayer::Impl::UpdateStormTrackingInformation()
 
    auto overlayProductView  = self_->context()->overlay_product_view();
    auto radarProductManager = overlayProductView->radar_product_manager();
-   auto record              = overlayProductView->radar_product_record("NST");
+   auto message             = overlayProductView->radar_product_message("NST");
 
    float latitude  = 0.0f;
    float longitude = 0.0f;
 
-   std::shared_ptr<wsr88d::Level3File> l3File                        = nullptr;
    std::shared_ptr<wsr88d::rpg::StormTrackingInformationMessage> sti = nullptr;
    std::shared_ptr<wsr88d::rpg::ProductSymbologyBlock>           psb = nullptr;
-   if (record != nullptr)
-   {
-      l3File = record->level3_file();
-   }
-   if (l3File != nullptr)
+   if (message != nullptr)
    {
       sti = std::dynamic_pointer_cast<
-         wsr88d::rpg::StormTrackingInformationMessage>(l3File->message());
+         wsr88d::rpg::StormTrackingInformationMessage>(message);
    }
    if (sti != nullptr)
    {
