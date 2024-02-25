@@ -1,6 +1,8 @@
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <numbers>
+
 #include <GeographicLib/Gnomonic.hpp>
 #include <geos/algorithm/PointLocation.h>
 #include <geos/geom/CoordinateSequence.h>
@@ -88,6 +90,42 @@ GetAngle(double lat1, double lon1, double lat2, double lon2)
    DefaultGeodesic().Inverse(lat1, lon1, lat2, lon2, azi1, azi2);
 
    return units::angle::degrees<double> {azi1};
+}
+
+common::Coordinate GetCoordinate(const common::Coordinate&     center,
+                                 units::angle::degrees<double> angle,
+                                 units::length::meters<double> distance)
+{
+   double latitude;
+   double longitude;
+
+   DefaultGeodesic().Direct(center.latitude_,
+                            center.longitude_,
+                            angle.value(),
+                            distance.value(),
+                            latitude,
+                            longitude);
+
+   return {latitude, longitude};
+}
+
+common::Coordinate GetCoordinate(const common::Coordinate& center,
+                                 units::meters<double>     i,
+                                 units::meters<double>     j)
+{
+   // Calculate polar coordinates based on i and j
+   const double angle =
+      std::atan2(i.value(), j.value()) * 180.0 / std::numbers::pi;
+   const double range =
+      std::sqrt(i.value() * i.value() + j.value() * j.value());
+
+   double latitude;
+   double longitude;
+
+   DefaultGeodesic().Direct(
+      center.latitude_, center.longitude_, angle, range, latitude, longitude);
+
+   return {latitude, longitude};
 }
 
 units::length::meters<double>

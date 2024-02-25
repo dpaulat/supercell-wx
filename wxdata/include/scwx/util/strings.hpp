@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -28,6 +29,15 @@ std::vector<std::string> ParseTokens(const std::string&       s,
                                      std::size_t              pos = 0);
 
 std::string ToString(const std::vector<std::string>& v);
+
+template<typename T>
+std::optional<T> TryParseNumeric(const std::string& str);
+
+#if defined(STRINGS_IMPLEMENTATION)
+template std::optional<std::uint16_t> TryParseNumeric(const std::string& str);
+template std::optional<std::uint32_t> TryParseNumeric(const std::string& str);
+template std::optional<float>         TryParseNumeric(const std::string& str);
+#endif
 
 } // namespace util
 } // namespace scwx

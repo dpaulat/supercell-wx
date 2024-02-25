@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/wsr88d/rpg/packet.hpp>
+#include <scwx/wsr88d/rpg/rpg_types.hpp>
 
 #include <cstdint>
 #include <memory>
@@ -13,8 +14,6 @@ namespace wsr88d
 {
 namespace rpg
 {
-
-class TextAndSpecialSymbolPacketImpl;
 
 class TextAndSpecialSymbolPacket : public Packet
 {
@@ -29,21 +28,23 @@ public:
    TextAndSpecialSymbolPacket(TextAndSpecialSymbolPacket&&) noexcept;
    TextAndSpecialSymbolPacket& operator=(TextAndSpecialSymbolPacket&&) noexcept;
 
-   uint16_t                packet_code() const override;
-   uint16_t                length_of_block() const;
-   std::optional<uint16_t> value_of_text() const;
-   int16_t                 start_i() const;
-   int16_t                 start_j() const;
-   std::string             text() const;
+   std::uint16_t                packet_code() const override;
+   std::uint16_t                length_of_block() const;
+   std::optional<std::uint16_t> value_of_text() const;
+   std::int16_t                 start_i() const;
+   std::int16_t                 start_j() const;
+   std::string                  text() const;
+   SpecialSymbol                special_symbol() const;
 
-   size_t data_size() const override;
+   std::size_t data_size() const override;
 
    bool Parse(std::istream& is) override;
 
    static std::shared_ptr<TextAndSpecialSymbolPacket> Create(std::istream& is);
 
 private:
-   std::unique_ptr<TextAndSpecialSymbolPacketImpl> p;
+   class Impl;
+   std::unique_ptr<Impl> p;
 };
 
 } // namespace rpg

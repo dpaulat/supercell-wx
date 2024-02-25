@@ -15,7 +15,7 @@
 #include <scwx/wsr88d/rpg/precipitation_rate_data_array_packet.hpp>
 #include <scwx/wsr88d/rpg/radial_data_packet.hpp>
 #include <scwx/wsr88d/rpg/raster_data_packet.hpp>
-#include <scwx/wsr88d/rpg/scit_forecast_data_packet.hpp>
+#include <scwx/wsr88d/rpg/scit_data_packet.hpp>
 #include <scwx/wsr88d/rpg/set_color_level_packet.hpp>
 #include <scwx/wsr88d/rpg/sti_circle_symbol_packet.hpp>
 #include <scwx/wsr88d/rpg/storm_id_symbol_packet.hpp>
@@ -63,8 +63,8 @@ static const std::unordered_map<unsigned int, CreateMessageFunction> create_ {
    {20, PointFeatureSymbolPacket::Create},
    {21, CellTrendDataPacket::Create},
    {22, CellTrendVolumeScanTimes::Create},
-   {23, ScitForecastDataPacket::Create},
-   {24, ScitForecastDataPacket::Create},
+   {23, ScitDataPacket::Create},
+   {24, ScitDataPacket::Create},
    {25, StiCircleSymbolPacket::Create},
    {26, PointGraphicSymbolPacket::Create},
    {28, GenericDataPacket::Create},

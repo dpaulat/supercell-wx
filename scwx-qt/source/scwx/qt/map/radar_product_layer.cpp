@@ -2,6 +2,7 @@
 #include <scwx/qt/gl/shader_program.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/tooltip.hpp>
+#include <scwx/qt/view/radar_product_view.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <execution>

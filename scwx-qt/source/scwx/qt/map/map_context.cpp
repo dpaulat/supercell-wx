@@ -1,4 +1,7 @@
 #include <scwx/qt/map/map_context.hpp>
+#include <scwx/qt/map/map_settings.hpp>
+#include <scwx/qt/view/overlay_product_view.hpp>
+#include <scwx/qt/view/radar_product_view.hpp>
 
 namespace scwx
 {
@@ -11,26 +14,23 @@ class MapContext::Impl
 {
 public:
    explicit Impl(std::shared_ptr<view::RadarProductView> radarProductView) :
-       map_ {},
-       settings_ {},
-       pixelRatio_ {1.0f},
-       radarProductView_ {radarProductView},
-       radarProductGroup_ {common::RadarProductGroup::Unknown},
-       radarProduct_ {"???"},
-       radarProductCode_ {0}
+       radarProductView_ {radarProductView}
    {
    }
 
    ~Impl() {}
 
-   std::weak_ptr<QMapLibreGL::Map>          map_;
-   MapSettings                              settings_;
-   float                                    pixelRatio_;
-   std::shared_ptr<view::RadarProductView>  radarProductView_;
-   common::RadarProductGroup                radarProductGroup_;
-   std::string                              radarProduct_;
-   int16_t                                  radarProductCode_;
+   std::weak_ptr<QMapLibreGL::Map> map_ {};
+   MapSettings                     settings_ {};
+   float                           pixelRatio_ {1.0f};
+   common::RadarProductGroup       radarProductGroup_ {
+      common::RadarProductGroup::Unknown};
+   std::string                              radarProduct_ {"???"};
+   int16_t                                  radarProductCode_ {0};
    QMapLibreGL::CustomLayerRenderParameters renderParameters_ {};
+
+   std::shared_ptr<view::OverlayProductView> overlayProductView_ {nullptr};
+   std::shared_ptr<view::RadarProductView>   radarProductView_;
 };
 
 MapContext::MapContext(
@@ -58,6 +58,12 @@ float MapContext::pixel_ratio() const
    return p->pixelRatio_;
 }
 
+std::shared_ptr<view::OverlayProductView>
+MapContext::overlay_product_view() const
+{
+   return p->overlayProductView_;
+}
+
 std::shared_ptr<view::RadarProductView> MapContext::radar_product_view() const
 {
    return p->radarProductView_;
@@ -83,9 +89,15 @@ QMapLibreGL::CustomLayerRenderParameters MapContext::render_parameters() const
    return p->renderParameters_;
 }
 
-void MapContext::set_map(std::shared_ptr<QMapLibreGL::Map> map)
+void MapContext::set_map(const std::shared_ptr<QMapLibreGL::Map>& map)
 {
    p->map_ = map;
+}
+
+void MapContext::set_overlay_product_view(
+   const std::shared_ptr<view::OverlayProductView>& overlayProductView)
+{
+   p->overlayProductView_ = overlayProductView;
 }
 
 void MapContext::set_pixel_ratio(float pixelRatio)
@@ -94,7 +106,7 @@ void MapContext::set_pixel_ratio(float pixelRatio)
 }
 
 void MapContext::set_radar_product_view(
-   std::shared_ptr<view::RadarProductView> radarProductView)
+   const std::shared_ptr<view::RadarProductView>& radarProductView)
 {
    p->radarProductView_ = radarProductView;
 }

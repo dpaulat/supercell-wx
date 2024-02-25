@@ -54,7 +54,7 @@ TabularAlphanumericBlock::TabularAlphanumericBlock() :
 TabularAlphanumericBlock::~TabularAlphanumericBlock() = default;
 
 TabularAlphanumericBlock::TabularAlphanumericBlock(
-   TabularAlphanumericBlock&&) noexcept                     = default;
+   TabularAlphanumericBlock&&) noexcept = default;
 TabularAlphanumericBlock& TabularAlphanumericBlock::operator=(
    TabularAlphanumericBlock&&) noexcept = default;
 
@@ -66,6 +66,12 @@ int16_t TabularAlphanumericBlock::block_divider() const
 size_t TabularAlphanumericBlock::data_size() const
 {
    return p->lengthOfBlock_;
+}
+
+const std::vector<std::vector<std::string>>&
+TabularAlphanumericBlock::page_list() const
+{
+   return p->pageList_;
 }
 
 bool TabularAlphanumericBlock::Parse(std::istream& is)

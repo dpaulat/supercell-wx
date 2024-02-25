@@ -1,12 +1,16 @@
 #include <scwx/qt/ui/level3_products_widget.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
+#include <scwx/qt/settings/product_settings.hpp>
+#include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <execution>
 #include <shared_mutex>
 
+#include <QCheckBox>
 #include <QMenu>
 #include <QToolButton>
+#include <QVBoxLayout>
 
 namespace scwx
 {
@@ -25,13 +29,17 @@ class Level3ProductsWidgetImpl : public QObject
 public:
    explicit Level3ProductsWidgetImpl(Level3ProductsWidget* self) :
        self_ {self},
-       layout_ {new ui::FlowLayout(self)},
+       layout_ {new QVBoxLayout(self)},
+       productsWidget_ {new QWidget(self)},
+       productsLayout_ {new ui::FlowLayout(productsWidget_)},
        categoryButtons_ {},
        productTiltMap_ {},
        awipsProductMap_ {},
        awipsProductMutex_ {}
    {
       layout_->setContentsMargins(0, 0, 0, 0);
+      layout_->addWidget(productsWidget_);
+      productsLayout_->setContentsMargins(0, 0, 0, 0);
 
       for (common::Level3ProductCategory category :
            common::Level3ProductCategoryIterator())
@@ -42,7 +50,7 @@ public:
          toolButton->setStatusTip(
             tr(common::GetLevel3CategoryDescription(category).c_str()));
          toolButton->setPopupMode(QToolButton::MenuButtonPopup);
-         layout_->addWidget(toolButton);
+         productsLayout_->addWidget(toolButton);
          categoryButtons_.push_back(toolButton);
 
          QObject::connect(toolButton,
@@ -99,6 +107,26 @@ public:
 
          toolButton->setEnabled(false);
       }
+
+      // Storm Tracking Information
+      QCheckBox* stiPastEnableCheckBox     = new QCheckBox();
+      QCheckBox* stiForecastEnableCheckBox = new QCheckBox();
+
+      stiPastEnableCheckBox->setText(QObject::tr("Storm Tracks (Past)"));
+      stiForecastEnableCheckBox->setText(
+         QObject::tr("Storm Tracks (Forecast)"));
+
+      layout_->addWidget(stiPastEnableCheckBox);
+      layout_->addWidget(stiForecastEnableCheckBox);
+
+      auto& productSettings = settings::ProductSettings::Instance();
+
+      stiPastEnabled_.SetSettingsVariable(productSettings.sti_past_enabled());
+      stiForecastEnabled_.SetSettingsVariable(
+         productSettings.sti_forecast_enabled());
+
+      stiPastEnabled_.SetEditWidget(stiPastEnableCheckBox);
+      stiForecastEnabled_.SetEditWidget(stiForecastEnableCheckBox);
    }
    ~Level3ProductsWidgetImpl() = default;
 
@@ -109,6 +137,8 @@ public:
 
    Level3ProductsWidget*   self_;
    QLayout*                layout_;
+   QWidget*                productsWidget_;
+   QLayout*                productsLayout_;
    std::list<QToolButton*> categoryButtons_;
    std::unordered_map<common::Level3ProductCategory,
                       std::unordered_map<std::string, QMenu*>>
@@ -118,6 +148,9 @@ public:
 
    std::unordered_map<QAction*, std::string> awipsProductMap_;
    std::shared_mutex                         awipsProductMutex_;
+
+   settings::SettingsInterface<bool> stiPastEnabled_ {};
+   settings::SettingsInterface<bool> stiForecastEnabled_ {};
 };
 
 Level3ProductsWidget::Level3ProductsWidget(QWidget* parent) :

@@ -71,6 +71,56 @@ std::optional<uint16_t> LinkedVectorPacket::value_of_vector() const
    return value;
 }
 
+std::int16_t LinkedVectorPacket::start_i() const
+{
+   return p->startI_;
+}
+
+std::int16_t LinkedVectorPacket::start_j() const
+{
+   return p->startJ_;
+}
+
+std::vector<std::int16_t> LinkedVectorPacket::end_i() const
+{
+   return p->endI_;
+}
+
+std::vector<std::int16_t> LinkedVectorPacket::end_j() const
+{
+   return p->endJ_;
+}
+
+units::kilometers<double> LinkedVectorPacket::start_i_km() const
+{
+   return units::kilometers<double> {p->startI_ * 0.25};
+}
+
+units::kilometers<double> LinkedVectorPacket::start_j_km() const
+{
+   return units::kilometers<double> {p->startJ_ * 0.25};
+}
+
+std::vector<units::kilometers<double>> LinkedVectorPacket::end_i_km() const
+{
+   std::vector<units::kilometers<double>> endI;
+   for (const auto& i : p->endI_)
+   {
+      endI.emplace_back(units::kilometers<double> {i * 0.25});
+   }
+   return endI;
+}
+
+std::vector<units::kilometers<double>> LinkedVectorPacket::end_j_km() const
+{
+   std::vector<units::kilometers<double>> endJ;
+   for (const auto& j : p->endJ_)
+   {
+      endJ.emplace_back(units::kilometers<double> {j * 0.25});
+   }
+   return endJ;
+}
+
 size_t LinkedVectorPacket::data_size() const
 {
    return p->lengthOfBlock_ + 4u;

@@ -44,7 +44,7 @@ GraphicAlphanumericBlock::GraphicAlphanumericBlock() :
 GraphicAlphanumericBlock::~GraphicAlphanumericBlock() = default;
 
 GraphicAlphanumericBlock::GraphicAlphanumericBlock(
-   GraphicAlphanumericBlock&&) noexcept                     = default;
+   GraphicAlphanumericBlock&&) noexcept = default;
 GraphicAlphanumericBlock& GraphicAlphanumericBlock::operator=(
    GraphicAlphanumericBlock&&) noexcept = default;
 
@@ -56,6 +56,12 @@ int16_t GraphicAlphanumericBlock::block_divider() const
 size_t GraphicAlphanumericBlock::data_size() const
 {
    return p->lengthOfBlock_;
+}
+
+const std::vector<std::vector<std::shared_ptr<Packet>>>&
+GraphicAlphanumericBlock::page_list() const
+{
+   return p->pageList_;
 }
 
 bool GraphicAlphanumericBlock::Parse(std::istream& is)

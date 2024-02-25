@@ -11,6 +11,7 @@
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/ui/setup/setup_wizard.hpp>
 #include <scwx/network/cpr.hpp>
+#include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
 
@@ -19,6 +20,7 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <QApplication>
+#include <QStandardPaths>
 #include <QTranslator>
 
 static const std::string logPrefix_ = "scwx::main";
@@ -43,6 +45,11 @@ int main(int argc, char* argv[])
    if (translator.load(QLocale(), "scwx", "_", ":/i18n"))
    {
       QCoreApplication::installTranslator(&translator);
+   }
+
+   if (!scwx::util::GetEnvironment("SCWX_TEST").empty())
+   {
+      QStandardPaths::setTestModeEnabled(true);
    }
 
    // Start the io_context main loop

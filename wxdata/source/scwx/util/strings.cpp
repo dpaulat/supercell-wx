@@ -1,6 +1,9 @@
+#define STRINGS_IMPLEMENTATION
+
 #include <scwx/util/strings.hpp>
 
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/lexical_cast.hpp>
 
 namespace scwx
 {
@@ -83,6 +86,23 @@ std::string ToString(const std::vector<std::string>& v)
       }
 
       value += s;
+   }
+
+   return value;
+}
+
+template<typename T>
+std::optional<T> TryParseNumeric(const std::string& str)
+{
+   std::optional<T> value = std::nullopt;
+
+   try
+   {
+      auto trimmed = boost::algorithm::trim_copy(str);
+      value        = boost::lexical_cast<T>(trimmed);
+   }
+   catch (const std::exception&)
+   {
    }
 
    return value;

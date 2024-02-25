@@ -61,8 +61,9 @@ set(SRC_GL source/scwx/qt/gl/gl_context.cpp
            source/scwx/qt/gl/shader_program.cpp)
 set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
                 source/scwx/qt/gl/draw/geo_icons.hpp
-                source/scwx/qt/gl/draw/geo_line.hpp
+                source/scwx/qt/gl/draw/geo_lines.hpp
                 source/scwx/qt/gl/draw/icons.hpp
+                source/scwx/qt/gl/draw/linked_vectors.hpp
                 source/scwx/qt/gl/draw/placefile_icons.hpp
                 source/scwx/qt/gl/draw/placefile_images.hpp
                 source/scwx/qt/gl/draw/placefile_lines.hpp
@@ -72,8 +73,9 @@ set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
                 source/scwx/qt/gl/draw/rectangle.hpp)
 set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
                 source/scwx/qt/gl/draw/geo_icons.cpp
-                source/scwx/qt/gl/draw/geo_line.cpp
+                source/scwx/qt/gl/draw/geo_lines.cpp
                 source/scwx/qt/gl/draw/icons.cpp
+                source/scwx/qt/gl/draw/linked_vectors.cpp
                 source/scwx/qt/gl/draw/placefile_icons.cpp
                 source/scwx/qt/gl/draw/placefile_images.cpp
                 source/scwx/qt/gl/draw/placefile_lines.cpp
@@ -115,6 +117,7 @@ set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/map_settings.hpp
             source/scwx/qt/map/map_widget.hpp
             source/scwx/qt/map/overlay_layer.hpp
+            source/scwx/qt/map/overlay_product_layer.hpp
             source/scwx/qt/map/placefile_layer.hpp
             source/scwx/qt/map/radar_product_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp
@@ -128,6 +131,7 @@ set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/map_provider.cpp
             source/scwx/qt/map/map_widget.cpp
             source/scwx/qt/map/overlay_layer.cpp
+            source/scwx/qt/map/overlay_product_layer.cpp
             source/scwx/qt/map/placefile_layer.cpp
             source/scwx/qt/map/radar_product_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp
@@ -154,6 +158,7 @@ set(HDR_SETTINGS source/scwx/qt/settings/audio_settings.hpp
                  source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/map_settings.hpp
                  source/scwx/qt/settings/palette_settings.hpp
+                 source/scwx/qt/settings/product_settings.hpp
                  source/scwx/qt/settings/settings_category.hpp
                  source/scwx/qt/settings/settings_container.hpp
                  source/scwx/qt/settings/settings_definitions.hpp
@@ -167,6 +172,7 @@ set(SRC_SETTINGS source/scwx/qt/settings/audio_settings.cpp
                  source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/map_settings.cpp
                  source/scwx/qt/settings/palette_settings.cpp
+                 source/scwx/qt/settings/product_settings.cpp
                  source/scwx/qt/settings/settings_category.cpp
                  source/scwx/qt/settings/settings_container.cpp
                  source/scwx/qt/settings/settings_interface.cpp
@@ -298,12 +304,14 @@ set(HDR_VIEW source/scwx/qt/view/level2_product_view.hpp
              source/scwx/qt/view/level3_product_view.hpp
              source/scwx/qt/view/level3_radial_view.hpp
              source/scwx/qt/view/level3_raster_view.hpp
+             source/scwx/qt/view/overlay_product_view.hpp
              source/scwx/qt/view/radar_product_view.hpp
              source/scwx/qt/view/radar_product_view_factory.hpp)
 set(SRC_VIEW source/scwx/qt/view/level2_product_view.cpp
              source/scwx/qt/view/level3_product_view.cpp
              source/scwx/qt/view/level3_radial_view.cpp
              source/scwx/qt/view/level3_raster_view.cpp
+             source/scwx/qt/view/overlay_product_view.cpp
              source/scwx/qt/view/radar_product_view.cpp
              source/scwx/qt/view/radar_product_view_factory.cpp)
 

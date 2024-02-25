@@ -7,7 +7,9 @@
 #include <scwx/qt/map/color_table_layer.hpp>
 #include <scwx/qt/map/layer_wrapper.hpp>
 #include <scwx/qt/map/map_provider.hpp>
+#include <scwx/qt/map/map_settings.hpp>
 #include <scwx/qt/map/overlay_layer.hpp>
+#include <scwx/qt/map/overlay_product_layer.hpp>
 #include <scwx/qt/map/placefile_layer.hpp>
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
@@ -19,6 +21,7 @@
 #include <scwx/qt/util/file.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/tooltip.hpp>
+#include <scwx/qt/view/overlay_product_view.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
@@ -86,6 +89,14 @@ public:
        prevBearing_ {0.0},
        prevPitch_ {0.0}
    {
+      // Create views
+      auto overlayProductView = std::make_shared<view::OverlayProductView>();
+      overlayProductView->SetAutoRefresh(autoRefreshEnabled_);
+      overlayProductView->SetAutoUpdate(autoUpdateEnabled_);
+
+      // Initialize context
+      context_->set_overlay_product_view(overlayProductView);
+
       auto& generalSettings = settings::GeneralSettings::Instance();
 
       SetRadarSite(generalSettings.default_radar_site().GetValue());
@@ -181,12 +192,13 @@ public:
       manager::PlacefileManager::Instance()};
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
-   std::shared_ptr<RadarProductLayer> radarProductLayer_;
-   std::shared_ptr<AlertLayer>        alertLayer_;
-   std::shared_ptr<OverlayLayer>      overlayLayer_;
-   std::shared_ptr<PlacefileLayer>    placefileLayer_;
-   std::shared_ptr<ColorTableLayer>   colorTableLayer_;
-   std::shared_ptr<RadarSiteLayer>    radarSiteLayer_ {nullptr};
+   std::shared_ptr<RadarProductLayer>   radarProductLayer_;
+   std::shared_ptr<AlertLayer>          alertLayer_;
+   std::shared_ptr<OverlayLayer>        overlayLayer_;
+   std::shared_ptr<OverlayProductLayer> overlayProductLayer_ {nullptr};
+   std::shared_ptr<PlacefileLayer>      placefileLayer_;
+   std::shared_ptr<ColorTableLayer>     colorTableLayer_;
+   std::shared_ptr<RadarSiteLayer>      radarSiteLayer_ {nullptr};
 
    std::list<std::shared_ptr<PlacefileLayer>> placefileLayers_ {};
 
@@ -439,7 +451,7 @@ std::chrono::system_clock::time_point MapWidget::GetSelectedTime() const
    if (radarProductView != nullptr)
    {
       // Select the time associated with the active radar product
-      time = radarProductView->GetSelectedTime();
+      time = radarProductView->selected_time();
    }
 
    return time;
@@ -618,6 +630,9 @@ void MapWidget::SelectTime(std::chrono::system_clock::time_point time)
 {
    auto radarProductView = p->context_->radar_product_view();
 
+   // Update other views
+   p->context_->overlay_product_view()->SelectTime(time);
+
    // If there is an active radar product view
    if (radarProductView != nullptr)
    {
@@ -651,12 +666,16 @@ void MapWidget::SetAutoRefresh(bool enabled)
             true,
             p->uuid_);
       }
+
+      p->context_->overlay_product_view()->SetAutoRefresh(enabled);
    }
 }
 
 void MapWidget::SetAutoUpdate(bool enabled)
 {
    p->autoUpdateEnabled_ = enabled;
+
+   p->context_->overlay_product_view()->SetAutoUpdate(enabled);
 }
 
 void MapWidget::SetMapLocation(double latitude,
@@ -912,6 +931,16 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
    {
       switch (std::get<types::DataLayer>(description))
       {
+      // If there is a radar product view, create the overlay product layer
+      case types::DataLayer::OverlayProduct:
+         if (radarProductView != nullptr)
+         {
+            overlayProductLayer_ =
+               std::make_shared<OverlayProductLayer>(context_);
+            AddLayer(layerName, overlayProductLayer_, before);
+         }
+         break;
+
       // If there is a radar product view, create the radar range layer
       case types::DataLayer::RadarRange:
          if (radarProductView != nullptr)
@@ -1491,6 +1520,10 @@ void MapWidgetImpl::SetRadarSite(const std::string& radarSite)
 
       // Set new RadarProductManager
       radarProductManager_ = manager::RadarProductManager::Instance(radarSite);
+
+      // Update views
+      context_->overlay_product_view()->set_radar_product_manager(
+         radarProductManager_);
 
       // Connect signals to new RadarProductManager
       RadarProductManagerConnect();

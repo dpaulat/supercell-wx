@@ -150,11 +150,6 @@ RadarProductView::GetDescriptionFields() const
    return {};
 }
 
-std::chrono::system_clock::time_point RadarProductView::GetSelectedTime() const
-{
-   return p->selectedTime_;
-}
-
 void RadarProductView::ComputeSweep()
 {
    logger_->debug("ComputeSweep()");
