@@ -66,8 +66,9 @@ public:
    std::optional<DataLevelCode> data_level_code(std::uint8_t level) const;
    std::optional<float>         data_value(std::uint8_t level) const;
 
-   float log_offset() const;
-   float log_scale() const;
+   std::uint16_t log_start() const;
+   float         log_offset() const;
+   float         log_scale() const;
 
    units::angle::degrees<double> elevation() const;
 
