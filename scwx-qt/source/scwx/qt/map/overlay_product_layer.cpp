@@ -1,6 +1,7 @@
 #include <scwx/qt/map/overlay_product_layer.hpp>
 #include <scwx/qt/gl/draw/linked_vectors.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
+#include <scwx/qt/settings/product_settings.hpp>
 #include <scwx/qt/view/overlay_product_view.hpp>
 #include <scwx/wsr88d/rpg/linked_vector_packet.hpp>
 #include <scwx/wsr88d/rpg/rpg_types.hpp>
@@ -28,6 +29,28 @@ public:
        self_ {self},
        linkedVectors_ {std::make_shared<gl::draw::LinkedVectors>(context)}
    {
+      auto& productSettings = settings::ProductSettings::Instance();
+
+      productSettings.sti_forecast_enabled().RegisterValueStagedCallback(
+         [=, this](const bool& value)
+         {
+            stiForecastEnabled_ = value;
+            stiNeedsUpdate_     = true;
+
+            Q_EMIT self_->NeedsRendering();
+         });
+      productSettings.sti_past_enabled().RegisterValueStagedCallback(
+         [=, this](const bool& value)
+         {
+            stiPastEnabled_ = value;
+            stiNeedsUpdate_ = true;
+
+            Q_EMIT self_->NeedsRendering();
+         });
+
+      stiForecastEnabled_ =
+         productSettings.sti_forecast_enabled().GetStagedOrValue();
+      stiPastEnabled_ = productSettings.sti_past_enabled().GetStagedOrValue();
    }
    ~Impl() = default;
 
@@ -41,7 +64,7 @@ public:
       units::length::nautical_miles<float>              tickRadius,
       units::length::nautical_miles<float>              tickRadiusIncrement,
       std::shared_ptr<gl::draw::LinkedVectors>&         linkedVectors);
-   static void HandleScitDataPacket(
+   void HandleScitDataPacket(
       const std::shared_ptr<const wsr88d::rpg::StormTrackingInformationMessage>&
                                                         sti,
       const std::shared_ptr<const wsr88d::rpg::Packet>& packet,
@@ -64,6 +87,9 @@ public:
 
    OverlayProductLayer* self_;
 
+   bool stiForecastEnabled_ {true};
+   bool stiPastEnabled_ {true};
+
    bool stiNeedsUpdate_ {false};
 
    std::shared_ptr<gl::draw::LinkedVectors> linkedVectors_;
@@ -81,6 +107,7 @@ OverlayProductLayer::OverlayProductLayer(std::shared_ptr<MapContext> context) :
               if (product == "NST")
               {
                  p->stiNeedsUpdate_ = true;
+                 Q_EMIT NeedsRendering();
               }
            });
 
@@ -253,16 +280,29 @@ void OverlayProductLayer::Impl::HandleScitDataPacket(
       if (scitDataPacket->packet_code() ==
           static_cast<std::uint16_t>(wsr88d::rpg::PacketCode::ScitPastData))
       {
+         if (!stiPastEnabled_)
+         {
+            return;
+         }
+
          // If this is past data, the default tick radius and increment with a
          // darker color
          color = {0.5f, 0.5f, 0.5f, 1.0f};
       }
-      else if (stiRecord != nullptr && stiRecord->meanError_.has_value())
+      else
       {
-         // If this is forecast data, use the mean error as the radius (minimum
-         // of the default value), incrementing by the mean error
-         tickRadiusIncrement = stiRecord->meanError_.value();
-         tickRadius          = std::max(tickRadius, tickRadiusIncrement);
+         if (!stiForecastEnabled_)
+         {
+            return;
+         }
+
+         if (stiRecord != nullptr && stiRecord->meanError_.has_value())
+         {
+            // If this is forecast data, use the mean error as the radius
+            // (minimum of the default value), incrementing by the mean error
+            tickRadiusIncrement = stiRecord->meanError_.value();
+            tickRadius          = std::max(tickRadius, tickRadiusIncrement);
+         }
       }
 
       for (auto& subpacket : scitDataPacket->packet_list())
