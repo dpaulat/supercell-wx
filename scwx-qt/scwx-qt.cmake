@@ -158,6 +158,7 @@ set(HDR_SETTINGS source/scwx/qt/settings/audio_settings.hpp
                  source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/map_settings.hpp
                  source/scwx/qt/settings/palette_settings.hpp
+                 source/scwx/qt/settings/product_settings.hpp
                  source/scwx/qt/settings/settings_category.hpp
                  source/scwx/qt/settings/settings_container.hpp
                  source/scwx/qt/settings/settings_definitions.hpp
@@ -171,6 +172,7 @@ set(SRC_SETTINGS source/scwx/qt/settings/audio_settings.cpp
                  source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/map_settings.cpp
                  source/scwx/qt/settings/palette_settings.cpp
+                 source/scwx/qt/settings/product_settings.cpp
                  source/scwx/qt/settings/settings_category.cpp
                  source/scwx/qt/settings/settings_container.cpp
                  source/scwx/qt/settings/settings_interface.cpp

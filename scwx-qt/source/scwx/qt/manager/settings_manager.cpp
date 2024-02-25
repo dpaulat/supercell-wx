@@ -4,6 +4,7 @@
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/map_settings.hpp>
 #include <scwx/qt/settings/palette_settings.hpp>
+#include <scwx/qt/settings/product_settings.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
 #include <scwx/qt/util/json.hpp>
@@ -116,6 +117,7 @@ void SettingsManager::Shutdown()
 
    dataChanged |= settings::GeneralSettings::Instance().Shutdown();
    dataChanged |= settings::MapSettings::Instance().Shutdown();
+   dataChanged |= settings::ProductSettings::Instance().Shutdown();
    dataChanged |= settings::UiSettings::Instance().Shutdown();
 
    if (dataChanged)
@@ -132,6 +134,7 @@ boost::json::value SettingsManager::Impl::ConvertSettingsToJson()
    settings::AudioSettings::Instance().WriteJson(settingsJson);
    settings::MapSettings::Instance().WriteJson(settingsJson);
    settings::PaletteSettings::Instance().WriteJson(settingsJson);
+   settings::ProductSettings::Instance().WriteJson(settingsJson);
    settings::TextSettings::Instance().WriteJson(settingsJson);
    settings::UiSettings::Instance().WriteJson(settingsJson);
 
@@ -146,6 +149,7 @@ void SettingsManager::Impl::GenerateDefaultSettings()
    settings::AudioSettings::Instance().SetDefaults();
    settings::MapSettings::Instance().SetDefaults();
    settings::PaletteSettings::Instance().SetDefaults();
+   settings::ProductSettings::Instance().SetDefaults();
    settings::TextSettings::Instance().SetDefaults();
    settings::UiSettings::Instance().SetDefaults();
 }
@@ -161,6 +165,7 @@ bool SettingsManager::Impl::LoadSettings(
    jsonDirty |= !settings::AudioSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::MapSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::PaletteSettings::Instance().ReadJson(settingsJson);
+   jsonDirty |= !settings::ProductSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::TextSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::UiSettings::Instance().ReadJson(settingsJson);
 
