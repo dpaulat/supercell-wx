@@ -532,7 +532,8 @@ bool DigitalRadarData::Parse(std::istream& is)
       messageValid = false;
    }
 
-   if (messageValid && p->surveillancePointer_ != 0)
+   if (messageValid && p->surveillancePointer_ != 0 &&
+       p->numberOfSurveillanceBins_ != 0)
    {
       p->reflectivityDataBlock_ = std::make_shared<Impl::MomentDataBlock>(
          this, DataBlockType::MomentRef);
@@ -546,7 +547,7 @@ bool DigitalRadarData::Parse(std::istream& is)
               p->numberOfSurveillanceBins_);
    }
 
-   if (messageValid && p->velocityPointer_ != 0)
+   if (messageValid && p->velocityPointer_ != 0 && p->numberOfDopplerBins_ != 0)
    {
       p->dopplerVelocityDataBlock_ = std::make_shared<Impl::MomentDataBlock>(
          this, DataBlockType::MomentVel);
@@ -561,7 +562,8 @@ bool DigitalRadarData::Parse(std::istream& is)
               p->numberOfDopplerBins_);
    }
 
-   if (messageValid && p->spectralWidthPointer_ != 0)
+   if (messageValid && p->spectralWidthPointer_ != 0 &&
+       p->numberOfDopplerBins_ != 0)
    {
       p->dopplerSpectrumWidthDataBlock_ =
          std::make_shared<Impl::MomentDataBlock>(this,
