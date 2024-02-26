@@ -45,6 +45,7 @@ static const std::unordered_map<Level2Product, std::string> level2Palette_ {
 static const std::unordered_map<int, std::string> level3ProductCodeMap_ {
    {37, "NCR"},
    {56, "SRM"},
+   {57, "NVL"},
    {94, "DR"},
    {99, "DV"},
    {134, "DVL"},
@@ -76,6 +77,7 @@ static const std::unordered_map<std::string, std::string>
                               {"SW", "Spectrum Width"},
                               {"TDR", "Digital Reflectivity"},
                               {"TDV", "Digital Velocity"},
+                              {"VIL", "Vertically Integrated Liquid"},
                               {"?", "Unknown"}};
 
 static const std::unordered_map<std::string, std::vector<std::string>>
@@ -106,8 +108,9 @@ static const std::unordered_map<std::string, std::vector<std::string>>
       // Specific Differential Phase
       {"DKD", {"NXK", "NYK", "NZK", "N0K", "NAK", "N1K", "NBK", "N2K", "N3K"}},
 
-      // Digital Vertically Integrated Liquid
+      // Vertically Integrated Liquid
       {"DVL", {"DVL"}},
+      {"VIL", {"NVL"}},
 
       // Hydrometeor Classification
       {"DHC", {"NXH", "NYH", "NZH", "N0H", "NAH", "N1H", "NBH", "N2H", "N3H"}},
@@ -159,7 +162,7 @@ static const std::unordered_map<Level3ProductCategory, std::vector<std::string>>
       {Level3ProductCategory::DifferentialReflectivity, {"DZD"}},
       {Level3ProductCategory::SpecificDifferentialPhase, {"DKD"}},
       {Level3ProductCategory::CorrelationCoefficient, {"DCC"}},
-      {Level3ProductCategory::VerticallyIntegratedLiquid, {"DVL"}},
+      {Level3ProductCategory::VerticallyIntegratedLiquid, {"DVL", "VIL"}},
       {Level3ProductCategory::HydrometeorClassification, {"DHC", "HHC"}},
       {Level3ProductCategory::Unknown, {}}};
 
