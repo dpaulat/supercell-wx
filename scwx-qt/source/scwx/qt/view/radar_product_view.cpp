@@ -144,6 +144,11 @@ RadarProductView::GetCfpMomentData() const
    return std::tie(data, dataSize, componentSize);
 }
 
+bool RadarProductView::IgnoreUnits() const
+{
+   return false;
+}
+
 std::vector<std::pair<std::string, std::string>>
 RadarProductView::GetDescriptionFields() const
 {

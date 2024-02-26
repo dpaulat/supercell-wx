@@ -49,11 +49,12 @@ enum class Level3ProductCategory
    CorrelationCoefficient,
    VerticallyIntegratedLiquid,
    HydrometeorClassification,
+   PrecipitationAccumulation,
    Unknown
 };
 typedef util::Iterator<Level3ProductCategory,
                        Level3ProductCategory::Reflectivity,
-                       Level3ProductCategory::HydrometeorClassification>
+                       Level3ProductCategory::PrecipitationAccumulation>
    Level3ProductCategoryIterator;
 
 typedef std::unordered_map<

@@ -8,6 +8,7 @@
 #include <scwx/wsr88d/rpg/radial_data_packet.hpp>
 
 #include <limits>
+#include <unordered_set>
 
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
@@ -396,6 +397,16 @@ std::optional<float> Level3ProductView::GetDataValue(std::uint16_t level) const
    }
 
    return descriptionBlock->data_value(static_cast<std::uint8_t>(level));
+}
+
+bool Level3ProductView::IgnoreUnits() const
+{
+   // Don't display units on these products. The current method of displaying
+   // units is not accurate for these.
+   static const std::unordered_set<std::string> kIgnoreUnitsProducts_ {
+      "DAA", "DTA", "DU3", "DU6"};
+
+   return (kIgnoreUnitsProducts_.contains(p->product_));
 }
 
 } // namespace view

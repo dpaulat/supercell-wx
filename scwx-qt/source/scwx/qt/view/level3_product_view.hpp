@@ -39,6 +39,7 @@ public:
    std::optional<wsr88d::DataLevelCode>
                         GetDataLevelCode(std::uint16_t level) const override;
    std::optional<float> GetDataValue(std::uint16_t level) const override;
+   bool                 IgnoreUnits() const override;
 
    void SelectProduct(const std::string& productName) override;
 

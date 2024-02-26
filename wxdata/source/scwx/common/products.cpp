@@ -43,42 +43,45 @@ static const std::unordered_map<Level2Product, std::string> level2Palette_ {
    {Level2Product::Unknown, "???"}};
 
 static const std::unordered_map<int, std::string> level3ProductCodeMap_ {
-   {37, "NCR"},
-   {56, "SRM"},
-   {57, "NVL"},
-   {94, "DR"},
-   {99, "DV"},
-   {134, "DVL"},
-   {153, "SDR"},
-   {154, "SDV"},
-   {159, "DZD"},
-   {161, "DCC"},
-   {163, "DKD"},
-   {165, "DHC"},
-   {166, "ML"},
-   {177, "HHC"},
-   {180, "TDR"},
-   {182, "TDV"}};
+   {30, "SW"},   {37, "NCR"},  {56, "SRM"},  {57, "NVL"},  {78, "N1P"},
+   {79, "N3P"},  {80, "NTP"},  {81, "DPA"},  {82, "SPD"},  {94, "DR"},
+   {99, "DV"},   {134, "DVL"}, {138, "DSP"}, {153, "SDR"}, {154, "SDV"},
+   {159, "DZD"}, {161, "DCC"}, {163, "DKD"}, {165, "DHC"}, {166, "ML"},
+   {169, "OHA"}, {170, "DAA"}, {172, "DTA"}, {173, "DUA"}, {174, "DOD"},
+   {175, "DSD"}, {177, "HHC"}, {180, "TDR"}, {182, "TDV"}};
 
 static const std::unordered_map<std::string, std::string>
-   level3ProductDescription_ {{"SRM", "Storm Relative Mean Radial Velocity"},
-                              {"DR", "Digital Reflectivity"},
-                              {"DV", "Digital Velocity"},
-                              {"SDR", "Super-Resolution Reflectivity"},
-                              {"SDV", "Super-Resolution Velocity"},
-                              {"NCR", "Composite Reflectivity"},
-                              {"DZD", "Digital Differential Reflectivity"},
-                              {"DCC", "Digital Correlation Coefficient"},
-                              {"DKD", "Digital Specific Differential Phase"},
-                              {"DVL", "Digital Vertically Integrated Liquid"},
-                              {"DHC", "Digital Hydrometeor Classification"},
-                              {"HHC", "Hybrid Hydrometeor Classification"},
-                              {"ML", "Melting Layer"},
-                              {"SW", "Spectrum Width"},
-                              {"TDR", "Digital Reflectivity"},
-                              {"TDV", "Digital Velocity"},
-                              {"VIL", "Vertically Integrated Liquid"},
-                              {"?", "Unknown"}};
+   level3ProductDescription_ {
+      {"SW", "Spectrum Width"},
+      {"NCR", "Composite Reflectivity"},
+      {"SRM", "Storm Relative Mean Radial Velocity"},
+      {"NVL", "Vertically Integrated Liquid"},
+      {"N1P", "Surface Rainfall Accumulation (1 hr)"},
+      {"N3P", "Surface Rainfall Accumulation (3 hr)"},
+      {"NTP", "Storm Total Rainfall Accumulation"},
+      {"DPA", "Hourly Digital Precipitation Array"},
+      {"SPD", "Supplemental Precipitation Data"},
+      {"DR", "Digital Reflectivity"},
+      {"DV", "Digital Velocity"},
+      {"DVL", "Digital Vertically Integrated Liquid"},
+      {"DSP", "Digital Storm Total Precipitation"},
+      {"SDR", "Super-Resolution Reflectivity"},
+      {"SDV", "Super-Resolution Velocity"},
+      {"DZD", "Digital Differential Reflectivity"},
+      {"DCC", "Digital Correlation Coefficient"},
+      {"DKD", "Digital Specific Differential Phase"},
+      {"DHC", "Digital Hydrometeor Classification"},
+      {"ML", "Melting Layer"},
+      {"OHA", "One Hour Accumulation"},
+      {"DAA", "Digital Accumulation Array"},
+      {"DTA", "Digital Storm Total Accumulation"},
+      {"DUA", "Digital User-Selectable Accumulation"},
+      {"DOD", "Digital One-Hour Difference Accumulation"},
+      {"DSD", "Digital Storm Total Difference Accumulation"},
+      {"HHC", "Hybrid Hydrometeor Classification"},
+      {"TDR", "Digital Reflectivity"},
+      {"TDV", "Digital Velocity"},
+      {"?", "Unknown"}};
 
 static const std::unordered_map<std::string, std::vector<std::string>>
    level3AwipsProducts_ {
@@ -110,11 +113,25 @@ static const std::unordered_map<std::string, std::vector<std::string>>
 
       // Vertically Integrated Liquid
       {"DVL", {"DVL"}},
-      {"VIL", {"NVL"}},
+      {"NVL", {"NVL"}},
 
       // Hydrometeor Classification
       {"DHC", {"NXH", "NYH", "NZH", "N0H", "NAH", "N1H", "NBH", "N2H", "N3H"}},
       {"HHC", {"HHC"}},
+
+      // Accumulation
+      {"N1P", {"N1P"}},
+      {"N3P", {"N3P"}},
+      {"NTP", {"NTP"}},
+      {"DPA", {"DPA"}},
+      {"SPD", {"SPD"}},
+      {"DSP", {"DSP"}},
+      {"OHA", {"OHA"}},
+      {"DAA", {"DAA"}},
+      {"DTA", {"DTA"}},
+      {"DUA", {"DU3", "DU6"}},
+      {"DOD", {"DOD"}},
+      {"DSD", {"DSD"}},
 
       // Melting Layer
       {"ML", {"NXM", "NYM", "NZM", "N0M", "NAM", "N1M", "NBM", "N2M", "N3M"}},
@@ -133,6 +150,7 @@ static const std::unordered_map<Level3ProductCategory, std::string>
       {Level3ProductCategory::CorrelationCoefficient, "CC"},
       {Level3ProductCategory::VerticallyIntegratedLiquid, "VIL"},
       {Level3ProductCategory::HydrometeorClassification, "HC"},
+      {Level3ProductCategory::PrecipitationAccumulation, "ACC"},
       {Level3ProductCategory::Unknown, "?"}};
 
 static const std::unordered_map<Level3ProductCategory, std::string>
@@ -151,6 +169,8 @@ static const std::unordered_map<Level3ProductCategory, std::string>
        "Vertically Integrated Liquid"},
       {Level3ProductCategory::HydrometeorClassification,
        "Hydrometeor Classification"},
+      {Level3ProductCategory::PrecipitationAccumulation,
+       "Precipitation Accumulation"},
       {Level3ProductCategory::Unknown, "?"}};
 
 static const std::unordered_map<Level3ProductCategory, std::vector<std::string>>
@@ -162,8 +182,9 @@ static const std::unordered_map<Level3ProductCategory, std::vector<std::string>>
       {Level3ProductCategory::DifferentialReflectivity, {"DZD"}},
       {Level3ProductCategory::SpecificDifferentialPhase, {"DKD"}},
       {Level3ProductCategory::CorrelationCoefficient, {"DCC"}},
-      {Level3ProductCategory::VerticallyIntegratedLiquid, {"DVL", "VIL"}},
+      {Level3ProductCategory::VerticallyIntegratedLiquid, {"DVL", "NVL"}},
       {Level3ProductCategory::HydrometeorClassification, {"DHC", "HHC"}},
+      {Level3ProductCategory::PrecipitationAccumulation, {"DAA", "DTA", "DUA"}},
       {Level3ProductCategory::Unknown, {}}};
 
 static const std::unordered_map<Level3ProductCategory, std::string>
@@ -176,14 +197,15 @@ static const std::unordered_map<Level3ProductCategory, std::string>
       {Level3ProductCategory::SpecificDifferentialPhase, "N0K"},
       {Level3ProductCategory::CorrelationCoefficient, "N0C"},
       {Level3ProductCategory::VerticallyIntegratedLiquid, "DVL"},
-      {Level3ProductCategory::HydrometeorClassification, "N0H"}};
+      {Level3ProductCategory::HydrometeorClassification, "N0H"},
+      {Level3ProductCategory::PrecipitationAccumulation, "DAA"}};
 
 static const std::unordered_map<int, std::string> level3Palette_ {
    {19, "BR"},     {20, "BR"},     {27, "BV"},     {30, "SW"},
    {31, "STPIN"},  {32, "BR"},     {37, "BR"},     {38, "BR"},
    {41, "ET"},     {50, "BR"},     {51, "BV"},     {56, "SRV"},
    {57, "VIL"},    {65, "BR"},     {66, "BR"},     {67, "BR"},
-   {78, "OHPIN"},  {79, "OHPIN"},  {80, "STPIN"},  {81, "???"},
+   {78, "OHPIN"},  {79, "OHPIN"},  {80, "STPIN"},  {81, "OHP"},
    {86, "BV"},     {90, "BR"},     {93, "BV"},     {94, "BR"},
    {97, "BR"},     {98, "BR"},     {99, "BV"},     {113, "???"},
    {132, "???"},   {133, "???"},   {134, "VIL"},   {135, "ET"},
@@ -191,7 +213,7 @@ static const std::unordered_map<int, std::string> level3Palette_ {
    {146, "STPIN"}, {150, "STPIN"}, {151, "STPIN"}, {153, "BR"},
    {154, "BV"},    {155, "SW"},    {159, "ZDR"},   {161, "CC"},
    {163, "PHI3"},  {165, "HC"},    {167, "CC"},    {168, "PHI3"},
-   {169, "OHPIN"}, {170, "STP"},   {171, "STPIN"}, {172, "STP"},
+   {169, "OHP"},   {170, "OHP"},   {171, "STP"},   {172, "STP"},
    {173, "STP"},   {174, "DOD"},   {175, "DSD"},   {176, "???"},
    {177, "HC"},    {178, "???"},   {179, "???"},   {180, "BR"},
    {181, "BR"},    {182, "BV"},    {184, "SW"},    {186, "BR"},

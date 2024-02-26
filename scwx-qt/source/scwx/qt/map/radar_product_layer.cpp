@@ -406,7 +406,8 @@ bool RadarProductLayer::RunMousePicking(
             if (units.empty() ||          //
                 units.starts_with("?") || //
                 boost::iequals(units, "NONE") ||
-                boost::iequals(units, "UNITLESS"))
+                boost::iequals(units, "UNITLESS") ||
+                radarProductView->IgnoreUnits())
             {
                // Don't display a units value that wasn't intended to be
                // displayed
