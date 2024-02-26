@@ -1028,7 +1028,7 @@ ProductDescriptionBlock::data_value(std::uint8_t level) const
          }
          else
          {
-            f = std::expf((level - log_offset()) / log_scale());
+            f = expf((level - log_offset()) / log_scale());
          }
          break;
 
