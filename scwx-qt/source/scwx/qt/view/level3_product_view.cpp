@@ -56,8 +56,11 @@ public:
    uint16_t                               colorTableMax_;
 
    std::shared_ptr<common::ColorTable> savedColorTable_;
-   float                               savedScale_;
-   float                               savedOffset_;
+   float                               savedScale_ {1.0f};
+   float                               savedOffset_ {0.0f};
+   std::uint16_t                       savedLogStart_ {20u};
+   float                               savedLogScale_ {1.0f};
+   float                               savedLogOffset_ {0.0f};
 };
 
 Level3ProductView::Level3ProductView(
@@ -247,9 +250,12 @@ void Level3ProductView::UpdateColorTableLut()
       return;
    }
 
-   float        offset    = descriptionBlock->offset();
-   float        scale     = descriptionBlock->scale();
-   std::uint8_t threshold = static_cast<std::uint8_t>(
+   float         offset    = descriptionBlock->offset();
+   float         scale     = descriptionBlock->scale();
+   float         logOffset = descriptionBlock->log_offset();
+   float         logScale  = descriptionBlock->log_scale();
+   std::uint16_t logStart  = descriptionBlock->log_start();
+   std::uint8_t  threshold = static_cast<std::uint8_t>(
       std::clamp<std::uint16_t>(descriptionBlock->threshold(),
                                 std::numeric_limits<std::uint8_t>::min(),
                                 std::numeric_limits<std::uint8_t>::max()));
@@ -266,6 +272,9 @@ void Level3ProductView::UpdateColorTableLut()
    if (p->savedColorTable_ == p->colorTable_ && //
        p->savedOffset_ == offset &&             //
        p->savedScale_ == scale &&               //
+       p->savedLogOffset_ == logOffset &&       //
+       p->savedLogScale_ == logScale &&         //
+       p->savedLogStart_ == logStart &&         //
        numberOfLevels > 16)
    {
       // The color table LUT does not need updated
@@ -335,6 +344,9 @@ void Level3ProductView::UpdateColorTableLut()
    p->savedColorTable_ = p->colorTable_;
    p->savedOffset_     = offset;
    p->savedScale_      = scale;
+   p->savedLogOffset_  = logOffset;
+   p->savedLogScale_   = logScale;
+   p->savedLogStart_   = logStart;
 
    Q_EMIT ColorTableLutUpdated();
 }
