@@ -4,7 +4,6 @@
 
 #include <array>
 #include <istream>
-#include <numbers>
 #include <set>
 #include <string>
 
@@ -1029,8 +1028,7 @@ ProductDescriptionBlock::data_value(std::uint8_t level) const
          }
          else
          {
-            f = static_cast<float>(std::pow<double>(
-               std::numbers::e, (level - log_offset()) / log_scale()));
+            f = std::expf((level - log_offset()) / log_scale());
          }
          break;
 
