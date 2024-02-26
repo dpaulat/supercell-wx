@@ -19,7 +19,7 @@ float DecodeFloat16(std::uint16_t hex)
    static constexpr std::uint16_t S_MASK  = 0x8000;
    static constexpr std::uint16_t S_LSB   = 0;
    static constexpr std::uint16_t S_SHIFT = 15 - S_LSB;
-   static constexpr std::uint16_t E_MASK  = 0x7a00;
+   static constexpr std::uint16_t E_MASK  = 0x7c00;
    static constexpr std::uint16_t E_LSB   = 5;
    static constexpr std::uint16_t E_SHIFT = 15 - E_LSB;
    static constexpr std::uint16_t F_MASK  = 0x03ff;

@@ -591,6 +591,20 @@ uint16_t ProductDescriptionBlock::number_of_levels() const
    return numberOfLevels;
 }
 
+std::uint16_t ProductDescriptionBlock::log_start() const
+{
+   std::uint16_t logStart = std::numeric_limits<std::uint16_t>::max();
+
+   switch (p->productCode_)
+   {
+   case 134:
+      logStart = p->halfword(33);
+      break;
+   }
+
+   return logStart;
+}
+
 float ProductDescriptionBlock::log_offset() const
 {
    float logOffset = 0.0f;
@@ -598,7 +612,7 @@ float ProductDescriptionBlock::log_offset() const
    switch (p->productCode_)
    {
    case 134:
-      logOffset = util ::DecodeFloat16(p->halfword(35));
+      logOffset = util::DecodeFloat16(p->halfword(35));
       break;
    }
 
@@ -612,7 +626,7 @@ float ProductDescriptionBlock::log_scale() const
    switch (p->productCode_)
    {
    case 134:
-      logScale = util ::DecodeFloat16(p->halfword(34));
+      logScale = util::DecodeFloat16(p->halfword(34));
       break;
    }
 
@@ -1005,6 +1019,17 @@ ProductDescriptionBlock::data_value(std::uint8_t level) const
       case 175:
       case 176:
          f = (level - dataOffset) / dataScale;
+         break;
+
+      case 134:
+         if (level < log_start())
+         {
+            f = (level - dataOffset) / dataScale;
+         }
+         else
+         {
+            f = expf((level - log_offset()) / log_scale());
+         }
          break;
 
       default:

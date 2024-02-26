@@ -47,6 +47,7 @@ enum class Level3ProductCategory
    DifferentialReflectivity,
    SpecificDifferentialPhase,
    CorrelationCoefficient,
+   VerticallyIntegratedLiquid,
    HydrometeorClassification,
    Unknown
 };
