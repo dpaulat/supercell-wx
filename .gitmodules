@@ -1,6 +1,3 @@
-[submodule "external/mapbox-gl-native"]
-	path = external/mapbox-gl-native
-	url = https://github.com/dpaulat/maplibre-gl-native.git
 [submodule "external/cmake-conan"]
 	path = external/cmake-conan
 	url = https://github.com/conan-io/cmake-conan.git
