@@ -8,7 +8,7 @@ set_property(DIRECTORY
              date.cmake
              hsluv-c.cmake
              imgui.cmake
-             mapbox-gl-native.cmake
+             maplibre-native-qt.cmake
              stb.cmake
              textflowcpp.cmake
              units.cmake)
@@ -17,7 +17,7 @@ include(aws-sdk-cpp.cmake)
 include(date.cmake)
 include(hsluv-c.cmake)
 include(imgui.cmake)
-include(mapbox-gl-native.cmake)
+include(maplibre-native-qt.cmake)
 include(stb.cmake)
 include(textflowcpp.cmake)
 include(units.cmake)

@@ -48,3 +48,5 @@ add_subdirectory(external)
 add_subdirectory(wxdata)
 add_subdirectory(scwx-qt)
 add_subdirectory(test)
+
+set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER CMakePredefinedTargets)
