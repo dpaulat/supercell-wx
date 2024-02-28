@@ -3,10 +3,10 @@
 #include <scwx/util/logger.hpp>
 
 #include <QCoreApplication>
-#include <QMapLibreGL/QMapLibreGL>
 #include <QTimer>
 
 #include <gtest/gtest.h>
+#include <qmaplibre.hpp>
 #include <re2/re2.h>
 
 namespace scwx
@@ -45,22 +45,22 @@ TEST_P(ByMapProviderTest, MapProviderLayers)
    // Configure map provider
    const MapProviderInfo& mapProviderInfo = GetMapProviderInfo(mapProvider);
 
-   // Configure QMapLibreGL
-   QMapLibreGL::Settings mapSettings {};
-   mapSettings.resetToTemplate(mapProviderInfo.settingsTemplate_);
+   // Configure QMapLibre
+   QMapLibre::Settings mapSettings {};
+   mapSettings.setProviderTemplate(mapProviderInfo.providerTemplate_);
    mapSettings.setApiKey(QString::fromStdString(apiKey));
 
-   QMapLibreGL::Map map(nullptr, mapSettings, QSize(1, 1));
+   QMapLibre::Map map(nullptr, mapSettings, QSize(1, 1));
    application.processEvents();
 
    // Connect style load completion signal
    QObject::connect(
       &map,
-      &QMapLibreGL::Map::mapChanged,
-      [&](QMapLibreGL::Map::MapChange mapChange)
+      &QMapLibre::Map::mapChanged,
+      [&](QMapLibre::Map::MapChange mapChange)
       {
          if (mapChange ==
-             QMapLibreGL::Map::MapChange::MapChangeDidFinishLoadingStyle)
+             QMapLibre::Map::MapChange::MapChangeDidFinishLoadingStyle)
          {
             application.exit();
          }
