@@ -34,7 +34,7 @@ struct MapProviderInfo
 {
    MapProvider                           mapProvider_ {MapProvider::Unknown};
    std::string                           cacheDbName_ {};
-   QMapLibre::Settings::SettingsTemplate settingsTemplate_ {};
+   QMapLibre::Settings::ProviderTemplate providerTemplate_ {};
    std::vector<MapStyle>                 mapStyles_ {};
 };
 
