@@ -27,7 +27,7 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
        .mapProvider_ {MapProvider::Mapbox},
        .cacheDbName_ {"mbgl-cache.db"},
        .settingsTemplate_ {
-          QMapLibreGL::Settings::SettingsTemplate::MapboxSettings},
+          QMapLibre::Settings::SettingsTemplate::MapboxSettings},
        .mapStyles_ {{.name_ {"Streets"},
                      .url_ {"mapbox://styles/mapbox/streets-v11"},
                      .drawBelow_ {mapboxDrawBelow_}},
@@ -51,7 +51,7 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
        .mapProvider_ {MapProvider::MapTiler},
        .cacheDbName_ {"maptiler-cache.db"},
        .settingsTemplate_ {
-          QMapLibreGL::Settings::SettingsTemplate::MapTilerSettings},
+          QMapLibre::Settings::SettingsTemplate::MapTilerSettings},
        .mapStyles_ {
           {.name_ {"Satellite"},
            .url_ {"maptiler://maps/hybrid"},

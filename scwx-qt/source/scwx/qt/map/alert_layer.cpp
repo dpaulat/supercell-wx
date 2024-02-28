@@ -24,22 +24,22 @@ static const std::string logPrefix_ = "scwx::qt::map::alert_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static std::vector<std::string>
-AddAlertLayer(std::shared_ptr<QMapLibreGL::Map> map,
-              awips::Phenomenon                 phenomenon,
-              bool                              alertActive,
-              const QString&                    beforeLayer);
-static QMapLibreGL::Feature
+AddAlertLayer(std::shared_ptr<QMapLibre::Map> map,
+              awips::Phenomenon               phenomenon,
+              bool                            alertActive,
+              const QString&                  beforeLayer);
+static QMapLibre::Feature
 CreateFeature(const awips::CodedLocation& codedLocation);
-static QMapLibreGL::Coordinate
+static QMapLibre::Coordinate
 GetMapboxCoordinate(const common::Coordinate& coordinate);
-static QMapLibreGL::Coordinates
+static QMapLibre::Coordinates
                GetMapboxCoordinates(const awips::CodedLocation& codedLocation);
 static QString GetSourceId(awips::Phenomenon phenomenon, bool alertActive);
 static QString GetSuffix(awips::Phenomenon phenomenon, bool alertActive);
 
 static const QVariantMap kEmptyFeatureCollection_ {
    {"type", "geojson"},
-   {"data", QVariant::fromValue(std::list<QMapLibreGL::Feature> {})}};
+   {"data", QVariant::fromValue(std::list<QMapLibre::Feature> {})}};
 static const std::vector<awips::Phenomenon> kAlertPhenomena_ {
    awips::Phenomenon::Marine,
    awips::Phenomenon::FlashFlood,
@@ -87,8 +87,8 @@ class AlertLayerHandler : public QObject
 
    static std::shared_ptr<AlertLayerHandler> Instance();
 
-   std::list<QMapLibreGL::Feature>* FeatureList(awips::Phenomenon phenomenon,
-                                                bool              alertActive);
+   std::list<QMapLibre::Feature>* FeatureList(awips::Phenomenon phenomenon,
+                                              bool              alertActive);
 
    void HandleAlert(const types::TextEventKey& key, size_t messageIndex);
    void UpdateAlerts();
@@ -103,7 +103,7 @@ class AlertLayerHandler : public QObject
    std::unordered_multimap<types::TextEventKey,
                            std::tuple<awips::Phenomenon,
                                       bool,
-                                      std::list<QMapLibreGL::Feature>::iterator,
+                                      std::list<QMapLibre::Feature>::iterator,
                                       std::chrono::system_clock::time_point>,
                            types::TextEventHash<types::TextEventKey>>
                      featureMap_;
@@ -166,16 +166,16 @@ std::vector<std::string> AlertLayer::AddLayers(awips::Phenomenon  phenomenon,
    return layers;
 }
 
-std::list<QMapLibreGL::Feature>*
+std::list<QMapLibre::Feature>*
 AlertLayerHandler::FeatureList(awips::Phenomenon phenomenon, bool alertActive)
 {
-   std::list<QMapLibreGL::Feature>* featureList = nullptr;
+   std::list<QMapLibre::Feature>* featureList = nullptr;
 
    auto key = std::make_pair(phenomenon, alertActive);
    auto it  = alertSourceMap_.find(key);
    if (it != alertSourceMap_.cend())
    {
-      featureList = reinterpret_cast<std::list<QMapLibreGL::Feature>*>(
+      featureList = reinterpret_cast<std::list<QMapLibre::Feature>*>(
          it->second["data"].data());
    }
 
@@ -371,10 +371,10 @@ std::shared_ptr<AlertLayerHandler> AlertLayerHandler::Instance()
 }
 
 static std::vector<std::string>
-AddAlertLayer(std::shared_ptr<QMapLibreGL::Map> map,
-              awips::Phenomenon                 phenomenon,
-              bool                              alertActive,
-              const QString&                    beforeLayer)
+AddAlertLayer(std::shared_ptr<QMapLibre::Map> map,
+              awips::Phenomenon               phenomenon,
+              bool                            alertActive,
+              const QString&                  beforeLayer)
 {
    settings::PaletteSettings& paletteSettings =
       settings::PaletteSettings::Instance();
@@ -426,33 +426,33 @@ AddAlertLayer(std::shared_ptr<QMapLibreGL::Map> map,
    return {bgLayerId.toStdString(), fgLayerId.toStdString()};
 }
 
-static QMapLibreGL::Feature
+static QMapLibre::Feature
 CreateFeature(const awips::CodedLocation& codedLocation)
 {
    auto mapboxCoordinates = GetMapboxCoordinates(codedLocation);
 
-   return {QMapLibreGL::Feature::PolygonType,
-           std::initializer_list<QMapLibreGL::CoordinatesCollection> {
-              std::initializer_list<QMapLibreGL::Coordinates> {
-                 {mapboxCoordinates}}}};
+   return {
+      QMapLibre::Feature::PolygonType,
+      std::initializer_list<QMapLibre::CoordinatesCollection> {
+         std::initializer_list<QMapLibre::Coordinates> {{mapboxCoordinates}}}};
 }
 
-static QMapLibreGL::Coordinate
+static QMapLibre::Coordinate
 GetMapboxCoordinate(const common::Coordinate& coordinate)
 {
    return {coordinate.latitude_, coordinate.longitude_};
 }
 
-static QMapLibreGL::Coordinates
+static QMapLibre::Coordinates
 GetMapboxCoordinates(const awips::CodedLocation& codedLocation)
 {
-   auto                     scwxCoordinates = codedLocation.coordinates();
-   QMapLibreGL::Coordinates mapboxCoordinates(scwxCoordinates.size() + 1u);
+   auto                   scwxCoordinates = codedLocation.coordinates();
+   QMapLibre::Coordinates mapboxCoordinates(scwxCoordinates.size() + 1u);
 
    std::transform(scwxCoordinates.cbegin(),
                   scwxCoordinates.cend(),
                   mapboxCoordinates.begin(),
-                  [](auto& coordinate) -> QMapLibreGL::Coordinate
+                  [](auto& coordinate) -> QMapLibre::Coordinate
                   { return GetMapboxCoordinate(coordinate); });
 
    mapboxCoordinates.back() = GetMapboxCoordinate(scwxCoordinates.front());

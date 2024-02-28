@@ -213,7 +213,7 @@ void PlacefileLines::Initialize()
 }
 
 void PlacefileLines::Render(
-   const QMapLibreGL::CustomLayerRenderParameters& params)
+   const QMapLibre::CustomLayerRenderParameters& params)
 {
    std::unique_lock lock {p->lineMutex_};
 
@@ -496,7 +496,7 @@ void PlacefileLines::Impl::Update()
 }
 
 bool PlacefileLines::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
+   const QMapLibre::CustomLayerRenderParameters& params,
    const QPointF& /* mouseLocalPos */,
    const QPointF&   mouseGlobalPos,
    const glm::vec2& mouseCoords,

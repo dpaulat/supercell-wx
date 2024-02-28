@@ -164,10 +164,10 @@ public:
 
    boost::asio::thread_pool threadPool_ {1u};
 
-   MainWindow*           mainWindow_;
-   QMapLibreGL::Settings settings_;
-   map::MapProvider      mapProvider_;
-   map::MapWidget*       activeMap_;
+   MainWindow*         mainWindow_;
+   QMapLibre::Settings settings_;
+   map::MapProvider    mapProvider_;
+   map::MapWidget*     activeMap_;
 
    ui::CollapsibleGroup*     mapSettingsGroup_;
    ui::CollapsibleGroup*     level2ProductsGroup_;

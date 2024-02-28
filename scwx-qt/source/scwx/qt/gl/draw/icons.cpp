@@ -182,7 +182,7 @@ void Icons::Initialize()
    p->dirty_ = true;
 }
 
-void Icons::Render(const QMapLibreGL::CustomLayerRenderParameters& params,
+void Icons::Render(const QMapLibre::CustomLayerRenderParameters& params,
                    bool textureAtlasChanged)
 {
    if (!p->visible_)
@@ -575,9 +575,9 @@ void Icons::Impl::Update(bool textureAtlasChanged)
 }
 
 bool Icons::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
-   const QPointF&                                  mouseLocalPos,
-   const QPointF&                                  mouseGlobalPos,
+   const QMapLibre::CustomLayerRenderParameters& params,
+   const QPointF&                                mouseLocalPos,
+   const QPointF&                                mouseGlobalPos,
    const glm::vec2& /* mouseCoords */,
    const common::Coordinate& /* mouseGeoCoords */,
    std::shared_ptr<types::EventHandler>& eventHandler)

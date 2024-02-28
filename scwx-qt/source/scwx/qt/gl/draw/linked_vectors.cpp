@@ -103,8 +103,7 @@ void LinkedVectors::Initialize()
    p->geoLines_->Initialize();
 }
 
-void LinkedVectors::Render(
-   const QMapLibreGL::CustomLayerRenderParameters& params)
+void LinkedVectors::Render(const QMapLibre::CustomLayerRenderParameters& params)
 {
    if (!p->visible_)
    {
@@ -337,12 +336,12 @@ void LinkedVectors::FinishVectors()
 }
 
 bool LinkedVectors::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
-   const QPointF&                                  mouseLocalPos,
-   const QPointF&                                  mouseGlobalPos,
-   const glm::vec2&                                mouseCoords,
-   const common::Coordinate&                       mouseGeoCoords,
-   std::shared_ptr<types::EventHandler>&           eventHandler)
+   const QMapLibre::CustomLayerRenderParameters& params,
+   const QPointF&                                mouseLocalPos,
+   const QPointF&                                mouseGlobalPos,
+   const glm::vec2&                              mouseCoords,
+   const common::Coordinate&                     mouseGeoCoords,
+   std::shared_ptr<types::EventHandler>&         eventHandler)
 {
    return p->geoLines_->RunMousePicking(params,
                                         mouseLocalPos,

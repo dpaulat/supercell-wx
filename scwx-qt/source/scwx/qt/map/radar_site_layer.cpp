@@ -6,7 +6,6 @@
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
-// #include <GeographicLib/Geodesic.hpp>
 #include <imgui.h>
 #include <mbgl/util/constants.hpp>
 
@@ -26,7 +25,7 @@ public:
    explicit Impl(RadarSiteLayer* self) : self_ {self} {}
    ~Impl() = default;
 
-   void RenderRadarSite(const QMapLibreGL::CustomLayerRenderParameters& params,
+   void RenderRadarSite(const QMapLibre::CustomLayerRenderParameters& params,
                         std::shared_ptr<config::RadarSite>& radarSite);
 
    RadarSiteLayer* self_;
@@ -58,7 +57,7 @@ void RadarSiteLayer::Initialize()
 }
 
 void RadarSiteLayer::Render(
-   const QMapLibreGL::CustomLayerRenderParameters& params)
+   const QMapLibre::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = context()->gl();
 
@@ -90,8 +89,8 @@ void RadarSiteLayer::Render(
 }
 
 void RadarSiteLayer::Impl::RenderRadarSite(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
-   std::shared_ptr<config::RadarSite>&             radarSite)
+   const QMapLibre::CustomLayerRenderParameters& params,
+   std::shared_ptr<config::RadarSite>&           radarSite)
 {
    const std::string windowName = fmt::format("radar-site-{}", radarSite->id());
 
@@ -158,7 +157,7 @@ void RadarSiteLayer::Deinitialize()
 }
 
 bool RadarSiteLayer::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& /* params */,
+   const QMapLibre::CustomLayerRenderParameters& /* params */,
    const QPointF& /* mouseLocalPos */,
    const QPointF& mouseGlobalPos,
    const glm::vec2& /* mouseCoords */,

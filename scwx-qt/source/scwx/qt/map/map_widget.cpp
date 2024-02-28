@@ -60,9 +60,9 @@ class MapWidgetImpl : public QObject
    Q_OBJECT
 
 public:
-   explicit MapWidgetImpl(MapWidget*                   widget,
-                          std::size_t                  id,
-                          const QMapLibreGL::Settings& settings) :
+   explicit MapWidgetImpl(MapWidget*                 widget,
+                          std::size_t                id,
+                          const QMapLibre::Settings& settings) :
        id_ {id},
        uuid_ {boost::uuids::random_generator()()},
        context_ {std::make_shared<MapContext>()},
@@ -169,11 +169,11 @@ public:
 
    std::shared_ptr<MapContext> context_;
 
-   MapWidget*                        widget_;
-   MapProvider                       mapProvider_;
-   QMapLibreGL::Settings             settings_;
-   std::shared_ptr<QMapLibreGL::Map> map_;
-   std::list<std::string>            layerList_;
+   MapWidget*                      widget_;
+   MapProvider                     mapProvider_;
+   QMapLibre::Settings             settings_;
+   std::shared_ptr<QMapLibre::Map> map_;
+   std::list<std::string>          layerList_;
 
    std::vector<std::shared_ptr<GenericLayer>> genericLayers_ {};
 
@@ -229,7 +229,7 @@ public slots:
    void Update();
 };
 
-MapWidget::MapWidget(std::size_t id, const QMapLibreGL::Settings& settings) :
+MapWidget::MapWidget(std::size_t id, const QMapLibre::Settings& settings) :
     p(std::make_unique<MapWidgetImpl>(this, id, settings))
 {
    if (settings::GeneralSettings::Instance().anti_aliasing_enabled().GetValue())
@@ -246,7 +246,7 @@ MapWidget::MapWidget(std::size_t id, const QMapLibreGL::Settings& settings) :
 
 MapWidget::~MapWidget()
 {
-   // Make sure we have a valid context so we can delete the QMapLibreGL.
+   // Make sure we have a valid context so we can delete the QMapLibre.
    makeCurrent();
 }
 
@@ -987,8 +987,8 @@ void MapWidgetImpl::AddLayer(const std::string&            id,
                              std::shared_ptr<GenericLayer> layer,
                              const std::string&            before)
 {
-   // QMapLibreGL::addCustomLayer will take ownership of the std::unique_ptr
-   std::unique_ptr<QMapLibreGL::CustomLayerHostInterface> pHost =
+   // QMapLibre::addCustomLayer will take ownership of the std::unique_ptr
+   std::unique_ptr<QMapLibre::CustomLayerHostInterface> pHost =
       std::make_unique<LayerWrapper>(layer);
 
    try
@@ -1131,10 +1131,10 @@ void MapWidget::initializeGL()
    p->imGuiRendererInitialized_ = true;
 
    p->map_.reset(
-      new QMapLibreGL::Map(nullptr, p->settings_, size(), pixelRatio()));
+      new QMapLibre::Map(nullptr, p->settings_, size(), pixelRatio()));
    p->context_->set_map(p->map_);
    connect(p->map_.get(),
-           &QMapLibreGL::Map::needsRendering,
+           &QMapLibre::Map::needsRendering,
            p.get(),
            &MapWidgetImpl::Update);
 
@@ -1160,10 +1160,8 @@ void MapWidget::initializeGL()
       SetMapStyle(p->initialStyleName_);
    }
 
-   connect(p->map_.get(),
-           &QMapLibreGL::Map::mapChanged,
-           this,
-           &MapWidget::mapChanged);
+   connect(
+      p->map_.get(), &QMapLibre::Map::mapChanged, this, &MapWidget::mapChanged);
 }
 
 void MapWidget::paintGL()
@@ -1192,7 +1190,7 @@ void MapWidget::paintGL()
    // Update pixel ratio
    p->context_->set_pixel_ratio(pixelRatio());
 
-   // Render QMapLibreGL Map
+   // Render QMapLibre Map
    p->map_->resize(size());
    p->map_->setFramebufferObject(defaultFramebufferObject(),
                                  size() * pixelRatio());
@@ -1243,7 +1241,7 @@ void MapWidgetImpl::ImGuiCheckFonts()
 
 void MapWidgetImpl::RunMousePicking()
 {
-   const QMapLibreGL::CustomLayerRenderParameters params =
+   const QMapLibre::CustomLayerRenderParameters params =
       context_->render_parameters();
 
    auto coordinate = map_->coordinateForPixel(lastPos_);
@@ -1318,11 +1316,11 @@ void MapWidgetImpl::RunMousePicking()
    lastItemPicked_ = itemPicked;
 }
 
-void MapWidget::mapChanged(QMapLibreGL::Map::MapChange mapChange)
+void MapWidget::mapChanged(QMapLibre::Map::MapChange mapChange)
 {
    switch (mapChange)
    {
-   case QMapLibreGL::Map::MapChangeDidFinishLoadingStyle:
+   case QMapLibre::Map::MapChangeDidFinishLoadingStyle:
       p->UpdateLoadedStyle();
       p->AddLayers();
       break;

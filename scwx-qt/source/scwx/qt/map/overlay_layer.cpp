@@ -204,8 +204,7 @@ void OverlayLayer::Initialize()
            });
 }
 
-void OverlayLayer::Render(
-   const QMapLibreGL::CustomLayerRenderParameters& params)
+void OverlayLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl               = context()->gl();
    auto                 radarProductView = context()->radar_product_view();
@@ -393,12 +392,12 @@ void OverlayLayer::Deinitialize()
 }
 
 bool OverlayLayer::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
-   const QPointF&                                  mouseLocalPos,
-   const QPointF&                                  mouseGlobalPos,
-   const glm::vec2&                                mouseCoords,
-   const common::Coordinate&                       mouseGeoCoords,
-   std::shared_ptr<types::EventHandler>&           eventHandler)
+   const QMapLibre::CustomLayerRenderParameters& params,
+   const QPointF&                                mouseLocalPos,
+   const QPointF&                                mouseGlobalPos,
+   const glm::vec2&                              mouseCoords,
+   const common::Coordinate&                     mouseGeoCoords,
+   std::shared_ptr<types::EventHandler>&         eventHandler)
 {
    // If sweep time was picked, don't process additional items
    if (p->sweepTimePicked_)

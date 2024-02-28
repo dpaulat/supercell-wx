@@ -44,7 +44,7 @@ void DrawLayer::Initialize()
    }
 }
 
-void DrawLayer::Render(const QMapLibreGL::CustomLayerRenderParameters& params)
+void DrawLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = p->context_->gl();
    p->textureAtlas_        = p->context_->GetTextureAtlas();
@@ -77,12 +77,12 @@ void DrawLayer::Deinitialize()
 }
 
 bool DrawLayer::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
-   const QPointF&                                  mouseLocalPos,
-   const QPointF&                                  mouseGlobalPos,
-   const glm::vec2&                                mouseCoords,
-   const common::Coordinate&                       mouseGeoCoords,
-   std::shared_ptr<types::EventHandler>&           eventHandler)
+   const QMapLibre::CustomLayerRenderParameters& params,
+   const QPointF&                                mouseLocalPos,
+   const QPointF&                                mouseGlobalPos,
+   const glm::vec2&                              mouseCoords,
+   const common::Coordinate&                     mouseGeoCoords,
+   std::shared_ptr<types::EventHandler>&         eventHandler)
 {
    bool itemPicked = false;
 

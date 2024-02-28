@@ -29,7 +29,7 @@ public:
    void set_thresholded(bool thresholded);
 
    void Initialize() override;
-   void Render(const QMapLibreGL::CustomLayerRenderParameters& params) override;
+   void Render(const QMapLibre::CustomLayerRenderParameters& params) override;
    void Deinitialize() override;
 
    /**

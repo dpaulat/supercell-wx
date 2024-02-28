@@ -7,8 +7,8 @@
 #include <memory>
 
 #include <QObject>
-#include <QMapLibreGL/QMapLibreGL>
 #include <glm/gtc/type_ptr.hpp>
+#include <qmaplibre.hpp>
 
 namespace scwx
 {
@@ -27,9 +27,9 @@ public:
    explicit GenericLayer(std::shared_ptr<MapContext> context);
    virtual ~GenericLayer();
 
-   virtual void Initialize()                                            = 0;
-   virtual void Render(const QMapLibreGL::CustomLayerRenderParameters&) = 0;
-   virtual void Deinitialize()                                          = 0;
+   virtual void Initialize()                                          = 0;
+   virtual void Render(const QMapLibre::CustomLayerRenderParameters&) = 0;
+   virtual void Deinitialize()                                        = 0;
 
    /**
     * @brief Run mouse picking on the layer.
@@ -44,12 +44,12 @@ public:
     * @return true if a draw item was picked, otherwise false
     */
    virtual bool
-   RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params,
-                   const QPointF&                        mouseLocalPos,
-                   const QPointF&                        mouseGlobalPos,
-                   const glm::vec2&                      mouseCoords,
-                   const common::Coordinate&             mouseGeoCoords,
-                   std::shared_ptr<types::EventHandler>& eventHandler);
+   RunMousePicking(const QMapLibre::CustomLayerRenderParameters& params,
+                   const QPointF&                                mouseLocalPos,
+                   const QPointF&                                mouseGlobalPos,
+                   const glm::vec2&                              mouseCoords,
+                   const common::Coordinate&                     mouseGeoCoords,
+                   std::shared_ptr<types::EventHandler>&         eventHandler);
 
 signals:
    void NeedsRendering();

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <QMapLibreGL/QMapLibreGL>
+#include <qmaplibre.hpp>
 
 namespace scwx
 {
@@ -11,13 +11,13 @@ namespace map
 namespace RadarRangeLayer
 {
 
-void Add(std::shared_ptr<QMapLibreGL::Map> map,
-         float                             range,
-         QMapLibreGL::Coordinate           center,
-         const QString&                    before = QString());
-void Update(std::shared_ptr<QMapLibreGL::Map> map,
-            float                             range,
-            QMapLibreGL::Coordinate           center);
+void Add(std::shared_ptr<QMapLibre::Map> map,
+         float                           range,
+         QMapLibre::Coordinate           center,
+         const QString&                  before = QString());
+void Update(std::shared_ptr<QMapLibre::Map> map,
+            float                           range,
+            QMapLibre::Coordinate           center);
 
 } // namespace RadarRangeLayer
 } // namespace map

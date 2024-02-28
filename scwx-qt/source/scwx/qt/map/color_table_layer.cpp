@@ -116,7 +116,7 @@ void ColorTableLayer::Initialize()
 }
 
 void ColorTableLayer::Render(
-   const QMapLibreGL::CustomLayerRenderParameters& params)
+   const QMapLibre::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl               = context()->gl();
    auto                 radarProductView = context()->radar_product_view();

@@ -4,7 +4,7 @@
 
 #include <string>
 
-#include <QMapLibreGL/settings.hpp>
+#include <QMapLibre/Settings>
 
 namespace scwx
 {
@@ -32,10 +32,10 @@ struct MapStyle
 
 struct MapProviderInfo
 {
-   MapProvider                             mapProvider_ {MapProvider::Unknown};
-   std::string                             cacheDbName_ {};
-   QMapLibreGL::Settings::SettingsTemplate settingsTemplate_ {};
-   std::vector<MapStyle>                   mapStyles_ {};
+   MapProvider                           mapProvider_ {MapProvider::Unknown};
+   std::string                           cacheDbName_ {};
+   QMapLibre::Settings::SettingsTemplate settingsTemplate_ {};
+   std::vector<MapStyle>                 mapStyles_ {};
 };
 
 MapProvider            GetMapProvider(const std::string& name);

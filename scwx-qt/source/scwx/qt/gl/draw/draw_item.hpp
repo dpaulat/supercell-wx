@@ -6,8 +6,8 @@
 
 #include <memory>
 
-#include <QMapLibreGL/QMapLibreGL>
 #include <glm/gtc/type_ptr.hpp>
+#include <qmaplibre.hpp>
 
 namespace scwx
 {
@@ -31,8 +31,8 @@ public:
    DrawItem& operator=(DrawItem&&) noexcept;
 
    virtual void Initialize() = 0;
-   virtual void Render(const QMapLibreGL::CustomLayerRenderParameters& params);
-   virtual void Render(const QMapLibreGL::CustomLayerRenderParameters& params,
+   virtual void Render(const QMapLibre::CustomLayerRenderParameters& params);
+   virtual void Render(const QMapLibre::CustomLayerRenderParameters& params,
                        bool textureAtlasChanged);
    virtual void Deinitialize() = 0;
 
@@ -49,21 +49,21 @@ public:
     * @return true if the draw item was picked, otherwise false
     */
    virtual bool
-   RunMousePicking(const QMapLibreGL::CustomLayerRenderParameters& params,
-                   const QPointF&                        mouseLocalPos,
-                   const QPointF&                        mouseGlobalPos,
-                   const glm::vec2&                      mouseCoords,
-                   const common::Coordinate&             mouseGeoCoords,
-                   std::shared_ptr<types::EventHandler>& eventHandler);
+   RunMousePicking(const QMapLibre::CustomLayerRenderParameters& params,
+                   const QPointF&                                mouseLocalPos,
+                   const QPointF&                                mouseGlobalPos,
+                   const glm::vec2&                              mouseCoords,
+                   const common::Coordinate&                     mouseGeoCoords,
+                   std::shared_ptr<types::EventHandler>&         eventHandler);
 
 protected:
    void
-   UseDefaultProjection(const QMapLibreGL::CustomLayerRenderParameters& params,
+   UseDefaultProjection(const QMapLibre::CustomLayerRenderParameters& params,
                         GLint uMVPMatrixLocation);
    void
-   UseRotationProjection(const QMapLibreGL::CustomLayerRenderParameters& params,
+   UseRotationProjection(const QMapLibre::CustomLayerRenderParameters& params,
                          GLint uMVPMatrixLocation);
-   void UseMapProjection(const QMapLibreGL::CustomLayerRenderParameters& params,
+   void UseMapProjection(const QMapLibre::CustomLayerRenderParameters& params,
                          GLint uMVPMatrixLocation,
                          GLint uMapScreenCoordLocation);
 
