@@ -34,3 +34,6 @@
 [submodule "external/textflowcpp"]
 	path = external/textflowcpp
 	url = https://github.com/catchorg/textflowcpp.git
+[submodule "external/maplibre-native-qt"]
+	path = external/maplibre-native-qt
+	url = https://github.com/maplibre/maplibre-native-qt.git
