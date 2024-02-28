@@ -401,16 +401,16 @@ AddAlertLayer(std::shared_ptr<QMapLibre::Map> map,
 
    const float opacity = outlineColor[3] / 255.0f;
 
-   map->addLayer({{"id", bgLayerId}, {"type", "line"}, {"source", sourceId}},
-                 beforeLayer);
+   map->addLayer(
+      bgLayerId, {{"type", "line"}, {"source", sourceId}}, beforeLayer);
    map->setLayoutProperty(bgLayerId, "line-join", "round");
    map->setLayoutProperty(bgLayerId, "line-cap", "round");
    map->setPaintProperty(bgLayerId, "line-color", "rgba(0, 0, 0, 255)");
    map->setPaintProperty(bgLayerId, "line-opacity", QString("%1").arg(opacity));
    map->setPaintProperty(bgLayerId, "line-width", "5");
 
-   map->addLayer({{"id", fgLayerId}, {"type", "line"}, {"source", sourceId}},
-                 beforeLayer);
+   map->addLayer(
+      fgLayerId, {{"type", "line"}, {"source", sourceId}}, beforeLayer);
    map->setLayoutProperty(fgLayerId, "line-join", "round");
    map->setLayoutProperty(fgLayerId, "line-cap", "round");
    map->setPaintProperty(fgLayerId,
@@ -431,7 +431,7 @@ CreateFeature(const awips::CodedLocation& codedLocation)
 {
    auto mapboxCoordinates = GetMapboxCoordinates(codedLocation);
 
-   return {
+   return QMapLibre::Feature {
       QMapLibre::Feature::PolygonType,
       std::initializer_list<QMapLibre::CoordinatesCollection> {
          std::initializer_list<QMapLibre::Coordinates> {{mapboxCoordinates}}}};

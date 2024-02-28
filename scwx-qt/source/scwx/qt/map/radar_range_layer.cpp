@@ -44,8 +44,7 @@ void RadarRangeLayer::Add(std::shared_ptr<QMapLibre::Map> map,
       "rangeCircleSource",
       {{"type", "geojson"}, {"data", QVariant::fromValue(*rangeCircle)}});
    map->addLayer(
-      {{"id", layerId}, {"type", "line"}, {"source", "rangeCircleSource"}},
-      before);
+      layerId, {{"type", "line"}, {"source", "rangeCircleSource"}}, before);
    map->setPaintProperty(layerId, "line-color", "rgba(128, 128, 128, 128)");
 }
 
