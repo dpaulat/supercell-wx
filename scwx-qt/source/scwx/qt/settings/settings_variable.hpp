@@ -5,6 +5,8 @@
 #include <functional>
 #include <optional>
 
+#include <boost/uuid/uuid.hpp>
+
 class QAbstractButton;
 class QWidget;
 
@@ -194,7 +196,15 @@ public:
     *
     * @param callback Function to be called
     */
-   void RegisterValueChangedCallback(ValueCallbackFunction callback);
+   boost::uuids::uuid
+   RegisterValueChangedCallback(ValueCallbackFunction callback);
+
+   /**
+    * Unregisters a function previously registered for change callback.
+    *
+    * @param uuid Uuid of the callback registration
+    */
+   void UnregisterValueChangedCallback(boost::uuids::uuid uuid);
 
    /**
     * Registers a function to be called when the staged value changes (or a
@@ -204,7 +214,15 @@ public:
     *
     * @param callback Function to be called
     */
-   void RegisterValueStagedCallback(ValueCallbackFunction callback);
+   boost::uuids::uuid
+   RegisterValueStagedCallback(ValueCallbackFunction callback);
+
+   /**
+    * Unregisters a function previously registered for value staging callback.
+    *
+    * @param uuid Uuid of the callback registration
+    */
+   void UnregisterValueStagedCallback(boost::uuids::uuid uuid);
 
 protected:
    virtual bool Equals(const SettingsVariableBase& o) const override;

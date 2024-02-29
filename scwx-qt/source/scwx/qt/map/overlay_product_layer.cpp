@@ -31,28 +31,38 @@ public:
    {
       auto& productSettings = settings::ProductSettings::Instance();
 
-      productSettings.sti_forecast_enabled().RegisterValueStagedCallback(
-         [=, this](const bool& value)
-         {
-            stiForecastEnabled_ = value;
-            stiNeedsUpdate_     = true;
+      stiForecastEnabledCallbackUuid_ =
+         productSettings.sti_forecast_enabled().RegisterValueStagedCallback(
+            [=, this](const bool& value)
+            {
+               stiForecastEnabled_ = value;
+               stiNeedsUpdate_     = true;
 
-            Q_EMIT self_->NeedsRendering();
-         });
-      productSettings.sti_past_enabled().RegisterValueStagedCallback(
-         [=, this](const bool& value)
-         {
-            stiPastEnabled_ = value;
-            stiNeedsUpdate_ = true;
+               Q_EMIT self_->NeedsRendering();
+            });
+      stiPastEnabledCallbackUuid_ =
+         productSettings.sti_past_enabled().RegisterValueStagedCallback(
+            [=, this](const bool& value)
+            {
+               stiPastEnabled_ = value;
+               stiNeedsUpdate_ = true;
 
-            Q_EMIT self_->NeedsRendering();
-         });
+               Q_EMIT self_->NeedsRendering();
+            });
 
       stiForecastEnabled_ =
          productSettings.sti_forecast_enabled().GetStagedOrValue();
       stiPastEnabled_ = productSettings.sti_past_enabled().GetStagedOrValue();
    }
-   ~Impl() = default;
+   ~Impl()
+   {
+      auto& productSettings = settings::ProductSettings::Instance();
+
+      productSettings.sti_forecast_enabled().UnregisterValueStagedCallback(
+         stiForecastEnabledCallbackUuid_);
+      productSettings.sti_past_enabled().UnregisterValueStagedCallback(
+         stiPastEnabledCallbackUuid_);
+   }
 
    void UpdateStormTrackingInformation();
 
@@ -86,6 +96,9 @@ public:
       std::string&                                                  stormId);
 
    OverlayProductLayer* self_;
+
+   boost::uuids::uuid stiForecastEnabledCallbackUuid_;
+   boost::uuids::uuid stiPastEnabledCallbackUuid_;
 
    bool stiForecastEnabled_ {true};
    bool stiPastEnabled_ {true};

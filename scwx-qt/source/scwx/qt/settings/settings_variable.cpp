@@ -4,6 +4,8 @@
 #include <scwx/util/logger.hpp>
 
 #include <boost/json.hpp>
+#include <boost/unordered/unordered_flat_map.hpp>
+#include <boost/uuid/random_generator.hpp>
 #include <fmt/ostream.h>
 
 namespace scwx
@@ -30,8 +32,10 @@ public:
    std::optional<T>              maximum_ {};
    std::function<bool(const T&)> validator_ {nullptr};
 
-   std::vector<ValueCallbackFunction> valueChangedCallbackFunctions_ {};
-   std::vector<ValueCallbackFunction> valueStagedCallbackFunctions_ {};
+   boost::unordered_flat_map<boost::uuids::uuid, ValueCallbackFunction>
+      valueChangedCallbackFunctions_ {};
+   boost::unordered_flat_map<boost::uuids::uuid, ValueCallbackFunction>
+      valueStagedCallbackFunctions_ {};
 };
 
 template<class T>
@@ -80,11 +84,11 @@ bool SettingsVariable<T>::SetValue(const T& value)
 
       for (auto& callback : p->valueChangedCallbackFunctions_)
       {
-         callback(p->value_);
+         callback.second(p->value_);
       }
       for (auto& callback : p->valueStagedCallbackFunctions_)
       {
-         callback(p->value_);
+         callback.second(p->value_);
       }
    }
 
@@ -128,11 +132,11 @@ bool SettingsVariable<T>::SetValueOrDefault(const T& value)
 
    for (auto& callback : p->valueChangedCallbackFunctions_)
    {
-      callback(p->value_);
+      callback.second(p->value_);
    }
    for (auto& callback : p->valueStagedCallbackFunctions_)
    {
-      callback(p->value_);
+      callback.second(p->value_);
    }
 
    return validated;
@@ -145,11 +149,11 @@ void SettingsVariable<T>::SetValueToDefault()
 
    for (auto& callback : p->valueChangedCallbackFunctions_)
    {
-      callback(p->value_);
+      callback.second(p->value_);
    }
    for (auto& callback : p->valueStagedCallbackFunctions_)
    {
-      callback(p->value_);
+      callback.second(p->value_);
    }
 }
 
@@ -167,7 +171,7 @@ void SettingsVariable<T>::StageDefault()
 
    for (auto& callback : p->valueStagedCallbackFunctions_)
    {
-      callback(p->default_);
+      callback.second(p->default_);
    }
 }
 
@@ -191,7 +195,7 @@ bool SettingsVariable<T>::StageValue(const T& value)
 
       for (auto& callback : p->valueStagedCallbackFunctions_)
       {
-         callback(value);
+         callback.second(value);
       }
    }
 
@@ -211,11 +215,11 @@ bool SettingsVariable<T>::Commit()
 
       for (auto& callback : p->valueChangedCallbackFunctions_)
       {
-         callback(p->value_);
+         callback.second(p->value_);
       }
       for (auto& callback : p->valueStagedCallbackFunctions_)
       {
-         callback(p->value_);
+         callback.second(p->value_);
       }
    }
 
@@ -229,7 +233,7 @@ void SettingsVariable<T>::Reset()
 
    for (auto& callback : p->valueStagedCallbackFunctions_)
    {
-      callback(p->value_);
+      callback.second(p->value_);
    }
 }
 
@@ -327,11 +331,11 @@ bool SettingsVariable<T>::ReadValue(const boost::json::object& json)
 
    for (auto& callback : p->valueChangedCallbackFunctions_)
    {
-      callback(p->value_);
+      callback.second(p->value_);
    }
    for (auto& callback : p->valueStagedCallbackFunctions_)
    {
-      callback(p->value_);
+      callback.second(p->value_);
    }
 
    return validated;
@@ -344,17 +348,34 @@ void SettingsVariable<T>::WriteValue(boost::json::object& json) const
 }
 
 template<class T>
-void SettingsVariable<T>::RegisterValueChangedCallback(
+boost::uuids::uuid SettingsVariable<T>::RegisterValueChangedCallback(
    ValueCallbackFunction callback)
 {
-   p->valueChangedCallbackFunctions_.push_back(std::move(callback));
+   boost::uuids::uuid uuid = boost::uuids::random_generator()();
+   p->valueChangedCallbackFunctions_.emplace(uuid, std::move(callback));
+   return uuid;
 }
 
 template<class T>
-void SettingsVariable<T>::RegisterValueStagedCallback(
-   ValueCallbackFunction callback)
+void SettingsVariable<T>::UnregisterValueChangedCallback(
+   boost::uuids::uuid uuid)
 {
-   p->valueStagedCallbackFunctions_.push_back(std::move(callback));
+   p->valueChangedCallbackFunctions_.erase(uuid);
+}
+
+template<class T>
+boost::uuids::uuid
+SettingsVariable<T>::RegisterValueStagedCallback(ValueCallbackFunction callback)
+{
+   boost::uuids::uuid uuid = boost::uuids::random_generator()();
+   p->valueStagedCallbackFunctions_.emplace(uuid, std::move(callback));
+   return uuid;
+}
+
+template<class T>
+void SettingsVariable<T>::UnregisterValueStagedCallback(boost::uuids::uuid uuid)
+{
+   p->valueStagedCallbackFunctions_.erase(uuid);
 }
 
 template<class T>
