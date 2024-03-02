@@ -5,6 +5,7 @@ set(gtest_disable_pthreads ON)
 set(MLN_WITH_QT ON)
 set(MLN_QT_WITH_INTERNAL_ICU ON)
 set(MLN_QT_WITH_LOCATION OFF)
+set(MLN_CORE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native)
 add_subdirectory(maplibre-native-qt)
 
 find_package(ZLIB)
@@ -23,7 +24,7 @@ else()
     target_compile_options(Core PRIVATE "$<$<CONFIG:Release>:-g>")
 endif()
 
-set(MLN_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native-qt/vendor/maplibre-native/include
+set(MLN_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native/include
                      ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native-qt/src/core/include
                      ${CMAKE_CURRENT_BINARY_DIR}/maplibre-native-qt/src/core/include PARENT_SCOPE)
 
