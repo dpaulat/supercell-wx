@@ -88,6 +88,21 @@ glm::vec2 LatLongToScreenCoordinate(const QMapLibre::Coordinate& coordinate)
    return screen;
 }
 
+void SetMapStyleUrl(const std::shared_ptr<QMapLibre::Map>& map,
+                    map::MapProvider                       mapProvider,
+                    const std::string&                     url)
+{
+   QString qUrl = QString::fromStdString(url);
+
+   if (mapProvider == map::MapProvider::MapTiler)
+   {
+      qUrl.append("?key=");
+      qUrl.append(map::GetMapProviderApiKey(mapProvider));
+   }
+
+   map->setStyleUrl(qUrl);
+}
+
 } // namespace maplibre
 } // namespace util
 } // namespace qt

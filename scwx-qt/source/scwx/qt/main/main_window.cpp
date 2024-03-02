@@ -120,8 +120,11 @@ public:
 
       std::string mapProviderApiKey = map::GetMapProviderApiKey(mapProvider_);
 
-      settings_.setProviderTemplate(mapProviderInfo.providerTemplate_);
-      settings_.setApiKey(QString {mapProviderApiKey.c_str()});
+      if (mapProvider_ == map::MapProvider::Mapbox)
+      {
+         settings_.setProviderTemplate(mapProviderInfo.providerTemplate_);
+         settings_.setApiKey(QString {mapProviderApiKey.c_str()});
+      }
       settings_.setCacheDatabasePath(QString {cacheDbPath.c_str()});
       settings_.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
 

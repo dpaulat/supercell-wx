@@ -737,7 +737,8 @@ void MapWidget::SetMapStyle(const std::string& styleName)
 
          logger_->debug("Updating style: {}", styles[i].name_);
 
-         p->map_->setStyleUrl(styles[i].url_.c_str());
+         util::maplibre::SetMapStyleUrl(
+            p->map_, p->mapProvider_, styles[i].url_);
 
          if (++p->currentStyleIndex_ == styles.size())
          {
@@ -763,7 +764,8 @@ void MapWidget::changeStyle()
 
    logger_->debug("Updating style: {}", styles[p->currentStyleIndex_].name_);
 
-   p->map_->setStyleUrl(styles[p->currentStyleIndex_].url_.c_str());
+   util::maplibre::SetMapStyleUrl(
+      p->map_, p->mapProvider_, styles[p->currentStyleIndex_].url_);
 
    if (++p->currentStyleIndex_ == styles.size())
    {
