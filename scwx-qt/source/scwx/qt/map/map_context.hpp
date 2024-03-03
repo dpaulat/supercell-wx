@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/qt/gl/gl_context.hpp>
+#include <scwx/qt/map/map_provider.hpp>
 #include <scwx/common/products.hpp>
 
 #include <qmaplibre.hpp>
@@ -36,6 +37,8 @@ public:
    MapContext& operator=(MapContext&&) noexcept;
 
    std::weak_ptr<QMapLibre::Map>             map() const;
+   std::string                               map_copyrights() const;
+   MapProvider                               map_provider() const;
    MapSettings&                              settings();
    float                                     pixel_ratio() const;
    std::shared_ptr<view::OverlayProductView> overlay_product_view() const;
@@ -46,6 +49,8 @@ public:
    QMapLibre::CustomLayerRenderParameters    render_parameters() const;
 
    void set_map(const std::shared_ptr<QMapLibre::Map>& map);
+   void set_map_copyrights(const std::string& copyrights);
+   void set_map_provider(MapProvider provider);
    void set_overlay_product_view(
       const std::shared_ptr<view::OverlayProductView>& overlayProductView);
    void set_pixel_ratio(float pixelRatio);

@@ -88,10 +88,11 @@ glm::vec2 LatLongToScreenCoordinate(const QMapLibre::Coordinate& coordinate)
    return screen;
 }
 
-void SetMapStyleUrl(const std::shared_ptr<QMapLibre::Map>& map,
-                    map::MapProvider                       mapProvider,
-                    const std::string&                     url)
+void SetMapStyleUrl(const std::shared_ptr<map::MapContext>& mapContext,
+                    const std::string&                      url)
 {
+   const auto mapProvider = mapContext->map_provider();
+
    QString qUrl = QString::fromStdString(url);
 
    if (mapProvider == map::MapProvider::MapTiler)
@@ -100,7 +101,11 @@ void SetMapStyleUrl(const std::shared_ptr<QMapLibre::Map>& map,
       qUrl.append(map::GetMapProviderApiKey(mapProvider));
    }
 
-   map->setStyleUrl(qUrl);
+   auto map = mapContext->map().lock();
+   if (map != nullptr)
+   {
+      map->setStyleUrl(qUrl);
+   }
 }
 
 } // namespace maplibre

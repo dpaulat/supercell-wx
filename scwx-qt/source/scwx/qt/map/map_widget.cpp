@@ -44,6 +44,7 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QString>
+#include <QTextDocument>
 
 namespace scwx
 {
@@ -94,10 +95,12 @@ public:
       overlayProductView->SetAutoRefresh(autoRefreshEnabled_);
       overlayProductView->SetAutoUpdate(autoUpdateEnabled_);
 
-      // Initialize context
-      context_->set_overlay_product_view(overlayProductView);
-
       auto& generalSettings = settings::GeneralSettings::Instance();
+
+      // Initialize context
+      context_->set_map_provider(
+         GetMapProvider(generalSettings.map_provider().GetValue()));
+      context_->set_overlay_product_view(overlayProductView);
 
       SetRadarSite(generalSettings.default_radar_site().GetValue());
 
@@ -109,9 +112,6 @@ public:
 
       // Initialize ImGui Qt backend
       ImGui_ImplQt_Init();
-
-      // Set Map Provider Details
-      mapProvider_ = GetMapProvider(generalSettings.map_provider().GetValue());
 
       ConnectSignals();
    }
@@ -143,6 +143,7 @@ public:
    void AddLayers();
    void AddPlacefileLayer(const std::string& placefileName,
                           const std::string& before);
+   void ConnectMapSignals();
    void ConnectSignals();
    void ImGuiCheckFonts();
    void InitializeNewRadarProductView(const std::string& colorPalette);
@@ -170,7 +171,6 @@ public:
    std::shared_ptr<MapContext> context_;
 
    MapWidget*                      widget_;
-   MapProvider                     mapProvider_;
    QMapLibre::Settings             settings_;
    std::shared_ptr<QMapLibre::Map> map_;
    std::list<std::string>          layerList_;
@@ -248,6 +248,24 @@ MapWidget::~MapWidget()
 {
    // Make sure we have a valid context so we can delete the QMapLibre.
    makeCurrent();
+}
+
+void MapWidgetImpl::ConnectMapSignals()
+{
+   connect(map_.get(),
+           &QMapLibre::Map::needsRendering,
+           this,
+           &MapWidgetImpl::Update);
+   connect(map_.get(),
+           &QMapLibre::Map::copyrightsChanged,
+           this,
+           [this](const QString& copyrightsHtml)
+           {
+              QTextDocument document {};
+              document.setHtml(copyrightsHtml);
+              context_->set_map_copyrights(
+                 document.toPlainText().toStdString());
+           });
 }
 
 void MapWidgetImpl::ConnectSignals()
@@ -725,7 +743,8 @@ void MapWidget::SetInitialMapStyle(const std::string& styleName)
 
 void MapWidget::SetMapStyle(const std::string& styleName)
 {
-   const auto& mapProviderInfo = GetMapProviderInfo(p->mapProvider_);
+   const auto  mapProvider     = p->context_->map_provider();
+   const auto& mapProviderInfo = GetMapProviderInfo(mapProvider);
    auto&       styles          = mapProviderInfo.mapStyles_;
 
    for (size_t i = 0u; i < styles.size(); ++i)
@@ -737,8 +756,7 @@ void MapWidget::SetMapStyle(const std::string& styleName)
 
          logger_->debug("Updating style: {}", styles[i].name_);
 
-         util::maplibre::SetMapStyleUrl(
-            p->map_, p->mapProvider_, styles[i].url_);
+         util::maplibre::SetMapStyleUrl(p->context_, styles[i].url_);
 
          if (++p->currentStyleIndex_ == styles.size())
          {
@@ -757,15 +775,16 @@ qreal MapWidget::pixelRatio()
 
 void MapWidget::changeStyle()
 {
-   const auto& mapProviderInfo = GetMapProviderInfo(p->mapProvider_);
+   const auto  mapProvider     = p->context_->map_provider();
+   const auto& mapProviderInfo = GetMapProviderInfo(mapProvider);
    auto&       styles          = mapProviderInfo.mapStyles_;
 
    p->currentStyle_ = &styles[p->currentStyleIndex_];
 
    logger_->debug("Updating style: {}", styles[p->currentStyleIndex_].name_);
 
-   util::maplibre::SetMapStyleUrl(
-      p->map_, p->mapProvider_, styles[p->currentStyleIndex_].url_);
+   util::maplibre::SetMapStyleUrl(p->context_,
+                                  styles[p->currentStyleIndex_].url_);
 
    if (++p->currentStyleIndex_ == styles.size())
    {
@@ -1135,10 +1154,7 @@ void MapWidget::initializeGL()
    p->map_.reset(
       new QMapLibre::Map(nullptr, p->settings_, size(), pixelRatio()));
    p->context_->set_map(p->map_);
-   connect(p->map_.get(),
-           &QMapLibre::Map::needsRendering,
-           p.get(),
-           &MapWidgetImpl::Update);
+   p->ConnectMapSignals();
 
    // Set default location to radar site
    std::shared_ptr<config::RadarSite> radarSite =

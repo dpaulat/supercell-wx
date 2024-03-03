@@ -29,6 +29,9 @@ public:
    int16_t                                radarProductCode_ {0};
    QMapLibre::CustomLayerRenderParameters renderParameters_ {};
 
+   MapProvider mapProvider_ {MapProvider::Unknown};
+   std::string mapCopyrights_ {};
+
    std::shared_ptr<view::OverlayProductView> overlayProductView_ {nullptr};
    std::shared_ptr<view::RadarProductView>   radarProductView_;
 };
@@ -46,6 +49,16 @@ MapContext& MapContext::operator=(MapContext&&) noexcept = default;
 std::weak_ptr<QMapLibre::Map> MapContext::map() const
 {
    return p->map_;
+}
+
+std::string MapContext::map_copyrights() const
+{
+   return p->mapCopyrights_;
+}
+
+MapProvider MapContext::map_provider() const
+{
+   return p->mapProvider_;
 }
 
 MapSettings& MapContext::settings()
@@ -92,6 +105,16 @@ QMapLibre::CustomLayerRenderParameters MapContext::render_parameters() const
 void MapContext::set_map(const std::shared_ptr<QMapLibre::Map>& map)
 {
    p->map_ = map;
+}
+
+void MapContext::set_map_copyrights(const std::string& copyrights)
+{
+   p->mapCopyrights_ = copyrights;
+}
+
+void MapContext::set_map_provider(MapProvider provider)
+{
+   p->mapProvider_ = provider;
 }
 
 void MapContext::set_overlay_product_view(

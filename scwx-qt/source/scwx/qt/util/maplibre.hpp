@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/qt/map/map_provider.hpp>
+#include <scwx/qt/map/map_context.hpp>
 
 #include <QMapLibre/Map>
 #include <QMapLibre/Types>
@@ -34,9 +34,8 @@ bool IsPointInPolygon(const std::vector<glm::vec2>& vertices,
 
 glm::vec2 LatLongToScreenCoordinate(const QMapLibre::Coordinate& coordinate);
 
-void SetMapStyleUrl(const std::shared_ptr<QMapLibre::Map>& map,
-                    map::MapProvider                       mapProvider,
-                    const std::string&                     url);
+void SetMapStyleUrl(const std::shared_ptr<map::MapContext>& mapContext,
+                    const std::string&                      url);
 
 } // namespace maplibre
 } // namespace util
