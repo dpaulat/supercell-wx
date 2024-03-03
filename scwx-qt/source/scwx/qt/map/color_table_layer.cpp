@@ -181,6 +181,12 @@ void ColorTableLayer::Render(
       gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
       gl.glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
       gl.glDrawArrays(GL_TRIANGLES, 0, 6);
+
+      context()->set_color_table_margins(QMargins {0, 0, 0, 10});
+   }
+   else
+   {
+      context()->set_color_table_margins(QMargins {});
    }
 
    SCWX_GL_CHECK_ERROR();
@@ -200,6 +206,8 @@ void ColorTableLayer::Deinitialize()
    p->vao_                = GL_INVALID_INDEX;
    p->vbo_                = {GL_INVALID_INDEX};
    p->texture_            = GL_INVALID_INDEX;
+
+   context()->set_color_table_margins(QMargins {});
 }
 
 } // namespace map

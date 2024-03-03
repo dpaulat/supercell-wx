@@ -32,6 +32,8 @@ public:
    MapProvider mapProvider_ {MapProvider::Unknown};
    std::string mapCopyrights_ {};
 
+   QMargins colorTableMargins_ {};
+
    std::shared_ptr<view::OverlayProductView> overlayProductView_ {nullptr};
    std::shared_ptr<view::RadarProductView>   radarProductView_;
 };
@@ -64,6 +66,11 @@ MapProvider MapContext::map_provider() const
 MapSettings& MapContext::settings()
 {
    return p->settings_;
+}
+
+QMargins MapContext::color_table_margins() const
+{
+   return p->colorTableMargins_;
 }
 
 float MapContext::pixel_ratio() const
@@ -115,6 +122,11 @@ void MapContext::set_map_copyrights(const std::string& copyrights)
 void MapContext::set_map_provider(MapProvider provider)
 {
    p->mapProvider_ = provider;
+}
+
+void MapContext::set_color_table_margins(const QMargins& margins)
+{
+   p->colorTableMargins_ = margins;
 }
 
 void MapContext::set_overlay_product_view(

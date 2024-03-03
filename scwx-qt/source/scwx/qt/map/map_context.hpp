@@ -5,6 +5,7 @@
 #include <scwx/common/products.hpp>
 
 #include <qmaplibre.hpp>
+#include <QMargins>
 
 namespace scwx
 {
@@ -40,6 +41,7 @@ public:
    std::string                               map_copyrights() const;
    MapProvider                               map_provider() const;
    MapSettings&                              settings();
+   QMargins                                  color_table_margins() const;
    float                                     pixel_ratio() const;
    std::shared_ptr<view::OverlayProductView> overlay_product_view() const;
    std::shared_ptr<view::RadarProductView>   radar_product_view() const;
@@ -51,6 +53,7 @@ public:
    void set_map(const std::shared_ptr<QMapLibre::Map>& map);
    void set_map_copyrights(const std::string& copyrights);
    void set_map_provider(MapProvider provider);
+   void set_color_table_margins(const QMargins& margins);
    void set_overlay_product_view(
       const std::shared_ptr<view::OverlayProductView>& overlayProductView);
    void set_pixel_ratio(float pixelRatio);
