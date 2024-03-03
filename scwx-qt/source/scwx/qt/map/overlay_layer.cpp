@@ -2,6 +2,7 @@
 #include <scwx/qt/gl/draw/geo_icons.hpp>
 #include <scwx/qt/gl/draw/icons.hpp>
 #include <scwx/qt/gl/draw/rectangle.hpp>
+#include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/map/map_settings.hpp>
 #include <scwx/qt/types/texture_types.hpp>
@@ -353,6 +354,31 @@ void OverlayLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
       }
 
       ImGui::End();
+   }
+
+   auto mapCopyrights = context()->map_copyrights();
+   if (mapCopyrights.length() > 0)
+   {
+      auto attributionFont = manager::FontManager::Instance().GetImGuiFont(
+         types::FontCategory::Attribution);
+
+      ImGui::SetNextWindowPos(
+         ImVec2 {static_cast<float>(params.width),
+                 static_cast<float>(params.height) -
+                    context()->color_table_margins().bottom()},
+         ImGuiCond_Always,
+         ImVec2 {1.0f, 1.0f});
+      ImGui::SetNextWindowBgAlpha(0.5f);
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2 {3.0f, 2.0f});
+      ImGui::PushFont(attributionFont->font());
+      ImGui::Begin("Attribution",
+                   nullptr,
+                   ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                      ImGuiWindowFlags_AlwaysAutoResize);
+      ImGui::TextUnformatted(mapCopyrights.c_str());
+      ImGui::End();
+      ImGui::PopFont();
+      ImGui::PopStyleVar();
    }
 
    p->lastWidth_    = params.width;
