@@ -14,6 +14,7 @@ namespace types
 static const std::unordered_map<FontCategory, std::string> fontCategoryName_ {
    {FontCategory::Default, "Default"},
    {FontCategory::Tooltip, "Tooltip"},
+   {FontCategory::Attribution, "Attribution"},
    {FontCategory::Unknown, "?"}};
 
 static const std::unordered_map<TooltipMethod, std::string> tooltipMethodName_ {

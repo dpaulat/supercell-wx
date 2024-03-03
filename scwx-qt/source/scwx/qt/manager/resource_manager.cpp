@@ -28,7 +28,8 @@ static void LoadTextures();
 static const std::vector<std::pair<types::Font, std::string>> fontNames_ {
    {types::Font::din1451alt, ":/res/fonts/din1451alt.ttf"},
    {types::Font::din1451alt_g, ":/res/fonts/din1451alt_g.ttf"},
-   {types::Font::Inconsolata_Regular, ":/res/fonts/Inconsolata-Regular.ttf"}};
+   {types::Font::Inconsolata_Regular, ":/res/fonts/Inconsolata-Regular.ttf"},
+   {types::Font::RobotoFlex_Regular, ":/res/fonts/RobotoFlex-Regular.ttf"}};
 
 void Initialize()
 {

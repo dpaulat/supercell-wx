@@ -15,19 +15,23 @@ static const std::string logPrefix_ = "scwx::qt::settings::text_settings";
 static const std::string kAlteDIN1451Mittelscrhift_ {
    "Alte DIN 1451 Mittelschrift"};
 static const std::string kInconsolata_ {"Inconsolata"};
+static const std::string kRobotoFlex_ {"Roboto Flex"};
 
 static const std::string kRegular_ {"Regular"};
 
 static const std::unordered_map<types::FontCategory, std::string>
    kDefaultFontFamily_ {
       {types::FontCategory::Default, kAlteDIN1451Mittelscrhift_},
-      {types::FontCategory::Tooltip, kInconsolata_}};
+      {types::FontCategory::Tooltip, kInconsolata_},
+      {types::FontCategory::Attribution, kRobotoFlex_}};
 static const std::unordered_map<types::FontCategory, std::string>
    kDefaultFontStyle_ {{types::FontCategory::Default, kRegular_},
-                       {types::FontCategory::Tooltip, kRegular_}};
+                       {types::FontCategory::Tooltip, kRegular_},
+                       {types::FontCategory::Attribution, kRegular_}};
 static const std::unordered_map<types::FontCategory, double>
    kDefaultFontPointSize_ {{types::FontCategory::Default, 12.0},
-                           {types::FontCategory::Tooltip, 10.5}};
+                           {types::FontCategory::Tooltip, 10.5},
+                           {types::FontCategory::Attribution, 9.0}};
 
 class TextSettings::Impl
 {
