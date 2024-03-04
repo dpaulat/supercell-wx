@@ -28,6 +28,7 @@ find_package(QT NAMES Qt6
                         OpenGL
                         OpenGLWidgets
                         Positioning
+                        Svg
                         Widgets REQUIRED)
 
 find_package(Qt${QT_VERSION_MAJOR}
@@ -38,6 +39,7 @@ find_package(Qt${QT_VERSION_MAJOR}
                         OpenGL
                         OpenGLWidgets
                         Positioning
+                        Svg
                         Widgets
              REQUIRED)
 
@@ -552,6 +554,7 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Qt${QT_VERSION_MAJOR}::OpenGLWidgets
                                      Qt${QT_VERSION_MAJOR}::Multimedia
                                      Qt${QT_VERSION_MAJOR}::Positioning
+                                     Qt${QT_VERSION_MAJOR}::Svg
                                      Boost::json
                                      Boost::timer
                                      QMapLibre::Core
