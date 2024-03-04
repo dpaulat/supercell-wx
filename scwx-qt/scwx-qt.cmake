@@ -472,7 +472,10 @@ set_target_properties(release_translations PROPERTIES FOLDER qt)
 set_target_properties(scwx-qt_lrelease     PROPERTIES FOLDER qt)
 set_target_properties(scwx-qt_lupdate      PROPERTIES FOLDER qt)
 set_target_properties(scwx-qt_other_files  PROPERTIES FOLDER qt)
-set_target_properties(update_translations  PROPERTIES FOLDER qt)
+
+if (TARGET update_translations)
+    set_target_properties(update_translations PROPERTIES FOLDER qt)
+endif()
 
 set_target_properties(scwx-qt_generate_counties_db PROPERTIES FOLDER generate)
 set_target_properties(scwx-qt_generate_versions    PROPERTIES FOLDER generate)
