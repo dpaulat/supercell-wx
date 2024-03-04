@@ -15,11 +15,13 @@ enum class ImageTexture
 {
    CardinalPoint24,
    Compass24,
-   Crosshairs24
+   Crosshairs24,
+   MapboxLogo,
+   MapTilerLogo
 };
 typedef scwx::util::Iterator<ImageTexture,
                              ImageTexture::CardinalPoint24,
-                             ImageTexture::Crosshairs24>
+                             ImageTexture::MapTilerLogo>
    ImageTextureIterator;
 
 enum class LineTexture
