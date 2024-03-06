@@ -30,6 +30,8 @@
 
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_qt.hpp>
+#include <boost/algorithm/string/erase.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
 #include <boost/uuid/random_generator.hpp>
@@ -263,8 +265,14 @@ void MapWidgetImpl::ConnectMapSignals()
            {
               QTextDocument document {};
               document.setHtml(copyrightsHtml);
-              context_->set_map_copyrights(
-                 document.toPlainText().toStdString());
+
+              // HTML cannot currently be included in ImGui windows. Where links
+              // can't be included, remove "Improve this map".
+              std::string copyrights {document.toPlainText().toStdString()};
+              boost::erase_all(copyrights, "Improve this map");
+              boost::trim_right(copyrights);
+
+              context_->set_map_copyrights(copyrights);
            });
 }
 
