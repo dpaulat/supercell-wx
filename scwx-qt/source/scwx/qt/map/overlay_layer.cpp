@@ -67,13 +67,23 @@ public:
       types::GetTextureName(types::ImageTexture::CardinalPoint24)};
    const std::string& compassIconName_ {
       types::GetTextureName(types::ImageTexture::Compass24)};
+
+   const std::string& mapboxLogoImageName_ {
+      types::GetTextureName(types::ImageTexture::MapboxLogo)};
+   const std::string& mapTilerLogoImageName_ {
+      types::GetTextureName(types::ImageTexture::MapTilerLogo)};
+
    std::shared_ptr<gl::draw::IconDrawItem> compassIcon_ {};
    bool                                    compassIconDirty_ {false};
    double                                  lastBearing_ {0.0};
 
-   double lastWidth_ {0.0};
-   double lastHeight_ {0.0};
-   float  lastFontSize_ {0.0f};
+   std::shared_ptr<gl::draw::IconDrawItem> mapLogoIcon_ {};
+
+   bool     firstRender_ {true};
+   double   lastWidth_ {0.0};
+   double   lastHeight_ {0.0};
+   float    lastFontSize_ {0.0f};
+   QMargins lastColorTableMargins_ {};
 
    std::string sweepTimeString_ {};
    bool        sweepTimeNeedsUpdate_ {true};
@@ -131,6 +141,8 @@ void OverlayLayer::Initialize()
    p->icons_->StartIconSheets();
    p->icons_->AddIconSheet(p->cardinalPointIconName_);
    p->icons_->AddIconSheet(p->compassIconName_);
+   p->icons_->AddIconSheet(p->mapboxLogoImageName_)->SetAnchor(0.0f, 1.0f);
+   p->icons_->AddIconSheet(p->mapTilerLogoImageName_)->SetAnchor(0.0f, 1.0f);
    p->icons_->FinishIconSheets();
 
    p->icons_->StartIcons();
@@ -180,6 +192,19 @@ void OverlayLayer::Initialize()
             break;
          }
       });
+
+   p->mapLogoIcon_ = p->icons_->AddIcon();
+   if (context()->map_provider() == MapProvider::Mapbox)
+   {
+      gl::draw::Icons::SetIconTexture(
+         p->mapLogoIcon_, p->mapboxLogoImageName_, 0);
+   }
+   else if (context()->map_provider() == MapProvider::MapTiler)
+   {
+      gl::draw::Icons::SetIconTexture(
+         p->mapLogoIcon_, p->mapTilerLogoImageName_, 0);
+   }
+
    p->icons_->FinishIcons();
 
    connect(p->positionManager_.get(),
@@ -356,18 +381,27 @@ void OverlayLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
       ImGui::End();
    }
 
+   QMargins colorTableMargins = context()->color_table_margins();
+   if (colorTableMargins != p->lastColorTableMargins_ || p->firstRender_)
+   {
+      // Draw map logo with a 10x10 indent from the bottom left
+      gl::draw::Icons::SetIconLocation(p->mapLogoIcon_,
+                                       10 + colorTableMargins.left(),
+                                       10 + colorTableMargins.bottom());
+      p->icons_->FinishIcons();
+   }
+
    auto mapCopyrights = context()->map_copyrights();
    if (mapCopyrights.length() > 0)
    {
       auto attributionFont = manager::FontManager::Instance().GetImGuiFont(
          types::FontCategory::Attribution);
 
-      ImGui::SetNextWindowPos(
-         ImVec2 {static_cast<float>(params.width),
-                 static_cast<float>(params.height) -
-                    context()->color_table_margins().bottom()},
-         ImGuiCond_Always,
-         ImVec2 {1.0f, 1.0f});
+      ImGui::SetNextWindowPos(ImVec2 {static_cast<float>(params.width),
+                                      static_cast<float>(params.height) -
+                                         colorTableMargins.bottom()},
+                              ImGuiCond_Always,
+                              ImVec2 {1.0f, 1.0f});
       ImGui::SetNextWindowBgAlpha(0.5f);
       ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2 {3.0f, 2.0f});
       ImGui::PushFont(attributionFont->font());
@@ -381,10 +415,12 @@ void OverlayLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
       ImGui::PopStyleVar();
    }
 
-   p->lastWidth_    = params.width;
-   p->lastHeight_   = params.height;
-   p->lastBearing_  = params.bearing;
-   p->lastFontSize_ = ImGui::GetFontSize();
+   p->firstRender_           = false;
+   p->lastWidth_             = params.width;
+   p->lastHeight_            = params.height;
+   p->lastBearing_           = params.bearing;
+   p->lastFontSize_          = ImGui::GetFontSize();
+   p->lastColorTableMargins_ = colorTableMargins;
 
    SCWX_GL_CHECK_ERROR();
 }
