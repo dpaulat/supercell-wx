@@ -1,5 +1,4 @@
 #include <scwx/qt/gl/draw/icons.hpp>
-#include <scwx/qt/types/icon_types.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/qt/util/tooltip.hpp>
@@ -80,9 +79,10 @@ public:
 
    std::mutex iconMutex_;
 
-   boost::unordered_flat_map<std::string, types::IconInfo>
+   boost::unordered_flat_map<std::string, std::shared_ptr<types::IconInfo>>
       currentIconSheets_ {};
-   boost::unordered_flat_map<std::string, types::IconInfo> newIconSheets_ {};
+   boost::unordered_flat_map<std::string, std::shared_ptr<types::IconInfo>>
+      newIconSheets_ {};
 
    std::vector<std::shared_ptr<IconDrawItem>> currentIconList_ {};
    std::vector<std::shared_ptr<IconDrawItem>> newIconList_ {};
@@ -243,17 +243,19 @@ void Icons::StartIconSheets()
    p->newIconSheets_.clear();
 }
 
-void Icons::AddIconSheet(const std::string& name,
-                         std::size_t        iconWidth,
-                         std::size_t        iconHeight,
-                         std::int32_t       hotX,
-                         std::int32_t       hotY)
+std::shared_ptr<types::IconInfo> Icons::AddIconSheet(const std::string& name,
+                                                     std::size_t  iconWidth,
+                                                     std::size_t  iconHeight,
+                                                     std::int32_t hotX,
+                                                     std::int32_t hotY)
 {
    // Populate icon sheet map
-   p->newIconSheets_.emplace(std::piecewise_construct,
-                             std::tuple {name},
-                             std::forward_as_tuple(types::IconInfo {
-                                name, iconWidth, iconHeight, hotX, hotY}));
+   return p->newIconSheets_
+      .emplace(std::piecewise_construct,
+               std::tuple {name},
+               std::forward_as_tuple(std::make_shared<types::IconInfo>(
+                  name, iconWidth, iconHeight, hotX, hotY)))
+      .first->second;
 }
 
 void Icons::FinishIconSheets()
@@ -261,7 +263,7 @@ void Icons::FinishIconSheets()
    // Update icon sheets
    for (auto& iconSheet : p->newIconSheets_)
    {
-      iconSheet.second.UpdateTextureInfo();
+      iconSheet.second->UpdateTextureInfo();
    }
 
    std::unique_lock lock {p->iconMutex_};
@@ -375,7 +377,7 @@ void Icons::Impl::UpdateBuffers()
       auto& icon = it->second;
 
       // Validate icon
-      if (di->iconIndex_ >= icon.numIcons_)
+      if (di->iconIndex_ >= icon->numIcons_)
       {
          // No icon found
          logger_->warn("Invalid icon index: {}", di->iconIndex_);
@@ -390,12 +392,12 @@ void Icons::Impl::UpdateBuffers()
       const float y = static_cast<float>(di->y_);
 
       // Icon size
-      const float iw = static_cast<float>(icon.iconWidth_);
-      const float ih = static_cast<float>(icon.iconHeight_);
+      const float iw = static_cast<float>(icon->iconWidth_);
+      const float ih = static_cast<float>(icon->iconHeight_);
 
       // Hot X/Y (zero-based icon center)
-      const float hx = static_cast<float>(icon.hotX_);
-      const float hy = static_cast<float>(icon.hotY_);
+      const float hx = static_cast<float>(icon->hotX_);
+      const float hy = static_cast<float>(icon->hotY_);
 
       // Final X/Y offsets in pixels
       const float lx = std::roundf(-hx);
@@ -477,7 +479,7 @@ void Icons::Impl::UpdateTextureBuffer()
       auto& icon = it->second;
 
       // Validate icon
-      if (di->iconIndex_ >= icon.numIcons_)
+      if (di->iconIndex_ >= icon->numIcons_)
       {
          // No icon found
          logger_->error("Invalid icon index: {}", di->iconIndex_);
@@ -503,17 +505,17 @@ void Icons::Impl::UpdateTextureBuffer()
       }
 
       // Texture coordinates
-      const std::size_t iconRow    = (di->iconIndex_) / icon.columns_;
-      const std::size_t iconColumn = (di->iconIndex_) % icon.columns_;
+      const std::size_t iconRow    = (di->iconIndex_) / icon->columns_;
+      const std::size_t iconColumn = (di->iconIndex_) % icon->columns_;
 
-      const float iconX = iconColumn * icon.scaledWidth_;
-      const float iconY = iconRow * icon.scaledHeight_;
+      const float iconX = iconColumn * icon->scaledWidth_;
+      const float iconY = iconRow * icon->scaledHeight_;
 
-      const float ls = icon.texture_.sLeft_ + iconX;
-      const float rs = ls + icon.scaledWidth_;
-      const float tt = icon.texture_.tTop_ + iconY;
-      const float bt = tt + icon.scaledHeight_;
-      const float r  = static_cast<float>(icon.texture_.layerId_);
+      const float ls = icon->texture_.sLeft_ + iconX;
+      const float rs = ls + icon->scaledWidth_;
+      const float tt = icon->texture_.tTop_ + iconY;
+      const float bt = tt + icon->scaledHeight_;
+      const float r  = static_cast<float>(icon->texture_.layerId_);
 
       // clang-format off
       textureBuffer_.insert(
@@ -541,7 +543,7 @@ void Icons::Impl::Update(bool textureAtlasChanged)
       // Update texture coordinates
       for (auto& iconSheet : currentIconSheets_)
       {
-         iconSheet.second.UpdateTextureInfo();
+         iconSheet.second->UpdateTextureInfo();
       }
 
       // Update OpenGL texture buffer data

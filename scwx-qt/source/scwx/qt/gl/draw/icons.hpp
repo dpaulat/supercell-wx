@@ -2,6 +2,7 @@
 
 #include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/gl/draw/draw_item.hpp>
+#include <scwx/qt/types/icon_types.hpp>
 
 #include <boost/gil.hpp>
 #include <units/angle.h>
@@ -69,12 +70,14 @@ public:
     * Default is -1 to center the icon.
     * @param [in] hotY The zero-based center of the each icon in the icon sheet.
     * Default is -1 to center the icon.
+    *
+    * @return Icon info
     */
-   void AddIconSheet(const std::string& name,
-                     std::size_t        iconWidth  = 0,
-                     std::size_t        iconHeight = 0,
-                     std::int32_t       hotX       = -1,
-                     std::int32_t       hotY       = -1);
+   std::shared_ptr<types::IconInfo> AddIconSheet(const std::string& name,
+                                                 std::size_t  iconWidth  = 0,
+                                                 std::size_t  iconHeight = 0,
+                                                 std::int32_t hotX       = -1,
+                                                 std::int32_t hotY       = -1);
 
    /**
     * Resets and prepares the draw item for adding a new set of icon sheets.

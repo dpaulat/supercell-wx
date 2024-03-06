@@ -2,7 +2,9 @@
 
 #include <scwx/qt/util/texture_atlas.hpp>
 
+#include <optional>
 #include <string>
+#include <utility>
 
 namespace scwx
 {
@@ -26,6 +28,7 @@ struct IconInfo
    {
    }
 
+   void SetAnchor(float anchorX, float anchorY);
    void UpdateTextureInfo();
 
    std::string             iconSheet_;
@@ -39,6 +42,8 @@ struct IconInfo
    std::size_t             numIcons_ {};
    float                   scaledWidth_ {};
    float                   scaledHeight_ {};
+
+   std::optional<std::pair<float, float>> anchor_ {};
 };
 
 } // namespace types
