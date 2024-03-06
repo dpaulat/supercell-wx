@@ -41,4 +41,7 @@ set_target_properties(mbgl-core PROPERTIES FOLDER mln)
 set_target_properties(mbgl-vendor-csscolorparser PROPERTIES FOLDER mln)
 set_target_properties(mbgl-vendor-nunicode PROPERTIES FOLDER mln)
 set_target_properties(mbgl-vendor-parsedate PROPERTIES FOLDER mln)
-set_target_properties(mbgl-vendor-sqlite PROPERTIES FOLDER mln)
+
+if (TARGET mbgl-vendor-sqlite)
+    set_target_properties(mbgl-vendor-sqlite PROPERTIES FOLDER mln)
+endif()
