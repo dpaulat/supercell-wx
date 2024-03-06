@@ -36,4 +36,4 @@
 	url = https://github.com/maplibre/maplibre-native-qt.git
 [submodule "external/maplibre-native"]
 	path = external/maplibre-native
-	url = https://github.com/maplibre/maplibre-native.git
+	url = https://github.com/dpaulat/maplibre-gl-native.git
