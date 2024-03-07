@@ -46,6 +46,8 @@ public:
       mapProvider_.SetDefault(defaultMapProviderValue);
       mapboxApiKey_.SetDefault("?");
       maptilerApiKey_.SetDefault("?");
+      showMapAttribution_.SetDefault(true);
+      showMapLogo_.SetDefault(true);
       theme_.SetDefault(defaultThemeValue);
       trackLocation_.SetDefault(false);
       updateNotificationsEnabled_.SetDefault(true);
@@ -142,6 +144,8 @@ public:
    SettingsVariable<std::string>                mapProvider_ {"map_provider"};
    SettingsVariable<std::string> mapboxApiKey_ {"mapbox_api_key"};
    SettingsVariable<std::string> maptilerApiKey_ {"maptiler_api_key"};
+   SettingsVariable<bool>        showMapAttribution_ {"show_map_attribution"};
+   SettingsVariable<bool>        showMapLogo_ {"show_map_logo"};
    SettingsVariable<std::string> theme_ {"theme"};
    SettingsVariable<bool>        trackLocation_ {"track_location"};
    SettingsVariable<bool> updateNotificationsEnabled_ {"update_notifications"};
@@ -163,6 +167,8 @@ GeneralSettings::GeneralSettings() :
                       &p->mapProvider_,
                       &p->mapboxApiKey_,
                       &p->maptilerApiKey_,
+                      &p->showMapAttribution_,
+                      &p->showMapLogo_,
                       &p->theme_,
                       &p->trackLocation_,
                       &p->updateNotificationsEnabled_});
@@ -240,6 +246,16 @@ SettingsVariable<std::string>& GeneralSettings::maptiler_api_key() const
    return p->maptilerApiKey_;
 }
 
+SettingsVariable<bool>& GeneralSettings::show_map_attribution() const
+{
+   return p->showMapAttribution_;
+}
+
+SettingsVariable<bool>& GeneralSettings::show_map_logo() const
+{
+   return p->showMapLogo_;
+}
+
 SettingsVariable<std::string>& GeneralSettings::theme() const
 {
    return p->theme_;
@@ -289,6 +305,8 @@ bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
            lhs.p->mapProvider_ == rhs.p->mapProvider_ &&
            lhs.p->mapboxApiKey_ == rhs.p->mapboxApiKey_ &&
            lhs.p->maptilerApiKey_ == rhs.p->maptilerApiKey_ &&
+           lhs.p->showMapAttribution_ == rhs.p->showMapAttribution_ &&
+           lhs.p->showMapLogo_ == rhs.p->showMapLogo_ &&
            lhs.p->theme_ == rhs.p->theme_ &&
            lhs.p->trackLocation_ == rhs.p->trackLocation_ &&
            lhs.p->updateNotificationsEnabled_ ==
