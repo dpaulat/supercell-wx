@@ -1,4 +1,6 @@
 #include <scwx/qt/map/map_provider.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/util/maplibre.hpp>
 #include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -47,15 +49,27 @@ TEST_P(ByMapProviderTest, MapProviderLayers)
 
    // Configure QMapLibre
    QMapLibre::Settings mapSettings {};
-   mapSettings.setProviderTemplate(mapProviderInfo.providerTemplate_);
-   mapSettings.setApiKey(QString::fromStdString(apiKey));
+   if (mapProvider == map::MapProvider::Mapbox)
+   {
+      mapSettings.setProviderTemplate(mapProviderInfo.providerTemplate_);
+      mapSettings.setApiKey(QString::fromStdString(apiKey));
+   }
+   else if (mapProvider == map::MapProvider::MapTiler)
+   {
+      settings::GeneralSettings::Instance().maptiler_api_key().SetValue(apiKey);
+   }
 
-   QMapLibre::Map map(nullptr, mapSettings, QSize(1, 1));
+   std::shared_ptr<map::MapContext> mapContext =
+      std::make_shared<map::MapContext>();
+   std::shared_ptr<QMapLibre::Map> map =
+      std::make_shared<QMapLibre::Map>(nullptr, mapSettings, QSize(1, 1));
+   mapContext->set_map(map);
+   mapContext->set_map_provider(mapProvider);
    application.processEvents();
 
    // Connect style load completion signal
    QObject::connect(
-      &map,
+      map.get(),
       &QMapLibre::Map::mapChanged,
       [&](QMapLibre::Map::MapChange mapChange)
       {
@@ -88,7 +102,7 @@ TEST_P(ByMapProviderTest, MapProviderLayers)
 
       // Load style
       timeout = false;
-      map.setStyleUrl(QString::fromStdString(mapStyle.url_));
+      util::maplibre::SetMapStyleUrl(mapContext, mapStyle.url_);
       timeoutTimer.start(5000ms);
       application.exec();
       timeoutTimer.stop();
@@ -97,12 +111,12 @@ TEST_P(ByMapProviderTest, MapProviderLayers)
       if (!timeout)
       {
          // Print layer names for debug
-         std::string layerIdsString = map.layerIds().join(", ").toStdString();
+         std::string layerIdsString = map->layerIds().join(", ").toStdString();
          logger_->debug("{} Layers: [{}]", mapStyle.name_, layerIdsString);
 
          // Search layer list
          bool foundMatch = false;
-         for (const QString& qlayer : map.layerIds())
+         for (const QString& qlayer : map->layerIds())
          {
             const std::string layer = qlayer.toStdString();
 

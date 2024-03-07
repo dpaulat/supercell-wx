@@ -51,7 +51,7 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
           {.name_ {"Bubble"},
            .url_ {
               "mapbox://styles/mapbox-map-design/cl4wxue5j000c14r17uqrjpqb"},
-           .drawBelow_ {mapboxDrawBelow_}},
+           .drawBelow_ {"com\\.mapbox\\.annotations\\.points"}},
           {.name_ {"Cali Terrain"},
            .url_ {"mapbox://styles/mapbox/cjerxnqt3cgvp2rmyuxbeqme7"},
            .drawBelow_ {"major roads casing"}},
