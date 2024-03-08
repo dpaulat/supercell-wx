@@ -255,8 +255,8 @@ void PlacefileIcons::Initialize()
 }
 
 void PlacefileIcons::Render(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
-   bool                                            textureAtlasChanged)
+   const QMapLibre::CustomLayerRenderParameters& params,
+   bool                                          textureAtlasChanged)
 {
    std::unique_lock lock {p->iconMutex_};
 
@@ -685,7 +685,7 @@ void PlacefileIcons::Impl::Update(bool textureAtlasChanged)
 }
 
 bool PlacefileIcons::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
+   const QMapLibre::CustomLayerRenderParameters& params,
    const QPointF& /* mouseLocalPos */,
    const QPointF&   mouseGlobalPos,
    const glm::vec2& mouseCoords,

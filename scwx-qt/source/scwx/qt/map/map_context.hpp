@@ -1,9 +1,11 @@
 #pragma once
 
 #include <scwx/qt/gl/gl_context.hpp>
+#include <scwx/qt/map/map_provider.hpp>
 #include <scwx/common/products.hpp>
 
-#include <QMapLibreGL/QMapLibreGL>
+#include <qmaplibre.hpp>
+#include <QMargins>
 
 namespace scwx
 {
@@ -35,17 +37,23 @@ public:
    MapContext(MapContext&&) noexcept;
    MapContext& operator=(MapContext&&) noexcept;
 
-   std::weak_ptr<QMapLibreGL::Map>           map() const;
+   std::weak_ptr<QMapLibre::Map>             map() const;
+   std::string                               map_copyrights() const;
+   MapProvider                               map_provider() const;
    MapSettings&                              settings();
+   QMargins                                  color_table_margins() const;
    float                                     pixel_ratio() const;
    std::shared_ptr<view::OverlayProductView> overlay_product_view() const;
    std::shared_ptr<view::RadarProductView>   radar_product_view() const;
    common::RadarProductGroup                 radar_product_group() const;
    std::string                               radar_product() const;
    int16_t                                   radar_product_code() const;
-   QMapLibreGL::CustomLayerRenderParameters  render_parameters() const;
+   QMapLibre::CustomLayerRenderParameters    render_parameters() const;
 
-   void set_map(const std::shared_ptr<QMapLibreGL::Map>& map);
+   void set_map(const std::shared_ptr<QMapLibre::Map>& map);
+   void set_map_copyrights(const std::string& copyrights);
+   void set_map_provider(MapProvider provider);
+   void set_color_table_margins(const QMargins& margins);
    void set_overlay_product_view(
       const std::shared_ptr<view::OverlayProductView>& overlayProductView);
    void set_pixel_ratio(float pixelRatio);
@@ -54,8 +62,8 @@ public:
    void set_radar_product_group(common::RadarProductGroup radarProductGroup);
    void set_radar_product(const std::string& radarProduct);
    void set_radar_product_code(int16_t radarProductCode);
-   void set_render_parameters(
-      const QMapLibreGL::CustomLayerRenderParameters& params);
+   void
+   set_render_parameters(const QMapLibre::CustomLayerRenderParameters& params);
 
 private:
    class Impl;

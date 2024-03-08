@@ -2,7 +2,7 @@ call tools\setup-common.bat
 
 set build_dir=build-debug
 set build_type=Debug
-set qt_version=6.6.1
+set qt_version=6.6.2
 
 mkdir %build_dir%
 cmake -B %build_dir% -S . ^

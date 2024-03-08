@@ -7,6 +7,11 @@ namespace qt
 namespace types
 {
 
+void IconInfo::SetAnchor(float anchorX, float anchorY)
+{
+   anchor_ = {anchorX, anchorY};
+}
+
 void IconInfo::UpdateTextureInfo()
 {
    texture_ = util::TextureAtlas::Instance().GetTextureAttributes(iconSheet_);
@@ -27,8 +32,24 @@ void IconInfo::UpdateTextureInfo()
 
    if (hotX_ == -1 || hotY_ == -1)
    {
-      hotX_ = static_cast<std::int32_t>(iconWidth_ / 2);
-      hotY_ = static_cast<std::int32_t>(iconHeight_ / 2);
+      if (anchor_.has_value())
+      {
+         hotX_ =
+            std::clamp<std::int32_t>(static_cast<std::int32_t>(std::lround(
+                                        iconWidth_ * anchor_.value().first)),
+                                     0,
+                                     static_cast<std::int32_t>(iconWidth_));
+         hotY_ =
+            std::clamp<std::int32_t>(static_cast<std::int32_t>(std::lround(
+                                        iconHeight_ * anchor_.value().second)),
+                                     0,
+                                     static_cast<std::int32_t>(iconHeight_));
+      }
+      else
+      {
+         hotX_ = static_cast<std::int32_t>(iconWidth_ / 2);
+         hotY_ = static_cast<std::int32_t>(iconHeight_ / 2);
+      }
    }
 
    numIcons_ = columns_ * rows_;

@@ -26,7 +26,7 @@
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 #include <fmt/chrono.h>
-#include <QMapLibreGL/QMapLibreGL>
+#include <qmaplibre.hpp>
 
 #if defined(_MSC_VER)
 #   pragma warning(pop)
@@ -423,8 +423,8 @@ void RadarProductManager::Initialize()
    const GeographicLib::Geodesic& geodesic(
       util::GeographicLib::DefaultGeodesic());
 
-   const QMapLibreGL::Coordinate radar(p->radarSite_->latitude(),
-                                       p->radarSite_->longitude());
+   const QMapLibre::Coordinate radar(p->radarSite_->latitude(),
+                                     p->radarSite_->longitude());
 
    const float gateSize = gate_size();
 

@@ -221,7 +221,7 @@ void PlacefilePolygons::Initialize()
 }
 
 void PlacefilePolygons::Render(
-   const QMapLibreGL::CustomLayerRenderParameters& params)
+   const QMapLibre::CustomLayerRenderParameters& params)
 {
    if (!p->currentBuffer_.empty())
    {

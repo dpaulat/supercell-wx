@@ -218,7 +218,7 @@ void GeoLines::Initialize()
    p->dirty_ = true;
 }
 
-void GeoLines::Render(const QMapLibreGL::CustomLayerRenderParameters& params)
+void GeoLines::Render(const QMapLibre::CustomLayerRenderParameters& params)
 {
    if (!p->visible_)
    {
@@ -513,7 +513,7 @@ void GeoLines::Impl::Update()
 }
 
 bool GeoLines::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
+   const QMapLibre::CustomLayerRenderParameters& params,
    const QPointF& /* mouseLocalPos */,
    const QPointF&   mouseGlobalPos,
    const glm::vec2& mouseCoords,

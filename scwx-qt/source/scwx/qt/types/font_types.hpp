@@ -37,7 +37,8 @@ enum class Font
 {
    din1451alt,
    din1451alt_g,
-   Inconsolata_Regular
+   Inconsolata_Regular,
+   RobotoFlex_Regular
 };
 
 } // namespace types

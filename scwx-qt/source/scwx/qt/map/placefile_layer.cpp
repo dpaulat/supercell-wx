@@ -124,7 +124,7 @@ void PlacefileLayer::Initialize()
 }
 
 void PlacefileLayer::Render(
-   const QMapLibreGL::CustomLayerRenderParameters& params)
+   const QMapLibre::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = context()->gl();
 

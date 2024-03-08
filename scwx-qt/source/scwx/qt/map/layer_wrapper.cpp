@@ -34,8 +34,7 @@ void LayerWrapper::initialize()
    p->layer_->Initialize();
 }
 
-void LayerWrapper::render(
-   const QMapLibreGL::CustomLayerRenderParameters& params)
+void LayerWrapper::render(const QMapLibre::CustomLayerRenderParameters& params)
 {
    p->layer_->Render(params);
 }

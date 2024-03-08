@@ -139,7 +139,7 @@ void OverlayProductLayer::Initialize()
 }
 
 void OverlayProductLayer::Render(
-   const QMapLibreGL::CustomLayerRenderParameters& params)
+   const QMapLibre::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = context()->gl();
 
@@ -436,12 +436,12 @@ std::string OverlayProductLayer::Impl::BuildHoverText(
 }
 
 bool OverlayProductLayer::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
-   const QPointF&                                  mouseLocalPos,
-   const QPointF&                                  mouseGlobalPos,
-   const glm::vec2&                                mouseCoords,
-   const common::Coordinate&                       mouseGeoCoords,
-   std::shared_ptr<types::EventHandler>&           eventHandler)
+   const QMapLibre::CustomLayerRenderParameters& params,
+   const QPointF&                                mouseLocalPos,
+   const QPointF&                                mouseGlobalPos,
+   const glm::vec2&                              mouseCoords,
+   const common::Coordinate&                     mouseGeoCoords,
+   std::shared_ptr<types::EventHandler>&         eventHandler)
 {
    return DrawLayer::RunMousePicking(params,
                                      mouseLocalPos,

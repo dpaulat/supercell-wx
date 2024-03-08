@@ -27,7 +27,7 @@ GenericLayer::GenericLayer(std::shared_ptr<MapContext> context) :
 GenericLayer::~GenericLayer() = default;
 
 bool GenericLayer::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& /* params */,
+   const QMapLibre::CustomLayerRenderParameters& /* params */,
    const QPointF& /* mouseLocalPos */,
    const QPointF& /* mouseGlobalPos */,
    const glm::vec2& /* mousePos */,

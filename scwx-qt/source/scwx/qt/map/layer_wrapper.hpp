@@ -11,7 +11,7 @@ namespace map
 
 class LayerWrapperImpl;
 
-class LayerWrapper : public QMapLibreGL::CustomLayerHostInterface
+class LayerWrapper : public QMapLibre::CustomLayerHostInterface
 {
 public:
    explicit LayerWrapper(std::shared_ptr<GenericLayer> layer);
@@ -24,7 +24,7 @@ public:
    LayerWrapper& operator=(LayerWrapper&&) noexcept;
 
    void initialize() override final;
-   void render(const QMapLibreGL::CustomLayerRenderParameters&) override final;
+   void render(const QMapLibre::CustomLayerRenderParameters&) override final;
    void deinitialize() override final;
 
 private:

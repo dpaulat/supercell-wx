@@ -1,6 +1,3 @@
-[submodule "external/mapbox-gl-native"]
-	path = external/mapbox-gl-native
-	url = https://github.com/dpaulat/maplibre-gl-native.git
 [submodule "external/cmake-conan"]
 	path = external/cmake-conan
 	url = https://github.com/conan-io/cmake-conan.git
@@ -34,3 +31,9 @@
 [submodule "external/textflowcpp"]
 	path = external/textflowcpp
 	url = https://github.com/catchorg/textflowcpp.git
+[submodule "external/maplibre-native-qt"]
+	path = external/maplibre-native-qt
+	url = https://github.com/dpaulat/maplibre-native-qt.git
+[submodule "external/maplibre-native"]
+	path = external/maplibre-native
+	url = https://github.com/dpaulat/maplibre-gl-native.git

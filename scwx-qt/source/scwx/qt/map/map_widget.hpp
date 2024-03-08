@@ -9,7 +9,7 @@
 #include <chrono>
 #include <memory>
 
-#include <QMapLibreGL/QMapLibreGL>
+#include <qmaplibre.hpp>
 
 #include <QOpenGLWidget>
 #include <QPropertyAnimation>
@@ -33,7 +33,7 @@ class MapWidget : public QOpenGLWidget
    Q_OBJECT
 
 public:
-   explicit MapWidget(std::size_t id, const QMapLibreGL::Settings&);
+   explicit MapWidget(std::size_t id, const QMapLibre::Settings&);
    ~MapWidget();
 
    void DumpLayerList() const;
@@ -139,7 +139,7 @@ private:
    friend class MapWidgetImpl;
 
 private slots:
-   void mapChanged(QMapLibreGL::Map::MapChange);
+   void mapChanged(QMapLibre::Map::MapChange);
 
 signals:
    void Level3ProductsChanged();

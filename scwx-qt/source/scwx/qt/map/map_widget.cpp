@@ -30,6 +30,8 @@
 
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_qt.hpp>
+#include <boost/algorithm/string/erase.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
 #include <boost/uuid/random_generator.hpp>
@@ -44,6 +46,7 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QString>
+#include <QTextDocument>
 
 namespace scwx
 {
@@ -60,9 +63,9 @@ class MapWidgetImpl : public QObject
    Q_OBJECT
 
 public:
-   explicit MapWidgetImpl(MapWidget*                   widget,
-                          std::size_t                  id,
-                          const QMapLibreGL::Settings& settings) :
+   explicit MapWidgetImpl(MapWidget*                 widget,
+                          std::size_t                id,
+                          const QMapLibre::Settings& settings) :
        id_ {id},
        uuid_ {boost::uuids::random_generator()()},
        context_ {std::make_shared<MapContext>()},
@@ -94,10 +97,12 @@ public:
       overlayProductView->SetAutoRefresh(autoRefreshEnabled_);
       overlayProductView->SetAutoUpdate(autoUpdateEnabled_);
 
-      // Initialize context
-      context_->set_overlay_product_view(overlayProductView);
-
       auto& generalSettings = settings::GeneralSettings::Instance();
+
+      // Initialize context
+      context_->set_map_provider(
+         GetMapProvider(generalSettings.map_provider().GetValue()));
+      context_->set_overlay_product_view(overlayProductView);
 
       SetRadarSite(generalSettings.default_radar_site().GetValue());
 
@@ -109,9 +114,6 @@ public:
 
       // Initialize ImGui Qt backend
       ImGui_ImplQt_Init();
-
-      // Set Map Provider Details
-      mapProvider_ = GetMapProvider(generalSettings.map_provider().GetValue());
 
       ConnectSignals();
    }
@@ -143,6 +145,7 @@ public:
    void AddLayers();
    void AddPlacefileLayer(const std::string& placefileName,
                           const std::string& before);
+   void ConnectMapSignals();
    void ConnectSignals();
    void ImGuiCheckFonts();
    void InitializeNewRadarProductView(const std::string& colorPalette);
@@ -169,11 +172,10 @@ public:
 
    std::shared_ptr<MapContext> context_;
 
-   MapWidget*                        widget_;
-   MapProvider                       mapProvider_;
-   QMapLibreGL::Settings             settings_;
-   std::shared_ptr<QMapLibreGL::Map> map_;
-   std::list<std::string>            layerList_;
+   MapWidget*                      widget_;
+   QMapLibre::Settings             settings_;
+   std::shared_ptr<QMapLibre::Map> map_;
+   std::list<std::string>          layerList_;
 
    std::vector<std::shared_ptr<GenericLayer>> genericLayers_ {};
 
@@ -229,7 +231,7 @@ public slots:
    void Update();
 };
 
-MapWidget::MapWidget(std::size_t id, const QMapLibreGL::Settings& settings) :
+MapWidget::MapWidget(std::size_t id, const QMapLibre::Settings& settings) :
     p(std::make_unique<MapWidgetImpl>(this, id, settings))
 {
    if (settings::GeneralSettings::Instance().anti_aliasing_enabled().GetValue())
@@ -246,8 +248,32 @@ MapWidget::MapWidget(std::size_t id, const QMapLibreGL::Settings& settings) :
 
 MapWidget::~MapWidget()
 {
-   // Make sure we have a valid context so we can delete the QMapLibreGL.
+   // Make sure we have a valid context so we can delete the QMapLibre.
    makeCurrent();
+}
+
+void MapWidgetImpl::ConnectMapSignals()
+{
+   connect(map_.get(),
+           &QMapLibre::Map::needsRendering,
+           this,
+           &MapWidgetImpl::Update);
+   connect(map_.get(),
+           &QMapLibre::Map::copyrightsChanged,
+           this,
+           [this](const QString& copyrightsHtml)
+           {
+              QTextDocument document {};
+              document.setHtml(copyrightsHtml);
+
+              // HTML cannot currently be included in ImGui windows. Where links
+              // can't be included, remove "Improve this map".
+              std::string copyrights {document.toPlainText().toStdString()};
+              boost::erase_all(copyrights, "Improve this map");
+              boost::trim_right(copyrights);
+
+              context_->set_map_copyrights(copyrights);
+           });
 }
 
 void MapWidgetImpl::ConnectSignals()
@@ -725,7 +751,8 @@ void MapWidget::SetInitialMapStyle(const std::string& styleName)
 
 void MapWidget::SetMapStyle(const std::string& styleName)
 {
-   const auto& mapProviderInfo = GetMapProviderInfo(p->mapProvider_);
+   const auto  mapProvider     = p->context_->map_provider();
+   const auto& mapProviderInfo = GetMapProviderInfo(mapProvider);
    auto&       styles          = mapProviderInfo.mapStyles_;
 
    for (size_t i = 0u; i < styles.size(); ++i)
@@ -737,7 +764,7 @@ void MapWidget::SetMapStyle(const std::string& styleName)
 
          logger_->debug("Updating style: {}", styles[i].name_);
 
-         p->map_->setStyleUrl(styles[i].url_.c_str());
+         util::maplibre::SetMapStyleUrl(p->context_, styles[i].url_);
 
          if (++p->currentStyleIndex_ == styles.size())
          {
@@ -756,14 +783,16 @@ qreal MapWidget::pixelRatio()
 
 void MapWidget::changeStyle()
 {
-   const auto& mapProviderInfo = GetMapProviderInfo(p->mapProvider_);
+   const auto  mapProvider     = p->context_->map_provider();
+   const auto& mapProviderInfo = GetMapProviderInfo(mapProvider);
    auto&       styles          = mapProviderInfo.mapStyles_;
 
    p->currentStyle_ = &styles[p->currentStyleIndex_];
 
    logger_->debug("Updating style: {}", styles[p->currentStyleIndex_].name_);
 
-   p->map_->setStyleUrl(styles[p->currentStyleIndex_].url_.c_str());
+   util::maplibre::SetMapStyleUrl(p->context_,
+                                  styles[p->currentStyleIndex_].url_);
 
    if (++p->currentStyleIndex_ == styles.size())
    {
@@ -987,8 +1016,8 @@ void MapWidgetImpl::AddLayer(const std::string&            id,
                              std::shared_ptr<GenericLayer> layer,
                              const std::string&            before)
 {
-   // QMapLibreGL::addCustomLayer will take ownership of the std::unique_ptr
-   std::unique_ptr<QMapLibreGL::CustomLayerHostInterface> pHost =
+   // QMapLibre::addCustomLayer will take ownership of the std::unique_ptr
+   std::unique_ptr<QMapLibre::CustomLayerHostInterface> pHost =
       std::make_unique<LayerWrapper>(layer);
 
    try
@@ -1131,12 +1160,9 @@ void MapWidget::initializeGL()
    p->imGuiRendererInitialized_ = true;
 
    p->map_.reset(
-      new QMapLibreGL::Map(nullptr, p->settings_, size(), pixelRatio()));
+      new QMapLibre::Map(nullptr, p->settings_, size(), pixelRatio()));
    p->context_->set_map(p->map_);
-   connect(p->map_.get(),
-           &QMapLibreGL::Map::needsRendering,
-           p.get(),
-           &MapWidgetImpl::Update);
+   p->ConnectMapSignals();
 
    // Set default location to radar site
    std::shared_ptr<config::RadarSite> radarSite =
@@ -1160,10 +1186,8 @@ void MapWidget::initializeGL()
       SetMapStyle(p->initialStyleName_);
    }
 
-   connect(p->map_.get(),
-           &QMapLibreGL::Map::mapChanged,
-           this,
-           &MapWidget::mapChanged);
+   connect(
+      p->map_.get(), &QMapLibre::Map::mapChanged, this, &MapWidget::mapChanged);
 }
 
 void MapWidget::paintGL()
@@ -1192,7 +1216,7 @@ void MapWidget::paintGL()
    // Update pixel ratio
    p->context_->set_pixel_ratio(pixelRatio());
 
-   // Render QMapLibreGL Map
+   // Render QMapLibre Map
    p->map_->resize(size());
    p->map_->setFramebufferObject(defaultFramebufferObject(),
                                  size() * pixelRatio());
@@ -1243,7 +1267,7 @@ void MapWidgetImpl::ImGuiCheckFonts()
 
 void MapWidgetImpl::RunMousePicking()
 {
-   const QMapLibreGL::CustomLayerRenderParameters params =
+   const QMapLibre::CustomLayerRenderParameters params =
       context_->render_parameters();
 
    auto coordinate = map_->coordinateForPixel(lastPos_);
@@ -1318,11 +1342,11 @@ void MapWidgetImpl::RunMousePicking()
    lastItemPicked_ = itemPicked;
 }
 
-void MapWidget::mapChanged(QMapLibreGL::Map::MapChange mapChange)
+void MapWidget::mapChanged(QMapLibre::Map::MapChange mapChange)
 {
    switch (mapChange)
    {
-   case QMapLibreGL::Map::MapChangeDidFinishLoadingStyle:
+   case QMapLibre::Map::MapChangeDidFinishLoadingStyle:
       p->UpdateLoadedStyle();
       p->AddLayers();
       break;

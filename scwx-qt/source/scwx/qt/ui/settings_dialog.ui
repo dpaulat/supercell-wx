@@ -323,6 +323,20 @@
             </widget>
            </item>
            <item>
+            <widget class="QCheckBox" name="showMapAttributionCheckBox">
+             <property name="text">
+              <string>Show Map Attribution</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="showMapLogoCheckBox">
+             <property name="text">
+              <string>Show Map Logo</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QCheckBox" name="enableUpdateNotificationsCheckBox">
              <property name="text">
               <string>Update Notifications Enabled</string>
@@ -373,8 +387,8 @@
                    <rect>
                     <x>0</x>
                     <y>0</y>
-                    <width>514</width>
-                    <height>382</height>
+                    <width>66</width>
+                    <height>18</height>
                    </rect>
                   </property>
                   <layout class="QGridLayout" name="gridLayout_3">

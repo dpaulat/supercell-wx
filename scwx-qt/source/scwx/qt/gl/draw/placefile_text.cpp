@@ -34,14 +34,14 @@ public:
    ~Impl() {}
 
    void RenderTextDrawItem(
-      const QMapLibreGL::CustomLayerRenderParameters&           params,
+      const QMapLibre::CustomLayerRenderParameters&             params,
       const std::shared_ptr<const gr::Placefile::TextDrawItem>& di);
-   void RenderText(const QMapLibreGL::CustomLayerRenderParameters& params,
-                   const std::string&                              text,
-                   const std::string&                              hoverText,
-                   boost::gil::rgba8_pixel_t                       color,
-                   float                                           x,
-                   float                                           y);
+   void RenderText(const QMapLibre::CustomLayerRenderParameters& params,
+                   const std::string&                            text,
+                   const std::string&                            hoverText,
+                   boost::gil::rgba8_pixel_t                     color,
+                   float                                         x,
+                   float                                         y);
 
    std::shared_ptr<GlContext> context_;
 
@@ -98,8 +98,7 @@ void PlacefileText::set_thresholded(bool thresholded)
 
 void PlacefileText::Initialize() {}
 
-void PlacefileText::Render(
-   const QMapLibreGL::CustomLayerRenderParameters& params)
+void PlacefileText::Render(const QMapLibre::CustomLayerRenderParameters& params)
 {
    std::unique_lock lock {p->listMutex_};
 
@@ -128,7 +127,7 @@ void PlacefileText::Render(
 }
 
 void PlacefileText::Impl::RenderTextDrawItem(
-   const QMapLibreGL::CustomLayerRenderParameters&           params,
+   const QMapLibre::CustomLayerRenderParameters&             params,
    const std::shared_ptr<const gr::Placefile::TextDrawItem>& di)
 {
    // If no time has been selected, use the current time
@@ -191,12 +190,12 @@ void PlacefileText::Impl::RenderTextDrawItem(
 }
 
 void PlacefileText::Impl::RenderText(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
-   const std::string&                              text,
-   const std::string&                              hoverText,
-   boost::gil::rgba8_pixel_t                       color,
-   float                                           x,
-   float                                           y)
+   const QMapLibre::CustomLayerRenderParameters& params,
+   const std::string&                            text,
+   const std::string&                            hoverText,
+   boost::gil::rgba8_pixel_t                     color,
+   float                                         x,
+   float                                         y)
 {
    const std::string windowName {
       fmt::format("PlacefileText-{}-{}", placefileName_, ++textId_)};
@@ -238,7 +237,7 @@ void PlacefileText::Deinitialize()
 }
 
 bool PlacefileText::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& /* params */,
+   const QMapLibre::CustomLayerRenderParameters& /* params */,
    const QPointF& /* mouseLocalPos */,
    const QPointF& mouseGlobalPos,
    const glm::vec2& /* mouseCoords */,

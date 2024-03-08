@@ -21,7 +21,11 @@ static const std::unordered_map<ImageTexture, TextureInfo> imageTextureInfo_ {
    {ImageTexture::Compass24,
     {"images/compass-24", ":/res/icons/flaticon/compass-24.png"}},
    {ImageTexture::Crosshairs24,
-    {"images/crosshairs-24", ":/res/textures/images/crosshairs-24.png"}}};
+    {"images/crosshairs-24", ":/res/textures/images/crosshairs-24.png"}},
+   {ImageTexture::MapboxLogo,
+    {"images/mapbox-logo", ":/res/textures/images/mapbox-logo.svg"}},
+   {ImageTexture::MapTilerLogo,
+    {"images/maptiler-logo", ":/res/textures/images/maptiler-logo.svg"}}};
 
 static const std::unordered_map<LineTexture, TextureInfo> lineTextureInfo_ {
    {LineTexture::Default1x7,

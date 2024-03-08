@@ -243,7 +243,7 @@ void GeoIcons::Initialize()
    p->dirty_ = true;
 }
 
-void GeoIcons::Render(const QMapLibreGL::CustomLayerRenderParameters& params,
+void GeoIcons::Render(const QMapLibre::CustomLayerRenderParameters& params,
                       bool textureAtlasChanged)
 {
    if (!p->visible_)
@@ -732,7 +732,7 @@ void GeoIcons::Impl::Update(bool textureAtlasChanged)
 }
 
 bool GeoIcons::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
+   const QMapLibre::CustomLayerRenderParameters& params,
    const QPointF& /* mouseLocalPos */,
    const QPointF&   mouseGlobalPos,
    const glm::vec2& mouseCoords,

@@ -20,6 +20,9 @@
 #include <stb_image.h>
 #include <stb_rect_pack.h>
 #include <QFile>
+#include <QFileInfo>
+#include <QPainter>
+#include <QSvgRenderer>
 #include <QUrl>
 
 #if defined(_MSC_VER)
@@ -48,6 +51,11 @@ public:
 
    static std::shared_ptr<boost::gil::rgba8_image_t>
    LoadImage(const std::string& imagePath);
+
+   static std::shared_ptr<boost::gil::rgba8_image_t>
+   ReadPngFile(const QString& imagePath);
+   static std::shared_ptr<boost::gil::rgba8_image_t>
+   ReadSvgFile(const QString& imagePath);
 
    std::vector<std::shared_ptr<boost::gil::rgba8_image_t>>
                      registeredTextures_ {};
@@ -376,34 +384,23 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath)
 {
    logger_->debug("Loading image: {}", imagePath);
 
-   std::shared_ptr<boost::gil::rgba8_image_t> image =
-      std::make_shared<boost::gil::rgba8_image_t>();
+   std::shared_ptr<boost::gil::rgba8_image_t> image = nullptr;
 
-   QUrl url = QUrl::fromUserInput(QString::fromStdString(imagePath));
+   QString qImagePath = QString::fromStdString(imagePath);
+
+   QUrl url = QUrl::fromUserInput(qImagePath);
 
    if (url.isLocalFile())
    {
-      QFile imageFile(imagePath.c_str());
+      QString suffix = QFileInfo(qImagePath).suffix().toLower();
 
-      imageFile.open(QIODevice::ReadOnly);
-
-      if (!imageFile.isOpen())
+      if (suffix == "svg")
       {
-         logger_->error("Could not open image: {}", imagePath);
-         return nullptr;
+         image = ReadSvgFile(qImagePath);
       }
-
-      boost::iostreams::stream<util::IoDeviceSource> dataStream(imageFile);
-
-      try
+      else
       {
-         boost::gil::read_and_convert_image(
-            dataStream, *image, boost::gil::png_tag());
-      }
-      catch (const std::exception& ex)
-      {
-         logger_->error("Error reading image: {}", ex.what());
-         return nullptr;
+         image = ReadPngFile(qImagePath);
       }
    }
    else
@@ -442,6 +439,7 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath)
             width * desiredChannels);
 
          // Copy the view to the destination image
+         image      = std::make_shared<boost::gil::rgba8_image_t>();
          *image     = boost::gil::rgba8_image_t(stbView);
          auto& view = boost::gil::view(*image);
 
@@ -472,6 +470,69 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath)
       {
          logger_->error("Error loading image: {}", response.status_line);
       }
+   }
+
+   return image;
+}
+
+std::shared_ptr<boost::gil::rgba8_image_t>
+TextureAtlas::Impl::ReadPngFile(const QString& imagePath)
+{
+   QFile imageFile(imagePath);
+
+   imageFile.open(QIODevice::ReadOnly);
+
+   if (!imageFile.isOpen())
+   {
+      logger_->error("Could not open image: {}", imagePath.toStdString());
+      return nullptr;
+   }
+
+   boost::iostreams::stream<util::IoDeviceSource> dataStream(imageFile);
+   std::shared_ptr<boost::gil::rgba8_image_t>     image =
+      std::make_shared<boost::gil::rgba8_image_t>();
+
+   try
+   {
+      boost::gil::read_and_convert_image(
+         dataStream, *image, boost::gil::png_tag());
+   }
+   catch (const std::exception& ex)
+   {
+      logger_->error("Error reading image: {}", ex.what());
+      return nullptr;
+   }
+
+   return image;
+}
+
+std::shared_ptr<boost::gil::rgba8_image_t>
+TextureAtlas::Impl::ReadSvgFile(const QString& imagePath)
+{
+   QSvgRenderer renderer {imagePath};
+   QPixmap      pixmap {renderer.defaultSize()};
+   pixmap.fill(Qt::GlobalColor::transparent);
+
+   QPainter painter {&pixmap};
+   renderer.render(&painter, pixmap.rect());
+
+   QImage qImage = pixmap.toImage();
+
+   std::shared_ptr<boost::gil::rgba8_image_t> image = nullptr;
+
+   if (qImage.width() > 0 && qImage.height() > 0)
+   {
+      // Convert to ARGB32 format if not already (equivalent to bgra8_pixel_t)
+      qImage.convertTo(QImage::Format_ARGB32);
+
+      // Create a view pointing to the underlying QImage pixel data
+      auto view = boost::gil::interleaved_view(
+         qImage.width(),
+         qImage.height(),
+         reinterpret_cast<const boost::gil::bgra8_pixel_t*>(qImage.constBits()),
+         qImage.width() * 4);
+
+      image = std::make_shared<boost::gil::rgba8_image_t>(view);
    }
 
    return image;

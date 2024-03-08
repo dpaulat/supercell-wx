@@ -18,7 +18,7 @@ public:
    ~ColorTableLayer();
 
    void Initialize() override final;
-   void Render(const QMapLibreGL::CustomLayerRenderParameters&) override final;
+   void Render(const QMapLibre::CustomLayerRenderParameters&) override final;
    void Deinitialize() override final;
 
 private:

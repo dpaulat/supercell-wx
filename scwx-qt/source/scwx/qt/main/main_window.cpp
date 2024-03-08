@@ -120,8 +120,11 @@ public:
 
       std::string mapProviderApiKey = map::GetMapProviderApiKey(mapProvider_);
 
-      settings_.resetToTemplate(mapProviderInfo.settingsTemplate_);
-      settings_.setApiKey(QString {mapProviderApiKey.c_str()});
+      if (mapProvider_ == map::MapProvider::Mapbox)
+      {
+         settings_.setProviderTemplate(mapProviderInfo.providerTemplate_);
+         settings_.setApiKey(QString {mapProviderApiKey.c_str()});
+      }
       settings_.setCacheDatabasePath(QString {cacheDbPath.c_str()});
       settings_.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
 
@@ -164,10 +167,10 @@ public:
 
    boost::asio::thread_pool threadPool_ {1u};
 
-   MainWindow*           mainWindow_;
-   QMapLibreGL::Settings settings_;
-   map::MapProvider      mapProvider_;
-   map::MapWidget*       activeMap_;
+   MainWindow*         mainWindow_;
+   QMapLibre::Settings settings_;
+   map::MapProvider    mapProvider_;
+   map::MapWidget*     activeMap_;
 
    ui::CollapsibleGroup*     mapSettingsGroup_;
    ui::CollapsibleGroup*     level2ProductsGroup_;

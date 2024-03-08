@@ -28,6 +28,7 @@ find_package(QT NAMES Qt6
                         OpenGL
                         OpenGLWidgets
                         Positioning
+                        Svg
                         Widgets REQUIRED)
 
 find_package(Qt${QT_VERSION_MAJOR}
@@ -38,6 +39,7 @@ find_package(Qt${QT_VERSION_MAJOR}
                         OpenGL
                         OpenGLWidgets
                         Positioning
+                        Svg
                         Widgets
              REQUIRED)
 
@@ -470,7 +472,10 @@ set_target_properties(release_translations PROPERTIES FOLDER qt)
 set_target_properties(scwx-qt_lrelease     PROPERTIES FOLDER qt)
 set_target_properties(scwx-qt_lupdate      PROPERTIES FOLDER qt)
 set_target_properties(scwx-qt_other_files  PROPERTIES FOLDER qt)
-set_target_properties(update_translations  PROPERTIES FOLDER qt)
+
+if (TARGET update_translations)
+    set_target_properties(update_translations PROPERTIES FOLDER qt)
+endif()
 
 set_target_properties(scwx-qt_generate_counties_db PROPERTIES FOLDER generate)
 set_target_properties(scwx-qt_generate_versions    PROPERTIES FOLDER generate)
@@ -496,7 +501,7 @@ endif()
 target_include_directories(scwx-qt PUBLIC ${scwx-qt_SOURCE_DIR}/source
                                           ${FTGL_INCLUDE_DIR}
                                           ${IMGUI_INCLUDE_DIRS}
-                                          ${MBGL_INCLUDE_DIR}
+                                          ${MLN_INCLUDE_DIRS}
                                           ${STB_INCLUDE_DIR}
                                           ${TEXTFLOWCPP_INCLUDE_DIR})
 
@@ -552,9 +557,10 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Qt${QT_VERSION_MAJOR}::OpenGLWidgets
                                      Qt${QT_VERSION_MAJOR}::Multimedia
                                      Qt${QT_VERSION_MAJOR}::Positioning
+                                     Qt${QT_VERSION_MAJOR}::Svg
                                      Boost::json
                                      Boost::timer
-                                     qmaplibregl
+                                     QMapLibre::Core
                                      $<$<CXX_COMPILER_ID:MSVC>:opengl32>
                                      Fontconfig::Fontconfig
                                      GeographicLib::GeographicLib
@@ -570,11 +576,11 @@ target_link_libraries(supercell-wx PRIVATE scwx-qt
                                            wxdata)
 
 # Set DT_RUNPATH for Linux targets
-set_target_properties(qmaplibregl  PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
+set_target_properties(Core         PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib") # QMapLibre::Core
 set_target_properties(supercell-wx PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
 
 install(TARGETS supercell-wx
-                qmaplibregl
+                Core # QMapLibre::Core
         RUNTIME_DEPENDENCIES
           PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-" "qt6"
           POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
@@ -587,8 +593,8 @@ install(TARGETS supercell-wx
 
 # NO_TRANSLATIONS is needed for Qt 6.5.0 (will be fixed in 6.5.1)
 # https://bugreports.qt.io/browse/QTBUG-112204
-qt_generate_deploy_app_script(TARGET qmaplibregl
-                              OUTPUT_SCRIPT deploy_script_qmaplibregl
+qt_generate_deploy_app_script(TARGET Core # QMapLibre::Core
+                              OUTPUT_SCRIPT deploy_script_qmaplibre_core
                               NO_TRANSLATIONS
                               NO_UNSUPPORTED_PLATFORM_ERROR)
 
@@ -597,7 +603,7 @@ qt_generate_deploy_app_script(TARGET supercell-wx
                               NO_TRANSLATIONS
                               NO_UNSUPPORTED_PLATFORM_ERROR)
 
-install(SCRIPT ${deploy_script_qmaplibregl}
+install(SCRIPT ${deploy_script_qmaplibre_core}
         COMPONENT supercell-wx)
 
 install(SCRIPT ${deploy_script_scwx}

@@ -15,10 +15,11 @@ enum class FontCategory
 {
    Default,
    Tooltip,
+   Attribution,
    Unknown
 };
 typedef scwx::util::
-   Iterator<FontCategory, FontCategory::Default, FontCategory::Tooltip>
+   Iterator<FontCategory, FontCategory::Default, FontCategory::Attribution>
       FontCategoryIterator;
 
 enum class TooltipMethod

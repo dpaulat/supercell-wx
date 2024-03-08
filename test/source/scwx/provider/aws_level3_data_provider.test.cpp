@@ -25,7 +25,7 @@ TEST(AwsLevel3DataProvider, FindKeyFixed)
 
 TEST(AwsLevel3DataProvider, FindKeyNow)
 {
-   AwsLevel3DataProvider provider("KLSX", "N0B");
+   AwsLevel3DataProvider provider("KILX", "N0B");
 
    provider.Refresh();
    std::string key = provider.FindKey(std::chrono::system_clock::now());
@@ -46,7 +46,7 @@ TEST(AwsLevel3DataProvider, LoadObjectByKey)
 
 TEST(AwsLevel3DataProvider, Refresh)
 {
-   AwsLevel3DataProvider provider("KLSX", "N0B");
+   AwsLevel3DataProvider provider("KILX", "N0B");
 
    auto [newObjects, totalObjects] = provider.Refresh();
 
@@ -58,7 +58,7 @@ TEST(AwsLevel3DataProvider, Refresh)
 
 TEST(AwsLevel3DataProvider, GetAvailableProducts)
 {
-   AwsLevel3DataProvider provider("KLSX", "N0B");
+   AwsLevel3DataProvider provider("KILX", "N0B");
 
    provider.RequestAvailableProducts();
    auto products = provider.GetAvailableProducts();

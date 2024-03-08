@@ -1,6 +1,6 @@
 #include <scwx/qt/util/maplibre.hpp>
 
-#include <QMapLibreGL/utils.hpp>
+#include <QMapLibre/Utils>
 #include <mbgl/util/constants.hpp>
 
 namespace scwx
@@ -13,14 +13,14 @@ namespace maplibre
 {
 
 units::length::meters<double>
-GetMapDistance(const QMapLibreGL::CustomLayerRenderParameters& params)
+GetMapDistance(const QMapLibre::CustomLayerRenderParameters& params)
 {
    return units::length::meters<double>(
-      QMapLibreGL::metersPerPixelAtLatitude(params.latitude, params.zoom) *
+      QMapLibre::metersPerPixelAtLatitude(params.latitude, params.zoom) *
       (params.width + params.height) / 2.0);
 }
 
-glm::mat4 GetMapMatrix(const QMapLibreGL::CustomLayerRenderParameters& params)
+glm::mat4 GetMapMatrix(const QMapLibre::CustomLayerRenderParameters& params)
 {
    glm::vec2 scale = GetMapScale(params);
 
@@ -33,7 +33,7 @@ glm::mat4 GetMapMatrix(const QMapLibreGL::CustomLayerRenderParameters& params)
    return mapMatrix;
 }
 
-glm::vec2 GetMapScale(const QMapLibreGL::CustomLayerRenderParameters& params)
+glm::vec2 GetMapScale(const QMapLibre::CustomLayerRenderParameters& params)
 {
    const float scale = std::pow(2.0, params.zoom) * 2.0f *
                        mbgl::util::tileSize_D / mbgl::util::DEGREES_MAX;
@@ -73,7 +73,7 @@ bool IsPointInPolygon(const std::vector<glm::vec2>& vertices,
    return inPolygon;
 }
 
-glm::vec2 LatLongToScreenCoordinate(const QMapLibreGL::Coordinate& coordinate)
+glm::vec2 LatLongToScreenCoordinate(const QMapLibre::Coordinate& coordinate)
 {
    static constexpr double RAD2DEG_D = 180.0 / M_PI;
 
@@ -86,6 +86,26 @@ glm::vec2 LatLongToScreenCoordinate(const QMapLibreGL::Coordinate& coordinate)
            std::log(std::tan(M_PI / 4.0 +
                              latitude * M_PI / mbgl::util::DEGREES_MAX)))};
    return screen;
+}
+
+void SetMapStyleUrl(const std::shared_ptr<map::MapContext>& mapContext,
+                    const std::string&                      url)
+{
+   const auto mapProvider = mapContext->map_provider();
+
+   QString qUrl = QString::fromStdString(url);
+
+   if (mapProvider == map::MapProvider::MapTiler)
+   {
+      qUrl.append("?key=");
+      qUrl.append(map::GetMapProviderApiKey(mapProvider));
+   }
+
+   auto map = mapContext->map().lock();
+   if (map != nullptr)
+   {
+      map->setStyleUrl(qUrl);
+   }
 }
 
 } // namespace maplibre

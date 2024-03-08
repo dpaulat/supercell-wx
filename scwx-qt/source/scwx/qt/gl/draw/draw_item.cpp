@@ -43,18 +43,18 @@ DrawItem::DrawItem(DrawItem&&) noexcept            = default;
 DrawItem& DrawItem::operator=(DrawItem&&) noexcept = default;
 
 void DrawItem::Render(
-   const QMapLibreGL::CustomLayerRenderParameters& /* params */)
+   const QMapLibre::CustomLayerRenderParameters& /* params */)
 {
 }
 
-void DrawItem::Render(const QMapLibreGL::CustomLayerRenderParameters& params,
+void DrawItem::Render(const QMapLibre::CustomLayerRenderParameters& params,
                       bool /* textureAtlasChanged */)
 {
    Render(params);
 }
 
 bool DrawItem::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& /* params */,
+   const QMapLibre::CustomLayerRenderParameters& /* params */,
    const QPointF& /* mouseLocalPos */,
    const QPointF& /* mouseGlobalPos */,
    const glm::vec2& /* mouseCoords */,
@@ -66,8 +66,8 @@ bool DrawItem::RunMousePicking(
 }
 
 void DrawItem::UseDefaultProjection(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
-   GLint                                           uMVPMatrixLocation)
+   const QMapLibre::CustomLayerRenderParameters& params,
+   GLint                                         uMVPMatrixLocation)
 {
    glm::mat4 projection = glm::ortho(0.0f,
                                      static_cast<float>(params.width),
@@ -79,8 +79,8 @@ void DrawItem::UseDefaultProjection(
 }
 
 void DrawItem::UseRotationProjection(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
-   GLint                                           uMVPMatrixLocation)
+   const QMapLibre::CustomLayerRenderParameters& params,
+   GLint                                         uMVPMatrixLocation)
 {
    glm::mat4 projection = glm::ortho(0.0f,
                                      static_cast<float>(params.width),
@@ -96,9 +96,9 @@ void DrawItem::UseRotationProjection(
 }
 
 void DrawItem::UseMapProjection(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
-   GLint                                           uMVPMatrixLocation,
-   GLint                                           uMapScreenCoordLocation)
+   const QMapLibre::CustomLayerRenderParameters& params,
+   GLint                                         uMVPMatrixLocation,
+   GLint                                         uMapScreenCoordLocation)
 {
    OpenGLFunctions& gl = p->gl_;
 

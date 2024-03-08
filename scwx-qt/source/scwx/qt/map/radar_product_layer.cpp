@@ -261,7 +261,7 @@ void RadarProductLayer::UpdateSweep()
 }
 
 void RadarProductLayer::Render(
-   const QMapLibreGL::CustomLayerRenderParameters& params)
+   const QMapLibre::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = context()->gl();
 
@@ -329,7 +329,7 @@ void RadarProductLayer::Deinitialize()
 }
 
 bool RadarProductLayer::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& /* params */,
+   const QMapLibre::CustomLayerRenderParameters& /* params */,
    const QPointF& /* mouseLocalPos */,
    const QPointF& mouseGlobalPos,
    const glm::vec2& /* mouseCoords */,

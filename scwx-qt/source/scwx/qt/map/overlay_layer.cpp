@@ -2,8 +2,10 @@
 #include <scwx/qt/gl/draw/geo_icons.hpp>
 #include <scwx/qt/gl/draw/icons.hpp>
 #include <scwx/qt/gl/draw/rectangle.hpp>
+#include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/map/map_settings.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/texture_types.hpp>
 #include <scwx/qt/view/radar_product_view.hpp>
 #include <scwx/util/logger.hpp>
@@ -40,14 +42,38 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class OverlayLayerImpl
 {
 public:
-   explicit OverlayLayerImpl(std::shared_ptr<MapContext> context) :
+   explicit OverlayLayerImpl(OverlayLayer*               self,
+                             std::shared_ptr<MapContext> context) :
+       self_ {self},
        activeBoxOuter_ {std::make_shared<gl::draw::Rectangle>(context)},
        activeBoxInner_ {std::make_shared<gl::draw::Rectangle>(context)},
        geoIcons_ {std::make_shared<gl::draw::GeoIcons>(context)},
        icons_ {std::make_shared<gl::draw::Icons>(context)}
    {
+      auto& generalSettings = settings::GeneralSettings::Instance();
+
+      showMapAttributionCallbackUuid_ =
+         generalSettings.show_map_attribution().RegisterValueChangedCallback(
+            [this](const bool&) { Q_EMIT self_->NeedsRendering(); });
+      showMapLogoCallbackUuid_ =
+         generalSettings.show_map_logo().RegisterValueChangedCallback(
+            [this](const bool&) { Q_EMIT self_->NeedsRendering(); });
    }
-   ~OverlayLayerImpl() = default;
+
+   ~OverlayLayerImpl()
+   {
+      auto& generalSettings = settings::GeneralSettings::Instance();
+
+      generalSettings.show_map_attribution().UnregisterValueChangedCallback(
+         showMapAttributionCallbackUuid_);
+      generalSettings.show_map_logo().UnregisterValueChangedCallback(
+         showMapLogoCallbackUuid_);
+   }
+
+   OverlayLayer* self_;
+
+   boost::uuids::uuid showMapAttributionCallbackUuid_;
+   boost::uuids::uuid showMapLogoCallbackUuid_;
 
    std::shared_ptr<manager::PositionManager> positionManager_ {
       manager::PositionManager::Instance()};
@@ -66,13 +92,22 @@ public:
       types::GetTextureName(types::ImageTexture::CardinalPoint24)};
    const std::string& compassIconName_ {
       types::GetTextureName(types::ImageTexture::Compass24)};
+
+   const std::string& mapboxLogoImageName_ {
+      types::GetTextureName(types::ImageTexture::MapboxLogo)};
+   const std::string& mapTilerLogoImageName_ {
+      types::GetTextureName(types::ImageTexture::MapTilerLogo)};
+
    std::shared_ptr<gl::draw::IconDrawItem> compassIcon_ {};
-   bool                                    compassIconDirty_ {false};
    double                                  lastBearing_ {0.0};
 
-   double lastWidth_ {0.0};
-   double lastHeight_ {0.0};
-   float  lastFontSize_ {0.0f};
+   std::shared_ptr<gl::draw::IconDrawItem> mapLogoIcon_ {};
+
+   bool     firstRender_ {true};
+   double   lastWidth_ {0.0};
+   double   lastHeight_ {0.0};
+   float    lastFontSize_ {0.0f};
+   QMargins lastColorTableMargins_ {};
 
    std::string sweepTimeString_ {};
    bool        sweepTimeNeedsUpdate_ {true};
@@ -80,7 +115,7 @@ public:
 };
 
 OverlayLayer::OverlayLayer(std::shared_ptr<MapContext> context) :
-    DrawLayer(context), p(std::make_unique<OverlayLayerImpl>(context))
+    DrawLayer(context), p(std::make_unique<OverlayLayerImpl>(this, context))
 {
    AddDrawItem(p->activeBoxOuter_);
    AddDrawItem(p->activeBoxInner_);
@@ -130,12 +165,13 @@ void OverlayLayer::Initialize()
    p->icons_->StartIconSheets();
    p->icons_->AddIconSheet(p->cardinalPointIconName_);
    p->icons_->AddIconSheet(p->compassIconName_);
+   p->icons_->AddIconSheet(p->mapboxLogoImageName_)->SetAnchor(0.0f, 1.0f);
+   p->icons_->AddIconSheet(p->mapTilerLogoImageName_)->SetAnchor(0.0f, 1.0f);
    p->icons_->FinishIconSheets();
 
    p->icons_->StartIcons();
    p->compassIcon_ = p->icons_->AddIcon();
-   gl::draw::Icons::SetIconTexture(
-      p->compassIcon_, p->cardinalPointIconName_, 0);
+   p->icons_->SetIconTexture(p->compassIcon_, p->cardinalPointIconName_, 0);
    gl::draw::Icons::RegisterEventHandler(
       p->compassIcon_,
       [this](QEvent* ev)
@@ -144,18 +180,16 @@ void OverlayLayer::Initialize()
          {
          case QEvent::Type::Enter:
             // Highlight icon on mouse enter
-            gl::draw::Icons::SetIconModulate(
+            p->icons_->SetIconModulate(
                p->compassIcon_,
                boost::gil::rgba32f_pixel_t {1.5f, 1.5f, 1.5f, 1.0f});
-            p->compassIconDirty_ = true;
             break;
 
          case QEvent::Type::Leave:
             // Restore icon on mouse leave
-            gl::draw::Icons::SetIconModulate(
+            p->icons_->SetIconModulate(
                p->compassIcon_,
                boost::gil::rgba32f_pixel_t {1.0f, 1.0f, 1.0f, 1.0f});
-            p->compassIconDirty_ = true;
             break;
 
          case QEvent::Type::MouseButtonPress:
@@ -179,6 +213,17 @@ void OverlayLayer::Initialize()
             break;
          }
       });
+
+   p->mapLogoIcon_ = p->icons_->AddIcon();
+   if (context()->map_provider() == MapProvider::Mapbox)
+   {
+      p->icons_->SetIconTexture(p->mapLogoIcon_, p->mapboxLogoImageName_, 0);
+   }
+   else if (context()->map_provider() == MapProvider::MapTiler)
+   {
+      p->icons_->SetIconTexture(p->mapLogoIcon_, p->mapTilerLogoImageName_, 0);
+   }
+
    p->icons_->FinishIcons();
 
    connect(p->positionManager_.get(),
@@ -204,8 +249,7 @@ void OverlayLayer::Initialize()
            });
 }
 
-void OverlayLayer::Render(
-   const QMapLibreGL::CustomLayerRenderParameters& params)
+void OverlayLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl               = context()->gl();
    auto                 radarProductView = context()->radar_product_view();
@@ -258,42 +302,29 @@ void OverlayLayer::Render(
        ImGui::GetFontSize() != p->lastFontSize_)
    {
       // Set the compass icon in the upper right, below the sweep time window
-      gl::draw::Icons::SetIconLocation(p->compassIcon_,
-                                       params.width - 24,
-                                       params.height -
-                                          (ImGui::GetFontSize() + 32));
-      p->compassIconDirty_ = true;
+      p->icons_->SetIconLocation(p->compassIcon_,
+                                 params.width - 24,
+                                 params.height - (ImGui::GetFontSize() + 32));
    }
    if (params.bearing != p->lastBearing_)
    {
       if (params.bearing == 0.0)
       {
          // Use cardinal point icon when bearing is oriented north-up
-         gl::draw::Icons::SetIconTexture(
+         p->icons_->SetIconTexture(
             p->compassIcon_, p->cardinalPointIconName_, 0);
-         gl::draw::Icons::SetIconAngle(p->compassIcon_,
-                                       units::angle::degrees<double> {0.0});
+         p->icons_->SetIconAngle(p->compassIcon_,
+                                 units::angle::degrees<double> {0.0});
       }
       else
       {
          // Use rotated compass icon when bearing is rotated away from north-up
-         gl::draw::Icons::SetIconTexture(
-            p->compassIcon_, p->compassIconName_, 0);
-         gl::draw::Icons::SetIconAngle(
+         p->icons_->SetIconTexture(p->compassIcon_, p->compassIconName_, 0);
+         p->icons_->SetIconAngle(
             p->compassIcon_,
             units::angle::degrees<double> {-45 - params.bearing});
       }
-
-      // Mark icon for re-drawing
-      p->compassIconDirty_ = true;
    }
-   if (p->compassIconDirty_)
-   {
-      // Update icon render buffers
-      p->icons_->FinishIcons();
-   }
-
-   DrawLayer::Render(params);
 
    if (radarProductView != nullptr)
    {
@@ -356,10 +387,53 @@ void OverlayLayer::Render(
       ImGui::End();
    }
 
-   p->lastWidth_    = params.width;
-   p->lastHeight_   = params.height;
-   p->lastBearing_  = params.bearing;
-   p->lastFontSize_ = ImGui::GetFontSize();
+   auto& generalSettings = settings::GeneralSettings::Instance();
+
+   QMargins colorTableMargins = context()->color_table_margins();
+   if (colorTableMargins != p->lastColorTableMargins_ || p->firstRender_)
+   {
+      // Draw map logo with a 10x10 indent from the bottom left
+      p->icons_->SetIconLocation(p->mapLogoIcon_,
+                                 10 + colorTableMargins.left(),
+                                 10 + colorTableMargins.bottom());
+      p->icons_->FinishIcons();
+   }
+   p->icons_->SetIconVisible(p->mapLogoIcon_,
+                             generalSettings.show_map_logo().GetValue());
+
+   DrawLayer::Render(params);
+
+   auto mapCopyrights = context()->map_copyrights();
+   if (mapCopyrights.length() > 0 &&
+       generalSettings.show_map_attribution().GetValue())
+   {
+      auto attributionFont = manager::FontManager::Instance().GetImGuiFont(
+         types::FontCategory::Attribution);
+
+      ImGui::SetNextWindowPos(ImVec2 {static_cast<float>(params.width),
+                                      static_cast<float>(params.height) -
+                                         colorTableMargins.bottom()},
+                              ImGuiCond_Always,
+                              ImVec2 {1.0f, 1.0f});
+      ImGui::SetNextWindowBgAlpha(0.5f);
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2 {3.0f, 2.0f});
+      ImGui::PushFont(attributionFont->font());
+      ImGui::Begin("Attribution",
+                   nullptr,
+                   ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                      ImGuiWindowFlags_AlwaysAutoResize);
+      ImGui::TextUnformatted(mapCopyrights.c_str());
+      ImGui::End();
+      ImGui::PopFont();
+      ImGui::PopStyleVar();
+   }
+
+   p->firstRender_           = false;
+   p->lastWidth_             = params.width;
+   p->lastHeight_            = params.height;
+   p->lastBearing_           = params.bearing;
+   p->lastFontSize_          = ImGui::GetFontSize();
+   p->lastColorTableMargins_ = colorTableMargins;
 
    SCWX_GL_CHECK_ERROR();
 }
@@ -393,12 +467,12 @@ void OverlayLayer::Deinitialize()
 }
 
 bool OverlayLayer::RunMousePicking(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
-   const QPointF&                                  mouseLocalPos,
-   const QPointF&                                  mouseGlobalPos,
-   const glm::vec2&                                mouseCoords,
-   const common::Coordinate&                       mouseGeoCoords,
-   std::shared_ptr<types::EventHandler>&           eventHandler)
+   const QMapLibre::CustomLayerRenderParameters& params,
+   const QPointF&                                mouseLocalPos,
+   const QPointF&                                mouseGlobalPos,
+   const glm::vec2&                              mouseCoords,
+   const common::Coordinate&                     mouseGeoCoords,
+   std::shared_ptr<types::EventHandler>&         eventHandler)
 {
    // If sweep time was picked, don't process additional items
    if (p->sweepTimePicked_)

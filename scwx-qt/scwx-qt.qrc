@@ -18,6 +18,7 @@
         <file>res/fonts/din1451alt.ttf</file>
         <file>res/fonts/din1451alt_g.ttf</file>
         <file>res/fonts/Inconsolata-Regular.ttf</file>
+        <file>res/fonts/RobotoFlex-Regular.ttf</file>
         <file>res/icons/scwx-64.png</file>
         <file>res/icons/scwx-256.ico</file>
         <file>res/icons/scwx-256.png</file>
@@ -69,5 +70,7 @@
         <file>res/textures/lines/default-1x7.png</file>
         <file>res/textures/lines/test-pattern.png</file>
         <file>res/textures/images/crosshairs-24.png</file>
+        <file>res/textures/images/mapbox-logo.svg</file>
+        <file>res/textures/images/maptiler-logo.svg</file>
     </qresource>
 </RCC>

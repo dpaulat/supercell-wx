@@ -25,7 +25,7 @@ TEST(AwsLevel2DataProvider, FindKeyFixed)
 
 TEST(AwsLevel2DataProvider, FindKeyNow)
 {
-   AwsLevel2DataProvider provider("KLSX");
+   AwsLevel2DataProvider provider("KILX");
 
    provider.Refresh();
    std::string key = provider.FindKey(std::chrono::system_clock::now());
@@ -78,7 +78,7 @@ TEST(AwsLevel2DataProvider, Prune)
 
 TEST(AwsLevel2DataProvider, Refresh)
 {
-   AwsLevel2DataProvider provider("KLSX");
+   AwsLevel2DataProvider provider("KILX");
 
    auto [newObjects, totalObjects] = provider.Refresh();
 

@@ -1,6 +1,9 @@
 #pragma once
 
-#include <QMapLibreGL/types.hpp>
+#include <scwx/qt/map/map_context.hpp>
+
+#include <QMapLibre/Map>
+#include <QMapLibre/Types>
 #include <glm/gtc/type_ptr.hpp>
 #include <units/length.h>
 
@@ -14,9 +17,9 @@ namespace maplibre
 {
 
 units::length::meters<double>
-GetMapDistance(const QMapLibreGL::CustomLayerRenderParameters& params);
-glm::mat4 GetMapMatrix(const QMapLibreGL::CustomLayerRenderParameters& params);
-glm::vec2 GetMapScale(const QMapLibreGL::CustomLayerRenderParameters& params);
+          GetMapDistance(const QMapLibre::CustomLayerRenderParameters& params);
+glm::mat4 GetMapMatrix(const QMapLibre::CustomLayerRenderParameters& params);
+glm::vec2 GetMapScale(const QMapLibre::CustomLayerRenderParameters& params);
 
 /**
  * @brief Determine whether a point lies within a polygon
@@ -29,7 +32,10 @@ glm::vec2 GetMapScale(const QMapLibreGL::CustomLayerRenderParameters& params);
 bool IsPointInPolygon(const std::vector<glm::vec2>& vertices,
                       const glm::vec2&              point);
 
-glm::vec2 LatLongToScreenCoordinate(const QMapLibreGL::Coordinate& coordinate);
+glm::vec2 LatLongToScreenCoordinate(const QMapLibre::Coordinate& coordinate);
+
+void SetMapStyleUrl(const std::shared_ptr<map::MapContext>& mapContext,
+                    const std::string&                      url);
 
 } // namespace maplibre
 } // namespace util

@@ -130,6 +130,8 @@ public:
           &theme_,
           &defaultAlertAction_,
           &antiAliasingEnabled_,
+          &showMapAttribution_,
+          &showMapLogo_,
           &updateNotificationsEnabled_,
           &debugEnabled_,
           &alertAudioSoundFile_,
@@ -220,6 +222,8 @@ public:
    settings::SettingsInterface<std::string>  defaultAlertAction_ {};
    settings::SettingsInterface<std::string>  theme_ {};
    settings::SettingsInterface<bool>         antiAliasingEnabled_ {};
+   settings::SettingsInterface<bool>         showMapAttribution_ {};
+   settings::SettingsInterface<bool>         showMapLogo_ {};
    settings::SettingsInterface<bool>         updateNotificationsEnabled_ {};
    settings::SettingsInterface<bool>         debugEnabled_ {};
 
@@ -616,6 +620,13 @@ void SettingsDialogImpl::SetupGeneralTab()
    antiAliasingEnabled_.SetSettingsVariable(
       generalSettings.anti_aliasing_enabled());
    antiAliasingEnabled_.SetEditWidget(self_->ui->antiAliasingEnabledCheckBox);
+
+   showMapAttribution_.SetSettingsVariable(
+      generalSettings.show_map_attribution());
+   showMapAttribution_.SetEditWidget(self_->ui->showMapAttributionCheckBox);
+
+   showMapLogo_.SetSettingsVariable(generalSettings.show_map_logo());
+   showMapLogo_.SetEditWidget(self_->ui->showMapLogoCheckBox);
 
    updateNotificationsEnabled_.SetSettingsVariable(
       generalSettings.update_notifications_enabled());

@@ -20,14 +20,19 @@ public:
 
    ~Impl() {}
 
-   std::weak_ptr<QMapLibreGL::Map> map_ {};
-   MapSettings                     settings_ {};
-   float                           pixelRatio_ {1.0f};
-   common::RadarProductGroup       radarProductGroup_ {
+   std::weak_ptr<QMapLibre::Map> map_ {};
+   MapSettings                   settings_ {};
+   float                         pixelRatio_ {1.0f};
+   common::RadarProductGroup     radarProductGroup_ {
       common::RadarProductGroup::Unknown};
-   std::string                              radarProduct_ {"???"};
-   int16_t                                  radarProductCode_ {0};
-   QMapLibreGL::CustomLayerRenderParameters renderParameters_ {};
+   std::string                            radarProduct_ {"???"};
+   int16_t                                radarProductCode_ {0};
+   QMapLibre::CustomLayerRenderParameters renderParameters_ {};
+
+   MapProvider mapProvider_ {MapProvider::Unknown};
+   std::string mapCopyrights_ {};
+
+   QMargins colorTableMargins_ {};
 
    std::shared_ptr<view::OverlayProductView> overlayProductView_ {nullptr};
    std::shared_ptr<view::RadarProductView>   radarProductView_;
@@ -43,14 +48,29 @@ MapContext::~MapContext() = default;
 MapContext::MapContext(MapContext&&) noexcept            = default;
 MapContext& MapContext::operator=(MapContext&&) noexcept = default;
 
-std::weak_ptr<QMapLibreGL::Map> MapContext::map() const
+std::weak_ptr<QMapLibre::Map> MapContext::map() const
 {
    return p->map_;
+}
+
+std::string MapContext::map_copyrights() const
+{
+   return p->mapCopyrights_;
+}
+
+MapProvider MapContext::map_provider() const
+{
+   return p->mapProvider_;
 }
 
 MapSettings& MapContext::settings()
 {
    return p->settings_;
+}
+
+QMargins MapContext::color_table_margins() const
+{
+   return p->colorTableMargins_;
 }
 
 float MapContext::pixel_ratio() const
@@ -84,14 +104,29 @@ int16_t MapContext::radar_product_code() const
    return p->radarProductCode_;
 }
 
-QMapLibreGL::CustomLayerRenderParameters MapContext::render_parameters() const
+QMapLibre::CustomLayerRenderParameters MapContext::render_parameters() const
 {
    return p->renderParameters_;
 }
 
-void MapContext::set_map(const std::shared_ptr<QMapLibreGL::Map>& map)
+void MapContext::set_map(const std::shared_ptr<QMapLibre::Map>& map)
 {
    p->map_ = map;
+}
+
+void MapContext::set_map_copyrights(const std::string& copyrights)
+{
+   p->mapCopyrights_ = copyrights;
+}
+
+void MapContext::set_map_provider(MapProvider provider)
+{
+   p->mapProvider_ = provider;
+}
+
+void MapContext::set_color_table_margins(const QMargins& margins)
+{
+   p->colorTableMargins_ = margins;
 }
 
 void MapContext::set_overlay_product_view(
@@ -128,7 +163,7 @@ void MapContext::set_radar_product_code(int16_t radarProductCode)
 }
 
 void MapContext::set_render_parameters(
-   const QMapLibreGL::CustomLayerRenderParameters& params)
+   const QMapLibre::CustomLayerRenderParameters& params)
 {
    p->renderParameters_ = params;
 }

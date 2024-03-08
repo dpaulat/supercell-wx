@@ -224,8 +224,8 @@ void PlacefileImages::Initialize()
 }
 
 void PlacefileImages::Render(
-   const QMapLibreGL::CustomLayerRenderParameters& params,
-   bool                                            textureAtlasChanged)
+   const QMapLibre::CustomLayerRenderParameters& params,
+   bool                                          textureAtlasChanged)
 {
    std::unique_lock lock {p->imageMutex_};
 

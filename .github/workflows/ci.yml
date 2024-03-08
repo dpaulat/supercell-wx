@@ -28,7 +28,7 @@ jobs:
             compiler: msvc
             msvc_arch: x64
             msvc_version: 2022
-            qt_version: 6.6.1
+            qt_version: 6.6.2
             qt_arch: win64_msvc2019_64
             qt_modules: qtimageformats qtmultimedia qtpositioning
             qt_tools: ''
@@ -44,7 +44,7 @@ jobs:
             env_cc: gcc-11
             env_cxx: g++-11
             compiler: gcc
-            qt_version: 6.6.1
+            qt_version: 6.6.2
             qt_arch: gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning
             qt_tools: ''
@@ -136,8 +136,8 @@ jobs:
         objcopy --strip-debug --strip-unneeded supercell-wx
         cd ..
         cd lib/
-        objcopy --only-keep-debug libQMapLibreGL.so libQMapLibreGL.so.debug
-        objcopy --strip-debug --strip-unneeded libQMapLibreGL.so
+        objcopy --only-keep-debug libQMapLibre.so libQMapLibre.so.debug
+        objcopy --strip-debug --strip-unneeded libQMapLibre.so
 
     - name: Install Supercell Wx
       shell: pwsh
@@ -229,4 +229,11 @@ jobs:
       env:
         MAPBOX_API_KEY:   ${{ secrets.MAPBOX_API_KEY }}
         MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
-      run: ctest -C ${{ matrix.build_type }} --exclude-regex mbgl-test-runner
+      run: ctest -C ${{ matrix.build_type }} --exclude-regex test_mln.*
+
+    - name: Upload Test Logs
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: supercell-wx-test-logs-${{ matrix.name }}
+        path: ${{ github.workspace }}/build/Testing/

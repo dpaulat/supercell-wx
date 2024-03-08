@@ -25,7 +25,7 @@ public:
    void set_placefile_name(const std::string& placefileName);
 
    void Initialize() override final;
-   void Render(const QMapLibreGL::CustomLayerRenderParameters&) override final;
+   void Render(const QMapLibre::CustomLayerRenderParameters&) override final;
    void Deinitialize() override final;
 
    void ReloadData();
