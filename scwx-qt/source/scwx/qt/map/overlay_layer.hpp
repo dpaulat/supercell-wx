@@ -13,6 +13,8 @@ class OverlayLayerImpl;
 
 class OverlayLayer : public DrawLayer
 {
+   Q_DISABLE_COPY_MOVE(OverlayLayer)
+
 public:
    explicit OverlayLayer(std::shared_ptr<MapContext> context);
    ~OverlayLayer();

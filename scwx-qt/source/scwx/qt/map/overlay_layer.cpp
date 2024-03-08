@@ -42,14 +42,38 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class OverlayLayerImpl
 {
 public:
-   explicit OverlayLayerImpl(std::shared_ptr<MapContext> context) :
+   explicit OverlayLayerImpl(OverlayLayer*               self,
+                             std::shared_ptr<MapContext> context) :
+       self_ {self},
        activeBoxOuter_ {std::make_shared<gl::draw::Rectangle>(context)},
        activeBoxInner_ {std::make_shared<gl::draw::Rectangle>(context)},
        geoIcons_ {std::make_shared<gl::draw::GeoIcons>(context)},
        icons_ {std::make_shared<gl::draw::Icons>(context)}
    {
+      auto& generalSettings = settings::GeneralSettings::Instance();
+
+      showMapAttributionCallbackUuid_ =
+         generalSettings.show_map_attribution().RegisterValueChangedCallback(
+            [this](const bool&) { Q_EMIT self_->NeedsRendering(); });
+      showMapLogoCallbackUuid_ =
+         generalSettings.show_map_logo().RegisterValueChangedCallback(
+            [this](const bool&) { Q_EMIT self_->NeedsRendering(); });
    }
-   ~OverlayLayerImpl() = default;
+
+   ~OverlayLayerImpl()
+   {
+      auto& generalSettings = settings::GeneralSettings::Instance();
+
+      generalSettings.show_map_attribution().UnregisterValueChangedCallback(
+         showMapAttributionCallbackUuid_);
+      generalSettings.show_map_logo().UnregisterValueChangedCallback(
+         showMapLogoCallbackUuid_);
+   }
+
+   OverlayLayer* self_;
+
+   boost::uuids::uuid showMapAttributionCallbackUuid_;
+   boost::uuids::uuid showMapLogoCallbackUuid_;
 
    std::shared_ptr<manager::PositionManager> positionManager_ {
       manager::PositionManager::Instance()};
@@ -91,7 +115,7 @@ public:
 };
 
 OverlayLayer::OverlayLayer(std::shared_ptr<MapContext> context) :
-    DrawLayer(context), p(std::make_unique<OverlayLayerImpl>(context))
+    DrawLayer(context), p(std::make_unique<OverlayLayerImpl>(this, context))
 {
    AddDrawItem(p->activeBoxOuter_);
    AddDrawItem(p->activeBoxInner_);
