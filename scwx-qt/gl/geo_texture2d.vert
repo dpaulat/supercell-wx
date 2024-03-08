@@ -25,6 +25,7 @@ out VertexData
    vec3  texCoord;
    vec4  color;
    ivec2 timeRange;
+   bool  displayed;
 } vsOut;
 
 smooth out vec3 texCoord;
@@ -41,6 +42,9 @@ vec2 latLngToScreenCoordinate(in vec2 latLng)
 
 void main()
 {
+   // Always set displayed to true
+   vsOut.displayed = true;
+
    // Pass the threshold and time range to the geometry shader
    vsOut.threshold = aThreshold;
    vsOut.timeRange = aTimeRange;

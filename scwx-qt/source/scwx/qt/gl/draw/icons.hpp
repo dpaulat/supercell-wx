@@ -97,15 +97,21 @@ public:
    std::shared_ptr<IconDrawItem> AddIcon();
 
    /**
+    * @param [in] di Icon draw item
+    * @param [in] visible Visibility of the icon
+    */
+   void SetIconVisible(const std::shared_ptr<IconDrawItem>& di, bool visible);
+
+   /**
     * Sets the texture of an icon.
     *
     * @param [in] di Icon draw item
     * @param [in] iconSheet The name of the icon sheet in the texture atlas
     * @param [in] iconIndex The zero-based index of the icon in the icon sheet
     */
-   static void SetIconTexture(const std::shared_ptr<IconDrawItem>& di,
-                              const std::string&                   iconSheet,
-                              std::size_t                          iconIndex);
+   void SetIconTexture(const std::shared_ptr<IconDrawItem>& di,
+                       const std::string&                   iconSheet,
+                       std::size_t                          iconIndex);
 
    /**
     * Sets the location of an icon.
@@ -114,7 +120,7 @@ public:
     * @param [in] x The x location of the icon in pixels.
     * @param [in] y The y location of the icon in pixels.
     */
-   static void
+   void
    SetIconLocation(const std::shared_ptr<IconDrawItem>& di, double x, double y);
 
    /**
@@ -123,8 +129,8 @@ public:
     * @param [in] di Icon draw item
     * @param [in] angle Angle in degrees
     */
-   static void SetIconAngle(const std::shared_ptr<IconDrawItem>& di,
-                            units::angle::degrees<double>        angle);
+   void SetIconAngle(const std::shared_ptr<IconDrawItem>& di,
+                     units::angle::degrees<double>        angle);
 
    /**
     * Sets the modulate color of an icon.
@@ -132,8 +138,8 @@ public:
     * @param [in] di Icon draw item
     * @param [in] modulate Modulate color
     */
-   static void SetIconModulate(const std::shared_ptr<IconDrawItem>& di,
-                               boost::gil::rgba8_pixel_t            modulate);
+   void SetIconModulate(const std::shared_ptr<IconDrawItem>& di,
+                        boost::gil::rgba8_pixel_t            modulate);
 
    /**
     * Sets the modulate color of an icon.
@@ -141,8 +147,8 @@ public:
     * @param [in] di Icon draw item
     * @param [in] modulate Modulate color
     */
-   static void SetIconModulate(const std::shared_ptr<IconDrawItem>& di,
-                               boost::gil::rgba32f_pixel_t          modulate);
+   void SetIconModulate(const std::shared_ptr<IconDrawItem>& di,
+                        boost::gil::rgba32f_pixel_t          modulate);
 
    /**
     * Sets the hover text of an icon.
@@ -150,8 +156,8 @@ public:
     * @param [in] di Icon draw item
     * @param [in] text Hover text
     */
-   static void SetIconHoverText(const std::shared_ptr<IconDrawItem>& di,
-                                const std::string&                   text);
+   void SetIconHoverText(const std::shared_ptr<IconDrawItem>& di,
+                         const std::string&                   text);
 
    /**
     * Finalizes the draw item after adding new icons.

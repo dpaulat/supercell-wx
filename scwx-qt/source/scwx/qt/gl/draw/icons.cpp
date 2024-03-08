@@ -7,6 +7,7 @@
 #include <execution>
 
 #include <boost/unordered/unordered_flat_map.hpp>
+#include <boost/unordered/unordered_flat_set.hpp>
 
 namespace scwx
 {
@@ -24,7 +25,7 @@ static constexpr std::size_t kNumRectangles        = 1;
 static constexpr std::size_t kNumTriangles         = kNumRectangles * 2;
 static constexpr std::size_t kVerticesPerTriangle  = 3;
 static constexpr std::size_t kVerticesPerRectangle = kVerticesPerTriangle * 2;
-static constexpr std::size_t kPointsPerVertex      = 9;
+static constexpr std::size_t kPointsPerVertex      = 10;
 static constexpr std::size_t kPointsPerTexCoord    = 3;
 static constexpr std::size_t kIconBufferLength =
    kNumTriangles * kVerticesPerTriangle * kPointsPerVertex;
@@ -34,12 +35,15 @@ static constexpr std::size_t kTextureBufferLength =
 struct IconDrawItem : types::EventHandler
 {
    boost::gil::rgba32f_pixel_t modulate_ {1.0f, 1.0f, 1.0f, 1.0f};
+   bool                        visible_ {true};
    double                      x_ {};
    double                      y_ {};
    units::degrees<double>      angle_ {};
    std::string                 iconSheet_ {};
    std::size_t                 iconIndex_ {};
    std::string                 hoverText_ {};
+
+   std::shared_ptr<types::IconInfo> iconInfo_ {};
 };
 
 class Icons::Impl
@@ -67,15 +71,22 @@ public:
 
    ~Impl() {}
 
-   void UpdateBuffers();
-   void UpdateTextureBuffer();
-   void Update(bool textureAtlasChanged);
+   void        UpdateBuffers();
+   static void UpdateSingleBuffer(const std::shared_ptr<IconDrawItem>& di,
+                                  std::size_t                  iconIndex,
+                                  std::vector<float>&          iconBuffer,
+                                  std::vector<IconHoverEntry>& hoverIcons);
+   void        UpdateTextureBuffer();
+   void        UpdateModifiedIconBuffers();
+   void        Update(bool textureAtlasChanged);
 
    std::shared_ptr<GlContext> context_;
 
    bool visible_ {true};
    bool dirty_ {false};
    bool lastTextureAtlasChanged_ {false};
+
+   boost::unordered_flat_set<std::shared_ptr<IconDrawItem>> dirtyIcons_ {};
 
    std::mutex iconMutex_;
 
@@ -120,6 +131,7 @@ void Icons::Initialize()
 
    p->shaderProgram_ = p->context_->GetShaderProgram(
       {{GL_VERTEX_SHADER, ":/gl/texture2d_array.vert"},
+       {GL_GEOMETRY_SHADER, ":/gl/threshold.geom"},
        {GL_FRAGMENT_SHADER, ":/gl/texture2d_array.frag"}});
 
    p->uMVPMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMVPMatrix");
@@ -166,6 +178,15 @@ void Icons::Initialize()
                             kPointsPerVertex * sizeof(float),
                             reinterpret_cast<void*>(8 * sizeof(float)));
    gl.glEnableVertexAttribArray(4);
+
+   // aAngle
+   gl.glVertexAttribPointer(5,
+                            1,
+                            GL_FLOAT,
+                            GL_FALSE,
+                            kPointsPerVertex * sizeof(float),
+                            reinterpret_cast<void*>(9 * sizeof(float)));
+   gl.glEnableVertexAttribArray(5);
 
    gl.glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
    gl.glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
@@ -292,12 +313,20 @@ std::shared_ptr<IconDrawItem> Icons::AddIcon()
    return p->newIconList_.emplace_back(std::make_shared<IconDrawItem>());
 }
 
+void Icons::SetIconVisible(const std::shared_ptr<IconDrawItem>& di,
+                           bool                                 visible)
+{
+   di->visible_ = visible;
+   p->dirtyIcons_.insert(di);
+}
+
 void Icons::SetIconTexture(const std::shared_ptr<IconDrawItem>& di,
                            const std::string&                   iconSheet,
                            std::size_t                          iconIndex)
 {
    di->iconSheet_ = iconSheet;
    di->iconIndex_ = iconIndex;
+   p->dirtyIcons_.insert(di);
 }
 
 void Icons::SetIconLocation(const std::shared_ptr<IconDrawItem>& di,
@@ -306,12 +335,14 @@ void Icons::SetIconLocation(const std::shared_ptr<IconDrawItem>& di,
 {
    di->x_ = x;
    di->y_ = y;
+   p->dirtyIcons_.insert(di);
 }
 
 void Icons::SetIconAngle(const std::shared_ptr<IconDrawItem>& di,
                          units::angle::degrees<double>        angle)
 {
    di->angle_ = angle;
+   p->dirtyIcons_.insert(di);
 }
 
 void Icons::SetIconModulate(const std::shared_ptr<IconDrawItem>& di,
@@ -321,18 +352,21 @@ void Icons::SetIconModulate(const std::shared_ptr<IconDrawItem>& di,
                     modulate[1] / 255.0f,
                     modulate[2] / 255.0f,
                     modulate[3] / 255.0f};
+   p->dirtyIcons_.insert(di);
 }
 
 void Icons::SetIconModulate(const std::shared_ptr<IconDrawItem>& di,
                             boost::gil::rgba32f_pixel_t          modulate)
 {
    di->modulate_ = modulate;
+   p->dirtyIcons_.insert(di);
 }
 
 void Icons::SetIconHoverText(const std::shared_ptr<IconDrawItem>& di,
                              const std::string&                   text)
 {
    di->hoverText_ = text;
+   p->dirtyIcons_.insert(di);
 }
 
 void Icons::FinishIcons()
@@ -374,7 +408,8 @@ void Icons::Impl::UpdateBuffers()
          continue;
       }
 
-      auto& icon = it->second;
+      auto& icon    = it->second;
+      di->iconInfo_ = icon;
 
       // Validate icon
       if (di->iconIndex_ >= icon->numIcons_)
@@ -387,61 +422,115 @@ void Icons::Impl::UpdateBuffers()
       // Icon is valid, add to valid icon list
       newValidIconList_.push_back(di);
 
-      // Base X/Y offsets in pixels
-      const float x = static_cast<float>(di->x_);
-      const float y = static_cast<float>(di->y_);
+      // Update icon buffer
+      UpdateSingleBuffer(
+         di, newValidIconList_.size() - 1, newIconBuffer_, newHoverIcons_);
+   }
 
-      // Icon size
-      const float iw = static_cast<float>(icon->iconWidth_);
-      const float ih = static_cast<float>(icon->iconHeight_);
+   // All icons have been updated
+   dirtyIcons_.clear();
+}
 
-      // Hot X/Y (zero-based icon center)
-      const float hx = static_cast<float>(icon->hotX_);
-      const float hy = static_cast<float>(icon->hotY_);
+void Icons::Impl::UpdateSingleBuffer(const std::shared_ptr<IconDrawItem>& di,
+                                     std::size_t                  iconIndex,
+                                     std::vector<float>&          iconBuffer,
+                                     std::vector<IconHoverEntry>& hoverIcons)
+{
+   auto& icon = di->iconInfo_;
 
-      // Final X/Y offsets in pixels
-      const float lx = std::roundf(-hx);
-      const float rx = std::roundf(lx + iw);
-      const float ty = std::roundf(+hy);
-      const float by = std::roundf(ty - ih);
+   // Base X/Y offsets in pixels
+   const float x = static_cast<float>(di->x_);
+   const float y = static_cast<float>(di->y_);
 
-      // Angle in degrees
-      units::angle::degrees<float> angle = di->angle_;
-      const float                  a     = angle.value();
+   // Icon size
+   const float iw = static_cast<float>(icon->iconWidth_);
+   const float ih = static_cast<float>(icon->iconHeight_);
 
-      // Modulate color
-      const float mc0 = di->modulate_[0];
-      const float mc1 = di->modulate_[1];
-      const float mc2 = di->modulate_[2];
-      const float mc3 = di->modulate_[3];
+   // Hot X/Y (zero-based icon center)
+   const float hx = static_cast<float>(icon->hotX_);
+   const float hy = static_cast<float>(icon->hotY_);
 
-      newIconBuffer_.insert(newIconBuffer_.end(),
-                            {
-                               // Icon
-                               x, y, lx, by, mc0, mc1, mc2, mc3, a, // BL
-                               x, y, lx, ty, mc0, mc1, mc2, mc3, a, // TL
-                               x, y, rx, by, mc0, mc1, mc2, mc3, a, // BR
-                               x, y, rx, by, mc0, mc1, mc2, mc3, a, // BR
-                               x, y, rx, ty, mc0, mc1, mc2, mc3, a, // TR
-                               x, y, lx, ty, mc0, mc1, mc2, mc3, a  // TL
-                            });
+   // Final X/Y offsets in pixels
+   const float lx = std::roundf(-hx);
+   const float rx = std::roundf(lx + iw);
+   const float ty = std::roundf(+hy);
+   const float by = std::roundf(ty - ih);
 
-      if (!di->hoverText_.empty() || di->event_ != nullptr)
+   // Angle in degrees
+   units::angle::degrees<float> angle = di->angle_;
+   const float                  a     = angle.value();
+
+   // Modulate color
+   const float mc0 = di->modulate_[0];
+   const float mc1 = di->modulate_[1];
+   const float mc2 = di->modulate_[2];
+   const float mc3 = di->modulate_[3];
+
+   // Visibility
+   const float v = static_cast<float>(di->visible_);
+
+   // Icon initializer list data
+   const auto iconData = {
+      // Icon
+      x, y, lx, by, mc0, mc1, mc2, mc3, a, v, // BL
+      x, y, lx, ty, mc0, mc1, mc2, mc3, a, v, // TL
+      x, y, rx, by, mc0, mc1, mc2, mc3, a, v, // BR
+      x, y, rx, by, mc0, mc1, mc2, mc3, a, v, // BR
+      x, y, rx, ty, mc0, mc1, mc2, mc3, a, v, // TR
+      x, y, lx, ty, mc0, mc1, mc2, mc3, a, v  // TL
+   };
+
+   // Buffer position data
+   auto iconBufferPosition = iconBuffer.end();
+   auto iconBufferOffset   = iconIndex * kIconBufferLength;
+
+   if (iconBufferOffset < iconBuffer.size())
+   {
+      iconBufferPosition = iconBuffer.begin() + iconBufferOffset;
+   }
+
+   if (iconBufferPosition == iconBuffer.cend())
+   {
+      iconBuffer.insert(iconBufferPosition, iconData);
+   }
+   else
+   {
+      std::copy(iconData.begin(), iconData.end(), iconBufferPosition);
+   }
+
+   auto hoverIt = std::find_if(hoverIcons.begin(),
+                               hoverIcons.end(),
+                               [&di](auto& entry) { return entry.di_ == di; });
+
+   if (di->visible_ && (!di->hoverText_.empty() || di->event_ != nullptr))
+   {
+      const units::angle::radians<double> radians = angle;
+
+      const float cosAngle = cosf(static_cast<float>(radians.value()));
+      const float sinAngle = sinf(static_cast<float>(radians.value()));
+
+      const glm::mat2 rotate {cosAngle, -sinAngle, sinAngle, cosAngle};
+
+      const glm::vec2 otl = rotate * glm::vec2 {lx, ty};
+      const glm::vec2 otr = rotate * glm::vec2 {rx, ty};
+      const glm::vec2 obl = rotate * glm::vec2 {lx, by};
+      const glm::vec2 obr = rotate * glm::vec2 {rx, by};
+
+      if (hoverIt == hoverIcons.end())
       {
-         const units::angle::radians<double> radians = angle;
-
-         const float cosAngle = cosf(static_cast<float>(radians.value()));
-         const float sinAngle = sinf(static_cast<float>(radians.value()));
-
-         const glm::mat2 rotate {cosAngle, -sinAngle, sinAngle, cosAngle};
-
-         const glm::vec2 otl = rotate * glm::vec2 {lx, ty};
-         const glm::vec2 otr = rotate * glm::vec2 {rx, ty};
-         const glm::vec2 obl = rotate * glm::vec2 {lx, by};
-         const glm::vec2 obr = rotate * glm::vec2 {rx, by};
-
-         newHoverIcons_.emplace_back(IconHoverEntry {di, otl, otr, obl, obr});
+         hoverIcons.emplace_back(IconHoverEntry {di, otl, otr, obl, obr});
       }
+      else
+      {
+         hoverIt->otl_ = otl;
+         hoverIt->otr_ = otr;
+         hoverIt->obl_ = obl;
+         hoverIt->obr_ = obr;
+      }
+   }
+   else if (hoverIt != hoverIcons.end())
+   {
+      hoverIcons.erase(hoverIt);
    }
 }
 
@@ -533,9 +622,39 @@ void Icons::Impl::UpdateTextureBuffer()
    }
 }
 
+void Icons::Impl::UpdateModifiedIconBuffers()
+{
+   // Update buffers for modified icons
+   for (auto& di : dirtyIcons_)
+   {
+      // Find modified icon in the current list
+      auto it =
+         std::find(currentIconList_.cbegin(), currentIconList_.cend(), di);
+
+      // Ignore invalid icons
+      if (it == currentIconList_.cend())
+      {
+         continue;
+      }
+
+      auto iconIndex = std::distance(currentIconList_.cbegin(), it);
+
+      UpdateSingleBuffer(di, iconIndex, currentIconBuffer_, currentHoverIcons_);
+   }
+
+   // Clear list of modified icons
+   if (!dirtyIcons_.empty())
+   {
+      dirtyIcons_.clear();
+      dirty_ = true;
+   }
+}
+
 void Icons::Impl::Update(bool textureAtlasChanged)
 {
    gl::OpenGLFunctions& gl = context_->gl();
+
+   UpdateModifiedIconBuffers();
 
    // If the texture atlas has changed
    if (dirty_ || textureAtlasChanged || lastTextureAtlasChanged_)

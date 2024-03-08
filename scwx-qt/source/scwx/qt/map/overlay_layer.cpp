@@ -5,6 +5,7 @@
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/map/map_settings.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/texture_types.hpp>
 #include <scwx/qt/view/radar_product_view.hpp>
 #include <scwx/util/logger.hpp>
@@ -74,7 +75,6 @@ public:
       types::GetTextureName(types::ImageTexture::MapTilerLogo)};
 
    std::shared_ptr<gl::draw::IconDrawItem> compassIcon_ {};
-   bool                                    compassIconDirty_ {false};
    double                                  lastBearing_ {0.0};
 
    std::shared_ptr<gl::draw::IconDrawItem> mapLogoIcon_ {};
@@ -147,8 +147,7 @@ void OverlayLayer::Initialize()
 
    p->icons_->StartIcons();
    p->compassIcon_ = p->icons_->AddIcon();
-   gl::draw::Icons::SetIconTexture(
-      p->compassIcon_, p->cardinalPointIconName_, 0);
+   p->icons_->SetIconTexture(p->compassIcon_, p->cardinalPointIconName_, 0);
    gl::draw::Icons::RegisterEventHandler(
       p->compassIcon_,
       [this](QEvent* ev)
@@ -157,18 +156,16 @@ void OverlayLayer::Initialize()
          {
          case QEvent::Type::Enter:
             // Highlight icon on mouse enter
-            gl::draw::Icons::SetIconModulate(
+            p->icons_->SetIconModulate(
                p->compassIcon_,
                boost::gil::rgba32f_pixel_t {1.5f, 1.5f, 1.5f, 1.0f});
-            p->compassIconDirty_ = true;
             break;
 
          case QEvent::Type::Leave:
             // Restore icon on mouse leave
-            gl::draw::Icons::SetIconModulate(
+            p->icons_->SetIconModulate(
                p->compassIcon_,
                boost::gil::rgba32f_pixel_t {1.0f, 1.0f, 1.0f, 1.0f});
-            p->compassIconDirty_ = true;
             break;
 
          case QEvent::Type::MouseButtonPress:
@@ -196,13 +193,11 @@ void OverlayLayer::Initialize()
    p->mapLogoIcon_ = p->icons_->AddIcon();
    if (context()->map_provider() == MapProvider::Mapbox)
    {
-      gl::draw::Icons::SetIconTexture(
-         p->mapLogoIcon_, p->mapboxLogoImageName_, 0);
+      p->icons_->SetIconTexture(p->mapLogoIcon_, p->mapboxLogoImageName_, 0);
    }
    else if (context()->map_provider() == MapProvider::MapTiler)
    {
-      gl::draw::Icons::SetIconTexture(
-         p->mapLogoIcon_, p->mapTilerLogoImageName_, 0);
+      p->icons_->SetIconTexture(p->mapLogoIcon_, p->mapTilerLogoImageName_, 0);
    }
 
    p->icons_->FinishIcons();
@@ -283,42 +278,29 @@ void OverlayLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
        ImGui::GetFontSize() != p->lastFontSize_)
    {
       // Set the compass icon in the upper right, below the sweep time window
-      gl::draw::Icons::SetIconLocation(p->compassIcon_,
-                                       params.width - 24,
-                                       params.height -
-                                          (ImGui::GetFontSize() + 32));
-      p->compassIconDirty_ = true;
+      p->icons_->SetIconLocation(p->compassIcon_,
+                                 params.width - 24,
+                                 params.height - (ImGui::GetFontSize() + 32));
    }
    if (params.bearing != p->lastBearing_)
    {
       if (params.bearing == 0.0)
       {
          // Use cardinal point icon when bearing is oriented north-up
-         gl::draw::Icons::SetIconTexture(
+         p->icons_->SetIconTexture(
             p->compassIcon_, p->cardinalPointIconName_, 0);
-         gl::draw::Icons::SetIconAngle(p->compassIcon_,
-                                       units::angle::degrees<double> {0.0});
+         p->icons_->SetIconAngle(p->compassIcon_,
+                                 units::angle::degrees<double> {0.0});
       }
       else
       {
          // Use rotated compass icon when bearing is rotated away from north-up
-         gl::draw::Icons::SetIconTexture(
-            p->compassIcon_, p->compassIconName_, 0);
-         gl::draw::Icons::SetIconAngle(
+         p->icons_->SetIconTexture(p->compassIcon_, p->compassIconName_, 0);
+         p->icons_->SetIconAngle(
             p->compassIcon_,
             units::angle::degrees<double> {-45 - params.bearing});
       }
-
-      // Mark icon for re-drawing
-      p->compassIconDirty_ = true;
    }
-   if (p->compassIconDirty_)
-   {
-      // Update icon render buffers
-      p->icons_->FinishIcons();
-   }
-
-   DrawLayer::Render(params);
 
    if (radarProductView != nullptr)
    {
@@ -381,18 +363,25 @@ void OverlayLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
       ImGui::End();
    }
 
+   auto& generalSettings = settings::GeneralSettings::Instance();
+
    QMargins colorTableMargins = context()->color_table_margins();
    if (colorTableMargins != p->lastColorTableMargins_ || p->firstRender_)
    {
       // Draw map logo with a 10x10 indent from the bottom left
-      gl::draw::Icons::SetIconLocation(p->mapLogoIcon_,
-                                       10 + colorTableMargins.left(),
-                                       10 + colorTableMargins.bottom());
+      p->icons_->SetIconLocation(p->mapLogoIcon_,
+                                 10 + colorTableMargins.left(),
+                                 10 + colorTableMargins.bottom());
       p->icons_->FinishIcons();
    }
+   p->icons_->SetIconVisible(p->mapLogoIcon_,
+                             generalSettings.show_map_logo().GetValue());
+
+   DrawLayer::Render(params);
 
    auto mapCopyrights = context()->map_copyrights();
-   if (mapCopyrights.length() > 0)
+   if (mapCopyrights.length() > 0 &&
+       generalSettings.show_map_attribution().GetValue())
    {
       auto attributionFont = manager::FontManager::Instance().GetImGuiFont(
          types::FontCategory::Attribution);
