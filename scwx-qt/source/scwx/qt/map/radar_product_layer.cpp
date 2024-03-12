@@ -362,7 +362,8 @@ bool RadarProductLayer::RunMousePicking(
 
          if (code.has_value() && //
              code.value() != wsr88d::DataLevelCode::Blank &&
-             code.value() != wsr88d::DataLevelCode::NoData)
+             code.value() != wsr88d::DataLevelCode::NoData &&
+             code.value() != wsr88d::DataLevelCode::Topped)
          {
             // Level has associated data level code
             std::string codeName = wsr88d::GetDataLevelCodeName(code.value());
@@ -391,6 +392,7 @@ bool RadarProductLayer::RunMousePicking(
             // Level has associated data value
             float       f = value.value();
             std::string units {};
+            std::string suffix {};
             std::string hoverText;
 
             std::shared_ptr<common::ColorTable> colorTable =
@@ -403,6 +405,13 @@ bool RadarProductLayer::RunMousePicking(
                units = colorTable->units();
             }
 
+            if (code.has_value() &&
+                code.value() == wsr88d::DataLevelCode::Topped)
+            {
+               // Show " TOPPED" suffix for echo tops
+               suffix = " TOPPED";
+            }
+
             if (units.empty() ||          //
                 units.starts_with("?") || //
                 boost::iequals(units, "NONE") ||
@@ -411,17 +420,17 @@ bool RadarProductLayer::RunMousePicking(
             {
                // Don't display a units value that wasn't intended to be
                // displayed
-               hoverText = fmt::format("{}", f);
+               hoverText = fmt::format("{}{}", f, suffix);
             }
             else if (std::isalpha(units.at(0)))
             {
                // dBZ, Kts, etc.
-               hoverText = fmt::format("{} {}", f, units);
+               hoverText = fmt::format("{} {}{}", f, units, suffix);
             }
             else
             {
                // %, etc.
-               hoverText = fmt::format("{}{}", f, units);
+               hoverText = fmt::format("{}{}{}", f, units, suffix);
             }
 
             // Show the tooltip

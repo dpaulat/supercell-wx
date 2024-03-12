@@ -370,6 +370,9 @@ uint16_t ProductDescriptionBlock::threshold() const
    case 177:
       threshold = 10;
       break;
+
+   default:
+      break;
    }
 
    return threshold;
@@ -417,6 +420,9 @@ float ProductDescriptionBlock::offset() const
    case 175:
    case 176:
       offset = util::DecodeFloat32(p->halfword(33), p->halfword(34));
+      break;
+
+   default:
       break;
    }
 
@@ -472,6 +478,9 @@ float ProductDescriptionBlock::scale() const
    case 175:
    case 176:
       scale = util::DecodeFloat32(p->halfword(31), p->halfword(32));
+      break;
+
+   default:
       break;
    }
 
@@ -586,6 +595,9 @@ uint16_t ProductDescriptionBlock::number_of_levels() const
    case 179:
       numberOfLevels = 71;
       break;
+
+   default:
+      break;
    }
 
    return numberOfLevels;
@@ -599,6 +611,9 @@ std::uint16_t ProductDescriptionBlock::log_start() const
    {
    case 134:
       logStart = p->halfword(33);
+      break;
+
+   default:
       break;
    }
 
@@ -614,6 +629,9 @@ float ProductDescriptionBlock::log_offset() const
    case 134:
       logOffset = util::DecodeFloat16(p->halfword(35));
       break;
+
+   default:
+      break;
    }
 
    return logOffset;
@@ -628,9 +646,46 @@ float ProductDescriptionBlock::log_scale() const
    case 134:
       logScale = util::DecodeFloat16(p->halfword(34));
       break;
+
+   default:
+      break;
    }
 
    return logScale;
+}
+
+std::uint8_t ProductDescriptionBlock::data_mask() const
+{
+   std::uint8_t dataMask = 0xff;
+
+   switch (p->productCode_)
+   {
+   case 135:
+      dataMask = static_cast<std::uint8_t>(p->halfword(31));
+      break;
+
+   default:
+      break;
+   }
+
+   return dataMask;
+}
+
+std::uint8_t ProductDescriptionBlock::topped_mask() const
+{
+   std::uint8_t toppedMask = 0x00;
+
+   switch (p->productCode_)
+   {
+   case 135:
+      toppedMask = static_cast<std::uint8_t>(p->halfword(34));
+      break;
+
+   default:
+      break;
+   }
+
+   return toppedMask;
 }
 
 units::angle::degrees<double> ProductDescriptionBlock::elevation() const
@@ -816,6 +871,10 @@ ProductDescriptionBlock::data_level_code(std::uint8_t level) const
       case 1:
          return DataLevelCode::BadData;
       default:
+         if (level & topped_mask())
+         {
+            return DataLevelCode::Topped;
+         }
          break;
       }
       break;
@@ -864,6 +923,8 @@ ProductDescriptionBlock::data_level_code(std::uint8_t level) const
          return DataLevelCode::UnknownClassification;
       case 150:
          return DataLevelCode::RangeFolded;
+      default:
+         break;
       }
       break;
 
@@ -1031,6 +1092,10 @@ ProductDescriptionBlock::data_value(std::uint8_t level) const
             f = expf((level - log_offset()) / log_scale());
          }
          break;
+
+      case 135:
+         level = level & data_mask();
+         [[fallthrough]];
 
       default:
          f = level * dataScale + dataOffset;

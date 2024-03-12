@@ -48,6 +48,7 @@ enum class Level3ProductCategory
    SpecificDifferentialPhase,
    CorrelationCoefficient,
    VerticallyIntegratedLiquid,
+   EchoTops,
    HydrometeorClassification,
    PrecipitationAccumulation,
    Unknown

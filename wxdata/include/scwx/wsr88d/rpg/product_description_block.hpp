@@ -70,6 +70,9 @@ public:
    float         log_offset() const;
    float         log_scale() const;
 
+   std::uint8_t data_mask() const;
+   std::uint8_t topped_mask() const;
+
    units::angle::degrees<double> elevation() const;
 
    bool IsCompressionEnabled() const;

@@ -43,17 +43,19 @@ static const std::unordered_map<Level2Product, std::string> level2Palette_ {
    {Level2Product::Unknown, "???"}};
 
 static const std::unordered_map<int, std::string> level3ProductCodeMap_ {
-   {30, "SW"},   {37, "NCR"},  {56, "SRM"},  {57, "NVL"},  {78, "N1P"},
-   {79, "N3P"},  {80, "NTP"},  {81, "DPA"},  {82, "SPD"},  {94, "DR"},
-   {99, "DV"},   {134, "DVL"}, {138, "DSP"}, {153, "SDR"}, {154, "SDV"},
-   {159, "DZD"}, {161, "DCC"}, {163, "DKD"}, {165, "DHC"}, {166, "ML"},
-   {169, "OHA"}, {170, "DAA"}, {172, "DTA"}, {173, "DUA"}, {174, "DOD"},
-   {175, "DSD"}, {177, "HHC"}, {180, "TDR"}, {182, "TDV"}};
+   {30, "SW"},   {37, "NCR"},  {41, "NET"},  {56, "SRM"},  {57, "NVL"},
+   {78, "N1P"},  {79, "N3P"},  {80, "NTP"},  {81, "DPA"},  {82, "SPD"},
+   {94, "DR"},   {99, "DV"},   {134, "DVL"}, {135, "EET"}, {138, "DSP"},
+   {153, "SDR"}, {154, "SDV"}, {159, "DZD"}, {161, "DCC"}, {163, "DKD"},
+   {165, "DHC"}, {166, "ML"},  {169, "OHA"}, {170, "DAA"}, {172, "DTA"},
+   {173, "DUA"}, {174, "DOD"}, {175, "DSD"}, {177, "HHC"}, {180, "TDR"},
+   {182, "TDV"}};
 
 static const std::unordered_map<std::string, std::string>
    level3ProductDescription_ {
       {"SW", "Spectrum Width"},
       {"NCR", "Composite Reflectivity"},
+      {"NET", "Echo Tops"},
       {"SRM", "Storm Relative Mean Radial Velocity"},
       {"NVL", "Vertically Integrated Liquid"},
       {"N1P", "Surface Rainfall Accumulation (1 hr)"},
@@ -64,6 +66,7 @@ static const std::unordered_map<std::string, std::string>
       {"DR", "Digital Reflectivity"},
       {"DV", "Digital Velocity"},
       {"DVL", "Digital Vertically Integrated Liquid"},
+      {"EET", "Enhanced Echo Tops"},
       {"DSP", "Digital Storm Total Precipitation"},
       {"SDR", "Super-Resolution Reflectivity"},
       {"SDV", "Super-Resolution Velocity"},
@@ -115,6 +118,10 @@ static const std::unordered_map<std::string, std::vector<std::string>>
       {"DVL", {"DVL"}},
       {"NVL", {"NVL"}},
 
+      // Echo Tops
+      {"EET", {"EET"}},
+      {"NET", {"NET"}},
+
       // Hydrometeor Classification
       {"DHC", {"NXH", "NYH", "NZH", "N0H", "NAH", "N1H", "NBH", "N2H", "N3H"}},
       {"HHC", {"HHC"}},
@@ -149,6 +156,7 @@ static const std::unordered_map<Level3ProductCategory, std::string>
       {Level3ProductCategory::SpecificDifferentialPhase, "KDP"},
       {Level3ProductCategory::CorrelationCoefficient, "CC"},
       {Level3ProductCategory::VerticallyIntegratedLiquid, "VIL"},
+      {Level3ProductCategory::EchoTops, "ET"},
       {Level3ProductCategory::HydrometeorClassification, "HC"},
       {Level3ProductCategory::PrecipitationAccumulation, "ACC"},
       {Level3ProductCategory::Unknown, "?"}};
@@ -167,6 +175,7 @@ static const std::unordered_map<Level3ProductCategory, std::string>
        "Correlation Coefficient"},
       {Level3ProductCategory::VerticallyIntegratedLiquid,
        "Vertically Integrated Liquid"},
+      {Level3ProductCategory::EchoTops, "Echo Tops"},
       {Level3ProductCategory::HydrometeorClassification,
        "Hydrometeor Classification"},
       {Level3ProductCategory::PrecipitationAccumulation,
@@ -183,6 +192,7 @@ static const std::unordered_map<Level3ProductCategory, std::vector<std::string>>
       {Level3ProductCategory::SpecificDifferentialPhase, {"DKD"}},
       {Level3ProductCategory::CorrelationCoefficient, {"DCC"}},
       {Level3ProductCategory::VerticallyIntegratedLiquid, {"DVL", "NVL"}},
+      {Level3ProductCategory::EchoTops, {"EET", "NET"}},
       {Level3ProductCategory::HydrometeorClassification, {"DHC", "HHC"}},
       {Level3ProductCategory::PrecipitationAccumulation, {"DAA", "DTA", "DUA"}},
       {Level3ProductCategory::Unknown, {}}};
@@ -197,6 +207,7 @@ static const std::unordered_map<Level3ProductCategory, std::string>
       {Level3ProductCategory::SpecificDifferentialPhase, "N0K"},
       {Level3ProductCategory::CorrelationCoefficient, "N0C"},
       {Level3ProductCategory::VerticallyIntegratedLiquid, "DVL"},
+      {Level3ProductCategory::EchoTops, "EET"},
       {Level3ProductCategory::HydrometeorClassification, "N0H"},
       {Level3ProductCategory::PrecipitationAccumulation, "DAA"}};
 

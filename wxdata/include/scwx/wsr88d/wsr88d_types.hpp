@@ -21,6 +21,7 @@ enum class DataLevelCode
    NoAccumulation,
    RangeFolded,
    Reserved,
+   Topped,
 
    // Hydrometeor Classification
    Biological,
