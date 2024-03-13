@@ -40,7 +40,7 @@ conan_basic_setup(TARGETS)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_ALL_NO_LIB")
 
 set(SCWX_DIR ${PROJECT_SOURCE_DIR})
-set(SCWX_VERSION "0.4.1")
+set(SCWX_VERSION "0.4.2")
 
 option(SCWX_ADDRESS_SANITIZER "Build with Address Sanitizer" OFF)
 
