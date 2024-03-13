@@ -279,6 +279,12 @@ void OverlayProductView::Impl::Update(const std::string& product)
    std::tie(message, foundTime) =
       radarProductManager_->GetLevel3Data(product, requestedTime);
 
+   // If a different time was found than what was requested, update it
+   if (requestedTime != foundTime)
+   {
+      selectedTime_ = foundTime;
+   }
+
    if (message == nullptr)
    {
       logger_->debug("{} data not found", product);
