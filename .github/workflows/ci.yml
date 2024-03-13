@@ -152,6 +152,8 @@ jobs:
         pushd supercell-wx/
         cd lib/
         ln -s libssl.so.3 libssl.so
+        rm -f libGLX.so*
+        rm -f libOpenGL.so*
         cd ..
         mkdir -p plugins/
         cd plugins/
