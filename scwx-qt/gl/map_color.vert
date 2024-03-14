@@ -16,7 +16,7 @@ out VertexData
    vec3  texCoord;
    vec4  color;
    ivec2 timeRange;
-   bool  displayed;
+   int   displayed;
 } vsOut;
 
 smooth out vec4 color;
@@ -24,7 +24,7 @@ smooth out vec4 color;
 void main()
 {
    // Always set displayed to true
-   vsOut.displayed = true;
+   vsOut.displayed = 1;
 
    // Pass the threshold and time range to the geometry shader
    vsOut.threshold = aThreshold;

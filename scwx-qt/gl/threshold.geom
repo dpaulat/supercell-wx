@@ -12,7 +12,7 @@ in VertexData
    vec3  texCoord;
    vec4  color;
    ivec2 timeRange;
-   bool  displayed;
+   int   displayed;
 } gsIn[];
 
 smooth out vec3 texCoord;
@@ -20,7 +20,7 @@ smooth out vec4 color;
 
 void main()
 {
-   if (gsIn[0].displayed &&
+   if (gsIn[0].displayed != 0 &&
        (gsIn[0].threshold <= 0 ||            // If Threshold: 0 was specified, no threshold
         gsIn[0].threshold >= uMapDistance || // If Threshold is above current map distance
         gsIn[0].threshold >= 999) &&         // If Threshold: 999 was specified (or greater), no threshold

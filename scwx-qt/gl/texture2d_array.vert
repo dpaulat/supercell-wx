@@ -17,7 +17,7 @@ out VertexData
    vec3  texCoord;
    vec4  color;
    ivec2 timeRange;
-   bool  displayed;
+   int   displayed;
 } vsOut;
 
 smooth out vec3 texCoord;
@@ -30,7 +30,7 @@ void main()
    vsOut.timeRange = ivec2(0, 0);
 
    // Pass displayed to the geometry shader
-   vsOut.displayed = (aDisplayed != 0);
+   vsOut.displayed = aDisplayed;
 
    // Pass the texture coordinate and color modulate to the geometry and
    // fragment shaders
