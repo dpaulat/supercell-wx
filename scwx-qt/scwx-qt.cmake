@@ -608,3 +608,20 @@ install(SCRIPT ${deploy_script_qmaplibre_core}
 
 install(SCRIPT ${deploy_script_scwx}
         COMPONENT supercell-wx)
+
+if (MSVC)
+    set(CPACK_PACKAGE_NAME                "Supercell Wx")
+    set(CPACK_PACKAGE_VENDOR              "Dan Paulat")
+    set(CPACK_PACKAGE_FILE_NAME           "supercell-wx-v${SCWX_VERSION}-windows-x64")
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY   "Supercell Wx")
+    set(CPACK_PACKAGE_CHECKSUM            SHA256)
+    set(CPACK_RESOURCE_FILE_LICENSE       "${SCWX_DIR}/LICENSE.txt")
+    set(CPACK_GENERATOR                   WIX)
+    set(CPACK_PACKAGE_EXECUTABLES         "supercell-wx;Supercell Wx")
+    set(CPACK_WIX_UPGRADE_GUID            36AD0F51-4D4F-4B5D-AB61-94C6B4E4FE1C)
+
+    set(CPACK_INSTALL_CMAKE_PROJECTS
+        "${CMAKE_CURRENT_BINARY_DIR};${CMAKE_PROJECT_NAME};supercell-wx;/")
+
+    include(CPack)
+endif()

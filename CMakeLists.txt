@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.21)
 set(PROJECT_NAME supercell-wx)
-project(${PROJECT_NAME} C CXX)
+project(${PROJECT_NAME}
+        VERSION      0.4.3
+        DESCRIPTION  "Supercell Wx is a free, open source advanced weather radar viewer."
+        HOMEPAGE_URL "https://github.com/dpaulat/supercell-wx"
+        LANGUAGES    C CXX)
 
 set(CMAKE_POLICY_DEFAULT_CMP0054 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
