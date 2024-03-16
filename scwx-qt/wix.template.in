@@ -2,7 +2,9 @@
 
 <?include "cpack_variables.wxi"?>
 
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" @CPACK_WIX_CUSTOM_XMLNS_EXPANDED@
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+    xmlns:util="http://schemas.microsoft.com/wix/UtilExtension"
+    @CPACK_WIX_CUSTOM_XMLNS_EXPANDED@
     RequiredVersion="3.6.3303.0">
 
     <Product Id="$(var.CPACK_WIX_PRODUCT_GUID)"
@@ -12,12 +14,7 @@
         Manufacturer="$(var.CPACK_PACKAGE_VENDOR)"
         UpgradeCode="$(var.CPACK_WIX_UPGRADE_GUID)">
 
-
-        <?if $(var.CPACK_WIX_INSTALL_SCOPE) = "NONE" ?>
-        <Package InstallerVersion="301" Compressed="yes"/>
-        <?else?>
-        <Package InstallerVersion="301" Compressed="yes" InstallScope="$(var.CPACK_WIX_INSTALL_SCOPE)"/>
-        <?endif?>
+        <Package InstallerVersion="301" Compressed="yes" InstallScope="perMachine"/>
 
         <Media Id="1" Cabinet="media1.cab" EmbedCab="yes"/>
 
@@ -46,6 +43,13 @@
 
         <UIRef Id="$(var.CPACK_WIX_UI_REF)" />
         <UIRef Id="WixUI_ErrorProgressText" />
+
+        <util:CloseApplication
+            Id="CloseSupercellWx"
+            Target="supercell-wx.exe"
+            RebootPrompt="no"
+            PromptToContinue="yes"
+            Description="Supercell Wx should be closed before continuing the install."/>
 
         <?include "properties.wxi"?>
         <?include "product_fragment.wxi"?>

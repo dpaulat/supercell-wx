@@ -619,6 +619,8 @@ if (MSVC)
     set(CPACK_GENERATOR                   WIX)
     set(CPACK_PACKAGE_EXECUTABLES         "supercell-wx;Supercell Wx")
     set(CPACK_WIX_UPGRADE_GUID            36AD0F51-4D4F-4B5D-AB61-94C6B4E4FE1C)
+    set(CPACK_WIX_TEMPLATE                "${CMAKE_CURRENT_SOURCE_DIR}/wix.template.in")
+    set(CPACK_WIX_EXTENSIONS              WiXUtilExtension)
 
     set(CPACK_INSTALL_CMAKE_PROJECTS
         "${CMAKE_CURRENT_BINARY_DIR};${CMAKE_PROJECT_NAME};supercell-wx;/")
