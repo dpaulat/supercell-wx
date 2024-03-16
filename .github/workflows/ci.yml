@@ -195,6 +195,20 @@ jobs:
           ${{ github.workspace }}/build/bin/*.debug
           ${{ github.workspace }}/build/lib/*.debug
 
+    - name: Build Installer (Windows)
+      if: matrix.os == 'windows-2022'
+      shell: pwsh
+      run: |
+        cd build
+        cpack
+
+    - name: Upload Installer (Windows)
+      if: matrix.os == 'windows-2022'
+      uses: actions/upload-artifact@v4
+      with:
+        name: supercell-wx-installer-${{ matrix.artifact_suffix }}
+        path: ${{ github.workspace }}/build/supercell-wx-*.msi*
+
     - name: Build AppImage (Linux)
       if: matrix.os == 'ubuntu-22.04'
       env:
