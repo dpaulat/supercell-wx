@@ -44,12 +44,23 @@
         <UIRef Id="$(var.CPACK_WIX_UI_REF)" />
         <UIRef Id="WixUI_ErrorProgressText" />
 
+        <UI>
+            <Publish Dialog="ExitDialog"
+                Control="Finish" 
+                Event="DoAction" 
+                Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
+        </UI>
+
         <util:CloseApplication
             Id="CloseSupercellWx"
             Target="supercell-wx.exe"
             RebootPrompt="no"
             PromptToContinue="yes"
             Description="Supercell Wx should be closed before continuing the install."/>
+
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Supercell Wx" />
+        <Property Id="WixShellExecTarget" Value="[#CM_FP_bin.supercell_wx.exe]" />
+        <CustomAction Id="LaunchApplication" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" />
 
         <?include "properties.wxi"?>
         <?include "product_fragment.wxi"?>

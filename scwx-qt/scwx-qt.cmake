@@ -623,7 +623,7 @@ if (MSVC)
     set(CPACK_WIX_UI_BANNER               "${CMAKE_CURRENT_SOURCE_DIR}/res/images/scwx-banner.png")
     set(CPACK_WIX_UI_DIALOG               "${CMAKE_CURRENT_SOURCE_DIR}/res/images/scwx-dialog.png")
     set(CPACK_WIX_TEMPLATE                "${CMAKE_CURRENT_SOURCE_DIR}/wix.template.in")
-    set(CPACK_WIX_EXTENSIONS              WiXUtilExtension)
+    set(CPACK_WIX_EXTENSIONS              WixUIExtension WiXUtilExtension)
 
     set(CPACK_INSTALL_CMAKE_PROJECTS
         "${CMAKE_CURRENT_BINARY_DIR};${CMAKE_PROJECT_NAME};supercell-wx;/")
