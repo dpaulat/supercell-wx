@@ -86,6 +86,7 @@ set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
                 source/scwx/qt/gl/draw/placefile_triangles.cpp
                 source/scwx/qt/gl/draw/rectangle.cpp)
 set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
+                source/scwx/qt/manager/download_manager.hpp
                 source/scwx/qt/manager/font_manager.hpp
                 source/scwx/qt/manager/media_manager.hpp
                 source/scwx/qt/manager/placefile_manager.hpp
@@ -98,6 +99,7 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/timeline_manager.hpp
                 source/scwx/qt/manager/update_manager.hpp)
 set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
+                source/scwx/qt/manager/download_manager.cpp
                 source/scwx/qt/manager/font_manager.cpp
                 source/scwx/qt/manager/media_manager.cpp
                 source/scwx/qt/manager/placefile_manager.cpp
@@ -154,8 +156,10 @@ set(SRC_MODEL source/scwx/qt/model/alert_model.cpp
               source/scwx/qt/model/radar_site_model.cpp
               source/scwx/qt/model/tree_item.cpp
               source/scwx/qt/model/tree_model.cpp)
-set(HDR_REQUEST source/scwx/qt/request/nexrad_file_request.hpp)
-set(SRC_REQUEST source/scwx/qt/request/nexrad_file_request.cpp)
+set(HDR_REQUEST source/scwx/qt/request/download_request.hpp
+                source/scwx/qt/request/nexrad_file_request.hpp)
+set(SRC_REQUEST source/scwx/qt/request/download_request.cpp
+                source/scwx/qt/request/nexrad_file_request.cpp)
 set(HDR_SETTINGS source/scwx/qt/settings/audio_settings.hpp
                  source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/map_settings.hpp
