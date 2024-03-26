@@ -67,7 +67,8 @@ set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp
                  source/scwx/provider/nexrad_data_provider.cpp
                  source/scwx/provider/nexrad_data_provider_factory.cpp
                  source/scwx/provider/warnings_provider.cpp)
-set(HDR_UTIL include/scwx/util/enum.hpp
+set(HDR_UTIL include/scwx/util/digest.hpp
+             include/scwx/util/enum.hpp
              include/scwx/util/environment.hpp
              include/scwx/util/float.hpp
              include/scwx/util/hash.hpp
@@ -80,7 +81,8 @@ set(HDR_UTIL include/scwx/util/enum.hpp
              include/scwx/util/threads.hpp
              include/scwx/util/time.hpp
              include/scwx/util/vectorbuf.hpp)
-set(SRC_UTIL source/scwx/util/environment.cpp
+set(SRC_UTIL source/scwx/util/digest.cpp
+             source/scwx/util/environment.cpp
              source/scwx/util/float.cpp
              source/scwx/util/hash.cpp
              source/scwx/util/logger.cpp

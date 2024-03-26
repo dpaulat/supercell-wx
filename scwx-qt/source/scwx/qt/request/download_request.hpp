@@ -22,7 +22,8 @@ public:
       OK,
       Canceled,
       IOError,
-      RemoteError
+      RemoteError,
+      DigestError
    };
 
    explicit DownloadRequest(const std::string&           url,

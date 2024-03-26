@@ -1,4 +1,5 @@
 #include <scwx/qt/manager/download_manager.hpp>
+#include <scwx/util/digest.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <fstream>
@@ -128,15 +129,9 @@ void DownloadManager::Download(
          bool ofsGood = ofs.good();
          ofs.close();
 
-         // Handle response
-         if (response.error.code == cpr::ErrorCode::OK &&
-             !request->IsCanceled() && ofsGood)
-         {
-            logger_->info("Download complete: \"{}\"", request->url());
-            Q_EMIT request->RequestComplete(
-               request::DownloadRequest::CompleteReason::OK);
-         }
-         else
+         // Handle error response
+         if (response.error.code != cpr::ErrorCode::OK ||
+             request->IsCanceled() || !ofsGood)
          {
             request::DownloadRequest::CompleteReason reason =
                request::DownloadRequest::CompleteReason::IOError;
@@ -173,7 +168,68 @@ void DownloadManager::Download(
             }
 
             Q_EMIT request->RequestComplete(reason);
+
+            return;
          }
+
+         // Handle response
+         const auto contentMd5 = response.header.find("content-md5");
+         if (contentMd5 != response.header.cend() &&
+             !contentMd5->second.empty())
+         {
+            // Open file for reading
+            std::ifstream is {destinationPath,
+                              std::ios_base::in | std::ios_base::binary};
+            if (!is.is_open() || !is.good())
+            {
+               logger_->error(
+                  "Unable to open destination file for reading: \"{}\"",
+                  destinationPath.string());
+
+               Q_EMIT request->RequestComplete(
+                  request::DownloadRequest::CompleteReason::IOError);
+
+               return;
+            }
+
+            // Compute MD5
+            std::vector<std::uint8_t> digest {};
+            if (!util::ComputeDigest(EVP_md5(), is, digest))
+            {
+               logger_->error("Failed to compute MD5: \"{}\"",
+                              destinationPath.string());
+
+               Q_EMIT request->RequestComplete(
+                  request::DownloadRequest::CompleteReason::IOError);
+
+               return;
+            }
+
+            // Compare calculated MD5 with digest in response header
+            QByteArray expectedDigestArray =
+               QByteArray::fromBase64(contentMd5->second.c_str());
+            std::vector<std::uint8_t> expectedDigest(
+               expectedDigestArray.cbegin(), expectedDigestArray.cend());
+
+            if (digest != expectedDigest)
+            {
+               QByteArray calculatedDigest(
+                  reinterpret_cast<char*>(digest.data()), digest.size());
+
+               logger_->error("Digest mismatch: {} != {}",
+                              calculatedDigest.toBase64().toStdString(),
+                              contentMd5->second);
+
+               Q_EMIT request->RequestComplete(
+                  request::DownloadRequest::CompleteReason::DigestError);
+
+               return;
+            }
+         }
+
+         logger_->info("Download complete: \"{}\"", request->url());
+         Q_EMIT request->RequestComplete(
+            request::DownloadRequest::CompleteReason::OK);
       });
 }
 
