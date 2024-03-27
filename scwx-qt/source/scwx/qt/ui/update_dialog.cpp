@@ -31,6 +31,9 @@ public:
 
    UpdateDialog* self_;
 
+   std::shared_ptr<manager::DownloadManager> downloadManager_ {
+      manager::DownloadManager::Instance()};
+
    std::string downloadUrl_ {};
    std::string installUrl_ {};
    std::string installFilename_ {};
@@ -175,7 +178,7 @@ void UpdateDialog::on_installUpdateButton_clicked()
       downloadDialog->set_filename(p->installFilename_);
       downloadDialog->StartDownload();
 
-      manager::DownloadManager::Instance()->Download(request);
+      p->downloadManager_->Download(request);
    }
 }
 
