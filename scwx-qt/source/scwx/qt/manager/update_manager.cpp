@@ -6,6 +6,7 @@
 #include <boost/json.hpp>
 #include <cpr/cpr.h>
 #include <re2/re2.h>
+#include <QStandardPaths>
 
 namespace scwx
 {
@@ -228,6 +229,34 @@ UpdateManager::Impl::FindLatestRelease()
    }
 
    return {latestRelease, latestReleaseVersion};
+}
+
+void UpdateManager::RemoveTemporaryReleases()
+{
+#if defined(_WIN32)
+   const std::string destination {
+      QStandardPaths::writableLocation(QStandardPaths::TempLocation)
+         .toStdString()};
+   const std::filesystem::path         destinationPath {destination};
+   std::filesystem::directory_iterator it {destinationPath};
+
+   for (auto& file : it)
+   {
+      if (file.is_regular_file() && file.path().string().ends_with(".msi") &&
+          file.path().stem().string().starts_with("supercell-wx-"))
+      {
+         logger_->info("Removing temporary installer: {}",
+                       file.path().string());
+
+         std::error_code error;
+         if (!std::filesystem::remove(file.path(), error))
+         {
+            logger_->warn("Error removing temporary installer: {}",
+                          error.message());
+         }
+      }
+   }
+#endif
 }
 
 std::shared_ptr<UpdateManager> UpdateManager::Instance()

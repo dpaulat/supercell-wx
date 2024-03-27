@@ -627,9 +627,13 @@ void MainWindowImpl::AsyncSetup()
    // Check for updates
    if (generalSettings.update_notifications_enabled().GetValue())
    {
-      boost::asio::post(
-         threadPool_,
-         [this]() { updateManager_->CheckForUpdates(main::kVersionString_); });
+      boost::asio::post(threadPool_,
+                        [this]()
+                        {
+                           manager::UpdateManager::RemoveTemporaryReleases();
+                           updateManager_->CheckForUpdates(
+                              main::kVersionString_);
+                        });
    }
 }
 
