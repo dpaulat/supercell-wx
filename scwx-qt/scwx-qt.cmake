@@ -86,6 +86,7 @@ set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
                 source/scwx/qt/gl/draw/placefile_triangles.cpp
                 source/scwx/qt/gl/draw/rectangle.cpp)
 set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
+                source/scwx/qt/manager/download_manager.hpp
                 source/scwx/qt/manager/font_manager.hpp
                 source/scwx/qt/manager/media_manager.hpp
                 source/scwx/qt/manager/placefile_manager.hpp
@@ -98,6 +99,7 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/timeline_manager.hpp
                 source/scwx/qt/manager/update_manager.hpp)
 set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
+                source/scwx/qt/manager/download_manager.cpp
                 source/scwx/qt/manager/font_manager.cpp
                 source/scwx/qt/manager/media_manager.cpp
                 source/scwx/qt/manager/placefile_manager.cpp
@@ -154,8 +156,10 @@ set(SRC_MODEL source/scwx/qt/model/alert_model.cpp
               source/scwx/qt/model/radar_site_model.cpp
               source/scwx/qt/model/tree_item.cpp
               source/scwx/qt/model/tree_model.cpp)
-set(HDR_REQUEST source/scwx/qt/request/nexrad_file_request.hpp)
-set(SRC_REQUEST source/scwx/qt/request/nexrad_file_request.cpp)
+set(HDR_REQUEST source/scwx/qt/request/download_request.hpp
+                source/scwx/qt/request/nexrad_file_request.hpp)
+set(SRC_REQUEST source/scwx/qt/request/download_request.cpp
+                source/scwx/qt/request/nexrad_file_request.cpp)
 set(HDR_SETTINGS source/scwx/qt/settings/audio_settings.hpp
                  source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/map_settings.hpp
@@ -217,6 +221,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/animation_dock_widget.hpp
            source/scwx/qt/ui/collapsible_group.hpp
            source/scwx/qt/ui/county_dialog.hpp
+           source/scwx/qt/ui/download_dialog.hpp
            source/scwx/qt/ui/flow_layout.hpp
            source/scwx/qt/ui/imgui_debug_dialog.hpp
            source/scwx/qt/ui/imgui_debug_widget.hpp
@@ -228,6 +233,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/open_url_dialog.hpp
            source/scwx/qt/ui/placefile_dialog.hpp
            source/scwx/qt/ui/placefile_settings_widget.hpp
+           source/scwx/qt/ui/progress_dialog.hpp
            source/scwx/qt/ui/radar_site_dialog.hpp
            source/scwx/qt/ui/settings_dialog.hpp
            source/scwx/qt/ui/update_dialog.hpp)
@@ -237,6 +243,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/animation_dock_widget.cpp
            source/scwx/qt/ui/collapsible_group.cpp
            source/scwx/qt/ui/county_dialog.cpp
+           source/scwx/qt/ui/download_dialog.cpp
            source/scwx/qt/ui/flow_layout.cpp
            source/scwx/qt/ui/imgui_debug_dialog.cpp
            source/scwx/qt/ui/imgui_debug_widget.cpp
@@ -248,6 +255,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/open_url_dialog.cpp
            source/scwx/qt/ui/placefile_dialog.cpp
            source/scwx/qt/ui/placefile_settings_widget.cpp
+           source/scwx/qt/ui/progress_dialog.cpp
            source/scwx/qt/ui/radar_site_dialog.cpp
            source/scwx/qt/ui/settings_dialog.cpp
            source/scwx/qt/ui/update_dialog.cpp)
@@ -262,6 +270,7 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/open_url_dialog.ui
            source/scwx/qt/ui/placefile_dialog.ui
            source/scwx/qt/ui/placefile_settings_widget.ui
+           source/scwx/qt/ui/progress_dialog.ui
            source/scwx/qt/ui/radar_site_dialog.ui
            source/scwx/qt/ui/settings_dialog.ui
            source/scwx/qt/ui/update_dialog.ui)
@@ -608,3 +617,25 @@ install(SCRIPT ${deploy_script_qmaplibre_core}
 
 install(SCRIPT ${deploy_script_scwx}
         COMPONENT supercell-wx)
+
+if (MSVC)
+    set(CPACK_PACKAGE_NAME                "Supercell Wx")
+    set(CPACK_PACKAGE_VENDOR              "Dan Paulat")
+    set(CPACK_PACKAGE_FILE_NAME           "supercell-wx-v${SCWX_VERSION}-windows-x64")
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY   "Supercell Wx")
+    set(CPACK_PACKAGE_ICON                "${CMAKE_CURRENT_SOURCE_DIR}/res/icons/scwx-256.ico")
+    set(CPACK_PACKAGE_CHECKSUM            SHA256)
+    set(CPACK_RESOURCE_FILE_LICENSE       "${SCWX_DIR}/LICENSE.txt")
+    set(CPACK_GENERATOR                   WIX)
+    set(CPACK_PACKAGE_EXECUTABLES         "supercell-wx;Supercell Wx")
+    set(CPACK_WIX_UPGRADE_GUID            36AD0F51-4D4F-4B5D-AB61-94C6B4E4FE1C)
+    set(CPACK_WIX_UI_BANNER               "${CMAKE_CURRENT_SOURCE_DIR}/res/images/scwx-banner.png")
+    set(CPACK_WIX_UI_DIALOG               "${CMAKE_CURRENT_SOURCE_DIR}/res/images/scwx-dialog.png")
+    set(CPACK_WIX_TEMPLATE                "${CMAKE_CURRENT_SOURCE_DIR}/wix.template.in")
+    set(CPACK_WIX_EXTENSIONS              WixUIExtension WiXUtilExtension)
+
+    set(CPACK_INSTALL_CMAKE_PROJECTS
+        "${CMAKE_CURRENT_BINARY_DIR};${CMAKE_PROJECT_NAME};supercell-wx;/")
+
+    include(CPack)
+endif()

@@ -16,11 +16,10 @@ namespace qt
 namespace ui
 {
 
-class UpdateDialogImpl;
-
 class UpdateDialog : public QDialog
 {
    Q_OBJECT
+   Q_DISABLE_COPY_MOVE(UpdateDialog)
 
 public:
    explicit UpdateDialog(QWidget* parent = nullptr);
@@ -31,11 +30,12 @@ public:
 
 private slots:
    void on_downloadButton_clicked();
+   void on_installUpdateButton_clicked();
 
 private:
-   friend UpdateDialogImpl;
-   std::unique_ptr<UpdateDialogImpl> p;
-   Ui::UpdateDialog*                 ui;
+   class Impl;
+   std::unique_ptr<Impl> p;
+   Ui::UpdateDialog*     ui;
 };
 
 } // namespace ui

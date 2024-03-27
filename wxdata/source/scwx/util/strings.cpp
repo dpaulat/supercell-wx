@@ -4,11 +4,75 @@
 
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
+#include <fmt/format.h>
 
 namespace scwx
 {
 namespace util
 {
+
+std::string BytesToString(std::ptrdiff_t bytes)
+{
+   auto FormatNumber = [](double number) -> std::string
+   {
+      int precision;
+
+      // Determine precision
+      if (number >= 100.0)
+      {
+         precision = 0;
+      }
+      else if (number >= 10.0)
+      {
+         precision = 1;
+      }
+      else
+      {
+         precision = 2;
+      }
+
+      // Format the number
+      std::string formattedNum = fmt::format("{:.{}f}", number, precision);
+
+      // Remove trailing zeroes
+      std::size_t found = formattedNum.find_last_not_of('0');
+      if (found != std::string::npos && formattedNum[found] == '.')
+      {
+         // Keep one trailing zero if it's a decimal point
+         found++;
+      }
+      formattedNum.erase(found + 1, std::string::npos);
+
+      return formattedNum;
+   };
+
+   // Print with appropriate suffix
+   if (bytes < 1000)
+   {
+      return fmt::format("{} bytes", bytes);
+   }
+
+   double kilobytes = bytes / 1024.0;
+   if (kilobytes < 1000.0)
+   {
+      return fmt::format("{} KB", FormatNumber(kilobytes));
+   }
+
+   double megabytes = kilobytes / 1024.0;
+   if (megabytes < 1000.0)
+   {
+      return fmt::format("{} MB", FormatNumber(megabytes));
+   }
+
+   double gigabytes = megabytes / 1024.0;
+   if (gigabytes < 1000.0)
+   {
+      return fmt::format("{} GB", FormatNumber(gigabytes));
+   }
+
+   double terabytes = gigabytes / 1024.0;
+   return fmt::format("{} TB", FormatNumber(terabytes));
+}
 
 std::vector<std::string> ParseTokens(const std::string&       s,
                                      std::vector<std::string> delimiters,

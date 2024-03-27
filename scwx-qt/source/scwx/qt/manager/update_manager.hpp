@@ -27,6 +27,8 @@ public:
 
    bool CheckForUpdates(const std::string& currentVersion = {});
 
+   static void RemoveTemporaryReleases();
+
    static std::shared_ptr<UpdateManager> Instance();
 
 signals:

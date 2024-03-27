@@ -10,6 +10,16 @@ namespace util
 {
 
 /**
+ * @brief Print the number of bytes using a dynamic suffix and limited number of
+ * decimal points.
+ *
+ * @param [in] bytes Number of bytes
+ *
+ * @return Human readable size string
+ */
+std::string BytesToString(std::ptrdiff_t bytes);
+
+/**
  * @brief Parse a list of tokens from a string
  *
  * This function will take an input string, and apply the delimiters vector in
