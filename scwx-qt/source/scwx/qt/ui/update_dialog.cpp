@@ -91,6 +91,8 @@ void UpdateDialog::Impl::HandleAsset(const types::gh::ReleaseAsset& asset)
       installUrl_      = asset.browserDownloadUrl_;
       installFilename_ = asset.name_;
    }
+#else
+   Q_UNUSED(asset)
 #endif
 }
 
@@ -147,7 +149,7 @@ void UpdateDialog::on_installUpdateButton_clicked()
          downloadDialog,
          &QDialog::accepted,
          this,
-         [=]()
+         [=, this]()
          {
             std::filesystem::path installerPackage =
                request->destination_path();
@@ -168,7 +170,7 @@ void UpdateDialog::on_installUpdateButton_clicked()
       connect(downloadDialog,
               &QDialog::rejected,
               this,
-              [=]()
+              [=, this]()
               {
                  request->Cancel();
 
