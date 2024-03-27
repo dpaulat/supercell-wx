@@ -105,26 +105,52 @@ void DownloadManager::Download(
             return;
          }
 
+         std::chrono::system_clock::time_point lastUpdated {};
+         cpr::cpr_off_t                        lastDownloadNow {};
+         cpr::cpr_off_t                        lastDownloadTotal {};
+
          // Download file
-         cpr::Response response = cpr::Get(
-            cpr::Url {request->url()},
-            cpr::ProgressCallback(
-               [=](cpr::cpr_off_t downloadTotal,
-                   cpr::cpr_off_t downloadNow,
-                   cpr::cpr_off_t /* uploadTotal */,
-                   cpr::cpr_off_t /* uploadNow */,
-                   std::intptr_t /* userdata */)
-               {
-                  Q_EMIT request->ProgressUpdated(downloadNow, downloadTotal);
-                  return !request->IsCanceled();
-               }),
-            cpr::WriteCallback(
-               [=, &ofs](std::string data, std::intptr_t /* userdata */)
-               {
-                  // Write file
-                  ofs << data;
-                  return !request->IsCanceled();
-               }));
+         cpr::Response response =
+            cpr::Get(cpr::Url {request->url()},
+                     cpr::ProgressCallback(
+                        [&](cpr::cpr_off_t downloadTotal,
+                            cpr::cpr_off_t downloadNow,
+                            cpr::cpr_off_t /* uploadTotal */,
+                            cpr::cpr_off_t /* uploadNow */,
+                            std::intptr_t /* userdata */)
+                        {
+                           using namespace std::chrono_literals;
+
+                           std::chrono::system_clock::time_point now =
+                              std::chrono::system_clock::now();
+
+                           // Only emit an update every 100ms
+                           if ((now > lastUpdated + 100ms ||
+                                downloadNow == downloadTotal) &&
+                               (downloadNow != lastDownloadNow ||
+                                downloadTotal != lastDownloadTotal))
+                           {
+                              logger_->trace("Downloaded: {} / {}",
+                                             downloadNow,
+                                             downloadTotal);
+
+                              Q_EMIT request->ProgressUpdated(downloadNow,
+                                                              downloadTotal);
+
+                              lastUpdated       = now;
+                              lastDownloadNow   = downloadNow;
+                              lastDownloadTotal = downloadTotal;
+                           }
+
+                           return !request->IsCanceled();
+                        }),
+                     cpr::WriteCallback(
+                        [&](std::string data, std::intptr_t /* userdata */)
+                        {
+                           // Write file
+                           ofs << data;
+                           return !request->IsCanceled();
+                        }));
 
          bool ofsGood = ofs.good();
          ofs.close();
@@ -138,14 +164,13 @@ void DownloadManager::Download(
 
             if (request->IsCanceled())
             {
-               logger_->info("Download request cancelled: \"{}\"",
-                             request->url());
+               logger_->info("Download request cancelled: {}", request->url());
 
                reason = request::DownloadRequest::CompleteReason::Canceled;
             }
             else if (response.error.code != cpr::ErrorCode::OK)
             {
-               logger_->error("Error downloading file ({}): \"{}\"",
+               logger_->error("Error downloading file ({}): {}",
                               response.error.message,
                               request->url());
 
@@ -153,8 +178,7 @@ void DownloadManager::Download(
             }
             else if (!ofsGood)
             {
-               logger_->error("File I/O error: \"{}\"",
-                              destinationPath.string());
+               logger_->error("File I/O error: {}", destinationPath.string());
 
                reason = request::DownloadRequest::CompleteReason::IOError;
             }
@@ -162,7 +186,7 @@ void DownloadManager::Download(
             std::error_code error;
             if (!std::filesystem::remove(destinationPath, error))
             {
-               logger_->error("Unable to remove destination file: \"{}\", {}",
+               logger_->error("Unable to remove destination file: {}, {}",
                               destinationPath.string(),
                               error.message());
             }
@@ -182,9 +206,8 @@ void DownloadManager::Download(
                               std::ios_base::in | std::ios_base::binary};
             if (!is.is_open() || !is.good())
             {
-               logger_->error(
-                  "Unable to open destination file for reading: \"{}\"",
-                  destinationPath.string());
+               logger_->error("Unable to open destination file for reading: {}",
+                              destinationPath.string());
 
                Q_EMIT request->RequestComplete(
                   request::DownloadRequest::CompleteReason::IOError);
@@ -196,7 +219,7 @@ void DownloadManager::Download(
             std::vector<std::uint8_t> digest {};
             if (!util::ComputeDigest(EVP_md5(), is, digest))
             {
-               logger_->error("Failed to compute MD5: \"{}\"",
+               logger_->error("Failed to compute MD5: {}",
                               destinationPath.string());
 
                Q_EMIT request->RequestComplete(
@@ -227,7 +250,7 @@ void DownloadManager::Download(
             }
          }
 
-         logger_->info("Download complete: \"{}\"", request->url());
+         logger_->info("Download complete: {}", request->url());
          Q_EMIT request->RequestComplete(
             request::DownloadRequest::CompleteReason::OK);
       });
