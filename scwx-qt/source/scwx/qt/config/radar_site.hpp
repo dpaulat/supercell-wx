@@ -1,5 +1,7 @@
 #pragma once
 
+#include <scwx/util/time.hpp>
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -35,6 +37,9 @@ public:
    std::string state() const;
    std::string place() const;
    std::string location_name() const;
+   std::string tz_name() const;
+
+   const scwx::util::time_zone* time_zone() const;
 
    static std::shared_ptr<RadarSite>              Get(const std::string& id);
    static std::vector<std::shared_ptr<RadarSite>> GetAll();

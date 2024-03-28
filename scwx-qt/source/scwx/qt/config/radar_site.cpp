@@ -4,10 +4,15 @@
 #include <scwx/common/sites.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <chrono>
 #include <shared_mutex>
 #include <unordered_map>
 
 #include <boost/json.hpp>
+
+#if !defined(_MSC_VER)
+#   include <date/date.h>
+#endif
 
 namespace scwx
 {
@@ -35,26 +40,19 @@ static bool ValidateJsonEntry(const boost::json::object& o);
 class RadarSiteImpl
 {
 public:
-   explicit RadarSiteImpl() :
-       type_ {},
-       id_ {},
-       latitude_ {0.0},
-       longitude_ {0.0},
-       country_ {},
-       state_ {},
-       place_ {}
-   {
-   }
-
+   explicit RadarSiteImpl() {}
    ~RadarSiteImpl() {}
 
-   std::string type_;
-   std::string id_;
-   double      latitude_;
-   double      longitude_;
-   std::string country_;
-   std::string state_;
-   std::string place_;
+   std::string type_ {};
+   std::string id_ {};
+   double      latitude_ {0.0};
+   double      longitude_ {0.0};
+   std::string country_ {};
+   std::string state_ {};
+   std::string place_ {};
+   std::string tzName_ {};
+
+   const scwx::util::time_zone* timeZone_ {nullptr};
 };
 
 RadarSite::RadarSite() : p(std::make_unique<RadarSiteImpl>()) {}
@@ -132,6 +130,16 @@ std::string RadarSite::location_name() const
    }
 
    return locationName;
+}
+
+std::string RadarSite::tz_name() const
+{
+   return p->tzName_;
+}
+
+const scwx::util::time_zone* RadarSite::time_zone() const
+{
+   return p->timeZone_;
 }
 
 std::shared_ptr<RadarSite> RadarSite::Get(const std::string& id)
@@ -259,6 +267,23 @@ size_t RadarSite::ReadConfig(const std::string& path)
                boost::json::value_to<std::string>(o.at("country"));
             site->p->state_ = boost::json::value_to<std::string>(o.at("state"));
             site->p->place_ = boost::json::value_to<std::string>(o.at("place"));
+            site->p->tzName_ = boost::json::value_to<std::string>(o.at("tz"));
+
+            try
+            {
+#if defined(_MSC_VER)
+               using namespace std::chrono;
+#else
+               using namespace date;
+#endif
+
+               site->p->timeZone_ = get_tzdb().locate_zone(site->p->tzName_);
+            }
+            catch (const std::runtime_error&)
+            {
+               logger_->warn(
+                  "{} unknown time zone: {}", site->p->id_, site->p->tzName_);
+            }
 
             if (!radarSiteMap_.contains(site->p->id_))
             {
