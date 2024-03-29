@@ -1,8 +1,10 @@
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/settings_container.hpp>
+#include <scwx/qt/settings/settings_definitions.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/types/alert_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
+#include <scwx/qt/types/time_types.hpp>
 
 #include <array>
 
@@ -22,21 +24,29 @@ class GeneralSettings::Impl
 public:
    explicit Impl()
    {
+      std::string defaultClockFormatValue =
+         types::GetClockFormatName(types::ClockFormat::_24Hour);
       std::string defaultDefaultAlertActionValue =
          types::GetAlertActionName(types::AlertAction::Go);
+      std::string defaultDefaultTimeZoneValue =
+         types::GetDefaultTimeZoneName(types::DefaultTimeZone::Radar);
       std::string defaultMapProviderValue =
          map::GetMapProviderName(map::MapProvider::MapTiler);
       std::string defaultThemeValue =
          types::GetUiStyleName(types::UiStyle::Default);
 
+      boost::to_lower(defaultClockFormatValue);
       boost::to_lower(defaultDefaultAlertActionValue);
+      boost::to_lower(defaultDefaultTimeZoneValue);
       boost::to_lower(defaultMapProviderValue);
       boost::to_lower(defaultThemeValue);
 
       antiAliasingEnabled_.SetDefault(true);
+      clockFormat_.SetDefault(defaultClockFormatValue);
       debugEnabled_.SetDefault(false);
       defaultAlertAction_.SetDefault(defaultDefaultAlertActionValue);
       defaultRadarSite_.SetDefault("KLSX");
+      defaultTimeZone_.SetDefault(defaultDefaultTimeZoneValue);
       fontSizes_.SetDefault({16});
       loopDelay_.SetDefault(2500);
       loopSpeed_.SetDefault(5.0);
@@ -67,74 +77,40 @@ public:
       loopTime_.SetMinimum(1);
       loopTime_.SetMaximum(1440);
 
+      clockFormat_.SetValidator(
+         SCWX_SETTINGS_ENUM_VALIDATOR(types::ClockFormat,
+                                      types::ClockFormatIterator(),
+                                      types::GetClockFormatName));
       defaultAlertAction_.SetValidator(
-         [](const std::string& value)
-         {
-            for (types::AlertAction alertAction : types::AlertActionIterator())
-            {
-               // If the value is equal to a lower case alert action name
-               std::string alertActionName =
-                  types::GetAlertActionName(alertAction);
-               boost::to_lower(alertActionName);
-               if (value == alertActionName)
-               {
-                  // Regard as a match, valid
-                  return true;
-               }
-            }
-
-            // No match found, invalid
-            return false;
-         });
+         SCWX_SETTINGS_ENUM_VALIDATOR(types::AlertAction,
+                                      types::AlertActionIterator(),
+                                      types::GetAlertActionName));
+      defaultTimeZone_.SetValidator(
+         SCWX_SETTINGS_ENUM_VALIDATOR(types::DefaultTimeZone,
+                                      types::DefaultTimeZoneIterator(),
+                                      types::GetDefaultTimeZoneName));
       mapProvider_.SetValidator(
-         [](const std::string& value)
-         {
-            for (map::MapProvider mapProvider : map::MapProviderIterator())
-            {
-               // If the value is equal to a lower case map provider name
-               std::string mapProviderName =
-                  map::GetMapProviderName(mapProvider);
-               boost::to_lower(mapProviderName);
-               if (value == mapProviderName)
-               {
-                  // Regard as a match, valid
-                  return true;
-               }
-            }
-
-            // No match found, invalid
-            return false;
-         });
+         SCWX_SETTINGS_ENUM_VALIDATOR(map::MapProvider,
+                                      map::MapProviderIterator(),
+                                      map::GetMapProviderName));
       mapboxApiKey_.SetValidator([](const std::string& value)
                                  { return !value.empty(); });
       maptilerApiKey_.SetValidator([](const std::string& value)
                                    { return !value.empty(); });
-      theme_.SetValidator(
-         [](const std::string& value)
-         {
-            for (types::UiStyle uiStyle : types::UiStyleIterator())
-            {
-               // If the value is equal to a lower case UI style name
-               std::string uiStyleName = types::GetUiStyleName(uiStyle);
-               boost::to_lower(uiStyleName);
-               if (value == uiStyleName)
-               {
-                  // Regard as a match, valid
-                  return true;
-               }
-            }
-
-            // No match found, invalid
-            return false;
-         });
+      theme_.SetValidator(                            //
+         SCWX_SETTINGS_ENUM_VALIDATOR(types::UiStyle, //
+                                      types::UiStyleIterator(),
+                                      types::GetUiStyleName));
    }
 
    ~Impl() {}
 
    SettingsVariable<bool>        antiAliasingEnabled_ {"anti_aliasing_enabled"};
+   SettingsVariable<std::string> clockFormat_ {"clock_format"};
    SettingsVariable<bool>        debugEnabled_ {"debug_enabled"};
    SettingsVariable<std::string> defaultAlertAction_ {"default_alert_action"};
    SettingsVariable<std::string> defaultRadarSite_ {"default_radar_site"};
+   SettingsVariable<std::string> defaultTimeZone_ {"default_time_zone"};
    SettingsContainer<std::vector<std::int64_t>> fontSizes_ {"font_sizes"};
    SettingsVariable<std::int64_t>               gridWidth_ {"grid_width"};
    SettingsVariable<std::int64_t>               gridHeight_ {"grid_height"};
@@ -154,10 +130,12 @@ public:
 GeneralSettings::GeneralSettings() :
     SettingsCategory("general"), p(std::make_unique<Impl>())
 {
-   RegisterVariables({&p->antiAliasingEnabled_,
+   RegisterVariables({&p->antiAliasingEnabled_, //
+                      &p->clockFormat_,
                       &p->debugEnabled_,
                       &p->defaultAlertAction_,
                       &p->defaultRadarSite_,
+                      &p->defaultTimeZone_,
                       &p->fontSizes_,
                       &p->gridWidth_,
                       &p->gridHeight_,
@@ -185,6 +163,11 @@ SettingsVariable<bool>& GeneralSettings::anti_aliasing_enabled() const
    return p->antiAliasingEnabled_;
 }
 
+SettingsVariable<std::string>& GeneralSettings::clock_format() const
+{
+   return p->clockFormat_;
+}
+
 SettingsVariable<bool>& GeneralSettings::debug_enabled() const
 {
    return p->debugEnabled_;
@@ -198,6 +181,11 @@ SettingsVariable<std::string>& GeneralSettings::default_alert_action() const
 SettingsVariable<std::string>& GeneralSettings::default_radar_site() const
 {
    return p->defaultRadarSite_;
+}
+
+SettingsVariable<std::string>& GeneralSettings::default_time_zone() const
+{
+   return p->defaultTimeZone_;
 }
 
 SettingsContainer<std::vector<std::int64_t>>&
@@ -293,9 +281,11 @@ GeneralSettings& GeneralSettings::Instance()
 bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
 {
    return (lhs.p->antiAliasingEnabled_ == rhs.p->antiAliasingEnabled_ &&
+           lhs.p->clockFormat_ == rhs.p->clockFormat_ &&
            lhs.p->debugEnabled_ == rhs.p->debugEnabled_ &&
            lhs.p->defaultAlertAction_ == rhs.p->defaultAlertAction_ &&
            lhs.p->defaultRadarSite_ == rhs.p->defaultRadarSite_ &&
+           lhs.p->defaultTimeZone_ == rhs.p->defaultTimeZone_ &&
            lhs.p->fontSizes_ == rhs.p->fontSizes_ &&
            lhs.p->gridWidth_ == rhs.p->gridWidth_ &&
            lhs.p->gridHeight_ == rhs.p->gridHeight_ &&
