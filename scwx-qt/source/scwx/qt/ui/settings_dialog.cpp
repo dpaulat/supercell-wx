@@ -608,17 +608,17 @@ void SettingsDialogImpl::SetupGeneralTab()
    defaultAlertAction_.SetEditWidget(self_->ui->defaultAlertActionComboBox);
    defaultAlertAction_.SetResetButton(self_->ui->resetDefaultAlertActionButton);
 
-   for (const auto& clockFormat : types::ClockFormatIterator())
+   for (const auto& clockFormat : scwx::util::ClockFormatIterator())
    {
       self_->ui->clockFormatComboBox->addItem(
-         QString::fromStdString(types::GetClockFormatName(clockFormat)));
+         QString::fromStdString(scwx::util::GetClockFormatName(clockFormat)));
    }
 
    clockFormat_.SetSettingsVariable(generalSettings.clock_format());
    clockFormat_.SetMapFromValueFunction(
-      SCWX_ENUM_MAP_FROM_VALUE(types::ClockFormat,
-                               types::ClockFormatIterator(),
-                               types::GetClockFormatName));
+      SCWX_ENUM_MAP_FROM_VALUE(scwx::util::ClockFormat,
+                               scwx::util::ClockFormatIterator(),
+                               scwx::util::GetClockFormatName));
    clockFormat_.SetMapToValueFunction(
       [](std::string text) -> std::string
       {

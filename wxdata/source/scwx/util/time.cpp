@@ -9,8 +9,12 @@
 #endif
 
 #include <scwx/util/time.hpp>
+#include <scwx/util/enum.hpp>
 
 #include <sstream>
+#include <unordered_map>
+
+#include <boost/algorithm/string.hpp>
 
 #if !defined(_MSC_VER)
 #   include <date/date.h>
@@ -20,6 +24,18 @@ namespace scwx
 {
 namespace util
 {
+
+static const std::unordered_map<ClockFormat, std::string> clockFormatName_ {
+   {ClockFormat::_12Hour, "12-hour"},
+   {ClockFormat::_24Hour, "24-hour"},
+   {ClockFormat::Unknown, "?"}};
+
+SCWX_GET_ENUM(ClockFormat, GetClockFormat, clockFormatName_)
+
+const std::string& GetClockFormatName(ClockFormat clockFormat)
+{
+   return clockFormatName_.at(clockFormat);
+}
 
 std::chrono::system_clock::time_point TimePoint(uint32_t modifiedJulianDate,
                                                 uint32_t milliseconds)

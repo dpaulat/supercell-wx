@@ -5,6 +5,7 @@
 #include <scwx/qt/types/alert_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/types/time_types.hpp>
+#include <scwx/util/time.hpp>
 
 #include <array>
 
@@ -25,7 +26,7 @@ public:
    explicit Impl()
    {
       std::string defaultClockFormatValue =
-         types::GetClockFormatName(types::ClockFormat::_24Hour);
+         scwx::util::GetClockFormatName(scwx::util::ClockFormat::_24Hour);
       std::string defaultDefaultAlertActionValue =
          types::GetAlertActionName(types::AlertAction::Go);
       std::string defaultDefaultTimeZoneValue =
@@ -78,9 +79,9 @@ public:
       loopTime_.SetMaximum(1440);
 
       clockFormat_.SetValidator(
-         SCWX_SETTINGS_ENUM_VALIDATOR(types::ClockFormat,
-                                      types::ClockFormatIterator(),
-                                      types::GetClockFormatName));
+         SCWX_SETTINGS_ENUM_VALIDATOR(scwx::util::ClockFormat,
+                                      scwx::util::ClockFormatIterator(),
+                                      scwx::util::GetClockFormatName));
       defaultAlertAction_.SetValidator(
          SCWX_SETTINGS_ENUM_VALIDATOR(types::AlertAction,
                                       types::AlertActionIterator(),
