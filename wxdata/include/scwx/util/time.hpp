@@ -38,8 +38,9 @@ std::chrono::system_clock::time_point TimePoint(uint32_t modifiedJulianDate,
                                                 uint32_t milliseconds);
 
 std::string TimeString(std::chrono::system_clock::time_point time,
-                       const time_zone*                      timeZone = nullptr,
-                       bool                                  epochValid = true);
+                       ClockFormat      clockFormat = ClockFormat::_24Hour,
+                       const time_zone* timeZone    = nullptr,
+                       bool             epochValid  = true);
 
 template<typename T>
 std::optional<std::chrono::sys_time<T>>

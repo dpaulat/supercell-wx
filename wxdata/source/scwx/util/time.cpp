@@ -49,6 +49,7 @@ std::chrono::system_clock::time_point TimePoint(uint32_t modifiedJulianDate,
 }
 
 std::string TimeString(std::chrono::system_clock::time_point time,
+                       ClockFormat                           clockFormat,
                        const time_zone*                      timeZone,
                        bool                                  epochValid)
 {
@@ -65,12 +66,27 @@ std::string TimeString(std::chrono::system_clock::time_point time,
    {
       if (timeZone != nullptr)
       {
-         zoned_time zt = {current_zone(), timeInSeconds};
-         os << zt;
+         zoned_time zt = {timeZone, timeInSeconds};
+
+         if (clockFormat == ClockFormat::_24Hour)
+         {
+            os << format("{:%Y-%m-%d %H:%M:%S %Z}", zt);
+         }
+         else
+         {
+            os << format("{:%Y-%m-%d %I:%M:%S %p %Z}", zt);
+         }
       }
       else
       {
-         os << timeInSeconds;
+         if (clockFormat == ClockFormat::_24Hour)
+         {
+            os << format("{:%Y-%m-%d %H:%M:%S %Z}", timeInSeconds);
+         }
+         else
+         {
+            os << format("{:%Y-%m-%d %I:%M:%S %p %Z}", timeInSeconds);
+         }
       }
    }
 
