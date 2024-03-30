@@ -288,13 +288,12 @@ void OverlayLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
       scwx::util::ClockFormat clockFormat = scwx::util::GetClockFormat(
          settings::GeneralSettings::Instance().clock_format().GetValue());
 
-      const scwx::util::time_zone* currentZone;
+      auto radarProductManager = radarProductView->radar_product_manager();
 
-#if defined(_MSC_VER)
-      currentZone = std::chrono::current_zone();
-#else
-      currentZone = date::current_zone();
-#endif
+      const scwx::util::time_zone* currentZone =
+         (radarProductManager != nullptr) ?
+            radarProductManager->default_time_zone() :
+            nullptr;
 
       p->sweepTimeString_ = scwx::util::TimeString(
          radarProductView->sweep_time(), clockFormat, currentZone, false);

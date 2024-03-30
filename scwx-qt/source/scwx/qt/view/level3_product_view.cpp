@@ -180,13 +180,12 @@ Level3ProductView::GetDescriptionFields() const
       util::ClockFormat clockFormat = util::GetClockFormat(
          settings::GeneralSettings::Instance().clock_format().GetValue());
 
-      const scwx::util::time_zone* currentZone;
+      auto radarProductManager = radar_product_manager();
 
-#if defined(_MSC_VER)
-      currentZone = std::chrono::current_zone();
-#else
-      currentZone = date::current_zone();
-#endif
+      const scwx::util::time_zone* currentZone =
+         (radarProductManager != nullptr) ?
+            radarProductManager->default_time_zone() :
+            nullptr;
 
       auto descriptionBlock = p->graphicMessage_->description_block();
 
