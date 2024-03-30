@@ -1,12 +1,13 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager_notifier.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/types/time_types.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/common/constants.hpp>
 #include <scwx/provider/nexrad_data_provider_factory.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/map.hpp>
 #include <scwx/util/threads.hpp>
-#include <scwx/util/time.hpp>
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 
 #include <deque>
@@ -389,6 +390,34 @@ RadarProductManager::coordinates(common::RadialSize radialSize) const
       return p->coordinates1Degree_;
    default:
       throw std::invalid_argument("Invalid radial size");
+   }
+}
+const scwx::util::time_zone* RadarProductManager::default_time_zone() const
+{
+   types::DefaultTimeZone defaultTimeZone = types::GetDefaultTimeZone(
+      settings::GeneralSettings::Instance().default_time_zone().GetValue());
+
+   switch (defaultTimeZone)
+   {
+   case types::DefaultTimeZone::Radar:
+   {
+      auto radarSite = radar_site();
+      if (radarSite != nullptr)
+      {
+         return radarSite->time_zone();
+      }
+      [[fallthrough]];
+   }
+
+   case types::DefaultTimeZone::Local:
+#if defined(_MSC_VER)
+      return std::chrono::current_zone();
+#else
+      return date::current_zone();
+#endif
+
+   default:
+      return nullptr;
    }
 }
 

@@ -52,6 +52,20 @@ public:
    {
       auto& generalSettings = settings::GeneralSettings::Instance();
 
+      clockFormatCallbackUuid_ =
+         generalSettings.clock_format().RegisterValueChangedCallback(
+            [this](const std::string&)
+            {
+               sweepTimeNeedsUpdate_ = true;
+               Q_EMIT self_->NeedsRendering();
+            });
+      defaultTimeZoneCallbackUuid_ =
+         generalSettings.default_time_zone().RegisterValueChangedCallback(
+            [this](const std::string&)
+            {
+               sweepTimeNeedsUpdate_ = true;
+               Q_EMIT self_->NeedsRendering();
+            });
       showMapAttributionCallbackUuid_ =
          generalSettings.show_map_attribution().RegisterValueChangedCallback(
             [this](const bool&) { Q_EMIT self_->NeedsRendering(); });
@@ -64,6 +78,10 @@ public:
    {
       auto& generalSettings = settings::GeneralSettings::Instance();
 
+      generalSettings.clock_format().UnregisterValueChangedCallback(
+         clockFormatCallbackUuid_);
+      generalSettings.default_time_zone().UnregisterValueChangedCallback(
+         defaultTimeZoneCallbackUuid_);
       generalSettings.show_map_attribution().UnregisterValueChangedCallback(
          showMapAttributionCallbackUuid_);
       generalSettings.show_map_logo().UnregisterValueChangedCallback(
@@ -72,6 +90,8 @@ public:
 
    OverlayLayer* self_;
 
+   boost::uuids::uuid clockFormatCallbackUuid_;
+   boost::uuids::uuid defaultTimeZoneCallbackUuid_;
    boost::uuids::uuid showMapAttributionCallbackUuid_;
    boost::uuids::uuid showMapLogoCallbackUuid_;
 
@@ -263,18 +283,20 @@ void OverlayLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
 
    p->sweepTimePicked_ = false;
 
-   if (p->sweepTimeNeedsUpdate_ && radarProductView != nullptr)
+   if (radarProductView != nullptr)
    {
-      const scwx::util::time_zone* currentZone;
+      scwx::util::ClockFormat clockFormat = scwx::util::GetClockFormat(
+         settings::GeneralSettings::Instance().clock_format().GetValue());
 
-#if defined(_MSC_VER)
-      currentZone = std::chrono::current_zone();
-#else
-      currentZone = date::current_zone();
-#endif
+      auto radarProductManager = radarProductView->radar_product_manager();
+
+      const scwx::util::time_zone* currentZone =
+         (radarProductManager != nullptr) ?
+            radarProductManager->default_time_zone() :
+            nullptr;
 
       p->sweepTimeString_ = scwx::util::TimeString(
-         radarProductView->sweep_time(), currentZone, false);
+         radarProductView->sweep_time(), clockFormat, currentZone, false);
       p->sweepTimeNeedsUpdate_ = false;
    }
 

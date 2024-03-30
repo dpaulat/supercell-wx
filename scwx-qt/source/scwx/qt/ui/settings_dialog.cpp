@@ -19,6 +19,7 @@
 #include <scwx/qt/types/location_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/types/text_types.hpp>
+#include <scwx/qt/types/time_types.hpp>
 #include <scwx/qt/ui/county_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/util/color.hpp>
@@ -129,6 +130,8 @@ public:
           &mapTilerApiKey_,
           &theme_,
           &defaultAlertAction_,
+          &clockFormat_,
+          &defaultTimeZone_,
           &antiAliasingEnabled_,
           &showMapAttribution_,
           &showMapLogo_,
@@ -220,6 +223,8 @@ public:
    settings::SettingsInterface<std::string>  mapboxApiKey_ {};
    settings::SettingsInterface<std::string>  mapTilerApiKey_ {};
    settings::SettingsInterface<std::string>  defaultAlertAction_ {};
+   settings::SettingsInterface<std::string>  clockFormat_ {};
+   settings::SettingsInterface<std::string>  defaultTimeZone_ {};
    settings::SettingsInterface<std::string>  theme_ {};
    settings::SettingsInterface<bool>         antiAliasingEnabled_ {};
    settings::SettingsInterface<bool>         showMapAttribution_ {};
@@ -590,23 +595,9 @@ void SettingsDialogImpl::SetupGeneralTab()
    defaultAlertAction_.SetSettingsVariable(
       generalSettings.default_alert_action());
    defaultAlertAction_.SetMapFromValueFunction(
-      [](const std::string& text) -> std::string
-      {
-         for (types::AlertAction alertAction : types::AlertActionIterator())
-         {
-            const std::string alertActionName =
-               types::GetAlertActionName(alertAction);
-
-            if (boost::iequals(text, alertActionName))
-            {
-               // Return alert action label
-               return alertActionName;
-            }
-         }
-
-         // Alert action label not found, return unknown
-         return "?";
-      });
+      SCWX_ENUM_MAP_FROM_VALUE(types::AlertAction,
+                               types::AlertActionIterator(),
+                               types::GetAlertActionName));
    defaultAlertAction_.SetMapToValueFunction(
       [](std::string text) -> std::string
       {
@@ -616,6 +607,48 @@ void SettingsDialogImpl::SetupGeneralTab()
       });
    defaultAlertAction_.SetEditWidget(self_->ui->defaultAlertActionComboBox);
    defaultAlertAction_.SetResetButton(self_->ui->resetDefaultAlertActionButton);
+
+   for (const auto& clockFormat : scwx::util::ClockFormatIterator())
+   {
+      self_->ui->clockFormatComboBox->addItem(
+         QString::fromStdString(scwx::util::GetClockFormatName(clockFormat)));
+   }
+
+   clockFormat_.SetSettingsVariable(generalSettings.clock_format());
+   clockFormat_.SetMapFromValueFunction(
+      SCWX_ENUM_MAP_FROM_VALUE(scwx::util::ClockFormat,
+                               scwx::util::ClockFormatIterator(),
+                               scwx::util::GetClockFormatName));
+   clockFormat_.SetMapToValueFunction(
+      [](std::string text) -> std::string
+      {
+         // Convert label to lower case and return
+         boost::to_lower(text);
+         return text;
+      });
+   clockFormat_.SetEditWidget(self_->ui->clockFormatComboBox);
+   clockFormat_.SetResetButton(self_->ui->resetClockFormatButton);
+
+   for (const auto& timeZone : types::DefaultTimeZoneIterator())
+   {
+      self_->ui->defaultTimeZoneComboBox->addItem(
+         QString::fromStdString(types::GetDefaultTimeZoneName(timeZone)));
+   }
+
+   defaultTimeZone_.SetSettingsVariable(generalSettings.default_time_zone());
+   defaultTimeZone_.SetMapFromValueFunction(
+      SCWX_ENUM_MAP_FROM_VALUE(types::DefaultTimeZone,
+                               types::DefaultTimeZoneIterator(),
+                               types::GetDefaultTimeZoneName));
+   defaultTimeZone_.SetMapToValueFunction(
+      [](std::string text) -> std::string
+      {
+         // Convert label to lower case and return
+         boost::to_lower(text);
+         return text;
+      });
+   defaultTimeZone_.SetEditWidget(self_->ui->defaultTimeZoneComboBox);
+   defaultTimeZone_.SetResetButton(self_->ui->resetDefaultTimeZoneButton);
 
    antiAliasingEnabled_.SetSettingsVariable(
       generalSettings.anti_aliasing_enabled());

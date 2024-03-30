@@ -5,6 +5,7 @@
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/request/nexrad_file_request.hpp>
 #include <scwx/qt/types/radar_product_record.hpp>
+#include <scwx/util/time.hpp>
 #include <scwx/wsr88d/ar2v_file.hpp>
 #include <scwx/wsr88d/level3_file.hpp>
 
@@ -41,8 +42,9 @@ public:
    static void DumpRecords();
 
    const std::vector<float>& coordinates(common::RadialSize radialSize) const;
-   float                     gate_size() const;
-   std::string               radar_id() const;
+   const scwx::util::time_zone*       default_time_zone() const;
+   float                              gate_size() const;
+   std::string                        radar_id() const;
    std::shared_ptr<config::RadarSite> radar_site() const;
 
    void Initialize();

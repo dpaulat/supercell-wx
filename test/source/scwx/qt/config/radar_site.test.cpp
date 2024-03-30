@@ -38,6 +38,9 @@ TEST_F(RadarSiteTest, DefaultConfig)
    EXPECT_EQ(radarSite->country(), "USA");
    EXPECT_EQ(radarSite->state(), "MO");
    EXPECT_EQ(radarSite->place(), "St. Louis");
+   EXPECT_EQ(radarSite->tz_name(), "America/Chicago");
+   ASSERT_NE(radarSite->time_zone(), nullptr);
+   EXPECT_EQ(radarSite->time_zone()->name(), "America/Chicago");
    EXPECT_DOUBLE_EQ(radarSite->latitude(), 38.6986863);
    EXPECT_DOUBLE_EQ(radarSite->longitude(), -90.682877);
 }

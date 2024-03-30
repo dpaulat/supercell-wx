@@ -1,4 +1,5 @@
 #include <scwx/qt/view/level3_product_view.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/common/constants.hpp>
 #include <scwx/util/logger.hpp>
@@ -176,13 +177,15 @@ Level3ProductView::GetDescriptionFields() const
 
    if (p->graphicMessage_ != nullptr)
    {
-      const scwx::util::time_zone* currentZone;
+      util::ClockFormat clockFormat = util::GetClockFormat(
+         settings::GeneralSettings::Instance().clock_format().GetValue());
 
-#if defined(_MSC_VER)
-      currentZone = std::chrono::current_zone();
-#else
-      currentZone = date::current_zone();
-#endif
+      auto radarProductManager = radar_product_manager();
+
+      const scwx::util::time_zone* currentZone =
+         (radarProductManager != nullptr) ?
+            radarProductManager->default_time_zone() :
+            nullptr;
 
       auto descriptionBlock = p->graphicMessage_->description_block();
 
@@ -197,10 +200,12 @@ Level3ProductView::GetDescriptionFields() const
 
          description.emplace_back(
             "Volume Time",
-            scwx::util::TimeString(volumeTime, currentZone, false));
+            scwx::util::TimeString(
+               volumeTime, clockFormat, currentZone, false));
          description.emplace_back(
             "Product Time",
-            scwx::util::TimeString(productTime, currentZone, false));
+            scwx::util::TimeString(
+               productTime, clockFormat, currentZone, false));
 
          description.emplace_back(
             "Sequence Number",
