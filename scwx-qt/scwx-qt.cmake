@@ -162,6 +162,7 @@ set(SRC_REQUEST source/scwx/qt/request/download_request.cpp
                 source/scwx/qt/request/nexrad_file_request.cpp)
 set(HDR_SETTINGS source/scwx/qt/settings/audio_settings.hpp
                  source/scwx/qt/settings/general_settings.hpp
+                 source/scwx/qt/settings/hotkey_settings.hpp
                  source/scwx/qt/settings/map_settings.hpp
                  source/scwx/qt/settings/palette_settings.hpp
                  source/scwx/qt/settings/product_settings.hpp
@@ -176,6 +177,7 @@ set(HDR_SETTINGS source/scwx/qt/settings/audio_settings.hpp
                  source/scwx/qt/settings/ui_settings.hpp)
 set(SRC_SETTINGS source/scwx/qt/settings/audio_settings.cpp
                  source/scwx/qt/settings/general_settings.cpp
+                 source/scwx/qt/settings/hotkey_settings.cpp
                  source/scwx/qt/settings/map_settings.cpp
                  source/scwx/qt/settings/palette_settings.cpp
                  source/scwx/qt/settings/product_settings.cpp
@@ -191,6 +193,7 @@ set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/event_types.hpp
               source/scwx/qt/types/font_types.hpp
               source/scwx/qt/types/github_types.hpp
+              source/scwx/qt/types/hotkey_types.hpp
               source/scwx/qt/types/icon_types.hpp
               source/scwx/qt/types/imgui_font.hpp
               source/scwx/qt/types/layer_types.hpp
@@ -205,6 +208,7 @@ set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/time_types.hpp)
 set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/github_types.cpp
+              source/scwx/qt/types/hotkey_types.cpp
               source/scwx/qt/types/icon_types.cpp
               source/scwx/qt/types/imgui_font.cpp
               source/scwx/qt/types/layer_types.cpp
