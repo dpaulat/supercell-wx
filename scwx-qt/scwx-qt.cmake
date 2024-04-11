@@ -88,6 +88,7 @@ set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
 set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/download_manager.hpp
                 source/scwx/qt/manager/font_manager.hpp
+                source/scwx/qt/manager/hotkey_manager.hpp
                 source/scwx/qt/manager/media_manager.hpp
                 source/scwx/qt/manager/placefile_manager.hpp
                 source/scwx/qt/manager/position_manager.hpp
@@ -101,6 +102,7 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
 set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                 source/scwx/qt/manager/download_manager.cpp
                 source/scwx/qt/manager/font_manager.cpp
+                source/scwx/qt/manager/hotkey_manager.cpp
                 source/scwx/qt/manager/media_manager.cpp
                 source/scwx/qt/manager/placefile_manager.cpp
                 source/scwx/qt/manager/position_manager.cpp
