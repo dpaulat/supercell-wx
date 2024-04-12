@@ -1,4 +1,4 @@
-#include <scwx/qt/ui/keybind_edit.hpp>
+#include <scwx/qt/ui/hotkey_edit.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <qevent.h>
@@ -10,10 +10,10 @@ namespace qt
 namespace ui
 {
 
-static const std::string logPrefix_ = "scwx::qt::ui::keybind_edit";
+static const std::string logPrefix_ = "scwx::qt::ui::hotkey_edit";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-class KeybindEdit::Impl
+class HotkeyEdit::Impl
 {
 public:
    explicit Impl() {};
@@ -22,7 +22,7 @@ public:
    QKeySequence sequence_ {};
 };
 
-KeybindEdit::KeybindEdit(QWidget* parent) :
+HotkeyEdit::HotkeyEdit(QWidget* parent) :
     QLineEdit(parent), p {std::make_unique<Impl>()}
 {
    setReadOnly(true);
@@ -51,14 +51,14 @@ KeybindEdit::KeybindEdit(QWidget* parent) :
    }
 }
 
-KeybindEdit::~KeybindEdit() {}
+HotkeyEdit::~HotkeyEdit() {}
 
-QKeySequence KeybindEdit::key_sequence() const
+QKeySequence HotkeyEdit::key_sequence() const
 {
    return p->sequence_;
 }
 
-void KeybindEdit::set_key_sequence(const QKeySequence& sequence)
+void HotkeyEdit::set_key_sequence(const QKeySequence& sequence)
 {
    if (sequence != p->sequence_)
    {
@@ -68,7 +68,7 @@ void KeybindEdit::set_key_sequence(const QKeySequence& sequence)
    }
 }
 
-void KeybindEdit::focusInEvent(QFocusEvent* e)
+void HotkeyEdit::focusInEvent(QFocusEvent* e)
 {
    logger_->trace("focusInEvent");
 
@@ -79,7 +79,7 @@ void KeybindEdit::focusInEvent(QFocusEvent* e)
    QLineEdit::focusInEvent(e);
 }
 
-void KeybindEdit::focusOutEvent(QFocusEvent* e)
+void HotkeyEdit::focusOutEvent(QFocusEvent* e)
 {
    logger_->trace("focusOutEvent");
 
@@ -90,7 +90,7 @@ void KeybindEdit::focusOutEvent(QFocusEvent* e)
    QLineEdit::focusOutEvent(e);
 }
 
-void KeybindEdit::keyPressEvent(QKeyEvent* e)
+void HotkeyEdit::keyPressEvent(QKeyEvent* e)
 {
    logger_->trace("keyPressEvent");
 
@@ -124,7 +124,7 @@ void KeybindEdit::keyPressEvent(QKeyEvent* e)
    setText(sequence.toString());
 }
 
-void KeybindEdit::keyReleaseEvent(QKeyEvent*)
+void HotkeyEdit::keyReleaseEvent(QKeyEvent*)
 {
    logger_->trace("keyReleaseEvent");
 

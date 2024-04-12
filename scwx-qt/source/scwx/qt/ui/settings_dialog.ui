@@ -97,7 +97,7 @@
          </item>
          <item>
           <property name="text">
-           <string>Key Binds</string>
+           <string>Hotkeys</string>
           </property>
           <property name="icon">
            <iconset resource="../../../../scwx-qt.qrc">
@@ -1016,7 +1016,7 @@
            </item>
           </layout>
          </widget>
-         <widget class="QWidget" name="keybinds"/>
+         <widget class="QWidget" name="hotkeys"/>
         </widget>
        </widget>
       </item>

@@ -9,14 +9,14 @@ namespace qt
 namespace ui
 {
 
-class KeybindEdit : public QLineEdit
+class HotkeyEdit : public QLineEdit
 {
    Q_OBJECT
-   Q_DISABLE_COPY_MOVE(KeybindEdit)
+   Q_DISABLE_COPY_MOVE(HotkeyEdit)
 
 public:
-   explicit KeybindEdit(QWidget* parent = nullptr);
-   ~KeybindEdit();
+   explicit HotkeyEdit(QWidget* parent = nullptr);
+   ~HotkeyEdit();
 
    QKeySequence key_sequence() const;
 
