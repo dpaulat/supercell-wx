@@ -66,6 +66,10 @@ void HotkeyManager::Impl::UpdateHotkey(types::Hotkey      hotkey,
 
 void HotkeyManager::HandleKeyPress(QKeyEvent* ev)
 {
+   logger_->trace("HandleKeyPress: {}, {}",
+                  ev->keyCombination().toCombined(),
+                  ev->isAutoRepeat());
+
    for (auto& hotkey : p->hotkeys_)
    {
       if (hotkey.second.count() == 1 &&
@@ -78,7 +82,16 @@ void HotkeyManager::HandleKeyPress(QKeyEvent* ev)
 
 void HotkeyManager::HandleKeyRelease(QKeyEvent* ev)
 {
-   Q_UNUSED(ev);
+   logger_->trace("HandleKeyRelease: {}", ev->keyCombination().toCombined());
+
+   for (auto& hotkey : p->hotkeys_)
+   {
+      if (hotkey.second.count() == 1 &&
+          hotkey.second[0] == ev->keyCombination())
+      {
+         Q_EMIT HotkeyReleased(hotkey.first);
+      }
+   }
 }
 
 std::shared_ptr<HotkeyManager> HotkeyManager::Instance()

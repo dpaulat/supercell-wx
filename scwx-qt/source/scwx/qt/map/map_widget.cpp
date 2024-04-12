@@ -149,7 +149,9 @@ public:
                           const std::string& before);
    void ConnectMapSignals();
    void ConnectSignals();
-   void HandleHotkey(types::Hotkey hotkey, bool isAutoRepeat);
+   void HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat);
+   void HandleHotkeyReleased(types::Hotkey hotkey);
+   void HandleHotkeyUpdates();
    void ImGuiCheckFonts();
    void InitializeNewRadarProductView(const std::string& colorPalette);
    void RadarProductManagerConnect();
@@ -232,8 +234,9 @@ public:
    double prevBearing_;
    double prevPitch_;
 
-   types::Hotkey                         prevHotkey_ = types::Hotkey::Unknown;
+   std::set<types::Hotkey>               activeHotkeys_ {};
    std::chrono::system_clock::time_point prevHotkeyTime_ {};
+
 public slots:
    void Update();
 };
@@ -342,23 +345,16 @@ void MapWidgetImpl::ConnectSignals()
    connect(hotkeyManager_.get(),
            &manager::HotkeyManager::HotkeyPressed,
            this,
-           &MapWidgetImpl::HandleHotkey);
+           &MapWidgetImpl::HandleHotkeyPressed);
+   connect(hotkeyManager_.get(),
+           &manager::HotkeyManager::HotkeyReleased,
+           this,
+           &MapWidgetImpl::HandleHotkeyReleased);
 }
 
-void MapWidgetImpl::HandleHotkey(types::Hotkey hotkey, bool isAutoRepeat)
+void MapWidgetImpl::HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat)
 {
-   static constexpr float  kMapPanFactor    = 0.2f;
-   static constexpr float  kMapRotateFactor = 0.2f;
-   static constexpr double kMapScaleFactor  = 1000.0;
-
-   using namespace std::chrono_literals;
-
-   std::chrono::system_clock::time_point hotkeyTime =
-      std::chrono::system_clock::now();
-   std::chrono::milliseconds hotkeyElapsed =
-      isAutoRepeat ? std::chrono::duration_cast<std::chrono::milliseconds>(
-                        hotkeyTime - prevHotkeyTime_) :
-                     100ms;
+   Q_UNUSED(isAutoRepeat);
 
    switch (hotkey)
    {
@@ -386,72 +382,105 @@ void MapWidgetImpl::HandleHotkey(types::Hotkey hotkey, bool isAutoRepeat)
       break;
    }
 
-   case types::Hotkey::MapPanUp:
-   {
-      QPointF delta {0.0f, kMapPanFactor * hotkeyElapsed.count()};
-      map_->moveBy(delta);
-      break;
-   }
-
-   case types::Hotkey::MapPanDown:
-   {
-      QPointF delta {0.0f, -kMapPanFactor * hotkeyElapsed.count()};
-      map_->moveBy(delta);
-      break;
-   }
-
-   case types::Hotkey::MapPanLeft:
-   {
-      QPointF delta {kMapPanFactor * hotkeyElapsed.count(), 0.0f};
-      map_->moveBy(delta);
-      break;
-   }
-
-   case types::Hotkey::MapPanRight:
-   {
-      QPointF delta {-kMapPanFactor * hotkeyElapsed.count(), 0.0f};
-      map_->moveBy(delta);
-      break;
-   }
-
-   case types::Hotkey::MapRotateClockwise:
-   {
-      QPointF delta {-kMapRotateFactor * hotkeyElapsed.count(), 0.0f};
-      map_->rotateBy({}, delta);
-      break;
-   }
-
-   case types::Hotkey::MapRotateCounterclockwise:
-   {
-      QPointF delta {kMapRotateFactor * hotkeyElapsed.count(), 0.0f};
-      map_->rotateBy({}, delta);
-      break;
-   }
-
-   case types::Hotkey::MapZoomIn:
-   {
-      auto    widgetSize = widget_->size();
-      QPointF center = {widgetSize.width() * 0.5f, widgetSize.height() * 0.5f};
-      double  scale  = std::pow(2.0, hotkeyElapsed.count() / kMapScaleFactor);
-      map_->scaleBy(scale, center);
-      break;
-   }
-
-   case types::Hotkey::MapZoomOut:
-   {
-      auto    widgetSize = widget_->size();
-      QPointF center = {widgetSize.width() * 0.5f, widgetSize.height() * 0.5f};
-      double  scale =
-         1.0 / std::pow(2.0, hotkeyElapsed.count() / kMapScaleFactor);
-      map_->scaleBy(scale, center);
-      break;
-   }
-
    default:
       break;
    }
 
-   prevHotkey_     = hotkey;
+   activeHotkeys_.insert(hotkey);
+}
+
+void MapWidgetImpl::HandleHotkeyReleased(types::Hotkey hotkey)
+{
+   activeHotkeys_.erase(hotkey);
+}
+
+void MapWidgetImpl::HandleHotkeyUpdates()
+{
+   using namespace std::chrono_literals;
+
+   static constexpr float  kMapPanFactor    = 0.2f;
+   static constexpr float  kMapRotateFactor = 0.2f;
+   static constexpr double kMapScaleFactor  = 1000.0;
+
+   std::chrono::system_clock::time_point hotkeyTime =
+      std::chrono::system_clock::now();
+   std::chrono::milliseconds hotkeyElapsed =
+      std::min(std::chrono::duration_cast<std::chrono::milliseconds>(
+                  hotkeyTime - prevHotkeyTime_),
+               100ms);
+
+   for (auto& hotkey : activeHotkeys_)
+   {
+      switch (hotkey)
+      {
+      case types::Hotkey::MapPanUp:
+      {
+         QPointF delta {0.0f, kMapPanFactor * hotkeyElapsed.count()};
+         map_->moveBy(delta);
+         break;
+      }
+
+      case types::Hotkey::MapPanDown:
+      {
+         QPointF delta {0.0f, -kMapPanFactor * hotkeyElapsed.count()};
+         map_->moveBy(delta);
+         break;
+      }
+
+      case types::Hotkey::MapPanLeft:
+      {
+         QPointF delta {kMapPanFactor * hotkeyElapsed.count(), 0.0f};
+         map_->moveBy(delta);
+         break;
+      }
+
+      case types::Hotkey::MapPanRight:
+      {
+         QPointF delta {-kMapPanFactor * hotkeyElapsed.count(), 0.0f};
+         map_->moveBy(delta);
+         break;
+      }
+
+      case types::Hotkey::MapRotateClockwise:
+      {
+         QPointF delta {-kMapRotateFactor * hotkeyElapsed.count(), 0.0f};
+         map_->rotateBy({}, delta);
+         break;
+      }
+
+      case types::Hotkey::MapRotateCounterclockwise:
+      {
+         QPointF delta {kMapRotateFactor * hotkeyElapsed.count(), 0.0f};
+         map_->rotateBy({}, delta);
+         break;
+      }
+
+      case types::Hotkey::MapZoomIn:
+      {
+         auto    widgetSize = widget_->size();
+         QPointF center     = {widgetSize.width() * 0.5f,
+                               widgetSize.height() * 0.5f};
+         double  scale = std::pow(2.0, hotkeyElapsed.count() / kMapScaleFactor);
+         map_->scaleBy(scale, center);
+         break;
+      }
+
+      case types::Hotkey::MapZoomOut:
+      {
+         auto    widgetSize = widget_->size();
+         QPointF center     = {widgetSize.width() * 0.5f,
+                               widgetSize.height() * 0.5f};
+         double  scale =
+            1.0 / std::pow(2.0, hotkeyElapsed.count() / kMapScaleFactor);
+         map_->scaleBy(scale, center);
+         break;
+      }
+
+      default:
+         break;
+      }
+   }
+
    prevHotkeyTime_ = hotkeyTime;
 }
 
@@ -1318,6 +1347,9 @@ void MapWidget::paintGL()
       types::FontCategory::Default);
 
    p->frameDraws_++;
+
+   // Handle hotkey updates
+   p->HandleHotkeyUpdates();
 
    // Setup ImGui Frame
    ImGui::SetCurrentContext(p->imGuiContext_);
