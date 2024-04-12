@@ -149,7 +149,7 @@ public:
                           const std::string& before);
    void ConnectMapSignals();
    void ConnectSignals();
-   void HandleHotkey(types::Hotkey hotkey);
+   void HandleHotkey(types::Hotkey hotkey, bool isAutoRepeat);
    void ImGuiCheckFonts();
    void InitializeNewRadarProductView(const std::string& colorPalette);
    void RadarProductManagerConnect();
@@ -345,21 +345,20 @@ void MapWidgetImpl::ConnectSignals()
            &MapWidgetImpl::HandleHotkey);
 }
 
-void MapWidgetImpl::HandleHotkey(types::Hotkey hotkey)
+void MapWidgetImpl::HandleHotkey(types::Hotkey hotkey, bool isAutoRepeat)
 {
-   static constexpr float     kMapPanFactor    = 0.2f;
-   static constexpr float     kMapRotateFactor = 0.2f;
-   static constexpr long long kMapScaleFactor  = 1000;
+   static constexpr float  kMapPanFactor    = 0.2f;
+   static constexpr float  kMapRotateFactor = 0.2f;
+   static constexpr double kMapScaleFactor  = 1000.0;
 
    using namespace std::chrono_literals;
 
    std::chrono::system_clock::time_point hotkeyTime =
       std::chrono::system_clock::now();
    std::chrono::milliseconds hotkeyElapsed =
-      prevHotkey_ != types::Hotkey::Unknown ?
-         std::chrono::duration_cast<std::chrono::milliseconds>(
-            hotkeyTime - prevHotkeyTime_) :
-         100ms;
+      isAutoRepeat ? std::chrono::duration_cast<std::chrono::milliseconds>(
+                        hotkeyTime - prevHotkeyTime_) :
+                     100ms;
 
    switch (hotkey)
    {
@@ -431,16 +430,20 @@ void MapWidgetImpl::HandleHotkey(types::Hotkey hotkey)
 
    case types::Hotkey::MapZoomIn:
    {
-      double scale = std::pow(2.0, hotkeyElapsed.count() / kMapScaleFactor);
-      map_->scaleBy(scale);
+      auto    widgetSize = widget_->size();
+      QPointF center = {widgetSize.width() * 0.5f, widgetSize.height() * 0.5f};
+      double  scale  = std::pow(2.0, hotkeyElapsed.count() / kMapScaleFactor);
+      map_->scaleBy(scale, center);
       break;
    }
 
    case types::Hotkey::MapZoomOut:
    {
-      double scale =
+      auto    widgetSize = widget_->size();
+      QPointF center = {widgetSize.width() * 0.5f, widgetSize.height() * 0.5f};
+      double  scale =
          1.0 / std::pow(2.0, hotkeyElapsed.count() / kMapScaleFactor);
-      map_->scaleBy(scale);
+      map_->scaleBy(scale, center);
       break;
    }
 

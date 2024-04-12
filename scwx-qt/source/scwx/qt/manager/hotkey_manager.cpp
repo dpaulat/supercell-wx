@@ -71,7 +71,7 @@ void HotkeyManager::HandleKeyPress(QKeyEvent* ev)
       if (hotkey.second.count() == 1 &&
           hotkey.second[0] == ev->keyCombination())
       {
-         Q_EMIT HotkeyPressed(hotkey.first);
+         Q_EMIT HotkeyPressed(hotkey.first, ev->isAutoRepeat());
       }
    }
 }

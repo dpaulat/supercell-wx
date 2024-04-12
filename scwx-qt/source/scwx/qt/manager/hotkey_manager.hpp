@@ -30,7 +30,7 @@ public:
    static std::shared_ptr<HotkeyManager> Instance();
 
 signals:
-   void HotkeyPressed(scwx::qt::types::Hotkey hotkey);
+   void HotkeyPressed(scwx::qt::types::Hotkey hotkey, bool isAutoRepeat);
    void HotkeyReleased(scwx::qt::types::Hotkey hotkey);
 
 private:
