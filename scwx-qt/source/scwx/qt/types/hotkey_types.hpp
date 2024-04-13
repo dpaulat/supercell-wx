@@ -26,10 +26,15 @@ enum class Hotkey
    MapZoomOut,
    ProductTiltDecrease,
    ProductTiltIncrease,
+   TimelineStepBegin,
+   TimelineStepBack,
+   TimelinePlay,
+   TimelineStepNext,
+   TimelineStepEnd,
    Unknown
 };
 typedef scwx::util::
-   Iterator<Hotkey, Hotkey::ChangeMapStyle, Hotkey::ProductTiltIncrease>
+   Iterator<Hotkey, Hotkey::ChangeMapStyle, Hotkey::TimelineStepEnd>
       HotkeyIterator;
 
 Hotkey             GetHotkeyFromShortName(const std::string& name);

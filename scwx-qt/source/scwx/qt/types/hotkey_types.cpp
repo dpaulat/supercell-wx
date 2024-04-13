@@ -26,6 +26,11 @@ static const std::unordered_map<Hotkey, std::string> hotkeyShortName_ {
    {Hotkey::MapZoomOut, "map_zoom_out"},
    {Hotkey::ProductTiltDecrease, "product_tilt_decrease"},
    {Hotkey::ProductTiltIncrease, "product_tilt_increase"},
+   {Hotkey::TimelineStepBegin, "timeline_step_begin"},
+   {Hotkey::TimelineStepBack, "timeline_step_back"},
+   {Hotkey::TimelinePlay, "timeline_play"},
+   {Hotkey::TimelineStepNext, "timeline_step_next"},
+   {Hotkey::TimelineStepEnd, "timeline_step_end"},
    {Hotkey::Unknown, "?"}};
 
 static const std::unordered_map<Hotkey, std::string> hotkeyLongName_ {
@@ -42,6 +47,11 @@ static const std::unordered_map<Hotkey, std::string> hotkeyLongName_ {
    {Hotkey::MapZoomOut, "Map Zoom Out"},
    {Hotkey::ProductTiltDecrease, "Product Tilt Decrease"},
    {Hotkey::ProductTiltIncrease, "Product Tilt Increase"},
+   {Hotkey::TimelineStepBegin, "Timeline Step Begin"},
+   {Hotkey::TimelineStepBack, "Timeline Step Back"},
+   {Hotkey::TimelinePlay, "Timeline Play/Pause"},
+   {Hotkey::TimelineStepNext, "Timeline Step Next"},
+   {Hotkey::TimelineStepEnd, "Timeline Step End"},
    {Hotkey::Unknown, "?"}};
 
 SCWX_GET_ENUM(Hotkey, GetHotkeyFromShortName, hotkeyShortName_)

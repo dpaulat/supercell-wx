@@ -1,6 +1,7 @@
 #include "animation_dock_widget.hpp"
 #include "ui_animation_dock_widget.h"
 
+#include <scwx/qt/manager/hotkey_manager.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/util/time.hpp>
 #include <scwx/util/logger.hpp>
@@ -38,6 +39,9 @@ public:
    QString disabledString_;
 
    AnimationDockWidget* self_;
+
+   std::shared_ptr<manager::HotkeyManager> hotkeyManager_ {
+      manager::HotkeyManager::Instance()};
 
    types::AnimationState animationState_ {types::AnimationState::Pause};
    types::MapTime        viewType_ {types::MapTime::Live};
@@ -220,6 +224,39 @@ void AnimationDockWidgetImpl::ConnectSignals()
                     &QAbstractButton::clicked,
                     self_,
                     [this]() { Q_EMIT self_->AnimationStepEndSelected(); });
+
+   // Shortcuts
+   QObject::connect(hotkeyManager_.get(),
+                    &manager::HotkeyManager::HotkeyPressed,
+                    self_,
+                    [this](types::Hotkey hotkey, bool /* isAutoRepeat */)
+                    {
+                       switch (hotkey)
+                       {
+                       case types::Hotkey::TimelineStepBegin:
+                          Q_EMIT self_->AnimationStepBeginSelected();
+                          break;
+
+                       case types::Hotkey::TimelineStepBack:
+                          Q_EMIT self_->AnimationStepBackSelected();
+                          break;
+
+                       case types::Hotkey::TimelinePlay:
+                          Q_EMIT self_->AnimationPlaySelected();
+                          break;
+
+                       case types::Hotkey::TimelineStepNext:
+                          Q_EMIT self_->AnimationStepNextSelected();
+                          break;
+
+                       case types::Hotkey::TimelineStepEnd:
+                          Q_EMIT self_->AnimationStepEndSelected();
+                          break;
+
+                       default:
+                          break;
+                       }
+                    });
 }
 
 void AnimationDockWidget::UpdateAnimationState(types::AnimationState state)

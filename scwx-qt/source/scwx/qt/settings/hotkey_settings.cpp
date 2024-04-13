@@ -32,6 +32,15 @@ static const std::unordered_map<types::Hotkey, QKeySequence> kDefaultHotkeys_ {
     QKeySequence {Qt::Key::Key_BracketLeft}},
    {types::Hotkey::ProductTiltIncrease,
     QKeySequence {Qt::Key::Key_BracketRight}},
+   {types::Hotkey::TimelineStepBegin,
+    QKeySequence {QKeyCombination {Qt::KeyboardModifier::ControlModifier,
+                                   Qt::Key::Key_Left}}},
+   {types::Hotkey::TimelineStepBack, QKeySequence {Qt::Key::Key_Left}},
+   {types::Hotkey::TimelinePlay, QKeySequence {Qt::Key::Key_Space}},
+   {types::Hotkey::TimelineStepNext, QKeySequence {Qt::Key::Key_Right}},
+   {types::Hotkey::TimelineStepEnd,
+    QKeySequence {QKeyCombination {Qt::KeyboardModifier::ControlModifier,
+                                   Qt::Key::Key_Right}}},
    {types::Hotkey::Unknown, QKeySequence {}}};
 
 static bool IsHotkeyValid(const std::string& value);
@@ -107,7 +116,7 @@ bool operator==(const HotkeySettings& lhs, const HotkeySettings& rhs)
 
 static bool IsHotkeyValid(const std::string& value)
 {
-   return QKeySequence {QString::fromStdString(value)}
+   return QKeySequence::fromString(QString::fromStdString(value))
              .toString()
              .toStdString() == value;
 }
