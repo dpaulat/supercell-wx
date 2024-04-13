@@ -22,6 +22,7 @@
 #include <scwx/qt/types/time_types.hpp>
 #include <scwx/qt/ui/county_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
+#include <scwx/qt/ui/settings/hotkey_settings_widget.hpp>
 #include <scwx/qt/util/color.hpp>
 #include <scwx/qt/util/file.hpp>
 #include <scwx/util/logger.hpp>
@@ -177,6 +178,7 @@ public:
    void SetupPalettesAlertsTab();
    void SetupAudioTab();
    void SetupTextTab();
+   void SetupHotkeysTab();
 
    void ShowColorDialog(QLineEdit* lineEdit, QFrame* frame = nullptr);
    void UpdateRadarDialogLocation(const std::string& id);
@@ -215,6 +217,9 @@ public:
       manager::MediaManager::Instance()};
    std::shared_ptr<manager::PositionManager> positionManager_ {
       manager::PositionManager::Instance()};
+
+   std::vector<SettingsPageWidget*> settingsPages_ {};
+   HotkeySettingsWidget*            hotkeySettingsWidget_ {};
 
    settings::SettingsInterface<std::string>  defaultRadarSite_ {};
    settings::SettingsInterface<std::int64_t> gridWidth_ {};
@@ -288,6 +293,9 @@ SettingsDialog::SettingsDialog(QWidget* parent) :
 
    // Text
    p->SetupTextTab();
+
+   // Hotkeys
+   p->SetupHotkeysTab();
 
    p->ConnectSignals();
 }
@@ -1171,6 +1179,16 @@ void SettingsDialogImpl::SetupTextTab()
       self_->ui->radarSiteHoverTextCheckBox);
 }
 
+void SettingsDialogImpl::SetupHotkeysTab()
+{
+   QVBoxLayout* layout = new QVBoxLayout(self_->ui->hotkeys);
+
+   hotkeySettingsWidget_ = new HotkeySettingsWidget(self_->ui->hotkeys);
+   layout->addWidget(hotkeySettingsWidget_);
+
+   settingsPages_.push_back(hotkeySettingsWidget_);
+}
+
 QImage SettingsDialogImpl::GenerateColorTableImage(
    std::shared_ptr<common::ColorTable> colorTable,
    std::uint16_t                       min,
@@ -1343,6 +1361,11 @@ void SettingsDialogImpl::ApplyChanges()
       committed |= setting->Commit();
    }
 
+   for (auto& page : settingsPages_)
+   {
+      committed |= page->CommitChanges();
+   }
+
    if (committed)
    {
       manager::SettingsManager::Instance().SaveSettings();
@@ -1357,6 +1380,11 @@ void SettingsDialogImpl::DiscardChanges()
    {
       setting->Reset();
    }
+
+   for (auto& page : settingsPages_)
+   {
+      page->DiscardChanges();
+   }
 }
 
 void SettingsDialogImpl::ResetToDefault()
@@ -1366,6 +1394,11 @@ void SettingsDialogImpl::ResetToDefault()
    for (auto& setting : settings_)
    {
       setting->StageDefault();
+   }
+
+   for (auto& page : settingsPages_)
+   {
+      page->ResetToDefault();
    }
 }
 
