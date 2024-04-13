@@ -24,8 +24,8 @@ public:
    explicit HotkeyManager();
    ~HotkeyManager();
 
-   void HandleKeyPress(QKeyEvent* event);
-   void HandleKeyRelease(QKeyEvent* event);
+   bool HandleKeyPress(QKeyEvent* event);
+   bool HandleKeyRelease(QKeyEvent* event);
 
    static std::shared_ptr<HotkeyManager> Instance();
 

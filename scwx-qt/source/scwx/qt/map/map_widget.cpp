@@ -359,28 +359,33 @@ void MapWidgetImpl::HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat)
    switch (hotkey)
    {
    case types::Hotkey::ChangeMapStyle:
-      widget_->changeStyle();
+      if (context_->settings().isActive_)
+      {
+         widget_->changeStyle();
+      }
       break;
 
    case types::Hotkey::CopyCursorCoordinates:
-   {
-      QClipboard* clipboard  = QGuiApplication::clipboard();
-      auto        coordinate = map_->coordinateForPixel(lastPos_);
-      std::string text =
-         fmt::format("{}, {}", coordinate.first, coordinate.second);
-      clipboard->setText(QString::fromStdString(text));
+      if (hasMouse_)
+      {
+         QClipboard* clipboard  = QGuiApplication::clipboard();
+         auto        coordinate = map_->coordinateForPixel(lastPos_);
+         std::string text =
+            fmt::format("{}, {}", coordinate.first, coordinate.second);
+         clipboard->setText(QString::fromStdString(text));
+      }
       break;
-   }
 
    case types::Hotkey::CopyMapCoordinates:
-   {
-      QClipboard* clipboard  = QGuiApplication::clipboard();
-      auto        coordinate = map_->coordinate();
-      std::string text =
-         fmt::format("{}, {}", coordinate.first, coordinate.second);
-      clipboard->setText(QString::fromStdString(text));
+      if (context_->settings().isActive_)
+      {
+         QClipboard* clipboard  = QGuiApplication::clipboard();
+         auto        coordinate = map_->coordinate();
+         std::string text =
+            fmt::format("{}, {}", coordinate.first, coordinate.second);
+         clipboard->setText(QString::fromStdString(text));
+      }
       break;
-   }
 
    default:
       break;
@@ -391,6 +396,8 @@ void MapWidgetImpl::HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat)
 
 void MapWidgetImpl::HandleHotkeyReleased(types::Hotkey hotkey)
 {
+   // Erase the hotkey from the active set regardless of whether this is the
+   // active map
    activeHotkeys_.erase(hotkey);
 }
 
@@ -408,6 +415,14 @@ void MapWidgetImpl::HandleHotkeyUpdates()
       std::min(std::chrono::duration_cast<std::chrono::milliseconds>(
                   hotkeyTime - prevHotkeyTime_),
                100ms);
+
+   prevHotkeyTime_ = hotkeyTime;
+
+   if (!context_->settings().isActive_)
+   {
+      // Don't attempt to handle a hotkey if this is not the active map
+      return;
+   }
 
    for (auto& hotkey : activeHotkeys_)
    {
@@ -480,8 +495,6 @@ void MapWidgetImpl::HandleHotkeyUpdates()
          break;
       }
    }
-
-   prevHotkeyTime_ = hotkeyTime;
 }
 
 common::Level3ProductCategoryMap MapWidget::GetAvailableLevel3Categories()
@@ -1212,16 +1225,18 @@ void MapWidget::leaveEvent(QEvent* /* ev */)
 
 void MapWidget::keyPressEvent(QKeyEvent* ev)
 {
-   p->hotkeyManager_->HandleKeyPress(ev);
-
-   ev->accept();
+   if (p->hotkeyManager_->HandleKeyPress(ev))
+   {
+      ev->accept();
+   }
 }
 
 void MapWidget::keyReleaseEvent(QKeyEvent* ev)
 {
-   p->hotkeyManager_->HandleKeyRelease(ev);
-
-   ev->accept();
+   if (p->hotkeyManager_->HandleKeyRelease(ev))
+   {
+      ev->accept();
+   }
 }
 
 void MapWidget::mousePressEvent(QMouseEvent* ev)

@@ -64,34 +64,44 @@ void HotkeyManager::Impl::UpdateHotkey(types::Hotkey      hotkey,
                              QKeySequence {QString::fromStdString(value)});
 }
 
-void HotkeyManager::HandleKeyPress(QKeyEvent* ev)
+bool HotkeyManager::HandleKeyPress(QKeyEvent* ev)
 {
    logger_->trace("HandleKeyPress: {}, {}",
                   ev->keyCombination().toCombined(),
                   ev->isAutoRepeat());
 
+   bool hotkeyPressed = false;
+
    for (auto& hotkey : p->hotkeys_)
    {
       if (hotkey.second.count() == 1 &&
           hotkey.second[0] == ev->keyCombination())
       {
+         hotkeyPressed = true;
          Q_EMIT HotkeyPressed(hotkey.first, ev->isAutoRepeat());
       }
    }
+
+   return hotkeyPressed;
 }
 
-void HotkeyManager::HandleKeyRelease(QKeyEvent* ev)
+bool HotkeyManager::HandleKeyRelease(QKeyEvent* ev)
 {
    logger_->trace("HandleKeyRelease: {}", ev->keyCombination().toCombined());
+
+   bool hotkeyReleased = false;
 
    for (auto& hotkey : p->hotkeys_)
    {
       if (hotkey.second.count() == 1 &&
           hotkey.second[0] == ev->keyCombination())
       {
+         hotkeyReleased = true;
          Q_EMIT HotkeyReleased(hotkey.first);
       }
    }
+
+   return hotkeyReleased;
 }
 
 std::shared_ptr<HotkeyManager> HotkeyManager::Instance()

@@ -26,6 +26,8 @@ public:
    MainWindow(QWidget* parent = nullptr);
    ~MainWindow();
 
+   void keyPressEvent(QKeyEvent* ev) override final;
+   void keyReleaseEvent(QKeyEvent* ev) override final;
    void showEvent(QShowEvent* event) override;
 
 signals:
