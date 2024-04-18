@@ -2,6 +2,7 @@
 
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/qt/settings/settings_variable.hpp>
+#include <scwx/qt/ui/hotkey_edit.hpp>
 
 #include <boost/tokenizer.hpp>
 #include <fmt/ranges.h>
@@ -155,7 +156,27 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
       return;
    }
 
-   if (QLineEdit* lineEdit = dynamic_cast<QLineEdit*>(widget))
+   if (ui::HotkeyEdit* hotkeyEdit = dynamic_cast<ui::HotkeyEdit*>(widget))
+   {
+      if constexpr (std::is_same_v<T, std::string>)
+      {
+         QObject::connect(hotkeyEdit,
+                          &ui::HotkeyEdit::KeySequenceChanged,
+                          p->context_.get(),
+                          [this](const QKeySequence& sequence)
+                          {
+                             std::string value {
+                                sequence.toString().toStdString()};
+
+                             // Attempt to stage the value
+                             p->stagedValid_ = p->variable_->StageValue(value);
+                             p->UpdateResetButton();
+
+                             // TODO: Display invalid status
+                          });
+      }
+   }
+   else if (QLineEdit* lineEdit = dynamic_cast<QLineEdit*>(widget))
    {
       if constexpr (std::is_same_v<T, std::string>)
       {
@@ -487,7 +508,16 @@ void SettingsInterface<T>::Impl::UpdateEditWidget()
    const T                value        = variable_->GetValue();
    const T&               currentValue = staged.has_value() ? *staged : value;
 
-   if (QLineEdit* lineEdit = dynamic_cast<QLineEdit*>(editWidget_))
+   if (ui::HotkeyEdit* hotkeyEdit = dynamic_cast<ui::HotkeyEdit*>(editWidget_))
+   {
+      if constexpr (std::is_same_v<T, std::string>)
+      {
+         QKeySequence keySequence =
+            QKeySequence::fromString(QString::fromStdString(currentValue));
+         hotkeyEdit->set_key_sequence(keySequence);
+      }
+   }
+   else if (QLineEdit* lineEdit = dynamic_cast<QLineEdit*>(editWidget_))
    {
       SetWidgetText(lineEdit, currentValue);
    }

@@ -1,6 +1,7 @@
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/gl/gl.hpp>
 #include <scwx/qt/manager/font_manager.hpp>
+#include <scwx/qt/manager/hotkey_manager.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/map/alert_layer.hpp>
@@ -39,6 +40,7 @@
 #include <imgui.h>
 #include <re2/re2.h>
 #include <QApplication>
+#include <QClipboard>
 #include <QColor>
 #include <QDebug>
 #include <QFile>
@@ -147,6 +149,9 @@ public:
                           const std::string& before);
    void ConnectMapSignals();
    void ConnectSignals();
+   void HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat);
+   void HandleHotkeyReleased(types::Hotkey hotkey);
+   void HandleHotkeyUpdates();
    void ImGuiCheckFonts();
    void InitializeNewRadarProductView(const std::string& colorPalette);
    void RadarProductManagerConnect();
@@ -190,6 +195,8 @@ public:
    std::shared_ptr<model::LayerModel> layerModel_ {
       model::LayerModel::Instance()};
 
+   std::shared_ptr<manager::HotkeyManager> hotkeyManager_ {
+      manager::HotkeyManager::Instance()};
    std::shared_ptr<manager::PlacefileManager> placefileManager_ {
       manager::PlacefileManager::Instance()};
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
@@ -226,6 +233,9 @@ public:
    double prevZoom_;
    double prevBearing_;
    double prevPitch_;
+
+   std::set<types::Hotkey>               activeHotkeys_ {};
+   std::chrono::system_clock::time_point prevHotkeyTime_ {};
 
 public slots:
    void Update();
@@ -331,6 +341,160 @@ void MapWidgetImpl::ConnectSignals()
            [this](const QModelIndex& /* parent */, //
                   int /* first */,
                   int /* last */) { AddLayers(); });
+
+   connect(hotkeyManager_.get(),
+           &manager::HotkeyManager::HotkeyPressed,
+           this,
+           &MapWidgetImpl::HandleHotkeyPressed);
+   connect(hotkeyManager_.get(),
+           &manager::HotkeyManager::HotkeyReleased,
+           this,
+           &MapWidgetImpl::HandleHotkeyReleased);
+}
+
+void MapWidgetImpl::HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat)
+{
+   Q_UNUSED(isAutoRepeat);
+
+   switch (hotkey)
+   {
+   case types::Hotkey::ChangeMapStyle:
+      if (context_->settings().isActive_)
+      {
+         widget_->changeStyle();
+      }
+      break;
+
+   case types::Hotkey::CopyCursorCoordinates:
+      if (hasMouse_)
+      {
+         QClipboard* clipboard  = QGuiApplication::clipboard();
+         auto        coordinate = map_->coordinateForPixel(lastPos_);
+         std::string text =
+            fmt::format("{}, {}", coordinate.first, coordinate.second);
+         clipboard->setText(QString::fromStdString(text));
+      }
+      break;
+
+   case types::Hotkey::CopyMapCoordinates:
+      if (context_->settings().isActive_)
+      {
+         QClipboard* clipboard  = QGuiApplication::clipboard();
+         auto        coordinate = map_->coordinate();
+         std::string text =
+            fmt::format("{}, {}", coordinate.first, coordinate.second);
+         clipboard->setText(QString::fromStdString(text));
+      }
+      break;
+
+   default:
+      break;
+   }
+
+   activeHotkeys_.insert(hotkey);
+}
+
+void MapWidgetImpl::HandleHotkeyReleased(types::Hotkey hotkey)
+{
+   // Erase the hotkey from the active set regardless of whether this is the
+   // active map
+   activeHotkeys_.erase(hotkey);
+}
+
+void MapWidgetImpl::HandleHotkeyUpdates()
+{
+   using namespace std::chrono_literals;
+
+   static constexpr float  kMapPanFactor    = 0.2f;
+   static constexpr float  kMapRotateFactor = 0.2f;
+   static constexpr double kMapScaleFactor  = 1000.0;
+
+   std::chrono::system_clock::time_point hotkeyTime =
+      std::chrono::system_clock::now();
+   std::chrono::milliseconds hotkeyElapsed =
+      std::min(std::chrono::duration_cast<std::chrono::milliseconds>(
+                  hotkeyTime - prevHotkeyTime_),
+               100ms);
+
+   prevHotkeyTime_ = hotkeyTime;
+
+   if (!context_->settings().isActive_)
+   {
+      // Don't attempt to handle a hotkey if this is not the active map
+      return;
+   }
+
+   for (auto& hotkey : activeHotkeys_)
+   {
+      switch (hotkey)
+      {
+      case types::Hotkey::MapPanUp:
+      {
+         QPointF delta {0.0f, kMapPanFactor * hotkeyElapsed.count()};
+         map_->moveBy(delta);
+         break;
+      }
+
+      case types::Hotkey::MapPanDown:
+      {
+         QPointF delta {0.0f, -kMapPanFactor * hotkeyElapsed.count()};
+         map_->moveBy(delta);
+         break;
+      }
+
+      case types::Hotkey::MapPanLeft:
+      {
+         QPointF delta {kMapPanFactor * hotkeyElapsed.count(), 0.0f};
+         map_->moveBy(delta);
+         break;
+      }
+
+      case types::Hotkey::MapPanRight:
+      {
+         QPointF delta {-kMapPanFactor * hotkeyElapsed.count(), 0.0f};
+         map_->moveBy(delta);
+         break;
+      }
+
+      case types::Hotkey::MapRotateClockwise:
+      {
+         QPointF delta {-kMapRotateFactor * hotkeyElapsed.count(), 0.0f};
+         map_->rotateBy({}, delta);
+         break;
+      }
+
+      case types::Hotkey::MapRotateCounterclockwise:
+      {
+         QPointF delta {kMapRotateFactor * hotkeyElapsed.count(), 0.0f};
+         map_->rotateBy({}, delta);
+         break;
+      }
+
+      case types::Hotkey::MapZoomIn:
+      {
+         auto    widgetSize = widget_->size();
+         QPointF center     = {widgetSize.width() * 0.5f,
+                               widgetSize.height() * 0.5f};
+         double  scale = std::pow(2.0, hotkeyElapsed.count() / kMapScaleFactor);
+         map_->scaleBy(scale, center);
+         break;
+      }
+
+      case types::Hotkey::MapZoomOut:
+      {
+         auto    widgetSize = widget_->size();
+         QPointF center     = {widgetSize.width() * 0.5f,
+                               widgetSize.height() * 0.5f};
+         double  scale =
+            1.0 / std::pow(2.0, hotkeyElapsed.count() / kMapScaleFactor);
+         map_->scaleBy(scale, center);
+         break;
+      }
+
+      default:
+         break;
+      }
+   }
 }
 
 common::Level3ProductCategoryMap MapWidget::GetAvailableLevel3Categories()
@@ -1061,16 +1225,18 @@ void MapWidget::leaveEvent(QEvent* /* ev */)
 
 void MapWidget::keyPressEvent(QKeyEvent* ev)
 {
-   switch (ev->key())
+   if (p->hotkeyManager_->HandleKeyPress(ev))
    {
-   case Qt::Key_S:
-      changeStyle();
-      break;
-   default:
-      break;
+      ev->accept();
    }
+}
 
-   ev->accept();
+void MapWidget::keyReleaseEvent(QKeyEvent* ev)
+{
+   if (p->hotkeyManager_->HandleKeyRelease(ev))
+   {
+      ev->accept();
+   }
 }
 
 void MapWidget::mousePressEvent(QMouseEvent* ev)
@@ -1196,6 +1362,9 @@ void MapWidget::paintGL()
       types::FontCategory::Default);
 
    p->frameDraws_++;
+
+   // Handle hotkey updates
+   p->HandleHotkeyUpdates();
 
    // Setup ImGui Frame
    ImGui::SetCurrentContext(p->imGuiContext_);

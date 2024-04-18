@@ -1,5 +1,6 @@
 #include <scwx/qt/ui/level3_products_widget.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
+#include <scwx/qt/manager/hotkey_manager.hpp>
 #include <scwx/qt/settings/product_settings.hpp>
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/util/logger.hpp>
@@ -127,9 +128,15 @@ public:
 
       stiPastEnabled_.SetEditWidget(stiPastEnableCheckBox);
       stiForecastEnabled_.SetEditWidget(stiForecastEnableCheckBox);
+
+      QObject::connect(hotkeyManager_.get(),
+                       &manager::HotkeyManager::HotkeyPressed,
+                       this,
+                       &Level3ProductsWidgetImpl::HandleHotkeyPressed);
    }
    ~Level3ProductsWidgetImpl() = default;
 
+   void HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat);
    void NormalizeProductButtons();
    void SelectProductCategory(common::Level3ProductCategory category);
    void UpdateCategorySelection(common::Level3ProductCategory category);
@@ -144,10 +151,16 @@ public:
                       std::unordered_map<std::string, QMenu*>>
       categoryMenuMap_;
 
+   std::shared_ptr<manager::HotkeyManager> hotkeyManager_ {
+      manager::HotkeyManager::Instance()};
+
    std::unordered_map<std::string, std::vector<QAction*>> productTiltMap_;
 
    std::unordered_map<QAction*, std::string> awipsProductMap_;
    std::shared_mutex                         awipsProductMutex_;
+
+   std::string currentAwipsId_ {};
+   QAction*    currentProductTiltAction_ {nullptr};
 
    settings::SettingsInterface<bool> stiPastEnabled_ {};
    settings::SettingsInterface<bool> stiForecastEnabled_ {};
@@ -165,6 +178,84 @@ void Level3ProductsWidget::showEvent(QShowEvent* event)
    QWidget::showEvent(event);
 
    p->NormalizeProductButtons();
+}
+
+void Level3ProductsWidgetImpl::HandleHotkeyPressed(types::Hotkey hotkey,
+                                                   bool          isAutoRepeat)
+{
+   if (hotkey != types::Hotkey::ProductTiltDecrease &&
+       hotkey != types::Hotkey::ProductTiltIncrease)
+   {
+      // Not handling this hotkey
+      return;
+   }
+
+   logger_->trace("Handling hotkey: {}, repeat: {}",
+                  types::GetHotkeyShortName(hotkey),
+                  isAutoRepeat);
+
+   std::string currentAwipsId           = currentAwipsId_;
+   QAction*    currentProductTiltAction = currentProductTiltAction_;
+
+   if (currentProductTiltAction == nullptr || currentAwipsId.empty() ||
+       currentAwipsId == "?")
+   {
+      // Level 3 product is not selected
+      return;
+   }
+
+   // Get product
+   std::string product = common::GetLevel3ProductByAwipsId(currentAwipsId);
+   if (product == "?")
+   {
+      logger_->error("Invalid AWIPS ID: {}", currentAwipsId);
+      return;
+   }
+
+   std::shared_lock lock {awipsProductMutex_};
+
+   // Find the current product tilt
+   auto productTiltsIt = productTiltMap_.find(product);
+   if (productTiltsIt == productTiltMap_.cend())
+   {
+      logger_->error("Could not find product tilt map: {}",
+                     common::GetLevel3ProductDescription(product));
+      return;
+   }
+
+   auto& productTilts  = productTiltsIt->second;
+   auto  productTiltIt = std::find(
+      productTilts.cbegin(), productTilts.cend(), currentProductTiltAction);
+   if (productTiltIt == productTilts.cend())
+   {
+      logger_->error("Could not locate product tilt: {}", currentAwipsId);
+      return;
+   }
+
+   std::ptrdiff_t productTiltIndex =
+      std::distance(productTilts.cbegin(), productTiltIt);
+
+   // Determine the new product tilt index
+   std::ptrdiff_t newProductTiltIndex =
+      (hotkey == types::Hotkey::ProductTiltDecrease) ? productTiltIndex - 1 :
+                                                       productTiltIndex + 1;
+
+   // Validate the new product tilt index
+   if (newProductTiltIndex < 0 ||
+       newProductTiltIndex >=
+          static_cast<std::ptrdiff_t>(productTilts.size()) ||
+       !productTilts.at(newProductTiltIndex)->isVisible())
+   {
+      const std::string direction =
+         (hotkey == types::Hotkey::ProductTiltDecrease) ? "lower" : "upper";
+
+      logger_->info("Product tilt at {} limit", direction);
+
+      return;
+   }
+
+   // Select the new tilt
+   productTilts.at(newProductTiltIndex)->trigger();
 }
 
 void Level3ProductsWidgetImpl::NormalizeProductButtons()
@@ -283,6 +374,8 @@ void Level3ProductsWidget::UpdateProductSelection(
    else
    {
       p->UpdateCategorySelection(common::Level3ProductCategory::Unknown);
+      p->currentAwipsId_.erase();
+      p->currentProductTiltAction_ = nullptr;
    }
 }
 
@@ -293,7 +386,7 @@ void Level3ProductsWidgetImpl::UpdateCategorySelection(
 
    std::for_each(categoryButtons_.cbegin(),
                  categoryButtons_.cend(),
-                 [&](auto& toolButton)
+                 [&, this](auto& toolButton)
                  {
                     if (toolButton->text().toStdString() == categoryName)
                     {
@@ -313,10 +406,25 @@ void Level3ProductsWidgetImpl::UpdateProductSelection(
 {
    std::shared_lock lock {awipsProductMutex_};
 
+   QAction* newProductTilt = nullptr;
+
    std::for_each(awipsProductMap_.cbegin(),
                  awipsProductMap_.cend(),
-                 [=](const auto& pair)
-                 { pair.first->setChecked(pair.second == awipsId); });
+                 [&, this](const auto& pair)
+                 {
+                    if (pair.second == awipsId)
+                    {
+                       newProductTilt = pair.first;
+                       pair.first->setChecked(true);
+                    }
+                    else
+                    {
+                       pair.first->setChecked(false);
+                    }
+                 });
+
+   currentAwipsId_           = awipsId;
+   currentProductTiltAction_ = newProductTilt;
 }
 
 } // namespace ui

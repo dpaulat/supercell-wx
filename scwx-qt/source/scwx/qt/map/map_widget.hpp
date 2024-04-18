@@ -125,6 +125,7 @@ private:
    bool event(QEvent* e) override;
    void enterEvent(QEnterEvent* ev) override final;
    void keyPressEvent(QKeyEvent* ev) override final;
+   void keyReleaseEvent(QKeyEvent* ev) override final;
    void leaveEvent(QEvent* ev) override final;
    void mousePressEvent(QMouseEvent* ev) override final;
    void mouseMoveEvent(QMouseEvent* ev) override final;

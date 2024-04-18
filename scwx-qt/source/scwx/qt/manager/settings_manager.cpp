@@ -2,6 +2,7 @@
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/settings/audio_settings.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/settings/hotkey_settings.hpp>
 #include <scwx/qt/settings/map_settings.hpp>
 #include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/settings/product_settings.hpp>
@@ -132,6 +133,7 @@ boost::json::value SettingsManager::Impl::ConvertSettingsToJson()
 
    settings::GeneralSettings::Instance().WriteJson(settingsJson);
    settings::AudioSettings::Instance().WriteJson(settingsJson);
+   settings::HotkeySettings::Instance().WriteJson(settingsJson);
    settings::MapSettings::Instance().WriteJson(settingsJson);
    settings::PaletteSettings::Instance().WriteJson(settingsJson);
    settings::ProductSettings::Instance().WriteJson(settingsJson);
@@ -147,6 +149,7 @@ void SettingsManager::Impl::GenerateDefaultSettings()
 
    settings::GeneralSettings::Instance().SetDefaults();
    settings::AudioSettings::Instance().SetDefaults();
+   settings::HotkeySettings::Instance().SetDefaults();
    settings::MapSettings::Instance().SetDefaults();
    settings::PaletteSettings::Instance().SetDefaults();
    settings::ProductSettings::Instance().SetDefaults();
@@ -163,6 +166,7 @@ bool SettingsManager::Impl::LoadSettings(
 
    jsonDirty |= !settings::GeneralSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::AudioSettings::Instance().ReadJson(settingsJson);
+   jsonDirty |= !settings::HotkeySettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::MapSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::PaletteSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::ProductSettings::Instance().ReadJson(settingsJson);

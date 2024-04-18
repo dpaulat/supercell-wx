@@ -88,6 +88,7 @@ set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
 set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/download_manager.hpp
                 source/scwx/qt/manager/font_manager.hpp
+                source/scwx/qt/manager/hotkey_manager.hpp
                 source/scwx/qt/manager/media_manager.hpp
                 source/scwx/qt/manager/placefile_manager.hpp
                 source/scwx/qt/manager/position_manager.hpp
@@ -101,6 +102,7 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
 set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                 source/scwx/qt/manager/download_manager.cpp
                 source/scwx/qt/manager/font_manager.cpp
+                source/scwx/qt/manager/hotkey_manager.cpp
                 source/scwx/qt/manager/media_manager.cpp
                 source/scwx/qt/manager/placefile_manager.cpp
                 source/scwx/qt/manager/position_manager.cpp
@@ -162,6 +164,7 @@ set(SRC_REQUEST source/scwx/qt/request/download_request.cpp
                 source/scwx/qt/request/nexrad_file_request.cpp)
 set(HDR_SETTINGS source/scwx/qt/settings/audio_settings.hpp
                  source/scwx/qt/settings/general_settings.hpp
+                 source/scwx/qt/settings/hotkey_settings.hpp
                  source/scwx/qt/settings/map_settings.hpp
                  source/scwx/qt/settings/palette_settings.hpp
                  source/scwx/qt/settings/product_settings.hpp
@@ -176,6 +179,7 @@ set(HDR_SETTINGS source/scwx/qt/settings/audio_settings.hpp
                  source/scwx/qt/settings/ui_settings.hpp)
 set(SRC_SETTINGS source/scwx/qt/settings/audio_settings.cpp
                  source/scwx/qt/settings/general_settings.cpp
+                 source/scwx/qt/settings/hotkey_settings.cpp
                  source/scwx/qt/settings/map_settings.cpp
                  source/scwx/qt/settings/palette_settings.cpp
                  source/scwx/qt/settings/product_settings.cpp
@@ -191,6 +195,7 @@ set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/event_types.hpp
               source/scwx/qt/types/font_types.hpp
               source/scwx/qt/types/github_types.hpp
+              source/scwx/qt/types/hotkey_types.hpp
               source/scwx/qt/types/icon_types.hpp
               source/scwx/qt/types/imgui_font.hpp
               source/scwx/qt/types/layer_types.hpp
@@ -205,6 +210,7 @@ set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/time_types.hpp)
 set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/github_types.cpp
+              source/scwx/qt/types/hotkey_types.cpp
               source/scwx/qt/types/icon_types.cpp
               source/scwx/qt/types/imgui_font.cpp
               source/scwx/qt/types/layer_types.cpp
@@ -225,6 +231,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/county_dialog.hpp
            source/scwx/qt/ui/download_dialog.hpp
            source/scwx/qt/ui/flow_layout.hpp
+           source/scwx/qt/ui/hotkey_edit.hpp
            source/scwx/qt/ui/imgui_debug_dialog.hpp
            source/scwx/qt/ui/imgui_debug_widget.hpp
            source/scwx/qt/ui/layer_dialog.hpp
@@ -247,6 +254,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/county_dialog.cpp
            source/scwx/qt/ui/download_dialog.cpp
            source/scwx/qt/ui/flow_layout.cpp
+           source/scwx/qt/ui/hotkey_edit.cpp
            source/scwx/qt/ui/imgui_debug_dialog.cpp
            source/scwx/qt/ui/imgui_debug_widget.cpp
            source/scwx/qt/ui/layer_dialog.cpp
@@ -276,6 +284,10 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/radar_site_dialog.ui
            source/scwx/qt/ui/settings_dialog.ui
            source/scwx/qt/ui/update_dialog.ui)
+set(HDR_UI_SETTINGS source/scwx/qt/ui/settings/hotkey_settings_widget.hpp
+                    source/scwx/qt/ui/settings/settings_page_widget.hpp)
+set(SRC_UI_SETTINGS source/scwx/qt/ui/settings/hotkey_settings_widget.cpp
+                    source/scwx/qt/ui/settings/settings_page_widget.cpp)
 set(HDR_UI_SETUP source/scwx/qt/ui/setup/audio_codec_page.hpp
                  source/scwx/qt/ui/setup/finish_page.hpp
                  source/scwx/qt/ui/setup/map_layout_page.hpp
@@ -387,6 +399,8 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${HDR_UI}
                     ${SRC_UI}
                     ${UI_UI}
+                    ${HDR_UI_SETTINGS}
+                    ${SRC_UI_SETTINGS}
                     ${HDR_UI_SETUP}
                     ${SRC_UI_SETUP}
                     ${HDR_UTIL}
@@ -400,41 +414,43 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${CMAKE_FILES})
 set(EXECUTABLE_SOURCES ${SRC_EXE_MAIN})
 
-source_group("Header Files\\main"      FILES ${HDR_MAIN})
-source_group("Source Files\\main"      FILES ${SRC_MAIN})
-source_group("Header Files\\config"    FILES ${HDR_CONFIG})
-source_group("Source Files\\config"    FILES ${SRC_CONFIG})
-source_group("Source Files\\external"  FILES ${SRC_EXTERNAL})
-source_group("Header Files\\gl"        FILES ${HDR_GL})
-source_group("Source Files\\gl"        FILES ${SRC_GL})
-source_group("Header Files\\gl\\draw"  FILES ${HDR_GL_DRAW})
-source_group("Source Files\\gl\\draw"  FILES ${SRC_GL_DRAW})
-source_group("Header Files\\manager"   FILES ${HDR_MANAGER})
-source_group("Source Files\\manager"   FILES ${SRC_MANAGER})
-source_group("UI Files\\main"          FILES ${UI_MAIN})
-source_group("Header Files\\map"       FILES ${HDR_MAP})
-source_group("Source Files\\map"       FILES ${SRC_MAP})
-source_group("Header Files\\model"     FILES ${HDR_MODEL})
-source_group("Source Files\\model"     FILES ${SRC_MODEL})
-source_group("Header Files\\request"   FILES ${HDR_REQUEST})
-source_group("Source Files\\request"   FILES ${SRC_REQUEST})
-source_group("Header Files\\settings"  FILES ${HDR_SETTINGS})
-source_group("Source Files\\settings"  FILES ${SRC_SETTINGS})
-source_group("Header Files\\types"     FILES ${HDR_TYPES})
-source_group("Source Files\\types"     FILES ${SRC_TYPES})
-source_group("Header Files\\ui"        FILES ${HDR_UI})
-source_group("Source Files\\ui"        FILES ${SRC_UI})
-source_group("Header Files\\ui\\setup" FILES ${HDR_UI_SETUP})
-source_group("Source Files\\ui\\setup" FILES ${SRC_UI_SETUP})
-source_group("UI Files\\ui"            FILES ${UI_UI})
-source_group("Header Files\\util"      FILES ${HDR_UTIL})
-source_group("Source Files\\util"      FILES ${SRC_UTIL})
-source_group("Header Files\\view"      FILES ${HDR_VIEW})
-source_group("Source Files\\view"      FILES ${SRC_VIEW})
-source_group("OpenGL Shaders"          FILES ${SHADER_FILES})
-source_group("Resources"               FILES ${RESOURCE_FILES})
-source_group("Resources\\json"         FILES ${JSON_FILES})
-source_group("I18N Files"              FILES ${TS_FILES})
+source_group("Header Files\\main"         FILES ${HDR_MAIN})
+source_group("Source Files\\main"         FILES ${SRC_MAIN})
+source_group("Header Files\\config"       FILES ${HDR_CONFIG})
+source_group("Source Files\\config"       FILES ${SRC_CONFIG})
+source_group("Source Files\\external"     FILES ${SRC_EXTERNAL})
+source_group("Header Files\\gl"           FILES ${HDR_GL})
+source_group("Source Files\\gl"           FILES ${SRC_GL})
+source_group("Header Files\\gl\\draw"     FILES ${HDR_GL_DRAW})
+source_group("Source Files\\gl\\draw"     FILES ${SRC_GL_DRAW})
+source_group("Header Files\\manager"      FILES ${HDR_MANAGER})
+source_group("Source Files\\manager"      FILES ${SRC_MANAGER})
+source_group("UI Files\\main"             FILES ${UI_MAIN})
+source_group("Header Files\\map"          FILES ${HDR_MAP})
+source_group("Source Files\\map"          FILES ${SRC_MAP})
+source_group("Header Files\\model"        FILES ${HDR_MODEL})
+source_group("Source Files\\model"        FILES ${SRC_MODEL})
+source_group("Header Files\\request"      FILES ${HDR_REQUEST})
+source_group("Source Files\\request"      FILES ${SRC_REQUEST})
+source_group("Header Files\\settings"     FILES ${HDR_SETTINGS})
+source_group("Source Files\\settings"     FILES ${SRC_SETTINGS})
+source_group("Header Files\\types"        FILES ${HDR_TYPES})
+source_group("Source Files\\types"        FILES ${SRC_TYPES})
+source_group("Header Files\\ui"           FILES ${HDR_UI})
+source_group("Source Files\\ui"           FILES ${SRC_UI})
+source_group("Header Files\\ui\\settings" FILES ${HDR_UI_SETTINGS})
+source_group("Source Files\\ui\\settings" FILES ${SRC_UI_SETTINGS})
+source_group("Header Files\\ui\\setup"    FILES ${HDR_UI_SETUP})
+source_group("Source Files\\ui\\setup"    FILES ${SRC_UI_SETUP})
+source_group("UI Files\\ui"               FILES ${UI_UI})
+source_group("Header Files\\util"         FILES ${HDR_UTIL})
+source_group("Source Files\\util"         FILES ${SRC_UTIL})
+source_group("Header Files\\view"         FILES ${HDR_VIEW})
+source_group("Source Files\\view"         FILES ${SRC_VIEW})
+source_group("OpenGL Shaders"             FILES ${SHADER_FILES})
+source_group("Resources"                  FILES ${RESOURCE_FILES})
+source_group("Resources\\json"            FILES ${JSON_FILES})
+source_group("I18N Files"                 FILES ${TS_FILES})
 
 add_library(scwx-qt OBJECT ${PROJECT_SOURCES})
 set_property(TARGET scwx-qt PROPERTY AUTOMOC ON)

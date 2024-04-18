@@ -4,6 +4,7 @@
 #include <scwx/qt/main/application.hpp>
 #include <scwx/qt/main/versions.hpp>
 #include <scwx/qt/manager/alert_manager.hpp>
+#include <scwx/qt/manager/hotkey_manager.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
@@ -42,6 +43,7 @@
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
 #include <QDesktopServices>
+#include <QKeyEvent>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QSplitter>
@@ -197,7 +199,9 @@ public:
 
    QTimer clockTimer_ {};
 
-   std::shared_ptr<manager::AlertManager>     alertManager_;
+   std::shared_ptr<manager::AlertManager>  alertManager_;
+   std::shared_ptr<manager::HotkeyManager> hotkeyManager_ {
+      manager::HotkeyManager::Instance()};
    std::shared_ptr<manager::PlacefileManager> placefileManager_;
    std::shared_ptr<manager::PositionManager>  positionManager_;
    std::shared_ptr<manager::TextEventManager> textEventManager_;
@@ -396,6 +400,24 @@ MainWindow::MainWindow(QWidget* parent) :
 MainWindow::~MainWindow()
 {
    delete ui;
+}
+
+void MainWindow::keyPressEvent(QKeyEvent* ev)
+{
+   if (p->hotkeyManager_->HandleKeyPress(ev))
+   {
+      p->activeMap_->update();
+      ev->accept();
+   }
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent* ev)
+{
+   if (p->hotkeyManager_->HandleKeyRelease(ev))
+   {
+      p->activeMap_->update();
+      ev->accept();
+   }
 }
 
 void MainWindow::showEvent(QShowEvent* event)
