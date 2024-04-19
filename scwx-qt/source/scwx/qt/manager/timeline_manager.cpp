@@ -265,14 +265,14 @@ void TimelineManager::AnimationStepEnd()
 
 void TimelineManager::Impl::RadarSweepMonitorDisable()
 {
-   logger_->trace("RadarSweepMonitorDisable");
+   logger_->critical("RadarSweepMonitorDisable");
 
    radarSweepMonitorActive_ = false;
 }
 
 void TimelineManager::Impl::RadarSweepMonitorReset()
 {
-   logger_->trace("RadarSweepMonitorReset");
+   logger_->critical("RadarSweepMonitorReset");
 
    radarSweepsUpdated_.clear();
    radarSweepsComplete_.clear();
@@ -283,7 +283,7 @@ void TimelineManager::Impl::RadarSweepMonitorReset()
 void TimelineManager::Impl::RadarSweepMonitorWait(
    std::unique_lock<std::mutex>& lock)
 {
-   logger_->trace("RadarSweepMonitorWait");
+   logger_->critical("RadarSweepMonitorWait");
 
    std::cv_status status =
       radarSweepMonitorCondition_.wait_for(lock, kRadarSweepMonitorTimeout_);
@@ -301,7 +301,7 @@ void TimelineManager::ReceiveRadarSweepUpdated(std::size_t mapIndex)
       return;
    }
 
-   logger_->trace("ReceiveRadarSweepUpdated: {}", mapIndex);
+   logger_->critical("ReceiveRadarSweepUpdated: {}", mapIndex);
 
    std::unique_lock lock {p->radarSweepMonitorMutex_};
 
@@ -317,15 +317,15 @@ void TimelineManager::ReceiveRadarSweepNotUpdated(std::size_t mapIndex,
    {
       if (p->radarSweepMonitorActive_)
       {
-         logger_->trace("ReceiveRadarSweepNotUpdated (NotLoaded): {}",
-                        mapIndex);
+         logger_->critical("ReceiveRadarSweepNotUpdated (NotLoaded): {}",
+                           mapIndex);
       }
       return;
    }
 
-   logger_->trace("ReceiveRadarSweepNotUpdated: {}, {}",
-                  mapIndex,
-                  static_cast<int>(reason));
+   logger_->critical("ReceiveRadarSweepNotUpdated: {}, {}",
+                     mapIndex,
+                     static_cast<int>(reason));
 
    std::unique_lock lock {p->radarSweepMonitorMutex_};
 
@@ -335,7 +335,7 @@ void TimelineManager::ReceiveRadarSweepNotUpdated(std::size_t mapIndex,
    // If all sweeps have completed rendering
    if (p->radarSweepsComplete_.size() == p->mapCount_)
    {
-      logger_->trace("ReceiveRadarSweepNotUpdated Completed Rendering");
+      logger_->critical("ReceiveRadarSweepNotUpdated Completed Rendering");
 
       // Notify monitors
       p->radarSweepMonitorActive_ = false;
@@ -350,14 +350,14 @@ void TimelineManager::ReceiveMapWidgetPainted(std::size_t mapIndex)
       return;
    }
 
-   logger_->trace("ReceiveMapWidgetPainted: {}", mapIndex);
+   logger_->critical("ReceiveMapWidgetPainted: {}", mapIndex);
 
    std::unique_lock lock {p->radarSweepMonitorMutex_};
 
    // If the radar sweep has been updated
    if (p->radarSweepsUpdated_.contains(mapIndex))
    {
-      logger_->trace("ReceiveMapWidgetPainted Updated");
+      logger_->critical("ReceiveMapWidgetPainted Updated");
 
       // Mark the radar sweep complete
       p->radarSweepsUpdated_.erase(mapIndex);
@@ -366,7 +366,7 @@ void TimelineManager::ReceiveMapWidgetPainted(std::size_t mapIndex)
       // If all sweeps have completed rendering
       if (p->radarSweepsComplete_.size() == p->mapCount_)
       {
-         logger_->trace("ReceiveMapWidgetPainted Completed Rendering");
+         logger_->critical("ReceiveMapWidgetPainted Completed Rendering");
 
          // Notify monitors
          p->radarSweepMonitorActive_ = false;
@@ -608,8 +608,8 @@ std::pair<bool, bool> TimelineManager::Impl::SelectTime(
                     scwx::util::TimeString(selectedTime));
    }
 
-   logger_->trace("Selected time updated: {}",
-                  scwx::util::TimeString(selectedTime));
+   logger_->critical("Selected time updated: {}",
+                     scwx::util::TimeString(selectedTime));
 
    selectedTime_       = selectedTime;
    selectedTimeUpdated = true;
