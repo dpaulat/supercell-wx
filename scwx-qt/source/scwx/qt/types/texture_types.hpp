@@ -16,6 +16,8 @@ enum class ImageTexture
    CardinalPoint24,
    Compass24,
    Crosshairs24,
+   Cursor17,
+   Dot3,
    MapboxLogo,
    MapTilerLogo
 };
