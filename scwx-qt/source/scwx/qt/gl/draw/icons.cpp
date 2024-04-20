@@ -179,7 +179,7 @@ void Icons::Initialize()
                             reinterpret_cast<void*>(8 * sizeof(float)));
    gl.glEnableVertexAttribArray(4);
 
-   // aAngle
+   // aDisplayed
    gl.glVertexAttribPointer(5,
                             1,
                             GL_FLOAT,
@@ -316,57 +316,80 @@ std::shared_ptr<IconDrawItem> Icons::AddIcon()
 void Icons::SetIconVisible(const std::shared_ptr<IconDrawItem>& di,
                            bool                                 visible)
 {
-   di->visible_ = visible;
-   p->dirtyIcons_.insert(di);
+   if (di->visible_ != visible)
+   {
+      di->visible_ = visible;
+      p->dirtyIcons_.insert(di);
+   }
 }
 
 void Icons::SetIconTexture(const std::shared_ptr<IconDrawItem>& di,
                            const std::string&                   iconSheet,
                            std::size_t                          iconIndex)
 {
-   di->iconSheet_ = iconSheet;
-   di->iconIndex_ = iconIndex;
-   p->dirtyIcons_.insert(di);
+   if (di->iconSheet_ != iconSheet || di->iconIndex_ != iconIndex)
+   {
+      di->iconSheet_ = iconSheet;
+      di->iconIndex_ = iconIndex;
+      p->dirtyIcons_.insert(di);
+   }
 }
 
 void Icons::SetIconLocation(const std::shared_ptr<IconDrawItem>& di,
                             double                               x,
                             double                               y)
 {
-   di->x_ = x;
-   di->y_ = y;
-   p->dirtyIcons_.insert(di);
+   if (di->x_ != x || di->y_ != y)
+   {
+      di->x_ = x;
+      di->y_ = y;
+      p->dirtyIcons_.insert(di);
+   }
 }
 
 void Icons::SetIconAngle(const std::shared_ptr<IconDrawItem>& di,
                          units::angle::degrees<double>        angle)
 {
-   di->angle_ = angle;
-   p->dirtyIcons_.insert(di);
+   if (di->angle_ != angle)
+   {
+      di->angle_ = angle;
+      p->dirtyIcons_.insert(di);
+   }
 }
 
 void Icons::SetIconModulate(const std::shared_ptr<IconDrawItem>& di,
                             boost::gil::rgba8_pixel_t            modulate)
 {
-   di->modulate_ = {modulate[0] / 255.0f,
-                    modulate[1] / 255.0f,
-                    modulate[2] / 255.0f,
-                    modulate[3] / 255.0f};
-   p->dirtyIcons_.insert(di);
+   boost::gil::rgba32f_pixel_t newModulate = {modulate[0] / 255.0f,
+                                              modulate[1] / 255.0f,
+                                              modulate[2] / 255.0f,
+                                              modulate[3] / 255.0f};
+
+   if (di->modulate_ != newModulate)
+   {
+      di->modulate_ = newModulate;
+      p->dirtyIcons_.insert(di);
+   }
 }
 
 void Icons::SetIconModulate(const std::shared_ptr<IconDrawItem>& di,
                             boost::gil::rgba32f_pixel_t          modulate)
 {
-   di->modulate_ = modulate;
-   p->dirtyIcons_.insert(di);
+   if (di->modulate_ != modulate)
+   {
+      di->modulate_ = modulate;
+      p->dirtyIcons_.insert(di);
+   }
 }
 
 void Icons::SetIconHoverText(const std::shared_ptr<IconDrawItem>& di,
                              const std::string&                   text)
 {
-   di->hoverText_ = text;
-   p->dirtyIcons_.insert(di);
+   if (di->hoverText_ != text)
+   {
+      di->hoverText_ = text;
+      p->dirtyIcons_.insert(di);
+   }
 }
 
 void Icons::FinishIcons()
