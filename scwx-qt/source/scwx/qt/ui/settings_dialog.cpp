@@ -135,6 +135,7 @@ public:
           &defaultTimeZone_,
           &antiAliasingEnabled_,
           &showMapAttribution_,
+          &showMapCenter_,
           &showMapLogo_,
           &updateNotificationsEnabled_,
           &debugEnabled_,
@@ -233,6 +234,7 @@ public:
    settings::SettingsInterface<std::string>  theme_ {};
    settings::SettingsInterface<bool>         antiAliasingEnabled_ {};
    settings::SettingsInterface<bool>         showMapAttribution_ {};
+   settings::SettingsInterface<bool>         showMapCenter_ {};
    settings::SettingsInterface<bool>         showMapLogo_ {};
    settings::SettingsInterface<bool>         updateNotificationsEnabled_ {};
    settings::SettingsInterface<bool>         debugEnabled_ {};
@@ -665,6 +667,9 @@ void SettingsDialogImpl::SetupGeneralTab()
    showMapAttribution_.SetSettingsVariable(
       generalSettings.show_map_attribution());
    showMapAttribution_.SetEditWidget(self_->ui->showMapAttributionCheckBox);
+
+   showMapCenter_.SetSettingsVariable(generalSettings.show_map_center());
+   showMapCenter_.SetEditWidget(self_->ui->showMapCenterCheckBox);
 
    showMapLogo_.SetSettingsVariable(generalSettings.show_map_logo());
    showMapLogo_.SetEditWidget(self_->ui->showMapLogoCheckBox);

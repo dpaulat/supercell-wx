@@ -58,6 +58,7 @@ public:
       mapboxApiKey_.SetDefault("?");
       maptilerApiKey_.SetDefault("?");
       showMapAttribution_.SetDefault(true);
+      showMapCenter_.SetDefault(false);
       showMapLogo_.SetDefault(true);
       theme_.SetDefault(defaultThemeValue);
       trackLocation_.SetDefault(false);
@@ -122,6 +123,7 @@ public:
    SettingsVariable<std::string> mapboxApiKey_ {"mapbox_api_key"};
    SettingsVariable<std::string> maptilerApiKey_ {"maptiler_api_key"};
    SettingsVariable<bool>        showMapAttribution_ {"show_map_attribution"};
+   SettingsVariable<bool>        showMapCenter_ {"show_map_center"};
    SettingsVariable<bool>        showMapLogo_ {"show_map_logo"};
    SettingsVariable<std::string> theme_ {"theme"};
    SettingsVariable<bool>        trackLocation_ {"track_location"};
@@ -147,6 +149,7 @@ GeneralSettings::GeneralSettings() :
                       &p->mapboxApiKey_,
                       &p->maptilerApiKey_,
                       &p->showMapAttribution_,
+                      &p->showMapCenter_,
                       &p->showMapLogo_,
                       &p->theme_,
                       &p->trackLocation_,
@@ -240,6 +243,11 @@ SettingsVariable<bool>& GeneralSettings::show_map_attribution() const
    return p->showMapAttribution_;
 }
 
+SettingsVariable<bool>& GeneralSettings::show_map_center() const
+{
+   return p->showMapCenter_;
+}
+
 SettingsVariable<bool>& GeneralSettings::show_map_logo() const
 {
    return p->showMapLogo_;
@@ -297,6 +305,7 @@ bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
            lhs.p->mapboxApiKey_ == rhs.p->mapboxApiKey_ &&
            lhs.p->maptilerApiKey_ == rhs.p->maptilerApiKey_ &&
            lhs.p->showMapAttribution_ == rhs.p->showMapAttribution_ &&
+           lhs.p->showMapCenter_ == rhs.p->showMapCenter_ &&
            lhs.p->showMapLogo_ == rhs.p->showMapLogo_ &&
            lhs.p->theme_ == rhs.p->theme_ &&
            lhs.p->trackLocation_ == rhs.p->trackLocation_ &&
