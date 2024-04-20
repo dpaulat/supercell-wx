@@ -14,6 +14,7 @@ layout (location = 3) in vec4  aModulate;
 layout (location = 4) in float aAngleDeg;
 layout (location = 5) in int   aThreshold;
 layout (location = 6) in ivec2 aTimeRange;
+layout (location = 7) in int   aDisplayed;
 
 uniform mat4 uMVPMatrix;
 uniform mat4 uMapMatrix;

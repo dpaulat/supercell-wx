@@ -182,11 +182,10 @@ void OverlayLayer::Initialize()
 
    p->geoIcons_->StartIcons();
    p->locationIcon_ = p->geoIcons_->AddIcon();
-   gl::draw::GeoIcons::SetIconTexture(
-      p->locationIcon_, p->locationIconName_, 0);
-   gl::draw::GeoIcons::SetIconAngle(p->locationIcon_,
-                                    units::angle::degrees<double> {45.0});
-   gl::draw::GeoIcons::SetIconLocation(
+   p->geoIcons_->SetIconTexture(p->locationIcon_, p->locationIconName_, 0);
+   p->geoIcons_->SetIconAngle(p->locationIcon_,
+                              units::angle::degrees<double> {45.0});
+   p->geoIcons_->SetIconLocation(
       p->locationIcon_, coordinate.latitude(), coordinate.longitude());
    p->geoIcons_->FinishIcons();
 
@@ -272,10 +271,9 @@ void OverlayLayer::Initialize()
               if (position.isValid() &&
                   p->currentPosition_.coordinate() != coordinate)
               {
-                 gl::draw::GeoIcons::SetIconLocation(p->locationIcon_,
-                                                     coordinate.latitude(),
-                                                     coordinate.longitude());
-                 p->geoIcons_->FinishIcons();
+                 p->geoIcons_->SetIconLocation(p->locationIcon_,
+                                               coordinate.latitude(),
+                                               coordinate.longitude());
                  Q_EMIT NeedsRendering();
               }
               p->currentPosition_ = position;
