@@ -29,7 +29,7 @@ class SupercellWxConan(ConanFile):
 
     def requirements(self):
         if self.settings.os == "Linux":
-            self.requires("onetbb/2021.10.0")
+            self.requires("onetbb/2021.12.0")
 
     def imports(self):
         self.copy("*.dll", dst="bin", src="bin")
