@@ -43,8 +43,8 @@ vec2 latLngToScreenCoordinate(in vec2 latLng)
 
 void main()
 {
-   // Always set displayed to true
-   vsOut.displayed = 1;
+   // Pass displayed to the geometry shader
+   vsOut.displayed = aDisplayed;
 
    // Pass the threshold and time range to the geometry shader
    vsOut.threshold = aThreshold;

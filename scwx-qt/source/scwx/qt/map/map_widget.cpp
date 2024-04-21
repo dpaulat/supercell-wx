@@ -940,6 +940,20 @@ void MapWidget::SetMapStyle(const std::string& styleName)
    }
 }
 
+void MapWidget::UpdateMouseCoordinate(const common::Coordinate& coordinate)
+{
+   if (p->context_->mouse_coordinate() != coordinate)
+   {
+      p->context_->set_mouse_coordinate(coordinate);
+
+      if (QGuiApplication::keyboardModifiers() !=
+          Qt::KeyboardModifier::NoModifier)
+      {
+         update();
+      }
+   }
+}
+
 qreal MapWidget::pixelRatio()
 {
    return devicePixelRatioF();

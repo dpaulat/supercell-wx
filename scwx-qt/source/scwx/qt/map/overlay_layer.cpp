@@ -19,6 +19,7 @@
 
 #include <imgui.h>
 #include <QGeoPositionInfo>
+#include <QGuiApplication>
 #include <QMouseEvent>
 
 #if !defined(_MSC_VER)
@@ -114,10 +115,14 @@ public:
       types::GetTextureName(types::ImageTexture::Crosshairs24)};
    std::shared_ptr<gl::draw::GeoIconDrawItem> locationIcon_ {};
 
+   std::shared_ptr<gl::draw::GeoIconDrawItem> cursorIcon_ {};
+
    const std::string& cardinalPointIconName_ {
       types::GetTextureName(types::ImageTexture::CardinalPoint24)};
    const std::string& compassIconName_ {
       types::GetTextureName(types::ImageTexture::Compass24)};
+   const std::string& cursorIconName_ {
+      types::GetTextureName(types::ImageTexture::Dot3)};
    const std::string& mapCenterIconName_ {
       types::GetTextureName(types::ImageTexture::Cursor17)};
 
@@ -177,16 +182,22 @@ void OverlayLayer::Initialize()
 
    // Geo Icons
    p->geoIcons_->StartIconSheets();
+   p->geoIcons_->AddIconSheet(p->cursorIconName_);
    p->geoIcons_->AddIconSheet(p->locationIconName_);
    p->geoIcons_->FinishIconSheets();
 
    p->geoIcons_->StartIcons();
+
+   p->cursorIcon_ = p->geoIcons_->AddIcon();
+   p->geoIcons_->SetIconTexture(p->cursorIcon_, p->cursorIconName_, 0);
+
    p->locationIcon_ = p->geoIcons_->AddIcon();
    p->geoIcons_->SetIconTexture(p->locationIcon_, p->locationIconName_, 0);
    p->geoIcons_->SetIconAngle(p->locationIcon_,
                               units::angle::degrees<double> {45.0});
    p->geoIcons_->SetIconLocation(
       p->locationIcon_, coordinate.latitude(), coordinate.longitude());
+
    p->geoIcons_->FinishIcons();
 
    // Icons
@@ -326,9 +337,21 @@ void OverlayLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
       p->activeBoxInner_->SetBorder(1.0f * pixelRatio, {255, 255, 255, 255});
    }
 
+   // Cursor Icon
+   bool cursorIconVisible = QGuiApplication::keyboardModifiers() &
+                            Qt::KeyboardModifier::ControlModifier;
+   p->geoIcons_->SetIconVisible(p->cursorIcon_, cursorIconVisible);
+   if (cursorIconVisible)
+   {
+      common::Coordinate mouseCoordinate = context()->mouse_coordinate();
+      p->geoIcons_->SetIconLocation(
+         p->cursorIcon_, mouseCoordinate.latitude_, mouseCoordinate.longitude_);
+   }
+
    // Location Icon
-   p->geoIcons_->SetVisible(p->currentPosition_.isValid() &&
-                            p->positionManager_->IsLocationTracked());
+   p->geoIcons_->SetIconVisible(p->locationIcon_,
+                                p->currentPosition_.isValid() &&
+                                   p->positionManager_->IsLocationTracked());
 
    // Compass Icon
    if (params.width != p->lastWidth_ || params.height != p->lastHeight_ ||

@@ -117,6 +117,13 @@ public:
    void SetInitialMapStyle(const std::string& styleName);
    void SetMapStyle(const std::string& styleName);
 
+   /**
+    * Updates the coordinates associated with mouse movement from another map.
+    *
+    * @param [in] coordinate Coordinate of the mouse
+    */
+   void UpdateMouseCoordinate(const common::Coordinate& coordinate);
+
 private:
    void  changeStyle();
    qreal pixelRatio();
