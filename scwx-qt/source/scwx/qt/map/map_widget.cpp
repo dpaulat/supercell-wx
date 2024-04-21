@@ -224,6 +224,9 @@ public:
    const MapStyle* currentStyle_;
    std::string     initialStyleName_ {};
 
+   Qt::KeyboardModifiers lastKeyboardModifiers_ {
+      Qt::KeyboardModifier::NoModifier};
+
    std::shared_ptr<types::EventHandler> pickedEventHandler_ {nullptr};
 
    uint64_t frameDraws_;
@@ -940,6 +943,24 @@ void MapWidget::SetMapStyle(const std::string& styleName)
    }
 }
 
+void MapWidget::UpdateMouseCoordinate(const common::Coordinate& coordinate)
+{
+   if (p->context_->mouse_coordinate() != coordinate)
+   {
+      p->context_->set_mouse_coordinate(coordinate);
+
+      auto keyboardModifiers = QGuiApplication::keyboardModifiers();
+
+      if (keyboardModifiers != Qt::KeyboardModifier::NoModifier ||
+          keyboardModifiers != p->lastKeyboardModifiers_)
+      {
+         update();
+      }
+
+      p->lastKeyboardModifiers_ = keyboardModifiers;
+   }
+}
+
 qreal MapWidget::pixelRatio()
 {
    return devicePixelRatioF();
@@ -1311,7 +1332,7 @@ void MapWidget::initializeGL()
    logger_->debug("initializeGL()");
 
    makeCurrent();
-   p->context_->gl().initializeOpenGLFunctions();
+   p->context_->Initialize();
 
    // Lock ImGui font atlas prior to new ImGui frame
    std::shared_lock imguiFontAtlasLock {

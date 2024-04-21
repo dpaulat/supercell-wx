@@ -41,6 +41,7 @@ public:
    SettingsVariable<std::string>&                mapbox_api_key() const;
    SettingsVariable<std::string>&                maptiler_api_key() const;
    SettingsVariable<bool>&                       show_map_attribution() const;
+   SettingsVariable<bool>&                       show_map_center() const;
    SettingsVariable<bool>&                       show_map_logo() const;
    SettingsVariable<std::string>&                theme() const;
    SettingsVariable<bool>&                       track_location() const;

@@ -136,7 +136,8 @@ void GeoLines::set_thresholded(bool thresholded)
 
 void GeoLines::Initialize()
 {
-   gl::OpenGLFunctions& gl = p->context_->gl();
+   gl::OpenGLFunctions& gl   = p->context_->gl();
+   auto&                gl30 = p->context_->gl30();
 
    p->shaderProgram_ = p->context_->GetShaderProgram(
       {{GL_VERTEX_SHADER, ":/gl/geo_texture2d.vert"},
@@ -214,6 +215,9 @@ void GeoLines::Initialize()
                              kIntegersPerVertex_ * sizeof(GLint),
                              reinterpret_cast<void*>(1 * sizeof(GLint)));
    gl.glEnableVertexAttribArray(6);
+
+   // aDisplayed
+   gl30.glVertexAttribI1i(7, 1);
 
    p->dirty_ = true;
 }

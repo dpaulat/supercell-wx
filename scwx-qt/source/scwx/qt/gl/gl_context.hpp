@@ -3,6 +3,8 @@
 #include <scwx/qt/gl/gl.hpp>
 #include <scwx/qt/gl/shader_program.hpp>
 
+#include <QOpenGLFunctions_3_0>
+
 namespace scwx
 {
 namespace qt
@@ -22,7 +24,8 @@ public:
    GlContext(GlContext&&) noexcept;
    GlContext& operator=(GlContext&&) noexcept;
 
-   gl::OpenGLFunctions& gl();
+   gl::OpenGLFunctions&  gl();
+   QOpenGLFunctions_3_0& gl30();
 
    std::uint64_t texture_buffer_count() const;
 
@@ -33,6 +36,8 @@ public:
       std::initializer_list<std::pair<GLenum, std::string>> shaders);
 
    GLuint GetTextureAtlas();
+
+   void Initialize();
 
 private:
    class Impl;

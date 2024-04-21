@@ -824,6 +824,11 @@ void MainWindowImpl::ConnectMapSignals()
             coordinateLabel_->setText(
                QString("%1, %2").arg(latitude).arg(longitude));
             coordinateLabel_->setVisible(true);
+
+            for (auto& map : maps_)
+            {
+               map->UpdateMouseCoordinate(coordinate);
+            }
          },
          Qt::QueuedConnection);
 

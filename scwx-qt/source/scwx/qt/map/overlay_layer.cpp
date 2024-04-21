@@ -19,6 +19,7 @@
 
 #include <imgui.h>
 #include <QGeoPositionInfo>
+#include <QGuiApplication>
 #include <QMouseEvent>
 
 #if !defined(_MSC_VER)
@@ -69,6 +70,9 @@ public:
       showMapAttributionCallbackUuid_ =
          generalSettings.show_map_attribution().RegisterValueChangedCallback(
             [this](const bool&) { Q_EMIT self_->NeedsRendering(); });
+      showMapCenterCallbackUuid_ =
+         generalSettings.show_map_center().RegisterValueChangedCallback(
+            [this](const bool&) { Q_EMIT self_->NeedsRendering(); });
       showMapLogoCallbackUuid_ =
          generalSettings.show_map_logo().RegisterValueChangedCallback(
             [this](const bool&) { Q_EMIT self_->NeedsRendering(); });
@@ -84,6 +88,8 @@ public:
          defaultTimeZoneCallbackUuid_);
       generalSettings.show_map_attribution().UnregisterValueChangedCallback(
          showMapAttributionCallbackUuid_);
+      generalSettings.show_map_center().UnregisterValueChangedCallback(
+         showMapCenterCallbackUuid_);
       generalSettings.show_map_logo().UnregisterValueChangedCallback(
          showMapLogoCallbackUuid_);
    }
@@ -93,6 +99,7 @@ public:
    boost::uuids::uuid clockFormatCallbackUuid_;
    boost::uuids::uuid defaultTimeZoneCallbackUuid_;
    boost::uuids::uuid showMapAttributionCallbackUuid_;
+   boost::uuids::uuid showMapCenterCallbackUuid_;
    boost::uuids::uuid showMapLogoCallbackUuid_;
 
    std::shared_ptr<manager::PositionManager> positionManager_ {
@@ -108,10 +115,16 @@ public:
       types::GetTextureName(types::ImageTexture::Crosshairs24)};
    std::shared_ptr<gl::draw::GeoIconDrawItem> locationIcon_ {};
 
+   std::shared_ptr<gl::draw::GeoIconDrawItem> cursorIcon_ {};
+
    const std::string& cardinalPointIconName_ {
       types::GetTextureName(types::ImageTexture::CardinalPoint24)};
    const std::string& compassIconName_ {
       types::GetTextureName(types::ImageTexture::Compass24)};
+   const std::string& cursorIconName_ {
+      types::GetTextureName(types::ImageTexture::Dot3)};
+   const std::string& mapCenterIconName_ {
+      types::GetTextureName(types::ImageTexture::Cursor17)};
 
    const std::string& mapboxLogoImageName_ {
       types::GetTextureName(types::ImageTexture::MapboxLogo)};
@@ -119,6 +132,7 @@ public:
       types::GetTextureName(types::ImageTexture::MapTilerLogo)};
 
    std::shared_ptr<gl::draw::IconDrawItem> compassIcon_ {};
+   std::shared_ptr<gl::draw::IconDrawItem> mapCenterIcon_ {};
    double                                  lastBearing_ {0.0};
 
    std::shared_ptr<gl::draw::IconDrawItem> mapLogoIcon_ {};
@@ -168,23 +182,29 @@ void OverlayLayer::Initialize()
 
    // Geo Icons
    p->geoIcons_->StartIconSheets();
+   p->geoIcons_->AddIconSheet(p->cursorIconName_);
    p->geoIcons_->AddIconSheet(p->locationIconName_);
    p->geoIcons_->FinishIconSheets();
 
    p->geoIcons_->StartIcons();
+
+   p->cursorIcon_ = p->geoIcons_->AddIcon();
+   p->geoIcons_->SetIconTexture(p->cursorIcon_, p->cursorIconName_, 0);
+
    p->locationIcon_ = p->geoIcons_->AddIcon();
-   gl::draw::GeoIcons::SetIconTexture(
-      p->locationIcon_, p->locationIconName_, 0);
-   gl::draw::GeoIcons::SetIconAngle(p->locationIcon_,
-                                    units::angle::degrees<double> {45.0});
-   gl::draw::GeoIcons::SetIconLocation(
+   p->geoIcons_->SetIconTexture(p->locationIcon_, p->locationIconName_, 0);
+   p->geoIcons_->SetIconAngle(p->locationIcon_,
+                              units::angle::degrees<double> {45.0});
+   p->geoIcons_->SetIconLocation(
       p->locationIcon_, coordinate.latitude(), coordinate.longitude());
+
    p->geoIcons_->FinishIcons();
 
    // Icons
    p->icons_->StartIconSheets();
    p->icons_->AddIconSheet(p->cardinalPointIconName_);
    p->icons_->AddIconSheet(p->compassIconName_);
+   p->icons_->AddIconSheet(p->mapCenterIconName_);
    p->icons_->AddIconSheet(p->mapboxLogoImageName_)->SetAnchor(0.0f, 1.0f);
    p->icons_->AddIconSheet(p->mapTilerLogoImageName_)->SetAnchor(0.0f, 1.0f);
    p->icons_->FinishIconSheets();
@@ -234,6 +254,9 @@ void OverlayLayer::Initialize()
          }
       });
 
+   p->mapCenterIcon_ = p->icons_->AddIcon();
+   p->icons_->SetIconTexture(p->mapCenterIcon_, p->mapCenterIconName_, 0);
+
    p->mapLogoIcon_ = p->icons_->AddIcon();
    if (context()->map_provider() == MapProvider::Mapbox)
    {
@@ -259,10 +282,9 @@ void OverlayLayer::Initialize()
               if (position.isValid() &&
                   p->currentPosition_.coordinate() != coordinate)
               {
-                 gl::draw::GeoIcons::SetIconLocation(p->locationIcon_,
-                                                     coordinate.latitude(),
-                                                     coordinate.longitude());
-                 p->geoIcons_->FinishIcons();
+                 p->geoIcons_->SetIconLocation(p->locationIcon_,
+                                               coordinate.latitude(),
+                                               coordinate.longitude());
                  Q_EMIT NeedsRendering();
               }
               p->currentPosition_ = position;
@@ -315,9 +337,21 @@ void OverlayLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
       p->activeBoxInner_->SetBorder(1.0f * pixelRatio, {255, 255, 255, 255});
    }
 
+   // Cursor Icon
+   bool cursorIconVisible = QGuiApplication::keyboardModifiers() &
+                            Qt::KeyboardModifier::ControlModifier;
+   p->geoIcons_->SetIconVisible(p->cursorIcon_, cursorIconVisible);
+   if (cursorIconVisible)
+   {
+      common::Coordinate mouseCoordinate = context()->mouse_coordinate();
+      p->geoIcons_->SetIconLocation(
+         p->cursorIcon_, mouseCoordinate.latitude_, mouseCoordinate.longitude_);
+   }
+
    // Location Icon
-   p->geoIcons_->SetVisible(p->currentPosition_.isValid() &&
-                            p->positionManager_->IsLocationTracked());
+   p->geoIcons_->SetIconVisible(p->locationIcon_,
+                                p->currentPosition_.isValid() &&
+                                   p->positionManager_->IsLocationTracked());
 
    // Compass Icon
    if (params.width != p->lastWidth_ || params.height != p->lastHeight_ ||
@@ -411,6 +445,16 @@ void OverlayLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
 
    auto& generalSettings = settings::GeneralSettings::Instance();
 
+   // Map Center Icon
+   if (params.width != p->lastWidth_ || params.height != p->lastHeight_)
+   {
+      // Draw the icon in the center of the widget
+      p->icons_->SetIconLocation(
+         p->mapCenterIcon_, params.width / 2.0, params.height / 2.0);
+   }
+   p->icons_->SetIconVisible(p->mapCenterIcon_,
+                             generalSettings.show_map_center().GetValue());
+
    QMargins colorTableMargins = context()->color_table_margins();
    if (colorTableMargins != p->lastColorTableMargins_ || p->firstRender_)
    {
@@ -418,7 +462,6 @@ void OverlayLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
       p->icons_->SetIconLocation(p->mapLogoIcon_,
                                  10 + colorTableMargins.left(),
                                  10 + colorTableMargins.bottom());
-      p->icons_->FinishIcons();
    }
    p->icons_->SetIconVisible(p->mapLogoIcon_,
                              generalSettings.show_map_logo().GetValue());

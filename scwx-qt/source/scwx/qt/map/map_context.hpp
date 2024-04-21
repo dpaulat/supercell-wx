@@ -2,6 +2,7 @@
 
 #include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/map/map_provider.hpp>
+#include <scwx/common/geographic.hpp>
 #include <scwx/common/products.hpp>
 
 #include <qmaplibre.hpp>
@@ -43,6 +44,7 @@ public:
    MapSettings&                              settings();
    QMargins                                  color_table_margins() const;
    float                                     pixel_ratio() const;
+   common::Coordinate                        mouse_coordinate() const;
    std::shared_ptr<view::OverlayProductView> overlay_product_view() const;
    std::shared_ptr<view::RadarProductView>   radar_product_view() const;
    common::RadarProductGroup                 radar_product_group() const;
@@ -54,6 +56,7 @@ public:
    void set_map_copyrights(const std::string& copyrights);
    void set_map_provider(MapProvider provider);
    void set_color_table_margins(const QMargins& margins);
+   void set_mouse_coordinate(const common::Coordinate& coordinate);
    void set_overlay_product_view(
       const std::shared_ptr<view::OverlayProductView>& overlayProductView);
    void set_pixel_ratio(float pixelRatio);

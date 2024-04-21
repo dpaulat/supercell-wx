@@ -14,6 +14,7 @@ layout (location = 3) in vec4  aModulate;
 layout (location = 4) in float aAngleDeg;
 layout (location = 5) in int   aThreshold;
 layout (location = 6) in ivec2 aTimeRange;
+layout (location = 7) in int   aDisplayed;
 
 uniform mat4 uMVPMatrix;
 uniform mat4 uMapMatrix;
@@ -42,8 +43,8 @@ vec2 latLngToScreenCoordinate(in vec2 latLng)
 
 void main()
 {
-   // Always set displayed to true
-   vsOut.displayed = 1;
+   // Pass displayed to the geometry shader
+   vsOut.displayed = aDisplayed;
 
    // Pass the threshold and time range to the geometry shader
    vsOut.threshold = aThreshold;
