@@ -224,6 +224,9 @@ public:
    const MapStyle* currentStyle_;
    std::string     initialStyleName_ {};
 
+   Qt::KeyboardModifiers lastKeyboardModifiers_ {
+      Qt::KeyboardModifier::NoModifier};
+
    std::shared_ptr<types::EventHandler> pickedEventHandler_ {nullptr};
 
    uint64_t frameDraws_;
@@ -946,11 +949,15 @@ void MapWidget::UpdateMouseCoordinate(const common::Coordinate& coordinate)
    {
       p->context_->set_mouse_coordinate(coordinate);
 
-      if (QGuiApplication::keyboardModifiers() !=
-          Qt::KeyboardModifier::NoModifier)
+      auto keyboardModifiers = QGuiApplication::keyboardModifiers();
+
+      if (keyboardModifiers != Qt::KeyboardModifier::NoModifier ||
+          keyboardModifiers != p->lastKeyboardModifiers_)
       {
          update();
       }
+
+      p->lastKeyboardModifiers_ = keyboardModifiers;
    }
 }
 
