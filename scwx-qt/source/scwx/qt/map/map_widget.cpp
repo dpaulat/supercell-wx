@@ -1325,7 +1325,7 @@ void MapWidget::initializeGL()
    logger_->debug("initializeGL()");
 
    makeCurrent();
-   p->context_->gl().initializeOpenGLFunctions();
+   p->context_->Initialize();
 
    // Lock ImGui font atlas prior to new ImGui frame
    std::shared_lock imguiFontAtlasLock {

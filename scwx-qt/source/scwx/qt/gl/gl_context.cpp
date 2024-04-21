@@ -31,7 +31,8 @@ public:
    static std::size_t
    GetShaderKey(std::initializer_list<std::pair<GLenum, std::string>> shaders);
 
-   gl::OpenGLFunctions gl_;
+   gl::OpenGLFunctions  gl_;
+   QOpenGLFunctions_3_0 gl30_;
 
    bool glInitialized_ {false};
 
@@ -56,6 +57,11 @@ gl::OpenGLFunctions& GlContext::gl()
    return p->gl_;
 }
 
+QOpenGLFunctions_3_0& GlContext::gl30()
+{
+   return p->gl30_;
+}
+
 std::uint64_t GlContext::texture_buffer_count() const
 {
    return p->textureBufferCount_;
@@ -67,6 +73,9 @@ void GlContext::Impl::InitializeGL()
    {
       return;
    }
+
+   gl_.initializeOpenGLFunctions();
+   gl30_.initializeOpenGLFunctions();
 
    gl_.glGenTextures(1, &textureAtlas_);
 
@@ -120,6 +129,11 @@ GLuint GlContext::GetTextureAtlas()
    }
 
    return p->textureAtlas_;
+}
+
+void GlContext::Initialize()
+{
+   p->InitializeGL();
 }
 
 std::size_t GlContext::Impl::GetShaderKey(
