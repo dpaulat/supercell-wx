@@ -8,7 +8,7 @@ namespace provider
 {
 
 static const std::string& kDefaultUrl {"https://warnings.allisonhouse.com"};
-static const std::string& kAlternateUrl {"http://warnings.cod.edu"};
+static const std::string& kAlternateUrl {"https://warnings.cod.edu"};
 
 class WarningsProviderTest : public testing::TestWithParam<std::string>
 {
@@ -52,7 +52,7 @@ TEST_P(WarningsProviderTest, LoadUpdatedFiles)
 
 INSTANTIATE_TEST_SUITE_P(WarningsProvider,
                          WarningsProviderTest,
-                         testing::Values(kDefaultUrl, kAlternateUrl));
+                         testing::Values(/* kDefaultUrl, */ kAlternateUrl));
 
 } // namespace provider
 } // namespace scwx

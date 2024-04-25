@@ -22,7 +22,7 @@ static const std::string logPrefix_ = "scwx::qt::manager::text_event_manager";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static const std::string& kDefaultWarningsProviderUrl {
-   "https://warnings.allisonhouse.com"};
+   "https://warnings.cod.edu"};
 
 class TextEventManager::Impl
 {
