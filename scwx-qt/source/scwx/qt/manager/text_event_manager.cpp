@@ -1,5 +1,6 @@
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/main/application.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/awips/text_product_file.hpp>
 #include <scwx/provider/warnings_provider.hpp>
 #include <scwx/util/logger.hpp>
@@ -32,9 +33,20 @@ public:
        refreshTimer_ {threadPool_},
        refreshMutex_ {},
        textEventMap_ {},
-       textEventMutex_ {},
-       warningsProvider_ {kDefaultWarningsProviderUrl}
+       textEventMutex_ {}
    {
+      auto& generalSettings = settings::GeneralSettings::Instance();
+
+      warningsProvider_ = std::make_shared<provider::WarningsProvider>(
+         generalSettings.warnings_provider().GetValue());
+
+      warningsProviderChangedCallbackUuid_ =
+         generalSettings.warnings_provider().RegisterValueChangedCallback(
+            [this](const std::string& value) {
+               warningsProvider_ =
+                  std::make_shared<provider::WarningsProvider>(value);
+            });
+
       boost::asio::post(threadPool_,
                         [this]()
                         {
@@ -46,6 +58,10 @@ public:
 
    ~Impl()
    {
+      settings::GeneralSettings::Instance()
+         .warnings_provider()
+         .UnregisterValueChangedCallback(warningsProviderChangedCallbackUuid_);
+
       std::unique_lock lock(refreshMutex_);
       refreshTimer_.cancel();
       lock.unlock();
@@ -69,7 +85,9 @@ public:
                      textEventMap_;
    std::shared_mutex textEventMutex_;
 
-   provider::WarningsProvider warningsProvider_;
+   std::shared_ptr<provider::WarningsProvider> warningsProvider_ {nullptr};
+
+   boost::uuids::uuid warningsProviderChangedCallbackUuid_ {};
 };
 
 TextEventManager::TextEventManager() : p(std::make_unique<Impl>(this)) {}
@@ -201,13 +219,17 @@ void TextEventManager::Impl::Refresh()
    // Take a unique lock before refreshing
    std::unique_lock lock(refreshMutex_);
 
+   // Take a copy of the current warnings provider to protect against change
+   std::shared_ptr<provider::WarningsProvider> warningsProvider =
+      warningsProvider_;
+
    // Update the file listing from the warnings provider
-   auto [newFiles, totalFiles] = warningsProvider_.ListFiles();
+   auto [newFiles, totalFiles] = warningsProvider->ListFiles();
 
    if (newFiles > 0)
    {
       // Load new files
-      auto updatedFiles = warningsProvider_.LoadUpdatedFiles();
+      auto updatedFiles = warningsProvider->LoadUpdatedFiles();
 
       // Handle messages
       for (auto& file : updatedFiles)

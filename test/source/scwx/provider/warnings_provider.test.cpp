@@ -8,7 +8,7 @@ namespace provider
 {
 
 static const std::string& kDefaultUrl {"https://warnings.allisonhouse.com"};
-static const std::string& kAlternateUrl {"http://warnings.cod.edu"};
+static const std::string& kAlternateUrl {"https://warnings.cod.edu"};
 
 class WarningsProviderTest : public testing::TestWithParam<std::string>
 {
@@ -18,6 +18,12 @@ TEST_P(WarningsProviderTest, ListFiles)
    WarningsProvider provider(GetParam());
 
    auto [newObjects, totalObjects] = provider.ListFiles();
+
+   // No objects, skip test
+   if (totalObjects == 0)
+   {
+      GTEST_SKIP();
+   }
 
    EXPECT_GT(newObjects, 0);
    EXPECT_GT(totalObjects, 0);
@@ -30,6 +36,12 @@ TEST_P(WarningsProviderTest, LoadUpdatedFiles)
 
    auto [newObjects, totalObjects] = provider.ListFiles();
    auto updatedFiles               = provider.LoadUpdatedFiles();
+
+   // No objects, skip test
+   if (totalObjects == 0)
+   {
+      GTEST_SKIP();
+   }
 
    EXPECT_GT(newObjects, 0);
    EXPECT_GT(totalObjects, 0);

@@ -10,6 +10,7 @@
 #include <array>
 
 #include <boost/algorithm/string.hpp>
+#include <QUrl>
 
 namespace scwx
 {
@@ -25,6 +26,9 @@ class GeneralSettings::Impl
 public:
    explicit Impl()
    {
+      const std::string defaultWarningsProviderValue =
+         "https://warnings.allisonhouse.com";
+
       std::string defaultClockFormatValue =
          scwx::util::GetClockFormatName(scwx::util::ClockFormat::_24Hour);
       std::string defaultDefaultAlertActionValue =
@@ -63,6 +67,7 @@ public:
       theme_.SetDefault(defaultThemeValue);
       trackLocation_.SetDefault(false);
       updateNotificationsEnabled_.SetDefault(true);
+      warningsProvider_.SetDefault(defaultWarningsProviderValue);
 
       fontSizes_.SetElementMinimum(1);
       fontSizes_.SetElementMaximum(72);
@@ -103,6 +108,9 @@ public:
          SCWX_SETTINGS_ENUM_VALIDATOR(types::UiStyle, //
                                       types::UiStyleIterator(),
                                       types::GetUiStyleName));
+      warningsProvider_.SetValidator(
+         [](const std::string& value)
+         { return QUrl {QString::fromStdString(value)}.isValid(); });
    }
 
    ~Impl() {}
@@ -128,6 +136,7 @@ public:
    SettingsVariable<std::string> theme_ {"theme"};
    SettingsVariable<bool>        trackLocation_ {"track_location"};
    SettingsVariable<bool> updateNotificationsEnabled_ {"update_notifications"};
+   SettingsVariable<std::string> warningsProvider_ {"warnings_provider"};
 };
 
 GeneralSettings::GeneralSettings() :
@@ -153,7 +162,8 @@ GeneralSettings::GeneralSettings() :
                       &p->showMapLogo_,
                       &p->theme_,
                       &p->trackLocation_,
-                      &p->updateNotificationsEnabled_});
+                      &p->updateNotificationsEnabled_,
+                      &p->warningsProvider_});
    SetDefaults();
 }
 GeneralSettings::~GeneralSettings() = default;
@@ -268,6 +278,11 @@ SettingsVariable<bool>& GeneralSettings::update_notifications_enabled() const
    return p->updateNotificationsEnabled_;
 }
 
+SettingsVariable<std::string>& GeneralSettings::warnings_provider() const
+{
+   return p->warningsProvider_;
+}
+
 bool GeneralSettings::Shutdown()
 {
    bool dataChanged = false;
@@ -310,7 +325,8 @@ bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
            lhs.p->theme_ == rhs.p->theme_ &&
            lhs.p->trackLocation_ == rhs.p->trackLocation_ &&
            lhs.p->updateNotificationsEnabled_ ==
-              rhs.p->updateNotificationsEnabled_);
+              rhs.p->updateNotificationsEnabled_ &&
+           lhs.p->warningsProvider_ == rhs.p->warningsProvider_);
 }
 
 } // namespace settings

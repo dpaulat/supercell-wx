@@ -45,7 +45,8 @@ public:
    SettingsVariable<bool>&                       show_map_logo() const;
    SettingsVariable<std::string>&                theme() const;
    SettingsVariable<bool>&                       track_location() const;
-   SettingsVariable<bool>& update_notifications_enabled() const;
+   SettingsVariable<bool>&        update_notifications_enabled() const;
+   SettingsVariable<std::string>& warnings_provider() const;
 
    static GeneralSettings& Instance();
 

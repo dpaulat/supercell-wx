@@ -133,6 +133,7 @@ public:
           &defaultAlertAction_,
           &clockFormat_,
           &defaultTimeZone_,
+          &warningsProvider_,
           &antiAliasingEnabled_,
           &showMapAttribution_,
           &showMapCenter_,
@@ -232,6 +233,7 @@ public:
    settings::SettingsInterface<std::string>  clockFormat_ {};
    settings::SettingsInterface<std::string>  defaultTimeZone_ {};
    settings::SettingsInterface<std::string>  theme_ {};
+   settings::SettingsInterface<std::string>  warningsProvider_ {};
    settings::SettingsInterface<bool>         antiAliasingEnabled_ {};
    settings::SettingsInterface<bool>         showMapAttribution_ {};
    settings::SettingsInterface<bool>         showMapCenter_ {};
@@ -659,6 +661,10 @@ void SettingsDialogImpl::SetupGeneralTab()
       });
    defaultTimeZone_.SetEditWidget(self_->ui->defaultTimeZoneComboBox);
    defaultTimeZone_.SetResetButton(self_->ui->resetDefaultTimeZoneButton);
+
+   warningsProvider_.SetSettingsVariable(generalSettings.warnings_provider());
+   warningsProvider_.SetEditWidget(self_->ui->warningsProviderLineEdit);
+   warningsProvider_.SetResetButton(self_->ui->resetWarningsProviderButton);
 
    antiAliasingEnabled_.SetSettingsVariable(
       generalSettings.anti_aliasing_enabled());
