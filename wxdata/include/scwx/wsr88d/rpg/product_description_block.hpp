@@ -70,6 +70,8 @@ public:
    float         log_offset() const;
    float         log_scale() const;
 
+   float gr_scale() const;
+
    std::uint8_t data_mask() const;
    std::uint8_t topped_mask() const;
 

@@ -406,12 +406,7 @@ std::optional<float> Level3ProductView::GetDataValue(std::uint16_t level) const
 
 bool Level3ProductView::IgnoreUnits() const
 {
-   // Don't display units on these products. The current method of displaying
-   // units is not accurate for these.
-   static const std::unordered_set<std::string> kIgnoreUnitsProducts_ {
-      "DAA", "DTA", "DU3", "DU6"};
-
-   return (kIgnoreUnitsProducts_.contains(p->product_));
+   return false;
 }
 
 } // namespace view
