@@ -207,7 +207,8 @@ set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/text_event_key.hpp
               source/scwx/qt/types/text_types.hpp
               source/scwx/qt/types/texture_types.hpp
-              source/scwx/qt/types/time_types.hpp)
+              source/scwx/qt/types/time_types.hpp
+              source/scwx/qt/types/unit_types.hpp)
 set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/github_types.cpp
               source/scwx/qt/types/hotkey_types.cpp
@@ -222,7 +223,8 @@ set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/text_event_key.cpp
               source/scwx/qt/types/text_types.cpp
               source/scwx/qt/types/texture_types.cpp
-              source/scwx/qt/types/time_types.cpp)
+              source/scwx/qt/types/time_types.cpp
+              source/scwx/qt/types/unit_types.cpp)
 set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/alert_dialog.hpp
            source/scwx/qt/ui/alert_dock_widget.hpp
