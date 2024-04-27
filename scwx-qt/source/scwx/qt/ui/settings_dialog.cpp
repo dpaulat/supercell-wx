@@ -23,6 +23,7 @@
 #include <scwx/qt/ui/county_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/ui/settings/hotkey_settings_widget.hpp>
+#include <scwx/qt/ui/settings/unit_settings_widget.hpp>
 #include <scwx/qt/util/color.hpp>
 #include <scwx/qt/util/file.hpp>
 #include <scwx/util/logger.hpp>
@@ -178,6 +179,7 @@ public:
    void SetupGeneralTab();
    void SetupPalettesColorTablesTab();
    void SetupPalettesAlertsTab();
+   void SetupUnitsTab();
    void SetupAudioTab();
    void SetupTextTab();
    void SetupHotkeysTab();
@@ -222,6 +224,7 @@ public:
 
    std::vector<SettingsPageWidget*> settingsPages_ {};
    HotkeySettingsWidget*            hotkeySettingsWidget_ {};
+   UnitSettingsWidget*              unitSettingsWidget_ {};
 
    settings::SettingsInterface<std::string>  defaultRadarSite_ {};
    settings::SettingsInterface<std::int64_t> gridWidth_ {};
@@ -291,6 +294,9 @@ SettingsDialog::SettingsDialog(QWidget* parent) :
 
    // Palettes > Alerts
    p->SetupPalettesAlertsTab();
+
+   // Units
+   p->SetupUnitsTab();
 
    // Audio
    p->SetupAudioTab();
@@ -895,6 +901,16 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
                        [=, this]()
                        { ShowColorDialog(inactiveEdit, inactiveFrame); });
    }
+}
+
+void SettingsDialogImpl::SetupUnitsTab()
+{
+   QVBoxLayout* layout = new QVBoxLayout(self_->ui->units);
+
+   unitSettingsWidget_ = new UnitSettingsWidget(self_->ui->units);
+   layout->addWidget(unitSettingsWidget_);
+
+   settingsPages_.push_back(unitSettingsWidget_);
 }
 
 void SettingsDialogImpl::SetupAudioTab()
