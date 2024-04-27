@@ -8,6 +8,7 @@
 #include <scwx/qt/settings/product_settings.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
+#include <scwx/qt/settings/unit_settings.hpp>
 #include <scwx/qt/util/json.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -139,6 +140,7 @@ boost::json::value SettingsManager::Impl::ConvertSettingsToJson()
    settings::ProductSettings::Instance().WriteJson(settingsJson);
    settings::TextSettings::Instance().WriteJson(settingsJson);
    settings::UiSettings::Instance().WriteJson(settingsJson);
+   settings::UnitSettings::Instance().WriteJson(settingsJson);
 
    return settingsJson;
 }
@@ -155,6 +157,7 @@ void SettingsManager::Impl::GenerateDefaultSettings()
    settings::ProductSettings::Instance().SetDefaults();
    settings::TextSettings::Instance().SetDefaults();
    settings::UiSettings::Instance().SetDefaults();
+   settings::UnitSettings::Instance().SetDefaults();
 }
 
 bool SettingsManager::Impl::LoadSettings(
@@ -172,6 +175,7 @@ bool SettingsManager::Impl::LoadSettings(
    jsonDirty |= !settings::ProductSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::TextSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::UiSettings::Instance().ReadJson(settingsJson);
+   jsonDirty |= !settings::UnitSettings::Instance().ReadJson(settingsJson);
 
    return jsonDirty;
 }

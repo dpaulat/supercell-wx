@@ -176,7 +176,8 @@ set(HDR_SETTINGS source/scwx/qt/settings/audio_settings.hpp
                  source/scwx/qt/settings/settings_variable.hpp
                  source/scwx/qt/settings/settings_variable_base.hpp
                  source/scwx/qt/settings/text_settings.hpp
-                 source/scwx/qt/settings/ui_settings.hpp)
+                 source/scwx/qt/settings/ui_settings.hpp
+                 source/scwx/qt/settings/unit_settings.hpp)
 set(SRC_SETTINGS source/scwx/qt/settings/audio_settings.cpp
                  source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/hotkey_settings.cpp
@@ -190,7 +191,8 @@ set(SRC_SETTINGS source/scwx/qt/settings/audio_settings.cpp
                  source/scwx/qt/settings/settings_variable.cpp
                  source/scwx/qt/settings/settings_variable_base.cpp
                  source/scwx/qt/settings/text_settings.cpp
-                 source/scwx/qt/settings/ui_settings.cpp)
+                 source/scwx/qt/settings/ui_settings.cpp
+                 source/scwx/qt/settings/unit_settings.cpp)
 set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/event_types.hpp
               source/scwx/qt/types/font_types.hpp
