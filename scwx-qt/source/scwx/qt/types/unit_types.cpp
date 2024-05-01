@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include <boost/algorithm/string.hpp>
+#include <units/velocity.h>
 
 namespace scwx
 {
@@ -15,8 +16,8 @@ namespace types
 static const std::unordered_map<AccumulationUnits, std::string>
    accumulationUnitsAbbreviation_ {{AccumulationUnits::Inches, "in"},
                                    {AccumulationUnits::Millimeters, "mm"},
-                                   {AccumulationUnits::User, "?"},
-                                   {AccumulationUnits::Unknown, "?"}};
+                                   {AccumulationUnits::User, ""},
+                                   {AccumulationUnits::Unknown, ""}};
 
 static const std::unordered_map<AccumulationUnits, std::string>
    accumulationUnitsName_ {{AccumulationUnits::Inches, "Inches"},
@@ -27,8 +28,8 @@ static const std::unordered_map<AccumulationUnits, std::string>
 static const std::unordered_map<EchoTopsUnits, std::string>
    echoTopsUnitsAbbreviation_ {{EchoTopsUnits::Kilofeet, "kft"},
                                {EchoTopsUnits::Kilometers, "km"},
-                               {EchoTopsUnits::User, "?"},
-                               {EchoTopsUnits::Unknown, "?"}};
+                               {EchoTopsUnits::User, ""},
+                               {EchoTopsUnits::Unknown, ""}};
 
 static const std::unordered_map<EchoTopsUnits, std::string> echoTopsUnitsName_ {
    {EchoTopsUnits::Kilofeet, "Kilofeet"},
@@ -41,8 +42,8 @@ static const std::unordered_map<SpeedUnits, std::string>
                             {SpeedUnits::Knots, "kts"},
                             {SpeedUnits::MilesPerHour, "mph"},
                             {SpeedUnits::MetersPerSecond, "m/s"},
-                            {SpeedUnits::User, "?"},
-                            {SpeedUnits::Unknown, "?"}};
+                            {SpeedUnits::User, ""},
+                            {SpeedUnits::Unknown, ""}};
 
 static const std::unordered_map<SpeedUnits, std::string> speedUnitsName_ {
    {SpeedUnits::KilometersPerHour, "Kilometers per hour"},
@@ -51,6 +52,18 @@ static const std::unordered_map<SpeedUnits, std::string> speedUnitsName_ {
    {SpeedUnits::MetersPerSecond, "Meters per second"},
    {SpeedUnits::User, "User-defined"},
    {SpeedUnits::Unknown, "?"}};
+
+static constexpr auto speedUnitsBase_ = units::meters_per_second<float> {1.0f};
+static const std::unordered_map<SpeedUnits, float> speedUnitsScale_ {
+   {SpeedUnits::KilometersPerHour,
+    (speedUnitsBase_ / units::kilometers_per_hour<float> {1.0f})},
+   {SpeedUnits::Knots, (speedUnitsBase_ / units::knots<float> {1.0f})},
+   {SpeedUnits::MilesPerHour,
+    (speedUnitsBase_ / units::miles_per_hour<float> {1.0f})},
+   {SpeedUnits::MetersPerSecond,
+    (speedUnitsBase_ / units::meters_per_second<float> {1.0f})},
+   {SpeedUnits::User, 1.0f},
+   {SpeedUnits::Unknown, 1.0f}};
 
 SCWX_GET_ENUM(AccumulationUnits,
               GetAccumulationUnitsFromName,
@@ -86,6 +99,11 @@ const std::string& GetSpeedUnitsAbbreviation(SpeedUnits units)
 const std::string& GetSpeedUnitsName(SpeedUnits units)
 {
    return speedUnitsName_.at(units);
+}
+
+float GetSpeedUnitsScale(SpeedUnits units)
+{
+   return speedUnitsScale_.at(units);
 }
 
 } // namespace types

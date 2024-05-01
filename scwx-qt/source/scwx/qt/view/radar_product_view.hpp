@@ -42,8 +42,10 @@ public:
    virtual float                                 elevation() const;
    virtual float                                 range() const;
    virtual std::chrono::system_clock::time_point sweep_time() const;
-   virtual std::uint16_t                         vcp() const      = 0;
-   virtual const std::vector<float>&             vertices() const = 0;
+   virtual float                                 unit_scale() const = 0;
+   virtual std::string                           units() const      = 0;
+   virtual std::uint16_t                         vcp() const        = 0;
+   virtual const std::vector<float>&             vertices() const   = 0;
 
    std::shared_ptr<manager::RadarProductManager> radar_product_manager() const;
    std::chrono::system_clock::time_point         selected_time() const;

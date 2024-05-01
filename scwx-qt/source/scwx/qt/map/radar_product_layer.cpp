@@ -395,14 +395,24 @@ bool RadarProductLayer::RunMousePicking(
             std::string suffix {};
             std::string hoverText;
 
-            std::shared_ptr<common::ColorTable> colorTable =
-               radarProductView->color_table();
-
-            if (colorTable != nullptr)
+            // Determine units from radar product view
+            units = radarProductView->units();
+            if (!units.empty())
             {
-               // Scale data value according to the color table, and get units
-               f     = f * colorTable->scale() + colorTable->offset();
-               units = colorTable->units();
+               f = f * radarProductView->unit_scale();
+            }
+            else
+            {
+               std::shared_ptr<common::ColorTable> colorTable =
+                  radarProductView->color_table();
+
+               if (colorTable != nullptr)
+               {
+                  // Scale data value according to the color table, and get
+                  // units
+                  f     = f * colorTable->scale() + colorTable->offset();
+                  units = colorTable->units();
+               }
             }
 
             if (code.has_value() &&

@@ -58,6 +58,7 @@ EchoTopsUnits      GetEchoTopsUnitsFromName(const std::string& name);
 const std::string& GetSpeedUnitsAbbreviation(SpeedUnits units);
 const std::string& GetSpeedUnitsName(SpeedUnits units);
 SpeedUnits         GetSpeedUnitsFromName(const std::string& name);
+float              GetSpeedUnitsScale(SpeedUnits units);
 
 } // namespace types
 } // namespace qt

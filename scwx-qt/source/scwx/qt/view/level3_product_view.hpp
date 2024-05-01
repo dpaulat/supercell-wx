@@ -30,6 +30,8 @@ public:
                  color_table_lut() const override;
    std::uint16_t color_table_min() const override;
    std::uint16_t color_table_max() const override;
+   float         unit_scale() const override;
+   std::string   units() const override;
 
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) override;
 

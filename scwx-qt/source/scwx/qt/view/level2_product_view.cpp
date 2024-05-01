@@ -1,4 +1,6 @@
 #include <scwx/qt/view/level2_product_view.hpp>
+#include <scwx/qt/settings/unit_settings.hpp>
+#include <scwx/qt/types/unit_types.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/common/constants.hpp>
 #include <scwx/util/logger.hpp>
@@ -68,17 +70,33 @@ public:
        savedScale_ {0.0f},
        savedOffset_ {0.0f}
    {
+      auto& unitSettings = settings::UnitSettings::Instance();
+
       coordinates_.resize(kMaxCoordinates_);
 
       SetProduct(product);
+
+      speedUnitsCallbackUuid_ =
+         unitSettings.speed_units().RegisterValueChangedCallback(
+            [this](const std::string& value) { UpdateSpeedUnits(value); });
+
+      UpdateSpeedUnits(unitSettings.speed_units().GetValue());
    }
-   ~Level2ProductViewImpl() { threadPool_.join(); };
+   ~Level2ProductViewImpl()
+   {
+      auto& unitSettings = settings::UnitSettings::Instance();
+      unitSettings.speed_units().UnregisterValueChangedCallback(
+         speedUnitsCallbackUuid_);
+
+      threadPool_.join();
+   };
 
    void
    ComputeCoordinates(std::shared_ptr<wsr88d::rda::ElevationScan> radarData);
 
    void SetProduct(const std::string& productName);
    void SetProduct(common::Level2Product product);
+   void UpdateSpeedUnits(const std::string& name);
 
    Level2ProductView* self_;
 
@@ -116,6 +134,9 @@ public:
    std::shared_ptr<common::ColorTable> savedColorTable_;
    float                               savedScale_;
    float                               savedOffset_;
+
+   boost::uuids::uuid speedUnitsCallbackUuid_ {};
+   types::SpeedUnits  speedUnits_ {types::SpeedUnits::Unknown};
 };
 
 Level2ProductView::Level2ProductView(
@@ -221,6 +242,36 @@ std::chrono::system_clock::time_point Level2ProductView::sweep_time() const
    return p->sweepTime_;
 }
 
+float Level2ProductView::unit_scale() const
+{
+   switch (p->dataBlockType_)
+   {
+   case wsr88d::rda::DataBlockType::MomentVel:
+   case wsr88d::rda::DataBlockType::MomentSw:
+      return types::GetSpeedUnitsScale(p->speedUnits_);
+
+   default:
+      break;
+   }
+
+   return 1.0f;
+}
+
+std::string Level2ProductView::units() const
+{
+   switch (p->dataBlockType_)
+   {
+   case wsr88d::rda::DataBlockType::MomentVel:
+   case wsr88d::rda::DataBlockType::MomentSw:
+      return types::GetSpeedUnitsAbbreviation(p->speedUnits_);
+
+   default:
+      break;
+   }
+
+   return {};
+}
+
 uint16_t Level2ProductView::vcp() const
 {
    return p->vcp_;
@@ -321,6 +372,11 @@ void Level2ProductViewImpl::SetProduct(common::Level2Product product)
       logger_->warn("Unknown product: \"{}\"", common::GetLevel2Name(product));
       dataBlockType_ = wsr88d::rda::DataBlockType::Unknown;
    }
+}
+
+void Level2ProductViewImpl::UpdateSpeedUnits(const std::string& name)
+{
+   speedUnits_ = types::GetSpeedUnitsFromName(name);
 }
 
 void Level2ProductView::UpdateColorTableLut()

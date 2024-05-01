@@ -143,6 +143,16 @@ uint16_t Level3ProductView::color_table_max() const
    }
 }
 
+float Level3ProductView::unit_scale() const
+{
+   return 1.0f;
+}
+
+std::string Level3ProductView::units() const
+{
+   return {};
+}
+
 std::shared_ptr<wsr88d::rpg::GraphicProductMessage>
 Level3ProductView::graphic_product_message() const
 {
