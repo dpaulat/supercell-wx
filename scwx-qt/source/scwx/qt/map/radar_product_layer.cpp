@@ -432,7 +432,7 @@ bool RadarProductLayer::RunMousePicking(
                // displayed
                hoverText = fmt::format("{}{}", f, suffix);
             }
-            else if (std::isalpha(units.at(0)))
+            else if (std::isalpha(static_cast<unsigned char>(units.at(0))))
             {
                // dBZ, Kts, etc.
                hoverText = fmt::format("{} {}{}", f, units, suffix);
