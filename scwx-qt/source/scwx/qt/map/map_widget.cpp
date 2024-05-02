@@ -217,6 +217,7 @@ public:
    common::Level2Product selectedLevel2Product_;
 
    bool            hasMouse_ {false};
+   bool            isPainting_ {false};
    bool            lastItemPicked_ {false};
    QPointF         lastPos_ {};
    QPointF         lastGlobalPos_ {};
@@ -1225,6 +1226,14 @@ void MapWidgetImpl::AddLayer(const std::string&            id,
 
 bool MapWidget::event(QEvent* e)
 {
+   if (e->type() == QEvent::Type::Paint && p->isPainting_)
+   {
+      logger_->error("Recursive paint event ignored");
+
+      // Ignore recursive paint events
+      return true;
+   }
+
    if (p->pickedEventHandler_ != nullptr &&
        p->pickedEventHandler_->event_ != nullptr)
    {
@@ -1379,6 +1388,8 @@ void MapWidget::initializeGL()
 
 void MapWidget::paintGL()
 {
+   p->isPainting_ = true;
+
    auto defaultFont = manager::FontManager::Instance().GetImGuiFont(
       types::FontCategory::Default);
 
@@ -1437,6 +1448,8 @@ void MapWidget::paintGL()
 
    // Paint complete
    Q_EMIT WidgetPainted();
+
+   p->isPainting_ = false;
 }
 
 void MapWidgetImpl::ImGuiCheckFonts()
