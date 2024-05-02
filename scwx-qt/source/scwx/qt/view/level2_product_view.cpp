@@ -2,6 +2,7 @@
 #include <scwx/qt/settings/unit_settings.hpp>
 #include <scwx/qt/types/unit_types.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
+#include <scwx/common/characters.hpp>
 #include <scwx/common/constants.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
@@ -45,6 +46,14 @@ static const std::unordered_map<common::Level2Product,
       {common::Level2Product::ClutterFilterPowerRemoved,
        wsr88d::rda::DataBlockType::MomentCfp}};
 
+static const std::unordered_map<common::Level2Product, std::string>
+   productUnits_ {
+      {common::Level2Product::Reflectivity, "dBZ"},
+      {common::Level2Product::DifferentialReflectivity, "dB"},
+      {common::Level2Product::DifferentialPhase, common::Unicode::kDegree},
+      {common::Level2Product::CorrelationCoefficient, "%"},
+      {common::Level2Product::ClutterFilterPowerRemoved, "dB"}};
+
 class Level2ProductViewImpl
 {
 public:
@@ -76,15 +85,22 @@ public:
 
       SetProduct(product);
 
+      otherUnitsCallbackUuid_ =
+         unitSettings.other_units().RegisterValueChangedCallback(
+            [this](const std::string& value) { UpdateOtherUnits(value); });
       speedUnitsCallbackUuid_ =
          unitSettings.speed_units().RegisterValueChangedCallback(
             [this](const std::string& value) { UpdateSpeedUnits(value); });
 
+      UpdateOtherUnits(unitSettings.other_units().GetValue());
       UpdateSpeedUnits(unitSettings.speed_units().GetValue());
    }
    ~Level2ProductViewImpl()
    {
       auto& unitSettings = settings::UnitSettings::Instance();
+
+      unitSettings.other_units().UnregisterValueChangedCallback(
+         otherUnitsCallbackUuid_);
       unitSettings.speed_units().UnregisterValueChangedCallback(
          speedUnitsCallbackUuid_);
 
@@ -96,6 +112,7 @@ public:
 
    void SetProduct(const std::string& productName);
    void SetProduct(common::Level2Product product);
+   void UpdateOtherUnits(const std::string& name);
    void UpdateSpeedUnits(const std::string& name);
 
    Level2ProductView* self_;
@@ -135,7 +152,9 @@ public:
    float                               savedScale_;
    float                               savedOffset_;
 
+   boost::uuids::uuid otherUnitsCallbackUuid_ {};
    boost::uuids::uuid speedUnitsCallbackUuid_ {};
+   types::OtherUnits  otherUnits_ {types::OtherUnits::Unknown};
    types::SpeedUnits  speedUnits_ {types::SpeedUnits::Unknown};
 };
 
@@ -244,10 +263,10 @@ std::chrono::system_clock::time_point Level2ProductView::sweep_time() const
 
 float Level2ProductView::unit_scale() const
 {
-   switch (p->dataBlockType_)
+   switch (p->product_)
    {
-   case wsr88d::rda::DataBlockType::MomentVel:
-   case wsr88d::rda::DataBlockType::MomentSw:
+   case common::Level2Product::Velocity:
+   case common::Level2Product::SpectrumWidth:
       return types::GetSpeedUnitsScale(p->speedUnits_);
 
    default:
@@ -259,14 +278,23 @@ float Level2ProductView::unit_scale() const
 
 std::string Level2ProductView::units() const
 {
-   switch (p->dataBlockType_)
+   switch (p->product_)
    {
-   case wsr88d::rda::DataBlockType::MomentVel:
-   case wsr88d::rda::DataBlockType::MomentSw:
+   case common::Level2Product::Velocity:
+   case common::Level2Product::SpectrumWidth:
       return types::GetSpeedUnitsAbbreviation(p->speedUnits_);
 
    default:
       break;
+   }
+
+   if (p->otherUnits_ == types::OtherUnits::Default)
+   {
+      auto it = productUnits_.find(p->product_);
+      if (it != productUnits_.cend())
+      {
+         return it->second;
+      }
    }
 
    return {};
@@ -372,6 +400,11 @@ void Level2ProductViewImpl::SetProduct(common::Level2Product product)
       logger_->warn("Unknown product: \"{}\"", common::GetLevel2Name(product));
       dataBlockType_ = wsr88d::rda::DataBlockType::Unknown;
    }
+}
+
+void Level2ProductViewImpl::UpdateOtherUnits(const std::string& name)
+{
+   otherUnits_ = types::GetOtherUnitsFromName(name);
 }
 
 void Level2ProductViewImpl::UpdateSpeedUnits(const std::string& name)
