@@ -25,6 +25,16 @@ static const std::unordered_map<AccumulationUnits, std::string>
                            {AccumulationUnits::User, "User-defined"},
                            {AccumulationUnits::Unknown, "?"}};
 
+static constexpr auto accumulationUnitsBase_ = units::millimeters<float> {1.0f};
+static const std::unordered_map<AccumulationUnits, float>
+   accumulationUnitsScale_ {
+      {AccumulationUnits::Inches,
+       (accumulationUnitsBase_ / units::inches<float> {1.0f})},
+      {AccumulationUnits::Millimeters,
+       (accumulationUnitsBase_ / units::millimeters<float> {1.0f})},
+      {AccumulationUnits::User, 1.0f},
+      {AccumulationUnits::Unknown, 1.0f}};
+
 static const std::unordered_map<EchoTopsUnits, std::string>
    echoTopsUnitsAbbreviation_ {{EchoTopsUnits::Kilofeet, "kft"},
                                {EchoTopsUnits::Kilometers, "km"},
@@ -36,6 +46,15 @@ static const std::unordered_map<EchoTopsUnits, std::string> echoTopsUnitsName_ {
    {EchoTopsUnits::Kilometers, "Kilometers"},
    {EchoTopsUnits::User, "User-defined"},
    {EchoTopsUnits::Unknown, "?"}};
+
+static constexpr auto echoTopsUnitsBase_ = units::kilometers<float> {1.0f};
+static const std::unordered_map<EchoTopsUnits, float> echoTopsUnitsScale_ {
+   {EchoTopsUnits::Kilofeet,
+    (echoTopsUnitsBase_ / units::feet<float> {1000.0f})},
+   {EchoTopsUnits::Kilometers,
+    (echoTopsUnitsBase_ / units::kilometers<float> {1.0f})},
+   {EchoTopsUnits::User, 1.0f},
+   {EchoTopsUnits::Unknown, 1.0f}};
 
 static const std::unordered_map<OtherUnits, std::string> otherUnitsName_ {
    {OtherUnits::Default, "Default"},
@@ -87,6 +106,11 @@ const std::string& GetAccumulationUnitsName(AccumulationUnits units)
    return accumulationUnitsName_.at(units);
 }
 
+float GetAccumulationUnitsScale(AccumulationUnits units)
+{
+   return accumulationUnitsScale_.at(units);
+}
+
 const std::string& GetEchoTopsUnitsAbbreviation(EchoTopsUnits units)
 {
    return echoTopsUnitsAbbreviation_.at(units);
@@ -95,6 +119,11 @@ const std::string& GetEchoTopsUnitsAbbreviation(EchoTopsUnits units)
 const std::string& GetEchoTopsUnitsName(EchoTopsUnits units)
 {
    return echoTopsUnitsName_.at(units);
+}
+
+float GetEchoTopsUnitsScale(EchoTopsUnits units)
+{
+   return echoTopsUnitsScale_.at(units);
 }
 
 const std::string& GetOtherUnitsName(OtherUnits units)

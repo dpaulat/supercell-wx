@@ -59,10 +59,12 @@ typedef scwx::util::
 const std::string& GetAccumulationUnitsAbbreviation(AccumulationUnits units);
 const std::string& GetAccumulationUnitsName(AccumulationUnits units);
 AccumulationUnits  GetAccumulationUnitsFromName(const std::string& name);
+float              GetAccumulationUnitsScale(AccumulationUnits units);
 
 const std::string& GetEchoTopsUnitsAbbreviation(EchoTopsUnits units);
 const std::string& GetEchoTopsUnitsName(EchoTopsUnits units);
 EchoTopsUnits      GetEchoTopsUnitsFromName(const std::string& name);
+float              GetEchoTopsUnitsScale(EchoTopsUnits units);
 
 const std::string& GetOtherUnitsName(OtherUnits units);
 OtherUnits         GetOtherUnitsFromName(const std::string& name);
