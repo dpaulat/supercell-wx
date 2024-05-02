@@ -37,6 +37,11 @@ static const std::unordered_map<EchoTopsUnits, std::string> echoTopsUnitsName_ {
    {EchoTopsUnits::User, "User-defined"},
    {EchoTopsUnits::Unknown, "?"}};
 
+static const std::unordered_map<OtherUnits, std::string> otherUnitsName_ {
+   {OtherUnits::Default, "Default"},
+   {OtherUnits::User, "User-defined"},
+   {OtherUnits::Unknown, "?"}};
+
 static const std::unordered_map<SpeedUnits, std::string>
    speedUnitsAbbreviation_ {{SpeedUnits::KilometersPerHour, "km/h"},
                             {SpeedUnits::Knots, "kts"},
@@ -69,6 +74,7 @@ SCWX_GET_ENUM(AccumulationUnits,
               GetAccumulationUnitsFromName,
               accumulationUnitsName_)
 SCWX_GET_ENUM(EchoTopsUnits, GetEchoTopsUnitsFromName, echoTopsUnitsName_)
+SCWX_GET_ENUM(OtherUnits, GetOtherUnitsFromName, otherUnitsName_)
 SCWX_GET_ENUM(SpeedUnits, GetSpeedUnitsFromName, speedUnitsName_)
 
 const std::string& GetAccumulationUnitsAbbreviation(AccumulationUnits units)
@@ -89,6 +95,11 @@ const std::string& GetEchoTopsUnitsAbbreviation(EchoTopsUnits units)
 const std::string& GetEchoTopsUnitsName(EchoTopsUnits units)
 {
    return echoTopsUnitsName_.at(units);
+}
+
+const std::string& GetOtherUnitsName(OtherUnits units)
+{
+   return otherUnitsName_.at(units);
 }
 
 const std::string& GetSpeedUnitsAbbreviation(SpeedUnits units)

@@ -22,15 +22,19 @@ public:
          types::GetAccumulationUnitsName(types::AccumulationUnits::Inches);
       std::string defaultEchoTopsUnitsValue =
          types::GetEchoTopsUnitsName(types::EchoTopsUnits::Kilofeet);
+      std::string defaultOtherUnitsValue =
+         types::GetOtherUnitsName(types::OtherUnits::Default);
       std::string defaultSpeedUnitsValue =
          types::GetSpeedUnitsName(types::SpeedUnits::Knots);
 
       boost::to_lower(defaultAccumulationUnitsValue);
       boost::to_lower(defaultEchoTopsUnitsValue);
+      boost::to_lower(defaultOtherUnitsValue);
       boost::to_lower(defaultSpeedUnitsValue);
 
       accumulationUnits_.SetDefault(defaultAccumulationUnitsValue);
       echoTopsUnits_.SetDefault(defaultEchoTopsUnitsValue);
+      otherUnits_.SetDefault(defaultOtherUnitsValue);
       speedUnits_.SetDefault(defaultSpeedUnitsValue);
 
       accumulationUnits_.SetValidator(
@@ -41,6 +45,10 @@ public:
          SCWX_SETTINGS_ENUM_VALIDATOR(types::EchoTopsUnits,
                                       types::EchoTopsUnitsIterator(),
                                       types::GetEchoTopsUnitsName));
+      otherUnits_.SetValidator(
+         SCWX_SETTINGS_ENUM_VALIDATOR(types::OtherUnits,
+                                      types::OtherUnitsIterator(),
+                                      types::GetOtherUnitsName));
       speedUnits_.SetValidator(
          SCWX_SETTINGS_ENUM_VALIDATOR(types::SpeedUnits,
                                       types::SpeedUnitsIterator(),
@@ -51,14 +59,17 @@ public:
 
    SettingsVariable<std::string> accumulationUnits_ {"accumulation_units"};
    SettingsVariable<std::string> echoTopsUnits_ {"echo_tops_units"};
+   SettingsVariable<std::string> otherUnits_ {"other_units"};
    SettingsVariable<std::string> speedUnits_ {"speed_units"};
 };
 
 UnitSettings::UnitSettings() :
     SettingsCategory("unit"), p(std::make_unique<Impl>())
 {
-   RegisterVariables(
-      {&p->accumulationUnits_, &p->echoTopsUnits_, &p->speedUnits_});
+   RegisterVariables({&p->accumulationUnits_,
+                      &p->echoTopsUnits_,
+                      &p->otherUnits_,
+                      &p->speedUnits_});
    SetDefaults();
 }
 UnitSettings::~UnitSettings() = default;
@@ -76,6 +87,11 @@ SettingsVariable<std::string>& UnitSettings::echo_tops_units() const
    return p->echoTopsUnits_;
 }
 
+SettingsVariable<std::string>& UnitSettings::other_units() const
+{
+   return p->otherUnits_;
+}
+
 SettingsVariable<std::string>& UnitSettings::speed_units() const
 {
    return p->speedUnits_;
@@ -91,6 +107,7 @@ bool operator==(const UnitSettings& lhs, const UnitSettings& rhs)
 {
    return (lhs.p->accumulationUnits_ == rhs.p->accumulationUnits_ &&
            lhs.p->echoTopsUnits_ == rhs.p->echoTopsUnits_ &&
+           lhs.p->otherUnits_ == rhs.p->otherUnits_ &&
            lhs.p->speedUnits_ == rhs.p->speedUnits_);
 }
 

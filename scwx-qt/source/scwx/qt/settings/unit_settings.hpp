@@ -27,6 +27,7 @@ public:
 
    SettingsVariable<std::string>& accumulation_units() const;
    SettingsVariable<std::string>& echo_tops_units() const;
+   SettingsVariable<std::string>& other_units() const;
    SettingsVariable<std::string>& speed_units() const;
 
    static UnitSettings& Instance();

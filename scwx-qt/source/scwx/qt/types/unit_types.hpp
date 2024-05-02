@@ -34,6 +34,15 @@ typedef scwx::util::
    Iterator<EchoTopsUnits, EchoTopsUnits::Kilofeet, EchoTopsUnits::User>
       EchoTopsUnitsIterator;
 
+enum class OtherUnits
+{
+   Default,
+   User,
+   Unknown
+};
+typedef scwx::util::Iterator<OtherUnits, OtherUnits::Default, OtherUnits::User>
+   OtherUnitsIterator;
+
 enum class SpeedUnits
 {
    KilometersPerHour,
@@ -54,6 +63,9 @@ AccumulationUnits  GetAccumulationUnitsFromName(const std::string& name);
 const std::string& GetEchoTopsUnitsAbbreviation(EchoTopsUnits units);
 const std::string& GetEchoTopsUnitsName(EchoTopsUnits units);
 EchoTopsUnits      GetEchoTopsUnitsFromName(const std::string& name);
+
+const std::string& GetOtherUnitsName(OtherUnits units);
+OtherUnits         GetOtherUnitsFromName(const std::string& name);
 
 const std::string& GetSpeedUnitsAbbreviation(SpeedUnits units);
 const std::string& GetSpeedUnitsName(SpeedUnits units);

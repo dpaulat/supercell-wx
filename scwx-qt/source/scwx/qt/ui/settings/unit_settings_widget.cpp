@@ -132,6 +132,16 @@ public:
                               types::GetSpeedUnitsName);
       AddRow(speedUnits_, "Speed", speedComboBox);
 
+      QComboBox* otherComboBox = new QComboBox(self);
+      otherComboBox->setSizePolicy(QSizePolicy::Expanding,
+                                   QSizePolicy::Preferred);
+      otherUnits_.SetSettingsVariable(unitSettings.other_units());
+      SCWX_SETTINGS_COMBO_BOX(otherUnits_,
+                              otherComboBox,
+                              types::OtherUnitsIterator(),
+                              types::GetOtherUnitsName);
+      AddRow(otherUnits_, "Other", otherComboBox);
+
       QSpacerItem* spacer =
          new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
       gridLayout_->addItem(spacer, row, 0);
@@ -145,6 +155,7 @@ public:
 
    settings::SettingsInterface<std::string> accumulationUnits_ {};
    settings::SettingsInterface<std::string> echoTopsUnits_ {};
+   settings::SettingsInterface<std::string> otherUnits_ {};
    settings::SettingsInterface<std::string> speedUnits_ {};
 };
 
