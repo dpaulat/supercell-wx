@@ -35,6 +35,8 @@ public:
    float                                 elevation() const override;
    float                                 range() const override;
    std::chrono::system_clock::time_point sweep_time() const override;
+   float                                 unit_scale() const override;
+   std::string                           units() const override;
    std::uint16_t                         vcp() const override;
    const std::vector<float>&             vertices() const override;
 

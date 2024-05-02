@@ -1,6 +1,7 @@
 ; NEXRAD Level-3 palette for product code 135 - EET - Enhanced Echo Tops
 
 Units: KFT
+Scale:   3.281      ; convert internal units (KM) to KFT
 Color: 75 231   0 255
 Color: 70 255 255 255
 Color: 65 255   0   0

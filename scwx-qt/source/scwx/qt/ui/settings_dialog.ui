@@ -79,6 +79,15 @@
          </item>
          <item>
           <property name="text">
+           <string>Units</string>
+          </property>
+          <property name="icon">
+           <iconset resource="../../../../scwx-qt.qrc">
+            <normaloff>:/res/icons/font-awesome-6/ruler-combined-solid.svg</normaloff>:/res/icons/font-awesome-6/ruler-combined-solid.svg</iconset>
+          </property>
+         </item>
+         <item>
+          <property name="text">
            <string>Audio</string>
           </property>
           <property name="icon">
@@ -482,8 +491,8 @@
                    <rect>
                     <x>0</x>
                     <y>0</y>
-                    <width>63</width>
-                    <height>18</height>
+                    <width>506</width>
+                    <height>383</height>
                    </rect>
                   </property>
                   <layout class="QGridLayout" name="gridLayout_3">
@@ -554,7 +563,8 @@
            </item>
           </layout>
          </widget>
-         <widget class="QWidget" name="page">
+         <widget class="QWidget" name="units"/>
+         <widget class="QWidget" name="audio">
           <layout class="QVBoxLayout" name="verticalLayout_4">
            <item>
             <widget class="QGroupBox" name="alertAudioGroupBox">

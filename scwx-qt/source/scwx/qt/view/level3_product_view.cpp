@@ -1,5 +1,7 @@
 #include <scwx/qt/view/level3_product_view.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/settings/unit_settings.hpp>
+#include <scwx/qt/types/unit_types.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/common/constants.hpp>
 #include <scwx/util/logger.hpp>
@@ -31,11 +33,22 @@ static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 static constexpr uint16_t RANGE_FOLDED = 1u;
 
+static const std::unordered_map<common::Level3ProductCategory, std::string>
+   categoryUnits_ {
+      {common::Level3ProductCategory::Reflectivity, "dBZ"},
+      {common::Level3ProductCategory::DifferentialReflectivity, "dB"},
+      {common::Level3ProductCategory::SpecificDifferentialPhase,
+       common::Unicode::kDegree + "/km"},
+      {common::Level3ProductCategory::CorrelationCoefficient, "%"},
+      {common::Level3ProductCategory::VerticallyIntegratedLiquid,
+       "kg/m\302\262"}};
+
 class Level3ProductView::Impl
 {
 public:
    explicit Impl(const std::string& product) :
        product_ {product},
+       category_ {common::GetLevel3CategoryByAwipsId(product)},
        graphicMessage_ {nullptr},
        colorTable_ {},
        colorTableLut_ {},
@@ -45,10 +58,48 @@ public:
        savedScale_ {0.0f},
        savedOffset_ {0.0f}
    {
-   }
-   ~Impl() = default;
+      auto& unitSettings = settings::UnitSettings::Instance();
 
-   std::string product_;
+      accumulationUnitsCallbackUuid_ =
+         unitSettings.accumulation_units().RegisterValueChangedCallback(
+            [this](const std::string& value)
+            { UpdateAccumulationUnits(value); });
+      echoTopsUnitsCallbackUuid_ =
+         unitSettings.echo_tops_units().RegisterValueChangedCallback(
+            [this](const std::string& value) { UpdateEchoTopsUnits(value); });
+      otherUnitsCallbackUuid_ =
+         unitSettings.other_units().RegisterValueChangedCallback(
+            [this](const std::string& value) { UpdateOtherUnits(value); });
+      speedUnitsCallbackUuid_ =
+         unitSettings.speed_units().RegisterValueChangedCallback(
+            [this](const std::string& value) { UpdateSpeedUnits(value); });
+
+      UpdateAccumulationUnits(unitSettings.accumulation_units().GetValue());
+      UpdateEchoTopsUnits(unitSettings.echo_tops_units().GetValue());
+      UpdateOtherUnits(unitSettings.other_units().GetValue());
+      UpdateSpeedUnits(unitSettings.speed_units().GetValue());
+   }
+   ~Impl()
+   {
+      auto& unitSettings = settings::UnitSettings::Instance();
+
+      unitSettings.accumulation_units().UnregisterValueChangedCallback(
+         accumulationUnitsCallbackUuid_);
+      unitSettings.echo_tops_units().UnregisterValueChangedCallback(
+         echoTopsUnitsCallbackUuid_);
+      unitSettings.other_units().UnregisterValueChangedCallback(
+         otherUnitsCallbackUuid_);
+      unitSettings.speed_units().UnregisterValueChangedCallback(
+         speedUnitsCallbackUuid_);
+   };
+
+   void UpdateAccumulationUnits(const std::string& name);
+   void UpdateEchoTopsUnits(const std::string& name);
+   void UpdateOtherUnits(const std::string& name);
+   void UpdateSpeedUnits(const std::string& name);
+
+   std::string                   product_;
+   common::Level3ProductCategory category_;
 
    std::shared_ptr<wsr88d::rpg::GraphicProductMessage> graphicMessage_;
 
@@ -63,6 +114,16 @@ public:
    std::uint16_t                       savedLogStart_ {20u};
    float                               savedLogScale_ {1.0f};
    float                               savedLogOffset_ {0.0f};
+
+   boost::uuids::uuid       accumulationUnitsCallbackUuid_ {};
+   boost::uuids::uuid       echoTopsUnitsCallbackUuid_ {};
+   boost::uuids::uuid       otherUnitsCallbackUuid_ {};
+   boost::uuids::uuid       speedUnitsCallbackUuid_ {};
+   types::AccumulationUnits accumulationUnits_ {
+      types::AccumulationUnits::Unknown};
+   types::EchoTopsUnits echoTopsUnits_ {types::EchoTopsUnits::Unknown};
+   types::OtherUnits    otherUnits_ {types::OtherUnits::Unknown};
+   types::SpeedUnits    speedUnits_ {types::SpeedUnits::Unknown};
 };
 
 Level3ProductView::Level3ProductView(
@@ -143,6 +204,57 @@ uint16_t Level3ProductView::color_table_max() const
    }
 }
 
+float Level3ProductView::unit_scale() const
+{
+   switch (p->category_)
+   {
+   case common::Level3ProductCategory::Velocity:
+   case common::Level3ProductCategory::SpectrumWidth:
+      return types::GetSpeedUnitsScale(p->speedUnits_);
+
+   case common::Level3ProductCategory::EchoTops:
+      return types::GetEchoTopsUnitsScale(p->echoTopsUnits_);
+
+   case common::Level3ProductCategory::PrecipitationAccumulation:
+      return types::GetAccumulationUnitsScale(p->accumulationUnits_);
+
+   default:
+      break;
+   }
+
+   return 1.0f;
+}
+
+std::string Level3ProductView::units() const
+{
+   switch (p->category_)
+   {
+   case common::Level3ProductCategory::Velocity:
+   case common::Level3ProductCategory::SpectrumWidth:
+      return types::GetSpeedUnitsAbbreviation(p->speedUnits_);
+
+   case common::Level3ProductCategory::EchoTops:
+      return types::GetEchoTopsUnitsAbbreviation(p->echoTopsUnits_);
+
+   case common::Level3ProductCategory::PrecipitationAccumulation:
+      return types::GetAccumulationUnitsAbbreviation(p->accumulationUnits_);
+
+   default:
+      break;
+   }
+
+   if (p->otherUnits_ == types::OtherUnits::Default)
+   {
+      auto it = categoryUnits_.find(p->category_);
+      if (it != categoryUnits_.cend())
+      {
+         return it->second;
+      }
+   }
+
+   return {};
+}
+
 std::shared_ptr<wsr88d::rpg::GraphicProductMessage>
 Level3ProductView::graphic_product_message() const
 {
@@ -165,9 +277,30 @@ std::string Level3ProductView::GetRadarProductName() const
    return p->product_;
 }
 
+void Level3ProductView::Impl::UpdateAccumulationUnits(const std::string& name)
+{
+   accumulationUnits_ = types::GetAccumulationUnitsFromName(name);
+}
+
+void Level3ProductView::Impl::UpdateEchoTopsUnits(const std::string& name)
+{
+   echoTopsUnits_ = types::GetEchoTopsUnitsFromName(name);
+}
+
+void Level3ProductView::Impl::UpdateOtherUnits(const std::string& name)
+{
+   otherUnits_ = types::GetOtherUnitsFromName(name);
+}
+
+void Level3ProductView::Impl::UpdateSpeedUnits(const std::string& name)
+{
+   speedUnits_ = types::GetSpeedUnitsFromName(name);
+}
+
 void Level3ProductView::SelectProduct(const std::string& productName)
 {
-   p->product_ = productName;
+   p->product_  = productName;
+   p->category_ = common::GetLevel3CategoryByAwipsId(productName);
 }
 
 std::vector<std::pair<std::string, std::string>>
@@ -406,12 +539,7 @@ std::optional<float> Level3ProductView::GetDataValue(std::uint16_t level) const
 
 bool Level3ProductView::IgnoreUnits() const
 {
-   // Don't display units on these products. The current method of displaying
-   // units is not accurate for these.
-   static const std::unordered_set<std::string> kIgnoreUnitsProducts_ {
-      "DAA", "DTA", "DU3", "DU6"};
-
-   return (kIgnoreUnitsProducts_.contains(p->product_));
+   return false;
 }
 
 } // namespace view

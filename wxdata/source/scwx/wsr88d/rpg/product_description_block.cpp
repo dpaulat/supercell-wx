@@ -7,6 +7,8 @@
 #include <set>
 #include <string>
 
+#include <units/length.h>
+
 namespace scwx
 {
 namespace wsr88d
@@ -85,6 +87,23 @@ static const std::unordered_map<int, unsigned int> yResolutionMap_ {{37, 1000},
                                                                     {97, 1000},
                                                                     {98, 4000},
                                                                     {166, 250}};
+
+// GR uses different internal units than defined units in level 3 products
+static const std::unordered_map<std::int16_t, float> grScale_ {
+   {78, ((units::inches<float> {1} * 0.01f) / units::millimeters<float> {1})},
+   {79, ((units::inches<float> {1} * 0.01f) / units::millimeters<float> {1})},
+   {80, ((units::inches<float> {1} * 0.01f) / units::millimeters<float> {1})},
+   {81, ((units::inches<float> {1} * 0.01f) / units::millimeters<float> {1})},
+   {82, ((units::inches<float> {1} * 0.01f) / units::millimeters<float> {1})},
+   {41, ((units::feet<float> {1} * 1000.0f) / units::kilometers<float> {1})},
+   {135, ((units::feet<float> {1} * 1000.0f) / units::kilometers<float> {1})},
+   {169, ((units::inches<float> {1} * 0.01f) / units::millimeters<float> {1})},
+   {170, ((units::inches<float> {1} * 0.01f) / units::millimeters<float> {1})},
+   {171, ((units::inches<float> {1} * 0.01f) / units::millimeters<float> {1})},
+   {172, ((units::inches<float> {1} * 0.01f) / units::millimeters<float> {1})},
+   {173, ((units::inches<float> {1} * 0.01f) / units::millimeters<float> {1})},
+   {174, ((units::inches<float> {1} * 0.01f) / units::millimeters<float> {1})},
+   {175, ((units::inches<float> {1} * 0.01f) / units::millimeters<float> {1})}};
 
 class ProductDescriptionBlockImpl
 {
@@ -654,6 +673,19 @@ float ProductDescriptionBlock::log_scale() const
    return logScale;
 }
 
+float ProductDescriptionBlock::gr_scale() const
+{
+   float grScale = 1.0f;
+
+   auto it = grScale_.find(p->productCode_);
+   if (it != grScale_.cend())
+   {
+      grScale = it->second;
+   }
+
+   return grScale;
+}
+
 std::uint8_t ProductDescriptionBlock::data_mask() const
 {
    std::uint8_t dataMask = 0xff;
@@ -1136,6 +1168,12 @@ ProductDescriptionBlock::data_value(std::uint8_t level) const
 
          f = static_cast<float>(lsb);
       }
+   }
+
+   // Scale for GR compatibility
+   if (f.has_value())
+   {
+      f = f.value() * gr_scale();
    }
 
    return f;

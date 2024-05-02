@@ -176,7 +176,8 @@ set(HDR_SETTINGS source/scwx/qt/settings/audio_settings.hpp
                  source/scwx/qt/settings/settings_variable.hpp
                  source/scwx/qt/settings/settings_variable_base.hpp
                  source/scwx/qt/settings/text_settings.hpp
-                 source/scwx/qt/settings/ui_settings.hpp)
+                 source/scwx/qt/settings/ui_settings.hpp
+                 source/scwx/qt/settings/unit_settings.hpp)
 set(SRC_SETTINGS source/scwx/qt/settings/audio_settings.cpp
                  source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/hotkey_settings.cpp
@@ -190,7 +191,8 @@ set(SRC_SETTINGS source/scwx/qt/settings/audio_settings.cpp
                  source/scwx/qt/settings/settings_variable.cpp
                  source/scwx/qt/settings/settings_variable_base.cpp
                  source/scwx/qt/settings/text_settings.cpp
-                 source/scwx/qt/settings/ui_settings.cpp)
+                 source/scwx/qt/settings/ui_settings.cpp
+                 source/scwx/qt/settings/unit_settings.cpp)
 set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/event_types.hpp
               source/scwx/qt/types/font_types.hpp
@@ -207,7 +209,8 @@ set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/text_event_key.hpp
               source/scwx/qt/types/text_types.hpp
               source/scwx/qt/types/texture_types.hpp
-              source/scwx/qt/types/time_types.hpp)
+              source/scwx/qt/types/time_types.hpp
+              source/scwx/qt/types/unit_types.hpp)
 set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/github_types.cpp
               source/scwx/qt/types/hotkey_types.cpp
@@ -222,7 +225,8 @@ set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/text_event_key.cpp
               source/scwx/qt/types/text_types.cpp
               source/scwx/qt/types/texture_types.cpp
-              source/scwx/qt/types/time_types.cpp)
+              source/scwx/qt/types/time_types.cpp
+              source/scwx/qt/types/unit_types.cpp)
 set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/alert_dialog.hpp
            source/scwx/qt/ui/alert_dock_widget.hpp
@@ -285,9 +289,11 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/settings_dialog.ui
            source/scwx/qt/ui/update_dialog.ui)
 set(HDR_UI_SETTINGS source/scwx/qt/ui/settings/hotkey_settings_widget.hpp
-                    source/scwx/qt/ui/settings/settings_page_widget.hpp)
+                    source/scwx/qt/ui/settings/settings_page_widget.hpp
+                    source/scwx/qt/ui/settings/unit_settings_widget.hpp)
 set(SRC_UI_SETTINGS source/scwx/qt/ui/settings/hotkey_settings_widget.cpp
-                    source/scwx/qt/ui/settings/settings_page_widget.cpp)
+                    source/scwx/qt/ui/settings/settings_page_widget.cpp
+                    source/scwx/qt/ui/settings/unit_settings_widget.cpp)
 set(HDR_UI_SETUP source/scwx/qt/ui/setup/audio_codec_page.hpp
                  source/scwx/qt/ui/setup/finish_page.hpp
                  source/scwx/qt/ui/setup/map_layout_page.hpp
