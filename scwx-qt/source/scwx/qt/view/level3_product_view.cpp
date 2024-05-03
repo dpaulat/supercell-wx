@@ -37,8 +37,7 @@ static const std::unordered_map<common::Level3ProductCategory, std::string>
    categoryUnits_ {
       {common::Level3ProductCategory::Reflectivity, "dBZ"},
       {common::Level3ProductCategory::DifferentialReflectivity, "dB"},
-      {common::Level3ProductCategory::SpecificDifferentialPhase,
-       common::Unicode::kDegree + "/km"},
+      {common::Level3ProductCategory::SpecificDifferentialPhase, "\302\260/km"},
       {common::Level3ProductCategory::CorrelationCoefficient, "%"},
       {common::Level3ProductCategory::VerticallyIntegratedLiquid,
        "kg/m\302\262"}};

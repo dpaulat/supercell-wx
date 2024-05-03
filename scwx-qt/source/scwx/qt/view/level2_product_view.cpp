@@ -47,12 +47,11 @@ static const std::unordered_map<common::Level2Product,
        wsr88d::rda::DataBlockType::MomentCfp}};
 
 static const std::unordered_map<common::Level2Product, std::string>
-   productUnits_ {
-      {common::Level2Product::Reflectivity, "dBZ"},
-      {common::Level2Product::DifferentialReflectivity, "dB"},
-      {common::Level2Product::DifferentialPhase, common::Unicode::kDegree},
-      {common::Level2Product::CorrelationCoefficient, "%"},
-      {common::Level2Product::ClutterFilterPowerRemoved, "dB"}};
+   productUnits_ {{common::Level2Product::Reflectivity, "dBZ"},
+                  {common::Level2Product::DifferentialReflectivity, "dB"},
+                  {common::Level2Product::DifferentialPhase, "\302\260"},
+                  {common::Level2Product::CorrelationCoefficient, "%"},
+                  {common::Level2Product::ClutterFilterPowerRemoved, "dB"}};
 
 class Level2ProductViewImpl
 {
