@@ -1142,8 +1142,8 @@ void MainWindowImpl::ConnectOtherSignals()
            this,
            [this]()
            {
-              timeLabel_->setText(QString("%1 UTC").arg(QString::fromStdString(
-                 util::TimeString(std::chrono::system_clock::now()))));
+              timeLabel_->setText(QString::fromStdString(
+                 util::TimeString(std::chrono::system_clock::now())));
               timeLabel_->setVisible(true);
            });
    clockTimer_.start(1000);
