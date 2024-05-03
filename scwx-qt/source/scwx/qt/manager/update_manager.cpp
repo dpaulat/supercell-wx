@@ -73,7 +73,7 @@ UpdateManager::Impl::GetVersionString(const std::string& releaseName)
 boost::json::value UpdateManager::Impl::ParseResponseText(const std::string& s)
 {
    boost::json::stream_parser p;
-   boost::json::error_code    ec;
+   boost::system::error_code  ec;
 
    p.write(s, ec);
    if (ec)

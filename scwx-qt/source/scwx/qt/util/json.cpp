@@ -83,7 +83,7 @@ static boost::json::value ReadJsonStream(std::istream& is)
    std::string line;
 
    boost::json::stream_parser p;
-   boost::json::error_code    ec;
+   boost::system::error_code  ec;
 
    while (std::getline(is, line))
    {
