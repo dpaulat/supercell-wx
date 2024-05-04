@@ -15,13 +15,13 @@ target_link_libraries(mbgl-core INTERFACE ${ZLIB_LIBRARIES})
 if (MSVC)
     # Produce PDB file for debug
     target_compile_options(mbgl-core PRIVATE "$<$<CONFIG:Release>:/Zi>")
-    target_compile_options(Core PRIVATE "$<$<CONFIG:Release>:/Zi>")
-    target_link_options(Core PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
-    target_link_options(Core PRIVATE "$<$<CONFIG:Release>:/OPT:REF>")
-    target_link_options(Core PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
+    target_compile_options(MLNQtCore PRIVATE "$<$<CONFIG:Release>:/Zi>")
+    target_link_options(MLNQtCore PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
+    target_link_options(MLNQtCore PRIVATE "$<$<CONFIG:Release>:/OPT:REF>")
+    target_link_options(MLNQtCore PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
 else()
     target_compile_options(mbgl-core PRIVATE "$<$<CONFIG:Release>:-g>")
-    target_compile_options(Core PRIVATE "$<$<CONFIG:Release>:-g>")
+    target_compile_options(MLNQtCore PRIVATE "$<$<CONFIG:Release>:-g>")
 endif()
 
 set(MLN_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native/include
@@ -30,13 +30,13 @@ set(MLN_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native/include
 
 set_target_properties(test_mln_core PROPERTIES EXCLUDE_FROM_ALL True)
 set_target_properties(test_mln_widgets PROPERTIES EXCLUDE_FROM_ALL True)
-set_target_properties(Widgets PROPERTIES EXCLUDE_FROM_ALL True)
+set_target_properties(MLNQtWidgets PROPERTIES EXCLUDE_FROM_ALL True)
 
 set_target_properties(test_mln_core PROPERTIES FOLDER mln/exclude)
 set_target_properties(test_mln_widgets PROPERTIES FOLDER mln/exclude)
-set_target_properties(Widgets PROPERTIES FOLDER mln/exclude)
+set_target_properties(MLNQtWidgets PROPERTIES FOLDER mln/exclude)
 
-set_target_properties(Core PROPERTIES FOLDER mln)
+set_target_properties(MLNQtCore PROPERTIES FOLDER mln)
 set_target_properties(mbgl-core PROPERTIES FOLDER mln)
 set_target_properties(mbgl-vendor-csscolorparser PROPERTIES FOLDER mln)
 set_target_properties(mbgl-vendor-nunicode PROPERTIES FOLDER mln)

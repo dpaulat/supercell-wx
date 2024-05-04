@@ -609,11 +609,11 @@ target_link_libraries(supercell-wx PRIVATE scwx-qt
                                            wxdata)
 
 # Set DT_RUNPATH for Linux targets
-set_target_properties(Core         PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib") # QMapLibre::Core
+set_target_properties(MLNQtCore    PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib") # QMapLibre::Core
 set_target_properties(supercell-wx PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
 
 install(TARGETS supercell-wx
-                Core # QMapLibre::Core
+                MLNQtCore # QMapLibre::Core
         RUNTIME_DEPENDENCIES
           PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-" "qt6"
           POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
@@ -626,7 +626,7 @@ install(TARGETS supercell-wx
 
 # NO_TRANSLATIONS is needed for Qt 6.5.0 (will be fixed in 6.5.1)
 # https://bugreports.qt.io/browse/QTBUG-112204
-qt_generate_deploy_app_script(TARGET Core # QMapLibre::Core
+qt_generate_deploy_app_script(TARGET MLNQtCore # QMapLibre::Core
                               OUTPUT_SCRIPT deploy_script_qmaplibre_core
                               NO_TRANSLATIONS
                               NO_UNSUPPORTED_PLATFORM_ERROR)
