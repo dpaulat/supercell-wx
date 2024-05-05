@@ -143,7 +143,8 @@ int main(int argc, char* argv[])
    return result;
 }
 
-static void OverrideDefaultStyle(const std::vector<std::string>& args)
+static void
+OverrideDefaultStyle([[maybe_unused]] const std::vector<std::string>& args)
 {
 #if defined(_WIN32)
    bool hasStyleArgument = false;
