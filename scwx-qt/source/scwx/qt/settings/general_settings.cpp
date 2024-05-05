@@ -27,7 +27,7 @@ public:
    explicit Impl()
    {
       const std::string defaultWarningsProviderValue =
-         "https://warnings.allisonhouse.com";
+         "https://warnings.cod.edu";
 
       std::string defaultClockFormatValue =
          scwx::util::GetClockFormatName(scwx::util::ClockFormat::_24Hour);
