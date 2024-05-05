@@ -61,20 +61,6 @@ AnimationDockWidget::AnimationDockWidget(QWidget* parent) :
 {
    ui->setupUi(this);
 
-   // Set date/time edit enabled/disabled
-   ui->dateEdit->setEnabled(ui->archiveViewRadioButton->isChecked());
-   ui->timeEdit->setEnabled(ui->archiveViewRadioButton->isChecked());
-
-   // Update date/time edit enabled/disabled based on Archive View radio button
-   connect(ui->archiveViewRadioButton,
-           &QRadioButton::toggled,
-           this,
-           [this](bool checked)
-           {
-              ui->dateEdit->setEnabled(checked);
-              ui->timeEdit->setEnabled(checked);
-           });
-
    // Set current date/time
    QDateTime currentDateTime = QDateTime::currentDateTimeUtc();
    QDate     currentDate     = currentDateTime.date();
