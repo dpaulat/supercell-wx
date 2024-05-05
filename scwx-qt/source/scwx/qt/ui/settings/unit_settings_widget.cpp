@@ -12,36 +12,6 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-#define SCWX_SETTINGS_COMBO_BOX(settingsInterface, comboBox, Iterator, ToName) \
-   for (const auto& enumValue : Iterator)                                      \
-   {                                                                           \
-      comboBox->addItem(QString::fromStdString(ToName(enumValue)));            \
-   }                                                                           \
-                                                                               \
-   settingsInterface.SetMapFromValueFunction(                                  \
-      [](const std::string& text) -> std::string                               \
-      {                                                                        \
-         for (const auto& enumValue : Iterator)                                \
-         {                                                                     \
-            const std::string valueName = ToName(enumValue);                   \
-                                                                               \
-            if (boost::iequals(text, valueName))                               \
-            {                                                                  \
-               return valueName;                                               \
-            }                                                                  \
-         }                                                                     \
-                                                                               \
-         return "?";                                                           \
-      });                                                                      \
-   settingsInterface.SetMapToValueFunction(                                    \
-      [](std::string text) -> std::string                                      \
-      {                                                                        \
-         boost::to_lower(text);                                                \
-         return text;                                                          \
-      });                                                                      \
-                                                                               \
-   settingsInterface.SetEditWidget(comboBox);
-
 namespace scwx
 {
 namespace qt
