@@ -15,6 +15,9 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
 
+#include <string>
+#include <vector>
+
 #include <aws/core/Aws.h>
 #include <boost/asio.hpp>
 #include <fmt/format.h>
@@ -26,8 +29,17 @@
 static const std::string logPrefix_ = "scwx::main";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+static void OverrideDefaultStyle(const std::vector<std::string>& args);
+
 int main(int argc, char* argv[])
 {
+   // Store arguments
+   std::vector<std::string> args {};
+   for (int i = 0; i < argc; ++i)
+   {
+      args.push_back(argv[i]);
+   }
+
    // Initialize logger
    scwx::util::Logger::Initialize();
    spdlog::set_level(spdlog::level::debug);
@@ -87,7 +99,12 @@ int main(int argc, char* argv[])
    // Theme
    auto uiStyle = scwx::qt::types::GetUiStyle(
       scwx::qt::settings::GeneralSettings::Instance().theme().GetValue());
-   if (uiStyle != scwx::qt::types::UiStyle::Default)
+
+   if (uiStyle == scwx::qt::types::UiStyle::Default)
+   {
+      OverrideDefaultStyle(args);
+   }
+   else
    {
       QApplication::setStyle(
          QString::fromStdString(scwx::qt::types::GetUiStyleName(uiStyle)));
@@ -124,4 +141,27 @@ int main(int argc, char* argv[])
    Aws::ShutdownAPI(awsSdkOptions);
 
    return result;
+}
+
+static void OverrideDefaultStyle(const std::vector<std::string>& args)
+{
+#if defined(_WIN32)
+   bool hasStyleArgument = false;
+
+   for (int i = 1; i < args.size(); ++i)
+   {
+      if (args.at(i) == "-style")
+      {
+         hasStyleArgument = true;
+         break;
+      }
+   }
+
+   // Override the default Windows 11 style unless the user supplies a style
+   // argument
+   if (!hasStyleArgument)
+   {
+      QApplication::setStyle("windowsvista");
+   }
+#endif
 }
