@@ -501,11 +501,18 @@ qt_add_translations(scwx-qt TS_FILES ${TS_FILES}
                     INCLUDE_DIRECTORIES true
                     LUPDATE_OPTIONS -locations none -no-ui-lines)
 
-set_target_properties(release_translations PROPERTIES FOLDER qt)
-set_target_properties(scwx-qt_lrelease     PROPERTIES FOLDER qt)
-set_target_properties(scwx-qt_lupdate      PROPERTIES FOLDER qt)
-set_target_properties(scwx-qt_other_files  PROPERTIES FOLDER qt)
-
+if (TARGET update_translations)
+    set_target_properties(release_translations PROPERTIES FOLDER qt)
+endif()
+if (TARGET scwx-qt_lrelease)
+    set_target_properties(scwx-qt_lrelease     PROPERTIES FOLDER qt)
+endif()
+if (TARGET scwx-qt_lupdate)
+    set_target_properties(scwx-qt_lupdate      PROPERTIES FOLDER qt)
+endif()
+if (TARGET scwx-qt_other_files)
+    set_target_properties(scwx-qt_other_files  PROPERTIES FOLDER qt)
+endif()
 if (TARGET update_translations)
     set_target_properties(update_translations PROPERTIES FOLDER qt)
 endif()
