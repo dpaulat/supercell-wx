@@ -9,6 +9,7 @@
 
 #include <shared_mutex>
 
+#include <aws/core/auth/AWSCredentials.h>
 #include <aws/s3/S3Client.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/ListObjectsV2Request.h>
@@ -63,11 +64,18 @@ public:
       // Disable HTTP request for region
       util::SetEnvironment("AWS_EC2_METADATA_DISABLED", "true");
 
+      // Use anonymous credentials
+      Aws::Auth::AWSCredentials credentials {};
+
       Aws::Client::ClientConfiguration config;
       config.region           = region_;
       config.connectTimeoutMs = 10000;
 
-      client_ = std::make_shared<Aws::S3::S3Client>(config);
+      client_ = std::make_shared<Aws::S3::S3Client>(
+         credentials,
+         Aws::MakeShared<Aws::S3::S3EndpointProvider>(
+            Aws::S3::S3Client::ALLOCATION_TAG),
+         config);
    }
 
    ~Impl() {}
