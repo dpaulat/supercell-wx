@@ -16,6 +16,7 @@ static const std::unordered_map<LocationMethod, std::string>
    locationMethodName_ {{LocationMethod::Fixed, "Fixed"},
                         {LocationMethod::Track, "Track"},
                         {LocationMethod::County, "County"},
+                        {LocationMethod::All, "All"},
                         {LocationMethod::Unknown, "?"}};
 
 SCWX_GET_ENUM(LocationMethod, GetLocationMethod, locationMethodName_)

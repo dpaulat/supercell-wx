@@ -132,12 +132,11 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
          continue;
       }
 
-      bool activeAtLocation = false;
+      bool activeAtLocation = (locationMethod == types::LocationMethod::All);
 
       if (locationMethod == types::LocationMethod::Fixed ||
           locationMethod == types::LocationMethod::Track)
       {
-
          // Determine if the alert is active at the current coordinte
          auto alertCoordinates = segment->codedLocation_->coordinates();
 
