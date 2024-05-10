@@ -15,6 +15,8 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
 
+#include <filesystem>
+
 #include <aws/core/Aws.h>
 #include <boost/asio.hpp>
 #include <fmt/format.h>
@@ -26,6 +28,7 @@
 static const std::string logPrefix_ = "scwx::main";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+static void InitializeLogFile();
 int main(int argc, char* argv[])
 {
    // Initialize logger
@@ -82,6 +85,7 @@ int main(int argc, char* argv[])
    scwx::qt::config::RadarSite::Initialize();
    scwx::qt::config::CountyDatabase::Initialize();
    scwx::qt::manager::SettingsManager::Instance().Initialize();
+   InitializeLogFile();
    scwx::qt::manager::ResourceManager::Initialize();
 
    // Theme
@@ -124,4 +128,24 @@ int main(int argc, char* argv[])
    Aws::ShutdownAPI(awsSdkOptions);
 
    return result;
+}
+
+static void InitializeLogFile()
+{
+   const std::string logPath =
+      QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+         .toStdString();
+   const std::string logFile = logPath + "/supercell-wx.log";
+
+   // Create log directory if it doesn't exist
+   if (!std::filesystem::exists(logPath))
+   {
+      if (!std::filesystem::create_directories(logPath))
+      {
+         logger_->error("Unable to create log directory: \"{}\"", logPath);
+         return;
+      }
+   }
+
+   scwx::util::Logger::AddFileSink(logFile);
 }
