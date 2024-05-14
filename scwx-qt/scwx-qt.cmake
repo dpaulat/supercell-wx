@@ -28,6 +28,7 @@ find_package(QT NAMES Qt6
                         OpenGL
                         OpenGLWidgets
                         Positioning
+                        SerialPort
                         Svg
                         Widgets REQUIRED)
 
@@ -39,6 +40,7 @@ find_package(Qt${QT_VERSION_MAJOR}
                         OpenGL
                         OpenGLWidgets
                         Positioning
+                        SerialPort
                         Svg
                         Widgets
              REQUIRED)
@@ -248,6 +250,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/placefile_settings_widget.hpp
            source/scwx/qt/ui/progress_dialog.hpp
            source/scwx/qt/ui/radar_site_dialog.hpp
+           source/scwx/qt/ui/serial_port_dialog.hpp
            source/scwx/qt/ui/settings_dialog.hpp
            source/scwx/qt/ui/update_dialog.hpp)
 set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
@@ -272,6 +275,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/progress_dialog.cpp
            source/scwx/qt/ui/radar_site_dialog.cpp
            source/scwx/qt/ui/settings_dialog.cpp
+           source/scwx/qt/ui/serial_port_dialog.cpp
            source/scwx/qt/ui/update_dialog.cpp)
 set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/alert_dialog.ui
@@ -287,6 +291,7 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/progress_dialog.ui
            source/scwx/qt/ui/radar_site_dialog.ui
            source/scwx/qt/ui/settings_dialog.ui
+           source/scwx/qt/ui/serial_port_dialog.ui
            source/scwx/qt/ui/update_dialog.ui)
 set(HDR_UI_SETTINGS source/scwx/qt/ui/settings/hotkey_settings_widget.hpp
                     source/scwx/qt/ui/settings/settings_page_widget.hpp
@@ -597,6 +602,7 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Qt${QT_VERSION_MAJOR}::OpenGLWidgets
                                      Qt${QT_VERSION_MAJOR}::Multimedia
                                      Qt${QT_VERSION_MAJOR}::Positioning
+                                     Qt${QT_VERSION_MAJOR}::SerialPort
                                      Qt${QT_VERSION_MAJOR}::Svg
                                      Boost::json
                                      Boost::timer
