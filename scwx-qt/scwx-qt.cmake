@@ -608,6 +608,7 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Boost::timer
                                      QMapLibre::Core
                                      $<$<CXX_COMPILER_ID:MSVC>:opengl32>
+                                     $<$<CXX_COMPILER_ID:MSVC>:SetupAPI>
                                      Fontconfig::Fontconfig
                                      GeographicLib::GeographicLib
                                      GEOS::geos

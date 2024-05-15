@@ -12,8 +12,12 @@
 
 #if defined(_WIN32)
 #   include <Windows.h>
-#   include <cstdlib>
+#   include <SetupAPI.h>
+#   include <initguid.h>
+#   include <devguid.h>
+#   include <devpkey.h>
 #   include <tchar.h>
+#   include <cstdlib>
 #endif
 
 namespace scwx
@@ -36,8 +40,16 @@ public:
    ~Impl() = default;
 
    void LogSerialPortInfo(const QSerialPortInfo& info);
+   void ReadComPortProperties();
    void ReadComPortSettings();
    void RefreshSerialDevices();
+
+#if defined(_WIN32)
+   static std::string GetDevicePropertyString(HDEVINFO&        deviceInfoSet,
+                                              SP_DEVINFO_DATA& deviceInfoData,
+                                              DEVPROPKEY       propertyKey);
+   static std::string GetRegistryValueDataString(HKEY hKey, LPCTSTR lpValue);
+#endif
 
    SerialPortDialog*   self_;
    QStandardItemModel* model_;
@@ -88,7 +100,68 @@ void SerialPortDialog::Impl::RefreshSerialDevices()
       LogSerialPortInfo(port);
    }
 
+   ReadComPortProperties();
    ReadComPortSettings();
+}
+
+void SerialPortDialog::Impl::ReadComPortProperties()
+{
+#if defined(_WIN32)
+   GUID     classGuid  = GUID_DEVCLASS_PORTS;
+   PCWSTR   enumerator = nullptr;
+   HWND     hwndParent = nullptr;
+   DWORD    flags      = DIGCF_PRESENT;
+   HDEVINFO deviceInfoSet;
+
+   // Retrieve COM port devices
+   deviceInfoSet =
+      SetupDiGetClassDevs(&classGuid, enumerator, hwndParent, flags);
+   if (deviceInfoSet == INVALID_HANDLE_VALUE)
+   {
+      logger_->error("Error getting COM port devices");
+      return;
+   }
+
+   DWORD           memberIndex = 0;
+   SP_DEVINFO_DATA deviceInfoData {};
+   deviceInfoData.cbSize = sizeof(deviceInfoData);
+   flags                 = 0;
+
+   // For each COM port device
+   while (SetupDiEnumDeviceInfo(deviceInfoSet, memberIndex++, &deviceInfoData))
+   {
+      DWORD  scope      = DICS_FLAG_GLOBAL;
+      DWORD  hwProfile  = 0;
+      DWORD  keyType    = DIREG_DEV;
+      REGSAM samDesired = KEY_READ;
+      HKEY   devRegKey  = SetupDiOpenDevRegKey(
+         deviceInfoSet, &deviceInfoData, scope, hwProfile, keyType, samDesired);
+
+      if (devRegKey == INVALID_HANDLE_VALUE)
+      {
+         logger_->error("Unable to open device registry key: {}",
+                        GetLastError());
+         continue;
+      }
+
+      // Read Port Name and Device Description
+      std::string portName =
+         GetRegistryValueDataString(devRegKey, TEXT("PortName"));
+
+      if (portName.empty())
+      {
+         // Ignore device without port name
+         continue;
+      }
+
+      std::string busReportedDeviceDesc = GetDevicePropertyString(
+         deviceInfoSet, deviceInfoData, DEVPKEY_Device_BusReportedDeviceDesc);
+
+      logger_->debug("Port: {} ({})", portName, busReportedDeviceDesc);
+
+      RegCloseKey(devRegKey);
+   }
+#endif
 }
 
 void SerialPortDialog::Impl::ReadComPortSettings()
@@ -126,12 +199,12 @@ void SerialPortDialog::Impl::ReadComPortSettings()
 
       // Enumerate each port value
       while ((status = RegEnumValue(hkResult,
-                                    dwIndex,
+                                    dwIndex++,
                                     valueName,
                                     &valueNameSize,
                                     lpReserved,
                                     &type,
-                                    (LPBYTE) &valueData,
+                                    reinterpret_cast<LPBYTE>(&valueData),
                                     &valueDataSize)) == ERROR_SUCCESS ||
              status == ERROR_MORE_DATA)
       {
@@ -176,23 +249,142 @@ void SerialPortDialog::Impl::ReadComPortSettings()
 
             std::string portData = buffer;
 
-            logger_->debug("Port {} has data \"{}\"", portName, portData);
+            logger_->debug("Port Settings: {} ({})", portName, portData);
          }
 
          valueNameSize = maxValueNameSize;
          valueDataSize = sizeof(valueData);
-         ++dwIndex;
       }
 
       RegCloseKey(hkResult);
    }
    else
    {
-      logger_->warn("Could not open COM port settings registry key: {}",
-                    status);
+      logger_->error("Could not open COM port settings registry key: {}",
+                     status);
    }
 #endif
 }
+
+#if defined(_WIN32)
+std::string
+SerialPortDialog::Impl::GetDevicePropertyString(HDEVINFO&        deviceInfoSet,
+                                                SP_DEVINFO_DATA& deviceInfoData,
+                                                DEVPROPKEY       propertyKey)
+{
+   std::string devicePropertyString {};
+
+   DEVPROPTYPE        propertyType = 0;
+   std::vector<TCHAR> propertyBuffer {};
+   DWORD              requiredSize = 0;
+   DWORD              flags        = 0;
+
+   BOOL status = SetupDiGetDeviceProperty(deviceInfoSet,
+                                          &deviceInfoData,
+                                          &propertyKey,
+                                          &propertyType,
+                                          nullptr,
+                                          0,
+                                          &requiredSize,
+                                          flags);
+
+   if (requiredSize > 0)
+   {
+      propertyBuffer.reserve(requiredSize / sizeof(TCHAR));
+
+      status = SetupDiGetDeviceProperty(
+         deviceInfoSet,
+         &deviceInfoData,
+         &propertyKey,
+         &propertyType,
+         reinterpret_cast<PBYTE>(propertyBuffer.data()),
+         static_cast<DWORD>(propertyBuffer.capacity() * sizeof(TCHAR)),
+         &requiredSize,
+         flags);
+   }
+
+   if (status && requiredSize > 0)
+   {
+      errno_t     error;
+      std::size_t returnValue;
+
+      devicePropertyString.resize(requiredSize / sizeof(TCHAR));
+
+      if ((error = wcstombs_s(&returnValue,
+                              devicePropertyString.data(),
+                              devicePropertyString.size(),
+                              propertyBuffer.data(),
+                              _TRUNCATE)) != 0)
+      {
+         logger_->error("Error converting device property string: {}",
+                        returnValue);
+         devicePropertyString.clear();
+      }
+      else if (!devicePropertyString.empty())
+      {
+         // Remove trailing null
+         devicePropertyString.erase(devicePropertyString.size() - 1);
+      }
+   }
+
+   return devicePropertyString;
+}
+
+std::string SerialPortDialog::Impl::GetRegistryValueDataString(HKEY    hKey,
+                                                               LPCTSTR lpValue)
+{
+   std::string dataString {};
+
+   LPCTSTR lpSubKey = nullptr;
+   DWORD   dwFlags  = RRF_RT_REG_SZ; // Restrict type to REG_SZ
+   DWORD   dwType;
+
+   std::vector<TCHAR> dataBuffer {};
+   DWORD              dataBufferSize = 0;
+
+   LSTATUS status = RegGetValue(
+      hKey, lpSubKey, lpValue, dwFlags, &dwType, nullptr, &dataBufferSize);
+
+   if (status == ERROR_SUCCESS && dataBufferSize > 0)
+   {
+      dataBuffer.reserve(dataBufferSize / sizeof(TCHAR));
+
+      status = RegGetValue(hKey,
+                           lpSubKey,
+                           lpValue,
+                           dwFlags,
+                           &dwType,
+                           reinterpret_cast<PVOID>(dataBuffer.data()),
+                           &dataBufferSize);
+   }
+
+   if (status == ERROR_SUCCESS && dataBufferSize > 0)
+   {
+      errno_t     error;
+      std::size_t returnValue;
+
+      dataString.resize(dataBufferSize / sizeof(TCHAR));
+
+      if ((error = wcstombs_s(&returnValue,
+                              dataString.data(),
+                              dataString.size(),
+                              dataBuffer.data(),
+                              _TRUNCATE)) != 0)
+      {
+         logger_->error("Error converting registry value data string: {}",
+                        returnValue);
+         dataString.clear();
+      }
+      else if (!dataString.empty())
+      {
+         // Remove trailing null
+         dataString.erase(dataString.size() - 1);
+      }
+   }
+
+   return dataString;
+}
+#endif
 
 } // namespace ui
 } // namespace qt
