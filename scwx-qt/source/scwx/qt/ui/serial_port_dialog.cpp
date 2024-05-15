@@ -4,6 +4,9 @@
 #include "ui_serial_port_dialog.h"
 
 #include <scwx/util/logger.hpp>
+#include <scwx/util/strings.hpp>
+
+#include <unordered_map>
 
 #include <QPushButton>
 #include <QSerialPortInfo>
@@ -33,6 +36,25 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class SerialPortDialog::Impl
 {
 public:
+   struct PortProperties
+   {
+      std::string busReportedDeviceDescription_ {};
+   };
+
+   struct PortSettings
+   {
+      int         baudRate_ {-1}; // Positive
+      std::string parity_ {"n"};  // [e]ven, [o]dd, [m]ark, [s]pace, [n]one
+      int         dataBits_ {8};  // [4-8]
+      float       stopBits_ {1};  // 1, 1.5, 2
+      std::string
+         flowControl_ {}; // "" (none), "p" (hardware), "x" (Xon / Xoff)
+   };
+
+   typedef std::unordered_map<std::string, QSerialPortInfo> PortInfoMap;
+   typedef std::unordered_map<std::string, PortProperties>  PortPropertiesMap;
+   typedef std::unordered_map<std::string, PortSettings>    PortSettingsMap;
+
    explicit Impl(SerialPortDialog* self) :
        self_ {self}, model_ {new QStandardItemModel(self)}
    {
@@ -40,9 +62,13 @@ public:
    ~Impl() = default;
 
    void LogSerialPortInfo(const QSerialPortInfo& info);
-   void ReadComPortProperties();
-   void ReadComPortSettings();
    void RefreshSerialDevices();
+
+   static void ReadComPortProperties(PortPropertiesMap& portPropertiesMap);
+   static void ReadComPortSettings(PortSettingsMap& portSettingsMap);
+   static void StorePortSettings(const std::string& portName,
+                                 const std::string& settingsString,
+                                 PortSettingsMap&   portSettingsMap);
 
 #if defined(_WIN32)
    static std::string GetDevicePropertyString(HDEVINFO&        deviceInfoSet,
@@ -55,6 +81,10 @@ public:
    QStandardItemModel* model_;
 
    std::string selectedSerialPort_ {"?"};
+
+   PortInfoMap       portInfoMap_ {};
+   PortPropertiesMap portPropertiesMap_ {};
+   PortSettingsMap   portSettingsMap_ {};
 };
 
 SerialPortDialog::SerialPortDialog(QWidget* parent) :
@@ -95,16 +125,26 @@ void SerialPortDialog::Impl::RefreshSerialDevices()
 {
    QList<QSerialPortInfo> availablePorts = QSerialPortInfo::availablePorts();
 
+   PortInfoMap       newPortInfoMap {};
+   PortPropertiesMap newPortPropertiesMap {};
+   PortSettingsMap   newPortSettingsMap {};
+
    for (auto& port : availablePorts)
    {
       LogSerialPortInfo(port);
+      newPortInfoMap.insert_or_assign(port.portName().toStdString(), port);
    }
 
-   ReadComPortProperties();
-   ReadComPortSettings();
+   ReadComPortProperties(newPortPropertiesMap);
+   ReadComPortSettings(newPortSettingsMap);
+
+   portInfoMap_.swap(newPortInfoMap);
+   portPropertiesMap_.swap(newPortPropertiesMap);
+   portSettingsMap_.swap(newPortSettingsMap);
 }
 
-void SerialPortDialog::Impl::ReadComPortProperties()
+void SerialPortDialog::Impl::ReadComPortProperties(
+   PortPropertiesMap& portPropertiesMap)
 {
 #if defined(_WIN32)
    GUID     classGuid  = GUID_DEVCLASS_PORTS;
@@ -154,17 +194,22 @@ void SerialPortDialog::Impl::ReadComPortProperties()
          continue;
       }
 
-      std::string busReportedDeviceDesc = GetDevicePropertyString(
+      PortProperties properties {};
+      properties.busReportedDeviceDescription_ = GetDevicePropertyString(
          deviceInfoSet, deviceInfoData, DEVPKEY_Device_BusReportedDeviceDesc);
 
-      logger_->debug("Port: {} ({})", portName, busReportedDeviceDesc);
+      logger_->debug(
+         "Port: {} ({})", portName, properties.busReportedDeviceDescription_);
+
+      portPropertiesMap.emplace(portName, std::move(properties));
 
       RegCloseKey(devRegKey);
    }
 #endif
 }
 
-void SerialPortDialog::Impl::ReadComPortSettings()
+void SerialPortDialog::Impl::ReadComPortSettings(
+   PortSettingsMap& portSettingsMap)
 {
 #if defined(_WIN32)
    const LPCTSTR lpSubKey =
@@ -250,6 +295,8 @@ void SerialPortDialog::Impl::ReadComPortSettings()
             std::string portData = buffer;
 
             logger_->debug("Port Settings: {} ({})", portName, portData);
+
+            StorePortSettings(portName, portData, portSettingsMap);
          }
 
          valueNameSize = maxValueNameSize;
@@ -264,6 +311,53 @@ void SerialPortDialog::Impl::ReadComPortSettings()
                      status);
    }
 #endif
+}
+
+void SerialPortDialog::Impl::StorePortSettings(
+   const std::string& portName,
+   const std::string& settingsString,
+   PortSettingsMap&   portSettingsMap)
+{
+   PortSettings portSettings {};
+
+   std::vector<std::string> tokenList =
+      util::ParseTokens(settingsString, {",", ",", ",", ",", ","});
+
+   try
+   {
+      if (tokenList.size() >= 1)
+      {
+         // Positive integer
+         portSettings.baudRate_ = std::stoi(tokenList.at(0));
+      }
+      if (tokenList.size() >= 2)
+      {
+         // [e]ven, [o]dd, [m]ark, [s]pace, [n]one
+         portSettings.parity_ = tokenList.at(1);
+      }
+      if (tokenList.size() >= 3)
+      {
+         // [4-8]
+         portSettings.dataBits_ = std::stoi(tokenList.at(2));
+      }
+      if (tokenList.size() >= 4)
+      {
+         // 1, 1.5, 2
+         portSettings.stopBits_ = std::stof(tokenList.at(3));
+      }
+      if (tokenList.size() >= 5)
+      {
+         // "" (none), "p" (hardware), "x" (Xon / Xoff)
+         portSettings.flowControl_ = tokenList.at(4);
+      }
+
+      portSettingsMap.emplace(portName, std::move(portSettings));
+   }
+   catch (const std::exception&)
+   {
+      logger_->error(
+         "Could not parse {} port settings: {}", portName, settingsString);
+   }
 }
 
 #if defined(_WIN32)
