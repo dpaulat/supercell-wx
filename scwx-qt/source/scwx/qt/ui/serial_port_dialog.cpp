@@ -56,13 +56,16 @@ public:
    typedef std::unordered_map<std::string, PortSettings>    PortSettingsMap;
 
    explicit Impl(SerialPortDialog* self) :
-       self_ {self}, model_ {new QStandardItemModel(self)}
+       self_ {self},
+       model_ {new QStandardItemModel(self)},
+       proxyModel_ {new QSortFilterProxyModel(self)}
    {
    }
    ~Impl() = default;
 
    void LogSerialPortInfo(const QSerialPortInfo& info);
    void RefreshSerialDevices();
+   void UpdateModel();
 
    static void ReadComPortProperties(PortPropertiesMap& portPropertiesMap);
    static void ReadComPortSettings(PortSettingsMap& portSettingsMap);
@@ -77,8 +80,9 @@ public:
    static std::string GetRegistryValueDataString(HKEY hKey, LPCTSTR lpValue);
 #endif
 
-   SerialPortDialog*   self_;
-   QStandardItemModel* model_;
+   SerialPortDialog*      self_;
+   QStandardItemModel*    model_;
+   QSortFilterProxyModel* proxyModel_;
 
    std::string selectedSerialPort_ {"?"};
 
@@ -94,10 +98,67 @@ SerialPortDialog::SerialPortDialog(QWidget* parent) :
 {
    ui->setupUi(this);
 
+   p->proxyModel_->setSourceModel(p->model_);
+   ui->serialPortView->setModel(p->proxyModel_);
+   ui->serialPortView->setEditTriggers(
+      QAbstractItemView::EditTrigger::NoEditTriggers);
+   ui->serialPortView->sortByColumn(0, Qt::SortOrder::AscendingOrder);
+
+   p->RefreshSerialDevices();
+
+   ui->buttonBox->button(QDialogButtonBox::StandardButton::Ok)
+      ->setEnabled(false);
+
    connect(ui->refreshButton,
            &QAbstractButton::clicked,
            this,
            [this]() { p->RefreshSerialDevices(); });
+
+   connect(ui->serialPortView,
+           &QTreeView::doubleClicked,
+           this,
+           [this]() { Q_EMIT accept(); });
+   connect(
+      ui->serialPortView->selectionModel(),
+      &QItemSelectionModel::selectionChanged,
+      this,
+      [this](const QItemSelection& selected, const QItemSelection& deselected)
+      {
+         if (selected.size() == 0 && deselected.size() == 0)
+         {
+            // Items which stay selected but change their index are not
+            // included in selected and deselected. Thus, this signal might
+            // be emitted with both selected and deselected empty, if only
+            // the indices of selected items change.
+            return;
+         }
+
+         ui->buttonBox->button(QDialogButtonBox::Ok)
+            ->setEnabled(selected.size() > 0);
+
+         if (selected.size() > 0)
+         {
+            QModelIndex selectedIndex =
+               p->proxyModel_->mapToSource(selected[0].indexes()[0]);
+            selectedIndex        = p->model_->index(selectedIndex.row(), 0);
+            QVariant variantData = p->model_->data(selectedIndex);
+            if (variantData.typeId() == QMetaType::QString)
+            {
+               p->selectedSerialPort_ = variantData.toString().toStdString();
+            }
+            else
+            {
+               logger_->warn("Unexpected selection data type");
+               p->selectedSerialPort_ = std::string {"?"};
+            }
+         }
+         else
+         {
+            p->selectedSerialPort_ = std::string {"?"};
+         }
+
+         logger_->debug("Selected: {}", p->selectedSerialPort_);
+      });
 }
 
 SerialPortDialog::~SerialPortDialog()
@@ -108,6 +169,19 @@ SerialPortDialog::~SerialPortDialog()
 std::string SerialPortDialog::serial_port()
 {
    return p->selectedSerialPort_;
+}
+
+int SerialPortDialog::baud_rate()
+{
+   int baudRate = -1;
+
+   auto it = p->portSettingsMap_.find(p->selectedSerialPort_);
+   if (it != p->portSettingsMap_.cend())
+   {
+      baudRate = it->second.baudRate_;
+   }
+
+   return baudRate;
 }
 
 void SerialPortDialog::Impl::LogSerialPortInfo(const QSerialPortInfo& info)
@@ -141,10 +215,64 @@ void SerialPortDialog::Impl::RefreshSerialDevices()
    portInfoMap_.swap(newPortInfoMap);
    portPropertiesMap_.swap(newPortPropertiesMap);
    portSettingsMap_.swap(newPortSettingsMap);
+
+   UpdateModel();
+}
+
+void SerialPortDialog::Impl::UpdateModel()
+{
+#if defined(_WIN32)
+   static const QStringList headerLabels {
+      tr("Port"), tr("Description"), tr("Device")};
+#else
+   static const QStringList headerLabels {tr("Port"), tr("Description")};
+#endif
+
+   // Clear existing serial ports
+   model_->clear();
+
+   // Reset selected serial port and disable OK button
+   selectedSerialPort_ = std::string {"?"};
+   self_->ui->buttonBox->button(QDialogButtonBox::StandardButton::Ok)
+      ->setEnabled(false);
+
+   // Reset headers
+   model_->setHorizontalHeaderLabels(headerLabels);
+
+   QStandardItem* root = model_->invisibleRootItem();
+
+   for (auto& port : portInfoMap_)
+   {
+      const QString portName    = port.second.portName();
+      const QString description = port.second.description();
+
+#if defined(_WIN32)
+      QString device {};
+
+      auto portPropertiesIt = portPropertiesMap_.find(port.first);
+      if (portPropertiesIt != portPropertiesMap_.cend())
+      {
+         device = QString::fromStdString(
+            portPropertiesIt->second.busReportedDeviceDescription_);
+      }
+
+      root->appendRow({new QStandardItem(portName),
+                       new QStandardItem(description),
+                       new QStandardItem(device)});
+#else
+      root->appendRow(
+         {new QStandardItem(portName), new QStandardItem(description)});
+#endif
+   }
+
+   for (int column = 0; column < model_->columnCount(); column++)
+   {
+      self_->ui->serialPortView->resizeColumnToContents(column);
+   }
 }
 
 void SerialPortDialog::Impl::ReadComPortProperties(
-   PortPropertiesMap& portPropertiesMap)
+   [[maybe_unused]] PortPropertiesMap& portPropertiesMap)
 {
 #if defined(_WIN32)
    GUID     classGuid  = GUID_DEVCLASS_PORTS;
@@ -209,7 +337,7 @@ void SerialPortDialog::Impl::ReadComPortProperties(
 }
 
 void SerialPortDialog::Impl::ReadComPortSettings(
-   PortSettingsMap& portSettingsMap)
+   [[maybe_unused]] PortSettingsMap& portSettingsMap)
 {
 #if defined(_WIN32)
    const LPCTSTR lpSubKey =

@@ -23,6 +23,7 @@ public:
    ~SerialPortDialog();
 
    std::string serial_port();
+   int         baud_rate();
 
 private:
    class Impl;
