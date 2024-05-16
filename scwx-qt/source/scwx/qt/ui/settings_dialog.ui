@@ -159,6 +159,48 @@
                   <property name="bottomMargin">
                    <number>0</number>
                   </property>
+                  <item row="13" column="0">
+                   <widget class="QLabel" name="label_6">
+                    <property name="text">
+                     <string>MapTiler API Key</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="6" column="4">
+                   <widget class="QToolButton" name="resetGridHeightButton">
+                    <property name="text">
+                     <string>...</string>
+                    </property>
+                    <property name="icon">
+                     <iconset resource="../../../../scwx-qt.qrc">
+                      <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="11" column="2">
+                   <widget class="QComboBox" name="mapProviderComboBox"/>
+                  </item>
+                  <item row="4" column="0">
+                   <widget class="QLabel" name="label_21">
+                    <property name="text">
+                     <string>Default Time Zone</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="12" column="4">
+                   <widget class="QToolButton" name="resetMapboxApiKeyButton">
+                    <property name="text">
+                     <string>...</string>
+                    </property>
+                    <property name="icon">
+                     <iconset resource="../../../../scwx-qt.qrc">
+                      <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="6" column="2">
+                   <widget class="QSpinBox" name="gridHeightSpinBox"/>
+                  </item>
                   <item row="4" column="4">
                    <widget class="QToolButton" name="resetDefaultTimeZoneButton">
                     <property name="text">
@@ -170,8 +212,18 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="9" column="4">
-                   <widget class="QToolButton" name="resetMapboxApiKeyButton">
+                  <item row="11" column="0">
+                   <widget class="QLabel" name="label_7">
+                    <property name="text">
+                     <string>Map Provider</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="4" column="2">
+                   <widget class="QComboBox" name="defaultTimeZoneComboBox"/>
+                  </item>
+                  <item row="18" column="4">
+                   <widget class="QToolButton" name="resetThemeButton">
                     <property name="text">
                      <string>...</string>
                     </property>
@@ -181,21 +233,51 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="1" column="0">
-                   <widget class="QLabel" name="label_20">
+                  <item row="1" column="2">
+                   <widget class="QComboBox" name="clockFormatComboBox"/>
+                  </item>
+                  <item row="3" column="2">
+                   <widget class="QComboBox" name="radarSiteComboBox"/>
+                  </item>
+                  <item row="9" column="3">
+                   <widget class="QToolButton" name="gpsSourceSelectButton">
                     <property name="text">
-                     <string>Clock Format</string>
+                     <string>...</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="14" column="0">
-                   <widget class="QLabel" name="label_25">
-                    <property name="text">
-                     <string>NMEA Source</string>
+                  <item row="12" column="2">
+                   <widget class="QLineEdit" name="mapboxApiKeyLineEdit">
+                    <property name="echoMode">
+                     <enum>QLineEdit::EchoMode::Password</enum>
                     </property>
                    </widget>
                   </item>
-                  <item row="18" column="4">
+                  <item row="8" column="0">
+                   <widget class="QLabel" name="label_23">
+                    <property name="text">
+                     <string>GPS Plugin</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="10" column="0">
+                   <widget class="QLabel" name="label_24">
+                    <property name="text">
+                     <string>GPS Baud Rate</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="2">
+                   <widget class="QSpinBox" name="gridWidthSpinBox"/>
+                  </item>
+                  <item row="3" column="3">
+                   <widget class="QToolButton" name="radarSiteSelectButton">
+                    <property name="text">
+                     <string>...</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="21" column="4">
                    <widget class="QToolButton" name="resetWarningsProviderButton">
                     <property name="text">
                      <string>...</string>
@@ -206,10 +288,47 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="9" column="0">
-                   <widget class="QLabel" name="label_4">
+                  <item row="5" column="0">
+                   <widget class="QLabel" name="label_2">
                     <property name="text">
-                     <string>Mapbox API Key</string>
+                     <string>Grid Width</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="9" column="2">
+                   <widget class="QLineEdit" name="nmeaSourceLineEdit"/>
+                  </item>
+                  <item row="18" column="2">
+                   <widget class="QComboBox" name="themeComboBox"/>
+                  </item>
+                  <item row="8" column="2">
+                   <widget class="QComboBox" name="positioningPluginComboBox"/>
+                  </item>
+                  <item row="9" column="0">
+                   <widget class="QLabel" name="label_25">
+                    <property name="text">
+                     <string>GPS Source</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="21" column="2">
+                   <widget class="QLineEdit" name="warningsProviderLineEdit"/>
+                  </item>
+                  <item row="3" column="0">
+                   <widget class="QLabel" name="label">
+                    <property name="text">
+                     <string>Default Radar Site</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="4">
+                   <widget class="QToolButton" name="resetRadarSiteButton">
+                    <property name="text">
+                     <string>...</string>
+                    </property>
+                    <property name="icon">
+                     <iconset resource="../../../../scwx-qt.qrc">
+                      <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
                     </property>
                    </widget>
                   </item>
@@ -220,81 +339,21 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="3" column="3">
-                   <widget class="QToolButton" name="radarSiteSelectButton">
+                  <item row="2" column="4">
+                   <widget class="QToolButton" name="resetDefaultAlertActionButton">
                     <property name="text">
                      <string>...</string>
+                    </property>
+                    <property name="icon">
+                     <iconset resource="../../../../scwx-qt.qrc">
+                      <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
                     </property>
                    </widget>
                   </item>
                   <item row="18" column="0">
-                   <widget class="QLabel" name="label_22">
-                    <property name="text">
-                     <string>Warnings Provider</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="2">
-                   <widget class="QComboBox" name="clockFormatComboBox"/>
-                  </item>
-                  <item row="5" column="0">
-                   <widget class="QLabel" name="label_2">
-                    <property name="text">
-                     <string>Grid Width</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="3" column="2">
-                   <widget class="QComboBox" name="radarSiteComboBox"/>
-                  </item>
-                  <item row="2" column="0">
-                   <widget class="QLabel" name="defaultAlertActionLabel">
-                    <property name="text">
-                     <string>Default Alert Action</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="4" column="0">
-                   <widget class="QLabel" name="label_21">
-                    <property name="text">
-                     <string>Default Time Zone</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="13" column="0">
-                   <widget class="QLabel" name="label_24">
-                    <property name="text">
-                     <string>NMEA Baud Rate</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="2" column="2">
-                   <widget class="QComboBox" name="defaultAlertActionComboBox"/>
-                  </item>
-                  <item row="10" column="0">
-                   <widget class="QLabel" name="label_6">
-                    <property name="text">
-                     <string>MapTiler API Key</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="15" column="2">
-                   <widget class="QComboBox" name="themeComboBox"/>
-                  </item>
-                  <item row="15" column="0">
                    <widget class="QLabel" name="label_5">
                     <property name="text">
                      <string>Theme</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="11" column="2">
-                   <widget class="QComboBox" name="positioningPluginComboBox"/>
-                  </item>
-                  <item row="3" column="0">
-                   <widget class="QLabel" name="label">
-                    <property name="text">
-                     <string>Default Radar Site</string>
                     </property>
                    </widget>
                   </item>
@@ -309,82 +368,26 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="6" column="2">
-                   <widget class="QSpinBox" name="gridHeightSpinBox"/>
-                  </item>
-                  <item row="3" column="4">
-                   <widget class="QToolButton" name="resetRadarSiteButton">
+                  <item row="12" column="0">
+                   <widget class="QLabel" name="label_4">
                     <property name="text">
-                     <string>...</string>
-                    </property>
-                    <property name="icon">
-                     <iconset resource="../../../../scwx-qt.qrc">
-                      <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+                     <string>Mapbox API Key</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="4" column="2">
-                   <widget class="QComboBox" name="defaultTimeZoneComboBox"/>
-                  </item>
-                  <item row="10" column="4">
-                   <widget class="QToolButton" name="resetMapTilerApiKeyButton">
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="label_20">
                     <property name="text">
-                     <string>...</string>
-                    </property>
-                    <property name="icon">
-                     <iconset resource="../../../../scwx-qt.qrc">
-                      <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+                     <string>Clock Format</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="18" column="2">
-                   <widget class="QLineEdit" name="warningsProviderLineEdit"/>
-                  </item>
-                  <item row="6" column="4">
-                   <widget class="QToolButton" name="resetGridHeightButton">
-                    <property name="text">
-                     <string>...</string>
-                    </property>
-                    <property name="icon">
-                     <iconset resource="../../../../scwx-qt.qrc">
-                      <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="15" column="4">
-                   <widget class="QToolButton" name="resetThemeButton">
-                    <property name="text">
-                     <string>...</string>
-                    </property>
-                    <property name="icon">
-                     <iconset resource="../../../../scwx-qt.qrc">
-                      <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="9" column="2">
-                   <widget class="QLineEdit" name="mapboxApiKeyLineEdit">
+                  <item row="13" column="2">
+                   <widget class="QLineEdit" name="mapTilerApiKeyLineEdit">
                     <property name="echoMode">
                      <enum>QLineEdit::EchoMode::Password</enum>
                     </property>
                    </widget>
-                  </item>
-                  <item row="8" column="2">
-                   <widget class="QComboBox" name="mapProviderComboBox"/>
-                  </item>
-                  <item row="2" column="4">
-                   <widget class="QToolButton" name="resetDefaultAlertActionButton">
-                    <property name="text">
-                     <string>...</string>
-                    </property>
-                    <property name="icon">
-                     <iconset resource="../../../../scwx-qt.qrc">
-                      <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="5" column="2">
-                   <widget class="QSpinBox" name="gridWidthSpinBox"/>
                   </item>
                   <item row="5" column="4">
                    <widget class="QToolButton" name="resetGridWidthButton">
@@ -397,7 +400,45 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="8" column="4">
+                  <item row="13" column="4">
+                   <widget class="QToolButton" name="resetMapTilerApiKeyButton">
+                    <property name="text">
+                     <string>...</string>
+                    </property>
+                    <property name="icon">
+                     <iconset resource="../../../../scwx-qt.qrc">
+                      <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="2">
+                   <widget class="QComboBox" name="defaultAlertActionComboBox"/>
+                  </item>
+                  <item row="21" column="0">
+                   <widget class="QLabel" name="label_22">
+                    <property name="text">
+                     <string>Warnings Provider</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="10" column="2">
+                   <widget class="QSpinBox" name="nmeaBaudRateSpinBox">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>999999999</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="0">
+                   <widget class="QLabel" name="defaultAlertActionLabel">
+                    <property name="text">
+                     <string>Default Alert Action</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="11" column="4">
                    <widget class="QToolButton" name="resetMapProviderButton">
                     <property name="text">
                      <string>...</string>
@@ -408,41 +449,7 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="8" column="0">
-                   <widget class="QLabel" name="label_7">
-                    <property name="text">
-                     <string>Map Provider</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="10" column="2">
-                   <widget class="QLineEdit" name="mapTilerApiKeyLineEdit">
-                    <property name="echoMode">
-                     <enum>QLineEdit::EchoMode::Password</enum>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="11" column="0">
-                   <widget class="QLabel" name="label_23">
-                    <property name="text">
-                     <string>Positioning Plugin</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="14" column="2">
-                   <widget class="QLineEdit" name="nmeaSourceLineEdit"/>
-                  </item>
-                  <item row="13" column="2">
-                   <widget class="QSpinBox" name="nmeaBaudRateSpinBox">
-                    <property name="minimum">
-                     <number>1</number>
-                    </property>
-                    <property name="maximum">
-                     <number>999999999</number>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="11" column="4">
+                  <item row="8" column="4">
                    <widget class="QToolButton" name="resetPositioningPluginButton">
                     <property name="text">
                      <string>...</string>
@@ -453,8 +460,8 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="13" column="4">
-                   <widget class="QToolButton" name="resetNmeaBaudRateButton">
+                  <item row="9" column="4">
+                   <widget class="QToolButton" name="resetNmeaSourceButton">
                     <property name="text">
                      <string>...</string>
                     </property>
@@ -464,8 +471,8 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="14" column="4">
-                   <widget class="QToolButton" name="resetNmeaSourceButton">
+                  <item row="10" column="4">
+                   <widget class="QToolButton" name="resetNmeaBaudRateButton">
                     <property name="text">
                      <string>...</string>
                     </property>

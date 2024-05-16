@@ -22,6 +22,7 @@
 #include <scwx/qt/types/time_types.hpp>
 #include <scwx/qt/ui/county_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
+#include <scwx/qt/ui/serial_port_dialog.hpp>
 #include <scwx/qt/ui/settings/hotkey_settings_widget.hpp>
 #include <scwx/qt/ui/settings/unit_settings_widget.hpp>
 #include <scwx/qt/util/color.hpp>
@@ -102,6 +103,7 @@ public:
    explicit SettingsDialogImpl(SettingsDialog* self) :
        self_ {self},
        radarSiteDialog_ {new RadarSiteDialog(self)},
+       gpsSourceDialog_ {new SerialPortDialog(self)},
        countyDialog_ {new CountyDialog(self)},
        fontDialog_ {new QFontDialog(self)},
        fontCategoryModel_ {new QStandardItemModel(self)},
@@ -193,10 +195,11 @@ public:
                RadarSiteLabel(std::shared_ptr<config::RadarSite>& radarSite);
    static void SetBackgroundColor(const std::string& value, QFrame* frame);
 
-   SettingsDialog*  self_;
-   RadarSiteDialog* radarSiteDialog_;
-   CountyDialog*    countyDialog_;
-   QFontDialog*     fontDialog_;
+   SettingsDialog*   self_;
+   RadarSiteDialog*  radarSiteDialog_;
+   SerialPortDialog* gpsSourceDialog_;
+   CountyDialog*     countyDialog_;
+   QFontDialog*      fontDialog_;
 
    QStandardItemModel* fontCategoryModel_;
 
@@ -329,6 +332,32 @@ void SettingsDialogImpl::ConnectSignals()
                        {
                           self_->ui->radarSiteComboBox->setCurrentText(
                              QString::fromStdString(RadarSiteLabel(radarSite)));
+                       }
+                    });
+
+   QObject::connect(self_->ui->gpsSourceSelectButton,
+                    &QAbstractButton::clicked,
+                    self_,
+                    [this]() { gpsSourceDialog_->show(); });
+
+   QObject::connect(gpsSourceDialog_,
+                    &SerialPortDialog::accepted,
+                    self_,
+                    [this]()
+                    {
+                       std::string serialPort = gpsSourceDialog_->serial_port();
+                       int         baudRate   = gpsSourceDialog_->baud_rate();
+
+                       if (!serialPort.empty() && serialPort != "?")
+                       {
+                          std::string source =
+                             fmt::format("serial:{}", serialPort);
+                          nmeaSource_.StageValue(source);
+                       }
+
+                       if (baudRate > 0)
+                       {
+                          self_->ui->nmeaBaudRateSpinBox->setValue(baudRate);
                        }
                     });
 
@@ -558,6 +587,25 @@ void SettingsDialogImpl::SetupGeneralTab()
                            types::DefaultTimeZoneIterator(),
                            types::GetDefaultTimeZoneName);
    defaultTimeZone_.SetResetButton(self_->ui->resetDefaultTimeZoneButton);
+
+   QObject::connect(
+      self_->ui->positioningPluginComboBox,
+      &QComboBox::currentTextChanged,
+      self_,
+      [this](const QString& text)
+      {
+         types::PositioningPlugin positioningPlugin =
+            types::GetPositioningPlugin(text.toStdString());
+
+         bool gpsSourceEnabled =
+            positioningPlugin == types::PositioningPlugin::Nmea;
+
+         self_->ui->nmeaSourceLineEdit->setEnabled(gpsSourceEnabled);
+         self_->ui->gpsSourceSelectButton->setEnabled(gpsSourceEnabled);
+         self_->ui->nmeaBaudRateSpinBox->setEnabled(gpsSourceEnabled);
+         self_->ui->resetNmeaSourceButton->setEnabled(gpsSourceEnabled);
+         self_->ui->resetNmeaBaudRateButton->setEnabled(gpsSourceEnabled);
+      });
 
    positioningPlugin_.SetSettingsVariable(generalSettings.positioning_plugin());
    SCWX_SETTINGS_COMBO_BOX(positioningPlugin_,
