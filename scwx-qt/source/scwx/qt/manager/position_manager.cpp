@@ -139,7 +139,7 @@ void PositionManager::Impl::CreatePositionSource()
 
                           if (coordinate != position_.coordinate())
                           {
-                             logger_->debug("Position updated: {}, {}",
+                             logger_->trace("Position updated: {}, {}",
                                             coordinate.latitude(),
                                             coordinate.longitude());
                           }

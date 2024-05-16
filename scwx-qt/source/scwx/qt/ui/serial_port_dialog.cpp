@@ -186,13 +186,13 @@ int SerialPortDialog::baud_rate()
 
 void SerialPortDialog::Impl::LogSerialPortInfo(const QSerialPortInfo& info)
 {
-   logger_->debug("Serial Port:    {}", info.portName().toStdString());
-   logger_->debug("  Description:  {}", info.description().toStdString());
-   logger_->debug("  System Loc:   {}", info.systemLocation().toStdString());
-   logger_->debug("  Manufacturer: {}", info.manufacturer().toStdString());
-   logger_->debug("  Vendor ID:    {}", info.vendorIdentifier());
-   logger_->debug("  Product ID:   {}", info.productIdentifier());
-   logger_->debug("  Serial No:    {}", info.serialNumber().toStdString());
+   logger_->trace("Serial Port:    {}", info.portName().toStdString());
+   logger_->trace("  Description:  {}", info.description().toStdString());
+   logger_->trace("  System Loc:   {}", info.systemLocation().toStdString());
+   logger_->trace("  Manufacturer: {}", info.manufacturer().toStdString());
+   logger_->trace("  Vendor ID:    {}", info.vendorIdentifier());
+   logger_->trace("  Product ID:   {}", info.productIdentifier());
+   logger_->trace("  Serial No:    {}", info.serialNumber().toStdString());
 }
 
 void SerialPortDialog::Impl::RefreshSerialDevices()
@@ -326,7 +326,7 @@ void SerialPortDialog::Impl::ReadComPortProperties(
       properties.busReportedDeviceDescription_ = GetDevicePropertyString(
          deviceInfoSet, deviceInfoData, DEVPKEY_Device_BusReportedDeviceDesc);
 
-      logger_->debug(
+      logger_->trace(
          "Port: {} ({})", portName, properties.busReportedDeviceDescription_);
 
       portPropertiesMap.emplace(portName, std::move(properties));
@@ -422,7 +422,7 @@ void SerialPortDialog::Impl::ReadComPortSettings(
 
             std::string portData = buffer;
 
-            logger_->debug("Port Settings: {} ({})", portName, portData);
+            logger_->trace("Port Settings: {} ({})", portName, portData);
 
             StorePortSettings(portName, portData, portSettingsMap);
          }
