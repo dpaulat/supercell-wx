@@ -1,4 +1,5 @@
 #include <scwx/qt/manager/position_manager.hpp>
+#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/location_types.hpp>
 #include <scwx/common/geographic.hpp>
@@ -36,13 +37,27 @@ public:
 
       positioningPluginCallbackUuid_ =
          generalSettings.positioning_plugin().RegisterValueChangedCallback(
-            [this](const std::string&) { CreatePositionSource(); });
+            [this](const std::string&)
+            { createPositionSourcePending_ = true; });
       nmeaBaudRateCallbackUuid_ =
          generalSettings.nmea_baud_rate().RegisterValueChangedCallback(
-            [this](const std::int64_t&) { CreatePositionSource(); });
+            [this](const std::int64_t&)
+            { createPositionSourcePending_ = true; });
       nmeaSourceCallbackUuid_ =
          generalSettings.nmea_source().RegisterValueChangedCallback(
-            [this](const std::string&) { CreatePositionSource(); });
+            [this](const std::string&)
+            { createPositionSourcePending_ = true; });
+
+      connect(&SettingsManager::Instance(),
+              &SettingsManager::SettingsSaved,
+              self_,
+              [this]()
+              {
+                 if (createPositionSourcePending_)
+                 {
+                    CreatePositionSource();
+                 }
+              });
    }
    ~Impl()
    {
@@ -78,6 +93,8 @@ public:
    boost::uuids::uuid positioningPluginCallbackUuid_ {};
    boost::uuids::uuid nmeaBaudRateCallbackUuid_ {};
    boost::uuids::uuid nmeaSourceCallbackUuid_ {};
+
+   bool createPositionSourcePending_ {false};
 };
 
 PositionManager::PositionManager() : p(std::make_unique<Impl>(this)) {}
@@ -96,6 +113,8 @@ bool PositionManager::IsLocationTracked()
 void PositionManager::Impl::CreatePositionSource()
 {
    auto& generalSettings = settings::GeneralSettings::Instance();
+
+   createPositionSourcePending_ = false;
 
    types::PositioningPlugin positioningPlugin = types::GetPositioningPlugin(
       generalSettings.positioning_plugin().GetValue());
