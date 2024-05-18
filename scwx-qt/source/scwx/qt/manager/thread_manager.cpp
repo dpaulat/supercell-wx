@@ -1,6 +1,7 @@
 #include <scwx/qt/manager/thread_manager.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <execution>
 #include <mutex>
 
 #include <boost/unordered/unordered_flat_map.hpp>
@@ -63,11 +64,24 @@ void ThreadManager::StopThreads()
 
    logger_->debug("Stopping threads");
 
-   for (auto& thread : p->threadMap_)
-   {
-      thread.second->quit();
-      thread.second->deleteLater();
-   }
+   std::for_each(std::execution::par_unseq,
+                 p->threadMap_.begin(),
+                 p->threadMap_.end(),
+                 [](auto& thread)
+                 {
+                    logger_->trace("Stopping thread: {}", thread.first);
+
+                    thread.second->quit();
+                    if (!thread.second->wait(5000))
+                    {
+                       logger_->warn("Terminating thread: {}", thread.first);
+
+                       thread.second->terminate();
+                       thread.second->wait();
+                    }
+
+                    delete thread.second;
+                 });
 
    p->threadMap_.clear();
 }
