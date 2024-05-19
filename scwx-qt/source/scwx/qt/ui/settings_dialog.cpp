@@ -22,6 +22,7 @@
 #include <scwx/qt/types/time_types.hpp>
 #include <scwx/qt/ui/county_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
+#include <scwx/qt/ui/serial_port_dialog.hpp>
 #include <scwx/qt/ui/settings/hotkey_settings_widget.hpp>
 #include <scwx/qt/ui/settings/unit_settings_widget.hpp>
 #include <scwx/qt/util/color.hpp>
@@ -96,30 +97,13 @@ static const std::unordered_map<std::string, ColorTableConversions>
                             {"VIL", {0u, 255u, 1.0f, 2.5f}},
                             {"???", {0u, 15u, 0.0f, 1.0f}}};
 
-#define SCWX_ENUM_MAP_FROM_VALUE(Type, Iterator, ToName)                       \
-   [](const std::string& text) -> std::string                                  \
-   {                                                                           \
-      for (Type enumValue : Iterator)                                          \
-      {                                                                        \
-         const std::string enumName = ToName(enumValue);                       \
-                                                                               \
-         if (boost::iequals(text, enumName))                                   \
-         {                                                                     \
-            /* Return label */                                                 \
-            return enumName;                                                   \
-         }                                                                     \
-      }                                                                        \
-                                                                               \
-      /* Label not found, return unknown */                                    \
-      return "?";                                                              \
-   }
-
 class SettingsDialogImpl
 {
 public:
    explicit SettingsDialogImpl(SettingsDialog* self) :
        self_ {self},
        radarSiteDialog_ {new RadarSiteDialog(self)},
+       gpsSourceDialog_ {new SerialPortDialog(self)},
        countyDialog_ {new CountyDialog(self)},
        fontDialog_ {new QFontDialog(self)},
        fontCategoryModel_ {new QStandardItemModel(self)},
@@ -134,6 +118,9 @@ public:
           &defaultAlertAction_,
           &clockFormat_,
           &defaultTimeZone_,
+          &positioningPlugin_,
+          &nmeaBaudRate_,
+          &nmeaSource_,
           &warningsProvider_,
           &antiAliasingEnabled_,
           &showMapAttribution_,
@@ -208,10 +195,11 @@ public:
                RadarSiteLabel(std::shared_ptr<config::RadarSite>& radarSite);
    static void SetBackgroundColor(const std::string& value, QFrame* frame);
 
-   SettingsDialog*  self_;
-   RadarSiteDialog* radarSiteDialog_;
-   CountyDialog*    countyDialog_;
-   QFontDialog*     fontDialog_;
+   SettingsDialog*   self_;
+   RadarSiteDialog*  radarSiteDialog_;
+   SerialPortDialog* gpsSourceDialog_;
+   CountyDialog*     countyDialog_;
+   QFontDialog*      fontDialog_;
 
    QStandardItemModel* fontCategoryModel_;
 
@@ -235,6 +223,9 @@ public:
    settings::SettingsInterface<std::string>  defaultAlertAction_ {};
    settings::SettingsInterface<std::string>  clockFormat_ {};
    settings::SettingsInterface<std::string>  defaultTimeZone_ {};
+   settings::SettingsInterface<std::string>  positioningPlugin_ {};
+   settings::SettingsInterface<std::int64_t> nmeaBaudRate_ {};
+   settings::SettingsInterface<std::string>  nmeaSource_ {};
    settings::SettingsInterface<std::string>  theme_ {};
    settings::SettingsInterface<std::string>  warningsProvider_ {};
    settings::SettingsInterface<bool>         antiAliasingEnabled_ {};
@@ -341,6 +332,32 @@ void SettingsDialogImpl::ConnectSignals()
                        {
                           self_->ui->radarSiteComboBox->setCurrentText(
                              QString::fromStdString(RadarSiteLabel(radarSite)));
+                       }
+                    });
+
+   QObject::connect(self_->ui->gpsSourceSelectButton,
+                    &QAbstractButton::clicked,
+                    self_,
+                    [this]() { gpsSourceDialog_->show(); });
+
+   QObject::connect(gpsSourceDialog_,
+                    &SerialPortDialog::accepted,
+                    self_,
+                    [this]()
+                    {
+                       std::string serialPort = gpsSourceDialog_->serial_port();
+                       int         baudRate   = gpsSourceDialog_->baud_rate();
+
+                       if (!serialPort.empty() && serialPort != "?")
+                       {
+                          std::string source =
+                             fmt::format("serial:{}", serialPort);
+                          nmeaSource_.StageValue(source);
+                       }
+
+                       if (baudRate > 0)
+                       {
+                          self_->ui->nmeaBaudRateSpinBox->setValue(baudRate);
                        }
                     });
 
@@ -467,38 +484,11 @@ void SettingsDialogImpl::SetupGeneralTab()
    settings::GeneralSettings& generalSettings =
       settings::GeneralSettings::Instance();
 
-   for (const auto& uiStyle : types::UiStyleIterator())
-   {
-      self_->ui->themeComboBox->addItem(
-         QString::fromStdString(types::GetUiStyleName(uiStyle)));
-   }
-
    theme_.SetSettingsVariable(generalSettings.theme());
-   theme_.SetMapFromValueFunction(
-      [](const std::string& text) -> std::string
-      {
-         for (types::UiStyle uiStyle : types::UiStyleIterator())
-         {
-            const std::string uiStyleName = types::GetUiStyleName(uiStyle);
-
-            if (boost::iequals(text, uiStyleName))
-            {
-               // Return UI style label
-               return uiStyleName;
-            }
-         }
-
-         // UI style label not found, return unknown
-         return "?";
-      });
-   theme_.SetMapToValueFunction(
-      [](std::string text) -> std::string
-      {
-         // Convert label to lower case and return
-         boost::to_lower(text);
-         return text;
-      });
-   theme_.SetEditWidget(self_->ui->themeComboBox);
+   SCWX_SETTINGS_COMBO_BOX(theme_,
+                           self_->ui->themeComboBox,
+                           types::UiStyleIterator(),
+                           types::GetUiStyleName);
    theme_.SetResetButton(self_->ui->resetThemeButton);
 
    auto radarSites = config::RadarSite::GetAll();
@@ -561,39 +551,11 @@ void SettingsDialogImpl::SetupGeneralTab()
    gridHeight_.SetEditWidget(self_->ui->gridHeightSpinBox);
    gridHeight_.SetResetButton(self_->ui->resetGridHeightButton);
 
-   for (const auto& mapProvider : map::MapProviderIterator())
-   {
-      self_->ui->mapProviderComboBox->addItem(
-         QString::fromStdString(map::GetMapProviderName(mapProvider)));
-   }
-
    mapProvider_.SetSettingsVariable(generalSettings.map_provider());
-   mapProvider_.SetMapFromValueFunction(
-      [](const std::string& text) -> std::string
-      {
-         for (map::MapProvider mapProvider : map::MapProviderIterator())
-         {
-            const std::string mapProviderName =
-               map::GetMapProviderName(mapProvider);
-
-            if (boost::iequals(text, mapProviderName))
-            {
-               // Return map provider label
-               return mapProviderName;
-            }
-         }
-
-         // Map provider label not found, return unknown
-         return "?";
-      });
-   mapProvider_.SetMapToValueFunction(
-      [](std::string text) -> std::string
-      {
-         // Convert label to lower case and return
-         boost::to_lower(text);
-         return text;
-      });
-   mapProvider_.SetEditWidget(self_->ui->mapProviderComboBox);
+   SCWX_SETTINGS_COMBO_BOX(mapProvider_,
+                           self_->ui->mapProviderComboBox,
+                           map::MapProviderIterator(),
+                           map::GetMapProviderName);
    mapProvider_.SetResetButton(self_->ui->resetMapProviderButton);
 
    mapboxApiKey_.SetSettingsVariable(generalSettings.mapbox_api_key());
@@ -604,69 +566,61 @@ void SettingsDialogImpl::SetupGeneralTab()
    mapTilerApiKey_.SetEditWidget(self_->ui->mapTilerApiKeyLineEdit);
    mapTilerApiKey_.SetResetButton(self_->ui->resetMapTilerApiKeyButton);
 
-   for (const auto& alertAction : types::AlertActionIterator())
-   {
-      self_->ui->defaultAlertActionComboBox->addItem(
-         QString::fromStdString(types::GetAlertActionName(alertAction)));
-   }
-
    defaultAlertAction_.SetSettingsVariable(
       generalSettings.default_alert_action());
-   defaultAlertAction_.SetMapFromValueFunction(
-      SCWX_ENUM_MAP_FROM_VALUE(types::AlertAction,
-                               types::AlertActionIterator(),
-                               types::GetAlertActionName));
-   defaultAlertAction_.SetMapToValueFunction(
-      [](std::string text) -> std::string
-      {
-         // Convert label to lower case and return
-         boost::to_lower(text);
-         return text;
-      });
-   defaultAlertAction_.SetEditWidget(self_->ui->defaultAlertActionComboBox);
+   SCWX_SETTINGS_COMBO_BOX(defaultAlertAction_,
+                           self_->ui->defaultAlertActionComboBox,
+                           types::AlertActionIterator(),
+                           types::GetAlertActionName);
    defaultAlertAction_.SetResetButton(self_->ui->resetDefaultAlertActionButton);
 
-   for (const auto& clockFormat : scwx::util::ClockFormatIterator())
-   {
-      self_->ui->clockFormatComboBox->addItem(
-         QString::fromStdString(scwx::util::GetClockFormatName(clockFormat)));
-   }
-
    clockFormat_.SetSettingsVariable(generalSettings.clock_format());
-   clockFormat_.SetMapFromValueFunction(
-      SCWX_ENUM_MAP_FROM_VALUE(scwx::util::ClockFormat,
-                               scwx::util::ClockFormatIterator(),
-                               scwx::util::GetClockFormatName));
-   clockFormat_.SetMapToValueFunction(
-      [](std::string text) -> std::string
-      {
-         // Convert label to lower case and return
-         boost::to_lower(text);
-         return text;
-      });
-   clockFormat_.SetEditWidget(self_->ui->clockFormatComboBox);
+   SCWX_SETTINGS_COMBO_BOX(clockFormat_,
+                           self_->ui->clockFormatComboBox,
+                           scwx::util::ClockFormatIterator(),
+                           scwx::util::GetClockFormatName);
    clockFormat_.SetResetButton(self_->ui->resetClockFormatButton);
 
-   for (const auto& timeZone : types::DefaultTimeZoneIterator())
-   {
-      self_->ui->defaultTimeZoneComboBox->addItem(
-         QString::fromStdString(types::GetDefaultTimeZoneName(timeZone)));
-   }
-
    defaultTimeZone_.SetSettingsVariable(generalSettings.default_time_zone());
-   defaultTimeZone_.SetMapFromValueFunction(
-      SCWX_ENUM_MAP_FROM_VALUE(types::DefaultTimeZone,
-                               types::DefaultTimeZoneIterator(),
-                               types::GetDefaultTimeZoneName));
-   defaultTimeZone_.SetMapToValueFunction(
-      [](std::string text) -> std::string
-      {
-         // Convert label to lower case and return
-         boost::to_lower(text);
-         return text;
-      });
-   defaultTimeZone_.SetEditWidget(self_->ui->defaultTimeZoneComboBox);
+   SCWX_SETTINGS_COMBO_BOX(defaultTimeZone_,
+                           self_->ui->defaultTimeZoneComboBox,
+                           types::DefaultTimeZoneIterator(),
+                           types::GetDefaultTimeZoneName);
    defaultTimeZone_.SetResetButton(self_->ui->resetDefaultTimeZoneButton);
+
+   QObject::connect(
+      self_->ui->positioningPluginComboBox,
+      &QComboBox::currentTextChanged,
+      self_,
+      [this](const QString& text)
+      {
+         types::PositioningPlugin positioningPlugin =
+            types::GetPositioningPlugin(text.toStdString());
+
+         bool gpsSourceEnabled =
+            positioningPlugin == types::PositioningPlugin::Nmea;
+
+         self_->ui->nmeaSourceLineEdit->setEnabled(gpsSourceEnabled);
+         self_->ui->gpsSourceSelectButton->setEnabled(gpsSourceEnabled);
+         self_->ui->nmeaBaudRateSpinBox->setEnabled(gpsSourceEnabled);
+         self_->ui->resetNmeaSourceButton->setEnabled(gpsSourceEnabled);
+         self_->ui->resetNmeaBaudRateButton->setEnabled(gpsSourceEnabled);
+      });
+
+   positioningPlugin_.SetSettingsVariable(generalSettings.positioning_plugin());
+   SCWX_SETTINGS_COMBO_BOX(positioningPlugin_,
+                           self_->ui->positioningPluginComboBox,
+                           types::PositioningPluginIterator(),
+                           types::GetPositioningPluginName);
+   positioningPlugin_.SetResetButton(self_->ui->resetPositioningPluginButton);
+
+   nmeaBaudRate_.SetSettingsVariable(generalSettings.nmea_baud_rate());
+   nmeaBaudRate_.SetEditWidget(self_->ui->nmeaBaudRateSpinBox);
+   nmeaBaudRate_.SetResetButton(self_->ui->resetNmeaBaudRateButton);
+
+   nmeaSource_.SetSettingsVariable(generalSettings.nmea_source());
+   nmeaSource_.SetEditWidget(self_->ui->nmeaSourceLineEdit);
+   nmeaSource_.SetResetButton(self_->ui->resetNmeaSourceButton);
 
    warningsProvider_.SetSettingsVariable(generalSettings.warnings_provider());
    warningsProvider_.SetEditWidget(self_->ui->warningsProviderLineEdit);
@@ -991,27 +945,12 @@ void SettingsDialogImpl::SetupAudioTab()
          dialog->open();
       });
 
-   for (const auto& locationMethod : types::LocationMethodIterator())
-   {
-      self_->ui->alertAudioLocationMethodComboBox->addItem(
-         QString::fromStdString(types::GetLocationMethodName(locationMethod)));
-   }
-
    alertAudioLocationMethod_.SetSettingsVariable(
       audioSettings.alert_location_method());
-   alertAudioLocationMethod_.SetMapFromValueFunction(
-      SCWX_ENUM_MAP_FROM_VALUE(types::LocationMethod,
-                               types::LocationMethodIterator(),
-                               types::GetLocationMethodName));
-   alertAudioLocationMethod_.SetMapToValueFunction(
-      [](std::string text) -> std::string
-      {
-         // Convert label to lower case and return
-         boost::to_lower(text);
-         return text;
-      });
-   alertAudioLocationMethod_.SetEditWidget(
-      self_->ui->alertAudioLocationMethodComboBox);
+   SCWX_SETTINGS_COMBO_BOX(alertAudioLocationMethod_,
+                           self_->ui->alertAudioLocationMethodComboBox,
+                           types::LocationMethodIterator(),
+                           types::GetLocationMethodName);
    alertAudioLocationMethod_.SetResetButton(
       self_->ui->resetAlertAudioLocationMethodButton);
 
@@ -1159,40 +1098,11 @@ void SettingsDialogImpl::SetupTextTab()
    hoverTextWrap_.SetEditWidget(self_->ui->hoverTextWrapSpinBox);
    hoverTextWrap_.SetResetButton(self_->ui->resetHoverTextWrapButton);
 
-   for (const auto& tooltipMethod : types::TooltipMethodIterator())
-   {
-      self_->ui->tooltipMethodComboBox->addItem(
-         QString::fromStdString(types::GetTooltipMethodName(tooltipMethod)));
-   }
-
    tooltipMethod_.SetSettingsVariable(textSettings.tooltip_method());
-   tooltipMethod_.SetMapFromValueFunction(
-      [](const std::string& text) -> std::string
-      {
-         for (types::TooltipMethod tooltipMethod :
-              types::TooltipMethodIterator())
-         {
-            const std::string tooltipMethodName =
-               types::GetTooltipMethodName(tooltipMethod);
-
-            if (boost::iequals(text, tooltipMethodName))
-            {
-               // Return tooltip method label
-               return tooltipMethodName;
-            }
-         }
-
-         // Tooltip method label not found, return unknown
-         return "?";
-      });
-   tooltipMethod_.SetMapToValueFunction(
-      [](std::string text) -> std::string
-      {
-         // Convert label to lower case and return
-         boost::to_lower(text);
-         return text;
-      });
-   tooltipMethod_.SetEditWidget(self_->ui->tooltipMethodComboBox);
+   SCWX_SETTINGS_COMBO_BOX(tooltipMethod_,
+                           self_->ui->tooltipMethodComboBox,
+                           types::TooltipMethodIterator(),
+                           types::GetTooltipMethodName);
    tooltipMethod_.SetResetButton(self_->ui->resetTooltipMethodButton);
 
    placefileTextDropShadowEnabled_.SetSettingsVariable(

@@ -3,6 +3,7 @@
 #include <scwx/qt/settings/settings_definitions.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/types/alert_types.hpp>
+#include <scwx/qt/types/location_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/types/time_types.hpp>
 #include <scwx/util/time.hpp>
@@ -37,6 +38,8 @@ public:
          types::GetDefaultTimeZoneName(types::DefaultTimeZone::Radar);
       std::string defaultMapProviderValue =
          map::GetMapProviderName(map::MapProvider::MapTiler);
+      std::string defaultPositioningPlugin =
+         types::GetPositioningPluginName(types::PositioningPlugin::Default);
       std::string defaultThemeValue =
          types::GetUiStyleName(types::UiStyle::Default);
 
@@ -44,6 +47,7 @@ public:
       boost::to_lower(defaultDefaultAlertActionValue);
       boost::to_lower(defaultDefaultTimeZoneValue);
       boost::to_lower(defaultMapProviderValue);
+      boost::to_lower(defaultPositioningPlugin);
       boost::to_lower(defaultThemeValue);
 
       antiAliasingEnabled_.SetDefault(true);
@@ -61,6 +65,9 @@ public:
       mapProvider_.SetDefault(defaultMapProviderValue);
       mapboxApiKey_.SetDefault("?");
       maptilerApiKey_.SetDefault("?");
+      nmeaBaudRate_.SetDefault(9600);
+      nmeaSource_.SetDefault("");
+      positioningPlugin_.SetDefault(defaultPositioningPlugin);
       showMapAttribution_.SetDefault(true);
       showMapCenter_.SetDefault(false);
       showMapLogo_.SetDefault(true);
@@ -83,6 +90,8 @@ public:
       loopSpeed_.SetMaximum(99.99);
       loopTime_.SetMinimum(1);
       loopTime_.SetMaximum(1440);
+      nmeaBaudRate_.SetMinimum(1);
+      nmeaBaudRate_.SetMaximum(999999999);
 
       clockFormat_.SetValidator(
          SCWX_SETTINGS_ENUM_VALIDATOR(scwx::util::ClockFormat,
@@ -104,6 +113,10 @@ public:
                                  { return !value.empty(); });
       maptilerApiKey_.SetValidator([](const std::string& value)
                                    { return !value.empty(); });
+      positioningPlugin_.SetValidator(
+         SCWX_SETTINGS_ENUM_VALIDATOR(types::PositioningPlugin,
+                                      types::PositioningPluginIterator(),
+                                      types::GetPositioningPluginName));
       theme_.SetValidator(                            //
          SCWX_SETTINGS_ENUM_VALIDATOR(types::UiStyle, //
                                       types::UiStyleIterator(),
@@ -128,13 +141,16 @@ public:
    SettingsVariable<double>                     loopSpeed_ {"loop_speed"};
    SettingsVariable<std::int64_t>               loopTime_ {"loop_time"};
    SettingsVariable<std::string>                mapProvider_ {"map_provider"};
-   SettingsVariable<std::string> mapboxApiKey_ {"mapbox_api_key"};
-   SettingsVariable<std::string> maptilerApiKey_ {"maptiler_api_key"};
-   SettingsVariable<bool>        showMapAttribution_ {"show_map_attribution"};
-   SettingsVariable<bool>        showMapCenter_ {"show_map_center"};
-   SettingsVariable<bool>        showMapLogo_ {"show_map_logo"};
-   SettingsVariable<std::string> theme_ {"theme"};
-   SettingsVariable<bool>        trackLocation_ {"track_location"};
+   SettingsVariable<std::string>  mapboxApiKey_ {"mapbox_api_key"};
+   SettingsVariable<std::string>  maptilerApiKey_ {"maptiler_api_key"};
+   SettingsVariable<std::int64_t> nmeaBaudRate_ {"nmea_baud_rate"};
+   SettingsVariable<std::string>  nmeaSource_ {"nmea_source"};
+   SettingsVariable<std::string>  positioningPlugin_ {"positioning_plugin"};
+   SettingsVariable<bool>         showMapAttribution_ {"show_map_attribution"};
+   SettingsVariable<bool>         showMapCenter_ {"show_map_center"};
+   SettingsVariable<bool>         showMapLogo_ {"show_map_logo"};
+   SettingsVariable<std::string>  theme_ {"theme"};
+   SettingsVariable<bool>         trackLocation_ {"track_location"};
    SettingsVariable<bool> updateNotificationsEnabled_ {"update_notifications"};
    SettingsVariable<std::string> warningsProvider_ {"warnings_provider"};
 };
@@ -157,6 +173,9 @@ GeneralSettings::GeneralSettings() :
                       &p->mapProvider_,
                       &p->mapboxApiKey_,
                       &p->maptilerApiKey_,
+                      &p->nmeaBaudRate_,
+                      &p->nmeaSource_,
+                      &p->positioningPlugin_,
                       &p->showMapAttribution_,
                       &p->showMapCenter_,
                       &p->showMapLogo_,
@@ -248,6 +267,21 @@ SettingsVariable<std::string>& GeneralSettings::maptiler_api_key() const
    return p->maptilerApiKey_;
 }
 
+SettingsVariable<std::int64_t>& GeneralSettings::nmea_baud_rate() const
+{
+   return p->nmeaBaudRate_;
+}
+
+SettingsVariable<std::string>& GeneralSettings::nmea_source() const
+{
+   return p->nmeaSource_;
+}
+
+SettingsVariable<std::string>& GeneralSettings::positioning_plugin() const
+{
+   return p->positioningPlugin_;
+}
+
 SettingsVariable<bool>& GeneralSettings::show_map_attribution() const
 {
    return p->showMapAttribution_;
@@ -319,6 +353,9 @@ bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
            lhs.p->mapProvider_ == rhs.p->mapProvider_ &&
            lhs.p->mapboxApiKey_ == rhs.p->mapboxApiKey_ &&
            lhs.p->maptilerApiKey_ == rhs.p->maptilerApiKey_ &&
+           lhs.p->nmeaBaudRate_ == rhs.p->nmeaBaudRate_ &&
+           lhs.p->nmeaSource_ == rhs.p->nmeaSource_ &&
+           lhs.p->positioningPlugin_ == rhs.p->positioningPlugin_ &&
            lhs.p->showMapAttribution_ == rhs.p->showMapAttribution_ &&
            lhs.p->showMapCenter_ == rhs.p->showMapCenter_ &&
            lhs.p->showMapLogo_ == rhs.p->showMapLogo_ &&

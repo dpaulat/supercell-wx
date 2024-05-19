@@ -30,7 +30,7 @@ jobs:
             msvc_version: 2022
             qt_version: 6.6.2
             qt_arch: win64_msvc2019_64
-            qt_modules: qtimageformats qtmultimedia qtpositioning
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_arch: x86_64
             conan_compiler: Visual Studio
@@ -46,7 +46,7 @@ jobs:
             compiler: gcc
             qt_version: 6.6.2
             qt_arch: gcc_64
-            qt_modules: qtimageformats qtmultimedia qtpositioning
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_arch: x86_64
             conan_compiler: gcc

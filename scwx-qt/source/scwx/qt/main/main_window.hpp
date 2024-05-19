@@ -38,6 +38,7 @@ private slots:
    void on_actionOpenTextEvent_triggered();
    void on_actionSettings_triggered();
    void on_actionExit_triggered();
+   void on_actionGpsInfo_triggered();
    void on_actionColorTable_triggered(bool checked);
    void on_actionRadarRange_triggered(bool checked);
    void on_actionRadarSites_triggered(bool checked);

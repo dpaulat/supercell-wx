@@ -7,6 +7,7 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/manager/thread_manager.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/ui/setup/setup_wizard.hpp>
@@ -128,6 +129,9 @@ int main(int argc, char* argv[])
 
    // Deinitialize application
    scwx::qt::manager::RadarProductManager::Cleanup();
+
+   // Stop Qt Threads
+   scwx::qt::manager::ThreadManager::Instance().StopThreads();
 
    // Gracefully stop the io_context main loop
    work.reset();

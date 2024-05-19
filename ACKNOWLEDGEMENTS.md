@@ -34,7 +34,7 @@ Supercell Wx uses code from the following dependencies:
 | [MapLibre Native](https://maplibre.org/projects/maplibre-native/) | [BSD 2-Clause "Simplified" License](https://spdx.org/licenses/BSD-2-Clause.html) |
 | [nunicode](https://bitbucket.org/alekseyt/nunicode/src/master/) | [MIT License](https://spdx.org/licenses/MIT.html) | Modified for MapLibre Native |
 | [OpenSSL](https://www.openssl.org/) | [OpenSSL License](https://spdx.org/licenses/OpenSSL.html) |
-| [Qt](https://www.qt.io/) | [GNU Lesser General Public License v3.0 only](https://spdx.org/licenses/LGPL-3.0-only.html) | Qt Core, Qt GUI, Qt Multimedia, Qt Network, Qt OpenGL, Qt Positioning, Qt SQL, Qt SVG, Qt Widgets<br/>Additional Licenses: https://doc.qt.io/qt-6/licenses-used-in-qt.html |
+| [Qt](https://www.qt.io/) | [GNU Lesser General Public License v3.0 only](https://spdx.org/licenses/LGPL-3.0-only.html) | Qt Core, Qt GUI, Qt Multimedia, Qt Network, Qt OpenGL, Qt Positioning, Qt Serial Port, Qt SQL, Qt SVG, Qt Widgets<br/>Additional Licenses: https://doc.qt.io/qt-6/licenses-used-in-qt.html |
 | [re2](https://github.com/google/re2) | [BSD 3-Clause "New" or "Revised" License](https://spdx.org/licenses/BSD-3-Clause.html) |
 | [spdlog](https://github.com/gabime/spdlog) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [SQLite](https://www.sqlite.org/) | Public Domain |

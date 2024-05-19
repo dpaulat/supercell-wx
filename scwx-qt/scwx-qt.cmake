@@ -28,6 +28,7 @@ find_package(QT NAMES Qt6
                         OpenGL
                         OpenGLWidgets
                         Positioning
+                        SerialPort
                         Svg
                         Widgets REQUIRED)
 
@@ -39,6 +40,7 @@ find_package(Qt${QT_VERSION_MAJOR}
                         OpenGL
                         OpenGLWidgets
                         Positioning
+                        SerialPort
                         Svg
                         Widgets
              REQUIRED)
@@ -97,6 +99,7 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/resource_manager.hpp
                 source/scwx/qt/manager/settings_manager.hpp
                 source/scwx/qt/manager/text_event_manager.hpp
+                source/scwx/qt/manager/thread_manager.hpp
                 source/scwx/qt/manager/timeline_manager.hpp
                 source/scwx/qt/manager/update_manager.hpp)
 set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
@@ -111,6 +114,7 @@ set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                 source/scwx/qt/manager/resource_manager.cpp
                 source/scwx/qt/manager/settings_manager.cpp
                 source/scwx/qt/manager/text_event_manager.cpp
+                source/scwx/qt/manager/thread_manager.cpp
                 source/scwx/qt/manager/timeline_manager.cpp
                 source/scwx/qt/manager/update_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
@@ -235,6 +239,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/county_dialog.hpp
            source/scwx/qt/ui/download_dialog.hpp
            source/scwx/qt/ui/flow_layout.hpp
+           source/scwx/qt/ui/gps_info_dialog.hpp
            source/scwx/qt/ui/hotkey_edit.hpp
            source/scwx/qt/ui/imgui_debug_dialog.hpp
            source/scwx/qt/ui/imgui_debug_widget.hpp
@@ -248,6 +253,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/placefile_settings_widget.hpp
            source/scwx/qt/ui/progress_dialog.hpp
            source/scwx/qt/ui/radar_site_dialog.hpp
+           source/scwx/qt/ui/serial_port_dialog.hpp
            source/scwx/qt/ui/settings_dialog.hpp
            source/scwx/qt/ui/update_dialog.hpp)
 set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
@@ -258,6 +264,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/county_dialog.cpp
            source/scwx/qt/ui/download_dialog.cpp
            source/scwx/qt/ui/flow_layout.cpp
+           source/scwx/qt/ui/gps_info_dialog.cpp
            source/scwx/qt/ui/hotkey_edit.cpp
            source/scwx/qt/ui/imgui_debug_dialog.cpp
            source/scwx/qt/ui/imgui_debug_widget.cpp
@@ -272,6 +279,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/progress_dialog.cpp
            source/scwx/qt/ui/radar_site_dialog.cpp
            source/scwx/qt/ui/settings_dialog.cpp
+           source/scwx/qt/ui/serial_port_dialog.cpp
            source/scwx/qt/ui/update_dialog.cpp)
 set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/alert_dialog.ui
@@ -279,6 +287,7 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/animation_dock_widget.ui
            source/scwx/qt/ui/collapsible_group.ui
            source/scwx/qt/ui/county_dialog.ui
+           source/scwx/qt/ui/gps_info_dialog.ui
            source/scwx/qt/ui/imgui_debug_dialog.ui
            source/scwx/qt/ui/layer_dialog.ui
            source/scwx/qt/ui/open_url_dialog.ui
@@ -287,6 +296,7 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/progress_dialog.ui
            source/scwx/qt/ui/radar_site_dialog.ui
            source/scwx/qt/ui/settings_dialog.ui
+           source/scwx/qt/ui/serial_port_dialog.ui
            source/scwx/qt/ui/update_dialog.ui)
 set(HDR_UI_SETTINGS source/scwx/qt/ui/settings/hotkey_settings_widget.hpp
                     source/scwx/qt/ui/settings/settings_page_widget.hpp
@@ -597,11 +607,13 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Qt${QT_VERSION_MAJOR}::OpenGLWidgets
                                      Qt${QT_VERSION_MAJOR}::Multimedia
                                      Qt${QT_VERSION_MAJOR}::Positioning
+                                     Qt${QT_VERSION_MAJOR}::SerialPort
                                      Qt${QT_VERSION_MAJOR}::Svg
                                      Boost::json
                                      Boost::timer
                                      QMapLibre::Core
                                      $<$<CXX_COMPILER_ID:MSVC>:opengl32>
+                                     $<$<CXX_COMPILER_ID:MSVC>:SetupAPI>
                                      Fontconfig::Fontconfig
                                      GeographicLib::GeographicLib
                                      GEOS::geos

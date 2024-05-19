@@ -23,6 +23,7 @@
 #include <scwx/qt/ui/animation_dock_widget.hpp>
 #include <scwx/qt/ui/collapsible_group.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
+#include <scwx/qt/ui/gps_info_dialog.hpp>
 #include <scwx/qt/ui/imgui_debug_dialog.hpp>
 #include <scwx/qt/ui/layer_dialog.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
@@ -85,6 +86,7 @@ public:
        alertDockWidget_ {nullptr},
        animationDockWidget_ {nullptr},
        aboutDialog_ {nullptr},
+       gpsInfoDialog_ {nullptr},
        imGuiDebugDialog_ {nullptr},
        layerDialog_ {nullptr},
        placefileDialog_ {nullptr},
@@ -190,6 +192,7 @@ public:
    ui::AlertDockWidget*     alertDockWidget_;
    ui::AnimationDockWidget* animationDockWidget_;
    ui::AboutDialog*         aboutDialog_;
+   ui::GpsInfoDialog*       gpsInfoDialog_;
    ui::ImGuiDebugDialog*    imGuiDebugDialog_;
    ui::LayerDialog*         layerDialog_;
    ui::PlacefileDialog*     placefileDialog_;
@@ -263,6 +266,9 @@ MainWindow::MainWindow(QWidget* parent) :
    p->alertDockWidget_ = new ui::AlertDockWidget(this);
    p->alertDockWidget_->setVisible(false);
    addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
+
+   // GPS Info Dialog
+   p->gpsInfoDialog_ = new ui::GpsInfoDialog(this);
 
    // Configure Menu
    ui->menuView->insertAction(ui->actionRadarToolbox,
@@ -533,6 +539,11 @@ void MainWindow::on_actionSettings_triggered()
 void MainWindow::on_actionExit_triggered()
 {
    close();
+}
+
+void MainWindow::on_actionGpsInfo_triggered()
+{
+   p->gpsInfoDialog_->show();
 }
 
 void MainWindow::on_actionColorTable_triggered(bool checked)

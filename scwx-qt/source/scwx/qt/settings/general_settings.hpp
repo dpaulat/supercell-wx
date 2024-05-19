@@ -40,6 +40,9 @@ public:
    SettingsVariable<std::string>&                map_provider() const;
    SettingsVariable<std::string>&                mapbox_api_key() const;
    SettingsVariable<std::string>&                maptiler_api_key() const;
+   SettingsVariable<std::int64_t>&               nmea_baud_rate() const;
+   SettingsVariable<std::string>&                nmea_source() const;
+   SettingsVariable<std::string>&                positioning_plugin() const;
    SettingsVariable<bool>&                       show_map_attribution() const;
    SettingsVariable<bool>&                       show_map_center() const;
    SettingsVariable<bool>&                       show_map_logo() const;

@@ -1,10 +1,16 @@
 #include <scwx/qt/manager/position_manager.hpp>
+#include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/manager/thread_manager.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/types/location_types.hpp>
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <mutex>
 #include <set>
 
 #include <boost/uuid/random_generator.hpp>
+#include <QAbstractEventDispatcher>
 #include <QGeoPositionInfoSource>
 
 namespace scwx
@@ -23,47 +29,82 @@ public:
    explicit Impl(PositionManager* self) :
        self_ {self}, trackingUuid_ {boost::uuids::random_generator()()}
    {
-      // TODO: macOS requires permission
-      geoPositionInfoSource_ =
-         QGeoPositionInfoSource::createDefaultSource(self);
+      auto& generalSettings = settings::GeneralSettings::Instance();
 
-      if (geoPositionInfoSource_ != nullptr)
-      {
-         logger_->debug("Using position source: {}",
-                        geoPositionInfoSource_->sourceName().toStdString());
+      gpsParent_->moveToThread(gpsThread_);
 
-         QObject::connect(geoPositionInfoSource_,
-                          &QGeoPositionInfoSource::positionUpdated,
-                          self_,
-                          [this](const QGeoPositionInfo& info)
-                          {
-                             auto coordinate = info.coordinate();
+      logger_->debug(
+         "Available sources: {}",
+         QGeoPositionInfoSource::availableSources().join(", ").toStdString());
 
-                             if (coordinate != position_.coordinate())
-                             {
-                                logger_->debug("Position updated: {}, {}",
-                                               coordinate.latitude(),
-                                               coordinate.longitude());
-                             }
+      CreatePositionSourceAsync();
 
-                             position_ = info;
+      positioningPluginCallbackUuid_ =
+         generalSettings.positioning_plugin().RegisterValueChangedCallback(
+            [this](const std::string&)
+            { createPositionSourcePending_ = true; });
+      nmeaBaudRateCallbackUuid_ =
+         generalSettings.nmea_baud_rate().RegisterValueChangedCallback(
+            [this](const std::int64_t&)
+            { createPositionSourcePending_ = true; });
+      nmeaSourceCallbackUuid_ =
+         generalSettings.nmea_source().RegisterValueChangedCallback(
+            [this](const std::string&)
+            { createPositionSourcePending_ = true; });
 
-                             Q_EMIT self_->PositionUpdated(info);
-                          });
-      }
+      connect(&SettingsManager::Instance(),
+              &SettingsManager::SettingsSaved,
+              self_,
+              [this]()
+              {
+                 if (createPositionSourcePending_)
+                 {
+                    CreatePositionSourceAsync();
+                 }
+              });
+   }
+   ~Impl()
+   {
+      auto& generalSettings = settings::GeneralSettings::Instance();
+
+      generalSettings.positioning_plugin().UnregisterValueChangedCallback(
+         positioningPluginCallbackUuid_);
+      generalSettings.nmea_baud_rate().UnregisterValueChangedCallback(
+         nmeaBaudRateCallbackUuid_);
+      generalSettings.nmea_source().UnregisterValueChangedCallback(
+         nmeaSourceCallbackUuid_);
+
+      gpsParent_->deleteLater();
    }
 
-   ~Impl() {}
+   void CreatePositionSource();
+   void CreatePositionSourceAsync();
+   void EnablePositionUpdates(boost::uuids::uuid uuid, bool enabled);
 
    PositionManager* self_;
+   QThread* gpsThread_ {ThreadManager::Instance().thread("position_manager")};
 
    boost::uuids::uuid trackingUuid_;
    bool               trackingEnabled_ {false};
 
    std::set<boost::uuids::uuid> uuids_ {};
 
+   std::mutex positionSourceMutex_ {};
+
+   QObject*                gpsParent_ {new QObject};
    QGeoPositionInfoSource* geoPositionInfoSource_ {};
    QGeoPositionInfo        position_ {};
+
+   types::PositioningPlugin lastPositioningPlugin_ {
+      types::PositioningPlugin::Unknown};
+   std::int64_t lastNmeaBaudRate_ {-1};
+   std::string  lastNmeaSource_ {"?"};
+
+   boost::uuids::uuid positioningPluginCallbackUuid_ {};
+   boost::uuids::uuid nmeaBaudRateCallbackUuid_ {};
+   boost::uuids::uuid nmeaSourceCallbackUuid_ {};
+
+   bool createPositionSourcePending_ {false};
 };
 
 PositionManager::PositionManager() : p(std::make_unique<Impl>(this)) {}
@@ -79,30 +120,131 @@ bool PositionManager::IsLocationTracked()
    return p->trackingEnabled_;
 }
 
+void PositionManager::Impl::CreatePositionSourceAsync()
+{
+   QMetaObject::invokeMethod(QAbstractEventDispatcher::instance(gpsThread_),
+                             [this]() { CreatePositionSource(); });
+}
+
+void PositionManager::Impl::CreatePositionSource()
+{
+   auto& generalSettings = settings::GeneralSettings::Instance();
+
+   createPositionSourcePending_ = false;
+
+   types::PositioningPlugin positioningPlugin = types::GetPositioningPlugin(
+      generalSettings.positioning_plugin().GetValue());
+   std::int64_t nmeaBaudRate = generalSettings.nmea_baud_rate().GetValue();
+   std::string  nmeaSource   = generalSettings.nmea_source().GetValue();
+
+   if (positioningPlugin == lastPositioningPlugin_ &&
+       nmeaBaudRate == lastNmeaBaudRate_ && nmeaSource == lastNmeaSource_)
+   {
+      return;
+   }
+
+   QGeoPositionInfoSource* positionSource = nullptr;
+
+   // TODO: macOS requires permission
+   if (positioningPlugin == types::PositioningPlugin::Default)
+   {
+      positionSource = QGeoPositionInfoSource::createDefaultSource(gpsParent_);
+   }
+   else if (positioningPlugin == types::PositioningPlugin::Nmea)
+   {
+      QVariantMap params {};
+      params["nmea.source"]   = QString::fromStdString(nmeaSource);
+      params["nmea.baudrate"] = static_cast<int>(nmeaBaudRate);
+
+      positionSource =
+         QGeoPositionInfoSource::createSource("nmea", params, gpsParent_);
+   }
+
+   if (positionSource != nullptr)
+   {
+      logger_->debug("Using position source: {}",
+                     positionSource->sourceName().toStdString());
+
+      QObject::connect(positionSource,
+                       &QGeoPositionInfoSource::positionUpdated,
+                       self_,
+                       [this](const QGeoPositionInfo& info)
+                       {
+                          auto coordinate = info.coordinate();
+
+                          if (coordinate != position_.coordinate())
+                          {
+                             logger_->trace("Position updated: {}, {}",
+                                            coordinate.latitude(),
+                                            coordinate.longitude());
+                          }
+
+                          position_ = info;
+
+                          Q_EMIT self_->PositionUpdated(info);
+                       });
+   }
+   else
+   {
+      logger_->error("Unable to create position source for plugin: {}",
+                     types::GetPositioningPluginName(positioningPlugin));
+      return;
+   }
+
+   lastPositioningPlugin_ = positioningPlugin;
+   lastNmeaBaudRate_      = nmeaBaudRate;
+   lastNmeaSource_        = nmeaSource;
+
+   std::unique_lock lock {positionSourceMutex_};
+
+   if (geoPositionInfoSource_ != nullptr)
+   {
+      geoPositionInfoSource_->stopUpdates();
+      delete geoPositionInfoSource_;
+   }
+
+   geoPositionInfoSource_ = positionSource;
+
+   if (!uuids_.empty())
+   {
+      positionSource->startUpdates();
+   }
+}
+
 void PositionManager::EnablePositionUpdates(boost::uuids::uuid uuid,
                                             bool               enabled)
 {
-   if (p->geoPositionInfoSource_ == nullptr)
+   QMetaObject::invokeMethod(QAbstractEventDispatcher::instance(p->gpsThread_),
+                             [=, this]()
+                             { p->EnablePositionUpdates(uuid, enabled); });
+}
+
+void PositionManager::Impl::EnablePositionUpdates(boost::uuids::uuid uuid,
+                                                  bool               enabled)
+{
+   std::unique_lock lock {positionSourceMutex_};
+
+   if (geoPositionInfoSource_ == nullptr)
    {
       return;
    }
 
    if (enabled)
    {
-      if (p->uuids_.empty())
+      if (uuids_.empty())
       {
-         p->geoPositionInfoSource_->startUpdates();
+         geoPositionInfoSource_->startUpdates();
       }
 
-      p->uuids_.insert(uuid);
+      uuids_.insert(uuid);
    }
    else
    {
-      p->uuids_.erase(uuid);
+      uuids_.erase(uuid);
 
-      if (p->uuids_.empty())
+      if (uuids_.empty())
       {
-         p->geoPositionInfoSource_->stopUpdates();
+         geoPositionInfoSource_->stopUpdates();
       }
    }
 }
