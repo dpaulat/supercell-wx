@@ -74,7 +74,7 @@ public:
       client_ = std::make_shared<Aws::S3::S3Client>(
          credentials,
          Aws::MakeShared<Aws::S3::S3EndpointProvider>(
-            Aws::S3::S3Client::ALLOCATION_TAG),
+            Aws::S3::S3Client::GetAllocationTag()),
          config);
    }
 
