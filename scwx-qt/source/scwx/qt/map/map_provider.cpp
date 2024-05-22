@@ -203,19 +203,28 @@ std::string GetMapProviderName(MapProvider mapProvider)
 
 std::string GetMapProviderApiKey(MapProvider mapProvider)
 {
+   std::string apiKey {};
+
    switch (mapProvider)
    {
    case MapProvider::Mapbox:
-      return settings::GeneralSettings::Instance().mapbox_api_key().GetValue();
+      apiKey =
+         settings::GeneralSettings::Instance().mapbox_api_key().GetValue();
+      break;
 
    case MapProvider::MapTiler:
-      return settings::GeneralSettings::Instance()
-         .maptiler_api_key()
-         .GetValue();
+      apiKey =
+         settings::GeneralSettings::Instance().maptiler_api_key().GetValue();
+      break;
 
    default:
-      return "?";
+      apiKey = "?";
+      break;
    }
+
+   boost::trim(apiKey);
+
+   return apiKey;
 }
 
 const MapProviderInfo& GetMapProviderInfo(MapProvider mapProvider)
