@@ -157,9 +157,7 @@ jobs:
         cd ..
         mkdir -p plugins/
         cd plugins/
-        mkdir -p platformthemes/
         mkdir -p sqldrivers/
-        cp "${RUNNER_WORKSPACE}/Qt/${{ matrix.qt_version }}/${{ matrix.qt_arch }}/plugins/platformthemes/libqgtk3.so" platformthemes/
         cp "${RUNNER_WORKSPACE}/Qt/${{ matrix.qt_version }}/${{ matrix.qt_arch }}/plugins/sqldrivers/libqsqlite.so" sqldrivers/
         cd ..
         popd
