@@ -122,6 +122,8 @@ TextSettings& TextSettings::operator=(TextSettings&&) noexcept = default;
 
 void TextSettings::Impl::InitializeFontVariables()
 {
+   fontData_.reserve(types::FontCategoryIterator().count());
+
    for (auto fontCategory : types::FontCategoryIterator())
    {
       auto  result = fontData_.emplace(fontCategory, FontData {});

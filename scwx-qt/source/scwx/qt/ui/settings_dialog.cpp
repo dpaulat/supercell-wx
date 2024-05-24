@@ -658,6 +658,8 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
    QGridLayout* colorTableLayout =
       reinterpret_cast<QGridLayout*>(self_->ui->colorTableContents->layout());
 
+   colorTables_.reserve(kColorTableTypes_.size());
+
    int colorTableRow = 0;
    for (auto& colorTableType : kColorTableTypes_)
    {
@@ -764,8 +766,13 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
    alertsLayout->addWidget(activeLabel, 0, 1, 1, 4);
    alertsLayout->addWidget(inactiveLabel, 0, 5, 1, 4);
 
+   auto& alertPhenomena = settings::PaletteSettings::alert_phenomena();
+
+   activeAlertColors_.reserve(alertPhenomena.size());
+   inactiveAlertColors_.reserve(alertPhenomena.size());
+
    int alertsRow = 1;
-   for (auto& phenomenon : settings::PaletteSettings::alert_phenomena())
+   for (auto& phenomenon : alertPhenomena)
    {
       QFrame* activeFrame   = new QFrame(self_);
       QFrame* inactiveFrame = new QFrame(self_);
@@ -963,10 +970,13 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioLongitude_.SetResetButton(
       self_->ui->resetAlertAudioLongitudeButton);
 
-   auto alertAudioLayout =
+   auto& alertAudioPhenomena = types::GetAlertAudioPhenomena();
+   auto  alertAudioLayout =
       static_cast<QGridLayout*>(self_->ui->alertAudioGroupBox->layout());
 
-   for (const auto& phenomenon : types::GetAlertAudioPhenomena())
+   alertAudioEnabled_.reserve(alertAudioPhenomena.size());
+
+   for (const auto& phenomenon : alertAudioPhenomena)
    {
       QCheckBox* alertAudioCheckbox = new QCheckBox(self_);
       alertAudioCheckbox->setText(
@@ -1062,6 +1072,12 @@ void SettingsDialogImpl::SetupTextTab()
    settings::TextSettings& textSettings = settings::TextSettings::Instance();
 
    self_->ui->fontListView->setModel(fontCategoryModel_);
+
+   const auto fontCategoryCount = types::FontCategoryIterator().count();
+   fontFamilies_.reserve(fontCategoryCount);
+   fontStyles_.reserve(fontCategoryCount);
+   fontPointSizes_.reserve(fontCategoryCount);
+
    for (const auto& fontCategory : types::FontCategoryIterator())
    {
       // Add font category to list view

@@ -78,6 +78,8 @@ class PaletteSettings::Impl
 public:
    explicit Impl()
    {
+      palette_.reserve(kPaletteKeys_.size());
+
       for (const auto& name : kPaletteKeys_)
       {
          const std::string& defaultValue = kDefaultPalettes_.at(name);
@@ -91,6 +93,9 @@ public:
 
          variables_.push_back(&settingsVariable);
       };
+
+      activeAlertColor_.reserve(kAlertColors_.size());
+      inactiveAlertColor_.reserve(kAlertColors_.size());
 
       for (auto& alert : kAlertColors_)
       {

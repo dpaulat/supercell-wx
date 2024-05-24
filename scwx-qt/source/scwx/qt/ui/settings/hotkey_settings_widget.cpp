@@ -46,6 +46,8 @@ public:
 
       int row = 0;
 
+      hotkeys_.reserve(types::HotkeyIterator().count());
+
       for (types::Hotkey hotkey : types::HotkeyIterator())
       {
          const std::string& labelText = types::GetHotkeyLongName(hotkey);

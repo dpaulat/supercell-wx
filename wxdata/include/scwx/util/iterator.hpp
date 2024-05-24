@@ -28,6 +28,11 @@ public:
       static const Iterator endIterator = ++Iterator(endValue);
       return endIterator;
    }
+   std::size_t count()
+   {
+      return static_cast<value_t>(endValue) - static_cast<value_t>(beginValue) +
+             1;
+   }
    bool operator!=(const Iterator& i) { return value_ != i.value_; }
 };
 

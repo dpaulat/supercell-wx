@@ -57,7 +57,10 @@ public:
                    config::CountyDatabase::GetCountyName(value) != value;
          });
 
-      for (auto& phenomenon : types::GetAlertAudioPhenomena())
+      auto& alertAudioPhenomena = types::GetAlertAudioPhenomena();
+      alertEnabled_.reserve(alertAudioPhenomena.size() + 1);
+
+      for (auto& phenomenon : alertAudioPhenomena)
       {
          std::string phenomenonCode = awips::GetPhenomenonCode(phenomenon);
          std::string name           = fmt::format("{}_enabled", phenomenonCode);

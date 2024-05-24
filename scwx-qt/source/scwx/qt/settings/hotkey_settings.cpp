@@ -50,6 +50,8 @@ class HotkeySettings::Impl
 public:
    explicit Impl()
    {
+      hotkey_.reserve(types::HotkeyIterator().count() + 1);
+
       for (const auto& hotkey : types::HotkeyIterator())
       {
          const std::string& name = types::GetHotkeyShortName(hotkey);
