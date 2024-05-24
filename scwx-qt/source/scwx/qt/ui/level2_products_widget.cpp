@@ -1,5 +1,6 @@
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
+#include <scwx/qt/manager/hotkey_manager.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <execution>
@@ -15,6 +16,20 @@ namespace ui
 
 static const std::string logPrefix_ = "scwx::qt::ui::level2_products_widget";
 static const auto        logger_    = util::Logger::Create(logPrefix_);
+
+static const std::unordered_map<types::Hotkey, common::Level2Product>
+   kHotkeyProductMap_ {
+      {types::Hotkey::SelectLevel2Ref, common::Level2Product::Reflectivity},
+      {types::Hotkey::SelectLevel2Vel, common::Level2Product::Velocity},
+      {types::Hotkey::SelectLevel2SW, common::Level2Product::SpectrumWidth},
+      {types::Hotkey::SelectLevel2ZDR,
+       common::Level2Product::DifferentialReflectivity},
+      {types::Hotkey::SelectLevel2Phi,
+       common::Level2Product::DifferentialPhase},
+      {types::Hotkey::SelectLevel2Rho,
+       common::Level2Product::CorrelationCoefficient},
+      {types::Hotkey::SelectLevel2CFP,
+       common::Level2Product::ClutterFilterPowerRemoved}};
 
 class Level2ProductsWidgetImpl : public QObject
 {
@@ -40,10 +55,16 @@ public:
                           &QToolButton::clicked,
                           this,
                           [=, this]() { SelectProduct(product); });
+
+         QObject::connect(hotkeyManager_.get(),
+                          &manager::HotkeyManager::HotkeyPressed,
+                          this,
+                          &Level2ProductsWidgetImpl::HandleHotkeyPressed);
       }
    }
    ~Level2ProductsWidgetImpl() = default;
 
+   void HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat);
    void NormalizeProductButtons();
    void SelectProduct(common::Level2Product product);
    void UpdateProductSelection(common::Level2Product product);
@@ -51,6 +72,9 @@ public:
    Level2ProductsWidget*   self_;
    QLayout*                layout_;
    std::list<QToolButton*> productButtons_;
+
+   std::shared_ptr<manager::HotkeyManager> hotkeyManager_ {
+      manager::HotkeyManager::Instance()};
 };
 
 Level2ProductsWidget::Level2ProductsWidget(QWidget* parent) :
@@ -65,6 +89,25 @@ void Level2ProductsWidget::showEvent(QShowEvent* event)
    QWidget::showEvent(event);
 
    p->NormalizeProductButtons();
+}
+
+void Level2ProductsWidgetImpl::HandleHotkeyPressed(types::Hotkey hotkey,
+                                                   bool          isAutoRepeat)
+{
+   auto productIt = kHotkeyProductMap_.find(hotkey);
+
+   if (productIt == kHotkeyProductMap_.cend())
+   {
+      // Not handling this hotkey
+      return;
+   }
+
+   logger_->trace("Handling hotkey: {}, repeat: {}",
+                  types::GetHotkeyShortName(hotkey),
+                  isAutoRepeat);
+
+   // Select product category hotkey
+   SelectProduct(productIt->second);
 }
 
 void Level2ProductsWidgetImpl::NormalizeProductButtons()

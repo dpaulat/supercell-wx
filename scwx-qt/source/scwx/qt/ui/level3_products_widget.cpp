@@ -7,6 +7,7 @@
 
 #include <execution>
 #include <shared_mutex>
+#include <unordered_map>
 
 #include <QCheckBox>
 #include <QMenu>
@@ -22,6 +23,29 @@ namespace ui
 
 static const std::string logPrefix_ = "scwx::qt::ui::level3_products_widget";
 static const auto        logger_    = util::Logger::Create(logPrefix_);
+
+static const std::unordered_map<types::Hotkey, common::Level3ProductCategory>
+   kHotkeyProductCategoryMap_ {
+      {types::Hotkey::SelectLevel3Ref,
+       common::Level3ProductCategory::Reflectivity},
+      {types::Hotkey::SelectLevel3Vel, common::Level3ProductCategory::Velocity},
+      {types::Hotkey::SelectLevel3SRM,
+       common::Level3ProductCategory::StormRelativeVelocity},
+      {types::Hotkey::SelectLevel3SW,
+       common::Level3ProductCategory::SpectrumWidth},
+      {types::Hotkey::SelectLevel3ZDR,
+       common::Level3ProductCategory::DifferentialReflectivity},
+      {types::Hotkey::SelectLevel3KDP,
+       common::Level3ProductCategory::SpecificDifferentialPhase},
+      {types::Hotkey::SelectLevel3CC,
+       common::Level3ProductCategory::CorrelationCoefficient},
+      {types::Hotkey::SelectLevel3VIL,
+       common::Level3ProductCategory::VerticallyIntegratedLiquid},
+      {types::Hotkey::SelectLevel3ET, common::Level3ProductCategory::EchoTops},
+      {types::Hotkey::SelectLevel3HC,
+       common::Level3ProductCategory::HydrometeorClassification},
+      {types::Hotkey::SelectLevel3Acc,
+       common::Level3ProductCategory::PrecipitationAccumulation}};
 
 class Level3ProductsWidgetImpl : public QObject
 {
@@ -183,7 +207,10 @@ void Level3ProductsWidget::showEvent(QShowEvent* event)
 void Level3ProductsWidgetImpl::HandleHotkeyPressed(types::Hotkey hotkey,
                                                    bool          isAutoRepeat)
 {
-   if (hotkey != types::Hotkey::ProductTiltDecrease &&
+   auto productCategoryIt = kHotkeyProductCategoryMap_.find(hotkey);
+
+   if (productCategoryIt == kHotkeyProductCategoryMap_.cend() &&
+       hotkey != types::Hotkey::ProductTiltDecrease &&
        hotkey != types::Hotkey::ProductTiltIncrease)
    {
       // Not handling this hotkey
@@ -193,6 +220,13 @@ void Level3ProductsWidgetImpl::HandleHotkeyPressed(types::Hotkey hotkey,
    logger_->trace("Handling hotkey: {}, repeat: {}",
                   types::GetHotkeyShortName(hotkey),
                   isAutoRepeat);
+
+   if (productCategoryIt != kHotkeyProductCategoryMap_.cend())
+   {
+      // Select product category hotkey
+      SelectProductCategory(productCategoryIt->second);
+      return;
+   }
 
    std::string currentAwipsId           = currentAwipsId_;
    QAction*    currentProductTiltAction = currentProductTiltAction_;
