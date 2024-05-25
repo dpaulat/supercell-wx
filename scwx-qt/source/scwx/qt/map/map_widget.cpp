@@ -1616,8 +1616,11 @@ void MapWidgetImpl::RadarProductManagerConnect()
                         auto record = request->radar_product_record();
 
                         // Validate record, and verify current map context still
-                        // displays product
+                        // displays site and product
                         if (record != nullptr &&
+                            radarProductManager_ != nullptr &&
+                            radarProductManager_->radar_id() ==
+                               request->current_radar_site() &&
                             context_->radar_product_group() == group &&
                             (group == common::RadarProductGroup::Level2 ||
                              context_->radar_product() == product))
