@@ -159,6 +159,9 @@ public:
    void RadarProductViewConnect();
    void RadarProductViewDisconnect();
    void RunMousePicking();
+   void SelectNearestRadarSite(double                     latitude,
+                               double                     longitude,
+                               std::optional<std::string> type);
    void SetRadarSite(const std::string& radarSite);
    void UpdateLoadedStyle();
    bool UpdateStoredMapParameters();
@@ -1274,21 +1277,29 @@ void MapWidget::mousePressEvent(QMouseEvent* ev)
    p->lastPos_       = ev->position();
    p->lastGlobalPos_ = ev->globalPosition();
 
-   if (ev->type() == QEvent::MouseButtonPress)
+   if (ev->type() == QEvent::Type::MouseButtonPress)
    {
-      if (ev->buttons() == (Qt::LeftButton | Qt::RightButton))
+      if (ev->buttons() ==
+          (Qt::MouseButton::LeftButton | Qt::MouseButton::RightButton))
       {
          changeStyle();
       }
+      else if (ev->buttons() == Qt::MouseButton::MiddleButton)
+      {
+         // Select nearest WSR-88D radar on middle click
+         auto coordinate = p->map_->coordinateForPixel(p->lastPos_);
+         p->SelectNearestRadarSite(
+            coordinate.first, coordinate.second, "wsr88d");
+      }
    }
 
-   if (ev->type() == QEvent::MouseButtonDblClick)
+   if (ev->type() == QEvent::Type::MouseButtonDblClick)
    {
-      if (ev->buttons() == Qt::LeftButton)
+      if (ev->buttons() == Qt::MouseButton::LeftButton)
       {
          p->map_->scaleBy(2.0, p->lastPos_);
       }
-      else if (ev->buttons() == Qt::RightButton)
+      else if (ev->buttons() == Qt::MouseButton::RightButton)
       {
          p->map_->scaleBy(0.5, p->lastPos_);
       }
@@ -1303,11 +1314,11 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
 
    if (!delta.isNull())
    {
-      if (ev->buttons() == Qt::LeftButton)
+      if (ev->buttons() == Qt::MouseButton::LeftButton)
       {
          p->map_->moveBy(delta);
       }
-      else if (ev->buttons() == Qt::RightButton)
+      else if (ev->buttons() == Qt::MouseButton::RightButton)
       {
          p->map_->rotateBy(p->lastPos_, ev->position());
       }
@@ -1733,6 +1744,18 @@ void MapWidgetImpl::RadarProductViewDisconnect()
                  &view::RadarProductView::SweepNotComputed,
                  widget_,
                  nullptr);
+   }
+}
+
+void MapWidgetImpl::SelectNearestRadarSite(double                     latitude,
+                                           double                     longitude,
+                                           std::optional<std::string> type)
+{
+   auto radarSite = config::RadarSite::FindNearest(latitude, longitude, type);
+
+   if (radarSite != nullptr)
+   {
+      widget_->SelectRadarSite(radarSite->id(), false);
    }
 }
 
