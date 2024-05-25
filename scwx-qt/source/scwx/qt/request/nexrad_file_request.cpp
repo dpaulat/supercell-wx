@@ -1,4 +1,5 @@
 #include <scwx/qt/request/nexrad_file_request.hpp>
+#include <scwx/qt/config/radar_site.hpp>
 
 namespace scwx
 {
@@ -13,12 +14,15 @@ class NexradFileRequest::Impl
 {
 public:
    explicit Impl(const std::string& currentRadarSite) :
-       currentRadarSite_ {currentRadarSite}
+       currentRadarSiteId_ {currentRadarSite}
    {
+      // Hold shared pointer to radar site for duration of reqest
+      currentRadarSite_ = config::RadarSite::Get(currentRadarSite);
    }
    ~Impl() = default;
 
-   const std::string currentRadarSite_;
+   const std::string                  currentRadarSiteId_;
+   std::shared_ptr<config::RadarSite> currentRadarSite_ {};
 
    std::shared_ptr<types::RadarProductRecord> radarProductRecord_ {nullptr};
 };
@@ -31,7 +35,7 @@ NexradFileRequest::~NexradFileRequest() = default;
 
 std::string NexradFileRequest::current_radar_site() const
 {
-   return p->currentRadarSite_;
+   return p->currentRadarSiteId_;
 }
 
 std::shared_ptr<types::RadarProductRecord>

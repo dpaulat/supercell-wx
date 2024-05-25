@@ -1022,7 +1022,8 @@ void RadarProductManagerImpl::LoadNexradFile(
 
    std::shared_ptr<wsr88d::NexradFile> nexradFile = load();
 
-   std::shared_ptr<types::RadarProductRecord> record = nullptr;
+   std::shared_ptr<types::RadarProductRecord> record  = nullptr;
+   std::shared_ptr<RadarProductManager>       manager = nullptr;
 
    bool fileValid = (nexradFile != nullptr);
 
@@ -1045,9 +1046,7 @@ void RadarProductManagerImpl::LoadNexradFile(
          recordRadarId = request->current_radar_site();
       }
 
-      std::shared_ptr<RadarProductManager> manager =
-         RadarProductManager::Instance(recordRadarId);
-
+      manager = RadarProductManager::Instance(recordRadarId);
       manager->Initialize();
       record = manager->p->StoreRadarProductRecord(record);
    }
