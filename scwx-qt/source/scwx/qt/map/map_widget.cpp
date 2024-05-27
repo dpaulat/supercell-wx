@@ -1406,6 +1406,8 @@ void MapWidget::paintGL()
 
    p->frameDraws_++;
 
+   p->context_->StartFrame();
+
    // Handle hotkey updates
    p->HandleHotkeyUpdates();
 

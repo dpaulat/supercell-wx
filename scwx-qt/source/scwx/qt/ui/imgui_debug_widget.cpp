@@ -1,4 +1,5 @@
 #include <scwx/qt/ui/imgui_debug_widget.hpp>
+#include <scwx/qt/gl/gl.hpp>
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
 
@@ -59,6 +60,8 @@ public:
 
    ImGuiContext* currentContext_;
 
+   gl::OpenGLFunctions gl_;
+
    std::set<ImGuiContext*> renderedSet_ {};
    bool                    imGuiRendererInitialized_ {false};
    std::uint64_t           imGuiFontsBuildCount_ {};
@@ -103,6 +106,9 @@ void ImGuiDebugWidget::initializeGL()
 {
    makeCurrent();
 
+   // Initialize OpenGL Functions
+   p->gl_.initializeOpenGLFunctions();
+
    // Initialize ImGui OpenGL3 backend
    ImGui::SetCurrentContext(p->context_);
    ImGui_ImplOpenGL3_Init();
@@ -113,6 +119,9 @@ void ImGuiDebugWidget::initializeGL()
 
 void ImGuiDebugWidget::paintGL()
 {
+   p->gl_.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+   p->gl_.glClear(GL_COLOR_BUFFER_BIT);
+
    ImGui::SetCurrentContext(p->currentContext_);
 
    // Lock ImGui font atlas prior to new ImGui frame

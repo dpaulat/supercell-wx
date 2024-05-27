@@ -38,6 +38,7 @@ public:
    GLuint GetTextureAtlas();
 
    void Initialize();
+   void StartFrame();
 
 private:
    class Impl;

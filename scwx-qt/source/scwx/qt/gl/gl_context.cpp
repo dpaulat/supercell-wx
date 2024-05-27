@@ -136,6 +136,14 @@ void GlContext::Initialize()
    p->InitializeGL();
 }
 
+void GlContext::StartFrame()
+{
+   auto& gl = p->gl_;
+
+   gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+   gl.glClear(GL_COLOR_BUFFER_BIT);
+}
+
 std::size_t GlContext::Impl::GetShaderKey(
    std::initializer_list<std::pair<GLenum, std::string>> shaders)
 {
