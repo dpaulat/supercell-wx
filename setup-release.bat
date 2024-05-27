@@ -2,7 +2,7 @@ call tools\setup-common.bat
 
 set build_dir=build-release
 set build_type=Release
-set qt_version=6.6.2
+set qt_version=6.7.1
 
 mkdir %build_dir%
 cmake -B %build_dir% -S . ^
