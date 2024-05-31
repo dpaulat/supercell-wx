@@ -978,11 +978,11 @@ void MainWindowImpl::ConnectAnimationSignals()
       connect(maps_[i],
               &map::MapWidget::RadarSiteRequested,
               this,
-              [this](const std::string& id)
+              [this](const std::string& id, bool updateCoordinates)
               {
                  for (map::MapWidget* map : maps_)
                  {
-                    map->SelectRadarSite(id);
+                    map->SelectRadarSite(id, updateCoordinates);
                  }
 
                  UpdateRadarSite();

@@ -1137,8 +1137,9 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
          AddLayer(layerName, radarSiteLayer_, before);
          connect(radarSiteLayer_.get(),
                  &RadarSiteLayer::RadarSiteSelected,
-                 widget_,
-                 &MapWidget::RadarSiteRequested);
+                 this,
+                 [this](const std::string& id)
+                 { widget_->RadarSiteRequested(id); });
          break;
 
       default:
@@ -1760,7 +1761,7 @@ void MapWidgetImpl::SelectNearestRadarSite(double                     latitude,
 
    if (radarSite != nullptr)
    {
-      widget_->SelectRadarSite(radarSite->id(), false);
+      Q_EMIT widget_->RadarSiteRequested(radarSite->id(), false);
    }
 }
 

@@ -168,7 +168,8 @@ signals:
     */
    void MouseCoordinateChanged(common::Coordinate coordinate);
 
-   void RadarSiteRequested(const std::string& id);
+   void RadarSiteRequested(const std::string& id,
+                           bool               updateCoordinates = true);
    void RadarSiteUpdated(std::shared_ptr<config::RadarSite> radarSite);
    void RadarSweepUpdated();
    void RadarSweepNotUpdated(types::NoUpdateReason reason);
