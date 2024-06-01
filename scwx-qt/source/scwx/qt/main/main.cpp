@@ -92,10 +92,10 @@ int main(int argc, char* argv[])
    Aws::InitAPI(awsSdkOptions);
 
    // Initialize application
+   logManager.InitializeLogFile();
    scwx::qt::config::RadarSite::Initialize();
    scwx::qt::config::CountyDatabase::Initialize();
    scwx::qt::manager::SettingsManager::Instance().Initialize();
-   logManager.InitializeLogFile();
    scwx::qt::manager::ResourceManager::Initialize();
 
    // Theme
