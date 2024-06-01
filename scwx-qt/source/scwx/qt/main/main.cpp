@@ -4,6 +4,7 @@
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/main/main_window.hpp>
 #include <scwx/qt/main/versions.hpp>
+#include <scwx/qt/manager/log_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
@@ -22,7 +23,6 @@
 #include <aws/core/Aws.h>
 #include <boost/asio.hpp>
 #include <fmt/format.h>
-#include <spdlog/spdlog.h>
 #include <QApplication>
 #include <QStandardPaths>
 #include <QTranslator>
@@ -31,9 +31,6 @@ static const std::string logPrefix_ = "scwx::main";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static void OverrideDefaultStyle(const std::vector<std::string>& args);
-static void QtLogMessageHandler(QtMsgType                 messageType,
-                                const QMessageLogContext& context,
-                                const QString&            message);
 
 int main(int argc, char* argv[])
 {
@@ -45,11 +42,8 @@ int main(int argc, char* argv[])
    }
 
    // Initialize logger
-   scwx::util::Logger::Initialize();
-   spdlog::set_level(spdlog::level::debug);
-
-   // Install Qt Message Handler
-   qInstallMessageHandler(&QtLogMessageHandler);
+   auto& logManager = scwx::qt::manager::LogManager::Instance();
+   logManager.Initialize();
 
    QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts, true);
 
@@ -101,6 +95,7 @@ int main(int argc, char* argv[])
    scwx::qt::config::RadarSite::Initialize();
    scwx::qt::config::CountyDatabase::Initialize();
    scwx::qt::manager::SettingsManager::Instance().Initialize();
+   logManager.InitializeLogFile();
    scwx::qt::manager::ResourceManager::Initialize();
 
    // Theme
@@ -175,41 +170,4 @@ OverrideDefaultStyle([[maybe_unused]] const std::vector<std::string>& args)
       QApplication::setStyle("windowsvista");
    }
 #endif
-}
-
-void QtLogMessageHandler(QtMsgType                 messageType,
-                         const QMessageLogContext& context,
-                         const QString&            message)
-{
-   static const auto qtLogger_ = scwx::util::Logger::Create("qt");
-
-   static const std::unordered_map<QtMsgType, spdlog::level::level_enum>
-      levelMap_ {{QtMsgType::QtDebugMsg, spdlog::level::level_enum::debug},
-                 {QtMsgType::QtInfoMsg, spdlog::level::level_enum::info},
-                 {QtMsgType::QtWarningMsg, spdlog::level::level_enum::warn},
-                 {QtMsgType::QtCriticalMsg, spdlog::level::level_enum::err},
-                 {QtMsgType::QtFatalMsg, spdlog::level::level_enum::critical}};
-
-   spdlog::level::level_enum level = spdlog::level::level_enum::info;
-   auto                      it    = levelMap_.find(messageType);
-   if (it != levelMap_.cend())
-   {
-      level = it->second;
-   }
-
-   spdlog::source_loc location {};
-   if (context.file != nullptr && context.function != nullptr)
-   {
-      location = {context.file, context.line, context.function};
-   }
-
-   if (context.category != nullptr)
-   {
-      qtLogger_->log(
-         location, level, "[{}] {}", context.category, message.toStdString());
-   }
-   else
-   {
-      qtLogger_->log(location, level, message.toStdString());
-   }
 }

@@ -21,6 +21,7 @@ namespace Logger
 {
 
 void                            Initialize();
+void                            AddFileSink(const std::string& baseFilename);
 std::shared_ptr<spdlog::logger> Create(const std::string& name);
 
 } // namespace Logger
