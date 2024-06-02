@@ -717,7 +717,14 @@ void MainWindowImpl::ConfigureMapLayout()
 
    mainWindow_->ui->centralwidget->layout()->addWidget(vs);
 
-   SetActiveMap(maps_.at(0));
+   if (mapCount > 0)
+   {
+      SetActiveMap(maps_.at(0));
+   }
+   else
+   {
+      SetActiveMap(nullptr);
+   }
 }
 
 void MainWindowImpl::ConfigureMapStyles()
