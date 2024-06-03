@@ -3,6 +3,7 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/streams.hpp>
 
+#include <algorithm>
 #include <istream>
 #include <string>
 
@@ -304,6 +305,14 @@ void ParseCodedInformation(std::shared_ptr<Segment> segment,
 {
    typedef std::vector<std::string>::const_iterator StringIterator;
 
+   static constexpr std::size_t kThreatCategoryTagCount = 4;
+   static const std::array<std::string, kThreatCategoryTagCount>
+      kThreatCategoryTags {"FLASH FLOOD DAMAGE THREAT...",
+                           "SNOW SQUALL IMPACT...",
+                           "THUNDERSTORM DAMAGE THREAT...",
+                           "TORNADO DAMAGE THREAT..."};
+   std::array<std::string, kThreatCategoryTagCount>::const_iterator threatTagIt;
+
    std::vector<std::string>& productContent = segment->productContent_;
 
    StringIterator codedLocationBegin = productContent.cend();
@@ -325,8 +334,8 @@ void ParseCodedInformation(std::shared_ptr<Segment> segment,
          codedLocationEnd = it;
       }
 
-      if (codedMotionBegin == productContent.cend() &&
-          it->starts_with("TIME...MOT...LOC"))
+      else if (codedMotionBegin == productContent.cend() &&
+               it->starts_with("TIME...MOT...LOC"))
       {
          codedMotionBegin = it;
       }
@@ -337,6 +346,37 @@ void ParseCodedInformation(std::shared_ptr<Segment> segment,
                /* Continuation lines */)
       {
          codedMotionEnd = it;
+      }
+
+      else if (!segment->observed_ &&
+               it->find("...OBSERVED") != std::string::npos)
+      {
+         segment->observed_ = true;
+      }
+
+      else if (!segment->tornadoPossible_ && *it == "TORNADO...POSSIBLE")
+      {
+         segment->tornadoPossible_ = true;
+      }
+
+      else if (segment->threatCategory_ == ThreatCategory::Base &&
+               (threatTagIt = std::find_if(kThreatCategoryTags.cbegin(),
+                                           kThreatCategoryTags.cend(),
+                                           [&it](const std::string& tag) {
+                                              return it->starts_with(tag);
+                                           })) != kThreatCategoryTags.cend() &&
+               it->length() > threatTagIt->length())
+      {
+         const std::string threatCategoryName =
+            it->substr(threatTagIt->length());
+
+         ThreatCategory threatCategory = GetThreatCategory(threatCategoryName);
+         if (threatCategory == ThreatCategory::Unknown)
+         {
+            threatCategory = ThreatCategory::Base;
+         }
+
+         segment->threatCategory_ = threatCategory;
       }
    }
 
