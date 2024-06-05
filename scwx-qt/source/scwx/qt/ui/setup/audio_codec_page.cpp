@@ -167,7 +167,7 @@ bool AudioCodecPage::IsRequired()
    // Setup is required if codec errors are not ignored, and the default codecs
    // are not supported
    return (!ignoreCodecErrors &&
-           oggCodecs.contains(QMediaFormat::AudioCodec::Vorbis));
+           !oggCodecs.contains(QMediaFormat::AudioCodec::Vorbis));
 }
 
 } // namespace setup
