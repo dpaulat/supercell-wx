@@ -164,10 +164,9 @@ bool AudioCodecPage::IsRequired()
    auto         oggCodecs =
       oggFormat.supportedAudioCodecs(QMediaFormat::ConversionMode::Decode);
 
-   // Setup is required if codec errors are not ignored, and the default codecs
-   // are not supported
-   return (!ignoreCodecErrors &&
-           oggCodecs.contains(QMediaFormat::AudioCodec::Vorbis));
+   // Setup is required if codec errors are not ignored, and no Ogg support
+   // is found.
+   return (!ignoreCodecErrors && oggCodecs.empty());
 }
 
 } // namespace setup
