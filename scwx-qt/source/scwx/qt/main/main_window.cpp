@@ -612,20 +612,27 @@ void MainWindow::on_actionCheckForUpdates_triggered()
       p->threadPool_,
       [this]()
       {
-         if (!p->updateManager_->CheckForUpdates(main::kVersionString_))
+         try
          {
-            QMetaObject::invokeMethod(
-               this,
-               [this]()
-               {
-                  QMessageBox* messageBox = new QMessageBox(this);
-                  messageBox->setIcon(QMessageBox::Icon::Information);
-                  messageBox->setWindowTitle(tr("Check for Updates"));
-                  messageBox->setText(tr("Supercell Wx is up to date."));
-                  messageBox->setStandardButtons(
-                     QMessageBox::StandardButton::Ok);
-                  messageBox->show();
-               });
+            if (!p->updateManager_->CheckForUpdates(main::kVersionString_))
+            {
+               QMetaObject::invokeMethod(
+                  this,
+                  [this]()
+                  {
+                     QMessageBox* messageBox = new QMessageBox(this);
+                     messageBox->setIcon(QMessageBox::Icon::Information);
+                     messageBox->setWindowTitle(tr("Check for Updates"));
+                     messageBox->setText(tr("Supercell Wx is up to date."));
+                     messageBox->setStandardButtons(
+                        QMessageBox::StandardButton::Ok);
+                     messageBox->show();
+                  });
+            }
+         }
+         catch (const std::exception& ex)
+         {
+            logger_->error(ex.what());
          }
       });
 }
@@ -663,9 +670,16 @@ void MainWindowImpl::AsyncSetup()
       boost::asio::post(threadPool_,
                         [this]()
                         {
-                           manager::UpdateManager::RemoveTemporaryReleases();
-                           updateManager_->CheckForUpdates(
-                              main::kVersionString_);
+                           try
+                           {
+                              manager::UpdateManager::RemoveTemporaryReleases();
+                              updateManager_->CheckForUpdates(
+                                 main::kVersionString_);
+                           }
+                           catch (const std::exception& ex)
+                           {
+                              logger_->error(ex.what());
+                           }
                         });
    }
 }

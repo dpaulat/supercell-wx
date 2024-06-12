@@ -42,7 +42,17 @@ public:
          [this](const types::TextEventKey& key, size_t messageIndex)
          {
             boost::asio::post(threadPool_,
-                              [=, this]() { HandleAlert(key, messageIndex); });
+                              [=, this]()
+                              {
+                                 try
+                                 {
+                                    HandleAlert(key, messageIndex);
+                                 }
+                                 catch (const std::exception& ex)
+                                 {
+                                    logger_->error(ex.what());
+                                 }
+                              });
          });
    }
 

@@ -50,9 +50,16 @@ public:
       boost::asio::post(threadPool_,
                         [this]()
                         {
-                           main::Application::WaitForInitialization();
-                           logger_->debug("Start Refresh");
-                           Refresh();
+                           try
+                           {
+                              main::Application::WaitForInitialization();
+                              logger_->debug("Start Refresh");
+                              Refresh();
+                           }
+                           catch (const std::exception& ex)
+                           {
+                              logger_->error(ex.what());
+                           }
                         });
    }
 
@@ -70,6 +77,7 @@ public:
    }
 
    void HandleMessage(std::shared_ptr<awips::TextProductMessage> message);
+   void RefreshAsync();
    void Refresh();
 
    boost::asio::thread_pool threadPool_ {1u};
@@ -131,20 +139,27 @@ void TextEventManager::LoadFile(const std::string& filename)
    boost::asio::post(p->threadPool_,
                      [=, this]()
                      {
-                        awips::TextProductFile file;
-
-                        // Load file
-                        bool fileLoaded = file.LoadFile(filename);
-                        if (!fileLoaded)
+                        try
                         {
-                           return;
+                           awips::TextProductFile file;
+
+                           // Load file
+                           bool fileLoaded = file.LoadFile(filename);
+                           if (!fileLoaded)
+                           {
+                              return;
+                           }
+
+                           // Process messages
+                           auto messages = file.messages();
+                           for (auto& message : messages)
+                           {
+                              p->HandleMessage(message);
+                           }
                         }
-
-                        // Process messages
-                        auto messages = file.messages();
-                        for (auto& message : messages)
+                        catch (const std::exception& ex)
                         {
-                           p->HandleMessage(message);
+                           logger_->error(ex.what());
                         }
                      });
 }
@@ -212,6 +227,22 @@ void TextEventManager::Impl::HandleMessage(
    }
 }
 
+void TextEventManager::Impl::RefreshAsync()
+{
+   boost::asio::post(threadPool_,
+                     [this]()
+                     {
+                        try
+                        {
+                           Refresh();
+                        }
+                        catch (const std::exception& ex)
+                        {
+                           logger_->error(ex.what());
+                        }
+                     });
+}
+
 void TextEventManager::Impl::Refresh()
 {
    logger_->trace("Refresh");
@@ -257,7 +288,7 @@ void TextEventManager::Impl::Refresh()
          }
          else
          {
-            Refresh();
+            RefreshAsync();
          }
       });
 }

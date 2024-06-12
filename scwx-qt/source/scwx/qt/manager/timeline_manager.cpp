@@ -69,11 +69,13 @@ public:
 
    void Pause();
    void Play();
+   void PlaySync();
    void
    SelectTimeAsync(std::chrono::system_clock::time_point selectedTime = {});
    std::pair<bool, bool>
         SelectTime(std::chrono::system_clock::time_point selectedTime = {});
    void StepAsync(Direction direction);
+   void Step(Direction direction);
 
    boost::asio::thread_pool playThreadPool_ {1};
    boost::asio::thread_pool selectThreadPool_ {1};
@@ -405,8 +407,6 @@ void TimelineManager::Impl::UpdateCacheLimit(
 
 void TimelineManager::Impl::Play()
 {
-   using namespace std::chrono_literals;
-
    if (animationState_ != types::AnimationState::Play)
    {
       animationState_ = types::AnimationState::Play;
@@ -418,92 +418,105 @@ void TimelineManager::Impl::Play()
       animationTimer_.cancel();
    }
 
-   boost::asio::post(
-      playThreadPool_,
-      [this]()
+   boost::asio::post(playThreadPool_,
+                     [this]()
+                     {
+                        try
+                        {
+                           PlaySync();
+                        }
+                        catch (const std::exception& ex)
+                        {
+                           logger_->error(ex.what());
+                        }
+                     });
+}
+
+void TimelineManager::Impl::PlaySync()
+{
+   using namespace std::chrono_literals;
+
+   // Take a lock for time selection
+   std::unique_lock lock {selectTimeMutex_};
+
+   auto [startTime, endTime] = GetLoopStartAndEndTimes();
+   std::chrono::system_clock::time_point currentTime = selectedTime_;
+   std::chrono::system_clock::time_point newTime;
+
+   if (currentTime < startTime || currentTime >= endTime)
+   {
+      // If the currently selected time is out of the loop, select the
+      // start time
+      newTime = startTime;
+   }
+   else
+   {
+      // If the currently selected time is in the loop, increment
+      newTime = currentTime + 1min;
+   }
+
+   // Unlock prior to selecting time
+   lock.unlock();
+
+   // Lock radar sweep monitor
+   std::unique_lock radarSweepMonitorLock {radarSweepMonitorMutex_};
+
+   // Reset radar sweep monitor in preparation for update
+   RadarSweepMonitorReset();
+
+   // Select the time
+   auto selectTimeStart = std::chrono::steady_clock::now();
+   auto [volumeTimeUpdated, selectedTimeUpdated] = SelectTime(newTime);
+   auto selectTimeEnd = std::chrono::steady_clock::now();
+   auto elapsedTime   = selectTimeEnd - selectTimeStart;
+
+   if (volumeTimeUpdated)
+   {
+      // Wait for radar sweeps to update
+      RadarSweepMonitorWait(radarSweepMonitorLock);
+   }
+   else
+   {
+      // Disable radar sweep monitor
+      RadarSweepMonitorDisable();
+   }
+
+   // Calculate the interval until the next update, prior to selecting
+   std::chrono::milliseconds interval;
+   if (newTime != endTime)
+   {
+      // Determine repeat interval (speed of 1.0 is 1 minute per second)
+      interval = std::chrono::duration_cast<std::chrono::milliseconds>(
+         std::chrono::milliseconds(std::lroundl(1000.0 / loopSpeed_)) -
+         elapsedTime);
+   }
+   else
+   {
+      // Pause at the end of the loop
+      interval = std::chrono::duration_cast<std::chrono::milliseconds>(
+         loopDelay_ - elapsedTime);
+   }
+
+   std::unique_lock animationTimerLock {animationTimerMutex_};
+   animationTimer_.expires_after(interval);
+   animationTimer_.async_wait(
+      [this](const boost::system::error_code& e)
       {
-         // Take a lock for time selection
-         std::unique_lock lock {selectTimeMutex_};
-
-         auto [startTime, endTime] = GetLoopStartAndEndTimes();
-         std::chrono::system_clock::time_point currentTime = selectedTime_;
-         std::chrono::system_clock::time_point newTime;
-
-         if (currentTime < startTime || currentTime >= endTime)
+         if (e == boost::system::errc::success)
          {
-            // If the currently selected time is out of the loop, select the
-            // start time
-            newTime = startTime;
-         }
-         else
-         {
-            // If the currently selected time is in the loop, increment
-            newTime = currentTime + 1min;
-         }
-
-         // Unlock prior to selecting time
-         lock.unlock();
-
-         // Lock radar sweep monitor
-         std::unique_lock radarSweepMonitorLock {radarSweepMonitorMutex_};
-
-         // Reset radar sweep monitor in preparation for update
-         RadarSweepMonitorReset();
-
-         // Select the time
-         auto selectTimeStart = std::chrono::steady_clock::now();
-         auto [volumeTimeUpdated, selectedTimeUpdated] = SelectTime(newTime);
-         auto selectTimeEnd = std::chrono::steady_clock::now();
-         auto elapsedTime   = selectTimeEnd - selectTimeStart;
-
-         if (volumeTimeUpdated)
-         {
-            // Wait for radar sweeps to update
-            RadarSweepMonitorWait(radarSweepMonitorLock);
-         }
-         else
-         {
-            // Disable radar sweep monitor
-            RadarSweepMonitorDisable();
-         }
-
-         // Calculate the interval until the next update, prior to selecting
-         std::chrono::milliseconds interval;
-         if (newTime != endTime)
-         {
-            // Determine repeat interval (speed of 1.0 is 1 minute per second)
-            interval = std::chrono::duration_cast<std::chrono::milliseconds>(
-               std::chrono::milliseconds(std::lroundl(1000.0 / loopSpeed_)) -
-               elapsedTime);
-         }
-         else
-         {
-            // Pause at the end of the loop
-            interval = std::chrono::duration_cast<std::chrono::milliseconds>(
-               loopDelay_ - elapsedTime);
-         }
-
-         std::unique_lock animationTimerLock {animationTimerMutex_};
-         animationTimer_.expires_after(interval);
-         animationTimer_.async_wait(
-            [this](const boost::system::error_code& e)
+            if (animationState_ == types::AnimationState::Play)
             {
-               if (e == boost::system::errc::success)
-               {
-                  if (animationState_ == types::AnimationState::Play)
-                  {
-                     Play();
-                  }
-               }
-               else if (e == boost::asio::error::operation_aborted)
-               {
-                  logger_->debug("Play timer cancelled");
-               }
-               else
-               {
-                  logger_->warn("Play timer error: {}", e.message());
-               }
-            });
+               Play();
+            }
+         }
+         else if (e == boost::asio::error::operation_aborted)
+         {
+            logger_->debug("Play timer cancelled");
+         }
+         else
+         {
+            logger_->warn("Play timer error: {}", e.message());
+         }
       });
 }
 
@@ -511,7 +524,17 @@ void TimelineManager::Impl::SelectTimeAsync(
    std::chrono::system_clock::time_point selectedTime)
 {
    boost::asio::post(selectThreadPool_,
-                     [=, this]() { SelectTime(selectedTime); });
+                     [=, this]()
+                     {
+                        try
+                        {
+                           SelectTime(selectedTime);
+                        }
+                        catch (const std::exception& ex)
+                        {
+                           logger_->error(ex.what());
+                        }
+                     });
 }
 
 std::pair<bool, bool> TimelineManager::Impl::SelectTime(
@@ -597,91 +620,100 @@ std::pair<bool, bool> TimelineManager::Impl::SelectTime(
 
 void TimelineManager::Impl::StepAsync(Direction direction)
 {
-   boost::asio::post(
-      selectThreadPool_,
-      [=, this]()
+   boost::asio::post(selectThreadPool_,
+                     [=, this]()
+                     {
+                        try
+                        {
+                           Step(direction);
+                        }
+                        catch (const std::exception& ex)
+                        {
+                           logger_->error(ex.what());
+                        }
+                     });
+}
+
+void TimelineManager::Impl::Step(Direction direction)
+{
+   // Take a lock for time selection
+   std::unique_lock lock {selectTimeMutex_};
+
+   // Determine time to get active volume times
+   std::chrono::system_clock::time_point queryTime = adjustedTime_;
+   if (queryTime == std::chrono::system_clock::time_point {})
+   {
+      queryTime = std::chrono::system_clock::now();
+   }
+
+   // Request active volume times
+   auto radarProductManager =
+      manager::RadarProductManager::Instance(radarSite_);
+   auto volumeTimes = radarProductManager->GetActiveVolumeTimes(queryTime);
+
+   if (volumeTimes.empty())
+   {
+      logger_->debug("No products to step through");
+      return;
+   }
+
+   // Dynamically update maximum cached volume scans
+   UpdateCacheLimit(radarProductManager, volumeTimes);
+
+   std::set<std::chrono::system_clock::time_point>::const_iterator it;
+
+   if (adjustedTime_ == std::chrono::system_clock::time_point {})
+   {
+      // If the adjusted time is live, get the last element in the set
+      it = std::prev(volumeTimes.cend());
+   }
+   else
+   {
+      // Get the current element in the set
+      it = scwx::util::GetBoundedElementIterator(volumeTimes, adjustedTime_);
+   }
+
+   if (it == volumeTimes.cend())
+   {
+      // Should not get here, but protect against an error
+      logger_->error("No suitable volume time found");
+      return;
+   }
+
+   if (direction == Direction::Back)
+   {
+      // Only if we aren't at the beginning of the volume times set
+      if (it != volumeTimes.cbegin())
       {
-         // Take a lock for time selection
-         std::unique_lock lock {selectTimeMutex_};
+         // Select the previous time
+         adjustedTime_ = *(--it);
+         selectedTime_ = adjustedTime_;
 
-         // Determine time to get active volume times
-         std::chrono::system_clock::time_point queryTime = adjustedTime_;
-         if (queryTime == std::chrono::system_clock::time_point {})
-         {
-            queryTime = std::chrono::system_clock::now();
-         }
+         logger_->debug("Volume time updated: {}",
+                        scwx::util::TimeString(adjustedTime_));
 
-         // Request active volume times
-         auto radarProductManager =
-            manager::RadarProductManager::Instance(radarSite_);
-         auto volumeTimes =
-            radarProductManager->GetActiveVolumeTimes(queryTime);
+         Q_EMIT self_->LiveStateUpdated(false);
+         Q_EMIT self_->VolumeTimeUpdated(adjustedTime_);
+         Q_EMIT self_->SelectedTimeUpdated(adjustedTime_);
+      }
+   }
+   else
+   {
+      // Only if we aren't at the end of the volume times set
+      if (it != std::prev(volumeTimes.cend()))
+      {
+         // Select the next time
+         adjustedTime_ = *(++it);
+         selectedTime_ = adjustedTime_;
 
-         if (volumeTimes.empty())
-         {
-            logger_->debug("No products to step through");
-            return;
-         }
+         logger_->debug("Volume time updated: {}",
+                        scwx::util::TimeString(adjustedTime_));
 
-         // Dynamically update maximum cached volume scans
-         UpdateCacheLimit(radarProductManager, volumeTimes);
-
-         std::set<std::chrono::system_clock::time_point>::const_iterator it;
-
-         if (adjustedTime_ == std::chrono::system_clock::time_point {})
-         {
-            // If the adjusted time is live, get the last element in the set
-            it = std::prev(volumeTimes.cend());
-         }
-         else
-         {
-            // Get the current element in the set
-            it = scwx::util::GetBoundedElementIterator(volumeTimes,
-                                                       adjustedTime_);
-         }
-
-         if (it == volumeTimes.cend())
-         {
-            // Should not get here, but protect against an error
-            logger_->error("No suitable volume time found");
-            return;
-         }
-
-         if (direction == Direction::Back)
-         {
-            // Only if we aren't at the beginning of the volume times set
-            if (it != volumeTimes.cbegin())
-            {
-               // Select the previous time
-               adjustedTime_ = *(--it);
-               selectedTime_ = adjustedTime_;
-
-               logger_->debug("Volume time updated: {}",
-                              scwx::util::TimeString(adjustedTime_));
-
-               Q_EMIT self_->LiveStateUpdated(false);
-               Q_EMIT self_->VolumeTimeUpdated(adjustedTime_);
-               Q_EMIT self_->SelectedTimeUpdated(adjustedTime_);
-            }
-         }
-         else
-         {
-            // Only if we aren't at the end of the volume times set
-            if (it != std::prev(volumeTimes.cend()))
-            {
-               // Select the next time
-               adjustedTime_ = *(++it);
-               selectedTime_ = adjustedTime_;
-
-               logger_->debug("Volume time updated: {}",
-                              scwx::util::TimeString(adjustedTime_));
-
-               Q_EMIT self_->LiveStateUpdated(false);
-               Q_EMIT self_->VolumeTimeUpdated(adjustedTime_);
-               Q_EMIT self_->SelectedTimeUpdated(adjustedTime_);
-            }
-         }
-      });
+         Q_EMIT self_->LiveStateUpdated(false);
+         Q_EMIT self_->VolumeTimeUpdated(adjustedTime_);
+         Q_EMIT self_->SelectedTimeUpdated(adjustedTime_);
+      }
+   }
 }
 
 std::shared_ptr<TimelineManager> TimelineManager::Instance()
