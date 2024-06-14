@@ -19,6 +19,17 @@ if (MSVC)
     target_link_options(MLNQtCore PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
     target_link_options(MLNQtCore PRIVATE "$<$<CONFIG:Release>:/OPT:REF>")
     target_link_options(MLNQtCore PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
+
+    # Enable multi-processor compilation
+    target_compile_options(MLNQtCore PRIVATE "/MP")
+    target_compile_options(mbgl-core PRIVATE "/MP")
+    target_compile_options(mbgl-vendor-csscolorparser PRIVATE "/MP")
+    target_compile_options(mbgl-vendor-nunicode PRIVATE "/MP")
+    target_compile_options(mbgl-vendor-parsedate PRIVATE "/MP")
+
+    if (TARGET mbgl-vendor-sqlite)
+        target_compile_options(mbgl-vendor-sqlite PRIVATE "/MP")
+    endif()
 else()
     target_compile_options(mbgl-core PRIVATE "$<$<CONFIG:Release>:-g>")
     target_compile_options(MLNQtCore PRIVATE "$<$<CONFIG:Release>:-g>")
