@@ -34,8 +34,9 @@ class SupercellWxConan(ConanFile):
 
     def generate(self):
         for dep in self.dependencies.values():
+            if dep.cpp_info.bindirs:
+                copy(self, "*.dll", dep.cpp_info.bindirs[0], self.build_folder)
             if dep.cpp_info.libdirs:
-                copy(self, "*.dll", dep.cpp_info.libdirs[0], self.build_folder)
                 copy(self, "*.dylib", dep.cpp_info.libdirs[0], self.build_folder)
 
     def build(self):
