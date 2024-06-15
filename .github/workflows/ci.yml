@@ -128,6 +128,7 @@ jobs:
         cmake ../source/ `
           -G Ninja `
           -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" `
+          -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES="${{ github.workspace }}/source/external/cmake-conan/conan_provider.cmake" `
           -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/supercell-wx"
         ninja supercell-wx wxtest
 
