@@ -35,7 +35,7 @@ jobs:
             qt_tools: ''
             conan_arch: x86_64
             conan_compiler: msvc
-            conan_compiler_version: 193
+            conan_compiler_version: 194
             conan_compiler_cppstd: 20
             conan_compiler_runtime: --settings compiler.runtime=dynamic
             conan_package_manager: ''
