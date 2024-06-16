@@ -157,12 +157,19 @@ PlacefileManager::PlacefileManager() : p(std::make_unique<Impl>(this))
    boost::asio::post(p->threadPool_,
                      [this]()
                      {
-                        p->InitializePlacefileSettings();
+                        try
+                        {
+                           p->InitializePlacefileSettings();
 
-                        // Read placefile settings on startup
-                        main::Application::WaitForInitialization();
-                        p->ReadPlacefileSettings();
-                        Q_EMIT PlacefilesInitialized();
+                           // Read placefile settings on startup
+                           main::Application::WaitForInitialization();
+                           p->ReadPlacefileSettings();
+                           Q_EMIT PlacefilesInitialized();
+                        }
+                        catch (const std::exception& ex)
+                        {
+                           logger_->error(ex.what());
+                        }
                      });
 }
 
@@ -678,7 +685,7 @@ void PlacefileManager::Impl::PlacefileRecord::ScheduleRefresh()
          }
          else
          {
-            Update();
+            UpdateAsync();
          }
       });
 }
@@ -691,7 +698,18 @@ void PlacefileManager::Impl::PlacefileRecord::CancelRefresh()
 
 void PlacefileManager::Impl::PlacefileRecord::UpdateAsync()
 {
-   boost::asio::post(threadPool_, [this]() { Update(); });
+   boost::asio::post(threadPool_,
+                     [this]()
+                     {
+                        try
+                        {
+                           Update();
+                        }
+                        catch (const std::exception& ex)
+                        {
+                           logger_->error(ex.what());
+                        }
+                     });
 }
 
 std::shared_ptr<PlacefileManager> PlacefileManager::Instance()

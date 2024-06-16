@@ -237,10 +237,19 @@ void OverlayProductView::Impl::LoadProduct(
    }
 
    // Load file
-   boost::asio::post(
-      threadPool_,
-      [=, this]()
-      { radarProductManager_->LoadLevel3Data(product, time, request); });
+   boost::asio::post(threadPool_,
+                     [=, this]()
+                     {
+                        try
+                        {
+                           radarProductManager_->LoadLevel3Data(
+                              product, time, request);
+                        }
+                        catch (const std::exception& ex)
+                        {
+                           logger_->error(ex.what());
+                        }
+                     });
 }
 
 void OverlayProductView::Impl::ResetProducts()

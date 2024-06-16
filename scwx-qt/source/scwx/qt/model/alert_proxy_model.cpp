@@ -120,7 +120,14 @@ void AlertProxyModelImpl::UpdateAlerts()
          }
          else
          {
-            UpdateAlerts();
+            try
+            {
+               UpdateAlerts();
+            }
+            catch (const std::exception& ex)
+            {
+               logger_->error(ex.what());
+            }
          }
       });
 }

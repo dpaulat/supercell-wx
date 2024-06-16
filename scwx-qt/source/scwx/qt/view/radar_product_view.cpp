@@ -121,7 +121,18 @@ void RadarProductView::SelectTime(std::chrono::system_clock::time_point time)
 
 void RadarProductView::Update()
 {
-   boost::asio::post(thread_pool(), [this]() { ComputeSweep(); });
+   boost::asio::post(thread_pool(),
+                     [this]()
+                     {
+                        try
+                        {
+                           ComputeSweep();
+                        }
+                        catch (const std::exception& ex)
+                        {
+                           logger_->error(ex.what());
+                        }
+                     });
 }
 
 bool RadarProductView::IsInitialized() const

@@ -45,6 +45,7 @@ public:
    ~Impl() { threadPool_.join(); }
 
    void ConnectSignals();
+   void ReloadDataSync();
 
    boost::asio::thread_pool threadPool_ {1};
 
@@ -170,91 +171,95 @@ void PlacefileLayer::Deinitialize()
 
 void PlacefileLayer::ReloadData()
 {
-   boost::asio::post(
-      p->threadPool_,
-      [this]()
+   boost::asio::post(p->threadPool_,
+                     [this]()
+                     {
+                        try
+                        {
+                           p->ReloadDataSync();
+                        }
+                        catch (const std::exception& ex)
+                        {
+                           logger_->error(ex.what());
+                        }
+                     });
+}
+
+void PlacefileLayer::Impl::ReloadDataSync()
+{
+   logger_->debug("ReloadData: {}", placefileName_);
+
+   std::unique_lock lock {dataMutex_};
+
+   std::shared_ptr<manager::PlacefileManager> placefileManager =
+      manager::PlacefileManager::Instance();
+
+   auto placefile = placefileManager->placefile(placefileName_);
+   if (placefile == nullptr)
+   {
+      return;
+   }
+
+   // Start draw items
+   placefileIcons_->StartIcons();
+   placefileImages_->StartImages(placefile->name());
+   placefileLines_->StartLines();
+   placefilePolygons_->StartPolygons();
+   placefileTriangles_->StartTriangles();
+   placefileText_->StartText();
+
+   placefileIcons_->SetIconFiles(placefile->icon_files(), placefile->name());
+   placefileText_->SetFonts(placefileManager->placefile_fonts(placefileName_));
+
+   for (auto& drawItem : placefile->GetDrawItems())
+   {
+      switch (drawItem->itemType_)
       {
-         logger_->debug("ReloadData: {}", p->placefileName_);
+      case gr::Placefile::ItemType::Text:
+         placefileText_->AddText(
+            std::static_pointer_cast<gr::Placefile::TextDrawItem>(drawItem));
+         break;
 
-         std::unique_lock lock {p->dataMutex_};
+      case gr::Placefile::ItemType::Icon:
+         placefileIcons_->AddIcon(
+            std::static_pointer_cast<gr::Placefile::IconDrawItem>(drawItem));
+         break;
 
-         std::shared_ptr<manager::PlacefileManager> placefileManager =
-            manager::PlacefileManager::Instance();
+      case gr::Placefile::ItemType::Line:
+         placefileLines_->AddLine(
+            std::static_pointer_cast<gr::Placefile::LineDrawItem>(drawItem));
+         break;
 
-         auto placefile = placefileManager->placefile(p->placefileName_);
-         if (placefile == nullptr)
-         {
-            return;
-         }
+      case gr::Placefile::ItemType::Polygon:
+         placefilePolygons_->AddPolygon(
+            std::static_pointer_cast<gr::Placefile::PolygonDrawItem>(drawItem));
+         break;
 
-         // Start draw items
-         p->placefileIcons_->StartIcons();
-         p->placefileImages_->StartImages(placefile->name());
-         p->placefileLines_->StartLines();
-         p->placefilePolygons_->StartPolygons();
-         p->placefileTriangles_->StartTriangles();
-         p->placefileText_->StartText();
+      case gr::Placefile::ItemType::Image:
+         placefileImages_->AddImage(
+            std::static_pointer_cast<gr::Placefile::ImageDrawItem>(drawItem));
+         break;
 
-         p->placefileIcons_->SetIconFiles(placefile->icon_files(),
-                                          placefile->name());
-         p->placefileText_->SetFonts(
-            placefileManager->placefile_fonts(p->placefileName_));
+      case gr::Placefile::ItemType::Triangles:
+         placefileTriangles_->AddTriangles(
+            std::static_pointer_cast<gr::Placefile::TrianglesDrawItem>(
+               drawItem));
+         break;
 
-         for (auto& drawItem : placefile->GetDrawItems())
-         {
-            switch (drawItem->itemType_)
-            {
-            case gr::Placefile::ItemType::Text:
-               p->placefileText_->AddText(
-                  std::static_pointer_cast<gr::Placefile::TextDrawItem>(
-                     drawItem));
-               break;
+      default:
+         break;
+      }
+   }
 
-            case gr::Placefile::ItemType::Icon:
-               p->placefileIcons_->AddIcon(
-                  std::static_pointer_cast<gr::Placefile::IconDrawItem>(
-                     drawItem));
-               break;
+   // Finish draw items
+   placefileIcons_->FinishIcons();
+   placefileImages_->FinishImages();
+   placefileLines_->FinishLines();
+   placefilePolygons_->FinishPolygons();
+   placefileTriangles_->FinishTriangles();
+   placefileText_->FinishText();
 
-            case gr::Placefile::ItemType::Line:
-               p->placefileLines_->AddLine(
-                  std::static_pointer_cast<gr::Placefile::LineDrawItem>(
-                     drawItem));
-               break;
-
-            case gr::Placefile::ItemType::Polygon:
-               p->placefilePolygons_->AddPolygon(
-                  std::static_pointer_cast<gr::Placefile::PolygonDrawItem>(
-                     drawItem));
-               break;
-
-            case gr::Placefile::ItemType::Image:
-               p->placefileImages_->AddImage(
-                  std::static_pointer_cast<gr::Placefile::ImageDrawItem>(
-                     drawItem));
-               break;
-
-            case gr::Placefile::ItemType::Triangles:
-               p->placefileTriangles_->AddTriangles(
-                  std::static_pointer_cast<gr::Placefile::TrianglesDrawItem>(
-                     drawItem));
-               break;
-
-            default:
-               break;
-            }
-         }
-
-         // Finish draw items
-         p->placefileIcons_->FinishIcons();
-         p->placefileImages_->FinishImages();
-         p->placefileLines_->FinishLines();
-         p->placefilePolygons_->FinishPolygons();
-         p->placefileTriangles_->FinishTriangles();
-         p->placefileText_->FinishText();
-
-         Q_EMIT DataReloaded();
-      });
+   Q_EMIT self_->DataReloaded();
 }
 
 } // namespace map

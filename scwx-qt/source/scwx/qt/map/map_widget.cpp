@@ -1638,15 +1638,22 @@ void MapWidgetImpl::RadarProductManagerConnect()
                   threadPool_,
                   [=, this]()
                   {
-                     if (group == common::RadarProductGroup::Level2)
+                     try
                      {
-                        radarProductManager_->LoadLevel2Data(latestTime,
-                                                             request);
+                        if (group == common::RadarProductGroup::Level2)
+                        {
+                           radarProductManager_->LoadLevel2Data(latestTime,
+                                                                request);
+                        }
+                        else
+                        {
+                           radarProductManager_->LoadLevel3Data(
+                              product, latestTime, request);
+                        }
                      }
-                     else
+                     catch (const std::exception& ex)
                      {
-                        radarProductManager_->LoadLevel3Data(
-                           product, latestTime, request);
+                        logger_->error(ex.what());
                      }
                   });
             }
@@ -1672,22 +1679,30 @@ void MapWidgetImpl::InitializeNewRadarProductView(
    boost::asio::post(threadPool_,
                      [=, this]()
                      {
-                        auto radarProductView = context_->radar_product_view();
-
-                        std::string colorTableFile =
-                           settings::PaletteSettings::Instance()
-                              .palette(colorPalette)
-                              .GetValue();
-                        if (!colorTableFile.empty())
+                        try
                         {
-                           std::unique_ptr<std::istream> colorTableStream =
-                              util::OpenFile(colorTableFile);
-                           std::shared_ptr<common::ColorTable> colorTable =
-                              common::ColorTable::Load(*colorTableStream);
-                           radarProductView->LoadColorTable(colorTable);
-                        }
+                           auto radarProductView =
+                              context_->radar_product_view();
 
-                        radarProductView->Initialize();
+                           std::string colorTableFile =
+                              settings::PaletteSettings::Instance()
+                                 .palette(colorPalette)
+                                 .GetValue();
+                           if (!colorTableFile.empty())
+                           {
+                              std::unique_ptr<std::istream> colorTableStream =
+                                 util::OpenFile(colorTableFile);
+                              std::shared_ptr<common::ColorTable> colorTable =
+                                 common::ColorTable::Load(*colorTableStream);
+                              radarProductView->LoadColorTable(colorTable);
+                           }
+
+                           radarProductView->Initialize();
+                        }
+                        catch (const std::exception& ex)
+                        {
+                           logger_->error(ex.what());
+                        }
                      });
 
    if (map_ != nullptr)

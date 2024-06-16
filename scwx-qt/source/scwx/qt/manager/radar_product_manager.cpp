@@ -196,6 +196,7 @@ public:
                       std::shared_ptr<ProviderManager> providerManager,
                       bool                             enabled);
    void RefreshData(std::shared_ptr<ProviderManager> providerManager);
+   void RefreshDataSync(std::shared_ptr<ProviderManager> providerManager);
 
    std::tuple<std::shared_ptr<types::RadarProductRecord>,
               std::chrono::system_clock::time_point>
@@ -224,6 +225,8 @@ public:
    void PopulateLevel2ProductTimes(std::chrono::system_clock::time_point time);
    void PopulateLevel3ProductTimes(const std::string& product,
                                    std::chrono::system_clock::time_point time);
+
+   void UpdateAvailableProductsSync();
 
    static void
    PopulateProductTimes(std::shared_ptr<ProviderManager> providerManager,
@@ -576,16 +579,23 @@ void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
          p->threadPool_,
          [=, this]()
          {
-            providerManager->provider_->RequestAvailableProducts();
-            auto availableProducts =
-               providerManager->provider_->GetAvailableProducts();
-
-            if (std::find(std::execution::par_unseq,
-                          availableProducts.cbegin(),
-                          availableProducts.cend(),
-                          product) != availableProducts.cend())
+            try
             {
-               p->EnableRefresh(uuid, providerManager, enabled);
+               providerManager->provider_->RequestAvailableProducts();
+               auto availableProducts =
+                  providerManager->provider_->GetAvailableProducts();
+
+               if (std::find(std::execution::par_unseq,
+                             availableProducts.cbegin(),
+                             availableProducts.cend(),
+                             product) != availableProducts.cend())
+               {
+                  p->EnableRefresh(uuid, providerManager, enabled);
+               }
+            }
+            catch (const std::exception& ex)
+            {
+               logger_->error(ex.what());
             }
          });
    }
@@ -664,95 +674,102 @@ void RadarProductManagerImpl::RefreshData(
       providerManager->refreshTimer_.cancel();
    }
 
-   boost::asio::post(
-      threadPool_,
-      [=, this]()
+   boost::asio::post(threadPool_,
+                     [=, this]()
+                     {
+                        try
+                        {
+                           RefreshDataSync(providerManager);
+                        }
+                        catch (const std::exception& ex)
+                        {
+                           logger_->error(ex.what());
+                        }
+                     });
+}
+
+void RadarProductManagerImpl::RefreshDataSync(
+   std::shared_ptr<ProviderManager> providerManager)
+{
+   using namespace std::chrono_literals;
+
+   auto [newObjects, totalObjects] = providerManager->provider_->Refresh();
+
+   std::chrono::milliseconds interval = kFastRetryInterval_;
+
+   if (totalObjects > 0)
+   {
+      std::string key = providerManager->provider_->FindLatestKey();
+      auto latestTime = providerManager->provider_->GetTimePointByKey(key);
+
+      auto updatePeriod      = providerManager->provider_->update_period();
+      auto lastModified      = providerManager->provider_->last_modified();
+      auto sinceLastModified = std::chrono::system_clock::now() - lastModified;
+
+      // For the default interval, assume products are updated at a
+      // constant rate. Expect the next product at a time based on the
+      // previous two.
+      interval = std::chrono::duration_cast<std::chrono::milliseconds>(
+         updatePeriod - sinceLastModified);
+
+      if (updatePeriod > 0s && sinceLastModified > updatePeriod * 5)
       {
-         using namespace std::chrono_literals;
+         // If it has been at least 5 update periods since the file has
+         // been last modified, slow the retry period
+         interval = kSlowRetryInterval_;
+      }
+      else if (interval < std::chrono::milliseconds {kFastRetryInterval_})
+      {
+         // The interval should be no quicker than the fast retry interval
+         interval = kFastRetryInterval_;
+      }
 
-         auto [newObjects, totalObjects] =
-            providerManager->provider_->Refresh();
+      if (newObjects > 0)
+      {
+         Q_EMIT providerManager->NewDataAvailable(
+            providerManager->group_, providerManager->product_, latestTime);
+      }
+   }
+   else if (providerManager->refreshEnabled_)
+   {
+      logger_->info("[{}] No data found", providerManager->name());
 
-         std::chrono::milliseconds interval = kFastRetryInterval_;
+      // If no data is found, retry at the slow retry interval
+      interval = kSlowRetryInterval_;
+   }
 
-         if (totalObjects > 0)
-         {
-            std::string key = providerManager->provider_->FindLatestKey();
-            auto        latestTime =
-               providerManager->provider_->GetTimePointByKey(key);
+   if (providerManager->refreshEnabled_)
+   {
+      std::unique_lock lock(providerManager->refreshTimerMutex_);
 
-            auto updatePeriod = providerManager->provider_->update_period();
-            auto lastModified = providerManager->provider_->last_modified();
-            auto sinceLastModified =
-               std::chrono::system_clock::now() - lastModified;
+      logger_->debug(
+         "[{}] Scheduled refresh in {:%M:%S}",
+         providerManager->name(),
+         std::chrono::duration_cast<std::chrono::seconds>(interval));
 
-            // For the default interval, assume products are updated at a
-            // constant rate. Expect the next product at a time based on the
-            // previous two.
-            interval = std::chrono::duration_cast<std::chrono::milliseconds>(
-               updatePeriod - sinceLastModified);
-
-            if (updatePeriod > 0s && sinceLastModified > updatePeriod * 5)
+      {
+         providerManager->refreshTimer_.expires_after(interval);
+         providerManager->refreshTimer_.async_wait(
+            [=, this](const boost::system::error_code& e)
             {
-               // If it has been at least 5 update periods since the file has
-               // been last modified, slow the retry period
-               interval = kSlowRetryInterval_;
-            }
-            else if (interval < std::chrono::milliseconds {kFastRetryInterval_})
-            {
-               // The interval should be no quicker than the fast retry interval
-               interval = kFastRetryInterval_;
-            }
-
-            if (newObjects > 0)
-            {
-               Q_EMIT providerManager->NewDataAvailable(
-                  providerManager->group_,
-                  providerManager->product_,
-                  latestTime);
-            }
-         }
-         else if (providerManager->refreshEnabled_)
-         {
-            logger_->info("[{}] No data found", providerManager->name());
-
-            // If no data is found, retry at the slow retry interval
-            interval = kSlowRetryInterval_;
-         }
-
-         if (providerManager->refreshEnabled_)
-         {
-            std::unique_lock lock(providerManager->refreshTimerMutex_);
-
-            logger_->debug(
-               "[{}] Scheduled refresh in {:%M:%S}",
-               providerManager->name(),
-               std::chrono::duration_cast<std::chrono::seconds>(interval));
-
-            {
-               providerManager->refreshTimer_.expires_after(interval);
-               providerManager->refreshTimer_.async_wait(
-                  [=, this](const boost::system::error_code& e)
-                  {
-                     if (e == boost::system::errc::success)
-                     {
-                        RefreshData(providerManager);
-                     }
-                     else if (e == boost::asio::error::operation_aborted)
-                     {
-                        logger_->debug("[{}] Data refresh timer cancelled",
-                                       providerManager->name());
-                     }
-                     else
-                     {
-                        logger_->warn("[{}] Data refresh timer error: {}",
-                                      providerManager->name(),
-                                      e.message());
-                     }
-                  });
-            }
-         }
-      });
+               if (e == boost::system::errc::success)
+               {
+                  RefreshData(providerManager);
+               }
+               else if (e == boost::asio::error::operation_aborted)
+               {
+                  logger_->debug("[{}] Data refresh timer cancelled",
+                                 providerManager->name());
+               }
+               else
+               {
+                  logger_->warn("[{}] Data refresh timer error: {}",
+                                providerManager->name(),
+                                e.message());
+               }
+            });
+      }
+   }
 }
 
 std::set<std::chrono::system_clock::time_point>
@@ -1009,7 +1026,16 @@ void RadarProductManagerImpl::LoadNexradFileAsync(
 {
    boost::asio::post(threadPool_,
                      [=, &mutex]()
-                     { LoadNexradFile(load, request, mutex, time); });
+                     {
+                        try
+                        {
+                           LoadNexradFile(load, request, mutex, time);
+                        }
+                        catch (const std::exception& ex)
+                        {
+                           logger_->error(ex.what());
+                        }
+                     });
 }
 
 void RadarProductManagerImpl::LoadNexradFile(
@@ -1441,64 +1467,73 @@ void RadarProductManager::UpdateAvailableProducts()
 
    logger_->debug("UpdateAvailableProducts()");
 
-   boost::asio::post(
-      p->threadPool_,
-      [this]()
+   boost::asio::post(p->threadPool_,
+                     [this]()
+                     {
+                        try
+                        {
+                           p->UpdateAvailableProductsSync();
+                        }
+                        catch (const std::exception& ex)
+                        {
+                           logger_->error(ex.what());
+                        }
+                     });
+}
+
+void RadarProductManagerImpl::UpdateAvailableProductsSync()
+{
+   auto level3ProviderManager =
+      GetLevel3ProviderManager(kDefaultLevel3Product_);
+   level3ProviderManager->provider_->RequestAvailableProducts();
+   auto updatedAwipsIdList =
+      level3ProviderManager->provider_->GetAvailableProducts();
+
+   std::unique_lock lock {availableCategoryMutex_};
+
+   for (common::Level3ProductCategory category :
+        common::Level3ProductCategoryIterator())
+   {
+      const auto& products = common::GetLevel3ProductsByCategory(category);
+
+      std::unordered_map<std::string, std::vector<std::string>>
+         availableProducts;
+
+      for (const auto& product : products)
       {
-         auto level3ProviderManager =
-            p->GetLevel3ProviderManager(kDefaultLevel3Product_);
-         level3ProviderManager->provider_->RequestAvailableProducts();
-         auto updatedAwipsIdList =
-            level3ProviderManager->provider_->GetAvailableProducts();
+         const auto& awipsIds = common::GetLevel3AwipsIdsByProduct(product);
 
-         std::unique_lock lock {p->availableCategoryMutex_};
+         std::vector<std::string> availableAwipsIds;
 
-         for (common::Level3ProductCategory category :
-              common::Level3ProductCategoryIterator())
+         for (const auto& awipsId : awipsIds)
          {
-            const auto& products =
-               common::GetLevel3ProductsByCategory(category);
-
-            std::unordered_map<std::string, std::vector<std::string>>
-               availableProducts;
-
-            for (const auto& product : products)
+            if (std::find(updatedAwipsIdList.cbegin(),
+                          updatedAwipsIdList.cend(),
+                          awipsId) != updatedAwipsIdList.cend())
             {
-               const auto& awipsIds =
-                  common::GetLevel3AwipsIdsByProduct(product);
-
-               std::vector<std::string> availableAwipsIds;
-
-               for (const auto& awipsId : awipsIds)
-               {
-                  if (std::find(updatedAwipsIdList.cbegin(),
-                                updatedAwipsIdList.cend(),
-                                awipsId) != updatedAwipsIdList.cend())
-                  {
-                     availableAwipsIds.push_back(awipsId);
-                  }
-               }
-
-               if (!availableAwipsIds.empty())
-               {
-                  availableProducts.insert_or_assign(
-                     product, std::move(availableAwipsIds));
-               }
-            }
-
-            if (!availableProducts.empty())
-            {
-               p->availableCategoryMap_.insert_or_assign(
-                  category, std::move(availableProducts));
-            }
-            else
-            {
-               p->availableCategoryMap_.erase(category);
+               availableAwipsIds.push_back(awipsId);
             }
          }
 
-         Q_EMIT Level3ProductsChanged();
-      });
+         if (!availableAwipsIds.empty())
+         {
+            availableProducts.insert_or_assign(product,
+                                               std::move(availableAwipsIds));
+         }
+      }
+
+      if (!availableProducts.empty())
+      {
+         availableCategoryMap_.insert_or_assign(category,
+                                                std::move(availableProducts));
+      }
+      else
+      {
+         availableCategoryMap_.erase(category);
+      }
+   }
+
+   Q_EMIT self_->Level3ProductsChanged();
 }
 
 std::shared_ptr<RadarProductManager>
