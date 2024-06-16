@@ -39,7 +39,7 @@ void DownloadManager::Download(
    const std::shared_ptr<request::DownloadRequest>& request)
 {
    boost::asio::post(p->threadPool_,
-                     [=]()
+                     [=, this]()
                      {
                         try
                         {
