@@ -7,13 +7,13 @@ namespace scwx
 namespace awips
 {
 
-enum class ThreatCategory
+enum class ThreatCategory : int
 {
-   Base,
-   Significant,
-   Considerable,
-   Destructive,
-   Catastrophic,
+   Base         = 0,
+   Significant  = 1,
+   Considerable = 2,
+   Destructive  = 3,
+   Catastrophic = 4,
    Unknown
 };
 

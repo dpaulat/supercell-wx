@@ -21,15 +21,16 @@ class AlertModel : public QAbstractTableModel
 public:
    enum class Column : int
    {
-      Etn          = 0,
-      OfficeId     = 1,
-      Phenomenon   = 2,
-      Significance = 3,
-      State        = 4,
-      Counties     = 5,
-      StartTime    = 6,
-      EndTime      = 7,
-      Distance     = 8
+      Etn            = 0,
+      OfficeId       = 1,
+      Phenomenon     = 2,
+      Significance   = 3,
+      ThreatCategory = 4,
+      State          = 5,
+      Counties       = 6,
+      StartTime      = 7,
+      EndTime        = 8,
+      Distance       = 9
    };
 
    explicit AlertModel(QObject* parent = nullptr);

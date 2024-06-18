@@ -34,6 +34,8 @@ public:
    explicit AlertModelImpl();
    ~AlertModelImpl() = default;
 
+   awips::ThreatCategory GetThreatCategory(const types::TextEventKey& key);
+
    static std::string GetCounties(const types::TextEventKey& key);
    static std::string GetState(const types::TextEventKey& key);
    static std::chrono::system_clock::time_point
@@ -49,6 +51,10 @@ public:
 
    const GeographicLib::Geodesic& geodesic_;
 
+   std::unordered_map<types::TextEventKey,
+                      awips::ThreatCategory,
+                      types::TextEventHash<types::TextEventKey>>
+      threatCategoryMap_;
    std::unordered_map<types::TextEventKey,
                       common::Coordinate,
                       types::TextEventHash<types::TextEventKey>>
@@ -124,6 +130,17 @@ QVariant AlertModel::data(const QModelIndex& index, int role) const
       case static_cast<int>(Column::Significance):
          return QString::fromStdString(
             awips::GetSignificanceText(textEventKey.significance_));
+
+      case static_cast<int>(Column::ThreatCategory):
+         if (role == Qt::DisplayRole)
+         {
+            return QString::fromStdString(awips::GetThreatCategoryName(
+               p->GetThreatCategory(textEventKey)));
+         }
+         else
+         {
+            return static_cast<int>(p->GetThreatCategory(textEventKey));
+         }
 
       case static_cast<int>(Column::State):
          return QString::fromStdString(AlertModelImpl::GetState(textEventKey));
@@ -204,6 +221,9 @@ AlertModel::headerData(int section, Qt::Orientation orientation, int role) const
          case static_cast<int>(Column::Significance):
             return tr("Significance");
 
+         case static_cast<int>(Column::ThreatCategory):
+            return tr("Category");
+
          case static_cast<int>(Column::State):
             return tr("State");
 
@@ -238,6 +258,10 @@ AlertModel::headerData(int section, Qt::Orientation orientation, int role) const
 
       case static_cast<int>(Column::Phenomenon):
          contentsSize = fontMetrics.size(0, QString(10, 'W'));
+         break;
+
+      case static_cast<int>(Column::ThreatCategory):
+         contentsSize = fontMetrics.size(0, QString(6, 'W'));
          break;
 
       case static_cast<int>(Column::State):
@@ -284,6 +308,9 @@ void AlertModel::HandleAlert(const types::TextEventKey& alertKey,
    auto alertMessages = p->textEventManager_->message_list(alertKey);
    std::shared_ptr<const awips::Segment> alertSegment =
       alertMessages[messageIndex]->segments().back();
+
+   p->threatCategoryMap_.insert_or_assign(alertKey,
+                                          alertSegment->threatCategory_);
 
    if (alertSegment->codedLocation_.has_value())
    {
@@ -363,6 +390,20 @@ AlertModelImpl::AlertModelImpl() :
     distanceDisplay_ {scwx::common::DistanceType::Miles},
     previousPosition_ {}
 {
+}
+
+awips::ThreatCategory
+AlertModelImpl::GetThreatCategory(const types::TextEventKey& key)
+{
+   awips::ThreatCategory threatCategory = awips::ThreatCategory::Base;
+
+   auto it = threatCategoryMap_.find(key);
+   if (it != threatCategoryMap_.cend())
+   {
+      threatCategory = it->second;
+   }
+
+   return threatCategory;
 }
 
 std::string AlertModelImpl::GetCounties(const types::TextEventKey& key)
