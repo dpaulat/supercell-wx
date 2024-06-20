@@ -51,7 +51,7 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
           {.name_ {"Bubble"},
            .url_ {
               "mapbox://styles/mapbox-map-design/cl4wxue5j000c14r17uqrjpqb"},
-           .drawBelow_ {"com\\.mapbox\\.annotations\\.points"}},
+           .drawBelow_ {".*\\.annotations\\.points"}},
           {.name_ {"Cali Terrain"},
            .url_ {"mapbox://styles/mapbox/cjerxnqt3cgvp2rmyuxbeqme7"},
            .drawBelow_ {"major roads casing"}},
@@ -107,7 +107,7 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
            .drawBelow_ {mapboxDrawBelow_}},
           {.name_ {"Satellite"},
            .url_ {"mapbox://styles/mapbox/satellite-v9"},
-           .drawBelow_ {"com.mapbox.annotations.points"}},
+           .drawBelow_ {".*\\.annotations\\.points"}},
           {.name_ {"Satellite Streets"},
            .url_ {"mapbox://styles/mapbox/satellite-streets-v11"},
            .drawBelow_ {mapboxDrawBelow_}},
