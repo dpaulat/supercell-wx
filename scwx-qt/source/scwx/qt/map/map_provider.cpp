@@ -178,6 +178,11 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
            .drawBelow_ {"aeroway_runway", "Aeroway"}}}}},
    {MapProvider::Unknown, MapProviderInfo {}}};
 
+bool MapStyle::IsValid() const
+{
+   return !url_.empty() && !drawBelow_.empty();
+}
+
 MapProvider GetMapProvider(const std::string& name)
 {
    auto result =
