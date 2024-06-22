@@ -52,6 +52,7 @@ public:
 
       antiAliasingEnabled_.SetDefault(true);
       clockFormat_.SetDefault(defaultClockFormatValue);
+      customStyleDrawLayer_.SetDefault(".*\\.annotations\\.points");
       debugEnabled_.SetDefault(false);
       defaultAlertAction_.SetDefault(defaultDefaultAlertActionValue);
       defaultRadarSite_.SetDefault("KLSX");
@@ -102,6 +103,8 @@ public:
          SCWX_SETTINGS_ENUM_VALIDATOR(scwx::util::ClockFormat,
                                       scwx::util::ClockFormatIterator(),
                                       scwx::util::GetClockFormatName));
+      customStyleDrawLayer_.SetValidator([](const std::string& value)
+                                         { return !value.empty(); });
       defaultAlertAction_.SetValidator(
          SCWX_SETTINGS_ENUM_VALIDATOR(types::AlertAction,
                                       types::AlertActionIterator(),
