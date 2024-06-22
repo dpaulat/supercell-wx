@@ -117,6 +117,8 @@ public:
           &theme_,
           &defaultAlertAction_,
           &clockFormat_,
+          &customStyleDrawLayer_,
+          &customStyleUrl_,
           &defaultTimeZone_,
           &positioningPlugin_,
           &nmeaBaudRate_,
@@ -222,6 +224,8 @@ public:
    settings::SettingsInterface<std::string>  mapTilerApiKey_ {};
    settings::SettingsInterface<std::string>  defaultAlertAction_ {};
    settings::SettingsInterface<std::string>  clockFormat_ {};
+   settings::SettingsInterface<std::string>  customStyleDrawLayer_ {};
+   settings::SettingsInterface<std::string>  customStyleUrl_ {};
    settings::SettingsInterface<std::string>  defaultTimeZone_ {};
    settings::SettingsInterface<std::string>  positioningPlugin_ {};
    settings::SettingsInterface<std::int64_t> nmeaBaudRate_ {};
@@ -565,6 +569,15 @@ void SettingsDialogImpl::SetupGeneralTab()
    mapTilerApiKey_.SetSettingsVariable(generalSettings.maptiler_api_key());
    mapTilerApiKey_.SetEditWidget(self_->ui->mapTilerApiKeyLineEdit);
    mapTilerApiKey_.SetResetButton(self_->ui->resetMapTilerApiKeyButton);
+
+   customStyleUrl_.SetSettingsVariable(generalSettings.custom_style_url());
+   customStyleUrl_.SetEditWidget(self_->ui->customMapUrlLineEdit);
+   customStyleUrl_.SetResetButton(self_->ui->resetCustomMapUrlButton);
+
+   customStyleDrawLayer_.SetSettingsVariable(
+      generalSettings.custom_style_draw_layer());
+   customStyleDrawLayer_.SetEditWidget(self_->ui->customMapLayerLineEdit);
+   customStyleDrawLayer_.SetResetButton(self_->ui->resetCustomMapLayerButton);
 
    defaultAlertAction_.SetSettingsVariable(
       generalSettings.default_alert_action());

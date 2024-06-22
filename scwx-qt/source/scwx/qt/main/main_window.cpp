@@ -139,6 +139,16 @@ public:
    }
    ~MainWindowImpl()
    {
+      auto& generalSettings = settings::GeneralSettings::Instance();
+
+      auto& customStyleUrl       = generalSettings.custom_style_url();
+      auto& customStyleDrawLayer = generalSettings.custom_style_draw_layer();
+
+      customStyleUrl.UnregisterValueChangedCallback(
+         customStyleUrlChangedCallbackUuid_);
+      customStyleDrawLayer.UnregisterValueChangedCallback(
+         customStyleDrawLayerChangedCallbackUuid_);
+
       clockTimer_.stop();
       threadPool_.join();
    }
@@ -153,6 +163,7 @@ public:
    void ConnectOtherSignals();
    void HandleFocusChange(QWidget* focused);
    void InitializeLayerDisplayActions();
+   void PopulateCustomMapStyle();
    void PopulateMapStyles();
    void SelectElevation(map::MapWidget* mapWidget, float elevation);
    void SelectRadarProduct(map::MapWidget*           mapWidget,
@@ -201,6 +212,10 @@ public:
    ui::UpdateDialog*        updateDialog_;
 
    QTimer clockTimer_ {};
+
+   bool               customStyleAvailable_ {false};
+   boost::uuids::uuid customStyleDrawLayerChangedCallbackUuid_ {};
+   boost::uuids::uuid customStyleUrlChangedCallbackUuid_ {};
 
    std::shared_ptr<manager::AlertManager>  alertManager_;
    std::shared_ptr<manager::HotkeyManager> hotkeyManager_ {
@@ -750,7 +765,8 @@ void MainWindowImpl::ConfigureMapStyles()
    {
       std::string styleName = mapSettings.map_style(i).GetValue();
 
-      if (std::find_if(mapProviderInfo.mapStyles_.cbegin(),
+      if ((customStyleAvailable_ && styleName == "Custom") ||
+          std::find_if(mapProviderInfo.mapStyles_.cbegin(),
                        mapProviderInfo.mapStyles_.cend(),
                        [&](const auto& mapStyle) {
                           return mapStyle.name_ == styleName;
@@ -1262,6 +1278,36 @@ void MainWindowImpl::HandleFocusChange(QWidget* focused)
    }
 }
 
+void MainWindowImpl::PopulateCustomMapStyle()
+{
+   auto& generalSettings = settings::GeneralSettings::Instance();
+
+   auto customStyleUrl = generalSettings.custom_style_url().GetValue();
+   auto customStyleDrawLayer =
+      generalSettings.custom_style_draw_layer().GetValue();
+
+   bool newCustomStyleAvailable =
+      !customStyleUrl.empty() && !customStyleDrawLayer.empty();
+
+   if (newCustomStyleAvailable != customStyleAvailable_)
+   {
+      static const QString kCustom {"Custom"};
+
+      if (newCustomStyleAvailable)
+      {
+
+         mainWindow_->ui->mapStyleComboBox->addItem(kCustom);
+      }
+      else
+      {
+         int index = mainWindow_->ui->mapStyleComboBox->findText(kCustom);
+         mainWindow_->ui->mapStyleComboBox->removeItem(index);
+      }
+
+      customStyleAvailable_ = newCustomStyleAvailable;
+   }
+}
+
 void MainWindowImpl::PopulateMapStyles()
 {
    const auto& mapProviderInfo = map::GetMapProviderInfo(mapProvider_);
@@ -1270,6 +1316,22 @@ void MainWindowImpl::PopulateMapStyles()
       mainWindow_->ui->mapStyleComboBox->addItem(
          QString::fromStdString(mapStyle.name_));
    }
+
+   auto& generalSettings = settings::GeneralSettings::Instance();
+
+   auto& customStyleUrl       = generalSettings.custom_style_url();
+   auto& customStyleDrawLayer = generalSettings.custom_style_draw_layer();
+
+   customStyleUrlChangedCallbackUuid_ =
+      customStyleUrl.RegisterValueChangedCallback(
+         [this]([[maybe_unused]] const std::string& value)
+         { PopulateCustomMapStyle(); });
+   customStyleDrawLayerChangedCallbackUuid_ =
+      customStyleDrawLayer.RegisterValueChangedCallback(
+         [this]([[maybe_unused]] const std::string& value)
+         { PopulateCustomMapStyle(); });
+
+   PopulateCustomMapStyle();
 }
 
 void MainWindowImpl::SelectElevation(map::MapWidget* mapWidget, float elevation)

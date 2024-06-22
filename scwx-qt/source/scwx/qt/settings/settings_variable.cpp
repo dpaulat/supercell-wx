@@ -30,6 +30,7 @@ public:
    std::optional<T>              staged_ {};
    std::optional<T>              minimum_ {};
    std::optional<T>              maximum_ {};
+   std::function<T(const T&)>    transform_ {};
    std::function<bool(const T&)> validator_ {nullptr};
 
    boost::unordered_flat_map<boost::uuids::uuid, ValueCallbackFunction>
@@ -79,7 +80,7 @@ bool SettingsVariable<T>::SetValue(const T& value)
 
    if (Validate(value))
    {
-      p->value_ = value;
+      p->value_ = (p->transform_ != nullptr) ? p->transform_(value) : value;
       validated = true;
 
       for (auto& callback : p->valueChangedCallbackFunctions_)
@@ -102,7 +103,7 @@ bool SettingsVariable<T>::SetValueOrDefault(const T& value)
 
    if (Validate(value))
    {
-      p->value_ = value;
+      p->value_ = (p->transform_ != nullptr) ? p->transform_(value) : value;
       validated = true;
    }
    else if (p->minimum_.has_value() && value < p->minimum_)
@@ -182,9 +183,11 @@ bool SettingsVariable<T>::StageValue(const T& value)
 
    if (Validate(value))
    {
-      if (p->value_ != value)
+      T transformed = (p->transform_ != nullptr) ? p->transform_(value) : value;
+
+      if (p->value_ != transformed)
       {
-         p->staged_ = value;
+         p->staged_ = transformed;
       }
       else
       {
@@ -195,7 +198,7 @@ bool SettingsVariable<T>::StageValue(const T& value)
 
       for (auto& callback : p->valueStagedCallbackFunctions_)
       {
-         callback.second(value);
+         callback.second(transformed);
       }
    }
 
@@ -283,6 +286,12 @@ template<class T>
 std::optional<T> SettingsVariable<T>::GetMaximum() const
 {
    return p->maximum_;
+}
+
+template<class T>
+void SettingsVariable<T>::SetTransform(std::function<T(const T&)> transform)
+{
+   p->transform_ = transform;
 }
 
 template<class T>
@@ -384,7 +393,7 @@ bool SettingsVariable<T>::Equals(const SettingsVariableBase& o) const
    // This is only ever called with SettingsVariable<T>, so static_cast is safe
    const SettingsVariable<T>& v = static_cast<const SettingsVariable<T>&>(o);
 
-   // Don't compare validator
+   // Don't compare transform or validator
    return SettingsVariableBase::Equals(o) && //
           p->value_ == v.p->value_ &&        //
           p->default_ == v.p->default_ &&    //

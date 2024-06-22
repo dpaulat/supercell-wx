@@ -25,12 +25,14 @@ public:
    GeneralSettings(GeneralSettings&&) noexcept;
    GeneralSettings& operator=(GeneralSettings&&) noexcept;
 
-   SettingsVariable<bool>&                       anti_aliasing_enabled() const;
-   SettingsVariable<std::string>&                clock_format() const;
-   SettingsVariable<bool>&                       debug_enabled() const;
-   SettingsVariable<std::string>&                default_alert_action() const;
-   SettingsVariable<std::string>&                default_radar_site() const;
-   SettingsVariable<std::string>&                default_time_zone() const;
+   SettingsVariable<bool>&        anti_aliasing_enabled() const;
+   SettingsVariable<std::string>& clock_format() const;
+   SettingsVariable<std::string>& custom_style_draw_layer() const;
+   SettingsVariable<std::string>& custom_style_url() const;
+   SettingsVariable<bool>&        debug_enabled() const;
+   SettingsVariable<std::string>& default_alert_action() const;
+   SettingsVariable<std::string>& default_radar_site() const;
+   SettingsVariable<std::string>& default_time_zone() const;
    SettingsContainer<std::vector<std::int64_t>>& font_sizes() const;
    SettingsVariable<std::int64_t>&               grid_height() const;
    SettingsVariable<std::int64_t>&               grid_width() const;

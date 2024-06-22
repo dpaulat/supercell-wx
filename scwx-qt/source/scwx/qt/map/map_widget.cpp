@@ -35,6 +35,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
+#include <boost/range/join.hpp>
 #include <boost/uuid/random_generator.hpp>
 #include <fmt/format.h>
 #include <imgui.h>
@@ -117,11 +118,15 @@ public:
       // Initialize ImGui Qt backend
       ImGui_ImplQt_Init();
 
+      InitializeCustomStyles();
+
       ConnectSignals();
    }
 
    ~MapWidgetImpl()
    {
+      DeinitializeCustomStyles();
+
       // Set ImGui Context
       ImGui::SetCurrentContext(imGuiContext_);
 
@@ -149,10 +154,12 @@ public:
                           const std::string& before);
    void ConnectMapSignals();
    void ConnectSignals();
+   void DeinitializeCustomStyles() const;
    void HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat);
    void HandleHotkeyReleased(types::Hotkey hotkey);
    void HandleHotkeyUpdates();
    void ImGuiCheckFonts();
+   void InitializeCustomStyles();
    void InitializeNewRadarProductView(const std::string& colorPalette);
    void RadarProductManagerConnect();
    void RadarProductManagerDisconnect();
@@ -187,8 +194,14 @@ public:
 
    std::vector<std::shared_ptr<GenericLayer>> genericLayers_ {};
 
+   const std::vector<MapStyle> emptyStyles_ {};
+   std::vector<MapStyle>       customStyles_ {
+      MapStyle {.name_ {"Custom"}, .url_ {}, .drawBelow_ {}}};
    QStringList        styleLayers_;
    types::LayerVector customLayers_;
+
+   boost::uuids::uuid customStyleUrlChangedCallbackId_ {};
+   boost::uuids::uuid customStyleDrawBelowChangedCallbackId_ {};
 
    ImGuiContext* imGuiContext_;
    std::string   imGuiContextName_;
@@ -269,6 +282,48 @@ MapWidget::~MapWidget()
    makeCurrent();
 }
 
+void MapWidgetImpl::InitializeCustomStyles()
+{
+   auto& generalSettings = settings::GeneralSettings::Instance();
+
+   auto& customStyleUrl       = generalSettings.custom_style_url();
+   auto& customStyleDrawLayer = generalSettings.custom_style_draw_layer();
+
+   auto& customStyle = customStyles_.at(0);
+   customStyle.url_  = customStyleUrl.GetValue();
+   customStyle.drawBelow_.push_back(customStyleDrawLayer.GetValue());
+
+   customStyleUrlChangedCallbackId_ =
+      customStyleUrl.RegisterValueChangedCallback(
+         [this](const std::string& url) { customStyles_[0].url_ = url; });
+   customStyleDrawBelowChangedCallbackId_ =
+      customStyleDrawLayer.RegisterValueChangedCallback(
+         [this](const std::string& drawLayer)
+         {
+            if (!drawLayer.empty())
+            {
+               customStyles_[0].drawBelow_ = {drawLayer};
+            }
+            else
+            {
+               customStyles_[0].drawBelow_.clear();
+            }
+         });
+}
+
+void MapWidgetImpl::DeinitializeCustomStyles() const
+{
+   auto& generalSettings = settings::GeneralSettings::Instance();
+
+   auto& customStyleUrl       = generalSettings.custom_style_url();
+   auto& customStyleDrawLayer = generalSettings.custom_style_draw_layer();
+
+   customStyleUrl.UnregisterValueChangedCallback(
+      customStyleUrlChangedCallbackId_);
+   customStyleDrawLayer.UnregisterValueChangedCallback(
+      customStyleDrawBelowChangedCallbackId_);
+}
+
 void MapWidgetImpl::ConnectMapSignals()
 {
    connect(map_.get(),
@@ -283,8 +338,8 @@ void MapWidgetImpl::ConnectMapSignals()
               QTextDocument document {};
               document.setHtml(copyrightsHtml);
 
-              // HTML cannot currently be included in ImGui windows. Where links
-              // can't be included, remove "Improve this map".
+              // HTML cannot currently be included in ImGui windows. Where
+              // links can't be included, remove "Improve this map".
               std::string copyrights {document.toPlainText().toStdString()};
               boost::erase_all(copyrights, "Improve this map");
               boost::trim_right(copyrights);
@@ -924,7 +979,16 @@ void MapWidget::SetMapStyle(const std::string& styleName)
 {
    const auto  mapProvider     = p->context_->map_provider();
    const auto& mapProviderInfo = GetMapProviderInfo(mapProvider);
-   auto&       styles          = mapProviderInfo.mapStyles_;
+   auto&       fixedStyles     = mapProviderInfo.mapStyles_;
+
+   auto styles = boost::join(fixedStyles,
+                             p->customStyles_[0].IsValid() ? p->customStyles_ :
+                                                             p->emptyStyles_);
+
+   if (p->currentStyleIndex_ >= styles.size())
+   {
+      p->currentStyleIndex_ = 0;
+   }
 
    for (size_t i = 0u; i < styles.size(); ++i)
    {
@@ -937,7 +1001,7 @@ void MapWidget::SetMapStyle(const std::string& styleName)
 
          util::maplibre::SetMapStyleUrl(p->context_, styles[i].url_);
 
-         if (++p->currentStyleIndex_ == styles.size())
+         if (++p->currentStyleIndex_ >= styles.size())
          {
             p->currentStyleIndex_ = 0;
          }
@@ -974,7 +1038,16 @@ void MapWidget::changeStyle()
 {
    const auto  mapProvider     = p->context_->map_provider();
    const auto& mapProviderInfo = GetMapProviderInfo(mapProvider);
-   auto&       styles          = mapProviderInfo.mapStyles_;
+   auto&       fixedStyles     = mapProviderInfo.mapStyles_;
+
+   auto styles = boost::join(fixedStyles,
+                             p->customStyles_[0].IsValid() ? p->customStyles_ :
+                                                             p->emptyStyles_);
+
+   if (p->currentStyleIndex_ >= styles.size())
+   {
+      p->currentStyleIndex_ = 0;
+   }
 
    p->currentStyle_ = &styles[p->currentStyleIndex_];
 
@@ -983,7 +1056,7 @@ void MapWidget::changeStyle()
    util::maplibre::SetMapStyleUrl(p->context_,
                                   styles[p->currentStyleIndex_].url_);
 
-   if (++p->currentStyleIndex_ == styles.size())
+   if (++p->currentStyleIndex_ >= styles.size())
    {
       p->currentStyleIndex_ = 0;
    }
@@ -1011,7 +1084,16 @@ std::string MapWidgetImpl::FindMapSymbologyLayer()
                              {
                                 // Perform case-insensitive matching
                                 RE2 re {"(?i)" + styleLayer};
-                                return RE2::FullMatch(layer, re);
+                                if (re.ok())
+                                {
+                                   return RE2::FullMatch(layer, re);
+                                }
+                                else
+                                {
+                                   // Fall back to basic comparison if RE
+                                   // doesn't compile
+                                   return layer == styleLayer;
+                                }
                              });
 
       if (it != currentStyle_->drawBelow_.cend())
@@ -1618,8 +1700,8 @@ void MapWidgetImpl::RadarProductManagerConnect()
                         // Select loaded record
                         auto record = request->radar_product_record();
 
-                        // Validate record, and verify current map context still
-                        // displays site and product
+                        // Validate record, and verify current map context
+                        // still displays site and product
                         if (record != nullptr &&
                             radarProductManager_ != nullptr &&
                             radarProductManager_->radar_id() ==

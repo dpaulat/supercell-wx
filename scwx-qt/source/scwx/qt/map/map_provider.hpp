@@ -28,6 +28,8 @@ struct MapStyle
    std::string              name_;
    std::string              url_;
    std::vector<std::string> drawBelow_;
+
+   bool IsValid() const;
 };
 
 struct MapProviderInfo

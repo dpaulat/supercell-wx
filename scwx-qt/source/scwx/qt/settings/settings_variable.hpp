@@ -166,6 +166,13 @@ public:
    void SetMaximum(const T& value);
 
    /**
+    * Sets a custom transform function for the settings variable.
+    *
+    * @param transform Transform function
+    */
+   void SetTransform(std::function<T(const T&)> transform);
+
+   /**
     * Sets a custom validator function for the settings variable.
     *
     * @param validator Validator function
