@@ -93,6 +93,11 @@ public:
       nmeaBaudRate_.SetMinimum(1);
       nmeaBaudRate_.SetMaximum(999999999);
 
+      customStyleDrawLayer_.SetTransform([](const std::string& value)
+                                         { return boost::trim_copy(value); });
+      customStyleUrl_.SetTransform([](const std::string& value)
+                                   { return boost::trim_copy(value); });
+
       clockFormat_.SetValidator(
          SCWX_SETTINGS_ENUM_VALIDATOR(scwx::util::ClockFormat,
                                       scwx::util::ClockFormatIterator(),
@@ -130,6 +135,9 @@ public:
 
    SettingsVariable<bool>        antiAliasingEnabled_ {"anti_aliasing_enabled"};
    SettingsVariable<std::string> clockFormat_ {"clock_format"};
+   SettingsVariable<std::string> customStyleDrawLayer_ {
+      "custom_style_draw_layer"};
+   SettingsVariable<std::string> customStyleUrl_ {"custom_style_url"};
    SettingsVariable<bool>        debugEnabled_ {"debug_enabled"};
    SettingsVariable<std::string> defaultAlertAction_ {"default_alert_action"};
    SettingsVariable<std::string> defaultRadarSite_ {"default_radar_site"};
@@ -158,8 +166,10 @@ public:
 GeneralSettings::GeneralSettings() :
     SettingsCategory("general"), p(std::make_unique<Impl>())
 {
-   RegisterVariables({&p->antiAliasingEnabled_, //
+   RegisterVariables({&p->antiAliasingEnabled_,
                       &p->clockFormat_,
+                      &p->customStyleDrawLayer_,
+                      &p->customStyleUrl_,
                       &p->debugEnabled_,
                       &p->defaultAlertAction_,
                       &p->defaultRadarSite_,
@@ -199,6 +209,16 @@ SettingsVariable<bool>& GeneralSettings::anti_aliasing_enabled() const
 SettingsVariable<std::string>& GeneralSettings::clock_format() const
 {
    return p->clockFormat_;
+}
+
+SettingsVariable<std::string>& GeneralSettings::custom_style_draw_layer() const
+{
+   return p->customStyleDrawLayer_;
+}
+
+SettingsVariable<std::string>& GeneralSettings::custom_style_url() const
+{
+   return p->customStyleUrl_;
 }
 
 SettingsVariable<bool>& GeneralSettings::debug_enabled() const
@@ -340,6 +360,8 @@ bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
 {
    return (lhs.p->antiAliasingEnabled_ == rhs.p->antiAliasingEnabled_ &&
            lhs.p->clockFormat_ == rhs.p->clockFormat_ &&
+           lhs.p->customStyleDrawLayer_ == rhs.p->customStyleDrawLayer_ &&
+           lhs.p->customStyleUrl_ == rhs.p->customStyleUrl_ &&
            lhs.p->debugEnabled_ == rhs.p->debugEnabled_ &&
            lhs.p->defaultAlertAction_ == rhs.p->defaultAlertAction_ &&
            lhs.p->defaultRadarSite_ == rhs.p->defaultRadarSite_ &&
