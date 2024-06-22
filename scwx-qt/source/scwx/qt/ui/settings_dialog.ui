@@ -135,9 +135,9 @@
               <property name="geometry">
                <rect>
                 <x>0</x>
-                <y>0</y>
-                <width>513</width>
-                <height>566</height>
+                <y>-113</y>
+                <width>511</width>
+                <height>669</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout">
@@ -482,6 +482,48 @@
                     </property>
                    </widget>
                   </item>
+                  <item row="14" column="2">
+                   <widget class="QLineEdit" name="customMapUrlLineEdit"/>
+                  </item>
+                  <item row="15" column="2">
+                   <widget class="QLineEdit" name="customMapLayerLineEdit"/>
+                  </item>
+                  <item row="14" column="0">
+                   <widget class="QLabel" name="label_26">
+                    <property name="text">
+                     <string>Custom Map URL</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="15" column="0">
+                   <widget class="QLabel" name="label_27">
+                    <property name="text">
+                     <string>Custom Map Layer</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="14" column="4">
+                   <widget class="QToolButton" name="resetCustomMapUrlButton">
+                    <property name="text">
+                     <string>...</string>
+                    </property>
+                    <property name="icon">
+                     <iconset resource="../../../../scwx-qt.qrc">
+                      <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="15" column="4">
+                   <widget class="QToolButton" name="resetCustomMapLayerButton">
+                    <property name="text">
+                     <string>...</string>
+                    </property>
+                    <property name="icon">
+                     <iconset resource="../../../../scwx-qt.qrc">
+                      <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+                    </property>
+                   </widget>
+                  </item>
                  </layout>
                 </widget>
                </item>
@@ -568,8 +610,8 @@
                    <rect>
                     <x>0</x>
                     <y>0</y>
-                    <width>63</width>
-                    <height>18</height>
+                    <width>98</width>
+                    <height>28</height>
                    </rect>
                   </property>
                   <layout class="QGridLayout" name="gridLayout_3">
