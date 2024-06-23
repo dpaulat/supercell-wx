@@ -3,7 +3,7 @@ import requests
 import json
 import argparse
 
-NOAA_BASE = "http://www.ncdc.noaa.gov/homr/services/station"
+NOAA_BASE = "https://www.ncdc.noaa.gov/homr/services/station"
 
 # Get the noaa station data.
 # platform is what platform should be searched for
