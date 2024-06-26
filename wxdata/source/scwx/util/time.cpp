@@ -10,6 +10,7 @@
 
 #include <scwx/util/time.hpp>
 #include <scwx/util/enum.hpp>
+#include <scwx/util/logger.hpp>
 
 #include <sstream>
 #include <unordered_map>
@@ -24,6 +25,9 @@ namespace scwx
 {
 namespace util
 {
+
+static const std::string logPrefix_ = "scwx::util::time";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static const std::unordered_map<ClockFormat, std::string> clockFormatName_ {
    {ClockFormat::_12Hour, "12-hour"},
@@ -71,18 +75,35 @@ std::string TimeString(std::chrono::system_clock::time_point time,
    {
       if (timeZone != nullptr)
       {
-         zoned_time zt = {timeZone, timeInSeconds};
+         try
+         {
+            zoned_time zt = {timeZone, timeInSeconds};
 
-         if (clockFormat == ClockFormat::_24Hour)
-         {
-            os << format(FORMAT_STRING_24_HOUR, zt);
+            if (clockFormat == ClockFormat::_24Hour)
+            {
+               os << format(FORMAT_STRING_24_HOUR, zt);
+            }
+            else
+            {
+               os << format(FORMAT_STRING_12_HOUR, zt);
+            }
          }
-         else
+         catch (const std::exception& ex)
          {
-            os << format(FORMAT_STRING_12_HOUR, zt);
+            static bool firstException = true;
+            if (firstException)
+            {
+               logger_->warn("Zoned time error: {}", ex.what());
+               firstException = false;
+            }
+
+            // In the case where there is a time zone error (e.g., timezone
+            // database, unicode issue, etc.), fall back to UTC
+            timeZone = nullptr;
          }
       }
-      else
+
+      if (timeZone == nullptr)
       {
          if (clockFormat == ClockFormat::_24Hour)
          {
