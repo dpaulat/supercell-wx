@@ -31,17 +31,31 @@ LayerWrapper& LayerWrapper::operator=(LayerWrapper&&) noexcept = default;
 
 void LayerWrapper::initialize()
 {
-   p->layer_->Initialize();
+   auto& layer = p->layer_;
+   if (layer != nullptr)
+   {
+      layer->Initialize();
+   }
 }
 
 void LayerWrapper::render(const QMapLibre::CustomLayerRenderParameters& params)
 {
-   p->layer_->Render(params);
+   auto& layer = p->layer_;
+   if (layer != nullptr)
+   {
+      layer->Render(params);
+   }
 }
 
 void LayerWrapper::deinitialize()
 {
-   p->layer_->Deinitialize();
+   // Ensure layers are not retained after call to deinitialize
+   auto& layer = p->layer_;
+   if (layer != nullptr)
+   {
+      layer->Deinitialize();
+      layer = nullptr;
+   }
 }
 
 } // namespace map
