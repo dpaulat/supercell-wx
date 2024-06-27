@@ -35,6 +35,7 @@ public:
    ~AlertModelImpl() = default;
 
    awips::ThreatCategory GetThreatCategory(const types::TextEventKey& key);
+   bool                  GetTornadoPossible(const types::TextEventKey& key);
 
    static std::string GetCounties(const types::TextEventKey& key);
    static std::string GetState(const types::TextEventKey& key);
@@ -55,6 +56,10 @@ public:
                       awips::ThreatCategory,
                       types::TextEventHash<types::TextEventKey>>
       threatCategoryMap_;
+   std::unordered_map<types::TextEventKey,
+                      bool,
+                      types::TextEventHash<types::TextEventKey>>
+      tornadoPossibleMap_;
    std::unordered_map<types::TextEventKey,
                       common::Coordinate,
                       types::TextEventHash<types::TextEventKey>>
@@ -130,6 +135,13 @@ QVariant AlertModel::data(const QModelIndex& index, int role) const
       case static_cast<int>(Column::Significance):
          return QString::fromStdString(
             awips::GetSignificanceText(textEventKey.significance_));
+
+      case static_cast<int>(Column::TornadoPossible):
+         if (p->GetTornadoPossible(textEventKey))
+         {
+            return tr("Possible");
+         }
+         break;
 
       case static_cast<int>(Column::ThreatCategory):
          if (role == Qt::DisplayRole)
@@ -224,6 +236,9 @@ AlertModel::headerData(int section, Qt::Orientation orientation, int role) const
          case static_cast<int>(Column::ThreatCategory):
             return tr("Category");
 
+         case static_cast<int>(Column::TornadoPossible):
+            return tr("Tornado");
+
          case static_cast<int>(Column::State):
             return tr("State");
 
@@ -262,6 +277,10 @@ AlertModel::headerData(int section, Qt::Orientation orientation, int role) const
 
       case static_cast<int>(Column::ThreatCategory):
          contentsSize = fontMetrics.size(0, QString(6, 'W'));
+         break;
+
+      case static_cast<int>(Column::TornadoPossible):
+         contentsSize = fontMetrics.size(0, QString(4, 'W'));
          break;
 
       case static_cast<int>(Column::State):
@@ -311,6 +330,8 @@ void AlertModel::HandleAlert(const types::TextEventKey& alertKey,
 
    p->threatCategoryMap_.insert_or_assign(alertKey,
                                           alertSegment->threatCategory_);
+   p->tornadoPossibleMap_.insert_or_assign(alertKey,
+                                           alertSegment->tornadoPossible_);
 
    if (alertSegment->codedLocation_.has_value())
    {
@@ -404,6 +425,19 @@ AlertModelImpl::GetThreatCategory(const types::TextEventKey& key)
    }
 
    return threatCategory;
+}
+
+bool AlertModelImpl::GetTornadoPossible(const types::TextEventKey& key)
+{
+   bool tornadoPossible = false;
+
+   auto it = tornadoPossibleMap_.find(key);
+   if (it != tornadoPossibleMap_.cend())
+   {
+      tornadoPossible = it->second;
+   }
+
+   return tornadoPossible;
 }
 
 std::string AlertModelImpl::GetCounties(const types::TextEventKey& key)
