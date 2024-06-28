@@ -380,6 +380,7 @@ set(JSON_FILES res/config/radar_sites.json)
 
 set(TS_FILES ts/scwx_en_US.ts)
 
+set(RADAR_SITES_FILE ${scwx-qt_SOURCE_DIR}/res/config/radar_sites.json)
 set(COUNTY_DBF_FILES ${SCWX_DIR}/data/db/c_05mr24.dbf)
 set(ZONE_DBF_FILES   ${SCWX_DIR}/data/db/fz05mr24.dbf
                      ${SCWX_DIR}/data/db/mz05mr24.dbf
@@ -503,6 +504,12 @@ add_custom_target(scwx-qt_generate_versions ALL
                   DEPENDS ${VERSIONS_HEADER})
 
 add_dependencies(scwx-qt scwx-qt_generate_versions)
+
+add_custom_target(scwx-qt_update_radar_sites ALL
+                  COMMAND ${Python_EXECUTABLE}
+                          ${scwx-qt_SOURCE_DIR}/tools/update_radar_sites.py
+                          -u ${RADAR_SITES_FILE}
+                          -t -w)
 
 qt_add_resources(scwx-qt "generated"
                  PREFIX  "/"
