@@ -538,6 +538,7 @@ endif()
 
 set_target_properties(scwx-qt_generate_counties_db PROPERTIES FOLDER generate)
 set_target_properties(scwx-qt_generate_versions    PROPERTIES FOLDER generate)
+set_target_properties(scwx-qt_update_radar_sites   PROPERTIES FOLDER generate)
 
 if (WIN32)
     set(APP_ICON_RESOURCE_WINDOWS "${scwx-qt_SOURCE_DIR}/res/scwx-qt.rc")
