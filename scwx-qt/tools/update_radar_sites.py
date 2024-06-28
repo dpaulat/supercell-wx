@@ -4,6 +4,8 @@ import json
 import argparse
 
 NOAA_BASE = "https://www.ncdc.noaa.gov/homr/services/station"
+WARNING = "\033[93mWARNING: Updating radar sites may break tests in \
+'test/source/scwx/qt/config/radar_sites.test.cpp'\033[39m"
 
 # Get the noaa station data.
 # platform is what platform should be searched for
@@ -183,7 +185,7 @@ def make_coords(stations, file):
 def main():
     parser = argparse.ArgumentParser(
             description="""Update supercell-wx's location data for towers form NOAA's HOMR database.\n
-            Recommended Arguments: -u ../res/config/radar_sites.json -t""")
+            Recommended Arguments: -u ../res/config/radar_sites.json -t -w""")
     parser.add_argument("--current_file", "-u", type = str, default = None, required = False,
                         help = "The 'radar_sites.json' file to update. Without this option, this will generate a new file")
     parser.add_argument("--test_updated", "-t", default = False, action = "store_true",
@@ -202,6 +204,8 @@ def main():
                         help = "Get AWOS and UPPERAIR stations as well. Should NOT be used.")
     parser.add_argument("--current_only", "-C", default = False, action = "store_true",
                         help = "Get only currently active stations. Does not seem to change anything.")
+    parser.add_argument("--warn", "-w", default = False, action = "store_true",
+                        help = "Display a warning about breaking a test by updating the radar sites.")
 
     args = parser.parse_args()
     # default to updating the same file as input
@@ -274,6 +278,9 @@ def main():
 
             if failed:
                 exit(4)
+
+    if args.warn:
+        print(WARNING)
 
 if __name__ == "__main__":
     main()
