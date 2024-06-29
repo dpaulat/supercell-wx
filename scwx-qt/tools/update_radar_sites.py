@@ -5,7 +5,7 @@ import argparse
 
 NOAA_BASE = "https://www.ncdc.noaa.gov/homr/services/station"
 WARNING = "\033[93mWARNING: Updating radar sites may break tests in \
-'test/source/scwx/qt/config/radar_sites.test.cpp'\033[39m"
+'test/source/scwx/qt/config/radar_site.test.cpp'\033[39m"
 
 # Get the noaa station data.
 # platform is what platform should be searched for
