@@ -390,17 +390,19 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath)
 
    QUrl url = QUrl::fromUserInput(qImagePath);
 
+
    if (url.isLocalFile())
    {
       QString suffix = QFileInfo(qImagePath).suffix().toLower();
+      QString qLocalImagePath = url.toLocalFile();
 
       if (suffix == "svg")
       {
-         image = ReadSvgFile(qImagePath);
+         image = ReadSvgFile(qLocalImagePath);
       }
       else
       {
-         image = ReadPngFile(qImagePath);
+         image = ReadPngFile(qLocalImagePath);
       }
    }
    else
