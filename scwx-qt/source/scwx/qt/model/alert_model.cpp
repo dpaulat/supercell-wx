@@ -34,6 +34,7 @@ public:
    explicit AlertModelImpl();
    ~AlertModelImpl() = default;
 
+   bool                  GetObserved(const types::TextEventKey& key);
    awips::ThreatCategory GetThreatCategory(const types::TextEventKey& key);
    bool                  GetTornadoPossible(const types::TextEventKey& key);
 
@@ -52,6 +53,10 @@ public:
 
    const GeographicLib::Geodesic& geodesic_;
 
+   std::unordered_map<types::TextEventKey,
+                      bool,
+                      types::TextEventHash<types::TextEventKey>>
+      observedMap_;
    std::unordered_map<types::TextEventKey,
                       awips::ThreatCategory,
                       types::TextEventHash<types::TextEventKey>>
@@ -136,7 +141,12 @@ QVariant AlertModel::data(const QModelIndex& index, int role) const
          return QString::fromStdString(
             awips::GetSignificanceText(textEventKey.significance_));
 
-      case static_cast<int>(Column::TornadoPossible):
+      case static_cast<int>(Column::Tornado):
+         if (textEventKey.phenomenon_ == awips::Phenomenon::Tornado &&
+             p->GetObserved(textEventKey))
+         {
+            return tr("Observed");
+         }
          if (p->GetTornadoPossible(textEventKey))
          {
             return tr("Possible");
@@ -236,7 +246,7 @@ AlertModel::headerData(int section, Qt::Orientation orientation, int role) const
          case static_cast<int>(Column::ThreatCategory):
             return tr("Category");
 
-         case static_cast<int>(Column::TornadoPossible):
+         case static_cast<int>(Column::Tornado):
             return tr("Tornado");
 
          case static_cast<int>(Column::State):
@@ -279,8 +289,8 @@ AlertModel::headerData(int section, Qt::Orientation orientation, int role) const
          contentsSize = fontMetrics.size(0, QString(6, 'W'));
          break;
 
-      case static_cast<int>(Column::TornadoPossible):
-         contentsSize = fontMetrics.size(0, QString(4, 'W'));
+      case static_cast<int>(Column::Tornado):
+         contentsSize = fontMetrics.size(0, QString(5, 'W'));
          break;
 
       case static_cast<int>(Column::State):
@@ -328,6 +338,7 @@ void AlertModel::HandleAlert(const types::TextEventKey& alertKey,
    std::shared_ptr<const awips::Segment> alertSegment =
       alertMessages[messageIndex]->segments().back();
 
+   p->observedMap_.insert_or_assign(alertKey, alertSegment->observed_);
    p->threatCategoryMap_.insert_or_assign(alertKey,
                                           alertSegment->threatCategory_);
    p->tornadoPossibleMap_.insert_or_assign(alertKey,
@@ -411,6 +422,19 @@ AlertModelImpl::AlertModelImpl() :
     distanceDisplay_ {scwx::common::DistanceType::Miles},
     previousPosition_ {}
 {
+}
+
+bool AlertModelImpl::GetObserved(const types::TextEventKey& key)
+{
+   bool observed = false;
+
+   auto it = observedMap_.find(key);
+   if (it != observedMap_.cend())
+   {
+      observed = it->second;
+   }
+
+   return observed;
 }
 
 awips::ThreatCategory
