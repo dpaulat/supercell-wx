@@ -505,7 +505,7 @@ add_custom_target(scwx-qt_generate_versions ALL
 
 add_dependencies(scwx-qt scwx-qt_generate_versions)
 
-add_custom_target(scwx-qt_update_radar_sites ALL
+add_custom_target(scwx-qt_update_radar_sites
                   COMMAND ${Python_EXECUTABLE}
                           ${scwx-qt_SOURCE_DIR}/tools/update_radar_sites.py
                           -u ${RADAR_SITES_FILE}
