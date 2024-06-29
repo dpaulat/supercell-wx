@@ -2,6 +2,7 @@
 import requests
 import json
 import argparse
+import csv
 
 NOAA_BASE = "https://www.ncdc.noaa.gov/homr/services/station"
 WARNING = "\033[93mWARNING: Updating radar sites may break tests in \
@@ -65,6 +66,7 @@ def extract_best(items, key, values, subKey = None, parser = None):
 
     return best[subKey]
 
+# Turn the noaa stations into a dictionary that can be used to update the locations and elevations.
 def make_noaa_stations_dict(noaaStations):
     output = {}
 
@@ -102,7 +104,7 @@ def make_noaa_stations_dict(noaaStations):
 
 # Get the list of updated stations (not in place), using the noaaStationsDict
 # from make_noaa_stations_dict
-def update_stations(noaaStationsDict, previousStations):
+def update_stations(noaaStationsDict, previousStations, toUpdate = None):
     newStations = []
     for station in previousStations:
         newStation = station.copy()
@@ -114,12 +116,27 @@ def update_stations(noaaStationsDict, previousStations):
 
             if "elevation" not in station:
                 newStation["elevation"] = None
-        else:
+        elif toUpdate is None or station["id"] in toUpdate:
             newStation.update(noaaStationsDict[station["id"]])
+        else:
+            newStation["elevation"] = noaaStationsDict[station["id"]]["elevation"]
 
         newStations.append(newStation)
 
     return newStations
+
+# Read in csv file describing which locations to update.
+# Elevation data is always updated.
+def get_to_update_file(filename):
+    with open(filename) as file:
+        r = csv.reader(file)
+        next(r)
+        toUpdate = set()
+        for row in r:
+            if len(row) == 2 and row[1] == "HOMR":
+                toUpdate.add(row[0])
+    return toUpdate
+
 
 # Customized dump routine. Formats it as one station per row, aligning items.
 def custom_dump(stations, file):
@@ -190,6 +207,9 @@ def main():
                         help = "The 'radar_sites.json' file to update. Without this option, this will generate a new file")
     parser.add_argument("--test_updated", "-t", default = False, action = "store_true",
                         help = "Read in the updated file to ensure it is valid JSON. Should be used.")
+    parser.add_argument("--to_update_csv", "-U", type = str, default = None, required = False,
+                        help = "Choose a CSV describing which stations to update. \
+First column is station ID, Second is HOMR if it should be updated. First row is a header.")
     parser.add_argument("--updated_file", "-o", type = str, default = None, required = False,
                         help = "The updated 'radar_sites.json' file. The default is to overwrite the current one.")
     parser.add_argument("--coord_file", "-c", type = str, default = None, required = False,
@@ -220,6 +240,10 @@ def main():
         with open(args.current_file, "r") as file:
             previousStations = json.load(file)
 
+    toUpdate = None
+    if args.to_update_csv is not None:
+        toUpdate = get_to_update_file(args.to_update_csv)
+
     if args.input_json is None:
         print("Getting NEXRAD stations")
         noaaStations = get_noaa_stations("NEXRAD", args.current_only)
@@ -247,7 +271,7 @@ def main():
     if args.current_file is None:
         newStations = list(noaaStationsDict.values())
     else:
-        newStations = update_stations(noaaStationsDict, previousStations)
+        newStations = update_stations(noaaStationsDict, previousStations, toUpdate)
 
     print(f"Saving Updated Sites to '{args.updated_file}'")
     with open(args.updated_file, "w") as file:
