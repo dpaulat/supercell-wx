@@ -90,6 +90,23 @@ common::Coordinate GetCoordinate(const common::Coordinate& center,
 units::length::meters<double>
 GetDistance(double lat1, double lon1, double lat2, double lon2);
 
+
+/**
+ * Determine if an area/ring, oriented in either direction, is within a
+ * distance of a point. A point lying on the area boundary is considered to be
+ * inside the area, and thus always in range. Any part of the area being inside
+ * the radius counts as inside.
+ *
+ * @param [in] area A vector of Coordinates representing the area
+ * @param [in] point The point to check against the area
+ * @param [in] distance The max distance in meters
+ *
+ * @return true if area is inside the radius of the point
+ */
+bool AreaInRangeOfPoint(const std::vector<common::Coordinate>& area,
+                        const common::Coordinate&              point,
+                        const units::length::meters<double>    distance);
+
 } // namespace GeographicLib
 } // namespace util
 } // namespace qt

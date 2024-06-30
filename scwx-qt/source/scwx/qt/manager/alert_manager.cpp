@@ -85,7 +85,8 @@ common::Coordinate AlertManager::Impl::CurrentCoordinate(
    settings::AudioSettings& audioSettings = settings::AudioSettings::Instance();
    common::Coordinate       coordinate {};
 
-   if (locationMethod == types::LocationMethod::Fixed)
+   if (locationMethod == types::LocationMethod::Fixed ||
+         locationMethod == types::LocationMethod::Radius)
    {
       coordinate.latitude_  = audioSettings.alert_latitude().GetValue();
       coordinate.longitude_ = audioSettings.alert_longitude().GetValue();
@@ -152,6 +153,15 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
 
          activeAtLocation = util::GeographicLib::AreaContainsPoint(
             alertCoordinates, currentCoordinate);
+      }
+      else if (locationMethod == types::LocationMethod::Radius)
+      {
+         auto alertCoordinates = segment->codedLocation_->coordinates();
+
+         activeAtLocation = util::GeographicLib::AreaInRangeOfPoint(
+               alertCoordinates,
+               currentCoordinate,
+               units::length::meters<double>(1e6));
       }
       else if (locationMethod == types::LocationMethod::County)
       {
