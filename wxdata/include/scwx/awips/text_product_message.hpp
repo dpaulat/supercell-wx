@@ -2,6 +2,7 @@
 
 #include <scwx/awips/coded_location.hpp>
 #include <scwx/awips/coded_time_motion_location.hpp>
+#include <scwx/awips/impact_based_warnings.hpp>
 #include <scwx/awips/message.hpp>
 #include <scwx/awips/pvtec.hpp>
 #include <scwx/awips/ugc.hpp>
@@ -56,15 +57,16 @@ struct SegmentHeader
 
 struct Segment
 {
-   std::optional<SegmentHeader>           header_;
-   std::vector<std::string>               productContent_;
-   std::optional<CodedLocation>           codedLocation_;
-   std::optional<CodedTimeMotionLocation> codedMotion_;
+   std::optional<SegmentHeader>           header_ {};
+   std::vector<std::string>               productContent_ {};
+   std::optional<CodedLocation>           codedLocation_ {};
+   std::optional<CodedTimeMotionLocation> codedMotion_ {};
 
-   Segment() :
-       header_ {}, productContent_ {}, codedLocation_ {}, codedMotion_ {}
-   {
-   }
+   bool           observed_ {false};
+   ThreatCategory threatCategory_ {ThreatCategory::Base};
+   bool           tornadoPossible_ {false};
+
+   Segment() = default;
 
    Segment(const Segment&)            = delete;
    Segment& operator=(const Segment&) = delete;
