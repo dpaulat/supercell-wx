@@ -14,7 +14,8 @@ namespace scwx
 {
 namespace qt
 {
-namespace util {
+namespace util
+{
 namespace GeographicLib
 {
 
@@ -149,15 +150,52 @@ bool AreaInRangeOfPoint(const std::vector<common::Coordinate>& area,
                         const common::Coordinate&              point,
                         const units::length::meters<double>    distance)
 {
+   /*
+   Uses the gnomonic projection to determine if the area is in the radius.
+
+   The first property needed to make this work is that great circles become
+   lines in the projection.
+   The other key property needed to make this work is described bellow
+      R1 and R2 are the distances from the center point to two points
+      on the (non-flat) Earth.
+      R1' and R2' are the distances from the center point to the same
+      two points in the gnomonic projection.
+      if R1 > R2 then
+         R1' > R2'
+      else if R1 < R2 then
+         R1' < R2'
+      else if R1 == R2 then
+         R1' == R2'
+
+      This can also be written as:
+      r(d) is a function that takes the distance on Earth and converts it to a
+      distance on the projection.
+      R1' = r(R1), R2' = r(R2)
+      r(d) is increasing
+
+   In this case, R1 is a point the radius away from the center, and R2 is a
+   (all of the) point(s) on the edge of the area. This means that if the edge
+   is in the radius R1' on the projection, it is in the radius R1 on the Earth.
+
+   On a spherical geodesic this works fine. R is the radius of Earth. We are
+   also only concerned with points less than a hemisphere away, therefore
+   0 < R1,R2 < pi/2 * R (quarter of circumference because the point is in the
+   center of the hemisphere)
+      r(d) = R * tan(d / R) {0 < d < pi/2 * R}
+      tan(d / R) is increasing for {0 < d < pi/2 * R}
+
+   On non spherical geodesics, this may not work perfectly, but should be a
+   close approximation.
+   */
    // Cannot have an area with just two points
    if (area.size() <= 2 || (area.size() == 3 && area.front() == area.back()))
    {
       return false;
    }
 
-
-
-   ::GeographicLib::Gnomonic      gnomonic =
+   // Ensure that the same geodesic is used here as is for the radius
+   // calculation
+   ::GeographicLib::Gnomonic gnomonic =
       ::GeographicLib::Gnomonic(DefaultGeodesic());
    geos::geom::CoordinateSequence sequence {};
    double                         x;
@@ -176,11 +214,19 @@ bool AreaInRangeOfPoint(const std::vector<common::Coordinate>& area,
                        areaCoordinate.longitude_,
                        x,
                        y);
+      // Check if the current point is the hemisphere centered on the point
+      if (std::isnan(x) || std::isnan(y))
+      {
+         return false;
+      }
       sequence.add(x, y);
    }
 
    // get a point on the circle with the radius of the range in lat lon.
-   units::angle::degrees<double> angle = units::angle::degrees<double>(0);
+   // Has the point be in the general direction of the area, which may help with
+   // non spherical geodesics
+   units::angle::degrees<double> angle = GetAngle(
+      point.latitude_, point.longitude_, area[0].latitude_, area[0].longitude_);
    common::Coordinate radiusPoint = GetCoordinate(point, angle, distance);
    // get the radius in gnomonic projection
    gnomonic.Forward(point.latitude_,
@@ -189,7 +235,13 @@ bool AreaInRangeOfPoint(const std::vector<common::Coordinate>& area,
                     radiusPoint.longitude_,
                     x,
                     y);
-   double gnomonicRadius = sqrt(x * x + y * y);
+   // radius is greater than quarter circumference of the Earth, but the area
+   // is closer, so it is in range.
+   if (std::isnan(x) || std::isnan(y))
+   {
+      return true;
+   }
+   double gnomonicRadius = std::sqrt(x * x + y * y);
 
    // If the sequence is not a ring, add the first point again for closure
    if (!sequence.isRing())
@@ -206,22 +258,21 @@ bool AreaInRangeOfPoint(const std::vector<common::Coordinate>& area,
          {
             return true;
          }
-
-         // Calculate the distance the point is from the output
-         geos::algorithm::distance::PointPairDistance distancePair;
-         auto geometryFactory =
-            geos::geom::GeometryFactory::getDefaultInstance();
-         auto linearRing = geometryFactory->createLinearRing(sequence);
-         auto polygon    =
-            geometryFactory->createPolygon(std::move(linearRing));
-         geos::algorithm::distance::DistanceToPoint::computeDistance(*polygon,
-                                                                     zero,
-                                                                     distancePair);
-         if (gnomonicRadius > distancePair.getDistance())
+         else if (distance > units::length::meters<double>(0))
          {
-            return true;
-         }
+            // Calculate the distance the area is from the point via conversion
+            // to a polygon.
+            auto geometryFactory =
+               geos::geom::GeometryFactory::getDefaultInstance();
+            auto linearRing = geometryFactory->createLinearRing(sequence);
+            auto polygon =
+               geometryFactory->createPolygon(std::move(linearRing));
 
+            geos::algorithm::distance::PointPairDistance distancePair;
+            geos::algorithm::distance::DistanceToPoint::computeDistance(
+               *polygon, zero, distancePair);
+            return gnomonicRadius >= distancePair.getDistance();
+         }
       }
       catch (const std::exception&)
       {

@@ -96,6 +96,8 @@ GetDistance(double lat1, double lon1, double lat2, double lon2);
  * distance of a point. A point lying on the area boundary is considered to be
  * inside the area, and thus always in range. Any part of the area being inside
  * the radius counts as inside.
+ * This is limited to having the area be in the same hemisphere centered on
+ * the point, and radices up to a quarter of the circumference of the Earth.
  *
  * @param [in] area A vector of Coordinates representing the area
  * @param [in] point The point to check against the area
