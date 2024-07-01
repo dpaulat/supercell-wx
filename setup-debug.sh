@@ -3,7 +3,7 @@
 
 build_dir=${1:-build-debug}
 build_type=Debug
-qt_version=6.7.2
+qt_version=6.7.1
 script_dir="$(dirname "$(readlink -f "$0")")"
 
 mkdir -p ${build_dir}
