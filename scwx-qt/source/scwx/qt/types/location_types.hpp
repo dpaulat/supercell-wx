@@ -14,8 +14,8 @@ namespace types
 enum class LocationMethod
 {
    Fixed,
-   Radius,
    Track,
+   RadarSite,
    County,
    All,
    Unknown

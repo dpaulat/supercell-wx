@@ -6,6 +6,8 @@
 #include <scwx/qt/types/location_types.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
@@ -85,8 +87,7 @@ common::Coordinate AlertManager::Impl::CurrentCoordinate(
    settings::AudioSettings& audioSettings = settings::AudioSettings::Instance();
    common::Coordinate       coordinate {};
 
-   if (locationMethod == types::LocationMethod::Fixed ||
-         locationMethod == types::LocationMethod::Radius)
+   if (locationMethod == types::LocationMethod::Fixed)
    {
       coordinate.latitude_  = audioSettings.alert_latitude().GetValue();
       coordinate.longitude_ = audioSettings.alert_longitude().GetValue();
@@ -100,6 +101,14 @@ common::Coordinate AlertManager::Impl::CurrentCoordinate(
          coordinate.latitude_             = trackedCoordinate.latitude();
          coordinate.longitude_            = trackedCoordinate.longitude();
       }
+   }
+   else if (locationMethod == types::LocationMethod::RadarSite)
+   {
+      std::string siteId =
+         settings::GeneralSettings::Instance().default_radar_site().GetValue();
+      auto radarSite = config::RadarSite::Get(siteId);
+      coordinate.latitude_  = radarSite->latitude();
+      coordinate.longitude_ = radarSite->longitude();
    }
 
    return coordinate;
@@ -119,6 +128,8 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
       audioSettings.alert_location_method().GetValue());
    common::Coordinate currentCoordinate = CurrentCoordinate(locationMethod);
    std::string        alertCounty = audioSettings.alert_county().GetValue();
+   auto               alertRadius =
+      units::length::meters<double>(audioSettings.alert_radius().GetValue());
 
    auto message = textEventManager_->message_list(key).at(messageIndex);
 
@@ -146,22 +157,16 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
       bool activeAtLocation = (locationMethod == types::LocationMethod::All);
 
       if (locationMethod == types::LocationMethod::Fixed ||
-          locationMethod == types::LocationMethod::Track)
+          locationMethod == types::LocationMethod::Track ||
+          locationMethod == types::LocationMethod::RadarSite)
       {
          // Determine if the alert is active at the current coordinte
-         auto alertCoordinates = segment->codedLocation_->coordinates();
-
-         activeAtLocation = util::GeographicLib::AreaContainsPoint(
-            alertCoordinates, currentCoordinate);
-      }
-      else if (locationMethod == types::LocationMethod::Radius)
-      {
          auto alertCoordinates = segment->codedLocation_->coordinates();
 
          activeAtLocation = util::GeographicLib::AreaInRangeOfPoint(
                alertCoordinates,
                currentCoordinate,
-               units::length::meters<double>(1e6));
+               alertRadius);
       }
       else if (locationMethod == types::LocationMethod::County)
       {

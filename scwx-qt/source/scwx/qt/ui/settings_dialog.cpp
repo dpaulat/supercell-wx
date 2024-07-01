@@ -134,6 +134,7 @@ public:
           &alertAudioLocationMethod_,
           &alertAudioLatitude_,
           &alertAudioLongitude_,
+          &alertAudioRadius_,
           &alertAudioCounty_,
           &hoverTextWrap_,
           &tooltipMethod_,
@@ -252,6 +253,7 @@ public:
    settings::SettingsInterface<std::string> alertAudioLocationMethod_ {};
    settings::SettingsInterface<double>      alertAudioLatitude_ {};
    settings::SettingsInterface<double>      alertAudioLongitude_ {};
+   settings::SettingsInterface<double>      alertAudioRadius_ {};
    settings::SettingsInterface<std::string> alertAudioCounty_ {};
 
    std::unordered_map<awips::Phenomenon, settings::SettingsInterface<bool>>
@@ -474,6 +476,7 @@ void SettingsDialogImpl::ConnectSignals()
             break;
 
          case QDialogButtonBox::ButtonRole::ResetRole: // Restore Defaults
+            logger_->info("ButtonRole Reset");
             ResetToDefault();
             break;
 
@@ -900,6 +903,10 @@ void SettingsDialogImpl::SetupAudioTab()
 
          bool coordinateEntryEnabled =
             locationMethod == types::LocationMethod::Fixed;
+         bool radiusEntryEnable =
+            locationMethod == types::LocationMethod::Fixed ||
+            locationMethod == types::LocationMethod::Track ||
+            locationMethod == types::LocationMethod::RadarSite;
          bool countyEntryEnabled =
             locationMethod == types::LocationMethod::County;
 
@@ -911,6 +918,11 @@ void SettingsDialogImpl::SetupAudioTab()
             coordinateEntryEnabled);
          self_->ui->resetAlertAudioLongitudeButton->setEnabled(
             coordinateEntryEnabled);
+
+         self_->ui->alertAudioRadiusSpinBox->setEnabled(
+            radiusEntryEnable);
+         self_->ui->resetAlertAudioRadiusButton->setEnabled(
+            radiusEntryEnable);
 
          self_->ui->alertAudioCountyLineEdit->setEnabled(countyEntryEnabled);
          self_->ui->alertAudioCountySelectButton->setEnabled(
@@ -982,6 +994,11 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioLongitude_.SetEditWidget(self_->ui->alertAudioLongitudeSpinBox);
    alertAudioLongitude_.SetResetButton(
       self_->ui->resetAlertAudioLongitudeButton);
+
+   alertAudioRadius_.SetSettingsVariable(audioSettings.alert_radius());
+   alertAudioRadius_.SetEditWidget(self_->ui->alertAudioRadiusSpinBox);
+   alertAudioRadius_.SetResetButton(
+      self_->ui->resetAlertAudioRadiusButton);
 
    auto& alertAudioPhenomena = types::GetAlertAudioPhenomena();
    auto  alertAudioLayout =
