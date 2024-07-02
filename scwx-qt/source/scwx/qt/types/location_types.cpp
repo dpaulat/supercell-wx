@@ -15,7 +15,7 @@ namespace types
 static const std::unordered_map<LocationMethod, std::string>
    locationMethodName_ {{LocationMethod::Fixed, "Fixed"},
                         {LocationMethod::Track, "Track"},
-                        {LocationMethod::RadarSite, "RadarSite"},
+                        {LocationMethod::RadarSite, "Radar Site"},
                         {LocationMethod::County, "County"},
                         {LocationMethod::All, "All"},
                         {LocationMethod::Unknown, "?"}};
