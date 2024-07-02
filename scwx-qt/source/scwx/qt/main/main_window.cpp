@@ -1466,6 +1466,7 @@ void MainWindowImpl::UpdateRadarSite()
       timelineManager_->SetRadarSite("?");
    }
 
+   alertManager_->SetRadarSite(radarSite);
    placefileManager_->SetRadarSite(radarSite);
 }
 

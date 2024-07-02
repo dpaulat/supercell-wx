@@ -76,6 +76,8 @@ public:
       PositionManager::Instance()};
    std::shared_ptr<TextEventManager> textEventManager_ {
       TextEventManager::Instance()};
+
+   std::shared_ptr<config::RadarSite> radarSite_ {};
 };
 
 AlertManager::AlertManager() : p(std::make_unique<Impl>(this)) {}
@@ -104,11 +106,23 @@ common::Coordinate AlertManager::Impl::CurrentCoordinate(
    }
    else if (locationMethod == types::LocationMethod::RadarSite)
    {
-      std::string siteId =
-         settings::GeneralSettings::Instance().default_radar_site().GetValue();
-      auto radarSite = config::RadarSite::Get(siteId);
-      coordinate.latitude_  = radarSite->latitude();
-      coordinate.longitude_ = radarSite->longitude();
+      std::shared_ptr<config::RadarSite> radarSite;
+      if (radarSite_ == nullptr)
+      {
+         std::string siteId =
+            settings::GeneralSettings::Instance().default_radar_site().GetValue();
+         radarSite = config::RadarSite::Get(siteId);
+      }
+      else
+      {
+         radarSite = radarSite_;
+      }
+
+      if (radarSite != nullptr)
+      {
+         coordinate.latitude_  = radarSite->latitude();
+         coordinate.longitude_ = radarSite->longitude();
+      }
    }
 
    return coordinate;
@@ -196,6 +210,26 @@ void AlertManager::Impl::UpdateLocationTracking(
       types::GetLocationMethod(locationMethodName);
    bool locationEnabled = locationMethod == types::LocationMethod::Track;
    positionManager_->EnablePositionUpdates(uuid_, locationEnabled);
+}
+
+void AlertManager::SetRadarSite(std::shared_ptr<config::RadarSite> radarSite)
+{
+   if (p->radarSite_ == radarSite)
+   {
+      // No action needed
+      return;
+   }
+
+   if (radarSite == nullptr)
+   {
+      logger_->debug("SetRadarSite: ?");
+   }
+   else
+   {
+      logger_->debug("SetRadarSite: {}", radarSite->id());
+   }
+
+   p->radarSite_ = radarSite;
 }
 
 std::shared_ptr<AlertManager> AlertManager::Instance()

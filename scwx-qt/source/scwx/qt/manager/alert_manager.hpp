@@ -20,6 +20,7 @@ public:
    explicit AlertManager();
    ~AlertManager();
 
+   void AlertManager::SetRadarSite(const std::string& radarSite);
    static std::shared_ptr<AlertManager> Instance();
 
 private:
