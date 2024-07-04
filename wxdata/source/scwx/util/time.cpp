@@ -62,10 +62,13 @@ std::string TimeString(std::chrono::system_clock::time_point time,
 #if defined(_MSC_VER)
 #   define FORMAT_STRING_24_HOUR "{:%Y-%m-%d %H:%M:%S %Z}"
 #   define FORMAT_STRING_12_HOUR "{:%Y-%m-%d %I:%M:%S %p %Z}"
+   namespace date = std::chrono;
+   namespace df   = std;
 #else
 #   define FORMAT_STRING_24_HOUR "%Y-%m-%d %H:%M:%S %Z"
 #   define FORMAT_STRING_12_HOUR "%Y-%m-%d %I:%M:%S %p %Z"
    using namespace date;
+   namespace df = date;
 #endif
 
    auto               timeInSeconds = time_point_cast<seconds>(time);
@@ -77,15 +80,15 @@ std::string TimeString(std::chrono::system_clock::time_point time,
       {
          try
          {
-            zoned_time zt = {timeZone, timeInSeconds};
+            date::zoned_time zt = {timeZone, timeInSeconds};
 
             if (clockFormat == ClockFormat::_24Hour)
             {
-               os << format(FORMAT_STRING_24_HOUR, zt);
+               os << df::format(FORMAT_STRING_24_HOUR, zt);
             }
             else
             {
-               os << format(FORMAT_STRING_12_HOUR, zt);
+               os << df::format(FORMAT_STRING_12_HOUR, zt);
             }
          }
          catch (const std::exception& ex)
@@ -107,11 +110,11 @@ std::string TimeString(std::chrono::system_clock::time_point time,
       {
          if (clockFormat == ClockFormat::_24Hour)
          {
-            os << format(FORMAT_STRING_24_HOUR, timeInSeconds);
+            os << df::format(FORMAT_STRING_24_HOUR, timeInSeconds);
          }
          else
          {
-            os << format(FORMAT_STRING_12_HOUR, timeInSeconds);
+            os << df::format(FORMAT_STRING_12_HOUR, timeInSeconds);
          }
       }
    }
