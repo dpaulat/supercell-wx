@@ -8,6 +8,7 @@
 #include <scwx/awips/ugc.hpp>
 #include <scwx/awips/wmo_header.hpp>
 
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -57,6 +58,7 @@ struct SegmentHeader
 
 struct Segment
 {
+   std::shared_ptr<WmoHeader>             wmoHeader_ {};
    std::optional<SegmentHeader>           header_ {};
    std::vector<std::string>               productContent_ {};
    std::optional<CodedLocation>           codedLocation_ {};
@@ -73,6 +75,9 @@ struct Segment
 
    Segment(Segment&&) noexcept            = default;
    Segment& operator=(Segment&&) noexcept = default;
+
+   std::chrono::system_clock::time_point event_begin() const;
+   std::chrono::system_clock::time_point event_end() const;
 };
 
 class TextProductMessageImpl;
