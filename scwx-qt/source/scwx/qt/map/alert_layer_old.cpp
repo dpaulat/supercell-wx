@@ -48,18 +48,19 @@ static const std::vector<awips::Phenomenon> kAlertPhenomena_ {
    awips::Phenomenon::Tornado};
 
 template<class Key>
-struct AlertTypeHash;
+struct AlertTypeOldHash;
 
 template<>
-struct AlertTypeHash<std::pair<awips::Phenomenon, bool>>
+struct AlertTypeOldHash<std::pair<awips::Phenomenon, bool>>
 {
    size_t operator()(const std::pair<awips::Phenomenon, bool>& x) const;
 };
 
 class AlertLayerOldHandler : public QObject
 {
-   Q_OBJECT public :
-       explicit AlertLayerOldHandler() :
+   Q_OBJECT
+public:
+   explicit AlertLayerOldHandler() :
        textEventManager_ {manager::TextEventManager::Instance()},
        alertUpdateTimer_ {scwx::util::io_context()},
        alertSourceMap_ {},
@@ -98,7 +99,7 @@ class AlertLayerOldHandler : public QObject
    boost::asio::steady_timer alertUpdateTimer_;
    std::unordered_map<std::pair<awips::Phenomenon, bool>,
                       QVariantMap,
-                      AlertTypeHash<std::pair<awips::Phenomenon, bool>>>
+                      AlertTypeOldHash<std::pair<awips::Phenomenon, bool>>>
       alertSourceMap_;
    std::unordered_multimap<types::TextEventKey,
                            std::tuple<awips::Phenomenon,
@@ -195,7 +196,7 @@ void AlertLayerOldHandler::HandleAlert(const types::TextEventKey& key,
 
    auto message = textEventManager_->message_list(key).at(messageIndex);
    std::unordered_set<std::pair<awips::Phenomenon, bool>,
-                      AlertTypeHash<std::pair<awips::Phenomenon, bool>>>
+                      AlertTypeOldHash<std::pair<awips::Phenomenon, bool>>>
       alertsUpdated {};
 
    // Take a unique lock before modifying feature lists
@@ -274,7 +275,7 @@ void AlertLayerOldHandler::UpdateAlerts()
    std::unique_lock lock(alertMutex_);
 
    std::unordered_set<std::pair<awips::Phenomenon, bool>,
-                      AlertTypeHash<std::pair<awips::Phenomenon, bool>>>
+                      AlertTypeOldHash<std::pair<awips::Phenomenon, bool>>>
       alertsUpdated {};
 
    // Evaluate each rendered feature for expiration
@@ -481,7 +482,7 @@ static QString GetSuffix(awips::Phenomenon phenomenon, bool alertActive)
       .arg(alertActive);
 }
 
-size_t AlertTypeHash<std::pair<awips::Phenomenon, bool>>::operator()(
+size_t AlertTypeOldHash<std::pair<awips::Phenomenon, bool>>::operator()(
    const std::pair<awips::Phenomenon, bool>& x) const
 {
    size_t seed = 0;
