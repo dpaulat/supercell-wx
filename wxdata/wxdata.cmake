@@ -14,6 +14,7 @@ endif()
 
 set(HDR_AWIPS include/scwx/awips/coded_location.hpp
               include/scwx/awips/coded_time_motion_location.hpp
+              include/scwx/awips/impact_based_warnings.hpp
               include/scwx/awips/message.hpp
               include/scwx/awips/phenomenon.hpp
               include/scwx/awips/pvtec.hpp
@@ -24,6 +25,7 @@ set(HDR_AWIPS include/scwx/awips/coded_location.hpp
               include/scwx/awips/wmo_header.hpp)
 set(SRC_AWIPS source/scwx/awips/coded_location.cpp
               source/scwx/awips/coded_time_motion_location.cpp
+              source/scwx/awips/impact_based_warnings.cpp
               source/scwx/awips/message.cpp
               source/scwx/awips/phenomenon.cpp
               source/scwx/awips/pvtec.cpp
