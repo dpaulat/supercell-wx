@@ -90,14 +90,26 @@ common::Coordinate GetCoordinate(const common::Coordinate& center,
 units::length::meters<double>
 GetDistance(double lat1, double lon1, double lat2, double lon2);
 
+/**
+ * Get the distance from an area to a point. If the area is less than a quarter
+ * radius of the Earth away, this is the closest distance between the area and
+ * the point. Otherwise it is the distance from the centroid of the area to the
+ * point. Finally, if the point is in the area, it is always 0.
+ *
+ * @param [in] area A vector of Coordinates representing the area
+ * @param [in] point The point to check against the area
+ *
+ * @return true if area is inside the radius of the point
+ */
+units::length::meters<double>
+GetDistanceAreaPoint(const std::vector<common::Coordinate>& area,
+                     const common::Coordinate&              point);
 
 /**
  * Determine if an area/ring, oriented in either direction, is within a
  * distance of a point. A point lying on the area boundary is considered to be
  * inside the area, and thus always in range. Any part of the area being inside
- * the radius counts as inside.
- * This is limited to having the area be in the same hemisphere centered on
- * the point, and radices up to a quarter of the circumference of the Earth.
+ * the radius counts as inside. Uses GetDistanceAreaPoint to get the distance.
  *
  * @param [in] area A vector of Coordinates representing the area
  * @param [in] point The point to check against the area
