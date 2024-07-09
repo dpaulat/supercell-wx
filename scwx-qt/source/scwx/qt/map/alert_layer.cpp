@@ -1,6 +1,7 @@
 #include <scwx/qt/map/alert_layer.hpp>
 #include <scwx/qt/gl/draw/geo_lines.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
+#include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/util/color.hpp>
 #include <scwx/util/logger.hpp>
@@ -157,6 +158,8 @@ public:
    std::unordered_map<bool, std::shared_ptr<gl::draw::GeoLines>> lines_;
 
    std::unordered_map<bool, boost::gil::rgba8_pixel_t> lineColor_;
+
+   std::chrono::system_clock::time_point selectedTime_ {};
 };
 
 AlertLayer::AlertLayer(std::shared_ptr<MapContext> context,
@@ -191,6 +194,11 @@ void AlertLayer::Initialize()
 void AlertLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
 {
    gl::OpenGLFunctions& gl = context()->gl();
+
+   for (auto alertActive : {false, true})
+   {
+      p->lines_.at(alertActive)->set_selected_time(p->selectedTime_);
+   }
 
    DrawLayer::Render(params);
 
@@ -294,6 +302,8 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
 
 void AlertLayer::Impl::ConnectSignals()
 {
+   auto timelineManager = manager::TimelineManager::Instance();
+
    QObject::connect(
       &AlertLayerHandler::Instance(),
       &AlertLayerHandler::AlertAdded,
@@ -307,6 +317,12 @@ void AlertLayer::Impl::ConnectSignals()
             AddAlert(segmentRecord);
          }
       });
+
+   QObject::connect(timelineManager.get(),
+                    &manager::TimelineManager::SelectedTimeUpdated,
+                    receiver_.get(),
+                    [this](std::chrono::system_clock::time_point dateTime)
+                    { selectedTime_ = dateTime; });
 }
 
 void AlertLayer::Impl::AddAlert(
