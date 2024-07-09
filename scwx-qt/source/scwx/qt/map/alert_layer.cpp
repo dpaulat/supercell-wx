@@ -109,8 +109,6 @@ public:
    explicit Impl(std::shared_ptr<MapContext> context,
                  awips::Phenomenon           phenomenon) :
        phenomenon_ {phenomenon},
-       borders_ {{false, std::make_shared<gl::draw::GeoLines>(context)},
-                 {true, std::make_shared<gl::draw::GeoLines>(context)}},
        lines_ {{false, std::make_shared<gl::draw::GeoLines>(context)},
                {true, std::make_shared<gl::draw::GeoLines>(context)}}
    {
@@ -156,7 +154,6 @@ public:
 
    std::unique_ptr<QObject> receiver_ {std::make_unique<QObject>()};
 
-   std::unordered_map<bool, std::shared_ptr<gl::draw::GeoLines>> borders_;
    std::unordered_map<bool, std::shared_ptr<gl::draw::GeoLines>> lines_;
 
    std::unordered_map<bool, boost::gil::rgba8_pixel_t> lineColor_;
@@ -168,10 +165,8 @@ AlertLayer::AlertLayer(std::shared_ptr<MapContext> context,
 {
    for (auto alertActive : {false, true})
    {
-      auto& borders = p->borders_.at(alertActive);
-      auto& lines   = p->lines_.at(alertActive);
+      auto& lines = p->lines_.at(alertActive);
 
-      AddDrawItem(borders);
       AddDrawItem(lines);
    }
 }
@@ -186,11 +181,7 @@ void AlertLayer::Initialize()
 
    for (auto alertActive : {false, true})
    {
-      auto& borders = p->borders_.at(alertActive);
-      auto& lines   = p->lines_.at(alertActive);
-
-      borders->StartLines();
-      borders->FinishLines();
+      auto& lines = p->lines_.at(alertActive);
 
       lines->StartLines();
       lines->FinishLines();
