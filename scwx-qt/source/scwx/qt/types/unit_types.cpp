@@ -89,12 +89,35 @@ static const std::unordered_map<SpeedUnits, float> speedUnitsScale_ {
    {SpeedUnits::User, 1.0f},
    {SpeedUnits::Unknown, 1.0f}};
 
+static const std::unordered_map<DistanceUnits, std::string>
+   distanceUnitsAbbreviation_ {{DistanceUnits::Kilometers, "km"},
+                               {DistanceUnits::Miles, "mi"},
+                               {DistanceUnits::User, ""},
+                               {DistanceUnits::Unknown, ""}};
+
+static const std::unordered_map<DistanceUnits, std::string> distanceUnitsName_ {
+   {DistanceUnits::Kilometers, "Kilometers"},
+   {DistanceUnits::Miles, "Miles"},
+   {DistanceUnits::User, "User-defined"},
+   {DistanceUnits::Unknown, "?"}};
+
+static constexpr auto distanceUnitsBase_ = units::kilometers<float> {1.0f};
+static const std::unordered_map<DistanceUnits, float> distanceUnitsScale_ {
+   {DistanceUnits::Kilometers,
+    (distanceUnitsBase_ / units::kilometers<float> {1.0f})},
+   {DistanceUnits::Miles,
+    (distanceUnitsBase_ / units::miles<float> {1.0f})},
+   {DistanceUnits::User, 1.0f},
+   {DistanceUnits::Unknown, 1.0f}};
+
+
 SCWX_GET_ENUM(AccumulationUnits,
               GetAccumulationUnitsFromName,
               accumulationUnitsName_)
 SCWX_GET_ENUM(EchoTopsUnits, GetEchoTopsUnitsFromName, echoTopsUnitsName_)
 SCWX_GET_ENUM(OtherUnits, GetOtherUnitsFromName, otherUnitsName_)
 SCWX_GET_ENUM(SpeedUnits, GetSpeedUnitsFromName, speedUnitsName_)
+SCWX_GET_ENUM(DistanceUnits, GetDistanceUnitsFromName, distanceUnitsName_)
 
 const std::string& GetAccumulationUnitsAbbreviation(AccumulationUnits units)
 {
@@ -144,6 +167,21 @@ const std::string& GetSpeedUnitsName(SpeedUnits units)
 float GetSpeedUnitsScale(SpeedUnits units)
 {
    return speedUnitsScale_.at(units);
+}
+
+const std::string& GetDistanceUnitsAbbreviation(DistanceUnits units)
+{
+   return distanceUnitsAbbreviation_.at(units);
+}
+
+const std::string& GetDistanceUnitsName(DistanceUnits units)
+{
+   return distanceUnitsName_.at(units);
+}
+
+float GetDistanceUnitsScale(DistanceUnits units)
+{
+   return distanceUnitsScale_.at(units);
 }
 
 } // namespace types

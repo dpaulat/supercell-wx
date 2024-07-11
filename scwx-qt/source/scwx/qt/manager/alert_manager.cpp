@@ -8,6 +8,8 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/settings/unit_settings.hpp>
+#include <scwx/qt/types/unit_types.hpp>
 
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
@@ -138,12 +140,19 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
    }
 
    settings::AudioSettings& audioSettings = settings::AudioSettings::Instance();
+   settings::UnitSettings&  unitSettings  = settings::UnitSettings::Instance();
    types::LocationMethod    locationMethod = types::GetLocationMethod(
       audioSettings.alert_location_method().GetValue());
    common::Coordinate currentCoordinate = CurrentCoordinate(locationMethod);
    std::string        alertCounty = audioSettings.alert_county().GetValue();
-   auto               alertRadius =
-      units::length::meters<double>(audioSettings.alert_radius().GetValue());
+
+   types::DistanceUnits radiusUnits =
+      types::GetDistanceUnitsFromName(unitSettings.distance_units().GetValue());
+   double radiusScale = types::GetDistanceUnitsScale(radiusUnits);
+   auto   alertRadius = units::length::kilometers<double>(
+      audioSettings.alert_radius().GetValue() / radiusScale);
+
+   logger_->debug("alertRadius: {}", (double)alertRadius);
 
    auto message = textEventManager_->message_list(key).at(messageIndex);
 

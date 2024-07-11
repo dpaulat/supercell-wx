@@ -26,16 +26,20 @@ public:
          types::GetOtherUnitsName(types::OtherUnits::Default);
       std::string defaultSpeedUnitsValue =
          types::GetSpeedUnitsName(types::SpeedUnits::Knots);
+      std::string defaultDistanceUnitsValue =
+         types::GetDistanceUnitsName(types::DistanceUnits::Kilometers);
 
       boost::to_lower(defaultAccumulationUnitsValue);
       boost::to_lower(defaultEchoTopsUnitsValue);
       boost::to_lower(defaultOtherUnitsValue);
       boost::to_lower(defaultSpeedUnitsValue);
+      boost::to_lower(defaultDistanceUnitsValue);
 
       accumulationUnits_.SetDefault(defaultAccumulationUnitsValue);
       echoTopsUnits_.SetDefault(defaultEchoTopsUnitsValue);
       otherUnits_.SetDefault(defaultOtherUnitsValue);
       speedUnits_.SetDefault(defaultSpeedUnitsValue);
+      distanceUnits_.SetDefault(defaultDistanceUnitsValue);
 
       accumulationUnits_.SetValidator(
          SCWX_SETTINGS_ENUM_VALIDATOR(types::AccumulationUnits,
@@ -53,6 +57,10 @@ public:
          SCWX_SETTINGS_ENUM_VALIDATOR(types::SpeedUnits,
                                       types::SpeedUnitsIterator(),
                                       types::GetSpeedUnitsName));
+      distanceUnits_.SetValidator(
+         SCWX_SETTINGS_ENUM_VALIDATOR(types::DistanceUnits,
+                                      types::DistanceUnitsIterator(),
+                                      types::GetDistanceUnitsName));
    }
 
    ~Impl() {}
@@ -61,6 +69,7 @@ public:
    SettingsVariable<std::string> echoTopsUnits_ {"echo_tops_units"};
    SettingsVariable<std::string> otherUnits_ {"other_units"};
    SettingsVariable<std::string> speedUnits_ {"speed_units"};
+   SettingsVariable<std::string> distanceUnits_ {"speed_units"};
 };
 
 UnitSettings::UnitSettings() :
@@ -69,7 +78,8 @@ UnitSettings::UnitSettings() :
    RegisterVariables({&p->accumulationUnits_,
                       &p->echoTopsUnits_,
                       &p->otherUnits_,
-                      &p->speedUnits_});
+                      &p->speedUnits_,
+                      &p->distanceUnits_});
    SetDefaults();
 }
 UnitSettings::~UnitSettings() = default;
@@ -97,6 +107,11 @@ SettingsVariable<std::string>& UnitSettings::speed_units() const
    return p->speedUnits_;
 }
 
+SettingsVariable<std::string>& UnitSettings::distance_units() const
+{
+   return p->distanceUnits_;
+}
+
 UnitSettings& UnitSettings::Instance()
 {
    static UnitSettings generalSettings_;
@@ -108,7 +123,8 @@ bool operator==(const UnitSettings& lhs, const UnitSettings& rhs)
    return (lhs.p->accumulationUnits_ == rhs.p->accumulationUnits_ &&
            lhs.p->echoTopsUnits_ == rhs.p->echoTopsUnits_ &&
            lhs.p->otherUnits_ == rhs.p->otherUnits_ &&
-           lhs.p->speedUnits_ == rhs.p->speedUnits_);
+           lhs.p->speedUnits_ == rhs.p->speedUnits_ &&
+           lhs.p->distanceUnits_ == rhs.p->distanceUnits_);
 }
 
 } // namespace settings

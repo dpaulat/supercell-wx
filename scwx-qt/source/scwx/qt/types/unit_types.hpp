@@ -56,6 +56,17 @@ typedef scwx::util::
    Iterator<SpeedUnits, SpeedUnits::KilometersPerHour, SpeedUnits::User>
       SpeedUnitsIterator;
 
+enum class DistanceUnits
+{
+   Kilometers,
+   Miles,
+   User,
+   Unknown
+};
+typedef scwx::util::
+   Iterator<DistanceUnits, DistanceUnits::Kilometers, DistanceUnits::User>
+      DistanceUnitsIterator;
+
 const std::string& GetAccumulationUnitsAbbreviation(AccumulationUnits units);
 const std::string& GetAccumulationUnitsName(AccumulationUnits units);
 AccumulationUnits  GetAccumulationUnitsFromName(const std::string& name);
@@ -73,6 +84,11 @@ const std::string& GetSpeedUnitsAbbreviation(SpeedUnits units);
 const std::string& GetSpeedUnitsName(SpeedUnits units);
 SpeedUnits         GetSpeedUnitsFromName(const std::string& name);
 float              GetSpeedUnitsScale(SpeedUnits units);
+
+const std::string& GetDistanceUnitsAbbreviation(DistanceUnits units);
+const std::string& GetDistanceUnitsName(DistanceUnits units);
+DistanceUnits      GetDistanceUnitsFromName(const std::string& name);
+float              GetDistanceUnitsScale(DistanceUnits units);
 
 } // namespace types
 } // namespace qt
