@@ -345,8 +345,6 @@ void AlertLayer::Impl::AddAlert(
 
    AddLines(lines, coordinates, kBlack_, 5.0f, startTime, endTime, drawItems);
    AddLines(lines, coordinates, lineColor, 3.0f, startTime, endTime, drawItems);
-
-   lines->FinishLines();
 }
 
 void AlertLayer::Impl::UpdateAlert(

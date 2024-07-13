@@ -249,7 +249,7 @@ void GeoLines::Render(const QMapLibre::CustomLayerRenderParameters& params)
 
    std::unique_lock lock {p->lineMutex_};
 
-   if (p->currentLineList_.size() > 0)
+   if (p->newLineList_.size() > 0)
    {
       gl::OpenGLFunctions& gl = p->context_->gl();
 
@@ -430,7 +430,7 @@ void GeoLines::FinishLines()
    std::unique_lock lock {p->lineMutex_};
 
    // Swap buffers
-   p->currentLineList_.swap(p->newLineList_);
+   p->currentLineList_ = p->newLineList_;
    p->currentLinesBuffer_.swap(p->newLinesBuffer_);
    p->currentIntegerBuffer_.swap(p->newIntegerBuffer_);
    p->currentHoverLines_.swap(p->newHoverLines_);
@@ -469,6 +469,12 @@ void GeoLines::Impl::UpdateBuffers()
 
 void GeoLines::Impl::UpdateModifiedLineBuffers()
 {
+   // Synchronize line list
+   currentLineList_ = newLineList_;
+   currentLinesBuffer_.resize(currentLineList_.size() * kLineBufferLength_);
+   currentIntegerBuffer_.resize(currentLineList_.size() *
+                                kVerticesPerRectangle * kIntegersPerVertex_);
+
    // Update buffers for modified lines
    for (auto& di : dirtyLines_)
    {
