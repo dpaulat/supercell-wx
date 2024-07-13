@@ -55,6 +55,9 @@ void DrawLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
    bool textureAtlasChanged =
       newTextureAtlasBuildCount != p->textureAtlasBuildCount_;
 
+   // Set OpenGL blend mode for transparency
+   gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
    gl.glActiveTexture(GL_TEXTURE0);
    gl.glBindTexture(GL_TEXTURE_2D_ARRAY, p->textureAtlas_);
 

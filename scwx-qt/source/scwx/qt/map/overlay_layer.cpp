@@ -300,9 +300,6 @@ void OverlayLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
 
    context()->set_render_parameters(params);
 
-   // Set OpenGL blend mode for transparency
-   gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
    p->sweepTimePicked_ = false;
 
    if (radarProductView != nullptr)
