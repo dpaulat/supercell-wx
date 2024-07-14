@@ -29,6 +29,15 @@ boost::gil::rgba8_pixel_t ToRgba8PixelT(const std::string& argbString)
                                      static_cast<uint8_t>(qAlpha(color))};
 }
 
+boost::gil::rgba32f_pixel_t ToRgba32fPixelT(const std::string& argbString)
+{
+   boost::gil::rgba8_pixel_t rgba8Pixel = ToRgba8PixelT(argbString);
+   return boost::gil::rgba32f_pixel_t {rgba8Pixel[0] / 255.0f,
+                                       rgba8Pixel[1] / 255.0f,
+                                       rgba8Pixel[2] / 255.0f,
+                                       rgba8Pixel[3] / 255.0f};
+}
+
 } // namespace color
 } // namespace util
 } // namespace qt

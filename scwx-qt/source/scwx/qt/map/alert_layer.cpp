@@ -118,7 +118,7 @@ public:
       {
          lineColor_.emplace(
             alertActive,
-            util::color::ToRgba8PixelT(
+            util::color::ToRgba32fPixelT(
                paletteSettings.alert_color(phenomenon_, alertActive)
                   .GetValue()));
       }
@@ -144,7 +144,7 @@ public:
    static void
    AddLines(std::shared_ptr<gl::draw::GeoLines>&   geoLines,
             const std::vector<common::Coordinate>& coordinates,
-            boost::gil::rgba32_pixel_t             color,
+            boost::gil::rgba32f_pixel_t            color,
             float                                  width,
             std::chrono::system_clock::time_point  startTime,
             std::chrono::system_clock::time_point  endTime,
@@ -156,7 +156,7 @@ public:
 
    std::unordered_map<bool, std::shared_ptr<gl::draw::GeoLines>> geoLines_;
 
-   std::unordered_map<bool, boost::gil::rgba8_pixel_t> lineColor_;
+   std::unordered_map<bool, boost::gil::rgba32f_pixel_t> lineColor_;
 
    std::chrono::system_clock::time_point selectedTime_ {};
 };
@@ -358,7 +358,7 @@ void AlertLayer::Impl::UpdateAlert(
 void AlertLayer::Impl::AddLines(
    std::shared_ptr<gl::draw::GeoLines>&   geoLines,
    const std::vector<common::Coordinate>& coordinates,
-   boost::gil::rgba32_pixel_t             color,
+   boost::gil::rgba32f_pixel_t            color,
    float                                  width,
    std::chrono::system_clock::time_point  startTime,
    std::chrono::system_clock::time_point  endTime,
