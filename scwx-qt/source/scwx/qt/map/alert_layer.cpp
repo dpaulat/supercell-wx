@@ -125,7 +125,12 @@ public:
 
       ConnectSignals();
    }
-   ~Impl() { receiver_ = nullptr; };
+   ~Impl()
+   {
+      receiver_ = nullptr;
+
+      std::unique_lock lock(linesMutex_);
+   };
 
    void AddAlert(
       const std::shared_ptr<AlertLayerHandler::SegmentRecord>& segmentRecord);
@@ -148,13 +153,20 @@ public:
             float                                  width,
             std::chrono::system_clock::time_point  startTime,
             std::chrono::system_clock::time_point  endTime,
-            std::vector<std::shared_ptr<gl::draw::GeoLineDrawItem>>& drawItems);
+            boost::container::stable_vector<
+               std::shared_ptr<gl::draw::GeoLineDrawItem>>& drawItems);
 
    const awips::Phenomenon phenomenon_;
 
    std::unique_ptr<QObject> receiver_ {std::make_unique<QObject>()};
 
    std::unordered_map<bool, std::shared_ptr<gl::draw::GeoLines>> geoLines_;
+
+   std::unordered_map<std::shared_ptr<const AlertLayerHandler::SegmentRecord>,
+                      boost::container::stable_vector<
+                         std::shared_ptr<gl::draw::GeoLineDrawItem>>>
+              linesBySegment_ {};
+   std::mutex linesMutex_ {};
 
    std::unordered_map<bool, boost::gil::rgba32f_pixel_t> lineColor_;
 
@@ -316,6 +328,18 @@ void AlertLayer::Impl::ConnectSignals()
             AddAlert(segmentRecord);
          }
       });
+   QObject::connect(
+      &AlertLayerHandler::Instance(),
+      &AlertLayerHandler::AlertUpdated,
+      receiver_.get(),
+      [this](
+         const std::shared_ptr<AlertLayerHandler::SegmentRecord>& segmentRecord)
+      {
+         if (segmentRecord->key_.phenomenon_ == phenomenon_)
+         {
+            UpdateAlert(segmentRecord);
+         }
+      });
 
    QObject::connect(timelineManager.get(),
                     &manager::TimelineManager::SelectedTimeUpdated,
@@ -340,7 +364,11 @@ void AlertLayer::Impl::AddAlert(
 
    const auto& coordinates = segment->codedLocation_->coordinates();
 
-   std::vector<std::shared_ptr<gl::draw::GeoLineDrawItem>> drawItems {};
+   // Take a mutex before modifying lines by segment
+   std::unique_lock lock {linesMutex_};
+
+   boost::container::stable_vector<std::shared_ptr<gl::draw::GeoLineDrawItem>>&
+      drawItems = linesBySegment_[segmentRecord];
 
    AddLines(
       geoLines, coordinates, kBlack_, 5.0f, startTime, endTime, drawItems);
@@ -349,10 +377,29 @@ void AlertLayer::Impl::AddAlert(
 }
 
 void AlertLayer::Impl::UpdateAlert(
-   [[maybe_unused]] const std::shared_ptr<AlertLayerHandler::SegmentRecord>&
-      segmentRecord)
+   const std::shared_ptr<AlertLayerHandler::SegmentRecord>& segmentRecord)
 {
-   // TODO
+   // Take a mutex before referencing lines iterators and stable vector
+   std::unique_lock lock {linesMutex_};
+
+   auto it = linesBySegment_.find(segmentRecord);
+   if (it != linesBySegment_.cend())
+   {
+      auto& segment = segmentRecord->segment_;
+
+      auto& vtec        = segment->header_->vtecString_.front();
+      auto  action      = vtec.pVtec_.action();
+      bool  alertActive = (action != awips::PVtec::Action::Canceled);
+
+      auto& geoLines = geoLines_.at(alertActive);
+
+      auto& lines = it->second;
+      for (auto& line : lines)
+      {
+         geoLines->SetLineStartTime(line, segmentRecord->segmentBegin_);
+         geoLines->SetLineEndTime(line, segmentRecord->segmentEnd_);
+      }
+   }
 }
 
 void AlertLayer::Impl::AddLines(
