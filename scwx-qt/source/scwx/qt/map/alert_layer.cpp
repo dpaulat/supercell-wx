@@ -94,7 +94,7 @@ public:
    std::shared_ptr<manager::TextEventManager> textEventManager_ {
       manager::TextEventManager::Instance()};
 
-   std::mutex alertMutex_ {};
+   std::shared_mutex alertMutex_ {};
 
 signals:
    void AlertAdded(const std::shared_ptr<SegmentRecord>& segmentRecord,
@@ -136,6 +136,7 @@ public:
       const std::shared_ptr<AlertLayerHandler::SegmentRecord>& segmentRecord);
    void UpdateAlert(
       const std::shared_ptr<AlertLayerHandler::SegmentRecord>& segmentRecord);
+   void ConnectAlertHandlerSignals();
    void ConnectSignals();
 
    static void AddLine(std::shared_ptr<gl::draw::GeoLines>&        geoLines,
@@ -193,13 +194,33 @@ void AlertLayer::Initialize()
 
    DrawLayer::Initialize();
 
+   auto& alertLayerHandler = AlertLayerHandler::Instance();
+
+   // Take a shared lock to prevent handling additional alerts while populating
+   // initial lists
+   std::shared_lock lock {alertLayerHandler.alertMutex_};
+
    for (auto alertActive : {false, true})
    {
       auto& geoLines = p->geoLines_.at(alertActive);
 
       geoLines->StartLines();
+
+      // Populate initial segments
+      auto segmentsIt =
+         alertLayerHandler.segmentsByType_.find({p->phenomenon_, alertActive});
+      if (segmentsIt != alertLayerHandler.segmentsByType_.cend())
+      {
+         for (auto& segment : segmentsIt->second)
+         {
+            p->AddAlert(segment);
+         }
+      }
+
       geoLines->FinishLines();
    }
+
+   p->ConnectAlertHandlerSignals();
 }
 
 void AlertLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
@@ -311,12 +332,12 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
    }
 }
 
-void AlertLayer::Impl::ConnectSignals()
+void AlertLayer::Impl::ConnectAlertHandlerSignals()
 {
-   auto timelineManager = manager::TimelineManager::Instance();
+   auto& alertLayerHandler = AlertLayerHandler::Instance();
 
    QObject::connect(
-      &AlertLayerHandler::Instance(),
+      &alertLayerHandler,
       &AlertLayerHandler::AlertAdded,
       receiver_.get(),
       [this](
@@ -329,7 +350,7 @@ void AlertLayer::Impl::ConnectSignals()
          }
       });
    QObject::connect(
-      &AlertLayerHandler::Instance(),
+      &alertLayerHandler,
       &AlertLayerHandler::AlertUpdated,
       receiver_.get(),
       [this](
@@ -340,6 +361,11 @@ void AlertLayer::Impl::ConnectSignals()
             UpdateAlert(segmentRecord);
          }
       });
+}
+
+void AlertLayer::Impl::ConnectSignals()
+{
+   auto timelineManager = manager::TimelineManager::Instance();
 
    QObject::connect(timelineManager.get(),
                     &manager::TimelineManager::SelectedTimeUpdated,
