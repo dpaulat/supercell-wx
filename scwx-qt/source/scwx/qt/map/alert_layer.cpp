@@ -367,13 +367,30 @@ void AlertLayer::Impl::AddAlert(
    // Take a mutex before modifying lines by segment
    std::unique_lock lock {linesMutex_};
 
-   boost::container::stable_vector<std::shared_ptr<gl::draw::GeoLineDrawItem>>&
-      drawItems = linesBySegment_[segmentRecord];
+   // Add draw items only if the segment has not already been added
+   auto drawItems = linesBySegment_.try_emplace(
+      segmentRecord,
+      boost::container::stable_vector<
+         std::shared_ptr<gl::draw::GeoLineDrawItem>> {});
 
-   AddLines(
-      geoLines, coordinates, kBlack_, 5.0f, startTime, endTime, drawItems);
-   AddLines(
-      geoLines, coordinates, lineColor, 3.0f, startTime, endTime, drawItems);
+   // If draw items were added
+   if (drawItems.second)
+   {
+      AddLines(geoLines,
+               coordinates,
+               kBlack_,
+               5.0f,
+               startTime,
+               endTime,
+               drawItems.first->second);
+      AddLines(geoLines,
+               coordinates,
+               lineColor,
+               3.0f,
+               startTime,
+               endTime,
+               drawItems.first->second);
+   }
 }
 
 void AlertLayer::Impl::UpdateAlert(
