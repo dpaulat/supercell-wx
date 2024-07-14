@@ -75,7 +75,6 @@ public:
       std::unique_lock lock(alertMutex_);
    }
 
-   // NOTE: iterators are no longer stable if the stable vector moves
    std::unordered_map<
       std::pair<awips::Phenomenon, bool>,
       boost::container::stable_vector<std::shared_ptr<SegmentRecord>>,
@@ -110,8 +109,8 @@ public:
    explicit Impl(std::shared_ptr<MapContext> context,
                  awips::Phenomenon           phenomenon) :
        phenomenon_ {phenomenon},
-       lines_ {{false, std::make_shared<gl::draw::GeoLines>(context)},
-               {true, std::make_shared<gl::draw::GeoLines>(context)}}
+       geoLines_ {{false, std::make_shared<gl::draw::GeoLines>(context)},
+                  {true, std::make_shared<gl::draw::GeoLines>(context)}}
    {
       auto& paletteSettings = settings::PaletteSettings::Instance();
 
@@ -134,7 +133,7 @@ public:
       const std::shared_ptr<AlertLayerHandler::SegmentRecord>& segmentRecord);
    void ConnectSignals();
 
-   static void AddLine(std::shared_ptr<gl::draw::GeoLines>&        lines,
+   static void AddLine(std::shared_ptr<gl::draw::GeoLines>&        geoLines,
                        std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
                        const common::Coordinate&                   p1,
                        const common::Coordinate&                   p2,
@@ -143,7 +142,7 @@ public:
                        std::chrono::system_clock::time_point       startTime,
                        std::chrono::system_clock::time_point       endTime);
    static void
-   AddLines(std::shared_ptr<gl::draw::GeoLines>&   lines,
+   AddLines(std::shared_ptr<gl::draw::GeoLines>&   geoLines,
             const std::vector<common::Coordinate>& coordinates,
             boost::gil::rgba32_pixel_t             color,
             float                                  width,
@@ -155,7 +154,7 @@ public:
 
    std::unique_ptr<QObject> receiver_ {std::make_unique<QObject>()};
 
-   std::unordered_map<bool, std::shared_ptr<gl::draw::GeoLines>> lines_;
+   std::unordered_map<bool, std::shared_ptr<gl::draw::GeoLines>> geoLines_;
 
    std::unordered_map<bool, boost::gil::rgba8_pixel_t> lineColor_;
 
@@ -168,9 +167,9 @@ AlertLayer::AlertLayer(std::shared_ptr<MapContext> context,
 {
    for (auto alertActive : {false, true})
    {
-      auto& lines = p->lines_.at(alertActive);
+      auto& geoLines = p->geoLines_.at(alertActive);
 
-      AddDrawItem(lines);
+      AddDrawItem(geoLines);
    }
 }
 
@@ -184,10 +183,10 @@ void AlertLayer::Initialize()
 
    for (auto alertActive : {false, true})
    {
-      auto& lines = p->lines_.at(alertActive);
+      auto& geoLines = p->geoLines_.at(alertActive);
 
-      lines->StartLines();
-      lines->FinishLines();
+      geoLines->StartLines();
+      geoLines->FinishLines();
    }
 }
 
@@ -197,7 +196,7 @@ void AlertLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
 
    for (auto alertActive : {false, true})
    {
-      p->lines_.at(alertActive)->set_selected_time(p->selectedTime_);
+      p->geoLines_.at(alertActive)->set_selected_time(p->selectedTime_);
    }
 
    DrawLayer::Render(params);
@@ -337,14 +336,16 @@ void AlertLayer::Impl::AddAlert(
    auto& endTime     = segmentRecord->segmentEnd_;
 
    auto& lineColor = lineColor_.at(alertActive);
-   auto& lines     = lines_.at(alertActive);
+   auto& geoLines  = geoLines_.at(alertActive);
 
    const auto& coordinates = segment->codedLocation_->coordinates();
 
    std::vector<std::shared_ptr<gl::draw::GeoLineDrawItem>> drawItems {};
 
-   AddLines(lines, coordinates, kBlack_, 5.0f, startTime, endTime, drawItems);
-   AddLines(lines, coordinates, lineColor, 3.0f, startTime, endTime, drawItems);
+   AddLines(
+      geoLines, coordinates, kBlack_, 5.0f, startTime, endTime, drawItems);
+   AddLines(
+      geoLines, coordinates, lineColor, 3.0f, startTime, endTime, drawItems);
 }
 
 void AlertLayer::Impl::UpdateAlert(
@@ -355,13 +356,14 @@ void AlertLayer::Impl::UpdateAlert(
 }
 
 void AlertLayer::Impl::AddLines(
-   std::shared_ptr<gl::draw::GeoLines>&                     lines,
-   const std::vector<common::Coordinate>&                   coordinates,
-   boost::gil::rgba32_pixel_t                               color,
-   float                                                    width,
-   std::chrono::system_clock::time_point                    startTime,
-   std::chrono::system_clock::time_point                    endTime,
-   std::vector<std::shared_ptr<gl::draw::GeoLineDrawItem>>& drawItems)
+   std::shared_ptr<gl::draw::GeoLines>&   geoLines,
+   const std::vector<common::Coordinate>& coordinates,
+   boost::gil::rgba32_pixel_t             color,
+   float                                  width,
+   std::chrono::system_clock::time_point  startTime,
+   std::chrono::system_clock::time_point  endTime,
+   boost::container::stable_vector<std::shared_ptr<gl::draw::GeoLineDrawItem>>&
+      drawItems)
 {
    for (std::size_t i = 0, j = 1; i < coordinates.size(); ++i, ++j)
    {
@@ -376,8 +378,8 @@ void AlertLayer::Impl::AddLines(
          }
       }
 
-      auto di = lines->AddLine();
-      AddLine(lines,
+      auto di = geoLines->AddLine();
+      AddLine(geoLines,
               di,
               coordinates[i],
               coordinates[j],
@@ -390,7 +392,7 @@ void AlertLayer::Impl::AddLines(
    }
 }
 
-void AlertLayer::Impl::AddLine(std::shared_ptr<gl::draw::GeoLines>& lines,
+void AlertLayer::Impl::AddLine(std::shared_ptr<gl::draw::GeoLines>& geoLines,
                                std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
                                const common::Coordinate&                   p1,
                                const common::Coordinate&                   p2,
@@ -399,12 +401,12 @@ void AlertLayer::Impl::AddLine(std::shared_ptr<gl::draw::GeoLines>& lines,
                                std::chrono::system_clock::time_point startTime,
                                std::chrono::system_clock::time_point endTime)
 {
-   lines->SetLineLocation(
+   geoLines->SetLineLocation(
       di, p1.latitude_, p1.longitude_, p2.latitude_, p2.longitude_);
-   lines->SetLineModulate(di, color);
-   lines->SetLineWidth(di, width);
-   lines->SetLineStartTime(di, startTime);
-   lines->SetLineEndTime(di, endTime);
+   geoLines->SetLineModulate(di, color);
+   geoLines->SetLineWidth(di, width);
+   geoLines->SetLineStartTime(di, startTime);
+   geoLines->SetLineEndTime(di, endTime);
 }
 
 AlertLayerHandler& AlertLayerHandler::Instance()
