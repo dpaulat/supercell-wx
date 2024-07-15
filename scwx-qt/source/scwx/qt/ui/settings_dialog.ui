@@ -122,7 +122,7 @@
           </sizepolicy>
          </property>
          <property name="currentIndex">
-          <number>0</number>
+          <number>3</number>
          </property>
          <widget class="QWidget" name="general">
           <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -135,9 +135,9 @@
               <property name="geometry">
                <rect>
                 <x>0</x>
-                <y>-113</y>
-                <width>511</width>
-                <height>669</height>
+                <y>0</y>
+                <width>270</width>
+                <height>647</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout">
@@ -610,8 +610,8 @@
                    <rect>
                     <x>0</x>
                     <y>0</y>
-                    <width>98</width>
-                    <height>28</height>
+                    <width>80</width>
+                    <height>18</height>
                    </rect>
                   </property>
                   <layout class="QGridLayout" name="gridLayout_3">
@@ -883,7 +883,7 @@
                </widget>
               </item>
               <item row="4" column="0">
-               <widget class="QLabel" name="label_28">
+               <widget class="QLabel" name="alertAudioRadiusLabel">
                 <property name="text">
                  <string>Radius</string>
                 </property>
@@ -892,7 +892,7 @@
               <item row="4" column="1" colspan="2">
                <widget class="QDoubleSpinBox" name="alertAudioRadiusSpinBox">
                 <property name="decimals">
-                 <number>4</number>
+                 <number>2</number>
                 </property>
                 <property name="minimum">
                  <double>0.000000000000000</double>
@@ -913,6 +913,13 @@
                 <property name="icon">
                  <iconset resource="../../../../scwx-qt.qrc">
                   <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="3">
+               <widget class="QLabel" name="alertAudioRadiusUnitsLabel">
+                <property name="text">
+                 <string/>
                 </property>
                </widget>
               </item>

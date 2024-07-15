@@ -88,7 +88,7 @@ float              GetSpeedUnitsScale(SpeedUnits units);
 const std::string& GetDistanceUnitsAbbreviation(DistanceUnits units);
 const std::string& GetDistanceUnitsName(DistanceUnits units);
 DistanceUnits      GetDistanceUnitsFromName(const std::string& name);
-float              GetDistanceUnitsScale(DistanceUnits units);
+double             GetDistanceUnitsScale(DistanceUnits units);
 
 } // namespace types
 } // namespace qt

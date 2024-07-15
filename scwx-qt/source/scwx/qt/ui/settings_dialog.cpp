@@ -14,12 +14,14 @@
 #include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
+#include <scwx/qt/settings/unit_settings.hpp>
 #include <scwx/qt/types/alert_types.hpp>
 #include <scwx/qt/types/font_types.hpp>
 #include <scwx/qt/types/location_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/types/text_types.hpp>
 #include <scwx/qt/types/time_types.hpp>
+#include <scwx/qt/types/unit_types.hpp>
 #include <scwx/qt/ui/county_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/ui/serial_port_dialog.hpp>
@@ -999,6 +1001,23 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioRadius_.SetEditWidget(self_->ui->alertAudioRadiusSpinBox);
    alertAudioRadius_.SetResetButton(
       self_->ui->resetAlertAudioRadiusButton);
+   alertAudioRadius_.SetUnitLabel(self_->ui->alertAudioRadiusUnitsLabel);
+
+   auto alertAudioRadiusUpdateUnits = [this](const std::string& newValue)
+   {
+      types::DistanceUnits radiusUnits =
+         types::GetDistanceUnitsFromName(newValue);
+      double      radiusScale = types::GetDistanceUnitsScale(radiusUnits);
+      std::string abbreviation =
+         types::GetDistanceUnitsAbbreviation(radiusUnits);
+
+      alertAudioRadius_.SetUnit(radiusScale, abbreviation);
+   };
+   settings::UnitSettings::Instance()
+      .distance_units()
+      .RegisterValueStagedCallback(alertAudioRadiusUpdateUnits);
+   alertAudioRadiusUpdateUnits(
+      settings::UnitSettings::Instance().distance_units().GetValue());
 
    auto& alertAudioPhenomena = types::GetAlertAudioPhenomena();
    auto  alertAudioLayout =

@@ -101,12 +101,12 @@ static const std::unordered_map<DistanceUnits, std::string> distanceUnitsName_ {
    {DistanceUnits::User, "User-defined"},
    {DistanceUnits::Unknown, "?"}};
 
-static constexpr auto distanceUnitsBase_ = units::kilometers<float> {1.0f};
-static const std::unordered_map<DistanceUnits, float> distanceUnitsScale_ {
+static constexpr auto distanceUnitsBase_ = units::kilometers<double> {1.0f};
+static const std::unordered_map<DistanceUnits, double> distanceUnitsScale_ {
    {DistanceUnits::Kilometers,
-    (distanceUnitsBase_ / units::kilometers<float> {1.0f})},
+    (distanceUnitsBase_ / units::kilometers<double> {1.0f})},
    {DistanceUnits::Miles,
-    (distanceUnitsBase_ / units::miles<float> {1.0f})},
+    (distanceUnitsBase_ / units::miles<double> {1.0f})},
    {DistanceUnits::User, 1.0f},
    {DistanceUnits::Unknown, 1.0f}};
 
@@ -179,7 +179,7 @@ const std::string& GetDistanceUnitsName(DistanceUnits units)
    return distanceUnitsName_.at(units);
 }
 
-float GetDistanceUnitsScale(DistanceUnits units)
+double GetDistanceUnitsScale(DistanceUnits units)
 {
    return distanceUnitsScale_.at(units);
 }

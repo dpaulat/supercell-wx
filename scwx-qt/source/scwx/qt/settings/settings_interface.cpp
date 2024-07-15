@@ -40,6 +40,7 @@ public:
 
    void UpdateEditWidget();
    void UpdateResetButton();
+   void UpdateUnitLabel();
 
    SettingsInterface<T>* self_;
 
@@ -49,9 +50,14 @@ public:
    std::unique_ptr<QObject> context_ {std::make_unique<QObject>()};
    QWidget*                 editWidget_ {nullptr};
    QAbstractButton*         resetButton_ {nullptr};
+   QLabel*                  unitLabel_ {nullptr};
 
    std::function<std::string(const T&)> mapFromValue_ {nullptr};
    std::function<T(const std::string&)> mapToValue_ {nullptr};
+
+   double unitScale_ {1};
+   const std::string * unitAbbreiation_ {nullptr};
+   bool unitEnabled_ {false};
 };
 
 template<class T>
@@ -381,6 +387,11 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
             p->context_.get(),
             [this](double d)
             {
+               if (p->unitEnabled_)
+               {
+                  d = d / p->unitScale_;
+               }
+
                const T                value  = p->variable_->GetValue();
                const std::optional<T> staged = p->variable_->GetStaged();
 
@@ -448,6 +459,11 @@ void SettingsInterface<T>::SetResetButton(QAbstractButton* button)
       p->UpdateResetButton();
    }
 }
+template<class T>
+void SettingsInterface<T>::SetUnitLabel(QLabel* label)
+{
+   p->unitLabel_ = label;
+}
 
 template<class T>
 void SettingsInterface<T>::SetMapFromValueFunction(
@@ -461,6 +477,17 @@ void SettingsInterface<T>::SetMapToValueFunction(
    std::function<T(const std::string&)> function)
 {
    p->mapToValue_ = function;
+}
+
+template<class T>
+void SettingsInterface<T>::SetUnit(const double&      scale,
+                                   const std::string& abbreviation)
+{
+   p->unitScale_       = scale;
+   p->unitAbbreiation_ = &abbreviation;
+   p->unitEnabled_     = true;
+   p->UpdateEditWidget();
+   p->UpdateUnitLabel();
 }
 
 template<class T>
@@ -559,9 +586,25 @@ void SettingsInterface<T>::Impl::UpdateEditWidget()
    {
       if constexpr (std::is_floating_point_v<T>)
       {
-         doubleSpinBox->setValue(static_cast<double>(currentValue));
+         double doubleValue = static_cast<double>(currentValue);
+         if (unitEnabled_)
+         {
+            doubleValue = doubleValue * unitScale_;
+         }
+         doubleSpinBox->setValue(doubleValue);
       }
    }
+}
+
+template<class T>
+void SettingsInterface<T>::Impl::UpdateUnitLabel()
+{
+   if (unitLabel_ == nullptr || !unitEnabled_)
+   {
+      return;
+   }
+
+   unitLabel_->setText(QString::fromStdString(*unitAbbreiation_));
 }
 
 template<class T>
