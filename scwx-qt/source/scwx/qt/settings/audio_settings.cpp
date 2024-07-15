@@ -38,6 +38,7 @@ public:
       alertLatitude_.SetDefault(0.0);
       alertLongitude_.SetDefault(0.0);
       alertRadius_.SetDefault(0.0);
+      alertRadarSite_.SetDefault("default");
       ignoreMissingCodecs_.SetDefault(false);
 
       alertLatitude_.SetMinimum(-90.0);
@@ -90,6 +91,7 @@ public:
    SettingsVariable<std::string> alertLocationMethod_ {"alert_location_method"};
    SettingsVariable<double>      alertLatitude_ {"alert_latitude"};
    SettingsVariable<double>      alertLongitude_ {"alert_longitude"};
+   SettingsVariable<std::string> alertRadarSite_ {"alert_radar_site"};
    SettingsVariable<double>      alertRadius_ {"alert_radius"};
    SettingsVariable<std::string> alertCounty_ {"alert_county"};
    SettingsVariable<bool>        ignoreMissingCodecs_ {"ignore_missing_codecs"};
@@ -106,6 +108,7 @@ AudioSettings::AudioSettings() :
                       &p->alertLocationMethod_,
                       &p->alertLatitude_,
                       &p->alertLongitude_,
+                      &p->alertRadarSite_,
                       &p->alertRadius_,
                       &p->alertCounty_,
                       &p->ignoreMissingCodecs_});
@@ -137,6 +140,11 @@ SettingsVariable<double>& AudioSettings::alert_latitude() const
 SettingsVariable<double>& AudioSettings::alert_longitude() const
 {
    return p->alertLongitude_;
+}
+
+SettingsVariable<std::string>& AudioSettings::alert_radar_site() const
+{
+   return p->alertRadarSite_;
 }
 
 SettingsVariable<double>& AudioSettings::alert_radius() const

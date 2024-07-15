@@ -106,16 +106,23 @@ common::Coordinate AlertManager::Impl::CurrentCoordinate(
    }
    else if (locationMethod == types::LocationMethod::RadarSite)
    {
+      std::string radarSiteSelection =
+         audioSettings.alert_radar_site().GetValue();
       std::shared_ptr<config::RadarSite> radarSite;
-      if (radarSite_ == nullptr)
+      if (radarSiteSelection == "default")
       {
-         std::string siteId =
-            settings::GeneralSettings::Instance().default_radar_site().GetValue();
+         std::string siteId = settings::GeneralSettings::Instance()
+                                 .default_radar_site()
+                                 .GetValue();
          radarSite = config::RadarSite::Get(siteId);
+      }
+      else if (radarSiteSelection == "follow")
+      {
+         radarSite = radarSite_;
       }
       else
       {
-         radarSite = radarSite_;
+         radarSite = config::RadarSite::Get(radarSiteSelection);
       }
 
       if (radarSite != nullptr)
@@ -144,8 +151,6 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
    std::string        alertCounty = audioSettings.alert_county().GetValue();
    auto               alertRadius = units::length::kilometers<double>(
       audioSettings.alert_radius().GetValue());
-
-   logger_->debug("alertRadius: {}", (double)alertRadius);
 
    auto message = textEventManager_->message_list(key).at(messageIndex);
 

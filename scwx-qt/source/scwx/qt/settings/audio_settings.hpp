@@ -31,6 +31,7 @@ public:
    SettingsVariable<double>&      alert_latitude() const;
    SettingsVariable<double>&      alert_longitude() const;
    SettingsVariable<double>&      alert_radius() const;
+   SettingsVariable<std::string>& alert_radar_site() const;
    SettingsVariable<std::string>& alert_county() const;
    SettingsVariable<bool>& alert_enabled(awips::Phenomenon phenomenon) const;
    SettingsVariable<bool>& ignore_missing_codecs() const;
