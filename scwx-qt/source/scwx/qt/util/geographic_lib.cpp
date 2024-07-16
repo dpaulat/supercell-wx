@@ -5,8 +5,7 @@
 
 #include <GeographicLib/Gnomonic.hpp>
 #include <geos/algorithm/PointLocation.h>
-#include <geos/algorithm/distance/PointPairDistance.h>
-#include <geos/algorithm/distance/DistanceToPoint.h>
+#include <geos/operation/distance/DistanceOp.h>
 #include <geos/geom/CoordinateSequence.h>
 #include <geos/geom/GeometryFactory.h>
 
@@ -258,20 +257,19 @@ GetDistanceAreaPoint(const std::vector<common::Coordinate>& area,
       // Get the closes point on the geometry
       auto geometryFactory = geos::geom::GeometryFactory::getDefaultInstance();
       auto lineString      = geometryFactory->createLineString(sequence);
+      auto zeroPoint       = geometryFactory->createPoint(zero);
 
-      geos::algorithm::distance::PointPairDistance distancePair;
-      geos::algorithm::distance::DistanceToPoint::computeDistance(
-         *lineString, zero, distancePair);
-
-      geos::geom::CoordinateXY closestPoint = distancePair.getCoordinate(0);
+      std::unique_ptr<geos::geom::CoordinateSequence> closestPoints =
+         geos::operation::distance::DistanceOp::nearestPoints(lineString.get(),
+                                                              zeroPoint.get());
 
       double closestLat;
       double closestLon;
 
       gnomonic.Reverse(point.latitude_,
                        point.longitude_,
-                       closestPoint.x,
-                       closestPoint.y,
+                       closestPoints->getX(0),
+                       closestPoints->getY(0),
                        closestLat,
                        closestLon);
 
@@ -279,6 +277,7 @@ GetDistanceAreaPoint(const std::vector<common::Coordinate>& area,
                              point.longitude_,
                              closestLat,
                              closestLon);
+
    }
    return distance;
 }
