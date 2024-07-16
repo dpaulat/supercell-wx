@@ -69,7 +69,7 @@ public:
    SettingsVariable<std::string> echoTopsUnits_ {"echo_tops_units"};
    SettingsVariable<std::string> otherUnits_ {"other_units"};
    SettingsVariable<std::string> speedUnits_ {"speed_units"};
-   SettingsVariable<std::string> distanceUnits_ {"speed_units"};
+   SettingsVariable<std::string> distanceUnits_ {"distance_units"};
 };
 
 UnitSettings::UnitSettings() :
