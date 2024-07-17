@@ -4,7 +4,7 @@
 #include <scwx/qt/manager/hotkey_manager.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
-#include <scwx/qt/map/alert_layer_old.hpp>
+#include <scwx/qt/map/alert_layer.hpp>
 #include <scwx/qt/map/color_table_layer.hpp>
 #include <scwx/qt/map/layer_wrapper.hpp>
 #include <scwx/qt/map/map_provider.hpp>
@@ -79,7 +79,6 @@ public:
        imGuiRendererInitialized_ {false},
        radarProductManager_ {nullptr},
        radarProductLayer_ {nullptr},
-       alertLayer_ {std::make_shared<AlertLayerOld>(context_)},
        overlayLayer_ {nullptr},
        placefileLayer_ {nullptr},
        colorTableLayer_ {nullptr},
@@ -218,7 +217,6 @@ public:
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
    std::shared_ptr<RadarProductLayer>   radarProductLayer_;
-   std::shared_ptr<AlertLayerOld>       alertLayer_;
    std::shared_ptr<OverlayLayer>        overlayLayer_;
    std::shared_ptr<OverlayProductLayer> overlayProductLayer_ {nullptr};
    std::shared_ptr<PlacefileLayer>      placefileLayer_;
@@ -1180,10 +1178,11 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
    }
    else if (type == types::LayerType::Alert)
    {
-      // Add the alert layer for the phenomenon
-      auto newLayers = alertLayer_->AddLayers(
-         std::get<awips::Phenomenon>(description), before);
-      layerList_.insert(layerList_.end(), newLayers.cbegin(), newLayers.cend());
+      auto phenomenon = std::get<awips::Phenomenon>(description);
+
+      AddLayer(fmt::format("alert.{}", awips::GetPhenomenonCode(phenomenon)),
+               std::make_shared<AlertLayer>(context_, phenomenon),
+               before);
    }
    else if (type == types::LayerType::Placefile)
    {
