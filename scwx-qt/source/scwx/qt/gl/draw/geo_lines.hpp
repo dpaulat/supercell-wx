@@ -19,6 +19,10 @@ struct GeoLineDrawItem;
 class GeoLines : public DrawItem
 {
 public:
+   typedef std::function<void(std::shared_ptr<const GeoLineDrawItem>&,
+                              const QPointF&)>
+      HoverCallback;
+
    explicit GeoLines(std::shared_ptr<GlContext> context);
    ~GeoLines();
 
@@ -113,6 +117,15 @@ public:
     */
    void SetLineVisible(const std::shared_ptr<GeoLineDrawItem>& di,
                        bool                                    visible);
+
+   /**
+    * Sets the hover callback enable of a geo line.
+    *
+    * @param [in] di Geo line draw item
+    * @param [in] enabled Hover enabled
+    */
+   void SetLineHoverCallback(const std::shared_ptr<GeoLineDrawItem>& di,
+                             const HoverCallback&                    callback);
 
    /**
     * Sets the hover text of a geo line.

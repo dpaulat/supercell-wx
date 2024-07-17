@@ -4,6 +4,7 @@
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/util/color.hpp>
+#include <scwx/qt/util/tooltip.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <chrono>
@@ -11,6 +12,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/container/stable_vector.hpp>
 #include <boost/container_hash/hash.hpp>
 
@@ -138,24 +140,28 @@ public:
       const std::shared_ptr<AlertLayerHandler::SegmentRecord>& segmentRecord);
    void ConnectAlertHandlerSignals();
    void ConnectSignals();
+   void
+   HandleGeoLinesHover(std::shared_ptr<const gl::draw::GeoLineDrawItem>& di,
+                       const QPointF& mouseGlobalPos);
 
-   static void AddLine(std::shared_ptr<gl::draw::GeoLines>&        geoLines,
-                       std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
-                       const common::Coordinate&                   p1,
-                       const common::Coordinate&                   p2,
-                       boost::gil::rgba32f_pixel_t                 color,
-                       float                                       width,
-                       std::chrono::system_clock::time_point       startTime,
-                       std::chrono::system_clock::time_point       endTime);
-   static void
-   AddLines(std::shared_ptr<gl::draw::GeoLines>&   geoLines,
-            const std::vector<common::Coordinate>& coordinates,
-            boost::gil::rgba32f_pixel_t            color,
-            float                                  width,
-            std::chrono::system_clock::time_point  startTime,
-            std::chrono::system_clock::time_point  endTime,
-            boost::container::stable_vector<
-               std::shared_ptr<gl::draw::GeoLineDrawItem>>& drawItems);
+   void AddLine(std::shared_ptr<gl::draw::GeoLines>&        geoLines,
+                std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
+                const common::Coordinate&                   p1,
+                const common::Coordinate&                   p2,
+                boost::gil::rgba32f_pixel_t                 color,
+                float                                       width,
+                std::chrono::system_clock::time_point       startTime,
+                std::chrono::system_clock::time_point       endTime,
+                bool                                        enableHover);
+   void AddLines(std::shared_ptr<gl::draw::GeoLines>&   geoLines,
+                 const std::vector<common::Coordinate>& coordinates,
+                 boost::gil::rgba32f_pixel_t            color,
+                 float                                  width,
+                 std::chrono::system_clock::time_point  startTime,
+                 std::chrono::system_clock::time_point  endTime,
+                 bool                                   enableHover,
+                 boost::container::stable_vector<
+                    std::shared_ptr<gl::draw::GeoLineDrawItem>>& drawItems);
 
    const awips::Phenomenon phenomenon_;
 
@@ -166,7 +172,10 @@ public:
    std::unordered_map<std::shared_ptr<const AlertLayerHandler::SegmentRecord>,
                       boost::container::stable_vector<
                          std::shared_ptr<gl::draw::GeoLineDrawItem>>>
-              linesBySegment_ {};
+      linesBySegment_ {};
+   std::unordered_map<std::shared_ptr<const gl::draw::GeoLineDrawItem>,
+                      std::shared_ptr<const AlertLayerHandler::SegmentRecord>>
+              segmentsByLine_;
    std::mutex linesMutex_ {};
 
    std::unordered_map<bool, boost::gil::rgba32f_pixel_t> lineColor_;
@@ -402,19 +411,30 @@ void AlertLayer::Impl::AddAlert(
    // If draw items were added
    if (drawItems.second)
    {
+      // Add border
       AddLines(geoLines,
                coordinates,
                kBlack_,
                5.0f,
                startTime,
                endTime,
+               true,
                drawItems.first->second);
+
+      // Add only border to segmentsByLine_
+      for (auto& di : drawItems.first->second)
+      {
+         segmentsByLine_.insert({di, segmentRecord});
+      }
+
+      // Add line
       AddLines(geoLines,
                coordinates,
                lineColor,
                3.0f,
                startTime,
                endTime,
+               false,
                drawItems.first->second);
    }
 }
@@ -452,6 +472,7 @@ void AlertLayer::Impl::AddLines(
    float                                  width,
    std::chrono::system_clock::time_point  startTime,
    std::chrono::system_clock::time_point  endTime,
+   bool                                   enableHover,
    boost::container::stable_vector<std::shared_ptr<gl::draw::GeoLineDrawItem>>&
       drawItems)
 {
@@ -476,7 +497,8 @@ void AlertLayer::Impl::AddLines(
               color,
               width,
               startTime,
-              endTime);
+              endTime,
+              enableHover);
 
       drawItems.push_back(di);
    }
@@ -489,7 +511,8 @@ void AlertLayer::Impl::AddLine(std::shared_ptr<gl::draw::GeoLines>& geoLines,
                                boost::gil::rgba32f_pixel_t           color,
                                float                                 width,
                                std::chrono::system_clock::time_point startTime,
-                               std::chrono::system_clock::time_point endTime)
+                               std::chrono::system_clock::time_point endTime,
+                               bool enableHover)
 {
    geoLines->SetLineLocation(
       di, p1.latitude_, p1.longitude_, p2.latitude_, p2.longitude_);
@@ -497,6 +520,29 @@ void AlertLayer::Impl::AddLine(std::shared_ptr<gl::draw::GeoLines>& geoLines,
    geoLines->SetLineWidth(di, width);
    geoLines->SetLineStartTime(di, startTime);
    geoLines->SetLineEndTime(di, endTime);
+
+   if (enableHover)
+   {
+      geoLines->SetLineHoverCallback(
+         di,
+         std::bind(&AlertLayer::Impl::HandleGeoLinesHover,
+                   this,
+                   std::placeholders::_1,
+                   std::placeholders::_2));
+   }
+}
+
+void AlertLayer::Impl::HandleGeoLinesHover(
+   std::shared_ptr<const gl::draw::GeoLineDrawItem>& di,
+   const QPointF&                                    mouseGlobalPos)
+{
+   auto it = segmentsByLine_.find(di);
+   if (it != segmentsByLine_.cend())
+   {
+      util::tooltip::Show(
+         boost::algorithm::join(it->second->segment_->productContent_, "\n"),
+         mouseGlobalPos);
+   }
 }
 
 AlertLayerHandler& AlertLayerHandler::Instance()

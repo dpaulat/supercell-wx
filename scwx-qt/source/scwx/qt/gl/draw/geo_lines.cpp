@@ -49,6 +49,7 @@ struct GeoLineDrawItem
    float                        width_ {5.0};
    units::angle::degrees<float> angle_ {};
    std::string                  hoverText_ {};
+   GeoLines::HoverCallback      hoverCallback_ {nullptr};
 };
 
 class GeoLines::Impl
@@ -388,6 +389,16 @@ void GeoLines::SetLineVisible(const std::shared_ptr<GeoLineDrawItem>& di,
    }
 }
 
+void GeoLines::SetLineHoverCallback(const std::shared_ptr<GeoLineDrawItem>& di,
+                                    const HoverCallback& callback)
+{
+   if (di->hoverCallback_ != nullptr || callback != nullptr)
+   {
+      di->hoverCallback_ = callback;
+      p->dirtyLines_.insert(di);
+   }
+}
+
 void GeoLines::SetLineHoverText(const std::shared_ptr<GeoLineDrawItem>& di,
                                 const std::string&                      text)
 {
@@ -614,7 +625,8 @@ void GeoLines::Impl::UpdateSingleBuffer(
                                hoverLines.end(),
                                [&di](auto& entry) { return entry.di_ == di; });
 
-   if (di->visible_ && !di->hoverText_.empty())
+   if (di->visible_ &&
+       (!di->hoverText_.empty() || di->hoverCallback_ != nullptr))
    {
       const units::angle::radians<double> radians = angle;
 
@@ -715,8 +727,8 @@ bool GeoLines::RunMousePicking(
    // For each pickable line
    auto it = std::find_if(
       std::execution::par_unseq,
-      p->currentHoverLines_.crbegin(),
-      p->currentHoverLines_.crend(),
+      p->currentHoverLines_.rbegin(),
+      p->currentHoverLines_.rend(),
       [&mapDistance, &selectedTime, &mapMatrix, &mouseCoords](const auto& line)
       {
          if ((
@@ -775,7 +787,15 @@ bool GeoLines::RunMousePicking(
    if (it != p->currentHoverLines_.crend())
    {
       itemPicked = true;
-      util::tooltip::Show(it->di_->hoverText_, mouseGlobalPos);
+
+      if (!it->di_->hoverText_.empty())
+      {
+         util::tooltip::Show(it->di_->hoverText_, mouseGlobalPos);
+      }
+      else if (it->di_->hoverCallback_ != nullptr)
+      {
+         it->di_->hoverCallback_(it->di_, mouseGlobalPos);
+      }
    }
 
    return itemPicked;
