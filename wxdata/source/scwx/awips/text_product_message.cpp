@@ -354,7 +354,8 @@ void ParseCodedInformation(std::shared_ptr<Segment> segment,
          segment->observed_ = true;
       }
 
-      else if (!segment->tornadoPossible_ && *it == "TORNADO...POSSIBLE")
+      else if (!segment->tornadoPossible_ &&
+               (*it == "TORNADO...POSSIBLE" || *it == "WATERSPOUT...POSSIBLE"))
       {
          segment->tornadoPossible_ = true;
       }
