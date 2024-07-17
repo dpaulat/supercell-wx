@@ -314,7 +314,6 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
       auto&             vtec       = segment->header_->vtecString_.front();
       auto              action     = vtec.pVtec_.action();
       awips::Phenomenon phenomenon = vtec.pVtec_.phenomenon();
-      auto              eventEnd   = vtec.pVtec_.event_end();
       bool alertActive             = (action != awips::PVtec::Action::Canceled);
 
       auto& segmentsForType = segmentsByType_[{key.phenomenon_, alertActive}];
