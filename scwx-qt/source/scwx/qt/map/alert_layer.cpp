@@ -181,6 +181,9 @@ public:
    std::unordered_map<bool, boost::gil::rgba32f_pixel_t> lineColor_;
 
    std::chrono::system_clock::time_point selectedTime_ {};
+
+   std::shared_ptr<const gl::draw::GeoLineDrawItem> lastHoverDi_ {nullptr};
+   std::string                                      tooltip_ {};
 };
 
 AlertLayer::AlertLayer(std::shared_ptr<MapContext> context,
@@ -535,12 +538,25 @@ void AlertLayer::Impl::HandleGeoLinesHover(
    std::shared_ptr<const gl::draw::GeoLineDrawItem>& di,
    const QPointF&                                    mouseGlobalPos)
 {
-   auto it = segmentsByLine_.find(di);
-   if (it != segmentsByLine_.cend())
+   if (di != lastHoverDi_)
    {
-      util::tooltip::Show(
-         boost::algorithm::join(it->second->segment_->productContent_, "\n"),
-         mouseGlobalPos);
+      auto it = segmentsByLine_.find(di);
+      if (it != segmentsByLine_.cend())
+      {
+         tooltip_ =
+            boost::algorithm::join(it->second->segment_->productContent_, "\n");
+      }
+      else
+      {
+         tooltip_.clear();
+      }
+
+      lastHoverDi_ = di;
+   }
+
+   if (!tooltip_.empty())
+   {
+      util::tooltip::Show(tooltip_, mouseGlobalPos);
    }
 }
 
