@@ -1,12 +1,15 @@
 #include <scwx/qt/model/alert_model.hpp>
 #include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
+#include <scwx/qt/settings/unit_settings.hpp>
 #include <scwx/qt/types/qt_types.hpp>
+#include <scwx/qt/types/unit_types.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/strings.hpp>
 #include <scwx/util/time.hpp>
+
 
 #include <format>
 
@@ -73,7 +76,6 @@ public:
                       double,
                       types::TextEventHash<types::TextEventKey>>
                               distanceMap_;
-   scwx::common::DistanceType distanceDisplay_;
    scwx::common::Coordinate   previousPosition_;
 };
 
@@ -182,18 +184,19 @@ QVariant AlertModel::data(const QModelIndex& index, int role) const
       case static_cast<int>(Column::Distance):
          if (role == Qt::DisplayRole)
          {
-            if (p->distanceDisplay_ == scwx::common::DistanceType::Miles)
-            {
-               return QString("%1 mi").arg(
-                  static_cast<uint32_t>(p->distanceMap_.at(textEventKey) *
-                                        scwx::common::kMilesPerMeter));
-            }
-            else
-            {
-               return QString("%1 km").arg(
-                  static_cast<uint32_t>(p->distanceMap_.at(textEventKey) *
-                                        scwx::common::kKilometersPerMeter));
-            }
+            const std::string distanceUnitName =
+               settings::UnitSettings::Instance().distance_units().GetValue();
+            types::DistanceUnits distanceUnits =
+               types::GetDistanceUnitsFromName(distanceUnitName);
+            double distanceScale = types::GetDistanceUnitsScale(distanceUnits);
+            std::string abbreviation =
+               types::GetDistanceUnitsAbbreviation(distanceUnits);
+
+            return QString("%1 %2")
+               .arg(static_cast<uint32_t>(p->distanceMap_.at(textEventKey) *
+                                          scwx::common::kKilometersPerMeter *
+                                          distanceScale))
+               .arg(QString::fromStdString(abbreviation));
          }
          else
          {
@@ -419,7 +422,6 @@ AlertModelImpl::AlertModelImpl() :
     textEventKeys_ {},
     geodesic_(util::GeographicLib::DefaultGeodesic()),
     distanceMap_ {},
-    distanceDisplay_ {scwx::common::DistanceType::Miles},
     previousPosition_ {}
 {
 }
