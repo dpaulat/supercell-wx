@@ -219,7 +219,8 @@ void AlertManager::Impl::UpdateLocationTracking(
    positionManager_->EnablePositionUpdates(uuid_, locationEnabled);
 }
 
-void AlertManager::SetRadarSite(std::shared_ptr<config::RadarSite> radarSite)
+void AlertManager::SetRadarSite(
+   const std::shared_ptr<config::RadarSite>& radarSite)
 {
    if (p->radarSite_ == radarSite)
    {
