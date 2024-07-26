@@ -55,9 +55,9 @@ bool GnomonicAreaContainsCenter(geos::geom::CoordinateSequence sequence)
          areaContainsPoint =
             geos::algorithm::PointLocation::isInRing(zero, &sequence);
       }
-      catch (const std::exception&)
+      catch (const std::exception& ex)
       {
-         logger_->trace("Invalid area sequence");
+         logger_->warn("Invalid area sequence. {}", ex.what());
       }
    }
 
