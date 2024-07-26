@@ -507,7 +507,6 @@ void SettingsDialogImpl::ConnectSignals()
             break;
 
          case QDialogButtonBox::ButtonRole::ResetRole: // Restore Defaults
-            logger_->info("ButtonRole Reset");
             ResetToDefault();
             break;
 
