@@ -185,6 +185,7 @@ bool operator==(const AudioSettings& lhs, const AudioSettings& rhs)
            lhs.p->alertLocationMethod_ == rhs.p->alertLocationMethod_ &&
            lhs.p->alertLatitude_ == rhs.p->alertLatitude_ &&
            lhs.p->alertLongitude_ == rhs.p->alertLongitude_ &&
+           lhs.p->alertRadarSite_ == rhs.p->alertRadarSite_ &&
            lhs.p->alertRadius_ == rhs.p->alertRadius_ &&
            lhs.p->alertCounty_ == rhs.p->alertCounty_ &&
            lhs.p->alertEnabled_ == rhs.p->alertEnabled_);
