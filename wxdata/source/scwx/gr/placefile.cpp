@@ -943,6 +943,7 @@ void Placefile::Impl::ParseLocation(const std::string& latitudeToken,
 
 void Placefile::Impl::ProcessEscapeCharacters(std::string& s)
 {
+   boost::replace_all(s, "\\r", "\r");
    boost::replace_all(s, "\\n", "\n");
 }
 
