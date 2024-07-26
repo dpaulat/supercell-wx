@@ -56,7 +56,7 @@ public:
    std::function<T(const std::string&)> mapToValue_ {nullptr};
 
    double unitScale_ {1};
-   const std::string * unitAbbreiation_ {nullptr};
+   const std::string * unitAbbreviation_ {nullptr};
    bool unitEnabled_ {false};
 };
 
@@ -484,7 +484,7 @@ void SettingsInterface<T>::SetUnit(const double&      scale,
                                    const std::string& abbreviation)
 {
    p->unitScale_       = scale;
-   p->unitAbbreiation_ = &abbreviation;
+   p->unitAbbreviation_ = &abbreviation;
    p->unitEnabled_     = true;
    p->UpdateEditWidget();
    p->UpdateUnitLabel();
@@ -604,7 +604,7 @@ void SettingsInterface<T>::Impl::UpdateUnitLabel()
       return;
    }
 
-   unitLabel_->setText(QString::fromStdString(*unitAbbreiation_));
+   unitLabel_->setText(QString::fromStdString(*unitAbbreviation_));
 }
 
 template<class T>
