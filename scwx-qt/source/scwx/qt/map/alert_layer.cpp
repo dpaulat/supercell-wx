@@ -15,6 +15,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/container/stable_vector.hpp>
 #include <boost/container_hash/hash.hpp>
+#include <QEvent>
 
 namespace scwx
 {
@@ -140,9 +141,10 @@ public:
       const std::shared_ptr<AlertLayerHandler::SegmentRecord>& segmentRecord);
    void ConnectAlertHandlerSignals();
    void ConnectSignals();
-   void
-   HandleGeoLinesHover(std::shared_ptr<const gl::draw::GeoLineDrawItem>& di,
-                       const QPointF& mouseGlobalPos);
+   void HandleGeoLinesEvent(std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
+                            QEvent*                                     ev);
+   void HandleGeoLinesHover(std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
+                            const QPointF& mouseGlobalPos);
 
    void AddLine(std::shared_ptr<gl::draw::GeoLines>&        geoLines,
                 std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
@@ -254,22 +256,6 @@ void AlertLayer::Deinitialize()
    logger_->debug("Deinitialize: {}", awips::GetPhenomenonText(p->phenomenon_));
 
    DrawLayer::Deinitialize();
-}
-
-bool AlertLayer::RunMousePicking(
-   const QMapLibre::CustomLayerRenderParameters& params,
-   const QPointF&                                mouseLocalPos,
-   const QPointF&                                mouseGlobalPos,
-   const glm::vec2&                              mouseCoords,
-   const common::Coordinate&                     mouseGeoCoords,
-   std::shared_ptr<types::EventHandler>&         eventHandler)
-{
-   return DrawLayer::RunMousePicking(params,
-                                     mouseLocalPos,
-                                     mouseGlobalPos,
-                                     mouseCoords,
-                                     mouseGeoCoords,
-                                     eventHandler);
 }
 
 void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
@@ -531,12 +517,34 @@ void AlertLayer::Impl::AddLine(std::shared_ptr<gl::draw::GeoLines>& geoLines,
                    this,
                    std::placeholders::_1,
                    std::placeholders::_2));
+
+      gl::draw::GeoLines::RegisterEventHandler(
+         di,
+         std::bind(&AlertLayer::Impl::HandleGeoLinesEvent,
+                   this,
+                   di,
+                   std::placeholders::_1));
+   }
+}
+
+void AlertLayer::Impl::HandleGeoLinesEvent(
+   std::shared_ptr<gl::draw::GeoLineDrawItem>& di, QEvent* ev)
+{
+   switch (ev->type())
+   {
+   case QEvent::Type::MouseButtonPress:
+      auto it = segmentsByLine_.find(di);
+      if (it != segmentsByLine_.cend())
+      {
+         logger_->info("Selected alert: {}", it->second->key_.ToString());
+      }
+      break;
    }
 }
 
 void AlertLayer::Impl::HandleGeoLinesHover(
-   std::shared_ptr<const gl::draw::GeoLineDrawItem>& di,
-   const QPointF&                                    mouseGlobalPos)
+   std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
+   const QPointF&                              mouseGlobalPos)
 {
    if (di != lastHoverDi_)
    {

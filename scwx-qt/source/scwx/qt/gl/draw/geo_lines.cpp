@@ -34,7 +34,7 @@ static constexpr std::size_t kIntegersPerVertex_ = 4;
 static constexpr std::size_t kIntegerBufferLength_ =
    kNumTriangles * kVerticesPerTriangle * kIntegersPerVertex_;
 
-struct GeoLineDrawItem
+struct GeoLineDrawItem : types::EventHandler
 {
    bool                                        visible_ {true};
    units::length::nautical_miles<double>       threshold_ {};
@@ -57,7 +57,7 @@ class GeoLines::Impl
 public:
    struct LineHoverEntry
    {
-      std::shared_ptr<const GeoLineDrawItem> di_;
+      std::shared_ptr<GeoLineDrawItem> di_;
 
       glm::vec2 p1_;
       glm::vec2 p2_;
@@ -86,9 +86,9 @@ public:
    void Update();
    void UpdateBuffers();
    void UpdateModifiedLineBuffers();
-   void UpdateSingleBuffer(const std::shared_ptr<const GeoLineDrawItem>& di,
-                           std::size_t                  lineIndex,
-                           std::vector<float>&          linesBuffer,
+   void UpdateSingleBuffer(const std::shared_ptr<GeoLineDrawItem>& di,
+                           std::size_t                             lineIndex,
+                           std::vector<float>&                     linesBuffer,
                            std::vector<GLint>&          integerBuffer,
                            std::vector<LineHoverEntry>& hoverLines);
 
@@ -517,11 +517,11 @@ void GeoLines::Impl::UpdateModifiedLineBuffers()
 }
 
 void GeoLines::Impl::UpdateSingleBuffer(
-   const std::shared_ptr<const GeoLineDrawItem>& di,
-   std::size_t                                   lineIndex,
-   std::vector<float>&                           lineBuffer,
-   std::vector<GLint>&                           integerBuffer,
-   std::vector<LineHoverEntry>&                  hoverLines)
+   const std::shared_ptr<GeoLineDrawItem>& di,
+   std::size_t                             lineIndex,
+   std::vector<float>&                     lineBuffer,
+   std::vector<GLint>&                     integerBuffer,
+   std::vector<LineHoverEntry>&            hoverLines)
 {
    // Threshold value
    units::length::nautical_miles<double> threshold = di->threshold_;
@@ -625,8 +625,8 @@ void GeoLines::Impl::UpdateSingleBuffer(
                                hoverLines.end(),
                                [&di](auto& entry) { return entry.di_ == di; });
 
-   if (di->visible_ &&
-       (!di->hoverText_.empty() || di->hoverCallback_ != nullptr))
+   if (di->visible_ && (!di->hoverText_.empty() ||
+                        di->hoverCallback_ != nullptr || di->event_ != nullptr))
    {
       const units::angle::radians<double> radians = angle;
 
@@ -697,7 +697,7 @@ bool GeoLines::RunMousePicking(
    const QPointF&   mouseGlobalPos,
    const glm::vec2& mouseCoords,
    const common::Coordinate& /* mouseGeoCoords */,
-   std::shared_ptr<types::EventHandler>& /* eventHandler */)
+   std::shared_ptr<types::EventHandler>& eventHandler)
 {
    std::unique_lock lock {p->lineMutex_};
 
@@ -790,15 +790,29 @@ bool GeoLines::RunMousePicking(
 
       if (!it->di_->hoverText_.empty())
       {
+         // Show tooltip
          util::tooltip::Show(it->di_->hoverText_, mouseGlobalPos);
       }
       else if (it->di_->hoverCallback_ != nullptr)
       {
          it->di_->hoverCallback_(it->di_, mouseGlobalPos);
       }
+
+      if (it->di_->event_ != nullptr)
+      {
+         // Register event handler
+         eventHandler = it->di_;
+      }
    }
 
    return itemPicked;
+}
+
+void GeoLines::RegisterEventHandler(
+   const std::shared_ptr<GeoLineDrawItem>& di,
+   const std::function<void(QEvent*)>&     eventHandler)
+{
+   di->event_ = eventHandler;
 }
 
 } // namespace draw

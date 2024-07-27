@@ -19,7 +19,7 @@ struct GeoLineDrawItem;
 class GeoLines : public DrawItem
 {
 public:
-   typedef std::function<void(std::shared_ptr<const GeoLineDrawItem>&,
+   typedef std::function<void(std::shared_ptr<GeoLineDrawItem>&,
                               const QPointF&)>
       HoverCallback;
 
@@ -158,6 +158,16 @@ public:
     * Finalizes the draw item after adding new lines.
     */
    void FinishLines();
+
+   /**
+    * Registers an event handler for a geo line.
+    *
+    * @param [in] di Geo line draw item
+    * @param [in] eventHandler Event handler function
+    */
+   static void
+   RegisterEventHandler(const std::shared_ptr<GeoLineDrawItem>& di,
+                        const std::function<void(QEvent*)>&     eventHandler);
 
 private:
    class Impl;
