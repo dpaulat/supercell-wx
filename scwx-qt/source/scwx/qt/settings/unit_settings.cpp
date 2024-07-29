@@ -27,7 +27,7 @@ public:
       std::string defaultSpeedUnitsValue =
          types::GetSpeedUnitsName(types::SpeedUnits::Knots);
       std::string defaultDistanceUnitsValue =
-         types::GetDistanceUnitsName(types::DistanceUnits::Kilometers);
+         types::GetDistanceUnitsName(types::DistanceUnits::Miles);
 
       boost::to_lower(defaultAccumulationUnitsValue);
       boost::to_lower(defaultEchoTopsUnitsValue);
