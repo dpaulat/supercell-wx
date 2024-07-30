@@ -14,12 +14,14 @@
 #include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
+#include <scwx/qt/settings/unit_settings.hpp>
 #include <scwx/qt/types/alert_types.hpp>
 #include <scwx/qt/types/font_types.hpp>
 #include <scwx/qt/types/location_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/types/text_types.hpp>
 #include <scwx/qt/types/time_types.hpp>
+#include <scwx/qt/types/unit_types.hpp>
 #include <scwx/qt/ui/county_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/ui/serial_port_dialog.hpp>
@@ -103,6 +105,7 @@ public:
    explicit SettingsDialogImpl(SettingsDialog* self) :
        self_ {self},
        radarSiteDialog_ {new RadarSiteDialog(self)},
+       alertAudioRadarSiteDialog_ {new RadarSiteDialog(self)},
        gpsSourceDialog_ {new SerialPortDialog(self)},
        countyDialog_ {new CountyDialog(self)},
        fontDialog_ {new QFontDialog(self)},
@@ -134,6 +137,8 @@ public:
           &alertAudioLocationMethod_,
           &alertAudioLatitude_,
           &alertAudioLongitude_,
+          &alertAudioRadarSite_,
+          &alertAudioRadius_,
           &alertAudioCounty_,
           &hoverTextWrap_,
           &tooltipMethod_,
@@ -175,6 +180,7 @@ public:
 
    void ShowColorDialog(QLineEdit* lineEdit, QFrame* frame = nullptr);
    void UpdateRadarDialogLocation(const std::string& id);
+   void UpdateAlertRadarDialogLocation(const std::string& id);
 
    QFont GetSelectedFont();
    void  SelectFontCategory(types::FontCategory fontCategory);
@@ -199,6 +205,7 @@ public:
 
    SettingsDialog*   self_;
    RadarSiteDialog*  radarSiteDialog_;
+   RadarSiteDialog*  alertAudioRadarSiteDialog_;
    SerialPortDialog* gpsSourceDialog_;
    CountyDialog*     countyDialog_;
    QFontDialog*      fontDialog_;
@@ -252,6 +259,8 @@ public:
    settings::SettingsInterface<std::string> alertAudioLocationMethod_ {};
    settings::SettingsInterface<double>      alertAudioLatitude_ {};
    settings::SettingsInterface<double>      alertAudioLongitude_ {};
+   settings::SettingsInterface<std::string> alertAudioRadarSite_ {};
+   settings::SettingsInterface<double>      alertAudioRadius_ {};
    settings::SettingsInterface<std::string> alertAudioCounty_ {};
 
    std::unordered_map<awips::Phenomenon, settings::SettingsInterface<bool>>
@@ -336,6 +345,30 @@ void SettingsDialogImpl::ConnectSignals()
                        {
                           self_->ui->radarSiteComboBox->setCurrentText(
                              QString::fromStdString(RadarSiteLabel(radarSite)));
+                       }
+                    });
+
+   QObject::connect(self_->ui->alertAudioRadarSiteSelectButton,
+                    &QAbstractButton::clicked,
+                    self_,
+                    [this]() { alertAudioRadarSiteDialog_->show(); });
+
+   QObject::connect(alertAudioRadarSiteDialog_,
+                    &RadarSiteDialog::accepted,
+                    self_,
+                    [this]()
+                    {
+                       std::string id =
+                          alertAudioRadarSiteDialog_->radar_site();
+
+                       std::shared_ptr<config::RadarSite> radarSite =
+                          config::RadarSite::Get(id);
+
+                       if (radarSite != nullptr)
+                       {
+                          self_->ui->alertAudioRadarSiteComboBox
+                             ->setCurrentText(QString::fromStdString(
+                                RadarSiteLabel(radarSite)));
                        }
                     });
 
@@ -504,11 +537,18 @@ void SettingsDialogImpl::SetupGeneralTab()
                 const std::shared_ptr<config::RadarSite>& b)
              { return a->id() < b->id(); });
 
+   // Add default and follow options to radar sites
+   self_->ui->alertAudioRadarSiteComboBox->addItem(
+      QString::fromStdString("default"));
+   self_->ui->alertAudioRadarSiteComboBox->addItem(
+      QString::fromStdString("follow"));
+
    // Add sorted radar sites
    for (std::shared_ptr<config::RadarSite>& radarSite : radarSites)
    {
       QString text = QString::fromStdString(RadarSiteLabel(radarSite));
       self_->ui->radarSiteComboBox->addItem(text);
+      self_->ui->alertAudioRadarSiteComboBox->addItem(text);
    }
 
    defaultRadarSite_.SetSettingsVariable(generalSettings.default_radar_site());
@@ -900,6 +940,12 @@ void SettingsDialogImpl::SetupAudioTab()
 
          bool coordinateEntryEnabled =
             locationMethod == types::LocationMethod::Fixed;
+         bool radarSiteEntryEnable =
+            locationMethod == types::LocationMethod::RadarSite;
+         bool radiusEntryEnable =
+            locationMethod == types::LocationMethod::Fixed ||
+            locationMethod == types::LocationMethod::Track ||
+            locationMethod == types::LocationMethod::RadarSite;
          bool countyEntryEnabled =
             locationMethod == types::LocationMethod::County;
 
@@ -911,6 +957,18 @@ void SettingsDialogImpl::SetupAudioTab()
             coordinateEntryEnabled);
          self_->ui->resetAlertAudioLongitudeButton->setEnabled(
             coordinateEntryEnabled);
+
+         self_->ui->alertAudioRadarSiteComboBox->setEnabled(
+            radarSiteEntryEnable);
+         self_->ui->alertAudioRadarSiteSelectButton->setEnabled(
+            radarSiteEntryEnable);
+         self_->ui->resetAlertAudioRadarSiteButton->setEnabled(
+            radarSiteEntryEnable);
+
+         self_->ui->alertAudioRadiusSpinBox->setEnabled(
+            radiusEntryEnable);
+         self_->ui->resetAlertAudioRadiusButton->setEnabled(
+            radiusEntryEnable);
 
          self_->ui->alertAudioCountyLineEdit->setEnabled(countyEntryEnabled);
          self_->ui->alertAudioCountySelectButton->setEnabled(
@@ -982,6 +1040,64 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioLongitude_.SetEditWidget(self_->ui->alertAudioLongitudeSpinBox);
    alertAudioLongitude_.SetResetButton(
       self_->ui->resetAlertAudioLongitudeButton);
+
+   alertAudioRadarSite_.SetSettingsVariable(audioSettings.alert_radar_site());
+   alertAudioRadarSite_.SetMapFromValueFunction(
+      [](const std::string& id) -> std::string
+      {
+         // Get the radar site associated with the ID
+         std::shared_ptr<config::RadarSite> radarSite =
+            config::RadarSite::Get(id);
+
+         if (radarSite == nullptr)
+         {
+            // No radar site found, just return the ID
+            return id;
+         }
+
+         // Add location details to the radar site
+         return RadarSiteLabel(radarSite);
+      });
+   alertAudioRadarSite_.SetMapToValueFunction(
+      [](const std::string& text) -> std::string
+      {
+         // Find the position of location details
+         size_t pos = text.rfind(" (");
+
+         if (pos == std::string::npos)
+         {
+            // No location details found, just return the text
+            return text;
+         }
+
+         // Remove location details from the radar site
+         return text.substr(0, pos);
+      });
+   alertAudioRadarSite_.SetEditWidget(self_->ui->alertAudioRadarSiteComboBox);
+   alertAudioRadarSite_.SetResetButton(
+      self_->ui->resetAlertAudioRadarSiteButton);
+   UpdateAlertRadarDialogLocation(audioSettings.alert_radar_site().GetValue());
+
+   alertAudioRadius_.SetSettingsVariable(audioSettings.alert_radius());
+   alertAudioRadius_.SetEditWidget(self_->ui->alertAudioRadiusSpinBox);
+   alertAudioRadius_.SetResetButton(
+      self_->ui->resetAlertAudioRadiusButton);
+   alertAudioRadius_.SetUnitLabel(self_->ui->alertAudioRadiusUnitsLabel);
+   auto alertAudioRadiusUpdateUnits = [this](const std::string& newValue)
+   {
+      types::DistanceUnits radiusUnits =
+         types::GetDistanceUnitsFromName(newValue);
+      double      radiusScale = types::GetDistanceUnitsScale(radiusUnits);
+      std::string abbreviation =
+         types::GetDistanceUnitsAbbreviation(radiusUnits);
+
+      alertAudioRadius_.SetUnit(radiusScale, abbreviation);
+   };
+   settings::UnitSettings::Instance()
+      .distance_units()
+      .RegisterValueStagedCallback(alertAudioRadiusUpdateUnits);
+   alertAudioRadiusUpdateUnits(
+      settings::UnitSettings::Instance().distance_units().GetValue());
 
    auto& alertAudioPhenomena = types::GetAlertAudioPhenomena();
    auto  alertAudioLayout =
@@ -1267,6 +1383,19 @@ void SettingsDialogImpl::UpdateRadarDialogLocation(const std::string& id)
                                         radarSite->longitude());
    }
 }
+
+void SettingsDialogImpl::UpdateAlertRadarDialogLocation(const std::string& id)
+{
+   std::shared_ptr<config::RadarSite> radarSite = config::RadarSite::Get(id);
+
+   if (radarSite != nullptr)
+   {
+      alertAudioRadarSiteDialog_->HandleMapUpdate(radarSite->latitude(),
+                                                  radarSite->longitude());
+   }
+}
+
+
 
 QFont SettingsDialogImpl::GetSelectedFont()
 {

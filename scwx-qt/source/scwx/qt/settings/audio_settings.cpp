@@ -37,12 +37,17 @@ public:
       alertLocationMethod_.SetDefault(defaultAlertLocationMethodValue);
       alertLatitude_.SetDefault(0.0);
       alertLongitude_.SetDefault(0.0);
+      alertRadius_.SetDefault(0.0);
+      alertRadarSite_.SetDefault("default");
       ignoreMissingCodecs_.SetDefault(false);
 
       alertLatitude_.SetMinimum(-90.0);
       alertLatitude_.SetMaximum(90.0);
       alertLongitude_.SetMinimum(-180.0);
       alertLongitude_.SetMaximum(180.0);
+      alertRadius_.SetMinimum(0.0);
+      alertRadius_.SetMaximum(9999999999);
+
 
       alertLocationMethod_.SetValidator(
          SCWX_SETTINGS_ENUM_VALIDATOR(types::LocationMethod,
@@ -86,6 +91,8 @@ public:
    SettingsVariable<std::string> alertLocationMethod_ {"alert_location_method"};
    SettingsVariable<double>      alertLatitude_ {"alert_latitude"};
    SettingsVariable<double>      alertLongitude_ {"alert_longitude"};
+   SettingsVariable<std::string> alertRadarSite_ {"alert_radar_site"};
+   SettingsVariable<double>      alertRadius_ {"alert_radius"};
    SettingsVariable<std::string> alertCounty_ {"alert_county"};
    SettingsVariable<bool>        ignoreMissingCodecs_ {"ignore_missing_codecs"};
 
@@ -101,6 +108,8 @@ AudioSettings::AudioSettings() :
                       &p->alertLocationMethod_,
                       &p->alertLatitude_,
                       &p->alertLongitude_,
+                      &p->alertRadarSite_,
+                      &p->alertRadius_,
                       &p->alertCounty_,
                       &p->ignoreMissingCodecs_});
    RegisterVariables(p->variables_);
@@ -131,6 +140,16 @@ SettingsVariable<double>& AudioSettings::alert_latitude() const
 SettingsVariable<double>& AudioSettings::alert_longitude() const
 {
    return p->alertLongitude_;
+}
+
+SettingsVariable<std::string>& AudioSettings::alert_radar_site() const
+{
+   return p->alertRadarSite_;
+}
+
+SettingsVariable<double>& AudioSettings::alert_radius() const
+{
+   return p->alertRadius_;
 }
 
 SettingsVariable<std::string>& AudioSettings::alert_county() const
@@ -166,6 +185,8 @@ bool operator==(const AudioSettings& lhs, const AudioSettings& rhs)
            lhs.p->alertLocationMethod_ == rhs.p->alertLocationMethod_ &&
            lhs.p->alertLatitude_ == rhs.p->alertLatitude_ &&
            lhs.p->alertLongitude_ == rhs.p->alertLongitude_ &&
+           lhs.p->alertRadarSite_ == rhs.p->alertRadarSite_ &&
+           lhs.p->alertRadius_ == rhs.p->alertRadius_ &&
            lhs.p->alertCounty_ == rhs.p->alertCounty_ &&
            lhs.p->alertEnabled_ == rhs.p->alertEnabled_);
 }

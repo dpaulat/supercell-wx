@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+class QLabel;
+
 namespace scwx
 {
 namespace qt
@@ -92,6 +94,13 @@ public:
    void SetResetButton(QAbstractButton* button) override;
 
    /**
+    * Sets the label for units from the settings dialog.
+    *
+    * @param label Unit label
+    */
+   void SetUnitLabel(QLabel* label);
+
+   /**
     * If the edit widget displays a different value than what is stored in the
     * settings variable, a mapping function must be provided in order to convert
     * the value used by the edit widget from the settings value.
@@ -108,6 +117,14 @@ public:
     * @param function Map to settings value function
     */
    void SetMapToValueFunction(std::function<T(const std::string&)> function);
+
+   /**
+    * Sets the unit to be used by this setting.
+    *
+    * @param scale The radio of the current unit to the base unit
+    * @param abbreviation The abreviation to be displayed
+    */
+   void SetUnit(const double& scale, const std::string& abbreviation);
 
 private:
    class Impl;

@@ -6,6 +6,8 @@
 #include <scwx/qt/types/location_types.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
@@ -74,6 +76,8 @@ public:
       PositionManager::Instance()};
    std::shared_ptr<TextEventManager> textEventManager_ {
       TextEventManager::Instance()};
+
+   std::shared_ptr<config::RadarSite> radarSite_ {};
 };
 
 AlertManager::AlertManager() : p(std::make_unique<Impl>(this)) {}
@@ -100,6 +104,33 @@ common::Coordinate AlertManager::Impl::CurrentCoordinate(
          coordinate.longitude_            = trackedCoordinate.longitude();
       }
    }
+   else if (locationMethod == types::LocationMethod::RadarSite)
+   {
+      std::string radarSiteSelection =
+         audioSettings.alert_radar_site().GetValue();
+      std::shared_ptr<config::RadarSite> radarSite;
+      if (radarSiteSelection == "default")
+      {
+         std::string siteId = settings::GeneralSettings::Instance()
+                                 .default_radar_site()
+                                 .GetValue();
+         radarSite = config::RadarSite::Get(siteId);
+      }
+      else if (radarSiteSelection == "follow")
+      {
+         radarSite = radarSite_;
+      }
+      else
+      {
+         radarSite = config::RadarSite::Get(radarSiteSelection);
+      }
+
+      if (radarSite != nullptr)
+      {
+         coordinate.latitude_  = radarSite->latitude();
+         coordinate.longitude_ = radarSite->longitude();
+      }
+   }
 
    return coordinate;
 }
@@ -118,6 +149,8 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
       audioSettings.alert_location_method().GetValue());
    common::Coordinate currentCoordinate = CurrentCoordinate(locationMethod);
    std::string        alertCounty = audioSettings.alert_county().GetValue();
+   auto               alertRadius = units::length::kilometers<double>(
+      audioSettings.alert_radius().GetValue());
 
    auto message = textEventManager_->message_list(key).at(messageIndex);
 
@@ -145,13 +178,16 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
       bool activeAtLocation = (locationMethod == types::LocationMethod::All);
 
       if (locationMethod == types::LocationMethod::Fixed ||
-          locationMethod == types::LocationMethod::Track)
+          locationMethod == types::LocationMethod::Track ||
+          locationMethod == types::LocationMethod::RadarSite)
       {
          // Determine if the alert is active at the current coordinte
          auto alertCoordinates = segment->codedLocation_->coordinates();
 
-         activeAtLocation = util::GeographicLib::AreaContainsPoint(
-            alertCoordinates, currentCoordinate);
+         activeAtLocation = util::GeographicLib::AreaInRangeOfPoint(
+               alertCoordinates,
+               currentCoordinate,
+               alertRadius);
       }
       else if (locationMethod == types::LocationMethod::County)
       {
@@ -181,6 +217,27 @@ void AlertManager::Impl::UpdateLocationTracking(
       types::GetLocationMethod(locationMethodName);
    bool locationEnabled = locationMethod == types::LocationMethod::Track;
    positionManager_->EnablePositionUpdates(uuid_, locationEnabled);
+}
+
+void AlertManager::SetRadarSite(
+   const std::shared_ptr<config::RadarSite>& radarSite)
+{
+   if (p->radarSite_ == radarSite)
+   {
+      // No action needed
+      return;
+   }
+
+   if (radarSite == nullptr)
+   {
+      logger_->debug("SetRadarSite: ?");
+   }
+   else
+   {
+      logger_->debug("SetRadarSite: {}", radarSite->id());
+   }
+
+   p->radarSite_ = radarSite;
 }
 
 std::shared_ptr<AlertManager> AlertManager::Instance()

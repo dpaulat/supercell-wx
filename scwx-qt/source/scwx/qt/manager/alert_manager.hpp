@@ -1,5 +1,7 @@
 #pragma once
 
+#include <scwx/qt/config/radar_site.hpp>
+
 #include <memory>
 
 #include <QObject>
@@ -20,6 +22,7 @@ public:
    explicit AlertManager();
    ~AlertManager();
 
+   void SetRadarSite(const std::shared_ptr<config::RadarSite>& radarSite);
    static std::shared_ptr<AlertManager> Instance();
 
 private:

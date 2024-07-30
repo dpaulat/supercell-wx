@@ -1,6 +1,8 @@
 #include <scwx/qt/model/radar_site_model.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/settings/unit_settings.hpp>
 #include <scwx/qt/types/qt_types.hpp>
+#include <scwx/qt/types/unit_types.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/qt/util/json.hpp>
 #include <scwx/common/geographic.hpp>
@@ -36,7 +38,6 @@ public:
        radarSites_ {},
        geodesic_(util::GeographicLib::DefaultGeodesic()),
        distanceMap_ {},
-       distanceDisplay_ {scwx::common::DistanceType::Miles},
        previousPosition_ {}
    {
       // Get all loaded radar sites
@@ -64,7 +65,6 @@ public:
    const GeographicLib::Geodesic& geodesic_;
 
    std::unordered_map<std::string, double> distanceMap_;
-   scwx::common::DistanceType              distanceDisplay_;
    scwx::common::Coordinate                previousPosition_;
 
    QIcon starIcon_ {":/res/icons/font-awesome-6/star-solid.svg"};
@@ -213,18 +213,19 @@ QVariant RadarSiteModel::data(const QModelIndex& index, int role) const
       case static_cast<int>(Column::Distance):
          if (role == Qt::DisplayRole)
          {
-            if (p->distanceDisplay_ == scwx::common::DistanceType::Miles)
-            {
-               return QString("%1 mi").arg(
-                  static_cast<uint32_t>(p->distanceMap_.at(site->id()) *
-                                        scwx::common::kMilesPerMeter));
-            }
-            else
-            {
-               return QString("%1 km").arg(
-                  static_cast<uint32_t>(p->distanceMap_.at(site->id()) *
-                                        scwx::common::kKilometersPerMeter));
-            }
+            const std::string distanceUnitName =
+               settings::UnitSettings::Instance().distance_units().GetValue();
+            types::DistanceUnits distanceUnits =
+               types::GetDistanceUnitsFromName(distanceUnitName);
+            double distanceScale = types::GetDistanceUnitsScale(distanceUnits);
+            std::string abbreviation =
+               types::GetDistanceUnitsAbbreviation(distanceUnits);
+
+            return QString("%1 %2")
+               .arg(static_cast<uint32_t>(p->distanceMap_.at(site->id()) *
+                                          scwx::common::kKilometersPerMeter *
+                                          distanceScale))
+               .arg(QString::fromStdString(abbreviation));
          }
          else
          {

@@ -102,6 +102,16 @@ public:
                               types::GetSpeedUnitsName);
       AddRow(speedUnits_, "Speed", speedComboBox);
 
+      QComboBox* distanceComboBox = new QComboBox(self);
+      distanceComboBox->setSizePolicy(QSizePolicy::Expanding,
+                                   QSizePolicy::Preferred);
+      distanceUnits_.SetSettingsVariable(unitSettings.distance_units());
+      SCWX_SETTINGS_COMBO_BOX(distanceUnits_,
+                              distanceComboBox,
+                              types::DistanceUnitsIterator(),
+                              types::GetDistanceUnitsName);
+      AddRow(distanceUnits_, "Distance", distanceComboBox);
+
       QComboBox* otherComboBox = new QComboBox(self);
       otherComboBox->setSizePolicy(QSizePolicy::Expanding,
                                    QSizePolicy::Preferred);
@@ -127,6 +137,7 @@ public:
    settings::SettingsInterface<std::string> echoTopsUnits_ {};
    settings::SettingsInterface<std::string> otherUnits_ {};
    settings::SettingsInterface<std::string> speedUnits_ {};
+   settings::SettingsInterface<std::string> distanceUnits_ {};
 };
 
 UnitSettingsWidget::UnitSettingsWidget(QWidget* parent) :

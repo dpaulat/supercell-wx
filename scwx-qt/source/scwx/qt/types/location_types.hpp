@@ -15,6 +15,7 @@ enum class LocationMethod
 {
    Fixed,
    Track,
+   RadarSite,
    County,
    All,
    Unknown
