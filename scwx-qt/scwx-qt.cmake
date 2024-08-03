@@ -520,7 +520,7 @@ qt_add_translations(scwx-qt TS_FILES ${TS_FILES}
                     INCLUDE_DIRECTORIES true
                     LUPDATE_OPTIONS -locations none -no-ui-lines)
 
-if (TARGET update_translations)
+if (TARGET release_translations)
     set_target_properties(release_translations PROPERTIES FOLDER qt)
 endif()
 if (TARGET scwx-qt_lrelease)
