@@ -251,6 +251,11 @@ void Icons::Deinitialize()
    p->currentHoverIcons_.clear();
    p->currentIconBuffer_.clear();
    p->textureBuffer_.clear();
+   p->newIconList_.clear();
+   p->newValidIconList_.clear();
+   p->newIconSheets_.clear();
+   p->newHoverIcons_.clear();
+   p->newIconBuffer_.clear();
 }
 
 void Icons::SetVisible(bool visible)
