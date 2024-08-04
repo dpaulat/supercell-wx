@@ -244,7 +244,7 @@ public:
    Qt::KeyboardModifiers lastKeyboardModifiers_ {
       Qt::KeyboardModifier::NoModifier};
 
-   std::shared_ptr<types::EventHandler> pickedEventHandler_ {nullptr};
+   std::weak_ptr<types::EventHandler> weakPickedEventHandler_ {};
 
    uint64_t frameDraws_;
 
@@ -1320,11 +1320,12 @@ bool MapWidget::event(QEvent* e)
       return true;
    }
 
-   if (p->pickedEventHandler_ != nullptr &&
-       p->pickedEventHandler_->event_ != nullptr)
+   auto pickedEventHandler = p->weakPickedEventHandler_.lock();
+   if (pickedEventHandler != nullptr && pickedEventHandler->event_ != nullptr)
    {
-      p->pickedEventHandler_->event_(e);
+      pickedEventHandler->event_(e);
    }
+   pickedEventHandler.reset();
 
    return QOpenGLWidget::event(e);
 }
@@ -1593,34 +1594,35 @@ void MapWidgetImpl::RunMousePicking()
    }
 
    // If no draw item was picked, hide the tooltip
+   auto prevPickedEventHandler = weakPickedEventHandler_.lock();
    if (!itemPicked)
    {
       util::tooltip::Hide();
 
-      if (pickedEventHandler_ != nullptr)
+      if (prevPickedEventHandler != nullptr)
       {
          // Send leave event to picked event handler
-         if (pickedEventHandler_->event_ != nullptr)
+         if (prevPickedEventHandler->event_ != nullptr)
          {
             QEvent event(QEvent::Type::Leave);
-            pickedEventHandler_->event_(&event);
+            prevPickedEventHandler->event_(&event);
          }
 
          // Reset picked event handler
-         pickedEventHandler_ = nullptr;
+         weakPickedEventHandler_.reset();
       }
    }
    else if (eventHandler != nullptr)
    {
       // If the event handler changed
-      if (pickedEventHandler_ != eventHandler)
+      if (prevPickedEventHandler != eventHandler)
       {
          // Send leave event to old event handler
-         if (pickedEventHandler_ != nullptr &&
-             pickedEventHandler_->event_ != nullptr)
+         if (prevPickedEventHandler != nullptr &&
+             prevPickedEventHandler->event_ != nullptr)
          {
             QEvent event(QEvent::Type::Leave);
-            pickedEventHandler_->event_(&event);
+            prevPickedEventHandler->event_(&event);
          }
 
          // Send enter event to new event handler
@@ -1631,8 +1633,15 @@ void MapWidgetImpl::RunMousePicking()
          }
 
          // Store picked event handler
-         pickedEventHandler_ = eventHandler;
+         weakPickedEventHandler_ = eventHandler;
       }
+
+      eventHandler.reset();
+   }
+
+   if (prevPickedEventHandler != nullptr)
+   {
+      prevPickedEventHandler.reset();
    }
 
    Q_EMIT widget_->MouseCoordinateChanged(
