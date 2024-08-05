@@ -549,6 +549,7 @@ void AlertLayer::Impl::HandleGeoLinesEvent(
    switch (ev->type())
    {
    case QEvent::Type::MouseButtonPress:
+   {
       auto it = segmentsByLine_.find(di);
       if (it != segmentsByLine_.cend())
       {
@@ -556,6 +557,10 @@ void AlertLayer::Impl::HandleGeoLinesEvent(
          logger_->debug("Selected alert: {}", it->second->key_.ToString());
          Q_EMIT self_->AlertSelected(it->second->key_);
       }
+      break;
+   }
+
+   default:
       break;
    }
 }
