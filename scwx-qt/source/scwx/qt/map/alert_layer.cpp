@@ -206,6 +206,18 @@ AlertLayer::AlertLayer(std::shared_ptr<MapContext> context,
 
 AlertLayer::~AlertLayer() = default;
 
+void AlertLayer::InitializeHandler()
+{
+   static bool ftt = true;
+
+   if (ftt)
+   {
+      logger_->debug("Initializing handler");
+      AlertLayerHandler::Instance();
+      ftt = false;
+   }
+}
+
 void AlertLayer::Initialize()
 {
    logger_->debug("Initialize: {}", awips::GetPhenomenonText(p->phenomenon_));

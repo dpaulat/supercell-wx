@@ -99,6 +99,9 @@ public:
       overlayProductView->SetAutoRefresh(autoRefreshEnabled_);
       overlayProductView->SetAutoUpdate(autoUpdateEnabled_);
 
+      // Initialize AlertLayerHandler
+      map::AlertLayer::InitializeHandler();
+
       auto& generalSettings = settings::GeneralSettings::Instance();
 
       // Initialize context

@@ -29,6 +29,8 @@ public:
    void Render(const QMapLibre::CustomLayerRenderParameters&) override final;
    void Deinitialize() override final;
 
+   static void InitializeHandler();
+
 signals:
    void AlertSelected(const types::TextEventKey& key);
 
