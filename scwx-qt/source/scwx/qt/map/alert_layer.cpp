@@ -109,8 +109,10 @@ signals:
 class AlertLayer::Impl
 {
 public:
-   explicit Impl(std::shared_ptr<MapContext> context,
+   explicit Impl(AlertLayer*                 self,
+                 std::shared_ptr<MapContext> context,
                  awips::Phenomenon           phenomenon) :
+       self_ {self},
        phenomenon_ {phenomenon},
        geoLines_ {{false, std::make_shared<gl::draw::GeoLines>(context)},
                   {true, std::make_shared<gl::draw::GeoLines>(context)}}
@@ -165,6 +167,8 @@ public:
                  boost::container::stable_vector<
                     std::shared_ptr<gl::draw::GeoLineDrawItem>>& drawItems);
 
+   AlertLayer* self_;
+
    const awips::Phenomenon phenomenon_;
 
    std::unique_ptr<QObject> receiver_ {std::make_unique<QObject>()};
@@ -190,7 +194,7 @@ public:
 
 AlertLayer::AlertLayer(std::shared_ptr<MapContext> context,
                        awips::Phenomenon           phenomenon) :
-    DrawLayer(context), p(std::make_unique<Impl>(context, phenomenon))
+    DrawLayer(context), p(std::make_unique<Impl>(this, context, phenomenon))
 {
    for (auto alertActive : {false, true})
    {
@@ -536,7 +540,9 @@ void AlertLayer::Impl::HandleGeoLinesEvent(
       auto it = segmentsByLine_.find(di);
       if (it != segmentsByLine_.cend())
       {
-         logger_->info("Selected alert: {}", it->second->key_.ToString());
+         // Display alert dialog
+         logger_->debug("Selected alert: {}", it->second->key_.ToString());
+         Q_EMIT self_->AlertSelected(it->second->key_);
       }
       break;
    }

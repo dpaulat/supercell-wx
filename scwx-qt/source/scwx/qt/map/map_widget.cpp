@@ -1180,9 +1180,15 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
    {
       auto phenomenon = std::get<awips::Phenomenon>(description);
 
+      std::shared_ptr<AlertLayer> alertLayer =
+         std::make_shared<AlertLayer>(context_, phenomenon);
       AddLayer(fmt::format("alert.{}", awips::GetPhenomenonCode(phenomenon)),
-               std::make_shared<AlertLayer>(context_, phenomenon),
+               alertLayer,
                before);
+      connect(alertLayer.get(),
+              &AlertLayer::AlertSelected,
+              widget_,
+              &MapWidget::AlertSelected);
    }
    else if (type == types::LayerType::Placefile)
    {

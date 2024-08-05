@@ -2,6 +2,7 @@
 
 #include <scwx/awips/phenomenon.hpp>
 #include <scwx/qt/map/draw_layer.hpp>
+#include <scwx/qt/types/text_event_key.hpp>
 
 #include <memory>
 #include <string>
@@ -16,6 +17,7 @@ namespace map
 
 class AlertLayer : public DrawLayer
 {
+   Q_OBJECT
    Q_DISABLE_COPY_MOVE(AlertLayer)
 
 public:
@@ -26,6 +28,9 @@ public:
    void Initialize() override final;
    void Render(const QMapLibre::CustomLayerRenderParameters&) override final;
    void Deinitialize() override final;
+
+signals:
+   void AlertSelected(const types::TextEventKey& key);
 
 private:
    class Impl;

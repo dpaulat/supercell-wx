@@ -5,6 +5,7 @@
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/types/map_types.hpp>
 #include <scwx/qt/types/radar_product_record.hpp>
+#include <scwx/qt/types/text_event_key.hpp>
 
 #include <chrono>
 #include <memory>
@@ -150,6 +151,7 @@ private slots:
    void mapChanged(QMapLibre::Map::MapChange);
 
 signals:
+   void AlertSelected(const types::TextEventKey& key);
    void Level3ProductsChanged();
    void MapParametersChanged(double latitude,
                              double longitude,

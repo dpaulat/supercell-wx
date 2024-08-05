@@ -114,6 +114,13 @@ void AlertDockWidget::HandleMapUpdate(double latitude, double longitude)
    }
 }
 
+void AlertDockWidget::SelectAlert(const types::TextEventKey& key)
+{
+   // View alert
+   p->alertDialog_->SelectAlert(key);
+   p->alertDialog_->show();
+}
+
 void AlertDockWidgetImpl::ConnectSignals()
 {
    connect(self_->ui->alertFilter,

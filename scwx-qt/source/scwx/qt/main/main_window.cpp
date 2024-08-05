@@ -831,6 +831,10 @@ void MainWindowImpl::ConnectMapSignals()
    for (const auto& mapWidget : maps_)
    {
       connect(mapWidget,
+              &map::MapWidget::AlertSelected,
+              alertDockWidget_,
+              &ui::AlertDockWidget::SelectAlert);
+      connect(mapWidget,
               &map::MapWidget::MapParametersChanged,
               this,
               &MainWindowImpl::UpdateMapParameters);
