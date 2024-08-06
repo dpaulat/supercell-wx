@@ -13,6 +13,8 @@
 #include <unordered_set>
 
 #include <boost/algorithm/string/join.hpp>
+#include <boost/asio/system_timer.hpp>
+#include <boost/asio/thread_pool.hpp>
 #include <boost/container/stable_vector.hpp>
 #include <boost/container_hash/hash.hpp>
 #include <QEvent>
@@ -129,9 +131,16 @@ public:
       }
 
       ConnectSignals();
+      ScheduleRefresh();
    }
    ~Impl()
    {
+      std::unique_lock refreshLock(refreshMutex_);
+      refreshTimer_.cancel();
+      refreshLock.unlock();
+
+      threadPool_.join();
+
       receiver_ = nullptr;
 
       std::unique_lock lock(linesMutex_);
@@ -147,6 +156,7 @@ public:
                             QEvent*                                     ev);
    void HandleGeoLinesHover(std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
                             const QPointF& mouseGlobalPos);
+   void ScheduleRefresh();
 
    void AddLine(std::shared_ptr<gl::draw::GeoLines>&        geoLines,
                 std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
@@ -167,7 +177,12 @@ public:
                  boost::container::stable_vector<
                     std::shared_ptr<gl::draw::GeoLineDrawItem>>& drawItems);
 
+   boost::asio::thread_pool threadPool_ {1u};
+
    AlertLayer* self_;
+
+   boost::asio::system_timer refreshTimer_ {threadPool_};
+   std::mutex                refreshMutex_;
 
    const awips::Phenomenon phenomenon_;
 
@@ -385,6 +400,38 @@ void AlertLayer::Impl::ConnectSignals()
                     receiver_.get(),
                     [this](std::chrono::system_clock::time_point dateTime)
                     { selectedTime_ = dateTime; });
+}
+
+void AlertLayer::Impl::ScheduleRefresh()
+{
+   using namespace std::chrono_literals;
+
+   // Take a unique lock before refreshing
+   std::unique_lock lock(refreshMutex_);
+
+   // Expires at the top of the next minute
+   std::chrono::system_clock::time_point now =
+      std::chrono::floor<std::chrono::minutes>(
+         std::chrono::system_clock::now());
+   refreshTimer_.expires_at(now + 1min);
+
+   refreshTimer_.async_wait(
+      [this](const boost::system::error_code& e)
+      {
+         if (e == boost::asio::error::operation_aborted)
+         {
+            logger_->debug("Refresh timer cancelled");
+         }
+         else if (e != boost::system::errc::success)
+         {
+            logger_->warn("Refresh timer error: {}", e.message());
+         }
+         else
+         {
+            Q_EMIT self_->NeedsRendering();
+            ScheduleRefresh();
+         }
+      });
 }
 
 void AlertLayer::Impl::AddAlert(
