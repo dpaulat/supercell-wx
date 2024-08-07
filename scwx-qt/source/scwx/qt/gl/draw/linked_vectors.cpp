@@ -219,13 +219,13 @@ void LinkedVectors::FinishVectors()
             const double& latitude2  = coordinate2.latitude_;
             const double& longitude2 = coordinate2.longitude_;
 
-            GeoLines::SetLineLocation(
+            p->geoLines_->SetLineLocation(
                borderLine, latitude1, longitude1, latitude2, longitude2);
 
-            GeoLines::SetLineModulate(borderLine, kBlack);
-            GeoLines::SetLineWidth(borderLine, di->width_ + 2.0f);
-            GeoLines::SetLineVisible(borderLine, di->visible_);
-            GeoLines::SetLineHoverText(borderLine, di->hoverText_);
+            p->geoLines_->SetLineModulate(borderLine, kBlack);
+            p->geoLines_->SetLineWidth(borderLine, di->width_ + 2.0f);
+            p->geoLines_->SetLineVisible(borderLine, di->visible_);
+            p->geoLines_->SetLineHoverText(borderLine, di->hoverText_);
 
             di->borderDrawItems_.emplace_back(std::move(borderLine));
 
@@ -248,13 +248,13 @@ void LinkedVectors::FinishVectors()
 
                auto tickBorderLine = p->geoLines_->AddLine();
 
-               GeoLines::SetLineLocation(
+               p->geoLines_->SetLineLocation(
                   tickBorderLine, tickLat1, tickLon1, tickLat2, tickLon2);
 
-               GeoLines::SetLineModulate(tickBorderLine, kBlack);
-               GeoLines::SetLineWidth(tickBorderLine, di->width_ + 2.0f);
-               GeoLines::SetLineVisible(tickBorderLine, di->visible_);
-               GeoLines::SetLineHoverText(tickBorderLine, di->hoverText_);
+               p->geoLines_->SetLineModulate(tickBorderLine, kBlack);
+               p->geoLines_->SetLineWidth(tickBorderLine, di->width_ + 2.0f);
+               p->geoLines_->SetLineVisible(tickBorderLine, di->visible_);
+               p->geoLines_->SetLineHoverText(tickBorderLine, di->hoverText_);
 
                tickRadius += di->tickRadiusIncrement_;
             }
@@ -279,17 +279,17 @@ void LinkedVectors::FinishVectors()
          const double& latitude2  = coordinate2.latitude_;
          const double& longitude2 = coordinate2.longitude_;
 
-         GeoLines::SetLineLocation(
+         p->geoLines_->SetLineLocation(
             geoLine, latitude1, longitude1, latitude2, longitude2);
 
-         GeoLines::SetLineModulate(geoLine, di->modulate_);
-         GeoLines::SetLineWidth(geoLine, di->width_);
-         GeoLines::SetLineVisible(geoLine, di->visible_);
+         p->geoLines_->SetLineModulate(geoLine, di->modulate_);
+         p->geoLines_->SetLineWidth(geoLine, di->width_);
+         p->geoLines_->SetLineVisible(geoLine, di->visible_);
 
          // If the border is not enabled, this line must have hover text instead
          if (!p->borderEnabled_)
          {
-            GeoLines::SetLineHoverText(geoLine, di->hoverText_);
+            p->geoLines_->SetLineHoverText(geoLine, di->hoverText_);
          }
 
          di->lineDrawItems_.emplace_back(std::move(geoLine));
@@ -313,17 +313,17 @@ void LinkedVectors::FinishVectors()
 
             auto tickGeoLine = p->geoLines_->AddLine();
 
-            GeoLines::SetLineLocation(
+            p->geoLines_->SetLineLocation(
                tickGeoLine, tickLat1, tickLon1, tickLat2, tickLon2);
 
-            GeoLines::SetLineModulate(tickGeoLine, di->modulate_);
-            GeoLines::SetLineWidth(tickGeoLine, di->width_);
-            GeoLines::SetLineVisible(tickGeoLine, di->visible_);
+            p->geoLines_->SetLineModulate(tickGeoLine, di->modulate_);
+            p->geoLines_->SetLineWidth(tickGeoLine, di->width_);
+            p->geoLines_->SetLineVisible(tickGeoLine, di->visible_);
 
             // If the border is not enabled, this line must have hover text
             if (!p->borderEnabled_)
             {
-               GeoLines::SetLineHoverText(tickGeoLine, di->hoverText_);
+               p->geoLines_->SetLineHoverText(tickGeoLine, di->hoverText_);
             }
 
             tickRadius += di->tickRadiusIncrement_;

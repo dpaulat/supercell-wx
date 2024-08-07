@@ -104,16 +104,14 @@ std::shared_ptr<const Segment> TextProductMessage::segment(size_t s) const
    return p->segments_[s];
 }
 
-std::chrono::system_clock::time_point
-TextProductMessage::segment_event_begin(std::size_t s) const
+std::chrono::system_clock::time_point Segment::event_begin() const
 {
    std::chrono::system_clock::time_point eventBegin {};
 
-   auto& header = segment(s)->header_;
-   if (header.has_value() && !header->vtecString_.empty())
+   if (header_.has_value() && !header_->vtecString_.empty())
    {
       // Determine event begin from P-VTEC string
-      eventBegin = header->vtecString_[0].pVtec_.event_begin();
+      eventBegin = header_->vtecString_[0].pVtec_.event_begin();
 
       // If event begin is 000000T0000Z
       if (eventBegin == std::chrono::system_clock::time_point {})
@@ -122,13 +120,13 @@ TextProductMessage::segment_event_begin(std::size_t s) const
 
          // Determine event end from P-VTEC string
          system_clock::time_point eventEnd =
-            header->vtecString_[0].pVtec_.event_end();
+            header_->vtecString_[0].pVtec_.event_end();
 
          auto           endDays = floor<days>(eventEnd);
          year_month_day endDate {endDays};
 
          // Determine WMO date/time
-         std::string wmoDateTime = wmo_header()->date_time();
+         std::string wmoDateTime = wmoHeader_->date_time();
 
          bool          wmoDateTimeValid = false;
          unsigned int  dayOfMonth       = 0;
@@ -189,6 +187,25 @@ TextProductMessage::segment_event_begin(std::size_t s) const
    return eventBegin;
 }
 
+std::chrono::system_clock::time_point Segment::event_end() const
+{
+   std::chrono::system_clock::time_point eventEnd {};
+
+   if (header_.has_value() && !header_->vtecString_.empty())
+   {
+      // Determine event begin from P-VTEC string
+      eventEnd = header_->vtecString_[0].pVtec_.event_end();
+   }
+
+   return eventEnd;
+}
+
+std::chrono::system_clock::time_point
+TextProductMessage::segment_event_begin(std::size_t s) const
+{
+   return segment(s)->event_begin();
+}
+
 size_t TextProductMessage::data_size() const
 {
    return 0;
@@ -211,6 +228,7 @@ bool TextProductMessage::Parse(std::istream& is)
       }
 
       std::shared_ptr<Segment> segment = std::make_shared<Segment>();
+      segment->wmoHeader_              = p->wmoHeader_;
 
       if (i == 0)
       {

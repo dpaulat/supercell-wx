@@ -79,7 +79,6 @@ public:
        imGuiRendererInitialized_ {false},
        radarProductManager_ {nullptr},
        radarProductLayer_ {nullptr},
-       alertLayer_ {std::make_shared<AlertLayer>(context_)},
        overlayLayer_ {nullptr},
        placefileLayer_ {nullptr},
        colorTableLayer_ {nullptr},
@@ -99,6 +98,9 @@ public:
       auto overlayProductView = std::make_shared<view::OverlayProductView>();
       overlayProductView->SetAutoRefresh(autoRefreshEnabled_);
       overlayProductView->SetAutoUpdate(autoUpdateEnabled_);
+
+      // Initialize AlertLayerHandler
+      map::AlertLayer::InitializeHandler();
 
       auto& generalSettings = settings::GeneralSettings::Instance();
 
@@ -218,7 +220,6 @@ public:
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
    std::shared_ptr<RadarProductLayer>   radarProductLayer_;
-   std::shared_ptr<AlertLayer>          alertLayer_;
    std::shared_ptr<OverlayLayer>        overlayLayer_;
    std::shared_ptr<OverlayProductLayer> overlayProductLayer_ {nullptr};
    std::shared_ptr<PlacefileLayer>      placefileLayer_;
@@ -1180,10 +1181,17 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
    }
    else if (type == types::LayerType::Alert)
    {
-      // Add the alert layer for the phenomenon
-      auto newLayers = alertLayer_->AddLayers(
-         std::get<awips::Phenomenon>(description), before);
-      layerList_.insert(layerList_.end(), newLayers.cbegin(), newLayers.cend());
+      auto phenomenon = std::get<awips::Phenomenon>(description);
+
+      std::shared_ptr<AlertLayer> alertLayer =
+         std::make_shared<AlertLayer>(context_, phenomenon);
+      AddLayer(fmt::format("alert.{}", awips::GetPhenomenonCode(phenomenon)),
+               alertLayer,
+               before);
+      connect(alertLayer.get(),
+              &AlertLayer::AlertSelected,
+              widget_,
+              &MapWidget::AlertSelected);
    }
    else if (type == types::LayerType::Placefile)
    {

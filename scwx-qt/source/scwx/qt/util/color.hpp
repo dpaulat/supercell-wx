@@ -29,6 +29,16 @@ std::string ToArgbString(const boost::gil::rgba8_pixel_t& color);
  */
 boost::gil::rgba8_pixel_t ToRgba8PixelT(const std::string& argbString);
 
+/**
+ * Converts an ARGB string used by Qt libraries to a Boost.GIL 32-bit RGBA
+ * floating point pixel.
+ *
+ * @param argbString ARGB string in the format #AARRGGBB
+ *
+ * @return RGBA32 floating point pixel
+ */
+boost::gil::rgba32f_pixel_t ToRgba32fPixelT(const std::string& argbString);
+
 } // namespace color
 } // namespace util
 } // namespace qt

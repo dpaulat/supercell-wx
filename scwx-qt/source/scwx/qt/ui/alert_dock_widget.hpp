@@ -1,5 +1,7 @@
 #pragma once
 
+#include <scwx/qt/types/text_event_key.hpp>
+
 #include <QDockWidget>
 
 namespace Ui
@@ -32,6 +34,7 @@ signals:
 
 public slots:
    void HandleMapUpdate(double latitude, double longitude);
+   void SelectAlert(const types::TextEventKey& key);
 
 private:
    friend class AlertDockWidgetImpl;
