@@ -69,7 +69,7 @@ def ProcessCountiesDbf(dbInfo, dbfFilename):
 
     # Read dataframe
     dbfTable = gpd.read_file(filename        = dbfFilename,
-                             include_fields  = ["STATE", "FIPS", "COUNTYNAME"],
+                             columns         = ["STATE", "FIPS", "COUNTYNAME"],
                              ignore_geometry = True)
     dbfTable.drop_duplicates(inplace=True)
 
@@ -88,7 +88,7 @@ def ProcessStateDbf(dbInfo, dbfFilename):
 
     # Read dataframe
     dbfTable = gpd.read_file(filename        = dbfFilename,
-                             include_fields  = ["STATE", "NAME"],
+                             columns         = ["STATE", "NAME"],
                              ignore_geometry = True)
     dbfTable.drop_duplicates(inplace=True)
 
@@ -106,7 +106,7 @@ def ProcessZoneDbf(dbInfo, dbfFilename):
 
     # Read dataframe
     dbfTable = gpd.read_file(filename        = dbfFilename,
-                             include_fields  = ["ID", "STATE", "ZONE", "NAME"],
+                             columns         = ["ID", "STATE", "ZONE", "NAME"],
                              ignore_geometry = True)
     dbfTable.drop_duplicates(inplace=True)
 
