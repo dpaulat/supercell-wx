@@ -389,6 +389,8 @@ set(ZONE_DBF_FILES   ${SCWX_DIR}/data/db/fz05mr24.dbf
 set(STATE_DBF_FILES  ${SCWX_DIR}/data/db/s_05mr24.dbf)
 set(COUNTIES_SQLITE_DB ${scwx-qt_BINARY_DIR}/res/db/counties.db)
 
+set(RESOURCE_INPUT  ${scwx-qt_SOURCE_DIR}/res/scwx-qt.rc.in)
+set(RESOURCE_OUTPUT ${scwx-qt_BINARY_DIR}/res/scwx-qt.rc)
 set(VERSIONS_INPUT  ${scwx-qt_SOURCE_DIR}/source/scwx/qt/main/versions.hpp.in)
 set(VERSIONS_CACHE  ${scwx-qt_BINARY_DIR}/versions_cache.json)
 set(VERSIONS_HEADER ${scwx-qt_BINARY_DIR}/scwx/qt/main/versions.hpp)
@@ -491,14 +493,34 @@ add_custom_target(scwx-qt_generate_counties_db ALL
 
 add_dependencies(scwx-qt scwx-qt_generate_counties_db)
 
-add_custom_command(OUTPUT  ${VERSIONS_HEADER} ${VERSIONS_HEADER}-ALWAYS_RUN
-                   COMMAND ${Python_EXECUTABLE}
-                           ${scwx-qt_SOURCE_DIR}/tools/generate_versions.py
-                           -g ${SCWX_DIR}
-                           -v ${SCWX_VERSION}
-                           -c ${VERSIONS_CACHE}
-                           -i ${VERSIONS_INPUT}
-                           -o ${VERSIONS_HEADER})
+if (DEFINED ENV{GITHUB_RUN_NUMBER})
+    set(SCWX_BUILD_NUM $ENV{GITHUB_RUN_NUMBER})
+else()
+    set(SCWX_BUILD_NUM 0)
+endif()
+
+if (WIN32)
+    add_custom_command(OUTPUT  ${VERSIONS_HEADER} ${RESOURCE_OUTPUT} ${VERSIONS_HEADER}-ALWAYS_RUN
+                       COMMAND ${Python_EXECUTABLE}
+                               ${scwx-qt_SOURCE_DIR}/tools/generate_versions.py
+                               -g ${SCWX_DIR}
+                               -v ${SCWX_VERSION}
+                               -c ${VERSIONS_CACHE}
+                               -i ${VERSIONS_INPUT}
+                               -o ${VERSIONS_HEADER}
+                               -b ${SCWX_BUILD_NUM}
+                               --input-resource ${RESOURCE_INPUT}
+                               --output-resource ${RESOURCE_OUTPUT})
+else()
+    add_custom_command(OUTPUT  ${VERSIONS_HEADER} ${VERSIONS_HEADER}-ALWAYS_RUN
+                       COMMAND ${Python_EXECUTABLE}
+                               ${scwx-qt_SOURCE_DIR}/tools/generate_versions.py
+                               -g ${SCWX_DIR}
+                               -v ${SCWX_VERSION}
+                               -c ${VERSIONS_CACHE}
+                               -i ${VERSIONS_INPUT}
+                               -o ${VERSIONS_HEADER})
+endif()
 
 add_custom_target(scwx-qt_generate_versions ALL
                   DEPENDS ${VERSIONS_HEADER})
@@ -541,7 +563,7 @@ set_target_properties(scwx-qt_generate_versions    PROPERTIES FOLDER generate)
 set_target_properties(scwx-qt_update_radar_sites   PROPERTIES FOLDER generate)
 
 if (WIN32)
-    set(APP_ICON_RESOURCE_WINDOWS "${scwx-qt_SOURCE_DIR}/res/scwx-qt.rc")
+    set(APP_ICON_RESOURCE_WINDOWS ${RESOURCE_OUTPUT})
     qt_add_executable(supercell-wx ${EXECUTABLE_SOURCES} ${APP_ICON_RESOURCE_WINDOWS})
     set_target_properties(supercell-wx PROPERTIES WIN32_EXECUTABLE $<IF:$<CONFIG:Release>,TRUE,FALSE>)
 else()
