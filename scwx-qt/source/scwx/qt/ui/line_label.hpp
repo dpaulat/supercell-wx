@@ -1,0 +1,43 @@
+#pragma once
+
+#include <QFrame>
+
+#include <boost/gil/typedefs.hpp>
+
+namespace scwx
+{
+namespace qt
+{
+namespace ui
+{
+
+class LineLabel : public QFrame
+{
+   Q_OBJECT
+   Q_DISABLE_COPY_MOVE(LineLabel)
+
+public:
+   explicit LineLabel(QWidget* parent = nullptr);
+   ~LineLabel();
+
+   void set_border_color(boost::gil::rgba8_pixel_t color);
+   void set_highlight_color(boost::gil::rgba8_pixel_t color);
+   void set_line_color(boost::gil::rgba8_pixel_t color);
+
+   void set_border_width(std::size_t width);
+   void set_highlight_width(std::size_t width);
+   void set_line_width(std::size_t width);
+
+protected:
+   QSize minimumSizeHint() const override;
+   QSize sizeHint() const override;
+   void  paintEvent(QPaintEvent* e) override;
+
+private:
+   class Impl;
+   std::unique_ptr<Impl> p;
+};
+
+} // namespace ui
+} // namespace qt
+} // namespace scwx
