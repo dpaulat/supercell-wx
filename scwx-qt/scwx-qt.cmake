@@ -43,6 +43,7 @@ find_package(Qt${QT_VERSION_MAJOR}
                         SerialPort
                         Svg
                         Widgets
+                        Sql
              REQUIRED)
 
 set(SRC_EXE_MAIN source/scwx/qt/main/main.cpp)
