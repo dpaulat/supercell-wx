@@ -45,6 +45,7 @@ void LineLabel::set_border_width(std::size_t width)
 {
    p->borderWidth_ = width;
    p->pixmapDirty_ = true;
+   updateGeometry();
    update();
 }
 
@@ -52,6 +53,7 @@ void LineLabel::set_highlight_width(std::size_t width)
 {
    p->highlightWidth_ = width;
    p->pixmapDirty_    = true;
+   updateGeometry();
    update();
 }
 
@@ -59,6 +61,7 @@ void LineLabel::set_line_width(std::size_t width)
 {
    p->lineWidth_   = width;
    p->pixmapDirty_ = true;
+   updateGeometry();
    update();
 }
 
