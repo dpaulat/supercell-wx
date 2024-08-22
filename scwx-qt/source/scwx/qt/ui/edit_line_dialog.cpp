@@ -32,7 +32,7 @@ public:
                           {
                              boost::gil::rgba8_pixel_t color =
                                 util::color::ToRgba8PixelT(text.toStdString());
-                             self->p->set_color(*this, color);
+                             self->p->set_color(*this, color, false);
                           });
 
          QObject::connect(colorButton_,
@@ -65,7 +65,9 @@ public:
    void ShowColorDialog(EditComponent& component);
    void UpdateLineLabel();
 
-   void set_color(EditComponent& component, boost::gil::rgba8_pixel_t color);
+   void set_color(EditComponent&            component,
+                  boost::gil::rgba8_pixel_t color,
+                  bool                      updateLineEdit = true);
    void set_width(EditComponent& component, std::size_t width);
 
    static void SetBackgroundColor(const std::string& value, QFrame* frame);
@@ -207,13 +209,18 @@ void EditLineDialog::set_line_width(std::size_t width)
 }
 
 void EditLineDialog::Impl::set_color(EditComponent&            component,
-                                     boost::gil::rgba8_pixel_t color)
+                                     boost::gil::rgba8_pixel_t color,
+                                     bool                      updateLineEdit)
 {
    const std::string argbString {util::color::ToArgbString(color)};
 
    component.color_ = color;
-   component.colorLineEdit_->setText(QString::fromStdString(argbString));
    SetBackgroundColor(argbString, component.colorFrame_);
+
+   if (updateLineEdit)
+   {
+      component.colorLineEdit_->setText(QString::fromStdString(argbString));
+   }
 
    UpdateLineLabel();
 }
