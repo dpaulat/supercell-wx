@@ -19,6 +19,8 @@ std::string GetCountyName(const std::string& id);
 std::unordered_map<std::string, std::string>
 GetCounties(const std::string& state);
 const std::unordered_map<std::string, std::string>& GetStates();
+const std::unordered_map<std::string, std::string>& GetWFOs();
+const std::string& GetWFOName(const std::string& wfoId);
 
 } // namespace CountyDatabase
 } // namespace config
