@@ -17,6 +17,7 @@ enum class LocationMethod
    Track,
    RadarSite,
    County,
+   WFO,
    All,
    Unknown
 };

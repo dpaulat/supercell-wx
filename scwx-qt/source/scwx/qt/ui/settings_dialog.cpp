@@ -140,6 +140,7 @@ public:
           &alertAudioRadarSite_,
           &alertAudioRadius_,
           &alertAudioCounty_,
+          &alertAudioWFO_,
           &hoverTextWrap_,
           &tooltipMethod_,
           &placefileTextDropShadowEnabled_,
@@ -262,6 +263,7 @@ public:
    settings::SettingsInterface<std::string> alertAudioRadarSite_ {};
    settings::SettingsInterface<double>      alertAudioRadius_ {};
    settings::SettingsInterface<std::string> alertAudioCounty_ {};
+   settings::SettingsInterface<std::string> alertAudioWFO_ {};
 
    std::unordered_map<awips::Phenomenon, settings::SettingsInterface<bool>>
       alertAudioEnabled_ {};
@@ -1194,6 +1196,16 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioCounty_.SetSettingsVariable(audioSettings.alert_county());
    alertAudioCounty_.SetEditWidget(self_->ui->alertAudioCountyLineEdit);
    alertAudioCounty_.SetResetButton(self_->ui->resetAlertAudioCountyButton);
+
+   alertAudioWFO_.SetSettingsVariable(audioSettings.alert_wfo());
+   for (const auto& pair : config::CountyDatabase::GetWFOs())
+   {
+      self_->ui->alertAudioWFOComboBox->addItem(
+         QString::fromStdString(pair.first));
+   }
+   alertAudioWFO_.SetEditWidget(self_->ui->alertAudioWFOComboBox);
+   alertAudioWFO_.SetResetButton(self_->ui->resetAlertAudioWFOButton);
+
 }
 
 void SettingsDialogImpl::SetupTextTab()
