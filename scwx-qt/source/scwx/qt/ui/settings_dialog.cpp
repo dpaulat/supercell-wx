@@ -950,6 +950,8 @@ void SettingsDialogImpl::SetupAudioTab()
             locationMethod == types::LocationMethod::RadarSite;
          bool countyEntryEnabled =
             locationMethod == types::LocationMethod::County;
+         bool wfoEntryEnabled =
+            locationMethod == types::LocationMethod::WFO;
 
          self_->ui->alertAudioLatitudeSpinBox->setEnabled(
             coordinateEntryEnabled);
@@ -976,6 +978,9 @@ void SettingsDialogImpl::SetupAudioTab()
          self_->ui->alertAudioCountySelectButton->setEnabled(
             countyEntryEnabled);
          self_->ui->resetAlertAudioCountyButton->setEnabled(countyEntryEnabled);
+
+         self_->ui->alertAudioWFOComboBox->setEnabled(wfoEntryEnabled);
+         self_->ui->resetAlertAudioWFOButton->setEnabled(wfoEntryEnabled);
       });
 
    settings::AudioSettings& audioSettings = settings::AudioSettings::Instance();
@@ -1203,6 +1208,27 @@ void SettingsDialogImpl::SetupAudioTab()
       self_->ui->alertAudioWFOComboBox->addItem(
          QString::fromStdString(pair.first));
    }
+   /*
+   alertAudioWFO_.SetMapFromValueFunction([](const std::string& value) -> std::string {
+            if (value == "") {
+               return "";
+            }
+            return config::CountyDatabase::GetWFOs().at(value);
+         });
+   alertAudioWFO_.SetMapToValueFunction([](const std::string& value) -> std::string {
+            if (value == "") {
+               return "";
+            }
+            for (const auto& pair : config::CountyDatabase::GetWFOs())
+            {
+               if (value == pair.second)
+               {
+                  return pair.first;
+               }
+            }
+
+            return "";
+         });*/
    alertAudioWFO_.SetEditWidget(self_->ui->alertAudioWFOComboBox);
    alertAudioWFO_.SetResetButton(self_->ui->resetAlertAudioWFOButton);
 
