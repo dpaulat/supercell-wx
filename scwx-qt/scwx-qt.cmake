@@ -309,10 +309,12 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/serial_port_dialog.ui
            source/scwx/qt/ui/update_dialog.ui
            source/scwx/qt/ui/wfo_dialog.ui)
-set(HDR_UI_SETTINGS source/scwx/qt/ui/settings/hotkey_settings_widget.hpp
+set(HDR_UI_SETTINGS source/scwx/qt/ui/settings/alert_palette_settings_widget.hpp
+                    source/scwx/qt/ui/settings/hotkey_settings_widget.hpp
                     source/scwx/qt/ui/settings/settings_page_widget.hpp
                     source/scwx/qt/ui/settings/unit_settings_widget.hpp)
-set(SRC_UI_SETTINGS source/scwx/qt/ui/settings/hotkey_settings_widget.cpp
+set(SRC_UI_SETTINGS source/scwx/qt/ui/settings/alert_palette_settings_widget.cpp
+                    source/scwx/qt/ui/settings/hotkey_settings_widget.cpp
                     source/scwx/qt/ui/settings/settings_page_widget.cpp
                     source/scwx/qt/ui/settings/unit_settings_widget.cpp)
 set(HDR_UI_SETUP source/scwx/qt/ui/setup/audio_codec_page.hpp

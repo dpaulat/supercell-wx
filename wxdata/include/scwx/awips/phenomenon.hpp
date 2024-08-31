@@ -69,6 +69,7 @@ enum class Phenomenon
 };
 
 Phenomenon         GetPhenomenon(const std::string& code);
+Phenomenon         GetPhenomenonFromText(const std::string& text);
 const std::string& GetPhenomenonCode(Phenomenon phenomenon);
 const std::string& GetPhenomenonText(Phenomenon phenomenon);
 
