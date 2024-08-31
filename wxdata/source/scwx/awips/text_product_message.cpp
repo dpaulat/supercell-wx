@@ -390,9 +390,21 @@ void ParseCodedInformation(std::shared_ptr<Segment> segment,
             it->substr(threatTagIt->length());
 
          ThreatCategory threatCategory = GetThreatCategory(threatCategoryName);
-         if (threatCategory == ThreatCategory::Unknown)
+
+         switch (threatCategory)
          {
+         case ThreatCategory::Significant:
+            // "Significant" is no longer an official tag, and has largely been
+            // replaced with "Considerable".
+            threatCategory = ThreatCategory::Considerable;
+            break;
+
+         case ThreatCategory::Unknown:
             threatCategory = ThreatCategory::Base;
+            break;
+
+         default:
+            break;
          }
 
          segment->threatCategory_ = threatCategory;
