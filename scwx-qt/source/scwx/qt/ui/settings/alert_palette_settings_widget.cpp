@@ -80,6 +80,7 @@ public:
    QListWidget*    phenomenonListView_;
 
    EditLineDialog* editLineDialog_;
+   LineLabel*      activeLineLabel_ {nullptr};
 
    boost::unordered_flat_map<awips::Phenomenon, QWidget*> phenomenonPages_ {};
 };
@@ -93,37 +94,12 @@ AlertPaletteSettingsWidget::~AlertPaletteSettingsWidget() = default;
 
 void AlertPaletteSettingsWidget::Impl::SetupUi()
 {
-   // Setup primary widget layout
-   QGridLayout* gridLayout = new QGridLayout(self_);
-   gridLayout->setContentsMargins(0, 0, 0, 0);
-   self_->setLayout(gridLayout);
-
-   QWidget* phenomenonIndexPane = new QWidget(self_);
-   phenomenonPagesWidget_->setSizePolicy(QSizePolicy::Policy::Expanding,
+   // Setup phenomenon index pane
+   QLabel* phenomenonLabel = new QLabel(tr("Phenomenon:"), self_);
+   phenomenonPagesWidget_->setSizePolicy(QSizePolicy::Policy::MinimumExpanding,
                                          QSizePolicy::Policy::Preferred);
 
-   gridLayout->addWidget(phenomenonIndexPane, 0, 0);
-   gridLayout->addWidget(phenomenonPagesWidget_, 0, 1);
-
-   QSpacerItem* spacer =
-      new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
-   gridLayout->addItem(spacer, 1, 0);
-
-   // Setup phenomenon index pane
-   QVBoxLayout* phenomenonIndexLayout = new QVBoxLayout(self_);
-   phenomenonIndexPane->setLayout(phenomenonIndexLayout);
-
-   QLabel* phenomenonLabel = new QLabel(tr("Phenomenon:"), self_);
-   phenomenonListView_->setSizePolicy(QSizePolicy::Policy::Minimum,
-                                      QSizePolicy::Policy::Expanding);
-
-   phenomenonIndexLayout->addWidget(phenomenonLabel);
-   phenomenonIndexLayout->addWidget(phenomenonListView_);
-
    // Setup stacked widget
-   auto& paletteSettings = settings::PaletteSettings::Instance();
-   Q_UNUSED(paletteSettings);
-
    for (auto& phenomenon : settings::PaletteSettings::alert_phenomena())
    {
       QWidget* phenomenonWidget = CreateStackedWidgetPage(phenomenon);
@@ -136,11 +112,31 @@ void AlertPaletteSettingsWidget::Impl::SetupUi()
    }
 
    phenomenonListView_->setCurrentRow(0);
+
+   // Create phenomenon index pane layout
+   QVBoxLayout* phenomenonIndexLayout = new QVBoxLayout(self_);
+   phenomenonIndexLayout->addWidget(phenomenonLabel);
+   phenomenonIndexLayout->addWidget(phenomenonListView_);
+
+   QWidget* phenomenonIndexPane = new QWidget(self_);
+   phenomenonIndexPane->setLayout(phenomenonIndexLayout);
+
+   // Create primary widget layout
+   QGridLayout* gridLayout = new QGridLayout(self_);
+   gridLayout->setContentsMargins(0, 0, 0, 0);
+   gridLayout->addWidget(phenomenonIndexPane, 0, 0);
+   gridLayout->addWidget(phenomenonPagesWidget_, 0, 1);
+
+   QSpacerItem* spacer =
+      new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
+   gridLayout->addItem(spacer, 1, 0);
+
+   self_->setLayout(gridLayout);
 }
 
 void AlertPaletteSettingsWidget::Impl::ConnectSignals()
 {
-   QObject::connect(
+   connect(
       phenomenonListView_->selectionModel(),
       &QItemSelectionModel::selectionChanged,
       self_,
@@ -166,6 +162,31 @@ void AlertPaletteSettingsWidget::Impl::ConnectSignals()
                   variantData.toString().toStdString());
                SelectPhenomenon(phenomenon);
             }
+         }
+      });
+
+   connect(
+      editLineDialog_,
+      &EditLineDialog::accepted,
+      self_,
+      [this]()
+      {
+         // If the active line label was set
+         if (activeLineLabel_ != nullptr)
+         {
+            // Update the active line label with selected line settings
+            activeLineLabel_->set_border_color(editLineDialog_->border_color());
+            activeLineLabel_->set_highlight_color(
+               editLineDialog_->highlight_color());
+            activeLineLabel_->set_line_color(editLineDialog_->line_color());
+
+            activeLineLabel_->set_border_width(editLineDialog_->border_width());
+            activeLineLabel_->set_highlight_width(
+               editLineDialog_->highlight_width());
+            activeLineLabel_->set_line_width(editLineDialog_->line_width());
+
+            // Reset the active line label
+            activeLineLabel_ = nullptr;
          }
       });
 }
@@ -229,9 +250,36 @@ QWidget* AlertPaletteSettingsWidget::Impl::CreateStackedWidgetPage(
 void AlertPaletteSettingsWidget::Impl::AddPhenomenonLine(
    const std::string& name, QGridLayout* layout, int row)
 {
+   QToolButton* toolButton = new QToolButton(self_);
+   toolButton->setText(tr("..."));
+
+   LineLabel* lineLabel = new LineLabel(self_);
+
    layout->addWidget(new QLabel(tr(name.c_str()), self_), row, 0);
-   layout->addWidget(new LineLabel(self_), row, 1);
-   layout->addWidget(new QToolButton(self_), row, 2);
+   layout->addWidget(lineLabel, row, 1);
+   layout->addWidget(toolButton, row, 2);
+
+   connect(
+      toolButton,
+      &QAbstractButton::clicked,
+      self_,
+      [this, lineLabel]()
+      {
+         // Set the active line label for when the dialog is finished
+         activeLineLabel_ = lineLabel;
+
+         // Initialize dialog with current line settings
+         editLineDialog_->set_border_color(lineLabel->border_color());
+         editLineDialog_->set_highlight_color(lineLabel->highlight_color());
+         editLineDialog_->set_line_color(lineLabel->line_color());
+
+         editLineDialog_->set_border_width(lineLabel->border_width());
+         editLineDialog_->set_highlight_width(lineLabel->highlight_width());
+         editLineDialog_->set_line_width(lineLabel->line_width());
+
+         // Show the dialog
+         editLineDialog_->show();
+      });
 }
 
 } // namespace ui
