@@ -41,6 +41,36 @@ LineLabel::LineLabel(QWidget* parent) :
 
 LineLabel::~LineLabel() {}
 
+boost::gil::rgba8_pixel_t LineLabel::border_color() const
+{
+   return p->borderColor_;
+}
+
+boost::gil::rgba8_pixel_t LineLabel::highlight_color() const
+{
+   return p->highlightColor_;
+}
+
+boost::gil::rgba8_pixel_t LineLabel::line_color() const
+{
+   return p->lineColor_;
+}
+
+std::size_t LineLabel::border_width() const
+{
+   return p->borderWidth_;
+}
+
+std::size_t LineLabel::highlight_width() const
+{
+   return p->highlightWidth_;
+}
+
+std::size_t LineLabel::line_width() const
+{
+   return p->lineWidth_;
+}
+
 void LineLabel::set_border_width(std::size_t width)
 {
    p->borderWidth_ = width;

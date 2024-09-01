@@ -20,6 +20,14 @@ public:
    explicit LineLabel(QWidget* parent = nullptr);
    ~LineLabel();
 
+   boost::gil::rgba8_pixel_t border_color() const;
+   boost::gil::rgba8_pixel_t highlight_color() const;
+   boost::gil::rgba8_pixel_t line_color() const;
+
+   std::size_t border_width() const;
+   std::size_t highlight_width() const;
+   std::size_t line_width() const;
+
    void set_border_color(boost::gil::rgba8_pixel_t color);
    void set_highlight_color(boost::gil::rgba8_pixel_t color);
    void set_line_color(boost::gil::rgba8_pixel_t color);
