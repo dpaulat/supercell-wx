@@ -1208,27 +1208,6 @@ void SettingsDialogImpl::SetupAudioTab()
       self_->ui->alertAudioWFOComboBox->addItem(
          QString::fromStdString(pair.first));
    }
-   /*
-   alertAudioWFO_.SetMapFromValueFunction([](const std::string& value) -> std::string {
-            if (value == "") {
-               return "";
-            }
-            return config::CountyDatabase::GetWFOs().at(value);
-         });
-   alertAudioWFO_.SetMapToValueFunction([](const std::string& value) -> std::string {
-            if (value == "") {
-               return "";
-            }
-            for (const auto& pair : config::CountyDatabase::GetWFOs())
-            {
-               if (value == pair.second)
-               {
-                  return pair.first;
-               }
-            }
-
-            return "";
-         });*/
    alertAudioWFO_.SetEditWidget(self_->ui->alertAudioWFOComboBox);
    alertAudioWFO_.SetResetButton(self_->ui->resetAlertAudioWFOButton);
 
