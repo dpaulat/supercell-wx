@@ -23,6 +23,7 @@
 #include <scwx/qt/types/time_types.hpp>
 #include <scwx/qt/types/unit_types.hpp>
 #include <scwx/qt/ui/county_dialog.hpp>
+#include <scwx/qt/ui/wfo_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/ui/serial_port_dialog.hpp>
 #include <scwx/qt/ui/settings/hotkey_settings_widget.hpp>
@@ -108,6 +109,7 @@ public:
        alertAudioRadarSiteDialog_ {new RadarSiteDialog(self)},
        gpsSourceDialog_ {new SerialPortDialog(self)},
        countyDialog_ {new CountyDialog(self)},
+       wfoDialog_ {new WFODialog(self)},
        fontDialog_ {new QFontDialog(self)},
        fontCategoryModel_ {new QStandardItemModel(self)},
        settings_ {std::initializer_list<settings::SettingsInterfaceBase*> {
@@ -209,6 +211,7 @@ public:
    RadarSiteDialog*  alertAudioRadarSiteDialog_;
    SerialPortDialog* gpsSourceDialog_;
    CountyDialog*     countyDialog_;
+   WFODialog*        wfoDialog_;
    QFontDialog*      fontDialog_;
 
    QStandardItemModel* fontCategoryModel_;
@@ -979,7 +982,8 @@ void SettingsDialogImpl::SetupAudioTab()
             countyEntryEnabled);
          self_->ui->resetAlertAudioCountyButton->setEnabled(countyEntryEnabled);
 
-         self_->ui->alertAudioWFOComboBox->setEnabled(wfoEntryEnabled);
+         self_->ui->alertAudioWFOLineEdit->setEnabled(wfoEntryEnabled);
+         self_->ui->alertAudioWFOSelectButton->setEnabled(wfoEntryEnabled);
          self_->ui->resetAlertAudioWFOButton->setEnabled(wfoEntryEnabled);
       });
 
@@ -1202,13 +1206,41 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioCounty_.SetEditWidget(self_->ui->alertAudioCountyLineEdit);
    alertAudioCounty_.SetResetButton(self_->ui->resetAlertAudioCountyButton);
 
+   QObject::connect(
+      self_->ui->alertAudioWFOSelectButton,
+      &QAbstractButton::clicked,
+      self_,
+      [this]()
+      {
+         wfoDialog_->show();
+      });
+   QObject::connect(wfoDialog_,
+                    &WFODialog::accepted,
+                    self_,
+                    [this]()
+                    {
+                       std::string wfoId  = wfoDialog_->wfo_id();
+                       QString     qWFOId = QString::fromStdString(wfoId);
+                       self_->ui->alertAudioWFOLineEdit->setText(qWFOId);
+
+                       // setText does not emit the textEdited signal
+                       Q_EMIT self_->ui->alertAudioWFOLineEdit->textEdited(
+                          qWFOId);
+                    });
+   QObject::connect(self_->ui->alertAudioWFOLineEdit,
+                    &QLineEdit::textChanged,
+                    self_,
+                    [this](const QString& text)
+                    {
+                       std::string wfoName =
+                          config::CountyDatabase::GetWFOName(
+                             text.toStdString());
+                       self_->ui->alertAudioWFOLabel->setText(
+                          QString::fromStdString(wfoName));
+                    });
+
    alertAudioWFO_.SetSettingsVariable(audioSettings.alert_wfo());
-   for (const auto& pair : config::CountyDatabase::GetWFOs())
-   {
-      self_->ui->alertAudioWFOComboBox->addItem(
-         QString::fromStdString(pair.first));
-   }
-   alertAudioWFO_.SetEditWidget(self_->ui->alertAudioWFOComboBox);
+   alertAudioWFO_.SetEditWidget(self_->ui->alertAudioWFOLineEdit);
    alertAudioWFO_.SetResetButton(self_->ui->resetAlertAudioWFOButton);
 
 }
