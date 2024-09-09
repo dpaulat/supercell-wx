@@ -31,7 +31,7 @@ typedef std::unordered_map<char, StateMap>           FormatMap;
 static bool                                         initialized_ {false};
 static FormatMap                                    countyDatabase_;
 static std::unordered_map<std::string, std::string> stateMap_;
-static std::map<std::string, std::string> wfoMap_;
+static std::unordered_map<std::string, std::string> wfoMap_;
 
 void Initialize()
 {
@@ -264,14 +264,20 @@ const std::unordered_map<std::string, std::string>& GetStates()
    return stateMap_;
 }
 
-const std::map<std::string, std::string>& GetWFOs()
+const std::unordered_map<std::string, std::string>& GetWFOs()
 {
    return wfoMap_;
 }
 
 const std::string& GetWFOName(const std::string& wfoId)
 {
-   return wfoMap_.at(wfoId);
+   auto wfo = wfoMap_.find(wfoId);
+   if (wfo == wfoMap_.end())
+   {
+      return wfoId;
+   }
+
+   return wfo->second;
 }
 
 } // namespace CountyDatabase

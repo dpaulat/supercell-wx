@@ -4,7 +4,6 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <map>
 
 namespace scwx
 {
@@ -20,7 +19,7 @@ std::string GetCountyName(const std::string& id);
 std::unordered_map<std::string, std::string>
 GetCounties(const std::string& state);
 const std::unordered_map<std::string, std::string>& GetStates();
-const std::map<std::string, std::string>& GetWFOs();
+const std::unordered_map<std::string, std::string>& GetWFOs();
 const std::string& GetWFOName(const std::string& wfoId);
 
 } // namespace CountyDatabase
