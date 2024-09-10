@@ -116,7 +116,7 @@ std::string WFODialog::wfo_id()
 
 void WFODialog::Impl::UpdateModel()
 {
-   // Clear existing counties
+   // Clear existing WFOs
    model_->clear();
 
    // Disable OK button
