@@ -17,6 +17,7 @@ static const std::unordered_map<LocationMethod, std::string>
                         {LocationMethod::Track, "Track"},
                         {LocationMethod::RadarSite, "Radar Site"},
                         {LocationMethod::County, "County"},
+                        {LocationMethod::WFO, "WFO"},
                         {LocationMethod::All, "All"},
                         {LocationMethod::Unknown, "?"}};
 

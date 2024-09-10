@@ -136,8 +136,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>511</width>
-                <height>647</height>
+                <width>274</width>
+                <height>691</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout">
@@ -610,8 +610,8 @@
                    <rect>
                     <x>0</x>
                     <y>0</y>
-                    <width>66</width>
-                    <height>18</height>
+                    <width>98</width>
+                    <height>28</height>
                    </rect>
                   </property>
                   <layout class="QGridLayout" name="gridLayout_3">
@@ -691,14 +691,86 @@
               <string>Alerts</string>
              </property>
              <layout class="QGridLayout" name="gridLayout_10">
-              <item row="3" column="6">
-               <widget class="QToolButton" name="resetAlertAudioLongitudeButton">
+              <item row="7" column="0">
+               <widget class="QLabel" name="label_19">
+                <property name="text">
+                 <string>County</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="6">
+               <widget class="QToolButton" name="resetAlertAudioRadarSiteButton">
                 <property name="text">
                  <string>...</string>
                 </property>
                 <property name="icon">
                  <iconset resource="../../../../scwx-qt.qrc">
                   <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="label_12">
+                <property name="text">
+                 <string>Location Method</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1" colspan="2">
+               <widget class="QLineEdit" name="alertAudioSoundLineEdit"/>
+              </item>
+              <item row="2" column="6">
+               <widget class="QToolButton" name="resetAlertAudioLatitudeButton">
+                <property name="text">
+                 <string>...</string>
+                </property>
+                <property name="icon">
+                 <iconset resource="../../../../scwx-qt.qrc">
+                  <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="0">
+               <widget class="QLabel" name="label_16">
+                <property name="text">
+                 <string>Longitude</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="3">
+               <widget class="QToolButton" name="alertAudioRadarSiteSelectButton">
+                <property name="text">
+                 <string>...</string>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="3">
+               <widget class="QLabel" name="alertAudioRadiusUnitsLabel">
+                <property name="text">
+                 <string/>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="label_14">
+                <property name="text">
+                 <string>Latitude</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1" colspan="2">
+               <widget class="QDoubleSpinBox" name="alertAudioLatitudeSpinBox">
+                <property name="decimals">
+                 <number>4</number>
+                </property>
+                <property name="minimum">
+                 <double>-90.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>90.000000000000000</double>
+                </property>
+                <property name="singleStep">
+                 <double>0.000100000000000</double>
                 </property>
                </widget>
               </item>
@@ -718,8 +790,8 @@
                 </property>
                </widget>
               </item>
-              <item row="2" column="6">
-               <widget class="QToolButton" name="resetAlertAudioLatitudeButton">
+              <item row="7" column="6">
+               <widget class="QToolButton" name="resetAlertAudioCountyButton">
                 <property name="text">
                  <string>...</string>
                 </property>
@@ -729,38 +801,25 @@
                 </property>
                </widget>
               </item>
-              <item row="1" column="1" colspan="2">
-               <widget class="QComboBox" name="alertAudioLocationMethodComboBox">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
+              <item row="0" column="4">
+               <widget class="QToolButton" name="alertAudioSoundTestButton">
+                <property name="icon">
+                 <iconset resource="../../../../scwx-qt.qrc">
+                  <normaloff>:/res/icons/font-awesome-6/play-solid.svg</normaloff>:/res/icons/font-awesome-6/play-solid.svg</iconset>
                 </property>
                </widget>
               </item>
-              <item row="7" column="0">
-               <widget class="QLabel" name="label_19">
-                <property name="text">
-                 <string>County</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="6">
-               <widget class="QToolButton" name="resetAlertAudioSoundButton">
+              <item row="7" column="3">
+               <widget class="QToolButton" name="alertAudioCountySelectButton">
                 <property name="text">
                  <string>...</string>
                 </property>
-                <property name="icon">
-                 <iconset resource="../../../../scwx-qt.qrc">
-                  <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
-                </property>
                </widget>
               </item>
-              <item row="5" column="3">
-               <widget class="QLabel" name="alertAudioRadiusUnitsLabel">
+              <item row="5" column="0">
+               <widget class="QLabel" name="alertAudioRadiusLabel">
                 <property name="text">
-                 <string/>
+                 <string>Radius</string>
                 </property>
                </widget>
               </item>
@@ -780,14 +839,10 @@
                 </property>
                </widget>
               </item>
-              <item row="1" column="6">
-               <widget class="QToolButton" name="resetAlertAudioLocationMethodButton">
+              <item row="4" column="0">
+               <widget class="QLabel" name="label_28">
                 <property name="text">
-                 <string>...</string>
-                </property>
-                <property name="icon">
-                 <iconset resource="../../../../scwx-qt.qrc">
-                  <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+                 <string>Radar Site</string>
                 </property>
                </widget>
               </item>
@@ -795,32 +850,6 @@
                <widget class="QToolButton" name="alertAudioSoundSelectButton">
                 <property name="text">
                  <string>...</string>
-                </property>
-               </widget>
-              </item>
-              <item row="7" column="3">
-               <widget class="QToolButton" name="alertAudioCountySelectButton">
-                <property name="text">
-                 <string>...</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1" colspan="2">
-               <widget class="QLineEdit" name="alertAudioSoundLineEdit"/>
-              </item>
-              <item row="2" column="1" colspan="2">
-               <widget class="QDoubleSpinBox" name="alertAudioLatitudeSpinBox">
-                <property name="decimals">
-                 <number>4</number>
-                </property>
-                <property name="minimum">
-                 <double>-90.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>90.000000000000000</double>
-                </property>
-                <property name="singleStep">
-                 <double>0.000100000000000</double>
                 </property>
                </widget>
               </item>
@@ -832,28 +861,14 @@
                 </property>
                </widget>
               </item>
-              <item row="5" column="6">
-               <widget class="QToolButton" name="resetAlertAudioRadiusButton">
+              <item row="1" column="6">
+               <widget class="QToolButton" name="resetAlertAudioLocationMethodButton">
                 <property name="text">
                  <string>...</string>
                 </property>
                 <property name="icon">
                  <iconset resource="../../../../scwx-qt.qrc">
                   <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="0">
-               <widget class="QLabel" name="label_14">
-                <property name="text">
-                 <string>Latitude</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="0">
-               <widget class="QLabel" name="label_17">
-                <property name="text">
-                 <string>Sound</string>
                 </property>
                </widget>
               </item>
@@ -870,11 +885,25 @@
                 </property>
                </widget>
               </item>
-              <item row="0" column="4">
-               <widget class="QToolButton" name="alertAudioSoundTestButton">
+              <item row="5" column="6">
+               <widget class="QToolButton" name="resetAlertAudioRadiusButton">
+                <property name="text">
+                 <string>...</string>
+                </property>
                 <property name="icon">
                  <iconset resource="../../../../scwx-qt.qrc">
-                  <normaloff>:/res/icons/font-awesome-6/play-solid.svg</normaloff>:/res/icons/font-awesome-6/play-solid.svg</iconset>
+                  <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="6">
+               <widget class="QToolButton" name="resetAlertAudioSoundButton">
+                <property name="text">
+                 <string>...</string>
+                </property>
+                <property name="icon">
+                 <iconset resource="../../../../scwx-qt.qrc">
+                  <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
                 </property>
                </widget>
               </item>
@@ -891,65 +920,71 @@
                 </property>
                </widget>
               </item>
-              <item row="1" column="0">
-               <widget class="QLabel" name="label_12">
-                <property name="text">
-                 <string>Location Method</string>
-                </property>
-               </widget>
-              </item>
-              <item row="7" column="6">
-               <widget class="QToolButton" name="resetAlertAudioCountyButton">
-                <property name="text">
-                 <string>...</string>
-                </property>
-                <property name="icon">
-                 <iconset resource="../../../../scwx-qt.qrc">
-                  <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="0">
-               <widget class="QLabel" name="alertAudioRadiusLabel">
-                <property name="text">
-                 <string>Radius</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="0">
-               <widget class="QLabel" name="label_16">
-                <property name="text">
-                 <string>Longitude</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="0">
-               <widget class="QLabel" name="label_28">
-                <property name="text">
-                 <string>Radar Site</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="3">
-               <widget class="QToolButton" name="alertAudioRadarSiteSelectButton">
-                <property name="text">
-                 <string>...</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="6">
-               <widget class="QToolButton" name="resetAlertAudioRadarSiteButton">
-                <property name="text">
-                 <string>...</string>
-                </property>
-                <property name="icon">
-                 <iconset resource="../../../../scwx-qt.qrc">
-                  <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
-                </property>
-               </widget>
-              </item>
               <item row="4" column="1" colspan="2">
                <widget class="QComboBox" name="alertAudioRadarSiteComboBox"/>
+              </item>
+              <item row="1" column="1" colspan="2">
+               <widget class="QComboBox" name="alertAudioLocationMethodComboBox">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="6">
+               <widget class="QToolButton" name="resetAlertAudioLongitudeButton">
+                <property name="text">
+                 <string>...</string>
+                </property>
+                <property name="icon">
+                 <iconset resource="../../../../scwx-qt.qrc">
+                  <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="0">
+               <widget class="QLabel" name="label_17">
+                <property name="text">
+                 <string>Sound</string>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="0">
+               <widget class="QLabel" name="label_29">
+                <property name="text">
+                 <string>WFO</string>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="6">
+               <widget class="QToolButton" name="resetAlertAudioWFOButton">
+                <property name="text">
+                 <string>...</string>
+                </property>
+                <property name="icon">
+                 <iconset resource="../../../../scwx-qt.qrc">
+                  <normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</normaloff>:/res/icons/font-awesome-6/rotate-left-solid.svg</iconset>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="1">
+               <widget class="QLineEdit" name="alertAudioWFOLineEdit"/>
+              </item>
+              <item row="8" column="2">
+               <widget class="QLabel" name="alertAudioWFOLabel">
+                <property name="text">
+                 <string/>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="3">
+               <widget class="QToolButton" name="alertAudioWFOSelectButton">
+                <property name="text">
+                 <string>...</string>
+                </property>
+               </widget>
               </item>
              </layout>
             </widget>

@@ -151,6 +151,7 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
    std::string        alertCounty = audioSettings.alert_county().GetValue();
    auto               alertRadius = units::length::kilometers<double>(
       audioSettings.alert_radius().GetValue());
+   std::string alertWFO = audioSettings.alert_wfo().GetValue();
 
    auto message = textEventManager_->message_list(key).at(messageIndex);
 
@@ -185,9 +186,7 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
          auto alertCoordinates = segment->codedLocation_->coordinates();
 
          activeAtLocation = util::GeographicLib::AreaInRangeOfPoint(
-               alertCoordinates,
-               currentCoordinate,
-               alertRadius);
+            alertCoordinates, currentCoordinate, alertRadius);
       }
       else if (locationMethod == types::LocationMethod::County)
       {
@@ -195,6 +194,12 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
          auto fipsIds = segment->header_->ugc_.fips_ids();
          auto it = std::find(fipsIds.cbegin(), fipsIds.cend(), alertCounty);
          activeAtLocation = it != fipsIds.cend();
+      }
+      else if (locationMethod == types::LocationMethod::WFO)
+      {
+         std::string wfoId = vtec.pVtec_.office_id();
+
+         activeAtLocation = wfoId == alertWFO;
       }
 
       if (activeAtLocation)

@@ -240,6 +240,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/animation_dock_widget.hpp
            source/scwx/qt/ui/collapsible_group.hpp
            source/scwx/qt/ui/county_dialog.hpp
+           source/scwx/qt/ui/wfo_dialog.hpp
            source/scwx/qt/ui/download_dialog.hpp
            source/scwx/qt/ui/flow_layout.hpp
            source/scwx/qt/ui/gps_info_dialog.hpp
@@ -265,6 +266,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/animation_dock_widget.cpp
            source/scwx/qt/ui/collapsible_group.cpp
            source/scwx/qt/ui/county_dialog.cpp
+           source/scwx/qt/ui/wfo_dialog.cpp
            source/scwx/qt/ui/download_dialog.cpp
            source/scwx/qt/ui/flow_layout.cpp
            source/scwx/qt/ui/gps_info_dialog.cpp
@@ -290,6 +292,7 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/animation_dock_widget.ui
            source/scwx/qt/ui/collapsible_group.ui
            source/scwx/qt/ui/county_dialog.ui
+           source/scwx/qt/ui/wfo_dialog.ui
            source/scwx/qt/ui/gps_info_dialog.ui
            source/scwx/qt/ui/imgui_debug_dialog.ui
            source/scwx/qt/ui/layer_dialog.ui
@@ -388,6 +391,7 @@ set(ZONE_DBF_FILES   ${SCWX_DIR}/data/db/fz05mr24.dbf
                      ${SCWX_DIR}/data/db/oz05mr24.dbf
                      ${SCWX_DIR}/data/db/z_05mr24.dbf)
 set(STATE_DBF_FILES  ${SCWX_DIR}/data/db/s_05mr24.dbf)
+set(WFO_DBF_FILES    ${SCWX_DIR}/data/db/w_05mr24.dbf)
 set(COUNTIES_SQLITE_DB ${scwx-qt_BINARY_DIR}/res/db/counties.db)
 
 set(RESOURCE_INPUT  ${scwx-qt_SOURCE_DIR}/res/scwx-qt.rc.in)
@@ -483,11 +487,13 @@ add_custom_command(OUTPUT  ${COUNTIES_SQLITE_DB}
                            -c ${COUNTY_DBF_FILES}
                            -z ${ZONE_DBF_FILES}
                            -s ${STATE_DBF_FILES}
+                           -w ${WFO_DBF_FILES}
                            -o ${COUNTIES_SQLITE_DB}
                    DEPENDS ${scwx-qt_SOURCE_DIR}/tools/generate_counties_db.py
                            ${COUNTY_DB_FILES}
                            ${STATE_DBF_FILES}
-                           ${ZONE_DBF_FILES})
+                           ${ZONE_DBF_FILES}
+                           ${WFO_DBF_FILES})
 
 add_custom_target(scwx-qt_generate_counties_db ALL
                   DEPENDS ${COUNTIES_SQLITE_DB})

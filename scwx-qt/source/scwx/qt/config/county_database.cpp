@@ -31,6 +31,7 @@ typedef std::unordered_map<char, StateMap>           FormatMap;
 static bool                                         initialized_ {false};
 static FormatMap                                    countyDatabase_;
 static std::unordered_map<std::string, std::string> stateMap_;
+static std::unordered_map<std::string, std::string> wfoMap_;
 
 void Initialize()
 {
@@ -168,6 +169,39 @@ void Initialize()
       sqlite3_free(errorMessage);
    }
 
+   // Query database for WFOs
+   rc = sqlite3_exec(
+      db,
+      "SELECT id, city_state FROM wfos",
+      [](void* /* param */,
+         int    columns,
+         char** columnText,
+         char** /* columnName */) -> int
+      {
+         int status = 0;
+
+         if (columns == 2)
+         {
+            wfoMap_.emplace(columnText[0], columnText[1]);
+         }
+         else
+         {
+            logger_->error(
+               "WFO database format error, invalid number of columns: {}",
+               columns);
+            status = -1;
+         }
+
+         return status;
+      },
+      nullptr,
+      &errorMessage);
+   if (rc != SQLITE_OK)
+   {
+      logger_->error("SQL error: {}", errorMessage);
+      sqlite3_free(errorMessage);
+   }
+
    // Close database
    sqlite3_close(db);
 
@@ -228,6 +262,22 @@ GetCounties(const std::string& state)
 const std::unordered_map<std::string, std::string>& GetStates()
 {
    return stateMap_;
+}
+
+const std::unordered_map<std::string, std::string>& GetWFOs()
+{
+   return wfoMap_;
+}
+
+const std::string& GetWFOName(const std::string& wfoId)
+{
+   auto wfo = wfoMap_.find(wfoId);
+   if (wfo == wfoMap_.end())
+   {
+      return wfoId;
+   }
+
+   return wfo->second;
 }
 
 } // namespace CountyDatabase

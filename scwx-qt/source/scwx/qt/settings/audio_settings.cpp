@@ -39,6 +39,7 @@ public:
       alertLongitude_.SetDefault(0.0);
       alertRadius_.SetDefault(0.0);
       alertRadarSite_.SetDefault("default");
+      alertWFO_.SetDefault("");
       ignoreMissingCodecs_.SetDefault(false);
 
       alertLatitude_.SetMinimum(-90.0);
@@ -61,6 +62,14 @@ public:
             return value.empty() ||
                    config::CountyDatabase::GetCountyName(value) != value;
          });
+
+      alertWFO_.SetValidator(
+         [](const std::string& value)
+         {
+            return value.empty() ||
+                   config::CountyDatabase::GetWFOs().count(value) != 0;
+         });
+
 
       auto& alertAudioPhenomena = types::GetAlertAudioPhenomena();
       alertEnabled_.reserve(alertAudioPhenomena.size() + 1);
@@ -94,6 +103,7 @@ public:
    SettingsVariable<std::string> alertRadarSite_ {"alert_radar_site"};
    SettingsVariable<double>      alertRadius_ {"alert_radius"};
    SettingsVariable<std::string> alertCounty_ {"alert_county"};
+   SettingsVariable<std::string> alertWFO_ {"alert_wfo"};
    SettingsVariable<bool>        ignoreMissingCodecs_ {"ignore_missing_codecs"};
 
    std::unordered_map<awips::Phenomenon, SettingsVariable<bool>>
@@ -111,6 +121,7 @@ AudioSettings::AudioSettings() :
                       &p->alertRadarSite_,
                       &p->alertRadius_,
                       &p->alertCounty_,
+                      &p->alertWFO_,
                       &p->ignoreMissingCodecs_});
    RegisterVariables(p->variables_);
    SetDefaults();
@@ -157,6 +168,11 @@ SettingsVariable<std::string>& AudioSettings::alert_county() const
    return p->alertCounty_;
 }
 
+SettingsVariable<std::string>& AudioSettings::alert_wfo() const
+{
+   return p->alertWFO_;
+}
+
 SettingsVariable<bool>&
 AudioSettings::alert_enabled(awips::Phenomenon phenomenon) const
 {
@@ -188,6 +204,7 @@ bool operator==(const AudioSettings& lhs, const AudioSettings& rhs)
            lhs.p->alertRadarSite_ == rhs.p->alertRadarSite_ &&
            lhs.p->alertRadius_ == rhs.p->alertRadius_ &&
            lhs.p->alertCounty_ == rhs.p->alertCounty_ &&
+           lhs.p->alertWFO_ == rhs.p->alertWFO_ &&
            lhs.p->alertEnabled_ == rhs.p->alertEnabled_);
 }
 
