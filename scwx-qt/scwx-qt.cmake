@@ -492,7 +492,8 @@ add_custom_command(OUTPUT  ${COUNTIES_SQLITE_DB}
                    DEPENDS ${scwx-qt_SOURCE_DIR}/tools/generate_counties_db.py
                            ${COUNTY_DB_FILES}
                            ${STATE_DBF_FILES}
-                           ${ZONE_DBF_FILES})
+                           ${ZONE_DBF_FILES}
+                           ${WFO_DBF_FILES})
 
 add_custom_target(scwx-qt_generate_counties_db ALL
                   DEPENDS ${COUNTIES_SQLITE_DB})
