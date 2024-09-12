@@ -33,6 +33,7 @@ public:
    SettingsVariable<bool>& map_settings_expanded() const;
    SettingsVariable<bool>& timeline_expanded() const;
    SettingsVariable<bool>& alert_dock_visible() const;
+   SettingsVariable<bool>& radar_toolbox_dock_visible() const;
 
    bool Shutdown();
 
