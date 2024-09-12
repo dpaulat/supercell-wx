@@ -32,7 +32,6 @@ public:
    SettingsVariable<bool>& level3_products_expanded() const;
    SettingsVariable<bool>& map_settings_expanded() const;
    SettingsVariable<bool>& timeline_expanded() const;
-   SettingsVariable<bool>& radar_toolbox_dock_visible() const;
    SettingsVariable<std::string>& main_ui_state() const;
 
    bool Shutdown();

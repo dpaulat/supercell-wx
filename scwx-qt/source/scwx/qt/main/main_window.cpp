@@ -277,13 +277,10 @@ MainWindow::MainWindow(QWidget* parent) :
 
    ui->radarSitePresetsButton->setVisible(!radarSitePresets.empty());
 
-   auto& uiSettings = settings::UiSettings::Instance();
    // Configure Alert Dock
-   bool alertDockVisible_ = uiSettings.alert_dock_visible().GetValue();
    p->alertDockWidget_ = new ui::AlertDockWidget(this);
    p->alertDockWidget_->setVisible(false);
    addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
-   p->alertDockWidget_->setVisible(alertDockVisible_);
 
    // GPS Info Dialog
    p->gpsInfoDialog_ = new ui::GpsInfoDialog(this);
@@ -293,24 +290,10 @@ MainWindow::MainWindow(QWidget* parent) :
                               ui->radarToolboxDock->toggleViewAction());
    ui->radarToolboxDock->toggleViewAction()->setText(tr("Radar &Toolbox"));
    ui->actionRadarToolbox->setVisible(false);
-   ui->radarToolboxDock->setVisible(
-      uiSettings.radar_toolbox_dock_visible().GetValue());
-
-   // Update dock setting on visiblity change.
-   connect(ui->radarToolboxDock->toggleViewAction(),
-           &QAction::triggered,
-           this,
-           [](bool checked)
-           {
-              settings::UiSettings::Instance()
-                 .radar_toolbox_dock_visible()
-                 .StageValue(checked);
-           });
 
    ui->menuView->insertAction(ui->actionAlerts,
                               p->alertDockWidget_->toggleViewAction());
    p->alertDockWidget_->toggleViewAction()->setText(tr("&Alerts"));
-   ui->actionAlerts->setVisible(false);
 
    ui->menuDebug->menuAction()->setVisible(
       settings::GeneralSettings::Instance().debug_enabled().GetValue());
@@ -837,6 +820,7 @@ void MainWindowImpl::ConfigureUiSettings()
    mapSettingsGroup_->SetExpanded(
       uiSettings.map_settings_expanded().GetValue());
    timelineGroup_->SetExpanded(uiSettings.timeline_expanded().GetValue());
+   alertDockWidget_->setVisible(uiSettings.alert_dock_visible().GetValue());
 
    connect(level2ProductsGroup_,
            &ui::CollapsibleGroup::StateChanged,
