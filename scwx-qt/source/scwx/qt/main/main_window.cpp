@@ -820,7 +820,6 @@ void MainWindowImpl::ConfigureUiSettings()
    mapSettingsGroup_->SetExpanded(
       uiSettings.map_settings_expanded().GetValue());
    timelineGroup_->SetExpanded(uiSettings.timeline_expanded().GetValue());
-   alertDockWidget_->setVisible(uiSettings.alert_dock_visible().GetValue());
 
    connect(level2ProductsGroup_,
            &ui::CollapsibleGroup::StateChanged,
