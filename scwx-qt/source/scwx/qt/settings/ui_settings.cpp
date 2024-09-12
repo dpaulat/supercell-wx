@@ -19,7 +19,6 @@ public:
       level3ProductsExpanded_.SetDefault(true);
       mapSettingsExpanded_.SetDefault(true);
       timelineExpanded_.SetDefault(true);
-      alertDockVisible_.SetDefault(false);
       radarToolboxDockVisible_.SetDefault(true);
       mainUIState_.SetDefault("");
    }
@@ -31,7 +30,6 @@ public:
    SettingsVariable<bool> level3ProductsExpanded_ {"level3_products_expanded"};
    SettingsVariable<bool> mapSettingsExpanded_ {"map_settings_expanded"};
    SettingsVariable<bool> timelineExpanded_ {"timeline_expanded"};
-   SettingsVariable<bool> alertDockVisible_ {"alert_dock_visible"};
    SettingsVariable<bool> radarToolboxDockVisible_ {"radar_toolbox_dock_visible"};
    SettingsVariable<std::string> mainUIState_ {"main_ui_state"};
 };
@@ -44,7 +42,6 @@ UiSettings::UiSettings() :
                       &p->level3ProductsExpanded_,
                       &p->mapSettingsExpanded_,
                       &p->timelineExpanded_,
-                      &p->alertDockVisible_,
                       &p->radarToolboxDockVisible_,
                       &p->mainUIState_});
    SetDefaults();
@@ -79,10 +76,6 @@ SettingsVariable<bool>& UiSettings::timeline_expanded() const
    return p->timelineExpanded_;
 }
 
-SettingsVariable<bool>& UiSettings::alert_dock_visible() const
-{
-   return p->alertDockVisible_;
-}
 
 SettingsVariable<bool>& UiSettings::radar_toolbox_dock_visible() const
 {
@@ -105,7 +98,6 @@ bool UiSettings::Shutdown()
    dataChanged |= p->level3ProductsExpanded_.Commit();
    dataChanged |= p->mapSettingsExpanded_.Commit();
    dataChanged |= p->timelineExpanded_.Commit();
-   dataChanged |= p->alertDockVisible_.Commit();
    dataChanged |= p->radarToolboxDockVisible_.Commit();
    dataChanged |= p->mainUIState_.Commit();
 
@@ -125,7 +117,6 @@ bool operator==(const UiSettings& lhs, const UiSettings& rhs)
            lhs.p->level3ProductsExpanded_ == rhs.p->level3ProductsExpanded_ &&
            lhs.p->mapSettingsExpanded_ == rhs.p->mapSettingsExpanded_ &&
            lhs.p->timelineExpanded_ == rhs.p->timelineExpanded_ &&
-           lhs.p->alertDockVisible_ == rhs.p->alertDockVisible_ &&
            lhs.p->radarToolboxDockVisible_ == rhs.p->radarToolboxDockVisible_ &&
            lhs.p->mainUIState_ == rhs.p->mainUIState_);
 }

@@ -281,6 +281,7 @@ MainWindow::MainWindow(QWidget* parent) :
    // Configure Alert Dock
    bool alertDockVisible_ = uiSettings.alert_dock_visible().GetValue();
    p->alertDockWidget_ = new ui::AlertDockWidget(this);
+   p->alertDockWidget_->setVisible(false);
    addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
    p->alertDockWidget_->setVisible(alertDockVisible_);
 
