@@ -21,6 +21,7 @@ public:
       timelineExpanded_.SetDefault(true);
       alertDockVisible_.SetDefault(false);
       radarToolboxDockVisible_.SetDefault(true);
+      mainUIState_.SetDefault("");
    }
 
    ~UiSettingsImpl() {}
@@ -32,6 +33,7 @@ public:
    SettingsVariable<bool> timelineExpanded_ {"timeline_expanded"};
    SettingsVariable<bool> alertDockVisible_ {"alert_dock_visible"};
    SettingsVariable<bool> radarToolboxDockVisible_ {"radar_toolbox_dock_visible"};
+   SettingsVariable<std::string> mainUIState_ {"main_ui_state"};
 };
 
 UiSettings::UiSettings() :
@@ -43,7 +45,8 @@ UiSettings::UiSettings() :
                       &p->mapSettingsExpanded_,
                       &p->timelineExpanded_,
                       &p->alertDockVisible_,
-                      &p->radarToolboxDockVisible_});
+                      &p->radarToolboxDockVisible_,
+                      &p->mainUIState_});
    SetDefaults();
 }
 UiSettings::~UiSettings() = default;
@@ -86,6 +89,11 @@ SettingsVariable<bool>& UiSettings::radar_toolbox_dock_visible() const
    return p->radarToolboxDockVisible_;
 }
 
+SettingsVariable<std::string>& UiSettings::main_ui_state() const
+{
+   return p->mainUIState_;
+}
+
 
 bool UiSettings::Shutdown()
 {
@@ -99,6 +107,7 @@ bool UiSettings::Shutdown()
    dataChanged |= p->timelineExpanded_.Commit();
    dataChanged |= p->alertDockVisible_.Commit();
    dataChanged |= p->radarToolboxDockVisible_.Commit();
+   dataChanged |= p->mainUIState_.Commit();
 
    return dataChanged;
 }
@@ -117,7 +126,8 @@ bool operator==(const UiSettings& lhs, const UiSettings& rhs)
            lhs.p->mapSettingsExpanded_ == rhs.p->mapSettingsExpanded_ &&
            lhs.p->timelineExpanded_ == rhs.p->timelineExpanded_ &&
            lhs.p->alertDockVisible_ == rhs.p->alertDockVisible_ &&
-           lhs.p->radarToolboxDockVisible_ == rhs.p->radarToolboxDockVisible_);
+           lhs.p->radarToolboxDockVisible_ == rhs.p->radarToolboxDockVisible_ &&
+           lhs.p->mainUIState_ == rhs.p->mainUIState_);
 }
 
 } // namespace settings

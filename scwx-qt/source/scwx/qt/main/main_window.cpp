@@ -460,7 +460,25 @@ void MainWindow::showEvent(QShowEvent* event)
 {
    QMainWindow::showEvent(event);
 
-   resizeDocks({ui->radarToolboxDock}, {194}, Qt::Horizontal);
+   // restore the UI state
+   std::string uiState =
+      settings::UiSettings::Instance().main_ui_state().GetValue();
+
+   bool restored =
+      restoreState(QByteArray::fromBase64(QByteArray::fromStdString(uiState)));
+   if (!restored)
+   {
+      resizeDocks({ui->radarToolboxDock}, {194}, Qt::Horizontal);
+   }
+}
+
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+   // save the UI state
+   QByteArray uiState = saveState().toBase64();
+   settings::UiSettings::Instance().main_ui_state().StageValue(uiState.data());
+
+   QMainWindow::closeEvent(event);
 }
 
 void MainWindow::on_actionOpenNexrad_triggered()

@@ -34,6 +34,7 @@ public:
    SettingsVariable<bool>& timeline_expanded() const;
    SettingsVariable<bool>& alert_dock_visible() const;
    SettingsVariable<bool>& radar_toolbox_dock_visible() const;
+   SettingsVariable<std::string>& main_ui_state() const;
 
    bool Shutdown();
 

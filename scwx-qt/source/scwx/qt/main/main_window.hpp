@@ -29,6 +29,7 @@ public:
    void keyPressEvent(QKeyEvent* ev) override final;
    void keyReleaseEvent(QKeyEvent* ev) override final;
    void showEvent(QShowEvent* event) override;
+   void closeEvent(QCloseEvent *event) override;
 
 signals:
    void ActiveMapMoved(double latitude, double longitude);
