@@ -279,7 +279,6 @@ MainWindow::MainWindow(QWidget* parent) :
 
    // Configure Alert Dock
    p->alertDockWidget_ = new ui::AlertDockWidget(this);
-   p->alertDockWidget_->setVisible(false);
    addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
 
    // GPS Info Dialog
@@ -294,7 +293,6 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->menuView->insertAction(ui->actionAlerts,
                               p->alertDockWidget_->toggleViewAction());
    p->alertDockWidget_->toggleViewAction()->setText(tr("&Alerts"));
-   ui->actionAlerts->setVisible(false);
 
    ui->menuDebug->menuAction()->setVisible(
       settings::GeneralSettings::Instance().debug_enabled().GetValue());
@@ -803,6 +801,7 @@ void MainWindowImpl::ConfigureUiSettings()
    mapSettingsGroup_->SetExpanded(
       uiSettings.map_settings_expanded().GetValue());
    timelineGroup_->SetExpanded(uiSettings.timeline_expanded().GetValue());
+   alertDockWidget_->setVisible(uiSettings.alert_dock_visible().GetValue());
 
    connect(level2ProductsGroup_,
            &ui::CollapsibleGroup::StateChanged,

@@ -32,6 +32,7 @@ public:
    SettingsVariable<bool>& level3_products_expanded() const;
    SettingsVariable<bool>& map_settings_expanded() const;
    SettingsVariable<bool>& timeline_expanded() const;
+   SettingsVariable<bool>& alert_dock_visible() const;
 
    bool Shutdown();
 

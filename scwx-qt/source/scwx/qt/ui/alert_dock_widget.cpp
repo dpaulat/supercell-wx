@@ -5,6 +5,7 @@
 #include <scwx/qt/model/alert_model.hpp>
 #include <scwx/qt/model/alert_proxy_model.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/settings/ui_settings.hpp>
 #include <scwx/qt/types/alert_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/ui/alert_dialog.hpp>
@@ -81,6 +82,15 @@ AlertDockWidget::AlertDockWidget(QWidget* parent) :
 
    // Check Active Alerts and trigger signal
    ui->actionActiveAlerts->setChecked(true);
+
+   // Update setting on visiblity change.
+   connect(toggleViewAction(),
+           &QAction::triggered,
+           this,
+           [](bool checked) {
+              settings::UiSettings::Instance().alert_dock_visible().StageValue(
+                 checked);
+           });
 }
 
 AlertDockWidget::~AlertDockWidget()
