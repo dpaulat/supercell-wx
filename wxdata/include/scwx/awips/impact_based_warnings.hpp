@@ -1,6 +1,9 @@
 #pragma once
 
+#include <scwx/awips/phenomenon.hpp>
+
 #include <string>
+#include <vector>
 
 namespace scwx
 {
@@ -16,6 +19,15 @@ enum class ThreatCategory : int
    Catastrophic = 4,
    Unknown
 };
+
+struct PhenomenonInfo
+{
+   bool                        hasObservedTag_ {false};
+   bool                        hasTornadoPossibleTag_ {false};
+   std::vector<ThreatCategory> threatCategories_ {ThreatCategory::Base};
+};
+
+const PhenomenonInfo& GetPhenomenonInfo(Phenomenon phenomenon);
 
 ThreatCategory     GetThreatCategory(const std::string& name);
 const std::string& GetThreatCategoryName(ThreatCategory threatCategory);

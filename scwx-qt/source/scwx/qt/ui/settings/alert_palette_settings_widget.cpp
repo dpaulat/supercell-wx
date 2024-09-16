@@ -23,36 +23,6 @@ namespace ui
 static const std::string logPrefix_ =
    "scwx::qt::ui::settings::alert_palette_settings_widget";
 
-struct PhenomenonInfo
-{
-   bool                               hasObservedTag_ {false};
-   bool                               hasTornadoPossibleTag_ {false};
-   std::vector<awips::ThreatCategory> threatCategories_ {
-      awips::ThreatCategory::Base};
-};
-
-static const boost::unordered_flat_map<awips::Phenomenon, PhenomenonInfo>
-   phenomenaInfo_ {{awips::Phenomenon::Marine,
-                    PhenomenonInfo {.hasTornadoPossibleTag_ {true}}},
-                   {awips::Phenomenon::FlashFlood,
-                    PhenomenonInfo {.threatCategories_ {
-                       awips::ThreatCategory::Base,
-                       awips::ThreatCategory::Considerable,
-                       awips::ThreatCategory::Catastrophic}}},
-                   {awips::Phenomenon::SevereThunderstorm,
-                    PhenomenonInfo {.hasTornadoPossibleTag_ {true},
-                                    .threatCategories_ {
-                                       awips::ThreatCategory::Base,
-                                       awips::ThreatCategory::Considerable,
-                                       awips::ThreatCategory::Destructive}}},
-                   {awips::Phenomenon::SnowSquall, PhenomenonInfo {}},
-                   {awips::Phenomenon::Tornado,
-                    PhenomenonInfo {.hasObservedTag_ {true},
-                                    .threatCategories_ {
-                                       awips::ThreatCategory::Base,
-                                       awips::ThreatCategory::Considerable,
-                                       awips::ThreatCategory::Catastrophic}}}};
-
 class AlertPaletteSettingsWidget::Impl
 {
 public:
@@ -208,7 +178,7 @@ QWidget* AlertPaletteSettingsWidget::Impl::CreateStackedWidgetPage(
    QGridLayout* gridLayout = new QGridLayout(self_);
    page->setLayout(gridLayout);
 
-   const auto& phenomenonInfo = phenomenaInfo_.at(phenomenon);
+   const auto& phenomenonInfo = awips::GetPhenomenonInfo(phenomenon);
 
    int row = 0;
 
