@@ -20,14 +20,14 @@ enum class ThreatCategory : int
    Unknown
 };
 
-struct PhenomenonInfo
+struct ImpactBasedWarningInfo
 {
    bool                        hasObservedTag_ {false};
    bool                        hasTornadoPossibleTag_ {false};
    std::vector<ThreatCategory> threatCategories_ {ThreatCategory::Base};
 };
 
-const PhenomenonInfo& GetPhenomenonInfo(Phenomenon phenomenon);
+const ImpactBasedWarningInfo& GetImpactBasedWarningInfo(Phenomenon phenomenon);
 
 ThreatCategory     GetThreatCategory(const std::string& name);
 const std::string& GetThreatCategoryName(ThreatCategory threatCategory);

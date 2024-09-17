@@ -13,25 +13,29 @@ namespace awips
 
 static const std::string logPrefix_ = "scwx::awips::impact_based_warnings";
 
-static const boost::unordered_flat_map<Phenomenon, PhenomenonInfo>
-   phenomenaInfo_ {
-      {Phenomenon::Marine, PhenomenonInfo {.hasTornadoPossibleTag_ {true}}},
+static const boost::unordered_flat_map<Phenomenon, ImpactBasedWarningInfo>
+   impactBasedWarningInfo_ {
+      {Phenomenon::Marine,
+       ImpactBasedWarningInfo {.hasTornadoPossibleTag_ {true}}},
       {Phenomenon::FlashFlood,
-       PhenomenonInfo {.threatCategories_ {ThreatCategory::Base,
-                                           ThreatCategory::Considerable,
-                                           ThreatCategory::Catastrophic}}},
+       ImpactBasedWarningInfo {
+          .threatCategories_ {ThreatCategory::Base,
+                              ThreatCategory::Considerable,
+                              ThreatCategory::Catastrophic}}},
       {Phenomenon::SevereThunderstorm,
-       PhenomenonInfo {.hasTornadoPossibleTag_ {true},
-                       .threatCategories_ {ThreatCategory::Base,
-                                           ThreatCategory::Considerable,
-                                           ThreatCategory::Destructive}}},
-      {Phenomenon::SnowSquall, PhenomenonInfo {}},
+       ImpactBasedWarningInfo {
+          .hasTornadoPossibleTag_ {true},
+          .threatCategories_ {ThreatCategory::Base,
+                              ThreatCategory::Considerable,
+                              ThreatCategory::Destructive}}},
+      {Phenomenon::SnowSquall, ImpactBasedWarningInfo {}},
       {Phenomenon::Tornado,
-       PhenomenonInfo {.hasObservedTag_ {true},
-                       .threatCategories_ {ThreatCategory::Base,
-                                           ThreatCategory::Considerable,
-                                           ThreatCategory::Catastrophic}}},
-      {Phenomenon::Unknown, PhenomenonInfo {}}};
+       ImpactBasedWarningInfo {
+          .hasObservedTag_ {true},
+          .threatCategories_ {ThreatCategory::Base,
+                              ThreatCategory::Considerable,
+                              ThreatCategory::Catastrophic}}},
+      {Phenomenon::Unknown, ImpactBasedWarningInfo {}}};
 
 static const std::unordered_map<ThreatCategory, std::string>
    threatCategoryName_ {{ThreatCategory::Base, "Base"},
@@ -41,14 +45,14 @@ static const std::unordered_map<ThreatCategory, std::string>
                         {ThreatCategory::Catastrophic, "Catastrophic"},
                         {ThreatCategory::Unknown, "?"}};
 
-const PhenomenonInfo& GetPhenomenonInfo(Phenomenon phenomenon)
+const ImpactBasedWarningInfo& GetImpactBasedWarningInfo(Phenomenon phenomenon)
 {
-   auto it = phenomenaInfo_.find(phenomenon);
-   if (it != phenomenaInfo_.cend())
+   auto it = impactBasedWarningInfo_.find(phenomenon);
+   if (it != impactBasedWarningInfo_.cend())
    {
       return it->second;
    }
-   return phenomenaInfo_.at(Phenomenon::Unknown);
+   return impactBasedWarningInfo_.at(Phenomenon::Unknown);
 }
 
 SCWX_GET_ENUM(ThreatCategory, GetThreatCategory, threatCategoryName_)

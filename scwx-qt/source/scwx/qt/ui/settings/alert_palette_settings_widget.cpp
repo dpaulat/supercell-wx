@@ -178,7 +178,8 @@ QWidget* AlertPaletteSettingsWidget::Impl::CreateStackedWidgetPage(
    QGridLayout* gridLayout = new QGridLayout(self_);
    page->setLayout(gridLayout);
 
-   const auto& phenomenonInfo = awips::GetPhenomenonInfo(phenomenon);
+   const auto& impactBasedWarningInfo =
+      awips::GetImpactBasedWarningInfo(phenomenon);
 
    int row = 0;
 
@@ -187,17 +188,17 @@ QWidget* AlertPaletteSettingsWidget::Impl::CreateStackedWidgetPage(
 
    AddPhenomenonLine("Active", gridLayout, row++);
 
-   if (phenomenonInfo.hasObservedTag_)
+   if (impactBasedWarningInfo.hasObservedTag_)
    {
       AddPhenomenonLine("Observed", gridLayout, row++);
    }
 
-   if (phenomenonInfo.hasTornadoPossibleTag_)
+   if (impactBasedWarningInfo.hasTornadoPossibleTag_)
    {
       AddPhenomenonLine("Tornado Possible", gridLayout, row++);
    }
 
-   for (auto& category : phenomenonInfo.threatCategories_)
+   for (auto& category : impactBasedWarningInfo.threatCategories_)
    {
       if (category == awips::ThreatCategory::Base)
       {
