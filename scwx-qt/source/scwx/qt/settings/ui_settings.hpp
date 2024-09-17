@@ -33,6 +33,7 @@ public:
    SettingsVariable<bool>& map_settings_expanded() const;
    SettingsVariable<bool>& timeline_expanded() const;
    SettingsVariable<std::string>& main_ui_state() const;
+   SettingsVariable<std::string>& main_ui_geometry() const;
 
    bool Shutdown();
 

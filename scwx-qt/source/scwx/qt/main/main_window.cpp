@@ -443,10 +443,15 @@ void MainWindow::keyReleaseEvent(QKeyEvent* ev)
 void MainWindow::showEvent(QShowEvent* event)
 {
    QMainWindow::showEvent(event);
+   auto& uiSettings = settings::UiSettings::Instance();
+
+   // restore the geometry state
+   std::string uiGeometry = uiSettings.main_ui_geometry().GetValue();
+   restoreGeometry(
+      QByteArray::fromBase64(QByteArray::fromStdString(uiGeometry)));
 
    // restore the UI state
-   std::string uiState =
-      settings::UiSettings::Instance().main_ui_state().GetValue();
+   std::string uiState = uiSettings.main_ui_state().GetValue();
 
    bool restored =
       restoreState(QByteArray::fromBase64(QByteArray::fromStdString(uiState)));
@@ -458,9 +463,15 @@ void MainWindow::showEvent(QShowEvent* event)
 
 void MainWindow::closeEvent(QCloseEvent* event)
 {
+   auto& uiSettings = settings::UiSettings::Instance();
+
+   // save the UI geometry
+   QByteArray uiGeometry = saveGeometry().toBase64();
+   uiSettings.main_ui_geometry().StageValue(uiGeometry.data());
+
    // save the UI state
    QByteArray uiState = saveState().toBase64();
-   settings::UiSettings::Instance().main_ui_state().StageValue(uiState.data());
+   uiSettings.main_ui_state().StageValue(uiState.data());
 
    QMainWindow::closeEvent(event);
 }
