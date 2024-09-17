@@ -2,6 +2,7 @@
 
 #include <scwx/qt/settings/settings_category.hpp>
 #include <scwx/qt/settings/settings_variable.hpp>
+#include <scwx/awips/impact_based_warnings.hpp>
 #include <scwx/awips/phenomenon.hpp>
 
 #include <memory>
