@@ -179,7 +179,7 @@ QWidget* AlertPaletteSettingsWidget::Impl::CreateStackedWidgetPage(
    page->setLayout(gridLayout);
 
    const auto& impactBasedWarningInfo =
-      awips::GetImpactBasedWarningInfo(phenomenon);
+      awips::ibw::GetImpactBasedWarningInfo(phenomenon);
 
    int row = 0;
 
@@ -200,13 +200,13 @@ QWidget* AlertPaletteSettingsWidget::Impl::CreateStackedWidgetPage(
 
    for (auto& category : impactBasedWarningInfo.threatCategories_)
    {
-      if (category == awips::ThreatCategory::Base)
+      if (category == awips::ibw::ThreatCategory::Base)
       {
          continue;
       }
 
       AddPhenomenonLine(
-         awips::GetThreatCategoryName(category), gridLayout, row++);
+         awips::ibw::GetThreatCategoryName(category), gridLayout, row++);
    }
 
    AddPhenomenonLine("Inactive", gridLayout, row++);

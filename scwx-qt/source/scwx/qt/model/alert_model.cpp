@@ -10,7 +10,6 @@
 #include <scwx/util/strings.hpp>
 #include <scwx/util/time.hpp>
 
-
 #include <format>
 
 #include <QApplication>
@@ -37,9 +36,9 @@ public:
    explicit AlertModelImpl();
    ~AlertModelImpl() = default;
 
-   bool                  GetObserved(const types::TextEventKey& key);
-   awips::ThreatCategory GetThreatCategory(const types::TextEventKey& key);
-   bool                  GetTornadoPossible(const types::TextEventKey& key);
+   bool                       GetObserved(const types::TextEventKey& key);
+   awips::ibw::ThreatCategory GetThreatCategory(const types::TextEventKey& key);
+   bool GetTornadoPossible(const types::TextEventKey& key);
 
    static std::string GetCounties(const types::TextEventKey& key);
    static std::string GetState(const types::TextEventKey& key);
@@ -61,7 +60,7 @@ public:
                       types::TextEventHash<types::TextEventKey>>
       observedMap_;
    std::unordered_map<types::TextEventKey,
-                      awips::ThreatCategory,
+                      awips::ibw::ThreatCategory,
                       types::TextEventHash<types::TextEventKey>>
       threatCategoryMap_;
    std::unordered_map<types::TextEventKey,
@@ -75,8 +74,8 @@ public:
    std::unordered_map<types::TextEventKey,
                       double,
                       types::TextEventHash<types::TextEventKey>>
-                              distanceMap_;
-   scwx::common::Coordinate   previousPosition_;
+                            distanceMap_;
+   scwx::common::Coordinate previousPosition_;
 };
 
 AlertModel::AlertModel(QObject* parent) :
@@ -158,7 +157,7 @@ QVariant AlertModel::data(const QModelIndex& index, int role) const
       case static_cast<int>(Column::ThreatCategory):
          if (role == Qt::DisplayRole)
          {
-            return QString::fromStdString(awips::GetThreatCategoryName(
+            return QString::fromStdString(awips::ibw::GetThreatCategoryName(
                p->GetThreatCategory(textEventKey)));
          }
          else
@@ -439,10 +438,10 @@ bool AlertModelImpl::GetObserved(const types::TextEventKey& key)
    return observed;
 }
 
-awips::ThreatCategory
+awips::ibw::ThreatCategory
 AlertModelImpl::GetThreatCategory(const types::TextEventKey& key)
 {
-   awips::ThreatCategory threatCategory = awips::ThreatCategory::Base;
+   awips::ibw::ThreatCategory threatCategory = awips::ibw::ThreatCategory::Base;
 
    auto it = threatCategoryMap_.find(key);
    if (it != threatCategoryMap_.cend())

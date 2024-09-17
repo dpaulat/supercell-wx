@@ -378,7 +378,7 @@ void ParseCodedInformation(std::shared_ptr<Segment> segment,
          segment->tornadoPossible_ = true;
       }
 
-      else if (segment->threatCategory_ == ThreatCategory::Base &&
+      else if (segment->threatCategory_ == ibw::ThreatCategory::Base &&
                (threatTagIt = std::find_if(kThreatCategoryTags.cbegin(),
                                            kThreatCategoryTags.cend(),
                                            [&it](const std::string& tag) {
@@ -389,18 +389,19 @@ void ParseCodedInformation(std::shared_ptr<Segment> segment,
          const std::string threatCategoryName =
             it->substr(threatTagIt->length());
 
-         ThreatCategory threatCategory = GetThreatCategory(threatCategoryName);
+         ibw::ThreatCategory threatCategory =
+            ibw::GetThreatCategory(threatCategoryName);
 
          switch (threatCategory)
          {
-         case ThreatCategory::Significant:
+         case ibw::ThreatCategory::Significant:
             // "Significant" is no longer an official tag, and has largely been
             // replaced with "Considerable".
-            threatCategory = ThreatCategory::Considerable;
+            threatCategory = ibw::ThreatCategory::Considerable;
             break;
 
-         case ThreatCategory::Unknown:
-            threatCategory = ThreatCategory::Base;
+         case ibw::ThreatCategory::Unknown:
+            threatCategory = ibw::ThreatCategory::Base;
             break;
 
          default:

@@ -64,9 +64,9 @@ struct Segment
    std::optional<CodedLocation>           codedLocation_ {};
    std::optional<CodedTimeMotionLocation> codedMotion_ {};
 
-   bool           observed_ {false};
-   ThreatCategory threatCategory_ {ThreatCategory::Base};
-   bool           tornadoPossible_ {false};
+   bool                observed_ {false};
+   ibw::ThreatCategory threatCategory_ {ibw::ThreatCategory::Base};
+   bool                tornadoPossible_ {false};
 
    Segment() = default;
 

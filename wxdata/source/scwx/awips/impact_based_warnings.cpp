@@ -10,8 +10,10 @@ namespace scwx
 {
 namespace awips
 {
+namespace ibw
+{
 
-static const std::string logPrefix_ = "scwx::awips::impact_based_warnings";
+static const std::string logPrefix_ = "scwx::awips::ibw::impact_based_warnings";
 
 static const boost::unordered_flat_map<Phenomenon, ImpactBasedWarningInfo>
    impactBasedWarningInfo_ {
@@ -62,5 +64,6 @@ const std::string& GetThreatCategoryName(ThreatCategory threatCategory)
    return threatCategoryName_.at(threatCategory);
 }
 
+} // namespace ibw
 } // namespace awips
 } // namespace scwx

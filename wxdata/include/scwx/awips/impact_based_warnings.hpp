@@ -9,6 +9,8 @@ namespace scwx
 {
 namespace awips
 {
+namespace ibw
+{
 
 enum class ThreatCategory : int
 {
@@ -32,5 +34,6 @@ const ImpactBasedWarningInfo& GetImpactBasedWarningInfo(Phenomenon phenomenon);
 ThreatCategory     GetThreatCategory(const std::string& name);
 const std::string& GetThreatCategoryName(ThreatCategory threatCategory);
 
+} // namespace ibw
 } // namespace awips
 } // namespace scwx
