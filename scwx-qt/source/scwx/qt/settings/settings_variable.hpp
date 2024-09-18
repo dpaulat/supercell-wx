@@ -91,7 +91,7 @@ public:
     * @return true if the staged value was committed, false if no staged value
     * is present.
     */
-   bool Commit();
+   bool Commit() override;
 
    /**
     * Clears the staged value of the settings variable.

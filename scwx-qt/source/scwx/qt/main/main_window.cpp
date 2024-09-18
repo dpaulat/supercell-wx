@@ -279,7 +279,6 @@ MainWindow::MainWindow(QWidget* parent) :
 
    // Configure Alert Dock
    p->alertDockWidget_ = new ui::AlertDockWidget(this);
-   p->alertDockWidget_->setVisible(false);
    addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
 
    // GPS Info Dialog
@@ -444,8 +443,37 @@ void MainWindow::keyReleaseEvent(QKeyEvent* ev)
 void MainWindow::showEvent(QShowEvent* event)
 {
    QMainWindow::showEvent(event);
+   auto& uiSettings = settings::UiSettings::Instance();
 
-   resizeDocks({ui->radarToolboxDock}, {194}, Qt::Horizontal);
+   // restore the geometry state
+   std::string uiGeometry = uiSettings.main_ui_geometry().GetValue();
+   restoreGeometry(
+      QByteArray::fromBase64(QByteArray::fromStdString(uiGeometry)));
+
+   // restore the UI state
+   std::string uiState = uiSettings.main_ui_state().GetValue();
+
+   bool restored =
+      restoreState(QByteArray::fromBase64(QByteArray::fromStdString(uiState)));
+   if (!restored)
+   {
+      resizeDocks({ui->radarToolboxDock}, {194}, Qt::Horizontal);
+   }
+}
+
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+   auto& uiSettings = settings::UiSettings::Instance();
+
+   // save the UI geometry
+   QByteArray uiGeometry = saveGeometry().toBase64();
+   uiSettings.main_ui_geometry().StageValue(uiGeometry.data());
+
+   // save the UI state
+   QByteArray uiState = saveState().toBase64();
+   uiSettings.main_ui_state().StageValue(uiState.data());
+
+   QMainWindow::closeEvent(event);
 }
 
 void MainWindow::on_actionOpenNexrad_triggered()
