@@ -56,7 +56,7 @@ jobs:
             conan_compiler_runtime: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
             artifact_suffix: linux-x64
-          - name: linux64_gcc
+          - name: linux64_clang
             os: ubuntu-22.04
             build_type: Release
             env_cc: clang-17
