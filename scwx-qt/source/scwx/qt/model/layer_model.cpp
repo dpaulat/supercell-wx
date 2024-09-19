@@ -66,12 +66,12 @@ static const std::vector<types::LayerInfo> kImmovableLayers_ {
    {types::LayerType::Map, types::MapLayer::MapUnderlay, false},
 };
 
-static const std::array<awips::Phenomenon, 5> kAlertPhenomena_ {
+/*static const std::array<awips::Phenomenon, 5> kAlertPhenomena_ {
    awips::Phenomenon::Tornado,
    awips::Phenomenon::SnowSquall,
    awips::Phenomenon::SevereThunderstorm,
    awips::Phenomenon::FlashFlood,
-   awips::Phenomenon::Marine};
+   awips::Phenomenon::Marine};*/
 
 class LayerModel::Impl
 {

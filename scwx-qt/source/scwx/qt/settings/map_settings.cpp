@@ -29,8 +29,8 @@ static const std::string kRadarProductGroupName_ {"radar_product_group"};
 static const std::string kRadarProductName_ {"radar_product"};
 
 static const std::string                   kDefaultMapStyle_ {"?"};
-static constexpr common::RadarProductGroup kDefaultRadarProductGroup_ =
-   common::RadarProductGroup::Level3;
+//static constexpr common::RadarProductGroup kDefaultRadarProductGroup_ =
+//   common::RadarProductGroup::Level3;
 static const std::string kDefaultRadarProductGroupString_ = "L3";
 static const std::array<std::string, kCount_> kDefaultRadarProduct_ {
    "N0B", "N0G", "N0C", "N0X"};

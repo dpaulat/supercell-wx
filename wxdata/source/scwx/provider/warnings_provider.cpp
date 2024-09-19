@@ -30,7 +30,7 @@ namespace provider
 static const std::string logPrefix_ = "scwx::provider::warnings_provider";
 static const auto        logger_    = util::Logger::Create(logPrefix_);
 
-static constexpr std::chrono::seconds kUpdatePeriod_ {15};
+//static constexpr std::chrono::seconds kUpdatePeriod_ {15};
 
 class WarningsProvider::Impl
 {
