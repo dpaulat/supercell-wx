@@ -40,7 +40,7 @@ jobs:
             conan_package_manager: ''
             artifact_suffix: windows-x64
           - name: linux64_gcc
-            os: ubuntu-22.04
+            os: ubuntu-24.04
             build_type: Release
             env_cc: gcc-11
             env_cxx: g++-11
@@ -57,7 +57,7 @@ jobs:
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
             artifact_suffix: linux-x64
           - name: linux64_clang
-            os: ubuntu-22.04
+            os: ubuntu-24.04
             build_type: Release
             env_cc: clang-17
             env_cxx: clang++-17
@@ -106,7 +106,7 @@ jobs:
         vsversion: ${{ matrix.msvc_version }}
 
     - name: Setup Ubuntu Environment
-      if: matrix.os == 'ubuntu-22.04'
+      if: matrix.os == 'ubuntu-24.04'
       shell: bash
       run: |
         sudo apt-get install doxygen \
@@ -147,7 +147,7 @@ jobs:
         ninja supercell-wx wxtest
 
     - name: Separate Debug Symbols (Linux)
-      if: matrix.os == 'ubuntu-22.04'
+      if: matrix.os == 'ubuntu-24.04'
       shell: bash
       run: |
         cd build/
@@ -166,7 +166,7 @@ jobs:
         cmake --install . --component supercell-wx
 
     - name: Collect Artifacts
-      if: matrix.os == 'ubuntu-22.04'
+      if: matrix.os == 'ubuntu-24.04'
       shell: bash
       run: |
         pushd supercell-wx/
@@ -198,14 +198,14 @@ jobs:
         path: ${{ github.workspace }}/build/bin/*.pdb
 
     - name: Upload Artifacts (Linux)
-      if: matrix.os == 'ubuntu-22.04'
+      if: matrix.os == 'ubuntu-24.04'
       uses: actions/upload-artifact@v4
       with:
         name: supercell-wx-${{ matrix.artifact_suffix }}
         path: ${{ github.workspace }}/supercell-wx-${{ matrix.artifact_suffix }}.tar.gz
 
     - name: Upload Debug Artifacts (Linux)
-      if: matrix.os == 'ubuntu-22.04'
+      if: matrix.os == 'ubuntu-24.04'
       uses: actions/upload-artifact@v4
       with:
         name: supercell-wx-debug-${{ matrix.artifact_suffix }}
@@ -228,7 +228,7 @@ jobs:
         path: ${{ github.workspace }}/build/supercell-wx-*.msi*
 
     - name: Build AppImage (Linux)
-      if: matrix.os == 'ubuntu-22.04'
+      if: matrix.os == 'ubuntu-24.04'
       env:
         APPIMAGE_DIR: ${{ github.workspace }}/supercell-wx/
         LDAI_UPDATE_INFORMATION: gh-releases-zsync|dpaulat|supercell-wx|latest|*x86_64.AppImage.zsync
@@ -252,7 +252,7 @@ jobs:
         rm -f linuxdeploy-x86_64.AppImage
 
     - name: Upload AppImage (Linux)
-      if: matrix.os == 'ubuntu-22.04'
+      if: matrix.os == 'ubuntu-24.04'
       uses: actions/upload-artifact@v4
       with:
         name: supercell-wx-appimage-x64
