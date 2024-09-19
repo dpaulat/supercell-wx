@@ -113,7 +113,8 @@ jobs:
                              libfuse2 \
                              ninja-build \
                              clang-17 \
-                             gcc-11
+                             gcc-11 \
+                             g++-11
 
     - name: Setup Python Environment
       shell: pwsh
