@@ -56,6 +56,23 @@ jobs:
             conan_compiler_runtime: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
             artifact_suffix: linux-x64
+          - name: linux64_gcc
+            os: ubuntu-22.04
+            build_type: Release
+            env_cc: clang-17
+            env_cxx: clang++-17
+            compiler: clang
+            qt_version: 6.7.2
+            qt_arch_aqt: linux_gcc_64
+            qt_arch_dir: gcc_64
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
+            qt_tools: ''
+            conan_arch: x86_64
+            conan_compiler: clang
+            conan_compiler_version: 17
+            conan_compiler_runtime: ''
+            conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
+            artifact_suffix: linux-clang-x64
     name: ${{ matrix.name }}
     env:
       CC: ${{ matrix.env_cc }}
@@ -94,7 +111,8 @@ jobs:
       run: |
         sudo apt-get install doxygen \
                              libfuse2 \
-                             ninja-build
+                             ninja-build \
+                             clang-17
 
     - name: Setup Python Environment
       shell: pwsh
