@@ -599,11 +599,11 @@ target_include_directories(supercell-wx PUBLIC ${scwx-qt_SOURCE_DIR}/source)
 
 target_compile_options(scwx-qt PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
-    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror -Wno-error=delete-non-abstract-non-virtual-dtor>
 )
 target_compile_options(supercell-wx PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
-    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror -Wno-error=delete-non-abstract-non-virtual-dtor>
 )
 
 if (MSVC)
