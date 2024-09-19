@@ -112,7 +112,8 @@ jobs:
         sudo apt-get install doxygen \
                              libfuse2 \
                              ninja-build \
-                             clang-17
+                             clang-17 \
+                             gcc-11
 
     - name: Setup Python Environment
       shell: pwsh
