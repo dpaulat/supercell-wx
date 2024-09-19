@@ -1,6 +1,7 @@
 #include <scwx/common/products.hpp>
 
 #include <gtest/gtest.h>
+#include <algorithm>
 
 namespace scwx
 {
