@@ -413,7 +413,7 @@ const scwx::util::time_zone* RadarProductManager::default_time_zone() const
    }
 
    case types::DefaultTimeZone::Local:
-#if defined(_MSC_VER)
+#if (defined(_MSC_VER) || defined(__clang__))
       return std::chrono::current_zone();
 #else
       return date::current_zone();
