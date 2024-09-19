@@ -28,7 +28,7 @@ public:
    TabularProductMessage(TabularProductMessage&&) noexcept;
    TabularProductMessage& operator=(TabularProductMessage&&) noexcept;
 
-   std::shared_ptr<ProductDescriptionBlock>  description_block() const;
+   std::shared_ptr<ProductDescriptionBlock>  description_block() const override;
    std::shared_ptr<TabularAlphanumericBlock> tabular_block() const;
 
    bool Parse(std::istream& is) override;

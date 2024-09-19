@@ -35,7 +35,7 @@ public:
 
    const std::vector<std::vector<std::shared_ptr<Packet>>>& page_list() const;
 
-   bool Parse(std::istream& is);
+   bool Parse(std::istream& is) override;
 
    static constexpr size_t SIZE = 102u;
 
