@@ -24,10 +24,10 @@ static const std::vector<std::string> mapboxDrawBelow_ {
 static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
    {MapProvider::Mapbox,
     MapProviderInfo {
-       .mapProvider_ {MapProvider::Mapbox},
+       .mapProvider_ = MapProvider::Mapbox,
        .cacheDbName_ {"mbgl-cache.db"},
-       .providerTemplate_ {
-          QMapLibre::Settings::ProviderTemplate::MapboxProvider},
+       .providerTemplate_ =
+          QMapLibre::Settings::ProviderTemplate::MapboxProvider,
        .mapStyles_ {
           {.name_ {"Streets"},
            .url_ {"mapbox://styles/mapbox/streets-v11"},
@@ -117,10 +117,10 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
            .drawBelow_ {mapboxDrawBelow_}}}}},
    {MapProvider::MapTiler,
     MapProviderInfo {
-       .mapProvider_ {MapProvider::MapTiler},
+       .mapProvider_ = MapProvider::MapTiler,
        .cacheDbName_ {"maptiler-cache.db"},
-       .providerTemplate_ {
-          QMapLibre::Settings::ProviderTemplate::MapTilerProvider},
+       .providerTemplate_ =
+          QMapLibre::Settings::ProviderTemplate::MapTilerProvider,
        .mapStyles_ {
           {.name_ {"Satellite"},
            .url_ {"https://api.maptiler.com/maps/hybrid/style.json"},
