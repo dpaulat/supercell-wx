@@ -7,7 +7,7 @@ class SupercellWxConan(ConanFile):
                   "fontconfig/2.15.0",
                   "freetype/2.13.2",
                   "geographiclib/2.4",
-                  "geos/3.12.2",
+                  "geos/3.13.0",
                   "glew/2.2.0",
                   "glm/cci.20230113",
                   "gtest/1.15.0",
