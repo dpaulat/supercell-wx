@@ -11,7 +11,7 @@
 #include <cpr/cpr.h>
 #include <libxml/HTMLparser.h>
 
-#if !defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clange__))
 #   include <date/date.h>
 #endif
 

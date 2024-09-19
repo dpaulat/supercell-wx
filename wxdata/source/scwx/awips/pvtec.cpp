@@ -17,7 +17,7 @@
 #include <boost/bimap.hpp>
 #include <boost/bimap/unordered_set_of.hpp>
 
-#if !defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clange__))
 #   include <date/date.h>
 #endif
 

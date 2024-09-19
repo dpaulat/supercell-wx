@@ -14,7 +14,7 @@
 #include <libxml/HTMLparser.h>
 #include <re2/re2.h>
 
-#if !defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clange__))
 #   include <date/date.h>
 #endif
 

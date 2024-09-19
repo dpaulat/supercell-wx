@@ -10,7 +10,7 @@
 
 #include <boost/json.hpp>
 
-#if !defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clange__))
 #   include <date/date.h>
 #endif
 
