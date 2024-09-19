@@ -1,4 +1,4 @@
-#define SETTINGS_VARIABLE_IMPLEMENTATION
+//#define SETTINGS_VARIABLE_IMPLEMENTATION
 
 #include <scwx/qt/settings/settings_variable.hpp>
 #include <scwx/util/logger.hpp>
@@ -401,6 +401,14 @@ bool SettingsVariable<T>::Equals(const SettingsVariableBase& o) const
           p->minimum_ == v.p->minimum_ &&    //
           p->maximum_ == v.p->maximum_;
 }
+
+template class SettingsVariable<bool>;
+template class SettingsVariable<double>;
+template class SettingsVariable<std::int64_t>;
+template class SettingsVariable<std::string>;
+
+// Containers are not to be used directly
+template class SettingsVariable<std::vector<std::int64_t>>;
 
 } // namespace settings
 } // namespace qt

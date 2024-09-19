@@ -1,4 +1,4 @@
-#define SETTINGS_INTERFACE_IMPLEMENTATION
+//#define SETTINGS_INTERFACE_IMPLEMENTATION
 
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/qt/settings/settings_variable.hpp>
@@ -615,6 +615,14 @@ void SettingsInterface<T>::Impl::UpdateResetButton()
       resetButton_->setVisible(!self_->IsDefault());
    }
 }
+
+template class SettingsInterface<bool>;
+template class SettingsInterface<double>;
+template class SettingsInterface<std::int64_t>;
+template class SettingsInterface<std::string>;
+
+// Containers are not to be used directly
+template class SettingsInterface<std::vector<std::int64_t>>;
 
 } // namespace settings
 } // namespace qt
