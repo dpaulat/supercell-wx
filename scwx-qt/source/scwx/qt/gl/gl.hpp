@@ -1,6 +1,15 @@
 #pragma once
 
+#if defined(__clang__)
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wdelete-non-abstract-non-virtual-dtor"
+#endif
+
 #include <QOpenGLFunctions_3_3_Core>
+
+#if defined(__clang__)
+#   pragma clang diagnostic pop
+#endif
 
 #define SCWX_GL_CHECK_ERROR()                                                  \
    {                                                                           \

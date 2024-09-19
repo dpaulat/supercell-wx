@@ -1,7 +1,16 @@
+#if defined(__clang__)
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wdelete-non-abstract-non-virtual-dtor"
+#endif
+
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/types/text_types.hpp>
 
 #include <boost/algorithm/string.hpp>
+
+#if defined(__clang__)
+#   pragma clang diagnostic pop
+#endif
 
 namespace scwx
 {

@@ -260,7 +260,7 @@ target_include_directories(wxdata INTERFACE ${scwx-data_SOURCE_DIR}/include)
 
 target_compile_options(wxdata PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
-    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror -Wno-error=unused-parameter>
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
 
 if (MSVC)

@@ -1,6 +1,16 @@
 #pragma once
 
+#if defined(__clang__)
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wdelete-non-abstract-non-virtual-dtor"
+#endif
+
 #include <scwx/awips/phenomenon.hpp>
+
+#if defined(__clang__)
+#   pragma clang diagnostic pop
+#endif
+
 #include <scwx/qt/map/draw_layer.hpp>
 #include <scwx/qt/types/text_event_key.hpp>
 

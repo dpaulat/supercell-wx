@@ -10,7 +10,17 @@
 #include <sstream>
 
 #include <boost/algorithm/string.hpp>
+
+#if defined(__clang__)
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wunused-parameter"
+#endif
+
 #include <boost/gil.hpp>
+
+#if defined(__clang__)
+#   pragma clang diagnostic pop
+#endif
 
 #include <hsluv.h>
 
