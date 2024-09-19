@@ -784,7 +784,7 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
             QObject::connect(dialog,
                              &QFileDialog::fileSelected,
                              self_,
-                             [this, lineEdit](const QString& file)
+                             [lineEdit](const QString& file)
                              {
                                 QString path = QDir::toNativeSeparators(file);
 
@@ -1386,6 +1386,7 @@ void SettingsDialogImpl::LoadColorTablePreview(const std::string& key,
 
 void SettingsDialogImpl::ShowColorDialog(QLineEdit* lineEdit, QFrame* frame)
 {
+   (void)frame;
    QColorDialog* dialog = new QColorDialog(self_);
 
    dialog->setAttribute(Qt::WA_DeleteOnClose);
@@ -1401,7 +1402,7 @@ void SettingsDialogImpl::ShowColorDialog(QLineEdit* lineEdit, QFrame* frame)
       dialog,
       &QColorDialog::colorSelected,
       self_,
-      [this, lineEdit, frame](const QColor& color)
+      [lineEdit](const QColor& color)
       {
          QString colorName = color.name(QColor::NameFormat::HexArgb);
 
