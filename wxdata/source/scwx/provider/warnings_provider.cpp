@@ -73,7 +73,7 @@ WarningsProvider::ListFiles(std::chrono::system_clock::time_point newerThan)
 {
    using namespace std::chrono;
 
-#if !defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clang__))
    using namespace date;
 #endif
 

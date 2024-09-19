@@ -200,7 +200,7 @@ void DirListSAXHandler::Characters(void* userData, const xmlChar* ch, int len)
    {
       using namespace std::chrono;
 
-#if !defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clang__))
       using namespace date;
 #endif
 

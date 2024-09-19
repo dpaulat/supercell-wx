@@ -59,7 +59,7 @@ std::string TimeString(std::chrono::system_clock::time_point time,
 {
    using namespace std::chrono;
 
-#if defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clang__))
 #   define FORMAT_STRING_24_HOUR "{:%Y-%m-%d %H:%M:%S %Z}"
 #   define FORMAT_STRING_12_HOUR "{:%Y-%m-%d %I:%M:%S %p %Z}"
    namespace date = std::chrono;
@@ -128,7 +128,7 @@ TryParseDateTime(const std::string& dateTimeFormat, const std::string& str)
 {
    using namespace std::chrono;
 
-#if !defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clang__))
    using namespace date;
 #endif
 
