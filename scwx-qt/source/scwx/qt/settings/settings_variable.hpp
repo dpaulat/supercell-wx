@@ -239,16 +239,6 @@ private:
    std::unique_ptr<Impl> p;
 };
 
-#ifdef SETTINGS_VARIABLE_IMPLEMENTATION
-template class SettingsVariable<bool>;
-template class SettingsVariable<double>;
-template class SettingsVariable<std::int64_t>;
-template class SettingsVariable<std::string>;
-
-// Containers are not to be used directly
-template class SettingsVariable<std::vector<std::int64_t>>;
-#endif
-
 } // namespace settings
 } // namespace qt
 } // namespace scwx
