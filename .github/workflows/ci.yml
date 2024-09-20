@@ -257,7 +257,7 @@ jobs:
       if: matrix.os == 'ubuntu-24.04'
       uses: actions/upload-artifact@v4
       with:
-        name: supercell-wx-appimage-x64
+        name: supercell-wx-appimage-${{ matrix.artifact_suffix }}
         path: ${{ github.workspace }}/*-x86_64.AppImage*
 
     - name: Test Supercell Wx
