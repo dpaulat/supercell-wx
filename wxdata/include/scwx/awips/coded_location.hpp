@@ -7,7 +7,16 @@
 #include <string>
 #include <vector>
 
+#if defined(__clang__)
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wunused-parameter"
+#endif
+
 #include <boost/range/any_range.hpp>
+
+#if defined(__clang__)
+#   pragma clang diagnostic pop
+#endif
 
 namespace scwx
 {
