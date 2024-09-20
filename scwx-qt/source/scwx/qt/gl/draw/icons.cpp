@@ -24,7 +24,6 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static constexpr std::size_t kNumRectangles        = 1;
 static constexpr std::size_t kNumTriangles         = kNumRectangles * 2;
 static constexpr std::size_t kVerticesPerTriangle  = 3;
-//static constexpr std::size_t kVerticesPerRectangle = kVerticesPerTriangle * 2;
 static constexpr std::size_t kPointsPerVertex      = 10;
 static constexpr std::size_t kPointsPerTexCoord    = 3;
 static constexpr std::size_t kIconBufferLength =

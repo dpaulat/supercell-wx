@@ -1,5 +1,3 @@
-//#define SETTINGS_VARIABLE_IMPLEMENTATION
-
 #include <scwx/qt/settings/settings_variable.hpp>
 #include <scwx/util/logger.hpp>
 

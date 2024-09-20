@@ -31,9 +31,6 @@ namespace qt
 namespace map
 {
 
-//static constexpr uint32_t MAX_RADIALS           = 720;
-//static constexpr uint32_t MAX_DATA_MOMENT_GATES = 1840;
-
 static const std::string logPrefix_ = "scwx::qt::map::radar_product_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 

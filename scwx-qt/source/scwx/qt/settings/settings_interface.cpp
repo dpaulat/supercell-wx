@@ -1,5 +1,3 @@
-//#define SETTINGS_INTERFACE_IMPLEMENTATION
-
 #include <scwx/qt/settings/settings_interface.hpp>
 #include <scwx/qt/settings/settings_variable.hpp>
 #include <scwx/qt/ui/hotkey_edit.hpp>

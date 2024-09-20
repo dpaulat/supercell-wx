@@ -1,5 +1,3 @@
-//#define SETTINGS_CONTAINER_IMPLEMENTATION
-
 #include <scwx/qt/settings/settings_container.hpp>
 #include <scwx/util/logger.hpp>
 
