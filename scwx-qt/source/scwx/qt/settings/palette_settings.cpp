@@ -5,7 +5,6 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/gil.hpp>
 #include <fmt/format.h>
-#include <re2/re2.h>
 
 namespace scwx
 {
@@ -116,8 +115,6 @@ public:
    void InitializeLegacyAlerts();
    void InitializeAlerts();
 
-   static bool ValidateColor(const std::string& value);
-
    PaletteSettings* self_;
 
    std::unordered_map<std::string, SettingsVariable<std::string>> palette_ {};
@@ -131,12 +128,6 @@ public:
 
    std::vector<SettingsCategory> alertSettings_ {};
 };
-
-bool PaletteSettings::Impl::ValidateColor(const std::string& value)
-{
-   static constexpr LazyRE2 re = {"#[0-9A-Fa-f]{8}"};
-   return RE2::FullMatch(value, *re);
-}
 
 PaletteSettings::PaletteSettings() :
     SettingsCategory("palette"), p(std::make_unique<Impl>(this))
@@ -196,8 +187,8 @@ void PaletteSettings::Impl::InitializeLegacyAlerts()
       inactiveVariable.SetDefault(
          util::color::ToArgbString(alert.second.second));
 
-      activeVariable.SetValidator(&ValidateColor);
-      inactiveVariable.SetValidator(&ValidateColor);
+      activeVariable.SetValidator(&util::color::ValidateArgbString);
+      inactiveVariable.SetValidator(&util::color::ValidateArgbString);
 
       variables_.push_back(&activeVariable);
       variables_.push_back(&inactiveVariable);
