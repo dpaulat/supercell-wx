@@ -53,6 +53,7 @@ jobs:
             conan_arch: x86_64
             conan_compiler: gcc
             conan_compiler_version: 11
+            conan_compiler_libcxx: libstdc++
             conan_compiler_runtime: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
             artifact_suffix: linux-x64
@@ -69,6 +70,7 @@ jobs:
             qt_tools: ''
             conan_arch: x86_64
             conan_compiler: clang
+            conan_compiler_libcxx: libstdc++
             conan_compiler_version: 17
             conan_compiler_runtime: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
@@ -134,6 +136,7 @@ jobs:
           --settings build_type=${{ matrix.build_type }} `
           --settings compiler="${{ matrix.conan_compiler }}" `
           --settings compiler.version=${{ matrix.conan_compiler_version }} `
+          --settings compiler.libcxx=${{ matrix.conan_compiler_libcxx }} `
           ${{ matrix.conan_compiler_runtime }} `
           ${{ matrix.conan_package_manager }}
 
