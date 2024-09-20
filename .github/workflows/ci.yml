@@ -72,7 +72,7 @@ jobs:
             conan_arch: x86_64
             conan_compiler: clang
             conan_compiler_version: 17
-            conan_compiler_libcxx: --settings compiler.libcxx=libstdc++
+            conan_compiler_libcxx: --settings compiler.libcxx=libstdc++11
             conan_compiler_runtime: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
             artifact_suffix: linux-clang-x64
