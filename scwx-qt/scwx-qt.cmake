@@ -172,6 +172,7 @@ set(SRC_REQUEST source/scwx/qt/request/download_request.cpp
 set(HDR_SETTINGS source/scwx/qt/settings/audio_settings.hpp
                  source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/hotkey_settings.hpp
+                 source/scwx/qt/settings/line_settings.hpp
                  source/scwx/qt/settings/map_settings.hpp
                  source/scwx/qt/settings/palette_settings.hpp
                  source/scwx/qt/settings/product_settings.hpp
@@ -188,6 +189,7 @@ set(HDR_SETTINGS source/scwx/qt/settings/audio_settings.hpp
 set(SRC_SETTINGS source/scwx/qt/settings/audio_settings.cpp
                  source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/hotkey_settings.cpp
+                 source/scwx/qt/settings/line_settings.cpp
                  source/scwx/qt/settings/map_settings.cpp
                  source/scwx/qt/settings/palette_settings.cpp
                  source/scwx/qt/settings/product_settings.cpp
