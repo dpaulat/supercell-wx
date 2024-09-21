@@ -18,7 +18,7 @@ class SettingsCategory
 {
 public:
    explicit SettingsCategory(const std::string& name);
-   ~SettingsCategory();
+   virtual ~SettingsCategory();
 
    SettingsCategory(const SettingsCategory&)            = delete;
    SettingsCategory& operator=(const SettingsCategory&) = delete;
