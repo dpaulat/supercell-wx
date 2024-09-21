@@ -121,9 +121,7 @@ bool SettingsCategory::ReadJson(const boost::json::object& json)
       // Read subcategories
       for (auto& subcategory : p->subcategories_)
       {
-         (void) subcategory;
-         // TODO:
-         // subcategory->ReadJson(object);
+         validated &= subcategory->ReadJson(object);
       }
 
       // Read variables
@@ -172,9 +170,7 @@ void SettingsCategory::WriteJson(boost::json::object& json) const
    // Write subcategories
    for (auto& subcategory : p->subcategories_)
    {
-      (void) subcategory;
-      // TODO:
-      // subcategory->WriteJson();
+      subcategory->WriteJson(object);
    }
 
    // Write variables
