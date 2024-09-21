@@ -22,7 +22,7 @@
 #include <QGuiApplication>
 #include <QMouseEvent>
 
-#if !(defined(_MSC_VER) || defined(__clange__))
+#if !(defined(_MSC_VER) || defined(__clang__))
 #   include <date/date.h>
 #endif
 
