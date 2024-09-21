@@ -50,8 +50,11 @@ public:
     */
    virtual void WriteJson(boost::json::object& json) const;
 
+   void RegisterSubcategory(SettingsCategory& subcategory);
    void RegisterSubcategoryArray(const std::string&             name,
                                  std::vector<SettingsCategory>& subcategories);
+   void RegisterSubcategoryArray(const std::string&              name,
+                                 std::vector<SettingsCategory*>& subcategories);
    void
    RegisterVariables(std::initializer_list<SettingsVariableBase*> variables);
    void RegisterVariables(std::vector<SettingsVariableBase*> variables);

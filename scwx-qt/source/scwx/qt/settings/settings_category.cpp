@@ -25,6 +25,7 @@ public:
 
    std::vector<std::pair<std::string, std::vector<SettingsCategory*>>>
                                       subcategoryArrays_;
+   std::vector<SettingsCategory*>     subcategories_;
    std::vector<SettingsVariableBase*> variables_;
 };
 
@@ -52,6 +53,12 @@ void SettingsCategory::SetDefaults()
       {
          subcategory->SetDefaults();
       }
+   }
+
+   // Set subcategory defaults
+   for (auto& subcategory : p->subcategories_)
+   {
+      subcategory->SetDefaults();
    }
 
    // Set variable defaults
@@ -111,6 +118,14 @@ bool SettingsCategory::ReadJson(const boost::json::object& json)
          }
       }
 
+      // Read subcategories
+      for (auto& subcategory : p->subcategories_)
+      {
+         (void) subcategory;
+         // TODO:
+         // subcategory->ReadJson(object);
+      }
+
       // Read variables
       for (auto& variable : p->variables_)
       {
@@ -154,6 +169,14 @@ void SettingsCategory::WriteJson(boost::json::object& json) const
       object.insert_or_assign(subcategoryArray.first, arrayObject);
    }
 
+   // Write subcategories
+   for (auto& subcategory : p->subcategories_)
+   {
+      (void) subcategory;
+      // TODO:
+      // subcategory->WriteJson();
+   }
+
    // Write variables
    for (auto& variable : p->variables_)
    {
@@ -161,6 +184,11 @@ void SettingsCategory::WriteJson(boost::json::object& json) const
    }
 
    json.insert_or_assign(p->name_, object);
+}
+
+void SettingsCategory::RegisterSubcategory(SettingsCategory& subcategory)
+{
+   p->subcategories_.push_back(&subcategory);
 }
 
 void SettingsCategory::RegisterSubcategoryArray(
@@ -173,6 +201,18 @@ void SettingsCategory::RegisterSubcategoryArray(
                   subcategories.end(),
                   std::back_inserter(newSubcategories.second),
                   [](SettingsCategory& subcategory) { return &subcategory; });
+}
+
+void SettingsCategory::RegisterSubcategoryArray(
+   const std::string& name, std::vector<SettingsCategory*>& subcategories)
+{
+   auto& newSubcategories = p->subcategoryArrays_.emplace_back(
+      name, std::vector<SettingsCategory*> {});
+
+   std::transform(subcategories.begin(),
+                  subcategories.end(),
+                  std::back_inserter(newSubcategories.second),
+                  [](SettingsCategory* subcategory) { return subcategory; });
 }
 
 void SettingsCategory::RegisterVariables(
