@@ -181,7 +181,7 @@ public:
    void SetupTextTab();
    void SetupHotkeysTab();
 
-   void ShowColorDialog(QLineEdit* lineEdit, QFrame* frame = nullptr);
+   void ShowColorDialog(QLineEdit* lineEdit);
    void UpdateRadarDialogLocation(const std::string& id);
    void UpdateAlertRadarDialogLocation(const std::string& id);
 
@@ -913,12 +913,12 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
                        &QAbstractButton::clicked,
                        self_,
                        [=, this]()
-                       { ShowColorDialog(activeEdit, activeFrame); });
+                       { ShowColorDialog(activeEdit); });
       QObject::connect(inactiveButton,
                        &QAbstractButton::clicked,
                        self_,
                        [=, this]()
-                       { ShowColorDialog(inactiveEdit, inactiveFrame); });
+                       { ShowColorDialog(inactiveEdit); });
    }
 }
 
@@ -1384,9 +1384,8 @@ void SettingsDialogImpl::LoadColorTablePreview(const std::string& key,
       });
 }
 
-void SettingsDialogImpl::ShowColorDialog(QLineEdit* lineEdit, QFrame* frame)
+void SettingsDialogImpl::ShowColorDialog(QLineEdit* lineEdit)
 {
-   (void)frame;
    QColorDialog* dialog = new QColorDialog(self_);
 
    dialog->setAttribute(Qt::WA_DeleteOnClose);
