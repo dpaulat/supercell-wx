@@ -1,5 +1,6 @@
 #pragma once
 
+#include <scwx/qt/settings/alert_palette_settings.hpp>
 #include <scwx/qt/settings/settings_category.hpp>
 #include <scwx/qt/settings/settings_variable.hpp>
 #include <scwx/awips/impact_based_warnings.hpp>
@@ -30,6 +31,7 @@ public:
    SettingsVariable<std::string>& palette(const std::string& name) const;
    SettingsVariable<std::string>& alert_color(awips::Phenomenon phenomenon,
                                               bool              active) const;
+   AlertPaletteSettings&          alert_palette(awips::Phenomenon);
 
    static const std::vector<awips::Phenomenon>& alert_phenomena();
 

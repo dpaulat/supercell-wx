@@ -76,32 +76,6 @@ static const awips::Phenomenon kDefaultPhenomenon_ {awips::Phenomenon::Marine};
 class PaletteSettings::Impl
 {
 public:
-   struct AlertData
-   {
-      AlertData(awips::Phenomenon phenomenon) : phenomenon_ {phenomenon}
-      {
-         auto& info = awips::ibw::GetImpactBasedWarningInfo(phenomenon);
-         for (auto& threatCategory : info.threatCategories_)
-         {
-            std::string threatCategoryName =
-               awips::ibw::GetThreatCategoryName(threatCategory);
-            boost::algorithm::to_lower(threatCategoryName);
-            threatCategoryMap_.emplace(threatCategory, threatCategoryName);
-         }
-      }
-
-      void RegisterVariables(SettingsCategory& settings);
-
-      awips::Phenomenon phenomenon_;
-
-      std::map<awips::ibw::ThreatCategory, SettingsVariable<std::string>>
-         threatCategoryMap_ {};
-
-      SettingsVariable<std::string> observed_ {"observed"};
-      SettingsVariable<std::string> tornadoPossible_ {"tornado_possible"};
-      SettingsVariable<std::string> inactive_ {"inactive"};
-   };
-
    explicit Impl(PaletteSettings* self) : self_ {self}
    {
       InitializeColorTables();
@@ -124,9 +98,8 @@ public:
                                       inactiveAlertColor_ {};
    std::vector<SettingsVariableBase*> variables_ {};
 
-   std::unordered_map<awips::Phenomenon, AlertData> alertDataMap_ {};
-
-   std::vector<SettingsCategory> alertSettings_ {};
+   std::unordered_map<awips::Phenomenon, AlertPaletteSettings>
+      alertPaletteMap_ {};
 };
 
 PaletteSettings::PaletteSettings() :
@@ -197,43 +170,19 @@ void PaletteSettings::Impl::InitializeLegacyAlerts()
 
 void PaletteSettings::Impl::InitializeAlerts()
 {
+   std::vector<SettingsCategory*> alertSettings {};
+
    for (auto phenomenon : PaletteSettings::alert_phenomena())
    {
-      auto pair = alertDataMap_.emplace(
-         std::make_pair(phenomenon, AlertData {phenomenon}));
-      auto& alertData = pair.first->second;
+      auto  result = alertPaletteMap_.emplace(phenomenon, phenomenon);
+      auto& it     = result.first;
+      AlertPaletteSettings& alertPaletteSettings = it->second;
 
       // Variable registration
-      auto& settings = alertSettings_.emplace_back(
-         SettingsCategory {awips::GetPhenomenonCode(phenomenon)});
-
-      alertData.RegisterVariables(settings);
+      alertSettings.push_back(&alertPaletteSettings);
    }
 
-   self_->RegisterSubcategoryArray("alerts", alertSettings_);
-}
-
-void PaletteSettings::Impl::AlertData::RegisterVariables(
-   SettingsCategory& settings)
-{
-   auto& info = awips::ibw::GetImpactBasedWarningInfo(phenomenon_);
-
-   for (auto& threatCategory : threatCategoryMap_)
-   {
-      settings.RegisterVariables({&threatCategory.second});
-   }
-
-   if (info.hasObservedTag_)
-   {
-      settings.RegisterVariables({&observed_});
-   }
-
-   if (info.hasTornadoPossibleTag_)
-   {
-      settings.RegisterVariables({&tornadoPossible_});
-   }
-
-   settings.RegisterVariables({&inactive_});
+   self_->RegisterSubcategoryArray("alerts", alertSettings);
 }
 
 SettingsVariable<std::string>&
@@ -270,6 +219,12 @@ PaletteSettings::alert_color(awips::Phenomenon phenomenon, bool active) const
       }
       return alert->second;
    }
+}
+
+AlertPaletteSettings&
+PaletteSettings::alert_palette(awips::Phenomenon phenomenon)
+{
+   return p->alertPaletteMap_.at(phenomenon);
 }
 
 const std::vector<awips::Phenomenon>& PaletteSettings::alert_phenomena()
