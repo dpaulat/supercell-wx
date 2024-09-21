@@ -169,7 +169,8 @@ set(HDR_REQUEST source/scwx/qt/request/download_request.hpp
                 source/scwx/qt/request/nexrad_file_request.hpp)
 set(SRC_REQUEST source/scwx/qt/request/download_request.cpp
                 source/scwx/qt/request/nexrad_file_request.cpp)
-set(HDR_SETTINGS source/scwx/qt/settings/audio_settings.hpp
+set(HDR_SETTINGS source/scwx/qt/settings/alert_palette_settings.hpp
+                 source/scwx/qt/settings/audio_settings.hpp
                  source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/hotkey_settings.hpp
                  source/scwx/qt/settings/line_settings.hpp
@@ -186,7 +187,8 @@ set(HDR_SETTINGS source/scwx/qt/settings/audio_settings.hpp
                  source/scwx/qt/settings/text_settings.hpp
                  source/scwx/qt/settings/ui_settings.hpp
                  source/scwx/qt/settings/unit_settings.hpp)
-set(SRC_SETTINGS source/scwx/qt/settings/audio_settings.cpp
+set(SRC_SETTINGS source/scwx/qt/settings/alert_palette_settings.cpp
+                 source/scwx/qt/settings/audio_settings.cpp
                  source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/hotkey_settings.cpp
                  source/scwx/qt/settings/line_settings.cpp
