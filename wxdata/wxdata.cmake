@@ -252,6 +252,11 @@ source_group("Source Files\\wsr88d\\rda" FILES ${SRC_WSR88D_RDA})
 source_group("Header Files\\wsr88d\\rpg" FILES ${HDR_WSR88D_RPG})
 source_group("Source Files\\wsr88d\\rpg" FILES ${SRC_WSR88D_RPG})
 
+
+try_compile(HAS_FULL_CHRONO
+            ${CMAKE_BINARY_DIR}
+            ${PROJECT_SOURCE_DIR}/source/cpp-feature-tests/chrono_feature_test.cpp)
+
 target_include_directories(wxdata PRIVATE ${Boost_INCLUDE_DIR}
                                           ${HSLUV_C_INCLUDE_DIR}
                                           ${scwx-data_SOURCE_DIR}/include
@@ -293,9 +298,12 @@ if (WIN32)
     target_link_libraries(wxdata INTERFACE Ws2_32)
 endif()
 
+if (NOT HAS_FULL_CHRONO)
+    target_link_libraries(wxdata PUBLIC date::date-tz)
+endif()
+
 if (NOT MSVC)
-    target_link_libraries(wxdata PUBLIC date::date-tz
-                                        TBB::tbb)
+    target_link_libraries(wxdata PUBLIC TBB::tbb)
 endif()
 
 set_target_properties(wxdata PROPERTIES CXX_STANDARD 20
