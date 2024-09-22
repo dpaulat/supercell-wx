@@ -23,12 +23,12 @@
 #include <scwx/qt/types/time_types.hpp>
 #include <scwx/qt/types/unit_types.hpp>
 #include <scwx/qt/ui/county_dialog.hpp>
-#include <scwx/qt/ui/wfo_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/ui/serial_port_dialog.hpp>
 #include <scwx/qt/ui/settings/alert_palette_settings_widget.hpp>
 #include <scwx/qt/ui/settings/hotkey_settings_widget.hpp>
 #include <scwx/qt/ui/settings/unit_settings_widget.hpp>
+#include <scwx/qt/ui/wfo_dialog.hpp>
 #include <scwx/qt/util/color.hpp>
 #include <scwx/qt/util/file.hpp>
 #include <scwx/util/logger.hpp>
@@ -360,24 +360,23 @@ void SettingsDialogImpl::ConnectSignals()
                     self_,
                     [this]() { alertAudioRadarSiteDialog_->show(); });
 
-   QObject::connect(alertAudioRadarSiteDialog_,
-                    &RadarSiteDialog::accepted,
-                    self_,
-                    [this]()
-                    {
-                       std::string id =
-                          alertAudioRadarSiteDialog_->radar_site();
+   QObject::connect(
+      alertAudioRadarSiteDialog_,
+      &RadarSiteDialog::accepted,
+      self_,
+      [this]()
+      {
+         std::string id = alertAudioRadarSiteDialog_->radar_site();
 
-                       std::shared_ptr<config::RadarSite> radarSite =
-                          config::RadarSite::Get(id);
+         std::shared_ptr<config::RadarSite> radarSite =
+            config::RadarSite::Get(id);
 
-                       if (radarSite != nullptr)
-                       {
-                          self_->ui->alertAudioRadarSiteComboBox
-                             ->setCurrentText(QString::fromStdString(
-                                RadarSiteLabel(radarSite)));
-                       }
-                    });
+         if (radarSite != nullptr)
+         {
+            self_->ui->alertAudioRadarSiteComboBox->setCurrentText(
+               QString::fromStdString(RadarSiteLabel(radarSite)));
+         }
+      });
 
    QObject::connect(self_->ui->gpsSourceSelectButton,
                     &QAbstractButton::clicked,
@@ -923,13 +922,11 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
       QObject::connect(activeButton,
                        &QAbstractButton::clicked,
                        self_,
-                       [=, this]()
-                       { ShowColorDialog(activeEdit); });
+                       [=, this]() { ShowColorDialog(activeEdit); });
       QObject::connect(inactiveButton,
                        &QAbstractButton::clicked,
                        self_,
-                       [=, this]()
-                       { ShowColorDialog(inactiveEdit); });
+                       [=, this]() { ShowColorDialog(inactiveEdit); });
    }
 }
 
@@ -964,8 +961,7 @@ void SettingsDialogImpl::SetupAudioTab()
             locationMethod == types::LocationMethod::RadarSite;
          bool countyEntryEnabled =
             locationMethod == types::LocationMethod::County;
-         bool wfoEntryEnabled =
-            locationMethod == types::LocationMethod::WFO;
+         bool wfoEntryEnabled = locationMethod == types::LocationMethod::WFO;
 
          self_->ui->alertAudioLatitudeSpinBox->setEnabled(
             coordinateEntryEnabled);
@@ -983,10 +979,8 @@ void SettingsDialogImpl::SetupAudioTab()
          self_->ui->resetAlertAudioRadarSiteButton->setEnabled(
             radarSiteEntryEnable);
 
-         self_->ui->alertAudioRadiusSpinBox->setEnabled(
-            radiusEntryEnable);
-         self_->ui->resetAlertAudioRadiusButton->setEnabled(
-            radiusEntryEnable);
+         self_->ui->alertAudioRadiusSpinBox->setEnabled(radiusEntryEnable);
+         self_->ui->resetAlertAudioRadiusButton->setEnabled(radiusEntryEnable);
 
          self_->ui->alertAudioCountyLineEdit->setEnabled(countyEntryEnabled);
          self_->ui->alertAudioCountySelectButton->setEnabled(
@@ -1102,8 +1096,7 @@ void SettingsDialogImpl::SetupAudioTab()
 
    alertAudioRadius_.SetSettingsVariable(audioSettings.alert_radius());
    alertAudioRadius_.SetEditWidget(self_->ui->alertAudioRadiusSpinBox);
-   alertAudioRadius_.SetResetButton(
-      self_->ui->resetAlertAudioRadiusButton);
+   alertAudioRadius_.SetResetButton(self_->ui->resetAlertAudioRadiusButton);
    alertAudioRadius_.SetUnitLabel(self_->ui->alertAudioRadiusUnitsLabel);
    auto alertAudioRadiusUpdateUnits = [this](const std::string& newValue)
    {
@@ -1217,14 +1210,10 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioCounty_.SetEditWidget(self_->ui->alertAudioCountyLineEdit);
    alertAudioCounty_.SetResetButton(self_->ui->resetAlertAudioCountyButton);
 
-   QObject::connect(
-      self_->ui->alertAudioWFOSelectButton,
-      &QAbstractButton::clicked,
-      self_,
-      [this]()
-      {
-         wfoDialog_->show();
-      });
+   QObject::connect(self_->ui->alertAudioWFOSelectButton,
+                    &QAbstractButton::clicked,
+                    self_,
+                    [this]() { wfoDialog_->show(); });
    QObject::connect(wfoDialog_,
                     &WFODialog::accepted,
                     self_,
@@ -1243,9 +1232,8 @@ void SettingsDialogImpl::SetupAudioTab()
                     self_,
                     [this](const QString& text)
                     {
-                       std::string wfoName =
-                          config::CountyDatabase::GetWFOName(
-                             text.toStdString());
+                       std::string wfoName = config::CountyDatabase::GetWFOName(
+                          text.toStdString());
                        self_->ui->alertAudioWFOLabel->setText(
                           QString::fromStdString(wfoName));
                     });
@@ -1253,7 +1241,6 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioWFO_.SetSettingsVariable(audioSettings.alert_wfo());
    alertAudioWFO_.SetEditWidget(self_->ui->alertAudioWFOLineEdit);
    alertAudioWFO_.SetResetButton(self_->ui->resetAlertAudioWFOButton);
-
 }
 
 void SettingsDialogImpl::SetupTextTab()
@@ -1454,8 +1441,6 @@ void SettingsDialogImpl::UpdateAlertRadarDialogLocation(const std::string& id)
                                                   radarSite->longitude());
    }
 }
-
-
 
 QFont SettingsDialogImpl::GetSelectedFont()
 {
