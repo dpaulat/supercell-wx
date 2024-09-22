@@ -14,7 +14,7 @@
 #include <libxml/HTMLparser.h>
 #include <re2/re2.h>
 
-#if !(defined(_MSC_VER) || defined(__clang__))
+#if (__cpp_lib_chrono < 201907L)
 #   include <date/date.h>
 #endif
 
@@ -71,7 +71,7 @@ WarningsProvider::ListFiles(std::chrono::system_clock::time_point newerThan)
 {
    using namespace std::chrono;
 
-#if !(defined(_MSC_VER) || defined(__clang__))
+#if (__cpp_lib_chrono < 201907L)
    using namespace date;
 #endif
 

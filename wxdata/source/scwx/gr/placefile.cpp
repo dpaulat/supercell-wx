@@ -20,7 +20,7 @@
 
 #include <boost/algorithm/string.hpp>
 
-#if !(defined(_MSC_VER) || defined(__clang__))
+#if (__cpp_lib_chrono < 201907L)
 #   include <date/date.h>
 #endif
 
@@ -284,7 +284,7 @@ void Placefile::Impl::ProcessLine(const std::string& line)
       {
          using namespace std::chrono;
 
-#if !(defined(_MSC_VER) || defined(__clang__))
+#if (__cpp_lib_chrono < 201907L)
          using namespace date;
 #endif
 

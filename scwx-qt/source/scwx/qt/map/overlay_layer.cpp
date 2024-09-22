@@ -22,7 +22,7 @@
 #include <QGuiApplication>
 #include <QMouseEvent>
 
-#if !(defined(_MSC_VER) || defined(__clang__))
+#if (__cpp_lib_chrono < 201907L)
 #   include <date/date.h>
 #endif
 
