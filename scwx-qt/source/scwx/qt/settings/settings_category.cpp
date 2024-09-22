@@ -4,6 +4,8 @@
 
 #include <algorithm>
 
+#include <boost/signals2/signal.hpp>
+
 namespace scwx
 {
 namespace qt
@@ -27,6 +29,8 @@ public:
                                       subcategoryArrays_;
    std::vector<SettingsCategory*>     subcategories_;
    std::vector<SettingsVariableBase*> variables_;
+
+   boost::signals2::signal<void()> resetSignal_;
 };
 
 SettingsCategory::SettingsCategory(const std::string& name) :
@@ -94,6 +98,32 @@ bool SettingsCategory::Commit()
    }
 
    return committed;
+}
+
+void SettingsCategory::Reset()
+{
+   // Reset subcategory arrays
+   for (auto& subcategoryArray : p->subcategoryArrays_)
+   {
+      for (auto& subcategory : subcategoryArray.second)
+      {
+         subcategory->Reset();
+      }
+   }
+
+   // Reset subcategories
+   for (auto& subcategory : p->subcategories_)
+   {
+      subcategory->Reset();
+   }
+
+   // Reset variables
+   for (auto& variable : p->variables_)
+   {
+      variable->Reset();
+   }
+
+   p->resetSignal_();
 }
 
 bool SettingsCategory::ReadJson(const boost::json::object& json)
@@ -250,6 +280,12 @@ void SettingsCategory::RegisterVariables(
 {
    p->variables_.insert(
       p->variables_.end(), variables.cbegin(), variables.cend());
+}
+
+boost::signals2::connection
+SettingsCategory::RegisterResetCallback(std::function<void()> callback)
+{
+   return p->resetSignal_.connect(callback);
 }
 
 } // namespace settings

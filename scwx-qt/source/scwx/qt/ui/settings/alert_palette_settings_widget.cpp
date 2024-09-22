@@ -13,6 +13,8 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include <boost/signals2.hpp>
+
 namespace scwx
 {
 namespace qt
@@ -35,7 +37,13 @@ public:
       SetupUi();
       ConnectSignals();
    }
-   ~Impl() = default;
+   ~Impl()
+   {
+      for (auto& c : bs2Connections_)
+      {
+         c.disconnect();
+      }
+   };
 
    void     AddPhenomenonLine(const std::string&      name,
                               settings::LineSettings& lineSettings,
@@ -53,6 +61,8 @@ public:
 
    EditLineDialog* editLineDialog_;
    LineLabel*      activeLineLabel_ {nullptr};
+
+   std::vector<boost::signals2::connection> bs2Connections_ {};
 
    boost::unordered_flat_map<awips::Phenomenon, QWidget*> phenomenonPages_ {};
 };
@@ -249,6 +259,11 @@ void AlertPaletteSettingsWidget::Impl::AddPhenomenonLine(
    layout->addWidget(toolButton, row, 2);
 
    self_->AddSettingsCategory(&lineSettings);
+
+   boost::signals2::connection c = lineSettings.RegisterResetCallback(
+      [lineLabel, &lineSettings]()
+      { lineLabel->set_line_settings(lineSettings); });
+   bs2Connections_.push_back(c);
 
    connect(
       toolButton,

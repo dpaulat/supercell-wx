@@ -60,8 +60,16 @@ public:
    void ResetToDefault();
 
 protected:
-   void AddSettingsCategory(settings::SettingsCategory* category);
    void AddSettingsInterface(settings::SettingsInterfaceBase* setting);
+
+   /**
+    * Commits and resets all settings within a category upon page commit or
+    * reset. The use of SettingsInterface is preferred, as it allows the binding
+    * of widgets to these actions.
+    *
+    * @param [in] category Settings category
+    */
+   void AddSettingsCategory(settings::SettingsCategory* category);
 
 private:
    class Impl;

@@ -29,7 +29,7 @@ public:
    typedef std::function<void(const T& value)> ValueCallbackFunction;
 
    explicit SettingsVariable(const std::string& name);
-   ~SettingsVariable();
+   virtual ~SettingsVariable();
 
    SettingsVariable(const SettingsVariable&)            = delete;
    SettingsVariable& operator=(const SettingsVariable&) = delete;
@@ -96,7 +96,7 @@ public:
    /**
     * Clears the staged value of the settings variable.
     */
-   void Reset();
+   void Reset() override;
 
    /**
     * Gets the staged value of the settings variable, if defined.

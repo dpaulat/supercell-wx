@@ -19,7 +19,7 @@ class SettingsVariableBase
 {
 protected:
    explicit SettingsVariableBase(const std::string& name);
-   ~SettingsVariableBase();
+   virtual ~SettingsVariableBase();
 
 public:
    SettingsVariableBase(const SettingsVariableBase&)            = delete;
@@ -47,6 +47,11 @@ public:
     * is present.
     */
    virtual bool Commit() = 0;
+
+   /**
+    * Clears the staged value of the settings variable.
+    */
+   virtual void Reset() = 0;
 
    /**
     * Reads the value from the JSON object. If the read value is out of range,

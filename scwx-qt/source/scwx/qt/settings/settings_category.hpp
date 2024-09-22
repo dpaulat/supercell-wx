@@ -6,6 +6,7 @@
 #include <string>
 
 #include <boost/json/object.hpp>
+#include <boost/signals2/connection.hpp>
 
 namespace scwx
 {
@@ -34,13 +35,17 @@ public:
    void SetDefaults();
 
    /**
-    * Sets the current value of all variables to the staged
-    * value.
+    * Sets the current value of all variables to the staged value.
     *
     * @return true if any staged value was committed, false if no staged values
     * are present.
     */
    bool Commit();
+
+   /**
+    * Clears the staged value of all variables.
+    */
+   void Reset();
 
    /**
     * Reads the variables from the JSON object.
@@ -67,6 +72,14 @@ public:
    void
    RegisterVariables(std::initializer_list<SettingsVariableBase*> variables);
    void RegisterVariables(std::vector<SettingsVariableBase*> variables);
+
+   /**
+    * Registers a function to be called when the category is reset.
+    *
+    * @param callback Function to be called
+    */
+   boost::signals2::connection
+   RegisterResetCallback(std::function<void()> callback);
 
 private:
    class Impl;

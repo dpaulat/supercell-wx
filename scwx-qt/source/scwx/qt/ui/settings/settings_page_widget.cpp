@@ -61,6 +61,11 @@ bool SettingsPageWidget::CommitChanges()
 
 void SettingsPageWidget::DiscardChanges()
 {
+   for (auto& category : p->categories_)
+   {
+      category->Reset();
+   }
+
    for (auto& setting : p->settings_)
    {
       setting->Reset();
