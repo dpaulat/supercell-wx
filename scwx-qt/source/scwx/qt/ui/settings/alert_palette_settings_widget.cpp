@@ -248,6 +248,8 @@ void AlertPaletteSettingsWidget::Impl::AddPhenomenonLine(
    layout->addWidget(lineLabel, row, 1);
    layout->addWidget(toolButton, row, 2);
 
+   self_->AddSettingsCategory(&lineSettings);
+
    connect(
       toolButton,
       &QAbstractButton::clicked,

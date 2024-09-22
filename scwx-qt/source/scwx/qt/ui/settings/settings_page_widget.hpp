@@ -1,5 +1,6 @@
 #pragma once
 
+#include <scwx/qt/settings/settings_category.hpp>
 #include <scwx/qt/settings/settings_interface_base.hpp>
 
 #include <QWidget>
@@ -59,6 +60,7 @@ public:
    void ResetToDefault();
 
 protected:
+   void AddSettingsCategory(settings::SettingsCategory* category);
    void AddSettingsInterface(settings::SettingsInterfaceBase* setting);
 
 private:

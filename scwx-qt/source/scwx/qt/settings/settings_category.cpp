@@ -68,6 +68,34 @@ void SettingsCategory::SetDefaults()
    }
 }
 
+bool SettingsCategory::Commit()
+{
+   bool committed = false;
+
+   // Commit subcategory arrays
+   for (auto& subcategoryArray : p->subcategoryArrays_)
+   {
+      for (auto& subcategory : subcategoryArray.second)
+      {
+         committed |= subcategory->Commit();
+      }
+   }
+
+   // Commit subcategories
+   for (auto& subcategory : p->subcategories_)
+   {
+      committed |= subcategory->Commit();
+   }
+
+   // Commit variables
+   for (auto& variable : p->variables_)
+   {
+      committed |= variable->Commit();
+   }
+
+   return committed;
+}
+
 bool SettingsCategory::ReadJson(const boost::json::object& json)
 {
    bool validated = true;

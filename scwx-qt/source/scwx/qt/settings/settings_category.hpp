@@ -34,6 +34,15 @@ public:
    void SetDefaults();
 
    /**
+    * Sets the current value of all variables to the staged
+    * value.
+    *
+    * @return true if any staged value was committed, false if no staged values
+    * are present.
+    */
+   bool Commit();
+
+   /**
     * Reads the variables from the JSON object.
     *
     * @param json JSON object to read
