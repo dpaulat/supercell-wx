@@ -131,16 +131,6 @@ private:
    std::unique_ptr<Impl> p;
 };
 
-#ifdef SETTINGS_INTERFACE_IMPLEMENTATION
-template class SettingsInterface<bool>;
-template class SettingsInterface<double>;
-template class SettingsInterface<std::int64_t>;
-template class SettingsInterface<std::string>;
-
-// Containers are not to be used directly
-template class SettingsInterface<std::vector<std::int64_t>>;
-#endif
-
 } // namespace settings
 } // namespace qt
 } // namespace scwx

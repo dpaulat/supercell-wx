@@ -11,7 +11,7 @@
 #include <cpr/cpr.h>
 #include <libxml/HTMLparser.h>
 
-#if !defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clang__))
 #   include <date/date.h>
 #endif
 
@@ -200,7 +200,7 @@ void DirListSAXHandler::Characters(void* userData, const xmlChar* ch, int len)
    {
       using namespace std::chrono;
 
-#if !defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clang__))
       using namespace date;
 #endif
 

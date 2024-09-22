@@ -31,7 +31,6 @@ static constexpr std::size_t kIntegersPerVertex_ = 3;
 
 static constexpr std::size_t kTessVertexScreenX_ = 0;
 static constexpr std::size_t kTessVertexScreenY_ = 1;
-static constexpr std::size_t kTessVertexScreenZ_ = 2;
 static constexpr std::size_t kTessVertexXOffset_ = 3;
 static constexpr std::size_t kTessVertexYOffset_ = 4;
 static constexpr std::size_t kTessVertexR_       = 5;

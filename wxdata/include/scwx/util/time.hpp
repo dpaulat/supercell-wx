@@ -15,7 +15,7 @@ namespace scwx
 namespace util
 {
 
-#if defined(_MSC_VER)
+#if (defined(_MSC_VER) || defined(__clang__))
 typedef std::chrono::time_zone time_zone;
 #else
 typedef date::time_zone time_zone;

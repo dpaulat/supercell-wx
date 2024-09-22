@@ -5,7 +5,7 @@
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 
-#if !defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clang__))
 #   include <date/date.h>
 #endif
 
@@ -82,7 +82,7 @@ AwsLevel2DataProvider::GetTimePointFromKey(const std::string& key)
    {
       using namespace std::chrono;
 
-#if !defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clang__))
       using namespace date;
 #endif
 

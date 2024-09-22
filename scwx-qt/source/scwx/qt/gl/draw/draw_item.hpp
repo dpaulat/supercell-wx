@@ -22,7 +22,7 @@ class DrawItem
 {
 public:
    explicit DrawItem(OpenGLFunctions& gl);
-   ~DrawItem();
+   virtual ~DrawItem();
 
    DrawItem(const DrawItem&)            = delete;
    DrawItem& operator=(const DrawItem&) = delete;

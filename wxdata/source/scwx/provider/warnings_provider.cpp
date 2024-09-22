@@ -14,7 +14,7 @@
 #include <libxml/HTMLparser.h>
 #include <re2/re2.h>
 
-#if !defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clang__))
 #   include <date/date.h>
 #endif
 
@@ -29,8 +29,6 @@ namespace provider
 
 static const std::string logPrefix_ = "scwx::provider::warnings_provider";
 static const auto        logger_    = util::Logger::Create(logPrefix_);
-
-static constexpr std::chrono::seconds kUpdatePeriod_ {15};
 
 class WarningsProvider::Impl
 {
@@ -73,7 +71,7 @@ WarningsProvider::ListFiles(std::chrono::system_clock::time_point newerThan)
 {
    using namespace std::chrono;
 
-#if !defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clang__))
    using namespace date;
 #endif
 

@@ -10,7 +10,7 @@
 
 #include <boost/json.hpp>
 
-#if !defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clang__))
 #   include <date/date.h>
 #endif
 
@@ -271,7 +271,7 @@ size_t RadarSite::ReadConfig(const std::string& path)
 
             try
             {
-#if defined(_MSC_VER)
+#if (defined(_MSC_VER) || defined(__clang__))
                using namespace std::chrono;
 #else
                using namespace date;

@@ -420,7 +420,7 @@ void Level3ProductsWidgetImpl::UpdateCategorySelection(
 
    std::for_each(categoryButtons_.cbegin(),
                  categoryButtons_.cend(),
-                 [&, this](auto& toolButton)
+                 [&](auto& toolButton)
                  {
                     if (toolButton->text().toStdString() == categoryName)
                     {
@@ -444,7 +444,7 @@ void Level3ProductsWidgetImpl::UpdateProductSelection(
 
    std::for_each(awipsProductMap_.cbegin(),
                  awipsProductMap_.cend(),
-                 [&, this](const auto& pair)
+                 [&](const auto& pair)
                  {
                     if (pair.second == awipsId)
                     {

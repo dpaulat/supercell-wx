@@ -105,7 +105,7 @@ public:
    std::chrono::system_clock::time_point
    segment_event_begin(std::size_t s) const;
 
-   std::size_t data_size() const;
+   std::size_t data_size() const override;
 
    bool Parse(std::istream& is) override;
 

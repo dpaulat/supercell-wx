@@ -33,7 +33,7 @@ public:
 
    const std::vector<std::vector<std::string>>& page_list() const;
 
-   bool Parse(std::istream& is);
+   bool Parse(std::istream& is) override;
    bool Parse(std::istream& is, bool skipHeader);
 
    static constexpr size_t SIZE = 102u;

@@ -30,7 +30,7 @@ public:
    GraphicProductMessage(GraphicProductMessage&&) noexcept;
    GraphicProductMessage& operator=(GraphicProductMessage&&) noexcept;
 
-   std::shared_ptr<ProductDescriptionBlock>  description_block() const;
+   std::shared_ptr<ProductDescriptionBlock>  description_block() const override;
    std::shared_ptr<ProductSymbologyBlock>    symbology_block() const;
    std::shared_ptr<GraphicAlphanumericBlock> graphic_block() const;
    std::shared_ptr<TabularAlphanumericBlock> tabular_block() const;

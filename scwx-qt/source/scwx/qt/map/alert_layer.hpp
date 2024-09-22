@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/awips/phenomenon.hpp>
+
 #include <scwx/qt/map/draw_layer.hpp>
 #include <scwx/qt/types/text_event_key.hpp>
 

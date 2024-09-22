@@ -13,7 +13,7 @@
 
 #include <sstream>
 
-#if !defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clang__))
 #   include <date/date.h>
 #endif
 
@@ -107,7 +107,7 @@ bool CodedTimeMotionLocation::Parse(const StringRange& lines,
       {
          using namespace std::chrono;
 
-#if !defined(_MSC_VER)
+#if !(defined(_MSC_VER) || defined(__clang__))
          using namespace date;
 #endif
 

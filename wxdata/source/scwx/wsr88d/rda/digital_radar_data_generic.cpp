@@ -721,15 +721,15 @@ bool DigitalRadarDataGeneric::Parse(std::istream& is)
       {
       case DataBlockType::Volume:
          p->volumeDataBlock_ =
-            std::move(VolumeDataBlock::Create(dataBlockType, dataName, is));
+            VolumeDataBlock::Create(dataBlockType, dataName, is);
          break;
       case DataBlockType::Elevation:
          p->elevationDataBlock_ =
-            std::move(ElevationDataBlock::Create(dataBlockType, dataName, is));
+            ElevationDataBlock::Create(dataBlockType, dataName, is);
          break;
       case DataBlockType::Radial:
          p->radialDataBlock_ =
-            std::move(RadialDataBlock::Create(dataBlockType, dataName, is));
+            RadialDataBlock::Create(dataBlockType, dataName, is);
          break;
       case DataBlockType::MomentRef:
       case DataBlockType::MomentVel:
@@ -739,7 +739,7 @@ bool DigitalRadarDataGeneric::Parse(std::istream& is)
       case DataBlockType::MomentRho:
       case DataBlockType::MomentCfp:
          p->momentDataBlock_[dataBlock] =
-            std::move(MomentDataBlock::Create(dataBlockType, dataName, is));
+            MomentDataBlock::Create(dataBlockType, dataName, is);
          break;
       default:
          logger_->warn("Unknown data name: {}", dataName);

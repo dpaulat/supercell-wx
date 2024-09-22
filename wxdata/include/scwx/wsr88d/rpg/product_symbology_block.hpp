@@ -34,7 +34,7 @@ public:
 
    size_t data_size() const override;
 
-   bool Parse(std::istream& is);
+   bool Parse(std::istream& is) override;
 
    static constexpr size_t SIZE = 102u;
 

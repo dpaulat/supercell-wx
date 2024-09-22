@@ -27,16 +27,16 @@ public:
    RadialDataPacket& operator=(RadialDataPacket&&) noexcept;
 
    uint16_t packet_code() const override;
-   uint16_t index_of_first_range_bin() const;
-   uint16_t number_of_range_bins() const;
-   int16_t  i_center_of_sweep() const;
-   int16_t  j_center_of_sweep() const;
+   uint16_t index_of_first_range_bin() const override;
+   uint16_t number_of_range_bins() const override;
+   int16_t  i_center_of_sweep() const override;
+   int16_t  j_center_of_sweep() const override;
    float    scale_factor() const;
-   uint16_t number_of_radials() const;
+   uint16_t number_of_radials() const override;
 
-   float                       start_angle(uint16_t r) const;
-   float                       delta_angle(uint16_t r) const;
-   const std::vector<uint8_t>& level(uint16_t r) const;
+   float                       start_angle(uint16_t r) const override;
+   float                       delta_angle(uint16_t r) const override;
+   const std::vector<uint8_t>& level(uint16_t r) const override;
 
    size_t data_size() const override;
 

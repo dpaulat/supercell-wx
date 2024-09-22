@@ -18,13 +18,9 @@ namespace draw
 static const std::string logPrefix_ = "scwx::qt::gl::draw::placefile_lines";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static constexpr std::size_t kNumRectangles        = 1;
-static constexpr std::size_t kNumTriangles         = kNumRectangles * 2;
 static constexpr std::size_t kVerticesPerTriangle  = 3;
 static constexpr std::size_t kVerticesPerRectangle = kVerticesPerTriangle * 2;
 static constexpr std::size_t kPointsPerVertex      = 9;
-static constexpr std::size_t kBufferLength =
-   kNumTriangles * kVerticesPerTriangle * kPointsPerVertex;
 
 // Threshold, start time, end time
 static constexpr std::size_t kIntegersPerVertex_ = 3;

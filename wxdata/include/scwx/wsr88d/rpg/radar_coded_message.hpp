@@ -27,7 +27,7 @@ public:
    RadarCodedMessage(RadarCodedMessage&&) noexcept;
    RadarCodedMessage& operator=(RadarCodedMessage&&) noexcept;
 
-   std::shared_ptr<ProductDescriptionBlock> description_block() const;
+   std::shared_ptr<ProductDescriptionBlock> description_block() const override;
 
    bool Parse(std::istream& is) override;
 

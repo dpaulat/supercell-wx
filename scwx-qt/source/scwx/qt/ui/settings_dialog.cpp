@@ -181,7 +181,7 @@ public:
    void SetupTextTab();
    void SetupHotkeysTab();
 
-   void ShowColorDialog(QLineEdit* lineEdit, QFrame* frame = nullptr);
+   void ShowColorDialog(QLineEdit* lineEdit);
    void UpdateRadarDialogLocation(const std::string& id);
    void UpdateAlertRadarDialogLocation(const std::string& id);
 
@@ -784,7 +784,7 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
             QObject::connect(dialog,
                              &QFileDialog::fileSelected,
                              self_,
-                             [this, lineEdit](const QString& file)
+                             [lineEdit](const QString& file)
                              {
                                 QString path = QDir::toNativeSeparators(file);
 
@@ -913,12 +913,12 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
                        &QAbstractButton::clicked,
                        self_,
                        [=, this]()
-                       { ShowColorDialog(activeEdit, activeFrame); });
+                       { ShowColorDialog(activeEdit); });
       QObject::connect(inactiveButton,
                        &QAbstractButton::clicked,
                        self_,
                        [=, this]()
-                       { ShowColorDialog(inactiveEdit, inactiveFrame); });
+                       { ShowColorDialog(inactiveEdit); });
    }
 }
 
@@ -1384,7 +1384,7 @@ void SettingsDialogImpl::LoadColorTablePreview(const std::string& key,
       });
 }
 
-void SettingsDialogImpl::ShowColorDialog(QLineEdit* lineEdit, QFrame* frame)
+void SettingsDialogImpl::ShowColorDialog(QLineEdit* lineEdit)
 {
    QColorDialog* dialog = new QColorDialog(self_);
 
@@ -1401,7 +1401,7 @@ void SettingsDialogImpl::ShowColorDialog(QLineEdit* lineEdit, QFrame* frame)
       dialog,
       &QColorDialog::colorSelected,
       self_,
-      [this, lineEdit, frame](const QColor& color)
+      [lineEdit](const QColor& color)
       {
          QString colorName = color.name(QColor::NameFormat::HexArgb);
 

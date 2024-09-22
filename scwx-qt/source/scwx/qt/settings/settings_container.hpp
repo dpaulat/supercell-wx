@@ -99,10 +99,6 @@ private:
    std::unique_ptr<Impl> p;
 };
 
-#ifdef SETTINGS_CONTAINER_IMPLEMENTATION
-template class SettingsContainer<std::vector<std::int64_t>>;
-#endif
-
 } // namespace settings
 } // namespace qt
 } // namespace scwx

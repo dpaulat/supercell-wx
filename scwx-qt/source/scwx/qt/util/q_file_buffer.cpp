@@ -224,6 +224,9 @@ QFileBuffer::pos_type QFileBuffer::seekoff(off_type               off,
 
       break;
    }
+   default:
+      logger_->error("Got invalid seekdir value");
+      break;
    }
 
    if (newPos != static_cast<off_type>(-1))

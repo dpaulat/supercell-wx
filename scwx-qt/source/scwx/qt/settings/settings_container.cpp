@@ -1,5 +1,3 @@
-#define SETTINGS_CONTAINER_IMPLEMENTATION
-
 #include <scwx/qt/settings/settings_container.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -171,6 +169,8 @@ bool SettingsContainer<Container>::Equals(const SettingsVariableBase& o) const
           p->elementMinimum_ == v.p->elementMinimum_ &&
           p->elementMaximum_ == v.p->elementMaximum_;
 }
+
+template class SettingsContainer<std::vector<std::int64_t>>;
 
 } // namespace settings
 } // namespace qt
