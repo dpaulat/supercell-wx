@@ -1,5 +1,7 @@
 #pragma once
 
+#include <scwx/qt/settings/line_settings.hpp>
+
 #include <QFrame>
 
 #include <boost/gil/typedefs.hpp>
@@ -35,6 +37,8 @@ public:
    void set_border_width(std::size_t width);
    void set_highlight_width(std::size_t width);
    void set_line_width(std::size_t width);
+
+   void set_line_settings(settings::LineSettings& lineSettings);
 
 protected:
    QSize minimumSizeHint() const override;

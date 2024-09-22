@@ -37,8 +37,10 @@ public:
    }
    ~Impl() = default;
 
-   void
-   AddPhenomenonLine(const std::string& name, QGridLayout* layout, int row);
+   void     AddPhenomenonLine(const std::string&      name,
+                              settings::LineSettings& lineSettings,
+                              QGridLayout*            layout,
+                              int                     row);
    QWidget* CreateStackedWidgetPage(awips::Phenomenon phenomenon);
    void     ConnectSignals();
    void     SelectPhenomenon(awips::Phenomenon phenomenon);
@@ -181,21 +183,31 @@ QWidget* AlertPaletteSettingsWidget::Impl::CreateStackedWidgetPage(
    const auto& impactBasedWarningInfo =
       awips::ibw::GetImpactBasedWarningInfo(phenomenon);
 
+   auto& alertPalette =
+      settings::PaletteSettings::Instance().alert_palette(phenomenon);
+
    int row = 0;
 
    // Add a blank label to align left and right widgets
    gridLayout->addWidget(new QLabel(self_), row++, 0);
 
-   AddPhenomenonLine("Active", gridLayout, row++);
+   AddPhenomenonLine(
+      "Active",
+      alertPalette.threat_category(awips::ibw::ThreatCategory::Base),
+      gridLayout,
+      row++);
 
    if (impactBasedWarningInfo.hasObservedTag_)
    {
-      AddPhenomenonLine("Observed", gridLayout, row++);
+      AddPhenomenonLine("Observed", alertPalette.observed(), gridLayout, row++);
    }
 
    if (impactBasedWarningInfo.hasTornadoPossibleTag_)
    {
-      AddPhenomenonLine("Tornado Possible", gridLayout, row++);
+      AddPhenomenonLine("Tornado Possible",
+                        alertPalette.tornado_possible(),
+                        gridLayout,
+                        row++);
    }
 
    for (auto& category : impactBasedWarningInfo.threatCategories_)
@@ -205,11 +217,13 @@ QWidget* AlertPaletteSettingsWidget::Impl::CreateStackedWidgetPage(
          continue;
       }
 
-      AddPhenomenonLine(
-         awips::ibw::GetThreatCategoryName(category), gridLayout, row++);
+      AddPhenomenonLine(awips::ibw::GetThreatCategoryName(category),
+                        alertPalette.threat_category(category),
+                        gridLayout,
+                        row++);
    }
 
-   AddPhenomenonLine("Inactive", gridLayout, row++);
+   AddPhenomenonLine("Inactive", alertPalette.inactive(), gridLayout, row++);
 
    QSpacerItem* spacer =
       new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
@@ -219,12 +233,16 @@ QWidget* AlertPaletteSettingsWidget::Impl::CreateStackedWidgetPage(
 }
 
 void AlertPaletteSettingsWidget::Impl::AddPhenomenonLine(
-   const std::string& name, QGridLayout* layout, int row)
+   const std::string&      name,
+   settings::LineSettings& lineSettings,
+   QGridLayout*            layout,
+   int                     row)
 {
    QToolButton* toolButton = new QToolButton(self_);
    toolButton->setText(tr("..."));
 
    LineLabel* lineLabel = new LineLabel(self_);
+   lineLabel->set_line_settings(lineSettings);
 
    layout->addWidget(new QLabel(tr(name.c_str()), self_), row, 0);
    layout->addWidget(lineLabel, row, 1);
