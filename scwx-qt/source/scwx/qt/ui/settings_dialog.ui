@@ -122,7 +122,7 @@
           </sizepolicy>
          </property>
          <property name="currentIndex">
-          <number>3</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="general">
           <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -136,8 +136,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>274</width>
-                <height>691</height>
+                <width>513</width>
+                <height>622</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout">
@@ -610,8 +610,8 @@
                    <rect>
                     <x>0</x>
                     <y>0</y>
-                    <width>98</width>
-                    <height>28</height>
+                    <width>506</width>
+                    <height>383</height>
                    </rect>
                   </property>
                   <layout class="QGridLayout" name="gridLayout_3">
@@ -634,9 +634,14 @@
                </item>
               </layout>
              </widget>
-             <widget class="QWidget" name="tab_2">
+             <widget class="QWidget" name="alertsPalette">
               <attribute name="title">
                <string>Alerts</string>
+              </attribute>
+             </widget>
+             <widget class="QWidget" name="tab_2">
+              <attribute name="title">
+               <string>Old Alerts</string>
               </attribute>
               <layout class="QVBoxLayout" name="verticalLayout_3">
                <item>

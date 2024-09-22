@@ -26,6 +26,7 @@
 #include <scwx/qt/ui/wfo_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/ui/serial_port_dialog.hpp>
+#include <scwx/qt/ui/settings/alert_palette_settings_widget.hpp>
 #include <scwx/qt/ui/settings/hotkey_settings_widget.hpp>
 #include <scwx/qt/ui/settings/unit_settings_widget.hpp>
 #include <scwx/qt/util/color.hpp>
@@ -224,6 +225,7 @@ public:
       manager::PositionManager::Instance()};
 
    std::vector<SettingsPageWidget*> settingsPages_ {};
+   AlertPaletteSettingsWidget*      alertPaletteSettingsWidget_ {};
    HotkeySettingsWidget*            hotkeySettingsWidget_ {};
    UnitSettingsWidget*              unitSettingsWidget_ {};
 
@@ -807,6 +809,15 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
       settings::PaletteSettings::Instance();
 
    // Palettes > Alerts
+   QVBoxLayout* layout = new QVBoxLayout(self_->ui->alertsPalette);
+
+   alertPaletteSettingsWidget_ =
+      new AlertPaletteSettingsWidget(self_->ui->hotkeys);
+   layout->addWidget(alertPaletteSettingsWidget_);
+
+   settingsPages_.push_back(alertPaletteSettingsWidget_);
+
+   // Palettes > Old Alerts
    QGridLayout* alertsLayout =
       reinterpret_cast<QGridLayout*>(self_->ui->alertsFrame->layout());
 
