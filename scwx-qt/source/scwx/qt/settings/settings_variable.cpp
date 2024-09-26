@@ -81,10 +81,13 @@ bool SettingsVariable<T>::SetValue(const T& value)
       p->value_ = (p->transform_ != nullptr) ? p->transform_(value) : value;
       validated = true;
 
+      changed_signal()();
       for (auto& callback : p->valueChangedCallbackFunctions_)
       {
          callback.second(p->value_);
       }
+
+      staged_signal()();
       for (auto& callback : p->valueStagedCallbackFunctions_)
       {
          callback.second(p->value_);
@@ -129,10 +132,13 @@ bool SettingsVariable<T>::SetValueOrDefault(const T& value)
       p->value_ = p->default_;
    }
 
+   changed_signal()();
    for (auto& callback : p->valueChangedCallbackFunctions_)
    {
       callback.second(p->value_);
    }
+
+   staged_signal()();
    for (auto& callback : p->valueStagedCallbackFunctions_)
    {
       callback.second(p->value_);
@@ -146,10 +152,13 @@ void SettingsVariable<T>::SetValueToDefault()
 {
    p->value_ = p->default_;
 
+   changed_signal()();
    for (auto& callback : p->valueChangedCallbackFunctions_)
    {
       callback.second(p->value_);
    }
+
+   staged_signal()();
    for (auto& callback : p->valueStagedCallbackFunctions_)
    {
       callback.second(p->value_);
@@ -168,6 +177,7 @@ void SettingsVariable<T>::StageDefault()
       p->staged_.reset();
    }
 
+   staged_signal()();
    for (auto& callback : p->valueStagedCallbackFunctions_)
    {
       callback.second(p->default_);
@@ -194,6 +204,7 @@ bool SettingsVariable<T>::StageValue(const T& value)
 
       validated = true;
 
+      staged_signal()();
       for (auto& callback : p->valueStagedCallbackFunctions_)
       {
          callback.second(transformed);
@@ -214,10 +225,13 @@ bool SettingsVariable<T>::Commit()
       p->staged_.reset();
       committed = true;
 
+      changed_signal()();
       for (auto& callback : p->valueChangedCallbackFunctions_)
       {
          callback.second(p->value_);
       }
+
+      staged_signal()();
       for (auto& callback : p->valueStagedCallbackFunctions_)
       {
          callback.second(p->value_);
@@ -232,6 +246,7 @@ void SettingsVariable<T>::Reset()
 {
    p->staged_.reset();
 
+   staged_signal()();
    for (auto& callback : p->valueStagedCallbackFunctions_)
    {
       callback.second(p->value_);
@@ -336,10 +351,13 @@ bool SettingsVariable<T>::ReadValue(const boost::json::object& json)
       p->value_ = p->default_;
    }
 
+   changed_signal()();
    for (auto& callback : p->valueChangedCallbackFunctions_)
    {
       callback.second(p->value_);
    }
+
+   staged_signal()();
    for (auto& callback : p->valueStagedCallbackFunctions_)
    {
       callback.second(p->value_);

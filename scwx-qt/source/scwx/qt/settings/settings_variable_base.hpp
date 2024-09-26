@@ -4,6 +4,7 @@
 #include <string>
 
 #include <boost/json/object.hpp>
+#include <boost/signals2/signal.hpp>
 
 namespace scwx
 {
@@ -29,6 +30,20 @@ public:
    SettingsVariableBase& operator=(SettingsVariableBase&&) noexcept;
 
    std::string name() const;
+
+   /**
+    * Gets the signal invoked when the settings variable is changed.
+    *
+    * @return Changed signal
+    */
+   boost::signals2::signal<void()>& changed_signal();
+
+   /**
+    * Gets the signal invoked when the settings variable is staged.
+    *
+    * @return Staged signal
+    */
+   boost::signals2::signal<void()>& staged_signal();
 
    /**
     * Sets the current value of the settings variable to default.

@@ -6,6 +6,8 @@
 #include <memory>
 #include <string>
 
+#include <boost/gil/typedefs.hpp>
+
 namespace scwx
 {
 namespace qt
@@ -32,6 +34,13 @@ public:
    SettingsVariable<std::int64_t>& border_width() const;
    SettingsVariable<std::int64_t>& highlight_width() const;
    SettingsVariable<std::int64_t>& line_width() const;
+
+   void StageValues(boost::gil::rgba8_pixel_t borderColor,
+                    boost::gil::rgba8_pixel_t highlightColor,
+                    boost::gil::rgba8_pixel_t lineColor,
+                    std::int64_t              borderWidth,
+                    std::int64_t              highlightWidth,
+                    std::int64_t              lineWidth);
 
    friend bool operator==(const LineSettings& lhs, const LineSettings& rhs);
 

@@ -18,12 +18,13 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class LineLabel::Impl
 {
 public:
-   explicit Impl() {};
+   explicit Impl(LineLabel* self) : self_ {self} {};
    ~Impl() = default;
 
-   void ResetLineSettings();
-
    QImage GenerateImage() const;
+   void   UpdateLineLabel(const settings::LineSettings& lineSettings);
+
+   LineLabel* self_;
 
    std::size_t borderWidth_ {1};
    std::size_t highlightWidth_ {1};
@@ -33,26 +34,18 @@ public:
    boost::gil::rgba8_pixel_t highlightColor_ {255, 255, 0, 255};
    boost::gil::rgba8_pixel_t lineColor_ {0, 0, 255, 255};
 
-   settings::LineSettings* lineSettings_ {nullptr};
-
    QPixmap pixmap_ {};
    bool    pixmapDirty_ {true};
+
+   boost::signals2::scoped_connection settingsStaged_ {};
 };
 
 LineLabel::LineLabel(QWidget* parent) :
-    QFrame(parent), p {std::make_unique<Impl>()}
+    QFrame(parent), p {std::make_unique<Impl>(this)}
 {
 }
 
-LineLabel::~LineLabel()
-{
-   p->ResetLineSettings();
-}
-
-void LineLabel::Impl::ResetLineSettings()
-{
-   lineSettings_ = nullptr;
-}
+LineLabel::~LineLabel() {}
 
 boost::gil::rgba8_pixel_t LineLabel::border_color() const
 {
@@ -90,11 +83,6 @@ void LineLabel::set_border_width(std::size_t width)
    p->pixmapDirty_ = true;
    updateGeometry();
    update();
-
-   if (p->lineSettings_ != nullptr)
-   {
-      p->lineSettings_->border_width().StageValue(width);
-   }
 }
 
 void LineLabel::set_highlight_width(std::size_t width)
@@ -103,11 +91,6 @@ void LineLabel::set_highlight_width(std::size_t width)
    p->pixmapDirty_    = true;
    updateGeometry();
    update();
-
-   if (p->lineSettings_ != nullptr)
-   {
-      p->lineSettings_->highlight_width().StageValue(width);
-   }
 }
 
 void LineLabel::set_line_width(std::size_t width)
@@ -116,11 +99,6 @@ void LineLabel::set_line_width(std::size_t width)
    p->pixmapDirty_ = true;
    updateGeometry();
    update();
-
-   if (p->lineSettings_ != nullptr)
-   {
-      p->lineSettings_->line_width().StageValue(width);
-   }
 }
 
 void LineLabel::set_border_color(boost::gil::rgba8_pixel_t color)
@@ -128,12 +106,6 @@ void LineLabel::set_border_color(boost::gil::rgba8_pixel_t color)
    p->borderColor_ = color;
    p->pixmapDirty_ = true;
    update();
-
-   if (p->lineSettings_ != nullptr)
-   {
-      p->lineSettings_->border_color().StageValue(
-         util::color::ToArgbString(color));
-   }
 }
 
 void LineLabel::set_highlight_color(boost::gil::rgba8_pixel_t color)
@@ -141,12 +113,6 @@ void LineLabel::set_highlight_color(boost::gil::rgba8_pixel_t color)
    p->highlightColor_ = color;
    p->pixmapDirty_    = true;
    update();
-
-   if (p->lineSettings_ != nullptr)
-   {
-      p->lineSettings_->highlight_color().StageValue(
-         util::color::ToArgbString(color));
-   }
 }
 
 void LineLabel::set_line_color(boost::gil::rgba8_pixel_t color)
@@ -154,30 +120,30 @@ void LineLabel::set_line_color(boost::gil::rgba8_pixel_t color)
    p->lineColor_   = color;
    p->pixmapDirty_ = true;
    update();
-
-   if (p->lineSettings_ != nullptr)
-   {
-      p->lineSettings_->line_color().StageValue(
-         util::color::ToArgbString(color));
-   }
 }
 
 void LineLabel::set_line_settings(settings::LineSettings& lineSettings)
 {
-   p->ResetLineSettings();
+   p->settingsStaged_ = lineSettings.staged_signal().connect(
+      [this, &lineSettings]() { p->UpdateLineLabel(lineSettings); });
 
-   set_border_color(util::color::ToRgba8PixelT(
+   p->UpdateLineLabel(lineSettings);
+}
+
+void LineLabel::Impl::UpdateLineLabel(
+   const settings::LineSettings& lineSettings)
+{
+   self_->set_border_color(util::color::ToRgba8PixelT(
       lineSettings.border_color().GetStagedOrValue()));
-   set_highlight_color(util::color::ToRgba8PixelT(
+   self_->set_highlight_color(util::color::ToRgba8PixelT(
       lineSettings.highlight_color().GetStagedOrValue()));
-   set_line_color(
+   self_->set_line_color(
       util::color::ToRgba8PixelT(lineSettings.line_color().GetStagedOrValue()));
 
-   set_border_width(lineSettings.border_width().GetStagedOrValue());
-   set_highlight_width(lineSettings.highlight_width().GetStagedOrValue());
-   set_line_width(lineSettings.line_width().GetStagedOrValue());
-
-   p->lineSettings_ = &lineSettings;
+   self_->set_border_width(lineSettings.border_width().GetStagedOrValue());
+   self_->set_highlight_width(
+      lineSettings.highlight_width().GetStagedOrValue());
+   self_->set_line_width(lineSettings.line_width().GetStagedOrValue());
 }
 
 QSize LineLabel::minimumSizeHint() const

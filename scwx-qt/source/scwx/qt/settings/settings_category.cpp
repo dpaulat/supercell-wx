@@ -4,8 +4,6 @@
 
 #include <algorithm>
 
-#include <boost/signals2/signal.hpp>
-
 namespace scwx
 {
 namespace qt
@@ -23,6 +21,9 @@ public:
 
    ~Impl() {}
 
+   void ConnectSubcategory(SettingsCategory& category);
+   void ConnectVariable(SettingsVariableBase* variable);
+
    const std::string name_;
 
    std::vector<std::pair<std::string, std::vector<SettingsCategory*>>>
@@ -30,7 +31,11 @@ public:
    std::vector<SettingsCategory*>     subcategories_;
    std::vector<SettingsVariableBase*> variables_;
 
-   boost::signals2::signal<void()> resetSignal_;
+   boost::signals2::signal<void()> changedSignal_ {};
+   boost::signals2::signal<void()> stagedSignal_ {};
+   bool                            blockSignals_ {false};
+
+   std::vector<boost::signals2::scoped_connection> connections_ {};
 };
 
 SettingsCategory::SettingsCategory(const std::string& name) :
@@ -48,8 +53,27 @@ std::string SettingsCategory::name() const
    return p->name_;
 }
 
+boost::signals2::signal<void()>& SettingsCategory::changed_signal()
+{
+   return p->changedSignal_;
+}
+
+boost::signals2::signal<void()>& SettingsCategory::staged_signal()
+{
+   return p->stagedSignal_;
+}
+
+void SettingsCategory::set_block_signals(bool blockSignals)
+{
+   p->blockSignals_ = blockSignals;
+}
+
 void SettingsCategory::SetDefaults()
 {
+   // Don't allow individual variables to invoke the signal when operating over
+   // the entire category
+   p->blockSignals_ = true;
+
    // Set subcategory array defaults
    for (auto& subcategoryArray : p->subcategoryArrays_)
    {
@@ -70,11 +94,21 @@ void SettingsCategory::SetDefaults()
    {
       variable->SetValueToDefault();
    }
+
+   // Unblock signals
+   p->blockSignals_ = false;
+
+   p->changedSignal_();
+   p->stagedSignal_();
 }
 
 bool SettingsCategory::Commit()
 {
    bool committed = false;
+
+   // Don't allow individual variables to invoke the signal when operating over
+   // the entire category
+   p->blockSignals_ = true;
 
    // Commit subcategory arrays
    for (auto& subcategoryArray : p->subcategoryArrays_)
@@ -97,11 +131,23 @@ bool SettingsCategory::Commit()
       committed |= variable->Commit();
    }
 
+   // Unblock signals
+   p->blockSignals_ = false;
+
+   if (committed)
+   {
+      p->changedSignal_();
+   }
+
    return committed;
 }
 
 void SettingsCategory::Reset()
 {
+   // Don't allow individual variables to invoke the signal when operating over
+   // the entire category
+   p->blockSignals_ = true;
+
    // Reset subcategory arrays
    for (auto& subcategoryArray : p->subcategoryArrays_)
    {
@@ -123,7 +169,10 @@ void SettingsCategory::Reset()
       variable->Reset();
    }
 
-   p->resetSignal_();
+   // Unblock signals
+   p->blockSignals_ = false;
+
+   p->stagedSignal_();
 }
 
 bool SettingsCategory::ReadJson(const boost::json::object& json)
@@ -242,6 +291,7 @@ void SettingsCategory::WriteJson(boost::json::object& json) const
 
 void SettingsCategory::RegisterSubcategory(SettingsCategory& subcategory)
 {
+   p->ConnectSubcategory(subcategory);
    p->subcategories_.push_back(&subcategory);
 }
 
@@ -254,7 +304,11 @@ void SettingsCategory::RegisterSubcategoryArray(
    std::transform(subcategories.begin(),
                   subcategories.end(),
                   std::back_inserter(newSubcategories.second),
-                  [](SettingsCategory& subcategory) { return &subcategory; });
+                  [this](SettingsCategory& subcategory)
+                  {
+                     p->ConnectSubcategory(subcategory);
+                     return &subcategory;
+                  });
 }
 
 void SettingsCategory::RegisterSubcategoryArray(
@@ -266,26 +320,74 @@ void SettingsCategory::RegisterSubcategoryArray(
    std::transform(subcategories.begin(),
                   subcategories.end(),
                   std::back_inserter(newSubcategories.second),
-                  [](SettingsCategory* subcategory) { return subcategory; });
+                  [this](SettingsCategory* subcategory)
+                  {
+                     p->ConnectSubcategory(*subcategory);
+                     return subcategory;
+                  });
 }
 
 void SettingsCategory::RegisterVariables(
    std::initializer_list<SettingsVariableBase*> variables)
 {
+   for (auto& variable : variables)
+   {
+      p->ConnectVariable(variable);
+   }
    p->variables_.insert(p->variables_.end(), variables);
 }
 
 void SettingsCategory::RegisterVariables(
    std::vector<SettingsVariableBase*> variables)
 {
+   for (auto& variable : variables)
+   {
+      p->ConnectVariable(variable);
+   }
    p->variables_.insert(
       p->variables_.end(), variables.cbegin(), variables.cend());
 }
 
-boost::signals2::connection
-SettingsCategory::RegisterResetCallback(std::function<void()> callback)
+void SettingsCategory::Impl::ConnectSubcategory(SettingsCategory& category)
 {
-   return p->resetSignal_.connect(callback);
+   connections_.emplace_back(category.changed_signal().connect(
+      [this]()
+      {
+         if (!blockSignals_)
+         {
+            changedSignal_();
+         }
+      }));
+
+   connections_.emplace_back(category.staged_signal().connect(
+      [this]()
+      {
+         if (!blockSignals_)
+         {
+            stagedSignal_();
+         }
+      }));
+}
+
+void SettingsCategory::Impl::ConnectVariable(SettingsVariableBase* variable)
+{
+   connections_.emplace_back(variable->changed_signal().connect(
+      [this]()
+      {
+         if (!blockSignals_)
+         {
+            changedSignal_();
+         }
+      }));
+
+   connections_.emplace_back(variable->staged_signal().connect(
+      [this]()
+      {
+         if (!blockSignals_)
+         {
+            stagedSignal_();
+         }
+      }));
 }
 
 } // namespace settings

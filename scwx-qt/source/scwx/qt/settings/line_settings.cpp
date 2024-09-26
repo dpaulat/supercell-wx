@@ -1,8 +1,6 @@
 #include <scwx/qt/settings/line_settings.hpp>
 #include <scwx/qt/util/color.hpp>
 
-#include <boost/gil.hpp>
-
 namespace scwx
 {
 namespace qt
@@ -104,6 +102,27 @@ SettingsVariable<std::int64_t>& LineSettings::highlight_width() const
 SettingsVariable<std::int64_t>& LineSettings::line_width() const
 {
    return p->lineWidth_;
+}
+
+void LineSettings::StageValues(boost::gil::rgba8_pixel_t borderColor,
+                               boost::gil::rgba8_pixel_t highlightColor,
+                               boost::gil::rgba8_pixel_t lineColor,
+                               std::int64_t              borderWidth,
+                               std::int64_t              highlightWidth,
+                               std::int64_t              lineWidth)
+{
+   set_block_signals(true);
+
+   p->borderColor_.StageValue(util::color::ToArgbString(borderColor));
+   p->highlightColor_.StageValue(util::color::ToArgbString(highlightColor));
+   p->lineColor_.StageValue(util::color::ToArgbString(lineColor));
+   p->borderWidth_.StageValue(borderWidth);
+   p->highlightWidth_.StageValue(highlightWidth);
+   p->lineWidth_.StageValue(lineWidth);
+
+   set_block_signals(false);
+
+   staged_signal()();
 }
 
 bool operator==(const LineSettings& lhs, const LineSettings& rhs)

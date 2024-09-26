@@ -6,7 +6,7 @@
 #include <string>
 
 #include <boost/json/object.hpp>
-#include <boost/signals2/connection.hpp>
+#include <boost/signals2/signal.hpp>
 
 namespace scwx
 {
@@ -28,6 +28,20 @@ public:
    SettingsCategory& operator=(SettingsCategory&&) noexcept;
 
    std::string name() const;
+
+   /**
+    * Gets the signal invoked when a variable within the category is changed.
+    *
+    * @return Changed signal
+    */
+   boost::signals2::signal<void()>& changed_signal();
+
+   /**
+    * Gets the signal invoked when a variable within the category is staged.
+    *
+    * @return Staged signal
+    */
+   boost::signals2::signal<void()>& staged_signal();
 
    /**
     * Set all variables to their defaults.
@@ -73,13 +87,8 @@ public:
    RegisterVariables(std::initializer_list<SettingsVariableBase*> variables);
    void RegisterVariables(std::vector<SettingsVariableBase*> variables);
 
-   /**
-    * Registers a function to be called when the category is reset.
-    *
-    * @param callback Function to be called
-    */
-   boost::signals2::connection
-   RegisterResetCallback(std::function<void()> callback);
+protected:
+   void set_block_signals(bool blockSignals);
 
 private:
    class Impl;

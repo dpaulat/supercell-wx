@@ -37,13 +37,7 @@ public:
       SetupUi();
       ConnectSignals();
    }
-   ~Impl()
-   {
-      for (auto& c : bs2Connections_)
-      {
-         c.disconnect();
-      }
-   };
+   ~Impl() {};
 
    void     AddPhenomenonLine(const std::string&      name,
                               settings::LineSettings& lineSettings,
@@ -59,10 +53,8 @@ public:
    QStackedWidget* phenomenonPagesWidget_;
    QListWidget*    phenomenonListView_;
 
-   EditLineDialog* editLineDialog_;
-   LineLabel*      activeLineLabel_ {nullptr};
-
-   std::vector<boost::signals2::connection> bs2Connections_ {};
+   EditLineDialog*         editLineDialog_;
+   settings::LineSettings* activeLineSettings_ {nullptr};
 
    boost::unordered_flat_map<awips::Phenomenon, QWidget*> phenomenonPages_ {};
 };
@@ -147,30 +139,27 @@ void AlertPaletteSettingsWidget::Impl::ConnectSignals()
          }
       });
 
-   connect(
-      editLineDialog_,
-      &EditLineDialog::accepted,
-      self_,
-      [this]()
-      {
-         // If the active line label was set
-         if (activeLineLabel_ != nullptr)
-         {
-            // Update the active line label with selected line settings
-            activeLineLabel_->set_border_color(editLineDialog_->border_color());
-            activeLineLabel_->set_highlight_color(
-               editLineDialog_->highlight_color());
-            activeLineLabel_->set_line_color(editLineDialog_->line_color());
+   connect(editLineDialog_,
+           &EditLineDialog::accepted,
+           self_,
+           [this]()
+           {
+              // If the active line label was set
+              if (activeLineSettings_ != nullptr)
+              {
+                 // Update the active line settings with selected line settings
+                 activeLineSettings_->StageValues(
+                    editLineDialog_->border_color(),
+                    editLineDialog_->highlight_color(),
+                    editLineDialog_->line_color(),
+                    editLineDialog_->border_width(),
+                    editLineDialog_->highlight_width(),
+                    editLineDialog_->line_width());
 
-            activeLineLabel_->set_border_width(editLineDialog_->border_width());
-            activeLineLabel_->set_highlight_width(
-               editLineDialog_->highlight_width());
-            activeLineLabel_->set_line_width(editLineDialog_->line_width());
-
-            // Reset the active line label
-            activeLineLabel_ = nullptr;
-         }
-      });
+                 // Reset the active line settings
+                 activeLineSettings_ = nullptr;
+              }
+           });
 }
 
 void AlertPaletteSettingsWidget::Impl::SelectPhenomenon(
@@ -260,19 +249,14 @@ void AlertPaletteSettingsWidget::Impl::AddPhenomenonLine(
 
    self_->AddSettingsCategory(&lineSettings);
 
-   boost::signals2::connection c = lineSettings.RegisterResetCallback(
-      [lineLabel, &lineSettings]()
-      { lineLabel->set_line_settings(lineSettings); });
-   bs2Connections_.push_back(c);
-
    connect(
       toolButton,
       &QAbstractButton::clicked,
       self_,
-      [this, lineLabel]()
+      [this, lineLabel, &lineSettings]()
       {
          // Set the active line label for when the dialog is finished
-         activeLineLabel_ = lineLabel;
+         activeLineSettings_ = &lineSettings;
 
          // Initialize dialog with current line settings
          editLineDialog_->set_border_color(lineLabel->border_color());
