@@ -52,10 +52,6 @@
 #include <QTimer>
 #include <QToolButton>
 
-#if (__cpp_lib_chrono < 201907L)
-#   include <date/date.h>
-#endif
-
 namespace scwx
 {
 namespace qt

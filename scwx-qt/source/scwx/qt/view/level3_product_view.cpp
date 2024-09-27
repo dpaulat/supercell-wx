@@ -17,10 +17,6 @@
 #include <boost/timer/timer.hpp>
 #include <fmt/format.h>
 
-#if (__cpp_lib_chrono < 201907L)
-#   include <date/date.h>
-#endif
-
 namespace scwx
 {
 namespace qt
