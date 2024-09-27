@@ -259,6 +259,7 @@ try_compile(CHRONO_HAS_TIMEZONES_AND_CALENDERS
             CXX_STANDARD 20
             CXX_STANDARD_REQUIRED ON
             CXX_EXTENSIONS OFF)
+message("CHRONO_HAS_TIMEZONES_AND_CALENDERS: ${CHRONO_HAS_TIMEZONES_AND_CALENDERS}")
 
 target_include_directories(wxdata PRIVATE ${Boost_INCLUDE_DIR}
                                           ${HSLUV_C_INCLUDE_DIR}
