@@ -675,15 +675,16 @@ void AlertLayer::Impl::HandleGeoLinesHover(
 AlertLayer::Impl::LineData
 AlertLayer::Impl::CreateLineData(const settings::LineSettings& lineSettings)
 {
-   return LineData {.borderColor_ {lineSettings.GetBorderColorRgba32f()},
-                    .highlightColor_ {lineSettings.GetHighlightColorRgba32f()},
-                    .lineColor_ {lineSettings.GetLineColorRgba32f()},
-                    .borderWidth_ {static_cast<std::size_t>(
-                       lineSettings.border_width().GetValue())},
-                    .highlightWidth_ {static_cast<std::size_t>(
-                       lineSettings.highlight_width().GetValue())},
-                    .lineWidth_ {static_cast<std::size_t>(
-                       lineSettings.line_width().GetValue())}};
+   return LineData {
+      .borderColor_ {lineSettings.GetBorderColorRgba32f()},
+      .highlightColor_ {lineSettings.GetHighlightColorRgba32f()},
+      .lineColor_ {lineSettings.GetLineColorRgba32f()},
+      .borderWidth_ =
+         static_cast<std::size_t>(lineSettings.border_width().GetValue()),
+      .highlightWidth_ =
+         static_cast<std::size_t>(lineSettings.highlight_width().GetValue()),
+      .lineWidth_ =
+         static_cast<std::size_t>(lineSettings.line_width().GetValue())};
 }
 
 void AlertLayer::Impl::UpdateLineData()
