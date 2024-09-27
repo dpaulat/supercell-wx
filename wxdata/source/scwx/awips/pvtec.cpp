@@ -17,7 +17,7 @@
 #include <boost/bimap.hpp>
 #include <boost/bimap/unordered_set_of.hpp>
 
-#if !(defined(_MSC_VER) || defined(__clang__))
+#if (__cpp_lib_chrono < 201907L)
 #   include <date/date.h>
 #endif
 
@@ -143,7 +143,7 @@ bool PVtec::Parse(const std::string& s)
 {
    using namespace std::chrono;
 
-#if !(defined(_MSC_VER) || defined(__clang__))
+#if (__cpp_lib_chrono < 201907L)
    using namespace date;
 #endif
 

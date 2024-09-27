@@ -17,10 +17,6 @@
 #include <boost/timer/timer.hpp>
 #include <fmt/format.h>
 
-#if !(defined(_MSC_VER) || defined(__clang__))
-#   include <date/date.h>
-#endif
-
 namespace scwx
 {
 namespace qt

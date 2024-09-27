@@ -11,8 +11,6 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
-#include <chrono>
-
 #if defined(_MSC_VER)
 #   pragma warning(push, 0)
 #endif
@@ -21,10 +19,6 @@
 #include <QGeoPositionInfo>
 #include <QGuiApplication>
 #include <QMouseEvent>
-
-#if !(defined(_MSC_VER) || defined(__clang__))
-#   include <date/date.h>
-#endif
 
 #if defined(_MSC_VER)
 #   pragma warning(pop)
