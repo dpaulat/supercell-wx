@@ -35,6 +35,10 @@ public:
    SettingsVariable<std::int64_t>& highlight_width() const;
    SettingsVariable<std::int64_t>& line_width() const;
 
+   boost::gil::rgba32f_pixel_t GetBorderColorRgba32f() const;
+   boost::gil::rgba32f_pixel_t GetHighlightColorRgba32f() const;
+   boost::gil::rgba32f_pixel_t GetLineColorRgba32f() const;
+
    void StageValues(boost::gil::rgba8_pixel_t borderColor,
                     boost::gil::rgba8_pixel_t highlightColor,
                     boost::gil::rgba8_pixel_t lineColor,

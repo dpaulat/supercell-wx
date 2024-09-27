@@ -111,25 +111,27 @@ signals:
 class AlertLayer::Impl
 {
 public:
+   struct LineData
+   {
+      boost::gil::rgba32f_pixel_t borderColor_ {};
+      boost::gil::rgba32f_pixel_t highlightColor_ {};
+      boost::gil::rgba32f_pixel_t lineColor_ {};
+
+      std::size_t borderWidth_ {};
+      std::size_t highlightWidth_ {};
+      std::size_t lineWidth_ {};
+   };
+
    explicit Impl(AlertLayer*                 self,
                  std::shared_ptr<MapContext> context,
                  awips::Phenomenon           phenomenon) :
        self_ {self},
        phenomenon_ {phenomenon},
+       ibw_ {awips::ibw::GetImpactBasedWarningInfo(phenomenon)},
        geoLines_ {{false, std::make_shared<gl::draw::GeoLines>(context)},
                   {true, std::make_shared<gl::draw::GeoLines>(context)}}
    {
-      auto& paletteSettings = settings::PaletteSettings::Instance();
-
-      for (auto alertActive : {false, true})
-      {
-         lineColor_.emplace(
-            alertActive,
-            util::color::ToRgba32fPixelT(
-               paletteSettings.alert_color(phenomenon_, alertActive)
-                  .GetValue()));
-      }
-
+      UpdateLineData();
       ConnectSignals();
       ScheduleRefresh();
    }
@@ -158,6 +160,9 @@ public:
                             const QPointF& mouseGlobalPos);
    void ScheduleRefresh();
 
+   LineData& GetLineData(std::shared_ptr<const awips::Segment>& segment);
+   void      UpdateLineData();
+
    void AddLine(std::shared_ptr<gl::draw::GeoLines>&        geoLines,
                 std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
                 const common::Coordinate&                   p1,
@@ -177,6 +182,8 @@ public:
                  boost::container::stable_vector<
                     std::shared_ptr<gl::draw::GeoLineDrawItem>>& drawItems);
 
+   static LineData CreateLineData(const settings::LineSettings& lineSettings);
+
    boost::asio::thread_pool threadPool_ {1u};
 
    AlertLayer* self_;
@@ -184,7 +191,8 @@ public:
    boost::asio::system_timer refreshTimer_ {threadPool_};
    std::mutex                refreshMutex_;
 
-   const awips::Phenomenon phenomenon_;
+   const awips::Phenomenon                   phenomenon_;
+   const awips::ibw::ImpactBasedWarningInfo& ibw_;
 
    std::unique_ptr<QObject> receiver_ {std::make_unique<QObject>()};
 
@@ -199,7 +207,10 @@ public:
               segmentsByLine_;
    std::mutex linesMutex_ {};
 
-   std::unordered_map<bool, boost::gil::rgba32f_pixel_t> lineColor_;
+   std::unordered_map<awips::ibw::ThreatCategory, LineData>
+            threatCategoryLineData_;
+   LineData observedLineData_ {};
+   LineData tornadoPossibleLineData_ {};
 
    std::chrono::system_clock::time_point selectedTime_ {};
 
@@ -445,8 +456,8 @@ void AlertLayer::Impl::AddAlert(
    auto& startTime   = segmentRecord->segmentBegin_;
    auto& endTime     = segmentRecord->segmentEnd_;
 
-   auto& lineColor = lineColor_.at(alertActive);
-   auto& geoLines  = geoLines_.at(alertActive);
+   auto& lineData = GetLineData(segment);
+   auto& geoLines = geoLines_.at(alertActive);
 
    const auto& coordinates = segment->codedLocation_->coordinates();
 
@@ -462,30 +473,51 @@ void AlertLayer::Impl::AddAlert(
    // If draw items were added
    if (drawItems.second)
    {
+      const float borderWidth    = lineData.borderWidth_;
+      const float highlightWidth = lineData.highlightWidth_;
+      const float lineWidth      = lineData.lineWidth_;
+
+      const float totalHighlightWidth = lineWidth + (highlightWidth * 2.0f);
+      const float totalBorderWidth = totalHighlightWidth + (borderWidth * 2.0f);
+
+      constexpr bool borderHover    = true;
+      constexpr bool highlightHover = false;
+      constexpr bool lineHover      = false;
+
       // Add border
       AddLines(geoLines,
                coordinates,
-               kBlack_,
-               5.0f,
+               lineData.borderColor_,
+               totalBorderWidth,
                startTime,
                endTime,
-               true,
+               borderHover,
                drawItems.first->second);
 
-      // Add only border to segmentsByLine_
+      // Add border to segmentsByLine_
       for (auto& di : drawItems.first->second)
       {
          segmentsByLine_.insert({di, segmentRecord});
       }
 
+      // Add highlight
+      AddLines(geoLines,
+               coordinates,
+               lineData.highlightColor_,
+               totalHighlightWidth,
+               startTime,
+               endTime,
+               highlightHover,
+               drawItems.first->second);
+
       // Add line
       AddLines(geoLines,
                coordinates,
-               lineColor,
-               3.0f,
+               lineData.lineColor_,
+               lineWidth,
                startTime,
                endTime,
-               false,
+               lineHover,
                drawItems.first->second);
    }
 }
@@ -637,6 +669,71 @@ void AlertLayer::Impl::HandleGeoLinesHover(
       util::tooltip::Show(tooltip_, mouseGlobalPos);
    }
 }
+
+AlertLayer::Impl::LineData
+AlertLayer::Impl::CreateLineData(const settings::LineSettings& lineSettings)
+{
+   return LineData {.borderColor_ {lineSettings.GetBorderColorRgba32f()},
+                    .highlightColor_ {lineSettings.GetHighlightColorRgba32f()},
+                    .lineColor_ {lineSettings.GetLineColorRgba32f()},
+                    .borderWidth_ {static_cast<std::size_t>(
+                       lineSettings.border_width().GetValue())},
+                    .highlightWidth_ {static_cast<std::size_t>(
+                       lineSettings.highlight_width().GetValue())},
+                    .lineWidth_ {static_cast<std::size_t>(
+                       lineSettings.line_width().GetValue())}};
+}
+
+void AlertLayer::Impl::UpdateLineData()
+{
+   auto& alertPalette =
+      settings::PaletteSettings().Instance().alert_palette(phenomenon_);
+
+   for (auto threatCategory : ibw_.threatCategories_)
+   {
+      auto& palette = alertPalette.threat_category(threatCategory);
+      threatCategoryLineData_.insert_or_assign(threatCategory,
+                                               CreateLineData(palette));
+   }
+
+   if (ibw_.hasObservedTag_)
+   {
+      observedLineData_ = CreateLineData(alertPalette.observed());
+   }
+
+   if (ibw_.hasTornadoPossibleTag_)
+   {
+      tornadoPossibleLineData_ =
+         CreateLineData(alertPalette.tornado_possible());
+   }
+}
+
+AlertLayer::Impl::LineData&
+AlertLayer::Impl::GetLineData(std::shared_ptr<const awips::Segment>& segment)
+{
+   for (auto& threatCategory : ibw_.threatCategories_)
+   {
+      if (segment->threatCategory_ == threatCategory)
+      {
+         if (threatCategory == awips::ibw::ThreatCategory::Base)
+         {
+            if (ibw_.hasObservedTag_ && segment->observed_)
+            {
+               return observedLineData_;
+            }
+
+            if (ibw_.hasTornadoPossibleTag_ && segment->tornadoPossible_)
+            {
+               return tornadoPossibleLineData_;
+            }
+         }
+
+         return threatCategoryLineData_.at(threatCategory);
+      }
+   }
+
+   return threatCategoryLineData_.at(awips::ibw::ThreatCategory::Base);
+};
 
 AlertLayerHandler& AlertLayerHandler::Instance()
 {

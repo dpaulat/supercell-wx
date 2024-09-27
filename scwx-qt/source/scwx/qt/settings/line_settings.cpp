@@ -104,6 +104,21 @@ SettingsVariable<std::int64_t>& LineSettings::line_width() const
    return p->lineWidth_;
 }
 
+boost::gil::rgba32f_pixel_t LineSettings::GetBorderColorRgba32f() const
+{
+   return util::color::ToRgba32fPixelT(p->borderColor_.GetValue());
+}
+
+boost::gil::rgba32f_pixel_t LineSettings::GetHighlightColorRgba32f() const
+{
+   return util::color::ToRgba32fPixelT(p->highlightColor_.GetValue());
+}
+
+boost::gil::rgba32f_pixel_t LineSettings::GetLineColorRgba32f() const
+{
+   return util::color::ToRgba32fPixelT(p->lineColor_.GetValue());
+}
+
 void LineSettings::StageValues(boost::gil::rgba8_pixel_t borderColor,
                                boost::gil::rgba8_pixel_t highlightColor,
                                boost::gil::rgba8_pixel_t lineColor,
