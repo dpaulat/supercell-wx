@@ -255,7 +255,7 @@ source_group("Source Files\\wsr88d\\rpg" FILES ${SRC_WSR88D_RPG})
 
 try_compile(HAS_FULL_CHRONO
             ${CMAKE_BINARY_DIR}
-            ${PROJECT_SOURCE_DIR}/source/cpp-feature-tests/chrono_feature_test.cpp
+            ${PROJECT_SOURCE_DIR}/cpp-feature-tests/chrono_feature_test.cpp
             CXX_STANDARD 20
             CXX_STANDARD_REQUIRED ON
             CXX_EXTENSIONS OFF)
