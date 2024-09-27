@@ -160,7 +160,8 @@ public:
                             const QPointF& mouseGlobalPos);
    void ScheduleRefresh();
 
-   LineData& GetLineData(std::shared_ptr<const awips::Segment>& segment);
+   LineData& GetLineData(std::shared_ptr<const awips::Segment>& segment,
+                         bool                                   alertActive);
    void      UpdateLineData();
 
    void AddLine(std::shared_ptr<gl::draw::GeoLines>&        geoLines,
@@ -211,6 +212,7 @@ public:
             threatCategoryLineData_;
    LineData observedLineData_ {};
    LineData tornadoPossibleLineData_ {};
+   LineData inactiveLineData_ {};
 
    std::chrono::system_clock::time_point selectedTime_ {};
 
@@ -456,7 +458,7 @@ void AlertLayer::Impl::AddAlert(
    auto& startTime   = segmentRecord->segmentBegin_;
    auto& endTime     = segmentRecord->segmentEnd_;
 
-   auto& lineData = GetLineData(segment);
+   auto& lineData = GetLineData(segment, alertActive);
    auto& geoLines = geoLines_.at(alertActive);
 
    const auto& coordinates = segment->codedLocation_->coordinates();
@@ -706,11 +708,19 @@ void AlertLayer::Impl::UpdateLineData()
       tornadoPossibleLineData_ =
          CreateLineData(alertPalette.tornado_possible());
    }
+
+   inactiveLineData_ = CreateLineData(alertPalette.inactive());
 }
 
 AlertLayer::Impl::LineData&
-AlertLayer::Impl::GetLineData(std::shared_ptr<const awips::Segment>& segment)
+AlertLayer::Impl::GetLineData(std::shared_ptr<const awips::Segment>& segment,
+                              bool alertActive)
 {
+   if (!alertActive)
+   {
+      return inactiveLineData_;
+   }
+
    for (auto& threatCategory : ibw_.threatCategories_)
    {
       if (segment->threatCategory_ == threatCategory)
