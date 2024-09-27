@@ -253,7 +253,7 @@ source_group("Header Files\\wsr88d\\rpg" FILES ${HDR_WSR88D_RPG})
 source_group("Source Files\\wsr88d\\rpg" FILES ${SRC_WSR88D_RPG})
 
 
-try_compile(HAS_FULL_CHRONO
+try_compile(CHRONO_HAS_TIMEZONES_AND_CALANDERS
             ${CMAKE_BINARY_DIR}
             ${PROJECT_SOURCE_DIR}/cpp-feature-tests/chrono_feature_test.cpp
             CXX_STANDARD 20
@@ -301,7 +301,7 @@ if (WIN32)
     target_link_libraries(wxdata INTERFACE Ws2_32)
 endif()
 
-if (NOT HAS_FULL_CHRONO)
+if (NOT CHRONO_HAS_TIMEZONES_AND_CALANDERS)
     target_link_libraries(wxdata PUBLIC date::date-tz)
 endif()
 
