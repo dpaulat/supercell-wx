@@ -18,7 +18,7 @@ static const std::string logPrefix_ = "scwx::awips::ibw::impact_based_warnings";
 static const boost::unordered_flat_map<Phenomenon, ImpactBasedWarningInfo>
    impactBasedWarningInfo_ {
       {Phenomenon::Marine,
-       ImpactBasedWarningInfo {.hasTornadoPossibleTag_ {true}}},
+       ImpactBasedWarningInfo {.hasTornadoPossibleTag_ = true}},
       {Phenomenon::FlashFlood,
        ImpactBasedWarningInfo {
           .threatCategories_ {ThreatCategory::Base,
@@ -26,14 +26,14 @@ static const boost::unordered_flat_map<Phenomenon, ImpactBasedWarningInfo>
                               ThreatCategory::Catastrophic}}},
       {Phenomenon::SevereThunderstorm,
        ImpactBasedWarningInfo {
-          .hasTornadoPossibleTag_ {true},
+          .hasTornadoPossibleTag_ = true,
           .threatCategories_ {ThreatCategory::Base,
                               ThreatCategory::Considerable,
                               ThreatCategory::Destructive}}},
       {Phenomenon::SnowSquall, ImpactBasedWarningInfo {}},
       {Phenomenon::Tornado,
        ImpactBasedWarningInfo {
-          .hasObservedTag_ {true},
+          .hasObservedTag_ = true,
           .threatCategories_ {ThreatCategory::Base,
                               ThreatCategory::Considerable,
                               ThreatCategory::Catastrophic}}},

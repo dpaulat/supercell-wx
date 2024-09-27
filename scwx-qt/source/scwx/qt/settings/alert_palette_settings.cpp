@@ -41,25 +41,25 @@ static const boost::unordered_flat_map<awips::Phenomenon, ThreatCategoryPalette>
       {awips::ibw::ThreatCategory::Considerable,
        {.highlightColor_ {0, 255, 0, 255},
         .lineColor_ {kColorBlack_},
-        .highlightWidth_ {1},
-        .lineWidth_ {1}}},
+        .highlightWidth_ = 1,
+        .lineWidth_      = 1}},
       {awips::ibw::ThreatCategory::Catastrophic,
        {.highlightColor_ {0, 255, 0, 255},
         .lineColor_ {255, 0, 0, 255},
-        .highlightWidth_ {1},
-        .lineWidth_ {1}}}}},
+        .highlightWidth_ = 1,
+        .lineWidth_      = 1}}}},
     {awips::Phenomenon::SevereThunderstorm,
      {{awips::ibw::ThreatCategory::Base, {.lineColor_ {255, 255, 0, 255}}},
       {awips::ibw::ThreatCategory::Considerable,
        {.highlightColor_ {255, 255, 0, 255},
         .lineColor_ {255, 0, 0, 255},
-        .highlightWidth_ {1},
-        .lineWidth_ {1}}},
+        .highlightWidth_ = 1,
+        .lineWidth_      = 1}},
       {awips::ibw::ThreatCategory::Destructive,
        {.highlightColor_ {255, 255, 0, 255},
         .lineColor_ {255, 0, 0, 255},
-        .highlightWidth_ {1},
-        .lineWidth_ {2}}}}},
+        .highlightWidth_ = 1,
+        .lineWidth_      = 2}}}},
     {awips::Phenomenon::SnowSquall,
      {{awips::ibw::ThreatCategory::Base, {.lineColor_ {0, 255, 255, 255}}}}},
     {awips::Phenomenon::Tornado,
@@ -69,29 +69,29 @@ static const boost::unordered_flat_map<awips::Phenomenon, ThreatCategoryPalette>
       {awips::ibw::ThreatCategory::Catastrophic,
        {.highlightColor_ {255, 0, 255, 255},
         .lineColor_ {kColorBlack_},
-        .highlightWidth_ {1},
-        .lineWidth_ {1}}}}}};
+        .highlightWidth_ = 1,
+        .lineWidth_      = 1}}}}};
 
 static const boost::unordered_flat_map<awips::Phenomenon, LineData>
    kObservedPalettes_ //
    {{awips::Phenomenon::Tornado,
      {.highlightColor_ {255, 0, 0, 255},
       .lineColor_ {kColorBlack_},
-      .highlightWidth_ {1},
-      .lineWidth_ {1}}}};
+      .highlightWidth_ = 1,
+      .lineWidth_      = 1}}};
 
 static const boost::unordered_flat_map<awips::Phenomenon, LineData>
    kTornadoPossiblePalettes_ //
    {{awips::Phenomenon::Marine,
      {.highlightColor_ {255, 127, 0, 255},
       .lineColor_ {kColorBlack_},
-      .highlightWidth_ {1},
-      .lineWidth_ {1}}},
+      .highlightWidth_ = 1,
+      .lineWidth_      = 1}},
     {awips::Phenomenon::SevereThunderstorm,
      {.highlightColor_ {255, 255, 0, 255},
       .lineColor_ {kColorBlack_},
-      .highlightWidth_ {1},
-      .lineWidth_ {1}}}};
+      .highlightWidth_ = 1,
+      .lineWidth_      = 1}}};
 
 static const boost::unordered_flat_map<awips::Phenomenon, LineData>
    kInactivePalettes_ //
