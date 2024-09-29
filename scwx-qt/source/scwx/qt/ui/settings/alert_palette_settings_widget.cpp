@@ -249,27 +249,25 @@ void AlertPaletteSettingsWidget::Impl::AddPhenomenonLine(
 
    self_->AddSettingsCategory(&lineSettings);
 
-   connect(
-      toolButton,
-      &QAbstractButton::clicked,
-      self_,
-      [this, lineLabel, &lineSettings]()
-      {
-         // Set the active line label for when the dialog is finished
-         activeLineSettings_ = &lineSettings;
+   connect(toolButton,
+           &QAbstractButton::clicked,
+           self_,
+           [this, lineLabel, &lineSettings]()
+           {
+              // Set the active line label for when the dialog is finished
+              activeLineSettings_ = &lineSettings;
 
-         // Initialize dialog with current line settings
-         editLineDialog_->set_border_color(lineLabel->border_color());
-         editLineDialog_->set_highlight_color(lineLabel->highlight_color());
-         editLineDialog_->set_line_color(lineLabel->line_color());
+              // Initialize dialog with current line settings
+              editLineDialog_->Initialize(lineLabel->border_color(),
+                                          lineLabel->highlight_color(),
+                                          lineLabel->line_color(),
+                                          lineLabel->border_width(),
+                                          lineLabel->highlight_width(),
+                                          lineLabel->line_width());
 
-         editLineDialog_->set_border_width(lineLabel->border_width());
-         editLineDialog_->set_highlight_width(lineLabel->highlight_width());
-         editLineDialog_->set_line_width(lineLabel->line_width());
-
-         // Show the dialog
-         editLineDialog_->show();
-      });
+              // Show the dialog
+              editLineDialog_->show();
+           });
 }
 
 } // namespace ui
