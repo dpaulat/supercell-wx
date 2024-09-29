@@ -44,9 +44,32 @@ public:
    boost::signals2::signal<void()>& staged_signal();
 
    /**
+    * Gets whether or not all settings variables are currently set to default
+    * values.
+    *
+    * @return true if all settings variables are currently set to default
+    * values, otherwise false.
+    */
+   bool IsDefault() const;
+
+   /**
+    * Gets whether or not all settings variables currently have staged values
+    * set to default.
+    *
+    * @return true if all settings variables currently have staged values set
+    * to default, otherwise false.
+    */
+   bool IsDefaultStaged() const;
+
+   /**
     * Set all variables to their defaults.
     */
    void SetDefaults();
+
+   /**
+    * Stage all variables to their defaults.
+    */
+   void StageDefaults();
 
    /**
     * Sets the current value of all variables to the staged value.

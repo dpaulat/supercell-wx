@@ -57,6 +57,8 @@ public:
    settings::LineSettings* activeLineSettings_ {nullptr};
 
    boost::unordered_flat_map<awips::Phenomenon, QWidget*> phenomenonPages_ {};
+
+   std::vector<boost::signals2::scoped_connection> connections_ {};
 };
 
 AlertPaletteSettingsWidget::AlertPaletteSettingsWidget(QWidget* parent) :
@@ -243,9 +245,15 @@ void AlertPaletteSettingsWidget::Impl::AddPhenomenonLine(
    LineLabel* lineLabel = new LineLabel(self_);
    lineLabel->set_line_settings(lineSettings);
 
+   QToolButton* resetButton = new QToolButton(self_);
+   resetButton->setIcon(
+      QIcon {":/res/icons/font-awesome-6/rotate-left-solid.svg"});
+   resetButton->setVisible(!lineSettings.IsDefaultStaged());
+
    layout->addWidget(new QLabel(tr(name.c_str()), self_), row, 0);
    layout->addWidget(lineLabel, row, 1);
    layout->addWidget(toolButton, row, 2);
+   layout->addWidget(resetButton, row, 3);
 
    self_->AddSettingsCategory(&lineSettings);
 
@@ -268,6 +276,15 @@ void AlertPaletteSettingsWidget::Impl::AddPhenomenonLine(
               // Show the dialog
               editLineDialog_->show();
            });
+
+   connect(resetButton,
+           &QAbstractButton::clicked,
+           self_,
+           [&lineSettings]() { lineSettings.StageDefaults(); });
+
+   connections_.emplace_back(lineSettings.staged_signal().connect(
+      [resetButton, &lineSettings]()
+      { resetButton->setVisible(!lineSettings.IsDefaultStaged()); }));
 }
 
 } // namespace ui

@@ -48,6 +48,62 @@ SettingsCategory::SettingsCategory(SettingsCategory&&) noexcept = default;
 SettingsCategory&
 SettingsCategory::operator=(SettingsCategory&&) noexcept = default;
 
+bool SettingsCategory::IsDefault() const
+{
+   bool isDefault = true;
+
+   // Get subcategory array defaults
+   for (auto& subcategoryArray : p->subcategoryArrays_)
+   {
+      for (auto& subcategory : subcategoryArray.second)
+      {
+         isDefault = isDefault && subcategory->IsDefault();
+      }
+   }
+
+   // Get subcategory defaults
+   for (auto& subcategory : p->subcategories_)
+   {
+      isDefault = isDefault && subcategory->IsDefault();
+   }
+
+   // Get variable defaults
+   for (auto& variable : p->variables_)
+   {
+      isDefault = isDefault && variable->IsDefault();
+   }
+
+   return isDefault;
+}
+
+bool SettingsCategory::IsDefaultStaged() const
+{
+   bool isDefaultStaged = true;
+
+   // Get subcategory array defaults
+   for (auto& subcategoryArray : p->subcategoryArrays_)
+   {
+      for (auto& subcategory : subcategoryArray.second)
+      {
+         isDefaultStaged = isDefaultStaged && subcategory->IsDefaultStaged();
+      }
+   }
+
+   // Get subcategory defaults
+   for (auto& subcategory : p->subcategories_)
+   {
+      isDefaultStaged = isDefaultStaged && subcategory->IsDefaultStaged();
+   }
+
+   // Get variable defaults
+   for (auto& variable : p->variables_)
+   {
+      isDefaultStaged = isDefaultStaged && variable->IsDefaultStaged();
+   }
+
+   return isDefaultStaged;
+}
+
 std::string SettingsCategory::name() const
 {
    return p->name_;
@@ -99,6 +155,39 @@ void SettingsCategory::SetDefaults()
    p->blockSignals_ = false;
 
    p->changedSignal_();
+   p->stagedSignal_();
+}
+
+void SettingsCategory::StageDefaults()
+{
+   // Don't allow individual variables to invoke the signal when operating over
+   // the entire category
+   p->blockSignals_ = true;
+
+   // Stage subcategory array defaults
+   for (auto& subcategoryArray : p->subcategoryArrays_)
+   {
+      for (auto& subcategory : subcategoryArray.second)
+      {
+         subcategory->StageDefaults();
+      }
+   }
+
+   // Stage subcategory defaults
+   for (auto& subcategory : p->subcategories_)
+   {
+      subcategory->StageDefaults();
+   }
+
+   // Stage variable defaults
+   for (auto& variable : p->variables_)
+   {
+      variable->StageDefault();
+   }
+
+   // Unblock signals
+   p->blockSignals_ = false;
+
    p->stagedSignal_();
 }
 

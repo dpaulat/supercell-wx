@@ -66,6 +66,18 @@ inline auto FormatParameter(const T& value)
 }
 
 template<class T>
+bool SettingsVariable<T>::IsDefault() const
+{
+   return p->value_ == p->default_;
+}
+
+template<class T>
+bool SettingsVariable<T>::IsDefaultStaged() const
+{
+   return p->staged_.value_or(p->value_) == p->default_;
+}
+
+template<class T>
 T SettingsVariable<T>::GetValue() const
 {
    return p->value_;

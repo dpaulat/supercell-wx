@@ -38,6 +38,24 @@ public:
    SettingsVariable& operator=(SettingsVariable&&) noexcept;
 
    /**
+    * Gets whether or not the settings variable is currently set to its default
+    * value.
+    *
+    * @return true if the settings variable is currently set to its default
+    * value, otherwise false.
+    */
+   bool IsDefault() const;
+
+   /**
+    * Gets whether or not the settings variable currently has its staged value
+    * set to default.
+    *
+    * @return true if the settings variable currently has its staged value set
+    * to default, otherwise false.
+    */
+   bool IsDefaultStaged() const;
+
+   /**
     * Gets the current value of the settings variable.
     *
     * @return Current value

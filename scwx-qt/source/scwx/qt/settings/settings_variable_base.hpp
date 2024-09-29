@@ -46,6 +46,24 @@ public:
    boost::signals2::signal<void()>& staged_signal();
 
    /**
+    * Gets whether or not the settings variable is currently set to its default
+    * value.
+    *
+    * @return true if the settings variable is currently set to its default
+    * value, otherwise false.
+    */
+   virtual bool IsDefault() const = 0;
+
+   /**
+    * Gets whether or not the settings variable currently has its staged value
+    * set to default.
+    *
+    * @return true if the settings variable currently has its staged value set
+    * to default, otherwise false.
+    */
+   virtual bool IsDefaultStaged() const = 0;
+
+   /**
     * Sets the current value of the settings variable to default.
     */
    virtual void SetValueToDefault() = 0;
