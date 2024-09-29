@@ -182,7 +182,6 @@ public:
    void SetupTextTab();
    void SetupHotkeysTab();
 
-   void ShowColorDialog(QLineEdit* lineEdit);
    void UpdateRadarDialogLocation(const std::string& id);
    void UpdateAlertRadarDialogLocation(const std::string& id);
 
@@ -204,8 +203,7 @@ public:
                                      const std::string& value,
                                      QLabel*            imageLabel);
    static std::string
-               RadarSiteLabel(std::shared_ptr<config::RadarSite>& radarSite);
-   static void SetBackgroundColor(const std::string& value, QFrame* frame);
+   RadarSiteLabel(std::shared_ptr<config::RadarSite>& radarSite);
 
    SettingsDialog*   self_;
    RadarSiteDialog*  radarSiteDialog_;
@@ -254,12 +252,6 @@ public:
 
    std::unordered_map<std::string, settings::SettingsInterface<std::string>>
       colorTables_ {};
-   std::unordered_map<awips::Phenomenon,
-                      settings::SettingsInterface<std::string>>
-      activeAlertColors_ {};
-   std::unordered_map<awips::Phenomenon,
-                      settings::SettingsInterface<std::string>>
-      inactiveAlertColors_ {};
 
    settings::SettingsInterface<std::string> alertAudioSoundFile_ {};
    settings::SettingsInterface<std::string> alertAudioLocationMethod_ {};
@@ -804,9 +796,6 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
 
 void SettingsDialogImpl::SetupPalettesAlertsTab()
 {
-   settings::PaletteSettings& paletteSettings =
-      settings::PaletteSettings::Instance();
-
    // Palettes > Alerts
    QVBoxLayout* layout = new QVBoxLayout(self_->ui->alertsPalette);
 
@@ -815,119 +804,6 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
    layout->addWidget(alertPaletteSettingsWidget_);
 
    settingsPages_.push_back(alertPaletteSettingsWidget_);
-
-   // Palettes > Old Alerts
-   QGridLayout* alertsLayout =
-      reinterpret_cast<QGridLayout*>(self_->ui->alertsFrame->layout());
-
-   QLabel* phenomenonLabel = new QLabel(QObject::tr("Phenomenon"), self_);
-   QLabel* activeLabel     = new QLabel(QObject::tr("Active"), self_);
-   QLabel* inactiveLabel   = new QLabel(QObject::tr("Inactive"), self_);
-
-   QFont boldFont;
-   boldFont.setBold(true);
-   phenomenonLabel->setFont(boldFont);
-   activeLabel->setFont(boldFont);
-   inactiveLabel->setFont(boldFont);
-
-   alertsLayout->addWidget(phenomenonLabel, 0, 0);
-   alertsLayout->addWidget(activeLabel, 0, 1, 1, 4);
-   alertsLayout->addWidget(inactiveLabel, 0, 5, 1, 4);
-
-   auto& alertPhenomena = settings::PaletteSettings::alert_phenomena();
-
-   activeAlertColors_.reserve(alertPhenomena.size());
-   inactiveAlertColors_.reserve(alertPhenomena.size());
-
-   int alertsRow = 1;
-   for (auto& phenomenon : alertPhenomena)
-   {
-      QFrame* activeFrame   = new QFrame(self_);
-      QFrame* inactiveFrame = new QFrame(self_);
-
-      QLineEdit* activeEdit   = new QLineEdit(self_);
-      QLineEdit* inactiveEdit = new QLineEdit(self_);
-
-      QToolButton* activeButton        = new QToolButton(self_);
-      QToolButton* inactiveButton      = new QToolButton(self_);
-      QToolButton* activeResetButton   = new QToolButton(self_);
-      QToolButton* inactiveResetButton = new QToolButton(self_);
-
-      activeFrame->setMinimumHeight(24);
-      activeFrame->setMinimumWidth(24);
-      activeFrame->setFrameShape(QFrame::Shape::Box);
-      activeFrame->setFrameShadow(QFrame::Shadow::Plain);
-      inactiveFrame->setMinimumHeight(24);
-      inactiveFrame->setMinimumWidth(24);
-      inactiveFrame->setFrameShape(QFrame::Shape::Box);
-      inactiveFrame->setFrameShadow(QFrame::Shadow::Plain);
-
-      activeButton->setIcon(
-         QIcon {":/res/icons/font-awesome-6/palette-solid.svg"});
-      inactiveButton->setIcon(
-         QIcon {":/res/icons/font-awesome-6/palette-solid.svg"});
-      activeResetButton->setIcon(
-         QIcon {":/res/icons/font-awesome-6/rotate-left-solid.svg"});
-      inactiveResetButton->setIcon(
-         QIcon {":/res/icons/font-awesome-6/rotate-left-solid.svg"});
-
-      alertsLayout->addWidget(
-         new QLabel(QObject::tr(awips::GetPhenomenonText(phenomenon).c_str()),
-                    self_),
-         alertsRow,
-         0);
-      alertsLayout->addWidget(activeFrame, alertsRow, 1);
-      alertsLayout->addWidget(activeEdit, alertsRow, 2);
-      alertsLayout->addWidget(activeButton, alertsRow, 3);
-      alertsLayout->addWidget(activeResetButton, alertsRow, 4);
-      alertsLayout->addWidget(inactiveFrame, alertsRow, 5);
-      alertsLayout->addWidget(inactiveEdit, alertsRow, 6);
-      alertsLayout->addWidget(inactiveButton, alertsRow, 7);
-      alertsLayout->addWidget(inactiveResetButton, alertsRow, 8);
-      ++alertsRow;
-
-      // Create settings interface
-      auto activeResult = activeAlertColors_.emplace(
-         phenomenon, settings::SettingsInterface<std::string> {});
-      auto inactiveResult = inactiveAlertColors_.emplace(
-         phenomenon, settings::SettingsInterface<std::string> {});
-      auto& activeColor   = activeResult.first->second;
-      auto& inactiveColor = inactiveResult.first->second;
-
-      // Add to settings list
-      settings_.push_back(&activeColor);
-      settings_.push_back(&inactiveColor);
-
-      auto& activeSetting   = paletteSettings.alert_color(phenomenon, true);
-      auto& inactiveSetting = paletteSettings.alert_color(phenomenon, false);
-
-      activeColor.SetSettingsVariable(activeSetting);
-      activeColor.SetEditWidget(activeEdit);
-      activeColor.SetResetButton(activeResetButton);
-
-      inactiveColor.SetSettingsVariable(inactiveSetting);
-      inactiveColor.SetEditWidget(inactiveEdit);
-      inactiveColor.SetResetButton(inactiveResetButton);
-
-      SetBackgroundColor(activeSetting.GetValue(), activeFrame);
-      SetBackgroundColor(inactiveSetting.GetValue(), inactiveFrame);
-
-      activeSetting.RegisterValueStagedCallback(
-         [activeFrame](const std::string& value)
-         { SetBackgroundColor(value, activeFrame); });
-      inactiveSetting.RegisterValueStagedCallback(
-         [inactiveFrame](const std::string& value)
-         { SetBackgroundColor(value, inactiveFrame); });
-
-      QObject::connect(activeButton,
-                       &QAbstractButton::clicked,
-                       self_,
-                       [=, this]() { ShowColorDialog(activeEdit); });
-      QObject::connect(inactiveButton,
-                       &QAbstractButton::clicked,
-                       self_,
-                       [=, this]() { ShowColorDialog(inactiveEdit); });
-   }
 }
 
 void SettingsDialogImpl::SetupUnitsTab()
@@ -1380,44 +1256,6 @@ void SettingsDialogImpl::LoadColorTablePreview(const std::string& key,
                imageLabel, [imageLabel] { imageLabel->setVisible(false); });
          }
       });
-}
-
-void SettingsDialogImpl::ShowColorDialog(QLineEdit* lineEdit)
-{
-   QColorDialog* dialog = new QColorDialog(self_);
-
-   dialog->setAttribute(Qt::WA_DeleteOnClose);
-   dialog->setOption(QColorDialog::ColorDialogOption::ShowAlphaChannel);
-
-   QColor initialColor(lineEdit->text());
-   if (initialColor.isValid())
-   {
-      dialog->setCurrentColor(initialColor);
-   }
-
-   QObject::connect(
-      dialog,
-      &QColorDialog::colorSelected,
-      self_,
-      [lineEdit](const QColor& color)
-      {
-         QString colorName = color.name(QColor::NameFormat::HexArgb);
-
-         logger_->info("Selected color: {}", colorName.toStdString());
-         lineEdit->setText(colorName);
-
-         // setText does not emit the textEdited signal
-         Q_EMIT lineEdit->textEdited(colorName);
-      });
-
-   dialog->open();
-}
-
-void SettingsDialogImpl::SetBackgroundColor(const std::string& value,
-                                            QFrame*            frame)
-{
-   frame->setStyleSheet(
-      QString::fromStdString(fmt::format("background-color: {}", value)));
 }
 
 void SettingsDialogImpl::UpdateRadarDialogLocation(const std::string& id)

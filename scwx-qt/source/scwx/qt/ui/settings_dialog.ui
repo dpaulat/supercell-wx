@@ -639,50 +639,6 @@
                <string>Alerts</string>
               </attribute>
              </widget>
-             <widget class="QWidget" name="tab_2">
-              <attribute name="title">
-               <string>Old Alerts</string>
-              </attribute>
-              <layout class="QVBoxLayout" name="verticalLayout_3">
-               <item>
-                <widget class="QFrame" name="alertsFrame">
-                 <property name="frameShape">
-                  <enum>QFrame::Shape::StyledPanel</enum>
-                 </property>
-                 <property name="frameShadow">
-                  <enum>QFrame::Shadow::Raised</enum>
-                 </property>
-                 <layout class="QGridLayout" name="gridLayout_5">
-                  <property name="leftMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="topMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="rightMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="bottomMargin">
-                   <number>0</number>
-                  </property>
-                 </layout>
-                </widget>
-               </item>
-               <item>
-                <spacer name="verticalSpacer_2">
-                 <property name="orientation">
-                  <enum>Qt::Orientation::Vertical</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>20</width>
-                   <height>239</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-              </layout>
-             </widget>
             </widget>
            </item>
           </layout>
