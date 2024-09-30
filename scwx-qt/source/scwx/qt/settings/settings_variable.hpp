@@ -44,7 +44,7 @@ public:
     * @return true if the settings variable is currently set to its default
     * value, otherwise false.
     */
-   bool IsDefault() const;
+   bool IsDefault() const override;
 
    /**
     * Gets whether or not the settings variable currently has its staged value
@@ -53,7 +53,7 @@ public:
     * @return true if the settings variable currently has its staged value set
     * to default, otherwise false.
     */
-   bool IsDefaultStaged() const;
+   bool IsDefaultStaged() const override;
 
    /**
     * Gets the current value of the settings variable.
