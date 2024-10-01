@@ -1,6 +1,7 @@
 #include <scwx/qt/util/color.hpp>
 
 #include <fmt/format.h>
+#include <re2/re2.h>
 #include <QColor>
 
 namespace scwx
@@ -36,6 +37,12 @@ boost::gil::rgba32f_pixel_t ToRgba32fPixelT(const std::string& argbString)
                                        rgba8Pixel[1] / 255.0f,
                                        rgba8Pixel[2] / 255.0f,
                                        rgba8Pixel[3] / 255.0f};
+}
+
+bool ValidateArgbString(const std::string& argbString)
+{
+   static constexpr LazyRE2 re = {"#[0-9A-Fa-f]{8}"};
+   return RE2::FullMatch(argbString, *re);
 }
 
 } // namespace color

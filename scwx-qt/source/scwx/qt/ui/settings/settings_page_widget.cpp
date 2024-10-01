@@ -19,6 +19,7 @@ public:
    explicit Impl() {}
    ~Impl() = default;
 
+   std::vector<settings::SettingsCategory*>      categories_;
    std::vector<settings::SettingsInterfaceBase*> settings_;
 };
 
@@ -28,6 +29,12 @@ SettingsPageWidget::SettingsPageWidget(QWidget* parent) :
 }
 
 SettingsPageWidget::~SettingsPageWidget() = default;
+
+void SettingsPageWidget::AddSettingsCategory(
+   settings::SettingsCategory* category)
+{
+   p->categories_.push_back(category);
+}
 
 void SettingsPageWidget::AddSettingsInterface(
    settings::SettingsInterfaceBase* setting)
@@ -39,6 +46,11 @@ bool SettingsPageWidget::CommitChanges()
 {
    bool committed = false;
 
+   for (auto& category : p->categories_)
+   {
+      committed |= category->Commit();
+   }
+
    for (auto& setting : p->settings_)
    {
       committed |= setting->Commit();
@@ -49,6 +61,11 @@ bool SettingsPageWidget::CommitChanges()
 
 void SettingsPageWidget::DiscardChanges()
 {
+   for (auto& category : p->categories_)
+   {
+      category->Reset();
+   }
+
    for (auto& setting : p->settings_)
    {
       setting->Reset();

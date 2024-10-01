@@ -23,11 +23,12 @@
 #include <scwx/qt/types/time_types.hpp>
 #include <scwx/qt/types/unit_types.hpp>
 #include <scwx/qt/ui/county_dialog.hpp>
-#include <scwx/qt/ui/wfo_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/ui/serial_port_dialog.hpp>
+#include <scwx/qt/ui/settings/alert_palette_settings_widget.hpp>
 #include <scwx/qt/ui/settings/hotkey_settings_widget.hpp>
 #include <scwx/qt/ui/settings/unit_settings_widget.hpp>
+#include <scwx/qt/ui/wfo_dialog.hpp>
 #include <scwx/qt/util/color.hpp>
 #include <scwx/qt/util/file.hpp>
 #include <scwx/util/logger.hpp>
@@ -181,7 +182,6 @@ public:
    void SetupTextTab();
    void SetupHotkeysTab();
 
-   void ShowColorDialog(QLineEdit* lineEdit);
    void UpdateRadarDialogLocation(const std::string& id);
    void UpdateAlertRadarDialogLocation(const std::string& id);
 
@@ -203,8 +203,7 @@ public:
                                      const std::string& value,
                                      QLabel*            imageLabel);
    static std::string
-               RadarSiteLabel(std::shared_ptr<config::RadarSite>& radarSite);
-   static void SetBackgroundColor(const std::string& value, QFrame* frame);
+   RadarSiteLabel(std::shared_ptr<config::RadarSite>& radarSite);
 
    SettingsDialog*   self_;
    RadarSiteDialog*  radarSiteDialog_;
@@ -224,6 +223,7 @@ public:
       manager::PositionManager::Instance()};
 
    std::vector<SettingsPageWidget*> settingsPages_ {};
+   AlertPaletteSettingsWidget*      alertPaletteSettingsWidget_ {};
    HotkeySettingsWidget*            hotkeySettingsWidget_ {};
    UnitSettingsWidget*              unitSettingsWidget_ {};
 
@@ -252,12 +252,6 @@ public:
 
    std::unordered_map<std::string, settings::SettingsInterface<std::string>>
       colorTables_ {};
-   std::unordered_map<awips::Phenomenon,
-                      settings::SettingsInterface<std::string>>
-      activeAlertColors_ {};
-   std::unordered_map<awips::Phenomenon,
-                      settings::SettingsInterface<std::string>>
-      inactiveAlertColors_ {};
 
    settings::SettingsInterface<std::string> alertAudioSoundFile_ {};
    settings::SettingsInterface<std::string> alertAudioLocationMethod_ {};
@@ -358,24 +352,23 @@ void SettingsDialogImpl::ConnectSignals()
                     self_,
                     [this]() { alertAudioRadarSiteDialog_->show(); });
 
-   QObject::connect(alertAudioRadarSiteDialog_,
-                    &RadarSiteDialog::accepted,
-                    self_,
-                    [this]()
-                    {
-                       std::string id =
-                          alertAudioRadarSiteDialog_->radar_site();
+   QObject::connect(
+      alertAudioRadarSiteDialog_,
+      &RadarSiteDialog::accepted,
+      self_,
+      [this]()
+      {
+         std::string id = alertAudioRadarSiteDialog_->radar_site();
 
-                       std::shared_ptr<config::RadarSite> radarSite =
-                          config::RadarSite::Get(id);
+         std::shared_ptr<config::RadarSite> radarSite =
+            config::RadarSite::Get(id);
 
-                       if (radarSite != nullptr)
-                       {
-                          self_->ui->alertAudioRadarSiteComboBox
-                             ->setCurrentText(QString::fromStdString(
-                                RadarSiteLabel(radarSite)));
-                       }
-                    });
+         if (radarSite != nullptr)
+         {
+            self_->ui->alertAudioRadarSiteComboBox->setCurrentText(
+               QString::fromStdString(RadarSiteLabel(radarSite)));
+         }
+      });
 
    QObject::connect(self_->ui->gpsSourceSelectButton,
                     &QAbstractButton::clicked,
@@ -803,123 +796,14 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
 
 void SettingsDialogImpl::SetupPalettesAlertsTab()
 {
-   settings::PaletteSettings& paletteSettings =
-      settings::PaletteSettings::Instance();
-
    // Palettes > Alerts
-   QGridLayout* alertsLayout =
-      reinterpret_cast<QGridLayout*>(self_->ui->alertsFrame->layout());
+   QVBoxLayout* layout = new QVBoxLayout(self_->ui->alertsPalette);
 
-   QLabel* phenomenonLabel = new QLabel(QObject::tr("Phenomenon"), self_);
-   QLabel* activeLabel     = new QLabel(QObject::tr("Active"), self_);
-   QLabel* inactiveLabel   = new QLabel(QObject::tr("Inactive"), self_);
+   alertPaletteSettingsWidget_ =
+      new AlertPaletteSettingsWidget(self_->ui->hotkeys);
+   layout->addWidget(alertPaletteSettingsWidget_);
 
-   QFont boldFont;
-   boldFont.setBold(true);
-   phenomenonLabel->setFont(boldFont);
-   activeLabel->setFont(boldFont);
-   inactiveLabel->setFont(boldFont);
-
-   alertsLayout->addWidget(phenomenonLabel, 0, 0);
-   alertsLayout->addWidget(activeLabel, 0, 1, 1, 4);
-   alertsLayout->addWidget(inactiveLabel, 0, 5, 1, 4);
-
-   auto& alertPhenomena = settings::PaletteSettings::alert_phenomena();
-
-   activeAlertColors_.reserve(alertPhenomena.size());
-   inactiveAlertColors_.reserve(alertPhenomena.size());
-
-   int alertsRow = 1;
-   for (auto& phenomenon : alertPhenomena)
-   {
-      QFrame* activeFrame   = new QFrame(self_);
-      QFrame* inactiveFrame = new QFrame(self_);
-
-      QLineEdit* activeEdit   = new QLineEdit(self_);
-      QLineEdit* inactiveEdit = new QLineEdit(self_);
-
-      QToolButton* activeButton        = new QToolButton(self_);
-      QToolButton* inactiveButton      = new QToolButton(self_);
-      QToolButton* activeResetButton   = new QToolButton(self_);
-      QToolButton* inactiveResetButton = new QToolButton(self_);
-
-      activeFrame->setMinimumHeight(24);
-      activeFrame->setMinimumWidth(24);
-      activeFrame->setFrameShape(QFrame::Shape::Box);
-      activeFrame->setFrameShadow(QFrame::Shadow::Plain);
-      inactiveFrame->setMinimumHeight(24);
-      inactiveFrame->setMinimumWidth(24);
-      inactiveFrame->setFrameShape(QFrame::Shape::Box);
-      inactiveFrame->setFrameShadow(QFrame::Shadow::Plain);
-
-      activeButton->setIcon(
-         QIcon {":/res/icons/font-awesome-6/palette-solid.svg"});
-      inactiveButton->setIcon(
-         QIcon {":/res/icons/font-awesome-6/palette-solid.svg"});
-      activeResetButton->setIcon(
-         QIcon {":/res/icons/font-awesome-6/rotate-left-solid.svg"});
-      inactiveResetButton->setIcon(
-         QIcon {":/res/icons/font-awesome-6/rotate-left-solid.svg"});
-
-      alertsLayout->addWidget(
-         new QLabel(QObject::tr(awips::GetPhenomenonText(phenomenon).c_str()),
-                    self_),
-         alertsRow,
-         0);
-      alertsLayout->addWidget(activeFrame, alertsRow, 1);
-      alertsLayout->addWidget(activeEdit, alertsRow, 2);
-      alertsLayout->addWidget(activeButton, alertsRow, 3);
-      alertsLayout->addWidget(activeResetButton, alertsRow, 4);
-      alertsLayout->addWidget(inactiveFrame, alertsRow, 5);
-      alertsLayout->addWidget(inactiveEdit, alertsRow, 6);
-      alertsLayout->addWidget(inactiveButton, alertsRow, 7);
-      alertsLayout->addWidget(inactiveResetButton, alertsRow, 8);
-      ++alertsRow;
-
-      // Create settings interface
-      auto activeResult = activeAlertColors_.emplace(
-         phenomenon, settings::SettingsInterface<std::string> {});
-      auto inactiveResult = inactiveAlertColors_.emplace(
-         phenomenon, settings::SettingsInterface<std::string> {});
-      auto& activeColor   = activeResult.first->second;
-      auto& inactiveColor = inactiveResult.first->second;
-
-      // Add to settings list
-      settings_.push_back(&activeColor);
-      settings_.push_back(&inactiveColor);
-
-      auto& activeSetting   = paletteSettings.alert_color(phenomenon, true);
-      auto& inactiveSetting = paletteSettings.alert_color(phenomenon, false);
-
-      activeColor.SetSettingsVariable(activeSetting);
-      activeColor.SetEditWidget(activeEdit);
-      activeColor.SetResetButton(activeResetButton);
-
-      inactiveColor.SetSettingsVariable(inactiveSetting);
-      inactiveColor.SetEditWidget(inactiveEdit);
-      inactiveColor.SetResetButton(inactiveResetButton);
-
-      SetBackgroundColor(activeSetting.GetValue(), activeFrame);
-      SetBackgroundColor(inactiveSetting.GetValue(), inactiveFrame);
-
-      activeSetting.RegisterValueStagedCallback(
-         [activeFrame](const std::string& value)
-         { SetBackgroundColor(value, activeFrame); });
-      inactiveSetting.RegisterValueStagedCallback(
-         [inactiveFrame](const std::string& value)
-         { SetBackgroundColor(value, inactiveFrame); });
-
-      QObject::connect(activeButton,
-                       &QAbstractButton::clicked,
-                       self_,
-                       [=, this]()
-                       { ShowColorDialog(activeEdit); });
-      QObject::connect(inactiveButton,
-                       &QAbstractButton::clicked,
-                       self_,
-                       [=, this]()
-                       { ShowColorDialog(inactiveEdit); });
-   }
+   settingsPages_.push_back(alertPaletteSettingsWidget_);
 }
 
 void SettingsDialogImpl::SetupUnitsTab()
@@ -953,8 +837,7 @@ void SettingsDialogImpl::SetupAudioTab()
             locationMethod == types::LocationMethod::RadarSite;
          bool countyEntryEnabled =
             locationMethod == types::LocationMethod::County;
-         bool wfoEntryEnabled =
-            locationMethod == types::LocationMethod::WFO;
+         bool wfoEntryEnabled = locationMethod == types::LocationMethod::WFO;
 
          self_->ui->alertAudioLatitudeSpinBox->setEnabled(
             coordinateEntryEnabled);
@@ -972,10 +855,8 @@ void SettingsDialogImpl::SetupAudioTab()
          self_->ui->resetAlertAudioRadarSiteButton->setEnabled(
             radarSiteEntryEnable);
 
-         self_->ui->alertAudioRadiusSpinBox->setEnabled(
-            radiusEntryEnable);
-         self_->ui->resetAlertAudioRadiusButton->setEnabled(
-            radiusEntryEnable);
+         self_->ui->alertAudioRadiusSpinBox->setEnabled(radiusEntryEnable);
+         self_->ui->resetAlertAudioRadiusButton->setEnabled(radiusEntryEnable);
 
          self_->ui->alertAudioCountyLineEdit->setEnabled(countyEntryEnabled);
          self_->ui->alertAudioCountySelectButton->setEnabled(
@@ -1091,8 +972,7 @@ void SettingsDialogImpl::SetupAudioTab()
 
    alertAudioRadius_.SetSettingsVariable(audioSettings.alert_radius());
    alertAudioRadius_.SetEditWidget(self_->ui->alertAudioRadiusSpinBox);
-   alertAudioRadius_.SetResetButton(
-      self_->ui->resetAlertAudioRadiusButton);
+   alertAudioRadius_.SetResetButton(self_->ui->resetAlertAudioRadiusButton);
    alertAudioRadius_.SetUnitLabel(self_->ui->alertAudioRadiusUnitsLabel);
    auto alertAudioRadiusUpdateUnits = [this](const std::string& newValue)
    {
@@ -1206,14 +1086,10 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioCounty_.SetEditWidget(self_->ui->alertAudioCountyLineEdit);
    alertAudioCounty_.SetResetButton(self_->ui->resetAlertAudioCountyButton);
 
-   QObject::connect(
-      self_->ui->alertAudioWFOSelectButton,
-      &QAbstractButton::clicked,
-      self_,
-      [this]()
-      {
-         wfoDialog_->show();
-      });
+   QObject::connect(self_->ui->alertAudioWFOSelectButton,
+                    &QAbstractButton::clicked,
+                    self_,
+                    [this]() { wfoDialog_->show(); });
    QObject::connect(wfoDialog_,
                     &WFODialog::accepted,
                     self_,
@@ -1232,9 +1108,8 @@ void SettingsDialogImpl::SetupAudioTab()
                     self_,
                     [this](const QString& text)
                     {
-                       std::string wfoName =
-                          config::CountyDatabase::GetWFOName(
-                             text.toStdString());
+                       std::string wfoName = config::CountyDatabase::GetWFOName(
+                          text.toStdString());
                        self_->ui->alertAudioWFOLabel->setText(
                           QString::fromStdString(wfoName));
                     });
@@ -1242,7 +1117,6 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioWFO_.SetSettingsVariable(audioSettings.alert_wfo());
    alertAudioWFO_.SetEditWidget(self_->ui->alertAudioWFOLineEdit);
    alertAudioWFO_.SetResetButton(self_->ui->resetAlertAudioWFOButton);
-
 }
 
 void SettingsDialogImpl::SetupTextTab()
@@ -1384,44 +1258,6 @@ void SettingsDialogImpl::LoadColorTablePreview(const std::string& key,
       });
 }
 
-void SettingsDialogImpl::ShowColorDialog(QLineEdit* lineEdit)
-{
-   QColorDialog* dialog = new QColorDialog(self_);
-
-   dialog->setAttribute(Qt::WA_DeleteOnClose);
-   dialog->setOption(QColorDialog::ColorDialogOption::ShowAlphaChannel);
-
-   QColor initialColor(lineEdit->text());
-   if (initialColor.isValid())
-   {
-      dialog->setCurrentColor(initialColor);
-   }
-
-   QObject::connect(
-      dialog,
-      &QColorDialog::colorSelected,
-      self_,
-      [lineEdit](const QColor& color)
-      {
-         QString colorName = color.name(QColor::NameFormat::HexArgb);
-
-         logger_->info("Selected color: {}", colorName.toStdString());
-         lineEdit->setText(colorName);
-
-         // setText does not emit the textEdited signal
-         Q_EMIT lineEdit->textEdited(colorName);
-      });
-
-   dialog->open();
-}
-
-void SettingsDialogImpl::SetBackgroundColor(const std::string& value,
-                                            QFrame*            frame)
-{
-   frame->setStyleSheet(
-      QString::fromStdString(fmt::format("background-color: {}", value)));
-}
-
 void SettingsDialogImpl::UpdateRadarDialogLocation(const std::string& id)
 {
    std::shared_ptr<config::RadarSite> radarSite = config::RadarSite::Get(id);
@@ -1443,8 +1279,6 @@ void SettingsDialogImpl::UpdateAlertRadarDialogLocation(const std::string& id)
                                                   radarSite->longitude());
    }
 }
-
-
 
 QFont SettingsDialogImpl::GetSelectedFont()
 {

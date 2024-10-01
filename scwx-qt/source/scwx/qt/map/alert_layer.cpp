@@ -9,6 +9,7 @@
 
 #include <chrono>
 #include <mutex>
+#include <ranges>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -39,6 +40,8 @@ struct AlertTypeHash<std::pair<awips::Phenomenon, bool>>
 {
    size_t operator()(const std::pair<awips::Phenomenon, bool>& x) const;
 };
+
+static bool IsAlertActive(const std::shared_ptr<const awips::Segment>& segment);
 
 class AlertLayerHandler : public QObject
 {
@@ -111,25 +114,27 @@ signals:
 class AlertLayer::Impl
 {
 public:
+   struct LineData
+   {
+      boost::gil::rgba32f_pixel_t borderColor_ {};
+      boost::gil::rgba32f_pixel_t highlightColor_ {};
+      boost::gil::rgba32f_pixel_t lineColor_ {};
+
+      std::size_t borderWidth_ {};
+      std::size_t highlightWidth_ {};
+      std::size_t lineWidth_ {};
+   };
+
    explicit Impl(AlertLayer*                 self,
                  std::shared_ptr<MapContext> context,
                  awips::Phenomenon           phenomenon) :
        self_ {self},
        phenomenon_ {phenomenon},
+       ibw_ {awips::ibw::GetImpactBasedWarningInfo(phenomenon)},
        geoLines_ {{false, std::make_shared<gl::draw::GeoLines>(context)},
                   {true, std::make_shared<gl::draw::GeoLines>(context)}}
    {
-      auto& paletteSettings = settings::PaletteSettings::Instance();
-
-      for (auto alertActive : {false, true})
-      {
-         lineColor_.emplace(
-            alertActive,
-            util::color::ToRgba32fPixelT(
-               paletteSettings.alert_color(phenomenon_, alertActive)
-                  .GetValue()));
-      }
-
+      UpdateLineData();
       ConnectSignals();
       ScheduleRefresh();
    }
@@ -158,6 +163,10 @@ public:
                             const QPointF& mouseGlobalPos);
    void ScheduleRefresh();
 
+   LineData& GetLineData(const std::shared_ptr<const awips::Segment>& segment,
+                         bool alertActive);
+   void      UpdateLineData();
+
    void AddLine(std::shared_ptr<gl::draw::GeoLines>&        geoLines,
                 std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
                 const common::Coordinate&                   p1,
@@ -176,6 +185,9 @@ public:
                  bool                                   enableHover,
                  boost::container::stable_vector<
                     std::shared_ptr<gl::draw::GeoLineDrawItem>>& drawItems);
+   void UpdateLines();
+
+   static LineData CreateLineData(const settings::LineSettings& lineSettings);
 
    boost::asio::thread_pool threadPool_ {1u};
 
@@ -184,7 +196,8 @@ public:
    boost::asio::system_timer refreshTimer_ {threadPool_};
    std::mutex                refreshMutex_;
 
-   const awips::Phenomenon phenomenon_;
+   const awips::Phenomenon                   phenomenon_;
+   const awips::ibw::ImpactBasedWarningInfo& ibw_;
 
    std::unique_ptr<QObject> receiver_ {std::make_unique<QObject>()};
 
@@ -199,12 +212,18 @@ public:
               segmentsByLine_;
    std::mutex linesMutex_ {};
 
-   std::unordered_map<bool, boost::gil::rgba32f_pixel_t> lineColor_;
+   std::unordered_map<awips::ibw::ThreatCategory, LineData>
+            threatCategoryLineData_;
+   LineData observedLineData_ {};
+   LineData tornadoPossibleLineData_ {};
+   LineData inactiveLineData_ {};
 
    std::chrono::system_clock::time_point selectedTime_ {};
 
    std::shared_ptr<const gl::draw::GeoLineDrawItem> lastHoverDi_ {nullptr};
    std::string                                      tooltip_ {};
+
+   std::vector<boost::signals2::scoped_connection> connections_ {};
 };
 
 AlertLayer::AlertLayer(std::shared_ptr<MapContext> context,
@@ -289,6 +308,15 @@ void AlertLayer::Deinitialize()
    DrawLayer::Deinitialize();
 }
 
+bool IsAlertActive(const std::shared_ptr<const awips::Segment>& segment)
+{
+   auto& vtec        = segment->header_->vtecString_.front();
+   auto  action      = vtec.pVtec_.action();
+   bool  alertActive = (action != awips::PVtec::Action::Canceled);
+
+   return alertActive;
+}
+
 void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
                                     size_t                     messageIndex)
 {
@@ -331,10 +359,9 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
          continue;
       }
 
-      auto&             vtec       = segment->header_->vtecString_.front();
-      auto              action     = vtec.pVtec_.action();
-      awips::Phenomenon phenomenon = vtec.pVtec_.phenomenon();
-      bool alertActive             = (action != awips::PVtec::Action::Canceled);
+      auto&             vtec        = segment->header_->vtecString_.front();
+      awips::Phenomenon phenomenon  = vtec.pVtec_.phenomenon();
+      bool              alertActive = IsAlertActive(segment);
 
       auto& segmentsForType = segmentsByType_[{key.phenomenon_, alertActive}];
 
@@ -393,6 +420,8 @@ void AlertLayer::Impl::ConnectAlertHandlerSignals()
 
 void AlertLayer::Impl::ConnectSignals()
 {
+   auto& alertPaletteSettings =
+      settings::PaletteSettings::Instance().alert_palette(phenomenon_);
    auto timelineManager = manager::TimelineManager::Instance();
 
    QObject::connect(timelineManager.get(),
@@ -400,6 +429,13 @@ void AlertLayer::Impl::ConnectSignals()
                     receiver_.get(),
                     [this](std::chrono::system_clock::time_point dateTime)
                     { selectedTime_ = dateTime; });
+
+   connections_.push_back(alertPaletteSettings.changed_signal().connect(
+      [this]()
+      {
+         UpdateLineData();
+         UpdateLines();
+      }));
 }
 
 void AlertLayer::Impl::ScheduleRefresh()
@@ -439,14 +475,12 @@ void AlertLayer::Impl::AddAlert(
 {
    auto& segment = segmentRecord->segment_;
 
-   auto& vtec        = segment->header_->vtecString_.front();
-   auto  action      = vtec.pVtec_.action();
-   bool  alertActive = (action != awips::PVtec::Action::Canceled);
+   bool  alertActive = IsAlertActive(segment);
    auto& startTime   = segmentRecord->segmentBegin_;
    auto& endTime     = segmentRecord->segmentEnd_;
 
-   auto& lineColor = lineColor_.at(alertActive);
-   auto& geoLines  = geoLines_.at(alertActive);
+   auto& lineData = GetLineData(segment, alertActive);
+   auto& geoLines = geoLines_.at(alertActive);
 
    const auto& coordinates = segment->codedLocation_->coordinates();
 
@@ -462,30 +496,51 @@ void AlertLayer::Impl::AddAlert(
    // If draw items were added
    if (drawItems.second)
    {
+      const float borderWidth    = lineData.borderWidth_;
+      const float highlightWidth = lineData.highlightWidth_;
+      const float lineWidth      = lineData.lineWidth_;
+
+      const float totalHighlightWidth = lineWidth + (highlightWidth * 2.0f);
+      const float totalBorderWidth = totalHighlightWidth + (borderWidth * 2.0f);
+
+      constexpr bool borderHover    = true;
+      constexpr bool highlightHover = false;
+      constexpr bool lineHover      = false;
+
       // Add border
       AddLines(geoLines,
                coordinates,
-               kBlack_,
-               5.0f,
+               lineData.borderColor_,
+               totalBorderWidth,
                startTime,
                endTime,
-               true,
+               borderHover,
                drawItems.first->second);
 
-      // Add only border to segmentsByLine_
+      // Add border to segmentsByLine_
       for (auto& di : drawItems.first->second)
       {
          segmentsByLine_.insert({di, segmentRecord});
       }
 
+      // Add highlight
+      AddLines(geoLines,
+               coordinates,
+               lineData.highlightColor_,
+               totalHighlightWidth,
+               startTime,
+               endTime,
+               highlightHover,
+               drawItems.first->second);
+
       // Add line
       AddLines(geoLines,
                coordinates,
-               lineColor,
-               3.0f,
+               lineData.lineColor_,
+               lineWidth,
                startTime,
                endTime,
-               false,
+               lineHover,
                drawItems.first->second);
    }
 }
@@ -499,11 +554,8 @@ void AlertLayer::Impl::UpdateAlert(
    auto it = linesBySegment_.find(segmentRecord);
    if (it != linesBySegment_.cend())
    {
-      auto& segment = segmentRecord->segment_;
-
-      auto& vtec        = segment->header_->vtecString_.front();
-      auto  action      = vtec.pVtec_.action();
-      bool  alertActive = (action != awips::PVtec::Action::Canceled);
+      auto& segment     = segmentRecord->segment_;
+      bool  alertActive = IsAlertActive(segment);
 
       auto& geoLines = geoLines_.at(alertActive);
 
@@ -590,6 +642,54 @@ void AlertLayer::Impl::AddLine(std::shared_ptr<gl::draw::GeoLines>& geoLines,
    }
 }
 
+void AlertLayer::Impl::UpdateLines()
+{
+   std::unique_lock lock {linesMutex_};
+
+   for (auto& segmentLine : linesBySegment_)
+   {
+      auto& segmentRecord    = segmentLine.first;
+      auto& geoLineDrawItems = segmentLine.second;
+      auto& segment          = segmentRecord->segment_;
+      bool  alertActive      = IsAlertActive(segment);
+      auto& lineData         = GetLineData(segment, alertActive);
+      auto& geoLines         = geoLines_.at(alertActive);
+
+      const float borderWidth    = lineData.borderWidth_;
+      const float highlightWidth = lineData.highlightWidth_;
+      const float lineWidth      = lineData.lineWidth_;
+
+      const float totalHighlightWidth = lineWidth + (highlightWidth * 2.0f);
+      const float totalBorderWidth = totalHighlightWidth + (borderWidth * 2.0f);
+
+      // Border, highlight and line
+      std::size_t linesPerType = geoLineDrawItems.size() / 3;
+
+      // Border
+      for (auto& borderLine : geoLineDrawItems | std::views::take(linesPerType))
+      {
+         geoLines->SetLineModulate(borderLine, lineData.borderColor_);
+         geoLines->SetLineWidth(borderLine, totalBorderWidth);
+      }
+
+      // Highlight
+      for (auto& highlightLine : geoLineDrawItems |
+                                    std::views::drop(linesPerType) |
+                                    std::views::take(linesPerType))
+      {
+         geoLines->SetLineModulate(highlightLine, lineData.highlightColor_);
+         geoLines->SetLineWidth(highlightLine, totalHighlightWidth);
+      }
+
+      // Line
+      for (auto& line : geoLineDrawItems | std::views::drop(linesPerType * 2))
+      {
+         geoLines->SetLineModulate(line, lineData.lineColor_);
+         geoLines->SetLineWidth(line, lineWidth);
+      }
+   }
+}
+
 void AlertLayer::Impl::HandleGeoLinesEvent(
    std::shared_ptr<gl::draw::GeoLineDrawItem>& di, QEvent* ev)
 {
@@ -637,6 +737,79 @@ void AlertLayer::Impl::HandleGeoLinesHover(
       util::tooltip::Show(tooltip_, mouseGlobalPos);
    }
 }
+
+AlertLayer::Impl::LineData
+AlertLayer::Impl::CreateLineData(const settings::LineSettings& lineSettings)
+{
+   return LineData {
+      .borderColor_ {lineSettings.GetBorderColorRgba32f()},
+      .highlightColor_ {lineSettings.GetHighlightColorRgba32f()},
+      .lineColor_ {lineSettings.GetLineColorRgba32f()},
+      .borderWidth_ =
+         static_cast<std::size_t>(lineSettings.border_width().GetValue()),
+      .highlightWidth_ =
+         static_cast<std::size_t>(lineSettings.highlight_width().GetValue()),
+      .lineWidth_ =
+         static_cast<std::size_t>(lineSettings.line_width().GetValue())};
+}
+
+void AlertLayer::Impl::UpdateLineData()
+{
+   auto& alertPalette =
+      settings::PaletteSettings().Instance().alert_palette(phenomenon_);
+
+   for (auto threatCategory : ibw_.threatCategories_)
+   {
+      auto& palette = alertPalette.threat_category(threatCategory);
+      threatCategoryLineData_.insert_or_assign(threatCategory,
+                                               CreateLineData(palette));
+   }
+
+   if (ibw_.hasObservedTag_)
+   {
+      observedLineData_ = CreateLineData(alertPalette.observed());
+   }
+
+   if (ibw_.hasTornadoPossibleTag_)
+   {
+      tornadoPossibleLineData_ =
+         CreateLineData(alertPalette.tornado_possible());
+   }
+
+   inactiveLineData_ = CreateLineData(alertPalette.inactive());
+}
+
+AlertLayer::Impl::LineData& AlertLayer::Impl::GetLineData(
+   const std::shared_ptr<const awips::Segment>& segment, bool alertActive)
+{
+   if (!alertActive)
+   {
+      return inactiveLineData_;
+   }
+
+   for (auto& threatCategory : ibw_.threatCategories_)
+   {
+      if (segment->threatCategory_ == threatCategory)
+      {
+         if (threatCategory == awips::ibw::ThreatCategory::Base)
+         {
+            if (ibw_.hasObservedTag_ && segment->observed_)
+            {
+               return observedLineData_;
+            }
+
+            if (ibw_.hasTornadoPossibleTag_ && segment->tornadoPossible_)
+            {
+               return tornadoPossibleLineData_;
+            }
+         }
+
+         return threatCategoryLineData_.at(threatCategory);
+      }
+   }
+
+   return threatCategoryLineData_.at(awips::ibw::ThreatCategory::Base);
+};
 
 AlertLayerHandler& AlertLayerHandler::Instance()
 {

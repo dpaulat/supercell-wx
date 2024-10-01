@@ -77,64 +77,65 @@ static const PhenomenonCodesBimap phenomenonCodes_ =
    (Phenomenon::FreezingSpray, "ZY")                      //
    (Phenomenon::Unknown, "??");
 
-static const std::unordered_map<Phenomenon, std::string> phenomenonText_ {
-   {Phenomenon::AshfallLand, "Ashfall (land)"},              //
-   {Phenomenon::AirStagnation, "Air Stagnation"},            //
-   {Phenomenon::BeachHazard, "Beach Hazard"},                //
-   {Phenomenon::BriskWind, "Brisk Wind"},                    //
-   {Phenomenon::Blizzard, "Blizzard"},                       //
-   {Phenomenon::CoastalFlood, "Coastal Flood"},              //
-   {Phenomenon::DebrisFlow, "Debris Flow"},                  //
-   {Phenomenon::DustStorm, "Dust Storm"},                    //
-   {Phenomenon::BlowingDust, "Blowing Dust"},                //
-   {Phenomenon::ExtremeCold, "Extreme Cold"},                //
-   {Phenomenon::ExcessiveHeat, "Excessive Heat"},            //
-   {Phenomenon::ExtremeWind, "Extreme Wind"},                //
-   {Phenomenon::Flood, "Flood"},                             //
-   {Phenomenon::FlashFlood, "Flash Flood"},                  //
-   {Phenomenon::DenseFogLand, "Dense Fog (land)"},           //
-   {Phenomenon::Flood, "Flood (Forecast Points)"},           //
-   {Phenomenon::Frost, "Frost"},                             //
-   {Phenomenon::FireWeather, "Fire Weather"},                //
-   {Phenomenon::Freeze, "Freeze"},                           //
-   {Phenomenon::Gale, "Gale"},                               //
-   {Phenomenon::HurricaneForceWind, "Hurricane Force Wind"}, //
-   {Phenomenon::Heat, "Heat"},                               //
-   {Phenomenon::Hurricane, "Hurricane"},                     //
-   {Phenomenon::HighWind, "High Wind"},                      //
-   {Phenomenon::Hydrologic, "Hydrologic"},                   //
-   {Phenomenon::HardFreeze, "Hard Freeze"},                  //
-   {Phenomenon::IceStorm, "Ice Storm"},                      //
-   {Phenomenon::LakeEffectSnow, "Lake Effect Snow"},         //
-   {Phenomenon::LowWater, "Low Water"},                      //
-   {Phenomenon::LakeshoreFlood, "Lakeshore Flood"},          //
-   {Phenomenon::LakeWind, "Lake Wind"},                      //
-   {Phenomenon::Marine, "Marine"},                           //
-   {Phenomenon::DenseFogMarine, "Dense Fog (marine)"},       //
-   {Phenomenon::AshfallMarine, "Ashfall (marine)"},          //
-   {Phenomenon::DenseSmokeMarine, "Dense Smoke (marine)"},   //
-   {Phenomenon::RipCurrentRisk, "Rip Current Risk"},         //
-   {Phenomenon::SmallCraft, "Small Craft"},                  //
-   {Phenomenon::HazardousSeas, "Hazardous Seas"},            //
-   {Phenomenon::DenseSmokeLand, "Dense Smoke (land)"},       //
-   {Phenomenon::Storm, "Storm"},                             //
-   {Phenomenon::StormSurge, "Storm Surge"},                  //
-   {Phenomenon::SnowSquall, "Snow Squall"},                  //
-   {Phenomenon::HighSurf, "High Surf"},                      //
-   {Phenomenon::SevereThunderstorm, "Severe Thunderstorm"},  //
-   {Phenomenon::Tornado, "Tornado"},                         //
-   {Phenomenon::TropicalStorm, "Tropical Storm"},            //
-   {Phenomenon::Tsunami, "Tsunami"},                         //
-   {Phenomenon::Typhoon, "Typhoon"},                         //
-   {Phenomenon::HeavyFreezingSpray, "Heavy Freezing Spray"}, //
-   {Phenomenon::WindChill, "Wind Chill"},                    //
-   {Phenomenon::Wind, "Wind"},                               //
-   {Phenomenon::WinterStorm, "Winter Storm"},                //
-   {Phenomenon::WinterWeather, "Winter Weather"},            //
-   {Phenomenon::FreezingFog, "Freezing Fog"},                //
-   {Phenomenon::FreezingRain, "Freezing Rain"},              //
-   {Phenomenon::FreezingSpray, "Freezing Spray"},            //
-   {Phenomenon::Unknown, "Unknown"}};
+static const PhenomenonCodesBimap phenomenonText_ =
+   boost::assign::list_of<PhenomenonCodesBimap::relation>   //
+   (Phenomenon::AshfallLand, "Ashfall (land)")              //
+   (Phenomenon::AirStagnation, "Air Stagnation")            //
+   (Phenomenon::BeachHazard, "Beach Hazard")                //
+   (Phenomenon::BriskWind, "Brisk Wind")                    //
+   (Phenomenon::Blizzard, "Blizzard")                       //
+   (Phenomenon::CoastalFlood, "Coastal Flood")              //
+   (Phenomenon::DebrisFlow, "Debris Flow")                  //
+   (Phenomenon::DustStorm, "Dust Storm")                    //
+   (Phenomenon::BlowingDust, "Blowing Dust")                //
+   (Phenomenon::ExtremeCold, "Extreme Cold")                //
+   (Phenomenon::ExcessiveHeat, "Excessive Heat")            //
+   (Phenomenon::ExtremeWind, "Extreme Wind")                //
+   (Phenomenon::Flood, "Flood")                             //
+   (Phenomenon::FlashFlood, "Flash Flood")                  //
+   (Phenomenon::DenseFogLand, "Dense Fog (land)")           //
+   (Phenomenon::Flood, "Flood (Forecast Points)")           //
+   (Phenomenon::Frost, "Frost")                             //
+   (Phenomenon::FireWeather, "Fire Weather")                //
+   (Phenomenon::Freeze, "Freeze")                           //
+   (Phenomenon::Gale, "Gale")                               //
+   (Phenomenon::HurricaneForceWind, "Hurricane Force Wind") //
+   (Phenomenon::Heat, "Heat")                               //
+   (Phenomenon::Hurricane, "Hurricane")                     //
+   (Phenomenon::HighWind, "High Wind")                      //
+   (Phenomenon::Hydrologic, "Hydrologic")                   //
+   (Phenomenon::HardFreeze, "Hard Freeze")                  //
+   (Phenomenon::IceStorm, "Ice Storm")                      //
+   (Phenomenon::LakeEffectSnow, "Lake Effect Snow")         //
+   (Phenomenon::LowWater, "Low Water")                      //
+   (Phenomenon::LakeshoreFlood, "Lakeshore Flood")          //
+   (Phenomenon::LakeWind, "Lake Wind")                      //
+   (Phenomenon::Marine, "Marine")                           //
+   (Phenomenon::DenseFogMarine, "Dense Fog (marine)")       //
+   (Phenomenon::AshfallMarine, "Ashfall (marine)")          //
+   (Phenomenon::DenseSmokeMarine, "Dense Smoke (marine)")   //
+   (Phenomenon::RipCurrentRisk, "Rip Current Risk")         //
+   (Phenomenon::SmallCraft, "Small Craft")                  //
+   (Phenomenon::HazardousSeas, "Hazardous Seas")            //
+   (Phenomenon::DenseSmokeLand, "Dense Smoke (land)")       //
+   (Phenomenon::Storm, "Storm")                             //
+   (Phenomenon::StormSurge, "Storm Surge")                  //
+   (Phenomenon::SnowSquall, "Snow Squall")                  //
+   (Phenomenon::HighSurf, "High Surf")                      //
+   (Phenomenon::SevereThunderstorm, "Severe Thunderstorm")  //
+   (Phenomenon::Tornado, "Tornado")                         //
+   (Phenomenon::TropicalStorm, "Tropical Storm")            //
+   (Phenomenon::Tsunami, "Tsunami")                         //
+   (Phenomenon::Typhoon, "Typhoon")                         //
+   (Phenomenon::HeavyFreezingSpray, "Heavy Freezing Spray") //
+   (Phenomenon::WindChill, "Wind Chill")                    //
+   (Phenomenon::Wind, "Wind")                               //
+   (Phenomenon::WinterStorm, "Winter Storm")                //
+   (Phenomenon::WinterWeather, "Winter Weather")            //
+   (Phenomenon::FreezingFog, "Freezing Fog")                //
+   (Phenomenon::FreezingRain, "Freezing Rain")              //
+   (Phenomenon::FreezingSpray, "Freezing Spray")            //
+   (Phenomenon::Unknown, "Unknown");
 
 Phenomenon GetPhenomenon(const std::string& code)
 {
@@ -154,6 +155,24 @@ Phenomenon GetPhenomenon(const std::string& code)
    return phenomenon;
 }
 
+Phenomenon GetPhenomenonFromText(const std::string& text)
+{
+   Phenomenon phenomenon;
+
+   if (phenomenonText_.right.find(text) != phenomenonText_.right.end())
+   {
+      phenomenon = phenomenonText_.right.at(text);
+   }
+   else
+   {
+      phenomenon = Phenomenon::Unknown;
+
+      logger_->debug("Unrecognized code: \"{}\"", text);
+   }
+
+   return phenomenon;
+}
+
 const std::string& GetPhenomenonCode(Phenomenon phenomenon)
 {
    return phenomenonCodes_.left.at(phenomenon);
@@ -161,7 +180,7 @@ const std::string& GetPhenomenonCode(Phenomenon phenomenon)
 
 const std::string& GetPhenomenonText(Phenomenon phenomenon)
 {
-   return phenomenonText_.at(phenomenon);
+   return phenomenonText_.left.at(phenomenon);
 }
 
 } // namespace awips

@@ -1,10 +1,15 @@
 #pragma once
 
+#include <scwx/awips/phenomenon.hpp>
+
 #include <string>
+#include <vector>
 
 namespace scwx
 {
 namespace awips
+{
+namespace ibw
 {
 
 enum class ThreatCategory : int
@@ -17,8 +22,18 @@ enum class ThreatCategory : int
    Unknown
 };
 
+struct ImpactBasedWarningInfo
+{
+   bool                        hasObservedTag_ {false};
+   bool                        hasTornadoPossibleTag_ {false};
+   std::vector<ThreatCategory> threatCategories_ {ThreatCategory::Base};
+};
+
+const ImpactBasedWarningInfo& GetImpactBasedWarningInfo(Phenomenon phenomenon);
+
 ThreatCategory     GetThreatCategory(const std::string& name);
 const std::string& GetThreatCategoryName(ThreatCategory threatCategory);
 
+} // namespace ibw
 } // namespace awips
 } // namespace scwx

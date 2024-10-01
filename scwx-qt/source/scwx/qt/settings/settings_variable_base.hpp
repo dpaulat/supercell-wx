@@ -4,6 +4,7 @@
 #include <string>
 
 #include <boost/json/object.hpp>
+#include <boost/signals2/signal.hpp>
 
 namespace scwx
 {
@@ -19,7 +20,7 @@ class SettingsVariableBase
 {
 protected:
    explicit SettingsVariableBase(const std::string& name);
-   ~SettingsVariableBase();
+   virtual ~SettingsVariableBase();
 
 public:
    SettingsVariableBase(const SettingsVariableBase&)            = delete;
@@ -29,6 +30,38 @@ public:
    SettingsVariableBase& operator=(SettingsVariableBase&&) noexcept;
 
    std::string name() const;
+
+   /**
+    * Gets the signal invoked when the settings variable is changed.
+    *
+    * @return Changed signal
+    */
+   boost::signals2::signal<void()>& changed_signal();
+
+   /**
+    * Gets the signal invoked when the settings variable is staged.
+    *
+    * @return Staged signal
+    */
+   boost::signals2::signal<void()>& staged_signal();
+
+   /**
+    * Gets whether or not the settings variable is currently set to its default
+    * value.
+    *
+    * @return true if the settings variable is currently set to its default
+    * value, otherwise false.
+    */
+   virtual bool IsDefault() const = 0;
+
+   /**
+    * Gets whether or not the settings variable currently has its staged value
+    * set to default.
+    *
+    * @return true if the settings variable currently has its staged value set
+    * to default, otherwise false.
+    */
+   virtual bool IsDefaultStaged() const = 0;
 
    /**
     * Sets the current value of the settings variable to default.
@@ -47,6 +80,11 @@ public:
     * is present.
     */
    virtual bool Commit() = 0;
+
+   /**
+    * Clears the staged value of the settings variable.
+    */
+   virtual void Reset() = 0;
 
    /**
     * Reads the value from the JSON object. If the read value is out of range,

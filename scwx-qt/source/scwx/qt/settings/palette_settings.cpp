@@ -2,9 +2,9 @@
 #include <scwx/qt/settings/settings_variable.hpp>
 #include <scwx/qt/util/color.hpp>
 
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/gil.hpp>
 #include <fmt/format.h>
-#include <re2/re2.h>
 
 namespace scwx
 {
@@ -76,59 +76,20 @@ static const awips::Phenomenon kDefaultPhenomenon_ {awips::Phenomenon::Marine};
 class PaletteSettings::Impl
 {
 public:
-   explicit Impl()
+   explicit Impl(PaletteSettings* self) : self_ {self}
    {
-      palette_.reserve(kPaletteKeys_.size());
-
-      for (const auto& name : kPaletteKeys_)
-      {
-         const std::string& defaultValue = kDefaultPalettes_.at(name);
-
-         auto result =
-            palette_.emplace(name, SettingsVariable<std::string> {name});
-
-         SettingsVariable<std::string>& settingsVariable = result.first->second;
-
-         settingsVariable.SetDefault(defaultValue);
-
-         variables_.push_back(&settingsVariable);
-      };
-
-      activeAlertColor_.reserve(kAlertColors_.size());
-      inactiveAlertColor_.reserve(kAlertColors_.size());
-
-      for (auto& alert : kAlertColors_)
-      {
-         std::string phenomenonCode = awips::GetPhenomenonCode(alert.first);
-         std::string activeName     = fmt::format("{}-active", phenomenonCode);
-         std::string inactiveName = fmt::format("{}-inactive", phenomenonCode);
-
-         auto activeResult = activeAlertColor_.emplace(
-            alert.first, SettingsVariable<std::string> {activeName});
-         auto inactiveResult = inactiveAlertColor_.emplace(
-            alert.first, SettingsVariable<std::string> {inactiveName});
-
-         SettingsVariable<std::string>& activeVariable =
-            activeResult.first->second;
-         SettingsVariable<std::string>& inactiveVariable =
-            inactiveResult.first->second;
-
-         activeVariable.SetDefault(
-            util::color::ToArgbString(alert.second.first));
-         inactiveVariable.SetDefault(
-            util::color::ToArgbString(alert.second.second));
-
-         activeVariable.SetValidator(&ValidateColor);
-         inactiveVariable.SetValidator(&ValidateColor);
-
-         variables_.push_back(&activeVariable);
-         variables_.push_back(&inactiveVariable);
-      }
+      InitializeColorTables();
+      InitializeLegacyAlerts();
+      InitializeAlerts();
    }
 
    ~Impl() {}
 
-   static bool ValidateColor(const std::string& value);
+   void InitializeColorTables();
+   void InitializeLegacyAlerts();
+   void InitializeAlerts();
+
+   PaletteSettings* self_;
 
    std::unordered_map<std::string, SettingsVariable<std::string>> palette_ {};
    std::unordered_map<awips::Phenomenon, SettingsVariable<std::string>>
@@ -136,16 +97,13 @@ public:
    std::unordered_map<awips::Phenomenon, SettingsVariable<std::string>>
                                       inactiveAlertColor_ {};
    std::vector<SettingsVariableBase*> variables_ {};
+
+   std::unordered_map<awips::Phenomenon, AlertPaletteSettings>
+      alertPaletteMap_ {};
 };
 
-bool PaletteSettings::Impl::ValidateColor(const std::string& value)
-{
-   static constexpr LazyRE2 re = {"#[0-9A-Fa-f]{8}"};
-   return RE2::FullMatch(value, *re);
-}
-
 PaletteSettings::PaletteSettings() :
-    SettingsCategory("palette"), p(std::make_unique<Impl>())
+    SettingsCategory("palette"), p(std::make_unique<Impl>(this))
 {
    RegisterVariables(p->variables_);
    SetDefaults();
@@ -157,6 +115,75 @@ PaletteSettings::~PaletteSettings() = default;
 PaletteSettings::PaletteSettings(PaletteSettings&&) noexcept = default;
 PaletteSettings&
 PaletteSettings::operator=(PaletteSettings&&) noexcept = default;
+
+void PaletteSettings::Impl::InitializeColorTables()
+{
+   palette_.reserve(kPaletteKeys_.size());
+
+   for (const auto& name : kPaletteKeys_)
+   {
+      const std::string& defaultValue = kDefaultPalettes_.at(name);
+
+      auto result =
+         palette_.emplace(name, SettingsVariable<std::string> {name});
+
+      SettingsVariable<std::string>& settingsVariable = result.first->second;
+
+      settingsVariable.SetDefault(defaultValue);
+
+      variables_.push_back(&settingsVariable);
+   };
+}
+
+void PaletteSettings::Impl::InitializeLegacyAlerts()
+{
+   activeAlertColor_.reserve(kAlertColors_.size());
+   inactiveAlertColor_.reserve(kAlertColors_.size());
+
+   for (auto& alert : kAlertColors_)
+   {
+      std::string phenomenonCode = awips::GetPhenomenonCode(alert.first);
+      std::string activeName     = fmt::format("{}-active", phenomenonCode);
+      std::string inactiveName   = fmt::format("{}-inactive", phenomenonCode);
+
+      auto activeResult = activeAlertColor_.emplace(
+         alert.first, SettingsVariable<std::string> {activeName});
+      auto inactiveResult = inactiveAlertColor_.emplace(
+         alert.first, SettingsVariable<std::string> {inactiveName});
+
+      SettingsVariable<std::string>& activeVariable =
+         activeResult.first->second;
+      SettingsVariable<std::string>& inactiveVariable =
+         inactiveResult.first->second;
+
+      activeVariable.SetDefault(util::color::ToArgbString(alert.second.first));
+      inactiveVariable.SetDefault(
+         util::color::ToArgbString(alert.second.second));
+
+      activeVariable.SetValidator(&util::color::ValidateArgbString);
+      inactiveVariable.SetValidator(&util::color::ValidateArgbString);
+
+      variables_.push_back(&activeVariable);
+      variables_.push_back(&inactiveVariable);
+   }
+}
+
+void PaletteSettings::Impl::InitializeAlerts()
+{
+   std::vector<SettingsCategory*> alertSettings {};
+
+   for (auto phenomenon : PaletteSettings::alert_phenomena())
+   {
+      auto  result = alertPaletteMap_.emplace(phenomenon, phenomenon);
+      auto& it     = result.first;
+      AlertPaletteSettings& alertPaletteSettings = it->second;
+
+      // Variable registration
+      alertSettings.push_back(&alertPaletteSettings);
+   }
+
+   self_->RegisterSubcategoryArray("alerts", alertSettings);
+}
 
 SettingsVariable<std::string>&
 PaletteSettings::palette(const std::string& name) const
@@ -192,6 +219,12 @@ PaletteSettings::alert_color(awips::Phenomenon phenomenon, bool active) const
       }
       return alert->second;
    }
+}
+
+AlertPaletteSettings&
+PaletteSettings::alert_palette(awips::Phenomenon phenomenon)
+{
+   return p->alertPaletteMap_.at(phenomenon);
 }
 
 const std::vector<awips::Phenomenon>& PaletteSettings::alert_phenomena()
