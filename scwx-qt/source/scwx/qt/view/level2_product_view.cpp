@@ -536,7 +536,7 @@ void Level2ProductView::ComputeSweep()
       return;
    }
 
-   const size_t radials = radarData->size();
+   const std::size_t radials = radarData->crbegin()->first;
 
    p->ComputeCoordinates(radarData);
 
@@ -829,7 +829,7 @@ void Level2ProductViewImpl::ComputeCoordinates(
    auto  momentData0 = radarData0->moment_data_block(dataBlockType_);
 
    const std::uint16_t numRadials =
-      static_cast<std::uint16_t>(radarData->size());
+      static_cast<std::uint16_t>(radarData->crbegin()->first + 1);
    const std::uint16_t numRangeBins =
       std::max(momentData0->number_of_data_moment_gates() + 1u,
                common::MAX_DATA_MOMENT_GATES);
@@ -837,39 +837,83 @@ void Level2ProductViewImpl::ComputeCoordinates(
    auto radials = boost::irange<std::uint32_t>(0u, numRadials);
    auto gates   = boost::irange<std::uint32_t>(0u, numRangeBins);
 
-   std::for_each(std::execution::par_unseq,
-                 radials.begin(),
-                 radials.end(),
-                 [&](std::uint32_t radial)
-                 {
-                    const units::degrees<float> angle =
-                       (*radarData)[radial]->azimuth_angle();
+   std::for_each(
+      std::execution::par_unseq,
+      radials.begin(),
+      radials.end(),
+      [&](std::uint32_t radial)
+      {
+         units::degrees<float> angle {};
 
-                    std::for_each(std::execution::par_unseq,
-                                  gates.begin(),
-                                  gates.end(),
-                                  [&](std::uint32_t gate)
-                                  {
-                                     const std::uint32_t radialGate =
-                                        radial * common::MAX_DATA_MOMENT_GATES +
-                                        gate;
-                                     const float range = (gate + 1) * gateSize;
-                                     const std::size_t offset = radialGate * 2;
+         auto radialData = radarData->find(radial);
+         if (radialData != radarData->cend())
+         {
+            angle = radialData->second->azimuth_angle();
+         }
+         else
+         {
+            auto prevRadial1 = radarData->find(
+               (radial >= 1) ? radial - 1 : numRadials - (1 - radial));
+            auto prevRadial2 = radarData->find(
+               (radial >= 2) ? radial - 2 : numRadials - (2 - radial));
 
-                                     double latitude;
-                                     double longitude;
+            if (prevRadial1 != radarData->cend() &&
+                prevRadial2 != radarData->cend())
+            {
+               const units::degrees<float> prevAngle1 =
+                  prevRadial1->second->azimuth_angle();
+               const units::degrees<float> prevAngle2 =
+                  prevRadial2->second->azimuth_angle();
 
-                                     geodesic.Direct(radarLatitude,
-                                                     radarLongitude,
-                                                     angle.value(),
-                                                     range,
-                                                     latitude,
-                                                     longitude);
+               // No wrapping required since angle is only used for geodesic
+               // calculation
+               const units::degrees<float> deltaAngle = prevAngle1 - prevAngle2;
 
-                                     coordinates_[offset]     = latitude;
-                                     coordinates_[offset + 1] = longitude;
-                                  });
-                 });
+               angle = prevAngle1 + deltaAngle;
+            }
+            else if (prevRadial1 != radarData->cend())
+            {
+               const units::degrees<float> prevAngle1 =
+                  prevRadial1->second->azimuth_angle();
+
+               // Assume a half degree delta if there aren't enough angles
+               // to determine a delta angle
+               constexpr units::degrees<float> deltaAngle =
+                  units::degrees<float> {0.5};
+
+               angle = prevAngle1 + deltaAngle;
+            }
+            else
+            {
+               // Not enough angles present to determine an angle
+               return;
+            }
+         }
+
+         std::for_each(std::execution::par_unseq,
+                       gates.begin(),
+                       gates.end(),
+                       [&](std::uint32_t gate)
+                       {
+                          const std::uint32_t radialGate =
+                             radial * common::MAX_DATA_MOMENT_GATES + gate;
+                          const float       range  = (gate + 1) * gateSize;
+                          const std::size_t offset = radialGate * 2;
+
+                          double latitude;
+                          double longitude;
+
+                          geodesic.Direct(radarLatitude,
+                                          radarLongitude,
+                                          angle.value(),
+                                          range,
+                                          latitude,
+                                          longitude);
+
+                          coordinates_[offset]     = latitude;
+                          coordinates_[offset + 1] = longitude;
+                       });
+      });
    timer.stop();
    logger_->debug("Coordinates calculated in {}", timer.format(6, "%ws"));
 }
