@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include <units/angle.h>
+
 namespace scwx
 {
 namespace common
@@ -45,6 +47,17 @@ enum class DistanceType
    Kilometers,
    Miles
 };
+
+/**
+ * Calculate the absolute angle delta between two angles.
+ *
+ * @param [in] angle1 First angle
+ * @param [in] angle2 Second angle
+ *
+ * @return Absolute angle delta normalized to [0, 360)
+ */
+units::degrees<float> GetAngleDelta(units::degrees<float> angle1,
+                                    units::degrees<float> angle2);
 
 /**
  * Calculate the geographic midpoint of a set of coordinates. Uses Method A

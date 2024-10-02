@@ -106,13 +106,16 @@ public:
       threadPool_.join();
    };
 
-   void
-   ComputeCoordinates(std::shared_ptr<wsr88d::rda::ElevationScan> radarData);
+   void ComputeCoordinates(
+      const std::shared_ptr<wsr88d::rda::ElevationScan>& radarData);
 
    void SetProduct(const std::string& productName);
    void SetProduct(common::Level2Product product);
    void UpdateOtherUnits(const std::string& name);
    void UpdateSpeedUnits(const std::string& name);
+
+   static bool IsRadarDataIncomplete(
+      const std::shared_ptr<const wsr88d::rda::ElevationScan>& radarData);
 
    Level2ProductView* self_;
 
@@ -536,7 +539,17 @@ void Level2ProductView::ComputeSweep()
       return;
    }
 
-   const std::size_t radials = radarData->crbegin()->first;
+   const std::size_t radials       = radarData->crbegin()->first + 1;
+   std::size_t       vertexRadials = radials;
+
+   // When there is missing data, insert another empty vertex radial at the end
+   // to avoid stretching
+   const bool isRadarDataIncomplete =
+      Level2ProductViewImpl::IsRadarDataIncomplete(radarData);
+   if (isRadarDataIncomplete)
+   {
+      ++vertexRadials;
+   }
 
    p->ComputeCoordinates(radarData);
 
@@ -574,7 +587,8 @@ void Level2ProductView::ComputeSweep()
    std::vector<float>& vertices = p->vertices_;
    size_t              vIndex   = 0;
    vertices.clear();
-   vertices.resize(radials * gates * VERTICES_PER_BIN * VALUES_PER_VERTEX);
+   vertices.resize(vertexRadials * gates * VERTICES_PER_BIN *
+                   VALUES_PER_VERTEX);
 
    // Setup data moment vector
    std::vector<uint8_t>&  dataMoments8  = p->dataMoments8_;
@@ -807,7 +821,7 @@ void Level2ProductView::ComputeSweep()
 }
 
 void Level2ProductViewImpl::ComputeCoordinates(
-   std::shared_ptr<wsr88d::rda::ElevationScan> radarData)
+   const std::shared_ptr<wsr88d::rda::ElevationScan>& radarData)
 {
    logger_->debug("ComputeCoordinates()");
 
@@ -828,11 +842,21 @@ void Level2ProductViewImpl::ComputeCoordinates(
    auto& radarData0  = (*radarData)[0];
    auto  momentData0 = radarData0->moment_data_block(dataBlockType_);
 
-   const std::uint16_t numRadials =
+   std::uint16_t numRadials =
       static_cast<std::uint16_t>(radarData->crbegin()->first + 1);
    const std::uint16_t numRangeBins =
       std::max(momentData0->number_of_data_moment_gates() + 1u,
                common::MAX_DATA_MOMENT_GATES);
+
+   // Add an extra radial when incomplete data exists
+   if (IsRadarDataIncomplete(radarData))
+   {
+      ++numRadials;
+   }
+
+   // Limit radials
+   numRadials =
+      std::min<std::uint16_t>(numRadials, common::MAX_0_5_DEGREE_RADIALS);
 
    auto radials = boost::irange<std::uint32_t>(0u, numRadials);
    auto gates   = boost::irange<std::uint32_t>(0u, numRangeBins);
@@ -878,8 +902,7 @@ void Level2ProductViewImpl::ComputeCoordinates(
 
                // Assume a half degree delta if there aren't enough angles
                // to determine a delta angle
-               constexpr units::degrees<float> deltaAngle =
-                  units::degrees<float> {0.5};
+               constexpr units::degrees<float> deltaAngle {0.5f};
 
                angle = prevAngle1 + deltaAngle;
             }
@@ -916,6 +939,23 @@ void Level2ProductViewImpl::ComputeCoordinates(
       });
    timer.stop();
    logger_->debug("Coordinates calculated in {}", timer.format(6, "%ws"));
+}
+
+bool Level2ProductViewImpl::IsRadarDataIncomplete(
+   const std::shared_ptr<const wsr88d::rda::ElevationScan>& radarData)
+{
+   // Assume the data is incomplete when the delta between the first and last
+   // angles is greater than 2.5 degrees.
+   constexpr units::degrees<float> kIncompleteDataAngleThreshold_ {2.5};
+
+   const units::degrees<float> firstAngle =
+      radarData->cbegin()->second->azimuth_angle();
+   const units::degrees<float> lastAngle =
+      radarData->crbegin()->second->azimuth_angle();
+   const units::degrees<float> angleDelta =
+      common::GetAngleDelta(firstAngle, lastAngle);
+
+   return angleDelta > kIncompleteDataAngleThreshold_;
 }
 
 std::optional<std::uint16_t>

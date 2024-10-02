@@ -14,6 +14,34 @@ static std::string GetDegreeString(double             degrees,
                                    DegreeStringType   type,
                                    const std::string& suffix);
 
+units::degrees<float> GetAngleDelta(units::degrees<float> angle1,
+                                    units::degrees<float> angle2)
+{
+   // Normalize angles to [0, 360)
+   while (angle1.value() < 0.0f)
+   {
+      angle1 += units::degrees<float> {360.0f};
+   }
+   while (angle2.value() < 0.0f)
+   {
+      angle2 += units::degrees<float> {360.0f};
+   }
+   angle1 = units::degrees<float> {std::fmod(angle1.value(), 360.f)};
+   angle2 = units::degrees<float> {std::fmod(angle2.value(), 360.f)};
+
+   // Calculate the absolute difference
+   auto delta = angle1 - angle2;
+   if (delta < units::degrees<float> {0.0f})
+   {
+      delta *= -1.0f;
+   }
+
+   // Account for wrapping
+   delta = std::min(delta, units::degrees<float> {360.0f} - delta);
+
+   return delta;
+}
+
 Coordinate GetCentroid(const std::vector<Coordinate>& coordinates)
 {
    double x = 0.0;
