@@ -67,7 +67,7 @@
 	{ "type": "wsr88d", "id": "KLVX", "lat": 37.9753058, "lon": -85.9438455,  "country": "USA", "state": "KY",  "place": "Louisville",              "tz": "America/New_York",             "elevation": 833.0 },
 	{ "type": "wsr88d", "id": "KPAH", "lat": 37.068333,  "lon": -88.771944,   "country": "USA", "state": "KY",  "place": "Paducah",                 "tz": "America/Chicago",              "elevation": 506.0 },
 	{ "type": "wsr88d", "id": "KPOE", "lat": 31.1556923, "lon": -92.9762596,  "country": "USA", "state": "LA",  "place": "Fort Polk",               "tz": "America/Chicago",              "elevation": 473.0 },
-	{ "type": "wsr88d", "id": "KHDC", "lat": 30.519306,  "lon": -90.424028,   "country": "USA", "state": "LA",  "place": "New Orleans (Hammond)",   "tz": "America/Chicago",              "elevation": 43.0 },
+	{ "type": "wsr88d", "id": "KHDC", "lat": 30.5196,    "lon": -90.4074,     "country": "USA", "state": "LA",  "place": "New Orleans (Hammond)",   "tz": "America/Chicago",              "elevation": 43.0 },
 	{ "type": "wsr88d", "id": "KLCH", "lat": 30.125306,  "lon": -93.215889,   "country": "USA", "state": "LA",  "place": "Lake Charles",            "tz": "America/Chicago",              "elevation": 137.0 },
 	{ "type": "wsr88d", "id": "KSHV", "lat": 32.450833,  "lon": -93.84125,    "country": "USA", "state": "LA",  "place": "Shreveport",              "tz": "America/Chicago",              "elevation": 387.0 },
 	{ "type": "wsr88d", "id": "KLIX", "lat": 30.3367133, "lon": -89.8256618,  "country": "USA", "state": "LA",  "place": "New Orleans (Slidell)",   "tz": "America/Chicago",              "elevation": 179.0 },
