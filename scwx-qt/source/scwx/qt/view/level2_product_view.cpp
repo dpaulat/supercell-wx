@@ -539,8 +539,8 @@ void Level2ProductView::ComputeSweep()
       return;
    }
 
-   const std::size_t radials       = radarData->crbegin()->first + 1;
-   std::size_t       vertexRadials = radials;
+   std::size_t radials       = radarData->crbegin()->first + 1;
+   std::size_t vertexRadials = radials;
 
    // When there is missing data, insert another empty vertex radial at the end
    // to avoid stretching
@@ -550,6 +550,11 @@ void Level2ProductView::ComputeSweep()
    {
       ++vertexRadials;
    }
+
+   // Limit radials
+   radials = std::min<std::size_t>(radials, common::MAX_0_5_DEGREE_RADIALS);
+   vertexRadials =
+      std::min<std::size_t>(vertexRadials, common::MAX_0_5_DEGREE_RADIALS);
 
    p->ComputeCoordinates(radarData);
 
@@ -735,15 +740,16 @@ void Level2ProductView::ComputeSweep()
          {
             const std::uint16_t baseCoord = gate - 1;
 
-            std::size_t offset1 = ((startRadial + radial) % radials *
+            std::size_t offset1 = ((startRadial + radial) % vertexRadials *
                                       common::MAX_DATA_MOMENT_GATES +
                                    baseCoord) *
                                   2;
             std::size_t offset2 = offset1 + gateSize * 2;
-            std::size_t offset3 = (((startRadial + radial + 1) % radials) *
-                                      common::MAX_DATA_MOMENT_GATES +
-                                   baseCoord) *
-                                  2;
+            std::size_t offset3 =
+               (((startRadial + radial + 1) % vertexRadials) *
+                   common::MAX_DATA_MOMENT_GATES +
+                baseCoord) *
+               2;
             std::size_t offset4 = offset3 + gateSize * 2;
 
             vertices[vIndex++] = coordinates[offset1];
@@ -770,14 +776,15 @@ void Level2ProductView::ComputeSweep()
          {
             const std::uint16_t baseCoord = gate;
 
-            std::size_t offset1 = ((startRadial + radial) % radials *
+            std::size_t offset1 = ((startRadial + radial) % vertexRadials *
                                       common::MAX_DATA_MOMENT_GATES +
                                    baseCoord) *
                                   2;
-            std::size_t offset2 = (((startRadial + radial + 1) % radials) *
-                                      common::MAX_DATA_MOMENT_GATES +
-                                   baseCoord) *
-                                  2;
+            std::size_t offset2 =
+               (((startRadial + radial + 1) % vertexRadials) *
+                   common::MAX_DATA_MOMENT_GATES +
+                baseCoord) *
+               2;
 
             vertices[vIndex++] = p->latitude_;
             vertices[vIndex++] = p->longitude_;
