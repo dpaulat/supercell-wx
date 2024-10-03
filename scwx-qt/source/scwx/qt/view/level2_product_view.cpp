@@ -1007,8 +1007,19 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
    }
 
    // Find Radial
-   const std::uint16_t numRadials =
-      static_cast<std::uint16_t>(radarData->size());
+   std::uint16_t numRadials =
+      static_cast<std::uint16_t>(radarData->crbegin()->first + 1);
+
+   // Add an extra radial when incomplete data exists
+   if (Level2ProductViewImpl::IsRadarDataIncomplete(radarData))
+   {
+      ++numRadials;
+   }
+
+   // Limit radials
+   numRadials =
+      std::min<std::uint16_t>(numRadials, common::MAX_0_5_DEGREE_RADIALS);
+
    auto radials = boost::irange<std::uint32_t>(0u, numRadials);
 
    auto radial = std::find_if( //
@@ -1017,25 +1028,59 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
       radials.end(),
       [&](std::uint32_t i)
       {
-         bool                        found = false;
-         const units::degrees<float> startAngle =
-            (*radarData)[i]->azimuth_angle();
-         const units::degrees<float> nextAngle =
-            (*radarData)[(i + 1) % numRadials]->azimuth_angle();
+         bool hasNextAngle = false;
+         bool found        = false;
 
-         if (startAngle < nextAngle)
+         units::degrees<float> startAngle {};
+         units::degrees<float> nextAngle {};
+
+         auto radialData = radarData->find(i);
+         if (radialData != radarData->cend())
          {
-            if (startAngle.value() <= azi1 && azi1 < nextAngle.value())
+            startAngle = radialData->second->azimuth_angle();
+
+            auto nextRadial = radarData->find((i + 1) % numRadials);
+            if (nextRadial != radarData->cend())
             {
-               found = true;
+               nextAngle    = nextRadial->second->azimuth_angle();
+               hasNextAngle = true;
+            }
+            else
+            {
+               // Next angle is not available, interpolate
+               auto prevRadial =
+                  radarData->find((i >= 1) ? i - 1 : numRadials - (1 - i));
+
+               if (prevRadial != radarData->cend())
+               {
+                  const units::degrees<float> prevAngle =
+                     prevRadial->second->azimuth_angle();
+
+                  const units::degrees<float> deltaAngle =
+                     common::GetAngleDelta(startAngle, prevAngle);
+
+                  nextAngle    = startAngle + deltaAngle;
+                  hasNextAngle = true;
+               }
             }
          }
-         else
+
+         if (hasNextAngle)
          {
-            // If the bin crosses 0/360 degrees, special handling is needed
-            if (startAngle.value() <= azi1 || azi1 < nextAngle.value())
+            if (startAngle < nextAngle)
             {
-               found = true;
+               if (startAngle.value() <= azi1 && azi1 < nextAngle.value())
+               {
+                  found = true;
+               }
+            }
+            else
+            {
+               // If the bin crosses 0/360 degrees, special handling is needed
+               if (startAngle.value() <= azi1 || azi1 < nextAngle.value())
+               {
+                  found = true;
+               }
             }
          }
 
