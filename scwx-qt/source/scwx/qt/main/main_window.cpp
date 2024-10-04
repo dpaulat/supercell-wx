@@ -6,7 +6,7 @@
 #include <scwx/qt/manager/alert_manager.hpp>
 #include <scwx/qt/manager/hotkey_manager.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
-#include <scwx/qt/manager/poi_manager.hpp>
+#include <scwx/qt/manager/marker_manager.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
@@ -92,7 +92,7 @@ public:
        updateDialog_ {nullptr},
        alertManager_ {manager::AlertManager::Instance()},
        placefileManager_ {manager::PlacefileManager::Instance()},
-       poiManager_ {manager::POIManager::Instance()},
+       markerManager_ {manager::MarkerManager::Instance()},
        positionManager_ {manager::PositionManager::Instance()},
        textEventManager_ {manager::TextEventManager::Instance()},
        timelineManager_ {manager::TimelineManager::Instance()},
@@ -219,7 +219,7 @@ public:
    std::shared_ptr<manager::HotkeyManager> hotkeyManager_ {
       manager::HotkeyManager::Instance()};
    std::shared_ptr<manager::PlacefileManager> placefileManager_;
-   std::shared_ptr<manager::POIManager>       poiManager_;
+   std::shared_ptr<manager::MarkerManager>    markerManager_;
    std::shared_ptr<manager::PositionManager>  positionManager_;
    std::shared_ptr<manager::TextEventManager> textEventManager_;
    std::shared_ptr<manager::TimelineManager>  timelineManager_;

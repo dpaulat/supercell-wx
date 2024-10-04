@@ -31,7 +31,7 @@ static const std::unordered_map<InformationLayer, std::string>
    informationLayerName_ {{InformationLayer::MapOverlay, "Map Overlay"},
                           {InformationLayer::RadarSite, "Radar Sites"},
                           {InformationLayer::ColorTable, "Color Table"},
-                          {InformationLayer::POILayer, "Point of Interest"},
+                          {InformationLayer::Markers, "Location Markers"},
                           {InformationLayer::Unknown, "?"}};
 
 static const std::unordered_map<MapLayer, std::string> mapLayerName_ {

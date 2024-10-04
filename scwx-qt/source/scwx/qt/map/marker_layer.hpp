@@ -11,13 +11,13 @@ namespace qt
 namespace map
 {
 
-class POILayer : public DrawLayer
+class MarkerLayer : public DrawLayer
 {
    Q_OBJECT
 
 public:
-   explicit POILayer(const std::shared_ptr<MapContext>& context);
-   ~POILayer();
+   explicit MarkerLayer(const std::shared_ptr<MapContext>& context);
+   ~MarkerLayer();
 
    void Initialize() override final;
    void Render(const QMapLibre::CustomLayerRenderParameters&) override final;

@@ -1,7 +1,7 @@
-#include <scwx/qt/map/poi_layer.hpp>
-#include <scwx/qt/manager/poi_manager.hpp>
+#include <scwx/qt/map/marker_layer.hpp>
+#include <scwx/qt/manager/marker_manager.hpp>
 #include <scwx/util/logger.hpp>
-#include <scwx/qt/types/poi_types.hpp>
+#include <scwx/qt/types/marker_types.hpp>
 #include <scwx/qt/types/texture_types.hpp>
 #include <scwx/qt/gl/draw/geo_icons.hpp>
 
@@ -12,11 +12,11 @@ namespace qt
 namespace map
 {
 
-static const std::string logPrefix_ = "scwx::qt::map::poi_layer";
+static const std::string logPrefix_ = "scwx::qt::map::marker_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 
-class POILayer::Impl
+class MarkerLayer::Impl
 {
 public:
    explicit Impl(std::shared_ptr<MapContext> context) :
@@ -25,65 +25,65 @@ public:
    }
    ~Impl() {}
 
-   void ReloadPOIs();
+   void ReloadMarkers();
 
-   const std::string& poiIconName_ {
+   const std::string& markerIconName_ {
       types::GetTextureName(types::ImageTexture::Cursor17)};
 
    std::shared_ptr<gl::draw::GeoIcons>  geoIcons_;
 };
 
-void POILayer::Impl::ReloadPOIs()
+void MarkerLayer::Impl::ReloadMarkers()
 {
-   auto poiManager = manager::POIManager::Instance();
+   auto markerManager = manager::MarkerManager::Instance();
 
    geoIcons_->StartIcons();
 
-   for (size_t i = 0; i < poiManager->poi_count(); i++)
+   for (size_t i = 0; i < markerManager->marker_count(); i++)
    {
-      types::PointOfInterest poi = poiManager->get_poi(i);
+      types::MarkerInfo marker = markerManager->get_marker(i);
       std::shared_ptr<gl::draw::GeoIconDrawItem> icon = geoIcons_->AddIcon();
-      geoIcons_->SetIconTexture(icon, poiIconName_, 0);
-      geoIcons_->SetIconLocation(icon, poi.latitude_, poi.longitude_);
+      geoIcons_->SetIconTexture(icon, markerIconName_, 0);
+      geoIcons_->SetIconLocation(icon, marker.latitude_, marker.longitude_);
    }
 
    geoIcons_->FinishIcons();
 }
 
-POILayer::POILayer(const std::shared_ptr<MapContext>& context) :
+MarkerLayer::MarkerLayer(const std::shared_ptr<MapContext>& context) :
    DrawLayer(context),
-   p(std::make_unique<POILayer::Impl>(context))
+   p(std::make_unique<MarkerLayer::Impl>(context))
 {
    AddDrawItem(p->geoIcons_);
 }
 
-POILayer::~POILayer() = default;
+MarkerLayer::~MarkerLayer() = default;
 
-void POILayer::Initialize()
+void MarkerLayer::Initialize()
 {
    logger_->debug("Initialize()");
    DrawLayer::Initialize();
 
    p->geoIcons_->StartIconSheets();
-   p->geoIcons_->AddIconSheet(p->poiIconName_);
+   p->geoIcons_->AddIconSheet(p->markerIconName_);
    p->geoIcons_->FinishIconSheets();
 }
 
-void POILayer::Render(
+void MarkerLayer::Render(
       const QMapLibre::CustomLayerRenderParameters& params)
 {
-   //auto poiManager = manager::POIManager::Instance();
+   //auto markerManager = manager::MarkerManager::Instance();
    gl::OpenGLFunctions& gl = context()->gl();
 
    // TODO. do not redo this every time
-   p->ReloadPOIs();
+   p->ReloadMarkers();
 
    DrawLayer::Render(params);
 
    SCWX_GL_CHECK_ERROR();
 }
 
-void POILayer::Deinitialize()
+void MarkerLayer::Deinitialize()
 {
    logger_->debug("Deinitialize()");
 

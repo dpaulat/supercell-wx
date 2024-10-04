@@ -9,20 +9,16 @@ namespace qt
 namespace types
 {
 
-struct PointOfInterest
+struct MarkerInfo
 {
-   PointOfInterest(std::string name,
-                   double      latitude,
-                   double      longitude) :
-      name_ {name},
-      latitude_ {latitude},
-      longitude_ {longitude}
+   MarkerInfo(std::string name, double latitude, double longitude) :
+       name_ {name}, latitude_ {latitude}, longitude_ {longitude}
    {
    }
 
    std::string name_;
-   double latitude_;
-   double longitude_;
+   double      latitude_;
+   double      longitude_;
 };
 
 } // namespace types

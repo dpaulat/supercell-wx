@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/qt/types/poi_types.hpp>
+#include <scwx/qt/types/marker_types.hpp>
 
 #include <string>
 
@@ -13,23 +13,23 @@ namespace qt
 namespace manager
 {
 
-class POIManager : public QObject
+class MarkerManager : public QObject
 {
    Q_OBJECT
 
 public:
-   explicit POIManager();
-   ~POIManager();
+   explicit MarkerManager();
+   ~MarkerManager();
 
-   size_t poi_count();
-   types::PointOfInterest get_poi(size_t index);
-   types::PointOfInterest get_poi(const std::string& name);
-   void set_poi(size_t index, const types::PointOfInterest& poi);
-   void set_poi(const std::string& name, const types::PointOfInterest& poi);
-   void add_poi(const types::PointOfInterest& poi);
-   void move_poi(size_t from, size_t to);
+   size_t marker_count();
+   types::MarkerInfo get_marker(size_t index);
+   types::MarkerInfo get_marker(const std::string& name);
+   void set_marker(size_t index, const types::MarkerInfo& marker);
+   void set_marker(const std::string& name, const types::MarkerInfo& marker);
+   void add_marker(const types::MarkerInfo& marker);
+   void move_marker(size_t from, size_t to);
 
-   static std::shared_ptr<POIManager> Instance();
+   static std::shared_ptr<MarkerManager> Instance();
 
 private:
    class Impl;
