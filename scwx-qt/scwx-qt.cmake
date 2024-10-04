@@ -95,6 +95,7 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/log_manager.hpp
                 source/scwx/qt/manager/media_manager.hpp
                 source/scwx/qt/manager/placefile_manager.hpp
+                source/scwx/qt/manager/poi_manager.hpp
                 source/scwx/qt/manager/position_manager.hpp
                 source/scwx/qt/manager/radar_product_manager.hpp
                 source/scwx/qt/manager/radar_product_manager_notifier.hpp
@@ -111,6 +112,7 @@ set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                 source/scwx/qt/manager/log_manager.cpp
                 source/scwx/qt/manager/media_manager.cpp
                 source/scwx/qt/manager/placefile_manager.cpp
+                source/scwx/qt/manager/poi_manager.cpp
                 source/scwx/qt/manager/position_manager.cpp
                 source/scwx/qt/manager/radar_product_manager.cpp
                 source/scwx/qt/manager/radar_product_manager_notifier.cpp
@@ -132,6 +134,7 @@ set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/overlay_layer.hpp
             source/scwx/qt/map/overlay_product_layer.hpp
             source/scwx/qt/map/placefile_layer.hpp
+            source/scwx/qt/map/poi_layer.hpp
             source/scwx/qt/map/radar_product_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp
             source/scwx/qt/map/radar_site_layer.hpp)
@@ -146,6 +149,7 @@ set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/overlay_layer.cpp
             source/scwx/qt/map/overlay_product_layer.cpp
             source/scwx/qt/map/placefile_layer.cpp
+            source/scwx/qt/map/poi_layer.cpp
             source/scwx/qt/map/radar_product_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp
             source/scwx/qt/map/radar_site_layer.cpp)
@@ -215,6 +219,7 @@ set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/location_types.hpp
               source/scwx/qt/types/map_types.hpp
               source/scwx/qt/types/media_types.hpp
+              source/scwx/qt/types/poi_types.hpp
               source/scwx/qt/types/qt_types.hpp
               source/scwx/qt/types/radar_product_record.hpp
               source/scwx/qt/types/text_event_key.hpp
