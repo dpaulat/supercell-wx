@@ -28,14 +28,13 @@ public:
    void ReloadPOIs();
 
    const std::string& poiIconName_ {
-      types::GetTextureName(types::ImageTexture::Crosshairs24)};
+      types::GetTextureName(types::ImageTexture::Cursor17)};
 
    std::shared_ptr<gl::draw::GeoIcons>  geoIcons_;
 };
 
 void POILayer::Impl::ReloadPOIs()
 {
-   logger_->debug("ReloadPOIs");
    auto poiManager = manager::POIManager::Instance();
 
    geoIcons_->StartIcons();
