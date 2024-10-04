@@ -11,7 +11,7 @@ class SupercellWxConan(ConanFile):
                   "glew/2.2.0",
                   "glm/cci.20230113",
                   "gtest/1.15.0",
-                  "libcurl/8.10.0",
+                  "libcurl/8.10.1",
                   "libxml2/2.12.7",
                   "openssl/3.3.2",
                   "re2/20240702",
