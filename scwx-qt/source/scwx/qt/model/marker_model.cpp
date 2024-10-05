@@ -241,12 +241,9 @@ bool MarkerModel::setData(const QModelIndex& index,
 void MarkerModel::HandleMarkerAdded()
 {
    QModelIndex topLeft = createIndex(0, kFirstColumn);
-   QModelIndex bottomRight =
-      createIndex(p->markerManager_->marker_count() - 1, kLastColumn);
-
-   logger_->debug("marker_count: {}", p->markerManager_->marker_count());
-
    const int newIndex = static_cast<int>(p->markerManager_->marker_count() - 1);
+   QModelIndex bottomRight = createIndex(newIndex, kLastColumn);
+
    beginInsertRows(QModelIndex(), newIndex, newIndex);
    endInsertRows();
 
