@@ -33,16 +33,15 @@ public:
    explicit Impl(MarkerManager* self) : self_ {self} {}
    ~Impl() {}
 
-   std::string markerSettingsPath_ {};
+   std::string                                markerSettingsPath_ {};
    std::vector<std::shared_ptr<MarkerRecord>> markerRecords_ {};
 
    MarkerManager* self_;
 
-   void InitializeMarkerSettings();
-   void ReadMarkerSettings();
-   void WriteMarkerSettings();
+   void                          InitializeMarkerSettings();
+   void                          ReadMarkerSettings();
+   void                          WriteMarkerSettings();
    std::shared_ptr<MarkerRecord> GetMarkerByName(const std::string& name);
-
 };
 
 class MarkerManager::Impl::MarkerRecord
@@ -58,7 +57,7 @@ public:
    double      longitude_;
 
    friend void tag_invoke(boost::json::value_from_tag,
-                          boost::json::value&                     jv,
+                          boost::json::value&                  jv,
                           const std::shared_ptr<MarkerRecord>& record)
    {
       jv = {{kNameName_, record->name_},
@@ -67,7 +66,7 @@ public:
    }
 
    friend MarkerRecord tag_invoke(boost::json::value_to_tag<MarkerRecord>,
-                                     const boost::json::value& jv)
+                                  const boost::json::value& jv)
    {
       return MarkerRecord(
          boost::json::value_to<std::string>(jv.at(kNameName_)),
@@ -75,7 +74,6 @@ public:
          boost::json::value_to<double>(jv.at(kLongitudeName_)));
    }
 };
-
 
 void MarkerManager::Impl::InitializeMarkerSettings()
 {
@@ -165,7 +163,7 @@ MarkerManager::MarkerManager() : p(std::make_unique<Impl>(this))
       p->InitializeMarkerSettings();
 
       // Read Marker settings on startup
-      //main::Application::WaitForInitialization();
+      // main::Application::WaitForInitialization();
       p->ReadMarkerSettings();
    }
    catch (const std::exception& ex)
@@ -210,8 +208,8 @@ void MarkerManager::set_marker(size_t index, const types::MarkerInfo& marker)
    markerRecord->longitude_ = marker.longitude_;
 }
 
-void MarkerManager::set_marker(const std::string&            name,
-                         const types::MarkerInfo& marker)
+void MarkerManager::set_marker(const std::string&       name,
+                               const types::MarkerInfo& marker)
 {
    std::shared_ptr<MarkerManager::Impl::MarkerRecord> markerRecord =
       p->GetMarkerByName(name);
@@ -235,9 +233,7 @@ void MarkerManager::move_marker(size_t from, size_t to)
    std::shared_ptr<MarkerManager::Impl::MarkerRecord> markerRecord =
       p->markerRecords_[from];
 
-   if (from == to)
-   {
-   }
+   if (from == to) {}
    else if (from < to)
    {
       for (size_t i = from; i < to; i++)
@@ -260,11 +256,12 @@ std::shared_ptr<MarkerManager> MarkerManager::Instance()
 {
    static std::weak_ptr<MarkerManager> markerManagerReference_ {};
 
-   std::shared_ptr<MarkerManager> markerManager = markerManagerReference_.lock();
+   std::shared_ptr<MarkerManager> markerManager =
+      markerManagerReference_.lock();
 
    if (markerManager == nullptr)
    {
-      markerManager = std::make_shared<MarkerManager>();
+      markerManager           = std::make_shared<MarkerManager>();
       markerManagerReference_ = markerManager;
    }
 

@@ -21,10 +21,10 @@ public:
    explicit MarkerManager();
    ~MarkerManager();
 
-   size_t marker_count();
+   size_t            marker_count();
    types::MarkerInfo get_marker(size_t index);
    types::MarkerInfo get_marker(const std::string& name);
-   void set_marker(size_t index, const types::MarkerInfo& marker);
+   void              set_marker(size_t index, const types::MarkerInfo& marker);
    void set_marker(const std::string& name, const types::MarkerInfo& marker);
    void add_marker(const types::MarkerInfo& marker);
    void move_marker(size_t from, size_t to);

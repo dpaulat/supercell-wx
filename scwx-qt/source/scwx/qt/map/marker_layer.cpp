@@ -15,7 +15,6 @@ namespace map
 static const std::string logPrefix_ = "scwx::qt::map::marker_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-
 class MarkerLayer::Impl
 {
 public:
@@ -30,7 +29,7 @@ public:
    const std::string& markerIconName_ {
       types::GetTextureName(types::ImageTexture::Cursor17)};
 
-   std::shared_ptr<gl::draw::GeoIcons>  geoIcons_;
+   std::shared_ptr<gl::draw::GeoIcons> geoIcons_;
 };
 
 void MarkerLayer::Impl::ReloadMarkers()
@@ -51,8 +50,7 @@ void MarkerLayer::Impl::ReloadMarkers()
 }
 
 MarkerLayer::MarkerLayer(const std::shared_ptr<MapContext>& context) :
-   DrawLayer(context),
-   p(std::make_unique<MarkerLayer::Impl>(context))
+    DrawLayer(context), p(std::make_unique<MarkerLayer::Impl>(context))
 {
    AddDrawItem(p->geoIcons_);
 }
@@ -69,10 +67,9 @@ void MarkerLayer::Initialize()
    p->geoIcons_->FinishIconSheets();
 }
 
-void MarkerLayer::Render(
-      const QMapLibre::CustomLayerRenderParameters& params)
+void MarkerLayer::Render(const QMapLibre::CustomLayerRenderParameters& params)
 {
-   //auto markerManager = manager::MarkerManager::Instance();
+   // auto markerManager = manager::MarkerManager::Instance();
    gl::OpenGLFunctions& gl = context()->gl();
 
    // TODO. do not redo this every time
@@ -93,4 +90,3 @@ void MarkerLayer::Deinitialize()
 } // namespace map
 } // namespace qt
 } // namespace scwx
-
