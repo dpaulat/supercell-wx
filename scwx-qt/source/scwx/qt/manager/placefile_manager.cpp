@@ -348,8 +348,8 @@ PlacefileManager::Impl::PlacefileRecord::refresh_time() const
 
    if (refresh_enabled())
    {
-      // Don't refresh more often than every 15 seconds
-      return std::max(placefile_->refresh(), 15s);
+      // Don't refresh more often than every 1 second
+      return std::max(placefile_->refresh(), 1s);
    }
 
    return -1s;
