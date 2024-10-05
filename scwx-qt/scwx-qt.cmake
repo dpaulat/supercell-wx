@@ -158,6 +158,7 @@ set(HDR_MODEL source/scwx/qt/model/alert_model.hpp
               source/scwx/qt/model/imgui_context_model.hpp
               source/scwx/qt/model/layer_model.hpp
               source/scwx/qt/model/placefile_model.hpp
+              source/scwx/qt/model/marker_model.hpp
               source/scwx/qt/model/radar_site_model.hpp
               source/scwx/qt/model/tree_item.hpp
               source/scwx/qt/model/tree_model.hpp)
@@ -166,6 +167,7 @@ set(SRC_MODEL source/scwx/qt/model/alert_model.cpp
               source/scwx/qt/model/imgui_context_model.cpp
               source/scwx/qt/model/layer_model.cpp
               source/scwx/qt/model/placefile_model.cpp
+              source/scwx/qt/model/marker_model.cpp
               source/scwx/qt/model/radar_site_model.cpp
               source/scwx/qt/model/tree_item.cpp
               source/scwx/qt/model/tree_model.cpp)
@@ -265,6 +267,8 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/open_url_dialog.hpp
            source/scwx/qt/ui/placefile_dialog.hpp
            source/scwx/qt/ui/placefile_settings_widget.hpp
+           source/scwx/qt/ui/marker_dialog.hpp
+           source/scwx/qt/ui/marker_settings_widget.hpp
            source/scwx/qt/ui/progress_dialog.hpp
            source/scwx/qt/ui/radar_site_dialog.hpp
            source/scwx/qt/ui/serial_port_dialog.hpp
@@ -293,6 +297,8 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/open_url_dialog.cpp
            source/scwx/qt/ui/placefile_dialog.cpp
            source/scwx/qt/ui/placefile_settings_widget.cpp
+           source/scwx/qt/ui/marker_dialog.cpp
+           source/scwx/qt/ui/marker_settings_widget.cpp
            source/scwx/qt/ui/progress_dialog.cpp
            source/scwx/qt/ui/radar_site_dialog.cpp
            source/scwx/qt/ui/settings_dialog.cpp
@@ -312,6 +318,8 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/open_url_dialog.ui
            source/scwx/qt/ui/placefile_dialog.ui
            source/scwx/qt/ui/placefile_settings_widget.ui
+           source/scwx/qt/ui/marker_dialog.ui
+           source/scwx/qt/ui/marker_settings_widget.ui
            source/scwx/qt/ui/progress_dialog.ui
            source/scwx/qt/ui/radar_site_dialog.ui
            source/scwx/qt/ui/settings_dialog.ui

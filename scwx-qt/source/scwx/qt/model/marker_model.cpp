@@ -1,0 +1,258 @@
+#include <scwx/qt/model/marker_model.hpp>
+#include <scwx/qt/manager/marker_manager.hpp>
+#include <scwx/qt/types/marker_types.hpp>
+#include <scwx/qt/types/qt_types.hpp>
+#include <scwx/util/logger.hpp>
+
+#include <QApplication>
+#include <QCheckBox>
+#include <QFontMetrics>
+#include <QStyle>
+#include <QStyleOption>
+
+namespace scwx
+{
+namespace qt
+{
+namespace model
+{
+
+static const std::string logPrefix_ = "scwx::qt::model::marker_model";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
+
+static constexpr int kFirstColumn =
+   static_cast<int>(MarkerModel::Column::Name);
+static constexpr int kLastColumn =
+   static_cast<int>(MarkerModel::Column::Longitude);
+static constexpr int kNumColumns = kLastColumn - kFirstColumn + 1;
+
+class MarkerModel::Impl
+{
+public:
+   explicit Impl() {}
+   ~Impl() = default;
+   std::shared_ptr<manager::MarkerManager> markerManager_ {
+      manager::MarkerManager::Instance()};
+};
+
+MarkerModel::MarkerModel(QObject* parent) :
+   QAbstractTableModel(parent), p(std::make_unique<Impl>())
+{
+   connect(p->markerManager_.get(),
+         &manager::MarkerManager::MarkerAdded,
+         this,
+         &MarkerModel::HandleMarkerAdded);
+}
+
+MarkerModel::~MarkerModel() = default;
+
+int MarkerModel::rowCount(const QModelIndex& parent) const
+{
+   return parent.isValid() ?
+             0 :
+             static_cast<int>(p->markerManager_->marker_count());
+}
+
+int MarkerModel::columnCount(const QModelIndex& parent) const
+{
+   return parent.isValid() ? 0 : kNumColumns;
+}
+
+Qt::ItemFlags MarkerModel::flags(const QModelIndex& index) const
+{
+   Qt::ItemFlags flags = QAbstractTableModel::flags(index);
+
+   switch (index.column())
+   {
+   case static_cast<int>(Column::Name):
+   case static_cast<int>(Column::Latitude):
+   case static_cast<int>(Column::Longitude):
+      flags |= Qt::ItemFlag::ItemIsEditable;
+      break;
+   default:
+      break;
+   }
+
+   return flags;
+}
+
+QVariant MarkerModel::data(const QModelIndex& index, int role) const
+{
+
+   static const char COORDINATE_FORMAT    = 'g';
+   static const int  COORDINATE_PRECISION = 6;
+
+   if (!index.isValid() || index.row() < 0 ||
+       static_cast<std::size_t>(index.row()) >=
+          p->markerManager_->marker_count())
+   {
+      return QVariant();
+   }
+
+   const types::MarkerInfo markerInfo =
+      p->markerManager_->get_marker(index.row());
+
+   switch(index.column())
+   {
+   case static_cast<int>(Column::Name):
+      if (role == Qt::ItemDataRole::DisplayRole ||
+          role == Qt::ItemDataRole::ToolTipRole ||
+          role == Qt::ItemDataRole::EditRole)
+      {
+         return QString::fromStdString(markerInfo.name);
+      }
+      break;
+
+   case static_cast<int>(Column::Latitude):
+      if (role == Qt::ItemDataRole::DisplayRole ||
+          role == Qt::ItemDataRole::ToolTipRole ||
+          role == Qt::ItemDataRole::EditRole)
+      {
+         return QString::number(
+            markerInfo.latitude, COORDINATE_FORMAT, COORDINATE_PRECISION);
+      }
+      break;
+
+   case static_cast<int>(Column::Longitude):
+      if (role == Qt::ItemDataRole::DisplayRole ||
+          role == Qt::ItemDataRole::ToolTipRole ||
+          role == Qt::ItemDataRole::EditRole)
+      {
+         return QString::number(
+            markerInfo.longitude, COORDINATE_FORMAT, COORDINATE_PRECISION);
+      }
+      break;
+
+   default:
+      break;
+   }
+
+   return QVariant();
+}
+
+QVariant MarkerModel::headerData(int             section,
+                                 Qt::Orientation orientation,
+                                 int             role) const
+{
+   if (role == Qt::ItemDataRole::DisplayRole)
+   {
+      if (orientation == Qt::Horizontal)
+      {
+         switch (section)
+         {
+            case static_cast<int>(Column::Name):
+               return tr("Name");
+
+            case static_cast<int>(Column::Latitude):
+               return tr("Latitude");
+
+            case static_cast<int>(Column::Longitude):
+               return tr("Longitude");
+
+            default:
+               break;
+         }
+      }
+   }
+
+   return QVariant();
+}
+
+bool MarkerModel::setData(const QModelIndex& index,
+                          const QVariant&    value,
+                          int                role)
+{
+   if (!index.isValid() || index.row() < 0 ||
+       static_cast<std::size_t>(index.row()) >=
+          p->markerManager_->marker_count())
+   {
+      return false;
+   }
+
+   types::MarkerInfo markerInfo = p->markerManager_->get_marker(index.row());
+   bool result = false;
+
+   switch(index.column())
+   {
+   case static_cast<int>(Column::Name):
+      if (role == Qt::ItemDataRole::EditRole)
+      {
+         QString str = value.toString();
+         markerInfo.name = str.toStdString();
+         p->markerManager_->set_marker(index.row(), markerInfo);
+         result = true;
+      }
+      break;
+
+   case static_cast<int>(Column::Latitude):
+      if (role == Qt::ItemDataRole::EditRole)
+      {
+         QString str = value.toString();
+         bool ok;
+         double latitude = str.toDouble(&ok);
+         if (str.isEmpty())
+         {
+            markerInfo.latitude = 0;
+            p->markerManager_->set_marker(index.row(), markerInfo);
+            result = true;
+         }
+         else if (ok)
+         {
+            markerInfo.latitude = latitude;
+            p->markerManager_->set_marker(index.row(), markerInfo);
+            result = true;
+         }
+      }
+      break;
+
+   case static_cast<int>(Column::Longitude):
+      if (role == Qt::ItemDataRole::EditRole)
+      {
+         QString str = value.toString();
+         bool ok;
+         double longitude = str.toDouble(&ok);
+         if (str.isEmpty())
+         {
+            markerInfo.longitude = 0;
+            p->markerManager_->set_marker(index.row(), markerInfo);
+            result = true;
+         }
+         else if (ok)
+         {
+            markerInfo.longitude = longitude;
+            p->markerManager_->set_marker(index.row(), markerInfo);
+            result = true;
+         }
+      }
+      break;
+
+   default:
+      break;
+   }
+
+   if (result)
+   {
+      Q_EMIT dataChanged(index, index);
+   }
+
+   return result;
+}
+
+void MarkerModel::HandleMarkerAdded()
+{
+   QModelIndex topLeft = createIndex(0, kFirstColumn);
+   QModelIndex bottomRight =
+      createIndex(p->markerManager_->marker_count() - 1, kLastColumn);
+
+   logger_->debug("marker_count: {}", p->markerManager_->marker_count());
+
+   const int newIndex = static_cast<int>(p->markerManager_->marker_count() - 1);
+   beginInsertRows(QModelIndex(), newIndex, newIndex);
+   endInsertRows();
+
+   Q_EMIT dataChanged(topLeft, bottomRight);
+}
+
+} // namespace model
+} // namespace qt
+} // namespace scwx

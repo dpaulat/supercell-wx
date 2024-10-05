@@ -56,7 +56,7 @@ public:
    {
    }
 
-   types::MarkerInfo toMarkerInfo()
+   const types::MarkerInfo& toMarkerInfo()
    {
       return markerInfo_;
    }
@@ -67,9 +67,9 @@ public:
                           boost::json::value&                  jv,
                           const std::shared_ptr<MarkerRecord>& record)
    {
-      jv = {{kNameName_, record->markerInfo_.name_},
-            {kLatitudeName_, record->markerInfo_.latitude_},
-            {kLongitudeName_, record->markerInfo_.longitude_}};
+      jv = {{kNameName_, record->markerInfo_.name},
+            {kLatitudeName_, record->markerInfo_.latitude},
+            {kLongitudeName_, record->markerInfo_.longitude}};
    }
 
    friend MarkerRecord tag_invoke(boost::json::value_to_tag<MarkerRecord>,
@@ -124,7 +124,7 @@ void MarkerManager::Impl::ReadMarkerSettings()
             MarkerRecord record =
                boost::json::value_to<MarkerRecord>(markerEntry);
 
-            if (!record.markerInfo_.name_.empty())
+            if (!record.markerInfo_.name.empty())
             {
                markerRecords_.emplace_back(
                   std::make_shared<MarkerRecord>(record.markerInfo_));
@@ -138,6 +138,8 @@ void MarkerManager::Impl::ReadMarkerSettings()
 
       logger_->debug("{} location marker entries", markerRecords_.size());
    }
+
+   Q_EMIT self_->MarkersUpdated();
 }
 
 void MarkerManager::Impl::WriteMarkerSettings()
@@ -153,7 +155,7 @@ MarkerManager::Impl::GetMarkerByName(const std::string& name)
 {
    for (auto& markerRecord : markerRecords_)
    {
-      if (markerRecord->markerInfo_.name_ == name)
+      if (markerRecord->markerInfo_.name == name)
       {
          return markerRecord;
       }
@@ -190,17 +192,10 @@ size_t MarkerManager::marker_count()
 }
 
 // TODO deal with out of range/not found
-types::MarkerInfo MarkerManager::get_marker(size_t index)
+const types::MarkerInfo& MarkerManager::get_marker(size_t index)
 {
    std::shared_ptr<MarkerManager::Impl::MarkerRecord> markerRecord =
       p->markerRecords_[index];
-   return markerRecord->toMarkerInfo();
-}
-
-types::MarkerInfo MarkerManager::get_marker(const std::string& name)
-{
-   std::shared_ptr<MarkerManager::Impl::MarkerRecord> markerRecord =
-      p->GetMarkerByName(name);
    return markerRecord->toMarkerInfo();
 }
 
@@ -209,19 +204,32 @@ void MarkerManager::set_marker(size_t index, const types::MarkerInfo& marker)
    std::shared_ptr<MarkerManager::Impl::MarkerRecord> markerRecord =
       p->markerRecords_[index];
    markerRecord->markerInfo_ = marker;
-}
-
-void MarkerManager::set_marker(const std::string&       name,
-                               const types::MarkerInfo& marker)
-{
-   std::shared_ptr<MarkerManager::Impl::MarkerRecord> markerRecord =
-      p->GetMarkerByName(name);
-   markerRecord->markerInfo_ = marker;
+   Q_EMIT MarkersUpdated();
 }
 
 void MarkerManager::add_marker(const types::MarkerInfo& marker)
 {
    p->markerRecords_.emplace_back(std::make_shared<Impl::MarkerRecord>(marker));
+   Q_EMIT MarkerAdded();
+   Q_EMIT MarkersUpdated();
+}
+
+void MarkerManager::remove_marker(size_t index)
+{
+   if (index >= p->markerRecords_.size())
+   {
+      return;
+   }
+
+   for (size_t i = index; i < p->markerRecords_.size() - 1; i++)
+   {
+      p->markerRecords_[i] = p->markerRecords_[i + 1];
+   }
+
+   p->markerRecords_.pop_back();
+
+   Q_EMIT MarkerRemoved(index);
+   Q_EMIT MarkersUpdated();
 }
 
 void MarkerManager::move_marker(size_t from, size_t to)
@@ -250,6 +258,7 @@ void MarkerManager::move_marker(size_t from, size_t to)
       }
       p->markerRecords_[to] = markerRecord;
    }
+   Q_EMIT MarkersUpdated();
 }
 
 std::shared_ptr<MarkerManager> MarkerManager::Instance()
