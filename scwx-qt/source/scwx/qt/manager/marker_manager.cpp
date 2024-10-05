@@ -47,22 +47,29 @@ public:
 class MarkerManager::Impl::MarkerRecord
 {
 public:
-   MarkerRecord(std::string name, double latitude, double longitude) :
-       name_ {name}, latitude_ {latitude}, longitude_ {longitude}
+   MarkerRecord(const std::string& name, double latitude, double longitude) :
+      markerInfo_ {types::MarkerInfo(name, latitude, longitude)}
+   {
+   }
+   MarkerRecord(const types::MarkerInfo& info) :
+      markerInfo_ {info}
    {
    }
 
-   std::string name_;
-   double      latitude_;
-   double      longitude_;
+   types::MarkerInfo toMarkerInfo()
+   {
+      return markerInfo_;
+   }
+
+   types::MarkerInfo markerInfo_;
 
    friend void tag_invoke(boost::json::value_from_tag,
                           boost::json::value&                  jv,
                           const std::shared_ptr<MarkerRecord>& record)
    {
-      jv = {{kNameName_, record->name_},
-            {kLatitudeName_, record->latitude_},
-            {kLongitudeName_, record->longitude_}};
+      jv = {{kNameName_, record->markerInfo_.name_},
+            {kLatitudeName_, record->markerInfo_.latitude_},
+            {kLongitudeName_, record->markerInfo_.longitude_}};
    }
 
    friend MarkerRecord tag_invoke(boost::json::value_to_tag<MarkerRecord>,
@@ -117,10 +124,10 @@ void MarkerManager::Impl::ReadMarkerSettings()
             MarkerRecord record =
                boost::json::value_to<MarkerRecord>(markerEntry);
 
-            if (!record.name_.empty())
+            if (!record.markerInfo_.name_.empty())
             {
-               markerRecords_.emplace_back(std::make_shared<MarkerRecord>(
-                  record.name_, record.latitude_, record.longitude_));
+               markerRecords_.emplace_back(
+                  std::make_shared<MarkerRecord>(record.markerInfo_));
             }
          }
          catch (const std::exception& ex)
@@ -146,7 +153,7 @@ MarkerManager::Impl::GetMarkerByName(const std::string& name)
 {
    for (auto& markerRecord : markerRecords_)
    {
-      if (markerRecord->name_ == name)
+      if (markerRecord->markerInfo_.name_ == name)
       {
          return markerRecord;
       }
@@ -187,25 +194,21 @@ types::MarkerInfo MarkerManager::get_marker(size_t index)
 {
    std::shared_ptr<MarkerManager::Impl::MarkerRecord> markerRecord =
       p->markerRecords_[index];
-   return types::MarkerInfo(
-      markerRecord->name_, markerRecord->latitude_, markerRecord->longitude_);
+   return markerRecord->toMarkerInfo();
 }
 
 types::MarkerInfo MarkerManager::get_marker(const std::string& name)
 {
    std::shared_ptr<MarkerManager::Impl::MarkerRecord> markerRecord =
       p->GetMarkerByName(name);
-   return types::MarkerInfo(
-      markerRecord->name_, markerRecord->latitude_, markerRecord->longitude_);
+   return markerRecord->toMarkerInfo();
 }
 
 void MarkerManager::set_marker(size_t index, const types::MarkerInfo& marker)
 {
    std::shared_ptr<MarkerManager::Impl::MarkerRecord> markerRecord =
       p->markerRecords_[index];
-   markerRecord->name_      = marker.name_;
-   markerRecord->latitude_  = marker.latitude_;
-   markerRecord->longitude_ = marker.longitude_;
+   markerRecord->markerInfo_ = marker;
 }
 
 void MarkerManager::set_marker(const std::string&       name,
@@ -213,15 +216,12 @@ void MarkerManager::set_marker(const std::string&       name,
 {
    std::shared_ptr<MarkerManager::Impl::MarkerRecord> markerRecord =
       p->GetMarkerByName(name);
-   markerRecord->name_      = marker.name_;
-   markerRecord->latitude_  = marker.latitude_;
-   markerRecord->longitude_ = marker.longitude_;
+   markerRecord->markerInfo_ = marker;
 }
 
 void MarkerManager::add_marker(const types::MarkerInfo& marker)
 {
-   p->markerRecords_.emplace_back(std::make_shared<Impl::MarkerRecord>(
-      marker.name_, marker.latitude_, marker.longitude_));
+   p->markerRecords_.emplace_back(std::make_shared<Impl::MarkerRecord>(marker));
 }
 
 void MarkerManager::move_marker(size_t from, size_t to)
