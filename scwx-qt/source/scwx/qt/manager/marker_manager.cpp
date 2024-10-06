@@ -229,12 +229,7 @@ void MarkerManager::remove_marker(size_t index)
       return;
    }
 
-   for (size_t i = index; i < p->markerRecords_.size() - 1; i++)
-   {
-      p->markerRecords_[i] = p->markerRecords_[i + 1];
-   }
-
-   p->markerRecords_.pop_back();
+   p->markerRecords_.erase(std::next(p->markerRecords_.begin(), index));
 
    Q_EMIT MarkerRemoved(index);
    Q_EMIT MarkersUpdated();
