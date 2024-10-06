@@ -3,6 +3,7 @@
 #include <scwx/qt/types/marker_types.hpp>
 
 #include <QObject>
+#include <optional>
 
 namespace scwx
 {
@@ -20,7 +21,7 @@ public:
    ~MarkerManager();
 
    size_t                   marker_count();
-   const types::MarkerInfo& get_marker(size_t index);
+   std::optional<types::MarkerInfo> get_marker(size_t index);
    void set_marker(size_t index, const types::MarkerInfo& marker);
    void add_marker(const types::MarkerInfo& marker);
    void remove_marker(size_t index);
