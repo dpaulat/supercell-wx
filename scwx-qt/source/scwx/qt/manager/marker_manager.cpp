@@ -10,6 +10,8 @@
 
 #include <QStandardPaths>
 #include <boost/json.hpp>
+#include <boost/asio/post.hpp>
+#include <boost/asio/thread_pool.hpp>
 
 namespace scwx
 {
@@ -31,12 +33,14 @@ public:
    class MarkerRecord;
 
    explicit Impl(MarkerManager* self) : self_ {self} {}
-   ~Impl() {}
+   ~Impl() { threadPool_.join(); }
 
    std::string                                markerSettingsPath_ {};
    std::vector<std::shared_ptr<MarkerRecord>> markerRecords_ {};
 
    MarkerManager* self_;
+
+   boost::asio::thread_pool threadPool_ {1u};
 
    void                          InitializeMarkerSettings();
    void                          ReadMarkerSettings();
@@ -166,19 +170,23 @@ MarkerManager::Impl::GetMarkerByName(const std::string& name)
 
 MarkerManager::MarkerManager() : p(std::make_unique<Impl>(this))
 {
-   // TODO THREADING?
-   try
-   {
-      p->InitializeMarkerSettings();
 
-      // Read Marker settings on startup
-      // main::Application::WaitForInitialization();
-      p->ReadMarkerSettings();
-   }
-   catch (const std::exception& ex)
-   {
-      logger_->error(ex.what());
-   }
+   boost::asio::post(p->threadPool_,
+                     [this]()
+                     {
+                        try
+                        {
+                           p->InitializeMarkerSettings();
+
+                           // Read Marker settings on startup
+                           main::Application::WaitForInitialization();
+                           p->ReadMarkerSettings();
+                        }
+                        catch (const std::exception& ex)
+                        {
+                           logger_->error(ex.what());
+                        }
+                     });
 }
 
 MarkerManager::~MarkerManager()
@@ -264,6 +272,9 @@ void MarkerManager::move_marker(size_t from, size_t to)
 std::shared_ptr<MarkerManager> MarkerManager::Instance()
 {
    static std::weak_ptr<MarkerManager> markerManagerReference_ {};
+   static std::mutex                   instanceMutex_ {};
+
+   std::unique_lock lock(instanceMutex_);
 
    std::shared_ptr<MarkerManager> markerManager =
       markerManagerReference_.lock();
