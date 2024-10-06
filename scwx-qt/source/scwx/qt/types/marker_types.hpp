@@ -11,7 +11,7 @@ namespace types
 
 struct MarkerInfo
 {
-   MarkerInfo(std::string name, double latitude, double longitude) :
+   MarkerInfo(const std::string& name, double latitude, double longitude) :
        name {name}, latitude {latitude}, longitude {longitude}
    {
    }
