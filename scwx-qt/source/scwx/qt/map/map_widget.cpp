@@ -1235,7 +1235,7 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
                  { widget_->RadarSiteRequested(id); });
          break;
 
-      // Create the radar site layer
+      // Create the location marker layer
       case types::InformationLayer::Markers:
          markerLayer_ = std::make_shared<MarkerLayer>(context_);
          AddLayer(layerName, markerLayer_, before);
