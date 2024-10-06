@@ -30,7 +30,7 @@ public:
 
    MarkerLayer* self_;
    const std::string& markerIconName_ {
-      types::GetTextureName(types::ImageTexture::Cursor17)};
+      types::GetTextureName(types::ImageTexture::LocationMarker)};
 
    std::shared_ptr<gl::draw::GeoIcons> geoIcons_;
 };

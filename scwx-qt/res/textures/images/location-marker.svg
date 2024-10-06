@@ -1,0 +1,9 @@
+<svg version="1.1"
+     width="15" height="15"
+     xmlns="http://www.w3.org/2000/svg">
+
+    <path d="M 3,12 L 8,3 L 12,12 L 3,12 L 8,3"
+        stroke="black" stroke-width="4px" fill="none"/>
+    <path d="M 3,12 L 8,3 L 12,12 L 3,12 L 8,3"
+        stroke="red"   stroke-width="2px" fill="none"/>
+ </svg>
