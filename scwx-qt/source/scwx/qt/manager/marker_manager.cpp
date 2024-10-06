@@ -199,17 +199,24 @@ size_t MarkerManager::marker_count()
    return p->markerRecords_.size();
 }
 
-// TODO deal with out of range/not found
-const types::MarkerInfo& MarkerManager::get_marker(size_t index)
+std::optional<types::MarkerInfo> MarkerManager::get_marker(size_t index)
 {
-   std::shared_ptr<MarkerManager::Impl::MarkerRecord> markerRecord =
+   if (index >= p->markerRecords_.size())
+   {
+      return {};
+   }
+   std::shared_ptr<MarkerManager::Impl::MarkerRecord>& markerRecord =
       p->markerRecords_[index];
    return markerRecord->toMarkerInfo();
 }
 
 void MarkerManager::set_marker(size_t index, const types::MarkerInfo& marker)
 {
-   std::shared_ptr<MarkerManager::Impl::MarkerRecord> markerRecord =
+   if (index >= p->markerRecords_.size())
+   {
+      return;
+   }
+   std::shared_ptr<MarkerManager::Impl::MarkerRecord>& markerRecord =
       p->markerRecords_[index];
    markerRecord->markerInfo_ = marker;
    Q_EMIT MarkersUpdated();
@@ -241,7 +248,7 @@ void MarkerManager::move_marker(size_t from, size_t to)
    {
       return;
    }
-   std::shared_ptr<MarkerManager::Impl::MarkerRecord> markerRecord =
+   std::shared_ptr<MarkerManager::Impl::MarkerRecord>& markerRecord =
       p->markerRecords_[from];
 
    if (from == to) {}
