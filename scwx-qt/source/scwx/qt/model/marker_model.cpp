@@ -42,6 +42,11 @@ MarkerModel::MarkerModel(QObject* parent) :
          &manager::MarkerManager::MarkerAdded,
          this,
          &MarkerModel::HandleMarkerAdded);
+
+   connect(p->markerManager_.get(),
+         &manager::MarkerManager::MarkerRemoved,
+         this,
+         &MarkerModel::HandleMarkerRemoved);
 }
 
 MarkerModel::~MarkerModel() = default;
@@ -240,12 +245,24 @@ bool MarkerModel::setData(const QModelIndex& index,
 
 void MarkerModel::HandleMarkerAdded()
 {
-   QModelIndex topLeft = createIndex(0, kFirstColumn);
    const int newIndex = static_cast<int>(p->markerManager_->marker_count() - 1);
+   QModelIndex topLeft = createIndex(newIndex, kFirstColumn);
    QModelIndex bottomRight = createIndex(newIndex, kLastColumn);
 
    beginInsertRows(QModelIndex(), newIndex, newIndex);
    endInsertRows();
+
+   Q_EMIT dataChanged(topLeft, bottomRight);
+}
+
+void MarkerModel::HandleMarkerRemoved(size_t index)
+{
+   const int removedIndex = static_cast<int>(index);
+   QModelIndex topLeft = createIndex(removedIndex, kFirstColumn);
+   QModelIndex bottomRight = createIndex(removedIndex, kLastColumn);
+
+   beginRemoveRows(QModelIndex(), removedIndex, removedIndex);
+   endRemoveRows();
 
    Q_EMIT dataChanged(topLeft, bottomRight);
 }

@@ -40,6 +40,7 @@ public:
 
 public slots:
    void HandleMarkerAdded();
+   void HandleMarkerRemoved(size_t index);
 
 private:
    class Impl;
