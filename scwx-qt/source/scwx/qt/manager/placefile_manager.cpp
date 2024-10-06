@@ -105,6 +105,8 @@ public:
 
    void CancelRefresh();
    void ScheduleRefresh();
+   void ScheduleRefresh(
+      const std::chrono::system_clock::duration timeUntilNextUpdate);
    void Update();
    void UpdateAsync();
 
@@ -150,6 +152,8 @@ public:
 
    std::string                           lastRadarSite_ {};
    std::chrono::system_clock::time_point lastUpdateTime_ {};
+
+   std::size_t failureCount_ {};
 };
 
 PlacefileManager::PlacefileManager() : p(std::make_unique<Impl>(this))
@@ -344,8 +348,8 @@ PlacefileManager::Impl::PlacefileRecord::refresh_time() const
 
    if (refresh_enabled())
    {
-      // Don't refresh more often than every 15 seconds
-      return std::max(placefile_->refresh(), 15s);
+      // Don't refresh more often than every 1 second
+      return std::max(placefile_->refresh(), 1s);
    }
 
    return -1s;
@@ -542,6 +546,11 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
    if (url.isLocalFile())
    {
       updatedPlacefile = gr::Placefile::Load(name);
+
+      if (updatedPlacefile == nullptr)
+      {
+         logger_->error("Local placefile not found: {}", name);
+      }
    }
    else
    {
@@ -625,6 +634,7 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
          placefile_      = updatedPlacefile;
          title_          = placefile_->title();
          lastUpdateTime_ = std::chrono::system_clock::now();
+         failureCount_   = 0;
 
          // Update font resources
          {
@@ -645,10 +655,30 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
          // Notify slots of the placefile update
          Q_EMIT p->self_->PlacefileUpdated(name);
       }
-   }
 
-   // Update refresh timer
-   ScheduleRefresh();
+      // Update refresh timer
+      ScheduleRefresh();
+   }
+   else if (enabled_)
+   {
+      using namespace std::chrono_literals;
+
+      ++failureCount_;
+
+      // Update refresh timer if the file failed to load, in case it is able to
+      // be resolved later
+      if (url.isLocalFile())
+      {
+         ScheduleRefresh(10s);
+      }
+      else
+      {
+         // Start attempting to refresh at 15 seconds, and start backing off
+         // until retrying every 60 seconds
+         ScheduleRefresh(
+            std::min<std::chrono::seconds>(15s * failureCount_, 60s));
+      }
+   }
 }
 
 void PlacefileManager::Impl::PlacefileRecord::ScheduleRefresh()
@@ -666,6 +696,12 @@ void PlacefileManager::Impl::PlacefileRecord::ScheduleRefresh()
    auto nextUpdateTime      = lastUpdateTime_ + refresh_time();
    auto timeUntilNextUpdate = nextUpdateTime - std::chrono::system_clock::now();
 
+   ScheduleRefresh(timeUntilNextUpdate);
+}
+
+void PlacefileManager::Impl::PlacefileRecord::ScheduleRefresh(
+   const std::chrono::system_clock::duration timeUntilNextUpdate)
+{
    logger_->debug(
       "Scheduled refresh in {:%M:%S} ({})",
       std::chrono::duration_cast<std::chrono::seconds>(timeUntilNextUpdate),

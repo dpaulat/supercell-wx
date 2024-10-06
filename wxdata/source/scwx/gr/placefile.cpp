@@ -154,9 +154,17 @@ std::shared_ptr<Placefile::Font> Placefile::font(std::size_t i)
 
 std::shared_ptr<Placefile> Placefile::Load(const std::string& filename)
 {
+   std::shared_ptr<Placefile> placefile = nullptr;
+
    logger_->debug("Loading placefile: {}", filename);
    std::ifstream f(filename, std::ios_base::in);
-   return Load(filename, f);
+
+   if (f.is_open())
+   {
+      placefile = Load(filename, f);
+   }
+
+   return placefile;
 }
 
 std::shared_ptr<Placefile> Placefile::Load(const std::string& name,
