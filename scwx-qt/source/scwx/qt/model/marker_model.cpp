@@ -199,7 +199,7 @@ bool MarkerModel::setData(const QModelIndex& index,
          QString str = value.toString();
          bool ok;
          double latitude = str.toDouble(&ok);
-         if (ok && str.isEmpty() && -90 <= latitude && latitude <= 90)
+         if (!str.isEmpty() && ok && -90 <= latitude && latitude <= 90)
          {
             markerInfo->latitude = latitude;
             p->markerManager_->set_marker(index.row(), *markerInfo);
@@ -214,7 +214,7 @@ bool MarkerModel::setData(const QModelIndex& index,
          QString str = value.toString();
          bool ok;
          double longitude = str.toDouble(&ok);
-         if (str.isEmpty() && ok && -180 <= longitude && longitude <= 180)
+         if (!str.isEmpty() && ok && -180 <= longitude && longitude <= 180)
          {
             markerInfo->longitude = longitude;
             p->markerManager_->set_marker(index.row(), *markerInfo);
