@@ -87,15 +87,17 @@ QVariant MarkerModel::data(const QModelIndex& index, int role) const
    static const char COORDINATE_FORMAT    = 'g';
    static const int  COORDINATE_PRECISION = 6;
 
-   if (!index.isValid() || index.row() < 0 ||
-       static_cast<std::size_t>(index.row()) >=
-          p->markerManager_->marker_count())
+   if (!index.isValid() || index.row() < 0)
    {
       return QVariant();
    }
 
-   const types::MarkerInfo markerInfo =
+   std::optional<types::MarkerInfo> markerInfo =
       p->markerManager_->get_marker(index.row());
+   if (!markerInfo)
+   {
+      return QVariant();
+   }
 
    switch(index.column())
    {
@@ -104,7 +106,7 @@ QVariant MarkerModel::data(const QModelIndex& index, int role) const
           role == Qt::ItemDataRole::ToolTipRole ||
           role == Qt::ItemDataRole::EditRole)
       {
-         return QString::fromStdString(markerInfo.name);
+         return QString::fromStdString(markerInfo->name);
       }
       break;
 
@@ -114,7 +116,7 @@ QVariant MarkerModel::data(const QModelIndex& index, int role) const
           role == Qt::ItemDataRole::EditRole)
       {
          return QString::number(
-            markerInfo.latitude, COORDINATE_FORMAT, COORDINATE_PRECISION);
+            markerInfo->latitude, COORDINATE_FORMAT, COORDINATE_PRECISION);
       }
       break;
 
@@ -124,7 +126,7 @@ QVariant MarkerModel::data(const QModelIndex& index, int role) const
           role == Qt::ItemDataRole::EditRole)
       {
          return QString::number(
-            markerInfo.longitude, COORDINATE_FORMAT, COORDINATE_PRECISION);
+            markerInfo->longitude, COORDINATE_FORMAT, COORDINATE_PRECISION);
       }
       break;
 
@@ -167,14 +169,16 @@ bool MarkerModel::setData(const QModelIndex& index,
                           const QVariant&    value,
                           int                role)
 {
-   if (!index.isValid() || index.row() < 0 ||
-       static_cast<std::size_t>(index.row()) >=
-          p->markerManager_->marker_count())
+   if (!index.isValid() || index.row() < 0)
    {
       return false;
    }
-
-   types::MarkerInfo markerInfo = p->markerManager_->get_marker(index.row());
+   std::optional<types::MarkerInfo> markerInfo =
+      p->markerManager_->get_marker(index.row());
+   if (!markerInfo)
+   {
+      return false;
+   }
    bool result = false;
 
    switch(index.column())
@@ -183,8 +187,8 @@ bool MarkerModel::setData(const QModelIndex& index,
       if (role == Qt::ItemDataRole::EditRole)
       {
          QString str = value.toString();
-         markerInfo.name = str.toStdString();
-         p->markerManager_->set_marker(index.row(), markerInfo);
+         markerInfo->name = str.toStdString();
+         p->markerManager_->set_marker(index.row(), *markerInfo);
          result = true;
       }
       break;
@@ -195,16 +199,10 @@ bool MarkerModel::setData(const QModelIndex& index,
          QString str = value.toString();
          bool ok;
          double latitude = str.toDouble(&ok);
-         if (str.isEmpty())
+         if (ok && str.isEmpty() && -90 <= latitude && latitude <= 90)
          {
-            markerInfo.latitude = 0;
-            p->markerManager_->set_marker(index.row(), markerInfo);
-            result = true;
-         }
-         else if (ok)
-         {
-            markerInfo.latitude = latitude;
-            p->markerManager_->set_marker(index.row(), markerInfo);
+            markerInfo->latitude = latitude;
+            p->markerManager_->set_marker(index.row(), *markerInfo);
             result = true;
          }
       }
@@ -216,16 +214,10 @@ bool MarkerModel::setData(const QModelIndex& index,
          QString str = value.toString();
          bool ok;
          double longitude = str.toDouble(&ok);
-         if (str.isEmpty())
+         if (str.isEmpty() && ok && -180 <= longitude && longitude <= 180)
          {
-            markerInfo.longitude = 0;
-            p->markerManager_->set_marker(index.row(), markerInfo);
-            result = true;
-         }
-         else if (ok)
-         {
-            markerInfo.longitude = longitude;
-            p->markerManager_->set_marker(index.row(), markerInfo);
+            markerInfo->longitude = longitude;
+            p->markerManager_->set_marker(index.row(), *markerInfo);
             result = true;
          }
       }
