@@ -28,7 +28,7 @@ jobs:
             compiler: msvc
             msvc_arch: x64
             msvc_version: 2022
-            qt_version: 6.7.2
+            qt_version: 6.8.0
             qt_arch_aqt: win64_msvc2019_64
             qt_arch_dir: msvc2019_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -46,7 +46,7 @@ jobs:
             env_cc: gcc-11
             env_cxx: g++-11
             compiler: gcc
-            qt_version: 6.7.2
+            qt_version: 6.8.0
             qt_arch_aqt: linux_gcc_64
             qt_arch_dir: gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -64,7 +64,7 @@ jobs:
             env_cc: clang-17
             env_cxx: clang++-17
             compiler: clang
-            qt_version: 6.7.2
+            qt_version: 6.8.0
             qt_arch_aqt: linux_gcc_64
             qt_arch_dir: gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport

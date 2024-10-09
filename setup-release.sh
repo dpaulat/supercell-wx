@@ -3,7 +3,7 @@
 
 build_dir=${1:-build-release}
 build_type=Release
-qt_version=6.7.2
+qt_version=6.8.0
 script_dir="$(dirname "$(readlink -f "$0")")"
 
 mkdir -p ${build_dir}
