@@ -5,10 +5,6 @@
 #include <scwx/util/logger.hpp>
 
 #include <QApplication>
-#include <QCheckBox>
-#include <QFontMetrics>
-#include <QStyle>
-#include <QStyleOption>
 
 namespace scwx
 {
@@ -21,9 +17,9 @@ static const std::string logPrefix_ = "scwx::qt::model::marker_model";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr int kFirstColumn =
-   static_cast<int>(MarkerModel::Column::Name);
+   static_cast<int>(MarkerModel::Column::Latitude);
 static constexpr int kLastColumn =
-   static_cast<int>(MarkerModel::Column::Longitude);
+   static_cast<int>(MarkerModel::Column::Name);
 static constexpr int kNumColumns = kLastColumn - kFirstColumn + 1;
 
 class MarkerModel::Impl

@@ -14,9 +14,9 @@ class MarkerModel : public QAbstractTableModel
 public:
    enum class Column : int
    {
-      Name      = 0,
-      Latitude  = 1,
-      Longitude = 2
+      Latitude  = 0,
+      Longitude = 1,
+      Name      = 2,
    };
 
    explicit MarkerModel(QObject* parent = nullptr);
