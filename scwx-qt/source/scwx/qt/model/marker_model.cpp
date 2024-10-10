@@ -244,10 +244,11 @@ bool MarkerModel::setData(const QModelIndex& index,
 
 void MarkerModel::HandleMarkersInitialized(size_t count)
 {
+   const int index = static_cast<int>(count - 1);
    QModelIndex topLeft = createIndex(0, kFirstColumn);
-   QModelIndex bottomRight = createIndex(count - 1, kLastColumn);
+   QModelIndex bottomRight = createIndex(index, kLastColumn);
 
-   beginInsertRows(QModelIndex(), 0, count - 1);
+   beginInsertRows(QModelIndex(), 0, index);
    endInsertRows();
 
    Q_EMIT dataChanged(topLeft, bottomRight);
