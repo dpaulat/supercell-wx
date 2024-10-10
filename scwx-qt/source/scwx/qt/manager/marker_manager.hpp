@@ -30,7 +30,9 @@ public:
    static std::shared_ptr<MarkerManager> Instance();
 
 signals:
+   void MarkersInitialized(size_t count);
    void MarkersUpdated();
+   void MarkerChanged(size_t index);
    void MarkerAdded();
    void MarkerRemoved(size_t index);
 

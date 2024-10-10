@@ -39,7 +39,9 @@ public:
 
 
 public slots:
+   void HandleMarkersInitialized(size_t count);
    void HandleMarkerAdded();
+   void HandleMarkerChanged(size_t index);
    void HandleMarkerRemoved(size_t index);
 
 private:

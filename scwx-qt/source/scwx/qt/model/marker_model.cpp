@@ -38,10 +38,21 @@ public:
 MarkerModel::MarkerModel(QObject* parent) :
    QAbstractTableModel(parent), p(std::make_unique<Impl>())
 {
+
+   connect(p->markerManager_.get(),
+         &manager::MarkerManager::MarkersInitialized,
+         this,
+         &MarkerModel::HandleMarkersInitialized);
+
    connect(p->markerManager_.get(),
          &manager::MarkerManager::MarkerAdded,
          this,
          &MarkerModel::HandleMarkerAdded);
+
+   connect(p->markerManager_.get(),
+         &manager::MarkerManager::MarkerChanged,
+         this,
+         &MarkerModel::HandleMarkerChanged);
 
    connect(p->markerManager_.get(),
          &manager::MarkerManager::MarkerRemoved,
@@ -235,6 +246,17 @@ bool MarkerModel::setData(const QModelIndex& index,
    return result;
 }
 
+void MarkerModel::HandleMarkersInitialized(size_t count)
+{
+   QModelIndex topLeft = createIndex(0, kFirstColumn);
+   QModelIndex bottomRight = createIndex(count - 1, kLastColumn);
+
+   beginInsertRows(QModelIndex(), 0, count - 1);
+   endInsertRows();
+
+   Q_EMIT dataChanged(topLeft, bottomRight);
+}
+
 void MarkerModel::HandleMarkerAdded()
 {
    const int newIndex = static_cast<int>(p->markerManager_->marker_count() - 1);
@@ -243,6 +265,15 @@ void MarkerModel::HandleMarkerAdded()
 
    beginInsertRows(QModelIndex(), newIndex, newIndex);
    endInsertRows();
+
+   Q_EMIT dataChanged(topLeft, bottomRight);
+}
+
+void MarkerModel::HandleMarkerChanged(size_t index)
+{
+   const int changedIndex = static_cast<int>(index);
+   QModelIndex topLeft = createIndex(changedIndex, kFirstColumn);
+   QModelIndex bottomRight = createIndex(changedIndex, kLastColumn);
 
    Q_EMIT dataChanged(topLeft, bottomRight);
 }

@@ -181,6 +181,8 @@ MarkerManager::MarkerManager() : p(std::make_unique<Impl>(this))
                            // Read Marker settings on startup
                            main::Application::WaitForInitialization();
                            p->ReadMarkerSettings();
+
+                           Q_EMIT MarkersInitialized(p->markerRecords_.size());
                         }
                         catch (const std::exception& ex)
                         {
@@ -219,6 +221,7 @@ void MarkerManager::set_marker(size_t index, const types::MarkerInfo& marker)
    std::shared_ptr<MarkerManager::Impl::MarkerRecord>& markerRecord =
       p->markerRecords_[index];
    markerRecord->markerInfo_ = marker;
+   Q_EMIT MarkerChanged(index);
    Q_EMIT MarkersUpdated();
 }
 
