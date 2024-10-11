@@ -1,3 +1,4 @@
+#include <scwx/common/geographic.hpp>
 #include <scwx/qt/model/marker_model.hpp>
 #include <scwx/qt/manager/marker_manager.hpp>
 #include <scwx/qt/types/marker_types.hpp>
@@ -92,7 +93,7 @@ QVariant MarkerModel::data(const QModelIndex& index, int role) const
 {
 
    static const char COORDINATE_FORMAT    = 'g';
-   static const int  COORDINATE_PRECISION = 6;
+   static const int  COORDINATE_PRECISION = 10;
 
    if (!index.isValid() || index.row() < 0)
    {
@@ -119,8 +120,12 @@ QVariant MarkerModel::data(const QModelIndex& index, int role) const
 
    case static_cast<int>(Column::Latitude):
       if (role == Qt::ItemDataRole::DisplayRole ||
-          role == Qt::ItemDataRole::ToolTipRole ||
-          role == Qt::ItemDataRole::EditRole)
+          role == Qt::ItemDataRole::ToolTipRole)
+      {
+         return QString::fromStdString(
+            common::GetLatitudeString(markerInfo->latitude));
+      }
+      else if (role == Qt::ItemDataRole::EditRole)
       {
          return QString::number(
             markerInfo->latitude, COORDINATE_FORMAT, COORDINATE_PRECISION);
@@ -129,12 +134,17 @@ QVariant MarkerModel::data(const QModelIndex& index, int role) const
 
    case static_cast<int>(Column::Longitude):
       if (role == Qt::ItemDataRole::DisplayRole ||
-          role == Qt::ItemDataRole::ToolTipRole ||
-          role == Qt::ItemDataRole::EditRole)
+          role == Qt::ItemDataRole::ToolTipRole)
+      {
+         return QString::fromStdString(
+            common::GetLongitudeString(markerInfo->longitude));
+      }
+      else if (role == Qt::ItemDataRole::EditRole)
       {
          return QString::number(
             markerInfo->longitude, COORDINATE_FORMAT, COORDINATE_PRECISION);
       }
+      break;
       break;
 
    default:
