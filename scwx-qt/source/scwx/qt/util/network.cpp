@@ -17,7 +17,8 @@ std::string NormalizeUrl(const std::string& urlString)
    std::string normalizedUrl;
 
    // Normalize URL string
-   QUrl url = QUrl::fromUserInput(QString::fromStdString(urlString));
+   QString trimmedUrlString = QString::fromStdString(urlString).trimmed();
+   QUrl url = QUrl::fromUserInput(trimmedUrlString);
    if (url.isLocalFile())
    {
       normalizedUrl = QDir::toNativeSeparators(url.toLocalFile()).toStdString();
