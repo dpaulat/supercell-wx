@@ -603,14 +603,17 @@ void SettingsDialogImpl::SetupGeneralTab()
    mapboxApiKey_.SetSettingsVariable(generalSettings.mapbox_api_key());
    mapboxApiKey_.SetEditWidget(self_->ui->mapboxApiKeyLineEdit);
    mapboxApiKey_.SetResetButton(self_->ui->resetMapboxApiKeyButton);
+   mapboxApiKey_.EnableTrimming();
 
    mapTilerApiKey_.SetSettingsVariable(generalSettings.maptiler_api_key());
    mapTilerApiKey_.SetEditWidget(self_->ui->mapTilerApiKeyLineEdit);
    mapTilerApiKey_.SetResetButton(self_->ui->resetMapTilerApiKeyButton);
+   mapTilerApiKey_.EnableTrimming();
 
    customStyleUrl_.SetSettingsVariable(generalSettings.custom_style_url());
    customStyleUrl_.SetEditWidget(self_->ui->customMapUrlLineEdit);
    customStyleUrl_.SetResetButton(self_->ui->resetCustomMapUrlButton);
+   customStyleUrl_.EnableTrimming();
 
    customStyleDrawLayer_.SetSettingsVariable(
       generalSettings.custom_style_draw_layer());
@@ -676,6 +679,7 @@ void SettingsDialogImpl::SetupGeneralTab()
    warningsProvider_.SetSettingsVariable(generalSettings.warnings_provider());
    warningsProvider_.SetEditWidget(self_->ui->warningsProviderLineEdit);
    warningsProvider_.SetResetButton(self_->ui->resetWarningsProviderButton);
+   warningsProvider_.EnableTrimming();
 
    antiAliasingEnabled_.SetSettingsVariable(
       generalSettings.anti_aliasing_enabled());

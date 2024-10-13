@@ -56,6 +56,8 @@ public:
    double                     unitScale_ {1};
    std::optional<std::string> unitAbbreviation_ {};
    bool                       unitEnabled_ {false};
+
+   bool trimmingEnabled_ {false};
 };
 
 template<class T>
@@ -191,8 +193,11 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
                           p->context_.get(),
                           [this](const QString& text)
                           {
+                             QString trimmedText =
+                                p->trimmingEnabled_ ? text.trimmed() : text;
+
                              // Map to value if required
-                             std::string value {text.toStdString()};
+                             std::string value {trimmedText.toStdString()};
                              if (p->mapToValue_ != nullptr)
                              {
                                 value = p->mapToValue_(value);
@@ -486,6 +491,12 @@ void SettingsInterface<T>::SetUnit(const double&      scale,
    p->unitEnabled_      = true;
    p->UpdateEditWidget();
    p->UpdateUnitLabel();
+}
+
+template<class T>
+void SettingsInterface<T>::EnableTrimming(bool trimmingEnabled)
+{
+   p->trimmingEnabled_ = trimmingEnabled;
 }
 
 template<class T>

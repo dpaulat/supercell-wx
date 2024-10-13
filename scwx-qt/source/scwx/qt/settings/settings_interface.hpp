@@ -126,6 +126,15 @@ public:
     */
    void SetUnit(const double& scale, const std::string& abbreviation);
 
+   /**
+    * Enables or disables whitespace trimming of text input.
+    * Removes whitespace ('\t', '\n', '\v', '\f', '\r', and ' ') at the
+    * beginning and end of the string from a QLineEdit.
+    *
+    * @param trimmingEnabled If trimming should be enabled.
+    */
+   void EnableTrimming(bool trimmingEnabled = true);
+
 private:
    class Impl;
    std::unique_ptr<Impl> p;
