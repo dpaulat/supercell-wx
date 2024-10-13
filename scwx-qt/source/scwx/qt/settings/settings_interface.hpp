@@ -121,8 +121,8 @@ public:
    /**
     * Sets the unit to be used by this setting.
     *
-    * @param scale The radio of the current unit to the base unit
-    * @param abbreviation The abreviation to be displayed
+    * @param scale The ratio of the current unit to the base unit
+    * @param abbreviation The abbreviation to be displayed
     */
    void SetUnit(const double& scale, const std::string& abbreviation);
 
