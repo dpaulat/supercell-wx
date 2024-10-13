@@ -675,6 +675,7 @@ void SettingsDialogImpl::SetupGeneralTab()
    nmeaSource_.SetSettingsVariable(generalSettings.nmea_source());
    nmeaSource_.SetEditWidget(self_->ui->nmeaSourceLineEdit);
    nmeaSource_.SetResetButton(self_->ui->resetNmeaSourceButton);
+   nmeaSource_.EnableTrimming();
 
    warningsProvider_.SetSettingsVariable(generalSettings.warnings_provider());
    warningsProvider_.SetEditWidget(self_->ui->warningsProviderLineEdit);
@@ -754,6 +755,7 @@ void SettingsDialogImpl::SetupPalettesColorTablesTab()
       colorTable.SetSettingsVariable(colorTableVariable);
       colorTable.SetEditWidget(lineEdit);
       colorTable.SetResetButton(resetButton);
+      colorTable.EnableTrimming();
 
       colorTableVariable.RegisterValueStagedCallback(
          [colorTableType, imageLabel](const std::string& value)
@@ -877,6 +879,7 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioSoundFile_.SetSettingsVariable(audioSettings.alert_sound_file());
    alertAudioSoundFile_.SetEditWidget(self_->ui->alertAudioSoundLineEdit);
    alertAudioSoundFile_.SetResetButton(self_->ui->resetAlertAudioSoundButton);
+   alertAudioSoundFile_.EnableTrimming();
 
    QObject::connect(
       self_->ui->alertAudioSoundSelectButton,
@@ -1089,6 +1092,7 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioCounty_.SetSettingsVariable(audioSettings.alert_county());
    alertAudioCounty_.SetEditWidget(self_->ui->alertAudioCountyLineEdit);
    alertAudioCounty_.SetResetButton(self_->ui->resetAlertAudioCountyButton);
+   alertAudioCounty_.EnableTrimming();
 
    QObject::connect(self_->ui->alertAudioWFOSelectButton,
                     &QAbstractButton::clicked,
@@ -1121,6 +1125,7 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioWFO_.SetSettingsVariable(audioSettings.alert_wfo());
    alertAudioWFO_.SetEditWidget(self_->ui->alertAudioWFOLineEdit);
    alertAudioWFO_.SetResetButton(self_->ui->resetAlertAudioWFOButton);
+   alertAudioWFO_.EnableTrimming();
 }
 
 void SettingsDialogImpl::SetupTextTab()
