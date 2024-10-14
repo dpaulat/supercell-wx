@@ -121,10 +121,19 @@ public:
    /**
     * Sets the unit to be used by this setting.
     *
-    * @param scale The radio of the current unit to the base unit
-    * @param abbreviation The abreviation to be displayed
+    * @param scale The ratio of the current unit to the base unit
+    * @param abbreviation The abbreviation to be displayed
     */
    void SetUnit(const double& scale, const std::string& abbreviation);
+
+   /**
+    * Enables or disables whitespace trimming of text input.
+    * Removes whitespace ('\t', '\n', '\v', '\f', '\r', and ' ') at the
+    * beginning and end of the string from a QLineEdit.
+    *
+    * @param trimmingEnabled If trimming should be enabled.
+    */
+   void EnableTrimming(bool trimmingEnabled = true);
 
 private:
    class Impl;
