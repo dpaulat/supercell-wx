@@ -68,6 +68,7 @@ void MarkerLayer::Impl::ReloadMarkers()
    }
 
    geoIcons_->FinishIcons();
+   Q_EMIT self_->NeedsRendering();
 }
 
 MarkerLayer::MarkerLayer(const std::shared_ptr<MapContext>& context) :
