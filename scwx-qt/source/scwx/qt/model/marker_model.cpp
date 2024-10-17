@@ -255,25 +255,17 @@ bool MarkerModel::setData(const QModelIndex& index,
 void MarkerModel::HandleMarkersInitialized(size_t count)
 {
    const int index = static_cast<int>(count - 1);
-   QModelIndex topLeft = createIndex(0, kFirstColumn);
-   QModelIndex bottomRight = createIndex(index, kLastColumn);
 
    beginInsertRows(QModelIndex(), 0, index);
    endInsertRows();
-
-   Q_EMIT dataChanged(topLeft, bottomRight);
 }
 
 void MarkerModel::HandleMarkerAdded()
 {
    const int newIndex = static_cast<int>(p->markerManager_->marker_count() - 1);
-   QModelIndex topLeft = createIndex(newIndex, kFirstColumn);
-   QModelIndex bottomRight = createIndex(newIndex, kLastColumn);
 
    beginInsertRows(QModelIndex(), newIndex, newIndex);
    endInsertRows();
-
-   Q_EMIT dataChanged(topLeft, bottomRight);
 }
 
 void MarkerModel::HandleMarkerChanged(size_t index)
@@ -288,13 +280,9 @@ void MarkerModel::HandleMarkerChanged(size_t index)
 void MarkerModel::HandleMarkerRemoved(size_t index)
 {
    const int removedIndex = static_cast<int>(index);
-   QModelIndex topLeft = createIndex(removedIndex, kFirstColumn);
-   QModelIndex bottomRight = createIndex(removedIndex, kLastColumn);
 
    beginRemoveRows(QModelIndex(), removedIndex, removedIndex);
    endRemoveRows();
-
-   Q_EMIT dataChanged(topLeft, bottomRight);
 }
 
 } // namespace model
