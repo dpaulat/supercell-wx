@@ -39,7 +39,7 @@
      <x>0</x>
      <y>0</y>
      <width>1024</width>
-     <height>33</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -104,6 +104,7 @@
     </property>
     <addaction name="actionPlacefileManager"/>
     <addaction name="actionLayerManager"/>
+    <addaction name="actionMarkerManager"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
@@ -152,8 +153,8 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>190</width>
-          <height>686</height>
+          <width>205</width>
+          <height>701</height>
          </rect>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -485,6 +486,15 @@
   <action name="actionGpsInfo">
    <property name="text">
     <string>&amp;GPS Info</string>
+   </property>
+  </action>
+  <action name="actionMarkerManager">
+   <property name="icon">
+    <iconset resource="../../../../scwx-qt.qrc">
+     <normaloff>:/res/icons/font-awesome-6/house-solid.svg</normaloff>:/res/icons/font-awesome-6/house-solid.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Location &amp;Marker Manager</string>
    </property>
   </action>
  </widget>

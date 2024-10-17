@@ -75,6 +75,7 @@
         <file>res/textures/images/cursor-17.png</file>
         <file>res/textures/images/crosshairs-24.png</file>
         <file>res/textures/images/dot-3.png</file>
+        <file>res/textures/images/location-marker.svg</file>
         <file>res/textures/images/mapbox-logo.svg</file>
         <file>res/textures/images/maptiler-logo.svg</file>
     </qresource>

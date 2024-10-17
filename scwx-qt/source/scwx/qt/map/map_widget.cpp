@@ -12,6 +12,7 @@
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/map/overlay_product_layer.hpp>
 #include <scwx/qt/map/placefile_layer.hpp>
+#include <scwx/qt/map/marker_layer.hpp>
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
 #include <scwx/qt/map/radar_site_layer.hpp>
@@ -81,6 +82,7 @@ public:
        radarProductLayer_ {nullptr},
        overlayLayer_ {nullptr},
        placefileLayer_ {nullptr},
+       markerLayer_ {nullptr},
        colorTableLayer_ {nullptr},
        autoRefreshEnabled_ {true},
        autoUpdateEnabled_ {true},
@@ -223,6 +225,7 @@ public:
    std::shared_ptr<OverlayLayer>        overlayLayer_;
    std::shared_ptr<OverlayProductLayer> overlayProductLayer_ {nullptr};
    std::shared_ptr<PlacefileLayer>      placefileLayer_;
+   std::shared_ptr<MarkerLayer>            markerLayer_;
    std::shared_ptr<ColorTableLayer>     colorTableLayer_;
    std::shared_ptr<RadarSiteLayer>      radarSiteLayer_ {nullptr};
 
@@ -1230,6 +1233,12 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
                  this,
                  [this](const std::string& id)
                  { widget_->RadarSiteRequested(id); });
+         break;
+
+      // Create the location marker layer
+      case types::InformationLayer::Markers:
+         markerLayer_ = std::make_shared<MarkerLayer>(context_);
+         AddLayer(layerName, markerLayer_, before);
          break;
 
       default:

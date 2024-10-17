@@ -18,6 +18,7 @@ enum class ImageTexture
    Crosshairs24,
    Cursor17,
    Dot3,
+   LocationMarker,
    MapboxLogo,
    MapTilerLogo
 };
