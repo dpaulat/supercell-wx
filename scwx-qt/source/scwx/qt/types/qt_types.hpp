@@ -20,17 +20,22 @@ enum ItemDataRole
    RawDataRole
 };
 
-enum UiStyle
+enum class UiStyle
 {
    Default,
    Fusion,
+   FusionLight,
+   FusionDark,
    Unknown
 };
-typedef scwx::util::Iterator<UiStyle, UiStyle::Default, UiStyle::Fusion>
+typedef scwx::util::Iterator<UiStyle, UiStyle::Default, UiStyle::FusionDark>
    UiStyleIterator;
 
+Qt::ColorScheme GetQtColorScheme(UiStyle uiStyle);
+std::string     GetQtStyleName(UiStyle uiStyle);
+
 UiStyle     GetUiStyle(const std::string& name);
-std::string GetUiStyleName(UiStyle alertAction);
+std::string GetUiStyleName(UiStyle uiStyle);
 
 } // namespace types
 } // namespace qt

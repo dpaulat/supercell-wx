@@ -25,11 +25,13 @@
 #include <fmt/format.h>
 #include <QApplication>
 #include <QStandardPaths>
+#include <QStyleHints>
 #include <QTranslator>
 
 static const std::string logPrefix_ = "scwx::main";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+static void ConfigureTheme(const std::vector<std::string>& args);
 static void OverrideDefaultStyle(const std::vector<std::string>& args);
 
 int main(int argc, char* argv[])
@@ -103,18 +105,7 @@ int main(int argc, char* argv[])
    scwx::qt::manager::ResourceManager::Initialize();
 
    // Theme
-   auto uiStyle = scwx::qt::types::GetUiStyle(
-      scwx::qt::settings::GeneralSettings::Instance().theme().GetValue());
-
-   if (uiStyle == scwx::qt::types::UiStyle::Default)
-   {
-      OverrideDefaultStyle(args);
-   }
-   else
-   {
-      QApplication::setStyle(
-         QString::fromStdString(scwx::qt::types::GetUiStyleName(uiStyle)));
-   }
+   ConfigureTheme(args);
 
    // Run initial setup if required
    if (scwx::qt::ui::setup::SetupWizard::IsSetupRequired())
@@ -150,6 +141,27 @@ int main(int argc, char* argv[])
    Aws::ShutdownAPI(awsSdkOptions);
 
    return result;
+}
+
+static void ConfigureTheme(const std::vector<std::string>& args)
+{
+   auto& generalSettings = scwx::qt::settings::GeneralSettings::Instance();
+
+   auto uiStyle =
+      scwx::qt::types::GetUiStyle(generalSettings.theme().GetValue());
+   auto qtColorScheme = scwx::qt::types::GetQtColorScheme(uiStyle);
+
+   if (uiStyle == scwx::qt::types::UiStyle::Default)
+   {
+      OverrideDefaultStyle(args);
+   }
+   else
+   {
+      QApplication::setStyle(
+         QString::fromStdString(scwx::qt::types::GetQtStyleName(uiStyle)));
+   }
+
+   QGuiApplication::styleHints()->setColorScheme(qtColorScheme);
 }
 
 static void
