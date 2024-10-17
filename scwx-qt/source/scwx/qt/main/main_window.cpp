@@ -1080,9 +1080,9 @@ void MainWindowImpl::ConnectOtherSignals()
               }
            });
    connect(mainWindow_->ui->trackLocationCheckBox,
-           &QCheckBox::stateChanged,
+           &QCheckBox::checkStateChanged,
            mainWindow_,
-           [this](int state)
+           [this](Qt::CheckState state)
            {
               bool trackingEnabled = (state == Qt::CheckState::Checked);
 
