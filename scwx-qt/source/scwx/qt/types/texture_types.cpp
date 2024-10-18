@@ -25,6 +25,8 @@ static const std::unordered_map<ImageTexture, TextureInfo> imageTextureInfo_ {
    {ImageTexture::Cursor17,
     {"images/cursor-17", ":/res/textures/images/cursor-17.png"}},
    {ImageTexture::Dot3, {"images/dot-3", ":/res/textures/images/dot-3.png"}},
+   {ImageTexture::LocationMarker,
+    {"images/location-marker", ":/res/textures/images/location-marker.svg"}},
    {ImageTexture::MapboxLogo,
     {"images/mapbox-logo", ":/res/textures/images/mapbox-logo.svg"}},
    {ImageTexture::MapTilerLogo,

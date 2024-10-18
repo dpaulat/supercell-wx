@@ -44,6 +44,7 @@ enum class InformationLayer
    MapOverlay,
    RadarSite,
    ColorTable,
+   Markers,
    Unknown
 };
 

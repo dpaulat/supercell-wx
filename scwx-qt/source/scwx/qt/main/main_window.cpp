@@ -6,6 +6,7 @@
 #include <scwx/qt/manager/alert_manager.hpp>
 #include <scwx/qt/manager/hotkey_manager.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
+#include <scwx/qt/manager/marker_manager.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
@@ -30,6 +31,7 @@
 #include <scwx/qt/ui/level2_settings_widget.hpp>
 #include <scwx/qt/ui/level3_products_widget.hpp>
 #include <scwx/qt/ui/placefile_dialog.hpp>
+#include <scwx/qt/ui/marker_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/ui/settings_dialog.hpp>
 #include <scwx/qt/ui/update_dialog.hpp>
@@ -86,11 +88,13 @@ public:
        imGuiDebugDialog_ {nullptr},
        layerDialog_ {nullptr},
        placefileDialog_ {nullptr},
+       markerDialog_ {nullptr},
        radarSiteDialog_ {nullptr},
        settingsDialog_ {nullptr},
        updateDialog_ {nullptr},
        alertManager_ {manager::AlertManager::Instance()},
        placefileManager_ {manager::PlacefileManager::Instance()},
+       markerManager_ {manager::MarkerManager::Instance()},
        positionManager_ {manager::PositionManager::Instance()},
        textEventManager_ {manager::TextEventManager::Instance()},
        timelineManager_ {manager::TimelineManager::Instance()},
@@ -203,6 +207,7 @@ public:
    ui::ImGuiDebugDialog*    imGuiDebugDialog_;
    ui::LayerDialog*         layerDialog_;
    ui::PlacefileDialog*     placefileDialog_;
+   ui::MarkerDialog*        markerDialog_;
    ui::RadarSiteDialog*     radarSiteDialog_;
    ui::SettingsDialog*      settingsDialog_;
    ui::UpdateDialog*        updateDialog_;
@@ -217,6 +222,7 @@ public:
    std::shared_ptr<manager::HotkeyManager> hotkeyManager_ {
       manager::HotkeyManager::Instance()};
    std::shared_ptr<manager::PlacefileManager> placefileManager_;
+   std::shared_ptr<manager::MarkerManager>    markerManager_;
    std::shared_ptr<manager::PositionManager>  positionManager_;
    std::shared_ptr<manager::TextEventManager> textEventManager_;
    std::shared_ptr<manager::TimelineManager>  timelineManager_;
@@ -302,6 +308,9 @@ MainWindow::MainWindow(QWidget* parent) :
 
    // Placefile Manager Dialog
    p->placefileDialog_ = new ui::PlacefileDialog(this);
+
+   // Marker Manager Dialog
+   p->markerDialog_ = new ui::MarkerDialog(this);
 
    // Layer Dialog
    p->layerDialog_ = new ui::LayerDialog(this);
@@ -608,6 +617,11 @@ void MainWindow::on_actionRadarSites_triggered(bool checked)
 void MainWindow::on_actionPlacefileManager_triggered()
 {
    p->placefileDialog_->show();
+}
+
+void MainWindow::on_actionMarkerManager_triggered()
+{
+   p->markerDialog_->show();
 }
 
 void MainWindow::on_actionLayerManager_triggered()

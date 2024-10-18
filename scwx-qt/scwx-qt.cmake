@@ -95,6 +95,7 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/log_manager.hpp
                 source/scwx/qt/manager/media_manager.hpp
                 source/scwx/qt/manager/placefile_manager.hpp
+                source/scwx/qt/manager/marker_manager.hpp
                 source/scwx/qt/manager/position_manager.hpp
                 source/scwx/qt/manager/radar_product_manager.hpp
                 source/scwx/qt/manager/radar_product_manager_notifier.hpp
@@ -111,6 +112,7 @@ set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                 source/scwx/qt/manager/log_manager.cpp
                 source/scwx/qt/manager/media_manager.cpp
                 source/scwx/qt/manager/placefile_manager.cpp
+                source/scwx/qt/manager/marker_manager.cpp
                 source/scwx/qt/manager/position_manager.cpp
                 source/scwx/qt/manager/radar_product_manager.cpp
                 source/scwx/qt/manager/radar_product_manager_notifier.cpp
@@ -132,6 +134,7 @@ set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/overlay_layer.hpp
             source/scwx/qt/map/overlay_product_layer.hpp
             source/scwx/qt/map/placefile_layer.hpp
+            source/scwx/qt/map/marker_layer.hpp
             source/scwx/qt/map/radar_product_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp
             source/scwx/qt/map/radar_site_layer.hpp)
@@ -146,6 +149,7 @@ set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/overlay_layer.cpp
             source/scwx/qt/map/overlay_product_layer.cpp
             source/scwx/qt/map/placefile_layer.cpp
+            source/scwx/qt/map/marker_layer.cpp
             source/scwx/qt/map/radar_product_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp
             source/scwx/qt/map/radar_site_layer.cpp)
@@ -154,6 +158,7 @@ set(HDR_MODEL source/scwx/qt/model/alert_model.hpp
               source/scwx/qt/model/imgui_context_model.hpp
               source/scwx/qt/model/layer_model.hpp
               source/scwx/qt/model/placefile_model.hpp
+              source/scwx/qt/model/marker_model.hpp
               source/scwx/qt/model/radar_site_model.hpp
               source/scwx/qt/model/tree_item.hpp
               source/scwx/qt/model/tree_model.hpp)
@@ -162,6 +167,7 @@ set(SRC_MODEL source/scwx/qt/model/alert_model.cpp
               source/scwx/qt/model/imgui_context_model.cpp
               source/scwx/qt/model/layer_model.cpp
               source/scwx/qt/model/placefile_model.cpp
+              source/scwx/qt/model/marker_model.cpp
               source/scwx/qt/model/radar_site_model.cpp
               source/scwx/qt/model/tree_item.cpp
               source/scwx/qt/model/tree_model.cpp)
@@ -215,6 +221,7 @@ set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/location_types.hpp
               source/scwx/qt/types/map_types.hpp
               source/scwx/qt/types/media_types.hpp
+              source/scwx/qt/types/marker_types.hpp
               source/scwx/qt/types/qt_types.hpp
               source/scwx/qt/types/radar_product_record.hpp
               source/scwx/qt/types/text_event_key.hpp
@@ -260,6 +267,8 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/open_url_dialog.hpp
            source/scwx/qt/ui/placefile_dialog.hpp
            source/scwx/qt/ui/placefile_settings_widget.hpp
+           source/scwx/qt/ui/marker_dialog.hpp
+           source/scwx/qt/ui/marker_settings_widget.hpp
            source/scwx/qt/ui/progress_dialog.hpp
            source/scwx/qt/ui/radar_site_dialog.hpp
            source/scwx/qt/ui/serial_port_dialog.hpp
@@ -288,6 +297,8 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/open_url_dialog.cpp
            source/scwx/qt/ui/placefile_dialog.cpp
            source/scwx/qt/ui/placefile_settings_widget.cpp
+           source/scwx/qt/ui/marker_dialog.cpp
+           source/scwx/qt/ui/marker_settings_widget.cpp
            source/scwx/qt/ui/progress_dialog.cpp
            source/scwx/qt/ui/radar_site_dialog.cpp
            source/scwx/qt/ui/settings_dialog.cpp
@@ -307,6 +318,8 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/open_url_dialog.ui
            source/scwx/qt/ui/placefile_dialog.ui
            source/scwx/qt/ui/placefile_settings_widget.ui
+           source/scwx/qt/ui/marker_dialog.ui
+           source/scwx/qt/ui/marker_settings_widget.ui
            source/scwx/qt/ui/progress_dialog.ui
            source/scwx/qt/ui/radar_site_dialog.ui
            source/scwx/qt/ui/settings_dialog.ui
