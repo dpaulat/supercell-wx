@@ -155,7 +155,7 @@ void DownloadManager::Impl::DownloadSync(
             return !request->IsCanceled();
          }),
       cpr::WriteCallback(
-         [&](std::string data, std::intptr_t /* userdata */)
+         [&](const std::string_view& data, std::intptr_t /* userdata */)
          {
             // Write file
             ofs << data;
