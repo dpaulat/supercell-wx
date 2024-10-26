@@ -42,9 +42,14 @@ MarkerModel::MarkerModel(QObject* parent) :
          &MarkerModel::HandleMarkersInitialized);
 
    connect(p->markerManager_.get(),
-         &manager::MarkerManager::MarkerAdded,
+         &manager::MarkerManager::StartMarkerAdd,
          this,
-         &MarkerModel::HandleMarkerAdded);
+         &MarkerModel::StartMarkerAdd);
+
+   connect(p->markerManager_.get(),
+         &manager::MarkerManager::EndMarkerAdd,
+         this,
+         &MarkerModel::EndMarkerAdd);
 
    connect(p->markerManager_.get(),
          &manager::MarkerManager::MarkerChanged,
@@ -52,9 +57,14 @@ MarkerModel::MarkerModel(QObject* parent) :
          &MarkerModel::HandleMarkerChanged);
 
    connect(p->markerManager_.get(),
-         &manager::MarkerManager::MarkerRemoved,
+         &manager::MarkerManager::StartMarkerRemove,
          this,
-         &MarkerModel::HandleMarkerRemoved);
+         &MarkerModel::StartMarkerRemove);
+
+   connect(p->markerManager_.get(),
+         &manager::MarkerManager::EndMarkerRemove,
+         this,
+         &MarkerModel::EndMarkerRemove);
 }
 
 MarkerModel::~MarkerModel() = default;
@@ -264,11 +274,14 @@ void MarkerModel::HandleMarkersInitialized(size_t count)
    endInsertRows();
 }
 
-void MarkerModel::HandleMarkerAdded()
+void MarkerModel::StartMarkerAdd(size_t index)
 {
-   const int newIndex = static_cast<int>(p->markerManager_->marker_count() - 1);
-
+   const int newIndex = static_cast<int>(index);
    beginInsertRows(QModelIndex(), newIndex, newIndex);
+}
+
+void MarkerModel::EndMarkerAdd()
+{
    endInsertRows();
 }
 
@@ -281,11 +294,15 @@ void MarkerModel::HandleMarkerChanged(size_t index)
    Q_EMIT dataChanged(topLeft, bottomRight);
 }
 
-void MarkerModel::HandleMarkerRemoved(size_t index)
+void MarkerModel::StartMarkerRemove(size_t index)
 {
    const int removedIndex = static_cast<int>(index);
 
    beginRemoveRows(QModelIndex(), removedIndex, removedIndex);
+}
+
+void MarkerModel::EndMarkerRemove()
+{
    endRemoveRows();
 }
 

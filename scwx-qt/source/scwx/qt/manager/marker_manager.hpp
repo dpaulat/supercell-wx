@@ -33,11 +33,14 @@ public:
    static std::shared_ptr<MarkerManager> Instance();
 
 signals:
-   void MarkersInitialized(size_t count);
    void MarkersUpdated();
+
+   void MarkersInitialized(size_t count);
    void MarkerChanged(size_t index);
-   void MarkerAdded();
-   void MarkerRemoved(size_t index);
+   void StartMarkerAdd(size_t index);
+   void EndMarkerAdd();
+   void StartMarkerRemove(size_t index);
+   void EndMarkerRemove();
 
 private:
    class Impl;

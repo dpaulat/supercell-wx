@@ -149,6 +149,7 @@ void MarkerManager::Impl::ReadMarkerSettings()
    }
 
    Q_EMIT self_->MarkersUpdated();
+   Q_EMIT self_->MarkersInitialized(markerRecords_.size());
 }
 
 void MarkerManager::Impl::WriteMarkerSettings()
@@ -187,7 +188,6 @@ MarkerManager::MarkerManager() : p(std::make_unique<Impl>(this))
                            main::Application::WaitForInitialization();
                            p->ReadMarkerSettings();
 
-                           Q_EMIT MarkersInitialized(p->markerRecords_.size());
                         }
                         catch (const std::exception& ex)
                         {
@@ -236,16 +236,18 @@ void MarkerManager::set_marker(size_t index, const types::MarkerInfo& marker)
 
 void MarkerManager::add_marker(const types::MarkerInfo& marker)
 {
+   Q_EMIT StartMarkerAdd(p->markerRecords_.size());
    {
       std::unique_lock lock(p->markerRecordLock_);
       p->markerRecords_.emplace_back(std::make_shared<Impl::MarkerRecord>(marker));
    }
-   Q_EMIT MarkerAdded();
+   Q_EMIT EndMarkerAdd();
    Q_EMIT MarkersUpdated();
 }
 
 void MarkerManager::remove_marker(size_t index)
 {
+   Q_EMIT StartMarkerRemove(index);
    {
       std::unique_lock lock(p->markerRecordLock_);
       if (index >= p->markerRecords_.size())
@@ -256,7 +258,7 @@ void MarkerManager::remove_marker(size_t index)
       p->markerRecords_.erase(std::next(p->markerRecords_.begin(), index));
    }
 
-   Q_EMIT MarkerRemoved(index);
+   Q_EMIT EndMarkerRemove();
    Q_EMIT MarkersUpdated();
 }
 
