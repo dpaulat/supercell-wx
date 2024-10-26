@@ -37,12 +37,31 @@ public:
    ~Impl() { threadPool_.join(); }
 
    std::string                                markerSettingsPath_ {""};
-   std::vector<std::shared_ptr<MarkerRecord>> markerRecords_ {};
 
    MarkerManager* self_;
 
    boost::asio::thread_pool threadPool_ {1u};
-   std::shared_mutex        markerRecordLock_ {};
+   /* Accessing markerRecords_
+    * For reads to markerRecords_, simply use std::shared_lock to lock
+    * markerRecordAccessMutex_
+    * For writes to markerRecords_
+    * 1. lock markerRecordModifyMutex_
+    * 2. emit start signals
+    * 3. lock (std::unique_lock) markerRecordAccessMutex_
+    * 4. Do changes
+    * 5. Unlock markerRecordAccessMutex_
+    * 6. emit end signals
+    * 7. Unlock markerRecordModifyMutex_
+    *
+    * markerRecordAccessMutex_ prevents reads during the actual right.
+    * markerRecordModifyMutex_ prevents two writes from happening.
+    * the unique_lock portion of markerRecordAccessMutex_ does not protect
+    * from 2 writes happening because reads may need to happen during
+    * signals, so they cannot be in the critical section.
+    */
+   std::shared_mutex        markerRecordAccessMutex_ {};
+   std::mutex               markerRecordModifyMutex_ {};
+   std::vector<std::shared_ptr<MarkerRecord>> markerRecords_ {};
 
    void                          InitializeMarkerSettings();
    void                          ReadMarkerSettings();
@@ -112,51 +131,53 @@ void MarkerManager::Impl::ReadMarkerSettings()
 
    boost::json::value markerJson = nullptr;
    {
-      std::unique_lock lock(markerRecordLock_);
-
-      // Determine if marker settings exists
-      if (std::filesystem::exists(markerSettingsPath_))
+      std::unique_lock modifyLock(markerRecordModifyMutex_);
       {
-         markerJson = util::json::ReadJsonFile(markerSettingsPath_);
-      }
+         std::unique_lock accessLock(markerRecordAccessMutex_);
 
-      if (markerJson != nullptr && markerJson.is_array())
-      {
-         // For each marker entry
-         auto& markerArray = markerJson.as_array();
-         markerRecords_.reserve(markerArray.size());
-         for (auto& markerEntry : markerArray)
+         // Determine if marker settings exists
+         if (std::filesystem::exists(markerSettingsPath_))
          {
-            try
-            {
-               MarkerRecord record =
-                  boost::json::value_to<MarkerRecord>(markerEntry);
-
-               if (!record.markerInfo_.name.empty())
-               {
-                  markerRecords_.emplace_back(
-                     std::make_shared<MarkerRecord>(record.markerInfo_));
-               }
-            }
-            catch (const std::exception& ex)
-            {
-               logger_->warn("Invalid location marker entry: {}", ex.what());
-            }
+            markerJson = util::json::ReadJsonFile(markerSettingsPath_);
          }
 
-         logger_->debug("{} location marker entries", markerRecords_.size());
-      }
-   }
+         if (markerJson != nullptr && markerJson.is_array())
+         {
+            // For each marker entry
+            auto& markerArray = markerJson.as_array();
+            markerRecords_.reserve(markerArray.size());
+            for (auto& markerEntry : markerArray)
+            {
+               try
+               {
+                  MarkerRecord record =
+                     boost::json::value_to<MarkerRecord>(markerEntry);
 
-   Q_EMIT self_->MarkersUpdated();
-   Q_EMIT self_->MarkersInitialized(markerRecords_.size());
+                  if (!record.markerInfo_.name.empty())
+                  {
+                     markerRecords_.emplace_back(
+                        std::make_shared<MarkerRecord>(record.markerInfo_));
+                  }
+               }
+               catch (const std::exception& ex)
+               {
+                  logger_->warn("Invalid location marker entry: {}", ex.what());
+               }
+            }
+
+            logger_->debug("{} location marker entries", markerRecords_.size());
+         }
+      }
+      Q_EMIT self_->MarkersUpdated();
+      Q_EMIT self_->MarkersInitialized(markerRecords_.size());
+   }
 }
 
 void MarkerManager::Impl::WriteMarkerSettings()
 {
    logger_->info("Saving location marker settings");
 
-   std::shared_lock lock(markerRecordLock_);
+   std::shared_lock lock(markerRecordAccessMutex_);
    auto markerJson = boost::json::value_from(markerRecords_);
    util::json::WriteJsonFile(markerSettingsPath_, markerJson);
 }
@@ -208,7 +229,7 @@ size_t MarkerManager::marker_count()
 
 std::optional<types::MarkerInfo> MarkerManager::get_marker(size_t index)
 {
-   std::shared_lock lock(p->markerRecordLock_);
+   std::shared_lock lock(p->markerRecordAccessMutex_);
    if (index >= p->markerRecords_.size())
    {
       return {};
@@ -221,77 +242,90 @@ std::optional<types::MarkerInfo> MarkerManager::get_marker(size_t index)
 void MarkerManager::set_marker(size_t index, const types::MarkerInfo& marker)
 {
    {
-      std::unique_lock lock(p->markerRecordLock_);
-      if (index >= p->markerRecords_.size())
+      std::unique_lock modifyLock(p->markerRecordModifyMutex_);
       {
-         return;
+         std::unique_lock accessLock(p->markerRecordAccessMutex_);
+         if (index >= p->markerRecords_.size())
+         {
+            return;
+         }
+         std::shared_ptr<MarkerManager::Impl::MarkerRecord>& markerRecord =
+            p->markerRecords_[index];
+         markerRecord->markerInfo_ = marker;
       }
-      std::shared_ptr<MarkerManager::Impl::MarkerRecord>& markerRecord =
-         p->markerRecords_[index];
-      markerRecord->markerInfo_ = marker;
+      Q_EMIT MarkerChanged(index);
+      Q_EMIT MarkersUpdated();
    }
-   Q_EMIT MarkerChanged(index);
-   Q_EMIT MarkersUpdated();
 }
 
 void MarkerManager::add_marker(const types::MarkerInfo& marker)
 {
-   Q_EMIT StartMarkerAdd(p->markerRecords_.size());
    {
-      std::unique_lock lock(p->markerRecordLock_);
-      p->markerRecords_.emplace_back(std::make_shared<Impl::MarkerRecord>(marker));
+      std::unique_lock modifyLock(p->markerRecordModifyMutex_);
+      Q_EMIT StartMarkerAdd(p->markerRecords_.size());
+      {
+         std::unique_lock accessLock(p->markerRecordAccessMutex_);
+         p->markerRecords_.emplace_back(
+            std::make_shared<Impl::MarkerRecord>(marker));
+      }
+      Q_EMIT EndMarkerAdd();
+      Q_EMIT MarkersUpdated();
    }
-   Q_EMIT EndMarkerAdd();
-   Q_EMIT MarkersUpdated();
 }
 
 void MarkerManager::remove_marker(size_t index)
 {
-   Q_EMIT StartMarkerRemove(index);
    {
-      std::unique_lock lock(p->markerRecordLock_);
-      if (index >= p->markerRecords_.size())
+      std::unique_lock modifyLock(p->markerRecordModifyMutex_);
+      Q_EMIT StartMarkerRemove(index);
       {
-         return;
+         std::unique_lock lock(p->markerRecordAccessMutex_);
+         if (index >= p->markerRecords_.size())
+         {
+            return;
+         }
+
+         p->markerRecords_.erase(std::next(p->markerRecords_.begin(), index));
       }
 
-      p->markerRecords_.erase(std::next(p->markerRecords_.begin(), index));
+      Q_EMIT EndMarkerRemove();
+      Q_EMIT MarkersUpdated();
    }
-
-   Q_EMIT EndMarkerRemove();
-   Q_EMIT MarkersUpdated();
 }
 
 void MarkerManager::move_marker(size_t from, size_t to)
 {
    {
-      std::unique_lock lock(p->markerRecordLock_);
-      if (from >= p->markerRecords_.size() || to >= p->markerRecords_.size())
+      std::unique_lock modifyLock(p->markerRecordModifyMutex_);
       {
-         return;
-      }
-      std::shared_ptr<MarkerManager::Impl::MarkerRecord>& markerRecord =
-         p->markerRecords_[from];
+         std::unique_lock accessLock(p->markerRecordAccessMutex_);
+         if (from >= p->markerRecords_.size() || to >= p->markerRecords_.size())
+         {
+            return;
+         }
+         std::shared_ptr<MarkerManager::Impl::MarkerRecord>& markerRecord =
+            p->markerRecords_[from];
 
-      if (from == to) {}
-      else if (from < to)
-      {
-         for (size_t i = from; i < to; i++)
+         if (from == to) {}
+         else if (from < to)
          {
-            p->markerRecords_[i] = p->markerRecords_[i + 1];
+            for (size_t i = from; i < to; i++)
+            {
+               p->markerRecords_[i] = p->markerRecords_[i + 1];
+            }
+            p->markerRecords_[to] = markerRecord;
          }
-         p->markerRecords_[to] = markerRecord;
-      }
-      else
-      {
-         for (size_t i = from; i > to; i--)
+         else
          {
-            p->markerRecords_[i] = p->markerRecords_[i - 1];
+            for (size_t i = from; i > to; i--)
+            {
+               p->markerRecords_[i] = p->markerRecords_[i - 1];
+            }
+            p->markerRecords_[to] = markerRecord;
          }
-         p->markerRecords_[to] = markerRecord;
       }
+      Q_EMIT MarkersUpdated();
    }
-   Q_EMIT MarkersUpdated();
 }
 
 // Only use for testing
