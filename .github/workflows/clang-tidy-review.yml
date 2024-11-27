@@ -2,8 +2,6 @@ name: clang-tidy-review
 
 on:
   pull_request:
-    branches:
-      - 'develop'
 
 concurrency:
   # Cancel in-progress jobs for the same pull request
