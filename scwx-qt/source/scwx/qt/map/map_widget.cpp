@@ -59,7 +59,6 @@ namespace qt
 namespace map
 {
 
-// Add a comment
 static const std::string logPrefix_ = "scwx::qt::map::map_widget";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
@@ -272,7 +271,7 @@ MapWidget::MapWidget(std::size_t id, const QMapLibre::Settings& settings) :
    if (settings::GeneralSettings::Instance().anti_aliasing_enabled().GetValue())
    {
       QSurfaceFormat surfaceFormat = QSurfaceFormat::defaultFormat();
-      surfaceFormat.setSamples(4);
+      surfaceFormat.setSamples(2);
       setFormat(surfaceFormat);
    }
 
