@@ -59,6 +59,7 @@ namespace qt
 namespace map
 {
 
+// Add a comment
 static const std::string logPrefix_ = "scwx::qt::map::map_widget";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
