@@ -1,0 +1,30 @@
+name: clang-format-check
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - 'develop'
+
+concurrency:
+  # Cancel in-progress jobs for the same pull request
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        path: source
+        submodules: false
+
+    - name: Check Formatting
+      uses: jayllyz/clang-format-action@v1
+      with:
+        check: true
+        clang-version: 17
+        base-ref: refs/remotes/origin/develop
