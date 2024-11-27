@@ -539,8 +539,8 @@ void MapWidgetImpl::HandleHotkeyUpdates()
       case types::Hotkey::MapZoomIn:
       {
          auto    widgetSize = widget_->size();
-         QPointF center     = {widgetSize.width() * 0.5f,
-                               widgetSize.height() * 0.5f};
+         QPointF center     = {widgetSize.width() * 0.6f,
+                               widgetSize.height() * 0.6f};
          double  scale = std::pow(2.0, hotkeyElapsed.count() / kMapScaleFactor);
          map_->scaleBy(scale, center);
          break;
@@ -549,8 +549,8 @@ void MapWidgetImpl::HandleHotkeyUpdates()
       case types::Hotkey::MapZoomOut:
       {
          auto    widgetSize = widget_->size();
-         QPointF center     = {widgetSize.width() * 0.5f,
-                               widgetSize.height() * 0.5f};
+         QPointF center     = {widgetSize.width() * 0.6f,
+                               widgetSize.height() * 0.6f};
          double  scale =
             1.0 / std::pow(2.0, hotkeyElapsed.count() / kMapScaleFactor);
          map_->scaleBy(scale, center);
