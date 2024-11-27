@@ -1,0 +1,9 @@
+Checks:
+  - '-*'
+  - 'bugprone-*'
+  - 'clang-analyzer-*'
+  - 'cppcoreguidelines-*'
+  - 'misc-*','modernize-*'
+  - 'performance-*'
+  - '-misc-include-cleaner'
+FormatStyle: 'file'
