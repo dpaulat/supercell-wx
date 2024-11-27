@@ -9,5 +9,5 @@ Checks:
   - '-misc-include-cleaner'
   - '-misc-non-private-member-variables-in-classes'
   - '-modernize-use-trailing-return-type'
-ExtraArgs: ['-std=c++20']
+ExtraArgs: ['-std=c++20', '-stdlib=libstdc++', '-D_GLIBCXX_USE_CXX11_ABI=1']
 FormatStyle: 'file'
