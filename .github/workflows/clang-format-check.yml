@@ -13,18 +13,28 @@ concurrency:
 
 jobs:
   format:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
 
     - name: Checkout
       uses: actions/checkout@v4
       with:
-        path: source
+        fetch-depth: 0
         submodules: false
 
+    - name: Update References
+      shell: bash
+      run: |
+        git fetch origin develop
+
+    - name: Setup Ubuntu Environment
+      shell: bash
+      run: |
+        sudo apt-get install clang-format-17
+
     - name: Check Formatting
-      uses: jayllyz/clang-format-action@v1
-      with:
-        check: true
-        clang-version: 17
-        base-ref: refs/remotes/origin/develop
+      shell: bash
+      run: |
+        MERGE_BASE=$(git merge-base origin/develop ${{ github.ref }})
+        echo "Comparing against ${MERGE_BASE}"
+        git clang-format-17 --diff --style=file -v ${MERGE_BASE}
