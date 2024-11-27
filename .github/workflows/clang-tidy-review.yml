@@ -99,6 +99,7 @@ jobs:
       id: review
       uses: ZedThree/clang-tidy-review@v0.20.1
       with:
+        clang_tidy_version: 17
         config_file: .clang-tidy
         build_dir: build
         lgtm_comment_body: ''
