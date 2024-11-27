@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: linux64_clang
+          - name: linux64_clang-tidy
             os: ubuntu-24.04
             build_type: Release
             env_cc: clang-17
@@ -29,6 +29,7 @@ jobs:
             conan_compiler_runtime: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
             compiler_packages: clang-17
+    name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     env:
       CC: ${{ matrix.env_cc }}
