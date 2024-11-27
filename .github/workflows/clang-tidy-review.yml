@@ -91,7 +91,7 @@ jobs:
 
     - name: Review
       id: review
-      uses: ZedThree/clang-tidy-review@v0.14.0
+      uses: ZedThree/clang-tidy-review@v0.20.1
       with:
         config_file: .clang-tidy
         build_dir: build
