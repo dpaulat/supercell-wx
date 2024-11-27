@@ -9,4 +9,5 @@ Checks:
   - '-misc-include-cleaner'
   - '-misc-non-private-member-variables-in-classes'
   - '-modernize-use-trailing-return-type'
+ExtraArgs: ['-std=c++20']
 FormatStyle: 'file'
