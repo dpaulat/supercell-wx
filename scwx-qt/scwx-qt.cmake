@@ -510,6 +510,7 @@ source_group("I18N Files"                 FILES ${TS_FILES})
 
 add_library(scwx-qt OBJECT ${PROJECT_SOURCES})
 set_property(TARGET scwx-qt PROPERTY AUTOMOC ON)
+set_property(TARGET scwx-qt PROPERTY AUTOGEN_ORIGIN_DEPENDS OFF)
 
 add_custom_command(OUTPUT  ${COUNTIES_SQLITE_DB}
                    COMMAND ${Python_EXECUTABLE}
