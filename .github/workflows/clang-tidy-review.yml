@@ -126,9 +126,9 @@ jobs:
                --split_workflow=false \
                --annotations=false \
                --parallel=0
-        rsync -avzh --ignore-mising-args clang-tidy-review-output.json ../
-        rsync -avzh --ignore-mising-args clang-tidy-review-metadata.json ../
-        rsync -avzh --ignore-mising-args clang_fixes.json ../
+        rsync -avzh --ignore-missing-args clang-tidy-review-output.json ../
+        rsync -avzh --ignore-missing-args clang-tidy-review-metadata.json ../
+        rsync -avzh --ignore-missing-args clang_fixes.json ../
 
     - name: Upload Review
       uses: ZedThree/clang-tidy-review/upload@v0.20.1
