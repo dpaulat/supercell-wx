@@ -122,7 +122,7 @@ jobs:
                --apt-packages='' \
                --cmake-command='' \
                --max-comments=25 \
-               --lgtm_comment_body='' \
+               --lgtm-comment-body='' \
                --split_workflow=false \
                --annotations=false \
                --parallel=0
