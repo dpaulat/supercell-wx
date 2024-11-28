@@ -109,13 +109,13 @@ jobs:
       shell: bash
       run: |
         cd source
-        review --clang_tidy_binary=clang-tidy-17
+        review --clang_tidy_binary=clang-tidy-17 \
                --token=${{ github.token }} \
                --repo='${{ github.repository }}' \
                --pr='${{ github.event.pull_request.number }}' \
                --build_dir='../build' \
                --base_dir='${{ github.workspace }}/source' \
-               --clang_tidy_checks=''
+               --clang_tidy_checks='' \
                --config_file='.clang-tidy' \
                --include='*.[ch],*.[ch]xx,*.[ch]pp,*.[ch]++,*.cc,*.hh' \
                --exclude='' \
