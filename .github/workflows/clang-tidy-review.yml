@@ -133,13 +133,6 @@ jobs:
     - name: Upload Review
       uses: ZedThree/clang-tidy-review/upload@v0.20.1
 
-    - name: Upload Compile Commands
-      if: ${{ !cancelled() }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: compile-commands.json
-        path: ${{ github.workspace }}/build/compile_commands.json
-
     - name: Status Check
       if: steps.review.outputs.total_comments > 0
       run: exit 1
