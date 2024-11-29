@@ -18,7 +18,7 @@ namespace util
  *
  * @return The loaded palette, or the fallback palette if it could not be loaded
  */
-QPalette loadColorScheme(const QString &filePath, const QPalette &fallback);
+QPalette loadColorScheme(const QString& filePath, const QPalette& fallback);
 
 } // namespace util
 } // namespace qt
