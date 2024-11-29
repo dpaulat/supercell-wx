@@ -12,6 +12,7 @@
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/ui/setup/setup_wizard.hpp>
+#include <scwx/qt/util/qt6ct_palette.hpp>
 #include <scwx/network/cpr.hpp>
 #include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
@@ -164,6 +165,33 @@ static void ConfigureTheme(const std::vector<std::string>& args)
    }
 
    QGuiApplication::styleHints()->setColorScheme(qtColorScheme);
+
+   std::optional<std::string> paletteFile;
+   if (uiStyle == scwx::qt::types::UiStyle::FusionCustom) {
+      paletteFile = generalSettings.theme_file().GetValue();
+   }
+   else
+   {
+      paletteFile = scwx::qt::types::GetQtPaletteFile(uiStyle);
+   }
+
+   if (paletteFile)
+   {
+      QPalette defaultPalette = QApplication::style()->standardPalette();
+      QPalette palette        = scwx::qt::util::loadColorScheme(
+         QString::fromStdString(*paletteFile), defaultPalette);
+
+      if (defaultPalette == palette)
+      {
+         logger_->warn("Failed to load palette file '{}'", *paletteFile);
+      }
+      else
+      {
+         logger_->info("Loaded palette file '{}'", *paletteFile);
+      }
+
+      QApplication::setPalette(palette);
+   }
 }
 
 static void
