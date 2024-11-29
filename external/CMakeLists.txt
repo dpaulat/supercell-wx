@@ -11,8 +11,7 @@ set_property(DIRECTORY
              maplibre-native-qt.cmake
              stb.cmake
              textflowcpp.cmake
-             units.cmake
-             qt6ct.cmake)
+             units.cmake)
 
 include(aws-sdk-cpp.cmake)
 include(date.cmake)
@@ -22,4 +21,3 @@ include(maplibre-native-qt.cmake)
 include(stb.cmake)
 include(textflowcpp.cmake)
 include(units.cmake)
-include(qt6ct.cmake)

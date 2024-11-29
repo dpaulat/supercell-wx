@@ -30,10 +30,6 @@
 #include <QPalette>
 #include <QStyle>
 
-#define QT6CT_LIBRARY
-#include <qt6ct-common/qt6ct.h>
-#undef QT6CT_LIBRARY
-
 static const std::string logPrefix_ = "scwx::main";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
@@ -168,33 +164,6 @@ static void ConfigureTheme(const std::vector<std::string>& args)
    }
 
    QGuiApplication::styleHints()->setColorScheme(qtColorScheme);
-
-   std::optional<std::string> paletteFile;
-   if (uiStyle == scwx::qt::types::UiStyle::FusionCustom) {
-      paletteFile = generalSettings.theme_file().GetValue();
-   }
-   else
-   {
-      paletteFile = scwx::qt::types::GetQtPaletteFile(uiStyle);
-   }
-
-   if (paletteFile)
-   {
-      QPalette defaultPalette = QApplication::style()->standardPalette();
-      QPalette palette        = Qt6CT::loadColorScheme(
-         QString::fromStdString(*paletteFile), defaultPalette);
-
-      if (defaultPalette == palette)
-      {
-         logger_->warn("Failed to load palette file '{}'", *paletteFile);
-      }
-      else
-      {
-         logger_->info("Loaded palette file '{}'", *paletteFile);
-      }
-
-      QApplication::setPalette(palette);
-   }
 }
 
 static void
