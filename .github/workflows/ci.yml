@@ -76,7 +76,7 @@ jobs:
             conan_compiler_libcxx: --settings compiler.libcxx=libstdc++11
             conan_compiler_runtime: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            artifact_suffix: linux-clang-x64
+            artifact_suffix: linux-clang-13-x64
             compiler_packages: clang-13
           - name: linux64_clang-14
             os: ubuntu-22.04
@@ -95,7 +95,7 @@ jobs:
             conan_compiler_libcxx: --settings compiler.libcxx=libstdc++11
             conan_compiler_runtime: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            artifact_suffix: linux-clang-x64
+            artifact_suffix: linux-clang-14-x64
             compiler_packages: clang-14
           - name: linux64_clang-15
             os: ubuntu-22.04
@@ -114,7 +114,7 @@ jobs:
             conan_compiler_libcxx: --settings compiler.libcxx=libstdc++11
             conan_compiler_runtime: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            artifact_suffix: linux-clang-x64
+            artifact_suffix: linux-clang-15-x64
             compiler_packages: clang-15
           - name: linux64_clang
             os: ubuntu-24.04
