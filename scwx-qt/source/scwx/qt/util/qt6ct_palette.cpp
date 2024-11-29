@@ -33,7 +33,8 @@
 #include <QSettings>
 #include <QPalette>
 
-namespace scwx::qt::util {
+namespace scwx::qt::util
+{
 
 QPalette loadColorScheme(const QString& filePath, const QPalette& fallback)
 {
@@ -79,4 +80,4 @@ QPalette loadColorScheme(const QString& filePath, const QPalette& fallback)
    return customPalette;
 }
 
-} // namespace util
+} // namespace scwx::qt::util

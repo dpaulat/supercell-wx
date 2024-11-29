@@ -16,4 +16,4 @@ namespace scwx::qt::util
  */
 QPalette loadColorScheme(const QString& filePath, const QPalette& fallback);
 
-}
+} // namespace scwx::qt::util
