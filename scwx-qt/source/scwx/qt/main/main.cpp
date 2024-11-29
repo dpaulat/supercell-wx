@@ -177,8 +177,8 @@ static void ConfigureTheme(const std::vector<std::string>& args)
 
    if (paletteFile)
    {
-      QPalette defaultPalette = QApplication::style()->standardPalette();
-      QPalette palette        = scwx::qt::util::loadColorScheme(
+      const QPalette defaultPalette = QApplication::style()->standardPalette();
+      const QPalette palette        = scwx::qt::util::loadColorScheme(
          QString::fromStdString(*paletteFile), defaultPalette);
 
       if (defaultPalette == palette)

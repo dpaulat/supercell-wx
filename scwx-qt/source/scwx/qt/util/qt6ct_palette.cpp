@@ -33,12 +33,7 @@
 #include <QSettings>
 #include <QPalette>
 
-namespace scwx
-{
-namespace qt
-{
-namespace util
-{
+namespace scwx::qt::util {
 
 QPalette loadColorScheme(const QString& filePath, const QPalette& fallback)
 {
@@ -67,7 +62,7 @@ QPalette loadColorScheme(const QString& filePath, const QPalette& fallback)
    {
       for (int i = 0; i < QPalette::NColorRoles; i++)
       {
-         QPalette::ColorRole role = QPalette::ColorRole(i);
+         auto role = QPalette::ColorRole(i);
          customPalette.setColor(
             QPalette::Active, role, QColor(activeColors.at(i)));
          customPalette.setColor(
@@ -85,5 +80,3 @@ QPalette loadColorScheme(const QString& filePath, const QPalette& fallback)
 }
 
 } // namespace util
-} // namespace qt
-} // namespace scwx

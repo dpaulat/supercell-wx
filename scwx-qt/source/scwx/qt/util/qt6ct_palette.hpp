@@ -2,11 +2,7 @@
 
 #include <QPalette>
 
-namespace scwx
-{
-namespace qt
-{
-namespace util
+namespace scwx::qt::util
 {
 
 /**
@@ -20,6 +16,4 @@ namespace util
  */
 QPalette loadColorScheme(const QString& filePath, const QPalette& fallback);
 
-} // namespace util
-} // namespace qt
-} // namespace scwx
+}
