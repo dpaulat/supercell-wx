@@ -22,6 +22,9 @@ class SetupWizard::Impl
 public:
    explicit Impl() = default;
    ~Impl()         = default;
+
+   bool mapProviderPageIsRequired_ {MapProviderPage::IsRequired()};
+   bool audioCodecPageIsRequired_ {AudioCodecPage::IsRequired()};
 };
 
 SetupWizard::SetupWizard(QWidget* parent) :
@@ -66,14 +69,14 @@ int SetupWizard::nextId() const
       {
       case static_cast<int>(Page::MapProvider):
       case static_cast<int>(Page::MapLayout):
-         if (MapProviderPage::IsRequired())
+         if (p->mapProviderPageIsRequired_)
          {
             return nextId;
          }
          break;
 
       case static_cast<int>(Page::AudioCodec):
-         if (AudioCodecPage::IsRequired())
+         if (p->audioCodecPageIsRequired_)
          {
             return nextId;
          }
