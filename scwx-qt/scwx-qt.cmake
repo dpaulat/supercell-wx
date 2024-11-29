@@ -21,9 +21,7 @@ find_package(Python COMPONENTS Interpreter)
 find_package(SQLite3)
 
 find_package(QT NAMES Qt6
-             COMPONENTS BuildInternals
-                        Core
-                        Gui
+             COMPONENTS Gui
                         LinguistTools
                         Multimedia
                         Network
@@ -37,9 +35,7 @@ find_package(QT NAMES Qt6
              REQUIRED)
 
 find_package(Qt${QT_VERSION_MAJOR}
-             COMPONENTS BuildInternals
-                        Core
-                        Gui
+             COMPONENTS Gui
                         LinguistTools
                         Multimedia
                         Network
