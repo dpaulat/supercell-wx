@@ -82,7 +82,7 @@ jobs:
     env:
       CC: ${{ matrix.env_cc }}
       CXX: ${{ matrix.env_cxx }}
-      SCWX_VERSION: v0.4.6
+      SCWX_VERSION: v0.4.7
     runs-on: ${{ matrix.os }}
 
     steps:
