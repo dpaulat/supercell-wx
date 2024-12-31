@@ -1,4 +1,5 @@
 // Disable strncpy warning
+#include <freetype/freetype.h>
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <scwx/qt/types/imgui_font.hpp>
@@ -26,17 +27,23 @@ public:
    explicit Impl(const std::string&            fontName,
                  const std::vector<char>&      fontData,
                  units::font_size::pixels<int> size) :
-       fontName_ {fontName}, size_ {size}
+       fontName_ {fontName}, size_ {size}, loaded_(HasUnicode(fontData))
    {
+      if (!loaded_)
+      {
+         return;
+      }
       CreateImGuiFont(fontData);
    }
 
    ~Impl() {}
 
    void CreateImGuiFont(const std::vector<char>& fontData);
+   bool HasUnicode(const std::vector<char>& fontData);
 
    const std::string                   fontName_;
    const units::font_size::pixels<int> size_;
+   bool loaded_;
 
    ImFont* imFont_ {nullptr};
 };
@@ -48,6 +55,42 @@ ImGuiFont::ImGuiFont(const std::string&            fontName,
 {
 }
 ImGuiFont::~ImGuiFont() = default;
+
+bool ImGuiFont::Impl::HasUnicode(const std::vector<char>& fontData)
+{
+   FT_Library ft_library;
+   FT_Error error = FT_Init_FreeType(&ft_library);
+   if (error != 0) {
+      logger_->error("Could not allocate ft_library");
+      return false;
+   }
+
+   FT_Face  Face;
+   error = FT_New_Memory_Face(
+      ft_library,
+      const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(fontData.data())),
+      static_cast<uint32_t>(fontData.size()),
+      static_cast<uint32_t>(0),
+      &Face);
+   if (error != 0)
+   {
+      FT_Done_FreeType(ft_library);
+      logger_->error("Could not allocate font face");
+      return false;
+   }
+   error = FT_Select_Charmap(Face, FT_ENCODING_UNICODE);
+   if (error != 0)
+   {
+      FT_Done_Face(Face);
+      FT_Done_FreeType(ft_library);
+      logger_->error("Font {} does not include a Unicode encoding", fontName_);
+      return false;
+   }
+   FT_Done_Face(Face);
+   FT_Done_FreeType(ft_library);
+
+   return true;
+}
 
 void ImGuiFont::Impl::CreateImGuiFont(const std::vector<char>& fontData)
 {
@@ -76,6 +119,11 @@ void ImGuiFont::Impl::CreateImGuiFont(const std::vector<char>& fontData)
 ImFont* ImGuiFont::font()
 {
    return p->imFont_;
+}
+
+bool ImGuiFont::loaded()
+{
+   return p->loaded_;
 }
 
 } // namespace types

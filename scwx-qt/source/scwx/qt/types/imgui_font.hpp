@@ -30,6 +30,7 @@ public:
    ImGuiFont& operator=(ImGuiFont&&) = delete;
 
    ImFont* font();
+   bool loaded();
 
 private:
    class Impl;

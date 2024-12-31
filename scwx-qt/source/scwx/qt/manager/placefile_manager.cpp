@@ -791,7 +791,10 @@ PlacefileManager::Impl::LoadFontResources(
 
       auto imGuiFont = FontManager::Instance().LoadImGuiFont(
          font.second->face_, styles, size);
-      imGuiFonts.emplace(font.first, std::move(imGuiFont));
+      if (imGuiFont != nullptr)
+      {
+         imGuiFonts.emplace(font.first, std::move(imGuiFont));
+      }
    }
 
    return imGuiFonts;

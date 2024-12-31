@@ -173,8 +173,22 @@ void FontManager::Impl::UpdateImGuiFont(types::FontCategory fontCategory)
    units::font_size::points<double> size {
       textSettings.font_point_size(fontCategory).GetValue()};
 
-   fontCategoryImguiFontMap_.insert_or_assign(
-      fontCategory, self_->LoadImGuiFont(family, {styles}, size));
+   std::shared_ptr<types::ImGuiFont> font =
+      self_->LoadImGuiFont(family, {styles}, size);
+
+   if (font != nullptr)
+   {
+      fontCategoryImguiFontMap_.insert_or_assign(fontCategory, font);
+   }
+   else
+   {
+      family = textSettings.font_family(fontCategory).GetDefault();
+      styles = textSettings.font_style(fontCategory).GetDefault();
+      units::font_size::points<double> size {
+         textSettings.font_point_size(fontCategory).GetValue()};
+      fontCategoryImguiFontMap_.insert_or_assign(
+         fontCategory, self_->LoadImGuiFont(family, {styles}, size));
+   }
 }
 
 void FontManager::Impl::UpdateQFont(types::FontCategory fontCategory)
@@ -315,6 +329,11 @@ FontManager::LoadImGuiFont(const std::string&               family,
    // Create an ImGui font
    std::shared_ptr<types::ImGuiFont> imguiFont =
       std::make_shared<types::ImGuiFont>(fontName, rawFontData, imFontSize);
+
+   if (!imguiFont->loaded())
+   {
+      return nullptr;
+   }
 
    // Store the ImGui font
    p->imguiFonts_.insert_or_assign(imguiFontKey, imguiFont);
