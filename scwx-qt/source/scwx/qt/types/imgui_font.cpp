@@ -43,7 +43,7 @@ public:
 
    const std::string                   fontName_;
    const units::font_size::pixels<int> size_;
-   bool loaded_;
+   bool                                loaded_;
 
    ImFont* imFont_ {nullptr};
 };
@@ -59,13 +59,14 @@ ImGuiFont::~ImGuiFont() = default;
 bool ImGuiFont::Impl::HasUnicode(const std::vector<char>& fontData)
 {
    FT_Library ft_library;
-   FT_Error error = FT_Init_FreeType(&ft_library);
-   if (error != 0) {
+   FT_Error   error = FT_Init_FreeType(&ft_library);
+   if (error != 0)
+   {
       logger_->error("Could not allocate ft_library");
       return false;
    }
 
-   FT_Face  Face;
+   FT_Face Face;
    error = FT_New_Memory_Face(
       ft_library,
       const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(fontData.data())),
