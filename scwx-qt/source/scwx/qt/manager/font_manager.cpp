@@ -182,12 +182,13 @@ void FontManager::Impl::UpdateImGuiFont(types::FontCategory fontCategory)
    }
    else
    {
-      family = textSettings.font_family(fontCategory).GetDefault();
-      styles = textSettings.font_style(fontCategory).GetDefault();
-      units::font_size::points<double> size {
+      auto defaultFamily = textSettings.font_family(fontCategory).GetDefault();
+      auto defaultStyles = textSettings.font_style(fontCategory).GetDefault();
+      units::font_size::points<double> defaultSize {
          textSettings.font_point_size(fontCategory).GetValue()};
       fontCategoryImguiFontMap_.insert_or_assign(
-         fontCategory, self_->LoadImGuiFont(family, {styles}, size));
+         fontCategory,
+         self_->LoadImGuiFont(defaultFamily, {defaultStyles}, defaultSize));
    }
 }
 
