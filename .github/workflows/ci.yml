@@ -103,7 +103,7 @@ jobs:
         submodules: recursive
 
     - name: Install Qt
-      uses: dpaulat/install-qt-action@b45c67aaa9e0ea77e59a7031ec14a12d5ddf4b35
+      uses: dpaulat/install-qt-action@ab8c8a2db2d22abefb540abdacdb356b7a33f349
       with:
         version: ${{ matrix.qt_version }}
         arch: ${{ matrix.qt_arch_aqt }}
