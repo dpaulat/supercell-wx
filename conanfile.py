@@ -35,7 +35,7 @@ class SupercellWxConan(ConanFile):
 
     def requirements(self):
         if self.settings.os == "Linux":
-            self.requires("onetbb/2021.12.0")
+            self.requires("onetbb/2021.13.0")
 
     def generate(self):
         build_folder = os.path.join(self.build_folder,
