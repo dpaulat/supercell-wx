@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.24)
 set(PROJECT_NAME supercell-wx)
 project(${PROJECT_NAME}
-        VERSION      0.4.9
-        DESCRIPTION  "Supercell Wx is a free, open source advanced weather radar viewer."
-        HOMEPAGE_URL "https://github.com/dpaulat/supercell-wx"
+        VERSION      1.0.0
+        DESCRIPTION  "TorDar is a free and open source fork of Supercell WX. TorDar is aimed to both revamp Supercell WX and add new features that were never there before."
+        HOMEPAGE_URL "https://github.com/TornadoRTX/TorDar"
         LANGUAGES    C CXX)
 
 set(CMAKE_POLICY_DEFAULT_CMP0054 NEW)
