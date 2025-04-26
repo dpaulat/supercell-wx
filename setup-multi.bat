@@ -2,7 +2,7 @@ call tools\setup-common.bat
 
 set build_dir=build
 set conan_profile=scwx-win64_msvc2022
-set qt_version=6.8.1
+set qt_version=6.9.0
 set qt_arch=msvc2022_64
 
 conan config install tools/conan/profiles/%conan_profile% -tf profiles

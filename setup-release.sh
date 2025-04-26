@@ -4,7 +4,7 @@
 build_dir=${1:-build-release}
 build_type=Release
 conan_profile=${2:-scwx-linux_gcc-11}
-qt_version=6.8.1
+qt_version=6.9.0
 qt_arch=gcc_64
 script_dir="$(dirname "$(readlink -f "$0")")"
 
