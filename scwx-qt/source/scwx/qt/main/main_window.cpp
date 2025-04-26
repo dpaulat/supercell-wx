@@ -67,7 +67,6 @@ static const auto        logger_    = util::Logger::Create(logPrefix_);
 class MainWindowImpl : public QObject
 {
    Q_OBJECT
-   Q_OBJECT
 
 public:
    explicit MainWindowImpl(MainWindow* mainWindow) :
@@ -261,60 +260,66 @@ MainWindow::MainWindow(QWidget* parent) :
     p(std::make_unique<MainWindowImpl>(this)),
     ui(new Ui::MainWindow)
 {
-   ui->setupUi(this);
+    // 1. Setup basic UI
+    ui->setupUi(this);
 
-   p->InitializeLayerDisplayActions();
+    // 2. Initialize radar product dropdown
+    radarProductPanel_ = new QWidget(this);
+    radarProductLayout_ = new QVBoxLayout(radarProductPanel_);
+    radarProductLayout_->setContentsMargins(0, 0, 0, 0);
+    radarProductLayout_->setSpacing(4);
 
-   // Assign the bottom left corner to the left dock widget
-   setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
+    // Add radar products
+    QStringList productNames = {"Reflectivity", "Velocity", "Correlation Coefficient"};
+    for (const auto& name : productNames)
+    {
+        QLabel* label = new QLabel(name, radarProductPanel_);
+        label->setStyleSheet("padding: 4px; font-size: 13px; color: white;");
+        radarProductLayout_->addWidget(label);
+    }
 
-   // Custom Radar Product Dropdown UI
-QWidget* productContainer = new QWidget(this);
-productContainer->setStyleSheet("background-color: #202020; border: 1px solid #444;");
-QVBoxLayout* productLayout = new QVBoxLayout(productContainer);
-productLayout->setContentsMargins(0, 0, 0, 0);
+    radarProductPanel_->setMaximumHeight(100);
+    radarProductPanel_->setStyleSheet("background-color: #202020; border: 1px solid #444;");
 
-// Toggle button
-QPushButton* productToggleButton = new QPushButton("Radar Product ▾", this);
-productToggleButton->setCheckable(true);
-productToggleButton->setStyleSheet("QPushButton { text-align: left; padding: 6px; font-size: 14px; color: white; }");
+    // 3. Create the radar product toggle button
+    productToggleButton_ = new QPushButton("Radar Product ▾", this);
+    productToggleButton_->setCheckable(true);
+    productToggleButton_->setChecked(true);
+    productToggleButton_->setStyleSheet("QPushButton { text-align: left; padding: 6px; font-size: 14px; color: white; background-color: #333; border: none; }");
+    
+    connect(productToggleButton_, &QPushButton::clicked, this, &MainWindow::ToggleRadarProductPanel);
 
-QWidget* productPanel = new QWidget(this);
-QVBoxLayout* panelLayout = new QVBoxLayout(productPanel);
-panelLayout->setContentsMargins(8, 4, 8, 4);
+    // 4. Insert into main layout
+    ui->verticalLayout->insertWidget(0, productToggleButton_);
+    ui->verticalLayout->insertWidget(1, radarProductPanel_);
 
-QStringList radarProducts = {"Reflectivity", "Velocity", "Correlation Coefficient"};
-for (const QString& name : radarProducts)
-{
-    QLabel* label = new QLabel(name);
-    label->setStyleSheet("color: white; font-size: 13px;");
-    panelLayout->addWidget(label);
+    // 5. Setup animation for panel
+    slideAnimation_ = new QPropertyAnimation(radarProductPanel_, "maximumHeight", this);
+    slideAnimation_->setDuration(250);
+
+    // 6. Other Setup
+    p->InitializeLayerDisplayActions();
+
+    setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
 }
 
-productPanel->setMaximumHeight(100);
-productPanel->setStyleSheet("background-color: #2c2c2c;");
 
-productLayout->addWidget(productToggleButton);
-productLayout->addWidget(productPanel);
 
-// Add to radarToolbox layout (you could replace another widget if desired)
-ui->radarToolboxScrollAreaContents->layout()->addWidget(productContainer);
+void MainWindow::ToggleRadarProductPanel()
+{
+    isProductPanelVisible_ = !isProductPanelVisible_;
+    int startHeight = isProductPanelVisible_ ? 0 : radarProductPanel_->height();
+    int endHeight = isProductPanelVisible_ ? radarProductPanel_->sizeHint().height() : 0;
 
-// Add slide animation
-QPropertyAnimation* slideAnimation = new QPropertyAnimation(productPanel, "maximumHeight");
-slideAnimation->setDuration(200);
+    slideAnimation_->stop();
+    slideAnimation_->setStartValue(startHeight);
+    slideAnimation_->setEndValue(endHeight);
+    slideAnimation_->start();
 
-// Toggle behavior
-QObject::connect(productToggleButton, &QPushButton::clicked, [=]() {
-    bool expanded = productToggleButton->isChecked();
-    productToggleButton->setText(expanded ? "Radar Product ▾" : "Radar Product ▸");
-    slideAnimation->stop();
-    slideAnimation->setStartValue(expanded ? 0 : productPanel->maximumHeight());
-    slideAnimation->setEndValue(expanded ? 100 : 0);
-    slideAnimation->start();
-});
+    productToggleButton_->setText(isProductPanelVisible_ ? "Radar Product ▾" : "Radar Product ▸");
+}
 
-   
+
    // Configure Radar Site Box
    ui->vcpLabel->setVisible(false);
    ui->vcpValueLabel->setVisible(false);
