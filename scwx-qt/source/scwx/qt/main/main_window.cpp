@@ -67,6 +67,7 @@ static const auto        logger_    = util::Logger::Create(logPrefix_);
 class MainWindowImpl : public QObject
 {
    Q_OBJECT
+   Q_OBJECT
 
 public:
    explicit MainWindowImpl(MainWindow* mainWindow) :
@@ -267,6 +268,53 @@ MainWindow::MainWindow(QWidget* parent) :
    // Assign the bottom left corner to the left dock widget
    setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
 
+   // Custom Radar Product Dropdown UI
+QWidget* productContainer = new QWidget(this);
+productContainer->setStyleSheet("background-color: #202020; border: 1px solid #444;");
+QVBoxLayout* productLayout = new QVBoxLayout(productContainer);
+productLayout->setContentsMargins(0, 0, 0, 0);
+
+// Toggle button
+QPushButton* productToggleButton = new QPushButton("Radar Product ▾", this);
+productToggleButton->setCheckable(true);
+productToggleButton->setStyleSheet("QPushButton { text-align: left; padding: 6px; font-size: 14px; color: white; }");
+
+QWidget* productPanel = new QWidget(this);
+QVBoxLayout* panelLayout = new QVBoxLayout(productPanel);
+panelLayout->setContentsMargins(8, 4, 8, 4);
+
+QStringList radarProducts = {"Reflectivity", "Velocity", "Correlation Coefficient"};
+for (const QString& name : radarProducts)
+{
+    QLabel* label = new QLabel(name);
+    label->setStyleSheet("color: white; font-size: 13px;");
+    panelLayout->addWidget(label);
+}
+
+productPanel->setMaximumHeight(100);
+productPanel->setStyleSheet("background-color: #2c2c2c;");
+
+productLayout->addWidget(productToggleButton);
+productLayout->addWidget(productPanel);
+
+// Add to radarToolbox layout (you could replace another widget if desired)
+ui->radarToolboxScrollAreaContents->layout()->addWidget(productContainer);
+
+// Add slide animation
+QPropertyAnimation* slideAnimation = new QPropertyAnimation(productPanel, "maximumHeight");
+slideAnimation->setDuration(200);
+
+// Toggle behavior
+QObject::connect(productToggleButton, &QPushButton::clicked, [=]() {
+    bool expanded = productToggleButton->isChecked();
+    productToggleButton->setText(expanded ? "Radar Product ▾" : "Radar Product ▸");
+    slideAnimation->stop();
+    slideAnimation->setStartValue(expanded ? 0 : productPanel->maximumHeight());
+    slideAnimation->setEndValue(expanded ? 100 : 0);
+    slideAnimation->start();
+});
+
+   
    // Configure Radar Site Box
    ui->vcpLabel->setVisible(false);
    ui->vcpValueLabel->setVisible(false);
