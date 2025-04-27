@@ -270,13 +270,43 @@ MainWindow::MainWindow(QWidget* parent) :
     radarProductLayout_->setSpacing(4);
 
     // Add radar products
-    QStringList productNames = {"Reflectivity", "Velocity", "Correlation Coefficient"};
-    for (const auto& name : productNames)
-    {
-        QLabel* label = new QLabel(name, radarProductPanel_);
-        label->setStyleSheet("padding: 4px; font-size: 13px; color: white;");
-        radarProductLayout_->addWidget(label);
-    }
+    // Define radar products (internal code -> display text)
+
+    QMap<QString, QString> radarProducts = {
+    {"N0Q", "Reflectivity"},
+    {"NVQ", "Velocity"},
+    {"CCQ", "Correlation Coefficient"}
+};
+
+// Create a list to store buttons
+QList<QPushButton*> productButtons;
+
+for (auto it = radarProducts.begin(); it != radarProducts.end(); ++it)
+{
+    QPushButton* productButton = new QPushButton(it.value(), this);
+    productButton->setStyleSheet("QPushButton { text-align: left; padding: 6px; font-size: 13px; color: white; background-color: #2c2c2c; border: none; }"
+                                 "QPushButton:hover { background-color: #3c3c3c; }");
+    radarProductLayout_->addWidget(productButton);
+    productButtons.append(productButton); // Store button
+
+    connect(productButton, &QPushButton::clicked, this, [=]() {
+        if (p)
+        {
+            p->ChangeRadarProduct(it.key());
+        }
+
+        // Highlight this button and reset others
+        for (auto btn : productButtons)
+        {
+            btn->setStyleSheet("QPushButton { text-align: left; padding: 6px; font-size: 13px; color: white; background-color: #2c2c2c; border: none; }"
+                               "QPushButton:hover { background-color: #3c3c3c; }");
+        }
+        productButton->setStyleSheet("QPushButton { text-align: left; padding: 6px; font-size: 13px; color: white; background-color: #0055ff; border: none; }"
+                                     "QPushButton:hover { background-color: #0066ff; }");
+    });
+}
+
+
 
     radarProductPanel_->setMaximumHeight(100);
     radarProductPanel_->setStyleSheet("background-color: #202020; border: 1px solid #444;");
