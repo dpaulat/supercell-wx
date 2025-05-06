@@ -18,7 +18,7 @@ class SupercellWxConan(ConanFile):
                   "libpng/1.6.47",
                   "libxml2/2.13.6",
                   "openssl/3.4.1",
-                  "range-v3/0.12.0",
+                  "range-v3/cci.20240905",
                   "re2/20240702",
                   "spdlog/1.15.1",
                   "sqlite3/3.49.1",
