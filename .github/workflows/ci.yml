@@ -39,6 +39,23 @@ jobs:
             conan_profile: scwx-windows_msvc2022_x64
             appimage_arch: ''
             artifact_suffix: windows-x64
+          - name: windows_msvc2022_arm64
+            os: windows-11-arm
+            build_type: Release
+            env_cc: ''
+            env_cxx: ''
+            compiler: msvc
+            msvc_arch: arm64
+            msvc_version: 2022
+            qt_version: 6.8.3
+            qt_arch_aqt: win64_msvc2022_arm64
+            qt_arch_dir: win64_msvc2022_arm64
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
+            qt_tools: ''
+            conan_package_manager: ''
+            conan_profile: scwx-windows_msvc2022_armv8
+            appimage_arch: ''
+            artifact_suffix: windows-arm64
           - name: linux_gcc_x64
             os: ubuntu-22.04
             build_type: Release
@@ -266,14 +283,14 @@ jobs:
         tar -czf supercell-wx-${{ matrix.artifact_suffix }}.tar.gz supercell-wx/
 
     - name: Upload Artifacts (Windows)
-      if: matrix.os == 'windows-2022'
+      if: ${{ startsWith(matrix.os, 'windows') }}
       uses: actions/upload-artifact@v4
       with:
         name: supercell-wx-${{ matrix.artifact_suffix }}
         path: ${{ github.workspace }}/supercell-wx/
 
     - name: Upload Debug Artifacts (Windows)
-      if: matrix.os == 'windows-2022'
+      if: ${{ startsWith(matrix.os, 'windows') }}
       uses: actions/upload-artifact@v4
       with:
         name: supercell-wx-debug-${{ matrix.artifact_suffix }}
