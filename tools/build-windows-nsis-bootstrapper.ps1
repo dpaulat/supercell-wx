@@ -4,8 +4,8 @@
   Builds the Supercell Wx NSIS bootstrapper (.exe) after cpack.
 
 .DESCRIPTION
-  Locates the CPack MSI and repo LICENSE.txt, stages VC_redist.x64.exe and MUI
-  assets, then runs makensis to produce supercell-wx-v{version}-windows-x64.exe
+  Locates the CPack MSI and repo LICENSE.txt, stages VC_redist.{arch}.exe and MUI
+  assets, then runs makensis to produce supercell-wx-v{version}-windows-{arch}.exe
   alongside the MSI.
 #>
 [CmdletBinding()]
@@ -17,6 +17,8 @@ param(
     [string] $SourceDir,
 
     [string] $Version = '',
+
+    [string] $Arch = '',
 
     [string] $MsiPath = '',
 
@@ -54,7 +56,18 @@ if (-not $Version) {
     $Version = $match.Matches[0].Groups[1].Value
 }
 
-$packageStem = "supercell-wx-v$Version-windows-x64"
+if (-not $Arch) {
+    $Arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') {
+        'arm64'
+    } else {
+        'x64'
+    }
+}
+if ($Arch -notin @('x64', 'arm64')) {
+    throw "Arch must be x64 or arm64, got: $Arch"
+}
+
+$packageStem = "supercell-wx-v$Version-windows-${Arch}"
 
 if (-not $MsiPath) {
     $MsiPath = Join-Path $BuildDir "$packageStem.msi"
@@ -70,7 +83,7 @@ if (-not $VcRedistPath) {
     if (-not $env:VCToolsRedistDir) {
         throw 'VCToolsRedistDir is not set; run from a VS developer environment or pass -VcRedistPath'
     }
-    $VcRedistPath = Join-Path $env:VCToolsRedistDir 'VC_redist.x64.exe'
+    $VcRedistPath = Join-Path $env:VCToolsRedistDir "VC_redist.${Arch}.exe"
 }
 $VcRedistPath = Resolve-ExistingPath $VcRedistPath 'VC++ redistributable'
 
@@ -110,7 +123,7 @@ New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
 
 $msiFileName = "$packageStem.msi"
 $msiStaging = Join-Path $stagingDir $msiFileName
-$redistStaging = Join-Path $stagingDir 'VC_redist.x64.exe'
+$redistStaging = Join-Path $stagingDir "VC_redist.${Arch}.exe"
 $licenseStaging = Join-Path $stagingDir 'LICENSE.txt'
 $iconStaging = Join-Path $stagingDir 'scwx-256.ico'
 $headerStaging = Join-Path $stagingDir 'scwx-header.bmp'
@@ -126,6 +139,7 @@ Copy-Item -LiteralPath $welcomeBmp -Destination $welcomeStaging -Force
 
 Write-Host "Building NSIS bootstrapper:"
 Write-Host "  Version:  $Version"
+Write-Host "  Arch:     $Arch"
 Write-Host "  MSI:      $msiStaging"
 Write-Host "  License:  $licenseStaging"
 Write-Host "  VCRedist: $redistStaging"
@@ -138,6 +152,7 @@ Push-Location $stagingDir
 try {
     & $makensis -NOCD `
         "-DSCWX_VERSION=$Version" `
+        "-DSCWX_ARCH=$Arch" `
         "-DSCWX_OUTFILE=$outputExe" `
         "-DSCWX_MSI=$msiStaging" `
         "-DSCWX_MSI_FILE=$msiFileName" `

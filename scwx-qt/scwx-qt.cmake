@@ -1026,7 +1026,7 @@ set(SCWX_WINDOWS_PACKAGE_INSTALL_ROOT "" CACHE PATH
     "Existing installed Supercell Wx tree to package for Windows")
 
 if (MSVC)
-    set(CPACK_PACKAGE_FILE_NAME           "supercell-wx-v${SCWX_VERSION}-windows-x64")
+    set(CPACK_PACKAGE_FILE_NAME           "supercell-wx-v${SCWX_VERSION}-windows")
     set(CPACK_PACKAGE_INSTALL_DIRECTORY   "Supercell Wx")
     set(CPACK_PACKAGE_ICON                "${CMAKE_CURRENT_SOURCE_DIR}/res/icons/scwx-256.ico")
     set(CPACK_GENERATOR                   WIX)

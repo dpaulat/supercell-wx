@@ -36,7 +36,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: ''
-            conan_profile: scwx-windows_vs2022_x64
+            conan_build_profile: scwx-windows_vs2022_x64
+            conan_host_profile: scwx-windows_vs2022_x64
             appimage_arch: ''
             artifact_suffix: windows-vs2022-x64
           - name: windows_vs2026_x64
@@ -55,9 +56,30 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: ''
-            conan_profile: scwx-windows_vs2026_x64
+            conan_build_profile: scwx-windows_vs2026_x64
+            conan_host_profile: scwx-windows_vs2026_x64
             appimage_arch: ''
             artifact_suffix: windows-vs2026-x64
+          - name: windows_vs2026_arm64
+            os: windows-2025-vs2026
+            build_type: Release
+            env_cc: ''
+            env_cxx: ''
+            compiler: msvc
+            cppflags: ''
+            ldflags: ''
+            vs_arch: arm64
+            vs_version: 18
+            qt_version: 6.11.1
+            qt_arch_aqt: win64_msvc2022_arm64_cross_compiled
+            qt_arch_dir: win64_msvc2022_arm64
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
+            qt_tools: ''
+            conan_package_manager: ''
+            conan_build_profile: scwx-windows_vs2026_x64
+            conan_host_profile: scwx-windows_vs2026_armv8
+            appimage_arch: ''
+            artifact_suffix: windows-vs2026-arm64
           - name: linux_gcc-11_x64
             os: ubuntu-22.04
             build_type: Release
@@ -72,7 +94,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_gcc-11
+            conan_build_profile: scwx-linux_gcc-11
+            conan_host_profile: scwx-linux_gcc-11
             appimage_arch: x86_64
             artifact_suffix: linux-gcc-11-x64
             compiler_packages: g++-11
@@ -90,7 +113,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_gcc-13
+            conan_build_profile: scwx-linux_gcc-13
+            conan_host_profile: scwx-linux_gcc-13
             appimage_arch: x86_64
             artifact_suffix: linux-gcc-13-x64
             compiler_packages: g++-13
@@ -108,7 +132,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_gcc-14
+            conan_build_profile: scwx-linux_gcc-14
+            conan_host_profile: scwx-linux_gcc-14
             appimage_arch: x86_64
             artifact_suffix: linux-gcc-14-x64
             compiler_packages: g++-14
@@ -126,7 +151,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_gcc-15
+            conan_build_profile: scwx-linux_gcc-15
+            conan_host_profile: scwx-linux_gcc-15
             appimage_arch: x86_64
             artifact_suffix: linux-gcc-15-x64
             compiler_packages: g++-15
@@ -144,7 +170,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_gcc-16
+            conan_build_profile: scwx-linux_gcc-16
+            conan_host_profile: scwx-linux_gcc-16
             appimage_arch: x86_64
             artifact_suffix: linux-gcc-16-x64
             compiler_packages: g++-16
@@ -162,7 +189,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_clang-18
+            conan_build_profile: scwx-linux_clang-18
+            conan_host_profile: scwx-linux_clang-18
             appimage_arch: x86_64
             artifact_suffix: linux-clang-18-x64
             compiler_packages: clang-18
@@ -180,7 +208,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_clang-19
+            conan_build_profile: scwx-linux_clang-19
+            conan_host_profile: scwx-linux_clang-19
             appimage_arch: x86_64
             artifact_suffix: linux-clang-19-x64
             compiler_packages: clang-19
@@ -198,7 +227,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_clang-20
+            conan_build_profile: scwx-linux_clang-20
+            conan_host_profile: scwx-linux_clang-20
             appimage_arch: x86_64
             artifact_suffix: linux-clang-20-x64
             compiler_packages: clang-20
@@ -216,7 +246,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_clang-21
+            conan_build_profile: scwx-linux_clang-21
+            conan_host_profile: scwx-linux_clang-21
             appimage_arch: x86_64
             artifact_suffix: linux-clang-21-x64
             compiler_packages: clang-21
@@ -234,7 +265,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_clang-22
+            conan_build_profile: scwx-linux_clang-22
+            conan_host_profile: scwx-linux_clang-22
             appimage_arch: x86_64
             artifact_suffix: linux-clang-22-x64
             compiler_packages: clang-22
@@ -252,7 +284,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_gcc-13_armv8
+            conan_build_profile: scwx-linux_gcc-13_armv8
+            conan_host_profile: scwx-linux_gcc-13_armv8
             appimage_arch: aarch64
             artifact_suffix: linux-gcc-13-arm64
             compiler_packages: g++-13
@@ -268,7 +301,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: ''
-            conan_profile: scwx-macos_clang-18
+            conan_build_profile: scwx-macos_clang-18
+            conan_host_profile: scwx-macos_clang-18
             appimage_arch: ''
             artifact_suffix: macos-x64
           - name: macos_clang-18_arm64
@@ -283,7 +317,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: ''
-            conan_profile: scwx-macos_clang-18_armv8
+            conan_build_profile: scwx-macos_clang-18_armv8
+            conan_host_profile: scwx-macos_clang-18_armv8
             appimage_arch: ''
             artifact_suffix: macos-arm64
     name: ${{ matrix.name }}
@@ -380,8 +415,9 @@ jobs:
       uses: actions/cache/restore@v6
       with:
         path: ~/.conan2
-        key: build-v2-${{ matrix.conan_profile }}-${{ hashFiles('./source/conanfile.py', './source/tools/conan/profiles/*') }}
+        key: build-v2-${{ matrix.conan_host_profile }}-${{ hashFiles('./source/conanfile.py', './source/tools/conan/profiles/${{ matrix.conan_build_profile }}', './source/tools/conan/profiles/${{ matrix.conan_host_profile }}') }}
 
+        # Confirm this section
     - name: Install Conan Packages
       id: conan-install
       shell: pwsh
@@ -389,7 +425,10 @@ jobs:
         $ErrorActionPreference = 'Stop'
         $PSNativeCommandUseErrorActionPreference = $true
         conan config install `
-          ./source/tools/conan/profiles/${{ matrix.conan_profile }} `
+          ./source/tools/conan/profiles/${{ matrix.conan_build_profile }} `
+          -tf profiles
+        conan config install `
+          ./source/tools/conan/profiles/${{ matrix.conan_host_profile }} `
           -tf profiles
         mkdir build
         cd build
@@ -397,7 +436,8 @@ jobs:
         conan install ../source/ `
           --remote conancenter `
           --build missing `
-          --profile:all ${{ matrix.conan_profile }} `
+          --profile:build ${{ matrix.conan_build_profile }} `
+          --profile:host ${{ matrix.conan_host_profile }} `
           --settings:all build_type=${{ matrix.build_type }} `
           --output-folder ./conan/ `
           ${{ matrix.conan_package_manager }}
@@ -419,9 +459,16 @@ jobs:
           -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" `
           -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES="${{ github.workspace }}/source/external/cmake-conan/conan_provider.cmake" `
           -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/supercell-wx" `
-          -DCONAN_HOST_PROFILE="${{ matrix.conan_profile }}" `
-          -DCONAN_BUILD_PROFILE="${{ matrix.conan_profile }}"
-        ninja supercell-wx wxtest
+          -DCONAN_HOST_PROFILE="${{ matrix.conan_host_profile }}" `
+          -DCONAN_BUILD_PROFILE="${{ matrix.conan_build_profile }}"
+        ninja supercell-wx
+
+    - name: Build Supercell Wx (Test)
+      if: ${{ matrix.conan_build_profile == matrix.conan_host_profile }}
+      shell: pwsh
+      run: |
+        cd build
+        ninja wxtest
 
     - name: Separate Debug Symbols (Linux)
       if: ${{ startsWith(matrix.os, 'ubuntu') }}
@@ -512,7 +559,8 @@ jobs:
         cpack
         & "${{ github.workspace }}/source/tools/build-windows-nsis-bootstrapper.ps1" `
           -BuildDir "${{ github.workspace }}/build" `
-          -SourceDir "${{ github.workspace }}/source"
+          -SourceDir "${{ github.workspace }}/source" `
+          -Arch "${{ matrix.vs_arch }}"
 
     - name: Upload Installer (Windows)
       if: ${{ startsWith(matrix.os, 'windows') }}
@@ -618,6 +666,7 @@ jobs:
         path: ${{ github.workspace }}/build/supercell-wx-*.dmg*
 
     - name: Test Supercell Wx
+      if: ${{ matrix.conan_build_profile == matrix.conan_host_profile }}
       working-directory: ${{ github.workspace }}/build
       env:
         MAPBOX_API_KEY:   ${{ secrets.MAPBOX_API_KEY }}
