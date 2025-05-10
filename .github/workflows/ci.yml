@@ -36,24 +36,26 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: ''
-            conan_profile: scwx-windows_msvc2022_x64
+            conan_build_profile: scwx-windows_msvc2022_x64
+            conan_host_profile: scwx-windows_msvc2022_x64
             appimage_arch: ''
             artifact_suffix: windows-x64
           - name: windows_msvc2022_arm64
-            os: windows-11-arm
+            os: windows-2022
             build_type: Release
             env_cc: ''
             env_cxx: ''
             compiler: msvc
-            msvc_arch: arm64
+            msvc_arch: amd64_arm64
             msvc_version: 2022
             qt_version: 6.8.3
-            qt_arch_aqt: win64_msvc2022_arm64
+            qt_arch_aqt: win64_msvc2022_arm64_cross_compiled
             qt_arch_dir: win64_msvc2022_arm64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: ''
-            conan_profile: scwx-windows_msvc2022_armv8
+            conan_build_profile: scwx-windows_msvc2022_x64
+            conan_host_profile: scwx-windows_msvc2022_armv8
             appimage_arch: ''
             artifact_suffix: windows-arm64
           - name: linux_gcc_x64
@@ -70,7 +72,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_gcc-11
+            conan_build_profile: scwx-linux_gcc-11
+            conan_host_profile: scwx-linux_gcc-11
             appimage_arch: x86_64
             artifact_suffix: linux-x64
             compiler_packages: ''
@@ -88,7 +91,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_clang-17
+            conan_build_profile: scwx-linux_clang-17
+            conan_host_profile: scwx-linux_clang-17
             appimage_arch: x86_64
             artifact_suffix: linux-clang-x64
             compiler_packages: clang-17
@@ -106,7 +110,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_gcc-11_armv8
+            conan_build_profile: scwx-linux_gcc-11_armv8
+            conan_host_profile: scwx-linux_gcc-11_armv8
             appimage_arch: aarch64
             artifact_suffix: linux-arm64
             compiler_packages: g++-11
@@ -210,13 +215,17 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.conan2
-        key: build-${{ matrix.conan_profile }}-${{ hashFiles('./source/conanfile.py', './source/tools/conan/profiles/*') }}
+        key: build-${{ matrix.conan_host_profile }}-${{ hashFiles('./source/conanfile.py', './source/tools/conan/profiles/*') }}
 
+        # Confirm this section
     - name: Install Conan Packages
       shell: pwsh
       run: |
         conan config install `
-          ./source/tools/conan/profiles/${{ matrix.conan_profile }} `
+          ./source/tools/conan/profiles/${{ matrix.conan_build_profile }} `
+          -tf profiles
+        conan config install `
+          ./source/tools/conan/profiles/${{ matrix.conan_host_profile }} `
           -tf profiles
         mkdir build
         cd build
@@ -224,7 +233,8 @@ jobs:
         conan install ../source/ `
           --remote conancenter `
           --build missing `
-          --profile:all ${{ matrix.conan_profile }} `
+          --profile:build ${{ matrix.conan_build_profile }} `
+          --profile:host ${{ matrix.conan_host_profile }} `
           --settings:all build_type=${{ matrix.build_type }} `
           --output-folder ./conan/ `
           ${{ matrix.conan_package_manager }}
@@ -238,8 +248,8 @@ jobs:
           -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" `
           -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES="${{ github.workspace }}/source/external/cmake-conan/conan_provider.cmake" `
           -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/supercell-wx" `
-          -DCONAN_HOST_PROFILE="${{ matrix.conan_profile }}" `
-          -DCONAN_BUILD_PROFILE="${{ matrix.conan_profile }}"
+          -DCONAN_HOST_PROFILE="${{ matrix.conan_host_profile }}" `
+          -DCONAN_BUILD_PROFILE="${{ matrix.conan_build_profile }}"
         ninja supercell-wx wxtest
 
     - name: Separate Debug Symbols (Linux)
@@ -406,6 +416,7 @@ jobs:
         path: ${{ github.workspace }}/build/supercell-wx-*.dmg*
 
     - name: Test Supercell Wx
+      if: ${{ matrix.conan_build_profile == matrix.conan_host_profile }}
       working-directory: ${{ github.workspace }}/build
       env:
         MAPBOX_API_KEY:   ${{ secrets.MAPBOX_API_KEY }}
