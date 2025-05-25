@@ -759,6 +759,11 @@ bool ProductDescriptionBlock::has_elevation() const
    return p->elevationNumber_ > 0;
 }
 
+std::uint16_t ProductDescriptionBlock::parameter(size_t i) const
+{
+   return p->parameters_.at(i);
+}
+
 bool ProductDescriptionBlock::IsCompressionEnabled() const
 {
    bool isCompressed = false;

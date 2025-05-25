@@ -72,6 +72,7 @@ public:
 
    [[nodiscard]] units::angle::degrees<double> elevation() const;
    [[nodiscard]] bool                          has_elevation() const;
+   [[nodiscard]] std::uint16_t                 parameter(size_t i) const;
 
    [[nodiscard]] bool IsCompressionEnabled() const;
    [[nodiscard]] bool IsDataLevelCoded() const;
