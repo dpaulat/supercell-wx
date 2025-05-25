@@ -46,10 +46,10 @@ public:
     * @param value The value the bin will have
     * @param code The code the bin will have
     */
-   void set_bin(size_t                               radial,
-                size_t                               gate,
-                float                                value,
-                std::optional<wsr88d::DataLevelCode> code);
+   void SetBin(size_t                               radial,
+               size_t                               gate,
+               float                                value,
+               std::optional<wsr88d::DataLevelCode> code);
 
    /**
     * Sets the start and delta angle for a given radial
@@ -58,7 +58,7 @@ public:
     * @param startAngle The starting angle of the radial
     * @param deltaAngle The change in the angle of the radial
     */
-   void set_radial(size_t radial, float startAngle, float deltaAngle);
+   void SetRadial(size_t radial, float startAngle, float deltaAngle);
 
    /**
     * Gets the code for a given bin
@@ -67,7 +67,7 @@ public:
     * @param gate The gate number of the bin
     * @return code The code of the bin
     */
-   std::optional<wsr88d::DataLevelCode> get_code(size_t radial, size_t gate);
+   std::optional<wsr88d::DataLevelCode> GetCode(size_t radial, size_t gate);
 
    /**
     * Gets the value for a given bin
@@ -76,7 +76,7 @@ public:
     * @param gate The gate number of the bin
     * @return value The value of the bin
     */
-   float                                get_value(size_t radial, size_t gate);
+   float GetValue(size_t radial, size_t gate);
 
    /**
     * Gets the start angle for the radial
@@ -84,7 +84,7 @@ public:
     * @param radial The radial number of the bin
     * @return The start angle for the radial
     */
-   float get_start_angle(size_t radial);
+   float GetStartAngle(size_t radial);
 
    /**
     * Gets the delta angle for the radial
@@ -92,7 +92,7 @@ public:
     * @param radial The radial number of the bin
     * @return The delta angle for the radial
     */
-   float get_delta_angle(size_t radial);
+   float GetDeltaAngle(size_t radial);
 
 private:
    class Impl;

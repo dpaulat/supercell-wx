@@ -15,13 +15,13 @@ public:
    SrvDeriver& operator=(const SrvDeriver&) = delete;
    SrvDeriver& operator=(SrvDeriver&&)      = delete;
 
-   bool                                   needs_level_2_input() override;
-   const std::unordered_set<std::string>& get_level_3_input_products() override;
-   std::shared_ptr<data::DerivedData>     get_output() override;
+   bool                                   NeedsLevel2Input() override;
+   const std::unordered_set<std::string>& GetLevel3InputProducts() override;
+   std::shared_ptr<data::DerivedData>     GetOutput() override;
 
 private:
    class Impl;
    std::unique_ptr<Impl> p;
 };
 
-} // namespace scwx::deriver
+} // namespace scwx::derivers
