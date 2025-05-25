@@ -5,7 +5,6 @@
 #include <scwx/wsr88d/rpg/digital_radial_data_array_packet.hpp>
 #include <scwx/wsr88d/rpg/radial_data_packet.hpp>
 
-
 namespace scwx::derivers
 {
 
@@ -22,26 +21,26 @@ public:
 SrvDeriver::SrvDeriver() : p {std::make_unique<Impl>()} {}
 SrvDeriver::~SrvDeriver() = default;
 
-const std::unordered_set<std::string>& SrvDeriver::get_level_3_input_products()
+const std::unordered_set<std::string>& SrvDeriver::GetLevel3InputProducts()
 {
    return kLevel3InputProducts_;
 }
 
-bool SrvDeriver::needs_level_2_input()
+bool SrvDeriver::NeedsLevel2Input()
 {
    return false;
 }
 
-std::shared_ptr<data::DerivedData> SrvDeriver::get_output()
+std::shared_ptr<data::DerivedData> SrvDeriver::GetOutput()
 {
-   if (!get_changed())
+   if (!GetChanged())
    {
       return p->output_;
    }
-   set_changed(false);
+   SetChanged(false);
 
-   std::shared_ptr<wsr88d::Level3File> srmFile = get_level_3_file("SRM");
-   std::shared_ptr<wsr88d::Level3File> sdvFile = get_level_3_file("SDV");
+   std::shared_ptr<wsr88d::Level3File> srmFile = GetLevel3File("SRM");
+   std::shared_ptr<wsr88d::Level3File> sdvFile = GetLevel3File("SDV");
    if (srmFile == nullptr || sdvFile == nullptr)
    {
       return p->output_;
@@ -150,7 +149,7 @@ std::shared_ptr<data::DerivedData> SrvDeriver::get_output()
       const float startAngle        = radialData->start_angle(radial);
       const float deltaAngle        = radialData->delta_angle(radial);
 
-      p->output_->set_radial(radial, startAngle, deltaAngle);
+      p->output_->SetRadial(radial, startAngle, deltaAngle);
 
       for (std::uint16_t gate = 0; gate < gates; ++gate)
       {
@@ -160,12 +159,12 @@ std::shared_ptr<data::DerivedData> SrvDeriver::get_output()
          // Inlined form product_description_block for speed.
          if (dataLevel == 0)
          {
-            p->output_->set_bin(
+            p->output_->SetBin(
                radial, gate, 0, wsr88d::DataLevelCode::BelowThreshold);
          }
          else if (dataLevel == 1)
          {
-            p->output_->set_bin(
+            p->output_->SetBin(
                radial, gate, 0, wsr88d::DataLevelCode::RangeFolded);
          }
          else
@@ -178,7 +177,7 @@ std::shared_ptr<data::DerivedData> SrvDeriver::get_output()
             const float outputValue =
                velocity -
                meanStormSpeed * std::cos(meanStormDirection - startAngle);
-            p->output_->set_bin(radial, gate, outputValue, std::nullopt);
+            p->output_->SetBin(radial, gate, outputValue, std::nullopt);
          }
       }
    }
@@ -186,4 +185,4 @@ std::shared_ptr<data::DerivedData> SrvDeriver::get_output()
    return p->output_;
 }
 
-} // namespace scwx::deriver
+} // namespace scwx::derivers

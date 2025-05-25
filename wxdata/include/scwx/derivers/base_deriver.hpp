@@ -23,13 +23,12 @@ public:
    BaseDeriver& operator=(const BaseDeriver&) = delete;
    BaseDeriver& operator=(BaseDeriver&&)      = delete;
 
-
    /**
     * Feed the deriver a new level 2 file.
     *
     * @param file The level 2 file to update the deriver with
     */
-   void set_level_2_input_file(std::shared_ptr<wsr88d::Ar2vFile> file);
+   void SetLevel2InputFile(std::shared_ptr<wsr88d::Ar2vFile> file);
 
    /**
     * Feed the deriver a new level 3 file for a specific product.
@@ -37,23 +36,22 @@ public:
     * @param product The name of the product to feed the file
     * @param file The level 3 file to update the deriver with
     */
-   void set_level_3_input_file(const std::string&                  product,
-                               std::shared_ptr<wsr88d::Level3File> file);
+   void SetLevel3InputFile(const std::string&                  product,
+                           std::shared_ptr<wsr88d::Level3File> file);
 
    /**
     * If the subclass derives from level 2 products.
     *
     * @return If the subclass uses level 2 products
     */
-   virtual bool needs_level_2_input() = 0;
+   virtual bool NeedsLevel2Input() = 0;
 
    /**
     * The level 3 products that the subclass derives from.
     *
     * @return The level 3 products that the subclass derives from
     */
-   virtual const std::unordered_set<std::string>&
-                                              get_level_3_input_products() = 0;
+   virtual const std::unordered_set<std::string>& GetLevel3InputProducts() = 0;
 
    /**
     * Retreve the latest derived data from the subclass. Data may be updated if
@@ -61,7 +59,7 @@ public:
     *
     * @return The derived data the subclass has calculate
     */
-   virtual std::shared_ptr<data::DerivedData> get_output()                 = 0;
+   virtual std::shared_ptr<data::DerivedData> GetOutput() = 0;
 
 protected:
    /**
@@ -69,7 +67,7 @@ protected:
     *
     * @return The current level 2 file
     */
-   std::shared_ptr<wsr88d::Ar2vFile> get_level_2_file();
+   std::shared_ptr<wsr88d::Ar2vFile> GetLevel2File();
 
    /**
     * Allows the subclass to get the current level 3 file for a product.
@@ -79,7 +77,7 @@ protected:
     * @return The current level 3 file
     */
    std::shared_ptr<wsr88d::Level3File>
-   get_level_3_file(const std::string& product);
+   GetLevel3File(const std::string& product);
 
    /**
     * Gets if any of the files have been changed since the last time data was
@@ -87,18 +85,18 @@ protected:
     *
     * @return If any of the files have been changed
     */
-   bool get_changed();
+   bool GetChanged();
 
    /**
     * Sets the changed flag. Normally used to clear it by the subclass.
     *
     * @param changed The new value of the changed flag
     */
-   void set_changed(bool changed);
+   void SetChanged(bool changed);
 
 private:
    class Impl;
    std::unique_ptr<Impl> p;
 };
 
-} // namespace scwx::deriver
+} // namespace scwx::derivers

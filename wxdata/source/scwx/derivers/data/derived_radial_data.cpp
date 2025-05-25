@@ -35,40 +35,40 @@ DerivedRadialData::DerivedRadialData(size_t radials, size_t gates) :
 
 DerivedRadialData::~DerivedRadialData() = default;
 
-void DerivedRadialData::set_bin(size_t                               radial,
-                                size_t                               gate,
-                                float                                value,
-                                std::optional<wsr88d::DataLevelCode> code)
+void DerivedRadialData::SetBin(size_t                               radial,
+                               size_t                               gate,
+                               float                                value,
+                               std::optional<wsr88d::DataLevelCode> code)
 {
    p->values_.at(radial).at(gate) = value;
    p->codes_.at(radial).at(gate)  = code;
 }
 
-void DerivedRadialData::set_radial(size_t radial,
-                                   float  startAngle,
-                                   float  deltaAngle)
+void DerivedRadialData::SetRadial(size_t radial,
+                                  float  startAngle,
+                                  float  deltaAngle)
 {
    p->startAngles_.at(radial) = startAngle;
    p->deltaAngles_.at(radial) = deltaAngle;
 }
 
-std::optional<wsr88d::DataLevelCode> DerivedRadialData::get_code(size_t radial,
-                                                                 size_t gate)
+std::optional<wsr88d::DataLevelCode> DerivedRadialData::GetCode(size_t radial,
+                                                                size_t gate)
 {
    return p->codes_.at(radial).at(gate);
 }
 
-float DerivedRadialData::get_value(size_t radial, size_t gate)
+float DerivedRadialData::GetValue(size_t radial, size_t gate)
 {
    return p->values_.at(radial).at(gate);
 }
 
-float DerivedRadialData::get_start_angle(size_t radial)
+float DerivedRadialData::GetStartAngle(size_t radial)
 {
    return p->startAngles_.at(radial);
 }
 
-float DerivedRadialData::get_delta_angle(size_t radial)
+float DerivedRadialData::GetDeltaAngle(size_t radial)
 {
    return p->deltaAngles_.at(radial);
 }
