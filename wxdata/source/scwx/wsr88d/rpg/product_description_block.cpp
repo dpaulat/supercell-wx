@@ -759,9 +759,28 @@ bool ProductDescriptionBlock::has_elevation() const
    return p->elevationNumber_ > 0;
 }
 
-std::uint16_t ProductDescriptionBlock::parameter(size_t i) const
+units::velocity::knots<float> ProductDescriptionBlock::avg_storm_speed() const
 {
-   return p->parameters_.at(i);
+   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
+   // Comes from INTERFACE CONTROL DOCUMENT FOR THE RPG TO CLASS 1 USER Table V
+   return units::velocity::knots<float>(static_cast<float>(p->parameters_[8]) *
+                                        0.1f);
+   // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
+}
+
+units::angle::degrees<float> ProductDescriptionBlock::avg_storm_dir() const
+{
+   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
+   // Comes from INTERFACE CONTROL DOCUMENT FOR THE RPG TO CLASS 1 USER Table V
+   return units::angle::degrees<float>(static_cast<float>(p->parameters_[9]) *
+                                       0.1f);
+   // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
+}
+
+bool ProductDescriptionBlock::has_storm_avg() const
+{
+   // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers) SRM = 56
+   return p->productCode_ == 56;
 }
 
 bool ProductDescriptionBlock::IsCompressionEnabled() const
