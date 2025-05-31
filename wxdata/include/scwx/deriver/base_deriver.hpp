@@ -9,6 +9,8 @@
 #include <memory>
 #include <unordered_set>
 
+#include <boost/signals2/signal.hpp>
+
 namespace scwx::deriver
 {
 
@@ -24,20 +26,35 @@ public:
    BaseDeriver& operator=(BaseDeriver&&)      = delete;
 
    /**
-    * Feed the deriver a new level 2 file.
+    * Gets the signal invoked when the output data is updated
+    *
+    * @return Changed signal
+    */
+   [[nodiscard]] boost::signals2::signal<void()>& update_signal() const;
+
+   /**
+    * Feed the deriver a new level 2 file. The file should not change once fed.
     *
     * @param file The level 2 file to update the deriver with
     */
    void SetLevel2InputFile(std::shared_ptr<wsr88d::Ar2vFile> file);
 
    /**
-    * Feed the deriver a new level 3 file for a specific product.
+    * Feed the deriver a new level 3 file for a specific product. The file
+    * should not change once fed.
     *
     * @param product The name of the product to feed the file
     * @param file The level 3 file to update the deriver with
     */
    void SetLevel3InputFile(const std::string&                  product,
                            std::shared_ptr<wsr88d::Level3File> file);
+
+   /**
+    * Retreve the latest derived data from the cache.
+    *
+    * @return The derived data the subclass has calculate
+    */
+   [[nodiscard]] std::shared_ptr<data::DerivedData> GetOutput();
 
    /**
     * If the subclass derives from level 2 products.
@@ -52,14 +69,6 @@ public:
     * @return The level 3 products that the subclass derives from
     */
    virtual const std::unordered_set<std::string>& GetLevel3InputProducts() = 0;
-
-   /**
-    * Retreve the latest derived data from the subclass. Data may be updated if
-    * Inputs have been updated.
-    *
-    * @return The derived data the subclass has calculate
-    */
-   virtual std::shared_ptr<data::DerivedData> GetOutput() = 0;
 
 protected:
    /**
@@ -80,19 +89,11 @@ protected:
    GetLevel3File(const std::string& product);
 
    /**
-    * Gets if any of the files have been changed since the last time data was
-    * retrieve.
+    * The method where the subclass should calculate the derived product.
     *
-    * @return If any of the files have been changed
+    * @return The newly calculated data.
     */
-   bool GetChanged();
-
-   /**
-    * Sets the changed flag. Normally used to clear it by the subclass.
-    *
-    * @param changed The new value of the changed flag
-    */
-   void SetChanged(bool changed);
+   virtual std::shared_ptr<data::DerivedData> CalculateData() = 0;
 
 private:
    class Impl;

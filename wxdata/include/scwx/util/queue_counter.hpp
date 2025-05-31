@@ -3,7 +3,7 @@
 #include <memory>
 #include <boost/atomic/atomic.hpp>
 
-namespace scwx::qt::util
+namespace scwx::util
 {
 
 class QueueCounter
@@ -61,4 +61,4 @@ private:
    std::unique_ptr<Impl> p;
 };
 
-} // namespace scwx::qt::util
+} // namespace scwx::util

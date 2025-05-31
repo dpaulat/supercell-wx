@@ -17,7 +17,9 @@ public:
 
    bool                                   NeedsLevel2Input() override;
    const std::unordered_set<std::string>& GetLevel3InputProducts() override;
-   std::shared_ptr<data::DerivedData>     GetOutput() override;
+
+protected:
+   std::shared_ptr<data::DerivedData> CalculateData() override;
 
 private:
    class Impl;

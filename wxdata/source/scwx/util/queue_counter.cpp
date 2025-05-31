@@ -1,8 +1,8 @@
-#include <scwx/qt/util/queue_counter.hpp>
+#include <scwx/util/queue_counter.hpp>
 
 #include <boost/atomic/atomic.hpp>
 
-namespace scwx::qt::util
+namespace scwx::util
 {
 
 class QueueCounter::Impl
@@ -46,4 +46,4 @@ bool QueueCounter::is_lock_free()
    return p->count_.is_lock_free();
 }
 
-} // namespace scwx::qt::util
+} // namespace scwx::util
