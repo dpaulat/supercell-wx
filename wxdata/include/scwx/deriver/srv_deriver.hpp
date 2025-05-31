@@ -1,7 +1,7 @@
 #pragma once
-#include <scwx/derivers/base_deriver.hpp>
+#include <scwx/deriver/base_deriver.hpp>
 
-namespace scwx::derivers
+namespace scwx::deriver
 {
 
 class SrvDeriver : public BaseDeriver
@@ -24,4 +24,4 @@ private:
    std::unique_ptr<Impl> p;
 };
 
-} // namespace scwx::derivers
+} // namespace scwx::deriver

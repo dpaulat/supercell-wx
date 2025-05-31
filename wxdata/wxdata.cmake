@@ -61,13 +61,13 @@ set(HDR_CONFIG include/scwx/config/ondas_config.hpp
                include/scwx/config/ondas_config_loader.hpp)
 set(SRC_CONFIG source/scwx/config/ondas_config.cpp
                source/scwx/config/ondas_config_loader.cpp)
-set(HDR_DERIVERS include/scwx/derivers/base_deriver.hpp
-                 include/scwx/derivers/srv_deriver.hpp)
-set(SRC_DERIVERS source/scwx/derivers/base_deriver.cpp
-                 source/scwx/derivers/srv_deriver.cpp)
-set(HDR_DERIVERS_DATA include/scwx/derivers/data/derived_data.hpp
-                      include/scwx/derivers/data/derived_radial_data.hpp)
-set(SRC_DERIVERS_DATA source/scwx/derivers/data/derived_radial_data.cpp)
+set(HDR_DERIVER include/scwx/deriver/base_deriver.hpp
+                include/scwx/deriver/srv_deriver.hpp)
+set(SRC_DERIVER source/scwx/deriver/base_deriver.cpp
+                source/scwx/deriver/srv_deriver.cpp)
+set(HDR_DERIVER_DATA include/scwx/deriver/data/derived_data.hpp
+                     include/scwx/deriver/data/derived_radial_data.hpp)
+set(SRC_DERIVER_DATA source/scwx/deriver/data/derived_radial_data.cpp)
 set(HDR_GR include/scwx/gr/color.hpp
            include/scwx/gr/gr_types.hpp
            include/scwx/gr/placefile.hpp)
@@ -277,10 +277,10 @@ add_library(wxdata OBJECT ${HDR_AWIPS}
                           ${SRC_COMMON}
                           ${HDR_CONFIG}
                           ${SRC_CONFIG}
-                          ${HDR_DERIVERS}
-                          ${SRC_DERIVERS}
-                          ${HDR_DERIVERS_DATA}
-                          ${SRC_DERIVERS_DATA}
+                          ${HDR_DERIVER}
+                          ${SRC_DERIVER}
+                          ${HDR_DERIVER_DATA}
+                          ${SRC_DERIVER_DATA}
                           ${HDR_GR}
                           ${SRC_GR}
                           ${HDR_NETWORK}
@@ -301,34 +301,34 @@ add_library(wxdata OBJECT ${HDR_AWIPS}
                           ${SRC_ZIP}
                           ${CMAKE_FILES})
 
-source_group("Header Files\\awips"          FILES ${HDR_AWIPS})
-source_group("Source Files\\awips"          FILES ${SRC_AWIPS})
-source_group("Header Files\\common"         FILES ${HDR_COMMON})
-source_group("Source Files\\common"         FILES ${SRC_COMMON})
-source_group("Header Files\\config"         FILES ${HDR_CONFIG})
-source_group("Source Files\\config"         FILES ${SRC_CONFIG})
-source_group("Source Files\\derivers"       FILES ${HDR_DERIVERS})
-source_group("Source Files\\derivers"       FILES ${SRC_DERIVERS})
-source_group("Source Files\\derivers\\data" FILES ${HDR_DERIVERS_DATA})
-source_group("Source Files\\derivers\\data" FILES ${SRC_DERIVERS_DATA})
-source_group("Header Files\\gr"             FILES ${HDR_GR})
-source_group("Source Files\\gr"             FILES ${SRC_GR})
-source_group("Header Files\\network"        FILES ${HDR_NETWORK})
-source_group("Source Files\\network"        FILES ${SRC_NETWORK})
-source_group("Header Files\\provider"       FILES ${HDR_PROVIDER})
-source_group("Source Files\\provider"       FILES ${SRC_PROVIDER})
-source_group("Header Files\\types"          FILES ${HDR_TYPES})
-source_group("Source Files\\types"          FILES ${SRC_TYPES})
-source_group("Header Files\\util"           FILES ${HDR_UTIL})
-source_group("Source Files\\util"           FILES ${SRC_UTIL})
-source_group("Header Files\\wsr88d"         FILES ${HDR_WSR88D})
-source_group("Source Files\\wsr88d"         FILES ${SRC_WSR88D})
-source_group("Header Files\\wsr88d\\rda"    FILES ${HDR_WSR88D_RDA})
-source_group("Source Files\\wsr88d\\rda"    FILES ${SRC_WSR88D_RDA})
-source_group("Header Files\\wsr88d\\rpg"    FILES ${HDR_WSR88D_RPG})
-source_group("Source Files\\wsr88d\\rpg"    FILES ${SRC_WSR88D_RPG})
-source_group("Header Files\\zip"            FILES ${HDR_ZIP})
-source_group("Source Files\\zip"            FILES ${SRC_ZIP})
+source_group("Header Files\\awips"         FILES ${HDR_AWIPS})
+source_group("Source Files\\awips"         FILES ${SRC_AWIPS})
+source_group("Header Files\\common"        FILES ${HDR_COMMON})
+source_group("Source Files\\common"        FILES ${SRC_COMMON})
+source_group("Header Files\\config"        FILES ${HDR_CONFIG})
+source_group("Source Files\\config"        FILES ${SRC_CONFIG})
+source_group("Source Files\\deriver"       FILES ${HDR_DERIVER})
+source_group("Source Files\\deriver"       FILES ${SRC_DERIVER})
+source_group("Source Files\\deriver\\data" FILES ${HDR_DERIVER_DATA})
+source_group("Source Files\\deriver\\data" FILES ${SRC_DERIVER_DATA})
+source_group("Header Files\\gr"            FILES ${HDR_GR})
+source_group("Source Files\\gr"            FILES ${SRC_GR})
+source_group("Header Files\\network"       FILES ${HDR_NETWORK})
+source_group("Source Files\\network"       FILES ${SRC_NETWORK})
+source_group("Header Files\\provider"      FILES ${HDR_PROVIDER})
+source_group("Source Files\\provider"      FILES ${SRC_PROVIDER})
+source_group("Header Files\\types"         FILES ${HDR_TYPES})
+source_group("Source Files\\types"         FILES ${SRC_TYPES})
+source_group("Header Files\\util"          FILES ${HDR_UTIL})
+source_group("Source Files\\util"          FILES ${SRC_UTIL})
+source_group("Header Files\\wsr88d"        FILES ${HDR_WSR88D})
+source_group("Source Files\\wsr88d"        FILES ${SRC_WSR88D})
+source_group("Header Files\\wsr88d\\rda"   FILES ${HDR_WSR88D_RDA})
+source_group("Source Files\\wsr88d\\rda"   FILES ${SRC_WSR88D_RDA})
+source_group("Header Files\\wsr88d\\rpg"   FILES ${HDR_WSR88D_RPG})
+source_group("Source Files\\wsr88d\\rpg"   FILES ${SRC_WSR88D_RPG})
+source_group("Header Files\\zip"           FILES ${HDR_ZIP})
+source_group("Source Files\\zip"           FILES ${SRC_ZIP})
 
 
 try_compile(CHRONO_HAS_TIMEZONES_AND_CALENDERS

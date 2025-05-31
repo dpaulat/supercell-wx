@@ -1,10 +1,10 @@
-#include <scwx/derivers/base_deriver.hpp>
+#include <scwx/deriver/base_deriver.hpp>
 
 #include <memory>
 #include <unordered_map>
 #include <utility>
 
-namespace scwx::derivers
+namespace scwx::deriver
 {
 
 class BaseDeriver::Impl
@@ -65,4 +65,4 @@ void BaseDeriver::SetChanged(bool changed)
    p->changed_ = changed;
 }
 
-} // namespace scwx::derivers
+} // namespace scwx::deriver
