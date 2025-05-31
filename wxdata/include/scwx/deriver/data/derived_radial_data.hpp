@@ -1,5 +1,5 @@
 #pragma once
-#include <scwx/derivers/data/derived_data.hpp>
+#include <scwx/deriver/data/derived_data.hpp>
 
 #include <scwx/wsr88d/wsr88d_types.hpp>
 
@@ -7,7 +7,7 @@
 #include <memory>
 #include <optional>
 
-namespace scwx::derivers::data
+namespace scwx::deriver::data
 {
 
 class DerivedRadialData : public DerivedData
@@ -99,4 +99,4 @@ private:
    std::unique_ptr<Impl> p;
 };
 
-} // namespace scwx::derivers::data
+} // namespace scwx::deriver::data

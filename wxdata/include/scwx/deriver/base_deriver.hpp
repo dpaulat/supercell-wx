@@ -1,6 +1,6 @@
 #pragma once
 
-#include <scwx/derivers/data/derived_data.hpp>
+#include <scwx/deriver/data/derived_data.hpp>
 #include <scwx/wsr88d/ar2v_file.hpp>
 #include <scwx/wsr88d/level3_file.hpp>
 #include <scwx/wsr88d/nexrad_file.hpp>
@@ -9,7 +9,7 @@
 #include <memory>
 #include <unordered_set>
 
-namespace scwx::derivers
+namespace scwx::deriver
 {
 
 class BaseDeriver
@@ -99,4 +99,4 @@ private:
    std::unique_ptr<Impl> p;
 };
 
-} // namespace scwx::derivers
+} // namespace scwx::deriver
