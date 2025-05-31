@@ -1,11 +1,11 @@
-#include <scwx/derivers/srv_deriver.hpp>
+#include <scwx/deriver/srv_deriver.hpp>
 
-#include <scwx/derivers/data/derived_radial_data.hpp>
+#include <scwx/deriver/data/derived_radial_data.hpp>
 #include <scwx/wsr88d/rpg/graphic_product_message.hpp>
 #include <scwx/wsr88d/rpg/digital_radial_data_array_packet.hpp>
 #include <scwx/wsr88d/rpg/radial_data_packet.hpp>
 
-namespace scwx::derivers
+namespace scwx::deriver
 {
 
 static const std::unordered_set<std::string> kLevel3InputProducts_ = {"SRM",
@@ -185,4 +185,4 @@ std::shared_ptr<data::DerivedData> SrvDeriver::GetOutput()
    return p->output_;
 }
 
-} // namespace scwx::derivers
+} // namespace scwx::deriver

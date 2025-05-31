@@ -1,7 +1,7 @@
-#include <scwx/derivers/data/derived_radial_data.hpp>
+#include <scwx/deriver/data/derived_radial_data.hpp>
 #include <vector>
 
-namespace scwx::derivers::data
+namespace scwx::deriver::data
 {
 
 class DerivedRadialData::Impl
@@ -73,4 +73,4 @@ float DerivedRadialData::GetDeltaAngle(size_t radial)
    return p->deltaAngles_.at(radial);
 }
 
-} // namespace scwx::derivers::data
+} // namespace scwx::deriver::data
