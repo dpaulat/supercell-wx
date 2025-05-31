@@ -15,7 +15,6 @@ class SrvDeriver::Impl
 {
 public:
    explicit Impl() = default;
-   std::shared_ptr<data::DerivedRadialData> output_ {nullptr};
 };
 
 SrvDeriver::SrvDeriver() : p {std::make_unique<Impl>()} {}
@@ -31,20 +30,10 @@ bool SrvDeriver::NeedsLevel2Input()
    return false;
 }
 
-std::shared_ptr<data::DerivedData> SrvDeriver::GetOutput()
+std::shared_ptr<data::DerivedData> SrvDeriver::CalculateData()
 {
-   if (!GetChanged())
-   {
-      return p->output_;
-   }
-   SetChanged(false);
-
    std::shared_ptr<wsr88d::Level3File> srmFile = GetLevel3File("SRM");
    std::shared_ptr<wsr88d::Level3File> sdvFile = GetLevel3File("SDV");
-   if (srmFile == nullptr || sdvFile == nullptr)
-   {
-      return p->output_;
-   }
 
    auto srmMessage =
       std::dynamic_pointer_cast<wsr88d::rpg::GraphicProductMessage>(
@@ -54,7 +43,7 @@ std::shared_ptr<data::DerivedData> SrvDeriver::GetOutput()
          sdvFile->message());
    if (srmMessage == nullptr || sdvMessage == nullptr)
    {
-      return p->output_;
+      return nullptr;
    }
 
    auto srmDescriptionBlock = srmMessage->description_block();
@@ -65,14 +54,14 @@ std::shared_ptr<data::DerivedData> SrvDeriver::GetOutput()
    if (srmDescriptionBlock == nullptr || sdvDescriptionBlock == nullptr ||
        sdvSymbologyBlock == nullptr)
    {
-      return p->output_;
+      return nullptr;
    }
 
    // A valid message should have a positive number of layers
    uint16_t sdvNumberOfLayers = sdvSymbologyBlock->number_of_layers();
    if (sdvNumberOfLayers < 1)
    {
-      return p->output_;
+      return nullptr;
    }
 
    // Get average storm speed and direction
@@ -125,7 +114,7 @@ std::shared_ptr<data::DerivedData> SrvDeriver::GetOutput()
    }
    else
    {
-      return p->output_;
+      return nullptr;
    }
 
    // Valid number of radials is 1-720
@@ -133,10 +122,9 @@ std::shared_ptr<data::DerivedData> SrvDeriver::GetOutput()
    const std::uint16_t gates   = radialData->number_of_range_bins();
    if (radials < 1 || radials > 720)
    {
-      return p->output_;
+      return nullptr;
    }
-   // From this point on, it cannot fail
-   p->output_ = std::make_shared<data::DerivedRadialData>(radials, gates);
+   auto output = std::make_shared<data::DerivedRadialData>(radials, gates);
 
    const float dataOffset = sdvDescriptionBlock->offset();
    const float dataScale  = sdvDescriptionBlock->scale();
@@ -147,7 +135,7 @@ std::shared_ptr<data::DerivedData> SrvDeriver::GetOutput()
       const float startAngle        = radialData->start_angle(radial);
       const float deltaAngle        = radialData->delta_angle(radial);
 
-      p->output_->SetRadial(radial, startAngle, deltaAngle);
+      output->SetRadial(radial, startAngle, deltaAngle);
 
       for (std::uint16_t gate = 0; gate < gates; ++gate)
       {
@@ -157,13 +145,12 @@ std::shared_ptr<data::DerivedData> SrvDeriver::GetOutput()
          // Inlined form product_description_block for speed.
          if (dataLevel == 0)
          {
-            p->output_->SetBin(
+            output->SetBin(
                radial, gate, 0, wsr88d::DataLevelCode::BelowThreshold);
          }
          else if (dataLevel == 1)
          {
-            p->output_->SetBin(
-               radial, gate, 0, wsr88d::DataLevelCode::RangeFolded);
+            output->SetBin(radial, gate, 0, wsr88d::DataLevelCode::RangeFolded);
          }
          else
          {
@@ -175,12 +162,12 @@ std::shared_ptr<data::DerivedData> SrvDeriver::GetOutput()
             const float outputValue =
                velocity -
                meanStormSpeed * std::cos(meanStormDirection - startAngle);
-            p->output_->SetBin(radial, gate, outputValue, std::nullopt);
+            output->SetBin(radial, gate, outputValue, std::nullopt);
          }
       }
    }
 
-   return p->output_;
+   return output;
 }
 
 } // namespace scwx::deriver

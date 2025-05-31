@@ -126,6 +126,7 @@ set(HDR_UTIL include/scwx/util/digest.hpp
              include/scwx/util/json.hpp
              include/scwx/util/logger.hpp
              include/scwx/util/map.hpp
+             include/scwx/util/queue_counter.hpp
              include/scwx/util/rangebuf.hpp
              include/scwx/util/streams.hpp
              include/scwx/util/strings.hpp
@@ -138,6 +139,7 @@ set(SRC_UTIL source/scwx/util/digest.cpp
              source/scwx/util/hash.cpp
              source/scwx/util/json.cpp
              source/scwx/util/logger.cpp
+             source/scwx/util/queue_counter.cpp
              source/scwx/util/rangebuf.cpp
              source/scwx/util/streams.cpp
              source/scwx/util/strings.cpp

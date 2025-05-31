@@ -1,7 +1,7 @@
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
-#include <scwx/qt/util/queue_counter.hpp>
+#include <scwx/util/queue_counter.hpp>
 #include <scwx/common/sites.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/map.hpp>

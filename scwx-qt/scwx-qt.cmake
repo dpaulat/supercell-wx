@@ -446,7 +446,6 @@ set(HDR_UTIL source/scwx/qt/util/color.hpp
              source/scwx/qt/util/q_color_modulate.hpp
              source/scwx/qt/util/q_file_buffer.hpp
              source/scwx/qt/util/q_file_input_stream.hpp
-             source/scwx/qt/util/queue_counter.hpp
              source/scwx/qt/util/time.hpp
              source/scwx/qt/util/tooltip.hpp)
 set(SRC_UTIL source/scwx/qt/util/color.cpp
@@ -460,7 +459,6 @@ set(SRC_UTIL source/scwx/qt/util/color.cpp
              source/scwx/qt/util/q_color_modulate.cpp
              source/scwx/qt/util/q_file_buffer.cpp
              source/scwx/qt/util/q_file_input_stream.cpp
-             source/scwx/qt/util/queue_counter.cpp
              source/scwx/qt/util/time.cpp
              source/scwx/qt/util/tooltip.cpp)
 set(HDR_VIEW source/scwx/qt/view/level2_product_view.hpp
