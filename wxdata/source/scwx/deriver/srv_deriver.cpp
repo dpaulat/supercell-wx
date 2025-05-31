@@ -76,10 +76,8 @@ std::shared_ptr<data::DerivedData> SrvDeriver::GetOutput()
    }
 
    // Get average storm speed and direction
-   float meanStormSpeed =
-      static_cast<float>(srmDescriptionBlock->parameter(8)) * 0.1f;
-   float meanStormDirection =
-      static_cast<float>(srmDescriptionBlock->parameter(9)) * 0.1f;
+   float meanStormSpeed     = srmDescriptionBlock->avg_storm_speed().value();
+   float meanStormDirection = srmDescriptionBlock->avg_storm_dir().value();
 
    // A message with radial data should either have a Digital Radial Data
    // Array Packet, or a Radial Data Array Packet

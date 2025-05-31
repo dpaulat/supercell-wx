@@ -8,6 +8,7 @@
 #include <optional>
 
 #include <units/angle.h>
+#include <units/velocity.h>
 
 namespace scwx::wsr88d::rpg
 {
@@ -72,7 +73,10 @@ public:
 
    [[nodiscard]] units::angle::degrees<double> elevation() const;
    [[nodiscard]] bool                          has_elevation() const;
-   [[nodiscard]] std::uint16_t                 parameter(size_t i) const;
+
+   [[nodiscard]] units::velocity::knots<float> avg_storm_speed() const;
+   [[nodiscard]] units::angle::degrees<float>  avg_storm_dir() const;
+   [[nodiscard]] bool                          has_storm_avg() const;
 
    [[nodiscard]] bool IsCompressionEnabled() const;
    [[nodiscard]] bool IsDataLevelCoded() const;
