@@ -1,4 +1,5 @@
 #include <scwx/deriver/base_deriver.hpp>
+#include <scwx/util/logger.hpp>
 #include <scwx/util/queue_counter.hpp>
 
 #include <memory>
@@ -21,6 +22,8 @@
 
 namespace scwx::deriver
 {
+static const std::string logPrefix_ = "scwx::deriver::base_deriver";
+static const auto logger_ = util::Logger::Create(logPrefix_);
 
 class BaseDeriver::Impl
 {
