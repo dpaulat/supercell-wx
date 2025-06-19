@@ -761,18 +761,18 @@ bool ProductDescriptionBlock::has_elevation() const
 
 units::velocity::knots<float> ProductDescriptionBlock::avg_storm_speed() const
 {
-   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
+   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers) 51
    // Comes from INTERFACE CONTROL DOCUMENT FOR THE RPG TO CLASS 1 USER Table V
-   return units::velocity::knots<float>(static_cast<float>(p->parameters_[8]) *
+   return units::velocity::knots<float>(static_cast<float>(p->parameters_[7]) *
                                         0.1f);
    // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
 }
 
 units::angle::degrees<float> ProductDescriptionBlock::avg_storm_dir() const
 {
-   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
+   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers) 52
    // Comes from INTERFACE CONTROL DOCUMENT FOR THE RPG TO CLASS 1 USER Table V
-   return units::angle::degrees<float>(static_cast<float>(p->parameters_[9]) *
+   return units::angle::degrees<float>(static_cast<float>(p->parameters_[8]) *
                                        0.1f);
    // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
 }
