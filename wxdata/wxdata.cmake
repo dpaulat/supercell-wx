@@ -62,8 +62,10 @@ set(HDR_CONFIG include/scwx/config/ondas_config.hpp
 set(SRC_CONFIG source/scwx/config/ondas_config.cpp
                source/scwx/config/ondas_config_loader.cpp)
 set(HDR_DERIVER include/scwx/deriver/base_deriver.hpp
+                include/scwx/deriver/deriver_factory.hpp
                 include/scwx/deriver/srv_deriver.hpp)
 set(SRC_DERIVER source/scwx/deriver/base_deriver.cpp
+                source/scwx/deriver/deriver_factory.cpp
                 source/scwx/deriver/srv_deriver.cpp)
 set(HDR_DERIVER_DATA include/scwx/deriver/data/derived_data.hpp
                      include/scwx/deriver/data/derived_radial_data.hpp)
