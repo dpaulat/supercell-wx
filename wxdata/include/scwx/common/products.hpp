@@ -15,6 +15,7 @@ enum class RadarProductGroup
 {
    Level2,
    Level3,
+   Derived,
    Unknown
 };
 typedef util::Iterator<RadarProductGroup,
