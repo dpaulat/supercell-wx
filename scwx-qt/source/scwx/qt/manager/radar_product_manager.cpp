@@ -14,6 +14,9 @@
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 
+#include <scwx/deriver/base_deriver.hpp>
+#include <scwx/deriver/srv_deriver.hpp>
+
 #include <array>
 #include <execution>
 #include <memory>
@@ -67,6 +70,33 @@ static std::shared_mutex fileIndexMutex_;
 
 static std::mutex fileLoadMutex_;
 
+class DeriverManager : public QObject
+{
+   Q_OBJECT
+
+public:
+   explicit DeriverManager(
+      RadarProductManager*                       self,
+      std::string                                product,
+      std::shared_ptr<deriver::BaseDeriver>      deriver,
+      std::set<std::shared_ptr<ProviderManager>> providerManagers) :
+       self_ {self},
+       product_ {std::move(product)},
+       deriver_ {std::move(deriver)},
+       providerManagers_ {std::move(providerManagers)}
+   {
+   }
+
+   RadarProductManager* self_;
+   std::string          product_;
+
+   boost::asio::thread_pool threadPool_ {1u};
+
+   std::shared_ptr<deriver::BaseDeriver> deriver_;
+   std::set<std::shared_ptr<ProviderManager>> providerManagers_ {};
+   boost::signals2::scoped_connection deriverFinishedConection_ {};
+};
+
 class RadarProductManagerImpl
 {
 public:
@@ -80,7 +110,8 @@ public:
        level2ProviderManager_ {std::make_shared<ProviderManager>(
           self_, radarId_, common::RadarProductGroup::Level2)},
        level2ChunksProviderManager_ {std::make_shared<ProviderManager>(
-          self_, radarId_, common::RadarProductGroup::Level2, "???", true)}
+          self_, radarId_, common::RadarProductGroup::Level2, "???", true)},
+       activeDerivers_{}
    {
       if (radarSite_ == nullptr)
       {
@@ -251,6 +282,12 @@ public:
                       boost::hash<boost::uuids::uuid>>
                      refreshMap_ {};
    std::shared_mutex refreshMapMutex_ {};
+
+   // I am not sure I like this. There is a chance this will hold onto data
+   // when a different product is selected
+   std::unordered_map<std::string,
+                      std::shared_ptr<DeriverManager>>
+      activeDerivers_;
 };
 
 RadarProductManager::RadarProductManager(const std::string& radarId) :
@@ -464,7 +501,139 @@ void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
                                         bool                      enabled,
                                         boost::uuids::uuid        uuid)
 {
-   if (group == common::RadarProductGroup::Level2)
+   if (group == common::RadarProductGroup::Derived)
+   {
+      // TODO there is a lot that needs to happen here. I am cutting all thoughs
+      // corners to get something working
+      // A lot of this should also be moved out into other functions
+
+      // Get the deriver for this product
+      std::shared_ptr<DeriverManager> deriverManager = nullptr;
+      const auto& deriverManagerIt = p->activeDerivers_.find(product);
+      std::shared_ptr<deriver::BaseDeriver> deriver = nullptr;
+      if (deriverManagerIt == p->activeDerivers_.cend())
+      {
+         if (product == "SRV")
+         {
+            deriver = std::make_shared<deriver::SrvDeriver>();
+         }
+      }
+      else
+      {
+         deriverManager = deriverManagerIt->second;
+         deriver = deriverManager->deriver_;
+      }
+
+      if (deriver == nullptr)
+      {
+         return;
+      }
+
+      // get the provider managers needed for this product
+      std::set<std::shared_ptr<ProviderManager>> providerManagers = {};
+
+      if (deriver->NeedsLevel2Input())
+      {
+         providerManagers.emplace(p->level2ProviderManager_);
+         providerManagers.emplace(p->level2ChunksProviderManager_);
+      }
+
+      for (const auto& level3Product : deriver->GetLevel3InputProducts())
+      {
+         // TODO I need to figure out how I want to deal with tilts
+         std::string tilt =
+            scwx::common::GetLevel3AwipsIdsByProduct(level3Product).at(0);
+
+         if (tilt == "?")
+         {
+            // TODO
+            return;
+         }
+
+         // Just make it work TODO
+         if (level3Product == "SDV")
+         {
+            tilt = "N0G";
+         }
+         else if (level3Product == "SRM")
+         {
+            tilt = "N0S";
+         }
+
+         providerManagers.emplace(p->GetLevel3ProviderManager(tilt));
+      }
+
+      if (deriverManagerIt == p->activeDerivers_.cend())
+      {
+         deriverManager = std::make_shared<DeriverManager>(
+            this, product, deriver, providerManagers);
+         // May need to split this up so we can remove inactive ones a bit
+         // easier.
+         p->activeDerivers_.emplace(product, deriverManager);
+
+         for (const auto& providerManager : deriverManager->providerManagers_)
+         {
+            connect(
+               providerManager.get(),
+               &ProviderManager::NewDataAvailable,
+               deriverManager.get(),
+               [this, deriverManager, providerManager](
+                  common::RadarProductGroup             group,
+                  const std::string&                    l3Product,
+                  std::chrono::system_clock::time_point latestTime)
+               {
+                  // Create file request
+                  const std::shared_ptr<request::NexradFileRequest> request =
+                     std::make_shared<request::NexradFileRequest>(radar_id());
+                  // TODO deal with times
+                  if (group == common::RadarProductGroup::Level2)
+                  {
+                     // TODO this is going to require changes to Level2
+                     // Chunks I mean, to be able to use L2 chunks
+                  }
+                  else if (group == common::RadarProductGroup::Level3)
+                  {
+                     // TODO this is not dealing with times properly
+                     connect(
+                        request.get(),
+                        &request::NexradFileRequest::RequestComplete,
+                        deriverManager.get(),
+                        [deriverManager, l3Product](
+                           const std::shared_ptr<request::NexradFileRequest>&
+                              request)
+                        {
+                           // Select loaded record
+                           auto record = request->radar_product_record();
+                           if (record != nullptr)
+                           {
+                              deriverManager->deriver_->SetLevel3InputFile(
+                                 common::GetLevel3ProductByAwipsId(l3Product),
+                                 record->level3_file());
+                           }
+                        });
+                     LoadLevel3Data(l3Product, latestTime, request);
+                  }
+               });
+
+         }
+      }
+
+      // TODO Break this out into its own bit of code.
+      deriverManager->deriverFinishedConection_ =
+         deriverManager->deriver_->update_signal().connect(
+            [deriverManager, this]()
+            {
+               Q_EMIT NewDataAvailable(common::RadarProductGroup::Derived,
+                     deriverManager->product_,
+                     false,
+                     {}); // TODO
+            }
+         );
+
+      // TODO Make sure only avalible products are selected
+      p->EnableRefresh(uuid, providerManagers, enabled);
+   }
+   else if (group == common::RadarProductGroup::Level2)
    {
       p->EnableRefresh(
          uuid,
@@ -1731,6 +1900,18 @@ RadarProductManager::GetLevel3Data(const std::string& product,
    }
 
    return {message, time, status};
+}
+
+std::shared_ptr<deriver::data::DerivedData>
+RadarProductManager::GetDerivedData(const std::string& product)
+{
+   const auto& deriverManagerIt_ = p->activeDerivers_.find(product);
+   if (deriverManagerIt_ == p->activeDerivers_.cend())
+   {
+      return nullptr;
+   }
+
+   return deriverManagerIt_->second->deriver_->GetOutput();
 }
 
 common::Level3ProductCategoryMap
