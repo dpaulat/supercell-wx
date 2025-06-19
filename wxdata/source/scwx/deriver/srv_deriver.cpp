@@ -16,7 +16,7 @@ static const auto logger_ = util::Logger::Create(logPrefix_);
 static const std::unordered_set<std::string> kLevel3InputProducts_ = {"SRM",
                                                                       "SDV"};
 
-constexpr double pi = 3.14159265358979323846;
+constexpr float pi = 3.14159265358979323846;
 
 class SrvDeriver::Impl
 {
