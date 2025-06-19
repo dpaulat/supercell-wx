@@ -31,16 +31,16 @@ public:
       layout_->addWidget(productsWidget_);
       productsLayout_->setContentsMargins(0, 0, 0, 0);
 
-      // TODO
+      // TODO Actually have a full list of products, not just one.
       QToolButton* toolButton = new QToolButton();
       toolButton->setText("SRV");
-      toolButton->setStatusTip("Text SRV product. One elevation only.");
+      toolButton->setStatusTip("Test SRV product. One elevation only.");
       productsLayout_->addWidget(toolButton);
       categoryButtons_.push_back(toolButton);
       QObject::connect(toolButton,
                        &QToolButton::clicked,
                        this,
-                       [this]() { SelectProductCategory("SRV"); });
+                       [this]() { SelectProductCategory("SRV-AVG-0"); });
    }
 
    ~DerivedProductsWidgetImpl() override = default;

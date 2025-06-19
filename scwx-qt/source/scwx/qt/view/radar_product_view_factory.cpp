@@ -71,11 +71,8 @@ std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
    }
    else if (productGroup == common::RadarProductGroup::Derived)
    {
-      if (productName == "SRV") // TODO
-      {
-         view = std::make_shared<DerivedRadialView>(productName,
-                                                    radarProductManager);
-      }
+      view =
+         std::make_shared<DerivedRadialView>(productName, radarProductManager);
    }
    else
    {

@@ -13,8 +13,6 @@ namespace scwx::deriver
 
 static const std::string logPrefix_ = "scwx::deriver::srv_deriver";
 static const auto logger_ = util::Logger::Create(logPrefix_);
-static const std::unordered_set<std::string> kLevel3InputProducts_ = {"SRM",
-                                                                      "SDV"};
 
 constexpr float pi = 3.14159265358979323846f;
 
@@ -27,32 +25,30 @@ public:
 SrvDeriver::SrvDeriver() : p {std::make_unique<Impl>()} {}
 SrvDeriver::~SrvDeriver() = default;
 
-const std::unordered_set<std::string>& SrvDeriver::GetLevel3InputProducts()
+std::shared_ptr<data::DerivedData>
+SrvDeriver::GetOutput(const std::string& product)
 {
-   return kLevel3InputProducts_;
-}
+   // Find which products we need for this elevation
+   const auto& derivedProductIt = deriveable_products().find(product);
+   if (derivedProductIt == deriveable_products().cend())
+   {
+      return nullptr;
+   }
+   const auto& derivedProduct = derivedProductIt->second;
 
-bool SrvDeriver::NeedsLevel2Input()
-{
-   return false;
-}
-
-std::shared_ptr<data::DerivedData> SrvDeriver::CalculateData()
-{
-   std::shared_ptr<wsr88d::Level3File> srmFile = GetLevel3File("SRM");
-   std::shared_ptr<wsr88d::Level3File> sdvFile = GetLevel3File("SDV");
-
+   std::shared_ptr<wsr88d::rpg::Level3Message> srmFile =
+      GetLevel3Input(derivedProduct.level3AwipsIds_[1]);
+   std::shared_ptr<wsr88d::rpg::Level3Message> sdvFile =
+      GetLevel3Input(derivedProduct.level3AwipsIds_[0]);
    if (srmFile == nullptr || sdvFile == nullptr)
    {
       return nullptr;
    }
 
    auto srmMessage =
-      std::dynamic_pointer_cast<wsr88d::rpg::GraphicProductMessage>(
-         srmFile->message());
+      std::dynamic_pointer_cast<wsr88d::rpg::GraphicProductMessage>(srmFile);
    auto sdvMessage =
-      std::dynamic_pointer_cast<wsr88d::rpg::GraphicProductMessage>(
-         sdvFile->message());
+      std::dynamic_pointer_cast<wsr88d::rpg::GraphicProductMessage>(sdvFile);
    if (srmMessage == nullptr || sdvMessage == nullptr)
    {
       return nullptr;
