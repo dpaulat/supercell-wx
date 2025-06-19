@@ -495,10 +495,10 @@ void DerivedRadialView::ComputeSweep()
       1, static_cast<uint16_t>(dataMomentInterval / gateLength));
 
    // Compute gate range [startGate, endGate)
-   std::uint16_t       startGate = 0;
-   const std::uint16_t endGate =
-      std::min<std::uint16_t>(startGate + numberOfDataMomentGates * gateSize,
-                              common::MAX_DATA_MOMENT_GATES);
+   size_t       startGate = 0;
+   const size_t endGate =
+      std::min<std::size_t>(startGate + numberOfDataMomentGates * gateSize,
+                            common::MAX_DATA_MOMENT_GATES);
 
    if (smoothingEnabled)
    {
@@ -587,7 +587,7 @@ void DerivedRadialView::ComputeSweep()
 
          if (gate > 0)
          {
-            const uint16_t baseCoord = gate - 1;
+            const size_t baseCoord = gate - 1;
 
             size_t offset1 = ((startRadial + radial) % radials *
                                  common::MAX_DATA_MOMENT_GATES +
@@ -620,7 +620,7 @@ void DerivedRadialView::ComputeSweep()
          }
          else
          {
-            const uint16_t baseCoord = gate;
+            const size_t baseCoord = gate;
 
             size_t offset1 = ((startRadial + radial) % radials *
                                  common::MAX_DATA_MOMENT_GATES +
@@ -718,11 +718,11 @@ void DerivedRadialView::Impl::ComputeCoordinates(
             gates.end(),
             [&](size_t gate)
             {
-               const std::uint32_t radialGate =
+               const size_t radialGate =
                   radial * common::MAX_DATA_MOMENT_GATES + gate;
                const float range =
                   (static_cast<float>(gate) + gateRangeOffset) * gateSize;
-               const size_t offset = static_cast<size_t>(radialGate) * 2;
+               const size_t offset = radialGate * 2;
                if (offset + 1 >= coordinates_.size())
                {
                   return;
