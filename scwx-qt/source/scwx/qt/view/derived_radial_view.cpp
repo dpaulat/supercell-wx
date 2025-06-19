@@ -520,7 +520,7 @@ void DerivedRadialView::ComputeSweep()
          (radial == radialData->radials() - 1) ? 0 : radial + 1;
       const auto& nextDataMomentsArray8 = radialData->levels(nextRadial);
 
-      for (std::uint16_t gate = startGate, i = 0; gate + gateSize <= endGate;
+      for (size_t gate = startGate, i = 0; gate + gateSize <= endGate;
            gate += gateSize, ++i)
       {
          size_t vertexCount = (gate > 0) ? 6 : 3;
