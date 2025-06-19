@@ -24,6 +24,7 @@
 #include <scwx/qt/ui/alert_dock_widget.hpp>
 #include <scwx/qt/ui/animation_dock_widget.hpp>
 #include <scwx/qt/ui/collapsible_group.hpp>
+#include <scwx/qt/ui/derived_products_widget.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/qt/ui/gps_info_dialog.hpp>
 #include <scwx/qt/ui/imgui_debug_dialog.hpp>
@@ -197,11 +198,13 @@ public:
    ui::CollapsibleGroup*     level2ProductsGroup_;
    ui::CollapsibleGroup*     level2SettingsGroup_;
    ui::CollapsibleGroup*     level3ProductsGroup_;
+   ui::CollapsibleGroup*     derivedProductsGroup_;
    ui::CollapsibleGroup*     timelineGroup_;
    ui::Level2ProductsWidget* level2ProductsWidget_;
    ui::Level2SettingsWidget* level2SettingsWidget_;
 
-   ui::Level3ProductsWidget* level3ProductsWidget_;
+   ui::Level3ProductsWidget*  level3ProductsWidget_;
+   ui::DerivedProductsWidget* derivedProductsWidget_;
 
    QLabel* coordinateLabel_ {nullptr};
    QLabel* timeLabel_ {nullptr};
@@ -361,6 +364,15 @@ MainWindow::MainWindow(QWidget* parent) :
       p->level3ProductsWidget_);
    ui->radarToolboxScrollAreaContents->layout()->addWidget(
       p->level3ProductsGroup_);
+
+   // Add Derived Products
+   p->derivedProductsGroup_ =
+      new ui::CollapsibleGroup(tr("Derived Products"), this);
+   p->derivedProductsWidget_ = new ui::DerivedProductsWidget(this);
+   p->derivedProductsGroup_->GetContentsLayout()->addWidget(
+      p->derivedProductsWidget_);
+   ui->radarToolboxScrollAreaContents->layout()->addWidget(
+      p->derivedProductsGroup_);
 
    // Add Level 2 Settings
    p->level2SettingsGroup_ =
@@ -860,6 +872,7 @@ void MainWindowImpl::ConfigureUiSettings()
       uiSettings.level2_settings_expanded().GetValue());
    level3ProductsGroup_->SetExpanded(
       uiSettings.level3_products_expanded().GetValue());
+   // TODO derived products
    mapSettingsGroup_->SetExpanded(
       uiSettings.map_settings_expanded().GetValue());
    timelineGroup_->SetExpanded(uiSettings.timeline_expanded().GetValue());
@@ -1185,6 +1198,14 @@ void MainWindowImpl::ConnectOtherSignals()
    connect(
       level3ProductsWidget_,
       &ui::Level3ProductsWidget::RadarProductSelected,
+      mainWindow_,
+      [&](common::RadarProductGroup group,
+          const std::string&        productName,
+          int16_t                   productCode)
+      { SelectRadarProduct(activeMap_, group, productName, productCode); });
+   connect(
+      derivedProductsWidget_,
+      &ui::DerivedProductsWidget::RadarProductSelected,
       mainWindow_,
       [&](common::RadarProductGroup group,
           const std::string&        productName,
@@ -1556,6 +1577,7 @@ void MainWindowImpl::UpdateRadarProductSelection(
 {
    level2ProductsWidget_->UpdateProductSelection(group, product);
    level3ProductsWidget_->UpdateProductSelection(group, product);
+   // TODO derived products
 }
 
 void MainWindowImpl::UpdateRadarProductSettings()

@@ -874,7 +874,7 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
       p->currentTiltIndex_ = 0;
    }
 
-   if (radarProductView == nullptr ||
+   if (radarProductView == nullptr || // TODO
        radarProductView->GetRadarProductGroup() != group ||
        (radarProductView->GetRadarProductGroup() ==
            common::RadarProductGroup::Level2 &&
@@ -911,7 +911,9 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
          const std::string palette =
             (group == common::RadarProductGroup::Level2) ?
                common::GetLevel2Palette(common::GetLevel2Product(productName)) :
-               common::GetLevel3Palette(productCode);
+            (group == common::RadarProductGroup::Level3) ?
+               common::GetLevel3Palette(productCode) :
+               "BV";
 
          auto& paletteSetting =
             settings::PaletteSettings::Instance().palette(palette);
@@ -1935,10 +1937,16 @@ void MapWidgetImpl::RadarProductManagerConnect()
                               radarProductManager_->LoadLevel2Data(latestTime,
                                                                    request);
                            }
-                           else
+                           else if (group == common::RadarProductGroup::Level3)
                            {
                               radarProductManager_->LoadLevel3Data(
                                  product, latestTime, request);
+                           }
+                           else if (group == common::RadarProductGroup::Derived)
+                           {
+                              // TODO
+                              widget_->SelectRadarProduct(
+                                 group, product, 0, latestTime, true);
                            }
                         }
                         catch (const std::exception& ex)
