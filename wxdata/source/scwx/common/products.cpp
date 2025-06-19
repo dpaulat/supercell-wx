@@ -10,6 +10,7 @@ namespace common
 static const std::unordered_map<RadarProductGroup, std::string>
    radarProductGroupName_ {{RadarProductGroup::Level2, "L2"},
                            {RadarProductGroup::Level3, "L3"},
+                           {RadarProductGroup::Derived, "DR"},
                            {RadarProductGroup::Unknown, "?"}};
 
 static const std::unordered_map<Level2Product, std::string> level2Name_ {
