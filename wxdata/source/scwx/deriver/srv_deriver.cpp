@@ -16,6 +16,8 @@ static const auto logger_ = util::Logger::Create(logPrefix_);
 static const std::unordered_set<std::string> kLevel3InputProducts_ = {"SRM",
                                                                       "SDV"};
 
+constexpr double pi = 3.14159265358979323846;
+
 class SrvDeriver::Impl
 {
 public:
@@ -151,7 +153,7 @@ std::shared_ptr<data::DerivedData> SrvDeriver::CalculateData()
 
       const float stormRadialVelocity =
          -meanStormSpeed *
-         std::cos((meanStormDirection - startAngle + deltaAngle / 2) * M_PI /
+         std::cos((meanStormDirection - startAngle + deltaAngle / 2) * pi /
                   180);
 
       uint8_t maxLevel = std::numeric_limits<uint8_t>::min();
@@ -198,7 +200,7 @@ std::shared_ptr<data::DerivedData> SrvDeriver::CalculateData()
       // TODO should this angle be center or edge?
       const float stormRadialVelocity =
          -meanStormSpeed *
-         std::cos((meanStormDirection - startAngle + deltaAngle / 2) * M_PI /
+         std::cos((meanStormDirection - startAngle + deltaAngle / 2) * pi /
                   180);
 
       auto& outputRadialMoments = output->levels(radial);
