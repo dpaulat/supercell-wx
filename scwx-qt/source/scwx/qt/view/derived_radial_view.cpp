@@ -441,7 +441,7 @@ void DerivedRadialView::ComputeSweep()
          radarProductManager->coordinates(radialSize, smoothingEnabled);
 
    // There should be a positive number of range bins in radial data
-   const uint16_t numberOfDataMomentGates = radialData->gates();
+   const size_t numberOfDataMomentGates = radialData->gates();
    if (numberOfDataMomentGates < 1)
    {
       logger_->warn("No range bins in radial data");
@@ -684,11 +684,11 @@ void DerivedRadialView::Impl::ComputeCoordinates(
 
    coordinates_.resize(kMaxCoordinates_);
 
-   const uint16_t numRadials   = radialData_->radials();
-   const uint16_t numRangeBins = radialData_->gates();
+   const size_t numRadials   = radialData_->radials();
+   const size_t numRangeBins = radialData_->gates();
 
-   auto radials = boost::irange<std::uint32_t>(0u, numRadials);
-   auto gates   = boost::irange<std::uint32_t>(0u, numRangeBins);
+   auto radials = boost::irange<size_t>(0u, numRadials);
+   auto gates   = boost::irange<size_t>(0u, numRangeBins);
 
    const float gateRangeOffset = (smoothingEnabled) ?
                                     // Center of the first gate is half the gate
@@ -702,7 +702,7 @@ void DerivedRadialView::Impl::ComputeCoordinates(
       std::execution::par_unseq,
       radials.begin(),
       radials.end(),
-      [&](uint32_t radial)
+      [&](size_t radial)
       {
          float angle = radialData_->start_angle(radial);
 
@@ -716,7 +716,7 @@ void DerivedRadialView::Impl::ComputeCoordinates(
             std::execution::par_unseq,
             gates.begin(),
             gates.end(),
-            [&](uint32_t gate)
+            [&](size_t gate)
             {
                const std::uint32_t radialGate =
                   radial * common::MAX_DATA_MOMENT_GATES + gate;
@@ -786,10 +786,10 @@ DerivedRadialView::GetBinLevel(const common::Coordinate& coordinate) const
    }
 
    // Compute gate interval
-   const uint16_t gates = p->radialData_->gates();
-   const auto     dataMomentInterval =
+   const size_t gates = p->radialData_->gates();
+   const auto   dataMomentInterval =
       static_cast<uint16_t>(p->radialData_->meta_data().dataMomentInterval);
-   std::uint16_t gate = s12 / dataMomentInterval;
+   auto gate = static_cast<size_t>(s12 / dataMomentInterval);
 
    if (gate >= gates)
    {
@@ -798,14 +798,14 @@ DerivedRadialView::GetBinLevel(const common::Coordinate& coordinate) const
    }
 
    // Find Radial
-   const uint16_t numRadials = p->radialData_->radials();
-   auto           radials    = boost::irange<std::uint32_t>(0u, numRadials);
+   const size_t numRadials = p->radialData_->radials();
+   auto         radials    = boost::irange<size_t>(0u, numRadials);
 
    auto radial = std::find_if( //
       std::execution::par_unseq,
       radials.begin(),
       radials.end(),
-      [&](uint32_t i)
+      [&](size_t i)
       {
          bool   found      = false;
          double startAngle = p->radialData_->start_angle(i);
