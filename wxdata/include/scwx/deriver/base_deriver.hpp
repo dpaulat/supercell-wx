@@ -1,18 +1,35 @@
 #pragma once
 
 #include <scwx/deriver/data/derived_data.hpp>
-#include <scwx/wsr88d/ar2v_file.hpp>
-#include <scwx/wsr88d/level3_file.hpp>
+#include <scwx/wsr88d/rda/generic_radar_data.hpp>
+#include <scwx/wsr88d/rpg/level3_message.hpp>
 #include <scwx/wsr88d/nexrad_file.hpp>
 #include <scwx/common/products.hpp>
 
 #include <memory>
-#include <unordered_set>
 
-#include <boost/signals2/signal.hpp>
+#include <utility>
 
 namespace scwx::deriver
 {
+
+class DerivedProductInfo
+{
+public:
+   DerivedProductInfo(
+         std::string name,
+         std::vector<std::string> level3AwipsIds,
+         std::vector<std::tuple<wsr88d::rda::DataBlockType, float>> level2Products) :
+      name_{std::move(name)},
+      level3AwipsIds_{std::move(level3AwipsIds)},
+      level2Products_{std::move(level2Products)}
+   {}
+
+   std::string name_;
+
+   std::vector<std::string>                                   level3AwipsIds_;
+   std::vector<std::tuple<wsr88d::rda::DataBlockType, float>> level2Products_;
+};
 
 class BaseDeriver
 {
@@ -26,74 +43,55 @@ public:
    BaseDeriver& operator=(BaseDeriver&&)      = delete;
 
    /**
-    * Gets the signal invoked when the output data is updated
-    *
-    * @return Changed signal
-    */
-   [[nodiscard]] boost::signals2::signal<void()>& update_signal() const;
-
-   /**
     * Feed the deriver a new level 2 file. The file should not change once fed.
     *
+    * TODO
     * @param file The level 2 file to update the deriver with
     */
-   void SetLevel2InputFile(std::shared_ptr<wsr88d::Ar2vFile> file);
+   void SetLevel2Input(wsr88d::rda::DataBlockType dataBlockType,
+                       float                      elevation,
+                       std::shared_ptr<wsr88d::rda::ElevationScan> data);
 
    /**
     * Feed the deriver a new level 3 file for a specific product. The file
     * should not change once fed.
     *
+    * TODO
     * @param product The name of the product to feed the file
     * @param file The level 3 file to update the deriver with
     */
-   void SetLevel3InputFile(const std::string&                  product,
-                           std::shared_ptr<wsr88d::Level3File> file);
+   void SetLevel3Input(const std::string&                          product,
+                       std::shared_ptr<wsr88d::rpg::Level3Message> data);
 
    /**
-    * Retreve the latest derived data from the cache.
+    * The method where the subclass should calculate the derived product.
     *
-    * @return The derived data the subclass has calculate
+    * TODO
+    * @return The newly calculated data.
     */
-   [[nodiscard]] std::shared_ptr<data::DerivedData> GetOutput();
-
-   /**
-    * If the subclass derives from level 2 products.
-    *
-    * @return If the subclass uses level 2 products
-    */
-   virtual bool NeedsLevel2Input() = 0;
-
-   /**
-    * The level 3 products that the subclass derives from.
-    *
-    * @return The level 3 products that the subclass derives from
-    */
-   virtual const std::unordered_set<std::string>& GetLevel3InputProducts() = 0;
+   virtual std::shared_ptr<data::DerivedData>
+   GetOutput(const std::string& product) = 0;
 
 protected:
    /**
     * Allows the subclass to get the current level 2 file.
+    * TODO
     *
     * @return The current level 2 file
     */
-   std::shared_ptr<wsr88d::Ar2vFile> GetLevel2File();
+   std::shared_ptr<wsr88d::rda::ElevationScan>
+   GetLevel2Input(wsr88d::rda::DataBlockType dataBlockType, float elevation);
 
    /**
     * Allows the subclass to get the current level 3 file for a product.
+    * TODO
     *
     * @param product The name of the product to get the file for
     *
     * @return The current level 3 file
     */
-   std::shared_ptr<wsr88d::Level3File>
-   GetLevel3File(const std::string& product);
-
-   /**
-    * The method where the subclass should calculate the derived product.
-    *
-    * @return The newly calculated data.
-    */
-   virtual std::shared_ptr<data::DerivedData> CalculateData() = 0;
+   std::shared_ptr<wsr88d::rpg::Level3Message>
+   GetLevel3Input(const std::string& product);
 
 private:
    class Impl;

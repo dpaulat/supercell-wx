@@ -113,17 +113,6 @@ public:
    GetLevel3Data(const std::string&                    product,
                  std::chrono::system_clock::time_point time = {});
 
-   /** TODO
-    * @brief Get derived data for a product and time.
-    *
-    * @param [in] product Radar product name
-    * @param [in] time Radar product time
-    *
-    * @return Derived data and selected time
-    */
-   std::shared_ptr<deriver::data::DerivedData>
-   GetDerivedData(const std::string& product);
-
    static std::shared_ptr<RadarProductManager>
    Instance(const std::string& radarSite);
 

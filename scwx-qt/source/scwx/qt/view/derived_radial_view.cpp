@@ -2,7 +2,9 @@
 #include <scwx/qt/view/derived_radial_view.hpp>
 
 #include <scwx/common/constants.hpp>
+#include <scwx/deriver/base_deriver.hpp>
 #include <scwx/deriver/data/derived_radial_data.hpp>
+#include <scwx/deriver/deriver_factory.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 
@@ -33,6 +35,7 @@ public:
    Impl(DerivedRadialView* self, const std::string& product) :
        self_ {self},
        product_ {product},
+       deriver_ {deriver::DeriverFactory::CreateDeriver(product_)},
        colorTable_ {},
        colorTableLut_ {},
        savedColorTable_ {nullptr},
@@ -45,6 +48,7 @@ public:
    const DerivedRadialView* self_;
 
    std::string product_;
+   std::shared_ptr<deriver::BaseDeriver> deriver_;
 
    std::shared_ptr<deriver::data::DerivedRadialData> radialData_ {nullptr};
 
@@ -243,7 +247,8 @@ std::string DerivedRadialView::GetRadarProductName() const
 
 void DerivedRadialView::SelectProduct(const std::string& productName)
 {
-   p->product_  = productName;
+   p->product_ = productName;
+   p->deriver_ = deriver::DeriverFactory::CreateDeriver(p->product_);
 }
 
 std::vector<std::pair<std::string, std::string>>
@@ -389,11 +394,43 @@ void DerivedRadialView::ComputeSweep()
    std::shared_ptr<manager::RadarProductManager> radarProductManager =
       radar_product_manager();
 
-   auto derivedData = radarProductManager->GetDerivedData(p->product_);
+   const auto& derivableProducts =
+      deriver::DeriverFactory::GetDeriveableProducts(p->product_);
+   const auto& productInfoIt = derivableProducts.find(p->product_);
+   if (productInfoIt == derivableProducts.cend() || p->deriver_ == nullptr)
+   {
+      return;
+   }
+   const auto& productInfo = productInfoIt->second;
+
+   for (const auto& neededL3Product : productInfo.level3AwipsIds_)
+   {
+      const auto [data, time] =
+         radarProductManager->GetLevel3Data(neededL3Product, selected_time());
+      p->deriver_->SetLevel3Input(neededL3Product, data);
+   }
+
+   for (const auto& neededL2Product : productInfo.level2Products_)
+   {
+      const auto& [dataBlockType, elevation] = neededL2Product;
+      const auto [data, elevationGot, elecationCuts, time] =
+         radarProductManager->GetLevel2Data(
+            dataBlockType, elevation, selected_time());
+      p->deriver_->SetLevel2Input(dataBlockType, elevation, data);
+   }
+
+   auto derivedData = p->deriver_->GetOutput(p->product_);
+   if (derivedData == nullptr)
+   {
+      // Data was not avalible. This may be do to lack if input data, or an
+      // error. Any error should be signaled in the deriver.
+      return;
+   }
    p->radialData_ = std::dynamic_pointer_cast<deriver::data::DerivedRadialData>(
       derivedData);
    if (p->radialData_ == nullptr)
    {
+      logger_->error("Deriver did not return radial data.");
       return;
    }
 
@@ -651,7 +688,6 @@ void DerivedRadialView::ComputeSweep()
 
    timer.stop();
    logger_->debug("Vertices calculated in {}", timer.format(6, "%ws"));
-   logger_->error("{}", vertices.size());
 
    UpdateColorTableLut();
 
