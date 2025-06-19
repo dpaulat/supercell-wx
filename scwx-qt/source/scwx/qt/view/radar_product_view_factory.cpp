@@ -1,5 +1,6 @@
 #include <scwx/qt/view/radar_product_view_factory.hpp>
 #include <scwx/qt/view/level2_product_view.hpp>
+#include <scwx/qt/view/derived_radial_view.hpp>
 #include <scwx/qt/view/level3_radial_view.hpp>
 #include <scwx/qt/view/level3_raster_view.hpp>
 #include <scwx/util/logger.hpp>
@@ -66,6 +67,14 @@ std::shared_ptr<RadarProductView> RadarProductViewFactory::Create(
       else if (level3RasterProducts_.contains(productCode))
       {
          view = Level3RasterView::Create(productName, radarProductManager);
+      }
+   }
+   else if (productGroup == common::RadarProductGroup::Derived)
+   {
+      if (productName == "SRV") // TODO
+      {
+         view = std::make_shared<DerivedRadialView>(productName,
+                                                    radarProductManager);
       }
    }
    else
