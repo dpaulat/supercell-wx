@@ -20,9 +20,10 @@ public:
    DerivedRadialView& operator=(const DerivedRadialView&) = delete;
    DerivedRadialView& operator=(DerivedRadialView&&)      = delete;
 
-   [[nodiscard]] std::shared_ptr<common::ColorTable> color_table() const override;
+   [[nodiscard]] std::shared_ptr<common::ColorTable>
+   color_table() const override;
    [[nodiscard]] const std::vector<boost::gil::rgba8_pixel_t>&
-                 color_table_lut() const override;
+   color_table_lut() const override;
 
    [[nodiscard]] std::uint16_t color_table_min() const override;
    [[nodiscard]] std::uint16_t color_table_max() const override;
@@ -33,13 +34,14 @@ public:
 
    void LoadColorTable(std::shared_ptr<common::ColorTable> colorTable) override;
 
-   [[nodiscard]] common::RadarProductGroup GetRadarProductGroup() const override;
-   [[nodiscard]] std::string               GetRadarProductName() const override;
+   [[nodiscard]] common::RadarProductGroup
+                             GetRadarProductGroup() const override;
+   [[nodiscard]] std::string GetRadarProductName() const override;
 
    [[nodiscard]] std::optional<wsr88d::DataLevelCode>
-                        GetDataLevelCode(std::uint16_t level) const override;
-   [[nodiscard]] std::optional<float> GetDataValue(std::uint16_t level) const override;
-
+   GetDataLevelCode(std::uint16_t level) const override;
+   [[nodiscard]] std::optional<float>
+   GetDataValue(std::uint16_t level) const override;
 
    void SelectProduct(const std::string& productName) override;
 
@@ -61,9 +63,9 @@ public:
 
 protected:
    boost::asio::thread_pool& thread_pool() override;
-   void ConnectRadarProductManager() override;
-   void DisconnectRadarProductManager() override;
-   void UpdateColorTableLut() override;
+   void                      ConnectRadarProductManager() override;
+   void                      DisconnectRadarProductManager() override;
+   void                      UpdateColorTableLut() override;
 
 protected slots:
    void ComputeSweep() override;
