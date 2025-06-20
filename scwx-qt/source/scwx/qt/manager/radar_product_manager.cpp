@@ -713,19 +713,19 @@ void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
                const std::shared_ptr<request::NexradFileRequest> request =
                   std::make_shared<request::NexradFileRequest>(radar_id());
 
-               connect(
-                  request.get(),
-                  &request::NexradFileRequest::RequestComplete,
-                  this,
-                  [this, product, latestTime](
-                     const std::shared_ptr<request::NexradFileRequest>&)
-                  {
-                  // Maybe getting rid of the record is an issue?
-                     Q_EMIT NewDataAvailable(common::RadarProductGroup::Derived,
-                                             product,
-                                             false,
-                                             latestTime);
-                  });
+               connect(request.get(),
+                       &request::NexradFileRequest::RequestComplete,
+                       this,
+                       [this, product, latestTime](
+                          const std::shared_ptr<request::NexradFileRequest>&)
+                       {
+                          // Maybe getting rid of the record is an issue?
+                          Q_EMIT NewDataAvailable(
+                             common::RadarProductGroup::Derived,
+                             product,
+                             false,
+                             latestTime);
+                       });
 
                if (gotGroup == common::RadarProductGroup::Level2)
                {

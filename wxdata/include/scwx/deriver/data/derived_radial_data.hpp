@@ -14,17 +14,17 @@ namespace scwx::deriver::data
 struct DerivedRadialMetaData
 {
 public:
-   bool hasElevation = false;
+   bool                          hasElevation = false;
    units::angle::degrees<double> elevation = units::angle::degrees<double>(0);
 
-   float scale = 0;
-   float offset = 0;
-   float range = 0;
-   float dataMomentInterval = 0;
-   std::chrono::system_clock::time_point sweepTime = {};
-   uint16_t vcp = 0;
-   uint8_t threshold = 2;
-   uint16_t numberOfLevels = 256;
+   float                                 scale              = 0;
+   float                                 offset             = 0;
+   float                                 range              = 0;
+   float                                 dataMomentInterval = 0;
+   std::chrono::system_clock::time_point sweepTime          = {};
+   uint16_t                              vcp                = 0;
+   uint8_t                               threshold          = 2;
+   uint16_t                              numberOfLevels     = 256;
 };
 
 class DerivedRadialData : public DerivedData

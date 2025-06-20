@@ -16,14 +16,15 @@ namespace scwx::deriver
 class DerivedProductInfo
 {
 public:
-   DerivedProductInfo(
-         std::string name,
-         std::vector<std::string> level3AwipsIds,
-         std::vector<std::tuple<wsr88d::rda::DataBlockType, float>> level2Products) :
-      name_{std::move(name)},
-      level3AwipsIds_{std::move(level3AwipsIds)},
-      level2Products_{std::move(level2Products)}
-   {}
+   DerivedProductInfo(std::string              name,
+                      std::vector<std::string> level3AwipsIds,
+                      std::vector<std::tuple<wsr88d::rda::DataBlockType, float>>
+                         level2Products) :
+       name_ {std::move(name)},
+       level3AwipsIds_ {std::move(level3AwipsIds)},
+       level2Products_ {std::move(level2Products)}
+   {
+   }
 
    std::string name_;
 
