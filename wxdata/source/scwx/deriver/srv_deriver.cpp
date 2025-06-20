@@ -7,12 +7,11 @@
 #include <scwx/wsr88d/rpg/digital_radial_data_array_packet.hpp>
 #include <scwx/wsr88d/rpg/radial_data_packet.hpp>
 
-
 namespace scwx::deriver
 {
 
 static const std::string logPrefix_ = "scwx::deriver::srv_deriver";
-static const auto logger_ = util::Logger::Create(logPrefix_);
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 constexpr float pi = 3.14159265358979323846f;
 
@@ -89,7 +88,7 @@ SrvDeriver::GetOutput(const std::string& product)
       std::vector<std::shared_ptr<wsr88d::rpg::Packet>> packetList =
          sdvSymbologyBlock->packet_list(layer);
 
-      for (auto & it : packetList)
+      for (auto& it : packetList)
       {
          // Prefer Digital Radial Data to Radial Data
          digitalDataPacket = std::dynamic_pointer_cast<
@@ -218,13 +217,12 @@ SrvDeriver::GetOutput(const std::string& product)
             // Storm Relative Mean Radial Velocity = (Mean Radial Velocity) -
             // StrmSpd * cos(StrmDir - CurrAzm)
             const float outputValue = velocity - stormRadialVelocity;
-            const auto outputLevel = static_cast<uint8_t>(
+            const auto  outputLevel = static_cast<uint8_t>(
                (outputValue - minSRVValue) * outputScale + 2);
             outputRadialMoments[gate] = outputLevel;
          }
       }
    }
-
 
    output->meta_data().hasElevation = true;
    output->meta_data().elevation    = sdvDescriptionBlock->elevation();
@@ -237,7 +235,7 @@ SrvDeriver::GetOutput(const std::string& product)
       sdvDescriptionBlock->volume_scan_date(),
       sdvDescriptionBlock->volume_scan_start_time() * 1000);
    output->meta_data().vcp = sdvDescriptionBlock->volume_coverage_pattern();
-   output->meta_data().threshold = 2;
+   output->meta_data().threshold      = 2;
    output->meta_data().numberOfLevels = 256;
 
    return output;

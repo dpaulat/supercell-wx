@@ -1,7 +1,7 @@
 #pragma once
 
 #include <scwx/deriver/base_deriver.hpp>
-#include<memory>
+#include <memory>
 
 namespace scwx::deriver
 {
@@ -11,13 +11,11 @@ private:
    explicit DeriverFactory() = delete;
    ~DeriverFactory()         = delete;
 
-   DeriverFactory(const DeriverFactory&) = delete;
-   DeriverFactory&
-   operator=(const DeriverFactory&) = delete;
+   DeriverFactory(const DeriverFactory&)            = delete;
+   DeriverFactory& operator=(const DeriverFactory&) = delete;
 
-   DeriverFactory(DeriverFactory&&) noexcept = delete;
-   DeriverFactory&
-   operator=(DeriverFactory&&) noexcept = delete;
+   DeriverFactory(DeriverFactory&&) noexcept            = delete;
+   DeriverFactory& operator=(DeriverFactory&&) noexcept = delete;
 
 public:
    static std::shared_ptr<BaseDeriver>

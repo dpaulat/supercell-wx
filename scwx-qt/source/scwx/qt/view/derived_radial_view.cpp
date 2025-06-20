@@ -47,15 +47,15 @@ public:
 
    const DerivedRadialView* self_;
 
-   std::string product_;
+   std::string                           product_;
    std::shared_ptr<deriver::BaseDeriver> deriver_;
 
    std::shared_ptr<deriver::data::DerivedRadialData> radialData_ {nullptr};
 
    std::shared_ptr<common::ColorTable>    colorTable_;
    std::vector<boost::gil::rgba8_pixel_t> colorTableLut_;
-   uint16_t                               colorTableMin_{};
-   uint16_t                               colorTableMax_{};
+   uint16_t                               colorTableMin_ {};
+   uint16_t                               colorTableMax_ {};
 
    uint16_t                            threshold_ {2};
    std::shared_ptr<common::ColorTable> savedColorTable_;
@@ -75,10 +75,10 @@ public:
 };
 
 DerivedRadialView::DerivedRadialView(
-      const std::string&                            product,
-      std::shared_ptr<manager::RadarProductManager> radarProductManager) :
-   RadarProductView(radarProductManager),
-   p {std::make_unique<Impl>(this, product)}
+   const std::string&                            product,
+   std::shared_ptr<manager::RadarProductManager> radarProductManager) :
+    RadarProductView(radarProductManager),
+    p {std::make_unique<Impl>(this, product)}
 {
    ConnectRadarProductManager();
 }
@@ -162,7 +162,6 @@ std::shared_ptr<common::ColorTable> DerivedRadialView::color_table() const
    return p->colorTable_;
 }
 
-
 const std::vector<boost::gil::rgba8_pixel_t>&
 DerivedRadialView::color_table_lut() const
 {
@@ -200,11 +199,10 @@ uint16_t DerivedRadialView::color_table_max() const
    }
 }
 
-
 bool DerivedRadialView::IgnoreUnits() const
 {
    // TODO
-   if (p->product_ == "SRV")
+   if (p->product_.starts_with("SRV"))
    {
       return false;
    }
@@ -214,8 +212,7 @@ bool DerivedRadialView::IgnoreUnits() const
 float DerivedRadialView::unit_scale() const
 {
    // TODO I still need to do this
-
-   if (p->product_ == "SRV")
+   if (p->product_.starts_with("SRV"))
    {
       return types::GetSpeedUnitsScale(p->speedUnits_);
    }
@@ -223,11 +220,10 @@ float DerivedRadialView::unit_scale() const
    return std::numeric_limits<float>().quiet_NaN();
 }
 
-
 std::string DerivedRadialView::units() const
 {
    // TODO I still need to do this
-   if (p->product_ == "SRV")
+   if (p->product_.starts_with("SRV"))
    {
       return types::GetSpeedUnitsAbbreviation(p->speedUnits_);
    }
@@ -265,13 +261,11 @@ void DerivedRadialView::LoadColorTable(
    UpdateColorTableLut();
 }
 
-
 void DerivedRadialView::UpdateColorTableLut()
 {
    logger_->debug("UpdateColorTable()");
 
-   if (p->radialData_ == nullptr ||
-       p->colorTable_ == nullptr ||
+   if (p->radialData_ == nullptr || p->colorTable_ == nullptr ||
        !p->colorTable_->IsValid())
    {
       return;
@@ -279,8 +273,8 @@ void DerivedRadialView::UpdateColorTableLut()
 
    const auto& metaData = p->radialData_->meta_data();
 
-   float offset = metaData.offset;
-   float scale  = metaData.scale;
+   float   offset    = metaData.offset;
+   float   scale     = metaData.scale;
    uint8_t threshold = metaData.threshold;
 
    // If the threshold is 2, the range min should be set to 1 for range
@@ -308,6 +302,14 @@ void DerivedRadialView::UpdateColorTableLut()
    lut.resize(numberOfLevels - rangeMin);
    lut.shrink_to_fit();
 
+   p->colorTableMin_ = rangeMin;
+   p->colorTableMax_ = rangeMax;
+
+   p->threshold_       = threshold;
+   p->savedColorTable_ = p->colorTable_;
+   p->savedOffset_     = offset;
+   p->savedScale_      = scale;
+
    std::for_each(std::execution::par_unseq,
                  dataRange.begin(),
                  dataRange.end(),
@@ -333,14 +335,6 @@ void DerivedRadialView::UpdateColorTableLut()
                        }
                     }
                  });
-
-   p->colorTableMin_ = rangeMin;
-   p->colorTableMax_ = rangeMax;
-
-   p->threshold_       = threshold;
-   p->savedColorTable_ = p->colorTable_;
-   p->savedOffset_     = offset;
-   p->savedScale_      = scale;
 
    Q_EMIT ColorTableLutUpdated();
 }
@@ -372,7 +366,6 @@ std::optional<float> DerivedRadialView::GetDataValue(std::uint16_t level) const
    return static_cast<float>(level - p->threshold_) * p->savedScale_ +
           p->savedOffset_;
 }
-
 
 std::tuple<const void*, size_t, size_t> DerivedRadialView::GetMomentData() const
 {
@@ -426,8 +419,8 @@ void DerivedRadialView::ComputeSweep()
       // error. Any error should be signaled in the deriver.
       return;
    }
-   p->radialData_ = std::dynamic_pointer_cast<deriver::data::DerivedRadialData>(
-      derivedData);
+   p->radialData_ =
+      std::dynamic_pointer_cast<deriver::data::DerivedRadialData>(derivedData);
    if (p->radialData_ == nullptr)
    {
       logger_->error("Deriver did not return radial data.");
@@ -435,7 +428,7 @@ void DerivedRadialView::ComputeSweep()
    }
 
    // TODO get new product data from radar manager (not done yet)
-   bool smoothingEnabled = false;
+   bool smoothingEnabled         = false;
    bool showSmoothedRangeFolding = false;
    // There is a lot that goes here that is TODO
 
@@ -552,7 +545,7 @@ void DerivedRadialView::ComputeSweep()
 
    for (size_t radial = 0; radial < radialData->radials(); ++radial)
    {
-      const auto& dataMomentsArray8 = radialData->levels(radial);
+      const auto&  dataMomentsArray8 = radialData->levels(radial);
       const size_t nextRadial =
          (radial == radialData->radials() - 1) ? 0 : radial + 1;
       const auto& nextDataMomentsArray8 = radialData->levels(nextRadial);
@@ -607,12 +600,12 @@ void DerivedRadialView::ComputeSweep()
 
             // The order must match the store vertices section below
             // TODO
-            dataMoments8[mIndex++] = dm1; //p->RemapDataMoment(dm1);
-            dataMoments8[mIndex++] = dm2; //p->RemapDataMoment(dm2);
-            dataMoments8[mIndex++] = dm4; //p->RemapDataMoment(dm4);
-            dataMoments8[mIndex++] = dm1; //p->RemapDataMoment(dm1);
-            dataMoments8[mIndex++] = dm3; //p->RemapDataMoment(dm3);
-            dataMoments8[mIndex++] = dm4; //p->RemapDataMoment(dm4);
+            dataMoments8[mIndex++] = dm1; // p->RemapDataMoment(dm1);
+            dataMoments8[mIndex++] = dm2; // p->RemapDataMoment(dm2);
+            dataMoments8[mIndex++] = dm4; // p->RemapDataMoment(dm4);
+            dataMoments8[mIndex++] = dm1; // p->RemapDataMoment(dm1);
+            dataMoments8[mIndex++] = dm3; // p->RemapDataMoment(dm3);
+            dataMoments8[mIndex++] = dm4; // p->RemapDataMoment(dm4);
          }
          else
          {
@@ -669,8 +662,8 @@ void DerivedRadialView::ComputeSweep()
                              2;
 
             // TODO
-            vertices[vIndex++] = 0; //p->latitude_;
-            vertices[vIndex++] = 0; //p->longitude_;
+            vertices[vIndex++] = 0; // p->latitude_;
+            vertices[vIndex++] = 0; // p->longitude_;
 
             vertices[vIndex++] = coordinates[offset1];
             vertices[vIndex++] = coordinates[offset1 + 1];
@@ -694,9 +687,8 @@ void DerivedRadialView::ComputeSweep()
    Q_EMIT SweepComputed();
 }
 
-void DerivedRadialView::Impl::ComputeCoordinates(
-   bool  smoothingEnabled,
-   float gateSize)
+void DerivedRadialView::Impl::ComputeCoordinates(bool  smoothingEnabled,
+                                                 float gateSize)
 {
    logger_->debug("ComputeCoordinates()");
    boost::timer::cpu_timer timer;

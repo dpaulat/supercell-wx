@@ -8,7 +8,7 @@
 namespace scwx::deriver
 {
 static const std::string logPrefix_ = "scwx::deriver::base_deriver";
-static const auto logger_ = util::Logger::Create(logPrefix_);
+static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 class BaseDeriver::Impl
 {
@@ -20,8 +20,8 @@ public:
    std::unordered_map<
       wsr88d::rda::DataBlockType,
       std::unordered_map<float, std::shared_ptr<wsr88d::rda::ElevationScan>>>
-                                     level2Data_ = {};
-   std::shared_mutex                 level2DataMutex_ {};
+                     level2Data_ = {};
+   std::shared_mutex level2DataMutex_ {};
    std::unordered_map<std::string, std::shared_ptr<wsr88d::rpg::Level3Message>>
                      level3Data_ {};
    std::shared_mutex level3DataMutex_ {};
@@ -36,7 +36,7 @@ void BaseDeriver::SetLevel2Input(
    std::shared_ptr<wsr88d::rda::ElevationScan> data)
 {
    std::unique_lock lock {p->level2DataMutex_};
-   auto ofDataBlockType = p->level2Data_.find(dataBlockType);
+   auto             ofDataBlockType = p->level2Data_.find(dataBlockType);
    if (ofDataBlockType == p->level2Data_.end())
    {
       std::unordered_map<float, std::shared_ptr<wsr88d::rda::ElevationScan>>
@@ -49,8 +49,8 @@ void BaseDeriver::SetLevel2Input(
    }
 }
 
-void BaseDeriver::SetLevel3Input(const std::string& product,
-                       std::shared_ptr<wsr88d::rpg::Level3Message> data)
+void BaseDeriver::SetLevel3Input(
+   const std::string& product, std::shared_ptr<wsr88d::rpg::Level3Message> data)
 {
    std::unique_lock lock {p->level3DataMutex_};
    p->level3Data_.insert_or_assign(product, data);
@@ -61,7 +61,7 @@ BaseDeriver::GetLevel2Input(wsr88d::rda::DataBlockType dataBlockType,
                             float                      elevation)
 {
    std::shared_lock lock {p->level2DataMutex_};
-   auto ofBlockType = p->level2Data_.find(dataBlockType);
+   auto             ofBlockType = p->level2Data_.find(dataBlockType);
    if (ofBlockType == p->level2Data_.end())
    {
       return nullptr;
