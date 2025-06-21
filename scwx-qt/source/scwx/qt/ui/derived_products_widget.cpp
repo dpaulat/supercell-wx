@@ -37,8 +37,8 @@ public:
       {
          const std::string& categoryName = category;
 
-         // TODO this is kindof a memory leak
-         QToolButton* toolButton = new QToolButton();
+         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory) Qt owns the memory
+         auto* toolButton = new QToolButton();
          toolButton->setText(categoryName.c_str());
          toolButton->setPopupMode(QToolButton::MenuButtonPopup);
          productsLayout_->addWidget(toolButton);
@@ -47,7 +47,8 @@ public:
                           this,
                           [this, category]()
                           { SelectProductCategory(category); });
-         QMenu* categoryMenu = new QMenu();
+         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory) Qt owns the memory
+         auto* categoryMenu = new QMenu(toolButton);
          toolButton->setMenu(categoryMenu);
          const auto& products =
             deriver::DeriverFactory::GetDerivedProductsInCategory(categoryName);
@@ -89,7 +90,7 @@ public:
    DerivedProductsWidgetImpl& operator=(DerivedProductsWidgetImpl&&) = delete;
 
    void NormalizeProductButtons();
-   void SelectProductCategory(std::string category);
+   void SelectProductCategory(const std::string& category);
 
    DerivedProductsWidget*  self_;
    QLayout*                layout_;
@@ -121,26 +122,24 @@ void DerivedProductsWidgetImpl::NormalizeProductButtons()
    int maxWidth = 0;
 
    // Set each level 2 product's tool button to the same size
-   std::for_each(categoryButtons_.cbegin(),
-                 categoryButtons_.cend(),
-                 [&](auto& toolButton)
-                 {
-                    if (toolButton->isVisible())
-                    {
-                       maxWidth = std::max(maxWidth, toolButton->width());
-                    }
-                 });
+   for (auto& toolButton : categoryButtons_)
+   {
+      if (toolButton->isVisible())
+      {
+         maxWidth = std::max(maxWidth, toolButton->width());
+      }
+   }
 
    if (maxWidth > 0)
    {
-      std::for_each(categoryButtons_.cbegin(),
-                    categoryButtons_.cend(),
-                    [&](auto& toolButton)
-                    { toolButton->setMinimumWidth(maxWidth); });
+      for (auto& toolButton : categoryButtons_)
+      {
+         toolButton->setMinimumWidth(maxWidth);
+      }
    }
 }
 
-void DerivedProductsWidgetImpl::SelectProductCategory(std::string)
+void DerivedProductsWidgetImpl::SelectProductCategory(const std::string&)
 {
    // UpdateCategorySelection(category);
 

@@ -562,9 +562,11 @@ MainWindow::MainWindow(QWidget* parent) :
       p->level3ProductsGroup_);
 
    // Add Derived Products
+   // NOLINTBEGIN(cppcoreguidelines-owning-memory) Qt owns this memory
    p->derivedProductsGroup_ =
       new ui::CollapsibleGroup(tr("Derived Products"), this);
    p->derivedProductsWidget_ = new ui::DerivedProductsWidget(this);
+   // NOLINTEND(cppcoreguidelines-owning-memory)
    p->derivedProductsGroup_->GetContentsLayout()->addWidget(
       p->derivedProductsWidget_);
    ui->radarToolboxScrollAreaContents->layout()->addWidget(

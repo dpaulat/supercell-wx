@@ -35,8 +35,8 @@ void BaseDeriver::SetLevel2Input(
    float                                       elevation,
    std::shared_ptr<wsr88d::rda::ElevationScan> data)
 {
-   std::unique_lock lock {p->level2DataMutex_};
-   auto             ofDataBlockType = p->level2Data_.find(dataBlockType);
+   const std::unique_lock lock {p->level2DataMutex_};
+   auto                   ofDataBlockType = p->level2Data_.find(dataBlockType);
    if (ofDataBlockType == p->level2Data_.end())
    {
       std::unordered_map<float, std::shared_ptr<wsr88d::rda::ElevationScan>>
@@ -52,7 +52,7 @@ void BaseDeriver::SetLevel2Input(
 void BaseDeriver::SetLevel3Input(
    const std::string& product, std::shared_ptr<wsr88d::rpg::Level3Message> data)
 {
-   std::unique_lock lock {p->level3DataMutex_};
+   const std::unique_lock lock {p->level3DataMutex_};
    p->level3Data_.insert_or_assign(product, data);
 }
 
@@ -60,8 +60,8 @@ std::shared_ptr<wsr88d::rda::ElevationScan>
 BaseDeriver::GetLevel2Input(wsr88d::rda::DataBlockType dataBlockType,
                             float                      elevation)
 {
-   std::shared_lock lock {p->level2DataMutex_};
-   auto             ofBlockType = p->level2Data_.find(dataBlockType);
+   const std::shared_lock lock {p->level2DataMutex_};
+   auto                   ofBlockType = p->level2Data_.find(dataBlockType);
    if (ofBlockType == p->level2Data_.end())
    {
       return nullptr;
@@ -78,8 +78,8 @@ BaseDeriver::GetLevel2Input(wsr88d::rda::DataBlockType dataBlockType,
 std::shared_ptr<wsr88d::rpg::Level3Message>
 BaseDeriver::GetLevel3Input(const std::string& product)
 {
-   std::shared_lock lock {p->level3DataMutex_};
-   auto             file = p->level3Data_.find(product);
+   const std::shared_lock lock {p->level3DataMutex_};
+   auto                   file = p->level3Data_.find(product);
    if (file == p->level3Data_.end())
    {
       return nullptr;
