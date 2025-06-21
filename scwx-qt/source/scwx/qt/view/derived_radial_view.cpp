@@ -412,7 +412,10 @@ void DerivedRadialView::ComputeSweep()
       p->deriver_->SetLevel2Input(dataBlockType, elevation, data);
    }
 
+   timer.start();
    auto derivedData = p->deriver_->GetOutput(p->product_);
+   timer.stop();
+   logger_->debug("Product derived in {}", timer.format(6, "%ws"));
    if (derivedData == nullptr)
    {
       // Data was not avalible. This may be do to lack if input data, or an
