@@ -20,8 +20,16 @@ private:
 public:
    static std::shared_ptr<BaseDeriver>
    CreateDeriver(const std::string& product);
+
+   // TODO this is named prooly
    static const std::unordered_map<std::string, DerivedProductInfo>&
    GetDeriveableProducts(const std::string& product);
+
+   static const std::vector<std::string>& GetDerivedProductCategories();
+   static const std::vector<std::string>&
+   GetDerivedProductsInCategory(const std::string& category);
+   static const std::vector<std::string>&
+   GetDerivedTiltsForProducts(const std::string& product);
 };
 
 } // namespace scwx::deriver

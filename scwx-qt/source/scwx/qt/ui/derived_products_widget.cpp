@@ -1,3 +1,4 @@
+#include <scwx/deriver/deriver_factory.hpp>
 #include <scwx/qt/ui/derived_products_widget.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
 #include <scwx/qt/settings/product_settings.hpp>
@@ -31,19 +32,56 @@ public:
       layout_->addWidget(productsWidget_);
       productsLayout_->setContentsMargins(0, 0, 0, 0);
 
-      // TODO Actually have a full list of products, not just one.
-      QToolButton* toolButton = new QToolButton();
-      toolButton->setText("SRV");
-      toolButton->setStatusTip("Test SRV product. One elevation only.");
-      productsLayout_->addWidget(toolButton);
-      categoryButtons_.push_back(toolButton);
-      QObject::connect(toolButton,
-                       &QToolButton::clicked,
-                       this,
-                       [this]() { SelectProductCategory("SRV-AVG-0"); });
+      for (const auto& category :
+           deriver::DeriverFactory::GetDerivedProductCategories())
+      {
+         const std::string& categoryName = category;
+
+         // TODO this is kindof a memory leak
+         QToolButton* toolButton = new QToolButton();
+         toolButton->setText(categoryName.c_str());
+         toolButton->setPopupMode(QToolButton::MenuButtonPopup);
+         productsLayout_->addWidget(toolButton);
+         QObject::connect(toolButton,
+                          &QToolButton::clicked,
+                          this,
+                          [this, category]()
+                          { SelectProductCategory(category); });
+         QMenu* categoryMenu = new QMenu();
+         toolButton->setMenu(categoryMenu);
+         const auto& products =
+            deriver::DeriverFactory::GetDerivedProductsInCategory(categoryName);
+         auto& productMenus = categoryMenuMap_[categoryName];
+
+         for (const auto& product : products)
+         {
+            const std::string& productName = product;
+            QMenu* productMenu = categoryMenu->addMenu(productName.c_str());
+
+            const auto& tilts =
+               deriver::DeriverFactory::GetDerivedTiltsForProducts(productName);
+            for (const auto& tilt : tilts)
+            {
+               const std::string& tiltName = tilt;
+               QAction* action = productMenu->addAction(tiltName.c_str());
+
+               QObject::connect(
+                  action,
+                  &QAction::triggered,
+                  this,
+                  [this, tiltName]()
+                  {
+                     Q_EMIT self_->RadarProductSelected(
+                        common::RadarProductGroup::Derived, tiltName, 0);
+                  });
+            }
+
+            productMenus[product] = productMenu;
+         }
+      }
    }
 
-   ~DerivedProductsWidgetImpl() override = default;
+   ~DerivedProductsWidgetImpl() override                       = default;
    DerivedProductsWidgetImpl(const DerivedProductsWidgetImpl&) = delete;
    DerivedProductsWidgetImpl(DerivedProductsWidgetImpl&&)      = delete;
    DerivedProductsWidgetImpl&
@@ -60,6 +98,8 @@ public:
    std::list<QToolButton*> categoryButtons_;
    // TODO there is a lot more to go here
 
+   std::unordered_map<std::string, std::unordered_map<std::string, QMenu*>>
+      categoryMenuMap_;
 };
 
 DerivedProductsWidget::DerivedProductsWidget(QWidget* parent) :
@@ -87,8 +127,7 @@ void DerivedProductsWidgetImpl::NormalizeProductButtons()
                  {
                     if (toolButton->isVisible())
                     {
-                       maxWidth =
-                          std::max(maxWidth, toolButton->width());
+                       maxWidth = std::max(maxWidth, toolButton->width());
                     }
                  });
 
@@ -101,16 +140,13 @@ void DerivedProductsWidgetImpl::NormalizeProductButtons()
    }
 }
 
-void DerivedProductsWidgetImpl::SelectProductCategory(std::string category)
+void DerivedProductsWidgetImpl::SelectProductCategory(std::string)
 {
-   //UpdateCategorySelection(category);
+   // UpdateCategorySelection(category);
 
    Q_EMIT self_->RadarProductSelected(
-      common::RadarProductGroup::Derived,
-      category,
-      0);
+      common::RadarProductGroup::Derived, "SRV-AVG-0", 0);
 }
-
 
 } // namespace scwx::qt::ui
 
