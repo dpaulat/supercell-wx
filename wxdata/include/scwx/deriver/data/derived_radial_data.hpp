@@ -24,14 +24,15 @@ public:
    std::chrono::system_clock::time_point sweepTime          = {};
    uint16_t                              vcp                = 0;
    uint8_t                               threshold          = 2;
-   uint16_t                              numberOfLevels     = 256;
+   // NOLINTNEXTLINE 256 is a resonable guess for a uint8_t
+   uint16_t numberOfLevels = 256;
 };
 
 class DerivedRadialData : public DerivedData
 {
 public:
    explicit DerivedRadialData(size_t radials, size_t gates);
-   ~DerivedRadialData();
+   ~DerivedRadialData() override;
 
    DerivedRadialData(const DerivedRadialData&)            = delete;
    DerivedRadialData(DerivedRadialData&&)                 = delete;

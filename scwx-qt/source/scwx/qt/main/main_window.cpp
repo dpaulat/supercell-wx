@@ -203,8 +203,8 @@ public:
    ui::Level2ProductsWidget* level2ProductsWidget_;
    ui::Level2SettingsWidget* level2SettingsWidget_;
 
-   ui::Level3ProductsWidget*  level3ProductsWidget_;
-   ui::DerivedProductsWidget* derivedProductsWidget_;
+   ui::Level3ProductsWidget*  level3ProductsWidget_ {nullptr};
+   ui::DerivedProductsWidget* derivedProductsWidget_ {nullptr};
 
    QLabel* coordinateLabel_ {nullptr};
    QLabel* timeLabel_ {nullptr};
@@ -366,9 +366,11 @@ MainWindow::MainWindow(QWidget* parent) :
       p->level3ProductsGroup_);
 
    // Add Derived Products
+   // NOLINTBEGIN(cppcoreguidelines-owning-memory) Qt owns this memory
    p->derivedProductsGroup_ =
       new ui::CollapsibleGroup(tr("Derived Products"), this);
    p->derivedProductsWidget_ = new ui::DerivedProductsWidget(this);
+   // NOLINTEND(cppcoreguidelines-owning-memory)
    p->derivedProductsGroup_->GetContentsLayout()->addWidget(
       p->derivedProductsWidget_);
    ui->radarToolboxScrollAreaContents->layout()->addWidget(

@@ -752,8 +752,8 @@ void RadarProductManagerImpl::DeriverEnableRefresh(boost::uuids::uuid uuid,
 {
    std::shared_ptr<DeriverManager> deriverManager = nullptr;
    // TODO see if this can be made less restrictive
-   std::unique_lock lock {deriverManagerMutex_};
-   const auto&      deriverManagerIt = deriverManagerMap_.find(product);
+   const std::unique_lock lock {deriverManagerMutex_};
+   const auto&            deriverManagerIt = deriverManagerMap_.find(product);
    if (deriverManagerIt != deriverManagerMap_.cend())
    {
       deriverManager = deriverManagerIt->second.lock();
@@ -835,7 +835,7 @@ void RadarProductManagerImpl::DeriverEnableRefresh(boost::uuids::uuid uuid,
    EnableRefresh(uuid, providerManagers, enabled);
 
    {
-      std::unique_lock refreshLock {refreshMapMutex_};
+      const std::unique_lock refreshLock {refreshMapMutex_};
       if (enabled)
       {
          deriverRefreshMap_.insert_or_assign(uuid, deriverManager);
@@ -849,7 +849,7 @@ void RadarProductManagerImpl::DeriverEnableRefresh(boost::uuids::uuid uuid,
 
 void RadarProductManagerImpl::DeriverDisableRefresh(boost::uuids::uuid uuid)
 {
-   std::unique_lock refreshLock {refreshMapMutex_};
+   const std::unique_lock refreshLock {refreshMapMutex_};
    deriverRefreshMap_.erase(uuid);
 }
 
