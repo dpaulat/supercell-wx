@@ -7,7 +7,7 @@ namespace scwx::deriver
 {
 class DeriverFactory
 {
-private:
+public:
    explicit DeriverFactory() = delete;
    ~DeriverFactory()         = delete;
 
@@ -17,7 +17,6 @@ private:
    DeriverFactory(DeriverFactory&&) noexcept            = delete;
    DeriverFactory& operator=(DeriverFactory&&) noexcept = delete;
 
-public:
    static std::shared_ptr<BaseDeriver>
    CreateDeriver(const std::string& product);
 

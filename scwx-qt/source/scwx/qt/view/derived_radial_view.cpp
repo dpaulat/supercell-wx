@@ -14,6 +14,7 @@
 
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
+#include <utility>
 
 namespace scwx::qt::view
 {
@@ -29,12 +30,14 @@ static constexpr uint16_t      RANGE_FOLDED      = 1u;
 static constexpr std::uint32_t VERTICES_PER_BIN  = 6u;
 static constexpr std::uint32_t VALUES_PER_VERTEX = 2u;
 
+static constexpr size_t TIME_DIGITS = 6u;
+
 class DerivedRadialView::Impl
 {
 public:
-   Impl(DerivedRadialView* self, const std::string& product) :
+   Impl(DerivedRadialView* self, std::string product) :
        self_ {self},
-       product_ {product},
+       product_ {std::move(product)},
        deriver_ {deriver::DeriverFactory::CreateDeriver(product_)},
        colorTable_ {},
        colorTableLut_ {},
@@ -61,7 +64,7 @@ public:
    std::shared_ptr<common::ColorTable> savedColorTable_;
    float                               savedScale_ {1.0f};
    float                               savedOffset_ {0.0f};
-   uint16_t                            savedLogStart_ {20u};
+   uint16_t                            savedLogStart_ {1u};
    float                               savedLogScale_ {1.0f};
    float                               savedLogOffset_ {0.0f};
 
@@ -77,10 +80,9 @@ public:
 DerivedRadialView::DerivedRadialView(
    const std::string&                            product,
    std::shared_ptr<manager::RadarProductManager> radarProductManager) :
-    RadarProductView(radarProductManager),
+    RadarProductView(std::move(radarProductManager)),
     p {std::make_unique<Impl>(this, product)}
 {
-   ConnectRadarProductManager();
 }
 
 DerivedRadialView::~DerivedRadialView() = default;
@@ -134,7 +136,7 @@ void DerivedRadialView::ConnectRadarProductManager()
    connect(radar_product_manager().get(),
            &manager::RadarProductManager::DataReloaded,
            this,
-           [this](std::shared_ptr<types::RadarProductRecord> record)
+           [this](const std::shared_ptr<types::RadarProductRecord>& record)
            {
               // TODO This may or may not be nice
               if (record->radar_product_group() ==
@@ -273,15 +275,15 @@ void DerivedRadialView::UpdateColorTableLut()
 
    const auto& metaData = p->radialData_->meta_data();
 
-   float   offset    = metaData.offset;
-   float   scale     = metaData.scale;
-   uint8_t threshold = metaData.threshold;
+   const float   offset    = metaData.offset;
+   const float   scale     = metaData.scale;
+   const uint8_t threshold = metaData.threshold;
 
    // If the threshold is 2, the range min should be set to 1 for range
    // folding
-   uint8_t  rangeMin       = std::min<std::uint8_t>(1, threshold);
-   uint16_t numberOfLevels = metaData.numberOfLevels;
-   uint8_t  rangeMax       = static_cast<std::uint8_t>(
+   const uint8_t  rangeMin       = std::min<std::uint8_t>(1, threshold);
+   const uint16_t numberOfLevels = metaData.numberOfLevels;
+   const uint8_t  rangeMax       = static_cast<std::uint8_t>(
       std::clamp<std::uint16_t>((numberOfLevels > 0) ? numberOfLevels - 1 : 0,
                                 std::numeric_limits<std::uint8_t>::min(),
                                 std::numeric_limits<std::uint8_t>::max()));
@@ -289,7 +291,7 @@ void DerivedRadialView::UpdateColorTableLut()
    if (p->savedColorTable_ == p->colorTable_ && //
        p->savedOffset_ == offset &&             //
        p->savedScale_ == scale &&               //
-       numberOfLevels > 16)
+       numberOfLevels > 16) // NOLINT always rebuild 16 level products
    {
       return;
    }
@@ -382,9 +384,9 @@ void DerivedRadialView::ComputeSweep()
 
    boost::timer::cpu_timer timer;
 
-   std::scoped_lock sweepLock(sweep_mutex());
+   const std::scoped_lock sweepLock(sweep_mutex());
 
-   std::shared_ptr<manager::RadarProductManager> radarProductManager =
+   const std::shared_ptr<manager::RadarProductManager> radarProductManager =
       radar_product_manager();
 
    const auto& derivableProducts =
@@ -415,7 +417,7 @@ void DerivedRadialView::ComputeSweep()
    timer.start();
    auto derivedData = p->deriver_->GetOutput(p->product_);
    timer.stop();
-   logger_->debug("Product derived in {}", timer.format(6, "%ws"));
+   logger_->debug("Product derived in {}", timer.format(TIME_DIGITS, "%ws"));
    if (derivedData == nullptr)
    {
       // Data was not avalible. This may be do to lack if input data, or an
@@ -431,8 +433,8 @@ void DerivedRadialView::ComputeSweep()
    }
 
    // TODO get new product data from radar manager (not done yet)
-   bool smoothingEnabled         = false;
-   bool showSmoothedRangeFolding = false;
+   const bool smoothingEnabled         = false;
+   const bool showSmoothedRangeFolding = false;
    // There is a lot that goes here that is TODO
 
    logger_->debug("Computing Sweep");
@@ -440,6 +442,8 @@ void DerivedRadialView::ComputeSweep()
    auto& radialData = p->radialData_;
    // Valid number of radials is 1-720
    size_t radials = radialData->radials();
+   // This should never have more than 720 radials
+   // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
    if (radials < 1 || radials > 720)
    {
       logger_->warn("Unsupported number of radials: {}", radials);
@@ -447,7 +451,7 @@ void DerivedRadialView::ComputeSweep()
       return;
    }
 
-   common::RadialSize radialSize;
+   common::RadialSize radialSize = common::RadialSize::NonStandard;
    if (radarProductManager->is_tdwr())
    {
       radialSize = common::RadialSize::NonStandard;
@@ -510,7 +514,7 @@ void DerivedRadialView::ComputeSweep()
                                radarProductManager->gate_size();
 
    // Determine which radial to start at
-   uint16_t startRadial;
+   uint16_t startRadial = 0;
    if (radialSize == common::RadialSize::NonStandard)
    {
       p->ComputeCoordinates(smoothingEnabled, gateLength);
@@ -518,7 +522,7 @@ void DerivedRadialView::ComputeSweep()
    }
    else
    {
-      const float radialMultiplier = radials / 360.0f;
+      const float radialMultiplier = static_cast<float>(radials) / 360.0f;
       const float startAngle       = radialData->start_angle(0);
       startRadial = std::lroundf(startAngle * radialMultiplier);
    }
@@ -556,7 +560,9 @@ void DerivedRadialView::ComputeSweep()
       for (size_t gate = startGate, i = 0; gate + gateSize <= endGate;
            gate += gateSize, ++i)
       {
-         size_t vertexCount = (gate > 0) ? 6 : 3;
+         // TODO I think this is right?
+         const size_t vertexCount =
+            (gate > 0) ? VERTICES_PER_BIN : VERTICES_PER_BIN / 2;
 
          if (!smoothingEnabled)
          {
@@ -622,16 +628,16 @@ void DerivedRadialView::ComputeSweep()
          {
             const size_t baseCoord = gate - 1;
 
-            size_t offset1 = ((startRadial + radial) % radials *
-                                 common::MAX_DATA_MOMENT_GATES +
-                              baseCoord) *
-                             2;
-            size_t offset2 = offset1 + gateSize * 2;
-            size_t offset3 = (((startRadial + radial + 1) % radials) *
-                                 common::MAX_DATA_MOMENT_GATES +
-                              baseCoord) *
-                             2;
-            size_t offset4 = offset3 + gateSize * 2;
+            const size_t offset1 = ((startRadial + radial) % radials *
+                                       common::MAX_DATA_MOMENT_GATES +
+                                    baseCoord) *
+                                   2;
+            const size_t offset2 = offset1 + static_cast<size_t>(gateSize) * 2;
+            const size_t offset3 = (((startRadial + radial + 1) % radials) *
+                                       common::MAX_DATA_MOMENT_GATES +
+                                    baseCoord) *
+                                   2;
+            const size_t offset4 = offset3 + static_cast<size_t>(gateSize) * 2;
 
             vertices[vIndex++] = coordinates[offset1];
             vertices[vIndex++] = coordinates[offset1 + 1];
@@ -655,14 +661,14 @@ void DerivedRadialView::ComputeSweep()
          {
             const size_t baseCoord = gate;
 
-            size_t offset1 = ((startRadial + radial) % radials *
-                                 common::MAX_DATA_MOMENT_GATES +
-                              baseCoord) *
-                             2;
-            size_t offset2 = (((startRadial + radial + 1) % radials) *
-                                 common::MAX_DATA_MOMENT_GATES +
-                              baseCoord) *
-                             2;
+            const size_t offset1 = ((startRadial + radial) % radials *
+                                       common::MAX_DATA_MOMENT_GATES +
+                                    baseCoord) *
+                                   2;
+            const size_t offset2 = (((startRadial + radial + 1) % radials) *
+                                       common::MAX_DATA_MOMENT_GATES +
+                                    baseCoord) *
+                                   2;
 
             // TODO
             vertices[vIndex++] = 0; // p->latitude_;
@@ -683,7 +689,8 @@ void DerivedRadialView::ComputeSweep()
    dataMoments8.shrink_to_fit();
 
    timer.stop();
-   logger_->debug("Vertices calculated in {}", timer.format(6, "%ws"));
+   logger_->debug("Vertices calculated in {}",
+                  timer.format(TIME_DIGITS, "%ws"));
 
    UpdateColorTableLut();
 
@@ -774,7 +781,8 @@ void DerivedRadialView::Impl::ComputeCoordinates(bool  smoothingEnabled,
             });
       });
    timer.stop();
-   logger_->debug("Coordinates calculated in {}", timer.format(6, "%ws"));
+   logger_->debug("Coordinates calculated in {}",
+                  timer.format(TIME_DIGITS, "%ws"));
 }
 
 std::optional<std::uint16_t>
@@ -792,9 +800,9 @@ DerivedRadialView::GetBinLevel(const common::Coordinate& coordinate) const
    const double radarLongitude      = radarSite->longitude();
 
    // Determine distance and azimuth of coordinate relative to radar location
-   double s12;  // Distance (meters)
-   double azi1; // Azimuth (degrees)
-   double azi2; // Unused
+   double s12  = 0; // Distance (meters)
+   double azi1 = 0; // Azimuth (degrees)
+   double azi2 = 0; // Unused
    util::GeographicLib::DefaultGeodesic().Inverse(radarLatitude,
                                                   radarLongitude,
                                                   coordinate.latitude_,
@@ -810,11 +818,12 @@ DerivedRadialView::GetBinLevel(const common::Coordinate& coordinate) const
    }
 
    // Azimuth is returned as [-180, 180) from the geodesic inverse, we need a
-   // range of [0, 360)
+   // range of [0, 360) NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
    while (azi1 < 0.0)
    {
       azi1 += 360.0;
    }
+   // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
 
    // Compute gate interval
    const size_t gates = p->radialData_->gates();
@@ -838,9 +847,10 @@ DerivedRadialView::GetBinLevel(const common::Coordinate& coordinate) const
       radials.end(),
       [&](size_t i)
       {
-         bool   found      = false;
-         double startAngle = p->radialData_->start_angle(i);
-         double nextAngle  = p->radialData_->start_angle((i + 1) % numRadials);
+         bool         found      = false;
+         const double startAngle = p->radialData_->start_angle(i);
+         const double nextAngle =
+            p->radialData_->start_angle((i + 1) % numRadials);
 
          if (startAngle < nextAngle)
          {

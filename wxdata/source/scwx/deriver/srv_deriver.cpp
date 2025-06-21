@@ -13,7 +13,12 @@ namespace scwx::deriver
 static const std::string logPrefix_ = "scwx::deriver::srv_deriver";
 static const auto        logger_    = util::Logger::Create(logPrefix_);
 
+#if defined(__cpp_lib_math_constants)
+#   include <numbers>
+constexpr float pi = std::numbers::pi_v<float>;
+#else
 constexpr float pi = 3.14159265358979323846f;
+#endif
 
 class SrvDeriver::Impl
 {
@@ -35,27 +40,27 @@ SrvDeriver::GetOutput(const std::string& product)
    }
    const auto& derivedProduct = derivedProductIt->second;
 
-   std::shared_ptr<wsr88d::rpg::Level3Message> srmFile =
+   const std::shared_ptr<wsr88d::rpg::Level3Message> srmFile =
       GetLevel3Input(derivedProduct.level3AwipsIds_[1]);
-   std::shared_ptr<wsr88d::rpg::Level3Message> sdvFile =
+   const std::shared_ptr<wsr88d::rpg::Level3Message> sdvFile =
       GetLevel3Input(derivedProduct.level3AwipsIds_[0]);
    if (srmFile == nullptr || sdvFile == nullptr)
    {
       return nullptr;
    }
 
-   auto srmMessage =
+   const auto srmMessage =
       std::dynamic_pointer_cast<wsr88d::rpg::GraphicProductMessage>(srmFile);
-   auto sdvMessage =
+   const auto sdvMessage =
       std::dynamic_pointer_cast<wsr88d::rpg::GraphicProductMessage>(sdvFile);
    if (srmMessage == nullptr || sdvMessage == nullptr)
    {
       return nullptr;
    }
 
-   auto srmDescriptionBlock = srmMessage->description_block();
-   auto sdvDescriptionBlock = sdvMessage->description_block();
-   auto sdvSymbologyBlock   = sdvMessage->symbology_block();
+   const auto srmDescriptionBlock = srmMessage->description_block();
+   const auto sdvDescriptionBlock = sdvMessage->description_block();
+   const auto sdvSymbologyBlock   = sdvMessage->symbology_block();
    // A message with radial data should have a Product Description Block and
    // Product Symbology Block
    if (srmDescriptionBlock == nullptr || sdvDescriptionBlock == nullptr ||
@@ -65,17 +70,18 @@ SrvDeriver::GetOutput(const std::string& product)
    }
 
    // A valid message should have a positive number of layers
-   uint16_t sdvNumberOfLayers = sdvSymbologyBlock->number_of_layers();
+   const uint16_t sdvNumberOfLayers = sdvSymbologyBlock->number_of_layers();
    if (sdvNumberOfLayers < 1)
    {
       return nullptr;
    }
 
    // Get average storm speed and direction
-   float meanStormSpeed = units::velocity::meters_per_second<float>(
-                             srmDescriptionBlock->avg_storm_speed())
-                             .value();
-   float meanStormDirection = srmDescriptionBlock->avg_storm_dir().value();
+   const float meanStormSpeed = units::velocity::meters_per_second<float>(
+                                   srmDescriptionBlock->avg_storm_speed())
+                                   .value();
+   const float meanStormDirection =
+      srmDescriptionBlock->avg_storm_dir().value();
 
    // A message with radial data should either have a Digital Radial Data
    // Array Packet, or a Radial Data Array Packet
@@ -85,7 +91,7 @@ SrvDeriver::GetOutput(const std::string& product)
    std::shared_ptr<wsr88d::rpg::GenericRadialDataPacket> radialData = nullptr;
    for (uint16_t layer = 0; layer < sdvNumberOfLayers; layer++)
    {
-      std::vector<std::shared_ptr<wsr88d::rpg::Packet>> packetList =
+      const std::vector<std::shared_ptr<wsr88d::rpg::Packet>> packetList =
          sdvSymbologyBlock->packet_list(layer);
 
       for (auto& it : packetList)
@@ -129,10 +135,6 @@ SrvDeriver::GetOutput(const std::string& product)
    // Valid number of radials is 1-720
    const std::uint16_t radials = radialData->number_of_radials();
    const std::uint16_t gates   = radialData->number_of_range_bins();
-   if (radials < 1 || radials > 720)
-   {
-      return nullptr;
-   }
 
    const float dataOffset = sdvDescriptionBlock->offset();
    const float dataScale  = sdvDescriptionBlock->scale();
@@ -233,12 +235,32 @@ SrvDeriver::GetOutput(const std::string& product)
       sdvDescriptionBlock->x_resolution_raw();
    output->meta_data().sweepTime = scwx::util::TimePoint(
       sdvDescriptionBlock->volume_scan_date(),
+      // NOLINTNEXTLINE seconds to ms
       sdvDescriptionBlock->volume_scan_start_time() * 1000);
    output->meta_data().vcp = sdvDescriptionBlock->volume_coverage_pattern();
-   output->meta_data().threshold      = 2;
+   output->meta_data().threshold = 2;
+   // NOLINTNEXTLINE This is a 256 level
    output->meta_data().numberOfLevels = 256;
 
    return output;
+}
+
+const std::unordered_map<std::string, DerivedProductInfo>&
+SrvDeriver::deriveable_products()
+{
+   const static std::unordered_map<std::string, DerivedProductInfo>
+      derivableProducts_ = {
+         {"SRV-AVG-X", {"SRV-AVG-X", {"NXG", "N0S"}, {}}},
+         {"SRV-AVG-Y", {"SRV-AVG-Y", {"NYG", "N0S"}, {}}},
+         {"SRV-AVG-Z", {"SRV-AVG-Z", {"NZG", "N0S"}, {}}},
+         {"SRV-AVG-0", {"SRV-AVG-0", {"N0G", "N0S"}, {}}},
+         {"SRV-AVG-A", {"SRV-AVG-A", {"NAG", "N0S"}, {}}},
+         {"SRV-AVG-1", {"SRV-AVG-1", {"N1G", "N0S"}, {}}},
+         {"SRV-AVG-B", {"SRV-AVG-B", {"NBG", "N0S"}, {}}},
+         {"SRV-AVG-2", {"SRV-AVG-2", {"N2G", "N0S"}, {}}},
+         {"SRV-AVG-3", {"SRV-AVG-3", {"N3G", "N0S"}, {}}},
+      };
+   return derivableProducts_;
 }
 
 } // namespace scwx::deriver
