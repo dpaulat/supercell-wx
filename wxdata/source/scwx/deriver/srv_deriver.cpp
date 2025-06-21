@@ -13,18 +13,14 @@ namespace scwx::deriver
 static const std::string logPrefix_ = "scwx::deriver::srv_deriver";
 static const auto        logger_    = util::Logger::Create(logPrefix_);
 
-#if defined(__cpp_lib_math_constants)
-#   include <numbers>
-constexpr float pi = std::numbers::pi_v<float>;
-#else
-constexpr float pi = 3.14159265358979323846f;
-#endif
-
 class SrvDeriver::Impl
 {
 public:
    explicit Impl() = default;
 };
+
+static const float kDegreesToRadians_ =
+   units::angle::radians<float>(units::angle::degrees<float>(1)).value();
 
 SrvDeriver::SrvDeriver() : p {std::make_unique<Impl>()} {}
 SrvDeriver::~SrvDeriver() = default;
@@ -150,8 +146,8 @@ SrvDeriver::GetOutput(const std::string& product)
 
       const float stormRadialVelocity =
          -meanStormSpeed *
-         std::cos((meanStormDirection - startAngle + deltaAngle / 2) * pi /
-                  180);
+         std::cos((meanStormDirection - startAngle + deltaAngle / 2) *
+                  kDegreesToRadians_);
 
       uint8_t maxLevel = std::numeric_limits<uint8_t>::min();
       uint8_t minLevel = std::numeric_limits<uint8_t>::max();
@@ -197,8 +193,8 @@ SrvDeriver::GetOutput(const std::string& product)
       // TODO should this angle be center or edge?
       const float stormRadialVelocity =
          -meanStormSpeed *
-         std::cos((meanStormDirection - startAngle + deltaAngle / 2) * pi /
-                  180);
+         std::cos((meanStormDirection - startAngle + deltaAngle / 2) *
+                  kDegreesToRadians_);
 
       auto& outputRadialMoments = output->levels(radial);
 
