@@ -82,7 +82,6 @@ public:
        timelineGroup_ {nullptr},
        level2ProductsWidget_ {nullptr},
        level2SettingsWidget_ {nullptr},
-       level3ProductsWidget_ {nullptr},
        alertDockWidget_ {nullptr},
        animationDockWidget_ {nullptr},
        aboutDialog_ {nullptr},

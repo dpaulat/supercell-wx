@@ -30,30 +30,42 @@ public:
 BaseDeriver::BaseDeriver() : p {std::make_unique<Impl>(this)} {}
 BaseDeriver::~BaseDeriver() = default;
 
-void BaseDeriver::SetLevel2Input(
+bool BaseDeriver::SetLevel2Input(
    wsr88d::rda::DataBlockType                  dataBlockType,
    float                                       elevation,
    std::shared_ptr<wsr88d::rda::ElevationScan> data)
 {
    const std::unique_lock lock {p->level2DataMutex_};
-   auto                   ofDataBlockType = p->level2Data_.find(dataBlockType);
-   if (ofDataBlockType == p->level2Data_.end())
+   const auto&            ofDataBlockType = p->level2Data_.find(dataBlockType);
+   if (ofDataBlockType == p->level2Data_.cend())
    {
-      std::unordered_map<float, std::shared_ptr<wsr88d::rda::ElevationScan>>
+      const std::unordered_map<float,
+                               std::shared_ptr<wsr88d::rda::ElevationScan>>
          innerMap = {{elevation, data}};
       p->level2Data_.emplace(dataBlockType, innerMap);
+      return true;
    }
-   else
+   const auto& dataIt = ofDataBlockType->second.find(elevation);
+   if (dataIt == ofDataBlockType->second.cend() || dataIt->second != data)
    {
       ofDataBlockType->second.insert_or_assign(elevation, data);
+      return true;
    }
+
+   return false;
 }
 
-void BaseDeriver::SetLevel3Input(
+bool BaseDeriver::SetLevel3Input(
    const std::string& product, std::shared_ptr<wsr88d::rpg::Level3Message> data)
 {
    const std::unique_lock lock {p->level3DataMutex_};
-   p->level3Data_.insert_or_assign(product, data);
+   const auto&            dataIt = p->level3Data_.find(product);
+   if (dataIt == p->level3Data_.cend() || dataIt->second != data)
+   {
+      p->level3Data_.insert_or_assign(product, data);
+      return true;
+   }
+   return false;
 }
 
 std::shared_ptr<wsr88d::rda::ElevationScan>

@@ -49,7 +49,7 @@ public:
     * TODO
     * @param file The level 2 file to update the deriver with
     */
-   void SetLevel2Input(wsr88d::rda::DataBlockType dataBlockType,
+   bool SetLevel2Input(wsr88d::rda::DataBlockType dataBlockType,
                        float                      elevation,
                        std::shared_ptr<wsr88d::rda::ElevationScan> data);
 
@@ -61,7 +61,7 @@ public:
     * @param product The name of the product to feed the file
     * @param file The level 3 file to update the deriver with
     */
-   void SetLevel3Input(const std::string&                          product,
+   bool SetLevel3Input(const std::string&                          product,
                        std::shared_ptr<wsr88d::rpg::Level3Message> data);
 
    /**

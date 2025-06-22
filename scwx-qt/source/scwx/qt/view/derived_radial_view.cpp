@@ -83,6 +83,7 @@ DerivedRadialView::DerivedRadialView(
     RadarProductView(std::move(radarProductManager)),
     p {std::make_unique<Impl>(this, product)}
 {
+   ConnectRadarProductManager();
 }
 
 DerivedRadialView::~DerivedRadialView() = default;
@@ -138,14 +139,32 @@ void DerivedRadialView::ConnectRadarProductManager()
            this,
            [this](const std::shared_ptr<types::RadarProductRecord>& record)
            {
-              // TODO This may or may not be nice
-              if (record->radar_product_group() ==
-                     common::RadarProductGroup::Derived &&
-                  record->radar_product() == p->product_ &&
-                  record->time() == selected_time())
+              const auto& derivableProducts =
+                 deriver::DeriverFactory::GetDeriveableProducts(p->product_);
+              const auto& productInfoIt = derivableProducts.find(p->product_);
+              if (productInfoIt == derivableProducts.cend() ||
+                  p->deriver_ == nullptr)
               {
-                 // If the data associated with the currently selected time is
-                 // reloaded, update the view
+                 return;
+              }
+              const auto& productInfo = productInfoIt->second;
+              if (record->radar_product_group() ==
+                  common::RadarProductGroup::Level3)
+              {
+                 const auto& iter =
+                    std::find_if(productInfo.level3AwipsIds_.cbegin(),
+                                 productInfo.level3AwipsIds_.cend(),
+                                 [record](const auto& item)
+                                 { return item == record->radar_product(); });
+                 if (iter != productInfo.level3AwipsIds_.cend())
+                 {
+                    Update();
+                 }
+              }
+              else if (record->radar_product_group() ==
+                          common::RadarProductGroup::Level2 &&
+                       !productInfo.level2Products_.empty())
+              {
                  Update();
               }
            });
@@ -394,15 +413,19 @@ void DerivedRadialView::ComputeSweep()
    const auto& productInfoIt = derivableProducts.find(p->product_);
    if (productInfoIt == derivableProducts.cend() || p->deriver_ == nullptr)
    {
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::NotLoaded);
       return;
    }
    const auto& productInfo = productInfoIt->second;
+
+   bool hasNewData = false;
 
    for (const auto& neededL3Product : productInfo.level3AwipsIds_)
    {
       const auto [data, time] =
          radarProductManager->GetLevel3Data(neededL3Product, selected_time());
-      p->deriver_->SetLevel3Input(neededL3Product, data);
+      hasNewData =
+         p->deriver_->SetLevel3Input(neededL3Product, data) || hasNewData;
    }
 
    for (const auto& neededL2Product : productInfo.level2Products_)
@@ -411,7 +434,16 @@ void DerivedRadialView::ComputeSweep()
       const auto [data, elevationGot, elecationCuts, time] =
          radarProductManager->GetLevel2Data(
             dataBlockType, elevation, selected_time());
-      p->deriver_->SetLevel2Input(dataBlockType, elevation, data);
+      hasNewData =
+         p->deriver_->SetLevel2Input(dataBlockType, elevation, data) ||
+         hasNewData;
+   }
+
+   if (!hasNewData)
+   {
+      // No need to recalculate
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::NoChange);
+      return;
    }
 
    timer.start();
@@ -422,6 +454,7 @@ void DerivedRadialView::ComputeSweep()
    {
       // Data was not avalible. This may be do to lack if input data, or an
       // error. Any error should be signaled in the deriver.
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::NotLoaded);
       return;
    }
    p->radialData_ =
@@ -429,6 +462,7 @@ void DerivedRadialView::ComputeSweep()
    if (p->radialData_ == nullptr)
    {
       logger_->error("Deriver did not return radial data.");
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
       return;
    }
 
