@@ -1,5 +1,6 @@
 #include <scwx/deriver/l2_kdp_deriver.hpp>
 
+#include <scwx/common/constants.hpp>
 #include <scwx/deriver/data/derived_radial_data.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
@@ -61,7 +62,8 @@ KdpDeriver::GetOutput(const std::string& product)
       return nullptr;
    }
 
-   const size_t radials = radarData->crbegin()->first + 1;
+   const size_t radials = std::min<std::uint16_t>(
+      radarData->crbegin()->first + 1, common::MAX_0_5_DEGREE_RADIALS);
 
    auto& radarData0  = (*radarData)[0];
    auto  momentData0 = radarData0->moment_data_block(dataBlockType);
