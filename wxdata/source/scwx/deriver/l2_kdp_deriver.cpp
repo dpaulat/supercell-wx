@@ -77,10 +77,6 @@ KdpDeriver::GetOutput(const std::string& product)
    const float  inputScale  = momentData0->scale();
    const float  inputOffset = momentData0->offset();
 
-   std::vector<std::vector<float>> outputData = {
-      radials,
-      std::vector<float>(gates, std::numeric_limits<float>::infinity())};
-
    // These are based on NWS's values
    constexpr float minValue = -2;
    constexpr float maxValue = 10;
@@ -189,6 +185,7 @@ KdpDeriver::GetOutput(const std::string& product)
       const uint8_t*  dataMomentsArray8  = nullptr;
       const uint16_t* dataMomentsArray16 = nullptr;
 
+      // NOLINTNEXTLINE Choose 8 or 16 bit words
       if (momentData->data_word_size() == 8)
       {
          dataMomentsArray8 =
@@ -208,9 +205,12 @@ KdpDeriver::GetOutput(const std::string& product)
 
       for (size_t gate = 0; gate < gates; gate++)
       {
+         // There will be gates items, so this is safe
+         // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
          const uint16_t level = dataMomentsArray8 != nullptr ?
                                    dataMomentsArray8[gate] :
                                    dataMomentsArray16[gate];
+         // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
          if (level == 0)
          {
@@ -315,7 +315,7 @@ KdpDeriver::GetOutput(const std::string& product)
          afterMean =
             units::degrees<float>(units::radians<float>(afterMean)).value();
 
-         float difference =
+         const float difference =
             p->NormalizeAngle(units::degrees<float>(afterMean - beforeMean))
                .value();
 
@@ -335,6 +335,7 @@ KdpDeriver::GetOutput(const std::string& product)
    output->meta_data().range =
       momentData0->data_moment_range() +
       momentData0->data_moment_range_sample_interval() *
+         // TODO  Why is it - 0.5?
          (static_cast<float>(gates) - 0.5f);
    output->meta_data().dataMomentInterval = units::length::meters<float>(
       static_cast<float>(momentData0->data_moment_range_sample_interval_raw()));

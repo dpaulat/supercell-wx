@@ -31,15 +31,7 @@ static constexpr std::uint32_t VALUES_PER_VERTEX = 2u;
 class Level3RadialView::Impl
 {
 public:
-   explicit Impl(Level3RadialView* self) :
-       self_ {self},
-       latitude_ {},
-       longitude_ {},
-       range_ {},
-       vcp_ {},
-       sweepTime_ {}
-   {
-   }
+   explicit Impl(Level3RadialView* self) : self_ {self}, sweepTime_ {} {}
    ~Impl() { threadPool_.join(); };
 
    void ComputeCoordinates(
@@ -65,11 +57,11 @@ public:
    bool lastShowSmoothedRangeFolding_ {false};
    bool lastSmoothingEnabled_ {false};
 
-   float                latitude_;
-   float                longitude_;
+   float                latitude_ {};
+   float                longitude_ {};
    std::optional<float> elevation_ {};
-   float                range_;
-   std::uint16_t        vcp_;
+   float                range_ {};
+   std::uint16_t        vcp_ {};
 
    std::chrono::system_clock::time_point sweepTime_;
 };
