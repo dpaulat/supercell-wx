@@ -81,141 +81,9 @@ KdpDeriver::GetOutput(const std::string& product)
       radials,
       std::vector<float>(gates, std::numeric_limits<float>::infinity())};
 
-   float minValue = std::numeric_limits<float>::infinity();
-   float maxValue = -std::numeric_limits<float>::infinity();
-
-   for (const auto& radialPair : *radarData)
-   {
-      uint16_t    radial     = radialPair.first;
-      const auto& radialData = radialPair.second;
-      const std::shared_ptr<wsr88d::rda::GenericRadarData::MomentDataBlock>
-         momentData = radialData->moment_data_block(dataBlockType);
-
-      if (momentData0->data_word_size() != momentData->data_word_size())
-      {
-         logger_->warn("Radial {} has different word size", radial);
-         continue;
-      }
-
-      // TODO will this change?
-      const float dataMomentIntervalKm =
-         units::length::kilometers<float>(
-            momentData->data_moment_range_sample_interval())
-            .value();
-
-      const uint8_t*  dataMomentsArray8  = nullptr;
-      const uint16_t* dataMomentsArray16 = nullptr;
-
-      if (momentData->data_word_size() == 8)
-      {
-         dataMomentsArray8 =
-            reinterpret_cast<const std::uint8_t*>(momentData->data_moments());
-      }
-      else
-      {
-         dataMomentsArray16 =
-            reinterpret_cast<const std::uint16_t*>(momentData->data_moments());
-      }
-
-      auto& outputRadial = outputData.at(radial);
-
-      for (size_t gate = 0; gate < gates; gate++)
-      {
-         const uint16_t level = dataMomentsArray8 != nullptr ?
-                                   dataMomentsArray8[gate] :
-                                   dataMomentsArray16[gate];
-
-         // TODO check if srn threshold is a thing
-         if (level == 0)
-         {
-            // Below threshold
-            outputRadial[gate] = std::numeric_limits<float>::infinity();
-            continue;
-         }
-         else if (level == 1)
-         {
-            // range folded
-            outputRadial[gate] = -std::numeric_limits<float>::infinity();
-            continue;
-         }
-
-         constexpr size_t NUM_SMOOTHING_GATES = 10;
-
-         size_t count      = 0;
-         float  beforeMean = 0;
-         for (size_t sumGate = gate - std::min(NUM_SMOOTHING_GATES, gate);
-              sumGate < gate;
-              sumGate++)
-         {
-            const uint16_t level = dataMomentsArray8 != nullptr ?
-                                      dataMomentsArray8[sumGate] :
-                                      dataMomentsArray16[sumGate];
-            if (level < 2)
-            {
-               continue;
-            }
-
-            count += 1;
-            beforeMean +=
-               (static_cast<float>(level) - inputOffset) / inputScale;
-         }
-         if (count == 0)
-         {
-            // Below threshold
-            outputRadial[gate] = std::numeric_limits<float>::infinity();
-            continue;
-         }
-         beforeMean /= static_cast<float>(count);
-
-         count           = 0;
-         float afterMean = 0;
-         for (size_t sumGate = gate;
-              sumGate < std::min(gate + NUM_SMOOTHING_GATES, gates);
-              sumGate++)
-         {
-            const uint16_t level = dataMomentsArray8 != nullptr ?
-                                      dataMomentsArray8[sumGate] :
-                                      dataMomentsArray16[sumGate];
-            if (level < 2)
-            {
-               continue;
-            }
-
-            count += 1;
-            afterMean += (static_cast<float>(level) - inputOffset) / inputScale;
-         }
-         if (count == 0)
-         {
-            // Below threshold
-            outputRadial[gate] = std::numeric_limits<float>::infinity();
-            continue;
-         }
-         afterMean /= static_cast<float>(count);
-
-         float difference =
-            p->NormalizeAngle(units::degrees<float>(afterMean - beforeMean))
-               .value();
-
-         // Output data in degrees per km
-         const float outputValue =
-            difference / (dataMomentIntervalKm * NUM_SMOOTHING_GATES * 2);
-
-         if (outputValue > 10 || outputValue < -2)
-         {
-            outputRadial[gate] = std::numeric_limits<float>::infinity();
-            continue;
-         }
-         outputRadial[gate] = outputValue;
-         minValue           = std::min(minValue, outputValue);
-         maxValue           = std::max(maxValue, outputValue);
-      }
-   }
-
-   if (maxValue < minValue)
-   {
-      logger_->warn("Did not get any valid data");
-      return nullptr;
-   }
+   // These are based on NWS's values
+   constexpr float minValue = -2;
+   constexpr float maxValue = 10;
 
    const float outputScale = 254 / (maxValue - minValue);
 
@@ -303,8 +171,67 @@ KdpDeriver::GetOutput(const std::string& product)
       }
 
       output->SetRadial(radial, angle.value(), deltaAngle.value());
-      const auto& radialValues = outputData.at(radial);
-      auto&       radialLevels = output->levels(radial);
+
+      const std::shared_ptr<wsr88d::rda::GenericRadarData::MomentDataBlock>
+         momentData = radialData->second->moment_data_block(dataBlockType);
+      if (momentData0->data_word_size() != momentData->data_word_size())
+      {
+         logger_->warn("Radial {} has different word size", radial);
+         continue;
+      }
+
+      // TODO will this change?
+      const float dataMomentIntervalKm =
+         units::length::kilometers<float>(
+            momentData->data_moment_range_sample_interval())
+            .value();
+
+      const uint8_t*  dataMomentsArray8  = nullptr;
+      const uint16_t* dataMomentsArray16 = nullptr;
+
+      if (momentData->data_word_size() == 8)
+      {
+         dataMomentsArray8 =
+            reinterpret_cast<const std::uint8_t*>(momentData->data_moments());
+      }
+      else
+      {
+         dataMomentsArray16 =
+            reinterpret_cast<const std::uint16_t*>(momentData->data_moments());
+      }
+
+      constexpr float belowThreshold = std::numeric_limits<float>::infinity();
+      constexpr float rangeFolded    = -std::numeric_limits<float>::infinity();
+
+      auto sins = std::vector<float>(gates, 0);
+      auto coss = std::vector<float>(gates, 0);
+
+      for (size_t gate = 0; gate < gates; gate++)
+      {
+         const uint16_t level = dataMomentsArray8 != nullptr ?
+                                   dataMomentsArray8[gate] :
+                                   dataMomentsArray16[gate];
+
+         if (level == 0)
+         {
+            sins[gate] = belowThreshold;
+            coss[gate] = belowThreshold;
+            continue;
+         }
+         else if (level == 1)
+         {
+            sins[gate] = rangeFolded;
+            coss[gate] = rangeFolded;
+            continue;
+         }
+
+         const units::radians<float> value = units::degrees<float>(
+            (static_cast<float>(level) - inputOffset) / inputScale);
+         sins[gate] = std::sin(value.value());
+         coss[gate] = std::cos(value.value());
+      }
+
+      auto& radialLevels = output->levels(radial);
 
       for (size_t absGate = 0; absGate < extraGates + gates; absGate++)
       {
@@ -313,22 +240,91 @@ KdpDeriver::GetOutput(const std::string& product)
             radialLevels[absGate] = 0;
             continue;
          }
-         const size_t gate  = absGate - extraGates;
-         const float  value = radialValues[gate];
+         const size_t gate = absGate - extraGates;
+         const float  sin  = sins[gate];
 
-         if (value == std::numeric_limits<float>::infinity())
+         if (sin == belowThreshold)
          {
             radialLevels[absGate] = 0;
+            continue;
          }
-         else if (value == -std::numeric_limits<float>::infinity())
+         else if (sin == rangeFolded)
          {
             radialLevels[absGate] = 1;
+            continue;
          }
-         else
+         constexpr size_t NUM_SMOOTHING_GATES = 10;
+
+         size_t count  = 0;
+         float  sinSum = 0;
+         float  cosSum = 0;
+         for (size_t sumGate = gate - std::min(NUM_SMOOTHING_GATES, gate);
+              sumGate < gate;
+              sumGate++)
          {
-            radialLevels[absGate] =
-               static_cast<uint8_t>((value - minValue) * outputScale);
+            const float sin = sins[sumGate];
+            const float cos = coss[sumGate];
+            if (sin == belowThreshold || sin == rangeFolded)
+            {
+               continue;
+            }
+
+            count += 1;
+            sinSum += sin;
+            cosSum += cos;
          }
+         if (count == 0)
+         {
+            // Below threshold
+            radialLevels[absGate] = 0;
+            continue;
+         }
+         float beforeMean = std::atan2(sinSum / static_cast<float>(count),
+                                       cosSum / static_cast<float>(count));
+
+         sinSum = 0;
+         cosSum = 0;
+         count  = 0;
+         for (size_t sumGate = gate;
+              sumGate < std::min(gate + NUM_SMOOTHING_GATES, gates);
+              sumGate++)
+         {
+            const float sin = sins[sumGate];
+            const float cos = coss[sumGate];
+            if (sin == belowThreshold || sin == rangeFolded)
+            {
+               continue;
+            }
+
+            count += 1;
+            sinSum += sin;
+            cosSum += cos;
+         }
+         if (count == 0)
+         {
+            // Below threshold
+            radialLevels[absGate] = 0;
+            continue;
+         }
+         float afterMean = std::atan2(sinSum / static_cast<float>(count),
+                                      cosSum / static_cast<float>(count));
+
+         // Convert Back to degrees
+         beforeMean =
+            units::degrees<float>(units::radians<float>(beforeMean)).value();
+         afterMean =
+            units::degrees<float>(units::radians<float>(afterMean)).value();
+
+         float difference =
+            p->NormalizeAngle(units::degrees<float>(afterMean - beforeMean))
+               .value();
+
+         // Output data in degrees per km
+         const float value =
+            difference / (dataMomentIntervalKm * NUM_SMOOTHING_GATES * 2);
+
+         radialLevels[absGate] =
+            static_cast<uint8_t>((value - minValue) * outputScale);
       }
    }
 
