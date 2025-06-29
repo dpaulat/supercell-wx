@@ -27,8 +27,22 @@ static const std::unordered_map<std::string, std::vector<std::string>>
           "SRV-AVG-B",
           "SRV-AVG-2",
           "SRV-AVG-3",
-       }},                                          //
-      {"Specific Differential Phase", {"KDP-0.5"}}, //
+       }}, //
+      {"Specific Differential Phase",
+       {
+          "KDP--0.2",
+          "KDP-0.0",
+          "KDP-0.2",
+          "KDP-0.3",
+          "KDP-0.4",
+          "KDP-0.5",
+          "KDP-0.9",
+          "KDP-1.3",
+          "KDP-1.5",
+          "KDP-1.8",
+          "KDP-2.4",
+
+       }}, //
 };
 
 std::shared_ptr<BaseDeriver>

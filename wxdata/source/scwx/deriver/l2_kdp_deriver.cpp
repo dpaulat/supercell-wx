@@ -354,8 +354,28 @@ KdpDeriver::deriveable_products()
    const static std::unordered_map<std::string, DerivedProductInfo>
       derivableProducts_ = {
          // TODO
+         {"KDP--0.2",
+          {"KDP--0.2", {}, {{wsr88d::rda::DataBlockType::MomentPhi, -0.2}}}},
+         {"KDP-0.0",
+          {"KDP-0.0", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.0}}}},
+         {"KDP-0.2",
+          {"KDP-0.2", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.2}}}},
+         {"KDP-0.3",
+          {"KDP-0.3", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.3}}}},
+         {"KDP-0.4",
+          {"KDP-0.4", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.4}}}},
          {"KDP-0.5",
           {"KDP-0.5", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.5}}}},
+         {"KDP-0.9",
+          {"KDP-0.9", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.9}}}},
+         {"KDP-1.3",
+          {"KDP-1.3", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 1.3}}}},
+         {"KDP-1.5",
+          {"KDP-1.5", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 1.5}}}},
+         {"KDP-1.8",
+          {"KDP-1.8", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 1.8}}}},
+         {"KDP-2.4",
+          {"KDP-2.4", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 2.4}}}},
       };
    return derivableProducts_;
 }
