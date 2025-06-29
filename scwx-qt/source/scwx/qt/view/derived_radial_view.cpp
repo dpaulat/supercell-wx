@@ -68,6 +68,9 @@ public:
    float                               savedLogScale_ {1.0f};
    float                               savedLogOffset_ {0.0f};
 
+   float latitude_ {0.0f};
+   float longitude_ {0.0f};
+
    std::vector<float>        coordinates_ {};
    std::vector<float>        vertices_ {};
    std::vector<std::uint8_t> dataMoments8_ {};
@@ -106,7 +109,8 @@ float DerivedRadialView::range() const
    {
       return 0.0;
    }
-   return p->radialData_->meta_data().range;
+
+   return p->radialData_->meta_data().range.value();
 }
 
 std::chrono::system_clock::time_point DerivedRadialView::sweep_time() const
@@ -539,7 +543,8 @@ void DerivedRadialView::ComputeSweep()
    const uint16_t snrThreshold = radialData->meta_data().threshold;
 
    // Compute gate interval
-   const float dataMomentInterval = radialData->meta_data().dataMomentInterval;
+   const float dataMomentInterval =
+      radialData->meta_data().dataMomentInterval.value();
 
    // Get the gate length in meters. Use dataMomentInterval for NonStandard to
    // avoid generating >1 base gates per bin.
@@ -583,6 +588,10 @@ void DerivedRadialView::ComputeSweep()
       // Another TODO
       // p->edgeValue_ = ComputeEdgeValue();
    }
+
+   auto         radarSite      = radarProductManager->radar_site();
+   const double radarLatitude  = radarSite->latitude();
+   const double radarLongitude = radarSite->longitude();
 
    for (size_t radial = 0; radial < radialData->radials(); ++radial)
    {
@@ -704,9 +713,9 @@ void DerivedRadialView::ComputeSweep()
                                     baseCoord) *
                                    2;
 
-            // TODO
-            vertices[vIndex++] = 0; // p->latitude_;
-            vertices[vIndex++] = 0; // p->longitude_;
+            // TODO use coords from products
+            vertices[vIndex++] = static_cast<float>(radarLatitude);
+            vertices[vIndex++] = static_cast<float>(radarLongitude);
 
             vertices[vIndex++] = coordinates[offset1];
             vertices[vIndex++] = coordinates[offset1 + 1];
