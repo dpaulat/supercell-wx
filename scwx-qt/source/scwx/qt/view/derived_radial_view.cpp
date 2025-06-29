@@ -86,6 +86,8 @@ DerivedRadialView::DerivedRadialView(
     RadarProductView(std::move(radarProductManager)),
     p {std::make_unique<Impl>(this, product)}
 {
+   // The intent is to call this version, not a subclasses version
+   // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
    ConnectRadarProductManager();
 }
 
@@ -227,11 +229,7 @@ uint16_t DerivedRadialView::color_table_max() const
 bool DerivedRadialView::IgnoreUnits() const
 {
    // TODO
-   if (p->product_.starts_with("SRV"))
-   {
-      return false;
-   }
-   else if (p->product_.starts_with("KDP"))
+   if (p->product_.starts_with("SRV") || p->product_.starts_with("KDP"))
    {
       return false;
    }
