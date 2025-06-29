@@ -253,7 +253,7 @@ void Level3RasterView::ComputeSweep()
 
    p->latitude_  = descriptionBlock->latitude_of_radar();
    p->longitude_ = descriptionBlock->longitude_of_radar();
-   p->range_     = descriptionBlock->range();
+   p->range_     = descriptionBlock->range().value();
    p->sweepTime_ =
       scwx::util::TimePoint(descriptionBlock->volume_scan_date(),
                             descriptionBlock->volume_scan_start_time() * 1000);

@@ -7,6 +7,7 @@
 #include <chrono>
 
 #include <units/angle.h>
+#include <units/length.h>
 
 namespace scwx::deriver::data
 {
@@ -17,13 +18,14 @@ public:
    bool                          hasElevation = false;
    units::angle::degrees<double> elevation = units::angle::degrees<double>(0);
 
-   float                                 scale              = 0;
-   float                                 offset             = 0;
-   float                                 range              = 0;
-   float                                 dataMomentInterval = 0;
-   std::chrono::system_clock::time_point sweepTime          = {};
-   uint16_t                              vcp                = 0;
-   uint8_t                               threshold          = 2;
+   float                            scale  = 0;
+   float                            offset = 0;
+   units::length::kilometers<float> range  = units::length::meters<float>(0);
+   units::length::meters<float>     dataMomentInterval =
+      units::length::meters<float>(0);
+   std::chrono::system_clock::time_point sweepTime = {};
+   uint16_t                              vcp       = 0;
+   uint8_t                               threshold = 2;
    // NOLINTNEXTLINE 256 is a resonable guess for a uint8_t
    uint16_t numberOfLevels = 256;
 };
