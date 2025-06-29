@@ -337,7 +337,7 @@ KdpDeriver::GetOutput(const std::string& product)
    output->meta_data().range =
       momentData0->data_moment_range() +
       momentData0->data_moment_range_sample_interval() *
-         // TODO  Why is it - 0.5?
+         // NOLINTNEXTLINE Remove half a gate for first gate
          (static_cast<float>(gates) - 0.5f);
    output->meta_data().dataMomentInterval = units::length::meters<float>(
       static_cast<float>(momentData0->data_moment_range_sample_interval_raw()));
