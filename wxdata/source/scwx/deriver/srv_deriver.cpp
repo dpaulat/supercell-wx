@@ -134,7 +134,6 @@ SrvDeriver::GetOutput(const std::string& product)
 
    const float dataOffset = sdvDescriptionBlock->offset();
    const float dataScale  = sdvDescriptionBlock->scale();
-   logger_->error("dataScale {}", dataScale);
 
    // Find the range of values that need to be covered
    float maxSRVValue = -std::numeric_limits<float>::infinity();

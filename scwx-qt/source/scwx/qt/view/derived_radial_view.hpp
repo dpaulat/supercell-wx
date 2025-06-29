@@ -61,6 +61,9 @@ public:
    [[nodiscard]] std::optional<std::uint16_t>
    GetBinLevel(const common::Coordinate& coordinate) const override;
 
+   [[nodiscard]] static const std::string&
+   GetPaletteName(const std::string& product);
+
 protected:
    boost::asio::thread_pool& thread_pool() override;
    void                      ConnectRadarProductManager() override;
