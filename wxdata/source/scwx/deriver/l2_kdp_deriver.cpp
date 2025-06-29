@@ -96,11 +96,11 @@ KdpDeriver::GetOutput(const std::string& product)
       units::degrees<float> angle {};
       units::degrees<float> deltaAngle {};
 
-      auto radialData = radarData->find(radial);
-      auto prevRadial1 =
-         radarData->find((radial >= 1) ? radial - 1 : radials - (1 - radial));
-      auto prevRadial2 =
-         radarData->find((radial >= 2) ? radial - 2 : radials - (2 - radial));
+      auto radialData  = radarData->find(static_cast<uint16_t>(radial));
+      auto prevRadial1 = radarData->find(static_cast<uint16_t>(
+         (radial >= 1) ? radial - 1 : radials - (1 - radial)));
+      auto prevRadial2 = radarData->find(static_cast<uint16_t>(
+         (radial >= 2) ? radial - 2 : radials - (2 - radial)));
 
       if (radialData != radarData->cend() && prevRadial1 != radarData->cend())
       {
@@ -242,15 +242,15 @@ KdpDeriver::GetOutput(const std::string& product)
             radialLevels[absGate] = 0;
             continue;
          }
-         const size_t gate = absGate - extraGates;
-         const float  sin  = sins[gate];
+         const size_t gate    = absGate - extraGates;
+         const float  mainSin = sins[gate];
 
-         if (sin == belowThreshold)
+         if (mainSin == belowThreshold)
          {
             radialLevels[absGate] = 0;
             continue;
          }
-         else if (sin == rangeFolded)
+         else if (mainSin == rangeFolded)
          {
             radialLevels[absGate] = 1;
             continue;
@@ -358,27 +358,27 @@ KdpDeriver::deriveable_products()
       derivableProducts_ = {
          // TODO
          {"KDP--0.2",
-          {"KDP--0.2", {}, {{wsr88d::rda::DataBlockType::MomentPhi, -0.2}}}},
+          {"KDP--0.2", {}, {{wsr88d::rda::DataBlockType::MomentPhi, -0.2f}}}},
          {"KDP-0.0",
-          {"KDP-0.0", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.0}}}},
+          {"KDP-0.0", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.0f}}}},
          {"KDP-0.2",
-          {"KDP-0.2", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.2}}}},
+          {"KDP-0.2", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.2f}}}},
          {"KDP-0.3",
-          {"KDP-0.3", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.3}}}},
+          {"KDP-0.3", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.3f}}}},
          {"KDP-0.4",
-          {"KDP-0.4", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.4}}}},
+          {"KDP-0.4", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.4f}}}},
          {"KDP-0.5",
-          {"KDP-0.5", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.5}}}},
+          {"KDP-0.5", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.5f}}}},
          {"KDP-0.9",
-          {"KDP-0.9", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.9}}}},
+          {"KDP-0.9", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 0.9f}}}},
          {"KDP-1.3",
-          {"KDP-1.3", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 1.3}}}},
+          {"KDP-1.3", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 1.3f}}}},
          {"KDP-1.5",
-          {"KDP-1.5", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 1.5}}}},
+          {"KDP-1.5", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 1.5f}}}},
          {"KDP-1.8",
-          {"KDP-1.8", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 1.8}}}},
+          {"KDP-1.8", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 1.8f}}}},
          {"KDP-2.4",
-          {"KDP-2.4", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 2.4}}}},
+          {"KDP-2.4", {}, {{wsr88d::rda::DataBlockType::MomentPhi, 2.4f}}}},
       };
    return derivableProducts_;
 }
