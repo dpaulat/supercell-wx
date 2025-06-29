@@ -604,7 +604,7 @@ void RadarProductManagerImpl::DeriverEnableRefresh(boost::uuids::uuid uuid,
             providerManager.get(),
             &ProviderManager::NewDataAvailable,
             deriverManager.get(),
-            [this, deriverManager, product](
+            [this, deriverManager, product, providerManager](
                common::RadarProductGroup             gotGroup,
                const std::string&                    gotProduct,
                std::chrono::system_clock::time_point latestTime)
@@ -618,14 +618,14 @@ void RadarProductManagerImpl::DeriverEnableRefresh(boost::uuids::uuid uuid,
                   request.get(),
                   &request::NexradFileRequest::RequestComplete,
                   deriverManager.get(),
-                  [this, product, latestTime](
+                  [this, product, latestTime, providerManager](
                      const std::shared_ptr<request::NexradFileRequest>&)
                   {
                      // Maybe getting rid of the record is an issue?
                      Q_EMIT self_->NewDataAvailable(
                         common::RadarProductGroup::Derived,
                         product,
-                        false,
+                        providerManager == level2ChunksProviderManager_,
                         latestTime);
                   });
 

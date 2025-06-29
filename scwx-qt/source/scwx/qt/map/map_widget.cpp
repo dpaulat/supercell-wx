@@ -2823,9 +2823,11 @@ void MapWidgetImpl::RadarProductManagerConnect()
                            }
                            else if (group == common::RadarProductGroup::Derived)
                            {
-                              // TODO
-                              widget_->SelectRadarProduct(
-                                 group, product, 0, latestTime, true);
+                              if (autoUpdateEnabled_)
+                              {
+                                 widget_->SelectRadarProduct(
+                                    group, product, 0, latestTime);
+                              }
                            }
                         }
                         catch (const std::exception& ex)
