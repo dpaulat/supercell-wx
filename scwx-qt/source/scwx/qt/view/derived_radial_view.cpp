@@ -1,4 +1,5 @@
 #include "scwx/qt/types/unit_types.hpp"
+#include <algorithm>
 #include <scwx/qt/view/derived_radial_view.hpp>
 
 #include <scwx/common/constants.hpp>
@@ -157,11 +158,10 @@ void DerivedRadialView::ConnectRadarProductManager()
               if (record->radar_product_group() ==
                   common::RadarProductGroup::Level3)
               {
-                 const auto& iter =
-                    std::find_if(productInfo.level3AwipsIds_.cbegin(),
-                                 productInfo.level3AwipsIds_.cend(),
-                                 [record](const auto& item)
-                                 { return item == record->radar_product(); });
+                 const auto& iter = std::ranges::find_if(
+                    productInfo.level3AwipsIds_,
+                    [record](const auto& item)
+                    { return item == record->radar_product(); });
                  if (iter != productInfo.level3AwipsIds_.cend())
                  {
                     Update();
