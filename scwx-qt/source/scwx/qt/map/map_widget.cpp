@@ -1160,8 +1160,8 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
 
    if (radarProductView == nullptr || // TODO
        radarProductView->GetRadarProductGroup() != group ||
-       (radarProductView->GetRadarProductGroup() ==
-           common::RadarProductGroup::Level2 &&
+       (radarProductView->GetRadarProductGroup() != // TODO
+           common::RadarProductGroup::Level3 &&
         radarProductView->GetRadarProductName() != productName) ||
        p->context_->radar_product_code() != productCode)
    {

@@ -139,12 +139,22 @@ void DerivedProductsWidgetImpl::NormalizeProductButtons()
    }
 }
 
-void DerivedProductsWidgetImpl::SelectProductCategory(const std::string&)
+void DerivedProductsWidgetImpl::SelectProductCategory(
+   const std::string& product)
 {
    // UpdateCategorySelection(category);
 
-   Q_EMIT self_->RadarProductSelected(
-      common::RadarProductGroup::Derived, "SRV-AVG-0", 0);
+   // TODO
+   if (product.starts_with("SRV"))
+   {
+      Q_EMIT self_->RadarProductSelected(
+         common::RadarProductGroup::Derived, "SRV-AVG-0", 0);
+   }
+   else if (product.starts_with("KDP"))
+   {
+      Q_EMIT self_->RadarProductSelected(
+         common::RadarProductGroup::Derived, "KDP-0.5", 0);
+   }
 }
 
 } // namespace scwx::qt::ui
