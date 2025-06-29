@@ -20,7 +20,7 @@ public:
    static std::shared_ptr<BaseDeriver>
    CreateDeriver(const std::string& product);
 
-   // TODO this is named prooly
+   // TODO this is named poorly
    static const std::unordered_map<std::string, DerivedProductInfo>&
    GetDeriveableProducts(const std::string& product);
 
