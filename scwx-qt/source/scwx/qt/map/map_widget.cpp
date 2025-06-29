@@ -25,6 +25,7 @@
 #include <scwx/qt/util/file.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/tooltip.hpp>
+#include <scwx/qt/view/derived_radial_view.hpp>
 #include <scwx/qt/view/overlay_product_view.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
 #include <scwx/util/logger.hpp>
@@ -913,7 +914,7 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
                common::GetLevel2Palette(common::GetLevel2Product(productName)) :
             (group == common::RadarProductGroup::Level3) ?
                common::GetLevel3Palette(productCode) :
-               "BV";
+               view::DerivedRadialView::GetPaletteName(product);
 
          auto& paletteSetting =
             settings::PaletteSettings::Instance().palette(palette);

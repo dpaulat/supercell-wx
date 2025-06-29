@@ -231,6 +231,10 @@ bool DerivedRadialView::IgnoreUnits() const
    {
       return false;
    }
+   else if (p->product_.starts_with("KDP"))
+   {
+      return false;
+   }
    return true;
 }
 
@@ -240,6 +244,10 @@ float DerivedRadialView::unit_scale() const
    if (p->product_.starts_with("SRV"))
    {
       return types::GetSpeedUnitsScale(p->speedUnits_);
+   }
+   else if (p->product_.starts_with("KDP"))
+   {
+      return 1.0f;
    }
 
    return std::numeric_limits<float>().quiet_NaN();
@@ -252,12 +260,33 @@ std::string DerivedRadialView::units() const
    {
       return types::GetSpeedUnitsAbbreviation(p->speedUnits_);
    }
+   else if (p->product_.starts_with("KDP"))
+   {
+      return "\302\260/km";
+   }
    return "";
+}
+
+const std::string& DerivedRadialView::GetPaletteName(const std::string& product)
+{
+   // TODO I still need to do this
+   if (product.starts_with("SRV"))
+   {
+      static const std::string SRV = "BV";
+      return SRV;
+   }
+   else if (product.starts_with("KDP"))
+   {
+      static const std::string KDP = "PHI3";
+      return KDP;
+   }
+
+   static const std::string empty = "";
+   return empty;
 }
 
 common::RadarProductGroup DerivedRadialView::GetRadarProductGroup() const
 {
-   // TODO I still need to do this
    return common::RadarProductGroup::Derived;
 }
 

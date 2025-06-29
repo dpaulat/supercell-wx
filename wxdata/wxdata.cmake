@@ -56,9 +56,11 @@ set(SRC_COMMON source/scwx/common/characters.cpp
                source/scwx/common/vcp.cpp)
 set(HDR_DERIVER include/scwx/deriver/base_deriver.hpp
                 include/scwx/deriver/deriver_factory.hpp
+                include/scwx/deriver/l2_kdp_deriver.hpp
                 include/scwx/deriver/srv_deriver.hpp)
 set(SRC_DERIVER source/scwx/deriver/base_deriver.cpp
                 source/scwx/deriver/deriver_factory.cpp
+                source/scwx/deriver/l2_kdp_deriver.cpp
                 source/scwx/deriver/srv_deriver.cpp)
 set(HDR_DERIVER_DATA include/scwx/deriver/data/derived_data.hpp
                      include/scwx/deriver/data/derived_radial_data.hpp)
