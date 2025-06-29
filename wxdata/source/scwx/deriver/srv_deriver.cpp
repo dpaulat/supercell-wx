@@ -134,6 +134,7 @@ SrvDeriver::GetOutput(const std::string& product)
 
    const float dataOffset = sdvDescriptionBlock->offset();
    const float dataScale  = sdvDescriptionBlock->scale();
+   logger_->error("dataScale {}", dataScale);
 
    // Find the range of values that need to be covered
    float maxSRVValue = -std::numeric_limits<float>::infinity();
@@ -222,14 +223,13 @@ SrvDeriver::GetOutput(const std::string& product)
       }
    }
 
-   output->meta_data().hasElevation = true;
-   output->meta_data().elevation    = sdvDescriptionBlock->elevation();
-   output->meta_data().scale        = 1 / outputScale;
-   output->meta_data().offset       = minSRVValue;
-   output->meta_data().range        = sdvDescriptionBlock->range();
-   output->meta_data().dataMomentInterval =
-      sdvDescriptionBlock->x_resolution_raw();
-   output->meta_data().sweepTime = scwx::util::TimePoint(
+   output->meta_data().hasElevation       = true;
+   output->meta_data().elevation          = sdvDescriptionBlock->elevation();
+   output->meta_data().scale              = 1 / outputScale;
+   output->meta_data().offset             = minSRVValue;
+   output->meta_data().range              = sdvDescriptionBlock->range();
+   output->meta_data().dataMomentInterval = sdvDescriptionBlock->x_resolution();
+   output->meta_data().sweepTime          = scwx::util::TimePoint(
       sdvDescriptionBlock->volume_scan_date(),
       // NOLINTNEXTLINE seconds to ms
       sdvDescriptionBlock->volume_scan_start_time() * 1000);

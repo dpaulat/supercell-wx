@@ -258,9 +258,9 @@ std::uint32_t ProductDescriptionBlock::offset_to_tabular() const
    return p->offsetToTabular_;
 }
 
-float ProductDescriptionBlock::range() const
+units::length::kilometers<float> ProductDescriptionBlock::range() const
 {
-   return range_raw();
+   return units::length::kilometers<float>(range_raw());
 }
 
 std::uint16_t ProductDescriptionBlock::range_raw() const
@@ -276,10 +276,9 @@ std::uint16_t ProductDescriptionBlock::range_raw() const
    return range;
 }
 
-float ProductDescriptionBlock::x_resolution() const
+units::length::kilometers<float> ProductDescriptionBlock::x_resolution() const
 {
-   static constexpr float kScale = 0.001f;
-   return static_cast<float>(x_resolution_raw()) * kScale;
+   return units::length::meters<float>(x_resolution_raw());
 }
 
 std::uint16_t ProductDescriptionBlock::x_resolution_raw() const

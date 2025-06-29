@@ -65,11 +65,11 @@ public:
    bool lastShowSmoothedRangeFolding_ {false};
    bool lastSmoothingEnabled_ {false};
 
-   float         latitude_;
-   float         longitude_;
+   float                latitude_;
+   float                longitude_;
    std::optional<float> elevation_ {};
-   float         range_;
-   std::uint16_t vcp_;
+   float                range_;
+   std::uint16_t        vcp_;
 
    std::chrono::system_clock::time_point sweepTime_;
 };
@@ -311,7 +311,7 @@ void Level3RadialView::ComputeSweep()
 
    p->latitude_  = descriptionBlock->latitude_of_radar();
    p->longitude_ = descriptionBlock->longitude_of_radar();
-   p->range_     = descriptionBlock->range();
+   p->range_     = descriptionBlock->range().value();
    p->elevation_ =
       descriptionBlock->has_elevation() ?
          static_cast<float>(descriptionBlock->elevation().value()) :

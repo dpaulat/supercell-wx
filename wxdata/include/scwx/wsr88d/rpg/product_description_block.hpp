@@ -46,12 +46,12 @@ public:
    [[nodiscard]] std::uint32_t offset_to_graphic() const;
    [[nodiscard]] std::uint32_t offset_to_tabular() const;
 
-   [[nodiscard]] float         range() const;
-   [[nodiscard]] std::uint16_t range_raw() const;
-   [[nodiscard]] float         x_resolution() const;
-   [[nodiscard]] std::uint16_t x_resolution_raw() const;
-   [[nodiscard]] float         y_resolution() const;
-   [[nodiscard]] std::uint16_t y_resolution_raw() const;
+   [[nodiscard]] units::length::kilometers<float> range() const;
+   [[nodiscard]] std::uint16_t                    range_raw() const;
+   [[nodiscard]] units::length::kilometers<float> x_resolution() const;
+   [[nodiscard]] std::uint16_t                    x_resolution_raw() const;
+   [[nodiscard]] float                            y_resolution() const;
+   [[nodiscard]] std::uint16_t                    y_resolution_raw() const;
 
    [[nodiscard]] std::uint16_t threshold() const;
    [[nodiscard]] float         offset() const;
