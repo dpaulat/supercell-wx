@@ -38,6 +38,7 @@
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_qt.hpp>
 #include <boost/algorithm/string/erase.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
@@ -383,6 +384,18 @@ void MapWidgetImpl::ConnectMapSignals()
 
               context_->set_map_copyrights(copyrights);
            });
+   connect(
+      map_.get(),
+      &QMapLibre::Map::parsingStyle,
+      this,
+      [this](std::string& json)
+      {
+         const auto maptilerApiKey =
+            settings::GeneralSettings::Instance().maptiler_api_key().GetValue();
+
+         boost::replace_all(json, "{maptiler_api_key}", maptilerApiKey);
+      },
+      Qt::ConnectionType::DirectConnection);
 }
 
 void MapWidgetImpl::ConnectSignals()
