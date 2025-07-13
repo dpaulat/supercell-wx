@@ -252,7 +252,14 @@ jobs:
           -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/supercell-wx" `
           -DCONAN_HOST_PROFILE="${{ matrix.conan_host_profile }}" `
           -DCONAN_BUILD_PROFILE="${{ matrix.conan_build_profile }}"
-        ninja supercell-wx wxtest
+        ninja supercell-wx
+
+    - name: Build Supercell Wx (Test)
+      if: ${{ matrix.conan_build_profile == matrix.conan_host_profile }}
+      shell: pwsh
+      run: |
+        cd build
+        ninja wxtest
 
     - name: Separate Debug Symbols (Linux)
       if: ${{ startsWith(matrix.os, 'ubuntu') }}
