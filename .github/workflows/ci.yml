@@ -217,7 +217,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.conan2
-        key: build-${{ matrix.conan_host_profile }}-${{ hashFiles('./source/conanfile.py', './source/tools/conan/profiles/*') }}
+        key: build-${{ matrix.conan_host_profile }}-${{ hashFiles('./source/conanfile.py', './source/tools/conan/profiles/${{ matrix.conan_build_profile }}', './source/tools/conan/profiles/${{ matrix.conan_host_profile }}') }}
 
         # Confirm this section
     - name: Install Conan Packages
