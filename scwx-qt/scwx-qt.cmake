@@ -867,7 +867,7 @@ set(CPACK_PACKAGE_CHECKSUM      SHA256)
 set(CPACK_RESOURCE_FILE_LICENSE "${SCWX_DIR}/LICENSE.txt")
 
 if (MSVC)
-    set(CPACK_PACKAGE_FILE_NAME           "supercell-wx-v${SCWX_VERSION}-windows-x64")
+    set(CPACK_PACKAGE_FILE_NAME           "supercell-wx-v${SCWX_VERSION}-windows")
     set(CPACK_PACKAGE_INSTALL_DIRECTORY   "Supercell Wx")
     set(CPACK_PACKAGE_ICON                "${CMAKE_CURRENT_SOURCE_DIR}/res/icons/scwx-256.ico")
     set(CPACK_GENERATOR                   WIX)
