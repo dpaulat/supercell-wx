@@ -453,21 +453,27 @@ void DerivedRadialView::ComputeSweep()
 
    for (const auto& neededL3Product : productInfo.level3AwipsIds_)
    {
-      const auto [data, time] =
+      const auto [data, time, status] =
          radarProductManager->GetLevel3Data(neededL3Product, selected_time());
-      hasNewData =
-         p->deriver_->SetLevel3Input(neededL3Product, data) || hasNewData;
+      if (status == types::RadarProductLoadStatus::ProductLoaded)
+      {
+         hasNewData =
+            p->deriver_->SetLevel3Input(neededL3Product, data) || hasNewData;
+      }
    }
 
    for (const auto& neededL2Product : productInfo.level2Products_)
    {
       const auto& [dataBlockType, elevation] = neededL2Product;
-      const auto [data, elevationGot, elecationCuts, time] =
+      const auto [data, elevationGot, elecationCuts, time, status] =
          radarProductManager->GetLevel2Data(
             dataBlockType, elevation, selected_time());
-      hasNewData =
-         p->deriver_->SetLevel2Input(dataBlockType, elevation, data) ||
-         hasNewData;
+      if (status == types::RadarProductLoadStatus::ProductLoaded)
+      {
+         hasNewData =
+            p->deriver_->SetLevel2Input(dataBlockType, elevation, data) ||
+            hasNewData;
+      }
    }
 
    if (!hasNewData)
