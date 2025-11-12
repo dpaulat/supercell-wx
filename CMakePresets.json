@@ -50,7 +50,7 @@
       }
     },
     {
-      "name": "windows-msvc2022-x64-base",
+      "name": "windows-vs2022-x64-base",
       "inherits": "windows-x64-base",
       "hidden": true,
       "cacheVariables": {
@@ -58,8 +58,25 @@
       }
     },
     {
-      "name": "windows-msvc2022-x64-ninja-base",
-      "inherits": "windows-msvc2022-x64-base",
+      "name": "windows-vs2022-x64-ninja-base",
+      "inherits": "windows-vs2022-x64-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "C:/Qt/6.10.1/msvc2022_64"
+      }
+    },
+    {
+      "name": "windows-vs2026-x64-base",
+      "inherits": "windows-x64-base",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "C:/Qt/6.10.1/msvc2022_64"
+      }
+    },
+    {
+      "name": "windows-vs2026-x64-ninja-base",
+      "inherits": "windows-vs2026-x64-base",
       "hidden": true,
       "generator": "Ninja",
       "cacheVariables": {
@@ -79,51 +96,99 @@
       }
     },
     {
-      "name": "windows-msvc2022-x64-debug",
-      "inherits": "windows-msvc2022-x64-base",
-      "displayName": "Windows MSVC 2022 x64 Debug",
+      "name": "windows-vs2022-x64-debug",
+      "inherits": "windows-vs2022-x64-base",
+      "displayName": "Windows VS 2022 x64 Debug",
       "architecture": {
         "value": "x64",
         "strategy": "external"
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CONAN_HOST_PROFILE": "scwx-windows_msvc2022_x64-debug",
-        "CONAN_BUILD_PROFILE": "scwx-windows_msvc2022_x64-debug"
+        "CONAN_HOST_PROFILE": "scwx-windows_vs2022_x64-debug",
+        "CONAN_BUILD_PROFILE": "scwx-windows_vs2022_x64-debug"
       }
     },
     {
-      "name": "windows-msvc2022-x64-release",
-      "inherits": "windows-msvc2022-x64-base",
-      "displayName": "Windows MSVC 2022 x64 Release",
+      "name": "windows-vs2022-x64-release",
+      "inherits": "windows-vs2022-x64-base",
+      "displayName": "Windows VS 2022 x64 Release",
       "architecture": {
         "value": "x64",
         "strategy": "external"
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CONAN_HOST_PROFILE": "scwx-windows_msvc2022_x64",
-        "CONAN_BUILD_PROFILE": "scwx-windows_msvc2022_x64"
+        "CONAN_HOST_PROFILE": "scwx-windows_vs2022_x64",
+        "CONAN_BUILD_PROFILE": "scwx-windows_vs2022_x64"
       }
     },
     {
-      "name": "windows-msvc2022-x64-ninja-debug",
-      "inherits": "windows-msvc2022-x64-ninja-base",
-      "displayName": "Windows MSVC 2022 x64 Ninja Debug",
+      "name": "windows-vs2022-x64-ninja-debug",
+      "inherits": "windows-vs2022-x64-ninja-base",
+      "displayName": "Windows VS 2022 x64 Ninja Debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CONAN_HOST_PROFILE": "scwx-windows_msvc2022_x64-debug",
-        "CONAN_BUILD_PROFILE": "scwx-windows_msvc2022_x64-debug"
+        "CONAN_HOST_PROFILE": "scwx-windows_vs2022_x64-debug",
+        "CONAN_BUILD_PROFILE": "scwx-windows_vs2022_x64-debug"
       }
     },
     {
-      "name": "windows-msvc2022-x64-ninja-release",
-      "inherits": "windows-msvc2022-x64-ninja-base",
-      "displayName": "Windows MSVC 2022 x64 Ninja Release",
+      "name": "windows-vs2022-x64-ninja-release",
+      "inherits": "windows-vs2022-x64-ninja-base",
+      "displayName": "Windows VS 2022 x64 Ninja Release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CONAN_HOST_PROFILE": "scwx-windows_msvc2022_x64",
-        "CONAN_BUILD_PROFILE": "scwx-windows_msvc2022_x64"
+        "CONAN_HOST_PROFILE": "scwx-windows_vs2022_x64",
+        "CONAN_BUILD_PROFILE": "scwx-windows_vs2022_x64"
+      }
+    },
+    {
+      "name": "windows-vs2026-x64-debug",
+      "inherits": "windows-vs2026-x64-base",
+      "displayName": "Windows VS 2026 x64 Debug",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CONAN_HOST_PROFILE": "scwx-windows_vs2026_x64-debug",
+        "CONAN_BUILD_PROFILE": "scwx-windows_vs2026_x64-debug"
+      }
+    },
+    {
+      "name": "windows-vs2026-x64-release",
+      "inherits": "windows-vs2026-x64-base",
+      "displayName": "Windows VS 2026 x64 Release",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CONAN_HOST_PROFILE": "scwx-windows_vs2026_x64",
+        "CONAN_BUILD_PROFILE": "scwx-windows_vs2026_x64"
+      }
+    },
+    {
+      "name": "windows-vs2026-x64-ninja-debug",
+      "inherits": "windows-vs2026-x64-ninja-base",
+      "displayName": "Windows VS 2026 x64 Ninja Debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CONAN_HOST_PROFILE": "scwx-windows_vs2026_x64-debug",
+        "CONAN_BUILD_PROFILE": "scwx-windows_vs2026_x64-debug"
+      }
+    },
+    {
+      "name": "windows-vs2026-x64-ninja-release",
+      "inherits": "windows-vs2026-x64-ninja-base",
+      "displayName": "Windows VS 2026 x64 Ninja Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CONAN_HOST_PROFILE": "scwx-windows_vs2026_x64",
+        "CONAN_BUILD_PROFILE": "scwx-windows_vs2026_x64"
       }
     },
     {
@@ -306,15 +371,27 @@
   ],
   "buildPresets": [
     {
-      "name": "windows-msvc2022-x64-debug",
-      "configurePreset": "windows-msvc2022-x64-debug",
-      "displayName": "Windows MSVC 2022 x64 Debug",
+      "name": "windows-vs2022-x64-debug",
+      "configurePreset": "windows-vs2022-x64-debug",
+      "displayName": "Windows VS 2022 x64 Debug",
       "configuration": "Debug"
     },
     {
-      "name": "windows-msvc2022-x64-release",
-      "configurePreset": "windows-msvc2022-x64-release",
-      "displayName": "Windows MSVC 2022 x64 Release",
+      "name": "windows-vs2022-x64-release",
+      "configurePreset": "windows-vs2022-x64-release",
+      "displayName": "Windows VS 2022 x64 Release",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-vs2026-x64-debug",
+      "configurePreset": "windows-vs2026-x64-debug",
+      "displayName": "Windows VS 2026 x64 Debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-vs2026-x64-release",
+      "configurePreset": "windows-vs2026-x64-release",
+      "displayName": "Windows VS 2026 x64 Release",
       "configuration": "Release"
     },
     {
@@ -356,15 +433,27 @@
   ],
   "testPresets": [
     {
-      "name": "windows-msvc2022-x64-debug",
-      "configurePreset": "windows-msvc2022-x64-debug",
-      "displayName": "Windows MSVC 2022 x64 Debug",
+      "name": "windows-vs2022-x64-debug",
+      "configurePreset": "windows-vs2022-x64-debug",
+      "displayName": "Windows VS 2022 x64 Debug",
       "configuration": "Debug"
     },
     {
-      "name": "windows-msvc2022-x64-release",
-      "configurePreset": "windows-msvc2022-x64-release",
-      "displayName": "Windows MSVC 2022 x64 Release",
+      "name": "windows-vs2022-x64-release",
+      "configurePreset": "windows-vs2022-x64-release",
+      "displayName": "Windows VS 2022 x64 Release",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-vs2026-x64-debug",
+      "configurePreset": "windows-vs2026-x64-debug",
+      "displayName": "Windows VS 2026 x64 Debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-vs2026-x64-release",
+      "configurePreset": "windows-vs2026-x64-release",
+      "displayName": "Windows VS 2026 x64 Release",
       "configuration": "Release"
     },
     {

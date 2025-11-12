@@ -49,7 +49,7 @@ The project uses **Conan 2** for C++ dependency management. CMake integrates Con
 **Setup script usage** (recommended path for new developers):
 ```powershell
 # Windows (from repo root)
-.\tools\setup-windows-msvc2022-x64-release.bat [BUILD_DIR] [VENV_PATH]
+.\tools\setup-windows-vs2026-x64-release.bat [BUILD_DIR] [VENV_PATH]
 
 # Linux
 ./tools/setup-linux-gcc-release.sh [BUILD_DIR] [CONAN_PROFILE] [VENV_PATH] [ASAN_ENABLE]
@@ -58,14 +58,14 @@ The project uses **Conan 2** for C++ dependency management. CMake integrates Con
 **Manual CMake configuration:**
 ```bash
 # 1. Install Conan profile
-conan config install ./tools/conan/profiles/scwx-windows_msvc2022_x64 -tf profiles
+conan config install ./tools/conan/profiles/scwx-windows_vs2026_x64 -tf profiles
 
 # 2. Install dependencies
 mkdir build && cd build
 conan install ../
   --remote conancenter
   --build missing
-  --profile:all scwx-windows_msvc2022_x64
+  --profile:all scwx-windows_vs2026_x64
   --settings:all build_type=Release
   --output-folder ./conan/
 
@@ -73,19 +73,19 @@ conan install ../
 cmake ../ -G Ninja
   -DCMAKE_BUILD_TYPE=Release
   -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES=../external/cmake-conan/conan_provider.cmake
-  -DCONAN_HOST_PROFILE=scwx-windows_msvc2022_x64
-  -DCONAN_BUILD_PROFILE=scwx-windows_msvc2022_x64
+  -DCONAN_HOST_PROFILE=scwx-windows_vs2026_x64
+  -DCONAN_BUILD_PROFILE=scwx-windows_vs2026_x64
 
 # 4. Build
 cmake --build . --target supercell-wx
 ```
 
 **Key Conan profiles:** See [tools/conan/profiles/](tools/conan/profiles/)
-- Windows: `scwx-windows_msvc2022_x64[-debug]`
+- Windows: `scwx-windows_vs2026_x64[-debug]`
 - Linux: `scwx-linux_gcc-11[-debug]`, `scwx-linux_clang-17`
 - macOS: `scwx-macos_clang-18[_armv8][-debug]`
 
-**CMake Presets:** Use [CMakePresets.json](CMakePresets.json) for IDE integration. Presets like `windows-msvc2022-x64-release` encapsulate toolchain/profile selection.
+**CMake Presets:** Use [CMakePresets.json](CMakePresets.json) for IDE integration. Presets like `windows-vs2026-x64-release` encapsulate toolchain/profile selection.
 
 ### Python Virtual Environment
 Project uses Python for code generation (counties DB, version info). Setup scripts create `.venv/` with requirements from [requirements.txt](requirements.txt). CMake macro `scwx_python_setup()` in [tools/scwx_config.cmake](tools/scwx_config.cmake) finds the venv Python.
