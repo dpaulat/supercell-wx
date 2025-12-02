@@ -4,6 +4,20 @@ runtime: "org.freedesktop.Platform"
 runtime-version: "25.08"
 sdk: "org.freedesktop.Sdk"
 command: supercell-wx
+add-extensions:
+  org.freedesktop.Platform.GL:
+    # 1.4 is for Nvidia drivers
+    versions: "%{branch};%{branch-extra};1.4"
+    version: "1.4"
+    directory: "%{lib}/GL"
+    subdirectories: "true"
+    no-autodownload: "true"
+    autodelete: "false"
+    add-ld-path: "lib"
+    merge-dirs: "%{gl_merge_dirs}"
+    download-if: "active-gl-driver"
+    enable-if: "active-gl-driver"
+    autoprune-unless: active-gl-driver
 modules:
   - name: supercell-wx
     buildsystem: simple
