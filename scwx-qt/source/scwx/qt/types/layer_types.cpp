@@ -6,11 +6,7 @@
 #include <boost/json.hpp>
 #include <fmt/format.h>
 
-namespace scwx
-{
-namespace qt
-{
-namespace types
+namespace scwx::qt::types
 {
 
 static const std::unordered_map<LayerType, std::string> layerTypeName_ {
@@ -247,12 +243,38 @@ LayerInfo tag_invoke(boost::json::value_to_tag<LayerInfo>,
    }
 
    return LayerInfo {
-      layerType,
-      description,
-      jv.at(kMovableName_).as_bool(),
-      boost::json::value_to<std::array<bool, 4>>(jv.at(kDisplayedName_))};
+      .type_        = layerType,
+      .description_ = description,
+      .movable_     = jv.at(kMovableName_).as_bool(),
+      .displayed_   = [&jv]()
+      {
+         std::array<bool, types::kMapCount_> displayed {};
+         const auto& displayedArray = jv.at(kDisplayedName_).as_array();
+
+         // The last value should be the default, otherwise default to true
+         const bool defaultValue =
+            displayedArray.empty() ? true : displayedArray.back().as_bool();
+
+         // Copy available values
+         for (std::size_t i = 0;
+              i < std::min(displayedArray.size(), displayed.size());
+              ++i)
+         {
+            // Bounds checked via for loop
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+            displayed[i] = displayedArray[i].as_bool();
+         }
+
+         // Fill remaining values with default value
+         for (std::size_t i = displayedArray.size(); i < displayed.size(); ++i)
+         {
+            // Bounds checked via for loop
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+            displayed[i] = defaultValue;
+         }
+
+         return displayed;
+      }()};
 }
 
-} // namespace types
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::types

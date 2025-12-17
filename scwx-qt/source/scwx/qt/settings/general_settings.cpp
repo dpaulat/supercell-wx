@@ -103,9 +103,9 @@ public:
       fontSizes_.SetValidator([](const std::vector<std::int64_t>& value)
                               { return !value.empty(); });
       gridWidth_.SetMinimum(1);
-      gridWidth_.SetMaximum(2);
+      gridWidth_.SetMaximum(3);
       gridHeight_.SetMinimum(1);
-      gridHeight_.SetMaximum(2);
+      gridHeight_.SetMaximum(3);
       loopDelay_.SetMinimum(0);
       loopDelay_.SetMaximum(15000);
       loopSpeed_.SetMinimum(1.0);

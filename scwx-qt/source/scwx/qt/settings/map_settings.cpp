@@ -1,6 +1,7 @@
 #include <scwx/qt/settings/map_settings.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/settings/settings_variable.hpp>
+#include <scwx/qt/types/map_types.hpp>
 #include <scwx/qt/util/json.hpp>
 #include <scwx/common/products.hpp>
 #include <scwx/util/logger.hpp>
@@ -15,7 +16,7 @@ namespace scwx::qt::settings
 static const std::string logPrefix_ = "scwx::qt::settings::map_settings";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static constexpr std::size_t kCount_            = 4u;
+static constexpr std::size_t kCount_            = types::kMapCount_;
 static const std::string     kDefaultRadarSite_ = "KLSX";
 
 static const std::string kMapStyleName_ {"map_style"};
@@ -27,7 +28,16 @@ static const std::string kSmoothingEnabledName_ {"smoothing_enabled"};
 static const std::string kDefaultMapStyle_ {"?"};
 static const std::string kDefaultRadarProductGroupString_ = "L3";
 static const std::array<std::string, kCount_> kDefaultRadarProduct_ {
-   "N0B", "N0G", "N0C", "N0X"};
+   "N0B", // Reflectivity
+   "N0G", // Velocity
+   "N0C", // Correlation Coefficient
+   "N0X", // Differential Reflectivity
+   "DVL", // Vertically Integrated Liquid
+   "EET", // Echo Tops
+   "N0S", // Storm Relative Velocity
+   "N0H", // Hydrometeor Classification
+   "N0K", // Specific Differential Phase
+};
 
 static constexpr bool kDefaultSmoothingEnabled_ {false};
 
