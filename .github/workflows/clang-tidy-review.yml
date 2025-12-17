@@ -153,7 +153,7 @@ jobs:
         rsync -avzh --ignore-missing-args clang_fixes.json ../
 
     - name: Upload Review
-      uses: ZedThree/clang-tidy-review/upload@v0.22.2
+      uses: ZedThree/clang-tidy-review/upload@v0.22.3
 
     - name: Status Check
       if: steps.review.outputs.total_comments > 0
