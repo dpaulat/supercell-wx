@@ -8,11 +8,7 @@
 #include <QPushButton>
 #include <QSortFilterProxyModel>
 
-namespace scwx
-{
-namespace qt
-{
-namespace ui
+namespace scwx::qt::ui
 {
 
 static const std::string logPrefix_ = "scwx::qt::ui::layer_dialog";
@@ -95,8 +91,9 @@ void LayerDialogImpl::UpdateMapDisplayColumns()
    int displayMap1Column =
       static_cast<int>(model::LayerModel::Column::DisplayMap1);
 
-   // For each 0-based map index, 1-3 (excluding 0, always displayed)
-   for (int mapIndex = 1; mapIndex < 4; ++mapIndex)
+   // For each 0-based map index, 1-n (excluding 0, always displayed)
+   for (int mapIndex = 1; mapIndex < static_cast<int>(types::kMapCount_);
+        ++mapIndex)
    {
       const int  column = displayMap1Column + mapIndex;
       const bool hide   = mapIndex >= mapCount;
@@ -333,6 +330,4 @@ void LayerDialogImpl::UpdateMoveButtonsEnabled()
    self_->ui->moveBottomButton->setEnabled(itemsMovableDown);
 }
 
-} // namespace ui
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::ui

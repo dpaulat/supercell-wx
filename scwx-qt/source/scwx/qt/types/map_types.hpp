@@ -2,12 +2,10 @@
 
 #include <string>
 
-namespace scwx
+namespace scwx::qt::types
 {
-namespace qt
-{
-namespace types
-{
+
+static constexpr std::size_t kMapCount_ = 9u;
 
 enum class AnimationState
 {
@@ -32,6 +30,4 @@ enum class NoUpdateReason
 
 std::string GetMapTimeName(MapTime mapTime);
 
-} // namespace types
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::types
