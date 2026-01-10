@@ -49,6 +49,10 @@ set_target_properties(test_mln_core PROPERTIES EXCLUDE_FROM_ALL True)
 set_target_properties(test_mln_widgets PROPERTIES EXCLUDE_FROM_ALL True)
 set_target_properties(MLNQtWidgets PROPERTIES EXCLUDE_FROM_ALL True)
 
+set_target_properties(test_mln_core PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
+set_target_properties(test_mln_widgets PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
+set_target_properties(MLNQtWidgets PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
+
 set_target_properties(test_mln_core PROPERTIES FOLDER mln/exclude)
 set_target_properties(test_mln_widgets PROPERTIES FOLDER mln/exclude)
 set_target_properties(MLNQtWidgets PROPERTIES FOLDER mln/exclude)
