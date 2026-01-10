@@ -807,6 +807,15 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
 target_link_libraries(supercell-wx PRIVATE scwx-qt
                                            wxdata)
 
+if (WIN32)
+    # Deploy Qt to target directory
+    add_custom_command(TARGET supercell-wx
+                       POST_BUILD
+                       COMMAND "${WINDEPLOYQT_EXECUTABLE}"
+                           --no-translations $<TARGET_FILE:supercell-wx>
+                       COMMENT "Running windeployqt for supercell-wx...")
+endif()
+
 if (LINUX)
     # Set DT_RUNPATH for Linux targets
     set_target_properties(MLNQtCore    PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib") # QMapLibre::Core

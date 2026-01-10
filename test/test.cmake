@@ -103,3 +103,12 @@ gtest_discover_tests(wxtest)
 target_link_libraries(wxtest GTest::gtest
                              scwx-qt
                              wxdata)
+
+if (WIN32)
+    # Deploy Qt to target directory
+    add_custom_command(TARGET wxtest
+                       POST_BUILD
+                       COMMAND "${WINDEPLOYQT_EXECUTABLE}"
+                           --no-translations $<TARGET_FILE:wxtest>
+                       COMMENT "Running windeployqt for wxtest...")
+endif()
