@@ -1,6 +1,7 @@
 #include <scwx/qt/model/alert_model.hpp>
 #include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/unit_settings.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/types/unit_types.hpp>
@@ -24,11 +25,11 @@ static constexpr int kLastColumn =
    static_cast<int>(AlertModel::Column::Distance);
 static constexpr int kNumColumns = kLastColumn - kFirstColumn + 1;
 
-class AlertModelImpl
+class AlertModel::Impl
 {
 public:
-   explicit AlertModelImpl();
-   ~AlertModelImpl() = default;
+   explicit Impl(AlertModel* self);
+   ~Impl() = default;
 
    bool                       GetObserved(const types::TextEventKey& key);
    awips::ibw::ThreatCategory GetThreatCategory(const types::TextEventKey& key);
@@ -42,6 +43,13 @@ public:
    static std::chrono::system_clock::time_point
                       GetEndTime(const types::TextEventKey& key);
    static std::string GetEndTimeString(const types::TextEventKey& key);
+
+   void TimeFormatChanged();
+
+   AlertModel* self_ {nullptr};
+
+   boost::signals2::scoped_connection currentTimeZoneConnection_ {};
+   boost::signals2::scoped_connection defaultClockFormatConnection_ {};
 
    std::shared_ptr<manager::TextEventManager> textEventManager_;
 
@@ -73,7 +81,7 @@ public:
 };
 
 AlertModel::AlertModel(QObject* parent) :
-    QAbstractTableModel(parent), p(std::make_unique<AlertModelImpl>())
+    QAbstractTableModel(parent), p(std::make_unique<Impl>(this))
 {
 }
 AlertModel::~AlertModel() = default;
@@ -160,19 +168,16 @@ QVariant AlertModel::data(const QModelIndex& index, int role) const
          }
 
       case static_cast<int>(Column::State):
-         return QString::fromStdString(AlertModelImpl::GetState(textEventKey));
+         return QString::fromStdString(Impl::GetState(textEventKey));
 
       case static_cast<int>(Column::Counties):
-         return QString::fromStdString(
-            AlertModelImpl::GetCounties(textEventKey));
+         return QString::fromStdString(Impl::GetCounties(textEventKey));
 
       case static_cast<int>(Column::StartTime):
-         return QString::fromStdString(
-            AlertModelImpl::GetStartTimeString(textEventKey));
+         return QString::fromStdString(Impl::GetStartTimeString(textEventKey));
 
       case static_cast<int>(Column::EndTime):
-         return QString::fromStdString(
-            AlertModelImpl::GetEndTimeString(textEventKey));
+         return QString::fromStdString(Impl::GetEndTimeString(textEventKey));
 
       case static_cast<int>(Column::Distance):
          if (role == Qt::DisplayRole)
@@ -205,10 +210,10 @@ QVariant AlertModel::data(const QModelIndex& index, int role) const
       switch (index.column())
       {
       case static_cast<int>(Column::StartTime):
-         return QVariant::fromValue(AlertModelImpl::GetStartTime(textEventKey));
+         return QVariant::fromValue(Impl::GetStartTime(textEventKey));
 
       case static_cast<int>(Column::EndTime):
-         return QVariant::fromValue(AlertModelImpl::GetEndTime(textEventKey));
+         return QVariant::fromValue(Impl::GetEndTime(textEventKey));
 
       default:
          break;
@@ -469,16 +474,23 @@ void AlertModel::HandleMapUpdate(double latitude, double longitude)
    Q_EMIT dataChanged(topLeft, bottomRight);
 }
 
-AlertModelImpl::AlertModelImpl() :
+AlertModel::Impl::Impl(AlertModel* self) :
+    self_ {self},
     textEventManager_ {manager::TextEventManager::Instance()},
     textEventKeys_ {},
     geodesic_(util::GeographicLib::DefaultGeodesic()),
     distanceMap_ {},
     previousPosition_ {}
 {
+   currentTimeZoneConnection_ =
+      scwx::util::time::current_time_zone_changed_signal().connect(
+         [this](const scwx::util::time::time_zone*) { TimeFormatChanged(); });
+   defaultClockFormatConnection_ =
+      scwx::util::time::default_clock_format_changed_signal().connect(
+         [this](scwx::util::ClockFormat) { TimeFormatChanged(); });
 }
 
-bool AlertModelImpl::GetObserved(const types::TextEventKey& key)
+bool AlertModel::Impl::GetObserved(const types::TextEventKey& key)
 {
    bool observed = false;
 
@@ -492,7 +504,7 @@ bool AlertModelImpl::GetObserved(const types::TextEventKey& key)
 }
 
 awips::ibw::ThreatCategory
-AlertModelImpl::GetThreatCategory(const types::TextEventKey& key)
+AlertModel::Impl::GetThreatCategory(const types::TextEventKey& key)
 {
    awips::ibw::ThreatCategory threatCategory = awips::ibw::ThreatCategory::Base;
 
@@ -505,7 +517,7 @@ AlertModelImpl::GetThreatCategory(const types::TextEventKey& key)
    return threatCategory;
 }
 
-bool AlertModelImpl::GetTornadoPossible(const types::TextEventKey& key)
+bool AlertModel::Impl::GetTornadoPossible(const types::TextEventKey& key)
 {
    bool tornadoPossible = false;
 
@@ -518,7 +530,7 @@ bool AlertModelImpl::GetTornadoPossible(const types::TextEventKey& key)
    return tornadoPossible;
 }
 
-std::string AlertModelImpl::GetCounties(const types::TextEventKey& key)
+std::string AlertModel::Impl::GetCounties(const types::TextEventKey& key)
 {
    auto messageList = manager::TextEventManager::Instance()->message_list(key);
 
@@ -547,7 +559,7 @@ std::string AlertModelImpl::GetCounties(const types::TextEventKey& key)
    }
 }
 
-std::string AlertModelImpl::GetState(const types::TextEventKey& key)
+std::string AlertModel::Impl::GetState(const types::TextEventKey& key)
 {
    auto messageList = manager::TextEventManager::Instance()->message_list(key);
 
@@ -567,7 +579,7 @@ std::string AlertModelImpl::GetState(const types::TextEventKey& key)
 }
 
 std::chrono::system_clock::time_point
-AlertModelImpl::GetStartTime(const types::TextEventKey& key)
+AlertModel::Impl::GetStartTime(const types::TextEventKey& key)
 {
    auto messageList = manager::TextEventManager::Instance()->message_list(key);
 
@@ -584,13 +596,15 @@ AlertModelImpl::GetStartTime(const types::TextEventKey& key)
    }
 }
 
-std::string AlertModelImpl::GetStartTimeString(const types::TextEventKey& key)
+std::string AlertModel::Impl::GetStartTimeString(const types::TextEventKey& key)
 {
-   return scwx::util::TimeString(GetStartTime(key));
+   return scwx::util::TimeString(GetStartTime(key),
+                                 scwx::util::time::ClockFormat::Default,
+                                 scwx::util::time::current_time_zone());
 }
 
 std::chrono::system_clock::time_point
-AlertModelImpl::GetEndTime(const types::TextEventKey& key)
+AlertModel::Impl::GetEndTime(const types::TextEventKey& key)
 {
    auto messageList = manager::TextEventManager::Instance()->message_list(key);
 
@@ -609,9 +623,20 @@ AlertModelImpl::GetEndTime(const types::TextEventKey& key)
    }
 }
 
-std::string AlertModelImpl::GetEndTimeString(const types::TextEventKey& key)
+std::string AlertModel::Impl::GetEndTimeString(const types::TextEventKey& key)
 {
-   return scwx::util::TimeString(GetEndTime(key));
+   return scwx::util::TimeString(GetEndTime(key),
+                                 scwx::util::time::ClockFormat::Default,
+                                 scwx::util::time::current_time_zone());
+}
+
+void AlertModel::Impl::TimeFormatChanged()
+{
+   logger_->trace("TimeFormatChanged()");
+   Q_EMIT self_->dataChanged(
+      self_->createIndex(0, static_cast<int>(Column::StartTime)),
+      self_->createIndex(self_->rowCount() - 1,
+                         static_cast<int>(Column::EndTime)));
 }
 
 } // namespace scwx::qt::model
