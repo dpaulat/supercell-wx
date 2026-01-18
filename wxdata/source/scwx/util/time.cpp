@@ -144,7 +144,7 @@ std::string TimeString(std::chrono::system_clock::time_point time,
 
    if (clockFormat == ClockFormat::Default)
    {
-      ClockFormat loadedFormat = defaultClockFormat_.load();
+      const ClockFormat loadedFormat = defaultClockFormat_.load();
       if (loadedFormat == ClockFormat::_12Hour ||
           loadedFormat == ClockFormat::_24Hour)
       {
