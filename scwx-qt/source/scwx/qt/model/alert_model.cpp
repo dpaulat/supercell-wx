@@ -31,6 +31,11 @@ public:
    explicit Impl(AlertModel* self);
    ~Impl() = default;
 
+   Impl(const Impl&)             = delete;
+   Impl& operator=(const Impl&)  = delete;
+   Impl(const Impl&&)            = delete;
+   Impl& operator=(const Impl&&) = delete;
+
    bool                       GetObserved(const types::TextEventKey& key);
    awips::ibw::ThreatCategory GetThreatCategory(const types::TextEventKey& key);
    bool GetTornadoPossible(const types::TextEventKey& key);
@@ -467,11 +472,15 @@ void AlertModel::HandleMapUpdate(double latitude, double longitude)
 
    p->previousPosition_ = {latitude, longitude};
 
-   QModelIndex topLeft = createIndex(0, static_cast<int>(Column::Distance));
-   QModelIndex bottomRight =
-      createIndex(rowCount() - 1, static_cast<int>(Column::Distance));
+   const int rows = rowCount();
+   if (rows > 0)
+   {
+      const auto topLeft = createIndex(0, static_cast<int>(Column::Distance));
+      const auto bottomRight =
+         createIndex(rows - 1, static_cast<int>(Column::Distance));
 
-   Q_EMIT dataChanged(topLeft, bottomRight);
+      Q_EMIT dataChanged(topLeft, bottomRight);
+   }
 }
 
 AlertModel::Impl::Impl(AlertModel* self) :
@@ -633,10 +642,17 @@ std::string AlertModel::Impl::GetEndTimeString(const types::TextEventKey& key)
 void AlertModel::Impl::TimeFormatChanged()
 {
    logger_->trace("TimeFormatChanged()");
-   Q_EMIT self_->dataChanged(
-      self_->createIndex(0, static_cast<int>(Column::StartTime)),
-      self_->createIndex(self_->rowCount() - 1,
-                         static_cast<int>(Column::EndTime)));
+
+   const int rowCount = self_->rowCount();
+   if (rowCount > 0)
+   {
+      const auto topLeft =
+         self_->createIndex(0, static_cast<int>(Column::StartTime));
+      const auto bottomRight =
+         self_->createIndex(rowCount - 1, static_cast<int>(Column::EndTime));
+
+      Q_EMIT self_->dataChanged(topLeft, bottomRight);
+   }
 }
 
 } // namespace scwx::qt::model

@@ -1371,6 +1371,10 @@ void MainWindowImpl::ConnectOtherSignals()
             util::time::set_current_time_zone(defaultTimeZone);
             animationDockWidget_->UpdateTimeZone(defaultTimeZone);
          });
+
+   // Ensure default clock format is initialized
+   util::time::set_default_clock_format(
+      util::GetClockFormat(generalSettings.clock_format().GetValue()));
 }
 
 void MainWindowImpl::InitializeLayerDisplayActions()

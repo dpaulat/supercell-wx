@@ -13,10 +13,9 @@
 #include <scwx/util/enum.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <atomic>
 #include <sstream>
 #include <unordered_map>
-
-#include <boost/algorithm/string.hpp>
 
 #if (__cpp_lib_chrono < 201907L)
 #   include <date/date.h>
@@ -39,8 +38,8 @@ static boost::signals2::signal<void(const time_zone*)>
 static boost::signals2::signal<void(ClockFormat)>
    defaultClockFormatChangedSignal_;
 
-static const time_zone* currentTimeZone_    = nullptr;
-static ClockFormat      defaultClockFormat_ = ClockFormat::_24Hour;
+static std::atomic<const time_zone*> currentTimeZone_    = nullptr;
+static std::atomic<ClockFormat>      defaultClockFormat_ = ClockFormat::_24Hour;
 
 static std::shared_ptr<network::NtpClient> ntpClient_ {nullptr};
 
@@ -145,10 +144,11 @@ std::string TimeString(std::chrono::system_clock::time_point time,
 
    if (clockFormat == ClockFormat::Default)
    {
-      if (defaultClockFormat_ == ClockFormat::_12Hour ||
-          defaultClockFormat_ == ClockFormat::_24Hour)
+      ClockFormat loadedFormat = defaultClockFormat_.load();
+      if (loadedFormat == ClockFormat::_12Hour ||
+          loadedFormat == ClockFormat::_24Hour)
       {
-         clockFormat = defaultClockFormat_;
+         clockFormat = loadedFormat;
       }
       else
       {

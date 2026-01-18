@@ -6,7 +6,16 @@
 #include <optional>
 #include <string>
 
+#if defined(__clang__)
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
 #include <boost/signals2/signal.hpp>
+
+#if defined(__clang__)
+#   pragma GCC diagnostic pop
+#endif
 
 #if (__cpp_lib_chrono < 201907L)
 #   include <date/tz.h>
