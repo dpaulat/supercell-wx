@@ -13,10 +13,9 @@
 #include <scwx/util/enum.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <atomic>
 #include <sstream>
 #include <unordered_map>
-
-#include <boost/algorithm/string.hpp>
 
 #if (__cpp_lib_chrono < 201907L)
 #   include <date/date.h>
@@ -31,7 +30,16 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static const std::unordered_map<ClockFormat, std::string> clockFormatName_ {
    {ClockFormat::_12Hour, "12-hour"},
    {ClockFormat::_24Hour, "24-hour"},
+   {ClockFormat::Default, "default"},
    {ClockFormat::Unknown, "?"}};
+
+static boost::signals2::signal<void(const time_zone*)>
+   currentTimeZoneChangedSignal_;
+static boost::signals2::signal<void(ClockFormat)>
+   defaultClockFormatChangedSignal_;
+
+static std::atomic<const time_zone*> currentTimeZone_    = nullptr;
+static std::atomic<ClockFormat>      defaultClockFormat_ = ClockFormat::_24Hour;
 
 static std::shared_ptr<network::NtpClient> ntpClient_ {nullptr};
 
@@ -61,6 +69,40 @@ std::chrono::time_point<Clock> now()
 }
 
 template std::chrono::time_point<std::chrono::system_clock> now();
+
+const time_zone* current_time_zone()
+{
+   return currentTimeZone_;
+}
+
+void set_current_time_zone(const time_zone* timeZone)
+{
+   currentTimeZone_ = timeZone;
+   current_time_zone_changed_signal()(timeZone);
+}
+
+boost::signals2::signal<void(const time_zone*)>&
+current_time_zone_changed_signal()
+{
+   return currentTimeZoneChangedSignal_;
+}
+
+ClockFormat default_clock_format()
+{
+   return defaultClockFormat_;
+}
+
+void set_default_clock_format(ClockFormat clockFormat)
+{
+   defaultClockFormat_ = clockFormat;
+   default_clock_format_changed_signal()(clockFormat);
+}
+
+boost::signals2::signal<void(ClockFormat)>&
+default_clock_format_changed_signal()
+{
+   return defaultClockFormatChangedSignal_;
+}
 
 std::chrono::system_clock::time_point TimePoint(uint32_t modifiedJulianDate,
                                                 uint32_t milliseconds)
@@ -99,6 +141,20 @@ std::string TimeString(std::chrono::system_clock::time_point time,
 
    auto               timeInSeconds = time_point_cast<seconds>(time);
    std::ostringstream os;
+
+   if (clockFormat == ClockFormat::Default)
+   {
+      const ClockFormat loadedFormat = defaultClockFormat_.load();
+      if (loadedFormat == ClockFormat::_12Hour ||
+          loadedFormat == ClockFormat::_24Hour)
+      {
+         clockFormat = loadedFormat;
+      }
+      else
+      {
+         clockFormat = ClockFormat::_24Hour;
+      }
+   }
 
    if (epochValid || time.time_since_epoch().count() != 0)
    {

@@ -2,6 +2,7 @@
 
 #include <scwx/qt/types/text_event_key.hpp>
 #include <scwx/common/geographic.hpp>
+#include <scwx/util/time.hpp>
 
 #include <memory>
 #include <unordered_set>
@@ -9,18 +10,14 @@
 #include <boost/uuid/uuid.hpp>
 #include <QAbstractTableModel>
 
-namespace scwx
+namespace scwx::qt::model
 {
-namespace qt
-{
-namespace model
-{
-
-class AlertModelImpl;
 
 class AlertModel : public QAbstractTableModel
 {
+   Q_DISABLE_COPY_MOVE(AlertModel)
 public:
+   // NOLINTNEXTLINE(performance-enum-size): Type used for Qt interface
    enum class Column : int
    {
       Etn            = 0,
@@ -39,17 +36,20 @@ public:
    explicit AlertModel(QObject* parent = nullptr);
    ~AlertModel();
 
-   types::TextEventKey key(const QModelIndex& index) const;
-   common::Coordinate  centroid(const types::TextEventKey& key) const;
+   [[nodiscard]] types::TextEventKey key(const QModelIndex& index) const;
+   [[nodiscard]] common::Coordinate
+   centroid(const types::TextEventKey& key) const;
 
-   int rowCount(const QModelIndex& parent = QModelIndex()) const override;
-   int columnCount(const QModelIndex& parent = QModelIndex()) const override;
+   [[nodiscard]] int
+   rowCount(const QModelIndex& parent = QModelIndex()) const override;
+   [[nodiscard]] int
+   columnCount(const QModelIndex& parent = QModelIndex()) const override;
 
-   QVariant data(const QModelIndex& index,
-                 int                role = Qt::DisplayRole) const override;
-   QVariant headerData(int             section,
-                       Qt::Orientation orientation,
-                       int             role = Qt::DisplayRole) const override;
+   [[nodiscard]] QVariant data(const QModelIndex& index,
+                               int role = Qt::DisplayRole) const override;
+   [[nodiscard]] QVariant headerData(int             section,
+                                     Qt::Orientation orientation,
+                                     int role = Qt::DisplayRole) const override;
 
 public slots:
    void HandleAlert(const types::TextEventKey& alertKey,
@@ -62,11 +62,8 @@ public slots:
    void HandleMapUpdate(double latitude, double longitude);
 
 private:
-   std::unique_ptr<AlertModelImpl> p;
-
-   friend class AlertModelImpl;
+   class Impl;
+   std::unique_ptr<Impl> p;
 };
 
-} // namespace model
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::model
