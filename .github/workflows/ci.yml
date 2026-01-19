@@ -314,14 +314,14 @@ jobs:
         tar -czf supercell-wx-${{ matrix.artifact_suffix }}.tar.gz supercell-wx/
 
     - name: Upload Artifacts (Windows)
-      if: matrix.os == 'windows-2022'
+      if: ${{ startsWith(matrix.os, 'windows') }}
       uses: actions/upload-artifact@v6
       with:
         name: supercell-wx-${{ matrix.artifact_suffix }}
         path: ${{ github.workspace }}/supercell-wx/
 
     - name: Upload Debug Artifacts (Windows)
-      if: matrix.os == 'windows-2022'
+      if: ${{ startsWith(matrix.os, 'windows') }}
       uses: actions/upload-artifact@v6
       with:
         name: supercell-wx-debug-${{ matrix.artifact_suffix }}
@@ -344,14 +344,14 @@ jobs:
           ${{ github.workspace }}/build/Release/lib/*.debug
 
     - name: Build Installer (Windows)
-      if: matrix.os == 'windows-2022'
+      if: ${{ startsWith(matrix.os, 'windows') }}
       shell: pwsh
       run: |
         cd build
         cpack
 
     - name: Upload Installer (Windows)
-      if: matrix.os == 'windows-2022'
+      if: ${{ startsWith(matrix.os, 'windows') }}
       uses: actions/upload-artifact@v6
       with:
         name: supercell-wx-installer-${{ matrix.artifact_suffix }}
