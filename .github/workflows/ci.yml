@@ -39,7 +39,7 @@ jobs:
             conan_profile: scwx-windows_msvc2022_x64
             appimage_arch: ''
             artifact_suffix: windows-x64
-          - name: linux_gcc11_x64
+          - name: linux_gcc-11_x64
             os: ubuntu-22.04
             build_type: Release
             env_cc: gcc-11
@@ -55,9 +55,9 @@ jobs:
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
             conan_profile: scwx-linux_gcc-11
             appimage_arch: x86_64
-            artifact_suffix: linux-x64
+            artifact_suffix: linux-gcc-11-x64
             compiler_packages: ''
-          - name: linux_gcc13_x64
+          - name: linux_gcc-13_x64
             os: ubuntu-24.04
             build_type: Release
             env_cc: gcc-13
@@ -73,9 +73,9 @@ jobs:
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
             conan_profile: scwx-linux_gcc-13
             appimage_arch: x86_64
-            artifact_suffix: linux-x64
+            artifact_suffix: linux-gcc-13-x64
             compiler_packages: ''
-          - name: linux_clang17_x64
+          - name: linux_clang-17_x64
             os: ubuntu-24.04
             build_type: Release
             env_cc: clang-17
@@ -91,9 +91,9 @@ jobs:
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
             conan_profile: scwx-linux_clang-17
             appimage_arch: x86_64
-            artifact_suffix: linux-clang-x64
+            artifact_suffix: linux-clang-17-x64
             compiler_packages: clang-17
-          - name: linux_gcc11_arm64
+          - name: linux_gcc-11_arm64
             os: ubuntu-24.04-arm
             build_type: Release
             env_cc: gcc-11
@@ -109,9 +109,9 @@ jobs:
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
             conan_profile: scwx-linux_gcc-11_armv8
             appimage_arch: aarch64
-            artifact_suffix: linux-arm64
+            artifact_suffix: linux-gcc-11-arm64
             compiler_packages: g++-11
-          - name: linux_gcc13_arm64
+          - name: linux_gcc-13_arm64
             os: ubuntu-24.04-arm
             build_type: Release
             env_cc: gcc-13
@@ -127,9 +127,9 @@ jobs:
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
             conan_profile: scwx-linux_gcc-13_armv8
             appimage_arch: aarch64
-            artifact_suffix: linux-arm64
+            artifact_suffix: linux-gcc-13-arm64
             compiler_packages: g++-13
-          - name: macos_clang18_x64
+          - name: macos_clang-18_x64
             os: macos-15-intel
             build_type: Release
             env_cc: clang
@@ -144,7 +144,7 @@ jobs:
             conan_profile: scwx-macos_clang-18
             appimage_arch: ''
             artifact_suffix: macos-x64
-          - name: macos_clang18_arm64
+          - name: macos_clang-18_arm64
             os: macos-14
             build_type: Release
             env_cc: clang
