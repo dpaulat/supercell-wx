@@ -9,17 +9,20 @@
 #   define __cpp_lib_format 202110L
 #endif
 
+#define LIBXML_HTML_ENABLED
+
 #include <scwx/provider/warnings_provider.hpp>
+#include <scwx/network/cpr.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
+#include <atomic>
 #include <mutex>
 
 #if defined(_MSC_VER)
 #   pragma warning(push, 0)
 #endif
 
-#define LIBXML_HTML_ENABLED
 #include <cpr/cpr.h>
 
 #if (__cpp_lib_chrono < 201907L)
@@ -58,7 +61,7 @@ public:
    {
    }
 
-   ~Impl()                       = default;
+   ~Impl() { running_ = false; }
    Impl(const Impl&)             = delete;
    Impl& operator=(const Impl&)  = delete;
    Impl(const Impl&&)            = delete;
@@ -66,6 +69,10 @@ public:
 
    bool UpdateFileRecord(const cpr::Response& response,
                          const std::string&   filename);
+
+   std::atomic<bool> running_ {true};
+
+   cpr::Header header_ {network::cpr::GetHeader()};
 
    std::string baseUrl_;
 
@@ -101,11 +108,8 @@ WarningsProvider::LoadUpdatedFiles(
 #   define kDateTimeFormat "warnings_%Y%m%d_%H.txt"
 #endif
 
-   std::vector<
-      std::pair<std::string,
-                cpr::AsyncWrapper<std::optional<cpr::AsyncResponse>, false>>>
-                                                        asyncCallbacks;
-   std::vector<std::shared_ptr<awips::TextProductFile>> updatedFiles;
+   std::vector<std::pair<std::string, cpr::AsyncResponse>> asyncCallbacks;
+   std::vector<std::shared_ptr<awips::TextProductFile>>    updatedFiles;
 
    const std::chrono::sys_time<std::chrono::hours> now =
       std::chrono::floor<std::chrono::hours>(util::time::now());
@@ -123,33 +127,40 @@ WarningsProvider::LoadUpdatedFiles(
 
       logger_->trace("HEAD request for file: {}", filename);
 
-      asyncCallbacks.emplace_back(
-         filename,
-         cpr::HeadCallback(
-            [url, filename, this](
-               cpr::Response headResponse) -> std::optional<cpr::AsyncResponse>
-            {
-               if (headResponse.status_code == cpr::status::HTTP_OK)
-               {
-                  const bool updated =
-                     p->UpdateFileRecord(headResponse, filename);
+      auto headResponse =
+         cpr::Head(cpr::Url {url},
+                   p->header_,
+                   network::cpr::GetDefaultTimeout(),
+                   network::cpr::GetDefaultConnectTimeout(),
+                   network::cpr::GetDefaultLowSpeed(),
+                   network::cpr::GetDefaultProgressCallback(p->running_));
 
-                  if (updated)
-                  {
-                     logger_->trace("GET request for file: {}", filename);
-                     return cpr::GetAsync(cpr::Url {url});
-                  }
-               }
-               else if (headResponse.status_code != cpr::status::HTTP_NOT_FOUND)
-               {
-                  logger_->warn("HEAD request for file failed: {} ({})",
-                                url,
-                                headResponse.status_line);
-               }
+      if (headResponse.status_code == cpr::status::HTTP_OK)
+      {
+         const bool updated = p->UpdateFileRecord(headResponse, filename);
 
-               return std::nullopt;
-            },
-            cpr::Url {url}));
+         if (updated)
+         {
+            logger_->trace("GET request for file: {}", filename);
+
+            asyncCallbacks.emplace_back(
+               filename,
+               cpr::GetAsync(
+                  cpr::Url {url},
+                  p->header_,
+                  network::cpr::GetDefaultTimeout(),
+                  network::cpr::GetDefaultConnectTimeout(),
+                  network::cpr::GetDefaultLowSpeed(),
+                  network::cpr::GetDefaultProgressCallback(p->running_)));
+         }
+      }
+      else if (headResponse.status_code != cpr::status::HTTP_NOT_FOUND &&
+               p->running_)
+      {
+         logger_->warn("HEAD request for file failed: {} ({})",
+                       url,
+                       headResponse.status_line);
+      }
 
       // Query the next hour
       currentHour += 1h;
@@ -157,38 +168,32 @@ WarningsProvider::LoadUpdatedFiles(
 
    for (auto& asyncCallback : asyncCallbacks)
    {
-      auto& filename = asyncCallback.first;
-      auto& callback = asyncCallback.second;
+      auto& filename      = asyncCallback.first;
+      auto& asyncResponse = asyncCallback.second;
 
-      if (callback.valid())
+      if (asyncResponse.valid())
       {
          // Wait for futures to complete
-         callback.wait();
-         auto asyncResponse = callback.get();
+         asyncResponse.wait();
+         auto response = asyncResponse.get();
 
-         if (asyncResponse.has_value())
+         if (response.status_code == cpr::status::HTTP_OK)
          {
-            auto response = asyncResponse.value().get();
+            logger_->debug("Loading file: {}", filename);
 
-            if (response.status_code == cpr::status::HTTP_OK)
+            // Load file
+            const std::shared_ptr<awips::TextProductFile> textProductFile {
+               std::make_shared<awips::TextProductFile>()};
+            std::istringstream responseBody {response.text};
+            if (textProductFile->LoadData(filename, responseBody))
             {
-               logger_->debug("Loading file: {}", filename);
-
-               // Load file
-               const std::shared_ptr<awips::TextProductFile> textProductFile {
-                  std::make_shared<awips::TextProductFile>()};
-               std::istringstream responseBody {response.text};
-               if (textProductFile->LoadData(filename, responseBody))
-               {
-                  updatedFiles.push_back(textProductFile);
-               }
+               updatedFiles.push_back(textProductFile);
             }
-            else
-            {
-               logger_->warn("Could not load file: {} ({})",
-                             filename,
-                             response.status_line);
-            }
+         }
+         else
+         {
+            logger_->warn(
+               "Could not load file: {} ({})", filename, response.status_line);
          }
       }
       else
@@ -254,6 +259,11 @@ bool WarningsProvider::Impl::UpdateFileRecord(const cpr::Response& response,
    }
 
    return updated;
+}
+
+void WarningsProvider::Shutdown() noexcept
+{
+   p->running_ = false;
 }
 
 } // namespace scwx::provider
