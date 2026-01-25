@@ -1,7 +1,9 @@
 #include <scwx/qt/manager/update_manager.hpp>
+#include <scwx/network/cpr.hpp>
 #include <scwx/util/json.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <atomic>
 #include <mutex>
 
 #include <boost/json.hpp>
@@ -28,7 +30,7 @@ class UpdateManager::Impl
 public:
    explicit Impl(UpdateManager* self) : self_ {self} {}
 
-   ~Impl() {}
+   ~Impl() { running_ = false; }
 
    static std::string GetVersionString(const std::string& releaseName);
 
@@ -38,6 +40,8 @@ public:
    FindLatestRelease();
 
    UpdateManager* self_;
+
+   std::atomic_bool running_ {true};
 
    std::mutex updateMutex_ {};
 
@@ -121,7 +125,11 @@ size_t UpdateManager::Impl::PopulateReleases()
          cpr::Url {kScwxReleaseEndpoint},
          cpr::Parameters {{"per_page", perPageString}, {"page", pageString}},
          cpr::Header {{"accept", "application/vnd.github+json"},
-                      {"X-GitHub-Api-Version", "2022-11-28"}});
+                      {"X-GitHub-Api-Version", "2022-11-28"}},
+         network::cpr::GetDefaultTimeout(),
+         network::cpr::GetDefaultConnectTimeout(),
+         network::cpr::GetDefaultLowSpeed(),
+         network::cpr::GetDefaultProgressCallback(running_));
 
       // Successful REST API query
       if (r.status_code == 200)

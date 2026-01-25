@@ -502,7 +502,11 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath, double scale)
    }
    else
    {
-      auto response = cpr::Get(cpr::Url {imagePath}, network::cpr::GetHeader());
+      auto response = cpr::Get(cpr::Url {imagePath},
+                               network::cpr::GetHeader(),
+                               network::cpr::GetDefaultTimeout(),
+                               network::cpr::GetDefaultConnectTimeout(),
+                               network::cpr::GetDefaultLowSpeed());
 
       if (cpr::status::is_success(response.status_code))
       {
