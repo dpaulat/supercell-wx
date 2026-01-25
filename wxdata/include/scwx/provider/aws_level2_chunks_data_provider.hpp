@@ -65,6 +65,11 @@ public:
    void SetLevel2DataProvider(
       const std::shared_ptr<AwsLevel2DataProvider>& provider);
 
+   /**
+    * @brief Shuts down the provider and stops any in-progress network requests.
+    */
+   void Shutdown() noexcept override;
+
 private:
    class Impl;
    std::unique_ptr<Impl> p;

@@ -108,13 +108,18 @@ public:
    }
    ~ProviderManager() override
    {
+      if (provider_ != nullptr)
+      {
+         provider_->Shutdown();
+      }
+
       providerThreadPool_.stop();
       providerThreadPool_.join();
    };
 
    std::string name() const;
 
-   void Disable();
+   void Disable(bool shutdown = false);
    void RefreshData();
    void RefreshDataSync();
 
@@ -175,8 +180,10 @@ public:
    }
    ~RadarProductManagerImpl()
    {
-      level2ProviderManager_->Disable();
-      level2ChunksProviderManager_->Disable();
+      const bool shutdown = true;
+
+      level2ProviderManager_->Disable(shutdown);
+      level2ChunksProviderManager_->Disable(shutdown);
 
       std::shared_lock lock(level3ProviderManagerMutex_);
       std::for_each(std::execution::par,
@@ -185,7 +192,7 @@ public:
                     [](auto& p)
                     {
                        auto& [key, providerManager] = p;
-                       providerManager->Disable();
+                       providerManager->Disable(shutdown);
                     });
       lock.unlock();
 
@@ -341,13 +348,18 @@ std::string ProviderManager::name() const
    return name;
 }
 
-void ProviderManager::Disable()
+void ProviderManager::Disable(bool shutdown)
 {
    logger_->debug("Disabling refresh: {}", name());
 
    std::unique_lock lock(refreshTimerMutex_);
    refreshEnabled_ = false;
    refreshTimer_.cancel();
+
+   if (shutdown && provider_ != nullptr)
+   {
+      provider_->Shutdown();
+   }
 }
 
 void RadarProductManager::Cleanup()

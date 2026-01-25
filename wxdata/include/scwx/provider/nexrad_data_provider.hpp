@@ -153,6 +153,11 @@ public:
     */
    virtual std::vector<std::string> GetAvailableProducts();
 
+   /**
+    * @brief Shuts down the provider and stops any in-progress network requests.
+    */
+   virtual void Shutdown() noexcept = 0;
+
 private:
    class Impl;
    std::unique_ptr<Impl> p;
