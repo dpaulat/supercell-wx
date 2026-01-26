@@ -659,6 +659,10 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
       {
          logger_->error("Error loading placefile: {}", response.status_line);
       }
+      else
+      {
+         logger_->error("Request cancelled, shutting down");
+      }
    }
 
    if (updatedPlacefile != nullptr)

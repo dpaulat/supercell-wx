@@ -5,6 +5,7 @@
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 
+#include <atomic>
 #include <future>
 #include <shared_mutex>
 
@@ -331,7 +332,7 @@ AwsNexradDataProvider::LoadObjectByKey(const std::string& key)
    request.SetBucket(p->bucketName_);
    request.SetKey(key);
 
-   // Set progress callback to allow cancellation
+   // Set continue request handler to allow cancellation
    request.SetContinueRequestHandler([this](const Aws::Http::HttpRequest*)
                                      { return p->running_.load(); });
 
@@ -357,6 +358,10 @@ AwsNexradDataProvider::LoadObjectByKey(const std::string& key)
    {
       logger_->warn("Could not get object: {}",
                     outcome.GetError().GetMessage());
+   }
+   else
+   {
+      logger_->debug("LoadObjectByKey cancelled for key: {}", key);
    }
 
    return nexradFile;

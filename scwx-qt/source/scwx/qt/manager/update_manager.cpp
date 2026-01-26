@@ -151,10 +151,15 @@ size_t UpdateManager::Impl::PopulateReleases()
             break;
          }
       }
-      else
+      else if (running_)
       {
          logger_->warn(
             "Invalid API response: [{}] {}", r.status_code, r.error.message);
+         break;
+      }
+      else
+      {
+         logger_->debug("Request cancelled, shutting down");
          break;
       }
 

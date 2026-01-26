@@ -72,8 +72,6 @@ public:
 
    std::atomic<bool> running_ {true};
 
-   cpr::Header header_ {network::cpr::GetHeader()};
-
    std::string baseUrl_;
 
    WarningFileMap files_;
@@ -108,8 +106,11 @@ WarningsProvider::LoadUpdatedFiles(
 #   define kDateTimeFormat "warnings_%Y%m%d_%H.txt"
 #endif
 
-   std::vector<std::pair<std::string, cpr::AsyncResponse>> asyncCallbacks;
-   std::vector<std::shared_ptr<awips::TextProductFile>>    updatedFiles;
+   std::vector<
+      std::pair<std::string,
+                cpr::AsyncWrapper<std::optional<cpr::AsyncResponse>, false>>>
+                                                        asyncCallbacks;
+   std::vector<std::shared_ptr<awips::TextProductFile>> updatedFiles;
 
    const std::chrono::sys_time<std::chrono::hours> now =
       std::chrono::floor<std::chrono::hours>(util::time::now());
@@ -127,40 +128,52 @@ WarningsProvider::LoadUpdatedFiles(
 
       logger_->trace("HEAD request for file: {}", filename);
 
-      auto headResponse =
-         cpr::Head(cpr::Url {url},
-                   p->header_,
-                   network::cpr::GetDefaultTimeout(),
-                   network::cpr::GetDefaultConnectTimeout(),
-                   network::cpr::GetDefaultLowSpeed(),
-                   network::cpr::GetDefaultProgressCallback(p->running_));
+      asyncCallbacks.emplace_back(
+         filename,
+         cpr::HeadCallback(
+            [url, filename, this](
+               cpr::Response headResponse) -> std::optional<cpr::AsyncResponse>
+            {
+               if (headResponse.status_code == cpr::status::HTTP_OK)
+               {
+                  const bool updated =
+                     p->UpdateFileRecord(headResponse, filename);
 
-      if (headResponse.status_code == cpr::status::HTTP_OK)
-      {
-         const bool updated = p->UpdateFileRecord(headResponse, filename);
+                  if (updated)
+                  {
+                     logger_->trace("GET request for file: {}", filename);
+                     return cpr::GetAsync(
+                        cpr::Url {url},
+                        network::cpr::GetHeader(),
+                        network::cpr::GetDefaultTimeout(),
+                        network::cpr::GetDefaultConnectTimeout(),
+                        network::cpr::GetDefaultLowSpeed(),
+                        network::cpr::GetDefaultProgressCallback(p->running_));
+                  }
+               }
+               else if (headResponse.status_code != cpr::status::HTTP_NOT_FOUND)
+               {
+                  if (p->running_)
+                  {
+                     logger_->warn("HEAD request for file failed: {} ({})",
+                                   url,
+                                   headResponse.status_line);
+                  }
+                  else
+                  {
+                     logger_->debug("HEAD request for file cancelled: {}",
+                                    filename);
+                  }
+               }
 
-         if (updated)
-         {
-            logger_->trace("GET request for file: {}", filename);
-
-            asyncCallbacks.emplace_back(
-               filename,
-               cpr::GetAsync(
-                  cpr::Url {url},
-                  p->header_,
-                  network::cpr::GetDefaultTimeout(),
-                  network::cpr::GetDefaultConnectTimeout(),
-                  network::cpr::GetDefaultLowSpeed(),
-                  network::cpr::GetDefaultProgressCallback(p->running_)));
-         }
-      }
-      else if (headResponse.status_code != cpr::status::HTTP_NOT_FOUND &&
-               p->running_)
-      {
-         logger_->warn("HEAD request for file failed: {} ({})",
-                       url,
-                       headResponse.status_line);
-      }
+               return std::nullopt;
+            },
+            cpr::Url {url},
+            network::cpr::GetHeader(),
+            network::cpr::GetDefaultTimeout(),
+            network::cpr::GetDefaultConnectTimeout(),
+            network::cpr::GetDefaultLowSpeed(),
+            network::cpr::GetDefaultProgressCallback(p->running_)));
 
       // Query the next hour
       currentHour += 1h;
@@ -168,32 +181,42 @@ WarningsProvider::LoadUpdatedFiles(
 
    for (auto& asyncCallback : asyncCallbacks)
    {
-      auto& filename      = asyncCallback.first;
-      auto& asyncResponse = asyncCallback.second;
+      auto& filename = asyncCallback.first;
+      auto& callback = asyncCallback.second;
 
-      if (asyncResponse.valid())
+      if (callback.valid())
       {
          // Wait for futures to complete
-         asyncResponse.wait();
-         auto response = asyncResponse.get();
+         callback.wait();
+         auto asyncResponse = callback.get();
 
-         if (response.status_code == cpr::status::HTTP_OK)
+         if (asyncResponse.has_value())
          {
-            logger_->debug("Loading file: {}", filename);
+            auto response = asyncResponse.value().get();
 
-            // Load file
-            const std::shared_ptr<awips::TextProductFile> textProductFile {
-               std::make_shared<awips::TextProductFile>()};
-            std::istringstream responseBody {response.text};
-            if (textProductFile->LoadData(filename, responseBody))
+            if (response.status_code == cpr::status::HTTP_OK)
             {
-               updatedFiles.push_back(textProductFile);
+               logger_->debug("Loading file: {}", filename);
+
+               // Load file
+               const std::shared_ptr<awips::TextProductFile> textProductFile {
+                  std::make_shared<awips::TextProductFile>()};
+               std::istringstream responseBody {response.text};
+               if (textProductFile->LoadData(filename, responseBody))
+               {
+                  updatedFiles.push_back(textProductFile);
+               }
             }
-         }
-         else
-         {
-            logger_->warn(
-               "Could not load file: {} ({})", filename, response.status_line);
+            else if (p->running_)
+            {
+               logger_->warn("Could not load file: {} ({})",
+                             filename,
+                             response.status_line);
+            }
+            else
+            {
+               logger_->debug("Request for file cancelled: {}", filename);
+            }
          }
       }
       else

@@ -6,6 +6,7 @@
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/ar2v_file.hpp>
 
+#include <atomic>
 #include <future>
 #include <shared_mutex>
 #include <utility>
@@ -142,7 +143,7 @@ public:
 
    AwsLevel2ChunksDataProvider* self_;
 
-   std::atomic<bool> running_;
+   std::atomic<bool> running_ {true};
 };
 
 AwsLevel2ChunksDataProvider::AwsLevel2ChunksDataProvider(
@@ -584,6 +585,10 @@ bool AwsLevel2ChunksDataProvider::Impl::LoadScan(Impl::ScanRecord& scanRecord)
          {
             logger_->warn("Could not get object: {}",
                           outcome.GetError().GetMessage());
+         }
+         else
+         {
+            logger_->debug("Get object operation cancelled");
          }
          return hasNew;
       }
