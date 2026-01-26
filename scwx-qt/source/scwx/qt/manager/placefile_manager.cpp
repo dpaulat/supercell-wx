@@ -661,7 +661,7 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
       }
       else
       {
-         logger_->error("Request cancelled, shutting down");
+         logger_->debug("Request cancelled, shutting down");
       }
    }
 

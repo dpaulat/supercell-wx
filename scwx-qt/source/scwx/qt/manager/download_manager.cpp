@@ -61,7 +61,8 @@ void DownloadManager::Impl::DownloadSync(
 
    if (!destinationPath.has_parent_path())
    {
-      logger_->error("Destination has no parent path: \"{}\"");
+      logger_->error("Destination has no parent path: \"{}\"",
+                     destinationPath.string());
 
       Q_EMIT request->RequestComplete(
          request::DownloadRequest::CompleteReason::IOError);

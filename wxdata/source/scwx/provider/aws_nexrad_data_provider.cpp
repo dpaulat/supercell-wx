@@ -6,7 +6,6 @@
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 
 #include <atomic>
-#include <future>
 #include <shared_mutex>
 
 #include <aws/core/auth/AWSCredentials.h>
@@ -336,18 +335,7 @@ AwsNexradDataProvider::LoadObjectByKey(const std::string& key)
    request.SetContinueRequestHandler([this](const Aws::Http::HttpRequest*)
                                      { return p->running_.load(); });
 
-   std::promise<Aws::S3::Model::GetObjectOutcome> promise;
-   auto                                           future = promise.get_future();
-
-   p->client_->GetObjectAsync(
-      request,
-      [&promise](const Aws::S3::S3Client*,
-                 const Aws::S3::Model::GetObjectRequest&,
-                 Aws::S3::Model::GetObjectOutcome outcome,
-                 const std::shared_ptr<const Aws::Client::AsyncCallerContext>&)
-      { promise.set_value(std::move(outcome)); });
-
-   auto outcome = future.get();
+   auto outcome = p->client_->GetObject(request);
 
    if (outcome.IsSuccess())
    {

@@ -7,7 +7,6 @@
 #include <scwx/wsr88d/ar2v_file.hpp>
 
 #include <atomic>
-#include <future>
 #include <shared_mutex>
 #include <utility>
 
@@ -565,19 +564,7 @@ bool AwsLevel2ChunksDataProvider::Impl::LoadScan(Impl::ScanRecord& scanRecord)
       objectRequest.SetContinueRequestHandler(
          [this](const Aws::Http::HttpRequest*) { return running_.load(); });
 
-      std::promise<Aws::S3::Model::GetObjectOutcome> promise;
-      auto future = promise.get_future();
-
-      client_->GetObjectAsync(
-         objectRequest,
-         [&promise](
-            const Aws::S3::S3Client*,
-            const Aws::S3::Model::GetObjectRequest&,
-            Aws::S3::Model::GetObjectOutcome outcome,
-            const std::shared_ptr<const Aws::Client::AsyncCallerContext>&)
-         { promise.set_value(std::move(outcome)); });
-
-      auto outcome = future.get();
+      auto outcome = client_->GetObject(objectRequest);
 
       if (!outcome.IsSuccess())
       {
