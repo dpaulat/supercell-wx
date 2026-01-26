@@ -1,4 +1,5 @@
 #include <scwx/qt/manager/download_manager.hpp>
+#include <scwx/network/cpr.hpp>
 #include <scwx/util/digest.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -60,7 +61,8 @@ void DownloadManager::Impl::DownloadSync(
 
    if (!destinationPath.has_parent_path())
    {
-      logger_->error("Destination has no parent path: \"{}\"");
+      logger_->error("Destination has no parent path: \"{}\"",
+                     destinationPath.string());
 
       Q_EMIT request->RequestComplete(
          request::DownloadRequest::CompleteReason::IOError);
@@ -125,6 +127,9 @@ void DownloadManager::Impl::DownloadSync(
    // Download file
    cpr::Response response = cpr::Get(
       cpr::Url {request->url()},
+      network::cpr::GetDefaultTimeout(),
+      network::cpr::GetDefaultConnectTimeout(),
+      network::cpr::GetDefaultLowSpeed(),
       cpr::ProgressCallback(
          [&](cpr::cpr_off_t downloadTotal,
              cpr::cpr_off_t downloadNow,

@@ -9,17 +9,20 @@
 #   define __cpp_lib_format 202110L
 #endif
 
+#define LIBXML_HTML_ENABLED
+
 #include <scwx/provider/warnings_provider.hpp>
+#include <scwx/network/cpr.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
+#include <atomic>
 #include <mutex>
 
 #if defined(_MSC_VER)
 #   pragma warning(push, 0)
 #endif
 
-#define LIBXML_HTML_ENABLED
 #include <cpr/cpr.h>
 
 #if (__cpp_lib_chrono < 201907L)
@@ -58,7 +61,7 @@ public:
    {
    }
 
-   ~Impl()                       = default;
+   ~Impl() { running_ = false; }
    Impl(const Impl&)             = delete;
    Impl& operator=(const Impl&)  = delete;
    Impl(const Impl&&)            = delete;
@@ -66,6 +69,8 @@ public:
 
    bool UpdateFileRecord(const cpr::Response& response,
                          const std::string&   filename);
+
+   std::atomic<bool> running_ {true};
 
    std::string baseUrl_;
 
@@ -137,19 +142,38 @@ WarningsProvider::LoadUpdatedFiles(
                   if (updated)
                   {
                      logger_->trace("GET request for file: {}", filename);
-                     return cpr::GetAsync(cpr::Url {url});
+                     return cpr::GetAsync(
+                        cpr::Url {url},
+                        network::cpr::GetHeader(),
+                        network::cpr::GetDefaultTimeout(),
+                        network::cpr::GetDefaultConnectTimeout(),
+                        network::cpr::GetDefaultLowSpeed(),
+                        network::cpr::GetDefaultProgressCallback(p->running_));
                   }
                }
                else if (headResponse.status_code != cpr::status::HTTP_NOT_FOUND)
                {
-                  logger_->warn("HEAD request for file failed: {} ({})",
-                                url,
-                                headResponse.status_line);
+                  if (p->running_)
+                  {
+                     logger_->warn("HEAD request for file failed: {} ({})",
+                                   url,
+                                   headResponse.status_line);
+                  }
+                  else
+                  {
+                     logger_->debug("HEAD request for file cancelled: {}",
+                                    filename);
+                  }
                }
 
                return std::nullopt;
             },
-            cpr::Url {url}));
+            cpr::Url {url},
+            network::cpr::GetHeader(),
+            network::cpr::GetDefaultTimeout(),
+            network::cpr::GetDefaultConnectTimeout(),
+            network::cpr::GetDefaultLowSpeed(),
+            network::cpr::GetDefaultProgressCallback(p->running_)));
 
       // Query the next hour
       currentHour += 1h;
@@ -183,11 +207,15 @@ WarningsProvider::LoadUpdatedFiles(
                   updatedFiles.push_back(textProductFile);
                }
             }
-            else
+            else if (p->running_)
             {
                logger_->warn("Could not load file: {} ({})",
                              filename,
                              response.status_line);
+            }
+            else
+            {
+               logger_->debug("Request for file cancelled: {}", filename);
             }
          }
       }
@@ -254,6 +282,11 @@ bool WarningsProvider::Impl::UpdateFileRecord(const cpr::Response& response,
    }
 
    return updated;
+}
+
+void WarningsProvider::Shutdown() noexcept
+{
+   p->running_ = false;
 }
 
 } // namespace scwx::provider

@@ -48,6 +48,11 @@ public:
    LoadObjectByTime(std::chrono::system_clock::time_point time) override;
    std::pair<size_t, size_t> Refresh() override;
 
+   /**
+    * @brief Shuts down the provider and stops any in-progress network requests.
+    */
+   void Shutdown() noexcept override;
+
 protected:
    std::shared_ptr<Aws::S3::S3Client> client();
 

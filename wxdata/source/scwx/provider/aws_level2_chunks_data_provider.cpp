@@ -6,6 +6,7 @@
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/ar2v_file.hpp>
 
+#include <atomic>
 #include <shared_mutex>
 #include <utility>
 
@@ -109,7 +110,7 @@ public:
             Aws::S3::S3Client::GetAllocationTag()),
          config);
    }
-   ~Impl()                      = default;
+   ~Impl() { running_ = false; }
    Impl(const Impl&)            = delete;
    Impl(Impl&&)                 = delete;
    Impl& operator=(const Impl&) = delete;
@@ -140,6 +141,8 @@ public:
    std::weak_ptr<AwsLevel2DataProvider> level2DataProvider_;
 
    AwsLevel2ChunksDataProvider* self_;
+
+   std::atomic<bool> running_ {true};
 };
 
 AwsLevel2ChunksDataProvider::AwsLevel2ChunksDataProvider(
@@ -557,12 +560,23 @@ bool AwsLevel2ChunksDataProvider::Impl::LoadScan(Impl::ScanRecord& scanRecord)
       objectRequest.SetBucket(bucketName_);
       objectRequest.SetKey(key);
 
+      // Set continue request handler to allow cancellation
+      objectRequest.SetContinueRequestHandler(
+         [this](const Aws::Http::HttpRequest*) { return running_.load(); });
+
       auto outcome = client_->GetObject(objectRequest);
 
       if (!outcome.IsSuccess())
       {
-         logger_->warn("Could not get object: {}",
-                       outcome.GetError().GetMessage());
+         if (running_)
+         {
+            logger_->warn("Could not get object: {}",
+                          outcome.GetError().GetMessage());
+         }
+         else
+         {
+            logger_->debug("Get object operation cancelled");
+         }
          return hasNew;
       }
 
@@ -784,6 +798,11 @@ void AwsLevel2ChunksDataProvider::SetLevel2DataProvider(
    const std::shared_ptr<AwsLevel2DataProvider>& provider)
 {
    p->level2DataProvider_ = provider;
+}
+
+void AwsLevel2ChunksDataProvider::Shutdown() noexcept
+{
+   p->running_ = false;
 }
 
 } // namespace scwx::provider

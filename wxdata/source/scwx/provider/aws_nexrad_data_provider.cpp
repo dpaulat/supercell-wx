@@ -1,5 +1,3 @@
-#define _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING
-
 #include <scwx/provider/aws_nexrad_data_provider.hpp>
 #include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
@@ -7,6 +5,7 @@
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 
+#include <atomic>
 #include <shared_mutex>
 
 #include <aws/core/auth/AWSCredentials.h>
@@ -76,7 +75,7 @@ public:
          config);
    }
 
-   ~Impl() {}
+   ~Impl() { running_ = false; }
 
    void PruneObjects();
    void UpdateMetadata();
@@ -97,6 +96,8 @@ public:
 
    std::chrono::system_clock::time_point lastModified_;
    std::chrono::seconds                  updatePeriod_;
+
+   std::atomic<bool> running_ {true};
 };
 
 AwsNexradDataProvider::AwsNexradDataProvider(const std::string& radarSite,
@@ -330,18 +331,25 @@ AwsNexradDataProvider::LoadObjectByKey(const std::string& key)
    request.SetBucket(p->bucketName_);
    request.SetKey(key);
 
+   // Set continue request handler to allow cancellation
+   request.SetContinueRequestHandler([this](const Aws::Http::HttpRequest*)
+                                     { return p->running_.load(); });
+
    auto outcome = p->client_->GetObject(request);
 
    if (outcome.IsSuccess())
    {
       auto& body = outcome.GetResultWithOwnership().GetBody();
-
       nexradFile = wsr88d::NexradFileFactory::Create(body);
    }
-   else
+   else if (p->running_)
    {
       logger_->warn("Could not get object: {}",
                     outcome.GetError().GetMessage());
+   }
+   else
+   {
+      logger_->debug("LoadObjectByKey cancelled for key: {}", key);
    }
 
    return nexradFile;
@@ -459,6 +467,11 @@ void AwsNexradDataProvider::Impl::UpdateObjectDates(
    // Remove any existing occurrences of day, and add to the back of the list
    objectDates_.remove(day);
    objectDates_.push_back(day);
+}
+
+void AwsNexradDataProvider::Shutdown() noexcept
+{
+   p->running_ = false;
 }
 
 } // namespace scwx::provider

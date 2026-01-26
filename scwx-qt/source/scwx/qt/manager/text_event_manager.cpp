@@ -107,6 +107,9 @@ public:
       // Indicate we are stopping so no new timers/tasks are scheduled
       stopping_ = true;
 
+      // Shut down the warnings provider
+      warningsProvider_->Shutdown();
+
       // Cancel the refresh timer while holding the mutex so Refresh() can't
       // create a new timer concurrently.
       std::unique_lock lock(refreshMutex_);

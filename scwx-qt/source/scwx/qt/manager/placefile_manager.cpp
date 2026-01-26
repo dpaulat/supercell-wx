@@ -8,6 +8,7 @@
 #include <scwx/util/json.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <atomic>
 #include <shared_mutex>
 #include <vector>
 
@@ -140,7 +141,7 @@ public:
    std::string                    name_;
    std::string                    title_;
    std::shared_ptr<gr::Placefile> placefile_;
-   bool                           enabled_;
+   std::atomic<bool>              enabled_;
    bool                           thresholded_;
    boost::asio::thread_pool       threadPool_ {1u};
    boost::asio::steady_timer      refreshTimer_ {threadPool_};
@@ -637,20 +638,30 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
 
       // Send HTTP GET request
       auto response =
-         cpr::Get(cpr::Url {decodedUrl}, network::cpr::GetHeader(), parameters);
+         cpr::Get(cpr::Url {decodedUrl},
+                  network::cpr::GetHeader(),
+                  parameters,
+                  network::cpr::GetDefaultTimeout(),
+                  network::cpr::GetDefaultConnectTimeout(),
+                  network::cpr::GetDefaultLowSpeed(),
+                  network::cpr::GetDefaultProgressCallback(enabled_));
 
       if (cpr::status::is_success(response.status_code))
       {
          std::istringstream responseBody {response.text};
          updatedPlacefile = gr::Placefile::Load(name, responseBody);
       }
-      else if (response.status_code == 0)
+      else if (response.status_code == 0 && enabled_)
       {
          logger_->error("Error loading placefile: {}", response.error.message);
       }
-      else
+      else if (enabled_)
       {
          logger_->error("Error loading placefile: {}", response.status_line);
+      }
+      else
+      {
+         logger_->debug("Request cancelled, shutting down");
       }
    }
 
