@@ -34,6 +34,8 @@ class SupercellWxConan(ConanFile):
             self.options["openssl"].shared    = True
             self.options["libcurl"].ca_bundle = "none"
             self.options["libcurl"].ca_path   = "none"
+            # onetbb requires option hwloc/*:shared=True
+            self.options["hwloc"].shared      = True
         elif self.settings.os == "Macos":
             self.options["openssl"].shared    = True
             self.options["libcurl"].ca_bundle = "none"
