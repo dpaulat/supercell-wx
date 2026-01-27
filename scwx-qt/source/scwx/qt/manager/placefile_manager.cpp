@@ -118,7 +118,7 @@ public:
                           boost::json::value&                     jv,
                           const std::shared_ptr<PlacefileRecord>& record)
    {
-      jv = {{kEnabledName_, record->enabled_},
+      jv = {{kEnabledName_, record->enabled_.load()},
             {kThresholdedName_, record->thresholded_},
             {kTitleName_, record->title_},
             {kNameName_, record->name_}};
