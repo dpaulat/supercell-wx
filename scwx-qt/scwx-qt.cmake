@@ -18,9 +18,11 @@ find_package(Fontconfig)
 find_package(geographiclib)
 find_package(geos)
 find_package(glm)
+find_package(JPEG)
 find_package(OpenGL REQUIRED)
 find_package(Python COMPONENTS Interpreter)
 find_package(SQLite3)
+find_package(TIFF)
 
 find_package(QT NAMES Qt6
              COMPONENTS Gui
@@ -799,9 +801,11 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      glad_gl_core_33
                                      glm::glm
                                      imgui
+                                     JPEG::JPEG
                                      qt6ct-common
                                      qt6ct-widgets
                                      SQLite::SQLite3
+                                     TIFF::TIFF
                                      wxdata)
 
 target_link_libraries(supercell-wx PRIVATE scwx-qt
