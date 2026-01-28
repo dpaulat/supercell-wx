@@ -500,31 +500,47 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath, double scale)
          QString,
          std::function<std::shared_ptr<boost::gil::rgba8_image_t>(
             const QString&, double)>>
-         formatHandlers = {
-            {"bmp",
-             [](const QString& path, double)
-             { return ReadImageFile<boost::gil::bmp_tag>(path); }},
-            {"jpg",
-             [](const QString& path, double)
-             { return ReadImageFile<boost::gil::jpeg_tag>(path); }},
-            {"jpeg",
-             [](const QString& path, double)
-             { return ReadImageFile<boost::gil::jpeg_tag>(path); }},
-            {"png",
-             [](const QString& path, double)
-             { return ReadImageFile<boost::gil::png_tag>(path); }},
-            {"svg",
-             [](const QString& path, double scale)
-             { return ReadSvgFile(path, scale); }},
-            {"tga",
-             [](const QString& path, double)
-             { return ReadImageFile<boost::gil::targa_tag>(path); }},
-            {"tif",
-             [](const QString& path, double)
-             { return ReadImageFile<boost::gil::tiff_tag>(path); }},
-            {"tiff",
-             [](const QString& path, double)
-             { return ReadImageFile<boost::gil::tiff_tag>(path); }}};
+         formatHandlers = {{"bmp",
+                            [](const QString& path, double)
+                            {
+                               return ReadImageFile<boost::gil::bmp_tag>(path);
+                            }},
+                           {"jpg",
+                            [](const QString& path, double)
+                            {
+                               return ReadImageFile<boost::gil::jpeg_tag>(path);
+                            }},
+                           {"jpeg",
+                            [](const QString& path, double)
+                            {
+                               return ReadImageFile<boost::gil::jpeg_tag>(path);
+                            }},
+                           {"png",
+                            [](const QString& path, double)
+                            {
+                               return ReadImageFile<boost::gil::png_tag>(path);
+                            }},
+                           {"svg",
+                            [](const QString& path, double scale)
+                            {
+                               return ReadSvgFile(path, scale);
+                            }},
+                           {"tga",
+                            [](const QString& path, double)
+                            {
+                               return ReadImageFile<boost::gil::targa_tag>(
+                                  path);
+                            }},
+                           {"tif",
+                            [](const QString& path, double)
+                            {
+                               return ReadImageFile<boost::gil::tiff_tag>(path);
+                            }},
+                           {"tiff",
+                            [](const QString& path, double)
+                            {
+                               return ReadImageFile<boost::gil::tiff_tag>(path);
+                            }}};
 
       const auto it = formatHandlers.find(suffix);
       if (it != formatHandlers.end())
