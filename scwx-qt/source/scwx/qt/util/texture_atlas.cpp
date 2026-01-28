@@ -13,7 +13,11 @@
 #   pragma warning(disable : 4714)
 #endif
 
+#include <boost/gil/extension/io/bmp.hpp>
+#include <boost/gil/extension/io/jpeg.hpp>
 #include <boost/gil/extension/io/png.hpp>
+#include <boost/gil/extension/io/targa.hpp>
+#include <boost/gil/extension/io/tiff.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <boost/timer/timer.hpp>
 #include <cpr/cpr.h>
@@ -55,8 +59,9 @@ public:
    static std::shared_ptr<boost::gil::rgba8_image_t>
    LoadImage(const std::string& imagePath, double scale = 1);
 
+   template<typename Tag>
    static std::shared_ptr<boost::gil::rgba8_image_t>
-   ReadPngFile(const QString& imagePath);
+   ReadImageFile(const QString& imagePath);
    static std::shared_ptr<boost::gil::rgba8_image_t>
    ReadSvgFile(const QString& imagePath, double scale = 1);
 
@@ -491,13 +496,45 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath, double scale)
       const QString suffix          = QFileInfo(qImagePath).suffix().toLower();
       const QString qLocalImagePath = url.toString(QUrl::PreferLocalFile);
 
-      if (suffix == "svg")
+      static const std::unordered_map<
+         QString,
+         std::function<std::shared_ptr<boost::gil::rgba8_image_t>(
+            const QString&, double)>>
+         formatHandlers = {
+            {"bmp",
+             [](const QString& path, double)
+             { return ReadImageFile<boost::gil::bmp_tag>(path); }},
+            {"jpg",
+             [](const QString& path, double)
+             { return ReadImageFile<boost::gil::jpeg_tag>(path); }},
+            {"jpeg",
+             [](const QString& path, double)
+             { return ReadImageFile<boost::gil::jpeg_tag>(path); }},
+            {"png",
+             [](const QString& path, double)
+             { return ReadImageFile<boost::gil::png_tag>(path); }},
+            {"svg",
+             [](const QString& path, double scale)
+             { return ReadSvgFile(path, scale); }},
+            {"tga",
+             [](const QString& path, double)
+             { return ReadImageFile<boost::gil::targa_tag>(path); }},
+            {"tif",
+             [](const QString& path, double)
+             { return ReadImageFile<boost::gil::tiff_tag>(path); }},
+            {"tiff",
+             [](const QString& path, double)
+             { return ReadImageFile<boost::gil::tiff_tag>(path); }}};
+
+      const auto it = formatHandlers.find(suffix);
+      if (it != formatHandlers.end())
       {
-         image = ReadSvgFile(qLocalImagePath, scale);
+         image = it->second(qLocalImagePath, scale);
       }
       else
       {
-         image = ReadPngFile(qLocalImagePath);
+         // Default to PNG for unknown formats
+         image = ReadImageFile<boost::gil::png_tag>(qLocalImagePath);
       }
    }
    else
@@ -576,8 +613,9 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath, double scale)
    return image;
 }
 
+template<typename Tag>
 std::shared_ptr<boost::gil::rgba8_image_t>
-TextureAtlas::Impl::ReadPngFile(const QString& imagePath)
+TextureAtlas::Impl::ReadImageFile(const QString& imagePath)
 {
    QFile imageFile(imagePath);
 
@@ -595,12 +633,12 @@ TextureAtlas::Impl::ReadPngFile(const QString& imagePath)
 
    try
    {
-      boost::gil::read_and_convert_image(
-         dataStream, *image, boost::gil::png_tag());
+      boost::gil::read_and_convert_image(dataStream, *image, Tag());
    }
    catch (const std::exception& ex)
    {
-      logger_->error("Error reading image: {}", ex.what());
+      logger_->error(
+         "Error reading image ({}): {}", imagePath.toStdString(), ex.what());
       return nullptr;
    }
 
