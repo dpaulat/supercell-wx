@@ -90,7 +90,7 @@ jobs:
       uses: actions/cache@v5
       with:
         path: ~/.conan2
-        key: build-${{ matrix.conan_profile }}-${{ hashFiles('./source/conanfile.py', './source/tools/conan/profiles/*') }}
+        key: build-v2-${{ matrix.conan_profile }}-${{ hashFiles('./source/conanfile.py', './source/tools/conan/profiles/*') }}
 
     - name: Install Conan Packages
       shell: pwsh
@@ -108,6 +108,7 @@ jobs:
           --settings:all build_type=${{ matrix.build_type }} `
           --output-folder ./conan/ `
           ${{ matrix.conan_package_manager }}
+        conan cache clean
 
     - name: Autogenerate
       shell: pwsh
