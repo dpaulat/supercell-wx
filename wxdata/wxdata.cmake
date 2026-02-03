@@ -55,6 +55,8 @@ set(SRC_COMMON source/scwx/common/characters.cpp
                source/scwx/common/products.cpp
                source/scwx/common/sites.cpp
                source/scwx/common/vcp.cpp)
+set(HDR_CONFIG include/scwx/config/ondas_config.hpp)
+set(SRC_CONFIG source/scwx/config/ondas_config.cpp)
 set(HDR_GR include/scwx/gr/color.hpp
            include/scwx/gr/gr_types.hpp
            include/scwx/gr/placefile.hpp)
@@ -249,6 +251,8 @@ add_library(wxdata OBJECT ${HDR_AWIPS}
                           ${SRC_AWIPS}
                           ${HDR_COMMON}
                           ${SRC_COMMON}
+                          ${HDR_CONFIG}
+                          ${SRC_CONFIG}
                           ${HDR_GR}
                           ${SRC_GR}
                           ${HDR_NETWORK}
@@ -273,6 +277,8 @@ source_group("Header Files\\awips"       FILES ${HDR_AWIPS})
 source_group("Source Files\\awips"       FILES ${SRC_AWIPS})
 source_group("Header Files\\common"      FILES ${HDR_COMMON})
 source_group("Source Files\\common"      FILES ${SRC_COMMON})
+source_group("Header Files\\config"      FILES ${HDR_CONFIG})
+source_group("Source Files\\config"      FILES ${SRC_CONFIG})
 source_group("Header Files\\gr"          FILES ${HDR_GR})
 source_group("Source Files\\gr"          FILES ${SRC_GR})
 source_group("Header Files\\network"     FILES ${HDR_NETWORK})
