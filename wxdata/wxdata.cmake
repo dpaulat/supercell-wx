@@ -89,10 +89,12 @@ set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp
                  source/scwx/provider/warnings_provider.cpp)
 set(HDR_TYPES include/scwx/types/iem_types.hpp
               include/scwx/types/ntp_types.hpp
-              include/scwx/types/nws_types.hpp)
+              include/scwx/types/nws_types.hpp
+              include/scwx/types/ondas_types.hpp)
 set(SRC_TYPES source/scwx/types/iem_types.cpp
               source/scwx/types/ntp_types.cpp
-              source/scwx/types/nws_types.cpp)
+              source/scwx/types/nws_types.cpp
+              source/scwx/types/ondas_types.cpp)
 set(HDR_UTIL include/scwx/util/digest.hpp
              include/scwx/util/enum.hpp
              include/scwx/util/environment.hpp
