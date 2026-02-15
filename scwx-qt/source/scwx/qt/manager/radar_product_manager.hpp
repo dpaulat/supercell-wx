@@ -42,9 +42,9 @@ public:
    [[nodiscard]] const scwx::util::time_zone* default_time_zone() const;
    [[nodiscard]] float                        gate_size() const;
    [[nodiscard]] std::optional<float> incoming_level_2_elevation() const;
-   [[nodiscard]] bool                 is_tdwr() const;
    [[nodiscard]] std::string          radar_id() const;
    [[nodiscard]] std::shared_ptr<config::RadarSite> radar_site() const;
+   [[nodiscard]] types::RadarType     radar_type() const;
 
    void Initialize();
 
