@@ -42,6 +42,26 @@ static std::vector<std::shared_ptr<RadarSite>>      radarSiteList_;
 static std::unordered_map<std::string, std::string> siteIdMap_;
 static std::shared_mutex                            siteMutex_;
 
+// Time zones for known custom radar sites
+static const std::unordered_map<std::string, std::string> timeZoneMap_ {
+   {"DAN1", "America/Chicago"},
+   {"DOP1", "America/Chicago"},
+   {"FOP1", "America/Chicago"},
+   {"FUSA", "America/New_York"},
+   {"FWLX", "America/Chicago"},
+   {"GAWX", "America/New_York"},
+   {"K08D", "America/Chicago"},
+   {"KOUN", "America/Chicago"},
+   {"KULM", "America/Chicago"},
+   {"KXWA", "America/Chicago"},
+   {"MZZU", "America/Chicago"},
+   {"NOP3", "America/Chicago"},
+   {"NOP4", "America/Chicago"},
+   {"OP5R", "America/Anchorage"},
+   {"ROP3", "America/Chicago"},
+   {"ROP4", "America/Chicago"},
+   {"WILU", "America/Chicago"}};
+
 static bool ValidateJsonEntry(const boost::json::object& o);
 
 class RadarSite::Impl
@@ -439,14 +459,35 @@ std::size_t RadarSite::Impl::ReadGisConfig(const std::string& filePath)
       radarSite->p->altitude_  = elevation;
       radarSite->p->state_     = state;
       radarSite->p->place_     = description; // Using description as place
-      radarSite->p->tzName_ =
-         "UTC"; // GIS config doesn't include time zone info
 
+      const auto timeZoneIt = timeZoneMap_.find(id);
+      if (timeZoneIt != timeZoneMap_.end())
+      {
+         radarSite->p->tzName_ = timeZoneIt->second;
+      }
+      else
+      {
+         // GIS config doesn't include time zone info
+         radarSite->p->tzName_ = "UTC";
+      }
+
+      try
+      {
 #if (__cpp_lib_chrono >= 201907L)
-      radarSite->p->timeZone_ = std::chrono::get_tzdb().locate_zone("UTC");
+         using namespace std::chrono;
 #else
-      radarSite->p->timeZone_ = date::get_tzdb().locate_zone("UTC");
+         using namespace date;
 #endif
+
+         radarSite->p->timeZone_ =
+            get_tzdb().locate_zone(radarSite->p->tzName_);
+      }
+      catch (const std::runtime_error&)
+      {
+         logger_->warn("{} unknown time zone: {}",
+                       radarSite->p->id_,
+                       radarSite->p->tzName_);
+      }
 
       const std::unique_lock lock(siteMutex_);
 
@@ -458,8 +499,8 @@ std::size_t RadarSite::Impl::ReadGisConfig(const std::string& filePath)
       }
       else
       {
-         logger_->warn("Duplicate radar site ID found in GIS config: \"{}\"",
-                       id);
+         logger_->debug("Duplicate radar site ID found in GIS config: \"{}\"",
+                        id);
       }
 
       const std::string siteId = common::GetSiteId(id);
