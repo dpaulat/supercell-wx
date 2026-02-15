@@ -1,18 +1,23 @@
 #include <scwx/common/products.hpp>
 
-#include <unordered_map>
+#include <algorithm>
 
-namespace scwx
-{
-namespace common
+namespace scwx::common
 {
 
 std::string GetSiteId(const std::string& radarId)
 {
-   size_t      siteIdIndex = std::max<size_t>(radarId.length(), 3u) - 3u;
-   std::string siteId      = radarId.substr(siteIdIndex);
+   std::string siteId = radarId;
+
+   // Shorten only if radarId does not contain digits
+   if (!std::ranges::any_of(radarId, isdigit))
+   {
+      std::size_t siteIdIndex =
+         std::max<std::size_t>(radarId.length(), 3u) - 3u;
+      siteId = radarId.substr(siteIdIndex);
+   }
+
    return siteId;
 }
 
-} // namespace common
-} // namespace scwx
+} // namespace scwx::common

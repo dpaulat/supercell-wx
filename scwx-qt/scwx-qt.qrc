@@ -17,6 +17,8 @@
         <file>gl/threshold.geom</file>
         <file>res/audio/wikimedia/Emergency_Alert_System_Attention_Signal_20s.ogg</file>
         <file>res/config/radar_sites.json</file>
+        <file>res/config/radars_iastate.gis</file>
+        <file>res/config/radars_weatherpulse.gis</file>
         <file>res/fonts/din1451alt.ttf</file>
         <file>res/fonts/din1451alt_g.ttf</file>
         <file>res/fonts/Inconsolata-Regular.ttf</file>
