@@ -38,6 +38,7 @@ static const std::string defaultRadarSiteFile_ =
 
 static std::unordered_map<std::string, std::shared_ptr<RadarSite>>
                                                     radarSiteMap_;
+static std::vector<std::shared_ptr<RadarSite>>      radarSiteList_;
 static std::unordered_map<std::string, std::string> siteIdMap_;
 static std::shared_mutex                            siteMutex_;
 
@@ -205,17 +206,8 @@ std::shared_ptr<RadarSite> RadarSite::Get(const std::string& id)
 
 std::vector<std::shared_ptr<RadarSite>> RadarSite::GetAll()
 {
-   std::shared_lock                        lock(siteMutex_);
-   std::vector<std::shared_ptr<RadarSite>> radarSites;
-
-   radarSites.reserve(radarSiteMap_.size());
-
-   for (const auto& site : radarSiteMap_)
-   {
-      radarSites.push_back(site.second);
-   }
-
-   return radarSites;
+   std::shared_lock lock(siteMutex_);
+   return radarSiteList_;
 }
 
 std::shared_ptr<RadarSite>
@@ -232,10 +224,8 @@ RadarSite::FindNearest(double                            latitude,
    std::shared_ptr<RadarSite> nearestRadarSite = nullptr;
    double                     nearestDistance  = 0.0;
 
-   for (const auto& site : radarSiteMap_)
+   for (const auto& radarSite : radarSiteList_)
    {
-      auto& radarSite = site.second;
-
       // If the type filter doesn't match, skip
       if (type.has_value() && radarSite->type() != type)
       {
@@ -463,6 +453,7 @@ std::size_t RadarSite::Impl::ReadGisConfig(const std::string& filePath)
       if (!radarSiteMap_.contains(id))
       {
          radarSiteMap_[id] = radarSite;
+         radarSiteList_.push_back(radarSite);
          ++sitesAdded;
       }
       else
@@ -544,6 +535,7 @@ std::size_t RadarSite::Impl::ReadJsonConfig(const std::string& filePath)
             if (!radarSiteMap_.contains(site->p->id_))
             {
                radarSiteMap_[site->p->id_] = site;
+               radarSiteList_.push_back(site);
                ++sitesAdded;
             }
 
