@@ -468,13 +468,13 @@ set(JSON_FILES res/config/radar_sites.json)
 set(TS_FILES ts/scwx_en_US.ts)
 
 set(RADAR_SITES_FILE ${scwx-qt_SOURCE_DIR}/res/config/radar_sites.json)
-set(COUNTY_DBF_FILES ${SCWX_DIR}/data/db/c_18mr25.dbf)
-set(ZONE_DBF_FILES   ${SCWX_DIR}/data/db/fz18mr25.dbf
-                     ${SCWX_DIR}/data/db/mz18mr25.dbf
-                     ${SCWX_DIR}/data/db/oz18mr25.dbf
-                     ${SCWX_DIR}/data/db/z_18mr25.dbf)
-set(STATE_DBF_FILES  ${SCWX_DIR}/data/db/s_18mr25.dbf)
-set(WFO_DBF_FILES    ${SCWX_DIR}/data/db/w_18mr25.dbf)
+set(COUNTY_DBF_FILES ${SCWX_DIR}/data/db/cs03mr26.dbf)
+set(ZONE_DBF_FILES   ${SCWX_DIR}/data/db/fz03mr26.dbf
+                     ${SCWX_DIR}/data/db/mz03mr26.dbf
+                     ${SCWX_DIR}/data/db/oz03mr26.dbf
+                     ${SCWX_DIR}/data/db/z_03mr26.dbf)
+set(STATE_DBF_FILES  ${SCWX_DIR}/data/db/s_03mr26.dbf)
+set(WFO_DBF_FILES    ${SCWX_DIR}/data/db/w_03mr26.dbf)
 set(COUNTIES_SQLITE_DB ${scwx-qt_BINARY_DIR}/res/db/counties.db)
 
 set(RESOURCE_INPUT  ${scwx-qt_SOURCE_DIR}/res/scwx-qt.rc.in)
