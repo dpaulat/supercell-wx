@@ -63,7 +63,8 @@ struct LayerInfo
    LayerType                    type_ {LayerType::Unknown};
    LayerDescription             description_;
    bool                         movable_ {true};
-   std::array<bool, kMapCount_> displayed_ {true};
+   std::array<bool, kMapCount_> displayed_ {
+      true, true, true, true, true, true, true, true, true};
 };
 
 using LayerVector = boost::container::stable_vector<LayerInfo>;
