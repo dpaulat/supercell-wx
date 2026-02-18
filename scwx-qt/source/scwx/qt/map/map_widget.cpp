@@ -1138,7 +1138,7 @@ void MapWidget::SetMapStyle(const std::string& styleName)
 
    for (size_t i = 0u; i < styles.size(); ++i)
    {
-      const auto& style = &styles[static_cast<std::ptrdiff_t>(i)];
+      const auto* style = &styles[static_cast<std::ptrdiff_t>(i)];
 
       if (style->name_ == styleName)
       {
