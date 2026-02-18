@@ -109,7 +109,7 @@ void SetMapStyleUrl(const std::shared_ptr<map::MapContext>& mapContext,
 
    QString qUrl = QString::fromStdString(url);
 
-   if (mapProvider == map::MapProvider::MapTiler)
+   if (!url.empty() && mapProvider == map::MapProvider::MapTiler)
    {
       qUrl.append("?key=");
       qUrl.append(map::GetMapProviderApiKey(mapProvider));
@@ -118,7 +118,16 @@ void SetMapStyleUrl(const std::shared_ptr<map::MapContext>& mapContext,
    auto map = mapContext->map().lock();
    if (map != nullptr)
    {
-      map->setStyleUrl(qUrl);
+      if (!url.empty())
+      {
+         map->setStyleUrl(qUrl);
+      }
+      else
+      {
+         // If the URL is empty, set a blank style to clear the map
+         map->setStyleJson(
+            R"({"version":8,"name":"blank","sources":{},"layers":[]})");
+      }
    }
 }
 
