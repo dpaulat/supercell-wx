@@ -213,7 +213,9 @@ public:
    std::vector<std::shared_ptr<GenericLayer>> genericLayers_ {};
 
    const std::vector<MapStyle> emptyStyles_ {};
-   std::vector<MapStyle>       customStyles_ {
+   const std::vector<MapStyle> noneStyles_ {
+      MapStyle {.name_ {"None"}, .url_ {}, .drawBelow_ {}}};
+   std::vector<MapStyle> customStyles_ {
       MapStyle {.name_ {"Custom"}, .url_ {}, .drawBelow_ {}}};
    QStringList styleLayers_;
 
@@ -261,6 +263,8 @@ public:
    std::size_t     currentStyleIndex_;
    const MapStyle* currentStyle_;
    std::string     initialStyleName_ {};
+   bool            mapChangedOnce_ {false};
+   bool            mapStylePending_ {false};
 
    Qt::KeyboardModifiers lastKeyboardModifiers_ {
       Qt::KeyboardModifier::NoModifier};
@@ -1128,30 +1132,28 @@ void MapWidget::SetMapStyle(const std::string& styleName)
    const auto& mapProviderInfo = GetMapProviderInfo(mapProvider);
    auto&       fixedStyles     = mapProviderInfo.mapStyles_;
 
-   auto styles = boost::join(fixedStyles,
+   auto styles = boost::join(boost::join(fixedStyles, p->noneStyles_),
                              p->customStyles_[0].IsValid() ? p->customStyles_ :
                                                              p->emptyStyles_);
 
-   if (p->currentStyleIndex_ >= styles.size())
-   {
-      p->currentStyleIndex_ = 0;
-   }
-
    for (size_t i = 0u; i < styles.size(); ++i)
    {
-      if (styles[i].name_ == styleName)
+      const auto& style = &styles[static_cast<std::ptrdiff_t>(i)];
+
+      if (style->name_ == styleName)
       {
-         p->currentStyleIndex_ = i;
-         p->currentStyle_      = &styles[i];
-
-         logger_->debug("Updating style: {}", styles[i].name_);
-
-         util::maplibre::SetMapStyleUrl(p->context_, styles[i].url_);
-
-         if (++p->currentStyleIndex_ >= styles.size())
+         if (p->currentStyleIndex_ == i && p->currentStyle_ == style)
          {
-            p->currentStyleIndex_ = 0;
+            // No need to set the style again
+            break;
          }
+
+         p->currentStyleIndex_ = i;
+         p->currentStyle_      = style;
+
+         logger_->debug("Updating style: {}", style->name_);
+
+         util::maplibre::SetMapStyleUrl(p->context_, style->url_);
 
          break;
       }
@@ -1191,26 +1193,21 @@ void MapWidget::changeStyle()
    const auto& mapProviderInfo = GetMapProviderInfo(mapProvider);
    auto&       fixedStyles     = mapProviderInfo.mapStyles_;
 
-   auto styles = boost::join(fixedStyles,
+   auto styles = boost::join(boost::join(fixedStyles, p->noneStyles_),
                              p->customStyles_[0].IsValid() ? p->customStyles_ :
                                                              p->emptyStyles_);
-
-   if (p->currentStyleIndex_ >= styles.size())
-   {
-      p->currentStyleIndex_ = 0;
-   }
-
-   p->currentStyle_ = &styles[p->currentStyleIndex_];
-
-   logger_->debug("Updating style: {}", styles[p->currentStyleIndex_].name_);
-
-   util::maplibre::SetMapStyleUrl(p->context_,
-                                  styles[p->currentStyleIndex_].url_);
 
    if (++p->currentStyleIndex_ >= styles.size())
    {
       p->currentStyleIndex_ = 0;
    }
+
+   p->currentStyle_ =
+      &styles[static_cast<std::ptrdiff_t>(p->currentStyleIndex_)];
+
+   logger_->debug("Updating style: {}", p->currentStyle_->name_);
+
+   util::maplibre::SetMapStyleUrl(p->context_, p->currentStyle_->url_);
 
    Q_EMIT MapStyleChanged(p->currentStyle_->name_);
 }
@@ -1640,10 +1637,33 @@ void MapWidget::initializeGL()
    else
    {
       SetMapStyle(p->initialStyleName_);
+
+      if (p->initialStyleName_ == "None" || p->initialStyleName_ == "Custom")
+      {
+         // An empty map style may not trigger a map change event, so set the
+         // pending flag to ensure the map style is applied to the map layers
+         p->mapStylePending_ = true;
+      }
    }
 
    connect(
       p->map_.get(), &QMapLibre::Map::mapChanged, this, &MapWidget::mapChanged);
+   connect(p->map_.get(),
+           &QMapLibre::Map::mapLoadingFailed,
+           this,
+           [this](QMapLibre::Map::MapLoadingFailure, const QString& reason)
+           {
+              logger_->error("Map loading failed: {}", reason.toStdString());
+
+              // If the map failed to load, and we haven't loaded a map yet,
+              // default to the "None" map. This prevents a "black screen" on
+              // startup.
+              if (!p->mapChangedOnce_)
+              {
+                 p->mapChangedOnce_ = true;
+                 SetMapStyle("None");
+              }
+           });
 }
 
 void MapWidget::paintGL()
@@ -1847,6 +1867,18 @@ void MapWidget::mapChanged(QMapLibre::Map::MapChange mapChange)
    case QMapLibre::Map::MapChangeDidFinishLoadingStyle:
       p->UpdateLoadedStyle();
       p->AddLayers();
+      p->mapChangedOnce_  = true;
+      p->mapStylePending_ = false;
+      break;
+
+   case QMapLibre::Map::MapChangeDidFinishRenderingFrame:
+      if (p->mapStylePending_)
+      {
+         p->UpdateLoadedStyle();
+         p->AddLayers();
+         p->mapChangedOnce_  = true;
+         p->mapStylePending_ = false;
+      }
       break;
 
    default:
