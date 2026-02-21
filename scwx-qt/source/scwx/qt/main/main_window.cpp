@@ -59,6 +59,7 @@
 #include <QStandardPaths>
 #include <QTimer>
 #include <QToolButton>
+#include <QWindow>
 
 namespace scwx::qt::main
 {
