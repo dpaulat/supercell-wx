@@ -50,9 +50,11 @@
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
 #include <QDesktopServices>
+#include <QGuiApplication>
 #include <QKeyEvent>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QScreen>
 #include <QSplitter>
 #include <QStandardPaths>
 #include <QTimer>
@@ -214,6 +216,11 @@ public:
    bool               customStyleAvailable_ {false};
    boost::uuids::uuid customStyleDrawLayerChangedCallbackUuid_ {};
    boost::uuids::uuid customStyleUrlChangedCallbackUuid_ {};
+
+#ifdef Q_OS_WIN
+   QRect            priorFullScreenGeometry_ {};
+   Qt::WindowStates priorFullScreenWindowState_ {};
+#endif
 
    std::shared_ptr<manager::AlertManager>  alertManager_;
    std::shared_ptr<manager::HotkeyManager> hotkeyManager_ {
@@ -694,11 +701,42 @@ void MainWindow::on_actionFullScreen_triggered(bool checked)
 {
    if (checked)
    {
+#ifdef Q_OS_WIN
+      // On Windows, showFullScreen() with QOpenGLWidgets breaks dropdown menus.
+      // Use a frameless window covering the screen geometry as a workaround.
+      p->priorFullScreenWindowState_ = windowState();
+      p->priorFullScreenGeometry_    = geometry();
+      setWindowFlag(Qt::FramelessWindowHint, true);
+      QScreen* screen = windowHandle() ? windowHandle()->screen() : nullptr;
+      if (screen == nullptr)
+      {
+         screen = QGuiApplication::primaryScreen();
+      }
+      if (screen != nullptr)
+      {
+         setGeometry(screen->geometry());
+      }
+      show();
+#else
       showFullScreen();
+#endif
    }
    else
    {
+#ifdef Q_OS_WIN
+      setWindowFlag(Qt::FramelessWindowHint, false);
+      if (p->priorFullScreenWindowState_ & Qt::WindowMaximized)
+      {
+         showMaximized();
+      }
+      else
+      {
+         showNormal();
+         setGeometry(p->priorFullScreenGeometry_);
+      }
+#else
       setWindowState(windowState() & ~Qt::WindowFullScreen);
+#endif
    }
 }
 
