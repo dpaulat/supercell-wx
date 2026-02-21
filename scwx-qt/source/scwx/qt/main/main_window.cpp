@@ -690,6 +690,18 @@ void MainWindow::on_actionDumpRadarProductRecords_triggered()
    manager::RadarProductManager::DumpRecords();
 }
 
+void MainWindow::on_actionFullScreen_triggered(bool checked)
+{
+   if (checked)
+   {
+      showFullScreen();
+   }
+   else
+   {
+      setWindowState(windowState() & ~Qt::WindowFullScreen);
+   }
+}
+
 void MainWindow::on_actionRadarWireframe_triggered(bool checked)
 {
    p->activeMap_->SetRadarWireframeEnabled(checked);
@@ -1133,6 +1145,16 @@ void MainWindowImpl::ConnectAnimationSignals()
 
 void MainWindowImpl::ConnectOtherSignals()
 {
+   connect(hotkeyManager_.get(),
+           &manager::HotkeyManager::HotkeyPressed,
+           mainWindow_,
+           [this](types::Hotkey hotkey, bool /*isAutoRepeat*/)
+           {
+              if (hotkey == types::Hotkey::ToggleFullScreen)
+              {
+                 mainWindow_->ui->actionFullScreen->trigger();
+              }
+           });
    connect(qApp,
            &QApplication::focusChanged,
            mainWindow_,

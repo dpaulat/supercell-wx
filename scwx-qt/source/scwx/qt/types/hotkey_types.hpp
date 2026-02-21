@@ -54,10 +54,11 @@ enum class Hotkey
    TimelinePlay,
    TimelineStepNext,
    TimelineStepEnd,
+   ToggleFullScreen,
    Unknown
 };
 typedef scwx::util::
-   Iterator<Hotkey, Hotkey::AddLocationMarker, Hotkey::TimelineStepEnd>
+   Iterator<Hotkey, Hotkey::AddLocationMarker, Hotkey::ToggleFullScreen>
       HotkeyIterator;
 
 Hotkey             GetHotkeyFromShortName(const std::string& name);
