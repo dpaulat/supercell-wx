@@ -53,6 +53,7 @@ private slots:
    void on_actionImGuiDebug_triggered();
    void on_actionDumpLayerList_triggered();
    void on_actionDumpRadarProductRecords_triggered();
+   void on_actionFullScreen_triggered(bool checked);
    void on_actionRadarWireframe_triggered(bool checked);
    void on_actionUserManual_triggered();
    void on_actionDiscord_triggered();

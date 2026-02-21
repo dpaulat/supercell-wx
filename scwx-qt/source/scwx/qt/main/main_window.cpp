@@ -50,13 +50,16 @@
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
 #include <QDesktopServices>
+#include <QGuiApplication>
 #include <QKeyEvent>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QScreen>
 #include <QSplitter>
 #include <QStandardPaths>
 #include <QTimer>
 #include <QToolButton>
+#include <QWindow>
 
 namespace scwx::qt::main
 {
@@ -214,6 +217,11 @@ public:
    bool               customStyleAvailable_ {false};
    boost::uuids::uuid customStyleDrawLayerChangedCallbackUuid_ {};
    boost::uuids::uuid customStyleUrlChangedCallbackUuid_ {};
+
+#ifdef Q_OS_WIN
+   QRect            priorFullScreenGeometry_ {};
+   Qt::WindowStates priorFullScreenWindowState_ {};
+#endif
 
    std::shared_ptr<manager::AlertManager>  alertManager_;
    std::shared_ptr<manager::HotkeyManager> hotkeyManager_ {
@@ -690,6 +698,49 @@ void MainWindow::on_actionDumpRadarProductRecords_triggered()
    manager::RadarProductManager::DumpRecords();
 }
 
+void MainWindow::on_actionFullScreen_triggered(bool checked)
+{
+   if (checked)
+   {
+#ifdef Q_OS_WIN
+      // On Windows, showFullScreen() with QOpenGLWidgets breaks dropdown menus.
+      // Use a frameless window covering the screen geometry as a workaround.
+      p->priorFullScreenWindowState_ = windowState();
+      p->priorFullScreenGeometry_    = geometry();
+      setWindowFlag(Qt::FramelessWindowHint, true);
+      QScreen* screen = windowHandle() ? windowHandle()->screen() : nullptr;
+      if (screen == nullptr)
+      {
+         screen = QGuiApplication::primaryScreen();
+      }
+      if (screen != nullptr)
+      {
+         setGeometry(screen->geometry());
+      }
+      show();
+#else
+      showFullScreen();
+#endif
+   }
+   else
+   {
+#ifdef Q_OS_WIN
+      setWindowFlag(Qt::FramelessWindowHint, false);
+      if (p->priorFullScreenWindowState_ & Qt::WindowMaximized)
+      {
+         showMaximized();
+      }
+      else
+      {
+         showNormal();
+         setGeometry(p->priorFullScreenGeometry_);
+      }
+#else
+      setWindowState(windowState() & ~Qt::WindowFullScreen);
+#endif
+   }
+}
+
 void MainWindow::on_actionRadarWireframe_triggered(bool checked)
 {
    p->activeMap_->SetRadarWireframeEnabled(checked);
@@ -1133,6 +1184,16 @@ void MainWindowImpl::ConnectAnimationSignals()
 
 void MainWindowImpl::ConnectOtherSignals()
 {
+   connect(hotkeyManager_.get(),
+           &manager::HotkeyManager::HotkeyPressed,
+           mainWindow_,
+           [this](types::Hotkey hotkey, bool /*isAutoRepeat*/)
+           {
+              if (hotkey == types::Hotkey::ToggleFullScreen)
+              {
+                 mainWindow_->ui->actionFullScreen->trigger();
+              }
+           });
    connect(qApp,
            &QApplication::focusChanged,
            mainWindow_,
