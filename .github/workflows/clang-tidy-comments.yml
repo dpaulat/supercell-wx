@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Post Comments
-        uses: ZedThree/clang-tidy-review/post@v0.23.0
+        uses: ZedThree/clang-tidy-review/post@v0.23.1
         with:
           lgtm_comment_body: ''
           annotations: false
