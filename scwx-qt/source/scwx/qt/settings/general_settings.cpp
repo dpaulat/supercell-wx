@@ -34,7 +34,7 @@ public:
       std::string defaultDefaultTimeZoneValue =
          types::GetDefaultTimeZoneName(types::DefaultTimeZone::Radar);
       std::string defaultMapProviderValue =
-         map::GetMapProviderName(map::MapProvider::MapTiler);
+         map::GetMapProviderName(map::MapProvider::Mapbox);
       std::string defaultPositioningPlugin =
          types::GetPositioningPluginName(types::PositioningPlugin::Default);
       std::string defaultThemeValue =

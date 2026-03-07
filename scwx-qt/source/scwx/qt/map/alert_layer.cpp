@@ -248,6 +248,8 @@ public:
    std::string                                      tooltip_ {};
 
    std::vector<boost::signals2::scoped_connection> connections_ {};
+
+   std::optional<types::TextEventKey> focusedKey_ {};
 };
 
 AlertLayer::AlertLayer(const std::shared_ptr<gl::GlContext>& glContext,
@@ -319,6 +321,53 @@ void AlertLayer::Deinitialize()
    logger_->debug("Deinitialize: {}", awips::GetPhenomenonText(p->phenomenon_));
 
    DrawLayer::Deinitialize();
+}
+
+void AlertLayer::FocusAlert(const types::TextEventKey& key)
+{
+   p->focusedKey_ = key;
+
+   std::unique_lock lock {p->linesMutex_};
+   for (auto& [segRec, lines] : p->linesBySegment_)
+   {
+      bool focused = (segRec->key_ == key);
+      bool alertActive = (segRec->segment_->header_.has_value() &&
+                          !segRec->segment_->header_->vtecString_.empty() &&
+                          segRec->segment_->header_->vtecString_.front()
+                                .pVtec_.action() !=
+                             awips::PVtec::Action::Canceled);
+      auto& geoLines = p->geoLines_.at(alertActive);
+      for (auto& di : lines)
+      {
+         geoLines->SetLineVisible(di, focused);
+      }
+   }
+   lock.unlock();
+
+   Q_EMIT NeedsRendering();
+}
+
+void AlertLayer::UnfocusAlert()
+{
+   p->focusedKey_ = {};
+
+   std::unique_lock lock {p->linesMutex_};
+   for (auto& [segRec, lines] : p->linesBySegment_)
+   {
+      bool alertActive = (segRec->segment_->header_.has_value() &&
+                          !segRec->segment_->header_->vtecString_.empty() &&
+                          segRec->segment_->header_->vtecString_.front()
+                                .pVtec_.action() !=
+                             awips::PVtec::Action::Canceled);
+      auto& geoLines = p->geoLines_.at(alertActive);
+      for (auto& di : lines)
+      {
+         geoLines->SetLineVisible(di, true);
+      }
+   }
+   lock.unlock();
+
+   Q_EMIT NeedsRendering();
 }
 
 bool IsAlertActive(const std::shared_ptr<const awips::Segment>& segment)

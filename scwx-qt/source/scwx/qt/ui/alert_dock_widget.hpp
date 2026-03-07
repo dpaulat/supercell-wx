@@ -31,6 +31,8 @@ protected:
 
 signals:
    void MoveMap(double latitude, double longitude);
+   void FocusAlertOnMap(const types::TextEventKey& key);
+   void UnfocusAlertOnMap();
 
 public slots:
    void HandleMapUpdate(double latitude, double longitude);

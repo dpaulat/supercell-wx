@@ -49,9 +49,15 @@
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
 #include <QDesktopServices>
+#include <QFile>
+#include <QFrame>
+#include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QFileDialog>
+#include <QLabel>
+#include <QLineEdit>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QSplitter>
 #include <QStandardPaths>
 #include <QTimer>
@@ -145,7 +151,9 @@ public:
    }
 
    void AddRadarSitePreset(const std::string& id);
+   void ApplyModernStylesheet();
    void AsyncSetup();
+   void ConfigureMapboxKeyBar();
    void ConfigureMapLayout();
    void ConfigureMapStyles();
    void ConfigureUiSettings();
@@ -193,6 +201,7 @@ public:
 
    QLabel* coordinateLabel_ {nullptr};
    QLabel* timeLabel_ {nullptr};
+   QFrame* mapboxKeyBar_ {nullptr};
 
    ui::AlertDockWidget*              alertDockWidget_ {};
    ui::AnimationDockWidget*          animationDockWidget_ {};
@@ -258,7 +267,13 @@ MainWindow::MainWindow(QWidget* parent) :
 {
    ui->setupUi(this);
 
+   // Apply modern dark theme stylesheet
+   p->ApplyModernStylesheet();
+
    p->InitializeLayerDisplayActions();
+
+   // Show Mapbox API key bar if key is not configured
+   p->ConfigureMapboxKeyBar();
 
    // Assign the bottom left corner to the left dock widget
    setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
@@ -1240,6 +1255,26 @@ void MainWindowImpl::ConnectOtherSignals()
          UpdateRadarSite();
       },
       Qt::QueuedConnection);
+   connect(alertDockWidget_,
+           &ui::AlertDockWidget::FocusAlertOnMap,
+           this,
+           [this](const types::TextEventKey& key)
+           {
+              for (map::MapWidget* map : maps_)
+              {
+                 map->FocusAlert(key);
+              }
+           });
+   connect(alertDockWidget_,
+           &ui::AlertDockWidget::UnfocusAlertOnMap,
+           this,
+           [this]()
+           {
+              for (map::MapWidget* map : maps_)
+              {
+                 map->UnfocusAlert();
+              }
+           });
    connect(mainWindow_,
            &MainWindow::ActiveMapMoved,
            radarSiteDialog_,
@@ -1701,6 +1736,73 @@ void MainWindowImpl::UpdateVcp()
       mainWindow_->ui->vcpLabel->setVisible(false);
       mainWindow_->ui->vcpValueLabel->setVisible(false);
       mainWindow_->ui->vcpDescriptionLabel->setVisible(false);
+   }
+}
+
+void MainWindowImpl::ApplyModernStylesheet()
+{
+   QFile qssFile(":/res/qss/modern.qss");
+   if (qssFile.open(QFile::ReadOnly | QFile::Text))
+   {
+      QString stylesheet = QString::fromUtf8(qssFile.readAll());
+      qApp->setStyleSheet(stylesheet);
+   }
+}
+
+void MainWindowImpl::ConfigureMapboxKeyBar()
+{
+   auto& generalSettings = settings::GeneralSettings::Instance();
+   auto  mapProvider =
+      map::GetMapProvider(generalSettings.map_provider().GetValue());
+
+   if (mapProvider == map::MapProvider::Mapbox)
+   {
+      std::string apiKey = generalSettings.mapbox_api_key().GetValue();
+
+      if (apiKey.empty() || apiKey == "?")
+      {
+         if (mapboxKeyBar_ == nullptr)
+         {
+            mapboxKeyBar_ = new QFrame(mainWindow_);
+            mapboxKeyBar_->setObjectName("mapboxKeyBar");
+
+            auto* layout = new QHBoxLayout(mapboxKeyBar_);
+            layout->setContentsMargins(8, 6, 8, 6);
+
+            auto* icon = new QLabel("⚠");
+            icon->setStyleSheet("color: #ffaa00; font-size: 14px;");
+            layout->addWidget(icon);
+
+            auto* label = new QLabel(
+               "Mapbox API key is not configured. "
+               "Enter your key in Settings → Map to enable the map.");
+            label->setStyleSheet("color: #ffcc66;");
+            layout->addWidget(label, 1);
+
+            auto* configureButton = new QPushButton("Configure");
+            configureButton->setObjectName("mapboxConfigureButton");
+            connect(configureButton,
+                    &QPushButton::clicked,
+                    mainWindow_,
+                    [this]()
+                    {
+                       mainWindow_->on_actionSettings_triggered();
+                    });
+            layout->addWidget(configureButton);
+
+            // Insert at top of central widget area via status bar
+            mainWindow_->statusBar()->addPermanentWidget(mapboxKeyBar_, 1);
+         }
+         mapboxKeyBar_->setVisible(true);
+      }
+      else if (mapboxKeyBar_ != nullptr)
+      {
+         mapboxKeyBar_->setVisible(false);
+      }
+   }
+   else if (mapboxKeyBar_ != nullptr)
+   {
+      mapboxKeyBar_->setVisible(false);
    }
 }
 

@@ -211,6 +211,7 @@ public:
    std::list<std::string>          layerList_;
 
    std::vector<std::shared_ptr<GenericLayer>> genericLayers_ {};
+   std::vector<std::shared_ptr<AlertLayer>>   alertLayers_ {};
 
    const std::vector<MapStyle> emptyStyles_ {};
    std::vector<MapStyle>       customStyles_ {
@@ -844,6 +845,22 @@ void MapWidget::ScreenCapture(types::CaptureType captureType)
       this, static_cast<void (QWidget::*)()>(&QWidget::update));
 }
 
+void MapWidget::FocusAlert(const types::TextEventKey& key)
+{
+   for (auto& layer : p->alertLayers_)
+   {
+      layer->FocusAlert(key);
+   }
+}
+
+void MapWidget::UnfocusAlert()
+{
+   for (auto& layer : p->alertLayers_)
+   {
+      layer->UnfocusAlert();
+   }
+}
+
 void MapWidget::SelectElevation(float elevation)
 {
    auto radarProductView = p->context_->radar_product_view();
@@ -1237,6 +1254,7 @@ void MapWidgetImpl::AddLayers()
    }
    layerList_.clear();
    genericLayers_.clear();
+   alertLayers_.clear();
    placefileLayers_.clear();
 
    // Update custom layer list from model
@@ -1301,6 +1319,7 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
 
       std::shared_ptr<AlertLayer> alertLayer =
          std::make_shared<AlertLayer>(glContext_, phenomenon);
+      alertLayers_.push_back(alertLayer);
       AddLayer(fmt::format("alert.{}", awips::GetPhenomenonCode(phenomenon)),
                alertLayer,
                before);

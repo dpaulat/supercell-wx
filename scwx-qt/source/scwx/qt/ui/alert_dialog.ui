@@ -6,24 +6,33 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>540</width>
-    <height>600</height>
+    <width>600</width>
+    <height>780</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Alert Details</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="outerLayout">
+   <property name="spacing">
+    <number>8</number>
+   </property>
+   <property name="leftMargin">
+    <number>10</number>
+   </property>
+   <property name="topMargin">
+    <number>10</number>
+   </property>
+   <property name="rightMargin">
+    <number>10</number>
+   </property>
+   <property name="bottomMargin">
+    <number>10</number>
+   </property>
+   <!-- Navigation row -->
    <item>
-    <widget class="QTextBrowser" name="alertText">
-     <property name="lineWrapMode">
-      <enum>QTextEdit::LineWrapMode::NoWrap</enum>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QFrame" name="frame">
-     <layout class="QHBoxLayout" name="horizontalLayout">
+    <widget class="QFrame" name="navFrame">
+     <layout class="QHBoxLayout" name="navLayout">
       <property name="leftMargin">
        <number>0</number>
       </property>
@@ -65,6 +74,19 @@
        </widget>
       </item>
       <item>
+       <widget class="QLabel" name="messageCountLabel">
+        <property name="text">
+         <string># of #</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignmentFlag::AlignCenter</set>
+        </property>
+        <property name="minimumWidth">
+         <number>60</number>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QToolButton" name="nextButton">
         <property name="toolTip">
          <string>Next</string>
@@ -93,20 +115,368 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="messageCountLabel">
-        <property name="text">
-         <string># of #</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer">
+       <spacer name="navSpacer">
         <property name="orientation">
          <enum>Qt::Orientation::Horizontal</enum>
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>40</width>
+          <width>20</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="alertStatusLabel">
+        <property name="text">
+         <string></string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <!-- Social Media Card Frame (this is what gets screenshotted) -->
+   <item>
+    <widget class="QFrame" name="alertCardFrame">
+     <property name="frameShape">
+      <enum>QFrame::Shape::StyledPanel</enum>
+     </property>
+     <layout class="QVBoxLayout" name="cardLayout">
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <!-- Header section (colored by phenomenon) -->
+      <item>
+       <widget class="QFrame" name="alertHeaderFrame">
+        <property name="frameShape">
+         <enum>QFrame::Shape::NoFrame</enum>
+        </property>
+        <layout class="QVBoxLayout" name="headerLayout">
+         <property name="spacing">
+          <number>4</number>
+         </property>
+         <property name="leftMargin">
+          <number>16</number>
+         </property>
+         <property name="topMargin">
+          <number>14</number>
+         </property>
+         <property name="rightMargin">
+          <number>16</number>
+         </property>
+         <property name="bottomMargin">
+          <number>14</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="alertTypeLabel">
+           <property name="text">
+            <string>ALERT</string>
+           </property>
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="alertSubtitleLabel">
+           <property name="text">
+            <string>Issued by NWS</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <!-- Badges row -->
+      <item>
+       <widget class="QFrame" name="alertBadgesFrame">
+        <property name="frameShape">
+         <enum>QFrame::Shape::NoFrame</enum>
+        </property>
+        <layout class="QHBoxLayout" name="badgesLayout">
+         <property name="spacing">
+          <number>6</number>
+         </property>
+         <property name="leftMargin">
+          <number>12</number>
+         </property>
+         <property name="topMargin">
+          <number>8</number>
+         </property>
+         <property name="rightMargin">
+          <number>12</number>
+         </property>
+         <property name="bottomMargin">
+          <number>8</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="emergencyLabel">
+           <property name="text">
+            <string>EMERGENCY</string>
+           </property>
+           <property name="visible">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="pdsLabel">
+           <property name="text">
+            <string>PDS</string>
+           </property>
+           <property name="visible">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="observedLabel">
+           <property name="text">
+            <string>OBSERVED</string>
+           </property>
+           <property name="visible">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="radarIndicatedLabel">
+           <property name="text">
+            <string>RADAR INDICATED</string>
+           </property>
+           <property name="visible">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="tornadoPossibleLabel">
+           <property name="text">
+            <string>TORNADO POSSIBLE</string>
+           </property>
+           <property name="visible">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="badgesSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <!-- Info grid section -->
+      <item>
+       <widget class="QFrame" name="alertInfoFrame">
+        <property name="frameShape">
+         <enum>QFrame::Shape::NoFrame</enum>
+        </property>
+        <layout class="QGridLayout" name="infoGridLayout">
+         <property name="leftMargin">
+          <number>16</number>
+         </property>
+         <property name="topMargin">
+          <number>12</number>
+         </property>
+         <property name="rightMargin">
+          <number>16</number>
+         </property>
+         <property name="bottomMargin">
+          <number>12</number>
+         </property>
+         <property name="horizontalSpacing">
+          <number>24</number>
+         </property>
+         <property name="verticalSpacing">
+          <number>12</number>
+         </property>
+         <!-- Row 0: Issued / Expires -->
+         <item row="0" column="0">
+          <widget class="QLabel" name="issuedFieldLabel">
+           <property name="text">
+            <string>ISSUED</string>
+           </property>
+           <property name="property" stdset="0">
+            <string notr="true">alertFieldLabel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="expiresFieldLabel">
+           <property name="text">
+            <string>EXPIRES</string>
+           </property>
+           <property name="property" stdset="0">
+            <string notr="true">alertFieldLabel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="issuedValueLabel">
+           <property name="text">
+            <string>—</string>
+           </property>
+           <property name="property" stdset="0">
+            <string notr="true">alertFieldValue</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLabel" name="expiresValueLabel">
+           <property name="text">
+            <string>—</string>
+           </property>
+           <property name="property" stdset="0">
+            <string notr="true">alertFieldValue</string>
+           </property>
+          </widget>
+         </item>
+         <!-- Row 2: Areas Affected -->
+         <item row="2" column="0" colspan="2">
+          <widget class="QLabel" name="areasFieldLabel">
+           <property name="text">
+            <string>AREAS AFFECTED</string>
+           </property>
+           <property name="property" stdset="0">
+            <string notr="true">alertFieldLabel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0" colspan="2">
+          <widget class="QLabel" name="areasValueLabel">
+           <property name="text">
+            <string>—</string>
+           </property>
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+           <property name="property" stdset="0">
+            <string notr="true">alertFieldValue</string>
+           </property>
+          </widget>
+         </item>
+         <!-- Row 4: Hazards / Threat -->
+         <item row="4" column="0">
+          <widget class="QLabel" name="hazardFieldLabel">
+           <property name="text">
+            <string>HAZARD LEVEL</string>
+           </property>
+           <property name="property" stdset="0">
+            <string notr="true">alertFieldLabel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QLabel" name="eventFieldLabel">
+           <property name="text">
+            <string>EVENT #</string>
+           </property>
+           <property name="property" stdset="0">
+            <string notr="true">alertFieldLabel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="hazardValueLabel">
+           <property name="text">
+            <string>—</string>
+           </property>
+           <property name="property" stdset="0">
+            <string notr="true">alertFieldValue</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1">
+          <widget class="QLabel" name="eventValueLabel">
+           <property name="text">
+            <string>—</string>
+           </property>
+           <property name="property" stdset="0">
+            <string notr="true">alertFieldValue</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <!-- Raw alert text -->
+   <item>
+    <widget class="QTextBrowser" name="alertText">
+     <property name="lineWrapMode">
+      <enum>QTextEdit::LineWrapMode::NoWrap</enum>
+     </property>
+    </widget>
+   </item>
+   <!-- Action buttons row -->
+   <item>
+    <widget class="QFrame" name="actionFrame">
+     <property name="frameShape">
+      <enum>QFrame::Shape::NoFrame</enum>
+     </property>
+     <layout class="QHBoxLayout" name="actionLayout">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QPushButton" name="screenshotButton">
+        <property name="objectName">
+         <string>screenshotButton</string>
+        </property>
+        <property name="text">
+         <string>📷  Share Card</string>
+        </property>
+        <property name="toolTip">
+         <string>Copy alert card to clipboard for social media sharing</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="actionSpacer">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
           <height>20</height>
          </size>
         </property>
@@ -131,22 +501,6 @@
   <include location="../../../../scwx-qt.qrc"/>
  </resources>
  <connections>
-  <connection>
-   <sender>buttonBox</sender>
-   <signal>accepted()</signal>
-   <receiver>AlertDialog</receiver>
-   <slot>accept()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>248</x>
-     <y>254</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>157</x>
-     <y>274</y>
-    </hint>
-   </hints>
-  </connection>
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
