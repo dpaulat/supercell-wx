@@ -34,6 +34,7 @@ public slots:
    void on_previousButton_clicked();
    void on_nextButton_clicked();
    void on_lastButton_clicked();
+   void on_screenshotButton_clicked();
 
 signals:
    void MoveMap(double latitude, double longitude);

@@ -121,6 +121,18 @@ public:
     * @param [in] updateRadarSite Whether to update the selected radar site to
     * the closest WSR-88D site. Default is false.
     */
+   /**
+    * @brief Focus a single alert on all map layers, hiding all others.
+    *
+    * @param [in] key Alert key to focus
+    */
+   void FocusAlert(const types::TextEventKey& key);
+
+   /**
+    * @brief Remove alert focus, showing all alerts.
+    */
+   void UnfocusAlert();
+
    void SetMapLocation(double latitude,
                        double longitude,
                        bool   updateRadarSite = false);

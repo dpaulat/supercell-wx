@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
+    <width>460</width>
     <height>300</height>
    </rect>
   </property>
@@ -15,6 +15,21 @@
   </property>
   <widget class="QWidget" name="dockWidgetContents">
    <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="spacing">
+     <number>4</number>
+    </property>
+    <property name="leftMargin">
+     <number>4</number>
+    </property>
+    <property name="topMargin">
+     <number>4</number>
+    </property>
+    <property name="rightMargin">
+     <number>4</number>
+    </property>
+    <property name="bottomMargin">
+     <number>4</number>
+    </property>
     <item>
      <widget class="QTreeView" name="alertView">
       <property name="alternatingRowColors">
@@ -26,10 +41,46 @@
       <property name="sortingEnabled">
        <bool>true</bool>
       </property>
+      <property name="selectionBehavior">
+       <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+      </property>
      </widget>
     </item>
+    <!-- Focus indicator bar (shown when an alert is selected/focused) -->
     <item>
-     <widget class="QFrame" name="frame_2">
+     <widget class="QFrame" name="focusIndicatorFrame">
+      <property name="visible">
+       <bool>false</bool>
+      </property>
+      <layout class="QHBoxLayout" name="focusLayout">
+       <property name="leftMargin">
+        <number>6</number>
+       </property>
+       <property name="topMargin">
+        <number>3</number>
+       </property>
+       <property name="rightMargin">
+        <number>6</number>
+       </property>
+       <property name="bottomMargin">
+        <number>3</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="focusIndicatorLabel">
+         <property name="text">
+          <string>● Focused on map — click another row or press Esc to show all</string>
+         </property>
+         <property name="styleSheet">
+          <string>color: #44aaff; font-size: 11px;</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <!-- Bottom controls -->
+    <item>
+     <widget class="QFrame" name="controlsFrame">
       <layout class="QHBoxLayout" name="horizontalLayout_2">
        <property name="leftMargin">
         <number>0</number>
@@ -46,7 +97,7 @@
        <item>
         <widget class="QLineEdit" name="alertFilter">
          <property name="placeholderText">
-          <string>Filter</string>
+          <string>Filter alerts…</string>
          </property>
          <property name="clearButtonEnabled">
           <bool>true</bool>
@@ -60,7 +111,7 @@
          </property>
          <property name="sizeHint" stdset="0">
           <size>
-           <width>40</width>
+           <width>10</width>
            <height>20</height>
           </size>
          </property>
@@ -86,7 +137,10 @@
        <item>
         <widget class="QPushButton" name="alertViewButton">
          <property name="text">
-          <string>&amp;View</string>
+          <string>&amp;Details</string>
+         </property>
+         <property name="toolTip">
+          <string>View full alert details</string>
          </property>
         </widget>
        </item>
@@ -94,6 +148,9 @@
         <widget class="QPushButton" name="alertGoButton">
          <property name="text">
           <string>&amp;Go</string>
+         </property>
+         <property name="toolTip">
+          <string>Pan map to this alert</string>
          </property>
         </widget>
        </item>

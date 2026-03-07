@@ -167,11 +167,19 @@ void AlertDockWidgetImpl::ConnectSignals()
             selectedAlertCentroid_ = alertModel_->centroid(selectedAlertKey_);
             itemHasCoordinates =
                selectedAlertCentroid_ != common::Coordinate {};
+
+            // Focus this alert on the map, hiding all others
+            Q_EMIT self_->FocusAlertOnMap(selectedAlertKey_);
+            self_->ui->focusIndicatorFrame->setVisible(true);
          }
          else
          {
             selectedAlertKey_      = {};
             selectedAlertCentroid_ = {};
+
+            // Remove focus so all alerts are shown again
+            Q_EMIT self_->UnfocusAlertOnMap();
+            self_->ui->focusIndicatorFrame->setVisible(false);
          }
 
          self_->ui->alertViewButton->setEnabled(itemSelected);

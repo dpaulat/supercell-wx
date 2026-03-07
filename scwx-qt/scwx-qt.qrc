@@ -64,6 +64,7 @@
         <file>res/icons/font-awesome-6/stop-solid.svg</file>
         <file>res/icons/font-awesome-6/tent-solid.svg</file>
         <file>res/icons/font-awesome-6/volume-high-solid.svg</file>
+        <file>res/qss/modern.qss</file>
         <file>res/palettes/wct/CC.pal</file>
         <file>res/palettes/wct/Default16.pal</file>
         <file>res/palettes/wct/DOD_DSD.pal</file>

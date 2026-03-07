@@ -27,6 +27,18 @@ public:
 
    static void InitializeHandler();
 
+   /**
+    * @brief Focus a specific alert on the map, hiding all others on this layer.
+    *
+    * @param [in] key Alert key to focus
+    */
+   void FocusAlert(const types::TextEventKey& key);
+
+   /**
+    * @brief Remove alert focus, showing all alerts on this layer.
+    */
+   void UnfocusAlert();
+
 signals:
    void AlertSelected(const types::TextEventKey& key);
 
