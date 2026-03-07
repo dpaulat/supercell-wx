@@ -54,6 +54,7 @@ static const std::unordered_map<Hotkey, std::string> hotkeyShortName_ {
    {Hotkey::TimelinePlay, "timeline_play"},
    {Hotkey::TimelineStepNext, "timeline_step_next"},
    {Hotkey::TimelineStepEnd, "timeline_step_end"},
+   {Hotkey::ToggleFullScreen, "toggle_full_screen"},
    {Hotkey::Unknown, "?"}};
 
 static const std::unordered_map<Hotkey, std::string> hotkeyLongName_ {
@@ -98,6 +99,7 @@ static const std::unordered_map<Hotkey, std::string> hotkeyLongName_ {
    {Hotkey::TimelinePlay, "Timeline Play/Pause"},
    {Hotkey::TimelineStepNext, "Timeline Step Next"},
    {Hotkey::TimelineStepEnd, "Timeline Step End"},
+   {Hotkey::ToggleFullScreen, "Toggle Full Screen"},
    {Hotkey::Unknown, "?"}};
 
 SCWX_GET_ENUM(Hotkey, GetHotkeyFromShortName, hotkeyShortName_)

@@ -68,6 +68,7 @@ static const std::unordered_map<types::Hotkey, QKeySequence> kDefaultHotkeys_ {
    {types::Hotkey::TimelineStepEnd,
     QKeySequence {QKeyCombination {Qt::KeyboardModifier::ControlModifier,
                                    Qt::Key::Key_Right}}},
+   {types::Hotkey::ToggleFullScreen, QKeySequence {Qt::Key::Key_F11}},
    {types::Hotkey::Unknown, QKeySequence {}}};
 
 static bool IsHotkeyValid(const std::string& value);
