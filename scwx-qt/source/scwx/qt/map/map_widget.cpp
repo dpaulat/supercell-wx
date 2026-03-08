@@ -135,6 +135,10 @@ public:
    {
       // Disconnect signals
       colorPaletteConnection_.disconnect();
+      for (auto& connection : connections_)
+      {
+         connection.disconnect();
+      }
 
       // Set ImGui Context
       ImGui::SetCurrentContext(imGuiContext_);
@@ -214,9 +218,8 @@ public:
       MapStyle {.name_ {"Custom"}, .url_ {}, .drawBelow_ {}}};
    QStringList styleLayers_;
 
-   boost::signals2::scoped_connection colorPaletteConnection_ {};
-   boost::signals2::scoped_connection customStyleDrawLayerConnection_ {};
-   boost::signals2::scoped_connection customStyleUrlConnection_ {};
+   std::vector<boost::signals2::scoped_connection> connections_ {};
+   boost::signals2::scoped_connection              colorPaletteConnection_ {};
 
    ImGuiContext* imGuiContext_;
    std::string   imGuiContextName_;
@@ -258,7 +261,6 @@ public:
    const MapStyle* currentStyle_;
    std::string     initialStyleName_ {};
    bool            mapChangedOnce_ {false};
-   bool            mapResetting_ {false};
    bool            mapStylePending_ {false};
 
    Qt::KeyboardModifiers lastKeyboardModifiers_ {
@@ -332,22 +334,21 @@ void MapWidgetImpl::InitializeCustomStyles()
    customStyle.url_  = customStyleUrl.GetValue();
    customStyle.drawBelow_.push_back(customStyleDrawLayer.GetValue());
 
-   customStyleUrlConnection_ = customStyleUrl.changed_signal().connect(
-      [this](const auto& event) { customStyles_[0].url_ = event.newValue_; });
-   customStyleDrawLayerConnection_ =
-      customStyleDrawLayer.changed_signal().connect(
-         [this](const auto& event)
+   connections_.emplace_back(customStyleUrl.changed_signal().connect(
+      [this](const auto& event) { customStyles_[0].url_ = event.newValue_; }));
+   connections_.emplace_back(customStyleDrawLayer.changed_signal().connect(
+      [this](const auto& event)
+      {
+         const std::string& drawLayer = event.newValue_;
+         if (!drawLayer.empty())
          {
-            const std::string& drawLayer = event.newValue_;
-            if (!drawLayer.empty())
-            {
-               customStyles_[0].drawBelow_ = {drawLayer};
-            }
-            else
-            {
-               customStyles_[0].drawBelow_.clear();
-            }
-         });
+            customStyles_[0].drawBelow_ = {drawLayer};
+         }
+         else
+         {
+            customStyles_[0].drawBelow_.clear();
+         }
+      }));
 }
 
 void MapWidgetImpl::ConnectMapSignals()
@@ -446,6 +447,42 @@ void MapWidgetImpl::ConnectSignals()
               productAvailabilityProductSelected_ = true;
               CheckLevel3Availability();
            });
+
+   auto& generalSettings = settings::GeneralSettings::Instance();
+
+   connections_.emplace_back(
+      generalSettings.map_provider().changed_signal().connect(
+         [this](const auto& event)
+         {
+            const auto mapProvider = GetMapProvider(event.newValue_);
+            context_->set_map_provider(mapProvider);
+            ConfigureMapSettings(mapProvider, settings_);
+            ResetMap(currentStyle_ ? currentStyle_->name_ : initialStyleName_);
+         }));
+   connections_.emplace_back(
+      generalSettings.mapbox_api_key().changed_signal().connect(
+         [this](const auto& event)
+         {
+            if (context_->map_provider() == MapProvider::Mapbox)
+            {
+               // Reset the map, since the API key is embedded in settings
+               settings_.setApiKey(QString::fromStdString(event.newValue_));
+               ResetMap(currentStyle_ ? currentStyle_->name_ :
+                                        initialStyleName_);
+            }
+         }));
+   connections_.emplace_back(
+      generalSettings.maptiler_api_key().changed_signal().connect(
+         [this](auto&&...)
+         {
+            if (context_->map_provider() == MapProvider::MapTiler)
+            {
+               // Reapply style instead of resetting the map
+               widget_->SetMapStyle(currentStyle_ ? currentStyle_->name_ :
+                                                    initialStyleName_,
+                                    true);
+            }
+         }));
 }
 
 void MapWidgetImpl::HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat)
@@ -1108,7 +1145,7 @@ void MapWidget::SetInitialMapStyle(const std::string& styleName)
    p->initialStyleName_ = styleName;
 }
 
-void MapWidget::SetMapStyle(const std::string& styleName)
+void MapWidget::SetMapStyle(const std::string& styleName, bool force)
 {
    const auto  mapProvider     = p->context_->map_provider();
    const auto& mapProviderInfo = GetMapProviderInfo(mapProvider);
@@ -1124,8 +1161,7 @@ void MapWidget::SetMapStyle(const std::string& styleName)
 
       if (style->name_ == styleName)
       {
-         if (p->currentStyleIndex_ == i && p->currentStyle_ == style &&
-             !p->mapResetting_)
+         if (p->currentStyleIndex_ == i && p->currentStyle_ == style && !force)
          {
             // No need to set the style again
             break;
@@ -1607,10 +1643,10 @@ void MapWidget::initializeGL()
 
 void MapWidgetImpl::ResetMap(const std::string& styleName)
 {
-   mapResetting_ = true;
+   logger_->debug("Resetting map");
 
-   map_.reset(new QMapLibre::Map(
-      nullptr, settings_, widget_->size(), widget_->pixelRatio()));
+   map_ = std::make_shared<QMapLibre::Map>(
+      nullptr, settings_, widget_->size(), widget_->pixelRatio());
    context_->set_map(map_);
    ConnectMapSignals();
 
@@ -1627,7 +1663,7 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
    }
    else
    {
-      widget_->SetMapStyle(styleName);
+      widget_->SetMapStyle(styleName, true);
 
       if (styleName == "None" || styleName == "Custom")
       {
@@ -1638,7 +1674,6 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
    }
 
    mapChangedOnce_ = false;
-   mapResetting_   = false;
 
    connect(
       map_.get(), &QMapLibre::Map::mapChanged, widget_, &MapWidget::mapChanged);

@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include <boost/algorithm/string.hpp>
+#include <QStandardPaths>
 
 namespace scwx::qt::map
 {
@@ -183,6 +184,35 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
 bool MapStyle::IsValid() const
 {
    return !url_.empty() && !drawBelow_.empty();
+}
+
+void ConfigureMapSettings(MapProvider          mapProvider,
+                          QMapLibre::Settings& settings)
+{
+   const auto& mapProviderInfo = GetMapProviderInfo(mapProvider);
+
+   const std::string appDataPath {
+      QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+         .toStdString()};
+   const std::string cacheDbPath {appDataPath + "/" +
+                                  mapProviderInfo.cacheDbName_};
+
+   std::string mapProviderApiKey = map::GetMapProviderApiKey(mapProvider);
+
+   if (mapProvider == map::MapProvider::Mapbox)
+   {
+      settings.setProviderTemplate(mapProviderInfo.providerTemplate_);
+      settings.setApiKey(QString {mapProviderApiKey.c_str()});
+   }
+   else
+   {
+      settings.setProviderTemplate(
+         QMapLibre::Settings::ProviderTemplate::NoProvider);
+      settings.setApiKey({});
+   }
+
+   settings.setCacheDatabasePath(QString {cacheDbPath.c_str()});
+   settings.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
 }
 
 MapProvider GetMapProvider(const std::string& name)

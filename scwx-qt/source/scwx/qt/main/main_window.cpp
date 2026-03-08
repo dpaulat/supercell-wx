@@ -93,16 +93,9 @@ public:
        updateManager_ {manager::UpdateManager::Instance()},
        maps_ {}
    {
-      mapProvider_ = map::GetMapProvider(
-         settings::GeneralSettings::Instance().map_provider().GetValue());
-      const map::MapProviderInfo& mapProviderInfo =
-         map::GetMapProviderInfo(mapProvider_);
-
       std::string appDataPath {
          QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
             .toStdString()};
-      std::string cacheDbPath {appDataPath + "/" +
-                               mapProviderInfo.cacheDbName_};
 
       if (!std::filesystem::exists(appDataPath))
       {
@@ -114,35 +107,25 @@ public:
          }
       }
 
-      std::string mapProviderApiKey = map::GetMapProviderApiKey(mapProvider_);
-
-      if (mapProvider_ == map::MapProvider::Mapbox)
-      {
-         settings_.setProviderTemplate(mapProviderInfo.providerTemplate_);
-         settings_.setApiKey(QString {mapProviderApiKey.c_str()});
-      }
-      settings_.setCacheDatabasePath(QString {cacheDbPath.c_str()});
-      settings_.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
+      mapProvider_ = map::GetMapProvider(
+         settings::GeneralSettings::Instance().map_provider().GetValue());
+      map::ConfigureMapSettings(mapProvider_, settings_);
 
       if (settings::GeneralSettings::Instance().track_location().GetValue())
       {
          positionManager_->TrackLocation(true);
       }
    }
+
    ~MainWindowImpl()
    {
       homeRadarConnection_.disconnect();
+      clockFormatConnection_.disconnect();
       defaultTimeZoneConnection_.disconnect();
-
-      auto& generalSettings = settings::GeneralSettings::Instance();
-
-      auto& customStyleUrl       = generalSettings.custom_style_url();
-      auto& customStyleDrawLayer = generalSettings.custom_style_draw_layer();
-
-      customStyleUrl.UnregisterValueChangedCallback(
-         customStyleUrlChangedCallbackUuid_);
-      customStyleDrawLayer.UnregisterValueChangedCallback(
-         customStyleDrawLayerChangedCallbackUuid_);
+      for (auto& connection : connections_)
+      {
+         connection.disconnect();
+      }
 
       clockTimer_.stop();
       threadPool_.join();
@@ -214,9 +197,9 @@ public:
 
    QTimer clockTimer_ {};
 
-   bool               customStyleAvailable_ {false};
-   boost::uuids::uuid customStyleDrawLayerChangedCallbackUuid_ {};
-   boost::uuids::uuid customStyleUrlChangedCallbackUuid_ {};
+   bool customStyleAvailable_ {false};
+
+   std::vector<boost::signals2::scoped_connection> connections_ {};
 
 #ifdef Q_OS_WIN
    QRect            priorFullScreenGeometry_ {};
@@ -1430,6 +1413,22 @@ void MainWindowImpl::ConnectOtherSignals()
             animationDockWidget_->UpdateTimeZone(defaultTimeZone);
          });
 
+   connections_.emplace_back(
+      generalSettings.custom_style_url().changed_signal().connect(
+         [this](auto&&...) { PopulateCustomMapStyle(); }));
+   connections_.emplace_back(
+      generalSettings.custom_style_draw_layer().changed_signal().connect(
+         [this](auto&&...) { PopulateCustomMapStyle(); }));
+
+   connections_.emplace_back(
+      generalSettings.map_provider().changed_signal().connect(
+         [this](const auto& event)
+         {
+            mapProvider_ = map::GetMapProvider(event.newValue_);
+            PopulateMapStyles();
+            ConfigureMapStyles();
+         }));
+
    // Ensure default clock format is initialized
    util::time::set_default_clock_format(
       util::GetClockFormat(generalSettings.clock_format().GetValue()));
@@ -1548,6 +1547,8 @@ void MainWindowImpl::PopulateCustomMapStyle()
 
 void MainWindowImpl::PopulateMapStyles()
 {
+   mainWindow_->ui->mapStyleComboBox->clear();
+
    const auto& mapProviderInfo = map::GetMapProviderInfo(mapProvider_);
    for (const auto& mapStyle : mapProviderInfo.mapStyles_)
    {
@@ -1557,20 +1558,6 @@ void MainWindowImpl::PopulateMapStyles()
 
    const std::string kNone = "None";
    mainWindow_->ui->mapStyleComboBox->addItem(QString::fromStdString(kNone));
-
-   auto& generalSettings = settings::GeneralSettings::Instance();
-
-   auto& customStyleUrl       = generalSettings.custom_style_url();
-   auto& customStyleDrawLayer = generalSettings.custom_style_draw_layer();
-
-   customStyleUrlChangedCallbackUuid_ =
-      customStyleUrl.RegisterValueChangedCallback(
-         [this]([[maybe_unused]] const std::string& value)
-         { PopulateCustomMapStyle(); });
-   customStyleDrawLayerChangedCallbackUuid_ =
-      customStyleDrawLayer.RegisterValueChangedCallback(
-         [this]([[maybe_unused]] const std::string& value)
-         { PopulateCustomMapStyle(); });
 
    PopulateCustomMapStyle();
 }

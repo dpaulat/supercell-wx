@@ -130,7 +130,7 @@ public:
                          double bearing,
                          double pitch);
    void SetInitialMapStyle(const std::string& styleName);
-   void SetMapStyle(const std::string& styleName);
+   void SetMapStyle(const std::string& styleName, bool force = false);
    void SetRadarWireframeEnabled(bool enabled);
    void SetSmoothingEnabled(bool enabled);
 
