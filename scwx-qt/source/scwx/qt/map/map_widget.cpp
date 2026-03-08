@@ -178,6 +178,8 @@ public:
    void RadarProductViewConnect();
    void RadarProductViewDisconnect();
    void ResetMap(const std::string& styleName);
+   [[nodiscard]] std::string
+        ResolveMapStyleName(const std::string& preferredStyleName) const;
    void RunMousePicking();
    void ScreenCaptureCopy();
    void ScreenCaptureSaveImage();
@@ -457,7 +459,12 @@ void MapWidgetImpl::ConnectSignals()
             const auto mapProvider = GetMapProvider(event.newValue_);
             context_->set_map_provider(mapProvider);
             ConfigureMapSettings(mapProvider, settings_);
-            ResetMap(currentStyle_ ? currentStyle_->name_ : initialStyleName_);
+
+            const std::string styleName = ResolveMapStyleName(
+               currentStyle_ ? currentStyle_->name_ : initialStyleName_);
+
+            initialStyleName_ = styleName;
+            ResetMap(styleName);
          }));
    connections_.emplace_back(
       generalSettings.mapbox_api_key().changed_signal().connect(
@@ -1645,6 +1652,10 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
 {
    logger_->debug("Resetting map");
 
+   const std::string resolvedStyleName = ResolveMapStyleName(styleName);
+
+   initialStyleName_ = resolvedStyleName;
+
    map_ = std::make_shared<QMapLibre::Map>(
       nullptr, settings_, widget_->size(), widget_->pixelRatio());
    context_->set_map(map_);
@@ -1657,15 +1668,15 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
                            prevZoom_);
 
    // Update style
-   if (styleName.empty())
+   if (resolvedStyleName.empty())
    {
       widget_->changeStyle();
    }
    else
    {
-      widget_->SetMapStyle(styleName, true);
+      widget_->SetMapStyle(resolvedStyleName, true);
 
-      if (styleName == "None" || styleName == "Custom")
+      if (resolvedStyleName == "None" || resolvedStyleName == "Custom")
       {
          // An empty map style may not trigger a map change event, so set the
          // pending flag to ensure the map style is applied to the map layers
@@ -1693,6 +1704,26 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
                  widget_->SetMapStyle("None");
               }
            });
+}
+
+std::string
+MapWidgetImpl::ResolveMapStyleName(const std::string& preferredStyleName) const
+{
+   const auto& mapProviderInfo = GetMapProviderInfo(context_->map_provider());
+
+   if ((customStyles_[0].IsValid() && preferredStyleName == "Custom") ||
+       preferredStyleName == "None" ||
+       std::ranges::find_if(mapProviderInfo.mapStyles_,
+                            [&](const auto& mapStyle)
+                            { return mapStyle.name_ == preferredStyleName; }) !=
+          mapProviderInfo.mapStyles_.cend())
+   {
+      return preferredStyleName;
+   }
+
+   return !mapProviderInfo.mapStyles_.empty() ?
+             mapProviderInfo.mapStyles_.front().name_ :
+             "None";
 }
 
 void MapWidget::paintGL()

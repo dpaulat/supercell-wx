@@ -55,6 +55,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QScreen>
+#include <QSignalBlocker>
 #include <QSplitter>
 #include <QStandardPaths>
 #include <QTimer>
@@ -890,29 +891,38 @@ void MainWindowImpl::ConfigureMapStyles()
 
    for (std::size_t i = 0; i < maps_.size(); i++)
    {
-      std::string styleName = mapSettings.map_style(i).GetValue();
+      const std::string configuredStyleName =
+         mapSettings.map_style(i).GetValue();
+      std::string styleName = configuredStyleName;
 
-      if ((customStyleAvailable_ && styleName == "Custom") ||
-          styleName == "None" ||
-          std::ranges::find_if(mapProviderInfo.mapStyles_,
-                               [&](const auto& mapStyle)
-                               { return mapStyle.name_ == styleName; }) !=
-             mapProviderInfo.mapStyles_.cend())
+      if (!((customStyleAvailable_ && styleName == "Custom") ||
+            styleName == "None" ||
+            std::ranges::find_if(mapProviderInfo.mapStyles_,
+                                 [&](const auto& mapStyle)
+                                 { return mapStyle.name_ == styleName; }) !=
+               mapProviderInfo.mapStyles_.cend()))
       {
-         // Initialize map style from settings
-         maps_.at(i)->SetInitialMapStyle(styleName);
-
-         // Update the active map's style
-         if (maps_[i] == activeMap_)
-         {
-            UpdateMapStyle(styleName);
-         }
+         styleName = !mapProviderInfo.mapStyles_.empty() ?
+                        mapProviderInfo.mapStyles_.at(0).name_ :
+                        "None";
       }
-      else if (!mapProviderInfo.mapStyles_.empty())
+
+      const std::string currentStyleName = maps_.at(i)->GetMapStyle();
+      if (currentStyleName != "?")
       {
-         // Stage first valid map style from map provider
-         mapSettings.map_style(i).StageValue(
-            mapProviderInfo.mapStyles_.at(0).name_);
+         styleName = currentStyleName;
+      }
+
+      maps_.at(i)->SetInitialMapStyle(styleName);
+
+      if (maps_[i] == activeMap_)
+      {
+         UpdateMapStyle(styleName);
+      }
+
+      if (configuredStyleName != styleName)
+      {
+         mapSettings.map_style(i).StageValue(styleName);
       }
    }
 }
@@ -1547,6 +1557,8 @@ void MainWindowImpl::PopulateCustomMapStyle()
 
 void MainWindowImpl::PopulateMapStyles()
 {
+   const QSignalBlocker blocker(mainWindow_->ui->mapStyleComboBox);
+
    mainWindow_->ui->mapStyleComboBox->clear();
 
    const auto& mapProviderInfo = map::GetMapProviderInfo(mapProvider_);
@@ -1643,6 +1655,7 @@ void MainWindowImpl::UpdateMapStyle(const std::string& styleName)
       QString::fromStdString(styleName));
    if (index != -1)
    {
+      const QSignalBlocker blocker(mainWindow_->ui->mapStyleComboBox);
       mainWindow_->ui->mapStyleComboBox->setCurrentIndex(index);
 
       // Update settings for active map
