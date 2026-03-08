@@ -65,6 +65,8 @@ namespace scwx::qt::map
 static const std::string logPrefix_ = "scwx::qt::map::map_widget";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+static constexpr double kDefaultZoom_ {7.0};
+
 class MapWidgetImpl : public QObject
 {
    Q_OBJECT
@@ -94,11 +96,6 @@ public:
        currentStyleIndex_ {0},
        currentStyle_ {nullptr},
        frameDraws_(0),
-       prevLatitude_ {0.0},
-       prevLongitude_ {0.0},
-       prevZoom_ {0.0},
-       prevBearing_ {0.0},
-       prevPitch_ {0.0},
        tiltsToIndices_ {}
    {
       // Create views
@@ -179,6 +176,7 @@ public:
    void RadarProductManagerDisconnect();
    void RadarProductViewConnect();
    void RadarProductViewDisconnect();
+   void ResetMap(const std::string& styleName);
    void RunMousePicking();
    void ScreenCaptureCopy();
    void ScreenCaptureSaveImage();
@@ -264,6 +262,7 @@ public:
    const MapStyle* currentStyle_;
    std::string     initialStyleName_ {};
    bool            mapChangedOnce_ {false};
+   bool            mapResetting_ {false};
    bool            mapStylePending_ {false};
 
    Qt::KeyboardModifiers lastKeyboardModifiers_ {
@@ -273,11 +272,11 @@ public:
 
    uint64_t frameDraws_;
 
-   double prevLatitude_;
-   double prevLongitude_;
-   double prevZoom_;
-   double prevBearing_;
-   double prevPitch_;
+   double prevLatitude_ {0.0};
+   double prevLongitude_ {0.0};
+   double prevZoom_ {kDefaultZoom_};
+   double prevBearing_ {0.0};
+   double prevPitch_ {0.0};
 
    types::CaptureType screenCaptureRequested_ {types::CaptureType::None};
 
@@ -1142,7 +1141,8 @@ void MapWidget::SetMapStyle(const std::string& styleName)
 
       if (style->name_ == styleName)
       {
-         if (p->currentStyleIndex_ == i && p->currentStyle_ == style)
+         if (p->currentStyleIndex_ == i && p->currentStyle_ == style &&
+             !p->mapResetting_)
          {
             // No need to set the style again
             break;
@@ -1612,45 +1612,56 @@ void MapWidget::initializeGL()
    ImGui_ImplOpenGL3_Init();
    p->imGuiRendererInitialized_ = true;
 
-   p->map_.reset(
-      new QMapLibre::Map(nullptr, p->settings_, size(), pixelRatio()));
-   p->context_->set_map(p->map_);
-   p->ConnectMapSignals();
+   p->ResetMap(p->initialStyleName_);
 
-   // Set default location to radar site
-   std::shared_ptr<config::RadarSite> radarSite =
-      p->radarProductManager_->radar_site();
-   p->map_->setCoordinateZoom({radarSite->latitude(), radarSite->longitude()},
-                              7);
    p->UpdateStoredMapParameters();
    Q_EMIT MapParametersChanged(p->prevLatitude_,
                                p->prevLongitude_,
                                p->prevZoom_,
                                p->prevBearing_,
                                p->prevPitch_);
+}
+
+void MapWidgetImpl::ResetMap(const std::string& styleName)
+{
+   mapResetting_ = true;
+
+   map_.reset(new QMapLibre::Map(
+      nullptr, settings_, widget_->size(), widget_->pixelRatio()));
+   context_->set_map(map_);
+   ConnectMapSignals();
+
+   // Set default location to radar site
+   std::shared_ptr<config::RadarSite> radarSite =
+      radarProductManager_->radar_site();
+   map_->setCoordinateZoom({radarSite->latitude(), radarSite->longitude()},
+                           prevZoom_);
 
    // Update style
-   if (p->initialStyleName_.empty())
+   if (styleName.empty())
    {
-      changeStyle();
+      widget_->changeStyle();
    }
    else
    {
-      SetMapStyle(p->initialStyleName_);
+      widget_->SetMapStyle(styleName);
 
-      if (p->initialStyleName_ == "None" || p->initialStyleName_ == "Custom")
+      if (styleName == "None" || styleName == "Custom")
       {
          // An empty map style may not trigger a map change event, so set the
          // pending flag to ensure the map style is applied to the map layers
-         p->mapStylePending_ = true;
+         mapStylePending_ = true;
       }
    }
 
+   mapChangedOnce_ = false;
+   mapResetting_   = false;
+
    connect(
-      p->map_.get(), &QMapLibre::Map::mapChanged, this, &MapWidget::mapChanged);
-   connect(p->map_.get(),
+      map_.get(), &QMapLibre::Map::mapChanged, widget_, &MapWidget::mapChanged);
+   connect(map_.get(),
            &QMapLibre::Map::mapLoadingFailed,
-           this,
+           widget_,
            [this](QMapLibre::Map::MapLoadingFailure, const QString& reason)
            {
               logger_->error("Map loading failed: {}", reason.toStdString());
@@ -1658,10 +1669,10 @@ void MapWidget::initializeGL()
               // If the map failed to load, and we haven't loaded a map yet,
               // default to the "None" map. This prevents a "black screen" on
               // startup.
-              if (!p->mapChangedOnce_)
+              if (!mapChangedOnce_)
               {
-                 p->mapChangedOnce_ = true;
-                 SetMapStyle("None");
+                 mapChangedOnce_ = true;
+                 widget_->SetMapStyle("None");
               }
            });
 }
