@@ -189,6 +189,9 @@ bool MapStyle::IsValid() const
 void ConfigureMapSettings(MapProvider          mapProvider,
                           QMapLibre::Settings& settings)
 {
+   static constexpr std::size_t kMaxCacheSize =
+      20ull * 1024ull * 1024ull; // 20 MB
+
    const auto& mapProviderInfo = GetMapProviderInfo(mapProvider);
 
    const std::string appDataPath {
@@ -197,7 +200,7 @@ void ConfigureMapSettings(MapProvider          mapProvider,
    const std::string cacheDbPath {appDataPath + "/" +
                                   mapProviderInfo.cacheDbName_};
 
-   std::string mapProviderApiKey = map::GetMapProviderApiKey(mapProvider);
+   const std::string mapProviderApiKey = map::GetMapProviderApiKey(mapProvider);
 
    if (mapProvider == map::MapProvider::Mapbox)
    {
@@ -212,7 +215,7 @@ void ConfigureMapSettings(MapProvider          mapProvider,
    }
 
    settings.setCacheDatabasePath(QString {cacheDbPath.c_str()});
-   settings.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
+   settings.setCacheDatabaseMaximumSize(kMaxCacheSize);
 }
 
 MapProvider GetMapProvider(const std::string& name)

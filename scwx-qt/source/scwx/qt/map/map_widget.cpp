@@ -1673,7 +1673,7 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
    }
    else
    {
-      std::shared_ptr<config::RadarSite> radarSite =
+      const std::shared_ptr<config::RadarSite> radarSite =
          radarProductManager_->radar_site();
       map_->setCoordinateZoom({radarSite->latitude(), radarSite->longitude()},
                               prevZoom_);
