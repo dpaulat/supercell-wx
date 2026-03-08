@@ -7,6 +7,7 @@ Checks:
   - 'modernize-*'
   - 'performance-*'
   - '-bugprone-easily-swappable-parameters'
+  - '-bugprone-unchecked-optional-access'
   - '-cppcoreguidelines-avoid-magic-numbers'
   - '-cppcoreguidelines-avoid-do-while'
   - '-cppcoreguidelines-avoid-non-const-global-variables'
