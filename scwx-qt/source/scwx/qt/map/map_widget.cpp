@@ -1656,16 +1656,28 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
 
    initialStyleName_ = resolvedStyleName;
 
+   // Determine whether this is the first-time initialization or a runtime reset
+   const bool hadExistingMap = static_cast<bool>(map_);
+
    map_ = std::make_shared<QMapLibre::Map>(
       nullptr, settings_, widget_->size(), widget_->pixelRatio());
    context_->set_map(map_);
    ConnectMapSignals();
 
-   // Set default location to radar site
-   std::shared_ptr<config::RadarSite> radarSite =
-      radarProductManager_->radar_site();
-   map_->setCoordinateZoom({radarSite->latitude(), radarSite->longitude()},
-                           prevZoom_);
+   // Set initial location:
+   //  - On first initialization, center on the radar site.
+   //  - On subsequent resets, restore the previous map view position.
+   if (hadExistingMap)
+   {
+      map_->setCoordinateZoom({prevLatitude_, prevLongitude_}, prevZoom_);
+   }
+   else
+   {
+      std::shared_ptr<config::RadarSite> radarSite =
+         radarProductManager_->radar_site();
+      map_->setCoordinateZoom({radarSite->latitude(), radarSite->longitude()},
+                              prevZoom_);
+   }
 
    // Update style
    if (resolvedStyleName.empty())

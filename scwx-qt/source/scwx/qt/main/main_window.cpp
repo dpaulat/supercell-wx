@@ -1571,6 +1571,9 @@ void MainWindowImpl::PopulateMapStyles()
    const std::string kNone = "None";
    mainWindow_->ui->mapStyleComboBox->addItem(QString::fromStdString(kNone));
 
+   // The combobox was cleared above, so force re-evaluation of custom style.
+   customStyleAvailable_ = false;
+
    PopulateCustomMapStyle();
 }
 
