@@ -136,8 +136,6 @@ public:
       // Disconnect signals
       colorPaletteConnection_.disconnect();
 
-      DeinitializeCustomStyles();
-
       // Set ImGui Context
       ImGui::SetCurrentContext(imGuiContext_);
 
@@ -165,7 +163,6 @@ public:
                           const std::string& before);
    void ConnectMapSignals();
    void ConnectSignals();
-   void DeinitializeCustomStyles() const;
    void HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat);
    void HandleHotkeyReleased(types::Hotkey hotkey);
    void HandleHotkeyUpdates();
@@ -217,10 +214,9 @@ public:
       MapStyle {.name_ {"Custom"}, .url_ {}, .drawBelow_ {}}};
    QStringList styleLayers_;
 
-   boost::uuids::uuid customStyleUrlChangedCallbackId_ {};
-   boost::uuids::uuid customStyleDrawBelowChangedCallbackId_ {};
-
    boost::signals2::scoped_connection colorPaletteConnection_ {};
+   boost::signals2::scoped_connection customStyleDrawLayerConnection_ {};
+   boost::signals2::scoped_connection customStyleUrlConnection_ {};
 
    ImGuiContext* imGuiContext_;
    std::string   imGuiContextName_;
@@ -336,13 +332,13 @@ void MapWidgetImpl::InitializeCustomStyles()
    customStyle.url_  = customStyleUrl.GetValue();
    customStyle.drawBelow_.push_back(customStyleDrawLayer.GetValue());
 
-   customStyleUrlChangedCallbackId_ =
-      customStyleUrl.RegisterValueChangedCallback(
-         [this](const std::string& url) { customStyles_[0].url_ = url; });
-   customStyleDrawBelowChangedCallbackId_ =
-      customStyleDrawLayer.RegisterValueChangedCallback(
-         [this](const std::string& drawLayer)
+   customStyleUrlConnection_ = customStyleUrl.changed_signal().connect(
+      [this](const auto& event) { customStyles_[0].url_ = event.newValue_; });
+   customStyleDrawLayerConnection_ =
+      customStyleDrawLayer.changed_signal().connect(
+         [this](const auto& event)
          {
+            const std::string& drawLayer = event.newValue_;
             if (!drawLayer.empty())
             {
                customStyles_[0].drawBelow_ = {drawLayer};
@@ -352,19 +348,6 @@ void MapWidgetImpl::InitializeCustomStyles()
                customStyles_[0].drawBelow_.clear();
             }
          });
-}
-
-void MapWidgetImpl::DeinitializeCustomStyles() const
-{
-   auto& generalSettings = settings::GeneralSettings::Instance();
-
-   auto& customStyleUrl       = generalSettings.custom_style_url();
-   auto& customStyleDrawLayer = generalSettings.custom_style_draw_layer();
-
-   customStyleUrl.UnregisterValueChangedCallback(
-      customStyleUrlChangedCallbackId_);
-   customStyleDrawLayer.UnregisterValueChangedCallback(
-      customStyleDrawBelowChangedCallbackId_);
 }
 
 void MapWidgetImpl::ConnectMapSignals()
@@ -938,7 +921,7 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
             settings::PaletteSettings::Instance().palette(palette);
 
          p->colorPaletteConnection_ = paletteSetting.changed_signal().connect(
-            [this, palette]() { p->UpdateColorTable(palette); });
+            [this, palette](auto&&...) { p->UpdateColorTable(palette); });
 
          p->InitializeNewRadarProductView(palette);
       }

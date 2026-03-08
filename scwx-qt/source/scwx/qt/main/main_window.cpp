@@ -1398,14 +1398,11 @@ void MainWindowImpl::ConnectOtherSignals()
    auto& generalSettings = settings::GeneralSettings::Instance();
    homeRadarConnection_ =
       generalSettings.default_radar_site().changed_signal().connect(
-         [this]()
+         [this](const auto& event)
          {
             const std::shared_ptr<config::RadarSite> radarSite =
                activeMap_->GetRadarSite();
-            const std::string homeRadarSite =
-               settings::GeneralSettings::Instance()
-                  .default_radar_site()
-                  .GetValue();
+            const std::string& homeRadarSite = event.newValue_;
             if (radarSite == nullptr)
             {
                mainWindow_->ui->saveRadarProductsButton->setVisible(false);
@@ -1419,15 +1416,14 @@ void MainWindowImpl::ConnectOtherSignals()
 
    clockFormatConnection_ =
       generalSettings.clock_format().changed_signal().connect(
-         []()
+         [](const auto& event)
          {
-            auto& generalSettings = settings::GeneralSettings::Instance();
             util::time::set_default_clock_format(
-               util::GetClockFormat(generalSettings.clock_format().GetValue()));
+               util::GetClockFormat(event.newValue_));
          });
    defaultTimeZoneConnection_ =
       generalSettings.default_time_zone().changed_signal().connect(
-         [this]()
+         [this](auto&&...)
          {
             const auto defaultTimeZone = activeMap_->GetDefaultTimeZone();
             util::time::set_current_time_zone(defaultTimeZone);

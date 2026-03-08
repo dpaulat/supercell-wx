@@ -14,6 +14,13 @@ namespace scwx::qt::settings
 {
 
 template<class T>
+struct ChangedEvent
+{
+   T oldValue_ {};
+   T newValue_ {};
+};
+
+template<class T>
 class SettingsVariable : public SettingsVariableBase
 {
 public:
@@ -32,6 +39,20 @@ public:
 
    SettingsVariable(SettingsVariable&&) noexcept;
    SettingsVariable& operator=(SettingsVariable&&) noexcept;
+
+   /**
+    * Gets the signal invoked when the settings variable is changed.
+    *
+    * @return Changed signal
+    */
+   boost::signals2::signal<void(const ChangedEvent<T>&)>& changed_signal();
+
+   /**
+    * Gets the signal invoked when the settings variable is staged.
+    *
+    * @return Staged signal
+    */
+   boost::signals2::signal<void(const ChangedEvent<T>&)>& staged_signal();
 
    /**
     * Gets whether or not the settings variable is currently set to its default
@@ -210,6 +231,26 @@ public:
     * @param json JSON object to write
     */
    virtual void WriteValue(boost::json::object& json) const override;
+
+   /**
+    * Connects a slot to be called when the settings variable changes.
+    *
+    * @param slot Slot to connect
+    *
+    * @return Connection object
+    */
+   boost::signals2::connection
+   ConnectChanged(std::function<void()> slot) override;
+
+   /**
+    * Connects a slot to be called when the settings variable is staged.
+    *
+    * @param slot Slot to connect
+    *
+    * @return Connection object
+    */
+   boost::signals2::connection
+   ConnectStaged(std::function<void()> slot) override;
 
    /**
     * Registers a function to be called when the current value changes. The

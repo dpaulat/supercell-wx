@@ -28,20 +28,6 @@ public:
    [[nodiscard]] std::string name() const;
 
    /**
-    * Gets the signal invoked when the settings variable is changed.
-    *
-    * @return Changed signal
-    */
-   boost::signals2::signal<void()>& changed_signal();
-
-   /**
-    * Gets the signal invoked when the settings variable is staged.
-    *
-    * @return Staged signal
-    */
-   boost::signals2::signal<void()>& staged_signal();
-
-   /**
     * Gets whether or not the settings variable is currently set to its default
     * value.
     *
@@ -100,8 +86,28 @@ public:
     */
    virtual void WriteValue(boost::json::object& json) const = 0;
 
+   /**
+    * Connects a slot to be called when the settings variable changes.
+    *
+    * @param slot Slot to connect
+    *
+    * @return Connection object
+    */
+   virtual boost::signals2::connection
+   ConnectChanged(std::function<void()> slot) = 0;
+
+   /**
+    * Connects a slot to be called when the settings variable is staged.
+    *
+    * @param slot Slot to connect
+    *
+    * @return Connection object
+    */
+   virtual boost::signals2::connection
+   ConnectStaged(std::function<void()> slot) = 0;
+
 protected:
-   friend bool  operator==(const SettingsVariableBase& lhs,
+   friend bool                operator==(const SettingsVariableBase& lhs,
                           const SettingsVariableBase& rhs);
    [[nodiscard]] virtual bool Equals(const SettingsVariableBase& o) const;
 
