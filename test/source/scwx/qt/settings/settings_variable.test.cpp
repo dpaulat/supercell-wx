@@ -103,6 +103,100 @@ TEST(SettingsVariableTest, String)
    EXPECT_EQ(stringVariable.GetValue(), "Value 2");
 }
 
+TEST(SettingsVariableTest, ChangedEventSetValue)
+{
+   SettingsVariable<int64_t> intVariable {"int64_t"};
+   intVariable.SetDefault(10);
+   intVariable.SetValue(20);
+
+   std::optional<ChangedEvent<int64_t>> lastChangedEvent;
+   std::optional<ChangedEvent<int64_t>> lastStagedEvent;
+
+   intVariable.changed_signal().connect(
+      [&](const ChangedEvent<int64_t>& event) { lastChangedEvent = event; });
+   intVariable.staged_signal().connect(
+      [&](const ChangedEvent<int64_t>& event) { lastStagedEvent = event; });
+
+   ASSERT_TRUE(intVariable.SetValue(30));
+
+   ASSERT_TRUE(lastChangedEvent.has_value());
+   EXPECT_EQ(lastChangedEvent->oldValue_, 20);
+   EXPECT_EQ(lastChangedEvent->newValue_, 30);
+
+   ASSERT_TRUE(lastStagedEvent.has_value());
+   EXPECT_EQ(lastStagedEvent->oldValue_, 20);
+   EXPECT_EQ(lastStagedEvent->newValue_, 30);
+
+   // Verify no signal is emitted on invalid SetValue
+   lastChangedEvent.reset();
+   lastStagedEvent.reset();
+   intVariable.SetMinimum(5);
+   ASSERT_FALSE(intVariable.SetValue(1));
+   EXPECT_FALSE(lastChangedEvent.has_value());
+   EXPECT_FALSE(lastStagedEvent.has_value());
+}
+
+TEST(SettingsVariableTest, ChangedEventSetValueToDefault)
+{
+   SettingsVariable<int64_t> intVariable {"int64_t"};
+   intVariable.SetDefault(10);
+   intVariable.SetValue(20);
+
+   std::optional<ChangedEvent<int64_t>> lastChangedEvent;
+   std::optional<ChangedEvent<int64_t>> lastStagedEvent;
+
+   intVariable.changed_signal().connect(
+      [&](const ChangedEvent<int64_t>& event) { lastChangedEvent = event; });
+   intVariable.staged_signal().connect(
+      [&](const ChangedEvent<int64_t>& event) { lastStagedEvent = event; });
+
+   intVariable.SetValueToDefault();
+
+   ASSERT_TRUE(lastChangedEvent.has_value());
+   EXPECT_EQ(lastChangedEvent->oldValue_, 20);
+   EXPECT_EQ(lastChangedEvent->newValue_, 10);
+
+   ASSERT_TRUE(lastStagedEvent.has_value());
+   EXPECT_EQ(lastStagedEvent->oldValue_, 20);
+   EXPECT_EQ(lastStagedEvent->newValue_, 10);
+}
+
+TEST(SettingsVariableTest, ChangedEventStageAndCommit)
+{
+   SettingsVariable<int64_t> intVariable {"int64_t"};
+   intVariable.SetDefault(10);
+   intVariable.SetValue(20);
+
+   std::optional<ChangedEvent<int64_t>> lastChangedEvent;
+   std::optional<ChangedEvent<int64_t>> lastStagedEvent;
+
+   intVariable.changed_signal().connect(
+      [&](const ChangedEvent<int64_t>& event) { lastChangedEvent = event; });
+   intVariable.staged_signal().connect(
+      [&](const ChangedEvent<int64_t>& event) { lastStagedEvent = event; });
+
+   // StageValue should only fire staged_signal, not changed_signal
+   ASSERT_TRUE(intVariable.StageValue(30));
+   EXPECT_FALSE(lastChangedEvent.has_value());
+   ASSERT_TRUE(lastStagedEvent.has_value());
+   EXPECT_EQ(lastStagedEvent->oldValue_, 20);
+   EXPECT_EQ(lastStagedEvent->newValue_, 30);
+
+   // Commit should fire both signals
+   lastStagedEvent.reset();
+   ASSERT_TRUE(intVariable.Commit());
+
+   ASSERT_TRUE(lastChangedEvent.has_value());
+   EXPECT_EQ(lastChangedEvent->oldValue_, 20);
+   EXPECT_EQ(lastChangedEvent->newValue_, 30);
+
+   // The staged signal reports the old staged value (30) and the new current
+   // value (30) after commit, reflecting that no further staged change remains.
+   ASSERT_TRUE(lastStagedEvent.has_value());
+   EXPECT_EQ(lastStagedEvent->oldValue_, 30);
+   EXPECT_EQ(lastStagedEvent->newValue_, 30);
+}
+
 } // namespace settings
 } // namespace qt
 } // namespace scwx
