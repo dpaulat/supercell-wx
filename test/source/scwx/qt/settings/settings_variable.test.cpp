@@ -112,10 +112,10 @@ TEST(SettingsVariableTest, ChangedEventSetValue)
    std::optional<ChangedEvent<int64_t>> lastChangedEvent;
    std::optional<ChangedEvent<int64_t>> lastStagedEvent;
 
-   intVariable.changed_signal().connect(
-      [&](const ChangedEvent<int64_t>& event) { lastChangedEvent = event; });
-   intVariable.staged_signal().connect(
-      [&](const ChangedEvent<int64_t>& event) { lastStagedEvent = event; });
+   intVariable.changed_signal().connect([&](const ChangedEvent<int64_t>& event)
+                                        { lastChangedEvent = event; });
+   intVariable.staged_signal().connect([&](const ChangedEvent<int64_t>& event)
+                                       { lastStagedEvent = event; });
 
    ASSERT_TRUE(intVariable.SetValue(30));
 
@@ -145,10 +145,10 @@ TEST(SettingsVariableTest, ChangedEventSetValueToDefault)
    std::optional<ChangedEvent<int64_t>> lastChangedEvent;
    std::optional<ChangedEvent<int64_t>> lastStagedEvent;
 
-   intVariable.changed_signal().connect(
-      [&](const ChangedEvent<int64_t>& event) { lastChangedEvent = event; });
-   intVariable.staged_signal().connect(
-      [&](const ChangedEvent<int64_t>& event) { lastStagedEvent = event; });
+   intVariable.changed_signal().connect([&](const ChangedEvent<int64_t>& event)
+                                        { lastChangedEvent = event; });
+   intVariable.staged_signal().connect([&](const ChangedEvent<int64_t>& event)
+                                       { lastStagedEvent = event; });
 
    intVariable.SetValueToDefault();
 
@@ -170,10 +170,10 @@ TEST(SettingsVariableTest, ChangedEventStageAndCommit)
    std::optional<ChangedEvent<int64_t>> lastChangedEvent;
    std::optional<ChangedEvent<int64_t>> lastStagedEvent;
 
-   intVariable.changed_signal().connect(
-      [&](const ChangedEvent<int64_t>& event) { lastChangedEvent = event; });
-   intVariable.staged_signal().connect(
-      [&](const ChangedEvent<int64_t>& event) { lastStagedEvent = event; });
+   intVariable.changed_signal().connect([&](const ChangedEvent<int64_t>& event)
+                                        { lastChangedEvent = event; });
+   intVariable.staged_signal().connect([&](const ChangedEvent<int64_t>& event)
+                                       { lastStagedEvent = event; });
 
    // StageValue should only fire staged_signal, not changed_signal
    ASSERT_TRUE(intVariable.StageValue(30));
