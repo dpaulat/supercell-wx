@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include <boost/algorithm/string.hpp>
+#include <QStandardPaths>
 
 namespace scwx::qt::map
 {
@@ -183,6 +184,38 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
 bool MapStyle::IsValid() const
 {
    return !url_.empty() && !drawBelow_.empty();
+}
+
+void ConfigureMapSettings(MapProvider          mapProvider,
+                          QMapLibre::Settings& settings)
+{
+   static constexpr std::size_t kMaxCacheSize =
+      20ull * 1024ull * 1024ull; // 20 MB
+
+   const auto& mapProviderInfo = GetMapProviderInfo(mapProvider);
+
+   const std::string appDataPath {
+      QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+         .toStdString()};
+   const std::string cacheDbPath {appDataPath + "/" +
+                                  mapProviderInfo.cacheDbName_};
+
+   const std::string mapProviderApiKey = map::GetMapProviderApiKey(mapProvider);
+
+   if (mapProvider == map::MapProvider::Mapbox)
+   {
+      settings.setProviderTemplate(mapProviderInfo.providerTemplate_);
+      settings.setApiKey(QString {mapProviderApiKey.c_str()});
+   }
+   else
+   {
+      settings.setProviderTemplate(
+         QMapLibre::Settings::ProviderTemplate::NoProvider);
+      settings.setApiKey({});
+   }
+
+   settings.setCacheDatabasePath(QString {cacheDbPath.c_str()});
+   settings.setCacheDatabaseMaximumSize(kMaxCacheSize);
 }
 
 MapProvider GetMapProvider(const std::string& name)

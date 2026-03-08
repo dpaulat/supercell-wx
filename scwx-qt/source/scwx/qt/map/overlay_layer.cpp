@@ -243,7 +243,7 @@ void OverlayLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
    p->SetupGeoIcons();
    p->cursorScaleConnection_ =
       generalSettings.cursor_icon_scale().changed_signal().connect(
-         [this]()
+         [this](auto&&...)
          {
             p->SetupGeoIcons();
             Q_EMIT NeedsRendering();

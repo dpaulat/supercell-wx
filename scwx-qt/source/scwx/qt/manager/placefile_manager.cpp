@@ -653,11 +653,15 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
       }
       else if (response.status_code == 0 && enabled_)
       {
-         logger_->error("Error loading placefile: {}", response.error.message);
+         logger_->error("Error loading placefile: {} ({})",
+                        decodedUrl,
+                        response.error.message);
       }
       else if (enabled_)
       {
-         logger_->error("Error loading placefile: {}", response.status_line);
+         logger_->error("Error loading placefile: {} ({})",
+                        decodedUrl,
+                        response.status_line);
       }
       else
       {

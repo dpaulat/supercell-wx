@@ -34,6 +34,7 @@
 #include <QTranslator>
 #include <QPalette>
 #include <QStyle>
+#include <QSysInfo>
 
 #define QT6CT_LIBRARY
 #include <qt6ct-common/qt6ct.h>
@@ -65,6 +66,7 @@ int main(int argc, char* argv[])
    logManager.Initialize();
 
    QCoreApplication::setApplicationName("Supercell Wx");
+   const std::string osName = QSysInfo::prettyProductName().toStdString();
 
    logManager.InitializeLogFile();
 
@@ -74,13 +76,14 @@ int main(int argc, char* argv[])
                  scwx::qt::main::kCommitString_);
    logger_->info("Qt version {}",
                  QLibraryInfo::version().toString().toStdString());
+   logger_->info("Running on {}", osName);
 
    InitializeOpenGL();
 
    QApplication a(argc, argv);
 
-   scwx::network::cpr::SetUserAgent(
-      fmt::format("SupercellWx/{}", scwx::qt::main::kVersionString_));
+   scwx::network::cpr::SetUserAgent(fmt::format(
+      "SupercellWx/{} ({})", scwx::qt::main::kVersionString_, osName));
 
    // Enable internationalization support
    QTranslator translator;

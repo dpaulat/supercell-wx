@@ -32,6 +32,9 @@ public:
    std::function<T(const T&)>    transform_ {};
    std::function<bool(const T&)> validator_ {nullptr};
 
+   boost::signals2::signal<void(const ChangedEvent<T>&)> changedSignal_ {};
+   boost::signals2::signal<void(const ChangedEvent<T>&)> stagedSignal_ {};
+
    boost::unordered_flat_map<boost::uuids::uuid, ValueCallbackFunction>
       valueChangedCallbackFunctions_ {};
    boost::unordered_flat_map<boost::uuids::uuid, ValueCallbackFunction>
@@ -67,6 +70,20 @@ inline auto FormatParameter(const T& value)
 }
 
 template<class T>
+boost::signals2::signal<void(const ChangedEvent<T>&)>&
+SettingsVariable<T>::changed_signal()
+{
+   return p->changedSignal_;
+}
+
+template<class T>
+boost::signals2::signal<void(const ChangedEvent<T>&)>&
+SettingsVariable<T>::staged_signal()
+{
+   return p->stagedSignal_;
+}
+
+template<class T>
 bool SettingsVariable<T>::IsDefault() const
 {
    return p->value_ == p->default_;
@@ -91,16 +108,20 @@ bool SettingsVariable<T>::SetValue(const T& value)
 
    if (Validate(value))
    {
+      const T oldValue        = p->value_;
+      const T prevStagedValue = GetStagedOrValue();
+
       p->value_ = (p->transform_ != nullptr) ? p->transform_(value) : value;
+      p->staged_.reset();
       validated = true;
 
-      changed_signal()();
+      changed_signal()({oldValue, p->value_});
       for (auto& callback : p->valueChangedCallbackFunctions_)
       {
          callback.second(p->value_);
       }
 
-      staged_signal()();
+      staged_signal()({prevStagedValue, p->value_});
       for (auto& callback : p->valueStagedCallbackFunctions_)
       {
          callback.second(p->value_);
@@ -114,6 +135,9 @@ template<class T>
 bool SettingsVariable<T>::SetValueOrDefault(const T& value)
 {
    bool validated = false;
+
+   const T oldValue        = p->value_;
+   const T prevStagedValue = GetStagedOrValue();
 
    if (Validate(value))
    {
@@ -145,13 +169,15 @@ bool SettingsVariable<T>::SetValueOrDefault(const T& value)
       p->value_ = p->default_;
    }
 
-   changed_signal()();
+   p->staged_.reset();
+
+   changed_signal()({oldValue, p->value_});
    for (auto& callback : p->valueChangedCallbackFunctions_)
    {
       callback.second(p->value_);
    }
 
-   staged_signal()();
+   staged_signal()({prevStagedValue, p->value_});
    for (auto& callback : p->valueStagedCallbackFunctions_)
    {
       callback.second(p->value_);
@@ -163,15 +189,19 @@ bool SettingsVariable<T>::SetValueOrDefault(const T& value)
 template<class T>
 void SettingsVariable<T>::SetValueToDefault()
 {
-   p->value_ = p->default_;
+   const T oldValue        = p->value_;
+   const T prevStagedValue = GetStagedOrValue();
 
-   changed_signal()();
+   p->value_ = p->default_;
+   p->staged_.reset();
+
+   changed_signal()({oldValue, p->value_});
    for (auto& callback : p->valueChangedCallbackFunctions_)
    {
       callback.second(p->value_);
    }
 
-   staged_signal()();
+   staged_signal()({prevStagedValue, p->value_});
    for (auto& callback : p->valueStagedCallbackFunctions_)
    {
       callback.second(p->value_);
@@ -181,6 +211,8 @@ void SettingsVariable<T>::SetValueToDefault()
 template<class T>
 void SettingsVariable<T>::StageDefault()
 {
+   const T prevStagedValue = GetStagedOrValue();
+
    if (p->value_ != p->default_)
    {
       p->staged_ = p->default_;
@@ -190,7 +222,7 @@ void SettingsVariable<T>::StageDefault()
       p->staged_.reset();
    }
 
-   staged_signal()();
+   staged_signal()({prevStagedValue, p->default_});
    for (auto& callback : p->valueStagedCallbackFunctions_)
    {
       callback.second(p->default_);
@@ -204,7 +236,9 @@ bool SettingsVariable<T>::StageValue(const T& value)
 
    if (Validate(value))
    {
-      T transformed = (p->transform_ != nullptr) ? p->transform_(value) : value;
+      const T prevStagedValue = GetStagedOrValue();
+      const T transformed =
+         (p->transform_ != nullptr) ? p->transform_(value) : value;
 
       if (p->value_ != transformed)
       {
@@ -217,7 +251,7 @@ bool SettingsVariable<T>::StageValue(const T& value)
 
       validated = true;
 
-      staged_signal()();
+      staged_signal()({prevStagedValue, transformed});
       for (auto& callback : p->valueStagedCallbackFunctions_)
       {
          callback.second(transformed);
@@ -234,17 +268,20 @@ bool SettingsVariable<T>::Commit()
 
    if (p->staged_.has_value())
    {
+      const T oldValue        = p->value_;
+      const T prevStagedValue = GetStagedOrValue();
+
       p->value_ = std::move(*p->staged_);
       p->staged_.reset();
       committed = true;
 
-      changed_signal()();
+      changed_signal()({oldValue, p->value_});
       for (auto& callback : p->valueChangedCallbackFunctions_)
       {
          callback.second(p->value_);
       }
 
-      staged_signal()();
+      staged_signal()({prevStagedValue, p->value_});
       for (auto& callback : p->valueStagedCallbackFunctions_)
       {
          callback.second(p->value_);
@@ -257,9 +294,11 @@ bool SettingsVariable<T>::Commit()
 template<class T>
 void SettingsVariable<T>::Reset()
 {
+   const T prevStagedValue = GetStagedOrValue();
+
    p->staged_.reset();
 
-   staged_signal()();
+   staged_signal()({prevStagedValue, p->value_});
    for (auto& callback : p->valueStagedCallbackFunctions_)
    {
       callback.second(p->value_);
@@ -361,19 +400,7 @@ bool SettingsVariable<T>::ReadValue(const boost::json::object& json)
       logger_->debug("{} is not present, setting to default: {}",
                      name(),
                      FormatParameter<T>(p->default_));
-      p->value_ = p->default_;
-   }
-
-   changed_signal()();
-   for (auto& callback : p->valueChangedCallbackFunctions_)
-   {
-      callback.second(p->value_);
-   }
-
-   staged_signal()();
-   for (auto& callback : p->valueStagedCallbackFunctions_)
-   {
-      callback.second(p->value_);
+      SetValueToDefault();
    }
 
    return validated;
@@ -383,6 +410,22 @@ template<class T>
 void SettingsVariable<T>::WriteValue(boost::json::object& json) const
 {
    json[name()] = boost::json::value_from<T&>(p->value_);
+}
+
+template<class T>
+boost::signals2::connection
+SettingsVariable<T>::ConnectChanged(std::function<void()> slot)
+{
+   return changed_signal().connect(
+      [slot = std::move(slot)](const ChangedEvent<T>&) { slot(); });
+}
+
+template<class T>
+boost::signals2::connection
+SettingsVariable<T>::ConnectStaged(std::function<void()> slot)
+{
+   return staged_signal().connect(
+      [slot = std::move(slot)](const ChangedEvent<T>&) { slot(); });
 }
 
 template<class T>

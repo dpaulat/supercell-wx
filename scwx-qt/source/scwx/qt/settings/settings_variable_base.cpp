@@ -18,9 +18,6 @@ public:
    Impl& operator=(const Impl&&) = delete;
 
    const std::string name_;
-
-   boost::signals2::signal<void()> changedSignal_ {};
-   boost::signals2::signal<void()> stagedSignal_ {};
 };
 
 SettingsVariableBase::SettingsVariableBase(const std::string& name) :
@@ -39,16 +36,6 @@ SettingsVariableBase::operator=(SettingsVariableBase&&) noexcept = default;
 std::string SettingsVariableBase::name() const
 {
    return p->name_;
-}
-
-boost::signals2::signal<void()>& SettingsVariableBase::changed_signal()
-{
-   return p->changedSignal_;
-}
-
-boost::signals2::signal<void()>& SettingsVariableBase::staged_signal()
-{
-   return p->stagedSignal_;
 }
 
 bool SettingsVariableBase::Equals(const SettingsVariableBase& o) const
