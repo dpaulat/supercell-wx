@@ -16,6 +16,8 @@ To contribute to Supercell Wx, please follow these steps:
 4. Push your changes to your fork.
 5. Create a pull request to the main repository.
 
+Project roles and approval authority are defined in [ROLES.md](ROLES.md). Contributors are welcome to propose changes, but the approver retains final authority to accept or reject any change.
+
 ### Issues
 
 If you encounter a problem or want to suggest a new feature, please open an issue on GitHub. When opening an issue, please include:
@@ -38,6 +40,8 @@ When contributing code, please follow these guidelines:
 - Write clear and concise code with comments where necessary.
 - Add tests for new features or bug fixes.
 
-Please note that code contributions may be subject to modifications of the license by the project maintainer.
+Please note that code contributions may be subject to modifications of the license by the project maintainer (Dan Paulat).
+
+Submitting a pull request does not guarantee acceptance. Changes may be accepted, rejected, or requested for revision at the sole discretion of the approver.
 
 Thank you for considering contributing to Supercell Wx!

@@ -84,10 +84,10 @@ Supercell Wx connects to the following services:
 
 | Service | Notes |
 | ------- | ----- |
-| [AllisonHouse LLC](https://www.allisonhouse.com/) | Severe weather warnings |
 | [College of DuPage](https://weather.cod.edu/) | Severe weather warnings |
 | [GitHub](https://github.com/) | Supercell Wx updates |
 | [Iowa Environmental Mesonet](https://mesonet.agron.iastate.edu/) | Archived severe weather warnings |
 | [Mapbox](https://www.mapbox.com/) | Vector map tiles |
 | [MapTiler](https://www.maptiler.com/) | Vector map tiles |
 | [NEXRAD on AWS](https://registry.opendata.aws/noaa-nexrad/) | Real-time and archival data from the Next Generation Weather Radar (NEXRAD) network. |
+| [Weather Pulse LLC](https://www.weatherpulse.com/) | Severe weather warnings |
