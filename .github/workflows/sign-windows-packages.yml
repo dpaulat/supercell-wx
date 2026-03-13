@@ -90,7 +90,7 @@ jobs:
           }
 
           core.info(`Using artifact '${artifact.name}' (${artifact.id}) from ${runResponse.data.html_url}`);
-          core.setOutput('head-sha', runResponse.data.head_sha);
+          core.info(`Artifact workflow head SHA: ${runResponse.data.head_sha}`);
 
     - name: Setup
       shell: pwsh
@@ -99,7 +99,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v6
       with:
-        ref: ${{ steps.ci-artifact.outputs.head-sha }}
         path: source
         submodules: recursive
 
