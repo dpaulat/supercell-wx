@@ -213,7 +213,7 @@ jobs:
         organization-id:     ${{ env.SIGNPATH_ORGANIZATION_ID }}
         project-slug:        ${{ env.SIGNPATH_PROJECT }}
         signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY }}
-        artifact-configuration-slug: windows-installer
+        artifact-configuration-slug: windows-installer-archive
         github-artifact-id: ${{ steps.upload-unsigned-installer.outputs.artifact-id }}
         wait-for-completion: true
         output-artifact-directory: ${{ env.SIGNED_INSTALLER_DIR }}
@@ -222,4 +222,4 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.signed_installer_artifact_name }}
-        path: ${{ env.SIGNED_INSTALLER_DIR }}/**/*.msi*
+        path: ${{ env.SIGNED_INSTALLER_DIR }}/**/*.msi
