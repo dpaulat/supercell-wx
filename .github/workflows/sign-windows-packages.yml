@@ -12,9 +12,6 @@ on:
         required: true
         type: string
         default: test-signing
-  push:
-    branches:
-      - ci/windows-signing
 
 permissions:
   actions: read
