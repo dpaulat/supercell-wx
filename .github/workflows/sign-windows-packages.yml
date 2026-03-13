@@ -65,7 +65,7 @@ jobs:
           }
 
           const {owner, repo} = context.repo;
-          const artifactName = process.env.WINDOWS_ARTIFACT_NAME;
+          const artifactName = `${{ matrix.windows_artifact_name }}`;
           const [runResponse, artifactsResponse] = await Promise.all([
             github.rest.actions.getWorkflowRun({owner, repo, run_id: runId}),
             github.rest.actions.listWorkflowRunArtifacts({owner, repo, run_id: runId, per_page: 100})
