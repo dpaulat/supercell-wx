@@ -136,9 +136,7 @@ jobs:
     - name: Setup Python Environment
       shell: pwsh
       run: |
-        pip install geopandas `
-                    GitPython `
-                    conan
+        pip install conan
 
     - name: Cache Conan Packages
       uses: actions/cache@v5
@@ -176,30 +174,11 @@ jobs:
         wait-for-completion: true
         output-artifact-directory: ${{ env.SIGNED_ARTIFACTS_DIR }}
 
-    - name: Resolve Signed Artifact Root (Windows)
-      id: signed-artifact-root
-      shell: pwsh
-      run: |
-        $candidates = @(
-          (Join-Path $env:SIGNED_ARTIFACTS_DIR 'supercell-wx'),
-          $env:SIGNED_ARTIFACTS_DIR
-        )
-
-        $installRoot = $candidates |
-          Where-Object { Test-Path (Join-Path $_ 'bin') } |
-          Select-Object -First 1
-
-        if (-not $installRoot) {
-          throw "Could not locate the signed Windows artifact under '$env:SIGNED_ARTIFACTS_DIR'."
-        }
-
-        "install-root=$installRoot" >> $env:GITHUB_OUTPUT
-
     - name: Upload Signed Artifacts (Windows)
       uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.signed_windows_artifact_name }}
-        path: ${{ steps.signed-artifact-root.outputs.install-root }}
+        path: ${{ env.SIGNED_ARTIFACTS_DIR }}
 
     - name: Configure Packaging (Windows)
       shell: pwsh
@@ -209,10 +188,10 @@ jobs:
           -G Ninja `
           -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" `
           -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES="${{ github.workspace }}/source/external/cmake-conan/conan_provider.cmake" `
-          -DCMAKE_INSTALL_PREFIX="${{ steps.signed-artifact-root.outputs.install-root }}" `
+          -DCMAKE_INSTALL_PREFIX="${{ env.SIGNED_ARTIFACTS_DIR }}" `
           -DCONAN_HOST_PROFILE="${{ matrix.conan_profile }}" `
           -DCONAN_BUILD_PROFILE="${{ matrix.conan_profile }}" `
-          -DSCWX_WINDOWS_PACKAGE_INSTALL_ROOT="${{ steps.signed-artifact-root.outputs.install-root }}"
+          -DSCWX_WINDOWS_PACKAGE_INSTALL_ROOT="${{ env.SIGNED_ARTIFACTS_DIR }}"
 
     - name: Build Installer (Windows)
       shell: pwsh
