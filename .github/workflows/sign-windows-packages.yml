@@ -100,7 +100,7 @@ jobs:
         submodules: recursive
 
     - name: Download CI Artifacts (Windows)
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v8
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         run-id: ${{ env.RUN_ID }}
