@@ -918,6 +918,9 @@ set(CPACK_PACKAGE_VENDOR        "Dan Paulat")
 set(CPACK_PACKAGE_CHECKSUM      SHA256)
 set(CPACK_RESOURCE_FILE_LICENSE "${SCWX_DIR}/LICENSE.txt")
 
+set(SCWX_WINDOWS_PACKAGE_INSTALL_ROOT "" CACHE PATH
+    "Existing installed Supercell Wx tree to package for Windows")
+
 if (MSVC)
     set(CPACK_PACKAGE_FILE_NAME           "supercell-wx-v${SCWX_VERSION}-windows-x64")
     set(CPACK_PACKAGE_INSTALL_DIRECTORY   "Supercell Wx")
@@ -930,8 +933,24 @@ if (MSVC)
     set(CPACK_WIX_TEMPLATE                "${CMAKE_CURRENT_SOURCE_DIR}/wix.template.in")
     set(CPACK_WIX_EXTENSIONS              WixUIExtension WiXUtilExtension)
 
-    set(CPACK_INSTALL_CMAKE_PROJECTS
-        "${CMAKE_CURRENT_BINARY_DIR};${CMAKE_PROJECT_NAME};supercell-wx;/")
+    if (SCWX_WINDOWS_PACKAGE_INSTALL_ROOT)
+        if (NOT IS_DIRECTORY "${SCWX_WINDOWS_PACKAGE_INSTALL_ROOT}")
+            message(FATAL_ERROR
+                    "SCWX_WINDOWS_PACKAGE_INSTALL_ROOT does not exist: ${SCWX_WINDOWS_PACKAGE_INSTALL_ROOT}")
+        endif()
+
+        cmake_path(ABSOLUTE_PATH SCWX_WINDOWS_PACKAGE_INSTALL_ROOT
+                   NORMALIZE
+                   OUTPUT_VARIABLE scwx_windows_package_install_root)
+
+        message(STATUS "Packaging Windows installer from: ${scwx_windows_package_install_root}")
+
+        set(CPACK_INSTALLED_DIRECTORIES
+            "${scwx_windows_package_install_root};/")
+    else()
+        set(CPACK_INSTALL_CMAKE_PROJECTS
+            "${CMAKE_CURRENT_BINARY_DIR};${CMAKE_PROJECT_NAME};supercell-wx;/")
+    endif()
 
     include(CPack)
 elseif(APPLE)
