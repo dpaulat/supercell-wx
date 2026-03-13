@@ -44,6 +44,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       RUN_ID: ${{ inputs.run-id || '22879759893' }}
+      UNSIGNED_ARTIFACTS_DIR: ${{ github.workspace }}\unsigned-artifacts
       SIGNED_ARTIFACTS_DIR: ${{ github.workspace }}\signed-artifacts
       SIGNED_INSTALLER_DIR: ${{ github.workspace }}\signed-installer
       SIGNPATH_ORGANIZATION_ID: 7b83cc63-b02a-4b77-a91f-808f4b4db14c
@@ -89,7 +90,6 @@ jobs:
           }
 
           core.info(`Using artifact '${artifact.name}' (${artifact.id}) from ${runResponse.data.html_url}`);
-          core.setOutput('artifact-id', artifact.id.toString());
           core.setOutput('head-sha', runResponse.data.head_sha);
 
     - name: Setup
@@ -102,6 +102,21 @@ jobs:
         ref: ${{ steps.ci-artifact.outputs.head-sha }}
         path: source
         submodules: recursive
+
+    - name: Download CI Artifacts (Windows)
+      uses: actions/download-artifact@v5
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        run-id: ${{ env.RUN_ID }}
+        name: ${{ matrix.windows_artifact_name }}
+        path: ${{ env.UNSIGNED_ARTIFACTS_DIR }}\${{ matrix.windows_artifact_name }}
+
+    - name: Upload Unsigned Artifacts (Windows)
+      id: upload-unsigned-windows-artifacts
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.windows_artifact_name }}
+        path: ${{ env.UNSIGNED_ARTIFACTS_DIR }}\${{ matrix.windows_artifact_name }}
 
     - name: Install Qt
       uses: jdpurcell/install-qt-action@v5
@@ -157,7 +172,7 @@ jobs:
         project-slug:        ${{ env.SIGNPATH_PROJECT }}
         signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY }}
         artifact-configuration-slug: binary-archive
-        github-artifact-id: ${{ steps.ci-artifact.outputs.artifact-id }}
+        github-artifact-id: ${{ steps.upload-unsigned-windows-artifacts.outputs.artifact-id }}
         wait-for-completion: true
         output-artifact-directory: ${{ env.SIGNED_ARTIFACTS_DIR }}
 
