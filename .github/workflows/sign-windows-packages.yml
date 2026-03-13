@@ -12,6 +12,9 @@ on:
         required: true
         type: string
         default: test-signing
+  push:
+    branches:
+      - ci/windows-signing
 
 permissions:
   actions: read
@@ -40,10 +43,12 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     env:
+      RUN_ID: ${{ inputs.run-id || '22879759893' }}
       SIGNED_ARTIFACTS_DIR: ${{ github.workspace }}\signed-artifacts
       SIGNED_INSTALLER_DIR: ${{ github.workspace }}\signed-installer
       SIGNPATH_ORGANIZATION_ID: 7b83cc63-b02a-4b77-a91f-808f4b4db14c
       SIGNPATH_PROJECT: supercell-wx
+      SIGNPATH_SIGNING_POLICY: ${{ inputs.signing-policy || 'test-signing' }}
 
     steps:
     - name: Resolve CI Windows Artifact
@@ -52,10 +57,10 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          const runId = Number('${{ inputs.run-id }}');
+          const runId = Number(process.env.RUN_ID);
 
           if (!Number.isInteger(runId) || runId <= 0) {
-            core.setFailed(`Invalid workflow run ID: ${{ inputs.run-id }}`);
+            core.setFailed(`Invalid workflow run ID: ${process.env.RUN_ID}`);
             return;
           }
 
@@ -150,7 +155,7 @@ jobs:
         api-token:           ${{ secrets.SIGNPATH_API_TOKEN }}
         organization-id:     ${{ env.SIGNPATH_ORGANIZATION_ID }}
         project-slug:        ${{ env.SIGNPATH_PROJECT }}
-        signing-policy-slug: ${{ inputs.signing-policy }}
+        signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY }}
         artifact-configuration-slug: binary-archive
         github-artifact-id: ${{ steps.ci-artifact.outputs.artifact-id }}
         wait-for-completion: true
@@ -214,7 +219,7 @@ jobs:
         api-token:           ${{ secrets.SIGNPATH_API_TOKEN }}
         organization-id:     ${{ env.SIGNPATH_ORGANIZATION_ID }}
         project-slug:        ${{ env.SIGNPATH_PROJECT }}
-        signing-policy-slug: ${{ inputs.signing-policy }}
+        signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY }}
         artifact-configuration-slug: windows-installer
         github-artifact-id: ${{ steps.upload-unsigned-installer.outputs.artifact-id }}
         wait-for-completion: true
