@@ -1,6 +1,10 @@
 #include <scwx/qt/manager/media_manager.hpp>
+#include <scwx/qt/settings/audio_settings.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <vector>
+
+#include <boost/signals2/connection.hpp>
 #include <QAudioDevice>
 #include <QAudioOutput>
 #include <QMediaDevices>
@@ -46,6 +50,9 @@ public:
             mediaPlayer_->setAudioOutput(audioOutput_);
 
             ConnectSignals();
+
+            SetVolume(
+               settings::AudioSettings::Instance().master_volume().GetValue());
          });
    }
 
@@ -64,8 +71,11 @@ public:
    Impl& operator=(const Impl&&) = delete;
 
    void ConnectSignals();
+   void SetVolume(std::int64_t volume);
 
    QThread thread_ {};
+
+   std::vector<boost::signals2::scoped_connection> connections_ {};
 
    std::unique_ptr<QObject> mediaParent_ {nullptr};
    QMediaDevices*           mediaDevices_ {nullptr};
@@ -107,6 +117,29 @@ void MediaManager::Impl::ConnectSignals()
                                       static_cast<int>(error),
                                       errorString.toStdString());
                     });
+
+   settings::AudioSettings& audioSettings = settings::AudioSettings::Instance();
+
+   connections_.emplace_back(
+      audioSettings.master_volume().changed_signal().connect(
+         [this](const auto& event)
+         {
+            QMetaObject::invokeMethod(mediaParent_.get(),
+                                      [this, event]()
+                                      { SetVolume(event.newValue_); });
+         }));
+}
+
+void MediaManager::Impl::SetVolume(std::int64_t volume)
+{
+   if (audioOutput_ != nullptr)
+   {
+      const auto linearVolume =
+         QtAudio::convertVolume(static_cast<float>(volume) / 100.0f,
+                                QtAudio::VolumeScale::LogarithmicVolumeScale,
+                                QtAudio::VolumeScale::LinearVolumeScale);
+      audioOutput_->setVolume(linearVolume);
+   }
 }
 
 void MediaManager::Play(types::AudioFile media)
