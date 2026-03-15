@@ -118,7 +118,8 @@ void MediaManager::Impl::ConnectSignals()
                                       errorString.toStdString());
                     });
 
-   settings::AudioSettings& audioSettings = settings::AudioSettings::Instance();
+   const settings::AudioSettings& audioSettings =
+      settings::AudioSettings::Instance();
 
    connections_.emplace_back(
       audioSettings.master_volume().changed_signal().connect(
