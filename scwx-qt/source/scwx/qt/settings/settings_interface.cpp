@@ -2,6 +2,9 @@
 #include <scwx/qt/settings/settings_variable.hpp>
 #include <scwx/qt/ui/hotkey_edit.hpp>
 
+#include <utility>
+#include <vector>
+
 #include <boost/tokenizer.hpp>
 #include <fmt/ranges.h>
 #include <QAbstractButton>
@@ -10,10 +13,9 @@
 #include <QCoreApplication>
 #include <QLabel>
 #include <QLineEdit>
+#include <QSlider>
 #include <QSpinBox>
 #include <QWidget>
-#include <utility>
-#include <vector>
 
 namespace scwx::qt::settings
 {
@@ -41,10 +43,11 @@ public:
    template<class U>
    void SetWidgetText(U* widget, const T& currentValue);
 
-   void UpdateEditWidget();
    void UpdateResetButton();
    void UpdateUnitLabel();
    void UpdateValidityDisplay();
+   void UpdateWidget(QWidget* widget);
+   void UpdateWidgets();
 
    SettingsInterface<T>* self_;
 
@@ -53,6 +56,7 @@ public:
 
    std::unique_ptr<QObject> context_ {std::make_unique<QObject>()};
    QWidget*                 editWidget_ {nullptr};
+   QWidget*                 labelWidget_ {nullptr};
    QAbstractButton*         resetButton_ {nullptr};
    QLabel*                  unitLabel_ {nullptr};
 
@@ -135,7 +139,7 @@ template<class T>
 void SettingsInterface<T>::Reset()
 {
    p->variable_->Reset();
-   p->UpdateEditWidget();
+   p->UpdateWidgets();
    p->UpdateResetButton();
 }
 
@@ -143,7 +147,7 @@ template<class T>
 void SettingsInterface<T>::StageDefault()
 {
    p->variable_->StageDefault();
-   p->UpdateEditWidget();
+   p->UpdateWidgets();
    p->UpdateResetButton();
 }
 
@@ -151,7 +155,7 @@ template<class T>
 void SettingsInterface<T>::StageValue(const T& value)
 {
    p->variable_->StageValue(value);
-   p->UpdateEditWidget();
+   p->UpdateWidgets();
    p->UpdateResetButton();
 }
 
@@ -170,7 +174,7 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
       return;
    }
 
-   if (ui::HotkeyEdit* hotkeyEdit = dynamic_cast<ui::HotkeyEdit*>(widget))
+   if (auto* hotkeyEdit = dynamic_cast<ui::HotkeyEdit*>(widget))
    {
       if constexpr (std::is_same_v<T, std::string>)
       {
@@ -184,12 +188,13 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
 
                              // Attempt to stage the value
                              p->stagedValid_ = p->variable_->StageValue(value);
+                             p->UpdateWidget(p->labelWidget_);
                              p->UpdateResetButton();
                              p->UpdateValidityDisplay();
                           });
       }
    }
-   else if (QLineEdit* lineEdit = dynamic_cast<QLineEdit*>(widget))
+   else if (auto* lineEdit = dynamic_cast<QLineEdit*>(widget))
    {
       if constexpr (std::is_same_v<T, std::string>)
       {
@@ -212,6 +217,7 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
 
                              // Attempt to stage the value
                              p->stagedValid_ = p->variable_->StageValue(value);
+                             p->UpdateWidget(p->labelWidget_);
                              p->UpdateResetButton();
                              p->UpdateValidityDisplay();
                           });
@@ -233,11 +239,13 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
                                 // Attempt to stage the value
                                 p->stagedValid_ =
                                    p->variable_->StageValue(value);
+                                p->UpdateWidget(p->labelWidget_);
                                 p->UpdateResetButton();
                              }
                              else
                              {
                                 p->stagedValid_ = false;
+                                p->UpdateWidget(p->labelWidget_);
                                 p->UpdateResetButton();
                              }
 
@@ -285,12 +293,13 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
 
                // Attempt to stage the value
                p->stagedValid_ = p->variable_->StageValue(value);
+               p->UpdateWidget(p->labelWidget_);
                p->UpdateResetButton();
                p->UpdateValidityDisplay();
             });
       }
    }
-   else if (QCheckBox* checkBox = dynamic_cast<QCheckBox*>(widget))
+   else if (auto* checkBox = dynamic_cast<QCheckBox*>(widget))
    {
       if constexpr (std::is_same_v<T, bool>)
       {
@@ -302,11 +311,12 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
                              // Attempt to stage the value
                              p->stagedValid_ =
                                 p->variable_->StageValue(checked);
+                             p->UpdateWidget(p->labelWidget_);
                              p->UpdateResetButton();
                           });
       }
    }
-   else if (QComboBox* comboBox = dynamic_cast<QComboBox*>(widget))
+   else if (auto* comboBox = dynamic_cast<QComboBox*>(widget))
    {
       if constexpr (std::is_same_v<T, std::string>)
       {
@@ -324,11 +334,12 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
 
                              // Attempt to stage the value
                              p->stagedValid_ = p->variable_->StageValue(value);
+                             p->UpdateWidget(p->labelWidget_);
                              p->UpdateResetButton();
                           });
       }
    }
-   else if (QSpinBox* spinBox = dynamic_cast<QSpinBox*>(widget))
+   else if (auto* spinBox = dynamic_cast<QSpinBox*>(widget))
    {
       if constexpr (std::is_integral_v<T>)
       {
@@ -360,6 +371,7 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
                {
                   p->variable_->Reset();
                   p->stagedValid_ = true;
+                  p->UpdateWidget(p->labelWidget_);
                   p->UpdateResetButton();
                }
                // If there is no staged value, or if the new value is different
@@ -367,6 +379,7 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
                else if (!staged.has_value() || static_cast<T>(i) != *staged)
                {
                   p->stagedValid_ = p->variable_->StageValue(static_cast<T>(i));
+                  p->UpdateWidget(p->labelWidget_);
                   p->UpdateResetButton();
                }
                // Otherwise, don't process an unchanged value
@@ -375,8 +388,7 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
             });
       }
    }
-   else if (QDoubleSpinBox* doubleSpinBox =
-               dynamic_cast<QDoubleSpinBox*>(widget))
+   else if (auto* doubleSpinBox = dynamic_cast<QDoubleSpinBox*>(widget))
    {
       if constexpr (std::is_floating_point_v<T>)
       {
@@ -413,6 +425,7 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
                {
                   p->variable_->Reset();
                   p->stagedValid_ = true;
+                  p->UpdateWidget(p->labelWidget_);
                   p->UpdateResetButton();
                }
                // If there is no staged value, or if the new value is different
@@ -420,6 +433,56 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
                else if (!staged.has_value() || static_cast<T>(d) != *staged)
                {
                   p->stagedValid_ = p->variable_->StageValue(static_cast<T>(d));
+                  p->UpdateWidget(p->labelWidget_);
+                  p->UpdateResetButton();
+               }
+               // Otherwise, don't process an unchanged value
+
+               p->UpdateValidityDisplay();
+            });
+      }
+   }
+   else if (auto* slider = dynamic_cast<QSlider*>(widget))
+   {
+      if constexpr (std::is_integral_v<T>)
+      {
+         const std::optional<T> minimum = p->variable_->GetMinimum();
+         const std::optional<T> maximum = p->variable_->GetMaximum();
+
+         if (minimum.has_value())
+         {
+            slider->setMinimum(static_cast<int>(*minimum));
+         }
+         if (maximum.has_value())
+         {
+            slider->setMaximum(static_cast<int>(*maximum));
+         }
+
+         // If the slider is edited, stage a changed value
+         QObject::connect(
+            slider,
+            &QSlider::valueChanged,
+            p->context_.get(),
+            [this](int i)
+            {
+               const T                value  = p->variable_->GetValue();
+               const std::optional<T> staged = p->variable_->GetStaged();
+
+               // If there is a value staged, and the new value is the same as
+               // the current value, reset the staged value
+               if (staged.has_value() && static_cast<T>(i) == value)
+               {
+                  p->variable_->Reset();
+                  p->stagedValid_ = true;
+                  p->UpdateWidget(p->labelWidget_);
+                  p->UpdateResetButton();
+               }
+               // If there is no staged value, or if the new value is different
+               // than what is staged, attempt to stage the value
+               else if (!staged.has_value() || static_cast<T>(i) != *staged)
+               {
+                  p->stagedValid_ = p->variable_->StageValue(static_cast<T>(i));
+                  p->UpdateWidget(p->labelWidget_);
                   p->UpdateResetButton();
                }
                // Otherwise, don't process an unchanged value
@@ -429,7 +492,13 @@ void SettingsInterface<T>::SetEditWidget(QWidget* widget)
       }
    }
 
-   p->UpdateEditWidget();
+   p->UpdateWidgets();
+}
+
+template<class T>
+void SettingsInterface<T>::SetLabelWidget(QWidget* widget)
+{
+   p->labelWidget_ = widget;
 }
 
 template<class T>
@@ -444,6 +513,10 @@ void SettingsInterface<T>::SetResetButton(QAbstractButton* button)
 
    if (p->resetButton_ != nullptr)
    {
+      auto sizePolicy = button->sizePolicy();
+      sizePolicy.setRetainSizeWhenHidden(true);
+      button->setSizePolicy(sizePolicy);
+
       QObject::connect(p->resetButton_,
                        &QAbstractButton::clicked,
                        p->context_.get(),
@@ -457,7 +530,7 @@ void SettingsInterface<T>::SetResetButton(QAbstractButton* button)
                              // staged value
                              p->variable_->Reset();
                              p->stagedValid_ = true;
-                             p->UpdateEditWidget();
+                             p->UpdateWidgets();
                              p->UpdateResetButton();
                           }
                           else
@@ -465,7 +538,7 @@ void SettingsInterface<T>::SetResetButton(QAbstractButton* button)
                              // Stage the default value
                              p->stagedValid_ =
                                 p->variable_->StageValue(defaultValue);
-                             p->UpdateEditWidget();
+                             p->UpdateWidgets();
                              p->UpdateResetButton();
                           }
                        });
@@ -500,7 +573,7 @@ void SettingsInterface<T>::SetUnit(const double&      scale,
    p->unitScale_        = scale;
    p->unitAbbreviation_ = abbreviation;
    p->unitEnabled_      = true;
-   p->UpdateEditWidget();
+   p->UpdateWidgets();
    p->UpdateUnitLabel();
 }
 
@@ -555,14 +628,26 @@ void SettingsInterface<T>::Impl::SetWidgetText(U* widget, const T& currentValue)
 }
 
 template<class T>
-void SettingsInterface<T>::Impl::UpdateEditWidget()
+void SettingsInterface<T>::Impl::UpdateWidgets()
 {
+   UpdateWidget(editWidget_);
+   UpdateWidget(labelWidget_);
+}
+
+template<class T>
+void SettingsInterface<T>::Impl::UpdateWidget(QWidget* widget)
+{
+   if (widget == nullptr)
+   {
+      return;
+   }
+
    // Use the staged value if present, otherwise the current value
    const std::optional<T> staged       = variable_->GetStaged();
    const T                value        = variable_->GetValue();
    const T&               currentValue = staged.has_value() ? *staged : value;
 
-   if (ui::HotkeyEdit* hotkeyEdit = dynamic_cast<ui::HotkeyEdit*>(editWidget_))
+   if (auto* hotkeyEdit = dynamic_cast<ui::HotkeyEdit*>(widget))
    {
       if constexpr (std::is_same_v<T, std::string>)
       {
@@ -571,22 +656,22 @@ void SettingsInterface<T>::Impl::UpdateEditWidget()
          hotkeyEdit->set_key_sequence(keySequence);
       }
    }
-   else if (QLineEdit* lineEdit = dynamic_cast<QLineEdit*>(editWidget_))
+   else if (auto* lineEdit = dynamic_cast<QLineEdit*>(widget))
    {
       SetWidgetText(lineEdit, currentValue);
    }
-   else if (QLabel* label = dynamic_cast<QLabel*>(editWidget_))
+   else if (auto* label = dynamic_cast<QLabel*>(widget))
    {
       SetWidgetText(label, currentValue);
    }
-   else if (QCheckBox* checkBox = dynamic_cast<QCheckBox*>(editWidget_))
+   else if (auto* checkBox = dynamic_cast<QCheckBox*>(widget))
    {
       if constexpr (std::is_same_v<T, bool>)
       {
          checkBox->setChecked(currentValue);
       }
    }
-   else if (QComboBox* comboBox = dynamic_cast<QComboBox*>(editWidget_))
+   else if (auto* comboBox = dynamic_cast<QComboBox*>(widget))
    {
       if constexpr (std::is_same_v<T, std::string>)
       {
@@ -601,24 +686,30 @@ void SettingsInterface<T>::Impl::UpdateEditWidget()
          }
       }
    }
-   else if (QSpinBox* spinBox = dynamic_cast<QSpinBox*>(editWidget_))
+   else if (auto* spinBox = dynamic_cast<QSpinBox*>(widget))
    {
       if constexpr (std::is_integral_v<T>)
       {
          spinBox->setValue(static_cast<int>(currentValue));
       }
    }
-   else if (QDoubleSpinBox* doubleSpinBox =
-               dynamic_cast<QDoubleSpinBox*>(editWidget_))
+   else if (auto* doubleSpinBox = dynamic_cast<QDoubleSpinBox*>(widget))
    {
       if constexpr (std::is_floating_point_v<T>)
       {
-         double doubleValue = static_cast<double>(currentValue);
+         auto doubleValue = static_cast<double>(currentValue);
          if (unitEnabled_)
          {
             doubleValue = doubleValue * unitScale_;
          }
          doubleSpinBox->setValue(doubleValue);
+      }
+   }
+   else if (auto* slider = dynamic_cast<QSlider*>(widget))
+   {
+      if constexpr (std::is_integral_v<T>)
+      {
+         slider->setValue(static_cast<int>(currentValue));
       }
    }
 }

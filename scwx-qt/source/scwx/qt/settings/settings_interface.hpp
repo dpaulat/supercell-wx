@@ -83,6 +83,13 @@ public:
    void SetEditWidget(QWidget* widget) override;
 
    /**
+    * Sets the label widget from the settings dialog.
+    *
+    * @param widget Label widget
+    */
+   void SetLabelWidget(QWidget* widget) override;
+
+   /**
     * Sets the reset button from the settings dialog.
     *
     * @param button Reset button

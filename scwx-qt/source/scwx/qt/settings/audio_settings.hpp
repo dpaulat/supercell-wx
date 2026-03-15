@@ -32,7 +32,8 @@ public:
    [[nodiscard]] SettingsVariable<std::string>& alert_wfo() const;
    [[nodiscard]] SettingsVariable<bool>&
    alert_enabled(awips::Phenomenon phenomenon) const;
-   [[nodiscard]] SettingsVariable<bool>& ignore_missing_codecs() const;
+   [[nodiscard]] SettingsVariable<bool>&         ignore_missing_codecs() const;
+   [[nodiscard]] SettingsVariable<std::int64_t>& master_volume() const;
 
    static AudioSettings& Instance();
 
