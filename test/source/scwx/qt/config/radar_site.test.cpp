@@ -34,7 +34,7 @@ TEST_F(RadarSiteTest, DefaultConfig)
 
    ASSERT_NE(radarSite, nullptr);
 
-   EXPECT_EQ(radarSite->type(), "wsr88d");
+   EXPECT_EQ(radarSite->type(), types::RadarType::WSR88D);
    EXPECT_EQ(radarSite->country(), "USA");
    EXPECT_EQ(radarSite->state(), "MO");
    EXPECT_EQ(radarSite->place(), "St. Louis");
@@ -53,10 +53,10 @@ TEST_F(RadarSiteTest, FindNearest)
       RadarSite::FindNearest(46.591111, -112.020278); // Helena, MT
    std::shared_ptr<RadarSite> nearest2 =
       RadarSite::FindNearest(28.54, -81.38); // Orlando, FL
-   std::shared_ptr<RadarSite> nearest3 =
-      RadarSite::FindNearest(38.627222, -90.197778, "wsr88d"); // St Louis, MO
-   std::shared_ptr<RadarSite> nearest4 =
-      RadarSite::FindNearest(38.627222, -90.197778, "tdwr"); // St Louis, MO
+   std::shared_ptr<RadarSite> nearest3 = RadarSite::FindNearest(
+      38.627222, -90.197778, types::RadarType::WSR88D); // St Louis, MO
+   std::shared_ptr<RadarSite> nearest4 = RadarSite::FindNearest(
+      38.627222, -90.197778, types::RadarType::TDWR); // St Louis, MO
 
    EXPECT_EQ(nearest1->id(), "KTFX");
    EXPECT_EQ(nearest2->id(), "TMCO");
