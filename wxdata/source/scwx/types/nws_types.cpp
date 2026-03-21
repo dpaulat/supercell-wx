@@ -103,7 +103,14 @@ ObservationStation tag_invoke(boost::json::value_to_tag<ObservationStation>,
 
    os.name_     = jo.at("name").as_string();
    os.geometry_ = jo.at("geometry").as_string();
-   os.timeZone_ = jo.at("timeZone").as_string();
+   if (jo.contains("timeZone"))
+   {
+      const auto& timeZone = jo.at("timeZone");
+      if (timeZone.is_string())
+      {
+         os.timeZone_ = timeZone.as_string();
+      }
+   }
 
    // Optional parameters
    if (jo.contains("id"))
