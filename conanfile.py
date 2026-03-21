@@ -5,7 +5,7 @@ import os
 
 class SupercellWxConan(ConanFile):
     settings   = ("os", "compiler", "build_type", "arch")
-    requires   = ("boost/1.89.0",
+    requires   = ("boost/1.90.0",
                   "cpr/1.14.2",
                   "fontconfig/2.17.1",
                   "geographiclib/2.6",
@@ -26,8 +26,9 @@ class SupercellWxConan(ConanFile):
                   "vulkan-loader/1.4.313.0",
                   "zlib/1.3.1")
     generators = ("CMakeDeps")
-    default_options = {"geos/*:shared"     : True,
-                       "libiconv/*:shared" : True}
+    default_options = {"boost/*:without_cobalt" : True,
+                       "geos/*:shared"          : True,
+                       "libiconv/*:shared"      : True}
 
     def configure(self):
         if self.settings.os == "Windows":
