@@ -23,20 +23,20 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: windows_msvc2022_x64
+          - name: windows_vs2022_x64
             os: windows-2022
             build_type: Release
-            msvc_arch: x64
-            msvc_version: 2022
+            vs_arch: x64
+            vs_version: 2022
             qt_version: 6.10.1
             qt_arch_aqt: win64_msvc2022_64
             qt_arch_dir: msvc2022_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
-            conan_profile: scwx-windows_msvc2022_x64
-            windows_artifact_name: supercell-wx-windows-x64
-            signed_windows_artifact_name: supercell-wx-signed-windows-x64
-            unsigned_installer_artifact_name: supercell-wx-installer-unsigned-windows-x64
-            signed_installer_artifact_name: supercell-wx-installer-signed-windows-x64
+            conan_profile: scwx-windows_vs2022_x64
+            windows_artifact_name: supercell-wx-windows-vs2022-x64
+            signed_windows_artifact_name: supercell-wx-signed-windows-vs2022-x64
+            unsigned_installer_artifact_name: supercell-wx-installer-unsigned-windows-vs2022-x64
+            signed_installer_artifact_name: supercell-wx-installer-signed-windows-vs2022-x64
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     env:
@@ -126,8 +126,8 @@ jobs:
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
       with:
-        arch: ${{ matrix.msvc_arch }}
-        vsversion: ${{ matrix.msvc_version }}
+        arch: ${{ matrix.vs_arch }}
+        vsversion: ${{ matrix.vs_version }}
 
     - name: Setup Python Environment
       shell: pwsh

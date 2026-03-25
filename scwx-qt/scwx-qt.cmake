@@ -945,6 +945,7 @@ if (MSVC)
 
         message(STATUS "Packaging Windows installer from: ${scwx_windows_package_install_root}")
 
+        set(CPACK_INSTALL_CMAKE_PROJECTS "")
         set(CPACK_INSTALLED_DIRECTORIES
             "${scwx_windows_package_install_root};/")
     else()
