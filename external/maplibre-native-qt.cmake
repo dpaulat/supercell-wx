@@ -66,3 +66,13 @@ set_target_properties(mbgl-vendor-parsedate PROPERTIES FOLDER mln)
 if (TARGET mbgl-vendor-sqlite)
     set_target_properties(mbgl-vendor-sqlite PROPERTIES FOLDER mln)
 endif()
+
+if (TARGET MLNQtCore_automoc_json_extraction)
+    set_target_properties(MLNQtCore_automoc_json_extraction PROPERTIES FOLDER mln)
+endif()
+
+if (TARGET MLNQtWidgets_automoc_json_extraction)
+    set_target_properties(MLNQtWidgets_automoc_json_extraction PROPERTIES EXCLUDE_FROM_ALL True)
+    set_target_properties(MLNQtWidgets_automoc_json_extraction PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
+    set_target_properties(MLNQtWidgets_automoc_json_extraction PROPERTIES FOLDER mln/exclude)
+endif()
