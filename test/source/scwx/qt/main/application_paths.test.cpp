@@ -6,19 +6,8 @@
 #include <gtest/gtest.h>
 #include <QCoreApplication>
 
-namespace scwx
+namespace scwx::qt::main
 {
-namespace qt
-{
-namespace main
-{
-
-class ProgramOptionsTest : public ::testing::Test
-{
-protected:
-   void SetUp() override { ProgramOptions::Reset(); }
-   void TearDown() override { ProgramOptions::Reset(); }
-};
 
 class ApplicationPathsTest : public ::testing::Test
 {
@@ -33,64 +22,9 @@ protected:
    {
       ProgramOptions::Reset();
       ApplicationPaths::Reset();
+      ApplicationPaths::Initialize();
    }
 };
-
-TEST_F(ProgramOptionsTest, ParseArguments_NoArgs)
-{
-   const char* argv[] = {"program"};
-   ProgramOptions::ParseArguments({argv, 1});
-
-   EXPECT_FALSE(ProgramOptions::GetOptions().showHelp_);
-   EXPECT_FALSE(ProgramOptions::GetOptions().portableMode_);
-   EXPECT_TRUE(ProgramOptions::GetOptions().settingsDirectory_.empty());
-   EXPECT_TRUE(ProgramOptions::GetOptions().unrecognizedArgs_.empty());
-}
-
-TEST_F(ProgramOptionsTest, ParseArguments_PortableFlag)
-{
-   const char* argv[] = {"program", "--portable"};
-   ProgramOptions::ParseArguments({argv, 2});
-
-   EXPECT_TRUE(ProgramOptions::GetOptions().portableMode_);
-   EXPECT_FALSE(ProgramOptions::GetOptions().showHelp_);
-   EXPECT_TRUE(ProgramOptions::GetOptions().settingsDirectory_.empty());
-}
-
-TEST_F(ProgramOptionsTest, ParseArguments_ShortPortableFlag)
-{
-   const char* argv[] = {"program", "-p"};
-   ProgramOptions::ParseArguments({argv, 2});
-
-   EXPECT_TRUE(ProgramOptions::GetOptions().portableMode_);
-}
-
-TEST_F(ProgramOptionsTest, ParseArguments_SettingsDirectory)
-{
-   const char* argv[] = {"program", "--settings-directory", "/tmp/test_settings"};
-   ProgramOptions::ParseArguments({argv, 3});
-
-   EXPECT_EQ(ProgramOptions::GetOptions().settingsDirectory_, "/tmp/test_settings");
-   EXPECT_FALSE(ProgramOptions::GetOptions().portableMode_);
-}
-
-TEST_F(ProgramOptionsTest, ParseArguments_UnrecognizedArgs)
-{
-   const char* argv[] = {"program", "--unknown-arg"};
-   ProgramOptions::ParseArguments({argv, 2});
-
-   EXPECT_FALSE(ProgramOptions::GetOptions().unrecognizedArgs_.empty());
-   EXPECT_EQ(ProgramOptions::GetOptions().unrecognizedArgs_.front(),
-             "--unknown-arg");
-}
-
-TEST_F(ProgramOptionsTest, ParseArguments_HelpFlag)
-{
-   const char* argv[] = {"program", "--help"};
-   ProgramOptions::ParseArguments({argv, 2});
-
-   EXPECT_TRUE(ProgramOptions::GetOptions().showHelp_);
-}
 
 TEST_F(ApplicationPathsTest, Initialize_SettingsDirectoryOverride)
 {
@@ -104,9 +38,9 @@ TEST_F(ApplicationPathsTest, Initialize_SettingsDirectoryOverride)
    ProgramOptions::ParseArguments({argv, 3});
    ApplicationPaths::Initialize();
 
-   EXPECT_EQ(
-      ApplicationPaths::GetLocation(ApplicationPaths::StandardLocation::Settings),
-      testDir);
+   EXPECT_EQ(ApplicationPaths::GetLocation(
+                ApplicationPaths::StandardLocation::Settings),
+             testDir);
    EXPECT_TRUE(std::filesystem::exists(testDir));
 
    std::filesystem::remove_all(testDir);
@@ -125,9 +59,9 @@ TEST_F(ApplicationPathsTest, Initialize_PortableAnchoring)
    const std::filesystem::path appDirPath(appDir);
 
    // Verify specific locations are under the application directory
-   EXPECT_EQ(
-      ApplicationPaths::GetLocation(ApplicationPaths::StandardLocation::Settings),
-      appDirPath / "settings");
+   EXPECT_EQ(ApplicationPaths::GetLocation(
+                ApplicationPaths::StandardLocation::Settings),
+             appDirPath / "settings");
    EXPECT_EQ(
       ApplicationPaths::GetLocation(ApplicationPaths::StandardLocation::Cache),
       appDirPath / "cache");
@@ -138,8 +72,7 @@ TEST_F(ApplicationPathsTest, Initialize_PortableAnchoring)
    // Collect and clean up all created portable directories
    for (const auto location : ApplicationPaths::StandardLocationIterator())
    {
-      const auto& path =
-         ApplicationPaths::GetLocation(location);
+      const auto& path = ApplicationPaths::GetLocation(location);
       if (!path.empty())
       {
          std::filesystem::remove_all(path);
@@ -147,6 +80,4 @@ TEST_F(ApplicationPathsTest, Initialize_PortableAnchoring)
    }
 }
 
-} // namespace main
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::main
