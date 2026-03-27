@@ -2,6 +2,7 @@
 
 #include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/main/main_window.hpp>
 #include <scwx/qt/main/process_validation.hpp>
 #include <scwx/qt/main/program_options.hpp>
@@ -73,6 +74,7 @@ int main(int argc, char* argv[])
    QApplication a(argc, argv);
 
    scwx::qt::main::ParseArguments({argv, static_cast<std::size_t>(argc)});
+   scwx::qt::main::ApplicationPaths::Initialize();
 
    const std::string osName = QSysInfo::prettyProductName().toStdString();
 
@@ -87,6 +89,7 @@ int main(int argc, char* argv[])
    logger_->info("Running on {}", osName);
 
    scwx::qt::main::HandleArguments();
+   scwx::qt::main::ApplicationPaths::LogErrors();
 
    scwx::network::cpr::SetUserAgent(fmt::format(
       "SupercellWx/{} ({})", scwx::qt::main::kVersionString_, osName));

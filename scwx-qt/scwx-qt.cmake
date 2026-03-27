@@ -55,11 +55,13 @@ find_package(Qt${QT_VERSION_MAJOR}
 set(SRC_EXE_MAIN source/scwx/qt/main/main.cpp)
 
 set(HDR_MAIN source/scwx/qt/main/application.hpp
+             source/scwx/qt/main/application_paths.hpp
              source/scwx/qt/main/check_privilege.hpp
              source/scwx/qt/main/main_window.hpp
              source/scwx/qt/main/process_validation.hpp
              source/scwx/qt/main/program_options.hpp)
 set(SRC_MAIN source/scwx/qt/main/application.cpp
+             source/scwx/qt/main/application_paths.cpp
              source/scwx/qt/main/check_privilege.cpp
              source/scwx/qt/main/main_window.cpp
              source/scwx/qt/main/process_validation.cpp
