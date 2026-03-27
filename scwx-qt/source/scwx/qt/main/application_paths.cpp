@@ -93,6 +93,7 @@ bool InitializeOverride(StandardLocation location)
 
    case StandardLocation::Cache:
    case StandardLocation::FontCache:
+   case StandardLocation::Local:
    case StandardLocation::Log:
    case StandardLocation::Pictures:
    case StandardLocation::Temp:
