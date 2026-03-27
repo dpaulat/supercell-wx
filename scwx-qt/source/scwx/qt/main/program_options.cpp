@@ -6,14 +6,20 @@
 #include <boost/program_options.hpp>
 #include <fmt/ranges.h>
 
+#if defined(_WIN32)
+#   include <windows.h>
+#endif
+
 namespace scwx::qt::main::ProgramOptions
 {
 
 static const std::string logPrefix_ = "scwx::qt::main::program_options";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static Options programOptions_ {};
+static Options     programOptions_ {};
+static std::string errorMessage_ {};
 
+static void                                               EnableConsole();
 static const boost::program_options::options_description& GetVisibleOptions();
 static void                                               PrintHelp();
 
@@ -30,13 +36,11 @@ void ParseArguments(std::span<const char* const> args)
    boost::program_options::variables_map vm;
    try
    {
-      const auto parsed =
-         // boost::program_options::command_line_parser(argc, argv)
-         boost::program_options::command_line_parser(
-            static_cast<int>(args.size()), args.data())
-            .options(visibleOptions)
-            .allow_unregistered()
-            .run();
+      const auto parsed = boost::program_options::command_line_parser(
+                             static_cast<int>(args.size()), args.data())
+                             .options(visibleOptions)
+                             .allow_unregistered()
+                             .run();
 
       boost::program_options::store(parsed, vm);
       boost::program_options::notify(vm);
@@ -44,22 +48,32 @@ void ParseArguments(std::span<const char* const> args)
       programOptions_.unrecognizedArgs_ =
          boost::program_options::collect_unrecognized(
             parsed.options, boost::program_options::include_positional);
+
+      if (programOptions_.enableConsole_ || programOptions_.showHelp_)
+      {
+         EnableConsole();
+      }
    }
    catch (const boost::program_options::error& ex)
    {
-      logger_->error("Error parsing command line arguments: {}", ex.what());
-
-      std::ostringstream oss;
-      oss << visibleOptions;
-      logger_->info(oss.str());
+      EnableConsole();
+      programOptions_.showHelp_ = true;
+      errorMessage_ =
+         fmt::format("Error parsing command line arguments: {}", ex.what());
    }
 }
 
-void HandleArguments()
+void HandleArguments(bool& exit)
 {
    if (programOptions_.showHelp_)
    {
+      if (!errorMessage_.empty())
+      {
+         logger_->error(errorMessage_);
+      }
+
       PrintHelp();
+      exit = true;
    }
 
    if (!programOptions_.unrecognizedArgs_.empty())
@@ -74,6 +88,21 @@ void Reset()
    programOptions_ = Options {};
 }
 
+void EnableConsole()
+{
+#if defined(_WIN32)
+   // On Windows, enable console output by attaching to the parent process's
+   // console (if it exists) or allocating a new console if not.
+   if (AttachConsole(ATTACH_PARENT_PROCESS) || AllocConsole())
+   {
+      FILE* fp = nullptr;
+      freopen_s(&fp, "CONOUT$", "w", stdout);
+      freopen_s(&fp, "CONOUT$", "w", stderr);
+      freopen_s(&fp, "CONIN$", "r", stdin);
+   }
+#endif
+}
+
 const boost::program_options::options_description& GetVisibleOptions()
 {
    static bool                                        ftt = true;
@@ -86,6 +115,11 @@ const boost::program_options::options_description& GetVisibleOptions()
          ("help,h",
           boost::program_options::bool_switch(&programOptions_.showHelp_),
           "Display this help message") //
+#if defined(_WIN32)
+         ("console,c",
+          boost::program_options::bool_switch(&programOptions_.enableConsole_),
+          "Enable console output") //
+#endif
          ("portable,p",
           boost::program_options::bool_switch(&programOptions_.portableMode_),
           "Run in portable mode, storing settings in the application "

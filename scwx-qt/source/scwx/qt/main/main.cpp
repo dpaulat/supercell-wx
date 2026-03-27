@@ -65,22 +65,20 @@ int main(int argc, char* argv[])
       QStandardPaths::setTestModeEnabled(true);
    }
 
-   // Initialize logger
-   auto& logManager = scwx::qt::manager::LogManager::Instance();
-   logManager.Initialize();
-
    QCoreApplication::setApplicationName("Supercell Wx");
    InitializeOpenGL();
-   QApplication a(argc, argv);
+   const QApplication a(argc, argv);
 
    scwx::qt::main::ProgramOptions::ParseArguments(
       {argv, static_cast<std::size_t>(argc)});
+
+   // Initialize logger and application paths
+   auto& logManager = scwx::qt::manager::LogManager::Instance();
+   logManager.Initialize();
    scwx::qt::main::ApplicationPaths::Initialize();
-
-   const std::string osName = QSysInfo::prettyProductName().toStdString();
-
    logManager.InitializeLogFile();
 
+   const std::string osName = QSysInfo::prettyProductName().toStdString();
    logger_->info("Supercell Wx v{}.{} ({})",
                  scwx::qt::main::kVersionString_,
                  scwx::qt::main::kBuildNumber_,
@@ -89,7 +87,13 @@ int main(int argc, char* argv[])
                  QLibraryInfo::version().toString().toStdString());
    logger_->info("Running on {}", osName);
 
-   scwx::qt::main::ProgramOptions::HandleArguments();
+   bool exit = false;
+   scwx::qt::main::ProgramOptions::HandleArguments(exit);
+   if (exit)
+   {
+      return 0;
+   }
+   
    scwx::qt::main::ApplicationPaths::LogErrors();
 
    scwx::network::cpr::SetUserAgent(fmt::format(
