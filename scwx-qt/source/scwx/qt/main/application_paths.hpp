@@ -12,6 +12,7 @@ enum class StandardLocation : std::uint8_t
 {
    Cache,
    FontCache,
+   Local,
    Log,
    Pictures,
    Settings,

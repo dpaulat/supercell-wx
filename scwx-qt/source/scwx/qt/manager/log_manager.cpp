@@ -1,4 +1,5 @@
 #include <scwx/qt/manager/log_manager.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <cstdlib>
@@ -11,13 +12,8 @@
 #include <boost/process/v1/environment.hpp>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
-#include <QStandardPaths>
 
-namespace scwx
-{
-namespace qt
-{
-namespace manager
+namespace scwx::qt::manager
 {
 
 static const std::string logPrefix_ = "scwx::qt::manager::log_manager";
@@ -55,10 +51,16 @@ void LogManager::Initialize()
 
 void LogManager::InitializeLogFile()
 {
-   p->logPath_ =
-      QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
-         .toStdString();
-   p->pid_     = boost::this_process::get_id();
+   p->logPath_ = main::ApplicationPaths::GetLocation(
+                    main::ApplicationPaths::StandardLocation::Log)
+                    .generic_string();
+   if (!std::filesystem::exists(p->logPath_))
+   {
+      logger_->error("Log path does not exist: \"{}\"", p->logPath_);
+      return;
+   }
+
+   p->pid_ = boost::this_process::get_id();
    if (p->pid_ == 2)
    {
       // The pid == 2 means that this is likely a flatpak. We assign a random
@@ -183,6 +185,4 @@ void QtLogMessageHandler(QtMsgType                 messageType,
    }
 }
 
-} // namespace manager
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::manager

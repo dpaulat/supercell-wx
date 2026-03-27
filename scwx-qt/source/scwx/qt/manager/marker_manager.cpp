@@ -1,4 +1,5 @@
 #include <scwx/qt/manager/marker_manager.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/types/marker_types.hpp>
 #include <scwx/qt/util/color.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
@@ -14,16 +15,11 @@
 #include <string>
 #include <unordered_map>
 
-#include <QStandardPaths>
 #include <boost/json.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
 
-namespace scwx
-{
-namespace qt
-{
-namespace manager
+namespace scwx::qt::manager
 {
 
 static const std::string logPrefix_ = "scwx::qt::manager::marker_manager";
@@ -143,20 +139,17 @@ types::MarkerId MarkerManager::Impl::NewId()
 
 void MarkerManager::Impl::InitializeMarkerSettings()
 {
-   std::string appDataPath {
-      QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
-         .toStdString()};
+   const std::string settingsPath {
+      main::ApplicationPaths::GetLocation(
+         main::ApplicationPaths::StandardLocation::Settings)
+         .generic_string()};
 
-   if (!std::filesystem::exists(appDataPath))
+   if (!std::filesystem::exists(settingsPath))
    {
-      if (!std::filesystem::create_directories(appDataPath))
-      {
-         logger_->error("Unable to create application data directory: \"{}\"",
-                        appDataPath);
-      }
+      logger_->error("Settings path does not exist: {}", settingsPath);
    }
 
-   markerSettingsPath_ = appDataPath + "/location-markers.json";
+   markerSettingsPath_ = settingsPath + "/location-markers.json";
 }
 
 void MarkerManager::Impl::ReadMarkerSettings()
@@ -549,6 +542,4 @@ const std::string& MarkerManager::getDefaultIconName()
    return defaultIconName;
 }
 
-} // namespace manager
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::manager

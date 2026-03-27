@@ -1,5 +1,6 @@
 #include <scwx/qt/model/radar_site_model.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/settings/unit_settings.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/types/unit_types.hpp>
@@ -13,13 +14,8 @@
 #include <boost/json.hpp>
 #include <boost/algorithm/string.hpp>
 #include <QIcon>
-#include <QStandardPaths>
 
-namespace scwx
-{
-namespace qt
-{
-namespace model
+namespace scwx::qt::model
 {
 
 static const std::string logPrefix_ = "scwx::qt::model::radar_site_model";
@@ -96,20 +92,17 @@ std::unordered_set<std::string> RadarSiteModel::presets() const
 
 void RadarSiteModelImpl::InitializePresets()
 {
-   std::string appDataPath {
-      QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
-         .toStdString()};
+   const std::string settingsPath {
+      main::ApplicationPaths::GetLocation(
+         main::ApplicationPaths::StandardLocation::Settings)
+         .generic_string()};
 
-   if (!std::filesystem::exists(appDataPath))
+   if (!std::filesystem::exists(settingsPath))
    {
-      if (!std::filesystem::create_directories(appDataPath))
-      {
-         logger_->error("Unable to create application data directory: \"{}\"",
-                        appDataPath);
-      }
+      logger_->error("Settings path does not exist: \"{}\"", settingsPath);
    }
 
-   presetsPath_ = appDataPath + "/radar-presets.json";
+   presetsPath_ = settingsPath + "/radar-presets.json";
 }
 
 void RadarSiteModelImpl::ReadPresets()
@@ -409,6 +402,4 @@ std::shared_ptr<RadarSiteModel> RadarSiteModel::Instance()
    return radarSiteModel;
 }
 
-} // namespace model
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::model

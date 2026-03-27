@@ -1,5 +1,6 @@
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
@@ -11,7 +12,6 @@
 #include <QFileInfo>
 #include <QFontDatabase>
 #include <QGuiApplication>
-#include <QStandardPaths>
 #include <boost/container_hash/hash.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <boost/unordered/unordered_flat_set.hpp>
@@ -428,23 +428,16 @@ void FontManager::Impl::InitializeEnvironment()
 
 void FontManager::Impl::InitializeFontCache()
 {
-   std::string cachePath {
-      QStandardPaths::writableLocation(QStandardPaths::CacheLocation)
-         .toStdString() +
-      "/fonts"};
+   const std::filesystem::path cachePath {main::ApplicationPaths::GetLocation(
+      main::ApplicationPaths::StandardLocation::FontCache)};
 
-   fontCachePath_ = cachePath + "/";
-
-   if (!std::filesystem::exists(cachePath))
+   if (std::filesystem::exists(cachePath))
    {
-      std::error_code error;
-      if (!std::filesystem::create_directories(cachePath, error))
-      {
-         logger_->error("Unable to create font cache directory: \"{}\" ({})",
-                        cachePath,
-                        error.message());
-         fontCachePath_.clear();
-      }
+      fontCachePath_ = cachePath.generic_string() + "/";
+   }
+   else
+   {
+      logger_->error("Font cache path does not exist: {}", cachePath.string());
    }
 }
 

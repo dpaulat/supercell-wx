@@ -1,6 +1,7 @@
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/settings_container.hpp>
 #include <scwx/qt/settings/settings_definitions.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/types/alert_types.hpp>
 #include <scwx/qt/types/location_types.hpp>
@@ -11,7 +12,6 @@
 #include <boost/algorithm/string.hpp>
 #include <fmt/chrono.h>
 #include <QDir>
-#include <QStandardPaths>
 #include <QUrl>
 
 namespace scwx::qt::settings
@@ -41,10 +41,10 @@ public:
          types::GetUiStyleName(types::UiStyle::Default);
 
       const std::string defaultScreenCaptureFolder =
-         QDir::toNativeSeparators(
-            QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)
-               .append("/Supercell Wx"))
-            .toStdString();
+         (main::ApplicationPaths::GetLocation(
+             main::ApplicationPaths::StandardLocation::Pictures) /
+          "Supercell Wx")
+            .string();
       const std::string defaultScreenCaptureName =
          "{site}_{product}_{timestamp:%Y%m%dT%H%M%SZ}_{lat}_{lon}_{zoom}_{"
          "width}x{height}";

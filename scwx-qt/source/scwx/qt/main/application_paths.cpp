@@ -16,6 +16,7 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static const boost::unordered_flat_map<StandardLocation, std::string>
    standardLocationNames_ {{StandardLocation::Cache, "Cache"},
                            {StandardLocation::FontCache, "Font Cache"},
+                           {StandardLocation::Local, "Local"},
                            {StandardLocation::Log, "Log"},
                            {StandardLocation::Pictures, "Pictures"},
                            {StandardLocation::Settings, "Settings"},
@@ -27,6 +28,7 @@ static const boost::unordered_flat_map<
    standardLocationDefaultPaths_ {
       {StandardLocation::Cache, {QStandardPaths::CacheLocation, ""}},
       {StandardLocation::FontCache, {QStandardPaths::CacheLocation, "/fonts"}},
+      {StandardLocation::Local, {QStandardPaths::AppLocalDataLocation, ""}},
       {StandardLocation::Log, {QStandardPaths::AppLocalDataLocation, ""}},
       {StandardLocation::Pictures, {QStandardPaths::PicturesLocation, ""}},
       {StandardLocation::Settings, {QStandardPaths::AppDataLocation, ""}},
@@ -36,6 +38,7 @@ static const boost::unordered_flat_map<StandardLocation, std::string>
    standardLocationPortablePaths_ {
       {StandardLocation::Cache, "cache/"},
       {StandardLocation::FontCache, "cache/fonts/"},
+      {StandardLocation::Local, "local/"},
       {StandardLocation::Log, "logs/"},
       {StandardLocation::Pictures, "pictures/"},
       {StandardLocation::Settings, "settings/"},
