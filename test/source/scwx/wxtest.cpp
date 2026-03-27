@@ -8,7 +8,7 @@
 
 int main(int argc, char** argv)
 {
-   QCoreApplication app(argc, argv);
+   const QCoreApplication app(argc, argv);
 
    scwx::util::Logger::Initialize();
    spdlog::set_level(spdlog::level::debug);

@@ -45,8 +45,11 @@ TEST_P(ByMapProviderTest, MapProviderLayers)
    std::unique_ptr<QCoreApplication> ownedApp;
    if (QCoreApplication::instance() == nullptr)
    {
+      // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast): QCoreApplication
+      // requires non-const char**
       ownedApp = std::make_unique<QCoreApplication>(
          appArgc, const_cast<char**>(appArgv));
+      // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
    }
 
    // Configure map provider
