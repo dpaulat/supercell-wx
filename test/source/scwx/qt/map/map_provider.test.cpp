@@ -39,10 +39,15 @@ TEST_P(ByMapProviderTest, MapProviderLayers)
       return;
    }
 
-   // Setup QCoreApplication
-   int              argc   = 1;
-   const char*      argv[] = {"arg", nullptr};
-   QCoreApplication application(argc, const_cast<char**>(argv));
+   // Setup QCoreApplication if not already created
+   int              appArgc  = 1;
+   const char*      appArgv[] = {"arg", nullptr};
+   std::unique_ptr<QCoreApplication> ownedApp;
+   if (QCoreApplication::instance() == nullptr)
+   {
+      ownedApp = std::make_unique<QCoreApplication>(
+         appArgc, const_cast<char**>(appArgv));
+   }
 
    // Configure map provider
    const MapProviderInfo& mapProviderInfo = GetMapProviderInfo(mapProvider);
@@ -65,7 +70,7 @@ TEST_P(ByMapProviderTest, MapProviderLayers)
       std::make_shared<QMapLibre::Map>(nullptr, mapSettings, QSize(1, 1));
    mapContext->set_map(map);
    mapContext->set_map_provider(mapProvider);
-   application.processEvents();
+   QCoreApplication::processEvents();
 
    // Connect style load completion signal
    QObject::connect(
@@ -76,7 +81,7 @@ TEST_P(ByMapProviderTest, MapProviderLayers)
          if (mapChange ==
              QMapLibre::Map::MapChange::MapChangeDidFinishLoadingStyle)
          {
-            application.exit();
+            QCoreApplication::exit();
          }
       });
 
@@ -92,7 +97,7 @@ TEST_P(ByMapProviderTest, MapProviderLayers)
                        logger_->warn("Timed out waiting for style change");
                        timeout = true;
 
-                       application.exit();
+                       QCoreApplication::exit();
                     });
 
    // Iterate through each style
@@ -104,7 +109,7 @@ TEST_P(ByMapProviderTest, MapProviderLayers)
       timeout = false;
       util::maplibre::SetMapStyleUrl(mapContext, mapStyle.url_);
       timeoutTimer.start(5000ms);
-      application.exec();
+      QCoreApplication::exec();
       timeoutTimer.stop();
 
       // Check result

@@ -39,4 +39,10 @@ void ParseArguments(std::span<const char* const> args);
  */
 void HandleArguments();
 
+/**
+ * @brief Resets the parsed command line options to their default values.
+ * @note Primarily intended for testing purposes.
+ */
+void Reset();
+
 } // namespace scwx::qt::main::ProgramOptions

@@ -1,6 +1,8 @@
 #include <scwx/qt/main/program_options.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <sstream>
+
 #include <boost/program_options.hpp>
 #include <fmt/ranges.h>
 
@@ -39,8 +41,9 @@ void ParseArguments(std::span<const char* const> args)
       boost::program_options::store(parsed, vm);
       boost::program_options::notify(vm);
 
-      boost::program_options::collect_unrecognized(
-         parsed.options, boost::program_options::include_positional);
+      programOptions_.unrecognizedArgs_ =
+         boost::program_options::collect_unrecognized(
+            parsed.options, boost::program_options::include_positional);
    }
    catch (const boost::program_options::error& ex)
    {
@@ -64,6 +67,11 @@ void HandleArguments()
       logger_->warn("Unrecognized command line arguments: {}",
                     fmt::join(programOptions_.unrecognizedArgs_, " "));
    }
+}
+
+void Reset()
+{
+   programOptions_ = Options {};
 }
 
 const boost::program_options::options_description& GetVisibleOptions()

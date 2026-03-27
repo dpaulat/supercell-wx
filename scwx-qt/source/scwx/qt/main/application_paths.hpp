@@ -26,6 +26,12 @@ using StandardLocationIterator =
 void Initialize();
 void LogErrors();
 
+/**
+ * @brief Resets all stored location paths and error messages.
+ * @note Primarily intended for testing purposes.
+ */
+void Reset();
+
 [[nodiscard]] const std::filesystem::path& GetLocation(StandardLocation type);
 
 } // namespace scwx::qt::main::ApplicationPaths

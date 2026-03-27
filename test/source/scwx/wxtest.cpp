@@ -2,10 +2,13 @@
 
 #include <aws/core/Aws.h>
 #include <gtest/gtest.h>
+#include <QCoreApplication>
 #include <spdlog/spdlog.h>
 
 int main(int argc, char** argv)
 {
+   QCoreApplication app(argc, argv);
+
    scwx::util::Logger::Initialize();
    spdlog::set_level(spdlog::level::debug);
 

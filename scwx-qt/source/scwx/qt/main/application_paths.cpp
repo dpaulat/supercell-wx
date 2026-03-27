@@ -6,6 +6,8 @@
 #include <vector>
 
 #include <boost/unordered/unordered_flat_map.hpp>
+#include <fmt/format.h>
+#include <QCoreApplication>
 #include <QStandardPaths>
 
 namespace scwx::qt::main::ApplicationPaths
@@ -36,13 +38,13 @@ static const boost::unordered_flat_map<
 
 static const boost::unordered_flat_map<StandardLocation, std::string>
    standardLocationPortablePaths_ {
-      {StandardLocation::Cache, "cache/"},
-      {StandardLocation::FontCache, "cache/fonts/"},
-      {StandardLocation::Local, "local/"},
-      {StandardLocation::Log, "logs/"},
-      {StandardLocation::Pictures, "pictures/"},
-      {StandardLocation::Settings, "settings/"},
-      {StandardLocation::Temp, "temp/"}};
+      {StandardLocation::Cache, "cache"},
+      {StandardLocation::FontCache, "cache/fonts"},
+      {StandardLocation::Local, "local"},
+      {StandardLocation::Log, "logs"},
+      {StandardLocation::Pictures, "pictures"},
+      {StandardLocation::Settings, "settings"},
+      {StandardLocation::Temp, "temp"}};
 
 static boost::unordered_flat_map<StandardLocation, std::filesystem::path>
    standardLocationPaths_ {};
@@ -133,7 +135,10 @@ std::filesystem::path GetDefaultPath(StandardLocation location)
 {
    if (ProgramOptions::GetOptions().portableMode_)
    {
-      return standardLocationPortablePaths_.at(location);
+      static const std::string cachedAppDir =
+         QCoreApplication::applicationDirPath().toStdString();
+      return std::filesystem::path(cachedAppDir) /
+             standardLocationPortablePaths_.at(location);
    }
    else
    {
@@ -150,6 +155,12 @@ void LogErrors()
    {
       logger_->error(errorMessage);
    }
+}
+
+void Reset()
+{
+   standardLocationPaths_.clear();
+   errorMessages_.clear();
 }
 
 [[nodiscard]] const std::filesystem::path& GetLocation(StandardLocation type)
