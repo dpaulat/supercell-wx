@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
    {
       return 0;
    }
-   
+
    scwx::qt::main::ApplicationPaths::LogErrors();
 
    scwx::network::cpr::SetUserAgent(fmt::format(
