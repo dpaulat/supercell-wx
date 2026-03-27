@@ -71,16 +71,6 @@ void LogManager::InitializeLogFile()
    }
    p->logFile_ = fmt::format("{}/supercell-wx.{}.log", p->logPath_, p->pid_);
 
-   // Create log directory if it doesn't exist
-   if (!std::filesystem::exists(p->logPath_))
-   {
-      if (!std::filesystem::create_directories(p->logPath_))
-      {
-         logger_->error("Unable to create log directory: \"{}\"", p->logPath_);
-         return;
-      }
-   }
-
    scwx::util::Logger::AddFileSink(p->logFile_);
 
    p->PruneLogFiles();
