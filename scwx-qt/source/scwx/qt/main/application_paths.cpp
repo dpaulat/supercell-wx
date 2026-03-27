@@ -71,16 +71,10 @@ void Initialize()
                            path.string(),
                            error.message());
             errorMessages_.push_back(errorMessage);
-
-            // Populate the path map with an empty path
-            standardLocationPaths_.emplace(location, std::filesystem::path {});
          }
       }
 
-      if (std::filesystem::exists(path))
-      {
-         standardLocationPaths_.emplace(location, path);
-      }
+      standardLocationPaths_.emplace(location, path);
    }
 }
 
