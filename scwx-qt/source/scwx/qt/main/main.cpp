@@ -4,6 +4,7 @@
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/main/main_window.hpp>
 #include <scwx/qt/main/process_validation.hpp>
+#include <scwx/qt/main/program_options.hpp>
 #include <scwx/qt/main/versions.hpp>
 #include <scwx/qt/manager/log_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
@@ -51,9 +52,11 @@ int main(int argc, char* argv[])
 {
    // Store arguments
    std::vector<std::string> args {};
+   args.reserve(argc);
    for (int i = 0; i < argc; ++i)
    {
-      args.push_back(argv[i]);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      args.emplace_back(argv[i]);
    }
 
    if (!scwx::util::GetEnvironment("SCWX_TEST").empty())
@@ -66,6 +69,11 @@ int main(int argc, char* argv[])
    logManager.Initialize();
 
    QCoreApplication::setApplicationName("Supercell Wx");
+   InitializeOpenGL();
+   QApplication a(argc, argv);
+
+   scwx::qt::main::ParseArguments({argv, static_cast<std::size_t>(argc)});
+
    const std::string osName = QSysInfo::prettyProductName().toStdString();
 
    logManager.InitializeLogFile();
@@ -78,9 +86,7 @@ int main(int argc, char* argv[])
                  QLibraryInfo::version().toString().toStdString());
    logger_->info("Running on {}", osName);
 
-   InitializeOpenGL();
-
-   QApplication a(argc, argv);
+   scwx::qt::main::HandleArguments();
 
    scwx::network::cpr::SetUserAgent(fmt::format(
       "SupercellWx/{} ({})", scwx::qt::main::kVersionString_, osName));
