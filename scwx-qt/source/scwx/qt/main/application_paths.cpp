@@ -37,14 +37,13 @@ static const boost::unordered_flat_map<
       {StandardLocation::Temp, {QStandardPaths::TempLocation, ""}}};
 
 static const boost::unordered_flat_map<StandardLocation, std::string>
-   standardLocationPortablePaths_ {
-      {StandardLocation::Cache, "cache"},
-      {StandardLocation::FontCache, "cache/fonts"},
-      {StandardLocation::Local, "local"},
-      {StandardLocation::Log, "logs"},
-      {StandardLocation::Pictures, "pictures"},
-      {StandardLocation::Settings, "settings"},
-      {StandardLocation::Temp, "temp"}};
+   standardLocationPortablePaths_ {{StandardLocation::Cache, "cache"},
+                                   {StandardLocation::FontCache, "cache/fonts"},
+                                   {StandardLocation::Local, "local"},
+                                   {StandardLocation::Log, "logs"},
+                                   {StandardLocation::Pictures, "pictures"},
+                                   {StandardLocation::Settings, "settings"},
+                                   {StandardLocation::Temp, "temp"}};
 
 static boost::unordered_flat_map<StandardLocation, std::filesystem::path>
    standardLocationPaths_ {};

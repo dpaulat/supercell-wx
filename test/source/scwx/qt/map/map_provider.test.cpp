@@ -40,8 +40,8 @@ TEST_P(ByMapProviderTest, MapProviderLayers)
    }
 
    // Setup QCoreApplication if not already created
-   int              appArgc  = 1;
-   const char*      appArgv[] = {"arg", nullptr};
+   int                               appArgc   = 1;
+   const char*                       appArgv[] = {"arg", nullptr};
    std::unique_ptr<QCoreApplication> ownedApp;
    if (QCoreApplication::instance() == nullptr)
    {

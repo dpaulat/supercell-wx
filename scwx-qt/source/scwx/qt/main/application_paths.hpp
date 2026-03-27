@@ -18,10 +18,8 @@ enum class StandardLocation : std::uint8_t
    Settings,
    Temp
 };
-using StandardLocationIterator =
-   scwx::util::Iterator<StandardLocation,
-                        StandardLocation::Cache,
-                        StandardLocation::Temp>;
+using StandardLocationIterator = scwx::util::
+   Iterator<StandardLocation, StandardLocation::Cache, StandardLocation::Temp>;
 
 void Initialize();
 void LogErrors();
