@@ -91,7 +91,7 @@ bool InitializeOverride(StandardLocation location)
    switch (location)
    {
    case StandardLocation::Settings:
-      overridePath = GetProgramOptions().settingsDirectory_;
+      overridePath = ProgramOptions::GetOptions().settingsDirectory_;
       break;
 
    case StandardLocation::Cache:
@@ -133,7 +133,7 @@ bool InitializeOverride(StandardLocation location)
 
 std::filesystem::path GetDefaultPath(StandardLocation location)
 {
-   if (GetProgramOptions().portableMode_)
+   if (ProgramOptions::GetOptions().portableMode_)
    {
       return standardLocationPortablePaths_.at(location);
    }

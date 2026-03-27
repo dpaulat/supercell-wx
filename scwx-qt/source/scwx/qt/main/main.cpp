@@ -73,7 +73,8 @@ int main(int argc, char* argv[])
    InitializeOpenGL();
    QApplication a(argc, argv);
 
-   scwx::qt::main::ParseArguments({argv, static_cast<std::size_t>(argc)});
+   scwx::qt::main::ProgramOptions::ParseArguments(
+      {argv, static_cast<std::size_t>(argc)});
    scwx::qt::main::ApplicationPaths::Initialize();
 
    const std::string osName = QSysInfo::prettyProductName().toStdString();
@@ -88,7 +89,7 @@ int main(int argc, char* argv[])
                  QLibraryInfo::version().toString().toStdString());
    logger_->info("Running on {}", osName);
 
-   scwx::qt::main::HandleArguments();
+   scwx::qt::main::ProgramOptions::HandleArguments();
    scwx::qt::main::ApplicationPaths::LogErrors();
 
    scwx::network::cpr::SetUserAgent(fmt::format(

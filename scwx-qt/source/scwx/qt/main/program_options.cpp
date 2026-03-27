@@ -4,18 +4,18 @@
 #include <boost/program_options.hpp>
 #include <fmt/ranges.h>
 
-namespace scwx::qt::main
+namespace scwx::qt::main::ProgramOptions
 {
 
 static const std::string logPrefix_ = "scwx::qt::main::program_options";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static ProgramOptions programOptions_ {};
+static Options programOptions_ {};
 
 static const boost::program_options::options_description& GetVisibleOptions();
 static void                                               PrintHelp();
 
-const ProgramOptions& GetProgramOptions()
+const Options& GetOptions()
 {
    return programOptions_;
 }
@@ -78,11 +78,10 @@ const boost::program_options::options_description& GetVisibleOptions()
          ("help,h",
           boost::program_options::bool_switch(&programOptions_.showHelp_),
           "Display this help message") //
-         (
-            "portable,p",
-            boost::program_options::bool_switch(&programOptions_.portableMode_),
-            "Run in portable mode, storing settings in the application "
-            "directory") //
+         ("portable,p",
+          boost::program_options::bool_switch(&programOptions_.portableMode_),
+          "Run in portable mode, storing settings in the application "
+          "directory") //
          ("settings-directory",
           boost::program_options::value<std::string>(
              &programOptions_.settingsDirectory_)
@@ -116,4 +115,4 @@ void PrintHelp()
    logger_->info(oss.str());
 }
 
-} // namespace scwx::qt::main
+} // namespace scwx::qt::main::ProgramOptions

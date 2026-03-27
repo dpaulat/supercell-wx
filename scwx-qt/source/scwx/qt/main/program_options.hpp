@@ -4,10 +4,10 @@
 #include <string>
 #include <vector>
 
-namespace scwx::qt::main
+namespace scwx::qt::main::ProgramOptions
 {
 
-struct ProgramOptions
+struct Options
 {
    bool                     showHelp_ {false};
    bool                     portableMode_ {false};
@@ -21,11 +21,10 @@ struct ProgramOptions
  * @note This function should only be called after ParseArguments() has been
  * called to ensure that the command line options have been parsed and stored.
  */
-[[nodiscard]] const ProgramOptions& GetProgramOptions();
+[[nodiscard]] const Options& GetOptions();
 
 /**
- * @brief Parses command line arguments and stores them in a ProgramOptions
- * struct.
+ * @brief Parses command line arguments and stores them in an Options struct.
  */
 void ParseArguments(std::span<const char* const> args);
 
@@ -40,4 +39,4 @@ void ParseArguments(std::span<const char* const> args);
  */
 void HandleArguments();
 
-} // namespace scwx::qt::main
+} // namespace scwx::qt::main::ProgramOptions
