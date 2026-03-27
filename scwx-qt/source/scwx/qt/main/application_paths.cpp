@@ -66,7 +66,7 @@ void Initialize()
       if (!std::filesystem::exists(path))
       {
          std::error_code error;
-         if (!std::filesystem::create_directories(path, error))
+         if (!std::filesystem::create_directories(path, error) && error)
          {
             const std::string errorMessage =
                fmt::format("Unable to create {} directory: \"{}\" ({})",
@@ -107,7 +107,7 @@ bool InitializeOverride(StandardLocation location)
       if (!std::filesystem::exists(path))
       {
          std::error_code error;
-         if (!std::filesystem::create_directories(path, error))
+         if (!std::filesystem::create_directories(path, error) && error)
          {
             const std::string errorMessage =
                fmt::format("Unable to create {} directory: \"{}\" ({})",
