@@ -2262,7 +2262,10 @@ void MapWidgetImpl::ScreenCaptureSaveImage()
          // Create directory if it doesn't exist
          if (!std::filesystem::exists(screenCaptureFolder))
          {
-            if (!std::filesystem::create_directories(screenCaptureFolder))
+            std::error_code error;
+            if (!std::filesystem::create_directories(screenCaptureFolder,
+                                                     error) &&
+                error)
             {
                logger_->error(
                   "Unable to create screen capture directory: \"{}\"",

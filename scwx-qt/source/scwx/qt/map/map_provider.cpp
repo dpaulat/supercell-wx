@@ -1,10 +1,10 @@
 #include <scwx/qt/map/map_provider.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 
 #include <unordered_map>
 
 #include <boost/algorithm/string.hpp>
-#include <QStandardPaths>
 
 namespace scwx::qt::map
 {
@@ -194,10 +194,11 @@ void ConfigureMapSettings(MapProvider          mapProvider,
 
    const auto& mapProviderInfo = GetMapProviderInfo(mapProvider);
 
-   const std::string appDataPath {
-      QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
-         .toStdString()};
-   const std::string cacheDbPath {appDataPath + "/" +
+   const std::string localDataPath {
+      scwx::qt::main::ApplicationPaths::GetLocation(
+         scwx::qt::main::ApplicationPaths::StandardLocation::Local)
+         .generic_string()};
+   const std::string cacheDbPath {localDataPath + "/" +
                                   mapProviderInfo.cacheDbName_};
 
    const std::string mapProviderApiKey = map::GetMapProviderApiKey(mapProvider);

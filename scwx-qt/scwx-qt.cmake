@@ -55,13 +55,17 @@ find_package(Qt${QT_VERSION_MAJOR}
 set(SRC_EXE_MAIN source/scwx/qt/main/main.cpp)
 
 set(HDR_MAIN source/scwx/qt/main/application.hpp
+             source/scwx/qt/main/application_paths.hpp
              source/scwx/qt/main/check_privilege.hpp
              source/scwx/qt/main/main_window.hpp
-             source/scwx/qt/main/process_validation.hpp)
+             source/scwx/qt/main/process_validation.hpp
+             source/scwx/qt/main/program_options.hpp)
 set(SRC_MAIN source/scwx/qt/main/application.cpp
+             source/scwx/qt/main/application_paths.cpp
              source/scwx/qt/main/check_privilege.cpp
              source/scwx/qt/main/main_window.cpp
-             source/scwx/qt/main/process_validation.cpp)
+             source/scwx/qt/main/process_validation.cpp
+             source/scwx/qt/main/program_options.cpp)
 set(UI_MAIN  source/scwx/qt/main/main_window.ui)
 set(HDR_CONFIG source/scwx/qt/config/county_database.hpp
                source/scwx/qt/config/radar_site.hpp)
@@ -666,9 +670,7 @@ set_target_properties(scwx-qt_update_radar_sites   PROPERTIES FOLDER generate)
 if (WIN32)
     set(APP_ICON_RESOURCE_WINDOWS ${RESOURCE_OUTPUT})
     qt_add_executable(supercell-wx ${EXECUTABLE_SOURCES} ${APP_ICON_RESOURCE_WINDOWS})
-    if (SCWX_DISABLE_CONSOLE)
-        set_target_properties(supercell-wx PROPERTIES WIN32_EXECUTABLE $<IF:$<CONFIG:Release>,TRUE,FALSE>)
-    endif()
+    set_target_properties(supercell-wx PROPERTIES WIN32_EXECUTABLE $<IF:$<CONFIG:Release>,TRUE,FALSE>)
 elseif (APPLE)
     set(SCWX_ICON "${scwx-qt_SOURCE_DIR}/res/icons/scwx.icns")
 
@@ -807,6 +809,8 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      SQLite::SQLite3
                                      TIFF::TIFF
                                      wxdata)
+
+target_link_libraries(scwx-qt INTERFACE Boost::program_options)
 
 target_link_libraries(supercell-wx PRIVATE scwx-qt
                                            wxdata)

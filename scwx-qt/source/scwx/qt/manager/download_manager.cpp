@@ -75,7 +75,8 @@ void DownloadManager::Impl::DownloadSync(
    // Create directory if it doesn't exist
    if (!std::filesystem::exists(parentPath))
    {
-      if (!std::filesystem::create_directories(parentPath))
+      std::error_code error;
+      if (!std::filesystem::create_directories(parentPath, error) && error)
       {
          logger_->error("Unable to create download directory: \"{}\"",
                         parentPath.string());

@@ -1,4 +1,5 @@
 #include <scwx/qt/manager/update_manager.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/network/cpr.hpp>
 #include <scwx/util/json.hpp>
 #include <scwx/util/logger.hpp>
@@ -9,13 +10,8 @@
 #include <boost/json.hpp>
 #include <cpr/cpr.h>
 #include <re2/re2.h>
-#include <QStandardPaths>
 
-namespace scwx
-{
-namespace qt
-{
-namespace manager
+namespace scwx::qt::manager
 {
 
 static const std::string logPrefix_ = "scwx::qt::manager::update_manager";
@@ -225,10 +221,10 @@ UpdateManager::Impl::FindLatestRelease()
 void UpdateManager::RemoveTemporaryReleases()
 {
 #if defined(_WIN32)
-   const std::string destination {
-      QStandardPaths::writableLocation(QStandardPaths::TempLocation)
-         .toStdString()};
-   const std::filesystem::path         destinationPath {destination};
+   const std::filesystem::path destinationPath {
+      main::ApplicationPaths::GetLocation(
+         main::ApplicationPaths::StandardLocation::Temp)};
+
    std::filesystem::directory_iterator it {destinationPath};
 
    for (auto& file : it)
@@ -269,6 +265,4 @@ std::shared_ptr<UpdateManager> UpdateManager::Instance()
    return updateManager;
 }
 
-} // namespace manager
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::manager

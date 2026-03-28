@@ -2,8 +2,10 @@
 
 #include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/main/main_window.hpp>
 #include <scwx/qt/main/process_validation.hpp>
+#include <scwx/qt/main/program_options.hpp>
 #include <scwx/qt/main/versions.hpp>
 #include <scwx/qt/manager/log_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
@@ -51,9 +53,11 @@ int main(int argc, char* argv[])
 {
    // Store arguments
    std::vector<std::string> args {};
+   args.reserve(argc);
    for (int i = 0; i < argc; ++i)
    {
-      args.push_back(argv[i]);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      args.emplace_back(argv[i]);
    }
 
    if (!scwx::util::GetEnvironment("SCWX_TEST").empty())
@@ -61,15 +65,20 @@ int main(int argc, char* argv[])
       QStandardPaths::setTestModeEnabled(true);
    }
 
-   // Initialize logger
+   QCoreApplication::setApplicationName("Supercell Wx");
+   InitializeOpenGL();
+   const QApplication a(argc, argv);
+
+   scwx::qt::main::ProgramOptions::ParseArguments(
+      {argv, static_cast<std::size_t>(argc)});
+
+   // Initialize logger and application paths
    auto& logManager = scwx::qt::manager::LogManager::Instance();
    logManager.Initialize();
-
-   QCoreApplication::setApplicationName("Supercell Wx");
-   const std::string osName = QSysInfo::prettyProductName().toStdString();
-
+   scwx::qt::main::ApplicationPaths::Initialize();
    logManager.InitializeLogFile();
 
+   const std::string osName = QSysInfo::prettyProductName().toStdString();
    logger_->info("Supercell Wx v{}.{} ({})",
                  scwx::qt::main::kVersionString_,
                  scwx::qt::main::kBuildNumber_,
@@ -78,9 +87,14 @@ int main(int argc, char* argv[])
                  QLibraryInfo::version().toString().toStdString());
    logger_->info("Running on {}", osName);
 
-   InitializeOpenGL();
+   bool exit = false;
+   scwx::qt::main::ProgramOptions::HandleArguments(exit);
+   if (exit)
+   {
+      return 0;
+   }
 
-   QApplication a(argc, argv);
+   scwx::qt::main::ApplicationPaths::LogErrors();
 
    scwx::network::cpr::SetUserAgent(fmt::format(
       "SupercellWx/{} ({})", scwx::qt::main::kVersionString_, osName));

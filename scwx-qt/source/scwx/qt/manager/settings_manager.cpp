@@ -1,4 +1,5 @@
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/settings/audio_settings.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
@@ -16,13 +17,8 @@
 
 #include <boost/algorithm/string.hpp>
 #include <QDir>
-#include <QStandardPaths>
 
-namespace scwx
-{
-namespace qt
-{
-namespace manager
+namespace scwx::qt::manager
 {
 
 static const std::string logPrefix_ = "scwx::qt::manager::settings_manager";
@@ -52,20 +48,17 @@ SettingsManager::~SettingsManager() {};
 
 void SettingsManager::Initialize()
 {
-   std::string appDataPath {
-      QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
-         .toStdString()};
+   const std::string settingsPath {
+      main::ApplicationPaths::GetLocation(
+         main::ApplicationPaths::StandardLocation::Settings)
+         .generic_string()};
 
-   if (!std::filesystem::exists(appDataPath))
+   if (!std::filesystem::exists(settingsPath))
    {
-      if (!std::filesystem::create_directories(appDataPath))
-      {
-         logger_->error("Unable to create application data directory: \"{}\"",
-                        appDataPath);
-      }
+      logger_->error("Settings path does not exist: \"{}\"", settingsPath);
    }
 
-   p->settingsPath_ = appDataPath + "/settings.json";
+   p->settingsPath_ = settingsPath + "/settings.json";
 
    ReadSettings(p->settingsPath_);
 
@@ -256,6 +249,4 @@ SettingsManager& SettingsManager::Instance()
    return instance_;
 }
 
-} // namespace manager
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::manager

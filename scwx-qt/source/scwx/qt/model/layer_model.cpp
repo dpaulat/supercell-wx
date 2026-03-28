@@ -1,4 +1,5 @@
 #include <scwx/qt/model/layer_model.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/types/map_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
@@ -15,7 +16,6 @@
 #include <QMimeData>
 #include <QStyle>
 #include <QStyleOption>
-#include <QStandardPaths>
 #include <boost/json.hpp>
 
 namespace scwx::qt::model
@@ -179,20 +179,17 @@ LayerModel::~LayerModel()
 
 void LayerModel::Impl::InitializeLayerSettings()
 {
-   std::string appDataPath {
-      QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
-         .toStdString()};
+   const std::string settingsPath {
+      main::ApplicationPaths::GetLocation(
+         main::ApplicationPaths::StandardLocation::Settings)
+         .generic_string()};
 
-   if (!std::filesystem::exists(appDataPath))
+   if (!std::filesystem::exists(settingsPath))
    {
-      if (!std::filesystem::create_directories(appDataPath))
-      {
-         logger_->error("Unable to create application data directory: \"{}\"",
-                        appDataPath);
-      }
+      logger_->error("Settings path does not exist: \"{}\"", settingsPath);
    }
 
-   layerSettingsPath_ = appDataPath + "/layers.json";
+   layerSettingsPath_ = settingsPath + "/layers.json";
 }
 
 void LayerModel::Impl::ReadLayerSettings()

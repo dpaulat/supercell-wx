@@ -57,7 +57,6 @@
 #include <QScreen>
 #include <QSignalBlocker>
 #include <QSplitter>
-#include <QStandardPaths>
 #include <QTimer>
 #include <QToolButton>
 #include <QWindow>
@@ -94,20 +93,6 @@ public:
        updateManager_ {manager::UpdateManager::Instance()},
        maps_ {}
    {
-      std::string appDataPath {
-         QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
-            .toStdString()};
-
-      if (!std::filesystem::exists(appDataPath))
-      {
-         if (!std::filesystem::create_directories(appDataPath))
-         {
-            logger_->error(
-               "Unable to create application local data directory: \"{}\"",
-               appDataPath);
-         }
-      }
-
       mapProvider_ = map::GetMapProvider(
          settings::GeneralSettings::Instance().map_provider().GetValue());
       map::ConfigureMapSettings(mapProvider_, settings_);

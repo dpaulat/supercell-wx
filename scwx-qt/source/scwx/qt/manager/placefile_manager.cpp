@@ -2,6 +2,7 @@
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/main/application.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/util/network.hpp>
 #include <scwx/gr/placefile.hpp>
 #include <scwx/network/cpr.hpp>
@@ -15,7 +16,6 @@
 #include <QDir>
 #include <QGuiApplication>
 #include <QScreen>
-#include <QStandardPaths>
 #include <QUrl>
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/post.hpp>
@@ -26,11 +26,7 @@
 #include <cpr/cpr.h>
 #include <fmt/chrono.h>
 
-namespace scwx
-{
-namespace qt
-{
-namespace manager
+namespace scwx::qt::manager
 {
 
 static const std::string logPrefix_ = "scwx::qt::manager::placefile_manager";
@@ -360,20 +356,17 @@ PlacefileManager::Impl::PlacefileRecord::refresh_time() const
 
 void PlacefileManager::Impl::InitializePlacefileSettings()
 {
-   std::string appDataPath {
-      QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
-         .toStdString()};
+   const std::string settingsPath {
+      main::ApplicationPaths::GetLocation(
+         main::ApplicationPaths::StandardLocation::Settings)
+         .generic_string()};
 
-   if (!std::filesystem::exists(appDataPath))
+   if (!std::filesystem::exists(settingsPath))
    {
-      if (!std::filesystem::create_directories(appDataPath))
-      {
-         logger_->error("Unable to create application data directory: \"{}\"",
-                        appDataPath);
-      }
+      logger_->error("Settings path does not exist: \"{}\"", settingsPath);
    }
 
-   placefileSettingsPath_ = appDataPath + "/placefiles.json";
+   placefileSettingsPath_ = settingsPath + "/placefiles.json";
 }
 
 void PlacefileManager::Impl::ReadPlacefileSettings()
@@ -906,6 +899,4 @@ PlacefileManager::Impl::LoadImageResources(
    return ResourceManager::LoadImageResources(urlStrings);
 }
 
-} // namespace manager
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::manager
