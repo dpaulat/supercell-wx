@@ -2,6 +2,7 @@
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/qt/util/json.hpp>
 #include <scwx/common/sites.hpp>
+#include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/streams.hpp>
 #include <scwx/util/time.hpp>
@@ -302,6 +303,30 @@ void RadarSite::Initialize()
    if (!initialized_)
    {
       ReadConfig(defaultRadarSiteFile_);
+
+      const std::string level2Url =
+         scwx::util::GetEnvironment("SCWX_LEVEL2_DATA_PROVIDER_URL");
+      const std::string level3Url =
+         scwx::util::GetEnvironment("SCWX_LEVEL3_DATA_PROVIDER_URL");
+
+      if (boost::icontains(level2Url, "iastate.edu") ||
+          boost::icontains(level3Url, "iastate.edu"))
+      {
+         // Detected Iowa State University data provider URL in environment
+         // variables. Load radar sites from Iowa State University GIS config.
+         ReadConfig(":/res/config/radars_iastate.gis");
+      }
+
+      if (boost::icontains(level2Url, "allisonhouse.com") ||
+          boost::icontains(level3Url, "allisonhouse.com") ||
+          boost::icontains(level2Url, "weatherpulse.com") ||
+          boost::icontains(level3Url, "weatherpulse.com"))
+      {
+         // Detected Weather Pulse data provider URL in environment
+         // variables. Load radar sites from Weather Pulse GIS config.
+         ReadConfig(":/res/config/radars_weatherpulse.gis");
+      }
+
       initialized_ = true;
    }
 }

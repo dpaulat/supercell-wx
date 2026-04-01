@@ -72,20 +72,24 @@ set(HDR_PROVIDER include/scwx/provider/aws_level2_data_provider.hpp
                  include/scwx/provider/aws_level2_chunks_data_provider.hpp
                  include/scwx/provider/aws_level3_data_provider.hpp
                  include/scwx/provider/aws_nexrad_data_provider.hpp
+                 include/scwx/provider/http_nexrad_data_provider.hpp
                  include/scwx/provider/iem_api_provider.hpp
                  include/scwx/provider/iem_api_provider.ipp
                  include/scwx/provider/nexrad_data_provider.hpp
                  include/scwx/provider/nexrad_data_provider_factory.hpp
                  include/scwx/provider/nws_api_provider.hpp
+                 include/scwx/provider/ondas_level2_data_provider.hpp
                  include/scwx/provider/warnings_provider.hpp)
 set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp
                  source/scwx/provider/aws_level2_chunks_data_provider.cpp
                  source/scwx/provider/aws_level3_data_provider.cpp
                  source/scwx/provider/aws_nexrad_data_provider.cpp
+                 source/scwx/provider/http_nexrad_data_provider.cpp
                  source/scwx/provider/iem_api_provider.cpp
                  source/scwx/provider/nexrad_data_provider.cpp
                  source/scwx/provider/nexrad_data_provider_factory.cpp
                  source/scwx/provider/nws_api_provider.cpp
+                 source/scwx/provider/ondas_level2_data_provider.cpp
                  source/scwx/provider/warnings_provider.cpp)
 set(HDR_TYPES include/scwx/types/iem_types.hpp
               include/scwx/types/ntp_types.hpp
