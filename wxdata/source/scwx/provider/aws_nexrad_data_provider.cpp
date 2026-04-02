@@ -238,6 +238,11 @@ AwsNexradDataProvider::GetTimePointsByDate(
    return timePoints;
 }
 
+bool AwsNexradDataProvider::IsDateArchiveAvailable() const
+{
+   return true;
+}
+
 bool AwsNexradDataProvider::IsDateCached(
    std::chrono::system_clock::time_point date)
 {

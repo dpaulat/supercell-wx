@@ -53,6 +53,7 @@ public:
    std::string radarSite_;
 
    bool dateArchiveAvailable_ {false};
+   bool dataRefreshed_ {false};
 
    std::map<std::chrono::system_clock::time_point, ObjectRecord> objects_ {};
    std::map<std::chrono::system_clock::time_point, ObjectRecord> newObjects_ {};
@@ -168,6 +169,11 @@ HttpNexradDataProvider::GetTimePointsByDate(
    return timePoints;
 }
 
+bool HttpNexradDataProvider::IsDateArchiveAvailable() const
+{
+   return p->dateArchiveAvailable_;
+}
+
 bool HttpNexradDataProvider::IsDateCached(
    std::chrono::system_clock::time_point date)
 {
@@ -187,7 +193,7 @@ bool HttpNexradDataProvider::IsDateCached(
    else
    {
       // Is data present?
-      dataPresent = !p->objects_.empty();
+      dataPresent = p->dataRefreshed_;
    }
 
    return dataPresent;
@@ -364,7 +370,8 @@ std::stringstream
 HttpNexradDataProvider::DownloadToStream(const std::string& url)
 {
    // Convert response to stream
-   std::stringstream ss {DownloadToString(url), std::ios::in | std::ios::binary};
+   std::stringstream ss {DownloadToString(url),
+                         std::ios::in | std::ios::binary};
    return ss;
 }
 
@@ -389,6 +396,8 @@ bool HttpNexradDataProvider::AddToCache(
       newObject = p->objects_.insert_or_assign(time, record).second;
    }
 
+   p->dataRefreshed_ = true;
+
    return newObject;
 }
 
@@ -405,6 +414,7 @@ void HttpNexradDataProvider::ResetCacheFinish()
 
       p->objects_ = std::move(p->newObjects_);
       p->newObjects_.clear();
+      p->dataRefreshed_ = true;
    }
 
    p->cacheResetting_ = false;

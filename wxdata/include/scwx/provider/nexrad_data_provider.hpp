@@ -132,6 +132,13 @@ public:
                        bool                                  update) = 0;
 
    /**
+    * Determines if a historical archive is available.
+    *
+    * @return Whether or not an archive is available
+    */
+   [[nodiscard]] virtual bool IsDateArchiveAvailable() const = 0;
+
+   /**
     * Determines if time points for the requested date are cached.
     *
     * @param date Date for which to query the cache

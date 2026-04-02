@@ -3,6 +3,7 @@
 #include <scwx/util/logger.hpp>
 
 #include <chrono>
+#include <mutex>
 
 #include <re2/re2.h>
 
@@ -35,6 +36,8 @@ public:
 
    std::string radarSite_;
    std::string baseUri_;
+
+   std::mutex listObjectsMutex_ {};
 };
 
 OndasLevel2DataProvider::OndasLevel2DataProvider(const std::string& radarSite,
@@ -107,6 +110,9 @@ OndasLevel2DataProvider::ListObjects(std::chrono::system_clock::time_point date)
    const std::string content = DownloadToString(listingUrl);
    if (content.empty())
    {
+      const std::unique_lock lock {p->listObjectsMutex_};
+      ResetCacheStart();
+      ResetCacheFinish();
       return {false, 0, 0};
    }
 
@@ -116,6 +122,8 @@ OndasLevel2DataProvider::ListObjects(std::chrono::system_clock::time_point date)
    std::size_t newObjects   = 0;
    std::size_t totalObjects = 0;
 
+   const std::unique_lock lock {p->listObjectsMutex_};
+
    ResetCacheStart();
 
    for (const auto& record : records)
@@ -124,14 +132,6 @@ OndasLevel2DataProvider::ListObjects(std::chrono::system_clock::time_point date)
       if (time == std::chrono::system_clock::time_point {})
       {
          continue; // Invalid timestamp
-      }
-
-      // Filter to requested date
-      const auto day     = std::chrono::floor<std::chrono::days>(date);
-      const auto fileDay = std::chrono::floor<std::chrono::days>(time);
-      if (fileDay != day)
-      {
-         continue;
       }
 
       // Add to cache (key is the filename)

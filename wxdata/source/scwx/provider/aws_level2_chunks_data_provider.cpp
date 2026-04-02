@@ -297,6 +297,12 @@ AwsLevel2ChunksDataProvider::GetTimePointsByDate(
    return {};
 }
 
+bool AwsLevel2ChunksDataProvider::IsDateArchiveAvailable() const
+{
+   // No archive, default to false
+   return false;
+}
+
 bool AwsLevel2ChunksDataProvider::IsDateCached(
    std::chrono::system_clock::time_point /* date */)
 {

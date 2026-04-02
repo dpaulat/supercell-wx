@@ -37,8 +37,9 @@ public:
    std::string FindLatestKey() override;
    std::chrono::system_clock::time_point FindLatestTime() override;
    std::vector<std::chrono::system_clock::time_point>
-        GetTimePointsByDate(std::chrono::system_clock::time_point date,
-                            bool                                  update) override;
+   GetTimePointsByDate(std::chrono::system_clock::time_point date,
+                       bool                                  update) override;
+   [[nodiscard]] bool IsDateArchiveAvailable() const override;
    bool IsDateCached(std::chrono::system_clock::time_point date) override;
    std::tuple<bool, size_t, size_t>
    ListObjects(std::chrono::system_clock::time_point date) override;
