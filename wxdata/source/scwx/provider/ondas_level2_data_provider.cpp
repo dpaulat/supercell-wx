@@ -90,7 +90,13 @@ OndasLevel2DataProvider::GetTimePointFromKey(const std::string& key)
    static const std::string timeFormat {"%Y%m%d_%H%M"};
    std::istringstream       ss(dateTimeStr);
 
-   ss >> std::chrono::parse(timeFormat, time);
+   using namespace std::chrono;
+
+#if (__cpp_lib_chrono < 201907L)
+   using namespace date;
+#endif
+
+   ss >> parse(timeFormat, time);
 
    if (ss.fail())
    {
