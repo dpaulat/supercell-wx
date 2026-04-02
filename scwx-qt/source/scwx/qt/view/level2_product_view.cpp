@@ -794,11 +794,13 @@ void Level2ProductView::ComputeSweep()
       const std::int32_t dataMomentRange     = std::max<std::int32_t>(
          momentData->data_moment_range_raw(), dataMomentIntervalH);
 
-      // Compute gate size (number of base 250m gates per bin)
-      const std::int32_t gateSizeMeters =
-         static_cast<std::int32_t>(radarProductManager->gate_size());
-      const std::int32_t gateSize =
-         std::max<std::int32_t>(1, dataMomentInterval / gateSizeMeters);
+      // Compute gate size
+      const units::length::meters<float> gateSize =
+         momentData->data_moment_range_sample_interval();
+      const auto gateSizeMeters = static_cast<std::int32_t>(gateSize.value());
+
+      // Number of gates per bin is 1 for level 2 data
+      constexpr std::int32_t gatesPerBin = 1;
 
       // Compute gate range [startGate, endGate)
       std::int32_t startGate =
@@ -807,7 +809,7 @@ void Level2ProductView::ComputeSweep()
          std::min<std::int32_t>(momentData->number_of_data_moment_gates(),
                                 static_cast<std::int32_t>(gates));
       const std::int32_t endGate = std::min<std::int32_t>(
-         startGate + numberOfDataMomentGates * gateSize,
+         startGate + numberOfDataMomentGates * gatesPerBin,
          static_cast<std::int32_t>(common::MAX_DATA_MOMENT_GATES));
 
       if (smoothingEnabled)
@@ -881,8 +883,8 @@ void Level2ProductView::ComputeSweep()
             static_cast<std::int32_t>(gates));
       }
 
-      for (std::int32_t gate = startGate, i = 0; gate + gateSize <= endGate;
-           gate += gateSize, ++i)
+      for (std::int32_t gate = startGate, i = 0; gate + gatesPerBin <= endGate;
+           gate += gatesPerBin, ++i)
       {
          if (gate < 0)
          {
@@ -1047,14 +1049,14 @@ void Level2ProductView::ComputeSweep()
                 baseCoord) *
                2;
             const std::size_t offset2 =
-               offset1 + static_cast<std::size_t>(gateSize) * 2;
+               offset1 + static_cast<std::size_t>(gatesPerBin) * 2;
             const std::size_t offset3 =
                (((startRadial + radial + 1) % vertexRadials) *
                    common::MAX_DATA_MOMENT_GATES +
                 baseCoord) *
                2;
             const std::size_t offset4 =
-               offset3 + static_cast<std::size_t>(gateSize) * 2;
+               offset3 + static_cast<std::size_t>(gatesPerBin) * 2;
 
             vertices[vIndex++] = coordinates[offset1];
             vertices[vIndex++] = coordinates[offset1 + 1];
@@ -1181,7 +1183,6 @@ void Level2ProductView::Impl::ComputeCoordinates(
 
    auto         radarProductManager = self_->radar_product_manager();
    auto         radarSite           = radarProductManager->radar_site();
-   const float  gateSize            = radarProductManager->gate_size();
    const double radarLatitude       = radarSite->latitude();
    const double radarLongitude      = radarSite->longitude();
 
@@ -1190,6 +1191,8 @@ void Level2ProductView::Impl::ComputeCoordinates(
 
    auto& radarData0  = (*radarData)[0];
    auto  momentData0 = radarData0->moment_data_block(dataBlockType_);
+
+   const auto gateSize = momentData0->data_moment_range_sample_interval();
 
    std::uint16_t numRadials =
       static_cast<std::uint16_t>(radarData->crbegin()->first + 1);
@@ -1329,7 +1332,7 @@ void Level2ProductView::Impl::ComputeCoordinates(
             {
                const std::uint32_t radialGate =
                   radial * common::MAX_DATA_MOMENT_GATES + gate;
-               const float range =
+               const units::length::meters<float> range =
                   (static_cast<float>(gate) + gateRangeOffset) * gateSize;
                const std::size_t offset =
                   static_cast<std::size_t>(radialGate) * 2;
@@ -1340,7 +1343,7 @@ void Level2ProductView::Impl::ComputeCoordinates(
                geodesic.Direct(radarLatitude,
                                radarLongitude,
                                angle.value(),
-                               range,
+                               range.value(),
                                latitude,
                                longitude);
 
@@ -1533,9 +1536,10 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
    const std::int32_t dataMomentRange     = std::max<std::int32_t>(
       momentData->data_moment_range_raw(), dataMomentIntervalH);
 
-   // Compute gate size (number of base 250m gates per bin)
-   const std::int32_t gateSizeMeters =
-      static_cast<std::int32_t>(radarProductManager->gate_size());
+   // Compute gate size
+   const units::length::meters<float> gateSize =
+      momentData->data_moment_range_sample_interval();
+   const auto gateSizeMeters = static_cast<std::int32_t>(gateSize.value());
 
    // Compute gate range [startGate, endGate)
    const std::int32_t startGate =
