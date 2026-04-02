@@ -38,6 +38,11 @@ bool Message::ValidateMessage(std::istream& is, size_t bytesRead) const
       logger_->warn("Reached end of data stream");
       messageValid = false;
    }
+   else if (is.fail())
+   {
+      logger_->warn("Could not read from input stream");
+      messageValid = false;
+   }
    else if (bytesRead != dataSize)
    {
       is.seekg(static_cast<std::streamoff>(dataSize) -
@@ -56,12 +61,6 @@ bool Message::ValidateMessage(std::istream& is, size_t bytesRead) const
                        bytesRead,
                        dataSize);
       }
-   }
-
-   if (is.fail())
-   {
-      logger_->warn("Could not read from input stream");
-      messageValid = false;
    }
 
    return messageValid;
