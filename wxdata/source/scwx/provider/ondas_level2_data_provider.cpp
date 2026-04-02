@@ -1,6 +1,7 @@
 #include <scwx/provider/ondas_level2_data_provider.hpp>
 #include <scwx/types/ondas_types.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/time.hpp>
 
 #include <chrono>
 #include <mutex>
@@ -90,13 +91,7 @@ OndasLevel2DataProvider::GetTimePointFromKey(const std::string& key)
    static const std::string timeFormat {"%Y%m%d_%H%M"};
    std::istringstream       ss(dateTimeStr);
 
-   using namespace std::chrono;
-
-#if (__cpp_lib_chrono < 201907L)
-   using namespace date;
-#endif
-
-   ss >> parse(timeFormat, time);
+   ss >> util::time::parse(timeFormat, time);
 
    if (ss.fail())
    {
