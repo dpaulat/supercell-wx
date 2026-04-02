@@ -362,9 +362,19 @@ types::RadarType RadarProductManager::radar_type() const
 
 float RadarProductManager::gate_size() const
 {
-   // tdwr is 150 meter per gate, wsr88d is 250 meter per gate
-   // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-   return (radar_type() == types::RadarType::TDWR) ? 150.0f : 250.0f;
+   // wsr88d is 250 meters per gate, others are 150 meters per gate
+   switch (radar_type())
+   {
+   case types::RadarType::WSR88D:
+      return 250.0f; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+
+   case types::RadarType::Research:
+   case types::RadarType::FAA:
+   case types::RadarType::TDWR:
+   case types::RadarType::Unknown:
+   default:
+      return 150.0f; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+   }
 }
 
 std::optional<float> RadarProductManager::incoming_level_2_elevation() const
