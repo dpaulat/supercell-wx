@@ -13,6 +13,7 @@
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 
+#include <array>
 #include <execution>
 #include <memory>
 #include <mutex>
@@ -583,6 +584,7 @@ RadarProductManager::GetActiveVolumeTimes(
    const auto today     = std::chrono::floor<std::chrono::days>(time);
    const auto yesterday = today - std::chrono::days {1};
    const auto tomorrow  = today + std::chrono::days {1};
+   const auto dates     = std::array {yesterday, today, tomorrow};
 
    // For each provider (in parallel)
    std::for_each(
@@ -591,40 +593,39 @@ RadarProductManager::GetActiveVolumeTimes(
       providers.end(),
       [&](const std::shared_ptr<provider::NexradDataProvider>& provider)
       {
-         const auto dates =
-            provider->IsDateArchiveAvailable() ?
-               std::initializer_list<std::chrono::system_clock::time_point> {
-                  yesterday, today, tomorrow} :
-               std::initializer_list<std::chrono::system_clock::time_point> {
-                  today};
-
-         // For yesterday, today and tomorrow (in parallel)
-         std::for_each(
-            std::execution::par,
-            dates.begin(),
-            dates.end(),
-            [&](const auto& date)
+         const auto processDate = [&](const auto& date)
+         {
+            // Don't query for a time point in the future
+            if (date > scwx::util::time::now())
             {
-               // Don't query for a time point in the future
-               if (date > scwx::util::time::now())
-               {
-                  return;
-               }
+               return;
+            }
 
-               // Query the provider for volume time points
-               auto timePoints = provider->GetTimePointsByDate(date, true);
+            // Query the provider for volume time points
+            auto timePoints = provider->GetTimePointsByDate(date, true);
 
-               // TODO: Note, this will miss volume times present in Level 2
-               // products with a second scan
+            // TODO: Note, this will miss volume times present in Level 2
+            // products with a second scan
 
-               // Lock the merged volume time list
-               const std::unique_lock volumeTimesLock {volumeTimesMutex};
+            // Lock the merged volume time list
+            const std::unique_lock volumeTimesLock {volumeTimesMutex};
 
-               // Copy time points to the merged list
-               std::copy(timePoints.begin(),
-                         timePoints.end(),
-                         std::inserter(volumeTimes, volumeTimes.end()));
-            });
+            // Copy time points to the merged list
+            std::copy(timePoints.begin(),
+                      timePoints.end(),
+                      std::inserter(volumeTimes, volumeTimes.end()));
+         };
+
+         if (provider->IsDateArchiveAvailable())
+         {
+            // For yesterday, today and tomorrow (in parallel)
+            std::for_each(
+               std::execution::par, dates.begin(), dates.end(), processDate);
+         }
+         else
+         {
+            processDate(today);
+         }
       });
 
    // Return merged volume times list
@@ -898,24 +899,27 @@ bool RadarProductManagerImpl::AreProductTimesPopulated(
 
    const auto yesterday = today - std::chrono::days {1};
    const auto tomorrow  = today + std::chrono::days {1};
-   const auto dates =
-      providerManager->provider()->IsDateArchiveAvailable() ?
-         std::initializer_list<std::chrono::system_clock::time_point> {
-            yesterday, today, tomorrow} :
-         std::initializer_list<std::chrono::system_clock::time_point> {today};
-
-   for (auto& date : dates)
+   if (providerManager->provider()->IsDateArchiveAvailable())
    {
-      // Don't query for a time point in the future
-      if (date > scwx::util::time::now())
-      {
-         continue;
-      }
+      const auto dates = std::array {yesterday, today, tomorrow};
 
-      if (!providerManager->provider()->IsDateCached(date))
+      for (const auto& date : dates)
       {
-         productTimesPopulated = false;
+         // Don't query for a time point in the future
+         if (date > scwx::util::time::now())
+         {
+            continue;
+         }
+
+         if (!providerManager->provider()->IsDateCached(date))
+         {
+            productTimesPopulated = false;
+         }
       }
+   }
+   else if (!providerManager->provider()->IsDateCached(today))
+   {
+      productTimesPopulated = false;
    }
 
    return productTimesPopulated;
@@ -988,40 +992,42 @@ void RadarProductManagerImpl::PopulateProductTimes(
 
    const auto yesterday = today - std::chrono::days {1};
    const auto tomorrow  = today + std::chrono::days {1};
-   const auto dates =
-      providerManager->provider()->IsDateArchiveAvailable() ?
-         std::initializer_list<std::chrono::system_clock::time_point> {
-            yesterday, today, tomorrow} :
-         std::initializer_list<std::chrono::system_clock::time_point> {today};
+   const auto dates     = std::array {yesterday, today, tomorrow};
 
    std::set<std::chrono::system_clock::time_point> volumeTimes {};
    std::mutex                                      volumeTimesMutex {};
 
-   // For yesterday, today and tomorrow (in parallel)
-   std::for_each(std::execution::par,
-                 dates.begin(),
-                 dates.end(),
-                 [&](const auto& date)
-                 {
-                    // Don't query for a time point in the future
-                    if (date > scwx::util::time::now())
-                    {
-                       return;
-                    }
+   const auto processDate = [&](const auto& date)
+   {
+      // Don't query for a time point in the future
+      if (date > scwx::util::time::now())
+      {
+         return;
+      }
 
-                    // Query the provider for volume time points
-                    auto timePoints =
-                       providerManager->provider()->GetTimePointsByDate(date,
-                                                                        update);
+      // Query the provider for volume time points
+      auto timePoints =
+         providerManager->provider()->GetTimePointsByDate(date, update);
 
-                    // Lock the merged volume time list
-                    std::unique_lock volumeTimesLock {volumeTimesMutex};
+      // Lock the merged volume time list
+      std::unique_lock volumeTimesLock {volumeTimesMutex};
 
-                    // Copy time points to the merged list
-                    std::copy(timePoints.begin(),
-                              timePoints.end(),
-                              std::inserter(volumeTimes, volumeTimes.end()));
-                 });
+      // Copy time points to the merged list
+      std::copy(timePoints.begin(),
+                timePoints.end(),
+                std::inserter(volumeTimes, volumeTimes.end()));
+   };
+
+   if (providerManager->provider()->IsDateArchiveAvailable())
+   {
+      // For yesterday, today and tomorrow (in parallel)
+      std::for_each(
+         std::execution::par, dates.begin(), dates.end(), processDate);
+   }
+   else
+   {
+      processDate(today);
+   }
 
    // Lock the product record map
    std::unique_lock lock {productRecordMutex};
