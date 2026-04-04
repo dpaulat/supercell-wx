@@ -474,8 +474,9 @@ void MapWidgetImpl::ConnectSignals()
             {
                // Reset the map, since the API key is embedded in settings
                settings_.setApiKey(QString::fromStdString(event.newValue_));
-               ResetMap(currentStyle_ ? currentStyle_->name_ :
-                                        initialStyleName_);
+               const std::string& activeStyleName =
+                  currentStyle_ ? currentStyle_->name_ : initialStyleName_;
+               ResetMap(activeStyleName == "None" ? "" : activeStyleName);
             }
          }));
    connections_.emplace_back(
@@ -485,8 +486,11 @@ void MapWidgetImpl::ConnectSignals()
             if (context_->map_provider() == MapProvider::MapTiler)
             {
                // Reapply style instead of resetting the map
-               widget_->SetMapStyle(currentStyle_ ? currentStyle_->name_ :
-                                                    initialStyleName_,
+               const std::string& activeStyleName =
+                  currentStyle_ ? currentStyle_->name_ : initialStyleName_;
+               widget_->SetMapStyle(activeStyleName == "None" ?
+                                       ResolveMapStyleName("") :
+                                       activeStyleName,
                                     true);
             }
          }));
