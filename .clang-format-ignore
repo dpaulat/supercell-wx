@@ -1,1 +1,6 @@
+# Ignore Squad and Copilot directories (and everything inside them)
+.copilot/
+.squad/
+
+# Ignore the CMake presets file in this directory
 CMakePresets.json
