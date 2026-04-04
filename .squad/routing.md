@@ -6,19 +6,20 @@ How to decide who handles what.
 
 | Work Type | Route To | Examples |
 |-----------|----------|----------|
-| {domain 1} | {Name} | {example tasks} |
-| {domain 2} | {Name} | {example tasks} |
-| {domain 3} | {Name} | {example tasks} |
-| Code review | {Name} | Review PRs, check quality, suggest improvements |
-| Testing | {Name} | Write tests, find edge cases, verify fixes |
-| Scope & priorities | {Name} | What to build next, trade-offs, decisions |
+| Core radar data, wxdata, parsers, providers | Bishop | Level 2/3 parsing, providers, non-Qt data model changes |
+| Qt UI, managers, map rendering, product views | Parker | Main window, managers, MapLibre layers, interaction flows |
+| Build, toolchains, CI, packaging | Vasquez | CMake presets, Conan profiles, Windows packaging, CI fixes |
+| Code review | Ripley | Review PRs, cross-cutting quality checks, architecture guardrails |
+| Testing | Hudson | Write tests, find edge cases, verify fixes |
+| Scope & priorities | Ripley | What to build next, trade-offs, decisions |
 | Session logging | Scribe | Automatic — never needs routing |
+| Backlog and issue monitoring | Ralph | Check the board, triage follow-up work, keep work moving |
 
 ## Issue Routing
 
 | Label | Action | Who |
 |-------|--------|-----|
-| `squad` | Triage: analyze issue, assign `squad:{member}` label | Lead |
+| `squad` | Triage: analyze issue, assign `squad:{member}` label | Ripley |
 | `squad:{name}` | Pick up issue and complete the work | Named member |
 
 ### How Issue Assignment Works
