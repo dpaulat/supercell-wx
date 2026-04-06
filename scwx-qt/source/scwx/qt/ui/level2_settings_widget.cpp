@@ -427,6 +427,15 @@ void Level2SettingsWidget::UpdateThreshold(map::MapWidget* activeMap)
 
    if (!validRange)
    {
+      if (threshold.has_value())
+      {
+         p->suppressThresholdSignal_ = true;
+         p->thresholdCheckBox_->setChecked(false);
+         p->thresholdSlider_->setValue(0);
+         p->suppressThresholdSignal_ = false;
+
+         activeMap->SetColorTableThreshold(std::nullopt);
+      }
       return;
    }
 
@@ -453,8 +462,15 @@ void Level2SettingsWidget::UpdateThreshold(map::MapWidget* activeMap)
    // Update checkbox and slider from current threshold value
    if (threshold.has_value())
    {
+      const float clampedThreshold = std::clamp(*threshold, rangeMin, rangeMax);
       p->thresholdCheckBox_->setChecked(true);
-      p->thresholdSlider_->setValue(p->PhysicalToSlider(*threshold));
+      p->thresholdSlider_->setValue(p->PhysicalToSlider(clampedThreshold));
+
+      // If threshold was clamped, sync the map's threshold to the clamped value
+      if (clampedThreshold != *threshold)
+      {
+         activeMap->SetColorTableThreshold(clampedThreshold);
+      }
    }
    else
    {

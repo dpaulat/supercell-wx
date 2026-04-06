@@ -474,7 +474,20 @@ void Level3ProductView::UpdateColorTableLut()
                                 std::numeric_limits<std::uint8_t>::min(),
                                 std::numeric_limits<std::uint8_t>::max()));
 
-   const std::optional<float> colorTableThreshold = color_table_threshold();
+   // Only apply threshold for products with a valid physical range; categorical
+   // products (units().empty()) and products without a finite range do not
+   // support thresholding
+   const std::optional<float> colorTableThreshold =
+      [this]() -> std::optional<float>
+   {
+      const auto [rangeMin, rangeMax] = GetColorTableRange();
+      if (std::isfinite(rangeMin) && std::isfinite(rangeMax) &&
+          rangeMin < rangeMax)
+      {
+         return color_table_threshold();
+      }
+      return std::nullopt;
+   }();
 
    if (p->savedColorTable_ == p->colorTable_ &&     //
        p->savedOffset_ == offset &&                 //
