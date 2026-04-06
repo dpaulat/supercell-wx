@@ -17,7 +17,7 @@ public:
    explicit Level3SettingsWidget(QWidget* parent = nullptr);
    ~Level3SettingsWidget();
 
-   void UpdateThreshold(map::MapWidget* activeMap);
+   bool UpdateThreshold(map::MapWidget* activeMap);
 
 signals:
    void ThresholdChanged(std::optional<float> threshold);

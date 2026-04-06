@@ -1727,7 +1727,10 @@ void MainWindowImpl::UpdateRadarProductSettings()
 
       level3SettingsWidget_->setEnabled(true);
       level3SettingsGroup_->setVisible(true);
-      level3SettingsWidget_->UpdateThreshold(activeMap_);
+      const bool hasContent =
+         level3SettingsWidget_->UpdateThreshold(activeMap_);
+      level3SettingsWidget_->setEnabled(hasContent);
+      level3SettingsGroup_->setVisible(hasContent);
    }
    else
    {

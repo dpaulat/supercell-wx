@@ -148,7 +148,7 @@ int Level3SettingsWidgetImpl::PhysicalToSlider(float physicalValue) const
       std::round((physicalValue - thresholdRangeMin_) * kSliderStepsPerUnit_));
 }
 
-void Level3SettingsWidget::UpdateThreshold(map::MapWidget* activeMap)
+bool Level3SettingsWidget::UpdateThreshold(map::MapWidget* activeMap)
 {
    const auto [rangeMin, rangeMax]      = activeMap->GetColorTableRange();
    const std::string          units     = activeMap->GetColorTableUnits();
@@ -161,7 +161,7 @@ void Level3SettingsWidget::UpdateThreshold(map::MapWidget* activeMap)
 
    if (!validRange)
    {
-      return;
+      return false;
    }
 
    p->suppressThresholdSignal_ = true;
@@ -195,6 +195,7 @@ void Level3SettingsWidget::UpdateThreshold(map::MapWidget* activeMap)
 
    p->UpdateThresholdLabel(p->thresholdSlider_->value());
    p->suppressThresholdSignal_ = false;
+   return true;
 }
 
 } // namespace scwx::qt::ui
