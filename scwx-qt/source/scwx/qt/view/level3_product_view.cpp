@@ -383,6 +383,12 @@ Level3ProductView::GetDescriptionFields() const
 
 std::pair<float, float> Level3ProductView::GetColorTableRange() const
 {
+   // Categorical products (no physical units) do not support thresholding
+   if (units().empty())
+   {
+      return RadarProductView::GetColorTableRange();
+   }
+
    if (p->graphicMessage_ == nullptr)
    {
       return RadarProductView::GetColorTableRange();
@@ -396,7 +402,7 @@ std::pair<float, float> Level3ProductView::GetColorTableRange() const
       return RadarProductView::GetColorTableRange();
    }
 
-   std::uint16_t threshold     = descriptionBlock->threshold();
+   std::uint16_t threshold      = descriptionBlock->threshold();
    std::uint16_t numberOfLevels = descriptionBlock->number_of_levels();
 
    if (numberOfLevels == 0)
@@ -406,12 +412,12 @@ std::pair<float, float> Level3ProductView::GetColorTableRange() const
 
    std::uint16_t rangeMax = numberOfLevels - 1u;
 
-   std::optional<float> physicalMin =
-      descriptionBlock->data_value(static_cast<std::uint8_t>(
-         std::min<std::uint16_t>(threshold, std::numeric_limits<std::uint8_t>::max())));
-   std::optional<float> physicalMax =
-      descriptionBlock->data_value(static_cast<std::uint8_t>(
-         std::min<std::uint16_t>(rangeMax, std::numeric_limits<std::uint8_t>::max())));
+   std::optional<float> physicalMin = descriptionBlock->data_value(
+      static_cast<std::uint8_t>(std::min<std::uint16_t>(
+         threshold, std::numeric_limits<std::uint8_t>::max())));
+   std::optional<float> physicalMax = descriptionBlock->data_value(
+      static_cast<std::uint8_t>(std::min<std::uint16_t>(
+         rangeMax, std::numeric_limits<std::uint8_t>::max())));
 
    if (!physicalMin.has_value() || !physicalMax.has_value())
    {
