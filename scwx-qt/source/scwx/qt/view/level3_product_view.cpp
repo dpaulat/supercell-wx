@@ -381,6 +381,46 @@ Level3ProductView::GetDescriptionFields() const
    return description;
 }
 
+std::pair<float, float> Level3ProductView::GetColorTableRange() const
+{
+   if (p->graphicMessage_ == nullptr)
+   {
+      return RadarProductView::GetColorTableRange();
+   }
+
+   std::shared_ptr<wsr88d::rpg::ProductDescriptionBlock> descriptionBlock =
+      p->graphicMessage_->description_block();
+
+   if (descriptionBlock == nullptr)
+   {
+      return RadarProductView::GetColorTableRange();
+   }
+
+   std::uint16_t threshold     = descriptionBlock->threshold();
+   std::uint16_t numberOfLevels = descriptionBlock->number_of_levels();
+
+   if (numberOfLevels == 0)
+   {
+      return RadarProductView::GetColorTableRange();
+   }
+
+   std::uint16_t rangeMax = numberOfLevels - 1u;
+
+   std::optional<float> physicalMin =
+      descriptionBlock->data_value(static_cast<std::uint8_t>(
+         std::min<std::uint16_t>(threshold, std::numeric_limits<std::uint8_t>::max())));
+   std::optional<float> physicalMax =
+      descriptionBlock->data_value(static_cast<std::uint8_t>(
+         std::min<std::uint16_t>(rangeMax, std::numeric_limits<std::uint8_t>::max())));
+
+   if (!physicalMin.has_value() || !physicalMax.has_value())
+   {
+      return RadarProductView::GetColorTableRange();
+   }
+
+   return {*physicalMin, *physicalMax};
+}
+
 void Level3ProductView::LoadColorTable(
    std::shared_ptr<common::ColorTable> colorTable)
 {

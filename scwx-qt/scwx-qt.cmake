@@ -300,6 +300,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/level2_products_widget.hpp
            source/scwx/qt/ui/level2_settings_widget.hpp
            source/scwx/qt/ui/level3_products_widget.hpp
+           source/scwx/qt/ui/level3_settings_widget.hpp
            source/scwx/qt/ui/line_label.hpp
            source/scwx/qt/ui/open_url_dialog.hpp
            source/scwx/qt/ui/placefile_dialog.hpp
@@ -335,6 +336,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/level2_products_widget.cpp
            source/scwx/qt/ui/level2_settings_widget.cpp
            source/scwx/qt/ui/level3_products_widget.cpp
+           source/scwx/qt/ui/level3_settings_widget.cpp
            source/scwx/qt/ui/line_label.cpp
            source/scwx/qt/ui/open_url_dialog.cpp
            source/scwx/qt/ui/placefile_dialog.cpp
