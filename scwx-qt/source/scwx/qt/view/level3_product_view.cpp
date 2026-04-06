@@ -108,6 +108,7 @@ public:
    std::uint16_t                       savedLogStart_ {20u};
    float                               savedLogScale_ {1.0f};
    float                               savedLogOffset_ {0.0f};
+   std::optional<float>                savedThreshold_ {};
 
    boost::uuids::uuid       accumulationUnitsCallbackUuid_ {};
    boost::uuids::uuid       echoTopsUnitsCallbackUuid_ {};
@@ -427,12 +428,15 @@ void Level3ProductView::UpdateColorTableLut()
                                 std::numeric_limits<std::uint8_t>::min(),
                                 std::numeric_limits<std::uint8_t>::max()));
 
-   if (p->savedColorTable_ == p->colorTable_ && //
-       p->savedOffset_ == offset &&             //
-       p->savedScale_ == scale &&               //
-       p->savedLogOffset_ == logOffset &&       //
-       p->savedLogScale_ == logScale &&         //
-       p->savedLogStart_ == logStart &&         //
+   const std::optional<float> colorTableThreshold = color_table_threshold();
+
+   if (p->savedColorTable_ == p->colorTable_ &&     //
+       p->savedOffset_ == offset &&                 //
+       p->savedScale_ == scale &&                   //
+       p->savedLogOffset_ == logOffset &&           //
+       p->savedLogScale_ == logScale &&             //
+       p->savedLogStart_ == logStart &&             //
+       p->savedThreshold_ == colorTableThreshold && //
        numberOfLevels > 16)
    {
       // The color table LUT does not need updated
@@ -468,7 +472,16 @@ void Level3ProductView::UpdateColorTableLut()
             {
                if (f.has_value())
                {
-                  lut[lutIndex] = p->colorTable_->Color(f.value());
+                  boost::gil::rgba8_pixel_t color =
+                     p->colorTable_->Color(f.value());
+
+                  if (colorTableThreshold.has_value() &&
+                      f.value() < *colorTableThreshold)
+                  {
+                     color[3] = 0;
+                  }
+
+                  lut[lutIndex] = color;
                }
                else
                {
@@ -487,7 +500,16 @@ void Level3ProductView::UpdateColorTableLut()
             }
             else if (f.has_value())
             {
-               lut[lutIndex] = p->colorTable_->Color(f.value());
+               boost::gil::rgba8_pixel_t color =
+                  p->colorTable_->Color(f.value());
+
+               if (colorTableThreshold.has_value() &&
+                   f.value() < *colorTableThreshold)
+               {
+                  color[3] = 0;
+               }
+
+               lut[lutIndex] = color;
             }
             else
             {
@@ -505,6 +527,7 @@ void Level3ProductView::UpdateColorTableLut()
    p->savedLogOffset_  = logOffset;
    p->savedLogScale_   = logScale;
    p->savedLogStart_   = logStart;
+   p->savedThreshold_  = colorTableThreshold;
 
    Q_EMIT ColorTableLutUpdated();
 }

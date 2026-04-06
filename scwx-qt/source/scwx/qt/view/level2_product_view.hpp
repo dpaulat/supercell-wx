@@ -61,6 +61,8 @@ public:
    [[nodiscard]] std::optional<float>
    GetDataValue(std::uint16_t level) const override;
 
+   [[nodiscard]] std::pair<float, float> GetColorTableRange() const override;
+
    static std::shared_ptr<Level2ProductView>
    Create(common::Level2Product                         product,
           std::shared_ptr<manager::RadarProductManager> radarProductManager);

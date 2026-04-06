@@ -5,11 +5,15 @@
 #include <scwx/common/characters.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <cmath>
 #include <execution>
+#include <limits>
 
 #include <QCheckBox>
 #include <QEvent>
 #include <QGroupBox>
+#include <QHBoxLayout>
+#include <QSlider>
 #include <QToolButton>
 
 namespace scwx
@@ -21,6 +25,8 @@ namespace ui
 
 static const std::string logPrefix_ = "scwx::qt::ui::level2_settings_widget";
 static const auto        logger_    = util::Logger::Create(logPrefix_);
+
+static constexpr int kSliderStepsPerUnit_ = 10;
 
 class Level2SettingsWidgetImpl : public QObject
 {
@@ -50,19 +56,61 @@ public:
       declutterCheckBox_ = new QCheckBox(tr("Declutter"), settingsGroupBox_);
       settingsLayout->addWidget(declutterCheckBox_);
 
+      // Threshold controls
+      thresholdGroupBox_           = new QGroupBox(tr("Threshold"), self);
+      QVBoxLayout* thresholdLayout = new QVBoxLayout(thresholdGroupBox_);
+
+      thresholdCheckBox_ =
+         new QCheckBox(tr("Enable Threshold"), thresholdGroupBox_);
+      thresholdLayout->addWidget(thresholdCheckBox_);
+
+      QWidget*     sliderWidget = new QWidget(thresholdGroupBox_);
+      QHBoxLayout* sliderLayout = new QHBoxLayout(sliderWidget);
+      sliderLayout->setContentsMargins(0, 0, 0, 0);
+
+      thresholdSlider_ = new QSlider(Qt::Horizontal, sliderWidget);
+      thresholdSlider_->setEnabled(false);
+      thresholdSlider_->setTickPosition(QSlider::TicksBelow);
+      sliderLayout->addWidget(thresholdSlider_);
+
+      thresholdValueLabel_ = new QLabel("", sliderWidget);
+      thresholdValueLabel_->setMinimumWidth(60);
+      thresholdValueLabel_->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+      sliderLayout->addWidget(thresholdValueLabel_);
+
+      thresholdLayout->addWidget(sliderWidget);
+      layout_->addWidget(thresholdGroupBox_);
+
       settingsGroupBox_->setVisible(false);
+      thresholdGroupBox_->setVisible(false);
       // NOLINTEND(cppcoreguidelines-owning-memory) Qt takes care of this
 
       QObject::connect(hotkeyManager_.get(),
                        &manager::HotkeyManager::HotkeyPressed,
                        this,
                        &Level2SettingsWidgetImpl::HandleHotkeyPressed);
+
+      QObject::connect(thresholdCheckBox_,
+                       &QCheckBox::toggled,
+                       this,
+                       &Level2SettingsWidgetImpl::HandleThresholdToggled);
+
+      QObject::connect(thresholdSlider_,
+                       &QSlider::valueChanged,
+                       this,
+                       &Level2SettingsWidgetImpl::HandleThresholdSliderChanged);
    }
    ~Level2SettingsWidgetImpl() = default;
 
    void HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat);
+   void HandleThresholdToggled(bool checked);
+   void HandleThresholdSliderChanged(int value);
    void NormalizeElevationButtons();
    void SelectElevation(float elevation);
+   void UpdateThresholdLabel(int sliderValue);
+
+   float SliderToPhysical(int sliderValue) const;
+   int   PhysicalToSlider(float physicalValue) const;
 
    Level2SettingsWidget* self_;
    QLayout*              layout_;
@@ -76,6 +124,16 @@ public:
 
    QGroupBox* settingsGroupBox_ {};
    QCheckBox* declutterCheckBox_ {};
+
+   QGroupBox* thresholdGroupBox_ {};
+   QCheckBox* thresholdCheckBox_ {};
+   QSlider*   thresholdSlider_ {};
+   QLabel*    thresholdValueLabel_ {};
+
+   float       thresholdRangeMin_ {-32.0f};
+   float       thresholdRangeMax_ {94.5f};
+   std::string thresholdUnits_ {};
+   bool        suppressThresholdSignal_ {false};
 
    float        currentElevation_ {};
    QToolButton* currentElevationButton_ {nullptr};
@@ -214,6 +272,60 @@ void Level2SettingsWidgetImpl::SelectElevation(float elevation)
    Q_EMIT self_->ElevationSelected(elevation);
 }
 
+void Level2SettingsWidgetImpl::HandleThresholdToggled(bool checked)
+{
+   thresholdSlider_->setEnabled(checked);
+
+   if (suppressThresholdSignal_)
+   {
+      return;
+   }
+
+   if (checked)
+   {
+      // Emit the current slider value as the threshold
+      const float threshold = SliderToPhysical(thresholdSlider_->value());
+      Q_EMIT self_->ThresholdChanged(threshold);
+   }
+   else
+   {
+      // No threshold
+      Q_EMIT self_->ThresholdChanged(std::nullopt);
+   }
+}
+
+void Level2SettingsWidgetImpl::HandleThresholdSliderChanged(int value)
+{
+   UpdateThresholdLabel(value);
+
+   if (suppressThresholdSignal_ || !thresholdCheckBox_->isChecked())
+   {
+      return;
+   }
+
+   Q_EMIT self_->ThresholdChanged(SliderToPhysical(value));
+}
+
+void Level2SettingsWidgetImpl::UpdateThresholdLabel(int sliderValue)
+{
+   const float physicalValue = SliderToPhysical(sliderValue);
+   QString     text          = QString::number(physicalValue, 'f', 1) + " " +
+                  QString::fromStdString(thresholdUnits_);
+   thresholdValueLabel_->setText(text);
+}
+
+float Level2SettingsWidgetImpl::SliderToPhysical(int sliderValue) const
+{
+   return thresholdRangeMin_ +
+          static_cast<float>(sliderValue) / kSliderStepsPerUnit_;
+}
+
+int Level2SettingsWidgetImpl::PhysicalToSlider(float physicalValue) const
+{
+   return static_cast<int>(
+      std::round((physicalValue - thresholdRangeMin_) * kSliderStepsPerUnit_));
+}
+
 void Level2SettingsWidget::UpdateElevationSelection(float elevation)
 {
    QString buttonText {QString::number(elevation, 'f', 1) +
@@ -299,6 +411,59 @@ void Level2SettingsWidget::UpdateSettings(map::MapWidget* activeMap)
 
    UpdateElevationSelection(currentElevation);
    UpdateIncomingElevation(incomingElevation);
+   UpdateThreshold(activeMap);
+}
+
+void Level2SettingsWidget::UpdateThreshold(map::MapWidget* activeMap)
+{
+   const auto [rangeMin, rangeMax]      = activeMap->GetColorTableRange();
+   const std::string          units     = activeMap->GetColorTableUnits();
+   const std::optional<float> threshold = activeMap->GetColorTableThreshold();
+
+   const bool validRange =
+      std::isfinite(rangeMin) && std::isfinite(rangeMax) && rangeMin < rangeMax;
+
+   p->thresholdGroupBox_->setVisible(validRange);
+
+   if (!validRange)
+   {
+      return;
+   }
+
+   p->suppressThresholdSignal_ = true;
+
+   // Update range if changed
+   if (p->thresholdRangeMin_ != rangeMin || p->thresholdRangeMax_ != rangeMax ||
+       p->thresholdUnits_ != units)
+   {
+      p->thresholdRangeMin_ = rangeMin;
+      p->thresholdRangeMax_ = rangeMax;
+      p->thresholdUnits_    = units;
+
+      const int sliderMin = 0;
+      const int sliderMax =
+         static_cast<int>((rangeMax - rangeMin) * kSliderStepsPerUnit_);
+      p->thresholdSlider_->setRange(sliderMin, sliderMax);
+
+      // Set tick interval: approximately 10 units per major tick
+      const int tickInterval = std::max(1, 10 * kSliderStepsPerUnit_);
+      p->thresholdSlider_->setTickInterval(tickInterval);
+   }
+
+   // Update checkbox and slider from current threshold value
+   if (threshold.has_value())
+   {
+      p->thresholdCheckBox_->setChecked(true);
+      p->thresholdSlider_->setValue(p->PhysicalToSlider(*threshold));
+   }
+   else
+   {
+      p->thresholdCheckBox_->setChecked(false);
+      p->thresholdSlider_->setValue(0);
+   }
+
+   p->UpdateThresholdLabel(p->thresholdSlider_->value());
+   p->suppressThresholdSignal_ = false;
 }
 
 } // namespace ui

@@ -61,6 +61,8 @@ public:
    types::RadarProductLoadStatus         loadStatus_ {
       types::RadarProductLoadStatus::ProductNotLoaded};
 
+   std::optional<float> colorTableThreshold_ {};
+
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
    boost::signals2::scoped_connection connection_;
@@ -151,6 +153,17 @@ void RadarProductView::set_smoothing_enabled(bool smoothingEnabled)
    p->smoothingEnabled_ = smoothingEnabled;
 }
 
+std::optional<float> RadarProductView::color_table_threshold() const
+{
+   return p->colorTableThreshold_;
+}
+
+void RadarProductView::set_color_table_threshold(std::optional<float> threshold)
+{
+   p->colorTableThreshold_ = threshold;
+   UpdateColorTableLut();
+}
+
 void RadarProductView::Initialize()
 {
    ComputeSweep();
@@ -210,6 +223,12 @@ std::vector<std::pair<std::string, std::string>>
 RadarProductView::GetDescriptionFields() const
 {
    return {};
+}
+
+std::pair<float, float> RadarProductView::GetColorTableRange() const
+{
+   return {-std::numeric_limits<float>::infinity(),
+           std::numeric_limits<float>::infinity()};
 }
 
 void RadarProductView::ComputeSweep()

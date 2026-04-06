@@ -1261,6 +1261,16 @@ void MainWindowImpl::ConnectOtherSignals()
            &ui::Level2SettingsWidget::ElevationSelected,
            mainWindow_,
            [&](float elevation) { SelectElevation(activeMap_, elevation); });
+   connect(level2SettingsWidget_,
+           &ui::Level2SettingsWidget::ThresholdChanged,
+           mainWindow_,
+           [&](std::optional<float> threshold)
+           {
+              if (activeMap_ != nullptr)
+              {
+                 activeMap_->SetColorTableThreshold(threshold);
+              }
+           });
    connect(mainWindow_,
            &MainWindow::ActiveMapMoved,
            alertDockWidget_,

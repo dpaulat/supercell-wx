@@ -31,6 +31,7 @@
 #include <scwx/util/time.hpp>
 
 #include <algorithm>
+#include <limits>
 #include <ranges>
 #include <set>
 #include <utility>
@@ -863,6 +864,46 @@ void MapWidget::SetSmoothingEnabled(bool smoothingEnabled)
    {
       radarProductView->set_smoothing_enabled(smoothingEnabled);
       radarProductView->Update();
+   }
+}
+
+std::optional<float> MapWidget::GetColorTableThreshold() const
+{
+   auto radarProductView = p->context_->radar_product_view();
+   if (radarProductView != nullptr)
+   {
+      return radarProductView->color_table_threshold();
+   }
+   return std::nullopt;
+}
+
+std::pair<float, float> MapWidget::GetColorTableRange() const
+{
+   auto radarProductView = p->context_->radar_product_view();
+   if (radarProductView != nullptr)
+   {
+      return radarProductView->GetColorTableRange();
+   }
+   return {-std::numeric_limits<float>::infinity(),
+           std::numeric_limits<float>::infinity()};
+}
+
+std::string MapWidget::GetColorTableUnits() const
+{
+   auto radarProductView = p->context_->radar_product_view();
+   if (radarProductView != nullptr)
+   {
+      return radarProductView->units();
+   }
+   return {};
+}
+
+void MapWidget::SetColorTableThreshold(std::optional<float> threshold)
+{
+   auto radarProductView = p->context_->radar_product_view();
+   if (radarProductView != nullptr)
+   {
+      radarProductView->set_color_table_threshold(threshold);
    }
 }
 

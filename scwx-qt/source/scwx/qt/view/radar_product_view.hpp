@@ -41,6 +41,7 @@ public:
                                                color_table_lut() const;
    [[nodiscard]] virtual std::uint16_t         color_table_min() const;
    [[nodiscard]] virtual std::uint16_t         color_table_max() const;
+   [[nodiscard]] std::optional<float>          color_table_threshold() const;
    [[nodiscard]] virtual std::optional<float>  elevation() const;
    [[nodiscard]] types::RadarProductLoadStatus load_status() const;
    [[nodiscard]] virtual float                 range() const;
@@ -60,6 +61,7 @@ public:
 
    void set_radar_product_manager(
       std::shared_ptr<manager::RadarProductManager> radarProductManager);
+   void set_color_table_threshold(std::optional<float> threshold);
    void set_smoothing_enabled(bool smoothingEnabled);
 
    void Initialize();
@@ -91,6 +93,8 @@ public:
 
    [[nodiscard]] virtual std::vector<std::pair<std::string, std::string>>
    GetDescriptionFields() const;
+
+   [[nodiscard]] virtual std::pair<float, float> GetColorTableRange() const;
 
 protected:
    virtual boost::asio::thread_pool& thread_pool() = 0;
