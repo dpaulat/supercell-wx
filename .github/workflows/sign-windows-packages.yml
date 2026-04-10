@@ -51,7 +51,7 @@ jobs:
     steps:
     - name: Resolve CI Windows Artifact
       id: ci-artifact
-      uses: actions/github-script@v8
+      uses: actions/github-script@v9
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
