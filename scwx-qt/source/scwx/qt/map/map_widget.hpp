@@ -12,6 +12,8 @@
 #include <chrono>
 #include <memory>
 #include <optional>
+#include <string>
+#include <utility>
 
 #include <qmaplibre.hpp>
 
@@ -61,6 +63,10 @@ public:
    [[nodiscard]] std::chrono::system_clock::time_point GetSelectedTime() const;
    [[nodiscard]] bool          GetSmoothingEnabled() const;
    [[nodiscard]] std::uint16_t GetVcp() const;
+
+   [[nodiscard]] std::optional<float>    GetColorTableThreshold() const;
+   [[nodiscard]] std::pair<float, float> GetColorTableRange() const;
+   [[nodiscard]] std::string             GetColorTableUnits() const;
 
    void ScreenCapture(types::CaptureType captureType);
 
@@ -133,6 +139,7 @@ public:
    void SetMapStyle(const std::string& styleName, bool force = false);
    void SetRadarWireframeEnabled(bool enabled);
    void SetSmoothingEnabled(bool enabled);
+   void SetColorTableThreshold(std::optional<float> threshold);
 
    /**
     * Updates the coordinates associated with mouse movement from another map.

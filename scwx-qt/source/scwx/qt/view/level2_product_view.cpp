@@ -180,6 +180,7 @@ public:
    std::shared_ptr<common::ColorTable> savedColorTable_;
    float                               savedScale_;
    float                               savedOffset_;
+   std::optional<float>                savedThreshold_ {};
 
    boost::uuids::uuid otherUnitsCallbackUuid_ {};
    boost::uuids::uuid speedUnitsCallbackUuid_ {};
@@ -422,6 +423,57 @@ void Level2ProductView::LoadColorTable(
    UpdateColorTableLut();
 }
 
+std::pair<float, float> Level2ProductView::GetColorTableRange() const
+{
+   if (p->momentDataBlock0_ == nullptr)
+   {
+      return RadarProductView::GetColorTableRange();
+   }
+
+   const float offset = p->momentDataBlock0_->offset();
+   const float scale  = p->momentDataBlock0_->scale();
+
+   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
+
+   std::uint16_t dataThreshold = 2;
+   std::uint16_t rangeMax      = 255;
+
+   switch (p->product_)
+   {
+   case common::Level2Product::Reflectivity:
+   case common::Level2Product::Velocity:
+   case common::Level2Product::SpectrumWidth:
+   case common::Level2Product::CorrelationCoefficient:
+   default:
+      dataThreshold = 2;
+      rangeMax      = 255;
+      break;
+
+   case common::Level2Product::DifferentialReflectivity:
+      dataThreshold = 2;
+      rangeMax      = 1058;
+      break;
+
+   case common::Level2Product::DifferentialPhase:
+      dataThreshold = 2;
+      rangeMax      = 1023;
+      break;
+
+   case common::Level2Product::ClutterFilterPowerRemoved:
+      dataThreshold = 8;
+      rangeMax      = 81;
+      break;
+   }
+
+   // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
+
+   const float physicalMin =
+      (static_cast<float>(dataThreshold) - offset) / scale;
+   const float physicalMax = (static_cast<float>(rangeMax) - offset) / scale;
+
+   return {physicalMin, physicalMax};
+}
+
 void Level2ProductView::SelectElevation(float elevation)
 {
    p->selectedElevation_ = elevation;
@@ -477,9 +529,12 @@ void Level2ProductView::UpdateColorTableLut()
    float offset = p->momentDataBlock0_->offset();
    float scale  = p->momentDataBlock0_->scale();
 
+   const std::optional<float> threshold = color_table_threshold();
+
    if (p->savedColorTable_ == p->colorTable_ && //
        p->savedOffset_ == offset &&             //
-       p->savedScale_ == scale)
+       p->savedScale_ == scale &&               //
+       p->savedThreshold_ == threshold)
    {
       // The color table LUT does not need updated
       return;
@@ -533,8 +588,17 @@ void Level2ProductView::UpdateColorTableLut()
                     }
                     else
                     {
-                       float f                     = (i - offset) / scale;
-                       lut[i - *dataRange.begin()] = p->colorTable_->Color(f);
+                       const float f = (static_cast<float>(i) - offset) / scale;
+
+                       boost::gil::rgba8_pixel_t color =
+                          p->colorTable_->Color(f);
+
+                       if (threshold.has_value() && f < *threshold)
+                       {
+                          color[3] = 0;
+                       }
+
+                       lut[i - *dataRange.begin()] = color;
                     }
                  });
 
@@ -544,6 +608,7 @@ void Level2ProductView::UpdateColorTableLut()
    p->savedColorTable_ = p->colorTable_;
    p->savedOffset_     = offset;
    p->savedScale_      = scale;
+   p->savedThreshold_  = threshold;
 
    Q_EMIT ColorTableLutUpdated();
 }

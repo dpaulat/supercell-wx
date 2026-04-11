@@ -15,6 +15,7 @@ public:
       level2ProductsExpanded_.SetDefault(false);
       level2SettingsExpanded_.SetDefault(true);
       level3ProductsExpanded_.SetDefault(true);
+      level3SettingsExpanded_.SetDefault(true);
       mapSettingsExpanded_.SetDefault(true);
       timelineExpanded_.SetDefault(true);
       mainUIState_.SetDefault("");
@@ -31,6 +32,7 @@ public:
    SettingsVariable<bool> level2ProductsExpanded_ {"level2_products_expanded"};
    SettingsVariable<bool> level2SettingsExpanded_ {"level2_settings_expanded"};
    SettingsVariable<bool> level3ProductsExpanded_ {"level3_products_expanded"};
+   SettingsVariable<bool> level3SettingsExpanded_ {"level3_settings_expanded"};
    SettingsVariable<bool> mapSettingsExpanded_ {"map_settings_expanded"};
    SettingsVariable<bool> timelineExpanded_ {"timeline_expanded"};
    SettingsVariable<std::string> mainUIState_ {"main_ui_state"};
@@ -43,6 +45,7 @@ UiSettings::UiSettings() :
    RegisterVariables({&p->level2ProductsExpanded_,
                       &p->level2SettingsExpanded_,
                       &p->level3ProductsExpanded_,
+                      &p->level3SettingsExpanded_,
                       &p->mapSettingsExpanded_,
                       &p->timelineExpanded_,
                       &p->mainUIState_,
@@ -67,6 +70,11 @@ SettingsVariable<bool>& UiSettings::level2_settings_expanded() const
 SettingsVariable<bool>& UiSettings::level3_products_expanded() const
 {
    return p->level3ProductsExpanded_;
+}
+
+SettingsVariable<bool>& UiSettings::level3_settings_expanded() const
+{
+   return p->level3SettingsExpanded_;
 }
 
 SettingsVariable<bool>& UiSettings::map_settings_expanded() const
@@ -97,6 +105,7 @@ bool UiSettings::Shutdown()
    dataChanged |= p->level2ProductsExpanded_.Commit();
    dataChanged |= p->level2SettingsExpanded_.Commit();
    dataChanged |= p->level3ProductsExpanded_.Commit();
+   dataChanged |= p->level3SettingsExpanded_.Commit();
    dataChanged |= p->mapSettingsExpanded_.Commit();
    dataChanged |= p->timelineExpanded_.Commit();
    dataChanged |= p->mainUIState_.Commit();
@@ -116,6 +125,7 @@ bool operator==(const UiSettings& lhs, const UiSettings& rhs)
    return (lhs.p->level2ProductsExpanded_ == rhs.p->level2ProductsExpanded_ &&
            lhs.p->level2SettingsExpanded_ == rhs.p->level2SettingsExpanded_ &&
            lhs.p->level3ProductsExpanded_ == rhs.p->level3ProductsExpanded_ &&
+           lhs.p->level3SettingsExpanded_ == rhs.p->level3SettingsExpanded_ &&
            lhs.p->mapSettingsExpanded_ == rhs.p->mapSettingsExpanded_ &&
            lhs.p->timelineExpanded_ == rhs.p->timelineExpanded_ &&
            lhs.p->mainUIState_ == rhs.p->mainUIState_ &&

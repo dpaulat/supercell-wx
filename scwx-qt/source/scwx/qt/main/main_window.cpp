@@ -32,6 +32,7 @@
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
 #include <scwx/qt/ui/level3_products_widget.hpp>
+#include <scwx/qt/ui/level3_settings_widget.hpp>
 #include <scwx/qt/ui/placefile_dialog.hpp>
 #include <scwx/qt/ui/marker_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
@@ -76,14 +77,6 @@ public:
        mainWindow_ {mainWindow},
        settings_ {},
        activeMap_ {nullptr},
-       mapSettingsGroup_ {nullptr},
-       level2ProductsGroup_ {nullptr},
-       level2SettingsGroup_ {nullptr},
-       level3ProductsGroup_ {nullptr},
-       timelineGroup_ {nullptr},
-       level2ProductsWidget_ {nullptr},
-       level2SettingsWidget_ {nullptr},
-       level3ProductsWidget_ {nullptr},
        alertManager_ {manager::AlertManager::Instance()},
        placefileManager_ {manager::PlacefileManager::Instance()},
        markerManager_ {manager::MarkerManager::Instance()},
@@ -154,15 +147,17 @@ public:
 
    std::shared_ptr<gl::GlContext> glContext_ {nullptr};
 
-   ui::CollapsibleGroup*     mapSettingsGroup_;
-   ui::CollapsibleGroup*     level2ProductsGroup_;
-   ui::CollapsibleGroup*     level2SettingsGroup_;
-   ui::CollapsibleGroup*     level3ProductsGroup_;
-   ui::CollapsibleGroup*     timelineGroup_;
-   ui::Level2ProductsWidget* level2ProductsWidget_;
-   ui::Level2SettingsWidget* level2SettingsWidget_;
+   ui::CollapsibleGroup*     mapSettingsGroup_ {nullptr};
+   ui::CollapsibleGroup*     level2ProductsGroup_ {nullptr};
+   ui::CollapsibleGroup*     level2SettingsGroup_ {nullptr};
+   ui::CollapsibleGroup*     level3ProductsGroup_ {nullptr};
+   ui::CollapsibleGroup*     level3SettingsGroup_ {nullptr};
+   ui::CollapsibleGroup*     timelineGroup_ {nullptr};
+   ui::Level2ProductsWidget* level2ProductsWidget_ {nullptr};
+   ui::Level2SettingsWidget* level2SettingsWidget_ {nullptr};
 
-   ui::Level3ProductsWidget* level3ProductsWidget_;
+   ui::Level3ProductsWidget* level3ProductsWidget_ {nullptr};
+   ui::Level3SettingsWidget* level3SettingsWidget_ {nullptr};
 
    QLabel* coordinateLabel_ {nullptr};
    QLabel* timeLabel_ {nullptr};
@@ -351,6 +346,16 @@ MainWindow::MainWindow(QWidget* parent) :
    p->level2SettingsGroup_->setVisible(false);
    ui->radarToolboxScrollAreaContents->layout()->addWidget(
       p->level2SettingsGroup_);
+
+   // Add Level 3 Settings
+   p->level3SettingsGroup_ =
+      new ui::CollapsibleGroup(tr("Level 3 Settings"), this);
+   p->level3SettingsWidget_ = new ui::Level3SettingsWidget(this);
+   p->level3SettingsGroup_->GetContentsLayout()->addWidget(
+      p->level3SettingsWidget_);
+   ui->radarToolboxScrollAreaContents->layout()->addWidget(
+      p->level3SettingsGroup_);
+   p->level3SettingsGroup_->setVisible(false);
 
    // Timeline
    p->timelineGroup_       = new ui::CollapsibleGroup(tr("Timeline"), this);
@@ -922,6 +927,8 @@ void MainWindowImpl::ConfigureUiSettings()
       uiSettings.level2_settings_expanded().GetValue());
    level3ProductsGroup_->SetExpanded(
       uiSettings.level3_products_expanded().GetValue());
+   level3SettingsGroup_->SetExpanded(
+      uiSettings.level3_settings_expanded().GetValue());
    mapSettingsGroup_->SetExpanded(
       uiSettings.map_settings_expanded().GetValue());
    timelineGroup_->SetExpanded(uiSettings.timeline_expanded().GetValue());
@@ -938,6 +945,10 @@ void MainWindowImpl::ConfigureUiSettings()
            &ui::CollapsibleGroup::StateChanged,
            [&](bool expanded)
            { uiSettings.level3_products_expanded().StageValue(expanded); });
+   connect(level3SettingsGroup_,
+           &ui::CollapsibleGroup::StateChanged,
+           [&](bool expanded)
+           { uiSettings.level3_settings_expanded().StageValue(expanded); });
    connect(mapSettingsGroup_,
            &ui::CollapsibleGroup::StateChanged,
            [&](bool expanded)
@@ -1261,6 +1272,26 @@ void MainWindowImpl::ConnectOtherSignals()
            &ui::Level2SettingsWidget::ElevationSelected,
            mainWindow_,
            [&](float elevation) { SelectElevation(activeMap_, elevation); });
+   connect(level2SettingsWidget_,
+           &ui::Level2SettingsWidget::ThresholdChanged,
+           mainWindow_,
+           [&](std::optional<float> threshold)
+           {
+              if (activeMap_ != nullptr)
+              {
+                 activeMap_->SetColorTableThreshold(threshold);
+              }
+           });
+   connect(level3SettingsWidget_,
+           &ui::Level3SettingsWidget::ThresholdChanged,
+           mainWindow_,
+           [&](std::optional<float> threshold)
+           {
+              if (activeMap_ != nullptr)
+              {
+                 activeMap_->SetColorTableThreshold(threshold);
+              }
+           });
    connect(mainWindow_,
            &MainWindow::ActiveMapMoved,
            alertDockWidget_,
@@ -1674,11 +1705,30 @@ void MainWindowImpl::UpdateRadarProductSettings()
       level2SettingsGroup_->setVisible(true);
       // This should be done after setting visible for correct sizing
       level2SettingsWidget_->UpdateSettings(activeMap_);
+
+      level3SettingsGroup_->setVisible(false);
+      level3SettingsWidget_->setEnabled(false);
+   }
+   else if (activeMap_->GetRadarProductGroup() ==
+            common::RadarProductGroup::Level3)
+   {
+      level2SettingsGroup_->setVisible(false);
+      level2SettingsWidget_->setEnabled(false);
+
+      level3SettingsWidget_->setEnabled(true);
+      level3SettingsGroup_->setVisible(true);
+      const bool hasContent =
+         level3SettingsWidget_->UpdateThreshold(activeMap_);
+      level3SettingsWidget_->setEnabled(hasContent);
+      level3SettingsGroup_->setVisible(hasContent);
    }
    else
    {
       level2SettingsGroup_->setVisible(false);
       level2SettingsWidget_->setEnabled(false);
+
+      level3SettingsGroup_->setVisible(false);
+      level3SettingsWidget_->setEnabled(false);
    }
 
    mainWindow_->ui->smoothRadarDataCheckBox->setCheckState(
