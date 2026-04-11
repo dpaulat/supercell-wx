@@ -12,10 +12,11 @@ class Level3SettingsWidgetImpl;
 class Level3SettingsWidget : public QWidget
 {
    Q_OBJECT
+   Q_DISABLE_COPY_MOVE(Level3SettingsWidget)
 
 public:
    explicit Level3SettingsWidget(QWidget* parent = nullptr);
-   ~Level3SettingsWidget();
+   ~Level3SettingsWidget() override;
 
    bool UpdateThreshold(map::MapWidget* activeMap);
 

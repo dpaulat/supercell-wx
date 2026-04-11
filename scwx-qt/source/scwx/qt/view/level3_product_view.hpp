@@ -43,7 +43,7 @@ public:
    std::optional<float> GetDataValue(std::uint16_t level) const override;
    bool                 IgnoreUnits() const override;
 
-   std::pair<float, float> GetColorTableRange() const override;
+   [[nodiscard]] std::pair<float, float> GetColorTableRange() const override;
 
    void SelectProduct(const std::string& productName) override;
 

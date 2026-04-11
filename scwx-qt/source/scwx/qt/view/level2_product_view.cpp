@@ -433,8 +433,10 @@ std::pair<float, float> Level2ProductView::GetColorTableRange() const
    const float offset = p->momentDataBlock0_->offset();
    const float scale  = p->momentDataBlock0_->scale();
 
-   uint16_t dataThreshold;
-   uint16_t rangeMax;
+   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
+
+   std::uint16_t dataThreshold = 2;
+   std::uint16_t rangeMax      = 255;
 
    switch (p->product_)
    {
@@ -463,8 +465,11 @@ std::pair<float, float> Level2ProductView::GetColorTableRange() const
       break;
    }
 
-   const float physicalMin = (dataThreshold - offset) / scale;
-   const float physicalMax = (rangeMax - offset) / scale;
+   // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
+
+   const float physicalMin =
+      (static_cast<float>(dataThreshold) - offset) / scale;
+   const float physicalMax = (static_cast<float>(rangeMax) - offset) / scale;
 
    return {physicalMin, physicalMax};
 }
@@ -583,7 +588,7 @@ void Level2ProductView::UpdateColorTableLut()
                     }
                     else
                     {
-                       float f = (i - offset) / scale;
+                       const float f = (static_cast<float>(i) - offset) / scale;
 
                        boost::gil::rgba8_pixel_t color =
                           p->colorTable_->Color(f);

@@ -77,16 +77,6 @@ public:
        mainWindow_ {mainWindow},
        settings_ {},
        activeMap_ {nullptr},
-       mapSettingsGroup_ {nullptr},
-       level2ProductsGroup_ {nullptr},
-       level2SettingsGroup_ {nullptr},
-       level3ProductsGroup_ {nullptr},
-       level3SettingsGroup_ {nullptr},
-       timelineGroup_ {nullptr},
-       level2ProductsWidget_ {nullptr},
-       level2SettingsWidget_ {nullptr},
-       level3ProductsWidget_ {nullptr},
-       level3SettingsWidget_ {nullptr},
        alertManager_ {manager::AlertManager::Instance()},
        placefileManager_ {manager::PlacefileManager::Instance()},
        markerManager_ {manager::MarkerManager::Instance()},
@@ -157,17 +147,17 @@ public:
 
    std::shared_ptr<gl::GlContext> glContext_ {nullptr};
 
-   ui::CollapsibleGroup*     mapSettingsGroup_;
-   ui::CollapsibleGroup*     level2ProductsGroup_;
-   ui::CollapsibleGroup*     level2SettingsGroup_;
-   ui::CollapsibleGroup*     level3ProductsGroup_;
-   ui::CollapsibleGroup*     level3SettingsGroup_;
-   ui::CollapsibleGroup*     timelineGroup_;
-   ui::Level2ProductsWidget* level2ProductsWidget_;
-   ui::Level2SettingsWidget* level2SettingsWidget_;
+   ui::CollapsibleGroup*     mapSettingsGroup_ {nullptr};
+   ui::CollapsibleGroup*     level2ProductsGroup_ {nullptr};
+   ui::CollapsibleGroup*     level2SettingsGroup_ {nullptr};
+   ui::CollapsibleGroup*     level3ProductsGroup_ {nullptr};
+   ui::CollapsibleGroup*     level3SettingsGroup_ {nullptr};
+   ui::CollapsibleGroup*     timelineGroup_ {nullptr};
+   ui::Level2ProductsWidget* level2ProductsWidget_ {nullptr};
+   ui::Level2SettingsWidget* level2SettingsWidget_ {nullptr};
 
-   ui::Level3ProductsWidget* level3ProductsWidget_;
-   ui::Level3SettingsWidget* level3SettingsWidget_;
+   ui::Level3ProductsWidget* level3ProductsWidget_ {nullptr};
+   ui::Level3SettingsWidget* level3SettingsWidget_ {nullptr};
 
    QLabel* coordinateLabel_ {nullptr};
    QLabel* timeLabel_ {nullptr};

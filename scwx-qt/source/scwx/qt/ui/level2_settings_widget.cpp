@@ -57,15 +57,15 @@ public:
       settingsLayout->addWidget(declutterCheckBox_);
 
       // Threshold controls
-      thresholdGroupBox_           = new QGroupBox(tr("Threshold"), self);
-      QVBoxLayout* thresholdLayout = new QVBoxLayout(thresholdGroupBox_);
+      thresholdGroupBox_    = new QGroupBox(tr("Threshold"), self);
+      auto* thresholdLayout = new QVBoxLayout(thresholdGroupBox_);
 
       thresholdCheckBox_ =
          new QCheckBox(tr("Enable Threshold"), thresholdGroupBox_);
       thresholdLayout->addWidget(thresholdCheckBox_);
 
-      QWidget*     sliderWidget = new QWidget(thresholdGroupBox_);
-      QHBoxLayout* sliderLayout = new QHBoxLayout(sliderWidget);
+      auto* sliderWidget = new QWidget(thresholdGroupBox_);
+      auto* sliderLayout = new QHBoxLayout(sliderWidget);
       sliderLayout->setContentsMargins(0, 0, 0, 0);
 
       thresholdSlider_ = new QSlider(Qt::Horizontal, sliderWidget);
@@ -74,6 +74,7 @@ public:
       sliderLayout->addWidget(thresholdSlider_);
 
       thresholdValueLabel_ = new QLabel("", sliderWidget);
+      // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
       thresholdValueLabel_->setMinimumWidth(60);
       thresholdValueLabel_->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
       sliderLayout->addWidget(thresholdValueLabel_);
@@ -109,8 +110,8 @@ public:
    void SelectElevation(float elevation);
    void UpdateThresholdLabel(int sliderValue);
 
-   float SliderToPhysical(int sliderValue) const;
-   int   PhysicalToSlider(float physicalValue) const;
+   [[nodiscard]] float SliderToPhysical(int sliderValue) const;
+   [[nodiscard]] int   PhysicalToSlider(float physicalValue) const;
 
    Level2SettingsWidget* self_;
    QLayout*              layout_;
@@ -130,8 +131,11 @@ public:
    QSlider*   thresholdSlider_ {};
    QLabel*    thresholdValueLabel_ {};
 
-   float       thresholdRangeMin_ {-32.0f};
-   float       thresholdRangeMax_ {94.5f};
+   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
+   float thresholdRangeMin_ {-32.0f};
+   float thresholdRangeMax_ {94.5f};
+   // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
+
    std::string thresholdUnits_ {};
    bool        suppressThresholdSignal_ {false};
 
@@ -308,9 +312,9 @@ void Level2SettingsWidgetImpl::HandleThresholdSliderChanged(int value)
 
 void Level2SettingsWidgetImpl::UpdateThresholdLabel(int sliderValue)
 {
-   const float physicalValue = SliderToPhysical(sliderValue);
-   QString     text          = QString::number(physicalValue, 'f', 1) + " " +
-                  QString::fromStdString(thresholdUnits_);
+   const float   physicalValue = SliderToPhysical(sliderValue);
+   const QString text          = QString::number(physicalValue, 'f', 1) + " " +
+                        QString::fromStdString(thresholdUnits_);
    thresholdValueLabel_->setText(text);
 }
 
