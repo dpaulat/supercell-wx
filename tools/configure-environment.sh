@@ -50,6 +50,9 @@ if [[ "$(uname)" == "Darwin" ]]; then
     conan_profiles=(
         "scwx-macos_clang-18"
         "scwx-macos_clang-18_armv8"
+        "scwx-macos_clang-19_armv8"
+        "scwx-macos_clang-20_armv8"
+        "scwx-macos_clang-21_armv8"
     )
 else
     # Linux profiles
@@ -58,6 +61,14 @@ else
         "scwx-linux_clang-17_armv8"
         "scwx-linux_clang-18"
         "scwx-linux_clang-18_armv8"
+        "scwx-linux_clang-19"
+        "scwx-linux_clang-19_armv8"
+        "scwx-linux_clang-20"
+        "scwx-linux_clang-20_armv8"
+        "scwx-linux_clang-21"
+        "scwx-linux_clang-21_armv8"
+        "scwx-linux_clang-22"
+        "scwx-linux_clang-22_armv8"
         "scwx-linux_gcc-11"
         "scwx-linux_gcc-11_armv8"
         "scwx-linux_gcc-12"
@@ -66,6 +77,8 @@ else
         "scwx-linux_gcc-13_armv8"
         "scwx-linux_gcc-14"
         "scwx-linux_gcc-14_armv8"
+        "scwx-linux_gcc-15"
+        "scwx-linux_gcc-15_armv8"
     )
 fi
 
