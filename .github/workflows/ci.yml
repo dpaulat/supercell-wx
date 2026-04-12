@@ -171,10 +171,24 @@ jobs:
 
     - name: Setup MSVC
       if: matrix.compiler == 'msvc'
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: ${{ matrix.vs_arch }}
-        vsversion: ${{ matrix.vs_version }}
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+        $vsPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        if (-not $vsPath) { throw "Visual Studio with C++ tools not found" }
+
+        $vsDevCmd = Join-Path $vsPath "Common7\Tools\VsDevCmd.bat"
+        if (-not (Test-Path $vsDevCmd)) { throw "VsDevCmd not found at $vsDevCmd" }
+
+        $arch = if ("${{ matrix.vs_arch }}" -eq "x64") { "amd64" } else { "${{ matrix.vs_arch }}" }
+
+        cmd.exe /d /s /c """$vsDevCmd"" -arch=$arch -host_arch=$arch && set" |
+          ForEach-Object {
+            if ($_ -match "^(.*?)=(.*)$") {
+              "$($matches[1])=$($matches[2])" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            }
+          }
 
     - name: Setup Ubuntu Environment
       if: ${{ startsWith(matrix.os, 'ubuntu') }}
