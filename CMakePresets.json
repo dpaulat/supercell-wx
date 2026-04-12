@@ -20,7 +20,6 @@
       "name": "windows-base",
       "inherits": "base",
       "hidden": true,
-      "generator": "Visual Studio 17 2022",
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
@@ -53,6 +52,7 @@
       "name": "windows-vs2022-x64-base",
       "inherits": "windows-x64-base",
       "hidden": true,
+      "generator": "Visual Studio 17 2022",
       "cacheVariables": {
         "CMAKE_PREFIX_PATH": "C:/Qt/6.10.1/msvc2022_64"
       }
@@ -70,6 +70,7 @@
       "name": "windows-vs2026-x64-base",
       "inherits": "windows-x64-base",
       "hidden": true,
+      "generator": "Visual Studio 18 2026",
       "cacheVariables": {
         "CMAKE_PREFIX_PATH": "C:/Qt/6.10.1/msvc2022_64"
       }
