@@ -1,12 +1,5 @@
-// Prevent redefinition of __cpp_lib_format
-#if defined(_MSC_VER)
-#   include <yvals_core.h>
-#endif
-
-// Enable chrono formatters
-#ifndef __cpp_lib_format
-#   define __cpp_lib_format 202110L
-#endif
+// Enable chrono formatter feature test macro
+#include <version>
 
 #include <scwx/awips/pvtec.hpp>
 #include <scwx/util/logger.hpp>
