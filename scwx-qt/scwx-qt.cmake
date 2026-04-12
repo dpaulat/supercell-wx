@@ -645,7 +645,9 @@ qt_add_resources(scwx-qt "generated"
                  BASE    ${scwx-qt_BINARY_DIR}
                  FILES   ${COUNTIES_SQLITE_DB})
 
-qt_add_translations(scwx-qt TS_FILES ${TS_FILES}
+qt_add_translations(scwx-qt
+                    SOURCE_TARGETS scwx-qt
+                    TS_FILES ${TS_FILES}
                     INCLUDE_DIRECTORIES true
                     LUPDATE_OPTIONS -locations none -no-ui-lines)
 

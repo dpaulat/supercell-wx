@@ -28,7 +28,7 @@ jobs:
             build_type: Release
             vs_arch: x64
             vs_version: 2022
-            qt_version: 6.10.1
+            qt_version: 6.11.0
             qt_arch_aqt: win64_msvc2022_64
             qt_arch_dir: msvc2022_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -122,6 +122,7 @@ jobs:
         version: ${{ matrix.qt_version }}
         arch: ${{ matrix.qt_arch_aqt }}
         modules: ${{ matrix.qt_modules }}
+        aqtsource: git+https://github.com/miurahr/aqtinstall.git@073e34d7c2ab4ae6961ed7cca690b3abd5ba5a7e
 
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1

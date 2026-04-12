@@ -103,12 +103,12 @@ Per [tools/scwx_config.cmake](tools/scwx_config.cmake), binaries go to:
   - Use submodules when heavy customization or unreleased versions needed
   - MapLibre is vendored because Qt bindings require custom build
 
-### Qt 6.10.1 Requirement
+### Qt 6.11.0 Requirement
 Qt must be installed separately (not via Conan). Install via [Qt online installer](https://www.qt.io/download-open-source) or `aqtinstall`:
 ```bash
-aqt install-qt windows desktop 6.10.1 win64_msvc2022_64 -m qtimageformats qtmultimedia qtpositioning qtserialport
+aqt install-qt windows desktop 6.11.0 win64_msvc2022_64 -m qtimageformats qtmultimedia qtpositioning qtserialport
 ```
-Qt version compatibility: patch releases interchangeable (6.10.x), minor versions may break.
+Qt version compatibility: patch releases interchangeable (6.11.x), minor versions may break.
 
 ## Testing
 
