@@ -122,6 +122,7 @@ jobs:
         version: ${{ matrix.qt_version }}
         arch: ${{ matrix.qt_arch_aqt }}
         modules: ${{ matrix.qt_modules }}
+        aqtsource: git+https://github.com/miurahr/aqtinstall.git@073e34d7c2ab4ae6961ed7cca690b3abd5ba5a7e
 
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1

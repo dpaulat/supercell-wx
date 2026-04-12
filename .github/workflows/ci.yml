@@ -168,6 +168,7 @@ jobs:
         arch: ${{ matrix.qt_arch_aqt }}
         modules: ${{ matrix.qt_modules }}
         tools: ${{ matrix.qt_tools }}
+        aqtsource: git+https://github.com/miurahr/aqtinstall.git@073e34d7c2ab4ae6961ed7cca690b3abd5ba5a7e
 
     - name: Setup MSVC
       if: matrix.compiler == 'msvc'
