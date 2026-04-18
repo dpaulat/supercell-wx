@@ -296,7 +296,7 @@ bool MapProviderPage::IsRequired()
 
    std::string mapboxApiKey   = generalSettings.mapbox_api_key().GetValue();
    std::string maptilerApiKey = generalSettings.maptiler_api_key().GetValue();
-   map::MapProvider mapProvider =
+   map::MapProvider const mapProvider =
       map::GetMapProvider(generalSettings.map_provider().GetValue());
 
    // Setup is required if either API key is empty, or contains a single
