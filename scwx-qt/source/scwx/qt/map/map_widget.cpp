@@ -1649,6 +1649,20 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
 
 void MapWidget::wheelEvent(QWheelEvent* ev)
 {
+#if defined(__APPLE__)
+   // On macOS, trackpad scrolling should pan the map. Pinch remains the only
+   // preferred zoom gesture. If no pixel delta is available, fall back to the
+   // existing wheel zoom behavior below.
+   if (!ev->pixelDelta().isNull())
+   {
+      QPoint pixelDelta = ev->pixelDelta();
+      p->map_->moveBy(QPointF {static_cast<qreal>(pixelDelta.x()),
+                               static_cast<qreal>(pixelDelta.y())});
+      ev->accept();
+      return;
+   }
+#endif
+
    if (ev->angleDelta().y() == 0)
    {
       return;
