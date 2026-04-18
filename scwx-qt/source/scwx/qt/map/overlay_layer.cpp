@@ -94,8 +94,8 @@ public:
 
    void RenderProductName(const std::shared_ptr<MapContext>& mapContext);
    void
-   RenderProductDetails(const std::shared_ptr<MapContext>& mapContext,
-                        const QMapLibre::CustomLayerRenderParameters& params);
+        RenderProductDetails(const std::shared_ptr<MapContext>& mapContext,
+                             const QMapLibre::CustomLayerRenderParameters& params);
    void RenderAttribution(const std::shared_ptr<MapContext>& mapContext,
                           const QMapLibre::CustomLayerRenderParameters& params);
 
@@ -180,7 +180,9 @@ OverlayLayer::OverlayLayer(const std::shared_ptr<gl::GlContext>& glContext) :
 }
 
 OverlayLayer::~OverlayLayer()
-{ p->cursorScaleConnection_.disconnect(); }
+{
+   p->cursorScaleConnection_.disconnect();
+}
 
 void OverlayLayer::Impl::SetCursorLocation(common::Coordinate coordinate)
 {
@@ -697,6 +699,8 @@ bool OverlayLayer::RunMousePicking(
 }
 
 void OverlayLayer::UpdateSweepTimeNextFrame()
-{ p->sweepTimeNeedsUpdate_ = true; }
+{
+   p->sweepTimeNeedsUpdate_ = true;
+}
 
 } // namespace scwx::qt::map

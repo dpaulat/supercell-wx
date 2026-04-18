@@ -198,7 +198,9 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
    {MapProvider::Unknown, MapProviderInfo {}}};
 
 bool MapStyle::IsValid() const
-{ return !url_.empty() && !drawBelow_.empty(); }
+{
+   return !url_.empty() && !drawBelow_.empty();
+}
 
 void ConfigureMapSettings(MapProvider          mapProvider,
                           QMapLibre::Settings& settings)
@@ -252,7 +254,9 @@ MapProvider GetMapProvider(const std::string& name)
 }
 
 std::string GetMapProviderName(MapProvider mapProvider)
-{ return mapProviderName_.at(mapProvider); }
+{
+   return mapProviderName_.at(mapProvider);
+}
 
 std::string GetMapProviderApiKey(MapProvider mapProvider)
 {
@@ -285,6 +289,8 @@ std::string GetMapProviderApiKey(MapProvider mapProvider)
 }
 
 const MapProviderInfo& GetMapProviderInfo(MapProvider mapProvider)
-{ return mapProviderInfo_.at(mapProvider); }
+{
+   return mapProviderInfo_.at(mapProvider);
+}
 
 } // namespace scwx::qt::map

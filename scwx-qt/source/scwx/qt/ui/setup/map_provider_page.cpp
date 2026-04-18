@@ -221,7 +221,9 @@ void MapProviderPage::Impl::SetupSettingsInterface()
 }
 
 void MapProviderPage::Impl::SelectMapProvider(const QString& text)
-{ SelectMapProvider(map::GetMapProvider(text.toStdString())); }
+{
+   SelectMapProvider(map::GetMapProvider(text.toStdString()));
+}
 
 void MapProviderPage::Impl::SelectMapProvider(map::MapProvider mapProvider)
 {
