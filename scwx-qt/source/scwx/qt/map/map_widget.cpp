@@ -1655,9 +1655,7 @@ void MapWidget::wheelEvent(QWheelEvent* ev)
    // existing wheel zoom behavior below.
    if (!ev->pixelDelta().isNull())
    {
-      QPoint pixelDelta = ev->pixelDelta();
-      p->map_->moveBy(QPointF {static_cast<qreal>(pixelDelta.x()),
-                               static_cast<qreal>(pixelDelta.y())});
+      p->map_->moveBy(QPointF(ev->pixelDelta()));
       ev->accept();
       return;
    }
