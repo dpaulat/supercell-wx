@@ -664,7 +664,7 @@ void MapWidgetImpl::HandlePinchGesture(QPinchGesture* gesture)
 {
    if (gesture->changeFlags() & QPinchGesture::ChangeFlag::ScaleFactorChanged)
    {
-#ifdef Q_OS_MACOS
+#if defined(__APPLE__)
       // The macOS native pinch recognizer stores centerPoint() in
       // widget-local coordinates.
       map_->scaleBy(gesture->scaleFactor(), gesture->centerPoint());
