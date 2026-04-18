@@ -94,8 +94,8 @@ public:
 
    void RenderProductName(const std::shared_ptr<MapContext>& mapContext);
    void
-        RenderProductDetails(const std::shared_ptr<MapContext>& mapContext,
-                             const QMapLibre::CustomLayerRenderParameters& params);
+   RenderProductDetails(const std::shared_ptr<MapContext>& mapContext,
+                        const QMapLibre::CustomLayerRenderParameters& params);
    void RenderAttribution(const std::shared_ptr<MapContext>& mapContext,
                           const QMapLibre::CustomLayerRenderParameters& params);
 
@@ -136,10 +136,14 @@ public:
 
    std::shared_ptr<boost::gil::rgba8_image_t> cursorIconImage_ {nullptr};
 
-   const std::string& mapboxLogoImageName_ {
-      types::GetTextureName(types::ImageTexture::MapboxLogo)};
-   const std::string& mapTilerLogoImageName_ {
-      types::GetTextureName(types::ImageTexture::MapTilerLogo)};
+   const std::unordered_map<MapProvider, const std::string&> mapProviderLogos_ {
+      {MapProvider::Mapbox,
+       types::GetTextureName(types::ImageTexture::MapboxLogo)},
+      {MapProvider::MapTiler,
+       types::GetTextureName(types::ImageTexture::MapTilerLogo)},
+      {MapProvider::OpenFreeMap,
+       types::GetTextureName(types::ImageTexture::OpenFreeMapLogo)},
+   };
 
    std::shared_ptr<gl::draw::IconDrawItem> compassIcon_ {};
    std::shared_ptr<gl::draw::IconDrawItem> mapCenterIcon_ {};
@@ -176,9 +180,7 @@ OverlayLayer::OverlayLayer(const std::shared_ptr<gl::GlContext>& glContext) :
 }
 
 OverlayLayer::~OverlayLayer()
-{
-   p->cursorScaleConnection_.disconnect();
-}
+{ p->cursorScaleConnection_.disconnect(); }
 
 void OverlayLayer::Impl::SetCursorLocation(common::Coordinate coordinate)
 {
@@ -254,8 +256,12 @@ void OverlayLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
    p->icons_->AddIconSheet(p->cardinalPointIconName_);
    p->icons_->AddIconSheet(p->compassIconName_);
    p->icons_->AddIconSheet(p->mapCenterIconName_);
-   p->icons_->AddIconSheet(p->mapboxLogoImageName_)->SetAnchor(0.0f, 1.0f);
-   p->icons_->AddIconSheet(p->mapTilerLogoImageName_)->SetAnchor(0.0f, 1.0f);
+   for (auto logoIt = p->mapProviderLogos_.begin();
+        logoIt != p->mapProviderLogos_.end();
+        ++logoIt)
+   {
+      p->icons_->AddIconSheet(logoIt->second)->SetAnchor(0.0f, 1.0f);
+   }
    p->icons_->FinishIconSheets();
 
    p->icons_->StartIcons();
@@ -306,14 +312,11 @@ void OverlayLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
    p->mapCenterIcon_ = p->icons_->AddIcon();
    p->icons_->SetIconTexture(p->mapCenterIcon_, p->mapCenterIconName_, 0);
 
-   p->mapLogoIcon_ = p->icons_->AddIcon();
-   if (mapContext->map_provider() == MapProvider::Mapbox)
+   p->mapLogoIcon_    = p->icons_->AddIcon();
+   const auto& logoIt = p->mapProviderLogos_.find(mapContext->map_provider());
+   if (logoIt != p->mapProviderLogos_.cend())
    {
-      p->icons_->SetIconTexture(p->mapLogoIcon_, p->mapboxLogoImageName_, 0);
-   }
-   else if (mapContext->map_provider() == MapProvider::MapTiler)
-   {
-      p->icons_->SetIconTexture(p->mapLogoIcon_, p->mapTilerLogoImageName_, 0);
+      p->icons_->SetIconTexture(p->mapLogoIcon_, logoIt->second, 0);
    }
 
    p->icons_->FinishIcons();
@@ -694,8 +697,6 @@ bool OverlayLayer::RunMousePicking(
 }
 
 void OverlayLayer::UpdateSweepTimeNextFrame()
-{
-   p->sweepTimeNeedsUpdate_ = true;
-}
+{ p->sweepTimeNeedsUpdate_ = true; }
 
 } // namespace scwx::qt::map

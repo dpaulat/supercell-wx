@@ -12,6 +12,7 @@ namespace scwx::qt::map
 static const std::unordered_map<MapProvider, std::string> mapProviderName_ {
    {MapProvider::Mapbox, "Mapbox"},
    {MapProvider::MapTiler, "MapTiler"},
+   {MapProvider::OpenFreeMap, "OpenFreeMap"},
    {MapProvider::Unknown, "?"}};
 
 // Draw below tunnels, ferries and roads
@@ -179,12 +180,25 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
           {.name_ {"Winter"},
            .url_ {"https://api.maptiler.com/maps/winter-v2/style.json"},
            .drawBelow_ {"aeroway_runway", "Aeroway"}}}}},
+   {MapProvider::OpenFreeMap,
+    MapProviderInfo {
+       .mapProvider_ = MapProvider::OpenFreeMap,
+       .cacheDbName_ = {"openfreemap-cache.db"},
+       .providerTemplate_ =
+          QMapLibre::Settings::ProviderTemplate::MapTilerProvider,
+       .mapStyles_ {{.name_ {"Liberty"},
+                     .url_ {"https://tiles.openfreemap.org/styles/liberty"},
+                     .drawBelow_ {""}},
+                    {.name_ {"Positron"},
+                     .url_ {"https://tiles.openfreemap.org/styles/positron"},
+                     .drawBelow_ {""}},
+                    {.name_ {"Bright"},
+                     .url_ {"https://tiles.openfreemap.org/styles/bright"},
+                     .drawBelow_ {""}}}}},
    {MapProvider::Unknown, MapProviderInfo {}}};
 
 bool MapStyle::IsValid() const
-{
-   return !url_.empty() && !drawBelow_.empty();
-}
+{ return !url_.empty() && !drawBelow_.empty(); }
 
 void ConfigureMapSettings(MapProvider          mapProvider,
                           QMapLibre::Settings& settings)
@@ -238,9 +252,7 @@ MapProvider GetMapProvider(const std::string& name)
 }
 
 std::string GetMapProviderName(MapProvider mapProvider)
-{
-   return mapProviderName_.at(mapProvider);
-}
+{ return mapProviderName_.at(mapProvider); }
 
 std::string GetMapProviderApiKey(MapProvider mapProvider)
 {
@@ -258,6 +270,10 @@ std::string GetMapProviderApiKey(MapProvider mapProvider)
          settings::GeneralSettings::Instance().maptiler_api_key().GetValue();
       break;
 
+   case MapProvider::OpenFreeMap:
+      apiKey = "";
+      break;
+
    default:
       apiKey = "?";
       break;
@@ -269,8 +285,6 @@ std::string GetMapProviderApiKey(MapProvider mapProvider)
 }
 
 const MapProviderInfo& GetMapProviderInfo(MapProvider mapProvider)
-{
-   return mapProviderInfo_.at(mapProvider);
-}
+{ return mapProviderInfo_.at(mapProvider); }
 
 } // namespace scwx::qt::map

@@ -32,6 +32,7 @@ Default data providers include:
 - Iowa Environmental Mesonet
 - Mapbox
 - MapTiler
+- OpenFreeMap
 - National Weather Service
 
 Users should review the privacy policies of any services they choose to use with the application.

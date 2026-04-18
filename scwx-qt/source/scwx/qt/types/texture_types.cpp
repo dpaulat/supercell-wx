@@ -55,7 +55,9 @@ static const std::unordered_map<ImageTexture, TextureInfo> imageTextureInfo_ {
    {ImageTexture::MapboxLogo,
     {"images/mapbox-logo", ":/res/textures/images/mapbox-logo.svg"}},
    {ImageTexture::MapTilerLogo,
-    {"images/maptiler-logo", ":/res/textures/images/maptiler-logo.svg"}}};
+    {"images/maptiler-logo", ":/res/textures/images/maptiler-logo.svg"}},
+   {ImageTexture::OpenFreeMapLogo,
+    {"images/openfreemap-logo", ":res/textures/images/openfreemap-logo.jpg"}}};
 
 static const std::unordered_map<LineTexture, TextureInfo> lineTextureInfo_ {
    {LineTexture::Default1x7,
@@ -64,24 +66,16 @@ static const std::unordered_map<LineTexture, TextureInfo> lineTextureInfo_ {
     {"lines/test-pattern", ":/res/textures/lines/test-pattern.png"}}};
 
 const std::string& GetTextureName(ImageTexture imageTexture)
-{
-   return imageTextureInfo_.at(imageTexture).name_;
-}
+{ return imageTextureInfo_.at(imageTexture).name_; }
 
 const std::string& GetTextureName(LineTexture lineTexture)
-{
-   return lineTextureInfo_.at(lineTexture).name_;
-}
+{ return lineTextureInfo_.at(lineTexture).name_; }
 
 const std::string& GetTexturePath(ImageTexture imageTexture)
-{
-   return imageTextureInfo_.at(imageTexture).path_;
-}
+{ return imageTextureInfo_.at(imageTexture).path_; }
 
 const std::string& GetTexturePath(LineTexture lineTexture)
-{
-   return lineTextureInfo_.at(lineTexture).path_;
-}
+{ return lineTextureInfo_.at(lineTexture).path_; }
 
 } // namespace types
 } // namespace qt
