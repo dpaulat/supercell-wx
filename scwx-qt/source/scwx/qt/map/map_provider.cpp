@@ -188,13 +188,13 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
           QMapLibre::Settings::ProviderTemplate::MapTilerProvider,
        .mapStyles_ {{.name_ {"Liberty"},
                      .url_ {"https://tiles.openfreemap.org/styles/liberty"},
-                     .drawBelow_ {""}},
+                     .drawBelow_ {"aeroway_runway"}},
                     {.name_ {"Positron"},
                      .url_ {"https://tiles.openfreemap.org/styles/positron"},
-                     .drawBelow_ {""}},
+                     .drawBelow_ {"tunnel_motorway_casing"}},
                     {.name_ {"Bright"},
                      .url_ {"https://tiles.openfreemap.org/styles/bright"},
-                     .drawBelow_ {""}}}}},
+                     .drawBelow_ {"tunnel-service-track-casing"}}}}},
    {MapProvider::Unknown, MapProviderInfo {}}};
 
 bool MapStyle::IsValid() const
