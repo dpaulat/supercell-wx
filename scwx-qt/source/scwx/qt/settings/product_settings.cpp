@@ -72,8 +72,8 @@ public:
       return productName;
    }
 
-   std::string ThresholdKey(common::RadarProductGroup group,
-                            const std::string&        productName) const
+   static std::string ThresholdKey(common::RadarProductGroup group,
+                                   const std::string&        productName)
    {
       if (group == common::RadarProductGroup::Unknown || productName.empty())
       {
@@ -92,7 +92,7 @@ public:
    std::optional<std::reference_wrapper<ThresholdData>>
    FindThresholdData(const std::string& key)
    {
-      auto it = thresholdData_.find(key);
+      const auto it = thresholdData_.find(key);
 
       if (it == thresholdData_.end())
       {
@@ -102,10 +102,10 @@ public:
       return std::ref(it->second);
    }
 
-   std::optional<std::reference_wrapper<const ThresholdData>>
+   [[nodiscard]] std::optional<std::reference_wrapper<const ThresholdData>>
    FindThresholdData(const std::string& key) const
    {
-      auto it = thresholdData_.find(key);
+      const auto it = thresholdData_.find(key);
 
       if (it == thresholdData_.end())
       {
@@ -155,7 +155,7 @@ std::optional<float>
 ProductSettings::color_table_threshold(common::RadarProductGroup group,
                                        const std::string& productName) const
 {
-   const std::string thresholdKey = p->ThresholdKey(group, productName);
+   const std::string thresholdKey = Impl::ThresholdKey(group, productName);
 
    if (thresholdKey.empty())
    {

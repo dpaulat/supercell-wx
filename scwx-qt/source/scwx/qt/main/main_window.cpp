@@ -1658,9 +1658,16 @@ void MainWindowImpl::ApplyStoredColorTableThreshold(map::MapWidget* mapWidget)
       return;
    }
 
-   mapWidget->SetColorTableThreshold(
+   const auto threshold =
       settings::ProductSettings::Instance().color_table_threshold(
-         mapWidget->GetRadarProductGroup(), mapWidget->GetRadarProductName()));
+         mapWidget->GetRadarProductGroup(), mapWidget->GetRadarProductName());
+
+   if (mapWidget->GetColorTableThreshold() == threshold)
+   {
+      return;
+   }
+
+   mapWidget->SetColorTableThreshold(threshold);
 }
 
 void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)
