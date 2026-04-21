@@ -6,6 +6,7 @@
 #include <scwx/common/characters.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <execution>
 #include <limits>
@@ -399,6 +400,7 @@ void Level2SettingsWidgetImpl::UpdateThresholdValueDisplay(int  sliderValue,
                                         force_line_edit))
    {
       thresholdValueEdit_->setText(text);
+      thresholdValueEdit_->setModified(false);
    }
    thresholdUnitsLabel_->setText(
       QString::fromStdString(thresholdUnits_).trimmed());

@@ -42,10 +42,9 @@ ThresholdLineEditTextMatchesSlider(const QString& trimmed_text,
 }
 
 /**
- * When `force_line_edit` is false, avoid overwriting focused text that is an
- * incomplete number, but do overwrite when the committed parse disagrees with
- * `slider_value` (map/slider moved). When true, always apply the canonical
- * string.
+ * When `force_line_edit` is false, avoid overwriting focused text the user is
+ * still editing (`isModified()`), or incomplete / non-matching input. When
+ * true, always apply the canonical string (slider, map, or explicit refresh).
  */
 [[nodiscard]] inline bool
 ShouldApplyThresholdLineEditText(const QLineEdit& edit,
@@ -61,6 +60,10 @@ ShouldApplyThresholdLineEditText(const QLineEdit& edit,
    if (!edit.hasFocus())
    {
       return true;
+   }
+   if (edit.isModified())
+   {
+      return false;
    }
    if (ThresholdLineEditMatchesSlider(edit, slider_value, range_min, range_max))
    {

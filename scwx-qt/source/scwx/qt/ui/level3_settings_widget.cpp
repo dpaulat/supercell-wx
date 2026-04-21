@@ -3,6 +3,7 @@
 #include <scwx/qt/ui/threshold_value_utility.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -223,6 +224,7 @@ void Level3SettingsWidgetImpl::UpdateThresholdValueDisplay(int  sliderValue,
                                         force_line_edit))
    {
       thresholdValueEdit_->setText(text);
+      thresholdValueEdit_->setModified(false);
    }
    thresholdUnitsLabel_->setText(
       QString::fromStdString(thresholdUnits_).trimmed());

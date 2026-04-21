@@ -3,6 +3,8 @@
 
 #include <gtest/gtest.h>
 
+#include <QLocale>
+
 #include <algorithm>
 
 namespace scwx::qt::ui
@@ -46,10 +48,10 @@ TEST(ThresholdLineEditSync, TextMatchesSliderQuantized)
 {
    constexpr float kMin {-32.0f};
    constexpr float kMax {94.5f};
-   EXPECT_TRUE(ThresholdLineEditTextMatchesSlider(
-      QStringLiteral("14.2"), 462, kMin, kMax));
-   EXPECT_FALSE(ThresholdLineEditTextMatchesSlider(
-      QStringLiteral("14.3"), 462, kMin, kMax));
+   const QString   text_14_2 = QLocale::system().toString(14.2, 'f', 1);
+   const QString   text_14_3 = QLocale::system().toString(14.3, 'f', 1);
+   EXPECT_TRUE(ThresholdLineEditTextMatchesSlider(text_14_2, 462, kMin, kMax));
+   EXPECT_FALSE(ThresholdLineEditTextMatchesSlider(text_14_3, 462, kMin, kMax));
 }
 
 TEST(ThresholdLineEditSync, InvalidTextDoesNotMatch)
