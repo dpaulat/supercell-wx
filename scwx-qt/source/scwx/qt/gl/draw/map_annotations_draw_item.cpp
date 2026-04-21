@@ -61,8 +61,8 @@ static double NormalizeAzimuthDegrees(double deg)
    return deg - 180.0;
 }
 
-static void AppendVertex(std::vector<float>& out,
-                         const common::Coordinate& c,
+static void AppendVertex(std::vector<float>&         out,
+                         const common::Coordinate&   c,
                          const std::array<float, 4>& rgba,
                          float                       arcLen,
                          float                       hatchX,
@@ -84,24 +84,24 @@ static void AppendVertex(std::vector<float>& out,
 }
 
 static void AppendTriangle(std::vector<float>&         out,
-                             const common::Coordinate&   c0,
-                             const common::Coordinate&   c1,
-                             const common::Coordinate&   c2,
-                             const std::array<float, 4>& rgba,
-                             float                       arcLen,
-                             float                       dashPeriodM,
-                             float                       dashDuty)
+                           const common::Coordinate&   c0,
+                           const common::Coordinate&   c1,
+                           const common::Coordinate&   c2,
+                           const std::array<float, 4>& rgba,
+                           float                       arcLen,
+                           float                       dashPeriodM,
+                           float                       dashDuty)
 {
-   const float hx =
-      static_cast<float>(c0.longitude_ * 111320.0 * std::cos(c0.latitude_ * 0.017453292519943295));
+   const float hx = static_cast<float>(
+      c0.longitude_ * 111320.0 * std::cos(c0.latitude_ * 0.017453292519943295));
    const float hy = static_cast<float>(c0.latitude_ * 110540.0);
    AppendVertex(out, c0, rgba, arcLen, hx, hy, dashPeriodM, dashDuty);
-   const float hx1 =
-      static_cast<float>(c1.longitude_ * 111320.0 * std::cos(c1.latitude_ * 0.017453292519943295));
+   const float hx1 = static_cast<float>(
+      c1.longitude_ * 111320.0 * std::cos(c1.latitude_ * 0.017453292519943295));
    const float hy1 = static_cast<float>(c1.latitude_ * 110540.0);
    AppendVertex(out, c1, rgba, arcLen, hx1, hy1, dashPeriodM, dashDuty);
-   const float hx2 =
-      static_cast<float>(c2.longitude_ * 111320.0 * std::cos(c2.latitude_ * 0.017453292519943295));
+   const float hx2 = static_cast<float>(
+      c2.longitude_ * 111320.0 * std::cos(c2.latitude_ * 0.017453292519943295));
    const float hy2 = static_cast<float>(c2.latitude_ * 110540.0);
    AppendVertex(out, c2, rgba, arcLen, hx2, hy2, dashPeriodM, dashDuty);
 }
@@ -117,34 +117,29 @@ static void AppendSegmentQuad(std::vector<float>&         out,
                               float                       dashPeriodM,
                               float                       dashDuty)
 {
-   (void)arcLb;
+   (void) arcLb;
    AppendTriangle(out, la, ra, rb, rgba, arcLa, dashPeriodM, dashDuty);
    AppendTriangle(out, la, rb, lb, rgba, arcLa, dashPeriodM, dashDuty);
 }
 
-static void GeoStrokeSegmentCorners(
-   const common::Coordinate&         a,
-   const common::Coordinate&         b,
-   units::length::meters<double>     halfWidthM,
-   const ::GeographicLib::Geodesic& geod,
-   double&                           s12Out,
-   common::Coordinate&              leftA,
-   common::Coordinate&              rightA,
-   common::Coordinate&              leftB,
-   common::Coordinate&              rightB)
+static void GeoStrokeSegmentCorners(const common::Coordinate&        a,
+                                    const common::Coordinate&        b,
+                                    units::length::meters<double>    halfWidthM,
+                                    const ::GeographicLib::Geodesic& geod,
+                                    double&                          s12Out,
+                                    common::Coordinate&              leftA,
+                                    common::Coordinate&              rightA,
+                                    common::Coordinate&              leftB,
+                                    common::Coordinate&              rightB)
 {
    double azi1 {};
    double azi2 {};
-   s12Out = geod.Inverse(a.latitude_,
-                         a.longitude_,
-                         b.latitude_,
-                         b.longitude_,
-                         azi1,
-                         azi2);
+   s12Out = geod.Inverse(
+      a.latitude_, a.longitude_, b.latitude_, b.longitude_, azi1, azi2);
 
-   // azi1 / azi2 are both forward along the geodesic (at A toward B, at B as the
-   // segment arrives). Use the same ±90° convention at both ends so the quad does
-   // not swap ribbon sides (twisted strip → one-sided sawteeth).
+   // azi1 / azi2 are both forward along the geodesic (at A toward B, at B as
+   // the segment arrives). Use the same ±90° convention at both ends so the
+   // quad does not swap ribbon sides (twisted strip → one-sided sawteeth).
    leftA = util::GeographicLib::GetCoordinate(
       a,
       units::angle::degrees<double> {NormalizeAzimuthDegrees(azi1 - 90.0)},
@@ -170,25 +165,26 @@ static glm::vec2 ScreenLatLon(const common::Coordinate& c)
       {c.latitude_, c.longitude_});
 }
 
-/** Fills both wedges at a polyline joint (geodesic offset corners rarely align in screen
- *  space). A single-sided bevel leaves visible gaps on curves; two triangles overlap
- *  slightly on the inside of the turn but keep the stroke solid. */
-static void AppendJoinBevelBothSides(std::vector<float>&           out,
-                                     const common::Coordinate&     prevEndLeft,
-                                     const common::Coordinate&     prevEndRight,
-                                     const common::Coordinate&     currStartLeft,
-                                     const common::Coordinate&     currStartRight,
-                                     const common::Coordinate&     pivot,
-                                     const std::array<float, 4>&   rgba,
-                                     float                         arcLen,
-                                     float                         dashPeriodM,
-                                     float                         dashDuty,
-                                     const glm::vec2&              p0,
-                                     const glm::vec2&              p1,
-                                     const glm::vec2&              p2)
+/** Fills both wedges at a polyline joint (geodesic offset corners rarely align
+ * in screen space). A single-sided bevel leaves visible gaps on curves; two
+ * triangles overlap slightly on the inside of the turn but keep the stroke
+ * solid. */
+static void AppendJoinBevelBothSides(std::vector<float>&         out,
+                                     const common::Coordinate&   prevEndLeft,
+                                     const common::Coordinate&   prevEndRight,
+                                     const common::Coordinate&   currStartLeft,
+                                     const common::Coordinate&   currStartRight,
+                                     const common::Coordinate&   pivot,
+                                     const std::array<float, 4>& rgba,
+                                     float                       arcLen,
+                                     float                       dashPeriodM,
+                                     float                       dashDuty,
+                                     const glm::vec2&            p0,
+                                     const glm::vec2&            p1,
+                                     const glm::vec2&            p2)
 {
-   glm::vec2 t0 = p1 - p0;
-   glm::vec2 t1 = p2 - p1;
+   glm::vec2   t0 = p1 - p0;
+   glm::vec2   t1 = p2 - p1;
    const float l0 = glm::length(t0);
    const float l1 = glm::length(t1);
    if (l0 < 1e-7f || l1 < 1e-7f)
@@ -220,15 +216,14 @@ static void AppendJoinBevelBothSides(std::vector<float>&           out,
                   dashDuty);
 }
 
-static void AppendPolylineStroke(
-   std::vector<float>&                out,
-   const std::vector<common::Coordinate>& pts,
-   bool                               closed,
-   units::length::meters<double>      strokeWidthM,
-   const std::array<float, 4>&        rgba,
-   const ::GeographicLib::Geodesic&   geod,
-   float                              dashPeriodM,
-   float                              dashDuty)
+static void AppendPolylineStroke(std::vector<float>&                    out,
+                                 const std::vector<common::Coordinate>& pts,
+                                 bool                                   closed,
+                                 units::length::meters<double>    strokeWidthM,
+                                 const std::array<float, 4>&      rgba,
+                                 const ::GeographicLib::Geodesic& geod,
+                                 float                            dashPeriodM,
+                                 float                            dashDuty)
 {
    const std::size_t n = pts.size();
    if (n < 2)
@@ -259,8 +254,8 @@ static void AppendPolylineStroke(
                               wrapRa,
                               wrapLb,
                               wrapRb);
-      (void)wrapLa;
-      (void)wrapRa;
+      (void) wrapLa;
+      (void) wrapRa;
       prevEndLeft  = wrapLb;
       prevEndRight = wrapRb;
       havePrev     = true;
@@ -268,25 +263,23 @@ static void AppendPolylineStroke(
 
    for (std::size_t s = 0; s < numSeg; ++s)
    {
-      const common::Coordinate& a =
-         closed ? pts[s % n] : pts[s];
-      const common::Coordinate& b =
-         closed ? pts[(s + 1) % n] : pts[s + 1];
+      const common::Coordinate& a = closed ? pts[s % n] : pts[s];
+      const common::Coordinate& b = closed ? pts[(s + 1) % n] : pts[s + 1];
 
       double             s12 {};
       common::Coordinate leftA;
       common::Coordinate rightA;
       common::Coordinate leftB;
       common::Coordinate rightB;
-      GeoStrokeSegmentCorners(a, b, halfW, geod, s12, leftA, rightA, leftB, rightB);
+      GeoStrokeSegmentCorners(
+         a, b, halfW, geod, s12, leftA, rightA, leftB, rightB);
 
       if (havePrev)
       {
          const common::Coordinate& p0 =
             closed ? pts[(s + n - 1) % n] : pts[s - 1];
          const common::Coordinate& p1 = closed ? pts[s % n] : pts[s];
-         const common::Coordinate& p2 =
-            closed ? pts[(s + 1) % n] : pts[s + 1];
+         const common::Coordinate& p2 = closed ? pts[(s + 1) % n] : pts[s + 1];
 
          AppendJoinBevelBothSides(out,
                                   prevEndLeft,
@@ -305,8 +298,16 @@ static void AppendPolylineStroke(
 
       const float arcA = arcLen;
       arcLen += static_cast<float>(s12);
-      AppendSegmentQuad(
-         out, leftA, rightA, leftB, rightB, rgba, arcA, arcLen, dashPeriodM, dashDuty);
+      AppendSegmentQuad(out,
+                        leftA,
+                        rightA,
+                        leftB,
+                        rightB,
+                        rgba,
+                        arcA,
+                        arcLen,
+                        dashPeriodM,
+                        dashDuty);
 
       prevEndLeft  = leftB;
       prevEndRight = rightB;
@@ -314,21 +315,22 @@ static void AppendPolylineStroke(
    }
 }
 
-static void AppendCircleStroke(std::vector<float>&                out,
-                               const common::Coordinate&          center,
-                               double                             radiusM,
-                               units::length::meters<double>      strokeWidthM,
-                               const std::array<float, 4>&        rgba,
-                               const ::GeographicLib::Geodesic&   geod,
-                               float                              dashPeriodM,
-                               float                              dashDuty)
+static void AppendCircleStroke(std::vector<float>&              out,
+                               const common::Coordinate&        center,
+                               double                           radiusM,
+                               units::length::meters<double>    strokeWidthM,
+                               const std::array<float, 4>&      rgba,
+                               const ::GeographicLib::Geodesic& geod,
+                               float                            dashPeriodM,
+                               float                            dashDuty)
 {
-   constexpr int         kSegments = 72;
+   constexpr int                   kSegments = 72;
    std::vector<common::Coordinate> ring;
    ring.reserve(static_cast<std::size_t>(kSegments) + 1);
    for (int i = 0; i <= kSegments; ++i)
    {
-      const double az = 360.0 * static_cast<double>(i) / static_cast<double>(kSegments);
+      const double az =
+         360.0 * static_cast<double>(i) / static_cast<double>(kSegments);
       ring.push_back(util::GeographicLib::GetCoordinate(
          center,
          units::angle::degrees<double> {az},
@@ -338,13 +340,12 @@ static void AppendCircleStroke(std::vector<float>&                out,
       out, ring, true, strokeWidthM, rgba, geod, dashPeriodM, dashDuty);
 }
 
-static void AppendRectangleStrokeAndFill(
-   std::vector<float>&                strokeOut,
-   std::vector<float>&                fillOut,
-   const common::Coordinate&          c1,
-   const common::Coordinate&          c2,
-   const map::MapAnnotationStyle&     style,
-   const ::GeographicLib::Geodesic&   geod)
+static void AppendRectangleStrokeAndFill(std::vector<float>&       strokeOut,
+                                         std::vector<float>&       fillOut,
+                                         const common::Coordinate& c1,
+                                         const common::Coordinate& c2,
+                                         const map::MapAnnotationStyle&   style,
+                                         const ::GeographicLib::Geodesic& geod)
 {
    const double minLat = std::min(c1.latitude_, c2.latitude_);
    const double maxLat = std::max(c1.latitude_, c2.latitude_);
@@ -380,18 +381,12 @@ static void AppendRectangleStrokeAndFill(
       centroid.longitude_ /= static_cast<double>(ring.size());
 
       const std::array<float, 4> fillRgba = style.fillColor;
-      const std::size_t         n = ring.size();
+      const std::size_t          n        = ring.size();
       for (std::size_t i = 0; i < n; ++i)
       {
          const std::size_t j = (i + 1) % n;
-         AppendTriangle(fillOut,
-                        centroid,
-                        ring[i],
-                        ring[j],
-                        fillRgba,
-                        0.0f,
-                        0.0f,
-                        1.0f);
+         AppendTriangle(
+            fillOut, centroid, ring[i], ring[j], fillRgba, 0.0f, 0.0f, 1.0f);
       }
    }
 }
@@ -411,8 +406,8 @@ static void AppendFilledGeoDisk(std::vector<float>&         fillOut,
    ring.reserve(static_cast<std::size_t>(kRoundBrushDiskSegments) + 1);
    for (int i = 0; i <= kRoundBrushDiskSegments; ++i)
    {
-      const double az =
-         360.0 * static_cast<double>(i) / static_cast<double>(kRoundBrushDiskSegments);
+      const double az = 360.0 * static_cast<double>(i) /
+                        static_cast<double>(kRoundBrushDiskSegments);
       ring.push_back(util::GeographicLib::GetCoordinate(
          center,
          units::angle::degrees<double> {az},
@@ -447,8 +442,8 @@ struct MeterVertex
 };
 
 static void PolylineBBoxCenter(const std::vector<common::Coordinate>& pts,
-                               double&                              refLat,
-                               double&                              refLon)
+                               double&                                refLat,
+                               double&                                refLon)
 {
    double minLat = pts.front().latitude_;
    double maxLat = minLat;
@@ -465,27 +460,25 @@ static void PolylineBBoxCenter(const std::vector<common::Coordinate>& pts,
    refLon = 0.5 * (minLon + maxLon);
 }
 
-static void LatLonToEnuMeters(double lat,
-                              double lon,
-                              double refLat,
-                              double refLon,
+static void LatLonToEnuMeters(double  lat,
+                              double  lon,
+                              double  refLat,
+                              double  refLon,
                               double& eastM,
                               double& northM)
 {
-   constexpr double kDeg = std::numbers::pi / 180.0;
+   constexpr double kDeg   = std::numbers::pi / 180.0;
    const double     latRad = refLat * kDeg;
    eastM  = kEarthRadiusM * std::cos(latRad) * (lon - refLon) * kDeg;
    northM = kEarthRadiusM * (lat - refLat) * kDeg;
 }
 
-static common::Coordinate EnuMetersToLatLon(double eastM,
-                                           double northM,
-                                           double   refLat,
-                                           double   refLon)
+static common::Coordinate
+EnuMetersToLatLon(double eastM, double northM, double refLat, double refLon)
 {
-   constexpr double kDeg = std::numbers::pi / 180.0;
+   constexpr double kDeg   = std::numbers::pi / 180.0;
    const double     latRad = refLat * kDeg;
-   const double     lat   = refLat + (northM / kEarthRadiusM) / kDeg;
+   const double     lat    = refLat + (northM / kEarthRadiusM) / kDeg;
    const double     lon =
       refLon + (eastM / (kEarthRadiusM * std::cos(latRad))) / kDeg;
    return {lat, lon};
@@ -497,12 +490,10 @@ public:
    StrokePolygonTessellator()
    {
       tessellator_ = gluNewTess();
-      gluTessCallback(tessellator_,
-                      GLU_TESS_COMBINE_DATA,
-                      (_GLUfuncptr) &CombineCallback);
-      gluTessCallback(tessellator_,
-                      GLU_TESS_VERTEX_DATA,
-                      (_GLUfuncptr) &VertexCallback);
+      gluTessCallback(
+         tessellator_, GLU_TESS_COMBINE_DATA, (_GLUfuncptr) &CombineCallback);
+      gluTessCallback(
+         tessellator_, GLU_TESS_VERTEX_DATA, (_GLUfuncptr) &VertexCallback);
       gluTessCallback(tessellator_, GLU_TESS_EDGE_FLAG, []() {});
       gluTessCallback(
          tessellator_, GLU_TESS_ERROR, (_GLUfuncptr) &ErrorCallback);
@@ -611,7 +602,7 @@ private:
       return true;
    }
 
-   bool TessellatePolygon(const geos::geom::Polygon& poly,
+   bool TessellatePolygon(const geos::geom::Polygon&  poly,
                           std::vector<float>&         fillOut,
                           double                      refLat,
                           double                      refLon,
@@ -649,17 +640,17 @@ private:
       return true;
    }
 
-   GLUtesselator*              tessellator_ {nullptr};
-   std::deque<TessVertexData>  vertices_ {};
-   std::deque<TessVertexData>  combineBuffer_ {};
-   std::vector<MeterVertex>    triangles_ {};
+   GLUtesselator*             tessellator_ {nullptr};
+   std::deque<TessVertexData> vertices_ {};
+   std::deque<TessVertexData> combineBuffer_ {};
+   std::vector<MeterVertex>   triangles_ {};
 };
 
-static bool TryAppendSolidRoundPolylineGeosFill(
-   std::vector<float>&                      fillOut,
-   const std::vector<common::Coordinate>&   pts,
-   units::length::meters<double>            strokeWidthM,
-   const std::array<float, 4>&              rgba)
+static bool
+TryAppendSolidRoundPolylineGeosFill(std::vector<float>& fillOut,
+                                    const std::vector<common::Coordinate>& pts,
+                                    units::length::meters<double> strokeWidthM,
+                                    const std::array<float, 4>&   rgba)
 {
    if (pts.size() < 2)
    {
@@ -690,8 +681,8 @@ static bool TryAppendSolidRoundPolylineGeosFill(
       const auto& gf   = *geos::geom::GeometryFactory::getDefaultInstance();
       auto        line = gf.createLineString(seq);
       using BP         = geos::operation::buffer::BufferParameters;
-      BP                bp(16U, BP::CAP_ROUND, BP::JOIN_ROUND, 5.0);
-      geos::operation::buffer::BufferOp op(line.get(), bp);
+      BP bp(16U, BP::CAP_ROUND, BP::JOIN_ROUND, 5.0);
+      geos::operation::buffer::BufferOp     op(line.get(), bp);
       std::unique_ptr<geos::geom::Geometry> buf(op.getResultGeometry(halfW));
       if (buf == nullptr || buf->isEmpty())
       {
@@ -752,17 +743,17 @@ static void ConfigureAnnotationVaoForVbo(GLuint vao, GLuint vbo)
 
 struct PickSegment
 {
-   std::uint64_t        id;
-   common::Coordinate   a;
-   common::Coordinate   b;
+   std::uint64_t                 id;
+   common::Coordinate            a;
+   common::Coordinate            b;
    units::length::meters<double> halfStrokeM {};
 };
 
 struct PickCircle
 {
-   std::uint64_t       id;
-   common::Coordinate  center;
-   double              radiusM {};
+   std::uint64_t                 id;
+   common::Coordinate            center;
+   double                        radiusM {};
    units::length::meters<double> halfStrokeM {};
 };
 
@@ -770,41 +761,41 @@ class MapAnnotationsDrawItem::Impl
 {
 public:
    explicit Impl(std::shared_ptr<GlContext> context,
-                 map::MapAnnotationModel*    model) :
+                 map::MapAnnotationModel*   model) :
        context_ {std::move(context)}, model_ {model}
    {
    }
 
-   std::shared_ptr<GlContext>   context_;
-   map::MapAnnotationModel*     model_ {nullptr};
+   std::shared_ptr<GlContext> context_;
+   map::MapAnnotationModel*   model_ {nullptr};
 
-   std::vector<float> modelStrokeVertices_ {};
-   std::vector<float> modelFillVertices_ {};
-   std::vector<float> previewStrokeVertices_ {};
-   std::vector<float> previewFillVertices_ {};
-   std::vector<PickSegment>   pickSegments_ {};
-   std::vector<PickCircle>    pickCircles_ {};
+   std::vector<float>              modelStrokeVertices_ {};
+   std::vector<float>              modelFillVertices_ {};
+   std::vector<float>              previewStrokeVertices_ {};
+   std::vector<float>              previewFillVertices_ {};
+   std::vector<PickSegment>        pickSegments_ {};
+   std::vector<PickCircle>         pickCircles_ {};
    std::vector<common::Coordinate> previewPts_ {};
    map::MapAnnotationStyle         previewStyle_ {};
-   bool                              previewActive_ {false};
-   bool                              previewRoundStroke_ {false};
+   bool                            previewActive_ {false};
+   bool                            previewRoundStroke_ {false};
 
    std::shared_ptr<ShaderProgram> shader_ {nullptr};
-   GLint uMapMatrixLoc_ {-1};
-   GLint uOriginLoc_ {-1};
-   GLint uHatchModeLoc_ {-1};
+   GLint                          uMapMatrixLoc_ {-1};
+   GLint                          uOriginLoc_ {-1};
+   GLint                          uHatchModeLoc_ {-1};
 
-   GLuint vaoModelStroke_ {0};
-   GLuint vboModelStroke_ {0};
-   GLuint vaoPreviewStroke_ {0};
-   GLuint vboPreviewStroke_ {0};
+   GLuint  vaoModelStroke_ {0};
+   GLuint  vboModelStroke_ {0};
+   GLuint  vaoPreviewStroke_ {0};
+   GLuint  vboPreviewStroke_ {0};
    GLsizei strokeModelCount_ {0};
    GLsizei strokePreviewCount_ {0};
 
-   GLuint vaoModelFill_ {0};
-   GLuint vboModelFill_ {0};
-   GLuint vaoPreviewFill_ {0};
-   GLuint vboPreviewFill_ {0};
+   GLuint  vaoModelFill_ {0};
+   GLuint  vboModelFill_ {0};
+   GLuint  vaoPreviewFill_ {0};
+   GLuint  vboPreviewFill_ {0};
    GLsizei fillModelCount_ {0};
    GLsizei fillPreviewCount_ {0};
 
@@ -849,12 +840,11 @@ void MapAnnotationsDrawItem::Impl::RebuildCommittedGeometry()
                   if (arg.points.size() >= 2)
                   {
                      const bool solidDash = (dash.first < 1.0e-3f);
-                     if (!solidDash ||
-                         !TryAppendSolidRoundPolylineGeosFill(
-                            modelFillVertices_,
-                            arg.points,
-                            obj.style.strokeWidthM,
-                            obj.style.strokeColor))
+                     if (!solidDash || !TryAppendSolidRoundPolylineGeosFill(
+                                          modelFillVertices_,
+                                          arg.points,
+                                          obj.style.strokeWidthM,
+                                          obj.style.strokeColor))
                      {
                         AppendPolylineStroke(modelStrokeVertices_,
                                              arg.points,
@@ -891,20 +881,20 @@ void MapAnnotationsDrawItem::Impl::RebuildCommittedGeometry()
                {
                   for (std::size_t i = 0; i + 1 < arg.points.size(); ++i)
                   {
-                     pickSegments_.push_back(
-                        PickSegment {.id           = obj.id,
-                                      .a            = arg.points[i],
-                                      .b            = arg.points[i + 1],
-                                      .halfStrokeM = obj.style.strokeWidthM * 0.5});
+                     pickSegments_.push_back(PickSegment {
+                        .id          = obj.id,
+                        .a           = arg.points[i],
+                        .b           = arg.points[i + 1],
+                        .halfStrokeM = obj.style.strokeWidthM * 0.5});
                   }
                }
                else if (arg.roundStroke && arg.points.size() == 1)
                {
-                  pickCircles_.push_back(
-                     PickCircle {.id           = obj.id,
-                                 .center       = arg.points[0],
-                                 .radiusM      = obj.style.strokeWidthM.value() * 0.5,
-                                 .halfStrokeM = obj.style.strokeWidthM * 0.5});
+                  pickCircles_.push_back(PickCircle {
+                     .id          = obj.id,
+                     .center      = arg.points[0],
+                     .radiusM     = obj.style.strokeWidthM.value() * 0.5,
+                     .halfStrokeM = obj.style.strokeWidthM * 0.5});
                }
             }
             else if constexpr (std::is_same_v<T, map::MapAnnotationCircle>)
@@ -926,15 +916,19 @@ void MapAnnotationsDrawItem::Impl::RebuildCommittedGeometry()
                                   dash.first,
                                   dash.second);
                pickCircles_.push_back(
-                  PickCircle {.id           = obj.id,
-                              .center       = arg.center,
-                              .radiusM      = arg.radiusMeters,
+                  PickCircle {.id          = obj.id,
+                              .center      = arg.center,
+                              .radiusM     = arg.radiusMeters,
                               .halfStrokeM = obj.style.strokeWidthM * 0.5});
             }
             else if constexpr (std::is_same_v<T, map::MapAnnotationRectangle>)
             {
-               AppendRectangleStrokeAndFill(
-                  modelStrokeVertices_, modelFillVertices_, arg.corner1, arg.corner2, obj.style, geod);
+               AppendRectangleStrokeAndFill(modelStrokeVertices_,
+                                            modelFillVertices_,
+                                            arg.corner1,
+                                            arg.corner2,
+                                            obj.style,
+                                            geod);
                const double minLat =
                   std::min(arg.corner1.latitude_, arg.corner2.latitude_);
                const double maxLat =
@@ -948,27 +942,40 @@ void MapAnnotationsDrawItem::Impl::RebuildCommittedGeometry()
                const common::Coordinate ur {maxLat, maxLon};
                const common::Coordinate ul {maxLat, minLon};
                pickSegments_.push_back(
-                  PickSegment {.id = obj.id, .a = ll, .b = lr, .halfStrokeM = obj.style.strokeWidthM * 0.5});
+                  PickSegment {.id          = obj.id,
+                               .a           = ll,
+                               .b           = lr,
+                               .halfStrokeM = obj.style.strokeWidthM * 0.5});
                pickSegments_.push_back(
-                  PickSegment {.id = obj.id, .a = lr, .b = ur, .halfStrokeM = obj.style.strokeWidthM * 0.5});
+                  PickSegment {.id          = obj.id,
+                               .a           = lr,
+                               .b           = ur,
+                               .halfStrokeM = obj.style.strokeWidthM * 0.5});
                pickSegments_.push_back(
-                  PickSegment {.id = obj.id, .a = ur, .b = ul, .halfStrokeM = obj.style.strokeWidthM * 0.5});
+                  PickSegment {.id          = obj.id,
+                               .a           = ur,
+                               .b           = ul,
+                               .halfStrokeM = obj.style.strokeWidthM * 0.5});
                pickSegments_.push_back(
-                  PickSegment {.id = obj.id, .a = ul, .b = ll, .halfStrokeM = obj.style.strokeWidthM * 0.5});
+                  PickSegment {.id          = obj.id,
+                               .a           = ul,
+                               .b           = ll,
+                               .halfStrokeM = obj.style.strokeWidthM * 0.5});
             }
             else if constexpr (std::is_same_v<T, map::MapAnnotationMeasure>)
             {
                const double pinRadiusM = MeasurePinRadiusM(obj.style);
-               const auto dash = DashAttribs(obj.style);
+               const auto   dash       = DashAttribs(obj.style);
                std::vector<common::Coordinate> seg = {arg.a, arg.b};
-               AppendPolylineStroke(modelStrokeVertices_,
-                                    seg,
-                                    false,
-                                    units::length::meters<double> {pinRadiusM * 0.8},
-                                    obj.style.strokeColor,
-                                    geod,
-                                    dash.first,
-                                    dash.second);
+               AppendPolylineStroke(
+                  modelStrokeVertices_,
+                  seg,
+                  false,
+                  units::length::meters<double> {pinRadiusM * 0.8},
+                  obj.style.strokeColor,
+                  geod,
+                  dash.first,
+                  dash.second);
                AppendFilledGeoDisk(
                   modelFillVertices_, arg.a, pinRadiusM, obj.style.strokeColor);
                AppendFilledGeoDisk(
@@ -981,20 +988,20 @@ void MapAnnotationsDrawItem::Impl::RebuildCommittedGeometry()
                                    arg.b,
                                    pinRadiusM * 0.38,
                                    {1.0f, 1.0f, 1.0f, 0.95f});
-               pickCircles_.push_back(
-                  PickCircle {.id           = obj.id,
-                              .center       = arg.a,
-                              .radiusM      = pinRadiusM,
-                              .halfStrokeM = units::length::meters<double> {0.0}});
-               pickCircles_.push_back(
-                  PickCircle {.id           = obj.id,
-                              .center       = arg.b,
-                              .radiusM      = pinRadiusM,
-                              .halfStrokeM = units::length::meters<double> {0.0}});
+               pickCircles_.push_back(PickCircle {
+                  .id          = obj.id,
+                  .center      = arg.a,
+                  .radiusM     = pinRadiusM,
+                  .halfStrokeM = units::length::meters<double> {0.0}});
+               pickCircles_.push_back(PickCircle {
+                  .id          = obj.id,
+                  .center      = arg.b,
+                  .radiusM     = pinRadiusM,
+                  .halfStrokeM = units::length::meters<double> {0.0}});
                pickSegments_.push_back(
-                  PickSegment {.id           = obj.id,
-                               .a            = arg.a,
-                               .b            = arg.b,
+                  PickSegment {.id          = obj.id,
+                               .a           = arg.a,
+                               .b           = arg.b,
                                .halfStrokeM = obj.style.strokeWidthM * 0.5});
             }
          },
@@ -1003,8 +1010,14 @@ void MapAnnotationsDrawItem::Impl::RebuildCommittedGeometry()
 
    if (model_ != nullptr)
    {
-      model_->Read([&](const std::vector<map::MapAnnotationObject>& objs)
-                   { for (const auto& o : objs) { handleObject(o); } });
+      model_->Read(
+         [&](const std::vector<map::MapAnnotationObject>& objs)
+         {
+            for (const auto& o : objs)
+            {
+               handleObject(o);
+            }
+         });
    }
 
    strokeModelCount_ =
@@ -1019,7 +1032,7 @@ void MapAnnotationsDrawItem::Impl::RebuildPreviewGeometry()
    previewStrokeVertices_.clear();
    previewFillVertices_.clear();
    strokePreviewCount_ = 0;
-   fillPreviewCount_  = 0;
+   fillPreviewCount_   = 0;
 
    if (!previewActive_)
    {
@@ -1088,12 +1101,12 @@ void MapAnnotationsDrawItem::Initialize()
       Deinitialize();
    }
 
-   p->shader_ = p->context_->GetShaderProgram(
-      ":/gl/annotation_geo.vert", ":/gl/annotation_stroke.frag");
+   p->shader_ = p->context_->GetShaderProgram(":/gl/annotation_geo.vert",
+                                              ":/gl/annotation_stroke.frag");
 
-   p->uMapMatrixLoc_   = p->shader_->GetUniformLocation("uMapMatrix");
-   p->uOriginLoc_      = p->shader_->GetUniformLocation("uOriginLatLong");
-   p->uHatchModeLoc_   = p->shader_->GetUniformLocation("uHatchMode");
+   p->uMapMatrixLoc_ = p->shader_->GetUniformLocation("uMapMatrix");
+   p->uOriginLoc_    = p->shader_->GetUniformLocation("uOriginLatLong");
+   p->uHatchModeLoc_ = p->shader_->GetUniformLocation("uHatchMode");
 
    glGenVertexArrays(1, &p->vaoModelStroke_);
    glGenBuffers(1, &p->vboModelStroke_);
@@ -1163,38 +1176,37 @@ void MapAnnotationsDrawItem::Rebuild()
    p->RebuildCommittedGeometry();
 }
 
-static float PointSegDist2Screen(const glm::vec2& m,
-                                 const glm::vec2& a,
-                                 const glm::vec2& b)
+static float
+PointSegDist2Screen(const glm::vec2& m, const glm::vec2& a, const glm::vec2& b)
 {
-   const glm::vec2 ab = b - a;
-   const float       denom = glm::dot(ab, ab);
+   const glm::vec2 ab    = b - a;
+   const float     denom = glm::dot(ab, ab);
    if (denom < 1e-30f)
    {
       return glm::dot(m - a, m - a);
    }
-   float t = glm::dot(m - a, ab) / denom;
-   t       = std::clamp(t, 0.0f, 1.0f);
+   float t                 = glm::dot(m - a, ab) / denom;
+   t                       = std::clamp(t, 0.0f, 1.0f);
    const glm::vec2 closest = a + t * ab;
    return glm::dot(m - closest, m - closest);
 }
 
-std::vector<std::uint64_t> MapAnnotationsDrawItem::PickObjects(
-   const glm::vec2&            mouseMapCoords,
-   const common::Coordinate& mouseGeo) const
+std::vector<std::uint64_t>
+MapAnnotationsDrawItem::PickObjects(const glm::vec2&          mouseMapCoords,
+                                    const common::Coordinate& mouseGeo) const
 {
    const glm::vec2 m = mouseMapCoords;
 
-   constexpr float kPickScale2 = 1.0e-5f;
+   constexpr float                              kPickScale2 = 1.0e-5f;
    std::vector<std::pair<float, std::uint64_t>> hits;
    hits.reserve(p->pickSegments_.size() + p->pickCircles_.size());
 
    for (const auto& seg : p->pickSegments_)
    {
-      const glm::vec2 sa =
-         util::maplibre::LatLongToScreenCoordinate({seg.a.latitude_, seg.a.longitude_});
-      const glm::vec2 sb =
-         util::maplibre::LatLongToScreenCoordinate({seg.b.latitude_, seg.b.longitude_});
+      const glm::vec2 sa = util::maplibre::LatLongToScreenCoordinate(
+         {seg.a.latitude_, seg.a.longitude_});
+      const glm::vec2 sb = util::maplibre::LatLongToScreenCoordinate(
+         {seg.b.latitude_, seg.b.longitude_});
       const float d2 = PointSegDist2Screen(m, sa, sb);
       if (d2 < kPickScale2)
       {
@@ -1256,11 +1268,11 @@ void MapAnnotationsDrawItem::Render(
                    GL_DYNAMIC_DRAW);
 
       glBindBuffer(GL_ARRAY_BUFFER, p->vboModelFill_);
-      glBufferData(GL_ARRAY_BUFFER,
-                   static_cast<GLsizeiptr>(sizeof(float) *
-                                           p->modelFillVertices_.size()),
-                   p->modelFillVertices_.data(),
-                   GL_DYNAMIC_DRAW);
+      glBufferData(
+         GL_ARRAY_BUFFER,
+         static_cast<GLsizeiptr>(sizeof(float) * p->modelFillVertices_.size()),
+         p->modelFillVertices_.data(),
+         GL_DYNAMIC_DRAW);
       p->gpuModelDirty_ = false;
    }
 

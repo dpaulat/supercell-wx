@@ -22,23 +22,25 @@ public:
    explicit MapAnnotationDockWidget(QWidget* parent = nullptr);
    ~MapAnnotationDockWidget() override;
 
-   /** @param syncUiFromLayer if false, keep dock widgets as-is and push them to the layer (first attach). */
+   /** @param syncUiFromLayer if false, keep dock widgets as-is and push them to
+    * the layer (first attach). */
    void BindToLayer(const std::shared_ptr<map::MapAnnotationLayer>& layer,
                     bool syncUiFromLayer = true);
 
    /**
     * Layers returned here receive SetTool / SetStyle / ClearAll from the dock.
-    * The layer passed to BindToLayer() is still used for signals (measure, count)
-    * and for PullStyleToUi when the active map changes.
+    * The layer passed to BindToLayer() is still used for signals (measure,
+    * count) and for PullStyleToUi when the active map changes.
     */
    void SetBroadcastTargets(
-      std::function<std::vector<std::shared_ptr<map::MapAnnotationLayer>>()> getLayers);
+      std::function<std::vector<std::shared_ptr<map::MapAnnotationLayer>>()>
+         getLayers);
 
    /** Re-run current tool combo + style widgets onto all broadcast targets. */
    void ReapplyToolAndStyleFromUi();
 
-   void AttachToMap(QWidget* mapWidget);
-   void SetOverlayVisible(bool visible);
+   void               AttachToMap(QWidget* mapWidget);
+   void               SetOverlayVisible(bool visible);
    [[nodiscard]] bool OverlayVisible() const;
 
 private slots:

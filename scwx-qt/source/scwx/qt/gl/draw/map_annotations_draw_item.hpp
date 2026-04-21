@@ -21,7 +21,7 @@ class MapAnnotationsDrawItem : public DrawItem
 {
 public:
    explicit MapAnnotationsDrawItem(std::shared_ptr<GlContext> context,
-                                   map::MapAnnotationModel*  model);
+                                   map::MapAnnotationModel*   model);
    ~MapAnnotationsDrawItem() override;
 
    MapAnnotationsDrawItem(const MapAnnotationsDrawItem&)            = delete;
@@ -32,14 +32,14 @@ public:
    void Deinitialize() override;
 
    void SetPreviewPolyline(const std::vector<common::Coordinate>& pts,
-                           const map::MapAnnotationStyle&        style,
-                           bool                                  roundStroke = false);
+                           const map::MapAnnotationStyle&         style,
+                           bool roundStroke = false);
    void ClearPreview();
 
    void Rebuild();
 
    [[nodiscard]] std::vector<std::uint64_t>
-   PickObjects(const glm::vec2&            mouseMapCoords,
+   PickObjects(const glm::vec2&          mouseMapCoords,
                const common::Coordinate& mouseGeo) const;
 
 private:

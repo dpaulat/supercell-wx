@@ -305,14 +305,14 @@ public:
       manager::PlacefileManager::Instance()};
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
-   std::shared_ptr<RadarProductLayer>   radarProductLayer_;
-   std::shared_ptr<OverlayLayer>        overlayLayer_;
-   std::shared_ptr<OverlayProductLayer> overlayProductLayer_ {nullptr};
-   std::shared_ptr<PlacefileLayer>      placefileLayer_;
-   std::shared_ptr<MarkerLayer>         markerLayer_;
-   std::shared_ptr<ColorTableLayer>     colorTableLayer_;
-   std::shared_ptr<RadarSiteLayer>      radarSiteLayer_ {nullptr};
-   std::shared_ptr<MapAnnotationLayer>  annotationLayer_;
+   std::shared_ptr<RadarProductLayer>         radarProductLayer_;
+   std::shared_ptr<OverlayLayer>              overlayLayer_;
+   std::shared_ptr<OverlayProductLayer>       overlayProductLayer_ {nullptr};
+   std::shared_ptr<PlacefileLayer>            placefileLayer_;
+   std::shared_ptr<MarkerLayer>               markerLayer_;
+   std::shared_ptr<ColorTableLayer>           colorTableLayer_;
+   std::shared_ptr<RadarSiteLayer>            radarSiteLayer_ {nullptr};
+   std::shared_ptr<MapAnnotationLayer>        annotationLayer_;
    std::unordered_map<std::uint64_t, QLabel*> measureLabels_ {};
 
    std::list<std::shared_ptr<PlacefileLayer>> placefileLayers_ {};
@@ -1429,9 +1429,7 @@ void MapWidgetImpl::AddLayers()
                        &MapAnnotationLayer::ToolChanged,
                        widget_,
                        [this](MapAnnotationTool /*tool*/)
-                       {
-                          UpdateAnnotationCursor();
-                       });
+                       { UpdateAnnotationCursor(); });
    }
    AddLayer("scwx.map.annotations", annotationLayer_, "");
    UpdateAnnotationCursor();
@@ -1656,7 +1654,6 @@ void MapWidget::keyPressEvent(QKeyEvent* ev)
       ev->accept();
       return;
    }
-
 }
 
 void MapWidget::keyReleaseEvent(QKeyEvent* ev)
@@ -1683,8 +1680,8 @@ void MapWidget::mousePressEvent(QMouseEvent* ev)
    p->lastGlobalPos_ = ev->globalPosition();
 
    if (ev->type() == QEvent::Type::MouseButtonPress &&
-       ev->button() == Qt::MouseButton::LeftButton && p->annotationLayer_ != nullptr &&
-       p->map_ != nullptr &&
+       ev->button() == Qt::MouseButton::LeftButton &&
+       p->annotationLayer_ != nullptr && p->map_ != nullptr &&
        (ev->modifiers() & Qt::KeyboardModifier::ControlModifier) == 0 &&
        p->annotationLayer_->tool() != MapAnnotationTool::None)
    {
@@ -1753,8 +1750,9 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
       return;
    }
 
-   if (ev->buttons() == Qt::MouseButton::LeftButton && p->annotationLayer_ != nullptr &&
-       p->map_ != nullptr && p->annotationLayer_->ConsumesLeftDrag())
+   if (ev->buttons() == Qt::MouseButton::LeftButton &&
+       p->annotationLayer_ != nullptr && p->map_ != nullptr &&
+       p->annotationLayer_->ConsumesLeftDrag())
    {
       p->annotationLayer_->HandleMouseMove(p->map_, ev->position());
       p->lastPos_       = ev->position();
@@ -1784,8 +1782,8 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
 
 void MapWidget::mouseReleaseEvent(QMouseEvent* ev)
 {
-   if (ev->button() == Qt::MouseButton::LeftButton && p->annotationLayer_ != nullptr &&
-       p->map_ != nullptr &&
+   if (ev->button() == Qt::MouseButton::LeftButton &&
+       p->annotationLayer_ != nullptr && p->map_ != nullptr &&
        p->annotationLayer_->tool() != MapAnnotationTool::None)
    {
       p->annotationLayer_->HandleMouseRelease(p->map_, ev->position());
@@ -1853,20 +1851,21 @@ void MapWidgetImpl::UpdateMeasureLabels()
       {
          label = new QLabel(widget_);
          label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-         label->setStyleSheet(QStringLiteral(
-            "background-color: rgba(32, 37, 43, 220);"
-            "color: white;"
-            "border: 1px solid rgba(255,255,255,48);"
-            "border-radius: 6px;"
-            "padding: 2px 6px;"));
+         label->setStyleSheet(
+            QStringLiteral("background-color: rgba(32, 37, 43, 220);"
+                           "color: white;"
+                           "border: 1px solid rgba(255,255,255,48);"
+                           "border-radius: 6px;"
+                           "padding: 2px 6px;"));
       }
 
       label->setText(FormatMeasurementDistance(overlay.distanceM));
       label->adjustSize();
 
-      const QPointF anchorPoint =
-         map_->pixelForCoordinate({overlay.labelAnchor.latitude_, overlay.labelAnchor.longitude_});
-      const int x = static_cast<int>(std::round(anchorPoint.x())) - label->width() / 2;
+      const QPointF anchorPoint = map_->pixelForCoordinate(
+         {overlay.labelAnchor.latitude_, overlay.labelAnchor.longitude_});
+      const int x =
+         static_cast<int>(std::round(anchorPoint.x())) - label->width() / 2;
       const int y =
          static_cast<int>(std::round(anchorPoint.y())) - label->height() - 14;
 

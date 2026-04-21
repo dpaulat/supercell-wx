@@ -3,7 +3,6 @@
 #include <scwx/qt/map/map_annotation_model.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/qt/util/maplibre.hpp>
-#include <scwx/util/logger.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -16,9 +15,6 @@
 
 namespace scwx::qt::map
 {
-
-static const std::string logPrefix_ = "scwx::qt::map::map_annotation_layer";
-static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 namespace
 {
@@ -34,24 +30,24 @@ struct MeasureHandleSelection
    MeasureHandle handle {MeasureHandle::A};
 };
 
-/** Sample the map along a screen-space segment so fast drags still get dense geo points. */
-void AppendFreehandAlongPixelSegment(
-   std::vector<common::Coordinate>&       pts,
-   const std::shared_ptr<QMapLibre::Map>& map,
-   const QPointF&                         fromPx,
-   const QPointF&                         toPx)
+/** Sample the map along a screen-space segment so fast drags still get dense
+ * geo points. */
+void AppendFreehandAlongPixelSegment(std::vector<common::Coordinate>&       pts,
+                                     const std::shared_ptr<QMapLibre::Map>& map,
+                                     const QPointF& fromPx,
+                                     const QPointF& toPx)
 {
-   const double dx = toPx.x() - fromPx.x();
-   const double dy = toPx.y() - fromPx.y();
+   const double dx  = toPx.x() - fromPx.x();
+   const double dy  = toPx.y() - fromPx.y();
    const double len = std::hypot(dx, dy);
    // Small step: path already uniform in screen space; do not dedupe by ground
-   // meters — at high zoom 2px << 0.06m and intermediates were dropped → dotted.
+   // meters — at high zoom 2px << 0.06m and intermediates were dropped →
+   // dotted.
    constexpr double kPixelStep {1.5};
-   const int        steps =
-      std::max(1, static_cast<int>(std::ceil(len / kPixelStep)));
+   const int steps = std::max(1, static_cast<int>(std::ceil(len / kPixelStep)));
    for (int i = 1; i <= steps; ++i)
    {
-      const double t = static_cast<double>(i) / static_cast<double>(steps);
+      const double  t = static_cast<double>(i) / static_cast<double>(steps);
       const QPointF px(fromPx.x() + dx * t, fromPx.y() + dy * t);
       const auto    c = map->coordinateForPixel(px);
       const common::Coordinate g {c.first, c.second};
@@ -71,15 +67,13 @@ void AppendFreehandAlongPixelSegment(
 
 double CoordinateGapM(const common::Coordinate& a, const common::Coordinate& b)
 {
-   return util::GeographicLib::GetDistance(a.latitude_,
-                                           a.longitude_,
-                                           b.latitude_,
-                                           b.longitude_)
+   return util::GeographicLib::GetDistance(
+             a.latitude_, a.longitude_, b.latitude_, b.longitude_)
       .value();
 }
 
 void SimplifyFreehandPoints(std::vector<common::Coordinate>& pts,
-                            double                          toleranceM)
+                            double                           toleranceM)
 {
    if (pts.size() < 3 || toleranceM <= 0.0)
    {
@@ -122,38 +116,33 @@ public:
    explicit Impl(std::shared_ptr<gl::GlContext> glContext) :
        glContext_ {std::move(glContext)},
        model_ {},
-       draw_ {std::make_shared<gl::draw::MapAnnotationsDrawItem>(glContext_, &model_)}
+       draw_ {std::make_shared<gl::draw::MapAnnotationsDrawItem>(glContext_,
+                                                                 &model_)}
    {
    }
 
-   std::shared_ptr<MapContext>     mapContext_;
-   std::shared_ptr<gl::GlContext>  glContext_;
-   MapAnnotationModel              model_;
+   std::shared_ptr<MapContext>                       mapContext_;
+   std::shared_ptr<gl::GlContext>                    glContext_;
+   MapAnnotationModel                                model_;
    std::shared_ptr<gl::draw::MapAnnotationsDrawItem> draw_;
 
-   MapAnnotationTool   tool_ {MapAnnotationTool::None};
-   MapAnnotationStyle  style_ {};
-   bool                visible_ {true};
+   MapAnnotationTool  tool_ {MapAnnotationTool::None};
+   MapAnnotationStyle style_ {};
+   bool               visible_ {true};
 
-   bool                    drawing_ {false};
-   std::vector<common::Coordinate> draftPoints_ {};
-   common::Coordinate      pressGeo_ {};
-   std::optional<common::Coordinate> circleCenter_ {};
-   std::optional<common::Coordinate> rectCorner_ {};
-   std::optional<common::Coordinate> measureA_ {};
-   std::optional<double>             lastMeasureM_ {};
+   bool                                  drawing_ {false};
+   std::vector<common::Coordinate>       draftPoints_ {};
+   common::Coordinate                    pressGeo_ {};
+   std::optional<common::Coordinate>     circleCenter_ {};
+   std::optional<common::Coordinate>     rectCorner_ {};
+   std::optional<common::Coordinate>     measureA_ {};
+   std::optional<double>                 lastMeasureM_ {};
    std::optional<MeasureHandleSelection> draggedMeasureHandle_ {};
-   /** Last pointer position (widget px) while freehand drawing; drives pixel resampling. */
-   std::optional<QPointF> lastFreehandPixel_ {};
-   std::optional<QPointF> lastErasePixel_ {};
+   /** Last pointer position (widget px) while freehand drawing; drives pixel
+    * resampling. */
+   std::optional<QPointF>            lastFreehandPixel_ {};
+   std::optional<QPointF>            lastErasePixel_ {};
    std::unordered_set<std::uint64_t> erasedIds_ {};
-
-   void EmitCount(MapAnnotationLayer* self)
-   {
-      int n = 0;
-      model_.Read([&](const std::vector<MapAnnotationObject>& objs) { n = static_cast<int>(objs.size()); });
-      Q_EMIT self->AnnotationCountChanged(n);
-   }
 
    void EmitMeasureUpdated(MapAnnotationLayer* self, double distanceM)
    {
@@ -175,7 +164,7 @@ public:
       draw_->ClearPreview();
    }
 
-   void CommitPolyline(MapAnnotationLayer* self, bool roundStroke)
+   void CommitPolyline(bool roundStroke)
    {
       if (draftPoints_.empty() || (draftPoints_.size() < 2 && !roundStroke))
       {
@@ -183,14 +172,14 @@ public:
          return;
       }
       MapAnnotationPolyline pl;
-      pl.points       = draftPoints_;
+      pl.points = draftPoints_;
       if (roundStroke)
       {
          const double toleranceM =
             std::clamp(style_.strokeWidthM.value() * 0.04, 2.0, 30.0);
          SimplifyFreehandPoints(pl.points, toleranceM);
       }
-      pl.roundStroke  = roundStroke;
+      pl.roundStroke = roundStroke;
       MapAnnotationObject obj {};
       obj.payload = std::move(pl);
       obj.style   = style_;
@@ -198,7 +187,6 @@ public:
       draftPoints_.clear();
       draw_->ClearPreview();
       draw_->Rebuild();
-      EmitCount(self);
    }
 
    void UpdatePreview()
@@ -222,17 +210,18 @@ public:
          draftPoints_, style_, tool_ == MapAnnotationTool::Freehand);
    }
 
-   [[nodiscard]] double MeasureHandleToleranceM(
-      const std::shared_ptr<QMapLibre::Map>& map, double latitude) const
+   [[nodiscard]] double
+   MeasureHandleToleranceM(const std::shared_ptr<QMapLibre::Map>& map,
+                           double latitude) const
    {
-      return std::max(QMapLibre::metersPerPixelAtLatitude(latitude, map->zoom()) *
-                         12.0,
-                      style_.strokeWidthM.value() * 2.0);
+      return std::max(
+         QMapLibre::metersPerPixelAtLatitude(latitude, map->zoom()) * 12.0,
+         style_.strokeWidthM.value() * 2.0);
    }
 
-   [[nodiscard]] std::optional<MeasureHandleSelection> FindMeasureHandle(
-      const std::shared_ptr<QMapLibre::Map>& map,
-      const common::Coordinate&              geo) const
+   [[nodiscard]] std::optional<MeasureHandleSelection>
+   FindMeasureHandle(const std::shared_ptr<QMapLibre::Map>& map,
+                     const common::Coordinate&              geo) const
    {
       if (map == nullptr)
       {
@@ -248,7 +237,8 @@ public:
          {
             for (const auto& object : objects)
             {
-               const auto* measure = std::get_if<MapAnnotationMeasure>(&object.payload);
+               const auto* measure =
+                  std::get_if<MapAnnotationMeasure>(&object.payload);
                if (measure == nullptr)
                {
                   continue;
@@ -258,14 +248,14 @@ public:
                if (distanceA <= bestDistanceM)
                {
                   bestDistanceM = distanceA;
-                  best          = MeasureHandleSelection {object.id, MeasureHandle::A};
+                  best = MeasureHandleSelection {object.id, MeasureHandle::A};
                }
 
                const double distanceB = CoordinateGapM(measure->b, geo);
                if (distanceB <= bestDistanceM)
                {
                   bestDistanceM = distanceB;
-                  best          = MeasureHandleSelection {object.id, MeasureHandle::B};
+                  best = MeasureHandleSelection {object.id, MeasureHandle::B};
                }
             }
          });
@@ -289,7 +279,8 @@ public:
                   continue;
                }
 
-               auto* measure = std::get_if<MapAnnotationMeasure>(&object.payload);
+               auto* measure =
+                  std::get_if<MapAnnotationMeasure>(&object.payload);
                if (measure == nullptr)
                {
                   continue;
@@ -318,7 +309,7 @@ public:
       EmitMeasureUpdated(self, *updatedDistanceM);
    }
 
-   void EraseAlongPixelSegment(MapAnnotationLayer*                   self,
+   void EraseAlongPixelSegment(MapAnnotationLayer*                    self,
                                const std::shared_ptr<QMapLibre::Map>& map,
                                const QPointF&                         fromPx,
                                const QPointF&                         toPx)
@@ -328,18 +319,18 @@ public:
          return;
       }
 
-      const double dx = toPx.x() - fromPx.x();
-      const double dy = toPx.y() - fromPx.y();
-      const double len = std::hypot(dx, dy);
+      const double     dx  = toPx.x() - fromPx.x();
+      const double     dy  = toPx.y() - fromPx.y();
+      const double     len = std::hypot(dx, dy);
       constexpr double kErasePixelStep {6.0};
-      const int steps =
+      const int        steps =
          std::max(1, static_cast<int>(std::ceil(len / kErasePixelStep)));
 
       std::unordered_set<std::uint64_t> removeIds;
 
       for (int i = 0; i <= steps; ++i)
       {
-         const double t = static_cast<double>(i) / static_cast<double>(steps);
+         const double  t = static_cast<double>(i) / static_cast<double>(steps);
          const QPointF px(fromPx.x() + dx * t, fromPx.y() + dy * t);
          const auto    c = map->coordinateForPixel(px);
          const glm::vec2 mc =
@@ -364,23 +355,22 @@ public:
          {
             std::erase_if(objects,
                           [&removeIds](const MapAnnotationObject& object)
-                          {
-                             return removeIds.contains(object.id);
-                          });
+                          { return removeIds.contains(object.id); });
          });
       draw_->Rebuild();
-      EmitCount(self);
       Q_EMIT self->NeedsRendering();
    }
 };
 
-MapAnnotationLayer::MapAnnotationLayer(std::shared_ptr<gl::GlContext> glContext) :
+MapAnnotationLayer::MapAnnotationLayer(
+   std::shared_ptr<gl::GlContext> glContext) :
     GenericLayer(std::move(glContext)), p(std::make_unique<Impl>(gl_context()))
 {
 }
 MapAnnotationLayer::~MapAnnotationLayer() = default;
 
-void MapAnnotationLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
+void MapAnnotationLayer::Initialize(
+   const std::shared_ptr<MapContext>& mapContext)
 {
    p->mapContext_ = mapContext;
    p->draw_->Initialize();
@@ -426,7 +416,7 @@ bool MapAnnotationLayer::ConsumesLeftDrag() const
 
 void MapAnnotationLayer::SetTool(MapAnnotationTool tool)
 {
-   p->tool_            = tool;
+   p->tool_ = tool;
    p->measureA_.reset();
    p->CancelInteraction();
    Q_EMIT ToolChanged(tool);
@@ -478,7 +468,6 @@ void MapAnnotationLayer::ClearAll()
    p->measureA_.reset();
    p->CancelInteraction();
    p->draw_->Rebuild();
-   p->EmitCount(this);
 }
 
 std::optional<double> MapAnnotationLayer::LastMeasureDistanceM() const
@@ -502,7 +491,8 @@ MapAnnotationLayer::GetMeasurementOverlays() const
          overlays.reserve(objects.size());
          for (const auto& object : objects)
          {
-            const auto* measure = std::get_if<MapAnnotationMeasure>(&object.payload);
+            const auto* measure =
+               std::get_if<MapAnnotationMeasure>(&object.payload);
             if (measure == nullptr)
             {
                continue;
@@ -510,11 +500,12 @@ MapAnnotationLayer::GetMeasurementOverlays() const
 
             overlays.push_back(MeasurementOverlay {
                .id = object.id,
-               .a = measure->a,
-               .b = measure->b,
-               .labelAnchor = common::Coordinate {
-                  (measure->a.latitude_ + measure->b.latitude_) * 0.5,
-                  (measure->a.longitude_ + measure->b.longitude_) * 0.5},
+               .a  = measure->a,
+               .b  = measure->b,
+               .labelAnchor =
+                  common::Coordinate {
+                     (measure->a.latitude_ + measure->b.latitude_) * 0.5,
+                     (measure->a.longitude_ + measure->b.longitude_) * 0.5},
                .distanceM = MeasureDistanceM(*measure),
             });
          }
@@ -523,8 +514,8 @@ MapAnnotationLayer::GetMeasurementOverlays() const
    return overlays;
 }
 
-void MapAnnotationLayer::HandleMousePress(const std::shared_ptr<QMapLibre::Map>& map,
-                                          const QPointF&                       localPos)
+void MapAnnotationLayer::HandleMousePress(
+   const std::shared_ptr<QMapLibre::Map>& map, const QPointF& localPos)
 {
    if (map == nullptr || !p->visible_)
    {
@@ -535,7 +526,7 @@ void MapAnnotationLayer::HandleMousePress(const std::shared_ptr<QMapLibre::Map>&
 
    if (p->tool_ == MapAnnotationTool::Erase)
    {
-      p->drawing_       = true;
+      p->drawing_        = true;
       p->lastErasePixel_ = localPos;
       p->erasedIds_.clear();
       p->EraseAlongPixelSegment(this, map, localPos, localPos);
@@ -561,15 +552,15 @@ void MapAnnotationLayer::HandleMousePress(const std::shared_ptr<QMapLibre::Map>&
       }
       else if (!p->measureA_.has_value())
       {
-         p->measureA_ = p->pressGeo_;
+         p->measureA_    = p->pressGeo_;
          p->draftPoints_ = {p->pressGeo_};
          p->UpdatePreview();
       }
       else
       {
          MapAnnotationMeasure m;
-         m.a           = *p->measureA_;
-         m.b           = p->pressGeo_;
+         m.a = *p->measureA_;
+         m.b = p->pressGeo_;
          MapAnnotationObject obj {};
          obj.payload = m;
          obj.style   = p->style_;
@@ -580,7 +571,6 @@ void MapAnnotationLayer::HandleMousePress(const std::shared_ptr<QMapLibre::Map>&
          p->draftPoints_.clear();
          p->draw_->ClearPreview();
          p->draw_->Rebuild();
-         p->EmitCount(this);
       }
       Q_EMIT NeedsRendering();
       return;
@@ -615,15 +605,15 @@ void MapAnnotationLayer::HandleMousePress(const std::shared_ptr<QMapLibre::Map>&
    Q_EMIT NeedsRendering();
 }
 
-void MapAnnotationLayer::HandleMouseMove(const std::shared_ptr<QMapLibre::Map>& map,
-                                         const QPointF&                        localPos)
+void MapAnnotationLayer::HandleMouseMove(
+   const std::shared_ptr<QMapLibre::Map>& map, const QPointF& localPos)
 {
    if (!p->visible_ || !p->drawing_ || map == nullptr)
    {
       return;
    }
 
-   const auto c = map->coordinateForPixel(localPos);
+   const auto               c = map->coordinateForPixel(localPos);
    const common::Coordinate geo {c.first, c.second};
 
    if (p->tool_ == MapAnnotationTool::Freehand)
@@ -691,15 +681,15 @@ void MapAnnotationLayer::HandleMouseMove(const std::shared_ptr<QMapLibre::Map>& 
    }
 }
 
-void MapAnnotationLayer::HandleMouseRelease(const std::shared_ptr<QMapLibre::Map>& map,
-                                            const QPointF& localPos)
+void MapAnnotationLayer::HandleMouseRelease(
+   const std::shared_ptr<QMapLibre::Map>& map, const QPointF& localPos)
 {
    if (map == nullptr || !p->visible_)
    {
       return;
    }
 
-   const auto c = map->coordinateForPixel(localPos);
+   const auto               c = map->coordinateForPixel(localPos);
    const common::Coordinate geo {c.first, c.second};
 
    if (p->tool_ == MapAnnotationTool::Erase)
@@ -722,7 +712,7 @@ void MapAnnotationLayer::HandleMouseRelease(const std::shared_ptr<QMapLibre::Map
       if (p->drawing_)
       {
          p->draftPoints_ = {p->pressGeo_, geo};
-         p->CommitPolyline(this, false);
+         p->CommitPolyline(false);
       }
       p->drawing_ = false;
       p->draw_->ClearPreview();
@@ -732,11 +722,12 @@ void MapAnnotationLayer::HandleMouseRelease(const std::shared_ptr<QMapLibre::Map
 
    if (p->tool_ == MapAnnotationTool::Circle && p->circleCenter_.has_value())
    {
-      const double r = util::GeographicLib::GetDistance(p->circleCenter_->latitude_,
-                                                        p->circleCenter_->longitude_,
-                                                        geo.latitude_,
-                                                        geo.longitude_)
-                          .value();
+      const double r =
+         util::GeographicLib::GetDistance(p->circleCenter_->latitude_,
+                                          p->circleCenter_->longitude_,
+                                          geo.latitude_,
+                                          geo.longitude_)
+            .value();
       if (r > 10.0)
       {
          MapAnnotationCircle circle;
@@ -747,7 +738,6 @@ void MapAnnotationLayer::HandleMouseRelease(const std::shared_ptr<QMapLibre::Map
          obj.style   = p->style_;
          static_cast<void>(p->model_.Add(std::move(obj)));
          p->draw_->Rebuild();
-         p->EmitCount(this);
       }
       p->circleCenter_.reset();
       p->drawing_ = false;
@@ -759,10 +749,10 @@ void MapAnnotationLayer::HandleMouseRelease(const std::shared_ptr<QMapLibre::Map
    if (p->tool_ == MapAnnotationTool::Rectangle && p->rectCorner_.has_value())
    {
       MapAnnotationRectangle rect;
-      rect.corner1    = *p->rectCorner_;
-      rect.corner2    = geo;
-      rect.fill       = p->style_.polygonFill;
-      rect.hatchFill  = p->style_.hatchFill;
+      rect.corner1   = *p->rectCorner_;
+      rect.corner2   = geo;
+      rect.fill      = p->style_.polygonFill;
+      rect.hatchFill = p->style_.hatchFill;
       MapAnnotationObject obj {};
       obj.payload = std::move(rect);
       obj.style   = p->style_;
@@ -770,7 +760,6 @@ void MapAnnotationLayer::HandleMouseRelease(const std::shared_ptr<QMapLibre::Map
       p->rectCorner_.reset();
       p->drawing_ = false;
       p->draw_->Rebuild();
-      p->EmitCount(this);
       p->draw_->ClearPreview();
       Q_EMIT NeedsRendering();
       return;
@@ -780,7 +769,7 @@ void MapAnnotationLayer::HandleMouseRelease(const std::shared_ptr<QMapLibre::Map
    {
       if (!p->draftPoints_.empty())
       {
-         p->CommitPolyline(this, true);
+         p->CommitPolyline(true);
       }
       p->drawing_ = false;
       p->lastFreehandPixel_.reset();

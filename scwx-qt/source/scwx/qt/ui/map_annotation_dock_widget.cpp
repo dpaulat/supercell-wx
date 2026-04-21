@@ -44,8 +44,8 @@ namespace scwx::qt::ui
 namespace
 {
 /** Minimum stroke width on the map (~0.1 statute miles). */
-constexpr double kStrokeWidthMinM {160.9344};
-constexpr double kStrokeWidthMaxM {80467.2};
+constexpr double                     kStrokeWidthMinM {160.9344};
+constexpr double                     kStrokeWidthMaxM {80467.2};
 constexpr std::array<const char*, 5> kBrushPresetNames {
    {"Extra fine", "Fine", "Medium", "Heavy", "Very wide"}};
 constexpr int kStrokeWidthSliderSteps {1000};
@@ -171,19 +171,16 @@ protected:
 
       QStyleOptionSlider option;
       option.initFrom(slider_);
-      option.subControls   = QStyle::SC_SliderGroove;
-      option.orientation   = slider_->orientation();
-      option.minimum       = slider_->minimum();
-      option.maximum       = slider_->maximum();
+      option.subControls    = QStyle::SC_SliderGroove;
+      option.orientation    = slider_->orientation();
+      option.minimum        = slider_->minimum();
+      option.maximum        = slider_->maximum();
       option.sliderPosition = slider_->sliderPosition();
       option.sliderValue    = slider_->value();
       option.tickPosition   = slider_->tickPosition();
       option.tickInterval   = slider_->tickInterval();
-      const QRect groove =
-         slider_->style()->subControlRect(QStyle::CC_Slider,
-                                          &option,
-                                          QStyle::SC_SliderGroove,
-                                          slider_);
+      const QRect groove    = slider_->style()->subControlRect(
+         QStyle::CC_Slider, &option, QStyle::SC_SliderGroove, slider_);
       const QPoint grooveLeft =
          mapFromGlobal(slider_->mapToGlobal(groove.topLeft()));
       const QPoint grooveRight =
@@ -197,17 +194,17 @@ protected:
       const int          y  = fm.ascent() + 1;
       for (const auto& label : labels_)
       {
-         const int x = leftX + static_cast<int>(std::round(
-                               label.ratio * static_cast<double>(rightX - leftX)));
-         const int w = fm.horizontalAdvance(label.text);
-         const int drawX =
-            std::clamp(x - w / 2, 0, std::max(0, width() - w));
+         const int x =
+            leftX + static_cast<int>(std::round(
+                       label.ratio * static_cast<double>(rightX - leftX)));
+         const int w     = fm.horizontalAdvance(label.text);
+         const int drawX = std::clamp(x - w / 2, 0, std::max(0, width() - w));
          painter.drawText(drawX, y, label.text);
       }
    }
 
 private:
-   QSlider*              slider_ {nullptr};
+   QSlider*               slider_ {nullptr};
    std::vector<LabelMark> labels_ {};
 };
 
@@ -237,7 +234,7 @@ struct PersistedDockState
 PersistedDockState LoadDockState()
 {
    PersistedDockState state;
-   const std::string serialized =
+   const std::string  serialized =
       settings::UiSettings::Instance().map_annotation_state().GetValue();
    if (serialized.empty())
    {
@@ -245,7 +242,7 @@ PersistedDockState LoadDockState()
    }
 
    boost::system::error_code ec;
-   const auto value = boost::json::parse(serialized, ec);
+   const auto                value = boost::json::parse(serialized, ec);
    if (ec || !value.is_object())
    {
       return state;
@@ -253,7 +250,8 @@ PersistedDockState LoadDockState()
 
    const auto& object = value.as_object();
 
-   if (const auto* v = object.if_contains("tool_id"); v != nullptr && v->is_int64())
+   if (const auto* v = object.if_contains("tool_id");
+       v != nullptr && v->is_int64())
    {
       state.toolId = static_cast<int>(v->as_int64());
    }
@@ -267,7 +265,8 @@ PersistedDockState LoadDockState()
    {
       state.brushPresetIndex = static_cast<int>(v->as_int64());
    }
-   if (const auto* v = object.if_contains("stroke_width_m"); v != nullptr && v->is_double())
+   if (const auto* v = object.if_contains("stroke_width_m");
+       v != nullptr && v->is_double())
    {
       state.strokeWidthM = v->as_double();
    }
@@ -283,34 +282,41 @@ PersistedDockState LoadDockState()
    if (const auto* v = object.if_contains("stroke_color_hex");
        v != nullptr && v->is_string())
    {
-      state.strokeColorHex = QString::fromStdString(std::string(v->as_string()));
+      state.strokeColorHex =
+         QString::fromStdString(std::string(v->as_string()));
    }
    if (const auto* v = object.if_contains("overlay_visible");
        v != nullptr && v->is_bool())
    {
       state.overlayVisible = v->as_bool();
    }
-   if (const auto* v = object.if_contains("expanded"); v != nullptr && v->is_bool())
+   if (const auto* v = object.if_contains("expanded");
+       v != nullptr && v->is_bool())
    {
       state.expanded = v->as_bool();
    }
-   if (const auto* v = object.if_contains("floating"); v != nullptr && v->is_bool())
+   if (const auto* v = object.if_contains("floating");
+       v != nullptr && v->is_bool())
    {
       state.floating = v->as_bool();
    }
-   if (const auto* v = object.if_contains("attached_x"); v != nullptr && v->is_int64())
+   if (const auto* v = object.if_contains("attached_x");
+       v != nullptr && v->is_int64())
    {
       state.attachedX = static_cast<int>(v->as_int64());
    }
-   if (const auto* v = object.if_contains("attached_y"); v != nullptr && v->is_int64())
+   if (const auto* v = object.if_contains("attached_y");
+       v != nullptr && v->is_int64())
    {
       state.attachedY = static_cast<int>(v->as_int64());
    }
-   if (const auto* v = object.if_contains("floating_x"); v != nullptr && v->is_int64())
+   if (const auto* v = object.if_contains("floating_x");
+       v != nullptr && v->is_int64())
    {
       state.floatingX = static_cast<int>(v->as_int64());
    }
-   if (const auto* v = object.if_contains("floating_y"); v != nullptr && v->is_int64())
+   if (const auto* v = object.if_contains("floating_y");
+       v != nullptr && v->is_int64())
    {
       state.floatingY = static_cast<int>(v->as_int64());
    }
@@ -324,10 +330,19 @@ std::vector<BrushScaleMark> BrushScaleMarks(types::DistanceUnits units)
    {
       return {{0.10, 2}, {5.0, 0}, {50.0, 0}};
    }
-   return {{0.2, 1}, {0.5, 1}, {1.0, 1}, {2.0, 0}, {5.0, 0}, {10.0, 0}, {25.0, 0}, {50.0, 0}};
+   return {{0.2, 1},
+           {0.5, 1},
+           {1.0, 1},
+           {2.0, 0},
+           {5.0, 0},
+           {10.0, 0},
+           {25.0, 0},
+           {50.0, 0}};
 }
 
-QPoint ClampOverlayPosition(const QWidget* host, const QWidget* overlay, QPoint position)
+QPoint ClampOverlayPosition(const QWidget* host,
+                            const QWidget* overlay,
+                            QPoint         position)
 {
    if (host == nullptr || overlay == nullptr)
    {
@@ -350,8 +365,9 @@ public:
    explicit Impl(MapAnnotationDockWidget* self) : self_ {self} {}
    ~Impl()
    {
-      settings::UnitSettings::Instance().distance_units().UnregisterValueChangedCallback(
-         distanceUnitsCallbackUuid_);
+      settings::UnitSettings::Instance()
+         .distance_units()
+         .UnregisterValueChangedCallback(distanceUnitsCallbackUuid_);
    }
 
    [[nodiscard]] std::vector<std::shared_ptr<map::MapAnnotationLayer>>
@@ -427,9 +443,9 @@ public:
          self_->setParent(hostMapWidget_);
       }
 
-      QPoint position =
-         attachedPosition_.value_or(QPoint {std::max(8, (hostMapWidget_->width() - self_->width()) / 2), 10});
-      position = ClampOverlayPosition(hostMapWidget_, self_, position);
+      QPoint position = attachedPosition_.value_or(QPoint {
+         std::max(8, (hostMapWidget_->width() - self_->width()) / 2), 10});
+      position        = ClampOverlayPosition(hostMapWidget_, self_, position);
       if (attachedPosition_.has_value())
       {
          attachedPosition_ = position;
@@ -443,35 +459,26 @@ public:
    void SaveState() const
    {
       boost::json::object object;
-      object["tool_id"] = static_cast<std::int64_t>(CurrentTool());
-      object["drawings_visible"] = drawingsVisible_;
-      object["brush_preset_index"] =
-         static_cast<std::int64_t>((brushPresetCombo_ != nullptr) ?
-                                      brushPresetCombo_->currentIndex() :
-                                      0);
+      object["tool_id"]            = static_cast<std::int64_t>(CurrentTool());
+      object["drawings_visible"]   = drawingsVisible_;
+      object["brush_preset_index"] = static_cast<std::int64_t>(
+         (brushPresetCombo_ != nullptr) ? brushPresetCombo_->currentIndex() :
+                                          0);
       object["stroke_width_m"] = strokeWidthM_;
       object["fill"] = (fillCheck_ != nullptr) && fillCheck_->isChecked();
       object["stroke_color_hex"] =
          strokeColor_.name(QColor::HexArgb).toStdString();
       object["overlay_visible"] = overlayVisible_;
-      object["expanded"] = expanded_;
-      object["floating"] = floating_;
-      object["attached_x"] =
-         static_cast<std::int64_t>(attachedPosition_.has_value() ?
-                                      attachedPosition_->x() :
-                                      -1);
-      object["attached_y"] =
-         static_cast<std::int64_t>(attachedPosition_.has_value() ?
-                                      attachedPosition_->y() :
-                                      -1);
-      object["floating_x"] =
-         static_cast<std::int64_t>(floatingPosition_.has_value() ?
-                                      floatingPosition_->x() :
-                                      -1);
-      object["floating_y"] =
-         static_cast<std::int64_t>(floatingPosition_.has_value() ?
-                                      floatingPosition_->y() :
-                                      -1);
+      object["expanded"]        = expanded_;
+      object["floating"]        = floating_;
+      object["attached_x"]      = static_cast<std::int64_t>(
+         attachedPosition_.has_value() ? attachedPosition_->x() : -1);
+      object["attached_y"] = static_cast<std::int64_t>(
+         attachedPosition_.has_value() ? attachedPosition_->y() : -1);
+      object["floating_x"] = static_cast<std::int64_t>(
+         floatingPosition_.has_value() ? floatingPosition_->x() : -1);
+      object["floating_y"] = static_cast<std::int64_t>(
+         floatingPosition_.has_value() ? floatingPosition_->y() : -1);
       static_cast<void>(
          settings::UiSettings::Instance().map_annotation_state().StageValue(
             boost::json::serialize(object)));
@@ -481,17 +488,17 @@ public:
    {
       const PersistedDockState state = LoadDockState();
 
-      strokeWidthM_ = std::clamp(
-         state.strokeWidthM, kStrokeWidthMinM, kStrokeWidthMaxM);
+      strokeWidthM_ =
+         std::clamp(state.strokeWidthM, kStrokeWidthMinM, kStrokeWidthMaxM);
       strokeColor_ = QColor {state.strokeColorHex};
       if (!strokeColor_.isValid())
       {
          strokeColor_ = QColor {255, 50, 50, 230};
       }
-      overlayVisible_ = state.overlayVisible;
-      expanded_       = state.expanded;
+      overlayVisible_        = state.overlayVisible;
+      expanded_              = state.expanded;
       const bool shouldFloat = state.floating;
-      floating_       = false;
+      floating_              = false;
 
       if (state.attachedX >= 0 && state.attachedY >= 0)
       {
@@ -611,15 +618,16 @@ public:
 
       if (floating)
       {
-         const QPoint globalPosition = self_->mapToGlobal(QPoint {0, 0});
-         QWidget* const ownerWindow =
-            (hostMapWidget_ != nullptr) ? hostMapWidget_->window() : self_->window();
+         const QPoint   globalPosition = self_->mapToGlobal(QPoint {0, 0});
+         QWidget* const ownerWindow    = (hostMapWidget_ != nullptr) ?
+                                            hostMapWidget_->window() :
+                                            self_->window();
          self_->hide();
          self_->setParent(ownerWindow,
                           Qt::Tool | Qt::CustomizeWindowHint |
                              Qt::WindowTitleHint);
-         floating_ = true;
-         expanded_ = true;
+         floating_         = true;
+         expanded_         = true;
          floatingPosition_ = floatingPosition_.value_or(globalPosition);
          self_->move(*floatingPosition_);
          SetExpanded(true);
@@ -659,8 +667,9 @@ public:
    {
       if (floatButton_ != nullptr)
       {
-         floatButton_->setText(floating_ ? MapAnnotationDockWidget::tr("Dock") :
-                                          MapAnnotationDockWidget::tr("Pop-Out"));
+         floatButton_->setText(floating_ ?
+                                  MapAnnotationDockWidget::tr("Dock") :
+                                  MapAnnotationDockWidget::tr("Pop-Out"));
       }
    }
 
@@ -742,7 +751,8 @@ public:
          settings::UnitSettings::Instance().distance_units().GetValue();
       const types::DistanceUnits newUnits =
          types::GetDistanceUnitsFromName(newName);
-      strokeWidthM_ = std::clamp(strokeWidthM_, kStrokeWidthMinM, kStrokeWidthMaxM);
+      strokeWidthM_ =
+         std::clamp(strokeWidthM_, kStrokeWidthMinM, kStrokeWidthMaxM);
       UpdateBrushPresetLabels(newUnits);
       UpdateCustomBrushMarks(newUnits);
       UpdateCustomBrushValueLabel();
@@ -762,7 +772,7 @@ public:
       {
          return;
       }
-      const auto presetMeters = BrushPresetDiameterMeters(units);
+      const auto     presetMeters = BrushPresetDiameterMeters(units);
       QSignalBlocker blocker {brushPresetCombo_};
       brushPresetCombo_->setItemText(0, MapAnnotationDockWidget::tr("Custom"));
       for (std::size_t i = 0; i < presetMeters.size(); ++i)
@@ -772,7 +782,8 @@ public:
             MapAnnotationDockWidget::tr("%1 (%2)")
                .arg(MapAnnotationDockWidget::tr(kBrushPresetNames[i]))
                .arg(FormatBrushPresetDistance(presetMeters[i], units)));
-         brushPresetCombo_->setItemData(static_cast<int>(i) + 1, presetMeters[i]);
+         brushPresetCombo_->setItemData(static_cast<int>(i) + 1,
+                                        presetMeters[i]);
       }
    }
 
@@ -802,8 +813,8 @@ public:
 
    void UpdateBrushControlVisibility()
    {
-      const bool showCustom =
-         (brushPresetCombo_ == nullptr) || brushPresetCombo_->currentIndex() <= 0;
+      const bool showCustom = (brushPresetCombo_ == nullptr) ||
+                              brushPresetCombo_->currentIndex() <= 0;
       if (customBrushWidget_ != nullptr)
       {
          customBrushWidget_->setVisible(showCustom);
@@ -830,7 +841,8 @@ public:
          return;
       }
       QSignalBlocker blocker {strokeWidthSlider_};
-      strokeWidthSlider_->setValue(StrokeWidthSliderPositionFromMeters(strokeWidthM_));
+      strokeWidthSlider_->setValue(
+         StrokeWidthSliderPositionFromMeters(strokeWidthM_));
    }
 
    void UpdateCustomBrushValueLabel()
@@ -853,7 +865,7 @@ public:
          return;
       }
       std::vector<BrushScaleLabelsWidget::LabelMark> labels;
-      const auto                                     marks = BrushScaleMarks(units);
+      const auto marks = BrushScaleMarks(units);
       labels.reserve(marks.size());
       std::string abbrev = types::GetDistanceUnitsAbbreviation(units);
       if (abbrev.empty())
@@ -862,8 +874,8 @@ public:
       }
       for (const auto& mark : marks)
       {
-         const int pos =
-            StrokeWidthSliderPositionFromMeters(DisplayDistanceToMeters(mark.value, units));
+         const int pos = StrokeWidthSliderPositionFromMeters(
+            DisplayDistanceToMeters(mark.value, units));
          labels.push_back(BrushScaleLabelsWidget::LabelMark {
             .ratio = static_cast<double>(pos) /
                      static_cast<double>(kStrokeWidthSliderSteps),
@@ -886,37 +898,38 @@ public:
    std::optional<QPoint>    attachedPosition_ {};
    std::optional<QPoint>    floatingPosition_ {};
 
-   QPushButton* collapsedButton_ {nullptr};
-   QFrame*      expandedPanel_ {nullptr};
-   QWidget*     headerWidget_ {nullptr};
-   QWidget*     toolsWidget_ {nullptr};
-   QLabel*      titleLabel_ {nullptr};
-   QPushButton* floatButton_ {nullptr};
-   QPushButton* minimizeButton_ {nullptr};
-   QButtonGroup* toolButtonGroup_ {nullptr};
-   std::vector<QToolButton*> toolButtons_ {};
-   QComboBox*    brushPresetCombo_ {nullptr};
-   QWidget*      customBrushWidget_ {nullptr};
-   QLabel*       customBrushValueLabel_ {nullptr};
-   BrushScaleLabelsWidget* customBrushMarksWidget_ {nullptr};
-   QSlider*      strokeWidthSlider_ {nullptr};
-   QPushButton*  colorButton_ {nullptr};
-   QCheckBox*    fillCheck_ {nullptr};
-   QPushButton*  clearButton_ {nullptr};
-   QToolButton*  visibilityButton_ {nullptr};
+   QPushButton*                             collapsedButton_ {nullptr};
+   QFrame*                                  expandedPanel_ {nullptr};
+   QWidget*                                 headerWidget_ {nullptr};
+   QWidget*                                 toolsWidget_ {nullptr};
+   QLabel*                                  titleLabel_ {nullptr};
+   QPushButton*                             floatButton_ {nullptr};
+   QPushButton*                             minimizeButton_ {nullptr};
+   QButtonGroup*                            toolButtonGroup_ {nullptr};
+   std::vector<QToolButton*>                toolButtons_ {};
+   QComboBox*                               brushPresetCombo_ {nullptr};
+   QWidget*                                 customBrushWidget_ {nullptr};
+   QLabel*                                  customBrushValueLabel_ {nullptr};
+   BrushScaleLabelsWidget*                  customBrushMarksWidget_ {nullptr};
+   QSlider*                                 strokeWidthSlider_ {nullptr};
+   QPushButton*                             colorButton_ {nullptr};
+   QCheckBox*                               fillCheck_ {nullptr};
+   QPushButton*                             clearButton_ {nullptr};
+   QToolButton*                             visibilityButton_ {nullptr};
    std::shared_ptr<map::MapAnnotationLayer> layer_ {};
-   QColor strokeColor_ {255, 50, 50, 230};
-   double strokeWidthM_ {500.0};
-   bool   drawingsVisible_ {true};
+   QColor                                   strokeColor_ {255, 50, 50, 230};
+   double                                   strokeWidthM_ {500.0};
+   bool                                     drawingsVisible_ {true};
 
-   std::function<std::vector<std::shared_ptr<map::MapAnnotationLayer>>()> getBroadcastLayers_ {};
+   std::function<std::vector<std::shared_ptr<map::MapAnnotationLayer>>()>
+                                        getBroadcastLayers_ {};
    std::vector<QMetaObject::Connection> connections_ {};
    std::string                          lastDistanceUnitsName_ {};
    boost::uuids::uuid                   distanceUnitsCallbackUuid_ {};
 };
 
 MapAnnotationDockWidget::MapAnnotationDockWidget(QWidget* parent) :
-   QWidget(parent), p(std::make_unique<Impl>(this))
+    QWidget(parent), p(std::make_unique<Impl>(this))
 {
    setAttribute(Qt::WA_StyledBackground, true);
    setStyleSheet(QStringLiteral(
@@ -949,18 +962,19 @@ MapAnnotationDockWidget::MapAnnotationDockWidget(QWidget* parent) :
    p->collapsedButton_->installEventFilter(this);
 
    p->expandedPanel_ = new QFrame(this);
-   p->expandedPanel_->setObjectName(QStringLiteral("mapAnnotationExpandedPanel"));
+   p->expandedPanel_->setObjectName(
+      QStringLiteral("mapAnnotationExpandedPanel"));
    p->expandedPanel_->installEventFilter(this);
    auto* expandedLayout = new QVBoxLayout(p->expandedPanel_);
    expandedLayout->setContentsMargins(8, 6, 8, 8);
    expandedLayout->setSpacing(5);
    expandedLayout->setSizeConstraint(QLayout::SetFixedSize);
 
-   p->headerWidget_ = new QWidget(p->expandedPanel_);
+   p->headerWidget_   = new QWidget(p->expandedPanel_);
    auto* headerLayout = new QHBoxLayout(p->headerWidget_);
    headerLayout->setContentsMargins(0, 0, 0, 0);
    headerLayout->setSpacing(4);
-   p->titleLabel_ = new QLabel(tr("Draw"), p->headerWidget_);
+   p->titleLabel_  = new QLabel(tr("Draw"), p->headerWidget_);
    p->floatButton_ = new QPushButton(tr("Pop-Out"), p->headerWidget_);
    p->floatButton_->setFixedWidth(68);
    p->minimizeButton_ = new QPushButton(tr("-"), p->headerWidget_);
@@ -997,9 +1011,8 @@ MapAnnotationDockWidget::MapAnnotationDockWidget(QWidget* parent) :
       button->setAutoRaise(false);
       p->toolButtons_.push_back(button);
       p->toolButtonGroup_->addButton(button, static_cast<int>(tools[i].second));
-      toolsLayout->addWidget(button,
-                             static_cast<int>(i / 4),
-                             static_cast<int>(i % 4));
+      toolsLayout->addWidget(
+         button, static_cast<int>(i / 4), static_cast<int>(i % 4));
    }
    p->visibilityButton_ = new QToolButton(p->toolsWidget_);
    p->visibilityButton_->setCheckable(true);
@@ -1079,15 +1092,18 @@ MapAnnotationDockWidget::MapAnnotationDockWidget(QWidget* parent) :
 
    mainLayout->addWidget(p->expandedPanel_);
 
-   connect(p->collapsedButton_, &QPushButton::clicked, this, &MapAnnotationDockWidget::OnToggleExpanded);
+   connect(p->collapsedButton_,
+           &QPushButton::clicked,
+           this,
+           &MapAnnotationDockWidget::OnToggleExpanded);
    connect(p->floatButton_,
            &QPushButton::clicked,
            this,
-           [this]()
-           {
-              p->SetFloating(!p->floating_);
-           });
-   connect(p->minimizeButton_, &QPushButton::clicked, this, &MapAnnotationDockWidget::OnToggleExpanded);
+           [this]() { p->SetFloating(!p->floating_); });
+   connect(p->minimizeButton_,
+           &QPushButton::clicked,
+           this,
+           &MapAnnotationDockWidget::OnToggleExpanded);
    connect(p->toolButtonGroup_,
            QOverload<int>::of(&QButtonGroup::idClicked),
            this,
@@ -1126,16 +1142,25 @@ MapAnnotationDockWidget::MapAnnotationDockWidget(QWidget* parent) :
               p->PushStyleFromUi();
               p->SaveState();
            });
-   connect(p->fillCheck_, &QCheckBox::toggled, this, &MapAnnotationDockWidget::OnFillToggled);
-   connect(p->colorButton_, &QPushButton::clicked, this, &MapAnnotationDockWidget::OnChooseColor);
-   connect(p->clearButton_, &QPushButton::clicked, this, &MapAnnotationDockWidget::OnClearAll);
+   connect(p->fillCheck_,
+           &QCheckBox::toggled,
+           this,
+           &MapAnnotationDockWidget::OnFillToggled);
+   connect(p->colorButton_,
+           &QPushButton::clicked,
+           this,
+           &MapAnnotationDockWidget::OnChooseColor);
+   connect(p->clearButton_,
+           &QPushButton::clicked,
+           this,
+           &MapAnnotationDockWidget::OnClearAll);
 
    p->distanceUnitsCallbackUuid_ =
-      settings::UnitSettings::Instance().distance_units().RegisterValueChangedCallback(
-         [impl = p.get()](const std::string& name)
-         {
-            impl->OnUserDistanceUnitsChanged(name);
-         });
+      settings::UnitSettings::Instance()
+         .distance_units()
+         .RegisterValueChangedCallback(
+            [impl = p.get()](const std::string& name)
+            { impl->OnUserDistanceUnitsChanged(name); });
 
    p->SyncDistanceSpinBoxesToSettings();
    p->LoadState();
@@ -1200,7 +1225,8 @@ void MapAnnotationDockWidget::BindToLayer(
 }
 
 void MapAnnotationDockWidget::SetBroadcastTargets(
-   std::function<std::vector<std::shared_ptr<map::MapAnnotationLayer>>()> getLayers)
+   std::function<std::vector<std::shared_ptr<map::MapAnnotationLayer>>()>
+      getLayers)
 {
    p->getBroadcastLayers_ = std::move(getLayers);
 }
@@ -1242,7 +1268,7 @@ void MapAnnotationDockWidget::OnBrushPresetChanged(int index)
       p->SaveState();
       return;
    }
-   bool ok = false;
+   bool         ok     = false;
    const double meters = p->brushPresetCombo_->itemData(index).toDouble(&ok);
    if (!ok)
    {
@@ -1337,9 +1363,7 @@ bool MapAnnotationDockWidget::eventFilter(QObject* watched, QEvent* event)
          else if (p->hostMapWidget_ != nullptr)
          {
             p->attachedPosition_ = ClampOverlayPosition(
-               p->hostMapWidget_,
-               this,
-               p->dragStartPosition_ + delta);
+               p->hostMapWidget_, this, p->dragStartPosition_ + delta);
             move(*p->attachedPosition_);
          }
          return true;

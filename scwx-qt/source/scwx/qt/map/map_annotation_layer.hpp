@@ -24,11 +24,11 @@ class MapAnnotationLayer : public GenericLayer
 public:
    struct MeasurementOverlay
    {
-      std::uint64_t       id {};
-      common::Coordinate  a {};
-      common::Coordinate  b {};
-      common::Coordinate  labelAnchor {};
-      double              distanceM {};
+      std::uint64_t      id {};
+      common::Coordinate a {};
+      common::Coordinate b {};
+      common::Coordinate labelAnchor {};
+      double             distanceM {};
    };
 
    explicit MapAnnotationLayer(std::shared_ptr<gl::GlContext> glContext);
@@ -53,14 +53,14 @@ public:
 
    [[nodiscard]] bool ConsumesLeftDrag() const;
 
-   void SetTool(MapAnnotationTool tool);
+   void                            SetTool(MapAnnotationTool tool);
    [[nodiscard]] MapAnnotationTool tool() const;
 
-   void SetStyle(const MapAnnotationStyle& style);
+   void                             SetStyle(const MapAnnotationStyle& style);
    [[nodiscard]] MapAnnotationStyle style() const;
-   void SetVisible(bool visible);
-   [[nodiscard]] bool visible() const;
-   void CancelInteraction();
+   void                             SetVisible(bool visible);
+   [[nodiscard]] bool               visible() const;
+   void                             CancelInteraction();
 
    void ClearAll();
 
@@ -71,12 +71,11 @@ public:
    void HandleMouseRelease(const std::shared_ptr<QMapLibre::Map>& map,
                            const QPointF&                         localPos);
 
-   [[nodiscard]] std::optional<double> LastMeasureDistanceM() const;
+   [[nodiscard]] std::optional<double>           LastMeasureDistanceM() const;
    [[nodiscard]] std::vector<MeasurementOverlay> GetMeasurementOverlays() const;
 
 signals:
    void MeasureUpdated(double meters);
-   void AnnotationCountChanged(int count);
    void ToolChanged(MapAnnotationTool tool);
 
 private:

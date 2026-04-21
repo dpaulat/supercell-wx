@@ -80,7 +80,7 @@ static void RemoveTransientUiState(boost::json::value& root)
       return;
    }
 
-   boost::json::object& obj = root.as_object();
+   boost::json::object& obj  = root.as_object();
    auto                 uiIt = obj.find("ui");
    if (uiIt == obj.end() || !uiIt->value().is_object())
    {

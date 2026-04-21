@@ -306,29 +306,31 @@ MainWindow::MainWindow(QWidget* parent) :
       {
          continue;
       }
-      QObject::connect(mw,
-                       &map::MapWidget::MapAnnotationLayerReady,
-                       impl,
-                       [impl, mw]()
-                       {
-                          if (impl->mapAnnotationDock_ == nullptr)
-                          {
-                             return;
-                          }
-                          if (mw == impl->activeMap_)
-                          {
-                             impl->mapAnnotationDock_->BindToLayer(
-                                impl->activeMap_->map_annotation_layer(), false);
-                          }
-                          else
-                          {
-                             impl->mapAnnotationDock_->ReapplyToolAndStyleFromUi();
-                          }
-                       });
+      QObject::connect(
+         mw,
+         &map::MapWidget::MapAnnotationLayerReady,
+         impl,
+         [impl, mw]()
+         {
+            if (impl->mapAnnotationDock_ == nullptr)
+            {
+               return;
+            }
+            if (mw == impl->activeMap_)
+            {
+               impl->mapAnnotationDock_->BindToLayer(
+                  impl->activeMap_->map_annotation_layer(), false);
+            }
+            else
+            {
+               impl->mapAnnotationDock_->ReapplyToolAndStyleFromUi();
+            }
+         });
    }
    if (p->activeMap_ != nullptr)
    {
-      p->mapAnnotationDock_->BindToLayer(p->activeMap_->map_annotation_layer(), false);
+      p->mapAnnotationDock_->BindToLayer(p->activeMap_->map_annotation_layer(),
+                                         false);
    }
 
    // GPS Info Dialog
@@ -1754,7 +1756,8 @@ void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)
       if (activeMap_ != nullptr)
       {
          mapAnnotationDock_->AttachToMap(activeMap_);
-         mapAnnotationDock_->BindToLayer(activeMap_->map_annotation_layer(), false);
+         mapAnnotationDock_->BindToLayer(activeMap_->map_annotation_layer(),
+                                         false);
       }
       else
       {

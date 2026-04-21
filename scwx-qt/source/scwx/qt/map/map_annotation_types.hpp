@@ -53,8 +53,9 @@ struct MapAnnotationStyle
 struct MapAnnotationPolyline
 {
    std::vector<common::Coordinate> points;
-   /** When true (freehand), stroke is built from overlapping geo disks (round brush). */
-   bool                            roundStroke {false};
+   /** When true (freehand), stroke is built from overlapping geo disks (round
+    * brush). */
+   bool roundStroke {false};
 };
 
 struct MapAnnotationCircle
@@ -77,17 +78,16 @@ struct MapAnnotationMeasure
    common::Coordinate b;
 };
 
-using MapAnnotationPayload =
-   std::variant<MapAnnotationPolyline,
-                MapAnnotationCircle,
-                MapAnnotationRectangle,
-                MapAnnotationMeasure>;
+using MapAnnotationPayload = std::variant<MapAnnotationPolyline,
+                                          MapAnnotationCircle,
+                                          MapAnnotationRectangle,
+                                          MapAnnotationMeasure>;
 
 struct MapAnnotationObject
 {
-   std::uint64_t         id {};
-   MapAnnotationPayload  payload;
-   MapAnnotationStyle    style;
+   std::uint64_t        id {};
+   MapAnnotationPayload payload;
+   MapAnnotationStyle   style;
 };
 
 } // namespace scwx::qt::map

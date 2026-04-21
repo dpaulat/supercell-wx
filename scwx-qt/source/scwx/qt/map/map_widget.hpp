@@ -54,11 +54,11 @@ public:
    [[nodiscard]] const scwx::util::time_zone* GetDefaultTimeZone() const;
    [[nodiscard]] std::optional<float>         GetElevation() const;
    [[nodiscard]] std::vector<float>           GetElevationCuts() const;
-   [[nodiscard]] std::optional<float>      GetIncomingLevel2Elevation() const;
-   [[nodiscard]] std::vector<std::string>  GetLevel3Products();
-   [[nodiscard]] std::string               GetMapStyle() const;
+   [[nodiscard]] std::optional<float>     GetIncomingLevel2Elevation() const;
+   [[nodiscard]] std::vector<std::string> GetLevel3Products();
+   [[nodiscard]] std::string              GetMapStyle() const;
    [[nodiscard]] std::shared_ptr<MapAnnotationLayer>
-   map_annotation_layer() const;
+                                           map_annotation_layer() const;
    [[nodiscard]] common::RadarProductGroup GetRadarProductGroup() const;
    [[nodiscard]] std::string               GetRadarProductName() const;
    [[nodiscard]] std::shared_ptr<config::RadarSite> GetRadarSite() const;

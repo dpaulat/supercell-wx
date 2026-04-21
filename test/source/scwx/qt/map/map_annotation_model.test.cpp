@@ -63,7 +63,7 @@ TEST(MapAnnotationModelTest, WriteUpdatesStoredObject)
 {
    MapAnnotationModel model;
 
-   MapAnnotationObject object {};
+   MapAnnotationObject    object {};
    MapAnnotationRectangle rectangle {};
    rectangle.fill = false;
    object.payload = rectangle;

@@ -6,9 +6,9 @@ smooth in vec2  vMercatorHint;
 smooth in float vDashPeriod;
 smooth in float vDashDuty;
 
-uniform int   uHatchMode;
+uniform int uHatchMode;
 
-layout (location = 0) out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 void main()
 {
