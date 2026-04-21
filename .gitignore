@@ -22,6 +22,7 @@ _deps
 
 # Specific excludes for Supercell Wx
 tools/lib/user-setup.sh
+aqtinstall.log
 
 # CodeQL
 _codeql_detected_source_root
