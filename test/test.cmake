@@ -30,11 +30,14 @@ set(SRC_QT_MAIN_TESTS source/scwx/qt/main/application_paths.test.cpp
                       source/scwx/qt/main/program_options.test.cpp)
 set(SRC_QT_MANAGER_TESTS source/scwx/qt/manager/settings_manager.test.cpp
                          source/scwx/qt/manager/update_manager.test.cpp)
-set(SRC_QT_MAP_TESTS source/scwx/qt/map/map_provider.test.cpp)
+set(SRC_QT_MAP_TESTS source/scwx/qt/map/map_annotation_layer.test.cpp
+                     source/scwx/qt/map/map_annotation_model.test.cpp
+                     source/scwx/qt/map/map_provider.test.cpp)
 set(SRC_QT_MODEL_TESTS source/scwx/qt/model/imgui_context_model.test.cpp
                        source/scwx/qt/model/marker_model.test.cpp)
 set(SRC_QT_SETTINGS_TESTS source/scwx/qt/settings/settings_container.test.cpp
-                          source/scwx/qt/settings/settings_variable.test.cpp)
+                          source/scwx/qt/settings/settings_variable.test.cpp
+                          source/scwx/qt/settings/ui_settings.test.cpp)
 set(SRC_QT_UTIL_TESTS source/scwx/qt/util/q_file_input_stream.test.cpp
                       source/scwx/qt/util/geographic_lib.test.cpp
                       source/scwx/qt/util/network.test.cpp)

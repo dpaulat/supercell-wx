@@ -83,6 +83,7 @@ set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
                 source/scwx/qt/gl/draw/geo_lines.hpp
                 source/scwx/qt/gl/draw/icons.hpp
                 source/scwx/qt/gl/draw/linked_vectors.hpp
+                source/scwx/qt/gl/draw/map_annotations_draw_item.hpp
                 source/scwx/qt/gl/draw/placefile_icons.hpp
                 source/scwx/qt/gl/draw/placefile_images.hpp
                 source/scwx/qt/gl/draw/placefile_images_xy.hpp
@@ -96,6 +97,7 @@ set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
                 source/scwx/qt/gl/draw/geo_lines.cpp
                 source/scwx/qt/gl/draw/icons.cpp
                 source/scwx/qt/gl/draw/linked_vectors.cpp
+                source/scwx/qt/gl/draw/map_annotations_draw_item.cpp
                 source/scwx/qt/gl/draw/placefile_icons.cpp
                 source/scwx/qt/gl/draw/placefile_images.cpp
                 source/scwx/qt/gl/draw/placefile_images_xy.cpp
@@ -147,6 +149,9 @@ set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/draw_layer.hpp
             source/scwx/qt/map/generic_layer.hpp
             source/scwx/qt/map/layer_wrapper.hpp
+            source/scwx/qt/map/map_annotation_layer.hpp
+            source/scwx/qt/map/map_annotation_model.hpp
+            source/scwx/qt/map/map_annotation_types.hpp
             source/scwx/qt/map/map_context.hpp
             source/scwx/qt/map/map_provider.hpp
             source/scwx/qt/map/map_settings.hpp
@@ -163,6 +168,8 @@ set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/draw_layer.cpp
             source/scwx/qt/map/generic_layer.cpp
             source/scwx/qt/map/layer_wrapper.cpp
+            source/scwx/qt/map/map_annotation_layer.cpp
+            source/scwx/qt/map/map_annotation_model.cpp
             source/scwx/qt/map/map_context.cpp
             source/scwx/qt/map/map_provider.cpp
             source/scwx/qt/map/map_widget.cpp
@@ -305,6 +312,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/open_url_dialog.hpp
            source/scwx/qt/ui/placefile_dialog.hpp
            source/scwx/qt/ui/placefile_settings_widget.hpp
+           source/scwx/qt/ui/map_annotation_dock_widget.hpp
            source/scwx/qt/ui/marker_dialog.hpp
            source/scwx/qt/ui/marker_settings_widget.hpp
            source/scwx/qt/ui/progress_dialog.hpp
@@ -341,6 +349,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/open_url_dialog.cpp
            source/scwx/qt/ui/placefile_dialog.cpp
            source/scwx/qt/ui/placefile_settings_widget.cpp
+           source/scwx/qt/ui/map_annotation_dock_widget.cpp
            source/scwx/qt/ui/marker_dialog.cpp
            source/scwx/qt/ui/marker_settings_widget.cpp
            source/scwx/qt/ui/progress_dialog.cpp
@@ -453,7 +462,9 @@ set(SRC_VIEW source/scwx/qt/view/level2_product_view.cpp
 
 set(RESOURCE_FILES scwx-qt.qrc)
 
-set(SHADER_FILES gl/color.frag
+set(SHADER_FILES gl/annotation_geo.vert
+                 gl/annotation_stroke.frag
+                 gl/color.frag
                  gl/color.vert
                  gl/geo_line.vert
                  gl/geo_texture2d.vert

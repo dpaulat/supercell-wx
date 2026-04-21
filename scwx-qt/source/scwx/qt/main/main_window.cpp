@@ -30,6 +30,7 @@
 #include <scwx/qt/ui/gps_info_dialog.hpp>
 #include <scwx/qt/ui/imgui_debug_dialog.hpp>
 #include <scwx/qt/ui/layer_dialog.hpp>
+#include <scwx/qt/ui/map_annotation_dock_widget.hpp>
 #include <scwx/qt/ui/level2_products_widget.hpp>
 #include <scwx/qt/ui/level2_settings_widget.hpp>
 #include <scwx/qt/ui/level3_products_widget.hpp>
@@ -47,10 +48,12 @@
 #include <scwx/util/time.hpp>
 
 #include <algorithm>
+#include <vector>
 #include <set>
 
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
+#include <QAction>
 #include <QDesktopServices>
 #include <QGuiApplication>
 #include <QKeyEvent>
@@ -165,6 +168,8 @@ public:
    QLabel* timeLabel_ {nullptr};
 
    ui::AlertDockWidget*              alertDockWidget_ {};
+   ui::MapAnnotationDockWidget*      mapAnnotationDock_ {};
+   QAction*                          mapAnnotationOverlayAction_ {};
    ui::AnimationDockWidget*          animationDockWidget_ {};
    ui::AboutDialog*                  aboutDialog_ {};
    ui::ExportSettingsDialog*         exportSettingsDialog_ {};
@@ -267,6 +272,65 @@ MainWindow::MainWindow(QWidget* parent) :
    p->alertDockWidget_ = new ui::AlertDockWidget(this);
    addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
 
+   p->mapAnnotationDock_ = new ui::MapAnnotationDockWidget(p->activeMap_);
+   p->mapAnnotationDock_->AttachToMap(p->activeMap_);
+   p->mapAnnotationOverlayAction_ = new QAction(tr("&Draw Overlay"), this);
+   p->mapAnnotationOverlayAction_->setCheckable(true);
+   p->mapAnnotationOverlayAction_->setChecked(
+      p->mapAnnotationDock_->OverlayVisible());
+   QObject::connect(p->mapAnnotationOverlayAction_,
+                    &QAction::toggled,
+                    p->mapAnnotationDock_,
+                    &ui::MapAnnotationDockWidget::SetOverlayVisible);
+   MainWindowImpl* const impl = p.get();
+   p->mapAnnotationDock_->SetBroadcastTargets(
+      [impl]()
+      {
+         std::vector<std::shared_ptr<map::MapAnnotationLayer>> layers;
+         for (map::MapWidget* mw : impl->maps_)
+         {
+            if (mw == nullptr)
+            {
+               continue;
+            }
+            if (auto layer = mw->map_annotation_layer())
+            {
+               layers.push_back(std::move(layer));
+            }
+         }
+         return layers;
+      });
+   for (map::MapWidget* mw : p->maps_)
+   {
+      if (mw == nullptr)
+      {
+         continue;
+      }
+      QObject::connect(mw,
+                       &map::MapWidget::MapAnnotationLayerReady,
+                       impl,
+                       [impl, mw]()
+                       {
+                          if (impl->mapAnnotationDock_ == nullptr)
+                          {
+                             return;
+                          }
+                          if (mw == impl->activeMap_)
+                          {
+                             impl->mapAnnotationDock_->BindToLayer(
+                                impl->activeMap_->map_annotation_layer(), false);
+                          }
+                          else
+                          {
+                             impl->mapAnnotationDock_->ReapplyToolAndStyleFromUi();
+                          }
+                       });
+   }
+   if (p->activeMap_ != nullptr)
+   {
+      p->mapAnnotationDock_->BindToLayer(p->activeMap_->map_annotation_layer(), false);
+   }
+
    // GPS Info Dialog
    p->gpsInfoDialog_ = new ui::GpsInfoDialog(this);
 
@@ -280,6 +344,7 @@ MainWindow::MainWindow(QWidget* parent) :
                               p->alertDockWidget_->toggleViewAction());
    p->alertDockWidget_->toggleViewAction()->setText(tr("&Alerts"));
    ui->actionAlerts->setVisible(false);
+   ui->menuView->insertAction(ui->actionAlerts, p->mapAnnotationOverlayAction_);
 
    ui->menuDebug->menuAction()->setVisible(
       settings::GeneralSettings::Instance().debug_enabled().GetValue());
@@ -1682,6 +1747,20 @@ void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)
    for (map::MapWidget* widget : maps_)
    {
       widget->SetActive(mapWidget == widget);
+   }
+
+   if (mapAnnotationDock_ != nullptr)
+   {
+      if (activeMap_ != nullptr)
+      {
+         mapAnnotationDock_->AttachToMap(activeMap_);
+         mapAnnotationDock_->BindToLayer(activeMap_->map_annotation_layer(), false);
+      }
+      else
+      {
+         mapAnnotationDock_->AttachToMap(nullptr);
+         mapAnnotationDock_->BindToLayer(nullptr);
+      }
    }
 }
 

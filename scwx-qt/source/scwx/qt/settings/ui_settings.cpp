@@ -20,6 +20,7 @@ public:
       timelineExpanded_.SetDefault(true);
       mainUIState_.SetDefault("");
       mainUIGeometry_.SetDefault("");
+      mapAnnotationState_.SetDefault("");
       // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
    }
 
@@ -37,6 +38,7 @@ public:
    SettingsVariable<bool> timelineExpanded_ {"timeline_expanded"};
    SettingsVariable<std::string> mainUIState_ {"main_ui_state"};
    SettingsVariable<std::string> mainUIGeometry_ {"main_ui_geometry"};
+   SettingsVariable<std::string> mapAnnotationState_ {"map_annotation_state"};
 };
 
 UiSettings::UiSettings() :
@@ -49,7 +51,8 @@ UiSettings::UiSettings() :
                       &p->mapSettingsExpanded_,
                       &p->timelineExpanded_,
                       &p->mainUIState_,
-                      &p->mainUIGeometry_});
+                      &p->mainUIGeometry_,
+                      &p->mapAnnotationState_});
    SetDefaults();
 }
 UiSettings::~UiSettings() = default;
@@ -97,6 +100,11 @@ SettingsVariable<std::string>& UiSettings::main_ui_geometry() const
    return p->mainUIGeometry_;
 }
 
+SettingsVariable<std::string>& UiSettings::map_annotation_state() const
+{
+   return p->mapAnnotationState_;
+}
+
 bool UiSettings::Shutdown()
 {
    bool dataChanged = false;
@@ -110,6 +118,7 @@ bool UiSettings::Shutdown()
    dataChanged |= p->timelineExpanded_.Commit();
    dataChanged |= p->mainUIState_.Commit();
    dataChanged |= p->mainUIGeometry_.Commit();
+   dataChanged |= p->mapAnnotationState_.Commit();
 
    return dataChanged;
 }
@@ -129,7 +138,8 @@ bool operator==(const UiSettings& lhs, const UiSettings& rhs)
            lhs.p->mapSettingsExpanded_ == rhs.p->mapSettingsExpanded_ &&
            lhs.p->timelineExpanded_ == rhs.p->timelineExpanded_ &&
            lhs.p->mainUIState_ == rhs.p->mainUIState_ &&
-           lhs.p->mainUIGeometry_ == rhs.p->mainUIGeometry_);
+           lhs.p->mainUIGeometry_ == rhs.p->mainUIGeometry_ &&
+           lhs.p->mapAnnotationState_ == rhs.p->mapAnnotationState_);
 }
 
 } // namespace scwx::qt::settings

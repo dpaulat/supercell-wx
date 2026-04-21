@@ -34,6 +34,7 @@ class GlContext;
 namespace scwx::qt::map
 {
 
+class MapAnnotationLayer;
 class MapWidgetImpl;
 
 class MapWidget : public QOpenGLWidget
@@ -56,6 +57,8 @@ public:
    [[nodiscard]] std::optional<float>      GetIncomingLevel2Elevation() const;
    [[nodiscard]] std::vector<std::string>  GetLevel3Products();
    [[nodiscard]] std::string               GetMapStyle() const;
+   [[nodiscard]] std::shared_ptr<MapAnnotationLayer>
+   map_annotation_layer() const;
    [[nodiscard]] common::RadarProductGroup GetRadarProductGroup() const;
    [[nodiscard]] std::string               GetRadarProductName() const;
    [[nodiscard]] std::shared_ptr<config::RadarSite> GetRadarSite() const;
@@ -161,6 +164,7 @@ private:
    void leaveEvent(QEvent* ev) final;
    void mousePressEvent(QMouseEvent* ev) final;
    void mouseMoveEvent(QMouseEvent* ev) final;
+   void mouseReleaseEvent(QMouseEvent* ev) final;
    void wheelEvent(QWheelEvent* ev) final;
 
    // QOpenGLWidget implementation.
@@ -207,6 +211,12 @@ signals:
 
    void WidgetPainted();
    void IncomingLevel2ElevationChanged(std::optional<float> incomingElevation);
+
+   /**
+    * Emitted after custom map layers (including map annotations) are attached
+    * following a style load or layer rebuild.
+    */
+   void MapAnnotationLayerReady();
 };
 
 } // namespace scwx::qt::map

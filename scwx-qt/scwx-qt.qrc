@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
+        <file>gl/annotation_geo.vert</file>
+        <file>gl/annotation_stroke.frag</file>
         <file>gl/color.frag</file>
         <file>gl/color.vert</file>
         <file>gl/geo_line.vert</file>

@@ -31,6 +31,7 @@ public:
    [[nodiscard]] SettingsVariable<bool>& timeline_expanded() const;
    [[nodiscard]] SettingsVariable<std::string>& main_ui_state() const;
    [[nodiscard]] SettingsVariable<std::string>& main_ui_geometry() const;
+   [[nodiscard]] SettingsVariable<std::string>& map_annotation_state() const;
 
    bool Shutdown();
 
