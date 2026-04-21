@@ -22,7 +22,6 @@ _deps
 
 # Specific excludes for Supercell Wx
 tools/lib/user-setup.sh
-aqtinstall.log
 
 # CodeQL
 _codeql_detected_source_root
@@ -35,3 +34,6 @@ _codeql_detected_source_root
 
 # Squad: SubSquad activation file (local to this machine)
 .squad-workstream
+
+# aqtinstall
+aqtinstall.log
