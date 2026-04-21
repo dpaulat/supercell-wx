@@ -52,7 +52,7 @@ The project uses **Conan 2** for C++ dependency management. CMake integrates Con
 .\tools\setup-windows-vs2026-x64-release.bat [BUILD_DIR] [VENV_PATH]
 
 # Linux
-./tools/setup-linux-gcc-release.sh [BUILD_DIR] [CONAN_PROFILE] [VENV_PATH] [ASAN_ENABLE]
+./tools/setup-linux-ninja-release.sh [BUILD_DIR] [CONAN_PROFILE] [VENV_PATH] [ASAN_ENABLE]
 ```
 
 **Manual CMake configuration:**
