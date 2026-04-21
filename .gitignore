@@ -34,3 +34,6 @@ _codeql_detected_source_root
 
 # Squad: SubSquad activation file (local to this machine)
 .squad-workstream
+
+# aqtinstall
+aqtinstall.log
