@@ -558,7 +558,7 @@ std::pair<bool, bool> TimelineManager::Impl::SelectTime(
    }
    else if (selectedTime == std::chrono::system_clock::time_point {})
    {
-      std::unique_lock lock {selectTimeMutex_};
+      std::unique_lock const lock {selectTimeMutex_};
 
       // If a default time point is given, reset to a live view
       selectedTime_      = selectedTime;
@@ -579,7 +579,7 @@ std::pair<bool, bool> TimelineManager::Impl::SelectTime(
 
    if (radarSite_.empty())
    {
-      std::unique_lock lock {selectTimeMutex_};
+      std::unique_lock const lock {selectTimeMutex_};
 
       adjustedTime_      = selectedTime;
       selectedTime_      = selectedTime;
