@@ -5,11 +5,7 @@
 #include <gtest/gtest.h>
 #include <qmaplibre.hpp>
 
-namespace scwx
-{
-namespace qt
-{
-namespace map
+namespace scwx::qt::map
 {
 
 namespace
@@ -17,8 +13,8 @@ namespace
 
 std::shared_ptr<QMapLibre::Map> CreateMap()
 {
-   QMapLibre::Settings settings {};
-   auto                map =
+   const QMapLibre::Settings settings {};
+   auto                      map =
       std::make_shared<QMapLibre::Map>(nullptr, settings, QSize {256, 256});
 
    map->setCoordinateZoom({35.0, -97.0}, 6.0);
@@ -110,6 +106,4 @@ TEST(MapAnnotationLayerTest, SetToolClearsPendingMeasureAnchor)
    EXPECT_EQ(layer.GetMeasurementOverlays().size(), 1u);
 }
 
-} // namespace map
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::map

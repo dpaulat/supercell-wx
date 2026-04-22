@@ -2,16 +2,12 @@
 
 #include <gtest/gtest.h>
 
-namespace scwx
-{
-namespace qt
-{
-namespace settings
+namespace scwx::qt::settings
 {
 
 TEST(UiSettingsTest, MapAnnotationStateDefaultsToEmpty)
 {
-   UiSettings settings;
+   const UiSettings settings;
 
    EXPECT_EQ(settings.map_annotation_state().GetValue(), "");
 }
@@ -41,6 +37,4 @@ TEST(UiSettingsTest, ShutdownCommitsStagedMapAnnotationState)
    EXPECT_EQ(settings.map_annotation_state().GetValue(), "{\"tool_id\":5}");
 }
 
-} // namespace settings
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::settings

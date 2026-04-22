@@ -1860,6 +1860,7 @@ void MapWidgetImpl::UpdateMeasureLabels()
       QLabel*& label = measureLabels_[overlay.id];
       if (label == nullptr)
       {
+         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
          label = new QLabel(widget_);
          label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
          label->setStyleSheet(

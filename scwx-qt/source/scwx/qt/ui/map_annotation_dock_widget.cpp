@@ -1297,7 +1297,8 @@ void MapAnnotationDockWidget::OnFillToggled(bool /*on*/)
 
 void MapAnnotationDockWidget::OnChooseColor()
 {
-   QColor c = QColorDialog::getColor(p->strokeColor_, this, tr("Stroke color"));
+   const QColor c =
+      QColorDialog::getColor(p->strokeColor_, this, tr("Stroke color"));
    if (c.isValid())
    {
       p->strokeColor_ = c;
@@ -1337,7 +1338,11 @@ bool MapAnnotationDockWidget::eventFilter(QObject* watched, QEvent* event)
    {
       if (event->type() == QEvent::MouseButtonPress)
       {
-         auto* mouseEvent = static_cast<QMouseEvent*>(event);
+         auto* mouseEvent = dynamic_cast<QMouseEvent*>(event);
+         if (mouseEvent == nullptr)
+         {
+            return QWidget::eventFilter(watched, event);
+         }
          if (mouseEvent->button() == Qt::LeftButton)
          {
             p->dragStartGlobal_   = mouseEvent->globalPosition().toPoint();
@@ -1347,7 +1352,11 @@ bool MapAnnotationDockWidget::eventFilter(QObject* watched, QEvent* event)
       }
       else if (event->type() == QEvent::MouseMove)
       {
-         auto* mouseEvent = static_cast<QMouseEvent*>(event);
+         auto* mouseEvent = dynamic_cast<QMouseEvent*>(event);
+         if (mouseEvent == nullptr)
+         {
+            return QWidget::eventFilter(watched, event);
+         }
          if ((mouseEvent->buttons() & Qt::LeftButton) == 0)
          {
             return QWidget::eventFilter(watched, event);
@@ -1366,13 +1375,19 @@ bool MapAnnotationDockWidget::eventFilter(QObject* watched, QEvent* event)
          if (p->floating_)
          {
             p->floatingPosition_ = p->dragStartPosition_ + delta;
-            move(*p->floatingPosition_);
+            if (p->floatingPosition_.has_value())
+            {
+               move(*p->floatingPosition_);
+            }
          }
          else if (p->hostMapWidget_ != nullptr)
          {
             p->attachedPosition_ = ClampOverlayPosition(
                p->hostMapWidget_, this, p->dragStartPosition_ + delta);
-            move(*p->attachedPosition_);
+            if (p->attachedPosition_.has_value())
+            {
+               move(*p->attachedPosition_);
+            }
          }
          return true;
       }

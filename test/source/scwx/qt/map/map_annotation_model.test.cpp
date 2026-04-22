@@ -2,11 +2,7 @@
 
 #include <gtest/gtest.h>
 
-namespace scwx
-{
-namespace qt
-{
-namespace map
+namespace scwx::qt::map
 {
 
 TEST(MapAnnotationModelTest, AddRemoveAndClear)
@@ -97,6 +93,4 @@ TEST(MapAnnotationModelTest, WriteUpdatesStoredObject)
       });
 }
 
-} // namespace map
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::map
