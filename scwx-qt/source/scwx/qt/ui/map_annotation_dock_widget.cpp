@@ -268,15 +268,17 @@ PersistedDockState LoadDockState()
    {
       state.brushPresetIndex = static_cast<int>(v->as_int64());
    }
-   if (const auto* v = object.if_contains("stroke_width_m");
-       v != nullptr && v->is_double())
+   if (const auto* strokeWidthValue = object.if_contains("stroke_width_m");
+       strokeWidthValue != nullptr)
    {
-      state.strokeWidthM = v->as_double();
-   }
-   else if (const auto* v = object.if_contains("stroke_width_m");
-            v != nullptr && v->is_int64())
-   {
-      state.strokeWidthM = static_cast<double>(v->as_int64());
+      if (strokeWidthValue->is_double())
+      {
+         state.strokeWidthM = strokeWidthValue->as_double();
+      }
+      else if (strokeWidthValue->is_int64())
+      {
+         state.strokeWidthM = static_cast<double>(strokeWidthValue->as_int64());
+      }
    }
    if (const auto* v = object.if_contains("fill"); v != nullptr && v->is_bool())
    {
