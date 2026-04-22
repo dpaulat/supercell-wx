@@ -948,12 +948,6 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
                                    std::chrono::system_clock::time_point time,
                                    bool                                  update)
 {
-   if (p->radarProductManager_ == nullptr)
-   {
-      logger_->warn("Cannot select radar product without selected radar site");
-      return;
-   }
-
    bool radarProductViewCreated = false;
 
    auto radarProductView = p->context_->radar_product_view();
@@ -983,6 +977,16 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
    else
    {
       p->currentTiltIndex_ = 0;
+   }
+
+   if (p->radarProductManager_ == nullptr)
+   {
+      p->context_->set_radar_product_group(group);
+      p->context_->set_radar_product(productName);
+      p->context_->set_radar_product_code(productCode);
+      p->RadarProductViewDisconnect();
+      p->context_->set_radar_product_view(nullptr);
+      return;
    }
 
    if (radarProductView == nullptr ||
