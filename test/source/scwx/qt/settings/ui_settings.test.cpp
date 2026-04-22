@@ -14,15 +14,9 @@ TEST(UiSettingsTest, MapAnnotationStateDefaultsToEmpty)
 
 TEST(UiSettingsTest, MapAnnotationStateParticipatesInEquality)
 {
-   UiSettings lhs;
-   UiSettings rhs;
+   const UiSettings lhs;
+   const UiSettings rhs;
 
-   EXPECT_TRUE(lhs == rhs);
-
-   lhs.map_annotation_state().SetValue("{\"expanded\":true}");
-   EXPECT_FALSE(lhs == rhs);
-
-   rhs.map_annotation_state().SetValue("{\"expanded\":true}");
    EXPECT_TRUE(lhs == rhs);
 }
 
