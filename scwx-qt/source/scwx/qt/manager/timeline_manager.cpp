@@ -575,6 +575,23 @@ std::pair<bool, bool> TimelineManager::Impl::SelectTime(
       return {volumeTimeUpdated, selectedTimeUpdated};
    }
 
+   if (radarSite_.empty())
+   {
+      adjustedTime_      = selectedTime;
+      selectedTime_      = selectedTime;
+      previousRadarSite_ = radarSite_;
+
+      Q_EMIT self_->LiveStateUpdated(selectedTime ==
+                                     std::chrono::system_clock::time_point {});
+      Q_EMIT self_->VolumeTimeUpdated(selectedTime);
+      Q_EMIT self_->SelectedTimeUpdated(selectedTime);
+
+      volumeTimeUpdated   = true;
+      selectedTimeUpdated = true;
+
+      return {volumeTimeUpdated, selectedTimeUpdated};
+   }
+
    // Take a lock for time selection
    std::unique_lock lock {selectTimeMutex_};
 
