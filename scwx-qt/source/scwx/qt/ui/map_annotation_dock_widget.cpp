@@ -610,6 +610,20 @@ public:
       overlayVisible_ = visible;
       if (!overlayVisible_)
       {
+         // Hiding the overlay from the View menu only hid the control bar; the
+         // map could still be in a non-None tool and keep intercepting drags.
+         // Reset tool and clear in-progress and committed work so map behavior
+         // returns to normal while the feature is off.
+         constexpr auto kOffTool = map::MapAnnotationTool::None;
+         for (const auto& L : LayersForToolStyle())
+         {
+            if (L != nullptr)
+            {
+               L->ClearAll();
+               L->SetTool(kOffTool);
+            }
+         }
+         UpdateToolButtons(kOffTool);
          self_->hide();
          SaveState();
          return;
