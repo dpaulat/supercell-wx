@@ -72,6 +72,9 @@
 namespace scwx::qt::map
 {
 
+// Cursor artwork and transient Qt-owned labels use tuned values and normal Qt
+// parent ownership patterns.
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,cppcoreguidelines-owning-memory)
 namespace
 {
 
@@ -102,7 +105,11 @@ QString FormatMeasurementDistance(double meters)
       settings::UnitSettings::Instance().distance_units().GetValue());
    const double display = meters * scwx::common::kKilometersPerMeter *
                           types::GetDistanceUnitsScale(units);
-   const std::string& abbrev = types::GetDistanceUnitsAbbreviation(units);
+   std::string abbrev = types::GetDistanceUnitsAbbreviation(units);
+   if (abbrev.empty())
+   {
+      abbrev = "user";
+   }
 
    int decimals = 1;
    if (display < 1.0)
@@ -119,6 +126,7 @@ QString FormatMeasurementDistance(double meters)
       .arg(QString::fromStdString(abbrev));
 }
 
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers,cppcoreguidelines-owning-memory)
 } // namespace
 
 static const std::string logPrefix_ = "scwx::qt::map::map_widget";
@@ -1645,6 +1653,7 @@ void MapWidget::enterEvent(QEnterEvent* /* ev */)
 void MapWidget::leaveEvent(QEvent* /* ev */)
 {
    p->hasMouse_ = false;
+   p->UpdateAnnotationCursor();
 }
 
 void MapWidget::keyPressEvent(QKeyEvent* ev)
@@ -1798,16 +1807,18 @@ std::shared_ptr<MapAnnotationLayer> MapWidget::map_annotation_layer() const
 
 void MapWidgetImpl::UpdateAnnotationCursor()
 {
-   if (annotationLayer_ != nullptr &&
+   static const QCursor eraseCursor = CreateEraseCursor();
+
+   if (hasMouse_ && annotationLayer_ != nullptr &&
        annotationLayer_->tool() == MapAnnotationTool::Erase)
    {
       if (QApplication::overrideCursor() == nullptr)
       {
-         QApplication::setOverrideCursor(CreateEraseCursor());
+         QApplication::setOverrideCursor(eraseCursor);
       }
       else
       {
-         QApplication::changeOverrideCursor(CreateEraseCursor());
+         QApplication::changeOverrideCursor(eraseCursor);
       }
       eraseCursorActive_ = true;
    }
@@ -1859,8 +1870,12 @@ void MapWidgetImpl::UpdateMeasureLabels()
                            "padding: 2px 6px;"));
       }
 
-      label->setText(FormatMeasurementDistance(overlay.distanceM));
-      label->adjustSize();
+      const QString labelText = FormatMeasurementDistance(overlay.distanceM);
+      if (label->text() != labelText)
+      {
+         label->setText(labelText);
+         label->adjustSize();
+      }
 
       const QPointF anchorPoint = map_->pixelForCoordinate(
          {overlay.labelAnchor.latitude_, overlay.labelAnchor.longitude_});

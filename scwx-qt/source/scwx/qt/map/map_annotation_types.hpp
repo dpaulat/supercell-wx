@@ -13,7 +13,8 @@
 namespace scwx::qt::map
 {
 
-enum class MapAnnotationTool
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
+enum class MapAnnotationTool : std::uint8_t
 {
    None,
    Freehand,
@@ -24,14 +25,14 @@ enum class MapAnnotationTool
    Erase
 };
 
-enum class MapAnnotationLineJoin
+enum class MapAnnotationLineJoin : std::uint8_t
 {
    Miter,
    Bevel,
    Round
 };
 
-enum class MapAnnotationStrokeStyle
+enum class MapAnnotationStrokeStyle : std::uint8_t
 {
    Solid,
    Dashed,
@@ -89,5 +90,7 @@ struct MapAnnotationObject
    MapAnnotationPayload payload;
    MapAnnotationStyle   style;
 };
+
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
 
 } // namespace scwx::qt::map

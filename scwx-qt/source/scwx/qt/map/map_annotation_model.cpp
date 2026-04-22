@@ -27,14 +27,14 @@ void MapAnnotationModel::Clear()
 }
 
 void MapAnnotationModel::Read(
-   std::function<void(const std::vector<MapAnnotationObject>&)> fn) const
+   const std::function<void(const std::vector<MapAnnotationObject>&)>& fn) const
 {
    const std::lock_guard lock {mutex_};
    fn(objects_);
 }
 
 void MapAnnotationModel::Write(
-   std::function<void(std::vector<MapAnnotationObject>&)> fn)
+   const std::function<void(std::vector<MapAnnotationObject>&)>& fn)
 {
    const std::lock_guard lock {mutex_};
    fn(objects_);

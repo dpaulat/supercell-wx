@@ -19,6 +19,7 @@
 #include <QFrame>
 #include <QApplication>
 #include <QHBoxLayout>
+#include <QGridLayout>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QPainter>
@@ -38,6 +39,8 @@
 
 #include <QVariant>
 
+// Tuned preset/layout values plus Qt parent ownership are intentional here.
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,cppcoreguidelines-owning-memory,cppcoreguidelines-pro-bounds-constant-array-index,bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
 namespace scwx::qt::ui
 {
 
@@ -362,6 +365,11 @@ QPoint ClampOverlayPosition(const QWidget* host,
 class MapAnnotationDockWidget::Impl
 {
 public:
+   Impl(const Impl&)            = delete;
+   Impl& operator=(const Impl&) = delete;
+   Impl(Impl&&)                 = delete;
+   Impl& operator=(Impl&&)      = delete;
+
    explicit Impl(MapAnnotationDockWidget* self) : self_ {self} {}
    ~Impl()
    {
@@ -394,7 +402,7 @@ public:
 
    void DisconnectLayer()
    {
-      for (QMetaObject::Connection& c : connections_)
+      for (const QMetaObject::Connection& c : connections_)
       {
          QObject::disconnect(c);
       }
@@ -526,7 +534,7 @@ public:
       }
       if (fillCheck_ != nullptr)
       {
-         QSignalBlocker blocker {fillCheck_};
+         const QSignalBlocker blocker {fillCheck_};
          fillCheck_->setChecked(state.fill);
       }
       UpdateCustomBrushSlider();
@@ -536,7 +544,7 @@ public:
       {
          const int index = std::clamp(
             state.brushPresetIndex, 0, brushPresetCombo_->count() - 1);
-         QSignalBlocker blocker {brushPresetCombo_};
+         const QSignalBlocker blocker {brushPresetCombo_};
          brushPresetCombo_->setCurrentIndex(index);
       }
       UpdateBrushControlVisibility();
@@ -546,14 +554,14 @@ public:
          if (auto* button = toolButtonGroup_->button(state.toolId);
              button != nullptr)
          {
-            QSignalBlocker blocker {toolButtonGroup_};
+            const QSignalBlocker blocker {toolButtonGroup_};
             button->setChecked(true);
          }
       }
       drawingsVisible_ = state.drawingsVisible;
       if (visibilityButton_ != nullptr)
       {
-         QSignalBlocker blocker {visibilityButton_};
+         const QSignalBlocker blocker {visibilityButton_};
          visibilityButton_->setChecked(drawingsVisible_);
          visibilityButton_->setText(drawingsVisible_ ?
                                        MapAnnotationDockWidget::tr("Hide") :
@@ -682,7 +690,7 @@ public:
       if (auto* button = toolButtonGroup_->button(static_cast<int>(tool));
           button != nullptr)
       {
-         QSignalBlocker blocker {toolButtonGroup_};
+         const QSignalBlocker blocker {toolButtonGroup_};
          button->setChecked(true);
       }
       UpdateFillVisibility();
@@ -772,8 +780,8 @@ public:
       {
          return;
       }
-      const auto     presetMeters = BrushPresetDiameterMeters(units);
-      QSignalBlocker blocker {brushPresetCombo_};
+      const auto           presetMeters = BrushPresetDiameterMeters(units);
+      const QSignalBlocker blocker {brushPresetCombo_};
       brushPresetCombo_->setItemText(0, MapAnnotationDockWidget::tr("Custom"));
       for (std::size_t i = 0; i < presetMeters.size(); ++i)
       {
@@ -806,7 +814,7 @@ public:
             break;
          }
       }
-      QSignalBlocker blocker {brushPresetCombo_};
+      const QSignalBlocker blocker {brushPresetCombo_};
       brushPresetCombo_->setCurrentIndex(match);
       UpdateBrushControlVisibility();
    }
@@ -840,7 +848,7 @@ public:
       {
          return;
       }
-      QSignalBlocker blocker {strokeWidthSlider_};
+      const QSignalBlocker blocker {strokeWidthSlider_};
       strokeWidthSlider_->setValue(
          StrokeWidthSliderPositionFromMeters(strokeWidthM_));
    }
@@ -1408,4 +1416,5 @@ bool MapAnnotationDockWidget::eventFilter(QObject* watched, QEvent* event)
    return QWidget::eventFilter(watched, event);
 }
 
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers,cppcoreguidelines-owning-memory,cppcoreguidelines-pro-bounds-constant-array-index,bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
 } // namespace scwx::qt::ui

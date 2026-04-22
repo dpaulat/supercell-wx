@@ -17,6 +17,7 @@ namespace scwx::qt::ui
 class MapAnnotationDockWidget : public QWidget
 {
    Q_OBJECT
+   Q_DISABLE_COPY_MOVE(MapAnnotationDockWidget)
 
 public:
    explicit MapAnnotationDockWidget(QWidget* parent = nullptr);

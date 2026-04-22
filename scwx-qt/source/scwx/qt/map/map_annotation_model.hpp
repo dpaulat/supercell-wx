@@ -19,14 +19,16 @@ public:
 
    MapAnnotationModel(const MapAnnotationModel&)            = delete;
    MapAnnotationModel& operator=(const MapAnnotationModel&) = delete;
+   MapAnnotationModel(MapAnnotationModel&&)                 = delete;
+   MapAnnotationModel& operator=(MapAnnotationModel&&)      = delete;
 
    [[nodiscard]] std::uint64_t Add(MapAnnotationObject object);
    void                        Remove(std::uint64_t id);
    void                        Clear();
 
-   void
-   Read(std::function<void(const std::vector<MapAnnotationObject>&)> fn) const;
-   void Write(std::function<void(std::vector<MapAnnotationObject>&)> fn);
+   void Read(const std::function<void(const std::vector<MapAnnotationObject>&)>&
+                fn) const;
+   void Write(const std::function<void(std::vector<MapAnnotationObject>&)>& fn);
 
 private:
    mutable std::mutex               mutex_;

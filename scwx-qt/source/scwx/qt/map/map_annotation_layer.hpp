@@ -36,6 +36,8 @@ public:
 
    MapAnnotationLayer(const MapAnnotationLayer&)            = delete;
    MapAnnotationLayer& operator=(const MapAnnotationLayer&) = delete;
+   MapAnnotationLayer(MapAnnotationLayer&&)                 = delete;
+   MapAnnotationLayer& operator=(MapAnnotationLayer&&)      = delete;
 
    void Initialize(const std::shared_ptr<MapContext>& mapContext) final;
    void Render(const std::shared_ptr<MapContext>& mapContext,

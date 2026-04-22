@@ -26,6 +26,8 @@ public:
 
    MapAnnotationsDrawItem(const MapAnnotationsDrawItem&)            = delete;
    MapAnnotationsDrawItem& operator=(const MapAnnotationsDrawItem&) = delete;
+   MapAnnotationsDrawItem(MapAnnotationsDrawItem&&)                 = delete;
+   MapAnnotationsDrawItem& operator=(MapAnnotationsDrawItem&&)      = delete;
 
    void Initialize() override;
    void Render(const QMapLibre::CustomLayerRenderParameters& params) override;
