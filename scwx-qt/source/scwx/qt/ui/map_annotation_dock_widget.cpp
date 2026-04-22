@@ -1374,7 +1374,7 @@ bool MapAnnotationDockWidget::eventFilter(QObject* watched, QEvent* event)
 
          if (p->floating_)
          {
-            p->floatingPosition_ = p->dragStartPosition_ + delta;
+            p->floatingPosition_        = p->dragStartPosition_ + delta;
             const auto floatingPosition = p->floatingPosition_;
             if (floatingPosition.has_value())
             {
