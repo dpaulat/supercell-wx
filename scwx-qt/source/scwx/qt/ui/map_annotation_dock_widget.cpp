@@ -1375,18 +1375,20 @@ bool MapAnnotationDockWidget::eventFilter(QObject* watched, QEvent* event)
          if (p->floating_)
          {
             p->floatingPosition_ = p->dragStartPosition_ + delta;
-            if (p->floatingPosition_.has_value())
+            const auto floatingPosition = p->floatingPosition_;
+            if (floatingPosition.has_value())
             {
-               move(*p->floatingPosition_);
+               move(*floatingPosition);
             }
          }
          else if (p->hostMapWidget_ != nullptr)
          {
             p->attachedPosition_ = ClampOverlayPosition(
                p->hostMapWidget_, this, p->dragStartPosition_ + delta);
-            if (p->attachedPosition_.has_value())
+            const auto attachedPosition = p->attachedPosition_;
+            if (attachedPosition.has_value())
             {
-               move(*p->attachedPosition_);
+               move(*attachedPosition);
             }
          }
          return true;
