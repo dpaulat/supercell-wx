@@ -18,7 +18,7 @@ public:
    explicit Level2MessageHeader();
    ~Level2MessageHeader();
 
-   Level2MessageHeader(const Level2MessageHeader&) = delete;
+   Level2MessageHeader(const Level2MessageHeader&)            = delete;
    Level2MessageHeader& operator=(const Level2MessageHeader&) = delete;
 
    Level2MessageHeader(Level2MessageHeader&&) noexcept;

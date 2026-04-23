@@ -17,7 +17,7 @@ class Packet : public awips::Message
 protected:
    explicit Packet();
 
-   Packet(const Packet&) = delete;
+   Packet(const Packet&)            = delete;
    Packet& operator=(const Packet&) = delete;
 
    Packet(Packet&&) noexcept;

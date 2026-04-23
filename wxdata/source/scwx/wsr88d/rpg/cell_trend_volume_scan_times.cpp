@@ -43,7 +43,7 @@ CellTrendVolumeScanTimes::CellTrendVolumeScanTimes() :
 CellTrendVolumeScanTimes::~CellTrendVolumeScanTimes() = default;
 
 CellTrendVolumeScanTimes::CellTrendVolumeScanTimes(
-   CellTrendVolumeScanTimes&&) noexcept                     = default;
+   CellTrendVolumeScanTimes&&) noexcept = default;
 CellTrendVolumeScanTimes& CellTrendVolumeScanTimes::operator=(
    CellTrendVolumeScanTimes&&) noexcept = default;
 

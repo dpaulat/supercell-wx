@@ -39,7 +39,7 @@ SpecialGraphicSymbolPacket::SpecialGraphicSymbolPacket() :
 SpecialGraphicSymbolPacket::~SpecialGraphicSymbolPacket() = default;
 
 SpecialGraphicSymbolPacket::SpecialGraphicSymbolPacket(
-   SpecialGraphicSymbolPacket&&) noexcept                       = default;
+   SpecialGraphicSymbolPacket&&) noexcept = default;
 SpecialGraphicSymbolPacket& SpecialGraphicSymbolPacket::operator=(
    SpecialGraphicSymbolPacket&&) noexcept = default;
 

@@ -21,7 +21,7 @@ public:
    explicit StormIdSymbolPacket();
    ~StormIdSymbolPacket();
 
-   StormIdSymbolPacket(const StormIdSymbolPacket&) = delete;
+   StormIdSymbolPacket(const StormIdSymbolPacket&)            = delete;
    StormIdSymbolPacket& operator=(const StormIdSymbolPacket&) = delete;
 
    StormIdSymbolPacket(StormIdSymbolPacket&&) noexcept;

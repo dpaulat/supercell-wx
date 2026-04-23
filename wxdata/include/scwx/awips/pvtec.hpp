@@ -43,7 +43,7 @@ public:
    explicit PVtec();
    ~PVtec();
 
-   PVtec(const PVtec&) = delete;
+   PVtec(const PVtec&)            = delete;
    PVtec& operator=(const PVtec&) = delete;
 
    PVtec(PVtec&&) noexcept;

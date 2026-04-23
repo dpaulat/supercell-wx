@@ -13,10 +13,10 @@ private:
    explicit NexradFileFactory() = delete;
    ~NexradFileFactory()         = delete;
 
-   NexradFileFactory(const NexradFileFactory&) = delete;
+   NexradFileFactory(const NexradFileFactory&)            = delete;
    NexradFileFactory& operator=(const NexradFileFactory&) = delete;
 
-   NexradFileFactory(NexradFileFactory&&) noexcept = delete;
+   NexradFileFactory(NexradFileFactory&&) noexcept            = delete;
    NexradFileFactory& operator=(NexradFileFactory&&) noexcept = delete;
 
 public:

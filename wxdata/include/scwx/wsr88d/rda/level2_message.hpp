@@ -23,7 +23,7 @@ class Level2Message : public awips::Message
 protected:
    explicit Level2Message();
 
-   Level2Message(const Level2Message&) = delete;
+   Level2Message(const Level2Message&)            = delete;
    Level2Message& operator=(const Level2Message&) = delete;
 
    Level2Message(Level2Message&&) noexcept;

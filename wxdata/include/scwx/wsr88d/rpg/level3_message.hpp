@@ -18,7 +18,7 @@ class Level3Message : public awips::Message
 protected:
    explicit Level3Message();
 
-   Level3Message(const Level3Message&) = delete;
+   Level3Message(const Level3Message&)            = delete;
    Level3Message& operator=(const Level3Message&) = delete;
 
    Level3Message(Level3Message&&) noexcept;
@@ -29,7 +29,7 @@ public:
 
    size_t data_size() const override;
 
-   const Level3MessageHeader&               header() const;
+   const Level3MessageHeader& header() const;
 
    void set_header(Level3MessageHeader&& header);
 

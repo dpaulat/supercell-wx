@@ -105,11 +105,9 @@ static constexpr auto distanceUnitsBase_ = units::kilometers<double> {1.0f};
 static const std::unordered_map<DistanceUnits, double> distanceUnitsScale_ {
    {DistanceUnits::Kilometers,
     (distanceUnitsBase_ / units::kilometers<double> {1.0f})},
-   {DistanceUnits::Miles,
-    (distanceUnitsBase_ / units::miles<double> {1.0f})},
+   {DistanceUnits::Miles, (distanceUnitsBase_ / units::miles<double> {1.0f})},
    {DistanceUnits::User, 1.0f},
    {DistanceUnits::Unknown, 1.0f}};
-
 
 SCWX_GET_ENUM(AccumulationUnits,
               GetAccumulationUnitsFromName,

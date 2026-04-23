@@ -15,7 +15,7 @@ class NexradFile
 protected:
    explicit NexradFile();
 
-   NexradFile(const NexradFile&) = delete;
+   NexradFile(const NexradFile&)            = delete;
    NexradFile& operator=(const NexradFile&) = delete;
 
    NexradFile(NexradFile&&) noexcept;

@@ -58,12 +58,16 @@ set(HDR_MAIN source/scwx/qt/main/application.hpp
              source/scwx/qt/main/application_paths.hpp
              source/scwx/qt/main/check_privilege.hpp
              source/scwx/qt/main/main_window.hpp
+             source/scwx/qt/main/map_pane_splitter_state.hpp
+             source/scwx/qt/main/map_pane_view_link_state.hpp
+             source/scwx/qt/main/map_popout_frame.hpp
              source/scwx/qt/main/process_validation.hpp
              source/scwx/qt/main/program_options.hpp)
 set(SRC_MAIN source/scwx/qt/main/application.cpp
              source/scwx/qt/main/application_paths.cpp
              source/scwx/qt/main/check_privilege.cpp
              source/scwx/qt/main/main_window.cpp
+             source/scwx/qt/main/map_popout_frame.cpp
              source/scwx/qt/main/process_validation.cpp
              source/scwx/qt/main/program_options.cpp)
 set(UI_MAIN  source/scwx/qt/main/main_window.ui)

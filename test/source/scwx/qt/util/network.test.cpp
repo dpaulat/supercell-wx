@@ -2,8 +2,6 @@
 
 #include <gtest/gtest.h>
 
-
-
 namespace scwx
 {
 namespace qt
@@ -27,7 +25,7 @@ const std::vector<std::pair<const std::string, const std::string>> testUrls = {
    {"    \nhttps://example.com/path/to+a+test/file.txt  \n ",
     "https://example.com/path/to+a+test/file.txt"},
 
-   // Only tested for this OS because NormalizeUrl uses native separators
+// Only tested for this OS because NormalizeUrl uses native separators
 #ifdef _WIN32
    {" C:\\path\\to a test\\file.txt ", "C:\\path\\to a test\\file.txt"},
    {"\tC:\\path\\to a test\\file.txt\t", "C:\\path\\to a test\\file.txt"},
@@ -67,9 +65,7 @@ TEST(network, NormalizeUrl)
       std::string normalized = network::NormalizeUrl(preNormalized);
       EXPECT_EQ(normalized, expNormalized);
    }
-
 }
-
 
 } // namespace util
 } // namespace qt

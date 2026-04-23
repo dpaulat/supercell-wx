@@ -15,7 +15,7 @@ public:
 NexradFile::NexradFile() : p(std::make_unique<NexradFileImpl>()) {}
 NexradFile::~NexradFile() = default;
 
-NexradFile::NexradFile(NexradFile&&) noexcept = default;
+NexradFile::NexradFile(NexradFile&&) noexcept            = default;
 NexradFile& NexradFile::operator=(NexradFile&&) noexcept = default;
 
 } // namespace wsr88d

@@ -20,7 +20,7 @@ public:
    explicit WindBarbDataPacket();
    ~WindBarbDataPacket();
 
-   WindBarbDataPacket(const WindBarbDataPacket&) = delete;
+   WindBarbDataPacket(const WindBarbDataPacket&)            = delete;
    WindBarbDataPacket& operator=(const WindBarbDataPacket&) = delete;
 
    WindBarbDataPacket(WindBarbDataPacket&&) noexcept;

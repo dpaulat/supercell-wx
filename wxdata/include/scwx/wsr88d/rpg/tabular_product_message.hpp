@@ -22,7 +22,7 @@ public:
    explicit TabularProductMessage();
    ~TabularProductMessage();
 
-   TabularProductMessage(const TabularProductMessage&) = delete;
+   TabularProductMessage(const TabularProductMessage&)            = delete;
    TabularProductMessage& operator=(const TabularProductMessage&) = delete;
 
    TabularProductMessage(TabularProductMessage&&) noexcept;

@@ -333,9 +333,9 @@ void ParseCodedInformation(const std::shared_ptr<Segment>& segment,
       else if (segment->threatCategory_ == ibw::ThreatCategory::Base &&
                (threatTagIt = std::find_if(kThreatCategoryTags.cbegin(),
                                            kThreatCategoryTags.cend(),
-                                           [&it](const std::string& tag) {
-                                              return it->starts_with(tag);
-                                           })) != kThreatCategoryTags.cend() &&
+                                           [&it](const std::string& tag)
+                                           { return it->starts_with(tag); })) !=
+                  kThreatCategoryTags.cend() &&
                it->length() > threatTagIt->length())
       // NOLINTEND(bugprone-assignment-in-if-condition)
       {

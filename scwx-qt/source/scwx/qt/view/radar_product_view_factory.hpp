@@ -19,7 +19,7 @@ private:
    explicit RadarProductViewFactory() = delete;
    ~RadarProductViewFactory()         = delete;
 
-   RadarProductViewFactory(const RadarProductViewFactory&) = delete;
+   RadarProductViewFactory(const RadarProductViewFactory&)            = delete;
    RadarProductViewFactory& operator=(const RadarProductViewFactory&) = delete;
 
    RadarProductViewFactory(RadarProductViewFactory&&) noexcept = delete;
