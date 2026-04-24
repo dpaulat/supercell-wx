@@ -54,6 +54,7 @@
 #include <scwx/util/time.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstddef>
@@ -1228,8 +1229,8 @@ void MainWindowImpl::EnsureMapWidgets(int64_t gridWidth, int64_t gridHeight)
          {
             activeMap_ = nullptr;
          }
-         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): MapWidget not in a
-         // smart ptr; Qt widget lifetime
+         // MapWidget not managed by smart ptr; Qt widget lifetime via parent
+         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
          delete lastMap;
          maps_.pop_back();
       }
@@ -1836,16 +1837,15 @@ void MainWindowImpl::UpdatePanesPresetSelection()
       return;
    }
 
-   auto* const ui = mainWindow_->ui;
-   // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
-   QAction* const presetActions[] = {ui->actionPanes1x1,
-                                     ui->actionPanes1x2,
-                                     ui->actionPanes2x1,
-                                     ui->actionPanes2x2,
-                                     ui->actionPanes3x3};
-   const int      w               = static_cast<int>(builtLayoutGridW_);
-   const int      h               = static_cast<int>(builtLayoutGridH_);
-   int            matchIndex      = -1;
+   auto* const                   ui            = mainWindow_->ui;
+   const std::array<QAction*, 5> presetActions = {ui->actionPanes1x1,
+                                                  ui->actionPanes1x2,
+                                                  ui->actionPanes2x1,
+                                                  ui->actionPanes2x2,
+                                                  ui->actionPanes3x3};
+   const int                     w = static_cast<int>(builtLayoutGridW_);
+   const int                     h = static_cast<int>(builtLayoutGridH_);
+   int                           matchIndex = -1;
    if (w == 1 && h == 1)
    {
       matchIndex = 0;
@@ -1872,13 +1872,12 @@ void MainWindowImpl::UpdatePanesPresetSelection()
       const QSignalBlocker block {a};
       a->setChecked(false);
    }
-   const auto nPresets = static_cast<int>(std::size(presetActions));
+   const auto nPresets = static_cast<int>(presetActions.size());
    if (matchIndex >= 0 && matchIndex < nPresets)
    {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-      const QSignalBlocker block {presetActions[matchIndex]};
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-      presetActions[matchIndex]->setChecked(true);
+      const QSignalBlocker block {
+         presetActions.at(static_cast<std::size_t>(matchIndex))};
+      presetActions.at(static_cast<std::size_t>(matchIndex))->setChecked(true);
    }
 }
 
@@ -2254,7 +2253,7 @@ void MainWindowImpl::ConnectMapSignals()
          mapWidget,
          &map::MapWidget::MapParametersChanged,
          this,
-         [&](double latitude, double longitude)
+         [this, mapWidget](double latitude, double longitude)
          {
             if (mapWidget == activeMap_)
             {
@@ -2267,11 +2266,11 @@ void MainWindowImpl::ConnectMapSignals()
          mapWidget,
          &map::MapWidget::MapStyleChanged,
          this,
-         [&](const std::string& mapStyle)
+         [this, mapWidget](const std::string& mapStyle)
          {
             const bool match = settings::UiSettings::Instance()
                                   .panes_match_map_style()
-                                  .GetValue();
+                                  .GetStagedOrValue();
             if (match)
             {
                for (map::MapWidget* w : maps_)
@@ -2531,7 +2530,7 @@ void MainWindowImpl::ConnectOtherSignals()
          const std::string s = text.toStdString();
          if (settings::UiSettings::Instance()
                 .panes_match_map_style()
-                .GetValue())
+                .GetStagedOrValue())
          {
             for (map::MapWidget* w : maps_)
             {
@@ -3139,6 +3138,7 @@ void MainWindowImpl::OnMapPaneContextMenuRequested(const QPoint& globalPos)
    QMenu menu {map->window()};
    menu.setObjectName(QStringLiteral("MapPaneContextMenu"));
    menu.setAttribute(Qt::WA_TranslucentBackground);
+   menu.setAttribute(Qt::WA_StyledBackground, true);
    menu.setMinimumWidth(0);
    menu.setStyleSheet(MapPaneContextMenuStyleSheet());
 
@@ -3514,8 +3514,8 @@ void MainWindowImpl::PopOutMap(std::size_t mapIndex)
    }
 
    const bool severalCols = (hs->count() > 1);
-   // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): parented into splitter
-   // via replaceWidget
+   // Parented into splitter via replaceWidget; Qt owns lifetime
+   // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
    auto* ph = new QWidget();
    ph->setMinimumSize(0, 0);
    if (severalCols)
@@ -3534,8 +3534,8 @@ void MainWindowImpl::PopOutMap(std::size_t mapIndex)
    {
       if (oldW != nullptr)
       {
-         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): caller owns
-         // replaced widget
+         // Caller owns the replaced widget; not parented to splitter
+         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
          delete oldW;
       }
       return;
@@ -3656,8 +3656,8 @@ void MainWindowImpl::DockPoppedMap(std::size_t mapIndex)
    }
 
    QWidget* const removed = layoutHs->replaceWidget(layoutIdx, map);
-   // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): caller owns replaced
-   // placeholder widget
+   // Caller owns the replaced placeholder widget
+   // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
    delete removed;
    map->show();
    map->raise();
