@@ -213,7 +213,8 @@ void AlignMapPaneSubMenuToParentMenu(const QPointer<QMenu>& sub)
    const QRect pr = parentMenu->frameGeometry();
    const QRect sr = sub->frameGeometry();
    const int   dx = (pr.right() + 1) - sr.left();
-   // dx < 0 means Qt flipped the submenu left to avoid a screen edge — leave it.
+   // dx < 0 means Qt flipped the submenu left to avoid a screen edge — leave
+   // it.
    if (dx > 0)
    {
       sub->move(sub->x() + dx, sub->y());
@@ -224,8 +225,7 @@ class MapPaneSubMenuShowAlign final : public QObject
 {
 public:
    explicit MapPaneSubMenuShowAlign(QMenu* submenu) :
-       QObject {submenu},
-       submenu_ {submenu}
+       QObject {submenu}, submenu_ {submenu}
    {
       submenu_->installEventFilter(this);
    }
@@ -241,7 +241,8 @@ protected:
       // before the timer fires (e.g. user closes quickly). Run twice: Qt may
       // reposition the popup after the first event-loop tick.
       const QPointer<QMenu> sub = submenu_;
-      QTimer::singleShot(0, this, [sub]() { AlignMapPaneSubMenuToParentMenu(sub); });
+      QTimer::singleShot(
+         0, this, [sub]() { AlignMapPaneSubMenuToParentMenu(sub); });
       QTimer::singleShot(
          32, this, [sub]() { AlignMapPaneSubMenuToParentMenu(sub); });
       return false;
@@ -261,42 +262,41 @@ private:
 QString MapPaneContextMenuBaseStyle(QLatin1String menuPadding,
                                     bool          clearInteriorChildBackgrounds)
 {
-   QString sheet =
-      QStringLiteral(
-         "QMenu#MapPaneContextMenu {"
-         "  background-color: rgba(40, 44, 52, 215);"
-         "  color: #f5f5f5;"
-         "  border: 1px solid rgba(255, 255, 255, 64);"
-         "  border-radius: 12px;"
-         "  padding: %1;"
-         "}"
-         "QMenu#MapPaneContextMenu::item {"
-         "  padding: 8px 28px 8px 14px;"
-         "  background: rgba(60, 65, 75, 120);"
-         "  border-radius: 4px;"
-         "  margin-top: 2px;"
-         "}"
-         "QMenu#MapPaneContextMenu::item:selected {"
-         "  background-color: rgba(64, 128, 255, 200);"
-         "  color: #ffffff;"
-         "  border: 1px solid rgba(255, 255, 255, 200);"
-         "}"
-         "QMenu#MapPaneContextMenu::item:pressed {"
-         "  background-color: rgba(56, 118, 230, 220);"
-         "}"
-         "QMenu#MapPaneContextMenu::item:disabled {"
-         "  color: rgba(245, 245, 245, 130);"
-         "  background: rgba(60, 65, 75, 60);"
-         "}"
-         "QMenu#MapPaneContextMenu::separator {"
-         "  height: 1px;"
-         "  background: rgba(255, 255, 255, 38);"
-         "  margin: 0 2px 8px 2px;"
-         "}"
-         "QMenu#MapPaneContextMenu::indicator {"
-         "  width: 16px; height: 16px; left: 8px;"
-         "}")
-         .arg(menuPadding);
+   QString sheet = QStringLiteral(
+                      "QMenu#MapPaneContextMenu {"
+                      "  background-color: rgba(40, 44, 52, 215);"
+                      "  color: #f5f5f5;"
+                      "  border: 1px solid rgba(255, 255, 255, 64);"
+                      "  border-radius: 12px;"
+                      "  padding: %1;"
+                      "}"
+                      "QMenu#MapPaneContextMenu::item {"
+                      "  padding: 8px 28px 8px 14px;"
+                      "  background: rgba(60, 65, 75, 120);"
+                      "  border-radius: 4px;"
+                      "  margin-top: 2px;"
+                      "}"
+                      "QMenu#MapPaneContextMenu::item:selected {"
+                      "  background-color: rgba(64, 128, 255, 200);"
+                      "  color: #ffffff;"
+                      "  border: 1px solid rgba(255, 255, 255, 200);"
+                      "}"
+                      "QMenu#MapPaneContextMenu::item:pressed {"
+                      "  background-color: rgba(56, 118, 230, 220);"
+                      "}"
+                      "QMenu#MapPaneContextMenu::item:disabled {"
+                      "  color: rgba(245, 245, 245, 130);"
+                      "  background: rgba(60, 65, 75, 60);"
+                      "}"
+                      "QMenu#MapPaneContextMenu::separator {"
+                      "  height: 1px;"
+                      "  background: rgba(255, 255, 255, 38);"
+                      "  margin: 0 2px 8px 2px;"
+                      "}"
+                      "QMenu#MapPaneContextMenu::indicator {"
+                      "  width: 16px; height: 16px; left: 8px;"
+                      "}")
+                      .arg(menuPadding);
    if (clearInteriorChildBackgrounds)
    {
       sheet += QStringLiteral(
@@ -309,14 +309,14 @@ QString MapPaneContextMenuBaseStyle(QLatin1String menuPadding,
 
 QString MapPaneContextMenuStyleSheet()
 {
-   return MapPaneContextMenuBaseStyle(
-      QLatin1String {"14px 12px 12px 12px"}, true);
+   return MapPaneContextMenuBaseStyle(QLatin1String {"14px 12px 12px 12px"},
+                                      true);
 }
 
 QString MapPaneContextSubMenuStyleSheet()
 {
-   return MapPaneContextMenuBaseStyle(
-      QLatin1String {"8px 10px 8px 10px"}, false);
+   return MapPaneContextMenuBaseStyle(QLatin1String {"8px 10px 8px 10px"},
+                                      false);
 }
 
 void StyleMapPaneContextSubmenu(QMenu* m)

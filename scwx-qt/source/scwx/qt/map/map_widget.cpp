@@ -1809,7 +1809,8 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
       {
          p->paneContextMenuDragTooFar_ = true;
          // Reset lastPos_ to current so the first rotateBy call below uses only
-         // the incremental delta from this tick, not the full suppressed distance.
+         // the incremental delta from this tick, not the full suppressed
+         // distance.
          p->lastPos_ = ev->position();
       }
    }
