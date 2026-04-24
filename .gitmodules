@@ -42,4 +42,4 @@
 	url = https://github.com/nholthaus/units.git
 [submodule "test/data"]
 	path = test/data
-	url = https://github.com/dpaulat/supercell-wx-test-data
+	url = https://github.com/F1r3w477/supercell-wx-test-data
