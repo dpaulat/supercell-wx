@@ -604,7 +604,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>1×1</string>
+    <string>1x1</string>
    </property>
   </action>
   <action name="actionPanes1x2">
@@ -612,7 +612,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>1×2</string>
+    <string>1x2</string>
    </property>
   </action>
   <action name="actionPanes2x1">
@@ -620,7 +620,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>2×1</string>
+    <string>2x1</string>
    </property>
   </action>
   <action name="actionPanes2x2">
@@ -628,7 +628,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>2×2</string>
+    <string>2x2</string>
    </property>
   </action>
   <action name="actionPanes3x3">
@@ -636,12 +636,12 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>3×3</string>
+    <string>3x3</string>
    </property>
   </action>
   <action name="actionPanesCustom">
    <property name="text">
-    <string>&amp;Custom…</string>
+    <string>&amp;Custom...</string>
    </property>
   </action>
  </widget>
