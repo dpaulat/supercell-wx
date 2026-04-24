@@ -73,6 +73,8 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr double kDefaultZoom_ {7.0};
 static constexpr int    kMapPaneContextMenuDebounceMs {200};
+static constexpr double kDoubleClickZoomIn {2.0};
+static constexpr double kDoubleClickZoomOut {0.5};
 
 class MapWidgetImpl : public QObject
 {
@@ -1753,7 +1755,7 @@ void MapWidget::mousePressEvent(QMouseEvent* ev)
          p->paneContextMenuArmed_      = true;
          p->paneContextMenuDragTooFar_ = false;
          p->paneContextMenuPressPos_   = ev->position();
-         const qreal d =
+         const auto d =
             static_cast<qreal>(QApplication::styleHints()->startDragDistance());
          p->paneContextMenuDragThresholdSq_ = d * d;
          p->suppressContextMenuOnNextRightRelease_ =
@@ -1779,11 +1781,11 @@ void MapWidget::mouseDoubleClickEvent(QMouseEvent* ev)
 
    if (ev->button() == Qt::MouseButton::LeftButton)
    {
-      p->map_->scaleBy(2.0, p->lastPos_);
+      p->map_->scaleBy(kDoubleClickZoomIn, p->lastPos_);
    }
    else if (ev->button() == Qt::MouseButton::RightButton)
    {
-      p->map_->scaleBy(0.5, p->lastPos_);
+      p->map_->scaleBy(kDoubleClickZoomOut, p->lastPos_);
       p->suppressContextMenuOnNextRightRelease_ = true;
    }
 

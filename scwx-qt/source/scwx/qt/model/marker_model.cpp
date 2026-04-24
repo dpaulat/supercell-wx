@@ -256,8 +256,8 @@ void MarkerModel::HandleMarkerChanged(types::MarkerId id)
    }
    const int changedIndex = std::distance(p->markerIds_.begin(), it);
 
-   QModelIndex topLeft     = createIndex(changedIndex, kFirstColumn);
-   QModelIndex bottomRight = createIndex(changedIndex, kLastColumn);
+   const QModelIndex topLeft     = createIndex(changedIndex, kFirstColumn);
+   const QModelIndex bottomRight = createIndex(changedIndex, kLastColumn);
 
    Q_EMIT dataChanged(topLeft, bottomRight);
 }

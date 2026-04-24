@@ -24,6 +24,11 @@ public:
    explicit MapPopoutFrame(std::size_t mapIndex, QWidget* parent = nullptr);
    ~MapPopoutFrame() override = default;
 
+   MapPopoutFrame(const MapPopoutFrame&)            = delete;
+   MapPopoutFrame& operator=(const MapPopoutFrame&) = delete;
+   MapPopoutFrame(MapPopoutFrame&&)                 = delete;
+   MapPopoutFrame& operator=(MapPopoutFrame&&)      = delete;
+
    void DetachMapWidget();
    void SetEmbeddedMap(scwx::qt::map::MapWidget* map);
 

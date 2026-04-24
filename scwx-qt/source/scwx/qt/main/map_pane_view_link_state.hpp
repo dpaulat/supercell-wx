@@ -14,6 +14,9 @@
 
 namespace scwx::qt::main
 {
+
+static constexpr int64_t kMaxMapPaneCount {1024};
+
 namespace detail
 {
 [[nodiscard]] inline bool MapPaneViewLinkJsonValueToBool(const QJsonValue& v,
@@ -73,7 +76,7 @@ TryParseMapPaneViewLinkStateJson(const std::string& json,
    {
       const int64_t en =
          static_cast<int64_t>(expectedGw) * static_cast<int64_t>(expectedGh);
-      if (en < 1 || en > 1024)
+      if (en < 1 || en > kMaxMapPaneCount)
       {
          return std::nullopt;
       }
@@ -96,15 +99,15 @@ TryParseMapPaneViewLinkStateJson(const std::string& json,
       return std::nullopt;
    }
 
-   const int64_t jgw = static_cast<int64_t>(jgwV.toDouble(0.0));
-   const int64_t jgh = static_cast<int64_t>(jghV.toDouble(0.0));
+   const auto jgw = static_cast<int64_t>(jgwV.toDouble(0.0));
+   const auto jgh = static_cast<int64_t>(jghV.toDouble(0.0));
    if (jgw != expectedGw || jgh != expectedGh || jgw < 1 || jgh < 1)
    {
       return std::nullopt;
    }
 
    const int64_t n64 = static_cast<int64_t>(jgw) * static_cast<int64_t>(jgh);
-   if (n64 < 1 || n64 > 1024)
+   if (n64 < 1 || n64 > kMaxMapPaneCount)
    {
       return std::nullopt;
    }
@@ -144,7 +147,7 @@ TryParseMapPaneViewLinkStateJson(const std::string& json,
       return {};
    }
    const int64_t n64 = static_cast<int64_t>(gw) * static_cast<int64_t>(gh);
-   if (n64 < 1 || n64 > 1024)
+   if (n64 < 1 || n64 > kMaxMapPaneCount)
    {
       return {};
    }
@@ -161,9 +164,9 @@ TryParseMapPaneViewLinkStateJson(const std::string& json,
    root["gw"] = static_cast<double>(gw);
    root["gh"] = static_cast<double>(gh);
    QJsonArray a;
-   for (std::size_t i = 0; i < linked.size(); ++i)
+   for (const bool v : linked)
    {
-      a.append(static_cast<bool>(linked.at(i)));
+      a.append(v);
    }
    root["linked"] = a;
    return QJsonDocument(root).toJson(QJsonDocument::Compact).toStdString();

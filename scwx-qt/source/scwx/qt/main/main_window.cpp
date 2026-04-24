@@ -201,7 +201,7 @@ void AlignMapPaneSubMenuToParentMenu(const QPointer<QMenu>& sub)
    {
       return;
    }
-   QMenu* parentMenu = qobject_cast<QMenu*>(sub->parentWidget());
+   auto* parentMenu = qobject_cast<QMenu*>(sub->parentWidget());
    if (parentMenu == nullptr)
    {
       parentMenu = qobject_cast<QMenu*>(sub->parent());
@@ -241,10 +241,11 @@ protected:
       // before the timer fires (e.g. user closes quickly). Run twice: Qt may
       // reposition the popup after the first event-loop tick.
       const QPointer<QMenu> sub = submenu_;
+      static constexpr int  kRetryMs {32};
       QTimer::singleShot(
          0, this, [sub]() { AlignMapPaneSubMenuToParentMenu(sub); });
       QTimer::singleShot(
-         32, this, [sub]() { AlignMapPaneSubMenuToParentMenu(sub); });
+         kRetryMs, this, [sub]() { AlignMapPaneSubMenuToParentMenu(sub); });
       return false;
    }
 
@@ -333,7 +334,7 @@ void StyleMapPaneContextSubmenu(QMenu* m)
    // Guard against double-install if this function is called again on the same
    // menu instance. Use a dynamic property as a flag; lifetime of the filter
    // object is tied to m via QObject parent.
-   static const char kAlignInstalled[] = "_scwx_alignInstalled";
+   static constexpr const char* kAlignInstalled = "_scwx_alignInstalled";
    if (!m->property(kAlignInstalled).toBool())
    {
       m->setProperty(kAlignInstalled, true);
@@ -1227,6 +1228,8 @@ void MainWindowImpl::EnsureMapWidgets(int64_t gridWidth, int64_t gridHeight)
          {
             activeMap_ = nullptr;
          }
+         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): MapWidget not in a
+         // smart ptr; Qt widget lifetime
          delete lastMap;
          maps_.pop_back();
       }
@@ -1293,7 +1296,7 @@ void MainWindowImpl::SelectRadarSiteRespectingViewLink(
       return;
    }
 
-   const std::size_t sourceIndex =
+   const auto sourceIndex =
       static_cast<std::size_t>(std::distance(maps_.begin(), sit));
    if (sourceIndex < mapPaneViewLinked_.size() &&
        !mapPaneViewLinked_.at(sourceIndex))
@@ -1304,11 +1307,8 @@ void MainWindowImpl::SelectRadarSiteRespectingViewLink(
 
    for (std::size_t i = 0; i < maps_.size(); ++i)
    {
-      if (i == sourceIndex)
-      {
-         maps_.at(i)->SelectRadarSite(id, updateCoordinates);
-      }
-      else if (i < mapPaneViewLinked_.size() && mapPaneViewLinked_.at(i))
+      if (i == sourceIndex ||
+          (i < mapPaneViewLinked_.size() && mapPaneViewLinked_.at(i)))
       {
          maps_.at(i)->SelectRadarSite(id, updateCoordinates);
       }
@@ -1361,7 +1361,7 @@ void MainWindowImpl::BuildMapLayout(
 
    // Parent splitter so the widget tree is well-formed before addWidget
    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): Central layout owns
-   QSplitter* vs = new QSplitter(Qt::Vertical, mainWindow_->ui->centralwidget);
+   auto* vs = new QSplitter(Qt::Vertical, mainWindow_->ui->centralwidget);
    vs->setHandleWidth(1);
    mapLayoutRoot_ = vs;
 
@@ -1495,7 +1495,7 @@ void MainWindowImpl::ApplyRadarProductsFromSettingsToAllMaps()
 void MainWindowImpl::ScheduleMapPaneGeometryApply(
    bool tryRestorePaneSizesFromSettingsFirst)
 {
-   QPointer<QSplitter> vsGuard {mapLayoutRoot_};
+   const QPointer<QSplitter> vsGuard {mapLayoutRoot_};
    QTimer::singleShot(
       0,
       this,
@@ -1553,9 +1553,9 @@ void MainWindowImpl::ApplyEqualMapPaneSizes()
       return;
    }
 
-   int totalH = std::max(1, vs->height());
+   const int totalH = std::max(1, vs->height());
    {
-      int        base = totalH / nRows;
+      const int  base = totalH / nRows;
       int        acc  = 0;
       QList<int> vert;
       for (int r = 0; r < nRows; ++r)
@@ -1584,8 +1584,8 @@ void MainWindowImpl::ApplyEqualMapPaneSizes()
       {
          continue;
       }
-      int        totalW = std::max(1, hs->width());
-      int        baseW  = totalW / nCol;
+      const int  totalW = std::max(1, hs->width());
+      const int  baseW  = totalW / nCol;
       int        accW   = 0;
       QList<int> col;
       for (int c = 0; c < nCol; ++c)
@@ -1661,9 +1661,9 @@ bool MainWindowImpl::RestoreMapPaneSizesFromSettingsIfMatching()
    }
 
    QList<int> vSizes;
-   for (int i = 0; i < varr.size(); ++i)
+   for (const auto& v : varr)
    {
-      vSizes.append(varr.at(i).toInt(1));
+      vSizes.append(v.toInt(1));
    }
    if (!MapPaneSplitterStateSizesAllPositive(vSizes))
    {
@@ -1677,7 +1677,7 @@ bool MainWindowImpl::RestoreMapPaneSizesFromSettingsIfMatching()
       {
          return false;
       }
-      QSplitter* const hs = qobject_cast<QSplitter*>(vs->widget(r));
+      auto* const hs = qobject_cast<QSplitter*>(vs->widget(r));
       if (hs == nullptr)
       {
          return false;
@@ -1688,9 +1688,9 @@ bool MainWindowImpl::RestoreMapPaneSizesFromSettingsIfMatching()
          return false;
       }
       QList<int> cSizes;
-      for (int c = 0; c < cols.size(); ++c)
+      for (const auto& v : cols)
       {
-         cSizes.append(cols.at(c).toInt(1));
+         cSizes.append(v.toInt(1));
       }
       if (!MapPaneSplitterStateSizesAllPositive(cSizes))
       {
@@ -1735,7 +1735,7 @@ void MainWindowImpl::SaveMapPaneSplitterState()
    QJsonArray rowOuter;
    for (int r = 0; r < vs->count(); ++r)
    {
-      QSplitter* const hs = qobject_cast<QSplitter*>(vs->widget(r));
+      auto* const hs = qobject_cast<QSplitter*>(vs->widget(r));
       if (hs == nullptr)
       {
          return;
@@ -1836,15 +1836,16 @@ void MainWindowImpl::UpdatePanesPresetSelection()
       return;
    }
 
-   auto* const ui              = mainWindow_->ui;
-   QAction*    presetActions[] = {ui->actionPanes1x1,
-                                  ui->actionPanes1x2,
-                                  ui->actionPanes2x1,
-                                  ui->actionPanes2x2,
-                                  ui->actionPanes3x3};
-   const int   w               = static_cast<int>(builtLayoutGridW_);
-   const int   h               = static_cast<int>(builtLayoutGridH_);
-   int         matchIndex      = -1;
+   auto* const ui = mainWindow_->ui;
+   // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
+   QAction* const presetActions[] = {ui->actionPanes1x1,
+                                     ui->actionPanes1x2,
+                                     ui->actionPanes2x1,
+                                     ui->actionPanes2x2,
+                                     ui->actionPanes3x3};
+   const int      w               = static_cast<int>(builtLayoutGridW_);
+   const int      h               = static_cast<int>(builtLayoutGridH_);
+   int            matchIndex      = -1;
    if (w == 1 && h == 1)
    {
       matchIndex = 0;
@@ -1866,14 +1867,17 @@ void MainWindowImpl::UpdatePanesPresetSelection()
       matchIndex = 4;
    }
 
-   for (QAction* a : presetActions)
+   for (QAction* const a : presetActions)
    {
-      QSignalBlocker block {a};
+      const QSignalBlocker block {a};
       a->setChecked(false);
    }
-   if (matchIndex >= 0 && matchIndex < 5)
+   const auto nPresets = static_cast<int>(std::size(presetActions));
+   if (matchIndex >= 0 && matchIndex < nPresets)
    {
-      QSignalBlocker block {presetActions[matchIndex]};
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+      const QSignalBlocker block {presetActions[matchIndex]};
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       presetActions[matchIndex]->setChecked(true);
    }
 }
@@ -1882,11 +1886,11 @@ void MainWindowImpl::SetupPanesMenu()
 {
    auto* const u = mainWindow_->ui;
    {
-      QSignalBlocker block {u->actionPanesLinkColumnWidth};
+      const QSignalBlocker block {u->actionPanesLinkColumnWidth};
       u->actionPanesLinkColumnWidth->setChecked(linkRowSplitters_);
    }
    {
-      QSignalBlocker block {u->actionPanesMatchMapStyle};
+      const QSignalBlocker block {u->actionPanesMatchMapStyle};
       u->actionPanesMatchMapStyle->setChecked(settings::UiSettings::Instance()
                                                  .panes_match_map_style()
                                                  .GetStagedOrValue());
@@ -2469,7 +2473,7 @@ void MainWindowImpl::ConnectMapToTimelineAndRadarSiteSignals()
               this,
               [this](const std::string& id, bool updateCoordinates)
               {
-                 map::MapWidget* const source =
+                 auto* const source =
                     qobject_cast<map::MapWidget*>(QObject::sender());
                  if (source != nullptr)
                  {
@@ -3045,6 +3049,7 @@ void MainWindowImpl::AppendMapPaneRadarContextMenu(QMenu&          menu,
    const common::RadarProductGroup currentGroup = map->GetRadarProductGroup();
    const std::string               currentName  = map->GetRadarProductName();
 
+   // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): parented to menu
    auto* const productActionGroup = new QActionGroup {&menu};
    productActionGroup->setExclusive(true);
 
@@ -3052,7 +3057,7 @@ void MainWindowImpl::AppendMapPaneRadarContextMenu(QMenu&          menu,
    QMenu* const l2Menu = menu.addMenu(mainWindow_->tr("L2 &Product"));
    StyleMapPaneContextSubmenu(l2Menu);
 
-   for (common::Level2Product product : common::Level2ProductIterator())
+   for (const common::Level2Product product : common::Level2ProductIterator())
    {
       const std::string& name = common::GetLevel2Name(product);
       QAction* const     a    = l2Menu->addAction(QString::fromStdString(name));
@@ -3078,7 +3083,7 @@ void MainWindowImpl::AppendMapPaneRadarContextMenu(QMenu&          menu,
       map->GetAvailableLevel3Categories();
    bool anyL3 = false;
 
-   for (common::Level3ProductCategory category :
+   for (const common::Level3ProductCategory category :
         common::Level3ProductCategoryIterator())
    {
       const auto catIt = l3Avail.find(category);
@@ -3128,7 +3133,7 @@ void MainWindowImpl::OnMapPaneContextMenuRequested(const QPoint& globalPos)
    {
       return;
    }
-   const std::size_t mapIndex =
+   const auto mapIndex =
       static_cast<std::size_t>(std::distance(maps_.begin(), it));
 
    QMenu menu {map->window()};
@@ -3151,6 +3156,7 @@ void MainWindowImpl::OnMapPaneContextMenuRequested(const QPoint& globalPos)
                      "  background: transparent;"
                      "  border: none;"
                      "}"));
+   // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): parented to menu
    auto* const titleAction = new QWidgetAction(&menu);
    titleAction->setDefaultWidget(titleLabel);
    menu.addAction(titleAction);
@@ -3258,7 +3264,7 @@ void MainWindowImpl::OnMapPaneContextMenuRequested(const QPoint& globalPos)
                     }
                     if (ref != nullptr)
                     {
-                       double lat, lon, zoom, bearing, pitch;
+                       double lat {}, lon {}, zoom {}, bearing {}, pitch {};
                        ref->GetMapViewParameters(
                           lat, lon, zoom, bearing, pitch);
                        map->SetMapParameters(lat, lon, zoom, bearing, pitch);
@@ -3303,8 +3309,7 @@ void MainWindowImpl::UpdateMapParameters(
 {
    // Only the map that emitted already has this view; all other panes follow
    // (including the focused one when a non-focused pane moves the view).
-   map::MapWidget* const sourceMap =
-      qobject_cast<map::MapWidget*>(QObject::sender());
+   auto* const sourceMap = qobject_cast<map::MapWidget*>(QObject::sender());
 
    if (!ShouldApplyLinkedMapParameterSync(maps_.size(), sourceMap))
    {
@@ -3318,7 +3323,7 @@ void MainWindowImpl::UpdateMapParameters(
       const auto sit = std::ranges::find(maps_, sourceMap);
       if (sit != maps_.end())
       {
-         const std::size_t sourceIndex =
+         const auto sourceIndex =
             static_cast<std::size_t>(std::distance(maps_.begin(), sit));
          if (sourceIndex < mapPaneViewLinked_.size() &&
              !mapPaneViewLinked_[sourceIndex])
@@ -3509,7 +3514,9 @@ void MainWindowImpl::PopOutMap(std::size_t mapIndex)
    }
 
    const bool severalCols = (hs->count() > 1);
-   auto*      ph          = new QWidget();
+   // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): parented into splitter
+   // via replaceWidget
+   auto* ph = new QWidget();
    ph->setMinimumSize(0, 0);
    if (severalCols)
    {
@@ -3527,6 +3534,8 @@ void MainWindowImpl::PopOutMap(std::size_t mapIndex)
    {
       if (oldW != nullptr)
       {
+         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): caller owns
+         // replaced widget
          delete oldW;
       }
       return;
@@ -3647,6 +3656,8 @@ void MainWindowImpl::DockPoppedMap(std::size_t mapIndex)
    }
 
    QWidget* const removed = layoutHs->replaceWidget(layoutIdx, map);
+   // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): caller owns replaced
+   // placeholder widget
    delete removed;
    map->show();
    map->raise();
@@ -3733,7 +3744,7 @@ void MainWindowImpl::TryRestorePoppedMapWindows()
       popoutPanesRestoredThisSession_ = true;
       return;
    }
-   for (const QJsonValue& v : parr.toArray())
+   for (const auto& v : parr.toArray())
    {
       if (!v.isObject())
       {
@@ -3745,8 +3756,8 @@ void MainWindowImpl::TryRestorePoppedMapWindows()
       {
          continue;
       }
-      const std::size_t idx = static_cast<std::size_t>(jidx);
-      const QString     gb  = po.value("g").toString();
+      const auto    idx = static_cast<std::size_t>(jidx);
+      const QString gb  = po.value("g").toString();
       if (gb.isEmpty() || idx >= maps_.size() ||
           mapPanePoppedOut_.size() <= idx)
       {

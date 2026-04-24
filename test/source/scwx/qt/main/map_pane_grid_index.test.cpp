@@ -16,8 +16,8 @@ void SlotFor(std::size_t mapIndex, std::int64_t gridW, int& row, int& col)
 
 TEST(MapPaneGridIndex, two_by_two_is_row_major)
 {
-   int                    r;
-   int                    c;
+   int                    r = 0;
+   int                    c = 0;
    constexpr std::int64_t w = 2;
    SlotFor(0, w, r, c);
    EXPECT_EQ(r, 0);
@@ -35,8 +35,8 @@ TEST(MapPaneGridIndex, two_by_two_is_row_major)
 
 TEST(MapPaneGridIndex, one_column_stacks_rows)
 {
-   int                    r;
-   int                    c;
+   int                    r = 0;
+   int                    c = 0;
    constexpr std::int64_t w = 1;
    SlotFor(0, w, r, c);
    EXPECT_EQ(r, 0);

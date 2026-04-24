@@ -20,16 +20,10 @@ class Level2MessageImpl;
 
 class Level2Message : public awips::Message
 {
-protected:
-   explicit Level2Message();
-
+public:
    Level2Message(const Level2Message&)            = delete;
    Level2Message& operator=(const Level2Message&) = delete;
 
-   Level2Message(Level2Message&&) noexcept;
-   Level2Message& operator=(Level2Message&&) noexcept;
-
-public:
    virtual ~Level2Message();
 
    size_t data_size() const override;
@@ -40,6 +34,12 @@ public:
 
    static constexpr double ANGLE_DATA_SCALE      = 0.005493125;
    static constexpr double AZ_EL_RATE_DATA_SCALE = 0.001373291015625;
+
+protected:
+   explicit Level2Message();
+
+   Level2Message(Level2Message&&) noexcept;
+   Level2Message& operator=(Level2Message&&) noexcept;
 
 private:
    std::unique_ptr<Level2MessageImpl> p;

@@ -15,18 +15,15 @@ namespace view
 
 class RadarProductViewFactory
 {
-private:
-   explicit RadarProductViewFactory() = delete;
-   ~RadarProductViewFactory()         = delete;
-
+public:
+   RadarProductViewFactory()                                          = delete;
+   ~RadarProductViewFactory()                                         = delete;
    RadarProductViewFactory(const RadarProductViewFactory&)            = delete;
    RadarProductViewFactory& operator=(const RadarProductViewFactory&) = delete;
-
-   RadarProductViewFactory(RadarProductViewFactory&&) noexcept = delete;
+   RadarProductViewFactory(RadarProductViewFactory&&) noexcept        = delete;
    RadarProductViewFactory&
    operator=(RadarProductViewFactory&&) noexcept = delete;
 
-public:
    static std::shared_ptr<RadarProductView>
    Create(common::RadarProductGroup                     productGroup,
           const std::string&                            productName,

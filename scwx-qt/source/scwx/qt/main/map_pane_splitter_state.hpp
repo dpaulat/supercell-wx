@@ -15,7 +15,7 @@ MapPaneSplitterStateSizesAllPositive(const QList<int>& sizes)
    {
       return false;
    }
-   for (int s : sizes)
+   for (const int s : sizes)
    {
       if (s <= 0)
       {

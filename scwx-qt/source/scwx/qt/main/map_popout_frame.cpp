@@ -9,13 +9,12 @@ namespace scwx::qt::main
 {
 
 MapPopoutFrame::MapPopoutFrame(std::size_t mapIndex, QWidget* parent) :
-    QWidget(parent), mapIndex_ {mapIndex}
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): parented to this
+    QWidget(parent), mapIndex_ {mapIndex}, vbox_ {new QVBoxLayout(this)}
 {
    setWindowFlags(Qt::Window);
    setAttribute(Qt::WA_DeleteOnClose, false);
    setWindowTitle(tr("Map %1").arg(static_cast<int>(mapIndex) + 1));
-
-   vbox_ = new QVBoxLayout(this);
    vbox_->setContentsMargins(0, 0, 0, 0);
    vbox_->setSpacing(0);
 }
