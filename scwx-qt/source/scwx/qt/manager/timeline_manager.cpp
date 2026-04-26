@@ -180,7 +180,16 @@ void TimelineManager::SetViewType(types::MapTime viewType)
    }
    else
    {
-      // If the selected view type is archive, select using the pinned time
+      // If the selected view type is archive, select using the pinned time.
+      // A default time of {} is treated as "live" by SelectTime; when first
+      // switching to archive the dock may not have emitted a date yet, so
+      // pin to the current wall-clock time (minute resolution) so the UI
+      // shows archive time instead of "Live".
+      if (p->pinnedTime_ == std::chrono::system_clock::time_point {})
+      {
+         p->pinnedTime_ =
+            std::chrono::floor<std::chrono::minutes>(scwx::util::time::now());
+      }
       p->SelectTimeAsync(p->pinnedTime_);
    }
 
@@ -474,20 +483,29 @@ void TimelineManager::Impl::PlaySync()
    // Unlock prior to selecting time
    lock.unlock();
 
-   // Lock radar sweep monitor
-   std::unique_lock radarSweepMonitorLock {radarSweepMonitorMutex_};
-
-   // Reset radar sweep monitor in preparation for update
-   RadarSweepMonitorReset();
-
-   // Select the time
    auto selectTimeStart = std::chrono::steady_clock::now();
-   SelectTime(newTime);
+   if (radarSite_.empty())
+   {
+      // No radar product: sweeps will not complete the monitor; skip the wait
+      // so play advances at the configured loop rate instead of timing out.
+      SelectTime(newTime);
+   }
+   else
+   {
+      // Lock radar sweep monitor
+      std::unique_lock radarSweepMonitorLock {radarSweepMonitorMutex_};
+
+      // Reset radar sweep monitor in preparation for update
+      RadarSweepMonitorReset();
+
+      // Select the time
+      SelectTime(newTime);
+
+      // Wait for radar sweeps to update
+      RadarSweepMonitorWait(radarSweepMonitorLock);
+   }
    auto selectTimeEnd = std::chrono::steady_clock::now();
    auto elapsedTime   = selectTimeEnd - selectTimeStart;
-
-   // Wait for radar sweeps to update
-   RadarSweepMonitorWait(radarSweepMonitorLock);
 
    // Calculate the interval until the next update, prior to selecting
    std::chrono::milliseconds interval;
@@ -694,6 +712,27 @@ void TimelineManager::Impl::Step(Direction direction)
 
    // Unlock prior to selecting time
    lock.unlock();
+
+   if (radarSite_.empty())
+   {
+      // No radar: apply a single one-minute step without waiting for sweeps
+      // that will never be recorded as complete.
+      using namespace std::chrono_literals;
+      if (direction == Direction::Back)
+      {
+         newTime -= 1min;
+      }
+      else
+      {
+         newTime += 1min;
+         if (newTime > scwx::util::time::now() + 2min)
+         {
+            return;
+         }
+      }
+      SelectTime(newTime);
+      return;
+   }
 
    // Lock radar sweep monitor
    std::unique_lock radarSweepMonitorLock {radarSweepMonitorMutex_};
