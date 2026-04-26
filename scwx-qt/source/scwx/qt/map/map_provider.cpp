@@ -191,10 +191,10 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
                      .drawBelow_ {"aeroway_runway"}},
                     {.name_ {"Positron"},
                      .url_ {"https://tiles.openfreemap.org/styles/positron"},
-                     .drawBelow_ {"tunnel_motorway_casing"}},
+                     .drawBelow_ {"building"}},
                     {.name_ {"Bright"},
                      .url_ {"https://tiles.openfreemap.org/styles/bright"},
-                     .drawBelow_ {"tunnel-service-track-casing"}}}}},
+                     .drawBelow_ {"building"}}}}},
    {MapProvider::Unknown, MapProviderInfo {}}};
 
 bool MapStyle::IsValid() const
