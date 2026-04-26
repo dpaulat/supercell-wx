@@ -356,7 +356,7 @@ void OverlayLayer::Render(const std::shared_ptr<MapContext>& mapContext,
 
    if (radarProductView != nullptr)
    {
-      scwx::util::ClockFormat clockFormat = scwx::util::GetClockFormat(
+      scwx::util::ClockFormat const clockFormat = scwx::util::GetClockFormat(
          settings::GeneralSettings::Instance().clock_format().GetValue());
 
       auto radarProductManager = radarProductView->radar_product_manager();
@@ -377,7 +377,7 @@ void OverlayLayer::Render(const std::shared_ptr<MapContext>& mapContext,
       auto overlayView = mapContext->overlay_product_view();
       if (overlayView != nullptr)
       {
-         scwx::util::ClockFormat clockFormat = scwx::util::GetClockFormat(
+         scwx::util::ClockFormat const clockFormat = scwx::util::GetClockFormat(
             settings::GeneralSettings::Instance().clock_format().GetValue());
 
          const std::chrono::system_clock::time_point selectedTime =
