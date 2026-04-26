@@ -102,6 +102,8 @@ MapProviderPage::MapProviderPage(QWidget* parent) :
       p->mapProviderComboBox_->addItem(
          QString::fromStdString(map::GetMapProviderName(mapProvider)));
    }
+   p->mapProviderComboBox_->setSizePolicy(QSizePolicy::MinimumExpanding,
+                                          QSizePolicy::Fixed);
 
    p->mapProviderLayout_->setContentsMargins(0, 0, 0, 0);
    p->mapProviderLayout_->addWidget(p->mapProviderLabel_, 0, 0, 1, 1);
@@ -109,11 +111,6 @@ MapProviderPage::MapProviderPage(QWidget* parent) :
    p->mapProviderFrame_->setLayout(p->mapProviderLayout_);
 
    // Description
-   p->descriptionLabel_->setText(
-      tr("You must get an API key from the map provider. After creating an "
-         "account and reviewing terms of service, create an API key (or public "
-         "token) with default scopes (unless one is created for you). Enter "
-         "this API key here."));
    p->descriptionLabel_->setWordWrap(true);
 
    // API Key Button
@@ -244,12 +241,19 @@ void MapProviderPage::Impl::SelectMapProvider(map::MapProvider mapProvider)
    {
       apiKeyButton_->setText(
          tr("Get %1 API Key").arg(QString::fromStdString(name)));
-      descriptionLabel_->setVisible(true);
+      descriptionLabel_->setText(tr(
+         "You must get an API key from the map provider. After creating an "
+         "account and reviewing terms of service, create an API key (or public "
+         "token) with default scopes (unless one is created for you). Enter "
+         "this API key here."));
    }
    else
    {
       apiKeyButton_->setText(tr("Visit %1").arg(QString::fromStdString(name)));
-      descriptionLabel_->setVisible(false);
+      descriptionLabel_->setText(
+         tr("This map provider does not require an API key. You can visit "
+            "their website to see documentation on their free services and map "
+            "customization."));
    }
 
    currentMapProvider_ = mapProvider;
