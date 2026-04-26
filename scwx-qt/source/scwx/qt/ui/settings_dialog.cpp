@@ -738,17 +738,18 @@ void SettingsDialogImpl::SetupGeneralTab()
    mapTilerApiKey_.SetResetButton(self_->ui->resetMapTilerApiKeyButton);
    mapTilerApiKey_.EnableTrimming();
 
-   QObject::connect(
-      self_->ui->mapProviderComboBox,
-      &QComboBox::currentTextChanged,
-      self_,
-      [this](const QString& text)
-      {
-         map::MapProvider mapProvider = map::GetMapProvider(text.toStdString());
-         bool             providerHasLocalFiles =
-            mapProvider == map::MapProvider::OpenFreeMap;
-         self_->ui->customMapUrlToolButton->setEnabled(providerHasLocalFiles);
-      });
+   QObject::connect(self_->ui->mapProviderComboBox,
+                    &QComboBox::currentTextChanged,
+                    self_,
+                    [this](const QString& text)
+                    {
+                       const map::MapProvider mapProvider =
+                          map::GetMapProvider(text.toStdString());
+                       const bool providerHasLocalFiles =
+                          mapProvider == map::MapProvider::OpenFreeMap;
+                       self_->ui->customMapUrlToolButton->setEnabled(
+                          providerHasLocalFiles);
+                    });
 
    customStyleUrl_.SetSettingsVariable(generalSettings.custom_style_url());
    customStyleUrl_.SetEditWidget(self_->ui->customMapUrlLineEdit);
@@ -778,7 +779,8 @@ void SettingsDialogImpl::SetupGeneralTab()
                           self_,
                           [this](const QString& file)
                           {
-                             QString path = QDir::toNativeSeparators(file);
+                             const QString path =
+                                QDir::toNativeSeparators(file);
 
                              logger_->info("Selected Custom Style URL file: {}",
                                            path.toStdString());
