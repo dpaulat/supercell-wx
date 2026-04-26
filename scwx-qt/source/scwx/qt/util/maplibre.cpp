@@ -1,6 +1,8 @@
 #include <scwx/qt/util/maplibre.hpp>
 
 #include <QMapLibre/Utils>
+#include <QUrl>
+#include <QUrlQuery>
 #include <algorithm>
 #include <mbgl/util/constants.hpp>
 #include <re2/re2.h>
@@ -107,12 +109,15 @@ void SetMapStyleUrl(const std::shared_ptr<map::MapContext>& mapContext,
 {
    const auto mapProvider = mapContext->map_provider();
 
-   QString qUrl = QString::fromStdString(url);
+   auto qUrl = QUrl::fromUserInput(QString::fromStdString(url));
 
    if (!url.empty() && mapProvider == map::MapProvider::MapTiler)
    {
-      qUrl.append("?key=");
-      qUrl.append(map::GetMapProviderApiKey(mapProvider));
+      auto query = QUrlQuery(qUrl);
+      query.removeAllQueryItems("key");
+      query.addQueryItem(
+         "key", QString::fromStdString(map::GetMapProviderApiKey(mapProvider)));
+      qUrl.setQuery(query);
    }
 
    auto map = mapContext->map().lock();
@@ -120,7 +125,7 @@ void SetMapStyleUrl(const std::shared_ptr<map::MapContext>& mapContext,
    {
       if (!url.empty())
       {
-         map->setStyleUrl(qUrl);
+         map->setStyleUrl(qUrl.toString());
       }
       else
       {
