@@ -35,6 +35,7 @@ set(SRC_QT_MAP_TESTS source/scwx/qt/map/map_annotation_layer.test.cpp
                      source/scwx/qt/map/map_provider.test.cpp)
 set(SRC_QT_MODEL_TESTS source/scwx/qt/model/imgui_context_model.test.cpp
                        source/scwx/qt/model/marker_model.test.cpp)
+set(SRC_QT_UI_TESTS source/scwx/qt/ui/threshold_value_utility.test.cpp)
 set(SRC_QT_SETTINGS_TESTS source/scwx/qt/settings/settings_container.test.cpp
                           source/scwx/qt/settings/settings_variable.test.cpp
                           source/scwx/qt/settings/ui_settings.test.cpp)
@@ -63,6 +64,7 @@ add_executable(wxtest ${SRC_MAIN}
                       ${SRC_QT_MANAGER_TESTS}
                       ${SRC_QT_MAP_TESTS}
                       ${SRC_QT_MODEL_TESTS}
+                      ${SRC_QT_UI_TESTS}
                       ${SRC_QT_SETTINGS_TESTS}
                       ${SRC_QT_UTIL_TESTS}
                       ${SRC_UTIL_TESTS}
@@ -80,6 +82,7 @@ source_group("Source Files\\qt\\main"     FILES ${SRC_QT_MAIN_TESTS})
 source_group("Source Files\\qt\\manager"  FILES ${SRC_QT_MANAGER_TESTS})
 source_group("Source Files\\qt\\map"      FILES ${SRC_QT_MAP_TESTS})
 source_group("Source Files\\qt\\model"    FILES ${SRC_QT_MODEL_TESTS})
+source_group("Source Files\\qt\\ui"       FILES ${SRC_QT_UI_TESTS})
 source_group("Source Files\\qt\\settings" FILES ${SRC_QT_SETTINGS_TESTS})
 source_group("Source Files\\qt\\util"     FILES ${SRC_QT_UTIL_TESTS})
 source_group("Source Files\\util"         FILES ${SRC_UTIL_TESTS})
