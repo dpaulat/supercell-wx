@@ -9,6 +9,7 @@
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/texture_types.hpp>
+#include <scwx/qt/view/overlay_product_view.hpp>
 #include <scwx/qt/view/radar_product_view.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
@@ -368,6 +369,36 @@ void OverlayLayer::Render(const std::shared_ptr<MapContext>& mapContext,
       p->sweepTimeString_ = scwx::util::TimeString(
          radarProductView->sweep_time(), clockFormat, currentZone, false);
       p->sweepTimeNeedsUpdate_ = false;
+   }
+   else
+   {
+      // No radar data: show timeline / overlay time so placefiles, alerts, and
+      // animation stay correlated with the selected time.
+      auto overlayView = mapContext->overlay_product_view();
+      if (overlayView != nullptr)
+      {
+         scwx::util::ClockFormat clockFormat = scwx::util::GetClockFormat(
+            settings::GeneralSettings::Instance().clock_format().GetValue());
+
+         const std::chrono::system_clock::time_point selectedTime =
+            overlayView->selected_time();
+         if (selectedTime == std::chrono::system_clock::time_point {})
+         {
+            p->sweepTimeString_ = "Live";
+         }
+         else
+         {
+            p->sweepTimeString_ =
+               scwx::util::TimeString(selectedTime,
+                                      clockFormat,
+                                      scwx::util::time::current_time_zone(),
+                                      false);
+         }
+      }
+      else
+      {
+         p->sweepTimeString_.clear();
+      }
    }
 
    // Active Box

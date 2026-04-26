@@ -18,6 +18,7 @@
 #include <scwx/qt/map/radar_site_layer.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
 #include <scwx/qt/model/layer_model.hpp>
+#include <scwx/qt/types/layer_types.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/map_settings.hpp>
 #include <scwx/qt/settings/palette_settings.hpp>
@@ -1398,6 +1399,15 @@ void MapWidgetImpl::AddLayers()
          // If the layer is displayed for the current map, add it
          AddLayer(customLayer.type_, customLayer.description_, before);
       }
+   }
+
+   // Color table layer is omitted when there is no radar product view, but
+   // map context can still hold bottom margin from a previous site; clear it.
+   static const std::string kColorTableLayerId = types::GetLayerName(
+      types::LayerType::Information, types::InformationLayer::ColorTable);
+   if (std::ranges::find(layerList_, kColorTableLayerId) == layerList_.cend())
+   {
+      context_->set_color_table_margins({});
    }
 }
 
