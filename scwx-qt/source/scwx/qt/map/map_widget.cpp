@@ -51,19 +51,19 @@
 #include <imgui.h>
 #include <re2/re2.h>
 #include <QApplication>
-#include <QStyleHints>
-#include <QTimer>
 #include <QClipboard>
 #include <QColor>
+#include <QContextMenuEvent>
 #include <QDebug>
 #include <QFile>
 #include <QIcon>
-#include <QContextMenuEvent>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPinchGesture>
 #include <QString>
+#include <QStyleHints>
 #include <QTextDocument>
+#include <QTimer>
 
 namespace scwx::qt::map
 {
@@ -204,7 +204,7 @@ public:
    void CheckLevel3Availability();
 
    void SyncStoredViewFromMap();
-   void RequestRepaintAfterLinkedViewSet();
+   void RequestRepaint();
    void CancelPaneContextMenuDebounce();
    void GetMapViewParameters(double& latitude,
                              double& longitude,
@@ -1252,7 +1252,7 @@ void MapWidget::SetMapParameters(
       // MapParametersChanged again (avoids feedback loops between panes).
       p->SyncStoredViewFromMap();
 
-      p->RequestRepaintAfterLinkedViewSet();
+      p->RequestRepaint();
    }
 }
 
@@ -1269,7 +1269,7 @@ void MapWidgetImpl::SyncStoredViewFromMap()
    prevPitch_     = map_->pitch();
 }
 
-void MapWidgetImpl::RequestRepaintAfterLinkedViewSet()
+void MapWidgetImpl::RequestRepaint()
 {
    QMetaObject::invokeMethod(
       widget_, static_cast<void (QWidget::*)()>(&QWidget::update));

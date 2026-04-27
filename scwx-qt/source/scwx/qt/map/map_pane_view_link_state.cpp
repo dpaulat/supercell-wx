@@ -1,26 +1,23 @@
-#pragma once
+#include <scwx/qt/map/map_pane_view_link_state.hpp>
 
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
 #include <QJsonValue>
-#include <QString>
 
 #include <cstdint>
-#include <optional>
 #include <string>
 #include <vector>
 
-namespace scwx::qt::main
+namespace scwx::qt::map
 {
-
-static constexpr int64_t kMaxMapPaneCount {1024};
-
-namespace detail
+namespace
 {
-[[nodiscard]] inline bool MapPaneViewLinkJsonValueToBool(const QJsonValue& v,
-                                                         bool* elementOk)
+constexpr int64_t kMaxMapPaneCount {1024};
+
+[[nodiscard]] bool MapPaneViewLinkJsonValueToBool(const QJsonValue& v,
+                                                  bool*             elementOk)
 {
    if (v.isBool())
    {
@@ -59,15 +56,10 @@ namespace detail
    *elementOk = false;
    return false;
 }
-} // namespace detail
+} // namespace
 
-// Parses "map_pane_view_link_state" JSON. nullopt: invalid, grid mismatch,
-// bad length, or unrecognised element. |linked| may use bool, 0/1, or
-// "true"/"false" / "0"/"1" strings. Rejects gw*gh > 1024 to cap allocation.
-[[nodiscard]] inline std::optional<std::vector<bool>>
-TryParseMapPaneViewLinkStateJson(const std::string& json,
-                                 int64_t            expectedGw,
-                                 int64_t            expectedGh)
+std::optional<std::vector<bool>> TryParseMapPaneViewLinkStateJson(
+   const std::string& json, int64_t expectedGw, int64_t expectedGh)
 {
    if (json.empty() || expectedGw < 1 || expectedGh < 1)
    {
@@ -128,7 +120,7 @@ TryParseMapPaneViewLinkStateJson(const std::string& json,
    for (int i = 0; i < countI; ++i)
    {
       bool       elOk = false;
-      const bool b = detail::MapPaneViewLinkJsonValueToBool(arr.at(i), &elOk);
+      const bool b    = MapPaneViewLinkJsonValueToBool(arr.at(i), &elOk);
       if (!elOk)
       {
          return std::nullopt;
@@ -139,8 +131,9 @@ TryParseMapPaneViewLinkStateJson(const std::string& json,
    return out;
 }
 
-[[nodiscard]] inline std::string SerializeMapPaneViewLinkStateJson(
-   int64_t gw, int64_t gh, const std::vector<bool>& linked)
+std::string SerializeMapPaneViewLinkStateJson(int64_t                  gw,
+                                              int64_t                  gh,
+                                              const std::vector<bool>& linked)
 {
    if (gw < 1 || gh < 1)
    {
@@ -172,4 +165,4 @@ TryParseMapPaneViewLinkStateJson(const std::string& json,
    return QJsonDocument(root).toJson(QJsonDocument::Compact).toStdString();
 }
 
-} // namespace scwx::qt::main
+} // namespace scwx::qt::map

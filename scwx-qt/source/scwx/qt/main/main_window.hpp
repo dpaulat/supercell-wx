@@ -62,6 +62,7 @@ private slots:
    void on_actionAboutSupercellWx_triggered();
    void on_actionRecreateMapLayout_triggered();
    void on_actionPanesLinkColumnWidth_toggled(bool checked);
+   void on_actionPanesLinkColumnHeight_toggled(bool checked);
    void on_actionPanesMatchMapStyle_toggled(bool checked);
    void on_actionPanes1x1_triggered();
    void on_actionPanes1x2_triggered();

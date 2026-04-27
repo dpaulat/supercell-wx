@@ -1,10 +1,10 @@
 #include "main_window.hpp"
 #include "./ui_main_window.h"
 
-#include <scwx/qt/main/map_link_policy.hpp>
-#include <scwx/qt/main/map_pane_splitter_state.hpp>
-#include <scwx/qt/main/map_pane_view_link_state.hpp>
-#include <scwx/qt/main/map_popout_frame.hpp>
+#include <scwx/qt/map/map_link_policy.hpp>
+#include <scwx/qt/map/map_pane_splitter_state.hpp>
+#include <scwx/qt/map/map_pane_view_link_state.hpp>
+#include <scwx/qt/map/map_popout_frame.hpp>
 
 #include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/main/application.hpp>
@@ -20,6 +20,7 @@
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/manager/update_manager.hpp>
+#include <scwx/qt/map/map_pane_context_menu.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/model/layer_model.hpp>
@@ -63,26 +64,24 @@
 
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
-#include <QDesktopServices>
-#include <QGuiApplication>
-#include <QKeyEvent>
 #include <QAction>
 #include <QActionGroup>
-#include <QLabel>
-#include <QMenu>
-#include <QSizePolicy>
-#include <QPoint>
-#include <QWidgetAction>
+#include <QDesktopServices>
 #include <QDialog>
-#include <QEvent>
 #include <QFileDialog>
+#include <QGuiApplication>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QKeyEvent>
+#include <QLabel>
+#include <QMenu>
 #include <QMessageBox>
 #include <QPointer>
+#include <QPoint>
 #include <QScreen>
 #include <QSignalBlocker>
+#include <QSizePolicy>
 #include <QSplitter>
 #include <QTimer>
 #include <QToolButton>
@@ -192,156 +191,6 @@ bool MapSlotByMapIndex(QSplitter*   root,
    return true;
 }
 
-// Qt lines up a submenu with the triggering row; padded/rounded panes then look
-// offset. After show, nudge so the submenu's left edge meets the parent menu's
-// outer right edge. Only applied when the submenu opened to the right (dx > 0):
-// if Qt already flipped it left to fit the screen we leave it alone.
-void AlignMapPaneSubMenuToParentMenu(const QPointer<QMenu>& sub)
-{
-   if (sub.isNull() || !sub->isVisible())
-   {
-      return;
-   }
-   auto* parentMenu = qobject_cast<QMenu*>(sub->parentWidget());
-   if (parentMenu == nullptr)
-   {
-      parentMenu = qobject_cast<QMenu*>(sub->parent());
-   }
-   if (parentMenu == nullptr || !parentMenu->isVisible())
-   {
-      return;
-   }
-   const QRect pr = parentMenu->frameGeometry();
-   const QRect sr = sub->frameGeometry();
-   const int   dx = (pr.right() + 1) - sr.left();
-   // dx < 0 means Qt flipped the submenu left to avoid a screen edge — leave
-   // it.
-   if (dx > 0)
-   {
-      sub->move(sub->x() + dx, sub->y());
-   }
-}
-
-class MapPaneSubMenuShowAlign final : public QObject
-{
-public:
-   explicit MapPaneSubMenuShowAlign(QMenu* submenu) :
-       QObject {submenu}, submenu_ {submenu}
-   {
-      submenu_->installEventFilter(this);
-   }
-
-protected:
-   bool eventFilter(QObject* watched, QEvent* event) override
-   {
-      if (watched != submenu_ || event->type() != QEvent::Show)
-      {
-         return false;
-      }
-      // Use QPointer so deferred lambdas are safe if the menu is destroyed
-      // before the timer fires (e.g. user closes quickly). Run twice: Qt may
-      // reposition the popup after the first event-loop tick.
-      const QPointer<QMenu> sub = submenu_;
-      static constexpr int  kRetryMs {32};
-      QTimer::singleShot(
-         0, this, [sub]() { AlignMapPaneSubMenuToParentMenu(sub); });
-      QTimer::singleShot(
-         kRetryMs, this, [sub]() { AlignMapPaneSubMenuToParentMenu(sub); });
-      return false;
-   }
-
-private:
-   QMenu* submenu_;
-};
-
-// Shared QSS body for both the root menu and L2/L3 submenus.
-// The root menu appends a QWidget { background: transparent } rule so the
-// title QLabel row composites correctly; submenus omit it so the menu viewport
-// itself isn't punched transparent between item pills.
-//
-// All colour values are plain ASCII so they can be passed as QLatin1String
-// to avoid unnecessary heap copies inside QString::arg().
-QString MapPaneContextMenuBaseStyle(QLatin1String menuPadding,
-                                    bool          clearInteriorChildBackgrounds)
-{
-   QString sheet = QStringLiteral(
-                      "QMenu#MapPaneContextMenu {"
-                      "  background-color: rgba(40, 44, 52, 215);"
-                      "  color: #f5f5f5;"
-                      "  border: 1px solid rgba(255, 255, 255, 64);"
-                      "  border-radius: 12px;"
-                      "  padding: %1;"
-                      "}"
-                      "QMenu#MapPaneContextMenu::item {"
-                      "  padding: 8px 28px 8px 14px;"
-                      "  background: rgba(60, 65, 75, 120);"
-                      "  border-radius: 4px;"
-                      "  margin-top: 2px;"
-                      "}"
-                      "QMenu#MapPaneContextMenu::item:selected {"
-                      "  background-color: rgba(64, 128, 255, 200);"
-                      "  color: #ffffff;"
-                      "  border: 1px solid rgba(255, 255, 255, 200);"
-                      "}"
-                      "QMenu#MapPaneContextMenu::item:pressed {"
-                      "  background-color: rgba(56, 118, 230, 220);"
-                      "}"
-                      "QMenu#MapPaneContextMenu::item:disabled {"
-                      "  color: rgba(245, 245, 245, 130);"
-                      "  background: rgba(60, 65, 75, 60);"
-                      "}"
-                      "QMenu#MapPaneContextMenu::separator {"
-                      "  height: 1px;"
-                      "  background: rgba(255, 255, 255, 38);"
-                      "  margin: 0 2px 8px 2px;"
-                      "}"
-                      "QMenu#MapPaneContextMenu::indicator {"
-                      "  width: 16px; height: 16px; left: 8px;"
-                      "}")
-                      .arg(menuPadding);
-   if (clearInteriorChildBackgrounds)
-   {
-      sheet += QStringLiteral(
-         "QMenu#MapPaneContextMenu QWidget {"
-         "  background: transparent;"
-         "}");
-   }
-   return sheet;
-}
-
-QString MapPaneContextMenuStyleSheet()
-{
-   return MapPaneContextMenuBaseStyle(QLatin1String {"14px 12px 12px 12px"},
-                                      true);
-}
-
-QString MapPaneContextSubMenuStyleSheet()
-{
-   return MapPaneContextMenuBaseStyle(QLatin1String {"8px 10px 8px 10px"},
-                                      false);
-}
-
-void StyleMapPaneContextSubmenu(QMenu* m)
-{
-   if (m == nullptr)
-   {
-      return;
-   }
-   m->setObjectName(QStringLiteral("MapPaneContextMenu"));
-   m->setAttribute(Qt::WA_TranslucentBackground, true);
-   m->setAttribute(Qt::WA_StyledBackground, true);
-   m->setMinimumWidth(0);
-   m->setStyleSheet(MapPaneContextSubMenuStyleSheet());
-   // Guard against double-install if this function is called again on the same
-   // menu instance. Use a dynamic property as a flag; lifetime of the filter
-   // object is tied to m via QObject parent.
-   static constexpr const char* kAlignInstalled = "_scwx_alignInstalled";
-   if (!m->property(kAlignInstalled).toBool())
-   {
-      m->setProperty(kAlignInstalled, true);
-      new MapPaneSubMenuShowAlign(m);
-   }
-}
 } // namespace
 
 class MainWindowImpl : public QObject
@@ -398,7 +247,7 @@ public:
    void RecreateMapLayoutFromUser(
       bool tryRestorePaneSizesFromSettingsOnNextGeometry = true);
    void ConfigureMapLayout();
-   void HandleSettingsDialogFinished();
+   void ScheduleMapLayoutSyncIfGridChanged();
    void ApplyRadarProductsFromSettingsToAllMaps();
    void DisconnectMapDataConnections();
    void ConnectMapToTimelineAndRadarSiteSignals();
@@ -406,7 +255,7 @@ public:
    void SetupPanesMenu();
    void UpdatePanesPresetSelection();
    void ApplyMapGridPreset(int64_t gridWidth, int64_t gridHeight);
-   void ApplyEqualMapPaneSizes();
+   void ApplyEqualMapPaneSizes(int layoutRetryDepth = 0);
    void ScheduleMapPaneGeometryApply(
       bool tryRestorePaneSizesFromSettingsFirst = true);
    bool RestoreMapPaneSizesFromSettingsIfMatching();
@@ -414,6 +263,9 @@ public:
    bool RestoreMapPaneViewLinkFromSettingsIfMatching();
    void SaveMapPaneViewLinkState();
    void SetLinkRowSplitters(bool on);
+   void SetLinkColumnHeights(bool on);
+   void SnapLinkedColumnWidths();
+   void SnapLinkedColumnHeights();
    void ConfigureMapStyles(bool mapStylesIgnoreLiveWidget = false);
    void RestoreAllPanesFromSavedMapSettings();
    void StageMapIndexFromRefWidget(std::size_t           mapIndex,
@@ -436,7 +288,9 @@ public:
                            const std::string&        productName,
                            int16_t                   productCode);
    void ApplyStoredColorTableThreshold(map::MapWidget* mapWidget);
-   void AppendMapPaneRadarContextMenu(QMenu& menu, map::MapWidget* map);
+   void HandleMapPaneLinkViewToggled(std::size_t     mapIndex,
+                                     map::MapWidget* map,
+                                     bool            linked);
    void SetActiveMap(map::MapWidget* mapWidget);
    void UpdateAvailableLevel3Products();
    void UpdateElevationSelection(float elevation);
@@ -540,18 +394,21 @@ public:
    std::vector<bool> mapPanePoppedOut_ {};
    // Collapsed slot in the main splitter grid while a pane is in a pop-out
    // window.
-   std::vector<QPointer<QWidget>>               mapPanePlaceholders_ {};
-   std::vector<std::unique_ptr<MapPopoutFrame>> mapPanePopoutFrames_ {};
+   std::vector<QPointer<QWidget>>                    mapPanePlaceholders_ {};
+   std::vector<std::unique_ptr<map::MapPopoutFrame>> mapPanePopoutFrames_ {};
    bool popoutPanesRestoredThisSession_ {false};
 
    QSplitter* mapLayoutRoot_ {nullptr};
 
    bool linkRowSplitters_ {true};
+   bool linkColumnHeights_ {true};
 
    // Last grid used for the built map splitters; used to detect GeneralSettings
    // changes
    int64_t builtLayoutGridW_ {-1};
    int64_t builtLayoutGridH_ {-1};
+
+   bool mapLayoutGridSyncPending_ {false};
 
    std::chrono::system_clock::time_point selectedTime_ {};
 
@@ -641,10 +498,6 @@ MainWindow::MainWindow(QWidget* parent) :
 
    // Settings Dialog
    p->settingsDialog_ = new ui::SettingsDialog(p->settings_, this);
-   QObject::connect(p->settingsDialog_,
-                    &ui::SettingsDialog::SettingsApplied,
-                    this,
-                    [this]() { p->HandleSettingsDialogFinished(); });
 
    // Map Settings
    p->mapSettingsGroup_ = new ui::CollapsibleGroup(tr("Map Settings"), this);
@@ -979,6 +832,11 @@ void MainWindow::on_actionRecreateMapLayout_triggered()
 void MainWindow::on_actionPanesLinkColumnWidth_toggled(bool checked)
 {
    p->SetLinkRowSplitters(checked);
+}
+
+void MainWindow::on_actionPanesLinkColumnHeight_toggled(bool checked)
+{
+   p->SetLinkColumnHeights(checked);
 }
 
 void MainWindow::on_actionPanesMatchMapStyle_toggled(bool checked)
@@ -1372,17 +1230,46 @@ void MainWindowImpl::BuildMapLayout(
       {
          return;
       }
-
-      QSplitter* s = static_cast<QSplitter*>(sender());
-
-      const auto              sizes = s->sizes();
-      const QList<QSplitter*> horizontalSplitters =
-         vs->findChildren<QSplitter*>();
-      for (QSplitter* hs : horizontalSplitters)
+      if (std::any_of(mapPanePoppedOut_.cbegin(),
+                      mapPanePoppedOut_.cend(),
+                      [](bool p) { return p; }))
       {
-         hs->setSizes(sizes);
+         return;
+      }
+      QSplitter* s = static_cast<QSplitter*>(sender());
+      if (vs->indexOf(s) < 0)
+      {
+         return;
+      }
+      const auto sizes = s->sizes();
+      int        sum   = 0;
+      for (int x : sizes)
+      {
+         sum += x;
+      }
+      if (sum < 1)
+      {
+         return;
+      }
+      for (int r = 0; r < vs->count(); ++r)
+      {
+         if (auto* rowHs = qobject_cast<QSplitter*>(vs->widget(r)))
+         {
+            if (rowHs->count() == sizes.size())
+            {
+               rowHs->setSizes(sizes);
+            }
+         }
       }
    };
+   auto MoveVerticalSplitter = [this](int /*pos*/, int /*index*/)
+   {
+      if (linkColumnHeights_)
+      {
+         SnapLinkedColumnHeights();
+      }
+   };
+   connect(vs, &QSplitter::splitterMoved, this, MoveVerticalSplitter);
 
    for (int64_t y = 0; y < gridHeight; y++)
    {
@@ -1463,16 +1350,26 @@ void MainWindowImpl::ConfigureMapLayout()
    RebuildMapLayoutContainer();
 }
 
-void MainWindowImpl::HandleSettingsDialogFinished()
+void MainWindowImpl::ScheduleMapLayoutSyncIfGridChanged()
 {
-   const auto&   general = settings::GeneralSettings::Instance();
-   const int64_t gw      = general.grid_width().GetValue();
-   const int64_t gh      = general.grid_height().GetValue();
-
-   if (gw != builtLayoutGridW_ || gh != builtLayoutGridH_)
+   if (mapLayoutGridSyncPending_)
    {
-      RecreateMapLayoutFromUser();
+      return;
    }
+   mapLayoutGridSyncPending_ = true;
+   QTimer::singleShot(0,
+                      this,
+                      [this]()
+                      {
+                         mapLayoutGridSyncPending_ = false;
+                         const auto& g = settings::GeneralSettings::Instance();
+                         const int64_t gw = g.grid_width().GetValue();
+                         const int64_t gh = g.grid_height().GetValue();
+                         if (gw != builtLayoutGridW_ || gh != builtLayoutGridH_)
+                         {
+                            RecreateMapLayoutFromUser();
+                         }
+                      });
 }
 
 void MainWindowImpl::ApplyRadarProductsFromSettingsToAllMaps()
@@ -1510,7 +1407,11 @@ void MainWindowImpl::ScheduleMapPaneGeometryApply(
          {
             return;
          }
-         if (tryRestorePaneSizesFromSettingsFirst &&
+         const bool hasPoppedPane =
+            std::any_of(mapPanePoppedOut_.cbegin(),
+                        mapPanePoppedOut_.cend(),
+                        [](bool popped) { return popped; });
+         if (!hasPoppedPane && tryRestorePaneSizesFromSettingsFirst &&
              RestoreMapPaneSizesFromSettingsIfMatching())
          {
             TryRestorePoppedMapWindows();
@@ -1518,30 +1419,13 @@ void MainWindowImpl::ScheduleMapPaneGeometryApply(
          }
          ApplyEqualMapPaneSizes();
          TryRestorePoppedMapWindows();
-         // If the main window is not laid out yet, re-equalize one frame later.
-         if (mapLayoutRoot_ != nullptr && mapLayoutRoot_->height() < 1)
-         {
-            QTimer::singleShot(0,
-                               this,
-                               [this, vsGuard]()
-                               {
-                                  if (vsGuard == nullptr)
-                                  {
-                                     return;
-                                  }
-                                  if (mapLayoutRoot_ == nullptr ||
-                                      mapLayoutRoot_ != vsGuard)
-                                  {
-                                     return;
-                                  }
-                                  ApplyEqualMapPaneSizes();
-                               });
-         }
       });
 }
 
-void MainWindowImpl::ApplyEqualMapPaneSizes()
+void MainWindowImpl::ApplyEqualMapPaneSizes(int layoutRetryDepth)
 {
+   static constexpr int kMaxEqualizeLayoutRetries = 8;
+
    if (mapLayoutRoot_ == nullptr)
    {
       return;
@@ -1553,14 +1437,231 @@ void MainWindowImpl::ApplyEqualMapPaneSizes()
    {
       return;
    }
+   if (vs->height() < 2 || vs->width() < 2)
+   {
+      if (layoutRetryDepth < kMaxEqualizeLayoutRetries)
+      {
+         const QPointer<QObject> self {this};
+         QTimer::singleShot(0,
+                            this,
+                            [this, self, layoutRetryDepth]()
+                            {
+                               if (self)
+                               {
+                                  ApplyEqualMapPaneSizes(layoutRetryDepth + 1);
+                               }
+                            });
+      }
+      return;
+   }
+   const bool hasPoppedPane = std::any_of(mapPanePoppedOut_.cbegin(),
+                                          mapPanePoppedOut_.cend(),
+                                          [](bool popped) { return popped; });
+   if (!hasPoppedPane)
+   {
+      for (int r = 0; r < nRows; ++r)
+      {
+         auto* const rowHs = qobject_cast<QSplitter*>(vs->widget(r));
+         if (rowHs != nullptr && rowHs->width() < 2)
+         {
+            if (layoutRetryDepth < kMaxEqualizeLayoutRetries)
+            {
+               const QPointer<QObject> self {this};
+               QTimer::singleShot(0,
+                                  this,
+                                  [this, self, layoutRetryDepth]()
+                                  {
+                                     if (self)
+                                     {
+                                        ApplyEqualMapPaneSizes(
+                                           layoutRetryDepth + 1);
+                                     }
+                                  });
+            }
+            return;
+         }
+      }
+   }
 
    const int totalH = std::max(1, vs->height());
+   if (hasPoppedPane && builtLayoutGridW_ > 0)
+   {
+      QList<int>        vert;
+      int               visibleRowCount = 0;
+      std::vector<bool> rowVisible(static_cast<std::size_t>(nRows), false);
+      for (int r = 0; r < nRows; ++r)
+      {
+         bool rowHasVisiblePane = false;
+         for (int c = 0; c < builtLayoutGridW_; ++c)
+         {
+            const auto mapIndex =
+               static_cast<std::size_t>(r * builtLayoutGridW_ + c);
+            if (mapIndex < maps_.size() &&
+                (mapIndex >= mapPanePoppedOut_.size() ||
+                 !mapPanePoppedOut_.at(mapIndex)))
+            {
+               rowHasVisiblePane = true;
+               break;
+            }
+         }
+         if (rowHasVisiblePane)
+         {
+            ++visibleRowCount;
+            rowVisible.at(static_cast<std::size_t>(r)) = true;
+         }
+      }
+      if (visibleRowCount == 0)
+      {
+         QList<int> vert;
+         for (int r = 0; r < nRows; ++r)
+         {
+            if (QWidget* rowWidget = vs->widget(r); rowWidget != nullptr)
+            {
+               rowWidget->setVisible(true);
+            }
+            vs->setCollapsible(r, false);
+            vs->setStretchFactor(r, 1);
+            vert.append(1);
+
+            auto* const hs = qobject_cast<QSplitter*>(vs->widget(r));
+            if (hs == nullptr)
+            {
+               continue;
+            }
+            for (int c = 0; c < hs->count(); ++c)
+            {
+               if (QWidget* colWidget = hs->widget(c); colWidget != nullptr)
+               {
+                  colWidget->setVisible(true);
+               }
+               hs->setCollapsible(c, false);
+               hs->setStretchFactor(c, 1);
+            }
+            QList<int> col;
+            for (int c = 0; c < hs->count(); ++c)
+            {
+               col.append(1);
+            }
+            hs->setSizes(col);
+         }
+         vs->setSizes(vert);
+         return;
+      }
+
+      int remainingH         = totalH;
+      int emittedVisibleRows = 0;
+      for (int r = 0; r < nRows; ++r)
+      {
+         const bool rowHasVisiblePane =
+            rowVisible.at(static_cast<std::size_t>(r));
+         if (QWidget* rowWidget = vs->widget(r); rowWidget != nullptr)
+         {
+            // Keep splitter children visible. Hiding rows/cells survives app
+            // restore poorly and can keep newly docked maps invisible.
+            rowWidget->setVisible(true);
+         }
+         vs->setCollapsible(r, !rowHasVisiblePane);
+         vs->setStretchFactor(r, rowHasVisiblePane ? 1 : 0);
+         if (!rowHasVisiblePane || visibleRowCount == 0)
+         {
+            vert.append(1);
+            continue;
+         }
+         ++emittedVisibleRows;
+         const int part = (emittedVisibleRows < visibleRowCount) ?
+                             (totalH / visibleRowCount) :
+                             remainingH;
+         vert.append(part);
+         remainingH -= part;
+      }
+      vs->setSizes(vert);
+
+      for (int r = 0; r < nRows; ++r)
+      {
+         auto* const hs = qobject_cast<QSplitter*>(vs->widget(r));
+         if (hs == nullptr)
+         {
+            continue;
+         }
+         const int nCol = hs->count();
+         if (nCol <= 0)
+         {
+            continue;
+         }
+         int               visibleColCount = 0;
+         std::vector<bool> colVisible(static_cast<std::size_t>(nCol), false);
+         for (int c = 0; c < nCol; ++c)
+         {
+            const auto mapIndex =
+               static_cast<std::size_t>(r * builtLayoutGridW_ + c);
+            if (mapIndex < maps_.size() &&
+                (mapIndex >= mapPanePoppedOut_.size() ||
+                 !mapPanePoppedOut_.at(mapIndex)))
+            {
+               ++visibleColCount;
+               colVisible.at(static_cast<std::size_t>(c)) = true;
+            }
+         }
+
+         const int  totalW             = std::max(1, hs->width());
+         int        remainingW         = totalW;
+         int        emittedVisibleCols = 0;
+         QList<int> col;
+         for (int c = 0; c < nCol; ++c)
+         {
+            const bool visible = colVisible.at(static_cast<std::size_t>(c));
+            if (QWidget* colWidget = hs->widget(c); colWidget != nullptr)
+            {
+               colWidget->setVisible(true);
+            }
+            hs->setCollapsible(c, !visible);
+            hs->setStretchFactor(c, visible ? 1 : 0);
+            if (!visible || visibleColCount == 0)
+            {
+               col.append(1);
+               continue;
+            }
+            ++emittedVisibleCols;
+            const int part = (emittedVisibleCols < visibleColCount) ?
+                                (totalW / visibleColCount) :
+                                remainingW;
+            col.append(part);
+            remainingW -= part;
+         }
+         hs->setSizes(col);
+      }
+      if (layoutRetryDepth < kMaxEqualizeLayoutRetries)
+      {
+         const QPointer<QObject> self {this};
+         QTimer::singleShot(0,
+                            this,
+                            [this, self, layoutRetryDepth]()
+                            {
+                               if (self)
+                               {
+                                  ApplyEqualMapPaneSizes(layoutRetryDepth + 1);
+                               }
+                            });
+      }
+      return;
+   }
+
    {
       const int  base = totalH / nRows;
       int        acc  = 0;
       QList<int> vert;
       for (int r = 0; r < nRows; ++r)
       {
+         if (QWidget* rowWidget = vs->widget(r); rowWidget != nullptr)
+         {
+            rowWidget->setVisible(true);
+            rowWidget->setMinimumHeight(0);
+            rowWidget->setMaximumHeight(QWIDGETSIZE_MAX);
+            rowWidget->setSizePolicy(QSizePolicy::Expanding,
+                                     QSizePolicy::Expanding);
+         }
+         vs->setCollapsible(r, false);
+         vs->setStretchFactor(r, 1);
          const int part = (r < nRows - 1) ? base : (totalH - acc);
          vert.append(part);
          acc += part;
@@ -1585,6 +1686,19 @@ void MainWindowImpl::ApplyEqualMapPaneSizes()
       {
          continue;
       }
+      for (int c = 0; c < nCol; ++c)
+      {
+         if (QWidget* colWidget = hs->widget(c); colWidget != nullptr)
+         {
+            colWidget->setVisible(true);
+            colWidget->setMinimumWidth(0);
+            colWidget->setMaximumWidth(QWIDGETSIZE_MAX);
+            colWidget->setSizePolicy(QSizePolicy::Expanding,
+                                     QSizePolicy::Expanding);
+         }
+         hs->setCollapsible(c, false);
+         hs->setStretchFactor(c, 1);
+      }
       const int  totalW = std::max(1, hs->width());
       const int  baseW  = totalW / nCol;
       int        accW   = 0;
@@ -1603,6 +1717,14 @@ bool MainWindowImpl::RestoreMapPaneSizesFromSettingsIfMatching()
 {
    if (mapLayoutRoot_ == nullptr)
    {
+      return false;
+   }
+   if (mapLayoutRoot_->width() < 2 || mapLayoutRoot_->height() < 2)
+   {
+      // |map_pane_splitter_state| is absolute pixel sizes. Applying it before
+      // the central |QSplitter| has a real geometry (e.g. right after a
+      // pop-out) can collapse or starve rows; fall back to equal sizing once
+      // layout is valid.
       return false;
    }
 
@@ -1666,7 +1788,7 @@ bool MainWindowImpl::RestoreMapPaneSizesFromSettingsIfMatching()
    {
       vSizes.append(v.toInt(1));
    }
-   if (!MapPaneSplitterStateSizesAllPositive(vSizes))
+   if (!map::MapPaneSplitterStateSizesAllPositive(vSizes))
    {
       return false;
    }
@@ -1693,7 +1815,7 @@ bool MainWindowImpl::RestoreMapPaneSizesFromSettingsIfMatching()
       {
          cSizes.append(v.toInt(1));
       }
-      if (!MapPaneSplitterStateSizesAllPositive(cSizes))
+      if (!map::MapPaneSplitterStateSizesAllPositive(cSizes))
       {
          return false;
       }
@@ -1770,7 +1892,7 @@ bool MainWindowImpl::RestoreMapPaneViewLinkFromSettingsIfMatching()
    }
 
    const std::optional<std::vector<bool>> parsed =
-      TryParseMapPaneViewLinkStateJson(
+      map::TryParseMapPaneViewLinkStateJson(
          json, builtLayoutGridW_, builtLayoutGridH_);
    if (!parsed.has_value() || parsed->size() != maps_.size())
    {
@@ -1808,7 +1930,7 @@ void MainWindowImpl::SaveMapPaneViewLinkState()
    {
       v.push_back(mapPaneViewLinked_.at(i));
    }
-   const std::string json = SerializeMapPaneViewLinkStateJson(
+   const std::string json = map::SerializeMapPaneViewLinkStateJson(
       builtLayoutGridW_, builtLayoutGridH_, v);
    if (json.empty())
    {
@@ -1820,6 +1942,99 @@ void MainWindowImpl::SaveMapPaneViewLinkState()
 void MainWindowImpl::SetLinkRowSplitters(bool on)
 {
    linkRowSplitters_ = on;
+   if (on)
+   {
+      SnapLinkedColumnWidths();
+   }
+}
+
+void MainWindowImpl::SetLinkColumnHeights(bool on)
+{
+   linkColumnHeights_ = on;
+   if (on)
+   {
+      SnapLinkedColumnHeights();
+   }
+}
+
+void MainWindowImpl::SnapLinkedColumnWidths()
+{
+   if (mapLayoutRoot_ == nullptr)
+   {
+      return;
+   }
+   if (std::any_of(mapPanePoppedOut_.cbegin(),
+                   mapPanePoppedOut_.cend(),
+                   [](bool popped) { return popped; }))
+   {
+      ApplyEqualMapPaneSizes();
+      return;
+   }
+
+   QList<int> referenceSizes;
+   for (int r = 0; r < mapLayoutRoot_->count(); ++r)
+   {
+      auto* const hs = qobject_cast<QSplitter*>(mapLayoutRoot_->widget(r));
+      if (hs == nullptr)
+      {
+         continue;
+      }
+      const QList<int> sizes = hs->sizes();
+      int              total = 0;
+      for (const int size : sizes)
+      {
+         total += size;
+      }
+      if (total > 0)
+      {
+         referenceSizes = sizes;
+         break;
+      }
+   }
+   if (referenceSizes.empty())
+   {
+      return;
+   }
+   for (int r = 0; r < mapLayoutRoot_->count(); ++r)
+   {
+      auto* const hs = qobject_cast<QSplitter*>(mapLayoutRoot_->widget(r));
+      if (hs != nullptr && hs->count() == referenceSizes.size())
+      {
+         hs->setSizes(referenceSizes);
+      }
+   }
+}
+
+void MainWindowImpl::SnapLinkedColumnHeights()
+{
+   if (mapLayoutRoot_ == nullptr)
+   {
+      return;
+   }
+   if (std::any_of(mapPanePoppedOut_.cbegin(),
+                   mapPanePoppedOut_.cend(),
+                   [](bool popped) { return popped; }))
+   {
+      ApplyEqualMapPaneSizes();
+      return;
+   }
+
+   const int nRows = mapLayoutRoot_->count();
+   if (nRows <= 0)
+   {
+      return;
+   }
+   const int  totalH = std::max(1, mapLayoutRoot_->height());
+   const int  base   = totalH / nRows;
+   int        acc    = 0;
+   QList<int> sizes;
+   for (int r = 0; r < nRows; ++r)
+   {
+      const int part = (r < nRows - 1) ? base : (totalH - acc);
+      sizes.append(part);
+      acc += part;
+   }
+   mapLayoutRoot_->setSizes(sizes);
 }
 
 void MainWindowImpl::ApplyMapGridPreset(int64_t gridWidth, int64_t gridHeight)
@@ -1887,6 +2102,10 @@ void MainWindowImpl::SetupPanesMenu()
    {
       const QSignalBlocker block {u->actionPanesLinkColumnWidth};
       u->actionPanesLinkColumnWidth->setChecked(linkRowSplitters_);
+   }
+   {
+      const QSignalBlocker block {u->actionPanesLinkColumnHeight};
+      u->actionPanesLinkColumnHeight->setChecked(linkColumnHeights_);
    }
    {
       const QSignalBlocker block {u->actionPanesMatchMapStyle};
@@ -2817,6 +3036,15 @@ void MainWindowImpl::ConnectOtherSignals()
             UpdateMatchMapStyleFromPanesState(false);
          }));
 
+   connections_.emplace_back(
+      generalSettings.grid_width().changed_signal().connect(
+         [this](const auto& /*event*/)
+         { ScheduleMapLayoutSyncIfGridChanged(); }));
+   connections_.emplace_back(
+      generalSettings.grid_height().changed_signal().connect(
+         [this](const auto& /*event*/)
+         { ScheduleMapLayoutSyncIfGridChanged(); }));
+
    // Ensure default clock format is initialized
    util::time::set_default_clock_format(
       util::GetClockFormat(generalSettings.clock_format().GetValue()));
@@ -3042,79 +3270,69 @@ void MainWindowImpl::UpdateElevationSelection(float elevation)
    level2SettingsWidget_->UpdateElevationSelection(elevation);
 }
 
-void MainWindowImpl::AppendMapPaneRadarContextMenu(QMenu&          menu,
-                                                   map::MapWidget* map)
+void MainWindowImpl::HandleMapPaneLinkViewToggled(std::size_t     mapIndex,
+                                                  map::MapWidget* map,
+                                                  bool            linked)
 {
-   const common::RadarProductGroup currentGroup = map->GetRadarProductGroup();
-   const std::string               currentName  = map->GetRadarProductName();
-
-   // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): parented to menu
-   auto* const productActionGroup = new QActionGroup {&menu};
-   productActionGroup->setExclusive(true);
-
-   // L2 products: flat list; elevation selection is in the L2 settings panel.
-   QMenu* const l2Menu = menu.addMenu(mainWindow_->tr("L2 &Product"));
-   StyleMapPaneContextSubmenu(l2Menu);
-
-   for (const common::Level2Product product : common::Level2ProductIterator())
+   SyncMapPaneViewLinkStateSize();
+   if (mapIndex >= mapPaneViewLinked_.size())
    {
-      const std::string& name = common::GetLevel2Name(product);
-      QAction* const     a    = l2Menu->addAction(QString::fromStdString(name));
-      a->setCheckable(true);
-      a->setActionGroup(productActionGroup);
-      a->setChecked(currentGroup == common::RadarProductGroup::Level2 &&
-                    currentName == name);
-      QObject::connect(a,
-                       &QAction::triggered,
-                       this,
-                       [this, map, name]()
-                       {
-                          SelectRadarProduct(
-                             map, common::RadarProductGroup::Level2, name, 0);
-                       });
+      return;
    }
-
-   // One row per L3 category (REF, VEL, …) — same default as Radar toolbox
-   // category buttons; use toolbox for other products/tilts.
-   QMenu* const l3Menu = menu.addMenu(mainWindow_->tr("L3 &Product"));
-   StyleMapPaneContextSubmenu(l3Menu);
-   const common::Level3ProductCategoryMap& l3Avail =
-      map->GetAvailableLevel3Categories();
-   bool anyL3 = false;
-
-   for (const common::Level3ProductCategory category :
-        common::Level3ProductCategoryIterator())
+   mapPaneViewLinked_[mapIndex] = linked;
+   SaveMapPaneViewLinkState();
+   if (linked)
    {
-      const auto catIt = l3Avail.find(category);
-      if (catIt == l3Avail.cend() || catIt->second.empty())
+      // If active is this pane, copying from activeMap_ is a
+      // no-op (SetMapParameters skips when view unchanged) — pick
+      // another linked pane, or any other map, so relink applies
+      // immediately.
+      map::MapWidget* ref = nullptr;
+      if (activeMap_ != nullptr && activeMap_ != map)
       {
-         continue;
+         ref = activeMap_;
       }
-
-      anyL3 = true;
-      const std::string awips =
-         common::GetLevel3CategoryDefaultProduct(category, l3Avail);
-      QAction* const a = l3Menu->addAction(
-         QString::fromStdString(common::GetLevel3CategoryName(category)));
-      a->setCheckable(true);
-      a->setActionGroup(productActionGroup);
-      a->setToolTip(QString::fromStdString(
-         common::GetLevel3CategoryDescription(category)));
-      const bool inCategory =
-         currentGroup == common::RadarProductGroup::Level3 &&
-         common::GetLevel3CategoryByAwipsId(currentName) == category;
-      a->setChecked(inCategory);
-      QObject::connect(a,
-                       &QAction::triggered,
-                       this,
-                       [this, map, awips]()
-                       {
-                          SelectRadarProduct(
-                             map, common::RadarProductGroup::Level3, awips, 0);
-                       });
+      if (ref == nullptr)
+      {
+         for (std::size_t j = 0; j < maps_.size(); ++j)
+         {
+            if (j == mapIndex)
+            {
+               continue;
+            }
+            if (j < mapPaneViewLinked_.size() && mapPaneViewLinked_.at(j))
+            {
+               ref = maps_.at(j);
+               break;
+            }
+         }
+      }
+      if (ref == nullptr)
+      {
+         for (map::MapWidget* m : maps_)
+         {
+            if (m != map)
+            {
+               ref = m;
+               break;
+            }
+         }
+      }
+      if (ref != nullptr)
+      {
+         double lat {}, lon {}, zoom {}, bearing {}, pitch {};
+         ref->GetMapViewParameters(lat, lon, zoom, bearing, pitch);
+         map->SetMapParameters(lat, lon, zoom, bearing, pitch);
+         if (const std::shared_ptr<config::RadarSite> site =
+                ref->GetRadarSite();
+             site != nullptr)
+         {
+            // Match linked panes' site; skip center jump — view
+            // already snapped from |ref| above.
+            map->SelectRadarSite(site->id(), false);
+         }
+      }
    }
-
-   l3Menu->setEnabled(anyL3);
 }
 
 void MainWindowImpl::OnMapPaneContextMenuRequested(const QPoint& globalPos)
@@ -3135,173 +3353,61 @@ void MainWindowImpl::OnMapPaneContextMenuRequested(const QPoint& globalPos)
    const auto mapIndex =
       static_cast<std::size_t>(std::distance(maps_.begin(), it));
 
-   QMenu menu {map->window()};
-   menu.setObjectName(QStringLiteral("MapPaneContextMenu"));
-   menu.setAttribute(Qt::WA_TranslucentBackground);
-   menu.setAttribute(Qt::WA_StyledBackground, true);
-   menu.setMinimumWidth(0);
-   menu.setStyleSheet(MapPaneContextMenuStyleSheet());
+   map::MapPaneContextMenuConfig cfg;
+   cfg.event_receiver       = this;
+   cfg.menu_parent          = map->window();
+   cfg.title_map            = mainWindow_->tr("Map");
+   cfg.text_popout          = mainWindow_->tr("Pop-&out");
+   cfg.text_dock            = mainWindow_->tr("&Dock");
+   cfg.text_link            = mainWindow_->tr("Link view");
+   cfg.tooltip_link_enabled = mainWindow_->tr(
+      "When on, this pane matches the other linked panes' map "
+      "view and "
+      "radar site. Turn off to move and pick sites on your own; "
+      "turn on to "
+      "snap view (and the same site when relinking) to another "
+      "map.");
+   cfg.tooltip_link_disabled =
+      mainWindow_->tr("Add more map panes in the Panes menu to use this.");
+   cfg.text_reset_layout = mainWindow_->ui->actionRecreateMapLayout->text();
+   cfg.tooltip_reset_layout_when_popped = mainWindow_->tr(
+      "Use Dock on a popped-out map, or close this menu "
+      "and reset layout from the main window.");
+   cfg.map_index   = mapIndex;
+   cfg.maps        = &maps_;
+   cfg.view_linked = &mapPaneViewLinked_;
+   cfg.popped_out  = &mapPanePoppedOut_;
+   cfg.current_map = map;
+   cfg.on_popout   = [this](std::size_t i)
+   {
+      PopOutMap(i);
+   };
+   cfg.on_dock = [this](std::size_t i)
+   {
+      DockPoppedMap(i);
+   };
+   cfg.on_link_toggled = [this](std::size_t i, map::MapWidget* w, bool l)
+   {
+      HandleMapPaneLinkViewToggled(i, w, l);
+   };
+   cfg.on_reset_layout = [this]()
+   {
+      RecreateMapLayoutFromUser(false);
+   };
+   cfg.append_radar_submenus = [this](QMenu& m, map::MapWidget* mw)
+   {
+      map::AppendMapPaneRadarContextMenu(
+         m,
+         mw,
+         this,
+         [this](map::MapWidget*           w,
+                common::RadarProductGroup g,
+                const std::string&        n,
+                int16_t c) { SelectRadarProduct(w, g, n, c); },
+         [this](const char* s) { return mainWindow_->tr(s); });
+   };
 
-   auto* const titleLabel = new QLabel(mainWindow_->tr("Map"), &menu);
-   titleLabel->setObjectName(QStringLiteral("MapPaneContextMenuTitle"));
-   titleLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
-   titleLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
-   titleLabel->setStyleSheet(
-      QStringLiteral("QLabel#MapPaneContextMenuTitle {"
-                     "  color: #f5f5f5;"
-                     "  font-weight: 600;"
-                     "  font-size: 13px;"
-                     "  padding: 0 0 0 0;"
-                     "  margin: 0 0 0 0;"
-                     "  background: transparent;"
-                     "  border: none;"
-                     "}"));
-   // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): parented to menu
-   auto* const titleAction = new QWidgetAction(&menu);
-   titleAction->setDefaultWidget(titleLabel);
-   menu.addAction(titleAction);
-   menu.addSeparator();
-
-   if (mapIndex < mapPanePoppedOut_.size() && !mapPanePoppedOut_.at(mapIndex))
-   {
-      QAction* const popoutAct = menu.addAction(mainWindow_->tr("Pop-&out"));
-      connect(popoutAct,
-              &QAction::triggered,
-              this,
-              [this, mapIndex]()
-              {
-                 // Defer until after QMenu::exec() returns — map->window() may
-                 // be the pop-out; destroying it during exec corrupts the menu
-                 // / heap.
-                 QTimer::singleShot(
-                    0, this, [this, mapIndex]() { PopOutMap(mapIndex); });
-              });
-   }
-   if (mapIndex < mapPanePoppedOut_.size() && mapPanePoppedOut_.at(mapIndex))
-   {
-      QAction* const dockAct = menu.addAction(mainWindow_->tr("&Dock"));
-      connect(dockAct,
-              &QAction::triggered,
-              this,
-              [this, mapIndex]()
-              {
-                 QTimer::singleShot(
-                    0, this, [this, mapIndex]() { DockPoppedMap(mapIndex); });
-              });
-   }
-   menu.addSeparator();
-
-   QAction* const linkViewAction = menu.addAction(mainWindow_->tr("Link view"));
-   linkViewAction->setCheckable(true);
-   linkViewAction->setEnabled(maps_.size() > 1u);
-   if (linkViewAction->isEnabled())
-   {
-      linkViewAction->setToolTip(mainWindow_->tr(
-         "When on, this pane matches the other linked panes' map view and "
-         "radar site. Turn off to move and pick sites on your own; turn on to "
-         "snap view (and the same site when relinking) to another map."));
-   }
-   else
-   {
-      linkViewAction->setToolTip(
-         mainWindow_->tr("Add more map panes in the Panes menu to use this."));
-   }
-   {
-      const QSignalBlocker blocker {linkViewAction};
-      linkViewAction->setChecked(mapPaneViewLinked_.at(mapIndex));
-   }
-   if (linkViewAction->isEnabled())
-   {
-      connect(linkViewAction,
-              &QAction::toggled,
-              this,
-              [this, map, mapIndex](bool linked)
-              {
-                 SyncMapPaneViewLinkStateSize();
-                 if (mapIndex >= mapPaneViewLinked_.size())
-                 {
-                    return;
-                 }
-                 mapPaneViewLinked_[mapIndex] = linked;
-                 SaveMapPaneViewLinkState();
-                 if (linked)
-                 {
-                    // If active is this pane, copying from activeMap_ is a
-                    // no-op (SetMapParameters skips when view unchanged) — pick
-                    // another linked pane, or any other map, so relink applies
-                    // immediately.
-                    map::MapWidget* ref = nullptr;
-                    if (activeMap_ != nullptr && activeMap_ != map)
-                    {
-                       ref = activeMap_;
-                    }
-                    if (ref == nullptr)
-                    {
-                       for (std::size_t j = 0; j < maps_.size(); ++j)
-                       {
-                          if (j == mapIndex)
-                          {
-                             continue;
-                          }
-                          if (j < mapPaneViewLinked_.size() &&
-                              mapPaneViewLinked_.at(j))
-                          {
-                             ref = maps_.at(j);
-                             break;
-                          }
-                       }
-                    }
-                    if (ref == nullptr)
-                    {
-                       for (map::MapWidget* m : maps_)
-                       {
-                          if (m != map)
-                          {
-                             ref = m;
-                             break;
-                          }
-                       }
-                    }
-                    if (ref != nullptr)
-                    {
-                       double lat {}, lon {}, zoom {}, bearing {}, pitch {};
-                       ref->GetMapViewParameters(
-                          lat, lon, zoom, bearing, pitch);
-                       map->SetMapParameters(lat, lon, zoom, bearing, pitch);
-                       if (const std::shared_ptr<config::RadarSite> site =
-                              ref->GetRadarSite();
-                           site != nullptr)
-                       {
-                          // Match linked panes' site; skip center jump — view
-                          // already snapped from |ref| above.
-                          map->SelectRadarSite(site->id(), false);
-                       }
-                    }
-                 }
-              });
-   }
-
-   menu.addSeparator();
-   AppendMapPaneRadarContextMenu(menu, map);
-
-   QAction* const resetLayoutAction =
-      menu.addAction(mainWindow_->ui->actionRecreateMapLayout->text());
-   const bool popped =
-      mapIndex < mapPanePoppedOut_.size() && mapPanePoppedOut_.at(mapIndex);
-   resetLayoutAction->setEnabled(!popped);
-   if (popped)
-   {
-      resetLayoutAction->setToolTip(
-         mainWindow_->tr("Use Dock on a popped-out map, or close this menu "
-                         "and reset layout from the main window."));
-   }
-   connect(resetLayoutAction,
-           &QAction::triggered,
-           this,
-           [this]() { RecreateMapLayoutFromUser(false); });
-
-   menu.adjustSize();
-   menu.exec(globalPos);
+   map::RunMapPaneContextMenu(cfg, globalPos);
 }
 
 void MainWindowImpl::UpdateMapParameters(
@@ -3311,7 +3417,7 @@ void MainWindowImpl::UpdateMapParameters(
    // (including the focused one when a non-focused pane moves the view).
    auto* const sourceMap = qobject_cast<map::MapWidget*>(QObject::sender());
 
-   if (!ShouldApplyLinkedMapParameterSync(maps_.size(), sourceMap))
+   if (!map::ShouldApplyLinkedMapParameterSync(maps_.size(), sourceMap))
    {
       return;
    }
@@ -3513,21 +3619,11 @@ void MainWindowImpl::PopOutMap(std::size_t mapIndex)
       return;
    }
 
-   const bool severalCols = (hs->count() > 1);
    // Parented into splitter via replaceWidget; Qt owns lifetime
    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
    auto* ph = new QWidget();
    ph->setMinimumSize(0, 0);
-   if (severalCols)
-   {
-      ph->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
-      ph->setMaximumWidth(0);
-   }
-   else
-   {
-      ph->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-      ph->setMaximumHeight(0);
-   }
+   ph->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 
    QWidget* const oldW = hs->replaceWidget(idx, ph);
    if (oldW != map)
@@ -3546,18 +3642,18 @@ void MainWindowImpl::PopOutMap(std::size_t mapIndex)
 
    mapPanePlaceholders_.at(mapIndex) = ph;
 
-   auto            frame = std::make_unique<MapPopoutFrame>(mapIndex);
-   MapPopoutFrame* fr    = frame.get();
-   const QRect     fgeo  = mainWindow_->frameGeometry();
-   const int       defW  = std::min(800, std::max(400, fgeo.width() * 2 / 3));
-   const int       defH  = std::min(600, std::max(300, fgeo.height() * 2 / 3));
+   auto                 frame = std::make_unique<map::MapPopoutFrame>(mapIndex);
+   map::MapPopoutFrame* fr    = frame.get();
+   const QRect          fgeo  = mainWindow_->frameGeometry();
+   const int defW = std::min(800, std::max(400, fgeo.width() * 2 / 3));
+   const int defH = std::min(600, std::max(300, fgeo.height() * 2 / 3));
    fr->resize(defW, defH);
    fr->move(fgeo.x() + std::max(0, fgeo.width() - defW) / 2,
             fgeo.y() + std::max(0, fgeo.height() - defH) / 3);
    fr->SetEmbeddedMap(map);
    connect(
       fr,
-      &MapPopoutFrame::DockMapRequested,
+      &map::MapPopoutFrame::DockMapRequested,
       this,
       [this, mapIndex]() { DockPoppedMap(mapIndex); },
       Qt::QueuedConnection);
@@ -3565,6 +3661,7 @@ void MainWindowImpl::PopOutMap(std::size_t mapIndex)
    map->setFocus();
    mapPanePoppedOut_.at(mapIndex)    = true;
    mapPanePopoutFrames_.at(mapIndex) = std::move(frame);
+   ApplyEqualMapPaneSizes();
    ScheduleMapPaneGeometryApply();
 }
 
@@ -3655,14 +3752,27 @@ void MainWindowImpl::DockPoppedMap(std::size_t mapIndex)
       mapPanePopoutFrames_.at(mapIndex).reset();
    }
 
+   layoutHs->setVisible(true);
+   ph->setVisible(true);
    QWidget* const removed = layoutHs->replaceWidget(layoutIdx, map);
    // Caller owns the replaced placeholder widget
    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
    delete removed;
+   if (QWidget* rowWidget =
+          mapLayoutRoot_->widget(mapLayoutRoot_->indexOf(layoutHs));
+       rowWidget != nullptr)
+   {
+      rowWidget->setVisible(true);
+      mapLayoutRoot_->setCollapsible(mapLayoutRoot_->indexOf(layoutHs), false);
+      mapLayoutRoot_->setStretchFactor(mapLayoutRoot_->indexOf(layoutHs), 1);
+   }
+   layoutHs->setCollapsible(layoutIdx, false);
+   layoutHs->setStretchFactor(layoutIdx, 1);
    map->show();
    map->raise();
    mapPanePlaceholders_.at(mapIndex) = nullptr;
    mapPanePoppedOut_.at(mapIndex)    = false;
+   ApplyEqualMapPaneSizes();
    ScheduleMapPaneGeometryApply();
 }
 

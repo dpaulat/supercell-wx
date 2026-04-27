@@ -108,6 +108,7 @@
      <string>&amp;Panes</string>
     </property>
     <addaction name="actionPanesLinkColumnWidth"/>
+    <addaction name="actionPanesLinkColumnHeight"/>
     <addaction name="actionPanesMatchMapStyle"/>
     <addaction name="separator"/>
     <addaction name="actionPanes1x1"/>
@@ -585,7 +586,15 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Link &amp;column width across rows</string>
+    <string>Link &amp;column width</string>
+   </property>
+  </action>
+  <action name="actionPanesLinkColumnHeight">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Link column &amp;height</string>
    </property>
   </action>
   <action name="actionPanesMatchMapStyle">

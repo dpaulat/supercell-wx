@@ -1,18 +1,16 @@
 #pragma once
 
-#include <QVBoxLayout>
 #include <QWidget>
 
 #include <cstddef>
+#include <memory>
 
 class QCloseEvent;
+
 namespace scwx::qt::map
 {
-class MapWidget;
-}
 
-namespace scwx::qt::main
-{
+class MapWidget;
 
 // Borderless top-level window holding a single map pane (no main menu, no
 // docks).
@@ -22,17 +20,16 @@ class MapPopoutFrame : public QWidget
 
 public:
    explicit MapPopoutFrame(std::size_t mapIndex, QWidget* parent = nullptr);
-   ~MapPopoutFrame() override = default;
+   ~MapPopoutFrame() override;
 
    MapPopoutFrame(const MapPopoutFrame&)            = delete;
    MapPopoutFrame& operator=(const MapPopoutFrame&) = delete;
    MapPopoutFrame(MapPopoutFrame&&)                 = delete;
    MapPopoutFrame& operator=(MapPopoutFrame&&)      = delete;
 
-   void DetachMapWidget();
-   void SetEmbeddedMap(scwx::qt::map::MapWidget* map);
-
-   [[nodiscard]] std::size_t map_index() const { return mapIndex_; }
+   void        DetachMapWidget();
+   void        SetEmbeddedMap(MapWidget* map);
+   std::size_t map_index() const;
 
 signals:
    // User closed the window (X) or similar — host should re-dock the map.
@@ -42,9 +39,8 @@ protected:
    void closeEvent(QCloseEvent* event) override;
 
 private:
-   std::size_t     mapIndex_;
-   QVBoxLayout*    vbox_ {};
-   map::MapWidget* map_ {};
+   class Impl;
+   std::unique_ptr<Impl> p_;
 };
 
-} // namespace scwx::qt::main
+} // namespace scwx::qt::map

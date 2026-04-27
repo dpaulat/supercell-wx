@@ -1,4 +1,4 @@
-#include <scwx/qt/main/map_pane_view_link_state.hpp>
+#include <scwx/qt/map/map_pane_view_link_state.hpp>
 
 #include <gtest/gtest.h>
 
@@ -6,8 +6,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
-using scwx::qt::main::SerializeMapPaneViewLinkStateJson;
-using scwx::qt::main::TryParseMapPaneViewLinkStateJson;
+using scwx::qt::map::SerializeMapPaneViewLinkStateJson;
+using scwx::qt::map::TryParseMapPaneViewLinkStateJson;
 
 TEST(MapPaneViewLinkState, roundtrip_2x2)
 {

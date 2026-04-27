@@ -1,10 +1,10 @@
-#include <scwx/qt/main/map_pane_splitter_state.hpp>
+#include <scwx/qt/map/map_pane_splitter_state.hpp>
 
 #include <gtest/gtest.h>
 
 #include <QList>
 
-using scwx::qt::main::MapPaneSplitterStateSizesAllPositive;
+using scwx::qt::map::MapPaneSplitterStateSizesAllPositive;
 
 TEST(MapPaneSplitterState, empty_not_positive)
 {
