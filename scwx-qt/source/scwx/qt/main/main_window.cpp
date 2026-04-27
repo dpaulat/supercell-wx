@@ -1243,7 +1243,7 @@ void MainWindowImpl::BuildMapLayout(
       }
       const auto sizes = s->sizes();
       int        sum   = 0;
-      for (int x : sizes)
+      for (const int x : sizes)
       {
          sum += x;
       }
@@ -1512,7 +1512,7 @@ void MainWindowImpl::ApplyEqualMapPaneSizes(int layoutRetryDepth)
       }
       if (visibleRowCount == 0)
       {
-         QList<int> vert;
+         QList<int> allPoppedRowSizes;
          for (int r = 0; r < nRows; ++r)
          {
             if (QWidget* rowWidget = vs->widget(r); rowWidget != nullptr)
@@ -1521,7 +1521,7 @@ void MainWindowImpl::ApplyEqualMapPaneSizes(int layoutRetryDepth)
             }
             vs->setCollapsible(r, false);
             vs->setStretchFactor(r, 1);
-            vert.append(1);
+            allPoppedRowSizes.append(1);
 
             auto* const hs = qobject_cast<QSplitter*>(vs->widget(r));
             if (hs == nullptr)
@@ -1544,7 +1544,7 @@ void MainWindowImpl::ApplyEqualMapPaneSizes(int layoutRetryDepth)
             }
             hs->setSizes(col);
          }
-         vs->setSizes(vert);
+         vs->setSizes(allPoppedRowSizes);
          return;
       }
 

@@ -27,9 +27,9 @@ public:
    MapPopoutFrame(MapPopoutFrame&&)                 = delete;
    MapPopoutFrame& operator=(MapPopoutFrame&&)      = delete;
 
-   void        DetachMapWidget();
-   void        SetEmbeddedMap(MapWidget* map);
-   std::size_t map_index() const;
+   void                      DetachMapWidget();
+   void                      SetEmbeddedMap(MapWidget* map);
+   [[nodiscard]] std::size_t map_index() const;
 
 signals:
    // User closed the window (X) or similar — host should re-dock the map.
