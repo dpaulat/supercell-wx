@@ -43,7 +43,8 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static void InitializeOpenGL();
 
-// NOLINTNEXTLINE(bugprone-exception-escape) — top-level entry; Qt/AWS paths may throw
+// NOLINTNEXTLINE(bugprone-exception-escape) — top-level entry; Qt/AWS paths may
+// throw
 int main(int argc, char* argv[])
 {
    // Store arguments
