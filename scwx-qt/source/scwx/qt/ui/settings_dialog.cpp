@@ -6,6 +6,7 @@
 #include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/main/application_paths.hpp>
+#include <scwx/qt/main/theme.hpp>
 #include <scwx/qt/manager/media_manager.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
@@ -1611,16 +1612,28 @@ void SettingsDialogImpl::ApplyChanges()
 {
    logger_->info("Applying settings changes");
 
-   bool committed = false;
+   bool committed    = false;
+   bool themeUpdated = false;
 
    for (auto& setting : settings_)
    {
-      committed |= setting->Commit();
+      const bool settingCommitted = setting->Commit();
+
+      committed |= settingCommitted;
+      if (settingCommitted && (setting == &theme_ || setting == &themeFile_))
+      {
+         themeUpdated = true;
+      }
    }
 
    for (auto& page : settingsPages_)
    {
       committed |= page->CommitChanges();
+   }
+
+   if (themeUpdated)
+   {
+      main::ApplyTheme();
    }
 
    if (committed)

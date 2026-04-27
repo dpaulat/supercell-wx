@@ -59,13 +59,16 @@ set(HDR_MAIN source/scwx/qt/main/application.hpp
              source/scwx/qt/main/check_privilege.hpp
              source/scwx/qt/main/main_window.hpp
              source/scwx/qt/main/process_validation.hpp
-             source/scwx/qt/main/program_options.hpp)
+             source/scwx/qt/main/program_options.hpp
+             source/scwx/qt/main/theme.hpp
+             source/scwx/qt/main/theme_internal.hpp)
 set(SRC_MAIN source/scwx/qt/main/application.cpp
              source/scwx/qt/main/application_paths.cpp
              source/scwx/qt/main/check_privilege.cpp
              source/scwx/qt/main/main_window.cpp
              source/scwx/qt/main/process_validation.cpp
-             source/scwx/qt/main/program_options.cpp)
+             source/scwx/qt/main/program_options.cpp
+             source/scwx/qt/main/theme.cpp)
 set(UI_MAIN  source/scwx/qt/main/main_window.ui)
 set(HDR_CONFIG source/scwx/qt/config/county_database.hpp
                source/scwx/qt/config/radar_site.hpp)
