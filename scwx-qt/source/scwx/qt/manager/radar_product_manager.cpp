@@ -66,6 +66,13 @@ static constexpr uint32_t NUM_RADIALS_0_5_DEGREE =
    common::MAX_0_5_DEGREE_RADIALS;
 static constexpr uint32_t NUM_RADIALS_1_DEGREE = common::MAX_1_DEGREE_RADIALS;
 
+// Coordinate grid: radial spacing and smoothing offsets (see product geometry).
+static constexpr float kCoordinateRadialStepDegrees0_5_ {0.5F};
+static constexpr float kCoordinateSmoothingRadialOffsetDegrees0_5_ {0.25F};
+static constexpr float kCoordinateSmoothingRadialOffsetDegrees1_0_ {0.5F};
+static constexpr float kCoordinateSmoothingGateRangeOffset_ {0.5F};
+static constexpr float kCoordinateNoSmoothingGateRangeOffset_ {1.0F};
+
 static const std::string kDefaultLevel3Product_ {"N0B"};
 
 static constexpr std::size_t kTimerPlaces_ {6u};
@@ -605,7 +612,7 @@ void RadarProductManagerImpl::EnsureCoordinatesInitialized(
    std::optional<units::angle::degrees<float>> radialAngle {};
    std::optional<units::angle::degrees<float>> angleOffset {};
    float                                       gateRangeOffset = 0.0f;
-   const char*                                 timerName       = "";
+   const char*                                 timerName;
 
    switch (radialSize)
    {
@@ -614,10 +621,13 @@ void RadarProductManagerImpl::EnsureCoordinatesInitialized(
                                              &coordinates0_5Degree_;
       coordinateCount   = NUM_COORIDNATES_0_5_DEGREE;
       radialCount       = NUM_RADIALS_0_5_DEGREE;
-      radialAngle       = units::angle::degrees<float> {0.5f};
-      angleOffset =
-         units::angle::degrees<float> {smoothingEnabled ? 0.25f : 0.0f};
-      gateRangeOffset = smoothingEnabled ? 0.5f : 1.0f;
+      radialAngle =
+         units::angle::degrees<float> {kCoordinateRadialStepDegrees0_5_};
+      angleOffset = units::angle::degrees<float> {
+         smoothingEnabled ? kCoordinateSmoothingRadialOffsetDegrees0_5_ : 0.0F};
+      gateRangeOffset = smoothingEnabled ?
+                           kCoordinateSmoothingGateRangeOffset_ :
+                           kCoordinateNoSmoothingGateRangeOffset_;
       timerName       = smoothingEnabled ? "Coordinates (0.5 degree smooth)" :
                                            "Coordinates (0.5 degree)";
       break;
@@ -627,9 +637,11 @@ void RadarProductManagerImpl::EnsureCoordinatesInitialized(
       coordinateCount = NUM_COORIDNATES_1_DEGREE;
       radialCount     = NUM_RADIALS_1_DEGREE;
       radialAngle     = units::angle::degrees<float> {1.0f};
-      angleOffset =
-         units::angle::degrees<float> {smoothingEnabled ? 0.5f : 0.0f};
-      gateRangeOffset = smoothingEnabled ? 0.5f : 1.0f;
+      angleOffset     = units::angle::degrees<float> {
+         smoothingEnabled ? kCoordinateSmoothingRadialOffsetDegrees1_0_ : 0.0F};
+      gateRangeOffset = smoothingEnabled ?
+                           kCoordinateSmoothingGateRangeOffset_ :
+                           kCoordinateNoSmoothingGateRangeOffset_;
       timerName       = smoothingEnabled ? "Coordinates (1 degree smooth)" :
                                            "Coordinates (1 degree)";
       break;
@@ -642,8 +654,13 @@ void RadarProductManagerImpl::EnsureCoordinatesInitialized(
       return;
    }
 
-   std::unique_lock lock {coordinatesMutex_};
+   std::unique_lock<std::mutex> const lock {coordinatesMutex_};
    if (!targetCoordinates->empty())
+   {
+      return;
+   }
+
+   if (!radialAngle.has_value() || !angleOffset.has_value())
    {
       return;
    }
@@ -653,8 +670,8 @@ void RadarProductManagerImpl::EnsureCoordinatesInitialized(
    boost::timer::cpu_timer timer {};
    timer.start();
    CalculateCoordinates(radialCount,
-                        *radialAngle,
-                        *angleOffset,
+                        radialAngle.value(),
+                        angleOffset.value(),
                         gateRangeOffset,
                         *targetCoordinates);
    timer.stop();
