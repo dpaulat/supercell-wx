@@ -205,6 +205,11 @@ signals:
     */
    void ScreenCaptureRequested(types::CaptureType captureType);
 
+   /**
+    * This signal is emitted when the user clicks on the map.
+    */
+   void MapClicked(common::Coordinate coordinate);
+
    void WidgetPainted();
    void IncomingLevel2ElevationChanged(std::optional<float> incomingElevation);
 };
