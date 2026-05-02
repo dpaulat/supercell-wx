@@ -2180,19 +2180,25 @@ void MapWidgetImpl::RadarProductManagerDisconnect()
 void MapWidgetImpl::InitializeNewRadarProductView(
    const std::string& colorPalette)
 {
-   boost::asio::post(threadPool_,
-                     [colorPalette, this]()
-                     {
-                        try
-                        {
-                           UpdateColorTable(colorPalette);
-                           context_->radar_product_view()->Initialize();
-                        }
-                        catch (const std::exception& ex)
-                        {
-                           logger_->error(ex.what());
-                        }
-                     });
+   // Must run on the GUI thread: UpdateColorTable / Initialize touch
+   // RadarProductView (mutex, LUT, Q_EMIT). Posting to threadPool_ raced product
+   // switches (e.g. hotkeys) with destruction and queued Qt connections, causing
+   // heap corruption. AddLayers() must run after init, not concurrently.
+   try
+   {
+      auto radarProductView = context_->radar_product_view();
+      if (radarProductView == nullptr)
+      {
+         return;
+      }
+
+      UpdateColorTable(colorPalette);
+      radarProductView->Initialize();
+   }
+   catch (const std::exception& ex)
+   {
+      logger_->error(ex.what());
+   }
 
    if (map_ != nullptr)
    {
