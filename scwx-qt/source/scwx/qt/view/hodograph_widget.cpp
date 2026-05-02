@@ -27,8 +27,7 @@ class HodographWidget::Impl
 {
 public:
    explicit Impl(HodographWidget* widget) :
-       widget_(widget),
-       shaderLoaded_(false)
+       widget_(widget), shaderLoaded_(false)
    {
    }
    ~Impl() = default;
@@ -44,14 +43,17 @@ public:
       // Hodograph coordinate: u=x, v=y
       // Scale to fit within [-0.9, 0.9] NDC based on max wind
       double maxWind = std::max(maxWindSpeed_, 10.0);
-      nx = static_cast<float>(u / maxWind * 0.85);
-      ny = static_cast<float>(v / maxWind * 0.85);
+      nx             = static_cast<float>(u / maxWind * 0.85);
+      ny             = static_cast<float>(v / maxWind * 0.85);
    }
 
    void DrawLine(const std::vector<float>& vertices,
                  const std::vector<float>& colors)
    {
-      if (vertices.size() < 6) { return; }
+      if (vertices.size() < 6)
+      {
+         return;
+      }
 
       GLuint vao, vbo;
       glGenVertexArrays(1, &vao);
@@ -61,7 +63,7 @@ public:
       glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
       std::vector<float> interleaved;
-      size_t count = vertices.size() / 3;
+      size_t             count = vertices.size() / 3;
       interleaved.reserve(count * 7);
       for (size_t i = 0; i < count; ++i)
       {
@@ -79,9 +81,14 @@ public:
                    interleaved.data(),
                    GL_STREAM_DRAW);
 
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), nullptr);
+      glVertexAttribPointer(
+         0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), nullptr);
       glEnableVertexAttribArray(0);
-      glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float),
+      glVertexAttribPointer(1,
+                            4,
+                            GL_FLOAT,
+                            GL_FALSE,
+                            7 * sizeof(float),
                             reinterpret_cast<void*>(3 * sizeof(float)));
       glEnableVertexAttribArray(1);
 
@@ -94,7 +101,10 @@ public:
    void DrawPoints(const std::vector<float>& vertices,
                    const std::vector<float>& colors)
    {
-      if (vertices.size() < 6) { return; }
+      if (vertices.size() < 6)
+      {
+         return;
+      }
 
       GLuint vao, vbo;
       glGenVertexArrays(1, &vao);
@@ -104,7 +114,7 @@ public:
       glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
       std::vector<float> interleaved;
-      size_t count = vertices.size() / 3;
+      size_t             count = vertices.size() / 3;
       interleaved.reserve(count * 7);
       for (size_t i = 0; i < count; ++i)
       {
@@ -122,9 +132,14 @@ public:
                    interleaved.data(),
                    GL_STREAM_DRAW);
 
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), nullptr);
+      glVertexAttribPointer(
+         0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), nullptr);
       glEnableVertexAttribArray(0);
-      glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float),
+      glVertexAttribPointer(1,
+                            4,
+                            GL_FLOAT,
+                            GL_FALSE,
+                            7 * sizeof(float),
                             reinterpret_cast<void*>(3 * sizeof(float)));
       glEnableVertexAttribArray(1);
 
@@ -140,7 +155,9 @@ public:
       auto program = shader_;
       program->Use();
       glUniformMatrix4fv(program->GetUniformLocation("uMVPMatrix"),
-                         1, GL_FALSE, glm::value_ptr(projMatrix_));
+                         1,
+                         GL_FALSE,
+                         glm::value_ptr(projMatrix_));
 
       double maxWind = std::max(maxWindSpeed_, 10.0);
 
@@ -149,17 +166,20 @@ public:
       for (int r = 1; r <= numRings; ++r)
       {
          double speed = r * 10.0;
-         if (speed > maxWind * 1.2) { break; }
+         if (speed > maxWind * 1.2)
+         {
+            break;
+         }
 
          float radius = static_cast<float>(speed / (maxWind * 1.2) * 0.85);
 
          std::vector<float> verts, cols;
-         int segments = 36;
+         int                segments = 36;
          for (int i = 0; i <= segments; ++i)
          {
             double ang = 2.0 * M_PI * i / segments;
-            float x    = radius * std::sin(ang);
-            float y    = radius * std::cos(ang);
+            float  x   = radius * std::sin(ang);
+            float  y   = radius * std::cos(ang);
             verts.insert(verts.end(), {x, y, 0.0f});
             cols.insert(cols.end(), {0.35f, 0.35f, 0.5f, 0.6f});
          }
@@ -170,29 +190,37 @@ public:
       for (int d = 0; d < 360; d += 30)
       {
          double ang = d * M_PI / 180.0;
-         float len  = 0.85f;
+         float  len = 0.85f;
 
-           std::vector<float> verts = {0.0f, 0.0f, 0.0f,
-                                       static_cast<float>(len * std::sin(ang)),
-                                       static_cast<float>(len * std::cos(ang)),
-                                       0.0f};
-          std::vector<float> cols  = {0.35f, 0.35f, 0.5f, 0.6f,
-                                      0.35f, 0.35f, 0.5f, 0.6f};
+         std::vector<float> verts = {0.0f,
+                                     0.0f,
+                                     0.0f,
+                                     static_cast<float>(len * std::sin(ang)),
+                                     static_cast<float>(len * std::cos(ang)),
+                                     0.0f};
+         std::vector<float> cols  = {
+            0.35f, 0.35f, 0.5f, 0.6f, 0.35f, 0.35f, 0.5f, 0.6f};
          DrawLine(verts, cols);
       }
    }
 
    void DrawWindProfile()
    {
-      if (!sounding_ || sounding_->levels().empty()) { return; }
+      if (!sounding_ || sounding_->levels().empty())
+      {
+         return;
+      }
 
       auto program = shader_;
       program->Use();
       glUniformMatrix4fv(program->GetUniformLocation("uMVPMatrix"),
-                         1, GL_FALSE, glm::value_ptr(projMatrix_));
+                         1,
+                         GL_FALSE,
+                         glm::value_ptr(projMatrix_));
 
       auto levels = sounding_->levels();
-      std::sort(levels.begin(), levels.end(),
+      std::sort(levels.begin(),
+                levels.end(),
                 [](const auto& a, const auto& b)
                 { return a.pressure_hPa_ > b.pressure_hPa_; });
 
@@ -206,22 +234,23 @@ public:
       std::vector<float> verts, cols;
       for (const auto& lvl : levels)
       {
-          // Negate: meteorological wind direction (coming FROM) → hodograph vector (blowing TOWARD)
-          double u = -lvl.wind_speed_mps_ *
-                     std::sin(lvl.wind_direction_deg_ * M_PI / 180.0);
-          double v = -lvl.wind_speed_mps_ *
-                     std::cos(lvl.wind_direction_deg_ * M_PI / 180.0);
+         // Negate: meteorological wind direction (coming FROM) → hodograph
+         // vector (blowing TOWARD)
+         double u = -lvl.wind_speed_mps_ *
+                    std::sin(lvl.wind_direction_deg_ * M_PI / 180.0);
+         double v = -lvl.wind_speed_mps_ *
+                    std::cos(lvl.wind_direction_deg_ * M_PI / 180.0);
 
          float nx, ny;
          WindToNDC(u, v, nx, ny);
          verts.insert(verts.end(), {nx, ny, 0.0f});
 
-          // Color by height: surface=warm (orange), tropopause=cool (purple)
-          double heightKm = lvl.height_m_ / 1000.0;
-          double t        = std::min(heightKm / 15.0, 1.0);
-          float r = static_cast<float>(1.0 - t * 0.5);
-          float g = static_cast<float>(0.5 + t * 0.2);
-          float b = static_cast<float>(0.1 + t * 0.7);
+         // Color by height: surface=warm (orange), tropopause=cool (purple)
+         double heightKm = lvl.height_m_ / 1000.0;
+         double t        = std::min(heightKm / 15.0, 1.0);
+         float  r        = static_cast<float>(1.0 - t * 0.5);
+         float  g        = static_cast<float>(0.5 + t * 0.2);
+         float  b        = static_cast<float>(0.1 + t * 0.7);
          cols.insert(cols.end(), {r, g, b, 1.0f});
       }
 
@@ -233,12 +262,15 @@ public:
 
    void DrawAxisLabels(QPainter& painter)
    {
-      if (!sounding_) { return; }
+      if (!sounding_)
+      {
+         return;
+      }
 
       painter.setRenderHint(QPainter::Antialiasing);
 
-      double maxWind = std::max(maxWindSpeed_, 10.0);
-      int numRings   = static_cast<int>(std::ceil(maxWind / 10.0));
+      double maxWind  = std::max(maxWindSpeed_, 10.0);
+      int    numRings = static_cast<int>(std::ceil(maxWind / 10.0));
 
       painter.setPen(QColor(180, 180, 200));
       QFont labelFont = painter.font();
@@ -249,26 +281,29 @@ public:
       for (int r = 1; r <= numRings; ++r)
       {
          double speed = r * 10.0;
-         if (speed > maxWind * 1.2) { break; }
+         if (speed > maxWind * 1.2)
+         {
+            break;
+         }
 
-           float radius = static_cast<float>(speed / (maxWind * 1.2) * 0.85);
+         float radius = static_cast<float>(speed / (maxWind * 1.2) * 0.85);
 
-           // Position label at top of each ring (90 degrees)
-          QPointF labelPos((radius + 1.0) / 2.0 * rect_.width() + 3,
-                           (1.0 - radius - 0.02f) / 2.0 * rect_.height());
-          painter.drawText(labelPos, QString::number(static_cast<int>(speed)));
+         // Position label at top of each ring (90 degrees)
+         QPointF labelPos((radius + 1.0) / 2.0 * rect_.width() + 3,
+                          (1.0 - radius - 0.02f) / 2.0 * rect_.height());
+         painter.drawText(labelPos, QString::number(static_cast<int>(speed)));
       }
 
       // Cardinal direction labels
       painter.setPen(QColor(180, 180, 200));
-      auto drawDirLabel = [&](const char* text, double deg,
-                              double offsetX, double offsetY)
+      auto drawDirLabel =
+         [&](const char* text, double deg, double offsetX, double offsetY)
       {
-         double ang = deg * M_PI / 180.0;
-         double len = 0.92;
+         double  ang = deg * M_PI / 180.0;
+         double  len = 0.92;
          QPointF pos(
-             (len * std::sin(ang) + 1.0) / 2.0 * rect_.width() + offsetX,
-             (1.0 - len * std::cos(ang)) / 2.0 * rect_.height() + offsetY);
+            (len * std::sin(ang) + 1.0) / 2.0 * rect_.width() + offsetX,
+            (1.0 - len * std::cos(ang)) / 2.0 * rect_.height() + offsetY);
          painter.drawText(pos, text);
       };
 
@@ -280,7 +315,10 @@ public:
 
    void Render()
    {
-      if (!shaderLoaded_) { return; }
+      if (!shaderLoaded_)
+      {
+         return;
+      }
 
       glClearColor(0.08f, 0.08f, 0.15f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT);
@@ -296,24 +334,24 @@ public:
       glDisable(GL_BLEND);
    }
 
-   HodographWidget*                              widget_;
-   std::shared_ptr<gl::ShaderProgram>            shader_;
-   glm::mat4                                     projMatrix_ {};
-   std::shared_ptr<sounding::SoundingData>       sounding_;
-   QRect                                         rect_ {};
-   double                                        maxWindSpeed_ {10.0};
-   bool                                          shaderLoaded_ {false};
+   HodographWidget*                        widget_;
+   std::shared_ptr<gl::ShaderProgram>      shader_;
+   glm::mat4                               projMatrix_ {};
+   std::shared_ptr<sounding::SoundingData> sounding_;
+   QRect                                   rect_ {};
+   double                                  maxWindSpeed_ {10.0};
+   bool                                    shaderLoaded_ {false};
 };
 
 HodographWidget::HodographWidget(QWidget* parent) :
-    QOpenGLWidget(parent),
-    p(std::make_unique<Impl>(this))
+    QOpenGLWidget(parent), p(std::make_unique<Impl>(this))
 {
    setMinimumSize(300, 300);
 }
 HodographWidget::~HodographWidget() = default;
 
-void HodographWidget::SetSounding(std::shared_ptr<sounding::SoundingData> sounding)
+void HodographWidget::SetSounding(
+   std::shared_ptr<sounding::SoundingData> sounding)
 {
    p->sounding_ = sounding;
    update();

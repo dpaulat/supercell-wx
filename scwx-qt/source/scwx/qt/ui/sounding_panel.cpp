@@ -27,14 +27,14 @@ class SoundingPanelImpl
 public:
    explicit SoundingPanelImpl(SoundingPanel* self) :
        self_(self),
-        skewtWidget_(nullptr),
-        hodographWidget_(nullptr),
-        latSpinBox_(nullptr),
-        lonSpinBox_(nullptr),
-        cycleCombo_(nullptr),
-        fhrCombo_(nullptr),
-        selectPointButton_(nullptr),
-        fetchButton_(nullptr)
+       skewtWidget_(nullptr),
+       hodographWidget_(nullptr),
+       latSpinBox_(nullptr),
+       lonSpinBox_(nullptr),
+       cycleCombo_(nullptr),
+       fhrCombo_(nullptr),
+       selectPointButton_(nullptr),
+       fetchButton_(nullptr)
    {
    }
    ~SoundingPanelImpl() = default;
@@ -50,7 +50,7 @@ public:
       mainLayout->setContentsMargins(4, 4, 4, 4);
 
       // Controls group
-      auto* controlsGroup = new QGroupBox("GFS Sounding Controls");
+      auto* controlsGroup  = new QGroupBox("GFS Sounding Controls");
       auto* controlsLayout = new QVBoxLayout(controlsGroup);
 
       // Location row
@@ -98,7 +98,7 @@ public:
       auto* buttonLayout = new QVBoxLayout();
       selectPointButton_ = new QPushButton("Select Forecast Point");
       selectPointButton_->setToolTip(
-          "Click this button, then click a location on the map");
+         "Click this button, then click a location on the map");
       buttonLayout->addWidget(selectPointButton_);
 
       fetchButton_ = new QPushButton("Fetch Sounding");
@@ -110,7 +110,7 @@ public:
       // Plots
       auto* splitter = new QSplitter(Qt::Vertical);
 
-      skewtWidget_ = new view::SkewtWidget();
+      skewtWidget_     = new view::SkewtWidget();
       hodographWidget_ = new view::HodographWidget();
 
       splitter->addWidget(skewtWidget_);
@@ -121,32 +121,35 @@ public:
       mainLayout->addWidget(splitter, 1);
 
       // Connect signals
-      QObject::connect(selectPointButton_, &QPushButton::clicked,
-                       self_, [this]()
-                       {
-                          Q_EMIT self_->PointSelectionStarted();
-                       });
-      QObject::connect(fetchButton_, &QPushButton::clicked,
-                       self_, &SoundingPanel::OnFetchClicked);
+      QObject::connect(selectPointButton_,
+                       &QPushButton::clicked,
+                       self_,
+                       [this]() { Q_EMIT self_->PointSelectionStarted(); });
+      QObject::connect(fetchButton_,
+                       &QPushButton::clicked,
+                       self_,
+                       &SoundingPanel::OnFetchClicked);
 
       QObject::connect(&manager::GfsManager::Instance(),
                        &manager::GfsManager::SoundingReady,
-                       self_, &SoundingPanel::OnSoundingReady);
+                       self_,
+                       &SoundingPanel::OnSoundingReady);
 
       QObject::connect(&manager::GfsManager::Instance(),
                        &manager::GfsManager::LoadError,
-                       self_, &SoundingPanel::OnLoadError);
+                       self_,
+                       &SoundingPanel::OnLoadError);
    }
 
-   SoundingPanel*           self_;
-   view::SkewtWidget*       skewtWidget_;
-   view::HodographWidget*   hodographWidget_;
-   QDoubleSpinBox*          latSpinBox_;
-   QDoubleSpinBox*          lonSpinBox_;
-   QComboBox*               cycleCombo_;
-   QComboBox*               fhrCombo_;
-   QPushButton*             selectPointButton_;
-   QPushButton*             fetchButton_;
+   SoundingPanel*         self_;
+   view::SkewtWidget*     skewtWidget_;
+   view::HodographWidget* hodographWidget_;
+   QDoubleSpinBox*        latSpinBox_;
+   QDoubleSpinBox*        lonSpinBox_;
+   QComboBox*             cycleCombo_;
+   QComboBox*             fhrCombo_;
+   QPushButton*           selectPointButton_;
+   QPushButton*           fetchButton_;
 };
 
 SoundingPanel::SoundingPanel(QWidget* parent) :
@@ -154,7 +157,8 @@ SoundingPanel::SoundingPanel(QWidget* parent) :
     p(std::make_unique<SoundingPanelImpl>(this))
 {
    setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
-   setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable |
+   setFeatures(QDockWidget::DockWidgetMovable |
+               QDockWidget::DockWidgetFloatable |
                QDockWidget::DockWidgetClosable);
    setMinimumWidth(400);
 
@@ -176,7 +180,7 @@ void SoundingPanel::RequestSounding()
 }
 
 void SoundingPanel::OnSoundingReady(
-    std::shared_ptr<sounding::SoundingData> sounding)
+   std::shared_ptr<sounding::SoundingData> sounding)
 {
    p->skewtWidget_->SetSounding(sounding);
    p->hodographWidget_->SetSounding(sounding);
@@ -193,10 +197,10 @@ void SoundingPanel::OnLoadError(const QString& message)
 
 void SoundingPanel::OnFetchClicked()
 {
-   double lat = p->latSpinBox_->value();
-   double lon = p->lonSpinBox_->value();
-   int cycle  = p->cycleCombo_->currentData().toInt();
-   int fhr    = p->fhrCombo_->currentData().toInt();
+   double lat   = p->latSpinBox_->value();
+   double lon   = p->lonSpinBox_->value();
+   int    cycle = p->cycleCombo_->currentData().toInt();
+   int    fhr   = p->fhrCombo_->currentData().toInt();
 
    p->fetchButton_->setEnabled(false);
    p->fetchButton_->setText("Fetching...");

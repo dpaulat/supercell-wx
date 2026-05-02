@@ -28,60 +28,57 @@ public:
    GfsManagerImpl(GfsManagerImpl&&)                 = delete;
    GfsManagerImpl& operator=(GfsManagerImpl&&)      = delete;
 
-   void RequestSounding(GfsManager* self, double lat, double lon,
-                        int cycle, int fhr)
+   void
+   RequestSounding(GfsManager* self, double lat, double lon, int cycle, int fhr)
    {
       logger_->info("GFS sounding requested: lat={}, lon={}, cycle={}, fhr={}",
-                    lat, lon, cycle, fhr);
+                    lat,
+                    lon,
+                    cycle,
+                    fhr);
 
       // Run on a background thread using detached std::thread.
       // std::async's future destructor blocks the calling (UI) thread
       // until the async operation completes, causing the app to freeze.
-      std::thread([self, this, lat, lon, cycle, fhr]()
+      std::thread(
+         [self, this, lat, lon, cycle, fhr]()
+         {
+            auto result = provider_->FetchSounding(lat, lon, cycle, fhr);
+
+            if (result.has_value())
+            {
+               auto sounding = std::move(result.value());
+               logger_->info("GFS sounding loaded successfully ({} levels)",
+                             sounding->levels().size());
+
+               QMetaObject::invokeMethod(
+                  self,
+                  [self, sounding]() { Q_EMIT self->SoundingReady(sounding); },
+                  Qt::QueuedConnection);
+            }
+            else
+            {
+               logger_->warn("GFS sounding failed");
+
+               QMetaObject::invokeMethod(
+                  self,
+                  [self]()
                   {
-                     auto result =
-                         provider_->FetchSounding(lat, lon, cycle, fhr);
-
-                     if (result.has_value())
-                     {
-                        auto sounding = std::move(result.value());
-                        logger_->info(
-                            "GFS sounding loaded successfully ({} levels)",
-                            sounding->levels().size());
-
-                        QMetaObject::invokeMethod(
-                            self,
-                            [self, sounding]()
-                            {
-                               Q_EMIT self->SoundingReady(sounding);
-                            },
-                            Qt::QueuedConnection);
-                     }
-                     else
-                     {
-                        logger_->warn("GFS sounding failed");
-
-                        QMetaObject::invokeMethod(
-                            self,
-                            [self]()
-                            {
-                               Q_EMIT self->LoadError(
-                                   QStringLiteral(
-                                       "Failed to fetch GFS sounding. "
-                                       "Check network connection and try again."));
-                            },
-                            Qt::QueuedConnection);
-                     }
-                  })
-          .detach();
+                     Q_EMIT self->LoadError(QStringLiteral(
+                        "Failed to fetch GFS sounding. "
+                        "Check network connection and try again."));
+                  },
+                  Qt::QueuedConnection);
+            }
+         })
+         .detach();
    }
 
    std::unique_ptr<provider::GfsProvider> provider_;
 };
 
 GfsManager::GfsManager() :
-    QObject(nullptr),
-    p(std::make_unique<GfsManagerImpl>())
+    QObject(nullptr), p(std::make_unique<GfsManagerImpl>())
 {
 }
 GfsManager::~GfsManager() = default;

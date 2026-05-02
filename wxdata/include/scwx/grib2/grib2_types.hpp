@@ -8,11 +8,11 @@ namespace scwx::grib2
 
 enum class Discipline : std::uint8_t
 {
-   Meteorological      = 0,
-   Hydrological        = 1,
-   LandSurface         = 2,
-   Space               = 10,
-   Unknown             = 255
+   Meteorological = 0,
+   Hydrological   = 1,
+   LandSurface    = 2,
+   Space          = 10,
+   Unknown        = 255
 };
 
 struct ParameterId
@@ -25,18 +25,18 @@ struct ParameterId
 
 enum class SurfaceType : std::uint8_t
 {
-   GroundOrWater      = 1,
-   CloudBase          = 2,
-   CloudTop           = 3,
-   Isobaric           = 100,
-   MeanSeaLevel       = 101,
-   AltitudeAboveMSL   = 102,
-   HeightAboveGround  = 103,
-   Sigma              = 104,
-   Hybrid             = 105,
-   DepthBelowLand     = 106,
-   IsobaricLayer      = 107,
-   Unknown            = 255
+   GroundOrWater     = 1,
+   CloudBase         = 2,
+   CloudTop          = 3,
+   Isobaric          = 100,
+   MeanSeaLevel      = 101,
+   AltitudeAboveMSL  = 102,
+   HeightAboveGround = 103,
+   Sigma             = 104,
+   Hybrid            = 105,
+   DepthBelowLand    = 106,
+   IsobaricLayer     = 107,
+   Unknown           = 255
 };
 
 struct GridDef
@@ -54,7 +54,7 @@ struct GridDef
 
 struct SimplePacking
 {
-   float       referenceValue_;
+   float        referenceValue_;
    std::int16_t binaryScaleFactor_;
    std::int16_t decimalScaleFactor_;
    std::uint8_t bitsPerValue_;
