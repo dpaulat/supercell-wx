@@ -2180,11 +2180,8 @@ void MapWidgetImpl::RadarProductManagerDisconnect()
 void MapWidgetImpl::InitializeNewRadarProductView(
    const std::string& colorPalette)
 {
-   // Must run on the GUI thread: UpdateColorTable / Initialize touch
-   // RadarProductView (mutex, LUT, Q_EMIT). Posting to threadPool_ raced
-   // product switches (e.g. hotkeys) with destruction and queued Qt
-   // connections, causing heap corruption. AddLayers() must run after init, not
-   // concurrently.
+   // GUI thread only: view state + Qt signals; async post raced rapid product
+   // switch (heap corruption) and let AddLayers() run before init finished.
    try
    {
       auto radarProductView = context_->radar_product_view();
