@@ -1686,8 +1686,7 @@ void MapWidget::mousePressEvent(QMouseEvent* ev)
       {
          // Emit map click for point selection (used by sounding panel, etc.)
          auto coordinate = p->map_->coordinateForPixel(p->lastPos_);
-         Q_EMIT this->MapClicked(
-            {coordinate.first, coordinate.second});
+         Q_EMIT this->MapClicked({coordinate.first, coordinate.second});
       }
    }
 

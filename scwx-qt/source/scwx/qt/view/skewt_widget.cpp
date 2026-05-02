@@ -35,11 +35,11 @@ static const std::string logPrefix_ = "scwx::qt::view::skewt_widget";
 static const auto        logger_    = util::Logger::Create(logPrefix_);
 
 // Skew-T coordinate bounds
-static constexpr double kMinTemp      = -80.0;
-static constexpr double kMaxTemp      = 40.0;
-static constexpr double kMinPres      = 100.0;
-static constexpr double kMaxPres      = 1050.0;
-static constexpr double kSkewFactor   = 40.0; // degrees C per log(p) decade
+static constexpr double kMinTemp    = -80.0;
+static constexpr double kMaxTemp    = 40.0;
+static constexpr double kMinPres    = 100.0;
+static constexpr double kMaxPres    = 1050.0;
+static constexpr double kSkewFactor = 40.0; // degrees C per log(p) decade
 
 // Plot margins (pixels)
 static constexpr double kMarginLeft   = 60.0;
@@ -53,11 +53,7 @@ static constexpr double kMarginBottom = 40.0;
 class SkewtWidget::Impl
 {
 public:
-   explicit Impl(SkewtWidget* widget) :
-       widget_(widget),
-       shaderLoaded_(false)
-   {
-   }
+   explicit Impl(SkewtWidget* widget) : widget_(widget), shaderLoaded_(false) {}
    ~Impl() = default;
 
    Impl(const Impl&)            = delete;
@@ -69,16 +65,18 @@ public:
    void SkewToNDC(double tempC, double presHPa, float& nx, float& ny) const
    {
       // Skew transformation: x = temp - skew * log10(pres)
-      double logP    = std::log10(presHPa);
-      double skewX   = tempC - kSkewFactor * (logP - std::log10(kMaxPres));
+      double logP  = std::log10(presHPa);
+      double skewX = tempC - kSkewFactor * (logP - std::log10(kMaxPres));
 
       // Map to NDC
-      double plotW = (kMaxTemp - kMinTemp) + kSkewFactor *
-                    (std::log10(kMaxPres) - std::log10(kMinPres));
+      double plotW =
+         (kMaxTemp - kMinTemp) +
+         kSkewFactor * (std::log10(kMaxPres) - std::log10(kMinPres));
       double plotH = std::log10(kMaxPres) - std::log10(kMinPres);
 
       nx = static_cast<float>(2.0 * (skewX - kMinTemp) / plotW - 1.0);
-      ny = static_cast<float>(2.0 * (std::log10(kMaxPres) - logP) / plotH - 1.0);
+      ny =
+         static_cast<float>(2.0 * (std::log10(kMaxPres) - logP) / plotH - 1.0);
    }
 
    // Convert pressure to NDC y (no skew)
@@ -86,7 +84,7 @@ public:
    {
       double plotH = std::log10(kMaxPres) - std::log10(kMinPres);
       return static_cast<float>(
-          2.0 * (std::log10(kMaxPres) - std::log10(presHPa)) / plotH - 1.0);
+         2.0 * (std::log10(kMaxPres) - std::log10(presHPa)) / plotH - 1.0);
    }
 
    // Temperature to NDC x at a given pressure
@@ -94,14 +92,19 @@ public:
    {
       double logP  = std::log10(presHPa);
       double skewX = tempC - kSkewFactor * (logP - std::log10(kMaxPres));
-      double plotW = (kMaxTemp - kMinTemp) + kSkewFactor *
-                    (std::log10(kMaxPres) - std::log10(kMinPres));
+      double plotW =
+         (kMaxTemp - kMinTemp) +
+         kSkewFactor * (std::log10(kMaxPres) - std::log10(kMinPres));
       return static_cast<float>(2.0 * (skewX - kMinTemp) / plotW - 1.0);
    }
 
-   void DrawLine(const std::vector<float>& vertices, const std::vector<float>& colors)
+   void DrawLine(const std::vector<float>& vertices,
+                 const std::vector<float>& colors)
    {
-      if (vertices.empty()) { return; }
+      if (vertices.empty())
+      {
+         return;
+      }
 
       GLuint vao, vbo;
       glGenVertexArrays(1, &vao);
@@ -129,10 +132,15 @@ public:
                    interleaved.data(),
                    GL_STREAM_DRAW);
 
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), nullptr);
+      glVertexAttribPointer(
+         0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), nullptr);
       glEnableVertexAttribArray(0);
 
-      glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float),
+      glVertexAttribPointer(1,
+                            4,
+                            GL_FLOAT,
+                            GL_FALSE,
+                            7 * sizeof(float),
                             reinterpret_cast<void*>(3 * sizeof(float)));
       glEnableVertexAttribArray(1);
 
@@ -145,7 +153,10 @@ public:
    void DrawFilled(const std::vector<float>& vertices,
                    const std::vector<float>& colors)
    {
-      if (vertices.empty()) { return; }
+      if (vertices.empty())
+      {
+         return;
+      }
 
       GLuint vao, vbo;
       glGenVertexArrays(1, &vao);
@@ -173,9 +184,14 @@ public:
                    interleaved.data(),
                    GL_STREAM_DRAW);
 
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), nullptr);
+      glVertexAttribPointer(
+         0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), nullptr);
       glEnableVertexAttribArray(0);
-      glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float),
+      glVertexAttribPointer(1,
+                            4,
+                            GL_FLOAT,
+                            GL_FALSE,
+                            7 * sizeof(float),
                             reinterpret_cast<void*>(3 * sizeof(float)));
       glEnableVertexAttribArray(1);
 
@@ -195,12 +211,19 @@ public:
       glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
       std::vector<float> ptData = {nx, ny, 0.0f, r, g, b, a};
-      glBufferData(GL_ARRAY_BUFFER, ptData.size() * sizeof(float),
-                   ptData.data(), GL_STREAM_DRAW);
+      glBufferData(GL_ARRAY_BUFFER,
+                   ptData.size() * sizeof(float),
+                   ptData.data(),
+                   GL_STREAM_DRAW);
 
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), nullptr);
+      glVertexAttribPointer(
+         0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), nullptr);
       glEnableVertexAttribArray(0);
-      glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float),
+      glVertexAttribPointer(1,
+                            4,
+                            GL_FLOAT,
+                            GL_FALSE,
+                            7 * sizeof(float),
                             reinterpret_cast<void*>(3 * sizeof(float)));
       glEnableVertexAttribArray(1);
 
@@ -223,7 +246,7 @@ public:
       std::vector<std::vector<std::pair<double, double>>> adiabats;
       for (double th : thetas)
       {
-         double thK = th + 273.15;
+         double                                 thK = th + 273.15;
          std::vector<std::pair<double, double>> curve;
          for (double p = kMaxPres; p >= kMinPres; p -= 10.0)
          {
@@ -247,7 +270,7 @@ public:
       for (double te = 0.0; te <= 40.0; te += 5.0)
       {
          std::vector<std::pair<double, double>> curve;
-         double tCur = te;
+         double                                 tCur = te;
          for (double p = kMaxPres; p >= kMinPres; p -= 10.0)
          {
             // Dry adiabat from previous level as first guess
@@ -259,8 +282,8 @@ public:
                tDry = (tCur + 273.15) * std::pow(p / pPrev, 0.2854) - 273.15;
 
             // Saturation mixing ratio at this level
-            double es  = 6.112 * std::exp(17.67 * tDry / (tDry + 243.5));
-            double ws  = 0.622 * es / (p - es);
+            double es = 6.112 * std::exp(17.67 * tDry / (tDry + 243.5));
+            double ws = 0.622 * es / (p - es);
 
             // Moist adjustment: latent heat release
             double dT = 0.0;
@@ -268,8 +291,8 @@ public:
             {
                // Approximate latent heating: ~2.5 °C per g/kg condensed
                double prevWs = 0.622 * es / (pPrev - es);
-               double dWs = std::max(0.0, prevWs - ws);
-               dT = dWs * 2500.0 * 0.001; // ~2.5°C per g/kg
+               double dWs    = std::max(0.0, prevWs - ws);
+               dT            = dWs * 2500.0 * 0.001; // ~2.5°C per g/kg
             }
             tCur = tDry + dT;
 
@@ -288,16 +311,17 @@ public:
    ComputeMixingLines() const
    {
       std::vector<std::vector<std::pair<double, double>>> lines;
-      std::vector<double> mixRatios = {0.1, 0.2, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 24.0};
+      std::vector<double>                                 mixRatios = {
+         0.1, 0.2, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 24.0};
 
       for (double w : mixRatios)
       {
          std::vector<std::pair<double, double>> curve;
          for (double p = kMaxPres; p >= kMinPres; p -= 10.0)
          {
-            double e  = w * p / (0.622 + w);
-            double td = 243.5 * std::log(e / 6.112) /
-                        (17.67 - std::log(e / 6.112));
+            double e = w * p / (0.622 + w);
+            double td =
+               243.5 * std::log(e / 6.112) / (17.67 - std::log(e / 6.112));
             if (td >= kMinTemp && td <= kMaxTemp)
             {
                curve.emplace_back(td, p);
@@ -309,8 +333,7 @@ public:
    }
 
    // Isotherm lines (constant T, skewed)
-   std::vector<std::vector<std::pair<double, double>>>
-   ComputeIsotherms() const
+   std::vector<std::vector<std::pair<double, double>>> ComputeIsotherms() const
    {
       std::vector<std::vector<std::pair<double, double>>> isotherms;
       for (double t = -80.0; t <= 40.0; t += 10.0)
@@ -333,13 +356,18 @@ public:
       auto program = shader_;
       program->Use();
       glUniformMatrix4fv(program->GetUniformLocation("uMVPMatrix"),
-                         1, GL_FALSE, glm::value_ptr(projMatrix_));
+                         1,
+                         GL_FALSE,
+                         glm::value_ptr(projMatrix_));
 
       // Draw isotherms (gray solid, skewed)
       auto isotherms = ComputeIsotherms();
       for (const auto& iso : isotherms)
       {
-         if (iso.size() < 2) { continue; }
+         if (iso.size() < 2)
+         {
+            continue;
+         }
          std::vector<float> verts, cols;
          for (const auto& pt : iso)
          {
@@ -354,13 +382,13 @@ public:
       // Draw isobars (gray solid horizontal, log-spaced)
       for (double p = 100.0; p <= 1050.0; p += 100.0)
       {
-         float ny = PresToNDCY(p);
+         float ny  = PresToNDCY(p);
          float nx1 = TempToNDCX(kMinTemp, p);
          float nx2 = TempToNDCX(kMaxTemp, p);
 
          std::vector<float> verts = {nx1, ny, 0.0f, nx2, ny, 0.0f};
-         std::vector<float> cols  = {0.35f, 0.35f, 0.5f, 0.7f,
-                                     0.35f, 0.35f, 0.5f, 0.7f};
+         std::vector<float> cols  = {
+            0.35f, 0.35f, 0.5f, 0.7f, 0.35f, 0.35f, 0.5f, 0.7f};
          DrawLine(verts, cols);
       }
    }
@@ -370,13 +398,18 @@ public:
       auto program = shader_;
       program->Use();
       glUniformMatrix4fv(program->GetUniformLocation("uMVPMatrix"),
-                         1, GL_FALSE, glm::value_ptr(projMatrix_));
+                         1,
+                         GL_FALSE,
+                         glm::value_ptr(projMatrix_));
 
       // Dry adiabats (solid orange)
       auto dry = ComputeDryAdiabats();
       for (const auto& curve : dry)
       {
-         if (curve.size() < 2) { continue; }
+         if (curve.size() < 2)
+         {
+            continue;
+         }
          std::vector<float> verts, cols;
          for (const auto& pt : curve)
          {
@@ -392,7 +425,10 @@ public:
       auto moist = ComputeMoistAdiabats();
       for (const auto& curve : moist)
       {
-         if (curve.size() < 2) { continue; }
+         if (curve.size() < 2)
+         {
+            continue;
+         }
          std::vector<float> verts, cols;
          for (const auto& pt : curve)
          {
@@ -408,7 +444,10 @@ public:
       auto mix = ComputeMixingLines();
       for (const auto& curve : mix)
       {
-         if (curve.size() < 2) { continue; }
+         if (curve.size() < 2)
+         {
+            continue;
+         }
          std::vector<float> verts, cols;
          for (const auto& pt : curve)
          {
@@ -423,16 +462,22 @@ public:
 
    void DrawProfiles()
    {
-      if (!sounding_ || sounding_->levels().empty()) { return; }
+      if (!sounding_ || sounding_->levels().empty())
+      {
+         return;
+      }
 
       auto program = shader_;
       program->Use();
       glUniformMatrix4fv(program->GetUniformLocation("uMVPMatrix"),
-                         1, GL_FALSE, glm::value_ptr(projMatrix_));
+                         1,
+                         GL_FALSE,
+                         glm::value_ptr(projMatrix_));
 
       // Sort by decreasing pressure
       auto levels = sounding_->levels();
-      std::sort(levels.begin(), levels.end(),
+      std::sort(levels.begin(),
+                levels.end(),
                 [](const auto& a, const auto& b)
                 { return a.pressure_hPa_ > b.pressure_hPa_; });
 
@@ -454,7 +499,10 @@ public:
          std::vector<float> verts, cols;
          for (const auto& lvl : levels)
          {
-            if (lvl.dewpoint_C_ < -99.0) { continue; } // skip invalid
+            if (lvl.dewpoint_C_ < -99.0)
+            {
+               continue;
+            } // skip invalid
             float nx, ny;
             SkewToNDC(lvl.dewpoint_C_, lvl.pressure_hPa_, nx, ny);
             verts.insert(verts.end(), {nx, ny, 0.0f});
@@ -466,73 +514,92 @@ public:
 
    void DrawParcelProfile()
    {
-      if (!sounding_ || sounding_->levels().empty()) { return; }
+      if (!sounding_ || sounding_->levels().empty())
+      {
+         return;
+      }
 
       auto program = shader_;
       program->Use();
       glUniformMatrix4fv(program->GetUniformLocation("uMVPMatrix"),
-                         1, GL_FALSE, glm::value_ptr(projMatrix_));
+                         1,
+                         GL_FALSE,
+                         glm::value_ptr(projMatrix_));
 
       auto levels = sounding_->levels();
-      std::sort(levels.begin(), levels.end(),
+      std::sort(levels.begin(),
+                levels.end(),
                 [](const auto& a, const auto& b)
                 { return a.pressure_hPa_ > b.pressure_hPa_; });
 
-      const auto& sfc     = levels[0];
-      double pSfc         = sfc.pressure_hPa_;
-      double tSfc         = sfc.temperature_C_;
-      double pLcl = sounding_->lcl_pressure_hPa();
+      const auto& sfc  = levels[0];
+      double      pSfc = sfc.pressure_hPa_;
+      double      tSfc = sfc.temperature_C_;
+      double      pLcl = sounding_->lcl_pressure_hPa();
 
       // Compute parcel profile
       std::vector<float> verts, cols;
 
       for (const auto& lvl : levels)
       {
-          double p = lvl.pressure_hPa_;
-          if (p > pSfc) { continue; }
+         double p = lvl.pressure_hPa_;
+         if (p > pSfc)
+         {
+            continue;
+         }
 
-          double tParcel;
-          if (p >= pLcl)
-          {
-             tParcel = (tSfc + 273.15) * std::pow(p / pSfc, 0.2854) - 273.15;
-          }
-          else
-          {
-             double tAtLcl = (tSfc + 273.15) * std::pow(pLcl / pSfc, 0.2854) - 273.15;
-             double tk = tAtLcl + 273.15;
-             tk += 6.5 * (pLcl - p) / 1000.0;
-             tParcel = tk - 273.15;
-          }
+         double tParcel;
+         if (p >= pLcl)
+         {
+            tParcel = (tSfc + 273.15) * std::pow(p / pSfc, 0.2854) - 273.15;
+         }
+         else
+         {
+            double tAtLcl =
+               (tSfc + 273.15) * std::pow(pLcl / pSfc, 0.2854) - 273.15;
+            double tk = tAtLcl + 273.15;
+            tk += 6.5 * (pLcl - p) / 1000.0;
+            tParcel = tk - 273.15;
+         }
 
          float nx, ny;
          SkewToNDC(tParcel, p, nx, ny);
          verts.insert(verts.end(), {nx, ny, 0.0f});
-          cols.insert(cols.end(), {1.0f, 1.0f, 1.0f, 0.9f});
-       }
+         cols.insert(cols.end(), {1.0f, 1.0f, 1.0f, 0.9f});
+      }
 
-       DrawLine(verts, cols);
-    }
+      DrawLine(verts, cols);
+   }
 
-    void DrawCapeCin()
-    {
-      if (!sounding_ || sounding_->levels().empty()) { return; }
+   void DrawCapeCin()
+   {
+      if (!sounding_ || sounding_->levels().empty())
+      {
+         return;
+      }
 
       auto program = shader_;
       program->Use();
       glUniformMatrix4fv(program->GetUniformLocation("uMVPMatrix"),
-                         1, GL_FALSE, glm::value_ptr(projMatrix_));
+                         1,
+                         GL_FALSE,
+                         glm::value_ptr(projMatrix_));
 
       auto levels = sounding_->levels();
-      if (levels.empty()) { return; }
+      if (levels.empty())
+      {
+         return;
+      }
 
-      std::sort(levels.begin(), levels.end(),
+      std::sort(levels.begin(),
+                levels.end(),
                 [](const auto& a, const auto& b)
                 { return a.pressure_hPa_ > b.pressure_hPa_; });
 
       const auto& sfc  = levels[0];
-      double pSfc      = sfc.pressure_hPa_;
-      double tSfc      = sfc.temperature_C_;
-      double pLcl      = sounding_->lcl_pressure_hPa();
+      double      pSfc = sfc.pressure_hPa_;
+      double      tSfc = sfc.temperature_C_;
+      double      pLcl = sounding_->lcl_pressure_hPa();
 
       // Build triangles between temperature profile and parcel profile
       std::vector<float> capeVerts, capeColors;
@@ -540,26 +607,33 @@ public:
 
       for (size_t i = 1; i < levels.size(); ++i)
       {
-         double pUpper = levels[i].pressure_hPa_;
-         double pLower = levels[i - 1].pressure_hPa_;
+         double pUpper    = levels[i].pressure_hPa_;
+         double pLower    = levels[i - 1].pressure_hPa_;
          double tEnvUpper = levels[i].temperature_C_;
          double tEnvLower = levels[i - 1].temperature_C_;
 
-         if (pUpper > pSfc) { continue; }
+         if (pUpper > pSfc)
+         {
+            continue;
+         }
 
          // Compute parcel temperature at lower and upper level
          auto parcelT = [&](double presP) -> double
          {
             if (presP >= pLcl)
                return (tSfc + 273.15) * std::pow(presP / pSfc, 0.2854) - 273.15;
-            double tAtLcl = (tSfc + 273.15) * std::pow(pLcl / pSfc, 0.2854) - 273.15;
+            double tAtLcl =
+               (tSfc + 273.15) * std::pow(pLcl / pSfc, 0.2854) - 273.15;
             return (tAtLcl + 273.15) + 6.5 * (pLcl - presP) / 1000.0 - 273.15;
          };
 
          double tParcelLower = parcelT(pLower);
          double tParcelUpper = parcelT(pUpper);
 
-         if (tParcelLower < -100 || tParcelUpper < -100) { continue; }
+         if (tParcelLower < -100 || tParcelUpper < -100)
+         {
+            continue;
+         }
 
          float nx1, ny1, nx2, ny2, nx3, ny3, nx4, ny4;
          SkewToNDC(tEnvLower, pLower, nx1, ny1);
@@ -568,48 +642,63 @@ public:
          SkewToNDC(tParcelUpper, pUpper, nx4, ny4);
 
          // Determine if this layer is CAPE or CIN
-         double tEnvMid = 0.5 * (tEnvLower + tEnvUpper);
+         double tEnvMid    = 0.5 * (tEnvLower + tEnvUpper);
          double tParcelMid = 0.5 * (tParcelLower + tParcelUpper);
 
-         auto& targetVerts = (tParcelMid > tEnvMid) ? capeVerts : cinVerts;
+         auto& targetVerts  = (tParcelMid > tEnvMid) ? capeVerts : cinVerts;
          auto& targetColors = (tParcelMid > tEnvMid) ? capeColors : cinColors;
 
          // Triangle 1: lower-left, upper-left, upper-right
-         targetVerts.insert(targetVerts.end(), {nx1, ny1, 0.0f, nx2, ny2, 0.0f,
-                                                 nx4, ny4, 0.0f});
+         targetVerts.insert(targetVerts.end(),
+                            {nx1, ny1, 0.0f, nx2, ny2, 0.0f, nx4, ny4, 0.0f});
          // Triangle 2: lower-left, upper-right, lower-right
-         targetVerts.insert(targetVerts.end(), {nx1, ny1, 0.0f, nx4, ny4, 0.0f,
-                                                 nx3, ny3, 0.0f});
+         targetVerts.insert(targetVerts.end(),
+                            {nx1, ny1, 0.0f, nx4, ny4, 0.0f, nx3, ny3, 0.0f});
 
          // Colors
          float cr, cg, cb;
-          if (tParcelMid > tEnvMid)
-          {
-             cr = 1.0f; cg = 0.2f; cb = 0.2f; // CAPE red
-          }
-          else
-          {
-             cr = 0.3f; cg = 0.3f; cb = 1.0f; // CIN blue
-          }
+         if (tParcelMid > tEnvMid)
+         {
+            cr = 1.0f;
+            cg = 0.2f;
+            cb = 0.2f; // CAPE red
+         }
+         else
+         {
+            cr = 0.3f;
+            cg = 0.3f;
+            cb = 1.0f; // CIN blue
+         }
 
-          for (int t = 0; t < 6; ++t)
-          {
-             targetColors.insert(targetColors.end(), {cr, cg, cb, 0.25f});
+         for (int t = 0; t < 6; ++t)
+         {
+            targetColors.insert(targetColors.end(), {cr, cg, cb, 0.25f});
          }
       }
 
-      if (!capeVerts.empty()) { DrawFilled(capeVerts, capeColors); }
-      if (!cinVerts.empty()) { DrawFilled(cinVerts, cinColors); }
+      if (!capeVerts.empty())
+      {
+         DrawFilled(capeVerts, capeColors);
+      }
+      if (!cinVerts.empty())
+      {
+         DrawFilled(cinVerts, cinColors);
+      }
    }
 
    void DrawMarkers()
    {
-      if (!sounding_) { return; }
+      if (!sounding_)
+      {
+         return;
+      }
 
       auto program = shader_;
       program->Use();
       glUniformMatrix4fv(program->GetUniformLocation("uMVPMatrix"),
-                         1, GL_FALSE, glm::value_ptr(projMatrix_));
+                         1,
+                         GL_FALSE,
+                         glm::value_ptr(projMatrix_));
 
       // LCL marker (cyan dot)
       {
@@ -650,15 +739,21 @@ public:
 
    void DrawWindBarbs()
    {
-      if (!sounding_) { return; }
+      if (!sounding_)
+      {
+         return;
+      }
 
       auto program = shader_;
       program->Use();
       glUniformMatrix4fv(program->GetUniformLocation("uMVPMatrix"),
-                         1, GL_FALSE, glm::value_ptr(projMatrix_));
+                         1,
+                         GL_FALSE,
+                         glm::value_ptr(projMatrix_));
 
       auto levels = sounding_->levels();
-      std::sort(levels.begin(), levels.end(),
+      std::sort(levels.begin(),
+                levels.end(),
                 [](const auto& a, const auto& b)
                 { return a.pressure_hPa_ > b.pressure_hPa_; });
 
@@ -674,25 +769,28 @@ public:
          double scale  = lvl.wind_speed_mps_ / 50.0; // normalized barb length
 
          // Barb shaft (vertical line at barb position)
-         float shaftTop = ny + 0.01f;
-         float shaftBot = ny - 0.01f;
-         std::vector<float> shaftVerts = {barbNX, shaftBot, 0.0f,
-                                           barbNX, shaftTop, 0.0f};
-          std::vector<float> shaftCols  = {0.7f, 0.7f, 0.8f, 1.0f,
-                                           0.7f, 0.7f, 0.8f, 1.0f};
-          DrawLine(shaftVerts, shaftCols);
+         float              shaftTop   = ny + 0.01f;
+         float              shaftBot   = ny - 0.01f;
+         std::vector<float> shaftVerts = {
+            barbNX, shaftBot, 0.0f, barbNX, shaftTop, 0.0f};
+         std::vector<float> shaftCols = {
+            0.7f, 0.7f, 0.8f, 1.0f, 0.7f, 0.7f, 0.8f, 1.0f};
+         DrawLine(shaftVerts, shaftCols);
 
-          if (lvl.wind_speed_mps_ < 1.0) { continue; }
+         if (lvl.wind_speed_mps_ < 1.0)
+         {
+            continue;
+         }
 
-          // Barb flag (line from shaft in wind direction)
-          float flagLen = 0.025f * std::min(scale, 1.0);
-          float dx      = flagLen * std::sin(dirRad);
-          float dy      = flagLen * std::cos(dirRad);
+         // Barb flag (line from shaft in wind direction)
+         float flagLen = 0.025f * std::min(scale, 1.0);
+         float dx      = flagLen * std::sin(dirRad);
+         float dy      = flagLen * std::cos(dirRad);
 
-          std::vector<float> flagVerts = {barbNX, ny, 0.0f,
-                                           barbNX + dx, ny + dy, 0.0f};
-          std::vector<float> flagCols  = {0.7f, 0.7f, 0.8f, 1.0f,
-                                           0.7f, 0.7f, 0.8f, 1.0f};
+         std::vector<float> flagVerts = {
+            barbNX, ny, 0.0f, barbNX + dx, ny + dy, 0.0f};
+         std::vector<float> flagCols = {
+            0.7f, 0.7f, 0.8f, 1.0f, 0.7f, 0.7f, 0.8f, 1.0f};
          DrawLine(flagVerts, flagCols);
       }
    }
@@ -710,7 +808,8 @@ public:
          titleFont.setPointSize(11);
          titleFont.setBold(true);
          painter.setFont(titleFont);
-         painter.drawText(rect_, Qt::AlignTop | Qt::AlignHCenter,
+         painter.drawText(rect_,
+                          Qt::AlignTop | Qt::AlignHCenter,
                           QString::fromStdString("GFS Sounding: " + id));
       }
 
@@ -726,18 +825,31 @@ public:
          SkewToNDC(t, kMaxPres, nx, ny);
          double wx = (nx + 1.0) / 2.0 * rect_.width();
          painter.drawText(QPointF(wx - 10, rect_.height() - 10),
-                         QString::number(static_cast<int>(t)) + "\u00B0");
+                          QString::number(static_cast<int>(t)) + "\u00B0");
       }
 
       // Pressure labels along left (y-axis, log scale)
-      double presLabels[] = {1050.0, 1000.0, 900.0, 800.0, 700.0, 600.0,
-                             500.0, 400.0, 300.0, 200.0, 100.0, 50.0};
+      double presLabels[] = {1050.0,
+                             1000.0,
+                             900.0,
+                             800.0,
+                             700.0,
+                             600.0,
+                             500.0,
+                             400.0,
+                             300.0,
+                             200.0,
+                             100.0,
+                             50.0};
       for (double p : presLabels)
       {
-          if (p < kMinPres || p > kMaxPres) { continue; }
-          float ny = PresToNDCY(p);
-          double wy = (1.0 - ny) / 2.0 * rect_.height();
-          painter.drawText(QPointF(5, wy + 3),
+         if (p < kMinPres || p > kMaxPres)
+         {
+            continue;
+         }
+         float  ny = PresToNDCY(p);
+         double wy = (1.0 - ny) / 2.0 * rect_.height();
+         painter.drawText(QPointF(5, wy + 3),
                           QString::number(static_cast<int>(p)));
       }
 
@@ -747,18 +859,21 @@ public:
          painter.setPen(QColor(255, 100, 100));
          painter.drawText(QPointF(rect_.width() - 150, 20),
                           QString("CAPE: %1 J/kg")
-                              .arg(static_cast<int>(sounding_->cape_jkg())));
+                             .arg(static_cast<int>(sounding_->cape_jkg())));
 
          painter.setPen(QColor(100, 150, 255));
          painter.drawText(QPointF(rect_.width() - 150, 35),
                           QString("CIN: %1 J/kg")
-                              .arg(static_cast<int>(sounding_->cin_jkg())));
+                             .arg(static_cast<int>(sounding_->cin_jkg())));
       }
    }
 
    void Render()
    {
-      if (!shaderLoaded_) { return; }
+      if (!shaderLoaded_)
+      {
+         return;
+      }
 
       glClearColor(0.08f, 0.08f, 0.15f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT);
@@ -781,17 +896,16 @@ public:
       glDisable(GL_BLEND);
    }
 
-   SkewtWidget*                                  widget_;
-   std::shared_ptr<gl::ShaderProgram>            shader_;
-   glm::mat4                                     projMatrix_ {};
-   std::shared_ptr<sounding::SoundingData>       sounding_;
-   QRect                                         rect_ {};
-   bool                                          shaderLoaded_ {false};
+   SkewtWidget*                            widget_;
+   std::shared_ptr<gl::ShaderProgram>      shader_;
+   glm::mat4                               projMatrix_ {};
+   std::shared_ptr<sounding::SoundingData> sounding_;
+   QRect                                   rect_ {};
+   bool                                    shaderLoaded_ {false};
 };
 
 SkewtWidget::SkewtWidget(QWidget* parent) :
-    QOpenGLWidget(parent),
-    p(std::make_unique<Impl>(this))
+    QOpenGLWidget(parent), p(std::make_unique<Impl>(this))
 {
    setMinimumSize(400, 500);
 }

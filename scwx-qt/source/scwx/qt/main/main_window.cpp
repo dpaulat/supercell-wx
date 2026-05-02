@@ -293,13 +293,15 @@ MainWindow::MainWindow(QWidget* parent) :
    auto* soundingAction = ui->menuView->addAction(tr("GFS &Sounding"));
    soundingAction->setCheckable(true);
    soundingAction->setChecked(false);
-   QObject::connect(soundingAction, &QAction::toggled, this,
+   QObject::connect(soundingAction,
+                    &QAction::toggled,
+                    this,
                     [this, soundingAction](bool checked)
-                    {
-                       p->soundingPanel_->setVisible(checked);
-                    });
-   QObject::connect(p->soundingPanel_, &QDockWidget::visibilityChanged,
-                    soundingAction, &QAction::setChecked);
+                    { p->soundingPanel_->setVisible(checked); });
+   QObject::connect(p->soundingPanel_,
+                    &QDockWidget::visibilityChanged,
+                    soundingAction,
+                    &QAction::setChecked);
 
    ui->menuDebug->menuAction()->setVisible(
       settings::GeneralSettings::Instance().debug_enabled().GetValue());
@@ -1088,7 +1090,10 @@ void MainWindowImpl::ConnectMapSignals()
               this,
               [this](common::Coordinate coordinate)
               {
-                 if (!selectingSoundingPoint_) { return; }
+                 if (!selectingSoundingPoint_)
+                 {
+                    return;
+                 }
                  selectingSoundingPoint_ = false;
                  activeMap_->setCursor(Qt::ArrowCursor);
                  soundingPanel_->SetLocation(coordinate.latitude_,

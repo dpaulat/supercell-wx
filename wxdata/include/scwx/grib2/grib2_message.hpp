@@ -23,18 +23,18 @@ public:
 
    bool IsValid() const;
 
-   Discipline   discipline() const;
-   ParameterId  parameter() const;
-   SurfaceType  surfaceType() const;
-   double       levelValue() const;
-   double       forecastHour() const;
+   Discipline                   discipline() const;
+   ParameterId                  parameter() const;
+   SurfaceType                  surfaceType() const;
+   double                       levelValue() const;
+   double                       forecastHour() const;
    std::optional<GridDef>       gridDefinition() const;
    std::optional<SimplePacking> simplePacking() const;
 
    std::vector<double> values() const;
-   double valueAt(std::size_t i, std::size_t j) const;
-   std::size_t dataPointCount() const;
-   const std::string& errorMessage() const;
+   double              valueAt(std::size_t i, std::size_t j) const;
+   std::size_t         dataPointCount() const;
+   const std::string&  errorMessage() const;
 
 private:
    class Impl;

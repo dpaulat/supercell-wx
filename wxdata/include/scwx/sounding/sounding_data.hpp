@@ -11,12 +11,12 @@ namespace scwx::sounding
 
 struct SoundingLevel
 {
-   double pressure_hPa_    {};
-   double temperature_C_   {};
-   double dewpoint_C_      {};
-   double wind_speed_mps_  {};
+   double pressure_hPa_ {};
+   double temperature_C_ {};
+   double dewpoint_C_ {};
+   double wind_speed_mps_ {};
    double wind_direction_deg_ {};
-   double height_m_        {};
+   double height_m_ {};
 };
 
 class SoundingData
@@ -31,11 +31,11 @@ public:
    SoundingData(SoundingData&&) noexcept;
    SoundingData& operator=(SoundingData&&) noexcept;
 
-   double latitude() const;
-   double longitude() const;
-   const std::string& station_id() const;
+   double                                latitude() const;
+   double                                longitude() const;
+   const std::string&                    station_id() const;
    std::chrono::system_clock::time_point forecast_time() const;
-   const std::vector<SoundingLevel>& levels() const;
+   const std::vector<SoundingLevel>&     levels() const;
 
    void set_latitude(double lat);
    void set_longitude(double lon);
@@ -54,9 +54,9 @@ public:
    double el_temperature_C() const;
 
    double surface_based_shear_s_1(double lower_km = 1.0,
-                                   double upper_km = 6.0) const;
+                                  double upper_km = 6.0) const;
    double storm_relative_helicity_m2s2(double lower_km = 0.0,
-                                        double upper_km = 3.0) const;
+                                       double upper_km = 3.0) const;
 
    void compute_derived();
 

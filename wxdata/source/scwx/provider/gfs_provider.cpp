@@ -26,16 +26,15 @@ static const std::string kOpenMeteoBaseUrl_ =
    "https://api.open-meteo.com/v1/gfs";
 
 static const std::vector<double> kPressureLevels_ = {
-   1000.0, 975.0, 950.0, 925.0, 900.0, 875.0, 850.0, 825.0, 800.0,
-   775.0,  750.0, 700.0, 650.0, 600.0, 550.0, 500.0, 450.0, 400.0,
-   350.0,  300.0, 250.0, 200.0, 175.0, 150.0, 125.0, 100.0, 70.0,
-   50.0,   30.0,  20.0,  10.0};
+   1000.0, 975.0, 950.0, 925.0, 900.0, 875.0, 850.0, 825.0, 800.0, 775.0, 750.0,
+   700.0,  650.0, 600.0, 550.0, 500.0, 450.0, 400.0, 350.0, 300.0, 250.0, 200.0,
+   175.0,  150.0, 125.0, 100.0, 70.0,  50.0,  30.0,  20.0,  10.0};
 
 class GfsProvider::Impl
 {
 public:
-   explicit Impl()  = default;
-   ~Impl()          = default;
+   explicit Impl() = default;
+   ~Impl()         = default;
 
    Impl(const Impl&)            = delete;
    Impl& operator=(const Impl&) = delete;
@@ -44,20 +43,22 @@ public:
 
    std::string BuildUrl(double lat, double lon, int cycle, int fhr)
    {
-      int targetHour = cycle + fhr;
+      int targetHour   = cycle + fhr;
       int forecastDays = std::max(1, std::min(targetHour / 24 + 1, 16));
 
       std::ostringstream url;
-      url << kOpenMeteoBaseUrl_
-          << "?latitude=" << std::fixed << std::setprecision(4) << lat
-          << "&longitude=" << std::fixed << std::setprecision(4) << lon
-          << "&hourly=";
+      url << kOpenMeteoBaseUrl_ << "?latitude=" << std::fixed
+          << std::setprecision(4) << lat << "&longitude=" << std::fixed
+          << std::setprecision(4) << lon << "&hourly=";
 
       auto addVars = [&](const std::string& prefix)
       {
          for (size_t i = 0; i < kPressureLevels_.size(); ++i)
          {
-            if (i > 0) { url << ","; }
+            if (i > 0)
+            {
+               url << ",";
+            }
             url << prefix << static_cast<int>(kPressureLevels_[i]) << "hPa";
          }
       };
@@ -72,8 +73,7 @@ public:
       url << ",";
       addVars("geopotential_height_");
 
-      url << "&forecast_days=" << forecastDays
-          << "&temperature_unit=celsius"
+      url << "&forecast_days=" << forecastDays << "&temperature_unit=celsius"
           << "&wind_speed_unit=ms";
 
       return url.str();
@@ -81,18 +81,19 @@ public:
 
    static double DewpointFromRH(double t_C, double rh_pct)
    {
-      if (rh_pct <= 0.0) { return -999.0; }
-      double e  = (rh_pct / 100.0) * 6.112 *
-                  std::exp((17.67 * t_C) / (t_C + 243.5));
-      double td = (243.5 * std::log(e / 6.112)) /
-                  (17.67 - std::log(e / 6.112));
+      if (rh_pct <= 0.0)
+      {
+         return -999.0;
+      }
+      double e =
+         (rh_pct / 100.0) * 6.112 * std::exp((17.67 * t_C) / (t_C + 243.5));
+      double td = (243.5 * std::log(e / 6.112)) / (17.67 - std::log(e / 6.112));
       return td;
    }
 
-   static std::optional<double>
-   JsonGetOptional(const boost::json::object& obj,
-                   const std::string&         key,
-                   std::size_t                index)
+   static std::optional<double> JsonGetOptional(const boost::json::object& obj,
+                                                const std::string&         key,
+                                                std::size_t index)
    {
       auto it = obj.find(key);
       if (it == obj.end() || !it->value().is_array())
@@ -119,16 +120,18 @@ public:
    FetchSounding(double lat, double lon, int cycle, int fhr)
    {
       logger_->info("Fetching GFS sounding: lat={}, lon={}, cycle={}, fhr={}",
-                    lat, lon, cycle, fhr);
+                    lat,
+                    lon,
+                    cycle,
+                    fhr);
 
       std::string url = BuildUrl(lat, lon, cycle, fhr);
       logger_->debug("Open-Meteo URL: {}", url);
 
-      auto response =
-         cpr::Get(cpr::Url{url},
-                  network::cpr::GetDefaultTimeout(),
-                  network::cpr::GetDefaultConnectTimeout(),
-                  network::cpr::GetDefaultLowSpeed());
+      auto response = cpr::Get(cpr::Url {url},
+                               network::cpr::GetDefaultTimeout(),
+                               network::cpr::GetDefaultConnectTimeout(),
+                               network::cpr::GetDefaultLowSpeed());
 
       if (response.status_code != 200)
       {
@@ -157,8 +160,8 @@ public:
       if (errorIt != root.end() && errorIt->value().is_bool() &&
           errorIt->value().as_bool())
       {
-         std::string reason = "Unknown error";
-         auto reasonIt = root.find("reason");
+         std::string reason   = "Unknown error";
+         auto        reasonIt = root.find("reason");
          if (reasonIt != root.end() && reasonIt->value().is_string())
          {
             reason = reasonIt->value().as_string().c_str();
@@ -185,28 +188,27 @@ public:
       const auto& times = timeIt->value().as_array();
 
       // Compute target UTC time string: YYYY-MM-DDTHH:00
-      int targetHourOffset = cycle + fhr;
-      auto now      = std::chrono::system_clock::now();
-      auto todayDay = std::chrono::floor<std::chrono::days>(now);
-      auto target   = todayDay + std::chrono::hours(targetHourOffset);
+      int  targetHourOffset = cycle + fhr;
+      auto now              = std::chrono::system_clock::now();
+      auto todayDay         = std::chrono::floor<std::chrono::days>(now);
+      auto target           = todayDay + std::chrono::hours(targetHourOffset);
       std::chrono::year_month_day ymd {
-          std::chrono::floor<std::chrono::days>(target)};
+         std::chrono::floor<std::chrono::days>(target)};
       int targetHourOfDay = targetHourOffset % 24;
 
       std::ostringstream targetTimeStr;
-      targetTimeStr << std::setfill('0')
-                    << std::setw(4) << static_cast<int>(ymd.year()) << "-"
-                    << std::setw(2) << static_cast<unsigned>(ymd.month()) << "-"
-                    << std::setw(2) << static_cast<unsigned>(ymd.day()) << "T"
-                    << std::setw(2) << targetHourOfDay << ":00";
+      targetTimeStr << std::setfill('0') << std::setw(4)
+                    << static_cast<int>(ymd.year()) << "-" << std::setw(2)
+                    << static_cast<unsigned>(ymd.month()) << "-" << std::setw(2)
+                    << static_cast<unsigned>(ymd.day()) << "T" << std::setw(2)
+                    << targetHourOfDay << ":00";
       std::string targetTime = targetTimeStr.str();
 
       // Find matching time index
       int timeIndex = -1;
       for (size_t i = 0; i < times.size(); ++i)
       {
-         if (times[i].is_string() &&
-             times[i].as_string() == targetTime)
+         if (times[i].is_string() && times[i].as_string() == targetTime)
          {
             timeIndex = static_cast<int>(i);
             break;
@@ -215,9 +217,11 @@ public:
 
       if (timeIndex < 0)
       {
-         logger_->warn("Target time {} not found in Open-Meteo response "
-                       "({} entries)",
-                       targetTime, times.size());
+         logger_->warn(
+            "Target time {} not found in Open-Meteo response "
+            "({} entries)",
+            targetTime,
+            times.size());
          return std::nullopt;
       }
 
@@ -239,19 +243,24 @@ public:
          int         level  = static_cast<int>(pressure);
          std::string suffix = std::to_string(level) + "hPa";
 
-         auto temp  = JsonGetOptional(hourly, "temperature_" + suffix,
-                                      static_cast<std::size_t>(timeIndex));
-         auto rh    = JsonGetOptional(hourly, "relative_humidity_" + suffix,
-                                      static_cast<std::size_t>(timeIndex));
-         auto ws    = JsonGetOptional(hourly, "wind_speed_" + suffix,
-                                      static_cast<std::size_t>(timeIndex));
-         auto wd    = JsonGetOptional(hourly, "wind_direction_" + suffix,
-                                      static_cast<std::size_t>(timeIndex));
-         auto hgt   = JsonGetOptional(hourly, "geopotential_height_" + suffix,
-                                      static_cast<std::size_t>(timeIndex));
+         auto temp = JsonGetOptional(hourly,
+                                     "temperature_" + suffix,
+                                     static_cast<std::size_t>(timeIndex));
+         auto rh   = JsonGetOptional(hourly,
+                                   "relative_humidity_" + suffix,
+                                   static_cast<std::size_t>(timeIndex));
+         auto ws   = JsonGetOptional(hourly,
+                                   "wind_speed_" + suffix,
+                                   static_cast<std::size_t>(timeIndex));
+         auto wd   = JsonGetOptional(hourly,
+                                   "wind_direction_" + suffix,
+                                   static_cast<std::size_t>(timeIndex));
+         auto hgt  = JsonGetOptional(hourly,
+                                    "geopotential_height_" + suffix,
+                                    static_cast<std::size_t>(timeIndex));
 
-         if (!temp.has_value() || !rh.has_value() ||
-             !ws.has_value() || !wd.has_value() || !hgt.has_value())
+         if (!temp.has_value() || !rh.has_value() || !ws.has_value() ||
+             !wd.has_value() || !hgt.has_value())
          {
             continue;
          }
