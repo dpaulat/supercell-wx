@@ -40,7 +40,7 @@ AboutDialog::AboutDialog(QWidget* parent) :
    ui->titleLabel->setFont(titleFont);
 
    QString repositoryUrl =
-      QString("https://github.com/dpaulat/supercell-wx/tree/%1")
+      QString("https://github.com/AscendedGravity/supercell-wx/tree/%1")
          .arg(QString::fromStdString(main::kCommitString_));
 
    // Remove +dirty from the URL
