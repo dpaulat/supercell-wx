@@ -624,7 +624,7 @@ void RadarProductManagerImpl::EnsureCoordinatesInitialized(
    std::optional<units::angle::degrees<float>> radialAngle {};
    std::optional<units::angle::degrees<float>> angleOffset {};
    float                                       gateRangeOffset = 0.0f;
-   const char*                                 timerName;
+   const char*                                 timerName       = nullptr;
 
    switch (radialSize)
    {
