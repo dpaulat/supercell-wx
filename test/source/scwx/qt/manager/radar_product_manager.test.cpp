@@ -69,6 +69,8 @@ void ValidateCoordinateSamples(const RadarProductManager&   manager,
 
 } // namespace
 
+// Spot-checks lazy-built tables against GeographicLib::Geodesic::Direct
+// (reference).
 TEST(RadarProductManager, CoordinateGenerationMatchesGeodesicReference)
 {
    config::RadarSite::Initialize();

@@ -66,7 +66,8 @@ static constexpr uint32_t NUM_RADIALS_0_5_DEGREE =
    common::MAX_0_5_DEGREE_RADIALS;
 static constexpr uint32_t NUM_RADIALS_1_DEGREE = common::MAX_1_DEGREE_RADIALS;
 
-// Coordinate grid: radial spacing and smoothing offsets (see product geometry).
+// Coordinate grid tuning: radial step (deg), extra azimuth when smoothing is
+// on, and first-gate fractional offset into slant range (matches prior layout).
 static constexpr float kCoordinateRadialStepDegrees0_5_ {0.5F};
 static constexpr float kCoordinateSmoothingRadialOffsetDegrees0_5_ {0.25F};
 static constexpr float kCoordinateSmoothingRadialOffsetDegrees1_0_ {0.5F};
@@ -298,6 +299,9 @@ public:
    std::shared_ptr<config::RadarSite> radarSite_;
    std::size_t                        cacheLimit_ {6u};
 
+   // Lat/lon per radial/gate. Filled on first coordinates() for each table, not
+   // in Initialize(). coordinatesMutex_ serializes the first build if
+   // concurrent.
    std::vector<float> coordinates0_5Degree_ {};
    std::vector<float> coordinates0_5DegreeSmooth_ {};
    std::vector<float> coordinates1Degree_ {};
@@ -444,6 +448,8 @@ void RadarProductManager::DumpRecords()
       });
 }
 
+// Cached lat/lon grid; first use for a (radialSize, smoothing) pair may block
+// on EnsureCoordinatesInitialized.
 const std::vector<float>&
 RadarProductManager::coordinates(common::RadialSize radialSize,
                                  bool               smoothingEnabled) const
@@ -541,6 +547,9 @@ void RadarProductManager::Initialize()
 
    logger_->debug("Initialize()");
 
+   // Lat/lon tables still come from coordinates() on demand; Initialize() does
+   // not resize or fill those vectors.
+
    if (is_tdwr())
    {
       p->initialized_ = true;
@@ -550,6 +559,7 @@ void RadarProductManager::Initialize()
    p->initialized_ = true;
 }
 
+// One GeodesicLine per radial (Position per gate). Parallelism is over radials.
 void RadarProductManagerImpl::CalculateCoordinates(
    uint32_t                           radialCount,
    const units::angle::degrees<float> radialAngle,
@@ -603,6 +613,8 @@ void RadarProductManagerImpl::CalculateCoordinates(
       });
 }
 
+// Double-checked locking: cheap empty check outside the mutex, then one builder
+// under coordinatesMutex_. Another thread may fill the vector between checks.
 void RadarProductManagerImpl::EnsureCoordinatesInitialized(
    common::RadialSize radialSize, bool smoothingEnabled)
 {
@@ -660,6 +672,8 @@ void RadarProductManagerImpl::EnsureCoordinatesInitialized(
       return;
    }
 
+   // Switch arms above always set these; keeps static analysis safe if enum
+   // grows.
    if (!radialAngle.has_value() || !angleOffset.has_value())
    {
       return;
