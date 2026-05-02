@@ -80,5 +80,6 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "variant": "cpp"
-    }
+    },
+    "cmake.buildDirectory": "${workspaceFolder}/build-release-vs2022"
 }

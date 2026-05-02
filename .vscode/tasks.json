@@ -1,0 +1,34 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cmake",
+			"label": "CMake: configure",
+			"command": "configure",
+			"preset": "windows-vs2022-x64-release",
+			"problemMatcher": [],
+			"detail": "CMake template configure task"
+		},
+		{
+			"label": "Build MSI Installer",
+			"type": "shell",
+			"command": "cpack",
+			"args": [
+				"-C",
+				"Release"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/build-release-vs2022",
+				"env": {
+					"PATH": "${env:PATH};C:\\Program Files (x86)\\WiX Toolset v3.14\\bin"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			},
+			"detail": "Build MSI installer using CPack and WiX v3",
+			"problemMatcher": []
+		}
+	]
+}
