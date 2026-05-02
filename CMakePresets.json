@@ -149,6 +149,7 @@
     {
       "name": "windows-vs2022-x64-release",
       "inherits": "windows-vs2022-x64-base",
+      "binaryDir": "${sourceDir}/build-release-vs2022",
       "displayName": "Windows VS 2022 x64 Release",
       "architecture": {
         "value": "x64",

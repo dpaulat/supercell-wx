@@ -21,6 +21,6 @@
 )
 
 :: Perform common setup
-@call %script_dir%\lib\setup-common.bat
+@call "%script_dir%lib\setup-common.bat"
 
 @pause
