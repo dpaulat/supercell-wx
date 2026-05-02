@@ -4,6 +4,7 @@
 [submodule "external/aws-sdk-cpp"]
 	path = external/aws-sdk-cpp
 	url = https://github.com/aws/aws-sdk-cpp.git
+	ignore = dirty
 [submodule "external/cmake-conan"]
 	path = external/cmake-conan
 	url = https://github.com/conan-io/cmake-conan.git
