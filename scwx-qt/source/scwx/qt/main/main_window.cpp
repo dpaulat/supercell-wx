@@ -38,6 +38,7 @@
 #include <scwx/qt/ui/marker_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/ui/settings_dialog.hpp>
+#include <scwx/qt/ui/sounding_panel.hpp>
 #include <scwx/qt/ui/update_dialog.hpp>
 #include <scwx/qt/ui/import/import_settings_wizard.hpp>
 #include <scwx/common/characters.hpp>
@@ -166,6 +167,8 @@ public:
 
    ui::AlertDockWidget*              alertDockWidget_ {};
    ui::AnimationDockWidget*          animationDockWidget_ {};
+   ui::SoundingPanel*                soundingPanel_ {};
+   bool                              selectingSoundingPoint_ {false};
    ui::AboutDialog*                  aboutDialog_ {};
    ui::ExportSettingsDialog*         exportSettingsDialog_ {};
    ui::GpsInfoDialog*                gpsInfoDialog_ {};
@@ -267,6 +270,11 @@ MainWindow::MainWindow(QWidget* parent) :
    p->alertDockWidget_ = new ui::AlertDockWidget(this);
    addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
 
+   // Configure GFS Sounding Dock
+   p->soundingPanel_ = new ui::SoundingPanel(this);
+   addDockWidget(Qt::RightDockWidgetArea, p->soundingPanel_);
+   p->soundingPanel_->hide();
+
    // GPS Info Dialog
    p->gpsInfoDialog_ = new ui::GpsInfoDialog(this);
 
@@ -280,6 +288,18 @@ MainWindow::MainWindow(QWidget* parent) :
                               p->alertDockWidget_->toggleViewAction());
    p->alertDockWidget_->toggleViewAction()->setText(tr("&Alerts"));
    ui->actionAlerts->setVisible(false);
+
+   // Add GFS Sounding menu action
+   auto* soundingAction = ui->menuView->addAction(tr("GFS &Sounding"));
+   soundingAction->setCheckable(true);
+   soundingAction->setChecked(false);
+   QObject::connect(soundingAction, &QAction::toggled, this,
+                    [this, soundingAction](bool checked)
+                    {
+                       p->soundingPanel_->setVisible(checked);
+                    });
+   QObject::connect(p->soundingPanel_, &QDockWidget::visibilityChanged,
+                    soundingAction, &QAction::setChecked);
 
    ui->menuDebug->menuAction()->setVisible(
       settings::GeneralSettings::Instance().debug_enabled().GetValue());
@@ -1060,6 +1080,20 @@ void MainWindowImpl::ConnectMapSignals()
          [this](std::optional<float>)
          { level2SettingsWidget_->UpdateSettings(activeMap_); },
          Qt::QueuedConnection);
+
+      connect(mapWidget,
+              &map::MapWidget::MapClicked,
+              this,
+              [this](common::Coordinate coordinate)
+              {
+                 if (!selectingSoundingPoint_) { return; }
+                 selectingSoundingPoint_ = false;
+                 activeMap_->setCursor(Qt::ArrowCursor);
+                 soundingPanel_->SetLocation(coordinate.latitude_,
+                                             coordinate.longitude_);
+                 soundingPanel_->show();
+                 soundingPanel_->raise();
+              });
    }
 }
 
@@ -1466,6 +1500,16 @@ void MainWindowImpl::ConnectOtherSignals()
             PopulateMapStyles();
             ConfigureMapStyles();
          }));
+
+   // Connect sounding panel point selection
+   connect(soundingPanel_,
+           &ui::SoundingPanel::PointSelectionStarted,
+           this,
+           [this]()
+           {
+              selectingSoundingPoint_ = true;
+              activeMap_->setCursor(Qt::CrossCursor);
+           });
 
    // Ensure default clock format is initialized
    util::time::set_default_clock_format(
