@@ -40,8 +40,8 @@ glm::mat4 GetMapMatrix(const QMapLibre::CustomLayerRenderParameters& params)
 
 glm::vec2 GetMapScale(const QMapLibre::CustomLayerRenderParameters& params)
 {
-   const float scale  = std::pow(2.0, params.zoom) * 2.0f *
-                        mbgl::util::tileSize_D / mbgl::util::DEGREES_MAX;
+   const float scale = std::pow(2.0, params.zoom) * 2.0f *
+                       mbgl::util::tileSize_D / mbgl::util::DEGREES_MAX;
    const float xScale = scale / params.width;
    const float yScale = scale / params.height;
 
