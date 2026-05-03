@@ -2182,32 +2182,50 @@ void MapWidgetImpl::RadarProductManagerDisconnect()
 void MapWidgetImpl::InitializeNewRadarProductView(
    const std::string& colorPalette)
 {
-   // GUI thread only: view state + Qt signals; async post raced rapid product
-   // switch (heap corruption) and let AddLayers() run before init finished.
-   // ComputeSweep() can cost a frame; async here reintroduced cross-thread
-   // bugs.
-   bool initOk = false;
-   try
+   auto radarProductView = context_->radar_product_view();
+   if (radarProductView == nullptr)
    {
-      auto radarProductView = context_->radar_product_view();
-      if (radarProductView == nullptr)
+      return;
+   }
+
+   // Keep expensive work off GUI thread. Only apply AddLayers() on GUI thread,
+   // and only if this latched view is still active.
+   std::weak_ptr<view::RadarProductView> weakRadarProductView {
+      radarProductView};
+
+   boost::asio::post(
+      threadPool_,
+      [colorPalette, radarProductView, weakRadarProductView, this]()
       {
-         return;
-      }
+         try
+         {
+            UpdateColorTable(colorPalette, radarProductView);
+            radarProductView->Initialize();
+         }
+         catch (const std::exception& ex)
+         {
+            logger_->error(ex.what());
+            return;
+         }
 
-      UpdateColorTable(colorPalette, radarProductView);
-      radarProductView->Initialize();
-      initOk = true;
-   }
-   catch (const std::exception& ex)
-   {
-      logger_->error(ex.what());
-   }
+         QMetaObject::invokeMethod(
+            this,
+            [this, weakRadarProductView]()
+            {
+               auto activeRadarProductView = weakRadarProductView.lock();
+               if (activeRadarProductView == nullptr ||
+                   context_->radar_product_view() != activeRadarProductView)
+               {
+                  return;
+               }
 
-   if (initOk && map_ != nullptr)
-   {
-      AddLayers();
-   }
+               if (map_ != nullptr)
+               {
+                  AddLayers();
+               }
+            },
+            Qt::QueuedConnection);
+      });
 }
 
 void MapWidgetImpl::RadarProductViewConnect()
