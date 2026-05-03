@@ -9,6 +9,7 @@
 #include <scwx/qt/map/layer_wrapper.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_settings.hpp>
+#include <scwx/qt/map/lightning_layer.hpp>
 #include <scwx/qt/map/marker_layer.hpp>
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/map/overlay_product_layer.hpp>
@@ -90,6 +91,7 @@ public:
        radarProductLayer_ {nullptr},
        overlayLayer_ {nullptr},
        placefileLayer_ {nullptr},
+       lightningLayer_ {nullptr},
        markerLayer_ {nullptr},
        colorTableLayer_ {nullptr},
        autoRefreshEnabled_ {true},
@@ -244,6 +246,7 @@ public:
    std::shared_ptr<OverlayLayer>        overlayLayer_;
    std::shared_ptr<OverlayProductLayer> overlayProductLayer_ {nullptr};
    std::shared_ptr<PlacefileLayer>      placefileLayer_;
+   std::shared_ptr<LightningLayer>      lightningLayer_;
    std::shared_ptr<MarkerLayer>         markerLayer_;
    std::shared_ptr<ColorTableLayer>     colorTableLayer_;
    std::shared_ptr<RadarSiteLayer>      radarSiteLayer_ {nullptr};
@@ -1491,6 +1494,12 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
                        requestedRadarSite,
                        generalSettings.center_on_radar_selection().GetValue());
                  });
+         break;
+
+      // Create the lightning layer
+      case types::InformationLayer::Lightning:
+         lightningLayer_ = std::make_shared<LightningLayer>(glContext_);
+         AddLayer(layerName, lightningLayer_, before);
          break;
 
       // Create the location marker layer

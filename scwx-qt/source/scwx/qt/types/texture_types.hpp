@@ -18,6 +18,8 @@ enum class ImageTexture
    Crosshairs24,
    Cursor17,
    Dot3,
+   LightningStrikeCore,
+   LightningStrikeGlow,
    LocationBriefcase,
    LocationBuildingColumns,
    LocationBuilding,
