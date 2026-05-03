@@ -81,5 +81,9 @@
         "typeinfo": "cpp",
         "variant": "cpp"
     },
-    "cmake.buildDirectory": "${workspaceFolder}/build-release-vs2022"
+    "cmake.buildDirectory": "${workspaceFolder}/build/windows-vs2022-x64-ninja-release",
+    "clangd.arguments": [
+        "--compile-commands-dir=build/windows-vs2022-x64-ninja-release"
+    ],
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/windows-vs2022-x64-ninja-release/compile_commands.json"
 }
