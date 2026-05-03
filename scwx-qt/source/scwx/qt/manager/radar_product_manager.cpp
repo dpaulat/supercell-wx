@@ -300,8 +300,8 @@ public:
    std::size_t                        cacheLimit_ {6u};
 
    // Lat/lon per radial/gate. Filled on first coordinates() for each table, not
-   // in Initialize(). coordinatesMutex_ serializes the first build if
-   // concurrent.
+   // in Initialize(). coordinatesMutex_ serializes checks and builds so callers
+   // never observe a partially filled table.
    std::vector<float> coordinates0_5Degree_ {};
    std::vector<float> coordinates0_5DegreeSmooth_ {};
    std::vector<float> coordinates1Degree_ {};
@@ -613,8 +613,9 @@ void RadarProductManagerImpl::CalculateCoordinates(
       });
 }
 
-// Double-checked locking: cheap empty check outside the mutex, then one builder
-// under coordinatesMutex_. Another thread may fill the vector between checks.
+// One-time table fill under coordinatesMutex_. All readiness checks and writes
+// stay under the same lock so no thread sees non-empty after resize() before
+// CalculateCoordinates() finishes (avoids data races on empty()/size()).
 void RadarProductManagerImpl::EnsureCoordinatesInitialized(
    common::RadialSize radialSize, bool smoothingEnabled)
 {
@@ -661,13 +662,8 @@ void RadarProductManagerImpl::EnsureCoordinatesInitialized(
       return;
    }
 
-   if (targetCoordinates == nullptr || !targetCoordinates->empty())
-   {
-      return;
-   }
-
    std::unique_lock<std::mutex> const lock {coordinatesMutex_};
-   if (!targetCoordinates->empty())
+   if (targetCoordinates == nullptr || !targetCoordinates->empty())
    {
       return;
    }
