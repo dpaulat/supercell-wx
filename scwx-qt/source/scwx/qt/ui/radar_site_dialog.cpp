@@ -65,11 +65,22 @@ RadarSiteDialog::RadarSiteDialog(QWidget* parent) :
 
    // Button Box
    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
+   QPushButton* noneButton =
+      ui->buttonBox->addButton(tr("None"), QDialogButtonBox::ResetRole);
 
    connect(ui->radarSiteFilter,
            &QLineEdit::textChanged,
            p->proxyModel_,
            &QSortFilterProxyModel::setFilterWildcard);
+   connect(noneButton,
+           &QPushButton::clicked,
+           this,
+           [this]()
+           {
+              ui->radarSiteView->clearSelection();
+              p->selectedRadarSite_.clear();
+              Q_EMIT accept();
+           });
    connect(ui->radarSiteView,
            &QAbstractItemView::doubleClicked,
            this,

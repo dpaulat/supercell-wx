@@ -9,6 +9,7 @@
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/texture_types.hpp>
+#include <scwx/qt/view/overlay_product_view.hpp>
 #include <scwx/qt/view/radar_product_view.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
@@ -136,10 +137,14 @@ public:
 
    std::shared_ptr<boost::gil::rgba8_image_t> cursorIconImage_ {nullptr};
 
-   const std::string& mapboxLogoImageName_ {
-      types::GetTextureName(types::ImageTexture::MapboxLogo)};
-   const std::string& mapTilerLogoImageName_ {
-      types::GetTextureName(types::ImageTexture::MapTilerLogo)};
+   const std::unordered_map<MapProvider, const std::string&> mapProviderLogos_ {
+      {MapProvider::Mapbox,
+       types::GetTextureName(types::ImageTexture::MapboxLogo)},
+      {MapProvider::MapTiler,
+       types::GetTextureName(types::ImageTexture::MapTilerLogo)},
+      {MapProvider::OpenFreeMap,
+       types::GetTextureName(types::ImageTexture::OpenFreeMapLogo)},
+   };
 
    std::shared_ptr<gl::draw::IconDrawItem> compassIcon_ {};
    std::shared_ptr<gl::draw::IconDrawItem> mapCenterIcon_ {};
@@ -254,8 +259,12 @@ void OverlayLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
    p->icons_->AddIconSheet(p->cardinalPointIconName_);
    p->icons_->AddIconSheet(p->compassIconName_);
    p->icons_->AddIconSheet(p->mapCenterIconName_);
-   p->icons_->AddIconSheet(p->mapboxLogoImageName_)->SetAnchor(0.0f, 1.0f);
-   p->icons_->AddIconSheet(p->mapTilerLogoImageName_)->SetAnchor(0.0f, 1.0f);
+   for (auto logoIt = p->mapProviderLogos_.begin();
+        logoIt != p->mapProviderLogos_.end();
+        ++logoIt)
+   {
+      p->icons_->AddIconSheet(logoIt->second)->SetAnchor(0.0f, 1.0f);
+   }
    p->icons_->FinishIconSheets();
 
    p->icons_->StartIcons();
@@ -306,14 +315,11 @@ void OverlayLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
    p->mapCenterIcon_ = p->icons_->AddIcon();
    p->icons_->SetIconTexture(p->mapCenterIcon_, p->mapCenterIconName_, 0);
 
-   p->mapLogoIcon_ = p->icons_->AddIcon();
-   if (mapContext->map_provider() == MapProvider::Mapbox)
+   p->mapLogoIcon_    = p->icons_->AddIcon();
+   const auto& logoIt = p->mapProviderLogos_.find(mapContext->map_provider());
+   if (logoIt != p->mapProviderLogos_.cend())
    {
-      p->icons_->SetIconTexture(p->mapLogoIcon_, p->mapboxLogoImageName_, 0);
-   }
-   else if (mapContext->map_provider() == MapProvider::MapTiler)
-   {
-      p->icons_->SetIconTexture(p->mapLogoIcon_, p->mapTilerLogoImageName_, 0);
+      p->icons_->SetIconTexture(p->mapLogoIcon_, logoIt->second, 0);
    }
 
    p->icons_->FinishIcons();
@@ -355,7 +361,7 @@ void OverlayLayer::Render(const std::shared_ptr<MapContext>& mapContext,
 
    if (radarProductView != nullptr)
    {
-      scwx::util::ClockFormat clockFormat = scwx::util::GetClockFormat(
+      scwx::util::ClockFormat const clockFormat = scwx::util::GetClockFormat(
          settings::GeneralSettings::Instance().clock_format().GetValue());
 
       auto radarProductManager = radarProductView->radar_product_manager();
@@ -368,6 +374,36 @@ void OverlayLayer::Render(const std::shared_ptr<MapContext>& mapContext,
       p->sweepTimeString_ = scwx::util::TimeString(
          radarProductView->sweep_time(), clockFormat, currentZone, false);
       p->sweepTimeNeedsUpdate_ = false;
+   }
+   else
+   {
+      // No radar data: show timeline / overlay time so placefiles, alerts, and
+      // animation stay correlated with the selected time.
+      auto overlayView = mapContext->overlay_product_view();
+      if (overlayView != nullptr)
+      {
+         scwx::util::ClockFormat const clockFormat = scwx::util::GetClockFormat(
+            settings::GeneralSettings::Instance().clock_format().GetValue());
+
+         const std::chrono::system_clock::time_point selectedTime =
+            overlayView->selected_time();
+         if (selectedTime == std::chrono::system_clock::time_point {})
+         {
+            p->sweepTimeString_ = "Live";
+         }
+         else
+         {
+            p->sweepTimeString_ =
+               scwx::util::TimeString(selectedTime,
+                                      clockFormat,
+                                      scwx::util::time::current_time_zone(),
+                                      false);
+         }
+      }
+      else
+      {
+         p->sweepTimeString_.clear();
+      }
    }
 
    // Active Box
