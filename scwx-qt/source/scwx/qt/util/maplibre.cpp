@@ -1,5 +1,6 @@
 #include <scwx/qt/util/maplibre.hpp>
 
+#include <QFile>
 #include <QMapLibre/Utils>
 #include <QUrl>
 #include <QUrlQuery>
@@ -39,8 +40,8 @@ glm::mat4 GetMapMatrix(const QMapLibre::CustomLayerRenderParameters& params)
 
 glm::vec2 GetMapScale(const QMapLibre::CustomLayerRenderParameters& params)
 {
-   const float scale = std::pow(2.0, params.zoom) * 2.0f *
-                       mbgl::util::tileSize_D / mbgl::util::DEGREES_MAX;
+   const float scale  = std::pow(2.0, params.zoom) * 2.0f *
+                        mbgl::util::tileSize_D / mbgl::util::DEGREES_MAX;
    const float xScale = scale / params.width;
    const float yScale = scale / params.height;
 
@@ -123,15 +124,31 @@ void SetMapStyleUrl(const std::shared_ptr<map::MapContext>& mapContext,
    auto map = mapContext->map().lock();
    if (map != nullptr)
    {
-      if (!url.empty())
-      {
-         map->setStyleUrl(qUrl.toString());
-      }
-      else
+      if (url.empty())
       {
          // If the URL is empty, set a blank style to clear the map
          map->setStyleJson(
             R"({"version":8,"name":"blank","sources":{},"layers":[]})");
+      }
+      else if (qUrl.isLocalFile())
+      {
+         // Manually load local files to avoid odd behaiver of file scheme.
+         auto file = QFile(qUrl.toLocalFile());
+
+         if (file.open(QIODevice::ReadOnly))
+         {
+            map->setStyleJson(file.readAll());
+         }
+         else
+         {
+            // If the file was not openable, set a blank style to clear the map
+            map->setStyleJson(
+               R"({"version":8,"name":"blank","sources":{},"layers":[]})");
+         }
+      }
+      else
+      {
+         map->setStyleUrl(qUrl.toString());
       }
    }
 }
