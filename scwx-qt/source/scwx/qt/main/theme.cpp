@@ -6,8 +6,10 @@
 #include <scwx/util/logger.hpp>
 
 #include <optional>
+
 #include <QApplication>
 #include <QPalette>
+#include <QString>
 #include <QStyle>
 #include <QStyleHints>
 
@@ -21,6 +23,10 @@ namespace scwx::qt::main
 static const std::string logPrefix_ = "scwx::qt::main::theme";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static bool              hasStyleArgument_ {false};
+
+/** QStyleFactory key or empty if unknown (restore with setStyle(nullptr)). */
+static bool    startupStyleKeyKnown_ {false};
+static QString startupStyleKey_;
 
 bool internal::HasStyleArgument(const std::vector<std::string>& args)
 {
@@ -47,8 +53,43 @@ static void OverrideDefaultStyle()
 #endif
 }
 
+static void CaptureStartupStyleIfNeeded()
+{
+   if (startupStyleKeyKnown_)
+   {
+      return;
+   }
+   QStyle* style = QApplication::style();
+   if (style == nullptr)
+   {
+      startupStyleKeyKnown_ = true;
+      return;
+   }
+   startupStyleKey_      = style->objectName();
+   startupStyleKeyKnown_ = true;
+}
+
+static void RestoreStartupStyle()
+{
+   CaptureStartupStyleIfNeeded();
+   if (!startupStyleKeyKnown_)
+   {
+      return;
+   }
+   if (startupStyleKey_.isEmpty())
+   {
+      QApplication::setStyle(static_cast<QStyle*>(nullptr));
+   }
+   else
+   {
+      QApplication::setStyle(startupStyleKey_);
+   }
+}
+
 static void ApplyThemeImpl()
 {
+   CaptureStartupStyleIfNeeded();
+
    const scwx::qt::settings::GeneralSettings& generalSettings =
       scwx::qt::settings::GeneralSettings::Instance();
 
@@ -58,7 +99,18 @@ static void ApplyThemeImpl()
 
    if (uiStyle == scwx::qt::types::UiStyle::Default)
    {
-      OverrideDefaultStyle();
+#if defined(_WIN32)
+      if (!hasStyleArgument_)
+      {
+         OverrideDefaultStyle();
+      }
+      else
+      {
+         RestoreStartupStyle();
+      }
+#else
+      RestoreStartupStyle();
+#endif
    }
    else
    {
