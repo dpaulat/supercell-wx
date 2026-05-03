@@ -41,6 +41,7 @@ enum class InformationLayer
    RadarSite,
    ColorTable,
    Markers,
+   Lightning,
    Unknown
 };
 

@@ -105,6 +105,7 @@ set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
                 source/scwx/qt/gl/draw/placefile_triangles.cpp
                 source/scwx/qt/gl/draw/rectangle.cpp)
 set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
+                 source/scwx/qt/manager/blitzortung_manager.hpp
                  source/scwx/qt/manager/download_manager.hpp
                  source/scwx/qt/manager/gfs_manager.hpp
                  source/scwx/qt/manager/font_manager.hpp
@@ -125,6 +126,7 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/timeline_manager.hpp
                 source/scwx/qt/manager/update_manager.hpp)
 set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
+                 source/scwx/qt/manager/blitzortung_manager.cpp
                  source/scwx/qt/manager/download_manager.cpp
                  source/scwx/qt/manager/gfs_manager.cpp
                  source/scwx/qt/manager/font_manager.cpp
@@ -150,6 +152,7 @@ set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/draw_layer.hpp
             source/scwx/qt/map/generic_layer.hpp
             source/scwx/qt/map/layer_wrapper.hpp
+            source/scwx/qt/map/lightning_layer.hpp
             source/scwx/qt/map/map_context.hpp
             source/scwx/qt/map/map_provider.hpp
             source/scwx/qt/map/map_settings.hpp
@@ -166,6 +169,7 @@ set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/draw_layer.cpp
             source/scwx/qt/map/generic_layer.cpp
             source/scwx/qt/map/layer_wrapper.cpp
+            source/scwx/qt/map/lightning_layer.cpp
             source/scwx/qt/map/map_context.cpp
             source/scwx/qt/map/map_provider.cpp
             source/scwx/qt/map/map_widget.cpp
@@ -200,6 +204,7 @@ set(SRC_REQUEST source/scwx/qt/request/download_request.cpp
                 source/scwx/qt/request/nexrad_file_request.cpp)
 set(HDR_SETTINGS source/scwx/qt/settings/alert_palette_settings.hpp
                  source/scwx/qt/settings/audio_settings.hpp
+                 source/scwx/qt/settings/blitzortung_settings.hpp
                  source/scwx/qt/settings/button_settings.hpp
                  source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/hotkey_settings.hpp
@@ -220,6 +225,7 @@ set(HDR_SETTINGS source/scwx/qt/settings/alert_palette_settings.hpp
                  source/scwx/qt/settings/unit_settings.hpp)
 set(SRC_SETTINGS source/scwx/qt/settings/alert_palette_settings.cpp
                  source/scwx/qt/settings/audio_settings.cpp
+                 source/scwx/qt/settings/blitzortung_settings.cpp
                  source/scwx/qt/settings/button_settings.cpp
                  source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/hotkey_settings.cpp
