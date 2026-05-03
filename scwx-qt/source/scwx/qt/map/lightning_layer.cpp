@@ -23,6 +23,7 @@ static constexpr float kCoreBaseOpacity_  = 0.7f;
 static constexpr float kGlowBaseOpacity_  = 0.35f;
 static constexpr float kFlashDurationMs_  = 80.0f;
 static constexpr float kDecayFactor_      = 3.5f;
+static constexpr auto  kMinUpdateInterval_ = std::chrono::milliseconds(66);
 
 class LightningLayer::Impl
 {
@@ -44,6 +45,9 @@ public:
 
    LightningLayer*                     self_;
    std::shared_ptr<gl::draw::GeoIcons> geoIcons_;
+   std::chrono::steady_clock::time_point lastStrikeUpdate_ {};
+   bool                                  dataDirty_ {true};
+   std::size_t                           previousStrikeHash_ {0};
 };
 
 void LightningLayer::Impl::set_icon_sheets()
@@ -94,6 +98,24 @@ void LightningLayer::Impl::UpdateStrikes(
 
    double centerLat = radarSite->latitude();
    double centerLon = radarSite->longitude();
+
+   // Compute hash of current strike set for change detection
+   std::size_t strikeHash = timedStrikes.size();
+   for (const auto& ts : timedStrikes)
+   {
+      strikeHash ^= static_cast<std::size_t>(ts.strike_.latitude * 10000.0) +
+                    static_cast<std::size_t>(ts.strike_.longitude * 10000.0) +
+                    static_cast<std::size_t>(ts.strike_.time_ns);
+   }
+
+   if (strikeHash == previousStrikeHash_)
+   {
+      // Strike set unchanged from last update, skip full rebuild
+      // Opacity freeze for one interval is imperceptible
+      geoIcons_->SetVisible(true);
+      return;
+   }
+   previousStrikeHash_ = strikeHash;
 
    geoIcons_->StartIcons();
 
@@ -162,7 +184,6 @@ void LightningLayer::Impl::UpdateStrikes(
    }
 
    geoIcons_->FinishIcons();
-   Q_EMIT self_->NeedsRendering();
 }
 
 LightningLayer::LightningLayer(
@@ -183,7 +204,17 @@ void LightningLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
    p->set_icon_sheets();
 
    // Start the manager if not already running. Idempotent.
-   manager::BlitzortungManager::Instance().Start();
+   auto& manager = manager::BlitzortungManager::Instance();
+   manager.Start();
+
+   QObject::connect(&manager,
+                    &manager::BlitzortungManager::StrikesUpdated,
+                    this,
+                    [this]()
+                    {
+                       p->dataDirty_ = true;
+                       Q_EMIT NeedsRendering();
+                    });
 
    p->UpdateStrikes(mapContext);
 }
@@ -192,7 +223,13 @@ void LightningLayer::Render(
    const std::shared_ptr<MapContext>&            mapContext,
    const QMapLibre::CustomLayerRenderParameters& params)
 {
-   p->UpdateStrikes(mapContext);
+   auto now = std::chrono::steady_clock::now();
+   if (p->dataDirty_ || now - p->lastStrikeUpdate_ >= kMinUpdateInterval_)
+   {
+      p->UpdateStrikes(mapContext);
+      p->lastStrikeUpdate_ = now;
+      p->dataDirty_        = false;
+   }
 
    DrawLayer::Render(mapContext, params);
 

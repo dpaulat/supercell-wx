@@ -2,6 +2,8 @@
 
 #include <scwx/qt/map/draw_layer.hpp>
 
+#include <chrono>
+
 namespace scwx::qt::map
 {
 
