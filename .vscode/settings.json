@@ -82,8 +82,22 @@
         "variant": "cpp"
     },
     "cmake.buildDirectory": "${workspaceFolder}/build/windows-vs2022-x64-ninja-release",
+    
+    "clangd.path": "C:\\Program Files\\LLVM\\bin\\clangd.exe",
     "clangd.arguments": [
-        "--compile-commands-dir=build/windows-vs2022-x64-ninja-release"
+        "--compile-commands-dir=build/windows-vs2022-x64-ninja-release",
+        "--header-insertion=never"
     ],
-    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/windows-vs2022-x64-ninja-release/compile_commands.json"
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/windows-vs2022-x64-ninja-release/compile_commands.json",
+
+    "clang-format.executable": "C:/Program Files/LLVMv19/bin/clang-format.exe",
+    "clang-format.style": "file",
+    
+    "editor.defaultFormatter": "xaver.clang-format",
+    "[cpp]": {
+        "editor.defaultFormatter": "xaver.clang-format"
+    },
+    "[c]": {
+        "editor.defaultFormatter": "xaver.clang-format"
+    }
 }

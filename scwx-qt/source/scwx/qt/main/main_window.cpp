@@ -309,6 +309,27 @@ MainWindow::MainWindow(QWidget* parent) :
                     &QDockWidget::visibilityChanged,
                     soundingAction,
                     &QAction::setChecked);
+   QObject::connect(
+      p->soundingPanel_,
+      &QDockWidget::visibilityChanged,
+      this,
+      [this](bool visible)
+      {
+         QTimer::singleShot(
+            0,
+            this,
+            [this, visible]()
+            {
+               if (visible)
+               {
+                  setCorner(Qt::BottomRightCorner, Qt::RightDockWidgetArea);
+               }
+               else
+               {
+                  setCorner(Qt::BottomRightCorner, Qt::BottomDockWidgetArea);
+               }
+            });
+      });
 
    ui->menuDebug->menuAction()->setVisible(
       settings::GeneralSettings::Instance().debug_enabled().GetValue());
@@ -510,7 +531,7 @@ void MainWindow::showEvent(QShowEvent* event)
          QByteArray::fromBase64(QByteArray::fromStdString(uiGeometry)));
 
       // restore the UI state
-      const std::string uiState = uiSettings.main_ui_state().GetValue();
+      const std::string uiState  = uiSettings.main_ui_state().GetValue();
       bool              restored = restoreState(
          QByteArray::fromBase64(QByteArray::fromStdString(uiState)));
 
