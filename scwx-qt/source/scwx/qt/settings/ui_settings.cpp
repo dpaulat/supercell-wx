@@ -40,21 +40,22 @@ public:
    SettingsVariable<bool> timelineExpanded_ {"timeline_expanded"};
    SettingsVariable<std::string> mainUIState_ {"main_ui_state"};
    SettingsVariable<std::string> mainUIGeometry_ {"main_ui_geometry"};
-   SettingsVariable<std::int64_t> radarToolboxDockWidth_ {"radar_toolbox_dock_width"};
+   SettingsVariable<std::int64_t> radarToolboxDockWidth_ {
+      "radar_toolbox_dock_width"};
 };
 
 UiSettings::UiSettings() :
     SettingsCategory("ui"), p(std::make_unique<UiSettingsImpl>())
 {
-      RegisterVariables({&p->level2ProductsExpanded_,
-                       &p->level2SettingsExpanded_,
-                       &p->level3ProductsExpanded_,
-                       &p->level3SettingsExpanded_,
-                       &p->mapSettingsExpanded_,
-                       &p->timelineExpanded_,
-                       &p->mainUIState_,
-                       &p->mainUIGeometry_,
-                       &p->radarToolboxDockWidth_});
+   RegisterVariables({&p->level2ProductsExpanded_,
+                      &p->level2SettingsExpanded_,
+                      &p->level3ProductsExpanded_,
+                      &p->level3SettingsExpanded_,
+                      &p->mapSettingsExpanded_,
+                      &p->timelineExpanded_,
+                      &p->mainUIState_,
+                      &p->mainUIGeometry_,
+                      &p->radarToolboxDockWidth_});
    SetDefaults();
 }
 UiSettings::~UiSettings() = default;
@@ -103,9 +104,7 @@ SettingsVariable<std::string>& UiSettings::main_ui_geometry() const
 }
 
 SettingsVariable<std::int64_t>& UiSettings::radar_toolbox_dock_width() const
-{
-   return p->radarToolboxDockWidth_;
-}
+{ return p->radarToolboxDockWidth_; }
 
 bool UiSettings::Shutdown()
 {
@@ -134,14 +133,14 @@ UiSettings& UiSettings::Instance()
 bool operator==(const UiSettings& lhs, const UiSettings& rhs)
 {
    return (lhs.p->level2ProductsExpanded_ == rhs.p->level2ProductsExpanded_ &&
-            lhs.p->level2SettingsExpanded_ == rhs.p->level2SettingsExpanded_ &&
-            lhs.p->level3ProductsExpanded_ == rhs.p->level3ProductsExpanded_ &&
-            lhs.p->level3SettingsExpanded_ == rhs.p->level3SettingsExpanded_ &&
-            lhs.p->mapSettingsExpanded_ == rhs.p->mapSettingsExpanded_ &&
-            lhs.p->timelineExpanded_ == rhs.p->timelineExpanded_ &&
-            lhs.p->mainUIState_ == rhs.p->mainUIState_ &&
-            lhs.p->mainUIGeometry_ == rhs.p->mainUIGeometry_ &&
-            lhs.p->radarToolboxDockWidth_ == rhs.p->radarToolboxDockWidth_);
+           lhs.p->level2SettingsExpanded_ == rhs.p->level2SettingsExpanded_ &&
+           lhs.p->level3ProductsExpanded_ == rhs.p->level3ProductsExpanded_ &&
+           lhs.p->level3SettingsExpanded_ == rhs.p->level3SettingsExpanded_ &&
+           lhs.p->mapSettingsExpanded_ == rhs.p->mapSettingsExpanded_ &&
+           lhs.p->timelineExpanded_ == rhs.p->timelineExpanded_ &&
+           lhs.p->mainUIState_ == rhs.p->mainUIState_ &&
+           lhs.p->mainUIGeometry_ == rhs.p->mainUIGeometry_ &&
+           lhs.p->radarToolboxDockWidth_ == rhs.p->radarToolboxDockWidth_);
 }
 
 } // namespace scwx::qt::settings
