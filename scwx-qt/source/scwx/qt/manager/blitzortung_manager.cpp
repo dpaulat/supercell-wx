@@ -3,7 +3,7 @@
 #include <scwx/util/logger.hpp>
 
 #include <chrono>
-#include <cmath>
+#include <atomic>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -55,6 +55,7 @@ public:
       recentKeys_[key] = now;
 
       strikes_.push_back({strike, now});
+      pendingUpdate_.store(true, std::memory_order_release);
    }
 
    std::vector<TimedStrikeData> GetActiveStrikes()
@@ -64,6 +65,7 @@ public:
 
       auto                         now = std::chrono::steady_clock::now();
       std::vector<TimedStrikeData> active;
+      active.reserve(strikes_.size());
 
       for (const auto& ts : strikes_)
       {
@@ -76,10 +78,20 @@ public:
       return active;
    }
 
-   void PruneKeys()
+   bool PruneExpiredStrikes()
+   {
+      const std::lock_guard<std::mutex> lock(strikesMutex_);
+      return PruneKeys();
+   }
+
+   bool ConsumePendingUpdate()
+   { return pendingUpdate_.exchange(false, std::memory_order_acq_rel); }
+
+   bool PruneKeys()
    {
       auto now    = std::chrono::steady_clock::now();
       auto cutoff = now - kKeyPruneIntervalMs_;
+      bool removedStrike = false;
 
       for (auto it = recentKeys_.begin(); it != recentKeys_.end();)
       {
@@ -95,9 +107,13 @@ public:
 
       // Also prune old strikes
       auto strikeCutoff = now - kStrikeLifetimeMs_;
+      auto oldSize      = strikes_.size();
       std::erase_if(strikes_,
                     [&](const TimedStrike& ts)
                     { return ts.receiptTime_ < strikeCutoff; });
+      removedStrike = strikes_.size() != oldSize;
+
+      return removedStrike;
    }
 
    BlitzortungManager* self_;
@@ -108,6 +124,7 @@ public:
    std::vector<TimedStrike> strikes_;
    std::unordered_map<std::string, std::chrono::steady_clock::time_point>
       recentKeys_;
+   std::atomic<bool> pendingUpdate_ {false};
 
    scwx::provider::BlitzortungProvider provider_;
 };
@@ -167,8 +184,13 @@ void BlitzortungManager::OnNewStrike(const provider::StrikeData& strike)
 
 void BlitzortungManager::OnTimerTick()
 {
-   // Emit signal so the layer can update
-   Q_EMIT StrikesUpdated();
+   auto hasPendingUpdate = p->ConsumePendingUpdate();
+   auto removedExpired   = p->PruneExpiredStrikes();
+
+   if (hasPendingUpdate || removedExpired)
+   {
+      Q_EMIT StrikesUpdated();
+   }
 }
 
 BlitzortungManager& BlitzortungManager::Instance()
