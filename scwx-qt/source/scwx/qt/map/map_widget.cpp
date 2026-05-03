@@ -190,8 +190,8 @@ public:
    void SetRadarSite(const std::string& radarSite,
                      bool               checkProductAvailability = false);
    void UpdateColorTable(
-      const std::string&                      colorPalette,
-      std::shared_ptr<view::RadarProductView> radarProductView = nullptr);
+      const std::string&                             colorPalette,
+      const std::shared_ptr<view::RadarProductView>& radarProductView = {});
    void UpdateLoadedStyle();
    bool UpdateStoredMapParameters();
    void CheckLevel3Availability();
@@ -2425,8 +2425,8 @@ void MapWidgetImpl::Update()
 }
 
 void MapWidgetImpl::UpdateColorTable(
-   const std::string&                      colorPalette,
-   std::shared_ptr<view::RadarProductView> radarProductView)
+   const std::string&                             colorPalette,
+   const std::shared_ptr<view::RadarProductView>& radarProductView)
 {
    const std::shared_ptr<view::RadarProductView> view =
       radarProductView != nullptr ? radarProductView :
