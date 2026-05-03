@@ -85,5 +85,6 @@
     "clangd.arguments": [
         "--compile-commands-dir=build/windows-vs2022-x64-ninja-release"
     ],
-    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/windows-vs2022-x64-ninja-release/compile_commands.json"
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/windows-vs2022-x64-ninja-release/compile_commands.json",
+    "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
 }
