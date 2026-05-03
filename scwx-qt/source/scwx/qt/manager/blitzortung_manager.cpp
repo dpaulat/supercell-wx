@@ -85,7 +85,9 @@ public:
    }
 
    bool ConsumePendingUpdate()
-   { return pendingUpdate_.exchange(false, std::memory_order_acq_rel); }
+   {
+      return pendingUpdate_.exchange(false, std::memory_order_acq_rel);
+   }
 
    bool PruneKeys()
    {
@@ -168,13 +170,19 @@ void BlitzortungManager::Stop()
 }
 
 bool BlitzortungManager::IsActive() const
-{ return p->provider_.IsActive(); }
+{
+   return p->provider_.IsActive();
+}
 
 std::vector<TimedStrikeData> BlitzortungManager::GetActiveStrikes() const
-{ return p->GetActiveStrikes(); }
+{
+   return p->GetActiveStrikes();
+}
 
 void BlitzortungManager::OnNewStrike(const provider::StrikeData& strike)
-{ p->OnNewStrike(strike); }
+{
+   p->OnNewStrike(strike);
+}
 
 void BlitzortungManager::OnTimerTick()
 {
