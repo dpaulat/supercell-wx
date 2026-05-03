@@ -309,6 +309,27 @@ MainWindow::MainWindow(QWidget* parent) :
                     &QDockWidget::visibilityChanged,
                     soundingAction,
                     &QAction::setChecked);
+   QObject::connect(
+      p->soundingPanel_,
+      &QDockWidget::visibilityChanged,
+      this,
+      [this](bool visible)
+      {
+         QTimer::singleShot(
+            0,
+            this,
+            [this, visible]()
+            {
+               if (visible)
+               {
+                  setCorner(Qt::BottomRightCorner, Qt::RightDockWidgetArea);
+               }
+               else
+               {
+                  setCorner(Qt::BottomRightCorner, Qt::BottomDockWidgetArea);
+               }
+            });
+      });
 
    ui->menuDebug->menuAction()->setVisible(
       settings::GeneralSettings::Instance().debug_enabled().GetValue());
@@ -474,9 +495,7 @@ MainWindow::MainWindow(QWidget* parent) :
 }
 
 MainWindow::~MainWindow()
-{
-   delete ui;
-}
+{ delete ui; }
 
 void MainWindow::keyPressEvent(QKeyEvent* ev)
 {
@@ -510,7 +529,7 @@ void MainWindow::showEvent(QShowEvent* event)
          QByteArray::fromBase64(QByteArray::fromStdString(uiGeometry)));
 
       // restore the UI state
-      const std::string uiState = uiSettings.main_ui_state().GetValue();
+      const std::string uiState  = uiSettings.main_ui_state().GetValue();
       bool              restored = restoreState(
          QByteArray::fromBase64(QByteArray::fromStdString(uiState)));
 
@@ -664,39 +683,25 @@ void MainWindow::on_actionOpenTextEvent_triggered()
 }
 
 void MainWindow::on_actionScreenCaptureCopy_triggered()
-{
-   p->ScreenCapture(types::CaptureType::Copy);
-}
+{ p->ScreenCapture(types::CaptureType::Copy); }
 
 void MainWindow::on_actionScreenCaptureSaveImage_triggered()
-{
-   p->ScreenCapture(types::CaptureType::SaveImage);
-}
+{ p->ScreenCapture(types::CaptureType::SaveImage); }
 
 void MainWindow::on_actionImport_triggered()
-{
-   p->importSettingsWizard_->show();
-}
+{ p->importSettingsWizard_->show(); }
 
 void MainWindow::on_actionExport_triggered()
-{
-   p->exportSettingsDialog_->show();
-}
+{ p->exportSettingsDialog_->show(); }
 
 void MainWindow::on_actionSettings_triggered()
-{
-   p->settingsDialog_->show();
-}
+{ p->settingsDialog_->show(); }
 
 void MainWindow::on_actionExit_triggered()
-{
-   close();
-}
+{ close(); }
 
 void MainWindow::on_actionGpsInfo_triggered()
-{
-   p->gpsInfoDialog_->show();
-}
+{ p->gpsInfoDialog_->show(); }
 
 void MainWindow::on_actionColorTable_triggered(bool checked)
 {
@@ -719,34 +724,22 @@ void MainWindow::on_actionRadarSites_triggered(bool checked)
 }
 
 void MainWindow::on_actionPlacefileManager_triggered()
-{
-   p->placefileDialog_->show();
-}
+{ p->placefileDialog_->show(); }
 
 void MainWindow::on_actionMarkerManager_triggered()
-{
-   p->markerDialog_->show();
-}
+{ p->markerDialog_->show(); }
 
 void MainWindow::on_actionLayerManager_triggered()
-{
-   p->layerDialog_->show();
-}
+{ p->layerDialog_->show(); }
 
 void MainWindow::on_actionImGuiDebug_triggered()
-{
-   p->imGuiDebugDialog_->show();
-}
+{ p->imGuiDebugDialog_->show(); }
 
 void MainWindow::on_actionDumpLayerList_triggered()
-{
-   p->activeMap_->DumpLayerList();
-}
+{ p->activeMap_->DumpLayerList(); }
 
 void MainWindow::on_actionDumpRadarProductRecords_triggered()
-{
-   manager::RadarProductManager::DumpRecords();
-}
+{ manager::RadarProductManager::DumpRecords(); }
 
 void MainWindow::on_actionFullScreen_triggered(bool checked)
 {
@@ -792,24 +785,16 @@ void MainWindow::on_actionFullScreen_triggered(bool checked)
 }
 
 void MainWindow::on_actionRadarWireframe_triggered(bool checked)
-{
-   p->activeMap_->SetRadarWireframeEnabled(checked);
-}
+{ p->activeMap_->SetRadarWireframeEnabled(checked); }
 
 void MainWindow::on_actionUserManual_triggered()
-{
-   QDesktopServices::openUrl(QUrl {"https://supercell-wx.readthedocs.io/"});
-}
+{ QDesktopServices::openUrl(QUrl {"https://supercell-wx.readthedocs.io/"}); }
 
 void MainWindow::on_actionDiscord_triggered()
-{
-   QDesktopServices::openUrl(QUrl {"https://discord.gg/vFMV76brwU"});
-}
+{ QDesktopServices::openUrl(QUrl {"https://discord.gg/vFMV76brwU"}); }
 
 void MainWindow::on_actionGitHubRepository_triggered()
-{
-   QDesktopServices::openUrl(QUrl {"https://github.com/dpaulat/supercell-wx"});
-}
+{ QDesktopServices::openUrl(QUrl {"https://github.com/dpaulat/supercell-wx"}); }
 
 void MainWindow::on_actionCheckForUpdates_triggered()
 {
@@ -843,9 +828,7 @@ void MainWindow::on_actionCheckForUpdates_triggered()
 }
 
 void MainWindow::on_actionAboutSupercellWx_triggered()
-{
-   p->aboutDialog_->show();
-}
+{ p->aboutDialog_->show(); }
 
 void MainWindow::on_radarSiteHomeButton_clicked()
 {
@@ -863,9 +846,7 @@ void MainWindow::on_radarSiteHomeButton_clicked()
 }
 
 void MainWindow::on_radarSiteSelectButton_clicked()
-{
-   p->radarSiteDialog_->show();
-}
+{ p->radarSiteDialog_->show(); }
 
 void MainWindowImpl::AsyncSetup()
 {
@@ -1801,9 +1782,7 @@ void MainWindowImpl::UpdateAvailableLevel3Products()
 }
 
 void MainWindowImpl::UpdateElevationSelection(float elevation)
-{
-   level2SettingsWidget_->UpdateElevationSelection(elevation);
-}
+{ level2SettingsWidget_->UpdateElevationSelection(elevation); }
 
 void MainWindowImpl::UpdateMapParameters(
    double latitude, double longitude, double zoom, double bearing, double pitch)
