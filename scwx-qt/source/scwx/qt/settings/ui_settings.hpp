@@ -3,6 +3,7 @@
 #include <scwx/qt/settings/settings_category.hpp>
 #include <scwx/qt/settings/settings_variable.hpp>
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -31,6 +32,8 @@ public:
    [[nodiscard]] SettingsVariable<bool>& timeline_expanded() const;
    [[nodiscard]] SettingsVariable<std::string>& main_ui_state() const;
    [[nodiscard]] SettingsVariable<std::string>& main_ui_geometry() const;
+   [[nodiscard]] SettingsVariable<std::int64_t>&
+   radar_toolbox_dock_width() const;
 
    bool Shutdown();
 

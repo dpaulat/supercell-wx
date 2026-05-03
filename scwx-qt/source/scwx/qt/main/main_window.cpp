@@ -47,6 +47,8 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
+#include <spdlog/spdlog.h>
+
 #include <algorithm>
 #include <set>
 
@@ -55,6 +57,7 @@
 #include <QDesktopServices>
 #include <QGuiApplication>
 #include <QKeyEvent>
+#include <QResizeEvent>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QScreen>
@@ -220,6 +223,10 @@ public:
    std::vector<map::MapWidget*> maps_;
 
    std::chrono::system_clock::time_point selectedTime_ {};
+
+   bool   firstShow_ {true};
+   bool   applyingDockWidth_ {false};
+   QTimer dockWidthSaveTimer_ {};
 
 public slots:
    void UpdateMapParameters(double latitude,
@@ -443,6 +450,26 @@ MainWindow::MainWindow(QWidget* parent) :
    p->HandleFocusChange(p->activeMap_);
    p->AsyncSetup();
 
+   // Install event filter to detect user dock resize
+   ui->radarToolboxDock->installEventFilter(this);
+
+   // Debounce timer for saving dock width after user resize
+   p->dockWidthSaveTimer_.setSingleShot(true);
+   connect(&p->dockWidthSaveTimer_,
+           &QTimer::timeout,
+           [this]()
+           {
+              auto& uiSettings = settings::UiSettings::Instance();
+              int   width      = ui->radarToolboxDock->width();
+              uiSettings.radar_toolbox_dock_width().StageValue(width);
+           });
+
+   // Apply saved dock width
+   auto&        uiSettings = settings::UiSettings::Instance();
+   std::int64_t dockWidth  = uiSettings.radar_toolbox_dock_width().GetValue();
+   resizeDocks(
+      {ui->radarToolboxDock}, {static_cast<int>(dockWidth)}, Qt::Horizontal);
+
    Application::FinishInitialization();
 }
 
@@ -473,10 +500,7 @@ void MainWindow::showEvent(QShowEvent* event)
 {
    QMainWindow::showEvent(event);
 
-   static bool firstShowEvent = true;
-   bool        restored       = false;
-
-   if (firstShowEvent)
+   if (p->firstShow_)
    {
       auto& uiSettings = settings::UiSettings::Instance();
 
@@ -487,16 +511,22 @@ void MainWindow::showEvent(QShowEvent* event)
 
       // restore the UI state
       const std::string uiState = uiSettings.main_ui_state().GetValue();
-
-      restored = restoreState(
+      bool              restored = restoreState(
          QByteArray::fromBase64(QByteArray::fromStdString(uiState)));
 
-      firstShowEvent = false;
-   }
+      if (!restored)
+      {
+         logger_->warn("Failed to restore UI state");
+      }
 
-   if (!restored)
-   {
-      resizeDocks({ui->radarToolboxDock}, {194}, Qt::Horizontal);
+      // Apply saved dock width (overrides restoreState proportions)
+      std::int64_t dockWidth = uiSettings.radar_toolbox_dock_width().GetValue();
+      p->applyingDockWidth_  = true;
+      resizeDocks(
+         {ui->radarToolboxDock}, {static_cast<int>(dockWidth)}, Qt::Horizontal);
+      p->applyingDockWidth_ = false;
+
+      p->firstShow_ = false;
    }
 }
 
@@ -513,6 +543,28 @@ void MainWindow::closeEvent(QCloseEvent* event)
    uiSettings.main_ui_state().StageValue(uiState.data());
 
    QMainWindow::closeEvent(event);
+}
+
+void MainWindow::resizeEvent(QResizeEvent* event)
+{
+   QMainWindow::resizeEvent(event);
+
+   auto&        uiSettings = settings::UiSettings::Instance();
+   std::int64_t dockWidth  = uiSettings.radar_toolbox_dock_width().GetValue();
+   p->applyingDockWidth_   = true;
+   resizeDocks(
+      {ui->radarToolboxDock}, {static_cast<int>(dockWidth)}, Qt::Horizontal);
+   p->applyingDockWidth_ = false;
+}
+
+bool MainWindow::eventFilter(QObject* obj, QEvent* event)
+{
+   if (obj == ui->radarToolboxDock && event->type() == QEvent::Resize &&
+       !p->applyingDockWidth_)
+   {
+      p->dockWidthSaveTimer_.start(500);
+   }
+   return QMainWindow::eventFilter(obj, event);
 }
 
 void MainWindow::on_actionOpenNexrad_triggered()

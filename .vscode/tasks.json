@@ -10,6 +10,43 @@
 			"detail": "CMake template configure task"
 		},
 		{
+			"label": "clang-format: check",
+			"type": "shell",
+			"command": ".venv\\Scripts\\python.exe",
+			"args": [
+				"C:\\Program Files\\LLVM\\bin\\git-clang-format",
+				"--diff",
+				"--style=file",
+				"origin/develop"
+			],
+			"options": {
+				"env": {
+					"PATH": "C:\\Program Files\\LLVM\\bin;${env:PATH}"
+				}
+			},
+			"group": "none",
+			"detail": "Check formatting of changed lines against origin/develop",
+			"problemMatcher": []
+		},
+		{
+			"label": "clang-format: fix",
+			"type": "shell",
+			"command": ".venv\\Scripts\\python.exe",
+			"args": [
+				"C:\\Program Files\\LLVM\\bin\\git-clang-format",
+				"--style=file",
+				"origin/develop"
+			],
+			"options": {
+				"env": {
+					"PATH": "C:\\Program Files\\LLVM\\bin;${env:PATH}"
+				}
+			},
+			"group": "none",
+			"detail": "Fix formatting of changed lines against origin/develop",
+			"problemMatcher": []
+		},
+		{
 			"label": "Build MSI Installer",
 			"type": "shell",
 			"command": "cpack",

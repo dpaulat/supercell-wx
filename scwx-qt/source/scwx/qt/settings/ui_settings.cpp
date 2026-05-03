@@ -20,6 +20,9 @@ public:
       timelineExpanded_.SetDefault(true);
       mainUIState_.SetDefault("");
       mainUIGeometry_.SetDefault("");
+      radarToolboxDockWidth_.SetDefault(280);
+      radarToolboxDockWidth_.SetMinimum(150);
+      radarToolboxDockWidth_.SetMaximum(600);
       // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
    }
 
@@ -37,6 +40,8 @@ public:
    SettingsVariable<bool> timelineExpanded_ {"timeline_expanded"};
    SettingsVariable<std::string> mainUIState_ {"main_ui_state"};
    SettingsVariable<std::string> mainUIGeometry_ {"main_ui_geometry"};
+   SettingsVariable<std::int64_t> radarToolboxDockWidth_ {
+      "radar_toolbox_dock_width"};
 };
 
 UiSettings::UiSettings() :
@@ -49,7 +54,8 @@ UiSettings::UiSettings() :
                       &p->mapSettingsExpanded_,
                       &p->timelineExpanded_,
                       &p->mainUIState_,
-                      &p->mainUIGeometry_});
+                      &p->mainUIGeometry_,
+                      &p->radarToolboxDockWidth_});
    SetDefaults();
 }
 UiSettings::~UiSettings() = default;
@@ -97,6 +103,11 @@ SettingsVariable<std::string>& UiSettings::main_ui_geometry() const
    return p->mainUIGeometry_;
 }
 
+SettingsVariable<std::int64_t>& UiSettings::radar_toolbox_dock_width() const
+{
+   return p->radarToolboxDockWidth_;
+}
+
 bool UiSettings::Shutdown()
 {
    bool dataChanged = false;
@@ -110,6 +121,7 @@ bool UiSettings::Shutdown()
    dataChanged |= p->timelineExpanded_.Commit();
    dataChanged |= p->mainUIState_.Commit();
    dataChanged |= p->mainUIGeometry_.Commit();
+   dataChanged |= p->radarToolboxDockWidth_.Commit();
 
    return dataChanged;
 }
@@ -129,7 +141,8 @@ bool operator==(const UiSettings& lhs, const UiSettings& rhs)
            lhs.p->mapSettingsExpanded_ == rhs.p->mapSettingsExpanded_ &&
            lhs.p->timelineExpanded_ == rhs.p->timelineExpanded_ &&
            lhs.p->mainUIState_ == rhs.p->mainUIState_ &&
-           lhs.p->mainUIGeometry_ == rhs.p->mainUIGeometry_);
+           lhs.p->mainUIGeometry_ == rhs.p->mainUIGeometry_ &&
+           lhs.p->radarToolboxDockWidth_ == rhs.p->radarToolboxDockWidth_);
 }
 
 } // namespace scwx::qt::settings
