@@ -104,7 +104,9 @@ SettingsVariable<std::string>& UiSettings::main_ui_geometry() const
 }
 
 SettingsVariable<std::int64_t>& UiSettings::radar_toolbox_dock_width() const
-{ return p->radarToolboxDockWidth_; }
+{
+   return p->radarToolboxDockWidth_;
+}
 
 bool UiSettings::Shutdown()
 {
