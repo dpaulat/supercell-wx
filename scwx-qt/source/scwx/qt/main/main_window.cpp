@@ -858,6 +858,8 @@ void MainWindow::on_radarSiteHomeButton_clicked()
    }
 
    p->UpdateRadarSite();
+   p->UpdateAvailableLevel3Products();
+   p->UpdateRadarProductSettings();
 }
 
 void MainWindow::on_radarSiteSelectButton_clicked()
@@ -1260,6 +1262,8 @@ void MainWindowImpl::ConnectAnimationSignals()
                  }
 
                  UpdateRadarSite();
+                 UpdateAvailableLevel3Products();
+                 UpdateRadarProductSettings();
               });
    }
 }
@@ -1464,6 +1468,8 @@ void MainWindowImpl::ConnectOtherSignals()
               }
 
               UpdateRadarSite();
+              UpdateAvailableLevel3Products();
+              UpdateRadarProductSettings();
            });
    connect(radarSiteModel_.get(),
            &model::RadarSiteModel::PresetToggled,
@@ -1634,6 +1640,8 @@ void MainWindowImpl::AddRadarSitePreset(const std::string& siteId)
               }
 
               UpdateRadarSite();
+              UpdateAvailableLevel3Products();
+              UpdateRadarProductSettings();
            });
 }
 
@@ -1910,7 +1918,7 @@ void MainWindowImpl::UpdateRadarSite()
       mainWindow_->ui->radarLocationLabel->setVisible(false);
       mainWindow_->ui->saveRadarProductsButton->setVisible(false);
 
-      timelineManager_->SetRadarSite("?");
+      timelineManager_->SetRadarSite("");
    }
 
    alertManager_->SetRadarSite(radarSite);

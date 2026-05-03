@@ -89,5 +89,6 @@ Supercell Wx connects to the following services:
 | [Iowa Environmental Mesonet](https://mesonet.agron.iastate.edu/) | Archived severe weather warnings |
 | [Mapbox](https://www.mapbox.com/) | Vector map tiles |
 | [MapTiler](https://www.maptiler.com/) | Vector map tiles |
+| [OpenFreeMap](https://openfreemap.org/) | Vector map tiles |
 | [NEXRAD on AWS](https://registry.opendata.aws/noaa-nexrad/) | Real-time and archival data from the Next Generation Weather Radar (NEXRAD) network. |
 | [Weather Pulse LLC](https://www.weatherpulse.com/) | Severe weather warnings |

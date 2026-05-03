@@ -61,7 +61,9 @@ static const std::unordered_map<ImageTexture, TextureInfo> imageTextureInfo_ {
    {ImageTexture::MapboxLogo,
     {"images/mapbox-logo", ":/res/textures/images/mapbox-logo.svg"}},
    {ImageTexture::MapTilerLogo,
-    {"images/maptiler-logo", ":/res/textures/images/maptiler-logo.svg"}}};
+    {"images/maptiler-logo", ":/res/textures/images/maptiler-logo.svg"}},
+   {ImageTexture::OpenFreeMapLogo,
+    {"images/openfreemap-logo", ":res/textures/images/openfreemap-logo.jpg"}}};
 
 static const std::unordered_map<LineTexture, TextureInfo> lineTextureInfo_ {
    {LineTexture::Default1x7,

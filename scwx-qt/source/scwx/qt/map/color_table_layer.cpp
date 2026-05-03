@@ -124,7 +124,9 @@ void ColorTableLayer::Render(
 
    if (radarProductView == nullptr || !radarProductView->IsInitialized())
    {
-      // Defer rendering until view is initialized
+      // No color bar: clear reserved bottom margin (overlay uses this for
+      // attribution / logo). Avoid stale margin when the table is hidden.
+      mapContext->set_color_table_margins({});
       return;
    }
 
