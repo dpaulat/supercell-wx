@@ -105,7 +105,7 @@ if (MSVC)
     target_compile_options(wxtest PRIVATE "/MP")
 endif()
 
-gtest_discover_tests(wxtest)
+gtest_discover_tests(wxtest DISCOVERY_MODE PRE_TEST)
 
 target_link_libraries(wxtest GTest::gtest
                              scwx-qt

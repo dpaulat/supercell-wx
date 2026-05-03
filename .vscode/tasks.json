@@ -55,7 +55,7 @@
 				"Release"
 			],
 			"options": {
-				"cwd": "${workspaceFolder}/build-release-vs2022",
+				"cwd": "${workspaceFolder}/build/windows-vs2022-x64-ninja-release",
 				"env": {
 					"PATH": "${env:PATH};C:\\Program Files (x86)\\WiX Toolset v3.14\\bin"
 				}
