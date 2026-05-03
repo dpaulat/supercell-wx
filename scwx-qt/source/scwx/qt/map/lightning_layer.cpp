@@ -22,11 +22,11 @@ namespace scwx::qt::map
 static const std::string logPrefix_ = "scwx::qt::map::lightning_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static constexpr auto  kStrikeLifetimeMs_ = std::chrono::milliseconds(4000);
-static constexpr float kCoreBaseOpacity_  = 0.7f;
-static constexpr float kGlowBaseOpacity_  = 0.35f;
-static constexpr float kFlashDurationMs_  = 80.0f;
-static constexpr float kDecayFactor_      = 3.5f;
+static constexpr auto   kStrikeLifetimeMs_  = std::chrono::milliseconds(4000);
+static constexpr float  kCoreBaseOpacity_   = 0.7f;
+static constexpr float  kGlowBaseOpacity_   = 0.35f;
+static constexpr float  kFlashDurationMs_   = 80.0f;
+static constexpr float  kDecayFactor_       = 3.5f;
 static constexpr auto   kMinUpdateInterval_ = std::chrono::milliseconds(66);
 static constexpr float  kBoundingBoxMetersPerDegree_ = 111320.0f;
 static constexpr auto   kOpacityLutStepMs_ = std::chrono::milliseconds(100);
@@ -100,8 +100,8 @@ public:
                          double                             centerLon,
                          float                              rangeMeters);
 
-   LightningLayer*                     self_;
-   std::shared_ptr<gl::draw::GeoIcons> geoIcons_;
+   LightningLayer*                       self_;
+   std::shared_ptr<gl::draw::GeoIcons>   geoIcons_;
    std::chrono::steady_clock::time_point lastStrikeUpdate_ {};
    std::chrono::steady_clock::time_point lastRenderRequest_ {};
    bool                                  dataDirty_ {true};
@@ -154,8 +154,8 @@ void LightningLayer::Impl::UpdateStrikes(
       return;
    }
 
-   auto  now          = std::chrono::steady_clock::now();
-   float rangeMeters  = radarProductView->range() * 1000.0f;
+   auto  now         = std::chrono::steady_clock::now();
+   float rangeMeters = radarProductView->range() * 1000.0f;
 
    double centerLat = radarSite->latitude();
    double centerLon = radarSite->longitude();
@@ -300,9 +300,7 @@ LightningLayer::LightningLayer(
    const std::shared_ptr<gl::GlContext>& glContext) :
     DrawLayer(glContext, "LightningLayer"),
     p(std::make_unique<LightningLayer::Impl>(this, glContext))
-{
-   AddDrawItem(p->geoIcons_);
-}
+{ AddDrawItem(p->geoIcons_); }
 
 LightningLayer::~LightningLayer() = default;
 
