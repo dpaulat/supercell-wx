@@ -189,7 +189,9 @@ public:
                                std::optional<std::string> type);
    void SetRadarSite(const std::string& radarSite,
                      bool               checkProductAvailability = false);
-   void UpdateColorTable(const std::string& colorPalette);
+   void UpdateColorTable(
+      const std::string&                      colorPalette,
+      std::shared_ptr<view::RadarProductView> radarProductView = nullptr);
    void UpdateLoadedStyle();
    bool UpdateStoredMapParameters();
    void CheckLevel3Availability();
@@ -2182,6 +2184,9 @@ void MapWidgetImpl::InitializeNewRadarProductView(
 {
    // GUI thread only: view state + Qt signals; async post raced rapid product
    // switch (heap corruption) and let AddLayers() run before init finished.
+   // ComputeSweep() can cost a frame; async here reintroduced cross-thread
+   // bugs.
+   bool initOk = false;
    try
    {
       auto radarProductView = context_->radar_product_view();
@@ -2190,15 +2195,16 @@ void MapWidgetImpl::InitializeNewRadarProductView(
          return;
       }
 
-      UpdateColorTable(colorPalette);
+      UpdateColorTable(colorPalette, radarProductView);
       radarProductView->Initialize();
+      initOk = true;
    }
    catch (const std::exception& ex)
    {
       logger_->error(ex.what());
    }
 
-   if (map_ != nullptr)
+   if (initOk && map_ != nullptr)
    {
       AddLayers();
    }
@@ -2418,8 +2424,18 @@ void MapWidgetImpl::Update()
    }
 }
 
-void MapWidgetImpl::UpdateColorTable(const std::string& colorPalette)
+void MapWidgetImpl::UpdateColorTable(
+   const std::string&                      colorPalette,
+   std::shared_ptr<view::RadarProductView> radarProductView)
 {
+   const std::shared_ptr<view::RadarProductView> view =
+      radarProductView != nullptr ? radarProductView :
+                                    context_->radar_product_view();
+   if (view == nullptr)
+   {
+      return;
+   }
+
    auto& paletteSetting =
       settings::PaletteSettings::Instance().palette(colorPalette);
 
@@ -2446,7 +2462,7 @@ void MapWidgetImpl::UpdateColorTable(const std::string& colorPalette)
       colorTable       = common::ColorTable::Load(*colorTableStream);
    }
 
-   context_->radar_product_view()->LoadColorTable(colorTable);
+   view->LoadColorTable(colorTable);
 }
 
 bool MapWidgetImpl::UpdateStoredMapParameters()
