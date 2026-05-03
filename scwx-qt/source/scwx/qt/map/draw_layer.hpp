@@ -3,6 +3,8 @@
 #include <scwx/qt/gl/draw/draw_item.hpp>
 #include <scwx/qt/map/generic_layer.hpp>
 
+#include <string>
+
 namespace scwx::qt::map
 {
 
