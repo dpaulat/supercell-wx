@@ -53,8 +53,8 @@ static float LookupLightningIntensity(float ageMs)
 
       for (std::size_t i = 0; i < kEntries; ++i)
       {
-         float t   = static_cast<float>(i * kOpacityLutStepMs_.count()) /
-                     static_cast<float>(kStrikeLifetimeMs_.count());
+         float t = static_cast<float>(i * kOpacityLutStepMs_.count()) /
+                   static_cast<float>(kStrikeLifetimeMs_.count());
          values[i] = std::exp(-kDecayFactor_ * t);
       }
 
@@ -300,7 +300,9 @@ LightningLayer::LightningLayer(
    const std::shared_ptr<gl::GlContext>& glContext) :
     DrawLayer(glContext, "LightningLayer"),
     p(std::make_unique<LightningLayer::Impl>(this, glContext))
-{ AddDrawItem(p->geoIcons_); }
+{
+   AddDrawItem(p->geoIcons_);
+}
 
 LightningLayer::~LightningLayer() = default;
 
