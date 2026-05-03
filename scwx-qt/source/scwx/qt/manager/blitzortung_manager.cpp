@@ -89,8 +89,8 @@ public:
 
    bool PruneKeys()
    {
-      auto now    = std::chrono::steady_clock::now();
-      auto cutoff = now - kKeyPruneIntervalMs_;
+      auto now           = std::chrono::steady_clock::now();
+      auto cutoff        = now - kKeyPruneIntervalMs_;
       bool removedStrike = false;
 
       for (auto it = recentKeys_.begin(); it != recentKeys_.end();)
@@ -123,7 +123,7 @@ public:
    mutable std::mutex       strikesMutex_;
    std::vector<TimedStrike> strikes_;
    std::unordered_map<std::string, std::chrono::steady_clock::time_point>
-      recentKeys_;
+                     recentKeys_;
    std::atomic<bool> pendingUpdate_ {false};
 
    scwx::provider::BlitzortungProvider provider_;
@@ -168,19 +168,13 @@ void BlitzortungManager::Stop()
 }
 
 bool BlitzortungManager::IsActive() const
-{
-   return p->provider_.IsActive();
-}
+{ return p->provider_.IsActive(); }
 
 std::vector<TimedStrikeData> BlitzortungManager::GetActiveStrikes() const
-{
-   return p->GetActiveStrikes();
-}
+{ return p->GetActiveStrikes(); }
 
 void BlitzortungManager::OnNewStrike(const provider::StrikeData& strike)
-{
-   p->OnNewStrike(strike);
-}
+{ p->OnNewStrike(strike); }
 
 void BlitzortungManager::OnTimerTick()
 {
