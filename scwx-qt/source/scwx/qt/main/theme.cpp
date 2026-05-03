@@ -41,17 +41,17 @@ bool internal::HasStyleArgument(const std::vector<std::string>& args)
    return false;
 }
 
+#if defined(_WIN32)
 static void OverrideDefaultStyle()
 {
-#if defined(_WIN32)
    // Override the default Windows 11 style unless the user supplies a style
    // argument.
    if (!hasStyleArgument_)
    {
       QApplication::setStyle("windowsvista");
    }
-#endif
 }
+#endif
 
 static void CaptureStartupStyleIfNeeded()
 {
