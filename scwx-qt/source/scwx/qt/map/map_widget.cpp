@@ -191,6 +191,9 @@ public:
    void SetRadarSite(const std::string& radarSite,
                      bool               checkProductAvailability = false);
    void UpdateColorTable(const std::string& colorPalette);
+   void UpdateColorTable(
+      const std::string&                             colorPalette,
+      const std::shared_ptr<view::RadarProductView>& radarProductView);
    void UpdateLoadedStyle();
    bool UpdateStoredMapParameters();
    void CheckLevel3Availability();
@@ -2253,19 +2256,24 @@ void MapWidgetImpl::RadarProductManagerDisconnect()
 void MapWidgetImpl::InitializeNewRadarProductView(
    const std::string& colorPalette)
 {
-   boost::asio::post(threadPool_,
-                     [colorPalette, this]()
-                     {
-                        try
+   auto radarProductView = context_->radar_product_view();
+
+   if (radarProductView != nullptr)
+   {
+      boost::asio::post(threadPool_,
+                        [colorPalette, radarProductView, this]()
                         {
-                           UpdateColorTable(colorPalette);
-                           context_->radar_product_view()->Initialize();
-                        }
-                        catch (const std::exception& ex)
-                        {
-                           logger_->error(ex.what());
-                        }
-                     });
+                           try
+                           {
+                              UpdateColorTable(colorPalette, radarProductView);
+                              radarProductView->Initialize();
+                           }
+                           catch (const std::exception& ex)
+                           {
+                              logger_->error(ex.what());
+                           }
+                        });
+   }
 
    if (map_ != nullptr)
    {
@@ -2504,6 +2512,18 @@ void MapWidgetImpl::Update()
 
 void MapWidgetImpl::UpdateColorTable(const std::string& colorPalette)
 {
+   UpdateColorTable(colorPalette, context_->radar_product_view());
+}
+
+void MapWidgetImpl::UpdateColorTable(
+   const std::string&                             colorPalette,
+   const std::shared_ptr<view::RadarProductView>& radarProductView)
+{
+   if (radarProductView == nullptr)
+   {
+      return;
+   }
+
    auto& paletteSetting =
       settings::PaletteSettings::Instance().palette(colorPalette);
 
@@ -2530,7 +2550,7 @@ void MapWidgetImpl::UpdateColorTable(const std::string& colorPalette)
       colorTable       = common::ColorTable::Load(*colorTableStream);
    }
 
-   context_->radar_product_view()->LoadColorTable(colorTable);
+   radarProductView->LoadColorTable(colorTable);
 }
 
 bool MapWidgetImpl::UpdateStoredMapParameters()
