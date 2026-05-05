@@ -367,6 +367,14 @@ SettingsDialog::~SettingsDialog()
    delete ui;
 }
 
+void SettingsDialog::RefreshWidgets()
+{
+   for (auto& setting : p->settings_)
+   {
+      setting->Reset();
+   }
+}
+
 void SettingsDialogImpl::ConnectSignals()
 {
    QObject::connect(self_->ui->listWidget,

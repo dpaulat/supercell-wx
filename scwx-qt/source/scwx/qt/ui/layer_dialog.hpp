@@ -25,6 +25,8 @@ public:
    explicit LayerDialog(QWidget* parent = nullptr);
    ~LayerDialog();
 
+   void UpdateMapDisplayColumns();
+
 private:
    friend class LayerDialogImpl;
    std::unique_ptr<LayerDialogImpl> p;

@@ -81,6 +81,11 @@ LayerDialog::~LayerDialog()
    delete ui;
 }
 
+void LayerDialog::UpdateMapDisplayColumns()
+{
+   p->UpdateMapDisplayColumns();
+}
+
 void LayerDialogImpl::UpdateMapDisplayColumns()
 {
    auto&        generalSettings = settings::GeneralSettings::Instance();
