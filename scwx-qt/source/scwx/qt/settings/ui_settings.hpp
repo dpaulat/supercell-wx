@@ -30,6 +30,7 @@ public:
    [[nodiscard]] SettingsVariable<bool>& level3_settings_expanded() const;
    [[nodiscard]] SettingsVariable<bool>& map_settings_expanded() const;
    [[nodiscard]] SettingsVariable<bool>& timeline_expanded() const;
+   [[nodiscard]] SettingsVariable<bool>&        spc_outlook_expanded() const;
    [[nodiscard]] SettingsVariable<std::string>& main_ui_state() const;
    [[nodiscard]] SettingsVariable<std::string>& main_ui_geometry() const;
    [[nodiscard]] SettingsVariable<std::int64_t>&

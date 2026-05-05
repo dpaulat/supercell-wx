@@ -18,6 +18,7 @@ public:
       level3SettingsExpanded_.SetDefault(true);
       mapSettingsExpanded_.SetDefault(true);
       timelineExpanded_.SetDefault(true);
+      spcOutlookExpanded_.SetDefault(false);
       mainUIState_.SetDefault("");
       mainUIGeometry_.SetDefault("");
       radarToolboxDockWidth_.SetDefault(280);
@@ -38,8 +39,9 @@ public:
    SettingsVariable<bool> level3SettingsExpanded_ {"level3_settings_expanded"};
    SettingsVariable<bool> mapSettingsExpanded_ {"map_settings_expanded"};
    SettingsVariable<bool> timelineExpanded_ {"timeline_expanded"};
-   SettingsVariable<std::string> mainUIState_ {"main_ui_state"};
-   SettingsVariable<std::string> mainUIGeometry_ {"main_ui_geometry"};
+   SettingsVariable<bool> spcOutlookExpanded_ {"spc_outlook_expanded"};
+   SettingsVariable<std::string>  mainUIState_ {"main_ui_state"};
+   SettingsVariable<std::string>  mainUIGeometry_ {"main_ui_geometry"};
    SettingsVariable<std::int64_t> radarToolboxDockWidth_ {
       "radar_toolbox_dock_width"};
 };
@@ -53,6 +55,7 @@ UiSettings::UiSettings() :
                       &p->level3SettingsExpanded_,
                       &p->mapSettingsExpanded_,
                       &p->timelineExpanded_,
+                      &p->spcOutlookExpanded_,
                       &p->mainUIState_,
                       &p->mainUIGeometry_,
                       &p->radarToolboxDockWidth_});
@@ -93,6 +96,11 @@ SettingsVariable<bool>& UiSettings::timeline_expanded() const
    return p->timelineExpanded_;
 }
 
+SettingsVariable<bool>& UiSettings::spc_outlook_expanded() const
+{
+   return p->spcOutlookExpanded_;
+}
+
 SettingsVariable<std::string>& UiSettings::main_ui_state() const
 {
    return p->mainUIState_;
@@ -119,6 +127,7 @@ bool UiSettings::Shutdown()
    dataChanged |= p->level3SettingsExpanded_.Commit();
    dataChanged |= p->mapSettingsExpanded_.Commit();
    dataChanged |= p->timelineExpanded_.Commit();
+   dataChanged |= p->spcOutlookExpanded_.Commit();
    dataChanged |= p->mainUIState_.Commit();
    dataChanged |= p->mainUIGeometry_.Commit();
    dataChanged |= p->radarToolboxDockWidth_.Commit();

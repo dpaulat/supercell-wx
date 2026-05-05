@@ -62,6 +62,12 @@ set(HDR_GRIB2 include/scwx/grib2/grib2_message.hpp
               include/scwx/grib2/grib2_types.hpp)
 set(SRC_GRIB2 source/scwx/grib2/grib2_message.cpp
               source/scwx/grib2/grib2_types.cpp)
+set(HDR_SPC include/scwx/spc/spc_types.hpp
+            include/scwx/spc/geojson_parser.hpp
+            include/scwx/spc/spc_outlook_provider.hpp)
+set(SRC_SPC source/scwx/spc/spc_types.cpp
+            source/scwx/spc/geojson_parser.cpp
+            source/scwx/spc/spc_outlook_provider.cpp)
 set(HDR_SOUNDING include/scwx/sounding/sounding_data.hpp)
 set(SRC_SOUNDING source/scwx/sounding/sounding_data.cpp)
 set(SRC_GR source/scwx/gr/color.cpp
@@ -257,32 +263,34 @@ set(SRC_ZIP source/scwx/zip/zip_stream_reader.cpp
 set(CMAKE_FILES wxdata.cmake)
 
 add_library(wxdata OBJECT ${HDR_AWIPS}
-                          ${SRC_AWIPS}
-                          ${HDR_COMMON}
-                          ${SRC_COMMON}
-                          ${HDR_GR}
-                          ${SRC_GR}
-                          ${HDR_GRIB2}
-                          ${SRC_GRIB2}
-                          ${HDR_NETWORK}
-                          ${SRC_NETWORK}
-                          ${HDR_PROVIDER}
-                          ${SRC_PROVIDER}
-                          ${HDR_SOUNDING}
-                          ${SRC_SOUNDING}
-                          ${HDR_TYPES}
-                          ${SRC_TYPES}
-                          ${HDR_UTIL}
-                          ${SRC_UTIL}
-                          ${HDR_WSR88D}
-                          ${SRC_WSR88D}
-                          ${HDR_WSR88D_RDA}
-                          ${SRC_WSR88D_RDA}
-                          ${HDR_WSR88D_RPG}
-                          ${SRC_WSR88D_RPG}
-                          ${HDR_ZIP}
-                          ${SRC_ZIP}
-                          ${CMAKE_FILES})
+                           ${SRC_AWIPS}
+                           ${HDR_COMMON}
+                           ${SRC_COMMON}
+                           ${HDR_GR}
+                           ${SRC_GR}
+                           ${HDR_GRIB2}
+                           ${SRC_GRIB2}
+                           ${HDR_NETWORK}
+                           ${SRC_NETWORK}
+                           ${HDR_PROVIDER}
+                           ${SRC_PROVIDER}
+                           ${HDR_SOUNDING}
+                           ${SRC_SOUNDING}
+                           ${HDR_SPC}
+                           ${SRC_SPC}
+                           ${HDR_TYPES}
+                           ${SRC_TYPES}
+                           ${HDR_UTIL}
+                           ${SRC_UTIL}
+                           ${HDR_WSR88D}
+                           ${SRC_WSR88D}
+                           ${HDR_WSR88D_RDA}
+                           ${SRC_WSR88D_RDA}
+                           ${HDR_WSR88D_RPG}
+                           ${SRC_WSR88D_RPG}
+                           ${HDR_ZIP}
+                           ${SRC_ZIP}
+                           ${CMAKE_FILES})
 
 source_group("Header Files\\awips"       FILES ${HDR_AWIPS})
 source_group("Source Files\\awips"       FILES ${SRC_AWIPS})
@@ -296,8 +304,10 @@ source_group("Header Files\\network"     FILES ${HDR_NETWORK})
 source_group("Source Files\\network"     FILES ${SRC_NETWORK})
 source_group("Header Files\\provider"    FILES ${HDR_PROVIDER})
 source_group("Source Files\\provider"    FILES ${SRC_PROVIDER})
-source_group("Header Files\\sounding"    FILES ${HDR_SOUNDING})
-source_group("Source Files\\sounding"    FILES ${SRC_SOUNDING})
+source_group("Header Files\\spc"           FILES ${HDR_SPC})
+source_group("Source Files\\spc"           FILES ${SRC_SPC})
+source_group("Header Files\\sounding"      FILES ${HDR_SOUNDING})
+source_group("Source Files\\sounding"      FILES ${SRC_SOUNDING})
 source_group("Header Files\\types"       FILES ${HDR_TYPES})
 source_group("Source Files\\types"       FILES ${SRC_TYPES})
 source_group("Header Files\\util"        FILES ${HDR_UTIL})

@@ -474,6 +474,7 @@ bool SettingsVariable<T>::Equals(const SettingsVariableBase& o) const
           p->maximum_ == v.p->maximum_;
 }
 
+template class SettingsVariable<int>;
 template class SettingsVariable<bool>;
 template class SettingsVariable<double>;
 template class SettingsVariable<std::int64_t>;

@@ -11,6 +11,7 @@
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
 #include <scwx/qt/settings/unit_settings.hpp>
+#include <scwx/qt/settings/spc_outlook_settings.hpp>
 #include <scwx/util/json.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -143,6 +144,7 @@ void SettingsManager::Shutdown()
    dataChanged |= settings::GeneralSettings::Instance().Shutdown();
    dataChanged |= settings::MapSettings::Instance().Shutdown();
    dataChanged |= settings::ProductSettings::Instance().Shutdown();
+   dataChanged |= settings::SpcOutlookSettings::Instance().Commit();
    dataChanged |= settings::UiSettings::Instance().Shutdown();
 
    if (dataChanged)
@@ -165,6 +167,7 @@ boost::json::value SettingsManager::Impl::ConvertSettingsToJson()
    settings::TextSettings::Instance().WriteJson(settingsJson);
    settings::UiSettings::Instance().WriteJson(settingsJson);
    settings::UnitSettings::Instance().WriteJson(settingsJson);
+   settings::SpcOutlookSettings::Instance().WriteJson(settingsJson);
 
    return settingsJson;
 }
@@ -183,6 +186,7 @@ void SettingsManager::Impl::GenerateDefaultSettings()
    settings::TextSettings::Instance().SetDefaults();
    settings::UiSettings::Instance().SetDefaults();
    settings::UnitSettings::Instance().SetDefaults();
+   settings::SpcOutlookSettings::Instance().SetDefaults();
 }
 
 bool SettingsManager::Impl::LoadSettings(
@@ -203,6 +207,8 @@ bool SettingsManager::Impl::LoadSettings(
    jsonDirty |= !settings::TextSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::UiSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::UnitSettings::Instance().ReadJson(settingsJson);
+   jsonDirty |=
+      !settings::SpcOutlookSettings::Instance().ReadJson(settingsJson);
 
    return jsonDirty;
 }

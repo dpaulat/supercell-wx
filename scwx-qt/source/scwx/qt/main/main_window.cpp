@@ -11,8 +11,11 @@
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
+#include <scwx/qt/manager/spc_outlook_manager.hpp>
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/manager/update_manager.hpp>
+#include <scwx/qt/settings/spc_outlook_settings.hpp>
+#include <scwx/spc/spc_types.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/model/layer_model.hpp>
@@ -54,14 +57,20 @@
 
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
+#include <QCheckBox>
+#include <QComboBox>
 #include <QDesktopServices>
 #include <QGuiApplication>
+#include <QHBoxLayout>
 #include <QKeyEvent>
+#include <QVBoxLayout>
+#include <QLabel>
 #include <QResizeEvent>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QScreen>
 #include <QSignalBlocker>
+#include <QSlider>
 #include <QSplitter>
 #include <QTimer>
 #include <QToolButton>
@@ -78,10 +87,11 @@ class MainWindowImpl : public QObject
    Q_OBJECT
 
 public:
+   Q_DISABLE_COPY_MOVE(MainWindowImpl)
+
    explicit MainWindowImpl(MainWindow* mainWindow) :
        mainWindow_ {mainWindow},
        settings_ {},
-       activeMap_ {nullptr},
        alertManager_ {manager::AlertManager::Instance()},
        placefileManager_ {manager::PlacefileManager::Instance()},
        markerManager_ {manager::MarkerManager::Instance()},
@@ -149,7 +159,7 @@ public:
    MainWindow*         mainWindow_;
    QMapLibre::Settings settings_;
    map::MapProvider    mapProvider_;
-   map::MapWidget*     activeMap_;
+   map::MapWidget*     activeMap_ {nullptr};
 
    std::shared_ptr<gl::GlContext> glContext_ {nullptr};
 
@@ -159,6 +169,11 @@ public:
    ui::CollapsibleGroup*     level3ProductsGroup_ {nullptr};
    ui::CollapsibleGroup*     level3SettingsGroup_ {nullptr};
    ui::CollapsibleGroup*     timelineGroup_ {nullptr};
+   ui::CollapsibleGroup*     spcOutlookGroup_ {nullptr};
+   QComboBox*                spcDayCombo_ {nullptr};
+   QComboBox*                spcProductCombo_ {nullptr};
+   QSlider*                  spcOpacitySlider_ {nullptr};
+   QCheckBox*                spcAutoRefreshCheck_ {nullptr};
    ui::Level2ProductsWidget* level2ProductsWidget_ {nullptr};
    ui::Level2SettingsWidget* level2SettingsWidget_ {nullptr};
 
@@ -303,7 +318,7 @@ MainWindow::MainWindow(QWidget* parent) :
    QObject::connect(soundingAction,
                     &QAction::toggled,
                     this,
-                    [this, soundingAction](bool checked)
+                    [this](bool checked)
                     { p->soundingPanel_->setVisible(checked); });
    QObject::connect(p->soundingPanel_,
                     &QDockWidget::visibilityChanged,
@@ -415,6 +430,200 @@ MainWindow::MainWindow(QWidget* parent) :
    p->timelineGroup_->GetContentsLayout()->addWidget(p->animationDockWidget_);
    ui->radarToolboxScrollAreaContents->layout()->addWidget(p->timelineGroup_);
    p->animationDockWidget_->UpdateTimeZone(defaultTimeZone);
+
+   // SPC Convective Outlook
+   p->spcOutlookGroup_ =
+      new ui::CollapsibleGroup(tr("SPC Convective Outlooks"), this);
+   auto* spcLayout =
+      qobject_cast<QVBoxLayout*>(p->spcOutlookGroup_->GetContentsLayout());
+
+   // Day selector
+   auto* dayLabel  = new QLabel(tr("Day:"), this);
+   p->spcDayCombo_ = new QComboBox(this);
+   p->spcDayCombo_->addItem(tr("Day 1"));
+   p->spcDayCombo_->addItem(tr("Day 2"));
+   p->spcDayCombo_->addItem(tr("Day 3"));
+
+   // Product selector
+   auto* productLabel  = new QLabel(tr("Product:"), this);
+   p->spcProductCombo_ = new QComboBox(this);
+
+   // Opacity slider
+   p->spcOpacitySlider_                = new QSlider(Qt::Horizontal, this);
+   static constexpr int kSpcOpacityMax = 100;
+   p->spcOpacitySlider_->setRange(0, kSpcOpacityMax);
+   p->spcOpacitySlider_->setValue(
+      settings::SpcOutlookSettings::Instance().opacity().GetValue());
+
+   // Auto-refresh
+   p->spcAutoRefreshCheck_ = new QCheckBox(tr("Auto-refresh"), this);
+   p->spcAutoRefreshCheck_->setChecked(
+      settings::SpcOutlookSettings::Instance().auto_refresh().GetValue());
+
+   // Layout
+   auto* dayRow = new QHBoxLayout();
+   dayRow->addWidget(dayLabel);
+   dayRow->addWidget(p->spcDayCombo_, 1);
+   spcLayout->addLayout(dayRow);
+
+   auto* productRow = new QHBoxLayout();
+   productRow->addWidget(productLabel);
+   productRow->addWidget(p->spcProductCombo_, 1);
+   spcLayout->addLayout(productRow);
+
+   spcLayout->addWidget(p->spcOpacitySlider_);
+   spcLayout->addWidget(p->spcAutoRefreshCheck_);
+
+   ui->radarToolboxScrollAreaContents->layout()->addWidget(p->spcOutlookGroup_);
+
+   auto updateProductCombo = [this](scwx::spc::OutlookDay day)
+   {
+      p->spcProductCombo_->clear();
+      switch (day)
+      {
+      case scwx::spc::OutlookDay::Day1:
+      case scwx::spc::OutlookDay::Day2:
+         p->spcProductCombo_->addItem(tr("Categorical"));
+         p->spcProductCombo_->addItem(tr("Tornado"));
+         p->spcProductCombo_->addItem(tr("Wind"));
+         p->spcProductCombo_->addItem(tr("Hail"));
+         break;
+      case scwx::spc::OutlookDay::Day3:
+         p->spcProductCombo_->addItem(tr("Categorical"));
+         p->spcProductCombo_->addItem(tr("Probabilistic"));
+         p->spcProductCombo_->addItem(tr("Significant Probabilistic"));
+         break;
+      default:
+         break;
+      }
+   };
+
+   auto getSelectedDay = [this]() -> scwx::spc::OutlookDay
+   {
+      switch (p->spcDayCombo_->currentIndex())
+      {
+      case 0:
+         return scwx::spc::OutlookDay::Day1;
+      case 1:
+         return scwx::spc::OutlookDay::Day2;
+      case 2:
+         return scwx::spc::OutlookDay::Day3;
+      default:
+         return scwx::spc::OutlookDay::Day1;
+      }
+   };
+
+   auto getSelectedProduct = [this]() -> scwx::spc::OutlookProduct
+   {
+      int dayIdx  = p->spcDayCombo_->currentIndex();
+      int prodIdx = p->spcProductCombo_->currentIndex();
+
+      static constexpr int kCategoricalIdx = 0;
+      static constexpr int kTornadoIdx     = 1;
+      static constexpr int kWindIdx        = 2;
+      static constexpr int kHailIdx        = 3;
+
+      // Day 3: Categorical=0, Probabilistic=1, SigProbabilistic=2
+      if (dayIdx == 2)
+      {
+         switch (prodIdx)
+         {
+         case kCategoricalIdx:
+            return scwx::spc::OutlookProduct::Categorical;
+         case 1:
+            return scwx::spc::OutlookProduct::Probabilistic;
+         case 2:
+            return scwx::spc::OutlookProduct::SignificantProbabilistic;
+         default:
+            return scwx::spc::OutlookProduct::Categorical;
+         }
+      }
+
+      // Day 1/2: Categorical=0, Tornado=1, Wind=2, Hail=3
+      switch (prodIdx)
+      {
+      case kCategoricalIdx:
+         return scwx::spc::OutlookProduct::Categorical;
+      case kTornadoIdx:
+         return scwx::spc::OutlookProduct::Tornado;
+      case kWindIdx:
+         return scwx::spc::OutlookProduct::Wind;
+      case kHailIdx:
+         return scwx::spc::OutlookProduct::Hail;
+      default:
+         return scwx::spc::OutlookProduct::Categorical;
+      }
+   };
+
+   // Day changed -> update products, trigger fetch
+   using IndexSignal = void (QComboBox::*)(int);
+   QObject::connect(
+      p->spcDayCombo_,
+      static_cast<IndexSignal>(&QComboBox::currentIndexChanged),
+      [updateProductCombo, getSelectedDay, getSelectedProduct]()
+      {
+         auto day = getSelectedDay();
+         updateProductCombo(day);
+
+         auto& settings = settings::SpcOutlookSettings::Instance();
+         settings.selected_day().StageValue(scwx::spc::GetOutlookDayName(day));
+         settings.selected_product().StageValue(
+            scwx::spc::GetOutlookProductName(getSelectedProduct()));
+
+         auto& manager = manager::SpcOutlookManager::Instance();
+         manager.SelectDay(day);
+         manager.SelectProduct(getSelectedProduct());
+      });
+
+   // Product changed -> trigger fetch
+   QObject::connect(p->spcProductCombo_,
+                    static_cast<IndexSignal>(&QComboBox::currentIndexChanged),
+                    [getSelectedProduct]()
+                    {
+                       auto product = getSelectedProduct();
+
+                       auto& settings =
+                          settings::SpcOutlookSettings::Instance();
+                       settings.selected_product().StageValue(
+                          scwx::spc::GetOutlookProductName(product));
+
+                       auto& manager = manager::SpcOutlookManager::Instance();
+                       manager.SelectProduct(product);
+                    });
+
+   // Opacity changed
+   QObject::connect(p->spcOpacitySlider_,
+                    static_cast<void (QSlider::*)(int)>(&QSlider::valueChanged),
+                    [](int value)
+                    {
+                       auto& opacitySetting =
+                          settings::SpcOutlookSettings::Instance().opacity();
+                       opacitySetting.StageValue(value);
+                       opacitySetting.Commit();
+                       manager::SpcOutlookManager::Instance().SetOpacity(value);
+                    });
+
+   // Auto-refresh changed
+   QObject::connect(
+      p->spcAutoRefreshCheck_,
+      &QCheckBox::checkStateChanged,
+      [](Qt::CheckState state)
+      {
+         bool enabled = (state == Qt::CheckState::Checked);
+         settings::SpcOutlookSettings::Instance().auto_refresh().StageValue(
+            enabled);
+         manager::SpcOutlookManager::Instance().SetAutoRefresh(enabled);
+      });
+
+   // Populate products for default day
+   updateProductCombo(getSelectedDay());
+
+   // Initial fetch
+   manager::SpcOutlookManager::Instance().RefreshNow();
+   manager::SpcOutlookManager::Instance().SetOpacity(
+      p->spcOpacitySlider_->value());
+   manager::SpcOutlookManager::Instance().SetAutoRefresh(
+      p->spcAutoRefreshCheck_->isChecked());
 
    // Reset toolbox spacer at the bottom
    ui->radarToolboxScrollAreaContents->layout()->removeItem(
@@ -583,7 +792,8 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event)
    if (obj == ui->radarToolboxDock && event->type() == QEvent::Resize &&
        !p->applyingDockWidth_)
    {
-      p->dockWidthSaveTimer_.start(500);
+      static constexpr int kDockWidthDebounceMs = 500;
+      p->dockWidthSaveTimer_.start(kDockWidthDebounceMs);
    }
    return QMainWindow::eventFilter(obj, event);
 }
@@ -611,7 +821,7 @@ void MainWindow::on_actionOpenNexrad_triggered()
       dialog,
       &QFileDialog::fileSelected,
       this,
-      [=, this](const QString& file)
+      [this, currentMap](const QString& file)
       {
          logger_->info("Selected: {}", file.toStdString());
 
@@ -626,7 +836,8 @@ void MainWindow::on_actionOpenNexrad_triggered()
             request.get(),
             &request::NexradFileRequest::RequestComplete,
             this,
-            [=, this](std::shared_ptr<request::NexradFileRequest> request)
+            [this, currentMap, file](
+               const std::shared_ptr<request::NexradFileRequest>& request)
             {
                std::shared_ptr<types::RadarProductRecord> record =
                   request->radar_product_record();
@@ -638,7 +849,8 @@ void MainWindow::on_actionOpenNexrad_triggered()
                }
                else
                {
-                  QMessageBox* messageBox = new QMessageBox(this);
+                  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+                  auto* messageBox = new QMessageBox(this);
                   messageBox->setIcon(QMessageBox::Warning);
                   messageBox->setText(
                      QString("%1\n%2").arg(tr("Unrecognized NEXRAD Product:"),
@@ -846,7 +1058,8 @@ void MainWindow::on_actionCheckForUpdates_triggered()
                   this,
                   [this]()
                   {
-                     QMessageBox* messageBox = new QMessageBox(this);
+                     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+                     auto* messageBox = new QMessageBox(this);
                      messageBox->setIcon(QMessageBox::Icon::Information);
                      messageBox->setWindowTitle(tr("Check for Updates"));
                      messageBox->setText(tr("Supercell Wx is up to date."));
@@ -922,15 +1135,16 @@ void MainWindowImpl::ConfigureMapLayout()
 
    size_t mapIndex = 0;
 
-   QSplitter* vs = new QSplitter(Qt::Vertical);
+   // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+   auto* vs = new QSplitter(Qt::Vertical);
    vs->setHandleWidth(1);
 
    maps_.resize(mapCount);
    timelineManager_->SetMapCount(mapCount);
 
-   auto MoveSplitter = [=, this](int /*pos*/, int /*index*/)
+   auto MoveSplitter = [this, vs](int /*pos*/, int /*index*/)
    {
-      QSplitter* s = static_cast<QSplitter*>(sender());
+      auto* s = qobject_cast<QSplitter*>(sender());
 
       auto sizes = s->sizes();
       for (QSplitter* hs : vs->findChildren<QSplitter*>())
@@ -943,7 +1157,8 @@ void MainWindowImpl::ConfigureMapLayout()
 
    for (int64_t y = 0; y < gridHeight; y++)
    {
-      QSplitter* hs = new QSplitter(vs);
+      // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+      auto* hs = new QSplitter(vs);
       hs->setHandleWidth(1);
 
       for (int64_t x = 0; x < gridWidth; x++, mapIndex++)
@@ -1031,6 +1246,7 @@ void MainWindowImpl::ConfigureUiSettings()
    mapSettingsGroup_->SetExpanded(
       uiSettings.map_settings_expanded().GetValue());
    timelineGroup_->SetExpanded(uiSettings.timeline_expanded().GetValue());
+   spcOutlookGroup_->SetExpanded(uiSettings.spc_outlook_expanded().GetValue());
 
    connect(level2ProductsGroup_,
            &ui::CollapsibleGroup::StateChanged,
@@ -1056,6 +1272,10 @@ void MainWindowImpl::ConfigureUiSettings()
            &ui::CollapsibleGroup::StateChanged,
            [&](bool expanded)
            { uiSettings.timeline_expanded().StageValue(expanded); });
+   connect(spcOutlookGroup_,
+           &ui::CollapsibleGroup::StateChanged,
+           [&](bool expanded)
+           { uiSettings.spc_outlook_expanded().StageValue(expanded); });
 }
 
 void MainWindowImpl::ConnectMapSignals()
@@ -1262,16 +1482,16 @@ void MainWindowImpl::ConnectAnimationSignals()
       connect(maps_[i],
               &map::MapWidget::RadarSweepUpdated,
               timelineManager_.get(),
-              [=, this]() { timelineManager_->ReceiveRadarSweepUpdated(i); });
+              [i, this]() { timelineManager_->ReceiveRadarSweepUpdated(i); });
       connect(maps_[i],
               &map::MapWidget::RadarSweepNotUpdated,
               timelineManager_.get(),
-              [=, this](types::NoUpdateReason reason)
+              [i, this](types::NoUpdateReason reason)
               { timelineManager_->ReceiveRadarSweepNotUpdated(i, reason); });
       connect(maps_[i],
               &map::MapWidget::WidgetPainted,
               timelineManager_.get(),
-              [=, this]() { timelineManager_->ReceiveMapWidgetPainted(i); });
+              [i, this]() { timelineManager_->ReceiveMapWidgetPainted(i); });
       connect(maps_[i],
               &map::MapWidget::RadarSiteRequested,
               this,
@@ -1532,7 +1752,8 @@ void MainWindowImpl::ConnectOtherSignals()
                  QString::fromStdString(util::TimeString(util::time::now())));
               timeLabel_->setVisible(true);
            });
-   clockTimer_.start(1000);
+   static constexpr int kClockTimerIntervalMs = 1000;
+   clockTimer_.start(kClockTimerIntervalMs);
 
    auto& generalSettings = settings::GeneralSettings::Instance();
    homeRadarConnection_ =

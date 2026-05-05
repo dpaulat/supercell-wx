@@ -17,6 +17,8 @@
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
 #include <scwx/qt/map/radar_site_layer.hpp>
+#include <scwx/qt/map/convective_outlook_layer.hpp>
+#include <scwx/qt/manager/spc_outlook_manager.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/qt/types/layer_types.hpp>
@@ -250,6 +252,9 @@ public:
    std::shared_ptr<MarkerLayer>         markerLayer_;
    std::shared_ptr<ColorTableLayer>     colorTableLayer_;
    std::shared_ptr<RadarSiteLayer>      radarSiteLayer_ {nullptr};
+
+   std::shared_ptr<ConvectiveOutlookLayer> convectiveOutlookLayer_ {nullptr};
+   QMetaObject::Connection                 convectiveOutlookConnection_ {};
 
    std::list<std::shared_ptr<PlacefileLayer>> placefileLayers_ {};
 
@@ -1366,6 +1371,13 @@ void MapWidgetImpl::AddLayers()
    genericLayers_.clear();
    placefileLayers_.clear();
 
+   // Clear convective outlook layer
+   if (convectiveOutlookLayer_ != nullptr)
+   {
+      convectiveOutlookLayer_->Remove(map_);
+      convectiveOutlookLayer_.reset();
+   }
+
    // Update custom layer list from model
    types::LayerVector customLayers = model::LayerModel::Instance()->GetLayers();
 
@@ -1511,6 +1523,27 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
       default:
          break;
       }
+   }
+   else if (type == types::LayerType::ConvectiveOutlook)
+   {
+      convectiveOutlookLayer_ = std::make_shared<ConvectiveOutlookLayer>();
+      convectiveOutlookLayer_->Add(map_, before);
+
+      if (convectiveOutlookConnection_)
+      {
+         QObject::disconnect(convectiveOutlookConnection_);
+      }
+      convectiveOutlookConnection_ =
+         QObject::connect(&manager::SpcOutlookManager::Instance(),
+                          &manager::SpcOutlookManager::OutlookDataUpdated,
+                          widget_,
+                          [this]()
+                          {
+                             if (convectiveOutlookLayer_ != nullptr)
+                             {
+                                convectiveOutlookLayer_->Update(map_);
+                             }
+                          });
    }
    else if (type == types::LayerType::Data)
    {
