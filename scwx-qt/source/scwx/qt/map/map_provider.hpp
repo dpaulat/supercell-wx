@@ -13,10 +13,11 @@ enum class MapProvider
 {
    Mapbox,
    MapTiler,
+   OpenFreeMap,
    Unknown
 };
 using MapProviderIterator = scwx::util::
-   Iterator<MapProvider, MapProvider::Mapbox, MapProvider::MapTiler>;
+   Iterator<MapProvider, MapProvider::Mapbox, MapProvider::OpenFreeMap>;
 
 struct MapStyle
 {
