@@ -3,6 +3,8 @@
 #include <scwx/qt/gl/gl.hpp>
 #include <scwx/qt/gl/shader_program.hpp>
 
+#include <cstdint>
+
 namespace scwx
 {
 namespace qt

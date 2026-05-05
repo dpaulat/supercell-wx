@@ -35,6 +35,11 @@ else()
     target_compile_options(MLNQtCore PRIVATE "$<$<CONFIG:Release>:-g>")
 endif()
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND
+    CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16)
+    target_compile_options(mbgl-core PRIVATE "-Wno-sfinae-incomplete")
+endif()
+
 if (APPLE)
     # Enable GL check error debug
     target_compile_definitions(mbgl-core PRIVATE MLN_GL_CHECK_ERRORS=1)
