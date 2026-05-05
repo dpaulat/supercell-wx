@@ -2930,17 +2930,18 @@ void MainWindowImpl::ConnectOtherSignals()
            &QAbstractItemModel::modelReset,
            this,
            [this]() { InitializeLayerDisplayActions(); });
-   connect(radarSiteDialog_,
-           &ui::RadarSiteDialog::accepted,
-           this,
-           [&]()
-           {
-              const std::string selectedRadarSite = radarSiteDialog_->radar_site();
-              SelectRadarSiteRespectingViewLink(nullptr, selectedRadarSite, true);
-              UpdateRadarSite();
-              UpdateAvailableLevel3Products();
-              UpdateRadarProductSettings();
-           });
+   connect(
+      radarSiteDialog_,
+      &ui::RadarSiteDialog::accepted,
+      this,
+      [&]()
+      {
+         const std::string selectedRadarSite = radarSiteDialog_->radar_site();
+         SelectRadarSiteRespectingViewLink(nullptr, selectedRadarSite, true);
+         UpdateRadarSite();
+         UpdateAvailableLevel3Products();
+         UpdateRadarProductSettings();
+      });
    connect(radarSiteModel_.get(),
            &model::RadarSiteModel::PresetToggled,
            [this](const std::string& siteId, bool isPreset)
