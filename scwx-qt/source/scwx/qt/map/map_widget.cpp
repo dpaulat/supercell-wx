@@ -320,6 +320,7 @@ MapWidget::MapWidget(std::size_t                    id,
    }
 
    setFocusPolicy(Qt::StrongFocus);
+   setMouseTracking(true);
 
    grabGesture(Qt::GestureType::PinchGesture);
 
@@ -1679,6 +1680,12 @@ void MapWidget::keyPressEvent(QKeyEvent* ev)
    {
       ev->accept();
    }
+
+   if (ev->key() == Qt::Key_Control || ev->key() == Qt::Key_Shift ||
+       ev->key() == Qt::Key_Alt || ev->key() == Qt::Key_Meta)
+   {
+      update();
+   }
 }
 
 void MapWidget::keyReleaseEvent(QKeyEvent* ev)
@@ -1686,6 +1693,12 @@ void MapWidget::keyReleaseEvent(QKeyEvent* ev)
    if (p->hotkeyManager_->HandleKeyRelease(ev))
    {
       ev->accept();
+   }
+
+   if (ev->key() == Qt::Key_Control || ev->key() == Qt::Key_Shift ||
+       ev->key() == Qt::Key_Alt || ev->key() == Qt::Key_Meta)
+   {
+      update();
    }
 }
 
@@ -1769,6 +1782,12 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
    p->lastPos_       = ev->position();
    p->lastGlobalPos_ = ev->globalPosition();
    ev->accept();
+
+   if (ev->buttons() == Qt::NoButton)
+   {
+      auto coordinate = p->map_->coordinateForPixel(p->lastPos_);
+      Q_EMIT MouseCoordinateChanged({coordinate.first, coordinate.second});
+   }
 }
 
 void MapWidget::wheelEvent(QWheelEvent* ev)

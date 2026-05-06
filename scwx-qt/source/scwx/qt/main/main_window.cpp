@@ -795,7 +795,18 @@ void MainWindow::keyPressEvent(QKeyEvent* ev)
 {
    if (p->hotkeyManager_->HandleKeyPress(ev))
    {
-      p->activeMap_->update();
+      if (ev->key() == Qt::Key_Control || ev->key() == Qt::Key_Shift ||
+          ev->key() == Qt::Key_Alt || ev->key() == Qt::Key_Meta)
+      {
+         for (auto& map : p->maps_)
+         {
+            map->update();
+         }
+      }
+      else
+      {
+         p->activeMap_->update();
+      }
       ev->accept();
    }
 }
@@ -804,7 +815,18 @@ void MainWindow::keyReleaseEvent(QKeyEvent* ev)
 {
    if (p->hotkeyManager_->HandleKeyRelease(ev))
    {
-      p->activeMap_->update();
+      if (ev->key() == Qt::Key_Control || ev->key() == Qt::Key_Shift ||
+          ev->key() == Qt::Key_Alt || ev->key() == Qt::Key_Meta)
+      {
+         for (auto& map : p->maps_)
+         {
+            map->update();
+         }
+      }
+      else
+      {
+         p->activeMap_->update();
+      }
       ev->accept();
    }
 }
