@@ -6,6 +6,7 @@
 #include <QJsonParseError>
 #include <QJsonValue>
 
+#include <cmath>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -26,8 +27,24 @@ constexpr int64_t kMaxMapPaneCount {1024};
    }
    if (v.isDouble())
    {
-      *elementOk = true;
-      return v.toInt() != 0;
+      const double n = v.toDouble();
+      if (std::trunc(n) != n)
+      {
+         *elementOk = false;
+         return false;
+      }
+      if (n == 0.0)
+      {
+         *elementOk = true;
+         return false;
+      }
+      if (n == 1.0)
+      {
+         *elementOk = true;
+         return true;
+      }
+      *elementOk = false;
+      return false;
    }
    if (v.isString())
    {

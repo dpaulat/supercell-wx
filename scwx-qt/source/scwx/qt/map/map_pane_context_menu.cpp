@@ -40,7 +40,14 @@ void AlignMapPaneSubMenuToParentMenu(const QPointer<QMenu>& sub)
    }
    const QRect pr = parentMenu->frameGeometry();
    const QRect sr = sub->frameGeometry();
-   const int   dx = (pr.right() + 1) - sr.left();
+
+   // If Qt flipped the submenu to the left to stay on-screen, keep it there.
+   if (sr.right() < pr.left() || sr.left() < pr.left())
+   {
+      return;
+   }
+
+   const int dx = (pr.right() + 1) - sr.left();
    if (dx > 0)
    {
       sub->move(sub->x() + dx, sub->y());
