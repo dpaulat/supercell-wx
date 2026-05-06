@@ -1,6 +1,8 @@
 #include "collapsible_group.hpp"
 #include "ui_collapsible_group.h"
 
+#include <QEvent>
+
 namespace scwx
 {
 namespace qt
@@ -94,6 +96,17 @@ void CollapsibleGroup::SetExpanded(bool expanded)
       p->expanded_ = expanded;
 
       Q_EMIT StateChanged(expanded);
+   }
+}
+
+void CollapsibleGroup::changeEvent(QEvent* event)
+{
+   QFrame::changeEvent(event);
+
+   if (event->type() == QEvent::PaletteChange ||
+       event->type() == QEvent::StyleChange)
+   {
+      ui->titleButton->setIcon(p->kIcon_.at(p->expanded_));
    }
 }
 

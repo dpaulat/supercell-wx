@@ -25,8 +25,10 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static bool              hasStyleArgument_ {false};
 
 /** QStyleFactory key or empty if unknown (restore with setStyle(nullptr)). */
-static bool    startupStyleKeyKnown_ {false};
-static QString startupStyleKey_;
+static bool     startupStyleKeyKnown_ {false};
+static QString  startupStyleKey_;
+static bool     startupPaletteKnown_ {false};
+static QPalette startupPalette_;
 
 bool internal::HasStyleArgument(const std::vector<std::string>& args)
 {
@@ -86,9 +88,21 @@ static void RestoreStartupStyle()
    }
 }
 
+static void CaptureStartupPaletteIfNeeded()
+{
+   if (startupPaletteKnown_)
+   {
+      return;
+   }
+
+   startupPalette_      = QApplication::palette();
+   startupPaletteKnown_ = true;
+}
+
 static void ApplyThemeImpl()
 {
    CaptureStartupStyleIfNeeded();
+   CaptureStartupPaletteIfNeeded();
 
    const scwx::qt::settings::GeneralSettings& generalSettings =
       scwx::qt::settings::GeneralSettings::Instance();
@@ -149,7 +163,14 @@ static void ApplyThemeImpl()
    }
    else
    {
-      QApplication::setPalette(QApplication::style()->standardPalette());
+      if (uiStyle == scwx::qt::types::UiStyle::Default && startupPaletteKnown_)
+      {
+         QApplication::setPalette(startupPalette_);
+      }
+      else
+      {
+         QApplication::setPalette(QApplication::style()->standardPalette());
+      }
    }
 }
 
