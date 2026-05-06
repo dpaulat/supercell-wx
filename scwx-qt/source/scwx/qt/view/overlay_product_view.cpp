@@ -279,7 +279,10 @@ void OverlayProductView::SelectTime(std::chrono::system_clock::time_point time)
    if (time != p->selectedTime_)
    {
       p->selectedTime_ = time;
-      p->Update(kNst_);
+      if (p->radarProductManager_ != nullptr)
+      {
+         p->Update(kNst_);
+      }
    }
 }
 
@@ -294,6 +297,11 @@ void OverlayProductView::SetAutoRefresh(bool enabled)
 
 void OverlayProductView::Impl::Update(const std::string& product)
 {
+   if (radarProductManager_ == nullptr)
+   {
+      return;
+   }
+
    // Retrieve message from Radar Product Manager
    std::shared_ptr<wsr88d::rpg::Level3Message> message;
    std::chrono::system_clock::time_point       requestedTime {selectedTime_};

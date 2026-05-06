@@ -66,6 +66,9 @@ void QApiKeyEdit::apiTest()
       req.setUrl(url);
       break;
    }
+   case map::MapProvider::OpenFreeMap:
+      // No API key for this OpenFreeMap, so just return.
+      return;
    default:
    {
       logger_->warn("Cannot test MapProvider::Unknown API key");
