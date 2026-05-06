@@ -12,20 +12,20 @@ class NexradFileImpl;
 
 class NexradFile
 {
-protected:
-   explicit NexradFile();
-
-   NexradFile(const NexradFile&) = delete;
+public:
+   NexradFile(const NexradFile&)            = delete;
    NexradFile& operator=(const NexradFile&) = delete;
 
-   NexradFile(NexradFile&&) noexcept;
-   NexradFile& operator=(NexradFile&&) noexcept;
-
-public:
    virtual ~NexradFile();
 
    virtual bool LoadFile(const std::string& filename) = 0;
    virtual bool LoadData(std::istream& is)            = 0;
+
+protected:
+   explicit NexradFile();
+
+   NexradFile(NexradFile&&) noexcept;
+   NexradFile& operator=(NexradFile&&) noexcept;
 
 private:
    std::unique_ptr<NexradFileImpl> p;

@@ -19,9 +19,11 @@
 
 #include <QGestureEvent>
 #include <QOpenGLWidget>
+#include <QPoint>
 #include <QPropertyAnimation>
 #include <QtGlobal>
 
+class QContextMenuEvent;
 class QKeyEvent;
 class QMouseEvent;
 class QWheelEvent;
@@ -135,6 +137,13 @@ public:
                          double zoom,
                          double bearing,
                          double pitch);
+
+   void GetMapViewParameters(double& latitude,
+                             double& longitude,
+                             double& zoom,
+                             double& bearing,
+                             double& pitch) const;
+
    void SetInitialMapStyle(const std::string& styleName);
    void SetMapStyle(const std::string& styleName, bool force = false);
    void SetRadarWireframeEnabled(bool enabled);
@@ -157,10 +166,13 @@ private:
    void enterEvent(QEnterEvent* ev) final;
    void keyPressEvent(QKeyEvent* ev) final;
    void keyReleaseEvent(QKeyEvent* ev) final;
+   void contextMenuEvent(QContextMenuEvent* event) final;
    void gestureEvent(QGestureEvent* ev);
    void leaveEvent(QEvent* ev) final;
    void mousePressEvent(QMouseEvent* ev) final;
    void mouseMoveEvent(QMouseEvent* ev) final;
+   void mouseReleaseEvent(QMouseEvent* ev) final;
+   void mouseDoubleClickEvent(QMouseEvent* ev) final;
    void wheelEvent(QWheelEvent* ev) final;
 
    // QOpenGLWidget implementation.
@@ -207,6 +219,7 @@ signals:
 
    void WidgetPainted();
    void IncomingLevel2ElevationChanged(std::optional<float> incomingElevation);
+   void MapPaneContextMenuRequested(const QPoint& globalPos);
 };
 
 } // namespace scwx::qt::map

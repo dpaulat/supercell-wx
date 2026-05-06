@@ -24,7 +24,7 @@ Level3Message::Level3Message() :
 }
 Level3Message::~Level3Message() = default;
 
-Level3Message::Level3Message(Level3Message&&) noexcept = default;
+Level3Message::Level3Message(Level3Message&&) noexcept            = default;
 Level3Message& Level3Message::operator=(Level3Message&&) noexcept = default;
 
 size_t Level3Message::data_size() const

@@ -31,7 +31,10 @@ set(SRC_QT_MAIN_TESTS source/scwx/qt/main/application_paths.test.cpp
 set(SRC_QT_MANAGER_TESTS source/scwx/qt/manager/radar_product_manager.test.cpp
                          source/scwx/qt/manager/settings_manager.test.cpp
                          source/scwx/qt/manager/update_manager.test.cpp)
-set(SRC_QT_MAP_TESTS source/scwx/qt/map/map_provider.test.cpp)
+set(SRC_QT_MAP_TESTS source/scwx/qt/map/map_link_policy.test.cpp
+                     source/scwx/qt/map/map_pane_splitter_state.test.cpp
+                     source/scwx/qt/map/map_pane_view_link_state.test.cpp
+                     source/scwx/qt/map/map_provider.test.cpp)
 set(SRC_QT_MODEL_TESTS source/scwx/qt/model/imgui_context_model.test.cpp
                        source/scwx/qt/model/marker_model.test.cpp)
 set(SRC_QT_UI_TESTS source/scwx/qt/ui/threshold_value_utility.test.cpp)

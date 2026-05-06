@@ -20,7 +20,7 @@ public:
    explicit GenericDataPacket();
    ~GenericDataPacket();
 
-   GenericDataPacket(const GenericDataPacket&) = delete;
+   GenericDataPacket(const GenericDataPacket&)            = delete;
    GenericDataPacket& operator=(const GenericDataPacket&) = delete;
 
    GenericDataPacket(GenericDataPacket&&) noexcept;

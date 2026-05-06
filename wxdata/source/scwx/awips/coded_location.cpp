@@ -24,7 +24,7 @@ public:
 CodedLocation::CodedLocation() : p(std::make_unique<CodedLocationImpl>()) {}
 CodedLocation::~CodedLocation() = default;
 
-CodedLocation::CodedLocation(CodedLocation&&) noexcept = default;
+CodedLocation::CodedLocation(CodedLocation&&) noexcept            = default;
 CodedLocation& CodedLocation::operator=(CodedLocation&&) noexcept = default;
 
 std::vector<common::Coordinate> CodedLocation::coordinates() const

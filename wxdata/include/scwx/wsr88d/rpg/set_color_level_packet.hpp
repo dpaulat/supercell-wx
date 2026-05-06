@@ -20,7 +20,7 @@ public:
    explicit SetColorLevelPacket();
    ~SetColorLevelPacket();
 
-   SetColorLevelPacket(const SetColorLevelPacket&) = delete;
+   SetColorLevelPacket(const SetColorLevelPacket&)            = delete;
    SetColorLevelPacket& operator=(const SetColorLevelPacket&) = delete;
 
    SetColorLevelPacket(SetColorLevelPacket&&) noexcept;

@@ -19,7 +19,7 @@ public:
                                   const std::string& region);
    ~AwsLevel2DataProvider();
 
-   AwsLevel2DataProvider(const AwsLevel2DataProvider&) = delete;
+   AwsLevel2DataProvider(const AwsLevel2DataProvider&)            = delete;
    AwsLevel2DataProvider& operator=(const AwsLevel2DataProvider&) = delete;
 
    AwsLevel2DataProvider(AwsLevel2DataProvider&&) noexcept;

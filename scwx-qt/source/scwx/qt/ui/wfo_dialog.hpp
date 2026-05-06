@@ -27,7 +27,7 @@ public:
 private:
    class Impl;
    std::unique_ptr<Impl> p;
-   Ui::WFODialog*     ui;
+   Ui::WFODialog*        ui;
 };
 } // namespace ui
 } // namespace qt
