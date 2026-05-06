@@ -25,6 +25,7 @@ public:
    static std::shared_ptr<TimelineManager> Instance();
 
    [[nodiscard]] std::chrono::system_clock::time_point GetSelectedTime() const;
+   [[nodiscard]] types::MapTime                        GetViewType() const;
 
    void SetMapCount(std::size_t mapCount);
 

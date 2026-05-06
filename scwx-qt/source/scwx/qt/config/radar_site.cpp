@@ -218,8 +218,12 @@ std::vector<std::shared_ptr<RadarSite>> RadarSite::GetAll()
    return radarSites;
 }
 
-std::shared_ptr<RadarSite> RadarSite::FindNearest(
-   double latitude, double longitude, const std::optional<std::string>& type)
+std::shared_ptr<RadarSite>
+RadarSite::FindNearest(double                            latitude,
+                       double                            longitude,
+                       const std::optional<std::string>& type,
+                       bool                              includeDown,
+                       bool                              includeKlix)
 {
    std::shared_lock lock(siteMutex_);
 
@@ -234,6 +238,18 @@ std::shared_ptr<RadarSite> RadarSite::FindNearest(
 
       // If the type filter doesn't match, skip
       if (type.has_value() && radarSite->type() != type)
+      {
+         continue;
+      }
+
+      // Optionally exclude radars which are currently down.
+      if (!includeDown && radarSite->status() == types::RadarSiteStatus::Down)
+      {
+         continue;
+      }
+
+      // Optionally exclude KLIX from automatic selection.
+      if (!includeKlix && radarSite->id() == "KLIX")
       {
          continue;
       }

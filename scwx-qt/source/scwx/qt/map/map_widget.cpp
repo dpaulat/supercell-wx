@@ -4,6 +4,7 @@
 #include <scwx/qt/manager/hotkey_manager.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
+#include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/map/alert_layer.hpp>
 #include <scwx/qt/map/color_table_layer.hpp>
 #include <scwx/qt/map/layer_wrapper.hpp>
@@ -1275,8 +1276,14 @@ void MapWidget::SetMapLocation(double latitude,
          }
 
          // Find the nearest radar
+         const bool isArchiveMode =
+            manager::TimelineManager::Instance()->GetViewType() ==
+            types::MapTime::Archive;
+         const bool                               includeDown = isArchiveMode;
+         const bool                               includeKlix = isArchiveMode;
          const std::shared_ptr<config::RadarSite> nearestRadarSite =
-            config::RadarSite::FindNearest(latitude, longitude, type);
+            config::RadarSite::FindNearest(
+               latitude, longitude, type, includeDown, includeKlix);
 
          // If found, select it
          if (nearestRadarSite != nullptr)
@@ -2672,7 +2679,13 @@ void MapWidgetImpl::SelectNearestRadarSite(double                     latitude,
                                            double                     longitude,
                                            std::optional<std::string> type)
 {
-   auto radarSite = config::RadarSite::FindNearest(latitude, longitude, type);
+   const bool isArchiveMode =
+      manager::TimelineManager::Instance()->GetViewType() ==
+      types::MapTime::Archive;
+   const bool includeDown = isArchiveMode;
+   const bool includeKlix = isArchiveMode;
+   auto       radarSite   = config::RadarSite::FindNearest(
+      latitude, longitude, type, includeDown, includeKlix);
 
    if (radarSite != nullptr)
    {
