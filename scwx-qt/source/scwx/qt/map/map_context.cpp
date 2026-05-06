@@ -3,6 +3,8 @@
 #include <scwx/qt/view/overlay_product_view.hpp>
 #include <scwx/qt/view/radar_product_view.hpp>
 
+#include <mutex>
+
 namespace scwx::qt::map
 {
 
@@ -31,6 +33,8 @@ public:
 
    QMargins           colorTableMargins_ {};
    common::Coordinate mouseCoordinate_ {};
+
+   mutable std::mutex productViewMutex_ {};
 
    std::shared_ptr<view::OverlayProductView> overlayProductView_ {nullptr};
    std::shared_ptr<view::RadarProductView>   radarProductView_;
@@ -86,11 +90,13 @@ common::Coordinate MapContext::mouse_coordinate() const
 std::shared_ptr<view::OverlayProductView>
 MapContext::overlay_product_view() const
 {
+   const std::scoped_lock lock {p->productViewMutex_};
    return p->overlayProductView_;
 }
 
 std::shared_ptr<view::RadarProductView> MapContext::radar_product_view() const
 {
+   const std::scoped_lock lock {p->productViewMutex_};
    return p->radarProductView_;
 }
 
@@ -152,6 +158,7 @@ void MapContext::set_mouse_coordinate(const common::Coordinate& coordinate)
 void MapContext::set_overlay_product_view(
    const std::shared_ptr<view::OverlayProductView>& overlayProductView)
 {
+   const std::scoped_lock lock {p->productViewMutex_};
    p->overlayProductView_ = overlayProductView;
 }
 
@@ -163,6 +170,7 @@ void MapContext::set_pixel_ratio(float pixelRatio)
 void MapContext::set_radar_product_view(
    const std::shared_ptr<view::RadarProductView>& radarProductView)
 {
+   const std::scoped_lock lock {p->productViewMutex_};
    p->radarProductView_ = radarProductView;
 }
 
