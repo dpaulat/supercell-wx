@@ -2263,6 +2263,14 @@ void MapWidgetImpl::InitializeNewRadarProductView(
       boost::asio::post(threadPool_,
                         [colorPalette, radarProductView, this]()
                         {
+                           if (radarProductView !=
+                               context_->radar_product_view())
+                           {
+                              // If the radar product view has changed, don't
+                              // initialize
+                              return;
+                           }
+
                            try
                            {
                               UpdateColorTable(colorPalette, radarProductView);
