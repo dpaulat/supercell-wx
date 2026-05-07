@@ -1602,23 +1602,24 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
       case types::InformationLayer::RadarSite:
          radarSiteLayer_ = std::make_shared<RadarSiteLayer>(glContext_);
          AddLayer(layerName, radarSiteLayer_, before);
-         connect(radarSiteLayer_.get(),
-                 &RadarSiteLayer::RadarSiteSelected,
-                 this,
-                 [this](const std::string& id)
-                 {
-                    auto& generalSettings =
-                       settings::GeneralSettings::Instance();
-                    auto selectedRadarSite = widget_->GetRadarSite();
-                    const std::string requestedRadarSite =
-                       (selectedRadarSite != nullptr &&
-                        selectedRadarSite->id() == id) ?
-                          std::string {} :
-                          id;
-                    widget_->RadarSiteRequested(
-                       requestedRadarSite,
-                       generalSettings.center_on_radar_selection().GetValue());
-                 });
+         connect(
+            radarSiteLayer_.get(),
+            &RadarSiteLayer::RadarSiteSelected,
+            this,
+            [this](const std::string& id)
+            {
+               auto& generalSettings   = settings::GeneralSettings::Instance();
+               auto  selectedRadarSite = widget_->GetRadarSite();
+               if (selectedRadarSite != nullptr &&
+                   selectedRadarSite->id() == id)
+               {
+                  // Clicking the currently selected radar should not clear
+                  // the site or reset timeline state.
+                  return;
+               }
+               widget_->RadarSiteRequested(
+                  id, generalSettings.center_on_radar_selection().GetValue());
+            });
          break;
 
       // Create the location marker layer
