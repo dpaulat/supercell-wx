@@ -103,10 +103,18 @@ void CollapsibleGroup::changeEvent(QEvent* event)
 {
    QFrame::changeEvent(event);
 
-   if (event->type() == QEvent::PaletteChange ||
-       event->type() == QEvent::StyleChange)
+   switch (event->type())
    {
+   case QEvent::PaletteChange:
+   case QEvent::ApplicationPaletteChange:
+   case QEvent::StyleChange:
+   case QEvent::ParentChange:
+      // Reparent (e.g. radar toolbox dock floated) does not always emit
+      // palette/style changes; refresh caret icons for current theme.
       ui->titleButton->setIcon(p->kIcon_.at(p->expanded_));
+      break;
+   default:
+      break;
    }
 }
 
