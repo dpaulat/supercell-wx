@@ -149,7 +149,6 @@ SettingsVariable<bool>& UiSettings::panes_match_map_style() const
 {
    return p->panesMatchMapStyle_;
 }
-
 bool UiSettings::Shutdown()
 {
    bool dataChanged = false;

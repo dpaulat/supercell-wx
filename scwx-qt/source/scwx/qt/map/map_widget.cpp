@@ -1884,6 +1884,12 @@ void MapWidget::mousePressEvent(QMouseEvent* ev)
          p->suppressContextMenuOnNextRightRelease_ =
             static_cast<bool>(ev->flags() & Qt::MouseEventCreatedDoubleClick);
       }
+      else if (ev->buttons() == Qt::MouseButton::LeftButton)
+      {
+         // Emit map click for point selection (used by sounding panel, etc.)
+         auto coordinate = p->map_->coordinateForPixel(p->lastPos_);
+         Q_EMIT this->MapClicked({coordinate.first, coordinate.second});
+      }
    }
 
    ev->accept();
