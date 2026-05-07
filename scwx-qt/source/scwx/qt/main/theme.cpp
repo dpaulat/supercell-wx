@@ -9,9 +9,11 @@
 
 #include <QApplication>
 #include <QPalette>
+#include <QPixmapCache>
 #include <QString>
 #include <QStyle>
 #include <QStyleHints>
+#include <QWidget>
 
 #define QT6CT_LIBRARY
 #include <qt6ct-common/qt6ct.h>
@@ -99,6 +101,22 @@ static void CaptureStartupPaletteIfNeeded()
    startupPaletteKnown_ = true;
 }
 
+static void RefreshApplicationWidgets()
+{
+   QPixmapCache::clear();
+
+   for (QWidget* widget : QApplication::allWidgets())
+   {
+      QStyle* style = widget->style();
+      if (style != nullptr)
+      {
+         style->unpolish(widget);
+         style->polish(widget);
+      }
+      widget->update();
+   }
+}
+
 static void ApplyThemeImpl()
 {
    CaptureStartupStyleIfNeeded();
@@ -128,8 +146,19 @@ static void ApplyThemeImpl()
    }
    else
    {
-      QApplication::setStyle(
-         QString::fromStdString(scwx::qt::types::GetQtStyleName(uiStyle)));
+      const QString styleName =
+         QString::fromStdString(scwx::qt::types::GetQtStyleName(uiStyle));
+
+      if (QApplication::style() != nullptr &&
+          QApplication::style()->objectName().compare(styleName,
+                                                      Qt::CaseInsensitive) == 0)
+      {
+         // Recreate the style when only the color scheme changes (e.g. Fusion
+         // Dark -> Fusion); otherwise Qt can keep the previous standard
+         // palette.
+         QApplication::setStyle(static_cast<QStyle*>(nullptr));
+      }
+      QApplication::setStyle(styleName);
    }
 
    QGuiApplication::styleHints()->setColorScheme(qtColorScheme);
@@ -167,11 +196,17 @@ static void ApplyThemeImpl()
       {
          QApplication::setPalette(startupPalette_);
       }
-      else
+      else if (uiStyle != scwx::qt::types::UiStyle::Default)
       {
-         QApplication::setPalette(QApplication::style()->standardPalette());
+         // Reset any palette loaded by a previous theme after the target
+         // style/color scheme is active. A default-constructed palette has an
+         // empty resolve mask, so Qt rebuilds from the current theme palette
+         // instead of keeping stale explicit colors.
+         QApplication::setPalette(QPalette {});
       }
    }
+
+   RefreshApplicationWidgets();
 }
 
 void ConfigureThemeForStartup(const std::vector<std::string>& args)
