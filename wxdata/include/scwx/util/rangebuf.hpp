@@ -14,7 +14,7 @@ public:
    rangebuf(std::streambuf* sbuf, size_t size);
    ~rangebuf() = default;
 
-   rangebuf(const rangebuf&) = delete;
+   rangebuf(const rangebuf&)            = delete;
    rangebuf& operator=(const rangebuf&) = delete;
 
    int underflow() override;

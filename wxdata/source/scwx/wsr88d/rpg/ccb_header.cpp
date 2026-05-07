@@ -69,7 +69,7 @@ public:
 CcbHeader::CcbHeader() : p(std::make_unique<CcbHeaderImpl>()) {}
 CcbHeader::~CcbHeader() = default;
 
-CcbHeader::CcbHeader(CcbHeader&&) noexcept = default;
+CcbHeader::CcbHeader(CcbHeader&&) noexcept            = default;
 CcbHeader& CcbHeader::operator=(CcbHeader&&) noexcept = default;
 
 uint16_t CcbHeader::ff() const

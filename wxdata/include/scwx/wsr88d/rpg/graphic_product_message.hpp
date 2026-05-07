@@ -24,7 +24,7 @@ public:
    explicit GraphicProductMessage();
    ~GraphicProductMessage();
 
-   GraphicProductMessage(const GraphicProductMessage&) = delete;
+   GraphicProductMessage(const GraphicProductMessage&)            = delete;
    GraphicProductMessage& operator=(const GraphicProductMessage&) = delete;
 
    GraphicProductMessage(GraphicProductMessage&&) noexcept;

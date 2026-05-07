@@ -20,7 +20,7 @@ public:
    explicit VectorArrowDataPacket();
    ~VectorArrowDataPacket();
 
-   VectorArrowDataPacket(const VectorArrowDataPacket&) = delete;
+   VectorArrowDataPacket(const VectorArrowDataPacket&)            = delete;
    VectorArrowDataPacket& operator=(const VectorArrowDataPacket&) = delete;
 
    VectorArrowDataPacket(VectorArrowDataPacket&&) noexcept;

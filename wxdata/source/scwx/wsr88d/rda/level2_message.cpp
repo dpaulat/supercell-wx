@@ -24,7 +24,7 @@ Level2Message::Level2Message() :
 }
 Level2Message::~Level2Message() = default;
 
-Level2Message::Level2Message(Level2Message&&) noexcept = default;
+Level2Message::Level2Message(Level2Message&&) noexcept            = default;
 Level2Message& Level2Message::operator=(Level2Message&&) noexcept = default;
 
 size_t Level2Message::data_size() const

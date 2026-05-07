@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -25,7 +26,7 @@ public:
    explicit CcbHeader();
    ~CcbHeader();
 
-   CcbHeader(const CcbHeader&) = delete;
+   CcbHeader(const CcbHeader&)            = delete;
    CcbHeader& operator=(const CcbHeader&) = delete;
 
    CcbHeader(CcbHeader&&) noexcept;

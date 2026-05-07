@@ -46,7 +46,7 @@ UnlinkedContourVectorPacket::UnlinkedContourVectorPacket() :
 UnlinkedContourVectorPacket::~UnlinkedContourVectorPacket() = default;
 
 UnlinkedContourVectorPacket::UnlinkedContourVectorPacket(
-   UnlinkedContourVectorPacket&&) noexcept                        = default;
+   UnlinkedContourVectorPacket&&) noexcept = default;
 UnlinkedContourVectorPacket& UnlinkedContourVectorPacket::operator=(
    UnlinkedContourVectorPacket&&) noexcept = default;
 

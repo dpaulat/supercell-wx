@@ -22,10 +22,10 @@ TEST(geographic_lib, area_in_range_inside)
 
    // inside is always true
    value = scwx::qt::util::GeographicLib::AreaInRangeOfPoint(
-         area, inside, units::length::meters<double>(0));
+      area, inside, units::length::meters<double>(0));
    EXPECT_EQ(value, true);
    value = scwx::qt::util::GeographicLib::AreaInRangeOfPoint(
-         area, inside, units::length::meters<double>(1e6));
+      area, inside, units::length::meters<double>(1e6));
    EXPECT_EQ(value, true);
 }
 
@@ -35,13 +35,13 @@ TEST(geographic_lib, area_in_range_near)
    bool value;
 
    value = scwx::qt::util::GeographicLib::AreaInRangeOfPoint(
-         area, near, units::length::meters<double>(9000));
+      area, near, units::length::meters<double>(9000));
    EXPECT_EQ(value, false);
    value = scwx::qt::util::GeographicLib::AreaInRangeOfPoint(
-         area, near, units::length::meters<double>(10100));
+      area, near, units::length::meters<double>(10100));
    EXPECT_EQ(value, true);
    value = scwx::qt::util::GeographicLib::AreaInRangeOfPoint(
-         area, near, units::length::meters<double>(1e6));
+      area, near, units::length::meters<double>(1e6));
    EXPECT_EQ(value, true);
 }
 
@@ -51,19 +51,18 @@ TEST(geographic_lib, area_in_range_far)
    bool value;
 
    value = scwx::qt::util::GeographicLib::AreaInRangeOfPoint(
-         area, far, units::length::meters<double>(9000));
+      area, far, units::length::meters<double>(9000));
    EXPECT_EQ(value, false);
    value = scwx::qt::util::GeographicLib::AreaInRangeOfPoint(
-         area, far, units::length::meters<double>(10100));
+      area, far, units::length::meters<double>(10100));
    EXPECT_EQ(value, false);
    value = scwx::qt::util::GeographicLib::AreaInRangeOfPoint(
-         area, far, units::length::meters<double>(100e3));
+      area, far, units::length::meters<double>(100e3));
    EXPECT_EQ(value, false);
    value = scwx::qt::util::GeographicLib::AreaInRangeOfPoint(
-         area, far, units::length::meters<double>(300e3));
+      area, far, units::length::meters<double>(300e3));
    EXPECT_EQ(value, true);
 }
-
 
 } // namespace util
 } // namespace scwx

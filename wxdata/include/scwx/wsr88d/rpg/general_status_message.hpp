@@ -20,7 +20,7 @@ public:
    explicit GeneralStatusMessage();
    ~GeneralStatusMessage();
 
-   GeneralStatusMessage(const GeneralStatusMessage&) = delete;
+   GeneralStatusMessage(const GeneralStatusMessage&)            = delete;
    GeneralStatusMessage& operator=(const GeneralStatusMessage&) = delete;
 
    GeneralStatusMessage(GeneralStatusMessage&&) noexcept;

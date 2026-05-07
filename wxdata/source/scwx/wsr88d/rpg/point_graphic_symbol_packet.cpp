@@ -45,7 +45,7 @@ PointGraphicSymbolPacket::PointGraphicSymbolPacket() :
 PointGraphicSymbolPacket::~PointGraphicSymbolPacket() = default;
 
 PointGraphicSymbolPacket::PointGraphicSymbolPacket(
-   PointGraphicSymbolPacket&&) noexcept                     = default;
+   PointGraphicSymbolPacket&&) noexcept = default;
 PointGraphicSymbolPacket& PointGraphicSymbolPacket::operator=(
    PointGraphicSymbolPacket&&) noexcept = default;
 

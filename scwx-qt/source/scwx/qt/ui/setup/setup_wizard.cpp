@@ -51,7 +51,8 @@ SetupWizard::SetupWizard(QWidget* parent) :
    connect(this,
            &QWizard::helpRequested,
            this,
-           []() {
+           []()
+           {
               QDesktopServices::openUrl(
                  QUrl {"https://supercell-wx.readthedocs.io/"});
            });

@@ -20,8 +20,8 @@ public:
    explicit PrecipitationRateDataArrayPacket();
    ~PrecipitationRateDataArrayPacket();
 
-   PrecipitationRateDataArrayPacket(
-      const PrecipitationRateDataArrayPacket&) = delete;
+   PrecipitationRateDataArrayPacket(const PrecipitationRateDataArrayPacket&) =
+      delete;
    PrecipitationRateDataArrayPacket&
    operator=(const PrecipitationRateDataArrayPacket&) = delete;
 

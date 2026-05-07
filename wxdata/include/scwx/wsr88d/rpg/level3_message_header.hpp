@@ -18,7 +18,7 @@ public:
    explicit Level3MessageHeader();
    ~Level3MessageHeader();
 
-   Level3MessageHeader(const Level3MessageHeader&) = delete;
+   Level3MessageHeader(const Level3MessageHeader&)            = delete;
    Level3MessageHeader& operator=(const Level3MessageHeader&) = delete;
 
    Level3MessageHeader(Level3MessageHeader&&) noexcept;
