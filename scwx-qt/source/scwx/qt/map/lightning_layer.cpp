@@ -23,9 +23,11 @@ static const std::string logPrefix_ = "scwx::qt::map::lightning_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr auto   kStrikeLifetimeMs_  = std::chrono::milliseconds(4000);
-static constexpr float  kCoreBaseOpacity_   = 0.7f;
-static constexpr float  kGlowBaseOpacity_   = 0.35f;
+static constexpr float  kCoreBaseOpacity_     = 0.8f;
+static constexpr float  kGlowBaseOpacity_     = 0.45f;
 static constexpr float  kFlashDurationMs_   = 80.0f;
+static constexpr float  kFlashFadeDurationMs_ = 150.0f;
+static constexpr float  kFlashBaseOpacity_    = 0.9f;
 static constexpr float  kDecayFactor_       = 3.5f;
 static constexpr auto   kMinUpdateInterval_ = std::chrono::milliseconds(66);
 static constexpr float  kBoundingBoxMetersPerDegree_ = 111320.0f;
@@ -77,6 +79,7 @@ public:
       manager::TimedStrikeData                   timedStrike_;
       std::shared_ptr<gl::draw::GeoIconDrawItem> coreIcon_;
       std::shared_ptr<gl::draw::GeoIconDrawItem> glowIcon_;
+      std::shared_ptr<gl::draw::GeoIconDrawItem> flashIcon_;
       bool                                       inRange_ {false};
    };
 
@@ -124,10 +127,16 @@ void LightningLayer::Impl::set_icon_sheets()
       4);
    geoIcons_->AddIconSheet(
       types::GetTextureName(types::ImageTexture::LightningStrikeGlow),
+      32,
+      32,
+      16,
+      16);
+   geoIcons_->AddIconSheet(
+      types::GetTextureName(types::ImageTexture::LightningStrikeFlash),
+      48,
+      48,
       24,
-      24,
-      12,
-      12);
+      24);
 
    geoIcons_->FinishIconSheets();
 }
@@ -169,7 +178,7 @@ void LightningLayer::Impl::UpdateStrikes(
 
       for (const auto& ts : timedStrikes)
       {
-         strikeVisuals_.push_back({ts, nullptr, nullptr, false});
+         strikeVisuals_.push_back({ts, nullptr, nullptr, nullptr, false});
       }
 
       RebuildStrikeIcons();
@@ -192,6 +201,7 @@ void LightningLayer::Impl::UpdateStrikes(
       {
          geoIcons_->SetIconVisible(visual.coreIcon_, false);
          geoIcons_->SetIconVisible(visual.glowIcon_, false);
+         geoIcons_->SetIconVisible(visual.flashIcon_, false);
          continue;
       }
 
@@ -201,6 +211,7 @@ void LightningLayer::Impl::UpdateStrikes(
       {
          geoIcons_->SetIconVisible(visual.coreIcon_, false);
          geoIcons_->SetIconVisible(visual.glowIcon_, false);
+         geoIcons_->SetIconVisible(visual.flashIcon_, false);
          continue;
       }
 
@@ -217,6 +228,22 @@ void LightningLayer::Impl::UpdateStrikes(
          visual.glowIcon_,
          boost::gil::rgba32f_pixel_t {
             0.87f, 0.89f, 1.0f, intensity * kGlowBaseOpacity_});
+
+      // Flash layer: brief bright burst that fades quickly
+      if (ageMs < kFlashFadeDurationMs_)
+      {
+         float flashT     = ageMs / kFlashFadeDurationMs_;
+         float flashAlpha = (1.0f - flashT * flashT) * kFlashBaseOpacity_;
+
+         geoIcons_->SetIconVisible(visual.flashIcon_, true);
+         geoIcons_->SetIconModulate(
+            visual.flashIcon_,
+            boost::gil::rgba32f_pixel_t {1.0f, 1.0f, 1.0f, flashAlpha});
+      }
+      else
+      {
+         geoIcons_->SetIconVisible(visual.flashIcon_, false);
+      }
    }
 
    geoIcons_->SetVisible(visibleStrikeCount != 0);
@@ -249,6 +276,16 @@ void LightningLayer::Impl::RebuildStrikeIcons()
                                  visual.timedStrike_.strike_.latitude,
                                  visual.timedStrike_.strike_.longitude);
       geoIcons_->SetIconVisible(visual.glowIcon_, false);
+
+      visual.flashIcon_ = geoIcons_->AddIcon();
+      geoIcons_->SetIconTexture(
+         visual.flashIcon_,
+         types::GetTextureName(types::ImageTexture::LightningStrikeFlash),
+         0);
+      geoIcons_->SetIconLocation(visual.flashIcon_,
+                                 visual.timedStrike_.strike_.latitude,
+                                 visual.timedStrike_.strike_.longitude);
+      geoIcons_->SetIconVisible(visual.flashIcon_, false);
    }
 
    geoIcons_->FinishIcons();

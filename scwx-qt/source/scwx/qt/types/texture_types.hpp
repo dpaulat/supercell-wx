@@ -20,6 +20,7 @@ enum class ImageTexture
    Dot3,
    LightningStrikeCore,
    LightningStrikeGlow,
+   LightningStrikeFlash,
    LocationBriefcase,
    LocationBuildingColumns,
    LocationBuilding,
