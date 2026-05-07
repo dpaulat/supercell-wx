@@ -1,0 +1,71 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cmake",
+			"label": "CMake: configure",
+			"command": "configure",
+			"preset": "windows-vs2022-x64-release",
+			"problemMatcher": [],
+			"detail": "CMake template configure task"
+		},
+		{
+			"label": "clang-format: check",
+			"type": "shell",
+			"command": ".venv\\Scripts\\python.exe",
+			"args": [
+				"C:\\Program Files\\LLVM\\bin\\git-clang-format",
+				"--diff",
+				"--style=file",
+				"origin/develop"
+			],
+			"options": {
+				"env": {
+					"PATH": "C:\\Program Files\\LLVM\\bin;${env:PATH}"
+				}
+			},
+			"group": "none",
+			"detail": "Check formatting of changed lines against origin/develop",
+			"problemMatcher": []
+		},
+		{
+			"label": "clang-format: fix",
+			"type": "shell",
+			"command": ".venv\\Scripts\\python.exe",
+			"args": [
+				"C:\\Program Files\\LLVM\\bin\\git-clang-format",
+				"--style=file",
+				"origin/develop"
+			],
+			"options": {
+				"env": {
+					"PATH": "C:\\Program Files\\LLVM\\bin;${env:PATH}"
+				}
+			},
+			"group": "none",
+			"detail": "Fix formatting of changed lines against origin/develop",
+			"problemMatcher": []
+		},
+		{
+			"label": "Build MSI Installer",
+			"type": "shell",
+			"command": "cpack",
+			"args": [
+				"-C",
+				"Release"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/build/windows-vs2022-x64-ninja-release",
+				"env": {
+					"PATH": "${env:PATH};C:\\Program Files (x86)\\WiX Toolset v3.14\\bin"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			},
+			"detail": "Build MSI installer using CPack and WiX v3",
+			"problemMatcher": []
+		}
+	]
+}

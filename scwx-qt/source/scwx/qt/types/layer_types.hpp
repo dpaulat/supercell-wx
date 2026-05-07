@@ -2,6 +2,7 @@
 
 #include <scwx/awips/phenomenon.hpp>
 #include <scwx/qt/types/map_types.hpp>
+#include <scwx/spc/spc_types.hpp>
 #include <scwx/util/iterator.hpp>
 
 #include <array>
@@ -23,6 +24,7 @@ enum class LayerType
    Placefile,
    Information,
    Data,
+   ConvectiveOutlook,
    Unknown
 };
 
@@ -41,6 +43,7 @@ enum class InformationLayer
    RadarSite,
    ColorTable,
    Markers,
+   Lightning,
    Unknown
 };
 
@@ -56,6 +59,7 @@ using LayerDescription = std::variant<std::monostate,
                                       InformationLayer,
                                       MapLayer,
                                       awips::Phenomenon,
+                                      spc::OutlookDay,
                                       std::string>;
 
 struct LayerInfo
@@ -84,6 +88,11 @@ std::string GetMapLayerName(MapLayer layer);
 std::string GetLayerDescriptionName(LayerDescription description);
 
 std::string GetLayerName(LayerType type, LayerDescription description);
+
+using ConvectiveOutlookDay = scwx::spc::OutlookDay;
+
+ConvectiveOutlookDay GetConvectiveOutlookDay(const std::string& name);
+std::string          GetConvectiveOutlookDayName(ConvectiveOutlookDay day);
 
 void      tag_invoke(boost::json::value_from_tag,
                      boost::json::value& jv,

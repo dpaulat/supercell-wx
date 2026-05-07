@@ -13,7 +13,8 @@
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
         "CMAKE_PROJECT_TOP_LEVEL_INCLUDES": "${sourceDir}/external/cmake-conan/conan_provider.cmake",
-        "SCWX_VIRTUAL_ENV": "${sourceDir}/.venv"
+        "SCWX_VIRTUAL_ENV": "${sourceDir}/.venv",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
     {
@@ -63,7 +64,10 @@
       "hidden": true,
       "generator": "Ninja",
       "cacheVariables": {
-        "CMAKE_PREFIX_PATH": "C:/Qt/6.11.0/msvc2022_64"
+        "CMAKE_PREFIX_PATH": "C:/Qt/6.11.0/msvc2022_64",
+        "QT_DIR": "C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6",
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe"
       }
     },
     {
@@ -81,7 +85,10 @@
       "hidden": true,
       "generator": "Ninja",
       "cacheVariables": {
-        "CMAKE_PREFIX_PATH": "C:/Qt/6.11.0/msvc2022_64"
+        "CMAKE_PREFIX_PATH": "C:/Qt/6.11.0/msvc2022_64",
+        "QT_DIR": "C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6",
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe"
       }
     },
     {
@@ -161,6 +168,7 @@
     {
       "name": "windows-vs2022-x64-release",
       "inherits": "windows-vs2022-x64-base",
+      "binaryDir": "${sourceDir}/build-release-vs2022",
       "displayName": "Windows VS 2022 x64 Release",
       "architecture": {
         "value": "x64",

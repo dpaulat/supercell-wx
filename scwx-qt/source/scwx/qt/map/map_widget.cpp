@@ -9,6 +9,7 @@
 #include <scwx/qt/map/layer_wrapper.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_settings.hpp>
+#include <scwx/qt/map/lightning_layer.hpp>
 #include <scwx/qt/map/marker_layer.hpp>
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/map/overlay_product_layer.hpp>
@@ -16,6 +17,8 @@
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
 #include <scwx/qt/map/radar_site_layer.hpp>
+#include <scwx/qt/map/convective_outlook_layer.hpp>
+#include <scwx/qt/manager/spc_outlook_manager.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/qt/types/layer_types.hpp>
@@ -98,6 +101,7 @@ public:
        radarProductLayer_ {nullptr},
        overlayLayer_ {nullptr},
        placefileLayer_ {nullptr},
+       lightningLayer_ {nullptr},
        markerLayer_ {nullptr},
        colorTableLayer_ {nullptr},
        autoRefreshEnabled_ {true},
@@ -265,9 +269,13 @@ public:
    std::shared_ptr<OverlayLayer>        overlayLayer_;
    std::shared_ptr<OverlayProductLayer> overlayProductLayer_ {nullptr};
    std::shared_ptr<PlacefileLayer>      placefileLayer_;
+   std::shared_ptr<LightningLayer>      lightningLayer_;
    std::shared_ptr<MarkerLayer>         markerLayer_;
    std::shared_ptr<ColorTableLayer>     colorTableLayer_;
    std::shared_ptr<RadarSiteLayer>      radarSiteLayer_ {nullptr};
+
+   std::shared_ptr<ConvectiveOutlookLayer> convectiveOutlookLayer_ {nullptr};
+   QMetaObject::Connection                 convectiveOutlookConnection_ {};
 
    std::list<std::shared_ptr<PlacefileLayer>> placefileLayers_ {};
 
@@ -345,6 +353,7 @@ MapWidget::MapWidget(std::size_t                    id,
    }
 
    setFocusPolicy(Qt::StrongFocus);
+   setMouseTracking(true);
 
    // Avoid Qt dispatching a context menu during the right-button press; that
    // would run a blocking QMenu in MainWindow and steal the right-drag
@@ -1484,6 +1493,13 @@ void MapWidgetImpl::AddLayers()
    genericLayers_.clear();
    placefileLayers_.clear();
 
+   // Clear convective outlook layer
+   if (convectiveOutlookLayer_ != nullptr)
+   {
+      convectiveOutlookLayer_->Remove(map_);
+      convectiveOutlookLayer_.reset();
+   }
+
    // Update custom layer list from model
    types::LayerVector customLayers = model::LayerModel::Instance()->GetLayers();
 
@@ -1614,6 +1630,12 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
                  });
          break;
 
+      // Create the lightning layer
+      case types::InformationLayer::Lightning:
+         lightningLayer_ = std::make_shared<LightningLayer>(glContext_);
+         AddLayer(layerName, lightningLayer_, before);
+         break;
+
       // Create the location marker layer
       case types::InformationLayer::Markers:
          markerLayer_ = std::make_shared<MarkerLayer>(glContext_);
@@ -1623,6 +1645,27 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
       default:
          break;
       }
+   }
+   else if (type == types::LayerType::ConvectiveOutlook)
+   {
+      convectiveOutlookLayer_ = std::make_shared<ConvectiveOutlookLayer>();
+      convectiveOutlookLayer_->Add(map_, before);
+
+      if (convectiveOutlookConnection_)
+      {
+         QObject::disconnect(convectiveOutlookConnection_);
+      }
+      convectiveOutlookConnection_ =
+         QObject::connect(&manager::SpcOutlookManager::Instance(),
+                          &manager::SpcOutlookManager::OutlookDataUpdated,
+                          widget_,
+                          [this]()
+                          {
+                             if (convectiveOutlookLayer_ != nullptr)
+                             {
+                                convectiveOutlookLayer_->Update(map_);
+                             }
+                          });
    }
    else if (type == types::LayerType::Data)
    {
@@ -1761,6 +1804,12 @@ void MapWidget::keyPressEvent(QKeyEvent* ev)
    {
       ev->accept();
    }
+
+   if (ev->key() == Qt::Key_Control || ev->key() == Qt::Key_Shift ||
+       ev->key() == Qt::Key_Alt || ev->key() == Qt::Key_Meta)
+   {
+      update();
+   }
 }
 
 void MapWidget::keyReleaseEvent(QKeyEvent* ev)
@@ -1768,6 +1817,12 @@ void MapWidget::keyReleaseEvent(QKeyEvent* ev)
    if (p->hotkeyManager_->HandleKeyRelease(ev))
    {
       ev->accept();
+   }
+
+   if (ev->key() == Qt::Key_Control || ev->key() == Qt::Key_Shift ||
+       ev->key() == Qt::Key_Alt || ev->key() == Qt::Key_Meta)
+   {
+      update();
    }
 }
 
@@ -1903,6 +1958,12 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
    p->lastPos_       = ev->position();
    p->lastGlobalPos_ = ev->globalPosition();
    ev->accept();
+
+   if (ev->buttons() == Qt::NoButton)
+   {
+      auto coordinate = p->map_->coordinateForPixel(p->lastPos_);
+      Q_EMIT MouseCoordinateChanged({coordinate.first, coordinate.second});
+   }
 }
 
 void MapWidget::mouseReleaseEvent(QMouseEvent* ev)
@@ -1933,6 +1994,15 @@ void MapWidget::mouseReleaseEvent(QMouseEvent* ev)
       }
       p->paneContextMenuArmed_      = false;
       p->paneContextMenuDragTooFar_ = false;
+   }
+   else if (ev->button() == Qt::MouseButton::LeftButton)
+   {
+      // Emit map click for point selection (used by sounding panel, etc.)
+      if (p->map_ != nullptr)
+      {
+         auto coordinate = p->map_->coordinateForPixel(p->lastPos_);
+         Q_EMIT MapClicked({coordinate.first, coordinate.second});
+      }
    }
 
    ev->accept();

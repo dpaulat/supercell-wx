@@ -25,7 +25,6 @@ public:
    explicit LayerDialog(QWidget* parent = nullptr);
    ~LayerDialog();
 
-   // Call after the map grid (grid width/height) changes.
    void RefreshMapDisplayColumns();
 
 private:

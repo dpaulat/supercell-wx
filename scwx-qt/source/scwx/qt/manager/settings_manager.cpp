@@ -2,14 +2,17 @@
 #include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/settings/audio_settings.hpp>
+#include <scwx/qt/settings/blitzortung_settings.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/hotkey_settings.hpp>
 #include <scwx/qt/settings/map_settings.hpp>
 #include <scwx/qt/settings/palette_settings.hpp>
+#include <scwx/qt/settings/radar_preset_settings.hpp>
 #include <scwx/qt/settings/product_settings.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
 #include <scwx/qt/settings/unit_settings.hpp>
+#include <scwx/qt/settings/spc_outlook_settings.hpp>
 #include <scwx/util/json.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -142,6 +145,7 @@ void SettingsManager::Shutdown()
    dataChanged |= settings::GeneralSettings::Instance().Shutdown();
    dataChanged |= settings::MapSettings::Instance().Shutdown();
    dataChanged |= settings::ProductSettings::Instance().Shutdown();
+   dataChanged |= settings::SpcOutlookSettings::Instance().Commit();
    dataChanged |= settings::UiSettings::Instance().Shutdown();
 
    if (dataChanged)
@@ -155,14 +159,17 @@ boost::json::value SettingsManager::Impl::ConvertSettingsToJson()
    boost::json::object settingsJson;
 
    settings::GeneralSettings::Instance().WriteJson(settingsJson);
+   settings::BlitzortungSettings::Instance().WriteJson(settingsJson);
    settings::AudioSettings::Instance().WriteJson(settingsJson);
    settings::HotkeySettings::Instance().WriteJson(settingsJson);
    settings::MapSettings::Instance().WriteJson(settingsJson);
    settings::PaletteSettings::Instance().WriteJson(settingsJson);
+   settings::RadarPresetSettings::Instance().WriteJson(settingsJson);
    settings::ProductSettings::Instance().WriteJson(settingsJson);
    settings::TextSettings::Instance().WriteJson(settingsJson);
    settings::UiSettings::Instance().WriteJson(settingsJson);
    settings::UnitSettings::Instance().WriteJson(settingsJson);
+   settings::SpcOutlookSettings::Instance().WriteJson(settingsJson);
 
    return settingsJson;
 }
@@ -172,14 +179,17 @@ void SettingsManager::Impl::GenerateDefaultSettings()
    logger_->info("Generating default settings");
 
    settings::GeneralSettings::Instance().SetDefaults();
+   settings::BlitzortungSettings::Instance().SetDefaults();
    settings::AudioSettings::Instance().SetDefaults();
    settings::HotkeySettings::Instance().SetDefaults();
    settings::MapSettings::Instance().SetDefaults();
    settings::PaletteSettings::Instance().SetDefaults();
+   settings::RadarPresetSettings::Instance().SetDefaults();
    settings::ProductSettings::Instance().SetDefaults();
    settings::TextSettings::Instance().SetDefaults();
    settings::UiSettings::Instance().SetDefaults();
    settings::UnitSettings::Instance().SetDefaults();
+   settings::SpcOutlookSettings::Instance().SetDefaults();
 }
 
 bool SettingsManager::Impl::LoadSettings(
@@ -190,14 +200,20 @@ bool SettingsManager::Impl::LoadSettings(
    bool jsonDirty = false;
 
    jsonDirty |= !settings::GeneralSettings::Instance().ReadJson(settingsJson);
+   jsonDirty |=
+      !settings::BlitzortungSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::AudioSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::HotkeySettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::MapSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::PaletteSettings::Instance().ReadJson(settingsJson);
+   jsonDirty |=
+      !settings::RadarPresetSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::ProductSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::TextSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::UiSettings::Instance().ReadJson(settingsJson);
    jsonDirty |= !settings::UnitSettings::Instance().ReadJson(settingsJson);
+   jsonDirty |=
+      !settings::SpcOutlookSettings::Instance().ReadJson(settingsJson);
 
    return jsonDirty;
 }

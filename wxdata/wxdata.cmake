@@ -58,6 +58,18 @@ set(SRC_COMMON source/scwx/common/characters.cpp
 set(HDR_GR include/scwx/gr/color.hpp
            include/scwx/gr/gr_types.hpp
            include/scwx/gr/placefile.hpp)
+set(HDR_GRIB2 include/scwx/grib2/grib2_message.hpp
+              include/scwx/grib2/grib2_types.hpp)
+set(SRC_GRIB2 source/scwx/grib2/grib2_message.cpp
+              source/scwx/grib2/grib2_types.cpp)
+set(HDR_SPC include/scwx/spc/spc_types.hpp
+            include/scwx/spc/geojson_parser.hpp
+            include/scwx/spc/spc_outlook_provider.hpp)
+set(SRC_SPC source/scwx/spc/spc_types.cpp
+            source/scwx/spc/geojson_parser.cpp
+            source/scwx/spc/spc_outlook_provider.cpp)
+set(HDR_SOUNDING include/scwx/sounding/sounding_data.hpp)
+set(SRC_SOUNDING source/scwx/sounding/sounding_data.cpp)
 set(SRC_GR source/scwx/gr/color.cpp
            source/scwx/gr/placefile.cpp)
 set(HDR_NETWORK include/scwx/network/cpr.hpp
@@ -67,24 +79,29 @@ set(SRC_NETWORK source/scwx/network/cpr.cpp
                 source/scwx/network/dir_list.cpp
                 source/scwx/network/ntp_client.cpp)
 set(HDR_PROVIDER include/scwx/provider/aws_level2_data_provider.hpp
-                 include/scwx/provider/aws_level2_chunks_data_provider.hpp
-                 include/scwx/provider/aws_level3_data_provider.hpp
-                 include/scwx/provider/aws_nexrad_data_provider.hpp
-                 include/scwx/provider/iem_api_provider.hpp
-                 include/scwx/provider/iem_api_provider.ipp
-                 include/scwx/provider/nexrad_data_provider.hpp
-                 include/scwx/provider/nexrad_data_provider_factory.hpp
-                 include/scwx/provider/nws_api_provider.hpp
-                 include/scwx/provider/warnings_provider.hpp)
+                  include/scwx/provider/aws_level2_chunks_data_provider.hpp
+                  include/scwx/provider/aws_level3_data_provider.hpp
+                  include/scwx/provider/aws_nexrad_data_provider.hpp
+                  include/scwx/provider/blitzortung_data.hpp
+                  include/scwx/provider/blitzortung_provider.hpp
+                  include/scwx/provider/iem_api_provider.hpp
+                  include/scwx/provider/iem_api_provider.ipp
+                  include/scwx/provider/nexrad_data_provider.hpp
+                  include/scwx/provider/nexrad_data_provider_factory.hpp
+                  include/scwx/provider/nws_api_provider.hpp
+                   include/scwx/provider/gfs_provider.hpp
+                   include/scwx/provider/warnings_provider.hpp)
 set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp
-                 source/scwx/provider/aws_level2_chunks_data_provider.cpp
-                 source/scwx/provider/aws_level3_data_provider.cpp
-                 source/scwx/provider/aws_nexrad_data_provider.cpp
-                 source/scwx/provider/iem_api_provider.cpp
-                 source/scwx/provider/nexrad_data_provider.cpp
-                 source/scwx/provider/nexrad_data_provider_factory.cpp
-                 source/scwx/provider/nws_api_provider.cpp
-                 source/scwx/provider/warnings_provider.cpp)
+                  source/scwx/provider/aws_level2_chunks_data_provider.cpp
+                  source/scwx/provider/aws_level3_data_provider.cpp
+                  source/scwx/provider/aws_nexrad_data_provider.cpp
+                  source/scwx/provider/blitzortung_provider.cpp
+                  source/scwx/provider/iem_api_provider.cpp
+                  source/scwx/provider/nexrad_data_provider.cpp
+                   source/scwx/provider/nexrad_data_provider_factory.cpp
+                   source/scwx/provider/gfs_provider.cpp
+                   source/scwx/provider/nws_api_provider.cpp
+                  source/scwx/provider/warnings_provider.cpp)
 set(HDR_TYPES include/scwx/types/iem_types.hpp
               include/scwx/types/ntp_types.hpp
               include/scwx/types/nws_types.hpp)
@@ -246,28 +263,34 @@ set(SRC_ZIP source/scwx/zip/zip_stream_reader.cpp
 set(CMAKE_FILES wxdata.cmake)
 
 add_library(wxdata OBJECT ${HDR_AWIPS}
-                          ${SRC_AWIPS}
-                          ${HDR_COMMON}
-                          ${SRC_COMMON}
-                          ${HDR_GR}
-                          ${SRC_GR}
-                          ${HDR_NETWORK}
-                          ${SRC_NETWORK}
-                          ${HDR_PROVIDER}
-                          ${SRC_PROVIDER}
-                          ${HDR_TYPES}
-                          ${SRC_TYPES}
-                          ${HDR_UTIL}
-                          ${SRC_UTIL}
-                          ${HDR_WSR88D}
-                          ${SRC_WSR88D}
-                          ${HDR_WSR88D_RDA}
-                          ${SRC_WSR88D_RDA}
-                          ${HDR_WSR88D_RPG}
-                          ${SRC_WSR88D_RPG}
-                          ${HDR_ZIP}
-                          ${SRC_ZIP}
-                          ${CMAKE_FILES})
+                           ${SRC_AWIPS}
+                           ${HDR_COMMON}
+                           ${SRC_COMMON}
+                           ${HDR_GR}
+                           ${SRC_GR}
+                           ${HDR_GRIB2}
+                           ${SRC_GRIB2}
+                           ${HDR_NETWORK}
+                           ${SRC_NETWORK}
+                           ${HDR_PROVIDER}
+                           ${SRC_PROVIDER}
+                           ${HDR_SOUNDING}
+                           ${SRC_SOUNDING}
+                           ${HDR_SPC}
+                           ${SRC_SPC}
+                           ${HDR_TYPES}
+                           ${SRC_TYPES}
+                           ${HDR_UTIL}
+                           ${SRC_UTIL}
+                           ${HDR_WSR88D}
+                           ${SRC_WSR88D}
+                           ${HDR_WSR88D_RDA}
+                           ${SRC_WSR88D_RDA}
+                           ${HDR_WSR88D_RPG}
+                           ${SRC_WSR88D_RPG}
+                           ${HDR_ZIP}
+                           ${SRC_ZIP}
+                           ${CMAKE_FILES})
 
 source_group("Header Files\\awips"       FILES ${HDR_AWIPS})
 source_group("Source Files\\awips"       FILES ${SRC_AWIPS})
@@ -275,10 +298,16 @@ source_group("Header Files\\common"      FILES ${HDR_COMMON})
 source_group("Source Files\\common"      FILES ${SRC_COMMON})
 source_group("Header Files\\gr"          FILES ${HDR_GR})
 source_group("Source Files\\gr"          FILES ${SRC_GR})
+source_group("Header Files\\grib2"       FILES ${HDR_GRIB2})
+source_group("Source Files\\grib2"       FILES ${SRC_GRIB2})
 source_group("Header Files\\network"     FILES ${HDR_NETWORK})
 source_group("Source Files\\network"     FILES ${SRC_NETWORK})
 source_group("Header Files\\provider"    FILES ${HDR_PROVIDER})
 source_group("Source Files\\provider"    FILES ${SRC_PROVIDER})
+source_group("Header Files\\spc"           FILES ${HDR_SPC})
+source_group("Source Files\\spc"           FILES ${SRC_SPC})
+source_group("Header Files\\sounding"      FILES ${HDR_SOUNDING})
+source_group("Source Files\\sounding"      FILES ${SRC_SOUNDING})
 source_group("Header Files\\types"       FILES ${HDR_TYPES})
 source_group("Source Files\\types"       FILES ${SRC_TYPES})
 source_group("Header Files\\util"        FILES ${HDR_UTIL})
@@ -338,6 +367,7 @@ target_link_libraries(wxdata PUBLIC aws-cpp-sdk-core
                                     LibXml2::LibXml2
                                     libzip::zip
                                     OpenSSL::Crypto
+                                    OpenSSL::SSL
                                     range-v3::range-v3
                                     re2::re2
                                     spdlog::spdlog

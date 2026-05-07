@@ -372,16 +372,58 @@
               </property>
              </widget>
             </item>
-            <item>
-             <widget class="QPushButton" name="saveRadarProductsButton">
-              <property name="text">
-               <string>Set As Default Products</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
+             <item>
+              <widget class="QPushButton" name="saveRadarProductsButton">
+               <property name="text">
+                <string>Set As Default Products</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="presetLabel">
+               <property name="text">
+                <string>Preset</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="presetComboBox"/>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="presetButtonsLayout">
+               <item>
+                <widget class="QPushButton" name="savePresetButton">
+                 <property name="text">
+                  <string>Save</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="loadPresetButton">
+                 <property name="text">
+                  <string>Load</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="renamePresetButton">
+                 <property name="text">
+                  <string>Rename</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="deletePresetButton">
+                 <property name="text">
+                  <string>Delete</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
          <item>
           <spacer name="radarToolboxSpacer">
            <property name="orientation">

@@ -34,6 +34,8 @@ public:
                            QWidget*             parent = nullptr);
    ~SettingsDialog();
 
+   void RefreshWidgets();
+
 private:
    friend SettingsDialogImpl;
    std::unique_ptr<SettingsDialogImpl> p;

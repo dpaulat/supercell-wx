@@ -18,8 +18,12 @@ public:
       level3SettingsExpanded_.SetDefault(true);
       mapSettingsExpanded_.SetDefault(true);
       timelineExpanded_.SetDefault(true);
+      spcOutlookExpanded_.SetDefault(false);
       mainUIState_.SetDefault("");
       mainUIGeometry_.SetDefault("");
+      radarToolboxDockWidth_.SetDefault(280);
+      radarToolboxDockWidth_.SetMinimum(150);
+      radarToolboxDockWidth_.SetMaximum(600);
       mapPaneSplitterState_.SetDefault("");
       mapPanePopoutState_.SetDefault("");
       mapPaneViewLinkState_.SetDefault("");
@@ -39,8 +43,11 @@ public:
    SettingsVariable<bool> level3SettingsExpanded_ {"level3_settings_expanded"};
    SettingsVariable<bool> mapSettingsExpanded_ {"map_settings_expanded"};
    SettingsVariable<bool> timelineExpanded_ {"timeline_expanded"};
-   SettingsVariable<std::string> mainUIState_ {"main_ui_state"};
-   SettingsVariable<std::string> mainUIGeometry_ {"main_ui_geometry"};
+   SettingsVariable<bool> spcOutlookExpanded_ {"spc_outlook_expanded"};
+   SettingsVariable<std::string>  mainUIState_ {"main_ui_state"};
+   SettingsVariable<std::string>  mainUIGeometry_ {"main_ui_geometry"};
+   SettingsVariable<std::int64_t> radarToolboxDockWidth_ {
+      "radar_toolbox_dock_width"};
    SettingsVariable<std::string> mapPaneSplitterState_ {
       "map_pane_splitter_state"};
    SettingsVariable<std::string> mapPanePopoutState_ {"map_pane_popout_state"};
@@ -58,8 +65,10 @@ UiSettings::UiSettings() :
                       &p->level3SettingsExpanded_,
                       &p->mapSettingsExpanded_,
                       &p->timelineExpanded_,
+                      &p->spcOutlookExpanded_,
                       &p->mainUIState_,
                       &p->mainUIGeometry_,
+                      &p->radarToolboxDockWidth_,
                       &p->mapPaneSplitterState_,
                       &p->mapPanePopoutState_,
                       &p->mapPaneViewLinkState_,
@@ -101,6 +110,11 @@ SettingsVariable<bool>& UiSettings::timeline_expanded() const
    return p->timelineExpanded_;
 }
 
+SettingsVariable<bool>& UiSettings::spc_outlook_expanded() const
+{
+   return p->spcOutlookExpanded_;
+}
+
 SettingsVariable<std::string>& UiSettings::main_ui_state() const
 {
    return p->mainUIState_;
@@ -109,6 +123,11 @@ SettingsVariable<std::string>& UiSettings::main_ui_state() const
 SettingsVariable<std::string>& UiSettings::main_ui_geometry() const
 {
    return p->mainUIGeometry_;
+}
+
+SettingsVariable<std::int64_t>& UiSettings::radar_toolbox_dock_width() const
+{
+   return p->radarToolboxDockWidth_;
 }
 
 SettingsVariable<std::string>& UiSettings::map_pane_splitter_state() const
@@ -142,8 +161,10 @@ bool UiSettings::Shutdown()
    dataChanged |= p->level3SettingsExpanded_.Commit();
    dataChanged |= p->mapSettingsExpanded_.Commit();
    dataChanged |= p->timelineExpanded_.Commit();
+   dataChanged |= p->spcOutlookExpanded_.Commit();
    dataChanged |= p->mainUIState_.Commit();
    dataChanged |= p->mainUIGeometry_.Commit();
+   dataChanged |= p->radarToolboxDockWidth_.Commit();
    dataChanged |= p->mapPaneSplitterState_.Commit();
    dataChanged |= p->mapPanePopoutState_.Commit();
    dataChanged |= p->mapPaneViewLinkState_.Commit();
@@ -168,6 +189,7 @@ bool operator==(const UiSettings& lhs, const UiSettings& rhs)
            lhs.p->timelineExpanded_ == rhs.p->timelineExpanded_ &&
            lhs.p->mainUIState_ == rhs.p->mainUIState_ &&
            lhs.p->mainUIGeometry_ == rhs.p->mainUIGeometry_ &&
+           lhs.p->radarToolboxDockWidth_ == rhs.p->radarToolboxDockWidth_ &&
            lhs.p->mapPaneSplitterState_ == rhs.p->mapPaneSplitterState_ &&
            lhs.p->mapPanePopoutState_ == rhs.p->mapPanePopoutState_ &&
            lhs.p->mapPaneViewLinkState_ == rhs.p->mapPaneViewLinkState_ &&

@@ -16,6 +16,7 @@ static const std::unordered_map<LayerType, std::string> layerTypeName_ {
    {LayerType::Placefile, "Placefile"},
    {LayerType::Information, "Information"},
    {LayerType::Data, "Data"},
+   {LayerType::ConvectiveOutlook, "Convective Outlook"},
    {LayerType::Unknown, "?"}};
 
 static const std::unordered_map<DataLayer, std::string> dataLayerName_ {
@@ -28,6 +29,7 @@ static const std::unordered_map<InformationLayer, std::string>
                           {InformationLayer::RadarSite, "Radar Sites"},
                           {InformationLayer::ColorTable, "Color Table"},
                           {InformationLayer::Markers, "Location Markers"},
+                          {InformationLayer::Lightning, "Lightning"},
                           {InformationLayer::Unknown, "?"}};
 
 static const std::unordered_map<MapLayer, std::string> mapLayerName_ {
@@ -154,6 +156,11 @@ std::string GetLayerDescriptionName(LayerDescription description)
    {
       return awips::GetPhenomenonText(std::get<awips::Phenomenon>(description));
    }
+   else if (std::holds_alternative<ConvectiveOutlookDay>(description))
+   {
+      return GetConvectiveOutlookDayName(
+         std::get<ConvectiveOutlookDay>(description));
+   }
    else if (std::holds_alternative<std::monostate>(description))
    {
       return "";
@@ -182,6 +189,11 @@ void tag_invoke(boost::json::value_from_tag,
    {
       description = awips::GetPhenomenonCode(
          std::get<awips::Phenomenon>(record.description_));
+   }
+   else if (std::holds_alternative<ConvectiveOutlookDay>(record.description_))
+   {
+      description = GetConvectiveOutlookDayName(
+         std::get<ConvectiveOutlookDay>(record.description_));
    }
    else if (std::holds_alternative<DataLayer>(record.description_))
    {
@@ -237,6 +249,10 @@ LayerInfo tag_invoke(boost::json::value_to_tag<LayerInfo>,
    {
       description = awips::GetPhenomenon(descriptionName);
    }
+   else if (layerType == LayerType::ConvectiveOutlook)
+   {
+      description = GetConvectiveOutlookDay(descriptionName);
+   }
    else
    {
       description = descriptionName;
@@ -275,6 +291,16 @@ LayerInfo tag_invoke(boost::json::value_to_tag<LayerInfo>,
 
          return displayed;
       }()};
+}
+
+ConvectiveOutlookDay GetConvectiveOutlookDay(const std::string& name)
+{
+   return scwx::spc::GetOutlookDay(name);
+}
+
+std::string GetConvectiveOutlookDayName(ConvectiveOutlookDay day)
+{
+   return scwx::spc::GetOutlookDayName(day);
 }
 
 } // namespace scwx::qt::types

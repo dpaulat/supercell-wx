@@ -30,6 +30,8 @@ public:
    void keyReleaseEvent(QKeyEvent* ev) override final;
    void showEvent(QShowEvent* event) override;
    void closeEvent(QCloseEvent* event) override;
+   void resizeEvent(QResizeEvent* event) override;
+   bool eventFilter(QObject* obj, QEvent* event) override;
 
 signals:
    void ActiveMapMoved(double latitude, double longitude);

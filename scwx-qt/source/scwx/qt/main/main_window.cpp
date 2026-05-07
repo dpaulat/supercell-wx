@@ -17,16 +17,21 @@
 #include <scwx/qt/manager/marker_manager.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
+#include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
+#include <scwx/qt/manager/spc_outlook_manager.hpp>
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/manager/update_manager.hpp>
 #include <scwx/qt/map/map_pane_context_menu.hpp>
+#include <scwx/qt/settings/spc_outlook_settings.hpp>
+#include <scwx/spc/spc_types.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/qt/model/radar_site_model.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/map_settings.hpp>
+#include <scwx/qt/settings/radar_preset_settings.hpp>
 #include <scwx/qt/settings/product_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
 #include <scwx/qt/ui/about_dialog.hpp>
@@ -46,6 +51,7 @@
 #include <scwx/qt/ui/marker_dialog.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/ui/settings_dialog.hpp>
+#include <scwx/qt/ui/sounding_panel.hpp>
 #include <scwx/qt/ui/update_dialog.hpp>
 #include <scwx/qt/ui/import/import_settings_wizard.hpp>
 #include <scwx/common/characters.hpp>
@@ -53,6 +59,8 @@
 #include <scwx/common/vcp.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
+
+#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <array>
@@ -66,8 +74,17 @@
 #include <boost/asio/thread_pool.hpp>
 #include <QAction>
 #include <QActionGroup>
+#include <QCheckBox>
+#include <QComboBox>
 #include <QDesktopServices>
 #include <QDialog>
+#include <QHBoxLayout>
+#include <QGuiApplication>
+#include <QInputDialog>
+#include <QKeyEvent>
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QResizeEvent>
 #include <QFileDialog>
 #include <QGuiApplication>
 #include <QJsonArray>
@@ -82,6 +99,7 @@
 #include <QScreen>
 #include <QSignalBlocker>
 #include <QSizePolicy>
+#include <QSlider>
 #include <QSplitter>
 #include <QTimer>
 #include <QToolButton>
@@ -198,10 +216,11 @@ class MainWindowImpl : public QObject
    Q_OBJECT
 
 public:
+   Q_DISABLE_COPY_MOVE(MainWindowImpl)
+
    explicit MainWindowImpl(MainWindow* mainWindow) :
        mainWindow_ {mainWindow},
        settings_ {},
-       activeMap_ {nullptr},
        alertManager_ {manager::AlertManager::Instance()},
        placefileManager_ {manager::PlacefileManager::Instance()},
        markerManager_ {manager::MarkerManager::Instance()},
@@ -226,6 +245,8 @@ public:
       homeRadarConnection_.disconnect();
       clockFormatConnection_.disconnect();
       defaultTimeZoneConnection_.disconnect();
+      gridWidthConnection_.disconnect();
+      gridHeightConnection_.disconnect();
       for (auto& connection : connections_)
       {
          connection.disconnect();
@@ -242,8 +263,6 @@ public:
    void BuildMapLayout(bool tryRestorePaneSizesFromSettingsOnSchedule = true);
    void RebuildMapLayoutContainer(
       bool tryRestorePaneSizesFromSettingsOnNextGeometry = true);
-   // |tryRestore| false: Reset & Layout — equal panes, ignore saved splitter
-   // JSON.
    void RecreateMapLayoutFromUser(
       bool tryRestorePaneSizesFromSettingsOnNextGeometry = true);
    void ConfigureMapLayout();
@@ -312,12 +331,20 @@ public:
    void SavePoppedMapWindowsToSettings();
    void TryRestorePoppedMapWindows();
 
+   // Preset methods
+   void PopulatePresetComboBox();
+   void OnSavePreset();
+   void OnLoadPreset();
+   void OnRenamePreset();
+   void OnDeletePreset();
+   void ClearActivePreset();
+
    boost::asio::thread_pool threadPool_ {1u};
 
    MainWindow*         mainWindow_;
    QMapLibre::Settings settings_;
    map::MapProvider    mapProvider_;
-   map::MapWidget*     activeMap_;
+   map::MapWidget*     activeMap_ {nullptr};
 
    std::shared_ptr<gl::GlContext> glContext_ {nullptr};
 
@@ -327,6 +354,11 @@ public:
    ui::CollapsibleGroup*     level3ProductsGroup_ {nullptr};
    ui::CollapsibleGroup*     level3SettingsGroup_ {nullptr};
    ui::CollapsibleGroup*     timelineGroup_ {nullptr};
+   ui::CollapsibleGroup*     spcOutlookGroup_ {nullptr};
+   QComboBox*                spcDayCombo_ {nullptr};
+   QComboBox*                spcProductCombo_ {nullptr};
+   QSlider*                  spcOpacitySlider_ {nullptr};
+   QCheckBox*                spcAutoRefreshCheck_ {nullptr};
    ui::Level2ProductsWidget* level2ProductsWidget_ {nullptr};
    ui::Level2SettingsWidget* level2SettingsWidget_ {nullptr};
 
@@ -338,6 +370,8 @@ public:
 
    ui::AlertDockWidget*              alertDockWidget_ {};
    ui::AnimationDockWidget*          animationDockWidget_ {};
+   ui::SoundingPanel*                soundingPanel_ {};
+   bool                              selectingSoundingPoint_ {false};
    ui::AboutDialog*                  aboutDialog_ {};
    ui::ExportSettingsDialog*         exportSettingsDialog_ {};
    ui::GpsInfoDialog*                gpsInfoDialog_ {};
@@ -382,19 +416,20 @@ public:
         layerActions_ {};
    bool layerActionsInitialized_ {false};
 
+   bool   applyingGridChange_ {false};
+   QTimer gridRebuildTimer_ {};
+
    boost::signals2::scoped_connection homeRadarConnection_ {};
    boost::signals2::scoped_connection clockFormatConnection_ {};
    boost::signals2::scoped_connection defaultTimeZoneConnection_ {};
+   boost::signals2::scoped_connection gridWidthConnection_ {};
+   boost::signals2::scoped_connection gridHeightConnection_ {};
 
-   std::vector<map::MapWidget*> maps_;
-   std::vector<std::size_t>     pendingPanesInheritFromRef_;
-   // true: map view is synced with other linked panes; false: independent, no
-   // broadcast from this pane, no follower updates to this pane.
-   std::vector<bool> mapPaneViewLinked_ {};
-   std::vector<bool> mapPanePoppedOut_ {};
-   // Collapsed slot in the main splitter grid while a pane is in a pop-out
-   // window.
-   std::vector<QPointer<QWidget>>                    mapPanePlaceholders_ {};
+   std::vector<map::MapWidget*>   maps_;
+   std::vector<std::size_t>       pendingPanesInheritFromRef_;
+   std::vector<bool>              mapPaneViewLinked_ {};
+   std::vector<bool>              mapPanePoppedOut_ {};
+   std::vector<QPointer<QWidget>> mapPanePlaceholders_ {};
    std::vector<std::unique_ptr<map::MapPopoutFrame>> mapPanePopoutFrames_ {};
    bool popoutPanesRestoredThisSession_ {false};
 
@@ -403,14 +438,16 @@ public:
    bool linkRowSplitters_ {true};
    bool linkColumnHeights_ {true};
 
-   // Last grid used for the built map splitters; used to detect GeneralSettings
-   // changes
    int64_t builtLayoutGridW_ {-1};
    int64_t builtLayoutGridH_ {-1};
 
    bool mapLayoutGridSyncPending_ {false};
 
    std::chrono::system_clock::time_point selectedTime_ {};
+
+   bool   firstShow_ {true};
+   bool   applyingDockWidth_ {false};
+   QTimer dockWidthSaveTimer_ {};
 
 public slots:
    void OnMapPaneContextMenuRequested(const QPoint& globalPos);
@@ -463,6 +500,11 @@ MainWindow::MainWindow(QWidget* parent) :
    p->alertDockWidget_ = new ui::AlertDockWidget(this);
    addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
 
+   // Configure GFS Sounding Dock
+   p->soundingPanel_ = new ui::SoundingPanel(this);
+   addDockWidget(Qt::RightDockWidgetArea, p->soundingPanel_);
+   p->soundingPanel_->hide();
+
    // GPS Info Dialog
    p->gpsInfoDialog_ = new ui::GpsInfoDialog(this);
 
@@ -476,6 +518,41 @@ MainWindow::MainWindow(QWidget* parent) :
                               p->alertDockWidget_->toggleViewAction());
    p->alertDockWidget_->toggleViewAction()->setText(tr("&Alerts"));
    ui->actionAlerts->setVisible(false);
+
+   // Add GFS Sounding menu action
+   auto* soundingAction = ui->menuView->addAction(tr("GFS &Sounding"));
+   soundingAction->setCheckable(true);
+   soundingAction->setChecked(false);
+   QObject::connect(soundingAction,
+                    &QAction::toggled,
+                    this,
+                    [this](bool checked)
+                    { p->soundingPanel_->setVisible(checked); });
+   QObject::connect(p->soundingPanel_,
+                    &QDockWidget::visibilityChanged,
+                    soundingAction,
+                    &QAction::setChecked);
+   QObject::connect(
+      p->soundingPanel_,
+      &QDockWidget::visibilityChanged,
+      this,
+      [this](bool visible)
+      {
+         QTimer::singleShot(
+            0,
+            this,
+            [this, visible]()
+            {
+               if (visible)
+               {
+                  setCorner(Qt::BottomRightCorner, Qt::RightDockWidgetArea);
+               }
+               else
+               {
+                  setCorner(Qt::BottomRightCorner, Qt::BottomDockWidgetArea);
+               }
+            });
+      });
 
    ui->menuDebug->menuAction()->setVisible(
       settings::GeneralSettings::Instance().debug_enabled().GetValue());
@@ -509,6 +586,20 @@ MainWindow::MainWindow(QWidget* parent) :
       ui->trackLocationCheckBox);
    p->mapSettingsGroup_->GetContentsLayout()->addWidget(
       ui->saveRadarProductsButton);
+
+   // Radar Presets
+   p->mapSettingsGroup_->GetContentsLayout()->addWidget(ui->presetLabel);
+   p->mapSettingsGroup_->GetContentsLayout()->addWidget(ui->presetComboBox);
+
+   QWidget*     presetButtonsWidget = new QWidget(this);
+   QHBoxLayout* presetButtonsLayout = new QHBoxLayout(presetButtonsWidget);
+   presetButtonsLayout->setContentsMargins(0, 0, 0, 0);
+   presetButtonsLayout->addWidget(ui->savePresetButton);
+   presetButtonsLayout->addWidget(ui->loadPresetButton);
+   presetButtonsLayout->addWidget(ui->renamePresetButton);
+   presetButtonsLayout->addWidget(ui->deletePresetButton);
+   p->mapSettingsGroup_->GetContentsLayout()->addWidget(presetButtonsWidget);
+
    ui->radarToolboxScrollAreaContents->layout()->replaceWidget(
       ui->mapSettingsGroupBox, p->mapSettingsGroup_);
    ui->mapSettingsGroupBox->setVisible(false);
@@ -562,6 +653,200 @@ MainWindow::MainWindow(QWidget* parent) :
    ui->radarToolboxScrollAreaContents->layout()->addWidget(p->timelineGroup_);
    p->animationDockWidget_->UpdateTimeZone(defaultTimeZone);
 
+   // SPC Convective Outlook
+   p->spcOutlookGroup_ =
+      new ui::CollapsibleGroup(tr("SPC Convective Outlooks"), this);
+   auto* spcLayout =
+      qobject_cast<QVBoxLayout*>(p->spcOutlookGroup_->GetContentsLayout());
+
+   // Day selector
+   auto* dayLabel  = new QLabel(tr("Day:"), this);
+   p->spcDayCombo_ = new QComboBox(this);
+   p->spcDayCombo_->addItem(tr("Day 1"));
+   p->spcDayCombo_->addItem(tr("Day 2"));
+   p->spcDayCombo_->addItem(tr("Day 3"));
+
+   // Product selector
+   auto* productLabel  = new QLabel(tr("Product:"), this);
+   p->spcProductCombo_ = new QComboBox(this);
+
+   // Opacity slider
+   p->spcOpacitySlider_                = new QSlider(Qt::Horizontal, this);
+   static constexpr int kSpcOpacityMax = 100;
+   p->spcOpacitySlider_->setRange(0, kSpcOpacityMax);
+   p->spcOpacitySlider_->setValue(
+      settings::SpcOutlookSettings::Instance().opacity().GetValue());
+
+   // Auto-refresh
+   p->spcAutoRefreshCheck_ = new QCheckBox(tr("Auto-refresh"), this);
+   p->spcAutoRefreshCheck_->setChecked(
+      settings::SpcOutlookSettings::Instance().auto_refresh().GetValue());
+
+   // Layout
+   auto* dayRow = new QHBoxLayout();
+   dayRow->addWidget(dayLabel);
+   dayRow->addWidget(p->spcDayCombo_, 1);
+   spcLayout->addLayout(dayRow);
+
+   auto* productRow = new QHBoxLayout();
+   productRow->addWidget(productLabel);
+   productRow->addWidget(p->spcProductCombo_, 1);
+   spcLayout->addLayout(productRow);
+
+   spcLayout->addWidget(p->spcOpacitySlider_);
+   spcLayout->addWidget(p->spcAutoRefreshCheck_);
+
+   ui->radarToolboxScrollAreaContents->layout()->addWidget(p->spcOutlookGroup_);
+
+   auto updateProductCombo = [this](scwx::spc::OutlookDay day)
+   {
+      p->spcProductCombo_->clear();
+      switch (day)
+      {
+      case scwx::spc::OutlookDay::Day1:
+      case scwx::spc::OutlookDay::Day2:
+         p->spcProductCombo_->addItem(tr("Categorical"));
+         p->spcProductCombo_->addItem(tr("Tornado"));
+         p->spcProductCombo_->addItem(tr("Wind"));
+         p->spcProductCombo_->addItem(tr("Hail"));
+         break;
+      case scwx::spc::OutlookDay::Day3:
+         p->spcProductCombo_->addItem(tr("Categorical"));
+         p->spcProductCombo_->addItem(tr("Probabilistic"));
+         p->spcProductCombo_->addItem(tr("Significant Probabilistic"));
+         break;
+      default:
+         break;
+      }
+   };
+
+   auto getSelectedDay = [this]() -> scwx::spc::OutlookDay
+   {
+      switch (p->spcDayCombo_->currentIndex())
+      {
+      case 0:
+         return scwx::spc::OutlookDay::Day1;
+      case 1:
+         return scwx::spc::OutlookDay::Day2;
+      case 2:
+         return scwx::spc::OutlookDay::Day3;
+      default:
+         return scwx::spc::OutlookDay::Day1;
+      }
+   };
+
+   auto getSelectedProduct = [this]() -> scwx::spc::OutlookProduct
+   {
+      int dayIdx  = p->spcDayCombo_->currentIndex();
+      int prodIdx = p->spcProductCombo_->currentIndex();
+
+      static constexpr int kCategoricalIdx = 0;
+      static constexpr int kTornadoIdx     = 1;
+      static constexpr int kWindIdx        = 2;
+      static constexpr int kHailIdx        = 3;
+
+      // Day 3: Categorical=0, Probabilistic=1, SigProbabilistic=2
+      if (dayIdx == 2)
+      {
+         switch (prodIdx)
+         {
+         case kCategoricalIdx:
+            return scwx::spc::OutlookProduct::Categorical;
+         case 1:
+            return scwx::spc::OutlookProduct::Probabilistic;
+         case 2:
+            return scwx::spc::OutlookProduct::SignificantProbabilistic;
+         default:
+            return scwx::spc::OutlookProduct::Categorical;
+         }
+      }
+
+      // Day 1/2: Categorical=0, Tornado=1, Wind=2, Hail=3
+      switch (prodIdx)
+      {
+      case kCategoricalIdx:
+         return scwx::spc::OutlookProduct::Categorical;
+      case kTornadoIdx:
+         return scwx::spc::OutlookProduct::Tornado;
+      case kWindIdx:
+         return scwx::spc::OutlookProduct::Wind;
+      case kHailIdx:
+         return scwx::spc::OutlookProduct::Hail;
+      default:
+         return scwx::spc::OutlookProduct::Categorical;
+      }
+   };
+
+   // Day changed -> update products, trigger fetch
+   using IndexSignal = void (QComboBox::*)(int);
+   QObject::connect(
+      p->spcDayCombo_,
+      static_cast<IndexSignal>(&QComboBox::currentIndexChanged),
+      [updateProductCombo, getSelectedDay, getSelectedProduct]()
+      {
+         auto day = getSelectedDay();
+         updateProductCombo(day);
+
+         auto& settings = settings::SpcOutlookSettings::Instance();
+         settings.selected_day().StageValue(scwx::spc::GetOutlookDayName(day));
+         settings.selected_product().StageValue(
+            scwx::spc::GetOutlookProductName(getSelectedProduct()));
+
+         auto& manager = manager::SpcOutlookManager::Instance();
+         manager.SelectDay(day);
+         manager.SelectProduct(getSelectedProduct());
+      });
+
+   // Product changed -> trigger fetch
+   QObject::connect(p->spcProductCombo_,
+                    static_cast<IndexSignal>(&QComboBox::currentIndexChanged),
+                    [getSelectedProduct]()
+                    {
+                       auto product = getSelectedProduct();
+
+                       auto& settings =
+                          settings::SpcOutlookSettings::Instance();
+                       settings.selected_product().StageValue(
+                          scwx::spc::GetOutlookProductName(product));
+
+                       auto& manager = manager::SpcOutlookManager::Instance();
+                       manager.SelectProduct(product);
+                    });
+
+   // Opacity changed
+   QObject::connect(p->spcOpacitySlider_,
+                    static_cast<void (QSlider::*)(int)>(&QSlider::valueChanged),
+                    [](int value)
+                    {
+                       auto& opacitySetting =
+                          settings::SpcOutlookSettings::Instance().opacity();
+                       opacitySetting.StageValue(value);
+                       opacitySetting.Commit();
+                       manager::SpcOutlookManager::Instance().SetOpacity(value);
+                    });
+
+   // Auto-refresh changed
+   QObject::connect(
+      p->spcAutoRefreshCheck_,
+      &QCheckBox::checkStateChanged,
+      [](Qt::CheckState state)
+      {
+         bool enabled = (state == Qt::CheckState::Checked);
+         settings::SpcOutlookSettings::Instance().auto_refresh().StageValue(
+            enabled);
+         manager::SpcOutlookManager::Instance().SetAutoRefresh(enabled);
+      });
+
+   // Populate products for default day
+   updateProductCombo(getSelectedDay());
+
+   // Initial fetch
+   manager::SpcOutlookManager::Instance().RefreshNow();
+   manager::SpcOutlookManager::Instance().SetOpacity(
+      p->spcOpacitySlider_->value());
+   manager::SpcOutlookManager::Instance().SetAutoRefresh(
+      p->spcAutoRefreshCheck_->isChecked());
+
    // Reset toolbox spacer at the bottom
    ui->radarToolboxScrollAreaContents->layout()->removeItem(
       ui->radarToolboxSpacer);
@@ -600,6 +885,7 @@ MainWindow::MainWindow(QWidget* parent) :
 
    p->ApplyRadarProductsFromSettingsToAllMaps();
 
+   p->PopulatePresetComboBox();
    p->PopulateMapStyles();
    p->ConfigureMapStyles();
    if (settings::UiSettings::Instance()
@@ -616,6 +902,26 @@ MainWindow::MainWindow(QWidget* parent) :
    p->HandleFocusChange(p->activeMap_);
    p->AsyncSetup();
 
+   // Install event filter to detect user dock resize
+   ui->radarToolboxDock->installEventFilter(this);
+
+   // Debounce timer for saving dock width after user resize
+   p->dockWidthSaveTimer_.setSingleShot(true);
+   connect(&p->dockWidthSaveTimer_,
+           &QTimer::timeout,
+           [this]()
+           {
+              auto& uiSettings = settings::UiSettings::Instance();
+              int   width      = ui->radarToolboxDock->width();
+              uiSettings.radar_toolbox_dock_width().StageValue(width);
+           });
+
+   // Apply saved dock width
+   auto&        uiSettings = settings::UiSettings::Instance();
+   std::int64_t dockWidth  = uiSettings.radar_toolbox_dock_width().GetValue();
+   resizeDocks(
+      {ui->radarToolboxDock}, {static_cast<int>(dockWidth)}, Qt::Horizontal);
+
    Application::FinishInitialization();
 }
 
@@ -628,7 +934,18 @@ void MainWindow::keyPressEvent(QKeyEvent* ev)
 {
    if (p->hotkeyManager_->HandleKeyPress(ev))
    {
-      p->activeMap_->update();
+      if (ev->key() == Qt::Key_Control || ev->key() == Qt::Key_Shift ||
+          ev->key() == Qt::Key_Alt || ev->key() == Qt::Key_Meta)
+      {
+         for (auto& map : p->maps_)
+         {
+            map->update();
+         }
+      }
+      else
+      {
+         p->activeMap_->update();
+      }
       ev->accept();
    }
 }
@@ -637,7 +954,18 @@ void MainWindow::keyReleaseEvent(QKeyEvent* ev)
 {
    if (p->hotkeyManager_->HandleKeyRelease(ev))
    {
-      p->activeMap_->update();
+      if (ev->key() == Qt::Key_Control || ev->key() == Qt::Key_Shift ||
+          ev->key() == Qt::Key_Alt || ev->key() == Qt::Key_Meta)
+      {
+         for (auto& map : p->maps_)
+         {
+            map->update();
+         }
+      }
+      else
+      {
+         p->activeMap_->update();
+      }
       ev->accept();
    }
 }
@@ -646,10 +974,7 @@ void MainWindow::showEvent(QShowEvent* event)
 {
    QMainWindow::showEvent(event);
 
-   static bool firstShowEvent = true;
-   bool        restored       = false;
-
-   if (firstShowEvent)
+   if (p->firstShow_)
    {
       auto& uiSettings = settings::UiSettings::Instance();
 
@@ -659,17 +984,23 @@ void MainWindow::showEvent(QShowEvent* event)
          QByteArray::fromBase64(QByteArray::fromStdString(uiGeometry)));
 
       // restore the UI state
-      const std::string uiState = uiSettings.main_ui_state().GetValue();
-
-      restored = restoreState(
+      const std::string uiState  = uiSettings.main_ui_state().GetValue();
+      bool              restored = restoreState(
          QByteArray::fromBase64(QByteArray::fromStdString(uiState)));
 
-      firstShowEvent = false;
-   }
+      if (!restored)
+      {
+         logger_->warn("Failed to restore UI state");
+      }
 
-   if (!restored)
-   {
-      resizeDocks({ui->radarToolboxDock}, {194}, Qt::Horizontal);
+      // Apply saved dock width (overrides restoreState proportions)
+      std::int64_t dockWidth = uiSettings.radar_toolbox_dock_width().GetValue();
+      p->applyingDockWidth_  = true;
+      resizeDocks(
+         {ui->radarToolboxDock}, {static_cast<int>(dockWidth)}, Qt::Horizontal);
+      p->applyingDockWidth_ = false;
+
+      p->firstShow_ = false;
    }
 }
 
@@ -691,6 +1022,29 @@ void MainWindow::closeEvent(QCloseEvent* event)
    p->SaveMapPaneViewLinkState();
 
    QMainWindow::closeEvent(event);
+}
+
+void MainWindow::resizeEvent(QResizeEvent* event)
+{
+   QMainWindow::resizeEvent(event);
+
+   auto&        uiSettings = settings::UiSettings::Instance();
+   std::int64_t dockWidth  = uiSettings.radar_toolbox_dock_width().GetValue();
+   p->applyingDockWidth_   = true;
+   resizeDocks(
+      {ui->radarToolboxDock}, {static_cast<int>(dockWidth)}, Qt::Horizontal);
+   p->applyingDockWidth_ = false;
+}
+
+bool MainWindow::eventFilter(QObject* obj, QEvent* event)
+{
+   if (obj == ui->radarToolboxDock && event->type() == QEvent::Resize &&
+       !p->applyingDockWidth_)
+   {
+      static constexpr int kDockWidthDebounceMs = 500;
+      p->dockWidthSaveTimer_.start(kDockWidthDebounceMs);
+   }
+   return QMainWindow::eventFilter(obj, event);
 }
 
 void MainWindow::on_actionOpenNexrad_triggered()
@@ -716,7 +1070,7 @@ void MainWindow::on_actionOpenNexrad_triggered()
       dialog,
       &QFileDialog::fileSelected,
       this,
-      [=, this](const QString& file)
+      [this, currentMap](const QString& file)
       {
          logger_->info("Selected: {}", file.toStdString());
 
@@ -731,7 +1085,8 @@ void MainWindow::on_actionOpenNexrad_triggered()
             request.get(),
             &request::NexradFileRequest::RequestComplete,
             this,
-            [=, this](std::shared_ptr<request::NexradFileRequest> request)
+            [this, currentMap, file](
+               const std::shared_ptr<request::NexradFileRequest>& request)
             {
                std::shared_ptr<types::RadarProductRecord> record =
                   request->radar_product_record();
@@ -743,7 +1098,8 @@ void MainWindow::on_actionOpenNexrad_triggered()
                }
                else
                {
-                  QMessageBox* messageBox = new QMessageBox(this);
+                  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+                  auto* messageBox = new QMessageBox(this);
                   messageBox->setIcon(QMessageBox::Warning);
                   messageBox->setText(
                      QString("%1\n%2").arg(tr("Unrecognized NEXRAD Product:"),
@@ -811,6 +1167,7 @@ void MainWindow::on_actionExport_triggered()
 
 void MainWindow::on_actionSettings_triggered()
 {
+   p->settingsDialog_->RefreshWidgets();
    p->settingsDialog_->show();
 }
 
@@ -1001,7 +1358,8 @@ void MainWindow::on_actionCheckForUpdates_triggered()
                   this,
                   [this]()
                   {
-                     QMessageBox* messageBox = new QMessageBox(this);
+                     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+                     auto* messageBox = new QMessageBox(this);
                      messageBox->setIcon(QMessageBox::Icon::Information);
                      messageBox->setWindowTitle(tr("Check for Updates"));
                      messageBox->setText(tr("Supercell Wx is up to date."));
@@ -1030,7 +1388,8 @@ void MainWindow::on_radarSiteHomeButton_clicked()
 
    for (map::MapWidget* map : p->maps_)
    {
-      map->SelectRadarSite(homeRadarSite);
+      if (map->isVisible())
+         map->SelectRadarSite(homeRadarSite);
    }
 
    p->UpdateRadarSite();
@@ -1069,6 +1428,11 @@ void MainWindowImpl::AsyncSetup()
 
 void MainWindowImpl::EnsureMapWidgets(int64_t gridWidth, int64_t gridHeight)
 {
+   if (!glContext_)
+   {
+      glContext_ = std::make_shared<gl::GlContext>();
+   }
+
    const int64_t mapCount      = gridWidth * gridHeight;
    const bool hadReferencePane = (!maps_.empty() && maps_.front() != nullptr);
 
@@ -1089,37 +1453,56 @@ void MainWindowImpl::EnsureMapWidgets(int64_t gridWidth, int64_t gridHeight)
          {
             activeMap_ = nullptr;
          }
-         // MapWidget not managed by smart ptr; Qt widget lifetime via parent
-         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
          delete lastMap;
          maps_.pop_back();
       }
    }
    else
    {
-      maps_.resize(mapCount, nullptr);
-   }
-
-   if (!glContext_)
-   {
-      glContext_ = std::make_shared<gl::GlContext>();
+      maps_.resize(static_cast<std::size_t>(mapCount), nullptr);
    }
 
    for (int64_t i = 0; i < mapCount; i++)
    {
-      if (maps_.at(i) == nullptr)
+      if (maps_.at(static_cast<std::size_t>(i)) == nullptr)
       {
          if (i > 0 && hadReferencePane && maps_.at(0) != nullptr)
          {
             pendingPanesInheritFromRef_.push_back(static_cast<std::size_t>(i));
          }
-         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): Owned by parent
-         maps_.at(i) = new map::MapWidget(
+         maps_.at(static_cast<std::size_t>(i)) = new map::MapWidget(
             static_cast<std::size_t>(i), settings_, glContext_);
       }
    }
 
    SyncMapPaneViewLinkStateSize();
+}
+
+void MainWindowImpl::TeardownMapLayout()
+{
+   if (mapLayoutRoot_ == nullptr)
+   {
+      return;
+   }
+
+   DockAllPoppedBeforeTeardown();
+
+   for (map::MapWidget* map : maps_)
+   {
+      if (map != nullptr)
+      {
+         map->setParent(nullptr);
+      }
+   }
+
+   QLayout* const centralLayout = mainWindow_->ui->centralwidget->layout();
+   if (centralLayout != nullptr)
+   {
+      centralLayout->removeWidget(mapLayoutRoot_);
+   }
+
+   delete mapLayoutRoot_;
+   mapLayoutRoot_ = nullptr;
 }
 
 void MainWindowImpl::SyncMapPaneViewLinkStateSize()
@@ -1133,9 +1516,6 @@ void MainWindowImpl::SyncMapPaneViewLinkStateSize()
 void MainWindowImpl::SelectRadarSiteRespectingViewLink(
    map::MapWidget* sourceMap, const std::string& id, bool updateCoordinates)
 {
-   // With "Link view" on, a radar pick should match other linked panes; with it
-   // off, only that pane changes site. nullptr = broadcast (dialog, toolbar
-   // preset): every pane, same as historical behavior.
    if (sourceMap == nullptr)
    {
       for (map::MapWidget* map : maps_)
@@ -1176,41 +1556,12 @@ void MainWindowImpl::SelectRadarSiteRespectingViewLink(
    }
 }
 
-void MainWindowImpl::TeardownMapLayout()
-{
-   if (mapLayoutRoot_ == nullptr)
-   {
-      return;
-   }
-
-   DockAllPoppedBeforeTeardown();
-
-   for (map::MapWidget* map : maps_)
-   {
-      if (map != nullptr)
-      {
-         map->setParent(nullptr);
-      }
-   }
-
-   QLayout* const centralLayout = mainWindow_->ui->centralwidget->layout();
-   if (centralLayout != nullptr)
-   {
-      centralLayout->removeWidget(mapLayoutRoot_);
-   }
-
-   // Nested QSplitters (not MapWidgets) are children of |mapLayoutRoot_|
-   delete mapLayoutRoot_;
-   mapLayoutRoot_ = nullptr;
-}
-
 void MainWindowImpl::BuildMapLayout(
    bool tryRestorePaneSizesFromSettingsOnSchedule)
 {
-   auto& generalSettings = settings::GeneralSettings::Instance();
-
-   const int64_t gridWidth  = generalSettings.grid_width().GetValue();
-   const int64_t gridHeight = generalSettings.grid_height().GetValue();
+   const auto&   gs         = settings::GeneralSettings::Instance();
+   const int64_t gridWidth  = gs.grid_width().GetValue();
+   const int64_t gridHeight = gs.grid_height().GetValue();
    const int64_t mapCount   = gridWidth * gridHeight;
 
    EnsureMapWidgets(gridWidth, gridHeight);
@@ -1225,6 +1576,12 @@ void MainWindowImpl::BuildMapLayout(
    auto* vs = new QSplitter(Qt::Vertical, mainWindow_->ui->centralwidget);
    vs->setHandleWidth(1);
    mapLayoutRoot_ = vs;
+
+   QLayout* centralLayout = mainWindow_->ui->centralwidget->layout();
+   if (centralLayout != nullptr)
+   {
+      centralLayout->addWidget(vs);
+   }
 
    auto MoveSplitter = [this, vs](int /*pos*/, int /*index*/)
    {
@@ -1279,15 +1636,13 @@ void MainWindowImpl::BuildMapLayout(
       QSplitter* hs = new QSplitter(vs);
       hs->setHandleWidth(1);
 
-      for (int64_t x = 0; x < gridWidth; x++, mapIndex++)
+      for (std::int64_t x = 0; x < gridWidth; x++, mapIndex++)
       {
          hs->addWidget(maps_.at(mapIndex));
       }
 
       connect(hs, &QSplitter::splitterMoved, this, MoveSplitter);
    }
-
-   mainWindow_->ui->centralwidget->layout()->addWidget(vs);
 
    if (mapCount > 0)
    {
@@ -1558,8 +1913,6 @@ void MainWindowImpl::ApplyEqualMapPaneSizes(int layoutRetryDepth)
             rowVisible.at(static_cast<std::size_t>(r));
          if (QWidget* rowWidget = vs->widget(r); rowWidget != nullptr)
          {
-            // Keep splitter children visible. Hiding rows/cells survives app
-            // restore poorly and can keep newly docked maps invisible.
             rowWidget->setVisible(true);
          }
          vs->setCollapsible(r, !rowHasVisiblePane);
@@ -1715,6 +2068,165 @@ void MainWindowImpl::ApplyEqualMapPaneSizes(int layoutRetryDepth)
    }
 }
 
+void MainWindowImpl::OnLoadPreset()
+{
+   QComboBox* combo       = mainWindow_->ui->presetComboBox;
+   QString    currentText = combo->currentText();
+
+   // Don't load "Custom"
+   if (currentText == tr("Custom") || combo->currentIndex() < 0)
+   {
+      return;
+   }
+
+   std::string presetName     = currentText.toStdString();
+   auto&       presetSettings = settings::RadarPresetSettings::Instance();
+   auto        idx            = presetSettings.FindPresetIndex(presetName);
+
+   if (!idx.has_value())
+   {
+      return;
+   }
+
+   auto& preset = presetSettings.presets().at(idx.value());
+
+   auto& generalSettings = settings::GeneralSettings::Instance();
+   generalSettings.grid_width().SetValue(preset.gridWidth);
+   generalSettings.grid_height().SetValue(preset.gridHeight);
+
+   // Rebuild layout with new dimensions
+   RecreateMapLayoutFromUser();
+
+   // Apply products to each pane
+   auto& mapSettings = settings::MapSettings::Instance();
+   for (std::size_t i = 0; i < maps_.size(); i++)
+   {
+      const std::string& group = preset.products[i].group;
+      const std::string& name  = preset.products[i].name;
+      SelectRadarProduct(
+         maps_[i], common::GetRadarProductGroup(group), name, 0);
+
+      // Stage values so they're saved on shutdown
+      if (i < settings::RadarPresetSettings::kMapCount_)
+      {
+         mapSettings.radar_product_group(i).StageValue(group);
+         mapSettings.radar_product(i).StageValue(name);
+      }
+   }
+
+   presetSettings.set_active_preset(presetName);
+   manager::SettingsManager::Instance().SaveSettings();
+
+   PopulatePresetComboBox();
+
+   // Update layer dialog columns for the new map count
+   if (layerDialog_ != nullptr)
+   {
+      layerDialog_->RefreshMapDisplayColumns();
+   }
+}
+
+void MainWindowImpl::OnRenamePreset()
+{
+   QComboBox* combo       = mainWindow_->ui->presetComboBox;
+   QString    currentText = combo->currentText();
+
+   if (currentText == tr("Custom") || combo->currentIndex() < 0)
+   {
+      return;
+   }
+
+   std::string oldName        = currentText.toStdString();
+   auto&       presetSettings = settings::RadarPresetSettings::Instance();
+
+   bool    ok;
+   QString newName = QInputDialog::getText(mainWindow_,
+                                           tr("Rename Preset"),
+                                           tr("New name:"),
+                                           QLineEdit::Normal,
+                                           currentText,
+                                           &ok);
+   if (!ok || newName.isEmpty())
+   {
+      return;
+   }
+
+   std::string newNameStr = newName.toStdString();
+
+   // Check uniqueness
+   if (newNameStr != oldName &&
+       presetSettings.FindPresetIndex(newNameStr).has_value())
+   {
+      QMessageBox::warning(
+         mainWindow_,
+         tr("Duplicate Preset"),
+         tr("A preset with the name \"%1\" already exists.").arg(newName));
+      return;
+   }
+
+   auto idx = presetSettings.FindPresetIndex(oldName);
+   if (idx.has_value())
+   {
+      presetSettings.presets()[idx.value()].name = newNameStr;
+
+      if (presetSettings.active_preset() == oldName)
+      {
+         presetSettings.set_active_preset(newNameStr);
+      }
+
+      manager::SettingsManager::Instance().SaveSettings();
+   }
+
+   PopulatePresetComboBox();
+}
+
+void MainWindowImpl::OnDeletePreset()
+{
+   QComboBox* combo       = mainWindow_->ui->presetComboBox;
+   QString    currentText = combo->currentText();
+
+   if (currentText == tr("Custom") || combo->currentIndex() < 0)
+   {
+      return;
+   }
+
+   std::string presetName     = currentText.toStdString();
+   auto&       presetSettings = settings::RadarPresetSettings::Instance();
+
+   auto result =
+      QMessageBox::question(mainWindow_,
+                            tr("Delete Preset"),
+                            tr("Delete preset \"%1\"?").arg(currentText),
+                            QMessageBox::Yes | QMessageBox::No);
+
+   if (result != QMessageBox::Yes)
+   {
+      return;
+   }
+
+   auto idx = presetSettings.FindPresetIndex(presetName);
+   if (idx.has_value())
+   {
+      presetSettings.presets().erase(presetSettings.presets().begin() +
+                                     static_cast<std::ptrdiff_t>(idx.value()));
+
+      if (presetSettings.active_preset() == presetName)
+      {
+         presetSettings.set_active_preset(std::string());
+      }
+
+      manager::SettingsManager::Instance().SaveSettings();
+   }
+
+   PopulatePresetComboBox();
+}
+
+void MainWindowImpl::ClearActivePreset()
+{
+   settings::RadarPresetSettings::Instance().set_active_preset(std::string());
+   PopulatePresetComboBox();
+}
+
 bool MainWindowImpl::RestoreMapPaneSizesFromSettingsIfMatching()
 {
    if (mapLayoutRoot_ == nullptr)
@@ -1723,10 +2235,6 @@ bool MainWindowImpl::RestoreMapPaneSizesFromSettingsIfMatching()
    }
    if (mapLayoutRoot_->width() < 2 || mapLayoutRoot_->height() < 2)
    {
-      // |map_pane_splitter_state| is absolute pixel sizes. Applying it before
-      // the central |QSplitter| has a real geometry (e.g. right after a
-      // pop-out) can collapse or starve rows; fall back to equal sizing once
-      // layout is valid.
       return false;
    }
 
@@ -2128,6 +2636,7 @@ void MainWindowImpl::SetupPanesMenu()
 }
 
 void MainWindowImpl::ConfigureMapStyles(const bool mapStylesIgnoreLiveWidget)
+
 {
    const auto& mapProviderInfo = map::GetMapProviderInfo(mapProvider_);
    auto&       mapSettings     = settings::MapSettings::Instance();
@@ -2427,6 +2936,7 @@ void MainWindowImpl::ConfigureUiSettings()
    mapSettingsGroup_->SetExpanded(
       uiSettings.map_settings_expanded().GetValue());
    timelineGroup_->SetExpanded(uiSettings.timeline_expanded().GetValue());
+   spcOutlookGroup_->SetExpanded(uiSettings.spc_outlook_expanded().GetValue());
 
    connect(level2ProductsGroup_,
            &ui::CollapsibleGroup::StateChanged,
@@ -2452,6 +2962,10 @@ void MainWindowImpl::ConfigureUiSettings()
            &ui::CollapsibleGroup::StateChanged,
            [&](bool expanded)
            { uiSettings.timeline_expanded().StageValue(expanded); });
+   connect(spcOutlookGroup_,
+           &ui::CollapsibleGroup::StateChanged,
+           [&](bool expanded)
+           { uiSettings.spc_outlook_expanded().StageValue(expanded); });
 }
 
 void MainWindowImpl::ConnectMapSignals()
@@ -2585,7 +3099,25 @@ void MainWindowImpl::ConnectMapSignals()
          [this](std::optional<float>)
          { level2SettingsWidget_->UpdateSettings(activeMap_); },
          Qt::QueuedConnection);
+
+      connect(mapWidget,
+              &map::MapWidget::MapClicked,
+              this,
+              [this](common::Coordinate coordinate)
+              {
+                 if (!selectingSoundingPoint_)
+                 {
+                    return;
+                 }
+                 selectingSoundingPoint_ = false;
+                 activeMap_->setCursor(Qt::ArrowCursor);
+                 soundingPanel_->SetLocation(coordinate.latitude_,
+                                             coordinate.longitude_);
+                 soundingPanel_->show();
+                 soundingPanel_->raise();
+              });
    }
+   UpdateMatchMapStyleFromPanesState(true);
 }
 
 void MainWindowImpl::ConnectAnimationSignals()
@@ -2824,22 +3356,49 @@ void MainWindowImpl::ConnectOtherSignals()
             mapSettings.radar_product(i).StageValue(map->GetRadarProductName());
          }
       });
-   connect(
-      level2ProductsWidget_,
-      &ui::Level2ProductsWidget::RadarProductSelected,
-      mainWindow_,
-      [&](common::RadarProductGroup group,
-          const std::string&        productName,
-          int16_t                   productCode)
-      { SelectRadarProduct(activeMap_, group, productName, productCode); });
-   connect(
-      level3ProductsWidget_,
-      &ui::Level3ProductsWidget::RadarProductSelected,
-      mainWindow_,
-      [&](common::RadarProductGroup group,
-          const std::string&        productName,
-          int16_t                   productCode)
-      { SelectRadarProduct(activeMap_, group, productName, productCode); });
+
+   // Radar Preset connections
+   connect(mainWindow_->ui->presetComboBox,
+           &QComboBox::currentIndexChanged,
+           mainWindow_,
+           [this]() { /* selection change tracked by Load button */ });
+   connect(mainWindow_->ui->savePresetButton,
+           &QAbstractButton::clicked,
+           mainWindow_,
+           [this]() { OnSavePreset(); });
+   connect(mainWindow_->ui->loadPresetButton,
+           &QAbstractButton::clicked,
+           mainWindow_,
+           [this]() { OnLoadPreset(); });
+   connect(mainWindow_->ui->renamePresetButton,
+           &QAbstractButton::clicked,
+           mainWindow_,
+           [this]() { OnRenamePreset(); });
+   connect(mainWindow_->ui->deletePresetButton,
+           &QAbstractButton::clicked,
+           mainWindow_,
+           [this]() { OnDeletePreset(); });
+
+   connect(level2ProductsWidget_,
+           &ui::Level2ProductsWidget::RadarProductSelected,
+           mainWindow_,
+           [this](common::RadarProductGroup group,
+                  const std::string&        productName,
+                  int16_t                   productCode)
+           {
+              SelectRadarProduct(activeMap_, group, productName, productCode);
+              ClearActivePreset();
+           });
+   connect(level3ProductsWidget_,
+           &ui::Level3ProductsWidget::RadarProductSelected,
+           mainWindow_,
+           [this](common::RadarProductGroup group,
+                  const std::string&        productName,
+                  int16_t                   productCode)
+           {
+              SelectRadarProduct(activeMap_, group, productName, productCode);
+              ClearActivePreset();
+           });
    connect(level2SettingsWidget_,
            &ui::Level2SettingsWidget::ElevationSelected,
            mainWindow_,
@@ -2930,6 +3489,23 @@ void MainWindowImpl::ConnectOtherSignals()
            &QAbstractItemModel::modelReset,
            this,
            [this]() { InitializeLayerDisplayActions(); });
+   connect(radarSiteDialog_,
+           &ui::RadarSiteDialog::accepted,
+           this,
+           [&]()
+           {
+              std::string selectedRadarSite = radarSiteDialog_->radar_site();
+
+              for (map::MapWidget* map : maps_)
+              {
+                 if (map->isVisible())
+                    map->SelectRadarSite(selectedRadarSite);
+              }
+
+              UpdateRadarSite();
+              UpdateAvailableLevel3Products();
+              UpdateRadarProductSettings();
+           });
    connect(
       radarSiteDialog_,
       &ui::RadarSiteDialog::accepted,
@@ -2942,6 +3518,7 @@ void MainWindowImpl::ConnectOtherSignals()
          UpdateAvailableLevel3Products();
          UpdateRadarProductSettings();
       });
+
    connect(radarSiteModel_.get(),
            &model::RadarSiteModel::PresetToggled,
            [this](const std::string& siteId, bool isPreset)
@@ -2982,7 +3559,8 @@ void MainWindowImpl::ConnectOtherSignals()
                  QString::fromStdString(util::TimeString(util::time::now())));
               timeLabel_->setVisible(true);
            });
-   clockTimer_.start(1000);
+   static constexpr int kClockTimerIntervalMs = 1000;
+   clockTimer_.start(kClockTimerIntervalMs);
 
    auto& generalSettings = settings::GeneralSettings::Instance();
    homeRadarConnection_ =
@@ -3042,6 +3620,15 @@ void MainWindowImpl::ConnectOtherSignals()
             UpdateMatchMapStyleFromPanesState(false);
          }));
 
+   // Connect sounding panel point selection
+   connect(soundingPanel_,
+           &ui::SoundingPanel::PointSelectionStarted,
+           this,
+           [this]()
+           {
+              selectingSoundingPoint_ = true;
+              activeMap_->setCursor(Qt::CrossCursor);
+           });
    connections_.emplace_back(
       generalSettings.grid_width().changed_signal().connect(
          [this](const auto& /*event*/)
@@ -3111,7 +3698,14 @@ void MainWindowImpl::AddRadarSitePreset(const std::string& siteId)
            &QAction::triggered,
            [this, siteId]()
            {
+              for (map::MapWidget* map : maps_)
+              {
+                 if (map->isVisible())
+                    map->SelectRadarSite(siteId);
+              }
+
               SelectRadarSiteRespectingViewLink(nullptr, siteId, true);
+
               UpdateRadarSite();
               UpdateAvailableLevel3Products();
               UpdateRadarProductSettings();
@@ -3896,6 +4490,175 @@ void MainWindowImpl::TryRestorePoppedMapWindows()
       }
    }
    popoutPanesRestoredThisSession_ = true;
+}
+
+void MainWindowImpl::PopulatePresetComboBox()
+{
+   auto&      presetSettings = settings::RadarPresetSettings::Instance();
+   QComboBox* combo          = mainWindow_->ui->presetComboBox;
+
+   QSignalBlocker blocker(combo);
+
+   combo->clear();
+   int selectIndex = -1;
+
+   // Add preset names
+   for (const auto& preset : presetSettings.presets())
+   {
+      combo->addItem(QString::fromStdString(preset.name));
+      if (preset.name == presetSettings.active_preset())
+      {
+         selectIndex = combo->count() - 1;
+      }
+   }
+
+   // Add "Custom" as the last entry
+   combo->addItem(tr("Custom"));
+
+   if (selectIndex >= 0)
+   {
+      combo->setCurrentIndex(selectIndex);
+   }
+   else
+   {
+      combo->setCurrentIndex(combo->count() - 1);
+   }
+}
+
+void MainWindowImpl::OnSavePreset()
+{
+   auto& presetSettings  = settings::RadarPresetSettings::Instance();
+   auto& generalSettings = settings::GeneralSettings::Instance();
+
+   QComboBox* combo       = mainWindow_->ui->presetComboBox;
+   QString    currentText = combo->currentText();
+
+   std::string presetName;
+   bool        overwriteExisting = false;
+
+   // If a preset name is selected (not "Custom"), ask to overwrite or save as
+   // new
+   if (currentText != tr("Custom"))
+   {
+      QString selectedName = currentText;
+      auto    result       = QMessageBox::question(
+         mainWindow_,
+         tr("Save Preset"),
+         tr("Overwrite preset \"%1\"?").arg(selectedName),
+         QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+      if (result == QMessageBox::Cancel)
+      {
+         return;
+      }
+
+      if (result == QMessageBox::Yes)
+      {
+         presetName        = selectedName.toStdString();
+         overwriteExisting = true;
+      }
+   }
+
+   // If we still need a name, prompt for one
+   if (presetName.empty())
+   {
+      bool    ok;
+      QString name = QInputDialog::getText(mainWindow_,
+                                           tr("Save Preset"),
+                                           tr("Preset name:"),
+                                           QLineEdit::Normal,
+                                           {},
+                                           &ok);
+      if (!ok || name.isEmpty())
+      {
+         return;
+      }
+
+      presetName = name.toStdString();
+
+      // Check uniqueness
+      if (presetSettings.FindPresetIndex(presetName).has_value())
+      {
+         QMessageBox::warning(
+            mainWindow_,
+            tr("Duplicate Preset"),
+            tr("A preset with the name \"%1\" already exists.")
+               .arg(QString::fromStdString(presetName)));
+         return;
+      }
+   }
+
+   // Build the preset from current state
+   settings::RadarPresetSettings::Preset preset;
+   preset.name       = presetName;
+   preset.gridWidth  = generalSettings.grid_width().GetValue();
+   preset.gridHeight = generalSettings.grid_height().GetValue();
+
+   // Capture current splitter sizes
+   {
+      QLayout* cl = mainWindow_->ui->centralwidget->layout();
+      if (cl != nullptr)
+      {
+         for (int i = 0; i < cl->count(); ++i)
+         {
+            QLayoutItem* item = cl->itemAt(i);
+            QSplitter*   vs   = (item != nullptr) ?
+                                   qobject_cast<QSplitter*>(item->widget()) :
+                                   nullptr;
+            if (vs != nullptr)
+            {
+               // Row sizes (vertical splitter)
+               {
+                  QList<int> sizes = vs->sizes();
+                  preset.rowSizes.assign(sizes.begin(), sizes.end());
+               }
+               // Column sizes (first horizontal splitter — all synced)
+               QList<QSplitter*> hss = vs->findChildren<QSplitter*>(
+                  QString(), Qt::FindDirectChildrenOnly);
+               if (!hss.isEmpty())
+               {
+                  QList<int> sizes = hss.first()->sizes();
+                  preset.columnSizes.assign(sizes.begin(), sizes.end());
+               }
+               break;
+            }
+         }
+      }
+   }
+
+   for (std::size_t i = 0; i < settings::RadarPresetSettings::kMapCount_; i++)
+   {
+      if (i < maps_.size())
+      {
+         preset.products[i].group =
+            common::GetRadarProductGroupName(maps_[i]->GetRadarProductGroup());
+         preset.products[i].name = maps_[i]->GetRadarProductName();
+      }
+      else
+      {
+         preset.products[i].group = "L3";
+         preset.products[i].name  = "N0B";
+      }
+   }
+
+   // Store the preset
+   if (overwriteExisting)
+   {
+      auto idx = presetSettings.FindPresetIndex(presetName);
+      if (idx.has_value())
+      {
+         presetSettings.presets()[idx.value()] = preset;
+      }
+   }
+   else
+   {
+      presetSettings.presets().push_back(preset);
+   }
+
+   presetSettings.set_active_preset(presetName);
+   manager::SettingsManager::Instance().SaveSettings();
+
+   PopulatePresetComboBox();
 }
 
 } // namespace scwx::qt::main
