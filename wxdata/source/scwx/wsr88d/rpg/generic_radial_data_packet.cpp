@@ -26,7 +26,7 @@ GenericRadialDataPacket::GenericRadialDataPacket() :
 GenericRadialDataPacket::~GenericRadialDataPacket() = default;
 
 GenericRadialDataPacket::GenericRadialDataPacket(
-   GenericRadialDataPacket&&) noexcept                    = default;
+   GenericRadialDataPacket&&) noexcept = default;
 GenericRadialDataPacket& GenericRadialDataPacket::operator=(
    GenericRadialDataPacket&&) noexcept = default;
 

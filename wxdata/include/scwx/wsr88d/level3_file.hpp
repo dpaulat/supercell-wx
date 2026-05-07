@@ -20,7 +20,7 @@ public:
    explicit Level3File();
    ~Level3File();
 
-   Level3File(const Level3File&) = delete;
+   Level3File(const Level3File&)            = delete;
    Level3File& operator=(const Level3File&) = delete;
 
    Level3File(Level3File&&) noexcept;

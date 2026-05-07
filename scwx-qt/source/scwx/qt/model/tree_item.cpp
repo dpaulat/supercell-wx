@@ -118,7 +118,8 @@ TreeItem* TreeItem::FindChild(int column, const QVariant& data)
 {
    auto it = std::find_if(p->childItems_.begin(),
                           p->childItems_.end(),
-                          [&](auto& item) {
+                          [&](auto& item)
+                          {
                              return (column < item->column_count() &&
                                      item->data(column) == data);
                           });

@@ -39,8 +39,8 @@ enum class UiStyle
 typedef scwx::util::Iterator<UiStyle, UiStyle::Default, UiStyle::FusionCustom>
    UiStyleIterator;
 
-Qt::ColorScheme            GetQtColorScheme(UiStyle uiStyle);
-std::string                GetQtStyleName(UiStyle uiStyle);
+Qt::ColorScheme GetQtColorScheme(UiStyle uiStyle);
+std::string     GetQtStyleName(UiStyle uiStyle);
 
 std::optional<std::string> GetQtPaletteFile(UiStyle uiStyle);
 

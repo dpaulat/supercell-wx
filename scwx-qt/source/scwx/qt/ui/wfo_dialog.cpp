@@ -45,8 +45,7 @@ WFODialog::WFODialog(QWidget* parent) :
 
    p->proxyModel_->setSourceModel(p->model_);
    ui->wfoView->setModel(p->proxyModel_);
-   ui->wfoView->setEditTriggers(
-      QAbstractItemView::EditTrigger::NoEditTriggers);
+   ui->wfoView->setEditTriggers(QAbstractItemView::EditTrigger::NoEditTriggers);
    ui->wfoView->sortByColumn(0, Qt::SortOrder::AscendingOrder);
    ui->wfoView->header()->setSectionResizeMode(
       QHeaderView::ResizeMode::Stretch);
@@ -131,9 +130,8 @@ void WFODialog::Impl::UpdateModel()
    // Add each wfo to the model
    for (auto& wfo : config::CountyDatabase::GetWFOs())
    {
-      root->appendRow(
-         {new QStandardItem(QString::fromStdString(wfo.second)),
-          new QStandardItem(QString::fromStdString(wfo.first))});
+      root->appendRow({new QStandardItem(QString::fromStdString(wfo.second)),
+                       new QStandardItem(QString::fromStdString(wfo.first))});
    }
 }
 

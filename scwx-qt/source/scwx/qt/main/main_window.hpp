@@ -62,6 +62,16 @@ private slots:
    void on_actionGitHubRepository_triggered();
    void on_actionCheckForUpdates_triggered();
    void on_actionAboutSupercellWx_triggered();
+   void on_actionRecreateMapLayout_triggered();
+   void on_actionPanesLinkColumnWidth_toggled(bool checked);
+   void on_actionPanesLinkColumnHeight_toggled(bool checked);
+   void on_actionPanesMatchMapStyle_toggled(bool checked);
+   void on_actionPanes1x1_triggered();
+   void on_actionPanes1x2_triggered();
+   void on_actionPanes2x1_triggered();
+   void on_actionPanes2x2_triggered();
+   void on_actionPanes3x3_triggered();
+   void on_actionPanesCustom_triggered();
    void on_radarSiteHomeButton_clicked();
    void on_radarSiteSelectButton_clicked();
 

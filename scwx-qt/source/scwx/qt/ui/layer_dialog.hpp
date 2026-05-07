@@ -25,7 +25,7 @@ public:
    explicit LayerDialog(QWidget* parent = nullptr);
    ~LayerDialog();
 
-   void UpdateMapDisplayColumns();
+   void RefreshMapDisplayColumns();
 
 private:
    friend class LayerDialogImpl;

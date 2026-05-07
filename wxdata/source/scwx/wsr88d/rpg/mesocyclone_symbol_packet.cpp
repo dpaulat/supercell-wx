@@ -47,7 +47,7 @@ MesocycloneSymbolPacket::MesocycloneSymbolPacket() :
 MesocycloneSymbolPacket::~MesocycloneSymbolPacket() = default;
 
 MesocycloneSymbolPacket::MesocycloneSymbolPacket(
-   MesocycloneSymbolPacket&&) noexcept                    = default;
+   MesocycloneSymbolPacket&&) noexcept = default;
 MesocycloneSymbolPacket& MesocycloneSymbolPacket::operator=(
    MesocycloneSymbolPacket&&) noexcept = default;
 

@@ -35,7 +35,7 @@ public:
    explicit CodedLocation();
    ~CodedLocation();
 
-   CodedLocation(const CodedLocation&) = delete;
+   CodedLocation(const CodedLocation&)            = delete;
    CodedLocation& operator=(const CodedLocation&) = delete;
 
    CodedLocation(CodedLocation&&) noexcept;

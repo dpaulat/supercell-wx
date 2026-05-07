@@ -21,7 +21,7 @@ public:
                                   const std::string& region);
    ~AwsLevel3DataProvider();
 
-   AwsLevel3DataProvider(const AwsLevel3DataProvider&) = delete;
+   AwsLevel3DataProvider(const AwsLevel3DataProvider&)            = delete;
    AwsLevel3DataProvider& operator=(const AwsLevel3DataProvider&) = delete;
 
    AwsLevel3DataProvider(AwsLevel3DataProvider&&) noexcept;

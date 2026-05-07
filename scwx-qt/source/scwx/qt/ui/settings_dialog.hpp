@@ -24,6 +24,11 @@ class SettingsDialog : public QDialog
 private:
    Q_DISABLE_COPY(SettingsDialog)
 
+signals:
+   /// Emitted after OK or Apply successfully runs ApplyChanges() (settings
+   /// committed in memory).
+   void SettingsApplied();
+
 public:
    explicit SettingsDialog(QMapLibre::Settings& mapSettings,
                            QWidget*             parent = nullptr);

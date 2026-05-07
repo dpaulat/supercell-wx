@@ -20,7 +20,7 @@ public:
    explicit MesocycloneSymbolPacket();
    ~MesocycloneSymbolPacket();
 
-   MesocycloneSymbolPacket(const MesocycloneSymbolPacket&) = delete;
+   MesocycloneSymbolPacket(const MesocycloneSymbolPacket&)            = delete;
    MesocycloneSymbolPacket& operator=(const MesocycloneSymbolPacket&) = delete;
 
    MesocycloneSymbolPacket(MesocycloneSymbolPacket&&) noexcept;

@@ -36,7 +36,7 @@ public:
    explicit CodedTimeMotionLocation();
    ~CodedTimeMotionLocation();
 
-   CodedTimeMotionLocation(const CodedTimeMotionLocation&) = delete;
+   CodedTimeMotionLocation(const CodedTimeMotionLocation&)            = delete;
    CodedTimeMotionLocation& operator=(const CodedTimeMotionLocation&) = delete;
 
    CodedTimeMotionLocation(CodedTimeMotionLocation&&) noexcept;

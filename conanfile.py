@@ -5,7 +5,7 @@ import os
 
 class SupercellWxConan(ConanFile):
     settings   = ("os", "compiler", "build_type", "arch")
-    requires   = ("boost/1.90.0",
+    requires   = ("boost/1.91.0",
                   "cpr/1.14.2",
                   "fontconfig/2.17.1",
                   "geographiclib/2.6",
@@ -51,7 +51,7 @@ class SupercellWxConan(ConanFile):
             self.requires("onetbb/2022.3.0")
 
         # Force dependency graph (fontconfig) to use a newer version of freetype
-        self.requires("freetype/2.14.1", force=True)
+        self.requires("freetype/2.14.3", force=True)
 
     def generate(self):
         build_folder = os.path.join(self.build_folder,

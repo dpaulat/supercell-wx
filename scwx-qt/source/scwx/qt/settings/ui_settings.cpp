@@ -24,6 +24,10 @@ public:
       radarToolboxDockWidth_.SetDefault(280);
       radarToolboxDockWidth_.SetMinimum(150);
       radarToolboxDockWidth_.SetMaximum(600);
+      mapPaneSplitterState_.SetDefault("");
+      mapPanePopoutState_.SetDefault("");
+      mapPaneViewLinkState_.SetDefault("");
+      panesMatchMapStyle_.SetDefault(true);
       // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
    }
 
@@ -44,6 +48,12 @@ public:
    SettingsVariable<std::string>  mainUIGeometry_ {"main_ui_geometry"};
    SettingsVariable<std::int64_t> radarToolboxDockWidth_ {
       "radar_toolbox_dock_width"};
+   SettingsVariable<std::string> mapPaneSplitterState_ {
+      "map_pane_splitter_state"};
+   SettingsVariable<std::string> mapPanePopoutState_ {"map_pane_popout_state"};
+   SettingsVariable<std::string> mapPaneViewLinkState_ {
+      "map_pane_view_link_state"};
+   SettingsVariable<bool> panesMatchMapStyle_ {"panes_match_map_style"};
 };
 
 UiSettings::UiSettings() :
@@ -58,7 +68,11 @@ UiSettings::UiSettings() :
                       &p->spcOutlookExpanded_,
                       &p->mainUIState_,
                       &p->mainUIGeometry_,
-                      &p->radarToolboxDockWidth_});
+                      &p->radarToolboxDockWidth_,
+                      &p->mapPaneSplitterState_,
+                      &p->mapPanePopoutState_,
+                      &p->mapPaneViewLinkState_,
+                      &p->panesMatchMapStyle_});
    SetDefaults();
 }
 UiSettings::~UiSettings() = default;
@@ -116,6 +130,25 @@ SettingsVariable<std::int64_t>& UiSettings::radar_toolbox_dock_width() const
    return p->radarToolboxDockWidth_;
 }
 
+SettingsVariable<std::string>& UiSettings::map_pane_splitter_state() const
+{
+   return p->mapPaneSplitterState_;
+}
+
+SettingsVariable<std::string>& UiSettings::map_pane_popout_state() const
+{
+   return p->mapPanePopoutState_;
+}
+
+SettingsVariable<std::string>& UiSettings::map_pane_view_link_state() const
+{
+   return p->mapPaneViewLinkState_;
+}
+
+SettingsVariable<bool>& UiSettings::panes_match_map_style() const
+{
+   return p->panesMatchMapStyle_;
+}
 bool UiSettings::Shutdown()
 {
    bool dataChanged = false;
@@ -131,6 +164,10 @@ bool UiSettings::Shutdown()
    dataChanged |= p->mainUIState_.Commit();
    dataChanged |= p->mainUIGeometry_.Commit();
    dataChanged |= p->radarToolboxDockWidth_.Commit();
+   dataChanged |= p->mapPaneSplitterState_.Commit();
+   dataChanged |= p->mapPanePopoutState_.Commit();
+   dataChanged |= p->mapPaneViewLinkState_.Commit();
+   dataChanged |= p->panesMatchMapStyle_.Commit();
 
    return dataChanged;
 }
@@ -151,7 +188,11 @@ bool operator==(const UiSettings& lhs, const UiSettings& rhs)
            lhs.p->timelineExpanded_ == rhs.p->timelineExpanded_ &&
            lhs.p->mainUIState_ == rhs.p->mainUIState_ &&
            lhs.p->mainUIGeometry_ == rhs.p->mainUIGeometry_ &&
-           lhs.p->radarToolboxDockWidth_ == rhs.p->radarToolboxDockWidth_);
+           lhs.p->radarToolboxDockWidth_ == rhs.p->radarToolboxDockWidth_ &&
+           lhs.p->mapPaneSplitterState_ == rhs.p->mapPaneSplitterState_ &&
+           lhs.p->mapPanePopoutState_ == rhs.p->mapPanePopoutState_ &&
+           lhs.p->mapPaneViewLinkState_ == rhs.p->mapPaneViewLinkState_ &&
+           lhs.p->panesMatchMapStyle_ == rhs.p->panesMatchMapStyle_);
 }
 
 } // namespace scwx::qt::settings

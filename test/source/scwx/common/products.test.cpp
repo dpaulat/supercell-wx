@@ -28,7 +28,8 @@ TEST(Products, GetLevel3AwipsIdsByProductTest)
 
 TEST(Products, GetLevel3ProductsByCategoryTest)
 {
-   const auto& products = GetLevel3ProductsByCategory(Level3ProductCategory::Reflectivity);
+   const auto& products =
+      GetLevel3ProductsByCategory(Level3ProductCategory::Reflectivity);
 
    EXPECT_NE(std::find(products.cbegin(), products.cend(), "SDR"),
              products.cend());
