@@ -14,6 +14,12 @@ namespace qt
 namespace ui
 {
 
+static const QString kTitleButtonStyleSheet_ {"text-align: left;"};
+static const QString kCollapsedIcon_ {
+   ":/res/icons/font-awesome-6/square-caret-right-regular.svg"};
+static const QString kExpandedIcon_ {
+   ":/res/icons/font-awesome-6/square-caret-down-regular.svg"};
+
 class CollapsibleGroupImpl
 {
 public:
@@ -23,15 +29,6 @@ public:
    void Initialize();
    void RefreshTitleButton();
    void UpdateIcon();
-
-   const QString kTitleButtonStyleSheet_ {"text-align: left;"};
-   const QString kCollapsedIcon_ {
-      ":/res/icons/font-awesome-6/square-caret-right-regular.svg"};
-   const QString kExpandedIcon_ {
-      ":/res/icons/font-awesome-6/square-caret-down-regular.svg"};
-
-   const std::map<bool, const QString&> kIcon_ {{false, kCollapsedIcon_},
-                                                {true, kExpandedIcon_}};
 
    CollapsibleGroup* self_;
 
@@ -77,7 +74,8 @@ void CollapsibleGroupImpl::Initialize()
 
 void CollapsibleGroupImpl::UpdateIcon()
 {
-   self_->ui->titleButton->setIcon(QIcon {kIcon_.at(expanded_)});
+   self_->ui->titleButton->setIcon(
+      QIcon {expanded_ ? kExpandedIcon_ : kCollapsedIcon_});
 }
 
 void CollapsibleGroupImpl::RefreshTitleButton()
