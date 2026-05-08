@@ -236,22 +236,6 @@ void ConvectiveOutlookLayer::Add(std::shared_ptr<QMapLibre::Map> map,
                 << QVariant(QVariantList {} << 2.0 << 3.0)
                 << QVariant(QVariantList {} << 3.0 << 3.0);
 
-   // Serialize expressions to JSON strings for proper parsing by MapLibre
-   QByteArray fillColorJson =
-      QJsonDocument::fromVariant(QVariant(fillColorExpr))
-         .toJson(QJsonDocument::Compact);
-   QByteArray fillOpacityJson =
-      QJsonDocument::fromVariant(QVariant(fillOpacityExpr))
-         .toJson(QJsonDocument::Compact);
-   QByteArray lineColorJson =
-      QJsonDocument::fromVariant(QVariant(lineColorExpr))
-         .toJson(QJsonDocument::Compact);
-   QByteArray lineWidthJson =
-      QJsonDocument::fromVariant(QVariant(lineWidthExpr))
-         .toJson(QJsonDocument::Compact);
-   QByteArray lineDashJson = QJsonDocument::fromVariant(QVariant(lineDashExpr))
-                                .toJson(QJsonDocument::Compact);
-
    // Add fill layer
    map->addLayer(
       QString::fromStdString(kFillLayerId_),
@@ -259,10 +243,10 @@ void ConvectiveOutlookLayer::Add(std::shared_ptr<QMapLibre::Map> map,
       beforeStr);
    map->setPaintProperty(QString::fromStdString(kFillLayerId_),
                          "fill-color",
-                         QString::fromUtf8(fillColorJson));
+                         QVariant(fillColorExpr));
    map->setPaintProperty(QString::fromStdString(kFillLayerId_),
                          "fill-opacity",
-                         QString::fromUtf8(fillOpacityJson));
+                         QVariant(fillOpacityExpr));
 
    // Add line layer for borders
    map->addLayer(
@@ -271,13 +255,13 @@ void ConvectiveOutlookLayer::Add(std::shared_ptr<QMapLibre::Map> map,
       beforeStr);
    map->setPaintProperty(QString::fromStdString(kLineLayerId_),
                          "line-color",
-                         QString::fromUtf8(lineColorJson));
+                         QVariant(lineColorExpr));
    map->setPaintProperty(QString::fromStdString(kLineLayerId_),
                          "line-width",
-                         QString::fromUtf8(lineWidthJson));
+                         QVariant(lineWidthExpr));
    map->setPaintProperty(QString::fromStdString(kLineLayerId_),
                          "line-dasharray",
-                         QString::fromUtf8(lineDashJson));
+                         QVariant(lineDashExpr));
    map->setPaintProperty(
       QString::fromStdString(kLineLayerId_), "line-opacity", opacity / 100.0);
 
@@ -288,9 +272,6 @@ void ConvectiveOutlookLayer::Add(std::shared_ptr<QMapLibre::Map> map,
                       << "cig-hatch-1" << 2 << "cig-hatch-2" << 3
                       << "cig-hatch-3"
                       << "";
-   QByteArray cigFillPatternJson =
-      QJsonDocument::fromVariant(QVariant(cigFillPatternExpr))
-         .toJson(QJsonDocument::Compact);
 
    QVariantList cigFilter;
    cigFilter << ">" << QVariant(QVariantList {} << "get" << "cig_level") << 0;
@@ -301,7 +282,7 @@ void ConvectiveOutlookLayer::Add(std::shared_ptr<QMapLibre::Map> map,
       beforeStr);
    map->setPaintProperty(QString::fromStdString(kCigFillLayerId_),
                          "fill-pattern",
-                         QString::fromUtf8(cigFillPatternJson));
+                         QVariant(cigFillPatternExpr));
    map->setPaintProperty(QString::fromStdString(kCigFillLayerId_),
                          "fill-opacity",
                          opacity / 100.0);
@@ -370,12 +351,9 @@ void ConvectiveOutlookLayer::Update(std::shared_ptr<QMapLibre::Map> map)
    fillOpacityExpr << "match"
                    << QVariant(QVariantList {} << "get" << "cig_level") << 0
                    << (opacity / 100.0) << 0.0;
-   QByteArray fillOpacityJson =
-      QJsonDocument::fromVariant(QVariant(fillOpacityExpr))
-         .toJson(QJsonDocument::Compact);
    map->setPaintProperty(QString::fromStdString(kFillLayerId_),
                          "fill-opacity",
-                         QString::fromUtf8(fillOpacityJson));
+                         QVariant(fillOpacityExpr));
 
    // Update line opacity
    map->setPaintProperty(

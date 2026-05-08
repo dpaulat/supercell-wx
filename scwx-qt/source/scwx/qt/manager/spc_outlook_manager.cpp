@@ -37,9 +37,17 @@ public:
    }
 
    void FetchOutlookSync(scwx::spc::OutlookDay     day,
-                         scwx::spc::OutlookProduct product)
+                         scwx::spc::OutlookProduct product,
+                         uint64_t                  fetchId)
    {
       auto result = scwx::spc::SpcOutlookProvider::FetchOutlook(day, product);
+
+      if (fetchId != currentFetchId_.load())
+      {
+         logger_->debug("Discarding stale SPC outlook fetch result (ID: {})",
+                        fetchId);
+         return;
+      }
 
       if (result.has_value())
       {
@@ -85,7 +93,8 @@ public:
 
    QTimer            refreshTimer_;
    std::atomic<bool> autoRefresh_ {false};
-   std::atomic<bool> fetchCancelled_ {false};
+   std::atomic<bool>     fetchCancelled_ {false};
+   std::atomic<uint64_t> currentFetchId_ {0};
 
    mutable std::mutex                      dataMutex_;
    std::shared_ptr<scwx::spc::OutlookData> data_;
@@ -182,10 +191,11 @@ void SpcOutlookManager::FetchOutlookAsync(scwx::spc::OutlookDay     day,
                                           scwx::spc::OutlookProduct product)
 {
    p->fetchCancelled_.store(false);
+   uint64_t fetchId = ++p->currentFetchId_;
 
    boost::asio::post(p->threadPool_,
-                     [this, day, product]()
-                     { p->FetchOutlookSync(day, product); });
+                     [this, day, product, fetchId]()
+                     { p->FetchOutlookSync(day, product, fetchId); });
 }
 
 void SpcOutlookManager::OnRefreshTimer()
