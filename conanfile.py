@@ -48,7 +48,7 @@ class SupercellWxConan(ConanFile):
         if self.settings.os == "Linux":
             self.requires("opengl/system")
             self.requires("glu/system")
-            self.requires("onetbb/2022.3.0")
+            self.requires("onetbb/2023.0.0")
 
         # Force dependency graph (fontconfig) to use a newer version of freetype
         self.requires("freetype/2.14.3", force=True)
