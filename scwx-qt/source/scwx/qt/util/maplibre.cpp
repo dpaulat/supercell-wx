@@ -1,6 +1,9 @@
 #include <scwx/qt/util/maplibre.hpp>
 
+#include <QFile>
 #include <QMapLibre/Utils>
+#include <QUrl>
+#include <QUrlQuery>
 #include <algorithm>
 #include <mbgl/util/constants.hpp>
 #include <re2/re2.h>
@@ -107,26 +110,45 @@ void SetMapStyleUrl(const std::shared_ptr<map::MapContext>& mapContext,
 {
    const auto mapProvider = mapContext->map_provider();
 
-   QString qUrl = QString::fromStdString(url);
+   auto qUrl = QUrl::fromUserInput(QString::fromStdString(url));
 
    if (!url.empty() && mapProvider == map::MapProvider::MapTiler)
    {
-      qUrl.append("?key=");
-      qUrl.append(map::GetMapProviderApiKey(mapProvider));
+      auto query = QUrlQuery(qUrl);
+      query.removeAllQueryItems("key");
+      query.addQueryItem(
+         "key", QString::fromStdString(map::GetMapProviderApiKey(mapProvider)));
+      qUrl.setQuery(query);
    }
 
    auto map = mapContext->map().lock();
    if (map != nullptr)
    {
-      if (!url.empty())
-      {
-         map->setStyleUrl(qUrl);
-      }
-      else
+      if (url.empty())
       {
          // If the URL is empty, set a blank style to clear the map
          map->setStyleJson(
             R"({"version":8,"name":"blank","sources":{},"layers":[]})");
+      }
+      else if (qUrl.isLocalFile())
+      {
+         // Manually load local files to avoid odd behaiver of file scheme.
+         auto file = QFile(qUrl.toLocalFile());
+
+         if (file.open(QIODevice::ReadOnly))
+         {
+            map->setStyleJson(file.readAll());
+         }
+         else
+         {
+            // If the file was not openable, set a blank style to clear the map
+            map->setStyleJson(
+               R"({"version":8,"name":"blank","sources":{},"layers":[]})");
+         }
+      }
+      else
+      {
+         map->setStyleUrl(qUrl.toString());
       }
    }
 }

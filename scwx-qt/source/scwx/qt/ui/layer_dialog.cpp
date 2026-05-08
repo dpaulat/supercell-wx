@@ -5,6 +5,8 @@
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <boost/signals2/connection.hpp>
+
 #include <QPushButton>
 #include <QSortFilterProxyModel>
 
@@ -32,6 +34,9 @@ public:
    void ConnectSignals();
    void UpdateMapDisplayColumns();
    void UpdateMoveButtonsEnabled();
+
+   boost::signals2::scoped_connection gridWidthSettingsConnection_ {};
+   boost::signals2::scoped_connection gridHeightSettingsConnection_ {};
 
    std::vector<int>              GetSelectedRows() const;
    std::vector<std::vector<int>> GetContiguousRows() const;
@@ -81,6 +86,11 @@ LayerDialog::~LayerDialog()
    delete ui;
 }
 
+void LayerDialog::RefreshMapDisplayColumns()
+{
+   p->UpdateMapDisplayColumns();
+}
+
 void LayerDialogImpl::UpdateMapDisplayColumns()
 {
    auto&        generalSettings = settings::GeneralSettings::Instance();
@@ -120,6 +130,14 @@ void LayerDialogImpl::ConnectSignals()
                     [this](const QItemSelection& /* selected */,
                            const QItemSelection& /* deselected */)
                     { UpdateMoveButtonsEnabled(); });
+
+   auto& generalSettings = settings::GeneralSettings::Instance();
+   gridWidthSettingsConnection_ =
+      generalSettings.grid_width().changed_signal().connect(
+         [this](const auto& /*event*/) { UpdateMapDisplayColumns(); });
+   gridHeightSettingsConnection_ =
+      generalSettings.grid_height().changed_signal().connect(
+         [this](const auto& /*event*/) { UpdateMapDisplayColumns(); });
 
    QObject::connect(layerModel_.get(),
                     &QAbstractItemModel::rowsMoved,

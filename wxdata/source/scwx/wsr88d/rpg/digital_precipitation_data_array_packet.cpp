@@ -57,7 +57,7 @@ DigitalPrecipitationDataArrayPacket::~DigitalPrecipitationDataArrayPacket() =
 DigitalPrecipitationDataArrayPacket::DigitalPrecipitationDataArrayPacket(
    DigitalPrecipitationDataArrayPacket&&) noexcept = default;
 DigitalPrecipitationDataArrayPacket&
-DigitalPrecipitationDataArrayPacket::operator      =(
+DigitalPrecipitationDataArrayPacket::operator=(
    DigitalPrecipitationDataArrayPacket&&) noexcept = default;
 
 uint16_t DigitalPrecipitationDataArrayPacket::packet_code() const

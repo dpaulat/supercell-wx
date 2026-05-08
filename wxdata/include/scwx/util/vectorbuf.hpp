@@ -14,7 +14,7 @@ public:
    vectorbuf(std::vector<char>& v);
    ~vectorbuf() = default;
 
-   vectorbuf(const vectorbuf&) = delete;
+   vectorbuf(const vectorbuf&)            = delete;
    vectorbuf& operator=(const vectorbuf&) = delete;
 
    void update_read_pointers(size_t size);

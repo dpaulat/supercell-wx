@@ -50,7 +50,7 @@ PointFeatureSymbolPacket::PointFeatureSymbolPacket() :
 PointFeatureSymbolPacket::~PointFeatureSymbolPacket() = default;
 
 PointFeatureSymbolPacket::PointFeatureSymbolPacket(
-   PointFeatureSymbolPacket&&) noexcept                     = default;
+   PointFeatureSymbolPacket&&) noexcept = default;
 PointFeatureSymbolPacket& PointFeatureSymbolPacket::operator=(
    PointFeatureSymbolPacket&&) noexcept = default;
 

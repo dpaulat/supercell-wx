@@ -12,6 +12,7 @@ namespace scwx::qt::map
 static const std::unordered_map<MapProvider, std::string> mapProviderName_ {
    {MapProvider::Mapbox, "Mapbox"},
    {MapProvider::MapTiler, "MapTiler"},
+   {MapProvider::OpenFreeMap, "OpenFreeMap"},
    {MapProvider::Unknown, "?"}};
 
 // Draw below tunnels, ferries and roads
@@ -179,6 +180,21 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
           {.name_ {"Winter"},
            .url_ {"https://api.maptiler.com/maps/winter-v2/style.json"},
            .drawBelow_ {"aeroway_runway", "Aeroway"}}}}},
+   {MapProvider::OpenFreeMap,
+    MapProviderInfo {
+       .mapProvider_ = MapProvider::OpenFreeMap,
+       .cacheDbName_ = {"openfreemap-cache.db"},
+       .providerTemplate_ =
+          QMapLibre::Settings::ProviderTemplate::MapTilerProvider,
+       .mapStyles_ {{.name_ {"Liberty"},
+                     .url_ {"https://tiles.openfreemap.org/styles/liberty"},
+                     .drawBelow_ {"aeroway_runway"}},
+                    {.name_ {"Positron"},
+                     .url_ {"https://tiles.openfreemap.org/styles/positron"},
+                     .drawBelow_ {"building"}},
+                    {.name_ {"Bright"},
+                     .url_ {"https://tiles.openfreemap.org/styles/bright"},
+                     .drawBelow_ {"building"}}}}},
    {MapProvider::Unknown, MapProviderInfo {}}};
 
 bool MapStyle::IsValid() const
@@ -256,6 +272,10 @@ std::string GetMapProviderApiKey(MapProvider mapProvider)
    case MapProvider::MapTiler:
       apiKey =
          settings::GeneralSettings::Instance().maptiler_api_key().GetValue();
+      break;
+
+   case MapProvider::OpenFreeMap:
+      apiKey = "";
       break;
 
    default:

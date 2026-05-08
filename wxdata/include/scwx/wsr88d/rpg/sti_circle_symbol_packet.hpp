@@ -20,7 +20,7 @@ public:
    explicit StiCircleSymbolPacket();
    ~StiCircleSymbolPacket();
 
-   StiCircleSymbolPacket(const StiCircleSymbolPacket&) = delete;
+   StiCircleSymbolPacket(const StiCircleSymbolPacket&)            = delete;
    StiCircleSymbolPacket& operator=(const StiCircleSymbolPacket&) = delete;
 
    StiCircleSymbolPacket(StiCircleSymbolPacket&&) noexcept;

@@ -97,5 +97,6 @@
         <file>res/textures/images/location-marker.svg</file>
         <file>res/textures/images/mapbox-logo.svg</file>
         <file>res/textures/images/maptiler-logo.svg</file>
+        <file>res/textures/images/openfreemap-logo.jpg</file>
     </qresource>
 </RCC>

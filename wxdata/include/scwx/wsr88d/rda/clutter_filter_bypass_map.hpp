@@ -17,7 +17,7 @@ public:
    explicit ClutterFilterBypassMap();
    ~ClutterFilterBypassMap();
 
-   ClutterFilterBypassMap(const ClutterFilterBypassMap&) = delete;
+   ClutterFilterBypassMap(const ClutterFilterBypassMap&)            = delete;
    ClutterFilterBypassMap& operator=(const ClutterFilterBypassMap&) = delete;
 
    ClutterFilterBypassMap(ClutterFilterBypassMap&&) noexcept;

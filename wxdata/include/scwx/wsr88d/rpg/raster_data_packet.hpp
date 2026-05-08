@@ -20,7 +20,7 @@ public:
    explicit RasterDataPacket();
    ~RasterDataPacket();
 
-   RasterDataPacket(const RasterDataPacket&) = delete;
+   RasterDataPacket(const RasterDataPacket&)            = delete;
    RasterDataPacket& operator=(const RasterDataPacket&) = delete;
 
    RasterDataPacket(RasterDataPacket&&) noexcept;

@@ -40,7 +40,7 @@ bool GnomonicAreaContainsCenter(geos::geom::CoordinateSequence sequence)
    {
       return false;
    }
-   bool areaContainsPoint = false;
+   bool                     areaContainsPoint = false;
    geos::geom::CoordinateXY zero {};
    // If the sequence is not a ring, add the first point again for closure
    if (!sequence.isRing())
@@ -118,12 +118,6 @@ bool AreaContainsPoint(const std::vector<common::Coordinate>& area,
 
    return areaContainsPoint;
 }
-
-
-
-
-
-
 
 units::angle::degrees<double>
 GetAngle(double lat1, double lon1, double lat2, double lon2)
@@ -244,7 +238,7 @@ GetDistanceAreaPoint(const std::vector<common::Coordinate>& area,
    if (useCentroid)
    {
       common::Coordinate centroid = common::GetCentroid(area);
-      distance = GetDistance(point.latitude_,
+      distance                    = GetDistance(point.latitude_,
                              point.longitude_,
                              centroid.latitude_,
                              centroid.longitude_);
@@ -274,11 +268,8 @@ GetDistanceAreaPoint(const std::vector<common::Coordinate>& area,
                        closestLat,
                        closestLon);
 
-      distance = GetDistance(point.latitude_,
-                             point.longitude_,
-                             closestLat,
-                             closestLon);
-
+      distance =
+         GetDistance(point.latitude_, point.longitude_, closestLat, closestLon);
    }
    return distance;
 }
@@ -287,7 +278,7 @@ bool AreaInRangeOfPoint(const std::vector<common::Coordinate>& area,
                         const common::Coordinate&              point,
                         const units::length::meters<double>    distance)
 {
-    return GetDistanceAreaPoint(area, point) <= distance;
+   return GetDistanceAreaPoint(area, point) <= distance;
 }
 
 units::length::meters<double>

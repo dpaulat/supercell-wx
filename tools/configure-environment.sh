@@ -53,6 +53,7 @@ if [[ "$(uname)" == "Darwin" ]]; then
         "scwx-macos_clang-19_armv8"
         "scwx-macos_clang-20_armv8"
         "scwx-macos_clang-21_armv8"
+        "scwx-macos_clang-22_armv8"
     )
 else
     # Linux profiles
@@ -79,6 +80,8 @@ else
         "scwx-linux_gcc-14_armv8"
         "scwx-linux_gcc-15"
         "scwx-linux_gcc-15_armv8"
+        "scwx-linux_gcc-16"
+        "scwx-linux_gcc-16_armv8"
     )
 fi
 
