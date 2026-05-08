@@ -31,11 +31,13 @@ enum class Level2Product
    DifferentialPhase,
    CorrelationCoefficient,
    ClutterFilterPowerRemoved,
+   HydrometeorClassification,
+   TornadoDebrisSignature,
    Unknown
 };
 typedef util::Iterator<Level2Product,
                        Level2Product::Reflectivity,
-                       Level2Product::ClutterFilterPowerRemoved>
+                       Level2Product::TornadoDebrisSignature>
    Level2ProductIterator;
 
 enum class Level3ProductCategory

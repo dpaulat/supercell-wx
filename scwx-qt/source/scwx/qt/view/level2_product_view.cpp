@@ -1,4 +1,5 @@
 #include <scwx/qt/view/level2_product_view.hpp>
+#include <scwx/wsr88d/dual_pol_interpreter.hpp>
 #include <scwx/qt/settings/unit_settings.hpp>
 #include <scwx/qt/types/unit_types.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
@@ -499,6 +500,12 @@ void Level2ProductView::Impl::SetProduct(common::Level2Product product)
    {
       dataBlockType_ = it->second;
    }
+   else if (product == common::Level2Product::HydrometeorClassification ||
+            product == common::Level2Product::TornadoDebrisSignature)
+   {
+      // Default to CC for HCA/TDS to ensure we get a dual-pol scan
+      dataBlockType_ = wsr88d::rda::DataBlockType::MomentRho;
+   }
    else
    {
       logger_->warn("Unknown product: \"{}\"", common::GetLevel2Name(product));
@@ -528,6 +535,13 @@ void Level2ProductView::UpdateColorTableLut()
 
    float offset = p->momentDataBlock0_->offset();
    float scale  = p->momentDataBlock0_->scale();
+
+   if (p->product_ == common::Level2Product::HydrometeorClassification ||
+       p->product_ == common::Level2Product::TornadoDebrisSignature)
+   {
+      offset = 0.0f;
+      scale  = 1.0f;
+   }
 
    const std::optional<float> threshold = color_table_threshold();
 
@@ -625,11 +639,15 @@ void Level2ProductView::ComputeSweep()
       return;
    }
 
-   std::scoped_lock sweepLock(sweep_mutex());
-
+   std::scoped_lock                              sweepLock(sweep_mutex());
    std::shared_ptr<manager::RadarProductManager> radarProductManager =
       radar_product_manager();
-   const bool smoothingEnabled          = smoothing_enabled();
+   const bool isHca =
+      p->product_ == common::Level2Product::HydrometeorClassification;
+   const bool isTds =
+      p->product_ == common::Level2Product::TornadoDebrisSignature;
+
+   bool smoothingEnabled = smoothing_enabled() && !isHca && !isTds;
    p->showSmoothedRangeFolding_         = show_smoothed_range_folding();
    const bool& showSmoothedRangeFolding = p->showSmoothedRangeFolding_;
 
@@ -691,7 +709,13 @@ void Level2ProductView::ComputeSweep()
 
    const std::vector<float>& coordinates = p->coordinates_;
 
-   auto& radarData0     = (*radarData)[0];
+   if (radarData->empty())
+   {
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
+      return;
+   }
+
+   auto& radarData0     = radarData->cbegin()->second;
    auto  momentData0    = radarData0->moment_data_block(p->dataBlockType_);
    p->elevationScan_    = radarData;
    p->momentDataBlock0_ = momentData0;
@@ -761,7 +785,9 @@ void Level2ProductView::ComputeSweep()
 
    // Compute threshold at which to display an individual bin (minimum of 2)
    const std::uint16_t snrThreshold =
-      std::max<std::int16_t>(2, momentData0->snr_threshold_raw());
+      (isHca || isTds) ?
+         2 :
+         std::max<std::int16_t>(2, momentData0->snr_threshold_raw());
 
    // Start radial is always 0, as coordinates are calculated for each sweep
    constexpr std::uint16_t startRadial = 0u;
@@ -778,8 +804,36 @@ void Level2ProductView::ComputeSweep()
       const auto&   radialPair = *it;
       std::uint16_t radial     = radialPair.first;
       const auto&   radialData = radialPair.second;
+
+      if (radialData == nullptr)
+      {
+         continue;
+      }
+
       const std::shared_ptr<wsr88d::rda::GenericRadarData::MomentDataBlock>
          momentData = radialData->moment_data_block(p->dataBlockType_);
+
+      if (momentData == nullptr)
+      {
+         continue;
+      }
+
+      std::shared_ptr<wsr88d::rda::GenericRadarData::MomentDataBlock>
+         momentDataZ = nullptr;
+      std::shared_ptr<wsr88d::rda::GenericRadarData::MomentDataBlock>
+         momentDataZdr = nullptr;
+      std::shared_ptr<wsr88d::rda::GenericRadarData::MomentDataBlock>
+         momentDataCc = nullptr;
+
+      if (isHca || isTds)
+      {
+         momentDataZ = radialData->moment_data_block(
+            wsr88d::rda::DataBlockType::MomentRef);
+         momentDataZdr = radialData->moment_data_block(
+            wsr88d::rda::DataBlockType::MomentZdr);
+         momentDataCc = radialData->moment_data_block(
+            wsr88d::rda::DataBlockType::MomentRho);
+      }
 
       if (momentData0->data_word_size() != momentData->data_word_size())
       {
@@ -837,9 +891,13 @@ void Level2ProductView::ComputeSweep()
 
       if (cfpMoments.size() > 0)
       {
-         cfpMomentsArray = reinterpret_cast<const std::uint8_t*>(
-            radialData->moment_data_block(wsr88d::rda::DataBlockType::MomentCfp)
-               ->data_moments());
+         auto cfpBlock = radialData->moment_data_block(
+            wsr88d::rda::DataBlockType::MomentCfp);
+         if (cfpBlock != nullptr)
+         {
+            cfpMomentsArray =
+               reinterpret_cast<const std::uint8_t*>(cfpBlock->data_moments());
+         }
       }
 
       std::shared_ptr<wsr88d::rda::GenericRadarData::MomentDataBlock>
@@ -856,29 +914,37 @@ void Level2ProductView::ComputeSweep()
 
          const auto& nextRadialPair = *(nextIt);
          const auto& nextRadialData = nextRadialPair.second;
-         nextMomentData = nextRadialData->moment_data_block(p->dataBlockType_);
+         if (nextRadialData != nullptr)
+         {
+            nextMomentData =
+               nextRadialData->moment_data_block(p->dataBlockType_);
+         }
 
-         if (momentData->data_word_size() != nextMomentData->data_word_size())
+         if (nextMomentData != nullptr &&
+             momentData->data_word_size() != nextMomentData->data_word_size())
          {
             // Data should be consistent between radials
             logger_->warn("Invalid data moment size");
             continue;
          }
 
-         if (nextMomentData->data_word_size() == kDataWordSize8_)
+         if (nextMomentData != nullptr)
          {
-            nextDataMomentsArray8 = reinterpret_cast<const std::uint8_t*>(
-               nextMomentData->data_moments());
-         }
-         else
-         {
-            nextDataMomentsArray16 = reinterpret_cast<const std::uint16_t*>(
-               nextMomentData->data_moments());
-         }
+            if (nextMomentData->data_word_size() == kDataWordSize8_)
+            {
+               nextDataMomentsArray8 = reinterpret_cast<const std::uint8_t*>(
+                  nextMomentData->data_moments());
+            }
+            else
+            {
+               nextDataMomentsArray16 = reinterpret_cast<const std::uint16_t*>(
+                  nextMomentData->data_moments());
+            }
 
-         numberOfNextDataMomentGates = std::min<std::int32_t>(
-            nextMomentData->number_of_data_moment_gates(),
-            static_cast<std::int32_t>(gates));
+            numberOfNextDataMomentGates = std::min<std::int32_t>(
+               nextMomentData->number_of_data_moment_gates(),
+               static_cast<std::int32_t>(gates));
+         }
       }
 
       for (std::int32_t gate = startGate, i = 0; gate + gateSize <= endGate;
@@ -895,20 +961,74 @@ void Level2ProductView::ComputeSweep()
          // Allow pointer arithmetic here, as bounds have already been checked
          // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
+         std::uint16_t classificationValue = 0;
+         if (isHca || isTds)
+         {
+            auto getDataValue =
+               [](const std::shared_ptr<
+                     wsr88d::rda::GenericRadarData::MomentDataBlock>& block,
+                  int i) -> float
+            {
+               if (block == nullptr || i < 0 ||
+                   i >= block->number_of_data_moment_gates())
+               {
+                  return NAN;
+               }
+               float rawValue =
+                  (block->data_word_size() == 8) ?
+                     static_cast<const uint8_t*>(block->data_moments())[i] :
+                     static_cast<const uint16_t*>(block->data_moments())[i];
+               if (rawValue < 2)
+               {
+                  return NAN;
+               }
+               return (rawValue - block->offset()) / block->scale();
+            };
+
+            float z   = getDataValue(momentDataZ, i);
+            float zdr = getDataValue(momentDataZdr, i);
+            float cc  = getDataValue(momentDataCc, i);
+
+            if (isHca)
+            {
+               classificationValue = wsr88d::GetDataLevelCodeIndex(
+                  wsr88d::DualPolInterpreter::ClassifyHydrometeor(z, zdr, cc));
+            }
+            else
+            {
+               float tds =
+                  wsr88d::DualPolInterpreter::DetectTornadoDebris(z, zdr, cc);
+               classificationValue =
+                  (tds > 0.0f) ?
+                     wsr88d::GetDataLevelCodeIndex(
+                        wsr88d::DataLevelCode::TornadoDebrisSignature) :
+                     0;
+            }
+         }
+
          // Store data moment value
          if (dataMomentsArray8 != nullptr)
          {
             if (!smoothingEnabled)
             {
-               const std::uint8_t& dataValue = dataMomentsArray8[i];
-               if (dataValue < snrThreshold && dataValue != RANGE_FOLDED)
+               std::uint8_t dataValue =
+                  (isHca || isTds) ?
+                     static_cast<std::uint8_t>(classificationValue) :
+                     dataMomentsArray8[i];
+
+               if (dataValue < snrThreshold && dataValue != RANGE_FOLDED &&
+                   !isHca && !isTds)
+               {
+                  continue;
+               }
+               if ((isHca || isTds) && dataValue == 0)
                {
                   continue;
                }
 
                for (std::size_t m = 0; m < vertexCount; m++)
                {
-                  dataMoments8[mIndex++] = dataValue;
+                  dataMoments8[mIndex++] = p->RemapDataMoment(dataValue);
 
                   if (cfpMomentsArray != nullptr)
                   {
@@ -919,7 +1039,8 @@ void Level2ProductView::ComputeSweep()
             else if (gate > 0)
             {
                // Validate indices are all in range
-               if (i + 1 >= numberOfDataMomentGates ||
+               if (nextDataMomentsArray8 == nullptr ||
+                   i + 1 >= numberOfDataMomentGates ||
                    i + 1 >= numberOfNextDataMomentGates)
                {
                   continue;
@@ -946,12 +1067,23 @@ void Level2ProductView::ComputeSweep()
                }
 
                // The order must match the store vertices section below
-               dataMoments8[mIndex++] = p->RemapDataMoment(dm1);
-               dataMoments8[mIndex++] = p->RemapDataMoment(dm2);
-               dataMoments8[mIndex++] = p->RemapDataMoment(dm4);
-               dataMoments8[mIndex++] = p->RemapDataMoment(dm1);
-               dataMoments8[mIndex++] = p->RemapDataMoment(dm3);
-               dataMoments8[mIndex++] = p->RemapDataMoment(dm4);
+               if (isHca || isTds)
+               {
+                  for (std::size_t m = 0; m < vertexCount; m++)
+                  {
+                     dataMoments8[mIndex++] = p->RemapDataMoment(
+                        static_cast<std::uint8_t>(classificationValue));
+                  }
+               }
+               else
+               {
+                  dataMoments8[mIndex++] = p->RemapDataMoment(dm1);
+                  dataMoments8[mIndex++] = p->RemapDataMoment(dm2);
+                  dataMoments8[mIndex++] = p->RemapDataMoment(dm4);
+                  dataMoments8[mIndex++] = p->RemapDataMoment(dm1);
+                  dataMoments8[mIndex++] = p->RemapDataMoment(dm3);
+                  dataMoments8[mIndex++] = p->RemapDataMoment(dm4);
+               }
 
                // cfpMoments is unused, so not populated here
             }
@@ -968,21 +1100,31 @@ void Level2ProductView::ComputeSweep()
          {
             if (!smoothingEnabled)
             {
-               const std::uint16_t& dataValue = dataMomentsArray16[i];
-               if (dataValue < snrThreshold && dataValue != RANGE_FOLDED)
+               std::uint16_t dataValue16 = (isHca || isTds) ?
+                                              classificationValue :
+                                              dataMomentsArray16[i];
+               if (!isHca && !isTds)
+               {
+                  if (dataValue16 < snrThreshold && dataValue16 != RANGE_FOLDED)
+                  {
+                     continue;
+                  }
+               }
+               else if (classificationValue == 0)
                {
                   continue;
                }
 
                for (std::size_t m = 0; m < vertexCount; m++)
                {
-                  dataMoments16[mIndex++] = dataValue;
+                  dataMoments16[mIndex++] = dataValue16;
                }
             }
             else if (gate > 0)
             {
                // Validate indices are all in range
-               if (i + 1 >= numberOfDataMomentGates ||
+               if (nextDataMomentsArray16 == nullptr ||
+                   i + 1 >= numberOfDataMomentGates ||
                    i + 1 >= numberOfNextDataMomentGates)
                {
                   continue;
@@ -1188,8 +1330,18 @@ void Level2ProductView::Impl::ComputeCoordinates(
    // Calculate azimuth coordinates
    timer.start();
 
-   auto& radarData0  = (*radarData)[0];
+   if (radarData->empty())
+   {
+      return;
+   }
+
+   auto& radarData0  = radarData->cbegin()->second;
    auto  momentData0 = radarData0->moment_data_block(dataBlockType_);
+
+   if (momentData0 == nullptr)
+   {
+      return;
+   }
 
    std::uint16_t numRadials =
       static_cast<std::uint16_t>(radarData->crbegin()->first + 1);
@@ -1555,22 +1707,67 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
    // Compute threshold at which to display an individual bin (minimum of 2)
    const std::uint16_t snrThreshold =
       std::max<std::int16_t>(2, momentData->snr_threshold_raw());
+   bool isHca = p->product_ == common::Level2Product::HydrometeorClassification;
+   bool isTds = p->product_ == common::Level2Product::TornadoDebrisSignature;
    std::uint16_t level;
 
-   if (momentData->data_word_size() == 8)
+   if (isHca || isTds)
    {
-      level =
-         reinterpret_cast<const uint8_t*>(momentData->data_moments())[gate];
+      auto getDataValue = [&](wsr88d::rda::DataBlockType type) -> float
+      {
+         auto block = (*radarData)[*radial]->moment_data_block(type);
+         if (block == nullptr || gate < 0 ||
+             gate >= block->number_of_data_moment_gates())
+         {
+            return NAN;
+         }
+         float rawValue =
+            (block->data_word_size() == 8) ?
+               static_cast<const uint8_t*>(block->data_moments())[gate] :
+               static_cast<const uint16_t*>(block->data_moments())[gate];
+         if (rawValue < 2)
+         {
+            return NAN;
+         }
+         return (rawValue - block->offset()) / block->scale();
+      };
+
+      float z   = getDataValue(wsr88d::rda::DataBlockType::MomentRef);
+      float zdr = getDataValue(wsr88d::rda::DataBlockType::MomentZdr);
+      float cc  = getDataValue(wsr88d::rda::DataBlockType::MomentRho);
+
+      if (isHca)
+      {
+         level = wsr88d::GetDataLevelCodeIndex(
+            wsr88d::DualPolInterpreter::ClassifyHydrometeor(z, zdr, cc));
+      }
+      else
+      {
+         float tds =
+            wsr88d::DualPolInterpreter::DetectTornadoDebris(z, zdr, cc);
+         level = (tds > 0.0f) ?
+                    wsr88d::GetDataLevelCodeIndex(
+                       wsr88d::DataLevelCode::TornadoDebrisSignature) :
+                    0;
+      }
    }
    else
    {
-      level =
-         reinterpret_cast<const uint16_t*>(momentData->data_moments())[gate];
-   }
+      if (momentData->data_word_size() == 8)
+      {
+         level =
+            reinterpret_cast<const uint8_t*>(momentData->data_moments())[gate];
+      }
+      else
+      {
+         level =
+            reinterpret_cast<const uint16_t*>(momentData->data_moments())[gate];
+      }
 
-   if (level < snrThreshold && level != RANGE_FOLDED)
-   {
-      return std::nullopt;
+      if (level < snrThreshold && level != RANGE_FOLDED)
+      {
+         return std::nullopt;
+      }
    }
 
    return level;
@@ -1592,6 +1789,11 @@ Level2ProductView::GetDataLevelCode(std::uint16_t level) const
          return wsr88d::DataLevelCode::RangeFolded;
       }
       break;
+
+   case common::Level2Product::HydrometeorClassification:
+   case common::Level2Product::TornadoDebrisSignature:
+      return wsr88d::GetDataLevelCodeFromIndex(
+         static_cast<std::uint8_t>(level));
 
    case common::Level2Product::ClutterFilterPowerRemoved:
       switch (level)
@@ -1640,6 +1842,10 @@ std::optional<float> Level2ProductView::GetDataValue(std::uint16_t level) const
    case common::Level2Product::ClutterFilterPowerRemoved:
       threshold = 8;
       break;
+
+   case common::Level2Product::HydrometeorClassification:
+   case common::Level2Product::TornadoDebrisSignature:
+      return std::nullopt;
 
    default:
       break;

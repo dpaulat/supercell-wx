@@ -77,6 +77,7 @@
         <file>res/palettes/wct/SRV.pal</file>
         <file>res/palettes/wct/STP.pal</file>
         <file>res/palettes/wct/SW.pal</file>
+        <file>res/palettes/wct/TDS.pal</file>
         <file>res/palettes/wct/VIL.pal</file>
         <file>res/palettes/wct/ZDR.pal</file>
         <file alias="res/qt6ct_colors/airy.conf">../external/qt6ct/colors/airy.conf</file>

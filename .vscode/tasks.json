@@ -55,14 +55,14 @@
 				"Release"
 			],
 			"options": {
-				"cwd": "${workspaceFolder}/build/windows-vs2022-x64-ninja-release",
+				"cwd": "${workspaceFolder}/build/windows-vs2026-x64-ninja-release",
 				"env": {
 					"PATH": "${env:PATH};C:\\Program Files (x86)\\WiX Toolset v3.14\\bin"
 				}
 			},
 			"group": {
 				"kind": "build",
-				"isDefault": false
+				"isDefault": true
 			},
 			"detail": "Build MSI installer using CPack and WiX v3",
 			"problemMatcher": []

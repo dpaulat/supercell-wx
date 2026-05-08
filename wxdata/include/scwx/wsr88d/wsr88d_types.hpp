@@ -36,6 +36,7 @@ enum class DataLevelCode
    SmallHail,
    LargeHail,
    GiantHail,
+   TornadoDebrisSignature,
    UnknownClassification,
 
    // Rainfall Rate Classification
@@ -61,6 +62,8 @@ enum class DataLevelCode
 
 const std::string& GetDataLevelCodeName(DataLevelCode dataLevelCode);
 const std::string& GetDataLevelCodeShortName(DataLevelCode dataLevelCode);
+std::uint8_t       GetDataLevelCodeIndex(DataLevelCode dataLevelCode);
+DataLevelCode      GetDataLevelCodeFromIndex(std::uint8_t index);
 
 } // namespace wsr88d
 } // namespace scwx

@@ -136,12 +136,14 @@ set(SRC_UTIL source/scwx/util/digest.cpp
              source/scwx/util/threads.cpp
              source/scwx/util/vectorbuf.cpp)
 set(HDR_WSR88D include/scwx/wsr88d/ar2v_file.hpp
-               include/scwx/wsr88d/level3_file.hpp
+                include/scwx/wsr88d/dual_pol_interpreter.hpp
+                include/scwx/wsr88d/level3_file.hpp
                include/scwx/wsr88d/nexrad_file.hpp
                include/scwx/wsr88d/nexrad_file_factory.hpp
                include/scwx/wsr88d/wsr88d_types.hpp)
 set(SRC_WSR88D source/scwx/wsr88d/ar2v_file.cpp
-               source/scwx/wsr88d/level3_file.cpp
+                source/scwx/wsr88d/dual_pol_interpreter.cpp
+                source/scwx/wsr88d/level3_file.cpp
                source/scwx/wsr88d/nexrad_file.cpp
                source/scwx/wsr88d/nexrad_file_factory.cpp
                source/scwx/wsr88d/wsr88d_types.cpp)

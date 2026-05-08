@@ -1,0 +1,5 @@
+; TDS Palette for Supercell Wx
+; 0 = None (Handled by ComputeSweep filter)
+; 10 = Detected
+
+SolidColor:	10	255	 20	147 ; DeepPink

@@ -35,6 +35,7 @@ static const std::unordered_map<DataLevelCode, std::string> dataLevelCodeName_ {
    {DataLevelCode::SmallHail, "Small Hail"},
    {DataLevelCode::LargeHail, "Large Hail"},
    {DataLevelCode::GiantHail, "Giant Hail"},
+   {DataLevelCode::TornadoDebrisSignature, "Tornado Debris Signature"},
    {DataLevelCode::UnknownClassification, "Unknown Classification"},
 
    // Rainfall Rate Classification
@@ -85,6 +86,7 @@ static const std::unordered_map<DataLevelCode, std::string>
       {DataLevelCode::SmallHail, "HA"},
       {DataLevelCode::LargeHail, "LH"},
       {DataLevelCode::GiantHail, "GH"},
+      {DataLevelCode::TornadoDebrisSignature, "TDS"},
       {DataLevelCode::UnknownClassification, "UK"},
 
       // Rainfall Rate Classification
@@ -107,6 +109,23 @@ static const std::unordered_map<DataLevelCode, std::string>
 
       {DataLevelCode::Unknown, "?"}};
 
+static const std::unordered_map<DataLevelCode, std::uint8_t>
+   dataLevelCodeIndex_ {{DataLevelCode::Biological, 10},
+                        {DataLevelCode::AnomalousPropagationGroundClutter, 20},
+                        {DataLevelCode::IceCrystals, 30},
+                        {DataLevelCode::DrySnow, 40},
+                        {DataLevelCode::WetSnow, 50},
+                        {DataLevelCode::LightAndOrModerateRain, 60},
+                        {DataLevelCode::HeavyRain, 70},
+                        {DataLevelCode::BigDrops, 80},
+                        {DataLevelCode::Graupel, 90},
+                        {DataLevelCode::SmallHail, 100},
+                        {DataLevelCode::LargeHail, 110},
+                        {DataLevelCode::GiantHail, 120},
+                        {DataLevelCode::TornadoDebrisSignature, 130},
+                        {DataLevelCode::UnknownClassification, 140},
+                        {DataLevelCode::RangeFolded, 150}};
+
 const std::string& GetDataLevelCodeName(DataLevelCode dataLevelCode)
 {
    return dataLevelCodeName_.at(dataLevelCode);
@@ -115,6 +134,28 @@ const std::string& GetDataLevelCodeName(DataLevelCode dataLevelCode)
 const std::string& GetDataLevelCodeShortName(DataLevelCode dataLevelCode)
 {
    return dataLevelCodeShortName_.at(dataLevelCode);
+}
+
+std::uint8_t GetDataLevelCodeIndex(DataLevelCode dataLevelCode)
+{
+   auto it = dataLevelCodeIndex_.find(dataLevelCode);
+   if (it != dataLevelCodeIndex_.end())
+   {
+      return it->second;
+   }
+   return 0;
+}
+
+DataLevelCode GetDataLevelCodeFromIndex(std::uint8_t index)
+{
+   for (auto const& [code, idx] : dataLevelCodeIndex_)
+   {
+      if (idx == index)
+      {
+         return code;
+      }
+   }
+   return DataLevelCode::Unknown;
 }
 
 } // namespace wsr88d
