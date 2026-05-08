@@ -693,7 +693,7 @@ public:
 
       if (floating)
       {
-         const QPoint globalPosition = self_->mapToGlobal(QPoint {0, 0});
+         const QPoint   globalPosition = self_->mapToGlobal(QPoint {0, 0});
          QWidget* const stableParent =
             !overlayParent_.isNull() ? overlayParent_.data() : nullptr;
          QWidget* const hostWindow =
@@ -740,7 +740,7 @@ public:
          }
          else
          {
-            floatPos = globalPosition;
+            floatPos                = globalPosition;
             floatingPositionGlobal_ = true;
          }
          floatingPosition_ = floatPos;
@@ -1371,9 +1371,9 @@ void MapAnnotationDockWidget::AttachToMap(QWidget* mapWidget)
    {
       if (!p->floating_)
       {
-         QWidget* const owner =
-            !p->overlayParent_.isNull() ? p->overlayParent_.data() :
-                                          parentWidget();
+         QWidget* const owner = !p->overlayParent_.isNull() ?
+                                   p->overlayParent_.data() :
+                                   parentWidget();
          if (owner != nullptr && owner != this && parentWidget() != owner)
          {
             setParent(owner, Qt::Widget);

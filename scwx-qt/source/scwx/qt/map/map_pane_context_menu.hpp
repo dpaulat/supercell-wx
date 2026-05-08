@@ -48,7 +48,7 @@ struct MapPaneContextMenuConfig
    std::function<void(QMenu& menu, MapWidget* map)> append_radar_submenus;
    /// With \p set_draw_toolbar_open and nonempty \p text_draw: if set, Draw row
    /// is checkable; otherwise Draw only opens on click.
-   std::function<bool(std::size_t map_index)> is_draw_toolbar_open;
+   std::function<bool(std::size_t map_index)>            is_draw_toolbar_open;
    std::function<void(std::size_t map_index, bool open)> set_draw_toolbar_open;
 };
 

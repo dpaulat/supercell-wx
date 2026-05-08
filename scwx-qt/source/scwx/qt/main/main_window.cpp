@@ -1189,12 +1189,12 @@ void MainWindowImpl::ConnectMapAnnotationLayerReady(map::MapWidget* mw)
    {
       return;
    }
-   static_cast<void>(QObject::connect(
-      mw,
-      &map::MapWidget::MapAnnotationLayerReady,
-      this,
-      &MainWindowImpl::OnMapAnnotationLayerReady,
-      Qt::UniqueConnection));
+   static_cast<void>(
+      QObject::connect(mw,
+                       &map::MapWidget::MapAnnotationLayerReady,
+                       this,
+                       &MainWindowImpl::OnMapAnnotationLayerReady,
+                       Qt::UniqueConnection));
 }
 
 void MainWindowImpl::OnMapAnnotationLayerReady()
@@ -1206,7 +1206,8 @@ void MainWindowImpl::OnMapAnnotationLayerReady()
    }
    if (mw == activeMap_)
    {
-      mapAnnotationDock_->BindToLayer(activeMap_->map_annotation_layer(), false);
+      mapAnnotationDock_->BindToLayer(activeMap_->map_annotation_layer(),
+                                      false);
    }
    else
    {
@@ -3494,16 +3495,15 @@ void MainWindowImpl::OnMapPaneContextMenuRequested(const QPoint& globalPos)
    cfg.tooltip_reset_layout_when_popped = mainWindow_->tr(
       "Use Dock on a popped-out map, or close this menu "
       "and reset layout from the main window.");
-   cfg.text_draw                   = mainWindow_->tr("&Draw");
-   cfg.is_draw_toolbar_open        = [this](std::size_t i)
+   cfg.text_draw            = mainWindow_->tr("&Draw");
+   cfg.is_draw_toolbar_open = [this](std::size_t i)
    {
       if (mapAnnotationDock_.isNull() || i >= maps_.size() ||
           maps_.at(i) == nullptr)
       {
          return false;
       }
-      return maps_.at(i) == activeMap_ &&
-             mapAnnotationDock_->PanelExpanded();
+      return maps_.at(i) == activeMap_ && mapAnnotationDock_->PanelExpanded();
    };
    cfg.set_draw_toolbar_open = [this](std::size_t i, bool open)
    {
