@@ -1,12 +1,24 @@
 #include "collapsible_group.hpp"
 #include "ui_collapsible_group.h"
 
+#include <QEvent>
+#include <QIcon>
+#include <QPalette>
+#include <QString>
+#include <QStyle>
+
 namespace scwx
 {
 namespace qt
 {
 namespace ui
 {
+
+static const QString kTitleButtonStyleSheet_ {"text-align: left;"};
+static const QString kCollapsedIcon_ {
+   ":/res/icons/font-awesome-6/square-caret-right-regular.svg"};
+static const QString kExpandedIcon_ {
+   ":/res/icons/font-awesome-6/square-caret-down-regular.svg"};
 
 class CollapsibleGroupImpl
 {
@@ -15,18 +27,13 @@ public:
    ~CollapsibleGroupImpl() = default;
 
    void Initialize();
-
-   const QIcon kCollapsedIcon_ {
-      ":/res/icons/font-awesome-6/square-caret-right-regular.svg"};
-   const QIcon kExpandedIcon_ {
-      ":/res/icons/font-awesome-6/square-caret-down-regular.svg"};
-
-   const std::map<bool, const QIcon&> kIcon_ {{false, kCollapsedIcon_},
-                                              {true, kExpandedIcon_}};
+   void RefreshTitleButton();
+   void UpdateIcon();
 
    CollapsibleGroup* self_;
 
    bool expanded_ {true};
+   bool refreshingTitleButton_ {false};
 };
 
 CollapsibleGroup::CollapsibleGroup(QWidget* parent) :
@@ -65,6 +72,40 @@ void CollapsibleGroupImpl::Initialize()
    self_->SetExpanded(true);
 }
 
+void CollapsibleGroupImpl::UpdateIcon()
+{
+   self_->ui->titleButton->setIcon(
+      QIcon {expanded_ ? kExpandedIcon_ : kCollapsedIcon_});
+}
+
+void CollapsibleGroupImpl::RefreshTitleButton()
+{
+   if (refreshingTitleButton_)
+   {
+      return;
+   }
+
+   refreshingTitleButton_ = true;
+   auto* titleButton      = self_->ui->titleButton;
+
+   // Qt's stylesheet engine can keep palette-derived button colors after
+   // live theme changes, especially when the dock is floated/reparented.
+   titleButton->setPalette(QPalette {});
+   titleButton->setAttribute(Qt::WA_SetPalette, false);
+   titleButton->setStyleSheet(QString {});
+   titleButton->setStyleSheet(kTitleButtonStyleSheet_);
+
+   if (titleButton->style() != nullptr)
+   {
+      titleButton->style()->unpolish(titleButton);
+      titleButton->style()->polish(titleButton);
+   }
+
+   UpdateIcon();
+   titleButton->update();
+   refreshingTitleButton_ = false;
+}
+
 QLayout* CollapsibleGroup::GetContentsLayout()
 {
    return ui->contentsFrame->layout();
@@ -83,17 +124,36 @@ void CollapsibleGroup::SetTitle(const QString& title)
 void CollapsibleGroup::SetExpanded(bool expanded)
 {
    // Update icon
-   ui->titleButton->setIcon(p->kIcon_.at(expanded));
+   const bool stateChanged = p->expanded_ != expanded;
+   p->expanded_            = expanded;
+   p->RefreshTitleButton();
 
    // Update contents visibility
    ui->contentsFrame->setVisible(expanded);
 
    // Update internal state
-   if (p->expanded_ != expanded)
+   if (stateChanged)
    {
-      p->expanded_ = expanded;
-
       Q_EMIT StateChanged(expanded);
+   }
+}
+
+void CollapsibleGroup::changeEvent(QEvent* event)
+{
+   QFrame::changeEvent(event);
+
+   switch (event->type())
+   {
+   case QEvent::PaletteChange:
+   case QEvent::ApplicationPaletteChange:
+   case QEvent::StyleChange:
+   case QEvent::ParentChange:
+      // Reparent (e.g. radar toolbox dock floated) does not always emit
+      // palette/style changes; refresh button and caret for current theme.
+      p->RefreshTitleButton();
+      break;
+   default:
+      break;
    }
 }
 
