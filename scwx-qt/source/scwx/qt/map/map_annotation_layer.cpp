@@ -420,6 +420,11 @@ bool MapAnnotationLayer::ConsumesLeftDrag() const
    return p->visible_ && p->tool_ != MapAnnotationTool::None;
 }
 
+bool MapAnnotationLayer::IsActivelyDrawing() const
+{
+   return p->drawing_;
+}
+
 void MapAnnotationLayer::SetTool(MapAnnotationTool tool)
 {
    p->tool_ = tool;

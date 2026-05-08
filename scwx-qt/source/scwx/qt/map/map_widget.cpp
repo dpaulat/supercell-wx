@@ -19,6 +19,7 @@
 #include <scwx/qt/map/radar_site_layer.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
 #include <scwx/qt/model/layer_model.hpp>
+#include <scwx/qt/types/layer_types.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/map_settings.hpp>
 #include <scwx/qt/settings/palette_settings.hpp>
@@ -34,7 +35,9 @@
 #include <scwx/util/time.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <limits>
+#include <optional>
 #include <ranges>
 #include <set>
 #include <unordered_map>
@@ -57,6 +60,7 @@
 #include <QClipboard>
 #include <QColor>
 #include <QCursor>
+#include <QContextMenuEvent>
 #include <QDebug>
 #include <QFile>
 #include <QIcon>
@@ -67,7 +71,9 @@
 #include <QPinchGesture>
 #include <QPixmap>
 #include <QString>
+#include <QStyleHints>
 #include <QTextDocument>
+#include <QTimer>
 
 namespace scwx::qt::map
 {
@@ -133,6 +139,9 @@ static const std::string logPrefix_ = "scwx::qt::map::map_widget";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr double kDefaultZoom_ {7.0};
+static constexpr int    kMapPaneContextMenuDebounceMs {200};
+static constexpr double kDoubleClickZoomIn {2.0};
+static constexpr double kDoubleClickZoomOut {0.5};
 
 class MapWidgetImpl : public QObject
 {
@@ -183,8 +192,9 @@ public:
       context_->set_overlay_product_view(overlayProductView);
       context_->set_widget(widget);
 
-      // Initialize map data
-      SetRadarSite(generalSettings.default_radar_site().GetValue());
+      // Map data: default radar site is set from MapWidget ctor after
+      // std::make_unique finishes so MapWidget::p is valid (avoid callbacks
+      // that use the outer widget during p's initialization).
       smoothingEnabled_ = mapSettings.smoothing_enabled(id).GetValue();
 
       // Create ImGui Context
@@ -264,9 +274,21 @@ public:
    void UpdateAnnotationCursor();
    void UpdateMeasureLabels();
    void UpdateColorTable(const std::string& colorPalette);
+   void UpdateColorTable(
+      const std::string&                             colorPalette,
+      const std::shared_ptr<view::RadarProductView>& radarProductView);
    void UpdateLoadedStyle();
    bool UpdateStoredMapParameters();
    void CheckLevel3Availability();
+
+   void SyncStoredViewFromMap();
+   void RequestRepaint();
+   void CancelPaneContextMenuDebounce();
+   void GetMapViewParameters(double& latitude,
+                             double& longitude,
+                             double& zoom,
+                             double& bearing,
+                             double& pitch) const;
 
    common::Level2Product
    GetLevel2ProductOrDefault(const std::string& productName) const;
@@ -331,10 +353,22 @@ public:
 
    common::Level2Product selectedLevel2Product_;
 
-   bool            hasMouse_ {false};
-   bool            eraseCursorActive_ {false};
-   bool            isPainting_ {false};
-   bool            lastItemPicked_ {false};
+   bool hasMouse_ {false};
+   bool eraseCursorActive_ {false};
+   bool isPainting_ {false};
+   bool lastItemPicked_ {false};
+
+   // Right-button context menu: arm on press, show on release (debounced) if
+   // drag never exceeded startDragDistance. Debounce canceled on any new press;
+   // double-right and left+right chord skip menu. dragThresholdSq_ cached at
+   // press time so startDragDistance() is not queried on every move event.
+   bool     paneContextMenuArmed_ {false};
+   bool     paneContextMenuDragTooFar_ {false};
+   QPointF  paneContextMenuPressPos_ {};
+   qreal    paneContextMenuDragThresholdSq_ {0};
+   uint64_t paneContextMenuDebounce_ {0};
+   bool     suppressContextMenuOnNextRightRelease_ {false};
+
    QPointF         lastPos_ {};
    QPointF         lastGlobalPos_ {};
    std::size_t     currentStyleIndex_;
@@ -377,6 +411,9 @@ MapWidget::MapWidget(std::size_t                    id,
                      std::shared_ptr<gl::GlContext> glContext) :
     p(std::make_unique<MapWidgetImpl>(this, id, settings, std::move(glContext)))
 {
+   p->SetRadarSite(
+      settings::GeneralSettings::Instance().default_radar_site().GetValue());
+
    if (settings::GeneralSettings::Instance().anti_aliasing_enabled().GetValue())
    {
       QSurfaceFormat surfaceFormat = QSurfaceFormat::defaultFormat();
@@ -385,6 +422,11 @@ MapWidget::MapWidget(std::size_t                    id,
    }
 
    setFocusPolicy(Qt::StrongFocus);
+
+   // Avoid Qt dispatching a context menu during the right-button press; that
+   // would run a blocking QMenu in MainWindow and steal the right-drag
+   // sequence (e.g. rotate / prior pan-on-right workflows).
+   setContextMenuPolicy(Qt::NoContextMenu);
 
    grabGesture(Qt::GestureType::PinchGesture);
 
@@ -581,7 +623,7 @@ void MapWidgetImpl::HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat)
    switch (hotkey)
    {
    case types::Hotkey::AddLocationMarker:
-      if (hasMouse_)
+      if (hasMouse_ && map_ != nullptr)
       {
          auto coordinate = map_->coordinateForPixel(lastPos_);
 
@@ -598,7 +640,7 @@ void MapWidgetImpl::HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat)
       break;
 
    case types::Hotkey::CopyCursorCoordinates:
-      if (hasMouse_)
+      if (hasMouse_ && map_ != nullptr)
       {
          QClipboard* clipboard  = QGuiApplication::clipboard();
          auto        coordinate = map_->coordinateForPixel(lastPos_);
@@ -609,7 +651,7 @@ void MapWidgetImpl::HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat)
       break;
 
    case types::Hotkey::CopyMapCoordinates:
-      if (context_->settings().isActive_)
+      if (context_->settings().isActive_ && map_ != nullptr)
       {
          QClipboard* clipboard  = QGuiApplication::clipboard();
          auto        coordinate = map_->coordinate();
@@ -661,6 +703,11 @@ void MapWidgetImpl::HandleHotkeyUpdates()
    if (!context_->settings().isActive_)
    {
       // Don't attempt to handle a hotkey if this is not the active map
+      return;
+   }
+
+   if (map_ == nullptr)
+   {
       return;
    }
 
@@ -739,6 +786,11 @@ void MapWidgetImpl::HandleHotkeyUpdates()
 
 void MapWidgetImpl::HandlePinchGesture(QPinchGesture* gesture)
 {
+   if (map_ == nullptr)
+   {
+      return;
+   }
+
    if (gesture->changeFlags() & QPinchGesture::ChangeFlag::ScaleFactorChanged)
    {
 #if defined(__APPLE__)
@@ -796,7 +848,9 @@ std::vector<float> MapWidget::GetElevationCuts() const
 
 std::optional<float> MapWidget::GetIncomingLevel2Elevation() const
 {
-   return p->radarProductManager_->incoming_level_2_elevation();
+   return p->radarProductManager_ != nullptr ?
+             p->radarProductManager_->incoming_level_2_elevation() :
+             std::optional<float> {};
 }
 
 common::Level2Product
@@ -994,7 +1048,9 @@ void MapWidget::SetColorTableThreshold(std::optional<float> threshold)
 
 const scwx::util::time_zone* MapWidget::GetDefaultTimeZone() const
 {
-   return p->radarProductManager_->default_time_zone();
+   return p->radarProductManager_ != nullptr ?
+             p->radarProductManager_->default_time_zone() :
+             scwx::util::time::current_time_zone();
 }
 
 void MapWidget::ScreenCapture(types::CaptureType captureType)
@@ -1050,6 +1106,16 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
    else
    {
       p->currentTiltIndex_ = 0;
+   }
+
+   if (p->radarProductManager_ == nullptr)
+   {
+      p->context_->set_radar_product_group(group);
+      p->context_->set_radar_product(productName);
+      p->context_->set_radar_product_code(productCode);
+      p->RadarProductViewDisconnect();
+      p->context_->set_radar_product_view(nullptr);
+      return;
    }
 
    if (radarProductView == nullptr ||
@@ -1144,14 +1210,42 @@ void MapWidget::SelectRadarSite(const std::string& id, bool updateCoordinates)
 void MapWidget::SelectRadarSite(std::shared_ptr<config::RadarSite> radarSite,
                                 bool updateCoordinates)
 {
-   // Verify radar site is valid and has changed
-   if (radarSite != nullptr &&
-       (p->radarProductManager_ == nullptr ||
-        radarSite->id() != p->radarProductManager_->radar_site()->id()))
-   {
-      auto radarProductView = p->context_->radar_product_view();
+   const std::shared_ptr<config::RadarSite> currentRadarSite = GetRadarSite();
+   auto radarProductView = p->context_->radar_product_view();
 
-      if (updateCoordinates)
+   if (radarSite == nullptr)
+   {
+      if (currentRadarSite == nullptr)
+      {
+         return;
+      }
+
+      if (p->autoRefreshEnabled_ && p->radarProductManager_ != nullptr &&
+          radarProductView != nullptr)
+      {
+         p->radarProductManager_->EnableRefresh(
+            radarProductView->GetRadarProductGroup(),
+            radarProductView->GetRadarProductName(),
+            false,
+            p->uuid_);
+      }
+
+      p->RadarProductViewDisconnect();
+      p->context_->set_radar_product_view(nullptr);
+      p->SetRadarSite("");
+      p->AddLayers();
+      p->Update();
+
+      Q_EMIT RadarSiteUpdated(nullptr);
+      return;
+   }
+
+   // Verify radar site has changed
+   if (currentRadarSite == nullptr || radarSite->id() != currentRadarSite->id())
+   {
+      // setCoordinate: map exists only after initializeGL/ResetMap; first fit
+      // is applied from radarProductManager_ in ResetMap.
+      if (updateCoordinates && p->map_ != nullptr)
       {
          p->map_->setCoordinate(
             {radarSite->latitude(), radarSite->longitude()});
@@ -1163,6 +1257,13 @@ void MapWidget::SelectRadarSite(std::shared_ptr<config::RadarSite> radarSite,
       if (radarProductView != nullptr)
       {
          radarProductView->set_radar_product_manager(p->radarProductManager_);
+      }
+      else if (p->context_->radar_product_group() !=
+               common::RadarProductGroup::Unknown)
+      {
+         SelectRadarProduct(p->context_->radar_product_group(),
+                            p->context_->radar_product(),
+                            p->context_->radar_product_code());
       }
 
       p->AddLayers();
@@ -1274,7 +1375,70 @@ void MapWidget::SetMapParameters(
       p->map_->setCoordinateZoom({latitude, longitude}, zoom);
       p->map_->setBearing(bearing);
       p->map_->setPitch(pitch);
+
+      // Match stored view to the engine so the next Update() does not emit
+      // MapParametersChanged again (avoids feedback loops between panes).
+      p->SyncStoredViewFromMap();
+
+      p->RequestRepaint();
    }
+}
+
+void MapWidgetImpl::SyncStoredViewFromMap()
+{
+   if (map_ == nullptr)
+   {
+      return;
+   }
+   prevLatitude_  = map_->latitude();
+   prevLongitude_ = map_->longitude();
+   prevZoom_      = map_->zoom();
+   prevBearing_   = map_->bearing();
+   prevPitch_     = map_->pitch();
+}
+
+void MapWidgetImpl::RequestRepaint()
+{
+   QMetaObject::invokeMethod(
+      widget_, static_cast<void (QWidget::*)()>(&QWidget::update));
+}
+
+void MapWidgetImpl::CancelPaneContextMenuDebounce()
+{
+   ++paneContextMenuDebounce_;
+}
+
+void MapWidgetImpl::GetMapViewParameters(double& latitude,
+                                         double& longitude,
+                                         double& zoom,
+                                         double& bearing,
+                                         double& pitch) const
+{
+   if (map_ != nullptr)
+   {
+      latitude  = map_->latitude();
+      longitude = map_->longitude();
+      zoom      = map_->zoom();
+      bearing   = map_->bearing();
+      pitch     = map_->pitch();
+   }
+   else
+   {
+      latitude  = prevLatitude_;
+      longitude = prevLongitude_;
+      zoom      = prevZoom_;
+      bearing   = prevBearing_;
+      pitch     = prevPitch_;
+   }
+}
+
+void MapWidget::GetMapViewParameters(double& latitude,
+                                     double& longitude,
+                                     double& zoom,
+                                     double& bearing,
+                                     double& pitch) const
+{
+   p->GetMapViewParameters(latitude, longitude, zoom, bearing, pitch);
 }
 
 void MapWidget::SetInitialMapStyle(const std::string& styleName)
@@ -1370,12 +1534,17 @@ void MapWidget::changeStyle()
 
 void MapWidget::DumpLayerList() const
 {
+   if (p->map_ == nullptr)
+   {
+      logger_->info("Layers: (map not initialized)");
+      return;
+   }
    logger_->info("Layers: {}", p->map_->layerIds().join(", ").toStdString());
 }
 
 void MapWidgetImpl::AddLayers()
 {
-   if (styleLayers_.isEmpty())
+   if (styleLayers_.isEmpty() || map_ == nullptr)
    {
       // Skip if the map has not yet been initialized
       return;
@@ -1443,6 +1612,15 @@ void MapWidgetImpl::AddLayers()
    UpdateAnnotationCursor();
 
    Q_EMIT widget_->MapAnnotationLayerReady();
+
+   // Color table layer is omitted when there is no radar product view, but
+   // map context can still hold bottom margin from a previous site; clear it.
+   static const std::string kColorTableLayerId = types::GetLayerName(
+      types::LayerType::Information, types::InformationLayer::ColorTable);
+   if (std::ranges::find(layerList_, kColorTableLayerId) == layerList_.cend())
+   {
+      context_->set_color_table_margins({});
+   }
 }
 
 void MapWidgetImpl::AddLayer(types::LayerType        type,
@@ -1508,16 +1686,23 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
       case types::InformationLayer::RadarSite:
          radarSiteLayer_ = std::make_shared<RadarSiteLayer>(glContext_);
          AddLayer(layerName, radarSiteLayer_, before);
-         connect(
-            radarSiteLayer_.get(),
-            &RadarSiteLayer::RadarSiteSelected,
-            this,
-            [this](const std::string& id)
-            {
-               auto& generalSettings = settings::GeneralSettings::Instance();
-               widget_->RadarSiteRequested(
-                  id, generalSettings.center_on_radar_selection().GetValue());
-            });
+         connect(radarSiteLayer_.get(),
+                 &RadarSiteLayer::RadarSiteSelected,
+                 this,
+                 [this](const std::string& id)
+                 {
+                    auto& generalSettings =
+                       settings::GeneralSettings::Instance();
+                    auto selectedRadarSite = widget_->GetRadarSite();
+                    const std::string requestedRadarSite =
+                       (selectedRadarSite != nullptr &&
+                        selectedRadarSite->id() == id) ?
+                          std::string {} :
+                          id;
+                    widget_->RadarSiteRequested(
+                       requestedRadarSite,
+                       generalSettings.center_on_radar_selection().GetValue());
+                 });
          break;
 
       // Create the location marker layer
@@ -1546,7 +1731,8 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
 
       // If there is a radar product view, create the radar range layer
       case types::DataLayer::RadarRange:
-         if (radarProductView != nullptr)
+         if (radarProductView != nullptr && radarProductManager_ != nullptr &&
+             radarProductManager_->radar_site() != nullptr)
          {
             std::shared_ptr<config::RadarSite> radarSite =
                radarProductManager_->radar_site();
@@ -1656,6 +1842,12 @@ void MapWidget::leaveEvent(QEvent* /* ev */)
    p->UpdateAnnotationCursor();
 }
 
+void MapWidget::contextMenuEvent(QContextMenuEvent* event)
+{
+   Q_EMIT MapPaneContextMenuRequested(event->globalPos());
+   event->accept();
+}
+
 void MapWidget::keyPressEvent(QKeyEvent* ev)
 {
    if (p->hotkeyManager_->HandleKeyPress(ev))
@@ -1688,9 +1880,15 @@ void MapWidget::mousePressEvent(QMouseEvent* ev)
    p->lastPos_       = ev->position();
    p->lastGlobalPos_ = ev->globalPosition();
 
+   if (p->map_ == nullptr)
+   {
+      ev->accept();
+      return;
+   }
+
    if (ev->type() == QEvent::Type::MouseButtonPress &&
        ev->button() == Qt::MouseButton::LeftButton &&
-       p->annotationLayer_ != nullptr && p->map_ != nullptr &&
+       p->annotationLayer_ != nullptr &&
        (ev->modifiers() & Qt::KeyboardModifier::ControlModifier) == 0 &&
        p->annotationLayer_->tool() != MapAnnotationTool::None)
    {
@@ -1699,41 +1897,68 @@ void MapWidget::mousePressEvent(QMouseEvent* ev)
       return;
    }
 
+   p->CancelPaneContextMenuDebounce();
    if (ev->type() == QEvent::Type::MouseButtonPress)
    {
       if (ev->buttons() ==
           (Qt::MouseButton::LeftButton | Qt::MouseButton::RightButton))
       {
          changeStyle();
+         // Disarm and mark too-far so rotation is immediately permitted if the
+         // user continues dragging with both buttons held then releases left.
+         p->paneContextMenuArmed_      = false;
+         p->paneContextMenuDragTooFar_ = true;
       }
       else if (ev->buttons() == Qt::MouseButton::MiddleButton)
       {
          auto& generalSettings = settings::GeneralSettings::Instance();
 
-         // Select nearest radar on middle click
          std::optional<std::string> type = std::nullopt;
-
          if (generalSettings.auto_navigate_to_wsr88d_only().GetValue())
          {
-            // Select nearest WSR-88D radar on middle click
             type = "wsr88d";
          }
 
          auto coordinate = p->map_->coordinateForPixel(p->lastPos_);
          p->SelectNearestRadarSite(coordinate.first, coordinate.second, type);
       }
+      else if (ev->button() == Qt::MouseButton::RightButton)
+      {
+         p->paneContextMenuArmed_      = true;
+         p->paneContextMenuDragTooFar_ = false;
+         p->paneContextMenuPressPos_   = ev->position();
+         const auto d =
+            static_cast<qreal>(QApplication::styleHints()->startDragDistance());
+         p->paneContextMenuDragThresholdSq_ = d * d;
+         p->suppressContextMenuOnNextRightRelease_ =
+            static_cast<bool>(ev->flags() & Qt::MouseEventCreatedDoubleClick);
+      }
    }
 
-   if (ev->type() == QEvent::Type::MouseButtonDblClick)
+   ev->accept();
+}
+
+void MapWidget::mouseDoubleClickEvent(QMouseEvent* ev)
+{
+   p->lastPos_       = ev->position();
+   p->lastGlobalPos_ = ev->globalPosition();
+
+   if (p->map_ == nullptr)
    {
-      if (ev->buttons() == Qt::MouseButton::LeftButton)
-      {
-         p->map_->scaleBy(2.0, p->lastPos_);
-      }
-      else if (ev->buttons() == Qt::MouseButton::RightButton)
-      {
-         p->map_->scaleBy(0.5, p->lastPos_);
-      }
+      ev->accept();
+      return;
+   }
+
+   p->CancelPaneContextMenuDebounce();
+
+   if (ev->button() == Qt::MouseButton::LeftButton)
+   {
+      p->map_->scaleBy(kDoubleClickZoomIn, p->lastPos_);
+   }
+   else if (ev->button() == Qt::MouseButton::RightButton)
+   {
+      p->map_->scaleBy(kDoubleClickZoomOut, p->lastPos_);
+      p->suppressContextMenuOnNextRightRelease_ = true;
    }
 
    ev->accept();
@@ -1741,7 +1966,17 @@ void MapWidget::mousePressEvent(QMouseEvent* ev)
 
 void MapWidget::mouseMoveEvent(QMouseEvent* ev)
 {
-   if (ev->buttons() == Qt::MouseButton::LeftButton && p->map_ != nullptr &&
+   if (p->map_ == nullptr)
+   {
+      p->lastPos_       = ev->position();
+      p->lastGlobalPos_ = ev->globalPosition();
+      ev->accept();
+      return;
+   }
+
+   // Ctrl + left-drag: cancel any in-progress annotation interaction and pan
+   // the map instead of drawing.
+   if (ev->buttons() == Qt::MouseButton::LeftButton &&
        (ev->modifiers() & Qt::KeyboardModifier::ControlModifier) != 0)
    {
       if (p->annotationLayer_ != nullptr)
@@ -1760,8 +1995,9 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
    }
 
    if (ev->buttons() == Qt::MouseButton::LeftButton &&
-       p->annotationLayer_ != nullptr && p->map_ != nullptr &&
-       p->annotationLayer_->ConsumesLeftDrag())
+       p->annotationLayer_ != nullptr &&
+       p->annotationLayer_->IsActivelyDrawing() &&
+       (ev->modifiers() & Qt::KeyboardModifier::ControlModifier) == 0)
    {
       p->annotationLayer_->HandleMouseMove(p->map_, ev->position());
       p->lastPos_       = ev->position();
@@ -1770,7 +2006,22 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
       return;
    }
 
-   QPointF delta = ev->position() - p->lastPos_;
+   if (p->paneContextMenuArmed_ &&
+       (ev->buttons() & Qt::MouseButton::RightButton) &&
+       !p->paneContextMenuDragTooFar_)
+   {
+      const QPointF d = ev->position() - p->paneContextMenuPressPos_;
+      if (d.x() * d.x() + d.y() * d.y() > p->paneContextMenuDragThresholdSq_)
+      {
+         p->paneContextMenuDragTooFar_ = true;
+         // Reset lastPos_ to current so the first rotateBy call below uses only
+         // the incremental delta from this tick, not the full suppressed
+         // distance.
+         p->lastPos_ = ev->position();
+      }
+   }
+
+   const QPointF delta = ev->position() - p->lastPos_;
 
    if (!delta.isNull())
    {
@@ -1778,7 +2029,8 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
       {
          p->map_->moveBy(delta);
       }
-      else if (ev->buttons() == Qt::MouseButton::RightButton)
+      else if (ev->buttons() == Qt::MouseButton::RightButton &&
+               p->paneContextMenuDragTooFar_)
       {
          p->map_->rotateBy(p->lastPos_, ev->position());
       }
@@ -1791,13 +2043,43 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
 
 void MapWidget::mouseReleaseEvent(QMouseEvent* ev)
 {
+   p->lastPos_       = ev->position();
+   p->lastGlobalPos_ = ev->globalPosition();
+
+   // Let annotation tools see left-button release when a tool is active.
    if (ev->button() == Qt::MouseButton::LeftButton &&
        p->annotationLayer_ != nullptr && p->map_ != nullptr &&
        p->annotationLayer_->tool() != MapAnnotationTool::None)
    {
       p->annotationLayer_->HandleMouseRelease(p->map_, ev->position());
    }
-   QOpenGLWidget::mouseReleaseEvent(ev);
+
+   if (ev->button() == Qt::MouseButton::RightButton)
+   {
+      if (p->suppressContextMenuOnNextRightRelease_)
+      {
+         p->suppressContextMenuOnNextRightRelease_ = false;
+      }
+      else if (p->paneContextMenuArmed_ && !p->paneContextMenuDragTooFar_)
+      {
+         const uint64_t token = p->paneContextMenuDebounce_;
+         const QPoint   gpos  = ev->globalPosition().toPoint();
+         QTimer::singleShot(kMapPaneContextMenuDebounceMs,
+                            this,
+                            [this, token, gpos]()
+                            {
+                               if (p->paneContextMenuDebounce_ != token)
+                               {
+                                  return;
+                               }
+                               Q_EMIT MapPaneContextMenuRequested(gpos);
+                            });
+      }
+      p->paneContextMenuArmed_      = false;
+      p->paneContextMenuDragTooFar_ = false;
+   }
+
+   ev->accept();
 }
 
 std::shared_ptr<MapAnnotationLayer> MapWidget::map_annotation_layer() const
@@ -1916,6 +2198,11 @@ void MapWidgetImpl::UpdateMeasureLabels()
 
 void MapWidget::wheelEvent(QWheelEvent* ev)
 {
+   if (p->map_ == nullptr)
+   {
+      return;
+   }
+
    if (ev->angleDelta().y() == 0)
    {
       return;
@@ -1986,9 +2273,17 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
    else
    {
       const std::shared_ptr<config::RadarSite> radarSite =
-         radarProductManager_->radar_site();
-      map_->setCoordinateZoom({radarSite->latitude(), radarSite->longitude()},
-                              prevZoom_);
+         radarProductManager_ != nullptr ? radarProductManager_->radar_site() :
+                                           nullptr;
+      if (radarSite != nullptr)
+      {
+         map_->setCoordinateZoom(
+            {radarSite->latitude(), radarSite->longitude()}, prevZoom_);
+      }
+      else
+      {
+         map_->setCoordinateZoom({prevLatitude_, prevLongitude_}, prevZoom_);
+      }
    }
 
    // Update style
@@ -2440,19 +2735,32 @@ void MapWidgetImpl::RadarProductManagerDisconnect()
 void MapWidgetImpl::InitializeNewRadarProductView(
    const std::string& colorPalette)
 {
-   boost::asio::post(threadPool_,
-                     [colorPalette, this]()
-                     {
-                        try
+   auto radarProductView = context_->radar_product_view();
+
+   if (radarProductView != nullptr)
+   {
+      boost::asio::post(threadPool_,
+                        [colorPalette, radarProductView, this]()
                         {
-                           UpdateColorTable(colorPalette);
-                           context_->radar_product_view()->Initialize();
-                        }
-                        catch (const std::exception& ex)
-                        {
-                           logger_->error(ex.what());
-                        }
-                     });
+                           if (radarProductView !=
+                               context_->radar_product_view())
+                           {
+                              // If the radar product view has changed, don't
+                              // initialize
+                              return;
+                           }
+
+                           try
+                           {
+                              UpdateColorTable(colorPalette, radarProductView);
+                              radarProductView->Initialize();
+                           }
+                           catch (const std::exception& ex)
+                           {
+                              logger_->error(ex.what());
+                           }
+                        });
+   }
 
    if (map_ != nullptr)
    {
@@ -2478,9 +2786,11 @@ void MapWidgetImpl::RadarProductViewConnect()
          [=, this]()
          {
             std::shared_ptr<config::RadarSite> radarSite =
-               radarProductManager_->radar_site();
+               radarProductManager_ != nullptr ?
+                  radarProductManager_->radar_site() :
+                  nullptr;
 
-            if (map_ != nullptr)
+            if (map_ != nullptr && radarSite != nullptr)
             {
                RadarRangeLayer::Update(
                   map_,
@@ -2635,17 +2945,30 @@ void MapWidgetImpl::SetRadarSite(const std::string& radarSite,
    // Set the radar site in the context
    context_->set_radar_site(config::RadarSite::Get(radarSite));
 
+   const std::shared_ptr<config::RadarSite> currentRadarSite =
+      radarProductManager_ != nullptr ? radarProductManager_->radar_site() :
+                                        nullptr;
+
    // Check if radar site has changed
-   if (radarProductManager_ == nullptr ||
-       radarSite != radarProductManager_->radar_site()->id())
+   if ((currentRadarSite == nullptr && !radarSite.empty()) ||
+       (currentRadarSite != nullptr && radarSite != currentRadarSite->id()))
    {
       // Disconnect signals from old RadarProductManager
       RadarProductManagerDisconnect();
 
+      // Update views
+      if (radarSite.empty())
+      {
+         radarProductManager_.reset();
+         context_->overlay_product_view()->set_radar_product_manager(nullptr);
+         productAvailabilityCheckNeeded_     = false;
+         productAvailabilityUpdated_         = false;
+         productAvailabilityProductSelected_ = false;
+         return;
+      }
+
       // Set new RadarProductManager
       radarProductManager_ = manager::RadarProductManager::Instance(radarSite);
-
-      // Update views
       context_->overlay_product_view()->set_radar_product_manager(
          radarProductManager_);
 
@@ -2667,6 +2990,11 @@ void MapWidgetImpl::Update()
    QMetaObject::invokeMethod(
       widget_, static_cast<void (QWidget::*)()>(&QWidget::update));
 
+   if (map_ == nullptr)
+   {
+      return;
+   }
+
    if (UpdateStoredMapParameters())
    {
       Q_EMIT widget_->MapParametersChanged(
@@ -2676,6 +3004,18 @@ void MapWidgetImpl::Update()
 
 void MapWidgetImpl::UpdateColorTable(const std::string& colorPalette)
 {
+   UpdateColorTable(colorPalette, context_->radar_product_view());
+}
+
+void MapWidgetImpl::UpdateColorTable(
+   const std::string&                             colorPalette,
+   const std::shared_ptr<view::RadarProductView>& radarProductView)
+{
+   if (radarProductView == nullptr)
+   {
+      return;
+   }
+
    auto& paletteSetting =
       settings::PaletteSettings::Instance().palette(colorPalette);
 
@@ -2702,11 +3042,16 @@ void MapWidgetImpl::UpdateColorTable(const std::string& colorPalette)
       colorTable       = common::ColorTable::Load(*colorTableStream);
    }
 
-   context_->radar_product_view()->LoadColorTable(colorTable);
+   radarProductView->LoadColorTable(colorTable);
 }
 
 bool MapWidgetImpl::UpdateStoredMapParameters()
 {
+   if (map_ == nullptr)
+   {
+      return false;
+   }
+
    bool changed = false;
 
    double newLatitude  = map_->latitude();

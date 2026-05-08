@@ -54,6 +54,8 @@ public:
                    std::shared_ptr<types::EventHandler>& eventHandler) override;
 
    [[nodiscard]] bool ConsumesLeftDrag() const;
+   /// True while left-drag interaction in progress (press established drawing).
+   [[nodiscard]] bool IsActivelyDrawing() const;
 
    void                            SetTool(MapAnnotationTool tool);
    [[nodiscard]] MapAnnotationTool tool() const;

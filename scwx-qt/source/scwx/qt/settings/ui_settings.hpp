@@ -32,6 +32,21 @@ public:
    [[nodiscard]] SettingsVariable<std::string>& main_ui_state() const;
    [[nodiscard]] SettingsVariable<std::string>& main_ui_geometry() const;
    [[nodiscard]] SettingsVariable<std::string>& map_annotation_state() const;
+   // JSON: { \"gw\":w,\"gh\":h,\"v\":[...],\"rows\":[[..],[..]]} map splitter
+   // sizes
+   [[nodiscard]] SettingsVariable<std::string>& map_pane_splitter_state() const;
+   // JSON: { \"gw\":w,\"gh\":h,\"panes\":[{\"i\":0,\"g\":\"base64geometry\"}…]
+   // } popped map windows
+   [[nodiscard]] SettingsVariable<std::string>& map_pane_popout_state() const;
+   // JSON: { \"gw\":w,\"gh\":h,\"linked\":[...] } per-map \"Link view\"; length
+   // = gw*gh
+   [[nodiscard]] SettingsVariable<std::string>&
+   map_pane_view_link_state() const;
+   // When true: new panes follow the first pane's style, and the menu can force
+   // all panes to that style. When false: per-index MapSettings map styles are
+   // independent. Default true; auto-unchecked if panes use different styles,
+   // re-checked when all match (after a style change).
+   [[nodiscard]] SettingsVariable<bool>& panes_match_map_style() const;
 
    bool Shutdown();
 

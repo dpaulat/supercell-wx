@@ -289,6 +289,58 @@ void RunMapPaneContextMenu(const MapPaneContextMenuConfig& cfg,
    menu.addAction(titleAction);
    menu.addSeparator();
 
+   if (!cfg.text_draw.isEmpty() && cfg.set_draw_toolbar_open)
+   {
+      QAction* const drawAction = menu.addAction(cfg.text_draw);
+      const auto isOpen = cfg.is_draw_toolbar_open;
+      if (isOpen)
+      {
+         drawAction->setCheckable(true);
+         {
+            const QSignalBlocker blocker {drawAction};
+            drawAction->setChecked(isOpen(mapIndex));
+         }
+         QObject::connect(drawAction,
+                        &QAction::toggled,
+                        receiver,
+                        [receiver, mapIndex, onDraw = cfg.set_draw_toolbar_open](
+                           bool checked)
+                        {
+                           QTimer::singleShot(
+                              0,
+                              receiver,
+                              [receiver, mapIndex, onDraw, checked]()
+                              {
+                                 if (receiver && onDraw)
+                                 {
+                                    onDraw(mapIndex, checked);
+                                 }
+                              });
+                        });
+      }
+      else
+      {
+         QObject::connect(drawAction,
+                          &QAction::triggered,
+                          receiver,
+                          [receiver, mapIndex, onOpen = cfg.set_draw_toolbar_open](
+                             bool /* checked */)
+                          {
+                             QTimer::singleShot(
+                                0,
+                                receiver,
+                                [receiver, mapIndex, onOpen]()
+                                {
+                                   if (receiver && onOpen)
+                                   {
+                                      onOpen(mapIndex, true);
+                                   }
+                                });
+                          });
+      }
+      menu.addSeparator();
+   }
+
    if (mapIndex < cfg.popped_out->size() && !cfg.popped_out->at(mapIndex) &&
        onPop)
    {

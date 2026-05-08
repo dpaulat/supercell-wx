@@ -37,12 +37,32 @@ public:
       std::function<std::vector<std::shared_ptr<map::MapAnnotationLayer>>()>
          getLayers);
 
+   /**
+    * After pop-out, if the attached map pane was removed, Dock uses this to
+    * pick a map widget (e.g. active pane, else first pane). Empty = no rehome.
+    */
+   void SetFloatingDockHostResolver(std::function<QWidget*()> resolver);
+
+   /**
+    * Apply persisted pop-out after AttachToMap (LoadState runs in ctor before
+    * host exists; old sessions also used global float coords vs
+    * parent-relative).
+    */
+   void ApplyDeferredFloatingState();
+
    /** Re-run current tool combo + style widgets onto all broadcast targets. */
    void ReapplyToolAndStyleFromUi();
 
-   void               AttachToMap(QWidget* mapWidget);
-   void               SetOverlayVisible(bool visible);
+   void AttachToMap(QWidget* mapWidget);
+   /** If the dock overlay / event filter is tied to |mapWidget|, detach before
+    * that widget is destroyed (e.g. grid shrink removes a pane). */
+   void DetachIfHostedBy(QWidget* mapWidget, bool preserveFloating = false);
+   void SetOverlayVisible(bool visible);
    [[nodiscard]] bool OverlayVisible() const;
+
+   /** Minimized toolbar (- button); no separate on-map collapsed control. */
+   void               SetPanelExpanded(bool expanded);
+   [[nodiscard]] bool PanelExpanded() const;
 
 private slots:
    void OnToolSelected(int toolValue);
