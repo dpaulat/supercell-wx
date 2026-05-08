@@ -2,6 +2,8 @@
 
 #include <QFrame>
 
+class QEvent;
+
 namespace Ui
 {
 class CollapsibleGroup;
@@ -34,6 +36,9 @@ public slots:
 
 signals:
    void StateChanged(bool expanded);
+
+protected:
+   void changeEvent(QEvent* event) override;
 
 private:
    friend class CollapsibleGroupImpl;
