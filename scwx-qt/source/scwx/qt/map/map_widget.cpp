@@ -1279,11 +1279,11 @@ void MapWidget::SetMapLocation(double latitude,
          const bool isArchiveMode =
             manager::TimelineManager::Instance()->GetViewType() ==
             types::MapTime::Archive;
-         const bool                               includeDown = isArchiveMode;
-         const bool                               includeKlix = isArchiveMode;
+         const bool includeDown           = isArchiveMode;
+         const bool includeDecommissioned = isArchiveMode;
          const std::shared_ptr<config::RadarSite> nearestRadarSite =
             config::RadarSite::FindNearest(
-               latitude, longitude, type, includeDown, includeKlix);
+               latitude, longitude, type, includeDown, includeDecommissioned);
 
          // If found, select it
          if (nearestRadarSite != nullptr)
@@ -2682,10 +2682,10 @@ void MapWidgetImpl::SelectNearestRadarSite(double                     latitude,
    const bool isArchiveMode =
       manager::TimelineManager::Instance()->GetViewType() ==
       types::MapTime::Archive;
-   const bool includeDown = isArchiveMode;
-   const bool includeKlix = isArchiveMode;
-   auto       radarSite   = config::RadarSite::FindNearest(
-      latitude, longitude, type, includeDown, includeKlix);
+   const bool includeDown           = isArchiveMode;
+   const bool includeDecommissioned = isArchiveMode;
+   auto       radarSite             = config::RadarSite::FindNearest(
+      latitude, longitude, type, includeDown, includeDecommissioned);
 
    if (radarSite != nullptr)
    {

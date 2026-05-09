@@ -63,7 +63,7 @@ public:
                double                            longitude,
                const std::optional<std::string>& type        = std::nullopt,
                bool                              includeDown = true,
-               bool                              includeKlix = true);
+               bool                              includeDecommissioned = true);
 
    static void   Initialize();
    static size_t ReadConfig(const std::string& path);

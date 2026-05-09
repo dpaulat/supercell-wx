@@ -223,7 +223,7 @@ RadarSite::FindNearest(double                            latitude,
                        double                            longitude,
                        const std::optional<std::string>& type,
                        bool                              includeDown,
-                       bool                              includeKlix)
+                       bool                              includeDecommissioned)
 {
    std::shared_lock lock(siteMutex_);
 
@@ -249,7 +249,7 @@ RadarSite::FindNearest(double                            latitude,
       }
 
       // Optionally exclude KLIX from automatic selection.
-      if (!includeKlix && radarSite->id() == "KLIX")
+      if (!includeDecommissioned && radarSite->id() == "KLIX")
       {
          continue;
       }
