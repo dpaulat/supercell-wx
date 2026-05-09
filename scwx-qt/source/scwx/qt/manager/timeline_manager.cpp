@@ -122,6 +122,11 @@ std::chrono::system_clock::time_point TimelineManager::GetSelectedTime() const
    return p->selectedTime_;
 }
 
+types::MapTime TimelineManager::GetViewType() const
+{
+   return p->viewType_;
+}
+
 void TimelineManager::SetMapCount(std::size_t mapCount)
 {
    p->mapCount_ = mapCount;
