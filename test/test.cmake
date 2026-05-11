@@ -110,17 +110,18 @@ if (MSVC)
     target_compile_options(wxtest PRIVATE "/MP")
 endif()
 
-gtest_discover_tests(wxtest)
-
 target_link_libraries(wxtest GTest::gtest
                              scwx-qt
                              wxdata)
 
 if (WIN32)
-    # Deploy Qt to target directory
+    # Deploy Qt before gtest_discover_tests POST_BUILD runs wxtest.exe (needs
+    # Qt DLLs beside the binary on Windows).
     add_custom_command(TARGET wxtest
                        POST_BUILD
                        COMMAND "${WINDEPLOYQT_EXECUTABLE}"
                            --no-translations $<TARGET_FILE:wxtest>
                        COMMENT "Running windeployqt for wxtest...")
 endif()
+
+gtest_discover_tests(wxtest)
