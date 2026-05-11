@@ -49,43 +49,49 @@ The project uses **Conan 2** for C++ dependency management. CMake integrates Con
 **Setup script usage** (recommended path for new developers):
 ```powershell
 # Windows (from repo root)
-.\tools\setup-windows-vs2026-x64-release.bat [BUILD_DIR] [VENV_PATH]
+.\tools\setup-windows-vs2026-release.bat [BUILD_DIR] [VENV_PATH]
 
 # Linux
 ./tools/setup-linux-ninja-release.sh [BUILD_DIR] [CONAN_PROFILE] [VENV_PATH] [ASAN_ENABLE]
 ```
 
 **Manual CMake configuration:**
-```bash
-# 1. Install Conan profile
-conan config install ./tools/conan/profiles/scwx-windows_vs2026_x64 -tf profiles
+1. **Configure via Preset** (Modern approach):
+   ```bash
+   cmake --preset <preset-name>
+   ```
+   Presets encapsulate generator, build type, and Conan profiles. See `CMakePresets.json` for available names (e.g., `windows-vs2026-x64-ninja-release`, `linux-gcc14-release`).
+   
+   **Note:** When using Ninja-based presets on Windows, you must initialize the MSVC developer environment (e.g., via `VsDevCmd.bat`) in your terminal before running CMake.
 
-# 2. Install dependencies
-mkdir build && cd build
-conan install ../
-  --remote conancenter
-  --build missing
-  --profile:all scwx-windows_vs2026_x64
-  --settings:all build_type=Release
-  --output-folder ./conan/
 
-# 3. Configure CMake (Conan provider auto-installs deps if conan/ exists)
-cmake ../ -G Ninja
-  -DCMAKE_BUILD_TYPE=Release
-  -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES=../external/cmake-conan/conan_provider.cmake
-  -DCONAN_HOST_PROFILE=scwx-windows_vs2026_x64
-  -DCONAN_BUILD_PROFILE=scwx-windows_vs2026_x64
+2. **Configure Manually** (Fallback):
+   ```bash
+   # 1. Install Conan profile
+   conan config install ./tools/conan/profiles/<profile_name> -tf profiles
 
-# 4. Build
-cmake --build . --target supercell-wx
-```
+   # 2. Configure (Conan provider auto-installs deps)
+   mkdir build && cd build
+   cmake ../ -G Ninja \
+     -DCMAKE_BUILD_TYPE=Release \
+     -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES=../external/cmake-conan/conan_provider.cmake \
+     -DCONAN_HOST_PROFILE=<profile_name> \
+     -DCONAN_BUILD_PROFILE=<profile_name>
+   ```
+
+3. **Build:**
+   ```bash
+   cmake --build --preset <preset-name> --target supercell-wx
+   # OR manually:
+   cmake --build . --target supercell-wx
+   ```
 
 **Key Conan profiles:** See [tools/conan/profiles/](tools/conan/profiles/)
-- Windows: `scwx-windows_vs2026_x64[-debug]`
-- Linux: `scwx-linux_gcc-11[-debug]`, `scwx-linux_clang-17`
-- macOS: `scwx-macos_clang-18[_armv8][-debug]`
+- Windows: `scwx-windows_vs2026_x64`, `scwx-windows_vs2022_x64`
+- Linux: `scwx-linux_gcc-[11-16]`, `scwx-linux_clang-[17-22]`
+- macOS: `scwx-macos_clang-[18-22]`
 
-**CMake Presets:** Use [CMakePresets.json](CMakePresets.json) for IDE integration. Presets like `windows-vs2026-x64-release` encapsulate toolchain/profile selection.
+**CMake Presets:** Use [CMakePresets.json](CMakePresets.json) for IDE integration. Presets like `windows-vs2026-x64-ninja-release` encapsulate toolchain/profile selection.
 
 ### Python Virtual Environment
 Project uses Python for code generation (counties DB, version info). Setup scripts create `.venv/` with requirements from [requirements.txt](requirements.txt). CMake macro `scwx_python_setup()` in [tools/scwx_config.cmake](tools/scwx_config.cmake) finds the venv Python.

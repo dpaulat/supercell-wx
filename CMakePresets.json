@@ -656,6 +656,18 @@
       "configuration": "Release"
     },
     {
+      "name": "windows-vs2026-x64-ninja-debug",
+      "configurePreset": "windows-vs2026-x64-ninja-debug",
+      "displayName": "Windows VS 2026 x64 Ninja Debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-vs2026-x64-ninja-release",
+      "configurePreset": "windows-vs2026-x64-ninja-release",
+      "displayName": "Windows VS 2026 x64 Ninja Release",
+      "configuration": "Release"
+    },
+    {
       "name": "linux-gcc11-debug",
       "configurePreset": "linux-gcc11-debug",
       "displayName": "Linux GCC 11 Debug",

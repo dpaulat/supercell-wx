@@ -29,6 +29,10 @@ set_property(DIRECTORY
              PROPERTY CMAKE_CONFIGURE_DEPENDS
              conanfile.py)
 
+if (MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
+endif()
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_ALL_NO_LIB")
 
 set(SCWX_DIR ${PROJECT_SOURCE_DIR})
