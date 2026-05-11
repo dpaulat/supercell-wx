@@ -3524,9 +3524,10 @@ void MainWindowImpl::OnMapPaneContextMenuRequested(const QPoint& globalPos)
       map::MapWidget* const mw = maps_.at(i);
       if (mapAnnotationDock_.isNull())
       {
-         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): Qt parent owns dock
+         // NOLINTBEGIN(cppcoreguidelines-owning-memory): Qt parent owns dock
          mapAnnotationDock_ =
             new ui::MapAnnotationDockWidget(mainWindow_->ui->centralwidget);
+         // NOLINTEND(cppcoreguidelines-owning-memory)
          ConfigureMapAnnotationDock();
       }
       SetActiveMap(mw);
