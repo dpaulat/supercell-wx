@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/common/products.hpp>
+#include <scwx/common/storm_motion_vector.hpp>
 #include <scwx/common/types.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/request/nexrad_file_request.hpp>
@@ -127,6 +128,9 @@ public:
    static void LoadFile(
       const std::string&                                 filename,
       const std::shared_ptr<request::NexradFileRequest>& request = nullptr);
+
+   std::optional<common::StormMotionVector>
+   GetStormMotionVector(std::chrono::system_clock::time_point time = {});
 
    common::Level3ProductCategoryMap GetAvailableLevel3Categories();
    std::vector<std::string>         GetLevel3Products();

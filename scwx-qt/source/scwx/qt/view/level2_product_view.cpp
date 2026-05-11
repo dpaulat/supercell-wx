@@ -1,6 +1,10 @@
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 #include <scwx/qt/view/level2_product_view.hpp>
 #include <scwx/wsr88d/dual_pol_interpreter.hpp>
 #include <scwx/qt/settings/unit_settings.hpp>
+#include <scwx/common/storm_motion_vector.hpp>
 #include <scwx/qt/types/unit_types.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/common/characters.hpp>
@@ -34,12 +38,17 @@ static constexpr uint16_t RANGE_FOLDED      = 1u;
 static constexpr uint32_t VERTICES_PER_BIN  = 6u;
 static constexpr uint32_t VALUES_PER_VERTEX = 2u;
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
+static constexpr float kKnotsToMps = 0.514444f;
+
 static const std::unordered_map<common::Level2Product,
                                 wsr88d::rda::DataBlockType>
    blockTypes_ {
       {common::Level2Product::Reflectivity,
        wsr88d::rda::DataBlockType::MomentRef},
       {common::Level2Product::Velocity, wsr88d::rda::DataBlockType::MomentVel},
+      {common::Level2Product::StormRelativeVelocity,
+       wsr88d::rda::DataBlockType::MomentVel},
       {common::Level2Product::SpectrumWidth,
        wsr88d::rda::DataBlockType::MomentSw},
       {common::Level2Product::DifferentialReflectivity,
@@ -311,6 +320,7 @@ float Level2ProductView::unit_scale() const
    {
    case common::Level2Product::Velocity:
    case common::Level2Product::SpectrumWidth:
+   case common::Level2Product::StormRelativeVelocity:
       return types::GetSpeedUnitsScale(p->speedUnits_);
 
    default:
@@ -335,6 +345,7 @@ std::string Level2ProductView::units() const
    {
    case common::Level2Product::Velocity:
    case common::Level2Product::SpectrumWidth:
+   case common::Level2Product::StormRelativeVelocity:
       return types::GetSpeedUnitsAbbreviation(p->speedUnits_);
 
    default:
@@ -445,6 +456,7 @@ std::pair<float, float> Level2ProductView::GetColorTableRange() const
    case common::Level2Product::Velocity:
    case common::Level2Product::SpectrumWidth:
    case common::Level2Product::CorrelationCoefficient:
+   case common::Level2Product::StormRelativeVelocity:
    default:
       dataThreshold = 2;
       rangeMax      = 255;
@@ -563,6 +575,7 @@ void Level2ProductView::UpdateColorTableLut()
    case common::Level2Product::Velocity:
    case common::Level2Product::SpectrumWidth:
    case common::Level2Product::CorrelationCoefficient:
+   case common::Level2Product::StormRelativeVelocity:
    default:
       rangeMin = 1;
       rangeMax = 255;
@@ -646,8 +659,10 @@ void Level2ProductView::ComputeSweep()
       p->product_ == common::Level2Product::HydrometeorClassification;
    const bool isTds =
       p->product_ == common::Level2Product::TornadoDebrisSignature;
+   const bool isSrv =
+      p->product_ == common::Level2Product::StormRelativeVelocity;
 
-   bool smoothingEnabled = smoothing_enabled() && !isHca && !isTds;
+   bool smoothingEnabled = smoothing_enabled() && !isHca && !isTds && !isSrv;
    p->showSmoothedRangeFolding_         = show_smoothed_range_folding();
    const bool& showSmoothedRangeFolding = p->showSmoothedRangeFolding_;
 
@@ -785,9 +800,23 @@ void Level2ProductView::ComputeSweep()
 
    // Compute threshold at which to display an individual bin (minimum of 2)
    const std::uint16_t snrThreshold =
-      (isHca || isTds) ?
+      (isHca || isTds || isSrv) ?
          2 :
          std::max<std::int16_t>(2, momentData0->snr_threshold_raw());
+
+   // Fetch storm motion vector for SRV computation
+   float srvStormDirDeg   = 0.0f;
+   float srvStormSpeedKts = 30.0f;
+   if (isSrv)
+   {
+      auto stormMotion =
+         radarProductManager->GetStormMotionVector(requestedTime);
+      if (stormMotion.has_value())
+      {
+         srvStormDirDeg   = stormMotion->direction_.value();
+         srvStormSpeedKts = stormMotion->speed_.value();
+      }
+   }
 
    // Start radial is always 0, as coordinates are calculated for each sweep
    constexpr std::uint16_t startRadial = 0u;
@@ -1011,13 +1040,42 @@ void Level2ProductView::ComputeSweep()
          {
             if (!smoothingEnabled)
             {
-               std::uint8_t dataValue =
-                  (isHca || isTds) ?
-                     static_cast<std::uint8_t>(classificationValue) :
-                     dataMomentsArray8[i];
+               std::uint8_t dataValue;
+
+               if (isSrv)
+               {
+                  const std::uint8_t rawVel = dataMomentsArray8[i];
+                  if (rawVel < snrThreshold && rawVel != RANGE_FOLDED)
+                  {
+                     continue;
+                  }
+                  if (rawVel == RANGE_FOLDED)
+                  {
+                     dataValue = rawVel;
+                  }
+                  else
+                  {
+                     const units::degrees<float> az =
+                        radialData->azimuth_angle();
+                     const float thetaRad = (az.value() - srvStormDirDeg) *
+                                            static_cast<float>(M_PI) / 180.0f;
+                     const float radialMps =
+                        srvStormSpeedKts * kKnotsToMps * std::cos(thetaRad);
+                     const float rawDelta = radialMps * momentData->scale();
+                     dataValue = static_cast<std::uint8_t>(std::clamp(
+                        static_cast<float>(rawVel) - rawDelta, 0.0f, 255.0f));
+                  }
+               }
+               else
+               {
+                  dataValue =
+                     (isHca || isTds) ?
+                        static_cast<std::uint8_t>(classificationValue) :
+                        dataMomentsArray8[i];
+               }
 
                if (dataValue < snrThreshold && dataValue != RANGE_FOLDED &&
-                   !isHca && !isTds)
+                   !isHca && !isTds && !isSrv)
                {
                   continue;
                }
@@ -1100,17 +1158,46 @@ void Level2ProductView::ComputeSweep()
          {
             if (!smoothingEnabled)
             {
-               std::uint16_t dataValue16 = (isHca || isTds) ?
-                                              classificationValue :
-                                              dataMomentsArray16[i];
-               if (!isHca && !isTds)
+               std::uint16_t dataValue16;
+
+               if (isSrv)
+               {
+                  const std::uint16_t rawVel = dataMomentsArray16[i];
+                  if (rawVel < snrThreshold && rawVel != RANGE_FOLDED)
+                  {
+                     continue;
+                  }
+                  if (rawVel == RANGE_FOLDED)
+                  {
+                     dataValue16 = rawVel;
+                  }
+                  else
+                  {
+                     const units::degrees<float> az =
+                        radialData->azimuth_angle();
+                     const float thetaRad = (az.value() - srvStormDirDeg) *
+                                            static_cast<float>(M_PI) / 180.0f;
+                     const float radialMps =
+                        srvStormSpeedKts * kKnotsToMps * std::cos(thetaRad);
+                     const float rawDelta = radialMps * momentData->scale();
+                     dataValue16 = static_cast<std::uint16_t>(std::clamp(
+                        static_cast<float>(rawVel) - rawDelta, 0.0f, 65535.0f));
+                  }
+               }
+               else
+               {
+                  dataValue16 = (isHca || isTds) ? classificationValue :
+                                                   dataMomentsArray16[i];
+               }
+
+               if (!isHca && !isTds && !isSrv)
                {
                   if (dataValue16 < snrThreshold && dataValue16 != RANGE_FOLDED)
                   {
                      continue;
                   }
                }
-               else if (classificationValue == 0)
+               else if ((isHca || isTds) && classificationValue == 0)
                {
                   continue;
                }
@@ -1704,11 +1791,13 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
       return std::nullopt;
    }
 
-   // Compute threshold at which to display an individual bin (minimum of 2)
-   const std::uint16_t snrThreshold =
-      std::max<std::int16_t>(2, momentData->snr_threshold_raw());
    bool isHca = p->product_ == common::Level2Product::HydrometeorClassification;
    bool isTds = p->product_ == common::Level2Product::TornadoDebrisSignature;
+   bool isSrv = p->product_ == common::Level2Product::StormRelativeVelocity;
+
+   // Compute threshold at which to display an individual bin (minimum of 2)
+   const std::uint16_t snrThreshold =
+      (isSrv) ? 2 : std::max<std::int16_t>(2, momentData->snr_threshold_raw());
    std::uint16_t level;
 
    if (isHca || isTds)
@@ -1755,18 +1844,39 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
    {
       if (momentData->data_word_size() == 8)
       {
-         level =
-            reinterpret_cast<const uint8_t*>(momentData->data_moments())[gate];
+         level = reinterpret_cast<const std::uint8_t*>(
+            momentData->data_moments())[gate];
       }
       else
       {
-         level =
-            reinterpret_cast<const uint16_t*>(momentData->data_moments())[gate];
+         level = reinterpret_cast<const std::uint16_t*>(
+            momentData->data_moments())[gate];
       }
 
       if (level < snrThreshold && level != RANGE_FOLDED)
       {
          return std::nullopt;
+      }
+
+      if (isSrv && level != RANGE_FOLDED)
+      {
+         // Recompute SRV for the tooltip value
+         auto stormMotion =
+            radarProductManager->GetStormMotionVector(selected_time());
+         if (stormMotion.has_value())
+         {
+            const float srvDirDeg          = stormMotion->direction_.value();
+            const float srvSpeedKts        = stormMotion->speed_.value();
+            const auto  radialData         = (*radarData)[*radial];
+            const units::degrees<float> az = radialData->azimuth_angle();
+            const float                 thetaRad =
+               (az.value() - srvDirDeg) * static_cast<float>(M_PI) / 180.0f;
+            const float radialMps =
+               srvSpeedKts * kKnotsToMps * std::cos(thetaRad);
+            const float rawDelta = radialMps * momentData->scale();
+            level                = static_cast<std::uint16_t>(std::clamp(
+               static_cast<float>(level) - rawDelta, 0.0f, 65535.0f));
+         }
       }
    }
 
@@ -1784,6 +1894,7 @@ Level2ProductView::GetDataLevelCode(std::uint16_t level) const
    case common::Level2Product::DifferentialReflectivity:
    case common::Level2Product::DifferentialPhase:
    case common::Level2Product::CorrelationCoefficient:
+   case common::Level2Product::StormRelativeVelocity:
       if (level == RANGE_FOLDED)
       {
          return wsr88d::DataLevelCode::RangeFolded;
@@ -1836,6 +1947,7 @@ std::optional<float> Level2ProductView::GetDataValue(std::uint16_t level) const
    case common::Level2Product::DifferentialReflectivity:
    case common::Level2Product::DifferentialPhase:
    case common::Level2Product::CorrelationCoefficient:
+   case common::Level2Product::StormRelativeVelocity:
       threshold = 2;
       break;
 

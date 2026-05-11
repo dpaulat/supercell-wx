@@ -22,6 +22,7 @@ static const std::unordered_map<Level2Product, std::string> level2Name_ {
    {Level2Product::ClutterFilterPowerRemoved, "CFP"},
    {Level2Product::HydrometeorClassification, "HCA"},
    {Level2Product::TornadoDebrisSignature, "TDS"},
+   {Level2Product::StormRelativeVelocity, "SRV"},
    {Level2Product::Unknown, "?"}};
 
 static const std::unordered_map<Level2Product, std::string> level2Description_ {
@@ -34,6 +35,7 @@ static const std::unordered_map<Level2Product, std::string> level2Description_ {
    {Level2Product::ClutterFilterPowerRemoved, "Clutter Filter Power Removed"},
    {Level2Product::HydrometeorClassification, "Hydrometeor Classification"},
    {Level2Product::TornadoDebrisSignature, "Tornado Debris Signature"},
+   {Level2Product::StormRelativeVelocity, "Storm Relative Velocity"},
    {Level2Product::Unknown, "?"}};
 
 static const std::unordered_map<Level2Product, std::string> level2Palette_ {
@@ -46,6 +48,7 @@ static const std::unordered_map<Level2Product, std::string> level2Palette_ {
    {Level2Product::ClutterFilterPowerRemoved, "???"},
    {Level2Product::HydrometeorClassification, "HC"},
    {Level2Product::TornadoDebrisSignature, "TDS"},
+   {Level2Product::StormRelativeVelocity, "SRV"},
    {Level2Product::Unknown, "???"}};
 
 static const std::unordered_map<int, std::string> level3ProductCodeMap_ {

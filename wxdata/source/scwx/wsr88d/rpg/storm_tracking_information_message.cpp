@@ -182,6 +182,19 @@ StormTrackingInformationMessage::sti_record(const std::string& stormId) const
    return record;
 }
 
+std::shared_ptr<const StormTrackingInformationMessage::StiRecord>
+StormTrackingInformationMessage::first_sti_record() const
+{
+   std::shared_ptr<const StiRecord> record = nullptr;
+
+   if (!p->stiRecords_.empty())
+   {
+      record = p->stiRecords_.cbegin()->second;
+   }
+
+   return record;
+}
+
 std::shared_ptr<StormTrackingInformationMessage::StiRecord>&
 StormTrackingInformationMessage::Impl::GetOrCreateStiRecord(
    const std::string& stormId)

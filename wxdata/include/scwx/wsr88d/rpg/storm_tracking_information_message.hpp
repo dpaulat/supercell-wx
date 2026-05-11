@@ -77,6 +77,8 @@ public:
    std::shared_ptr<const StiRecord>
    sti_record(const std::string& stormId) const;
 
+   std::shared_ptr<const StiRecord> first_sti_record() const;
+
    bool Parse(std::istream& is) override;
 
    static std::shared_ptr<StormTrackingInformationMessage>

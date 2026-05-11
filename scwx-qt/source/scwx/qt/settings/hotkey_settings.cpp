@@ -48,6 +48,7 @@ static const std::unordered_map<types::Hotkey, QKeySequence> kDefaultHotkeys_ {
    {types::Hotkey::SelectLevel2Phi, QKeySequence {Qt::Key::Key_F5}},
    {types::Hotkey::SelectLevel2Rho, QKeySequence {Qt::Key::Key_F6}},
    {types::Hotkey::SelectLevel2CFP, QKeySequence {Qt::Key::Key_F7}},
+   {types::Hotkey::SelectLevel2SRV, QKeySequence {Qt::Key::Key_F8}},
    {types::Hotkey::SelectLevel3Ref, QKeySequence {Qt::Key::Key_QuoteLeft}},
    {types::Hotkey::SelectLevel3Vel, QKeySequence {Qt::Key::Key_1}},
    {types::Hotkey::SelectLevel3SRM, QKeySequence {Qt::Key::Key_2}},

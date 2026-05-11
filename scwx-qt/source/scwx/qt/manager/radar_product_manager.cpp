@@ -11,6 +11,7 @@
 #include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
+#include <scwx/wsr88d/rpg/storm_tracking_information_message.hpp>
 
 #include <execution>
 #include <mutex>
@@ -1918,6 +1919,49 @@ RadarProductManager::GetLevel3Data(const std::string& product,
    }
 
    return {message, time, status};
+}
+
+std::optional<common::StormMotionVector>
+RadarProductManager::GetStormMotionVector(
+   std::chrono::system_clock::time_point time)
+{
+   std::optional<common::StormMotionVector> stormMotion = std::nullopt;
+
+   std::shared_ptr<wsr88d::rpg::Level3Message> message;
+   std::tie(message, std::ignore, std::ignore) = GetLevel3Data("NST", time);
+
+   if (message != nullptr)
+   {
+      auto stiMessage = std::dynamic_pointer_cast<
+         wsr88d::rpg::StormTrackingInformationMessage>(message);
+      if (stiMessage != nullptr)
+      {
+         auto stiRecord = stiMessage->first_sti_record();
+         if (stiRecord != nullptr && stiRecord->direction_.has_value() &&
+             stiRecord->speed_.has_value())
+         {
+            stormMotion = common::StormMotionVector {
+               units::angle::degrees<float> {
+                  stiRecord->direction_.value().value()},
+               units::velocity::knots<float> {
+                  stiRecord->speed_.value().value()}};
+         }
+         else
+         {
+            // Fall back to NST message defaults when no storm cell is tracked
+            auto defaultDir = stiMessage->default_direction();
+            auto defaultSpd = stiMessage->default_speed();
+            if (defaultDir.has_value() && defaultSpd.has_value())
+            {
+               stormMotion = common::StormMotionVector {
+                  units::angle::degrees<float> {defaultDir->value()},
+                  *defaultSpd};
+            }
+         }
+      }
+   }
+
+   return stormMotion;
 }
 
 common::Level3ProductCategoryMap

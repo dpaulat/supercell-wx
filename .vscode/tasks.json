@@ -12,38 +12,34 @@
 		{
 			"label": "clang-format: check",
 			"type": "shell",
-			"command": ".venv\\Scripts\\python.exe",
+			"command": ".venv\\Scripts\\git-clang-format",
 			"args": [
-				"C:\\Program Files\\LLVM\\bin\\git-clang-format",
-				"--diff",
-				"--style=file",
-				"origin/develop"
+				"--staged",
+				"--diff"
 			],
 			"options": {
 				"env": {
-					"PATH": "C:\\Program Files\\LLVM\\bin;${env:PATH}"
+					"PATH": "${workspaceFolder}\\.venv\\Scripts;${env:PATH}"
 				}
 			},
 			"group": "none",
-			"detail": "Check formatting of changed lines against origin/develop",
+			"detail": "Run git-clang-format from the project .venv with --staged --diff to check formatting of staged files without applying changes.",
 			"problemMatcher": []
 		},
 		{
-			"label": "clang-format: fix",
+			"label": "clang-format-apply",
 			"type": "shell",
-			"command": ".venv\\Scripts\\python.exe",
+			"command": ".venv\\Scripts\\git-clang-format",
 			"args": [
-				"C:\\Program Files\\LLVM\\bin\\git-clang-format",
-				"--style=file",
-				"origin/develop"
+				"--staged"
 			],
 			"options": {
 				"env": {
-					"PATH": "C:\\Program Files\\LLVM\\bin;${env:PATH}"
+					"PATH": "${workspaceFolder}\\.venv\\Scripts;${env:PATH}"
 				}
 			},
 			"group": "none",
-			"detail": "Fix formatting of changed lines against origin/develop",
+			"detail": "Run git-clang-format from the project .venv with --staged to apply formatting changes to staged files in-place. Use when user says \"clang-format apply\", \"format staged\", \"apply clang-format\", \"git-clang-format apply\", or wants to auto-format staged files.",
 			"problemMatcher": []
 		},
 		{

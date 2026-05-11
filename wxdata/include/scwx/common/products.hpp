@@ -26,6 +26,7 @@ enum class Level2Product
 {
    Reflectivity,
    Velocity,
+   StormRelativeVelocity,
    SpectrumWidth,
    DifferentialReflectivity,
    DifferentialPhase,

@@ -29,7 +29,9 @@ static const std::unordered_map<types::Hotkey, common::Level2Product>
       {types::Hotkey::SelectLevel2Rho,
        common::Level2Product::CorrelationCoefficient},
       {types::Hotkey::SelectLevel2CFP,
-       common::Level2Product::ClutterFilterPowerRemoved}};
+       common::Level2Product::ClutterFilterPowerRemoved},
+      {types::Hotkey::SelectLevel2SRV,
+       common::Level2Product::StormRelativeVelocity}};
 
 class Level2ProductsWidgetImpl : public QObject
 {

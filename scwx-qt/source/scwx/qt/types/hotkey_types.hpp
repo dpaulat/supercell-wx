@@ -38,6 +38,7 @@ enum class Hotkey
    SelectLevel2Phi,
    SelectLevel2Rho,
    SelectLevel2CFP,
+   SelectLevel2SRV,
    SelectLevel3Ref,
    SelectLevel3Vel,
    SelectLevel3SRM,

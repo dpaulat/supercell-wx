@@ -47,6 +47,7 @@ set(HDR_COMMON include/scwx/common/characters.hpp
                include/scwx/common/geographic.hpp
                include/scwx/common/products.hpp
                include/scwx/common/sites.hpp
+               include/scwx/common/storm_motion_vector.hpp
                include/scwx/common/types.hpp
                include/scwx/common/vcp.hpp)
 set(SRC_COMMON source/scwx/common/characters.cpp
@@ -54,6 +55,7 @@ set(SRC_COMMON source/scwx/common/characters.cpp
                source/scwx/common/geographic.cpp
                source/scwx/common/products.cpp
                source/scwx/common/sites.cpp
+               source/scwx/common/storm_motion_vector.cpp
                source/scwx/common/vcp.cpp)
 set(HDR_GR include/scwx/gr/color.hpp
            include/scwx/gr/gr_types.hpp
