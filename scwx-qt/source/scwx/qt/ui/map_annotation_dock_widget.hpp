@@ -6,6 +6,9 @@
 
 #include <QWidget>
 
+class QEvent;
+class QCloseEvent;
+
 namespace scwx::qt::map
 {
 class MapAnnotationLayer;
@@ -63,6 +66,10 @@ public:
    /** Minimized toolbar (- button); no separate on-map collapsed control. */
    void               SetPanelExpanded(bool expanded);
    [[nodiscard]] bool PanelExpanded() const;
+
+protected:
+   void changeEvent(QEvent* event) override;
+   void closeEvent(QCloseEvent* event) override;
 
 private slots:
    void OnToolSelected(int toolValue);

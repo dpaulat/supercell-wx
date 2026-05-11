@@ -122,27 +122,16 @@ QString MapPaneContextMenuBaseStyle(QLatin1String menuPadding,
                       "QMenu#MapPaneContextMenu::indicator {"
                       "  width: 16px; height: 16px; left: 8px;"
                       "}")
-                      .arg(menuPadding);
+                      .arg(QString {menuPadding});
    if (clearInteriorChildBackgrounds)
    {
+      // Title QLabel only; transparent on all QWidget children clears row gaps.
       sheet += QStringLiteral(
-         "QMenu#MapPaneContextMenu QWidget {"
+         "QMenu#MapPaneContextMenu QLabel#MapPaneContextMenuTitle {"
          "  background: transparent;"
          "}");
    }
    return sheet;
-}
-
-QString MapPaneContextMenuStyleSheet()
-{
-   return MapPaneContextMenuBaseStyle(QLatin1String {"14px 12px 12px 12px"},
-                                      true);
-}
-
-QString MapPaneContextSubMenuStyleSheet()
-{
-   return MapPaneContextMenuBaseStyle(QLatin1String {"8px 10px 8px 10px"},
-                                      false);
 }
 
 void StyleMapPaneContextSubmenu(QMenu* m)
@@ -155,7 +144,8 @@ void StyleMapPaneContextSubmenu(QMenu* m)
    m->setAttribute(Qt::WA_TranslucentBackground, true);
    m->setAttribute(Qt::WA_StyledBackground, true);
    m->setMinimumWidth(0);
-   m->setStyleSheet(MapPaneContextSubMenuStyleSheet());
+   m->setStyleSheet(
+      MapPaneContextMenuBaseStyle(QLatin1String {"8px 10px 8px 10px"}, false));
    static constexpr const char* kAlignInstalled = "_scwx_alignInstalled";
    if (!m->property(kAlignInstalled).toBool())
    {
@@ -266,7 +256,8 @@ void RunMapPaneContextMenu(const MapPaneContextMenuConfig& cfg,
    menu.setAttribute(Qt::WA_TranslucentBackground);
    menu.setAttribute(Qt::WA_StyledBackground, true);
    menu.setMinimumWidth(0);
-   menu.setStyleSheet(MapPaneContextMenuStyleSheet());
+   menu.setStyleSheet(
+      MapPaneContextMenuBaseStyle(QLatin1String {"14px 12px 12px 12px"}, true));
 
    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
    auto* const titleLabel = new QLabel(cfg.title_map, &menu);

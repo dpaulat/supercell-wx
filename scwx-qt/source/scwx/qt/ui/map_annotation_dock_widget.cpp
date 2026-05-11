@@ -14,6 +14,7 @@
 
 #include <QButtonGroup>
 #include <QCheckBox>
+#include <QCloseEvent>
 #include <QColorDialog>
 #include <QComboBox>
 #include <QEvent>
@@ -160,7 +161,9 @@ protected:
    {
       if (watched == slider_ &&
           (event->type() == QEvent::Move || event->type() == QEvent::Resize ||
-           event->type() == QEvent::StyleChange))
+           event->type() == QEvent::StyleChange ||
+           event->type() == QEvent::PaletteChange ||
+           event->type() == QEvent::ApplicationPaletteChange))
       {
          update();
       }
@@ -213,6 +216,78 @@ private:
    QSlider*               slider_ {nullptr};
    std::vector<LabelMark> labels_ {};
 };
+
+// Panel tint alpha: matches pre-theme dock `rgba(32, 37, 43, 230)` so the
+// stack stays readable over live map tiles; RGB from `QPalette::Window` at
+// this fixed alpha.
+constexpr int kDockPanelBackdropAlpha = 230;
+
+QString MapAnnotationDockChromeStyleSheet(const QWidget& paletteSource)
+{
+   QColor panel =
+      paletteSource.palette().color(QPalette::Active, QPalette::Window);
+   panel.setAlpha(kDockPanelBackdropAlpha);
+   const QString panelBg = QStringLiteral("rgba(%1,%2,%3,%4)")
+                              .arg(panel.red())
+                              .arg(panel.green())
+                              .arg(panel.blue())
+                              .arg(panel.alpha());
+
+   return QStringLiteral(
+             "MapAnnotationDockWidget, #mapAnnotationExpandedPanel {"
+             "background-color: %1;"
+             "color: palette(window-text);"
+             "border: 1px solid palette(mid);"
+             "border-radius: 8px; }")
+             .arg(panelBg) +
+          QStringLiteral(
+             "MapAnnotationDockWidget QLabel { color: palette(window-text); }"
+             "MapAnnotationDockWidget QCheckBox { color: palette(window-text); "
+             "}"
+             "MapAnnotationDockWidget QComboBox {"
+             "background-color: palette(base);"
+             "color: palette(text);"
+             "border: 1px solid palette(mid);"
+             "border-radius: 4px;"
+             "padding: 2px; }"
+             "MapAnnotationDockWidget QComboBox QAbstractItemView {"
+             "background-color: palette(base);"
+             "color: palette(text);"
+             "selection-background-color: palette(highlight);"
+             "selection-color: palette(highlighted-text); }"
+             "MapAnnotationDockWidget QToolButton {"
+             "padding: 2px 6px;"
+             "min-height: 22px;"
+             "border: 1px solid palette(mid);"
+             "border-radius: 5px;"
+             "background-color: palette(button);"
+             "color: palette(button-text); }"
+             "MapAnnotationDockWidget QToolButton:hover {"
+             "background-color: palette(midlight); }"
+             "MapAnnotationDockWidget QToolButton:checked {"
+             "background-color: palette(highlight);"
+             "border: 2px solid palette(highlight);"
+             "color: palette(highlighted-text);"
+             "font-weight: 700; }"
+             "MapAnnotationDockWidget QPushButton {"
+             "min-height: 24px;"
+             "border: 1px solid palette(mid);"
+             "border-radius: 4px;"
+             "background-color: palette(button);"
+             "color: palette(button-text); }"
+             "MapAnnotationDockWidget QPushButton:hover {"
+             "background-color: palette(midlight); }"
+             "MapAnnotationDockWidget QSlider::groove:horizontal {"
+             "background: palette(midlight);"
+             "height: 4px;"
+             "border-radius: 2px; }"
+             "MapAnnotationDockWidget QSlider::handle:horizontal {"
+             "background: palette(button);"
+             "border: 1px solid palette(mid);"
+             "width: 14px;"
+             "margin: -5px 0;"
+             "border-radius: 7px; }");
+}
 
 struct BrushScaleMark
 {
@@ -433,6 +508,30 @@ public:
       layer_.reset();
    }
 
+   void ApplyChromeStyleSheet()
+   {
+      const QString next = MapAnnotationDockChromeStyleSheet(*self_);
+      if (next == lastAppliedChromeStyleSheet_ && self_->styleSheet() == next)
+      {
+         return;
+      }
+      // Re-entry: skip nested apply if polish() emits StyleChange.
+      if (chromeStyleSheetRefresh_)
+      {
+         return;
+      }
+      chromeStyleSheetRefresh_ = true;
+      self_->setStyleSheet(next);
+      lastAppliedChromeStyleSheet_ = next;
+      if (QStyle* style = self_->style())
+      {
+         style->unpolish(self_);
+         style->polish(self_);
+      }
+      self_->update();
+      chromeStyleSheetRefresh_ = false;
+   }
+
    void UpdatePlacement()
    {
       if (!overlayVisible_)
@@ -641,7 +740,38 @@ public:
       {
          expanded = true;
       }
-      expanded_ = expanded;
+      const bool wasExpanded = expanded_;
+      const bool collapsing  = wasExpanded && !expanded;
+      const bool expanding   = !wasExpanded && expanded;
+      expanded_              = expanded;
+      if (collapsing)
+      {
+         toolToReapplyWhenPanelExpands_ = CurrentTool();
+         constexpr auto kOffTool        = map::MapAnnotationTool::None;
+         for (const auto& L : LayersForToolStyle())
+         {
+            if (L != nullptr)
+            {
+               L->SetTool(kOffTool);
+            }
+         }
+         UpdateToolButtons(kOffTool);
+      }
+      else if (expanding)
+      {
+         const map::MapAnnotationTool tool =
+            (toolToReapplyWhenPanelExpands_ != map::MapAnnotationTool::None) ?
+               toolToReapplyWhenPanelExpands_ :
+               CurrentTool();
+         for (const auto& L : LayersForToolStyle())
+         {
+            if (L != nullptr)
+            {
+               L->SetTool(tool);
+            }
+         }
+         UpdateToolButtons(tool);
+      }
       if (collapsedButton_ != nullptr)
       {
          collapsedButton_->setVisible(false);
@@ -665,6 +795,10 @@ public:
       {
          // Turning the whole overlay off: reset tools so the map does not keep
          // intercepting drags.
+         if (expanded_)
+         {
+            toolToReapplyWhenPanelExpands_ = CurrentTool();
+         }
          constexpr auto kOffTool = map::MapAnnotationTool::None;
          for (const auto& L : LayersForToolStyle())
          {
@@ -682,6 +816,17 @@ public:
       SetExpanded(expanded_);
       UpdatePlacement();
       SaveState();
+   }
+
+   /** Titlebar X / Alt+F4 / (-) while floated: dock onto map and collapse. */
+   void DockFromFloatAndCollapse()
+   {
+      if (!floating_)
+      {
+         return;
+      }
+      SetFloating(false);
+      self_->SetPanelExpanded(false);
    }
 
    void SetFloating(bool floating)
@@ -1022,15 +1167,17 @@ public:
    QPointer<QWidget>        overlayParent_ {};
    QPointer<QWidget>        hostMapWidget_ {};
    bool                     expanded_ {false};
-   bool                     overlayVisible_ {true};
-   bool                     floating_ {false};
-   bool                     dragging_ {false};
-   QPoint                   dragStartGlobal_ {};
-   QPoint                   dragStartPosition_ {};
-   QPoint                   dragStartOverlayGlobal_ {};
-   std::optional<QPoint>    attachedPosition_ {};
-   std::optional<QPoint>    floatingPosition_ {};
-   bool                     floatingPositionGlobal_ {false};
+   map::MapAnnotationTool   toolToReapplyWhenPanelExpands_ {
+      map::MapAnnotationTool::None};
+   bool                  overlayVisible_ {true};
+   bool                  floating_ {false};
+   bool                  dragging_ {false};
+   QPoint                dragStartGlobal_ {};
+   QPoint                dragStartPosition_ {};
+   QPoint                dragStartOverlayGlobal_ {};
+   std::optional<QPoint> attachedPosition_ {};
+   std::optional<QPoint> floatingPosition_ {};
+   bool                  floatingPositionGlobal_ {false};
 
    QPushButton*                             collapsedButton_ {nullptr};
    QFrame*                                  expandedPanel_ {nullptr};
@@ -1064,31 +1211,18 @@ public:
    std::vector<QMetaObject::Connection> connections_ {};
    std::string                          lastDistanceUnitsName_ {};
    boost::uuids::uuid                   distanceUnitsCallbackUuid_ {};
+   bool                                 chromeStyleSheetRefresh_ {false};
+   QString                              lastAppliedChromeStyleSheet_ {};
 };
 
 MapAnnotationDockWidget::MapAnnotationDockWidget(QWidget* parent) :
     QWidget(parent), p(std::make_unique<Impl>(this))
 {
    setAttribute(Qt::WA_StyledBackground, true);
-   setStyleSheet(QStringLiteral(
-      "MapAnnotationDockWidget, #mapAnnotationExpandedPanel {"
-      "background-color: rgba(32, 37, 43, 230);"
-      "border: 1px solid rgba(255, 255, 255, 32);"
-      "border-radius: 8px; }"
-      "QToolButton {"
-      "padding: 2px 6px;"
-      "min-height: 22px;"
-      "border: 1px solid rgba(255,255,255,52);"
-      "border-radius: 5px;"
-      "background-color: rgba(255,255,255,12);"
-      "color: rgba(255,255,255,210); }"
-      "QPushButton { min-height: 24px; }"
-      "QToolButton:hover { background-color: rgba(255,255,255,20); }"
-      "QToolButton:checked {"
-      "background-color: rgba(66, 165, 245, 175);"
-      "border: 2px solid rgba(255,255,255,235);"
-      "color: white;"
-      "font-weight: 700; }"));
+   // closeEvent() reparents when floating; WA_DeleteOnClose would destroy the
+   // single shared dock instance.
+   setAttribute(Qt::WA_DeleteOnClose, false);
+   p->ApplyChromeStyleSheet();
 
    auto* mainLayout = new QVBoxLayout(this);
    mainLayout->setContentsMargins(0, 0, 0, 0);
@@ -1549,6 +1683,11 @@ void MapAnnotationDockWidget::OnClearAll()
 
 void MapAnnotationDockWidget::OnToggleExpanded()
 {
+   if (p->floating_)
+   {
+      p->DockFromFloatAndCollapse();
+      return;
+   }
    p->SetExpanded(!p->expanded_);
 }
 
@@ -1675,6 +1814,35 @@ bool MapAnnotationDockWidget::eventFilter(QObject* watched, QEvent* event)
       }
    }
    return QWidget::eventFilter(watched, event);
+}
+
+void MapAnnotationDockWidget::closeEvent(QCloseEvent* event)
+{
+   if (p->floating_)
+   {
+      // Alt+F4 / titlebar close: dock back onto map, collapse panel. ignore()
+      // so Qt does not treat this as deleting/hiding a top-level close after we
+      // reparent (Draw menu check state follows PanelExpanded()).
+      p->DockFromFloatAndCollapse();
+      event->ignore();
+      return;
+   }
+   QWidget::closeEvent(event);
+}
+
+void MapAnnotationDockWidget::changeEvent(QEvent* event)
+{
+   QWidget::changeEvent(event);
+   switch (event->type())
+   {
+   case QEvent::PaletteChange:
+   case QEvent::ApplicationPaletteChange:
+   case QEvent::StyleChange:
+      p->ApplyChromeStyleSheet();
+      break;
+   default:
+      break;
+   }
 }
 
 // NOLINTEND(cppcoreguidelines-avoid-magic-numbers,cppcoreguidelines-owning-memory,cppcoreguidelines-pro-bounds-constant-array-index,bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)

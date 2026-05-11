@@ -314,6 +314,8 @@ public:
    void SavePoppedMapWindowsToSettings();
    void TryRestorePoppedMapWindows();
    void ConnectMapAnnotationLayerReady(map::MapWidget* mw);
+   /// Layer broadcast, floating host resolver, deferred float-from-settings.
+   void ConfigureMapAnnotationDock();
 
    boost::asio::thread_pool threadPool_ {1u};
 
@@ -471,41 +473,7 @@ MainWindow::MainWindow(QWidget* parent) :
    p->mapAnnotationDock_ =
       new ui::MapAnnotationDockWidget(p->mainWindow_->ui->centralwidget);
    p->mapAnnotationDock_->AttachToMap(p->activeMap_);
-   MainWindowImpl* const impl = p.get();
-   p->mapAnnotationDock_->SetBroadcastTargets(
-      [impl]()
-      {
-         std::vector<std::shared_ptr<map::MapAnnotationLayer>> layers;
-         for (map::MapWidget* mw : impl->maps_)
-         {
-            if (mw == nullptr)
-            {
-               continue;
-            }
-            if (auto layer = mw->map_annotation_layer())
-            {
-               layers.push_back(std::move(layer));
-            }
-         }
-         return layers;
-      });
-   p->mapAnnotationDock_->SetFloatingDockHostResolver(
-      [impl]() -> QWidget*
-      {
-         if (impl->activeMap_ != nullptr)
-         {
-            return impl->activeMap_;
-         }
-         for (map::MapWidget* mw : impl->maps_)
-         {
-            if (mw != nullptr)
-            {
-               return mw;
-            }
-         }
-         return nullptr;
-      });
-   p->mapAnnotationDock_->ApplyDeferredFloatingState();
+   p->ConfigureMapAnnotationDock();
    for (map::MapWidget* mw : p->maps_)
    {
       if (mw != nullptr)
@@ -1145,7 +1113,7 @@ void MainWindowImpl::EnsureMapWidgets(int64_t gridWidth, int64_t gridHeight)
          {
             activeMap_ = nullptr;
          }
-         if (mapAnnotationDock_ != nullptr)
+         if (!mapAnnotationDock_.isNull())
          {
             mapAnnotationDock_->DetachIfHostedBy(lastMap);
          }
@@ -1213,6 +1181,48 @@ void MainWindowImpl::OnMapAnnotationLayerReady()
    {
       mapAnnotationDock_->ReapplyToolAndStyleFromUi();
    }
+}
+
+void MainWindowImpl::ConfigureMapAnnotationDock()
+{
+   if (mapAnnotationDock_.isNull())
+   {
+      return;
+   }
+   mapAnnotationDock_->SetBroadcastTargets(
+      [this]()
+      {
+         std::vector<std::shared_ptr<map::MapAnnotationLayer>> layers;
+         for (map::MapWidget* mw : maps_)
+         {
+            if (mw == nullptr)
+            {
+               continue;
+            }
+            if (auto layer = mw->map_annotation_layer())
+            {
+               layers.push_back(std::move(layer));
+            }
+         }
+         return layers;
+      });
+   mapAnnotationDock_->SetFloatingDockHostResolver(
+      [this]() -> QWidget*
+      {
+         if (activeMap_ != nullptr)
+         {
+            return activeMap_;
+         }
+         for (map::MapWidget* mw : maps_)
+         {
+            if (mw != nullptr)
+            {
+               return mw;
+            }
+         }
+         return nullptr;
+      });
+   mapAnnotationDock_->ApplyDeferredFloatingState();
 }
 
 void MainWindowImpl::SyncMapPaneViewLinkStateSize()
@@ -3365,7 +3375,7 @@ void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)
       widget->SetActive(mapWidget == widget);
    }
 
-   if (mapAnnotationDock_ != nullptr)
+   if (!mapAnnotationDock_.isNull())
    {
       if (activeMap_ != nullptr)
       {
@@ -3517,40 +3527,7 @@ void MainWindowImpl::OnMapPaneContextMenuRequested(const QPoint& globalPos)
          // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): Qt parent owns dock
          mapAnnotationDock_ =
             new ui::MapAnnotationDockWidget(mainWindow_->ui->centralwidget);
-         mapAnnotationDock_->SetBroadcastTargets(
-            [this]()
-            {
-               std::vector<std::shared_ptr<map::MapAnnotationLayer>> layers;
-               for (map::MapWidget* candidate : maps_)
-               {
-                  if (candidate == nullptr)
-                  {
-                     continue;
-                  }
-                  if (auto layer = candidate->map_annotation_layer())
-                  {
-                     layers.push_back(std::move(layer));
-                  }
-               }
-               return layers;
-            });
-         mapAnnotationDock_->SetFloatingDockHostResolver(
-            [this]() -> QWidget*
-            {
-               if (activeMap_ != nullptr)
-               {
-                  return activeMap_;
-               }
-               for (map::MapWidget* candidate : maps_)
-               {
-                  if (candidate != nullptr)
-                  {
-                     return candidate;
-                  }
-               }
-               return nullptr;
-            });
-         mapAnnotationDock_->ApplyDeferredFloatingState();
+         ConfigureMapAnnotationDock();
       }
       SetActiveMap(mw);
       if (!open)
