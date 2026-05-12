@@ -45,6 +45,9 @@ struct MapPaneContextMenuConfig
    std::function<void()>                                     on_reset_layout;
    /// Appends L2/L3 product submenus (and connects actions).
    std::function<void(QMenu& menu, MapWidget* map)> append_radar_submenus;
+   /// Appends SPC Convective Outlook submenus (and connects actions).
+   /// Optional — if null/empty, no SPC Outlook section is added.
+   std::function<void(QMenu& menu)> append_spc_outlook_submenus;
 };
 
 void RunMapPaneContextMenu(const MapPaneContextMenuConfig& cfg,
@@ -68,5 +71,19 @@ void AppendMapPaneRadarContextMenu(
       void(MapWidget*, common::RadarProductGroup, const std::string&, int16_t)>&
                                               on_select,
    const std::function<QString(const char*)>& trFn);
+
+/**
+ * @brief Appends SPC Convective Outlook submenus to an existing context menu.
+ *
+ * Creates a top-level "SPC Outlook" submenu with Day 1/2/3 submenus,
+ * each containing the appropriate outlook products. The currently selected
+ * day+product is checked. Selecting an item calls
+ * SpcOutlookManager::Instance().SelectDay() and SelectProduct().
+ *
+ * @param [in] menu Parent menu. QActionGroup and actions are parented to it.
+ * @param [in] trFn Translation function; typically mainWindow->tr.
+ */
+void AppendMapPaneSpcOutlookContextMenu(
+   QMenu& menu, const std::function<QString(const char*)>& trFn);
 
 } // namespace scwx::qt::map

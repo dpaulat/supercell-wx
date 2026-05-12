@@ -4008,6 +4008,11 @@ void MainWindowImpl::OnMapPaneContextMenuRequested(const QPoint& globalPos)
                 int16_t c) { SelectRadarProduct(w, g, n, c); },
          [this](const char* s) { return mainWindow_->tr(s); });
    };
+   cfg.append_spc_outlook_submenus = [this](QMenu& m)
+   {
+      map::AppendMapPaneSpcOutlookContextMenu(
+         m, [this](const char* s) { return mainWindow_->tr(s); });
+   };
 
    map::RunMapPaneContextMenu(cfg, globalPos);
 }

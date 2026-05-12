@@ -1,5 +1,7 @@
 #include <scwx/qt/map/map_pane_context_menu.hpp>
 #include <scwx/qt/map/map_widget.hpp>
+#include <scwx/qt/manager/spc_outlook_manager.hpp>
+#include <scwx/spc/spc_types.hpp>
 
 #include <scwx/common/products.hpp>
 
@@ -18,6 +20,7 @@
 #include <QWidgetAction>
 
 #include <string>
+#include <vector>
 
 namespace scwx::qt::map
 {
@@ -240,6 +243,64 @@ void AppendMapPaneRadarContextMenu(
    l3Menu->setEnabled(anyL3);
 }
 
+void AppendMapPaneSpcOutlookContextMenu(
+   QMenu& menu, const std::function<QString(const char*)>& trFn)
+{
+   auto&                       manager = manager::SpcOutlookManager::Instance();
+   const scwx::spc::OutlookDay currentDay = manager.GetSelectedDay();
+   const scwx::spc::OutlookProduct currentProduct =
+      manager.GetSelectedProduct();
+
+   QMenu* const spcMenu = menu.addMenu(trFn("SPC Outlook"));
+   StyleMapPaneContextSubmenu(spcMenu);
+
+   auto* const outlookActionGroup = new QActionGroup {&menu};
+   outlookActionGroup->setExclusive(true);
+
+   for (const scwx::spc::OutlookDay day : scwx::spc::OutlookDayIterator())
+   {
+      const std::string dayName = scwx::spc::GetOutlookDayName(day);
+      QMenu* const dayMenu = spcMenu->addMenu(QString::fromStdString(dayName));
+      StyleMapPaneContextSubmenu(dayMenu);
+
+      // Determine available products for this day (matches the Radar Toolbox)
+      std::vector<scwx::spc::OutlookProduct> products;
+      if (day == scwx::spc::OutlookDay::Day3)
+      {
+         products = {scwx::spc::OutlookProduct::Categorical,
+                     scwx::spc::OutlookProduct::Probabilistic,
+                     scwx::spc::OutlookProduct::SignificantProbabilistic};
+      }
+      else // Day1, Day2
+      {
+         products = {scwx::spc::OutlookProduct::Categorical,
+                     scwx::spc::OutlookProduct::Tornado,
+                     scwx::spc::OutlookProduct::Wind,
+                     scwx::spc::OutlookProduct::Hail};
+      }
+
+      for (const scwx::spc::OutlookProduct product : products)
+      {
+         const std::string productName =
+            scwx::spc::GetOutlookProductName(product);
+         QAction* const a =
+            dayMenu->addAction(QString::fromStdString(productName));
+         a->setCheckable(true);
+         a->setActionGroup(outlookActionGroup);
+         a->setChecked(day == currentDay && product == currentProduct);
+
+         QObject::connect(a,
+                          &QAction::triggered,
+                          [day, product]()
+                          {
+                             auto& mgr = manager::SpcOutlookManager::Instance();
+                             mgr.SelectDay(day);
+                             mgr.SelectProduct(product);
+                          });
+      }
+   }
+}
+
 void RunMapPaneContextMenu(const MapPaneContextMenuConfig& cfg,
                            const QPoint&                   globalPos)
 {
@@ -348,6 +409,12 @@ void RunMapPaneContextMenu(const MapPaneContextMenuConfig& cfg,
 
    menu.addSeparator();
    appendRadar(menu, curMap);
+
+   if (cfg.append_spc_outlook_submenus)
+   {
+      menu.addSeparator();
+      cfg.append_spc_outlook_submenus(menu);
+   }
 
    QAction* const resetLayoutAction = menu.addAction(cfg.text_reset_layout);
    const bool     popped =
