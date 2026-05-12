@@ -14,8 +14,8 @@ TEST(UiSettingsTest, MapAnnotationStateDefaultsToEmpty)
 
 TEST(UiSettingsTest, MapAnnotationStateParticipatesInEquality)
 {
-   UiSettings lhs;
-   UiSettings rhs;
+   const UiSettings lhs;
+   const UiSettings rhs;
 
    EXPECT_TRUE(lhs == rhs);
 
