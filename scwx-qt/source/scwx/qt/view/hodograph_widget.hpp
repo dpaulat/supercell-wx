@@ -20,12 +20,21 @@ public:
    HodographWidget(const HodographWidget&)            = delete;
    HodographWidget& operator=(const HodographWidget&) = delete;
 
-   void SetSounding(std::shared_ptr<sounding::SoundingData> sounding);
+   void SetSounding(const std::shared_ptr<sounding::SoundingData>& sounding);
+
+signals:
+   void LevelHovered(double pressureHPa);
 
 protected:
    void initializeGL() override;
    void resizeGL(int w, int h) override;
    void paintGL() override;
+
+   void mouseMoveEvent(QMouseEvent* event) override;
+   void leaveEvent(QEvent* event) override;
+
+public slots:
+   void SetHoverLevel(double pressureHPa);
 
 private:
    class Impl;

@@ -123,69 +123,90 @@ public:
       return tk - 273.15;
    }
 
-   // CAPE calculation
-   void ComputeCapeCin()
+   // Integrate a parcel from its starting point up to the top of the sounding
+   struct ParcelResult
    {
-      capeCalculated_ = true;
-      capeJkg_        = 0.0;
-      cinJkg_         = 0.0;
+      double                capeJkg {};
+      double                cinJkg {};
+      std::optional<double> lclPressure {};
+      std::optional<double> lclTemperature {};
+      std::optional<double> lfcPressure {};
+      std::optional<double> lfcTemperature {};
+      std::optional<double> elPressure {};
+      std::optional<double> elTemperature {};
+   };
 
-      if (levels_.size() < 2)
+   ParcelResult IntegrateParcel(double                      p_start,
+                                double                      t_start,
+                                double                      td_start,
+                                std::vector<SoundingLevel>* profile = nullptr)
+   {
+      ParcelResult res;
+      if (levels_.empty())
+         return res;
+
+      res.lclPressure    = LclPressure(p_start, t_start, td_start);
+      res.lclTemperature = LclTemperature(t_start, td_start);
+
+      if (profile)
       {
-         lclPressure_    = std::nullopt;
-         lclTemperature_ = std::nullopt;
-         return;
+         profile->clear();
+         profile->push_back({p_start, t_start, td_start, 0.0, 0.0, 0.0});
       }
 
-      // Surface level for parcel
-      const auto& sfc    = levels_[0];
-      double      p_sfc  = sfc.pressure_hPa_;
-      double      t_sfc  = sfc.temperature_C_;
-      double      td_sfc = sfc.dewpoint_C_;
-
-      // Compute LCL
-      lclPressure_    = LclPressure(p_sfc, t_sfc, td_sfc);
-      lclTemperature_ = LclTemperature(t_sfc, td_sfc);
-
-      // Sort levels by decreasing pressure (surface up)
       auto sorted = levels_;
       std::sort(sorted.begin(),
                 sorted.end(),
                 [](const auto& a, const auto& b)
                 { return a.pressure_hPa_ > b.pressure_hPa_; });
 
-      // Parcel profile and CAPE/CIN integration
       bool   aboveLcl   = false;
       bool   crossedLfc = false;
       double capeInt    = 0.0;
       double cinInt     = 0.0;
 
-      for (std::size_t i = 1; i < sorted.size(); ++i)
+      // Start integration from the parcel's origin pressure
+      for (size_t i = 1; i < sorted.size(); ++i)
       {
          double p_upper = sorted[i].pressure_hPa_;
          double p_lower = sorted[i - 1].pressure_hPa_;
+
+         // Only integrate levels above the parcel start
+         if (p_lower > p_start)
+         {
+            if (p_upper > p_start)
+               continue;
+            p_lower = p_start; // Clip to parcel start
+         }
+
+         double dp = p_lower - p_upper;
+         if (dp <= 0)
+            continue;
+
+         double p_mid = 0.5 * (p_lower + p_upper);
          double t_env =
             0.5 * (sorted[i].temperature_C_ + sorted[i - 1].temperature_C_);
-         double p_mid = 0.5 * (p_upper + p_lower);
 
-         // Parcel temperature at this level
+         // Parcel temperature
          double t_parcel;
-         if (!aboveLcl && p_mid > *lclPressure_)
+         if (!aboveLcl && p_mid > *res.lclPressure)
          {
-            t_parcel = DryAdiabatT(t_sfc, p_sfc, p_mid);
+            t_parcel = DryAdiabatT(t_start, p_start, p_mid);
          }
          else
          {
             if (!aboveLcl)
-            {
                aboveLcl = true;
-            }
-            double t_at_lcl = DryAdiabatT(t_sfc, p_sfc, *lclPressure_);
-            t_parcel        = MoistAdiabatT(t_at_lcl, *lclPressure_, p_mid);
+            double t_at_lcl = DryAdiabatT(t_start, p_start, *res.lclPressure);
+            t_parcel        = MoistAdiabatT(t_at_lcl, *res.lclPressure, p_mid);
          }
 
-         // Integration element: d(CAPE) = R_d * (T_vp - T_ve) * d(ln p)
-         double tv_parcel = VirtualTemperature(t_parcel, 0.0); // approx
+         if (profile)
+         {
+            profile->push_back({p_mid, t_parcel, td_start, 0.0, 0.0, 0.0});
+         }
+
+         double tv_parcel = VirtualTemperature(t_parcel, 0.0);
          double tv_env    = VirtualTemperature(t_env, 0.0);
          double dlnp      = std::log(p_lower / p_upper);
          double integrand = kRd * (tv_parcel - tv_env) * dlnp;
@@ -195,119 +216,172 @@ public:
             capeInt += integrand;
             if (!crossedLfc)
             {
-               crossedLfc      = true;
-               lfcPressure_    = p_mid;
-               lfcTemperature_ = t_env;
+               crossedLfc         = true;
+               res.lfcPressure    = p_mid;
+               res.lfcTemperature = t_env;
             }
          }
          else
          {
             cinInt += integrand;
          }
-      }
 
-      capeJkg_ = capeInt;
-      cinJkg_  = std::abs(cinInt);
-
-      // Compute EL (Equilibrium Level) - where parcel profile crosses T_env
-      if (crossedLfc)
-      {
-         for (std::size_t i = 1; i < sorted.size(); ++i)
+         // EL check
+         if (crossedLfc && tv_parcel < tv_env && !res.elPressure)
          {
-            double p_upper     = sorted[i].pressure_hPa_;
-            double p_lower     = sorted[i - 1].pressure_hPa_;
-            double t_env_upper = sorted[i].temperature_C_;
-            double t_env_lower = sorted[i - 1].temperature_C_;
-
-            double t_parcel_upper, t_parcel_lower;
-            if (p_upper > *lclPressure_)
-            {
-               t_parcel_upper = DryAdiabatT(t_sfc, p_sfc, p_upper);
-               t_parcel_lower = DryAdiabatT(t_sfc, p_sfc, p_lower);
-            }
-            else
-            {
-               double t_at_lcl = DryAdiabatT(t_sfc, p_sfc, *lclPressure_);
-               t_parcel_upper = MoistAdiabatT(t_at_lcl, *lclPressure_, p_upper);
-               t_parcel_lower = MoistAdiabatT(t_at_lcl, *lclPressure_, p_lower);
-            }
-
-            // Check for crossing
-            if ((t_parcel_lower - t_env_lower) >= 0 &&
-                (t_parcel_upper - t_env_upper) <= 0)
-            {
-               // Linear interpolation to find crossing pressure
-               double frac = (t_parcel_lower - t_env_lower) /
-                             ((t_parcel_lower - t_env_lower) -
-                              (t_parcel_upper - t_env_upper) + 1e-10);
-               elPressure_ = p_lower + frac * (p_upper - p_lower);
-               elTemperature_ =
-                  t_env_lower + frac * (t_env_upper - t_env_lower);
-               break;
-            }
+            res.elPressure    = p_mid;
+            res.elTemperature = t_env;
          }
       }
 
-      if (!elPressure_.has_value())
+      res.capeJkg = capeInt;
+      res.cinJkg  = std::abs(cinInt);
+
+      if (crossedLfc && !res.elPressure)
       {
-         elPressure_    = sorted.back().pressure_hPa_;
-         elTemperature_ = sorted.back().temperature_C_;
+         res.elPressure    = sorted.back().pressure_hPa_;
+         res.elTemperature = sorted.back().temperature_C_;
       }
+
+      return res;
    }
 
-   // Storm-relative helicity
-   void ComputeHelicity()
+   void ComputeCapeCin()
    {
-      helicityCalculated_ = true;
-      helicityM2s2_       = 0.0;
-      shear_1to6km_       = 0.0;
-
-      if (levels_.size() < 2)
-      {
+      capeCalculated_ = true;
+      if (levels_.empty())
          return;
-      }
 
-      // Sort by decreasing pressure (increasing height)
       auto sorted = levels_;
       std::sort(sorted.begin(),
                 sorted.end(),
                 [](const auto& a, const auto& b)
                 { return a.pressure_hPa_ > b.pressure_hPa_; });
 
-      // Find 0-3km layer for helicity
-      // Estimate height using barometric formula if not available
-      auto heightAtPressure = [&](double p_target) -> double
+      // 1. Surface-Based Parcel
+      const auto& sfc = sorted[0];
+      auto        sb  = IntegrateParcel(sfc.pressure_hPa_,
+                                sfc.temperature_C_,
+                                sfc.dewpoint_C_,
+                                &parcel_profile_);
+      sbcapeJkg_      = sb.capeJkg;
+      sbcinJkg_       = sb.cinJkg;
+      lclPressure_    = sb.lclPressure;
+      lclTemperature_ = sb.lclTemperature;
+      lfcPressure_    = sb.lfcPressure;
+      lfcTemperature_ = sb.lfcTemperature;
+      elPressure_     = sb.elPressure;
+      elTemperature_  = sb.elTemperature;
+
+      // 2. Mixed-Layer Parcel (Lowest 100mb mean)
+      double p_limit = sfc.pressure_hPa_ - 100.0;
+      double sumT = 0, sumTd = 0, count = 0;
+      for (const auto& lvl : sorted)
       {
-         for (std::size_t i = 1; i < sorted.size(); ++i)
+         if (lvl.pressure_hPa_ < p_limit)
+            break;
+         sumT += lvl.temperature_C_;
+         sumTd += lvl.dewpoint_C_;
+         count++;
+      }
+      if (count > 0)
+      {
+         auto ml =
+            IntegrateParcel(sfc.pressure_hPa_, sumT / count, sumTd / count);
+         mlcapeJkg_ = ml.capeJkg;
+         mlcinJkg_  = ml.cinJkg;
+      }
+
+      // 3. Most-Unstable Parcel (Highest MU CAPE in lowest 300mb)
+      p_limit    = sfc.pressure_hPa_ - 300.0;
+      mucapeJkg_ = 0;
+      mucinJkg_  = 0;
+      for (const auto& lvl : sorted)
+      {
+         if (lvl.pressure_hPa_ < p_limit)
+            break;
+         auto mu = IntegrateParcel(
+            lvl.pressure_hPa_, lvl.temperature_C_, lvl.dewpoint_C_);
+         if (mu.capeJkg > mucapeJkg_)
          {
-            if (sorted[i].pressure_hPa_ <= p_target &&
-                sorted[i - 1].pressure_hPa_ >= p_target)
+            mucapeJkg_ = mu.capeJkg;
+            mucinJkg_  = mu.cinJkg;
+         }
+      }
+   }
+
+   // Bulk shear magnitude (m/s) between two heights (m)
+   double BulkShear(double lower_m, double upper_m) const
+   {
+      if (levels_.size() < 2)
+         return 0.0;
+
+      auto sorted = levels_;
+      std::sort(sorted.begin(),
+                sorted.end(),
+                [](const auto& a, const auto& b)
+                { return a.pressure_hPa_ > b.pressure_hPa_; });
+
+      auto getWind = [&](double h_target) -> std::pair<double, double>
+      {
+         for (size_t i = 1; i < sorted.size(); ++i)
+         {
+            if (sorted[i - 1].height_m_ <= h_target &&
+                sorted[i].height_m_ >= h_target)
             {
                double frac =
-                  (sorted[i - 1].pressure_hPa_ - p_target) /
-                  (sorted[i - 1].pressure_hPa_ - sorted[i].pressure_hPa_);
-               return sorted[i - 1].height_m_ +
-                      frac * (sorted[i].height_m_ - sorted[i - 1].height_m_);
+                  (h_target - sorted[i - 1].height_m_) /
+                  (sorted[i].height_m_ - sorted[i - 1].height_m_ + 1e-10);
+               double u_lower =
+                  sorted[i - 1].wind_speed_mps_ *
+                  std::sin(sorted[i - 1].wind_direction_deg_ * M_PI / 180.0);
+               double v_lower =
+                  sorted[i - 1].wind_speed_mps_ *
+                  std::cos(sorted[i - 1].wind_direction_deg_ * M_PI / 180.0);
+               double u_upper =
+                  sorted[i].wind_speed_mps_ *
+                  std::sin(sorted[i].wind_direction_deg_ * M_PI / 180.0);
+               double v_upper =
+                  sorted[i].wind_speed_mps_ *
+                  std::cos(sorted[i].wind_direction_deg_ * M_PI / 180.0);
+               return {u_lower + frac * (u_upper - u_lower),
+                       v_lower + frac * (v_upper - v_lower)};
             }
          }
-         return -1.0;
+         return {0.0, 0.0};
       };
 
-      // SRH 0-3km: sum of (V - c) × dl over the layer
-      // Using storm motion estimate: 75% of mean 0-6km wind, 30 deg right
-      // For simplicity, using Bunkers storm motion
-      double meanU = 0.0, meanV = 0.0;
-      int    count = 0;
+      auto [u_lower, v_lower] = getWind(lower_m);
+      auto [u_upper, v_upper] = getWind(upper_m);
+
+      return std::sqrt(std::pow(u_upper - u_lower, 2) +
+                       std::pow(v_upper - v_lower, 2));
+   }
+
+   // Storm-relative helicity (m^2/s^2)
+   double Srh(double lower_m, double upper_m) const
+   {
+      if (levels_.size() < 2)
+         return 0.0;
+
+      auto sorted = levels_;
+      std::sort(sorted.begin(),
+                sorted.end(),
+                [](const auto& a, const auto& b)
+                { return a.pressure_hPa_ > b.pressure_hPa_; });
+
+      // Storm motion estimate (Bunkers Right-Mover proxy)
+      // For simplicity in this implementation, using 75% of 0-6km mean wind
+      // rotated 30 deg right
+      double meanU = 0, meanV = 0, count = 0;
       for (const auto& lvl : sorted)
       {
          if (lvl.height_m_ >= 0 && lvl.height_m_ <= 6000.0)
          {
-            double u = lvl.wind_speed_mps_ *
-                       std::sin(lvl.wind_direction_deg_ * M_PI / 180.0);
-            double v = lvl.wind_speed_mps_ *
-                       std::cos(lvl.wind_direction_deg_ * M_PI / 180.0);
-            meanU += u;
-            meanV += v;
+            meanU += lvl.wind_speed_mps_ *
+                     std::sin(lvl.wind_direction_deg_ * M_PI / 180.0);
+            meanV += lvl.wind_speed_mps_ *
+                     std::cos(lvl.wind_direction_deg_ * M_PI / 180.0);
             count++;
          }
       }
@@ -316,98 +390,100 @@ public:
          meanU /= count;
          meanV /= count;
       }
+      double smU = meanU * 0.75; // simple proxy
+      double smV = meanV * 0.75;
 
-      // SRH using the effective storm motion approximation
       double srh = 0.0;
-      for (std::size_t i = 1; i < sorted.size(); ++i)
+      for (size_t i = 1; i < sorted.size(); ++i)
       {
-         if (sorted[i].height_m_ > 3000.0 || sorted[i - 1].height_m_ < 0)
-         {
+         double h_lower = sorted[i - 1].height_m_;
+         double h_upper = sorted[i].height_m_;
+
+         if (h_lower > upper_m || h_upper < lower_m)
             continue;
-         }
-         double u_i = sorted[i].wind_speed_mps_ *
-                      std::sin(sorted[i].wind_direction_deg_ * M_PI / 180.0);
-         double v_i = sorted[i].wind_speed_mps_ *
-                      std::cos(sorted[i].wind_direction_deg_ * M_PI / 180.0);
-         double u_im1 =
-            sorted[i - 1].wind_speed_mps_ *
-            std::sin(sorted[i - 1].wind_direction_deg_ * M_PI / 180.0);
-         double v_im1 =
-            sorted[i - 1].wind_speed_mps_ *
-            std::cos(sorted[i - 1].wind_direction_deg_ * M_PI / 180.0);
 
-         double du = u_i - u_im1;
-         double dv = v_i - v_im1;
+         double u1 = sorted[i - 1].wind_speed_mps_ *
+                     std::sin(sorted[i - 1].wind_direction_deg_ * M_PI / 180.0);
+         double v1 = sorted[i - 1].wind_speed_mps_ *
+                     std::cos(sorted[i - 1].wind_direction_deg_ * M_PI / 180.0);
+         double u2 = sorted[i].wind_speed_mps_ *
+                     std::sin(sorted[i].wind_direction_deg_ * M_PI / 180.0);
+         double v2 = sorted[i].wind_speed_mps_ *
+                     std::cos(sorted[i].wind_direction_deg_ * M_PI / 180.0);
 
-         // SRH = sum of (u_i * dv_i - v_i * du_i) ... actually
-         // SRH = sum over layers of (V_layer - c) × Δh
-         // Simplified: srh += (u_i - c_u) * dv - (v_i - c_v) * du
-         // For Bunkers motion estimate, simply use mean wind as proxy
-         srh += (u_i - meanU) * dv - (v_i - meanV) * du;
+         srh += (u1 - smU) * (v2 - v1) - (v1 - smV) * (u2 - u1);
       }
+      return srh;
+   }
 
-      // 1-6km shear magnitude
-      double h1 = -1, h6 = -1;
-      double u1 = 0, v1 = 0, u6 = 0, v6 = 0;
+   double LapseRate(double lower_m, double upper_m) const
+   {
+      if (levels_.size() < 2)
+         return 0.0;
 
-      for (std::size_t i = 0; i + 1 < sorted.size(); ++i)
+      auto sorted = levels_;
+      std::sort(sorted.begin(),
+                sorted.end(),
+                [](const auto& a, const auto& b)
+                { return a.pressure_hPa_ > b.pressure_hPa_; });
+
+      auto getT = [&](double h_target) -> double
       {
-         double h_lower = sorted[i].height_m_;
-         double h_upper = sorted[i + 1].height_m_;
-
-         if (h1 < 0 && h_lower <= 1000.0 && h_upper >= 1000.0)
+         for (size_t i = 1; i < sorted.size(); ++i)
          {
-            double frac = (1000.0 - h_lower) / (h_upper - h_lower);
-            u1          = sorted[i].wind_speed_mps_ *
-                    std::sin(sorted[i].wind_direction_deg_ * M_PI / 180.0) +
-                 frac *
-                    (sorted[i + 1].wind_speed_mps_ *
-                        std::sin(sorted[i + 1].wind_direction_deg_ * M_PI /
-                                 180.0) -
-                     sorted[i].wind_speed_mps_ *
-                        std::sin(sorted[i].wind_direction_deg_ * M_PI / 180.0));
-            v1 = sorted[i].wind_speed_mps_ *
-                    std::cos(sorted[i].wind_direction_deg_ * M_PI / 180.0) +
-                 frac *
-                    (sorted[i + 1].wind_speed_mps_ *
-                        std::cos(sorted[i + 1].wind_direction_deg_ * M_PI /
-                                 180.0) -
-                     sorted[i].wind_speed_mps_ *
-                        std::cos(sorted[i].wind_direction_deg_ * M_PI / 180.0));
-            h1 = 1000.0;
+            if (sorted[i - 1].height_m_ <= h_target &&
+                sorted[i].height_m_ >= h_target)
+            {
+               double frac =
+                  (h_target - sorted[i - 1].height_m_) /
+                  (sorted[i].height_m_ - sorted[i - 1].height_m_ + 1e-10);
+               return sorted[i - 1].temperature_C_ +
+                      frac * (sorted[i].temperature_C_ -
+                              sorted[i - 1].temperature_C_);
+            }
          }
+         return 0.0;
+      };
 
-         if (h6 < 0 && h_lower <= 6000.0 && h_upper >= 6000.0)
-         {
-            double frac = (6000.0 - h_lower) / (h_upper - h_lower);
-            u6          = sorted[i].wind_speed_mps_ *
-                    std::sin(sorted[i].wind_direction_deg_ * M_PI / 180.0) +
-                 frac *
-                    (sorted[i + 1].wind_speed_mps_ *
-                        std::sin(sorted[i + 1].wind_direction_deg_ * M_PI /
-                                 180.0) -
-                     sorted[i].wind_speed_mps_ *
-                        std::sin(sorted[i].wind_direction_deg_ * M_PI / 180.0));
-            v6 = sorted[i].wind_speed_mps_ *
-                    std::cos(sorted[i].wind_direction_deg_ * M_PI / 180.0) +
-                 frac *
-                    (sorted[i + 1].wind_speed_mps_ *
-                        std::cos(sorted[i + 1].wind_direction_deg_ * M_PI /
-                                 180.0) -
-                     sorted[i].wind_speed_mps_ *
-                        std::cos(sorted[i].wind_direction_deg_ * M_PI / 180.0));
-            h6 = 6000.0;
-         }
-      }
+      double t_lower = getT(lower_m);
+      double t_upper = getT(upper_m);
+      return (t_lower - t_upper) / ((upper_m - lower_m) / 1000.0);
+   }
 
-      if (h1 > 0 && h6 > 0)
+   double PrecipitableWater() const
+   {
+      if (levels_.size() < 2)
+         return 0.0;
+
+      auto sorted = levels_;
+      std::sort(sorted.begin(),
+                sorted.end(),
+                [](const auto& a, const auto& b)
+                { return a.pressure_hPa_ > b.pressure_hPa_; });
+
+      double pwat_kg_m2 = 0.0;
+      for (size_t i = 1; i < sorted.size(); ++i)
       {
-         shear_1to6km_ =
-            std::sqrt((u6 - u1) * (u6 - u1) + (v6 - v1) * (v6 - v1)) /
-            ((h6 - h1) / 1000.0);
-      }
+         double p_lower = sorted[i - 1].pressure_hPa_;
+         double p_upper = sorted[i].pressure_hPa_;
+         double td_mid =
+            0.5 * (sorted[i - 1].dewpoint_C_ + sorted[i].dewpoint_C_);
 
-      helicityM2s2_ = srh;
+         double e = Es(td_mid);
+         double w = kEpsilon * e / (0.5 * (p_lower + p_upper) - e);
+
+         // PW = 1/g * integral(w dp)
+         pwat_kg_m2 += (w / 9.81) * (p_lower - p_upper) *
+                       100.0; // 100 to convert hPa to Pa
+      }
+      return pwat_kg_m2; // 1 kg/m^2 = 1 mm
+   }
+
+   void ComputeHelicity()
+   {
+      helicityCalculated_ = true;
+      helicity0_3km_      = Srh(0, 3000);
+      shear0_6km_         = BulkShear(0, 6000);
    }
 
    double                                latitude_ {};
@@ -415,20 +491,25 @@ public:
    std::string                           station_id_ {};
    std::chrono::system_clock::time_point forecast_time_ {};
    std::vector<SoundingLevel>            levels_ {};
+   std::vector<SoundingLevel>            parcel_profile_ {};
 
    // Derived parameters (lazy-computed)
    bool                  capeCalculated_ {false};
    bool                  helicityCalculated_ {false};
-   double                capeJkg_ {};
-   double                cinJkg_ {};
+   double                sbcapeJkg_ {};
+   double                sbcinJkg_ {};
+   double                mlcapeJkg_ {};
+   double                mlcinJkg_ {};
+   double                mucapeJkg_ {};
+   double                mucinJkg_ {};
    std::optional<double> lclPressure_ {};
    std::optional<double> lclTemperature_ {};
    std::optional<double> lfcPressure_ {};
    std::optional<double> lfcTemperature_ {};
    std::optional<double> elPressure_ {};
    std::optional<double> elTemperature_ {};
-   double                helicityM2s2_ {};
-   double                shear_1to6km_ {};
+   double                helicity0_3km_ {};
+   double                shear0_6km_ {};
 };
 
 SoundingData::SoundingData() : p(std::make_unique<Impl>()) {}
@@ -459,6 +540,13 @@ const std::vector<SoundingLevel>& SoundingData::levels() const
    return p->levels_;
 }
 
+const std::vector<SoundingLevel>& SoundingData::parcel_profile() const
+{
+   if (!p->capeCalculated_)
+      const_cast<SoundingData*>(this)->compute_derived();
+   return p->parcel_profile_;
+}
+
 void SoundingData::set_latitude(double lat)
 {
    p->latitude_ = lat;
@@ -487,94 +575,140 @@ void SoundingData::add_level(const SoundingLevel& level)
    p->capeCalculated_     = false;
    p->helicityCalculated_ = false;
 }
+double SoundingData::sbcape_jkg() const
+{
+   if (!p->capeCalculated_)
+      p->ComputeCapeCin();
+   return p->sbcapeJkg_;
+}
+double SoundingData::sbcin_jkg() const
+{
+   if (!p->capeCalculated_)
+      p->ComputeCapeCin();
+   return p->sbcinJkg_;
+}
+double SoundingData::mlcape_jkg() const
+{
+   if (!p->capeCalculated_)
+      p->ComputeCapeCin();
+   return p->mlcapeJkg_;
+}
+double SoundingData::mlcin_jkg() const
+{
+   if (!p->capeCalculated_)
+      p->ComputeCapeCin();
+   return p->mlcinJkg_;
+}
+double SoundingData::mucape_jkg() const
+{
+   if (!p->capeCalculated_)
+      p->ComputeCapeCin();
+   return p->mucapeJkg_;
+}
+double SoundingData::mucin_jkg() const
+{
+   if (!p->capeCalculated_)
+      p->ComputeCapeCin();
+   return p->mucinJkg_;
+}
 
-double SoundingData::cape_jkg() const
-{
-   if (!p->capeCalculated_)
-   {
-      const_cast<Impl*>(p.get())->ComputeCapeCin();
-   }
-   return p->capeJkg_;
-}
-double SoundingData::cin_jkg() const
-{
-   if (!p->capeCalculated_)
-   {
-      const_cast<Impl*>(p.get())->ComputeCapeCin();
-   }
-   return p->cinJkg_;
-}
 double SoundingData::lcl_pressure_hPa() const
 {
    if (!p->capeCalculated_)
-   {
-      const_cast<Impl*>(p.get())->ComputeCapeCin();
-   }
+      p->ComputeCapeCin();
    return p->lclPressure_.value_or(0.0);
 }
 double SoundingData::lcl_temperature_C() const
 {
    if (!p->capeCalculated_)
-   {
-      const_cast<Impl*>(p.get())->ComputeCapeCin();
-   }
+      p->ComputeCapeCin();
    return p->lclTemperature_.value_or(0.0);
 }
 double SoundingData::lfc_pressure_hPa() const
 {
    if (!p->capeCalculated_)
-   {
-      const_cast<Impl*>(p.get())->ComputeCapeCin();
-   }
+      p->ComputeCapeCin();
    return p->lfcPressure_.value_or(0.0);
 }
 double SoundingData::lfc_temperature_C() const
 {
    if (!p->capeCalculated_)
-   {
-      const_cast<Impl*>(p.get())->ComputeCapeCin();
-   }
+      p->ComputeCapeCin();
    return p->lfcTemperature_.value_or(0.0);
 }
 double SoundingData::el_pressure_hPa() const
 {
    if (!p->capeCalculated_)
-   {
-      const_cast<Impl*>(p.get())->ComputeCapeCin();
-   }
+      p->ComputeCapeCin();
    return p->elPressure_.value_or(0.0);
 }
 double SoundingData::el_temperature_C() const
 {
    if (!p->capeCalculated_)
-   {
-      const_cast<Impl*>(p.get())->ComputeCapeCin();
-   }
+      p->ComputeCapeCin();
    return p->elTemperature_.value_or(0.0);
 }
 
-double SoundingData::surface_based_shear_s_1(double lower_km,
-                                             double upper_km) const
+double SoundingData::bulk_shear_mps(double lower_km, double upper_km) const
 {
-   if (!p->helicityCalculated_)
-   {
-      const_cast<Impl*>(p.get())->ComputeHelicity();
-   }
-   // Recalculate for specific bounds if needed
-   (void) lower_km;
-   (void) upper_km;
-   return p->shear_1to6km_;
+   return p->BulkShear(lower_km * 1000.0, upper_km * 1000.0);
 }
 double SoundingData::storm_relative_helicity_m2s2(double lower_km,
                                                   double upper_km) const
 {
-   if (!p->helicityCalculated_)
-   {
-      const_cast<Impl*>(p.get())->ComputeHelicity();
-   }
-   (void) lower_km;
-   (void) upper_km;
-   return p->helicityM2s2_;
+   return p->Srh(lower_km * 1000.0, upper_km * 1000.0);
+}
+
+double SoundingData::lapse_rate_c_km(double lower_km, double upper_km) const
+{
+   return p->LapseRate(lower_km * 1000.0, upper_km * 1000.0);
+}
+double SoundingData::precipitable_water_mm() const
+{
+   return p->PrecipitableWater();
+}
+
+double SoundingData::significant_tornado_parameter() const
+{
+   // Simple STP (fixed layer)
+   double cape  = mlcape_jkg();
+   double srh   = storm_relative_helicity_m2s2(0, 1);
+   double shear = bulk_shear_mps(0, 6);
+   double lcl   = lcl_pressure_hPa(); // approx
+
+   // Normalize (standard constants)
+   double cape_term  = cape / 1500.0;
+   double srh_term   = srh / 150.0;
+   double shear_term = std::clamp(shear / 20.0, 0.0, 1.5);
+   double lcl_term   = std::clamp((2000.0 - (1013.0 - lcl) * 10.0) / 1000.0,
+                                0.0,
+                                1.0); // very rough lcl term
+
+   return cape_term * srh_term * shear_term * lcl_term;
+}
+
+double SoundingData::supercell_composite_parameter() const
+{
+   double mu_cape = mucape_jkg();
+   double srh     = storm_relative_helicity_m2s2(0, 3);
+   double shear   = bulk_shear_mps(0, 6);
+
+   return (mu_cape / 1000.0) * (srh / 50.0) * (shear / 20.0);
+}
+
+double SoundingData::significant_hail_parameter() const
+{
+   double mu_cape      = mucape_jkg();
+   double mixing_ratio = 10.0; // proxy
+   double lr           = lapse_rate_c_km(7, 5);
+   double t500         = -10.0; // proxy
+
+   return (mu_cape * mixing_ratio * lr * std::abs(t500)) / 42000.0;
+}
+
+double SoundingData::energy_helicity_index() const
+{
+   return (mlcape_jkg() * storm_relative_helicity_m2s2(0, 2)) / 160000.0;
 }
 
 void SoundingData::compute_derived()

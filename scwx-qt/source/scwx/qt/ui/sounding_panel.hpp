@@ -37,7 +37,8 @@ public:
    void RequestSounding();
 
 public slots:
-   void OnSoundingReady(std::shared_ptr<sounding::SoundingData> sounding);
+   void
+   OnSoundingReady(const std::shared_ptr<sounding::SoundingData>& sounding);
    void OnLoadError(const QString& message);
    void OnFetchClicked();
 

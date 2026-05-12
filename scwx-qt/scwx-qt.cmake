@@ -341,6 +341,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/serial_port_dialog.hpp
            source/scwx/qt/ui/settings_dialog.hpp
            source/scwx/qt/ui/sounding_panel.hpp
+           source/scwx/qt/ui/sounding_parameters_widget.hpp
            source/scwx/qt/ui/threshold_line_edit_sync.hpp
            source/scwx/qt/ui/threshold_value_utility.hpp
            source/scwx/qt/ui/update_dialog.hpp
@@ -380,6 +381,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/settings_dialog.cpp
            source/scwx/qt/ui/serial_port_dialog.cpp
            source/scwx/qt/ui/sounding_panel.cpp
+           source/scwx/qt/ui/sounding_parameters_widget.cpp
            source/scwx/qt/ui/update_dialog.cpp
            source/scwx/qt/ui/wfo_dialog.cpp)
 set(UI_UI  source/scwx/qt/ui/about_dialog.ui

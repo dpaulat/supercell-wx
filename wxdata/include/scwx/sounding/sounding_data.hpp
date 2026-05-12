@@ -36,6 +36,7 @@ public:
    const std::string&                    station_id() const;
    std::chrono::system_clock::time_point forecast_time() const;
    const std::vector<SoundingLevel>&     levels() const;
+   const std::vector<SoundingLevel>&     parcel_profile() const;
 
    void set_latitude(double lat);
    void set_longitude(double lon);
@@ -44,8 +45,13 @@ public:
    void set_levels(const std::vector<SoundingLevel>& levels);
    void add_level(const SoundingLevel& level);
 
-   double cape_jkg() const;
-   double cin_jkg() const;
+   double sbcape_jkg() const;
+   double sbcin_jkg() const;
+   double mlcape_jkg() const;
+   double mlcin_jkg() const;
+   double mucape_jkg() const;
+   double mucin_jkg() const;
+
    double lcl_pressure_hPa() const;
    double lcl_temperature_C() const;
    double lfc_pressure_hPa() const;
@@ -53,10 +59,16 @@ public:
    double el_pressure_hPa() const;
    double el_temperature_C() const;
 
-   double surface_based_shear_s_1(double lower_km = 1.0,
-                                  double upper_km = 6.0) const;
-   double storm_relative_helicity_m2s2(double lower_km = 0.0,
-                                       double upper_km = 3.0) const;
+   double bulk_shear_mps(double lower_km, double upper_km) const;
+   double storm_relative_helicity_m2s2(double lower_km, double upper_km) const;
+
+   double lapse_rate_c_km(double lower_km, double upper_km) const;
+   double precipitable_water_mm() const;
+
+   double significant_tornado_parameter() const;
+   double supercell_composite_parameter() const;
+   double significant_hail_parameter() const;
+   double energy_helicity_index() const;
 
    void compute_derived();
 

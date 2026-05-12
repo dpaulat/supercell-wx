@@ -37,7 +37,7 @@ signals:
    /**
     * @brief Emitted when a sounding has been loaded.
     */
-   void SoundingReady(std::shared_ptr<sounding::SoundingData> sounding);
+   void SoundingReady(const std::shared_ptr<sounding::SoundingData>& sounding);
 
    /**
     * @brief Emitted when a sounding request fails.
