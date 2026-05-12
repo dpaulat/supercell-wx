@@ -14,10 +14,14 @@ TEST(UiSettingsTest, MapAnnotationStateDefaultsToEmpty)
 
 TEST(UiSettingsTest, MapAnnotationStateParticipatesInEquality)
 {
-   const UiSettings lhs;
-   const UiSettings rhs;
+   UiSettings lhs;
+   UiSettings rhs;
 
    EXPECT_TRUE(lhs == rhs);
+
+   EXPECT_TRUE(lhs.map_annotation_state().SetValue("{\"tool_id\":1}"));
+   EXPECT_TRUE(rhs.map_annotation_state().SetValue("{\"tool_id\":2}"));
+   EXPECT_FALSE(lhs == rhs);
 }
 
 TEST(UiSettingsTest, ShutdownCommitsStagedMapAnnotationState)

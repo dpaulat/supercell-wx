@@ -38,6 +38,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <optional>
 #include <utility>
 
@@ -656,9 +657,7 @@ public:
       {
          strokeColor_ = QColor {255, 50, 50, 230};
       }
-      // Draw toolbar is always available; legacy overlay_visible=false only hid
-      // the View menu control.
-      overlayVisible_         = true;
+      overlayVisible_         = state.overlayVisible;
       expanded_               = state.expanded;
       const bool shouldFloat  = state.floating;
       floating_               = false;
