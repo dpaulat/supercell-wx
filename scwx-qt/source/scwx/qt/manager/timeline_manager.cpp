@@ -779,6 +779,12 @@ void TimelineManager::Impl::Step(Direction direction)
          break;
       }
    }
+
+   // If stepping forward and no newer volume scan was found, catch up to live
+   if (direction == Direction::Next && radarSweepsUpdated_.empty())
+   {
+      SelectTime({});
+   }
 }
 
 std::shared_ptr<TimelineManager> TimelineManager::Instance()
