@@ -1,6 +1,6 @@
 @set script_dir=%~dp0
 
-@set build_dir=%script_dir%\..\build-release-ninja
+@set build_dir=%script_dir%\..\build\windows-vs2026-x64-ninja-release
 @set build_type=Release
 @set conan_profile=scwx-windows_vs2026_x64
 @set generator=Ninja
@@ -21,6 +21,6 @@
 )
 
 :: Perform common setup
-@call %script_dir%\lib\setup-common.bat
+@call "%script_dir%lib\setup-common.bat"
 
 @pause

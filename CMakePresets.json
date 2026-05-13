@@ -32,6 +32,9 @@
             "Windows"
           ]
         }
+      },
+      "environment": {
+        "PATH": "$penv{PATH};C:/Program Files (x86)/WiX Toolset v3.14/bin"
       }
     },
     {

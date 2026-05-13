@@ -3,6 +3,9 @@
 :: Import common paths
 @call "%script_dir%common-paths.bat"
 
+:: Initialize MSVC environment
+@call "%script_dir%setup-msvc.bat"
+
 :: Activate Python Virtual Environment
 @if defined venv_path (
     echo Activating Python Virtual Environment: %venv_path%

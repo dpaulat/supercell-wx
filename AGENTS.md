@@ -49,10 +49,18 @@ The project uses **Conan 2** for C++ dependency management. CMake integrates Con
 **Setup script usage** (recommended path for new developers):
 ```powershell
 # Windows (from repo root)
+# These scripts automatically initialize the MSVC environment
 .\tools\setup-windows-vs2026-release.bat [BUILD_DIR] [VENV_PATH]
+.\tools\setup-windows-ninja-release.bat [BUILD_DIR] [VENV_PATH]
 
 # Linux
 ./tools/setup-linux-ninja-release.sh [BUILD_DIR] [CONAN_PROFILE] [VENV_PATH] [ASAN_ENABLE]
+```
+
+**Building from the command line:**
+On Windows, use the provided build script to ensure the MSVC environment is properly initialized:
+```powershell
+.\tools\build-windows.bat
 ```
 
 **Manual CMake configuration:**
@@ -62,7 +70,7 @@ The project uses **Conan 2** for C++ dependency management. CMake integrates Con
    ```
    Presets encapsulate generator, build type, and Conan profiles. See `CMakePresets.json` for available names (e.g., `windows-vs2026-x64-ninja-release`, `linux-gcc14-release`).
    
-   **Note:** When using Ninja-based presets on Windows, you must initialize the MSVC developer environment (e.g., via `VsDevCmd.bat`) in your terminal before running CMake.
+   **Note:** When using Ninja-based presets on Windows, you must initialize the MSVC developer environment (e.g., via `VsDevCmd.bat` or by calling `.\tools\lib\setup-msvc.bat`) in your terminal before running CMake.
 
 
 2. **Configure Manually** (Fallback):
@@ -81,6 +89,10 @@ The project uses **Conan 2** for C++ dependency management. CMake integrates Con
 
 3. **Build:**
    ```bash
+   # On Windows (ensures environment setup)
+   .\tools\build-windows.bat
+
+   # Standard CMake build (requires manual environment setup on Windows)
    cmake --build --preset <preset-name> --target supercell-wx
    # OR manually:
    cmake --build . --target supercell-wx
