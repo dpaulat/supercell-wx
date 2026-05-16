@@ -109,6 +109,44 @@ SpcOutlookProvider::FetchOutlook(OutlookDay day, OutlookProduct product)
       OutlookData data = ParseSpcGeoJson(day, product, r.text);
       logger_->info("Parsed {} polygons from SPC outlook",
                     data.polygons_.size());
+
+      // For Day 3 probabilistic, additionally fetch the CIG overlay product
+      // and merge its polygons so CIG hatching appears over probability
+      // contours
+      if (day == OutlookDay::Day3 && product == OutlookProduct::Probabilistic)
+      {
+         std::string cigUrl =
+            GetOutlookUrl(day, OutlookProduct::SignificantProbabilistic);
+         logger_->info("Fetching CIG overlay for Day 3 probabilistic: {}",
+                       cigUrl);
+
+         ::cpr::Response cigR =
+            ::cpr::Get(::cpr::Url {cigUrl},
+                       network::cpr::GetHeader(),
+                       network::cpr::GetDefaultTimeout(),
+                       network::cpr::GetDefaultConnectTimeout(),
+                       network::cpr::GetDefaultLowSpeed());
+
+         if (cigR.status_code == 200)
+         {
+            OutlookData cigData = ParseSpcGeoJson(
+               day, OutlookProduct::SignificantProbabilistic, cigR.text);
+            logger_->info("Merging {} CIG polygons into Day 3 probabilistic",
+                          cigData.polygons_.size());
+
+            for (auto& polygon : cigData.polygons_)
+            {
+               data.polygons_.push_back(std::move(polygon));
+            }
+         }
+         else
+         {
+            logger_->warn("CIG overlay fetch failed: HTTP {} for URL {}",
+                          cigR.status_code,
+                          cigUrl);
+         }
+      }
+
       return data;
    }
    catch (const std::exception& ex)

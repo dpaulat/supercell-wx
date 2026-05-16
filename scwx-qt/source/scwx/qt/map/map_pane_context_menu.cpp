@@ -268,8 +268,7 @@ void AppendMapPaneSpcOutlookContextMenu(
       if (day == scwx::spc::OutlookDay::Day3)
       {
          products = {scwx::spc::OutlookProduct::Categorical,
-                     scwx::spc::OutlookProduct::Probabilistic,
-                     scwx::spc::OutlookProduct::SignificantProbabilistic};
+                     scwx::spc::OutlookProduct::Probabilistic};
       }
       else // Day1, Day2
       {

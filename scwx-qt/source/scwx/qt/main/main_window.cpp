@@ -713,7 +713,6 @@ MainWindow::MainWindow(QWidget* parent) :
       case scwx::spc::OutlookDay::Day3:
          p->spcProductCombo_->addItem(tr("Categorical"));
          p->spcProductCombo_->addItem(tr("Probabilistic"));
-         p->spcProductCombo_->addItem(tr("Significant Probabilistic"));
          break;
       default:
          break;
@@ -745,7 +744,7 @@ MainWindow::MainWindow(QWidget* parent) :
       static constexpr int kWindIdx        = 2;
       static constexpr int kHailIdx        = 3;
 
-      // Day 3: Categorical=0, Probabilistic=1, SigProbabilistic=2
+      // Day 3: Categorical=0, Probabilistic=1
       if (dayIdx == 2)
       {
          switch (prodIdx)
@@ -754,8 +753,6 @@ MainWindow::MainWindow(QWidget* parent) :
             return scwx::spc::OutlookProduct::Categorical;
          case 1:
             return scwx::spc::OutlookProduct::Probabilistic;
-         case 2:
-            return scwx::spc::OutlookProduct::SignificantProbabilistic;
          default:
             return scwx::spc::OutlookProduct::Categorical;
          }
