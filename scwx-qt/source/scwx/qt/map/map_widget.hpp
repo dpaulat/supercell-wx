@@ -188,6 +188,7 @@ private slots:
 
 signals:
    void AlertSelected(const types::TextEventKey& key);
+   void MdSelected(int mdNumber);
    void Level3ProductsChanged();
    void MapParametersChanged(double latitude,
                              double longitude,

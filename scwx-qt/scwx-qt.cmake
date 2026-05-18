@@ -123,7 +123,8 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/radar_site_status_manager.hpp
                 source/scwx/qt/manager/resource_manager.hpp
                 source/scwx/qt/manager/settings_manager.hpp
-                source/scwx/qt/manager/spc_outlook_manager.hpp
+                 source/scwx/qt/manager/spc_outlook_manager.hpp
+                 source/scwx/qt/manager/spc_md_manager.hpp
                 source/scwx/qt/manager/task_manager.hpp
                 source/scwx/qt/manager/text_event_manager.hpp
                 source/scwx/qt/manager/thread_manager.hpp
@@ -145,7 +146,8 @@ set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                 source/scwx/qt/manager/radar_site_status_manager.cpp
                 source/scwx/qt/manager/resource_manager.cpp
                 source/scwx/qt/manager/settings_manager.cpp
-                source/scwx/qt/manager/spc_outlook_manager.cpp
+                 source/scwx/qt/manager/spc_outlook_manager.cpp
+                 source/scwx/qt/manager/spc_md_manager.cpp
                 source/scwx/qt/manager/task_manager.cpp
                 source/scwx/qt/manager/text_event_manager.cpp
                 source/scwx/qt/manager/thread_manager.cpp
@@ -153,7 +155,8 @@ set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                  source/scwx/qt/manager/gfs_manager.cpp
                  source/scwx/qt/manager/update_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
-            source/scwx/qt/map/map_link_policy.hpp
+             source/scwx/qt/map/mesoscale_discussion_layer.hpp
+             source/scwx/qt/map/map_link_policy.hpp
             source/scwx/qt/map/color_table_layer.hpp
             source/scwx/qt/map/convective_outlook_layer.hpp
             source/scwx/qt/map/draw_layer.hpp
@@ -176,7 +179,8 @@ set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp
             source/scwx/qt/map/radar_site_layer.hpp)
 set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
-            source/scwx/qt/map/map_link_policy.cpp
+             source/scwx/qt/map/mesoscale_discussion_layer.cpp
+             source/scwx/qt/map/map_link_policy.cpp
             source/scwx/qt/map/color_table_layer.cpp
             source/scwx/qt/map/convective_outlook_layer.cpp
             source/scwx/qt/map/draw_layer.cpp
@@ -307,7 +311,8 @@ set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/time_types.cpp
               source/scwx/qt/types/unit_types.cpp)
 set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
-           source/scwx/qt/ui/alert_dialog.hpp
+            source/scwx/qt/ui/alert_dialog.hpp
+            source/scwx/qt/ui/mesoscale_discussion_dialog.hpp
            source/scwx/qt/ui/alert_dock_widget.hpp
            source/scwx/qt/ui/animation_dock_widget.hpp
            source/scwx/qt/ui/api_key_edit_widget.hpp
@@ -347,7 +352,8 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/update_dialog.hpp
            source/scwx/qt/ui/wfo_dialog.hpp)
 set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
-           source/scwx/qt/ui/alert_dialog.cpp
+            source/scwx/qt/ui/alert_dialog.cpp
+            source/scwx/qt/ui/mesoscale_discussion_dialog.cpp
            source/scwx/qt/ui/alert_dock_widget.cpp
            source/scwx/qt/ui/animation_dock_widget.cpp
            source/scwx/qt/ui/api_key_edit_widget.cpp
@@ -385,7 +391,8 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/update_dialog.cpp
            source/scwx/qt/ui/wfo_dialog.cpp)
 set(UI_UI  source/scwx/qt/ui/about_dialog.ui
-           source/scwx/qt/ui/alert_dialog.ui
+            source/scwx/qt/ui/alert_dialog.ui
+            source/scwx/qt/ui/mesoscale_discussion_dialog.ui
            source/scwx/qt/ui/alert_dock_widget.ui
            source/scwx/qt/ui/animation_dock_widget.ui
            source/scwx/qt/ui/collapsible_group.ui

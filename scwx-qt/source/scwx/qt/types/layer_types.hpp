@@ -25,6 +25,7 @@ enum class LayerType
    Information,
    Data,
    ConvectiveOutlook,
+   MesoscaleDiscussion,
    Unknown
 };
 

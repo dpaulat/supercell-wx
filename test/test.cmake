@@ -20,10 +20,11 @@ set(SRC_GR_TESTS source/scwx/gr/placefile.test.cpp)
 set(SRC_NETWORK_TESTS source/scwx/network/dir_list.test.cpp
                       source/scwx/network/ntp_client.test.cpp)
 set(SRC_PROVIDER_TESTS source/scwx/provider/aws_level2_data_provider.test.cpp
-                       source/scwx/provider/aws_level3_data_provider.test.cpp
-                       source/scwx/provider/iem_api_provider.test.cpp
-                       source/scwx/provider/nws_api_provider.test.cpp
-                       source/scwx/provider/warnings_provider.test.cpp)
+                        source/scwx/provider/aws_level3_data_provider.test.cpp
+                        source/scwx/provider/iem_api_provider.test.cpp
+                        source/scwx/provider/nws_api_provider.test.cpp
+                        source/scwx/provider/warnings_provider.test.cpp)
+set(SRC_SPC_TESTS source/scwx/spc/spc_md_provider.test.cpp)
 set(SRC_QT_CONFIG_TESTS source/scwx/qt/config/county_database.test.cpp
                         source/scwx/qt/config/radar_site.test.cpp)
 set(SRC_QT_MAIN_TESTS source/scwx/qt/main/application_paths.test.cpp
@@ -56,12 +57,13 @@ set(SRC_WSR88D_TESTS source/scwx/wsr88d/ar2v_file.test.cpp
 set(CMAKE_FILES test.cmake)
 
 add_executable(wxtest ${SRC_MAIN}
-                      ${SRC_AWIPS_TESTS}
-                      ${SRC_COMMON_TESTS}
-                      ${SRC_GR_TESTS}
-                      ${SRC_NETWORK_TESTS}
-                      ${SRC_PROVIDER_TESTS}
-                      ${SRC_QT_CONFIG_TESTS}
+                       ${SRC_AWIPS_TESTS}
+                       ${SRC_COMMON_TESTS}
+                       ${SRC_GR_TESTS}
+                       ${SRC_NETWORK_TESTS}
+                       ${SRC_PROVIDER_TESTS}
+                       ${SRC_SPC_TESTS}
+                       ${SRC_QT_CONFIG_TESTS}
                       ${SRC_QT_MAIN_TESTS}
                       ${SRC_QT_MANAGER_TESTS}
                       ${SRC_QT_MAP_TESTS}

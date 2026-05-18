@@ -65,11 +65,14 @@ set(HDR_GRIB2 include/scwx/grib2/grib2_message.hpp
 set(SRC_GRIB2 source/scwx/grib2/grib2_message.cpp
               source/scwx/grib2/grib2_types.cpp)
 set(HDR_SPC include/scwx/spc/spc_types.hpp
-            include/scwx/spc/geojson_parser.hpp
-            include/scwx/spc/spc_outlook_provider.hpp)
+             include/scwx/spc/geojson_parser.hpp
+             include/scwx/spc/spc_outlook_provider.hpp
+             include/scwx/spc/spc_md_types.hpp
+             include/scwx/spc/spc_md_provider.hpp)
 set(SRC_SPC source/scwx/spc/spc_types.cpp
-            source/scwx/spc/geojson_parser.cpp
-            source/scwx/spc/spc_outlook_provider.cpp)
+             source/scwx/spc/geojson_parser.cpp
+             source/scwx/spc/spc_outlook_provider.cpp
+             source/scwx/spc/spc_md_provider.cpp)
 set(HDR_SOUNDING include/scwx/sounding/sounding_data.hpp)
 set(SRC_SOUNDING source/scwx/sounding/sounding_data.cpp)
 set(SRC_GR source/scwx/gr/color.cpp

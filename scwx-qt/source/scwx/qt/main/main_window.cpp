@@ -19,6 +19,7 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
+#include <scwx/qt/manager/spc_md_manager.hpp>
 #include <scwx/qt/manager/spc_outlook_manager.hpp>
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/manager/update_manager.hpp>
@@ -53,6 +54,7 @@
 #include <scwx/qt/ui/settings_dialog.hpp>
 #include <scwx/qt/ui/sounding_panel.hpp>
 #include <scwx/qt/ui/update_dialog.hpp>
+#include <scwx/qt/ui/mesoscale_discussion_dialog.hpp>
 #include <scwx/qt/ui/import/import_settings_wizard.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/common/products.hpp>
@@ -369,6 +371,7 @@ public:
    QLabel* timeLabel_ {nullptr};
 
    ui::AlertDockWidget*              alertDockWidget_ {};
+   ui::MesoscaleDiscussionDialog*    mesoscaleDiscussionDialog_ {};
    ui::AnimationDockWidget*          animationDockWidget_ {};
    ui::SoundingPanel*                soundingPanel_ {};
    bool                              selectingSoundingPoint_ {false};
@@ -499,6 +502,9 @@ MainWindow::MainWindow(QWidget* parent) :
    // Configure Alert Dock
    p->alertDockWidget_ = new ui::AlertDockWidget(this);
    addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
+
+   // Mesoscale Discussion Dialog (created once, shown on demand)
+   p->mesoscaleDiscussionDialog_ = new ui::MesoscaleDiscussionDialog(this);
 
    // Configure GFS Sounding Dock
    p->soundingPanel_ = new ui::SoundingPanel(this);
@@ -843,6 +849,10 @@ MainWindow::MainWindow(QWidget* parent) :
       p->spcOpacitySlider_->value());
    manager::SpcOutlookManager::Instance().SetAutoRefresh(
       p->spcAutoRefreshCheck_->isChecked());
+
+   // Initialize Mesoscale Discussion auto-refresh
+   manager::SpcMdManager::Instance().SetAutoRefresh(true);
+   manager::SpcMdManager::Instance().RefreshNow();
 
    // Reset toolbox spacer at the bottom
    ui->radarToolboxScrollAreaContents->layout()->removeItem(
@@ -2974,6 +2984,16 @@ void MainWindowImpl::ConnectMapSignals()
               alertDockWidget_,
               &ui::AlertDockWidget::SelectAlert);
       connect(mapWidget,
+              &map::MapWidget::MdSelected,
+              mesoscaleDiscussionDialog_,
+              [this](int mdNumber)
+              {
+                 mesoscaleDiscussionDialog_->SelectDiscussion(mdNumber);
+                 mesoscaleDiscussionDialog_->show();
+                 mesoscaleDiscussionDialog_->raise();
+                 mesoscaleDiscussionDialog_->activateWindow();
+              });
+      connect(mapWidget,
               &map::MapWidget::MapParametersChanged,
               this,
               &MainWindowImpl::UpdateMapParameters);
@@ -3246,6 +3266,7 @@ void MainWindowImpl::DisconnectMapDataConnections()
       }
       QObject::disconnect(map, nullptr, this, nullptr);
       QObject::disconnect(map, nullptr, alertDockWidget_, nullptr);
+      QObject::disconnect(map, nullptr, mesoscaleDiscussionDialog_, nullptr);
       QObject::disconnect(map, nullptr, timelineManager_.get(), nullptr);
    }
 }
@@ -3438,6 +3459,20 @@ void MainWindowImpl::ConnectOtherSignals()
    connect(
       alertDockWidget_,
       &ui::AlertDockWidget::MoveMap,
+      this,
+      [this](double latitude, double longitude)
+      {
+         for (map::MapWidget* map : maps_)
+         {
+            map->SetMapLocation(latitude, longitude, true);
+         }
+
+         UpdateRadarSite();
+      },
+      Qt::QueuedConnection);
+   connect(
+      mesoscaleDiscussionDialog_,
+      &ui::MesoscaleDiscussionDialog::MoveMap,
       this,
       [this](double latitude, double longitude)
       {

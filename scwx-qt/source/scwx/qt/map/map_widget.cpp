@@ -19,7 +19,9 @@
 #include <scwx/qt/map/radar_range_layer.hpp>
 #include <scwx/qt/map/radar_site_layer.hpp>
 #include <scwx/qt/map/convective_outlook_layer.hpp>
+#include <scwx/qt/map/mesoscale_discussion_layer.hpp>
 #include <scwx/qt/manager/spc_outlook_manager.hpp>
+#include <scwx/qt/manager/spc_md_manager.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/qt/types/layer_types.hpp>
@@ -277,6 +279,10 @@ public:
 
    std::shared_ptr<ConvectiveOutlookLayer> convectiveOutlookLayer_ {nullptr};
    QMetaObject::Connection                 convectiveOutlookConnection_ {};
+
+   std::shared_ptr<MesoscaleDiscussionLayer> mesoscaleDiscussionLayer_ {
+      nullptr};
+   QMetaObject::Connection mesoscaleDiscussionConnection_ {};
 
    std::list<std::shared_ptr<PlacefileLayer>> placefileLayers_ {};
 
@@ -1507,6 +1513,13 @@ void MapWidgetImpl::AddLayers()
       convectiveOutlookLayer_.reset();
    }
 
+   // Clear mesoscale discussion layer
+   if (mesoscaleDiscussionLayer_ != nullptr)
+   {
+      mesoscaleDiscussionLayer_->Deinitialize();
+      mesoscaleDiscussionLayer_.reset();
+   }
+
    // Update custom layer list from model
    types::LayerVector customLayers = model::LayerModel::Instance()->GetLayers();
 
@@ -1673,6 +1686,22 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
                                 convectiveOutlookLayer_->Update(map_);
                              }
                           });
+   }
+   else if (type == types::LayerType::MesoscaleDiscussion)
+   {
+      mesoscaleDiscussionLayer_ =
+         std::make_shared<MesoscaleDiscussionLayer>(glContext_);
+      AddLayer(layerName, mesoscaleDiscussionLayer_, before);
+
+      if (mesoscaleDiscussionConnection_)
+      {
+         QObject::disconnect(mesoscaleDiscussionConnection_);
+      }
+      mesoscaleDiscussionConnection_ =
+         QObject::connect(mesoscaleDiscussionLayer_.get(),
+                          &MesoscaleDiscussionLayer::MdSelected,
+                          widget_,
+                          &MapWidget::MdSelected);
    }
    else if (type == types::LayerType::Data)
    {

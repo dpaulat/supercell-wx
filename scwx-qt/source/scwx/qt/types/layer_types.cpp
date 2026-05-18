@@ -17,6 +17,7 @@ static const std::unordered_map<LayerType, std::string> layerTypeName_ {
    {LayerType::Information, "Information"},
    {LayerType::Data, "Data"},
    {LayerType::ConvectiveOutlook, "Convective Outlook"},
+   {LayerType::MesoscaleDiscussion, "Mesoscale Discussion"},
    {LayerType::Unknown, "?"}};
 
 static const std::unordered_map<DataLayer, std::string> dataLayerName_ {
