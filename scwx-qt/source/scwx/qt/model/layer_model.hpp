@@ -30,9 +30,10 @@ public:
       DisplayMap7 = 7,
       DisplayMap8 = 8,
       DisplayMap9 = 9,
-      Type        = 10,
-      Enabled     = 11,
-      Description = 12
+      ContextMenu = 10,
+      Type        = 11,
+      Enabled     = 12,
+      Description = 13
    };
    using ColumnIterator =
       scwx::util::Iterator<Column, Column::Order, Column::Description>;
@@ -49,6 +50,10 @@ public:
    [[nodiscard]] types::LayerVector GetLayers() const;
    void                             SetLayerDisplayed(types::LayerType        type,
                                                       types::LayerDescription description,
+                                                      bool                    displayed);
+   void                             SetLayerDisplayed(types::LayerType        type,
+                                                      types::LayerDescription description,
+                                                      std::size_t             mapIndex,
                                                       bool                    displayed);
 
    void ResetLayers();

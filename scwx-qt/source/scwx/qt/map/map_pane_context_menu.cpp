@@ -1,6 +1,8 @@
 #include <scwx/qt/map/map_pane_context_menu.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/manager/spc_outlook_manager.hpp>
+#include <scwx/qt/manager/placefile_manager.hpp>
+#include <scwx/qt/model/layer_model.hpp>
 #include <scwx/spc/spc_types.hpp>
 
 #include <scwx/common/products.hpp>
@@ -165,6 +167,30 @@ void StyleMapPaneContextSubmenu(QMenu* m)
       m->setProperty(kAlignInstalled, true);
       // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
       new MapPaneSubMenuShowAlign(m);
+   }
+}
+
+QString GetLayerMenuName(const types::LayerInfo& layer)
+{
+   if (layer.type_ == types::LayerType::Placefile)
+   {
+      std::string placefileName = std::get<std::string>(layer.description_);
+      std::string title =
+         manager::PlacefileManager::Instance()->placefile_title(placefileName);
+      return QString::fromStdString(title.empty() ? placefileName : title);
+   }
+   else if (layer.type_ == types::LayerType::Radar)
+   {
+      return QObject::tr("Radar");
+   }
+   else if (layer.type_ == types::LayerType::MesoscaleDiscussion)
+   {
+      return QObject::tr("Mesoscale Discussion");
+   }
+   else
+   {
+      return QString::fromStdString(
+         types::GetLayerDescriptionName(layer.description_));
    }
 }
 } // namespace
@@ -408,6 +434,54 @@ void RunMapPaneContextMenu(const MapPaneContextMenuConfig& cfg,
 
    menu.addSeparator();
    appendRadar(menu, curMap);
+
+   // Layers submenu
+   auto layerModel           = model::LayerModel::Instance();
+   auto layers               = layerModel->GetLayers();
+   bool hasContextMenuLayers = false;
+   for (const auto& layer : layers)
+   {
+      if (layer.showInContextMenu_)
+      {
+         hasContextMenuLayers = true;
+         break;
+      }
+   }
+
+   if (hasContextMenuLayers)
+   {
+      menu.addSeparator();
+      QMenu* const layersMenu = menu.addMenu(QObject::tr("&Layers"));
+      StyleMapPaneContextSubmenu(layersMenu);
+
+      for (const auto& layer : layers)
+      {
+         if (layer.showInContextMenu_)
+         {
+            QString        menuName = GetLayerMenuName(layer);
+            QAction* const a        = layersMenu->addAction(menuName);
+            a->setCheckable(true);
+
+            bool isChecked = false;
+            if (mapIndex < layer.displayed_.size())
+            {
+               isChecked = layer.displayed_[mapIndex];
+            }
+            a->setChecked(isChecked);
+
+            QObject::connect(
+               a,
+               &QAction::triggered,
+               receiver,
+               [layer, mapIndex](bool checked)
+               {
+                  auto layerModel = model::LayerModel::Instance();
+                  layerModel->SetLayerDisplayed(
+                     layer.type_, layer.description_, mapIndex, checked);
+               });
+         }
+      }
+   }
 
    if (cfg.append_spc_outlook_submenus)
    {

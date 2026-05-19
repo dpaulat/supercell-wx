@@ -70,6 +70,7 @@ struct LayerInfo
    bool                         movable_ {true};
    std::array<bool, kMapCount_> displayed_ {
       true, true, true, true, true, true, true, true, true};
+   bool showInContextMenu_ {false};
 };
 
 using LayerVector = boost::container::stable_vector<LayerInfo>;

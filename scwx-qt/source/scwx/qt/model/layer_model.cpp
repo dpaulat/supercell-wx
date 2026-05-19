@@ -445,6 +445,40 @@ void LayerModel::SetLayerDisplayed(types::LayerType        type,
    }
 }
 
+void LayerModel::SetLayerDisplayed(types::LayerType        type,
+                                   types::LayerDescription description,
+                                   std::size_t             mapIndex,
+                                   bool                    displayed)
+{
+   if (mapIndex >= types::kMapCount_)
+   {
+      return;
+   }
+
+   // Find the matching layer
+   auto it = std::find_if(
+      p->layers_.begin(),
+      p->layers_.end(),
+      [&](const types::LayerInfo& layer)
+      { return layer.type_ == type && layer.description_ == description; });
+
+   if (it != p->layers_.end())
+   {
+      // Find the row
+      const int   row   = std::distance(p->layers_.begin(), it);
+      QModelIndex index = createIndex(row,
+                                      static_cast<int>(Column::DisplayMap1) +
+                                         static_cast<int>(mapIndex));
+
+      // Set the layer display for the specific map index
+      it->displayed_[mapIndex] = displayed;
+
+      // Notify observers
+      Q_EMIT dataChanged(index, index);
+      Q_EMIT LayerDisplayChanged(*it);
+   }
+}
+
 void LayerModel::ResetLayers()
 {
    // Initialize a new layer vector from the default
@@ -547,6 +581,10 @@ Qt::ItemFlags LayerModel::flags(const QModelIndex& index) const
       }
       break;
 
+   case static_cast<int>(Column::ContextMenu):
+      flags |= Qt::ItemFlag::ItemIsUserCheckable | Qt::ItemFlag::ItemIsEditable;
+      break;
+
    default:
       break;
    }
@@ -627,6 +665,19 @@ QVariant LayerModel::data(const QModelIndex& index, int role) const
             return static_cast<int>(displayed ? Qt::CheckState::Checked :
                                                 Qt::CheckState::Unchecked);
          }
+      }
+      break;
+
+   case static_cast<int>(Column::ContextMenu):
+      if (role == Qt::ItemDataRole::ToolTipRole)
+      {
+         return tr("Show in Context Menu");
+      }
+      else if (role == Qt::ItemDataRole::CheckStateRole)
+      {
+         return static_cast<int>(layer.showInContextMenu_ ?
+                                    Qt::CheckState::Checked :
+                                    Qt::CheckState::Unchecked);
       }
       break;
 
@@ -727,6 +778,9 @@ LayerModel::headerData(int section, Qt::Orientation orientation, int role) const
          case static_cast<int>(Column::Enabled):
             return tr("Enabled");
 
+         case static_cast<int>(Column::ContextMenu):
+            return tr("Context Menu");
+
          case static_cast<int>(Column::Description):
             return tr("Description");
 
@@ -769,6 +823,9 @@ LayerModel::headerData(int section, Qt::Orientation orientation, int role) const
       case static_cast<int>(Column::DisplayMap9):
          return tr("Display on Map 9");
 
+      case static_cast<int>(Column::ContextMenu):
+         return tr("Show in Context Menu");
+
       default:
          break;
       }
@@ -786,6 +843,7 @@ LayerModel::headerData(int section, Qt::Orientation orientation, int role) const
       case static_cast<int>(Column::DisplayMap7):
       case static_cast<int>(Column::DisplayMap8):
       case static_cast<int>(Column::DisplayMap9):
+      case static_cast<int>(Column::ContextMenu):
       {
          static const QCheckBox checkBox {};
          QStyleOptionButton     option {};
@@ -835,6 +893,14 @@ bool LayerModel::setData(const QModelIndex& index,
          layer.displayed_[index.column() -
                           static_cast<int>(Column::DisplayMap1)] =
             value.toBool();
+         result = true;
+      }
+      break;
+
+   case static_cast<int>(Column::ContextMenu):
+      if (role == Qt::ItemDataRole::CheckStateRole)
+      {
+         layer.showInContextMenu_ = value.toBool();
          result = true;
       }
       break;

@@ -42,6 +42,7 @@ static const std::string kTypeName_ {"type"};
 static const std::string kDescriptionName_ {"description"};
 static const std::string kMovableName_ {"movable"};
 static const std::string kDisplayedName_ {"displayed"};
+static const std::string kShowInContextMenuName_ {"show_in_context_menu"};
 
 LayerType GetLayerType(const std::string& name)
 {
@@ -217,7 +218,8 @@ void tag_invoke(boost::json::value_from_tag,
    jv = {{kTypeName_, GetLayerTypeName(record.type_)},
          {kDescriptionName_, description},
          {kMovableName_, record.movable_},
-         {kDisplayedName_, boost::json::value_from(record.displayed_)}};
+         {kDisplayedName_, boost::json::value_from(record.displayed_)},
+         {kShowInContextMenuName_, record.showInContextMenu_}};
 }
 
 LayerInfo tag_invoke(boost::json::value_to_tag<LayerInfo>,
@@ -267,7 +269,8 @@ LayerInfo tag_invoke(boost::json::value_to_tag<LayerInfo>,
       .type_        = layerType,
       .description_ = description,
       .movable_     = jv.at(kMovableName_).as_bool(),
-      .displayed_   = [&jv]()
+      .displayed_ =
+         [&jv]()
       {
          std::array<bool, types::kMapCount_> displayed {};
          const auto& displayedArray = jv.at(kDisplayedName_).as_array();
@@ -295,16 +298,27 @@ LayerInfo tag_invoke(boost::json::value_to_tag<LayerInfo>,
          }
 
          return displayed;
-      }()};
+      }(),
+      .showInContextMenu_ = jv.as_object().contains(kShowInContextMenuName_) ?
+                               jv.at(kShowInContextMenuName_).as_bool() :
+                               false};
 }
 
 ConvectiveOutlookDay GetConvectiveOutlookDay(const std::string& name)
 {
+   if (name == "Convective Outlook Day 1-3")
+   {
+      return ConvectiveOutlookDay::Day1;
+   }
    return scwx::spc::GetOutlookDay(name);
 }
 
 std::string GetConvectiveOutlookDayName(ConvectiveOutlookDay day)
 {
+   if (day == ConvectiveOutlookDay::Day1)
+   {
+      return "Convective Outlook Day 1-3";
+   }
    return scwx::spc::GetOutlookDayName(day);
 }
 
