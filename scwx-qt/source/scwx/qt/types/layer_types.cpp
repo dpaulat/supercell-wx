@@ -254,6 +254,10 @@ LayerInfo tag_invoke(boost::json::value_to_tag<LayerInfo>,
    {
       description = GetConvectiveOutlookDay(descriptionName);
    }
+   else if (layerType == LayerType::MesoscaleDiscussion)
+   {
+      description = std::monostate {};
+   }
    else
    {
       description = descriptionName;
