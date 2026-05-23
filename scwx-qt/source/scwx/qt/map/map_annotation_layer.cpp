@@ -627,10 +627,10 @@ void MapAnnotationLayer::HandleMousePress(
          p->draftPoints_ = {p->pressGeo_};
          p->UpdatePreview();
       }
-      else
+      else if (p->measureA_.has_value())
       {
          MapAnnotationMeasure m;
-         m.a = *p->measureA_;
+         m.a = p->measureA_.value();
          m.b = p->pressGeo_;
          MapAnnotationObject obj {};
          obj.payload = m;
@@ -689,8 +689,8 @@ void MapAnnotationLayer::HandleMouseMove(
       {
          return;
       }
-      AppendFreehandAlongPixelSegment(
-         p->draftPoints_, map, *p->lastFreehandPixel_, localPos);
+      const QPointF fromPx = p->lastFreehandPixel_.value();
+      AppendFreehandAlongPixelSegment(p->draftPoints_, map, fromPx, localPos);
       p->lastFreehandPixel_ = localPos;
       constexpr std::size_t kLiveSimplifyPointInterval {48};
       if (p->draftPoints_.size() >= kLiveSimplifyPointInterval)
@@ -710,7 +710,8 @@ void MapAnnotationLayer::HandleMouseMove(
       {
          p->lastErasePixel_ = localPos;
       }
-      p->EraseAlongPixelSegment(this, map, *p->lastErasePixel_, localPos);
+      const QPointF fromPx = p->lastErasePixel_.value();
+      p->EraseAlongPixelSegment(this, map, fromPx, localPos);
       p->lastErasePixel_ = localPos;
       p->FlushPendingEraseGpuUpdate(this);
       return;
@@ -718,11 +719,11 @@ void MapAnnotationLayer::HandleMouseMove(
 
    if (p->tool_ == MapAnnotationTool::Measure)
    {
-      if (p->draggedMeasureHandle_.has_value())
+      if (auto draggedMeasureHandle = p->draggedMeasureHandle_)
       {
          const auto               c = map->coordinateForPixel(localPos);
          const common::Coordinate geo {c.first, c.second};
-         p->UpdateMeasureHandle(this, *p->draggedMeasureHandle_, geo);
+         p->UpdateMeasureHandle(this, *draggedMeasureHandle, geo);
          Q_EMIT NeedsRendering();
       }
       return;
@@ -741,23 +742,29 @@ void MapAnnotationLayer::HandleMouseMove(
       return;
    }
 
-   if (p->tool_ == MapAnnotationTool::Circle && p->circleCenter_.has_value())
+   if (p->tool_ == MapAnnotationTool::Circle)
    {
-      p->draftPoints_.clear();
-      p->draftPoints_.push_back(*p->circleCenter_);
-      p->draftPoints_.push_back(geo);
-      p->UpdatePreview();
-      Q_EMIT NeedsRendering();
+      if (auto circleCenter = p->circleCenter_)
+      {
+         p->draftPoints_.clear();
+         p->draftPoints_.push_back(*circleCenter);
+         p->draftPoints_.push_back(geo);
+         p->UpdatePreview();
+         Q_EMIT NeedsRendering();
+      }
       return;
    }
 
-   if (p->tool_ == MapAnnotationTool::Rectangle && p->rectCorner_.has_value())
+   if (p->tool_ == MapAnnotationTool::Rectangle)
    {
-      p->draftPoints_.clear();
-      p->draftPoints_.push_back(*p->rectCorner_);
-      p->draftPoints_.push_back(geo);
-      p->UpdatePreview();
-      Q_EMIT NeedsRendering();
+      if (auto rectCorner = p->rectCorner_)
+      {
+         p->draftPoints_.clear();
+         p->draftPoints_.push_back(*rectCorner);
+         p->draftPoints_.push_back(geo);
+         p->UpdatePreview();
+         Q_EMIT NeedsRendering();
+      }
    }
 }
 
@@ -801,24 +808,27 @@ void MapAnnotationLayer::HandleMouseRelease(
       return;
    }
 
-   if (p->tool_ == MapAnnotationTool::Circle && p->circleCenter_.has_value())
+   if (p->tool_ == MapAnnotationTool::Circle)
    {
-      const double r =
-         util::GeographicLib::GetDistance(p->circleCenter_->latitude_,
-                                          p->circleCenter_->longitude_,
-                                          geo.latitude_,
-                                          geo.longitude_)
-            .value();
-      if (r > kMinimumCircleRadiusM)
+      if (auto circleCenter = p->circleCenter_)
       {
-         MapAnnotationCircle circle;
-         circle.center       = *p->circleCenter_;
-         circle.radiusMeters = r;
-         MapAnnotationObject obj {};
-         obj.payload = circle;
-         obj.style   = p->style_;
-         static_cast<void>(p->model_.Add(std::move(obj)));
-         p->draw_->Rebuild();
+         const double r =
+            util::GeographicLib::GetDistance(circleCenter->latitude_,
+                                             circleCenter->longitude_,
+                                             geo.latitude_,
+                                             geo.longitude_)
+               .value();
+         if (r > kMinimumCircleRadiusM)
+         {
+            MapAnnotationCircle circle;
+            circle.center       = *circleCenter;
+            circle.radiusMeters = r;
+            MapAnnotationObject obj {};
+            obj.payload = circle;
+            obj.style   = p->style_;
+            static_cast<void>(p->model_.Add(std::move(obj)));
+            p->draw_->Rebuild();
+         }
       }
       p->circleCenter_.reset();
       p->drawing_ = false;
@@ -827,20 +837,23 @@ void MapAnnotationLayer::HandleMouseRelease(
       return;
    }
 
-   if (p->tool_ == MapAnnotationTool::Rectangle && p->rectCorner_.has_value())
+   if (p->tool_ == MapAnnotationTool::Rectangle)
    {
-      MapAnnotationRectangle rect;
-      rect.corner1   = *p->rectCorner_;
-      rect.corner2   = geo;
-      rect.fill      = p->style_.polygonFill;
-      rect.hatchFill = p->style_.hatchFill;
-      MapAnnotationObject obj {};
-      obj.payload = rect;
-      obj.style   = p->style_;
-      static_cast<void>(p->model_.Add(std::move(obj)));
+      if (auto rectCorner = p->rectCorner_)
+      {
+         MapAnnotationRectangle rect;
+         rect.corner1   = *rectCorner;
+         rect.corner2   = geo;
+         rect.fill      = p->style_.polygonFill;
+         rect.hatchFill = p->style_.hatchFill;
+         MapAnnotationObject obj {};
+         obj.payload = rect;
+         obj.style   = p->style_;
+         static_cast<void>(p->model_.Add(std::move(obj)));
+         p->draw_->Rebuild();
+      }
       p->rectCorner_.reset();
       p->drawing_ = false;
-      p->draw_->Rebuild();
       p->draw_->ClearPreview();
       Q_EMIT NeedsRendering();
       return;

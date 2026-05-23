@@ -6,6 +6,11 @@
 namespace scwx::qt::map
 {
 
+namespace
+{
+constexpr double kMetersPerPixelAverageFactor {0.5};
+} // namespace
+
 double MetersPerPixelAt(const std::shared_ptr<QMapLibre::Map>& map,
                         const QPointF&                         widgetPixel)
 {
@@ -26,7 +31,7 @@ double MetersPerPixelAt(const std::shared_ptr<QMapLibre::Map>& map,
 
    const double mppX = metersAlong(1.0, 0.0);
    const double mppY = metersAlong(0.0, 1.0);
-   return 0.5 * (mppX + mppY);
+   return kMetersPerPixelAverageFactor * (mppX + mppY);
 }
 
 } // namespace scwx::qt::map

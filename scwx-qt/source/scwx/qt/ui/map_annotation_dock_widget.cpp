@@ -809,7 +809,7 @@ public:
          }
          UpdateToolButtons(kOffTool);
          self_->hide();
-         if (map::MapWidget* const mapWidget =
+         if (auto* const mapWidget =
                 qobject_cast<map::MapWidget*>(hostMapWidget_.data());
              mapWidget != nullptr)
          {
@@ -1629,7 +1629,7 @@ void MapAnnotationDockWidget::OnToolSelected(int toolValue)
          L->SetTool(tool);
       }
    }
-   if (map::MapWidget* const mapWidget =
+   if (auto* const mapWidget =
           qobject_cast<map::MapWidget*>(p->hostMapWidget_.data());
        mapWidget != nullptr)
    {

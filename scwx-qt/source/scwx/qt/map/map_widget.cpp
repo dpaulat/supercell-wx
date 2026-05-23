@@ -87,6 +87,8 @@ namespace scwx::qt::map
 namespace
 {
 
+constexpr int kFallbackEraseCursorRadiusPx {8};
+
 /** Ring + eraser in pixmap so KDE/Wayland compositor tracks cursor with zero
  * lag. Pixmap radius is capped (~124px) for display only; geographic erase pick
  * and `EraseCursorRadiusPx` use the full brush width in ground meters. */
@@ -107,7 +109,7 @@ QCursor CreateEraseCursor(int radiusPx)
    painter.setBrush(Qt::NoBrush);
 
    const QPointF ringCenter {center, center};
-   const qreal   ringRadius = static_cast<qreal>(r);
+   const auto    ringRadius = static_cast<qreal>(r);
 
    // Dark halo — readable on bright radar returns.
    QPen haloPen {QColor {0, 0, 0, 210}};
@@ -2160,7 +2162,7 @@ int MapWidgetImpl::EraseCursorRadiusPx(const QPointF& widgetPos) const
 {
    if (map_ == nullptr || annotationLayer_ == nullptr)
    {
-      return 8;
+      return kFallbackEraseCursorRadiusPx;
    }
 
    // Brush size is ground diameter; ring radius is half that, in screen pixels.
@@ -2168,7 +2170,7 @@ int MapWidgetImpl::EraseCursorRadiusPx(const QPointF& widgetPos) const
    const double mpp     = MetersPerPixelAt(map_, widgetPos);
    if (mpp <= 0.0)
    {
-      return 8;
+      return kFallbackEraseCursorRadiusPx;
    }
 
    const int radiusPx = static_cast<int>(std::round(radiusM / mpp));
