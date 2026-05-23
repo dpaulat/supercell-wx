@@ -627,10 +627,10 @@ void MapAnnotationLayer::HandleMousePress(
          p->draftPoints_ = {p->pressGeo_};
          p->UpdatePreview();
       }
-      else if (p->measureA_.has_value())
+      else if (const auto measureA = p->measureA_)
       {
          MapAnnotationMeasure m;
-         m.a = p->measureA_.value();
+         m.a = *measureA;
          m.b = p->pressGeo_;
          MapAnnotationObject obj {};
          obj.payload = m;
@@ -685,32 +685,31 @@ void MapAnnotationLayer::HandleMouseMove(
 
    if (p->tool_ == MapAnnotationTool::Freehand)
    {
-      if (p->draftPoints_.empty() || !p->lastFreehandPixel_.has_value())
+      if (p->draftPoints_.empty())
       {
          return;
       }
-      const QPointF fromPx = p->lastFreehandPixel_.value();
-      AppendFreehandAlongPixelSegment(p->draftPoints_, map, fromPx, localPos);
-      p->lastFreehandPixel_ = localPos;
-      constexpr std::size_t kLiveSimplifyPointInterval {48};
-      if (p->draftPoints_.size() >= kLiveSimplifyPointInterval)
+      if (const auto lastFreehandPixel = p->lastFreehandPixel_)
       {
-         const double toleranceM =
-            std::clamp(p->style_.strokeWidthM.value() * 0.04, 2.0, 30.0);
-         SimplifyFreehandPoints(p->draftPoints_, toleranceM);
+         AppendFreehandAlongPixelSegment(
+            p->draftPoints_, map, *lastFreehandPixel, localPos);
+         p->lastFreehandPixel_ = localPos;
+         constexpr std::size_t kLiveSimplifyPointInterval {48};
+         if (p->draftPoints_.size() >= kLiveSimplifyPointInterval)
+         {
+            const double toleranceM =
+               std::clamp(p->style_.strokeWidthM.value() * 0.04, 2.0, 30.0);
+            SimplifyFreehandPoints(p->draftPoints_, toleranceM);
+         }
+         p->UpdatePreview();
+         Q_EMIT NeedsRendering();
       }
-      p->UpdatePreview();
-      Q_EMIT NeedsRendering();
       return;
    }
 
    if (p->tool_ == MapAnnotationTool::Erase)
    {
-      if (!p->lastErasePixel_.has_value())
-      {
-         p->lastErasePixel_ = localPos;
-      }
-      const QPointF fromPx = p->lastErasePixel_.value();
+      const QPointF fromPx = p->lastErasePixel_.value_or(localPos);
       p->EraseAlongPixelSegment(this, map, fromPx, localPos);
       p->lastErasePixel_ = localPos;
       p->FlushPendingEraseGpuUpdate(this);
