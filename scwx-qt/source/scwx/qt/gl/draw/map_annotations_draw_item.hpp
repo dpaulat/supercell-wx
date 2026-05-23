@@ -4,9 +4,12 @@
 #include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/map/map_annotation_types.hpp>
 
+#include <units/length.h>
+
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <unordered_set>
 #include <vector>
 
 namespace scwx::qt::map
@@ -35,14 +38,22 @@ public:
 
    void SetPreviewPolyline(const std::vector<common::Coordinate>& pts,
                            const map::MapAnnotationStyle&         style,
-                           bool roundStroke = false);
+                           bool roundStroke               = false,
+                           bool committedRoundMeshPreview = false);
    void ClearPreview();
 
    void Rebuild();
 
+   /** Remove cached GPU/pick geometry for @p ids without rebuilding survivors.
+    */
+   void RemoveCommittedObjects(const std::unordered_set<std::uint64_t>& ids);
+
+   /** @p pickExtraHalfWidthM Added to each stroke half-width (eraser brush
+    * radius). */
    [[nodiscard]] std::vector<std::uint64_t>
-   PickObjects(const glm::vec2&          mouseMapCoords,
-               const common::Coordinate& mouseGeo) const;
+   PickObjects(const common::Coordinate&     mouseGeo,
+               units::length::meters<double> pickExtraHalfWidthM =
+                  units::length::meters<double> {0.0}) const;
 
 private:
    class Impl;

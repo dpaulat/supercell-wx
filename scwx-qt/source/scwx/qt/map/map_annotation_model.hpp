@@ -4,8 +4,7 @@
 
 #include <cstdint>
 #include <functional>
-#include <mutex>
-#include <optional>
+#include <memory>
 #include <vector>
 
 namespace scwx::qt::map
@@ -14,8 +13,8 @@ namespace scwx::qt::map
 class MapAnnotationModel
 {
 public:
-   MapAnnotationModel()  = default;
-   ~MapAnnotationModel() = default;
+   MapAnnotationModel();
+   ~MapAnnotationModel();
 
    MapAnnotationModel(const MapAnnotationModel&)            = delete;
    MapAnnotationModel& operator=(const MapAnnotationModel&) = delete;
@@ -26,14 +25,15 @@ public:
    void                        Remove(std::uint64_t id);
    void                        Clear();
 
+   /** Holds `mutex_` for the whole call; do not call back into this model. */
    void Read(const std::function<void(const std::vector<MapAnnotationObject>&)>&
                 fn) const;
+   /** Holds `mutex_` for the whole call; do not call back into this model. */
    void Write(const std::function<void(std::vector<MapAnnotationObject>&)>& fn);
 
 private:
-   mutable std::mutex               mutex_;
-   std::vector<MapAnnotationObject> objects_;
-   std::uint64_t                    nextId_ {1};
+   class Impl;
+   std::unique_ptr<Impl> p;
 };
 
 } // namespace scwx::qt::map

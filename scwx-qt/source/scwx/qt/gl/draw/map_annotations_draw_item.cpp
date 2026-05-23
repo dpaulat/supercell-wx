@@ -18,8 +18,9 @@
 #include <deque>
 #include <exception>
 #include <numbers>
-#include <numeric>
 #include <type_traits>
+#include <unordered_set>
+#include <unordered_map>
 
 #include <GeographicLib/Geodesic.hpp>
 #include <geos/geom/Coordinate.h>
@@ -707,6 +708,37 @@ TryAppendSolidRoundPolylineGeosFill(std::vector<float>& fillOut,
 
    return false;
 }
+
+static void
+AppendRoundFreehandStroke(std::vector<float>&                    fillOut,
+                          std::vector<float>&                    strokeOut,
+                          const std::vector<common::Coordinate>& pts,
+                          const map::MapAnnotationStyle&         style,
+                          const ::GeographicLib::Geodesic&       geod)
+{
+   if (pts.size() >= 2)
+   {
+      const auto dash      = DashAttribs(style);
+      const bool solidDash = (dash.first < 1.0e-3f);
+      if (!solidDash || !TryAppendSolidRoundPolylineGeosFill(
+                           fillOut, pts, style.strokeWidthM, style.strokeColor))
+      {
+         AppendPolylineStroke(strokeOut,
+                              pts,
+                              false,
+                              style.strokeWidthM,
+                              style.strokeColor,
+                              geod,
+                              dash.first,
+                              dash.second);
+      }
+   }
+   else if (pts.size() == 1)
+   {
+      const double radiusM = style.strokeWidthM.value() * 0.5;
+      AppendFilledGeoDisk(fillOut, pts.front(), radiusM, style.strokeColor);
+   }
+}
 } // namespace
 
 static void ConfigureAnnotationVaoForVbo(GLuint vao, GLuint vbo)
@@ -764,6 +796,145 @@ struct PickCircle
    units::length::meters<double> halfStrokeM {};
 };
 
+struct CommittedObjectGeometry
+{
+   std::vector<float>            strokeVertices_ {};
+   std::vector<float>            fillVertices_ {};
+   std::vector<PickSegment>      pickSegments_ {};
+   std::vector<PickCircle>       pickCircles_ {};
+   bool                          pickBoundsValid_ {false};
+   double                        pickMinLat_ {0.0};
+   double                        pickMaxLat_ {0.0};
+   double                        pickMinLon_ {0.0};
+   double                        pickMaxLon_ {0.0};
+   units::length::meters<double> pickHalfStrokeM_ {};
+};
+
+struct PickObjectEntry
+{
+   std::uint64_t                 id {};
+   double                        minLat_ {0.0};
+   double                        maxLat_ {0.0};
+   double                        minLon_ {0.0};
+   double                        maxLon_ {0.0};
+   units::length::meters<double> halfStrokeM_ {};
+   std::vector<PickSegment>      segments_ {};
+   std::vector<PickCircle>       circles_ {};
+};
+
+// Flat-earth bbox pad; same CONUS-scale assumption as segment pick distance.
+static void ExpandPickBounds(CommittedObjectGeometry&      geom,
+                             const common::Coordinate&     c,
+                             units::length::meters<double> halfStrokeM)
+{
+   const double halfM  = std::max(0.0, halfStrokeM.value());
+   const double padLat = halfM / 111320.0;
+   const double cosLat = std::max(
+      0.2, std::cos(c.latitude_ * (std::numbers::pi_v<double> / 180.0)));
+   const double padLon = halfM / (111320.0 * cosLat);
+
+   if (!geom.pickBoundsValid_)
+   {
+      geom.pickBoundsValid_ = true;
+      geom.pickHalfStrokeM_ = halfStrokeM;
+      geom.pickMinLat_      = c.latitude_ - padLat;
+      geom.pickMaxLat_      = c.latitude_ + padLat;
+      geom.pickMinLon_      = c.longitude_ - padLon;
+      geom.pickMaxLon_      = c.longitude_ + padLon;
+      return;
+   }
+
+   if (halfStrokeM > geom.pickHalfStrokeM_)
+   {
+      geom.pickHalfStrokeM_ = halfStrokeM;
+   }
+   geom.pickMinLat_ = std::min(geom.pickMinLat_, c.latitude_ - padLat);
+   geom.pickMaxLat_ = std::max(geom.pickMaxLat_, c.latitude_ + padLat);
+   geom.pickMinLon_ = std::min(geom.pickMinLon_, c.longitude_ - padLon);
+   geom.pickMaxLon_ = std::max(geom.pickMaxLon_, c.longitude_ + padLon);
+}
+
+static void
+AppendPolylinePickSegments(CommittedObjectGeometry&               geom,
+                           std::uint64_t                          id,
+                           const std::vector<common::Coordinate>& pts,
+                           units::length::meters<double>          halfStrokeM,
+                           bool                                   coarsePick)
+{
+   if (pts.size() < 2)
+   {
+      return;
+   }
+
+   constexpr std::size_t kMaxPickSegments = 64;
+   const std::size_t     numSegments      = pts.size() - 1;
+   const double          maxChordM = std::max(halfStrokeM.value() * 2.0, 5.0);
+
+   auto emitSegment =
+      [&](const common::Coordinate& a, const common::Coordinate& b)
+   {
+      geom.pickSegments_.push_back(
+         PickSegment {.id = id, .a = a, .b = b, .halfStrokeM = halfStrokeM});
+      ExpandPickBounds(geom, a, halfStrokeM);
+      ExpandPickBounds(geom, b, halfStrokeM);
+   };
+
+   if (!coarsePick || numSegments <= kMaxPickSegments)
+   {
+      for (std::size_t i = 0; i < numSegments; ++i)
+      {
+         emitSegment(pts[i], pts[i + 1]);
+      }
+      return;
+   }
+
+   double pathLenM {0.0};
+   for (std::size_t i = 0; i < numSegments; ++i)
+   {
+      pathLenM += util::GeographicLib::GetDistance(pts[i].latitude_,
+                                                   pts[i].longitude_,
+                                                   pts[i + 1].latitude_,
+                                                   pts[i + 1].longitude_)
+                     .value();
+   }
+
+   const std::size_t pickSegmentCount = std::clamp<std::size_t>(
+      static_cast<std::size_t>(std::ceil(pathLenM / maxChordM)),
+      static_cast<std::size_t>(1),
+      kMaxPickSegments);
+
+   std::vector<common::Coordinate> chain;
+   chain.reserve(pickSegmentCount + 1);
+   chain.push_back(pts.front());
+   for (std::size_t k = 1; k < pickSegmentCount; ++k)
+   {
+      const std::size_t idx = (k * numSegments) / pickSegmentCount;
+      chain.push_back(pts[idx]);
+   }
+   chain.push_back(pts.back());
+
+   for (std::size_t i = 0; i + 1 < chain.size(); ++i)
+   {
+      emitSegment(chain[i], chain[i + 1]);
+   }
+}
+
+static PickObjectEntry TakePickEntry(std::uint64_t            id,
+                                     CommittedObjectGeometry& geom)
+{
+   PickObjectEntry entry {};
+   entry.id              = id;
+   entry.minLat_         = geom.pickMinLat_;
+   entry.maxLat_         = geom.pickMaxLat_;
+   entry.minLon_         = geom.pickMinLon_;
+   entry.maxLon_         = geom.pickMaxLon_;
+   entry.halfStrokeM_    = geom.pickHalfStrokeM_;
+   entry.segments_       = std::move(geom.pickSegments_);
+   entry.circles_        = std::move(geom.pickCircles_);
+   geom.pickBoundsValid_ = false;
+   return entry;
+}
+
 class MapAnnotationsDrawItem::Impl
 {
 public:
@@ -776,16 +947,19 @@ public:
    std::shared_ptr<GlContext> context_;
    map::MapAnnotationModel*   model_ {nullptr};
 
-   std::vector<float>              modelStrokeVertices_ {};
-   std::vector<float>              modelFillVertices_ {};
-   std::vector<float>              previewStrokeVertices_ {};
-   std::vector<float>              previewFillVertices_ {};
-   std::vector<PickSegment>        pickSegments_ {};
-   std::vector<PickCircle>         pickCircles_ {};
-   std::vector<common::Coordinate> previewPts_ {};
-   map::MapAnnotationStyle         previewStyle_ {};
-   bool                            previewActive_ {false};
-   bool                            previewRoundStroke_ {false};
+   std::vector<float>           modelStrokeVertices_ {};
+   std::vector<float>           modelFillVertices_ {};
+   std::vector<float>           previewStrokeVertices_ {};
+   std::vector<float>           previewFillVertices_ {};
+   std::vector<PickObjectEntry> pickObjects_ {};
+   std::unordered_map<std::uint64_t, CommittedObjectGeometry> committedById_ {};
+   std::vector<common::Coordinate>                            previewPts_ {};
+   map::MapAnnotationStyle                                    previewStyle_ {};
+   bool previewActive_ {false};
+   bool previewRoundStroke_ {false};
+   /** When true with @c previewRoundStroke_, preview uses committed GEOS mesh.
+    */
+   bool previewCommittedRoundMesh_ {false};
 
    std::shared_ptr<ShaderProgram> shader_ {nullptr};
    GLint                          uMapMatrixLoc_ {-1};
@@ -810,6 +984,7 @@ public:
    bool gpuPreviewDirty_ {true};
 
    void RebuildCommittedGeometry();
+   void FlattenModelVertices();
    void RebuildPreviewGeometry();
 };
 
@@ -822,13 +997,12 @@ MapAnnotationsDrawItem::~MapAnnotationsDrawItem() = default;
 
 void MapAnnotationsDrawItem::Impl::RebuildCommittedGeometry()
 {
-   modelStrokeVertices_.clear();
-   modelFillVertices_.clear();
-   pickSegments_.clear();
-   pickCircles_.clear();
+   committedById_.clear();
+   pickObjects_.clear();
    const auto& geod = util::GeographicLib::DefaultGeodesic();
 
-   auto handleObject = [&](const map::MapAnnotationObject& obj)
+   auto handleObject =
+      [&](const map::MapAnnotationObject& obj, CommittedObjectGeometry& geom)
    {
       std::visit(
          [&](auto&& arg)
@@ -844,38 +1018,15 @@ void MapAnnotationsDrawItem::Impl::RebuildCommittedGeometry()
                const auto dash = DashAttribs(obj.style);
                if (arg.roundStroke)
                {
-                  if (arg.points.size() >= 2)
-                  {
-                     const bool solidDash = (dash.first < 1.0e-3f);
-                     if (!solidDash || !TryAppendSolidRoundPolylineGeosFill(
-                                          modelFillVertices_,
-                                          arg.points,
-                                          obj.style.strokeWidthM,
-                                          obj.style.strokeColor))
-                     {
-                        AppendPolylineStroke(modelStrokeVertices_,
-                                             arg.points,
-                                             false,
-                                             obj.style.strokeWidthM,
-                                             obj.style.strokeColor,
-                                             geod,
-                                             dash.first,
-                                             dash.second);
-                     }
-                  }
-                  else
-                  {
-                     const double radiusM =
-                        obj.style.strokeWidthM.value() * 0.5;
-                     AppendFilledGeoDisk(modelFillVertices_,
-                                         arg.points.front(),
-                                         radiusM,
-                                         obj.style.strokeColor);
-                  }
+                  AppendRoundFreehandStroke(geom.fillVertices_,
+                                            geom.strokeVertices_,
+                                            arg.points,
+                                            obj.style,
+                                            geod);
                }
                else
                {
-                  AppendPolylineStroke(modelStrokeVertices_,
+                  AppendPolylineStroke(geom.strokeVertices_,
                                        arg.points,
                                        false,
                                        obj.style.strokeWidthM,
@@ -884,24 +1035,21 @@ void MapAnnotationsDrawItem::Impl::RebuildCommittedGeometry()
                                        dash.first,
                                        dash.second);
                }
+               const auto halfStroke = obj.style.strokeWidthM * 0.5;
                if (arg.points.size() >= 2)
                {
-                  for (std::size_t i = 0; i + 1 < arg.points.size(); ++i)
-                  {
-                     pickSegments_.push_back(PickSegment {
-                        .id          = obj.id,
-                        .a           = arg.points[i],
-                        .b           = arg.points[i + 1],
-                        .halfStrokeM = obj.style.strokeWidthM * 0.5});
-                  }
+                  AppendPolylinePickSegments(
+                     geom, obj.id, arg.points, halfStroke, arg.roundStroke);
                }
                else if (arg.roundStroke && arg.points.size() == 1)
                {
-                  pickCircles_.push_back(PickCircle {
+                  const PickCircle circle {
                      .id          = obj.id,
                      .center      = arg.points[0],
                      .radiusM     = obj.style.strokeWidthM.value() * 0.5,
-                     .halfStrokeM = obj.style.strokeWidthM * 0.5});
+                     .halfStrokeM = halfStroke};
+                  geom.pickCircles_.push_back(circle);
+                  ExpandPickBounds(geom, circle.center, halfStroke);
                }
             }
             else if constexpr (std::is_same_v<T, map::MapAnnotationCircle>)
@@ -909,12 +1057,12 @@ void MapAnnotationsDrawItem::Impl::RebuildCommittedGeometry()
                const auto dash = DashAttribs(obj.style);
                if (obj.style.polygonFill)
                {
-                  AppendFilledGeoDisk(modelFillVertices_,
+                  AppendFilledGeoDisk(geom.fillVertices_,
                                       arg.center,
                                       arg.radiusMeters,
                                       obj.style.fillColor);
                }
-               AppendCircleStroke(modelStrokeVertices_,
+               AppendCircleStroke(geom.strokeVertices_,
                                   arg.center,
                                   arg.radiusMeters,
                                   obj.style.strokeWidthM,
@@ -922,16 +1070,21 @@ void MapAnnotationsDrawItem::Impl::RebuildCommittedGeometry()
                                   geod,
                                   dash.first,
                                   dash.second);
-               pickCircles_.push_back(
+               const auto halfStroke = obj.style.strokeWidthM * 0.5;
+               geom.pickCircles_.push_back(
                   PickCircle {.id          = obj.id,
                               .center      = arg.center,
                               .radiusM     = arg.radiusMeters,
-                              .halfStrokeM = obj.style.strokeWidthM * 0.5});
+                              .halfStrokeM = halfStroke});
+               ExpandPickBounds(geom,
+                                arg.center,
+                                units::length::meters<double> {
+                                   arg.radiusMeters + halfStroke.value()});
             }
             else if constexpr (std::is_same_v<T, map::MapAnnotationRectangle>)
             {
-               AppendRectangleStrokeAndFill(modelStrokeVertices_,
-                                            modelFillVertices_,
+               AppendRectangleStrokeAndFill(geom.strokeVertices_,
+                                            geom.fillVertices_,
                                             arg.corner1,
                                             arg.corner2,
                                             obj.style,
@@ -948,26 +1101,31 @@ void MapAnnotationsDrawItem::Impl::RebuildCommittedGeometry()
                const common::Coordinate lr {minLat, maxLon};
                const common::Coordinate ur {maxLat, maxLon};
                const common::Coordinate ul {maxLat, minLon};
-               pickSegments_.push_back(
+               geom.pickSegments_.push_back(
                   PickSegment {.id          = obj.id,
                                .a           = ll,
                                .b           = lr,
                                .halfStrokeM = obj.style.strokeWidthM * 0.5});
-               pickSegments_.push_back(
+               geom.pickSegments_.push_back(
                   PickSegment {.id          = obj.id,
                                .a           = lr,
                                .b           = ur,
                                .halfStrokeM = obj.style.strokeWidthM * 0.5});
-               pickSegments_.push_back(
+               geom.pickSegments_.push_back(
                   PickSegment {.id          = obj.id,
                                .a           = ur,
                                .b           = ul,
                                .halfStrokeM = obj.style.strokeWidthM * 0.5});
-               pickSegments_.push_back(
+               geom.pickSegments_.push_back(
                   PickSegment {.id          = obj.id,
                                .a           = ul,
                                .b           = ll,
                                .halfStrokeM = obj.style.strokeWidthM * 0.5});
+               const auto halfStroke = obj.style.strokeWidthM * 0.5;
+               ExpandPickBounds(geom, ll, halfStroke);
+               ExpandPickBounds(geom, lr, halfStroke);
+               ExpandPickBounds(geom, ur, halfStroke);
+               ExpandPickBounds(geom, ul, halfStroke);
             }
             else if constexpr (std::is_same_v<T, map::MapAnnotationMeasure>)
             {
@@ -975,7 +1133,7 @@ void MapAnnotationsDrawItem::Impl::RebuildCommittedGeometry()
                const auto   dash       = DashAttribs(obj.style);
                const std::vector<common::Coordinate> seg = {arg.a, arg.b};
                AppendPolylineStroke(
-                  modelStrokeVertices_,
+                  geom.strokeVertices_,
                   seg,
                   false,
                   units::length::meters<double> {pinRadiusM * 0.8},
@@ -984,32 +1142,37 @@ void MapAnnotationsDrawItem::Impl::RebuildCommittedGeometry()
                   dash.first,
                   dash.second);
                AppendFilledGeoDisk(
-                  modelFillVertices_, arg.a, pinRadiusM, obj.style.strokeColor);
+                  geom.fillVertices_, arg.a, pinRadiusM, obj.style.strokeColor);
                AppendFilledGeoDisk(
-                  modelFillVertices_, arg.b, pinRadiusM, obj.style.strokeColor);
-               AppendFilledGeoDisk(modelFillVertices_,
+                  geom.fillVertices_, arg.b, pinRadiusM, obj.style.strokeColor);
+               AppendFilledGeoDisk(geom.fillVertices_,
                                    arg.a,
                                    pinRadiusM * 0.38,
                                    {1.0f, 1.0f, 1.0f, 0.95f});
-               AppendFilledGeoDisk(modelFillVertices_,
+               AppendFilledGeoDisk(geom.fillVertices_,
                                    arg.b,
                                    pinRadiusM * 0.38,
                                    {1.0f, 1.0f, 1.0f, 0.95f});
-               pickCircles_.push_back(PickCircle {
+               geom.pickCircles_.push_back(PickCircle {
                   .id          = obj.id,
                   .center      = arg.a,
                   .radiusM     = pinRadiusM,
                   .halfStrokeM = units::length::meters<double> {0.0}});
-               pickCircles_.push_back(PickCircle {
+               geom.pickCircles_.push_back(PickCircle {
                   .id          = obj.id,
                   .center      = arg.b,
                   .radiusM     = pinRadiusM,
                   .halfStrokeM = units::length::meters<double> {0.0}});
-               pickSegments_.push_back(
+               geom.pickSegments_.push_back(
                   PickSegment {.id          = obj.id,
                                .a           = arg.a,
                                .b           = arg.b,
                                .halfStrokeM = obj.style.strokeWidthM * 0.5});
+               const auto pinHalf = units::length::meters<double> {pinRadiusM};
+               ExpandPickBounds(geom, arg.a, pinHalf);
+               ExpandPickBounds(geom, arg.b, pinHalf);
+               ExpandPickBounds(geom, arg.a, obj.style.strokeWidthM * 0.5);
+               ExpandPickBounds(geom, arg.b, obj.style.strokeWidthM * 0.5);
             }
          },
          obj.payload);
@@ -1022,9 +1185,54 @@ void MapAnnotationsDrawItem::Impl::RebuildCommittedGeometry()
          {
             for (const auto& o : objs)
             {
-               handleObject(o);
+               CommittedObjectGeometry geom;
+               handleObject(o, geom);
+               pickObjects_.push_back(TakePickEntry(o.id, geom));
+               committedById_.emplace(o.id, std::move(geom));
             }
          });
+   }
+
+   FlattenModelVertices();
+}
+
+void MapAnnotationsDrawItem::Impl::FlattenModelVertices()
+{
+   modelStrokeVertices_.clear();
+   modelFillVertices_.clear();
+
+   auto appendRender = [this](const CommittedObjectGeometry& geom)
+   {
+      modelStrokeVertices_.insert(modelStrokeVertices_.end(),
+                                  geom.strokeVertices_.begin(),
+                                  geom.strokeVertices_.end());
+      modelFillVertices_.insert(modelFillVertices_.end(),
+                                geom.fillVertices_.begin(),
+                                geom.fillVertices_.end());
+   };
+
+   if (model_ != nullptr)
+   {
+      model_->Read(
+         [&](const std::vector<map::MapAnnotationObject>& objs)
+         {
+            for (const auto& o : objs)
+            {
+               const auto it = committedById_.find(o.id);
+               if (it == committedById_.end())
+               {
+                  continue;
+               }
+               appendRender(it->second);
+            }
+         });
+   }
+   else
+   {
+      for (const auto& [_, geom] : committedById_)
+      {
+         appendRender(geom);
+      }
    }
 
    strokeModelCount_ =
@@ -1060,7 +1268,15 @@ void MapAnnotationsDrawItem::Impl::RebuildPreviewGeometry()
    const auto& geod = util::GeographicLib::DefaultGeodesic();
    if (previewRoundStroke_)
    {
-      if (previewPts_.size() >= 2)
+      if (previewCommittedRoundMesh_)
+      {
+         AppendRoundFreehandStroke(previewFillVertices_,
+                                   previewStrokeVertices_,
+                                   previewPts_,
+                                   previewStyle_,
+                                   geod);
+      }
+      else if (previewPts_.size() >= 2)
       {
          const auto dash = DashAttribs(previewStyle_);
          AppendPolylineStroke(previewStrokeVertices_,
@@ -1072,7 +1288,7 @@ void MapAnnotationsDrawItem::Impl::RebuildPreviewGeometry()
                               dash.first,
                               dash.second);
       }
-      else
+      else if (previewPts_.size() == 1)
       {
          const double radiusM = previewStyle_.strokeWidthM.value() * 0.5;
          AppendFilledGeoDisk(previewFillVertices_,
@@ -1157,19 +1373,22 @@ void MapAnnotationsDrawItem::Deinitialize()
 void MapAnnotationsDrawItem::SetPreviewPolyline(
    const std::vector<common::Coordinate>& pts,
    const map::MapAnnotationStyle&         style,
-   bool                                   roundStroke)
+   bool                                   roundStroke,
+   bool                                   committedRoundMeshPreview)
 {
-   p->previewPts_         = pts;
-   p->previewStyle_       = style;
-   p->previewRoundStroke_ = roundStroke;
-   p->previewActive_      = true;
+   p->previewPts_                = pts;
+   p->previewStyle_              = style;
+   p->previewRoundStroke_        = roundStroke;
+   p->previewCommittedRoundMesh_ = committedRoundMeshPreview;
+   p->previewActive_             = true;
    p->RebuildPreviewGeometry();
 }
 
 void MapAnnotationsDrawItem::ClearPreview()
 {
-   p->previewActive_      = false;
-   p->previewRoundStroke_ = false;
+   p->previewActive_             = false;
+   p->previewRoundStroke_        = false;
+   p->previewCommittedRoundMesh_ = false;
    p->previewPts_.clear();
    p->previewStrokeVertices_.clear();
    p->previewFillVertices_.clear();
@@ -1183,82 +1402,144 @@ void MapAnnotationsDrawItem::Rebuild()
    p->RebuildCommittedGeometry();
 }
 
-static float
-PointSegDist2Screen(const glm::vec2& m, const glm::vec2& a, const glm::vec2& b)
+void MapAnnotationsDrawItem::RemoveCommittedObjects(
+   const std::unordered_set<std::uint64_t>& ids)
 {
-   const glm::vec2 ab    = b - a;
-   const float     denom = glm::dot(ab, ab);
-   if (denom < 1e-30f)
+   if (ids.empty())
    {
-      return glm::dot(m - a, m - a);
+      return;
    }
-   float t                 = glm::dot(m - a, ab) / denom;
-   t                       = std::clamp(t, 0.0f, 1.0f);
-   const glm::vec2 closest = a + t * ab;
-   return glm::dot(m - closest, m - closest);
+
+   for (const std::uint64_t id : ids)
+   {
+      p->committedById_.erase(id);
+   }
+   std::erase_if(p->pickObjects_,
+                 [&ids](const PickObjectEntry& entry)
+                 { return ids.contains(entry.id); });
+   p->FlattenModelVertices();
 }
 
-std::vector<std::uint64_t>
-MapAnnotationsDrawItem::PickObjects(const glm::vec2&          mouseMapCoords,
-                                    const common::Coordinate& mouseGeo) const
+namespace
 {
-   const glm::vec2 m = mouseMapCoords;
-
-   constexpr float                              kPickScale2 = 1.0e-5f;
-   std::vector<std::pair<float, std::uint64_t>> hits;
-   hits.reserve(p->pickSegments_.size() + p->pickCircles_.size());
-
-   for (const auto& seg : p->pickSegments_)
+// Cross-track distance on the spheroid via local azimuth/length; adequate for
+// CONUS-scale annotations (not polar geodesic line-of-closest-approach).
+double DistancePointToSegmentM(const common::Coordinate& p,
+                               const common::Coordinate& a,
+                               const common::Coordinate& b)
+{
+   const auto& geod = util::GeographicLib::DefaultGeodesic();
+   double      s12 {};
+   double      azi1 {};
+   double      azi2 {};
+   geod.Inverse(
+      a.latitude_, a.longitude_, b.latitude_, b.longitude_, s12, azi1, azi2);
+   if (s12 <= 0.0)
    {
-      const glm::vec2 sa = util::maplibre::LatLongToScreenCoordinate(
-         {seg.a.latitude_, seg.a.longitude_});
-      const glm::vec2 sb = util::maplibre::LatLongToScreenCoordinate(
-         {seg.b.latitude_, seg.b.longitude_});
-      const float d2 = PointSegDist2Screen(m, sa, sb);
-      if (d2 < kPickScale2)
+      return util::GeographicLib::GetDistance(
+                a.latitude_, a.longitude_, p.latitude_, p.longitude_)
+         .value();
+   }
+
+   double s13 {};
+   double azi13 {};
+   double azi31 {};
+   geod.Inverse(
+      a.latitude_, a.longitude_, p.latitude_, p.longitude_, s13, azi13, azi31);
+
+   double aziDeltaDeg = azi13 - azi1;
+   while (aziDeltaDeg > 180.0)
+   {
+      aziDeltaDeg -= 360.0;
+   }
+   while (aziDeltaDeg < -180.0)
+   {
+      aziDeltaDeg += 360.0;
+   }
+   const double aziDiffRad = aziDeltaDeg * (std::numbers::pi_v<double> / 180.0);
+   const double crossM     = std::abs(s13 * std::sin(aziDiffRad));
+   const double alongM     = s13 * std::cos(aziDiffRad);
+   if (alongM < 0.0 || alongM > s12)
+   {
+      return std::min(util::GeographicLib::GetDistance(
+                         a.latitude_, a.longitude_, p.latitude_, p.longitude_)
+                         .value(),
+                      util::GeographicLib::GetDistance(
+                         b.latitude_, b.longitude_, p.latitude_, p.longitude_)
+                         .value());
+   }
+   return crossM;
+}
+
+// Flat-earth bbox test; adequate for CONUS-scale annotations.
+bool MouseNearPickObject(const common::Coordinate& mouseGeo,
+                         const PickObjectEntry&    entry,
+                         double                    extraHalfM)
+{
+   const double pad    = entry.halfStrokeM_.value() + extraHalfM;
+   const double midLat = (entry.minLat_ + entry.maxLat_) * 0.5;
+   const double padLat = pad / 111320.0;
+   const double cosLat =
+      std::max(0.2, std::cos(midLat * (std::numbers::pi_v<double> / 180.0)));
+   const double padLon = pad / (111320.0 * cosLat);
+
+   return mouseGeo.latitude_ >= entry.minLat_ - padLat &&
+          mouseGeo.latitude_ <= entry.maxLat_ + padLat &&
+          mouseGeo.longitude_ >= entry.minLon_ - padLon &&
+          mouseGeo.longitude_ <= entry.maxLon_ + padLon;
+}
+} // namespace
+
+std::vector<std::uint64_t> MapAnnotationsDrawItem::PickObjects(
+   const common::Coordinate&     mouseGeo,
+   units::length::meters<double> pickExtraHalfWidthM) const
+{
+   const double extraHalfM = std::max(0.0, pickExtraHalfWidthM.value());
+
+   std::unordered_set<std::uint64_t> hitIds;
+   hitIds.reserve(8);
+
+   for (const auto& object : p->pickObjects_)
+   {
+      if (!MouseNearPickObject(mouseGeo, object, extraHalfM))
       {
-         hits.emplace_back(d2, seg.id);
+         continue;
+      }
+
+      for (const auto& seg : object.segments_)
+      {
+         const double pickRadiusM = seg.halfStrokeM.value() + extraHalfM;
+         const double distM = DistancePointToSegmentM(mouseGeo, seg.a, seg.b);
+         if (distM <= pickRadiusM)
+         {
+            hitIds.insert(seg.id);
+         }
+      }
+
+      for (const auto& c : object.circles_)
+      {
+         const double distM =
+            util::GeographicLib::GetDistance(c.center.latitude_,
+                                             c.center.longitude_,
+                                             mouseGeo.latitude_,
+                                             mouseGeo.longitude_)
+               .value();
+         const double pickRadiusM = c.halfStrokeM.value() + extraHalfM;
+         if (distM <= c.radiusM + pickRadiusM)
+         {
+            hitIds.insert(c.id);
+            continue;
+         }
+         const double ringDist = std::abs(distM - c.radiusM);
+         if (ringDist <= pickRadiusM)
+         {
+            hitIds.insert(c.id);
+         }
       }
    }
 
-   for (const auto& c : p->pickCircles_)
-   {
-      const double distM = util::GeographicLib::GetDistance(c.center.latitude_,
-                                                            c.center.longitude_,
-                                                            mouseGeo.latitude_,
-                                                            mouseGeo.longitude_)
-                              .value();
-      const double ringDist =
-         std::abs(distM - c.radiusM) - c.halfStrokeM.value();
-      constexpr double kTolM = 1500.0;
-      if (ringDist < kTolM)
-      {
-         hits.emplace_back(0.0f, c.id);
-      }
-   }
-
-   std::sort(hits.begin(),
-             hits.end(),
-             [](const auto& lhs, const auto& rhs)
-             {
-                if (lhs.first != rhs.first)
-                {
-                   return lhs.first < rhs.first;
-                }
-                return lhs.second < rhs.second;
-             });
-
-   std::vector<std::uint64_t> ids;
-   ids.reserve(hits.size());
-   for (const auto& [distance2, id] : hits)
-   {
-      static_cast<void>(distance2);
-      if (std::find(ids.begin(), ids.end(), id) == ids.end())
-      {
-         ids.push_back(id);
-      }
-   }
-
+   std::vector<std::uint64_t> ids {hitIds.begin(), hitIds.end()};
+   std::sort(ids.begin(), ids.end());
    return ids;
 }
 

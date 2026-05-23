@@ -1,4 +1,7 @@
 #include <scwx/qt/map/map_annotation_layer.hpp>
+#include <scwx/qt/map/map_annotation_types.hpp>
+
+#include <units/length.h>
 
 #include <QCoreApplication>
 
@@ -78,14 +81,37 @@ TEST(MapAnnotationLayerTest, CompletedMeasureTracksDistanceAndVisibility)
    const auto overlays = layer.GetMeasurementOverlays();
    ASSERT_EQ(overlays.size(), 1u);
    ASSERT_TRUE(layer.LastMeasureDistanceM().has_value());
-   EXPECT_GT(*layer.LastMeasureDistanceM(), 0.0);
-   EXPECT_DOUBLE_EQ(overlays.front().distanceM, *layer.LastMeasureDistanceM());
+   EXPECT_GT(layer.LastMeasureDistanceM()->value(), 0.0);
+   EXPECT_DOUBLE_EQ(overlays.front().distanceM.value(),
+                    layer.LastMeasureDistanceM()->value());
 
    layer.SetVisible(false);
    EXPECT_TRUE(layer.GetMeasurementOverlays().empty());
 
    layer.SetVisible(true);
    EXPECT_EQ(layer.GetMeasurementOverlays().size(), 1u);
+}
+
+TEST(MapAnnotationLayerTest, EraseWideBrushRemovesLine)
+{
+   auto map = CreateMap();
+
+   MapAnnotationLayer layer {nullptr};
+   MapAnnotationStyle style {};
+   style.strokeWidthM = units::length::meters<double> {8000.0};
+   layer.SetStyle(style);
+
+   layer.SetTool(MapAnnotationTool::Line);
+   layer.HandleMousePress(map, QPointF {40.0, 40.0});
+   layer.HandleMouseMove(map, QPointF {200.0, 200.0});
+   layer.HandleMouseRelease(map, QPointF {200.0, 200.0});
+   ASSERT_EQ(layer.GetObjectCount(), 1u);
+
+   layer.SetTool(MapAnnotationTool::Erase);
+   layer.HandleMousePress(map, QPointF {40.0, 40.0});
+   layer.HandleMouseMove(map, QPointF {200.0, 200.0});
+   layer.HandleMouseRelease(map, QPointF {200.0, 200.0});
+   EXPECT_EQ(layer.GetObjectCount(), 0u);
 }
 
 TEST(MapAnnotationLayerTest, SetToolClearsPendingMeasureAnchor)

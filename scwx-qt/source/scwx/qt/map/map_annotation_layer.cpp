@@ -1,4 +1,5 @@
 #include <scwx/qt/gl/draw/map_annotations_draw_item.hpp>
+#include <scwx/qt/map/map_annotation_geo_util.hpp>
 #include <scwx/qt/map/map_annotation_layer.hpp>
 #include <scwx/qt/map/map_annotation_model.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
@@ -11,6 +12,7 @@
 #include <QMapLibre/Map>
 #include <QMapLibre/Utils>
 #include <QPointF>
+#include <QWidget>
 #include <glm/gtc/type_ptr.hpp>
 
 namespace scwx::qt::map
@@ -105,13 +107,15 @@ void SimplifyFreehandPoints(std::vector<common::Coordinate>& pts,
    pts.swap(simplified);
 }
 
-double MeasureDistanceM(const MapAnnotationMeasure& measure)
+units::length::meters<double>
+MeasureDistanceM(const MapAnnotationMeasure& measure)
 {
-   return util::GeographicLib::GetDistance(measure.a.latitude_,
-                                           measure.a.longitude_,
-                                           measure.b.latitude_,
-                                           measure.b.longitude_)
-      .value();
+   return units::length::meters<double> {
+      util::GeographicLib::GetDistance(measure.a.latitude_,
+                                       measure.a.longitude_,
+                                       measure.b.latitude_,
+                                       measure.b.longitude_)
+         .value()};
 }
 } // namespace
 
@@ -135,24 +139,27 @@ public:
    MapAnnotationStyle style_ {};
    bool               visible_ {true};
 
-   bool                                  drawing_ {false};
-   std::vector<common::Coordinate>       draftPoints_ {};
-   common::Coordinate                    pressGeo_ {};
-   std::optional<common::Coordinate>     circleCenter_ {};
-   std::optional<common::Coordinate>     rectCorner_ {};
-   std::optional<common::Coordinate>     measureA_ {};
-   std::optional<double>                 lastMeasureM_ {};
-   std::optional<MeasureHandleSelection> draggedMeasureHandle_ {};
+   bool                                         drawing_ {false};
+   std::vector<common::Coordinate>              draftPoints_ {};
+   common::Coordinate                           pressGeo_ {};
+   std::optional<common::Coordinate>            circleCenter_ {};
+   std::optional<common::Coordinate>            rectCorner_ {};
+   std::optional<common::Coordinate>            measureA_ {};
+   std::optional<units::length::meters<double>> lastMeasureM_ {};
+   std::optional<MeasureHandleSelection>        draggedMeasureHandle_ {};
    /** Last pointer position (widget px) while freehand drawing; drives pixel
     * resampling. */
    std::optional<QPointF>            lastFreehandPixel_ {};
    std::optional<QPointF>            lastErasePixel_ {};
    std::unordered_set<std::uint64_t> erasedIds_ {};
+   std::unordered_set<std::uint64_t> pendingGpuEraseIds_ {};
+   bool                              eraseGpuDirty_ {false};
 
-   void EmitMeasureUpdated(MapAnnotationLayer* self, double distanceM)
+   void EmitMeasureUpdated(MapAnnotationLayer*           self,
+                           units::length::meters<double> distanceM)
    {
       lastMeasureM_ = distanceM;
-      Q_EMIT self->MeasureUpdated(distanceM);
+      Q_EMIT self->MeasureUpdated(distanceM.value());
    }
 
    void CancelInteraction()
@@ -166,6 +173,8 @@ public:
       lastFreehandPixel_.reset();
       lastErasePixel_.reset();
       erasedIds_.clear();
+      pendingGpuEraseIds_.clear();
+      eraseGpuDirty_ = false;
       draw_->ClearPreview();
    }
 
@@ -185,13 +194,14 @@ public:
          SimplifyFreehandPoints(pl.points, toleranceM);
       }
       pl.roundStroke = roundStroke;
+
       MapAnnotationObject obj {};
       obj.payload = std::move(pl);
       obj.style   = style_;
       static_cast<void>(model_.Add(std::move(obj)));
       draftPoints_.clear();
-      draw_->ClearPreview();
       draw_->Rebuild();
+      draw_->ClearPreview();
    }
 
    void UpdatePreview()
@@ -273,7 +283,7 @@ public:
                             const MeasureHandleSelection& selection,
                             const common::Coordinate&     geo)
    {
-      std::optional<double> updatedDistanceM;
+      std::optional<units::length::meters<double>> updatedDistanceM;
 
       model_.Write(
          [&](std::vector<MapAnnotationObject>& objects)
@@ -315,6 +325,26 @@ public:
       EmitMeasureUpdated(self, *updatedDistanceM);
    }
 
+   void FlushPendingEraseGpuUpdate(MapAnnotationLayer* self)
+   {
+      if (!eraseGpuDirty_)
+      {
+         return;
+      }
+
+      draw_->RemoveCommittedObjects(pendingGpuEraseIds_);
+      pendingGpuEraseIds_.clear();
+      eraseGpuDirty_ = false;
+      Q_EMIT self->NeedsRendering();
+      if (mapContext_ != nullptr)
+      {
+         if (QWidget* const widget = mapContext_->widget(); widget != nullptr)
+         {
+            widget->update();
+         }
+      }
+   }
+
    void EraseAlongPixelSegment(MapAnnotationLayer*                    self,
                                const std::shared_ptr<QMapLibre::Map>& map,
                                const QPointF&                         fromPx,
@@ -325,12 +355,22 @@ public:
          return;
       }
 
-      const double     dx  = toPx.x() - fromPx.x();
-      const double     dy  = toPx.y() - fromPx.y();
-      const double     len = std::hypot(dx, dy);
-      constexpr double kErasePixelStep {6.0};
-      const int        steps =
-         std::max(1, static_cast<int>(std::ceil(len / kErasePixelStep)));
+      const units::length::meters<double> eraserHalfM {
+         self->style().strokeWidthM * 0.5};
+
+      const double     mpp           = MetersPerPixelAt(map, fromPx);
+      const double     eraseHalfM    = eraserHalfM.value();
+      const double     eraseRadiusPx = (mpp > 0.0) ? (eraseHalfM / mpp) : 8.0;
+      constexpr double kMinSampleSpacingPx {2.0};
+      const double     brushStepPx =
+         std::max(kMinSampleSpacingPx, eraseRadiusPx * 0.5);
+      const double sampleSpacingPx = std::max(kMinSampleSpacingPx, brushStepPx);
+
+      const double dx  = toPx.x() - fromPx.x();
+      const double dy  = toPx.y() - fromPx.y();
+      const double len = std::hypot(dx, dy);
+      const int    steps =
+         std::max(1, static_cast<int>(std::ceil(len / sampleSpacingPx)));
 
       std::unordered_set<std::uint64_t> removeIds;
 
@@ -339,10 +379,8 @@ public:
          const double  t = static_cast<double>(i) / static_cast<double>(steps);
          const QPointF px(fromPx.x() + dx * t, fromPx.y() + dy * t);
          const auto    c = map->coordinateForPixel(px);
-         const glm::vec2 mc =
-            util::maplibre::LatLongToScreenCoordinate({c.first, c.second});
          const common::Coordinate geo {c.first, c.second};
-         for (const auto id : draw_->PickObjects(mc, geo))
+         for (const auto id : draw_->PickObjects(geo, eraserHalfM))
          {
             if (erasedIds_.insert(id).second)
             {
@@ -363,8 +401,8 @@ public:
                           [&removeIds](const MapAnnotationObject& object)
                           { return removeIds.contains(object.id); });
          });
-      draw_->Rebuild();
-      Q_EMIT self->NeedsRendering();
+      pendingGpuEraseIds_.insert(removeIds.begin(), removeIds.end());
+      eraseGpuDirty_ = true;
    }
 };
 
@@ -489,7 +527,16 @@ void MapAnnotationLayer::ClearAll()
    Q_EMIT NeedsRendering();
 }
 
-std::optional<double> MapAnnotationLayer::LastMeasureDistanceM() const
+std::size_t MapAnnotationLayer::GetObjectCount() const
+{
+   std::size_t count {0};
+   p->model_.Read([&count](const std::vector<MapAnnotationObject>& objects)
+                  { count = objects.size(); });
+   return count;
+}
+
+std::optional<units::length::meters<double>>
+MapAnnotationLayer::LastMeasureDistanceM() const
 {
    return p->lastMeasureM_;
 }
@@ -550,7 +597,9 @@ void MapAnnotationLayer::HandleMousePress(
       p->drawing_        = true;
       p->lastErasePixel_ = localPos;
       p->erasedIds_.clear();
+      p->pendingGpuEraseIds_.clear();
       p->EraseAlongPixelSegment(this, map, localPos, localPos);
+      p->FlushPendingEraseGpuUpdate(this);
       return;
    }
 
@@ -580,20 +629,14 @@ void MapAnnotationLayer::HandleMousePress(
       }
       else
       {
-         const auto measureA = p->measureA_;
-         if (!measureA.has_value())
-         {
-            return;
-         }
          MapAnnotationMeasure m;
-         m.a = *measureA;
+         m.a = *p->measureA_;
          m.b = p->pressGeo_;
          MapAnnotationObject obj {};
          obj.payload = m;
          obj.style   = p->style_;
          static_cast<void>(p->model_.Add(std::move(obj)));
-         const double d = MeasureDistanceM(m);
-         p->EmitMeasureUpdated(this, d);
+         p->EmitMeasureUpdated(this, MeasureDistanceM(m));
          p->measureA_.reset();
          p->draftPoints_.clear();
          p->draw_->ClearPreview();
@@ -640,23 +683,22 @@ void MapAnnotationLayer::HandleMouseMove(
       return;
    }
 
-   const auto               c = map->coordinateForPixel(localPos);
-   const common::Coordinate geo {c.first, c.second};
-
    if (p->tool_ == MapAnnotationTool::Freehand)
    {
       if (p->draftPoints_.empty() || !p->lastFreehandPixel_.has_value())
       {
          return;
       }
-      const auto lastFreehandPixel = p->lastFreehandPixel_;
-      if (!lastFreehandPixel.has_value())
-      {
-         return;
-      }
       AppendFreehandAlongPixelSegment(
-         p->draftPoints_, map, *lastFreehandPixel, localPos);
+         p->draftPoints_, map, *p->lastFreehandPixel_, localPos);
       p->lastFreehandPixel_ = localPos;
+      constexpr std::size_t kLiveSimplifyPointInterval {48};
+      if (p->draftPoints_.size() >= kLiveSimplifyPointInterval)
+      {
+         const double toleranceM =
+            std::clamp(p->style_.strokeWidthM.value() * 0.04, 2.0, 30.0);
+         SimplifyFreehandPoints(p->draftPoints_, toleranceM);
+      }
       p->UpdatePreview();
       Q_EMIT NeedsRendering();
       return;
@@ -668,13 +710,9 @@ void MapAnnotationLayer::HandleMouseMove(
       {
          p->lastErasePixel_ = localPos;
       }
-      const auto lastErasePixel = p->lastErasePixel_;
-      if (!lastErasePixel.has_value())
-      {
-         return;
-      }
-      p->EraseAlongPixelSegment(this, map, *lastErasePixel, localPos);
+      p->EraseAlongPixelSegment(this, map, *p->lastErasePixel_, localPos);
       p->lastErasePixel_ = localPos;
+      p->FlushPendingEraseGpuUpdate(this);
       return;
    }
 
@@ -682,16 +720,16 @@ void MapAnnotationLayer::HandleMouseMove(
    {
       if (p->draggedMeasureHandle_.has_value())
       {
-         const auto draggedMeasureHandle = p->draggedMeasureHandle_;
-         if (!draggedMeasureHandle.has_value())
-         {
-            return;
-         }
-         p->UpdateMeasureHandle(this, *draggedMeasureHandle, geo);
+         const auto               c = map->coordinateForPixel(localPos);
+         const common::Coordinate geo {c.first, c.second};
+         p->UpdateMeasureHandle(this, *p->draggedMeasureHandle_, geo);
          Q_EMIT NeedsRendering();
       }
       return;
    }
+
+   const auto               c = map->coordinateForPixel(localPos);
+   const common::Coordinate geo {c.first, c.second};
 
    if (p->tool_ == MapAnnotationTool::Line)
    {
@@ -705,13 +743,8 @@ void MapAnnotationLayer::HandleMouseMove(
 
    if (p->tool_ == MapAnnotationTool::Circle && p->circleCenter_.has_value())
    {
-      const auto circleCenter = p->circleCenter_;
-      if (!circleCenter.has_value())
-      {
-         return;
-      }
       p->draftPoints_.clear();
-      p->draftPoints_.push_back(*circleCenter);
+      p->draftPoints_.push_back(*p->circleCenter_);
       p->draftPoints_.push_back(geo);
       p->UpdatePreview();
       Q_EMIT NeedsRendering();
@@ -720,13 +753,8 @@ void MapAnnotationLayer::HandleMouseMove(
 
    if (p->tool_ == MapAnnotationTool::Rectangle && p->rectCorner_.has_value())
    {
-      const auto rectCorner = p->rectCorner_;
-      if (!rectCorner.has_value())
-      {
-         return;
-      }
       p->draftPoints_.clear();
-      p->draftPoints_.push_back(*rectCorner);
+      p->draftPoints_.push_back(*p->rectCorner_);
       p->draftPoints_.push_back(geo);
       p->UpdatePreview();
       Q_EMIT NeedsRendering();
@@ -746,6 +774,7 @@ void MapAnnotationLayer::HandleMouseRelease(
 
    if (p->tool_ == MapAnnotationTool::Erase)
    {
+      p->FlushPendingEraseGpuUpdate(this);
       p->drawing_ = false;
       p->lastErasePixel_.reset();
       p->erasedIds_.clear();
@@ -774,21 +803,16 @@ void MapAnnotationLayer::HandleMouseRelease(
 
    if (p->tool_ == MapAnnotationTool::Circle && p->circleCenter_.has_value())
    {
-      const auto circleCenter = p->circleCenter_;
-      if (!circleCenter.has_value())
-      {
-         return;
-      }
       const double r =
-         util::GeographicLib::GetDistance(circleCenter->latitude_,
-                                          circleCenter->longitude_,
+         util::GeographicLib::GetDistance(p->circleCenter_->latitude_,
+                                          p->circleCenter_->longitude_,
                                           geo.latitude_,
                                           geo.longitude_)
             .value();
       if (r > kMinimumCircleRadiusM)
       {
          MapAnnotationCircle circle;
-         circle.center       = *circleCenter;
+         circle.center       = *p->circleCenter_;
          circle.radiusMeters = r;
          MapAnnotationObject obj {};
          obj.payload = circle;
@@ -805,13 +829,8 @@ void MapAnnotationLayer::HandleMouseRelease(
 
    if (p->tool_ == MapAnnotationTool::Rectangle && p->rectCorner_.has_value())
    {
-      const auto rectCorner = p->rectCorner_;
-      if (!rectCorner.has_value())
-      {
-         return;
-      }
       MapAnnotationRectangle rect;
-      rect.corner1   = *rectCorner;
+      rect.corner1   = *p->rectCorner_;
       rect.corner2   = geo;
       rect.fill      = p->style_.polygonFill;
       rect.hatchFill = p->style_.hatchFill;
@@ -835,7 +854,6 @@ void MapAnnotationLayer::HandleMouseRelease(
       }
       p->drawing_ = false;
       p->lastFreehandPixel_.reset();
-      p->draw_->ClearPreview();
       Q_EMIT NeedsRendering();
    }
 }

@@ -153,6 +153,7 @@ set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/draw_layer.hpp
             source/scwx/qt/map/generic_layer.hpp
             source/scwx/qt/map/layer_wrapper.hpp
+            source/scwx/qt/map/map_annotation_geo_util.hpp
             source/scwx/qt/map/map_annotation_layer.hpp
             source/scwx/qt/map/map_annotation_model.hpp
             source/scwx/qt/map/map_annotation_types.hpp
@@ -177,6 +178,7 @@ set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/draw_layer.cpp
             source/scwx/qt/map/generic_layer.cpp
             source/scwx/qt/map/layer_wrapper.cpp
+            source/scwx/qt/map/map_annotation_geo_util.cpp
             source/scwx/qt/map/map_annotation_layer.cpp
             source/scwx/qt/map/map_annotation_model.cpp
             source/scwx/qt/map/map_context.cpp

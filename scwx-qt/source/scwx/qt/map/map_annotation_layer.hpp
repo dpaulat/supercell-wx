@@ -3,6 +3,9 @@
 #include <scwx/qt/map/generic_layer.hpp>
 #include <scwx/qt/map/map_annotation_types.hpp>
 
+#include <units/length.h>
+
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <string>
@@ -24,11 +27,11 @@ class MapAnnotationLayer : public GenericLayer
 public:
    struct MeasurementOverlay
    {
-      std::uint64_t      id {};
-      common::Coordinate a {};
-      common::Coordinate b {};
-      common::Coordinate labelAnchor {};
-      double             distanceM {};
+      std::uint64_t                 id {};
+      common::Coordinate            a {};
+      common::Coordinate            b {};
+      common::Coordinate            labelAnchor {};
+      units::length::meters<double> distanceM {};
    };
 
    explicit MapAnnotationLayer(std::shared_ptr<gl::GlContext> glContext);
@@ -68,6 +71,9 @@ public:
 
    void ClearAll();
 
+   /** Object count; primarily for unit tests. */
+   [[nodiscard]] std::size_t GetObjectCount() const;
+
    void HandleMousePress(const std::shared_ptr<QMapLibre::Map>& map,
                          const QPointF&                         localPos);
    void HandleMouseMove(const std::shared_ptr<QMapLibre::Map>& map,
@@ -75,7 +81,8 @@ public:
    void HandleMouseRelease(const std::shared_ptr<QMapLibre::Map>& map,
                            const QPointF&                         localPos);
 
-   [[nodiscard]] std::optional<double>           LastMeasureDistanceM() const;
+   [[nodiscard]] std::optional<units::length::meters<double>>
+                                                 LastMeasureDistanceM() const;
    [[nodiscard]] std::vector<MeasurementOverlay> GetMeasurementOverlays() const;
 
 signals:

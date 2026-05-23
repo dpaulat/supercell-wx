@@ -1,3 +1,4 @@
+#include <scwx/qt/map/map_annotation_geo_util.hpp>
 #include <scwx/qt/map/map_annotation_layer.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/gl/gl.hpp>
@@ -69,6 +70,7 @@
 #include <QLabel>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QResizeEvent>
 #include <QPinchGesture>
 #include <QPixmap>
 #include <QString>
@@ -85,25 +87,55 @@ namespace scwx::qt::map
 namespace
 {
 
-QCursor CreateEraseCursor()
+/** Ring + eraser in pixmap so KDE/Wayland compositor tracks cursor with zero
+ * lag. Pixmap radius is capped (~124px) for display only; geographic erase pick
+ * and `EraseCursorRadiusPx` use the full brush width in ground meters. */
+QCursor CreateEraseCursor(int radiusPx)
 {
-   QPixmap pixmap {24, 24};
+   constexpr int kPad      = 8;
+   constexpr int kMaxSize  = 256;
+   const int     maxRadius = (kMaxSize - kPad) / 2;
+   const int     r         = std::clamp(radiusPx, 4, maxRadius);
+   const int     size      = std::clamp(r * 2 + kPad, 32, kMaxSize);
+   const qreal   center    = static_cast<qreal>(size) / 2.0;
+
+   QPixmap pixmap {size, size};
    pixmap.fill(Qt::transparent);
 
    QPainter painter {&pixmap};
    painter.setRenderHint(QPainter::Antialiasing, true);
-   painter.translate(12.0, 12.0);
-   painter.rotate(-35.0);
-   painter.translate(-12.0, -12.0);
-   painter.setPen(QPen(QColor {36, 36, 36}, 1.0));
-   painter.setBrush(QColor {255, 186, 104});
-   painter.drawRoundedRect(QRectF {6.0, 5.0, 10.0, 7.0}, 2.0, 2.0);
-   painter.setBrush(QColor {239, 83, 80});
-   painter.drawRoundedRect(QRectF {6.0, 12.0, 10.0, 5.0}, 1.5, 1.5);
-   painter.setBrush(QColor {245, 245, 245});
-   painter.drawRect(QRectF {7.0, 16.0, 8.0, 2.5});
+   painter.setBrush(Qt::NoBrush);
 
-   return QCursor {pixmap, 6, 18};
+   const QPointF ringCenter {center, center};
+   const qreal   ringRadius = static_cast<qreal>(r);
+
+   // Dark halo — readable on bright radar returns.
+   QPen haloPen {QColor {0, 0, 0, 210}};
+   haloPen.setWidthF(3.0);
+   haloPen.setCapStyle(Qt::RoundCap);
+   painter.setPen(haloPen);
+   painter.drawEllipse(ringCenter, ringRadius, ringRadius);
+
+   // Light dashed ring — readable on dark map / satellite.
+   QPen dashPen {QColor {255, 255, 255, 245}};
+   dashPen.setWidthF(1.75);
+   dashPen.setStyle(Qt::DashLine);
+   dashPen.setDashPattern({5.0, 4.0});
+   dashPen.setCapStyle(Qt::RoundCap);
+   painter.setPen(dashPen);
+   painter.drawEllipse(ringCenter, ringRadius, ringRadius);
+
+   painter.translate(center, center);
+   painter.rotate(-35.0);
+   painter.setPen(QPen {QColor {36, 36, 36}, 1.0});
+   painter.setBrush(QColor {255, 186, 104});
+   painter.drawRoundedRect(QRectF {-5.0, -7.0, 10.0, 7.0}, 2.0, 2.0);
+   painter.setBrush(QColor {239, 83, 80});
+   painter.drawRoundedRect(QRectF {-5.0, 0.0, 10.0, 5.0}, 1.5, 1.5);
+   painter.setBrush(QColor {245, 245, 245});
+   painter.drawRect(QRectF {-4.0, 4.0, 8.0, 2.5});
+
+   return QCursor {pixmap, static_cast<int>(center), static_cast<int>(center)};
 }
 
 QString FormatMeasurementDistance(double meters)
@@ -212,9 +244,9 @@ public:
 
    ~MapWidgetImpl()
    {
-      if (eraseCursorActive_ && QApplication::overrideCursor() != nullptr)
+      if (eraseCursorActive_)
       {
-         QApplication::restoreOverrideCursor();
+         widget_->unsetCursor();
       }
 
       // Disconnect signals
@@ -272,12 +304,14 @@ public:
                                std::optional<std::string> type);
    void SetRadarSite(const std::string& radarSite,
                      bool               checkProductAvailability = false);
-   void UpdateAnnotationCursor();
-   void UpdateMeasureLabels();
-   void UpdateColorTable(const std::string& colorPalette);
-   void UpdateColorTable(
-      const std::string&                             colorPalette,
-      const std::shared_ptr<view::RadarProductView>& radarProductView);
+   [[nodiscard]] QPointF EraseCursorWidgetPosition() const;
+   [[nodiscard]] int     EraseCursorRadiusPx(const QPointF& widgetPos) const;
+   void                  UpdateAnnotationCursor();
+   void                  UpdateMeasureLabels();
+   void                  UpdateColorTable(const std::string& colorPalette);
+   void                  UpdateColorTable(
+                       const std::string&                             colorPalette,
+                       const std::shared_ptr<view::RadarProductView>& radarProductView);
    void UpdateLoadedStyle();
    bool UpdateStoredMapParameters();
    void CheckLevel3Availability();
@@ -356,6 +390,7 @@ public:
 
    bool hasMouse_ {false};
    bool eraseCursorActive_ {false};
+   int  eraseCursorRadiusPx_ {-1};
    bool isPainting_ {false};
    bool lastItemPicked_ {false};
 
@@ -423,6 +458,7 @@ MapWidget::MapWidget(std::size_t                    id,
    }
 
    setFocusPolicy(Qt::StrongFocus);
+   setMouseTracking(true);
 
    // Avoid Qt dispatching a context menu during the right-button press; that
    // would run a blocking QMenu in MainWindow and steal the right-drag
@@ -1296,6 +1332,7 @@ void MapWidget::SelectTime(std::chrono::system_clock::time_point time)
 void MapWidget::SetActive(bool isActive)
 {
    p->context_->settings().isActive_ = isActive;
+   p->UpdateAnnotationCursor();
    QMetaObject::invokeMethod(
       this, static_cast<void (QWidget::*)()>(&QWidget::update));
 }
@@ -1968,6 +2005,7 @@ void MapWidget::mouseDoubleClickEvent(QMouseEvent* ev)
       p->suppressContextMenuOnNextRightRelease_ = true;
    }
 
+   p->UpdateAnnotationCursor();
    ev->accept();
 }
 
@@ -1997,6 +2035,7 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
       }
       p->lastPos_       = ev->position();
       p->lastGlobalPos_ = ev->globalPosition();
+      p->UpdateAnnotationCursor();
       ev->accept();
       return;
    }
@@ -2009,6 +2048,7 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
       p->annotationLayer_->HandleMouseMove(p->map_, ev->position());
       p->lastPos_       = ev->position();
       p->lastGlobalPos_ = ev->globalPosition();
+      p->UpdateAnnotationCursor();
       ev->accept();
       return;
    }
@@ -2045,6 +2085,7 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
 
    p->lastPos_       = ev->position();
    p->lastGlobalPos_ = ev->globalPosition();
+   p->UpdateAnnotationCursor();
    ev->accept();
 }
 
@@ -2094,30 +2135,79 @@ std::shared_ptr<MapAnnotationLayer> MapWidget::map_annotation_layer() const
    return p->annotationLayer_;
 }
 
+void MapWidget::SyncEraseCursor()
+{
+   p->UpdateAnnotationCursor();
+}
+
+void MapWidget::resizeEvent(QResizeEvent* event)
+{
+   QOpenGLWidget::resizeEvent(event);
+   p->UpdateAnnotationCursor();
+}
+
+QPointF MapWidgetImpl::EraseCursorWidgetPosition() const
+{
+   const QPointF widgetPos = widget_->mapFromGlobal(QCursor::pos());
+   if (QRectF {widget_->rect()}.contains(widgetPos))
+   {
+      return widgetPos;
+   }
+   return lastPos_;
+}
+
+int MapWidgetImpl::EraseCursorRadiusPx(const QPointF& widgetPos) const
+{
+   if (map_ == nullptr || annotationLayer_ == nullptr)
+   {
+      return 8;
+   }
+
+   // Brush size is ground diameter; ring radius is half that, in screen pixels.
+   const double radiusM = annotationLayer_->style().strokeWidthM.value() * 0.5;
+   const double mpp     = MetersPerPixelAt(map_, widgetPos);
+   if (mpp <= 0.0)
+   {
+      return 8;
+   }
+
+   const int radiusPx = static_cast<int>(std::round(radiusM / mpp));
+   // Cap ring size on tiny panes; erase pick still uses full `strokeWidthM`.
+   const int maxPx =
+      static_cast<int>(0.5 * std::min(widget_->width(), widget_->height()));
+   return std::clamp(radiusPx, 2, maxPx);
+}
+
 void MapWidgetImpl::UpdateAnnotationCursor()
 {
-   static const QCursor eraseCursor = CreateEraseCursor();
+   const bool showErase =
+      context_->settings().isActive_ && annotationLayer_ != nullptr &&
+      annotationLayer_->tool() == MapAnnotationTool::Erase &&
+      (hasMouse_ || widget_->underMouse());
 
-   if (hasMouse_ && annotationLayer_ != nullptr &&
-       annotationLayer_->tool() == MapAnnotationTool::Erase)
+   if (showErase)
    {
-      if (QApplication::overrideCursor() == nullptr)
+      constexpr int kRadiusRebuildThresholdPx {2};
+
+      const int  radiusPx = EraseCursorRadiusPx(EraseCursorWidgetPosition());
+      const bool radiusChanged =
+         !eraseCursorActive_ ||
+         std::abs(radiusPx - eraseCursorRadiusPx_) >= kRadiusRebuildThresholdPx;
+
+      if (!eraseCursorActive_ || radiusChanged)
       {
-         QApplication::setOverrideCursor(eraseCursor);
+         widget_->setCursor(CreateEraseCursor(radiusPx));
+         eraseCursorActive_   = true;
+         eraseCursorRadiusPx_ = radiusPx;
       }
-      else
-      {
-         QApplication::changeOverrideCursor(eraseCursor);
-      }
-      eraseCursorActive_ = true;
+      return;
    }
-   else
+
+   if (eraseCursorActive_)
    {
-      if (eraseCursorActive_ && QApplication::overrideCursor() != nullptr)
-      {
-         QApplication::restoreOverrideCursor();
-      }
-      eraseCursorActive_ = false;
+      widget_->unsetCursor();
+      eraseCursorActive_   = false;
+      eraseCursorRadiusPx_ = -1;
    }
 }
 
@@ -2160,7 +2250,8 @@ void MapWidgetImpl::UpdateMeasureLabels()
                            "padding: 2px 6px;"));
       }
 
-      const QString labelText = FormatMeasurementDistance(overlay.distanceM);
+      const QString labelText =
+         FormatMeasurementDistance(overlay.distanceM.value());
       if (label->text() != labelText)
       {
          label->setText(labelText);
@@ -2222,6 +2313,7 @@ void MapWidget::wheelEvent(QWheelEvent* ev)
    }
 
    p->map_->scaleBy(1 + factor, ev->position());
+   p->UpdateAnnotationCursor();
 
    ev->accept();
 }

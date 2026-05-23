@@ -26,6 +26,7 @@
 class QContextMenuEvent;
 class QKeyEvent;
 class QMouseEvent;
+class QResizeEvent;
 class QWheelEvent;
 
 namespace scwx::qt::gl
@@ -121,6 +122,7 @@ public:
    void SelectTime(std::chrono::system_clock::time_point time);
 
    void SetActive(bool isActive);
+   void SyncEraseCursor();
    void SetAutoRefresh(bool enabled);
    void SetAutoUpdate(bool enabled);
 
@@ -177,6 +179,7 @@ private:
    void mouseReleaseEvent(QMouseEvent* ev) final;
    void mouseDoubleClickEvent(QMouseEvent* ev) final;
    void wheelEvent(QWheelEvent* ev) final;
+   void resizeEvent(QResizeEvent* event) override;
 
    // QOpenGLWidget implementation.
    void initializeGL() override final;
