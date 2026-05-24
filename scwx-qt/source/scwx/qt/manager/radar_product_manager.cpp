@@ -1,3 +1,4 @@
+#include <scwx/qt/manager/product_datastore.hpp>
 #include <scwx/qt/manager/provider_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager_notifier.hpp>
@@ -8,7 +9,6 @@
 #include <scwx/provider/aws_level2_chunks_data_provider.hpp>
 #include <scwx/provider/nexrad_data_provider_factory.hpp>
 #include <scwx/util/logger.hpp>
-#include <scwx/util/map.hpp>
 #include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
@@ -49,11 +49,6 @@ static const auto logger_ = scwx::util::Logger::Create(logPrefix_);
 
 typedef std::function<std::shared_ptr<wsr88d::NexradFile>()>
    CreateNexradFileFunction;
-typedef std::map<std::chrono::system_clock::time_point,
-                 std::weak_ptr<types::RadarProductRecord>>
-   RadarProductRecordMap;
-typedef std::list<std::shared_ptr<types::RadarProductRecord>>
-   RadarProductRecordList;
 
 static constexpr uint32_t NUM_RADIAL_GATES_0_5_DEGREE =
    common::MAX_0_5_DEGREE_RADIALS * common::MAX_DATA_MOMENT_GATES;
@@ -170,10 +165,6 @@ public:
               types::RadarProductLoadStatus>
    GetLevel3ProductRecord(const std::string&                    product,
                           std::chrono::system_clock::time_point time);
-   std::shared_ptr<types::RadarProductRecord>
-   StoreRadarProductRecord(std::shared_ptr<types::RadarProductRecord> record);
-   void UpdateRecentRecords(RadarProductRecordList& recentList,
-                            std::shared_ptr<types::RadarProductRecord> record);
 
    void LoadNexradFileAsync(
       CreateNexradFileFunction                           load,
@@ -183,8 +174,7 @@ public:
    void
    LoadProviderData(std::chrono::system_clock::time_point time,
                     std::shared_ptr<ProviderManager>      providerManager,
-                    RadarProductRecordMap&                recordMap,
-                    std::shared_mutex&                    recordMutex,
+                    const std::string&                    level3Product,
                     std::mutex&                           loadDataMutex,
                     const std::shared_ptr<request::NexradFileRequest>& request);
 
@@ -210,17 +200,6 @@ public:
    void EnsureCoordinatesInitialized(common::RadialSize radialSize,
                                      bool               smoothingEnabled);
 
-   static bool AreProductTimesPopulated(
-      const std::shared_ptr<ProviderManager>& providerManager,
-      std::chrono::system_clock::time_point   time);
-
-   static void
-   PopulateProductTimes(std::shared_ptr<ProviderManager> providerManager,
-                        RadarProductRecordMap&           productRecordMap,
-                        std::shared_mutex&               productRecordMutex,
-                        std::chrono::system_clock::time_point time,
-                        bool                                  update);
-
    static void
    LoadNexradFile(CreateNexradFileFunction                           load,
                   const std::shared_ptr<request::NexradFileRequest>& request,
@@ -233,7 +212,8 @@ public:
    bool              level3AvailabilityReady_ {false};
 
    std::shared_ptr<config::RadarSite> radarSite_;
-   std::size_t                        cacheLimit_ {6u};
+
+   ProductDatastore productDatastore_ {};
 
    // Lat/lon per radial/gate. Filled on first coordinates() for each table, not
    // in Initialize(). coordinatesMutex_ serializes checks and builds so callers
@@ -242,15 +222,6 @@ public:
    std::vector<float> coordinates0_5DegreeSmooth_ {};
    std::vector<float> coordinates1Degree_ {};
    std::vector<float> coordinates1DegreeSmooth_ {};
-
-   RadarProductRecordMap  level2ProductRecords_ {};
-   RadarProductRecordList level2ProductRecentRecords_ {};
-   std::unordered_map<std::string, RadarProductRecordMap>
-      level3ProductRecordsMap_ {};
-   std::unordered_map<std::string, RadarProductRecordList>
-                     level3ProductRecentRecordsMap_ {};
-   std::shared_mutex level2ProductRecordMutex_ {};
-   std::shared_mutex level3ProductRecordMutex_ {};
 
    std::shared_ptr<ProviderManager> level2ProviderManager_;
    std::shared_ptr<ProviderManager> level2ChunksProviderManager_;
@@ -312,38 +283,34 @@ void RadarProductManager::DumpRecords()
                logger_->info("  Level 2");
 
                {
-                  std::shared_lock level2ProductLock {
-                     radarProductManager->p->level2ProductRecordMutex_};
-
-                  for (auto& record :
-                       radarProductManager->p->level2ProductRecords_)
-                  {
-                     logger_->info("   {}{}",
-                                   scwx::util::TimeString(record.first),
-                                   record.second.expired() ? " (expired)" : "");
-                  }
+                  radarProductManager->p->productDatastore_.ForEachLevel2Record(
+                     [&](std::chrono::system_clock::time_point recordTime,
+                         bool                                  expired)
+                     {
+                        logger_->info("   {}{}",
+                                      scwx::util::TimeString(recordTime),
+                                      expired ? " (expired)" : "");
+                     });
                }
 
                logger_->info("  Level 3");
 
                {
-                  std::shared_lock level3ProductLock {
-                     radarProductManager->p->level3ProductRecordMutex_};
+                  radarProductManager->p->productDatastore_
+                     .ForEachLevel3Product(
+                        [&](const std::string&           product,
+                            const RadarProductRecordMap& recordMap)
+                        {
+                           logger_->info("   {}", product);
 
-                  for (auto& recordMap :
-                       radarProductManager->p->level3ProductRecordsMap_)
-                  {
-                     // Product Name
-                     logger_->info("   {}", recordMap.first);
-
-                     for (auto& record : recordMap.second)
-                     {
-                        logger_->info("    {}{}",
-                                      scwx::util::TimeString(record.first),
-                                      record.second.expired() ? " (expired)" :
-                                                                "");
-                     }
-                  }
+                           for (auto& record : recordMap)
+                           {
+                              logger_->info(
+                                 "    {}{}",
+                                 scwx::util::TimeString(record.first),
+                                 record.second.expired() ? " (expired)" : "");
+                           }
+                        });
                }
             }
          }
@@ -804,8 +771,7 @@ RadarProductManager::GetActiveVolumeTimes(
 void RadarProductManagerImpl::LoadProviderData(
    std::chrono::system_clock::time_point              time,
    std::shared_ptr<ProviderManager>                   providerManager,
-   RadarProductRecordMap&                             recordMap,
-   std::shared_mutex&                                 recordMutex,
+   const std::string&                                 level3Product,
    std::mutex&                                        loadDataMutex,
    const std::shared_ptr<request::NexradFileRequest>& request)
 {
@@ -814,28 +780,13 @@ void RadarProductManagerImpl::LoadProviderData(
                   scwx::util::TimeString(time));
 
    LoadNexradFileAsync(
-      [=, &recordMap, &recordMutex]() -> std::shared_ptr<wsr88d::NexradFile>
+      [=, this]() -> std::shared_ptr<wsr88d::NexradFile>
       {
-         std::shared_ptr<types::RadarProductRecord> existingRecord = nullptr;
-         std::shared_ptr<wsr88d::NexradFile>        nexradFile     = nullptr;
+         std::shared_ptr<wsr88d::NexradFile> nexradFile =
+            productDatastore_.GetCachedNexradFile(
+               providerManager->group_, level3Product, time);
 
-         {
-            std::shared_lock sharedLock {recordMutex};
-
-            auto it = recordMap.find(time);
-            if (it != recordMap.cend())
-            {
-               existingRecord = it->second.lock();
-
-               if (existingRecord != nullptr)
-               {
-                  logger_->trace(
-                     "Data previously loaded, loading from data cache");
-               }
-            }
-         }
-
-         if (existingRecord == nullptr)
+         if (nexradFile == nullptr)
          {
             nexradFile = providerManager->provider_->LoadObjectByTime(time);
             if (nexradFile == nullptr)
@@ -843,10 +794,6 @@ void RadarProductManagerImpl::LoadProviderData(
                logger_->warn("Attempting to load object without key: {}",
                              scwx::util::TimeString(time));
             }
-         }
-         else
-         {
-            nexradFile = existingRecord->nexrad_file();
          }
 
          return nexradFile;
@@ -862,12 +809,8 @@ void RadarProductManager::LoadLevel2Data(
 {
    logger_->trace("LoadLevel2Data: {}", scwx::util::TimeString(time));
 
-   p->LoadProviderData(time,
-                       p->level2ProviderManager_,
-                       p->level2ProductRecords_,
-                       p->level2ProductRecordMutex_,
-                       p->loadLevel2DataMutex_,
-                       request);
+   p->LoadProviderData(
+      time, p->level2ProviderManager_, "", p->loadLevel2DataMutex_, request);
 }
 
 void RadarProductManager::LoadLevel3Data(
@@ -887,17 +830,10 @@ void RadarProductManager::LoadLevel3Data(
    }
    providerManagerLock.unlock();
 
-   // Look up product record
-   std::unique_lock       productRecordLock(p->level3ProductRecordMutex_);
-   RadarProductRecordMap& level3ProductRecords =
-      p->level3ProductRecordsMap_[product];
-   productRecordLock.unlock();
-
    // Load provider data
    p->LoadProviderData(time,
                        level3ProviderManager->second,
-                       level3ProductRecords,
-                       p->level3ProductRecordMutex_,
+                       product,
                        p->loadLevel3DataMutex_,
                        request);
 }
@@ -1025,7 +961,7 @@ void RadarProductManagerImpl::LoadNexradFile(
 
       manager = RadarProductManager::Instance(recordRadarId);
       manager->Initialize();
-      record = manager->p->StoreRadarProductRecord(record);
+      record = manager->p->productDatastore_.Store(record);
    }
 
    lock.unlock();
@@ -1040,66 +976,26 @@ void RadarProductManagerImpl::LoadNexradFile(
 bool RadarProductManagerImpl::AreLevel2ProductTimesPopulated(
    std::chrono::system_clock::time_point time) const
 {
-   return AreProductTimesPopulated(level2ProviderManager_, time);
+   return ProductDatastore::AreProductTimesPopulated(level2ProviderManager_,
+                                                     time) &&
+          ProductDatastore::AreProductTimesPopulated(
+             level2ChunksProviderManager_, time);
 }
 
 bool RadarProductManagerImpl::AreLevel3ProductTimesPopulated(
    const std::string& product, std::chrono::system_clock::time_point time)
 {
-   // Get provider manager
    const auto level3ProviderManager = GetLevel3ProviderManager(product);
 
-   return AreProductTimesPopulated(level3ProviderManager, time);
-}
-
-bool RadarProductManagerImpl::AreProductTimesPopulated(
-   const std::shared_ptr<ProviderManager>& providerManager,
-   std::chrono::system_clock::time_point   time)
-{
-   auto today = std::chrono::floor<std::chrono::days>(time);
-
-   bool productTimesPopulated = true;
-
-   // Assume a query for the epoch is a query for now
-   if (today == std::chrono::system_clock::time_point {})
-   {
-      today = std::chrono::floor<std::chrono::days>(scwx::util::time::now());
-   }
-
-   const auto yesterday = today - std::chrono::days {1};
-   const auto tomorrow  = today + std::chrono::days {1};
-   const auto dates     = {yesterday, today, tomorrow};
-
-   for (auto& date : dates)
-   {
-      // Don't query for a time point in the future
-      if (date > scwx::util::time::now())
-      {
-         continue;
-      }
-
-      if (!providerManager->provider_->IsDateCached(date))
-      {
-         productTimesPopulated = false;
-      }
-   }
-
-   return productTimesPopulated;
+   return ProductDatastore::AreProductTimesPopulated(level3ProviderManager,
+                                                     time);
 }
 
 void RadarProductManagerImpl::PopulateLevel2ProductTimes(
    std::chrono::system_clock::time_point time, bool update)
 {
-   PopulateProductTimes(level2ProviderManager_,
-                        level2ProductRecords_,
-                        level2ProductRecordMutex_,
-                        time,
-                        update);
-   PopulateProductTimes(level2ChunksProviderManager_,
-                        level2ProductRecords_,
-                        level2ProductRecordMutex_,
-                        time,
-                        update);
+   productDatastore_.PopulateLevel2ProductTimes(
+      level2ProviderManager_, level2ChunksProviderManager_, time, update);
 }
 
 void RadarProductManagerImpl::PopulateLevel3ProductTimes(
@@ -1107,97 +1003,10 @@ void RadarProductManagerImpl::PopulateLevel3ProductTimes(
    std::chrono::system_clock::time_point time,
    bool                                  update)
 {
-   // Get provider manager
    auto level3ProviderManager = GetLevel3ProviderManager(product);
 
-   // Get product records
-   std::unique_lock level3ProductRecordLock {level3ProductRecordMutex_};
-   auto&            level3ProductRecords = level3ProductRecordsMap_[product];
-   level3ProductRecordLock.unlock();
-
-   PopulateProductTimes(level3ProviderManager,
-                        level3ProductRecords,
-                        level3ProductRecordMutex_,
-                        time,
-                        update);
-}
-
-void RadarProductManagerImpl::PopulateProductTimes(
-   std::shared_ptr<ProviderManager>      providerManager,
-   RadarProductRecordMap&                productRecordMap,
-   std::shared_mutex&                    productRecordMutex,
-   std::chrono::system_clock::time_point time,
-   bool                                  update)
-{
-   if (update)
-   {
-      logger_->debug("Populating product times: {}, {}, {}",
-                     common::GetRadarProductGroupName(providerManager->group_),
-                     providerManager->product_,
-                     scwx::util::time::TimeString(time));
-   }
-   else
-   {
-      logger_->trace("Populating cached product times: {}, {}, {}",
-                     common::GetRadarProductGroupName(providerManager->group_),
-                     providerManager->product_,
-                     scwx::util::time::TimeString(time));
-   }
-
-   auto today = std::chrono::floor<std::chrono::days>(time);
-
-   // Assume a query for the epoch is a query for now
-   if (today == std::chrono::system_clock::time_point {})
-   {
-      today = std::chrono::floor<std::chrono::days>(scwx::util::time::now());
-   }
-
-   const auto yesterday = today - std::chrono::days {1};
-   const auto tomorrow  = today + std::chrono::days {1};
-   const auto dates     = {yesterday, today, tomorrow};
-
-   std::set<std::chrono::system_clock::time_point> volumeTimes {};
-   std::mutex                                      volumeTimesMutex {};
-
-   // For yesterday, today and tomorrow (in parallel)
-   std::for_each(std::execution::par,
-                 dates.begin(),
-                 dates.end(),
-                 [&](const auto& date)
-                 {
-                    // Don't query for a time point in the future
-                    if (date > scwx::util::time::now())
-                    {
-                       return;
-                    }
-
-                    // Query the provider for volume time points
-                    auto timePoints =
-                       providerManager->provider_->GetTimePointsByDate(date,
-                                                                       update);
-
-                    // Lock the merged volume time list
-                    std::unique_lock volumeTimesLock {volumeTimesMutex};
-
-                    // Copy time points to the merged list
-                    std::copy(timePoints.begin(),
-                              timePoints.end(),
-                              std::inserter(volumeTimes, volumeTimes.end()));
-                 });
-
-   // Lock the product record map
-   std::unique_lock lock {productRecordMutex};
-
-   // Merge volume times into map
-   std::transform(volumeTimes.cbegin(),
-                  volumeTimes.cend(),
-                  std::inserter(productRecordMap, productRecordMap.begin()),
-                  [](const std::chrono::system_clock::time_point& time)
-                  {
-                     return std::pair<std::chrono::system_clock::time_point,
-                                      std::weak_ptr<types::RadarProductRecord>>(
-                        time, std::weak_ptr<types::RadarProductRecord> {});
-                  });
+   productDatastore_.PopulateLevel3ProductTimes(
+      level3ProviderManager, product, time, update);
 }
 
 std::tuple<std::map<std::chrono::system_clock::time_point,
@@ -1208,13 +1017,11 @@ RadarProductManagerImpl::GetLevel2ProductRecords(
 {
    std::map<std::chrono::system_clock::time_point,
             std::shared_ptr<types::RadarProductRecord>>
-                                                     records {};
-   std::vector<RadarProductRecordMap::const_pointer> recordPtrs {};
-   types::RadarProductLoadStatus                     status {
+                                 records {};
+   types::RadarProductLoadStatus status {
       types::RadarProductLoadStatus::ListingProducts};
 
-   std::size_t recordPtrCount = 0u;
-   std::size_t recordCount    = 0u;
+   std::size_t recordCount = 0u;
 
    // Ensure Level 2 product records are updated
    if (!AreLevel2ProductTimesPopulated(time))
@@ -1245,69 +1052,40 @@ RadarProductManagerImpl::GetLevel2ProductRecords(
    // Advance to loading product
    status = types::RadarProductLoadStatus::LoadingProduct;
 
-   {
-      std::shared_lock lock {level2ProductRecordMutex_};
+   const auto recordEntries = productDatastore_.FindLevel2RecordEntries(time);
 
-      if (!level2ProductRecords_.empty() &&
-          time == std::chrono::system_clock::time_point {})
-      {
-         // If a default-initialized time point is given, return the latest
-         // record
-         recordPtrs.push_back(&(*level2ProductRecords_.rbegin()));
-      }
-      else
-      {
-         // Get the requested record
-         auto recordIt =
-            scwx::util::GetBoundedElementIterator(level2ProductRecords_, time);
+   std::size_t validEntryCount = 0u;
 
-         if (recordIt != level2ProductRecords_.cend())
-         {
-            recordPtrs.push_back(&(*(recordIt)));
-
-            // The requested time may be in the previous record, so get that too
-            if (recordIt != level2ProductRecords_.cbegin())
-            {
-               recordPtrs.push_back(&(*(--recordIt)));
-            }
-         }
-      }
-   }
-
-   // For each record pointer
-   for (auto& recordPtr : recordPtrs)
+   // For each record entry
+   for (const auto& recordEntry : recordEntries)
    {
       std::shared_ptr<types::RadarProductRecord> record {nullptr};
       std::chrono::system_clock::time_point      recordTime {time};
+      bool                                       entryValid = true;
 
-      if (recordPtr != nullptr)
+      using namespace std::chrono_literals;
+
+      // Don't check for an exact time match for level 2 products
+      recordTime = recordEntry.time;
+
+      if (
+         // For latest data, ensure it is from the last 24 hours
+         (time == std::chrono::system_clock::time_point {} &&
+          (recordTime > scwx::util::time::now() - 24h || recordTime == time)) ||
+         // For time queries, ensure data is within 24 hours of the request
+         (time != std::chrono::system_clock::time_point {} &&
+          std::chrono::abs(recordTime - time) < 24h))
       {
-         using namespace std::chrono_literals;
-
-         // Don't check for an exact time match for level 2 products
-         recordTime = recordPtr->first;
-
-         if (
-            // For latest data, ensure it is from the last 24 hours
-            (time == std::chrono::system_clock::time_point {} &&
-             (recordTime > scwx::util::time::now() - 24h ||
-              recordTime == time)) ||
-            // For time queries, ensure data is within 24 hours of the request
-            (time != std::chrono::system_clock::time_point {} &&
-             std::chrono::abs(recordTime - time) < 24h))
-         {
-            record = recordPtr->second.lock();
-            ++recordPtrCount;
-         }
-         else
-         {
-            // Reset the record
-            recordPtr  = nullptr;
-            recordTime = time;
-         }
+         record = recordEntry.record.lock();
+         ++validEntryCount;
+      }
+      else
+      {
+         entryValid = false;
+         recordTime = time;
       }
 
-      if (recordPtr != nullptr && record == nullptr &&
+      if (entryValid && record == nullptr &&
           recordTime != std::chrono::system_clock::time_point {})
       {
          // Product is expired, reload it
@@ -1339,12 +1117,12 @@ RadarProductManagerImpl::GetLevel2ProductRecords(
       }
    }
 
-   if (recordPtrCount == 0)
+   if (validEntryCount == 0)
    {
       // If all records are empty, the product is not available
       status = types::RadarProductLoadStatus::ProductNotAvailable;
    }
-   else if (recordCount == recordPtrCount)
+   else if (recordCount == validEntryCount)
    {
       // If all records were populated, the product has been loaded
       status = types::RadarProductLoadStatus::ProductLoaded;
@@ -1360,10 +1138,10 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
    const std::string& product, std::chrono::system_clock::time_point time)
 {
    std::shared_ptr<types::RadarProductRecord> record {nullptr};
-   RadarProductRecordMap::const_pointer       recordPtr {nullptr};
    std::chrono::system_clock::time_point      recordTime {time};
    types::RadarProductLoadStatus              status {
       types::RadarProductLoadStatus::ListingProducts};
+   bool recordEntryValid = false;
 
    // Ensure Level 3 product records are updated
    if (!AreLevel3ProductTimesPopulated(product, time))
@@ -1395,33 +1173,17 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
    // Advance to loading product
    status = types::RadarProductLoadStatus::LoadingProduct;
 
-   std::unique_lock lock {level3ProductRecordMutex_};
+   const auto recordEntry =
+      productDatastore_.FindLevel3RecordEntry(product, time);
 
-   auto it = level3ProductRecordsMap_.find(product);
-
-   if (it != level3ProductRecordsMap_.cend() && !it->second.empty())
-   {
-      if (time == std::chrono::system_clock::time_point {})
-      {
-         // If a default-initialized time point is given, return the latest
-         // record
-         recordPtr = &(*it->second.rbegin());
-      }
-      else
-      {
-         recordPtr = scwx::util::GetBoundedElementPointer(it->second, time);
-      }
-   }
-
-   // Lock is no longer needed
-   lock.unlock();
-
-   if (recordPtr != nullptr)
+   if (recordEntry.has_value())
    {
       using namespace std::chrono_literals;
 
+      recordEntryValid = true;
+
       // Don't check for an exact time match for level 3 products
-      recordTime = recordPtr->first;
+      recordTime = recordEntry->time;
 
       if (
          // For latest data, ensure it is from the last 24 hours
@@ -1431,17 +1193,16 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
          (time != std::chrono::system_clock::time_point {} &&
           std::chrono::abs(recordTime - time) < 24h))
       {
-         record = recordPtr->second.lock();
+         record = recordEntry->record.lock();
       }
       else
       {
-         // Reset the record
-         recordPtr  = nullptr;
-         recordTime = time;
+         recordEntryValid = false;
+         recordTime       = time;
       }
    }
 
-   if (recordPtr != nullptr && record == nullptr &&
+   if (recordEntryValid && record == nullptr &&
        recordTime != std::chrono::system_clock::time_point {})
    {
       // Product is expired, reload it
@@ -1465,7 +1226,7 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
       // Status is already set to LoadingProduct
    }
 
-   if (recordPtr == nullptr)
+   if (!recordEntryValid)
    {
       // If the record is empty, the product is not available
       status = types::RadarProductLoadStatus::ProductNotAvailable;
@@ -1477,101 +1238,6 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
    }
 
    return {record, recordTime, status};
-}
-
-std::shared_ptr<types::RadarProductRecord>
-RadarProductManagerImpl::StoreRadarProductRecord(
-   std::shared_ptr<types::RadarProductRecord> record)
-{
-   logger_->trace("StoreRadarProductRecord()");
-
-   std::shared_ptr<types::RadarProductRecord> storedRecord = nullptr;
-
-   auto timeInSeconds =
-      std::chrono::time_point_cast<std::chrono::seconds,
-                                   std::chrono::system_clock>(record->time());
-
-   if (record->radar_product_group() == common::RadarProductGroup::Level2)
-   {
-      std::unique_lock lock {level2ProductRecordMutex_};
-
-      auto it = level2ProductRecords_.find(timeInSeconds);
-      if (it != level2ProductRecords_.cend())
-      {
-         storedRecord = it->second.lock();
-
-         if (storedRecord != nullptr)
-         {
-            logger_->debug(
-               "Level 2 product previously loaded, loading from cache");
-         }
-      }
-
-      if (storedRecord == nullptr)
-      {
-         storedRecord                         = record;
-         level2ProductRecords_[timeInSeconds] = record;
-      }
-
-      UpdateRecentRecords(level2ProductRecentRecords_, storedRecord);
-   }
-   else if (record->radar_product_group() == common::RadarProductGroup::Level3)
-   {
-      std::unique_lock lock {level3ProductRecordMutex_};
-
-      auto& productMap = level3ProductRecordsMap_[record->radar_product()];
-
-      auto it = productMap.find(timeInSeconds);
-      if (it != productMap.cend())
-      {
-         storedRecord = it->second.lock();
-
-         if (storedRecord != nullptr)
-         {
-            logger_->debug(
-               "Level 3 product previously loaded, loading from cache");
-         }
-      }
-
-      if (storedRecord == nullptr)
-      {
-         storedRecord              = record;
-         productMap[timeInSeconds] = record;
-      }
-
-      UpdateRecentRecords(
-         level3ProductRecentRecordsMap_[record->radar_product()], storedRecord);
-   }
-
-   return storedRecord;
-}
-
-void RadarProductManagerImpl::UpdateRecentRecords(
-   RadarProductRecordList&                    recentList,
-   std::shared_ptr<types::RadarProductRecord> record)
-{
-   const std::size_t recentListMaxSize {cacheLimit_};
-   bool              iteratorErased = false;
-
-   auto it = std::find(recentList.cbegin(), recentList.cend(), record);
-   if (it != recentList.cbegin() && it != recentList.cend())
-   {
-      // If the record exists beyond the front of the list, remove it
-      recentList.erase(it);
-      iteratorErased = true;
-   }
-
-   if (iteratorErased || recentList.size() == 0 || it != recentList.cbegin())
-   {
-      // Add the record to the front of the list, unless it's already there
-      recentList.push_front(record);
-   }
-
-   while (recentList.size() > recentListMaxSize)
-   {
-      // Remove from the end of the list while it's too big
-      recentList.pop_back();
-   }
 }
 
 std::tuple<std::shared_ptr<wsr88d::rda::ElevationScan>,
@@ -1729,7 +1395,7 @@ std::vector<std::string> RadarProductManager::GetLevel3Products()
 
 void RadarProductManager::SetCacheLimit(size_t cacheLimit)
 {
-   p->cacheLimit_ = std::max<std::size_t>(cacheLimit, 6u);
+   p->productDatastore_.SetCacheLimit(cacheLimit);
 }
 
 void RadarProductManager::UpdateAvailableProducts()
