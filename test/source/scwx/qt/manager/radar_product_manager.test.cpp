@@ -116,12 +116,12 @@ TEST(ProviderManager, NameFormatting)
 {
    config::RadarSite::Initialize();
 
-   RadarProductManager radarProductManager {"KLSX"};
-   ProviderManager     level2ProviderManager {
+   RadarProductManager   radarProductManager {"KLSX"};
+   const ProviderManager level2ProviderManager {
       &radarProductManager, "KLSX", common::RadarProductGroup::Level2};
-   ProviderManager level3ProviderManager {
+   const ProviderManager level3ProviderManager {
       &radarProductManager, "KLSX", common::RadarProductGroup::Level3, "N0B"};
-   ProviderManager level2ChunksProviderManager {
+   const ProviderManager level2ChunksProviderManager {
       &radarProductManager,
       "KLSX",
       common::RadarProductGroup::Level2,

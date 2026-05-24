@@ -79,7 +79,7 @@ void ProviderManager::Disable(bool shutdown)
 {
    logger_->debug("Disabling refresh: {}", name());
 
-   std::unique_lock lock(refreshTimerMutex_);
+   std::unique_lock const lock(refreshTimerMutex_);
    refreshEnabled_ = false;
    refreshTimer_.cancel();
 
