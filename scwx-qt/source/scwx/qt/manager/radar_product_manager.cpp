@@ -1,3 +1,4 @@
+#include <scwx/qt/manager/provider_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager_notifier.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
@@ -78,11 +79,6 @@ static const std::string kDefaultLevel3Product_ {"N0B"};
 
 static constexpr std::size_t kTimerPlaces_ {6u};
 
-static constexpr std::chrono::seconds kFastRetryInterval_ {15};
-static constexpr std::chrono::seconds kFastRetryIntervalChunks_ {3};
-static constexpr std::chrono::seconds kSlowRetryInterval_ {120};
-static constexpr std::chrono::seconds kSlowRetryIntervalChunks_ {20};
-
 static std::unordered_map<std::string, std::weak_ptr<RadarProductManager>>
                          instanceMap_;
 static std::shared_mutex instanceMutex_;
@@ -93,66 +89,6 @@ static std::unordered_map<std::string,
 static std::shared_mutex fileIndexMutex_;
 
 static std::mutex fileLoadMutex_;
-
-class ProviderManager : public QObject
-{
-   Q_OBJECT
-public:
-   explicit ProviderManager(RadarProductManager*      self,
-                            std::string               radarId,
-                            common::RadarProductGroup group,
-                            std::string               product  = "???",
-                            bool                      isChunks = false) :
-       radarId_ {std::move(radarId)},
-       group_ {group},
-       product_ {std::move(product)},
-       isChunks_ {isChunks}
-   {
-      connect(this,
-              &ProviderManager::NewDataAvailable,
-              self,
-              [this, self](common::RadarProductGroup             group,
-                           const std::string&                    product,
-                           std::chrono::system_clock::time_point latestTime)
-              {
-                 Q_EMIT self->NewDataAvailable(
-                    group, product, isChunks_, latestTime);
-              });
-   }
-   ~ProviderManager() override
-   {
-      if (provider_ != nullptr)
-      {
-         provider_->Shutdown();
-      }
-
-      providerThreadPool_.stop();
-      providerThreadPool_.join();
-   };
-
-   std::string name() const;
-
-   void Disable(bool shutdown = false);
-   void RefreshData();
-   void RefreshDataSync();
-
-   boost::asio::thread_pool providerThreadPool_ {2u};
-
-   const std::string               radarId_;
-   const common::RadarProductGroup group_;
-   const std::string               product_;
-   const bool                      isChunks_;
-   bool                            refreshEnabled_ {false};
-   boost::asio::steady_timer       refreshTimer_ {providerThreadPool_};
-   std::mutex                      refreshTimerMutex_ {};
-   std::shared_ptr<provider::NexradDataProvider> provider_ {nullptr};
-   size_t                                        refreshCount_ {0};
-
-signals:
-   void NewDataAvailable(common::RadarProductGroup             group,
-                         const std::string&                    product,
-                         std::chrono::system_clock::time_point latestTime);
-};
 
 class RadarProductManagerImpl
 {
@@ -345,40 +281,6 @@ RadarProductManager::RadarProductManager(const std::string& radarId) :
 {
 }
 RadarProductManager::~RadarProductManager() = default;
-
-std::string ProviderManager::name() const
-{
-   std::string name;
-
-   if (group_ == common::RadarProductGroup::Level3)
-   {
-      name = fmt::format("{}, {}, {}",
-                         radarId_,
-                         common::GetRadarProductGroupName(group_),
-                         product_);
-   }
-   else
-   {
-      name = fmt::format(
-         "{}, {}", radarId_, common::GetRadarProductGroupName(group_));
-   }
-
-   return name;
-}
-
-void ProviderManager::Disable(bool shutdown)
-{
-   logger_->debug("Disabling refresh: {}", name());
-
-   std::unique_lock lock(refreshTimerMutex_);
-   refreshEnabled_ = false;
-   refreshTimer_.cancel();
-
-   if (shutdown && provider_ != nullptr)
-   {
-      provider_->Shutdown();
-   }
-}
 
 void RadarProductManager::Cleanup()
 {
@@ -819,116 +721,6 @@ void RadarProductManagerImpl::EnableRefresh(
             providerManager->refreshEnabled_ = enabled;
             providerManager->RefreshData();
          }
-      }
-   }
-}
-
-void ProviderManager::RefreshData()
-{
-   logger_->trace("RefreshData: {}", name());
-
-   {
-      const std::unique_lock lock(refreshTimerMutex_);
-      refreshTimer_.cancel();
-   }
-
-   boost::asio::post(providerThreadPool_,
-                     [this]()
-                     {
-                        try
-                        {
-                           RefreshDataSync();
-                        }
-                        catch (const std::exception& ex)
-                        {
-                           logger_->error(ex.what());
-                        }
-                     });
-}
-
-void ProviderManager::RefreshDataSync()
-{
-   using namespace std::chrono_literals;
-
-   auto [newObjects, totalObjects] = provider_->Refresh();
-
-   // Level2 chunked data is updated quickly and uses a faster interval
-   const std::chrono::milliseconds fastRetryInterval =
-      isChunks_ ? kFastRetryIntervalChunks_ : kFastRetryInterval_;
-   const std::chrono::milliseconds slowRetryInterval =
-      isChunks_ ? kSlowRetryIntervalChunks_ : kSlowRetryInterval_;
-   std::chrono::milliseconds interval = fastRetryInterval;
-
-   if (totalObjects > 0)
-   {
-      auto latestTime        = provider_->FindLatestTime();
-      auto updatePeriod      = provider_->update_period();
-      auto lastModified      = provider_->last_modified();
-      auto sinceLastModified = scwx::util::time::now() - lastModified;
-
-      // For the default interval, assume products are updated at a
-      // constant rate. Expect the next product at a time based on the
-      // previous two.
-      interval = std::chrono::duration_cast<std::chrono::milliseconds>(
-         updatePeriod - sinceLastModified);
-
-      // Allow 5 update periods before considering the data stale
-      constexpr std::size_t kUpdatePeriodStaleCount = 5;
-
-      if (updatePeriod > 0s &&
-          sinceLastModified > updatePeriod * kUpdatePeriodStaleCount)
-      {
-         // If it has been at least 5 update periods since the file has
-         // been last modified, slow the retry period
-         interval = slowRetryInterval;
-      }
-      else if (interval < std::chrono::milliseconds {fastRetryInterval})
-      {
-         // The interval should be no quicker than the fast retry interval
-         interval = fastRetryInterval;
-      }
-
-      if (newObjects > 0)
-      {
-         Q_EMIT NewDataAvailable(group_, product_, latestTime);
-      }
-   }
-   else if (refreshEnabled_)
-   {
-      logger_->info("[{}] No data found", name());
-
-      // If no data is found, retry at the slow retry interval
-      interval = slowRetryInterval;
-   }
-
-   std::unique_lock const lock(refreshTimerMutex_);
-
-   if (refreshEnabled_)
-   {
-      logger_->trace(
-         "[{}] Scheduled refresh in {:%M:%S}",
-         name(),
-         std::chrono::duration_cast<std::chrono::seconds>(interval));
-
-      {
-         refreshTimer_.expires_after(interval);
-         refreshTimer_.async_wait(
-            [this](const boost::system::error_code& e)
-            {
-               if (e == boost::system::errc::success)
-               {
-                  RefreshData();
-               }
-               else if (e == boost::asio::error::operation_aborted)
-               {
-                  logger_->debug("[{}] Data refresh timer cancelled", name());
-               }
-               else
-               {
-                  logger_->warn(
-                     "[{}] Data refresh timer error: {}", name(), e.message());
-               }
-            });
       }
    }
 }
@@ -2066,7 +1858,5 @@ RadarProductManager::Instance(const std::string& radarSite)
 
    return instance;
 }
-
-#include "radar_product_manager.moc"
 
 } // namespace scwx::qt::manager
