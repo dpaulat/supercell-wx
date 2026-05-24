@@ -43,7 +43,7 @@ public:
    [[nodiscard]] std::size_t cache_limit() const;
 
    std::shared_ptr<types::RadarProductRecord>
-   Store(std::shared_ptr<types::RadarProductRecord> record);
+   Store(const std::shared_ptr<types::RadarProductRecord>& record);
 
    static bool AreProductTimesPopulated(
       const std::shared_ptr<ProviderManager>& providerManager,
@@ -83,8 +83,11 @@ public:
          callback) const;
 
 private:
-   void UpdateRecentRecords(RadarProductRecordList& recentList,
-                            std::shared_ptr<types::RadarProductRecord> record);
+   static constexpr std::size_t kMinimumCacheLimit_ {6u};
+
+   void UpdateRecentRecords(
+      RadarProductRecordList&                           recentList,
+      const std::shared_ptr<types::RadarProductRecord>& record);
 
    void
    PopulateProductTimes(const std::shared_ptr<ProviderManager>& providerManager,
@@ -93,7 +96,7 @@ private:
                         std::chrono::system_clock::time_point time,
                         bool                                  update);
 
-   std::atomic<std::size_t> cacheLimit_ {6u};
+   std::atomic<std::size_t> cacheLimit_ {kMinimumCacheLimit_};
 
    RadarProductRecordMap  level2ProductRecords_ {};
    RadarProductRecordList level2ProductRecentRecords_ {};

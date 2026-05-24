@@ -20,7 +20,7 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 void ProductDatastore::SetCacheLimit(std::size_t cacheLimit)
 {
-   cacheLimit_.store(std::max<std::size_t>(cacheLimit, 6u));
+   cacheLimit_.store(std::max<std::size_t>(cacheLimit, kMinimumCacheLimit_));
 }
 
 std::size_t ProductDatastore::cache_limit() const
@@ -28,8 +28,8 @@ std::size_t ProductDatastore::cache_limit() const
    return cacheLimit_.load();
 }
 
-std::shared_ptr<types::RadarProductRecord>
-ProductDatastore::Store(std::shared_ptr<types::RadarProductRecord> record)
+std::shared_ptr<types::RadarProductRecord> ProductDatastore::Store(
+   const std::shared_ptr<types::RadarProductRecord>& record)
 {
    logger_->trace("Store()");
 
@@ -46,7 +46,7 @@ ProductDatastore::Store(std::shared_ptr<types::RadarProductRecord> record)
 
    if (record->radar_product_group() == common::RadarProductGroup::Level2)
    {
-      std::unique_lock lock {level2ProductRecordMutex_};
+      std::unique_lock const lock {level2ProductRecordMutex_};
 
       auto it = level2ProductRecords_.find(timeInSeconds);
       if (it != level2ProductRecords_.cend())
@@ -70,7 +70,7 @@ ProductDatastore::Store(std::shared_ptr<types::RadarProductRecord> record)
    }
    else if (record->radar_product_group() == common::RadarProductGroup::Level3)
    {
-      std::unique_lock lock {level3ProductRecordMutex_};
+      std::unique_lock const lock {level3ProductRecordMutex_};
 
       auto& productMap = level3ProductRecordsMap_[record->radar_product()];
 
@@ -240,7 +240,7 @@ void ProductDatastore::PopulateProductTimes(
                                                                        update);
 
                     // Lock the merged volume time list
-                    std::unique_lock volumeTimesLock {volumeTimesMutex};
+                    std::unique_lock const volumeTimesLock {volumeTimesMutex};
 
                     // Copy time points to the merged list
                     std::copy(timePoints.begin(),
@@ -249,7 +249,7 @@ void ProductDatastore::PopulateProductTimes(
                  });
 
    // Lock the product record map
-   std::unique_lock lock {productRecordMutex};
+   std::unique_lock const lock {productRecordMutex};
 
    // Merge volume times into map
    std::transform(volumeTimes.cbegin(),
@@ -277,7 +277,7 @@ std::shared_ptr<wsr88d::NexradFile> ProductDatastore::GetCachedNexradFile(
 
    if (group == common::RadarProductGroup::Level2)
    {
-      std::shared_lock sharedLock {level2ProductRecordMutex_};
+      std::shared_lock const sharedLock {level2ProductRecordMutex_};
 
       auto it = level2ProductRecords_.find(timeInSeconds);
       if (it != level2ProductRecords_.cend())
@@ -292,7 +292,7 @@ std::shared_ptr<wsr88d::NexradFile> ProductDatastore::GetCachedNexradFile(
    }
    else if (group == common::RadarProductGroup::Level3)
    {
-      std::shared_lock sharedLock {level3ProductRecordMutex_};
+      std::shared_lock const sharedLock {level3ProductRecordMutex_};
 
       auto productIt = level3ProductRecordsMap_.find(level3Product);
       if (productIt != level3ProductRecordsMap_.cend())
@@ -324,7 +324,7 @@ std::vector<RadarProductRecordEntry> ProductDatastore::FindLevel2RecordEntries(
 {
    std::vector<RadarProductRecordEntry> entries {};
 
-   std::shared_lock lock {level2ProductRecordMutex_};
+   std::shared_lock const lock {level2ProductRecordMutex_};
 
    if (!level2ProductRecords_.empty() &&
        time == std::chrono::system_clock::time_point {})
@@ -355,7 +355,7 @@ std::vector<RadarProductRecordEntry> ProductDatastore::FindLevel2RecordEntries(
 std::optional<RadarProductRecordEntry> ProductDatastore::FindLevel3RecordEntry(
    const std::string& product, std::chrono::system_clock::time_point time) const
 {
-   std::shared_lock lock {level3ProductRecordMutex_};
+   std::shared_lock const lock {level3ProductRecordMutex_};
 
    auto it = level3ProductRecordsMap_.find(product);
    if (it == level3ProductRecordsMap_.cend() || it->second.empty())
@@ -382,7 +382,7 @@ void ProductDatastore::ForEachLevel2Record(
    const std::function<void(std::chrono::system_clock::time_point time,
                             bool expired)>& callback) const
 {
-   std::shared_lock lock {level2ProductRecordMutex_};
+   std::shared_lock const lock {level2ProductRecordMutex_};
 
    for (auto& record : level2ProductRecords_)
    {
@@ -395,7 +395,7 @@ void ProductDatastore::ForEachLevel3Product(
                             const RadarProductRecordMap& recordMap)>& callback)
    const
 {
-   std::shared_lock lock {level3ProductRecordMutex_};
+   std::shared_lock const lock {level3ProductRecordMutex_};
 
    for (auto& recordMap : level3ProductRecordsMap_)
    {
@@ -404,8 +404,8 @@ void ProductDatastore::ForEachLevel3Product(
 }
 
 void ProductDatastore::UpdateRecentRecords(
-   RadarProductRecordList&                    recentList,
-   std::shared_ptr<types::RadarProductRecord> record)
+   RadarProductRecordList&                           recentList,
+   const std::shared_ptr<types::RadarProductRecord>& record)
 {
    const std::size_t recentListMaxSize {cacheLimit_.load()};
    bool              iteratorErased = false;

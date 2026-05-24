@@ -780,7 +780,8 @@ void RadarProductManagerImpl::LoadProviderData(
                   scwx::util::TimeString(time));
 
    LoadNexradFileAsync(
-      [=, this]() -> std::shared_ptr<wsr88d::NexradFile>
+      [providerManager, level3Product, time, this]()
+         -> std::shared_ptr<wsr88d::NexradFile>
       {
          std::shared_ptr<wsr88d::NexradFile> nexradFile =
             productDatastore_.GetCachedNexradFile(

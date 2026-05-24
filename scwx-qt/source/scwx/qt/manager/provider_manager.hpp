@@ -32,6 +32,8 @@ public:
 
    ProviderManager(const ProviderManager&)            = delete;
    ProviderManager& operator=(const ProviderManager&) = delete;
+   ProviderManager(ProviderManager&&)                 = delete;
+   ProviderManager& operator=(ProviderManager&&)      = delete;
 
    [[nodiscard]] std::string name() const;
 
