@@ -164,6 +164,9 @@ public:
                level2ProviderManager_->provider_));
       }
 
+      // Match RadarProductManager::gate_size(); cannot call self_->gate_size()
+      // here because RadarProductManager::p is not constructed yet.
+      // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
       const float gateSize = (radarSite_->type() == "tdwr") ? 150.0f : 250.0f;
       coordinateTable_.emplace(
          radarSite_->latitude(), radarSite_->longitude(), gateSize);
@@ -416,7 +419,7 @@ const std::vector<float>&
 RadarProductManager::coordinates(common::RadialSize radialSize,
                                  bool               smoothingEnabled) const
 {
-   return p->coordinateTable_->coordinates(radialSize, smoothingEnabled);
+   return p->coordinateTable_.value().coordinates(radialSize, smoothingEnabled);
 }
 const scwx::util::time_zone* RadarProductManager::default_time_zone() const
 {

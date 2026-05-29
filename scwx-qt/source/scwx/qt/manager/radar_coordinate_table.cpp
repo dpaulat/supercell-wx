@@ -4,6 +4,8 @@
 
 #include <execution>
 #include <optional>
+#include <stdexcept>
+#include <string>
 
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
