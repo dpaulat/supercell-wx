@@ -69,6 +69,24 @@ units::degrees<float> GetAngleDelta(units::degrees<float> angle1,
  */
 Coordinate GetCentroid(const std::vector<Coordinate>& coordinates);
 
+/**
+ * Calculate the lat/lon coordinates of a point given a radar's position and
+ * the azimuth/range to the point, using the 4/3 Earth radius model.
+ *
+ * @param radarLatitude Radar latitude in degrees
+ * @param radarLongitude Radar longitude in degrees
+ * @param radarElevationMeters Radar elevation in meters
+ * @param azimuthDegrees Azimuth to the point in degrees
+ * @param rangeNauticalMiles Range to the point in nautical miles
+ *
+ * @return Coordinate of the point
+ */
+[[nodiscard]] Coordinate polar_to_latlon(double radarLatitude,
+                                         double radarLongitude,
+                                         double radarElevationMeters,
+                                         double azimuthDegrees,
+                                         double rangeNauticalMiles);
+
 std::string
 GetLatitudeString(double           latitude,
                   DegreeStringType type = DegreeStringType::Decimal);

@@ -38,6 +38,8 @@
 #include <scwx/qt/ui/about_dialog.hpp>
 #include <scwx/qt/ui/alert_dock_widget.hpp>
 #include <scwx/qt/ui/animation_dock_widget.hpp>
+#include <scwx/qt/ui/storm_attribute_dock_widget.hpp>
+#include <scwx/qt/view/overlay_product_view.hpp>
 #include <scwx/qt/ui/collapsible_group.hpp>
 #include <scwx/qt/ui/export_settings_dialog.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
@@ -371,6 +373,7 @@ public:
    QLabel* timeLabel_ {nullptr};
 
    ui::AlertDockWidget*              alertDockWidget_ {};
+   ui::StormAttributeDockWidget*     stormAttributeDockWidget_ {};
    ui::MesoscaleDiscussionDialog*    mesoscaleDiscussionDialog_ {};
    ui::AnimationDockWidget*          animationDockWidget_ {};
    ui::SoundingPanel*                soundingPanel_ {};
@@ -503,6 +506,11 @@ MainWindow::MainWindow(QWidget* parent) :
    p->alertDockWidget_ = new ui::AlertDockWidget(this);
    addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
 
+   // Storm Attribute Dock
+   p->stormAttributeDockWidget_ = new ui::StormAttributeDockWidget(this);
+   addDockWidget(Qt::BottomDockWidgetArea, p->stormAttributeDockWidget_);
+   p->stormAttributeDockWidget_->hide();
+
    // Mesoscale Discussion Dialog (created once, shown on demand)
    p->mesoscaleDiscussionDialog_ = new ui::MesoscaleDiscussionDialog(this);
 
@@ -524,6 +532,11 @@ MainWindow::MainWindow(QWidget* parent) :
                               p->alertDockWidget_->toggleViewAction());
    p->alertDockWidget_->toggleViewAction()->setText(tr("&Alerts"));
    ui->actionAlerts->setVisible(false);
+
+   ui->menuView->insertAction(ui->actionAlerts,
+                              p->stormAttributeDockWidget_->toggleViewAction());
+   p->stormAttributeDockWidget_->toggleViewAction()->setText(
+      tr("Storm &Attributes"));
 
    // Add GFS Sounding menu action
    auto* soundingAction = ui->menuView->addAction(tr("GFS &Sounding"));
@@ -3079,7 +3092,7 @@ void MainWindowImpl::ConnectMapSignals()
          mapWidget,
          &map::MapWidget::RadarSweepUpdated,
          this,
-         [&]()
+         [this, mapWidget]()
          {
             if (mapWidget == activeMap_)
             {
@@ -3088,6 +3101,17 @@ void MainWindowImpl::ConnectMapSignals()
                UpdateRadarProductSettings();
                UpdateRadarSite();
                UpdateVcp();
+
+               // Update storm attribute table from active map
+               if (stormAttributeDockWidget_ != nullptr)
+               {
+                  stormAttributeDockWidget_->SetOverlayProductView(
+                     mapWidget->overlay_product_view());
+                  stormAttributeDockWidget_->SetRadarProductManager(
+                     mapWidget->overlay_product_view()
+                        ->radar_product_manager());
+                  stormAttributeDockWidget_->HandleDataUpdate();
+               }
             }
          },
          Qt::QueuedConnection);
@@ -3456,9 +3480,28 @@ void MainWindowImpl::ConnectOtherSignals()
            alertDockWidget_,
            &ui::AlertDockWidget::HandleMapUpdate,
            Qt::QueuedConnection);
+   connect(mainWindow_,
+           &MainWindow::ActiveMapMoved,
+           stormAttributeDockWidget_,
+           &ui::StormAttributeDockWidget::HandleMapUpdate,
+           Qt::QueuedConnection);
    connect(
       alertDockWidget_,
       &ui::AlertDockWidget::MoveMap,
+      this,
+      [this](double latitude, double longitude)
+      {
+         for (map::MapWidget* map : maps_)
+         {
+            map->SetMapLocation(latitude, longitude, true);
+         }
+
+         UpdateRadarSite();
+      },
+      Qt::QueuedConnection);
+   connect(
+      stormAttributeDockWidget_,
+      &ui::StormAttributeDockWidget::ZoomToStorm,
       this,
       [this](double latitude, double longitude)
       {

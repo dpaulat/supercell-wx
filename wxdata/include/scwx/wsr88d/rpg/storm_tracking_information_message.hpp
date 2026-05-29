@@ -3,6 +3,8 @@
 #include <scwx/wsr88d/rpg/graphic_product_message.hpp>
 
 #include <optional>
+#include <string>
+#include <unordered_map>
 
 #include <units/angle.h>
 #include <units/length.h>
@@ -78,6 +80,10 @@ public:
    sti_record(const std::string& stormId) const;
 
    std::shared_ptr<const StiRecord> first_sti_record() const;
+
+   [[nodiscard]] const std::unordered_map<std::string,
+                                          std::shared_ptr<StiRecord>>&
+   sti_records() const;
 
    bool Parse(std::istream& is) override;
 

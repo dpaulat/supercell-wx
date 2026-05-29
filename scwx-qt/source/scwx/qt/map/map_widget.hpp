@@ -33,6 +33,11 @@ namespace scwx::qt::gl
 class GlContext;
 }
 
+namespace scwx::qt::view
+{
+class OverlayProductView;
+} // namespace scwx::qt::view
+
 namespace scwx::qt::map
 {
 
@@ -65,6 +70,9 @@ public:
    [[nodiscard]] std::chrono::system_clock::time_point GetSelectedTime() const;
    [[nodiscard]] bool          GetSmoothingEnabled() const;
    [[nodiscard]] std::uint16_t GetVcp() const;
+
+   [[nodiscard]] std::shared_ptr<view::OverlayProductView>
+   overlay_product_view() const;
 
    [[nodiscard]] std::optional<float>    GetColorTableThreshold() const;
    [[nodiscard]] std::pair<float, float> GetColorTableRange() const;

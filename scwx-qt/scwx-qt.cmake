@@ -201,23 +201,27 @@ set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp
             source/scwx/qt/map/radar_site_layer.cpp)
 set(HDR_MODEL source/scwx/qt/model/alert_model.hpp
-              source/scwx/qt/model/alert_proxy_model.hpp
-              source/scwx/qt/model/imgui_context_model.hpp
-              source/scwx/qt/model/layer_model.hpp
-              source/scwx/qt/model/placefile_model.hpp
-              source/scwx/qt/model/marker_model.hpp
-              source/scwx/qt/model/radar_site_model.hpp
-              source/scwx/qt/model/tree_item.hpp
-              source/scwx/qt/model/tree_model.hpp)
+               source/scwx/qt/model/alert_proxy_model.hpp
+               source/scwx/qt/model/imgui_context_model.hpp
+               source/scwx/qt/model/layer_model.hpp
+               source/scwx/qt/model/placefile_model.hpp
+               source/scwx/qt/model/marker_model.hpp
+               source/scwx/qt/model/radar_site_model.hpp
+               source/scwx/qt/model/storm_attribute_model.hpp
+               source/scwx/qt/model/storm_attribute_proxy_model.hpp
+               source/scwx/qt/model/tree_item.hpp
+               source/scwx/qt/model/tree_model.hpp)
 set(SRC_MODEL source/scwx/qt/model/alert_model.cpp
-              source/scwx/qt/model/alert_proxy_model.cpp
-              source/scwx/qt/model/imgui_context_model.cpp
-              source/scwx/qt/model/layer_model.cpp
-              source/scwx/qt/model/placefile_model.cpp
-              source/scwx/qt/model/marker_model.cpp
-              source/scwx/qt/model/radar_site_model.cpp
-              source/scwx/qt/model/tree_item.cpp
-              source/scwx/qt/model/tree_model.cpp)
+               source/scwx/qt/model/alert_proxy_model.cpp
+               source/scwx/qt/model/imgui_context_model.cpp
+               source/scwx/qt/model/layer_model.cpp
+               source/scwx/qt/model/placefile_model.cpp
+               source/scwx/qt/model/marker_model.cpp
+               source/scwx/qt/model/radar_site_model.cpp
+               source/scwx/qt/model/storm_attribute_model.cpp
+               source/scwx/qt/model/storm_attribute_proxy_model.cpp
+               source/scwx/qt/model/tree_item.cpp
+               source/scwx/qt/model/tree_model.cpp)
 set(HDR_REQUEST source/scwx/qt/request/download_request.hpp
                 source/scwx/qt/request/nexrad_file_request.hpp)
 set(SRC_REQUEST source/scwx/qt/request/download_request.cpp
@@ -311,10 +315,11 @@ set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/time_types.cpp
               source/scwx/qt/types/unit_types.cpp)
 set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
-            source/scwx/qt/ui/alert_dialog.hpp
-            source/scwx/qt/ui/mesoscale_discussion_dialog.hpp
-           source/scwx/qt/ui/alert_dock_widget.hpp
-           source/scwx/qt/ui/animation_dock_widget.hpp
+             source/scwx/qt/ui/alert_dialog.hpp
+             source/scwx/qt/ui/mesoscale_discussion_dialog.hpp
+            source/scwx/qt/ui/alert_dock_widget.hpp
+            source/scwx/qt/ui/animation_dock_widget.hpp
+            source/scwx/qt/ui/storm_attribute_dock_widget.hpp
            source/scwx/qt/ui/api_key_edit_widget.hpp
            source/scwx/qt/ui/collapsible_group.hpp
            source/scwx/qt/ui/county_dialog.hpp
@@ -352,10 +357,11 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/update_dialog.hpp
            source/scwx/qt/ui/wfo_dialog.hpp)
 set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
-            source/scwx/qt/ui/alert_dialog.cpp
-            source/scwx/qt/ui/mesoscale_discussion_dialog.cpp
-           source/scwx/qt/ui/alert_dock_widget.cpp
-           source/scwx/qt/ui/animation_dock_widget.cpp
+             source/scwx/qt/ui/alert_dialog.cpp
+             source/scwx/qt/ui/mesoscale_discussion_dialog.cpp
+            source/scwx/qt/ui/alert_dock_widget.cpp
+            source/scwx/qt/ui/animation_dock_widget.cpp
+            source/scwx/qt/ui/storm_attribute_dock_widget.cpp
            source/scwx/qt/ui/api_key_edit_widget.cpp
            source/scwx/qt/ui/collapsible_group.cpp
            source/scwx/qt/ui/county_dialog.cpp

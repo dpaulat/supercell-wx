@@ -928,6 +928,12 @@ void MapWidget::SetRadarWireframeEnabled(bool wireframeEnabled)
       this, static_cast<void (QWidget::*)()>(&QWidget::update));
 }
 
+std::shared_ptr<view::OverlayProductView>
+MapWidget::overlay_product_view() const
+{
+   return p->context_->overlay_product_view();
+}
+
 bool MapWidget::GetSmoothingEnabled() const
 {
    return p->smoothingEnabled_;

@@ -195,6 +195,14 @@ StormTrackingInformationMessage::first_sti_record() const
    return record;
 }
 
+const std::unordered_map<
+   std::string,
+   std::shared_ptr<StormTrackingInformationMessage::StiRecord>>&
+StormTrackingInformationMessage::sti_records() const
+{
+   return p->stiRecords_;
+}
+
 std::shared_ptr<StormTrackingInformationMessage::StiRecord>&
 StormTrackingInformationMessage::Impl::GetOrCreateStiRecord(
    const std::string& stormId)

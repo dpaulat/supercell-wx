@@ -14,6 +14,48 @@ static std::string GetDegreeString(double             degrees,
                                    DegreeStringType   type,
                                    const std::string& suffix);
 
+Coordinate polar_to_latlon(double radarLatitude,
+                           double radarLongitude,
+                           double radarElevationMeters,
+                           double azimuthDegrees,
+                           double rangeNauticalMiles)
+{
+   // Constants
+   constexpr double kEarthRadiusKm = 6371.0 * 4.0 / 3.0; // 4/3 effective radius
+   constexpr double kNmiToKm       = 1.852;
+   constexpr double kDegToRad      = std::numbers::pi / 180.0;
+
+   double rangeKm = rangeNauticalMiles * kNmiToKm;
+   double elevKm  = radarElevationMeters / 1000.0;
+
+   // Ground range using 4/3 Earth model
+   double groundRange = std::sqrt(
+      rangeKm * rangeKm + 2.0 * kEarthRadiusKm * elevKm + elevKm * elevKm);
+   if (rangeKm > 0.0)
+   {
+      groundRange = rangeKm * kEarthRadiusKm / (kEarthRadiusKm + elevKm);
+   }
+
+   // Central angle
+   double centralAngle = groundRange / kEarthRadiusKm;
+
+   // Convert to radians
+   double azRad = azimuthDegrees * kDegToRad;
+   double lat1  = radarLatitude * kDegToRad;
+   double lon1  = radarLongitude * kDegToRad;
+
+   // Destination point (vincenty-like)
+   double lat2 =
+      std::asin(std::sin(lat1) * std::cos(centralAngle) +
+                std::cos(lat1) * std::sin(centralAngle) * std::cos(azRad));
+   double lon2 =
+      lon1 +
+      std::atan2(std::sin(azRad) * std::sin(centralAngle) * std::cos(lat1),
+                 std::cos(centralAngle) - std::sin(lat1) * std::sin(lat2));
+
+   return Coordinate {lat2 / kDegToRad, lon2 / kDegToRad};
+}
+
 units::degrees<float> GetAngleDelta(units::degrees<float> angle1,
                                     units::degrees<float> angle2)
 {
