@@ -5,6 +5,7 @@
 #include <scwx/util/time.hpp>
 
 #include <execution>
+#include <algorithm>
 #include <set>
 
 namespace scwx::qt::manager
