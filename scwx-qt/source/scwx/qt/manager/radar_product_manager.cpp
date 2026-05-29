@@ -16,6 +16,7 @@
 #include <mutex>
 #include <optional>
 #include <shared_mutex>
+#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -419,7 +420,12 @@ const std::vector<float>&
 RadarProductManager::coordinates(common::RadialSize radialSize,
                                  bool               smoothingEnabled) const
 {
-   return p->coordinateTable_.value().coordinates(radialSize, smoothingEnabled);
+   if (!p->coordinateTable_.has_value())
+   {
+      throw std::logic_error("Coordinate table not initialized");
+   }
+
+   return p->coordinateTable_->coordinates(radialSize, smoothingEnabled);
 }
 const scwx::util::time_zone* RadarProductManager::default_time_zone() const
 {
