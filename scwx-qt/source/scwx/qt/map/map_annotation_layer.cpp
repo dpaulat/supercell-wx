@@ -1,5 +1,4 @@
 #include <scwx/qt/gl/draw/map_annotations_draw_item.hpp>
-#include <scwx/qt/map/map_annotation_geo_util.hpp>
 #include <scwx/qt/map/map_annotation_layer.hpp>
 #include <scwx/qt/map/map_annotation_model.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
@@ -358,9 +357,12 @@ public:
       const units::length::meters<double> eraserHalfM {
          self->style().strokeWidthM * 0.5};
 
-      const double     mpp           = MetersPerPixelAt(map, fromPx);
-      const double     eraseHalfM    = eraserHalfM.value();
-      const double     eraseRadiusPx = (mpp > 0.0) ? (eraseHalfM / mpp) : 8.0;
+      const units::length::meters<double> mpp =
+         util::maplibre::MetersPerPixelAt(map, fromPx);
+      const double eraseHalfM = eraserHalfM.value();
+      const double mppValue   = mpp.value();
+      const double eraseRadiusPx =
+         (mppValue > 0.0) ? (eraseHalfM / mppValue) : 8.0;
       constexpr double kMinSampleSpacingPx {2.0};
       const double     brushStepPx =
          std::max(kMinSampleSpacingPx, eraseRadiusPx * 0.5);

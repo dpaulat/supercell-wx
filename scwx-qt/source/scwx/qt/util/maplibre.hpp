@@ -4,8 +4,11 @@
 
 #include <QMapLibre/Map>
 #include <QMapLibre/Types>
+#include <QPointF>
 #include <glm/gtc/type_ptr.hpp>
 #include <units/length.h>
+
+#include <memory>
 
 namespace scwx
 {
@@ -20,6 +23,12 @@ units::length::meters<double>
           GetMapDistance(const QMapLibre::CustomLayerRenderParameters& params);
 glm::mat4 GetMapMatrix(const QMapLibre::CustomLayerRenderParameters& params);
 glm::vec2 GetMapScale(const QMapLibre::CustomLayerRenderParameters& params);
+
+/** Ground meters per screen pixel at @p widgetPixel (MapLibre mercator scale).
+ */
+[[nodiscard]] units::length::meters<double>
+MetersPerPixelAt(const std::shared_ptr<QMapLibre::Map>& map,
+                 const QPointF&                         widgetPixel);
 
 /**
  * @brief Determine whether a point lies within a polygon

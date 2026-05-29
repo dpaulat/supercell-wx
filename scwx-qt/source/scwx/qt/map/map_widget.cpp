@@ -1,4 +1,3 @@
-#include <scwx/qt/map/map_annotation_geo_util.hpp>
 #include <scwx/qt/map/map_annotation_layer.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/gl/gl.hpp>
@@ -246,9 +245,9 @@ public:
 
    ~MapWidgetImpl()
    {
-      if (eraseCursorActive_)
+      if (eraseCursorActive_ && QApplication::overrideCursor() != nullptr)
       {
-         widget_->unsetCursor();
+         QApplication::restoreOverrideCursor();
       }
 
       // Disconnect signals
@@ -2167,7 +2166,7 @@ int MapWidgetImpl::EraseCursorRadiusPx(const QPointF& widgetPos) const
 
    // Brush size is ground diameter; ring radius is half that, in screen pixels.
    const double radiusM = annotationLayer_->style().strokeWidthM.value() * 0.5;
-   const double mpp     = MetersPerPixelAt(map_, widgetPos);
+   const double mpp = util::maplibre::MetersPerPixelAt(map_, widgetPos).value();
    if (mpp <= 0.0)
    {
       return kFallbackEraseCursorRadiusPx;
@@ -2198,7 +2197,15 @@ void MapWidgetImpl::UpdateAnnotationCursor()
 
       if (!eraseCursorActive_ || radiusChanged)
       {
-         widget_->setCursor(CreateEraseCursor(radiusPx));
+         const QCursor eraseCursor = CreateEraseCursor(radiusPx);
+         if (QApplication::overrideCursor() == nullptr)
+         {
+            QApplication::setOverrideCursor(eraseCursor);
+         }
+         else
+         {
+            QApplication::changeOverrideCursor(eraseCursor);
+         }
          eraseCursorActive_   = true;
          eraseCursorRadiusPx_ = radiusPx;
       }
@@ -2207,7 +2214,10 @@ void MapWidgetImpl::UpdateAnnotationCursor()
 
    if (eraseCursorActive_)
    {
-      widget_->unsetCursor();
+      if (QApplication::overrideCursor() != nullptr)
+      {
+         QApplication::restoreOverrideCursor();
+      }
       eraseCursorActive_   = false;
       eraseCursorRadiusPx_ = -1;
    }
