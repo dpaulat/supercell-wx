@@ -425,7 +425,7 @@ RadarProductManager::coordinates(common::RadialSize radialSize,
       throw std::logic_error("Coordinate table not initialized");
    }
 
-   return p->coordinateTable_->coordinates(radialSize, smoothingEnabled);
+   return p->coordinateTable_.value().coordinates(radialSize, smoothingEnabled);
 }
 const scwx::util::time_zone* RadarProductManager::default_time_zone() const
 {
