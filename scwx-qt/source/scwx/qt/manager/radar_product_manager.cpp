@@ -13,6 +13,7 @@
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 
 #include <execution>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <shared_mutex>
@@ -169,7 +170,7 @@ public:
       // here because RadarProductManager::p is not constructed yet.
       // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
       const float gateSize = (radarSite_->type() == "tdwr") ? 150.0f : 250.0f;
-      coordinateTable_.emplace(
+      coordinateTable_     = std::make_unique<RadarCoordinateTable>(
          radarSite_->latitude(), radarSite_->longitude(), gateSize);
    }
    ~RadarProductManagerImpl()
@@ -272,7 +273,7 @@ public:
    std::shared_ptr<config::RadarSite> radarSite_;
    std::size_t                        cacheLimit_ {6u};
 
-   std::optional<RadarCoordinateTable> coordinateTable_ {};
+   std::unique_ptr<RadarCoordinateTable> coordinateTable_ {};
 
    RadarProductRecordMap  level2ProductRecords_ {};
    RadarProductRecordList level2ProductRecentRecords_ {};
@@ -420,12 +421,12 @@ const std::vector<float>&
 RadarProductManager::coordinates(common::RadialSize radialSize,
                                  bool               smoothingEnabled) const
 {
-   if (!p->coordinateTable_.has_value())
+   if (p->coordinateTable_ == nullptr)
    {
       throw std::logic_error("Coordinate table not initialized");
    }
 
-   return p->coordinateTable_.value().coordinates(radialSize, smoothingEnabled);
+   return p->coordinateTable_->coordinates(radialSize, smoothingEnabled);
 }
 const scwx::util::time_zone* RadarProductManager::default_time_zone() const
 {
