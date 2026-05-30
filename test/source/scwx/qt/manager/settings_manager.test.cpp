@@ -73,6 +73,24 @@ static void RemoveUserPaths(boost::json::value& root)
    }
 }
 
+static void RemoveTransientUiState(boost::json::value& root)
+{
+   if (!root.is_object())
+   {
+      return;
+   }
+
+   boost::json::object& obj  = root.as_object();
+   auto                 uiIt = obj.find("ui");
+   if (uiIt == obj.end() || !uiIt->value().is_object())
+   {
+      return;
+   }
+
+   boost::json::object& uiObj = uiIt->value().as_object();
+   uiObj.erase("map_annotation_state");
+}
+
 static void CompareFiles(const std::string& file1, const std::string& file2)
 {
    auto jf1 = scwx::util::json::ReadJsonFile(file1);
@@ -80,6 +98,8 @@ static void CompareFiles(const std::string& file1, const std::string& file2)
 
    RemoveUserPaths(jf1);
    RemoveUserPaths(jf2);
+   RemoveTransientUiState(jf1);
+   RemoveTransientUiState(jf2);
 
    EXPECT_EQ(jf1, jf2);
 }
