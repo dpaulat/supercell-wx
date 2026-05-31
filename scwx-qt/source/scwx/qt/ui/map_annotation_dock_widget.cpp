@@ -855,8 +855,7 @@ public:
          const QWidget* const previousParent = self_->parentWidget();
          self_->hide();
          self_->setParent(ownerWindow,
-                          Qt::Tool | Qt::CustomizeWindowHint |
-                             Qt::WindowTitleHint);
+                          Qt::Tool | Qt::FramelessWindowHint);
          floating_ = true;
          expanded_ = true;
          QPoint floatPos;
