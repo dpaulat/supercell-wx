@@ -1,5 +1,5 @@
-#include <scwx/qt/manager/provider_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
+#include <scwx/qt/manager/provider_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager_notifier.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/time_types.hpp>
