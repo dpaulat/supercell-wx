@@ -1,6 +1,6 @@
-#include <scwx/qt/manager/product_datastore.hpp>
-#include <scwx/qt/manager/provider_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
+#include <scwx/qt/manager/provider_manager.hpp>
+#include <scwx/qt/manager/product_datastore.hpp>
 #include <scwx/qt/manager/radar_product_manager_notifier.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/time_types.hpp>
@@ -106,20 +106,21 @@ public:
          radarSite_ = std::make_shared<config::RadarSite>();
       }
 
-      level2ProviderManager_->provider_ =
-         provider::NexradDataProviderFactory::CreateLevel2DataProvider(radarId);
-      level2ChunksProviderManager_->provider_ =
+      level2ProviderManager_->set_provider(
+         provider::NexradDataProviderFactory::CreateLevel2DataProvider(
+            radarId));
+      level2ChunksProviderManager_->set_provider(
          provider::NexradDataProviderFactory::CreateLevel2ChunksDataProvider(
-            radarId);
+            radarId));
 
       auto level2ChunksProvider =
          std::dynamic_pointer_cast<provider::AwsLevel2ChunksDataProvider>(
-            level2ChunksProviderManager_->provider_);
+            level2ChunksProviderManager_->provider());
       if (level2ChunksProvider != nullptr)
       {
          level2ChunksProvider->SetLevel2DataProvider(
             std::dynamic_pointer_cast<provider::AwsLevel2DataProvider>(
-               level2ProviderManager_->provider_));
+               level2ProviderManager_->provider()));
       }
    }
    ~RadarProductManagerImpl()
@@ -570,9 +571,9 @@ RadarProductManagerImpl::GetLevel3ProviderManager(const std::string& product)
          std::forward_as_tuple(product),
          std::forward_as_tuple(std::make_shared<ProviderManager>(
             self_, radarId_, common::RadarProductGroup::Level3, product)));
-      level3ProviderManagerMap_.at(product)->provider_ =
-         provider::NexradDataProviderFactory::CreateLevel3DataProvider(radarId_,
-                                                                       product);
+      level3ProviderManagerMap_.at(product)->set_provider(
+         provider::NexradDataProviderFactory::CreateLevel3DataProvider(
+            radarId_, product));
    }
 
    std::shared_ptr<ProviderManager> providerManager =
@@ -607,9 +608,9 @@ void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
             {
                try
                {
-                  providerManager->provider_->RequestAvailableProducts();
+                  providerManager->provider()->RequestAvailableProducts();
                   const auto availableProducts =
-                     providerManager->provider_->GetAvailableProducts();
+                     providerManager->provider()->GetAvailableProducts();
 
                   if (std::find(std::execution::par,
                                 availableProducts.cbegin(),
@@ -645,13 +646,13 @@ void RadarProductManagerImpl::EnableRefresh(
    {
       for (const auto& currentProviderManager : currentProviderManagers->second)
       {
-         currentProviderManager->refreshCount_ -= 1;
+         currentProviderManager->decrement_refresh_count();
          // If the enabling refresh for a different product, or disabling
          // refresh
          if (!providerManagers.contains(currentProviderManager) || !enabled)
          {
             // If this is the last reference to the provider in the refresh map
-            if (currentProviderManager->refreshCount_ == 0)
+            if (currentProviderManager->refresh_count() == 0)
             {
                // Disable current provider
                currentProviderManager->Disable();
@@ -670,7 +671,7 @@ void RadarProductManagerImpl::EnableRefresh(
       refreshMap_.emplace(uuid, providerManagers);
       for (const auto& providerManager : providerManagers)
       {
-         providerManager->refreshCount_ += 1;
+         providerManager->increment_refresh_count();
       }
    }
 
@@ -683,9 +684,9 @@ void RadarProductManagerImpl::EnableRefresh(
    {
       for (const auto& providerManager : providerManagers)
       {
-         if (providerManager->refreshEnabled_ != enabled)
+         if (providerManager->refresh_enabled() != enabled)
          {
-            providerManager->refreshEnabled_ = enabled;
+            providerManager->set_refresh_enabled(enabled);
             providerManager->RefreshData();
          }
       }
@@ -716,7 +717,7 @@ RadarProductManager::GetActiveVolumeTimes(
       for (const auto& refreshEntry : refreshSet.second)
       {
          // Add the provider for the current entry
-         providers.insert(refreshEntry->provider_);
+         providers.insert(refreshEntry->provider());
       }
    }
 
@@ -785,11 +786,11 @@ void RadarProductManagerImpl::LoadProviderData(
       {
          std::shared_ptr<wsr88d::NexradFile> nexradFile =
             productDatastore_.GetCachedNexradFile(
-               providerManager->group_, level3Product, time);
+               providerManager->group(), level3Product, time);
 
          if (nexradFile == nullptr)
          {
-            nexradFile = providerManager->provider_->LoadObjectByTime(time);
+            nexradFile = providerManager->provider()->LoadObjectByTime(time);
             if (nexradFile == nullptr)
             {
                logger_->warn("Attempting to load object without key: {}",
@@ -1265,7 +1266,7 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
 
    // See if we have this one in the chunk provider.
    auto chunkFile = std::dynamic_pointer_cast<wsr88d::Ar2vFile>(
-      p->level2ChunksProviderManager_->provider_->LoadObjectByTime(time));
+      p->level2ChunksProviderManager_->provider()->LoadObjectByTime(time));
    if (chunkFile != nullptr)
    {
       std::tie(radarData, elevationCut, elevationCuts) =
@@ -1280,7 +1281,7 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
 
          const std::optional<float> incomingElevation =
             std::dynamic_pointer_cast<provider::AwsLevel2ChunksDataProvider>(
-               p->level2ChunksProviderManager_->provider_)
+               p->level2ChunksProviderManager_->provider())
                ->GetCurrentElevation();
          if (incomingElevation != p->incomingLevel2Elevation_)
          {
@@ -1391,7 +1392,7 @@ std::vector<std::string> RadarProductManager::GetLevel3Products()
 {
    auto level3ProviderManager =
       p->GetLevel3ProviderManager(kDefaultLevel3Product_);
-   return level3ProviderManager->provider_->GetAvailableProducts();
+   return level3ProviderManager->provider()->GetAvailableProducts();
 }
 
 void RadarProductManager::SetCacheLimit(size_t cacheLimit)
@@ -1438,9 +1439,9 @@ void RadarProductManagerImpl::UpdateAvailableProductsSync()
 {
    auto level3ProviderManager =
       GetLevel3ProviderManager(kDefaultLevel3Product_);
-   level3ProviderManager->provider_->RequestAvailableProducts();
+   level3ProviderManager->provider()->RequestAvailableProducts();
    auto updatedAwipsIdList =
-      level3ProviderManager->provider_->GetAvailableProducts();
+      level3ProviderManager->provider()->GetAvailableProducts();
 
    std::unique_lock lock {availableCategoryMutex_};
 

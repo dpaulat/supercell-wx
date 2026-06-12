@@ -103,6 +103,11 @@ endif()
 
 target_compile_definitions(wxtest PRIVATE SCWX_TEST_DATA_DIR="${SCWX_DIR}/test/data")
 
+if (LINUX)
+    # Qt emit keyword is incompatible with TBB
+    target_compile_definitions(wxtest PRIVATE QT_NO_EMIT)
+endif()
+
 if (MSVC)
     # Don't include Windows macros
     target_compile_options(wxtest PRIVATE -DNOMINMAX)

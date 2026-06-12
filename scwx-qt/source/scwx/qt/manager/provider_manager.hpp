@@ -6,11 +6,8 @@
 #include <chrono>
 #include <cstddef>
 #include <memory>
-#include <mutex>
 #include <string>
 
-#include <boost/asio/steady_timer.hpp>
-#include <boost/asio/thread_pool.hpp>
 #include <QObject>
 
 namespace scwx::qt::manager
@@ -41,23 +38,27 @@ public:
    void RefreshData();
    void RefreshDataSync();
 
-   boost::asio::thread_pool providerThreadPool_ {2u};
+   [[nodiscard]] std::shared_ptr<provider::NexradDataProvider> provider() const;
+   void set_provider(std::shared_ptr<provider::NexradDataProvider> provider);
 
-   const std::string               radarId_;
-   const common::RadarProductGroup group_;
-   const std::string               product_;
-   const bool                      isChunks_;
-   bool                            refreshEnabled_ {false};
-   boost::asio::steady_timer       refreshTimer_ {providerThreadPool_};
-   std::mutex                      refreshTimerMutex_ {};
-   std::shared_ptr<provider::NexradDataProvider> provider_ {nullptr};
-   std::size_t                                   refreshCount_ {0};
-   bool                                          providerShutdown_ {false};
+   [[nodiscard]] common::RadarProductGroup group() const;
+   [[nodiscard]] const std::string&        product() const;
+
+   void                      increment_refresh_count();
+   void                      decrement_refresh_count();
+   [[nodiscard]] std::size_t refresh_count() const;
+
+   [[nodiscard]] bool refresh_enabled() const;
+   void               set_refresh_enabled(bool enabled);
 
 signals:
    void NewDataAvailable(common::RadarProductGroup             group,
                          const std::string&                    product,
                          std::chrono::system_clock::time_point latestTime);
+
+private:
+   class Impl;
+   std::unique_ptr<Impl> p;
 };
 
 } // namespace scwx::qt::manager
