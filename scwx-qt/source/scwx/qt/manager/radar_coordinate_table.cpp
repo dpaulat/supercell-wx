@@ -1,8 +1,10 @@
 #include <scwx/qt/manager/radar_coordinate_table.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
+#include <scwx/common/constants.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <execution>
+#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -11,6 +13,7 @@
 #include <boost/timer/timer.hpp>
 #include <GeographicLib/Geodesic.hpp>
 #include <GeographicLib/GeodesicLine.hpp>
+#include <units/angle.h>
 
 namespace scwx::qt::manager
 {
@@ -43,156 +46,185 @@ static constexpr std::size_t kTimerPlaces_ {6u};
 
 } // namespace
 
+class RadarCoordinateTable::Impl
+{
+public:
+   Impl(double latitude, double longitude, float gateSize) :
+       latitude_ {latitude}, longitude_ {longitude}, gateSize_ {gateSize}
+   {
+   }
+
+   const std::vector<float>& coordinates(common::RadialSize radialSize,
+                                         bool               smoothingEnabled)
+   {
+      EnsureCoordinatesInitialized(radialSize, smoothingEnabled);
+
+      switch (radialSize)
+      {
+      case common::RadialSize::_0_5Degree:
+         if (smoothingEnabled)
+         {
+            return coordinates0_5DegreeSmooth_;
+         }
+         return coordinates0_5Degree_;
+
+      case common::RadialSize::_1Degree:
+         if (smoothingEnabled)
+         {
+            return coordinates1DegreeSmooth_;
+         }
+         return coordinates1Degree_;
+
+      default:
+         throw std::invalid_argument("Invalid radial size");
+      }
+   }
+
+private:
+   void CalculateCoordinates(uint32_t                     radialCount,
+                             units::angle::degrees<float> radialAngle,
+                             units::angle::degrees<float> angleOffset,
+                             float                        gateRangeOffset,
+                             std::vector<float>&          outputCoordinates)
+   {
+      const GeographicLib::Geodesic& geodesic(
+         util::GeographicLib::DefaultGeodesic());
+
+      const auto   radials = boost::irange<uint32_t>(0, radialCount);
+      const double radarLatitude {latitude_};
+      const double radarLongitude {longitude_};
+      const float  radialStep {radialAngle.value()};
+      const float  radialOffset {angleOffset.value()};
+
+      std::for_each(
+         std::execution::par_unseq,
+         radials.begin(),
+         radials.end(),
+         [&](uint32_t radial)
+         {
+            const float angle =
+               static_cast<float>(radial) * radialStep + radialOffset;
+            const auto geodesicLine =
+               geodesic.Line(radarLatitude, radarLongitude, angle);
+            const std::size_t baseOffset =
+               static_cast<std::size_t>(radial) *
+               static_cast<std::size_t>(common::MAX_DATA_MOMENT_GATES) * 2;
+
+            for (uint32_t gate = 0; gate < common::MAX_DATA_MOMENT_GATES;
+                 ++gate)
+            {
+               const float range =
+                  (static_cast<float>(gate) + gateRangeOffset) * gateSize_;
+               const std::size_t offset =
+                  baseOffset + static_cast<std::size_t>(gate) * 2;
+
+               double latitude  = 0.0;
+               double longitude = 0.0;
+
+               geodesicLine.Position(range, latitude, longitude);
+
+               outputCoordinates[offset]     = static_cast<float>(latitude);
+               outputCoordinates[offset + 1] = static_cast<float>(longitude);
+            }
+         });
+   }
+
+   void EnsureCoordinatesInitialized(common::RadialSize radialSize,
+                                     bool               smoothingEnabled)
+   {
+      std::vector<float>*                         targetCoordinates = nullptr;
+      uint32_t                                    coordinateCount   = 0;
+      uint32_t                                    radialCount       = 0;
+      std::optional<units::angle::degrees<float>> radialAngle {};
+      std::optional<units::angle::degrees<float>> angleOffset {};
+      float                                       gateRangeOffset = 0.0f;
+      const char*                                 timerName       = nullptr;
+
+      switch (radialSize)
+      {
+      case common::RadialSize::_0_5Degree:
+         targetCoordinates = smoothingEnabled ? &coordinates0_5DegreeSmooth_ :
+                                                &coordinates0_5Degree_;
+         coordinateCount   = kNumCoordinates0_5Degree_;
+         radialCount       = kNumRadials0_5Degree_;
+         radialAngle = units::angle::degrees<float> {kRadialStepDegrees0_5_};
+         angleOffset = units::angle::degrees<float> {
+            smoothingEnabled ? kSmoothingRadialOffsetDegrees0_5_ : 0.0F};
+         gateRangeOffset = smoothingEnabled ? kSmoothingGateRangeOffset_ :
+                                              kNoSmoothingGateRangeOffset_;
+         timerName = smoothingEnabled ? "Coordinates (0.5 degree smooth)" :
+                                        "Coordinates (0.5 degree)";
+         break;
+
+      case common::RadialSize::_1Degree:
+         targetCoordinates = smoothingEnabled ? &coordinates1DegreeSmooth_ :
+                                                &coordinates1Degree_;
+         coordinateCount   = kNumCoordinates1Degree_;
+         radialCount       = kNumRadials1Degree_;
+         radialAngle       = units::angle::degrees<float> {1.0f};
+         angleOffset       = units::angle::degrees<float> {
+            smoothingEnabled ? kSmoothingRadialOffsetDegrees1_0_ : 0.0F};
+         gateRangeOffset = smoothingEnabled ? kSmoothingGateRangeOffset_ :
+                                              kNoSmoothingGateRangeOffset_;
+         timerName       = smoothingEnabled ? "Coordinates (1 degree smooth)" :
+                                              "Coordinates (1 degree)";
+         break;
+
+      default:
+         return;
+      }
+
+      std::unique_lock<std::mutex> const lock {coordinatesMutex_};
+      if (targetCoordinates == nullptr || !targetCoordinates->empty())
+      {
+         return;
+      }
+
+      if (!radialAngle.has_value() || !angleOffset.has_value())
+      {
+         return;
+      }
+
+      targetCoordinates->resize(coordinateCount);
+
+      boost::timer::cpu_timer timer {};
+      timer.start();
+      CalculateCoordinates(radialCount,
+                           radialAngle.value(),
+                           angleOffset.value(),
+                           gateRangeOffset,
+                           *targetCoordinates);
+      timer.stop();
+      logger_->debug(
+         "{} calculated in {}", timerName, timer.format(kTimerPlaces_, "%ws"));
+   }
+
+   double latitude_;
+   double longitude_;
+   float  gateSize_;
+
+   std::vector<float> coordinates0_5Degree_ {};
+   std::vector<float> coordinates0_5DegreeSmooth_ {};
+   std::vector<float> coordinates1Degree_ {};
+   std::vector<float> coordinates1DegreeSmooth_ {};
+
+   std::mutex coordinatesMutex_ {};
+};
+
 RadarCoordinateTable::RadarCoordinateTable(double latitude,
                                            double longitude,
                                            float  gateSize) :
-    latitude_ {latitude}, longitude_ {longitude}, gateSize_ {gateSize}
+    p(std::make_unique<Impl>(latitude, longitude, gateSize))
 {
 }
+
+RadarCoordinateTable::~RadarCoordinateTable() = default;
 
 const std::vector<float>&
 RadarCoordinateTable::coordinates(common::RadialSize radialSize,
                                   bool               smoothingEnabled)
 {
-   EnsureCoordinatesInitialized(radialSize, smoothingEnabled);
-
-   switch (radialSize)
-   {
-   case common::RadialSize::_0_5Degree:
-      if (smoothingEnabled)
-      {
-         return coordinates0_5DegreeSmooth_;
-      }
-      return coordinates0_5Degree_;
-
-   case common::RadialSize::_1Degree:
-      if (smoothingEnabled)
-      {
-         return coordinates1DegreeSmooth_;
-      }
-      return coordinates1Degree_;
-
-   default:
-      throw std::invalid_argument("Invalid radial size");
-   }
-}
-
-void RadarCoordinateTable::CalculateCoordinates(
-   uint32_t                     radialCount,
-   units::angle::degrees<float> radialAngle,
-   units::angle::degrees<float> angleOffset,
-   float                        gateRangeOffset,
-   std::vector<float>&          outputCoordinates)
-{
-   const GeographicLib::Geodesic& geodesic(
-      util::GeographicLib::DefaultGeodesic());
-
-   const auto   radials = boost::irange<uint32_t>(0, radialCount);
-   const double radarLatitude {latitude_};
-   const double radarLongitude {longitude_};
-   const float  radialStep {radialAngle.value()};
-   const float  radialOffset {angleOffset.value()};
-
-   std::for_each(
-      std::execution::par_unseq,
-      radials.begin(),
-      radials.end(),
-      [&](uint32_t radial)
-      {
-         const float angle =
-            static_cast<float>(radial) * radialStep + radialOffset;
-         const auto geodesicLine =
-            geodesic.Line(radarLatitude, radarLongitude, angle);
-         const std::size_t baseOffset =
-            static_cast<std::size_t>(radial) *
-            static_cast<std::size_t>(common::MAX_DATA_MOMENT_GATES) * 2;
-
-         for (uint32_t gate = 0; gate < common::MAX_DATA_MOMENT_GATES; ++gate)
-         {
-            const float range =
-               (static_cast<float>(gate) + gateRangeOffset) * gateSize_;
-            const std::size_t offset =
-               baseOffset + static_cast<std::size_t>(gate) * 2;
-
-            double latitude  = 0.0;
-            double longitude = 0.0;
-
-            geodesicLine.Position(range, latitude, longitude);
-
-            outputCoordinates[offset]     = static_cast<float>(latitude);
-            outputCoordinates[offset + 1] = static_cast<float>(longitude);
-         }
-      });
-}
-
-void RadarCoordinateTable::EnsureCoordinatesInitialized(
-   common::RadialSize radialSize, bool smoothingEnabled)
-{
-   std::vector<float>*                         targetCoordinates = nullptr;
-   uint32_t                                    coordinateCount   = 0;
-   uint32_t                                    radialCount       = 0;
-   std::optional<units::angle::degrees<float>> radialAngle {};
-   std::optional<units::angle::degrees<float>> angleOffset {};
-   float                                       gateRangeOffset = 0.0f;
-   const char*                                 timerName       = nullptr;
-
-   switch (radialSize)
-   {
-   case common::RadialSize::_0_5Degree:
-      targetCoordinates = smoothingEnabled ? &coordinates0_5DegreeSmooth_ :
-                                             &coordinates0_5Degree_;
-      coordinateCount   = kNumCoordinates0_5Degree_;
-      radialCount       = kNumRadials0_5Degree_;
-      radialAngle       = units::angle::degrees<float> {kRadialStepDegrees0_5_};
-      angleOffset       = units::angle::degrees<float> {
-         smoothingEnabled ? kSmoothingRadialOffsetDegrees0_5_ : 0.0F};
-      gateRangeOffset = smoothingEnabled ? kSmoothingGateRangeOffset_ :
-                                           kNoSmoothingGateRangeOffset_;
-      timerName       = smoothingEnabled ? "Coordinates (0.5 degree smooth)" :
-                                           "Coordinates (0.5 degree)";
-      break;
-
-   case common::RadialSize::_1Degree:
-      targetCoordinates =
-         smoothingEnabled ? &coordinates1DegreeSmooth_ : &coordinates1Degree_;
-      coordinateCount = kNumCoordinates1Degree_;
-      radialCount     = kNumRadials1Degree_;
-      radialAngle     = units::angle::degrees<float> {1.0f};
-      angleOffset     = units::angle::degrees<float> {
-         smoothingEnabled ? kSmoothingRadialOffsetDegrees1_0_ : 0.0F};
-      gateRangeOffset = smoothingEnabled ? kSmoothingGateRangeOffset_ :
-                                           kNoSmoothingGateRangeOffset_;
-      timerName       = smoothingEnabled ? "Coordinates (1 degree smooth)" :
-                                           "Coordinates (1 degree)";
-      break;
-
-   default:
-      return;
-   }
-
-   std::unique_lock<std::mutex> const lock {coordinatesMutex_};
-   if (targetCoordinates == nullptr || !targetCoordinates->empty())
-   {
-      return;
-   }
-
-   if (!radialAngle.has_value() || !angleOffset.has_value())
-   {
-      return;
-   }
-
-   targetCoordinates->resize(coordinateCount);
-
-   boost::timer::cpu_timer timer {};
-   timer.start();
-   CalculateCoordinates(radialCount,
-                        radialAngle.value(),
-                        angleOffset.value(),
-                        gateRangeOffset,
-                        *targetCoordinates);
-   timer.stop();
-   logger_->debug(
-      "{} calculated in {}", timerName, timer.format(kTimerPlaces_, "%ws"));
+   return p->coordinates(radialSize, smoothingEnabled);
 }
 
 } // namespace scwx::qt::manager

@@ -421,11 +421,6 @@ const std::vector<float>&
 RadarProductManager::coordinates(common::RadialSize radialSize,
                                  bool               smoothingEnabled) const
 {
-   if (p->coordinateTable_ == nullptr)
-   {
-      throw std::logic_error("Coordinate table not initialized");
-   }
-
    return p->coordinateTable_->coordinates(radialSize, smoothingEnabled);
 }
 const scwx::util::time_zone* RadarProductManager::default_time_zone() const
