@@ -1,6 +1,4 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
-// Include after radar_product_manager.hpp: Qt's emit macro breaks TBB if
-// reversed.
 #include <scwx/qt/manager/provider_manager.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
