@@ -20,7 +20,7 @@ jobs:
             build_type: Release
             env_cc: clang-18
             env_cxx: clang++-18
-            qt_version: 6.11.0
+            qt_version: 6.11.1
             qt_arch_aqt: linux_gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
