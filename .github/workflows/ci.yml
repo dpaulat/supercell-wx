@@ -58,6 +58,24 @@ jobs:
             conan_profile: scwx-windows_vs2026_x64
             appimage_arch: ''
             artifact_suffix: windows-vs2026-x64
+          - name: linux_gcc-11_x64
+            os: ubuntu-22.04
+            build_type: Release
+            env_cc: gcc-11
+            env_cxx: g++-11
+            compiler: gcc
+            cppflags: ''
+            ldflags: ''
+            qt_version: 6.11.0
+            qt_arch_aqt: linux_gcc_64
+            qt_arch_dir: gcc_64
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
+            qt_tools: ''
+            conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
+            conan_profile: scwx-linux_gcc-11
+            appimage_arch: x86_64
+            artifact_suffix: linux-gcc-11-x64
+            compiler_packages: ''
           - name: linux_gcc-13_x64
             os: ubuntu-24.04
             build_type: Release
@@ -146,7 +164,7 @@ jobs:
     env:
       CC: ${{ matrix.env_cc }}
       CXX: ${{ matrix.env_cxx }}
-      SCWX_VERSION: v0.5.6
+      SCWX_VERSION: v0.6.0
     runs-on: ${{ matrix.os }}
 
     steps:

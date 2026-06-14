@@ -32,15 +32,15 @@ set(SRC_QT_MAIN_TESTS source/scwx/qt/main/application_paths.test.cpp
 set(SRC_QT_MANAGER_TESTS source/scwx/qt/manager/radar_product_manager.test.cpp
                          source/scwx/qt/manager/settings_manager.test.cpp
                          source/scwx/qt/manager/update_manager.test.cpp)
-set(SRC_QT_MAP_TESTS source/scwx/qt/map/map_link_policy.test.cpp
-                     source/scwx/qt/map/map_pane_splitter_state.test.cpp
-                     source/scwx/qt/map/map_pane_view_link_state.test.cpp
+set(SRC_QT_MAP_TESTS source/scwx/qt/map/map_annotation_layer.test.cpp
+                     source/scwx/qt/map/map_annotation_model.test.cpp
                      source/scwx/qt/map/map_provider.test.cpp)
 set(SRC_QT_MODEL_TESTS source/scwx/qt/model/imgui_context_model.test.cpp
                        source/scwx/qt/model/marker_model.test.cpp)
 set(SRC_QT_UI_TESTS source/scwx/qt/ui/threshold_value_utility.test.cpp)
 set(SRC_QT_SETTINGS_TESTS source/scwx/qt/settings/settings_container.test.cpp
-                          source/scwx/qt/settings/settings_variable.test.cpp)
+                          source/scwx/qt/settings/settings_variable.test.cpp
+                          source/scwx/qt/settings/ui_settings.test.cpp)
 set(SRC_QT_UTIL_TESTS source/scwx/qt/util/q_file_input_stream.test.cpp
                       source/scwx/qt/util/geographic_lib.test.cpp
                       source/scwx/qt/util/network.test.cpp)
@@ -102,6 +102,11 @@ endif()
 
 target_compile_definitions(wxtest PRIVATE SCWX_TEST_DATA_DIR="${SCWX_DIR}/test/data")
 
+if (LINUX)
+    # Qt emit keyword is incompatible with TBB
+    target_compile_definitions(wxtest PRIVATE QT_NO_EMIT)
+endif()
+
 if (MSVC)
     # Don't include Windows macros
     target_compile_options(wxtest PRIVATE -DNOMINMAX)
@@ -110,17 +115,18 @@ if (MSVC)
     target_compile_options(wxtest PRIVATE "/MP")
 endif()
 
-gtest_discover_tests(wxtest)
-
 target_link_libraries(wxtest GTest::gtest
                              scwx-qt
                              wxdata)
 
 if (WIN32)
-    # Deploy Qt to target directory
+    # Deploy Qt before gtest_discover_tests POST_BUILD runs wxtest.exe (needs
+    # Qt DLLs beside the binary on Windows).
     add_custom_command(TARGET wxtest
                        POST_BUILD
                        COMMAND "${WINDEPLOYQT_EXECUTABLE}"
                            --no-translations $<TARGET_FILE:wxtest>
                        COMMENT "Running windeployqt for wxtest...")
 endif()
+
+gtest_discover_tests(wxtest)
