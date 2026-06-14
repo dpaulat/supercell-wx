@@ -15,6 +15,19 @@
         <file>gl/texture2d_array.frag</file>
         <file>gl/texture2d_array.vert</file>
         <file>gl/threshold.geom</file>
+        <file>gl/vulkan/spirv/color.frag.spv</file>
+        <file>gl/vulkan/spirv/color.vert.spv</file>
+        <file>gl/vulkan/spirv/geo_color.frag.spv</file>
+        <file>gl/vulkan/spirv/geo_color.vert.spv</file>
+        <file>gl/vulkan/spirv/geo_texture_array.frag.spv</file>
+        <file>gl/vulkan/spirv/geo_texture_array.vert.spv</file>
+        <file>gl/vulkan/spirv/radar.frag.spv</file>
+        <file>gl/vulkan/spirv/radar.vert.spv</file>
+        <file>gl/vulkan/spirv/screen_texture_array.frag.spv</file>
+        <file>gl/vulkan/spirv/screen_texture_array.vert.spv</file>
+        <file>gl/vulkan/spirv/texture1d.frag.spv</file>
+        <file>gl/vulkan/spirv/texture1d.vert.spv</file>
+        <file>gl/vulkan/spirv/texture_lut.frag.spv</file>
         <file>res/audio/wikimedia/Emergency_Alert_System_Attention_Signal_20s.ogg</file>
         <file>res/config/radar_sites.json</file>
         <file>res/fonts/din1451alt.ttf</file>

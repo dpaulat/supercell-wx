@@ -1,14 +1,13 @@
 #include <scwx/qt/gl/draw/map_annotations_draw_item.hpp>
-#include <scwx/qt/gl/shader_program.hpp>
 #include <scwx/qt/map/map_annotation_model.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/qt/util/maplibre.hpp>
+#include <scwx/qt/util/polygon_triangulation.hpp>
 #include <scwx/util/logger.hpp>
 
-#if !defined(__APPLE__)
-#   include <GL/glu.h>
-#else
-#   include <OpenGL/glu.h>
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+#   include <scwx/qt/render/rhi_colored_geometry.hpp>
+#   include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 #endif
 
 #include <algorithm>
@@ -32,13 +31,10 @@
 #include <geos/operation/buffer/BufferOp.h>
 #include <geos/operation/buffer/BufferParameters.h>
 #include <glm/geometric.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#if defined(_WIN32) || defined(__APPLE__)
-typedef void (*_GLUfuncptr)(void);
-#endif
-
-// Geometry/render math here intentionally uses tuned constants and OpenGL/GLU
+// Geometry/render math here intentionally uses tuned constants that clang-tidy
 // interop patterns that clang-tidy flags noisily without improving clarity.
 // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,modernize-use-auto,cppcoreguidelines-pro-type-cstyle-cast,cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-no-int-to-ptr)
 namespace scwx::qt::gl::draw
@@ -49,6 +45,108 @@ static const std::string logPrefix_ =
 static const auto logger_ = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr int kFloatsPerVertex = 11;
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+static constexpr double kLatitudeMax = 85.051128779806604;
+static constexpr double kPiOver4    = 0.785398163397448309615660825;
+static constexpr double kPiOver360  = 0.00872664625997164788461845361111;
+static constexpr double kRad2Deg    = 57.295779513082320876798156332941;
+
+static glm::vec2 AnnotationDeltaScreenCoordinate(float latitude,
+                                                 float longitude,
+                                                 const glm::vec2& origin)
+{
+   const double clampedLat =
+      std::clamp(static_cast<double>(latitude), -kLatitudeMax, kLatitudeMax);
+   const double deltaLat = clampedLat - static_cast<double>(origin.x);
+   const double deltaLon = static_cast<double>(longitude) -
+                           static_cast<double>(origin.y);
+   const double y =
+      kRad2Deg *
+         std::log(std::tan(kPiOver4 +
+                           (static_cast<double>(origin.x) + deltaLat) *
+                              kPiOver360)) -
+      kRad2Deg *
+         std::log(std::tan(kPiOver4 +
+                           static_cast<double>(origin.x) * kPiOver360));
+
+   return {static_cast<float>(deltaLon), static_cast<float>(y)};
+}
+
+static void AppendAnnotationTriangleVertices(std::vector<float>&       out,
+                                             const std::vector<float>& in,
+                                             std::size_t               base,
+                                             const glm::mat4& mapMatrix,
+                                             const glm::vec2& origin)
+{
+   for (std::size_t i = 0; i < 3; ++i)
+   {
+      const std::size_t vertexBase = base + i * kFloatsPerVertex;
+      const glm::vec2   p = AnnotationDeltaScreenCoordinate(
+         in[vertexBase + 0], in[vertexBase + 1], origin);
+      const glm::vec4 clip = mapMatrix * glm::vec4 {p, 0.0f, 1.0f};
+
+      out.push_back(clip.x);
+      out.push_back(clip.y);
+      out.push_back(0.0f);
+      out.push_back(in[vertexBase + 2]);
+      out.push_back(in[vertexBase + 3]);
+      out.push_back(in[vertexBase + 4]);
+      out.push_back(in[vertexBase + 5]);
+   }
+}
+
+static std::vector<float>
+BuildColoredAnnotationVertices(const std::vector<float>& in,
+                               std::uint32_t             vertexCount,
+                               const glm::mat4&          mapMatrix,
+                               const glm::vec2&          origin)
+{
+   std::vector<float> out;
+   if (vertexCount <= 0)
+   {
+      return out;
+   }
+
+   const std::size_t count = static_cast<std::size_t>(vertexCount);
+   out.reserve(count * 7);
+   for (std::size_t vertex = 0; vertex + 2 < count; vertex += 3)
+   {
+      const std::size_t base       = vertex * kFloatsPerVertex;
+      const float       arcLen     = in[base + 6];
+      const float       dashPeriod = in[base + 9];
+      const float       dashDuty   = in[base + 10];
+      if (dashPeriod > 1.0e-3f &&
+          std::fmod(arcLen, dashPeriod) > dashPeriod * dashDuty)
+      {
+         continue;
+      }
+
+      AppendAnnotationTriangleVertices(out, in, base, mapMatrix, origin);
+   }
+
+   return out;
+}
+
+static void RenderColoredAnnotationVertices(
+   QRhiCommandBuffer*                            commandBuffer,
+   render::RhiVulkanOverlayResources&            resources,
+   const std::vector<float>&                     source,
+   std::uint32_t                                 vertexCount,
+   const glm::mat4&                              mapMatrix,
+   const glm::vec2&                              origin)
+{
+   std::vector<float> vertices =
+      BuildColoredAnnotationVertices(source, vertexCount, mapMatrix, origin);
+   if (!vertices.empty())
+   {
+      resources.coloredGeometry.Render(commandBuffer,
+                                       glm::mat4 {1.0f},
+                                       vertices,
+                                       vertices.size() / 7);
+   }
+}
+#endif
 
 static std::pair<float, float> DashAttribs(const map::MapAnnotationStyle& st)
 {
@@ -491,24 +589,6 @@ EnuMetersToLatLon(double eastM, double northM, double refLat, double refLon)
 class StrokePolygonTessellator
 {
 public:
-   StrokePolygonTessellator() : tessellator_ {gluNewTess()}
-   {
-      gluTessCallback(
-         tessellator_, GLU_TESS_COMBINE_DATA, (_GLUfuncptr) &CombineCallback);
-      gluTessCallback(
-         tessellator_, GLU_TESS_VERTEX_DATA, (_GLUfuncptr) &VertexCallback);
-      gluTessCallback(tessellator_, GLU_TESS_EDGE_FLAG, []() {});
-      gluTessCallback(
-         tessellator_, GLU_TESS_ERROR, (_GLUfuncptr) &ErrorCallback);
-   }
-
-   ~StrokePolygonTessellator() { gluDeleteTess(tessellator_); }
-   StrokePolygonTessellator(const StrokePolygonTessellator&) = delete;
-   StrokePolygonTessellator&
-   operator=(const StrokePolygonTessellator&)                      = delete;
-   StrokePolygonTessellator(StrokePolygonTessellator&&)            = delete;
-   StrokePolygonTessellator& operator=(StrokePolygonTessellator&&) = delete;
-
    bool TessellateGeometry(const geos::geom::Geometry& geometry,
                            std::vector<float>&         fillOut,
                            double                      refLat,
@@ -526,10 +606,10 @@ public:
          bool any = false;
          for (std::size_t i = 0; i < mp->getNumGeometries(); ++i)
          {
-            const auto* poly =
+            const auto* innerPoly =
                dynamic_cast<const geos::geom::Polygon*>(mp->getGeometryN(i));
-            if (poly != nullptr &&
-                TessellatePolygon(*poly, fillOut, refLat, refLon, rgba))
+            if (innerPoly != nullptr &&
+                TessellatePolygon(*innerPoly, fillOut, refLat, refLon, rgba))
             {
                any = true;
             }
@@ -540,43 +620,9 @@ public:
    }
 
 private:
-   using TessVertexData = std::array<GLdouble, 3>;
-
-   static void CombineCallback(GLdouble coords[3],
-                               void* /*vertexData*/[4],
-                               GLfloat /*weight*/[4],
-                               void** outData,
-                               void*  polygonData)
-   {
-      auto* self = static_cast<StrokePolygonTessellator*>(polygonData);
-      auto& v    = self->combineBuffer_.emplace_back(
-         TessVertexData {coords[0], coords[1], coords[2]});
-      *outData = v.data();
-   }
-
-   static void VertexCallback(void* vertexData, void* polygonData)
-   {
-      auto* self = static_cast<StrokePolygonTessellator*>(polygonData);
-      auto* v    = static_cast<GLdouble*>(vertexData);
-      self->triangles_.push_back(MeterVertex {.x = v[0], .y = v[1]});
-   }
-
-   static void ErrorCallback(GLenum errorCode)
-   {
-      const GLubyte* msg = gluErrorString(errorCode);
-      logger_->warn("GLU stroke tessellation error: {}",
-                    msg != nullptr ? reinterpret_cast<const char*>(msg) :
-                                     "unknown");
-   }
-
-   void Reset()
-   {
-      vertices_.clear();
-      combineBuffer_.clear();
-      triangles_.clear();
-   }
-
-   bool AddContour(const geos::geom::LineString* ring)
+   bool AddContour(const geos::geom::LineString* ring,
+                   std::vector<util::PolygonRing2D>& polygon,
+                   std::vector<MeterVertex>&         vertices)
    {
       if (ring == nullptr)
       {
@@ -599,14 +645,15 @@ private:
          return false;
       }
 
-      gluTessBeginContour(tessellator_);
+      util::PolygonRing2D ringCoords {};
+      ringCoords.reserve(n);
       for (std::size_t i = 0; i < n; ++i)
       {
          const geos::geom::Coordinate& c = cs->getAt(i);
-         auto& v = vertices_.emplace_back(TessVertexData {c.x, c.y, 0.0});
-         gluTessVertex(tessellator_, v.data(), v.data());
+         ringCoords.push_back({c.x, c.y});
+         vertices.push_back(MeterVertex {.x = c.x, .y = c.y});
       }
-      gluTessEndContour(tessellator_);
+      polygon.push_back(std::move(ringCoords));
       return true;
    }
 
@@ -616,42 +663,44 @@ private:
                           double                      refLon,
                           const std::array<float, 4>& rgba)
    {
-      Reset();
+      std::vector<util::PolygonRing2D> polygon {};
+      std::vector<MeterVertex>         vertices {};
 
-      gluTessBeginPolygon(tessellator_, this);
-      const bool haveShell = AddContour(poly.getExteriorRing());
+      const bool haveShell =
+         AddContour(poly.getExteriorRing(), polygon, vertices);
       for (std::size_t i = 0; i < poly.getNumInteriorRing(); ++i)
       {
-         static_cast<void>(AddContour(poly.getInteriorRingN(i)));
+         static_cast<void>(
+            AddContour(poly.getInteriorRingN(i), polygon, vertices));
       }
-      gluTessEndPolygon(tessellator_);
 
-      while (triangles_.size() % 3U != 0U)
-      {
-         triangles_.pop_back();
-      }
-      if (!haveShell || triangles_.empty())
+      if (!haveShell || polygon.empty())
       {
          return false;
       }
 
-      for (std::size_t i = 0; i < triangles_.size(); i += 3)
+      const std::vector<std::uint32_t> indices =
+         util::TriangulatePolygon(polygon);
+      if (indices.size() < 3U || indices.size() % 3U != 0U)
       {
-         const common::Coordinate c0 = EnuMetersToLatLon(
-            triangles_[i + 0].x, triangles_[i + 0].y, refLat, refLon);
-         const common::Coordinate c1 = EnuMetersToLatLon(
-            triangles_[i + 1].x, triangles_[i + 1].y, refLat, refLon);
-         const common::Coordinate c2 = EnuMetersToLatLon(
-            triangles_[i + 2].x, triangles_[i + 2].y, refLat, refLon);
+         return false;
+      }
+
+      for (std::size_t i = 0; i < indices.size(); i += 3U)
+      {
+         const MeterVertex& v0 = vertices[indices[i + 0U]];
+         const MeterVertex& v1 = vertices[indices[i + 1U]];
+         const MeterVertex& v2 = vertices[indices[i + 2U]];
+         const common::Coordinate c0 =
+            EnuMetersToLatLon(v0.x, v0.y, refLat, refLon);
+         const common::Coordinate c1 =
+            EnuMetersToLatLon(v1.x, v1.y, refLat, refLon);
+         const common::Coordinate c2 =
+            EnuMetersToLatLon(v2.x, v2.y, refLat, refLon);
          AppendTriangle(fillOut, c0, c1, c2, rgba, 0.0f, 0.0f, 1.0f);
       }
       return true;
    }
-
-   GLUtesselator*             tessellator_ {nullptr};
-   std::deque<TessVertexData> vertices_ {};
-   std::deque<TessVertexData> combineBuffer_ {};
-   std::vector<MeterVertex>   triangles_ {};
 };
 
 static bool
@@ -740,45 +789,6 @@ AppendRoundFreehandStroke(std::vector<float>&                    fillOut,
    }
 }
 } // namespace
-
-static void ConfigureAnnotationVaoForVbo(GLuint vao, GLuint vbo)
-{
-   glBindVertexArray(vao);
-   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-   glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
-   glVertexAttribPointer(
-      0, 2, GL_FLOAT, GL_FALSE, kFloatsPerVertex * sizeof(float), nullptr);
-   glEnableVertexAttribArray(0);
-   glVertexAttribPointer(1,
-                         4,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kFloatsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(2 * sizeof(float)));
-   glEnableVertexAttribArray(1);
-   glVertexAttribPointer(2,
-                         1,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kFloatsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(6 * sizeof(float)));
-   glEnableVertexAttribArray(2);
-   glVertexAttribPointer(3,
-                         2,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kFloatsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(7 * sizeof(float)));
-   glEnableVertexAttribArray(3);
-   glVertexAttribPointer(4,
-                         2,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kFloatsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(9 * sizeof(float)));
-   glEnableVertexAttribArray(4);
-   glBindVertexArray(0);
-}
 
 struct PickSegment
 {
@@ -938,13 +948,13 @@ static PickObjectEntry TakePickEntry(std::uint64_t            id,
 class MapAnnotationsDrawItem::Impl
 {
 public:
-   explicit Impl(std::shared_ptr<GlContext> context,
+   explicit Impl(std::shared_ptr<render::RenderContext> context,
                  map::MapAnnotationModel*   model) :
        context_ {std::move(context)}, model_ {model}
    {
    }
 
-   std::shared_ptr<GlContext> context_;
+   std::shared_ptr<render::RenderContext> context_;
    map::MapAnnotationModel*   model_ {nullptr};
 
    std::vector<float>           modelStrokeVertices_ {};
@@ -961,24 +971,10 @@ public:
     */
    bool previewCommittedRoundMesh_ {false};
 
-   std::shared_ptr<ShaderProgram> shader_ {nullptr};
-   GLint                          uMapMatrixLoc_ {-1};
-   GLint                          uOriginLoc_ {-1};
-   GLint                          uHatchModeLoc_ {-1};
-
-   GLuint  vaoModelStroke_ {0};
-   GLuint  vboModelStroke_ {0};
-   GLuint  vaoPreviewStroke_ {0};
-   GLuint  vboPreviewStroke_ {0};
-   GLsizei strokeModelCount_ {0};
-   GLsizei strokePreviewCount_ {0};
-
-   GLuint  vaoModelFill_ {0};
-   GLuint  vboModelFill_ {0};
-   GLuint  vaoPreviewFill_ {0};
-   GLuint  vboPreviewFill_ {0};
-   GLsizei fillModelCount_ {0};
-   GLsizei fillPreviewCount_ {0};
+   std::uint32_t strokeModelCount_ {0};
+   std::uint32_t strokePreviewCount_ {0};
+   std::uint32_t fillModelCount_ {0};
+   std::uint32_t fillPreviewCount_ {0};
 
    bool gpuModelDirty_ {true};
    bool gpuPreviewDirty_ {true};
@@ -989,7 +985,7 @@ public:
 };
 
 MapAnnotationsDrawItem::MapAnnotationsDrawItem(
-   std::shared_ptr<GlContext> context, map::MapAnnotationModel* model) :
+   std::shared_ptr<render::RenderContext> context, map::MapAnnotationModel* model) :
     DrawItem(), p(std::make_unique<Impl>(std::move(context), model))
 {
 }
@@ -1236,9 +1232,9 @@ void MapAnnotationsDrawItem::Impl::FlattenModelVertices()
    }
 
    strokeModelCount_ =
-      static_cast<GLsizei>(modelStrokeVertices_.size() / kFloatsPerVertex);
+      static_cast<std::uint32_t>(modelStrokeVertices_.size() / kFloatsPerVertex);
    fillModelCount_ =
-      static_cast<GLsizei>(modelFillVertices_.size() / kFloatsPerVertex);
+      static_cast<std::uint32_t>(modelFillVertices_.size() / kFloatsPerVertex);
    gpuModelDirty_ = true;
 }
 
@@ -1311,63 +1307,21 @@ void MapAnnotationsDrawItem::Impl::RebuildPreviewGeometry()
    }
 
    strokePreviewCount_ =
-      static_cast<GLsizei>(previewStrokeVertices_.size() / kFloatsPerVertex);
+      static_cast<std::uint32_t>(previewStrokeVertices_.size() /
+                                 kFloatsPerVertex);
    fillPreviewCount_ =
-      static_cast<GLsizei>(previewFillVertices_.size() / kFloatsPerVertex);
+      static_cast<std::uint32_t>(previewFillVertices_.size() /
+                                 kFloatsPerVertex);
    gpuPreviewDirty_ = true;
 }
 
 void MapAnnotationsDrawItem::Initialize()
 {
-   if (p->vaoModelStroke_ != 0)
-   {
-      Deinitialize();
-   }
-
-   p->shader_ = p->context_->GetShaderProgram(":/gl/annotation_geo.vert",
-                                              ":/gl/annotation_stroke.frag");
-
-   p->uMapMatrixLoc_ = p->shader_->GetUniformLocation("uMapMatrix");
-   p->uOriginLoc_    = p->shader_->GetUniformLocation("uOriginLatLong");
-   p->uHatchModeLoc_ = p->shader_->GetUniformLocation("uHatchMode");
-
-   glGenVertexArrays(1, &p->vaoModelStroke_);
-   glGenBuffers(1, &p->vboModelStroke_);
-   ConfigureAnnotationVaoForVbo(p->vaoModelStroke_, p->vboModelStroke_);
-
-   glGenVertexArrays(1, &p->vaoPreviewStroke_);
-   glGenBuffers(1, &p->vboPreviewStroke_);
-   ConfigureAnnotationVaoForVbo(p->vaoPreviewStroke_, p->vboPreviewStroke_);
-
-   glGenVertexArrays(1, &p->vaoModelFill_);
-   glGenBuffers(1, &p->vboModelFill_);
-   ConfigureAnnotationVaoForVbo(p->vaoModelFill_, p->vboModelFill_);
-
-   glGenVertexArrays(1, &p->vaoPreviewFill_);
-   glGenBuffers(1, &p->vboPreviewFill_);
-   ConfigureAnnotationVaoForVbo(p->vaoPreviewFill_, p->vboPreviewFill_);
-
    Rebuild();
 }
 
 void MapAnnotationsDrawItem::Deinitialize()
 {
-   glDeleteBuffers(1, &p->vboModelStroke_);
-   glDeleteVertexArrays(1, &p->vaoModelStroke_);
-   glDeleteBuffers(1, &p->vboPreviewStroke_);
-   glDeleteVertexArrays(1, &p->vaoPreviewStroke_);
-   glDeleteBuffers(1, &p->vboModelFill_);
-   glDeleteVertexArrays(1, &p->vaoModelFill_);
-   glDeleteBuffers(1, &p->vboPreviewFill_);
-   glDeleteVertexArrays(1, &p->vaoPreviewFill_);
-   p->vboModelStroke_   = 0;
-   p->vaoModelStroke_   = 0;
-   p->vboPreviewStroke_ = 0;
-   p->vaoPreviewStroke_ = 0;
-   p->vboModelFill_     = 0;
-   p->vaoModelFill_     = 0;
-   p->vboPreviewFill_   = 0;
-   p->vaoPreviewFill_   = 0;
 }
 
 void MapAnnotationsDrawItem::SetPreviewPolyline(
@@ -1544,79 +1498,65 @@ std::vector<std::uint64_t> MapAnnotationsDrawItem::PickObjects(
 }
 
 void MapAnnotationsDrawItem::Render(
-   const QMapLibre::CustomLayerRenderParameters& params)
+   const QMapLibre::CustomLayerRenderParameters& /* params */)
 {
-   if (p->gpuModelDirty_)
-   {
-      glBindBuffer(GL_ARRAY_BUFFER, p->vboModelStroke_);
-      glBufferData(GL_ARRAY_BUFFER,
-                   static_cast<GLsizeiptr>(sizeof(float) *
-                                           p->modelStrokeVertices_.size()),
-                   p->modelStrokeVertices_.data(),
-                   GL_DYNAMIC_DRAW);
+}
 
-      glBindBuffer(GL_ARRAY_BUFFER, p->vboModelFill_);
-      glBufferData(
-         GL_ARRAY_BUFFER,
-         static_cast<GLsizeiptr>(sizeof(float) * p->modelFillVertices_.size()),
-         p->modelFillVertices_.data(),
-         GL_DYNAMIC_DRAW);
-      p->gpuModelDirty_ = false;
-   }
-
-   if (p->gpuPreviewDirty_)
-   {
-      glBindBuffer(GL_ARRAY_BUFFER, p->vboPreviewStroke_);
-      glBufferData(GL_ARRAY_BUFFER,
-                   static_cast<GLsizeiptr>(sizeof(float) *
-                                           p->previewStrokeVertices_.size()),
-                   p->previewStrokeVertices_.data(),
-                   GL_DYNAMIC_DRAW);
-
-      glBindBuffer(GL_ARRAY_BUFFER, p->vboPreviewFill_);
-      glBufferData(GL_ARRAY_BUFFER,
-                   static_cast<GLsizeiptr>(sizeof(float) *
-                                           p->previewFillVertices_.size()),
-                   p->previewFillVertices_.data(),
-                   GL_DYNAMIC_DRAW);
-      p->gpuPreviewDirty_ = false;
-   }
-
-   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-   p->shader_->Use();
-   UseMapProjection(params, p->uMapMatrixLoc_, p->uOriginLoc_);
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void MapAnnotationsDrawItem::RenderVulkan(
+   QRhiCommandBuffer*                            commandBuffer,
+   render::RhiVulkanOverlayResources&            resources,
+   const QMapLibre::CustomLayerRenderParameters& params,
+   bool /* textureAtlasChanged */)
+{
+   const glm::vec2 mapScale = util::maplibre::GetMapScale(params);
+   glm::mat4       mapMatrix =
+      glm::scale(glm::mat4 {1.0f}, glm::vec3(mapScale.x, -mapScale.y, 1.0f));
+   mapMatrix =
+      glm::rotate(mapMatrix,
+                  glm::radians<float>(static_cast<float>(params.bearing)),
+                  glm::vec3 {0.0f, 0.0f, 1.0f});
+   const glm::vec2 origin {static_cast<float>(params.latitude),
+                           static_cast<float>(params.longitude)};
 
    if (p->fillModelCount_ > 0)
    {
-      glUniform1i(p->uHatchModeLoc_, 0);
-      glBindVertexArray(p->vaoModelFill_);
-      glDrawArrays(GL_TRIANGLES, 0, p->fillModelCount_);
+      RenderColoredAnnotationVertices(commandBuffer,
+                                      resources,
+                                      p->modelFillVertices_,
+                                      p->fillModelCount_,
+                                      mapMatrix,
+                                      origin);
    }
-
    if (p->fillPreviewCount_ > 0)
    {
-      glUniform1i(p->uHatchModeLoc_, 0);
-      glBindVertexArray(p->vaoPreviewFill_);
-      glDrawArrays(GL_TRIANGLES, 0, p->fillPreviewCount_);
+      RenderColoredAnnotationVertices(commandBuffer,
+                                      resources,
+                                      p->previewFillVertices_,
+                                      p->fillPreviewCount_,
+                                      mapMatrix,
+                                      origin);
    }
-
    if (p->strokeModelCount_ > 0)
    {
-      glUniform1i(p->uHatchModeLoc_, 0);
-      glBindVertexArray(p->vaoModelStroke_);
-      glDrawArrays(GL_TRIANGLES, 0, p->strokeModelCount_);
+      RenderColoredAnnotationVertices(commandBuffer,
+                                      resources,
+                                      p->modelStrokeVertices_,
+                                      p->strokeModelCount_,
+                                      mapMatrix,
+                                      origin);
    }
-
    if (p->strokePreviewCount_ > 0)
    {
-      glUniform1i(p->uHatchModeLoc_, 0);
-      glBindVertexArray(p->vaoPreviewStroke_);
-      glDrawArrays(GL_TRIANGLES, 0, p->strokePreviewCount_);
+      RenderColoredAnnotationVertices(commandBuffer,
+                                      resources,
+                                      p->previewStrokeVertices_,
+                                      p->strokePreviewCount_,
+                                      mapMatrix,
+                                      origin);
    }
-
-   glBindVertexArray(0);
 }
+#endif
 
 // NOLINTEND(cppcoreguidelines-avoid-magic-numbers,modernize-use-auto,cppcoreguidelines-pro-type-cstyle-cast,cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-no-int-to-ptr)
 } // namespace scwx::qt::gl::draw

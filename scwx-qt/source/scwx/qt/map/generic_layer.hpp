@@ -1,7 +1,7 @@
 #pragma once
 
-#include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/map/map_context.hpp>
+#include <scwx/qt/render/render_context.hpp>
 #include <scwx/qt/types/event_types.hpp>
 #include <scwx/common/geographic.hpp>
 
@@ -10,6 +10,17 @@
 #include <QObject>
 #include <glm/gtc/type_ptr.hpp>
 #include <qmaplibre.hpp>
+
+class QRhi;
+class QRhiCommandBuffer;
+class QRhiRenderTarget;
+
+namespace scwx::qt::render
+{
+
+class RhiVulkanOverlayResources;
+
+} // namespace scwx::qt::render
 
 namespace scwx::qt::map
 {
@@ -20,7 +31,7 @@ class GenericLayer : public QObject
    Q_DISABLE_COPY_MOVE(GenericLayer)
 
 public:
-   explicit GenericLayer(std::shared_ptr<gl::GlContext> glContext);
+   explicit GenericLayer(std::shared_ptr<render::RenderContext> renderContext);
    virtual ~GenericLayer();
 
    virtual void Initialize(const std::shared_ptr<MapContext>& mapContext) = 0;
@@ -50,11 +61,17 @@ public:
                    const common::Coordinate&                     mouseGeoCoords,
                    std::shared_ptr<types::EventHandler>&         eventHandler);
 
+   virtual void RenderVulkanOverlay(
+      QRhiCommandBuffer*                            commandBuffer,
+      render::RhiVulkanOverlayResources&            resources,
+      const std::shared_ptr<MapContext>&            mapContext,
+      const QMapLibre::CustomLayerRenderParameters& params);
+
 signals:
    void NeedsRendering();
 
 protected:
-   [[nodiscard]] std::shared_ptr<gl::GlContext> gl_context() const;
+   [[nodiscard]] std::shared_ptr<render::RenderContext> render_context() const;
 
 private:
    class Impl;

@@ -4,6 +4,13 @@
 #include <scwx/qt/util/tooltip.hpp>
 #include <scwx/util/logger.hpp>
 
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+#   include <scwx/qt/render/projection.hpp>
+#   include <scwx/qt/render/rhi_texture_array_overlay.hpp>
+#   include <scwx/qt/render/rhi_vulkan_overlay.hpp>
+#   include <glm/gtc/matrix_transform.hpp>
+#endif
+
 #include <execution>
 
 #include <boost/unordered/unordered_flat_map.hpp>
@@ -58,12 +65,8 @@ public:
       glm::vec2 obr_;
    };
 
-   explicit Impl(const std::shared_ptr<GlContext>& context) :
+   explicit Impl(const std::shared_ptr<render::RenderContext>& context) :
        context_ {context},
-       shaderProgram_ {nullptr},
-       uMVPMatrixLocation_(GL_INVALID_INDEX),
-       vao_ {GL_INVALID_INDEX},
-       vbo_ {GL_INVALID_INDEX},
        numVertices_ {0}
    {
    }
@@ -78,8 +81,11 @@ public:
    void        UpdateTextureBuffer();
    void        UpdateModifiedIconBuffers();
    void        Update(bool textureAtlasChanged);
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   void        UpdateVulkan(bool textureAtlasChanged);
+#endif
 
-   std::shared_ptr<GlContext> context_;
+   std::shared_ptr<render::RenderContext> context_;
 
    bool visible_ {true};
    bool dirty_ {false};
@@ -106,16 +112,10 @@ public:
    std::vector<IconHoverEntry> currentHoverIcons_ {};
    std::vector<IconHoverEntry> newHoverIcons_ {};
 
-   std::shared_ptr<ShaderProgram> shaderProgram_;
-   GLint                          uMVPMatrixLocation_;
-
-   GLuint                vao_;
-   std::array<GLuint, 2> vbo_;
-
-   GLsizei numVertices_;
+   std::uint32_t numVertices_;
 };
 
-Icons::Icons(const std::shared_ptr<GlContext>& context) :
+Icons::Icons(const std::shared_ptr<render::RenderContext>& context) :
     DrawItem(), p(std::make_unique<Impl>(context))
 {
 }
@@ -126,90 +126,22 @@ Icons& Icons::operator=(Icons&&) noexcept = default;
 
 void Icons::Initialize()
 {
-   p->shaderProgram_ = p->context_->GetShaderProgram(
-      {{GL_VERTEX_SHADER, ":/gl/texture2d_array.vert"},
-       {GL_GEOMETRY_SHADER, ":/gl/threshold.geom"},
-       {GL_FRAGMENT_SHADER, ":/gl/texture2d_array.frag"}});
-
-   p->uMVPMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMVPMatrix");
-
-   glGenVertexArrays(1, &p->vao_);
-   glGenBuffers(static_cast<GLsizei>(p->vbo_.size()), p->vbo_.data());
-
-   glBindVertexArray(p->vao_);
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
-   glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
-
-   // NOLINTBEGIN(modernize-use-nullptr)
-   // NOLINTBEGIN(performance-no-int-to-ptr)
-   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
-
-   // aVertex
-   glVertexAttribPointer(0,
-                         2,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(0));
-   glEnableVertexAttribArray(0);
-
-   // aXYOffset
-   glVertexAttribPointer(1,
-                         2,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(2 * sizeof(float)));
-   glEnableVertexAttribArray(1);
-
-   // aModulate
-   glVertexAttribPointer(3,
-                         4,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(4 * sizeof(float)));
-   glEnableVertexAttribArray(3);
-
-   // aAngle
-   glVertexAttribPointer(4,
-                         1,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(8 * sizeof(float)));
-   glEnableVertexAttribArray(4);
-
-   // aDisplayed
-   glVertexAttribPointer(5,
-                         1,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(9 * sizeof(float)));
-   glEnableVertexAttribArray(5);
-
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
-   glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
-
-   // aTexCoord
-   glVertexAttribPointer(2,
-                         3,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerTexCoord * sizeof(float),
-                         static_cast<void*>(0));
-   glEnableVertexAttribArray(2);
-
-   // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
-   // NOLINTEND(performance-no-int-to-ptr)
-   // NOLINTEND(modernize-use-nullptr)
-
    p->dirty_ = true;
 }
 
 void Icons::Render(const QMapLibre::CustomLayerRenderParameters& params,
                    bool textureAtlasChanged)
+{
+   (void) params;
+   (void) textureAtlasChanged;
+}
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void Icons::RenderVulkan(
+   QRhiCommandBuffer*                            commandBuffer,
+   render::RhiVulkanOverlayResources&            resources,
+   const QMapLibre::CustomLayerRenderParameters& params,
+   bool                                          textureAtlasChanged)
 {
    if (!p->visible_)
    {
@@ -223,28 +155,32 @@ void Icons::Render(const QMapLibre::CustomLayerRenderParameters& params,
 
    std::unique_lock lock {p->iconMutex_};
 
-   if (!p->currentIconList_.empty())
+   if (p->currentIconList_.empty())
    {
-      glBindVertexArray(p->vao_);
-
-      p->Update(textureAtlasChanged);
-      p->shaderProgram_->Use();
-      UseDefaultProjection(params, p->uMVPMatrixLocation_);
-
-      // Interpolate texture coordinates
-      glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-      // Draw icons
-      glDrawArrays(GL_TRIANGLES, 0, p->numVertices_);
+      return;
    }
+
+   p->UpdateVulkan(textureAtlasChanged);
+
+   resources.textureArrayOverlay.SyncAtlas(
+      commandBuffer, p->context_->texture_buffer_count());
+
+   glm::mat4 projection = scwx::qt::render::OrthoMapProjection(params);
+   projection           = glm::rotate(projection,
+                            glm::radians<float>(static_cast<float>(params.bearing)),
+                            glm::vec3(0.0f, 0.0f, 1.0f));
+
+   resources.textureArrayOverlay.RenderScreen(commandBuffer,
+                                            projection,
+                                            p->currentIconBuffer_,
+                                            p->textureBuffer_,
+                                            static_cast<std::uint32_t>(
+                                               p->numVertices_));
 }
+#endif
 
 void Icons::Deinitialize()
 {
-   glDeleteVertexArrays(1, &p->vao_);
-   glDeleteBuffers(static_cast<GLsizei>(p->vbo_.size()), p->vbo_.data());
-
    std::unique_lock lock {p->iconMutex_};
 
    p->currentIconList_.clear();
@@ -692,16 +628,8 @@ void Icons::Impl::Update(bool textureAtlasChanged)
          iconSheet.second->UpdateTextureInfo();
       }
 
-      // Update OpenGL texture buffer data
+      // Update icon texture buffer data
       UpdateTextureBuffer();
-
-      // Buffer texture data
-      glBindBuffer(GL_ARRAY_BUFFER, vbo_[1]);
-      glBufferData(
-         GL_ARRAY_BUFFER,
-         static_cast<GLsizeiptr>(sizeof(float) * textureBuffer_.size()),
-         textureBuffer_.data(),
-         GL_DYNAMIC_DRAW);
 
       lastTextureAtlasChanged_ = false;
    }
@@ -709,20 +637,40 @@ void Icons::Impl::Update(bool textureAtlasChanged)
    // If buffers need updating
    if (dirty_)
    {
-      // Buffer vertex data
-      glBindBuffer(GL_ARRAY_BUFFER, vbo_[0]);
-      glBufferData(
-         GL_ARRAY_BUFFER,
-         static_cast<GLsizeiptr>(sizeof(float) * currentIconBuffer_.size()),
-         currentIconBuffer_.data(),
-         GL_DYNAMIC_DRAW);
-
       numVertices_ =
-         static_cast<GLsizei>(currentIconBuffer_.size() / kPointsPerVertex);
+         static_cast<std::uint32_t>(currentIconBuffer_.size() /
+                                    kPointsPerVertex);
    }
 
    dirty_ = false;
 }
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void Icons::Impl::UpdateVulkan(bool textureAtlasChanged)
+{
+   UpdateModifiedIconBuffers();
+
+   if (dirty_ || textureAtlasChanged || lastTextureAtlasChanged_)
+   {
+      for (auto& iconSheet : currentIconSheets_)
+      {
+         iconSheet.second->UpdateTextureInfo();
+      }
+
+      UpdateTextureBuffer();
+      lastTextureAtlasChanged_ = false;
+   }
+
+   if (dirty_)
+   {
+      numVertices_ =
+         static_cast<std::uint32_t>(currentIconBuffer_.size() /
+                                    kPointsPerVertex);
+   }
+
+   dirty_ = false;
+}
+#endif
 
 bool Icons::RunMousePicking(
    const QMapLibre::CustomLayerRenderParameters& params,

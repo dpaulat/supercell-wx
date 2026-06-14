@@ -1,6 +1,5 @@
 #pragma once
 
-#include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/gl/draw/draw_item.hpp>
 
 #include <boost/gil.hpp>
@@ -22,7 +21,7 @@ public:
    using HoverCallback = std::function<void(
       const std::shared_ptr<GeoLineDrawItem>&, const QPointF&)>;
 
-   explicit GeoLines(std::shared_ptr<GlContext> context);
+   explicit GeoLines(std::shared_ptr<render::RenderContext> context);
    ~GeoLines();
 
    GeoLines(const GeoLines&)            = delete;
@@ -37,6 +36,14 @@ public:
    void Initialize() override;
    void Render(const QMapLibre::CustomLayerRenderParameters& params) override;
    void Deinitialize() override;
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   void RenderVulkan(
+      QRhiCommandBuffer*                            commandBuffer,
+      render::RhiVulkanOverlayResources&            resources,
+      const QMapLibre::CustomLayerRenderParameters& params,
+      bool textureAtlasChanged) override;
+#endif
 
    bool
    RunMousePicking(const QMapLibre::CustomLayerRenderParameters& params,

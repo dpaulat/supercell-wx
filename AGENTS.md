@@ -16,7 +16,7 @@ Supercell Wx is a cross-platform C++20/Qt6 application for visualizing live and 
   - Main window and UI ([scwx-qt/source/scwx/qt/main/](scwx-qt/source/scwx/qt/main/))
   - Manager classes coordinate application state ([scwx-qt/source/scwx/qt/manager/](scwx-qt/source/scwx/qt/manager/))
   - Map rendering with MapLibre GL ([scwx-qt/source/scwx/qt/map/](scwx-qt/source/scwx/qt/map/))
-  - OpenGL drawing primitives ([scwx-qt/source/scwx/qt/gl/](scwx-qt/source/scwx/qt/gl/))
+ - Vulkan/QRhi drawing primitives ([scwx-qt/source/scwx/qt/gl/](scwx-qt/source/scwx/qt/gl/))
   - Product views connect data to visualization ([scwx-qt/source/scwx/qt/view/](scwx-qt/source/scwx/qt/view/))
 
 **Critical:** Keep Qt code isolated to scwx-qt. Never add Qt dependencies to wxdata.

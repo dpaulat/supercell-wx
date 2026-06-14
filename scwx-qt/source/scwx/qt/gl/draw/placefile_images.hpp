@@ -1,6 +1,5 @@
 #pragma once
 
-#include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/gl/draw/draw_item.hpp>
 #include <scwx/gr/placefile.hpp>
 
@@ -16,7 +15,7 @@ namespace draw
 class PlacefileImages : public DrawItem
 {
 public:
-   explicit PlacefileImages(const std::shared_ptr<GlContext>& context);
+   explicit PlacefileImages(const std::shared_ptr<render::RenderContext>& context);
    ~PlacefileImages();
 
    PlacefileImages(const PlacefileImages&)            = delete;
@@ -32,6 +31,14 @@ public:
    void Render(const QMapLibre::CustomLayerRenderParameters& params,
                bool textureAtlasChanged) override;
    void Deinitialize() override;
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   void RenderVulkan(
+      QRhiCommandBuffer*                            commandBuffer,
+      scwx::qt::render::RhiVulkanOverlayResources&  resources,
+      const QMapLibre::CustomLayerRenderParameters& params,
+      bool                                          textureAtlasChanged) override;
+#endif
 
    /**
     * Resets and prepares the draw item for adding a new set of images.

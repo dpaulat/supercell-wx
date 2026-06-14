@@ -26,9 +26,10 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class RadarSiteLayer::Impl
 {
 public:
-   explicit Impl(RadarSiteLayer*                       self,
-                 const std::shared_ptr<gl::GlContext>& glContext) :
-       self_ {self}, geoLines_ {std::make_shared<gl::draw::GeoLines>(glContext)}
+   explicit Impl(RadarSiteLayer* self,
+                 const std::shared_ptr<render::RenderContext>& renderContext) :
+       self_ {self},
+       geoLines_ {std::make_shared<gl::draw::GeoLines>(renderContext)}
    {
    }
    ~Impl() = default;
@@ -38,6 +39,13 @@ public:
    Impl(const Impl&&)            = delete;
    Impl& operator=(const Impl&&) = delete;
 
+   [[nodiscard]] bool IsVisible(
+      const QMapLibre::CustomLayerRenderParameters& params) const;
+   void UpdateMapTransform(
+      const QMapLibre::CustomLayerRenderParameters& params);
+   void UpdateButtonColors();
+   void RenderRadarSiteButtons(
+      const QMapLibre::CustomLayerRenderParameters& params);
    void RenderRadarSite(const QMapLibre::CustomLayerRenderParameters& params,
                         std::shared_ptr<config::RadarSite>& radarSite);
    void RenderRadarLine(const std::shared_ptr<MapContext>& mapContext);
@@ -65,9 +73,9 @@ public:
 };
 
 RadarSiteLayer::RadarSiteLayer(
-   const std::shared_ptr<gl::GlContext>& glContext) :
-    DrawLayer(glContext, "RadarSiteLayer"),
-    p(std::make_unique<Impl>(this, glContext))
+   const std::shared_ptr<render::RenderContext>& renderContext) :
+    DrawLayer(renderContext, "RadarSiteLayer"),
+    p(std::make_unique<Impl>(this, renderContext))
 {
    connect(manager::RadarSiteStatusManager::Instance().get(),
            &manager::RadarSiteStatusManager::StatusUpdated,
@@ -103,56 +111,72 @@ void RadarSiteLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
    DrawLayer::Initialize(mapContext);
 }
 
-void RadarSiteLayer::Render(
-   const std::shared_ptr<MapContext>&            mapContext,
-   const QMapLibre::CustomLayerRenderParameters& params)
+bool RadarSiteLayer::Impl::IsVisible(
+   const QMapLibre::CustomLayerRenderParameters& params) const
 {
-   p->hoverText_.clear();
-
    auto mapDistance = util::maplibre::GetMapDistance(params);
    auto threshold   = units::length::kilometers<double>(
       settings::GeneralSettings::Instance().radar_site_threshold().GetValue());
 
-   if (!(threshold.value() == 0.0 || mapDistance <= threshold ||
-         (threshold.value() < 0 && mapDistance >= -threshold)))
-   {
-      return;
-   }
+   return threshold.value() == 0.0 || mapDistance <= threshold ||
+          (threshold.value() < 0 && mapDistance >= -threshold);
+}
 
-   // Update map screen coordinate and scale information
-   p->mapScreenCoordLocation_ = util::maplibre::LatLongToScreenCoordinate(
+void RadarSiteLayer::Impl::UpdateMapTransform(
+   const QMapLibre::CustomLayerRenderParameters& params)
+{
+   mapScreenCoordLocation_ = util::maplibre::LatLongToScreenCoordinate(
       {params.latitude, params.longitude});
-   p->mapScale_ = std::pow(2.0, params.zoom) * mbgl::util::tileSize_D /
-                  mbgl::util::DEGREES_MAX;
-   p->mapBearingCos_ = cosf(params.bearing * common::kDegreesToRadians);
-   p->mapBearingSin_ = sinf(params.bearing * common::kDegreesToRadians);
-   p->halfWidth_     = params.width * 0.5f;
-   p->halfHeight_    = params.height * 0.5f;
+   mapScale_ = std::pow(2.0, params.zoom) * mbgl::util::tileSize_D /
+               mbgl::util::DEGREES_MAX;
+   mapBearingCos_ = cosf(params.bearing * common::kDegreesToRadians);
+   mapBearingSin_ = sinf(params.bearing * common::kDegreesToRadians);
+   halfWidth_     = params.width * 0.5f;
+   halfHeight_    = params.height * 0.5f;
+}
 
-   ImGuiFrameStart(mapContext);
-   // Radar site ImGui windows shouldn't have padding
-   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2 {0.0f, 0.0f});
-
-   // Update Radar Site button colors
+void RadarSiteLayer::Impl::UpdateButtonColors()
+{
    auto& paletteSettings = settings::PaletteSettings::Instance();
    for (auto status : types::RadarSiteStatusIterator())
    {
       auto& statusPalette = paletteSettings.radar_site_status_palette(status);
       auto& buttonPalette = statusPalette.button();
-      p->radarSiteStatusButtonColors_.insert_or_assign(
+      radarSiteStatusButtonColors_.insert_or_assign(
          status,
          std::tuple {
             util::color::ToImVec4(buttonPalette.button_color().GetValue()),
             util::color::ToImVec4(buttonPalette.hover_color().GetValue()),
             util::color::ToImVec4(buttonPalette.active_color().GetValue())});
    }
+}
 
-   // Render Radar Sites
-   for (auto& radarSite : p->radarSites_)
+void RadarSiteLayer::Impl::RenderRadarSiteButtons(
+   const QMapLibre::CustomLayerRenderParameters& params)
+{
+   for (auto& radarSite : radarSites_)
    {
-      p->RenderRadarSite(params, radarSite);
+      RenderRadarSite(params, radarSite);
+   }
+}
+
+void RadarSiteLayer::Render(
+   const std::shared_ptr<MapContext>&            mapContext,
+   const QMapLibre::CustomLayerRenderParameters& params)
+{
+   p->hoverText_.clear();
+
+   if (!p->IsVisible(params))
+   {
+      return;
    }
 
+   p->UpdateMapTransform(params);
+
+   ImGuiFrameStart(mapContext);
+   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2 {0.0f, 0.0f});
+   p->UpdateButtonColors();
+   p->RenderRadarSiteButtons(params);
    ImGui::PopStyleVar();
 
    p->RenderRadarLine(mapContext);
@@ -160,8 +184,46 @@ void RadarSiteLayer::Render(
    DrawLayer::RenderWithoutImGui(params);
 
    ImGuiFrameEnd();
-   SCWX_GL_CHECK_ERROR();
 }
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void RadarSiteLayer::RenderVulkanOverlay(
+   QRhiCommandBuffer*                            commandBuffer,
+   render::RhiVulkanOverlayResources&            resources,
+   const std::shared_ptr<MapContext>&            mapContext,
+   const QMapLibre::CustomLayerRenderParameters& params)
+{
+   if (!p->IsVisible(params))
+   {
+      return;
+   }
+
+   p->UpdateMapTransform(params);
+   p->RenderRadarLine(mapContext);
+   RenderWithoutImGuiVulkan(commandBuffer, resources, params);
+}
+
+void RadarSiteLayer::RenderVulkanImGui(
+   const std::shared_ptr<MapContext>&            mapContext,
+   const QMapLibre::CustomLayerRenderParameters& params)
+{
+   (void) mapContext;
+
+   p->hoverText_.clear();
+
+   if (!p->IsVisible(params))
+   {
+      return;
+   }
+
+   p->UpdateMapTransform(params);
+
+   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2 {0.0f, 0.0f});
+   p->UpdateButtonColors();
+   p->RenderRadarSiteButtons(params);
+   ImGui::PopStyleVar();
+}
+#endif
 
 void RadarSiteLayer::Impl::RenderRadarSite(
    const QMapLibre::CustomLayerRenderParameters& params,
@@ -277,6 +339,7 @@ void RadarSiteLayer::Deinitialize()
    logger_->debug("Deinitialize()");
 
    p->radarSites_.clear();
+   DrawLayer::Deinitialize();
 }
 
 bool RadarSiteLayer::RunMousePicking(

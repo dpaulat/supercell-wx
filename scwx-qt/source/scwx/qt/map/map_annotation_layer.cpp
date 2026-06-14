@@ -121,16 +121,16 @@ MeasureDistanceM(const MapAnnotationMeasure& measure)
 class MapAnnotationLayer::Impl
 {
 public:
-   explicit Impl(std::shared_ptr<gl::GlContext> glContext) :
-       glContext_ {std::move(glContext)},
+   explicit Impl(std::shared_ptr<render::RenderContext> renderContext) :
+       renderContext_ {std::move(renderContext)},
        model_ {},
-       draw_ {std::make_shared<gl::draw::MapAnnotationsDrawItem>(glContext_,
+       draw_ {std::make_shared<gl::draw::MapAnnotationsDrawItem>(renderContext_,
                                                                  &model_)}
    {
    }
 
    std::shared_ptr<MapContext>                       mapContext_;
-   std::shared_ptr<gl::GlContext>                    glContext_;
+   std::shared_ptr<render::RenderContext>            renderContext_;
    MapAnnotationModel                                model_;
    std::shared_ptr<gl::draw::MapAnnotationsDrawItem> draw_;
 
@@ -409,8 +409,8 @@ public:
 };
 
 MapAnnotationLayer::MapAnnotationLayer(
-   std::shared_ptr<gl::GlContext> glContext) :
-    GenericLayer(std::move(glContext)), p(std::make_unique<Impl>(gl_context()))
+   std::shared_ptr<render::RenderContext> renderContext) :
+    GenericLayer(renderContext), p(std::make_unique<Impl>(std::move(renderContext)))
 {
 }
 MapAnnotationLayer::~MapAnnotationLayer() = default;
@@ -419,15 +419,30 @@ void MapAnnotationLayer::Initialize(
    const std::shared_ptr<MapContext>& mapContext)
 {
    p->mapContext_ = mapContext;
+#if !defined(SCWX_RENDER_BACKEND_VULKAN)
    p->draw_->Initialize();
+#else
+   p->draw_->Rebuild();
+#endif
 }
 
 void MapAnnotationLayer::Deinitialize()
 {
+#if !defined(SCWX_RENDER_BACKEND_VULKAN)
    p->draw_->Deinitialize();
+#endif
 }
 
 void MapAnnotationLayer::Render(
+   const std::shared_ptr<MapContext>& /* mapContext */,
+   const QMapLibre::CustomLayerRenderParameters& /* params */)
+{
+}
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void MapAnnotationLayer::RenderVulkanOverlay(
+   QRhiCommandBuffer*                            commandBuffer,
+   render::RhiVulkanOverlayResources&            resources,
    const std::shared_ptr<MapContext>& /* mapContext */,
    const QMapLibre::CustomLayerRenderParameters& params)
 {
@@ -435,9 +450,10 @@ void MapAnnotationLayer::Render(
    {
       return;
    }
-   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-   p->draw_->Render(params);
+
+   p->draw_->RenderVulkan(commandBuffer, resources, params, false);
 }
+#endif
 
 bool MapAnnotationLayer::RunMousePicking(
    const std::shared_ptr<MapContext>& /* mapContext */,

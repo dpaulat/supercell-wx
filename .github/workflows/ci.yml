@@ -404,10 +404,6 @@ jobs:
               /usr/lib/*/libk5crypto.so* \
               /usr/lib/*/libkeyutils.so* \
               ${{ env.FLATPAK_DIR }}/lib
-        # Copy GLU library to flatpak
-        cp -a /usr/lib/*/libGLU.so* \
-              ${{ env.FLATPAK_DIR }}/lib
-
         flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
         flatpak-builder --force-clean \
             --user \

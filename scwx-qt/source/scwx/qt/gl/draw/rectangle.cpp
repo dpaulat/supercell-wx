@@ -1,6 +1,12 @@
 #include <scwx/qt/gl/draw/rectangle.hpp>
 #include <scwx/util/logger.hpp>
 
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+#   include <scwx/qt/render/projection.hpp>
+#   include <scwx/qt/render/rhi_colored_geometry.hpp>
+#   include <scwx/qt/render/rhi_vulkan_overlay.hpp>
+#endif
+
 #include <optional>
 
 namespace scwx::qt::gl::draw
@@ -20,7 +26,7 @@ static constexpr size_t BUFFER_LENGTH =
 class Rectangle::Impl
 {
 public:
-   explicit Impl(std::shared_ptr<GlContext> context) :
+   explicit Impl(std::shared_ptr<render::RenderContext> context) :
        context_ {std::move(context)},
        dirty_ {false},
        visible_ {true},
@@ -31,11 +37,7 @@ public:
        height_ {0.0f},
        borderWidth_ {0.0f},
        borderColor_ {0, 0, 0, 0},
-       fillColor_ {std::nullopt},
-       shaderProgram_ {nullptr},
-       uMVPMatrixLocation_(GL_INVALID_INDEX),
-       vao_ {GL_INVALID_INDEX},
-       vbo_ {GL_INVALID_INDEX}
+       fillColor_ {std::nullopt}
    {
    }
    ~Impl() = default;
@@ -45,7 +47,7 @@ public:
    Impl(const Impl&&)            = delete;
    Impl& operator=(const Impl&&) = delete;
 
-   std::shared_ptr<GlContext> context_;
+   std::shared_ptr<render::RenderContext> context_;
 
    bool dirty_;
 
@@ -61,16 +63,13 @@ public:
 
    std::optional<boost::gil::rgba8_pixel_t> fillColor_;
 
-   std::shared_ptr<ShaderProgram> shaderProgram_;
-   GLint                          uMVPMatrixLocation_;
-
-   GLuint vao_;
-   GLuint vbo_;
+   std::vector<float> vertexBuffer_;
 
    void Update();
+   void BuildVertexBuffer();
 };
 
-Rectangle::Rectangle(std::shared_ptr<GlContext> context) :
+Rectangle::Rectangle(std::shared_ptr<render::RenderContext> context) :
     DrawItem(), p(std::make_unique<Impl>(context))
 {
 }
@@ -81,80 +80,49 @@ Rectangle& Rectangle::operator=(Rectangle&&) noexcept = default;
 
 void Rectangle::Initialize()
 {
-   p->shaderProgram_ =
-      p->context_->GetShaderProgram(":/gl/color.vert", ":/gl/color.frag");
-
-   p->uMVPMatrixLocation_ =
-      glGetUniformLocation(p->shaderProgram_->id(), "uMVPMatrix");
-   if (p->uMVPMatrixLocation_ == -1)
-   {
-      logger_->warn("Could not find uMVPMatrix");
-   }
-
-   glGenVertexArrays(1, &p->vao_);
-   glGenBuffers(1, &p->vbo_);
-
-   glBindVertexArray(p->vao_);
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
-   glBufferData(
-      GL_ARRAY_BUFFER, sizeof(float) * BUFFER_LENGTH, nullptr, GL_DYNAMIC_DRAW);
-
-   // NOLINTBEGIN(modernize-use-nullptr)
-   // NOLINTBEGIN(performance-no-int-to-ptr)
-
-   glVertexAttribPointer(0,
-                         3,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         POINTS_PER_VERTEX * sizeof(float),
-                         static_cast<void*>(0));
-   glEnableVertexAttribArray(0);
-
-   glVertexAttribPointer(1,
-                         4,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         POINTS_PER_VERTEX * sizeof(float),
-                         reinterpret_cast<void*>(3 * sizeof(float)));
-   glEnableVertexAttribArray(1);
-
-   // NOLINTEND(performance-no-int-to-ptr)
-   // NOLINTEND(modernize-use-nullptr)
-
    p->dirty_ = true;
 }
 
-void Rectangle::Render(const QMapLibre::CustomLayerRenderParameters& params)
+void Rectangle::Render(const QMapLibre::CustomLayerRenderParameters& /* params */)
 {
-   if (p->visible_)
+}
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void Rectangle::RenderVulkan(
+   QRhiCommandBuffer*                            commandBuffer,
+   render::RhiVulkanOverlayResources&            resources,
+   const QMapLibre::CustomLayerRenderParameters& params,
+   bool /* textureAtlasChanged */)
+{
+   if (!p->visible_)
    {
-      glBindVertexArray(p->vao_);
-      glBindBuffer(GL_ARRAY_BUFFER, p->vbo_);
+      return;
+   }
 
-      p->Update();
-      p->shaderProgram_->Use();
-      UseDefaultProjection(params, p->uMVPMatrixLocation_);
+   p->Update();
 
-      if (p->fillColor_.has_value())
-      {
-         // Draw fill
-         // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-         glDrawArrays(GL_TRIANGLES, 24, 6);
-      }
+   const glm::mat4 projection = scwx::qt::render::OrthoMapProjection(params);
 
-      if (p->borderWidth_ > 0.0f)
-      {
-         // Draw border
-         // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-         glDrawArrays(GL_TRIANGLES, 0, 24);
-      }
+   if (p->fillColor_.has_value())
+   {
+      const std::vector<float> fillVertices(
+         p->vertexBuffer_.begin() + static_cast<std::ptrdiff_t>(24 * POINTS_PER_VERTEX),
+         p->vertexBuffer_.end());
+      resources.coloredGeometry.Render(
+         commandBuffer, projection, fillVertices, 6);
+   }
+
+   if (p->borderWidth_ > 0.0f)
+   {
+      resources.coloredGeometry.Render(
+         commandBuffer, projection, p->vertexBuffer_, 24);
    }
 }
+#endif
 
 void Rectangle::Deinitialize()
 {
-   glDeleteVertexArrays(1, &p->vao_);
-   glDeleteBuffers(1, &p->vbo_);
+   p->vertexBuffer_.clear();
 }
 
 void Rectangle::SetBorder(float width, boost::gil::rgba8_pixel_t color)
@@ -206,94 +174,97 @@ void Rectangle::Impl::Update()
 {
    if (dirty_)
    {
-      const float lox = x_;
-      const float rox = x_ + width_;
-      const float boy = y_;
-      const float toy = y_ + height_;
-
-      const float lix = lox + borderWidth_;
-      const float rix = rox - borderWidth_;
-
-      const float biy = boy + borderWidth_;
-      const float tiy = toy - borderWidth_;
-
-      const float bc0 = borderColor_[0] / 255.0f;
-      const float bc1 = borderColor_[1] / 255.0f;
-      const float bc2 = borderColor_[2] / 255.0f;
-      const float bc3 = borderColor_[3] / 255.0f;
-
-      float fc0 = 0.0f;
-      float fc1 = 0.0f;
-      float fc2 = 0.0f;
-      float fc3 = 0.0f;
-
-      if (fillColor_.has_value())
-      {
-         boost::gil::rgba8_pixel_t& fc = fillColor_.value();
-
-         fc0 = fc[0] / 255.0f;
-         fc1 = fc[1] / 255.0f;
-         fc2 = fc[2] / 255.0f;
-         fc3 = fc[3] / 255.0f;
-      }
-
-      const float buffer[NUM_RECTANGLES][VERTICES_PER_RECTANGLE]
-                        [POINTS_PER_VERTEX] = //
-         {                                    //
-
-          // Left Border
-          {
-             {lox, boy, z_, bc0, bc1, bc2, bc3}, // BL
-             {lox, toy, z_, bc0, bc1, bc2, bc3}, // TL
-             {lix, boy, z_, bc0, bc1, bc2, bc3}, // BR
-             {lix, boy, z_, bc0, bc1, bc2, bc3}, // BR
-             {lix, toy, z_, bc0, bc1, bc2, bc3}, // TR
-             {lox, toy, z_, bc0, bc1, bc2, bc3}  // TL
-          },
-          // Right Border
-          {
-             {rox, boy, z_, bc0, bc1, bc2, bc3}, // BR
-             {rox, toy, z_, bc0, bc1, bc2, bc3}, // TR
-             {rix, boy, z_, bc0, bc1, bc2, bc3}, // BL
-             {rix, boy, z_, bc0, bc1, bc2, bc3}, // BL
-             {rix, toy, z_, bc0, bc1, bc2, bc3}, // TL
-             {rox, toy, z_, bc0, bc1, bc2, bc3}  // TR
-          },
-          // Top Border
-          {
-             {lox, toy, z_, bc0, bc1, bc2, bc3}, // TL
-             {rox, toy, z_, bc0, bc1, bc2, bc3}, // TR
-             {rox, tiy, z_, bc0, bc1, bc2, bc3}, // BR
-             {rox, tiy, z_, bc0, bc1, bc2, bc3}, // BR
-             {lox, tiy, z_, bc0, bc1, bc2, bc3}, // BL
-             {lox, toy, z_, bc0, bc1, bc2, bc3}  // TL
-          },
-          // Bottom Border
-          {
-             {lox, boy, z_, bc0, bc1, bc2, bc3}, // BL
-             {rox, boy, z_, bc0, bc1, bc2, bc3}, // BR
-             {rox, biy, z_, bc0, bc1, bc2, bc3}, // TR
-             {rox, biy, z_, bc0, bc1, bc2, bc3}, // TR
-             {lox, biy, z_, bc0, bc1, bc2, bc3}, // TL
-             {lox, boy, z_, bc0, bc1, bc2, bc3}  // BL
-          },
-          // Fill
-          {
-             {lox, toy, z_, fc0, fc1, fc2, fc3}, // TL
-             {rox, toy, z_, fc0, fc1, fc2, fc3}, // TR
-             {rox, boy, z_, fc0, fc1, fc2, fc3}, // BR
-             {rox, boy, z_, fc0, fc1, fc2, fc3}, // BR
-             {lox, boy, z_, fc0, fc1, fc2, fc3}, // BL
-             {lox, toy, z_, fc0, fc1, fc2, fc3}  // TL
-          }};
-
-      glBufferData(GL_ARRAY_BUFFER,
-                   sizeof(float) * BUFFER_LENGTH,
-                   static_cast<const void*>(buffer),
-                   GL_DYNAMIC_DRAW);
-
+      BuildVertexBuffer();
       dirty_ = false;
    }
+}
+
+void Rectangle::Impl::BuildVertexBuffer()
+{
+   const float lox = x_;
+   const float rox = x_ + width_;
+   const float boy = y_;
+   const float toy = y_ + height_;
+
+   const float lix = lox + borderWidth_;
+   const float rix = rox - borderWidth_;
+
+   const float biy = boy + borderWidth_;
+   const float tiy = toy - borderWidth_;
+
+   const float bc0 = borderColor_[0] / 255.0f;
+   const float bc1 = borderColor_[1] / 255.0f;
+   const float bc2 = borderColor_[2] / 255.0f;
+   const float bc3 = borderColor_[3] / 255.0f;
+
+   float fc0 = 0.0f;
+   float fc1 = 0.0f;
+   float fc2 = 0.0f;
+   float fc3 = 0.0f;
+
+   if (fillColor_.has_value())
+   {
+      boost::gil::rgba8_pixel_t& fc = fillColor_.value();
+
+      fc0 = fc[0] / 255.0f;
+      fc1 = fc[1] / 255.0f;
+      fc2 = fc[2] / 255.0f;
+      fc3 = fc[3] / 255.0f;
+   }
+
+   const float buffer[NUM_RECTANGLES][VERTICES_PER_RECTANGLE]
+                     [POINTS_PER_VERTEX] = //
+      {                                    //
+
+       // Left Border
+       {
+          {lox, boy, z_, bc0, bc1, bc2, bc3}, // BL
+          {lox, toy, z_, bc0, bc1, bc2, bc3}, // TL
+          {lix, boy, z_, bc0, bc1, bc2, bc3}, // BR
+          {lix, boy, z_, bc0, bc1, bc2, bc3}, // BR
+          {lix, toy, z_, bc0, bc1, bc2, bc3}, // TR
+          {lox, toy, z_, bc0, bc1, bc2, bc3}  // TL
+       },
+       // Right Border
+       {
+          {rox, boy, z_, bc0, bc1, bc2, bc3}, // BR
+          {rox, toy, z_, bc0, bc1, bc2, bc3}, // TR
+          {rix, boy, z_, bc0, bc1, bc2, bc3}, // BL
+          {rix, boy, z_, bc0, bc1, bc2, bc3}, // BL
+          {rix, toy, z_, bc0, bc1, bc2, bc3}, // TL
+          {rox, toy, z_, bc0, bc1, bc2, bc3}  // TR
+       },
+       // Top Border
+       {
+          {lox, toy, z_, bc0, bc1, bc2, bc3}, // TL
+          {rox, toy, z_, bc0, bc1, bc2, bc3}, // TR
+          {rox, tiy, z_, bc0, bc1, bc2, bc3}, // BR
+          {rox, tiy, z_, bc0, bc1, bc2, bc3}, // BR
+          {lox, tiy, z_, bc0, bc1, bc2, bc3}, // BL
+          {lox, toy, z_, bc0, bc1, bc2, bc3}  // TL
+       },
+       // Bottom Border
+       {
+          {lox, boy, z_, bc0, bc1, bc2, bc3}, // BL
+          {rox, boy, z_, bc0, bc1, bc2, bc3}, // BR
+          {rox, biy, z_, bc0, bc1, bc2, bc3}, // TR
+          {rox, biy, z_, bc0, bc1, bc2, bc3}, // TR
+          {lox, biy, z_, bc0, bc1, bc2, bc3}, // TL
+          {lox, boy, z_, bc0, bc1, bc2, bc3}  // BL
+       },
+       // Fill
+       {
+          {lox, toy, z_, fc0, fc1, fc2, fc3}, // TL
+          {rox, toy, z_, fc0, fc1, fc2, fc3}, // TR
+          {rox, boy, z_, fc0, fc1, fc2, fc3}, // BR
+          {rox, boy, z_, fc0, fc1, fc2, fc3}, // BR
+          {lox, boy, z_, fc0, fc1, fc2, fc3}, // BL
+          {lox, toy, z_, fc0, fc1, fc2, fc3}  // TL
+       }};
+
+   vertexBuffer_.assign(&buffer[0][0][0],
+                        &buffer[0][0][0] + BUFFER_LENGTH);
+
 }
 
 } // namespace scwx::qt::gl::draw

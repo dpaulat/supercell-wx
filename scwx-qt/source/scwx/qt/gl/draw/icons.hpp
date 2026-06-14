@@ -1,6 +1,5 @@
 #pragma once
 
-#include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/gl/draw/draw_item.hpp>
 #include <scwx/qt/types/icon_types.hpp>
 
@@ -23,7 +22,7 @@ struct IconDrawItem;
 class Icons : public DrawItem
 {
 public:
-   explicit Icons(const std::shared_ptr<GlContext>& context);
+   explicit Icons(const std::shared_ptr<render::RenderContext>& context);
    ~Icons();
 
    Icons(const Icons&)            = delete;
@@ -36,6 +35,14 @@ public:
    void Render(const QMapLibre::CustomLayerRenderParameters& params,
                bool textureAtlasChanged) override;
    void Deinitialize() override;
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   void RenderVulkan(
+      QRhiCommandBuffer*                            commandBuffer,
+      render::RhiVulkanOverlayResources&            resources,
+      const QMapLibre::CustomLayerRenderParameters& params,
+      bool textureAtlasChanged) override;
+#endif
 
    bool
    RunMousePicking(const QMapLibre::CustomLayerRenderParameters& params,

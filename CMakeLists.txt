@@ -36,6 +36,8 @@ set(SCWX_VERSION "0.6.0")
 
 option(SCWX_ADDRESS_SANITIZER "Build with Address Sanitizer" OFF)
 
+set(SCWX_RENDER_BACKEND "VULKAN" CACHE STRING "Rendering API backend")
+
 add_subdirectory(external)
 add_subdirectory(wxdata)
 add_subdirectory(scwx-qt)

@@ -312,10 +312,12 @@ target_compile_options(wxdata PRIVATE
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
 
-# Temporary workaround for Boost and GCC 16+ where -Warray-bounds causes false positives
-target_compile_options(wxdata PRIVATE
-    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-array-bounds>
-)
+# Temporary workaround for Boost false positives with -Werror on GCC
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(wxdata PRIVATE
+        -Wno-stringop-overflow
+        -Wno-array-bounds)
+endif()
 
 if (MSVC)
     # Don't include Windows macros

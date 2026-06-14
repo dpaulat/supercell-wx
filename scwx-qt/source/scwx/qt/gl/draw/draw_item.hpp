@@ -1,18 +1,27 @@
 #pragma once
 
-#include <scwx/qt/gl/gl.hpp>
 #include <scwx/qt/types/event_types.hpp>
 #include <scwx/common/geographic.hpp>
+#include <scwx/qt/render/render_context.hpp>
 
 #include <memory>
 
 #include <glm/gtc/type_ptr.hpp>
 #include <qmaplibre.hpp>
 
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+class QRhiCommandBuffer;
+#endif
+
 namespace scwx
 {
 namespace qt
 {
+namespace render
+{
+class RhiVulkanOverlayResources;
+} // namespace render
+
 namespace gl
 {
 namespace draw
@@ -36,6 +45,12 @@ public:
                        bool textureAtlasChanged);
    virtual void Deinitialize() = 0;
 
+   virtual void RenderVulkan(
+      QRhiCommandBuffer*                            commandBuffer,
+      scwx::qt::render::RhiVulkanOverlayResources&  resources,
+      const QMapLibre::CustomLayerRenderParameters& params,
+      bool                                          textureAtlasChanged);
+
    /**
     * @brief Run mouse picking on the draw item.
     *
@@ -55,21 +70,6 @@ public:
                    const glm::vec2&                              mouseCoords,
                    const common::Coordinate&                     mouseGeoCoords,
                    std::shared_ptr<types::EventHandler>&         eventHandler);
-
-protected:
-   void
-   UseDefaultProjection(const QMapLibre::CustomLayerRenderParameters& params,
-                        GLint uMVPMatrixLocation);
-   void
-   UseRotationProjection(const QMapLibre::CustomLayerRenderParameters& params,
-                         GLint uMVPMatrixLocation);
-   void UseMapProjection(const QMapLibre::CustomLayerRenderParameters& params,
-                         GLint uMapMatrixLocation,
-                         GLint uOriginLatLongLocation);
-   void
-   UseMapScreenProjection(const QMapLibre::CustomLayerRenderParameters& params,
-                          GLint uMVPMatrixLocation,
-                          GLint uMapScreenCoordLocation);
 
 private:
    class Impl;

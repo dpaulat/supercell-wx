@@ -1,7 +1,6 @@
 #pragma once
 
 #include <scwx/qt/gl/draw/draw_item.hpp>
-#include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/map/map_annotation_types.hpp>
 
 #include <units/length.h>
@@ -23,7 +22,7 @@ namespace scwx::qt::gl::draw
 class MapAnnotationsDrawItem : public DrawItem
 {
 public:
-   explicit MapAnnotationsDrawItem(std::shared_ptr<GlContext> context,
+   explicit MapAnnotationsDrawItem(std::shared_ptr<render::RenderContext> context,
                                    map::MapAnnotationModel*   model);
    ~MapAnnotationsDrawItem() override;
 
@@ -34,6 +33,13 @@ public:
 
    void Initialize() override;
    void Render(const QMapLibre::CustomLayerRenderParameters& params) override;
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   void RenderVulkan(
+      QRhiCommandBuffer*                            commandBuffer,
+      render::RhiVulkanOverlayResources&            resources,
+      const QMapLibre::CustomLayerRenderParameters& params,
+      bool textureAtlasChanged = false) override;
+#endif
    void Deinitialize() override;
 
    void SetPreviewPolyline(const std::vector<common::Coordinate>& pts,

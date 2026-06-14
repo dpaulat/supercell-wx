@@ -2,10 +2,19 @@ cmake_minimum_required(VERSION 3.24)
 set(PROJECT_NAME scwx-mln)
 
 set(gtest_disable_pthreads ON)
-set(MLN_WITH_QT ON)
-set(MLN_QT_WITH_INTERNAL_ICU ON)
-set(MLN_QT_WITH_LOCATION OFF)
-set(MLN_CORE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native)
+
+set(MLN_QT_WITH_LOCATION OFF CACHE BOOL "" FORCE)
+set(MLN_QT_WITH_WIDGETS OFF CACHE BOOL "" FORCE)
+set(MLN_QT_WITH_QUICK_PLUGIN OFF CACHE BOOL "" FORCE)
+set(MLN_QT_WITH_INTERNAL_ICU ON CACHE BOOL "" FORCE)
+
+set(MLN_WITH_VULKAN ON CACHE BOOL "" FORCE)
+set(MLN_WITH_OPENGL OFF CACHE BOOL "" FORCE)
+
+if (APPLE)
+    set(MLN_WITH_METAL OFF CACHE BOOL "" FORCE)
+endif()
+
 add_subdirectory(maplibre-native-qt)
 
 find_package(ZLIB)
@@ -35,32 +44,55 @@ else()
     target_compile_options(MLNQtCore PRIVATE "$<$<CONFIG:Release>:-g>")
 endif()
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND
-    CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16)
-    target_compile_options(mbgl-core PRIVATE "-Wno-sfinae-incomplete")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(
+        mbgl-core
+        PRIVATE
+        "-Wno-sfinae-incomplete"
+        "-Wno-error=sfinae-incomplete")
+    target_compile_options(
+        MLNQtCore
+        PRIVATE
+        "-Wno-sfinae-incomplete"
+        "-Wno-error=sfinae-incomplete")
+    if (SCWX_RENDER_BACKEND STREQUAL "VULKAN")
+        target_compile_options(mbgl-core PRIVATE "-Wno-unused-parameter")
+    endif()
 endif()
 
-if (APPLE)
-    # Enable GL check error debug
-    target_compile_definitions(mbgl-core PRIVATE MLN_GL_CHECK_ERRORS=1)
-    target_compile_definitions(MLNQtCore PRIVATE MLN_GL_CHECK_ERRORS=1)
+set(_MLN_VENDOR_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native-qt/vendor/maplibre-native/vendor")
+target_include_directories(
+    MLNQtCore
+    BEFORE
+    PRIVATE
+    "${_MLN_VENDOR_DIR}/Vulkan-Headers/include"
+    "${_MLN_VENDOR_DIR}/VulkanMemoryAllocator/include")
+
+set(MLN_INCLUDE_DIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native-qt/vendor/maplibre-native/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native-qt/vendor/maplibre-native/vendor/earcut.hpp/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native-qt/src/core/include
+    ${CMAKE_CURRENT_BINARY_DIR}/maplibre-native-qt/src/core/include
+    PARENT_SCOPE)
+
+if (TARGET test_mln_core)
+    set_target_properties(test_mln_core PROPERTIES EXCLUDE_FROM_ALL True)
+    set_target_properties(test_mln_core PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
+    set_target_properties(test_mln_core PROPERTIES FOLDER mln/exclude)
 endif()
 
-set(MLN_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native/include
-                     ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native-qt/src/core/include
-                     ${CMAKE_CURRENT_BINARY_DIR}/maplibre-native-qt/src/core/include PARENT_SCOPE)
+if (TARGET test_mln_widgets)
+    set_target_properties(test_mln_widgets PROPERTIES EXCLUDE_FROM_ALL True)
+    set_target_properties(test_mln_widgets PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
+    set_target_properties(test_mln_widgets PROPERTIES FOLDER mln/exclude)
+endif()
 
-set_target_properties(test_mln_core PROPERTIES EXCLUDE_FROM_ALL True)
-set_target_properties(test_mln_widgets PROPERTIES EXCLUDE_FROM_ALL True)
-set_target_properties(MLNQtWidgets PROPERTIES EXCLUDE_FROM_ALL True)
-
-set_target_properties(test_mln_core PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
-set_target_properties(test_mln_widgets PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
-set_target_properties(MLNQtWidgets PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
-
-set_target_properties(test_mln_core PROPERTIES FOLDER mln/exclude)
-set_target_properties(test_mln_widgets PROPERTIES FOLDER mln/exclude)
-set_target_properties(MLNQtWidgets PROPERTIES FOLDER mln/exclude)
+if (TARGET MLNQtWidgets)
+    set_target_properties(MLNQtWidgets PROPERTIES EXCLUDE_FROM_ALL True)
+    set_target_properties(MLNQtWidgets PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
+    set_target_properties(MLNQtWidgets PROPERTIES FOLDER mln/exclude)
+endif()
 
 set_target_properties(MLNQtCore PROPERTIES FOLDER mln)
 set_target_properties(mbgl-core PROPERTIES FOLDER mln)

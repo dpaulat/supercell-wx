@@ -11,7 +11,7 @@ class OverlayProductLayer : public DrawLayer
 
 public:
    explicit OverlayProductLayer(
-      const std::shared_ptr<gl::GlContext>& glContext);
+      const std::shared_ptr<render::RenderContext>& renderContext);
    ~OverlayProductLayer();
 
    void Initialize(const std::shared_ptr<MapContext>& mapContext) final;

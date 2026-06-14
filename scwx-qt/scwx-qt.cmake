@@ -13,24 +13,24 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 OPTION(SCWX_DISABLE_CONSOLE "Disables the Windows console in release mode" ON)
 
+set(SCWX_RENDER_BACKEND "VULKAN")
+
 find_package(Boost)
 find_package(Fontconfig)
 find_package(geographiclib)
 find_package(geos)
 find_package(glm)
 find_package(JPEG)
-find_package(OpenGL REQUIRED)
 find_package(Python COMPONENTS Interpreter)
 find_package(SQLite3)
 find_package(TIFF)
+find_package(Vulkan REQUIRED)
 
 find_package(QT NAMES Qt6
              COMPONENTS Gui
                         LinguistTools
                         Multimedia
                         Network
-                        OpenGL
-                        OpenGLWidgets
                         Positioning
                         SerialPort
                         Svg
@@ -43,14 +43,14 @@ find_package(Qt${QT_VERSION_MAJOR}
                         LinguistTools
                         Multimedia
                         Network
-                        OpenGL
-                        OpenGLWidgets
                         Positioning
                         SerialPort
                         Svg
                         Widgets
                         Sql
              REQUIRED)
+
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS GuiPrivate REQUIRED)
 
 set(SRC_EXE_MAIN source/scwx/qt/main/main.cpp)
 
@@ -76,11 +76,14 @@ set(SRC_CONFIG source/scwx/qt/config/county_database.cpp
                source/scwx/qt/config/radar_site.cpp)
 set(SRC_EXTERNAL source/scwx/qt/external/stb_image.cpp
                  source/scwx/qt/external/stb_rect_pack.cpp)
-set(HDR_GL source/scwx/qt/gl/gl.hpp
-           source/scwx/qt/gl/gl_context.hpp
-           source/scwx/qt/gl/shader_program.hpp)
-set(SRC_GL source/scwx/qt/gl/gl_context.cpp
-           source/scwx/qt/gl/shader_program.cpp)
+set(HDR_RENDER source/scwx/qt/render/render_backend.hpp
+               source/scwx/qt/render/render_context.hpp
+               source/scwx/qt/render/render_init.hpp)
+set(SRC_RENDER source/scwx/qt/render/render_context.cpp
+               source/scwx/qt/render/render_init.cpp)
+set(HDR_VK source/scwx/qt/vk/vk_check.hpp
+          source/scwx/qt/vk/vk_context.hpp)
+set(SRC_VK source/scwx/qt/vk/vk_context.cpp)
 set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
                 source/scwx/qt/gl/draw/geo_icons.hpp
                 source/scwx/qt/gl/draw/geo_lines.hpp
@@ -192,6 +195,35 @@ set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/radar_product_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp
             source/scwx/qt/map/radar_site_layer.cpp)
+if (SCWX_RENDER_BACKEND STREQUAL "VULKAN")
+    list(APPEND HDR_MAP source/scwx/qt/map/map_rhi_renderer.hpp
+                         source/scwx/qt/map/map_imgui_vulkan_renderer.hpp
+                         source/scwx/qt/map/map_overlay_renderer.hpp)
+    list(APPEND SRC_MAP source/scwx/qt/map/map_rhi_renderer.cpp
+                         source/scwx/qt/map/map_imgui_vulkan_renderer.cpp
+                         source/scwx/qt/map/map_overlay_renderer.cpp)
+    list(APPEND HDR_RENDER source/scwx/qt/render/rhi_shader_util.hpp
+                           source/scwx/qt/render/projection.hpp
+                           source/scwx/qt/render/rhi_color_table_overlay.hpp
+                           source/scwx/qt/render/rhi_vulkan_overlay.hpp
+                           source/scwx/qt/render/rhi_radar_overlay.hpp
+                           source/scwx/qt/render/rhi_colored_geometry.hpp
+                           source/scwx/qt/render/rhi_geo_uniforms.hpp
+                           source/scwx/qt/render/rhi_geo_colored_geometry.hpp
+                           source/scwx/qt/render/rhi_texture_array_overlay.hpp
+                           source/scwx/qt/render/rhi_buffer_util.hpp
+                           source/scwx/qt/render/rhi_imgui_util.hpp)
+    list(APPEND SRC_RENDER source/scwx/qt/render/rhi_shader_util.cpp
+                           source/scwx/qt/render/projection.cpp
+                           source/scwx/qt/render/rhi_color_table_overlay.cpp
+                           source/scwx/qt/render/rhi_radar_overlay.cpp
+                           source/scwx/qt/render/rhi_colored_geometry.cpp
+                           source/scwx/qt/render/rhi_geo_uniforms.cpp
+                           source/scwx/qt/render/rhi_geo_colored_geometry.cpp
+                           source/scwx/qt/render/rhi_texture_array_overlay.cpp
+                           source/scwx/qt/render/rhi_buffer_util.cpp
+                           source/scwx/qt/render/rhi_imgui_util.cpp)
+endif()
 set(HDR_MODEL source/scwx/qt/model/alert_model.hpp
               source/scwx/qt/model/alert_proxy_model.hpp
               source/scwx/qt/model/imgui_context_model.hpp
@@ -437,6 +469,7 @@ set(HDR_UTIL source/scwx/qt/util/color.hpp
              source/scwx/qt/util/json.hpp
              source/scwx/qt/util/maplibre.hpp
              source/scwx/qt/util/network.hpp
+             source/scwx/qt/util/polygon_triangulation.hpp
              source/scwx/qt/util/streams.hpp
              source/scwx/qt/util/texture_atlas.hpp
              source/scwx/qt/util/q_color_modulate.hpp
@@ -452,6 +485,7 @@ set(SRC_UTIL source/scwx/qt/util/color.cpp
              source/scwx/qt/util/json.cpp
              source/scwx/qt/util/maplibre.cpp
              source/scwx/qt/util/network.cpp
+             source/scwx/qt/util/polygon_triangulation.cpp
              source/scwx/qt/util/texture_atlas.cpp
              source/scwx/qt/util/q_color_modulate.cpp
              source/scwx/qt/util/q_file_buffer.cpp
@@ -519,8 +553,10 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${HDR_CONFIG}
                     ${SRC_CONFIG}
                     ${SRC_EXTERNAL}
-                    ${HDR_GL}
-                    ${SRC_GL}
+                    ${HDR_RENDER}
+                    ${SRC_RENDER}
+                    ${HDR_VK}
+                    ${SRC_VK}
                     ${HDR_GL_DRAW}
                     ${SRC_GL_DRAW}
                     ${HDR_MANAGER}
@@ -564,8 +600,10 @@ source_group("Source Files\\main"         FILES ${SRC_MAIN})
 source_group("Header Files\\config"       FILES ${HDR_CONFIG})
 source_group("Source Files\\config"       FILES ${SRC_CONFIG})
 source_group("Source Files\\external"     FILES ${SRC_EXTERNAL})
-source_group("Header Files\\gl"           FILES ${HDR_GL})
-source_group("Source Files\\gl"           FILES ${SRC_GL})
+source_group("Header Files\\render"       FILES ${HDR_RENDER})
+source_group("Source Files\\render"       FILES ${SRC_RENDER})
+source_group("Header Files\\vk"           FILES ${HDR_VK})
+source_group("Source Files\\vk"           FILES ${SRC_VK})
 source_group("Header Files\\gl\\draw"     FILES ${HDR_GL_DRAW})
 source_group("Source Files\\gl\\draw"     FILES ${SRC_GL_DRAW})
 source_group("Header Files\\manager"      FILES ${HDR_MANAGER})
@@ -596,12 +634,14 @@ source_group("Header Files\\util"         FILES ${HDR_UTIL})
 source_group("Source Files\\util"         FILES ${SRC_UTIL})
 source_group("Header Files\\view"         FILES ${HDR_VIEW})
 source_group("Source Files\\view"         FILES ${SRC_VIEW})
-source_group("OpenGL Shaders"             FILES ${SHADER_FILES})
+source_group("Shaders"                    FILES ${SHADER_FILES})
 source_group("Resources"                  FILES ${RESOURCE_FILES})
 source_group("Resources\\json"            FILES ${JSON_FILES})
 source_group("I18N Files"                 FILES ${TS_FILES})
 
 add_library(scwx-qt OBJECT ${PROJECT_SOURCES})
+
+target_compile_definitions(scwx-qt PUBLIC SCWX_RENDER_BACKEND_VULKAN)
 set_property(TARGET scwx-qt PROPERTY AUTOMOC ON)
 set_property(TARGET scwx-qt PROPERTY AUTOGEN_ORIGIN_DEPENDS OFF)
 
@@ -730,14 +770,9 @@ if (WIN32)
 endif()
 
 if (LINUX)
-    # Qt emit keyword is incompatible with TBB
+#Qt emit keyword is incompatible with TBB
     target_compile_definitions(scwx-qt      PRIVATE QT_NO_EMIT)
     target_compile_definitions(supercell-wx PRIVATE QT_NO_EMIT)
-endif()
-
-if (APPLE)
-    target_compile_definitions(scwx-qt      PRIVATE GL_SILENCE_DEPRECATION)
-    target_compile_definitions(supercell-wx PRIVATE GL_SILENCE_DEPRECATION)
 endif()
 
 target_include_directories(scwx-qt PUBLIC ${scwx-qt_SOURCE_DIR}/source
@@ -758,25 +793,27 @@ target_compile_options(supercell-wx PRIVATE
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
 
-# Temporary workaround for Boost and GCC 16+ where -Warray-bounds causes false positives
-target_compile_options(scwx-qt PRIVATE
-    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-array-bounds>
-)
-target_compile_options(supercell-wx PRIVATE
-    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-array-bounds>
-)
+#Temporary workaround for GCC false positives with - Werror
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(scwx-qt PRIVATE
+        -Wno-stringop-overflow
+        -Wno-array-bounds)
+    target_compile_options(supercell-wx PRIVATE
+        -Wno-stringop-overflow
+        -Wno-array-bounds)
+endif()
 
 if (MSVC)
-    # Don't include Windows macros
+#Don't include Windows macros
     target_compile_options(scwx-qt PRIVATE -DNOMINMAX)
     target_compile_options(supercell-wx PRIVATE -DNOMINMAX)
 
-    # Enable multi-processor compilation
+#Enable multi - processor compilation
     target_compile_options(scwx-qt PRIVATE "/MP")
     target_compile_options(supercell-wx PRIVATE "/MP")
 endif()
 
-# Address Sanitizer options
+#Address Sanitizer options
 if (SCWX_ADDRESS_SANITIZER)
     target_compile_options(scwx-qt PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:/fsanitize=address /EHsc /D_DISABLE_STRING_ANNOTATION /D_DISABLE_VECTOR_ANNOTATION>
@@ -792,7 +829,7 @@ if (SCWX_ADDRESS_SANITIZER)
 endif()
 
 if (MSVC)
-    # Produce PDB file for debug
+#Produce PDB                                        file for debug
     target_compile_options(scwx-qt PRIVATE "$<$<CONFIG:Release>:/Zi>")
     target_compile_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:/Zi>")
     target_link_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
@@ -804,12 +841,12 @@ else()
 endif()
 
 if (MSVC)
-    # Suppress MSVC linker warnings due to missing debug program database
+#Suppress MSVC linker warnings due to missing debug program database
     target_link_options(supercell-wx PRIVATE "/ignore:4099")
 endif()
 
 if (LINUX)
-    # Add wayland client packages
+#Add wayland                                        client packages
     find_package(QT NAMES Qt6
                  COMPONENTS WaylandClient
                  REQUIRED)
@@ -821,24 +858,22 @@ if (LINUX)
 endif()
 
 target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
-                                     Qt${QT_VERSION_MAJOR}::OpenGLWidgets
                                      Qt${QT_VERSION_MAJOR}::Multimedia
                                      Qt${QT_VERSION_MAJOR}::Positioning
                                      Qt${QT_VERSION_MAJOR}::SerialPort
                                      Qt${QT_VERSION_MAJOR}::Svg
+                                     Qt${QT_VERSION_MAJOR}::GuiPrivate
                                      Boost::json
                                      Boost::timer
                                      Boost::atomic
                                      QMapLibre::Core
-                                     OpenGL::GLU
-                                     $<$<CXX_COMPILER_ID:MSVC>:opengl32>
                                      $<$<CXX_COMPILER_ID:MSVC>:SetupAPI>
                                      Fontconfig::Fontconfig
                                      GeographicLib::GeographicLib
                                      GEOS::geos
                                      GEOS::geos_cxx_flags
-                                     glad_gl_core_33
                                      glm::glm
+                                     Vulkan::Vulkan
                                      imgui
                                      JPEG::JPEG
                                      qt6ct-common
@@ -853,7 +888,7 @@ target_link_libraries(supercell-wx PRIVATE scwx-qt
                                            wxdata)
 
 if (WIN32)
-    # Deploy Qt to target directory
+#Deploy Qt to                                       target directory
     add_custom_command(TARGET supercell-wx
                        POST_BUILD
                        COMMAND "${WINDEPLOYQT_EXECUTABLE}"
@@ -862,7 +897,7 @@ if (WIN32)
 endif()
 
 if (LINUX)
-    # Set DT_RUNPATH for Linux targets
+#Set DT_RUNPATH for Linux targets
     set_target_properties(MLNQtCore    PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib") # QMapLibre::Core
     set_target_properties(supercell-wx PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
 endif()
@@ -887,8 +922,8 @@ install(TARGETS supercell-wx
           COMPONENT supercell-wx
           OPTIONAL)
 
-# NO_TRANSLATIONS is needed for Qt 6.5.0 (will be fixed in 6.5.1)
-# https://bugreports.qt.io/browse/QTBUG-112204
+#NO_TRANSLATIONS is needed for Qt 6.5.0(will be fixed in 6.5.1)
+#https: // bugreports.qt.io/browse/QTBUG-112204
 qt_generate_deploy_app_script(TARGET MLNQtCore # QMapLibre::Core
                               OUTPUT_SCRIPT deploy_script_qmaplibre_core
                               NO_TRANSLATIONS
@@ -906,16 +941,16 @@ install(SCRIPT ${deploy_script_scwx}
         COMPONENT supercell-wx)
 
 if (APPLE)
-    # Install additional script to fix up the bundle
+#Install additional script to fix up the bundle
     install(CODE [[
             include (BundleUtilities)
 
-            # Define the bundle path
+#Define the bundle path
             set(BUNDLE_PATH "${CMAKE_INSTALL_PREFIX}/supercell-wx.app")
 
             file(GLOB_RECURSE PLUGIN_DYLIBS "${BUNDLE_PATH}/Contents/PlugIns/**/*.dylib")
 
-            # Add the correct rpath for plugins to find bundled frameworks
+#Add the correct rpath for plugins to find bundled frameworks
             foreach(PLUGIN_DYLIB ${PLUGIN_DYLIBS})
                 execute_process(
                     COMMAND install_name_tool -add_rpath "@loader_path/../../Frameworks"
@@ -923,29 +958,29 @@ if (APPLE)
                     )
             endforeach()
 
-            # Fix up the bundle with all dependencies
+#Fix up the bundle with all dependencies
             fixup_bundle(
                 "${BUNDLE_PATH}"
                 ""
                 "${CMAKE_INSTALL_PREFIX}/lib;${CMAKE_INSTALL_PREFIX}/Frameworks"
                 )
 
-            # Re-sign the bundle
+#Re - sign the bundle
             execute_process(
                 COMMAND codesign --force --deep --sign - "${BUNDLE_PATH}"
                 )
 
-            # Verify the bundle
+#Verify the bundle
             verify_app("${BUNDLE_PATH}")
 
-            # Rename to "Supercell Wx.app"
+#Rename to "Supercell Wx.app"
             file(REMOVE_RECURSE
                  "${CMAKE_INSTALL_PREFIX}/Supercell Wx.app")
             file(RENAME
                  "${BUNDLE_PATH}"
                  "${CMAKE_INSTALL_PREFIX}/Supercell Wx.app")
 
-            # Remove extra directories
+#Remove extra directories
             file(REMOVE_RECURSE
                  "${CMAKE_INSTALL_PREFIX}/Frameworks")
             file(REMOVE_RECURSE

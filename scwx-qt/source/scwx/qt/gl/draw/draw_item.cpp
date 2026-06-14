@@ -1,5 +1,5 @@
 #include <scwx/qt/gl/draw/draw_item.hpp>
-#include <scwx/qt/util/maplibre.hpp>
+#include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 
 #include <string>
 
@@ -51,6 +51,14 @@ void DrawItem::Render(const QMapLibre::CustomLayerRenderParameters& params,
    Render(params);
 }
 
+void DrawItem::RenderVulkan(
+   QRhiCommandBuffer* /* commandBuffer */,
+   render::RhiVulkanOverlayResources& /* resources */,
+   const QMapLibre::CustomLayerRenderParameters& /* params */,
+   bool /* textureAtlasChanged */)
+{
+}
+
 bool DrawItem::RunMousePicking(
    const QMapLibre::CustomLayerRenderParameters& /* params */,
    const QPointF& /* mouseLocalPos */,
@@ -61,85 +69,6 @@ bool DrawItem::RunMousePicking(
 {
    // By default, the draw item is not picked
    return false;
-}
-
-void DrawItem::UseDefaultProjection(
-   const QMapLibre::CustomLayerRenderParameters& params,
-   GLint                                         uMVPMatrixLocation)
-{
-   static constexpr float xOffset = 0.0f;
-   static constexpr float yOffset = 0.0f;
-
-   glm::mat4 projection = glm::ortho(0.0f,
-                                     static_cast<float>(params.width),
-                                     0.0f,
-                                     static_cast<float>(params.height));
-
-   if constexpr (xOffset != 0.0f || yOffset != 0.0f)
-   {
-      projection =
-         glm::translate(projection, glm::vec3(xOffset, yOffset, 0.0f));
-   }
-
-   glUniformMatrix4fv(
-      uMVPMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection));
-}
-
-void DrawItem::UseRotationProjection(
-   const QMapLibre::CustomLayerRenderParameters& params,
-   GLint                                         uMVPMatrixLocation)
-{
-   static constexpr float xOffset = 0.0f;
-   static constexpr float yOffset = 0.0f;
-
-   glm::mat4 projection = glm::ortho(0.0f,
-                                     static_cast<float>(params.width),
-                                     0.0f,
-                                     static_cast<float>(params.height));
-
-   if constexpr (xOffset != 0.0f || yOffset != 0.0f)
-   {
-      projection =
-         glm::translate(projection, glm::vec3(xOffset, yOffset, 0.0f));
-   }
-
-   projection = glm::rotate(projection,
-                            glm::radians<float>(params.bearing),
-                            glm::vec3(0.0f, 0.0f, 1.0f));
-
-   glUniformMatrix4fv(
-      uMVPMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection));
-}
-
-void DrawItem::UseMapProjection(
-   const QMapLibre::CustomLayerRenderParameters& params,
-   GLint                                         uMapMatrixLocation,
-   GLint                                         uOriginLatLongLocation)
-{
-   const glm::mat4 uMapMatrix = util::maplibre::GetMapMatrix(params);
-
-   glUniform2fv(uOriginLatLongLocation,
-                1,
-                glm::value_ptr(glm::vec2 {params.latitude, params.longitude}));
-
-   glUniformMatrix4fv(
-      uMapMatrixLocation, 1, GL_FALSE, glm::value_ptr(uMapMatrix));
-}
-
-void DrawItem::UseMapScreenProjection(
-   const QMapLibre::CustomLayerRenderParameters& params,
-   GLint                                         uMVPMatrixLocation,
-   GLint                                         uMapScreenCoordLocation)
-{
-   const glm::mat4 uMVPMatrix = util::maplibre::GetMapMatrix(params);
-
-   glUniform2fv(uMapScreenCoordLocation,
-                1,
-                glm::value_ptr(util::maplibre::LatLongToScreenCoordinate(
-                   {params.latitude, params.longitude})));
-
-   glUniformMatrix4fv(
-      uMVPMatrixLocation, 1, GL_FALSE, glm::value_ptr(uMVPMatrix));
 }
 
 } // namespace draw

@@ -1,9 +1,12 @@
 #pragma once
 
-#include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/gl/draw/draw_item.hpp>
 
 #include <boost/gil.hpp>
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+class QRhiCommandBuffer;
+#endif
 
 namespace scwx
 {
@@ -17,7 +20,7 @@ namespace draw
 class Rectangle : public DrawItem
 {
 public:
-   explicit Rectangle(std::shared_ptr<GlContext> context);
+   explicit Rectangle(std::shared_ptr<render::RenderContext> context);
    ~Rectangle();
 
    Rectangle(const Rectangle&)            = delete;
@@ -29,6 +32,14 @@ public:
    void Initialize() override;
    void Render(const QMapLibre::CustomLayerRenderParameters& params) override;
    void Deinitialize() override;
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   void RenderVulkan(
+      QRhiCommandBuffer*                            commandBuffer,
+      render::RhiVulkanOverlayResources&            resources,
+      const QMapLibre::CustomLayerRenderParameters& params,
+      bool textureAtlasChanged) override;
+#endif
 
    void SetBorder(float width, boost::gil::rgba8_pixel_t color);
    void SetFill(boost::gil::rgba8_pixel_t color);

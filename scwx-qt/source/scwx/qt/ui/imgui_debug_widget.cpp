@@ -1,11 +1,9 @@
 #include <scwx/qt/ui/imgui_debug_widget.hpp>
-#include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
 
 #include <set>
 
 #include <imgui.h>
-#include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_qt.hpp>
 #include <fmt/format.h>
 
@@ -36,11 +34,6 @@ public:
       // Set ImGui Context
       ImGui::SetCurrentContext(context_);
 
-      // Shutdown ImGui Context
-      if (imGuiRendererInitialized_)
-      {
-         ImGui_ImplOpenGL3_Shutdown();
-      }
       ImGui_ImplQt_Shutdown();
 
       // Destroy ImGui Context
@@ -54,11 +47,10 @@ public:
    ImGuiContext* currentContext_;
 
    std::set<ImGuiContext*> renderedSet_ {};
-   bool                    imGuiRendererInitialized_ {false};
 };
 
 ImGuiDebugWidget::ImGuiDebugWidget(QWidget* parent) :
-    QOpenGLWidget(parent), p {std::make_unique<ImGuiDebugWidgetImpl>(this)}
+    QWidget(parent), p {std::make_unique<ImGuiDebugWidgetImpl>(this)}
 {
    // Accept focus for keyboard events
    setFocusPolicy(Qt::StrongFocus);
@@ -90,54 +82,6 @@ void ImGuiDebugWidget::set_current_context(ImGuiContext* context)
 
    // Queue an update
    update();
-}
-
-void ImGuiDebugWidget::initializeGL()
-{
-   makeCurrent();
-
-   // Initialize ImGui OpenGL3 backend
-   ImGui::SetCurrentContext(p->context_);
-   ImGui_ImplOpenGL3_Init();
-   p->imGuiRendererInitialized_ = true;
-}
-
-void ImGuiDebugWidget::paintGL()
-{
-   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-   glClear(GL_COLOR_BUFFER_BIT);
-
-   ImGui::SetCurrentContext(p->currentContext_);
-
-   // Lock ImGui font atlas prior to new ImGui frame
-   std::shared_lock imguiFontAtlasLock {
-      manager::FontManager::Instance().imgui_font_atlas_mutex()};
-
-   model::ImGuiContextModel::Instance().NewFrame();
-   ImGui_ImplQt_NewFrame(this);
-   ImGui_ImplOpenGL3_NewFrame();
-   ImGui::NewFrame();
-
-   if (!p->renderedSet_.contains(p->currentContext_))
-   {
-      // Set initial position of demo window
-      ImGui::SetNextWindowPos(ImVec2 {width() / 2.0f, height() / 2.0f},
-                              ImGuiCond_FirstUseEver,
-                              ImVec2 {0.5f, 0.5f});
-      ImGui::Begin("Dear ImGui Demo");
-      ImGui::End();
-
-      p->renderedSet_.insert(p->currentContext_);
-      update();
-   }
-
-   ImGui::ShowDemoWindow();
-
-   ImGui::Render();
-   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-   // Unlock ImGui font atlas after rendering
-   imguiFontAtlasLock.unlock();
 }
 
 } // namespace scwx::qt::ui

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/gl/draw/draw_item.hpp>
 
 #include <boost/gil.hpp>
@@ -20,7 +19,7 @@ struct GeoIconDrawItem;
 class GeoIcons : public DrawItem
 {
 public:
-   explicit GeoIcons(const std::shared_ptr<GlContext>& context);
+   explicit GeoIcons(const std::shared_ptr<render::RenderContext>& context);
    ~GeoIcons();
 
    GeoIcons(const GeoIcons&)            = delete;
@@ -36,6 +35,14 @@ public:
    void Render(const QMapLibre::CustomLayerRenderParameters& params,
                bool textureAtlasChanged) override;
    void Deinitialize() override;
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   void RenderVulkan(
+      QRhiCommandBuffer*                            commandBuffer,
+      render::RhiVulkanOverlayResources&            resources,
+      const QMapLibre::CustomLayerRenderParameters& params,
+      bool textureAtlasChanged) override;
+#endif
 
    bool
    RunMousePicking(const QMapLibre::CustomLayerRenderParameters& params,

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/gl/draw/draw_item.hpp>
 #include <scwx/gr/placefile.hpp>
 
@@ -16,7 +15,7 @@ namespace draw
 class PlacefileTriangles : public DrawItem
 {
 public:
-   explicit PlacefileTriangles(const std::shared_ptr<GlContext>& context);
+   explicit PlacefileTriangles(const std::shared_ptr<render::RenderContext>& context);
    ~PlacefileTriangles();
 
    PlacefileTriangles(const PlacefileTriangles&)            = delete;
@@ -31,6 +30,14 @@ public:
    void Initialize() override;
    void Render(const QMapLibre::CustomLayerRenderParameters& params) override;
    void Deinitialize() override;
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   void RenderVulkan(
+      QRhiCommandBuffer*                            commandBuffer,
+      scwx::qt::render::RhiVulkanOverlayResources&  resources,
+      const QMapLibre::CustomLayerRenderParameters& params,
+      bool                                          textureAtlasChanged) override;
+#endif
 
    /**
     * Resets and prepares the draw item for adding a new set of triangles.

@@ -22,21 +22,21 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class PlacefileLayer::Impl
 {
 public:
-   explicit Impl(PlacefileLayer*                       self,
-                 const std::shared_ptr<gl::GlContext>& glContext,
+   explicit Impl(PlacefileLayer* self,
+                 const std::shared_ptr<render::RenderContext>& renderContext,
                  const std::string&                    placefileName) :
        self_ {self},
        placefileName_ {placefileName},
-       placefileIcons_ {std::make_shared<gl::draw::PlacefileIcons>(glContext)},
+       placefileIcons_ {std::make_shared<gl::draw::PlacefileIcons>(renderContext)},
        placefileImages_ {
-          std::make_shared<gl::draw::PlacefileImages>(glContext)},
+          std::make_shared<gl::draw::PlacefileImages>(renderContext)},
        placefileImagesXY_ {
-          std::make_shared<gl::draw::PlacefileImagesXY>(glContext)},
-       placefileLines_ {std::make_shared<gl::draw::PlacefileLines>(glContext)},
+          std::make_shared<gl::draw::PlacefileImagesXY>(renderContext)},
+       placefileLines_ {std::make_shared<gl::draw::PlacefileLines>(renderContext)},
        placefilePolygons_ {
-          std::make_shared<gl::draw::PlacefilePolygons>(glContext)},
+          std::make_shared<gl::draw::PlacefilePolygons>(renderContext)},
        placefileTriangles_ {
-          std::make_shared<gl::draw::PlacefileTriangles>(glContext)},
+          std::make_shared<gl::draw::PlacefileTriangles>(renderContext)},
        placefileText_ {std::make_shared<gl::draw::PlacefileText>(placefileName)}
    {
       ConnectSignals();
@@ -69,10 +69,12 @@ public:
    std::chrono::system_clock::time_point selectedTime_ {};
 };
 
-PlacefileLayer::PlacefileLayer(const std::shared_ptr<gl::GlContext>& glContext,
-                               const std::string& placefileName) :
-    DrawLayer(glContext, fmt::format("PlacefileLayer {}", placefileName)),
-    p(std::make_unique<PlacefileLayer::Impl>(this, glContext, placefileName))
+PlacefileLayer::PlacefileLayer(
+   const std::shared_ptr<render::RenderContext>& renderContext,
+   const std::string& placefileName) :
+    DrawLayer(renderContext, fmt::format("PlacefileLayer {}", placefileName)),
+    p(std::make_unique<PlacefileLayer::Impl>(
+       this, renderContext, placefileName))
 {
    AddDrawItem(p->placefileImages_);
    AddDrawItem(p->placefileImagesXY_);
@@ -163,8 +165,77 @@ void PlacefileLayer::Render(
 
    DrawLayer::Render(mapContext, params);
 
-   SCWX_GL_CHECK_ERROR();
 }
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void PlacefileLayer::RenderVulkanOverlay(
+   QRhiCommandBuffer*                            commandBuffer,
+   render::RhiVulkanOverlayResources&            resources,
+   const std::shared_ptr<MapContext>&            mapContext,
+   const QMapLibre::CustomLayerRenderParameters& params)
+{
+   (void) mapContext;
+
+   std::shared_ptr<manager::PlacefileManager> placefileManager =
+      manager::PlacefileManager::Instance();
+
+   auto placefile = placefileManager->placefile(p->placefileName_);
+
+   if (placefile != nullptr)
+   {
+      bool thresholded =
+         placefileManager->placefile_thresholded(placefile->name());
+      p->placefileIcons_->set_thresholded(thresholded);
+      p->placefileImages_->set_thresholded(thresholded);
+      p->placefileLines_->set_thresholded(thresholded);
+      p->placefilePolygons_->set_thresholded(thresholded);
+      p->placefileTriangles_->set_thresholded(thresholded);
+      p->placefileText_->set_thresholded(thresholded);
+
+      p->placefileIcons_->set_selected_time(p->selectedTime_);
+      p->placefileImages_->set_selected_time(p->selectedTime_);
+      p->placefileLines_->set_selected_time(p->selectedTime_);
+      p->placefilePolygons_->set_selected_time(p->selectedTime_);
+      p->placefileTriangles_->set_selected_time(p->selectedTime_);
+      p->placefileText_->set_selected_time(p->selectedTime_);
+   }
+
+   RenderWithoutImGuiVulkan(commandBuffer, resources, params);
+}
+
+void PlacefileLayer::RenderVulkanImGui(
+   const std::shared_ptr<MapContext>&            mapContext,
+   const QMapLibre::CustomLayerRenderParameters& params)
+{
+   (void) mapContext;
+
+   std::shared_ptr<manager::PlacefileManager> placefileManager =
+      manager::PlacefileManager::Instance();
+
+   auto placefile = placefileManager->placefile(p->placefileName_);
+
+   if (placefile != nullptr)
+   {
+      bool thresholded =
+         placefileManager->placefile_thresholded(placefile->name());
+      p->placefileIcons_->set_thresholded(thresholded);
+      p->placefileImages_->set_thresholded(thresholded);
+      p->placefileLines_->set_thresholded(thresholded);
+      p->placefilePolygons_->set_thresholded(thresholded);
+      p->placefileTriangles_->set_thresholded(thresholded);
+      p->placefileText_->set_thresholded(thresholded);
+
+      p->placefileIcons_->set_selected_time(p->selectedTime_);
+      p->placefileImages_->set_selected_time(p->selectedTime_);
+      p->placefileLines_->set_selected_time(p->selectedTime_);
+      p->placefilePolygons_->set_selected_time(p->selectedTime_);
+      p->placefileTriangles_->set_selected_time(p->selectedTime_);
+      p->placefileText_->set_selected_time(p->selectedTime_);
+   }
+
+   p->placefileText_->Render(params);
+}
+#endif
 
 void PlacefileLayer::Deinitialize()
 {

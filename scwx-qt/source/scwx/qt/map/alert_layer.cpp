@@ -137,14 +137,14 @@ public:
       std::size_t lineWidth_ {};
    };
 
-   explicit Impl(AlertLayer*                           self,
-                 const std::shared_ptr<gl::GlContext>& glContext,
+   explicit Impl(AlertLayer* self,
+                 const std::shared_ptr<render::RenderContext>& renderContext,
                  awips::Phenomenon                     phenomenon) :
        self_ {self},
        phenomenon_ {phenomenon},
        ibw_ {awips::ibw::GetImpactBasedWarningInfo(phenomenon)},
-       geoLines_ {{false, std::make_shared<gl::draw::GeoLines>(glContext)},
-                  {true, std::make_shared<gl::draw::GeoLines>(glContext)}}
+       geoLines_ {{false, std::make_shared<gl::draw::GeoLines>(renderContext)},
+                  {true, std::make_shared<gl::draw::GeoLines>(renderContext)}}
    {
       UpdateLineData();
       ConnectSignals();
@@ -250,12 +250,13 @@ public:
    std::vector<boost::signals2::scoped_connection> connections_ {};
 };
 
-AlertLayer::AlertLayer(const std::shared_ptr<gl::GlContext>& glContext,
-                       awips::Phenomenon                     phenomenon) :
+AlertLayer::AlertLayer(
+   const std::shared_ptr<render::RenderContext>& renderContext,
+   awips::Phenomenon phenomenon) :
     DrawLayer(
-       glContext,
+       renderContext,
        fmt::format("AlertLayer {}", awips::GetPhenomenonText(phenomenon))),
-    p(std::make_unique<Impl>(this, glContext, phenomenon))
+    p(std::make_unique<Impl>(this, renderContext, phenomenon))
 {
    for (auto alertActive : {false, true})
    {
@@ -311,7 +312,6 @@ void AlertLayer::Render(const std::shared_ptr<MapContext>& mapContext,
 
    DrawLayer::Render(mapContext, params);
 
-   SCWX_GL_CHECK_ERROR();
 }
 
 void AlertLayer::Deinitialize()

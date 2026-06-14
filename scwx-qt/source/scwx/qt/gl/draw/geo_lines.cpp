@@ -5,6 +5,12 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+#   include <scwx/qt/render/rhi_geo_colored_geometry.hpp>
+#   include <scwx/qt/render/rhi_geo_uniforms.hpp>
+#   include <scwx/qt/render/rhi_vulkan_overlay.hpp>
+#endif
+
 #include <execution>
 
 #include <boost/unordered/unordered_flat_set.hpp>
@@ -69,11 +75,8 @@ public:
       glm::vec2 obr_;
    };
 
-   explicit Impl(std::shared_ptr<GlContext> context) :
-       context_ {context},
-       shaderProgram_ {nullptr},
-       vao_ {GL_INVALID_INDEX},
-       vbo_ {GL_INVALID_INDEX}
+   explicit Impl(std::shared_ptr<render::RenderContext> context) :
+       context_ {context}
    {
    }
 
@@ -85,11 +88,11 @@ public:
    void UpdateModifiedLineBuffers();
    void UpdateSingleBuffer(const std::shared_ptr<GeoLineDrawItem>& di,
                            std::vector<float>&                     linesBuffer,
-                           std::vector<GLint>&                 integerBuffer,
+                           std::vector<std::int32_t>&          integerBuffer,
                            std::unordered_map<std::shared_ptr<GeoLineDrawItem>,
                                               LineHoverEntry>& hoverLines);
 
-   std::shared_ptr<GlContext> context_;
+   std::shared_ptr<render::RenderContext> context_;
 
    bool visible_ {true};
    bool dirty_ {false};
@@ -105,28 +108,18 @@ public:
    std::vector<std::shared_ptr<GeoLineDrawItem>> newLineList_ {};
 
    std::vector<float> currentLinesBuffer_ {};
-   std::vector<GLint> currentIntegerBuffer_ {};
+   std::vector<std::int32_t> currentIntegerBuffer_ {};
    std::vector<float> newLinesBuffer_ {};
-   std::vector<GLint> newIntegerBuffer_ {};
+   std::vector<std::int32_t> newIntegerBuffer_ {};
 
    std::unordered_map<std::shared_ptr<GeoLineDrawItem>, LineHoverEntry>
       currentHoverLines_ {};
    std::unordered_map<std::shared_ptr<GeoLineDrawItem>, LineHoverEntry>
       newHoverLines_ {};
 
-   std::shared_ptr<ShaderProgram> shaderProgram_;
-
-   GLint uMVPMatrixLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-   GLint uMapMatrixLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-   GLint uOriginLatLongLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-   GLint uMapDistanceLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-   GLint uSelectedTimeLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-
-   GLuint                vao_;
-   std::array<GLuint, 2> vbo_;
 };
 
-GeoLines::GeoLines(std::shared_ptr<GlContext> context) :
+GeoLines::GeoLines(std::shared_ptr<render::RenderContext> context) :
     DrawItem(), p(std::make_unique<Impl>(context))
 {
 }
@@ -137,116 +130,26 @@ GeoLines& GeoLines::operator=(GeoLines&&) noexcept = default;
 
 void GeoLines::set_selected_time(
    std::chrono::system_clock::time_point selectedTime)
-{
-   p->selectedTime_ = selectedTime;
-}
+{ p->selectedTime_ = selectedTime; }
 
 void GeoLines::set_thresholded(bool thresholded)
-{
-   p->thresholded_ = thresholded;
-}
+{ p->thresholded_ = thresholded; }
 
 void GeoLines::Initialize()
 {
-   p->shaderProgram_ = p->context_->GetShaderProgram(
-      {{GL_VERTEX_SHADER, ":/gl/geo_texture2d.vert"},
-       {GL_GEOMETRY_SHADER, ":/gl/threshold.geom"},
-       {GL_FRAGMENT_SHADER, ":/gl/color.frag"}});
-
-   p->uMVPMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMVPMatrix");
-   p->uMapMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMapMatrix");
-   p->uOriginLatLongLocation_ =
-      p->shaderProgram_->GetUniformLocation("uOriginLatLong");
-   p->uMapDistanceLocation_ =
-      p->shaderProgram_->GetUniformLocation("uMapDistance");
-   p->uSelectedTimeLocation_ =
-      p->shaderProgram_->GetUniformLocation("uSelectedTime");
-
-   glGenVertexArrays(1, &p->vao_);
-   glGenBuffers(static_cast<GLsizei>(p->vbo_.size()), p->vbo_.data());
-
-   glBindVertexArray(p->vao_);
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
-   glBufferData(GL_ARRAY_BUFFER,
-                sizeof(float) * kLineBufferLength_,
-                nullptr,
-                GL_DYNAMIC_DRAW);
-
-   // NOLINTBEGIN(modernize-use-nullptr)
-   // NOLINTBEGIN(performance-no-int-to-ptr)
-   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
-
-   // aLatLong
-   glVertexAttribPointer(0,
-                         2,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         static_cast<void*>(0));
-   glEnableVertexAttribArray(0);
-
-   // aXYOffset
-   glVertexAttribPointer(1,
-                         2,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(2 * sizeof(float)));
-   glEnableVertexAttribArray(1);
-
-   // aModulate
-   glVertexAttribPointer(3,
-                         4,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(4 * sizeof(float)));
-   glEnableVertexAttribArray(3);
-
-   // aAngle
-   glVertexAttribPointer(4,
-                         1,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(8 * sizeof(float)));
-   glEnableVertexAttribArray(4);
-
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
-   glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
-
-   // aThreshold
-   glVertexAttribIPointer(5, //
-                          1,
-                          GL_INT,
-                          kIntegersPerVertex_ * sizeof(GLint),
-                          static_cast<void*>(0));
-   glEnableVertexAttribArray(5);
-
-   // aTimeRange
-   glVertexAttribIPointer(6, //
-                          2,
-                          GL_INT,
-                          kIntegersPerVertex_ * sizeof(GLint),
-                          reinterpret_cast<void*>(1 * sizeof(GLint)));
-   glEnableVertexAttribArray(6);
-
-   // aDisplayed
-   glVertexAttribIPointer(7,
-                          1,
-                          GL_INT,
-                          kIntegersPerVertex_ * sizeof(GLint),
-                          reinterpret_cast<void*>(3 * sizeof(GLint)));
-   glEnableVertexAttribArray(7);
-
-   // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
-   // NOLINTEND(performance-no-int-to-ptr)
-   // NOLINTEND(modernize-use-nullptr)
-
    p->dirty_ = true;
 }
 
-void GeoLines::Render(const QMapLibre::CustomLayerRenderParameters& params)
+void GeoLines::Render(const QMapLibre::CustomLayerRenderParameters& /* params */)
+{
+}
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void GeoLines::RenderVulkan(
+   QRhiCommandBuffer*                            commandBuffer,
+   render::RhiVulkanOverlayResources&            resources,
+   const QMapLibre::CustomLayerRenderParameters& params,
+   bool /* textureAtlasChanged */)
 {
    if (!p->visible_)
    {
@@ -255,53 +158,40 @@ void GeoLines::Render(const QMapLibre::CustomLayerRenderParameters& params)
 
    std::unique_lock lock {p->lineMutex_};
 
-   if (p->newLineList_.size() > 0)
+   if (p->newLineList_.empty() && p->currentLineList_.empty())
    {
-      glBindVertexArray(p->vao_);
-
-      p->Update();
-      p->shaderProgram_->Use();
-      UseRotationProjection(params, p->uMVPMatrixLocation_);
-      UseMapProjection(
-         params, p->uMapMatrixLocation_, p->uOriginLatLongLocation_);
-
-      if (p->thresholded_)
-      {
-         // If thresholding is enabled, set the map distance
-         units::length::nautical_miles<float> mapDistance =
-            util::maplibre::GetMapDistance(params);
-         glUniform1f(p->uMapDistanceLocation_, mapDistance.value());
-      }
-      else
-      {
-         // If thresholding is disabled, set the map distance to 0
-         glUniform1f(p->uMapDistanceLocation_, 0.0f);
-      }
-
-      // Selected time
-      std::chrono::system_clock::time_point selectedTime =
-         (p->selectedTime_ == std::chrono::system_clock::time_point {}) ?
-            scwx::util::time::now() :
-            p->selectedTime_;
-      glUniform1i(
-         p->uSelectedTimeLocation_,
-         static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
-                               selectedTime.time_since_epoch())
-                               .count()));
-
-      // Draw icons
-      glDrawArrays(GL_TRIANGLES,
-                   0,
-                   static_cast<GLsizei>(p->currentLineList_.size() *
-                                        kVerticesPerRectangle));
+      return;
    }
+
+   if (!p->newLineList_.empty())
+   {
+      p->UpdateModifiedLineBuffers();
+   }
+
+   if (p->currentLinesBuffer_.empty())
+   {
+      return;
+   }
+
+   std::vector<std::int32_t> integerVertices(p->currentIntegerBuffer_.begin(),
+                                             p->currentIntegerBuffer_.end());
+
+   const scwx::qt::render::GeoUniforms uniforms =
+      scwx::qt::render::BuildGeoUniforms(
+         params, p->thresholded_, p->selectedTime_);
+
+   resources.geoColoredGeometry.Render(
+      commandBuffer,
+      uniforms,
+      p->currentLinesBuffer_,
+      integerVertices,
+      static_cast<std::uint32_t>(p->currentLineList_.size() *
+                                 kVerticesPerRectangle));
 }
+#endif
 
 void GeoLines::Deinitialize()
 {
-   glDeleteVertexArrays(1, &p->vao_);
-   glDeleteBuffers(static_cast<GLsizei>(p->vbo_.size()), p->vbo_.data());
-
    std::unique_lock lock {p->lineMutex_};
 
    p->currentLinesBuffer_.clear();
@@ -310,9 +200,7 @@ void GeoLines::Deinitialize()
 }
 
 void GeoLines::SetVisible(bool visible)
-{
-   p->visible_ = visible;
-}
+{ p->visible_ = visible; }
 
 void GeoLines::StartLines()
 {
@@ -337,7 +225,7 @@ void GeoLines::SetLineLocation(const std::shared_ptr<GeoLineDrawItem>& di,
                                float longitude2)
 {
    if (di->latitude1_ != latitude1 || di->longitude1_ != longitude1 ||
-       di->latitude2_ != latitude1 || di->longitude2_ != longitude1)
+       di->latitude2_ != latitude2 || di->longitude2_ != longitude2)
    {
       di->latitude1_  = latitude1;
       di->longitude1_ = longitude1;
@@ -514,21 +402,22 @@ void GeoLines::Impl::UpdateModifiedLineBuffers()
 void GeoLines::Impl::UpdateSingleBuffer(
    const std::shared_ptr<GeoLineDrawItem>& di,
    std::vector<float>&                     lineBuffer,
-   std::vector<GLint>&                     integerBuffer,
+   std::vector<std::int32_t>&              integerBuffer,
    std::unordered_map<std::shared_ptr<GeoLineDrawItem>, LineHoverEntry>&
       hoverLines)
 {
    // Threshold value
    units::length::nautical_miles<double> threshold = di->threshold_;
-   GLint thresholdValue = static_cast<GLint>(std::round(threshold.value()));
+   auto thresholdValue =
+      static_cast<std::int32_t>(std::round(threshold.value()));
 
    // Start and end time
-   GLint startTime =
-      static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
+   auto startTime =
+      static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
                             di->startTime_.time_since_epoch())
                             .count());
-   GLint endTime =
-      static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
+   auto endTime =
+      static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
                             di->endTime_.time_since_epoch())
                             .count());
 
@@ -563,7 +452,7 @@ void GeoLines::Impl::UpdateSingleBuffer(
    const float mc3 = di->modulate_[3];
 
    // Visibility
-   const GLint v = static_cast<GLint>(di->visible_);
+   const auto v = static_cast<std::int32_t>(di->visible_);
 
    // Initiailize line data
    const auto lineData = {
@@ -666,26 +555,6 @@ void GeoLines::Impl::UpdateSingleBuffer(
 void GeoLines::Impl::Update()
 {
    UpdateModifiedLineBuffers();
-
-   // If the lines have been updated
-   if (dirty_)
-   {
-      // Buffer lines data
-      glBindBuffer(GL_ARRAY_BUFFER, vbo_[0]);
-      glBufferData(
-         GL_ARRAY_BUFFER,
-         static_cast<GLsizeiptr>(sizeof(float) * currentLinesBuffer_.size()),
-         currentLinesBuffer_.data(),
-         GL_DYNAMIC_DRAW);
-
-      // Buffer threshold data
-      glBindBuffer(GL_ARRAY_BUFFER, vbo_[1]);
-      glBufferData(
-         GL_ARRAY_BUFFER,
-         static_cast<GLsizeiptr>(sizeof(GLint) * currentIntegerBuffer_.size()),
-         currentIntegerBuffer_.data(),
-         GL_DYNAMIC_DRAW);
-   }
 
    dirty_ = false;
 }
@@ -814,9 +683,7 @@ bool GeoLines::RunMousePicking(
 void GeoLines::RegisterEventHandler(
    const std::shared_ptr<GeoLineDrawItem>& di,
    const std::function<void(QEvent*)>&     eventHandler)
-{
-   di->event_ = eventHandler;
-}
+{ di->event_ = eventHandler; }
 
 } // namespace draw
 } // namespace gl

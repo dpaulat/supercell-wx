@@ -16,8 +16,8 @@ class AlertLayer : public DrawLayer
    Q_DISABLE_COPY_MOVE(AlertLayer)
 
 public:
-   explicit AlertLayer(const std::shared_ptr<gl::GlContext>& glContext,
-                       scwx::awips::Phenomenon               phenomenon);
+   explicit AlertLayer(const std::shared_ptr<render::RenderContext>& renderContext,
+                       scwx::awips::Phenomenon phenomenon);
    ~AlertLayer();
 
    void Initialize(const std::shared_ptr<MapContext>& mapContext) final;

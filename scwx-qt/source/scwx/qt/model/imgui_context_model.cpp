@@ -86,11 +86,13 @@ QModelIndex ImGuiContextModel::IndexOf(const std::string& contextName) const
    return {};
 }
 
-ImGuiContext* ImGuiContextModel::CreateContext(const std::string& name)
+ImGuiContext* ImGuiContextModel::CreateContext(const std::string& name,
+                                               bool shareFontAtlas)
 {
    static size_t nextId_ {0};
 
-   ImGuiContext* context = ImGui::CreateContext(&p->fontAtlas_);
+   ImFontAtlas* atlas = shareFontAtlas ? &p->fontAtlas_ : nullptr;
+   ImGuiContext* context = ImGui::CreateContext(atlas);
    ImGui::SetCurrentContext(context);
 
    // ImGui Configuration
@@ -142,8 +144,14 @@ void ImGuiContextModel::NewFrame()
 {
    static constexpr bool kRendererHasTextures_ = true;
 
+   ImFontAtlas* atlas = &p->fontAtlas_;
+   if (ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().Fonts != nullptr)
+   {
+      atlas = ImGui::GetIO().Fonts;
+   }
+
    ImFontAtlasUpdateNewFrame(
-      &p->fontAtlas_, ++p->frameCount_, kRendererHasTextures_);
+      atlas, ++p->frameCount_, kRendererHasTextures_);
 }
 
 std::vector<ImGuiContextInfo> ImGuiContextModel::contexts() const

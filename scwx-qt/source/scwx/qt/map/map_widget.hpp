@@ -3,7 +3,7 @@
 #include <scwx/common/geographic.hpp>
 #include <scwx/common/products.hpp>
 #include <scwx/qt/config/radar_site.hpp>
-#include <scwx/qt/gl/gl.hpp>
+#include <scwx/qt/render/render_context.hpp>
 #include <scwx/qt/types/capture_types.hpp>
 #include <scwx/qt/types/map_types.hpp>
 #include <scwx/qt/types/radar_product_record.hpp>
@@ -18,21 +18,18 @@
 #include <qmaplibre.hpp>
 
 #include <QGestureEvent>
-#include <QOpenGLWidget>
 #include <QPoint>
 #include <QPropertyAnimation>
 #include <QtGlobal>
 
+#   include <QtWidgets/QRhiWidget>
+
 class QContextMenuEvent;
 class QKeyEvent;
 class QMouseEvent;
+class QRhiCommandBuffer;
 class QResizeEvent;
 class QWheelEvent;
-
-namespace scwx::qt::gl
-{
-class GlContext;
-}
 
 namespace scwx::qt::map
 {
@@ -40,14 +37,16 @@ namespace scwx::qt::map
 class MapAnnotationLayer;
 class MapWidgetImpl;
 
-class MapWidget : public QOpenGLWidget
+using MapWidgetBase = QRhiWidget;
+
+class MapWidget : public MapWidgetBase
 {
    Q_OBJECT
 
 public:
    explicit MapWidget(std::size_t id,
                       const QMapLibre::Settings&,
-                      std::shared_ptr<gl::GlContext> glContext);
+                      std::shared_ptr<render::RenderContext> renderContext);
    ~MapWidget();
 
    void DumpLayerList() const;
@@ -181,9 +180,9 @@ private:
    void wheelEvent(QWheelEvent* ev) final;
    void resizeEvent(QResizeEvent* event) override;
 
-   // QOpenGLWidget implementation.
-   void initializeGL() override final;
-   void paintGL() override final;
+   void initialize(QRhiCommandBuffer* cb) override;
+   void render(QRhiCommandBuffer* cb) override;
+   void releaseResources() override;
 
    std::unique_ptr<MapWidgetImpl> p;
 

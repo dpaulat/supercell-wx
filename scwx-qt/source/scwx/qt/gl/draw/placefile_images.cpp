@@ -5,6 +5,12 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+#   include <scwx/qt/render/rhi_geo_uniforms.hpp>
+#   include <scwx/qt/render/rhi_texture_array_overlay.hpp>
+#   include <scwx/qt/render/rhi_vulkan_overlay.hpp>
+#endif
+
 #include <QDir>
 #include <QUrl>
 #include <boost/unordered/unordered_flat_map.hpp>
@@ -35,14 +41,45 @@ static constexpr std::size_t kTextureBufferLength =
 // Threshold, start time, end time
 static constexpr std::size_t kIntegersPerVertex_ = 3;
 
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+static constexpr std::size_t kGeoFloatsPerVertex_ = 12;
+
+static std::vector<float>
+MergeGeoImageVertices(const std::vector<float>& imageBuffer,
+                      const std::vector<float>& textureBuffer)
+{
+   const std::size_t vertexCount = imageBuffer.size() / kPointsPerVertex;
+   std::vector<float> merged(vertexCount * kGeoFloatsPerVertex_);
+
+   for (std::size_t v = 0; v < vertexCount; ++v)
+   {
+      const std::size_t imageOffset  = v * kPointsPerVertex;
+      const std::size_t texOffset    = v * kPointsPerTexCoord;
+      const std::size_t mergedOffset = v * kGeoFloatsPerVertex_;
+
+      merged[mergedOffset + 0]  = imageBuffer[imageOffset + 0];
+      merged[mergedOffset + 1]  = imageBuffer[imageOffset + 1];
+      merged[mergedOffset + 2]  = imageBuffer[imageOffset + 2];
+      merged[mergedOffset + 3]  = imageBuffer[imageOffset + 3];
+      merged[mergedOffset + 4]  = textureBuffer[texOffset + 0];
+      merged[mergedOffset + 5]  = textureBuffer[texOffset + 1];
+      merged[mergedOffset + 6]  = textureBuffer[texOffset + 2];
+      merged[mergedOffset + 7]  = imageBuffer[imageOffset + 4];
+      merged[mergedOffset + 8]  = imageBuffer[imageOffset + 5];
+      merged[mergedOffset + 9]  = imageBuffer[imageOffset + 6];
+      merged[mergedOffset + 10] = imageBuffer[imageOffset + 7];
+      merged[mergedOffset + 11] = 0.0f;
+   }
+
+   return merged;
+}
+#endif
+
 class PlacefileImages::Impl
 {
 public:
-   explicit Impl(const std::shared_ptr<GlContext>& context) :
+   explicit Impl(const std::shared_ptr<render::RenderContext>& context) :
        context_ {context},
-       shaderProgram_ {nullptr},
-       vao_ {GL_INVALID_INDEX},
-       vbo_ {GL_INVALID_INDEX},
        numVertices_ {0}
    {
    }
@@ -52,8 +89,11 @@ public:
    void UpdateBuffers();
    void UpdateTextureBuffer();
    void Update(bool textureAtlasChanged);
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   void UpdateVulkan(bool textureAtlasChanged);
+#endif
 
-   std::shared_ptr<GlContext> context_;
+   std::shared_ptr<render::RenderContext> context_;
 
    std::string baseUrl_ {};
 
@@ -74,28 +114,18 @@ public:
    std::vector<std::shared_ptr<const gr::Placefile::ImageDrawItem>>
       newImageList_ {};
 
-   std::vector<float> currentImageBuffer_ {};
-   std::vector<GLint> currentIntegerBuffer_ {};
-   std::vector<float> newImageBuffer_ {};
-   std::vector<GLint> newIntegerBuffer_ {};
+   std::vector<float>        currentImageBuffer_ {};
+   std::vector<std::int32_t> currentIntegerBuffer_ {};
+   std::vector<float>        newImageBuffer_ {};
+   std::vector<std::int32_t> newIntegerBuffer_ {};
 
    std::vector<float> textureBuffer_ {};
 
-   std::shared_ptr<ShaderProgram> shaderProgram_;
-
-   GLint uMVPMatrixLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-   GLint uMapMatrixLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-   GLint uOriginLatLongLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-   GLint uMapDistanceLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-   GLint uSelectedTimeLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-
-   GLuint                vao_;
-   std::array<GLuint, 3> vbo_;
-
-   GLsizei numVertices_;
+   std::uint32_t numVertices_;
 };
 
-PlacefileImages::PlacefileImages(const std::shared_ptr<GlContext>& context) :
+PlacefileImages::PlacefileImages(
+   const std::shared_ptr<render::RenderContext>& context) :
     DrawItem(), p(std::make_unique<Impl>(context))
 {
 }
@@ -118,153 +148,62 @@ void PlacefileImages::set_thresholded(bool thresholded)
 
 void PlacefileImages::Initialize()
 {
-   p->shaderProgram_ = p->context_->GetShaderProgram(
-      {{GL_VERTEX_SHADER, ":/gl/geo_texture2d.vert"},
-       {GL_GEOMETRY_SHADER, ":/gl/threshold.geom"},
-       {GL_FRAGMENT_SHADER, ":/gl/texture2d_array.frag"}});
-
-   p->uMVPMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMVPMatrix");
-   p->uMapMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMapMatrix");
-   p->uOriginLatLongLocation_ =
-      p->shaderProgram_->GetUniformLocation("uOriginLatLong");
-   p->uMapDistanceLocation_ =
-      p->shaderProgram_->GetUniformLocation("uMapDistance");
-   p->uSelectedTimeLocation_ =
-      p->shaderProgram_->GetUniformLocation("uSelectedTime");
-
-   glGenVertexArrays(1, &p->vao_);
-   glGenBuffers(static_cast<GLsizei>(p->vbo_.size()), p->vbo_.data());
-
-   glBindVertexArray(p->vao_);
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
-   glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
-
-   // NOLINTBEGIN(modernize-use-nullptr)
-   // NOLINTBEGIN(performance-no-int-to-ptr)
-   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
-
-   // aLatLong
-   glVertexAttribPointer(0,
-                         2,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         static_cast<void*>(0));
-   glEnableVertexAttribArray(0);
-
-   // aXYOffset
-   glVertexAttribPointer(1,
-                         2,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(2 * sizeof(float)));
-   glEnableVertexAttribArray(1);
-
-   // aModulate
-   glVertexAttribPointer(3,
-                         4,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(4 * sizeof(float)));
-   glEnableVertexAttribArray(3);
-
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
-   glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
-
-   // aTexCoord
-   glVertexAttribPointer(2,
-                         3,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerTexCoord * sizeof(float),
-                         static_cast<void*>(0));
-   glEnableVertexAttribArray(2);
-
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[2]);
-   glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
-
-   // aThreshold
-   glVertexAttribIPointer(5, //
-                          1,
-                          GL_INT,
-                          kIntegersPerVertex_ * sizeof(GLint),
-                          static_cast<void*>(0));
-   glEnableVertexAttribArray(5);
-
-   // aTimeRange
-   glVertexAttribIPointer(6, //
-                          2,
-                          GL_INT,
-                          kIntegersPerVertex_ * sizeof(GLint),
-                          reinterpret_cast<void*>(1 * sizeof(GLint)));
-   glEnableVertexAttribArray(6);
-
-   // aDisplayed
-   glVertexAttribI1i(7, 1);
-
-   // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
-   // NOLINTEND(performance-no-int-to-ptr)
-   // NOLINTEND(modernize-use-nullptr)
-
-   p->dirty_ = true;
 }
 
 void PlacefileImages::Render(
+   const QMapLibre::CustomLayerRenderParameters& /* params */,
+   bool                                          /* textureAtlasChanged */)
+{
+}
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void PlacefileImages::RenderVulkan(
+   QRhiCommandBuffer*                            commandBuffer,
+   render::RhiVulkanOverlayResources&            resources,
    const QMapLibre::CustomLayerRenderParameters& params,
    bool                                          textureAtlasChanged)
 {
    std::unique_lock lock {p->imageMutex_};
 
-   if (!p->currentImageList_.empty())
+   if (p->currentImageList_.empty())
    {
-      glBindVertexArray(p->vao_);
-
-      p->Update(textureAtlasChanged);
-      p->shaderProgram_->Use();
-      UseRotationProjection(params, p->uMVPMatrixLocation_);
-      UseMapProjection(
-         params, p->uMapMatrixLocation_, p->uOriginLatLongLocation_);
-
-      if (p->thresholded_)
-      {
-         // If thresholding is enabled, set the map distance
-         units::length::nautical_miles<float> mapDistance =
-            util::maplibre::GetMapDistance(params);
-         glUniform1f(p->uMapDistanceLocation_, mapDistance.value());
-      }
-      else
-      {
-         // If thresholding is disabled, set the map distance to 0
-         glUniform1f(p->uMapDistanceLocation_, 0.0f);
-      }
-
-      // Selected time
-      std::chrono::system_clock::time_point selectedTime =
-         (p->selectedTime_ == std::chrono::system_clock::time_point {}) ?
-            scwx::util::time::now() :
-            p->selectedTime_;
-      glUniform1i(
-         p->uSelectedTimeLocation_,
-         static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
-                               selectedTime.time_since_epoch())
-                               .count()));
-
-      // Interpolate texture coordinates
-      glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-      // Draw images
-      glDrawArrays(GL_TRIANGLES, 0, p->numVertices_);
+      return;
    }
+
+   p->UpdateVulkan(textureAtlasChanged);
+
+   resources.textureArrayOverlay.SyncAtlas(
+      commandBuffer, p->context_->texture_buffer_count());
+
+   const std::vector<float> mergedVertices =
+      MergeGeoImageVertices(p->currentImageBuffer_, p->textureBuffer_);
+
+   std::vector<std::int32_t> integerVertices;
+   integerVertices.reserve(p->currentIntegerBuffer_.size() / kIntegersPerVertex_ *
+                           4);
+   for (std::size_t i = 0; i < p->currentIntegerBuffer_.size();
+        i += kIntegersPerVertex_)
+   {
+      integerVertices.push_back(p->currentIntegerBuffer_[i]);
+      integerVertices.push_back(p->currentIntegerBuffer_[i + 1]);
+      integerVertices.push_back(p->currentIntegerBuffer_[i + 2]);
+      integerVertices.push_back(1);
+   }
+
+   const scwx::qt::render::GeoUniforms uniforms =
+      scwx::qt::render::BuildGeoUniforms(params, p->thresholded_, p->selectedTime_);
+
+   resources.textureArrayOverlay.RenderGeo(commandBuffer,
+                                         uniforms,
+                                         mergedVertices,
+                                         integerVertices,
+                                         static_cast<std::uint32_t>(
+                                            p->numVertices_));
 }
+#endif
 
 void PlacefileImages::Deinitialize()
 {
-   glDeleteVertexArrays(1, &p->vao_);
-   glDeleteBuffers(static_cast<GLsizei>(p->vbo_.size()), p->vbo_.data());
-
    std::unique_lock lock {p->imageMutex_};
 
    p->currentImageList_.clear();
@@ -342,15 +281,16 @@ void PlacefileImages::Impl::UpdateBuffers()
 
       // Threshold value
       units::length::nautical_miles<double> threshold = di->threshold_;
-      GLint thresholdValue = static_cast<GLint>(std::round(threshold.value()));
+      auto thresholdValue =
+         static_cast<std::int32_t>(std::round(threshold.value()));
 
       // Start and end time
-      GLint startTime =
-         static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
+      auto startTime =
+         static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
                                di->startTime_.time_since_epoch())
                                .count());
-      GLint endTime =
-         static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
+      auto endTime =
+         static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
                                di->endTime_.time_since_epoch())
                                .count());
 
@@ -412,52 +352,49 @@ void PlacefileImages::Impl::UpdateTextureBuffer()
 
 void PlacefileImages::Impl::Update(bool textureAtlasChanged)
 {
-   // If the texture atlas has changed
    if (dirty_ || textureAtlasChanged)
    {
-      // Update texture coordinates
       for (auto& imageFile : currentImageFiles_)
       {
          imageFile.second.UpdateTextureInfo();
       }
 
-      // Update OpenGL texture buffer data
       UpdateTextureBuffer();
-
-      // Buffer texture data
-      glBindBuffer(GL_ARRAY_BUFFER, vbo_[1]);
-      glBufferData(
-         GL_ARRAY_BUFFER,
-         static_cast<GLsizeiptr>(sizeof(float) * textureBuffer_.size()),
-         textureBuffer_.data(),
-         GL_DYNAMIC_DRAW);
    }
 
-   // If buffers need updating
    if (dirty_)
    {
-      // Buffer vertex data
-      glBindBuffer(GL_ARRAY_BUFFER, vbo_[0]);
-      glBufferData(
-         GL_ARRAY_BUFFER,
-         static_cast<GLsizeiptr>(sizeof(float) * currentImageBuffer_.size()),
-         currentImageBuffer_.data(),
-         GL_DYNAMIC_DRAW);
-
-      // Buffer threshold data
-      glBindBuffer(GL_ARRAY_BUFFER, vbo_[2]);
-      glBufferData(
-         GL_ARRAY_BUFFER,
-         static_cast<GLsizeiptr>(sizeof(GLint) * currentIntegerBuffer_.size()),
-         currentIntegerBuffer_.data(),
-         GL_DYNAMIC_DRAW);
-
       numVertices_ =
-         static_cast<GLsizei>(currentImageBuffer_.size() / kPointsPerVertex);
+         static_cast<std::uint32_t>(currentImageBuffer_.size() /
+                                    kPointsPerVertex);
    }
 
    dirty_ = false;
 }
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void PlacefileImages::Impl::UpdateVulkan(bool textureAtlasChanged)
+{
+   if (dirty_ || textureAtlasChanged)
+   {
+      for (auto& imageFile : currentImageFiles_)
+      {
+         imageFile.second.UpdateTextureInfo();
+      }
+
+      UpdateTextureBuffer();
+   }
+
+   if (dirty_)
+   {
+      numVertices_ =
+         static_cast<std::uint32_t>(currentImageBuffer_.size() /
+                                    kPointsPerVertex);
+   }
+
+   dirty_ = false;
+}
+#endif
 
 } // namespace draw
 } // namespace gl

@@ -1,6 +1,9 @@
 #include <scwx/qt/map/map_annotation_layer.hpp>
+#include <scwx/qt/map/map_rhi_renderer.hpp>
+#   include <scwx/qt/map/map_imgui_vulkan_renderer.hpp>
+#   include <scwx/qt/map/map_overlay_renderer.hpp>
 #include <scwx/qt/map/map_widget.hpp>
-#include <scwx/qt/gl/gl.hpp>
+#include <scwx/qt/render/render_backend.hpp>
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/hotkey_manager.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
@@ -37,6 +40,8 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
+#include <functional>
 #include <limits>
 #include <optional>
 #include <ranges>
@@ -45,7 +50,6 @@
 #include <unordered_set>
 #include <utility>
 
-#include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_qt.hpp>
 #include <boost/algorithm/string/erase.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -76,6 +80,8 @@
 #include <QStyleHints>
 #include <QTextDocument>
 #include <QTimer>
+
+#   include <QtWidgets/qrhiwidget.h>
 
 namespace scwx::qt::map
 {
@@ -145,7 +151,7 @@ QString FormatMeasurementDistance(double meters)
       settings::UnitSettings::Instance().distance_units().GetValue());
    const double display = meters * scwx::common::kKilometersPerMeter *
                           types::GetDistanceUnitsScale(units);
-   std::string abbrev = types::GetDistanceUnitsAbbreviation(units);
+   std::string  abbrev  = types::GetDistanceUnitsAbbreviation(units);
    if (abbrev.empty())
    {
       abbrev = "user";
@@ -185,10 +191,10 @@ public:
    explicit MapWidgetImpl(MapWidget*                     widget,
                           std::size_t                    id,
                           QMapLibre::Settings            settings,
-                          std::shared_ptr<gl::GlContext> glContext) :
+                          std::shared_ptr<render::RenderContext> renderContext) :
        id_ {id},
        uuid_ {boost::uuids::random_generator()()},
-       glContext_ {std::move(glContext)},
+       renderContext_ {std::move(renderContext)},
        widget_ {widget},
        settings_(std::move(settings)),
        map_(),
@@ -234,8 +240,13 @@ public:
       // Create ImGui Context
       static size_t currentMapId_ {0u};
       imGuiContextName_ = fmt::format("Map {}", ++currentMapId_);
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+      imGuiContext_ = model::ImGuiContextModel::Instance().CreateContext(
+         imGuiContextName_, false);
+#else
       imGuiContext_ =
          model::ImGuiContextModel::Instance().CreateContext(imGuiContextName_);
+#endif
 
       // Initialize ImGui Qt backend
       ImGui_ImplQt_Init();
@@ -261,14 +272,20 @@ public:
       ImGui::SetCurrentContext(imGuiContext_);
 
       // Shutdown ImGui Context
-      if (imGuiRendererInitialized_)
-      {
-         ImGui_ImplOpenGL3_Shutdown();
-      }
+      imguiVulkanRenderer_.Shutdown();
       ImGui_ImplQt_Shutdown();
 
       // Destroy ImGui Context
       model::ImGuiContextModel::Instance().DestroyContext(imGuiContextName_);
+
+      if (map_ != nullptr)
+      {
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+         rhiRenderer_.ReleaseMapRenderer(map_.get());
+#else
+         map_->destroyRenderer();
+#endif
+      }
 
       threadPool_.join();
    }
@@ -300,6 +317,15 @@ public:
    void RunMousePicking();
    void ScreenCaptureCopy();
    void ScreenCaptureSaveImage();
+#if !defined(SCWX_RENDER_BACKEND_VULKAN)
+   void RenderFrameOpenGl();
+#endif
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   void               RenderFrameVulkan(QRhiCommandBuffer* commandBuffer);
+   void               EnsureImGuiRenderer(QRhiCommandBuffer* commandBuffer);
+   [[nodiscard]] bool MapStyleReadyForRender() const
+   { return mapChangedOnce_ || mapStylePending_; }
+#endif
    void SelectNearestRadarSite(double                     latitude,
                                double                     longitude,
                                std::optional<std::string> type);
@@ -311,8 +337,8 @@ public:
    void                  UpdateMeasureLabels();
    void                  UpdateColorTable(const std::string& colorPalette);
    void                  UpdateColorTable(
-                       const std::string&                             colorPalette,
-                       const std::shared_ptr<view::RadarProductView>& radarProductView);
+      const std::string&                             colorPalette,
+      const std::shared_ptr<view::RadarProductView>& radarProductView);
    void UpdateLoadedStyle();
    bool UpdateStoredMapParameters();
    void CheckLevel3Availability();
@@ -337,7 +363,7 @@ public:
    boost::uuids::uuid uuid_;
 
    std::shared_ptr<MapContext>    context_ {std::make_shared<MapContext>()};
-   std::shared_ptr<gl::GlContext> glContext_;
+   std::shared_ptr<render::RenderContext> renderContext_;
 
    MapWidget*                      widget_;
    QMapLibre::Settings             settings_;
@@ -439,24 +465,31 @@ public:
    std::unordered_map<std::string, size_t> tiltsToIndices_;
    size_t                                  currentTiltIndex_ {0};
 
+   MapRhiRenderer rhiRenderer_ {};
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   MapImGuiVulkanRenderer imguiVulkanRenderer_ {};
+   MapOverlayRenderer     overlayRenderer_ {};
+   bool                   vulkanRenderingInitialized_ {false};
+   std::uint64_t          imguiOverlayGeneration_ {0};
+   bool                   smokeCaptureQueued_ {false};
+#endif
+
 public slots:
    void Update();
 };
 
 MapWidget::MapWidget(std::size_t                    id,
                      const QMapLibre::Settings&     settings,
-                     std::shared_ptr<gl::GlContext> glContext) :
-    p(std::make_unique<MapWidgetImpl>(this, id, settings, std::move(glContext)))
+                     std::shared_ptr<render::RenderContext> renderContext) :
+    p(std::make_unique<MapWidgetImpl>(
+       this, id, settings, std::move(renderContext)))
 {
+   setApi(QRhiWidget::Api::Vulkan);
+   setAutoRenderTarget(true);
+   setMirrorVertically(false);
+
    p->SetRadarSite(
       settings::GeneralSettings::Instance().default_radar_site().GetValue());
-
-   if (settings::GeneralSettings::Instance().anti_aliasing_enabled().GetValue())
-   {
-      QSurfaceFormat surfaceFormat = QSurfaceFormat::defaultFormat();
-      surfaceFormat.setSamples(4);
-      setFormat(surfaceFormat);
-   }
 
    setFocusPolicy(Qt::StrongFocus);
    setMouseTracking(true);
@@ -479,8 +512,9 @@ MapWidget::MapWidget(std::size_t                    id,
 
 MapWidget::~MapWidget()
 {
-   // Make sure we have a valid context so we can delete the QMapLibre.
+#if !defined(SCWX_RENDER_BACKEND_VULKAN)
    makeCurrent();
+#endif
 }
 
 void MapWidgetImpl::InitializeCustomStyles()
@@ -1016,9 +1050,7 @@ std::uint16_t MapWidget::GetVcp() const
 }
 
 bool MapWidget::GetRadarWireframeEnabled() const
-{
-   return p->context_->settings().radarWireframeEnabled_;
-}
+{ return p->context_->settings().radarWireframeEnabled_; }
 
 void MapWidget::SetRadarWireframeEnabled(bool wireframeEnabled)
 {
@@ -1028,9 +1060,7 @@ void MapWidget::SetRadarWireframeEnabled(bool wireframeEnabled)
 }
 
 bool MapWidget::GetSmoothingEnabled() const
-{
-   return p->smoothingEnabled_;
-}
+{ return p->smoothingEnabled_; }
 
 void MapWidget::SetSmoothingEnabled(bool smoothingEnabled)
 {
@@ -1449,9 +1479,7 @@ void MapWidgetImpl::RequestRepaint()
 }
 
 void MapWidgetImpl::CancelPaneContextMenuDebounce()
-{
-   ++paneContextMenuDebounce_;
-}
+{ ++paneContextMenuDebounce_; }
 
 void MapWidgetImpl::GetMapViewParameters(double& latitude,
                                          double& longitude,
@@ -1482,14 +1510,10 @@ void MapWidget::GetMapViewParameters(double& latitude,
                                      double& zoom,
                                      double& bearing,
                                      double& pitch) const
-{
-   p->GetMapViewParameters(latitude, longitude, zoom, bearing, pitch);
-}
+{ p->GetMapViewParameters(latitude, longitude, zoom, bearing, pitch); }
 
 void MapWidget::SetInitialMapStyle(const std::string& styleName)
-{
-   p->initialStyleName_ = styleName;
-}
+{ p->initialStyleName_ = styleName; }
 
 void MapWidget::SetMapStyle(const std::string& styleName, bool force)
 {
@@ -1548,9 +1572,7 @@ void MapWidget::UpdateMouseCoordinate(const common::Coordinate& coordinate)
 }
 
 qreal MapWidget::pixelRatio()
-{
-   return devicePixelRatioF();
-}
+{ return devicePixelRatioF(); }
 
 void MapWidget::changeStyle()
 {
@@ -1598,6 +1620,15 @@ void MapWidgetImpl::AddLayers()
    logger_->debug("Add Layers");
 
    // Clear custom layers
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   for (const auto& layer : genericLayers_)
+   {
+      if (layer != nullptr)
+      {
+         layer->Deinitialize();
+      }
+   }
+#endif
    for (const std::string& id : layerList_)
    {
       map_->removeLayer(id.c_str());
@@ -1646,7 +1677,7 @@ void MapWidgetImpl::AddLayers()
 
    if (annotationLayer_ == nullptr)
    {
-      annotationLayer_ = std::make_shared<MapAnnotationLayer>(glContext_);
+      annotationLayer_ = std::make_shared<MapAnnotationLayer>(renderContext_);
       QObject::connect(annotationLayer_.get(),
                        &MapAnnotationLayer::ToolChanged,
                        widget_,
@@ -1681,7 +1712,7 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
       // If there is a radar product view, create the radar product layer
       if (radarProductView != nullptr)
       {
-         radarProductLayer_ = std::make_shared<RadarProductLayer>(glContext_);
+         radarProductLayer_ = std::make_shared<RadarProductLayer>(renderContext_);
          AddLayer(layerName, radarProductLayer_, before);
       }
    }
@@ -1690,7 +1721,7 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
       auto phenomenon = std::get<awips::Phenomenon>(description);
 
       std::shared_ptr<AlertLayer> alertLayer =
-         std::make_shared<AlertLayer>(glContext_, phenomenon);
+         std::make_shared<AlertLayer>(renderContext_, phenomenon);
       AddLayer(fmt::format("alert.{}", awips::GetPhenomenonCode(phenomenon)),
                alertLayer,
                before);
@@ -1714,7 +1745,7 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
       {
       // Create the map overlay layer
       case types::InformationLayer::MapOverlay:
-         overlayLayer_ = std::make_shared<OverlayLayer>(glContext_);
+         overlayLayer_ = std::make_shared<OverlayLayer>(renderContext_);
          AddLayer(layerName, overlayLayer_, before);
          break;
 
@@ -1722,14 +1753,14 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
       case types::InformationLayer::ColorTable:
          if (radarProductView != nullptr)
          {
-            colorTableLayer_ = std::make_shared<ColorTableLayer>(glContext_);
+            colorTableLayer_ = std::make_shared<ColorTableLayer>(renderContext_);
             AddLayer(layerName, colorTableLayer_, before);
          }
          break;
 
       // Create the radar site layer
       case types::InformationLayer::RadarSite:
-         radarSiteLayer_ = std::make_shared<RadarSiteLayer>(glContext_);
+         radarSiteLayer_ = std::make_shared<RadarSiteLayer>(renderContext_);
          AddLayer(layerName, radarSiteLayer_, before);
          connect(radarSiteLayer_.get(),
                  &RadarSiteLayer::RadarSiteSelected,
@@ -1752,7 +1783,7 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
 
       // Create the location marker layer
       case types::InformationLayer::Markers:
-         markerLayer_ = std::make_shared<MarkerLayer>(glContext_);
+         markerLayer_ = std::make_shared<MarkerLayer>(renderContext_);
          AddLayer(layerName, markerLayer_, before);
          break;
 
@@ -1769,7 +1800,7 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
          if (radarProductView != nullptr)
          {
             overlayProductLayer_ =
-               std::make_shared<OverlayProductLayer>(glContext_);
+               std::make_shared<OverlayProductLayer>(renderContext_);
             AddLayer(layerName, overlayProductLayer_, before);
          }
          break;
@@ -1800,7 +1831,7 @@ void MapWidgetImpl::AddPlacefileLayer(const std::string& placefileName,
                                       const std::string& before)
 {
    std::shared_ptr<PlacefileLayer> placefileLayer =
-      std::make_shared<PlacefileLayer>(glContext_, placefileName);
+      std::make_shared<PlacefileLayer>(renderContext_, placefileName);
    placefileLayers_.push_back(placefileLayer);
    AddLayer(GetPlacefileLayerName(placefileName), placefileLayer, before);
 
@@ -1813,14 +1844,13 @@ void MapWidgetImpl::AddPlacefileLayer(const std::string& placefileName,
 
 std::string
 MapWidgetImpl::GetPlacefileLayerName(const std::string& placefileName)
-{
-   return types::GetLayerName(types::LayerType::Placefile, placefileName);
-}
+{ return types::GetLayerName(types::LayerType::Placefile, placefileName); }
 
 void MapWidgetImpl::AddLayer(const std::string&                   id,
                              const std::shared_ptr<GenericLayer>& layer,
                              const std::string&                   before)
 {
+#if !defined(SCWX_RENDER_BACKEND_VULKAN)
    // QMapLibre::addCustomLayer will take ownership of the std::unique_ptr
    std::unique_ptr<QMapLibre::CustomLayerHostInterface> pHost =
       std::make_unique<LayerWrapper>(layer, context_);
@@ -1841,6 +1871,20 @@ void MapWidgetImpl::AddLayer(const std::string&                   id,
    {
       // When dragging and dropping, a temporary duplicate layer exists
    }
+#else
+   // MapLibre custom layers use the GL host interface and have no Vulkan
+   // render factory. Track them locally and draw via MapOverlayRenderer.
+   (void) before;
+   layerList_.push_back(id);
+   genericLayers_.push_back(layer);
+
+   layer->Initialize(context_);
+
+   connect(layer.get(),
+           &GenericLayer::NeedsRendering,
+           widget_,
+           static_cast<void (QWidget::*)()>(&QWidget::update));
+#endif
 }
 
 bool MapWidget::event(QEvent* e)
@@ -1860,6 +1904,18 @@ bool MapWidget::event(QEvent* e)
    }
    pickedEventHandler.reset();
 
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   if (e->type() == QEvent::Type::ParentAboutToChange)
+   {
+      p->vulkanRenderingInitialized_ = false;
+      releaseResources();
+   }
+   else if (e->type() == QEvent::Type::ParentChange)
+   {
+      p->vulkanRenderingInitialized_ = false;
+   }
+#endif
+
    switch (e->type())
    {
    case QEvent::Type::Gesture:
@@ -1872,7 +1928,7 @@ bool MapWidget::event(QEvent* e)
       break;
    }
 
-   return QOpenGLWidget::event(e);
+   return MapWidgetBase::event(e);
 }
 
 void MapWidget::enterEvent(QEnterEvent* /* ev */)
@@ -2132,18 +2188,18 @@ void MapWidget::mouseReleaseEvent(QMouseEvent* ev)
 }
 
 std::shared_ptr<MapAnnotationLayer> MapWidget::map_annotation_layer() const
-{
-   return p->annotationLayer_;
-}
+{ return p->annotationLayer_; }
 
 void MapWidget::SyncEraseCursor()
-{
-   p->UpdateAnnotationCursor();
-}
+{ p->UpdateAnnotationCursor(); }
 
 void MapWidget::resizeEvent(QResizeEvent* event)
 {
-   QOpenGLWidget::resizeEvent(event);
+   MapWidgetBase::resizeEvent(event);
+   if (p->map_ != nullptr)
+   {
+      p->map_->resize(size(), pixelRatio());
+   }
    p->UpdateAnnotationCursor();
 }
 
@@ -2330,25 +2386,33 @@ void MapWidget::wheelEvent(QWheelEvent* ev)
    ev->accept();
 }
 
-void MapWidget::initializeGL()
+void MapWidget::initialize(QRhiCommandBuffer* cb)
 {
-   logger_->debug("initializeGL()");
+   Q_UNUSED(cb);
 
-   makeCurrent();
+   logger_->debug("initialize()");
 
-   p->glContext_->Initialize();
-
-   // Lock ImGui font atlas prior to new ImGui frame
-   std::shared_lock imguiFontAtlasLock {
-      manager::FontManager::Instance().imgui_font_atlas_mutex()};
-
-   // Initialize ImGui OpenGL3 backend
-   ImGui::SetCurrentContext(p->imGuiContext_);
-   ImGui_ImplQt_RegisterWidget(this);
-   ImGui_ImplOpenGL3_Init();
-   p->imGuiRendererInitialized_ = true;
+   if (p->vulkanRenderingInitialized_)
+   {
+      if (p->map_ != nullptr)
+      {
+         p->map_->resize(size(), pixelRatio());
+      }
+      return;
+   }
 
    p->ResetMap(p->initialStyleName_);
+   p->rhiRenderer_.InitializeMapRenderer(
+      rhi(),
+      window() != nullptr ? window()->windowHandle() : nullptr,
+      p->map_.get());
+
+   std::shared_lock imguiFontAtlasLock {
+      manager::FontManager::Instance().imgui_font_atlas_mutex()};
+   ImGui::SetCurrentContext(p->imGuiContext_);
+
+   p->overlayRenderer_.Initialize(rhi());
+   p->vulkanRenderingInitialized_ = true;
 
    p->UpdateStoredMapParameters();
    Q_EMIT MapParametersChanged(p->prevLatitude_,
@@ -2356,6 +2420,26 @@ void MapWidget::initializeGL()
                                p->prevZoom_,
                                p->prevBearing_,
                                p->prevPitch_);
+
+   if (p->map_ != nullptr)
+   {
+      p->map_->triggerRepaint();
+   }
+}
+
+void MapWidget::releaseResources()
+{
+   logger_->debug("releaseResources()");
+
+   if (p->map_ != nullptr)
+   {
+      p->rhiRenderer_.ReleaseMapRenderer(p->map_.get());
+   }
+
+   p->imguiVulkanRenderer_.Shutdown();
+   p->overlayRenderer_.Shutdown();
+   p->imGuiRendererInitialized_   = false;
+   p->vulkanRenderingInitialized_ = false;
 }
 
 void MapWidgetImpl::ResetMap(const std::string& styleName)
@@ -2369,6 +2453,15 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
    // Determine whether this is the first-time initialization or a runtime reset
    const bool hadExistingMap = static_cast<bool>(map_);
 
+   if (hadExistingMap)
+   {
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+      rhiRenderer_.ReleaseMapRenderer(map_.get());
+#else
+      map_->destroyRenderer();
+#endif
+   }
+
    map_ = std::make_shared<QMapLibre::Map>(
       nullptr, settings_, widget_->size(), widget_->pixelRatio());
    context_->set_map(map_);
@@ -2380,6 +2473,8 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
    if (hadExistingMap)
    {
       map_->setCoordinateZoom({prevLatitude_, prevLongitude_}, prevZoom_);
+      map_->setBearing(prevBearing_);
+      map_->setPitch(prevPitch_);
    }
    else
    {
@@ -2395,6 +2490,9 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
       {
          map_->setCoordinateZoom({prevLatitude_, prevLongitude_}, prevZoom_);
       }
+
+      map_->setBearing(0.0);
+      map_->setPitch(0.0);
    }
 
    // Update style
@@ -2434,6 +2532,19 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
                  widget_->SetMapStyle("None");
               }
            });
+
+#if !defined(SCWX_RENDER_BACKEND_VULKAN)
+   map_->createRenderer(nullptr);
+#elif defined(SCWX_RENDER_BACKEND_VULKAN)
+   if (vulkanRenderingInitialized_)
+   {
+      rhiRenderer_.InitializeMapRenderer(widget_->rhi(),
+                                         widget_->window() != nullptr ?
+                                            widget_->window()->windowHandle() :
+                                            nullptr,
+                                         map_.get());
+   }
+#endif
 }
 
 std::string
@@ -2456,107 +2567,271 @@ MapWidgetImpl::ResolveMapStyleName(const std::string& preferredStyleName) const
              "None";
 }
 
-void MapWidget::paintGL()
+void MapWidgetImpl::EnsureImGuiRenderer(QRhiCommandBuffer* commandBuffer)
 {
-   // Check for screen capture
-   const types::CaptureType currentCaptureType = p->screenCaptureRequested_;
-   if (p->screenCaptureRequested_ != types::CaptureType::None)
+   ImGui::SetCurrentContext(imGuiContext_);
+
+   if (commandBuffer == nullptr || widget_->colorTexture() == nullptr)
    {
-      p->screenCaptureRequested_ = types::CaptureType::None;
-      p->context_->set_screen_capture(true);
+      imGuiRendererInitialized_ = false;
+      return;
    }
 
-   p->isPainting_ = true;
-
-   auto defaultFont = manager::FontManager::Instance().GetImGuiFont(
-      types::FontCategory::Default);
-
-   p->frameDraws_++;
-
-   p->glContext_->StartFrame();
-
-   // Handle hotkey updates
-   p->HandleHotkeyUpdates();
-
-   // Lock ImGui font atlas prior to new ImGui frame
-   std::shared_lock imguiFontAtlasLock {
-      manager::FontManager::Instance().imgui_font_atlas_mutex()};
-
-   // Update pixel ratio
-   p->context_->set_pixel_ratio(pixelRatio());
-
-   // Render QMapLibre Map
-   p->map_->resize(size());
-   p->map_->setOpenGLFramebufferObject(defaultFramebufferObject(),
-                                       size() * pixelRatio());
-   p->map_->render();
-   p->UpdateMeasureLabels();
-
-   // ImGui tool tip code
-   // Setup ImGui Frame
-   ImGui::SetCurrentContext(p->imGuiContext_);
-
-   // Start ImGui Frame
-   model::ImGuiContextModel::Instance().NewFrame();
-   ImGui_ImplQt_NewFrame(this);
-   ImGui_ImplOpenGL3_NewFrame();
-   ImGui::NewFrame();
-
-   // Set default font
-   ImGui::PushFont(defaultFont.first->font(), defaultFont.second.value());
-
-   // Perform mouse picking
-   if (p->hasMouse_)
+   if (!overlayRenderer_.EnsureRenderTarget(commandBuffer,
+                                            widget_->colorTexture()))
    {
-      p->RunMousePicking();
-   }
-   else if (p->lastItemPicked_)
-   {
-      // Hide the tooltip when losing focus
-      util::tooltip::Hide();
-
-      p->lastItemPicked_ = false;
+      imGuiRendererInitialized_ = false;
+      return;
    }
 
-   // Pop default font
-   ImGui::PopFont();
+   const std::uint64_t overlayGeneration =
+      overlayRenderer_.GetRenderTargetGeneration();
+   if (overlayGeneration != imguiOverlayGeneration_)
+   {
+      if (imguiVulkanRenderer_.IsInitialized())
+      {
+         imguiVulkanRenderer_.Shutdown();
+      }
+      imguiOverlayGeneration_ = overlayGeneration;
+   }
 
-   // Render ImGui Frame
-   ImGui::Render();
-   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+   void* renderPass = overlayRenderer_.GetNativeRenderPass();
+   if (renderPass == nullptr)
+   {
+      imGuiRendererInitialized_ = false;
+      return;
+   }
 
-   // Unlock ImGui font atlas after rendering
-   imguiFontAtlasLock.unlock();
+   if (!imguiVulkanRenderer_.IsInitialized())
+   {
+      imguiVulkanRenderer_.Initialize(
+         widget_->rhi(), widget_->colorTexture(), renderPass);
+   }
 
-   // Paint complete
-   Q_EMIT WidgetPainted();
+   imGuiRendererInitialized_ = imguiVulkanRenderer_.IsInitialized();
+}
 
-   p->isPainting_ = false;
+void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
+{
+   if (!vulkanRenderingInitialized_ || map_ == nullptr ||
+       commandBuffer == nullptr)
+   {
+      return;
+   }
 
-   // Screen capture post-processing
+   if (widget_->colorTexture() == nullptr || widget_->size().isEmpty() ||
+       !MapStyleReadyForRender())
+   {
+      return;
+   }
+
+   const types::CaptureType currentCaptureType = screenCaptureRequested_;
+   if (screenCaptureRequested_ != types::CaptureType::None)
+   {
+      screenCaptureRequested_ = types::CaptureType::None;
+      context_->set_screen_capture(true);
+   }
+
+   isPainting_ = true;
+   frameDraws_++;
+
+   HandleHotkeyUpdates();
+   context_->set_pixel_ratio(widget_->pixelRatio());
+
+   map_->resize(widget_->size());
+   rhiRenderer_.RenderMap(widget_->colorTexture(), map_.get());
+   UpdateMeasureLabels();
+
+   const QMapLibre::CustomLayerRenderParameters overlayParams {
+      .width       = static_cast<double>(widget_->size().width()),
+      .height      = static_cast<double>(widget_->size().height()),
+      .latitude    = map_->coordinate().first,
+      .longitude   = map_->coordinate().second,
+      .zoom        = map_->zoom(),
+      .bearing     = map_->bearing(),
+      .pitch       = map_->pitch(),
+      .fieldOfView = 0};
+
+   EnsureImGuiRenderer(commandBuffer);
+
+   std::function<void(QRhiCommandBuffer*)> imguiRender;
+   if (imguiVulkanRenderer_.IsInitialized())
+   {
+      ImGui::SetCurrentContext(imGuiContext_);
+      manager::FontManager::Instance().EnsureImGuiFontsBuilt();
+
+      auto defaultFont = manager::FontManager::Instance().GetImGuiFont(
+         types::FontCategory::Default);
+
+      std::shared_lock imguiFontAtlasLock {
+         manager::FontManager::Instance().imgui_font_atlas_mutex()};
+
+      imguiVulkanRenderer_.NewFrame(widget_);
+
+      ImGui::PushFont(defaultFont.first->font(), defaultFont.second.value());
+
+      if (overlayLayer_ != nullptr)
+      {
+         overlayLayer_->RenderVulkanImGui(context_, overlayParams);
+      }
+
+      if (radarSiteLayer_ != nullptr)
+      {
+         radarSiteLayer_->RenderVulkanImGui(context_, overlayParams);
+      }
+
+      for (const auto& placefileLayer : placefileLayers_)
+      {
+         if (placefileLayer != nullptr)
+         {
+            placefileLayer->RenderVulkanImGui(context_, overlayParams);
+         }
+      }
+
+      if (hasMouse_)
+      {
+         RunMousePicking();
+      }
+      else if (lastItemPicked_)
+      {
+         util::tooltip::Hide();
+         lastItemPicked_ = false;
+      }
+
+      ImGui::PopFont();
+      ImGui::Render();
+      imguiVulkanRenderer_.UpdateTextures();
+
+      if (std::getenv("SCWX_VULKAN_SMOKE") != nullptr)
+      {
+         static auto lastLog = std::chrono::steady_clock::now();
+         const auto  now     = std::chrono::steady_clock::now();
+         if (now - lastLog > std::chrono::seconds {3})
+         {
+            if (ImDrawData* drawData = ImGui::GetDrawData();
+                drawData != nullptr)
+            {
+               logger_->info("Vulkan overlay smoke: imgui vtx={}, layers={}",
+                             drawData->TotalVtxCount,
+                             genericLayers_.size());
+            }
+            lastLog = now;
+         }
+      }
+
+      imguiRender = [this](QRhiCommandBuffer* cb)
+      {
+         ImGui::SetCurrentContext(imGuiContext_);
+         imguiVulkanRenderer_.RenderDrawData(cb);
+      };
+   }
+
+   overlayRenderer_.Render(commandBuffer,
+                           widget_->colorTexture(),
+                           genericLayers_,
+                           context_,
+                           overlayParams,
+                           imguiRender);
+
+   if (std::getenv("SCWX_VULKAN_SMOKE") != nullptr)
+   {
+      static auto lastLog = std::chrono::steady_clock::now();
+      const auto  now     = std::chrono::steady_clock::now();
+      if (now - lastLog > std::chrono::seconds {3})
+      {
+         const ImDrawData* drawData = ImGui::GetDrawData();
+         logger_->info(
+            "Vulkan frame smoke: imguiInit={} vtx={} layers={} frames={}",
+            imguiVulkanRenderer_.IsInitialized(),
+            drawData != nullptr ? drawData->TotalVtxCount : -1,
+            genericLayers_.size(),
+            frameDraws_);
+         lastLog = now;
+      }
+   }
+
+   Q_EMIT widget_->WidgetPainted();
+
+   isPainting_ = false;
+
    if (currentCaptureType != types::CaptureType::None)
    {
       switch (currentCaptureType)
       {
       case types::CaptureType::Copy:
-         p->ScreenCaptureCopy();
+         ScreenCaptureCopy();
          break;
 
       case types::CaptureType::SaveImage:
-         p->ScreenCaptureSaveImage();
+         ScreenCaptureSaveImage();
          break;
 
       default:
          break;
       }
 
-      // Clear screen capture
-      p->context_->set_screen_capture(false);
+      context_->set_screen_capture(false);
+      widget_->update();
+   }
 
-      // Queue another update
-      update();
+   if (!smokeCaptureQueued_)
+   {
+      const char* smokeCapturePath = std::getenv("SCWX_VULKAN_SMOKE_CAPTURE");
+      if (smokeCapturePath != nullptr && *smokeCapturePath != '\0')
+      {
+         static bool smokeCaptureGlobalQueued = false;
+         if (smokeCaptureGlobalQueued)
+         {
+            return;
+         }
+
+         std::uint64_t captureFrame = 120u;
+         if (const char* captureFrames =
+                std::getenv("SCWX_VULKAN_SMOKE_CAPTURE_FRAMES");
+             captureFrames != nullptr && *captureFrames != '\0')
+         {
+            captureFrame = std::strtoull(captureFrames, nullptr, 10);
+         }
+
+         const auto radarProductView = context_->radar_product_view();
+         const bool radarReady = radarProductView != nullptr &&
+                                 radarProductView->IsInitialized() &&
+                                 radarProductView->sweep_time() !=
+                                    std::chrono::system_clock::time_point {};
+
+         if (frameDraws_ >= captureFrame && radarReady)
+         {
+            smokeCaptureQueued_      = true;
+            smokeCaptureGlobalQueued = true;
+            const QString filePath   = QString::fromUtf8(smokeCapturePath);
+            QTimer::singleShot(
+               0,
+               widget_,
+               [filePath, widget = widget_]()
+               {
+                  const QImage image = widget->grab().toImage();
+                  if (image.save(filePath))
+                  {
+                     logger_->info("Vulkan smoke capture saved: {}",
+                                   filePath.toStdString());
+                  }
+                  else
+                  {
+                     logger_->error("Vulkan smoke capture failed: {}",
+                                    filePath.toStdString());
+                  }
+                  QApplication::quit();
+               });
+         }
+         else
+         {
+            widget_->update();
+         }
+      }
    }
 }
+void MapWidget::render(QRhiCommandBuffer* cb)
+{ p->RenderFrameVulkan(cb); }
 
 void MapWidgetImpl::RunMousePicking()
 {
@@ -2660,6 +2935,11 @@ void MapWidget::mapChanged(QMapLibre::Map::MapChange mapChange)
       p->AddLayers();
       p->mapChangedOnce_  = true;
       p->mapStylePending_ = false;
+      update();
+      break;
+
+   case QMapLibre::Map::MapChangeDidFinishLoadingMap:
+      QTimer::singleShot(250, this, qOverload<>(&MapWidget::update));
       break;
 
    case QMapLibre::Map::MapChangeDidFinishRenderingFrame:
@@ -2678,9 +2958,7 @@ void MapWidget::mapChanged(QMapLibre::Map::MapChange mapChange)
 }
 
 void MapWidgetImpl::UpdateLoadedStyle()
-{
-   styleLayers_ = map_->layerIds();
-}
+{ styleLayers_ = map_->layerIds(); }
 
 void MapWidgetImpl::RadarProductManagerConnect()
 {
@@ -2943,8 +3221,12 @@ void MapWidgetImpl::RadarProductViewDisconnect()
 
 void MapWidgetImpl::ScreenCaptureCopy()
 {
-   const QImage image     = widget_->grabFramebuffer();
-   QClipboard*  clipboard = QGuiApplication::clipboard();
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   const QImage image = widget_->grab().toImage();
+#else
+   const QImage image = widget_->grabFramebuffer();
+#endif
+   QClipboard* clipboard = QGuiApplication::clipboard();
    clipboard->setImage(image);
 
    logger_->info("Map captured to clipboard");
@@ -2952,7 +3234,11 @@ void MapWidgetImpl::ScreenCaptureCopy()
 
 void MapWidgetImpl::ScreenCaptureSaveImage()
 {
-   const QImage image     = widget_->grabFramebuffer();
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   const QImage image = widget_->grab().toImage();
+#else
+   const QImage image = widget_->grabFramebuffer();
+#endif
    const QSize  size      = widget_->size();
    const double latitude  = map_->latitude();
    const double longitude = map_->longitude();
@@ -3120,9 +3406,7 @@ void MapWidgetImpl::Update()
 }
 
 void MapWidgetImpl::UpdateColorTable(const std::string& colorPalette)
-{
-   UpdateColorTable(colorPalette, context_->radar_product_view());
-}
+{ UpdateColorTable(colorPalette, context_->radar_product_view()); }
 
 void MapWidgetImpl::UpdateColorTable(
    const std::string&                             colorPalette,

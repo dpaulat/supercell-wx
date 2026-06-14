@@ -1,12 +1,22 @@
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/map_settings.hpp>
-#include <scwx/qt/gl/shader_program.hpp>
 #include <scwx/qt/settings/unit_settings.hpp>
 #include <scwx/qt/types/unit_types.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
+#include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/tooltip.hpp>
 #include <scwx/qt/view/radar_product_view.hpp>
 #include <scwx/util/logger.hpp>
+
+#include <chrono>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+#   include <scwx/qt/render/rhi_radar_overlay.hpp>
+#   include <scwx/qt/render/rhi_vulkan_overlay.hpp>
+#endif
 
 #if defined(_MSC_VER)
 #   pragma warning(push, 0)
@@ -42,19 +52,6 @@ public:
    Impl(const Impl&&)            = delete;
    Impl& operator=(const Impl&&) = delete;
 
-   std::shared_ptr<gl::ShaderProgram> shaderProgram_ {nullptr};
-
-   GLint uMVPMatrixLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-   GLint uOriginLatLongLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-   GLint uDataMomentOffsetLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-   GLint uDataMomentScaleLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-   GLint uCFPEnabledLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-   std::array<GLuint, 3> vbo_ {GL_INVALID_INDEX};
-   GLuint                vao_ {GL_INVALID_INDEX};
-   GLuint                texture_ {GL_INVALID_INDEX};
-
-   GLsizeiptr numVertices_ {0};
-
    bool cfpEnabled_ {false};
 
    std::uint16_t rangeMin_ {0};
@@ -63,12 +60,21 @@ public:
    bool colorTableNeedsUpdate_ {false};
    bool sweepNeedsUpdate_ {false};
 
+   std::vector<float>        vertices_ {};
+   std::vector<std::uint8_t> momentData_ {};
+   std::vector<std::uint8_t> cfpData_ {};
+   std::size_t               momentComponentSize_ {0};
+   std::size_t               cfpComponentSize_ {0};
+   std::vector<std::uint8_t> rgbaColorTable_ {};
+   std::size_t               numVertices_ {0};
+
    types::RadarProductLoadStatus latchedLoadStatus_ {
       types::RadarProductLoadStatus::ProductNotAvailable};
 };
 
-RadarProductLayer::RadarProductLayer(std::shared_ptr<gl::GlContext> glContext) :
-    GenericLayer(std::move(glContext)), p(std::make_unique<Impl>())
+RadarProductLayer::RadarProductLayer(
+   std::shared_ptr<render::RenderContext> renderContext) :
+    GenericLayer(std::move(renderContext)), p(std::make_unique<Impl>())
 {
 }
 RadarProductLayer::~RadarProductLayer() = default;
@@ -78,76 +84,33 @@ void RadarProductLayer::Initialize(
 {
    logger_->debug("Initialize()");
 
-   auto glContext = gl_context();
-
-   // Load and configure radar shader
-   p->shaderProgram_ =
-      glContext->GetShaderProgram(":/gl/radar.vert", ":/gl/radar.frag");
-
-   p->uMVPMatrixLocation_ =
-      glGetUniformLocation(p->shaderProgram_->id(), "uMVPMatrix");
-   if (p->uMVPMatrixLocation_ == -1)
-   {
-      logger_->warn("Could not find uMVPMatrix");
-   }
-
-   p->uOriginLatLongLocation_ =
-      glGetUniformLocation(p->shaderProgram_->id(), "uOriginLatLong");
-   if (p->uOriginLatLongLocation_ == -1)
-   {
-      logger_->warn("Could not find uOriginLatLong");
-   }
-
-   p->uDataMomentOffsetLocation_ =
-      glGetUniformLocation(p->shaderProgram_->id(), "uDataMomentOffset");
-   if (p->uDataMomentOffsetLocation_ == -1)
-   {
-      logger_->warn("Could not find uDataMomentOffset");
-   }
-
-   p->uDataMomentScaleLocation_ =
-      glGetUniformLocation(p->shaderProgram_->id(), "uDataMomentScale");
-   if (p->uDataMomentScaleLocation_ == -1)
-   {
-      logger_->warn("Could not find uDataMomentScale");
-   }
-
-   p->uCFPEnabledLocation_ =
-      glGetUniformLocation(p->shaderProgram_->id(), "uCFPEnabled");
-   if (p->uCFPEnabledLocation_ == -1)
-   {
-      logger_->warn("Could not find uCFPEnabled");
-   }
-
-   p->shaderProgram_->Use();
-
-   // Generate a vertex array object
-   glGenVertexArrays(1, &p->vao_);
-
-   // Generate vertex buffer objects
-   glGenBuffers(3, p->vbo_.data());
-
-   // Update radar sweep
    p->sweepNeedsUpdate_ = true;
    UpdateSweep(mapContext);
-
-   // Create color table
-   glGenTextures(1, &p->texture_);
    p->colorTableNeedsUpdate_ = true;
    UpdateColorTable(mapContext);
-   glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-   glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-   glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 
    auto radarProductView = mapContext->radar_product_view();
+   if (radarProductView == nullptr)
+   {
+      return;
+   }
+
    connect(radarProductView.get(),
            &view::RadarProductView::ColorTableLutUpdated,
            this,
-           [this]() { p->colorTableNeedsUpdate_ = true; });
+           [this]()
+           {
+              p->colorTableNeedsUpdate_ = true;
+              Q_EMIT NeedsRendering();
+           });
    connect(radarProductView.get(),
            &view::RadarProductView::SweepComputed,
            this,
-           [this]() { p->sweepNeedsUpdate_ = true; });
+           [this]()
+           {
+              p->sweepNeedsUpdate_ = true;
+              Q_EMIT NeedsRendering();
+           });
    connect(radarProductView.get(),
            &view::RadarProductView::SweepNotComputed,
            this,
@@ -176,10 +139,12 @@ void RadarProductLayer::UpdateSweep(
    // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
    // NOLINTBEGIN(modernize-use-nullptr)
 
-   boost::timer::cpu_timer timer;
-
    std::shared_ptr<view::RadarProductView> radarProductView =
       mapContext->radar_product_view();
+   if (radarProductView == nullptr)
+   {
+      return;
+   }
 
    std::unique_lock sweepLock(radarProductView->sweep_mutex(),
                               std::try_to_lock);
@@ -193,105 +158,52 @@ void RadarProductLayer::UpdateSweep(
    p->sweepNeedsUpdate_ = false;
 
    const std::vector<float>& vertices = radarProductView->vertices();
+   p->vertices_                       = vertices;
 
-   // Bind a vertex array object
-   glBindVertexArray(p->vao_);
-
-   // Buffer vertices
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
-   timer.start();
-   glBufferData(GL_ARRAY_BUFFER,
-                static_cast<GLsizeiptr>(vertices.size() * sizeof(GLfloat)),
-                vertices.data(),
-                GL_STATIC_DRAW);
-   timer.stop();
-   logger_->debug("Vertices buffered in {}", timer.format(6, "%ws"));
-
-   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, static_cast<void*>(0));
-   glEnableVertexAttribArray(0);
-
-   // Buffer data moments
-   const GLvoid* data {};
-   GLsizeiptr    dataSize {};
-   size_t        componentSize {};
-   GLenum        type {};
+   const void* data {};
+   std::size_t dataSize {};
+   std::size_t componentSize {};
 
    std::tie(data, dataSize, componentSize) = radarProductView->GetMomentData();
-
-   if (componentSize == 1)
+   p->momentData_.resize(dataSize);
+   if (dataSize > 0 && data != nullptr)
    {
-      type = GL_UNSIGNED_BYTE;
+      std::memcpy(p->momentData_.data(), data, dataSize);
    }
-   else
-   {
-      type = GL_UNSIGNED_SHORT;
-   }
+   p->momentComponentSize_ = componentSize;
 
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
-   timer.start();
-   glBufferData(GL_ARRAY_BUFFER, dataSize, data, GL_STATIC_DRAW);
-   timer.stop();
-   logger_->debug("Data moments buffered in {}", timer.format(6, "%ws"));
-
-   glVertexAttribIPointer(1, 1, type, 0, static_cast<void*>(0));
-   glEnableVertexAttribArray(1);
-
-   // Buffer CFP data
-   const GLvoid* cfpData {};
-   GLsizeiptr    cfpDataSize {};
-   size_t        cfpComponentSize {};
-   GLenum        cfpType {};
+   const void* cfpData {};
+   std::size_t cfpDataSize {};
+   std::size_t cfpComponentSize {};
 
    std::tie(cfpData, cfpDataSize, cfpComponentSize) =
       radarProductView->GetCfpMomentData();
-
-   if (cfpData != nullptr)
+   p->cfpData_.resize(cfpDataSize);
+   if (cfpDataSize > 0 && cfpData != nullptr)
    {
-      if (cfpComponentSize == 1)
-      {
-         cfpType = GL_UNSIGNED_BYTE;
-      }
-      else
-      {
-         cfpType = GL_UNSIGNED_SHORT;
-      }
-
-      glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[2]);
-      timer.start();
-      glBufferData(GL_ARRAY_BUFFER, cfpDataSize, cfpData, GL_STATIC_DRAW);
-      timer.stop();
-      logger_->debug("CFP moments buffered in {}", timer.format(6, "%ws"));
-
-      glVertexAttribIPointer(2, 1, cfpType, 0, static_cast<void*>(0));
-      glEnableVertexAttribArray(2);
+      std::memcpy(p->cfpData_.data(), cfpData, cfpDataSize);
    }
-   else
-   {
-      glDisableVertexAttribArray(2);
-   }
+   p->cfpComponentSize_ = cfpComponentSize;
 
-   p->numVertices_ = static_cast<GLsizeiptr>(vertices.size() / 2);
+   p->numVertices_ = vertices.size() / 2;
 
    // NOLINTEND(modernize-use-nullptr)
    // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
 }
 
 void RadarProductLayer::Render(
+   const std::shared_ptr<MapContext>& /* mapContext */,
+   const QMapLibre::CustomLayerRenderParameters& /* params */)
+{
+}
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void RadarProductLayer::RenderVulkanOverlay(
+   QRhiCommandBuffer*                            commandBuffer,
+   render::RhiVulkanOverlayResources&            resources,
    const std::shared_ptr<MapContext>&            mapContext,
    const QMapLibre::CustomLayerRenderParameters& params)
 {
-   p->shaderProgram_->Use();
-
-   // Set OpenGL blend mode for transparency
-   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-   const bool wireframeEnabled = mapContext->settings().radarWireframeEnabled_;
-   if (wireframeEnabled)
-   {
-      // Set polygon mode to draw wireframe
-      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-   }
-
    if (p->colorTableNeedsUpdate_)
    {
       UpdateColorTable(mapContext);
@@ -329,73 +241,84 @@ void RadarProductLayer::Render(
       }
    }
 
-   if (sweepVisible)
+   if (sweepVisible && p->numVertices_ > 0 && !p->rgbaColorTable_.empty())
    {
-      const double scale = std::pow(2.0, params.zoom) * 2.0 *
-                           mbgl::util::tileSize_D / mbgl::util::DEGREES_MAX;
-      const auto xScale = static_cast<float>(scale / params.width);
-      const auto yScale = static_cast<float>(scale / params.height);
+      const int tableWidth = static_cast<int>(p->rgbaColorTable_.size() / 4u);
+      if (tableWidth > 0 && p->scale_ > 0.0f)
+      {
+         render::RadarUniforms uniforms {};
+         const glm::vec2       mapScale = util::maplibre::GetMapScale(params);
+         uniforms.uMVPMatrix            = glm::mat4 {1.0f};
+         uniforms.uMapMatrix            = glm::scale(
+            glm::mat4 {1.0f}, glm::vec3(mapScale.x, -mapScale.y, 1.0f));
+         uniforms.uMapMatrix =
+            glm::rotate(uniforms.uMapMatrix,
+                        glm::radians<float>(static_cast<float>(params.bearing)),
+                        glm::vec3(0.0f, 0.0f, 1.0f));
+         uniforms.uOriginLatLong =
+            glm::vec2 {static_cast<float>(params.latitude),
+                       static_cast<float>(params.longitude)};
+         uniforms.uDataMomentOffset = p->rangeMin_;
+         uniforms.uDataMomentScale  = p->scale_;
+         uniforms.uCFPEnabled       = p->cfpEnabled_ ? 1 : 0;
 
-      glm::mat4 uMVPMatrix(1.0f);
-      uMVPMatrix = glm::scale(uMVPMatrix, glm::vec3(xScale, yScale, 1.0f));
-      uMVPMatrix = glm::rotate(uMVPMatrix,
-                               glm::radians(static_cast<float>(params.bearing)),
-                               glm::vec3(0.0f, 0.0f, 1.0f));
+         resources.radar.Render(commandBuffer,
+                                uniforms,
+                                p->vertices_,
+                                p->momentData_,
+                                p->momentComponentSize_,
+                                p->cfpData_,
+                                p->cfpComponentSize_,
+                                p->rgbaColorTable_,
+                                static_cast<std::uint32_t>(p->numVertices_));
 
-      glUniform2fv(
-         p->uOriginLatLongLocation_,
-         1,
-         glm::value_ptr(glm::vec2 {params.latitude, params.longitude}));
-
-      glUniformMatrix4fv(
-         p->uMVPMatrixLocation_, 1, GL_FALSE, glm::value_ptr(uMVPMatrix));
-
-      glUniform1i(p->uCFPEnabledLocation_, p->cfpEnabled_ ? 1 : 0);
-
-      glUniform1ui(p->uDataMomentOffsetLocation_, p->rangeMin_);
-      glUniform1f(p->uDataMomentScaleLocation_, p->scale_);
-
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_1D, p->texture_);
-      glBindVertexArray(p->vao_);
-
-      glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(p->numVertices_));
+         if (std::getenv("SCWX_VULKAN_SMOKE") != nullptr)
+         {
+            static auto lastLog = std::chrono::steady_clock::now();
+            const auto  now     = std::chrono::steady_clock::now();
+            if (now - lastLog > std::chrono::seconds {3})
+            {
+               logger_->info("Vulkan radar draw: verts={}", p->numVertices_);
+               lastLog = now;
+            }
+         }
+      }
    }
-
-   if (wireframeEnabled)
+   else if (std::getenv("SCWX_VULKAN_SMOKE") != nullptr)
    {
-      // Restore polygon mode to default
-      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+      static auto lastLog = std::chrono::steady_clock::now();
+      const auto  now     = std::chrono::steady_clock::now();
+      if (now - lastLog > std::chrono::seconds {3})
+      {
+         logger_->info(
+            "Vulkan radar skip: visible={} verts={} lut={} status={}",
+            sweepVisible,
+            p->numVertices_,
+            p->rgbaColorTable_.size(),
+            static_cast<int>(newLoadStatus));
+         lastLog = now;
+      }
    }
 
    if (radarProductView != nullptr &&
-       // Don't latch a transition from Not Available to Listing Products
        !(p->latchedLoadStatus_ ==
             types::RadarProductLoadStatus::ProductNotAvailable &&
          newLoadStatus == types::RadarProductLoadStatus::ListingProducts))
    {
-      // Latch last load status
       p->latchedLoadStatus_ = newLoadStatus;
    }
-
-   SCWX_GL_CHECK_ERROR();
 }
+#endif
 
 void RadarProductLayer::Deinitialize()
 {
    logger_->debug("Deinitialize()");
 
-   glDeleteVertexArrays(1, &p->vao_);
-   glDeleteBuffers(3, p->vbo_.data());
-
-   p->uMVPMatrixLocation_        = GL_INVALID_INDEX;
-   p->uOriginLatLongLocation_    = GL_INVALID_INDEX;
-   p->uDataMomentOffsetLocation_ = GL_INVALID_INDEX;
-   p->uDataMomentScaleLocation_  = GL_INVALID_INDEX;
-   p->uCFPEnabledLocation_       = GL_INVALID_INDEX;
-   p->vao_                       = GL_INVALID_INDEX;
-   p->vbo_                       = {GL_INVALID_INDEX};
-   p->texture_                   = GL_INVALID_INDEX;
+   p->vertices_.clear();
+   p->momentData_.clear();
+   p->cfpData_.clear();
+   p->rgbaColorTable_.clear();
+   p->numVertices_ = 0;
 }
 
 bool RadarProductLayer::RunMousePicking(
@@ -440,7 +363,7 @@ bool RadarProductLayer::RunMousePicking(
 
       const double distance = distanceMeters.value() *
                               scwx::common::kKilometersPerMeter * distanceScale;
-      std::string distanceHeightStr =
+      std::string  distanceHeightStr =
          fmt::format("{:.2f} {}", distance, distanceAbbrev);
 
       if (radarProductView == nullptr)
@@ -599,6 +522,10 @@ void RadarProductLayer::UpdateColorTable(
 
    std::shared_ptr<view::RadarProductView> radarProductView =
       mapContext->radar_product_view();
+   if (radarProductView == nullptr)
+   {
+      return;
+   }
 
    const std::vector<boost::gil::rgba8_pixel_t>& colorTable =
       radarProductView->color_table_lut();
@@ -607,20 +534,13 @@ void RadarProductLayer::UpdateColorTable(
 
    const auto scale = static_cast<float>(rangeMax - rangeMin);
 
-   glActiveTexture(GL_TEXTURE0);
-   glBindTexture(GL_TEXTURE_1D, p->texture_);
-   glTexImage1D(GL_TEXTURE_1D,
-                0,
-                GL_RGBA,
-                (GLsizei) colorTable.size(),
-                0,
-                GL_RGBA,
-                GL_UNSIGNED_BYTE,
-                colorTable.data());
-   glGenerateMipmap(GL_TEXTURE_1D);
+   p->rgbaColorTable_.resize(colorTable.size() * 4);
+   std::memcpy(
+      p->rgbaColorTable_.data(), colorTable.data(), p->rgbaColorTable_.size());
 
    p->rangeMin_ = rangeMin;
    p->scale_    = scale;
+
 }
 
 } // namespace scwx::qt::map

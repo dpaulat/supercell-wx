@@ -20,10 +20,10 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class OverlayProductLayer::Impl
 {
 public:
-   explicit Impl(OverlayProductLayer*                  self,
-                 const std::shared_ptr<gl::GlContext>& glContext) :
+   explicit Impl(OverlayProductLayer* self,
+                 const std::shared_ptr<render::RenderContext>& renderContext) :
        self_ {self},
-       linkedVectors_ {std::make_shared<gl::draw::LinkedVectors>(glContext)}
+       linkedVectors_ {std::make_shared<gl::draw::LinkedVectors>(renderContext)}
    {
       auto& productSettings = settings::ProductSettings::Instance();
 
@@ -106,9 +106,9 @@ public:
 };
 
 OverlayProductLayer::OverlayProductLayer(
-   const std::shared_ptr<gl::GlContext>& glContext) :
-    DrawLayer(glContext, "OverlayProductLayer"),
-    p(std::make_unique<Impl>(this, glContext))
+   const std::shared_ptr<render::RenderContext>& renderContext) :
+    DrawLayer(renderContext, "OverlayProductLayer"),
+    p(std::make_unique<Impl>(this, renderContext))
 {
    AddDrawItem(p->linkedVectors_);
 }
@@ -149,7 +149,6 @@ void OverlayProductLayer::Render(
 
    DrawLayer::Render(mapContext, params);
 
-   SCWX_GL_CHECK_ERROR();
 }
 
 void OverlayProductLayer::Deinitialize()

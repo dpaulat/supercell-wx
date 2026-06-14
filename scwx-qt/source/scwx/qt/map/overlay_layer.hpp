@@ -10,13 +10,24 @@ class OverlayLayer : public DrawLayer
    Q_DISABLE_COPY_MOVE(OverlayLayer)
 
 public:
-   explicit OverlayLayer(const std::shared_ptr<gl::GlContext>& glContext);
+   explicit OverlayLayer(const std::shared_ptr<render::RenderContext>& renderContext);
    ~OverlayLayer();
 
    void Initialize(const std::shared_ptr<MapContext>& mapContext) final;
    void Render(const std::shared_ptr<MapContext>& mapContext,
                const QMapLibre::CustomLayerRenderParameters&) final;
    void Deinitialize() final;
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   void RenderVulkanImGui(
+      const std::shared_ptr<MapContext>&            mapContext,
+      const QMapLibre::CustomLayerRenderParameters& params);
+   void RenderVulkanOverlay(
+      QRhiCommandBuffer*                            commandBuffer,
+      render::RhiVulkanOverlayResources&            resources,
+      const std::shared_ptr<MapContext>&            mapContext,
+      const QMapLibre::CustomLayerRenderParameters& params) override;
+#endif
 
    bool
    RunMousePicking(const std::shared_ptr<MapContext>&            mapContext,

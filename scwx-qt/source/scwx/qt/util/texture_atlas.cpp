@@ -141,7 +141,7 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
    std::vector<stbrp_rect> stbrpRects {};
 
    // Padding in pixels around each image in the atlas. This prevents
-   // GL_LINEAR sampling from bleeding into neighboring images. Use 1 px
+   // Linear sampling can bleed into neighboring images. Use 1 px
    // padding by default. If an image equals the atlas size, padding is
    // skipped for that image.
    const int pad = 1;
@@ -194,7 +194,7 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
       }
    }
 
-   // GL_MAX_ARRAY_TEXTURE_LAYERS is guaranteed to be at least 256 in OpenGL 3.3
+   // Texture array layer support is guaranteed to handle at least 256 layers.
    constexpr std::size_t kMaxLayers = 256u;
 
    const float xStep = 1.0f / static_cast<float>(width);
@@ -416,54 +416,51 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
    logger_->debug("Texture atlas built in {}", timer.format(6, "%ws"));
 }
 
-void TextureAtlas::BufferAtlas(GLuint texture)
+std::size_t TextureAtlas::LayerCount() const
+{
+   std::shared_lock lock(p->atlasMutex_);
+   return p->atlasArray_.size();
+}
+
+std::size_t TextureAtlas::AtlasWidth() const
 {
    std::shared_lock lock(p->atlasMutex_);
 
-   if (p->atlasArray_.size() > 0u && p->atlasArray_[0].width() > 0 &&
-       p->atlasArray_[0].height() > 0)
+   if (p->atlasArray_.empty())
    {
-      const std::size_t numLayers = p->atlasArray_.size();
-      const std::size_t width     = p->atlasArray_[0].width();
-      const std::size_t height    = p->atlasArray_[0].height();
-      const std::size_t layerSize = width * height;
-
-      std::vector<boost::gil::rgba8_pixel_t> pixelData {layerSize * numLayers};
-
-      for (std::size_t i = 0; i < numLayers; ++i)
-      {
-         boost::gil::rgba8_view_t view = boost::gil::view(p->atlasArray_[i]);
-
-         boost::gil::copy_pixels(
-            view,
-            boost::gil::interleaved_view(view.width(),
-                                         view.height(),
-                                         pixelData.data() + (i * layerSize),
-                                         view.width() *
-                                            sizeof(boost::gil::rgba8_pixel_t)));
-      }
-
-      lock.unlock();
-
-      glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
-
-      // Use clamp-to-edge to avoid wrapping/bleeding across atlas borders.
-      glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-      glTexImage3D(GL_TEXTURE_2D_ARRAY,
-                   0,
-                   GL_RGBA,
-                   static_cast<GLsizei>(width),
-                   static_cast<GLsizei>(height),
-                   static_cast<GLsizei>(numLayers),
-                   0,
-                   GL_RGBA,
-                   GL_UNSIGNED_BYTE,
-                   pixelData.data());
+      return 0;
    }
+
+   return p->atlasArray_[0].width();
+}
+
+std::size_t TextureAtlas::AtlasHeight() const
+{
+   std::shared_lock lock(p->atlasMutex_);
+
+   if (p->atlasArray_.empty())
+   {
+      return 0;
+   }
+
+   return p->atlasArray_[0].height();
+}
+
+const std::uint8_t*
+TextureAtlas::LayerPixels(std::size_t layer, std::size_t& byteSize) const
+{
+   std::shared_lock lock(p->atlasMutex_);
+
+   if (layer >= p->atlasArray_.size())
+   {
+      byteSize = 0;
+      return nullptr;
+   }
+
+   const boost::gil::rgba8_image_t& image = p->atlasArray_[layer];
+   const boost::gil::rgba8c_view_t  view  = boost::gil::const_view(image);
+   byteSize = image.width() * image.height() * sizeof(boost::gil::rgba8_pixel_t);
+   return reinterpret_cast<const std::uint8_t*>(&view(0, 0));
 }
 
 TextureAttributes TextureAtlas::GetTextureAttributes(const std::string& name)

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/gl/draw/draw_item.hpp>
 
 #include <boost/gil.hpp>
@@ -30,7 +29,7 @@ struct LinkedVectorDrawItem;
 class LinkedVectors : public DrawItem
 {
 public:
-   explicit LinkedVectors(std::shared_ptr<GlContext> context);
+   explicit LinkedVectors(std::shared_ptr<render::RenderContext> context);
    ~LinkedVectors();
 
    LinkedVectors(const LinkedVectors&)            = delete;
@@ -45,6 +44,14 @@ public:
    void Initialize() override;
    void Render(const QMapLibre::CustomLayerRenderParameters& params) override;
    void Deinitialize() override;
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   void RenderVulkan(
+      QRhiCommandBuffer*                            commandBuffer,
+      scwx::qt::render::RhiVulkanOverlayResources&  resources,
+      const QMapLibre::CustomLayerRenderParameters& params,
+      bool                                          textureAtlasChanged) override;
+#endif
 
    bool
    RunMousePicking(const QMapLibre::CustomLayerRenderParameters& params,

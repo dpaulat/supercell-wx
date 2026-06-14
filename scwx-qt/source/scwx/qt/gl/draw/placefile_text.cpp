@@ -6,6 +6,10 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+#   include <scwx/qt/render/rhi_vulkan_overlay.hpp>
+#endif
+
 #include <fmt/format.h>
 #include <imgui.h>
 #include <mbgl/util/constants.hpp>
@@ -123,6 +127,16 @@ void PlacefileText::Render(const QMapLibre::CustomLayerRenderParameters& params)
       }
    }
 }
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void PlacefileText::RenderVulkan(
+   QRhiCommandBuffer* /* commandBuffer */,
+   render::RhiVulkanOverlayResources& /* resources */,
+   const QMapLibre::CustomLayerRenderParameters& /* params */,
+   bool /* textureAtlasChanged */)
+{
+}
+#endif
 
 void PlacefileText::Impl::RenderTextDrawItem(
    const QMapLibre::CustomLayerRenderParameters&             params,

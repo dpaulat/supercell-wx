@@ -1,4 +1,5 @@
 #include <scwx/qt/map/layer_wrapper.hpp>
+#include <scwx/qt/render/render_backend.hpp>
 
 namespace scwx::qt::map
 {
@@ -44,6 +45,11 @@ void LayerWrapper::initialize()
 
 void LayerWrapper::render(const QMapLibre::CustomLayerRenderParameters& params)
 {
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   Q_UNUSED(params);
+   return;
+#endif
+
    auto& layer = p->layer_;
    if (layer != nullptr)
    {

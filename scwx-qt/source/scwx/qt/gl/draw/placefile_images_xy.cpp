@@ -5,6 +5,13 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+#   include <scwx/qt/render/projection.hpp>
+#   include <scwx/qt/render/rhi_texture_array_overlay.hpp>
+#   include <scwx/qt/render/rhi_vulkan_overlay.hpp>
+#   include <glm/gtc/matrix_transform.hpp>
+#endif
+
 #include <QDir>
 #include <QUrl>
 #include <boost/unordered/unordered_flat_map.hpp>
@@ -25,10 +32,51 @@ static constexpr std::size_t kImageBufferLength =
 static constexpr std::size_t kTextureBufferLength =
    kNumTriangles * kVerticesPerTriangle * kPointsPerTexCoord;
 
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+static constexpr std::size_t kScreenFloatsPerVertex_ = 10;
+
+static std::vector<float>
+BuildScreenImageVertices(const std::vector<float>& imageBuffer,
+                         const glm::mat4&          projection)
+{
+   const std::size_t vertexCount = imageBuffer.size() / kPointsPerVertex;
+   std::vector<float> screenVertices(vertexCount * kScreenFloatsPerVertex_);
+
+   for (std::size_t v = 0; v < vertexCount; ++v)
+   {
+      const std::size_t imageOffset  = v * kPointsPerVertex;
+      const std::size_t screenOffset = v * kScreenFloatsPerVertex_;
+
+      const float x  = imageBuffer[imageOffset + 0];
+      const float y  = imageBuffer[imageOffset + 1];
+      const float ax = imageBuffer[imageOffset + 2];
+      const float ay = imageBuffer[imageOffset + 3];
+
+      glm::vec4 position = projection * glm::vec4 {x, y, 0.0f, 1.0f};
+      position.x += ax;
+      position.y += ay;
+
+      screenVertices[screenOffset + 0] = position.x;
+      screenVertices[screenOffset + 1] = position.y;
+      screenVertices[screenOffset + 2] = 0.0f;
+      screenVertices[screenOffset + 3] = 0.0f;
+      screenVertices[screenOffset + 4] = imageBuffer[imageOffset + 4];
+      screenVertices[screenOffset + 5] = imageBuffer[imageOffset + 5];
+      screenVertices[screenOffset + 6] = imageBuffer[imageOffset + 6];
+      screenVertices[screenOffset + 7] = imageBuffer[imageOffset + 7];
+      screenVertices[screenOffset + 8] = 0.0f;
+      screenVertices[screenOffset + 9] = 1.0f;
+   }
+
+   return screenVertices;
+}
+#endif
+
 class PlacefileImagesXY::Impl
 {
 public:
-   explicit Impl(const std::shared_ptr<GlContext>& context) : context_ {context}
+   explicit Impl(const std::shared_ptr<render::RenderContext>& context) :
+       context_ {context}
    {
    }
    ~Impl() = default;
@@ -41,8 +89,11 @@ public:
    void UpdateBuffers();
    void UpdateTextureBuffer();
    void Update(bool textureAtlasChanged);
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   void UpdateVulkan(bool textureAtlasChanged);
+#endif
 
-   std::shared_ptr<GlContext> context_;
+   std::shared_ptr<render::RenderContext> context_;
 
    std::string baseUrl_ {};
 
@@ -65,18 +116,11 @@ public:
 
    std::vector<float> textureBuffer_ {};
 
-   std::shared_ptr<ShaderProgram> shaderProgram_ {nullptr};
-
-   GLint uMVPMatrixLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-
-   GLuint                vao_ {GL_INVALID_INDEX};
-   std::array<GLuint, 2> vbo_ {GL_INVALID_INDEX};
-
-   GLsizei numVertices_ {0};
+   std::uint32_t numVertices_ {0};
 };
 
 PlacefileImagesXY::PlacefileImagesXY(
-   const std::shared_ptr<GlContext>& context) :
+   const std::shared_ptr<render::RenderContext>& context) :
     DrawItem(), p(std::make_unique<Impl>(context))
 {
 }
@@ -88,101 +132,53 @@ PlacefileImagesXY::operator=(PlacefileImagesXY&&) noexcept = default;
 
 void PlacefileImagesXY::Initialize()
 {
-   p->shaderProgram_ = p->context_->GetShaderProgram(
-      {{GL_VERTEX_SHADER, ":/gl/texture2d_array.vert"},
-       {GL_GEOMETRY_SHADER, ":/gl/threshold.geom"},
-       {GL_FRAGMENT_SHADER, ":/gl/texture2d_array.frag"}});
-
-   p->uMVPMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMVPMatrix");
-
-   glGenVertexArrays(1, &p->vao_);
-   glGenBuffers(static_cast<GLsizei>(p->vbo_.size()), p->vbo_.data());
-
-   glBindVertexArray(p->vao_);
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
-   glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
-
-   // NOLINTBEGIN(modernize-use-nullptr)
-   // NOLINTBEGIN(performance-no-int-to-ptr)
-   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
-
-   // aVertex
-   glVertexAttribPointer(0,
-                         2,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         static_cast<void*>(0));
-   glEnableVertexAttribArray(0);
-
-   // aAnchor
-   glVertexAttribPointer(6,
-                         2,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(2 * sizeof(float)));
-   glEnableVertexAttribArray(6);
-
-   // aModulate
-   glVertexAttribPointer(3,
-                         4,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(4 * sizeof(float)));
-   glEnableVertexAttribArray(3);
-
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
-   glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
-
-   // aTexCoord
-   glVertexAttribPointer(2,
-                         3,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerTexCoord * sizeof(float),
-                         static_cast<void*>(0));
-   glEnableVertexAttribArray(2);
-
-   // aDisplayed
-   glVertexAttribI1i(5, 1);
-
-   // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
-   // NOLINTEND(performance-no-int-to-ptr)
-   // NOLINTEND(modernize-use-nullptr)
-
-   p->dirty_ = true;
 }
 
 void PlacefileImagesXY::Render(
+   const QMapLibre::CustomLayerRenderParameters& /* params */,
+   bool                                          /* textureAtlasChanged */)
+{
+}
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void PlacefileImagesXY::RenderVulkan(
+   QRhiCommandBuffer*                            commandBuffer,
+   render::RhiVulkanOverlayResources&            resources,
    const QMapLibre::CustomLayerRenderParameters& params,
    bool                                          textureAtlasChanged)
 {
    const std::unique_lock lock {p->imageMutex_};
 
-   if (!p->currentImageList_.empty())
+   if (p->currentImageList_.empty())
    {
-      glBindVertexArray(p->vao_);
-
-      p->Update(textureAtlasChanged);
-      p->shaderProgram_->Use();
-      UseDefaultProjection(params, p->uMVPMatrixLocation_);
-
-      // Interpolate texture coordinates
-      glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-      // Draw images
-      glDrawArrays(GL_TRIANGLES, 0, p->numVertices_);
+      return;
    }
+
+   p->UpdateVulkan(textureAtlasChanged);
+
+   resources.textureArrayOverlay.SyncAtlas(
+      commandBuffer, p->context_->texture_buffer_count());
+
+   glm::mat4 projection = scwx::qt::render::OrthoMapProjection(params);
+   projection           = glm::rotate(projection,
+                            glm::radians<float>(static_cast<float>(params.bearing)),
+                            glm::vec3(0.0f, 0.0f, 1.0f));
+
+   const std::vector<float> screenVertices =
+      BuildScreenImageVertices(p->currentImageBuffer_, projection);
+   const glm::mat4 identity {1.0f};
+
+   resources.textureArrayOverlay.RenderScreen(commandBuffer,
+                                            identity,
+                                            screenVertices,
+                                            p->textureBuffer_,
+                                            static_cast<std::uint32_t>(
+                                               p->numVertices_));
 }
+#endif
 
 void PlacefileImagesXY::Deinitialize()
 {
-   glDeleteVertexArrays(1, &p->vao_);
-   glDeleteBuffers(static_cast<GLsizei>(p->vbo_.size()), p->vbo_.data());
-
    const std::unique_lock lock {p->imageMutex_};
 
    p->currentImageList_.clear();
@@ -307,43 +303,48 @@ void PlacefileImagesXY::Impl::UpdateTextureBuffer()
 
 void PlacefileImagesXY::Impl::Update(bool textureAtlasChanged)
 {
-   // If the texture atlas has changed
    if (dirty_ || textureAtlasChanged)
    {
-      // Update texture coordinates
       for (auto& imageFile : currentImageFiles_)
       {
          imageFile.second.UpdateTextureInfo();
       }
 
-      // Update OpenGL texture buffer data
       UpdateTextureBuffer();
-
-      // Buffer texture data
-      glBindBuffer(GL_ARRAY_BUFFER, vbo_[1]);
-      glBufferData(
-         GL_ARRAY_BUFFER,
-         static_cast<GLsizeiptr>(sizeof(float) * textureBuffer_.size()),
-         textureBuffer_.data(),
-         GL_DYNAMIC_DRAW);
    }
 
-   // If buffers need updating
    if (dirty_)
    {
-      // Buffer vertex data
-      glBindBuffer(GL_ARRAY_BUFFER, vbo_[0]);
-      glBufferData(
-         GL_ARRAY_BUFFER,
-         static_cast<GLsizeiptr>(sizeof(float) * currentImageBuffer_.size()),
-         currentImageBuffer_.data(),
-         GL_DYNAMIC_DRAW);
-
       numVertices_ =
-         static_cast<GLsizei>(currentImageBuffer_.size() / kPointsPerVertex);
+         static_cast<std::uint32_t>(currentImageBuffer_.size() /
+                                    kPointsPerVertex);
    }
 
    dirty_ = false;
 }
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void PlacefileImagesXY::Impl::UpdateVulkan(bool textureAtlasChanged)
+{
+   if (dirty_ || textureAtlasChanged)
+   {
+      for (auto& imageFile : currentImageFiles_)
+      {
+         imageFile.second.UpdateTextureInfo();
+      }
+
+      UpdateTextureBuffer();
+   }
+
+   if (dirty_)
+   {
+      numVertices_ =
+         static_cast<std::uint32_t>(currentImageBuffer_.size() /
+                                    kPointsPerVertex);
+   }
+
+   dirty_ = false;
+}
+#endif
 
 } // namespace scwx::qt::gl::draw

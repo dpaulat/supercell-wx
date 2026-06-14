@@ -6,7 +6,6 @@
 #include <scwx/qt/map/map_pane_view_link_state.hpp>
 #include <scwx/qt/map/map_popout_frame.hpp>
 
-#include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/main/application.hpp>
 #include <scwx/qt/main/versions.hpp>
 #include <scwx/qt/config/radar_site.hpp>
@@ -20,6 +19,7 @@
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/manager/update_manager.hpp>
+#include <scwx/qt/render/render_context.hpp>
 #include <scwx/qt/map/map_pane_context_menu.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_widget.hpp>
@@ -324,7 +324,7 @@ public:
    map::MapProvider    mapProvider_;
    map::MapWidget*     activeMap_;
 
-   std::shared_ptr<gl::GlContext> glContext_ {nullptr};
+   std::shared_ptr<render::RenderContext> renderContext_ {nullptr};
 
    ui::CollapsibleGroup*     mapSettingsGroup_ {nullptr};
    ui::CollapsibleGroup*     level2ProductsGroup_ {nullptr};
@@ -953,7 +953,7 @@ void MainWindow::on_actionFullScreen_triggered(bool checked)
    if (checked)
    {
 #ifdef Q_OS_WIN
-      // On Windows, showFullScreen() with QOpenGLWidgets breaks dropdown menus.
+      // On Windows, showFullScreen() with map widgets breaks dropdown menus.
       // Use a frameless window covering the screen geometry as a workaround.
       p->priorFullScreenWindowState_ = windowState();
       p->priorFullScreenGeometry_    = geometry();
@@ -1128,9 +1128,9 @@ void MainWindowImpl::EnsureMapWidgets(int64_t gridWidth, int64_t gridHeight)
       maps_.resize(mapCount, nullptr);
    }
 
-   if (!glContext_)
+   if (!renderContext_)
    {
-      glContext_ = std::make_shared<gl::GlContext>();
+      renderContext_ = render::CreateRenderContext();
    }
 
    for (int64_t i = 0; i < mapCount; i++)
@@ -1143,7 +1143,7 @@ void MainWindowImpl::EnsureMapWidgets(int64_t gridWidth, int64_t gridHeight)
          }
          // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): Owned by parent
          maps_.at(i) = new map::MapWidget(
-            static_cast<std::size_t>(i), settings_, glContext_);
+            static_cast<std::size_t>(i), settings_, renderContext_);
          ConnectMapAnnotationLayerReady(maps_.at(i));
       }
    }

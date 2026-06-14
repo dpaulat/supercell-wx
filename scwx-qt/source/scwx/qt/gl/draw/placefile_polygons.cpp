@@ -1,21 +1,18 @@
 #include <scwx/qt/gl/draw/placefile_polygons.hpp>
 #include <scwx/qt/util/maplibre.hpp>
+#include <scwx/qt/util/polygon_triangulation.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+#   include <scwx/qt/render/projection.hpp>
+#   include <scwx/qt/render/rhi_colored_geometry.hpp>
+#   include <scwx/qt/render/rhi_vulkan_overlay.hpp>
+#endif
 
 #include <mutex>
 
 #include <boost/container/stable_vector.hpp>
-
-#if !defined(__APPLE__)
-#   include <GL/glu.h>
-#else
-#   include <OpenGL/glu.h>
-#endif
-
-#if defined(_WIN32) || defined(__APPLE__)
-typedef void (*_GLUfuncptr)(void);
-#endif
 
 namespace scwx
 {
@@ -45,92 +42,47 @@ static constexpr std::size_t kTessVertexB_       = 7;
 static constexpr std::size_t kTessVertexA_       = 8;
 static constexpr std::size_t kTessVertexSize_    = kTessVertexA_ + 1;
 
-typedef std::array<GLdouble, kTessVertexSize_> TessVertexArray;
+using TessVertexArray = std::array<double, kTessVertexSize_>;
 
 class PlacefilePolygons::Impl
 {
 public:
-   explicit Impl(const std::shared_ptr<GlContext>& context) :
+   explicit Impl(const std::shared_ptr<render::RenderContext>& context) :
        context_ {context},
-       shaderProgram_ {nullptr},
-       uMVPMatrixLocation_(GL_INVALID_INDEX),
-       uMapMatrixLocation_(GL_INVALID_INDEX),
-       uMapScreenCoordLocation_(GL_INVALID_INDEX),
-       uMapDistanceLocation_(GL_INVALID_INDEX),
-       uSelectedTimeLocation_(GL_INVALID_INDEX),
-       vao_ {GL_INVALID_INDEX},
-       vbo_ {GL_INVALID_INDEX},
        numVertices_ {0}
    {
-      tessellator_ = gluNewTess();
-
-      gluTessCallback(tessellator_, //
-                      GLU_TESS_COMBINE_DATA,
-                      (_GLUfuncptr) &TessellateCombineCallback);
-      gluTessCallback(tessellator_, //
-                      GLU_TESS_VERTEX_DATA,
-                      (_GLUfuncptr) &TessellateVertexCallback);
-
-      // Force GLU_TRIANGLES
-      gluTessCallback(tessellator_, //
-                      GLU_TESS_EDGE_FLAG,
-                      []() {});
-
-      gluTessCallback(tessellator_, //
-                      GLU_TESS_ERROR,
-                      (_GLUfuncptr) &TessellateErrorCallback);
    }
 
-   ~Impl() { gluDeleteTess(tessellator_); }
+   ~Impl() = default;
 
    void Update();
 
    void Tessellate(const std::shared_ptr<gr::Placefile::PolygonDrawItem>& di);
 
-   static void TessellateCombineCallback(GLdouble coords[3],
-                                         void*    vertexData[4],
-                                         GLfloat  weight[4],
-                                         void**   outData,
-                                         void*    polygonData);
-   static void TessellateVertexCallback(void* vertexData, void* polygonData);
-   static void TessellateErrorCallback(GLenum errorCode);
+   void AppendVertex(const TessVertexArray& data);
 
-   std::shared_ptr<GlContext> context_;
+   std::shared_ptr<render::RenderContext> context_;
 
    bool dirty_ {false};
    bool thresholded_ {false};
 
    std::chrono::system_clock::time_point selectedTime_ {};
 
-   boost::container::stable_vector<TessVertexArray> tessCombineBuffer_ {};
-
    std::mutex           bufferMutex_ {};
-   std::vector<GLfloat> currentBuffer_ {};
-   std::vector<GLint>   currentIntegerBuffer_ {};
-   std::vector<GLfloat> newBuffer_ {};
-   std::vector<GLint>   newIntegerBuffer_ {};
+   std::vector<float>        currentBuffer_ {};
+   std::vector<std::int32_t> currentIntegerBuffer_ {};
+   std::vector<float>        newBuffer_ {};
+   std::vector<std::int32_t> newIntegerBuffer_ {};
 
-   GLUtesselator* tessellator_;
+   std::uint32_t numVertices_;
 
-   std::shared_ptr<ShaderProgram> shaderProgram_;
-   GLint                          uMVPMatrixLocation_;
-   GLint                          uMapMatrixLocation_;
-   GLint                          uMapScreenCoordLocation_;
-   GLint                          uMapDistanceLocation_;
-   GLint                          uSelectedTimeLocation_;
-
-   GLuint                vao_;
-   std::array<GLuint, 2> vbo_;
-
-   GLsizei numVertices_;
-
-   GLint currentThreshold_ {};
-   GLint currentStartTime_ {};
-   GLint currentEndTime_ {};
+   std::int32_t currentThreshold_ {};
+   std::int32_t currentStartTime_ {};
+   std::int32_t currentEndTime_ {};
 };
 
 PlacefilePolygons::PlacefilePolygons(
-   const std::shared_ptr<GlContext>& context) :
+   const std::shared_ptr<render::RenderContext>& context) :
     DrawItem(), p(std::make_unique<Impl>(context))
 {
 }
@@ -153,131 +105,52 @@ void PlacefilePolygons::set_thresholded(bool thresholded)
 
 void PlacefilePolygons::Initialize()
 {
-   p->shaderProgram_ = p->context_->GetShaderProgram(
-      {{GL_VERTEX_SHADER, ":/gl/map_color.vert"},
-       {GL_GEOMETRY_SHADER, ":/gl/threshold.geom"},
-       {GL_FRAGMENT_SHADER, ":/gl/color.frag"}});
-
-   p->uMVPMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMVPMatrix");
-   p->uMapMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMapMatrix");
-   p->uMapScreenCoordLocation_ =
-      p->shaderProgram_->GetUniformLocation("uMapScreenCoord");
-   p->uMapDistanceLocation_ =
-      p->shaderProgram_->GetUniformLocation("uMapDistance");
-   p->uSelectedTimeLocation_ =
-      p->shaderProgram_->GetUniformLocation("uSelectedTime");
-
-   glGenVertexArrays(1, &p->vao_);
-   glGenBuffers(2, p->vbo_.data());
-
-   glBindVertexArray(p->vao_);
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[0]);
-   glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
-
-   // NOLINTBEGIN(modernize-use-nullptr)
-   // NOLINTBEGIN(performance-no-int-to-ptr)
-   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
-
-   // aScreenCoord
-   glVertexAttribPointer(0,
-                         2,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         static_cast<void*>(0));
-   glEnableVertexAttribArray(0);
-
-   // aXYOffset
-   glVertexAttribPointer(1,
-                         2,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(2 * sizeof(float)));
-   glEnableVertexAttribArray(1);
-
-   // aColor
-   glVertexAttribPointer(2,
-                         4,
-                         GL_FLOAT,
-                         GL_FALSE,
-                         kPointsPerVertex * sizeof(float),
-                         reinterpret_cast<void*>(4 * sizeof(float)));
-   glEnableVertexAttribArray(2);
-
-   glBindBuffer(GL_ARRAY_BUFFER, p->vbo_[1]);
-   glBufferData(GL_ARRAY_BUFFER, 0u, nullptr, GL_DYNAMIC_DRAW);
-
-   // aThreshold
-   glVertexAttribIPointer(3, //
-                          1,
-                          GL_INT,
-                          kIntegersPerVertex_ * sizeof(GLint),
-                          static_cast<void*>(0));
-   glEnableVertexAttribArray(3);
-
-   // aTimeRange
-   glVertexAttribIPointer(4, //
-                          2,
-                          GL_INT,
-                          kIntegersPerVertex_ * sizeof(GLint),
-                          reinterpret_cast<void*>(1 * sizeof(GLint)));
-   glEnableVertexAttribArray(4);
-
-   // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
-   // NOLINTEND(performance-no-int-to-ptr)
-   // NOLINTEND(modernize-use-nullptr)
-
-   p->dirty_ = true;
 }
 
 void PlacefilePolygons::Render(
-   const QMapLibre::CustomLayerRenderParameters& params)
+   const QMapLibre::CustomLayerRenderParameters& /* params */)
 {
-   if (!p->currentBuffer_.empty())
-   {
-      glBindVertexArray(p->vao_);
-
-      p->Update();
-      p->shaderProgram_->Use();
-      UseRotationProjection(params, p->uMVPMatrixLocation_);
-      UseMapScreenProjection(
-         params, p->uMapMatrixLocation_, p->uMapScreenCoordLocation_);
-
-      if (p->thresholded_)
-      {
-         // If thresholding is enabled, set the map distance
-         units::length::nautical_miles<float> mapDistance =
-            util::maplibre::GetMapDistance(params);
-         glUniform1f(p->uMapDistanceLocation_, mapDistance.value());
-      }
-      else
-      {
-         // If thresholding is disabled, set the map distance to 0
-         glUniform1f(p->uMapDistanceLocation_, 0.0f);
-      }
-
-      // Selected time
-      std::chrono::system_clock::time_point selectedTime =
-         (p->selectedTime_ == std::chrono::system_clock::time_point {}) ?
-            scwx::util::time::now() :
-            p->selectedTime_;
-      glUniform1i(
-         p->uSelectedTimeLocation_,
-         static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
-                               selectedTime.time_since_epoch())
-                               .count()));
-
-      // Draw icons
-      glDrawArrays(GL_TRIANGLES, 0, p->numVertices_);
-   }
 }
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void PlacefilePolygons::RenderVulkan(
+   QRhiCommandBuffer*                            commandBuffer,
+   render::RhiVulkanOverlayResources&            resources,
+   const QMapLibre::CustomLayerRenderParameters& params,
+   bool /* textureAtlasChanged */)
+{
+   if (p->currentBuffer_.empty())
+   {
+      return;
+   }
+
+   p->Update();
+
+   std::vector<std::int32_t> integerVertices(p->currentIntegerBuffer_.begin(),
+                                               p->currentIntegerBuffer_.end());
+   const std::vector<float> transformedVertices =
+      render::TransformMapColorVertices(p->currentBuffer_,
+                                          integerVertices,
+                                          params,
+                                          p->thresholded_,
+                                          p->selectedTime_);
+
+   if (transformedVertices.empty())
+   {
+      return;
+   }
+
+   const glm::mat4 identity {1.0f};
+   resources.coloredGeometry.Render(
+      commandBuffer,
+      identity,
+      transformedVertices,
+      transformedVertices.size() / 7);
+}
+#endif
 
 void PlacefilePolygons::Deinitialize()
 {
-   glDeleteVertexArrays(1, &p->vao_);
-   glDeleteBuffers(2, p->vbo_.data());
-
    std::unique_lock lock {p->bufferMutex_};
 
    // Clear the current buffers
@@ -323,24 +196,8 @@ void PlacefilePolygons::Impl::Update()
    {
       std::unique_lock lock {bufferMutex_};
 
-      // Buffer vertex data
-      glBindBuffer(GL_ARRAY_BUFFER, vbo_[0]);
-      glBufferData(
-         GL_ARRAY_BUFFER,
-         static_cast<GLsizeiptr>(sizeof(GLfloat) * currentBuffer_.size()),
-         currentBuffer_.data(),
-         GL_DYNAMIC_DRAW);
-
-      // Buffer threshold data
-      glBindBuffer(GL_ARRAY_BUFFER, vbo_[1]);
-      glBufferData(
-         GL_ARRAY_BUFFER,
-         static_cast<GLsizeiptr>(sizeof(GLint) * currentIntegerBuffer_.size()),
-         currentIntegerBuffer_.data(),
-         GL_DYNAMIC_DRAW);
-
       numVertices_ =
-         static_cast<GLsizei>(currentBuffer_.size() / kPointsPerVertex);
+         static_cast<std::uint32_t>(currentBuffer_.size() / kPointsPerVertex);
 
       dirty_ = false;
    }
@@ -349,69 +206,70 @@ void PlacefilePolygons::Impl::Update()
 void PlacefilePolygons::Impl::Tessellate(
    const std::shared_ptr<gr::Placefile::PolygonDrawItem>& di)
 {
-   // Vertex storage
-   boost::container::stable_vector<TessVertexArray> vertices {};
+   boost::container::stable_vector<TessVertexArray> vertexAttributes {};
+   std::vector<util::PolygonRing2D>                 polygon {};
 
-   // Default color to "Color" statement
    boost::gil::rgba8_pixel_t lastColor = di->color_;
 
-   // Current threshold
-   units::length::nautical_miles<double> threshold = di->threshold_;
-   currentThreshold_ = static_cast<GLint>(std::round(threshold.value()));
+   currentThreshold_ =
+      static_cast<std::int32_t>(std::round(di->threshold_.value()));
 
-   // Start and end time
    currentStartTime_ =
-      static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
+      static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
                             di->startTime_.time_since_epoch())
                             .count());
    currentEndTime_ =
-      static_cast<GLint>(std::chrono::duration_cast<std::chrono::minutes>(
+      static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
                             di->endTime_.time_since_epoch())
                             .count());
 
-   gluTessBeginPolygon(tessellator_, this);
-
    for (auto& contour : di->contours_)
    {
-      gluTessBeginContour(tessellator_);
+      util::PolygonRing2D ring {};
+      ring.reserve(contour.size());
 
       for (auto& element : contour)
       {
-         // Calculate screen coordinate
-         auto screenCoordinate = util::maplibre::LatLongToScreenCoordinate(
+         const auto screenCoordinate = util::maplibre::LatLongToScreenCoordinate(
             {element.latitude_, element.longitude_});
 
-         // Update the most recent color if specified
          if (element.color_.has_value())
          {
             lastColor = element.color_.value();
          }
 
-         // Add vertex to temporary storage
-         auto& vertex =
-            vertices.emplace_back(TessVertexArray {screenCoordinate.x,
-                                                   screenCoordinate.y,
-                                                   0.0, // z
-                                                   element.x_,
-                                                   element.y_,
-                                                   lastColor[0] / 255.0,
-                                                   lastColor[1] / 255.0,
-                                                   lastColor[2] / 255.0,
-                                                   lastColor[3] / 255.0});
-
-         // Tessellate vertex
-         gluTessVertex(tessellator_, vertex.data(), vertex.data());
+         ring.push_back({screenCoordinate.x, screenCoordinate.y});
+         vertexAttributes.emplace_back(TessVertexArray {
+            screenCoordinate.x,
+            screenCoordinate.y,
+            0.0,
+            element.x_,
+            element.y_,
+            lastColor[0] / 255.0,
+            lastColor[1] / 255.0,
+            lastColor[2] / 255.0,
+            lastColor[3] / 255.0});
       }
 
-      gluTessEndContour(tessellator_);
+      if (ring.size() >= 3)
+      {
+         polygon.push_back(std::move(ring));
+      }
    }
 
-   gluTessEndPolygon(tessellator_);
+   if (polygon.empty())
+   {
+      return;
+   }
 
-   // Clear temporary storage
-   tessCombineBuffer_.clear();
+   const std::vector<std::uint32_t> indices =
+      util::TriangulatePolygon(polygon);
 
-   // Remove extra vertices that don't correspond to a full triangle
+   for (const std::uint32_t index : indices)
+   {
+      AppendVertex(vertexAttributes[index]);
+   }
+
    while (newBuffer_.size() % kVerticesPerTriangle != 0)
    {
       newBuffer_.pop_back();
@@ -419,72 +277,21 @@ void PlacefilePolygons::Impl::Tessellate(
    }
 }
 
-void PlacefilePolygons::Impl::TessellateCombineCallback(GLdouble coords[3],
-                                                        void*    vertexData[4],
-                                                        GLfloat  w[4],
-                                                        void**   outData,
-                                                        void*    polygonData)
+void PlacefilePolygons::Impl::AppendVertex(const TessVertexArray& data)
 {
-   static constexpr std::size_t r = kTessVertexR_;
-   static constexpr std::size_t a = kTessVertexA_;
-
-   Impl* self = static_cast<Impl*>(polygonData);
-
-   // Create new vertex data with given coordinates and interpolated color
-   auto& newVertexData = self->tessCombineBuffer_.emplace_back( //
-      TessVertexArray {
-         coords[0],
-         coords[1],
-         coords[2],
-         0.0, // offsetX
-         0.0, // offsetY
-         0.0, // r
-         0.0, // g
-         0.0, // b
-         0.0  // a
-      });
-
-   for (std::size_t i = 0; i < 4; ++i)
-   {
-      GLdouble* d = static_cast<GLdouble*>(vertexData[i]);
-      if (d != nullptr)
-      {
-         for (std::size_t color = r; color <= a; ++color)
-         {
-            newVertexData[color] += w[i] * d[color];
-         }
-      }
-   }
-
-   // Return new vertex data
-   *outData = &newVertexData;
-}
-
-void PlacefilePolygons::Impl::TessellateVertexCallback(void* vertexData,
-                                                       void* polygonData)
-{
-   Impl*     self = static_cast<Impl*>(polygonData);
-   GLdouble* data = static_cast<GLdouble*>(vertexData);
-
-   // Buffer vertex
-   self->newBuffer_.insert(self->newBuffer_.end(),
-                           {static_cast<float>(data[kTessVertexScreenX_]),
-                            static_cast<float>(data[kTessVertexScreenY_]),
-                            static_cast<float>(data[kTessVertexXOffset_]),
-                            static_cast<float>(data[kTessVertexYOffset_]),
-                            static_cast<float>(data[kTessVertexR_]),
-                            static_cast<float>(data[kTessVertexG_]),
-                            static_cast<float>(data[kTessVertexB_]),
-                            static_cast<float>(data[kTessVertexA_])});
-   self->newIntegerBuffer_.insert(self->newIntegerBuffer_.end(),
-                                  {self->currentThreshold_,
-                                   self->currentStartTime_,
-                                   self->currentEndTime_});
-}
-
-void PlacefilePolygons::Impl::TessellateErrorCallback(GLenum errorCode)
-{
-   logger_->error("GL Error: {}", errorCode);
+   newBuffer_.insert(newBuffer_.end(),
+                     {static_cast<float>(data[kTessVertexScreenX_]),
+                      static_cast<float>(data[kTessVertexScreenY_]),
+                      static_cast<float>(data[kTessVertexXOffset_]),
+                      static_cast<float>(data[kTessVertexYOffset_]),
+                      static_cast<float>(data[kTessVertexR_]),
+                      static_cast<float>(data[kTessVertexG_]),
+                      static_cast<float>(data[kTessVertexB_]),
+                      static_cast<float>(data[kTessVertexA_])});
+   newIntegerBuffer_.insert(newIntegerBuffer_.end(),
+                            {currentThreshold_,
+                             currentStartTime_,
+                             currentEndTime_});
 }
 
 } // namespace draw

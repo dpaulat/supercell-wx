@@ -19,6 +19,7 @@
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/ui/setup/setup_wizard.hpp>
 #include <scwx/qt/main/check_privilege.hpp>
+#include <scwx/qt/render/render_init.hpp>
 #include <scwx/network/cpr.hpp>
 #include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
@@ -33,15 +34,11 @@
 #include <QApplication>
 #include <QLibraryInfo>
 #include <QStandardPaths>
-#include <QStyleHints>
-#include <QSurfaceFormat>
-#include <QTranslator>
 #include <QSysInfo>
+#include <QTranslator>
 
 static const std::string logPrefix_ = "scwx::main";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
-
-static void InitializeOpenGL();
 
 // NOLINTNEXTLINE(bugprone-exception-escape) — top-level entry; Qt/AWS paths may
 // throw
@@ -62,7 +59,7 @@ int main(int argc, char* argv[])
    }
 
    QCoreApplication::setApplicationName("Supercell Wx");
-   InitializeOpenGL();
+   scwx::qt::render::InitializeGraphics();
    const QApplication a(argc, argv);
 
    scwx::qt::main::ProgramOptions::ParseArguments(
@@ -205,22 +202,4 @@ int main(int argc, char* argv[])
    Aws::ShutdownAPI(awsSdkOptions);
 
    return result;
-}
-
-static void InitializeOpenGL()
-{
-   QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts, true);
-
-   QSurfaceFormat surfaceFormat = QSurfaceFormat::defaultFormat();
-   surfaceFormat.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
-   surfaceFormat.setRenderableType(QSurfaceFormat::RenderableType::OpenGL);
-
-#if defined(__APPLE__)
-   // For macOS, we must choose between OpenGL 4.1 Core and OpenGL 2.1
-   // Compatibility. OpenGL 2.1 does not meet requirements for shaders used by
-   // Supercell Wx.
-   surfaceFormat.setVersion(4, 1);
-#endif
-
-   QSurfaceFormat::setDefaultFormat(surfaceFormat);
 }

@@ -3,6 +3,10 @@
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/wsr88d/rpg/linked_vector_packet.hpp>
 
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+#   include <scwx/qt/render/rhi_vulkan_overlay.hpp>
+#endif
+
 #include <boost/iterator/zip_iterator.hpp>
 
 namespace scwx
@@ -62,7 +66,7 @@ struct LinkedVectorDrawItem
 class LinkedVectors::Impl
 {
 public:
-   explicit Impl(std::shared_ptr<GlContext> context) :
+   explicit Impl(std::shared_ptr<render::RenderContext> context) :
        geoLines_ {std::make_shared<GeoLines>(context)}
    {
    }
@@ -76,7 +80,7 @@ public:
    std::shared_ptr<GeoLines>                          geoLines_;
 };
 
-LinkedVectors::LinkedVectors(std::shared_ptr<GlContext> context) :
+LinkedVectors::LinkedVectors(std::shared_ptr<render::RenderContext> context) :
     DrawItem(), p(std::make_unique<Impl>(context))
 {
 }
@@ -103,13 +107,34 @@ void LinkedVectors::Initialize()
 
 void LinkedVectors::Render(const QMapLibre::CustomLayerRenderParameters& params)
 {
+#if !defined(SCWX_RENDER_BACKEND_VULKAN)
    if (!p->visible_)
    {
       return;
    }
 
    p->geoLines_->Render(params);
+#else
+   (void) params;
+#endif
 }
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void LinkedVectors::RenderVulkan(
+   QRhiCommandBuffer*                            commandBuffer,
+   render::RhiVulkanOverlayResources&            resources,
+   const QMapLibre::CustomLayerRenderParameters& params,
+   bool                                          textureAtlasChanged)
+{
+   if (!p->visible_)
+   {
+      return;
+   }
+
+   p->geoLines_->RenderVulkan(
+      commandBuffer, resources, params, textureAtlasChanged);
+}
+#endif
 
 void LinkedVectors::Deinitialize()
 {
