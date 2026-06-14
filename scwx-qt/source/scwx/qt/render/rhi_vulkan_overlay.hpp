@@ -1,5 +1,10 @@
 #pragma once
 
+#include <cstdint>
+
+class QRhi;
+class QRhiRenderTarget;
+
 namespace scwx::qt::render
 {
 
@@ -17,6 +22,9 @@ struct RhiVulkanOverlayResources
    RhiGeoColoredGeometry&  radarGeoColoredGeometry;
    RhiGeoColoredGeometry&  geoColoredGeometry;
    RhiTextureArrayOverlay& textureArrayOverlay;
+   QRhi*                   rhi {nullptr};
+   QRhiRenderTarget*       renderTarget {nullptr};
+   std::uint64_t           renderTargetGeneration {0};
 };
 
 } // namespace scwx::qt::render

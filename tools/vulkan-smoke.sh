@@ -61,6 +61,10 @@ else
    rg "Vulkan radar draw:" "${LOG}" | tail -3
 fi
 
+if rg -q "Vulkan perf:" "${LOG}"; then
+   rg "Vulkan perf:" "${LOG}" | tail -5
+fi
+
 if rg -q "ImGui_ImplVulkan_Init failed|Vulkan call failed" "${LOG}"; then
    echo "FAIL: ImGui Vulkan errors in log" >&2
    rg "ImGui_ImplVulkan_Init failed|Vulkan call failed" "${LOG}" | tail -5

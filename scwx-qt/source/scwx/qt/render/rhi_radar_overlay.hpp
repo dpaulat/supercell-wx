@@ -44,7 +44,9 @@ public:
                const std::vector<std::uint8_t>& cfpData,
                std::size_t                      cfpComponentSize,
                const std::vector<std::uint8_t>& rgbaColorTable,
-               std::uint32_t                    vertexCount);
+               std::uint32_t                    vertexCount,
+               bool                             uploadGeometry,
+               bool                             uploadColorTable);
 
    [[nodiscard]] bool IsInitialized() const;
 
@@ -67,6 +69,8 @@ private:
    std::vector<std::uint32_t>  momentU32_ {};
    std::vector<std::uint32_t>  cfpU32_ {};
    std::vector<std::uint8_t>   lutRgba_ {};
+   bool                        geometryUploaded_ {false};
+   bool                        lutUploaded_ {false};
    bool                        initialized_ {false};
 };
 

@@ -15,6 +15,37 @@
 namespace scwx::qt::map
 {
 
+namespace
+{
+
+void* NativeRenderPass(QRhiTextureRenderTarget* renderTarget)
+{
+   if (renderTarget == nullptr)
+   {
+      return nullptr;
+   }
+
+   QRhiRenderPassDescriptor* renderPassDescriptor =
+      renderTarget->renderPassDescriptor();
+   if (renderPassDescriptor == nullptr)
+   {
+      return nullptr;
+   }
+
+   const QRhiNativeHandles* nativeHandles =
+      renderPassDescriptor->nativeHandles();
+   if (nativeHandles == nullptr)
+   {
+      return nullptr;
+   }
+
+   const auto* vkHandles =
+      static_cast<const QRhiVulkanRenderPassNativeHandles*>(nativeHandles);
+   return static_cast<void*>(vkHandles->renderPass);
+}
+
+} // namespace
+
 class MapOverlayRenderer::Impl
 {
 public:
@@ -48,20 +79,18 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
       return false;
    }
 
-   if (preserveRenderTarget_ != nullptr &&
-       (colorTexture_ != colorTexture || pixelSize_ != size))
+   const bool renderTargetChanged =
+      preserveRenderTarget_ != nullptr &&
+      (colorTexture_ != colorTexture || pixelSize_ != size);
+   const void* oldNativeRenderPass =
+      renderTargetChanged ? NativeRenderPass(preserveRenderTarget_) : nullptr;
+
+   if (renderTargetChanged)
    {
-      colorTableOverlay_.Shutdown();
-      radarOverlay_.Shutdown();
-      coloredGeometry_.Shutdown();
-      radarGeoColoredGeometry_.Shutdown();
-      geoColoredGeometry_.Shutdown();
-      textureArrayOverlay_.Shutdown();
       delete preserveRenderTarget_;
       preserveRenderTarget_ = nullptr;
       colorTexture_         = nullptr;
       pixelSize_            = {};
-      ++renderTargetGeneration_;
    }
 
    if (preserveRenderTarget_ == nullptr)
@@ -95,7 +124,19 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
 
       colorTexture_ = colorTexture;
       pixelSize_    = size;
-      ++renderTargetGeneration_;
+
+      const void* newNativeRenderPass = NativeRenderPass(preserveRenderTarget_);
+      if (oldNativeRenderPass == nullptr ||
+          oldNativeRenderPass != newNativeRenderPass)
+      {
+         colorTableOverlay_.Shutdown();
+         radarOverlay_.Shutdown();
+         coloredGeometry_.Shutdown();
+         radarGeoColoredGeometry_.Shutdown();
+         geoColoredGeometry_.Shutdown();
+         textureArrayOverlay_.Shutdown();
+         ++renderTargetGeneration_;
+      }
    }
 
    if (!colorTableOverlay_.IsInitialized())
@@ -181,7 +222,10 @@ void MapOverlayRenderer::Render(
                                                 p->coloredGeometry_,
                                                 p->radarGeoColoredGeometry_,
                                                 p->geoColoredGeometry_,
-                                                p->textureArrayOverlay_};
+                                                p->textureArrayOverlay_,
+                                                p->rhi_,
+                                                p->preserveRenderTarget_,
+                                                p->renderTargetGeneration_};
 
    const QRhiViewport viewport(0.0f,
                                0.0f,
@@ -233,23 +277,7 @@ void* MapOverlayRenderer::GetNativeRenderPass() const
       return nullptr;
    }
 
-   QRhiRenderPassDescriptor* renderPassDescriptor =
-      p->preserveRenderTarget_->renderPassDescriptor();
-   if (renderPassDescriptor == nullptr)
-   {
-      return nullptr;
-   }
-
-   const QRhiNativeHandles* nativeHandles =
-      renderPassDescriptor->nativeHandles();
-   if (nativeHandles == nullptr)
-   {
-      return nullptr;
-   }
-
-   const auto* vkHandles =
-      static_cast<const QRhiVulkanRenderPassNativeHandles*>(nativeHandles);
-   return static_cast<void*>(vkHandles->renderPass);
+   return NativeRenderPass(p->preserveRenderTarget_);
 }
 
 std::uint64_t MapOverlayRenderer::GetRenderTargetGeneration() const

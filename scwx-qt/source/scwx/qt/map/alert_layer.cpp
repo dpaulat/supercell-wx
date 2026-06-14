@@ -137,9 +137,9 @@ public:
       std::size_t lineWidth_ {};
    };
 
-   explicit Impl(AlertLayer* self,
+   explicit Impl(AlertLayer*                                   self,
                  const std::shared_ptr<render::RenderContext>& renderContext,
-                 awips::Phenomenon                     phenomenon) :
+                 awips::Phenomenon                             phenomenon) :
        self_ {self},
        phenomenon_ {phenomenon},
        ibw_ {awips::ibw::GetImpactBasedWarningInfo(phenomenon)},
@@ -243,6 +243,7 @@ public:
    LineData inactiveLineData_ {};
 
    std::chrono::system_clock::time_point selectedTime_ {};
+   bool                                  suppressNeedsRendering_ {false};
 
    std::shared_ptr<const gl::draw::GeoLineDrawItem> lastHoverDi_ {nullptr};
    std::string                                      tooltip_ {};
@@ -252,7 +253,7 @@ public:
 
 AlertLayer::AlertLayer(
    const std::shared_ptr<render::RenderContext>& renderContext,
-   awips::Phenomenon phenomenon) :
+   awips::Phenomenon                             phenomenon) :
     DrawLayer(
        renderContext,
        fmt::format("AlertLayer {}", awips::GetPhenomenonText(phenomenon))),
@@ -294,12 +295,15 @@ void AlertLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
    // initial lists
    std::shared_lock lock {alertLayerHandler.alertMutex_};
 
+   p->suppressNeedsRendering_ = true;
    for (auto alertActive : {false, true})
    {
       p->PopulateLines(alertActive);
    }
+   p->suppressNeedsRendering_ = false;
 
    p->ConnectAlertHandlerSignals();
+   Q_EMIT NeedsRendering();
 }
 
 void AlertLayer::Render(const std::shared_ptr<MapContext>& mapContext,
@@ -311,8 +315,24 @@ void AlertLayer::Render(const std::shared_ptr<MapContext>& mapContext,
    }
 
    DrawLayer::Render(mapContext, params);
-
 }
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void AlertLayer::RenderVulkanOverlay(
+   QRhiCommandBuffer*                            commandBuffer,
+   render::RhiVulkanOverlayResources&            resources,
+   const std::shared_ptr<MapContext>&            mapContext,
+   const QMapLibre::CustomLayerRenderParameters& params)
+{
+   for (auto alertActive : {false, true})
+   {
+      p->geoLines_.at(alertActive)->set_selected_time(p->selectedTime_);
+   }
+
+   DrawLayer::RenderVulkanOverlay(
+      commandBuffer, resources, mapContext, params);
+}
+#endif
 
 void AlertLayer::Deinitialize()
 {
@@ -686,7 +706,10 @@ void AlertLayer::Impl::AddAlert(
                drawItems.first->second);
    }
 
-   Q_EMIT self_->NeedsRendering();
+   if (!suppressNeedsRendering_)
+   {
+      Q_EMIT self_->NeedsRendering();
+   }
 }
 
 void AlertLayer::Impl::UpdateAlert(
@@ -824,10 +847,12 @@ void AlertLayer::Impl::RepopulateLines()
    linesBySegment_.clear();
    segmentsByLine_.clear();
 
+   suppressNeedsRendering_ = true;
    for (auto alertActive : {false, true})
    {
       PopulateLines(alertActive);
    }
+   suppressNeedsRendering_ = false;
 
    Q_EMIT self_->NeedsRendering();
 }

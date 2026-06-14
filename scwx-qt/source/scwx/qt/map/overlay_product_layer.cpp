@@ -151,6 +151,23 @@ void OverlayProductLayer::Render(
 
 }
 
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+void OverlayProductLayer::RenderVulkanOverlay(
+   QRhiCommandBuffer*                            commandBuffer,
+   render::RhiVulkanOverlayResources&            resources,
+   const std::shared_ptr<MapContext>&            mapContext,
+   const QMapLibre::CustomLayerRenderParameters& params)
+{
+   if (p->stiNeedsUpdate_)
+   {
+      p->UpdateStormTrackingInformation(mapContext);
+   }
+
+   DrawLayer::RenderVulkanOverlay(
+      commandBuffer, resources, mapContext, params);
+}
+#endif
+
 void OverlayProductLayer::Deinitialize()
 {
    logger_->debug("Deinitialize()");

@@ -223,7 +223,9 @@ void RhiRadarOverlay::Shutdown()
    momentU32_.clear();
    cfpU32_.clear();
    lutRgba_.clear();
-   initialized_ = false;
+   geometryUploaded_ = false;
+   lutUploaded_      = false;
+   initialized_      = false;
 }
 
 void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
@@ -234,7 +236,9 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
                              const std::vector<std::uint8_t>& cfpData,
                              const std::size_t                cfpComponentSize,
                              const std::vector<std::uint8_t>& rgbaColorTable,
-                             const std::uint32_t              vertexCount)
+                             const std::uint32_t              vertexCount,
+                             bool                             uploadGeometry,
+                             bool                             uploadColorTable)
 {
    if (!initialized_ || pipeline_ == nullptr || commandBuffer == nullptr ||
        vertexCount == 0 || rgbaColorTable.empty() ||
@@ -249,63 +253,84 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
       return;
    }
 
-   ExpandMoments(momentData, momentComponentSize, vertexCount, momentU32_);
-   ExpandMoments(cfpData, cfpComponentSize, vertexCount, cfpU32_);
-
-   lutRgba_.resize(kMaxLutWidth * 4);
-   for (int i = 0; i < kMaxLutWidth; ++i)
-   {
-      const int sourceIndex =
-         (tableWidth == 1) ?
-            0 :
-            static_cast<int>((static_cast<std::int64_t>(i) *
-                              static_cast<std::int64_t>(tableWidth - 1)) /
-                             static_cast<std::int64_t>(kMaxLutWidth - 1));
-      std::copy_n(
-         rgbaColorTable.data() + sourceIndex * 4, 4, lutRgba_.data() + i * 4);
-   }
-
    const std::size_t vertexBytes = vertexCount * 2u * sizeof(float);
    const std::size_t momentBytes = vertexCount * sizeof(std::uint32_t);
+   uploadGeometry = uploadGeometry || !geometryUploaded_ ||
+                    vertexCapacity_ < vertexBytes ||
+                    momentCapacity_ < momentBytes || cfpCapacity_ < momentBytes;
+   uploadColorTable = uploadColorTable || !lutUploaded_;
 
-   if (!EnsureDynamicBuffer(rhi_,
-                            vertexBuffer_,
-                            vertexCapacity_,
-                            QRhiBuffer::Dynamic,
-                            QRhiBuffer::VertexBuffer,
-                            vertexBytes) ||
-       !EnsureDynamicBuffer(rhi_,
-                            momentBuffer_,
-                            momentCapacity_,
-                            QRhiBuffer::Dynamic,
-                            QRhiBuffer::VertexBuffer,
-                            momentBytes) ||
-       !EnsureDynamicBuffer(rhi_,
-                            cfpBuffer_,
-                            cfpCapacity_,
-                            QRhiBuffer::Dynamic,
-                            QRhiBuffer::VertexBuffer,
-                            momentBytes))
+   if (uploadGeometry)
    {
-      return;
+      ExpandMoments(momentData, momentComponentSize, vertexCount, momentU32_);
+      ExpandMoments(cfpData, cfpComponentSize, vertexCount, cfpU32_);
+
+      if (!EnsureDynamicBuffer(rhi_,
+                               vertexBuffer_,
+                               vertexCapacity_,
+                               QRhiBuffer::Dynamic,
+                               QRhiBuffer::VertexBuffer,
+                               vertexBytes) ||
+          !EnsureDynamicBuffer(rhi_,
+                               momentBuffer_,
+                               momentCapacity_,
+                               QRhiBuffer::Dynamic,
+                               QRhiBuffer::VertexBuffer,
+                               momentBytes) ||
+          !EnsureDynamicBuffer(rhi_,
+                               cfpBuffer_,
+                               cfpCapacity_,
+                               QRhiBuffer::Dynamic,
+                               QRhiBuffer::VertexBuffer,
+                               momentBytes))
+      {
+         return;
+      }
+   }
+
+   if (uploadColorTable)
+   {
+      lutRgba_.resize(kMaxLutWidth * 4);
+      for (int i = 0; i < kMaxLutWidth; ++i)
+      {
+         const int sourceIndex =
+            (tableWidth == 1) ?
+               0 :
+               static_cast<int>((static_cast<std::int64_t>(i) *
+                                 static_cast<std::int64_t>(tableWidth - 1)) /
+                                static_cast<std::int64_t>(kMaxLutWidth - 1));
+         std::copy_n(rgbaColorTable.data() + sourceIndex * 4,
+                     4,
+                     lutRgba_.data() + i * 4);
+      }
    }
 
    QRhiResourceUpdateBatch* batch = rhi_->nextResourceUpdateBatch();
    batch->updateDynamicBuffer(uniformBuffer_, 0, kUniformBytes, &uniforms);
-   batch->updateDynamicBuffer(
-      vertexBuffer_, 0, static_cast<quint32>(vertexBytes), vertices.data());
-   batch->updateDynamicBuffer(
-      momentBuffer_, 0, static_cast<quint32>(momentBytes), momentU32_.data());
-   batch->updateDynamicBuffer(
-      cfpBuffer_, 0, static_cast<quint32>(momentBytes), cfpU32_.data());
+   if (uploadGeometry)
+   {
+      batch->updateDynamicBuffer(
+         vertexBuffer_, 0, static_cast<quint32>(vertexBytes), vertices.data());
+      batch->updateDynamicBuffer(momentBuffer_,
+                                 0,
+                                 static_cast<quint32>(momentBytes),
+                                 momentU32_.data());
+      batch->updateDynamicBuffer(
+         cfpBuffer_, 0, static_cast<quint32>(momentBytes), cfpU32_.data());
+   }
 
-   const QRhiTextureSubresourceUploadDescription subUpload(
-      lutRgba_.data(), static_cast<quint32>(kMaxLutWidth * 4));
-   batch->uploadTexture(
-      lutTexture_,
-      QRhiTextureUploadDescription(QRhiTextureUploadEntry(0, 0, subUpload)));
+   if (uploadColorTable)
+   {
+      const QRhiTextureSubresourceUploadDescription subUpload(
+         lutRgba_.data(), static_cast<quint32>(kMaxLutWidth * 4));
+      batch->uploadTexture(
+         lutTexture_,
+         QRhiTextureUploadDescription(QRhiTextureUploadEntry(0, 0, subUpload)));
+   }
 
    commandBuffer->resourceUpdate(batch);
+   geometryUploaded_ = geometryUploaded_ || uploadGeometry;
+   lutUploaded_      = lutUploaded_ || uploadColorTable;
 
    const QRhiCommandBuffer::VertexInput bindings[] = {
       {vertexBuffer_, 0}, {momentBuffer_, 0}, {cfpBuffer_, 0}};

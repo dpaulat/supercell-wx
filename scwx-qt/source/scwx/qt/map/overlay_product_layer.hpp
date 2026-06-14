@@ -17,6 +17,11 @@ public:
    void Initialize(const std::shared_ptr<MapContext>& mapContext) final;
    void Render(const std::shared_ptr<MapContext>& mapContext,
                const QMapLibre::CustomLayerRenderParameters&) final;
+   void RenderVulkanOverlay(
+      QRhiCommandBuffer*                            commandBuffer,
+      render::RhiVulkanOverlayResources&            resources,
+      const std::shared_ptr<MapContext>&            mapContext,
+      const QMapLibre::CustomLayerRenderParameters& params) final;
    void Deinitialize() final;
 
    bool

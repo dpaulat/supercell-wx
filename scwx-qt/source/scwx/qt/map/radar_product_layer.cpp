@@ -59,6 +59,8 @@ public:
 
    bool colorTableNeedsUpdate_ {false};
    bool sweepNeedsUpdate_ {false};
+   bool colorTableUploadNeeded_ {true};
+   bool sweepUploadNeeded_ {true};
 
    std::vector<float>        vertices_ {};
    std::vector<std::uint8_t> momentData_ {};
@@ -185,7 +187,8 @@ void RadarProductLayer::UpdateSweep(
    }
    p->cfpComponentSize_ = cfpComponentSize;
 
-   p->numVertices_ = vertices.size() / 2;
+   p->numVertices_       = vertices.size() / 2;
+   p->sweepUploadNeeded_ = true;
 
    // NOLINTEND(modernize-use-nullptr)
    // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
@@ -270,7 +273,11 @@ void RadarProductLayer::RenderVulkanOverlay(
                                 p->cfpData_,
                                 p->cfpComponentSize_,
                                 p->rgbaColorTable_,
-                                static_cast<std::uint32_t>(p->numVertices_));
+                                static_cast<std::uint32_t>(p->numVertices_),
+                                p->sweepUploadNeeded_,
+                                p->colorTableUploadNeeded_);
+         p->sweepUploadNeeded_      = false;
+         p->colorTableUploadNeeded_ = false;
 
          if (std::getenv("SCWX_VULKAN_SMOKE") != nullptr)
          {
@@ -538,9 +545,9 @@ void RadarProductLayer::UpdateColorTable(
    std::memcpy(
       p->rgbaColorTable_.data(), colorTable.data(), p->rgbaColorTable_.size());
 
-   p->rangeMin_ = rangeMin;
-   p->scale_    = scale;
-
+   p->rangeMin_               = rangeMin;
+   p->scale_                  = scale;
+   p->colorTableUploadNeeded_ = true;
 }
 
 } // namespace scwx::qt::map

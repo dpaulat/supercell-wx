@@ -217,6 +217,13 @@ public:
          settings::GeneralSettings::Instance().map_provider().GetValue());
       map::ConfigureMapSettings(mapProvider_, settings_);
 
+      mapPaneSplitterStateSaveTimer_.setSingleShot(true);
+      mapPaneSplitterStateSaveTimer_.setInterval(150);
+      connect(&mapPaneSplitterStateSaveTimer_,
+              &QTimer::timeout,
+              this,
+              &MainWindowImpl::SaveMapPaneSplitterState);
+
       if (settings::GeneralSettings::Instance().track_location().GetValue())
       {
          positionManager_->TrackLocation(true);
@@ -262,6 +269,7 @@ public:
       bool tryRestorePaneSizesFromSettingsFirst = true);
    bool RestoreMapPaneSizesFromSettingsIfMatching();
    void SaveMapPaneSplitterState();
+   void ScheduleMapPaneSplitterStateSave();
    bool RestoreMapPaneViewLinkFromSettingsIfMatching();
    void SaveMapPaneViewLinkState();
    void SetLinkRowSplitters(bool on);
@@ -357,6 +365,7 @@ public:
    ui::UpdateDialog*                     updateDialog_ {};
 
    QTimer clockTimer_ {};
+   QTimer mapPaneSplitterStateSaveTimer_ {};
 
    bool customStyleAvailable_ {false};
 
@@ -1327,6 +1336,7 @@ void MainWindowImpl::BuildMapLayout(
    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): Central layout owns
    auto* vs = new QSplitter(Qt::Vertical, mainWindow_->ui->centralwidget);
    vs->setHandleWidth(1);
+   vs->setOpaqueResize(true);
    mapLayoutRoot_ = vs;
 
    auto MoveSplitter = [this, vs](int /*pos*/, int /*index*/)
@@ -1360,19 +1370,19 @@ void MainWindowImpl::BuildMapLayout(
       {
          if (auto* rowHs = qobject_cast<QSplitter*>(vs->widget(r)))
          {
-            if (rowHs->count() == sizes.size())
+            if (rowHs != s && rowHs->count() == sizes.size() &&
+                rowHs->sizes() != sizes)
             {
+               const QSignalBlocker block {rowHs};
                rowHs->setSizes(sizes);
             }
          }
       }
+      ScheduleMapPaneSplitterStateSave();
    };
    auto MoveVerticalSplitter = [this](int /*pos*/, int /*index*/)
    {
-      if (linkColumnHeights_)
-      {
-         SnapLinkedColumnHeights();
-      }
+      ScheduleMapPaneSplitterStateSave();
    };
    connect(vs, &QSplitter::splitterMoved, this, MoveVerticalSplitter);
 
@@ -1381,6 +1391,7 @@ void MainWindowImpl::BuildMapLayout(
       // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): mapLayoutRoot_ owns
       QSplitter* hs = new QSplitter(vs);
       hs->setHandleWidth(1);
+      hs->setOpaqueResize(true);
 
       for (int64_t x = 0; x < gridWidth; x++, mapIndex++)
       {
@@ -1980,6 +1991,11 @@ void MainWindowImpl::SaveMapPaneSplitterState()
    const QByteArray  bytes = QJsonDocument(root).toJson(QJsonDocument::Compact);
    const std::string json  = bytes.toStdString();
    settings::UiSettings::Instance().map_pane_splitter_state().StageValue(json);
+}
+
+void MainWindowImpl::ScheduleMapPaneSplitterStateSave()
+{
+   mapPaneSplitterStateSaveTimer_.start();
 }
 
 bool MainWindowImpl::RestoreMapPaneViewLinkFromSettingsIfMatching()

@@ -12,6 +12,7 @@
 #endif
 
 #include <execution>
+#include <memory>
 
 #include <boost/unordered/unordered_flat_set.hpp>
 #include <units/angle.h>
@@ -117,6 +118,15 @@ public:
    std::unordered_map<std::shared_ptr<GeoLineDrawItem>, LineHoverEntry>
       newHoverLines_ {};
 
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   std::unique_ptr<render::RhiGeoColoredGeometry> geoRenderer_ {};
+   bool                                           geometryUploaded_ {false};
+   std::uint64_t                                  renderTargetGeneration_ {0};
+
+   void EnsureGeoRenderer(render::RhiVulkanOverlayResources& resources,
+                          QRhiCommandBuffer*                 commandBuffer);
+#endif
+
 };
 
 GeoLines::GeoLines(std::shared_ptr<render::RenderContext> context) :
@@ -145,6 +155,39 @@ void GeoLines::Render(const QMapLibre::CustomLayerRenderParameters& /* params */
 }
 
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
+void GeoLines::Impl::EnsureGeoRenderer(
+   render::RhiVulkanOverlayResources& resources,
+   QRhiCommandBuffer*                 commandBuffer)
+{
+   if (resources.rhi == nullptr || resources.renderTarget == nullptr)
+   {
+      return;
+   }
+
+   if (renderTargetGeneration_ != resources.renderTargetGeneration)
+   {
+      if (geoRenderer_ != nullptr)
+      {
+         geoRenderer_->Shutdown();
+      }
+      geoRenderer_              = std::make_unique<render::RhiGeoColoredGeometry>();
+      renderTargetGeneration_   = resources.renderTargetGeneration;
+      geometryUploaded_         = false;
+   }
+
+   if (geoRenderer_ == nullptr)
+   {
+      geoRenderer_            = std::make_unique<render::RhiGeoColoredGeometry>();
+      renderTargetGeneration_ = resources.renderTargetGeneration;
+   }
+
+   if (!geoRenderer_->IsInitialized())
+   {
+      geoRenderer_->Initialize(
+         resources.rhi, resources.renderTarget, commandBuffer);
+   }
+}
+
 void GeoLines::RenderVulkan(
    QRhiCommandBuffer*                            commandBuffer,
    render::RhiVulkanOverlayResources&            resources,
@@ -158,35 +201,41 @@ void GeoLines::RenderVulkan(
 
    std::unique_lock lock {p->lineMutex_};
 
-   if (p->newLineList_.empty() && p->currentLineList_.empty())
+   if (p->currentLineList_.empty() || p->currentLinesBuffer_.empty())
    {
       return;
    }
 
-   if (!p->newLineList_.empty())
+   if (!p->dirtyLines_.empty())
    {
       p->UpdateModifiedLineBuffers();
    }
 
-   if (p->currentLinesBuffer_.empty())
+   p->EnsureGeoRenderer(resources, commandBuffer);
+   if (p->geoRenderer_ == nullptr || !p->geoRenderer_->IsInitialized())
    {
       return;
    }
-
-   std::vector<std::int32_t> integerVertices(p->currentIntegerBuffer_.begin(),
-                                             p->currentIntegerBuffer_.end());
 
    const scwx::qt::render::GeoUniforms uniforms =
       scwx::qt::render::BuildGeoUniforms(
          params, p->thresholded_, p->selectedTime_);
 
-   resources.geoColoredGeometry.Render(
+   const bool uploadGeometry = !p->geometryUploaded_;
+
+   p->geoRenderer_->Render(
       commandBuffer,
       uniforms,
       p->currentLinesBuffer_,
-      integerVertices,
+      p->currentIntegerBuffer_,
       static_cast<std::uint32_t>(p->currentLineList_.size() *
-                                 kVerticesPerRectangle));
+                                 kVerticesPerRectangle),
+      uploadGeometry);
+
+   if (uploadGeometry)
+   {
+      p->geometryUploaded_ = true;
+   }
 }
 #endif
 
@@ -197,6 +246,16 @@ void GeoLines::Deinitialize()
    p->currentLinesBuffer_.clear();
    p->currentIntegerBuffer_.clear();
    p->currentHoverLines_.clear();
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   if (p->geoRenderer_ != nullptr)
+   {
+      p->geoRenderer_->Shutdown();
+      p->geoRenderer_.reset();
+   }
+   p->geometryUploaded_       = false;
+   p->renderTargetGeneration_ = 0;
+#endif
 }
 
 void GeoLines::SetVisible(bool visible)
@@ -345,6 +404,9 @@ void GeoLines::FinishLines()
 
    // Mark the draw item dirty
    p->dirty_ = true;
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   p->geometryUploaded_ = false;
+#endif
 }
 
 void GeoLines::Impl::UpdateBuffers()
@@ -396,6 +458,9 @@ void GeoLines::Impl::UpdateModifiedLineBuffers()
    {
       dirtyLines_.clear();
       dirty_ = true;
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+      geometryUploaded_ = false;
+#endif
    }
 }
 

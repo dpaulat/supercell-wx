@@ -12,6 +12,7 @@
 #endif
 
 #include <execution>
+#include <memory>
 
 namespace scwx
 {
@@ -92,6 +93,17 @@ public:
    std::vector<LineHoverEntry> newHoverLines_ {};
 
    std::uint32_t numVertices_;
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   std::vector<std::int32_t>                      expandedIntegerBuffer_ {};
+   std::unique_ptr<render::RhiGeoColoredGeometry> geoRenderer_ {};
+   bool                                           geometryUploaded_ {false};
+   std::uint64_t                                  renderTargetGeneration_ {0};
+
+   void RebuildExpandedIntegerBuffer();
+   void EnsureGeoRenderer(render::RhiVulkanOverlayResources& resources,
+                          QRhiCommandBuffer*                 commandBuffer);
+#endif
 };
 
 PlacefileLines::PlacefileLines(
@@ -125,6 +137,55 @@ void PlacefileLines::Render(
 }
 
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
+void PlacefileLines::Impl::RebuildExpandedIntegerBuffer()
+{
+   expandedIntegerBuffer_.clear();
+   expandedIntegerBuffer_.reserve(currentIntegerBuffer_.size() /
+                                  kIntegersPerVertex_ * 4);
+   for (std::size_t i = 0; i < currentIntegerBuffer_.size();
+        i += kIntegersPerVertex_)
+   {
+      expandedIntegerBuffer_.push_back(currentIntegerBuffer_[i]);
+      expandedIntegerBuffer_.push_back(currentIntegerBuffer_[i + 1]);
+      expandedIntegerBuffer_.push_back(currentIntegerBuffer_[i + 2]);
+      expandedIntegerBuffer_.push_back(1);
+   }
+   geometryUploaded_ = false;
+}
+
+void PlacefileLines::Impl::EnsureGeoRenderer(
+   render::RhiVulkanOverlayResources& resources,
+   QRhiCommandBuffer*                 commandBuffer)
+{
+   if (resources.rhi == nullptr || resources.renderTarget == nullptr)
+   {
+      return;
+   }
+
+   if (renderTargetGeneration_ != resources.renderTargetGeneration)
+   {
+      if (geoRenderer_ != nullptr)
+      {
+         geoRenderer_->Shutdown();
+      }
+      geoRenderer_            = std::make_unique<render::RhiGeoColoredGeometry>();
+      renderTargetGeneration_ = resources.renderTargetGeneration;
+      geometryUploaded_       = false;
+   }
+
+   if (geoRenderer_ == nullptr)
+   {
+      geoRenderer_            = std::make_unique<render::RhiGeoColoredGeometry>();
+      renderTargetGeneration_ = resources.renderTargetGeneration;
+   }
+
+   if (!geoRenderer_->IsInitialized())
+   {
+      geoRenderer_->Initialize(
+         resources.rhi, resources.renderTarget, commandBuffer);
+   }
+}
+
 void PlacefileLines::RenderVulkan(
    QRhiCommandBuffer*                            commandBuffer,
    render::RhiVulkanOverlayResources&            resources,
@@ -138,29 +199,30 @@ void PlacefileLines::RenderVulkan(
       return;
    }
 
-   p->Update();
-
-   std::vector<std::int32_t> integerVertices;
-   integerVertices.reserve(p->currentIntegerBuffer_.size() / kIntegersPerVertex_ *
-                           4);
-   for (std::size_t i = 0; i < p->currentIntegerBuffer_.size();
-        i += kIntegersPerVertex_)
+   p->EnsureGeoRenderer(resources, commandBuffer);
+   if (p->geoRenderer_ == nullptr || !p->geoRenderer_->IsInitialized())
    {
-      integerVertices.push_back(p->currentIntegerBuffer_[i]);
-      integerVertices.push_back(p->currentIntegerBuffer_[i + 1]);
-      integerVertices.push_back(p->currentIntegerBuffer_[i + 2]);
-      integerVertices.push_back(1);
+      return;
    }
 
    const scwx::qt::render::GeoUniforms uniforms =
-      scwx::qt::render::BuildGeoUniforms(params, p->thresholded_, p->selectedTime_);
+      scwx::qt::render::BuildGeoUniforms(
+         params, p->thresholded_, p->selectedTime_);
 
-   resources.geoColoredGeometry.Render(
+   const bool uploadGeometry = !p->geometryUploaded_;
+
+   p->geoRenderer_->Render(
       commandBuffer,
       uniforms,
       p->currentLinesBuffer_,
-      integerVertices,
-      static_cast<std::uint32_t>(p->numVertices_));
+      p->expandedIntegerBuffer_,
+      static_cast<std::uint32_t>(p->numVertices_),
+      uploadGeometry);
+
+   if (uploadGeometry)
+   {
+      p->geometryUploaded_ = true;
+   }
 }
 #endif
 
@@ -171,6 +233,17 @@ void PlacefileLines::Deinitialize()
    p->currentLinesBuffer_.clear();
    p->currentIntegerBuffer_.clear();
    p->currentHoverLines_.clear();
+
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   p->expandedIntegerBuffer_.clear();
+   if (p->geoRenderer_ != nullptr)
+   {
+      p->geoRenderer_->Shutdown();
+      p->geoRenderer_.reset();
+   }
+   p->geometryUploaded_       = false;
+   p->renderTargetGeneration_ = 0;
+#endif
 }
 
 void PlacefileLines::StartLines()
@@ -214,6 +287,9 @@ void PlacefileLines::FinishLines()
 
    // Mark the draw item dirty
    p->dirty_ = true;
+#if defined(SCWX_RENDER_BACKEND_VULKAN)
+   p->RebuildExpandedIntegerBuffer();
+#endif
 }
 
 void PlacefileLines::Impl::UpdateBuffers(

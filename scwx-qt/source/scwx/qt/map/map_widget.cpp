@@ -1,7 +1,7 @@
 #include <scwx/qt/map/map_annotation_layer.hpp>
 #include <scwx/qt/map/map_rhi_renderer.hpp>
-#   include <scwx/qt/map/map_imgui_vulkan_renderer.hpp>
-#   include <scwx/qt/map/map_overlay_renderer.hpp>
+#include <scwx/qt/map/map_imgui_vulkan_renderer.hpp>
+#include <scwx/qt/map/map_overlay_renderer.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/render/render_backend.hpp>
 #include <scwx/qt/manager/font_manager.hpp>
@@ -81,7 +81,7 @@
 #include <QTextDocument>
 #include <QTimer>
 
-#   include <QtWidgets/qrhiwidget.h>
+#include <QtWidgets/qrhiwidget.h>
 
 namespace scwx::qt::map
 {
@@ -172,6 +172,16 @@ QString FormatMeasurementDistance(double meters)
       .arg(QString::fromStdString(abbrev));
 }
 
+bool VulkanPerfEnabled()
+{
+   static const bool enabled = std::getenv("SCWX_VULKAN_PERF") != nullptr;
+   return enabled;
+}
+
+double ElapsedMs(const std::chrono::steady_clock::time_point& begin,
+                 const std::chrono::steady_clock::time_point& end)
+{ return std::chrono::duration<double, std::milli> {end - begin}.count(); }
+
 // NOLINTEND(cppcoreguidelines-avoid-magic-numbers,cppcoreguidelines-owning-memory)
 } // namespace
 
@@ -188,10 +198,11 @@ class MapWidgetImpl : public QObject
    Q_OBJECT
 
 public:
-   explicit MapWidgetImpl(MapWidget*                     widget,
-                          std::size_t                    id,
-                          QMapLibre::Settings            settings,
-                          std::shared_ptr<render::RenderContext> renderContext) :
+   explicit MapWidgetImpl(
+      MapWidget*                             widget,
+      std::size_t                            id,
+      QMapLibre::Settings                    settings,
+      std::shared_ptr<render::RenderContext> renderContext) :
        id_ {id},
        uuid_ {boost::uuids::random_generator()()},
        renderContext_ {std::move(renderContext)},
@@ -343,14 +354,18 @@ public:
    bool UpdateStoredMapParameters();
    void CheckLevel3Availability();
 
-   void SyncStoredViewFromMap();
-   void RequestRepaint();
-   void CancelPaneContextMenuDebounce();
-   void GetMapViewParameters(double& latitude,
-                             double& longitude,
-                             double& zoom,
-                             double& bearing,
-                             double& pitch) const;
+   void               SyncStoredViewFromMap();
+   void               RequestRepaint();
+   void               CancelPaneContextMenuDebounce();
+   void               QueueMapResize();
+   void               ApplyQueuedMapResize();
+   void               QueueResizeSettleUpdate();
+   [[nodiscard]] bool ResizeSettling() const;
+   void               GetMapViewParameters(double& latitude,
+                                           double& longitude,
+                                           double& zoom,
+                                           double& bearing,
+                                           double& pitch) const;
 
    common::Level2Product
    GetLevel2ProductOrDefault(const std::string& productName) const;
@@ -362,7 +377,7 @@ public:
    std::size_t        id_;
    boost::uuids::uuid uuid_;
 
-   std::shared_ptr<MapContext>    context_ {std::make_shared<MapContext>()};
+   std::shared_ptr<MapContext> context_ {std::make_shared<MapContext>()};
    std::shared_ptr<render::RenderContext> renderContext_;
 
    MapWidget*                      widget_;
@@ -431,6 +446,13 @@ public:
    qreal    paneContextMenuDragThresholdSq_ {0};
    uint64_t paneContextMenuDebounce_ {0};
    bool     suppressContextMenuOnNextRightRelease_ {false};
+   bool     mapResizeQueued_ {false};
+   QSize    queuedMapSize_ {};
+   qreal    queuedMapPixelRatio_ {1.0};
+   QSize    appliedMapSize_ {};
+   qreal    appliedMapPixelRatio_ {0.0};
+   bool     resizeSettleUpdateQueued_ {false};
+   std::chrono::steady_clock::time_point resizeQuietUntil_ {};
 
    QPointF         lastPos_ {};
    QPointF         lastGlobalPos_ {};
@@ -446,6 +468,11 @@ public:
    std::weak_ptr<types::EventHandler> weakPickedEventHandler_ {};
 
    uint64_t frameDraws_;
+   uint64_t perfFrameCount_ {0};
+   double   perfTotalMs_ {0.0};
+   double   perfMapMs_ {0.0};
+   double   perfImguiMs_ {0.0};
+   double   perfOverlayMs_ {0.0};
 
    double prevLatitude_ {0.0};
    double prevLongitude_ {0.0};
@@ -478,8 +505,8 @@ public slots:
    void Update();
 };
 
-MapWidget::MapWidget(std::size_t                    id,
-                     const QMapLibre::Settings&     settings,
+MapWidget::MapWidget(std::size_t                            id,
+                     const QMapLibre::Settings&             settings,
                      std::shared_ptr<render::RenderContext> renderContext) :
     p(std::make_unique<MapWidgetImpl>(
        this, id, settings, std::move(renderContext)))
@@ -1481,6 +1508,74 @@ void MapWidgetImpl::RequestRepaint()
 void MapWidgetImpl::CancelPaneContextMenuDebounce()
 { ++paneContextMenuDebounce_; }
 
+void MapWidgetImpl::QueueMapResize()
+{
+   resizeQuietUntil_ =
+      std::chrono::steady_clock::now() + std::chrono::milliseconds {150};
+   queuedMapSize_       = widget_->size();
+   queuedMapPixelRatio_ = widget_->pixelRatio();
+   QueueResizeSettleUpdate();
+
+   if (mapResizeQueued_)
+   {
+      return;
+   }
+
+   mapResizeQueued_ = true;
+   QTimer::singleShot(16,
+                      widget_,
+                      [this]()
+                      {
+                         mapResizeQueued_ = false;
+                         ApplyQueuedMapResize();
+                      });
+}
+
+void MapWidgetImpl::ApplyQueuedMapResize()
+{
+   if (map_ == nullptr || queuedMapSize_.isEmpty())
+   {
+      return;
+   }
+
+   if (appliedMapSize_ == queuedMapSize_ &&
+       qFuzzyCompare(appliedMapPixelRatio_, queuedMapPixelRatio_))
+   {
+      return;
+   }
+
+   map_->resize(queuedMapSize_, queuedMapPixelRatio_);
+   appliedMapSize_       = queuedMapSize_;
+   appliedMapPixelRatio_ = queuedMapPixelRatio_;
+}
+
+void MapWidgetImpl::QueueResizeSettleUpdate()
+{
+   if (resizeSettleUpdateQueued_)
+   {
+      return;
+   }
+
+   resizeSettleUpdateQueued_ = true;
+   QTimer::singleShot(150,
+                      widget_,
+                      [this]()
+                      {
+                         if (ResizeSettling())
+                         {
+                            resizeSettleUpdateQueued_ = false;
+                            QueueResizeSettleUpdate();
+                            return;
+                         }
+
+                         resizeSettleUpdateQueued_ = false;
+                         widget_->update();
+                      });
+}
+
+bool MapWidgetImpl::ResizeSettling() const
+{ return std::chrono::steady_clock::now() < resizeQuietUntil_; }
+
 void MapWidgetImpl::GetMapViewParameters(double& latitude,
                                          double& longitude,
                                          double& zoom,
@@ -1712,7 +1807,8 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
       // If there is a radar product view, create the radar product layer
       if (radarProductView != nullptr)
       {
-         radarProductLayer_ = std::make_shared<RadarProductLayer>(renderContext_);
+         radarProductLayer_ =
+            std::make_shared<RadarProductLayer>(renderContext_);
          AddLayer(layerName, radarProductLayer_, before);
       }
    }
@@ -1753,7 +1849,8 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
       case types::InformationLayer::ColorTable:
          if (radarProductView != nullptr)
          {
-            colorTableLayer_ = std::make_shared<ColorTableLayer>(renderContext_);
+            colorTableLayer_ =
+               std::make_shared<ColorTableLayer>(renderContext_);
             AddLayer(layerName, colorTableLayer_, before);
          }
          break;
@@ -2198,7 +2295,7 @@ void MapWidget::resizeEvent(QResizeEvent* event)
    MapWidgetBase::resizeEvent(event);
    if (p->map_ != nullptr)
    {
-      p->map_->resize(size(), pixelRatio());
+      p->QueueMapResize();
    }
    p->UpdateAnnotationCursor();
 }
@@ -2397,6 +2494,8 @@ void MapWidget::initialize(QRhiCommandBuffer* cb)
       if (p->map_ != nullptr)
       {
          p->map_->resize(size(), pixelRatio());
+         p->appliedMapSize_       = size();
+         p->appliedMapPixelRatio_ = pixelRatio();
       }
       return;
    }
@@ -2464,6 +2563,8 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
 
    map_ = std::make_shared<QMapLibre::Map>(
       nullptr, settings_, widget_->size(), widget_->pixelRatio());
+   appliedMapSize_       = widget_->size();
+   appliedMapPixelRatio_ = widget_->pixelRatio();
    context_->set_map(map_);
    ConnectMapSignals();
 
@@ -2577,6 +2678,12 @@ void MapWidgetImpl::EnsureImGuiRenderer(QRhiCommandBuffer* commandBuffer)
       return;
    }
 
+   if (ResizeSettling())
+   {
+      imGuiRendererInitialized_ = false;
+      return;
+   }
+
    if (!overlayRenderer_.EnsureRenderTarget(commandBuffer,
                                             widget_->colorTexture()))
    {
@@ -2634,12 +2741,19 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
 
    isPainting_ = true;
    frameDraws_++;
+   const bool perfEnabled = VulkanPerfEnabled();
+   const auto frameStart  = std::chrono::steady_clock::now();
 
    HandleHotkeyUpdates();
    context_->set_pixel_ratio(widget_->pixelRatio());
 
-   map_->resize(widget_->size());
+   const auto mapStart  = std::chrono::steady_clock::now();
+   queuedMapSize_       = widget_->size();
+   queuedMapPixelRatio_ = widget_->pixelRatio();
+   ApplyQueuedMapResize();
    rhiRenderer_.RenderMap(widget_->colorTexture(), map_.get());
+   const auto mapEnd = std::chrono::steady_clock::now();
+
    UpdateMeasureLabels();
 
    const QMapLibre::CustomLayerRenderParameters overlayParams {
@@ -2652,10 +2766,12 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
       .pitch       = map_->pitch(),
       .fieldOfView = 0};
 
+   const auto imguiStart = std::chrono::steady_clock::now();
+
    EnsureImGuiRenderer(commandBuffer);
 
    std::function<void(QRhiCommandBuffer*)> imguiRender;
-   if (imguiVulkanRenderer_.IsInitialized())
+   if (imGuiRendererInitialized_)
    {
       ImGui::SetCurrentContext(imGuiContext_);
       manager::FontManager::Instance().EnsureImGuiFontsBuilt();
@@ -2725,13 +2841,39 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
          imguiVulkanRenderer_.RenderDrawData(cb);
       };
    }
+   const auto imguiEnd = std::chrono::steady_clock::now();
 
+   const auto overlayStart = std::chrono::steady_clock::now();
    overlayRenderer_.Render(commandBuffer,
                            widget_->colorTexture(),
                            genericLayers_,
                            context_,
                            overlayParams,
                            imguiRender);
+   const auto overlayEnd = std::chrono::steady_clock::now();
+
+   if (perfEnabled)
+   {
+      const auto frameEnd = std::chrono::steady_clock::now();
+      ++perfFrameCount_;
+      perfTotalMs_ += ElapsedMs(frameStart, frameEnd);
+      perfMapMs_ += ElapsedMs(mapStart, mapEnd);
+      perfImguiMs_ += ElapsedMs(imguiStart, imguiEnd);
+      perfOverlayMs_ += ElapsedMs(overlayStart, overlayEnd);
+
+      static constexpr uint64_t kPerfLogFrames = 120;
+      if (perfFrameCount_ % kPerfLogFrames == 0)
+      {
+         logger_->info(
+            "Vulkan perf: frames={} total_ms={:.3f} map_ms={:.3f} "
+            "imgui_ms={:.3f} overlay_ms={:.3f}",
+            perfFrameCount_,
+            perfTotalMs_ / static_cast<double>(perfFrameCount_),
+            perfMapMs_ / static_cast<double>(perfFrameCount_),
+            perfImguiMs_ / static_cast<double>(perfFrameCount_),
+            perfOverlayMs_ / static_cast<double>(perfFrameCount_));
+      }
+   }
 
    if (std::getenv("SCWX_VULKAN_SMOKE") != nullptr)
    {
