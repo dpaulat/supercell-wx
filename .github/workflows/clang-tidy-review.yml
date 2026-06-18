@@ -36,13 +36,13 @@ jobs:
     steps:
 
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         path: source
         submodules: recursive
 
     - name: Checkout clang-tidy-review Repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         repository: ZedThree/clang-tidy-review
         ref: v0.20.1
