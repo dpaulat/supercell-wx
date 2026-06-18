@@ -94,7 +94,7 @@ jobs:
       run: git config --global core.longpaths true
 
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         path: source
         submodules: recursive
