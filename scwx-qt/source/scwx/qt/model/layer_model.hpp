@@ -3,15 +3,13 @@
 #include <scwx/qt/types/layer_types.hpp>
 #include <scwx/util/iterator.hpp>
 
+#include <istream>
 #include <memory>
+#include <ostream>
 
 #include <QAbstractTableModel>
 
-namespace scwx
-{
-namespace qt
-{
-namespace model
+namespace scwx::qt::model
 {
 
 class LayerModel : public QAbstractTableModel
@@ -27,45 +25,57 @@ public:
       DisplayMap2 = 2,
       DisplayMap3 = 3,
       DisplayMap4 = 4,
-      Type        = 5,
-      Enabled     = 6,
-      Description = 7
+      DisplayMap5 = 5,
+      DisplayMap6 = 6,
+      DisplayMap7 = 7,
+      DisplayMap8 = 8,
+      DisplayMap9 = 9,
+      Type        = 10,
+      Enabled     = 11,
+      Description = 12
    };
-   typedef scwx::util::Iterator<Column, Column::Order, Column::Description>
-      ColumnIterator;
+   using ColumnIterator =
+      scwx::util::Iterator<Column, Column::Order, Column::Description>;
 
    explicit LayerModel(QObject* parent = nullptr);
    ~LayerModel();
 
-   types::LayerInfo   GetLayerInfo(types::LayerType        type,
-                                   types::LayerDescription description) const;
-   types::LayerVector GetLayers() const;
-   void               SetLayerDisplayed(types::LayerType        type,
-                                        types::LayerDescription description,
-                                        bool                    displayed);
+   void ReadLayerSettings(std::istream& is);
+   void WriteLayerSettings(std::ostream& os);
+
+   [[nodiscard]] types::LayerInfo
+                                    GetLayerInfo(types::LayerType        type,
+                                                 types::LayerDescription description) const;
+   [[nodiscard]] types::LayerVector GetLayers() const;
+   void                             SetLayerDisplayed(types::LayerType        type,
+                                                      types::LayerDescription description,
+                                                      bool                    displayed);
 
    void ResetLayers();
 
-   int rowCount(const QModelIndex& parent = QModelIndex()) const override;
-   int columnCount(const QModelIndex& parent = QModelIndex()) const override;
+   [[nodiscard]] int
+   rowCount(const QModelIndex& parent = QModelIndex()) const override;
+   [[nodiscard]] int
+   columnCount(const QModelIndex& parent = QModelIndex()) const override;
 
-   Qt::ItemFlags   flags(const QModelIndex& index) const override;
-   Qt::DropActions supportedDropActions() const override;
+   [[nodiscard]] Qt::ItemFlags   flags(const QModelIndex& index) const override;
+   [[nodiscard]] Qt::DropActions supportedDropActions() const override;
 
-   bool IsMovable(int row) const;
+   [[nodiscard]] bool IsMovable(int row) const;
 
-   QVariant data(const QModelIndex& index,
-                 int                role = Qt::DisplayRole) const override;
-   QVariant headerData(int             section,
-                       Qt::Orientation orientation,
-                       int             role = Qt::DisplayRole) const override;
+   [[nodiscard]] QVariant data(const QModelIndex& index,
+                               int role = Qt::DisplayRole) const override;
+   [[nodiscard]] QVariant headerData(int             section,
+                                     Qt::Orientation orientation,
+                                     int role = Qt::DisplayRole) const override;
 
    bool setData(const QModelIndex& index,
                 const QVariant&    value,
                 int                role = Qt::EditRole) override;
 
-   QStringList mimeTypes() const override;
-   QMimeData*  mimeData(const QModelIndexList& indexes) const override;
+   [[nodiscard]] QStringList mimeTypes() const override;
+   [[nodiscard]] QMimeData*
+   mimeData(const QModelIndexList& indexes) const override;
 
    bool dropMimeData(const QMimeData*   data,
                      Qt::DropAction     action,
@@ -91,6 +101,4 @@ private:
    std::unique_ptr<Impl> p;
 };
 
-} // namespace model
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::model

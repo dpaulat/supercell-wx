@@ -11,5 +11,8 @@ boost::json::value ReadJsonString(std::string_view sv);
 void               WriteJsonFile(const std::string&        path,
                                  const boost::json::value& json,
                                  bool                      prettyPrint = true);
+void               WriteJsonStream(std::ostream&             os,
+                                   const boost::json::value& json,
+                                   bool                      prettyPrint = true);
 
 } // namespace scwx::util::json

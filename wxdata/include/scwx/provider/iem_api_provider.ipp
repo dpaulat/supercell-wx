@@ -72,7 +72,10 @@ IemApiProvider::ListTextProducts(DateRange dates,
       asyncResponses.emplace_back(
          cpr::GetAsync(cpr::Url {kBaseUrl_ + kListNwsTextProductsEndpoint_},
                        network::cpr::GetHeader(),
-                       parameters));
+                       parameters,
+                       network::cpr::GetDefaultTimeout(),
+                       network::cpr::GetDefaultConnectTimeout(),
+                       network::cpr::GetDefaultLowSpeed()));
    }
 
    return ProcessTextProductLists(asyncResponses);
@@ -98,7 +101,10 @@ IemApiProvider::LoadTextProducts(const Range& textProducts)
          productId,
          cpr::GetAsync(cpr::Url {endpointUrl + productId},
                        network::cpr::GetHeader(),
-                       parameters));
+                       parameters,
+                       network::cpr::GetDefaultTimeout(),
+                       network::cpr::GetDefaultConnectTimeout(),
+                       network::cpr::GetDefaultLowSpeed()));
    }
 
    return ProcessTextProductFiles(asyncResponses);

@@ -67,10 +67,19 @@ void DrawItem::UseDefaultProjection(
    const QMapLibre::CustomLayerRenderParameters& params,
    GLint                                         uMVPMatrixLocation)
 {
+   static constexpr float xOffset = 0.0f;
+   static constexpr float yOffset = 0.0f;
+
    glm::mat4 projection = glm::ortho(0.0f,
                                      static_cast<float>(params.width),
                                      0.0f,
                                      static_cast<float>(params.height));
+
+   if constexpr (xOffset != 0.0f || yOffset != 0.0f)
+   {
+      projection =
+         glm::translate(projection, glm::vec3(xOffset, yOffset, 0.0f));
+   }
 
    glUniformMatrix4fv(
       uMVPMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection));
@@ -80,10 +89,19 @@ void DrawItem::UseRotationProjection(
    const QMapLibre::CustomLayerRenderParameters& params,
    GLint                                         uMVPMatrixLocation)
 {
+   static constexpr float xOffset = 0.0f;
+   static constexpr float yOffset = 0.0f;
+
    glm::mat4 projection = glm::ortho(0.0f,
                                      static_cast<float>(params.width),
                                      0.0f,
                                      static_cast<float>(params.height));
+
+   if constexpr (xOffset != 0.0f || yOffset != 0.0f)
+   {
+      projection =
+         glm::translate(projection, glm::vec3(xOffset, yOffset, 0.0f));
+   }
 
    projection = glm::rotate(projection,
                             glm::radians<float>(params.bearing),
@@ -94,6 +112,21 @@ void DrawItem::UseRotationProjection(
 }
 
 void DrawItem::UseMapProjection(
+   const QMapLibre::CustomLayerRenderParameters& params,
+   GLint                                         uMapMatrixLocation,
+   GLint                                         uOriginLatLongLocation)
+{
+   const glm::mat4 uMapMatrix = util::maplibre::GetMapMatrix(params);
+
+   glUniform2fv(uOriginLatLongLocation,
+                1,
+                glm::value_ptr(glm::vec2 {params.latitude, params.longitude}));
+
+   glUniformMatrix4fv(
+      uMapMatrixLocation, 1, GL_FALSE, glm::value_ptr(uMapMatrix));
+}
+
+void DrawItem::UseMapScreenProjection(
    const QMapLibre::CustomLayerRenderParameters& params,
    GLint                                         uMVPMatrixLocation,
    GLint                                         uMapScreenCoordLocation)

@@ -3,6 +3,7 @@
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/threads.hpp>
+#include <scwx/util/time.hpp>
 
 #include <chrono>
 #include <mutex>
@@ -44,8 +45,9 @@ AlertProxyModel::~AlertProxyModel() = default;
 
 void AlertProxyModel::SetAlertActiveFilter(bool enabled)
 {
+   beginFilterChange();
    p->alertActiveFilterEnabled_ = enabled;
-   invalidateRowsFilter();
+   endFilterChange(Direction::Rows);
 }
 
 bool AlertProxyModel::filterAcceptsRow(int                sourceRow,
@@ -67,7 +69,7 @@ bool AlertProxyModel::filterAcceptsRow(int                sourceRow,
                         .value<std::chrono::system_clock::time_point>();
 
       // Compare end time to current
-      if (endTime < std::chrono::system_clock::now())
+      if (endTime < scwx::util::time::now())
       {
          acceptAlertActiveFilter = false;
       }

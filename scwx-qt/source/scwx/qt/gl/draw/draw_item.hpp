@@ -64,8 +64,12 @@ protected:
    UseRotationProjection(const QMapLibre::CustomLayerRenderParameters& params,
                          GLint uMVPMatrixLocation);
    void UseMapProjection(const QMapLibre::CustomLayerRenderParameters& params,
-                         GLint uMVPMatrixLocation,
-                         GLint uMapScreenCoordLocation);
+                         GLint uMapMatrixLocation,
+                         GLint uOriginLatLongLocation);
+   void
+   UseMapScreenProjection(const QMapLibre::CustomLayerRenderParameters& params,
+                          GLint uMVPMatrixLocation,
+                          GLint uMapScreenCoordLocation);
 
 private:
    class Impl;

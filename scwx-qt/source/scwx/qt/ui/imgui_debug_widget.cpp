@@ -9,11 +9,7 @@
 #include <backends/imgui_impl_qt.hpp>
 #include <fmt/format.h>
 
-namespace scwx
-{
-namespace qt
-{
-namespace ui
+namespace scwx::qt::ui
 {
 
 static const std::string logPrefix_ = "scwx::qt::ui::imgui_debug_widget";
@@ -51,8 +47,6 @@ public:
       model::ImGuiContextModel::Instance().DestroyContext(contextName_);
    }
 
-   void ImGuiCheckFonts();
-
    ImGuiDebugWidget* self_;
    ImGuiContext*     context_;
    std::string       contextName_;
@@ -61,7 +55,6 @@ public:
 
    std::set<ImGuiContext*> renderedSet_ {};
    bool                    imGuiRendererInitialized_ {false};
-   std::uint64_t           imGuiFontsBuildCount_ {};
 };
 
 ImGuiDebugWidget::ImGuiDebugWidget(QWidget* parent) :
@@ -106,8 +99,6 @@ void ImGuiDebugWidget::initializeGL()
    // Initialize ImGui OpenGL3 backend
    ImGui::SetCurrentContext(p->context_);
    ImGui_ImplOpenGL3_Init();
-   p->imGuiFontsBuildCount_ =
-      manager::FontManager::Instance().imgui_fonts_build_count();
    p->imGuiRendererInitialized_ = true;
 }
 
@@ -122,9 +113,9 @@ void ImGuiDebugWidget::paintGL()
    std::shared_lock imguiFontAtlasLock {
       manager::FontManager::Instance().imgui_font_atlas_mutex()};
 
+   model::ImGuiContextModel::Instance().NewFrame();
    ImGui_ImplQt_NewFrame(this);
    ImGui_ImplOpenGL3_NewFrame();
-   p->ImGuiCheckFonts();
    ImGui::NewFrame();
 
    if (!p->renderedSet_.contains(p->currentContext_))
@@ -149,26 +140,4 @@ void ImGuiDebugWidget::paintGL()
    imguiFontAtlasLock.unlock();
 }
 
-void ImGuiDebugWidgetImpl::ImGuiCheckFonts()
-{
-   // Update ImGui Fonts if required
-   std::uint64_t currentImGuiFontsBuildCount =
-      manager::FontManager::Instance().imgui_fonts_build_count();
-
-   if ((context_ == currentContext_ &&
-        imGuiFontsBuildCount_ != currentImGuiFontsBuildCount) ||
-       !model::ImGuiContextModel::Instance().font_atlas()->IsBuilt())
-   {
-      ImGui_ImplOpenGL3_DestroyFontsTexture();
-      ImGui_ImplOpenGL3_CreateFontsTexture();
-   }
-
-   if (context_ == currentContext_)
-   {
-      imGuiFontsBuildCount_ = currentImGuiFontsBuildCount;
-   }
-}
-
-} // namespace ui
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::ui

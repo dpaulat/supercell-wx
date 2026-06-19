@@ -38,11 +38,13 @@ public:
    [[nodiscard]] virtual std::shared_ptr<common::ColorTable>
    color_table() const = 0;
    [[nodiscard]] virtual const std::vector<boost::gil::rgba8_pixel_t>&
-                                              color_table_lut() const;
-   [[nodiscard]] virtual std::uint16_t        color_table_min() const;
-   [[nodiscard]] virtual std::uint16_t        color_table_max() const;
-   [[nodiscard]] virtual std::optional<float> elevation() const;
-   [[nodiscard]] virtual float                range() const;
+                                               color_table_lut() const;
+   [[nodiscard]] virtual std::uint16_t         color_table_min() const;
+   [[nodiscard]] virtual std::uint16_t         color_table_max() const;
+   [[nodiscard]] std::optional<float>          color_table_threshold() const;
+   [[nodiscard]] virtual std::optional<float>  elevation() const;
+   [[nodiscard]] types::RadarProductLoadStatus load_status() const;
+   [[nodiscard]] virtual float                 range() const;
    [[nodiscard]] virtual std::chrono::system_clock::time_point
                                                    sweep_time() const;
    [[nodiscard]] virtual float                     unit_scale() const = 0;
@@ -59,6 +61,7 @@ public:
 
    void set_radar_product_manager(
       std::shared_ptr<manager::RadarProductManager> radarProductManager);
+   void set_color_table_threshold(std::optional<float> threshold);
    void set_smoothing_enabled(bool smoothingEnabled);
 
    void Initialize();
@@ -91,12 +94,16 @@ public:
    [[nodiscard]] virtual std::vector<std::pair<std::string, std::string>>
    GetDescriptionFields() const;
 
+   [[nodiscard]] virtual std::pair<float, float> GetColorTableRange() const;
+
 protected:
    virtual boost::asio::thread_pool& thread_pool() = 0;
 
    virtual void ConnectRadarProductManager()    = 0;
    virtual void DisconnectRadarProductManager() = 0;
    virtual void UpdateColorTableLut()           = 0;
+
+   void set_load_status(types::RadarProductLoadStatus loadStatus);
 
 protected slots:
    virtual void ComputeSweep();

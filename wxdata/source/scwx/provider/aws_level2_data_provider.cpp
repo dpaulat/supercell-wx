@@ -18,7 +18,7 @@ static const std::string logPrefix_ =
    "scwx::provider::aws_level2_data_provider";
 static const auto logger_ = util::Logger::Create(logPrefix_);
 
-static const std::string kDefaultBucketName_ = "noaa-nexrad-level2";
+static const std::string kDefaultBucketName_ = "unidata-nexrad-level2";
 static const std::string kDefaultRegion_     = "us-east-1";
 
 class AwsLevel2DataProvider::Impl

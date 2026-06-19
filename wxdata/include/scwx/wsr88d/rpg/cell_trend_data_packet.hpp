@@ -20,7 +20,7 @@ public:
    explicit CellTrendDataPacket();
    ~CellTrendDataPacket();
 
-   CellTrendDataPacket(const CellTrendDataPacket&) = delete;
+   CellTrendDataPacket(const CellTrendDataPacket&)            = delete;
    CellTrendDataPacket& operator=(const CellTrendDataPacket&) = delete;
 
    CellTrendDataPacket(CellTrendDataPacket&&) noexcept;

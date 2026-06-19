@@ -49,6 +49,7 @@ public:
    [[nodiscard]] std::string                        radar_product() const;
    [[nodiscard]] int16_t                            radar_product_code() const;
    [[nodiscard]] std::shared_ptr<config::RadarSite> radar_site() const;
+   [[nodiscard]] bool                               screen_capture() const;
    [[nodiscard]] QWidget*                           widget() const;
 
    void set_map(const std::shared_ptr<QMapLibre::Map>& map);
@@ -65,6 +66,7 @@ public:
    void set_radar_product(const std::string& radarProduct);
    void set_radar_product_code(int16_t radarProductCode);
    void set_radar_site(const std::shared_ptr<config::RadarSite>& site);
+   void set_screen_capture(bool screenCapture);
    void set_widget(QWidget* widget);
 
 private:

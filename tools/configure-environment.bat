@@ -27,9 +27,10 @@ pip install --upgrade -r "%script_dir%\..\requirements.txt"
 @conan profile detect -e
 
 :: Conan profiles
-@set profile_count=1
+@set profile_count=2
 @set /a last_profile=profile_count - 1
-@set conan_profile[0]=scwx-windows_msvc2022_x64
+@set conan_profile[0]=scwx-windows_vs2022_x64
+@set conan_profile[1]=scwx-windows_vs2026_x64
 
 :: Install Conan profiles
 @for /L %%i in (0,1,!last_profile!) do @(

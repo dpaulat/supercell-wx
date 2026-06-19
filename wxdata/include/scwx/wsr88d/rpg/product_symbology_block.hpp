@@ -21,7 +21,7 @@ public:
    explicit ProductSymbologyBlock();
    ~ProductSymbologyBlock();
 
-   ProductSymbologyBlock(const ProductSymbologyBlock&) = delete;
+   ProductSymbologyBlock(const ProductSymbologyBlock&)            = delete;
    ProductSymbologyBlock& operator=(const ProductSymbologyBlock&) = delete;
 
    ProductSymbologyBlock(ProductSymbologyBlock&&) noexcept;

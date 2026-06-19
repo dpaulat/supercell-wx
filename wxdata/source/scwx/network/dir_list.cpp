@@ -1,6 +1,7 @@
 #define LIBXML_HTML_ENABLED
 
 #include <scwx/network/dir_list.hpp>
+#include <scwx/network/cpr.hpp>
 #include <scwx/util/logger.hpp>
 
 #if defined(_MSC_VER)
@@ -27,9 +28,10 @@ namespace network
 static const std::string logPrefix_ = "scwx::network::dir_list";
 static const auto        logger_    = util::Logger::Create(logPrefix_);
 
-static const cpr::SslOptions  kSslOptions_ = cpr::Ssl(cpr::ssl::TLSv1_2 {});
-static const cpr::HttpVersion kHttpVersion_ {
-   cpr::HttpVersionCode::VERSION_2_0_TLS};
+static const ::cpr::SslOptions kSslOptions_ =
+   ::cpr::Ssl(::cpr::ssl::TLSv1_2 {});
+static const ::cpr::HttpVersion kHttpVersion_ {
+   ::cpr::HttpVersionCode::VERSION_2_0_TLS};
 
 class DirListSAXHandler
 {
@@ -87,11 +89,16 @@ std::vector<DirListRecord> DirList(const std::string& baseUrl)
 
    logger_->trace("DirList: {}", baseUrl);
 
-   cpr::Response response =
-      cpr::Get(cpr::Url {baseUrl}, kSslOptions_, kHttpVersion_);
+   ::cpr::Response response =
+      ::cpr::Get(::cpr::Url {baseUrl},
+                 kSslOptions_,
+                 kHttpVersion_,
+                 network::cpr::GetDefaultTimeout(),
+                 network::cpr::GetDefaultConnectTimeout(),
+                 network::cpr::GetDefaultLowSpeed());
    DirListSAXData saxData {};
 
-   if (response.status_code != cpr::status::HTTP_OK)
+   if (response.status_code != ::cpr::status::HTTP_OK)
    {
       logger_->warn("Bad response from {}: {} ({})",
                     baseUrl,

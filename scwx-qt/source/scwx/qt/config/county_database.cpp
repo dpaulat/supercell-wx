@@ -1,4 +1,5 @@
 #include <scwx/qt/config/county_database.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <unordered_map>
@@ -7,16 +8,9 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <QFile>
-#include <QStandardPaths>
 #include <sqlite3.h>
 
-namespace scwx
-{
-namespace qt
-{
-namespace config
-{
-namespace CountyDatabase
+namespace scwx::qt::config::CountyDatabase
 {
 
 static const std::string logPrefix_ = "scwx::qt::config::county_database";
@@ -43,23 +37,18 @@ void Initialize()
    logger_->debug("Loading database");
 
    // Generate UUID for temporary file
-   boost::uuids::uuid uuid = boost::uuids::random_generator()();
+   const boost::uuids::uuid uuid = boost::uuids::random_generator()();
 
-   std::string tempPath {
-      QStandardPaths::writableLocation(QStandardPaths::TempLocation)
-         .toStdString()};
-   std::string countyDatabaseCache {tempPath + "/scwx-" +
-                                    boost::uuids::to_string(uuid)};
-
-   // Create cache directory if it doesn't exist
+   const std::filesystem::path tempPath {main::ApplicationPaths::GetLocation(
+      main::ApplicationPaths::StandardLocation::Temp)};
    if (!std::filesystem::exists(tempPath))
    {
-      if (!std::filesystem::create_directories(tempPath))
-      {
-         logger_->error("Unable to create temp directory: \"{}\"", tempPath);
-         return;
-      }
+      logger_->error("Temp path does not exist: {}", tempPath.string());
+      return;
    }
+
+   const std::filesystem::path countyDatabaseCache {
+      tempPath / ("scwx-" + boost::uuids::to_string(uuid))};
 
    // Remove existing county database if it exists
    if (std::filesystem::exists(countyDatabaseCache))
@@ -69,10 +58,11 @@ void Initialize()
 
    // Create a fresh copy of the county database in the temporary directory
    QFile countyDatabaseFile(QString::fromStdString(countyDatabaseFilename_));
-   if (!countyDatabaseFile.copy(QString::fromStdString(countyDatabaseCache)))
+   if (!countyDatabaseFile.copy(
+          QString::fromStdString(countyDatabaseCache.string())))
    {
       logger_->error("Unable to create cached copy of database: \"{}\" ({})",
-                     countyDatabaseCache,
+                     countyDatabaseCache.string(),
                      countyDatabaseFile.errorString().toStdString());
       return;
    }
@@ -82,10 +72,11 @@ void Initialize()
    int      rc;
    char*    errorMessage = nullptr;
 
-   rc = sqlite3_open(countyDatabaseCache.c_str(), &db);
+   rc = sqlite3_open(countyDatabaseCache.string().c_str(), &db);
    if (rc != SQLITE_OK)
    {
-      logger_->error("Unable to open database: \"{}\"", countyDatabaseCache);
+      logger_->error("Unable to open database: \"{}\"",
+                     countyDatabaseCache.string());
       sqlite3_close(db);
       std::filesystem::remove(countyDatabaseCache);
       return;
@@ -280,7 +271,4 @@ const std::string& GetWFOName(const std::string& wfoId)
    return wfo->second;
 }
 
-} // namespace CountyDatabase
-} // namespace config
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::config::CountyDatabase

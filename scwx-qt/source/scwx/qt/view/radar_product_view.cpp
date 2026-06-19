@@ -58,6 +58,10 @@ public:
    std::chrono::system_clock::time_point selectedTime_;
    bool                                  showSmoothedRangeFolding_ {false};
    bool                                  smoothingEnabled_ {false};
+   types::RadarProductLoadStatus         loadStatus_ {
+      types::RadarProductLoadStatus::ProductNotLoaded};
+
+   std::optional<float> colorTableThreshold_ {};
 
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
@@ -88,6 +92,11 @@ std::uint16_t RadarProductView::color_table_max() const
 std::optional<float> RadarProductView::elevation() const
 {
    return {};
+}
+
+types::RadarProductLoadStatus RadarProductView::load_status() const
+{
+   return p->loadStatus_;
 }
 
 std::shared_ptr<manager::RadarProductManager>
@@ -126,6 +135,11 @@ std::mutex& RadarProductView::sweep_mutex()
    return p->sweepMutex_;
 }
 
+void RadarProductView::set_load_status(types::RadarProductLoadStatus loadStatus)
+{
+   p->loadStatus_ = loadStatus;
+}
+
 void RadarProductView::set_radar_product_manager(
    std::shared_ptr<manager::RadarProductManager> radarProductManager)
 {
@@ -137,6 +151,17 @@ void RadarProductView::set_radar_product_manager(
 void RadarProductView::set_smoothing_enabled(bool smoothingEnabled)
 {
    p->smoothingEnabled_ = smoothingEnabled;
+}
+
+std::optional<float> RadarProductView::color_table_threshold() const
+{
+   return p->colorTableThreshold_;
+}
+
+void RadarProductView::set_color_table_threshold(std::optional<float> threshold)
+{
+   p->colorTableThreshold_ = threshold;
+   UpdateColorTableLut();
 }
 
 void RadarProductView::Initialize()
@@ -198,6 +223,12 @@ std::vector<std::pair<std::string, std::string>>
 RadarProductView::GetDescriptionFields() const
 {
    return {};
+}
+
+std::pair<float, float> RadarProductView::GetColorTableRange() const
+{
+   return {-std::numeric_limits<float>::infinity(),
+           std::numeric_limits<float>::infinity()};
 }
 
 void RadarProductView::ComputeSweep()

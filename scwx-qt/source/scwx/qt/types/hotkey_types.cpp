@@ -29,6 +29,8 @@ static const std::unordered_map<Hotkey, std::string> hotkeyShortName_ {
    {Hotkey::ProductCategoryPrevious, "product_category_last"},
    {Hotkey::ProductTiltDecrease, "product_tilt_decrease"},
    {Hotkey::ProductTiltIncrease, "product_tilt_increase"},
+   {Hotkey::ScreenCaptureCopy, "screen_capture_copy"},
+   {Hotkey::ScreenCaptureSaveImage, "screen_capture_save_image"},
    {Hotkey::SelectLevel2Ref, "select_l2_ref"},
    {Hotkey::SelectLevel2Vel, "select_l2_vel"},
    {Hotkey::SelectLevel2SW, "select_l2_sw"},
@@ -52,6 +54,7 @@ static const std::unordered_map<Hotkey, std::string> hotkeyShortName_ {
    {Hotkey::TimelinePlay, "timeline_play"},
    {Hotkey::TimelineStepNext, "timeline_step_next"},
    {Hotkey::TimelineStepEnd, "timeline_step_end"},
+   {Hotkey::ToggleFullScreen, "toggle_full_screen"},
    {Hotkey::Unknown, "?"}};
 
 static const std::unordered_map<Hotkey, std::string> hotkeyLongName_ {
@@ -71,6 +74,8 @@ static const std::unordered_map<Hotkey, std::string> hotkeyLongName_ {
    {Hotkey::ProductCategoryPrevious, "Previous Product in Category"},
    {Hotkey::ProductTiltDecrease, "Product Tilt Decrease"},
    {Hotkey::ProductTiltIncrease, "Product Tilt Increase"},
+   {Hotkey::ScreenCaptureCopy, "Screen Capture Copy"},
+   {Hotkey::ScreenCaptureSaveImage, "Screen Capture Save Image"},
    {Hotkey::SelectLevel2Ref, "Select L2 REF"},
    {Hotkey::SelectLevel2Vel, "Select L2 VEL"},
    {Hotkey::SelectLevel2SW, "Select L2 SW"},
@@ -94,6 +99,7 @@ static const std::unordered_map<Hotkey, std::string> hotkeyLongName_ {
    {Hotkey::TimelinePlay, "Timeline Play/Pause"},
    {Hotkey::TimelineStepNext, "Timeline Step Next"},
    {Hotkey::TimelineStepEnd, "Timeline Step End"},
+   {Hotkey::ToggleFullScreen, "Toggle Full Screen"},
    {Hotkey::Unknown, "?"}};
 
 SCWX_GET_ENUM(Hotkey, GetHotkeyFromShortName, hotkeyShortName_)

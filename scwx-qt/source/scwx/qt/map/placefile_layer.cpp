@@ -1,6 +1,7 @@
 #include <scwx/qt/map/placefile_layer.hpp>
 #include <scwx/qt/gl/draw/placefile_icons.hpp>
 #include <scwx/qt/gl/draw/placefile_images.hpp>
+#include <scwx/qt/gl/draw/placefile_images_xy.hpp>
 #include <scwx/qt/gl/draw/placefile_lines.hpp>
 #include <scwx/qt/gl/draw/placefile_polygons.hpp>
 #include <scwx/qt/gl/draw/placefile_triangles.hpp>
@@ -29,6 +30,8 @@ public:
        placefileIcons_ {std::make_shared<gl::draw::PlacefileIcons>(glContext)},
        placefileImages_ {
           std::make_shared<gl::draw::PlacefileImages>(glContext)},
+       placefileImagesXY_ {
+          std::make_shared<gl::draw::PlacefileImagesXY>(glContext)},
        placefileLines_ {std::make_shared<gl::draw::PlacefileLines>(glContext)},
        placefilePolygons_ {
           std::make_shared<gl::draw::PlacefilePolygons>(glContext)},
@@ -57,6 +60,7 @@ public:
 
    std::shared_ptr<gl::draw::PlacefileIcons>     placefileIcons_;
    std::shared_ptr<gl::draw::PlacefileImages>    placefileImages_;
+   std::shared_ptr<gl::draw::PlacefileImagesXY>  placefileImagesXY_;
    std::shared_ptr<gl::draw::PlacefileLines>     placefileLines_;
    std::shared_ptr<gl::draw::PlacefilePolygons>  placefilePolygons_;
    std::shared_ptr<gl::draw::PlacefileTriangles> placefileTriangles_;
@@ -71,6 +75,7 @@ PlacefileLayer::PlacefileLayer(const std::shared_ptr<gl::GlContext>& glContext,
     p(std::make_unique<PlacefileLayer::Impl>(this, glContext, placefileName))
 {
    AddDrawItem(p->placefileImages_);
+   AddDrawItem(p->placefileImagesXY_);
    AddDrawItem(p->placefilePolygons_);
    AddDrawItem(p->placefileTriangles_);
    AddDrawItem(p->placefileLines_);
@@ -202,6 +207,7 @@ void PlacefileLayer::Impl::ReloadDataSync()
    // Start draw items
    placefileIcons_->StartIcons();
    placefileImages_->StartImages(placefile->name());
+   placefileImagesXY_->StartImagesXY(placefile->name());
    placefileLines_->StartLines();
    placefilePolygons_->StartPolygons();
    placefileTriangles_->StartTriangles();
@@ -239,6 +245,11 @@ void PlacefileLayer::Impl::ReloadDataSync()
             std::static_pointer_cast<gr::Placefile::ImageDrawItem>(drawItem));
          break;
 
+      case gr::Placefile::ItemType::ImageXY:
+         placefileImagesXY_->AddImageXY(
+            std::static_pointer_cast<gr::Placefile::ImageXYDrawItem>(drawItem));
+         break;
+
       case gr::Placefile::ItemType::Triangles:
          placefileTriangles_->AddTriangles(
             std::static_pointer_cast<gr::Placefile::TrianglesDrawItem>(
@@ -253,6 +264,7 @@ void PlacefileLayer::Impl::ReloadDataSync()
    // Finish draw items
    placefileIcons_->FinishIcons();
    placefileImages_->FinishImages();
+   placefileImagesXY_->FinishImagesXY();
    placefileLines_->FinishLines();
    placefilePolygons_->FinishPolygons();
    placefileTriangles_->FinishTriangles();

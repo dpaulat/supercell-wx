@@ -1,5 +1,6 @@
 #pragma once
 
+#include <scwx/qt/types/radar_site_types.hpp>
 #include <scwx/util/time.hpp>
 
 #include <memory>
@@ -10,8 +11,6 @@
 
 namespace scwx::qt::config
 {
-
-class RadarSiteImpl;
 
 class RadarSite
 {
@@ -39,6 +38,14 @@ public:
 
    [[nodiscard]] const scwx::util::time_zone* time_zone() const;
 
+   [[nodiscard]] std::chrono::system_clock::time_point last_received() const;
+   [[nodiscard]] std::chrono::milliseconds             latency() const;
+   [[nodiscard]] types::RadarSiteStatus                status() const;
+
+   void set_last_received(std::chrono::system_clock::time_point lastReceived);
+   void set_latency(std::chrono::milliseconds latency);
+   void set_status(types::RadarSiteStatus status);
+
    static std::shared_ptr<RadarSite>              Get(const std::string& id);
    static std::vector<std::shared_ptr<RadarSite>> GetAll();
 
@@ -52,15 +59,18 @@ public:
     * @return Nearest radar site
     */
    static std::shared_ptr<RadarSite>
-   FindNearest(double                     latitude,
-               double                     longitude,
-               std::optional<std::string> type = std::nullopt);
+   FindNearest(double                            latitude,
+               double                            longitude,
+               const std::optional<std::string>& type        = std::nullopt,
+               bool                              includeDown = true,
+               bool                              includeDecommissioned = true);
 
    static void   Initialize();
    static size_t ReadConfig(const std::string& path);
 
 private:
-   std::unique_ptr<RadarSiteImpl> p;
+   class Impl;
+   std::unique_ptr<Impl> p;
 };
 
 std::string GetRadarIdFromSiteId(const std::string& siteId);

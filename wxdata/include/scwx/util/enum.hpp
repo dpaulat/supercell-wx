@@ -1,13 +1,16 @@
 #pragma once
 
+#include <algorithm>
+
+#include <boost/algorithm/string.hpp>
+
 #define SCWX_GET_ENUM(Type, FunctionName, nameMap)                             \
    Type FunctionName(const std::string& name)                                  \
    {                                                                           \
-      auto result =                                                            \
-         std::find_if(nameMap.cbegin(),                                        \
-                      nameMap.cend(),                                          \
-                      [&](const std::pair<Type, std::string>& pair) -> bool    \
-                      { return boost::iequals(pair.second, name); });          \
+      auto result = std::ranges::find_if(                                      \
+         nameMap,                                                              \
+         [&](const std::pair<Type, std::string>& pair) -> bool                 \
+         { return boost::iequals(pair.second, name); });                       \
                                                                                \
       if (result != nameMap.cend())                                            \
       {                                                                        \

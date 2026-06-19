@@ -131,7 +131,7 @@ void MarkerSettingsWidgetImpl::ConnectSignals()
    hotkeyConnection_ = settings::HotkeySettings::Instance()
                           .hotkey(types::Hotkey::AddLocationMarker)
                           .changed_signal()
-                          .connect([this]() { UpdateHotkeyLabel(); });
+                          .connect([this](auto&&...) { UpdateHotkeyLabel(); });
 }
 
 void MarkerSettingsWidgetImpl::UpdateHotkeyLabel()

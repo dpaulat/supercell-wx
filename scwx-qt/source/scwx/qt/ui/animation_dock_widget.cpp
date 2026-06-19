@@ -5,6 +5,7 @@
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/util/time.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/time.hpp>
 
 #include <QTimer>
 
@@ -81,8 +82,7 @@ AnimationDockWidget::AnimationDockWidget(QWidget* parent) :
    p->timeZone_ = date::get_tzdb().locate_zone("UTC");
 #endif
    const std::chrono::sys_seconds currentTimePoint =
-      std::chrono::floor<std::chrono::minutes>(
-         std::chrono::system_clock::now());
+      std::chrono::floor<std::chrono::minutes>(scwx::util::time::now());
    p->SetTimePoint(currentTimePoint);
 
    // Update maximum date on a timer
@@ -145,7 +145,7 @@ std::chrono::system_clock::time_point AnimationDockWidgetImpl::GetTimePoint()
    const local_time<std::chrono::seconds> localTime =
       selectedDate_ + selectedTime_;
    const auto zonedTime =
-      zoned_time<std::chrono::seconds>(timeZone_, localTime);
+      zoned_time<std::chrono::seconds>(timeZone_, localTime, choose::earliest);
    const std::chrono::sys_seconds systemTime = zonedTime.get_sys_time();
 
    // This is done to update it when the date changes
@@ -299,12 +299,16 @@ void AnimationDockWidgetImpl::ConnectSignals()
    QObject::connect(hotkeyManager_.get(),
                     &manager::HotkeyManager::HotkeyPressed,
                     self_,
-                    [this](types::Hotkey hotkey, bool /* isAutoRepeat */)
+                    [this](types::Hotkey hotkey, bool isAutoRepeat)
                     {
                        switch (hotkey)
                        {
                        case types::Hotkey::TimelineStepBegin:
-                          Q_EMIT self_->AnimationStepBeginSelected();
+                          // Only handle step begin on an initial key press
+                          if (!isAutoRepeat)
+                          {
+                             Q_EMIT self_->AnimationStepBeginSelected();
+                          }
                           break;
 
                        case types::Hotkey::TimelineStepBack:
@@ -312,7 +316,11 @@ void AnimationDockWidgetImpl::ConnectSignals()
                           break;
 
                        case types::Hotkey::TimelinePlay:
-                          Q_EMIT self_->AnimationPlaySelected();
+                          // Only handle play on an initial key press
+                          if (!isAutoRepeat)
+                          {
+                             Q_EMIT self_->AnimationPlaySelected();
+                          }
                           break;
 
                        case types::Hotkey::TimelineStepNext:
@@ -320,7 +328,11 @@ void AnimationDockWidgetImpl::ConnectSignals()
                           break;
 
                        case types::Hotkey::TimelineStepEnd:
-                          Q_EMIT self_->AnimationStepEndSelected();
+                          // Only handle step end on an initial key press
+                          if (!isAutoRepeat)
+                          {
+                             Q_EMIT self_->AnimationStepEndSelected();
+                          }
                           break;
 
                        default:

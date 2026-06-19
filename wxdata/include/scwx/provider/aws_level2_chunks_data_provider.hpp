@@ -46,7 +46,9 @@ public:
    std::string FindLatestKey() override;
    std::chrono::system_clock::time_point FindLatestTime() override;
    std::vector<std::chrono::system_clock::time_point>
-   GetTimePointsByDate(std::chrono::system_clock::time_point date) override;
+        GetTimePointsByDate(std::chrono::system_clock::time_point date,
+                            bool                                  update) override;
+   bool IsDateCached(std::chrono::system_clock::time_point date) override;
    std::tuple<bool, size_t, size_t>
    ListObjects(std::chrono::system_clock::time_point date) override;
    std::shared_ptr<wsr88d::NexradFile>
@@ -62,6 +64,11 @@ public:
 
    void SetLevel2DataProvider(
       const std::shared_ptr<AwsLevel2DataProvider>& provider);
+
+   /**
+    * @brief Shuts down the provider and stops any in-progress network requests.
+    */
+   void Shutdown() noexcept override;
 
 private:
    class Impl;

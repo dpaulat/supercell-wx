@@ -1,4 +1,5 @@
 ﻿---
+Language: Cpp
 AccessModifierOffset: '-3'
 AlignAfterOpenBracket: Align
 AlignConsecutiveMacros: 'true'
@@ -42,7 +43,6 @@ IndentCaseLabels: 'false'
 IndentPPDirectives: AfterHash
 IndentWidth: '3'
 IndentWrappedFunctionNames: 'false'
-Language: Cpp
 NamespaceIndentation: None
 PointerAlignment: Left
 ReflowComments: 'true'
@@ -65,5 +65,14 @@ SpacesInParentheses: 'false'
 SpacesInSquareBrackets: 'false'
 Standard: Auto
 UseTab: Never
+...
 
+---
+Language: JavaScript
+DisableFormat: true
+...
+
+---
+Language: Json
+DisableFormat: true
 ...

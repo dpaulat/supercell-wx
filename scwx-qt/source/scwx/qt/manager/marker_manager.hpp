@@ -2,8 +2,11 @@
 
 #include <scwx/qt/types/marker_types.hpp>
 
-#include <QObject>
+#include <istream>
 #include <optional>
+#include <ostream>
+
+#include <QObject>
 
 namespace scwx
 {
@@ -20,6 +23,9 @@ class MarkerManager : public QObject
 public:
    explicit MarkerManager();
    ~MarkerManager();
+
+   void ReadMarkerSettings(std::istream& is);
+   void WriteMarkerSettings(std::ostream& os);
 
    size_t                           marker_count();
    std::optional<types::MarkerInfo> get_marker(types::MarkerId id);

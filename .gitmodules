@@ -1,45 +1,45 @@
-[submodule "external/cmake-conan"]
-	path = external/cmake-conan
-	url = https://github.com/conan-io/cmake-conan.git
-[submodule "test/data"]
-	path = test/data
-	url = https://github.com/dpaulat/supercell-wx-test-data
-[submodule "external/hsluv-c"]
-	path = external/hsluv-c
-	url = https://github.com/hsluv/hsluv-c.git
-[submodule "external/stb"]
-	path = external/stb
-	url = https://github.com/nothings/stb.git
 [submodule "data"]
 	path = data
 	url = https://github.com/dpaulat/supercell-wx-data
+[submodule "external/aws-sdk-cpp"]
+	path = external/aws-sdk-cpp
+	url = https://github.com/aws/aws-sdk-cpp.git
+[submodule "external/cmake-conan"]
+	path = external/cmake-conan
+	url = https://github.com/conan-io/cmake-conan.git
+[submodule "external/date"]
+	path = external/date
+	url = https://github.com/HowardHinnant/date.git
+[submodule "external/glad"]
+	path = external/glad
+	url = https://github.com/Dav1dde/glad.git
+[submodule "external/hsluv-c"]
+	path = external/hsluv-c
+	url = https://github.com/hsluv/hsluv-c.git
 [submodule "external/imgui"]
 	path = external/imgui
 	url = https://github.com/ocornut/imgui.git
 [submodule "external/imgui-backend-qt"]
 	path = external/imgui-backend-qt
 	url = https://github.com/dpaulat/imgui-backend-qt
-[submodule "external/aws-sdk-cpp"]
-	path = external/aws-sdk-cpp
-	url = https://github.com/aws/aws-sdk-cpp.git
-[submodule "external/date"]
-	path = external/date
-	url = https://github.com/HowardHinnant/date.git
-[submodule "external/units"]
-	path = external/units
-	url = https://github.com/nholthaus/units.git
-[submodule "external/textflowcpp"]
-	path = external/textflowcpp
-	url = https://github.com/catchorg/textflowcpp.git
-[submodule "external/maplibre-native-qt"]
-	path = external/maplibre-native-qt
-	url = https://github.com/dpaulat/maplibre-native-qt.git
 [submodule "external/maplibre-native"]
 	path = external/maplibre-native
 	url = https://github.com/dpaulat/maplibre-gl-native.git
+[submodule "external/maplibre-native-qt"]
+	path = external/maplibre-native-qt
+	url = https://github.com/dpaulat/maplibre-native-qt.git
 [submodule "external/qt6ct"]
 	path = external/qt6ct
 	url = https://github.com/AdenKoperczak/qt6ct.git
-[submodule "external/glad"]
-	path = external/glad
-	url = https://github.com/Dav1dde/glad.git
+[submodule "external/stb"]
+	path = external/stb
+	url = https://github.com/nothings/stb.git
+[submodule "external/textflowcpp"]
+	path = external/textflowcpp
+	url = https://github.com/catchorg/textflowcpp.git
+[submodule "external/units"]
+	path = external/units
+	url = https://github.com/nholthaus/units.git
+[submodule "test/data"]
+	path = test/data
+	url = https://github.com/dpaulat/supercell-wx-test-data

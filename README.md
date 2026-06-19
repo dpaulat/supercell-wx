@@ -23,21 +23,21 @@ Supercell Wx supports the following 64-bit operating systems:
 - Windows 11
 - Linux
   - Arch Linux (EndeavourOS, SteamOS [Steam Deck], and other Arch derivatives)
-  - Fedora Linux 34+
+  - Fedora Linux 39+
   - openSUSE Tumbleweed
-  - Ubuntu 22.04+
+  - Ubuntu 24.04+
   - NixOS 25.05+
-  - Most distributions supporting the GCC Standard C++ Library 11+
+  - Most distributions supporting the GCC Standard C++ Library 13+
 - macOS
-  - 13.6+ for Intel-based Macs
+  - 15.0+ for Intel-based Macs
   - 14.0+ for Apple silicon-based Macs
 
 ## Linux Dependencies
 
 Supercell Wx requires the following Linux dependencies:
 
-- Linux/X11 (Wayland works too) with support for GCC 11, OpenGL 3.3 and OpenGL ES 3.0
-- X11/XCB libraries including xcb-cursor
+- Linux with support for GCC 13, OpenGL 3.3 and OpenGL ES 3.0
+- If using X11, XCB libraries including xcb-cursor
 
 ## FAQ
 
@@ -47,15 +47,9 @@ Frequently asked questions:
 
   - A. You must obtain a free API key from either (or both) [MapTiler](https://cloud.maptiler.com/auth/widget?next=https://cloud.maptiler.com/maps/) which currently does not require a credit/debit card, or [Mapbox](https://account.mapbox.com/) which ***does*** require a credit/debit card, but as of writing, you will receive 200K free requests per month, which should be sufficient for an individual user.
 
-- Q: Why is it that when I change my color table, API key, grid width/height settings, nothing happens after hitting apply?
+- Q: Why is it that when I change my grid width/height settings, nothing happens after hitting apply?
 
-  - A. As of right now, you must restart Supercell Wx in order to apply these changes. In future iterations, this will no longer be an issue.
-
-- Q. Is it possible to get dark mode?
-
-  - A. In Windows, make sure to set the flag `-style fusion` at the end of the target path of the .exe
-    - Example: `C:\Users\Administrator\Desktop\Supercell-Wx\bin\supercell-wx.exe -style fusion`
-  - A. In Linux, if you're using KDE, Supercell Wx should automatically follow your theme settings.
+  - A. You must restart Supercell Wx in order to apply these changes. Each version reduces the number of settings requiring a restart.
 
 - Q: How can I contribute?
   - A. Head to [Developer Setup](https://supercell-wx.readthedocs.io/en/stable/development/developer-setup.html) and [Contributing](CONTRIBUTING.md) to configure the Supercell Wx development environment for your IDE. Currently Visual Studio and Visual Studio Code are recommended, with other IDEs remaining untested at this time.

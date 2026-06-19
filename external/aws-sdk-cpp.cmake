@@ -35,6 +35,7 @@ add_subdirectory(aws-sdk-cpp)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_PREV}")
 
 set_target_properties(uninstall         PROPERTIES EXCLUDE_FROM_ALL True)
+set_target_properties(uninstall         PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
 
 set_target_properties(aws-c-auth         PROPERTIES FOLDER aws-sdk-cpp)
 set_target_properties(aws-c-cal          PROPERTIES FOLDER aws-sdk-cpp)

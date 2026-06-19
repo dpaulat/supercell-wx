@@ -1,4 +1,5 @@
 #include <scwx/qt/map/map_provider.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 
 #include <unordered_map>
@@ -11,6 +12,7 @@ namespace scwx::qt::map
 static const std::unordered_map<MapProvider, std::string> mapProviderName_ {
    {MapProvider::Mapbox, "Mapbox"},
    {MapProvider::MapTiler, "MapTiler"},
+   {MapProvider::OpenFreeMap, "OpenFreeMap"},
    {MapProvider::Unknown, "?"}};
 
 // Draw below tunnels, ferries and roads
@@ -73,7 +75,7 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
            .drawBelow_ {mapboxDrawBelow_}},
           {.name_ {"Mineral"},
            .url_ {"mapbox://styles/mapbox/cjtep62gq54l21frr1whf27ak"},
-           .drawBelow_ {mapboxDrawBelow_}},
+           .drawBelow_ {"tunnel"}},
           {.name_ {"Minimo"},
            .url_ {
               "mapbox://styles/mapbox-map-design/cksjc2nsq1bg117pnekb655h1"},
@@ -178,11 +180,59 @@ static const std::unordered_map<MapProvider, MapProviderInfo> mapProviderInfo_ {
           {.name_ {"Winter"},
            .url_ {"https://api.maptiler.com/maps/winter-v2/style.json"},
            .drawBelow_ {"aeroway_runway", "Aeroway"}}}}},
+   {MapProvider::OpenFreeMap,
+    MapProviderInfo {
+       .mapProvider_ = MapProvider::OpenFreeMap,
+       .cacheDbName_ = {"openfreemap-cache.db"},
+       .providerTemplate_ =
+          QMapLibre::Settings::ProviderTemplate::MapTilerProvider,
+       .mapStyles_ {{.name_ {"Liberty"},
+                     .url_ {"https://tiles.openfreemap.org/styles/liberty"},
+                     .drawBelow_ {"aeroway_runway"}},
+                    {.name_ {"Positron"},
+                     .url_ {"https://tiles.openfreemap.org/styles/positron"},
+                     .drawBelow_ {"building"}},
+                    {.name_ {"Bright"},
+                     .url_ {"https://tiles.openfreemap.org/styles/bright"},
+                     .drawBelow_ {"building"}}}}},
    {MapProvider::Unknown, MapProviderInfo {}}};
 
 bool MapStyle::IsValid() const
 {
    return !url_.empty() && !drawBelow_.empty();
+}
+
+void ConfigureMapSettings(MapProvider          mapProvider,
+                          QMapLibre::Settings& settings)
+{
+   static constexpr std::size_t kMaxCacheSize =
+      20ull * 1024ull * 1024ull; // 20 MB
+
+   const auto& mapProviderInfo = GetMapProviderInfo(mapProvider);
+
+   const std::string localDataPath {
+      scwx::qt::main::ApplicationPaths::GetLocation(
+         scwx::qt::main::ApplicationPaths::StandardLocation::Local)
+         .generic_string()};
+   const std::string cacheDbPath {localDataPath + "/" +
+                                  mapProviderInfo.cacheDbName_};
+
+   const std::string mapProviderApiKey = map::GetMapProviderApiKey(mapProvider);
+
+   if (mapProvider == map::MapProvider::Mapbox)
+   {
+      settings.setProviderTemplate(mapProviderInfo.providerTemplate_);
+      settings.setApiKey(QString {mapProviderApiKey.c_str()});
+   }
+   else
+   {
+      settings.setProviderTemplate(
+         QMapLibre::Settings::ProviderTemplate::NoProvider);
+      settings.setApiKey({});
+   }
+
+   settings.setCacheDatabasePath(QString {cacheDbPath.c_str()});
+   settings.setCacheDatabaseMaximumSize(kMaxCacheSize);
 }
 
 MapProvider GetMapProvider(const std::string& name)
@@ -222,6 +272,10 @@ std::string GetMapProviderApiKey(MapProvider mapProvider)
    case MapProvider::MapTiler:
       apiKey =
          settings::GeneralSettings::Instance().maptiler_api_key().GetValue();
+      break;
+
+   case MapProvider::OpenFreeMap:
+      apiKey = "";
       break;
 
    default:

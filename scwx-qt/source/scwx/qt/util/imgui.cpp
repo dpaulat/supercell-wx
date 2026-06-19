@@ -34,7 +34,7 @@ void ImGui::DrawTooltip(const std::string& hoverText)
 
    if (::ImGui::BeginTooltip())
    {
-      ::ImGui::PushFont(tooltipFont->font());
+      ::ImGui::PushFont(tooltipFont.first->font(), tooltipFont.second.value());
       ::ImGui::TextUnformatted(hoverText.c_str());
       ::ImGui::PopFont();
       ::ImGui::EndTooltip();

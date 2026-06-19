@@ -2,19 +2,20 @@
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/main/application.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/util/network.hpp>
 #include <scwx/gr/placefile.hpp>
 #include <scwx/network/cpr.hpp>
 #include <scwx/util/json.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <atomic>
 #include <shared_mutex>
 #include <vector>
 
 #include <QDir>
 #include <QGuiApplication>
 #include <QScreen>
-#include <QStandardPaths>
 #include <QUrl>
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/post.hpp>
@@ -25,11 +26,7 @@
 #include <cpr/cpr.h>
 #include <fmt/chrono.h>
 
-namespace scwx
-{
-namespace qt
-{
-namespace manager
+namespace scwx::qt::manager
 {
 
 static const std::string logPrefix_ = "scwx::qt::manager::placefile_manager";
@@ -49,11 +46,11 @@ public:
    ~Impl() { threadPool_.join(); }
 
    void InitializePlacefileSettings();
+   void ApplyPlacefileSettings(const boost::json::value& placefileJson);
    void ReadPlacefileSettings();
-   void WritePlacefileSettings();
+   void SavePlacefileSettings();
 
-   static boost::unordered_flat_map<std::size_t,
-                                    std::shared_ptr<types::ImGuiFont>>
+   static FontMap
    LoadFontResources(const std::shared_ptr<gr::Placefile>& placefile);
    static std::vector<std::shared_ptr<boost::gil::rgba8_image_t>>
    LoadImageResources(const std::shared_ptr<gr::Placefile>& placefile);
@@ -117,7 +114,7 @@ public:
                           boost::json::value&                     jv,
                           const std::shared_ptr<PlacefileRecord>& record)
    {
-      jv = {{kEnabledName_, record->enabled_},
+      jv = {{kEnabledName_, record->enabled_.load()},
             {kThresholdedName_, record->thresholded_},
             {kTitleName_, record->title_},
             {kNameName_, record->name_}};
@@ -140,15 +137,14 @@ public:
    std::string                    name_;
    std::string                    title_;
    std::shared_ptr<gr::Placefile> placefile_;
-   bool                           enabled_;
+   std::atomic<bool>              enabled_;
    bool                           thresholded_;
    boost::asio::thread_pool       threadPool_ {1u};
    boost::asio::steady_timer      refreshTimer_ {threadPool_};
    std::mutex                     refreshMutex_ {};
    std::mutex                     timerMutex_ {};
 
-   boost::unordered_flat_map<std::size_t, std::shared_ptr<types::ImGuiFont>>
-              fonts_ {};
+   FontMap    fonts_ {};
    std::mutex fontsMutex_ {};
 
    std::vector<std::shared_ptr<boost::gil::rgba8_image_t>> images_ {};
@@ -182,8 +178,8 @@ PlacefileManager::PlacefileManager() : p(std::make_unique<Impl>(this))
 
 PlacefileManager::~PlacefileManager()
 {
-   // Write placefile settings on shutdown
-   p->WritePlacefileSettings();
+   // Save placefile settings on shutdown
+   p->SavePlacefileSettings();
 };
 
 bool PlacefileManager::placefile_enabled(const std::string& name)
@@ -235,7 +231,7 @@ PlacefileManager::placefile(const std::string& name)
    return nullptr;
 }
 
-boost::unordered_flat_map<std::size_t, std::shared_ptr<types::ImGuiFont>>
+PlacefileManager::FontMap
 PlacefileManager::placefile_fonts(const std::string& name)
 {
    std::shared_lock lock(p->placefileRecordLock_);
@@ -360,20 +356,17 @@ PlacefileManager::Impl::PlacefileRecord::refresh_time() const
 
 void PlacefileManager::Impl::InitializePlacefileSettings()
 {
-   std::string appDataPath {
-      QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
-         .toStdString()};
+   const std::string settingsPath {
+      main::ApplicationPaths::GetLocation(
+         main::ApplicationPaths::StandardLocation::Settings)
+         .generic_string()};
 
-   if (!std::filesystem::exists(appDataPath))
+   if (!std::filesystem::exists(settingsPath))
    {
-      if (!std::filesystem::create_directories(appDataPath))
-      {
-         logger_->error("Unable to create application data directory: \"{}\"",
-                        appDataPath);
-      }
+      logger_->error("Settings path does not exist: \"{}\"", settingsPath);
    }
 
-   placefileSettingsPath_ = appDataPath + "/placefiles.json";
+   placefileSettingsPath_ = settingsPath + "/placefiles.json";
 }
 
 void PlacefileManager::Impl::ReadPlacefileSettings()
@@ -388,6 +381,26 @@ void PlacefileManager::Impl::ReadPlacefileSettings()
       placefileJson = scwx::util::json::ReadJsonFile(placefileSettingsPath_);
    }
 
+   ApplyPlacefileSettings(placefileJson);
+
+   placefileSettingsRead_ = true;
+}
+
+void PlacefileManager::ReadPlacefileSettings(std::istream& is)
+{
+   logger_->info("Reading placefile settings from stream");
+
+   const boost::json::value placefileJson =
+      scwx::util::json::ReadJsonStream(is);
+
+   p->ApplyPlacefileSettings(placefileJson);
+
+   // Don't set placefileSettingsRead_ when reading from a non-default stream
+}
+
+void PlacefileManager::Impl::ApplyPlacefileSettings(
+   const boost::json::value& placefileJson)
+{
    // If placefile settings was successfully read
    if (placefileJson != nullptr && placefileJson.is_array())
    {
@@ -415,10 +428,9 @@ void PlacefileManager::Impl::ReadPlacefileSettings()
          }
       }
    }
-   placefileSettingsRead_ = true;
 }
 
-void PlacefileManager::Impl::WritePlacefileSettings()
+void PlacefileManager::Impl::SavePlacefileSettings()
 {
    if (!placefileSettingsRead_)
    {
@@ -429,6 +441,13 @@ void PlacefileManager::Impl::WritePlacefileSettings()
    std::shared_lock lock {placefileRecordLock_};
    auto             placefileJson = boost::json::value_from(placefileRecords_);
    scwx::util::json::WriteJsonFile(placefileSettingsPath_, placefileJson);
+}
+
+void PlacefileManager::WritePlacefileSettings(std::ostream& os)
+{
+   const std::shared_lock lock {p->placefileRecordLock_};
+   auto placefileJson = boost::json::value_from(p->placefileRecords_);
+   scwx::util::json::WriteJsonStream(os, placefileJson);
 }
 
 void PlacefileManager::SetRadarSite(
@@ -612,20 +631,34 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
 
       // Send HTTP GET request
       auto response =
-         cpr::Get(cpr::Url {decodedUrl}, network::cpr::GetHeader(), parameters);
+         cpr::Get(cpr::Url {decodedUrl},
+                  network::cpr::GetHeader(),
+                  parameters,
+                  network::cpr::GetDefaultTimeout(),
+                  network::cpr::GetDefaultConnectTimeout(),
+                  network::cpr::GetDefaultLowSpeed(),
+                  network::cpr::GetDefaultProgressCallback(enabled_));
 
       if (cpr::status::is_success(response.status_code))
       {
          std::istringstream responseBody {response.text};
          updatedPlacefile = gr::Placefile::Load(name, responseBody);
       }
-      else if (response.status_code == 0)
+      else if (response.status_code == 0 && enabled_)
       {
-         logger_->error("Error loading placefile: {}", response.error.message);
+         logger_->error("Error loading placefile: {} ({})",
+                        decodedUrl,
+                        response.error.message);
+      }
+      else if (enabled_)
+      {
+         logger_->error("Error loading placefile: {} ({})",
+                        decodedUrl,
+                        response.status_line);
       }
       else
       {
-         logger_->error("Error loading placefile: {}", response.status_line);
+         logger_->debug("Request cancelled, shutting down");
       }
    }
 
@@ -775,13 +808,11 @@ std::shared_ptr<PlacefileManager> PlacefileManager::Instance()
    return placefileManager;
 }
 
-boost::unordered_flat_map<std::size_t, std::shared_ptr<types::ImGuiFont>>
-PlacefileManager::Impl::LoadFontResources(
+PlacefileManager::FontMap PlacefileManager::Impl::LoadFontResources(
    const std::shared_ptr<gr::Placefile>& placefile)
 {
-   boost::unordered_flat_map<std::size_t, std::shared_ptr<types::ImGuiFont>>
-        imGuiFonts {};
-   auto fonts = placefile->fonts();
+   FontMap imGuiFonts {};
+   auto    fonts = placefile->fonts();
 
    for (auto& font : fonts)
    {
@@ -797,9 +828,11 @@ PlacefileManager::Impl::LoadFontResources(
          styles.push_back("italic");
       }
 
-      auto imGuiFont = FontManager::Instance().LoadImGuiFont(
-         font.second->face_, styles, size);
-      imGuiFonts.emplace(font.first, std::move(imGuiFont));
+      auto imGuiFont =
+         FontManager::Instance().LoadImGuiFont(font.second->face_, styles);
+      imGuiFonts.emplace(
+         font.first,
+         std::make_pair(std::move(imGuiFont), FontManager::ImFontSize(size)));
    }
 
    return imGuiFonts;
@@ -839,9 +872,10 @@ PlacefileManager::Impl::LoadImageResources(
       switch (di->itemType_)
       {
       case gr::Placefile::ItemType::Image:
+      case gr::Placefile::ItemType::ImageXY:
       {
          const std::string& imageFile =
-            std::static_pointer_cast<gr::Placefile::ImageDrawItem>(di)
+            std::static_pointer_cast<gr::Placefile::ImageBaseDrawItem>(di)
                ->imageFile_;
 
          QString     filePath    = QString::fromStdString(imageFile);
@@ -865,6 +899,4 @@ PlacefileManager::Impl::LoadImageResources(
    return ResourceManager::LoadImageResources(urlStrings);
 }
 
-} // namespace manager
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::manager

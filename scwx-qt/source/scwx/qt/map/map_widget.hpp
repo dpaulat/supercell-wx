@@ -4,6 +4,7 @@
 #include <scwx/common/products.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/gl/gl.hpp>
+#include <scwx/qt/types/capture_types.hpp>
 #include <scwx/qt/types/map_types.hpp>
 #include <scwx/qt/types/radar_product_record.hpp>
 #include <scwx/qt/types/text_event_key.hpp>
@@ -11,16 +12,21 @@
 #include <chrono>
 #include <memory>
 #include <optional>
+#include <string>
+#include <utility>
 
 #include <qmaplibre.hpp>
 
 #include <QGestureEvent>
 #include <QOpenGLWidget>
+#include <QPoint>
 #include <QPropertyAnimation>
 #include <QtGlobal>
 
+class QContextMenuEvent;
 class QKeyEvent;
 class QMouseEvent;
+class QResizeEvent;
 class QWheelEvent;
 
 namespace scwx::qt::gl
@@ -31,6 +37,7 @@ class GlContext;
 namespace scwx::qt::map
 {
 
+class MapAnnotationLayer;
 class MapWidgetImpl;
 
 class MapWidget : public QOpenGLWidget
@@ -50,9 +57,11 @@ public:
    [[nodiscard]] const scwx::util::time_zone* GetDefaultTimeZone() const;
    [[nodiscard]] std::optional<float>         GetElevation() const;
    [[nodiscard]] std::vector<float>           GetElevationCuts() const;
-   [[nodiscard]] std::optional<float>      GetIncomingLevel2Elevation() const;
-   [[nodiscard]] std::vector<std::string>  GetLevel3Products();
-   [[nodiscard]] std::string               GetMapStyle() const;
+   [[nodiscard]] std::optional<float>     GetIncomingLevel2Elevation() const;
+   [[nodiscard]] std::vector<std::string> GetLevel3Products();
+   [[nodiscard]] std::string              GetMapStyle() const;
+   [[nodiscard]] std::shared_ptr<MapAnnotationLayer>
+                                           map_annotation_layer() const;
    [[nodiscard]] common::RadarProductGroup GetRadarProductGroup() const;
    [[nodiscard]] std::string               GetRadarProductName() const;
    [[nodiscard]] std::shared_ptr<config::RadarSite> GetRadarSite() const;
@@ -60,6 +69,12 @@ public:
    [[nodiscard]] std::chrono::system_clock::time_point GetSelectedTime() const;
    [[nodiscard]] bool          GetSmoothingEnabled() const;
    [[nodiscard]] std::uint16_t GetVcp() const;
+
+   [[nodiscard]] std::optional<float>    GetColorTableThreshold() const;
+   [[nodiscard]] std::pair<float, float> GetColorTableRange() const;
+   [[nodiscard]] std::string             GetColorTableUnits() const;
+
+   void ScreenCapture(types::CaptureType captureType);
 
    void SelectElevation(float elevation);
 
@@ -107,6 +122,7 @@ public:
    void SelectTime(std::chrono::system_clock::time_point time);
 
    void SetActive(bool isActive);
+   void SyncEraseCursor();
    void SetAutoRefresh(bool enabled);
    void SetAutoUpdate(bool enabled);
 
@@ -126,10 +142,18 @@ public:
                          double zoom,
                          double bearing,
                          double pitch);
+
+   void GetMapViewParameters(double& latitude,
+                             double& longitude,
+                             double& zoom,
+                             double& bearing,
+                             double& pitch) const;
+
    void SetInitialMapStyle(const std::string& styleName);
-   void SetMapStyle(const std::string& styleName);
+   void SetMapStyle(const std::string& styleName, bool force = false);
    void SetRadarWireframeEnabled(bool enabled);
    void SetSmoothingEnabled(bool enabled);
+   void SetColorTableThreshold(std::optional<float> threshold);
 
    /**
     * Updates the coordinates associated with mouse movement from another map.
@@ -147,11 +171,15 @@ private:
    void enterEvent(QEnterEvent* ev) final;
    void keyPressEvent(QKeyEvent* ev) final;
    void keyReleaseEvent(QKeyEvent* ev) final;
+   void contextMenuEvent(QContextMenuEvent* event) final;
    void gestureEvent(QGestureEvent* ev);
    void leaveEvent(QEvent* ev) final;
    void mousePressEvent(QMouseEvent* ev) final;
    void mouseMoveEvent(QMouseEvent* ev) final;
+   void mouseReleaseEvent(QMouseEvent* ev) final;
+   void mouseDoubleClickEvent(QMouseEvent* ev) final;
    void wheelEvent(QWheelEvent* ev) final;
+   void resizeEvent(QResizeEvent* event) override;
 
    // QOpenGLWidget implementation.
    void initializeGL() override final;
@@ -189,8 +217,20 @@ signals:
    void RadarSiteUpdated(std::shared_ptr<config::RadarSite> radarSite);
    void RadarSweepUpdated();
    void RadarSweepNotUpdated(types::NoUpdateReason reason);
+
+   /**
+    * This signal is emitted when the screen capture hotkey was pressed.
+    */
+   void ScreenCaptureRequested(types::CaptureType captureType);
+
    void WidgetPainted();
    void IncomingLevel2ElevationChanged(std::optional<float> incomingElevation);
+   void MapPaneContextMenuRequested(const QPoint& globalPos);
+   /**
+    * Emitted after custom map layers (including map annotations) are attached
+    * following a style load or layer rebuild.
+    */
+   void MapAnnotationLayerReady();
 };
 
 } // namespace scwx::qt::map

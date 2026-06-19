@@ -1,6 +1,8 @@
 #pragma once
 
+#include <istream>
 #include <memory>
+#include <ostream>
 #include <unordered_set>
 
 #include <QAbstractTableModel>
@@ -36,6 +38,9 @@ public:
    ~RadarSiteModel();
 
    std::unordered_set<std::string> presets() const;
+
+   void ReadPresets(std::istream& is);
+   void WritePresets(std::ostream& os);
 
    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
    int columnCount(const QModelIndex& parent = QModelIndex()) const override;

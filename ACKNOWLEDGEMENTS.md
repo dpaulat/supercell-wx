@@ -29,8 +29,11 @@ Supercell Wx uses code from the following dependencies:
 | [HSLuv](https://www.hsluv.org/) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [libcurl](https://curl.se/libcurl/) | [curl License](https://spdx.org/licenses/curl.html) |
 | [libiconv](https://www.gnu.org/software/libiconv/) | [GNU Lesser General Public License v2.1 or later](https://spdx.org/licenses/LGPL-2.1-or-later.html) |
+| [libjpeg](http://libjpeg.sourceforge.net/) | [Independent JPEG Group License](https://spdx.org/licenses/IJG.html) |
 | [libpng](http://libpng.org/pub/png/libpng.html) | [PNG Reference Library version 2](https://spdx.org/licenses/libpng-2.0.html) |
+| [libtiff](http://libtiff.org/) | [libtiff License](https://spdx.org/licenses/libtiff.html) |
 | [libxml2](http://xmlsoft.org/) | [MIT License](https://spdx.org/licenses/MIT.html) |
+| [libzip](https://libzip.org/) | [BSD 3-Clause "New" or "Revised" License](https://spdx.org/licenses/BSD-3-Clause.html) |
 | [MapLibre Native](https://maplibre.org/projects/maplibre-native/) | [BSD 2-Clause "Simplified" License](https://spdx.org/licenses/BSD-2-Clause.html) |
 | [Mesa 3D](https://mesa3d.org/) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [nunicode](https://bitbucket.org/alekseyt/nunicode/src/master/) | [MIT License](https://spdx.org/licenses/MIT.html) | Modified for MapLibre Native |
@@ -81,7 +84,11 @@ Supercell Wx connects to the following services:
 
 | Service | Notes |
 | ------- | ----- |
-| [AllisonHouse LLC](https://www.allisonhouse.com/) | Severe weather warnings |
+| [College of DuPage](https://weather.cod.edu/) | Severe weather warnings |
+| [GitHub](https://github.com/) | Supercell Wx updates |
+| [Iowa Environmental Mesonet](https://mesonet.agron.iastate.edu/) | Archived severe weather warnings |
 | [Mapbox](https://www.mapbox.com/) | Vector map tiles |
 | [MapTiler](https://www.maptiler.com/) | Vector map tiles |
+| [OpenFreeMap](https://openfreemap.org/) | Vector map tiles |
 | [NEXRAD on AWS](https://registry.opendata.aws/noaa-nexrad/) | Real-time and archival data from the Next Generation Weather Radar (NEXRAD) network. |
+| [Weather Pulse LLC](https://www.weatherpulse.com/) | Severe weather warnings |

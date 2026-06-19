@@ -4,6 +4,7 @@
 #include <scwx/common/sites.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <atomic>
 #include <chrono>
 #include <shared_mutex>
 #include <unordered_map>
@@ -37,11 +38,16 @@ static std::shared_mutex                            siteMutex_;
 
 static bool ValidateJsonEntry(const boost::json::object& o);
 
-class RadarSiteImpl
+class RadarSite::Impl
 {
 public:
-   explicit RadarSiteImpl() {}
-   ~RadarSiteImpl() {}
+   explicit Impl() = default;
+   ~Impl()         = default;
+
+   Impl(const Impl&)             = delete;
+   Impl& operator=(const Impl&)  = delete;
+   Impl(const Impl&&)            = delete;
+   Impl& operator=(const Impl&&) = delete;
 
    std::string type_ {};
    std::string id_ {};
@@ -53,10 +59,15 @@ public:
    std::string tzName_ {};
    double      altitude_ {0.0};
 
+   std::atomic<std::chrono::system_clock::time_point> lastReceived_ {};
+   std::atomic<std::chrono::milliseconds>             latency_ {};
+   std::atomic<types::RadarSiteStatus>                status_ {
+      types::RadarSiteStatus::Unknown};
+
    const scwx::util::time_zone* timeZone_ {nullptr};
 };
 
-RadarSite::RadarSite() : p(std::make_unique<RadarSiteImpl>()) {}
+RadarSite::RadarSite() : p(std::make_unique<Impl>()) {}
 RadarSite::~RadarSite() = default;
 
 RadarSite::RadarSite(RadarSite&&) noexcept            = default;
@@ -148,6 +159,37 @@ units::length::feet<double> RadarSite::altitude() const
    return units::length::feet<double>(p->altitude_);
 }
 
+std::chrono::system_clock::time_point RadarSite::last_received() const
+{
+   return p->lastReceived_;
+}
+
+std::chrono::milliseconds RadarSite::latency() const
+{
+   return p->latency_;
+}
+
+scwx::qt::types::RadarSiteStatus RadarSite::status() const
+{
+   return p->status_;
+}
+
+void RadarSite::set_last_received(
+   std::chrono::system_clock::time_point lastReceived)
+{
+   p->lastReceived_ = lastReceived;
+}
+
+void RadarSite::set_latency(std::chrono::milliseconds latency)
+{
+   p->latency_ = latency;
+}
+
+void RadarSite::set_status(types::RadarSiteStatus status)
+{
+   p->status_ = status;
+}
+
 std::shared_ptr<RadarSite> RadarSite::Get(const std::string& id)
 {
    std::shared_lock           lock(siteMutex_);
@@ -176,12 +218,16 @@ std::vector<std::shared_ptr<RadarSite>> RadarSite::GetAll()
    return radarSites;
 }
 
-std::shared_ptr<RadarSite> RadarSite::FindNearest(
-   double latitude, double longitude, std::optional<std::string> type)
+std::shared_ptr<RadarSite>
+RadarSite::FindNearest(double                            latitude,
+                       double                            longitude,
+                       const std::optional<std::string>& type,
+                       bool                              includeDown,
+                       bool                              includeDecommissioned)
 {
    std::shared_lock lock(siteMutex_);
 
-   double distanceInMeters;
+   double distanceInMeters = 0.0;
 
    std::shared_ptr<RadarSite> nearestRadarSite = nullptr;
    double                     nearestDistance  = 0.0;
@@ -192,6 +238,18 @@ std::shared_ptr<RadarSite> RadarSite::FindNearest(
 
       // If the type filter doesn't match, skip
       if (type.has_value() && radarSite->type() != type)
+      {
+         continue;
+      }
+
+      // Optionally exclude radars which are currently down.
+      if (!includeDown && radarSite->status() == types::RadarSiteStatus::Down)
+      {
+         continue;
+      }
+
+      // Optionally exclude KLIX from automatic selection.
+      if (!includeDecommissioned && radarSite->id() == "KLIX")
       {
          continue;
       }

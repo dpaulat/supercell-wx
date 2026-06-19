@@ -35,6 +35,11 @@ else()
     target_compile_options(MLNQtCore PRIVATE "$<$<CONFIG:Release>:-g>")
 endif()
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND
+    CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16)
+    target_compile_options(mbgl-core PRIVATE "-Wno-sfinae-incomplete")
+endif()
+
 if (APPLE)
     # Enable GL check error debug
     target_compile_definitions(mbgl-core PRIVATE MLN_GL_CHECK_ERRORS=1)
@@ -49,6 +54,10 @@ set_target_properties(test_mln_core PROPERTIES EXCLUDE_FROM_ALL True)
 set_target_properties(test_mln_widgets PROPERTIES EXCLUDE_FROM_ALL True)
 set_target_properties(MLNQtWidgets PROPERTIES EXCLUDE_FROM_ALL True)
 
+set_target_properties(test_mln_core PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
+set_target_properties(test_mln_widgets PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
+set_target_properties(MLNQtWidgets PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
+
 set_target_properties(test_mln_core PROPERTIES FOLDER mln/exclude)
 set_target_properties(test_mln_widgets PROPERTIES FOLDER mln/exclude)
 set_target_properties(MLNQtWidgets PROPERTIES FOLDER mln/exclude)
@@ -61,4 +70,14 @@ set_target_properties(mbgl-vendor-parsedate PROPERTIES FOLDER mln)
 
 if (TARGET mbgl-vendor-sqlite)
     set_target_properties(mbgl-vendor-sqlite PROPERTIES FOLDER mln)
+endif()
+
+if (TARGET MLNQtCore_automoc_json_extraction)
+    set_target_properties(MLNQtCore_automoc_json_extraction PROPERTIES FOLDER mln)
+endif()
+
+if (TARGET MLNQtWidgets_automoc_json_extraction)
+    set_target_properties(MLNQtWidgets_automoc_json_extraction PROPERTIES EXCLUDE_FROM_ALL True)
+    set_target_properties(MLNQtWidgets_automoc_json_extraction PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
+    set_target_properties(MLNQtWidgets_automoc_json_extraction PROPERTIES FOLDER mln/exclude)
 endif()

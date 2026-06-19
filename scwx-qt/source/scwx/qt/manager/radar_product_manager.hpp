@@ -6,23 +6,19 @@
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/request/nexrad_file_request.hpp>
 #include <scwx/qt/types/radar_product_record.hpp>
+#include <scwx/qt/types/radar_product_types.hpp>
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/ar2v_file.hpp>
 #include <scwx/wsr88d/level3_file.hpp>
 
 #include <memory>
 #include <set>
-#include <unordered_map>
 #include <vector>
 
 #include <boost/uuid/nil_generator.hpp>
 #include <QObject>
 
-namespace scwx
-{
-namespace qt
-{
-namespace manager
+namespace scwx::qt::manager
 {
 
 class RadarProductManagerImpl;
@@ -90,12 +86,13 @@ public:
     * @param [in] time Radar product time
     *
     * @return Level 2 radar data, selected elevation cut, available elevation
-    * cuts and selected time
+    * cuts, selected time and product load status
     */
    std::tuple<std::shared_ptr<wsr88d::rda::ElevationScan>,
               float,
               std::vector<float>,
-              std::chrono::system_clock::time_point>
+              std::chrono::system_clock::time_point,
+              types::RadarProductLoadStatus>
    GetLevel2Data(wsr88d::rda::DataBlockType            dataBlockType,
                  float                                 elevation,
                  std::chrono::system_clock::time_point time = {});
@@ -106,10 +103,11 @@ public:
     * @param [in] product Radar product name
     * @param [in] time Radar product time
     *
-    * @return Level 3 message data and selected time
+    * @return Level 3 message data, selected time and product load status
     */
    std::tuple<std::shared_ptr<wsr88d::rpg::Level3Message>,
-              std::chrono::system_clock::time_point>
+              std::chrono::system_clock::time_point,
+              types::RadarProductLoadStatus>
    GetLevel3Data(const std::string&                    product,
                  std::chrono::system_clock::time_point time = {});
 
@@ -152,6 +150,9 @@ signals:
                          bool                                  isChunks,
                          std::chrono::system_clock::time_point latestTime);
    void IncomingLevel2ElevationChanged(std::optional<float> incomingElevation);
+   void ProductTimesPopulated(common::RadarProductGroup             group,
+                              const std::string&                    product,
+                              std::chrono::system_clock::time_point queryTime);
 
 private:
    std::unique_ptr<RadarProductManagerImpl> p;
@@ -159,6 +160,4 @@ private:
    friend class RadarProductManagerImpl;
 };
 
-} // namespace manager
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::manager

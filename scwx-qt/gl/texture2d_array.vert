@@ -8,6 +8,7 @@ layout (location = 2) in vec3  aTexCoord;
 layout (location = 3) in vec4  aModulate;
 layout (location = 4) in float aAngleDeg;
 layout (location = 5) in int   aDisplayed;
+layout (location = 6) in vec2  aAnchor;
 
 uniform mat4 uMVPMatrix;
 
@@ -40,9 +41,13 @@ void main()
    color          = aModulate;
 
    // Rotate clockwise
-   float angle  = aAngleDeg * DEG2RAD;
-   mat2  rotate = mat2(cos(angle), -sin(angle),
-                       sin(angle), cos(angle));
+   float angle   = aAngleDeg * DEG2RAD;
+   mat2  rotate  = mat2(cos(angle), -sin(angle),
+                        sin(angle), cos(angle));
+   vec2 pos      = aVertex + rotate * aXYOffset;
+   vec4 worldPos = uMVPMatrix * vec4(pos, 0.0f, 1.0f);
 
-   gl_Position = uMVPMatrix * vec4(aVertex + rotate * aXYOffset, 0.0f, 1.0f);
+   worldPos.xy += aAnchor;
+
+   gl_Position = worldPos;
 }

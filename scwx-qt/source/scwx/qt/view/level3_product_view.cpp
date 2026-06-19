@@ -11,17 +11,12 @@
 #include <scwx/wsr88d/rpg/radial_data_packet.hpp>
 
 #include <limits>
-#include <unordered_set>
 
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 #include <fmt/format.h>
 
-namespace scwx
-{
-namespace qt
-{
-namespace view
+namespace scwx::qt::view
 {
 
 static const std::string logPrefix_ = "scwx::qt::view::level3_product_view";
@@ -113,6 +108,7 @@ public:
    std::uint16_t                       savedLogStart_ {20u};
    float                               savedLogScale_ {1.0f};
    float                               savedLogOffset_ {0.0f};
+   std::optional<float>                savedThreshold_ {};
 
    boost::uuids::uuid       accumulationUnitsCallbackUuid_ {};
    boost::uuids::uuid       echoTopsUnitsCallbackUuid_ {};
@@ -145,6 +141,22 @@ void Level3ProductView::ConnectRadarProductManager()
                      common::RadarProductGroup::Level3 &&
                   record->radar_product() == p->product_ &&
                   record->time() == selected_time())
+              {
+                 // If the data associated with the currently selected time is
+                 // reloaded, update the view
+                 Update();
+              }
+           });
+
+   connect(radar_product_manager().get(),
+           &manager::RadarProductManager::ProductTimesPopulated,
+           this,
+           [this](common::RadarProductGroup             group,
+                  const std::string&                    product,
+                  std::chrono::system_clock::time_point queryTime)
+           {
+              if (group == common::RadarProductGroup::Level3 &&
+                  product == p->product_ && queryTime == selected_time())
               {
                  // If the data associated with the currently selected time is
                  // reloaded, update the view
@@ -369,6 +381,52 @@ Level3ProductView::GetDescriptionFields() const
    return description;
 }
 
+std::pair<float, float> Level3ProductView::GetColorTableRange() const
+{
+   // Categorical products (no physical units) do not support thresholding
+   if (units().empty())
+   {
+      return RadarProductView::GetColorTableRange();
+   }
+
+   if (p->graphicMessage_ == nullptr)
+   {
+      return RadarProductView::GetColorTableRange();
+   }
+
+   const std::shared_ptr<wsr88d::rpg::ProductDescriptionBlock>
+      descriptionBlock = p->graphicMessage_->description_block();
+
+   if (descriptionBlock == nullptr)
+   {
+      return RadarProductView::GetColorTableRange();
+   }
+
+   const std::uint16_t threshold      = descriptionBlock->threshold();
+   const std::uint16_t numberOfLevels = descriptionBlock->number_of_levels();
+
+   if (numberOfLevels == 0)
+   {
+      return RadarProductView::GetColorTableRange();
+   }
+
+   const std::uint16_t rangeMax = numberOfLevels - 1u;
+
+   std::optional<float> physicalMin = descriptionBlock->data_value(
+      static_cast<std::uint8_t>(std::min<std::uint16_t>(
+         threshold, std::numeric_limits<std::uint8_t>::max())));
+   std::optional<float> physicalMax = descriptionBlock->data_value(
+      static_cast<std::uint8_t>(std::min<std::uint16_t>(
+         rangeMax, std::numeric_limits<std::uint8_t>::max())));
+
+   if (!physicalMin.has_value() || !physicalMax.has_value())
+   {
+      return RadarProductView::GetColorTableRange();
+   }
+
+   return {*physicalMin, *physicalMax};
+}
+
 void Level3ProductView::LoadColorTable(
    std::shared_ptr<common::ColorTable> colorTable)
 {
@@ -416,12 +474,28 @@ void Level3ProductView::UpdateColorTableLut()
                                 std::numeric_limits<std::uint8_t>::min(),
                                 std::numeric_limits<std::uint8_t>::max()));
 
-   if (p->savedColorTable_ == p->colorTable_ && //
-       p->savedOffset_ == offset &&             //
-       p->savedScale_ == scale &&               //
-       p->savedLogOffset_ == logOffset &&       //
-       p->savedLogScale_ == logScale &&         //
-       p->savedLogStart_ == logStart &&         //
+   // Only apply threshold for products with a valid physical range; categorical
+   // products (units().empty()) and products without a finite range do not
+   // support thresholding
+   const std::optional<float> colorTableThreshold =
+      [this]() -> std::optional<float>
+   {
+      const auto [rangeMin, rangeMax] = GetColorTableRange();
+      if (std::isfinite(rangeMin) && std::isfinite(rangeMax) &&
+          rangeMin < rangeMax)
+      {
+         return color_table_threshold();
+      }
+      return std::nullopt;
+   }();
+
+   if (p->savedColorTable_ == p->colorTable_ &&     //
+       p->savedOffset_ == offset &&                 //
+       p->savedScale_ == scale &&                   //
+       p->savedLogOffset_ == logOffset &&           //
+       p->savedLogScale_ == logScale &&             //
+       p->savedLogStart_ == logStart &&             //
+       p->savedThreshold_ == colorTableThreshold && //
        numberOfLevels > 16)
    {
       // The color table LUT does not need updated
@@ -457,7 +531,16 @@ void Level3ProductView::UpdateColorTableLut()
             {
                if (f.has_value())
                {
-                  lut[lutIndex] = p->colorTable_->Color(f.value());
+                  boost::gil::rgba8_pixel_t color =
+                     p->colorTable_->Color(f.value());
+
+                  if (colorTableThreshold.has_value() &&
+                      f.value() < *colorTableThreshold)
+                  {
+                     color[3] = 0;
+                  }
+
+                  lut[lutIndex] = color;
                }
                else
                {
@@ -476,7 +559,16 @@ void Level3ProductView::UpdateColorTableLut()
             }
             else if (f.has_value())
             {
-               lut[lutIndex] = p->colorTable_->Color(f.value());
+               boost::gil::rgba8_pixel_t color =
+                  p->colorTable_->Color(f.value());
+
+               if (colorTableThreshold.has_value() &&
+                   f.value() < *colorTableThreshold)
+               {
+                  color[3] = 0;
+               }
+
+               lut[lutIndex] = color;
             }
             else
             {
@@ -494,6 +586,7 @@ void Level3ProductView::UpdateColorTableLut()
    p->savedLogOffset_  = logOffset;
    p->savedLogScale_   = logScale;
    p->savedLogStart_   = logStart;
+   p->savedThreshold_  = colorTableThreshold;
 
    Q_EMIT ColorTableLutUpdated();
 }
@@ -596,6 +689,4 @@ bool Level3ProductView::IgnoreUnits() const
    return false;
 }
 
-} // namespace view
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::view

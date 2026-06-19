@@ -95,9 +95,10 @@ bool ShaderProgram::Load(
                      shader.second);
 
       QFile file(shader.second.c_str());
-      file.open(QIODevice::ReadOnly | QIODevice::Text);
 
-      if (!file.isOpen())
+      const bool isOpen = file.open(QIODevice::ReadOnly | QIODevice::Text);
+
+      if (!isOpen || !file.isOpen())
       {
          logger_->error("Could not load shader");
          success = false;

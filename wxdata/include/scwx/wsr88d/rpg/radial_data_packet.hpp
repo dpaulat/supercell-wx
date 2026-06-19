@@ -20,7 +20,7 @@ public:
    explicit RadialDataPacket();
    ~RadialDataPacket();
 
-   RadialDataPacket(const RadialDataPacket&) = delete;
+   RadialDataPacket(const RadialDataPacket&)            = delete;
    RadialDataPacket& operator=(const RadialDataPacket&) = delete;
 
    RadialDataPacket(RadialDataPacket&&) noexcept;

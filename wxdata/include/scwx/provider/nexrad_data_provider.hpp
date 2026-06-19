@@ -7,9 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace scwx
-{
-namespace provider
+namespace scwx::provider
 {
 
 class NexradDataProvider
@@ -24,7 +22,7 @@ public:
    NexradDataProvider(NexradDataProvider&&) noexcept;
    NexradDataProvider& operator=(NexradDataProvider&&) noexcept;
 
-   virtual size_t cache_size() const = 0;
+   [[nodiscard]] virtual size_t cache_size() const = 0;
 
    /**
     * Gets the last modified time. This is equal to the most recent object's
@@ -32,7 +30,8 @@ public:
     *
     * @return Last modified time
     */
-   virtual std::chrono::system_clock::time_point last_modified() const = 0;
+   [[nodiscard]] virtual std::chrono::system_clock::time_point
+   last_modified() const = 0;
 
    /**
     * Gets the current update period. This is equal to the difference between
@@ -41,7 +40,7 @@ public:
     *
     * @return Update period
     */
-   virtual std::chrono::seconds update_period() const = 0;
+   [[nodiscard]] virtual std::chrono::seconds update_period() const = 0;
 
    /**
     * Finds the most recent key in the cache, no later than the time provided.
@@ -116,7 +115,7 @@ public:
     *
     * @return NEXRAD data time point
     */
-   virtual std::chrono::system_clock::time_point
+   [[nodiscard]] virtual std::chrono::system_clock::time_point
    GetTimePointByKey(const std::string& key) const = 0;
 
    /**
@@ -124,11 +123,22 @@ public:
     * to the cache if required.
     *
     * @param date Date for which to get NEXRAD data time points
+    * @param update Whether or not to list and add data not present in the cache
     *
     * @return NEXRAD data time points
     */
    virtual std::vector<std::chrono::system_clock::time_point>
-   GetTimePointsByDate(std::chrono::system_clock::time_point date) = 0;
+   GetTimePointsByDate(std::chrono::system_clock::time_point date,
+                       bool                                  update) = 0;
+
+   /**
+    * Determines if time points for the requested date are cached.
+    *
+    * @param date Date for which to query the cache
+    *
+    * @return Whether or not the requested date is cached
+    */
+   virtual bool IsDateCached(std::chrono::system_clock::time_point date) = 0;
 
    /**
     * Requests available NEXRAD products for the current radar site, and adds
@@ -143,10 +153,14 @@ public:
     */
    virtual std::vector<std::string> GetAvailableProducts();
 
+   /**
+    * @brief Shuts down the provider and stops any in-progress network requests.
+    */
+   virtual void Shutdown() noexcept = 0;
+
 private:
    class Impl;
    std::unique_ptr<Impl> p;
 };
 
-} // namespace provider
-} // namespace scwx
+} // namespace scwx::provider

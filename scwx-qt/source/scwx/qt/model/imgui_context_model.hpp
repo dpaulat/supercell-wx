@@ -8,11 +8,7 @@
 struct ImFontAtlas;
 struct ImGuiContext;
 
-namespace scwx
-{
-namespace qt
-{
-namespace model
+namespace scwx::qt::model
 {
 
 class ImGuiContextModelImpl;
@@ -46,6 +42,8 @@ public:
    ImGuiContext* CreateContext(const std::string& name);
    void          DestroyContext(const std::string& name);
 
+   void NewFrame();
+
    std::vector<ImGuiContextInfo> contexts() const;
    ImFontAtlas*                  font_atlas();
 
@@ -59,6 +57,4 @@ private:
    std::unique_ptr<ImGuiContextModelImpl> p;
 };
 
-} // namespace model
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::model

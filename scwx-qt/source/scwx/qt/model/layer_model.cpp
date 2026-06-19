@@ -1,5 +1,7 @@
 #include <scwx/qt/model/layer_model.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
+#include <scwx/qt/types/map_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/util/json.hpp>
 #include <scwx/util/logger.hpp>
@@ -14,14 +16,9 @@
 #include <QMimeData>
 #include <QStyle>
 #include <QStyleOption>
-#include <QStandardPaths>
 #include <boost/json.hpp>
 
-namespace scwx
-{
-namespace qt
-{
-namespace model
+namespace scwx::qt::model
 {
 
 static const std::string logPrefix_ = "scwx::qt::model::layer_model";
@@ -32,39 +29,71 @@ static constexpr int kLastColumn =
    static_cast<int>(LayerModel::Column::Description);
 static constexpr int kNumColumns = kLastColumn - kFirstColumn + 1;
 
-static constexpr std::size_t kMapCount_ = 4u;
-
 static const QString kMimeFormat {"application/x.scwx-layer-model"};
 
 static const std::vector<types::LayerInfo> kDefaultLayers_ {
-   {types::LayerType::Information, types::InformationLayer::MapOverlay, false},
-   {types::LayerType::Information, types::InformationLayer::ColorTable, false},
-   {types::LayerType::Information,
-    types::InformationLayer::RadarSite,
-    false,
-    {false, false, false, false}},
-   {types::LayerType::Information, types::InformationLayer::Markers, true},
-   {types::LayerType::Data, types::DataLayer::RadarRange, true},
-   {types::LayerType::Alert, awips::Phenomenon::Tornado, true},
-   {types::LayerType::Alert, awips::Phenomenon::SnowSquall, true},
-   {types::LayerType::Alert, awips::Phenomenon::SevereThunderstorm, true},
-   {types::LayerType::Alert, awips::Phenomenon::FlashFlood, true},
-   {types::LayerType::Alert, awips::Phenomenon::Marine, true},
-   {types::LayerType::Map, types::MapLayer::MapSymbology, false},
-   {types::LayerType::Data, types::DataLayer::OverlayProduct, true},
-   {types::LayerType::Radar, std::monostate {}, true},
-   {types::LayerType::Map, types::MapLayer::MapUnderlay, false},
+   {.type_        = types::LayerType::Information,
+    .description_ = types::InformationLayer::MapOverlay,
+    .movable_     = false},
+   {.type_        = types::LayerType::Information,
+    .description_ = types::InformationLayer::ColorTable,
+    .movable_     = false},
+   {.type_        = types::LayerType::Information,
+    .description_ = types::InformationLayer::RadarSite,
+    .movable_     = false,
+    .displayed_   = {false}},
+   {.type_        = types::LayerType::Information,
+    .description_ = types::InformationLayer::Markers,
+    .movable_     = true},
+   {.type_        = types::LayerType::Data,
+    .description_ = types::DataLayer::RadarRange,
+    .movable_     = true},
+   {.type_        = types::LayerType::Alert,
+    .description_ = awips::Phenomenon::Tornado,
+    .movable_     = true},
+   {.type_        = types::LayerType::Alert,
+    .description_ = awips::Phenomenon::SnowSquall,
+    .movable_     = true},
+   {.type_        = types::LayerType::Alert,
+    .description_ = awips::Phenomenon::SevereThunderstorm,
+    .movable_     = true},
+   {.type_        = types::LayerType::Alert,
+    .description_ = awips::Phenomenon::FlashFlood,
+    .movable_     = true},
+   {.type_        = types::LayerType::Alert,
+    .description_ = awips::Phenomenon::Marine,
+    .movable_     = true},
+   {.type_        = types::LayerType::Map,
+    .description_ = types::MapLayer::MapSymbology,
+    .movable_     = false},
+   {.type_        = types::LayerType::Data,
+    .description_ = types::DataLayer::OverlayProduct,
+    .movable_     = true},
+   {.type_        = types::LayerType::Radar,
+    .description_ = std::monostate {},
+    .movable_     = true},
+   {.type_        = types::LayerType::Map,
+    .description_ = types::MapLayer::MapUnderlay,
+    .movable_     = false},
 };
 
 static const std::vector<types::LayerInfo> kImmovableLayers_ {
-   {types::LayerType::Information, types::InformationLayer::MapOverlay, false},
-   {types::LayerType::Information, types::InformationLayer::ColorTable, false},
-   {types::LayerType::Information,
-    types::InformationLayer::RadarSite,
-    false,
-    {false, false, false, false}},
-   {types::LayerType::Map, types::MapLayer::MapSymbology, false},
-   {types::LayerType::Map, types::MapLayer::MapUnderlay, false},
+   {.type_        = types::LayerType::Information,
+    .description_ = types::InformationLayer::MapOverlay,
+    .movable_     = false},
+   {.type_        = types::LayerType::Information,
+    .description_ = types::InformationLayer::ColorTable,
+    .movable_     = false},
+   {.type_        = types::LayerType::Information,
+    .description_ = types::InformationLayer::RadarSite,
+    .movable_     = false,
+    .displayed_   = {false}},
+   {.type_        = types::LayerType::Map,
+    .description_ = types::MapLayer::MapSymbology,
+    .movable_     = false},
+   {.type_        = types::LayerType::Map,
+    .description_ = types::MapLayer::MapUnderlay,
+    .movable_     = false},
 };
 
 class LayerModel::Impl
@@ -74,14 +103,15 @@ public:
    ~Impl() = default;
 
    void AddPlacefile(const std::string& name);
+   void ApplyLayerSettings(const boost::json::value& layerJson);
    void HandlePlacefileRemoved(const std::string& name);
    void HandlePlacefileRenamed(const std::string& oldName,
                                const std::string& newName);
    void HandlePlacefileUpdate(const std::string& name, Column column);
    void InitializeLayerSettings();
    void ReadLayerSettings();
+   void SaveLayerSettings();
    void SynchronizePlacefileLayers();
-   void WriteLayerSettings();
 
    static void ValidateLayerSettings(types::LayerVector& layers);
 
@@ -143,26 +173,23 @@ LayerModel::LayerModel(QObject* parent) :
 
 LayerModel::~LayerModel()
 {
-   // Write layer settings on shutdown
-   p->WriteLayerSettings();
+   // Save layer settings on shutdown
+   p->SaveLayerSettings();
 };
 
 void LayerModel::Impl::InitializeLayerSettings()
 {
-   std::string appDataPath {
-      QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
-         .toStdString()};
+   const std::string settingsPath {
+      main::ApplicationPaths::GetLocation(
+         main::ApplicationPaths::StandardLocation::Settings)
+         .generic_string()};
 
-   if (!std::filesystem::exists(appDataPath))
+   if (!std::filesystem::exists(settingsPath))
    {
-      if (!std::filesystem::create_directories(appDataPath))
-      {
-         logger_->error("Unable to create application data directory: \"{}\"",
-                        appDataPath);
-      }
+      logger_->error("Settings path does not exist: \"{}\"", settingsPath);
    }
 
-   layerSettingsPath_ = appDataPath + "/layers.json";
+   layerSettingsPath_ = settingsPath + "/layers.json";
 }
 
 void LayerModel::Impl::ReadLayerSettings()
@@ -170,13 +197,32 @@ void LayerModel::Impl::ReadLayerSettings()
    logger_->info("Reading layer settings");
 
    boost::json::value layerJson = nullptr;
-   types::LayerVector newLayers {};
 
    // Determine if layer settings exists
    if (std::filesystem::exists(layerSettingsPath_))
    {
       layerJson = util::json::ReadJsonFile(layerSettingsPath_);
    }
+
+   ApplyLayerSettings(layerJson);
+
+   fileRead_ = true;
+}
+
+void LayerModel::ReadLayerSettings(std::istream& is)
+{
+   logger_->info("Reading layer settings from stream");
+
+   const boost::json::value layerJson = scwx::util::json::ReadJsonStream(is);
+
+   p->ApplyLayerSettings(layerJson);
+
+   // Don't set fileRead_ when reading from a non-default stream
+}
+
+void LayerModel::Impl::ApplyLayerSettings(const boost::json::value& layerJson)
+{
+   types::LayerVector newLayers {};
 
    // If layer settings was successfully read
    if (layerJson != nullptr && layerJson.is_array())
@@ -203,8 +249,6 @@ void LayerModel::Impl::ReadLayerSettings()
       // Assign read layers
       layers_.swap(newLayers);
    }
-
-   fileRead_ = true;
 }
 
 void LayerModel::Impl::ValidateLayerSettings(types::LayerVector& layers)
@@ -245,7 +289,7 @@ void LayerModel::Impl::ValidateLayerSettings(types::LayerVector& layers)
    for (auto& immovableLayer : kImmovableLayers_)
    {
       // Set the default displayed state for a layer that is not found
-      std::array<bool, kMapCount_> displayed = immovableLayer.displayed_;
+      std::array<bool, types::kMapCount_> displayed = immovableLayer.displayed_;
 
       // Find the immovable layer
       auto it = std::find_if(layers.begin(),
@@ -316,7 +360,7 @@ void LayerModel::Impl::ValidateLayerSettings(types::LayerVector& layers)
    }
 }
 
-void LayerModel::Impl::WriteLayerSettings()
+void LayerModel::Impl::SaveLayerSettings()
 {
    if (!fileRead_)
    {
@@ -328,17 +372,22 @@ void LayerModel::Impl::WriteLayerSettings()
    util::json::WriteJsonFile(layerSettingsPath_, layerJson);
 }
 
+void LayerModel::WriteLayerSettings(std::ostream& os)
+{
+   auto layerJson = boost::json::value_from(p->layers_);
+   util::json::WriteJsonStream(os, layerJson);
+}
+
 types::LayerInfo
 LayerModel::GetLayerInfo(types::LayerType        type,
                          types::LayerDescription description) const
 {
    // Find the matching layer
-   auto it = std::find_if(p->layers_.begin(),
-                          p->layers_.end(),
-                          [&](const types::LayerInfo& layer) {
-                             return layer.type_ == type &&
-                                    layer.description_ == description;
-                          });
+   auto it = std::find_if(
+      p->layers_.begin(),
+      p->layers_.end(),
+      [&](const types::LayerInfo& layer)
+      { return layer.type_ == type && layer.description_ == description; });
    if (it != p->layers_.end())
    {
       // Return the layer info
@@ -358,12 +407,11 @@ void LayerModel::SetLayerDisplayed(types::LayerType        type,
                                    bool                    displayed)
 {
    // Find the matching layer
-   auto it = std::find_if(p->layers_.begin(),
-                          p->layers_.end(),
-                          [&](const types::LayerInfo& layer) {
-                             return layer.type_ == type &&
-                                    layer.description_ == description;
-                          });
+   auto it = std::find_if(
+      p->layers_.begin(),
+      p->layers_.end(),
+      [&](const types::LayerInfo& layer)
+      { return layer.type_ == type && layer.description_ == description; });
 
    if (it != p->layers_.end())
    {
@@ -372,10 +420,10 @@ void LayerModel::SetLayerDisplayed(types::LayerType        type,
       QModelIndex topLeft =
          createIndex(row, static_cast<int>(Column::DisplayMap1));
       QModelIndex bottomRight =
-         createIndex(row, static_cast<int>(Column::DisplayMap4));
+         createIndex(row, static_cast<int>(Column::DisplayMap9));
 
       // Set the layer to displayed
-      for (std::size_t i = 0; i < kMapCount_; ++i)
+      for (std::size_t i = 0; i < types::kMapCount_; ++i)
       {
          it->displayed_[i] = displayed;
       }
@@ -475,6 +523,11 @@ Qt::ItemFlags LayerModel::flags(const QModelIndex& index) const
    case static_cast<int>(Column::DisplayMap2):
    case static_cast<int>(Column::DisplayMap3):
    case static_cast<int>(Column::DisplayMap4):
+   case static_cast<int>(Column::DisplayMap5):
+   case static_cast<int>(Column::DisplayMap6):
+   case static_cast<int>(Column::DisplayMap7):
+   case static_cast<int>(Column::DisplayMap8):
+   case static_cast<int>(Column::DisplayMap9):
       if (layer.type_ != types::LayerType::Map)
       {
          flags |=
@@ -542,6 +595,11 @@ QVariant LayerModel::data(const QModelIndex& index, int role) const
    case static_cast<int>(Column::DisplayMap2):
    case static_cast<int>(Column::DisplayMap3):
    case static_cast<int>(Column::DisplayMap4):
+   case static_cast<int>(Column::DisplayMap5):
+   case static_cast<int>(Column::DisplayMap6):
+   case static_cast<int>(Column::DisplayMap7):
+   case static_cast<int>(Column::DisplayMap8):
+   case static_cast<int>(Column::DisplayMap9):
       if (layer.type_ != types::LayerType::Map)
       {
          bool displayed =
@@ -636,6 +694,21 @@ LayerModel::headerData(int section, Qt::Orientation orientation, int role) const
          case static_cast<int>(Column::DisplayMap4):
             return tr("4");
 
+         case static_cast<int>(Column::DisplayMap5):
+            return tr("5");
+
+         case static_cast<int>(Column::DisplayMap6):
+            return tr("6");
+
+         case static_cast<int>(Column::DisplayMap7):
+            return tr("7");
+
+         case static_cast<int>(Column::DisplayMap8):
+            return tr("8");
+
+         case static_cast<int>(Column::DisplayMap9):
+            return tr("9");
+
          case static_cast<int>(Column::Type):
             return tr("Type");
 
@@ -669,6 +742,21 @@ LayerModel::headerData(int section, Qt::Orientation orientation, int role) const
       case static_cast<int>(Column::DisplayMap4):
          return tr("Display on Map 4");
 
+      case static_cast<int>(Column::DisplayMap5):
+         return tr("Display on Map 5");
+
+      case static_cast<int>(Column::DisplayMap6):
+         return tr("Display on Map 6");
+
+      case static_cast<int>(Column::DisplayMap7):
+         return tr("Display on Map 7");
+
+      case static_cast<int>(Column::DisplayMap8):
+         return tr("Display on Map 8");
+
+      case static_cast<int>(Column::DisplayMap9):
+         return tr("Display on Map 9");
+
       default:
          break;
       }
@@ -681,6 +769,11 @@ LayerModel::headerData(int section, Qt::Orientation orientation, int role) const
       case static_cast<int>(Column::DisplayMap2):
       case static_cast<int>(Column::DisplayMap3):
       case static_cast<int>(Column::DisplayMap4):
+      case static_cast<int>(Column::DisplayMap5):
+      case static_cast<int>(Column::DisplayMap6):
+      case static_cast<int>(Column::DisplayMap7):
+      case static_cast<int>(Column::DisplayMap8):
+      case static_cast<int>(Column::DisplayMap9):
       {
          static const QCheckBox checkBox {};
          QStyleOptionButton     option {};
@@ -720,6 +813,11 @@ bool LayerModel::setData(const QModelIndex& index,
    case static_cast<int>(Column::DisplayMap2):
    case static_cast<int>(Column::DisplayMap3):
    case static_cast<int>(Column::DisplayMap4):
+   case static_cast<int>(Column::DisplayMap5):
+   case static_cast<int>(Column::DisplayMap6):
+   case static_cast<int>(Column::DisplayMap7):
+   case static_cast<int>(Column::DisplayMap8):
+   case static_cast<int>(Column::DisplayMap9):
       if (role == Qt::ItemDataRole::CheckStateRole)
       {
          layer.displayed_[index.column() -
@@ -1063,6 +1161,4 @@ std::shared_ptr<LayerModel> LayerModel::Instance()
    return layerModel;
 }
 
-} // namespace model
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::model

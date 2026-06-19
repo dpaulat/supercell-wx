@@ -27,9 +27,11 @@ public:
    void UpdateElevationSelection(float elevation);
    void UpdateIncomingElevation(std::optional<float> incomingElevation);
    void UpdateSettings(map::MapWidget* activeMap);
+   void UpdateThreshold(map::MapWidget* activeMap);
 
 signals:
    void ElevationSelected(float elevation);
+   void ThresholdChanged(std::optional<float> threshold);
 
 private:
    std::shared_ptr<Level2SettingsWidgetImpl> p;

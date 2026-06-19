@@ -10,17 +10,11 @@
 #include <QVBoxLayout>
 #include <boost/multi_array.hpp>
 
-namespace scwx
-{
-namespace qt
-{
-namespace ui
-{
-namespace setup
+namespace scwx::qt::ui::setup
 {
 
-static constexpr std::size_t kGridWidth_ {2u};
-static constexpr std::size_t kGridHeight_ {2u};
+static constexpr std::size_t kGridWidth_ {3u};
+static constexpr std::size_t kGridHeight_ {3u};
 
 class MapLayoutPage::Impl
 {
@@ -42,11 +36,11 @@ public:
    QLabel*      gridHeightLabel_ {};
    QSpinBox*    gridHeightSpinBox_ {};
 
-   QSpacerItem*                             leftGridSpacer_ {};
-   QSpacerItem*                             rightGridSpacer_ {};
-   QFrame*                                  gridFrame_ {};
-   QGridLayout*                             gridLayout_ {};
-   boost::multi_array<QFrame*, kGridWidth_> gridPanes_ {
+   QSpacerItem*                   leftGridSpacer_ {};
+   QSpacerItem*                   rightGridSpacer_ {};
+   QFrame*                        gridFrame_ {};
+   QGridLayout*                   gridLayout_ {};
+   boost::multi_array<QFrame*, 2> gridPanes_ {
       boost::extents[kGridWidth_][kGridHeight_]};
 
    settings::SettingsInterface<std::int64_t> gridWidth_ {};
@@ -108,7 +102,6 @@ MapLayoutPage::MapLayoutPage(QWidget* parent) :
          auto& pane = p->gridPanes_[i][j];
          pane       = new QFrame(this);
          pane->setStyleSheet("background-color:black;");
-         pane->setFixedSize(75, 50);
          p->gridLayout_->addWidget(
             pane, static_cast<int>(j), static_cast<int>(i + 1));
       }
@@ -157,9 +150,20 @@ void MapLayoutPage::Impl::UpdateGridDisplay()
    {
       for (std::size_t j = 0; j < kGridHeight_; ++j)
       {
-         gridPanes_[i][j]->setVisible(
-            static_cast<int>(i) < gridWidthSpinBox_->value() &&
-            static_cast<int>(j) < gridHeightSpinBox_->value());
+         auto& pane =
+            gridPanes_[static_cast<boost::multi_array_types::index>(i)]
+                      [static_cast<boost::multi_array_types::index>(j)];
+
+         static constexpr auto kFixedWidth  = 150;
+         static constexpr auto kFixedHeight = 100;
+
+         const int currentWidth  = gridWidthSpinBox_->value();
+         const int currentHeight = gridHeightSpinBox_->value();
+
+         pane->setFixedSize(kFixedWidth / currentWidth,
+                            kFixedHeight / currentHeight);
+         pane->setVisible(static_cast<int>(i) < currentWidth &&
+                          static_cast<int>(j) < currentHeight);
       }
    }
 }
@@ -179,7 +183,4 @@ bool MapLayoutPage::validatePage()
    return true;
 }
 
-} // namespace setup
-} // namespace ui
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::ui::setup

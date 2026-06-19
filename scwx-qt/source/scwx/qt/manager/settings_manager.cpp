@@ -1,4 +1,5 @@
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/settings/audio_settings.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
@@ -13,17 +14,11 @@
 #include <scwx/util/logger.hpp>
 
 #include <filesystem>
-#include <fstream>
 
 #include <boost/algorithm/string.hpp>
 #include <QDir>
-#include <QStandardPaths>
 
-namespace scwx
-{
-namespace qt
-{
-namespace manager
+namespace scwx::qt::manager
 {
 
 static const std::string logPrefix_ = "scwx::qt::manager::settings_manager";
@@ -53,20 +48,17 @@ SettingsManager::~SettingsManager() {};
 
 void SettingsManager::Initialize()
 {
-   std::string appDataPath {
-      QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
-         .toStdString()};
+   const std::string settingsPath {
+      main::ApplicationPaths::GetLocation(
+         main::ApplicationPaths::StandardLocation::Settings)
+         .generic_string()};
 
-   if (!std::filesystem::exists(appDataPath))
+   if (!std::filesystem::exists(settingsPath))
    {
-      if (!std::filesystem::create_directories(appDataPath))
-      {
-         logger_->error("Unable to create application data directory: \"{}\"",
-                        appDataPath);
-      }
+      logger_->error("Settings path does not exist: \"{}\"", settingsPath);
    }
 
-   p->settingsPath_ = appDataPath + "/settings.json";
+   p->settingsPath_ = settingsPath + "/settings.json";
 
    ReadSettings(p->settingsPath_);
 
@@ -91,7 +83,7 @@ void SettingsManager::ReadSettings(const std::string& settingsPath)
    }
    else
    {
-      bool jsonDirty = Impl::LoadSettings(settingsJson.as_object());
+      const bool jsonDirty = Impl::LoadSettings(settingsJson.as_object());
 
       if (jsonDirty)
       {
@@ -99,6 +91,24 @@ void SettingsManager::ReadSettings(const std::string& settingsPath)
          util::json::WriteJsonFile(settingsPath, settingsJson);
       }
    };
+}
+
+void SettingsManager::ReadSettings(std::istream& is)
+{
+   logger_->info("Reading settings from stream");
+
+   boost::json::value settingsJson = util::json::ReadJsonStream(is);
+
+   // Don't reset settings to default when reading from a non-default stream
+   if (settingsJson != nullptr && settingsJson.is_object())
+   {
+      const bool jsonDirty = Impl::LoadSettings(settingsJson.as_object());
+
+      if (jsonDirty)
+      {
+         SaveSettings();
+      }
+   }
 }
 
 void SettingsManager::SaveSettings()
@@ -111,6 +121,17 @@ void SettingsManager::SaveSettings()
       util::json::WriteJsonFile(p->settingsPath_, settingsJson);
 
       Q_EMIT SettingsSaved();
+   }
+}
+
+void SettingsManager::WriteSettings(std::ostream& os)
+{
+   if (p->initialized_)
+   {
+      const boost::json::value settingsJson = Impl::ConvertSettingsToJson();
+      util::json::WriteJsonStream(os, settingsJson);
+
+      // Don't emit SettingsSaved() when writing to a non-default stream
    }
 }
 
@@ -228,6 +249,4 @@ SettingsManager& SettingsManager::Instance()
    return instance_;
 }
 
-} // namespace manager
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::manager

@@ -13,9 +13,7 @@
 #include <units/angle.h>
 #include <units/length.h>
 
-namespace scwx
-{
-namespace gr
+namespace scwx::gr
 {
 
 /**
@@ -39,7 +37,7 @@ public:
    Placefile(Placefile&&) noexcept;
    Placefile& operator=(Placefile&&) noexcept;
 
-   enum class ItemType
+   enum class ItemType : std::uint8_t
    {
       Icon,
       Font,
@@ -47,6 +45,7 @@ public:
       Line,
       Triangles,
       Image,
+      ImageXY,
       Polygon,
       Unknown
    };
@@ -148,11 +147,14 @@ public:
       std::vector<Element> elements_ {};
    };
 
-   struct ImageDrawItem : DrawItem
+   struct ImageBaseDrawItem : DrawItem
+   {
+      std::string imageFile_ {};
+   };
+
+   struct ImageDrawItem : ImageBaseDrawItem
    {
       ImageDrawItem() { itemType_ = ItemType::Image; }
-
-      std::string imageFile_ {};
 
       struct Element
       {
@@ -160,6 +162,23 @@ public:
          double longitude_ {};
          double x_ {};
          double y_ {};
+         double tu_ {};
+         double tv_ {};
+      };
+
+      std::vector<Element> elements_ {};
+   };
+
+   struct ImageXYDrawItem : ImageBaseDrawItem
+   {
+      ImageXYDrawItem() { itemType_ = ItemType::ImageXY; }
+
+      struct Element
+      {
+         double x_ {};
+         double y_ {};
+         double anchorX_ {};
+         double anchorY_ {};
          double tu_ {};
          double tv_ {};
       };
@@ -213,5 +232,4 @@ private:
    std::unique_ptr<Impl> p;
 };
 
-} // namespace gr
-} // namespace scwx
+} // namespace scwx::gr

@@ -460,7 +460,7 @@ void SettingsCategory::Impl::ConnectSubcategory(SettingsCategory& category)
 
 void SettingsCategory::Impl::ConnectVariable(SettingsVariableBase* variable)
 {
-   connections_.emplace_back(variable->changed_signal().connect(
+   connections_.emplace_back(variable->ConnectChanged(
       [this]()
       {
          if (!blockSignals_)
@@ -469,7 +469,7 @@ void SettingsCategory::Impl::ConnectVariable(SettingsVariableBase* variable)
          }
       }));
 
-   connections_.emplace_back(variable->staged_signal().connect(
+   connections_.emplace_back(variable->ConnectStaged(
       [this]()
       {
          if (!blockSignals_)

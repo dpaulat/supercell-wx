@@ -13,7 +13,11 @@
 #   pragma warning(disable : 4714)
 #endif
 
+#include <boost/gil/extension/io/bmp.hpp>
+#include <boost/gil/extension/io/jpeg.hpp>
 #include <boost/gil/extension/io/png.hpp>
+#include <boost/gil/extension/io/targa.hpp>
+#include <boost/gil/extension/io/tiff.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <boost/timer/timer.hpp>
 #include <cpr/cpr.h>
@@ -33,27 +37,31 @@
 #   undef LoadImage
 #endif
 
-namespace scwx
-{
-namespace qt
-{
-namespace util
+namespace scwx::qt::util
 {
 
 static const std::string logPrefix_ = "scwx::qt::util::texture_atlas";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+static const boost::gil::rgba8_pixel_t kMagenta_ {255, 0, 255, 255};
+
 class TextureAtlas::Impl
 {
 public:
-   explicit Impl() {}
-   ~Impl() {}
+   explicit Impl() = default;
+   ~Impl()         = default;
+
+   Impl(const Impl&)             = delete;
+   Impl& operator=(const Impl&)  = delete;
+   Impl(const Impl&&)            = delete;
+   Impl& operator=(const Impl&&) = delete;
 
    static std::shared_ptr<boost::gil::rgba8_image_t>
    LoadImage(const std::string& imagePath, double scale = 1);
 
+   template<typename Tag>
    static std::shared_ptr<boost::gil::rgba8_image_t>
-   ReadPngFile(const QString& imagePath);
+   ReadImageFile(const QString& imagePath);
    static std::shared_ptr<boost::gil::rgba8_image_t>
    ReadSvgFile(const QString& imagePath, double scale = 1);
 
@@ -126,12 +134,17 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
       return;
    }
 
-   typedef std::vector<
-      std::pair<std::string, std::shared_ptr<boost::gil::rgba8_image_t>>>
-      ImageVector;
+   using ImageVector = std::vector<
+      std::pair<std::string, std::shared_ptr<boost::gil::rgba8_image_t>>>;
 
    ImageVector             images {};
    std::vector<stbrp_rect> stbrpRects {};
+
+   // Padding in pixels around each image in the atlas. This prevents
+   // GL_LINEAR sampling from bleeding into neighboring images. Use 1 px
+   // padding by default. If an image equals the atlas size, padding is
+   // skipped for that image.
+   const int pad = 1;
 
    // Cached images
    {
@@ -157,13 +170,20 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
          else if (image->width() > 0u && image->height() > 0u)
          {
             // Store STB rectangle pack data in a vector
-            stbrpRects.push_back(
-               stbrp_rect {0,
-                           static_cast<stbrp_coord>(image->width()),
-                           static_cast<stbrp_coord>(image->height()),
-                           0,
-                           0,
-                           0});
+            // Increase requested rect size by padding on all sides unless
+            // the image is as large as the atlas dimension, in which case
+            // we request the exact size (no padding possible).
+            // Only add padding if the padded image will still fit in the
+            // atlas dimensions.
+            const std::size_t paddedW = image->width() + 2LL * pad;
+            const std::size_t paddedH = image->height() + 2LL * pad;
+
+            const auto reqW = static_cast<stbrp_coord>(
+               (paddedW <= width) ? paddedW : image->width());
+            const auto reqH = static_cast<stbrp_coord>(
+               (paddedH <= height) ? paddedH : image->height());
+
+            stbrpRects.push_back(stbrp_rect {0, reqW, reqH, 0, 0, 0});
 
             // Store image data in a vector
             images.push_back({texture.first, image});
@@ -177,8 +197,8 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
    // GL_MAX_ARRAY_TEXTURE_LAYERS is guaranteed to be at least 256 in OpenGL 3.3
    constexpr std::size_t kMaxLayers = 256u;
 
-   const float xStep = 1.0f / width;
-   const float yStep = 1.0f / height;
+   const float xStep = 1.0f / static_cast<float>(width);
+   const float yStep = 1.0f / static_cast<float>(height);
    const float xMin  = xStep * 0.5f;
    const float yMin  = yStep * 0.5f;
 
@@ -212,10 +232,13 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
       }
 
       // Clear atlas
-      boost::gil::rgba8_image_t atlas(width, height);
-      boost::gil::rgba8_view_t  atlasView = boost::gil::view(atlas);
-      boost::gil::fill_pixels(atlasView,
-                              boost::gil::rgba8_pixel_t {255, 0, 255, 255});
+      boost::gil::rgba8_image_t atlas(
+         static_cast<boost::gil::rgba8_image_t::x_coord_t>(width),
+         static_cast<boost::gil::rgba8_image_t::y_coord_t>(height));
+
+      // NOLINTNEXTLINE(misc-const-correctness): Image is modified
+      boost::gil::rgba8_view_t atlasView = boost::gil::view(atlas);
+      boost::gil::fill_pixels(atlasView, kMagenta_);
 
       // Populate atlas
       logger_->trace("Populating atlas");
@@ -231,25 +254,104 @@ void TextureAtlas::BuildAtlas(std::size_t width, std::size_t height)
             boost::gil::rgba8c_view_t imageView =
                boost::gil::const_view(*images[i].second);
 
-            boost::gil::rgba8_view_t atlasSubView =
-               boost::gil::subimage_view(atlasView,
-                                         stbrpRects[i].x,
-                                         stbrpRects[i].y,
-                                         imageView.width(),
-                                         imageView.height());
+            const int packedX = stbrpRects[i].x;
+            const int packedY = stbrpRects[i].y;
 
-            boost::gil::copy_pixels(imageView, atlasSubView);
+            // Recompute padded sizes for this image (padded values were
+            // local to the earlier loop). This determines whether padding
+            // was requested for the image.
+            const std::size_t paddedW = imageView.width() + 2LL * pad;
+            const std::size_t paddedH = imageView.height() + 2LL * pad;
+
+            // Determine whether padding was requested/used for this image.
+            const bool usedPadding =
+               ((static_cast<std::size_t>(stbrpRects[i].w) == paddedW) &&
+                (static_cast<std::size_t>(stbrpRects[i].h) == paddedH));
+
+            if (usedPadding)
+            {
+               // Create a subview for the inner region where the image will
+               // be copied (offset by pad).
+               // NOLINTNEXTLINE(misc-const-correctness): Image is modified
+               boost::gil::rgba8_view_t atlasInnerView =
+                  boost::gil::subimage_view(atlasView,
+                                            packedX + pad,
+                                            packedY + pad,
+                                            imageView.width(),
+                                            imageView.height());
+
+               // Copy image pixels into inner region
+               boost::gil::copy_pixels(imageView, atlasInnerView);
+
+               // Replicate left/right edges into padding
+               for (int yy = 0; yy < static_cast<int>(imageView.height()); ++yy)
+               {
+                  const auto& leftPixel =
+                     atlasView(packedX + pad, packedY + pad + yy);
+                  const auto& rightPixel = atlasView(
+                     packedX + pad + static_cast<int>(imageView.width()) - 1,
+                     packedY + pad + yy);
+
+                  for (int px = 0; px < pad; ++px)
+                  {
+                     atlasView(packedX + px, packedY + pad + yy) = leftPixel;
+                     atlasView(packedX + pad +
+                                  static_cast<int>(imageView.width()) + px,
+                               packedY + pad + yy)               = rightPixel;
+                  }
+               }
+
+               // Replicate top/bottom rows (including padded columns)
+               for (int xx = 0;
+                    xx < static_cast<int>(imageView.width()) + 2 * pad;
+                    ++xx)
+               {
+                  const auto& topPixel = atlasView(packedX + xx, packedY + pad);
+                  const auto& bottomPixel = atlasView(
+                     packedX + xx,
+                     packedY + pad + static_cast<int>(imageView.height()) - 1);
+
+                  for (int py = 0; py < pad; ++py)
+                  {
+                     atlasView(packedX + xx, packedY + py) = topPixel;
+                     atlasView(packedX + xx,
+                               packedY + pad +
+                                  static_cast<int>(imageView.height()) + py) =
+                        bottomPixel;
+                  }
+               }
+            }
+            else
+            {
+               // No padding used (image may be same size as atlas). Copy as-is
+               // NOLINTNEXTLINE(misc-const-correctness): Image is modified
+               boost::gil::rgba8_view_t atlasSubView =
+                  boost::gil::subimage_view(atlasView,
+                                            packedX,
+                                            packedY,
+                                            imageView.width(),
+                                            imageView.height());
+
+               boost::gil::copy_pixels(imageView, atlasSubView);
+            }
 
             // Add texture image to the index
             const stbrp_coord x = stbrpRects[i].x;
             const stbrp_coord y = stbrpRects[i].y;
 
-            const float sLeft = x * xStep + xMin;
+            // If padding was used, the actual image starts at (x+pad,y+pad)
+            // within the packed rectangle. If not, it starts at (x,y).
+            const auto imgX = static_cast<float>((usedPadding) ? (x + pad) : x);
+            const auto imgY = static_cast<float>((usedPadding) ? (y + pad) : y);
+
+            const float sLeft = imgX * xStep + xMin;
             const float sRight =
-               sLeft + static_cast<float>(imageView.width() - 1) / width;
-            const float tTop = y * yStep + yMin;
+               sLeft + static_cast<float>(imageView.width() - 1) /
+                          static_cast<float>(width);
+            const float tTop = imgY * yStep + yMin;
             const float tBottom =
-               tTop + static_cast<float>(imageView.height() - 1) / height;
+               tTop + static_cast<float>(imageView.height() - 1) /
+                         static_cast<float>(height);
 
             newAtlasMap.emplace(
                std::piecewise_construct,
@@ -345,6 +447,7 @@ void TextureAtlas::BufferAtlas(GLuint texture)
 
       glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
 
+      // Use clamp-to-edge to avoid wrapping/bleeding across atlas borders.
       glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
       glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
       glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -393,18 +496,70 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath, double scale)
       const QString suffix          = QFileInfo(qImagePath).suffix().toLower();
       const QString qLocalImagePath = url.toString(QUrl::PreferLocalFile);
 
-      if (suffix == "svg")
+      static const std::unordered_map<
+         QString,
+         std::function<std::shared_ptr<boost::gil::rgba8_image_t>(
+            const QString&, double)>>
+         formatHandlers = {{"bmp",
+                            [](const QString& path, double)
+                            {
+                               return ReadImageFile<boost::gil::bmp_tag>(path);
+                            }},
+                           {"jpg",
+                            [](const QString& path, double)
+                            {
+                               return ReadImageFile<boost::gil::jpeg_tag>(path);
+                            }},
+                           {"jpeg",
+                            [](const QString& path, double)
+                            {
+                               return ReadImageFile<boost::gil::jpeg_tag>(path);
+                            }},
+                           {"png",
+                            [](const QString& path, double)
+                            {
+                               return ReadImageFile<boost::gil::png_tag>(path);
+                            }},
+                           {"svg",
+                            [](const QString& path, double scale)
+                            {
+                               return ReadSvgFile(path, scale);
+                            }},
+                           {"tga",
+                            [](const QString& path, double)
+                            {
+                               return ReadImageFile<boost::gil::targa_tag>(
+                                  path);
+                            }},
+                           {"tif",
+                            [](const QString& path, double)
+                            {
+                               return ReadImageFile<boost::gil::tiff_tag>(path);
+                            }},
+                           {"tiff",
+                            [](const QString& path, double)
+                            {
+                               return ReadImageFile<boost::gil::tiff_tag>(path);
+                            }}};
+
+      const auto it = formatHandlers.find(suffix);
+      if (it != formatHandlers.end())
       {
-         image = ReadSvgFile(qLocalImagePath, scale);
+         image = it->second(qLocalImagePath, scale);
       }
       else
       {
-         image = ReadPngFile(qLocalImagePath);
+         // Default to PNG for unknown formats
+         image = ReadImageFile<boost::gil::png_tag>(qLocalImagePath);
       }
    }
    else
    {
-      auto response = cpr::Get(cpr::Url {imagePath}, network::cpr::GetHeader());
+      auto response = cpr::Get(cpr::Url {imagePath},
+                               network::cpr::GetHeader(),
+                               network::cpr::GetDefaultTimeout(),
+                               network::cpr::GetDefaultConnectTimeout(),
+                               network::cpr::GetDefaultLowSpeed());
 
       if (cpr::status::is_success(response.status_code))
       {
@@ -474,14 +629,15 @@ TextureAtlas::Impl::LoadImage(const std::string& imagePath, double scale)
    return image;
 }
 
+template<typename Tag>
 std::shared_ptr<boost::gil::rgba8_image_t>
-TextureAtlas::Impl::ReadPngFile(const QString& imagePath)
+TextureAtlas::Impl::ReadImageFile(const QString& imagePath)
 {
    QFile imageFile(imagePath);
 
-   imageFile.open(QIODevice::ReadOnly);
+   const bool isOpen = imageFile.open(QIODevice::ReadOnly);
 
-   if (!imageFile.isOpen())
+   if (!isOpen || !imageFile.isOpen())
    {
       logger_->error("Could not open image: {}", imagePath.toStdString());
       return nullptr;
@@ -493,12 +649,12 @@ TextureAtlas::Impl::ReadPngFile(const QString& imagePath)
 
    try
    {
-      boost::gil::read_and_convert_image(
-         dataStream, *image, boost::gil::png_tag());
+      boost::gil::read_and_convert_image(dataStream, *image, Tag());
    }
    catch (const std::exception& ex)
    {
-      logger_->error("Error reading image: {}", ex.what());
+      logger_->error(
+         "Error reading image ({}): {}", imagePath.toStdString(), ex.what());
       return nullptr;
    }
 
@@ -543,6 +699,4 @@ TextureAtlas& TextureAtlas::Instance()
    return instance_;
 }
 
-} // namespace util
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::util

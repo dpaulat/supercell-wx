@@ -26,20 +26,21 @@ public:
    ~FontManager();
 
    std::shared_mutex& imgui_font_atlas_mutex();
-   std::uint64_t      imgui_fonts_build_count() const;
 
    int GetFontId(types::Font font) const;
-   std::shared_ptr<types::ImGuiFont>
+   std::pair<std::shared_ptr<types::ImGuiFont>, units::font_size::pixels<float>>
          GetImGuiFont(types::FontCategory fontCategory);
    QFont GetQFont(types::FontCategory fontCategory);
    std::shared_ptr<types::ImGuiFont>
-   LoadImGuiFont(const std::string&               family,
-                 const std::vector<std::string>&  styles,
-                 units::font_size::points<double> size,
-                 bool                             loadIfNotFound = true);
+   LoadImGuiFont(const std::string&              family,
+                 const std::vector<std::string>& styles,
+                 bool                            loadIfNotFound = true);
 
    void LoadApplicationFont(types::Font font, const std::string& filename);
    void InitializeFonts();
+
+   static units::font_size::pixels<float>
+   ImFontSize(units::font_size::pixels<double> size);
 
    static FontManager& Instance();
 

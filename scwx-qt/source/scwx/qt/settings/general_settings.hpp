@@ -22,6 +22,7 @@ public:
    GeneralSettings& operator=(GeneralSettings&&) noexcept;
 
    [[nodiscard]] SettingsVariable<bool>& anti_aliasing_enabled() const;
+   [[nodiscard]] SettingsVariable<bool>& auto_navigate_to_wsr88d_only() const;
    [[nodiscard]] SettingsVariable<bool>& center_on_radar_selection() const;
    [[nodiscard]] SettingsVariable<std::string>& clock_format() const;
    [[nodiscard]] SettingsVariable<std::string>& custom_style_draw_layer() const;
@@ -45,9 +46,12 @@ public:
    [[nodiscard]] SettingsVariable<std::string>&  positioning_plugin() const;
    [[nodiscard]] SettingsVariable<bool>&
    process_module_warnings_enabled() const;
-   [[nodiscard]] SettingsVariable<bool>&        show_map_attribution() const;
-   [[nodiscard]] SettingsVariable<bool>&        show_map_center() const;
-   [[nodiscard]] SettingsVariable<bool>&        show_map_logo() const;
+   [[nodiscard]] SettingsVariable<std::string>& screen_capture_folder() const;
+   [[nodiscard]] SettingsVariable<std::string>& screen_capture_name() const;
+   [[nodiscard]] SettingsVariable<bool>& screen_capture_on_refresh() const;
+   [[nodiscard]] SettingsVariable<bool>& show_map_attribution() const;
+   [[nodiscard]] SettingsVariable<bool>& show_map_center() const;
+   [[nodiscard]] SettingsVariable<bool>& show_map_logo() const;
    [[nodiscard]] SettingsVariable<std::string>& theme() const;
    [[nodiscard]] SettingsVariable<std::string>& theme_file() const;
    [[nodiscard]] SettingsVariable<bool>&        track_location() const;

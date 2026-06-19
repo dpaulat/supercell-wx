@@ -55,6 +55,13 @@ public:
    virtual void SetEditWidget(QWidget* widget) = 0;
 
    /**
+    * Sets the label widget from the settings dialog.
+    *
+    * @param widget Label widget
+    */
+   virtual void SetLabelWidget(QWidget* widget) = 0;
+
+   /**
     * Sets the reset button from the settings dialog.
     *
     * @param button Reset button

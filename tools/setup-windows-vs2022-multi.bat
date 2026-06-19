@@ -1,8 +1,7 @@
 @set script_dir=%~dp0
 
-@set build_dir=%script_dir%\..\build-release-msvc2022
-@set build_type=Release
-@set conan_profile=scwx-windows_msvc2022_x64
+@set build_dir=%script_dir%\..\build-vs2022
+@set conan_profile=scwx-windows_vs2022_x64
 @set generator=Visual Studio 17 2022
 @set qt_base=C:/Qt
 @set qt_arch=msvc2022_64

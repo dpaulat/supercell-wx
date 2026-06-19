@@ -7,6 +7,7 @@
 #include <scwx/qt/util/tooltip.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <atomic>
 #include <chrono>
 #include <mutex>
 #include <ranges>
@@ -14,6 +15,7 @@
 #include <shared_mutex>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/asio/system_timer.hpp>
@@ -21,7 +23,6 @@
 #include <boost/container/stable_vector.hpp>
 #include <boost/container_hash/hash.hpp>
 #include <QEvent>
-#include <utility>
 
 namespace scwx::qt::map
 {
@@ -152,9 +153,11 @@ public:
    ~Impl()
    {
       std::unique_lock refreshLock(refreshMutex_);
+      refreshEnabled_ = false;
       refreshTimer_.cancel();
       refreshLock.unlock();
 
+      threadPool_.stop();
       threadPool_.join();
 
       receiver_ = nullptr;
@@ -212,6 +215,7 @@ public:
 
    AlertLayer* self_;
 
+   std::atomic<bool>         refreshEnabled_ {true};
    boost::asio::system_timer refreshTimer_ {threadPool_};
    std::mutex                refreshMutex_;
 
@@ -599,7 +603,11 @@ void AlertLayer::Impl::ScheduleRefresh()
          else
          {
             Q_EMIT self_->NeedsRendering();
-            ScheduleRefresh();
+
+            if (refreshEnabled_)
+            {
+               ScheduleRefresh();
+            }
          }
       });
 }
@@ -883,7 +891,7 @@ void AlertLayer::Impl::HandleGeoLinesEvent(
 
    switch (ev->type())
    {
-   case QEvent::Type::MouseButtonPress:
+   case QEvent::Type::MouseButtonRelease:
    {
       auto it = segmentsByLine_.find(di);
       if (it != segmentsByLine_.cend())

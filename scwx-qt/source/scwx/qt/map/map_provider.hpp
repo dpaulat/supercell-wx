@@ -13,10 +13,11 @@ enum class MapProvider
 {
    Mapbox,
    MapTiler,
+   OpenFreeMap,
    Unknown
 };
 using MapProviderIterator = scwx::util::
-   Iterator<MapProvider, MapProvider::Mapbox, MapProvider::MapTiler>;
+   Iterator<MapProvider, MapProvider::Mapbox, MapProvider::OpenFreeMap>;
 
 struct MapStyle
 {
@@ -35,6 +36,8 @@ struct MapProviderInfo
    std::vector<MapStyle>                 mapStyles_ {};
 };
 
+void                   ConfigureMapSettings(MapProvider          mapProvider,
+                                            QMapLibre::Settings& settings);
 MapProvider            GetMapProvider(const std::string& name);
 std::string            GetMapProviderName(MapProvider mapProvider);
 std::string            GetMapProviderApiKey(MapProvider mapProvider);

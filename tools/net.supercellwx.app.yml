@@ -1,7 +1,7 @@
 id: net.supercellwx.app
-version: '0.5.1'
+version: '0.6.0'
 runtime: "org.freedesktop.Platform"
-runtime-version: "23.08"
+runtime-version: "25.08"
 sdk: "org.freedesktop.Sdk"
 command: supercell-wx
 modules:

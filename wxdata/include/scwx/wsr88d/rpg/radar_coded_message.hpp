@@ -21,7 +21,7 @@ public:
    explicit RadarCodedMessage();
    ~RadarCodedMessage();
 
-   RadarCodedMessage(const RadarCodedMessage&) = delete;
+   RadarCodedMessage(const RadarCodedMessage&)            = delete;
    RadarCodedMessage& operator=(const RadarCodedMessage&) = delete;
 
    RadarCodedMessage(RadarCodedMessage&&) noexcept;

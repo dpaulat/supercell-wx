@@ -4,11 +4,12 @@
 
 #include <imgui.h>
 
-namespace scwx
-{
-namespace qt
-{
-namespace model
+// Expose required functions from internal API
+void ImFontAtlasUpdateNewFrame(ImFontAtlas* atlas,
+                               int          frame_count,
+                               bool         renderer_has_textures);
+
+namespace scwx::qt::model
 {
 
 static const std::string logPrefix_ = "scwx::qt::model::imgui_context_model";
@@ -23,6 +24,8 @@ public:
 
    std::vector<ImGuiContextInfo> contexts_ {};
    ImFontAtlas                   fontAtlas_ {};
+
+   int frameCount_ {0};
 };
 
 ImGuiContextModel::ImGuiContextModel() :
@@ -135,6 +138,14 @@ void ImGuiContextModel::DestroyContext(const std::string& name)
    }
 }
 
+void ImGuiContextModel::NewFrame()
+{
+   static constexpr bool kRendererHasTextures_ = true;
+
+   ImFontAtlasUpdateNewFrame(
+      &p->fontAtlas_, ++p->frameCount_, kRendererHasTextures_);
+}
+
 std::vector<ImGuiContextInfo> ImGuiContextModel::contexts() const
 {
    return p->contexts_;
@@ -153,6 +164,4 @@ ImGuiContextModel& ImGuiContextModel::Instance()
 
 bool ImGuiContextInfo::operator==(const ImGuiContextInfo& o) const = default;
 
-} // namespace model
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::model

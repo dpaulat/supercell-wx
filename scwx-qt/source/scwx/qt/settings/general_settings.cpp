@@ -1,6 +1,7 @@
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/settings_container.hpp>
 #include <scwx/qt/settings/settings_definitions.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/types/alert_types.hpp>
 #include <scwx/qt/types/location_types.hpp>
@@ -9,6 +10,8 @@
 #include <scwx/util/time.hpp>
 
 #include <boost/algorithm/string.hpp>
+#include <fmt/chrono.h>
+#include <QDir>
 #include <QUrl>
 
 namespace scwx::qt::settings
@@ -37,6 +40,15 @@ public:
       std::string defaultThemeValue =
          types::GetUiStyleName(types::UiStyle::Default);
 
+      const std::string defaultScreenCaptureFolder =
+         (main::ApplicationPaths::GetLocation(
+             main::ApplicationPaths::StandardLocation::Pictures) /
+          "Supercell Wx")
+            .string();
+      const std::string defaultScreenCaptureName =
+         "{site}_{product}_{timestamp:%Y%m%dT%H%M%SZ}_{lat}_{lon}_{zoom}_{"
+         "width}x{height}";
+
       boost::to_lower(defaultClockFormatValue);
       boost::to_lower(defaultDefaultAlertActionValue);
       boost::to_lower(defaultDefaultTimeZoneValue);
@@ -47,6 +59,7 @@ public:
       // SetDefault, SetMinimum, and SetMaximum are descriptive
       // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
       antiAliasingEnabled_.SetDefault(true);
+      autoNavigateToWsr88dOnly_.SetDefault(true);
       centerOnRadarSelection_.SetDefault(false);
       clockFormat_.SetDefault(defaultClockFormatValue);
       customStyleDrawLayer_.SetDefault(".*\\.annotations\\.points");
@@ -67,6 +80,9 @@ public:
       nmeaSource_.SetDefault("");
       positioningPlugin_.SetDefault(defaultPositioningPlugin);
       processModuleWarningsEnabled_.SetDefault(true);
+      screenCaptureFolder_.SetDefault(defaultScreenCaptureFolder);
+      screenCaptureName_.SetDefault(defaultScreenCaptureName);
+      screenCaptureOnRefresh_.SetDefault(false);
       showMapAttribution_.SetDefault(true);
       showMapCenter_.SetDefault(false);
       showMapLogo_.SetDefault(true);
@@ -87,9 +103,9 @@ public:
       fontSizes_.SetValidator([](const std::vector<std::int64_t>& value)
                               { return !value.empty(); });
       gridWidth_.SetMinimum(1);
-      gridWidth_.SetMaximum(2);
+      gridWidth_.SetMaximum(3);
       gridHeight_.SetMinimum(1);
-      gridHeight_.SetMaximum(2);
+      gridHeight_.SetMaximum(3);
       loopDelay_.SetMinimum(0);
       loopDelay_.SetMaximum(15000);
       loopSpeed_.SetMinimum(1.0);
@@ -137,6 +153,38 @@ public:
          SCWX_SETTINGS_ENUM_VALIDATOR(types::PositioningPlugin,
                                       types::PositioningPluginIterator(),
                                       types::GetPositioningPluginName));
+      screenCaptureFolder_.SetValidator(
+         [](const std::string& value)
+         {
+            // Assume any non-empty path is valid
+            return !value.empty();
+         });
+      screenCaptureName_.SetValidator(
+         [](const std::string& value)
+         {
+            bool valid = true;
+            try
+            {
+               const std::string name = fmt::format(
+                  fmt::runtime(value),
+                  fmt::arg("site", "?"),
+                  fmt::arg("product", "?"),
+                  fmt::arg("timestamp",
+                           std::chrono::system_clock::time_point {}),
+                  fmt::arg("lat", 30.123),
+                  fmt::arg("lon", -100.123),
+                  fmt::arg("zoom", 1.1),
+                  fmt::arg("width", 1),
+                  fmt::arg("height", 1));
+               (void) name;
+            }
+            catch (const fmt::format_error&)
+            {
+               valid = false;
+            }
+
+            return valid;
+         });
       theme_.SetValidator(                            //
          SCWX_SETTINGS_ENUM_VALIDATOR(types::UiStyle, //
                                       types::UiStyleIterator(),
@@ -153,6 +201,8 @@ public:
    Impl& operator=(const Impl&&) = delete;
 
    SettingsVariable<bool> antiAliasingEnabled_ {"anti_aliasing_enabled"};
+   SettingsVariable<bool> autoNavigateToWsr88dOnly_ {
+      "auto_navigate_to_wsr88d_only"};
    SettingsVariable<bool> centerOnRadarSelection_ {"center_on_radar_selection"};
    SettingsVariable<std::string> clockFormat_ {"clock_format"};
    SettingsVariable<std::string> customStyleDrawLayer_ {
@@ -176,9 +226,12 @@ public:
    SettingsVariable<std::string>  positioningPlugin_ {"positioning_plugin"};
    SettingsVariable<bool>         processModuleWarningsEnabled_ {
       "process_module_warnings_enabled"};
-   SettingsVariable<bool>        showMapAttribution_ {"show_map_attribution"};
-   SettingsVariable<bool>        showMapCenter_ {"show_map_center"};
-   SettingsVariable<bool>        showMapLogo_ {"show_map_logo"};
+   SettingsVariable<std::string> screenCaptureFolder_ {"screen_capture_folder"};
+   SettingsVariable<std::string> screenCaptureName_ {"screen_capture_name"};
+   SettingsVariable<bool> screenCaptureOnRefresh_ {"screen_capture_on_refresh"};
+   SettingsVariable<bool> showMapAttribution_ {"show_map_attribution"};
+   SettingsVariable<bool> showMapCenter_ {"show_map_center"};
+   SettingsVariable<bool> showMapLogo_ {"show_map_logo"};
    SettingsVariable<std::string> theme_ {"theme"};
    SettingsVariable<std::string> themeFile_ {"theme_file"};
    SettingsVariable<bool>        trackLocation_ {"track_location"};
@@ -195,6 +248,7 @@ GeneralSettings::GeneralSettings() :
     SettingsCategory("general"), p(std::make_unique<Impl>())
 {
    RegisterVariables({&p->antiAliasingEnabled_,
+                      &p->autoNavigateToWsr88dOnly_,
                       &p->centerOnRadarSelection_,
                       &p->clockFormat_,
                       &p->customStyleDrawLayer_,
@@ -216,6 +270,9 @@ GeneralSettings::GeneralSettings() :
                       &p->nmeaSource_,
                       &p->positioningPlugin_,
                       &p->processModuleWarningsEnabled_,
+                      &p->screenCaptureFolder_,
+                      &p->screenCaptureName_,
+                      &p->screenCaptureOnRefresh_,
                       &p->showMapAttribution_,
                       &p->showMapCenter_,
                       &p->showMapLogo_,
@@ -239,6 +296,11 @@ GeneralSettings::operator=(GeneralSettings&&) noexcept = default;
 SettingsVariable<bool>& GeneralSettings::anti_aliasing_enabled() const
 {
    return p->antiAliasingEnabled_;
+}
+
+SettingsVariable<bool>& GeneralSettings::auto_navigate_to_wsr88d_only() const
+{
+   return p->autoNavigateToWsr88dOnly_;
 }
 
 SettingsVariable<bool>& GeneralSettings::center_on_radar_selection() const
@@ -347,6 +409,21 @@ SettingsVariable<bool>& GeneralSettings::process_module_warnings_enabled() const
    return p->processModuleWarningsEnabled_;
 }
 
+SettingsVariable<std::string>& GeneralSettings::screen_capture_folder() const
+{
+   return p->screenCaptureFolder_;
+}
+
+SettingsVariable<std::string>& GeneralSettings::screen_capture_name() const
+{
+   return p->screenCaptureName_;
+}
+
+SettingsVariable<bool>& GeneralSettings::screen_capture_on_refresh() const
+{
+   return p->screenCaptureOnRefresh_;
+}
+
 SettingsVariable<bool>& GeneralSettings::show_map_attribution() const
 {
    return p->showMapAttribution_;
@@ -431,6 +508,8 @@ GeneralSettings& GeneralSettings::Instance()
 bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
 {
    return (lhs.p->antiAliasingEnabled_ == rhs.p->antiAliasingEnabled_ &&
+           lhs.p->autoNavigateToWsr88dOnly_ ==
+              rhs.p->autoNavigateToWsr88dOnly_ &&
            lhs.p->centerOnRadarSelection_ == rhs.p->centerOnRadarSelection_ &&
            lhs.p->clockFormat_ == rhs.p->clockFormat_ &&
            lhs.p->customStyleDrawLayer_ == rhs.p->customStyleDrawLayer_ &&
@@ -453,6 +532,9 @@ bool operator==(const GeneralSettings& lhs, const GeneralSettings& rhs)
            lhs.p->positioningPlugin_ == rhs.p->positioningPlugin_ &&
            lhs.p->processModuleWarningsEnabled_ ==
               rhs.p->processModuleWarningsEnabled_ &&
+           lhs.p->screenCaptureFolder_ == rhs.p->screenCaptureFolder_ &&
+           lhs.p->screenCaptureName_ == rhs.p->screenCaptureName_ &&
+           lhs.p->screenCaptureOnRefresh_ == rhs.p->screenCaptureOnRefresh_ &&
            lhs.p->showMapAttribution_ == rhs.p->showMapAttribution_ &&
            lhs.p->showMapCenter_ == rhs.p->showMapCenter_ &&
            lhs.p->showMapLogo_ == rhs.p->showMapLogo_ &&

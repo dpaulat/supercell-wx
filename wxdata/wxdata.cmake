@@ -7,6 +7,7 @@ include(CheckCXXSymbolExists)
 find_package(Boost)
 find_package(cpr)
 find_package(LibXml2)
+find_package(libzip)
 find_package(OpenSSL)
 find_package(range-v3)
 find_package(re2)
@@ -71,9 +72,11 @@ set(HDR_GR include/scwx/gr/color.hpp
 set(SRC_GR source/scwx/gr/color.cpp
            source/scwx/gr/placefile.cpp)
 set(HDR_NETWORK include/scwx/network/cpr.hpp
-                include/scwx/network/dir_list.hpp)
+                include/scwx/network/dir_list.hpp
+                include/scwx/network/ntp_client.hpp)
 set(SRC_NETWORK source/scwx/network/cpr.cpp
-                source/scwx/network/dir_list.cpp)
+                source/scwx/network/dir_list.cpp
+                source/scwx/network/ntp_client.cpp)
 set(HDR_PROVIDER include/scwx/provider/aws_level2_data_provider.hpp
                  include/scwx/provider/aws_level2_chunks_data_provider.hpp
                  include/scwx/provider/aws_level3_data_provider.hpp
@@ -82,6 +85,7 @@ set(HDR_PROVIDER include/scwx/provider/aws_level2_data_provider.hpp
                  include/scwx/provider/iem_api_provider.ipp
                  include/scwx/provider/nexrad_data_provider.hpp
                  include/scwx/provider/nexrad_data_provider_factory.hpp
+                 include/scwx/provider/nws_api_provider.hpp
                  include/scwx/provider/warnings_provider.hpp)
 set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp
                  source/scwx/provider/aws_level2_chunks_data_provider.cpp
@@ -90,9 +94,14 @@ set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp
                  source/scwx/provider/iem_api_provider.cpp
                  source/scwx/provider/nexrad_data_provider.cpp
                  source/scwx/provider/nexrad_data_provider_factory.cpp
+                 source/scwx/provider/nws_api_provider.cpp
                  source/scwx/provider/warnings_provider.cpp)
-set(HDR_TYPES include/scwx/types/iem_types.hpp)
-set(SRC_TYPES source/scwx/types/iem_types.cpp)
+set(HDR_TYPES include/scwx/types/iem_types.hpp
+              include/scwx/types/ntp_types.hpp
+              include/scwx/types/nws_types.hpp)
+set(SRC_TYPES source/scwx/types/iem_types.cpp
+              source/scwx/types/ntp_types.cpp
+              source/scwx/types/nws_types.cpp)
 set(HDR_UTIL include/scwx/util/digest.hpp
              include/scwx/util/enum.hpp
              include/scwx/util/environment.hpp
@@ -242,6 +251,10 @@ set(SRC_WSR88D_RPG source/scwx/wsr88d/rpg/ccb_header.cpp
                    source/scwx/wsr88d/rpg/unlinked_vector_packet.cpp
                    source/scwx/wsr88d/rpg/vector_arrow_data_packet.cpp
                    source/scwx/wsr88d/rpg/wind_barb_data_packet.cpp)
+set(HDR_ZIP include/scwx/zip/zip_stream_reader.hpp
+            include/scwx/zip/zip_stream_writer.hpp)
+set(SRC_ZIP source/scwx/zip/zip_stream_reader.cpp
+            source/scwx/zip/zip_stream_writer.cpp)
 
 set(CMAKE_FILES wxdata.cmake)
 
@@ -269,6 +282,8 @@ add_library(wxdata OBJECT ${HDR_AWIPS}
                           ${SRC_WSR88D_RDA}
                           ${HDR_WSR88D_RPG}
                           ${SRC_WSR88D_RPG}
+                          ${HDR_ZIP}
+                          ${SRC_ZIP}
                           ${CMAKE_FILES})
 
 source_group("Header Files\\awips"         FILES ${HDR_AWIPS})
@@ -295,6 +310,8 @@ source_group("Header Files\\wsr88d\\rda"   FILES ${HDR_WSR88D_RDA})
 source_group("Source Files\\wsr88d\\rda"   FILES ${SRC_WSR88D_RDA})
 source_group("Header Files\\wsr88d\\rpg"   FILES ${HDR_WSR88D_RPG})
 source_group("Source Files\\wsr88d\\rpg"   FILES ${SRC_WSR88D_RPG})
+source_group("Header Files\\zip"           FILES ${HDR_ZIP})
+source_group("Source Files\\zip"           FILES ${SRC_ZIP})
 
 
 try_compile(CHRONO_HAS_TIMEZONES_AND_CALENDERS
@@ -316,6 +333,11 @@ target_compile_options(wxdata PRIVATE
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
 
+# Temporary workaround for Boost and GCC 16+ where -Warray-bounds causes false positives
+target_compile_options(wxdata PRIVATE
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-array-bounds>
+)
+
 if (MSVC)
     # Don't include Windows macros
     target_compile_options(wxdata PRIVATE -DNOMINMAX)
@@ -335,6 +357,7 @@ target_link_libraries(wxdata PUBLIC aws-cpp-sdk-core
                                     aws-cpp-sdk-s3
                                     cpr::cpr
                                     LibXml2::LibXml2
+                                    libzip::zip
                                     OpenSSL::Crypto
                                     range-v3::range-v3
                                     re2::re2

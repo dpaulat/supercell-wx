@@ -2,6 +2,7 @@
 
 #include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/gl/draw/draw_item.hpp>
+#include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/types/imgui_font.hpp>
 #include <scwx/gr/placefile.hpp>
 
@@ -54,10 +55,7 @@ public:
     *
     * @param [in] fonts A map of ImGui fonts
     */
-   void
-   SetFonts(const boost::unordered_flat_map<std::size_t,
-                                            std::shared_ptr<types::ImGuiFont>>&
-               fonts);
+   void SetFonts(const manager::PlacefileManager::FontMap& fonts);
 
    /**
     * Adds placefile text to the internal draw list.

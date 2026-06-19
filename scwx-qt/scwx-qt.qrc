@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
+        <file>gl/annotation_geo.vert</file>
+        <file>gl/annotation_stroke.frag</file>
         <file>gl/color.frag</file>
         <file>gl/color.vert</file>
         <file>gl/geo_line.vert</file>
@@ -95,5 +97,6 @@
         <file>res/textures/images/location-marker.svg</file>
         <file>res/textures/images/mapbox-logo.svg</file>
         <file>res/textures/images/maptiler-logo.svg</file>
+        <file>res/textures/images/openfreemap-logo.jpg</file>
     </qresource>
 </RCC>

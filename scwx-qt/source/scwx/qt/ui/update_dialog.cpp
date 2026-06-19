@@ -1,5 +1,6 @@
 #include "update_dialog.hpp"
 #include "ui_update_dialog.h"
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/main/versions.hpp>
 #include <scwx/qt/manager/download_manager.hpp>
 #include <scwx/qt/manager/font_manager.hpp>
@@ -9,13 +10,8 @@
 #include <QDesktopServices>
 #include <QFontDatabase>
 #include <QProcess>
-#include <QStandardPaths>
 
-namespace scwx
-{
-namespace qt
-{
-namespace ui
+namespace scwx::qt::ui
 {
 
 static const std::string logPrefix_ = "scwx::qt::ui::update_dialog";
@@ -93,9 +89,9 @@ void UpdateDialog::Impl::HandleAsset(const types::gh::ReleaseAsset& asset)
 #if defined(_WIN32)
 
 #   if defined(_M_AMD64)
-   static constexpr std::string assetSuffix = "-x64.msi";
+   static const std::string assetSuffix = "-x64.msi";
 #   else
-   static constexpr std::string assetSuffix = "-arm64.msi";
+   static const std::string assetSuffix = "-arm64.msi";
 #   endif
 
    if (asset.name_.ends_with(assetSuffix))
@@ -123,14 +119,14 @@ void UpdateDialog::on_installUpdateButton_clicked()
    {
       ui->installUpdateButton->setEnabled(false);
 
-      std::string destinationPath {
-         QStandardPaths::writableLocation(QStandardPaths::TempLocation)
-            .toStdString()};
+      const std::filesystem::path destinationPath {
+         scwx::qt::main::ApplicationPaths::GetLocation(
+            scwx::qt::main::ApplicationPaths::StandardLocation::Temp)
+            .generic_string()};
 
-      std::shared_ptr<request::DownloadRequest> request =
+      const std::shared_ptr<request::DownloadRequest> request =
          std::make_shared<request::DownloadRequest>(
-            p->installUrl_,
-            std::filesystem::path(destinationPath) / p->installFilename_);
+            p->installUrl_, destinationPath / p->installFilename_);
 
       DownloadDialog* downloadDialog = new DownloadDialog(this);
       downloadDialog->setAttribute(Qt::WA_DeleteOnClose);
@@ -197,6 +193,4 @@ void UpdateDialog::on_installUpdateButton_clicked()
    }
 }
 
-} // namespace ui
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::ui

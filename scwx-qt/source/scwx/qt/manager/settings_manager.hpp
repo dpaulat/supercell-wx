@@ -1,7 +1,9 @@
 #pragma once
 
-#include <string>
+#include <istream>
 #include <memory>
+#include <ostream>
+#include <string>
 
 #include <QObject>
 
@@ -23,7 +25,9 @@ public:
 
    void Initialize();
    void ReadSettings(const std::string& settingsPath);
+   void ReadSettings(std::istream& is);
    void SaveSettings();
+   void WriteSettings(std::ostream& os);
    void Shutdown();
 
    static SettingsManager& Instance();

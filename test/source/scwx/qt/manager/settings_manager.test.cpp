@@ -5,17 +5,13 @@
 #include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
+#include <scwx/util/json.hpp>
 
 #include <filesystem>
-#include <fstream>
 
 #include <gtest/gtest.h>
 
-namespace scwx
-{
-namespace qt
-{
-namespace manager
+namespace scwx::qt::manager
 {
 
 static const std::string DEFAULT_SETTINGS_FILE =
@@ -39,7 +35,7 @@ class BadSettingsTest :
    virtual void SetUp() { scwx::qt::config::RadarSite::Initialize(); }
 };
 
-void VerifyDefaults()
+static void VerifyDefaults()
 {
    settings::GeneralSettings defaultGeneralSettings {};
    settings::MapSettings     defaultMapSettings {};
@@ -54,17 +50,58 @@ void VerifyDefaults()
    EXPECT_EQ(defaultUiSettings, settings::UiSettings::Instance());
 }
 
-void CompareFiles(const std::string& file1, const std::string& file2)
+static void RemoveUserPaths(boost::json::value& root)
 {
-   std::ifstream     ifs1 {file1};
-   std::stringstream buffer1;
-   buffer1 << ifs1.rdbuf();
+   // Check if root is an object
+   if (!root.is_object())
+      return;
 
-   std::ifstream     ifs2 {file2};
-   std::stringstream buffer2;
-   buffer2 << ifs2.rdbuf();
+   boost::json::object& obj = root.as_object();
 
-   EXPECT_EQ(buffer1.str(), buffer2.str());
+   // Look for the "general" object
+   auto generalIt = obj.find("general");
+   if (generalIt != obj.end() && generalIt->value().is_object())
+   {
+      boost::json::object& generalObj = generalIt->value().as_object();
+
+      // Remove the "screen_capture_folder" key if it exists
+      auto folderIt = generalObj.find("screen_capture_folder");
+      if (folderIt != generalObj.end())
+      {
+         folderIt->value() = "";
+      }
+   }
+}
+
+static void RemoveTransientUiState(boost::json::value& root)
+{
+   if (!root.is_object())
+   {
+      return;
+   }
+
+   boost::json::object& obj  = root.as_object();
+   auto                 uiIt = obj.find("ui");
+   if (uiIt == obj.end() || !uiIt->value().is_object())
+   {
+      return;
+   }
+
+   boost::json::object& uiObj = uiIt->value().as_object();
+   uiObj.erase("map_annotation_state");
+}
+
+static void CompareFiles(const std::string& file1, const std::string& file2)
+{
+   auto jf1 = scwx::util::json::ReadJsonFile(file1);
+   auto jf2 = scwx::util::json::ReadJsonFile(file2);
+
+   RemoveUserPaths(jf1);
+   RemoveUserPaths(jf2);
+   RemoveTransientUiState(jf1);
+   RemoveTransientUiState(jf2);
+
+   EXPECT_EQ(jf1, jf2);
 }
 
 TEST_F(SettingsManagerTest, CreateJson)
@@ -155,6 +192,4 @@ INSTANTIATE_TEST_SUITE_P(
       std::make_pair("settings-maximum.json", "settings-bad-maximum.json"),
       std::make_pair("settings-maps.json", "settings-bad-maps.json")));
 
-} // namespace manager
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::manager

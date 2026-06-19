@@ -1,5 +1,6 @@
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
@@ -11,18 +12,13 @@
 #include <QFileInfo>
 #include <QFontDatabase>
 #include <QGuiApplication>
-#include <QStandardPaths>
 #include <boost/container_hash/hash.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <boost/unordered/unordered_flat_set.hpp>
 #include <fmt/ranges.h>
 #include <fontconfig/fontconfig.h>
 
-namespace scwx
-{
-namespace qt
-{
-namespace manager
+namespace scwx::qt::manager
 {
 
 static const std::string logPrefix_ = "scwx::qt::manager::font_manager";
@@ -38,15 +34,13 @@ struct FontRecord
    std::string filename_ {};
 };
 
-typedef std::pair<FontRecord, units::font_size::pixels<int>> FontRecordPair;
-
 template<class Key>
 struct FontRecordHash;
 
 template<>
-struct FontRecordHash<FontRecordPair>
+struct FontRecordHash<FontRecord>
 {
-   size_t operator()(const FontRecordPair& x) const;
+   size_t operator()(const FontRecord& x) const;
 };
 
 class FontManager::Impl
@@ -81,20 +75,20 @@ public:
 
    std::shared_mutex imguiFontAtlasMutex_ {};
 
-   std::uint64_t imguiFontsBuildCount_ {};
-
-   boost::unordered_flat_map<FontRecordPair,
+   boost::unordered_flat_map<FontRecord,
                              std::shared_ptr<types::ImGuiFont>,
-                             FontRecordHash<FontRecordPair>>
+                             FontRecordHash<FontRecord>>
                      imguiFonts_ {};
    std::shared_mutex imguiFontsMutex_ {};
 
    boost::unordered_flat_map<std::string, std::vector<char>> rawFontData_ {};
    std::mutex rawFontDataMutex_ {};
 
-   std::shared_ptr<types::ImGuiFont> defaultFont_ {};
+   std::pair<std::shared_ptr<types::ImGuiFont>, units::font_size::pixels<float>>
+      defaultFont_ {};
    boost::unordered_flat_map<types::FontCategory,
-                             std::shared_ptr<types::ImGuiFont>>
+                             std::pair<std::shared_ptr<types::ImGuiFont>,
+                                       units::font_size::pixels<float>>>
       fontCategoryImguiFontMap_ {};
    boost::unordered_flat_map<types::FontCategory, QFont>
               fontCategoryQFontMap_ {};
@@ -166,6 +160,22 @@ void FontManager::InitializeFonts()
    }
 }
 
+units::font_size::pixels<float>
+FontManager::ImFontSize(units::font_size::pixels<double> size)
+{
+   static constexpr units::font_size::pixels<int> kMinFontSize_ {8};
+   static constexpr units::font_size::pixels<int> kMaxFontSize_ {96};
+
+   // Only allow whole pixels, and clamp to 6-72 pt
+   const units::font_size::pixels<double> pixels {size};
+   const units::font_size::pixels<int>    imFontSize {
+      std::clamp(static_cast<int>(pixels.value()),
+                 kMinFontSize_.value(),
+                 kMaxFontSize_.value())};
+
+   return imFontSize;
+}
+
 void FontManager::Impl::UpdateImGuiFont(types::FontCategory fontCategory)
 {
    auto& textSettings = settings::TextSettings::Instance();
@@ -176,7 +186,8 @@ void FontManager::Impl::UpdateImGuiFont(types::FontCategory fontCategory)
       textSettings.font_point_size(fontCategory).GetValue()};
 
    fontCategoryImguiFontMap_.insert_or_assign(
-      fontCategory, self_->LoadImGuiFont(family, {styles}, size));
+      fontCategory,
+      std::make_pair(self_->LoadImGuiFont(family, {styles}), ImFontSize(size)));
 }
 
 void FontManager::Impl::UpdateQFont(types::FontCategory fontCategory)
@@ -191,6 +202,7 @@ void FontManager::Impl::UpdateQFont(types::FontCategory fontCategory)
    QFont font = QFontDatabase::font(QString::fromStdString(family),
                                     QString::fromStdString(styles),
                                     static_cast<int>(size.value()));
+   font.setHintingPreference(QFont::HintingPreference::PreferNoHinting);
 
 #if !defined(__APPLE__)
    font.setPointSizeF(size.value());
@@ -207,11 +219,6 @@ std::shared_mutex& FontManager::imgui_font_atlas_mutex()
    return p->imguiFontAtlasMutex_;
 }
 
-std::uint64_t FontManager::imgui_fonts_build_count() const
-{
-   return p->imguiFontsBuildCount_;
-}
-
 int FontManager::GetFontId(types::Font font) const
 {
    auto it = p->fontIds_.find(font);
@@ -222,7 +229,7 @@ int FontManager::GetFontId(types::Font font) const
    return -1;
 }
 
-std::shared_ptr<types::ImGuiFont>
+std::pair<std::shared_ptr<types::ImGuiFont>, units::font_size::pixels<float>>
 FontManager::GetImGuiFont(types::FontCategory fontCategory)
 {
    std::unique_lock lock {p->fontCategoryMutex_};
@@ -250,31 +257,23 @@ QFont FontManager::GetQFont(types::FontCategory fontCategory)
 }
 
 std::shared_ptr<types::ImGuiFont>
-FontManager::LoadImGuiFont(const std::string&               family,
-                           const std::vector<std::string>&  styles,
-                           units::font_size::points<double> size,
-                           bool                             loadIfNotFound)
+FontManager::LoadImGuiFont(const std::string&              family,
+                           const std::vector<std::string>& styles,
+                           bool                            loadIfNotFound)
 {
    const std::string styleString = fmt::format("{}", fmt::join(styles, " "));
-   const std::string fontString =
-      fmt::format("{}-{}:{}", family, size.value(), styleString);
+   const std::string fontString  = fmt::format("{}:{}", family, styleString);
 
    logger_->debug("LoadFontResource: {}", fontString);
 
    FontRecord fontRecord = Impl::MatchFontFile(family, styles);
-
-   // Only allow whole pixels, and clamp to 6-72 pt
-   units::font_size::pixels<double> pixels {size};
-   units::font_size::pixels<int>    imFontSize {
-      std::clamp(static_cast<int>(pixels.value()), 8, 96)};
-   auto imguiFontKey = std::make_pair(fontRecord, imFontSize);
 
    // Search for a loaded ImGui font
    {
       std::shared_lock imguiFontLock {p->imguiFontsMutex_};
 
       // Search for the associated ImGui font
-      auto it = p->imguiFonts_.find(imguiFontKey);
+      auto it = p->imguiFonts_.find(fontRecord);
       if (it != p->imguiFonts_.end())
       {
          return it->second;
@@ -299,7 +298,7 @@ FontManager::LoadImGuiFont(const std::string&               family,
 
    // Search for the associated ImGui font again, to prevent loading the same
    // font twice
-   auto it = p->imguiFonts_.find(imguiFontKey);
+   auto it = p->imguiFonts_.find(fontRecord);
    if (it != p->imguiFonts_.end())
    {
       return it->second;
@@ -310,25 +309,20 @@ FontManager::LoadImGuiFont(const std::string&               family,
    try
    {
       fontName = fmt::format(
-         "{}:{}",
-         std::filesystem::path(fontRecord.filename_).filename().string(),
-         imFontSize.value());
+         "{}", std::filesystem::path(fontRecord.filename_).filename().string());
    }
    catch (const std::exception& ex)
    {
       logger_->warn(ex.what());
-      fontName = fmt::format("{}:{}", fontRecord.filename_, imFontSize.value());
+      fontName = fmt::format("{}", fontRecord.filename_);
    }
 
    // Create an ImGui font
    std::shared_ptr<types::ImGuiFont> imguiFont =
-      std::make_shared<types::ImGuiFont>(fontName, rawFontData, imFontSize);
+      std::make_shared<types::ImGuiFont>(fontName, rawFontData);
 
    // Store the ImGui font
-   p->imguiFonts_.insert_or_assign(imguiFontKey, imguiFont);
-
-   // Increment ImGui font build count
-   ++p->imguiFontsBuildCount_;
+   p->imguiFonts_.insert_or_assign(fontRecord, imguiFont);
 
    // Return the ImGui font
    return imguiFont;
@@ -434,23 +428,16 @@ void FontManager::Impl::InitializeEnvironment()
 
 void FontManager::Impl::InitializeFontCache()
 {
-   std::string cachePath {
-      QStandardPaths::writableLocation(QStandardPaths::CacheLocation)
-         .toStdString() +
-      "/fonts"};
+   const std::filesystem::path cachePath {main::ApplicationPaths::GetLocation(
+      main::ApplicationPaths::StandardLocation::FontCache)};
 
-   fontCachePath_ = cachePath + "/";
-
-   if (!std::filesystem::exists(cachePath))
+   if (std::filesystem::exists(cachePath))
    {
-      std::error_code error;
-      if (!std::filesystem::create_directories(cachePath, error))
-      {
-         logger_->error("Unable to create font cache directory: \"{}\" ({})",
-                        cachePath,
-                        error.message());
-         fontCachePath_.clear();
-      }
+      fontCachePath_ = cachePath.generic_string() + "/";
+   }
+   else
+   {
+      logger_->error("Font cache path does not exist: {}", cachePath.string());
    }
 }
 
@@ -568,13 +555,12 @@ FontManager& FontManager::Instance()
    return instance_;
 }
 
-size_t FontRecordHash<FontRecordPair>::operator()(const FontRecordPair& x) const
+size_t FontRecordHash<FontRecord>::operator()(const FontRecord& x) const
 {
    size_t seed = 0;
-   boost::hash_combine(seed, x.first.family_);
-   boost::hash_combine(seed, x.first.style_);
-   boost::hash_combine(seed, x.first.filename_);
-   boost::hash_combine(seed, x.second.value());
+   boost::hash_combine(seed, x.family_);
+   boost::hash_combine(seed, x.style_);
+   boost::hash_combine(seed, x.filename_);
    return seed;
 }
 
@@ -585,6 +571,4 @@ bool operator==(const FontRecord& lhs, const FontRecord& rhs)
           lhs.filename_ == rhs.filename_;
 }
 
-} // namespace manager
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::manager

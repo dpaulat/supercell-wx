@@ -1,13 +1,17 @@
 #include <scwx/qt/map/radar_site_layer.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/gl/draw/geo_lines.hpp>
+#include <scwx/qt/manager/radar_site_status_manager.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/settings/palette_settings.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
+#include <scwx/qt/util/color.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/tooltip.hpp>
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <boost/unordered/unordered_flat_map.hpp>
 #include <imgui.h>
 #include <mbgl/util/constants.hpp>
 
@@ -54,6 +58,10 @@ public:
    std::shared_ptr<gl::draw::GeoLines>                       geoLines_;
    std::array<std::shared_ptr<gl::draw::GeoLineDrawItem>, 2> radarSiteLines_ {
       nullptr, nullptr};
+
+   boost::unordered_flat_map<types::RadarSiteStatus,
+                             std::tuple<ImVec4, ImVec4, ImVec4>>
+      radarSiteStatusButtonColors_ {};
 };
 
 RadarSiteLayer::RadarSiteLayer(
@@ -61,6 +69,10 @@ RadarSiteLayer::RadarSiteLayer(
     DrawLayer(glContext, "RadarSiteLayer"),
     p(std::make_unique<Impl>(this, glContext))
 {
+   connect(manager::RadarSiteStatusManager::Instance().get(),
+           &manager::RadarSiteStatusManager::StatusUpdated,
+           this,
+           &GenericLayer::NeedsRendering);
 }
 
 RadarSiteLayer::~RadarSiteLayer() = default;
@@ -121,6 +133,21 @@ void RadarSiteLayer::Render(
    // Radar site ImGui windows shouldn't have padding
    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2 {0.0f, 0.0f});
 
+   // Update Radar Site button colors
+   auto& paletteSettings = settings::PaletteSettings::Instance();
+   for (auto status : types::RadarSiteStatusIterator())
+   {
+      auto& statusPalette = paletteSettings.radar_site_status_palette(status);
+      auto& buttonPalette = statusPalette.button();
+      p->radarSiteStatusButtonColors_.insert_or_assign(
+         status,
+         std::tuple {
+            util::color::ToImVec4(buttonPalette.button_color().GetValue()),
+            util::color::ToImVec4(buttonPalette.hover_color().GetValue()),
+            util::color::ToImVec4(buttonPalette.active_color().GetValue())});
+   }
+
+   // Render Radar Sites
    for (auto& radarSite : p->radarSites_)
    {
       p->RenderRadarSite(params, radarSite);
@@ -171,6 +198,19 @@ void RadarSiteLayer::Impl::RenderRadarSite(
                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                        ImGuiWindowFlags_AlwaysAutoResize))
    {
+      static constexpr int kPushStyleCount = 3;
+      auto                 radarSiteStatus = radarSite->status();
+
+      ImGui::PushStyleColor(
+         ImGuiCol_Button,
+         std::get<0>(radarSiteStatusButtonColors_.at(radarSiteStatus)));
+      ImGui::PushStyleColor(
+         ImGuiCol_ButtonHovered,
+         std::get<1>(radarSiteStatusButtonColors_.at(radarSiteStatus)));
+      ImGui::PushStyleColor(
+         ImGuiCol_ButtonActive,
+         std::get<2>(radarSiteStatusButtonColors_.at(radarSiteStatus)));
+
       // Render text
       if (ImGui::Button(radarSite->id().c_str()))
       {
@@ -192,6 +232,8 @@ void RadarSiteLayer::Impl::RenderRadarSite(
                         common::GetLatitudeString(radarSite->latitude()),
                         common::GetLongitudeString(radarSite->longitude()));
       }
+
+      ImGui::PopStyleColor(kPushStyleCount);
 
       // End window
       ImGui::End();

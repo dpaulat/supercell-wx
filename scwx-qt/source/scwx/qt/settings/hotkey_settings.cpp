@@ -35,6 +35,12 @@ static const std::unordered_map<types::Hotkey, QKeySequence> kDefaultHotkeys_ {
     QKeySequence {Qt::Key::Key_BracketLeft}},
    {types::Hotkey::ProductTiltIncrease,
     QKeySequence {Qt::Key::Key_BracketRight}},
+   {types::Hotkey::ScreenCaptureCopy,
+    QKeySequence {QKeyCombination {Qt::KeyboardModifier::ControlModifier,
+                                   Qt::Key::Key_T}}},
+   {types::Hotkey::ScreenCaptureSaveImage,
+    QKeySequence {QKeyCombination {Qt::KeyboardModifier::ControlModifier,
+                                   Qt::Key::Key_S}}},
    {types::Hotkey::SelectLevel2Ref, QKeySequence {Qt::Key::Key_F1}},
    {types::Hotkey::SelectLevel2Vel, QKeySequence {Qt::Key::Key_F2}},
    {types::Hotkey::SelectLevel2SW, QKeySequence {Qt::Key::Key_F3}},
@@ -62,6 +68,7 @@ static const std::unordered_map<types::Hotkey, QKeySequence> kDefaultHotkeys_ {
    {types::Hotkey::TimelineStepEnd,
     QKeySequence {QKeyCombination {Qt::KeyboardModifier::ControlModifier,
                                    Qt::Key::Key_Right}}},
+   {types::Hotkey::ToggleFullScreen, QKeySequence {Qt::Key::Key_F11}},
    {types::Hotkey::Unknown, QKeySequence {}}};
 
 static bool IsHotkeyValid(const std::string& value);

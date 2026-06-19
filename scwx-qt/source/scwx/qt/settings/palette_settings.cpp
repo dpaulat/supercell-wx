@@ -77,6 +77,7 @@ public:
       InitializeColorTables();
       InitializeLegacyAlerts();
       InitializeAlerts();
+      InitializeRadarSiteStatus();
    }
 
    ~Impl()                       = default;
@@ -88,6 +89,7 @@ public:
    void InitializeColorTables();
    void InitializeLegacyAlerts();
    void InitializeAlerts();
+   void InitializeRadarSiteStatus();
 
    PaletteSettings* self_;
 
@@ -100,6 +102,9 @@ public:
 
    std::unordered_map<awips::Phenomenon, AlertPaletteSettings>
       alertPaletteMap_ {};
+
+   std::unordered_map<types::RadarSiteStatus, RadarSiteStatusPaletteSettings>
+      radarSiteStatusPaletteMap_ {};
 };
 
 PaletteSettings::PaletteSettings() :
@@ -185,6 +190,24 @@ void PaletteSettings::Impl::InitializeAlerts()
    self_->RegisterSubcategoryArray("alerts", alertSettings);
 }
 
+void PaletteSettings::Impl::InitializeRadarSiteStatus()
+{
+   std::vector<SettingsCategory*> radarSiteStatusSettings {};
+
+   for (auto status : types::RadarSiteStatusIterator())
+   {
+      auto  result = radarSiteStatusPaletteMap_.emplace(status, status);
+      auto& it     = result.first;
+      RadarSiteStatusPaletteSettings& statusPaletteSettings = it->second;
+
+      // Variable registration
+      radarSiteStatusSettings.push_back(&statusPaletteSettings);
+   }
+
+   self_->RegisterSubcategoryArray("radar_site_status",
+                                   radarSiteStatusSettings);
+}
+
 SettingsVariable<std::string>&
 PaletteSettings::palette(const std::string& name) const
 {
@@ -227,6 +250,12 @@ PaletteSettings::alert_palette(awips::Phenomenon phenomenon)
    return p->alertPaletteMap_.at(phenomenon);
 }
 
+RadarSiteStatusPaletteSettings&
+PaletteSettings::radar_site_status_palette(types::RadarSiteStatus status)
+{
+   return p->radarSiteStatusPaletteMap_.at(status);
+}
+
 const std::vector<awips::Phenomenon>& PaletteSettings::alert_phenomena()
 {
    static const std::vector<awips::Phenomenon> kAlertPhenomena_ {
@@ -249,7 +278,10 @@ bool operator==(const PaletteSettings& lhs, const PaletteSettings& rhs)
 {
    return (lhs.p->palette_ == rhs.p->palette_ &&
            lhs.p->activeAlertColor_ == rhs.p->activeAlertColor_ &&
-           lhs.p->inactiveAlertColor_ == rhs.p->inactiveAlertColor_);
+           lhs.p->inactiveAlertColor_ == rhs.p->inactiveAlertColor_ &&
+           lhs.p->alertPaletteMap_ == rhs.p->alertPaletteMap_ &&
+           lhs.p->radarSiteStatusPaletteMap_ ==
+              rhs.p->radarSiteStatusPaletteMap_);
 }
 
 } // namespace scwx::qt::settings

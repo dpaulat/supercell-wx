@@ -2,12 +2,13 @@
 #include <scwx/qt/manager/media_manager.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
+#include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/settings/audio_settings.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/location_types.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/util/logger.hpp>
-#include <scwx/qt/config/radar_site.hpp>
-#include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/util/time.hpp>
 
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
@@ -172,7 +173,7 @@ void AlertManager::Impl::HandleAlert(const types::TextEventKey& key,
 
       // If the event has ended or is inactive, or if the alert is not enabled,
       // skip it
-      if (eventEnd < std::chrono::system_clock::now() || !alertActive ||
+      if (eventEnd < scwx::util::time::now() || !alertActive ||
           !audioSettings.alert_enabled(phenomenon).GetValue())
       {
          continue;

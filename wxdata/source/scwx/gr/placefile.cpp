@@ -1,12 +1,5 @@
-// Prevent redefinition of __cpp_lib_format
-#if defined(_MSC_VER)
-#   include <yvals_core.h>
-#endif
-
-// Enable chrono formatters
-#ifndef __cpp_lib_format
-#   define __cpp_lib_format 202110L
-#endif
+// Enable chrono formatter feature test macro
+#include <version>
 
 #include <scwx/gr/placefile.hpp>
 #include <scwx/gr/color.hpp>
@@ -26,20 +19,19 @@
 
 using namespace units::literals;
 
-namespace scwx
-{
-namespace gr
+namespace scwx::gr
 {
 
 static const std::string logPrefix_ {"scwx::gr::placefile"};
 static const auto        logger_ = util::Logger::Create(logPrefix_);
 
-enum class DrawingStatement
+enum class DrawingStatement : std::uint8_t
 {
    Standard,
    Line,
    Triangles,
    Image,
+   ImageXY,
    Polygon
 };
 
@@ -210,6 +202,7 @@ std::shared_ptr<Placefile> Placefile::Load(const std::string& name,
             case DrawingStatement::Line:
             case DrawingStatement::Triangles:
             case DrawingStatement::Image:
+            case DrawingStatement::ImageXY:
             case DrawingStatement::Polygon:
                if (boost::istarts_with(line, "End:"))
                {
@@ -256,6 +249,7 @@ void Placefile::Impl::ProcessLine(const std::string& line)
    static const std::string imageKey_ {"Image:"};
    static const std::string polygonKey_ {"Polygon:"};
 
+   static const std::string scwxImageXYKey_ {"scwx-ImageXY:"};
    static const std::string scwxModulateIconKey_ {"scwx-ModulateIcon:"};
 
    currentStatement_ = DrawingStatement::Standard;
@@ -689,6 +683,38 @@ void Placefile::Impl::ProcessLine(const std::string& line)
          logger_->warn("Image statement malformed: {}", line);
       }
    }
+   else if (boost::istarts_with(line, scwxImageXYKey_))
+   {
+      // scwx-ImageXY: image_file
+      //    x, y, ax, ay, Tu [, Tv ]
+      //    ...
+      // End:
+      std::vector<std::string> tokenList =
+         util::ParseTokens(line, {" "}, scwxImageXYKey_.size());
+
+      currentStatement_ = DrawingStatement::ImageXY;
+
+      std::shared_ptr<ImageXYDrawItem> di = nullptr;
+
+      if (tokenList.size() >= 1)
+      {
+         di = std::make_shared<ImageXYDrawItem>();
+
+         di->threshold_ = threshold_;
+         di->startTime_ = startTime_;
+         di->endTime_   = endTime_;
+
+         TrimQuotes(tokenList[0]);
+         di->imageFile_.swap(tokenList[0]);
+
+         currentDrawItem_ = di;
+         drawItems_.emplace_back(std::move(di));
+      }
+      else
+      {
+         logger_->warn("Image statement malformed: {}", line);
+      }
+   }
    else if (boost::istarts_with(line, polygonKey_))
    {
       // Polygon:
@@ -721,6 +747,8 @@ void Placefile::Impl::ProcessLine(const std::string& line)
 
 void Placefile::Impl::ProcessElement(const std::string& line)
 {
+   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
+
    if (currentStatement_ == DrawingStatement::Line)
    {
       // Line: width, flags [, hover_text]
@@ -823,6 +851,45 @@ void Placefile::Impl::ProcessElement(const std::string& line)
          logger_->warn("Image sub-statement malformed: {}", line);
       }
    }
+   else if (currentStatement_ == DrawingStatement::ImageXY)
+   {
+      // scwx-ImageXY: image_file
+      //    x, y, ax, ay, Tu [, Tv ]
+      //    ...
+      // End:
+      const std::vector<std::string> tokenList =
+         util::ParseTokens(line, {",", ",", ",", ",", ",", ","});
+
+      ImageXYDrawItem::Element element;
+
+      if (tokenList.size() >= 5)
+      {
+         element.x_       = std::stod(tokenList[0]);
+         element.y_       = std::stod(tokenList[1]);
+         element.anchorX_ = std::stod(tokenList[2]);
+         element.anchorY_ = std::stod(tokenList[3]);
+         element.tu_      = std::stod(tokenList[4]);
+      }
+
+      if (tokenList.size() >= 6)
+      {
+         element.tv_ = std::stod(tokenList[5]);
+      }
+      else
+      {
+         element.tv_ = element.tu_;
+      }
+
+      if (tokenList.size() >= 5)
+      {
+         std::static_pointer_cast<ImageXYDrawItem>(currentDrawItem_)
+            ->elements_.emplace_back(element);
+      }
+      else
+      {
+         logger_->warn("ImageXY sub-statement malformed: {}", line);
+      }
+   }
    else if (currentStatement_ == DrawingStatement::Polygon)
    {
       // Polygon:
@@ -882,6 +949,8 @@ void Placefile::Impl::ProcessElement(const std::string& line)
          logger_->warn("Polygon sub-statement malformed: {}", line);
       }
    }
+
+   // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
 }
 
 void Placefile::Impl::ProcessElementEnd()
@@ -906,7 +975,8 @@ void Placefile::Impl::ProcessElementEnd()
          std::transform(di->contours_[0].cbegin(),
                         di->contours_[0].cend(),
                         std::back_inserter(coordinates),
-                        [](auto& element) {
+                        [](auto& element)
+                        {
                            return common::Coordinate {element.latitude_,
                                                       element.longitude_};
                         });
@@ -964,5 +1034,4 @@ void Placefile::Impl::TrimQuotes(std::string& s)
    }
 }
 
-} // namespace gr
-} // namespace scwx
+} // namespace scwx::gr

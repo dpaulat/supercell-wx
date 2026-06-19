@@ -20,7 +20,7 @@ public:
    explicit HdaHailSymbolPacket();
    ~HdaHailSymbolPacket();
 
-   HdaHailSymbolPacket(const HdaHailSymbolPacket&) = delete;
+   HdaHailSymbolPacket(const HdaHailSymbolPacket&)            = delete;
    HdaHailSymbolPacket& operator=(const HdaHailSymbolPacket&) = delete;
 
    HdaHailSymbolPacket(HdaHailSymbolPacket&&) noexcept;

@@ -1,14 +1,19 @@
+// NOLINTNEXTLINE(bugprone-reserved-identifier) — MSVC-required macro name
 #define _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING
 
 #include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/main/main_window.hpp>
 #include <scwx/qt/main/process_validation.hpp>
+#include <scwx/qt/main/program_options.hpp>
+#include <scwx/qt/main/theme.hpp>
 #include <scwx/qt/main/versions.hpp>
 #include <scwx/qt/manager/log_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/manager/task_manager.hpp>
 #include <scwx/qt/manager/thread_manager.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/qt_types.hpp>
@@ -26,60 +31,75 @@
 #include <boost/asio.hpp>
 #include <fmt/format.h>
 #include <QApplication>
+#include <QLibraryInfo>
 #include <QStandardPaths>
 #include <QStyleHints>
 #include <QSurfaceFormat>
 #include <QTranslator>
-#include <QPalette>
-#include <QStyle>
-
-#define QT6CT_LIBRARY
-#include <qt6ct-common/qt6ct.h>
-#undef QT6CT_LIBRARY
+#include <QSysInfo>
 
 static const std::string logPrefix_ = "scwx::main";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static void ConfigureTheme(const std::vector<std::string>& args);
 static void InitializeOpenGL();
-static void OverrideDefaultStyle(const std::vector<std::string>& args);
 
+// NOLINTNEXTLINE(bugprone-exception-escape) — top-level entry; Qt/AWS paths may
+// throw
 int main(int argc, char* argv[])
 {
    // Store arguments
    std::vector<std::string> args {};
+   args.reserve(argc);
    for (int i = 0; i < argc; ++i)
    {
-      args.push_back(argv[i]);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      args.emplace_back(argv[i]);
    }
 
-   // Initialize logger
+   if (!scwx::util::GetEnvironment("SCWX_TEST").empty())
+   {
+      QStandardPaths::setTestModeEnabled(true);
+   }
+
+   QCoreApplication::setApplicationName("Supercell Wx");
+   InitializeOpenGL();
+   const QApplication a(argc, argv);
+
+   scwx::qt::main::ProgramOptions::ParseArguments(
+      {argv, static_cast<std::size_t>(argc)});
+
+   // Initialize logger and application paths
    auto& logManager = scwx::qt::manager::LogManager::Instance();
    logManager.Initialize();
+   scwx::qt::main::ApplicationPaths::Initialize();
+   logManager.InitializeLogFile();
 
+   const std::string osName = QSysInfo::prettyProductName().toStdString();
    logger_->info("Supercell Wx v{}.{} ({})",
                  scwx::qt::main::kVersionString_,
                  scwx::qt::main::kBuildNumber_,
                  scwx::qt::main::kCommitString_);
+   logger_->info("Qt version {}",
+                 QLibraryInfo::version().toString().toStdString());
+   logger_->info("Running on {}", osName);
 
-   InitializeOpenGL();
+   bool exit = false;
+   scwx::qt::main::ProgramOptions::HandleArguments(exit);
+   if (exit)
+   {
+      return 0;
+   }
 
-   QApplication a(argc, argv);
+   scwx::qt::main::ApplicationPaths::LogErrors();
 
-   QCoreApplication::setApplicationName("Supercell Wx");
-   scwx::network::cpr::SetUserAgent(
-      fmt::format("SupercellWx/{}", scwx::qt::main::kVersionString_));
+   scwx::network::cpr::SetUserAgent(fmt::format(
+      "SupercellWx/{} ({})", scwx::qt::main::kVersionString_, osName));
 
    // Enable internationalization support
    QTranslator translator;
    if (translator.load(QLocale(), "scwx", "_", ":/i18n"))
    {
       QCoreApplication::installTranslator(&translator);
-   }
-
-   if (!scwx::util::GetEnvironment("SCWX_TEST").empty())
-   {
-      QStandardPaths::setTestModeEnabled(true);
    }
 
    // Test to see if scwx was run with high privilege
@@ -112,18 +132,18 @@ int main(int argc, char* argv[])
                      });
 
    // Initialize AWS SDK
-   Aws::SDKOptions awsSdkOptions;
+   const Aws::SDKOptions awsSdkOptions {};
    Aws::InitAPI(awsSdkOptions);
 
    // Initialize application
-   logManager.InitializeLogFile();
    scwx::qt::config::RadarSite::Initialize();
    scwx::qt::config::CountyDatabase::Initialize();
+   scwx::qt::manager::TaskManager::Initialize();
    scwx::qt::manager::SettingsManager::Instance().Initialize();
    scwx::qt::manager::ResourceManager::Initialize();
 
    // Theme
-   ConfigureTheme(args);
+   scwx::qt::main::ConfigureThemeForStartup(args);
 
    // Check process modules for compatibility
    scwx::qt::main::CheckProcessModules();
@@ -179,60 +199,12 @@ int main(int argc, char* argv[])
    // Shutdown application
    scwx::qt::manager::ResourceManager::Shutdown();
    scwx::qt::manager::SettingsManager::Instance().Shutdown();
+   scwx::qt::manager::TaskManager::Shutdown();
 
    // Shutdown AWS SDK
    Aws::ShutdownAPI(awsSdkOptions);
 
    return result;
-}
-
-static void ConfigureTheme(const std::vector<std::string>& args)
-{
-   auto& generalSettings = scwx::qt::settings::GeneralSettings::Instance();
-
-   auto uiStyle =
-      scwx::qt::types::GetUiStyle(generalSettings.theme().GetValue());
-   auto qtColorScheme = scwx::qt::types::GetQtColorScheme(uiStyle);
-
-   if (uiStyle == scwx::qt::types::UiStyle::Default)
-   {
-      OverrideDefaultStyle(args);
-   }
-   else
-   {
-      QApplication::setStyle(
-         QString::fromStdString(scwx::qt::types::GetQtStyleName(uiStyle)));
-   }
-
-   QGuiApplication::styleHints()->setColorScheme(qtColorScheme);
-
-   std::optional<std::string> paletteFile;
-   if (uiStyle == scwx::qt::types::UiStyle::FusionCustom)
-   {
-      paletteFile = generalSettings.theme_file().GetValue();
-   }
-   else
-   {
-      paletteFile = scwx::qt::types::GetQtPaletteFile(uiStyle);
-   }
-
-   if (paletteFile)
-   {
-      QPalette defaultPalette = QApplication::style()->standardPalette();
-      QPalette palette        = Qt6CT::loadColorScheme(
-         QString::fromStdString(*paletteFile), defaultPalette);
-
-      if (defaultPalette == palette)
-      {
-         logger_->warn("Failed to load palette file '{}'", *paletteFile);
-      }
-      else
-      {
-         logger_->info("Loaded palette file '{}'", *paletteFile);
-      }
-
-      QApplication::setPalette(palette);
-   }
 }
 
 static void InitializeOpenGL()
@@ -251,28 +223,4 @@ static void InitializeOpenGL()
 #endif
 
    QSurfaceFormat::setDefaultFormat(surfaceFormat);
-}
-
-static void
-OverrideDefaultStyle([[maybe_unused]] const std::vector<std::string>& args)
-{
-#if defined(_WIN32)
-   bool hasStyleArgument = false;
-
-   for (int i = 1; i < args.size(); ++i)
-   {
-      if (args.at(i) == "-style")
-      {
-         hasStyleArgument = true;
-         break;
-      }
-   }
-
-   // Override the default Windows 11 style unless the user supplies a style
-   // argument
-   if (!hasStyleArgument)
-   {
-      QApplication::setStyle("windowsvista");
-   }
-#endif
 }

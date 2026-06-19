@@ -55,8 +55,8 @@ void IconInfo::UpdateTextureInfo()
    numIcons_ = columns_ * rows_;
 
    // Pixel size
-   float xFactor = 0.0f;
-   float yFactor = 0.0f;
+   double xFactor = 0.0;
+   double yFactor = 0.0;
 
    if (texture_.size_.x > 0 && texture_.size_.y > 0)
    {
@@ -64,8 +64,9 @@ void IconInfo::UpdateTextureInfo()
       yFactor = (texture_.tBottom_ - texture_.tTop_) / texture_.size_.y;
    }
 
-   scaledWidth_  = iconWidth_ * xFactor;
-   scaledHeight_ = iconHeight_ * yFactor;
+   scaledWidth_ = static_cast<float>(static_cast<double>(iconWidth_) * xFactor);
+   scaledHeight_ =
+      static_cast<float>(static_cast<double>(iconHeight_) * yFactor);
 }
 
 } // namespace types

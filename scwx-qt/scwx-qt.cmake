@@ -18,9 +18,11 @@ find_package(Fontconfig)
 find_package(geographiclib)
 find_package(geos)
 find_package(glm)
-find_package(OpenGL)
+find_package(JPEG)
+find_package(OpenGL REQUIRED)
 find_package(Python COMPONENTS Interpreter)
 find_package(SQLite3)
+find_package(TIFF)
 
 find_package(QT NAMES Qt6
              COMPONENTS Gui
@@ -53,13 +55,20 @@ find_package(Qt${QT_VERSION_MAJOR}
 set(SRC_EXE_MAIN source/scwx/qt/main/main.cpp)
 
 set(HDR_MAIN source/scwx/qt/main/application.hpp
+             source/scwx/qt/main/application_paths.hpp
              source/scwx/qt/main/check_privilege.hpp
              source/scwx/qt/main/main_window.hpp
-             source/scwx/qt/main/process_validation.hpp)
+             source/scwx/qt/main/process_validation.hpp
+             source/scwx/qt/main/program_options.hpp
+             source/scwx/qt/main/theme.hpp
+             source/scwx/qt/main/theme_internal.hpp)
 set(SRC_MAIN source/scwx/qt/main/application.cpp
+             source/scwx/qt/main/application_paths.cpp
              source/scwx/qt/main/check_privilege.cpp
              source/scwx/qt/main/main_window.cpp
-             source/scwx/qt/main/process_validation.cpp)
+             source/scwx/qt/main/process_validation.cpp
+             source/scwx/qt/main/program_options.cpp
+             source/scwx/qt/main/theme.cpp)
 set(UI_MAIN  source/scwx/qt/main/main_window.ui)
 set(HDR_CONFIG source/scwx/qt/config/county_database.hpp
                source/scwx/qt/config/radar_site.hpp)
@@ -77,8 +86,10 @@ set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
                 source/scwx/qt/gl/draw/geo_lines.hpp
                 source/scwx/qt/gl/draw/icons.hpp
                 source/scwx/qt/gl/draw/linked_vectors.hpp
+                source/scwx/qt/gl/draw/map_annotations_draw_item.hpp
                 source/scwx/qt/gl/draw/placefile_icons.hpp
                 source/scwx/qt/gl/draw/placefile_images.hpp
+                source/scwx/qt/gl/draw/placefile_images_xy.hpp
                 source/scwx/qt/gl/draw/placefile_lines.hpp
                 source/scwx/qt/gl/draw/placefile_polygons.hpp
                 source/scwx/qt/gl/draw/placefile_text.hpp
@@ -89,8 +100,10 @@ set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
                 source/scwx/qt/gl/draw/geo_lines.cpp
                 source/scwx/qt/gl/draw/icons.cpp
                 source/scwx/qt/gl/draw/linked_vectors.cpp
+                source/scwx/qt/gl/draw/map_annotations_draw_item.cpp
                 source/scwx/qt/gl/draw/placefile_icons.cpp
                 source/scwx/qt/gl/draw/placefile_images.cpp
+                source/scwx/qt/gl/draw/placefile_images_xy.cpp
                 source/scwx/qt/gl/draw/placefile_lines.cpp
                 source/scwx/qt/gl/draw/placefile_polygons.cpp
                 source/scwx/qt/gl/draw/placefile_text.cpp
@@ -101,14 +114,18 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/font_manager.hpp
                 source/scwx/qt/manager/hotkey_manager.hpp
                 source/scwx/qt/manager/log_manager.hpp
+                source/scwx/qt/manager/marker_manager.hpp
                 source/scwx/qt/manager/media_manager.hpp
                 source/scwx/qt/manager/placefile_manager.hpp
-                source/scwx/qt/manager/marker_manager.hpp
                 source/scwx/qt/manager/position_manager.hpp
+                source/scwx/qt/manager/provider_manager.hpp
+                source/scwx/qt/manager/radar_coordinate_table.hpp
                 source/scwx/qt/manager/radar_product_manager.hpp
                 source/scwx/qt/manager/radar_product_manager_notifier.hpp
+                source/scwx/qt/manager/radar_site_status_manager.hpp
                 source/scwx/qt/manager/resource_manager.hpp
                 source/scwx/qt/manager/settings_manager.hpp
+                source/scwx/qt/manager/task_manager.hpp
                 source/scwx/qt/manager/text_event_manager.hpp
                 source/scwx/qt/manager/thread_manager.hpp
                 source/scwx/qt/manager/timeline_manager.hpp
@@ -118,24 +135,36 @@ set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                 source/scwx/qt/manager/font_manager.cpp
                 source/scwx/qt/manager/hotkey_manager.cpp
                 source/scwx/qt/manager/log_manager.cpp
+                source/scwx/qt/manager/marker_manager.cpp
                 source/scwx/qt/manager/media_manager.cpp
                 source/scwx/qt/manager/placefile_manager.cpp
-                source/scwx/qt/manager/marker_manager.cpp
                 source/scwx/qt/manager/position_manager.cpp
+                source/scwx/qt/manager/provider_manager.cpp
+                source/scwx/qt/manager/radar_coordinate_table.cpp
                 source/scwx/qt/manager/radar_product_manager.cpp
                 source/scwx/qt/manager/radar_product_manager_notifier.cpp
+                source/scwx/qt/manager/radar_site_status_manager.cpp
                 source/scwx/qt/manager/resource_manager.cpp
                 source/scwx/qt/manager/settings_manager.cpp
+                source/scwx/qt/manager/task_manager.cpp
                 source/scwx/qt/manager/text_event_manager.cpp
                 source/scwx/qt/manager/thread_manager.cpp
                 source/scwx/qt/manager/timeline_manager.cpp
                 source/scwx/qt/manager/update_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
+            source/scwx/qt/map/map_link_policy.hpp
             source/scwx/qt/map/color_table_layer.hpp
             source/scwx/qt/map/draw_layer.hpp
             source/scwx/qt/map/generic_layer.hpp
             source/scwx/qt/map/layer_wrapper.hpp
+            source/scwx/qt/map/map_annotation_layer.hpp
+            source/scwx/qt/map/map_annotation_model.hpp
+            source/scwx/qt/map/map_annotation_types.hpp
             source/scwx/qt/map/map_context.hpp
+            source/scwx/qt/map/map_pane_context_menu.hpp
+            source/scwx/qt/map/map_pane_splitter_state.hpp
+            source/scwx/qt/map/map_pane_view_link_state.hpp
+            source/scwx/qt/map/map_popout_frame.hpp
             source/scwx/qt/map/map_provider.hpp
             source/scwx/qt/map/map_settings.hpp
             source/scwx/qt/map/map_widget.hpp
@@ -147,11 +176,17 @@ set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp
             source/scwx/qt/map/radar_site_layer.hpp)
 set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
+            source/scwx/qt/map/map_link_policy.cpp
             source/scwx/qt/map/color_table_layer.cpp
             source/scwx/qt/map/draw_layer.cpp
             source/scwx/qt/map/generic_layer.cpp
             source/scwx/qt/map/layer_wrapper.cpp
+            source/scwx/qt/map/map_annotation_layer.cpp
+            source/scwx/qt/map/map_annotation_model.cpp
             source/scwx/qt/map/map_context.cpp
+            source/scwx/qt/map/map_pane_context_menu.cpp
+            source/scwx/qt/map/map_pane_view_link_state.cpp
+            source/scwx/qt/map/map_popout_frame.cpp
             source/scwx/qt/map/map_provider.cpp
             source/scwx/qt/map/map_widget.cpp
             source/scwx/qt/map/overlay_layer.cpp
@@ -185,12 +220,14 @@ set(SRC_REQUEST source/scwx/qt/request/download_request.cpp
                 source/scwx/qt/request/nexrad_file_request.cpp)
 set(HDR_SETTINGS source/scwx/qt/settings/alert_palette_settings.hpp
                  source/scwx/qt/settings/audio_settings.hpp
+                 source/scwx/qt/settings/button_settings.hpp
                  source/scwx/qt/settings/general_settings.hpp
                  source/scwx/qt/settings/hotkey_settings.hpp
                  source/scwx/qt/settings/line_settings.hpp
                  source/scwx/qt/settings/map_settings.hpp
                  source/scwx/qt/settings/palette_settings.hpp
                  source/scwx/qt/settings/product_settings.hpp
+                 source/scwx/qt/settings/radar_site_status_palette_settings.hpp
                  source/scwx/qt/settings/settings_category.hpp
                  source/scwx/qt/settings/settings_container.hpp
                  source/scwx/qt/settings/settings_definitions.hpp
@@ -203,12 +240,14 @@ set(HDR_SETTINGS source/scwx/qt/settings/alert_palette_settings.hpp
                  source/scwx/qt/settings/unit_settings.hpp)
 set(SRC_SETTINGS source/scwx/qt/settings/alert_palette_settings.cpp
                  source/scwx/qt/settings/audio_settings.cpp
+                 source/scwx/qt/settings/button_settings.cpp
                  source/scwx/qt/settings/general_settings.cpp
                  source/scwx/qt/settings/hotkey_settings.cpp
                  source/scwx/qt/settings/line_settings.cpp
                  source/scwx/qt/settings/map_settings.cpp
                  source/scwx/qt/settings/palette_settings.cpp
                  source/scwx/qt/settings/product_settings.cpp
+                 source/scwx/qt/settings/radar_site_status_palette_settings.cpp
                  source/scwx/qt/settings/settings_category.cpp
                  source/scwx/qt/settings/settings_container.cpp
                  source/scwx/qt/settings/settings_interface.cpp
@@ -219,6 +258,7 @@ set(SRC_SETTINGS source/scwx/qt/settings/alert_palette_settings.cpp
                  source/scwx/qt/settings/ui_settings.cpp
                  source/scwx/qt/settings/unit_settings.cpp)
 set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
+              source/scwx/qt/types/capture_types.hpp
               source/scwx/qt/types/event_types.hpp
               source/scwx/qt/types/font_types.hpp
               source/scwx/qt/types/github_types.hpp
@@ -230,8 +270,12 @@ set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/map_types.hpp
               source/scwx/qt/types/marker_types.hpp
               source/scwx/qt/types/media_types.hpp
+              source/scwx/qt/types/placefile_types.hpp
               source/scwx/qt/types/qt_types.hpp
               source/scwx/qt/types/radar_product_record.hpp
+              source/scwx/qt/types/radar_product_types.hpp
+              source/scwx/qt/types/radar_site_types.hpp
+              source/scwx/qt/types/settings_types.hpp
               source/scwx/qt/types/text_event_key.hpp
               source/scwx/qt/types/text_types.hpp
               source/scwx/qt/types/texture_types.hpp
@@ -246,8 +290,11 @@ set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/location_types.cpp
               source/scwx/qt/types/map_types.cpp
               source/scwx/qt/types/media_types.cpp
+              source/scwx/qt/types/placefile_types.cpp
               source/scwx/qt/types/qt_types.cpp
               source/scwx/qt/types/radar_product_record.cpp
+              source/scwx/qt/types/radar_site_types.cpp
+              source/scwx/qt/types/settings_types.cpp
               source/scwx/qt/types/text_event_key.cpp
               source/scwx/qt/types/text_types.cpp
               source/scwx/qt/types/texture_types.cpp
@@ -263,7 +310,9 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/custom_layer_dialog.hpp
            source/scwx/qt/ui/download_dialog.hpp
            source/scwx/qt/ui/derived_products_widget.hpp
+           source/scwx/qt/ui/edit_button_dialog.hpp
            source/scwx/qt/ui/edit_line_dialog.hpp
+           source/scwx/qt/ui/export_settings_dialog.hpp
            source/scwx/qt/ui/edit_marker_dialog.hpp
            source/scwx/qt/ui/flow_layout.hpp
            source/scwx/qt/ui/gps_info_dialog.hpp
@@ -275,16 +324,20 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/level2_products_widget.hpp
            source/scwx/qt/ui/level2_settings_widget.hpp
            source/scwx/qt/ui/level3_products_widget.hpp
+           source/scwx/qt/ui/level3_settings_widget.hpp
            source/scwx/qt/ui/line_label.hpp
            source/scwx/qt/ui/open_url_dialog.hpp
            source/scwx/qt/ui/placefile_dialog.hpp
            source/scwx/qt/ui/placefile_settings_widget.hpp
+           source/scwx/qt/ui/map_annotation_dock_widget.hpp
            source/scwx/qt/ui/marker_dialog.hpp
            source/scwx/qt/ui/marker_settings_widget.hpp
            source/scwx/qt/ui/progress_dialog.hpp
            source/scwx/qt/ui/radar_site_dialog.hpp
            source/scwx/qt/ui/serial_port_dialog.hpp
            source/scwx/qt/ui/settings_dialog.hpp
+           source/scwx/qt/ui/threshold_line_edit_sync.hpp
+           source/scwx/qt/ui/threshold_value_utility.hpp
            source/scwx/qt/ui/update_dialog.hpp
            source/scwx/qt/ui/wfo_dialog.hpp)
 set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
@@ -297,8 +350,10 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/custom_layer_dialog.cpp
            source/scwx/qt/ui/download_dialog.cpp
            source/scwx/qt/ui/derived_products_widget.cpp
+           source/scwx/qt/ui/edit_button_dialog.cpp
            source/scwx/qt/ui/edit_line_dialog.cpp
            source/scwx/qt/ui/edit_marker_dialog.cpp
+           source/scwx/qt/ui/export_settings_dialog.cpp
            source/scwx/qt/ui/flow_layout.cpp
            source/scwx/qt/ui/gps_info_dialog.cpp
            source/scwx/qt/ui/hotkey_edit.cpp
@@ -309,10 +364,12 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/level2_products_widget.cpp
            source/scwx/qt/ui/level2_settings_widget.cpp
            source/scwx/qt/ui/level3_products_widget.cpp
+           source/scwx/qt/ui/level3_settings_widget.cpp
            source/scwx/qt/ui/line_label.cpp
            source/scwx/qt/ui/open_url_dialog.cpp
            source/scwx/qt/ui/placefile_dialog.cpp
            source/scwx/qt/ui/placefile_settings_widget.cpp
+           source/scwx/qt/ui/map_annotation_dock_widget.cpp
            source/scwx/qt/ui/marker_dialog.cpp
            source/scwx/qt/ui/marker_settings_widget.cpp
            source/scwx/qt/ui/progress_dialog.cpp
@@ -328,8 +385,10 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/collapsible_group.ui
            source/scwx/qt/ui/county_dialog.ui
            source/scwx/qt/ui/custom_layer_dialog.ui
+           source/scwx/qt/ui/edit_button_dialog.ui
            source/scwx/qt/ui/edit_line_dialog.ui
            source/scwx/qt/ui/edit_marker_dialog.ui
+           source/scwx/qt/ui/export_settings_dialog.ui
            source/scwx/qt/ui/gps_info_dialog.ui
            source/scwx/qt/ui/imgui_debug_dialog.ui
            source/scwx/qt/ui/layer_dialog.ui
@@ -344,12 +403,20 @@ set(UI_UI  source/scwx/qt/ui/about_dialog.ui
            source/scwx/qt/ui/serial_port_dialog.ui
            source/scwx/qt/ui/update_dialog.ui
            source/scwx/qt/ui/wfo_dialog.ui)
+set(HDR_UI_IMPORT source/scwx/qt/ui/import/import_options_page.hpp
+                  source/scwx/qt/ui/import/import_settings_wizard.hpp
+                  source/scwx/qt/ui/import/select_file_page.hpp)
+set(SRC_UI_IMPORT source/scwx/qt/ui/import/import_options_page.cpp
+                  source/scwx/qt/ui/import/import_settings_wizard.cpp
+                  source/scwx/qt/ui/import/select_file_page.cpp)
 set(HDR_UI_SETTINGS source/scwx/qt/ui/settings/alert_palette_settings_widget.hpp
                     source/scwx/qt/ui/settings/hotkey_settings_widget.hpp
+                    source/scwx/qt/ui/settings/radar_site_status_palette_settings_widget.hpp
                     source/scwx/qt/ui/settings/settings_page_widget.hpp
                     source/scwx/qt/ui/settings/unit_settings_widget.hpp)
 set(SRC_UI_SETTINGS source/scwx/qt/ui/settings/alert_palette_settings_widget.cpp
                     source/scwx/qt/ui/settings/hotkey_settings_widget.cpp
+                    source/scwx/qt/ui/settings/radar_site_status_palette_settings_widget.cpp
                     source/scwx/qt/ui/settings/settings_page_widget.cpp
                     source/scwx/qt/ui/settings/unit_settings_widget.cpp)
 set(HDR_UI_SETUP source/scwx/qt/ui/setup/audio_codec_page.hpp
@@ -366,7 +433,9 @@ set(SRC_UI_SETUP source/scwx/qt/ui/setup/audio_codec_page.cpp
                  source/scwx/qt/ui/setup/welcome_page.cpp)
 set(HDR_UI_WIDGETS source/scwx/qt/ui/widgets/focused_combo_box.hpp
                    source/scwx/qt/ui/widgets/focused_double_spin_box.hpp
-                   source/scwx/qt/ui/widgets/focused_spin_box.hpp)
+                   source/scwx/qt/ui/widgets/focused_spin_box.hpp
+                   source/scwx/qt/ui/widgets/imgui_button.hpp)
+set(SRC_UI_WIDGETS source/scwx/qt/ui/widgets/imgui_button.cpp)
 set(HDR_UTIL source/scwx/qt/util/color.hpp
              source/scwx/qt/util/file.hpp
              source/scwx/qt/util/geographic_lib.hpp
@@ -413,7 +482,9 @@ set(SRC_VIEW source/scwx/qt/view/derived_radial_view.cpp
 
 set(RESOURCE_FILES scwx-qt.qrc)
 
-set(SHADER_FILES gl/color.frag
+set(SHADER_FILES gl/annotation_geo.vert
+                 gl/annotation_stroke.frag
+                 gl/color.frag
                  gl/color.vert
                  gl/geo_line.vert
                  gl/geo_texture2d.vert
@@ -434,13 +505,13 @@ set(JSON_FILES res/config/radar_sites.json)
 set(TS_FILES ts/scwx_en_US.ts)
 
 set(RADAR_SITES_FILE ${scwx-qt_SOURCE_DIR}/res/config/radar_sites.json)
-set(COUNTY_DBF_FILES ${SCWX_DIR}/data/db/c_18mr25.dbf)
-set(ZONE_DBF_FILES   ${SCWX_DIR}/data/db/fz18mr25.dbf
-                     ${SCWX_DIR}/data/db/mz18mr25.dbf
-                     ${SCWX_DIR}/data/db/oz18mr25.dbf
-                     ${SCWX_DIR}/data/db/z_18mr25.dbf)
-set(STATE_DBF_FILES  ${SCWX_DIR}/data/db/s_18mr25.dbf)
-set(WFO_DBF_FILES    ${SCWX_DIR}/data/db/w_18mr25.dbf)
+set(COUNTY_DBF_FILES ${SCWX_DIR}/data/db/c_16ap26.dbf)
+set(ZONE_DBF_FILES   ${SCWX_DIR}/data/db/fz16ap26.dbf
+                     ${SCWX_DIR}/data/db/mz16ap26.dbf
+                     ${SCWX_DIR}/data/db/oz16ap26.dbf
+                     ${SCWX_DIR}/data/db/z_16ap26.dbf)
+set(STATE_DBF_FILES  ${SCWX_DIR}/data/db/s_16ap26.dbf)
+set(WFO_DBF_FILES    ${SCWX_DIR}/data/db/w_16ap26.dbf)
 set(COUNTIES_SQLITE_DB ${scwx-qt_BINARY_DIR}/res/db/counties.db)
 
 set(RESOURCE_INPUT  ${scwx-qt_SOURCE_DIR}/res/scwx-qt.rc.in)
@@ -474,11 +545,14 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${HDR_UI}
                     ${SRC_UI}
                     ${UI_UI}
+                    ${HDR_UI_IMPORT}
+                    ${SRC_UI_IMPORT}
                     ${HDR_UI_SETTINGS}
                     ${SRC_UI_SETTINGS}
                     ${HDR_UI_SETUP}
                     ${SRC_UI_SETUP}
                     ${HDR_UI_WIDGETS}
+                    ${SRC_UI_WIDGETS}
                     ${HDR_UTIL}
                     ${SRC_UTIL}
                     ${HDR_VIEW}
@@ -515,11 +589,14 @@ source_group("Header Files\\types"        FILES ${HDR_TYPES})
 source_group("Source Files\\types"        FILES ${SRC_TYPES})
 source_group("Header Files\\ui"           FILES ${HDR_UI})
 source_group("Source Files\\ui"           FILES ${SRC_UI})
+source_group("Header Files\\ui\\import"   FILES ${HDR_UI_IMPORT})
+source_group("Source Files\\ui\\import"   FILES ${SRC_UI_IMPORT})
 source_group("Header Files\\ui\\settings" FILES ${HDR_UI_SETTINGS})
 source_group("Source Files\\ui\\settings" FILES ${SRC_UI_SETTINGS})
 source_group("Header Files\\ui\\setup"    FILES ${HDR_UI_SETUP})
 source_group("Source Files\\ui\\setup"    FILES ${SRC_UI_SETUP})
 source_group("Header Files\\ui\\widgets"  FILES ${HDR_UI_WIDGETS})
+source_group("Source Files\\ui\\widgets"  FILES ${SRC_UI_WIDGETS})
 source_group("UI Files\\ui"               FILES ${UI_UI})
 source_group("Header Files\\util"         FILES ${HDR_UTIL})
 source_group("Source Files\\util"         FILES ${SRC_UTIL})
@@ -599,7 +676,9 @@ qt_add_resources(scwx-qt "generated"
                  BASE    ${scwx-qt_BINARY_DIR}
                  FILES   ${COUNTIES_SQLITE_DB})
 
-qt_add_translations(scwx-qt TS_FILES ${TS_FILES}
+qt_add_translations(scwx-qt
+                    SOURCE_TARGETS scwx-qt
+                    TS_FILES ${TS_FILES}
                     INCLUDE_DIRECTORIES true
                     LUPDATE_OPTIONS -locations none -no-ui-lines)
 
@@ -626,9 +705,7 @@ set_target_properties(scwx-qt_update_radar_sites   PROPERTIES FOLDER generate)
 if (WIN32)
     set(APP_ICON_RESOURCE_WINDOWS ${RESOURCE_OUTPUT})
     qt_add_executable(supercell-wx ${EXECUTABLE_SOURCES} ${APP_ICON_RESOURCE_WINDOWS})
-    if (SCWX_DISABLE_CONSOLE)
-        set_target_properties(supercell-wx PROPERTIES WIN32_EXECUTABLE $<IF:$<CONFIG:Release>,TRUE,FALSE>)
-    endif()
+    set_target_properties(supercell-wx PROPERTIES WIN32_EXECUTABLE $<IF:$<CONFIG:Release>,TRUE,FALSE>)
 elseif (APPLE)
     set(SCWX_ICON "${scwx-qt_SOURCE_DIR}/res/icons/scwx.icns")
 
@@ -687,6 +764,14 @@ target_compile_options(supercell-wx PRIVATE
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
 
+# Temporary workaround for Boost and GCC 16+ where -Warray-bounds causes false positives
+target_compile_options(scwx-qt PRIVATE
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-array-bounds>
+)
+target_compile_options(supercell-wx PRIVATE
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-array-bounds>
+)
+
 if (MSVC)
     # Don't include Windows macros
     target_compile_options(scwx-qt PRIVATE -DNOMINMAX)
@@ -724,6 +809,11 @@ else()
     target_compile_options(supercell-wx PRIVATE "$<$<CONFIG:Release>:-g>")
 endif()
 
+if (MSVC)
+    # Suppress MSVC linker warnings due to missing debug program database
+    target_link_options(supercell-wx PRIVATE "/ignore:4099")
+endif()
+
 if (LINUX)
     # Add wayland client packages
     find_package(QT NAMES Qt6
@@ -736,13 +826,6 @@ if (LINUX)
     target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::WaylandClient)
 endif()
 
-if (LINUX)
-    find_package(mesa-glu REQUIRED)
-    target_link_libraries(scwx-qt PUBLIC mesa-glu::mesa-glu)
-else()
-    target_link_libraries(scwx-qt PUBLIC OpenGL::GLU)
-endif()
-
 target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Qt${QT_VERSION_MAJOR}::OpenGLWidgets
                                      Qt${QT_VERSION_MAJOR}::Multimedia
@@ -753,6 +836,7 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      Boost::timer
                                      Boost::atomic
                                      QMapLibre::Core
+                                     OpenGL::GLU
                                      $<$<CXX_COMPILER_ID:MSVC>:opengl32>
                                      $<$<CXX_COMPILER_ID:MSVC>:SetupAPI>
                                      Fontconfig::Fontconfig
@@ -762,13 +846,26 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      glad_gl_core_33
                                      glm::glm
                                      imgui
+                                     JPEG::JPEG
                                      qt6ct-common
                                      qt6ct-widgets
                                      SQLite::SQLite3
+                                     TIFF::TIFF
                                      wxdata)
+
+target_link_libraries(scwx-qt INTERFACE Boost::program_options)
 
 target_link_libraries(supercell-wx PRIVATE scwx-qt
                                            wxdata)
+
+if (WIN32)
+    # Deploy Qt to target directory
+    add_custom_command(TARGET supercell-wx
+                       POST_BUILD
+                       COMMAND "${WINDEPLOYQT_EXECUTABLE}"
+                           --no-translations $<TARGET_FILE:supercell-wx>
+                       COMMENT "Running windeployqt for supercell-wx...")
+endif()
 
 if (LINUX)
     # Set DT_RUNPATH for Linux targets
@@ -868,6 +965,9 @@ set(CPACK_PACKAGE_VENDOR        "Dan Paulat")
 set(CPACK_PACKAGE_CHECKSUM      SHA256)
 set(CPACK_RESOURCE_FILE_LICENSE "${SCWX_DIR}/LICENSE.txt")
 
+set(SCWX_WINDOWS_PACKAGE_INSTALL_ROOT "" CACHE PATH
+    "Existing installed Supercell Wx tree to package for Windows")
+
 if (MSVC)
     set(CPACK_PACKAGE_FILE_NAME           "supercell-wx-v${SCWX_VERSION}-windows-x64")
     set(CPACK_PACKAGE_INSTALL_DIRECTORY   "Supercell Wx")
@@ -880,8 +980,25 @@ if (MSVC)
     set(CPACK_WIX_TEMPLATE                "${CMAKE_CURRENT_SOURCE_DIR}/wix.template.in")
     set(CPACK_WIX_EXTENSIONS              WixUIExtension WiXUtilExtension)
 
-    set(CPACK_INSTALL_CMAKE_PROJECTS
-        "${CMAKE_CURRENT_BINARY_DIR};${CMAKE_PROJECT_NAME};supercell-wx;/")
+    if (SCWX_WINDOWS_PACKAGE_INSTALL_ROOT)
+        if (NOT IS_DIRECTORY "${SCWX_WINDOWS_PACKAGE_INSTALL_ROOT}")
+            message(FATAL_ERROR
+                    "SCWX_WINDOWS_PACKAGE_INSTALL_ROOT does not exist: ${SCWX_WINDOWS_PACKAGE_INSTALL_ROOT}")
+        endif()
+
+        cmake_path(ABSOLUTE_PATH SCWX_WINDOWS_PACKAGE_INSTALL_ROOT
+                   NORMALIZE
+                   OUTPUT_VARIABLE scwx_windows_package_install_root)
+
+        message(STATUS "Packaging Windows installer from: ${scwx_windows_package_install_root}")
+
+        set(CPACK_INSTALL_CMAKE_PROJECTS "")
+        set(CPACK_INSTALLED_DIRECTORIES
+            "${scwx_windows_package_install_root};/")
+    else()
+        set(CPACK_INSTALL_CMAKE_PROJECTS
+            "${CMAKE_CURRENT_BINARY_DIR};${CMAKE_PROJECT_NAME};supercell-wx;/")
+    endif()
 
     include(CPack)
 elseif(APPLE)

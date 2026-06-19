@@ -8,14 +8,13 @@
 #include <scwx/util/threads.hpp>
 #include <scwx/util/time.hpp>
 
+#include <atomic>
+#include <mutex>
+
 #include <boost/range/irange.hpp>
 #include <boost/timer/timer.hpp>
 
-namespace scwx
-{
-namespace qt
-{
-namespace view
+namespace scwx::qt::view
 {
 
 static const std::string logPrefix_ = "scwx::qt::view::level2_product_view";
@@ -164,10 +163,12 @@ public:
 
    float                    latitude_;
    float                    longitude_;
-   float                    elevationCut_;
+   std::atomic<float>       elevationCut_;
    std::vector<float>       elevationCuts_;
    units::kilometers<float> range_;
    uint16_t                 vcp_;
+
+   std::mutex elevationCutsMutex_ {};
 
    std::chrono::system_clock::time_point sweepTime_;
 
@@ -179,6 +180,7 @@ public:
    std::shared_ptr<common::ColorTable> savedColorTable_;
    float                               savedScale_;
    float                               savedOffset_;
+   std::optional<float>                savedThreshold_ {};
 
    boost::uuids::uuid otherUnitsCallbackUuid_ {};
    boost::uuids::uuid speedUnitsCallbackUuid_ {};
@@ -211,6 +213,22 @@ void Level2ProductView::ConnectRadarProductManager()
                   common::RadarProductGroup::Level2)
               {
                  // If level 2 data associated was reloaded, update the view
+                 Update();
+              }
+           });
+
+   connect(radar_product_manager().get(),
+           &manager::RadarProductManager::ProductTimesPopulated,
+           this,
+           [this](common::RadarProductGroup group,
+                  const std::string& /* product */,
+                  std::chrono::system_clock::time_point queryTime)
+           {
+              if (group == common::RadarProductGroup::Level2 &&
+                  queryTime == selected_time())
+              {
+                 // If the data associated with the currently selected time is
+                 // reloaded, update the view
                  Update();
               }
            });
@@ -356,6 +374,7 @@ std::string Level2ProductView::GetRadarProductName() const
 
 std::vector<float> Level2ProductView::GetElevationCuts() const
 {
+   const std::unique_lock lock {p->elevationCutsMutex_};
    return p->elevationCuts_;
 }
 
@@ -402,6 +421,57 @@ void Level2ProductView::LoadColorTable(
 {
    p->colorTable_ = colorTable;
    UpdateColorTableLut();
+}
+
+std::pair<float, float> Level2ProductView::GetColorTableRange() const
+{
+   if (p->momentDataBlock0_ == nullptr)
+   {
+      return RadarProductView::GetColorTableRange();
+   }
+
+   const float offset = p->momentDataBlock0_->offset();
+   const float scale  = p->momentDataBlock0_->scale();
+
+   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
+
+   std::uint16_t dataThreshold = 2;
+   std::uint16_t rangeMax      = 255;
+
+   switch (p->product_)
+   {
+   case common::Level2Product::Reflectivity:
+   case common::Level2Product::Velocity:
+   case common::Level2Product::SpectrumWidth:
+   case common::Level2Product::CorrelationCoefficient:
+   default:
+      dataThreshold = 2;
+      rangeMax      = 255;
+      break;
+
+   case common::Level2Product::DifferentialReflectivity:
+      dataThreshold = 2;
+      rangeMax      = 1058;
+      break;
+
+   case common::Level2Product::DifferentialPhase:
+      dataThreshold = 2;
+      rangeMax      = 1023;
+      break;
+
+   case common::Level2Product::ClutterFilterPowerRemoved:
+      dataThreshold = 8;
+      rangeMax      = 81;
+      break;
+   }
+
+   // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
+
+   const float physicalMin =
+      (static_cast<float>(dataThreshold) - offset) / scale;
+   const float physicalMax = (static_cast<float>(rangeMax) - offset) / scale;
+
+   return {physicalMin, physicalMax};
 }
 
 void Level2ProductView::SelectElevation(float elevation)
@@ -459,9 +529,12 @@ void Level2ProductView::UpdateColorTableLut()
    float offset = p->momentDataBlock0_->offset();
    float scale  = p->momentDataBlock0_->scale();
 
+   const std::optional<float> threshold = color_table_threshold();
+
    if (p->savedColorTable_ == p->colorTable_ && //
        p->savedOffset_ == offset &&             //
-       p->savedScale_ == scale)
+       p->savedScale_ == scale &&               //
+       p->savedThreshold_ == threshold)
    {
       // The color table LUT does not need updated
       return;
@@ -515,8 +588,17 @@ void Level2ProductView::UpdateColorTableLut()
                     }
                     else
                     {
-                       float f                     = (i - offset) / scale;
-                       lut[i - *dataRange.begin()] = p->colorTable_->Color(f);
+                       const float f = (static_cast<float>(i) - offset) / scale;
+
+                       boost::gil::rgba8_pixel_t color =
+                          p->colorTable_->Color(f);
+
+                       if (threshold.has_value() && f < *threshold)
+                       {
+                          color[3] = 0;
+                       }
+
+                       lut[i - *dataRange.begin()] = color;
                     }
                  });
 
@@ -526,6 +608,7 @@ void Level2ProductView::UpdateColorTableLut()
    p->savedColorTable_ = p->colorTable_;
    p->savedOffset_     = offset;
    p->savedScale_      = scale;
+   p->savedThreshold_  = threshold;
 
    Q_EMIT ColorTableLutUpdated();
 }
@@ -552,13 +635,26 @@ void Level2ProductView::ComputeSweep()
 
    std::shared_ptr<wsr88d::rda::ElevationScan> radarData;
    std::chrono::system_clock::time_point       requestedTime {selected_time()};
-   std::tie(radarData, p->elevationCut_, p->elevationCuts_, std::ignore) =
+   types::RadarProductLoadStatus               loadStatus {};
+
+   std::vector<float> newElevationCuts {};
+   std::tie(
+      radarData, p->elevationCut_, newElevationCuts, std::ignore, loadStatus) =
       radarProductManager->GetLevel2Data(
          p->dataBlockType_, p->selectedElevation_, requestedTime);
 
+   std::unique_lock elevationCutsLock {p->elevationCutsMutex_};
+   p->elevationCuts_ = newElevationCuts;
+   elevationCutsLock.unlock();
+
+   set_load_status(loadStatus);
+
    if (radarData == nullptr)
    {
-      Q_EMIT SweepNotComputed(types::NoUpdateReason::NotLoaded);
+      Q_EMIT SweepNotComputed(
+         loadStatus == types::RadarProductLoadStatus::ProductNotAvailable ?
+            types::NoUpdateReason::NotAvailable :
+            types::NoUpdateReason::NotLoaded);
       return;
    }
    if ((radarData == p->elevationScan_) &&
@@ -1369,7 +1465,7 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
             auto nextRadial = radarData->find((i + 1) % numRadials);
             if (nextRadial != radarData->cend())
             {
-               nextAngle    = nextRadial->second->azimuth_angle();
+               nextAngle = nextRadial->second->azimuth_angle();
 
                // Level 2 angles are the center of the bins.
                const units::degrees<float> deltaAngle =
@@ -1564,6 +1660,4 @@ std::shared_ptr<Level2ProductView> Level2ProductView::Create(
    return std::make_shared<Level2ProductView>(product, radarProductManager);
 }
 
-} // namespace view
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::view

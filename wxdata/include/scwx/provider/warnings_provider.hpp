@@ -23,6 +23,11 @@ public:
    std::vector<std::shared_ptr<awips::TextProductFile>>
    LoadUpdatedFiles(std::chrono::sys_time<std::chrono::hours> newerThan = {});
 
+   /**
+    * @brief Shuts down the provider and stops any in-progress network requests.
+    */
+   void Shutdown() noexcept;
+
 private:
    class Impl;
    std::unique_ptr<Impl> p;

@@ -1,5 +1,3 @@
-#define _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING
-
 #include <scwx/provider/aws_nexrad_data_provider.hpp>
 #include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
@@ -7,6 +5,7 @@
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 
+#include <atomic>
 #include <shared_mutex>
 
 #include <aws/core/auth/AWSCredentials.h>
@@ -15,9 +14,7 @@
 #include <aws/s3/model/ListObjectsV2Request.h>
 #include <fmt/chrono.h>
 
-namespace scwx
-{
-namespace provider
+namespace scwx::provider
 {
 
 static const std::string logPrefix_ =
@@ -78,7 +75,7 @@ public:
          config);
    }
 
-   ~Impl() {}
+   ~Impl() { running_ = false; }
 
    void PruneObjects();
    void UpdateMetadata();
@@ -99,6 +96,8 @@ public:
 
    std::chrono::system_clock::time_point lastModified_;
    std::chrono::seconds                  updatePeriod_;
+
+   std::atomic<bool> running_ {true};
 };
 
 AwsNexradDataProvider::AwsNexradDataProvider(const std::string& radarSite,
@@ -177,7 +176,7 @@ std::chrono::system_clock::time_point AwsNexradDataProvider::FindLatestTime()
 
 std::vector<std::chrono::system_clock::time_point>
 AwsNexradDataProvider::GetTimePointsByDate(
-   std::chrono::system_clock::time_point date)
+   std::chrono::system_clock::time_point date, bool update)
 {
    const auto day = std::chrono::floor<std::chrono::days>(date);
 
@@ -188,23 +187,26 @@ AwsNexradDataProvider::GetTimePointsByDate(
    std::shared_lock lock(p->objectsMutex_);
 
    // Is the date present in the date list?
-   bool currentDatePresent;
+   bool currentDatePresent = false;
    auto currentDateIterator =
       std::find(p->objectDates_.cbegin(), p->objectDates_.cend(), day);
    if (currentDateIterator == p->objectDates_.cend())
    {
-      // Temporarily unlock mutex
-      lock.unlock();
-
-      // List objects, since the date is not present in the date list
-      auto [success, newObjects, totalObjects] = ListObjects(date);
-      if (success)
+      if (update)
       {
-         p->UpdateObjectDates(date);
-      }
+         // Temporarily unlock mutex
+         lock.unlock();
 
-      // Re-lock mutex
-      lock.lock();
+         // List objects, since the date is not present in the date list
+         const auto [success, newObjects, totalObjects] = ListObjects(date);
+         if (success)
+         {
+            p->UpdateObjectDates(date);
+         }
+
+         // Re-lock mutex
+         lock.lock();
+      }
 
       currentDatePresent = false;
    }
@@ -214,8 +216,8 @@ AwsNexradDataProvider::GetTimePointsByDate(
    }
 
    // Determine objects to retrieve
-   auto objectsBegin = p->objects_.lower_bound(day);
-   auto objectsEnd   = p->objects_.lower_bound(day + std::chrono::days {1});
+   const auto objectsBegin = p->objects_.lower_bound(day);
+   const auto objectsEnd = p->objects_.lower_bound(day + std::chrono::days {1});
 
    // Copy time points to destination vector
    std::transform(objectsBegin,
@@ -234,6 +236,20 @@ AwsNexradDataProvider::GetTimePointsByDate(
    }
 
    return timePoints;
+}
+
+bool AwsNexradDataProvider::IsDateCached(
+   std::chrono::system_clock::time_point date)
+{
+   const auto day = std::chrono::floor<std::chrono::days>(date);
+
+   const std::shared_lock lock(p->objectsMutex_);
+
+   // Is the date present in the date list?
+   const auto currentDateIterator =
+      std::find(p->objectDates_.cbegin(), p->objectDates_.cend(), day);
+
+   return currentDateIterator != p->objectDates_.cend();
 }
 
 std::tuple<bool, size_t, size_t>
@@ -315,18 +331,25 @@ AwsNexradDataProvider::LoadObjectByKey(const std::string& key)
    request.SetBucket(p->bucketName_);
    request.SetKey(key);
 
+   // Set continue request handler to allow cancellation
+   request.SetContinueRequestHandler([this](const Aws::Http::HttpRequest*)
+                                     { return p->running_.load(); });
+
    auto outcome = p->client_->GetObject(request);
 
    if (outcome.IsSuccess())
    {
       auto& body = outcome.GetResultWithOwnership().GetBody();
-
       nexradFile = wsr88d::NexradFileFactory::Create(body);
    }
-   else
+   else if (p->running_)
    {
       logger_->warn("Could not get object: {}",
                     outcome.GetError().GetMessage());
+   }
+   else
+   {
+      logger_->debug("LoadObjectByKey cancelled for key: {}", key);
    }
 
    return nexradFile;
@@ -352,7 +375,7 @@ std::pair<size_t, size_t> AwsNexradDataProvider::Refresh()
 
    logger_->debug("Refresh()");
 
-   auto today     = floor<days>(system_clock::now());
+   auto today     = floor<days>(util::time::now());
    auto yesterday = today - days {1};
 
    std::unique_lock lock(p->refreshMutex_);
@@ -388,7 +411,7 @@ void AwsNexradDataProvider::Impl::PruneObjects()
 {
    using namespace std::chrono;
 
-   auto today     = floor<days>(system_clock::now());
+   auto today     = floor<days>(util::time::now());
    auto yesterday = today - days {1};
 
    std::unique_lock lock(objectsMutex_);
@@ -446,5 +469,9 @@ void AwsNexradDataProvider::Impl::UpdateObjectDates(
    objectDates_.push_back(day);
 }
 
-} // namespace provider
-} // namespace scwx
+void AwsNexradDataProvider::Shutdown() noexcept
+{
+   p->running_ = false;
+}
+
+} // namespace scwx::provider

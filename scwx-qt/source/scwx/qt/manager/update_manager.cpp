@@ -1,19 +1,17 @@
 #include <scwx/qt/manager/update_manager.hpp>
+#include <scwx/qt/main/application_paths.hpp>
+#include <scwx/network/cpr.hpp>
 #include <scwx/util/json.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <atomic>
 #include <mutex>
 
 #include <boost/json.hpp>
 #include <cpr/cpr.h>
 #include <re2/re2.h>
-#include <QStandardPaths>
 
-namespace scwx
-{
-namespace qt
-{
-namespace manager
+namespace scwx::qt::manager
 {
 
 static const std::string logPrefix_ = "scwx::qt::manager::update_manager";
@@ -28,7 +26,7 @@ class UpdateManager::Impl
 public:
    explicit Impl(UpdateManager* self) : self_ {self} {}
 
-   ~Impl() {}
+   ~Impl() { running_ = false; }
 
    static std::string GetVersionString(const std::string& releaseName);
 
@@ -38,6 +36,8 @@ public:
    FindLatestRelease();
 
    UpdateManager* self_;
+
+   std::atomic_bool running_ {true};
 
    std::mutex updateMutex_ {};
 
@@ -121,7 +121,11 @@ size_t UpdateManager::Impl::PopulateReleases()
          cpr::Url {kScwxReleaseEndpoint},
          cpr::Parameters {{"per_page", perPageString}, {"page", pageString}},
          cpr::Header {{"accept", "application/vnd.github+json"},
-                      {"X-GitHub-Api-Version", "2022-11-28"}});
+                      {"X-GitHub-Api-Version", "2022-11-28"}},
+         network::cpr::GetDefaultTimeout(),
+         network::cpr::GetDefaultConnectTimeout(),
+         network::cpr::GetDefaultLowSpeed(),
+         network::cpr::GetDefaultProgressCallback(running_));
 
       // Successful REST API query
       if (r.status_code == 200)
@@ -143,10 +147,15 @@ size_t UpdateManager::Impl::PopulateReleases()
             break;
          }
       }
-      else
+      else if (running_)
       {
          logger_->warn(
             "Invalid API response: [{}] {}", r.status_code, r.error.message);
+         break;
+      }
+      else
+      {
+         logger_->debug("Request cancelled, shutting down");
          break;
       }
 
@@ -212,10 +221,10 @@ UpdateManager::Impl::FindLatestRelease()
 void UpdateManager::RemoveTemporaryReleases()
 {
 #if defined(_WIN32)
-   const std::string destination {
-      QStandardPaths::writableLocation(QStandardPaths::TempLocation)
-         .toStdString()};
-   const std::filesystem::path         destinationPath {destination};
+   const std::filesystem::path destinationPath {
+      main::ApplicationPaths::GetLocation(
+         main::ApplicationPaths::StandardLocation::Temp)};
+
    std::filesystem::directory_iterator it {destinationPath};
 
    for (auto& file : it)
@@ -256,6 +265,4 @@ std::shared_ptr<UpdateManager> UpdateManager::Instance()
    return updateManager;
 }
 
-} // namespace manager
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::manager

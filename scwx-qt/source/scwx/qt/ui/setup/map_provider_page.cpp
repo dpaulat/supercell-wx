@@ -24,7 +24,8 @@ namespace scwx::qt::ui::setup
 
 static const std::unordered_map<map::MapProvider, QUrl> kUrl_ {
    {map::MapProvider::Mapbox, QUrl {"https://www.mapbox.com/"}},
-   {map::MapProvider::MapTiler, QUrl {"https://www.maptiler.com/"}}};
+   {map::MapProvider::MapTiler, QUrl {"https://www.maptiler.com/"}},
+   {map::MapProvider::OpenFreeMap, QUrl {"https://openfreemap.org/"}}};
 
 struct MapProviderGroup
 {
@@ -62,6 +63,7 @@ public:
 
    MapProviderGroup mapboxGroup_ {};
    MapProviderGroup maptilerGroup_ {};
+   MapProviderGroup openFreeMapGroup_ {};
 
    map::MapProvider currentMapProvider_ {};
 
@@ -71,7 +73,8 @@ public:
 
    std::unordered_map<map::MapProvider, MapProviderGroup&> providerGroup_ {
       {map::MapProvider::Mapbox, mapboxGroup_},
-      {map::MapProvider::MapTiler, maptilerGroup_}};
+      {map::MapProvider::MapTiler, maptilerGroup_},
+      {map::MapProvider::OpenFreeMap, openFreeMapGroup_}};
 };
 
 MapProviderPage::MapProviderPage(QWidget* parent) :
@@ -99,6 +102,8 @@ MapProviderPage::MapProviderPage(QWidget* parent) :
       p->mapProviderComboBox_->addItem(
          QString::fromStdString(map::GetMapProviderName(mapProvider)));
    }
+   p->mapProviderComboBox_->setSizePolicy(QSizePolicy::MinimumExpanding,
+                                          QSizePolicy::Fixed);
 
    p->mapProviderLayout_->setContentsMargins(0, 0, 0, 0);
    p->mapProviderLayout_->addWidget(p->mapProviderLabel_, 0, 0, 1, 1);
@@ -106,11 +111,6 @@ MapProviderPage::MapProviderPage(QWidget* parent) :
    p->mapProviderFrame_->setLayout(p->mapProviderLayout_);
 
    // Description
-   p->descriptionLabel_->setText(
-      tr("You must get an API key from the map provider. After creating an "
-         "account and reviewing terms of service, create an API key (or public "
-         "token) with default scopes (unless one is created for you). Enter "
-         "this API key here."));
    p->descriptionLabel_->setWordWrap(true);
 
    // API Key Button
@@ -121,6 +121,8 @@ MapProviderPage::MapProviderPage(QWidget* parent) :
 
    p->SetupMapProviderGroup(map::MapProvider::Mapbox, p->mapboxGroup_, 1);
    p->SetupMapProviderGroup(map::MapProvider::MapTiler, p->maptilerGroup_, 2);
+   p->SetupMapProviderGroup(
+      map::MapProvider::OpenFreeMap, p->openFreeMapGroup_, 3);
 
    // Overall layout
    p->layout_ = new QVBoxLayout(this);
@@ -224,24 +226,35 @@ void MapProviderPage::Impl::SelectMapProvider(map::MapProvider mapProvider)
 {
    std::string name = map::GetMapProviderName(mapProvider);
 
-   switch (mapProvider)
+   const bool providerHasAPIKey = mapProvider != map::MapProvider::OpenFreeMap;
+
+   for (auto providerGroupIt = providerGroup_.begin();
+        providerGroupIt != providerGroup_.cend();
+        ++providerGroupIt)
    {
-   case map::MapProvider::Mapbox:
-      SetGroupVisible(mapboxGroup_, true);
-      SetGroupVisible(maptilerGroup_, false);
-      break;
-
-   case map::MapProvider::MapTiler:
-      SetGroupVisible(mapboxGroup_, false);
-      SetGroupVisible(maptilerGroup_, true);
-      break;
-
-   default:
-      break;
+      SetGroupVisible(providerGroupIt->second,
+                      providerGroupIt->first == mapProvider &&
+                         providerHasAPIKey);
    }
 
-   apiKeyButton_->setText(
-      tr("Get %1 API Key").arg(QString::fromStdString(name)));
+   if (providerHasAPIKey)
+   {
+      apiKeyButton_->setText(
+         tr("Get %1 API Key").arg(QString::fromStdString(name)));
+      descriptionLabel_->setText(tr(
+         "You must get an API key from the map provider. After creating an "
+         "account and reviewing terms of service, create an API key (or public "
+         "token) with default scopes (unless one is created for you). Enter "
+         "this API key here."));
+   }
+   else
+   {
+      apiKeyButton_->setText(tr("Visit %1").arg(QString::fromStdString(name)));
+      descriptionLabel_->setText(
+         tr("This map provider does not require an API key. You can visit "
+            "their website to see documentation on their free services and map "
+            "customization."));
+   }
 
    currentMapProvider_ = mapProvider;
 
@@ -257,6 +270,11 @@ void MapProviderPage::Impl::SetGroupVisible(MapProviderGroup& group,
 
 bool MapProviderPage::isComplete() const
 {
+   if (p->currentMapProvider_ == map::MapProvider::OpenFreeMap)
+   {
+      return true;
+   }
+
    return p->providerGroup_.at(p->currentMapProvider_)
              .apiKeyEdit_->text()
              .size() > 1;
@@ -284,10 +302,13 @@ bool MapProviderPage::IsRequired()
 
    std::string mapboxApiKey   = generalSettings.mapbox_api_key().GetValue();
    std::string maptilerApiKey = generalSettings.maptiler_api_key().GetValue();
+   map::MapProvider const mapProvider =
+      map::GetMapProvider(generalSettings.map_provider().GetValue());
 
    // Setup is required if either API key is empty, or contains a single
-   // character ("?")
-   return (mapboxApiKey.size() <= 1 && maptilerApiKey.size() <= 1);
+   // character ("?"), unless OpenFreeMap is selected
+   return (mapProvider != map::MapProvider::OpenFreeMap &&
+           mapboxApiKey.size() <= 1 && maptilerApiKey.size() <= 1);
 }
 
 } // namespace scwx::qt::ui::setup

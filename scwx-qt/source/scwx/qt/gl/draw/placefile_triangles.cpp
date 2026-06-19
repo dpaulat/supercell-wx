@@ -1,6 +1,7 @@
 #include <scwx/qt/gl/draw/placefile_triangles.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/time.hpp>
 
 #include <mutex>
 
@@ -184,7 +185,7 @@ void PlacefileTriangles::Render(
       p->Update();
       p->shaderProgram_->Use();
       UseRotationProjection(params, p->uMVPMatrixLocation_);
-      UseMapProjection(
+      UseMapScreenProjection(
          params, p->uMapMatrixLocation_, p->uMapScreenCoordLocation_);
 
       if (p->thresholded_)
@@ -203,7 +204,7 @@ void PlacefileTriangles::Render(
       // Selected time
       std::chrono::system_clock::time_point selectedTime =
          (p->selectedTime_ == std::chrono::system_clock::time_point {}) ?
-            std::chrono::system_clock::now() :
+            scwx::util::time::now() :
             p->selectedTime_;
       glUniform1i(
          p->uSelectedTimeLocation_,

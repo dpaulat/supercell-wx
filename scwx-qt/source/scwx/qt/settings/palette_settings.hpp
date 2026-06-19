@@ -1,8 +1,10 @@
 #pragma once
 
 #include <scwx/qt/settings/alert_palette_settings.hpp>
+#include <scwx/qt/settings/radar_site_status_palette_settings.hpp>
 #include <scwx/qt/settings/settings_category.hpp>
 #include <scwx/qt/settings/settings_variable.hpp>
+#include <scwx/qt/types/radar_site_types.hpp>
 #include <scwx/awips/impact_based_warnings.hpp>
 #include <scwx/awips/phenomenon.hpp>
 
@@ -28,7 +30,9 @@ public:
    palette(const std::string& name) const;
    [[nodiscard]] SettingsVariable<std::string>&
    alert_color(awips::Phenomenon phenomenon, bool active) const;
-   AlertPaletteSettings&          alert_palette(awips::Phenomenon);
+   AlertPaletteSettings& alert_palette(awips::Phenomenon);
+   RadarSiteStatusPaletteSettings&
+      radar_site_status_palette(types::RadarSiteStatus);
 
    static const std::vector<awips::Phenomenon>& alert_phenomena();
 

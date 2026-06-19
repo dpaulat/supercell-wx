@@ -23,8 +23,7 @@ static const int         iconSize_  = 30;
 
 static constexpr int kFirstColumn =
    static_cast<int>(MarkerModel::Column::Latitude);
-static constexpr int kLastColumn =
-   static_cast<int>(MarkerModel::Column::Name);
+static constexpr int kLastColumn = static_cast<int>(MarkerModel::Column::Name);
 static constexpr int kNumColumns = kLastColumn - kFirstColumn + 1;
 
 class MarkerModel::Impl
@@ -38,36 +37,34 @@ public:
 };
 
 MarkerModel::MarkerModel(QObject* parent) :
-   QAbstractTableModel(parent), p(std::make_unique<Impl>())
+    QAbstractTableModel(parent), p(std::make_unique<Impl>())
 {
    connect(p->markerManager_.get(),
-         &manager::MarkerManager::MarkersInitialized,
-         this,
-         &MarkerModel::HandleMarkersInitialized);
+           &manager::MarkerManager::MarkersInitialized,
+           this,
+           &MarkerModel::HandleMarkersInitialized);
 
    connect(p->markerManager_.get(),
-         &manager::MarkerManager::MarkerAdded,
-         this,
-         &MarkerModel::HandleMarkerAdded);
+           &manager::MarkerManager::MarkerAdded,
+           this,
+           &MarkerModel::HandleMarkerAdded);
 
    connect(p->markerManager_.get(),
-         &manager::MarkerManager::MarkerChanged,
-         this,
-         &MarkerModel::HandleMarkerChanged);
+           &manager::MarkerManager::MarkerChanged,
+           this,
+           &MarkerModel::HandleMarkerChanged);
 
    connect(p->markerManager_.get(),
-         &manager::MarkerManager::MarkerRemoved,
-         this,
-         &MarkerModel::HandleMarkerRemoved);
+           &manager::MarkerManager::MarkerRemoved,
+           this,
+           &MarkerModel::HandleMarkerRemoved);
 }
 
 MarkerModel::~MarkerModel() = default;
 
 int MarkerModel::rowCount(const QModelIndex& parent) const
 {
-   return parent.isValid() ?
-             0 :
-             static_cast<int>(p->markerIds_.size());
+   return parent.isValid() ? 0 : static_cast<int>(p->markerIds_.size());
 }
 
 int MarkerModel::columnCount(const QModelIndex& parent) const
@@ -91,7 +88,7 @@ QVariant MarkerModel::data(const QModelIndex& index, int role) const
       return QVariant();
    }
 
-   types::MarkerId id = p->markerIds_[index.row()];
+   types::MarkerId                  id = p->markerIds_[index.row()];
    std::optional<types::MarkerInfo> markerInfo =
       p->markerManager_->get_marker(id);
    if (!markerInfo)
@@ -105,7 +102,7 @@ QVariant MarkerModel::data(const QModelIndex& index, int role) const
       return qulonglong(id);
    }
 
-   switch(index.column())
+   switch (index.column())
    {
    case static_cast<int>(Column::Name):
       if (role == Qt::ItemDataRole::DisplayRole ||
@@ -194,20 +191,20 @@ QVariant MarkerModel::headerData(int             section,
       {
          switch (section)
          {
-            case static_cast<int>(Column::Name):
-               return tr("Name");
+         case static_cast<int>(Column::Name):
+            return tr("Name");
 
-            case static_cast<int>(Column::Latitude):
-               return tr("Latitude");
+         case static_cast<int>(Column::Latitude):
+            return tr("Latitude");
 
-            case static_cast<int>(Column::Longitude):
-               return tr("Longitude");
+         case static_cast<int>(Column::Longitude):
+            return tr("Longitude");
 
-            case static_cast<int>(Column::Icon):
-               return tr("Icon");
+         case static_cast<int>(Column::Icon):
+            return tr("Icon");
 
-            default:
-               break;
+         default:
+            break;
          }
       }
    }
@@ -226,16 +223,13 @@ void MarkerModel::HandleMarkersInitialized(size_t count)
    {
       return;
    }
-   const int index = static_cast<int>(count - 1);
 
+   beginResetModel();
+   p->markerIds_.clear();
    p->markerIds_.reserve(count);
-   beginInsertRows(QModelIndex(), 0, index);
-   p->markerManager_->for_each(
-      [this](const types::MarkerInfo& info)
-      {
-         p->markerIds_.push_back(info.id);
-      });
-   endInsertRows();
+   p->markerManager_->for_each([this](const types::MarkerInfo& info)
+                               { p->markerIds_.push_back(info.id); });
+   endResetModel();
 }
 
 void MarkerModel::HandleMarkerAdded(types::MarkerId id)
@@ -262,8 +256,8 @@ void MarkerModel::HandleMarkerChanged(types::MarkerId id)
    }
    const int changedIndex = std::distance(p->markerIds_.begin(), it);
 
-   QModelIndex topLeft = createIndex(changedIndex, kFirstColumn);
-   QModelIndex bottomRight = createIndex(changedIndex, kLastColumn);
+   const QModelIndex topLeft     = createIndex(changedIndex, kFirstColumn);
+   const QModelIndex bottomRight = createIndex(changedIndex, kLastColumn);
 
    Q_EMIT dataChanged(topLeft, bottomRight);
 }

@@ -4,8 +4,6 @@
 #include <string>
 #include <vector>
 
-#include <scwx/qt/types/font_types.hpp>
-
 struct ImFont;
 
 namespace scwx
@@ -18,9 +16,8 @@ namespace types
 class ImGuiFont
 {
 public:
-   explicit ImGuiFont(const std::string&            fontName,
-                      const std::vector<char>&      fontData,
-                      units::font_size::pixels<int> size);
+   explicit ImGuiFont(const std::string&       fontName,
+                      const std::vector<char>& fontData);
    ~ImGuiFont();
 
    ImGuiFont(const ImGuiFont&)            = delete;

@@ -47,7 +47,7 @@ LinkedContourVectorPacket::LinkedContourVectorPacket() :
 LinkedContourVectorPacket::~LinkedContourVectorPacket() = default;
 
 LinkedContourVectorPacket::LinkedContourVectorPacket(
-   LinkedContourVectorPacket&&) noexcept                      = default;
+   LinkedContourVectorPacket&&) noexcept = default;
 LinkedContourVectorPacket& LinkedContourVectorPacket::operator=(
    LinkedContourVectorPacket&&) noexcept = default;
 

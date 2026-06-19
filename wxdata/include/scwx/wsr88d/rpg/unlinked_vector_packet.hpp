@@ -21,7 +21,7 @@ public:
    explicit UnlinkedVectorPacket();
    ~UnlinkedVectorPacket();
 
-   UnlinkedVectorPacket(const UnlinkedVectorPacket&) = delete;
+   UnlinkedVectorPacket(const UnlinkedVectorPacket&)            = delete;
    UnlinkedVectorPacket& operator=(const UnlinkedVectorPacket&) = delete;
 
    UnlinkedVectorPacket(UnlinkedVectorPacket&&) noexcept;

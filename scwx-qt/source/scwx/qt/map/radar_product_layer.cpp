@@ -4,7 +4,6 @@
 #include <scwx/qt/settings/unit_settings.hpp>
 #include <scwx/qt/types/unit_types.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
-#include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/tooltip.hpp>
 #include <scwx/qt/view/radar_product_view.hpp>
 #include <scwx/util/logger.hpp>
@@ -46,7 +45,7 @@ public:
    std::shared_ptr<gl::ShaderProgram> shaderProgram_ {nullptr};
 
    GLint uMVPMatrixLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
-   GLint uMapScreenCoordLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
+   GLint uOriginLatLongLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
    GLint uDataMomentOffsetLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
    GLint uDataMomentScaleLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
    GLint uCFPEnabledLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
@@ -63,6 +62,9 @@ public:
 
    bool colorTableNeedsUpdate_ {false};
    bool sweepNeedsUpdate_ {false};
+
+   types::RadarProductLoadStatus latchedLoadStatus_ {
+      types::RadarProductLoadStatus::ProductNotAvailable};
 };
 
 RadarProductLayer::RadarProductLayer(std::shared_ptr<gl::GlContext> glContext) :
@@ -89,11 +91,11 @@ void RadarProductLayer::Initialize(
       logger_->warn("Could not find uMVPMatrix");
    }
 
-   p->uMapScreenCoordLocation_ =
-      glGetUniformLocation(p->shaderProgram_->id(), "uMapScreenCoord");
-   if (p->uMapScreenCoordLocation_ == -1)
+   p->uOriginLatLongLocation_ =
+      glGetUniformLocation(p->shaderProgram_->id(), "uOriginLatLong");
+   if (p->uOriginLatLongLocation_ == -1)
    {
-      logger_->warn("Could not find uMapScreenCoord");
+      logger_->warn("Could not find uOriginLatLong");
    }
 
    p->uDataMomentOffsetLocation_ =
@@ -146,6 +148,26 @@ void RadarProductLayer::Initialize(
            &view::RadarProductView::SweepComputed,
            this,
            [this]() { p->sweepNeedsUpdate_ = true; });
+   connect(radarProductView.get(),
+           &view::RadarProductView::SweepNotComputed,
+           this,
+           [this](types::NoUpdateReason reason)
+           {
+              if (reason == types::NoUpdateReason::NotAvailable)
+              {
+                 // Ensure the radar product is hidden by re-rendering
+                 Q_EMIT NeedsRendering();
+              }
+              if (reason == types::NoUpdateReason::NoChange)
+              {
+                 if (p->latchedLoadStatus_ ==
+                     types::RadarProductLoadStatus::ProductNotAvailable)
+                 {
+                    // Ensure the radar product is shown by re-rendering
+                    Q_EMIT NeedsRendering();
+                 }
+              }
+           });
 }
 
 void RadarProductLayer::UpdateSweep(
@@ -189,10 +211,10 @@ void RadarProductLayer::UpdateSweep(
    glEnableVertexAttribArray(0);
 
    // Buffer data moments
-   const GLvoid* data;
-   GLsizeiptr    dataSize;
-   size_t        componentSize;
-   GLenum        type;
+   const GLvoid* data {};
+   GLsizeiptr    dataSize {};
+   size_t        componentSize {};
+   GLenum        type {};
 
    std::tie(data, dataSize, componentSize) = radarProductView->GetMomentData();
 
@@ -215,10 +237,10 @@ void RadarProductLayer::UpdateSweep(
    glEnableVertexAttribArray(1);
 
    // Buffer CFP data
-   const GLvoid* cfpData;
-   GLsizeiptr    cfpDataSize;
-   size_t        cfpComponentSize;
-   GLenum        cfpType;
+   const GLvoid* cfpData {};
+   GLsizeiptr    cfpDataSize {};
+   size_t        cfpComponentSize {};
+   GLenum        cfpType {};
 
    std::tie(cfpData, cfpDataSize, cfpComponentSize) =
       radarProductView->GetCfpMomentData();
@@ -258,7 +280,6 @@ void RadarProductLayer::Render(
    const std::shared_ptr<MapContext>&            mapContext,
    const QMapLibre::CustomLayerRenderParameters& params)
 {
-
    p->shaderProgram_->Use();
 
    // Set OpenGL blend mode for transparency
@@ -281,39 +302,80 @@ void RadarProductLayer::Render(
       UpdateSweep(mapContext);
    }
 
-   const float scale = std::pow(2.0, params.zoom) * 2.0f *
-                       mbgl::util::tileSize_D / mbgl::util::DEGREES_MAX;
-   const float xScale = scale / params.width;
-   const float yScale = scale / params.height;
+   const std::shared_ptr<view::RadarProductView> radarProductView =
+      mapContext->radar_product_view();
 
-   glm::mat4 uMVPMatrix(1.0f);
-   uMVPMatrix = glm::scale(uMVPMatrix, glm::vec3(xScale, yScale, 1.0f));
-   uMVPMatrix = glm::rotate(uMVPMatrix,
-                            glm::radians<float>(params.bearing),
-                            glm::vec3(0.0f, 0.0f, 1.0f));
+   bool                          sweepVisible = false;
+   types::RadarProductLoadStatus newLoadStatus =
+      types::RadarProductLoadStatus::ProductNotLoaded;
 
-   glUniform2fv(p->uMapScreenCoordLocation_,
-                1,
-                glm::value_ptr(util::maplibre::LatLongToScreenCoordinate(
-                   {params.latitude, params.longitude})));
+   if (radarProductView != nullptr)
+   {
+      newLoadStatus = radarProductView->load_status();
 
-   glUniformMatrix4fv(
-      p->uMVPMatrixLocation_, 1, GL_FALSE, glm::value_ptr(uMVPMatrix));
+      switch (newLoadStatus)
+      {
+      case types::RadarProductLoadStatus::ProductNotAvailable:
+         sweepVisible = false;
+         break;
 
-   glUniform1i(p->uCFPEnabledLocation_, p->cfpEnabled_ ? 1 : 0);
+      case types::RadarProductLoadStatus::ListingProducts:
+         sweepVisible = p->latchedLoadStatus_ !=
+                        types::RadarProductLoadStatus::ProductNotAvailable;
+         break;
 
-   glUniform1ui(p->uDataMomentOffsetLocation_, p->rangeMin_);
-   glUniform1f(p->uDataMomentScaleLocation_, p->scale_);
+      default:
+         sweepVisible = true;
+      }
+   }
 
-   glActiveTexture(GL_TEXTURE0);
-   glBindTexture(GL_TEXTURE_1D, p->texture_);
-   glBindVertexArray(p->vao_);
-   glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(p->numVertices_));
+   if (sweepVisible)
+   {
+      const double scale = std::pow(2.0, params.zoom) * 2.0 *
+                           mbgl::util::tileSize_D / mbgl::util::DEGREES_MAX;
+      const auto xScale = static_cast<float>(scale / params.width);
+      const auto yScale = static_cast<float>(scale / params.height);
+
+      glm::mat4 uMVPMatrix(1.0f);
+      uMVPMatrix = glm::scale(uMVPMatrix, glm::vec3(xScale, yScale, 1.0f));
+      uMVPMatrix = glm::rotate(uMVPMatrix,
+                               glm::radians(static_cast<float>(params.bearing)),
+                               glm::vec3(0.0f, 0.0f, 1.0f));
+
+      glUniform2fv(
+         p->uOriginLatLongLocation_,
+         1,
+         glm::value_ptr(glm::vec2 {params.latitude, params.longitude}));
+
+      glUniformMatrix4fv(
+         p->uMVPMatrixLocation_, 1, GL_FALSE, glm::value_ptr(uMVPMatrix));
+
+      glUniform1i(p->uCFPEnabledLocation_, p->cfpEnabled_ ? 1 : 0);
+
+      glUniform1ui(p->uDataMomentOffsetLocation_, p->rangeMin_);
+      glUniform1f(p->uDataMomentScaleLocation_, p->scale_);
+
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_1D, p->texture_);
+      glBindVertexArray(p->vao_);
+
+      glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(p->numVertices_));
+   }
 
    if (wireframeEnabled)
    {
       // Restore polygon mode to default
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+   }
+
+   if (radarProductView != nullptr &&
+       // Don't latch a transition from Not Available to Listing Products
+       !(p->latchedLoadStatus_ ==
+            types::RadarProductLoadStatus::ProductNotAvailable &&
+         newLoadStatus == types::RadarProductLoadStatus::ListingProducts))
+   {
+      // Latch last load status
+      p->latchedLoadStatus_ = newLoadStatus;
    }
 
    SCWX_GL_CHECK_ERROR();
@@ -327,7 +389,7 @@ void RadarProductLayer::Deinitialize()
    glDeleteBuffers(3, p->vbo_.data());
 
    p->uMVPMatrixLocation_        = GL_INVALID_INDEX;
-   p->uMapScreenCoordLocation_   = GL_INVALID_INDEX;
+   p->uOriginLatLongLocation_    = GL_INVALID_INDEX;
    p->uDataMomentOffsetLocation_ = GL_INVALID_INDEX;
    p->uDataMomentScaleLocation_  = GL_INVALID_INDEX;
    p->uCFPEnabledLocation_       = GL_INVALID_INDEX;
@@ -543,7 +605,7 @@ void RadarProductLayer::UpdateColorTable(
    const uint16_t rangeMin = radarProductView->color_table_min();
    const uint16_t rangeMax = radarProductView->color_table_max();
 
-   const float scale = rangeMax - rangeMin;
+   const auto scale = static_cast<float>(rangeMax - rangeMin);
 
    glActiveTexture(GL_TEXTURE0);
    glBindTexture(GL_TEXTURE_1D, p->texture_);

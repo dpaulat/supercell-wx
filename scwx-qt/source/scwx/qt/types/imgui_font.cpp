@@ -23,10 +23,8 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class ImGuiFont::Impl
 {
 public:
-   explicit Impl(const std::string&            fontName,
-                 const std::vector<char>&      fontData,
-                 units::font_size::pixels<int> size) :
-       fontName_ {fontName}, size_ {size}
+   explicit Impl(std::string fontName, const std::vector<char>& fontData) :
+       fontName_ {std::move(fontName)}
    {
       CreateImGuiFont(fontData);
    }
@@ -35,16 +33,14 @@ public:
 
    void CreateImGuiFont(const std::vector<char>& fontData);
 
-   const std::string                   fontName_;
-   const units::font_size::pixels<int> size_;
+   std::string fontName_;
 
    ImFont* imFont_ {nullptr};
 };
 
-ImGuiFont::ImGuiFont(const std::string&            fontName,
-                     const std::vector<char>&      fontData,
-                     units::font_size::pixels<int> size) :
-    p(std::make_unique<Impl>(fontName, fontData, size))
+ImGuiFont::ImGuiFont(const std::string&       fontName,
+                     const std::vector<char>& fontData) :
+    p(std::make_unique<Impl>(fontName, fontData))
 {
 }
 ImGuiFont::~ImGuiFont() = default;
@@ -53,10 +49,11 @@ void ImGuiFont::Impl::CreateImGuiFont(const std::vector<char>& fontData)
 {
    logger_->debug("Creating Font: {}", fontName_);
 
+   // Default render size, used in debug widget
+   static constexpr float kSizePixels_ = 16.0f;
+
    ImFontAtlas* fontAtlas = model::ImGuiContextModel::Instance().font_atlas();
    ImFontConfig fontConfig {};
-
-   const float sizePixels = static_cast<float>(size_.value());
 
    // Do not transfer ownership of font data to ImGui, makes const_cast safe
    fontConfig.FontDataOwnedByAtlas = false;
@@ -69,7 +66,7 @@ void ImGuiFont::Impl::CreateImGuiFont(const std::vector<char>& fontData)
       const_cast<void*>(static_cast<const void*>(fontData.data())),
       static_cast<int>(std::clamp<std::size_t>(
          fontData.size(), 0, std::numeric_limits<int>::max())),
-      sizePixels,
+      kSizePixels_,
       &fontConfig);
 }
 

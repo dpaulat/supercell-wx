@@ -95,15 +95,22 @@ void WriteJsonFile(const std::string&        path,
    }
    else
    {
-      if (prettyPrint)
-      {
-         PrettyPrintJson(ofs, json);
-      }
-      else
-      {
-         ofs << json;
-      }
+      WriteJsonStream(ofs, json, prettyPrint);
       ofs.close();
+   }
+}
+
+void WriteJsonStream(std::ostream&             os,
+                     const boost::json::value& json,
+                     bool                      prettyPrint)
+{
+   if (prettyPrint)
+   {
+      PrettyPrintJson(os, json);
+   }
+   else
+   {
+      os << json;
    }
 }
 

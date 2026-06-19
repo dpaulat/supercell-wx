@@ -39,6 +39,7 @@ public:
       alertRadarSite_.SetDefault("default");
       alertWFO_.SetDefault("");
       ignoreMissingCodecs_.SetDefault(false);
+      masterVolume_.SetDefault(100);
 
       alertLatitude_.SetMinimum(-90.0);
       alertLatitude_.SetMaximum(90.0);
@@ -46,6 +47,8 @@ public:
       alertLongitude_.SetMaximum(180.0);
       alertRadius_.SetMinimum(0.0);
       alertRadius_.SetMaximum(9999999999);
+      masterVolume_.SetMinimum(0);
+      masterVolume_.SetMaximum(100);
       // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
 
       alertLocationMethod_.SetValidator(
@@ -67,7 +70,6 @@ public:
             return value.empty() ||
                    config::CountyDatabase::GetWFOs().count(value) != 0;
          });
-
 
       auto& alertAudioPhenomena = types::GetAlertAudioPhenomena();
       alertEnabled_.reserve(alertAudioPhenomena.size() + 1);
@@ -107,6 +109,7 @@ public:
    SettingsVariable<std::string> alertCounty_ {"alert_county"};
    SettingsVariable<std::string> alertWFO_ {"alert_wfo"};
    SettingsVariable<bool>        ignoreMissingCodecs_ {"ignore_missing_codecs"};
+   SettingsVariable<std::int64_t> masterVolume_ {"master_volume"};
 
    std::unordered_map<awips::Phenomenon, SettingsVariable<bool>>
                                       alertEnabled_ {};
@@ -124,7 +127,8 @@ AudioSettings::AudioSettings() :
                       &p->alertRadius_,
                       &p->alertCounty_,
                       &p->alertWFO_,
-                      &p->ignoreMissingCodecs_});
+                      &p->ignoreMissingCodecs_,
+                      &p->masterVolume_});
    RegisterVariables(p->variables_);
    SetDefaults();
 
@@ -191,6 +195,11 @@ SettingsVariable<bool>& AudioSettings::ignore_missing_codecs() const
    return p->ignoreMissingCodecs_;
 }
 
+SettingsVariable<std::int64_t>& AudioSettings::master_volume() const
+{
+   return p->masterVolume_;
+}
+
 AudioSettings& AudioSettings::Instance()
 {
    static AudioSettings audioSettings_;
@@ -207,7 +216,9 @@ bool operator==(const AudioSettings& lhs, const AudioSettings& rhs)
            lhs.p->alertRadius_ == rhs.p->alertRadius_ &&
            lhs.p->alertCounty_ == rhs.p->alertCounty_ &&
            lhs.p->alertWFO_ == rhs.p->alertWFO_ &&
-           lhs.p->alertEnabled_ == rhs.p->alertEnabled_);
+           lhs.p->alertEnabled_ == rhs.p->alertEnabled_ &&
+           lhs.p->ignoreMissingCodecs_ == rhs.p->ignoreMissingCodecs_ &&
+           lhs.p->masterVolume_ == rhs.p->masterVolume_);
 }
 
 } // namespace scwx::qt::settings

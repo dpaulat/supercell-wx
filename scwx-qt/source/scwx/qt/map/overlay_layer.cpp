@@ -9,6 +9,7 @@
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/texture_types.hpp>
+#include <scwx/qt/view/overlay_product_view.hpp>
 #include <scwx/qt/view/radar_product_view.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
@@ -92,8 +93,15 @@ public:
    Impl(const Impl&&)            = delete;
    Impl& operator=(const Impl&&) = delete;
 
+   void RenderProductName(const std::shared_ptr<MapContext>& mapContext);
+   void
+        RenderProductDetails(const std::shared_ptr<MapContext>& mapContext,
+                             const QMapLibre::CustomLayerRenderParameters& params);
+   void RenderAttribution(const std::shared_ptr<MapContext>& mapContext,
+                          const QMapLibre::CustomLayerRenderParameters& params);
+
    void SetupGeoIcons();
-   void SetCusorLocation(common::Coordinate coordinate);
+   void SetCursorLocation(common::Coordinate coordinate);
 
    OverlayLayer* self_;
 
@@ -129,10 +137,14 @@ public:
 
    std::shared_ptr<boost::gil::rgba8_image_t> cursorIconImage_ {nullptr};
 
-   const std::string& mapboxLogoImageName_ {
-      types::GetTextureName(types::ImageTexture::MapboxLogo)};
-   const std::string& mapTilerLogoImageName_ {
-      types::GetTextureName(types::ImageTexture::MapTilerLogo)};
+   const std::unordered_map<MapProvider, const std::string&> mapProviderLogos_ {
+      {MapProvider::Mapbox,
+       types::GetTextureName(types::ImageTexture::MapboxLogo)},
+      {MapProvider::MapTiler,
+       types::GetTextureName(types::ImageTexture::MapTilerLogo)},
+      {MapProvider::OpenFreeMap,
+       types::GetTextureName(types::ImageTexture::OpenFreeMapLogo)},
+   };
 
    std::shared_ptr<gl::draw::IconDrawItem> compassIcon_ {};
    std::shared_ptr<gl::draw::IconDrawItem> mapCenterIcon_ {};
@@ -173,7 +185,7 @@ OverlayLayer::~OverlayLayer()
    p->cursorScaleConnection_.disconnect();
 }
 
-void OverlayLayer::Impl::SetCusorLocation(common::Coordinate coordinate)
+void OverlayLayer::Impl::SetCursorLocation(common::Coordinate coordinate)
 {
    geoIcons_->SetIconLocation(
       cursorIcon_, coordinate.latitude_, coordinate.longitude_);
@@ -236,7 +248,7 @@ void OverlayLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
    p->SetupGeoIcons();
    p->cursorScaleConnection_ =
       generalSettings.cursor_icon_scale().changed_signal().connect(
-         [this]()
+         [this](auto&&...)
          {
             p->SetupGeoIcons();
             Q_EMIT NeedsRendering();
@@ -247,8 +259,12 @@ void OverlayLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
    p->icons_->AddIconSheet(p->cardinalPointIconName_);
    p->icons_->AddIconSheet(p->compassIconName_);
    p->icons_->AddIconSheet(p->mapCenterIconName_);
-   p->icons_->AddIconSheet(p->mapboxLogoImageName_)->SetAnchor(0.0f, 1.0f);
-   p->icons_->AddIconSheet(p->mapTilerLogoImageName_)->SetAnchor(0.0f, 1.0f);
+   for (auto logoIt = p->mapProviderLogos_.begin();
+        logoIt != p->mapProviderLogos_.end();
+        ++logoIt)
+   {
+      p->icons_->AddIconSheet(logoIt->second)->SetAnchor(0.0f, 1.0f);
+   }
    p->icons_->FinishIconSheets();
 
    p->icons_->StartIcons();
@@ -299,14 +315,11 @@ void OverlayLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
    p->mapCenterIcon_ = p->icons_->AddIcon();
    p->icons_->SetIconTexture(p->mapCenterIcon_, p->mapCenterIconName_, 0);
 
-   p->mapLogoIcon_ = p->icons_->AddIcon();
-   if (mapContext->map_provider() == MapProvider::Mapbox)
+   p->mapLogoIcon_    = p->icons_->AddIcon();
+   const auto& logoIt = p->mapProviderLogos_.find(mapContext->map_provider());
+   if (logoIt != p->mapProviderLogos_.cend())
    {
-      p->icons_->SetIconTexture(p->mapLogoIcon_, p->mapboxLogoImageName_, 0);
-   }
-   else if (mapContext->map_provider() == MapProvider::MapTiler)
-   {
-      p->icons_->SetIconTexture(p->mapLogoIcon_, p->mapTilerLogoImageName_, 0);
+      p->icons_->SetIconTexture(p->mapLogoIcon_, logoIt->second, 0);
    }
 
    p->icons_->FinishIcons();
@@ -348,7 +361,7 @@ void OverlayLayer::Render(const std::shared_ptr<MapContext>& mapContext,
 
    if (radarProductView != nullptr)
    {
-      scwx::util::ClockFormat clockFormat = scwx::util::GetClockFormat(
+      scwx::util::ClockFormat const clockFormat = scwx::util::GetClockFormat(
          settings::GeneralSettings::Instance().clock_format().GetValue());
 
       auto radarProductManager = radarProductView->radar_product_manager();
@@ -362,10 +375,42 @@ void OverlayLayer::Render(const std::shared_ptr<MapContext>& mapContext,
          radarProductView->sweep_time(), clockFormat, currentZone, false);
       p->sweepTimeNeedsUpdate_ = false;
    }
+   else
+   {
+      // No radar data: show timeline / overlay time so placefiles, alerts, and
+      // animation stay correlated with the selected time.
+      auto overlayView = mapContext->overlay_product_view();
+      if (overlayView != nullptr)
+      {
+         scwx::util::ClockFormat const clockFormat = scwx::util::GetClockFormat(
+            settings::GeneralSettings::Instance().clock_format().GetValue());
+
+         const std::chrono::system_clock::time_point selectedTime =
+            overlayView->selected_time();
+         if (selectedTime == std::chrono::system_clock::time_point {})
+         {
+            p->sweepTimeString_ = "Live";
+         }
+         else
+         {
+            p->sweepTimeString_ =
+               scwx::util::TimeString(selectedTime,
+                                      clockFormat,
+                                      scwx::util::time::current_time_zone(),
+                                      false);
+         }
+      }
+      else
+      {
+         p->sweepTimeString_.clear();
+      }
+   }
 
    // Active Box
-   p->activeBoxOuter_->SetVisible(settings.isActive_);
-   p->activeBoxInner_->SetVisible(settings.isActive_);
+   p->activeBoxOuter_->SetVisible(settings.isActive_ &&
+                                  !mapContext->screen_capture());
+   p->activeBoxInner_->SetVisible(settings.isActive_ &&
+                                  !mapContext->screen_capture());
    if (settings.isActive_)
    {
       p->activeBoxOuter_->SetSize(params.width, params.height);
@@ -388,7 +433,7 @@ void OverlayLayer::Render(const std::shared_ptr<MapContext>& mapContext,
    p->geoIcons_->SetIconVisible(p->cursorIcon_, cursorIconVisible);
    if (cursorIconVisible)
    {
-      p->SetCusorLocation(mapContext->mouse_coordinate());
+      p->SetCursorLocation(mapContext->mouse_coordinate());
    }
 
    // Location Icon
@@ -425,6 +470,58 @@ void OverlayLayer::Render(const std::shared_ptr<MapContext>& mapContext,
       }
    }
 
+   p->RenderProductName(mapContext);
+   p->RenderProductDetails(mapContext, params);
+
+   // Map Center Icon
+   if (params.width != p->lastWidth_ || params.height != p->lastHeight_)
+   {
+      static constexpr double xPosition = 0.5;
+      static constexpr double yPosition = 0.5;
+
+      // Draw the icon in the center of the widget
+      p->icons_->SetIconLocation(p->mapCenterIcon_,
+                                 params.width * xPosition,
+                                 params.height * yPosition);
+   }
+   p->icons_->SetIconVisible(p->mapCenterIcon_,
+                             generalSettings.show_map_center().GetValue());
+
+   const QMargins colorTableMargins = mapContext->color_table_margins();
+   if (colorTableMargins != p->lastColorTableMargins_ || p->firstRender_)
+   {
+      static constexpr int xOffset = 10;
+      static constexpr int yOffset = 10;
+
+      // Draw map logo with a 10x10 indent from the bottom left
+      p->icons_->SetIconLocation(p->mapLogoIcon_,
+                                 colorTableMargins.left() + xOffset,
+                                 colorTableMargins.bottom() + yOffset);
+   }
+   p->icons_->SetIconVisible(p->mapLogoIcon_,
+                             generalSettings.show_map_logo().GetValue());
+
+   DrawLayer::RenderWithoutImGui(params);
+
+   p->RenderAttribution(mapContext, params);
+
+   p->firstRender_           = false;
+   p->lastWidth_             = params.width;
+   p->lastHeight_            = params.height;
+   p->lastBearing_           = params.bearing;
+   p->lastFontSize_          = ImGui::GetFontSize();
+   p->lastColorTableMargins_ = colorTableMargins;
+
+   ImGuiFrameEnd();
+
+   SCWX_GL_CHECK_ERROR();
+}
+
+void OverlayLayer::Impl::RenderProductName(
+   const std::shared_ptr<MapContext>& mapContext)
+{
+   auto radarProductView = mapContext->radar_product_view();
+
    if (radarProductView != nullptr)
    {
       // Render product name
@@ -456,14 +553,68 @@ void OverlayLayer::Render(const std::shared_ptr<MapContext>& mapContext,
          ImGui::End();
       }
    }
+}
 
-   if (p->sweepTimeString_.length() > 0)
+void OverlayLayer::Impl::RenderProductDetails(
+   const std::shared_ptr<MapContext>&            mapContext,
+   const QMapLibre::CustomLayerRenderParameters& params)
+{
+   auto radarProductView = mapContext->radar_product_view();
+
+   ImGui::SetNextWindowPos(ImVec2 {static_cast<float>(params.width), 0.0f},
+                           ImGuiCond_Always,
+                           ImVec2 {1.0f, 0.0f});
+
+   bool                          productNotAvailable = false;
+   types::RadarProductLoadStatus newLoadStatus =
+      types::RadarProductLoadStatus::ProductNotLoaded;
+
+   if (radarProductView != nullptr)
+   {
+      newLoadStatus = radarProductView->load_status();
+
+      switch (newLoadStatus)
+      {
+      case types::RadarProductLoadStatus::ProductNotAvailable:
+         productNotAvailable = true;
+         break;
+
+      default:
+         productNotAvailable = false;
+      }
+   }
+
+   if (productNotAvailable)
+   {
+      ImGui::Begin("Product Not Available",
+                   nullptr,
+                   ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                      ImGuiWindowFlags_AlwaysAutoResize);
+
+      ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
+      ImGui::TextUnformatted("NO DATA AVAILABLE");
+      ImGui::PopStyleColor();
+      if (ImGui::BeginItemTooltip())
+      {
+         static constexpr float  kFontSizeFactor_  = 20.0f;
+         static constexpr double kMaxWidthPercent_ = 0.8;
+
+         ImGui::PushTextWrapPos(
+            std::min(ImGui::GetFontSize() * kFontSizeFactor_,
+                     static_cast<float>(params.width * kMaxWidthPercent_)));
+         ImGui::TextUnformatted(
+            "No data found for the selected product and time. Please select a "
+            "different product, or update your time selection.");
+         ImGui::PopTextWrapPos();
+         ImGui::EndTooltip();
+      }
+
+      ImGui::End();
+   }
+   else if (sweepTimeString_.length() > 0)
    {
       // Render time
-      ImGui::SetNextWindowPos(ImVec2 {static_cast<float>(params.width), 0.0f},
-                              ImGuiCond_Always,
-                              ImVec2 {1.0f, 0.0f});
-      ImGui::Begin("Sweep Time",
+      ImGui::Begin("Product Details",
                    nullptr,
                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                       ImGuiWindowFlags_AlwaysAutoResize);
@@ -471,12 +622,12 @@ void OverlayLayer::Render(const std::shared_ptr<MapContext>& mapContext,
       if (radarProductView != nullptr && ImGui::IsWindowHovered())
       {
          // Show a detailed product description when the sweep time is hovered
-         p->sweepTimePicked_ = true;
+         sweepTimePicked_ = true;
 
          auto fields = radarProductView->GetDescriptionFields();
          if (fields.empty())
          {
-            ImGui::TextUnformatted(p->sweepTimeString_.c_str());
+            ImGui::TextUnformatted(sweepTimeString_.c_str());
          }
          else
          {
@@ -496,34 +647,19 @@ void OverlayLayer::Render(const std::shared_ptr<MapContext>& mapContext,
       }
       else
       {
-         ImGui::TextUnformatted(p->sweepTimeString_.c_str());
+         ImGui::TextUnformatted(sweepTimeString_.c_str());
       }
 
       ImGui::End();
    }
+}
 
-   // Map Center Icon
-   if (params.width != p->lastWidth_ || params.height != p->lastHeight_)
-   {
-      // Draw the icon in the center of the widget
-      p->icons_->SetIconLocation(
-         p->mapCenterIcon_, params.width / 2.0, params.height / 2.0);
-   }
-   p->icons_->SetIconVisible(p->mapCenterIcon_,
-                             generalSettings.show_map_center().GetValue());
-
+void OverlayLayer::Impl::RenderAttribution(
+   const std::shared_ptr<MapContext>&            mapContext,
+   const QMapLibre::CustomLayerRenderParameters& params)
+{
    const QMargins colorTableMargins = mapContext->color_table_margins();
-   if (colorTableMargins != p->lastColorTableMargins_ || p->firstRender_)
-   {
-      // Draw map logo with a 10x10 indent from the bottom left
-      p->icons_->SetIconLocation(p->mapLogoIcon_,
-                                 10 + colorTableMargins.left(),
-                                 10 + colorTableMargins.bottom());
-   }
-   p->icons_->SetIconVisible(p->mapLogoIcon_,
-                             generalSettings.show_map_logo().GetValue());
-
-   DrawLayer::RenderWithoutImGui(params);
+   auto&          generalSettings   = settings::GeneralSettings::Instance();
 
    auto mapCopyrights = mapContext->map_copyrights();
    if (mapCopyrights.length() > 0 &&
@@ -532,14 +668,21 @@ void OverlayLayer::Render(const std::shared_ptr<MapContext>& mapContext,
       auto attributionFont = manager::FontManager::Instance().GetImGuiFont(
          types::FontCategory::Attribution);
 
-      ImGui::SetNextWindowPos(ImVec2 {static_cast<float>(params.width),
-                                      static_cast<float>(params.height) -
-                                         colorTableMargins.bottom()},
-                              ImGuiCond_Always,
-                              ImVec2 {1.0f, 1.0f});
-      ImGui::SetNextWindowBgAlpha(0.5f);
-      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2 {3.0f, 2.0f});
-      ImGui::PushFont(attributionFont->font());
+      static constexpr float kWindowBgAlpha_  = 0.5f;
+      static constexpr float kWindowPaddingX_ = 3.0f;
+      static constexpr float kWindowPaddingY_ = 2.0f;
+
+      ImGui::SetNextWindowPos(
+         ImVec2 {
+            static_cast<float>(params.width),
+            static_cast<float>(params.height - colorTableMargins.bottom())},
+         ImGuiCond_Always,
+         ImVec2 {1.0f, 1.0f});
+      ImGui::SetNextWindowBgAlpha(kWindowBgAlpha_);
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
+                          ImVec2 {kWindowPaddingX_, kWindowPaddingY_});
+      ImGui::PushFont(attributionFont.first->font(),
+                      attributionFont.second.value());
       ImGui::Begin("Attribution",
                    nullptr,
                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
@@ -549,17 +692,6 @@ void OverlayLayer::Render(const std::shared_ptr<MapContext>& mapContext,
       ImGui::PopFont();
       ImGui::PopStyleVar();
    }
-
-   p->firstRender_           = false;
-   p->lastWidth_             = params.width;
-   p->lastHeight_            = params.height;
-   p->lastBearing_           = params.bearing;
-   p->lastFontSize_          = ImGui::GetFontSize();
-   p->lastColorTableMargins_ = colorTableMargins;
-
-   ImGuiFrameEnd();
-
-   SCWX_GL_CHECK_ERROR();
 }
 
 void OverlayLayer::Deinitialize()

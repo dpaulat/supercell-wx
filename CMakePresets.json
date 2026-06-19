@@ -20,7 +20,6 @@
       "name": "windows-base",
       "inherits": "base",
       "hidden": true,
-      "generator": "Visual Studio 17 2022",
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
@@ -50,28 +49,47 @@
       }
     },
     {
-      "name": "windows-msvc2022-x64-base",
+      "name": "windows-vs2022-x64-base",
       "inherits": "windows-x64-base",
       "hidden": true,
+      "generator": "Visual Studio 17 2022",
       "cacheVariables": {
-        "CMAKE_PREFIX_PATH": "C:/Qt/6.8.3/msvc2022_64"
+        "CMAKE_PREFIX_PATH": "C:/Qt/6.11.1/msvc2022_64"
       }
     },
     {
-      "name": "windows-msvc2022-x64-ninja-base",
-      "inherits": "windows-msvc2022-x64-base",
+      "name": "windows-vs2022-x64-ninja-base",
+      "inherits": "windows-vs2022-x64-base",
       "hidden": true,
       "generator": "Ninja",
       "cacheVariables": {
-        "CMAKE_PREFIX_PATH": "C:/Qt/6.8.3/msvc2022_64"
+        "CMAKE_PREFIX_PATH": "C:/Qt/6.11.1/msvc2022_64"
       }
     },
     {
-      "name": "linux-gcc-base",
+      "name": "windows-vs2026-x64-base",
+      "inherits": "windows-x64-base",
+      "hidden": true,
+      "generator": "Visual Studio 18 2026",
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "C:/Qt/6.11.1/msvc2022_64"
+      }
+    },
+    {
+      "name": "windows-vs2026-x64-ninja-base",
+      "inherits": "windows-vs2026-x64-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "C:/Qt/6.11.1/msvc2022_64"
+      }
+    },
+    {
+      "name": "linux-gcc11-base",
       "inherits": "linux-base",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_PREFIX_PATH": "/opt/Qt/6.8.3/gcc_64"
+        "CMAKE_PREFIX_PATH": "/opt/Qt/6.11.1/gcc_64"
       },
       "environment": {
         "CC": "gcc-11",
@@ -79,57 +97,153 @@
       }
     },
     {
-      "name": "windows-msvc2022-x64-debug",
-      "inherits": "windows-msvc2022-x64-base",
-      "displayName": "Windows MSVC 2022 x64 Debug",
+      "name": "linux-gcc13-base",
+      "inherits": "linux-base",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "/opt/Qt/6.11.1/gcc_64"
+      },
+      "environment": {
+        "CC": "gcc-13",
+        "CXX": "g++-13"
+      }
+    },
+    {
+      "name": "linux-gcc14-base",
+      "inherits": "linux-base",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "/opt/Qt/6.11.1/gcc_64"
+      },
+      "environment": {
+        "CC": "gcc-14",
+        "CXX": "g++-14"
+      }
+    },
+    {
+      "name": "linux-gcc15-base",
+      "inherits": "linux-base",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "/opt/Qt/6.11.1/gcc_64"
+      },
+      "environment": {
+        "CC": "gcc-15",
+        "CXX": "g++-15"
+      }
+    },
+    {
+      "name": "linux-gcc16-base",
+      "inherits": "linux-base",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "/opt/Qt/6.11.1/gcc_64"
+      },
+      "environment": {
+        "CC": "gcc-16",
+        "CXX": "g++-16"
+      }
+    },
+    {
+      "name": "windows-vs2022-x64-debug",
+      "inherits": "windows-vs2022-x64-base",
+      "displayName": "Windows VS 2022 x64 Debug",
       "architecture": {
         "value": "x64",
         "strategy": "external"
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CONAN_HOST_PROFILE": "scwx-windows_msvc2022_x64-debug",
-        "CONAN_BUILD_PROFILE": "scwx-windows_msvc2022_x64-debug"
+        "CONAN_HOST_PROFILE": "scwx-windows_vs2022_x64-debug",
+        "CONAN_BUILD_PROFILE": "scwx-windows_vs2022_x64-debug"
       }
     },
     {
-      "name": "windows-msvc2022-x64-release",
-      "inherits": "windows-msvc2022-x64-base",
-      "displayName": "Windows MSVC 2022 x64 Release",
+      "name": "windows-vs2022-x64-release",
+      "inherits": "windows-vs2022-x64-base",
+      "displayName": "Windows VS 2022 x64 Release",
       "architecture": {
         "value": "x64",
         "strategy": "external"
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CONAN_HOST_PROFILE": "scwx-windows_msvc2022_x64",
-        "CONAN_BUILD_PROFILE": "scwx-windows_msvc2022_x64"
+        "CONAN_HOST_PROFILE": "scwx-windows_vs2022_x64",
+        "CONAN_BUILD_PROFILE": "scwx-windows_vs2022_x64"
       }
     },
     {
-      "name": "windows-msvc2022-x64-ninja-debug",
-      "inherits": "windows-msvc2022-x64-ninja-base",
-      "displayName": "Windows MSVC 2022 x64 Ninja Debug",
+      "name": "windows-vs2022-x64-ninja-debug",
+      "inherits": "windows-vs2022-x64-ninja-base",
+      "displayName": "Windows VS 2022 x64 Ninja Debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CONAN_HOST_PROFILE": "scwx-windows_msvc2022_x64-debug",
-        "CONAN_BUILD_PROFILE": "scwx-windows_msvc2022_x64-debug"
+        "CONAN_HOST_PROFILE": "scwx-windows_vs2022_x64-debug",
+        "CONAN_BUILD_PROFILE": "scwx-windows_vs2022_x64-debug"
       }
     },
     {
-      "name": "windows-msvc2022-x64-ninja-release",
-      "inherits": "windows-msvc2022-x64-ninja-base",
-      "displayName": "Windows MSVC 2022 x64 Ninja Release",
+      "name": "windows-vs2022-x64-ninja-release",
+      "inherits": "windows-vs2022-x64-ninja-base",
+      "displayName": "Windows VS 2022 x64 Ninja Release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CONAN_HOST_PROFILE": "scwx-windows_msvc2022_x64",
-        "CONAN_BUILD_PROFILE": "scwx-windows_msvc2022_x64"
+        "CONAN_HOST_PROFILE": "scwx-windows_vs2022_x64",
+        "CONAN_BUILD_PROFILE": "scwx-windows_vs2022_x64"
       }
     },
     {
-      "name": "linux-gcc-debug",
-      "inherits": "linux-gcc-base",
-      "displayName": "Linux GCC Debug",
+      "name": "windows-vs2026-x64-debug",
+      "inherits": "windows-vs2026-x64-base",
+      "displayName": "Windows VS 2026 x64 Debug",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CONAN_HOST_PROFILE": "scwx-windows_vs2026_x64-debug",
+        "CONAN_BUILD_PROFILE": "scwx-windows_vs2026_x64-debug"
+      }
+    },
+    {
+      "name": "windows-vs2026-x64-release",
+      "inherits": "windows-vs2026-x64-base",
+      "displayName": "Windows VS 2026 x64 Release",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CONAN_HOST_PROFILE": "scwx-windows_vs2026_x64",
+        "CONAN_BUILD_PROFILE": "scwx-windows_vs2026_x64"
+      }
+    },
+    {
+      "name": "windows-vs2026-x64-ninja-debug",
+      "inherits": "windows-vs2026-x64-ninja-base",
+      "displayName": "Windows VS 2026 x64 Ninja Debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CONAN_HOST_PROFILE": "scwx-windows_vs2026_x64-debug",
+        "CONAN_BUILD_PROFILE": "scwx-windows_vs2026_x64-debug"
+      }
+    },
+    {
+      "name": "windows-vs2026-x64-ninja-release",
+      "inherits": "windows-vs2026-x64-ninja-base",
+      "displayName": "Windows VS 2026 x64 Ninja Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CONAN_HOST_PROFILE": "scwx-windows_vs2026_x64",
+        "CONAN_BUILD_PROFILE": "scwx-windows_vs2026_x64"
+      }
+    },
+    {
+      "name": "linux-gcc11-debug",
+      "inherits": "linux-gcc11-base",
+      "displayName": "Linux GCC 11 Debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Debug/supercell-wx",
@@ -138,9 +252,53 @@
       }
     },
     {
-      "name": "linux-gcc-release",
-      "inherits": "linux-gcc-base",
-      "displayName": "Linux GCC Release",
+      "name": "linux-gcc13-debug",
+      "inherits": "linux-gcc13-base",
+      "displayName": "Linux GCC 13 Debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Debug/supercell-wx",
+        "CONAN_HOST_PROFILE": "scwx-linux_gcc-13-debug",
+        "CONAN_BUILD_PROFILE": "scwx-linux_gcc-13-debug"
+      }
+    },
+    {
+      "name": "linux-gcc14-debug",
+      "inherits": "linux-gcc14-base",
+      "displayName": "Linux GCC 14 Debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Debug/supercell-wx",
+        "CONAN_HOST_PROFILE": "scwx-linux_gcc-14-debug",
+        "CONAN_BUILD_PROFILE": "scwx-linux_gcc-14-debug"
+      }
+    },
+    {
+      "name": "linux-gcc15-debug",
+      "inherits": "linux-gcc15-base",
+      "displayName": "Linux GCC 15 Debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Debug/supercell-wx",
+        "CONAN_HOST_PROFILE": "scwx-linux_gcc-15-debug",
+        "CONAN_BUILD_PROFILE": "scwx-linux_gcc-15-debug"
+      }
+    },
+    {
+      "name": "linux-gcc16-debug",
+      "inherits": "linux-gcc16-base",
+      "displayName": "Linux GCC 16 Debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Debug/supercell-wx",
+        "CONAN_HOST_PROFILE": "scwx-linux_gcc-16-debug",
+        "CONAN_BUILD_PROFILE": "scwx-linux_gcc-16-debug"
+      }
+    },
+    {
+      "name": "linux-gcc11-release",
+      "inherits": "linux-gcc11-base",
+      "displayName": "Linux GCC 11 Release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Release/supercell-wx",
@@ -149,9 +307,53 @@
       }
     },
     {
-      "name": "linux-gcc-debug-asan",
-      "inherits": "linux-gcc-base",
-      "displayName": "Linux GCC Debug Address Sanitizer",
+      "name": "linux-gcc13-release",
+      "inherits": "linux-gcc13-base",
+      "displayName": "Linux GCC 13 Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Release/supercell-wx",
+        "CONAN_HOST_PROFILE": "scwx-linux_gcc-13",
+        "CONAN_BUILD_PROFILE": "scwx-linux_gcc-13"
+      }
+    },
+    {
+      "name": "linux-gcc14-release",
+      "inherits": "linux-gcc14-base",
+      "displayName": "Linux GCC 14 Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Release/supercell-wx",
+        "CONAN_HOST_PROFILE": "scwx-linux_gcc-14",
+        "CONAN_BUILD_PROFILE": "scwx-linux_gcc-14"
+      }
+    },
+    {
+      "name": "linux-gcc15-release",
+      "inherits": "linux-gcc15-base",
+      "displayName": "Linux GCC 15 Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Release/supercell-wx",
+        "CONAN_HOST_PROFILE": "scwx-linux_gcc-15",
+        "CONAN_BUILD_PROFILE": "scwx-linux_gcc-15"
+      }
+    },
+    {
+      "name": "linux-gcc16-release",
+      "inherits": "linux-gcc16-base",
+      "displayName": "Linux GCC 16 Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Release/supercell-wx",
+        "CONAN_HOST_PROFILE": "scwx-linux_gcc-16",
+        "CONAN_BUILD_PROFILE": "scwx-linux_gcc-16"
+      }
+    },
+    {
+      "name": "linux-gcc11-debug-asan",
+      "inherits": "linux-gcc11-base",
+      "displayName": "Linux GCC 11 Debug Address Sanitizer",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Debug/supercell-wx",
@@ -164,9 +366,69 @@
       }
     },
     {
-      "name": "linux-gcc-release-asan",
-      "inherits": "linux-gcc-base",
-      "displayName": "Linux GCC Release Address Sanitizer",
+      "name": "linux-gcc13-debug-asan",
+      "inherits": "linux-gcc13-base",
+      "displayName": "Linux GCC 13 Debug Address Sanitizer",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Debug/supercell-wx",
+        "CONAN_HOST_PROFILE": "scwx-linux_gcc-13-debug",
+        "CONAN_BUILD_PROFILE": "scwx-linux_gcc-13-debug",
+        "SCWX_ADDRESS_SANITIZER": {
+          "type": "BOOL",
+          "value": "ON"
+        }
+      }
+    },
+    {
+      "name": "linux-gcc14-debug-asan",
+      "inherits": "linux-gcc14-base",
+      "displayName": "Linux GCC 14 Debug Address Sanitizer",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Debug/supercell-wx",
+        "CONAN_HOST_PROFILE": "scwx-linux_gcc-14-debug",
+        "CONAN_BUILD_PROFILE": "scwx-linux_gcc-14-debug",
+        "SCWX_ADDRESS_SANITIZER": {
+          "type": "BOOL",
+          "value": "ON"
+        }
+      }
+    },
+    {
+      "name": "linux-gcc15-debug-asan",
+      "inherits": "linux-gcc15-base",
+      "displayName": "Linux GCC 15 Debug Address Sanitizer",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Debug/supercell-wx",
+        "CONAN_HOST_PROFILE": "scwx-linux_gcc-15-debug",
+        "CONAN_BUILD_PROFILE": "scwx-linux_gcc-15-debug",
+        "SCWX_ADDRESS_SANITIZER": {
+          "type": "BOOL",
+          "value": "ON"
+        }
+      }
+    },
+    {
+      "name": "linux-gcc16-debug-asan",
+      "inherits": "linux-gcc16-base",
+      "displayName": "Linux GCC 16 Debug Address Sanitizer",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Debug/supercell-wx",
+        "CONAN_HOST_PROFILE": "scwx-linux_gcc-16-debug",
+        "CONAN_BUILD_PROFILE": "scwx-linux_gcc-16-debug",
+        "SCWX_ADDRESS_SANITIZER": {
+          "type": "BOOL",
+          "value": "ON"
+        }
+      }
+    },
+    {
+      "name": "linux-gcc11-release-asan",
+      "inherits": "linux-gcc11-base",
+      "displayName": "Linux GCC 11 Release Address Sanitizer",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Release/supercell-wx",
@@ -179,22 +441,78 @@
       }
     },
     {
+      "name": "linux-gcc13-release-asan",
+      "inherits": "linux-gcc13-base",
+      "displayName": "Linux GCC 13 Release Address Sanitizer",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Release/supercell-wx",
+        "CONAN_HOST_PROFILE": "scwx-linux_gcc-13",
+        "CONAN_BUILD_PROFILE": "scwx-linux_gcc-13",
+        "SCWX_ADDRESS_SANITIZER": {
+          "type": "BOOL",
+          "value": "ON"
+        }
+      }
+    },
+    {
+      "name": "linux-gcc14-release-asan",
+      "inherits": "linux-gcc14-base",
+      "displayName": "Linux GCC 14 Release Address Sanitizer",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Release/supercell-wx",
+        "CONAN_HOST_PROFILE": "scwx-linux_gcc-14",
+        "CONAN_BUILD_PROFILE": "scwx-linux_gcc-14",
+        "SCWX_ADDRESS_SANITIZER": {
+          "type": "BOOL",
+          "value": "ON"
+        }
+      }
+    },
+    {
+      "name": "linux-gcc15-release-asan",
+      "inherits": "linux-gcc15-base",
+      "displayName": "Linux GCC 15 Release Address Sanitizer",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Release/supercell-wx",
+        "CONAN_HOST_PROFILE": "scwx-linux_gcc-15",
+        "CONAN_BUILD_PROFILE": "scwx-linux_gcc-15",
+        "SCWX_ADDRESS_SANITIZER": {
+          "type": "BOOL",
+          "value": "ON"
+        }
+      }
+    },
+    {
+      "name": "linux-gcc16-release-asan",
+      "inherits": "linux-gcc16-base",
+      "displayName": "Linux GCC 16 Release Address Sanitizer",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/${presetName}/Release/supercell-wx",
+        "CONAN_HOST_PROFILE": "scwx-linux_gcc-16",
+        "CONAN_BUILD_PROFILE": "scwx-linux_gcc-16",
+        "SCWX_ADDRESS_SANITIZER": {
+          "type": "BOOL",
+          "value": "ON"
+        }
+      }
+    },
+    {
       "name": "ci-linux-gcc14",
-      "inherits": "linux-gcc-base",
+      "inherits": "linux-gcc14-base",
       "displayName": "CI Linux GCC 14",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CONAN_HOST_PROFILE": "scwx-linux_gcc-14",
         "CONAN_BUILD_PROFILE": "scwx-linux_gcc-14"
-      },
-      "environment": {
-        "CC": "gcc-14",
-        "CXX": "g++-14"
       }
     },
     {
       "name": "ci-linux-clang17",
-      "inherits": "linux-gcc-base",
+      "inherits": "linux-gcc11-base",
       "displayName": "CI Linux Clang 17",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
@@ -207,12 +525,12 @@
       }
     },
     {
-      "name": "ci-linux-gcc-arm64",
-      "inherits": "linux-gcc-base",
-      "displayName": "CI Linux GCC ARM64",
+      "name": "ci-linux-gcc11-arm64",
+      "inherits": "linux-gcc11-base",
+      "displayName": "CI Linux GCC 11 ARM64",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_PREFIX_PATH": "/opt/Qt/6.8.3/gcc_arm64",
+        "CMAKE_PREFIX_PATH": "/opt/Qt/6.11.1/gcc_arm64",
         "CONAN_HOST_PROFILE": "scwx-linux_gcc-11_armv8",
         "CONAN_BUILD_PROFILE": "scwx-linux_gcc-11_armv8"
       },
@@ -226,7 +544,7 @@
       "inherits": "base",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.8.3/macos"
+        "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.11.1/macos"
       },
       "condition": {
         "type": "equals",
@@ -306,27 +624,75 @@
   ],
   "buildPresets": [
     {
-      "name": "windows-msvc2022-x64-debug",
-      "configurePreset": "windows-msvc2022-x64-debug",
-      "displayName": "Windows MSVC 2022 x64 Debug",
+      "name": "windows-vs2022-x64-debug",
+      "configurePreset": "windows-vs2022-x64-debug",
+      "displayName": "Windows VS 2022 x64 Debug",
       "configuration": "Debug"
     },
     {
-      "name": "windows-msvc2022-x64-release",
-      "configurePreset": "windows-msvc2022-x64-release",
-      "displayName": "Windows MSVC 2022 x64 Release",
+      "name": "windows-vs2022-x64-release",
+      "configurePreset": "windows-vs2022-x64-release",
+      "displayName": "Windows VS 2022 x64 Release",
       "configuration": "Release"
     },
     {
-      "name": "linux-gcc-debug",
-      "configurePreset": "linux-gcc-debug",
-      "displayName": "Linux GCC Debug",
+      "name": "windows-vs2026-x64-debug",
+      "configurePreset": "windows-vs2026-x64-debug",
+      "displayName": "Windows VS 2026 x64 Debug",
       "configuration": "Debug"
     },
     {
-      "name": "linux-gcc-release",
-      "configurePreset": "linux-gcc-release",
-      "displayName": "Linux GCC Release",
+      "name": "windows-vs2026-x64-release",
+      "configurePreset": "windows-vs2026-x64-release",
+      "displayName": "Windows VS 2026 x64 Release",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-gcc11-debug",
+      "configurePreset": "linux-gcc11-debug",
+      "displayName": "Linux GCC 11 Debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-gcc11-release",
+      "configurePreset": "linux-gcc11-release",
+      "displayName": "Linux GCC 11 Release",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-gcc13-debug",
+      "configurePreset": "linux-gcc13-debug",
+      "displayName": "Linux GCC 13 Debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-gcc13-release",
+      "configurePreset": "linux-gcc13-release",
+      "displayName": "Linux GCC 13 Release",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-gcc14-debug",
+      "configurePreset": "linux-gcc14-debug",
+      "displayName": "Linux GCC 14 Debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-gcc14-release",
+      "configurePreset": "linux-gcc14-release",
+      "displayName": "Linux GCC 14 Release",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-gcc15-debug",
+      "configurePreset": "linux-gcc15-debug",
+      "displayName": "Linux GCC 15 Debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-gcc15-release",
+      "configurePreset": "linux-gcc15-release",
+      "displayName": "Linux GCC 15 Release",
       "configuration": "Release"
     },
     {
@@ -356,27 +722,75 @@
   ],
   "testPresets": [
     {
-      "name": "windows-msvc2022-x64-debug",
-      "configurePreset": "windows-msvc2022-x64-debug",
-      "displayName": "Windows MSVC 2022 x64 Debug",
+      "name": "windows-vs2022-x64-debug",
+      "configurePreset": "windows-vs2022-x64-debug",
+      "displayName": "Windows VS 2022 x64 Debug",
       "configuration": "Debug"
     },
     {
-      "name": "windows-msvc2022-x64-release",
-      "configurePreset": "windows-msvc2022-x64-release",
-      "displayName": "Windows MSVC 2022 x64 Release",
+      "name": "windows-vs2022-x64-release",
+      "configurePreset": "windows-vs2022-x64-release",
+      "displayName": "Windows VS 2022 x64 Release",
       "configuration": "Release"
     },
     {
-      "name": "linux-gcc-debug",
-      "configurePreset": "linux-gcc-debug",
-      "displayName": "Linux GCC Debug",
+      "name": "windows-vs2026-x64-debug",
+      "configurePreset": "windows-vs2026-x64-debug",
+      "displayName": "Windows VS 2026 x64 Debug",
       "configuration": "Debug"
     },
     {
-      "name": "linux-gcc-release",
-      "configurePreset": "linux-gcc-release",
-      "displayName": "Linux GCC Release",
+      "name": "windows-vs2026-x64-release",
+      "configurePreset": "windows-vs2026-x64-release",
+      "displayName": "Windows VS 2026 x64 Release",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-gcc11-debug",
+      "configurePreset": "linux-gcc11-debug",
+      "displayName": "Linux GCC 11 Debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-gcc11-release",
+      "configurePreset": "linux-gcc11-release",
+      "displayName": "Linux GCC 11 Release",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-gcc13-debug",
+      "configurePreset": "linux-gcc13-debug",
+      "displayName": "Linux GCC 13 Debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-gcc13-release",
+      "configurePreset": "linux-gcc13-release",
+      "displayName": "Linux GCC 13 Release",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-gcc14-debug",
+      "configurePreset": "linux-gcc14-debug",
+      "displayName": "Linux GCC 14 Debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-gcc14-release",
+      "configurePreset": "linux-gcc14-release",
+      "displayName": "Linux GCC 14 Release",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-gcc15-debug",
+      "configurePreset": "linux-gcc15-debug",
+      "displayName": "Linux GCC 15 Debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-gcc15-release",
+      "configurePreset": "linux-gcc15-release",
+      "displayName": "Linux GCC 15 Release",
       "configuration": "Release"
     }
   ]

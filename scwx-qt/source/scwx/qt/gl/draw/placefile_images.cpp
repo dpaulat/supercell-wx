@@ -1,7 +1,9 @@
 #include <scwx/qt/gl/draw/placefile_images.hpp>
+#include <scwx/qt/types/placefile_types.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/time.hpp>
 
 #include <QDir>
 #include <QUrl>
@@ -33,37 +35,12 @@ static constexpr std::size_t kTextureBufferLength =
 // Threshold, start time, end time
 static constexpr std::size_t kIntegersPerVertex_ = 3;
 
-struct PlacefileImageInfo
-{
-   PlacefileImageInfo(const std::string& imageFile,
-                      const std::string& baseUrlString)
-   {
-      // Resolve using base URL
-      auto baseUrl = QUrl::fromUserInput(QString::fromStdString(baseUrlString));
-      auto relativeUrl =
-         QUrl(QDir::fromNativeSeparators(QString::fromStdString(imageFile)));
-      resolvedUrl_ = baseUrl.resolved(relativeUrl).toString().toStdString();
-   }
-
-   void UpdateTextureInfo();
-
-   std::string             resolvedUrl_;
-   util::TextureAttributes texture_ {};
-   float                   scaledWidth_ {};
-   float                   scaledHeight_ {};
-};
-
 class PlacefileImages::Impl
 {
 public:
    explicit Impl(const std::shared_ptr<GlContext>& context) :
        context_ {context},
        shaderProgram_ {nullptr},
-       uMVPMatrixLocation_(GL_INVALID_INDEX),
-       uMapMatrixLocation_(GL_INVALID_INDEX),
-       uMapScreenCoordLocation_(GL_INVALID_INDEX),
-       uMapDistanceLocation_(GL_INVALID_INDEX),
-       uSelectedTimeLocation_(GL_INVALID_INDEX),
        vao_ {GL_INVALID_INDEX},
        vbo_ {GL_INVALID_INDEX},
        numVertices_ {0}
@@ -87,9 +64,10 @@ public:
 
    std::mutex imageMutex_;
 
-   boost::unordered_flat_map<std::string, PlacefileImageInfo>
+   boost::unordered_flat_map<std::string, types::PlacefileImageInfo>
       currentImageFiles_ {};
-   boost::unordered_flat_map<std::string, PlacefileImageInfo> newImageFiles_ {};
+   boost::unordered_flat_map<std::string, types::PlacefileImageInfo>
+      newImageFiles_ {};
 
    std::vector<std::shared_ptr<const gr::Placefile::ImageDrawItem>>
       currentImageList_ {};
@@ -104,11 +82,12 @@ public:
    std::vector<float> textureBuffer_ {};
 
    std::shared_ptr<ShaderProgram> shaderProgram_;
-   GLint                          uMVPMatrixLocation_;
-   GLint                          uMapMatrixLocation_;
-   GLint                          uMapScreenCoordLocation_;
-   GLint                          uMapDistanceLocation_;
-   GLint                          uSelectedTimeLocation_;
+
+   GLint uMVPMatrixLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
+   GLint uMapMatrixLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
+   GLint uOriginLatLongLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
+   GLint uMapDistanceLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
+   GLint uSelectedTimeLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
 
    GLuint                vao_;
    std::array<GLuint, 3> vbo_;
@@ -146,8 +125,8 @@ void PlacefileImages::Initialize()
 
    p->uMVPMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMVPMatrix");
    p->uMapMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMapMatrix");
-   p->uMapScreenCoordLocation_ =
-      p->shaderProgram_->GetUniformLocation("uMapScreenCoord");
+   p->uOriginLatLongLocation_ =
+      p->shaderProgram_->GetUniformLocation("uOriginLatLong");
    p->uMapDistanceLocation_ =
       p->shaderProgram_->GetUniformLocation("uMapDistance");
    p->uSelectedTimeLocation_ =
@@ -246,7 +225,7 @@ void PlacefileImages::Render(
       p->shaderProgram_->Use();
       UseRotationProjection(params, p->uMVPMatrixLocation_);
       UseMapProjection(
-         params, p->uMapMatrixLocation_, p->uMapScreenCoordLocation_);
+         params, p->uMapMatrixLocation_, p->uOriginLatLongLocation_);
 
       if (p->thresholded_)
       {
@@ -264,7 +243,7 @@ void PlacefileImages::Render(
       // Selected time
       std::chrono::system_clock::time_point selectedTime =
          (p->selectedTime_ == std::chrono::system_clock::time_point {}) ?
-            std::chrono::system_clock::now() :
+            scwx::util::time::now() :
             p->selectedTime_;
       glUniform1i(
          p->uSelectedTimeLocation_,
@@ -293,14 +272,6 @@ void PlacefileImages::Deinitialize()
    p->currentImageBuffer_.clear();
    p->currentIntegerBuffer_.clear();
    p->textureBuffer_.clear();
-}
-
-void PlacefileImageInfo::UpdateTextureInfo()
-{
-   texture_ = util::TextureAtlas::Instance().GetTextureAttributes(resolvedUrl_);
-
-   scaledWidth_  = texture_.sRight_ - texture_.sLeft_;
-   scaledHeight_ = texture_.tBottom_ - texture_.tTop_;
 }
 
 void PlacefileImages::StartImages(const std::string& baseUrl)
@@ -364,10 +335,10 @@ void PlacefileImages::Impl::UpdateBuffers()
    for (auto& di : newImageList_)
    {
       // Populate image file map
-      newImageFiles_.emplace(
-         std::piecewise_construct,
-         std::tuple {di->imageFile_},
-         std::forward_as_tuple(PlacefileImageInfo {di->imageFile_, baseUrl_}));
+      newImageFiles_.emplace(std::piecewise_construct,
+                             std::tuple {di->imageFile_},
+                             std::forward_as_tuple(types::PlacefileImageInfo {
+                                di->imageFile_, baseUrl_}));
 
       // Threshold value
       units::length::nautical_miles<double> threshold = di->threshold_;
@@ -414,10 +385,11 @@ void PlacefileImages::Impl::UpdateTextureBuffer()
    {
       // Get placefile image info. The key should always be found in the map, as
       // it is populated when the placefile is updated.
-      auto                      it    = currentImageFiles_.find(di->imageFile_);
-      const PlacefileImageInfo& image = (it == currentImageFiles_.cend()) ?
-                                           currentImageFiles_.cbegin()->second :
-                                           it->second;
+      auto it = currentImageFiles_.find(di->imageFile_);
+      const types::PlacefileImageInfo& image =
+         (it == currentImageFiles_.cend()) ?
+            currentImageFiles_.cbegin()->second :
+            it->second;
 
       const float r = static_cast<float>(image.texture_.layerId_);
 

@@ -3,6 +3,7 @@
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/qt/util/tooltip.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/time.hpp>
 
 #include <execution>
 
@@ -79,11 +80,6 @@ public:
    explicit Impl(const std::shared_ptr<GlContext>& context) :
        context_ {context},
        shaderProgram_ {nullptr},
-       uMVPMatrixLocation_(GL_INVALID_INDEX),
-       uMapMatrixLocation_(GL_INVALID_INDEX),
-       uMapScreenCoordLocation_(GL_INVALID_INDEX),
-       uMapDistanceLocation_(GL_INVALID_INDEX),
-       uSelectedTimeLocation_(GL_INVALID_INDEX),
        vao_ {GL_INVALID_INDEX},
        vbo_ {GL_INVALID_INDEX},
        numVertices_ {0}
@@ -127,11 +123,12 @@ public:
    std::vector<IconHoverEntry> newHoverIcons_ {};
 
    std::shared_ptr<ShaderProgram> shaderProgram_;
-   GLint                          uMVPMatrixLocation_;
-   GLint                          uMapMatrixLocation_;
-   GLint                          uMapScreenCoordLocation_;
-   GLint                          uMapDistanceLocation_;
-   GLint                          uSelectedTimeLocation_;
+
+   GLint uMVPMatrixLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
+   GLint uMapMatrixLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
+   GLint uOriginLatLongLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
+   GLint uMapDistanceLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
+   GLint uSelectedTimeLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
 
    GLuint                vao_;
    std::array<GLuint, 3> vbo_;
@@ -168,8 +165,8 @@ void PlacefileIcons::Initialize()
 
    p->uMVPMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMVPMatrix");
    p->uMapMatrixLocation_ = p->shaderProgram_->GetUniformLocation("uMapMatrix");
-   p->uMapScreenCoordLocation_ =
-      p->shaderProgram_->GetUniformLocation("uMapScreenCoord");
+   p->uOriginLatLongLocation_ =
+      p->shaderProgram_->GetUniformLocation("uOriginLatLong");
    p->uMapDistanceLocation_ =
       p->shaderProgram_->GetUniformLocation("uMapDistance");
    p->uSelectedTimeLocation_ =
@@ -277,7 +274,7 @@ void PlacefileIcons::Render(
       p->shaderProgram_->Use();
       UseRotationProjection(params, p->uMVPMatrixLocation_);
       UseMapProjection(
-         params, p->uMapMatrixLocation_, p->uMapScreenCoordLocation_);
+         params, p->uMapMatrixLocation_, p->uOriginLatLongLocation_);
 
       if (p->thresholded_)
       {
@@ -295,7 +292,7 @@ void PlacefileIcons::Render(
       // Selected time
       std::chrono::system_clock::time_point selectedTime =
          (p->selectedTime_ == std::chrono::system_clock::time_point {}) ?
-            std::chrono::system_clock::now() :
+            scwx::util::time::now() :
             p->selectedTime_;
       glUniform1i(
          p->uSelectedTimeLocation_,
@@ -720,7 +717,7 @@ bool PlacefileIcons::RunMousePicking(
    // If no time has been selected, use the current time
    std::chrono::system_clock::time_point selectedTime =
       (p->selectedTime_ == std::chrono::system_clock::time_point {}) ?
-         std::chrono::system_clock::now() :
+         scwx::util::time::now() :
          p->selectedTime_;
 
    // For each pickable icon

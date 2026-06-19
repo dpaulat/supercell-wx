@@ -5,6 +5,8 @@
 #include <scwx/common/color_table.hpp>
 #include <scwx/qt/config/county_database.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/main/application_paths.hpp>
+#include <scwx/qt/main/theme.hpp>
 #include <scwx/qt/manager/media_manager.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
@@ -29,6 +31,7 @@
 #include <scwx/qt/ui/serial_port_dialog.hpp>
 #include <scwx/qt/ui/settings/alert_palette_settings_widget.hpp>
 #include <scwx/qt/ui/settings/hotkey_settings_widget.hpp>
+#include <scwx/qt/ui/settings/radar_site_status_palette_settings_widget.hpp>
 #include <scwx/qt/ui/settings/unit_settings_widget.hpp>
 #include <scwx/qt/ui/wfo_dialog.hpp>
 #include <scwx/qt/util/color.hpp>
@@ -45,7 +48,6 @@
 #include <QGeoPositionInfo>
 #include <QPushButton>
 #include <QStandardItemModel>
-#include <QStandardPaths>
 #include <QToolButton>
 #include <utility>
 
@@ -54,12 +56,11 @@
 #include <qt6ct/paletteeditdialog.h>
 #undef QT6CT_LIBRARY
 
-namespace scwx
+namespace scwx::qt::ui
 {
-namespace qt
-{
-namespace ui
-{
+
+// Extensive usage of "new" with Qt-managed objects
+// NOLINTBEGIN(cppcoreguidelines-owning-memory)
 
 static const std::string logPrefix_ = "scwx::qt::ui::settings_dialog";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
@@ -138,6 +139,8 @@ public:
           &clockFormat_,
           &customStyleDrawLayer_,
           &customStyleUrl_,
+          &screenCaptureFolder_,
+          &screenCaptureName_,
           &defaultTimeZone_,
           &positioningPlugin_,
           &nmeaBaudRate_,
@@ -145,7 +148,9 @@ public:
           &warningsProvider_,
           &radarSiteThreshold_,
           &antiAliasingEnabled_,
+          &autoNavigateToWsr88dOnly_,
           &centerOnRadarSelection_,
+          &screenCaptureOnRefresh_,
           &showMapAttribution_,
           &showMapCenter_,
           &showMapLogo_,
@@ -162,6 +167,7 @@ public:
           &alertAudioRadius_,
           &alertAudioCounty_,
           &alertAudioWFO_,
+          &masterVolume_,
           &hoverTextWrap_,
           &tooltipMethod_,
           &placefileTextDropShadowEnabled_,
@@ -195,6 +201,7 @@ public:
    void SetupGeneralTab();
    void SetupPalettesColorTablesTab();
    void SetupPalettesAlertsTab();
+   void SetupPalettesRadarSiteStatusTab();
    void SetupUnitsTab();
    void SetupAudioTab();
    void SetupTextTab();
@@ -247,6 +254,9 @@ public:
    HotkeySettingsWidget*            hotkeySettingsWidget_ {};
    UnitSettingsWidget*              unitSettingsWidget_ {};
 
+   RadarSiteStatusPaletteSettingsWidget*
+      radarSiteStatusPaletteSettingsWidget_ {};
+
    settings::SettingsInterface<std::string>  defaultRadarSite_ {};
    settings::SettingsInterface<std::int64_t> gridWidth_ {};
    settings::SettingsInterface<std::int64_t> gridHeight_ {};
@@ -261,12 +271,16 @@ public:
    settings::SettingsInterface<std::string>  positioningPlugin_ {};
    settings::SettingsInterface<std::int64_t> nmeaBaudRate_ {};
    settings::SettingsInterface<std::string>  nmeaSource_ {};
+   settings::SettingsInterface<std::string>  screenCaptureFolder_ {};
+   settings::SettingsInterface<std::string>  screenCaptureName_ {};
    settings::SettingsInterface<std::string>  theme_ {};
    settings::SettingsInterface<std::string>  themeFile_ {};
    settings::SettingsInterface<std::string>  warningsProvider_ {};
    settings::SettingsInterface<double>       radarSiteThreshold_ {};
    settings::SettingsInterface<bool>         antiAliasingEnabled_ {};
+   settings::SettingsInterface<bool>         autoNavigateToWsr88dOnly_ {};
    settings::SettingsInterface<bool>         centerOnRadarSelection_ {};
+   settings::SettingsInterface<bool>         screenCaptureOnRefresh_ {};
    settings::SettingsInterface<bool>         showMapAttribution_ {};
    settings::SettingsInterface<bool>         showMapCenter_ {};
    settings::SettingsInterface<bool>         showMapLogo_ {};
@@ -290,6 +304,8 @@ public:
 
    std::unordered_map<awips::Phenomenon, settings::SettingsInterface<bool>>
       alertAudioEnabled_ {};
+
+   settings::SettingsInterface<std::int64_t> masterVolume_ {};
 
    std::unordered_map<types::FontCategory,
                       settings::SettingsInterface<std::string>>
@@ -328,6 +344,9 @@ SettingsDialog::SettingsDialog(QMapLibre::Settings& mapSettings,
 
    // Palettes > Alerts
    p->SetupPalettesAlertsTab();
+
+   // Palettes > Radar Site Status
+   p->SetupPalettesRadarSiteStatusTab();
 
    // Units
    p->SetupUnitsTab();
@@ -590,9 +609,12 @@ void SettingsDialogImpl::SetupGeneralTab()
 
          if (file.isEmpty())
          {
-            const QString appDataPath {QStandardPaths::writableLocation(
-               QStandardPaths::AppLocalDataLocation)};
-            file = appDataPath + "/theme.conf";
+            const std::filesystem::path settingsPath {
+               main::ApplicationPaths::GetLocation(
+                  main::ApplicationPaths::StandardLocation::Settings)};
+            const std::filesystem::path defaultFilePath =
+               settingsPath / "theme.conf";
+            file = QString::fromStdString(defaultFilePath.generic_string());
             self_->ui->themeFileLineEdit->setText(file);
             // setText does not emit the textEdited signal
             Q_EMIT self_->ui->themeFileLineEdit->textEdited(file);
@@ -717,12 +739,59 @@ void SettingsDialogImpl::SetupGeneralTab()
    mapTilerApiKey_.SetResetButton(self_->ui->resetMapTilerApiKeyButton);
    mapTilerApiKey_.EnableTrimming();
 
+   QObject::connect(self_->ui->mapProviderComboBox,
+                    &QComboBox::currentTextChanged,
+                    self_,
+                    [this](const QString& text)
+                    {
+                       const map::MapProvider mapProvider =
+                          map::GetMapProvider(text.toStdString());
+                       const bool providerHasLocalFiles =
+                          mapProvider == map::MapProvider::OpenFreeMap;
+                       self_->ui->customMapUrlToolButton->setEnabled(
+                          providerHasLocalFiles);
+                    });
+
    customStyleUrl_.SetSettingsVariable(generalSettings.custom_style_url());
    customStyleUrl_.SetEditWidget(self_->ui->customMapUrlLineEdit);
    customStyleUrl_.SetResetButton(self_->ui->resetCustomMapUrlButton);
    customStyleUrl_.SetInvalidTooltip(
       "Remove anything following \"?key=\" in the URL");
    customStyleUrl_.EnableTrimming();
+   QObject::connect(
+      self_->ui->customMapUrlToolButton,
+      &QAbstractButton::clicked,
+      self_,
+      [this]()
+      {
+         static const std::string styleFilter = "Map Style (*.json)";
+         static const std::string allFilter   = "All Files (*)";
+
+         // WA_DeleteOnClose manages memory
+         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+         auto dialog = new QFileDialog(self_);
+         dialog->setAttribute(Qt::WA_DeleteOnClose);
+         dialog->setFileMode(QFileDialog::ExistingFile);
+         dialog->setNameFilters(
+            {QObject::tr(styleFilter.c_str()), QObject::tr(allFilter.c_str())});
+
+         QObject::connect(dialog,
+                          &QFileDialog::fileSelected,
+                          self_,
+                          [this](const QString& file)
+                          {
+                             const QString path =
+                                QDir::toNativeSeparators(file);
+
+                             logger_->info("Selected Custom Style URL file: {}",
+                                           path.toStdString());
+
+                             self_->ui->customMapUrlLineEdit->setText(path);
+                             // setText does not emit the textEdited signal
+                             self_->ui->customMapUrlLineEdit->textEdited(path);
+                          });
+         dialog->open();
+      });
 
    customStyleDrawLayer_.SetSettingsVariable(
       generalSettings.custom_style_draw_layer());
@@ -753,6 +822,47 @@ void SettingsDialogImpl::SetupGeneralTab()
 
          customLayerDialog->open();
       });
+
+   screenCaptureFolder_.SetSettingsVariable(
+      generalSettings.screen_capture_folder());
+   screenCaptureFolder_.SetEditWidget(self_->ui->screenCaptureFolderLineEdit);
+   screenCaptureFolder_.SetResetButton(
+      self_->ui->resetScreenCaptureFolderButton);
+   QObject::connect(
+      self_->ui->screenCaptureFolderButton,
+      &QAbstractButton::clicked,
+      self_,
+      [this]()
+      {
+         // WA_DeleteOnClose manages memory
+         // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+         auto dialog = new QFileDialog(self_);
+         dialog->setAttribute(Qt::WA_DeleteOnClose);
+         dialog->setFileMode(QFileDialog::FileMode::Directory);
+
+         QObject::connect(
+            dialog,
+            &QFileDialog::fileSelected,
+            self_,
+            [this](const QString& file)
+            {
+               const QString path = QDir::toNativeSeparators(file);
+
+               logger_->info("Selected screen capture folder: {}",
+                             path.toStdString());
+               self_->ui->screenCaptureFolderLineEdit->setText(path);
+
+               // setText does not emit the textEdited signal
+               Q_EMIT self_->ui->screenCaptureFolderLineEdit->textEdited(path);
+            });
+
+         dialog->open();
+      });
+
+   screenCaptureName_.SetSettingsVariable(
+      generalSettings.screen_capture_name());
+   screenCaptureName_.SetEditWidget(self_->ui->screenCaptureNameLineEdit);
+   screenCaptureName_.SetResetButton(self_->ui->resetScreenCaptureNameButton);
 
    defaultAlertAction_.SetSettingsVariable(
       generalSettings.default_alert_action());
@@ -845,10 +955,20 @@ void SettingsDialogImpl::SetupGeneralTab()
       generalSettings.anti_aliasing_enabled());
    antiAliasingEnabled_.SetEditWidget(self_->ui->antiAliasingEnabledCheckBox);
 
+   autoNavigateToWsr88dOnly_.SetSettingsVariable(
+      generalSettings.auto_navigate_to_wsr88d_only());
+   autoNavigateToWsr88dOnly_.SetEditWidget(
+      self_->ui->autoNavigateToWsr88dOnlyCheckBox);
+
    centerOnRadarSelection_.SetSettingsVariable(
       generalSettings.center_on_radar_selection());
    centerOnRadarSelection_.SetEditWidget(
       self_->ui->centerOnRadarSelectionCheckBox);
+
+   screenCaptureOnRefresh_.SetSettingsVariable(
+      generalSettings.screen_capture_on_refresh());
+   screenCaptureOnRefresh_.SetEditWidget(
+      self_->ui->screenCaptureOnRefreshCheckBox);
 
    showMapAttribution_.SetSettingsVariable(
       generalSettings.show_map_attribution());
@@ -979,10 +1099,23 @@ void SettingsDialogImpl::SetupPalettesAlertsTab()
    QVBoxLayout* layout = new QVBoxLayout(self_->ui->alertsPalette);
 
    alertPaletteSettingsWidget_ =
-      new AlertPaletteSettingsWidget(self_->ui->hotkeys);
+      new AlertPaletteSettingsWidget(self_->ui->alertsPalette);
    layout->addWidget(alertPaletteSettingsWidget_);
 
    settingsPages_.push_back(alertPaletteSettingsWidget_);
+}
+
+void SettingsDialogImpl::SetupPalettesRadarSiteStatusTab()
+{
+   // Palettes > Radar Site Status
+   auto layout = new QVBoxLayout(self_->ui->radarSiteStatusPalette);
+
+   radarSiteStatusPaletteSettingsWidget_ =
+      new RadarSiteStatusPaletteSettingsWidget(
+         self_->ui->radarSiteStatusPalette);
+   layout->addWidget(radarSiteStatusPaletteSettingsWidget_);
+
+   settingsPages_.push_back(radarSiteStatusPaletteSettingsWidget_);
 }
 
 void SettingsDialogImpl::SetupUnitsTab()
@@ -1299,6 +1432,11 @@ void SettingsDialogImpl::SetupAudioTab()
    alertAudioWFO_.SetEditWidget(self_->ui->alertAudioWFOLineEdit);
    alertAudioWFO_.SetResetButton(self_->ui->resetAlertAudioWFOButton);
    alertAudioWFO_.EnableTrimming();
+
+   masterVolume_.SetSettingsVariable(audioSettings.master_volume());
+   masterVolume_.SetEditWidget(self_->ui->masterVolumeSlider);
+   masterVolume_.SetLabelWidget(self_->ui->masterVolumeLabel);
+   masterVolume_.SetResetButton(self_->ui->resetMasterVolumeButton);
 }
 
 void SettingsDialogImpl::SetupTextTab()
@@ -1479,6 +1617,7 @@ QFont SettingsDialogImpl::GetSelectedFont()
                                     QString::fromStdString(fontStyle),
                                     static_cast<int>(fontSize.value()));
    font.setPointSizeF(fontSize.value());
+   font.setHintingPreference(QFont::HintingPreference::PreferNoHinting);
 
    return font;
 }
@@ -1520,16 +1659,28 @@ void SettingsDialogImpl::ApplyChanges()
 {
    logger_->info("Applying settings changes");
 
-   bool committed = false;
+   bool committed    = false;
+   bool themeUpdated = false;
 
    for (auto& setting : settings_)
    {
-      committed |= setting->Commit();
+      const bool settingCommitted = setting->Commit();
+
+      committed |= settingCommitted;
+      if (settingCommitted && (setting == &theme_ || setting == &themeFile_))
+      {
+         themeUpdated = true;
+      }
    }
 
    for (auto& page : settingsPages_)
    {
       committed |= page->CommitChanges();
+   }
+
+   if (themeUpdated)
+   {
+      main::ApplyTheme();
    }
 
    if (committed)
@@ -1574,6 +1725,6 @@ std::string SettingsDialogImpl::RadarSiteLabel(
    return fmt::format("{} ({})", radarSite->id(), radarSite->location_name());
 }
 
-} // namespace ui
-} // namespace qt
-} // namespace scwx
+// NOLINTEND(cppcoreguidelines-owning-memory)
+
+} // namespace scwx::qt::ui

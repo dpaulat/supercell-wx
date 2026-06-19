@@ -1,21 +1,17 @@
 #include <scwx/util/logger.hpp>
 
-#include <mutex>
-
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-namespace scwx
-{
-namespace util
-{
-namespace Logger
+namespace scwx::util::Logger
 {
 
 static const std::string logPattern_ = "[%Y-%m-%d %T.%e] [%t] [%^%l%$] [%n] %v";
 
 static std::vector<std::shared_ptr<spdlog::sinks::sink>> extraSinks_ {};
+
+static void AddDefaultSink();
 
 void Initialize()
 {
@@ -26,6 +22,24 @@ void Initialize()
 
    // Flush whenever logging info or higher
    spdlog::flush_on(spdlog::level::level_enum::info);
+
+   AddDefaultSink();
+}
+
+void AddDefaultSink()
+{
+   const auto defaultSink =
+      std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+   defaultSink->set_pattern(logPattern_);
+
+   spdlog::apply_all(
+      [&](const std::shared_ptr<spdlog::logger>& logger)
+      {
+         auto& sinks = logger->sinks();
+         sinks.push_back(defaultSink);
+      });
+
+   extraSinks_.push_back(defaultSink);
 }
 
 void AddFileSink(const std::string& baseFilename)
@@ -40,7 +54,7 @@ void AddFileSink(const std::string& baseFilename)
    fileSink->set_pattern(logPattern_);
 
    spdlog::apply_all(
-      [&](std::shared_ptr<spdlog::logger> logger)
+      [&](const std::shared_ptr<spdlog::logger>& logger)
       {
          auto& sinks = logger->sinks();
          sinks.push_back(fileSink);
@@ -51,12 +65,9 @@ void AddFileSink(const std::string& baseFilename)
 
 std::shared_ptr<spdlog::logger> Create(const std::string& name)
 {
-   // Create a shared sink
-   static auto sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-
-   // Create the logger
+   // Create the empty logger
    std::shared_ptr<spdlog::logger> logger =
-      std::make_shared<spdlog::logger>(name, sink);
+      std::make_shared<spdlog::logger>(name);
 
    // Add additional registered sinks
    for (auto& extraSink : extraSinks_)
@@ -71,6 +82,4 @@ std::shared_ptr<spdlog::logger> Create(const std::string& name)
    return logger;
 }
 
-} // namespace Logger
-} // namespace util
-} // namespace scwx
+} // namespace scwx::util::Logger

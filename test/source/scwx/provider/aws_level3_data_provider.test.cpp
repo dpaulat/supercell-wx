@@ -76,7 +76,7 @@ TEST(AwsLevel3DataProvider, GetTimePointsByDate)
 
    AwsLevel3DataProvider provider("KLSX", "N0Q");
 
-   auto timePoints = provider.GetTimePointsByDate(date);
+   auto timePoints = provider.GetTimePointsByDate(date, true);
 
    EXPECT_GT(timePoints.size(), 0);
    for (auto timePoint : timePoints)

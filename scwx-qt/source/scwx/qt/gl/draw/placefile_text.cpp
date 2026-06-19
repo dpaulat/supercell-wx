@@ -1,10 +1,10 @@
 #include <scwx/qt/gl/draw/placefile_text.hpp>
 #include <scwx/qt/manager/font_manager.hpp>
-#include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/tooltip.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/time.hpp>
 
 #include <fmt/format.h>
 #include <imgui.h>
@@ -61,8 +61,12 @@ public:
    std::vector<std::shared_ptr<const gr::Placefile::TextDrawItem>> textList_ {};
    std::vector<std::shared_ptr<const gr::Placefile::TextDrawItem>> newList_ {};
 
-   std::vector<std::shared_ptr<types::ImGuiFont>> fonts_ {};
-   std::vector<std::shared_ptr<types::ImGuiFont>> newFonts_ {};
+   std::vector<std::pair<std::shared_ptr<types::ImGuiFont>,
+                         units::font_size::pixels<float>>>
+      fonts_ {};
+   std::vector<std::pair<std::shared_ptr<types::ImGuiFont>,
+                         units::font_size::pixels<float>>>
+      newFonts_ {};
 };
 
 PlacefileText::PlacefileText(const std::string& placefileName) :
@@ -127,7 +131,7 @@ void PlacefileText::Impl::RenderTextDrawItem(
    // If no time has been selected, use the current time
    std::chrono::system_clock::time_point selectedTime =
       (selectedTime_ == std::chrono::system_clock::time_point {}) ?
-         std::chrono::system_clock::now() :
+         scwx::util::time::now() :
          selectedTime_;
 
    const bool thresholdMet =
@@ -158,7 +162,8 @@ void PlacefileText::Impl::RenderTextDrawItem(
       std::size_t fontNumber = std::clamp<std::size_t>(di->fontNumber_, 0, 8);
 
       // Set the font for the drop shadow and text
-      ImGui::PushFont(fonts_[fontNumber]->font());
+      ImGui::PushFont(fonts_[fontNumber].first->font(),
+                      fonts_[fontNumber].second.value());
 
       if (settings::TextSettings::Instance()
              .placefile_text_drop_shadow_enabled()
@@ -260,9 +265,7 @@ void PlacefileText::StartText()
    p->newList_.clear();
 }
 
-void PlacefileText::SetFonts(
-   const boost::unordered_flat_map<std::size_t,
-                                   std::shared_ptr<types::ImGuiFont>>& fonts)
+void PlacefileText::SetFonts(const manager::PlacefileManager::FontMap& fonts)
 {
    auto defaultFont = manager::FontManager::Instance().GetImGuiFont(
       types::FontCategory::Default);
