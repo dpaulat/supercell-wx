@@ -53,11 +53,14 @@ bool MapImGuiVulkanRenderer::InitBackend(void* renderPass)
    initInfo.Device            = vkHandles->dev;
    initInfo.QueueFamily       = vkHandles->gfxQueueFamilyIdx;
    initInfo.Queue             = vkHandles->gfxQueue;
-   initInfo.RenderPass        = static_cast<VkRenderPass>(renderPass);
+   initInfo.PipelineInfoMain.RenderPass =
+      static_cast<VkRenderPass>(renderPass);
+   initInfo.PipelineInfoMain.Subpass     = 0;
+   initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
    initInfo.MinImageCount     = 2;
    initInfo.ImageCount        = 2;
    initInfo.DescriptorPoolSize =
-      IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE * 16;
+      IMGUI_IMPL_VULKAN_MINIMUM_SAMPLED_IMAGE_POOL_SIZE * 16;
    initInfo.UseDynamicRendering = false;
    initInfo.CheckVkResultFn     = CheckVkResult;
    initInfo.MinAllocationSize   = 1024 * 1024;
