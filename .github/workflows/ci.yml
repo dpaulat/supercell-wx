@@ -250,7 +250,7 @@ jobs:
                     conan
 
     - name: Cache Conan Packages
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.conan2
         key: build-v2-${{ matrix.conan_profile }}-${{ hashFiles('./source/conanfile.py', './source/tools/conan/profiles/*') }}
