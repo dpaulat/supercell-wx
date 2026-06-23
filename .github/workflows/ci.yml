@@ -94,11 +94,11 @@ jobs:
             appimage_arch: x86_64
             artifact_suffix: linux-gcc-13-x64
             compiler_packages: ''
-          - name: linux_clang-18_x64
+          - name: linux_clang-21_x64
             os: ubuntu-24.04
             build_type: Release
-            env_cc: clang-18
-            env_cxx: clang++-18
+            env_cc: clang-21
+            env_cxx: clang++-21
             compiler: clang
             cppflags: ''
             ldflags: ''
@@ -108,10 +108,10 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_clang-18
+            conan_profile: scwx-linux_clang-21
             appimage_arch: x86_64
-            artifact_suffix: linux-clang-18-x64
-            compiler_packages: clang-18
+            artifact_suffix: linux-clang-21-x64
+            compiler_packages: ''
           - name: linux_gcc-13_arm64
             os: ubuntu-24.04-arm
             build_type: Release
@@ -209,12 +209,22 @@ jobs:
             }
           }
 
+    - name: Install LLVM 21
+      if: ${{ matrix.env_cc == 'clang-21' }}
+      shell: bash
+      run: |
+        wget -q https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 21
+
     - name: Setup Ubuntu Environment
       if: ${{ startsWith(matrix.os, 'ubuntu') }}
       shell: bash
       run: |
         sudo apt-get install doxygen \
+                             ccache \
                              libfuse2 \
+                             libvulkan-dev \
                              ninja-build \
                              wayland-protocols \
                              libwayland-dev \
@@ -230,6 +240,23 @@ jobs:
                     /usr/share/dotnet \
                     /usr/share/swift
         df -h
+
+    - name: Cache ccache
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      uses: actions/cache@v5
+      with:
+        path: ~/.ccache
+        key: ccache-${{ matrix.name }}-${{ hashFiles('./source/conanfile.py', './source/tools/conan/profiles/*') }}
+        restore-keys: |
+          ccache-${{ matrix.name }}-
+
+    - name: Setup ccache
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      shell: bash
+      run: |
+        ccache --max-size=2G
+        echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
+        echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
 
     - name: Setup macOS Environment
       if: ${{ startsWith(matrix.os, 'macos') }}
@@ -271,7 +298,6 @@ jobs:
           --settings:all build_type=${{ matrix.build_type }} `
           --output-folder ./conan/ `
           ${{ matrix.conan_package_manager }}
-        conan cache clean
 
     - name: Build Supercell Wx
       shell: pwsh
