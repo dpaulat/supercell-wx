@@ -1,4 +1,5 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
+#include <scwx/qt/manager/provider_manager.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/common/constants.hpp>
@@ -107,6 +108,27 @@ TEST(RadarProductManager, CoordinateGenerationMatchesGeodesicReference)
                              units::angle::degrees<float> {1.0f},
                              units::angle::degrees<float> {0.5f},
                              0.5f);
+}
+
+TEST(ProviderManager, NameFormatting)
+{
+   config::RadarSite::Initialize();
+
+   RadarProductManager   radarProductManager {"KLSX"};
+   const ProviderManager level2ProviderManager {
+      &radarProductManager, "KLSX", common::RadarProductGroup::Level2};
+   const ProviderManager level3ProviderManager {
+      &radarProductManager, "KLSX", common::RadarProductGroup::Level3, "N0B"};
+   const ProviderManager level2ChunksProviderManager {
+      &radarProductManager,
+      "KLSX",
+      common::RadarProductGroup::Level2,
+      "???",
+      true};
+
+   EXPECT_EQ(level2ProviderManager.name(), "KLSX, L2");
+   EXPECT_EQ(level3ProviderManager.name(), "KLSX, L3, N0B");
+   EXPECT_EQ(level2ChunksProviderManager.name(), "KLSX, L2");
 }
 
 } // namespace scwx::qt::manager

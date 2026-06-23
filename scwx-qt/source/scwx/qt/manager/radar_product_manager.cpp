@@ -1,8 +1,9 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
+#include <scwx/qt/manager/provider_manager.hpp>
+#include <scwx/qt/manager/radar_coordinate_table.hpp>
 #include <scwx/qt/manager/radar_product_manager_notifier.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/time_types.hpp>
-#include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/common/constants.hpp>
 #include <scwx/provider/aws_level2_chunks_data_provider.hpp>
 #include <scwx/provider/nexrad_data_provider_factory.hpp>
@@ -13,9 +14,11 @@
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 
 #include <execution>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <shared_mutex>
+#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -28,12 +31,7 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/thread_pool.hpp>
 #include <boost/container_hash/hash.hpp>
-#include <boost/range/irange.hpp>
-#include <boost/timer/timer.hpp>
 #include <fmt/chrono.h>
-#include <GeographicLib/GeodesicLine.hpp>
-#include <qmaplibre.hpp>
-#include <units/angle.h>
 
 #if defined(_MSC_VER)
 #   pragma warning(pop)
@@ -54,34 +52,7 @@ typedef std::map<std::chrono::system_clock::time_point,
 typedef std::list<std::shared_ptr<types::RadarProductRecord>>
    RadarProductRecordList;
 
-static constexpr uint32_t NUM_RADIAL_GATES_0_5_DEGREE =
-   common::MAX_0_5_DEGREE_RADIALS * common::MAX_DATA_MOMENT_GATES;
-static constexpr uint32_t NUM_RADIAL_GATES_1_DEGREE =
-   common::MAX_1_DEGREE_RADIALS * common::MAX_DATA_MOMENT_GATES;
-static constexpr uint32_t NUM_COORIDNATES_0_5_DEGREE =
-   NUM_RADIAL_GATES_0_5_DEGREE * 2;
-static constexpr uint32_t NUM_COORIDNATES_1_DEGREE =
-   NUM_RADIAL_GATES_1_DEGREE * 2;
-static constexpr uint32_t NUM_RADIALS_0_5_DEGREE =
-   common::MAX_0_5_DEGREE_RADIALS;
-static constexpr uint32_t NUM_RADIALS_1_DEGREE = common::MAX_1_DEGREE_RADIALS;
-
-// Coordinate grid tuning: radial step (deg), extra azimuth when smoothing is
-// on, and first-gate fractional offset into slant range (matches prior layout).
-static constexpr float kCoordinateRadialStepDegrees0_5_ {0.5F};
-static constexpr float kCoordinateSmoothingRadialOffsetDegrees0_5_ {0.25F};
-static constexpr float kCoordinateSmoothingRadialOffsetDegrees1_0_ {0.5F};
-static constexpr float kCoordinateSmoothingGateRangeOffset_ {0.5F};
-static constexpr float kCoordinateNoSmoothingGateRangeOffset_ {1.0F};
-
 static const std::string kDefaultLevel3Product_ {"N0B"};
-
-static constexpr std::size_t kTimerPlaces_ {6u};
-
-static constexpr std::chrono::seconds kFastRetryInterval_ {15};
-static constexpr std::chrono::seconds kFastRetryIntervalChunks_ {3};
-static constexpr std::chrono::seconds kSlowRetryInterval_ {120};
-static constexpr std::chrono::seconds kSlowRetryIntervalChunks_ {20};
 
 static std::unordered_map<std::string, std::weak_ptr<RadarProductManager>>
                          instanceMap_;
@@ -93,66 +64,6 @@ static std::unordered_map<std::string,
 static std::shared_mutex fileIndexMutex_;
 
 static std::mutex fileLoadMutex_;
-
-class ProviderManager : public QObject
-{
-   Q_OBJECT
-public:
-   explicit ProviderManager(RadarProductManager*      self,
-                            std::string               radarId,
-                            common::RadarProductGroup group,
-                            std::string               product  = "???",
-                            bool                      isChunks = false) :
-       radarId_ {std::move(radarId)},
-       group_ {group},
-       product_ {std::move(product)},
-       isChunks_ {isChunks}
-   {
-      connect(this,
-              &ProviderManager::NewDataAvailable,
-              self,
-              [this, self](common::RadarProductGroup             group,
-                           const std::string&                    product,
-                           std::chrono::system_clock::time_point latestTime)
-              {
-                 Q_EMIT self->NewDataAvailable(
-                    group, product, isChunks_, latestTime);
-              });
-   }
-   ~ProviderManager() override
-   {
-      if (provider_ != nullptr)
-      {
-         provider_->Shutdown();
-      }
-
-      providerThreadPool_.stop();
-      providerThreadPool_.join();
-   };
-
-   std::string name() const;
-
-   void Disable(bool shutdown = false);
-   void RefreshData();
-   void RefreshDataSync();
-
-   boost::asio::thread_pool providerThreadPool_ {2u};
-
-   const std::string               radarId_;
-   const common::RadarProductGroup group_;
-   const std::string               product_;
-   const bool                      isChunks_;
-   bool                            refreshEnabled_ {false};
-   boost::asio::steady_timer       refreshTimer_ {providerThreadPool_};
-   std::mutex                      refreshTimerMutex_ {};
-   std::shared_ptr<provider::NexradDataProvider> provider_ {nullptr};
-   size_t                                        refreshCount_ {0};
-
-signals:
-   void NewDataAvailable(common::RadarProductGroup             group,
-                         const std::string&                    product,
-                         std::chrono::system_clock::time_point latestTime);
-};
 
 class RadarProductManagerImpl
 {
@@ -175,21 +86,29 @@ public:
          radarSite_ = std::make_shared<config::RadarSite>();
       }
 
-      level2ProviderManager_->provider_ =
-         provider::NexradDataProviderFactory::CreateLevel2DataProvider(radarId);
-      level2ChunksProviderManager_->provider_ =
+      level2ProviderManager_->set_provider(
+         provider::NexradDataProviderFactory::CreateLevel2DataProvider(
+            radarId));
+      level2ChunksProviderManager_->set_provider(
          provider::NexradDataProviderFactory::CreateLevel2ChunksDataProvider(
-            radarId);
+            radarId));
 
       auto level2ChunksProvider =
          std::dynamic_pointer_cast<provider::AwsLevel2ChunksDataProvider>(
-            level2ChunksProviderManager_->provider_);
+            level2ChunksProviderManager_->provider());
       if (level2ChunksProvider != nullptr)
       {
          level2ChunksProvider->SetLevel2DataProvider(
             std::dynamic_pointer_cast<provider::AwsLevel2DataProvider>(
-               level2ProviderManager_->provider_));
+               level2ProviderManager_->provider()));
       }
+
+      // Match RadarProductManager::gate_size(); cannot call self_->gate_size()
+      // here because RadarProductManager::p is not constructed yet.
+      // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
+      const float gateSize = (radarSite_->type() == "tdwr") ? 150.0f : 250.0f;
+      coordinateTable_     = std::make_unique<RadarCoordinateTable>(
+         radarSite_->latitude(), radarSite_->longitude(), gateSize);
    }
    ~RadarProductManagerImpl()
    {
@@ -266,14 +185,6 @@ public:
 
    void UpdateAvailableProductsSync();
 
-   void CalculateCoordinates(uint32_t                           radialCount,
-                             const units::angle::degrees<float> radialAngle,
-                             const units::angle::degrees<float> angleOffset,
-                             float                              gateRangeOffset,
-                             std::vector<float>& outputCoordinates);
-   void EnsureCoordinatesInitialized(common::RadialSize radialSize,
-                                     bool               smoothingEnabled);
-
    static bool AreProductTimesPopulated(
       const std::shared_ptr<ProviderManager>& providerManager,
       std::chrono::system_clock::time_point   time);
@@ -299,13 +210,7 @@ public:
    std::shared_ptr<config::RadarSite> radarSite_;
    std::size_t                        cacheLimit_ {6u};
 
-   // Lat/lon per radial/gate. Filled on first coordinates() for each table, not
-   // in Initialize(). coordinatesMutex_ serializes checks and builds so callers
-   // never observe a partially filled table.
-   std::vector<float> coordinates0_5Degree_ {};
-   std::vector<float> coordinates0_5DegreeSmooth_ {};
-   std::vector<float> coordinates1Degree_ {};
-   std::vector<float> coordinates1DegreeSmooth_ {};
+   std::unique_ptr<RadarCoordinateTable> coordinateTable_ {};
 
    RadarProductRecordMap  level2ProductRecords_ {};
    RadarProductRecordList level2ProductRecentRecords_ {};
@@ -323,7 +228,6 @@ public:
    std::shared_mutex level3ProviderManagerMutex_ {};
 
    std::mutex initializeMutex_ {};
-   std::mutex coordinatesMutex_ {};
    std::mutex level3ProductsInitializeMutex_ {};
    std::mutex loadLevel2DataMutex_ {};
    std::mutex loadLevel3DataMutex_ {};
@@ -345,40 +249,6 @@ RadarProductManager::RadarProductManager(const std::string& radarId) :
 {
 }
 RadarProductManager::~RadarProductManager() = default;
-
-std::string ProviderManager::name() const
-{
-   std::string name;
-
-   if (group_ == common::RadarProductGroup::Level3)
-   {
-      name = fmt::format("{}, {}, {}",
-                         radarId_,
-                         common::GetRadarProductGroupName(group_),
-                         product_);
-   }
-   else
-   {
-      name = fmt::format(
-         "{}, {}", radarId_, common::GetRadarProductGroupName(group_));
-   }
-
-   return name;
-}
-
-void ProviderManager::Disable(bool shutdown)
-{
-   logger_->debug("Disabling refresh: {}", name());
-
-   std::unique_lock lock(refreshTimerMutex_);
-   refreshEnabled_ = false;
-   refreshTimer_.cancel();
-
-   if (shutdown && provider_ != nullptr)
-   {
-      provider_->Shutdown();
-   }
-}
 
 void RadarProductManager::Cleanup()
 {
@@ -449,36 +319,12 @@ void RadarProductManager::DumpRecords()
 }
 
 // Cached lat/lon grid; first use for a (radialSize, smoothing) pair may block
-// on EnsureCoordinatesInitialized.
+// on lazy initialization inside RadarCoordinateTable.
 const std::vector<float>&
 RadarProductManager::coordinates(common::RadialSize radialSize,
                                  bool               smoothingEnabled) const
 {
-   p->EnsureCoordinatesInitialized(radialSize, smoothingEnabled);
-
-   switch (radialSize)
-   {
-   case common::RadialSize::_0_5Degree:
-      if (smoothingEnabled)
-      {
-         return p->coordinates0_5DegreeSmooth_;
-      }
-      else
-      {
-         return p->coordinates0_5Degree_;
-      }
-   case common::RadialSize::_1Degree:
-      if (smoothingEnabled)
-      {
-         return p->coordinates1DegreeSmooth_;
-      }
-      else
-      {
-         return p->coordinates1Degree_;
-      }
-   default:
-      throw std::invalid_argument("Invalid radial size");
-   }
+   return p->coordinateTable_->coordinates(radialSize, smoothingEnabled);
 }
 const scwx::util::time_zone* RadarProductManager::default_time_zone() const
 {
@@ -559,136 +405,6 @@ void RadarProductManager::Initialize()
    p->initialized_ = true;
 }
 
-// One GeodesicLine per radial (Position per gate). Parallelism is over radials.
-void RadarProductManagerImpl::CalculateCoordinates(
-   uint32_t                           radialCount,
-   const units::angle::degrees<float> radialAngle,
-   const units::angle::degrees<float> angleOffset,
-   float                              gateRangeOffset,
-   std::vector<float>&                outputCoordinates)
-{
-   const GeographicLib::Geodesic& geodesic(
-      util::GeographicLib::DefaultGeodesic());
-
-   const QMapLibre::Coordinate radar(radarSite_->latitude(),
-                                     radarSite_->longitude());
-
-   const float gateSize = self_->gate_size();
-
-   const auto   radials = boost::irange<uint32_t>(0, radialCount);
-   const double radarLatitude {radar.first};
-   const double radarLongitude {radar.second};
-   const float  radialStep {radialAngle.value()};
-   const float  radialOffset {angleOffset.value()};
-
-   std::for_each(
-      std::execution::par_unseq,
-      radials.begin(),
-      radials.end(),
-      [&](uint32_t radial)
-      {
-         const float angle =
-            static_cast<float>(radial) * radialStep + radialOffset;
-         const auto geodesicLine =
-            geodesic.Line(radarLatitude, radarLongitude, angle);
-         const std::size_t baseOffset =
-            static_cast<std::size_t>(radial) *
-            static_cast<std::size_t>(common::MAX_DATA_MOMENT_GATES) * 2;
-
-         for (uint32_t gate = 0; gate < common::MAX_DATA_MOMENT_GATES; ++gate)
-         {
-            const float range =
-               (static_cast<float>(gate) + gateRangeOffset) * gateSize;
-            const std::size_t offset =
-               baseOffset + static_cast<std::size_t>(gate) * 2;
-
-            double latitude  = 0.0;
-            double longitude = 0.0;
-
-            geodesicLine.Position(range, latitude, longitude);
-
-            outputCoordinates[offset]     = static_cast<float>(latitude);
-            outputCoordinates[offset + 1] = static_cast<float>(longitude);
-         }
-      });
-}
-
-// One-time table fill under coordinatesMutex_. All readiness checks and writes
-// stay under the same lock so no thread sees non-empty after resize() before
-// CalculateCoordinates() finishes (avoids data races on empty()/size()).
-void RadarProductManagerImpl::EnsureCoordinatesInitialized(
-   common::RadialSize radialSize, bool smoothingEnabled)
-{
-   std::vector<float>*                         targetCoordinates = nullptr;
-   uint32_t                                    coordinateCount   = 0;
-   uint32_t                                    radialCount       = 0;
-   std::optional<units::angle::degrees<float>> radialAngle {};
-   std::optional<units::angle::degrees<float>> angleOffset {};
-   float                                       gateRangeOffset = 0.0f;
-   const char*                                 timerName       = nullptr;
-
-   switch (radialSize)
-   {
-   case common::RadialSize::_0_5Degree:
-      targetCoordinates = smoothingEnabled ? &coordinates0_5DegreeSmooth_ :
-                                             &coordinates0_5Degree_;
-      coordinateCount   = NUM_COORIDNATES_0_5_DEGREE;
-      radialCount       = NUM_RADIALS_0_5_DEGREE;
-      radialAngle =
-         units::angle::degrees<float> {kCoordinateRadialStepDegrees0_5_};
-      angleOffset = units::angle::degrees<float> {
-         smoothingEnabled ? kCoordinateSmoothingRadialOffsetDegrees0_5_ : 0.0F};
-      gateRangeOffset = smoothingEnabled ?
-                           kCoordinateSmoothingGateRangeOffset_ :
-                           kCoordinateNoSmoothingGateRangeOffset_;
-      timerName       = smoothingEnabled ? "Coordinates (0.5 degree smooth)" :
-                                           "Coordinates (0.5 degree)";
-      break;
-   case common::RadialSize::_1Degree:
-      targetCoordinates =
-         smoothingEnabled ? &coordinates1DegreeSmooth_ : &coordinates1Degree_;
-      coordinateCount = NUM_COORIDNATES_1_DEGREE;
-      radialCount     = NUM_RADIALS_1_DEGREE;
-      radialAngle     = units::angle::degrees<float> {1.0f};
-      angleOffset     = units::angle::degrees<float> {
-         smoothingEnabled ? kCoordinateSmoothingRadialOffsetDegrees1_0_ : 0.0F};
-      gateRangeOffset = smoothingEnabled ?
-                           kCoordinateSmoothingGateRangeOffset_ :
-                           kCoordinateNoSmoothingGateRangeOffset_;
-      timerName       = smoothingEnabled ? "Coordinates (1 degree smooth)" :
-                                           "Coordinates (1 degree)";
-      break;
-   default:
-      return;
-   }
-
-   std::unique_lock<std::mutex> const lock {coordinatesMutex_};
-   if (targetCoordinates == nullptr || !targetCoordinates->empty())
-   {
-      return;
-   }
-
-   // Switch arms above always set these; keeps static analysis safe if enum
-   // grows.
-   if (!radialAngle.has_value() || !angleOffset.has_value())
-   {
-      return;
-   }
-
-   targetCoordinates->resize(coordinateCount);
-
-   boost::timer::cpu_timer timer {};
-   timer.start();
-   CalculateCoordinates(radialCount,
-                        radialAngle.value(),
-                        angleOffset.value(),
-                        gateRangeOffset,
-                        *targetCoordinates);
-   timer.stop();
-   logger_->debug(
-      "{} calculated in {}", timerName, timer.format(kTimerPlaces_, "%ws"));
-}
-
 std::shared_ptr<ProviderManager>
 RadarProductManagerImpl::GetLevel3ProviderManager(const std::string& product)
 {
@@ -701,9 +417,9 @@ RadarProductManagerImpl::GetLevel3ProviderManager(const std::string& product)
          std::forward_as_tuple(product),
          std::forward_as_tuple(std::make_shared<ProviderManager>(
             self_, radarId_, common::RadarProductGroup::Level3, product)));
-      level3ProviderManagerMap_.at(product)->provider_ =
-         provider::NexradDataProviderFactory::CreateLevel3DataProvider(radarId_,
-                                                                       product);
+      level3ProviderManagerMap_.at(product)->set_provider(
+         provider::NexradDataProviderFactory::CreateLevel3DataProvider(
+            radarId_, product));
    }
 
    std::shared_ptr<ProviderManager> providerManager =
@@ -738,9 +454,9 @@ void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
             {
                try
                {
-                  providerManager->provider_->RequestAvailableProducts();
+                  providerManager->provider()->RequestAvailableProducts();
                   const auto availableProducts =
-                     providerManager->provider_->GetAvailableProducts();
+                     providerManager->provider()->GetAvailableProducts();
 
                   if (std::find(std::execution::par,
                                 availableProducts.cbegin(),
@@ -776,13 +492,13 @@ void RadarProductManagerImpl::EnableRefresh(
    {
       for (const auto& currentProviderManager : currentProviderManagers->second)
       {
-         currentProviderManager->refreshCount_ -= 1;
+         currentProviderManager->decrement_refresh_count();
          // If the enabling refresh for a different product, or disabling
          // refresh
          if (!providerManagers.contains(currentProviderManager) || !enabled)
          {
             // If this is the last reference to the provider in the refresh map
-            if (currentProviderManager->refreshCount_ == 0)
+            if (currentProviderManager->refresh_count() == 0)
             {
                // Disable current provider
                currentProviderManager->Disable();
@@ -801,7 +517,7 @@ void RadarProductManagerImpl::EnableRefresh(
       refreshMap_.emplace(uuid, providerManagers);
       for (const auto& providerManager : providerManagers)
       {
-         providerManager->refreshCount_ += 1;
+         providerManager->increment_refresh_count();
       }
    }
 
@@ -814,121 +530,11 @@ void RadarProductManagerImpl::EnableRefresh(
    {
       for (const auto& providerManager : providerManagers)
       {
-         if (providerManager->refreshEnabled_ != enabled)
+         if (providerManager->refresh_enabled() != enabled)
          {
-            providerManager->refreshEnabled_ = enabled;
+            providerManager->set_refresh_enabled(enabled);
             providerManager->RefreshData();
          }
-      }
-   }
-}
-
-void ProviderManager::RefreshData()
-{
-   logger_->trace("RefreshData: {}", name());
-
-   {
-      const std::unique_lock lock(refreshTimerMutex_);
-      refreshTimer_.cancel();
-   }
-
-   boost::asio::post(providerThreadPool_,
-                     [this]()
-                     {
-                        try
-                        {
-                           RefreshDataSync();
-                        }
-                        catch (const std::exception& ex)
-                        {
-                           logger_->error(ex.what());
-                        }
-                     });
-}
-
-void ProviderManager::RefreshDataSync()
-{
-   using namespace std::chrono_literals;
-
-   auto [newObjects, totalObjects] = provider_->Refresh();
-
-   // Level2 chunked data is updated quickly and uses a faster interval
-   const std::chrono::milliseconds fastRetryInterval =
-      isChunks_ ? kFastRetryIntervalChunks_ : kFastRetryInterval_;
-   const std::chrono::milliseconds slowRetryInterval =
-      isChunks_ ? kSlowRetryIntervalChunks_ : kSlowRetryInterval_;
-   std::chrono::milliseconds interval = fastRetryInterval;
-
-   if (totalObjects > 0)
-   {
-      auto latestTime        = provider_->FindLatestTime();
-      auto updatePeriod      = provider_->update_period();
-      auto lastModified      = provider_->last_modified();
-      auto sinceLastModified = scwx::util::time::now() - lastModified;
-
-      // For the default interval, assume products are updated at a
-      // constant rate. Expect the next product at a time based on the
-      // previous two.
-      interval = std::chrono::duration_cast<std::chrono::milliseconds>(
-         updatePeriod - sinceLastModified);
-
-      // Allow 5 update periods before considering the data stale
-      constexpr std::size_t kUpdatePeriodStaleCount = 5;
-
-      if (updatePeriod > 0s &&
-          sinceLastModified > updatePeriod * kUpdatePeriodStaleCount)
-      {
-         // If it has been at least 5 update periods since the file has
-         // been last modified, slow the retry period
-         interval = slowRetryInterval;
-      }
-      else if (interval < std::chrono::milliseconds {fastRetryInterval})
-      {
-         // The interval should be no quicker than the fast retry interval
-         interval = fastRetryInterval;
-      }
-
-      if (newObjects > 0)
-      {
-         Q_EMIT NewDataAvailable(group_, product_, latestTime);
-      }
-   }
-   else if (refreshEnabled_)
-   {
-      logger_->info("[{}] No data found", name());
-
-      // If no data is found, retry at the slow retry interval
-      interval = slowRetryInterval;
-   }
-
-   std::unique_lock const lock(refreshTimerMutex_);
-
-   if (refreshEnabled_)
-   {
-      logger_->trace(
-         "[{}] Scheduled refresh in {:%M:%S}",
-         name(),
-         std::chrono::duration_cast<std::chrono::seconds>(interval));
-
-      {
-         refreshTimer_.expires_after(interval);
-         refreshTimer_.async_wait(
-            [this](const boost::system::error_code& e)
-            {
-               if (e == boost::system::errc::success)
-               {
-                  RefreshData();
-               }
-               else if (e == boost::asio::error::operation_aborted)
-               {
-                  logger_->debug("[{}] Data refresh timer cancelled", name());
-               }
-               else
-               {
-                  logger_->warn(
-                     "[{}] Data refresh timer error: {}", name(), e.message());
-               }
-            });
       }
    }
 }
@@ -957,7 +563,7 @@ RadarProductManager::GetActiveVolumeTimes(
       for (const auto& refreshEntry : refreshSet.second)
       {
          // Add the provider for the current entry
-         providers.insert(refreshEntry->provider_);
+         providers.insert(refreshEntry->provider());
       }
    }
 
@@ -1045,7 +651,7 @@ void RadarProductManagerImpl::LoadProviderData(
 
          if (existingRecord == nullptr)
          {
-            nexradFile = providerManager->provider_->LoadObjectByTime(time);
+            nexradFile = providerManager->provider()->LoadObjectByTime(time);
             if (nexradFile == nullptr)
             {
                logger_->warn("Attempting to load object without key: {}",
@@ -1286,7 +892,7 @@ bool RadarProductManagerImpl::AreProductTimesPopulated(
          continue;
       }
 
-      if (!providerManager->provider_->IsDateCached(date))
+      if (!providerManager->provider()->IsDateCached(date))
       {
          productTimesPopulated = false;
       }
@@ -1340,15 +946,15 @@ void RadarProductManagerImpl::PopulateProductTimes(
    if (update)
    {
       logger_->debug("Populating product times: {}, {}, {}",
-                     common::GetRadarProductGroupName(providerManager->group_),
-                     providerManager->product_,
+                     common::GetRadarProductGroupName(providerManager->group()),
+                     providerManager->product(),
                      scwx::util::time::TimeString(time));
    }
    else
    {
       logger_->trace("Populating cached product times: {}, {}, {}",
-                     common::GetRadarProductGroupName(providerManager->group_),
-                     providerManager->product_,
+                     common::GetRadarProductGroupName(providerManager->group()),
+                     providerManager->product(),
                      scwx::util::time::TimeString(time));
    }
 
@@ -1381,8 +987,8 @@ void RadarProductManagerImpl::PopulateProductTimes(
 
                     // Query the provider for volume time points
                     auto timePoints =
-                       providerManager->provider_->GetTimePointsByDate(date,
-                                                                       update);
+                       providerManager->provider()->GetTimePointsByDate(date,
+                                                                        update);
 
                     // Lock the merged volume time list
                     std::unique_lock volumeTimesLock {volumeTimesMutex};
@@ -1806,7 +1412,7 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
 
    // See if we have this one in the chunk provider.
    auto chunkFile = std::dynamic_pointer_cast<wsr88d::Ar2vFile>(
-      p->level2ChunksProviderManager_->provider_->LoadObjectByTime(time));
+      p->level2ChunksProviderManager_->provider()->LoadObjectByTime(time));
    if (chunkFile != nullptr)
    {
       std::tie(radarData, elevationCut, elevationCuts) =
@@ -1821,7 +1427,7 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
 
          const std::optional<float> incomingElevation =
             std::dynamic_pointer_cast<provider::AwsLevel2ChunksDataProvider>(
-               p->level2ChunksProviderManager_->provider_)
+               p->level2ChunksProviderManager_->provider())
                ->GetCurrentElevation();
          if (incomingElevation != p->incomingLevel2Elevation_)
          {
@@ -1932,7 +1538,7 @@ std::vector<std::string> RadarProductManager::GetLevel3Products()
 {
    auto level3ProviderManager =
       p->GetLevel3ProviderManager(kDefaultLevel3Product_);
-   return level3ProviderManager->provider_->GetAvailableProducts();
+   return level3ProviderManager->provider()->GetAvailableProducts();
 }
 
 void RadarProductManager::SetCacheLimit(size_t cacheLimit)
@@ -1979,9 +1585,9 @@ void RadarProductManagerImpl::UpdateAvailableProductsSync()
 {
    auto level3ProviderManager =
       GetLevel3ProviderManager(kDefaultLevel3Product_);
-   level3ProviderManager->provider_->RequestAvailableProducts();
+   level3ProviderManager->provider()->RequestAvailableProducts();
    auto updatedAwipsIdList =
-      level3ProviderManager->provider_->GetAvailableProducts();
+      level3ProviderManager->provider()->GetAvailableProducts();
 
    std::unique_lock lock {availableCategoryMutex_};
 
@@ -2066,7 +1672,5 @@ RadarProductManager::Instance(const std::string& radarSite)
 
    return instance;
 }
-
-#include "radar_product_manager.moc"
 
 } // namespace scwx::qt::manager
