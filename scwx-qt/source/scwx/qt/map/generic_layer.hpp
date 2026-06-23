@@ -18,7 +18,7 @@ class QRhiRenderTarget;
 namespace scwx::qt::render
 {
 
-class RhiVulkanOverlayResources;
+struct RhiVulkanOverlayResources;
 
 } // namespace scwx::qt::render
 

@@ -18,12 +18,23 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class ImGuiContextModelImpl
 {
 public:
-   explicit ImGuiContextModelImpl() {}
+   explicit ImGuiContextModelImpl() : sharedFontAtlas_ {IM_NEW(ImFontAtlas)()}
+   {
+   }
 
-   ~ImGuiContextModelImpl() = default;
+   ~ImGuiContextModelImpl()
+   {
+      // ImGui deletes the shared atlas when the last context using it is
+      // destroyed; only delete here if contexts were not torn down cleanly.
+      if (sharedFontAtlas_ != nullptr)
+      {
+         IM_DELETE(sharedFontAtlas_);
+         sharedFontAtlas_ = nullptr;
+      }
+   }
 
    std::vector<ImGuiContextInfo> contexts_ {};
-   ImFontAtlas                   fontAtlas_ {};
+   ImFontAtlas*                  sharedFontAtlas_ {nullptr};
 
    int frameCount_ {0};
 };
@@ -91,7 +102,7 @@ ImGuiContext* ImGuiContextModel::CreateContext(const std::string& name,
 {
    static size_t nextId_ {0};
 
-   ImFontAtlas*  atlas   = shareFontAtlas ? &p->fontAtlas_ : nullptr;
+   ImFontAtlas*  atlas   = shareFontAtlas ? p->sharedFontAtlas_ : nullptr;
    ImGuiContext* context = ImGui::CreateContext(atlas);
    ImGui::SetCurrentContext(context);
 
@@ -129,14 +140,33 @@ void ImGuiContextModel::DestroyContext(const std::string& name)
       const int     position = it - p->contexts_.begin();
       ImGuiContext* context  = it->context_;
 
+      ImGui::SetCurrentContext(context);
+      ImFontAtlas* contextAtlas = ImGui::GetIO().Fonts;
+      const bool   usesSharedAtlas =
+         (contextAtlas != nullptr && contextAtlas == p->sharedFontAtlas_);
+
       // Erase context from index
       beginRemoveRows(QModelIndex(), position, position);
       p->contexts_.erase(it);
       endRemoveRows();
 
-      // Destroy context
-      ImGui::SetCurrentContext(context);
       ImGui::DestroyContext();
+
+      if (usesSharedAtlas && p->sharedFontAtlas_ != nullptr)
+      {
+         const bool sharedAtlasStillInUse =
+            std::any_of(p->contexts_.begin(),
+                        p->contexts_.end(),
+                        [this](const ImGuiContextInfo& info)
+                        {
+                           ImGui::SetCurrentContext(info.context_);
+                           return ImGui::GetIO().Fonts == p->sharedFontAtlas_;
+                        });
+         if (!sharedAtlasStillInUse)
+         {
+            p->sharedFontAtlas_ = nullptr;
+         }
+      }
    }
 }
 
@@ -144,7 +174,7 @@ void ImGuiContextModel::NewFrame()
 {
    static constexpr bool kRendererHasTextures_ = true;
 
-   ImFontAtlas* atlas = &p->fontAtlas_;
+   ImFontAtlas* atlas = p->sharedFontAtlas_;
    if (ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().Fonts != nullptr)
    {
       atlas = ImGui::GetIO().Fonts;
@@ -160,7 +190,7 @@ std::vector<ImGuiContextInfo> ImGuiContextModel::contexts() const
 
 ImFontAtlas* ImGuiContextModel::font_atlas()
 {
-   return &p->fontAtlas_;
+   return p->sharedFontAtlas_;
 }
 
 ImGuiContextModel& ImGuiContextModel::Instance()

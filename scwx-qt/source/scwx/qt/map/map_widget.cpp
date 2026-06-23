@@ -35,12 +35,12 @@
 #include <scwx/qt/util/tooltip.hpp>
 #include <scwx/qt/view/overlay_product_view.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
+#include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
 #include <algorithm>
 #include <chrono>
-#include <cstdlib>
 #include <functional>
 #include <limits>
 #include <optional>
@@ -97,6 +97,12 @@ namespace
 {
 
 constexpr int kFallbackEraseCursorRadiusPx {8};
+
+bool VulkanSmokeEnabled() noexcept
+{
+   static const bool enabled = scwx::util::HasEnvironment("SCWX_VULKAN_SMOKE");
+   return enabled;
+}
 
 /** Ring + eraser in pixmap so KDE/Wayland compositor tracks cursor with zero
  * lag. Pixmap radius is capped (~124px) for display only; geographic erase pick
@@ -3042,7 +3048,7 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
          imguiVulkanRenderer_.UpdateTextures();
       }
 
-      if (std::getenv("SCWX_VULKAN_SMOKE") != nullptr)
+      if (VulkanSmokeEnabled())
       {
          static auto lastLog = std::chrono::steady_clock::now();
          const auto  now     = std::chrono::steady_clock::now();
@@ -3102,7 +3108,7 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
       map::RecordMapFramePerf(sample);
    }
 
-   if (std::getenv("SCWX_VULKAN_SMOKE") != nullptr)
+   if (VulkanSmokeEnabled())
    {
       static auto lastLog = std::chrono::steady_clock::now();
       const auto  now     = std::chrono::steady_clock::now();
@@ -3145,8 +3151,9 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
 
    if (!smokeCaptureQueued_)
    {
-      const char* smokeCapturePath = std::getenv("SCWX_VULKAN_SMOKE_CAPTURE");
-      if (smokeCapturePath != nullptr && *smokeCapturePath != '\0')
+      const std::string smokeCapturePath =
+         scwx::util::GetEnvironment("SCWX_VULKAN_SMOKE_CAPTURE");
+      if (!smokeCapturePath.empty())
       {
          static bool smokeCaptureGlobalQueued = false;
          if (smokeCaptureGlobalQueued)
@@ -3154,12 +3161,12 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
             return;
          }
 
-         std::uint64_t captureFrame = 120u;
-         if (const char* captureFrames =
-                std::getenv("SCWX_VULKAN_SMOKE_CAPTURE_FRAMES");
-             captureFrames != nullptr && *captureFrames != '\0')
+         std::uint64_t     captureFrame = 120u;
+         const std::string captureFrames =
+            scwx::util::GetEnvironment("SCWX_VULKAN_SMOKE_CAPTURE_FRAMES");
+         if (!captureFrames.empty())
          {
-            captureFrame = std::strtoull(captureFrames, nullptr, 10);
+            captureFrame = std::stoull(captureFrames);
          }
 
          const auto radarProductView = context_->radar_product_view();
@@ -3172,7 +3179,7 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
          {
             smokeCaptureQueued_      = true;
             smokeCaptureGlobalQueued = true;
-            const QString filePath   = QString::fromUtf8(smokeCapturePath);
+            const QString filePath   = QString::fromStdString(smokeCapturePath);
             QTimer::singleShot(
                0,
                widget_,

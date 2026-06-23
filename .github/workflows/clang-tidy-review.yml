@@ -124,8 +124,7 @@ jobs:
           -DCONAN_HOST_PROFILE="${{ matrix.conan_profile }}" `
           -DCONAN_BUILD_PROFILE="${{ matrix.conan_profile }}" `
           -DCMAKE_EXPORT_COMPILE_COMMANDS=on
-        ninja glad_gl_core_33 `
-              scwx-qt_generate_counties_db `
+        ninja scwx-qt_generate_counties_db `
               scwx-qt_generate_versions `
               scwx-qt_autogen
 

@@ -39,18 +39,18 @@ bool MapViewsCompatibleForBasemapShare(const MapViewSnapshot& leader,
           NearlyEqual(leader.pitch_, follower.pitch_);
 }
 
-BasemapShareDecision ResolveBasemapShareDecision(
-   const std::size_t                   paneIndex,
-   const std::size_t                   mapCount,
-   const bool                          viewLinked,
-   const bool                          poppedOut,
-   const MapViewSnapshot&              paneView,
-   const std::size_t                   activePaneIndex,
-   const std::vector<MapViewSnapshot>& allViews,
-   const std::vector<bool>&            viewLinkedFlags,
-   const std::vector<bool>&            poppedOutFlags) noexcept
+BasemapShareDecision
+ResolveBasemapShareDecision(const std::size_t                   paneIndex,
+                            const std::size_t                   mapCount,
+                            const bool                          viewLinked,
+                            const bool                          poppedOut,
+                            const MapViewSnapshot&              paneView,
+                            const std::size_t                   activePaneIndex,
+                            const std::vector<MapViewSnapshot>& allViews,
+                            const std::vector<bool>&            viewLinkedFlags,
+                            const std::vector<bool>& poppedOutFlags) noexcept
 {
-   BasemapShareDecision decision {.role_         = BasemapPaneRole::Independent,
+   BasemapShareDecision decision {.role_        = BasemapPaneRole::Independent,
                                   .leaderIndex_ = paneIndex};
 
    if (mapCount < 2 || !viewLinked || poppedOut ||

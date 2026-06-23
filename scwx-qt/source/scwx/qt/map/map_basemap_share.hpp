@@ -40,25 +40,25 @@ struct BasemapShareDecision
 struct MapBasemapShareCallbacks
 {
    std::function<BasemapShareDecision(std::size_t, const MapViewSnapshot&)>
-      resolve_ {};
+                                            resolve_ {};
    std::function<QRhiTexture*(std::size_t)> leaderTexture_ {};
    std::function<void(std::size_t)>         notifyRendered_ {};
 };
 
-[[nodiscard]] bool MapViewsCompatibleForBasemapShare(
-   const MapViewSnapshot& leader,
-   const MapViewSnapshot& follower) noexcept;
+[[nodiscard]] bool
+MapViewsCompatibleForBasemapShare(const MapViewSnapshot& leader,
+                                  const MapViewSnapshot& follower) noexcept;
 
-[[nodiscard]] BasemapShareDecision ResolveBasemapShareDecision(
-   std::size_t                         paneIndex,
-   std::size_t                         mapCount,
-   bool                                viewLinked,
-   bool                                poppedOut,
-   const MapViewSnapshot&              paneView,
-   std::size_t                         activePaneIndex,
-   const std::vector<MapViewSnapshot>& allViews,
-   const std::vector<bool>&            viewLinkedFlags,
-   const std::vector<bool>&            poppedOutFlags) noexcept;
+[[nodiscard]] BasemapShareDecision
+ResolveBasemapShareDecision(std::size_t                         paneIndex,
+                            std::size_t                         mapCount,
+                            bool                                viewLinked,
+                            bool                                poppedOut,
+                            const MapViewSnapshot&              paneView,
+                            std::size_t                         activePaneIndex,
+                            const std::vector<MapViewSnapshot>& allViews,
+                            const std::vector<bool>&            viewLinkedFlags,
+                            const std::vector<bool>& poppedOutFlags) noexcept;
 
 class MapBasemapShareState
 {
@@ -78,7 +78,7 @@ public:
    }
 
 private:
-   std::uint64_t                basemapGeneration_ {0};
+   std::uint64_t              basemapGeneration_ {0};
    std::optional<std::size_t> lastLeaderIndex_ {};
 };
 

@@ -1,11 +1,11 @@
 #include <scwx/qt/map/map_perf.hpp>
 
+#include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <algorithm>
 #include <array>
 #include <chrono>
-#include <cstdlib>
 #include <fstream>
 #include <mutex>
 #include <string>
@@ -38,12 +38,12 @@ struct PanePerfTotals
 
 struct PerfState
 {
-   std::mutex                              mutex_ {};
+   std::mutex                                      mutex_ {};
    std::unordered_map<std::size_t, PanePerfTotals> paneTotals_ {};
-   PanePerfTotals                          gridTotals_ {};
-   std::uint64_t                           recordedFrames_ {0};
-   bool                                    csvInitialized_ {false};
-   std::string                             csvPath_ {};
+   PanePerfTotals                                  gridTotals_ {};
+   std::uint64_t                                   recordedFrames_ {0};
+   bool                                            csvInitialized_ {false};
+   std::string                                     csvPath_ {};
 };
 
 PerfState& State()
@@ -59,9 +59,9 @@ void MaybeInitCsvPath(PerfState& state)
       return;
    }
 
-   state.csvInitialized_ = true;
-   if (const char* path = std::getenv("SCWX_VULKAN_PERF_CSV");
-       path != nullptr && path[0] != '\0')
+   state.csvInitialized_  = true;
+   const std::string path = scwx::util::GetEnvironment("SCWX_VULKAN_PERF_CSV");
+   if (!path.empty())
    {
       state.csvPath_ = path;
    }
@@ -74,7 +74,7 @@ void AppendCsvRow(const PerfState& state, const PanePerfTotals& grid)
       return;
    }
 
-   const double frames = static_cast<double>(grid.frameCount_);
+   const double  frames = static_cast<double>(grid.frameCount_);
    std::ofstream out(state.csvPath_, std::ios::app);
    if (!out.is_open())
    {
@@ -89,20 +89,15 @@ void AppendCsvRow(const PerfState& state, const PanePerfTotals& grid)
    }
 
    const auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
-                       std::chrono::system_clock::now().time_since_epoch())
-                       .count();
+                         std::chrono::system_clock::now().time_since_epoch())
+                         .count();
 
-   out << nowMs << ','
-       << grid.frameCount_ << ','
-       << (grid.totalMs_ / frames) << ','
-       << (grid.mapLibreMs_ / frames) << ','
-       << (grid.basemapCopyMs_ / frames) << ','
-       << (grid.imguiMs_ / frames) << ','
-       << (grid.overlayMs_ / frames) << ','
-       << grid.mapLibreRenderedFrames_ << ','
-       << grid.basemapCopiedFrames_ << ','
-       << grid.followerFrames_ << ','
-       << grid.leaderFrames_ << '\n';
+   out << nowMs << ',' << grid.frameCount_ << ',' << (grid.totalMs_ / frames)
+       << ',' << (grid.mapLibreMs_ / frames) << ','
+       << (grid.basemapCopyMs_ / frames) << ',' << (grid.imguiMs_ / frames)
+       << ',' << (grid.overlayMs_ / frames) << ','
+       << grid.mapLibreRenderedFrames_ << ',' << grid.basemapCopiedFrames_
+       << ',' << grid.followerFrames_ << ',' << grid.leaderFrames_ << '\n';
 }
 
 void LogPaneSummary(const std::size_t paneId, const PanePerfTotals& pane)
@@ -191,7 +186,8 @@ void Accumulate(PanePerfTotals& totals, const MapFramePerfSample& sample)
 
 bool MapPerfEnabled() noexcept
 {
-   return std::getenv("SCWX_VULKAN_PERF") != nullptr;
+   static const bool enabled = scwx::util::HasEnvironment("SCWX_VULKAN_PERF");
+   return enabled;
 }
 
 void RecordMapFramePerf(const MapFramePerfSample& sample) noexcept
@@ -201,7 +197,7 @@ void RecordMapFramePerf(const MapFramePerfSample& sample) noexcept
       return;
    }
 
-   auto& state = State();
+   auto&           state = State();
    std::lock_guard lock {state.mutex_};
    MaybeInitCsvPath(state);
 
@@ -228,10 +224,10 @@ void RecordMapFramePerf(const MapFramePerfSample& sample) noexcept
 
 void ResetMapPerfForTest() noexcept
 {
-   auto& state = State();
+   auto&           state = State();
    std::lock_guard lock {state.mutex_};
    state.paneTotals_.clear();
-   state.gridTotals_    = PanePerfTotals {};
+   state.gridTotals_     = PanePerfTotals {};
    state.recordedFrames_ = 0;
    state.csvInitialized_ = false;
    state.csvPath_.clear();
@@ -239,7 +235,7 @@ void ResetMapPerfForTest() noexcept
 
 std::uint64_t MapPerfRecordedFrameCountForTest() noexcept
 {
-   auto& state = State();
+   auto&           state = State();
    std::lock_guard lock {state.mutex_};
    return state.recordedFrames_;
 }

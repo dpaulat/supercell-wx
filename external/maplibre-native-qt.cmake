@@ -15,6 +15,24 @@ if (APPLE)
     set(MLN_WITH_METAL OFF CACHE BOOL "" FORCE)
 endif()
 
+# aqt/macOS Qt layouts may expose qvulkaninstance.h under include/QtGui while
+# Qt6Gui_INCLUDE_DIRS points at the framework Headers path only.
+if (MLN_WITH_VULKAN)
+    find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Gui REQUIRED)
+    set(_scwx_qt_gui_include_dirs ${Qt${QT_VERSION_MAJOR}Gui_INCLUDE_DIRS})
+    if (DEFINED Qt${QT_VERSION_MAJOR}_INSTALL_PREFIX)
+        list(APPEND _scwx_qt_gui_include_dirs
+             "${Qt${QT_VERSION_MAJOR}_INSTALL_PREFIX}/include/QtGui")
+    endif()
+    if (DEFINED ENV{QT_ROOT_DIR})
+        list(APPEND _scwx_qt_gui_include_dirs "$ENV{QT_ROOT_DIR}/include/QtGui")
+    endif()
+    list(REMOVE_DUPLICATES _scwx_qt_gui_include_dirs)
+    set(Qt${QT_VERSION_MAJOR}Gui_INCLUDE_DIRS
+        "${_scwx_qt_gui_include_dirs}"
+        CACHE STRING "" FORCE)
+endif()
+
 add_subdirectory(maplibre-native-qt)
 
 find_package(ZLIB)
@@ -44,7 +62,7 @@ else()
     target_compile_options(MLNQtCore PRIVATE "$<$<CONFIG:Release>:-g>")
 endif()
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     target_compile_options(
         mbgl-core
         PRIVATE
@@ -55,9 +73,10 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         PRIVATE
         "-Wno-sfinae-incomplete"
         "-Wno-error=sfinae-incomplete")
-    if (SCWX_RENDER_BACKEND STREQUAL "VULKAN")
-        target_compile_options(mbgl-core PRIVATE "-Wno-unused-parameter")
-    endif()
+endif()
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND SCWX_RENDER_BACKEND STREQUAL "VULKAN")
+    target_compile_options(mbgl-core PRIVATE "-Wno-unused-parameter")
 endif()
 
 set(_MLN_VENDOR_DIR

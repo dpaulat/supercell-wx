@@ -262,7 +262,7 @@ jobs:
       if: ${{ startsWith(matrix.os, 'macos') }}
       shell: bash
       run: |
-        brew install llvm@18
+        brew install llvm@18 molten-vk
         LLVM_PATH=$(brew --prefix llvm@18)
         echo "CC=${LLVM_PATH}/bin/clang" >> $GITHUB_ENV
         echo "CXX=${LLVM_PATH}/bin/clang++" >> $GITHUB_ENV

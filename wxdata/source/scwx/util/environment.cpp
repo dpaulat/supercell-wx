@@ -47,6 +47,21 @@ std::string GetEnvironment(const std::string& name)
    return value;
 }
 
+bool HasEnvironment(const std::string& name)
+{
+   return !GetEnvironment(name).empty();
+}
+
+bool IsEnvironmentEnabled(const std::string& name, const bool defaultWhenUnset)
+{
+   const std::string value = GetEnvironment(name);
+   if (value.empty())
+   {
+      return defaultWhenUnset;
+   }
+   return value[0] != '0';
+}
+
 void SetEnvironment(const std::string& name, const std::string& value)
 {
 #ifdef _WIN32

@@ -28,14 +28,14 @@ MapViewSnapshot MakeView(const std::string& style,
 
 TEST(MapBasemapShare, compatible_matching_views)
 {
-   const MapViewSnapshot leader = MakeView("Streets");
+   const MapViewSnapshot leader   = MakeView("Streets");
    const MapViewSnapshot follower = MakeView("Streets");
    EXPECT_TRUE(MapViewsCompatibleForBasemapShare(leader, follower));
 }
 
 TEST(MapBasemapShare, incompatible_style_or_size)
 {
-   const MapViewSnapshot leader = MakeView("Streets", 800, 600);
+   const MapViewSnapshot leader        = MakeView("Streets", 800, 600);
    const MapViewSnapshot followerStyle = MakeView("Satellite", 800, 600);
    const MapViewSnapshot followerSize  = MakeView("Streets", 640, 480);
 
@@ -47,8 +47,8 @@ TEST(MapBasemapShare, leader_is_active_linked_pane)
 {
    const std::vector<MapViewSnapshot> views {MakeView("Streets"),
                                              MakeView("Streets")};
-   const std::vector<bool> linked {true, true};
-   const std::vector<bool> popped {false, false};
+   const std::vector<bool>            linked {true, true};
+   const std::vector<bool>            popped {false, false};
 
    const BasemapShareDecision leaderDecision = ResolveBasemapShareDecision(
       0u, 2u, true, false, views[0], 0u, views, linked, popped);
@@ -65,8 +65,8 @@ TEST(MapBasemapShare, popped_or_unlinked_pane_is_independent)
 {
    const std::vector<MapViewSnapshot> views {MakeView("Streets"),
                                              MakeView("Streets")};
-   const std::vector<bool> linked {true, true};
-   const std::vector<bool> popped {false, true};
+   const std::vector<bool>            linked {true, true};
+   const std::vector<bool>            popped {false, true};
 
    const BasemapShareDecision decision = ResolveBasemapShareDecision(
       1u, 2u, true, true, views[1], 0u, views, linked, popped);
@@ -111,11 +111,10 @@ TEST(MapBasemapShare, nine_pane_grid_active_leader)
 
 TEST(MapBasemapShare, active_unlinked_falls_back_to_first_linked)
 {
-   const std::vector<MapViewSnapshot> views {MakeView("Streets"),
-                                             MakeView("Streets"),
-                                             MakeView("Streets")};
-   const std::vector<bool>            linked {false, true, true};
-   const std::vector<bool>            popped(3, false);
+   const std::vector<MapViewSnapshot> views {
+      MakeView("Streets"), MakeView("Streets"), MakeView("Streets")};
+   const std::vector<bool> linked {false, true, true};
+   const std::vector<bool> popped(3, false);
 
    const BasemapShareDecision decision = ResolveBasemapShareDecision(
       2u, 3u, true, false, views[2], 0u, views, linked, popped);
@@ -125,7 +124,7 @@ TEST(MapBasemapShare, active_unlinked_falls_back_to_first_linked)
 
 TEST(MapBasemapShare, view_epsilon_allows_tiny_drift)
 {
-   MapViewSnapshot leader = MakeView("Streets");
+   MapViewSnapshot leader   = MakeView("Streets");
    MapViewSnapshot follower = MakeView("Streets");
    follower.latitude_ += 1e-7;
    follower.longitude_ -= 1e-7;

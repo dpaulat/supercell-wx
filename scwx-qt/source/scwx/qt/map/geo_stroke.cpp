@@ -18,7 +18,7 @@ GeoStrokeHalfWidths ComputeGeoStrokeHalfWidths(const float lineWidth,
                                .borderHalf_    = borderHalf};
 }
 
-GeoStrokeBand ClassifyGeoStrokeBand(const float              offsetY,
+GeoStrokeBand ClassifyGeoStrokeBand(const float                offsetY,
                                     const GeoStrokeHalfWidths& widths) noexcept
 {
    if (widths.borderHalf_ <= 0.0f)

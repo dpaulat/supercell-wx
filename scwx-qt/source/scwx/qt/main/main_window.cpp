@@ -30,6 +30,7 @@
 #include <scwx/qt/settings/map_settings.hpp>
 #include <scwx/qt/settings/product_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
+#include <scwx/util/environment.hpp>
 #include <scwx/qt/ui/about_dialog.hpp>
 #include <scwx/qt/ui/alert_dock_widget.hpp>
 #include <scwx/qt/ui/animation_dock_widget.hpp>
@@ -1222,8 +1223,8 @@ void MainWindowImpl::ConfigureBasemapSharing()
    basemapShareCallbacks_ = {};
    basemapShareState_.Reset(maps_.size());
 
-   const char* env     = std::getenv("SCWX_BASEMAP_SHARE");
-   const bool  enabled = (env == nullptr || env[0] != '0');
+   const bool enabled =
+      scwx::util::IsEnvironmentEnabled("SCWX_BASEMAP_SHARE", true);
    if (!enabled)
    {
       for (map::MapWidget* mapWidget : maps_)

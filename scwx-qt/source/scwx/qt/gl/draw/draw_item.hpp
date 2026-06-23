@@ -19,7 +19,7 @@ namespace qt
 {
 namespace render
 {
-class RhiVulkanOverlayResources;
+struct RhiVulkanOverlayResources;
 } // namespace render
 
 namespace gl

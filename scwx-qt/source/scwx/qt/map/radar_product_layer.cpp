@@ -6,11 +6,11 @@
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/tooltip.hpp>
 #include <scwx/qt/view/radar_product_view.hpp>
+#include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <chrono>
 #include <cmath>
-#include <cstdlib>
 #include <cstring>
 
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
@@ -37,6 +37,17 @@
 
 namespace scwx::qt::map
 {
+
+namespace
+{
+
+bool VulkanSmokeEnabled() noexcept
+{
+   static const bool enabled = scwx::util::HasEnvironment("SCWX_VULKAN_SMOKE");
+   return enabled;
+}
+
+} // namespace
 
 static const std::string logPrefix_ = "scwx::qt::map::radar_product_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
@@ -320,7 +331,7 @@ void RadarProductLayer::RenderVulkanOverlay(
          p->sweepUploadNeeded_      = false;
          p->colorTableUploadNeeded_ = false;
 
-         if (std::getenv("SCWX_VULKAN_SMOKE") != nullptr)
+         if (VulkanSmokeEnabled())
          {
             static auto lastLog = std::chrono::steady_clock::now();
             const auto  now     = std::chrono::steady_clock::now();
@@ -332,7 +343,7 @@ void RadarProductLayer::RenderVulkanOverlay(
          }
       }
    }
-   else if (std::getenv("SCWX_VULKAN_SMOKE") != nullptr)
+   else if (VulkanSmokeEnabled())
    {
       static auto lastLog = std::chrono::steady_clock::now();
       const auto  now     = std::chrono::steady_clock::now();

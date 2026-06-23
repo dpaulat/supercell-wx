@@ -36,9 +36,8 @@ TEST(GeoStrokeBand, negative_offset_symmetric)
 
 TEST(GeoStrokeBand, stroke_disabled_when_no_border)
 {
-   const GeoStrokeHalfWidths widths {.lineHalf_ = 2.0f,
-                                     .highlightHalf_ = 2.0f,
-                                     .borderHalf_ = 0.0f};
+   const GeoStrokeHalfWidths widths {
+      .lineHalf_ = 2.0f, .highlightHalf_ = 2.0f, .borderHalf_ = 0.0f};
    EXPECT_EQ(ClassifyGeoStrokeBand(99.0f, widths), GeoStrokeBand::Line);
 }
 

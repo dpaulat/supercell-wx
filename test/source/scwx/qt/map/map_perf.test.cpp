@@ -27,10 +27,10 @@ TEST_F(MapPerfTest, records_when_env_enabled)
    EXPECT_TRUE(MapPerfEnabled());
 
    MapFramePerfSample sample {
-      .paneId_    = 2,
-      .totalMs_   = 4.0,
+      .paneId_     = 2,
+      .totalMs_    = 4.0,
       .mapLibreMs_ = 1.0,
-      .overlayMs_ = 2.0,
+      .overlayMs_  = 2.0,
    };
    RecordMapFramePerf(sample);
    EXPECT_EQ(MapPerfRecordedFrameCountForTest(), 1u);
