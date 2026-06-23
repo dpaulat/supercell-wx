@@ -81,9 +81,6 @@ set(HDR_RENDER source/scwx/qt/render/render_backend.hpp
                source/scwx/qt/render/render_init.hpp)
 set(SRC_RENDER source/scwx/qt/render/render_context.cpp
                source/scwx/qt/render/render_init.cpp)
-set(HDR_VK source/scwx/qt/vk/vk_check.hpp
-          source/scwx/qt/vk/vk_context.hpp)
-set(SRC_VK source/scwx/qt/vk/vk_context.cpp)
 set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
                 source/scwx/qt/gl/draw/geo_icons.hpp
                 source/scwx/qt/gl/draw/geo_lines.hpp
@@ -155,11 +152,13 @@ set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                 source/scwx/qt/manager/timeline_manager.cpp
                 source/scwx/qt/manager/update_manager.cpp)
 set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
+            source/scwx/qt/map/geo_stroke.hpp
+            source/scwx/qt/map/map_basemap_share.hpp
             source/scwx/qt/map/map_link_policy.hpp
+            source/scwx/qt/map/map_perf.hpp
             source/scwx/qt/map/color_table_layer.hpp
             source/scwx/qt/map/draw_layer.hpp
             source/scwx/qt/map/generic_layer.hpp
-            source/scwx/qt/map/layer_wrapper.hpp
             source/scwx/qt/map/map_annotation_layer.hpp
             source/scwx/qt/map/map_annotation_model.hpp
             source/scwx/qt/map/map_annotation_types.hpp
@@ -179,11 +178,13 @@ set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp
             source/scwx/qt/map/radar_site_layer.hpp)
 set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
+            source/scwx/qt/map/geo_stroke.cpp
+            source/scwx/qt/map/map_basemap_share.cpp
             source/scwx/qt/map/map_link_policy.cpp
+            source/scwx/qt/map/map_perf.cpp
             source/scwx/qt/map/color_table_layer.cpp
             source/scwx/qt/map/draw_layer.cpp
             source/scwx/qt/map/generic_layer.cpp
-            source/scwx/qt/map/layer_wrapper.cpp
             source/scwx/qt/map/map_annotation_layer.cpp
             source/scwx/qt/map/map_annotation_model.cpp
             source/scwx/qt/map/map_context.cpp
@@ -514,21 +515,19 @@ set(SRC_VIEW source/scwx/qt/view/level2_product_view.cpp
 
 set(RESOURCE_FILES scwx-qt.qrc)
 
-set(SHADER_FILES gl/annotation_geo.vert
-                 gl/annotation_stroke.frag
-                 gl/color.frag
-                 gl/color.vert
-                 gl/geo_line.vert
-                 gl/geo_texture2d.vert
-                 gl/map_color.vert
-                 gl/radar.frag
-                 gl/radar.vert
-                 gl/texture1d.frag
-                 gl/texture1d.vert
-                 gl/texture2d.frag
-                 gl/texture2d_array.frag
-                 gl/texture2d_array.vert
-                 gl/threshold.geom)
+set(SHADER_FILES gl/vulkan/spirv/color.frag.spv
+                 gl/vulkan/spirv/color.vert.spv
+                 gl/vulkan/spirv/geo_color.frag.spv
+                 gl/vulkan/spirv/geo_color.vert.spv
+                 gl/vulkan/spirv/geo_texture_array.frag.spv
+                 gl/vulkan/spirv/geo_texture_array.vert.spv
+                 gl/vulkan/spirv/radar.frag.spv
+                 gl/vulkan/spirv/radar.vert.spv
+                 gl/vulkan/spirv/screen_texture_array.frag.spv
+                 gl/vulkan/spirv/screen_texture_array.vert.spv
+                 gl/vulkan/spirv/texture1d.frag.spv
+                 gl/vulkan/spirv/texture1d.vert.spv
+                 gl/vulkan/spirv/texture_lut.frag.spv)
 
 set(CMAKE_FILES scwx-qt.cmake)
 
@@ -559,8 +558,6 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${SRC_EXTERNAL}
                     ${HDR_RENDER}
                     ${SRC_RENDER}
-                    ${HDR_VK}
-                    ${SRC_VK}
                     ${HDR_GL_DRAW}
                     ${SRC_GL_DRAW}
                     ${HDR_MANAGER}
@@ -606,8 +603,6 @@ source_group("Source Files\\config"       FILES ${SRC_CONFIG})
 source_group("Source Files\\external"     FILES ${SRC_EXTERNAL})
 source_group("Header Files\\render"       FILES ${HDR_RENDER})
 source_group("Source Files\\render"       FILES ${SRC_RENDER})
-source_group("Header Files\\vk"           FILES ${HDR_VK})
-source_group("Source Files\\vk"           FILES ${SRC_VK})
 source_group("Header Files\\gl\\draw"     FILES ${HDR_GL_DRAW})
 source_group("Source Files\\gl\\draw"     FILES ${SRC_GL_DRAW})
 source_group("Header Files\\manager"      FILES ${HDR_MANAGER})

@@ -5,6 +5,10 @@ layout(location = 1) in flat int vStartTime;
 layout(location = 2) in flat int vEndTime;
 layout(location = 3) in flat int vDisplayed;
 layout(location = 4) in vec4 vColor;
+layout(location = 5) in flat vec4 vHighlightColor;
+layout(location = 6) in flat vec4 vBorderColor;
+layout(location = 7) in flat vec3 vStrokeHalf;
+layout(location = 8) in float vOffsetY;
 
 layout(location = 0) out vec4 fragColor;
 
@@ -46,5 +50,27 @@ void main()
       discard;
    }
 
-   fragColor = vColor;
+   if (vStrokeHalf.z <= 0.0)
+   {
+      fragColor = vColor;
+      return;
+   }
+
+   const float d = abs(vOffsetY);
+   if (d > vStrokeHalf.z)
+   {
+      discard;
+   }
+   else if (d > vStrokeHalf.y)
+   {
+      fragColor = vBorderColor;
+   }
+   else if (d > vStrokeHalf.x)
+   {
+      fragColor = vHighlightColor;
+   }
+   else
+   {
+      fragColor = vColor;
+   }
 }

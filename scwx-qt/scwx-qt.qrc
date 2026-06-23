@@ -1,20 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>gl/annotation_geo.vert</file>
-        <file>gl/annotation_stroke.frag</file>
-        <file>gl/color.frag</file>
-        <file>gl/color.vert</file>
-        <file>gl/geo_line.vert</file>
-        <file>gl/geo_texture2d.vert</file>
-        <file>gl/map_color.vert</file>
-        <file>gl/radar.frag</file>
-        <file>gl/radar.vert</file>
-        <file>gl/texture1d.frag</file>
-        <file>gl/texture1d.vert</file>
-        <file>gl/texture2d.frag</file>
-        <file>gl/texture2d_array.frag</file>
-        <file>gl/texture2d_array.vert</file>
-        <file>gl/threshold.geom</file>
         <file>gl/vulkan/spirv/color.frag.spv</file>
         <file>gl/vulkan/spirv/color.vert.spv</file>
         <file>gl/vulkan/spirv/geo_color.frag.spv</file>

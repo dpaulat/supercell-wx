@@ -10,16 +10,23 @@ layout(location = 0) in vec2 aLatLong;
 layout(location = 1) in vec2 aXYOffset;
 layout(location = 2) in vec4 aModulate;
 layout(location = 3) in float aAngleDeg;
-layout(location = 4) in int aThreshold;
-layout(location = 5) in int aStartTime;
-layout(location = 6) in int aEndTime;
-layout(location = 7) in int aDisplayed;
+layout(location = 4) in vec4 aHighlightColor;
+layout(location = 5) in vec4 aBorderColor;
+layout(location = 6) in vec3 aStrokeHalf;
+layout(location = 7) in int aThreshold;
+layout(location = 8) in int aStartTime;
+layout(location = 9) in int aEndTime;
+layout(location = 10) in int aDisplayed;
 
 layout(location = 0) out flat int vThreshold;
 layout(location = 1) out flat int vStartTime;
 layout(location = 2) out flat int vEndTime;
 layout(location = 3) out flat int vDisplayed;
 layout(location = 4) out vec4 vColor;
+layout(location = 5) out flat vec4 vHighlightColor;
+layout(location = 6) out flat vec4 vBorderColor;
+layout(location = 7) out flat vec3 vStrokeHalf;
+layout(location = 8) out float vOffsetY;
 
 layout(set = 0, binding = 0) uniform UniformBlock {
     mat4 uMVPMatrix;
@@ -41,11 +48,15 @@ vec2 latLngToDeltaScreenCoordinate(vec2 latLng)
 
 void main()
 {
-   vThreshold = aThreshold;
-   vStartTime = aStartTime;
-   vEndTime   = aEndTime;
-   vDisplayed = aDisplayed;
-   vColor     = aModulate;
+   vThreshold        = aThreshold;
+   vStartTime        = aStartTime;
+   vEndTime          = aEndTime;
+   vDisplayed        = aDisplayed;
+   vColor            = aModulate;
+   vHighlightColor   = aHighlightColor;
+   vBorderColor      = aBorderColor;
+   vStrokeHalf       = aStrokeHalf;
+   vOffsetY          = aXYOffset.y;
 
    vec2 p = latLngToDeltaScreenCoordinate(aLatLong);
 
