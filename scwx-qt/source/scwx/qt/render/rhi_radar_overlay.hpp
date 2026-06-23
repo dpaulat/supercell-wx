@@ -71,6 +71,7 @@ private:
    std::vector<std::uint8_t>   lutRgba_ {};
    bool                        geometryUploaded_ {false};
    bool                        lutUploaded_ {false};
+   std::uint32_t               uploadedVertexCount_ {0};
    bool                        initialized_ {false};
 };
 

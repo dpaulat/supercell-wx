@@ -23,10 +23,10 @@ public:
                    QRhiCommandBuffer* commandBuffer);
    void Shutdown();
 
-   void Render(QRhiCommandBuffer*     commandBuffer,
-               const glm::mat4&       projection,
+   void Render(QRhiCommandBuffer*        commandBuffer,
+               const glm::mat4&          projection,
                const std::vector<float>& vertices,
-               std::size_t            vertexCount);
+               std::size_t               vertexCount);
 
    [[nodiscard]] bool IsInitialized() const;
 

@@ -180,6 +180,8 @@ void RhiColoredGeometry::Render(QRhiCommandBuffer*        commandBuffer,
 }
 
 bool RhiColoredGeometry::IsInitialized() const
-{ return initialized_; }
+{
+   return initialized_;
+}
 
 } // namespace scwx::qt::render

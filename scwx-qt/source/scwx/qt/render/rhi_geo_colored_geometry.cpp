@@ -94,16 +94,19 @@ bool RhiGeoColoredGeometry::EnsurePipeline(QRhi*             rhi,
    }
 
    QRhiVertexInputLayout inputLayout;
-   inputLayout.setBindings({{9 * sizeof(float)}, {4 * sizeof(std::int32_t)}});
+   inputLayout.setBindings({{20 * sizeof(float)}, {4 * sizeof(std::int32_t)}});
    inputLayout.setAttributes(
       {{0, 0, QRhiVertexInputAttribute::Float2, 0},
        {0, 1, QRhiVertexInputAttribute::Float2, 2 * sizeof(float)},
        {0, 2, QRhiVertexInputAttribute::Float4, 4 * sizeof(float)},
        {0, 3, QRhiVertexInputAttribute::Float, 8 * sizeof(float)},
-       {1, 4, QRhiVertexInputAttribute::SInt, 0},
-       {1, 5, QRhiVertexInputAttribute::SInt, sizeof(std::int32_t)},
-       {1, 6, QRhiVertexInputAttribute::SInt, 2 * sizeof(std::int32_t)},
-       {1, 7, QRhiVertexInputAttribute::SInt, 3 * sizeof(std::int32_t)}});
+       {0, 4, QRhiVertexInputAttribute::Float4, 9 * sizeof(float)},
+       {0, 5, QRhiVertexInputAttribute::Float4, 13 * sizeof(float)},
+       {0, 6, QRhiVertexInputAttribute::Float3, 17 * sizeof(float)},
+       {1, 7, QRhiVertexInputAttribute::SInt, 0},
+       {1, 8, QRhiVertexInputAttribute::SInt, sizeof(std::int32_t)},
+       {1, 9, QRhiVertexInputAttribute::SInt, 2 * sizeof(std::int32_t)},
+       {1, 10, QRhiVertexInputAttribute::SInt, 3 * sizeof(std::int32_t)}});
 
    QRhiGraphicsPipeline::TargetBlend blend;
    blend.enable   = true;
@@ -228,6 +231,8 @@ void RhiGeoColoredGeometry::Render(
 }
 
 bool RhiGeoColoredGeometry::IsInitialized() const
-{ return initialized_; }
+{
+   return initialized_;
+}
 
 } // namespace scwx::qt::render

@@ -138,7 +138,8 @@ bool RhiTextureArrayOverlay::EnsureShaderResources(QRhi* rhi)
       screenSrb_ = rhi->newShaderResourceBindings();
       if (screenSrb_ == nullptr)
       {
-         logger_->error("Failed to allocate screen texture array shader bindings");
+         logger_->error(
+            "Failed to allocate screen texture array shader bindings");
          return false;
       }
    }
@@ -563,6 +564,8 @@ void RhiTextureArrayOverlay::RenderScreen(
 }
 
 bool RhiTextureArrayOverlay::IsInitialized() const
-{ return initialized_; }
+{
+   return initialized_;
+}
 
 } // namespace scwx::qt::render

@@ -223,9 +223,10 @@ void RhiRadarOverlay::Shutdown()
    momentU32_.clear();
    cfpU32_.clear();
    lutRgba_.clear();
-   geometryUploaded_ = false;
-   lutUploaded_      = false;
-   initialized_      = false;
+   geometryUploaded_    = false;
+   lutUploaded_         = false;
+   uploadedVertexCount_ = 0;
+   initialized_         = false;
 }
 
 void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
@@ -255,7 +256,8 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
 
    const std::size_t vertexBytes = vertexCount * 2u * sizeof(float);
    const std::size_t momentBytes = vertexCount * sizeof(std::uint32_t);
-   uploadGeometry = uploadGeometry || !geometryUploaded_ ||
+   uploadGeometry                = uploadGeometry || !geometryUploaded_ ||
+                    vertexCount != uploadedVertexCount_ ||
                     vertexCapacity_ < vertexBytes ||
                     momentCapacity_ < momentBytes || cfpCapacity_ < momentBytes;
    uploadColorTable = uploadColorTable || !lutUploaded_;
@@ -329,6 +331,10 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
    }
 
    commandBuffer->resourceUpdate(batch);
+   if (uploadGeometry)
+   {
+      uploadedVertexCount_ = vertexCount;
+   }
    geometryUploaded_ = geometryUploaded_ || uploadGeometry;
    lutUploaded_      = lutUploaded_ || uploadColorTable;
 
@@ -341,6 +347,8 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
 }
 
 bool RhiRadarOverlay::IsInitialized() const
-{ return initialized_; }
+{
+   return initialized_;
+}
 
 } // namespace scwx::qt::render
