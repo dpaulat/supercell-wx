@@ -19,7 +19,7 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class MarkerLayer::Impl
 {
 public:
-   explicit Impl(MarkerLayer* self,
+   explicit Impl(MarkerLayer*                                  self,
                  const std::shared_ptr<render::RenderContext>& renderContext) :
        self_ {self},
        geoIcons_ {std::make_shared<gl::draw::GeoIcons>(renderContext)},
@@ -167,7 +167,6 @@ void MarkerLayer::Render(const std::shared_ptr<MapContext>& mapContext,
                          const QMapLibre::CustomLayerRenderParameters& params)
 {
    DrawLayer::Render(mapContext, params);
-
 }
 
 void MarkerLayer::Deinitialize()

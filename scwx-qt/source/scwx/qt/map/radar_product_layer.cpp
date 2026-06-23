@@ -41,6 +41,30 @@ namespace scwx::qt::map
 static const std::string logPrefix_ = "scwx::qt::map::radar_product_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+namespace
+{
+
+std::size_t MomentDataByteSize(const std::size_t numVertices,
+                               const std::size_t componentSize)
+{
+   if (numVertices == 0)
+   {
+      return 0;
+   }
+
+   const std::size_t componentBytes = std::max<std::size_t>(1, componentSize);
+   return numVertices * componentBytes;
+}
+
+bool HasCompleteMomentData(const std::size_t                numVertices,
+                           const std::size_t                componentSize,
+                           const std::vector<std::uint8_t>& momentData)
+{
+   return momentData.size() >= MomentDataByteSize(numVertices, componentSize);
+}
+
+} // namespace
+
 class RadarProductLayer::Impl
 {
 public:
@@ -239,9 +263,26 @@ void RadarProductLayer::RenderVulkanOverlay(
                         types::RadarProductLoadStatus::ProductNotAvailable;
          break;
 
-      default:
+      case types::RadarProductLoadStatus::ProductLoaded:
          sweepVisible = true;
+         break;
+
+      case types::RadarProductLoadStatus::ProductNotLoaded:
+      case types::RadarProductLoadStatus::LoadingProduct:
+         sweepVisible = false;
+         break;
+
+      default:
+         sweepVisible = false;
+         break;
       }
+   }
+
+   if (sweepVisible && !HasCompleteMomentData(p->numVertices_,
+                                              p->momentComponentSize_,
+                                              p->momentData_))
+   {
+      sweepVisible = false;
    }
 
    if (sweepVisible && p->numVertices_ > 0 && !p->rgbaColorTable_.empty())
@@ -370,7 +411,7 @@ bool RadarProductLayer::RunMousePicking(
 
       const double distance = distanceMeters.value() *
                               scwx::common::kKilometersPerMeter * distanceScale;
-      std::string  distanceHeightStr =
+      std::string distanceHeightStr =
          fmt::format("{:.2f} {}", distance, distanceAbbrev);
 
       if (radarProductView == nullptr)

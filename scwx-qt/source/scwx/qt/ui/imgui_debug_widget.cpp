@@ -20,8 +20,8 @@ public:
       // Create ImGui Context
       static size_t currentIndex_ {0u};
       contextName_ = fmt::format("ImGui Debug {}", ++currentIndex_);
-      context_ =
-         model::ImGuiContextModel::Instance().CreateContext(contextName_);
+      context_     = model::ImGuiContextModel::Instance().CreateContext(
+         contextName_, false);
       currentContext_ = context_;
 
       // Initialize ImGui Qt backend
@@ -31,12 +31,17 @@ public:
 
    ~ImGuiDebugWidgetImpl()
    {
-      // Set ImGui Context
+      if (currentContext_ != context_ && currentContext_ != nullptr)
+      {
+         ImGui::SetCurrentContext(currentContext_);
+         ImGui_ImplQt_UnregisterWidget(self_);
+      }
+
       ImGui::SetCurrentContext(context_);
 
+      ImGui_ImplQt_UnregisterWidget(self_);
       ImGui_ImplQt_Shutdown();
 
-      // Destroy ImGui Context
       model::ImGuiContextModel::Instance().DestroyContext(contextName_);
    }
 

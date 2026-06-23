@@ -38,7 +38,7 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class OverlayLayer::Impl
 {
 public:
-   explicit Impl(OverlayLayer* self,
+   explicit Impl(OverlayLayer*                                 self,
                  const std::shared_ptr<render::RenderContext>& renderContext) :
        self_ {self},
        activeBoxOuter_ {std::make_shared<gl::draw::Rectangle>(renderContext)},
@@ -101,13 +101,15 @@ public:
                              const QMapLibre::CustomLayerRenderParameters& params);
    void RenderAttribution(const std::shared_ptr<MapContext>& mapContext,
                           const QMapLibre::CustomLayerRenderParameters& params);
-   void RenderVulkanCompass(const std::shared_ptr<MapContext>& mapContext,
-                            const QMapLibre::CustomLayerRenderParameters& params);
+   void SetupScreenIcons(const std::shared_ptr<MapContext>& mapContext);
+   void UpdateScreenIcons(const std::shared_ptr<MapContext>& mapContext,
+                          const QMapLibre::CustomLayerRenderParameters& params);
    void UpdateImGuiState(const QMapLibre::CustomLayerRenderParameters& params);
    void UpdateSweepTimeString(const std::shared_ptr<MapContext>& mapContext);
-   void RenderImGuiOverlay(const std::shared_ptr<MapContext>& mapContext,
+   void
+        RenderImGuiOverlay(const std::shared_ptr<MapContext>&            mapContext,
                            const QMapLibre::CustomLayerRenderParameters& params);
-   void UpdateDrawItems(const std::shared_ptr<MapContext>&            mapContext,
+   void UpdateDrawItems(const std::shared_ptr<MapContext>& mapContext,
                         const QMapLibre::CustomLayerRenderParameters& params);
 
    void SetupGeoIcons();
@@ -236,6 +238,129 @@ void OverlayLayer::Impl::SetupGeoIcons()
    geoIcons_->FinishIcons();
 }
 
+void OverlayLayer::Impl::SetupScreenIcons(
+   const std::shared_ptr<MapContext>& mapContext)
+{
+   icons_->StartIconSheets();
+   icons_->AddIconSheet(cardinalPointIconName_);
+   icons_->AddIconSheet(compassIconName_);
+   icons_->AddIconSheet(mapCenterIconName_);
+   for (const auto& logoEntry : mapProviderLogos_)
+   {
+      icons_->AddIconSheet(logoEntry.second)->SetAnchor(0.0f, 1.0f);
+   }
+   icons_->FinishIconSheets();
+
+   icons_->StartIcons();
+   compassIcon_ = icons_->AddIcon();
+   icons_->SetIconTexture(compassIcon_, cardinalPointIconName_, 0);
+   gl::draw::Icons::RegisterEventHandler(
+      compassIcon_,
+      [this, mapContext](QEvent* ev)
+      {
+         switch (ev->type())
+         {
+         case QEvent::Type::Enter:
+            icons_->SetIconModulate(
+               compassIcon_,
+               boost::gil::rgba32f_pixel_t {1.5f, 1.5f, 1.5f, 1.0f});
+            break;
+
+         case QEvent::Type::Leave:
+            icons_->SetIconModulate(
+               compassIcon_,
+               boost::gil::rgba32f_pixel_t {1.0f, 1.0f, 1.0f, 1.0f});
+            break;
+
+         case QEvent::Type::MouseButtonRelease:
+         {
+            QMouseEvent* mouseEvent = reinterpret_cast<QMouseEvent*>(ev);
+            if (mouseEvent->button() == Qt::MouseButton::LeftButton)
+            {
+               auto map = mapContext->map().lock();
+               if (map != nullptr)
+               {
+                  map->setBearing(0.0);
+               }
+               ev->accept();
+            }
+            break;
+         }
+
+         default:
+            break;
+         }
+      });
+
+   mapCenterIcon_ = icons_->AddIcon();
+   icons_->SetIconTexture(mapCenterIcon_, mapCenterIconName_, 0);
+
+   mapLogoIcon_       = icons_->AddIcon();
+   const auto& logoIt = mapProviderLogos_.find(mapContext->map_provider());
+   if (logoIt != mapProviderLogos_.cend())
+   {
+      icons_->SetIconTexture(mapLogoIcon_, logoIt->second, 0);
+   }
+
+   icons_->FinishIcons();
+}
+
+void OverlayLayer::Impl::UpdateScreenIcons(
+   const std::shared_ptr<MapContext>&            mapContext,
+   const QMapLibre::CustomLayerRenderParameters& params)
+{
+   auto& generalSettings = settings::GeneralSettings::Instance();
+
+   static constexpr int kCompassMargin = 8;
+
+   if (params.width != lastWidth_ || params.height != lastHeight_ ||
+       firstRender_)
+   {
+      icons_->SetIconLocation(
+         compassIcon_, params.width - 24 - kCompassMargin, kCompassMargin);
+   }
+
+   if (params.bearing != lastBearing_)
+   {
+      if (params.bearing == 0.0)
+      {
+         icons_->SetIconTexture(compassIcon_, cardinalPointIconName_, 0);
+         icons_->SetIconAngle(compassIcon_,
+                              units::angle::degrees<double> {0.0});
+      }
+      else
+      {
+         icons_->SetIconTexture(compassIcon_, compassIconName_, 0);
+         icons_->SetIconAngle(
+            compassIcon_, units::angle::degrees<double> {-45 - params.bearing});
+      }
+   }
+
+   if (params.width != lastWidth_ || params.height != lastHeight_)
+   {
+      static constexpr double xPosition = 0.5;
+      static constexpr double yPosition = 0.5;
+
+      icons_->SetIconLocation(
+         mapCenterIcon_, params.width * xPosition, params.height * yPosition);
+   }
+   icons_->SetIconVisible(mapCenterIcon_,
+                          generalSettings.show_map_center().GetValue());
+
+   const QMargins colorTableMargins = mapContext->color_table_margins();
+   if (colorTableMargins != lastColorTableMargins_ || firstRender_)
+   {
+      static constexpr int xOffset = 10;
+      static constexpr int yOffset = 10;
+
+      icons_->SetIconLocation(mapLogoIcon_,
+                              colorTableMargins.left() + xOffset,
+                              colorTableMargins.bottom() + yOffset);
+   }
+   icons_->SetIconVisible(mapLogoIcon_,
+                          generalSettings.show_map_logo().GetValue());
+}
+
 void OverlayLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
 {
    logger_->debug("Initialize()");
@@ -254,8 +379,6 @@ void OverlayLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
 
    p->currentPosition_ = p->positionManager_->position();
 
-#if !defined(SCWX_RENDER_BACKEND_VULKAN)
-   // Geo Icons
    auto& generalSettings = settings::GeneralSettings::Instance();
    p->SetupGeoIcons();
    p->cursorScaleConnection_ =
@@ -266,86 +389,7 @@ void OverlayLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
             Q_EMIT NeedsRendering();
          });
 
-   // Icons
-   p->icons_->StartIconSheets();
-   p->icons_->AddIconSheet(p->cardinalPointIconName_);
-   p->icons_->AddIconSheet(p->compassIconName_);
-   p->icons_->AddIconSheet(p->mapCenterIconName_);
-   for (auto logoIt = p->mapProviderLogos_.begin();
-        logoIt != p->mapProviderLogos_.end();
-        ++logoIt)
-   {
-      p->icons_->AddIconSheet(logoIt->second)->SetAnchor(0.0f, 1.0f);
-   }
-   p->icons_->FinishIconSheets();
-
-   p->icons_->StartIcons();
-   p->compassIcon_ = p->icons_->AddIcon();
-   p->icons_->SetIconTexture(p->compassIcon_, p->cardinalPointIconName_, 0);
-   gl::draw::Icons::RegisterEventHandler(
-      p->compassIcon_,
-      [this, mapContext](QEvent* ev)
-      {
-         switch (ev->type())
-         {
-         case QEvent::Type::Enter:
-            // Highlight icon on mouse enter
-            p->icons_->SetIconModulate(
-               p->compassIcon_,
-               boost::gil::rgba32f_pixel_t {1.5f, 1.5f, 1.5f, 1.0f});
-            break;
-
-         case QEvent::Type::Leave:
-            // Restore icon on mouse leave
-            p->icons_->SetIconModulate(
-               p->compassIcon_,
-               boost::gil::rgba32f_pixel_t {1.0f, 1.0f, 1.0f, 1.0f});
-            break;
-
-         case QEvent::Type::MouseButtonPress:
-         {
-            // Reset bearing on mouse button press
-            QMouseEvent* mouseEvent = reinterpret_cast<QMouseEvent*>(ev);
-            if (mouseEvent->buttons() == Qt::MouseButton::LeftButton &&
-                p->lastBearing_ != 0.0)
-            {
-               auto map = mapContext->map().lock();
-               if (map != nullptr)
-               {
-                  map->setBearing(0.0);
-               }
-               ev->accept();
-            }
-            break;
-         }
-
-         default:
-            break;
-         }
-      });
-
-   p->mapCenterIcon_ = p->icons_->AddIcon();
-   p->icons_->SetIconTexture(p->mapCenterIcon_, p->mapCenterIconName_, 0);
-
-   p->mapLogoIcon_    = p->icons_->AddIcon();
-   const auto& logoIt = p->mapProviderLogos_.find(mapContext->map_provider());
-   if (logoIt != p->mapProviderLogos_.cend())
-   {
-      p->icons_->SetIconTexture(p->mapLogoIcon_, logoIt->second, 0);
-   }
-
-   p->icons_->FinishIcons();
-#else
-   auto& generalSettings = settings::GeneralSettings::Instance();
-   p->SetupGeoIcons();
-   p->cursorScaleConnection_ =
-      generalSettings.cursor_icon_scale().changed_signal().connect(
-         [this](auto&&...)
-         {
-            p->SetupGeoIcons();
-            Q_EMIT NeedsRendering();
-         });
-#endif
+   p->SetupScreenIcons(mapContext);
 
    connect(p->positionManager_.get(),
            &manager::PositionManager::LocationTrackingChanged,
@@ -360,18 +404,12 @@ void OverlayLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
               if (position.isValid() &&
                   p->currentPosition_.coordinate() != coordinate)
               {
-#if !defined(SCWX_RENDER_BACKEND_VULKAN)
-                 p->geoIcons_->SetIconLocation(p->locationIcon_,
-                                               coordinate.latitude(),
-                                               coordinate.longitude());
-#else
                  if (p->locationIcon_ != nullptr)
                  {
                     p->geoIcons_->SetIconLocation(p->locationIcon_,
                                                   coordinate.latitude(),
                                                   coordinate.longitude());
                  }
-#endif
                  Q_EMIT NeedsRendering();
               }
               p->currentPosition_ = position;
@@ -420,61 +458,10 @@ void OverlayLayer::Impl::UpdateDrawItems(
                              currentPosition_.isValid() &&
                                 positionManager_->IsLocationTracked());
 
-#if !defined(SCWX_RENDER_BACKEND_VULKAN)
-   // Compass Icon
-   if (params.width != lastWidth_ || params.height != lastHeight_ ||
-       ImGui::GetFontSize() != lastFontSize_)
-   {
-      icons_->SetIconLocation(compassIcon_,
-                              params.width - 24,
-                              params.height - (ImGui::GetFontSize() + 32));
-   }
-   if (params.bearing != lastBearing_)
-   {
-      if (params.bearing == 0.0)
-      {
-         icons_->SetIconTexture(compassIcon_, cardinalPointIconName_, 0);
-         icons_->SetIconAngle(compassIcon_,
-                              units::angle::degrees<double> {0.0});
-      }
-      else
-      {
-         icons_->SetIconTexture(compassIcon_, compassIconName_, 0);
-         icons_->SetIconAngle(compassIcon_,
-                              units::angle::degrees<double> {-45 - params.bearing});
-      }
-   }
-
-   // Map Center Icon
-   if (params.width != lastWidth_ || params.height != lastHeight_)
-   {
-      static constexpr double xPosition = 0.5;
-      static constexpr double yPosition = 0.5;
-
-      icons_->SetIconLocation(mapCenterIcon_,
-                            params.width * xPosition,
-                            params.height * yPosition);
-   }
-   icons_->SetIconVisible(mapCenterIcon_,
-                          generalSettings.show_map_center().GetValue());
+   UpdateScreenIcons(mapContext, params);
 
    const QMargins colorTableMargins = mapContext->color_table_margins();
-   if (colorTableMargins != lastColorTableMargins_ || firstRender_)
-   {
-      static constexpr int xOffset = 10;
-      static constexpr int yOffset = 10;
-
-      icons_->SetIconLocation(mapLogoIcon_,
-                              colorTableMargins.left() + xOffset,
-                              colorTableMargins.bottom() + yOffset);
-   }
-   icons_->SetIconVisible(mapLogoIcon_,
-                          generalSettings.show_map_logo().GetValue());
-#else
-   const QMargins colorTableMargins = mapContext->color_table_margins();
-#endif
-
-   lastColorTableMargins_ = colorTableMargins;
+   lastColorTableMargins_           = colorTableMargins;
 }
 
 void OverlayLayer::Render(const std::shared_ptr<MapContext>& mapContext,
@@ -547,7 +534,6 @@ void OverlayLayer::Render(const std::shared_ptr<MapContext>& mapContext,
    p->UpdateImGuiState(params);
 
    ImGuiFrameEnd();
-
 }
 
 void OverlayLayer::Impl::UpdateImGuiState(
@@ -560,58 +546,14 @@ void OverlayLayer::Impl::UpdateImGuiState(
    lastFontSize_ = ImGui::GetFontSize();
 }
 
-void OverlayLayer::Impl::RenderVulkanCompass(
+void OverlayLayer::Impl::RenderImGuiOverlay(
    const std::shared_ptr<MapContext>&            mapContext,
    const QMapLibre::CustomLayerRenderParameters& params)
 {
-   const float fontSize = ImGui::GetFontSize();
-   const ImVec2 pos {static_cast<float>(params.width - 36.0),
-                     static_cast<float>(params.height - (fontSize + 32.0))};
-   const ImVec2 size {24.0f, 24.0f};
-
-   ImGui::SetNextWindowPos(pos);
-   ImGui::SetNextWindowSize(size);
-   ImGui::PushID("VulkanCompass");
-   ImGui::Begin("##compass",
-                nullptr,
-                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-                   ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
-                   ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground);
-
-   const bool hovered = ImGui::IsWindowHovered();
-   if (ImGui::InvisibleButton("btn", size))
-   {
-      auto map = mapContext->map().lock();
-      if (map != nullptr && lastBearing_ != 0.0)
-      {
-         map->setBearing(0.0);
-      }
-   }
-
-   ImDrawList* const drawList = ImGui::GetWindowDrawList();
-   const ImVec2      windowPos = ImGui::GetWindowPos();
-   const ImVec2      center {windowPos.x + size.x * 0.5f,
-                             windowPos.y + size.y * 0.5f};
-   const ImU32       color =
-      hovered ? IM_COL32(255, 255, 255, 255) : IM_COL32(200, 200, 200, 255);
-
-   drawList->AddCircle(center, 10.0f, color, 16, 2.0f);
-
-   const float angleRad = static_cast<float>(
-      (-45.0 - params.bearing) * 3.14159265358979323846 / 180.0);
-   const float cosA     = std::cos(angleRad);
-   const float sinA     = std::sin(angleRad);
-   const ImVec2 northTip {center.x + sinA * 8.0f, center.y - cosA * 8.0f};
-   const ImVec2 eastArm {center.x + cosA * 5.0f, center.y + sinA * 5.0f};
-   const ImVec2 westArm {center.x - cosA * 5.0f, center.y - sinA * 5.0f};
-
-   drawList->AddTriangleFilled(northTip, eastArm, westArm, color);
-   drawList->AddText(ImVec2 {center.x - 3.0f, center.y - 4.0f},
-                     IM_COL32(255, 255, 255, 255),
-                     "N");
-
-   ImGui::End();
-   ImGui::PopID();
+   RenderProductName(mapContext);
+   RenderProductDetails(mapContext, params);
+   RenderAttribution(mapContext, params);
+   UpdateImGuiState(params);
 }
 
 void OverlayLayer::Impl::UpdateSweepTimeString(
@@ -665,17 +607,6 @@ void OverlayLayer::Impl::UpdateSweepTimeString(
    }
 }
 
-void OverlayLayer::Impl::RenderImGuiOverlay(
-   const std::shared_ptr<MapContext>&            mapContext,
-   const QMapLibre::CustomLayerRenderParameters& params)
-{
-   RenderVulkanCompass(mapContext, params);
-   RenderProductName(mapContext);
-   RenderProductDetails(mapContext, params);
-   RenderAttribution(mapContext, params);
-   UpdateImGuiState(params);
-}
-
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
 void OverlayLayer::RenderVulkanOverlay(
    QRhiCommandBuffer*                            commandBuffer,
@@ -688,8 +619,7 @@ void OverlayLayer::RenderVulkanOverlay(
    p->UpdateDrawItems(mapContext, params);
    p->UpdateImGuiState(params);
 
-   DrawLayer::RenderVulkanOverlay(
-      commandBuffer, resources, mapContext, params);
+   DrawLayer::RenderVulkanOverlay(commandBuffer, resources, mapContext, params);
 }
 
 void OverlayLayer::RenderVulkanImGui(

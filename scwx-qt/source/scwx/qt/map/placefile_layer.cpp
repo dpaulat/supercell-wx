@@ -22,17 +22,19 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class PlacefileLayer::Impl
 {
 public:
-   explicit Impl(PlacefileLayer* self,
+   explicit Impl(PlacefileLayer*                               self,
                  const std::shared_ptr<render::RenderContext>& renderContext,
-                 const std::string&                    placefileName) :
+                 const std::string&                            placefileName) :
        self_ {self},
        placefileName_ {placefileName},
-       placefileIcons_ {std::make_shared<gl::draw::PlacefileIcons>(renderContext)},
+       placefileIcons_ {
+          std::make_shared<gl::draw::PlacefileIcons>(renderContext)},
        placefileImages_ {
           std::make_shared<gl::draw::PlacefileImages>(renderContext)},
        placefileImagesXY_ {
           std::make_shared<gl::draw::PlacefileImagesXY>(renderContext)},
-       placefileLines_ {std::make_shared<gl::draw::PlacefileLines>(renderContext)},
+       placefileLines_ {
+          std::make_shared<gl::draw::PlacefileLines>(renderContext)},
        placefilePolygons_ {
           std::make_shared<gl::draw::PlacefilePolygons>(renderContext)},
        placefileTriangles_ {
@@ -71,7 +73,7 @@ public:
 
 PlacefileLayer::PlacefileLayer(
    const std::shared_ptr<render::RenderContext>& renderContext,
-   const std::string& placefileName) :
+   const std::string&                            placefileName) :
     DrawLayer(renderContext, fmt::format("PlacefileLayer {}", placefileName)),
     p(std::make_unique<PlacefileLayer::Impl>(
        this, renderContext, placefileName))
@@ -164,7 +166,6 @@ void PlacefileLayer::Render(
    }
 
    DrawLayer::Render(mapContext, params);
-
 }
 
 #if defined(SCWX_RENDER_BACKEND_VULKAN)

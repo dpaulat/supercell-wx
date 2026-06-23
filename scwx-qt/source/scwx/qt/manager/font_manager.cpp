@@ -174,8 +174,7 @@ void FontManager::InitializeFonts()
 
 void FontManager::EnsureImGuiFontsBuilt()
 {
-   if (ImGui::GetCurrentContext() == nullptr ||
-       ImGui::GetIO().Fonts == nullptr)
+   if (ImGui::GetCurrentContext() == nullptr || ImGui::GetIO().Fonts == nullptr)
    {
       return;
    }
@@ -207,8 +206,7 @@ FontManager::ImFontSize(units::font_size::pixels<double> size)
 
 ImFontAtlas* FontManager::Impl::CurrentAtlas()
 {
-   if (ImGui::GetCurrentContext() != nullptr &&
-       ImGui::GetIO().Fonts != nullptr)
+   if (ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().Fonts != nullptr)
    {
       return ImGui::GetIO().Fonts;
    }

@@ -17,14 +17,32 @@ namespace scwx::qt::map
 static const std::string logPrefix_ = "scwx::qt::map::overlay_product_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+namespace
+{
+
+constexpr float kStormTrackAlphaScale   = 0.72f;
+constexpr float kStormTrackWidthScale   = 1.5f;
+constexpr float kStormTrackBaseWidth_   = 1.0f;
+constexpr float kStormTrackBorderWidth_ = 1.0f;
+
+boost::gil::rgba32f_pixel_t
+StormTrackColor(const float r, const float g, const float b)
+{
+   return {r, g, b, kStormTrackAlphaScale};
+}
+
+} // namespace
+
 class OverlayProductLayer::Impl
 {
 public:
-   explicit Impl(OverlayProductLayer* self,
+   explicit Impl(OverlayProductLayer*                          self,
                  const std::shared_ptr<render::RenderContext>& renderContext) :
        self_ {self},
        linkedVectors_ {std::make_shared<gl::draw::LinkedVectors>(renderContext)}
    {
+      linkedVectors_->SetBorderEnabled(false);
+
       auto& productSettings = settings::ProductSettings::Instance();
 
       stiForecastEnabledCallbackUuid_ =
@@ -148,7 +166,6 @@ void OverlayProductLayer::Render(
    }
 
    DrawLayer::Render(mapContext, params);
-
 }
 
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
@@ -163,8 +180,7 @@ void OverlayProductLayer::RenderVulkanOverlay(
       p->UpdateStormTrackingInformation(mapContext);
    }
 
-   DrawLayer::RenderVulkanOverlay(
-      commandBuffer, resources, mapContext, params);
+   DrawLayer::RenderVulkanOverlay(commandBuffer, resources, mapContext, params);
 }
 #endif
 
@@ -298,7 +314,7 @@ void OverlayProductLayer::Impl::HandleScitDataPacket(
 
    if (scitDataPacket != nullptr)
    {
-      boost::gil::rgba32f_pixel_t color {1.0f, 1.0f, 1.0f, 1.0f};
+      boost::gil::rgba32f_pixel_t color = StormTrackColor(1.0f, 1.0f, 1.0f);
 
       units::length::nautical_miles<float> tickRadius {0.5f};
       units::length::nautical_miles<float> tickRadiusIncrement {0.0f};
@@ -315,7 +331,7 @@ void OverlayProductLayer::Impl::HandleScitDataPacket(
 
          // If this is past data, the default tick radius and increment with a
          // darker color
-         color = {0.5f, 0.5f, 0.5f, 1.0f};
+         color = StormTrackColor(0.5f, 0.5f, 0.5f);
       }
       else
       {
@@ -376,7 +392,8 @@ void OverlayProductLayer::Impl::HandleLinkedVectorPacket(
    if (linkedVectorPacket != nullptr)
    {
       auto di = linkedVectors->AddVector(center, linkedVectorPacket);
-      gl::draw::LinkedVectors::SetVectorWidth(di, 1.0f);
+      gl::draw::LinkedVectors::SetVectorWidth(
+         di, kStormTrackBaseWidth_ * kStormTrackWidthScale);
       gl::draw::LinkedVectors::SetVectorModulate(di, color);
       gl::draw::LinkedVectors::SetVectorHoverText(di, hoverText);
       gl::draw::LinkedVectors::SetVectorTicksEnabled(di, true);

@@ -23,10 +23,36 @@ namespace scwx::qt::map
 static const std::string logPrefix_ = "scwx::qt::map::radar_site_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+namespace
+{
+
+class ImGuiStyleColorStack
+{
+public:
+   ImGuiStyleColorStack(ImGuiCol      idx0,
+                        const ImVec4& col0,
+                        ImGuiCol      idx1,
+                        const ImVec4& col1,
+                        ImGuiCol      idx2,
+                        const ImVec4& col2)
+   {
+      ImGui::PushStyleColor(idx0, col0);
+      ImGui::PushStyleColor(idx1, col1);
+      ImGui::PushStyleColor(idx2, col2);
+   }
+
+   ~ImGuiStyleColorStack() { ImGui::PopStyleColor(3); }
+
+   ImGuiStyleColorStack(const ImGuiStyleColorStack&)            = delete;
+   ImGuiStyleColorStack& operator=(const ImGuiStyleColorStack&) = delete;
+};
+
+} // namespace
+
 class RadarSiteLayer::Impl
 {
 public:
-   explicit Impl(RadarSiteLayer* self,
+   explicit Impl(RadarSiteLayer*                               self,
                  const std::shared_ptr<render::RenderContext>& renderContext) :
        self_ {self},
        geoLines_ {std::make_shared<gl::draw::GeoLines>(renderContext)}
@@ -39,13 +65,13 @@ public:
    Impl(const Impl&&)            = delete;
    Impl& operator=(const Impl&&) = delete;
 
-   [[nodiscard]] bool IsVisible(
-      const QMapLibre::CustomLayerRenderParameters& params) const;
-   void UpdateMapTransform(
-      const QMapLibre::CustomLayerRenderParameters& params);
+   [[nodiscard]] bool
+   IsVisible(const QMapLibre::CustomLayerRenderParameters& params) const;
+   void
+   UpdateMapTransform(const QMapLibre::CustomLayerRenderParameters& params);
    void UpdateButtonColors();
-   void RenderRadarSiteButtons(
-      const QMapLibre::CustomLayerRenderParameters& params);
+   void
+   RenderRadarSiteButtons(const QMapLibre::CustomLayerRenderParameters& params);
    void RenderRadarSite(const QMapLibre::CustomLayerRenderParameters& params,
                         std::shared_ptr<config::RadarSite>& radarSite);
    void RenderRadarLine(const std::shared_ptr<MapContext>& mapContext);
@@ -154,10 +180,33 @@ void RadarSiteLayer::Impl::UpdateButtonColors()
 void RadarSiteLayer::Impl::RenderRadarSiteButtons(
    const QMapLibre::CustomLayerRenderParameters& params)
 {
+   if (radarSites_.empty())
+   {
+      return;
+   }
+
+   ImGui::SetNextWindowPos(ImVec2 {0.0f, 0.0f});
+   ImGui::SetNextWindowSize(ImVec2 {static_cast<float>(params.width),
+                                    static_cast<float>(params.height)});
+   constexpr ImGuiWindowFlags kOverlayFlags =
+      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+      ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
+      ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground |
+      ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav |
+      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings;
+
+   if (!ImGui::Begin("##radar-sites-overlay", nullptr, kOverlayFlags))
+   {
+      ImGui::End();
+      return;
+   }
+
    for (auto& radarSite : radarSites_)
    {
       RenderRadarSite(params, radarSite);
    }
+
+   ImGui::End();
 }
 
 void RadarSiteLayer::Render(
@@ -229,8 +278,6 @@ void RadarSiteLayer::Impl::RenderRadarSite(
    const QMapLibre::CustomLayerRenderParameters& params,
    std::shared_ptr<config::RadarSite>&           radarSite)
 {
-   const std::string windowName = fmt::format("radar-site-{}", radarSite->id());
-
    const auto screenCoordinates =
       (util::maplibre::LatLongToScreenCoordinate(
           {radarSite->latitude(), radarSite->longitude()}) -
@@ -249,57 +296,62 @@ void RadarSiteLayer::Impl::RenderRadarSite(
    }
 
    // Convert screen to ImGui coordinates
-   float x = rotatedX + halfWidth_;
-   float y = params.height - (rotatedY + halfHeight_);
+   const float x = rotatedX + halfWidth_;
+   const float y = params.height - (rotatedY + halfHeight_);
 
-   // Setup window to hold text
-   ImGui::SetNextWindowPos(
-      ImVec2 {x, y}, ImGuiCond_Always, ImVec2 {0.5f, 0.5f});
-   if (ImGui::Begin(windowName.c_str(),
-                    nullptr,
-                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-                       ImGuiWindowFlags_AlwaysAutoResize))
+   static constexpr float kCullMargin = 48.0f;
+   if (x < -kCullMargin || x > params.width + kCullMargin || y < -kCullMargin ||
+       y > params.height + kCullMargin)
    {
-      static constexpr int kPushStyleCount = 3;
-      auto                 radarSiteStatus = radarSite->status();
-
-      ImGui::PushStyleColor(
-         ImGuiCol_Button,
-         std::get<0>(radarSiteStatusButtonColors_.at(radarSiteStatus)));
-      ImGui::PushStyleColor(
-         ImGuiCol_ButtonHovered,
-         std::get<1>(radarSiteStatusButtonColors_.at(radarSiteStatus)));
-      ImGui::PushStyleColor(
-         ImGuiCol_ButtonActive,
-         std::get<2>(radarSiteStatusButtonColors_.at(radarSiteStatus)));
-
-      // Render text
-      if (ImGui::Button(radarSite->id().c_str()))
-      {
-         Q_EMIT self_->RadarSiteSelected(radarSite->id());
-      }
-
-      // Store hover text for mouse picking pass
-      if (ImGui::GetCurrentContext() != nullptr &&
-          settings::TextSettings::Instance()
-             .radar_site_hover_text_enabled()
-             .GetValue() &&
-          ImGui::IsItemHovered())
-      {
-         hoverText_ =
-            fmt::format("{} ({})\n{}\n{}, {}",
-                        radarSite->id(),
-                        radarSite->type_name(),
-                        radarSite->location_name(),
-                        common::GetLatitudeString(radarSite->latitude()),
-                        common::GetLongitudeString(radarSite->longitude()));
-      }
-
-      ImGui::PopStyleColor(kPushStyleCount);
-
-      // End window
-      ImGui::End();
+      return;
    }
+
+   const auto radarSiteStatus = radarSite->status();
+   const auto colorIt = radarSiteStatusButtonColors_.find(radarSiteStatus);
+   if (colorIt == radarSiteStatusButtonColors_.end())
+   {
+      return;
+   }
+
+   const char* const label        = radarSite->id().c_str();
+   const ImVec2      labelSize    = ImGui::CalcTextSize(label);
+   const ImVec2&     framePadding = ImGui::GetStyle().FramePadding;
+   const ImVec2      buttonSize {labelSize.x + framePadding.x * 2.0f,
+                            labelSize.y + framePadding.y * 2.0f};
+
+   ImGui::SetCursorScreenPos(
+      ImVec2 {x - buttonSize.x * 0.5f, y - buttonSize.y * 0.5f});
+   ImGui::PushID(label);
+
+   ImGuiStyleColorStack buttonColors {ImGuiCol_Button,
+                                      std::get<0>(colorIt->second),
+                                      ImGuiCol_ButtonHovered,
+                                      std::get<1>(colorIt->second),
+                                      ImGuiCol_ButtonActive,
+                                      std::get<2>(colorIt->second)};
+
+   if (ImGui::Button(label, buttonSize))
+   {
+      Q_EMIT self_->RadarSiteSelected(radarSite->id());
+   }
+
+   // Store hover text for mouse picking pass
+   if (ImGui::GetCurrentContext() != nullptr &&
+       settings::TextSettings::Instance()
+          .radar_site_hover_text_enabled()
+          .GetValue() &&
+       ImGui::IsItemHovered())
+   {
+      hoverText_ =
+         fmt::format("{} ({})\n{}\n{}, {}",
+                     radarSite->id(),
+                     radarSite->type_name(),
+                     radarSite->location_name(),
+                     common::GetLatitudeString(radarSite->latitude()),
+                     common::GetLongitudeString(radarSite->longitude()));
+   }
+
+   ImGui::PopID();
 }
 
 void RadarSiteLayer::Impl::RenderRadarLine(

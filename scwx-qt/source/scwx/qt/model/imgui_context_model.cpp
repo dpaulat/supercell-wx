@@ -91,7 +91,7 @@ ImGuiContext* ImGuiContextModel::CreateContext(const std::string& name,
 {
    static size_t nextId_ {0};
 
-   ImFontAtlas* atlas = shareFontAtlas ? &p->fontAtlas_ : nullptr;
+   ImFontAtlas*  atlas   = shareFontAtlas ? &p->fontAtlas_ : nullptr;
    ImGuiContext* context = ImGui::CreateContext(atlas);
    ImGui::SetCurrentContext(context);
 
@@ -150,8 +150,7 @@ void ImGuiContextModel::NewFrame()
       atlas = ImGui::GetIO().Fonts;
    }
 
-   ImFontAtlasUpdateNewFrame(
-      atlas, ++p->frameCount_, kRendererHasTextures_);
+   ImFontAtlasUpdateNewFrame(atlas, ++p->frameCount_, kRendererHasTextures_);
 }
 
 std::vector<ImGuiContextInfo> ImGuiContextModel::contexts() const

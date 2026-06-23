@@ -2,6 +2,7 @@
 #include "./ui_main_window.h"
 
 #include <scwx/qt/map/map_link_policy.hpp>
+#include <scwx/qt/map/map_basemap_share.hpp>
 #include <scwx/qt/map/map_pane_splitter_state.hpp>
 #include <scwx/qt/map/map_pane_view_link_state.hpp>
 #include <scwx/qt/map/map_popout_frame.hpp>
@@ -60,6 +61,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <memory>
 #include <vector>
 #include <set>
@@ -88,6 +90,8 @@
 #include <QTimer>
 #include <QToolButton>
 #include <QWindow>
+
+#include <rhi/qrhi.h>
 
 namespace scwx::qt::main
 {
@@ -322,6 +326,10 @@ public:
    void SavePoppedMapWindowsToSettings();
    void TryRestorePoppedMapWindows();
    void ConnectMapAnnotationLayerReady(map::MapWidget* mw);
+   void ConfigureBasemapSharing();
+   [[nodiscard]] map::BasemapShareDecision
+   ResolveBasemapShare(std::size_t                 paneIndex,
+                       const map::MapViewSnapshot& view) const;
    /// Layer broadcast, floating host resolver, deferred float-from-settings.
    void ConfigureMapAnnotationDock();
 
@@ -412,6 +420,9 @@ public:
    std::vector<QPointer<QWidget>>                    mapPanePlaceholders_ {};
    std::vector<std::unique_ptr<map::MapPopoutFrame>> mapPanePopoutFrames_ {};
    bool popoutPanesRestoredThisSession_ {false};
+
+   map::MapBasemapShareState     basemapShareState_ {};
+   map::MapBasemapShareCallbacks basemapShareCallbacks_ {};
 
    QSplitter* mapLayoutRoot_ {nullptr};
 
@@ -1158,6 +1169,102 @@ void MainWindowImpl::EnsureMapWidgets(int64_t gridWidth, int64_t gridHeight)
    }
 
    SyncMapPaneViewLinkStateSize();
+   ConfigureBasemapSharing();
+}
+
+map::BasemapShareDecision
+MainWindowImpl::ResolveBasemapShare(const std::size_t           paneIndex,
+                                    const map::MapViewSnapshot& view) const
+{
+   std::vector<map::MapViewSnapshot> allViews;
+   allViews.reserve(maps_.size());
+   for (const map::MapWidget* mapWidget : maps_)
+   {
+      if (mapWidget != nullptr)
+      {
+         allViews.push_back(mapWidget->ExportMapViewSnapshot());
+      }
+      else
+      {
+         allViews.emplace_back();
+      }
+   }
+
+   std::size_t activePaneIndex = 0;
+   if (activeMap_ != nullptr)
+   {
+      const auto activeIt = std::ranges::find(maps_, activeMap_);
+      if (activeIt != maps_.end())
+      {
+         activePaneIndex =
+            static_cast<std::size_t>(std::distance(maps_.begin(), activeIt));
+      }
+   }
+
+   const bool viewLinked =
+      paneIndex < mapPaneViewLinked_.size() && mapPaneViewLinked_.at(paneIndex);
+   const bool poppedOut =
+      paneIndex < mapPanePoppedOut_.size() && mapPanePoppedOut_.at(paneIndex);
+
+   return map::ResolveBasemapShareDecision(paneIndex,
+                                           maps_.size(),
+                                           viewLinked,
+                                           poppedOut,
+                                           view,
+                                           activePaneIndex,
+                                           allViews,
+                                           mapPaneViewLinked_,
+                                           mapPanePoppedOut_);
+}
+
+void MainWindowImpl::ConfigureBasemapSharing()
+{
+   basemapShareCallbacks_ = {};
+   basemapShareState_.Reset(maps_.size());
+
+   const char* env     = std::getenv("SCWX_BASEMAP_SHARE");
+   const bool  enabled = (env == nullptr || env[0] != '0');
+   if (!enabled)
+   {
+      for (map::MapWidget* mapWidget : maps_)
+      {
+         if (mapWidget != nullptr)
+         {
+            mapWidget->SetBasemapShareCallbacks(nullptr);
+         }
+      }
+      return;
+   }
+
+   basemapShareCallbacks_.resolve_ =
+      [this](const std::size_t paneIndex, const map::MapViewSnapshot& view)
+   {
+      return ResolveBasemapShare(paneIndex, view);
+   };
+
+   basemapShareCallbacks_.leaderTexture_ =
+      [this](const std::size_t leaderIndex) -> QRhiTexture*
+   {
+      if (leaderIndex >= maps_.size() || maps_.at(leaderIndex) == nullptr)
+      {
+         return nullptr;
+      }
+      return maps_.at(leaderIndex)->basemap_color_texture();
+   };
+
+   basemapShareCallbacks_.notifyRendered_ =
+      [this](const std::size_t leaderIndex)
+   {
+      basemapShareState_.NotifyBasemapRendered(leaderIndex);
+   };
+
+   for (map::MapWidget* mapWidget : maps_)
+   {
+      if (mapWidget != nullptr)
+      {
+         mapWidget->SetBasemapShareCallbacks(&basemapShareCallbacks_);
+      }
+   }
 }
 
 void MainWindowImpl::ConnectMapAnnotationLayerReady(map::MapWidget* mw)
@@ -2575,6 +2682,8 @@ void MainWindowImpl::ConfigureUiSettings()
 
 void MainWindowImpl::ConnectMapSignals()
 {
+   ConfigureBasemapSharing();
+
    for (const auto& mapWidget : maps_)
    {
       connect(mapWidget,
@@ -3429,6 +3538,7 @@ void MainWindowImpl::HandleMapPaneLinkViewToggled(std::size_t     mapIndex,
    }
    mapPaneViewLinked_[mapIndex] = linked;
    SaveMapPaneViewLinkState();
+   ConfigureBasemapSharing();
    if (linked)
    {
       // If active is this pane, copying from activeMap_ is a
@@ -3470,7 +3580,7 @@ void MainWindowImpl::HandleMapPaneLinkViewToggled(std::size_t     mapIndex,
       {
          double lat {}, lon {}, zoom {}, bearing {}, pitch {};
          ref->GetMapViewParameters(lat, lon, zoom, bearing, pitch);
-         map->SetMapParameters(lat, lon, zoom, bearing, pitch);
+         map->SetMapParameters(lat, lon, zoom, bearing, pitch, true);
          if (const std::shared_ptr<config::RadarSite> site =
                 ref->GetRadarSite();
              site != nullptr)
@@ -3635,7 +3745,28 @@ void MainWindowImpl::UpdateMapParameters(
       {
          continue;
       }
-      map->SetMapParameters(latitude, longitude, zoom, bearing, pitch);
+      map->SetMapParameters(latitude, longitude, zoom, bearing, pitch, true);
+   }
+
+   if (sourceMap != nullptr && basemapShareCallbacks_.resolve_ != nullptr)
+   {
+      const auto sourceIt = std::ranges::find(maps_, sourceMap);
+      if (sourceIt != maps_.end())
+      {
+         const auto sourceIndex =
+            static_cast<std::size_t>(std::distance(maps_.begin(), sourceIt));
+         const map::BasemapShareDecision decision = ResolveBasemapShare(
+            sourceIndex, sourceMap->ExportMapViewSnapshot());
+         if (decision.role_ != map::BasemapPaneRole::Independent &&
+             decision.leaderIndex_ < maps_.size())
+         {
+            map::MapWidget* const leader = maps_.at(decision.leaderIndex_);
+            if (leader != nullptr && leader != sourceMap)
+            {
+               leader->RequestBasemapRepaint();
+            }
+         }
+      }
    }
 }
 
