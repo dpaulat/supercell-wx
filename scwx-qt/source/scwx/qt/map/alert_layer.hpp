@@ -20,8 +20,9 @@ class AlertLayer : public DrawLayer
    friend class AlertLayerHandler;
 
 public:
-   explicit AlertLayer(const std::shared_ptr<render::RenderContext>& renderContext,
-                       scwx::awips::Phenomenon phenomenon);
+   explicit AlertLayer(
+      const std::shared_ptr<render::RenderContext>& renderContext,
+      scwx::awips::Phenomenon                       phenomenon);
    ~AlertLayer();
 
    void Initialize(const std::shared_ptr<MapContext>& mapContext) final;

@@ -2,6 +2,9 @@
 
 #include <scwx/awips/text_product_file.hpp>
 
+#include <chrono>
+#include <optional>
+
 namespace scwx::provider
 {
 
@@ -20,8 +23,10 @@ public:
    WarningsProvider(WarningsProvider&&) noexcept;
    WarningsProvider& operator=(WarningsProvider&&) noexcept;
 
-   std::vector<std::shared_ptr<awips::TextProductFile>>
-   LoadUpdatedFiles(std::chrono::sys_time<std::chrono::hours> newerThan = {});
+   std::vector<std::shared_ptr<awips::TextProductFile>> LoadUpdatedFiles(
+      std::chrono::sys_time<std::chrono::hours>                startTime = {},
+      std::optional<std::chrono::sys_time<std::chrono::hours>> endBefore =
+         std::nullopt);
 
    /**
     * @brief Shuts down the provider and stops any in-progress network requests.
