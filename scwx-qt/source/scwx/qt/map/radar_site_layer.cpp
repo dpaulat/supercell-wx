@@ -277,11 +277,11 @@ void RadarSiteLayer::Impl::RenderRadarSite(
       if (ImGui::Button(radarSite->id().c_str()))
       {
          Q_EMIT self_->RadarSiteSelected(radarSite->id());
-         self_->ImGuiSelectContext();
       }
 
       // Store hover text for mouse picking pass
-      if (settings::TextSettings::Instance()
+      if (ImGui::GetCurrentContext() != nullptr &&
+          settings::TextSettings::Instance()
              .radar_site_hover_text_enabled()
              .GetValue() &&
           ImGui::IsItemHovered())

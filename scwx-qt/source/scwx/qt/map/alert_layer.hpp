@@ -10,10 +10,14 @@
 namespace scwx::qt::map
 {
 
+class AlertLayerHandler;
+
 class AlertLayer : public DrawLayer
 {
    Q_OBJECT
    Q_DISABLE_COPY_MOVE(AlertLayer)
+
+   friend class AlertLayerHandler;
 
 public:
    explicit AlertLayer(const std::shared_ptr<render::RenderContext>& renderContext,
@@ -31,6 +35,8 @@ public:
    void Deinitialize() final;
 
    static void InitializeHandler();
+
+   [[nodiscard]] static std::size_t SharedGeometrySegmentCount();
 
 signals:
    void AlertSelected(const types::TextEventKey& key);

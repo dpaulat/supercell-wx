@@ -2866,12 +2866,14 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
       {
          logger_->info(
             "Vulkan perf: frames={} total_ms={:.3f} map_ms={:.3f} "
-            "imgui_ms={:.3f} overlay_ms={:.3f}",
+            "imgui_ms={:.3f} overlay_ms={:.3f} layers={} alert_segments={}",
             perfFrameCount_,
             perfTotalMs_ / static_cast<double>(perfFrameCount_),
             perfMapMs_ / static_cast<double>(perfFrameCount_),
             perfImguiMs_ / static_cast<double>(perfFrameCount_),
-            perfOverlayMs_ / static_cast<double>(perfFrameCount_));
+            perfOverlayMs_ / static_cast<double>(perfFrameCount_),
+            genericLayers_.size(),
+            AlertLayer::SharedGeometrySegmentCount());
       }
    }
 

@@ -10,6 +10,7 @@
 #include <atomic>
 #include <chrono>
 #include <mutex>
+#include <optional>
 #include <ranges>
 #include <set>
 #include <shared_mutex>
@@ -80,10 +81,21 @@ public:
               &manager::TextEventManager::AlertsRemoved,
               this,
               &AlertLayerHandler::HandleAlertsRemoved);
+
+      std::call_once(refreshScheduled_, [this]() { ScheduleRefresh(); });
    }
    ~AlertLayerHandler()
    {
       disconnect(textEventManager_.get(), nullptr, this, nullptr);
+
+      {
+         std::unique_lock refreshLock(refreshMutex_);
+         refreshEnabled_ = false;
+         refreshTimer_.cancel();
+      }
+
+      refreshThreadPool_.stop();
+      refreshThreadPool_.join();
 
       std::unique_lock lock(alertMutex_);
    }
@@ -110,12 +122,73 @@ public:
 
    static AlertLayerHandler& Instance();
 
+   [[nodiscard]] std::shared_ptr<gl::draw::GeoLines>
+   SharedGeoLines(awips::Phenomenon                     phenomenon,
+                  bool                                    alertActive,
+                  const std::shared_ptr<render::RenderContext>& renderContext);
+
+   [[nodiscard]] bool TryBeginPopulate(awips::Phenomenon phenomenon);
+   void               EndPopulate(awips::Phenomenon phenomenon);
+
+   [[nodiscard]] bool
+   TryTrackSegment(const std::shared_ptr<SegmentRecord>& segmentRecord);
+
+   void RepopulateGeometry(awips::Phenomenon phenomenon);
+
+   void ClearTrackedSegments();
+
+   [[nodiscard]] std::optional<types::TextEventKey> KeyForGeoLine(
+      const std::shared_ptr<const gl::draw::GeoLineDrawItem>& line);
+
+   [[nodiscard]] std::size_t SharedGeoLineCount();
+
+   void RegisterGeometryBuilder(awips::Phenomenon phenomenon,
+                                AlertLayer*          layer);
+   void UnregisterGeometryBuilder(awips::Phenomenon phenomenon,
+                                  AlertLayer*          layer);
+
+   struct SharedPhenomenonGeometry
+   {
+      awips::Phenomenon phenomenon {};
+      std::unordered_map<bool, std::shared_ptr<gl::draw::GeoLines>> geoLines_ {};
+      std::unordered_map<std::shared_ptr<const SegmentRecord>,
+                         boost::container::stable_vector<
+                            std::shared_ptr<gl::draw::GeoLineDrawItem>>>
+                                     linesBySegment_ {};
+      std::unordered_map<std::shared_ptr<const gl::draw::GeoLineDrawItem>,
+                         std::shared_ptr<const SegmentRecord>>
+         segmentsByLine_ {};
+      std::mutex linesMutex_ {};
+      bool       populated_ {false};
+   };
+
+   [[nodiscard]] SharedPhenomenonGeometry&
+   SharedGeometry(awips::Phenomenon                     phenomenon,
+                  const std::shared_ptr<render::RenderContext>& renderContext);
+
    std::shared_ptr<manager::TextEventManager> textEventManager_ {
       manager::TextEventManager::Instance()};
 
    std::shared_mutex alertMutex_ {};
 
+private:
+   void ScheduleRefresh();
+
+   std::unordered_map<awips::Phenomenon, SharedPhenomenonGeometry> geometry_ {};
+   std::mutex                                                      geometryMutex_ {};
+   std::unordered_set<std::shared_ptr<const SegmentRecord>> trackedSegments_ {};
+   std::mutex                                               trackedSegmentsMutex_ {};
+   std::unordered_map<awips::Phenomenon, AlertLayer*> geometryBuilders_ {};
+   std::mutex                                               geometryBuildersMutex_ {};
+
+   boost::asio::thread_pool      refreshThreadPool_ {1u};
+   std::atomic<bool>             refreshEnabled_ {true};
+   boost::asio::system_timer     refreshTimer_ {refreshThreadPool_};
+   std::mutex                    refreshMutex_ {};
+   std::once_flag                refreshScheduled_ {};
+
 signals:
+   void AlertsNeedRendering(awips::Phenomenon phenomenon);
    void AlertAdded(const std::shared_ptr<SegmentRecord>& segmentRecord,
                    awips::Phenomenon                     phenomenon);
    void AlertUpdated(const std::shared_ptr<SegmentRecord>& segmentRecord);
@@ -143,26 +216,17 @@ public:
        self_ {self},
        phenomenon_ {phenomenon},
        ibw_ {awips::ibw::GetImpactBasedWarningInfo(phenomenon)},
-       geoLines_ {{false, std::make_shared<gl::draw::GeoLines>(renderContext)},
-                  {true, std::make_shared<gl::draw::GeoLines>(renderContext)}}
+       renderContext_ {renderContext}
    {
       UpdateLineData();
       ConnectSignals();
-      ScheduleRefresh();
    }
    ~Impl()
    {
-      std::unique_lock refreshLock(refreshMutex_);
-      refreshEnabled_ = false;
-      refreshTimer_.cancel();
-      refreshLock.unlock();
-
       threadPool_.stop();
       threadPool_.join();
 
       receiver_ = nullptr;
-
-      std::unique_lock lock(linesMutex_);
    };
 
    Impl(const Impl&)             = delete;
@@ -181,7 +245,8 @@ public:
    void
    HandleGeoLinesHover(const std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
                        const QPointF& mouseGlobalPos);
-   void ScheduleRefresh();
+
+   [[nodiscard]] AlertLayerHandler::SharedPhenomenonGeometry& SharedGeometry();
 
    LineData& GetLineData(const std::shared_ptr<const awips::Segment>& segment,
                          bool alertActive);
@@ -208,6 +273,7 @@ public:
    void PopulateLines(bool alertActive);
    void RepopulateLines();
    void UpdateLines();
+   void FinishGeoLines(bool alertActive);
 
    static LineData CreateLineData(const settings::LineSettings& lineSettings);
 
@@ -215,26 +281,13 @@ public:
 
    AlertLayer* self_;
 
-   std::atomic<bool>         refreshEnabled_ {true};
-   boost::asio::system_timer refreshTimer_ {threadPool_};
-   std::mutex                refreshMutex_;
-
    const awips::Phenomenon                   phenomenon_;
    const awips::ibw::ImpactBasedWarningInfo& ibw_;
 
+   std::shared_ptr<render::RenderContext> renderContext_;
+
    std::unique_ptr<QObject> receiver_ {std::make_unique<QObject>()};
    std::mutex               receiverMutex_ {};
-
-   std::unordered_map<bool, std::shared_ptr<gl::draw::GeoLines>> geoLines_;
-
-   std::unordered_map<std::shared_ptr<const AlertLayerHandler::SegmentRecord>,
-                      boost::container::stable_vector<
-                         std::shared_ptr<gl::draw::GeoLineDrawItem>>>
-      linesBySegment_ {};
-   std::unordered_map<std::shared_ptr<const gl::draw::GeoLineDrawItem>,
-                      std::shared_ptr<const AlertLayerHandler::SegmentRecord>>
-              segmentsByLine_;
-   std::mutex linesMutex_ {};
 
    std::unordered_map<awips::ibw::ThreatCategory, LineData>
             threatCategoryLineData_;
@@ -244,6 +297,7 @@ public:
 
    std::chrono::system_clock::time_point selectedTime_ {};
    bool                                  suppressNeedsRendering_ {false};
+   bool                                  handlerSignalsConnected_ {false};
 
    std::shared_ptr<const gl::draw::GeoLineDrawItem> lastHoverDi_ {nullptr};
    std::string                                      tooltip_ {};
@@ -259,11 +313,12 @@ AlertLayer::AlertLayer(
        fmt::format("AlertLayer {}", awips::GetPhenomenonText(phenomenon))),
     p(std::make_unique<Impl>(this, renderContext, phenomenon))
 {
+   auto& handler = AlertLayerHandler::Instance();
+
    for (auto alertActive : {false, true})
    {
-      auto& geoLines = p->geoLines_.at(alertActive);
-
-      AddDrawItem(geoLines);
+      AddDrawItem(
+         handler.SharedGeoLines(phenomenon, alertActive, renderContext));
    }
 }
 
@@ -281,6 +336,11 @@ void AlertLayer::InitializeHandler()
    }
 }
 
+std::size_t AlertLayer::SharedGeometrySegmentCount()
+{
+   return AlertLayerHandler::Instance().SharedGeoLineCount();
+}
+
 void AlertLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
 {
    logger_->debug("Initialize: {}", awips::GetPhenomenonText(p->phenomenon_));
@@ -295,23 +355,30 @@ void AlertLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
    // initial lists
    std::shared_lock lock {alertLayerHandler.alertMutex_};
 
-   p->suppressNeedsRendering_ = true;
-   for (auto alertActive : {false, true})
+   if (alertLayerHandler.TryBeginPopulate(p->phenomenon_))
    {
-      p->PopulateLines(alertActive);
+      p->suppressNeedsRendering_ = true;
+      for (auto alertActive : {false, true})
+      {
+         p->PopulateLines(alertActive);
+      }
+      p->suppressNeedsRendering_ = false;
+      alertLayerHandler.EndPopulate(p->phenomenon_);
    }
-   p->suppressNeedsRendering_ = false;
 
    p->ConnectAlertHandlerSignals();
+   AlertLayerHandler::Instance().RegisterGeometryBuilder(p->phenomenon_, this);
    Q_EMIT NeedsRendering();
 }
 
 void AlertLayer::Render(const std::shared_ptr<MapContext>& mapContext,
                         const QMapLibre::CustomLayerRenderParameters& params)
 {
+   auto& handler = AlertLayerHandler::Instance();
    for (auto alertActive : {false, true})
    {
-      p->geoLines_.at(alertActive)->set_selected_time(p->selectedTime_);
+      handler.SharedGeoLines(p->phenomenon_, alertActive, p->renderContext_)
+         ->set_selected_time(p->selectedTime_);
    }
 
    DrawLayer::Render(mapContext, params);
@@ -324,9 +391,11 @@ void AlertLayer::RenderVulkanOverlay(
    const std::shared_ptr<MapContext>&            mapContext,
    const QMapLibre::CustomLayerRenderParameters& params)
 {
+   auto& handler = AlertLayerHandler::Instance();
    for (auto alertActive : {false, true})
    {
-      p->geoLines_.at(alertActive)->set_selected_time(p->selectedTime_);
+      handler.SharedGeoLines(p->phenomenon_, alertActive, p->renderContext_)
+         ->set_selected_time(p->selectedTime_);
    }
 
    DrawLayer::RenderVulkanOverlay(
@@ -337,6 +406,8 @@ void AlertLayer::RenderVulkanOverlay(
 void AlertLayer::Deinitialize()
 {
    logger_->debug("Deinitialize: {}", awips::GetPhenomenonText(p->phenomenon_));
+
+   AlertLayerHandler::Instance().UnregisterGeometryBuilder(p->phenomenon_, this);
 
    DrawLayer::Deinitialize();
 }
@@ -418,6 +489,17 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
       {
          segmentRecord->segmentEnd_ = segmentBegin;
 
+         {
+            std::lock_guard builderLock {geometryBuildersMutex_};
+            const auto builderIt =
+               geometryBuilders_.find(segmentRecord->key_.phenomenon_);
+            if (builderIt != geometryBuilders_.cend() &&
+                builderIt->second != nullptr)
+            {
+               builderIt->second->p->UpdateAlert(segmentRecord);
+            }
+         }
+
          Q_EMIT AlertUpdated(segmentRecord);
       }
    }
@@ -452,6 +534,15 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
       segmentsForKey.push_back(segmentRecord);
       segmentsForType.push_back(segmentRecord);
 
+      {
+         std::lock_guard builderLock {geometryBuildersMutex_};
+         const auto builderIt = geometryBuilders_.find(phenomenon);
+         if (builderIt != geometryBuilders_.cend() && builderIt->second != nullptr)
+         {
+            builderIt->second->p->AddAlert(segmentRecord);
+         }
+      }
+
       Q_EMIT AlertAdded(segmentRecord, phenomenon);
 
       alertsUpdated.emplace(phenomenon, alertActive);
@@ -464,6 +555,13 @@ void AlertLayerHandler::HandleAlert(const types::TextEventKey& key,
    {
       // Emit signal for each updated alert type
       Q_EMIT AlertsUpdated(alert.first, alert.second);
+
+      std::lock_guard builderLock {geometryBuildersMutex_};
+      const auto builderIt = geometryBuilders_.find(alert.first);
+      if (builderIt != geometryBuilders_.cend() && builderIt->second != nullptr)
+      {
+         builderIt->second->p->FinishGeoLines(alert.second);
+      }
    }
 }
 
@@ -520,58 +618,37 @@ void AlertLayerHandler::HandleAlertsRemoved(
    // Emit signal to notify that alerts have been removed
    for (auto& alert : alertsRemoved)
    {
+      {
+         std::lock_guard builderLock {geometryBuildersMutex_};
+         const auto builderIt = geometryBuilders_.find(alert);
+         if (builderIt != geometryBuilders_.cend() && builderIt->second != nullptr)
+         {
+            builderIt->second->p->RepopulateLines();
+         }
+      }
+
       Q_EMIT AlertsRemoved(alert);
    }
 }
 
 void AlertLayer::Impl::ConnectAlertHandlerSignals()
 {
+   if (handlerSignalsConnected_)
+   {
+      return;
+   }
+   handlerSignalsConnected_ = true;
+
    auto& alertLayerHandler = AlertLayerHandler::Instance();
 
-   QObject::connect(
-      &alertLayerHandler,
-      &AlertLayerHandler::AlertAdded,
-      receiver_.get(),
-      [this](
-         const std::shared_ptr<AlertLayerHandler::SegmentRecord>& segmentRecord,
-         awips::Phenomenon                                        phenomenon)
-      {
-         if (phenomenon == phenomenon_)
-         {
-            // Only process one signal at a time
-            const std::unique_lock lock {receiverMutex_};
-
-            AddAlert(segmentRecord);
-         }
-      });
-   QObject::connect(
-      &alertLayerHandler,
-      &AlertLayerHandler::AlertUpdated,
-      receiver_.get(),
-      [this](
-         const std::shared_ptr<AlertLayerHandler::SegmentRecord>& segmentRecord)
-      {
-         if (segmentRecord->key_.phenomenon_ == phenomenon_)
-         {
-            // Only process one signal at a time
-            const std::unique_lock lock {receiverMutex_};
-
-            UpdateAlert(segmentRecord);
-         }
-      });
    QObject::connect(&alertLayerHandler,
-                    &AlertLayerHandler::AlertsRemoved,
+                    &AlertLayerHandler::AlertsNeedRendering,
                     receiver_.get(),
                     [this](awips::Phenomenon phenomenon)
                     {
                        if (phenomenon == phenomenon_)
                        {
-                          // Only process one signal at a time
-                          const std::unique_lock lock {receiverMutex_};
-
-                          // Re-populate the lines if multiple alerts were
-                          // removed
-                          RepopulateLines();
+                          Q_EMIT self_->NeedsRendering();
                        }
                     });
 }
@@ -593,20 +670,23 @@ void AlertLayer::Impl::ConnectSignals()
       {
          UpdateLineData();
          UpdateLines();
+         Q_EMIT AlertLayerHandler::Instance().AlertsNeedRendering(phenomenon_);
       }));
 }
 
-void AlertLayer::Impl::ScheduleRefresh()
+AlertLayerHandler::SharedPhenomenonGeometry& AlertLayer::Impl::SharedGeometry()
+{
+   return AlertLayerHandler::Instance().SharedGeometry(phenomenon_, renderContext_);
+}
+
+void AlertLayerHandler::ScheduleRefresh()
 {
    using namespace std::chrono_literals;
 
-   // Take a unique lock before refreshing
    std::unique_lock lock(refreshMutex_);
 
-   // Expires at the top of the next minute
-   std::chrono::system_clock::time_point now =
-      std::chrono::floor<std::chrono::minutes>(
-         std::chrono::system_clock::now());
+   const std::chrono::system_clock::time_point now =
+      std::chrono::floor<std::chrono::minutes>(std::chrono::system_clock::now());
    refreshTimer_.expires_at(now + 1min);
 
    refreshTimer_.async_wait(
@@ -614,27 +694,170 @@ void AlertLayer::Impl::ScheduleRefresh()
       {
          if (e == boost::asio::error::operation_aborted)
          {
-            logger_->debug("Refresh timer cancelled");
+            logger_->debug("Alert refresh timer cancelled");
          }
          else if (e != boost::system::errc::success)
          {
-            logger_->warn("Refresh timer error: {}", e.message());
+            logger_->warn("Alert refresh timer error: {}", e.message());
          }
          else
          {
-            Q_EMIT self_->NeedsRendering();
+            QMetaObject::invokeMethod(
+               this,
+               [this]()
+               {
+                  if (!refreshEnabled_)
+                  {
+                     return;
+                  }
 
-            if (refreshEnabled_)
-            {
-               ScheduleRefresh();
-            }
+                  std::lock_guard geometryLock {geometryMutex_};
+                  for (const auto& [phenomenon, geometry] : geometry_)
+                  {
+                     (void) geometry;
+                     Q_EMIT AlertsNeedRendering(phenomenon);
+                  }
+
+                  ScheduleRefresh();
+               },
+               Qt::QueuedConnection);
          }
       });
+}
+
+AlertLayerHandler::SharedPhenomenonGeometry& AlertLayerHandler::SharedGeometry(
+   awips::Phenomenon                             phenomenon,
+   const std::shared_ptr<render::RenderContext>& renderContext)
+{
+   std::lock_guard lock {geometryMutex_};
+
+   auto& geometry = geometry_[phenomenon];
+   if (geometry.phenomenon == awips::Phenomenon::Unknown &&
+       phenomenon != awips::Phenomenon::Unknown)
+   {
+      geometry.phenomenon = phenomenon;
+   }
+
+   for (auto alertActive : {false, true})
+   {
+      if (geometry.geoLines_.find(alertActive) == geometry.geoLines_.cend())
+      {
+         geometry.geoLines_.emplace(alertActive,
+                                    std::make_shared<gl::draw::GeoLines>(
+                                       renderContext));
+      }
+   }
+
+   return geometry;
+}
+
+std::shared_ptr<gl::draw::GeoLines> AlertLayerHandler::SharedGeoLines(
+   awips::Phenomenon                             phenomenon,
+   bool                                          alertActive,
+   const std::shared_ptr<render::RenderContext>& renderContext)
+{
+   return SharedGeometry(phenomenon, renderContext).geoLines_.at(alertActive);
+}
+
+bool AlertLayerHandler::TryBeginPopulate(awips::Phenomenon phenomenon)
+{
+   std::lock_guard lock {geometryMutex_};
+   auto&           geometry = geometry_[phenomenon];
+   if (geometry.populated_)
+   {
+      return false;
+   }
+   geometry.populated_ = true;
+   return true;
+}
+
+void AlertLayerHandler::EndPopulate(awips::Phenomenon /* phenomenon */)
+{
+}
+
+bool AlertLayerHandler::TryTrackSegment(
+   const std::shared_ptr<SegmentRecord>& segmentRecord)
+{
+   std::lock_guard lock {trackedSegmentsMutex_};
+   return trackedSegments_.insert(segmentRecord).second;
+}
+
+void AlertLayerHandler::ClearTrackedSegments()
+{
+   std::lock_guard lock {trackedSegmentsMutex_};
+   trackedSegments_.clear();
+}
+
+void AlertLayerHandler::RepopulateGeometry(awips::Phenomenon phenomenon)
+{
+   std::lock_guard builderLock {geometryBuildersMutex_};
+   const auto      builderIt = geometryBuilders_.find(phenomenon);
+   if (builderIt != geometryBuilders_.cend() && builderIt->second != nullptr)
+   {
+      builderIt->second->p->RepopulateLines();
+   }
+}
+
+std::optional<types::TextEventKey> AlertLayerHandler::KeyForGeoLine(
+   const std::shared_ptr<const gl::draw::GeoLineDrawItem>& line)
+{
+   std::lock_guard lock {geometryMutex_};
+   for (auto& [phenomenon, geometry] : geometry_)
+   {
+      std::lock_guard linesLock {geometry.linesMutex_};
+      const auto it = geometry.segmentsByLine_.find(line);
+      if (it != geometry.segmentsByLine_.cend())
+      {
+         return it->second->key_;
+      }
+      (void) phenomenon;
+   }
+   return std::nullopt;
+}
+
+std::size_t AlertLayerHandler::SharedGeoLineCount()
+{
+   std::size_t count = 0;
+   std::lock_guard lock {geometryMutex_};
+   for (auto& [phenomenon, geometry] : geometry_)
+   {
+      std::lock_guard linesLock {geometry.linesMutex_};
+      count += geometry.linesBySegment_.size();
+      (void) phenomenon;
+   }
+   return count;
+}
+
+void AlertLayerHandler::RegisterGeometryBuilder(awips::Phenomenon phenomenon,
+                                                AlertLayer*          layer)
+{
+   std::lock_guard lock {geometryBuildersMutex_};
+   if (!geometryBuilders_.contains(phenomenon))
+   {
+      geometryBuilders_.emplace(phenomenon, layer);
+   }
+}
+
+void AlertLayerHandler::UnregisterGeometryBuilder(awips::Phenomenon phenomenon,
+                                                  AlertLayer*          layer)
+{
+   std::lock_guard lock {geometryBuildersMutex_};
+   const auto      it = geometryBuilders_.find(phenomenon);
+   if (it != geometryBuilders_.cend() && it->second == layer)
+   {
+      geometryBuilders_.erase(it);
+   }
 }
 
 void AlertLayer::Impl::AddAlert(
    const std::shared_ptr<AlertLayerHandler::SegmentRecord>& segmentRecord)
 {
+   auto& handler = AlertLayerHandler::Instance();
+   if (!handler.TryTrackSegment(segmentRecord))
+   {
+      return;
+   }
+
    auto& segment = segmentRecord->segment_;
 
    bool  alertActive = IsAlertActive(segment);
@@ -642,15 +865,16 @@ void AlertLayer::Impl::AddAlert(
    auto& endTime     = segmentRecord->segmentEnd_;
 
    auto& lineData = GetLineData(segment, alertActive);
-   auto& geoLines = geoLines_.at(alertActive);
+   auto& shared   = SharedGeometry();
+   auto& geoLines = shared.geoLines_.at(alertActive);
 
    const auto& coordinates = segment->codedLocation_->coordinates();
 
    // Take a mutex before modifying lines by segment
-   std::unique_lock lock {linesMutex_};
+   std::unique_lock lock {shared.linesMutex_};
 
    // Add draw items only if the segment has not already been added
-   auto drawItems = linesBySegment_.try_emplace(
+   auto drawItems = shared.linesBySegment_.try_emplace(
       segmentRecord,
       boost::container::stable_vector<
          std::shared_ptr<gl::draw::GeoLineDrawItem>> {});
@@ -682,7 +906,7 @@ void AlertLayer::Impl::AddAlert(
       // Add border to segmentsByLine_
       for (auto& di : drawItems.first->second)
       {
-         segmentsByLine_.insert({di, segmentRecord});
+         shared.segmentsByLine_.insert({di, segmentRecord});
       }
 
       // Add highlight
@@ -704,27 +928,35 @@ void AlertLayer::Impl::AddAlert(
                endTime,
                lineHover,
                drawItems.first->second);
+
    }
 
    if (!suppressNeedsRendering_)
    {
-      Q_EMIT self_->NeedsRendering();
+      Q_EMIT handler.AlertsNeedRendering(phenomenon_);
    }
+}
+
+void AlertLayer::Impl::FinishGeoLines(bool alertActive)
+{
+   SharedGeometry().geoLines_.at(alertActive)->FinishLines();
 }
 
 void AlertLayer::Impl::UpdateAlert(
    const std::shared_ptr<AlertLayerHandler::SegmentRecord>& segmentRecord)
 {
-   // Take a mutex before referencing lines iterators and stable vector
-   std::unique_lock lock {linesMutex_};
+   auto& shared = SharedGeometry();
 
-   auto it = linesBySegment_.find(segmentRecord);
-   if (it != linesBySegment_.cend())
+   // Take a mutex before referencing lines iterators and stable vector
+   std::unique_lock lock {shared.linesMutex_};
+
+   auto it = shared.linesBySegment_.find(segmentRecord);
+   if (it != shared.linesBySegment_.cend())
    {
       auto& segment     = segmentRecord->segment_;
       bool  alertActive = IsAlertActive(segment);
 
-      auto& geoLines = geoLines_.at(alertActive);
+      auto& geoLines = shared.geoLines_.at(alertActive);
 
       auto& lines = it->second;
       for (auto& line : lines)
@@ -734,7 +966,7 @@ void AlertLayer::Impl::UpdateAlert(
       }
    }
 
-   Q_EMIT self_->NeedsRendering();
+   Q_EMIT AlertLayerHandler::Instance().AlertsNeedRendering(phenomenon_);
 }
 
 void AlertLayer::Impl::AddLines(
@@ -818,7 +1050,8 @@ void AlertLayer::Impl::AddLine(std::shared_ptr<gl::draw::GeoLines>& geoLines,
 void AlertLayer::Impl::PopulateLines(bool alertActive)
 {
    auto& alertLayerHandler = AlertLayerHandler::Instance();
-   auto& geoLines          = geoLines_.at(alertActive);
+   auto& shared            = SharedGeometry();
+   auto& geoLines          = shared.geoLines_.at(alertActive);
 
    geoLines->StartLines();
 
@@ -839,13 +1072,15 @@ void AlertLayer::Impl::PopulateLines(bool alertActive)
 void AlertLayer::Impl::RepopulateLines()
 {
    auto& alertLayerHandler = AlertLayerHandler::Instance();
+   auto& shared            = SharedGeometry();
 
    // Take a shared lock to prevent handling additional alerts while populating
    // initial lists
    const std::shared_lock alertLock {alertLayerHandler.alertMutex_};
 
-   linesBySegment_.clear();
-   segmentsByLine_.clear();
+   shared.linesBySegment_.clear();
+   shared.segmentsByLine_.clear();
+   AlertLayerHandler::Instance().ClearTrackedSegments();
 
    suppressNeedsRendering_ = true;
    for (auto alertActive : {false, true})
@@ -854,21 +1089,22 @@ void AlertLayer::Impl::RepopulateLines()
    }
    suppressNeedsRendering_ = false;
 
-   Q_EMIT self_->NeedsRendering();
+   Q_EMIT AlertLayerHandler::Instance().AlertsNeedRendering(phenomenon_);
 }
 
 void AlertLayer::Impl::UpdateLines()
 {
-   std::unique_lock lock {linesMutex_};
+   auto& shared = SharedGeometry();
+   std::unique_lock lock {shared.linesMutex_};
 
-   for (auto& segmentLine : linesBySegment_)
+   for (auto& segmentLine : shared.linesBySegment_)
    {
       auto& segmentRecord    = segmentLine.first;
       auto& geoLineDrawItems = segmentLine.second;
       auto& segment          = segmentRecord->segment_;
       bool  alertActive      = IsAlertActive(segment);
       auto& lineData         = GetLineData(segment, alertActive);
-      auto& geoLines         = geoLines_.at(alertActive);
+      auto& geoLines         = shared.geoLines_.at(alertActive);
 
       const auto borderWidth    = static_cast<float>(lineData.borderWidth_);
       const auto highlightWidth = static_cast<float>(lineData.highlightWidth_);
@@ -918,8 +1154,8 @@ void AlertLayer::Impl::HandleGeoLinesEvent(
    {
    case QEvent::Type::MouseButtonRelease:
    {
-      auto it = segmentsByLine_.find(di);
-      if (it != segmentsByLine_.cend())
+      auto it = SharedGeometry().segmentsByLine_.find(di);
+      if (it != SharedGeometry().segmentsByLine_.cend())
       {
          // Display alert dialog
          logger_->debug("Selected alert: {}", it->second->key_.ToString());
@@ -939,8 +1175,8 @@ void AlertLayer::Impl::HandleGeoLinesHover(
 {
    if (di != lastHoverDi_)
    {
-      auto it = segmentsByLine_.find(di);
-      if (it != segmentsByLine_.cend())
+      auto it = SharedGeometry().segmentsByLine_.find(di);
+      if (it != SharedGeometry().segmentsByLine_.cend())
       {
          tooltip_ =
             boost::algorithm::join(it->second->segment_->productContent_, "\n");
