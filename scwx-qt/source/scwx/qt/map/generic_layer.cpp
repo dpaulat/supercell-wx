@@ -21,7 +21,8 @@ public:
    std::shared_ptr<render::RenderContext> renderContext_;
 };
 
-GenericLayer::GenericLayer(std::shared_ptr<render::RenderContext> renderContext) :
+GenericLayer::GenericLayer(
+   std::shared_ptr<render::RenderContext> renderContext) :
     p(std::make_unique<Impl>(std::move(renderContext)))
 {
 }

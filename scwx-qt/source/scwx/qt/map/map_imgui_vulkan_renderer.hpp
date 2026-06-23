@@ -15,9 +15,9 @@ public:
    void Shutdown();
    void UpdateRenderPass(void* renderPass);
 
-   void NewFrame(QWidget* widget);
-   void UpdateTextures();
-   void RenderDrawData(QRhiCommandBuffer* commandBuffer);
+   [[nodiscard]] bool NewFrame(QWidget* widget);
+   void               UpdateTextures();
+   void               RenderDrawData(QRhiCommandBuffer* commandBuffer);
 
    [[nodiscard]] bool IsInitialized() const;
 

@@ -281,10 +281,14 @@ void* MapOverlayRenderer::GetNativeRenderPass() const
 }
 
 std::uint64_t MapOverlayRenderer::GetRenderTargetGeneration() const
-{ return p != nullptr ? p->renderTargetGeneration_ : 0; }
+{
+   return p != nullptr ? p->renderTargetGeneration_ : 0;
+}
 
 bool MapOverlayRenderer::IsInitialized() const
-{ return p != nullptr && p->colorTableOverlay_.IsInitialized(); }
+{
+   return p != nullptr && p->colorTableOverlay_.IsInitialized();
+}
 
 MapOverlayRenderer::MapOverlayRenderer()  = default;
 MapOverlayRenderer::~MapOverlayRenderer() = default;

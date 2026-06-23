@@ -10,10 +10,10 @@
 #include <fmt/format.h>
 #include <imgui.h>
 
-#   include <scwx/qt/render/rhi_imgui_util.hpp>
-#   include <scwx/qt/render/rhi_vulkan_overlay.hpp>
+#include <scwx/qt/render/rhi_imgui_util.hpp>
+#include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 
-#   include <backends/imgui_impl_vulkan.h>
+#include <backends/imgui_impl_vulkan.h>
 
 namespace scwx::qt::map
 {
@@ -84,9 +84,7 @@ void DrawLayer::ImGuiFrameStart(const std::shared_ptr<MapContext>& mapContext)
    (void) mapContext;
 }
 
-void DrawLayer::ImGuiFrameEnd()
-{
-}
+void DrawLayer::ImGuiFrameEnd() {}
 
 void DrawLayer::ImGuiInitialize(const std::shared_ptr<MapContext>& mapContext)
 {
@@ -140,16 +138,15 @@ void DrawLayer::RenderWithoutImGuiVulkan(
 
    for (auto& item : p->drawList_)
    {
-      item->RenderVulkan(
-         commandBuffer, resources, params, textureAtlasChanged);
+      item->RenderVulkan(commandBuffer, resources, params, textureAtlasChanged);
    }
 
    p->textureAtlasBuildCount_ = newTextureAtlasBuildCount;
 }
 
 void DrawLayer::RenderVulkanOverlay(
-   QRhiCommandBuffer*                            commandBuffer,
-   render::RhiVulkanOverlayResources&            resources,
+   QRhiCommandBuffer*                 commandBuffer,
+   render::RhiVulkanOverlayResources& resources,
    const std::shared_ptr<MapContext>& /* mapContext */,
    const QMapLibre::CustomLayerRenderParameters& params)
 {
@@ -164,9 +161,7 @@ void DrawLayer::Render(const std::shared_ptr<MapContext>&            mapContext,
    ImGuiFrameEnd();
 }
 
-void DrawLayer::Deinitialize()
-{
-}
+void DrawLayer::Deinitialize() {}
 
 bool DrawLayer::RunMousePicking(
    const std::shared_ptr<MapContext>& /* mapContext */,

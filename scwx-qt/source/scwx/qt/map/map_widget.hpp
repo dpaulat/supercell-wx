@@ -8,6 +8,7 @@
 #include <scwx/qt/types/map_types.hpp>
 #include <scwx/qt/types/radar_product_record.hpp>
 #include <scwx/qt/types/text_event_key.hpp>
+#include <scwx/qt/map/map_basemap_share.hpp>
 
 #include <chrono>
 #include <memory>
@@ -22,7 +23,7 @@
 #include <QPropertyAnimation>
 #include <QtGlobal>
 
-#   include <QtWidgets/QRhiWidget>
+#include <QtWidgets/QRhiWidget>
 
 class QContextMenuEvent;
 class QKeyEvent;
@@ -30,6 +31,7 @@ class QMouseEvent;
 class QRhiCommandBuffer;
 class QResizeEvent;
 class QWheelEvent;
+class QRhiTexture;
 
 namespace scwx::qt::map
 {
@@ -140,13 +142,20 @@ public:
                          double longitude,
                          double zoom,
                          double bearing,
-                         double pitch);
+                         double pitch,
+                         bool   linkedViewSync = false);
+   void RequestBasemapRepaint();
 
    void GetMapViewParameters(double& latitude,
                              double& longitude,
                              double& zoom,
                              double& bearing,
                              double& pitch) const;
+
+   [[nodiscard]] std::size_t     pane_id() const;
+   [[nodiscard]] MapViewSnapshot ExportMapViewSnapshot() const;
+   void SetBasemapShareCallbacks(const MapBasemapShareCallbacks* callbacks);
+   [[nodiscard]] QRhiTexture* basemap_color_texture() const;
 
    void SetInitialMapStyle(const std::string& styleName);
    void SetMapStyle(const std::string& styleName, bool force = false);

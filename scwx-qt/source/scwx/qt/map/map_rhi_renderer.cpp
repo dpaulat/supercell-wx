@@ -37,11 +37,10 @@ void MapRhiRenderer::InitializeMapRenderer(QRhi*           rhi,
                window->setVulkanInstance(vkHandles->inst);
             }
 
-            map->createRendererWithQtVulkanDevice(
-               window,
-               vkHandles->physDev,
-               vkHandles->dev,
-               vkHandles->gfxQueueFamilyIdx);
+            map->createRendererWithQtVulkanDevice(window,
+                                                  vkHandles->physDev,
+                                                  vkHandles->dev,
+                                                  vkHandles->gfxQueueFamilyIdx);
             initialized_ = true;
             return;
          }
@@ -71,7 +70,33 @@ void MapRhiRenderer::RenderMap(QRhiTexture* colorTexture, QMapLibre::Map* map)
    }
 
    map->render();
+}
 
+void MapRhiRenderer::CopyColorTexture(QRhi*              rhi,
+                                      QRhiCommandBuffer* commandBuffer,
+                                      QRhiTexture*       destination,
+                                      QRhiTexture*       source)
+{
+   if (rhi == nullptr || commandBuffer == nullptr || destination == nullptr ||
+       source == nullptr)
+   {
+      return;
+   }
+
+   if (destination->pixelSize() != source->pixelSize() ||
+       destination->format() != source->format())
+   {
+      return;
+   }
+
+   QRhiResourceUpdateBatch* batch = rhi->nextResourceUpdateBatch();
+   if (batch == nullptr)
+   {
+      return;
+   }
+
+   batch->copyTexture(destination, source);
+   commandBuffer->resourceUpdate(batch);
 }
 
 void MapRhiRenderer::ReleaseMapRenderer(QMapLibre::Map* map)

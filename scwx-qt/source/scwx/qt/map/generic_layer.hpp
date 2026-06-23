@@ -61,11 +61,11 @@ public:
                    const common::Coordinate&                     mouseGeoCoords,
                    std::shared_ptr<types::EventHandler>&         eventHandler);
 
-   virtual void RenderVulkanOverlay(
-      QRhiCommandBuffer*                            commandBuffer,
-      render::RhiVulkanOverlayResources&            resources,
-      const std::shared_ptr<MapContext>&            mapContext,
-      const QMapLibre::CustomLayerRenderParameters& params);
+   virtual void
+   RenderVulkanOverlay(QRhiCommandBuffer*                 commandBuffer,
+                       render::RhiVulkanOverlayResources& resources,
+                       const std::shared_ptr<MapContext>& mapContext,
+                       const QMapLibre::CustomLayerRenderParameters& params);
 
 signals:
    void NeedsRendering();

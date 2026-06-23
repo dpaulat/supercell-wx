@@ -13,14 +13,16 @@
 namespace scwx::qt::map
 {
 
-static const std::string logPrefix_ = "scwx::qt::map::map_imgui_vulkan_renderer";
-static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
+static const std::string logPrefix_ =
+   "scwx::qt::map::map_imgui_vulkan_renderer";
+static const auto logger_ = scwx::util::Logger::Create(logPrefix_);
 
 static void CheckVkResult(VkResult result)
 {
    if (result != VK_SUCCESS)
    {
-      logger_->error("Vulkan call failed with VkResult {}", static_cast<int>(result));
+      logger_->error("Vulkan call failed with VkResult {}",
+                     static_cast<int>(result));
    }
 }
 
@@ -41,29 +43,29 @@ bool MapImGuiVulkanRenderer::InitBackend(void* renderPass)
    const auto* vkHandles =
       static_cast<const QRhiVulkanNativeHandles*>(nativeHandles);
    if (vkHandles->inst == nullptr || vkHandles->physDev == VK_NULL_HANDLE ||
-       vkHandles->dev == VK_NULL_HANDLE || vkHandles->gfxQueue == VK_NULL_HANDLE)
+       vkHandles->dev == VK_NULL_HANDLE ||
+       vkHandles->gfxQueue == VK_NULL_HANDLE)
    {
       return false;
    }
 
    ImGui_ImplVulkan_InitInfo initInfo {};
-   initInfo.ApiVersion        = VK_API_VERSION_1_3;
-   initInfo.Instance          = vkHandles->inst->vkInstance();
-   initInfo.PhysicalDevice    = vkHandles->physDev;
-   initInfo.Device            = vkHandles->dev;
-   initInfo.QueueFamily       = vkHandles->gfxQueueFamilyIdx;
-   initInfo.Queue             = vkHandles->gfxQueue;
-   initInfo.PipelineInfoMain.RenderPass =
-      static_cast<VkRenderPass>(renderPass);
-   initInfo.PipelineInfoMain.Subpass     = 0;
+   initInfo.ApiVersion                  = VK_API_VERSION_1_3;
+   initInfo.Instance                    = vkHandles->inst->vkInstance();
+   initInfo.PhysicalDevice              = vkHandles->physDev;
+   initInfo.Device                      = vkHandles->dev;
+   initInfo.QueueFamily                 = vkHandles->gfxQueueFamilyIdx;
+   initInfo.Queue                       = vkHandles->gfxQueue;
+   initInfo.PipelineInfoMain.RenderPass = static_cast<VkRenderPass>(renderPass);
+   initInfo.PipelineInfoMain.Subpass    = 0;
    initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-   initInfo.MinImageCount     = 2;
-   initInfo.ImageCount        = 2;
+   initInfo.MinImageCount                = 2;
+   initInfo.ImageCount                   = 2;
    initInfo.DescriptorPoolSize =
       IMGUI_IMPL_VULKAN_MINIMUM_SAMPLED_IMAGE_POOL_SIZE * 16;
    initInfo.UseDynamicRendering = false;
    initInfo.CheckVkResultFn     = CheckVkResult;
-   initInfo.MinAllocationSize   = 1024 * 1024;
+   initInfo.MinAllocationSize   = static_cast<VkDeviceSize>(1024) * 1024;
 
    if (!ImGui_ImplVulkan_Init(&initInfo))
    {
@@ -74,9 +76,9 @@ bool MapImGuiVulkanRenderer::InitBackend(void* renderPass)
    return true;
 }
 
-void MapImGuiVulkanRenderer::Initialize(QRhi*        rhi,
+void MapImGuiVulkanRenderer::Initialize(QRhi* rhi,
                                         QRhiTexture* /* colorTexture */,
-                                        void*        renderPass)
+                                        void* renderPass)
 {
    if (initialized_ || rhi == nullptr || renderPass == nullptr)
    {
@@ -91,7 +93,8 @@ void MapImGuiVulkanRenderer::Initialize(QRhi*        rhi,
    if (ImGui::GetIO().BackendRendererUserData != nullptr)
    {
       logger_->warn(
-         "ImGui Vulkan backend already bound to current context; skipping init");
+         "ImGui Vulkan backend already bound to current context; skipping "
+         "init");
       return;
    }
 
@@ -111,8 +114,7 @@ void MapImGuiVulkanRenderer::Initialize(QRhi*        rhi,
 
 void MapImGuiVulkanRenderer::UpdateRenderPass(void* renderPass)
 {
-   if (rhi_ == nullptr || renderPass == nullptr ||
-       renderPass == renderPass_)
+   if (rhi_ == nullptr || renderPass == nullptr || renderPass == renderPass_)
    {
       return;
    }
@@ -151,17 +153,18 @@ void MapImGuiVulkanRenderer::Shutdown()
    renderPass_ = nullptr;
 }
 
-void MapImGuiVulkanRenderer::NewFrame(QWidget* widget)
+bool MapImGuiVulkanRenderer::NewFrame(QWidget* widget)
 {
    if (!initialized_ || widget == nullptr)
    {
-      return;
+      return false;
    }
 
    model::ImGuiContextModel::Instance().NewFrame();
    ImGui_ImplQt_NewFrame(widget);
    ImGui_ImplVulkan_NewFrame();
    ImGui::NewFrame();
+   return true;
 }
 
 void MapImGuiVulkanRenderer::UpdateTextures()
