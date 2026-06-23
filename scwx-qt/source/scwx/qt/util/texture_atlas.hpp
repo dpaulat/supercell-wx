@@ -76,11 +76,11 @@ public:
       const std::string& name, const std::string& path, double scale = 1);
    void BuildAtlas(std::size_t width, std::size_t height);
 
-   [[nodiscard]] std::size_t LayerCount() const;
-   [[nodiscard]] std::size_t AtlasWidth() const;
-   [[nodiscard]] std::size_t AtlasHeight() const;
-   [[nodiscard]] const std::uint8_t*
-   LayerPixels(std::size_t layer, std::size_t& byteSize) const;
+   [[nodiscard]] std::size_t         LayerCount() const;
+   [[nodiscard]] std::size_t         AtlasWidth() const;
+   [[nodiscard]] std::size_t         AtlasHeight() const;
+   [[nodiscard]] const std::uint8_t* LayerPixels(std::size_t  layer,
+                                                 std::size_t& byteSize) const;
 
    TextureAttributes GetTextureAttributes(const std::string& name);
 

@@ -52,7 +52,7 @@ static std::vector<float>
 MergeGeoTextureVertices(const std::vector<float>& iconBuffer,
                         const std::vector<float>& textureBuffer)
 {
-   const std::size_t vertexCount = iconBuffer.size() / kPointsPerVertex;
+   const std::size_t  vertexCount = iconBuffer.size() / kPointsPerVertex;
    std::vector<float> merged(vertexCount * kGeoFloatsPerVertex_);
 
    for (std::size_t v = 0; v < vertexCount; ++v)
@@ -114,8 +114,7 @@ public:
    };
 
    explicit Impl(const std::shared_ptr<render::RenderContext>& context) :
-       context_ {context},
-       numVertices_ {0}
+       context_ {context}, numVertices_ {0}
    {
    }
 
@@ -131,7 +130,7 @@ public:
    void        UpdateModifiedIconBuffers();
    void        Update(bool textureAtlasChanged);
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
-   void        UpdateVulkan(bool textureAtlasChanged);
+   void UpdateVulkan(bool textureAtlasChanged);
 #endif
 
    std::shared_ptr<render::RenderContext> context_;
@@ -227,24 +226,25 @@ void GeoIcons::RenderVulkan(
 
    p->UpdateVulkan(textureAtlasChanged);
 
-   resources.textureArrayOverlay.SyncAtlas(
-      commandBuffer, p->context_->texture_buffer_count());
+   resources.textureArrayOverlay.SyncAtlas(commandBuffer,
+                                           p->context_->texture_buffer_count());
 
    const std::vector<float> mergedVertices =
       MergeGeoTextureVertices(p->currentIconBuffer_, p->textureBuffer_);
 
    std::vector<std::int32_t> integerVertices(p->currentIntegerBuffer_.begin(),
-                                               p->currentIntegerBuffer_.end());
+                                             p->currentIntegerBuffer_.end());
 
    const scwx::qt::render::GeoUniforms uniforms =
-      scwx::qt::render::BuildGeoUniforms(params, p->thresholded_, p->selectedTime_);
+      scwx::qt::render::BuildGeoUniforms(
+         params, p->thresholded_, p->selectedTime_);
 
-   resources.textureArrayOverlay.RenderGeo(commandBuffer,
-                                         uniforms,
-                                         mergedVertices,
-                                         integerVertices,
-                                         static_cast<std::uint32_t>(
-                                            p->numVertices_));
+   resources.textureArrayOverlay.RenderGeo(
+      commandBuffer,
+      uniforms,
+      mergedVertices,
+      integerVertices,
+      static_cast<std::uint32_t>(p->numVertices_));
 }
 #endif
 
@@ -506,18 +506,18 @@ void GeoIcons::Impl::UpdateSingleBuffer(
 
    // Threshold value
    units::length::nautical_miles<double> threshold = di->threshold_;
-   auto thresholdValue =
+   auto                                  thresholdValue =
       static_cast<std::int32_t>(std::round(threshold.value()));
 
    // Start and end time
-   auto startTime =
-      static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
-                            di->startTime_.time_since_epoch())
-                            .count());
-   auto endTime =
-      static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
-                            di->endTime_.time_since_epoch())
-                            .count());
+   auto startTime = static_cast<std::int32_t>(
+      std::chrono::duration_cast<std::chrono::minutes>(
+         di->startTime_.time_since_epoch())
+         .count());
+   auto endTime = static_cast<std::int32_t>(
+      std::chrono::duration_cast<std::chrono::minutes>(
+         di->endTime_.time_since_epoch())
+         .count());
 
    // Latitude and longitude coordinates in degrees
    const float lat = static_cast<float>(di->latitude_);
@@ -785,9 +785,8 @@ void GeoIcons::Impl::Update(bool textureAtlasChanged)
    // If buffers need updating
    if (dirty_)
    {
-      numVertices_ =
-         static_cast<std::uint32_t>(currentIconBuffer_.size() /
-                                    kPointsPerVertex);
+      numVertices_ = static_cast<std::uint32_t>(currentIconBuffer_.size() /
+                                                kPointsPerVertex);
    }
 
    dirty_ = false;
@@ -811,9 +810,8 @@ void GeoIcons::Impl::UpdateVulkan(bool textureAtlasChanged)
 
    if (dirty_)
    {
-      numVertices_ =
-         static_cast<std::uint32_t>(currentIconBuffer_.size() /
-                                    kPointsPerVertex);
+      numVertices_ = static_cast<std::uint32_t>(currentIconBuffer_.size() /
+                                                kPointsPerVertex);
    }
 
    dirty_ = false;

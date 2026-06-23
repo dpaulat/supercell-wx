@@ -410,7 +410,8 @@ public:
 
 MapAnnotationLayer::MapAnnotationLayer(
    std::shared_ptr<render::RenderContext> renderContext) :
-    GenericLayer(renderContext), p(std::make_unique<Impl>(std::move(renderContext)))
+    GenericLayer(renderContext),
+    p(std::make_unique<Impl>(std::move(renderContext)))
 {
 }
 MapAnnotationLayer::~MapAnnotationLayer() = default;
@@ -441,8 +442,8 @@ void MapAnnotationLayer::Render(
 
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
 void MapAnnotationLayer::RenderVulkanOverlay(
-   QRhiCommandBuffer*                            commandBuffer,
-   render::RhiVulkanOverlayResources&            resources,
+   QRhiCommandBuffer*                 commandBuffer,
+   render::RhiVulkanOverlayResources& resources,
    const std::shared_ptr<MapContext>& /* mapContext */,
    const QMapLibre::CustomLayerRenderParameters& params)
 {

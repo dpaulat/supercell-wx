@@ -48,27 +48,25 @@ static constexpr int kFloatsPerVertex = 11;
 
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
 static constexpr double kLatitudeMax = 85.051128779806604;
-static constexpr double kPiOver4    = 0.785398163397448309615660825;
-static constexpr double kPiOver360  = 0.00872664625997164788461845361111;
-static constexpr double kRad2Deg    = 57.295779513082320876798156332941;
+static constexpr double kPiOver4     = 0.785398163397448309615660825;
+static constexpr double kPiOver360   = 0.00872664625997164788461845361111;
+static constexpr double kRad2Deg     = 57.295779513082320876798156332941;
 
-static glm::vec2 AnnotationDeltaScreenCoordinate(float latitude,
-                                                 float longitude,
+static glm::vec2 AnnotationDeltaScreenCoordinate(float            latitude,
+                                                 float            longitude,
                                                  const glm::vec2& origin)
 {
    const double clampedLat =
       std::clamp(static_cast<double>(latitude), -kLatitudeMax, kLatitudeMax);
    const double deltaLat = clampedLat - static_cast<double>(origin.x);
-   const double deltaLon = static_cast<double>(longitude) -
-                           static_cast<double>(origin.y);
+   const double deltaLon =
+      static_cast<double>(longitude) - static_cast<double>(origin.y);
    const double y =
-      kRad2Deg *
-         std::log(std::tan(kPiOver4 +
-                           (static_cast<double>(origin.x) + deltaLat) *
-                              kPiOver360)) -
-      kRad2Deg *
-         std::log(std::tan(kPiOver4 +
-                           static_cast<double>(origin.x) * kPiOver360));
+      kRad2Deg * std::log(std::tan(kPiOver4 +
+                                   (static_cast<double>(origin.x) + deltaLat) *
+                                      kPiOver360)) -
+      kRad2Deg * std::log(std::tan(kPiOver4 +
+                                   static_cast<double>(origin.x) * kPiOver360));
 
    return {static_cast<float>(deltaLon), static_cast<float>(y)};
 }
@@ -82,7 +80,7 @@ static void AppendAnnotationTriangleVertices(std::vector<float>&       out,
    for (std::size_t i = 0; i < 3; ++i)
    {
       const std::size_t vertexBase = base + i * kFloatsPerVertex;
-      const glm::vec2   p = AnnotationDeltaScreenCoordinate(
+      const glm::vec2   p          = AnnotationDeltaScreenCoordinate(
          in[vertexBase + 0], in[vertexBase + 1], origin);
       const glm::vec4 clip = mapMatrix * glm::vec4 {p, 0.0f, 1.0f};
 
@@ -128,22 +126,20 @@ BuildColoredAnnotationVertices(const std::vector<float>& in,
    return out;
 }
 
-static void RenderColoredAnnotationVertices(
-   QRhiCommandBuffer*                            commandBuffer,
-   render::RhiVulkanOverlayResources&            resources,
-   const std::vector<float>&                     source,
-   std::uint32_t                                 vertexCount,
-   const glm::mat4&                              mapMatrix,
-   const glm::vec2&                              origin)
+static void
+RenderColoredAnnotationVertices(QRhiCommandBuffer* commandBuffer,
+                                render::RhiVulkanOverlayResources& resources,
+                                const std::vector<float>&          source,
+                                std::uint32_t                      vertexCount,
+                                const glm::mat4&                   mapMatrix,
+                                const glm::vec2&                   origin)
 {
    std::vector<float> vertices =
       BuildColoredAnnotationVertices(source, vertexCount, mapMatrix, origin);
    if (!vertices.empty())
    {
-      resources.coloredGeometry.Render(commandBuffer,
-                                       glm::mat4 {1.0f},
-                                       vertices,
-                                       vertices.size() / 7);
+      resources.coloredGeometry.Render(
+         commandBuffer, glm::mat4 {1.0f}, vertices, vertices.size() / 7);
    }
 }
 #endif
@@ -620,7 +616,7 @@ public:
    }
 
 private:
-   bool AddContour(const geos::geom::LineString* ring,
+   bool AddContour(const geos::geom::LineString*     ring,
                    std::vector<util::PolygonRing2D>& polygon,
                    std::vector<MeterVertex>&         vertices)
    {
@@ -688,9 +684,9 @@ private:
 
       for (std::size_t i = 0; i < indices.size(); i += 3U)
       {
-         const MeterVertex& v0 = vertices[indices[i + 0U]];
-         const MeterVertex& v1 = vertices[indices[i + 1U]];
-         const MeterVertex& v2 = vertices[indices[i + 2U]];
+         const MeterVertex&       v0 = vertices[indices[i + 0U]];
+         const MeterVertex&       v1 = vertices[indices[i + 1U]];
+         const MeterVertex&       v2 = vertices[indices[i + 2U]];
          const common::Coordinate c0 =
             EnuMetersToLatLon(v0.x, v0.y, refLat, refLon);
          const common::Coordinate c1 =
@@ -949,7 +945,7 @@ class MapAnnotationsDrawItem::Impl
 {
 public:
    explicit Impl(std::shared_ptr<render::RenderContext> context,
-                 map::MapAnnotationModel*   model) :
+                 map::MapAnnotationModel*               model) :
        context_ {std::move(context)}, model_ {model}
    {
    }
@@ -985,7 +981,8 @@ public:
 };
 
 MapAnnotationsDrawItem::MapAnnotationsDrawItem(
-   std::shared_ptr<render::RenderContext> context, map::MapAnnotationModel* model) :
+   std::shared_ptr<render::RenderContext> context,
+   map::MapAnnotationModel*               model) :
     DrawItem(), p(std::make_unique<Impl>(std::move(context), model))
 {
 }
@@ -1231,8 +1228,8 @@ void MapAnnotationsDrawItem::Impl::FlattenModelVertices()
       }
    }
 
-   strokeModelCount_ =
-      static_cast<std::uint32_t>(modelStrokeVertices_.size() / kFloatsPerVertex);
+   strokeModelCount_ = static_cast<std::uint32_t>(modelStrokeVertices_.size() /
+                                                  kFloatsPerVertex);
    fillModelCount_ =
       static_cast<std::uint32_t>(modelFillVertices_.size() / kFloatsPerVertex);
    gpuModelDirty_ = true;
@@ -1306,12 +1303,10 @@ void MapAnnotationsDrawItem::Impl::RebuildPreviewGeometry()
                            dash.second);
    }
 
-   strokePreviewCount_ =
-      static_cast<std::uint32_t>(previewStrokeVertices_.size() /
-                                 kFloatsPerVertex);
-   fillPreviewCount_ =
-      static_cast<std::uint32_t>(previewFillVertices_.size() /
-                                 kFloatsPerVertex);
+   strokePreviewCount_ = static_cast<std::uint32_t>(
+      previewStrokeVertices_.size() / kFloatsPerVertex);
+   fillPreviewCount_ = static_cast<std::uint32_t>(previewFillVertices_.size() /
+                                                  kFloatsPerVertex);
    gpuPreviewDirty_ = true;
 }
 
@@ -1320,9 +1315,7 @@ void MapAnnotationsDrawItem::Initialize()
    Rebuild();
 }
 
-void MapAnnotationsDrawItem::Deinitialize()
-{
-}
+void MapAnnotationsDrawItem::Deinitialize() {}
 
 void MapAnnotationsDrawItem::SetPreviewPolyline(
    const std::vector<common::Coordinate>& pts,

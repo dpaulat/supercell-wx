@@ -48,8 +48,7 @@ class PlacefilePolygons::Impl
 {
 public:
    explicit Impl(const std::shared_ptr<render::RenderContext>& context) :
-       context_ {context},
-       numVertices_ {0}
+       context_ {context}, numVertices_ {0}
    {
    }
 
@@ -103,9 +102,7 @@ void PlacefilePolygons::set_thresholded(bool thresholded)
    p->thresholded_ = thresholded;
 }
 
-void PlacefilePolygons::Initialize()
-{
-}
+void PlacefilePolygons::Initialize() {}
 
 void PlacefilePolygons::Render(
    const QMapLibre::CustomLayerRenderParameters& /* params */)
@@ -127,13 +124,13 @@ void PlacefilePolygons::RenderVulkan(
    p->Update();
 
    std::vector<std::int32_t> integerVertices(p->currentIntegerBuffer_.begin(),
-                                               p->currentIntegerBuffer_.end());
-   const std::vector<float> transformedVertices =
+                                             p->currentIntegerBuffer_.end());
+   const std::vector<float>  transformedVertices =
       render::TransformMapColorVertices(p->currentBuffer_,
-                                          integerVertices,
-                                          params,
-                                          p->thresholded_,
-                                          p->selectedTime_);
+                                        integerVertices,
+                                        params,
+                                        p->thresholded_,
+                                        p->selectedTime_);
 
    if (transformedVertices.empty())
    {
@@ -141,11 +138,10 @@ void PlacefilePolygons::RenderVulkan(
    }
 
    const glm::mat4 identity {1.0f};
-   resources.coloredGeometry.Render(
-      commandBuffer,
-      identity,
-      transformedVertices,
-      transformedVertices.size() / 7);
+   resources.coloredGeometry.Render(commandBuffer,
+                                    identity,
+                                    transformedVertices,
+                                    transformedVertices.size() / 7);
 }
 #endif
 
@@ -214,14 +210,14 @@ void PlacefilePolygons::Impl::Tessellate(
    currentThreshold_ =
       static_cast<std::int32_t>(std::round(di->threshold_.value()));
 
-   currentStartTime_ =
-      static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
-                            di->startTime_.time_since_epoch())
-                            .count());
-   currentEndTime_ =
-      static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
-                            di->endTime_.time_since_epoch())
-                            .count());
+   currentStartTime_ = static_cast<std::int32_t>(
+      std::chrono::duration_cast<std::chrono::minutes>(
+         di->startTime_.time_since_epoch())
+         .count());
+   currentEndTime_ = static_cast<std::int32_t>(
+      std::chrono::duration_cast<std::chrono::minutes>(
+         di->endTime_.time_since_epoch())
+         .count());
 
    for (auto& contour : di->contours_)
    {
@@ -230,8 +226,9 @@ void PlacefilePolygons::Impl::Tessellate(
 
       for (auto& element : contour)
       {
-         const auto screenCoordinate = util::maplibre::LatLongToScreenCoordinate(
-            {element.latitude_, element.longitude_});
+         const auto screenCoordinate =
+            util::maplibre::LatLongToScreenCoordinate(
+               {element.latitude_, element.longitude_});
 
          if (element.color_.has_value())
          {
@@ -239,16 +236,15 @@ void PlacefilePolygons::Impl::Tessellate(
          }
 
          ring.push_back({screenCoordinate.x, screenCoordinate.y});
-         vertexAttributes.emplace_back(TessVertexArray {
-            screenCoordinate.x,
-            screenCoordinate.y,
-            0.0,
-            element.x_,
-            element.y_,
-            lastColor[0] / 255.0,
-            lastColor[1] / 255.0,
-            lastColor[2] / 255.0,
-            lastColor[3] / 255.0});
+         vertexAttributes.emplace_back(TessVertexArray {screenCoordinate.x,
+                                                        screenCoordinate.y,
+                                                        0.0,
+                                                        element.x_,
+                                                        element.y_,
+                                                        lastColor[0] / 255.0,
+                                                        lastColor[1] / 255.0,
+                                                        lastColor[2] / 255.0,
+                                                        lastColor[3] / 255.0});
       }
 
       if (ring.size() >= 3)
@@ -262,8 +258,7 @@ void PlacefilePolygons::Impl::Tessellate(
       return;
    }
 
-   const std::vector<std::uint32_t> indices =
-      util::TriangulatePolygon(polygon);
+   const std::vector<std::uint32_t> indices = util::TriangulatePolygon(polygon);
 
    for (const std::uint32_t index : indices)
    {
@@ -288,10 +283,9 @@ void PlacefilePolygons::Impl::AppendVertex(const TessVertexArray& data)
                       static_cast<float>(data[kTessVertexG_]),
                       static_cast<float>(data[kTessVertexB_]),
                       static_cast<float>(data[kTessVertexA_])});
-   newIntegerBuffer_.insert(newIntegerBuffer_.end(),
-                            {currentThreshold_,
-                             currentStartTime_,
-                             currentEndTime_});
+   newIntegerBuffer_.insert(
+      newIntegerBuffer_.end(),
+      {currentThreshold_, currentStartTime_, currentEndTime_});
 }
 
 } // namespace draw

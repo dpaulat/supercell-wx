@@ -48,7 +48,7 @@ static std::vector<float>
 MergeGeoImageVertices(const std::vector<float>& imageBuffer,
                       const std::vector<float>& textureBuffer)
 {
-   const std::size_t vertexCount = imageBuffer.size() / kPointsPerVertex;
+   const std::size_t  vertexCount = imageBuffer.size() / kPointsPerVertex;
    std::vector<float> merged(vertexCount * kGeoFloatsPerVertex_);
 
    for (std::size_t v = 0; v < vertexCount; ++v)
@@ -79,8 +79,7 @@ class PlacefileImages::Impl
 {
 public:
    explicit Impl(const std::shared_ptr<render::RenderContext>& context) :
-       context_ {context},
-       numVertices_ {0}
+       context_ {context}, numVertices_ {0}
    {
    }
 
@@ -146,13 +145,11 @@ void PlacefileImages::set_thresholded(bool thresholded)
    p->thresholded_ = thresholded;
 }
 
-void PlacefileImages::Initialize()
-{
-}
+void PlacefileImages::Initialize() {}
 
 void PlacefileImages::Render(
    const QMapLibre::CustomLayerRenderParameters& /* params */,
-   bool                                          /* textureAtlasChanged */)
+   bool /* textureAtlasChanged */)
 {
 }
 
@@ -172,15 +169,15 @@ void PlacefileImages::RenderVulkan(
 
    p->UpdateVulkan(textureAtlasChanged);
 
-   resources.textureArrayOverlay.SyncAtlas(
-      commandBuffer, p->context_->texture_buffer_count());
+   resources.textureArrayOverlay.SyncAtlas(commandBuffer,
+                                           p->context_->texture_buffer_count());
 
    const std::vector<float> mergedVertices =
       MergeGeoImageVertices(p->currentImageBuffer_, p->textureBuffer_);
 
    std::vector<std::int32_t> integerVertices;
-   integerVertices.reserve(p->currentIntegerBuffer_.size() / kIntegersPerVertex_ *
-                           4);
+   integerVertices.reserve(p->currentIntegerBuffer_.size() /
+                           kIntegersPerVertex_ * 4);
    for (std::size_t i = 0; i < p->currentIntegerBuffer_.size();
         i += kIntegersPerVertex_)
    {
@@ -191,14 +188,15 @@ void PlacefileImages::RenderVulkan(
    }
 
    const scwx::qt::render::GeoUniforms uniforms =
-      scwx::qt::render::BuildGeoUniforms(params, p->thresholded_, p->selectedTime_);
+      scwx::qt::render::BuildGeoUniforms(
+         params, p->thresholded_, p->selectedTime_);
 
-   resources.textureArrayOverlay.RenderGeo(commandBuffer,
-                                         uniforms,
-                                         mergedVertices,
-                                         integerVertices,
-                                         static_cast<std::uint32_t>(
-                                            p->numVertices_));
+   resources.textureArrayOverlay.RenderGeo(
+      commandBuffer,
+      uniforms,
+      mergedVertices,
+      integerVertices,
+      static_cast<std::uint32_t>(p->numVertices_));
 }
 #endif
 
@@ -281,18 +279,18 @@ void PlacefileImages::Impl::UpdateBuffers()
 
       // Threshold value
       units::length::nautical_miles<double> threshold = di->threshold_;
-      auto thresholdValue =
+      auto                                  thresholdValue =
          static_cast<std::int32_t>(std::round(threshold.value()));
 
       // Start and end time
-      auto startTime =
-         static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
-                               di->startTime_.time_since_epoch())
-                               .count());
-      auto endTime =
-         static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
-                               di->endTime_.time_since_epoch())
-                               .count());
+      auto startTime = static_cast<std::int32_t>(
+         std::chrono::duration_cast<std::chrono::minutes>(
+            di->startTime_.time_since_epoch())
+            .count());
+      auto endTime = static_cast<std::int32_t>(
+         std::chrono::duration_cast<std::chrono::minutes>(
+            di->endTime_.time_since_epoch())
+            .count());
 
       // Limit processing to groups of 3 (triangles)
       std::size_t numElements = di->elements_.size() - di->elements_.size() % 3;
@@ -364,9 +362,8 @@ void PlacefileImages::Impl::Update(bool textureAtlasChanged)
 
    if (dirty_)
    {
-      numVertices_ =
-         static_cast<std::uint32_t>(currentImageBuffer_.size() /
-                                    kPointsPerVertex);
+      numVertices_ = static_cast<std::uint32_t>(currentImageBuffer_.size() /
+                                                kPointsPerVertex);
    }
 
    dirty_ = false;
@@ -387,9 +384,8 @@ void PlacefileImages::Impl::UpdateVulkan(bool textureAtlasChanged)
 
    if (dirty_)
    {
-      numVertices_ =
-         static_cast<std::uint32_t>(currentImageBuffer_.size() /
-                                    kPointsPerVertex);
+      numVertices_ = static_cast<std::uint32_t>(currentImageBuffer_.size() /
+                                                kPointsPerVertex);
    }
 
    dirty_ = false;

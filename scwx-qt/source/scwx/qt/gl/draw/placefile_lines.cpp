@@ -13,6 +13,7 @@
 
 #include <execution>
 #include <memory>
+#include <array>
 
 namespace scwx
 {
@@ -28,10 +29,13 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr std::size_t kVerticesPerTriangle  = 3;
 static constexpr std::size_t kVerticesPerRectangle = kVerticesPerTriangle * 2;
-static constexpr std::size_t kPointsPerVertex      = 9;
+static constexpr std::size_t kPointsPerVertex      = 20;
 
 // Threshold, start time, end time
 static constexpr std::size_t kIntegersPerVertex_ = 3;
+
+static constexpr std::array<float, 11> kNoStrokeVertexPadding = {
+   0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 
 static const boost::gil::rgba8_pixel_t kBlack_ {0, 0, 0, 255};
 
@@ -51,8 +55,7 @@ public:
    };
 
    explicit Impl(const std::shared_ptr<render::RenderContext>& context) :
-       context_ {context},
-       numVertices_ {0}
+       context_ {context}, numVertices_ {0}
    {
    }
 
@@ -64,9 +67,9 @@ public:
                    const float                         width,
                    const units::angle::degrees<double> angle,
                    const boost::gil::rgba8_pixel_t     color,
-                  const std::int32_t                  threshold,
-                  const std::int32_t                  startTime,
-                  const std::int32_t                  endTime,
+                   const std::int32_t                  threshold,
+                   const std::int32_t                  startTime,
+                   const std::int32_t                  endTime,
                    bool                                bufferHover = false);
    void
    UpdateBuffers(const std::shared_ptr<const gr::Placefile::LineDrawItem>& di);
@@ -127,9 +130,7 @@ void PlacefileLines::set_thresholded(bool thresholded)
    p->thresholded_ = thresholded;
 }
 
-void PlacefileLines::Initialize()
-{
-}
+void PlacefileLines::Initialize() {}
 
 void PlacefileLines::Render(
    const QMapLibre::CustomLayerRenderParameters& /* params */)
@@ -168,14 +169,14 @@ void PlacefileLines::Impl::EnsureGeoRenderer(
       {
          geoRenderer_->Shutdown();
       }
-      geoRenderer_            = std::make_unique<render::RhiGeoColoredGeometry>();
+      geoRenderer_ = std::make_unique<render::RhiGeoColoredGeometry>();
       renderTargetGeneration_ = resources.renderTargetGeneration;
       geometryUploaded_       = false;
    }
 
    if (geoRenderer_ == nullptr)
    {
-      geoRenderer_            = std::make_unique<render::RhiGeoColoredGeometry>();
+      geoRenderer_ = std::make_unique<render::RhiGeoColoredGeometry>();
       renderTargetGeneration_ = resources.renderTargetGeneration;
    }
 
@@ -211,13 +212,12 @@ void PlacefileLines::RenderVulkan(
 
    const bool uploadGeometry = !p->geometryUploaded_;
 
-   p->geoRenderer_->Render(
-      commandBuffer,
-      uniforms,
-      p->currentLinesBuffer_,
-      p->expandedIntegerBuffer_,
-      static_cast<std::uint32_t>(p->numVertices_),
-      uploadGeometry);
+   p->geoRenderer_->Render(commandBuffer,
+                           uniforms,
+                           p->currentLinesBuffer_,
+                           p->expandedIntegerBuffer_,
+                           static_cast<std::uint32_t>(p->numVertices_),
+                           uploadGeometry);
 
    if (uploadGeometry)
    {
@@ -297,18 +297,18 @@ void PlacefileLines::Impl::UpdateBuffers(
 {
    // Threshold value
    units::length::nautical_miles<double> threshold = di->threshold_;
-   auto thresholdValue =
+   auto                                  thresholdValue =
       static_cast<std::int32_t>(std::round(threshold.value()));
 
    // Start and end time
-   auto startTime =
-      static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
-                            di->startTime_.time_since_epoch())
-                            .count());
-   auto endTime =
-      static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
-                            di->endTime_.time_since_epoch())
-                            .count());
+   auto startTime = static_cast<std::int32_t>(
+      std::chrono::duration_cast<std::chrono::minutes>(
+         di->startTime_.time_since_epoch())
+         .count());
+   auto endTime = static_cast<std::int32_t>(
+      std::chrono::duration_cast<std::chrono::minutes>(
+         di->endTime_.time_since_epoch())
+         .count());
 
    std::vector<units::angle::degrees<double>> angles {};
    angles.reserve(di->elements_.size() - 1);
@@ -396,16 +396,21 @@ void PlacefileLines::Impl::BufferLine(
    const float mc3 = color[3] / 255.0f;
 
    // Update buffers
-   newLinesBuffer_.insert(newLinesBuffer_.end(),
-                          {
-                             // Line
-                             lat1, lon1, lx, by, mc0, mc1, mc2, mc3, a, // BL
-                             lat2, lon2, lx, ty, mc0, mc1, mc2, mc3, a, // TL
-                             lat1, lon1, rx, by, mc0, mc1, mc2, mc3, a, // BR
-                             lat1, lon1, rx, by, mc0, mc1, mc2, mc3, a, // BR
-                             lat2, lon2, rx, ty, mc0, mc1, mc2, mc3, a, // TR
-                             lat2, lon2, lx, ty, mc0, mc1, mc2, mc3, a  // TL
-                          });
+   const auto appendVertex = [&](float lat, float lon, float x, float y)
+   {
+      newLinesBuffer_.insert(newLinesBuffer_.end(),
+                             {lat, lon, x, y, mc0, mc1, mc2, mc3, a});
+      newLinesBuffer_.insert(newLinesBuffer_.end(),
+                             kNoStrokeVertexPadding.begin(),
+                             kNoStrokeVertexPadding.end());
+   };
+
+   appendVertex(lat1, lon1, lx, by);
+   appendVertex(lat2, lon2, lx, ty);
+   appendVertex(lat1, lon1, rx, by);
+   appendVertex(lat1, lon1, rx, by);
+   appendVertex(lat2, lon2, rx, ty);
+   appendVertex(lat2, lon2, lx, ty);
    newIntegerBuffer_.insert(newIntegerBuffer_.end(),
                             {threshold,
                              startTime,

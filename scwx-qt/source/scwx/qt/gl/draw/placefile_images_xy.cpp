@@ -39,7 +39,7 @@ static std::vector<float>
 BuildScreenImageVertices(const std::vector<float>& imageBuffer,
                          const glm::mat4&          projection)
 {
-   const std::size_t vertexCount = imageBuffer.size() / kPointsPerVertex;
+   const std::size_t  vertexCount = imageBuffer.size() / kPointsPerVertex;
    std::vector<float> screenVertices(vertexCount * kScreenFloatsPerVertex_);
 
    for (std::size_t v = 0; v < vertexCount; ++v)
@@ -130,13 +130,11 @@ PlacefileImagesXY::PlacefileImagesXY(PlacefileImagesXY&&) noexcept = default;
 PlacefileImagesXY&
 PlacefileImagesXY::operator=(PlacefileImagesXY&&) noexcept = default;
 
-void PlacefileImagesXY::Initialize()
-{
-}
+void PlacefileImagesXY::Initialize() {}
 
 void PlacefileImagesXY::Render(
    const QMapLibre::CustomLayerRenderParameters& /* params */,
-   bool                                          /* textureAtlasChanged */)
+   bool /* textureAtlasChanged */)
 {
 }
 
@@ -156,24 +154,25 @@ void PlacefileImagesXY::RenderVulkan(
 
    p->UpdateVulkan(textureAtlasChanged);
 
-   resources.textureArrayOverlay.SyncAtlas(
-      commandBuffer, p->context_->texture_buffer_count());
+   resources.textureArrayOverlay.SyncAtlas(commandBuffer,
+                                           p->context_->texture_buffer_count());
 
    glm::mat4 projection = scwx::qt::render::OrthoMapProjection(params);
-   projection           = glm::rotate(projection,
-                            glm::radians<float>(static_cast<float>(params.bearing)),
-                            glm::vec3(0.0f, 0.0f, 1.0f));
+   projection =
+      glm::rotate(projection,
+                  glm::radians<float>(static_cast<float>(params.bearing)),
+                  glm::vec3(0.0f, 0.0f, 1.0f));
 
    const std::vector<float> screenVertices =
       BuildScreenImageVertices(p->currentImageBuffer_, projection);
    const glm::mat4 identity {1.0f};
 
-   resources.textureArrayOverlay.RenderScreen(commandBuffer,
-                                            identity,
-                                            screenVertices,
-                                            p->textureBuffer_,
-                                            static_cast<std::uint32_t>(
-                                               p->numVertices_));
+   resources.textureArrayOverlay.RenderScreen(
+      commandBuffer,
+      identity,
+      screenVertices,
+      p->textureBuffer_,
+      static_cast<std::uint32_t>(p->numVertices_));
 }
 #endif
 
@@ -315,9 +314,8 @@ void PlacefileImagesXY::Impl::Update(bool textureAtlasChanged)
 
    if (dirty_)
    {
-      numVertices_ =
-         static_cast<std::uint32_t>(currentImageBuffer_.size() /
-                                    kPointsPerVertex);
+      numVertices_ = static_cast<std::uint32_t>(currentImageBuffer_.size() /
+                                                kPointsPerVertex);
    }
 
    dirty_ = false;
@@ -338,9 +336,8 @@ void PlacefileImagesXY::Impl::UpdateVulkan(bool textureAtlasChanged)
 
    if (dirty_)
    {
-      numVertices_ =
-         static_cast<std::uint32_t>(currentImageBuffer_.size() /
-                                    kPointsPerVertex);
+      numVertices_ = static_cast<std::uint32_t>(currentImageBuffer_.size() /
+                                                kPointsPerVertex);
    }
 
    dirty_ = false;

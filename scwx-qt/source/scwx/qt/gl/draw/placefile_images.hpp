@@ -15,7 +15,8 @@ namespace draw
 class PlacefileImages : public DrawItem
 {
 public:
-   explicit PlacefileImages(const std::shared_ptr<render::RenderContext>& context);
+   explicit PlacefileImages(
+      const std::shared_ptr<render::RenderContext>& context);
    ~PlacefileImages();
 
    PlacefileImages(const PlacefileImages&)            = delete;
@@ -33,11 +34,10 @@ public:
    void Deinitialize() override;
 
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
-   void RenderVulkan(
-      QRhiCommandBuffer*                            commandBuffer,
-      scwx::qt::render::RhiVulkanOverlayResources&  resources,
-      const QMapLibre::CustomLayerRenderParameters& params,
-      bool                                          textureAtlasChanged) override;
+   void RenderVulkan(QRhiCommandBuffer*                           commandBuffer,
+                     scwx::qt::render::RhiVulkanOverlayResources& resources,
+                     const QMapLibre::CustomLayerRenderParameters& params,
+                     bool textureAtlasChanged) override;
 #endif
 
    /**

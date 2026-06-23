@@ -33,8 +33,7 @@ class PlacefileTriangles::Impl
 {
 public:
    explicit Impl(const std::shared_ptr<render::RenderContext>& context) :
-       context_ {context},
-       numVertices_ {0}
+       context_ {context}, numVertices_ {0}
    {
    }
 
@@ -83,9 +82,7 @@ void PlacefileTriangles::set_thresholded(bool thresholded)
    p->thresholded_ = thresholded;
 }
 
-void PlacefileTriangles::Initialize()
-{
-}
+void PlacefileTriangles::Initialize() {}
 
 void PlacefileTriangles::Render(
    const QMapLibre::CustomLayerRenderParameters& /* params */)
@@ -107,13 +104,13 @@ void PlacefileTriangles::RenderVulkan(
    p->Update();
 
    std::vector<std::int32_t> integerVertices(p->currentIntegerBuffer_.begin(),
-                                               p->currentIntegerBuffer_.end());
-   const std::vector<float> transformedVertices =
+                                             p->currentIntegerBuffer_.end());
+   const std::vector<float>  transformedVertices =
       render::TransformMapColorVertices(p->currentBuffer_,
-                                          integerVertices,
-                                          params,
-                                          p->thresholded_,
-                                          p->selectedTime_);
+                                        integerVertices,
+                                        params,
+                                        p->thresholded_,
+                                        p->selectedTime_);
 
    if (transformedVertices.empty())
    {
@@ -121,11 +118,10 @@ void PlacefileTriangles::RenderVulkan(
    }
 
    const glm::mat4 identity {1.0f};
-   resources.coloredGeometry.Render(
-      commandBuffer,
-      identity,
-      transformedVertices,
-      transformedVertices.size() / 7);
+   resources.coloredGeometry.Render(commandBuffer,
+                                    identity,
+                                    transformedVertices,
+                                    transformedVertices.size() / 7);
 }
 #endif
 
@@ -175,18 +171,18 @@ void PlacefileTriangles::Impl::UpdateBuffers(
 {
    // Threshold value
    units::length::nautical_miles<double> threshold = di->threshold_;
-   auto thresholdValue =
+   auto                                  thresholdValue =
       static_cast<std::int32_t>(std::round(threshold.value()));
 
    // Start and end time
-   auto startTime =
-      static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
-                            di->startTime_.time_since_epoch())
-                            .count());
-   auto endTime =
-      static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
-                            di->endTime_.time_since_epoch())
-                            .count());
+   auto startTime = static_cast<std::int32_t>(
+      std::chrono::duration_cast<std::chrono::minutes>(
+         di->startTime_.time_since_epoch())
+         .count());
+   auto endTime = static_cast<std::int32_t>(
+      std::chrono::duration_cast<std::chrono::minutes>(
+         di->endTime_.time_since_epoch())
+         .count());
 
    // Default color to "Color" statement
    boost::gil::rgba8_pixel_t lastColor = di->color_;

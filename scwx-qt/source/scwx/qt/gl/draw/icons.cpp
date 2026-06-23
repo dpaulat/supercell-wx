@@ -66,8 +66,7 @@ public:
    };
 
    explicit Impl(const std::shared_ptr<render::RenderContext>& context) :
-       context_ {context},
-       numVertices_ {0}
+       context_ {context}, numVertices_ {0}
    {
    }
 
@@ -82,7 +81,7 @@ public:
    void        UpdateModifiedIconBuffers();
    void        Update(bool textureAtlasChanged);
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
-   void        UpdateVulkan(bool textureAtlasChanged);
+   void UpdateVulkan(bool textureAtlasChanged);
 #endif
 
    std::shared_ptr<render::RenderContext> context_;
@@ -137,11 +136,10 @@ void Icons::Render(const QMapLibre::CustomLayerRenderParameters& params,
 }
 
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
-void Icons::RenderVulkan(
-   QRhiCommandBuffer*                            commandBuffer,
-   render::RhiVulkanOverlayResources&            resources,
-   const QMapLibre::CustomLayerRenderParameters& params,
-   bool                                          textureAtlasChanged)
+void Icons::RenderVulkan(QRhiCommandBuffer*                 commandBuffer,
+                         render::RhiVulkanOverlayResources& resources,
+                         const QMapLibre::CustomLayerRenderParameters& params,
+                         bool textureAtlasChanged)
 {
    if (!p->visible_)
    {
@@ -162,20 +160,21 @@ void Icons::RenderVulkan(
 
    p->UpdateVulkan(textureAtlasChanged);
 
-   resources.textureArrayOverlay.SyncAtlas(
-      commandBuffer, p->context_->texture_buffer_count());
+   resources.textureArrayOverlay.SyncAtlas(commandBuffer,
+                                           p->context_->texture_buffer_count());
 
    glm::mat4 projection = scwx::qt::render::OrthoMapProjection(params);
-   projection           = glm::rotate(projection,
-                            glm::radians<float>(static_cast<float>(params.bearing)),
-                            glm::vec3(0.0f, 0.0f, 1.0f));
+   projection =
+      glm::rotate(projection,
+                  glm::radians<float>(static_cast<float>(params.bearing)),
+                  glm::vec3(0.0f, 0.0f, 1.0f));
 
-   resources.textureArrayOverlay.RenderScreen(commandBuffer,
-                                            projection,
-                                            p->currentIconBuffer_,
-                                            p->textureBuffer_,
-                                            static_cast<std::uint32_t>(
-                                               p->numVertices_));
+   resources.textureArrayOverlay.RenderScreen(
+      commandBuffer,
+      projection,
+      p->currentIconBuffer_,
+      p->textureBuffer_,
+      static_cast<std::uint32_t>(p->numVertices_));
 }
 #endif
 
@@ -637,9 +636,8 @@ void Icons::Impl::Update(bool textureAtlasChanged)
    // If buffers need updating
    if (dirty_)
    {
-      numVertices_ =
-         static_cast<std::uint32_t>(currentIconBuffer_.size() /
-                                    kPointsPerVertex);
+      numVertices_ = static_cast<std::uint32_t>(currentIconBuffer_.size() /
+                                                kPointsPerVertex);
    }
 
    dirty_ = false;
@@ -663,9 +661,8 @@ void Icons::Impl::UpdateVulkan(bool textureAtlasChanged)
 
    if (dirty_)
    {
-      numVertices_ =
-         static_cast<std::uint32_t>(currentIconBuffer_.size() /
-                                    kPointsPerVertex);
+      numVertices_ = static_cast<std::uint32_t>(currentIconBuffer_.size() /
+                                                kPointsPerVertex);
    }
 
    dirty_ = false;

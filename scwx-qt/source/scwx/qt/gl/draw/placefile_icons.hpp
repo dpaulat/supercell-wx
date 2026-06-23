@@ -17,7 +17,8 @@ namespace draw
 class PlacefileIcons : public DrawItem
 {
 public:
-   explicit PlacefileIcons(const std::shared_ptr<render::RenderContext>& context);
+   explicit PlacefileIcons(
+      const std::shared_ptr<render::RenderContext>& context);
    ~PlacefileIcons();
 
    PlacefileIcons(const PlacefileIcons&)            = delete;
@@ -35,11 +36,10 @@ public:
    void Deinitialize() override;
 
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
-   void RenderVulkan(
-      QRhiCommandBuffer*                            commandBuffer,
-      scwx::qt::render::RhiVulkanOverlayResources&  resources,
-      const QMapLibre::CustomLayerRenderParameters& params,
-      bool                                          textureAtlasChanged) override;
+   void RenderVulkan(QRhiCommandBuffer*                           commandBuffer,
+                     scwx::qt::render::RhiVulkanOverlayResources& resources,
+                     const QMapLibre::CustomLayerRenderParameters& params,
+                     bool textureAtlasChanged) override;
 #endif
 
    bool

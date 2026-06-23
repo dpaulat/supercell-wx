@@ -45,11 +45,11 @@ public:
                        bool textureAtlasChanged);
    virtual void Deinitialize() = 0;
 
-   virtual void RenderVulkan(
-      QRhiCommandBuffer*                            commandBuffer,
-      scwx::qt::render::RhiVulkanOverlayResources&  resources,
-      const QMapLibre::CustomLayerRenderParameters& params,
-      bool                                          textureAtlasChanged);
+   virtual void
+   RenderVulkan(QRhiCommandBuffer*                            commandBuffer,
+                scwx::qt::render::RhiVulkanOverlayResources&  resources,
+                const QMapLibre::CustomLayerRenderParameters& params,
+                bool textureAtlasChanged);
 
    /**
     * @brief Run mouse picking on the draw item.

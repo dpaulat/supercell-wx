@@ -83,7 +83,8 @@ void Rectangle::Initialize()
    p->dirty_ = true;
 }
 
-void Rectangle::Render(const QMapLibre::CustomLayerRenderParameters& /* params */)
+void Rectangle::Render(
+   const QMapLibre::CustomLayerRenderParameters& /* params */)
 {
 }
 
@@ -106,7 +107,8 @@ void Rectangle::RenderVulkan(
    if (p->fillColor_.has_value())
    {
       const std::vector<float> fillVertices(
-         p->vertexBuffer_.begin() + static_cast<std::ptrdiff_t>(24 * POINTS_PER_VERTEX),
+         p->vertexBuffer_.begin() +
+            static_cast<std::ptrdiff_t>(24 * POINTS_PER_VERTEX),
          p->vertexBuffer_.end());
       resources.coloredGeometry.Render(
          commandBuffer, projection, fillVertices, 6);
@@ -262,9 +264,7 @@ void Rectangle::Impl::BuildVertexBuffer()
           {lox, toy, z_, fc0, fc1, fc2, fc3}  // TL
        }};
 
-   vertexBuffer_.assign(&buffer[0][0][0],
-                        &buffer[0][0][0] + BUFFER_LENGTH);
-
+   vertexBuffer_.assign(&buffer[0][0][0], &buffer[0][0][0] + BUFFER_LENGTH);
 }
 
 } // namespace scwx::qt::gl::draw

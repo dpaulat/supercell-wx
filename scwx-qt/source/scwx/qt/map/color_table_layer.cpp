@@ -59,7 +59,7 @@ void ColorTableLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
 }
 
 void ColorTableLayer::Render(
-   const std::shared_ptr<MapContext>&            mapContext,
+   const std::shared_ptr<MapContext>& mapContext,
    const QMapLibre::CustomLayerRenderParameters& /* params */)
 {
    mapContext->set_color_table_margins(QMargins {});
@@ -121,7 +121,6 @@ void ColorTableLayer::RenderVulkanOverlay(
 void ColorTableLayer::Deinitialize()
 {
    logger_->debug("Deinitialize()");
-
 }
 
 } // namespace scwx::qt::map

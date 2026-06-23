@@ -11,7 +11,6 @@
 #   include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 #endif
 
-#include <execution>
 #include <memory>
 
 #include <boost/unordered/unordered_flat_set.hpp>
@@ -33,7 +32,7 @@ static constexpr size_t kNumRectangles        = 1;
 static constexpr size_t kNumTriangles         = kNumRectangles * 2;
 static constexpr size_t kVerticesPerTriangle  = 3;
 static constexpr size_t kVerticesPerRectangle = kVerticesPerTriangle * 2;
-static constexpr size_t kPointsPerVertex      = 9;
+static constexpr size_t kPointsPerVertex      = 20;
 static constexpr size_t kLineBufferLength_ =
    kNumTriangles * kVerticesPerTriangle * kPointsPerVertex;
 
@@ -50,32 +49,38 @@ struct GeoLineDrawItem : types::EventHandler
    std::chrono::sys_time<std::chrono::seconds> endTime_ {};
 
    boost::gil::rgba32f_pixel_t  modulate_ {1.0f, 1.0f, 1.0f, 1.0f};
+   boost::gil::rgba32f_pixel_t  highlightColor_ {};
+   boost::gil::rgba32f_pixel_t  borderColor_ {};
    float                        latitude1_ {};
    float                        longitude1_ {};
    float                        latitude2_ {};
    float                        longitude2_ {};
    float                        width_ {5.0};
+   float                        strokeLineHalf_ {};
+   float                        strokeHighlightHalf_ {};
+   float                        strokeBorderHalf_ {};
+   bool                         strokeEnabled_ {false};
    units::angle::degrees<float> angle_ {};
    std::string                  hoverText_ {};
    GeoLines::HoverCallback      hoverCallback_ {nullptr};
    size_t                       lineIndex_ {0};
 };
 
+struct GeoLineHoverEntry
+{
+   std::shared_ptr<GeoLineDrawItem> di_;
+
+   glm::vec2 p1_;
+   glm::vec2 p2_;
+   glm::vec2 otl_;
+   glm::vec2 otr_;
+   glm::vec2 obl_;
+   glm::vec2 obr_;
+};
+
 class GeoLines::Impl
 {
 public:
-   struct LineHoverEntry
-   {
-      std::shared_ptr<GeoLineDrawItem> di_;
-
-      glm::vec2 p1_;
-      glm::vec2 p2_;
-      glm::vec2 otl_;
-      glm::vec2 otr_;
-      glm::vec2 obl_;
-      glm::vec2 obr_;
-   };
-
    explicit Impl(std::shared_ptr<render::RenderContext> context) :
        context_ {context}
    {
@@ -89,9 +94,9 @@ public:
    void UpdateModifiedLineBuffers();
    void UpdateSingleBuffer(const std::shared_ptr<GeoLineDrawItem>& di,
                            std::vector<float>&                     linesBuffer,
-                           std::vector<std::int32_t>&          integerBuffer,
+                           std::vector<std::int32_t>&             integerBuffer,
                            std::unordered_map<std::shared_ptr<GeoLineDrawItem>,
-                                              LineHoverEntry>& hoverLines);
+                                              GeoLineHoverEntry>& hoverLines);
 
    std::shared_ptr<render::RenderContext> context_;
 
@@ -113,9 +118,9 @@ public:
    std::vector<float> newLinesBuffer_ {};
    std::vector<std::int32_t> newIntegerBuffer_ {};
 
-   std::unordered_map<std::shared_ptr<GeoLineDrawItem>, LineHoverEntry>
+   std::unordered_map<std::shared_ptr<GeoLineDrawItem>, GeoLineHoverEntry>
       currentHoverLines_ {};
-   std::unordered_map<std::shared_ptr<GeoLineDrawItem>, LineHoverEntry>
+   std::unordered_map<std::shared_ptr<GeoLineDrawItem>, GeoLineHoverEntry>
       newHoverLines_ {};
 
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
@@ -126,7 +131,6 @@ public:
    void EnsureGeoRenderer(render::RhiVulkanOverlayResources& resources,
                           QRhiCommandBuffer*                 commandBuffer);
 #endif
-
 };
 
 GeoLines::GeoLines(std::shared_ptr<render::RenderContext> context) :
@@ -140,17 +144,22 @@ GeoLines& GeoLines::operator=(GeoLines&&) noexcept = default;
 
 void GeoLines::set_selected_time(
    std::chrono::system_clock::time_point selectedTime)
-{ p->selectedTime_ = selectedTime; }
+{
+   p->selectedTime_ = selectedTime;
+}
 
 void GeoLines::set_thresholded(bool thresholded)
-{ p->thresholded_ = thresholded; }
+{
+   p->thresholded_ = thresholded;
+}
 
 void GeoLines::Initialize()
 {
    p->dirty_ = true;
 }
 
-void GeoLines::Render(const QMapLibre::CustomLayerRenderParameters& /* params */)
+void GeoLines::Render(
+   const QMapLibre::CustomLayerRenderParameters& /* params */)
 {
 }
 
@@ -170,14 +179,14 @@ void GeoLines::Impl::EnsureGeoRenderer(
       {
          geoRenderer_->Shutdown();
       }
-      geoRenderer_              = std::make_unique<render::RhiGeoColoredGeometry>();
-      renderTargetGeneration_   = resources.renderTargetGeneration;
-      geometryUploaded_         = false;
+      geoRenderer_ = std::make_unique<render::RhiGeoColoredGeometry>();
+      renderTargetGeneration_ = resources.renderTargetGeneration;
+      geometryUploaded_       = false;
    }
 
    if (geoRenderer_ == nullptr)
    {
-      geoRenderer_            = std::make_unique<render::RhiGeoColoredGeometry>();
+      geoRenderer_ = std::make_unique<render::RhiGeoColoredGeometry>();
       renderTargetGeneration_ = resources.renderTargetGeneration;
    }
 
@@ -259,7 +268,9 @@ void GeoLines::Deinitialize()
 }
 
 void GeoLines::SetVisible(bool visible)
-{ p->visible_ = visible; }
+{
+   p->visible_ = visible;
+}
 
 void GeoLines::StartLines()
 {
@@ -322,9 +333,13 @@ void GeoLines::SetLineModulate(const std::shared_ptr<GeoLineDrawItem>& di,
 void GeoLines::SetLineWidth(const std::shared_ptr<GeoLineDrawItem>& di,
                             float                                   width)
 {
-   if (di->width_ != width)
+   if (di->width_ != width || di->strokeEnabled_)
    {
-      di->width_ = width;
+      di->width_               = width;
+      di->strokeEnabled_       = false;
+      di->strokeLineHalf_      = 0.0f;
+      di->strokeHighlightHalf_ = 0.0f;
+      di->strokeBorderHalf_    = 0.0f;
       p->dirtyLines_.insert(di);
    }
 }
@@ -383,12 +398,40 @@ void GeoLines::SetLineEndTime(const std::shared_ptr<GeoLineDrawItem>& di,
    }
 }
 
+void GeoLines::SetLineStrokeStyle(
+   const std::shared_ptr<GeoLineDrawItem>& di,
+   const boost::gil::rgba32f_pixel_t&      lineColor,
+   const boost::gil::rgba32f_pixel_t&      highlightColor,
+   const boost::gil::rgba32f_pixel_t&      borderColor,
+   float                                   lineHalf,
+   float                                   highlightHalf,
+   float                                   borderHalf)
+{
+   const float outerWidth = borderHalf * 2.0f;
+   if (di->modulate_ != lineColor || di->highlightColor_ != highlightColor ||
+       di->borderColor_ != borderColor || !di->strokeEnabled_ ||
+       di->strokeLineHalf_ != lineHalf ||
+       di->strokeHighlightHalf_ != highlightHalf ||
+       di->strokeBorderHalf_ != borderHalf || di->width_ != outerWidth)
+   {
+      di->modulate_            = lineColor;
+      di->highlightColor_      = highlightColor;
+      di->borderColor_         = borderColor;
+      di->strokeEnabled_       = true;
+      di->strokeLineHalf_      = lineHalf;
+      di->strokeHighlightHalf_ = highlightHalf;
+      di->strokeBorderHalf_    = borderHalf;
+      di->width_               = outerWidth;
+      p->dirtyLines_.insert(di);
+   }
+}
+
 void GeoLines::FinishLines()
 {
+   std::unique_lock lock {p->lineMutex_};
+
    // Update buffers
    p->UpdateBuffers();
-
-   std::unique_lock lock {p->lineMutex_};
 
    // Swap buffers
    p->currentLineList_ = p->newLineList_;
@@ -464,27 +507,107 @@ void GeoLines::Impl::UpdateModifiedLineBuffers()
    }
 }
 
+namespace
+{
+
+static constexpr float kHoverPickExtraHalfPx = 18.0f;
+
+static bool
+IsGeoLinePickable(const GeoLineDrawItem&                       drawItem,
+                  const units::length::meters<double>&         mapDistance,
+                  const std::chrono::system_clock::time_point& selectedTime)
+{
+   if ((mapDistance > units::length::meters<double> {0.0} &&
+        static_cast<int>(std::round(
+           units::length::nautical_miles<double> {drawItem.threshold_}
+              .value())) < 999 &&
+        drawItem.threshold_ < mapDistance &&
+        (drawItem.threshold_.value() >= 0.0 ||
+         -(drawItem.threshold_) > mapDistance)) ||
+       (drawItem.startTime_ != std::chrono::system_clock::time_point {} &&
+        (selectedTime < drawItem.startTime_ ||
+         drawItem.endTime_ <= selectedTime)))
+   {
+      return false;
+   }
+
+   return true;
+}
+
+static float PickHalfWidthMercator(const glm::mat4& mapMatrix,
+                                   const float      pickHalfPx)
+{
+   const glm::vec2 xAxis =
+      glm::vec2(mapMatrix * glm::vec4 {pickHalfPx, 0.0f, 0.0f, 1.0f});
+   const glm::vec2 yAxis =
+      glm::vec2(mapMatrix * glm::vec4 {0.0f, pickHalfPx, 0.0f, 1.0f});
+   return std::max(glm::length(xAxis), glm::length(yAxis));
+}
+
+static bool IsPointNearGeoLine(const GeoLineHoverEntry& line,
+                               const glm::mat4&         mapMatrix,
+                               const glm::vec2&         mouseCoords)
+{
+   const float hw     = line.di_->strokeEnabled_ ? line.di_->strokeBorderHalf_ :
+                                                   (line.di_->width_ * 0.5f);
+   const float pickHw = hw + kHoverPickExtraHalfPx;
+
+   glm::vec2 bl = line.p1_;
+   glm::vec2 br = bl;
+   glm::vec2 tl = line.p2_;
+   glm::vec2 tr = tl;
+
+   const glm::vec2 otl = mapMatrix * glm::vec4 {line.otl_, 0.0f, 1.0f};
+   const glm::vec2 obl = mapMatrix * glm::vec4 {line.obl_, 0.0f, 1.0f};
+   const glm::vec2 obr = mapMatrix * glm::vec4 {line.obr_, 0.0f, 1.0f};
+   const glm::vec2 otr = mapMatrix * glm::vec4 {line.otr_, 0.0f, 1.0f};
+
+   tl += otl;
+   bl += obl;
+   br += obr;
+   tr += otr;
+
+   if (util::maplibre::IsPointInPolygon({tl, bl, br, tr}, mouseCoords))
+   {
+      return true;
+   }
+
+   const glm::vec2 ab    = line.p2_ - line.p1_;
+   const float     lenSq = glm::dot(ab, ab);
+   if (lenSq <= 1e-10f)
+   {
+      return false;
+   }
+
+   const float t =
+      glm::clamp(glm::dot(mouseCoords - line.p1_, ab) / lenSq, 0.0f, 1.0f);
+   const float dist = glm::length(mouseCoords - (line.p1_ + t * ab));
+   return dist <= PickHalfWidthMercator(mapMatrix, pickHw);
+}
+
+} // namespace
+
 void GeoLines::Impl::UpdateSingleBuffer(
    const std::shared_ptr<GeoLineDrawItem>& di,
    std::vector<float>&                     lineBuffer,
    std::vector<std::int32_t>&              integerBuffer,
-   std::unordered_map<std::shared_ptr<GeoLineDrawItem>, LineHoverEntry>&
+   std::unordered_map<std::shared_ptr<GeoLineDrawItem>, GeoLineHoverEntry>&
       hoverLines)
 {
    // Threshold value
    units::length::nautical_miles<double> threshold = di->threshold_;
-   auto thresholdValue =
+   auto                                  thresholdValue =
       static_cast<std::int32_t>(std::round(threshold.value()));
 
    // Start and end time
-   auto startTime =
-      static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
-                            di->startTime_.time_since_epoch())
-                            .count());
-   auto endTime =
-      static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::minutes>(
-                            di->endTime_.time_since_epoch())
-                            .count());
+   auto startTime = static_cast<std::int32_t>(
+      std::chrono::duration_cast<std::chrono::minutes>(
+         di->startTime_.time_since_epoch())
+         .count());
+   auto endTime = static_cast<std::int32_t>(
+      std::chrono::duration_cast<std::chrono::minutes>(
+         di->endTime_.time_since_epoch())
+         .count());
 
    // Latitude and longitude coordinates in degrees
    const float lat1 = di->latitude1_;
@@ -504,7 +627,9 @@ void GeoLines::Impl::UpdateSingleBuffer(
    const float a = static_cast<float>(angle.value());
 
    // Final X/Y offsets in pixels
-   const float hw = di->width_ * 0.5f;
+   const float hw =
+      di->strokeEnabled_ ? di->strokeBorderHalf_ : (di->width_ * 0.5f);
+   const float pickHw = hw + kHoverPickExtraHalfPx;
    const float lx = -hw;
    const float rx = +hw;
    const float ty = +hw;
@@ -516,18 +641,38 @@ void GeoLines::Impl::UpdateSingleBuffer(
    const float mc2 = di->modulate_[2];
    const float mc3 = di->modulate_[3];
 
+   const float hc0 = di->highlightColor_[0];
+   const float hc1 = di->highlightColor_[1];
+   const float hc2 = di->highlightColor_[2];
+   const float hc3 = di->highlightColor_[3];
+
+   const float bc0 = di->borderColor_[0];
+   const float bc1 = di->borderColor_[1];
+   const float bc2 = di->borderColor_[2];
+   const float bc3 = di->borderColor_[3];
+
+   const float sh0 = di->strokeEnabled_ ? di->strokeLineHalf_ : 0.0f;
+   const float sh1 = di->strokeEnabled_ ? di->strokeHighlightHalf_ : 0.0f;
+   const float sh2 = di->strokeEnabled_ ? di->strokeBorderHalf_ : 0.0f;
+
    // Visibility
    const auto v = static_cast<std::int32_t>(di->visible_);
 
    // Initiailize line data
    const auto lineData = {
       // Line
-      lat1, lon1, lx, by, mc0, mc1, mc2, mc3, a, // BL
-      lat2, lon2, lx, ty, mc0, mc1, mc2, mc3, a, // TL
-      lat1, lon1, rx, by, mc0, mc1, mc2, mc3, a, // BR
-      lat1, lon1, rx, by, mc0, mc1, mc2, mc3, a, // BR
-      lat2, lon2, rx, ty, mc0, mc1, mc2, mc3, a, // TR
-      lat2, lon2, lx, ty, mc0, mc1, mc2, mc3, a  // TL
+      lat1, lon1, lx,  by,  mc0, mc1, mc2, mc3, a,   hc0,
+      hc1,  hc2,  hc3, bc0, bc1, bc2, bc3, sh0, sh1, sh2, // BL
+      lat2, lon2, lx,  ty,  mc0, mc1, mc2, mc3, a,   hc0,
+      hc1,  hc2,  hc3, bc0, bc1, bc2, bc3, sh0, sh1, sh2, // TL
+      lat1, lon1, rx,  by,  mc0, mc1, mc2, mc3, a,   hc0,
+      hc1,  hc2,  hc3, bc0, bc1, bc2, bc3, sh0, sh1, sh2, // BR
+      lat1, lon1, rx,  by,  mc0, mc1, mc2, mc3, a,   hc0,
+      hc1,  hc2,  hc3, bc0, bc1, bc2, bc3, sh0, sh1, sh2, // BR
+      lat2, lon2, rx,  ty,  mc0, mc1, mc2, mc3, a,   hc0,
+      hc1,  hc2,  hc3, bc0, bc1, bc2, bc3, sh0, sh1, sh2, // TR
+      lat2, lon2, lx,  ty,  mc0, mc1, mc2, mc3, a,   hc0,
+      hc1,  hc2,  hc3, bc0, bc1, bc2, bc3, sh0, sh1, sh2 // TL
    };
    const auto integerData = {thresholdValue, startTime, endTime, v,
                              thresholdValue, startTime, endTime, v,
@@ -585,21 +730,21 @@ void GeoLines::Impl::UpdateSingleBuffer(
 
       const glm::mat2 rotate {cosAngle, -sinAngle, sinAngle, cosAngle};
 
-      const glm::vec2 otl = rotate * glm::vec2 {-hw, +hw};
-      const glm::vec2 otr = rotate * glm::vec2 {+hw, +hw};
-      const glm::vec2 obl = rotate * glm::vec2 {-hw, -hw};
-      const glm::vec2 obr = rotate * glm::vec2 {+hw, -hw};
+      const glm::vec2 otl = rotate * glm::vec2 {-pickHw, +pickHw};
+      const glm::vec2 otr = rotate * glm::vec2 {+pickHw, +pickHw};
+      const glm::vec2 obl = rotate * glm::vec2 {-pickHw, -pickHw};
+      const glm::vec2 obr = rotate * glm::vec2 {+pickHw, -pickHw};
 
       if (hoverIt == hoverLines.end())
       {
          hoverLines.emplace(di,
-                            LineHoverEntry {.di_  = di,
-                                            .p1_  = sc1,
-                                            .p2_  = sc2,
-                                            .otl_ = otl,
-                                            .otr_ = otr,
-                                            .obl_ = obl,
-                                            .obr_ = obr});
+                            GeoLineHoverEntry {.di_  = di,
+                                               .p1_  = sc1,
+                                               .p2_  = sc2,
+                                               .otl_ = otl,
+                                               .otr_ = otr,
+                                               .obl_ = obl,
+                                               .obr_ = obr});
       }
       else
       {
@@ -657,88 +802,58 @@ bool GeoLines::RunMousePicking(
          scwx::util::time::now() :
          p->selectedTime_;
 
-   // For each pickable line
-   auto it = std::find_if(
-      std::execution::par_unseq,
-      p->currentHoverLines_.cbegin(),
-      p->currentHoverLines_.cend(),
-      [&mapDistance, &selectedTime, &mapMatrix, &mouseCoords](
-         const auto& lineIt)
+   // For each pickable line (top-most first)
+   std::shared_ptr<GeoLineDrawItem> pickedDrawItem;
+   std::string                      hoverText;
+   HoverCallback                    hoverCallback;
+
+   for (auto lineIt = p->currentLineList_.crbegin();
+        lineIt != p->currentLineList_.crend();
+        ++lineIt)
+   {
+      auto hoverIt = p->currentHoverLines_.find(*lineIt);
+      if (hoverIt == p->currentHoverLines_.cend())
       {
-         const auto& line = lineIt.second;
-         if ((
-                // Placefile is thresholded
-                mapDistance > units::length::meters<double> {0.0} &&
+         continue;
+      }
 
-                // Placefile threshold is < 999 nmi
-                static_cast<int>(std::round(
-                   units::length::nautical_miles<double> {line.di_->threshold_}
-                      .value())) < 999 &&
+      const auto& line = hoverIt->second;
+      if (!IsGeoLinePickable(*line.di_, mapDistance, selectedTime))
+      {
+         continue;
+      }
 
-                // Map distance is beyond/within the threshold
-                line.di_->threshold_ < mapDistance &&
-                (line.di_->threshold_.value() >= 0.0 ||
-                 -(line.di_->threshold_) > mapDistance)) ||
+      if (!IsPointNearGeoLine(line, mapMatrix, mouseCoords))
+      {
+         continue;
+      }
 
-             (
-                // Line has a start time
-                line.di_->startTime_ !=
-                   std::chrono::system_clock::time_point {} &&
+      pickedDrawItem = line.di_;
+      hoverText      = line.di_->hoverText_;
+      hoverCallback  = line.di_->hoverCallback_;
+      break;
+   }
 
-                // The time range has not yet started
-                (selectedTime < line.di_->startTime_ ||
-
-                 // The time range has ended
-                 line.di_->endTime_ <= selectedTime)))
-         {
-            // Line is not pickable
-            return false;
-         }
-
-         // Initialize vertices
-         glm::vec2 bl = line.p1_;
-         glm::vec2 br = bl;
-         glm::vec2 tl = line.p2_;
-         glm::vec2 tr = tl;
-
-         // Calculate offsets
-         // - Rotated offset is half the line width (pixels) in each direction
-         // - Multiply the offset by the scaled and rotated map matrix
-         const glm::vec2 otl = mapMatrix * glm::vec4 {line.otl_, 0.0f, 1.0f};
-         const glm::vec2 obl = mapMatrix * glm::vec4 {line.obl_, 0.0f, 1.0f};
-         const glm::vec2 obr = mapMatrix * glm::vec4 {line.obr_, 0.0f, 1.0f};
-         const glm::vec2 otr = mapMatrix * glm::vec4 {line.otr_, 0.0f, 1.0f};
-
-         // Offset vertices
-         tl += otl;
-         bl += obl;
-         br += obr;
-         tr += otr;
-
-         // TODO: X/Y offsets
-
-         // Test point against polygon bounds
-         return util::maplibre::IsPointInPolygon({tl, bl, br, tr}, mouseCoords);
-      });
-
-   if (it != p->currentHoverLines_.cend())
+   if (pickedDrawItem != nullptr)
    {
       itemPicked = true;
 
-      if (!it->second.di_->hoverText_.empty())
+      lock.unlock();
+
+      if (!hoverText.empty())
       {
          // Show tooltip
-         util::tooltip::Show(it->second.di_->hoverText_, mouseGlobalPos);
+         util::tooltip::Show(hoverText, mouseGlobalPos);
       }
-      else if (it->second.di_->hoverCallback_ != nullptr)
+      else if (hoverCallback != nullptr)
       {
-         it->second.di_->hoverCallback_(it->second.di_, mouseGlobalPos);
+         hoverCallback(pickedDrawItem, mouseGlobalPos);
       }
 
-      if (it->second.di_->event_ != nullptr)
+      if (pickedDrawItem->event_ != nullptr)
       {
          // Register event handler
-         eventHandler = it->second.di_;
+         eventHandler = pickedDrawItem;
       }
    }
 
@@ -748,7 +863,9 @@ bool GeoLines::RunMousePicking(
 void GeoLines::RegisterEventHandler(
    const std::shared_ptr<GeoLineDrawItem>& di,
    const std::function<void(QEvent*)>&     eventHandler)
-{ di->event_ = eventHandler; }
+{
+   di->event_ = eventHandler;
+}
 
 } // namespace draw
 } // namespace gl

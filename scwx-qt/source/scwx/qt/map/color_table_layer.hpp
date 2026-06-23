@@ -10,7 +10,8 @@ class ColorTableLayer : public GenericLayer
    Q_DISABLE_COPY_MOVE(ColorTableLayer)
 
 public:
-   explicit ColorTableLayer(std::shared_ptr<render::RenderContext> renderContext);
+   explicit ColorTableLayer(
+      std::shared_ptr<render::RenderContext> renderContext);
    ~ColorTableLayer();
 
    void Initialize(const std::shared_ptr<MapContext>& mapContext) final;

@@ -34,7 +34,8 @@ public:
       units::length::meters<double> distanceM {};
    };
 
-   explicit MapAnnotationLayer(std::shared_ptr<render::RenderContext> renderContext);
+   explicit MapAnnotationLayer(
+      std::shared_ptr<render::RenderContext> renderContext);
    ~MapAnnotationLayer() override;
 
    MapAnnotationLayer(const MapAnnotationLayer&)            = delete;

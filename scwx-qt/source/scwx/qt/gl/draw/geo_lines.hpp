@@ -38,11 +38,10 @@ public:
    void Deinitialize() override;
 
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
-   void RenderVulkan(
-      QRhiCommandBuffer*                            commandBuffer,
-      render::RhiVulkanOverlayResources&            resources,
-      const QMapLibre::CustomLayerRenderParameters& params,
-      bool textureAtlasChanged) override;
+   void RenderVulkan(QRhiCommandBuffer*                 commandBuffer,
+                     render::RhiVulkanOverlayResources& resources,
+                     const QMapLibre::CustomLayerRenderParameters& params,
+                     bool textureAtlasChanged) override;
 #endif
 
    bool
@@ -159,6 +158,21 @@ public:
     */
    void SetLineEndTime(const std::shared_ptr<GeoLineDrawItem>& di,
                        std::chrono::system_clock::time_point   endTime);
+
+   /**
+    * Sets a multi-band stroke (line, highlight, border) rendered in one pass.
+    *
+    * @param lineHalf Half-width of the core line in pixels from centerline.
+    * @param highlightHalf Half-width of the highlight band outer edge.
+    * @param borderHalf Half-width of the border band outer edge.
+    */
+   void SetLineStrokeStyle(const std::shared_ptr<GeoLineDrawItem>& di,
+                           const boost::gil::rgba32f_pixel_t&      lineColor,
+                           const boost::gil::rgba32f_pixel_t& highlightColor,
+                           const boost::gil::rgba32f_pixel_t& borderColor,
+                           float                              lineHalf,
+                           float                              highlightHalf,
+                           float                              borderHalf);
 
    /**
     * Finalizes the draw item after adding new lines.

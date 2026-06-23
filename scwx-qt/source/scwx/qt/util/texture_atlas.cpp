@@ -446,8 +446,8 @@ std::size_t TextureAtlas::AtlasHeight() const
    return p->atlasArray_[0].height();
 }
 
-const std::uint8_t*
-TextureAtlas::LayerPixels(std::size_t layer, std::size_t& byteSize) const
+const std::uint8_t* TextureAtlas::LayerPixels(std::size_t  layer,
+                                              std::size_t& byteSize) const
 {
    std::shared_lock lock(p->atlasMutex_);
 
@@ -459,7 +459,8 @@ TextureAtlas::LayerPixels(std::size_t layer, std::size_t& byteSize) const
 
    const boost::gil::rgba8_image_t& image = p->atlasArray_[layer];
    const boost::gil::rgba8c_view_t  view  = boost::gil::const_view(image);
-   byteSize = image.width() * image.height() * sizeof(boost::gil::rgba8_pixel_t);
+   byteSize =
+      image.width() * image.height() * sizeof(boost::gil::rgba8_pixel_t);
    return reinterpret_cast<const std::uint8_t*>(&view(0, 0));
 }
 

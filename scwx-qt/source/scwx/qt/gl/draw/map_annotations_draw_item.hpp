@@ -22,8 +22,9 @@ namespace scwx::qt::gl::draw
 class MapAnnotationsDrawItem : public DrawItem
 {
 public:
-   explicit MapAnnotationsDrawItem(std::shared_ptr<render::RenderContext> context,
-                                   map::MapAnnotationModel*   model);
+   explicit MapAnnotationsDrawItem(
+      std::shared_ptr<render::RenderContext> context,
+      map::MapAnnotationModel*               model);
    ~MapAnnotationsDrawItem() override;
 
    MapAnnotationsDrawItem(const MapAnnotationsDrawItem&)            = delete;
@@ -34,11 +35,10 @@ public:
    void Initialize() override;
    void Render(const QMapLibre::CustomLayerRenderParameters& params) override;
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
-   void RenderVulkan(
-      QRhiCommandBuffer*                            commandBuffer,
-      render::RhiVulkanOverlayResources&            resources,
-      const QMapLibre::CustomLayerRenderParameters& params,
-      bool textureAtlasChanged = false) override;
+   void RenderVulkan(QRhiCommandBuffer*                 commandBuffer,
+                     render::RhiVulkanOverlayResources& resources,
+                     const QMapLibre::CustomLayerRenderParameters& params,
+                     bool textureAtlasChanged = false) override;
 #endif
    void Deinitialize() override;
 

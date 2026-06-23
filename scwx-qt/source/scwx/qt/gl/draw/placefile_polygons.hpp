@@ -17,7 +17,8 @@ namespace draw
 class PlacefilePolygons : public DrawItem
 {
 public:
-   explicit PlacefilePolygons(const std::shared_ptr<render::RenderContext>& context);
+   explicit PlacefilePolygons(
+      const std::shared_ptr<render::RenderContext>& context);
    ~PlacefilePolygons();
 
    PlacefilePolygons(const PlacefilePolygons&)            = delete;
@@ -34,11 +35,10 @@ public:
    void Deinitialize() override;
 
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
-   void RenderVulkan(
-      QRhiCommandBuffer*                            commandBuffer,
-      scwx::qt::render::RhiVulkanOverlayResources&  resources,
-      const QMapLibre::CustomLayerRenderParameters& params,
-      bool                                          textureAtlasChanged) override;
+   void RenderVulkan(QRhiCommandBuffer*                           commandBuffer,
+                     scwx::qt::render::RhiVulkanOverlayResources& resources,
+                     const QMapLibre::CustomLayerRenderParameters& params,
+                     bool textureAtlasChanged) override;
 #endif
 
    /**

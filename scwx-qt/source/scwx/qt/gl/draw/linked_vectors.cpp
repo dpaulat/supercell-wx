@@ -1,5 +1,6 @@
 #include <scwx/qt/gl/draw/linked_vectors.hpp>
 #include <scwx/qt/gl/draw/geo_lines.hpp>
+#include <scwx/qt/map/geo_stroke.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/wsr88d/rpg/linked_vector_packet.hpp>
 
@@ -21,6 +22,8 @@ namespace draw
 static const std::string logPrefix_ = "scwx::qt::gl::draw::linked_vectors";
 
 static const boost::gil::rgba32f_pixel_t kBlack {0.0f, 0.0f, 0.0f, 1.0f};
+
+constexpr float kStormTrackBorderWidthScale = 1.5f;
 
 struct LinkedVectorDrawItem
 {
@@ -73,7 +76,7 @@ public:
 
    ~Impl() {}
 
-   bool borderEnabled_ {true};
+   bool borderEnabled_ {false};
    bool visible_ {true};
 
    std::vector<std::shared_ptr<LinkedVectorDrawItem>> vectorList_ {};
@@ -223,69 +226,6 @@ void LinkedVectors::SetVectorTickRadiusIncrement(
 
 void LinkedVectors::FinishVectors()
 {
-   // Generate borders
-   if (p->borderEnabled_)
-   {
-      for (auto& di : p->vectorList_)
-      {
-         auto tickRadius = di->tickRadius_;
-
-         for (std::size_t i = 0; i < di->coordinates_.size() - 1; ++i)
-         {
-            auto borderLine = p->geoLines_->AddLine();
-
-            const common::Coordinate& coordinate1 = di->coordinates_[i];
-            const common::Coordinate& coordinate2 = di->coordinates_[i + 1];
-
-            const double& latitude1  = coordinate1.latitude_;
-            const double& longitude1 = coordinate1.longitude_;
-            const double& latitude2  = coordinate2.latitude_;
-            const double& longitude2 = coordinate2.longitude_;
-
-            p->geoLines_->SetLineLocation(
-               borderLine, latitude1, longitude1, latitude2, longitude2);
-
-            p->geoLines_->SetLineModulate(borderLine, kBlack);
-            p->geoLines_->SetLineWidth(borderLine, di->width_ + 2.0f);
-            p->geoLines_->SetLineVisible(borderLine, di->visible_);
-            p->geoLines_->SetLineHoverText(borderLine, di->hoverText_);
-
-            di->borderDrawItems_.emplace_back(std::move(borderLine));
-
-            if (di->ticksEnabled_)
-            {
-               auto angle = util::GeographicLib::GetAngle(
-                  latitude1, longitude1, latitude2, longitude2);
-               auto angle1 = angle + units::angle::degrees<double>(90.0);
-               auto angle2 = angle - units::angle::degrees<double>(90.0);
-
-               auto tickCoord1 = util::GeographicLib::GetCoordinate(
-                  coordinate2, angle1, tickRadius);
-               auto tickCoord2 = util::GeographicLib::GetCoordinate(
-                  coordinate2, angle2, tickRadius);
-
-               const double& tickLat1 = tickCoord1.latitude_;
-               const double& tickLon1 = tickCoord1.longitude_;
-               const double& tickLat2 = tickCoord2.latitude_;
-               const double& tickLon2 = tickCoord2.longitude_;
-
-               auto tickBorderLine = p->geoLines_->AddLine();
-
-               p->geoLines_->SetLineLocation(
-                  tickBorderLine, tickLat1, tickLon1, tickLat2, tickLon2);
-
-               p->geoLines_->SetLineModulate(tickBorderLine, kBlack);
-               p->geoLines_->SetLineWidth(tickBorderLine, di->width_ + 2.0f);
-               p->geoLines_->SetLineVisible(tickBorderLine, di->visible_);
-               p->geoLines_->SetLineHoverText(tickBorderLine, di->hoverText_);
-
-               tickRadius += di->tickRadiusIncrement_;
-            }
-         }
-      }
-   }
-
-   // Generate geo lines
    for (auto& di : p->vectorList_)
    {
       auto tickRadius = di->tickRadius_;
@@ -304,14 +244,29 @@ void LinkedVectors::FinishVectors()
 
          p->geoLines_->SetLineLocation(
             geoLine, latitude1, longitude1, latitude2, longitude2);
-
-         p->geoLines_->SetLineModulate(geoLine, di->modulate_);
-         p->geoLines_->SetLineWidth(geoLine, di->width_);
          p->geoLines_->SetLineVisible(geoLine, di->visible_);
 
-         // If the border is not enabled, this line must have hover text instead
-         if (!p->borderEnabled_)
+         if (p->borderEnabled_)
          {
+            const float borderWidth = 1.0f * kStormTrackBorderWidthScale;
+            const auto  strokeHalfWidths =
+               scwx::qt::map::ComputeGeoStrokeHalfWidths(
+                  di->width_, 0.0f, borderWidth);
+            boost::gil::rgba32f_pixel_t borderColor = kBlack;
+            borderColor[3]                          = di->modulate_[3];
+            p->geoLines_->SetLineStrokeStyle(geoLine,
+                                             di->modulate_,
+                                             di->modulate_,
+                                             borderColor,
+                                             strokeHalfWidths.lineHalf_,
+                                             strokeHalfWidths.highlightHalf_,
+                                             strokeHalfWidths.borderHalf_);
+            p->geoLines_->SetLineHoverText(geoLine, di->hoverText_);
+         }
+         else
+         {
+            p->geoLines_->SetLineModulate(geoLine, di->modulate_);
+            p->geoLines_->SetLineWidth(geoLine, di->width_);
             p->geoLines_->SetLineHoverText(geoLine, di->hoverText_);
          }
 
@@ -338,12 +293,10 @@ void LinkedVectors::FinishVectors()
 
             p->geoLines_->SetLineLocation(
                tickGeoLine, tickLat1, tickLon1, tickLat2, tickLon2);
-
             p->geoLines_->SetLineModulate(tickGeoLine, di->modulate_);
             p->geoLines_->SetLineWidth(tickGeoLine, di->width_);
             p->geoLines_->SetLineVisible(tickGeoLine, di->visible_);
 
-            // If the border is not enabled, this line must have hover text
             if (!p->borderEnabled_)
             {
                p->geoLines_->SetLineHoverText(tickGeoLine, di->hoverText_);
@@ -354,7 +307,6 @@ void LinkedVectors::FinishVectors()
       }
    }
 
-   // Finish geo lines
    p->geoLines_->FinishLines();
 }
 

@@ -9,7 +9,8 @@ namespace scwx::qt::gl::draw
 class PlacefileImagesXY : public DrawItem
 {
 public:
-   explicit PlacefileImagesXY(const std::shared_ptr<render::RenderContext>& context);
+   explicit PlacefileImagesXY(
+      const std::shared_ptr<render::RenderContext>& context);
    ~PlacefileImagesXY() override;
 
    PlacefileImagesXY(const PlacefileImagesXY&)            = delete;
@@ -24,11 +25,10 @@ public:
    void Deinitialize() override;
 
 #if defined(SCWX_RENDER_BACKEND_VULKAN)
-   void RenderVulkan(
-      QRhiCommandBuffer*                            commandBuffer,
-      scwx::qt::render::RhiVulkanOverlayResources&  resources,
-      const QMapLibre::CustomLayerRenderParameters& params,
-      bool                                          textureAtlasChanged) override;
+   void RenderVulkan(QRhiCommandBuffer*                           commandBuffer,
+                     scwx::qt::render::RhiVulkanOverlayResources& resources,
+                     const QMapLibre::CustomLayerRenderParameters& params,
+                     bool textureAtlasChanged) override;
 #endif
 
    /**
