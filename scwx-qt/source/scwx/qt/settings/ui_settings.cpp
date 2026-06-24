@@ -20,6 +20,7 @@ public:
       timelineExpanded_.SetDefault(true);
       mainUIState_.SetDefault("");
       mainUIGeometry_.SetDefault("");
+      mapAnnotationState_.SetDefault("");
       mapPaneSplitterState_.SetDefault("");
       mapPanePopoutState_.SetDefault("");
       mapPaneViewLinkState_.SetDefault("");
@@ -41,6 +42,7 @@ public:
    SettingsVariable<bool> timelineExpanded_ {"timeline_expanded"};
    SettingsVariable<std::string> mainUIState_ {"main_ui_state"};
    SettingsVariable<std::string> mainUIGeometry_ {"main_ui_geometry"};
+   SettingsVariable<std::string> mapAnnotationState_ {"map_annotation_state"};
    SettingsVariable<std::string> mapPaneSplitterState_ {
       "map_pane_splitter_state"};
    SettingsVariable<std::string> mapPanePopoutState_ {"map_pane_popout_state"};
@@ -60,6 +62,7 @@ UiSettings::UiSettings() :
                       &p->timelineExpanded_,
                       &p->mainUIState_,
                       &p->mainUIGeometry_,
+                      &p->mapAnnotationState_,
                       &p->mapPaneSplitterState_,
                       &p->mapPanePopoutState_,
                       &p->mapPaneViewLinkState_,
@@ -111,6 +114,11 @@ SettingsVariable<std::string>& UiSettings::main_ui_geometry() const
    return p->mainUIGeometry_;
 }
 
+SettingsVariable<std::string>& UiSettings::map_annotation_state() const
+{
+   return p->mapAnnotationState_;
+}
+
 SettingsVariable<std::string>& UiSettings::map_pane_splitter_state() const
 {
    return p->mapPaneSplitterState_;
@@ -144,6 +152,7 @@ bool UiSettings::Shutdown()
    dataChanged |= p->timelineExpanded_.Commit();
    dataChanged |= p->mainUIState_.Commit();
    dataChanged |= p->mainUIGeometry_.Commit();
+   dataChanged |= p->mapAnnotationState_.Commit();
    dataChanged |= p->mapPaneSplitterState_.Commit();
    dataChanged |= p->mapPanePopoutState_.Commit();
    dataChanged |= p->mapPaneViewLinkState_.Commit();
@@ -168,6 +177,7 @@ bool operator==(const UiSettings& lhs, const UiSettings& rhs)
            lhs.p->timelineExpanded_ == rhs.p->timelineExpanded_ &&
            lhs.p->mainUIState_ == rhs.p->mainUIState_ &&
            lhs.p->mainUIGeometry_ == rhs.p->mainUIGeometry_ &&
+           lhs.p->mapAnnotationState_ == rhs.p->mapAnnotationState_ &&
            lhs.p->mapPaneSplitterState_ == rhs.p->mapPaneSplitterState_ &&
            lhs.p->mapPanePopoutState_ == rhs.p->mapPanePopoutState_ &&
            lhs.p->mapPaneViewLinkState_ == rhs.p->mapPaneViewLinkState_ &&

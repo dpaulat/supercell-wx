@@ -28,7 +28,7 @@ jobs:
             build_type: Release
             vs_arch: x64
             vs_version: 2022
-            qt_version: 6.11.0
+            qt_version: 6.11.1
             qt_arch_aqt: win64_msvc2022_64
             qt_arch_dir: msvc2022_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -94,7 +94,7 @@ jobs:
       run: git config --global core.longpaths true
 
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         path: source
         submodules: recursive

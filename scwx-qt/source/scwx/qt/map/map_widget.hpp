@@ -26,6 +26,7 @@
 class QContextMenuEvent;
 class QKeyEvent;
 class QMouseEvent;
+class QResizeEvent;
 class QWheelEvent;
 
 namespace scwx::qt::gl
@@ -36,6 +37,7 @@ class GlContext;
 namespace scwx::qt::map
 {
 
+class MapAnnotationLayer;
 class MapWidgetImpl;
 
 class MapWidget : public QOpenGLWidget
@@ -55,9 +57,11 @@ public:
    [[nodiscard]] const scwx::util::time_zone* GetDefaultTimeZone() const;
    [[nodiscard]] std::optional<float>         GetElevation() const;
    [[nodiscard]] std::vector<float>           GetElevationCuts() const;
-   [[nodiscard]] std::optional<float>      GetIncomingLevel2Elevation() const;
-   [[nodiscard]] std::vector<std::string>  GetLevel3Products();
-   [[nodiscard]] std::string               GetMapStyle() const;
+   [[nodiscard]] std::optional<float>     GetIncomingLevel2Elevation() const;
+   [[nodiscard]] std::vector<std::string> GetLevel3Products();
+   [[nodiscard]] std::string              GetMapStyle() const;
+   [[nodiscard]] std::shared_ptr<MapAnnotationLayer>
+                                           map_annotation_layer() const;
    [[nodiscard]] common::RadarProductGroup GetRadarProductGroup() const;
    [[nodiscard]] std::string               GetRadarProductName() const;
    [[nodiscard]] std::shared_ptr<config::RadarSite> GetRadarSite() const;
@@ -118,6 +122,7 @@ public:
    void SelectTime(std::chrono::system_clock::time_point time);
 
    void SetActive(bool isActive);
+   void SyncEraseCursor();
    void SetAutoRefresh(bool enabled);
    void SetAutoUpdate(bool enabled);
 
@@ -174,6 +179,7 @@ private:
    void mouseReleaseEvent(QMouseEvent* ev) final;
    void mouseDoubleClickEvent(QMouseEvent* ev) final;
    void wheelEvent(QWheelEvent* ev) final;
+   void resizeEvent(QResizeEvent* event) override;
 
    // QOpenGLWidget implementation.
    void initializeGL() override final;
@@ -220,6 +226,11 @@ signals:
    void WidgetPainted();
    void IncomingLevel2ElevationChanged(std::optional<float> incomingElevation);
    void MapPaneContextMenuRequested(const QPoint& globalPos);
+   /**
+    * Emitted after custom map layers (including map annotations) are attached
+    * following a style load or layer rebuild.
+    */
+   void MapAnnotationLayerReady();
 };
 
 } // namespace scwx::qt::map

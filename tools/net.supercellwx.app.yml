@@ -1,5 +1,5 @@
 id: net.supercellwx.app
-version: '0.5.6'
+version: '0.6.0'
 runtime: "org.freedesktop.Platform"
 runtime-version: "25.08"
 sdk: "org.freedesktop.Sdk"

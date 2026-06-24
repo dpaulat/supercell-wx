@@ -1,2 +1,2 @@
 #!/bin/bash
-export qt_version=6.11.0
+export qt_version=6.11.1
