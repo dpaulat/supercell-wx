@@ -76,5 +76,19 @@ void SetEnvironment(const std::string& name, const std::string& value)
    }
 }
 
+void UnsetEnvironment(const std::string& name)
+{
+#ifdef _WIN32
+   errno_t error = _putenv_s(name.c_str(), "");
+#else
+   const int error = unsetenv(name.c_str());
+#endif
+
+   if (error != 0)
+   {
+      logger_->warn("Could not unset environment variable: {}", name);
+   }
+}
+
 } // namespace util
 } // namespace scwx

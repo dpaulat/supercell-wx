@@ -186,8 +186,7 @@ void Accumulate(PanePerfTotals& totals, const MapFramePerfSample& sample)
 
 bool MapPerfEnabled() noexcept
 {
-   static const bool enabled = scwx::util::HasEnvironment("SCWX_VULKAN_PERF");
-   return enabled;
+   return scwx::util::HasEnvironment("SCWX_VULKAN_PERF");
 }
 
 void RecordMapFramePerf(const MapFramePerfSample& sample) noexcept

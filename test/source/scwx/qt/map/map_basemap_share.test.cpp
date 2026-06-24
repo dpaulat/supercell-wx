@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <optional>
 #include <vector>
 
 namespace scwx::qt::map
@@ -82,8 +83,9 @@ TEST(MapBasemapShare, generation_increments_on_leader_render)
 
    state.NotifyBasemapRendered(2u);
    EXPECT_EQ(state.basemapGeneration(), 1u);
-   ASSERT_TRUE(state.lastLeaderIndex().has_value());
-   EXPECT_EQ(*state.lastLeaderIndex(), 2u);
+   const std::optional<std::size_t> leaderIndex = state.lastLeaderIndex();
+   ASSERT_TRUE(leaderIndex.has_value());
+   EXPECT_EQ(*leaderIndex, 2u);
 }
 
 TEST(MapBasemapShare, nine_pane_grid_active_leader)

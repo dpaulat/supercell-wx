@@ -1,8 +1,8 @@
 #include <scwx/qt/map/map_perf.hpp>
 
-#include <gtest/gtest.h>
+#include <scwx/util/environment.hpp>
 
-#include <cstdlib>
+#include <gtest/gtest.h>
 
 namespace scwx::qt::map
 {
@@ -23,7 +23,7 @@ TEST_F(MapPerfTest, disabled_by_default)
 
 TEST_F(MapPerfTest, records_when_env_enabled)
 {
-   setenv("SCWX_VULKAN_PERF", "1", 1);
+   scwx::util::SetEnvironment("SCWX_VULKAN_PERF", "1");
    EXPECT_TRUE(MapPerfEnabled());
 
    MapFramePerfSample sample {
@@ -35,7 +35,7 @@ TEST_F(MapPerfTest, records_when_env_enabled)
    RecordMapFramePerf(sample);
    EXPECT_EQ(MapPerfRecordedFrameCountForTest(), 1u);
 
-   unsetenv("SCWX_VULKAN_PERF");
+   scwx::util::UnsetEnvironment("SCWX_VULKAN_PERF");
 }
 
 } // namespace scwx::qt::map

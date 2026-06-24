@@ -33,6 +33,27 @@ if (MLN_WITH_VULKAN)
         CACHE STRING "" FORCE)
 endif()
 
+# aqt macOS Qt may omit qvulkaninstance.h; mbgl only probes for it — not used
+# at compile time — so allow headless Vulkan on macOS when the probe fails.
+set(_SCWX_MLN_QT_CMAKE
+    "${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native-qt/vendor/maplibre-native/platform/qt/qt.cmake")
+if (EXISTS "${_SCWX_MLN_QT_CMAKE}")
+    file(READ "${_SCWX_MLN_QT_CMAKE}" _scwx_mln_qt_cmake)
+    set(_SCWX_MLN_QT_OLD
+        "    if(NOT QT_VULKAN_HEADER)\n        message(FATAL_ERROR \"Qt build has no Vulkan headers; can not build Qt Vulkan backend\")\n    endif()")
+    set(_SCWX_MLN_QT_NEW
+        "    if(NOT QT_VULKAN_HEADER)\n        if(APPLE)\n            message(STATUS \"Qt build has no qvulkaninstance.h; continuing with headless Vulkan on macOS\")\n        else()\n            message(FATAL_ERROR \"Qt build has no Vulkan headers; can not build Qt Vulkan backend\")\n        endif()\n    endif()")
+    if(_scwx_mln_qt_cmake MATCHES "continuing with headless Vulkan on macOS")
+        # Already patched (e.g. re-configure).
+    elseif(_scwx_mln_qt_cmake MATCHES "${_SCWX_MLN_QT_OLD}")
+        string(REPLACE "${_SCWX_MLN_QT_OLD}" "${_SCWX_MLN_QT_NEW}"
+               _scwx_mln_qt_cmake _scwx_mln_qt_cmake)
+        file(WRITE "${_SCWX_MLN_QT_CMAKE}" "${_scwx_mln_qt_cmake}")
+    else()
+        message(WARNING "Could not patch maplibre qt.cmake for macOS Vulkan probe")
+    endif()
+endif()
+
 add_subdirectory(maplibre-native-qt)
 
 find_package(ZLIB)
@@ -63,16 +84,21 @@ else()
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    target_compile_options(
-        mbgl-core
-        PRIVATE
-        "-Wno-sfinae-incomplete"
-        "-Wno-error=sfinae-incomplete")
-    target_compile_options(
-        MLNQtCore
-        PRIVATE
-        "-Wno-sfinae-incomplete"
-        "-Wno-error=sfinae-incomplete")
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag("-Wno-sfinae-incomplete"
+                            SCWX_HAS_WNO_SFINAE_INCOMPLETE)
+    if (SCWX_HAS_WNO_SFINAE_INCOMPLETE)
+        target_compile_options(
+            mbgl-core
+            PRIVATE
+            "-Wno-sfinae-incomplete"
+            "-Wno-error=sfinae-incomplete")
+        target_compile_options(
+            MLNQtCore
+            PRIVATE
+            "-Wno-sfinae-incomplete"
+            "-Wno-error=sfinae-incomplete")
+    endif()
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND SCWX_RENDER_BACKEND STREQUAL "VULKAN")
