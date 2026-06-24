@@ -19,7 +19,6 @@ public:
                const QMapLibre::CustomLayerRenderParameters&) final;
    void Deinitialize() final;
 
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
    void RenderVulkanImGui(const std::shared_ptr<MapContext>& mapContext,
                           const QMapLibre::CustomLayerRenderParameters& params);
    void RenderVulkanOverlay(
@@ -27,7 +26,6 @@ public:
       render::RhiVulkanOverlayResources&            resources,
       const std::shared_ptr<MapContext>&            mapContext,
       const QMapLibre::CustomLayerRenderParameters& params) override;
-#endif
 
    bool
    RunMousePicking(const std::shared_ptr<MapContext>&            mapContext,

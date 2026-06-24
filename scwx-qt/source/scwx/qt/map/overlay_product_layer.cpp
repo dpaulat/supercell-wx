@@ -1,5 +1,5 @@
 #include <scwx/qt/map/overlay_product_layer.hpp>
-#include <scwx/qt/gl/draw/linked_vectors.hpp>
+#include <scwx/qt/draw/linked_vectors.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/settings/product_settings.hpp>
 #include <scwx/qt/view/overlay_product_view.hpp>
@@ -39,7 +39,7 @@ public:
    explicit Impl(OverlayProductLayer*                          self,
                  const std::shared_ptr<render::RenderContext>& renderContext) :
        self_ {self},
-       linkedVectors_ {std::make_shared<gl::draw::LinkedVectors>(renderContext)}
+       linkedVectors_ {std::make_shared<draw::LinkedVectors>(renderContext)}
    {
       linkedVectors_->SetBorderEnabled(false);
 
@@ -88,7 +88,7 @@ public:
       boost::gil::rgba32f_pixel_t                       color,
       units::length::nautical_miles<float>              tickRadius,
       units::length::nautical_miles<float>              tickRadiusIncrement,
-      std::shared_ptr<gl::draw::LinkedVectors>&         linkedVectors);
+      std::shared_ptr<draw::LinkedVectors>&         linkedVectors);
    void HandleScitDataPacket(
       const std::shared_ptr<const wsr88d::rpg::StormTrackingInformationMessage>&
                                                         sti,
@@ -96,7 +96,7 @@ public:
       const common::Coordinate&                         center,
       const std::string&                                stormId,
       const std::string&                                hoverText,
-      std::shared_ptr<gl::draw::LinkedVectors>&         linkedVectors);
+      std::shared_ptr<draw::LinkedVectors>&         linkedVectors);
 
    static void HandleStormIdPacket(
       const std::shared_ptr<const wsr88d::rpg::StormTrackingInformationMessage>&
@@ -120,7 +120,7 @@ public:
 
    bool stiNeedsUpdate_ {false};
 
-   std::shared_ptr<gl::draw::LinkedVectors> linkedVectors_;
+   std::shared_ptr<draw::LinkedVectors> linkedVectors_;
 };
 
 OverlayProductLayer::OverlayProductLayer(
@@ -168,7 +168,6 @@ void OverlayProductLayer::Render(
    DrawLayer::Render(mapContext, params);
 }
 
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
 void OverlayProductLayer::RenderVulkanOverlay(
    QRhiCommandBuffer*                            commandBuffer,
    render::RhiVulkanOverlayResources&            resources,
@@ -182,7 +181,6 @@ void OverlayProductLayer::RenderVulkanOverlay(
 
    DrawLayer::RenderVulkanOverlay(commandBuffer, resources, mapContext, params);
 }
-#endif
 
 void OverlayProductLayer::Deinitialize()
 {
@@ -307,7 +305,7 @@ void OverlayProductLayer::Impl::HandleScitDataPacket(
    const common::Coordinate&                         center,
    const std::string&                                stormId,
    const std::string&                                hoverText,
-   std::shared_ptr<gl::draw::LinkedVectors>&         linkedVectors)
+   std::shared_ptr<draw::LinkedVectors>&         linkedVectors)
 {
    auto scitDataPacket =
       std::dynamic_pointer_cast<const wsr88d::rpg::ScitDataPacket>(packet);
@@ -384,7 +382,7 @@ void OverlayProductLayer::Impl::HandleLinkedVectorPacket(
    boost::gil::rgba32f_pixel_t                       color,
    units::length::nautical_miles<float>              tickRadius,
    units::length::nautical_miles<float>              tickRadiusIncrement,
-   std::shared_ptr<gl::draw::LinkedVectors>&         linkedVectors)
+   std::shared_ptr<draw::LinkedVectors>&         linkedVectors)
 {
    auto linkedVectorPacket =
       std::dynamic_pointer_cast<const wsr88d::rpg::LinkedVectorPacket>(packet);
@@ -392,13 +390,13 @@ void OverlayProductLayer::Impl::HandleLinkedVectorPacket(
    if (linkedVectorPacket != nullptr)
    {
       auto di = linkedVectors->AddVector(center, linkedVectorPacket);
-      gl::draw::LinkedVectors::SetVectorWidth(
+      draw::LinkedVectors::SetVectorWidth(
          di, kStormTrackBaseWidth_ * kStormTrackWidthScale);
-      gl::draw::LinkedVectors::SetVectorModulate(di, color);
-      gl::draw::LinkedVectors::SetVectorHoverText(di, hoverText);
-      gl::draw::LinkedVectors::SetVectorTicksEnabled(di, true);
-      gl::draw::LinkedVectors::SetVectorTickRadius(di, tickRadius);
-      gl::draw::LinkedVectors::SetVectorTickRadiusIncrement(
+      draw::LinkedVectors::SetVectorModulate(di, color);
+      draw::LinkedVectors::SetVectorHoverText(di, hoverText);
+      draw::LinkedVectors::SetVectorTicksEnabled(di, true);
+      draw::LinkedVectors::SetVectorTickRadius(di, tickRadius);
+      draw::LinkedVectors::SetVectorTickRadiusIncrement(
          di, tickRadiusIncrement);
    }
    else

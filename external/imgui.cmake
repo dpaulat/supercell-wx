@@ -11,6 +11,7 @@ find_package(Qt${QT_VERSION_MAJOR}
              REQUIRED)
              
 find_package(Freetype)
+find_package(Vulkan REQUIRED)
 
 set(IMGUI_SOURCES include/scwx/external/imgui/imconfig.h
                   imgui/imgui.cpp
@@ -26,13 +27,9 @@ set(IMGUI_SOURCES include/scwx/external/imgui/imconfig.h
                   imgui/misc/freetype/imgui_freetype.cpp
                   imgui/misc/freetype/imgui_freetype.h
                   imgui-backend-qt/backends/imgui_impl_qt.cpp
-                  imgui-backend-qt/backends/imgui_impl_qt.hpp)
-
-if (SCWX_RENDER_BACKEND STREQUAL "VULKAN")
-    find_package(Vulkan REQUIRED)
-    list(APPEND IMGUI_SOURCES imgui/backends/imgui_impl_vulkan.cpp
-                              imgui/backends/imgui_impl_vulkan.h)
-endif()
+                  imgui-backend-qt/backends/imgui_impl_qt.hpp
+                  imgui/backends/imgui_impl_vulkan.cpp
+                  imgui/backends/imgui_impl_vulkan.h)
 
 add_library(imgui STATIC ${IMGUI_SOURCES})
 
@@ -43,7 +40,7 @@ target_compile_definitions(imgui PUBLIC IMGUI_USER_CONFIG=<scwx/external/imgui/i
 
 target_link_libraries(imgui PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
                                     Freetype::Freetype
-                                    $<$<STREQUAL:${SCWX_RENDER_BACKEND},VULKAN>:Vulkan::Vulkan>)
+                                    Vulkan::Vulkan)
 
 if (MSVC)
     # Produce PDB file for debug

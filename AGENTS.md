@@ -16,7 +16,7 @@ Supercell Wx is a cross-platform C++20/Qt6 application for visualizing live and 
   - Main window and UI ([scwx-qt/source/scwx/qt/main/](scwx-qt/source/scwx/qt/main/))
   - Manager classes coordinate application state ([scwx-qt/source/scwx/qt/manager/](scwx-qt/source/scwx/qt/manager/))
   - Map rendering with MapLibre GL ([scwx-qt/source/scwx/qt/map/](scwx-qt/source/scwx/qt/map/))
- - Vulkan/QRhi drawing primitives ([scwx-qt/source/scwx/qt/gl/](scwx-qt/source/scwx/qt/gl/))
+ - QRhi/Vulkan drawing primitives ([scwx-qt/source/scwx/qt/draw/](scwx-qt/source/scwx/qt/draw/), [scwx-qt/source/scwx/qt/render/](scwx-qt/source/scwx/qt/render/))
   - Product views connect data to visualization ([scwx-qt/source/scwx/qt/view/](scwx-qt/source/scwx/qt/view/))
 
 **Critical:** Keep Qt code isolated to scwx-qt. Never add Qt dependencies to wxdata.
@@ -83,7 +83,7 @@ cmake --build . --target supercell-wx
 **Key Conan profiles:** See [tools/conan/profiles/](tools/conan/profiles/)
 - Windows: `scwx-windows_vs2026_x64[-debug]`
 - Linux: `scwx-linux_gcc-11[-debug]`, `scwx-linux_clang-17`
-- macOS: `scwx-macos_clang-18[_armv8][-debug]`
+- macOS: `scwx-macos_clang-22[_armv8][-debug]`
 
 **CMake Presets:** Use [CMakePresets.json](CMakePresets.json) for IDE integration. Presets like `windows-vs2026-x64-release` encapsulate toolchain/profile selection.
 
@@ -189,6 +189,19 @@ Recommended extensions: C/C++ Extension Pack, clangd, CMake Tools, Python.
 
 ### Address Sanitizer
 Enable with `-DSCWX_ADDRESS_SANITIZER=ON` or use presets like `linux-gcc-debug-asan`. Useful for memory leak/corruption detection.
+
+### Vulkan Development
+Map rendering uses Qt `QRhiWidget` with Vulkan. Optional environment variables:
+
+| Variable | Effect |
+|---|---|
+| `SCWX_VULKAN_VALIDATION=1` | Enable Khronos validation layers (auto-on in Debug builds unless disabled) |
+| `SCWX_VULKAN_VALIDATION_DISABLE=1` | Disable validation layers in Debug builds |
+| `SCWX_VULKAN_SMOKE=1` | Headless Vulkan smoke checks at startup |
+| `SCWX_VULKAN_PERF=1` | Extra Vulkan/QRhi timing logs |
+| `SCWX_VULKAN_PIPELINE_CACHE_DISABLE=1` | Skip loading/saving Vulkan pipeline cache blobs |
+
+Device or surface loss triggers map resource reset via `render::SetVulkanResultHandler`. Pipeline cache files live under the app cache directory (`qrhi-vulkan-pipeline-cache.bin`, `imgui-vulkan-pipeline-cache.bin`); bump `kCacheVersion` in `rhi_pipeline_cache.cpp` when shader layouts change materially.
 
 ### CI Reference
 See [.github/workflows/ci.yml](.github/workflows/ci.yml) for complete build matrix. Mirrors setup scripts but includes AppImage packaging, artifact collection.

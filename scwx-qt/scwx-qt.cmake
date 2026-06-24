@@ -13,8 +13,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 OPTION(SCWX_DISABLE_CONSOLE "Disables the Windows console in release mode" ON)
 
-set(SCWX_RENDER_BACKEND "VULKAN")
-
 find_package(Boost)
 find_package(Fontconfig)
 find_package(geographiclib)
@@ -76,39 +74,34 @@ set(SRC_CONFIG source/scwx/qt/config/county_database.cpp
                source/scwx/qt/config/radar_site.cpp)
 set(SRC_EXTERNAL source/scwx/qt/external/stb_image.cpp
                  source/scwx/qt/external/stb_rect_pack.cpp)
-set(HDR_RENDER source/scwx/qt/render/render_backend.hpp
-               source/scwx/qt/render/render_context.hpp
-               source/scwx/qt/render/render_init.hpp)
-set(SRC_RENDER source/scwx/qt/render/render_context.cpp
-               source/scwx/qt/render/render_init.cpp)
-set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
-                source/scwx/qt/gl/draw/geo_icons.hpp
-                source/scwx/qt/gl/draw/geo_lines.hpp
-                source/scwx/qt/gl/draw/icons.hpp
-                source/scwx/qt/gl/draw/linked_vectors.hpp
-                source/scwx/qt/gl/draw/map_annotations_draw_item.hpp
-                source/scwx/qt/gl/draw/placefile_icons.hpp
-                source/scwx/qt/gl/draw/placefile_images.hpp
-                source/scwx/qt/gl/draw/placefile_images_xy.hpp
-                source/scwx/qt/gl/draw/placefile_lines.hpp
-                source/scwx/qt/gl/draw/placefile_polygons.hpp
-                source/scwx/qt/gl/draw/placefile_text.hpp
-                source/scwx/qt/gl/draw/placefile_triangles.hpp
-                source/scwx/qt/gl/draw/rectangle.hpp)
-set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
-                source/scwx/qt/gl/draw/geo_icons.cpp
-                source/scwx/qt/gl/draw/geo_lines.cpp
-                source/scwx/qt/gl/draw/icons.cpp
-                source/scwx/qt/gl/draw/linked_vectors.cpp
-                source/scwx/qt/gl/draw/map_annotations_draw_item.cpp
-                source/scwx/qt/gl/draw/placefile_icons.cpp
-                source/scwx/qt/gl/draw/placefile_images.cpp
-                source/scwx/qt/gl/draw/placefile_images_xy.cpp
-                source/scwx/qt/gl/draw/placefile_lines.cpp
-                source/scwx/qt/gl/draw/placefile_polygons.cpp
-                source/scwx/qt/gl/draw/placefile_text.cpp
-                source/scwx/qt/gl/draw/placefile_triangles.cpp
-                source/scwx/qt/gl/draw/rectangle.cpp)
+set(HDR_DRAW source/scwx/qt/draw/draw_item.hpp
+                source/scwx/qt/draw/geo_icons.hpp
+                source/scwx/qt/draw/geo_lines.hpp
+                source/scwx/qt/draw/icons.hpp
+                source/scwx/qt/draw/linked_vectors.hpp
+                source/scwx/qt/draw/map_annotations_draw_item.hpp
+                source/scwx/qt/draw/placefile_icons.hpp
+                source/scwx/qt/draw/placefile_images.hpp
+                source/scwx/qt/draw/placefile_images_xy.hpp
+                source/scwx/qt/draw/placefile_lines.hpp
+                source/scwx/qt/draw/placefile_polygons.hpp
+                source/scwx/qt/draw/placefile_text.hpp
+                source/scwx/qt/draw/placefile_triangles.hpp
+                source/scwx/qt/draw/rectangle.hpp)
+set(SRC_DRAW source/scwx/qt/draw/draw_item.cpp
+                source/scwx/qt/draw/geo_icons.cpp
+                source/scwx/qt/draw/geo_lines.cpp
+                source/scwx/qt/draw/icons.cpp
+                source/scwx/qt/draw/linked_vectors.cpp
+                source/scwx/qt/draw/map_annotations_draw_item.cpp
+                source/scwx/qt/draw/placefile_icons.cpp
+                source/scwx/qt/draw/placefile_images.cpp
+                source/scwx/qt/draw/placefile_images_xy.cpp
+                source/scwx/qt/draw/placefile_lines.cpp
+                source/scwx/qt/draw/placefile_polygons.cpp
+                source/scwx/qt/draw/placefile_text.cpp
+                source/scwx/qt/draw/placefile_triangles.cpp
+                source/scwx/qt/draw/rectangle.cpp)
 set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/download_manager.hpp
                 source/scwx/qt/manager/font_manager.hpp
@@ -176,7 +169,10 @@ set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/marker_layer.hpp
             source/scwx/qt/map/radar_product_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp
-            source/scwx/qt/map/radar_site_layer.hpp)
+            source/scwx/qt/map/radar_site_layer.hpp
+            source/scwx/qt/map/map_rhi_renderer.hpp
+            source/scwx/qt/map/map_imgui_vulkan_renderer.hpp
+            source/scwx/qt/map/map_overlay_renderer.hpp)
 set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/geo_stroke.cpp
             source/scwx/qt/map/map_basemap_share.cpp
@@ -199,36 +195,40 @@ set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/marker_layer.cpp
             source/scwx/qt/map/radar_product_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp
-            source/scwx/qt/map/radar_site_layer.cpp)
-if (SCWX_RENDER_BACKEND STREQUAL "VULKAN")
-    list(APPEND HDR_MAP source/scwx/qt/map/map_rhi_renderer.hpp
-                         source/scwx/qt/map/map_imgui_vulkan_renderer.hpp
-                         source/scwx/qt/map/map_overlay_renderer.hpp)
-    list(APPEND SRC_MAP source/scwx/qt/map/map_rhi_renderer.cpp
-                         source/scwx/qt/map/map_imgui_vulkan_renderer.cpp
-                         source/scwx/qt/map/map_overlay_renderer.cpp)
-    list(APPEND HDR_RENDER source/scwx/qt/render/rhi_shader_util.hpp
-                           source/scwx/qt/render/projection.hpp
-                           source/scwx/qt/render/rhi_color_table_overlay.hpp
-                           source/scwx/qt/render/rhi_vulkan_overlay.hpp
-                           source/scwx/qt/render/rhi_radar_overlay.hpp
-                           source/scwx/qt/render/rhi_colored_geometry.hpp
-                           source/scwx/qt/render/rhi_geo_uniforms.hpp
-                           source/scwx/qt/render/rhi_geo_colored_geometry.hpp
-                           source/scwx/qt/render/rhi_texture_array_overlay.hpp
-                           source/scwx/qt/render/rhi_buffer_util.hpp
-                           source/scwx/qt/render/rhi_imgui_util.hpp)
-    list(APPEND SRC_RENDER source/scwx/qt/render/rhi_shader_util.cpp
-                           source/scwx/qt/render/projection.cpp
-                           source/scwx/qt/render/rhi_color_table_overlay.cpp
-                           source/scwx/qt/render/rhi_radar_overlay.cpp
-                           source/scwx/qt/render/rhi_colored_geometry.cpp
-                           source/scwx/qt/render/rhi_geo_uniforms.cpp
-                           source/scwx/qt/render/rhi_geo_colored_geometry.cpp
-                           source/scwx/qt/render/rhi_texture_array_overlay.cpp
-                           source/scwx/qt/render/rhi_buffer_util.cpp
-                           source/scwx/qt/render/rhi_imgui_util.cpp)
-endif()
+            source/scwx/qt/map/radar_site_layer.cpp
+            source/scwx/qt/map/map_rhi_renderer.cpp
+            source/scwx/qt/map/map_imgui_vulkan_renderer.cpp
+            source/scwx/qt/map/map_overlay_renderer.cpp)
+set(HDR_RENDER source/scwx/qt/render/render_backend.hpp
+               source/scwx/qt/render/render_context.hpp
+               source/scwx/qt/render/render_init.hpp
+               source/scwx/qt/render/rhi_shader_util.hpp
+               source/scwx/qt/render/projection.hpp
+               source/scwx/qt/render/rhi_color_table_overlay.hpp
+               source/scwx/qt/render/rhi_pipeline_cache.hpp
+               source/scwx/qt/render/rhi_vulkan_overlay.hpp
+               source/scwx/qt/render/rhi_vulkan_result.hpp
+               source/scwx/qt/render/rhi_radar_overlay.hpp
+               source/scwx/qt/render/rhi_colored_geometry.hpp
+               source/scwx/qt/render/rhi_geo_uniforms.hpp
+               source/scwx/qt/render/rhi_geo_colored_geometry.hpp
+               source/scwx/qt/render/rhi_texture_array_overlay.hpp
+               source/scwx/qt/render/rhi_buffer_util.hpp
+               source/scwx/qt/render/rhi_imgui_util.hpp)
+set(SRC_RENDER source/scwx/qt/render/render_context.cpp
+               source/scwx/qt/render/render_init.cpp
+               source/scwx/qt/render/rhi_shader_util.cpp
+               source/scwx/qt/render/projection.cpp
+               source/scwx/qt/render/rhi_color_table_overlay.cpp
+               source/scwx/qt/render/rhi_radar_overlay.cpp
+               source/scwx/qt/render/rhi_colored_geometry.cpp
+               source/scwx/qt/render/rhi_geo_uniforms.cpp
+               source/scwx/qt/render/rhi_geo_colored_geometry.cpp
+               source/scwx/qt/render/rhi_texture_array_overlay.cpp
+               source/scwx/qt/render/rhi_buffer_util.cpp
+               source/scwx/qt/render/rhi_pipeline_cache.cpp
+               source/scwx/qt/render/rhi_vulkan_result.cpp
+               source/scwx/qt/render/rhi_imgui_util.cpp)
 set(HDR_MODEL source/scwx/qt/model/alert_model.hpp
               source/scwx/qt/model/alert_proxy_model.hpp
               source/scwx/qt/model/imgui_context_model.hpp
@@ -558,8 +558,8 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${SRC_EXTERNAL}
                     ${HDR_RENDER}
                     ${SRC_RENDER}
-                    ${HDR_GL_DRAW}
-                    ${SRC_GL_DRAW}
+                    ${HDR_DRAW}
+                    ${SRC_DRAW}
                     ${HDR_MANAGER}
                     ${SRC_MANAGER}
                     ${UI_MAIN}
@@ -603,8 +603,8 @@ source_group("Source Files\\config"       FILES ${SRC_CONFIG})
 source_group("Source Files\\external"     FILES ${SRC_EXTERNAL})
 source_group("Header Files\\render"       FILES ${HDR_RENDER})
 source_group("Source Files\\render"       FILES ${SRC_RENDER})
-source_group("Header Files\\gl\\draw"     FILES ${HDR_GL_DRAW})
-source_group("Source Files\\gl\\draw"     FILES ${SRC_GL_DRAW})
+source_group("Header Files\\draw"         FILES ${HDR_DRAW})
+source_group("Source Files\\draw"         FILES ${SRC_DRAW})
 source_group("Header Files\\manager"      FILES ${HDR_MANAGER})
 source_group("Source Files\\manager"      FILES ${SRC_MANAGER})
 source_group("UI Files\\main"             FILES ${UI_MAIN})
@@ -640,7 +640,6 @@ source_group("I18N Files"                 FILES ${TS_FILES})
 
 add_library(scwx-qt OBJECT ${PROJECT_SOURCES})
 
-target_compile_definitions(scwx-qt PUBLIC SCWX_RENDER_BACKEND_VULKAN)
 set_property(TARGET scwx-qt PROPERTY AUTOMOC ON)
 set_property(TARGET scwx-qt PROPERTY AUTOGEN_ORIGIN_DEPENDS OFF)
 

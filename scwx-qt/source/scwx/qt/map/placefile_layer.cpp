@@ -1,11 +1,11 @@
 #include <scwx/qt/map/placefile_layer.hpp>
-#include <scwx/qt/gl/draw/placefile_icons.hpp>
-#include <scwx/qt/gl/draw/placefile_images.hpp>
-#include <scwx/qt/gl/draw/placefile_images_xy.hpp>
-#include <scwx/qt/gl/draw/placefile_lines.hpp>
-#include <scwx/qt/gl/draw/placefile_polygons.hpp>
-#include <scwx/qt/gl/draw/placefile_triangles.hpp>
-#include <scwx/qt/gl/draw/placefile_text.hpp>
+#include <scwx/qt/draw/placefile_icons.hpp>
+#include <scwx/qt/draw/placefile_images.hpp>
+#include <scwx/qt/draw/placefile_images_xy.hpp>
+#include <scwx/qt/draw/placefile_lines.hpp>
+#include <scwx/qt/draw/placefile_polygons.hpp>
+#include <scwx/qt/draw/placefile_triangles.hpp>
+#include <scwx/qt/draw/placefile_text.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/util/logger.hpp>
@@ -28,18 +28,18 @@ public:
        self_ {self},
        placefileName_ {placefileName},
        placefileIcons_ {
-          std::make_shared<gl::draw::PlacefileIcons>(renderContext)},
+          std::make_shared<draw::PlacefileIcons>(renderContext)},
        placefileImages_ {
-          std::make_shared<gl::draw::PlacefileImages>(renderContext)},
+          std::make_shared<draw::PlacefileImages>(renderContext)},
        placefileImagesXY_ {
-          std::make_shared<gl::draw::PlacefileImagesXY>(renderContext)},
+          std::make_shared<draw::PlacefileImagesXY>(renderContext)},
        placefileLines_ {
-          std::make_shared<gl::draw::PlacefileLines>(renderContext)},
+          std::make_shared<draw::PlacefileLines>(renderContext)},
        placefilePolygons_ {
-          std::make_shared<gl::draw::PlacefilePolygons>(renderContext)},
+          std::make_shared<draw::PlacefilePolygons>(renderContext)},
        placefileTriangles_ {
-          std::make_shared<gl::draw::PlacefileTriangles>(renderContext)},
-       placefileText_ {std::make_shared<gl::draw::PlacefileText>(placefileName)}
+          std::make_shared<draw::PlacefileTriangles>(renderContext)},
+       placefileText_ {std::make_shared<draw::PlacefileText>(placefileName)}
    {
       ConnectSignals();
    }
@@ -60,13 +60,13 @@ public:
    std::string placefileName_;
    std::mutex  dataMutex_ {};
 
-   std::shared_ptr<gl::draw::PlacefileIcons>     placefileIcons_;
-   std::shared_ptr<gl::draw::PlacefileImages>    placefileImages_;
-   std::shared_ptr<gl::draw::PlacefileImagesXY>  placefileImagesXY_;
-   std::shared_ptr<gl::draw::PlacefileLines>     placefileLines_;
-   std::shared_ptr<gl::draw::PlacefilePolygons>  placefilePolygons_;
-   std::shared_ptr<gl::draw::PlacefileTriangles> placefileTriangles_;
-   std::shared_ptr<gl::draw::PlacefileText>      placefileText_;
+   std::shared_ptr<draw::PlacefileIcons>     placefileIcons_;
+   std::shared_ptr<draw::PlacefileImages>    placefileImages_;
+   std::shared_ptr<draw::PlacefileImagesXY>  placefileImagesXY_;
+   std::shared_ptr<draw::PlacefileLines>     placefileLines_;
+   std::shared_ptr<draw::PlacefilePolygons>  placefilePolygons_;
+   std::shared_ptr<draw::PlacefileTriangles> placefileTriangles_;
+   std::shared_ptr<draw::PlacefileText>      placefileText_;
 
    std::chrono::system_clock::time_point selectedTime_ {};
 };
@@ -168,7 +168,6 @@ void PlacefileLayer::Render(
    DrawLayer::Render(mapContext, params);
 }
 
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
 void PlacefileLayer::RenderVulkanOverlay(
    QRhiCommandBuffer*                            commandBuffer,
    render::RhiVulkanOverlayResources&            resources,
@@ -236,7 +235,6 @@ void PlacefileLayer::RenderVulkanImGui(
 
    p->placefileText_->Render(params);
 }
-#endif
 
 void PlacefileLayer::Deinitialize()
 {

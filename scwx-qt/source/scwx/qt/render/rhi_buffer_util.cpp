@@ -1,5 +1,7 @@
 #include <scwx/qt/render/rhi_buffer_util.hpp>
 
+#include <algorithm>
+
 #include <rhi/qrhi.h>
 
 namespace scwx::qt::render
@@ -22,7 +24,9 @@ bool EnsureDynamicBuffer(QRhi*                  rhi,
       buffer->destroy();
    }
 
-   capacity = requiredBytes;
+   const std::size_t newCapacity =
+      std::max(requiredBytes, capacity + capacity / 2 + 4096);
+   capacity = newCapacity;
    if (buffer == nullptr)
    {
       buffer = rhi->newBuffer(type, usage, static_cast<quint32>(capacity));

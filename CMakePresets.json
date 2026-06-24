@@ -561,72 +561,72 @@
       }
     },
     {
-      "name": "macos-clang18-base",
+      "name": "macos-clang22-base",
       "inherits": "macos-base",
       "hidden": true
     },
     {
-      "name": "macos-clang18-x64-base",
-      "inherits": "macos-clang18-base",
+      "name": "macos-clang22-x64-base",
+      "inherits": "macos-clang22-base",
       "hidden": true,
       "environment": {
-        "CC": "/usr/local/opt/llvm@18/bin/clang",
-        "CXX": "/usr/local/opt/llvm@18/bin/clang++",
-        "PATH": "/usr/local/opt/llvm@18/bin:$penv{PATH}",
-        "CPPFLAGS": "-I/usr/local/opt/llvm@18/include",
-        "LDFLAGS": "-L/usr/local/opt/llvm@18/lib -L/usr/local/opt/llvm@18/lib/c++"
+        "CC": "/usr/local/opt/llvm@22/bin/clang",
+        "CXX": "/usr/local/opt/llvm@22/bin/clang++",
+        "PATH": "/usr/local/opt/llvm@22/bin:$penv{PATH}",
+        "CPPFLAGS": "-I/usr/local/opt/llvm@22/include",
+        "LDFLAGS": "-L/usr/local/opt/llvm@22/lib -L/usr/local/opt/llvm@22/lib/c++"
       }
     },
     {
-      "name": "macos-clang18-arm64-base",
-      "inherits": "macos-clang18-base",
+      "name": "macos-clang22-arm64-base",
+      "inherits": "macos-clang22-base",
       "hidden": true,
       "environment": {
-        "CC": "/opt/homebrew/opt/llvm@18/bin/clang",
-        "CXX": "/opt/homebrew/opt/llvm@18/bin/clang++",
-        "PATH": "/opt/homebrew/opt/llvm@18/bin:$penv{PATH}",
-        "CPPFLAGS": "-I/opt/homebrew/opt/llvm@18/include",
-        "LDFLAGS": "-L/opt/homebrew/opt/llvm@18/lib -L/opt/homebrew/opt/llvm@18/lib/c++"
+        "CC": "/opt/homebrew/opt/llvm@22/bin/clang",
+        "CXX": "/opt/homebrew/opt/llvm@22/bin/clang++",
+        "PATH": "/opt/homebrew/opt/llvm@22/bin:$penv{PATH}",
+        "CPPFLAGS": "-I/opt/homebrew/opt/llvm@22/include",
+        "LDFLAGS": "-L/opt/homebrew/opt/llvm@22/lib -L/opt/homebrew/opt/llvm@22/lib/c++"
       }
     },
     {
-      "name": "macos-clang18-x64-debug",
-      "inherits": "macos-clang18-x64-base",
-      "displayName": "macOS Clang 18 x64 Debug",
+      "name": "macos-clang22-x64-debug",
+      "inherits": "macos-clang22-x64-base",
+      "displayName": "macOS Clang 22 x64 Debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CONAN_HOST_PROFILE": "scwx-macos_clang-18-debug",
-        "CONAN_BUILD_PROFILE": "scwx-macos_clang-18-debug"
+        "CONAN_HOST_PROFILE": "scwx-macos_clang-22-debug",
+        "CONAN_BUILD_PROFILE": "scwx-macos_clang-22-debug"
       }
     },
     {
-      "name": "macos-clang18-x64-release",
-      "inherits": "macos-clang18-x64-base",
-      "displayName": "macOS Clang 18 x64 Release",
+      "name": "macos-clang22-x64-release",
+      "inherits": "macos-clang22-x64-base",
+      "displayName": "macOS Clang 22 x64 Release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CONAN_HOST_PROFILE": "scwx-macos_clang-18",
-        "CONAN_BUILD_PROFILE": "scwx-macos_clang-18"
+        "CONAN_HOST_PROFILE": "scwx-macos_clang-22",
+        "CONAN_BUILD_PROFILE": "scwx-macos_clang-22"
       }
     },
     {
-      "name": "macos-clang18-arm64-debug",
-      "inherits": "macos-clang18-arm64-base",
-      "displayName": "macOS Clang 18 Arm64 Debug",
+      "name": "macos-clang22-arm64-debug",
+      "inherits": "macos-clang22-arm64-base",
+      "displayName": "macOS Clang 22 Arm64 Debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CONAN_HOST_PROFILE": "scwx-macos_clang-18_armv8-debug",
-        "CONAN_BUILD_PROFILE": "scwx-macos_clang-18_armv8-debug"
+        "CONAN_HOST_PROFILE": "scwx-macos_clang-22_armv8-debug",
+        "CONAN_BUILD_PROFILE": "scwx-macos_clang-22_armv8-debug"
       }
     },
     {
-      "name": "macos-clang18-arm64-release",
-      "inherits": "macos-clang18-arm64-base",
-      "displayName": "macOS Clang 18 Arm64 Release",
+      "name": "macos-clang22-arm64-release",
+      "inherits": "macos-clang22-arm64-base",
+      "displayName": "macOS Clang 22 Arm64 Release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CONAN_HOST_PROFILE": "scwx-macos_clang-18_armv8",
-        "CONAN_BUILD_PROFILE": "scwx-macos_clang-18_armv8"
+        "CONAN_HOST_PROFILE": "scwx-macos_clang-22_armv8",
+        "CONAN_BUILD_PROFILE": "scwx-macos_clang-22_armv8"
       }
     }
   ],
@@ -704,27 +704,27 @@
       "configuration": "Release"
     },
     {
-      "name": "macos-clang18-x64-debug",
-      "configurePreset": "macos-clang18-x64-debug",
-      "displayName": "macOS Clang 18 x64 Debug",
+      "name": "macos-clang22-x64-debug",
+      "configurePreset": "macos-clang22-x64-debug",
+      "displayName": "macOS Clang 22 x64 Debug",
       "configuration": "Debug"
     },
     {
-      "name": "macos-clang18-x64-release",
-      "configurePreset": "macos-clang18-x64-release",
-      "displayName": "macOS Clang 18 x64 Release",
+      "name": "macos-clang22-x64-release",
+      "configurePreset": "macos-clang22-x64-release",
+      "displayName": "macOS Clang 22 x64 Release",
       "configuration": "Release"
     },
     {
-      "name": "macos-clang18-arm64-debug",
-      "configurePreset": "macos-clang18-arm64-debug",
-      "displayName": "macOS Clang 18 Arm64 Debug",
+      "name": "macos-clang22-arm64-debug",
+      "configurePreset": "macos-clang22-arm64-debug",
+      "displayName": "macOS Clang 22 Arm64 Debug",
       "configuration": "Debug"
     },
     {
-      "name": "macos-clang18-arm64-release",
-      "configurePreset": "macos-clang18-arm64-release",
-      "displayName": "macOS Clang 18 Arm64 Release",
+      "name": "macos-clang22-arm64-release",
+      "configurePreset": "macos-clang22-arm64-release",
+      "displayName": "macOS Clang 22 Arm64 Release",
       "configuration": "Release"
     }
   ],

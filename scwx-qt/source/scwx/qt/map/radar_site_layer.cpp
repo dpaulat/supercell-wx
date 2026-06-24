@@ -1,6 +1,6 @@
 #include <scwx/qt/map/radar_site_layer.hpp>
 #include <scwx/qt/config/radar_site.hpp>
-#include <scwx/qt/gl/draw/geo_lines.hpp>
+#include <scwx/qt/draw/geo_lines.hpp>
 #include <scwx/qt/manager/radar_site_status_manager.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/settings/palette_settings.hpp>
@@ -55,7 +55,7 @@ public:
    explicit Impl(RadarSiteLayer*                               self,
                  const std::shared_ptr<render::RenderContext>& renderContext) :
        self_ {self},
-       geoLines_ {std::make_shared<gl::draw::GeoLines>(renderContext)}
+       geoLines_ {std::make_shared<draw::GeoLines>(renderContext)}
    {
    }
    ~Impl() = default;
@@ -89,8 +89,8 @@ public:
 
    std::string hoverText_ {};
 
-   std::shared_ptr<gl::draw::GeoLines>                       geoLines_;
-   std::array<std::shared_ptr<gl::draw::GeoLineDrawItem>, 2> radarSiteLines_ {
+   std::shared_ptr<draw::GeoLines>                       geoLines_;
+   std::array<std::shared_ptr<draw::GeoLineDrawItem>, 2> radarSiteLines_ {
       nullptr, nullptr};
 
    boost::unordered_flat_map<types::RadarSiteStatus,
@@ -235,7 +235,6 @@ void RadarSiteLayer::Render(
    ImGuiFrameEnd();
 }
 
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
 void RadarSiteLayer::RenderVulkanOverlay(
    QRhiCommandBuffer*                            commandBuffer,
    render::RhiVulkanOverlayResources&            resources,
@@ -272,7 +271,6 @@ void RadarSiteLayer::RenderVulkanImGui(
    p->RenderRadarSiteButtons(params);
    ImGui::PopStyleVar();
 }
-#endif
 
 void RadarSiteLayer::Impl::RenderRadarSite(
    const QMapLibre::CustomLayerRenderParameters& params,

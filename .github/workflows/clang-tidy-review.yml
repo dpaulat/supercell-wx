@@ -18,16 +18,16 @@ jobs:
           - name: linux_clang-tidy_x64
             os: ubuntu-24.04
             build_type: Release
-            env_cc: clang-21
-            env_cxx: clang++-21
+            env_cc: clang-22
+            env_cxx: clang++-22
             qt_version: 6.11.1
             qt_arch_aqt: linux_gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_clang-21
+            conan_profile: scwx-linux_clang-22
             compiler_packages: ''
-            clang_tidy_binary: clang-tidy-21
+            clang_tidy_binary: clang-tidy-22
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     env:
@@ -58,13 +58,17 @@ jobs:
         modules: ${{ matrix.qt_modules }}
         tools: ${{ matrix.qt_tools }}
 
-    - name: Setup Ubuntu Environment
-      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+    - name: Install LLVM 22
       shell: bash
       run: |
         wget -q https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
-        sudo ./llvm.sh 21
+        sudo ./llvm.sh 22 all
+
+    - name: Setup Ubuntu Environment
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      shell: bash
+      run: |
         sudo apt-get install doxygen \
                              libfuse2 \
                              ninja-build \

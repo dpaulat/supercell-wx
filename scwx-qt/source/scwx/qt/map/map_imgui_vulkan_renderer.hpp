@@ -5,6 +5,11 @@ class QRhiCommandBuffer;
 class QRhiTexture;
 class QWidget;
 
+#include <vulkan/vulkan_core.h>
+class QRhiCommandBuffer;
+class QRhiTexture;
+class QWidget;
+
 namespace scwx::qt::map
 {
 
@@ -27,6 +32,8 @@ private:
    QRhi* rhi_ {nullptr};
    void* renderPass_ {nullptr};
    bool  initialized_ {false};
+   VkDevice          device_ {VK_NULL_HANDLE};
+   VkPipelineCache   pipelineCache_ {VK_NULL_HANDLE};
 };
 
 } // namespace scwx::qt::map

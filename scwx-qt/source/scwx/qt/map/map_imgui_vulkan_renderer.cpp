@@ -1,6 +1,8 @@
 #include <scwx/qt/map/map_imgui_vulkan_renderer.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
 #include <scwx/qt/render/rhi_imgui_util.hpp>
+#include <scwx/qt/render/rhi_pipeline_cache.hpp>
+#include <scwx/qt/render/rhi_vulkan_result.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <backends/imgui_impl_qt.hpp>
@@ -17,13 +19,12 @@ static const std::string logPrefix_ =
    "scwx::qt::map::map_imgui_vulkan_renderer";
 static const auto logger_ = scwx::util::Logger::Create(logPrefix_);
 
+static const char kImGuiPipelineCacheFile[] =
+   "imgui-vulkan-pipeline-cache.bin";
+
 static void CheckVkResult(VkResult result)
 {
-   if (result != VK_SUCCESS)
-   {
-      logger_->error("Vulkan call failed with VkResult {}",
-                     static_cast<int>(result));
-   }
+   render::ReportVulkanResult(result, "ImGui Vulkan");
 }
 
 bool MapImGuiVulkanRenderer::InitBackend(void* renderPass)
@@ -67,11 +68,27 @@ bool MapImGuiVulkanRenderer::InitBackend(void* renderPass)
    initInfo.CheckVkResultFn     = CheckVkResult;
    initInfo.MinAllocationSize   = static_cast<VkDeviceSize>(1024) * 1024;
 
+   const QByteArray pipelineCacheBlob =
+      render::LoadVulkanPipelineCacheBlob(kImGuiPipelineCacheFile);
+   VkPipelineCache pipelineCache = VK_NULL_HANDLE;
+   if (render::CreateVulkanPipelineCache(
+          vkHandles->dev, pipelineCacheBlob, &pipelineCache) != VK_SUCCESS)
+   {
+      logger_->error("Failed to create ImGui Vulkan pipeline cache");
+      return false;
+   }
+
+   initInfo.PipelineCache = pipelineCache;
+
    if (!ImGui_ImplVulkan_Init(&initInfo))
    {
       logger_->error("ImGui_ImplVulkan_Init failed");
+      vkDestroyPipelineCache(vkHandles->dev, pipelineCache, nullptr);
       return false;
    }
+
+   device_        = vkHandles->dev;
+   pipelineCache_ = pipelineCache;
 
    return true;
 }
@@ -121,8 +138,7 @@ void MapImGuiVulkanRenderer::UpdateRenderPass(void* renderPass)
 
    if (initialized_)
    {
-      ImGui_ImplVulkan_Shutdown();
-      initialized_ = false;
+      Shutdown();
    }
 
    renderPass_ = renderPass;
@@ -141,6 +157,17 @@ void MapImGuiVulkanRenderer::Shutdown()
 {
    if (initialized_)
    {
+      if (pipelineCache_ != VK_NULL_HANDLE && device_ != VK_NULL_HANDLE)
+      {
+         const QByteArray pipelineCacheBlob =
+            render::GetVulkanPipelineCacheBlob(device_, pipelineCache_);
+         render::SaveVulkanPipelineCacheBlob(kImGuiPipelineCacheFile,
+                                             pipelineCacheBlob);
+         vkDestroyPipelineCache(device_, pipelineCache_, nullptr);
+         pipelineCache_ = VK_NULL_HANDLE;
+         device_        = VK_NULL_HANDLE;
+      }
+
       if (ImGui::GetCurrentContext() != nullptr &&
           ImGui::GetIO().BackendRendererUserData != nullptr)
       {

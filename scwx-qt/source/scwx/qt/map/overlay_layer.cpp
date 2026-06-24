@@ -1,7 +1,7 @@
 #include <scwx/common/characters.hpp>
-#include <scwx/qt/gl/draw/geo_icons.hpp>
-#include <scwx/qt/gl/draw/icons.hpp>
-#include <scwx/qt/gl/draw/rectangle.hpp>
+#include <scwx/qt/draw/geo_icons.hpp>
+#include <scwx/qt/draw/icons.hpp>
+#include <scwx/qt/draw/rectangle.hpp>
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
@@ -41,10 +41,10 @@ public:
    explicit Impl(OverlayLayer*                                 self,
                  const std::shared_ptr<render::RenderContext>& renderContext) :
        self_ {self},
-       activeBoxOuter_ {std::make_shared<gl::draw::Rectangle>(renderContext)},
-       activeBoxInner_ {std::make_shared<gl::draw::Rectangle>(renderContext)},
-       geoIcons_ {std::make_shared<gl::draw::GeoIcons>(renderContext)},
-       icons_ {std::make_shared<gl::draw::Icons>(renderContext)},
+       activeBoxOuter_ {std::make_shared<draw::Rectangle>(renderContext)},
+       activeBoxInner_ {std::make_shared<draw::Rectangle>(renderContext)},
+       geoIcons_ {std::make_shared<draw::GeoIcons>(renderContext)},
+       icons_ {std::make_shared<draw::Icons>(renderContext)},
        renderMutex_ {}
    {
       auto& generalSettings = settings::GeneralSettings::Instance();
@@ -127,16 +127,16 @@ public:
       manager::PositionManager::Instance()};
    QGeoPositionInfo currentPosition_ {};
 
-   std::shared_ptr<gl::draw::Rectangle> activeBoxOuter_;
-   std::shared_ptr<gl::draw::Rectangle> activeBoxInner_;
-   std::shared_ptr<gl::draw::GeoIcons>  geoIcons_;
-   std::shared_ptr<gl::draw::Icons>     icons_;
+   std::shared_ptr<draw::Rectangle> activeBoxOuter_;
+   std::shared_ptr<draw::Rectangle> activeBoxInner_;
+   std::shared_ptr<draw::GeoIcons>  geoIcons_;
+   std::shared_ptr<draw::Icons>     icons_;
 
    const std::string& locationIconName_ {
       types::GetTextureName(types::ImageTexture::Crosshairs24)};
-   std::shared_ptr<gl::draw::GeoIconDrawItem> locationIcon_ {};
+   std::shared_ptr<draw::GeoIconDrawItem> locationIcon_ {};
 
-   std::shared_ptr<gl::draw::GeoIconDrawItem> cursorIcon_ {};
+   std::shared_ptr<draw::GeoIconDrawItem> cursorIcon_ {};
 
    const std::string& cardinalPointIconName_ {
       types::GetTextureName(types::ImageTexture::CardinalPoint24)};
@@ -158,11 +158,11 @@ public:
        types::GetTextureName(types::ImageTexture::OpenFreeMapLogo)},
    };
 
-   std::shared_ptr<gl::draw::IconDrawItem> compassIcon_ {};
-   std::shared_ptr<gl::draw::IconDrawItem> mapCenterIcon_ {};
+   std::shared_ptr<draw::IconDrawItem> compassIcon_ {};
+   std::shared_ptr<draw::IconDrawItem> mapCenterIcon_ {};
    double                                  lastBearing_ {0.0};
 
-   std::shared_ptr<gl::draw::IconDrawItem> mapLogoIcon_ {};
+   std::shared_ptr<draw::IconDrawItem> mapLogoIcon_ {};
 
    bool     firstRender_ {true};
    double   lastWidth_ {0.0};
@@ -254,7 +254,7 @@ void OverlayLayer::Impl::SetupScreenIcons(
    icons_->StartIcons();
    compassIcon_ = icons_->AddIcon();
    icons_->SetIconTexture(compassIcon_, cardinalPointIconName_, 0);
-   gl::draw::Icons::RegisterEventHandler(
+   draw::Icons::RegisterEventHandler(
       compassIcon_,
       [this, mapContext](QEvent* ev)
       {
@@ -607,7 +607,6 @@ void OverlayLayer::Impl::UpdateSweepTimeString(
    }
 }
 
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
 void OverlayLayer::RenderVulkanOverlay(
    QRhiCommandBuffer*                            commandBuffer,
    render::RhiVulkanOverlayResources&            resources,
@@ -632,7 +631,6 @@ void OverlayLayer::RenderVulkanImGui(
    p->UpdateSweepTimeString(mapContext);
    p->RenderImGuiOverlay(mapContext, params);
 }
-#endif
 
 void OverlayLayer::Impl::RenderProductName(
    const std::shared_ptr<MapContext>& mapContext)

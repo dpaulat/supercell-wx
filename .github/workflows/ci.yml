@@ -94,11 +94,11 @@ jobs:
             appimage_arch: x86_64
             artifact_suffix: linux-gcc-13-x64
             compiler_packages: ''
-          - name: linux_clang-21_x64
+          - name: linux_clang-22_x64
             os: ubuntu-24.04
             build_type: Release
-            env_cc: clang-21
-            env_cxx: clang++-21
+            env_cc: clang-22
+            env_cxx: clang++-22
             compiler: clang
             cppflags: ''
             ldflags: ''
@@ -108,9 +108,9 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_clang-21
+            conan_profile: scwx-linux_clang-22
             appimage_arch: x86_64
-            artifact_suffix: linux-clang-21-x64
+            artifact_suffix: linux-clang-22-x64
             compiler_packages: ''
           - name: linux_gcc-13_arm64
             os: ubuntu-24.04-arm
@@ -130,7 +130,7 @@ jobs:
             appimage_arch: aarch64
             artifact_suffix: linux-gcc-13-arm64
             compiler_packages: g++-13
-          - name: macos_clang-18_x64
+          - name: macos_clang-22_x64
             os: macos-15-intel
             build_type: Release
             env_cc: clang
@@ -142,10 +142,10 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: ''
-            conan_profile: scwx-macos_clang-18
+            conan_profile: scwx-macos_clang-22
             appimage_arch: ''
             artifact_suffix: macos-x64
-          - name: macos_clang-18_arm64
+          - name: macos_clang-22_arm64
             os: macos-14
             build_type: Release
             env_cc: clang
@@ -157,7 +157,7 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: ''
-            conan_profile: scwx-macos_clang-18_armv8
+            conan_profile: scwx-macos_clang-22_armv8
             appimage_arch: ''
             artifact_suffix: macos-arm64
     name: ${{ matrix.name }}
@@ -209,13 +209,13 @@ jobs:
             }
           }
 
-    - name: Install LLVM 21
-      if: ${{ matrix.env_cc == 'clang-21' }}
+    - name: Install LLVM 22
+      if: ${{ contains(matrix.name, 'clang-22') }}
       shell: bash
       run: |
         wget -q https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
-        sudo ./llvm.sh 21
+        sudo ./llvm.sh 22
 
     - name: Setup Ubuntu Environment
       if: ${{ startsWith(matrix.os, 'ubuntu') }}
@@ -262,8 +262,8 @@ jobs:
       if: ${{ startsWith(matrix.os, 'macos') }}
       shell: bash
       run: |
-        brew install llvm@18 molten-vk
-        LLVM_PATH=$(brew --prefix llvm@18)
+        brew install llvm@22 molten-vk
+        LLVM_PATH=$(brew --prefix llvm@22)
         echo "CC=${LLVM_PATH}/bin/clang" >> $GITHUB_ENV
         echo "CXX=${LLVM_PATH}/bin/clang++" >> $GITHUB_ENV
         echo "CPPFLAGS=-I${LLVM_PATH}/include" >> $GITHUB_ENV

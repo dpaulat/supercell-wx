@@ -10,7 +10,7 @@
 #include <optional>
 #include <string>
 
-namespace scwx::qt::gl::draw
+namespace scwx::qt::draw
 {
 class MapAnnotationsDrawItem;
 }
@@ -48,13 +48,11 @@ public:
                const QMapLibre::CustomLayerRenderParameters&) final;
    void Deinitialize() final;
 
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
    void RenderVulkanOverlay(
       QRhiCommandBuffer*                            commandBuffer,
       render::RhiVulkanOverlayResources&            resources,
       const std::shared_ptr<MapContext>&            mapContext,
       const QMapLibre::CustomLayerRenderParameters& params) override;
-#endif
 
    bool
    RunMousePicking(const std::shared_ptr<MapContext>&            mapContext,

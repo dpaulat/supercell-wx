@@ -43,14 +43,23 @@ if (EXISTS "${_SCWX_MLN_QT_CMAKE}")
         "    if(NOT QT_VULKAN_HEADER)\n        message(FATAL_ERROR \"Qt build has no Vulkan headers; can not build Qt Vulkan backend\")\n    endif()")
     set(_SCWX_MLN_QT_NEW
         "    if(NOT QT_VULKAN_HEADER)\n        if(APPLE)\n            message(STATUS \"Qt build has no qvulkaninstance.h; continuing with headless Vulkan on macOS\")\n        else()\n            message(FATAL_ERROR \"Qt build has no Vulkan headers; can not build Qt Vulkan backend\")\n        endif()\n    endif()")
-    if(_scwx_mln_qt_cmake MATCHES "continuing with headless Vulkan on macOS")
-        # Already patched (e.g. re-configure).
-    elseif(_scwx_mln_qt_cmake MATCHES "${_SCWX_MLN_QT_OLD}")
-        string(REPLACE "${_SCWX_MLN_QT_OLD}" "${_SCWX_MLN_QT_NEW}"
-               _scwx_mln_qt_cmake _scwx_mln_qt_cmake)
-        file(WRITE "${_SCWX_MLN_QT_CMAKE}" "${_scwx_mln_qt_cmake}")
-    else()
-        message(WARNING "Could not patch maplibre qt.cmake for macOS Vulkan probe")
+    string(FIND "${_scwx_mln_qt_cmake}" "continuing with headless Vulkan on macOS"
+           _scwx_mln_qt_already_patched)
+    if(_scwx_mln_qt_already_patched EQUAL -1)
+        string(FIND "${_scwx_mln_qt_cmake}" "can not build Qt Vulkan backend"
+               _scwx_mln_qt_patchable)
+        if(_scwx_mln_qt_patchable GREATER -1)
+            string(REPLACE "${_SCWX_MLN_QT_OLD}" "${_SCWX_MLN_QT_NEW}"
+                   _scwx_mln_qt_cmake _scwx_mln_qt_cmake)
+            string(LENGTH "${_scwx_mln_qt_cmake}" _scwx_mln_qt_cmake_len)
+            if(_scwx_mln_qt_cmake_len GREATER 100)
+                file(WRITE "${_SCWX_MLN_QT_CMAKE}" "${_scwx_mln_qt_cmake}")
+            else()
+                message(WARNING "Refusing to patch maplibre qt.cmake: patched content too small")
+            endif()
+        else()
+            message(WARNING "Could not patch maplibre qt.cmake for macOS Vulkan probe")
+        endif()
     endif()
 endif()
 
@@ -101,7 +110,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     endif()
 endif()
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND SCWX_RENDER_BACKEND STREQUAL "VULKAN")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_options(mbgl-core PRIVATE "-Wno-unused-parameter")
 endif()
 

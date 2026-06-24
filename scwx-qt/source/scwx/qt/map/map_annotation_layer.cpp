@@ -1,4 +1,4 @@
-#include <scwx/qt/gl/draw/map_annotations_draw_item.hpp>
+#include <scwx/qt/draw/map_annotations_draw_item.hpp>
 #include <scwx/qt/map/map_annotation_layer.hpp>
 #include <scwx/qt/map/map_annotation_model.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
@@ -124,7 +124,7 @@ public:
    explicit Impl(std::shared_ptr<render::RenderContext> renderContext) :
        renderContext_ {std::move(renderContext)},
        model_ {},
-       draw_ {std::make_shared<gl::draw::MapAnnotationsDrawItem>(renderContext_,
+       draw_ {std::make_shared<draw::MapAnnotationsDrawItem>(renderContext_,
                                                                  &model_)}
    {
    }
@@ -132,7 +132,7 @@ public:
    std::shared_ptr<MapContext>                       mapContext_;
    std::shared_ptr<render::RenderContext>            renderContext_;
    MapAnnotationModel                                model_;
-   std::shared_ptr<gl::draw::MapAnnotationsDrawItem> draw_;
+   std::shared_ptr<draw::MapAnnotationsDrawItem> draw_;
 
    MapAnnotationTool  tool_ {MapAnnotationTool::None};
    MapAnnotationStyle style_ {};
@@ -420,18 +420,11 @@ void MapAnnotationLayer::Initialize(
    const std::shared_ptr<MapContext>& mapContext)
 {
    p->mapContext_ = mapContext;
-#if !defined(SCWX_RENDER_BACKEND_VULKAN)
-   p->draw_->Initialize();
-#else
    p->draw_->Rebuild();
-#endif
 }
 
 void MapAnnotationLayer::Deinitialize()
 {
-#if !defined(SCWX_RENDER_BACKEND_VULKAN)
-   p->draw_->Deinitialize();
-#endif
 }
 
 void MapAnnotationLayer::Render(
@@ -440,7 +433,6 @@ void MapAnnotationLayer::Render(
 {
 }
 
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
 void MapAnnotationLayer::RenderVulkanOverlay(
    QRhiCommandBuffer*                 commandBuffer,
    render::RhiVulkanOverlayResources& resources,
@@ -454,7 +446,6 @@ void MapAnnotationLayer::RenderVulkanOverlay(
 
    p->draw_->RenderVulkan(commandBuffer, resources, params, false);
 }
-#endif
 
 bool MapAnnotationLayer::RunMousePicking(
    const std::shared_ptr<MapContext>& /* mapContext */,

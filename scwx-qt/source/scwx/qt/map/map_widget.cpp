@@ -22,6 +22,8 @@
 #include <scwx/qt/map/radar_range_layer.hpp>
 #include <scwx/qt/map/radar_site_layer.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
+#include <scwx/qt/render/rhi_pipeline_cache.hpp>
+#include <scwx/qt/render/rhi_vulkan_result.hpp>
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/qt/types/layer_types.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
@@ -83,9 +85,9 @@
 
 #include <QtWidgets/qrhiwidget.h>
 
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
-#   include <rhi/qrhi.h>
-#endif
+#include <rhi/qrhi.h>
+
+#include <vulkan/vulkan_core.h>
 
 namespace scwx::qt::map
 {
@@ -262,13 +264,8 @@ public:
       // Create ImGui Context
       static size_t currentMapId_ {0u};
       imGuiContextName_ = fmt::format("Map {}", ++currentMapId_);
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
       imGuiContext_ = model::ImGuiContextModel::Instance().CreateContext(
          imGuiContextName_, false);
-#else
-      imGuiContext_ =
-         model::ImGuiContextModel::Instance().CreateContext(imGuiContextName_);
-#endif
 
       // Initialize ImGui Qt backend
       ImGui_ImplQt_Init();
@@ -303,11 +300,7 @@ public:
 
       if (map_ != nullptr)
       {
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
          rhiRenderer_.ReleaseMapRenderer(map_.get());
-#else
-         map_->destroyRenderer();
-#endif
       }
 
       threadPool_.join();
@@ -507,7 +500,6 @@ public:
    size_t                                  currentTiltIndex_ {0};
 
    MapRhiRenderer rhiRenderer_ {};
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
    MapImGuiVulkanRenderer          imguiVulkanRenderer_ {};
    MapOverlayRenderer              overlayRenderer_ {};
    bool                            vulkanRenderingInitialized_ {false};
@@ -516,7 +508,6 @@ public:
    const MapBasemapShareCallbacks* basemapShareCallbacks_ {nullptr};
    QRhiTexture*                    basemapTexture_ {nullptr};
    QSize                           basemapTextureSize_ {};
-#endif
 
 public slots:
    void Update();
@@ -1689,20 +1680,12 @@ MapViewSnapshot MapWidget::ExportMapViewSnapshot() const
 void MapWidget::SetBasemapShareCallbacks(
    const MapBasemapShareCallbacks* callbacks)
 {
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
    p->basemapShareCallbacks_ = callbacks;
-#else
-   (void) callbacks;
-#endif
 }
 
 QRhiTexture* MapWidget::basemap_color_texture() const
 {
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
    return p->basemapTexture_;
-#else
-   return colorTexture();
-#endif
 }
 
 void MapWidget::SetInitialMapStyle(const std::string& styleName)
@@ -1817,7 +1800,6 @@ void MapWidgetImpl::AddLayers()
    logger_->debug("Add Layers");
 
    // Clear custom layers
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
    for (const auto& layer : genericLayers_)
    {
       if (layer != nullptr)
@@ -1825,7 +1807,6 @@ void MapWidgetImpl::AddLayers()
          layer->Deinitialize();
       }
    }
-#endif
    for (const std::string& id : layerList_)
    {
       map_->removeLayer(id.c_str());
@@ -2085,7 +2066,6 @@ bool MapWidget::event(QEvent* e)
    }
    pickedEventHandler.reset();
 
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
    if (e->type() == QEvent::Type::ParentAboutToChange)
    {
       p->vulkanRenderingInitialized_ = false;
@@ -2095,7 +2075,6 @@ bool MapWidget::event(QEvent* e)
    {
       p->vulkanRenderingInitialized_ = false;
    }
-#endif
 
    switch (e->type())
    {
@@ -2588,6 +2567,8 @@ void MapWidget::initialize(QRhiCommandBuffer* cb)
       return;
    }
 
+   render::RestoreQrhiPipelineCache(rhi());
+
    p->ResetMap(p->initialStyleName_);
    p->rhiRenderer_.InitializeMapRenderer(
       rhi(),
@@ -2599,6 +2580,34 @@ void MapWidget::initialize(QRhiCommandBuffer* cb)
    ImGui::SetCurrentContext(p->imGuiContext_);
 
    p->overlayRenderer_.Initialize(rhi());
+
+   render::SetVulkanResultHandler(
+      [this](VkResult result, const char* /* context */)
+      {
+         if (result != VK_ERROR_DEVICE_LOST &&
+             result != VK_ERROR_OUT_OF_DATE_KHR &&
+             result != VK_ERROR_SURFACE_LOST_KHR)
+         {
+            return;
+         }
+
+         QMetaObject::invokeMethod(
+            this,
+            [this]()
+            {
+               if (!p->vulkanRenderingInitialized_)
+               {
+                  return;
+               }
+               logger_->warn("Resetting map Vulkan state after device error");
+               render::PersistQrhiPipelineCache(rhi());
+               p->vulkanRenderingInitialized_ = false;
+               releaseResources();
+               update();
+            },
+            Qt::QueuedConnection);
+      });
+
    p->vulkanRenderingInitialized_ = true;
 
    p->UpdateStoredMapParameters();
@@ -2617,6 +2626,8 @@ void MapWidget::initialize(QRhiCommandBuffer* cb)
 void MapWidget::releaseResources()
 {
    logger_->debug("releaseResources()");
+
+   render::PersistQrhiPipelineCache(rhi());
 
    if (p->map_ != nullptr)
    {
@@ -2643,11 +2654,7 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
 
    if (hadExistingMap)
    {
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
       rhiRenderer_.ReleaseMapRenderer(map_.get());
-#else
-      map_->destroyRenderer();
-#endif
    }
 
    map_ = std::make_shared<QMapLibre::Map>(
@@ -3605,11 +3612,7 @@ void MapWidgetImpl::RadarProductViewDisconnect()
 
 void MapWidgetImpl::ScreenCaptureCopy()
 {
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
    const QImage image = widget_->grab().toImage();
-#else
-   const QImage image = widget_->grabFramebuffer();
-#endif
    QClipboard* clipboard = QGuiApplication::clipboard();
    clipboard->setImage(image);
 
@@ -3618,11 +3621,7 @@ void MapWidgetImpl::ScreenCaptureCopy()
 
 void MapWidgetImpl::ScreenCaptureSaveImage()
 {
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
    const QImage image = widget_->grab().toImage();
-#else
-   const QImage image = widget_->grabFramebuffer();
-#endif
    const QSize  size      = widget_->size();
    const double latitude  = map_->latitude();
    const double longitude = map_->longitude();

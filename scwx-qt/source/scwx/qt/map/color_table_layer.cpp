@@ -65,7 +65,6 @@ void ColorTableLayer::Render(
    mapContext->set_color_table_margins(QMargins {});
 }
 
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
 void ColorTableLayer::RenderVulkanOverlay(
    QRhiCommandBuffer*                            commandBuffer,
    render::RhiVulkanOverlayResources&            resources,
@@ -116,7 +115,6 @@ void ColorTableLayer::RenderVulkanOverlay(
    static constexpr int kBottomMargin = 10;
    mapContext->set_color_table_margins(QMargins {0, 0, 0, kBottomMargin});
 }
-#endif
 
 void ColorTableLayer::Deinitialize()
 {

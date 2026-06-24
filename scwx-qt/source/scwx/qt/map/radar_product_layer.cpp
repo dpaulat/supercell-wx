@@ -13,10 +13,8 @@
 #include <cmath>
 #include <cstring>
 
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
-#   include <scwx/qt/render/rhi_radar_overlay.hpp>
-#   include <scwx/qt/render/rhi_vulkan_overlay.hpp>
-#endif
+#include <scwx/qt/render/rhi_radar_overlay.hpp>
+#include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 
 #if defined(_MSC_VER)
 #   pragma warning(push, 0)
@@ -235,7 +233,6 @@ void RadarProductLayer::Render(
 {
 }
 
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
 void RadarProductLayer::RenderVulkanOverlay(
    QRhiCommandBuffer*                            commandBuffer,
    render::RhiVulkanOverlayResources&            resources,
@@ -367,7 +364,6 @@ void RadarProductLayer::RenderVulkanOverlay(
       p->latchedLoadStatus_ = newLoadStatus;
    }
 }
-#endif
 
 void RadarProductLayer::Deinitialize()
 {

@@ -57,7 +57,7 @@ public:
 
    std::shared_ptr<render::RenderContext> renderContext_;
 
-   std::vector<std::shared_ptr<gl::draw::DrawItem>> drawList_ {};
+   std::vector<std::shared_ptr<draw::DrawItem>> drawList_ {};
 
    std::uint64_t textureAtlasBuildCount_ {};
 
@@ -194,7 +194,7 @@ bool DrawLayer::RunMousePicking(
    return itemPicked;
 }
 
-void DrawLayer::AddDrawItem(const std::shared_ptr<gl::draw::DrawItem>& drawItem)
+void DrawLayer::AddDrawItem(const std::shared_ptr<draw::DrawItem>& drawItem)
 {
    p->drawList_.push_back(drawItem);
 }

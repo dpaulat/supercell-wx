@@ -8,9 +8,9 @@
 #include <QCheckBox>
 
 #ifdef _WIN32
-#   include <windows.h>
+#include <windows.h>
 #else
-#   include <unistd.h>
+#include <unistd.h>
 #endif
 
 namespace scwx::qt::main

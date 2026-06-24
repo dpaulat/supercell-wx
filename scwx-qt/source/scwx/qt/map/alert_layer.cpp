@@ -1,6 +1,6 @@
 #include <scwx/qt/map/alert_layer.hpp>
 #include <scwx/qt/map/geo_stroke.hpp>
-#include <scwx/qt/gl/draw/geo_lines.hpp>
+#include <scwx/qt/draw/geo_lines.hpp>
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/settings/palette_settings.hpp>
@@ -140,7 +140,7 @@ public:
 
    static AlertLayerHandler& Instance();
 
-   [[nodiscard]] std::shared_ptr<gl::draw::GeoLines>
+   [[nodiscard]] std::shared_ptr<draw::GeoLines>
    SharedGeoLines(awips::Phenomenon                             phenomenon,
                   bool                                          alertActive,
                   const std::shared_ptr<render::RenderContext>& renderContext);
@@ -156,11 +156,11 @@ public:
    void ClearTrackedSegments();
 
    [[nodiscard]] std::optional<types::TextEventKey>
-   KeyForGeoLine(const std::shared_ptr<const gl::draw::GeoLineDrawItem>& line);
+   KeyForGeoLine(const std::shared_ptr<const draw::GeoLineDrawItem>& line);
 
    void ShowGeoLineHoverTooltip(
       awips::Phenomenon                                       phenomenon,
-      const std::shared_ptr<const gl::draw::GeoLineDrawItem>& line,
+      const std::shared_ptr<const draw::GeoLineDrawItem>& line,
       const QPointF&                                          mouseGlobalPos);
 
    [[nodiscard]] std::size_t SharedGeoLineCount();
@@ -180,16 +180,16 @@ public:
    struct SharedPhenomenonGeometry
    {
       awips::Phenomenon phenomenon {};
-      std::unordered_map<bool, std::shared_ptr<gl::draw::GeoLines>>
+      std::unordered_map<bool, std::shared_ptr<draw::GeoLines>>
          geoLines_ {};
       std::unordered_map<std::shared_ptr<const SegmentRecord>,
                          boost::container::stable_vector<
-                            std::shared_ptr<gl::draw::GeoLineDrawItem>>>
+                            std::shared_ptr<draw::GeoLineDrawItem>>>
          linesBySegment_ {};
-      std::unordered_map<std::shared_ptr<const gl::draw::GeoLineDrawItem>,
+      std::unordered_map<std::shared_ptr<const draw::GeoLineDrawItem>,
                          std::shared_ptr<const SegmentRecord>>
                                                      segmentsByLine_ {};
-      std::weak_ptr<const gl::draw::GeoLineDrawItem> lastHoverLine_ {};
+      std::weak_ptr<const draw::GeoLineDrawItem> lastHoverLine_ {};
       std::string                                    hoverTooltip_ {};
       std::mutex                                     linesMutex_ {};
       bool                                           populated_ {false};
@@ -286,7 +286,7 @@ public:
       const std::shared_ptr<AlertLayerHandler::SegmentRecord>& segmentRecord);
    void ConnectAlertHandlerSignals();
    void ConnectSignals();
-   void HandleGeoLinesEvent(std::weak_ptr<gl::draw::GeoLineDrawItem> di,
+   void HandleGeoLinesEvent(std::weak_ptr<draw::GeoLineDrawItem> di,
                             QEvent*                                  ev);
 
    [[nodiscard]] AlertLayerHandler::SharedPhenomenonGeometry& SharedGeometry();
@@ -295,8 +295,8 @@ public:
                          bool alertActive);
    void      UpdateLineData();
 
-   void AddLine(std::shared_ptr<gl::draw::GeoLines>&        geoLines,
-                std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
+   void AddLine(std::shared_ptr<draw::GeoLines>&        geoLines,
+                std::shared_ptr<draw::GeoLineDrawItem>& di,
                 const common::Coordinate&                   p1,
                 const common::Coordinate&                   p2,
                 const boost::gil::rgba32f_pixel_t&          color,
@@ -304,8 +304,8 @@ public:
                 std::chrono::system_clock::time_point       startTime,
                 std::chrono::system_clock::time_point       endTime,
                 bool                                        enableHover);
-   void AddStyledLine(std::shared_ptr<gl::draw::GeoLines>&        geoLines,
-                      std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
+   void AddStyledLine(std::shared_ptr<draw::GeoLines>&        geoLines,
+                      std::shared_ptr<draw::GeoLineDrawItem>& di,
                       const common::Coordinate&                   p1,
                       const common::Coordinate&                   p2,
                       const LineData&                             lineData,
@@ -313,15 +313,15 @@ public:
                       std::chrono::system_clock::time_point       endTime,
                       bool                                        enableHover);
    void
-        AddStyledLines(std::shared_ptr<gl::draw::GeoLines>&   geoLines,
+        AddStyledLines(std::shared_ptr<draw::GeoLines>&   geoLines,
                        const std::vector<common::Coordinate>& coordinates,
                        const LineData&                        lineData,
                        std::chrono::system_clock::time_point  startTime,
                        std::chrono::system_clock::time_point  endTime,
                        bool                                   enableHover,
                        boost::container::stable_vector<
-                          std::shared_ptr<gl::draw::GeoLineDrawItem>>& drawItems);
-   void AddLines(std::shared_ptr<gl::draw::GeoLines>&   geoLines,
+                          std::shared_ptr<draw::GeoLineDrawItem>>& drawItems);
+   void AddLines(std::shared_ptr<draw::GeoLines>&   geoLines,
                  const std::vector<common::Coordinate>& coordinates,
                  const boost::gil::rgba32f_pixel_t&     color,
                  float                                  width,
@@ -329,7 +329,7 @@ public:
                  std::chrono::system_clock::time_point  endTime,
                  bool                                   enableHover,
                  boost::container::stable_vector<
-                    std::shared_ptr<gl::draw::GeoLineDrawItem>>& drawItems);
+                    std::shared_ptr<draw::GeoLineDrawItem>>& drawItems);
    void PopulateLines(bool alertActive);
    void RepopulateLines();
    void UpdateLines();
@@ -441,7 +441,6 @@ void AlertLayer::Render(const std::shared_ptr<MapContext>& mapContext,
    DrawLayer::Render(mapContext, params);
 }
 
-#if defined(SCWX_RENDER_BACKEND_VULKAN)
 void AlertLayer::RenderVulkanOverlay(
    QRhiCommandBuffer*                            commandBuffer,
    render::RhiVulkanOverlayResources&            resources,
@@ -457,7 +456,6 @@ void AlertLayer::RenderVulkanOverlay(
 
    DrawLayer::RenderVulkanOverlay(commandBuffer, resources, mapContext, params);
 }
-#endif
 
 void AlertLayer::Deinitialize()
 {
@@ -888,14 +886,14 @@ AlertLayerHandler::SharedPhenomenonGeometry& AlertLayerHandler::SharedGeometry(
       if (geometry.geoLines_.find(alertActive) == geometry.geoLines_.cend())
       {
          geometry.geoLines_.emplace(
-            alertActive, std::make_shared<gl::draw::GeoLines>(renderContext));
+            alertActive, std::make_shared<draw::GeoLines>(renderContext));
       }
    }
 
    return geometry;
 }
 
-std::shared_ptr<gl::draw::GeoLines> AlertLayerHandler::SharedGeoLines(
+std::shared_ptr<draw::GeoLines> AlertLayerHandler::SharedGeoLines(
    awips::Phenomenon                             phenomenon,
    bool                                          alertActive,
    const std::shared_ptr<render::RenderContext>& renderContext)
@@ -941,7 +939,7 @@ void AlertLayerHandler::RepopulateGeometry(awips::Phenomenon phenomenon)
 }
 
 std::optional<types::TextEventKey> AlertLayerHandler::KeyForGeoLine(
-   const std::shared_ptr<const gl::draw::GeoLineDrawItem>& line)
+   const std::shared_ptr<const draw::GeoLineDrawItem>& line)
 {
    std::lock_guard lock {geometryMutex_};
    for (auto& [phenomenon, geometry] : geometry_)
@@ -959,7 +957,7 @@ std::optional<types::TextEventKey> AlertLayerHandler::KeyForGeoLine(
 
 void AlertLayerHandler::ShowGeoLineHoverTooltip(
    awips::Phenomenon                                       phenomenon,
-   const std::shared_ptr<const gl::draw::GeoLineDrawItem>& line,
+   const std::shared_ptr<const draw::GeoLineDrawItem>& line,
    const QPointF&                                          mouseGlobalPos)
 {
    std::lock_guard lock {geometryMutex_};
@@ -1056,7 +1054,7 @@ void AlertLayer::Impl::AddAlert(
    auto drawItems = shared.linesBySegment_.try_emplace(
       segmentRecord,
       boost::container::stable_vector<
-         std::shared_ptr<gl::draw::GeoLineDrawItem>> {});
+         std::shared_ptr<draw::GeoLineDrawItem>> {});
 
    // If draw items were added
    if (drawItems.second)
@@ -1120,8 +1118,8 @@ void AlertLayer::Impl::UpdateAlert(
 }
 
 void AlertLayer::Impl::AddStyledLine(
-   std::shared_ptr<gl::draw::GeoLines>&        geoLines,
-   std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
+   std::shared_ptr<draw::GeoLines>&        geoLines,
+   std::shared_ptr<draw::GeoLineDrawItem>& di,
    const common::Coordinate&                   p1,
    const common::Coordinate&                   p2,
    const LineData&                             lineData,
@@ -1156,28 +1154,28 @@ void AlertLayer::Impl::AddStyledLine(
       geoLines->SetLineHoverCallback(
          di,
          [phenomenon](
-            const std::shared_ptr<gl::draw::GeoLineDrawItem>& hoverLine,
+            const std::shared_ptr<draw::GeoLineDrawItem>& hoverLine,
             const QPointF&                                    mouseGlobalPos)
          {
             AlertLayerHandler::Instance().ShowGeoLineHoverTooltip(
                phenomenon, hoverLine, mouseGlobalPos);
          });
 
-      const std::weak_ptr<gl::draw::GeoLineDrawItem> diWeak = di;
-      gl::draw::GeoLines::RegisterEventHandler(
+      const std::weak_ptr<draw::GeoLineDrawItem> diWeak = di;
+      draw::GeoLines::RegisterEventHandler(
          di,
          [this, diWeak](QEvent* event) { HandleGeoLinesEvent(diWeak, event); });
    }
 }
 
 void AlertLayer::Impl::AddStyledLines(
-   std::shared_ptr<gl::draw::GeoLines>&   geoLines,
+   std::shared_ptr<draw::GeoLines>&   geoLines,
    const std::vector<common::Coordinate>& coordinates,
    const LineData&                        lineData,
    std::chrono::system_clock::time_point  startTime,
    std::chrono::system_clock::time_point  endTime,
    bool                                   enableHover,
-   boost::container::stable_vector<std::shared_ptr<gl::draw::GeoLineDrawItem>>&
+   boost::container::stable_vector<std::shared_ptr<draw::GeoLineDrawItem>>&
       drawItems)
 {
    for (std::size_t i = 0, j = 1; i < coordinates.size(); ++i, ++j)
@@ -1207,14 +1205,14 @@ void AlertLayer::Impl::AddStyledLines(
 }
 
 void AlertLayer::Impl::AddLines(
-   std::shared_ptr<gl::draw::GeoLines>&   geoLines,
+   std::shared_ptr<draw::GeoLines>&   geoLines,
    const std::vector<common::Coordinate>& coordinates,
    const boost::gil::rgba32f_pixel_t&     color,
    float                                  width,
    std::chrono::system_clock::time_point  startTime,
    std::chrono::system_clock::time_point  endTime,
    bool                                   enableHover,
-   boost::container::stable_vector<std::shared_ptr<gl::draw::GeoLineDrawItem>>&
+   boost::container::stable_vector<std::shared_ptr<draw::GeoLineDrawItem>>&
       drawItems)
 {
    for (std::size_t i = 0, j = 1; i < coordinates.size(); ++i, ++j)
@@ -1245,8 +1243,8 @@ void AlertLayer::Impl::AddLines(
    }
 }
 
-void AlertLayer::Impl::AddLine(std::shared_ptr<gl::draw::GeoLines>& geoLines,
-                               std::shared_ptr<gl::draw::GeoLineDrawItem>& di,
+void AlertLayer::Impl::AddLine(std::shared_ptr<draw::GeoLines>& geoLines,
+                               std::shared_ptr<draw::GeoLineDrawItem>& di,
                                const common::Coordinate&                   p1,
                                const common::Coordinate&                   p2,
                                const boost::gil::rgba32f_pixel_t&    color,
@@ -1271,15 +1269,15 @@ void AlertLayer::Impl::AddLine(std::shared_ptr<gl::draw::GeoLines>& geoLines,
       geoLines->SetLineHoverCallback(
          di,
          [phenomenon](
-            const std::shared_ptr<gl::draw::GeoLineDrawItem>& hoverLine,
+            const std::shared_ptr<draw::GeoLineDrawItem>& hoverLine,
             const QPointF&                                    mouseGlobalPos)
          {
             AlertLayerHandler::Instance().ShowGeoLineHoverTooltip(
                phenomenon, hoverLine, mouseGlobalPos);
          });
 
-      const std::weak_ptr<gl::draw::GeoLineDrawItem> diWeak = di;
-      gl::draw::GeoLines::RegisterEventHandler(
+      const std::weak_ptr<draw::GeoLineDrawItem> diWeak = di;
+      draw::GeoLines::RegisterEventHandler(
          di,
          [this, diWeak](QEvent* event) { HandleGeoLinesEvent(diWeak, event); });
    }
@@ -1382,9 +1380,9 @@ void AlertLayer::Impl::UpdateLines()
 }
 
 void AlertLayer::Impl::HandleGeoLinesEvent(
-   std::weak_ptr<gl::draw::GeoLineDrawItem> diWeak, QEvent* ev)
+   std::weak_ptr<draw::GeoLineDrawItem> diWeak, QEvent* ev)
 {
-   const std::shared_ptr<gl::draw::GeoLineDrawItem> di = diWeak.lock();
+   const std::shared_ptr<draw::GeoLineDrawItem> di = diWeak.lock();
    if (di == nullptr)
    {
       return;
