@@ -29,11 +29,11 @@ public:
 private:
    bool InitBackend(void* renderPass);
 
-   QRhi* rhi_ {nullptr};
-   void* renderPass_ {nullptr};
-   bool  initialized_ {false};
-   VkDevice          device_ {VK_NULL_HANDLE};
-   VkPipelineCache   pipelineCache_ {VK_NULL_HANDLE};
+   QRhi*           rhi_ {nullptr};
+   void*           renderPass_ {nullptr};
+   bool            initialized_ {false};
+   VkDevice        device_ {VK_NULL_HANDLE};
+   VkPipelineCache pipelineCache_ {VK_NULL_HANDLE};
 };
 
 } // namespace scwx::qt::map

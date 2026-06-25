@@ -20,10 +20,9 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 namespace
 {
 
-constexpr float kStormTrackAlphaScale   = 0.72f;
-constexpr float kStormTrackWidthScale   = 1.5f;
-constexpr float kStormTrackBaseWidth_   = 1.0f;
-constexpr float kStormTrackBorderWidth_ = 1.0f;
+constexpr float kStormTrackAlphaScale = 0.72f;
+constexpr float kStormTrackWidthScale = 1.5f;
+constexpr float kStormTrackBaseWidth_ = 1.0f;
 
 boost::gil::rgba32f_pixel_t
 StormTrackColor(const float r, const float g, const float b)
@@ -88,7 +87,7 @@ public:
       boost::gil::rgba32f_pixel_t                       color,
       units::length::nautical_miles<float>              tickRadius,
       units::length::nautical_miles<float>              tickRadiusIncrement,
-      std::shared_ptr<draw::LinkedVectors>&         linkedVectors);
+      std::shared_ptr<draw::LinkedVectors>&             linkedVectors);
    void HandleScitDataPacket(
       const std::shared_ptr<const wsr88d::rpg::StormTrackingInformationMessage>&
                                                         sti,
@@ -96,7 +95,7 @@ public:
       const common::Coordinate&                         center,
       const std::string&                                stormId,
       const std::string&                                hoverText,
-      std::shared_ptr<draw::LinkedVectors>&         linkedVectors);
+      std::shared_ptr<draw::LinkedVectors>&             linkedVectors);
 
    static void HandleStormIdPacket(
       const std::shared_ptr<const wsr88d::rpg::StormTrackingInformationMessage>&
@@ -305,7 +304,7 @@ void OverlayProductLayer::Impl::HandleScitDataPacket(
    const common::Coordinate&                         center,
    const std::string&                                stormId,
    const std::string&                                hoverText,
-   std::shared_ptr<draw::LinkedVectors>&         linkedVectors)
+   std::shared_ptr<draw::LinkedVectors>&             linkedVectors)
 {
    auto scitDataPacket =
       std::dynamic_pointer_cast<const wsr88d::rpg::ScitDataPacket>(packet);
@@ -382,7 +381,7 @@ void OverlayProductLayer::Impl::HandleLinkedVectorPacket(
    boost::gil::rgba32f_pixel_t                       color,
    units::length::nautical_miles<float>              tickRadius,
    units::length::nautical_miles<float>              tickRadiusIncrement,
-   std::shared_ptr<draw::LinkedVectors>&         linkedVectors)
+   std::shared_ptr<draw::LinkedVectors>&             linkedVectors)
 {
    auto linkedVectorPacket =
       std::dynamic_pointer_cast<const wsr88d::rpg::LinkedVectorPacket>(packet);
@@ -396,8 +395,8 @@ void OverlayProductLayer::Impl::HandleLinkedVectorPacket(
       draw::LinkedVectors::SetVectorHoverText(di, hoverText);
       draw::LinkedVectors::SetVectorTicksEnabled(di, true);
       draw::LinkedVectors::SetVectorTickRadius(di, tickRadius);
-      draw::LinkedVectors::SetVectorTickRadiusIncrement(
-         di, tickRadiusIncrement);
+      draw::LinkedVectors::SetVectorTickRadiusIncrement(di,
+                                                        tickRadiusIncrement);
    }
    else
    {

@@ -19,8 +19,7 @@ static const std::string logPrefix_ =
    "scwx::qt::map::map_imgui_vulkan_renderer";
 static const auto logger_ = scwx::util::Logger::Create(logPrefix_);
 
-static const char kImGuiPipelineCacheFile[] =
-   "imgui-vulkan-pipeline-cache.bin";
+static const char kImGuiPipelineCacheFile[] = "imgui-vulkan-pipeline-cache.bin";
 
 static void CheckVkResult(VkResult result)
 {

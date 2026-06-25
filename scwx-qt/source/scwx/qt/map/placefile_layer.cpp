@@ -27,14 +27,12 @@ public:
                  const std::string&                            placefileName) :
        self_ {self},
        placefileName_ {placefileName},
-       placefileIcons_ {
-          std::make_shared<draw::PlacefileIcons>(renderContext)},
+       placefileIcons_ {std::make_shared<draw::PlacefileIcons>(renderContext)},
        placefileImages_ {
           std::make_shared<draw::PlacefileImages>(renderContext)},
        placefileImagesXY_ {
           std::make_shared<draw::PlacefileImagesXY>(renderContext)},
-       placefileLines_ {
-          std::make_shared<draw::PlacefileLines>(renderContext)},
+       placefileLines_ {std::make_shared<draw::PlacefileLines>(renderContext)},
        placefilePolygons_ {
           std::make_shared<draw::PlacefilePolygons>(renderContext)},
        placefileTriangles_ {

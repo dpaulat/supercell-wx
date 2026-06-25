@@ -20,9 +20,9 @@ namespace
 static const std::string logPrefix_ = "scwx::qt::render::rhi_pipeline_cache";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-constexpr char     kMagic[]     = {'S', 'C', 'W', 'X', 'P', 'C', '1'};
-constexpr quint32  kCacheVersion = 1;
-constexpr char     kQrhiCacheFile[]  = "qrhi-vulkan-pipeline-cache.bin";
+constexpr char    kMagic[]         = {'S', 'C', 'W', 'X', 'P', 'C', '1'};
+constexpr quint32 kCacheVersion    = 1;
+constexpr char    kQrhiCacheFile[] = "qrhi-vulkan-pipeline-cache.bin";
 
 bool PipelineCacheDisabled()
 {
@@ -118,8 +118,7 @@ void RestoreQrhiPipelineCache(QRhi* rhi)
    }
 
    rhi->setPipelineCacheData(data);
-   logger_->info("Loaded QRhi Vulkan pipeline cache ({} bytes)",
-                 data.size());
+   logger_->info("Loaded QRhi Vulkan pipeline cache ({} bytes)", data.size());
 }
 
 void PersistQrhiPipelineCache(QRhi* rhi)
@@ -144,8 +143,7 @@ void PersistQrhiPipelineCache(QRhi* rhi)
 
    if (WriteCacheFile(CacheFilePath(kQrhiCacheFile), data))
    {
-      logger_->info("Saved QRhi Vulkan pipeline cache ({} bytes)",
-                    data.size());
+      logger_->info("Saved QRhi Vulkan pipeline cache ({} bytes)", data.size());
    }
 }
 
@@ -170,9 +168,8 @@ void SaveVulkanPipelineCacheBlob(const char* fileName, const QByteArray& data)
 
    if (WriteCacheFile(CacheFilePath(fileName), data))
    {
-      logger_->info("Saved Vulkan pipeline cache {} ({} bytes)",
-                    fileName,
-                    data.size());
+      logger_->info(
+         "Saved Vulkan pipeline cache {} ({} bytes)", fileName, data.size());
    }
 }
 
@@ -189,13 +186,11 @@ VkResult CreateVulkanPipelineCache(VkDevice          device,
    createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
    if (!initialData.isEmpty())
    {
-      createInfo.initialDataSize =
-         static_cast<std::size_t>(initialData.size());
-      createInfo.pInitialData = initialData.constData();
+      createInfo.initialDataSize = static_cast<std::size_t>(initialData.size());
+      createInfo.pInitialData    = initialData.constData();
    }
 
-   return vkCreatePipelineCache(
-      device, &createInfo, nullptr, pipelineCache);
+   return vkCreatePipelineCache(device, &createInfo, nullptr, pipelineCache);
 }
 
 QByteArray GetVulkanPipelineCacheBlob(VkDevice        device,
@@ -208,16 +203,16 @@ QByteArray GetVulkanPipelineCacheBlob(VkDevice        device,
    }
 
    std::size_t dataSize = 0;
-   VkResult    result   = vkGetPipelineCacheData(
-      device, pipelineCache, &dataSize, nullptr);
+   VkResult    result =
+      vkGetPipelineCacheData(device, pipelineCache, &dataSize, nullptr);
    if (result != VK_SUCCESS || dataSize == 0)
    {
       return data;
    }
 
    data.resize(static_cast<int>(dataSize));
-   result = vkGetPipelineCacheData(
-      device, pipelineCache, &dataSize, data.data());
+   result =
+      vkGetPipelineCacheData(device, pipelineCache, &dataSize, data.data());
    if (result != VK_SUCCESS)
    {
       data.clear();

@@ -947,7 +947,7 @@ public:
    }
 
    std::shared_ptr<render::RenderContext> context_;
-   map::MapAnnotationModel*   model_ {nullptr};
+   map::MapAnnotationModel*               model_ {nullptr};
 
    std::vector<float>           modelStrokeVertices_ {};
    std::vector<float>           modelFillVertices_ {};
@@ -1303,7 +1303,7 @@ void MapAnnotationsDrawItem::Impl::RebuildPreviewGeometry()
       previewStrokeVertices_.size() / kFloatsPerVertex);
    fillPreviewCount_ = static_cast<std::uint32_t>(previewFillVertices_.size() /
                                                   kFloatsPerVertex);
-   gpuPreviewDirty_ = true;
+   gpuPreviewDirty_  = true;
 }
 
 void MapAnnotationsDrawItem::Initialize()

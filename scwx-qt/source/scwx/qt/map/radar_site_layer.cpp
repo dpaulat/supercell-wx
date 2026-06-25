@@ -54,8 +54,7 @@ class RadarSiteLayer::Impl
 public:
    explicit Impl(RadarSiteLayer*                               self,
                  const std::shared_ptr<render::RenderContext>& renderContext) :
-       self_ {self},
-       geoLines_ {std::make_shared<draw::GeoLines>(renderContext)}
+       self_ {self}, geoLines_ {std::make_shared<draw::GeoLines>(renderContext)}
    {
    }
    ~Impl() = default;

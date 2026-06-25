@@ -2,16 +2,16 @@
 #include <scwx/util/logger.hpp>
 
 #if defined(_WIN32)
-#include <scwx/qt/settings/general_settings.hpp>
+#   include <scwx/qt/settings/general_settings.hpp>
 
-#include <wtypes.h>
-#include <Psapi.h>
+#   include <wtypes.h>
+#   include <Psapi.h>
 
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/locale.hpp>
-#include <fmt/ranges.h>
-#include <QCheckBox>
-#include <QMessageBox>
+#   include <boost/algorithm/string/predicate.hpp>
+#   include <boost/locale.hpp>
+#   include <fmt/ranges.h>
+#   include <QCheckBox>
+#   include <QMessageBox>
 #endif
 
 namespace scwx::qt::main

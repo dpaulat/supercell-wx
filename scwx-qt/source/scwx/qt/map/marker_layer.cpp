@@ -44,7 +44,7 @@ public:
 
    MarkerLayer* self_;
 
-   std::shared_ptr<draw::GeoIcons>   geoIcons_;
+   std::shared_ptr<draw::GeoIcons>       geoIcons_;
    std::shared_ptr<ui::EditMarkerDialog> editMarkerDialog_;
 };
 

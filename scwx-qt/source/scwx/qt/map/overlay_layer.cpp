@@ -160,7 +160,7 @@ public:
 
    std::shared_ptr<draw::IconDrawItem> compassIcon_ {};
    std::shared_ptr<draw::IconDrawItem> mapCenterIcon_ {};
-   double                                  lastBearing_ {0.0};
+   double                              lastBearing_ {0.0};
 
    std::shared_ptr<draw::IconDrawItem> mapLogoIcon_ {};
 

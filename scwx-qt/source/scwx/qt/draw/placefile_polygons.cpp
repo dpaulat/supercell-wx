@@ -60,7 +60,7 @@ public:
 
    std::chrono::system_clock::time_point selectedTime_ {};
 
-   std::mutex           bufferMutex_ {};
+   std::mutex                bufferMutex_ {};
    std::vector<float>        currentBuffer_ {};
    std::vector<std::int32_t> currentIntegerBuffer_ {};
    std::vector<float>        newBuffer_ {};

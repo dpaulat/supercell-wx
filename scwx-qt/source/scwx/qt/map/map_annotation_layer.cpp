@@ -125,13 +125,13 @@ public:
        renderContext_ {std::move(renderContext)},
        model_ {},
        draw_ {std::make_shared<draw::MapAnnotationsDrawItem>(renderContext_,
-                                                                 &model_)}
+                                                             &model_)}
    {
    }
 
-   std::shared_ptr<MapContext>                       mapContext_;
-   std::shared_ptr<render::RenderContext>            renderContext_;
-   MapAnnotationModel                                model_;
+   std::shared_ptr<MapContext>                   mapContext_;
+   std::shared_ptr<render::RenderContext>        renderContext_;
+   MapAnnotationModel                            model_;
    std::shared_ptr<draw::MapAnnotationsDrawItem> draw_;
 
    MapAnnotationTool  tool_ {MapAnnotationTool::None};
@@ -423,9 +423,7 @@ void MapAnnotationLayer::Initialize(
    p->draw_->Rebuild();
 }
 
-void MapAnnotationLayer::Deinitialize()
-{
-}
+void MapAnnotationLayer::Deinitialize() {}
 
 void MapAnnotationLayer::Render(
    const std::shared_ptr<MapContext>& /* mapContext */,

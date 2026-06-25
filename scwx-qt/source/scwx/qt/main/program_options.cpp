@@ -7,7 +7,7 @@
 #include <fmt/ranges.h>
 
 #if defined(_WIN32)
-#include <windows.h>
+#   include <windows.h>
 #endif
 
 namespace scwx::qt::main::ProgramOptions

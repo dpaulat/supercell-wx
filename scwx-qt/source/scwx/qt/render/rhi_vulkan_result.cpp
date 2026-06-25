@@ -22,7 +22,8 @@ void ReportVulkanResult(VkResult result, const char* context)
       return;
    }
 
-   logger_->error("Vulkan call failed in {}: VkResult {}", context,
+   logger_->error("Vulkan call failed in {}: VkResult {}",
+                  context,
                   static_cast<int>(result));
 
    if (g_handler != nullptr)

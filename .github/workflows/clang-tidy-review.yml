@@ -40,6 +40,13 @@ jobs:
       with:
         path: source
         submodules: recursive
+        fetch-depth: 0
+
+    - name: Update References
+      shell: bash
+      run: |
+        cd source
+        git fetch origin develop
 
     - name: Checkout clang-tidy-review Repository
       uses: actions/checkout@v7
@@ -137,6 +144,8 @@ jobs:
       shell: bash
       run: |
         cd source
+        MERGE_BASE=$(git merge-base origin/develop HEAD)
+        set +e
         review --clang_tidy_binary=${{ matrix.clang_tidy_binary }} \
                --token=${{ github.token }} \
                --repo='${{ github.repository }}' \
@@ -154,6 +163,26 @@ jobs:
                --split_workflow=true \
                --annotations=false \
                --parallel=0
+        REVIEW_EXIT=$?
+        set -e
+
+        if [ ! -f clang-tidy-review-output.json ]; then
+          echo "GitHub PR diff unavailable (review exit ${REVIEW_EXIT}); using local git diff"
+          git diff -U0 ${MERGE_BASE}...HEAD -- \
+            '*.cpp' '*.cxx' '*.cc' '*.hpp' '*.h' '*.hh' '*.h++' '*.c' | \
+            clang-tidy-diff-22 \
+              -path ../build \
+              -p1 \
+              -clang-tidy-binary=${{ matrix.clang_tidy_binary }} \
+              -quiet
+          TIDY_EXIT=$?
+          echo '{"body":"clang-tidy local git diff review","event":"COMMENT","comments":[]}' > clang-tidy-review-output.json
+          echo "{\"pr_number\":${{ github.event.pull_request.number }}}" > clang-tidy-review-metadata.json
+          if [ ${TIDY_EXIT} -ne 0 ]; then
+            exit ${TIDY_EXIT}
+          fi
+        fi
+
         rsync -avzh --ignore-missing-args clang-tidy-review-output.json ../
         rsync -avzh --ignore-missing-args clang-tidy-review-metadata.json ../
         rsync -avzh --ignore-missing-args clang_fixes.json ../

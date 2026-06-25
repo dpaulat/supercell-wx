@@ -210,7 +210,7 @@ jobs:
           }
 
     - name: Install LLVM 22
-      if: ${{ contains(matrix.name, 'clang-22') }}
+      if: ${{ startsWith(matrix.os, 'ubuntu') && contains(matrix.name, 'clang-22') }}
       shell: bash
       run: |
         wget -q https://apt.llvm.org/llvm.sh

@@ -109,9 +109,9 @@ public:
    std::vector<std::shared_ptr<GeoLineDrawItem>> currentLineList_ {};
    std::vector<std::shared_ptr<GeoLineDrawItem>> newLineList_ {};
 
-   std::vector<float> currentLinesBuffer_ {};
+   std::vector<float>        currentLinesBuffer_ {};
    std::vector<std::int32_t> currentIntegerBuffer_ {};
-   std::vector<float> newLinesBuffer_ {};
+   std::vector<float>        newLinesBuffer_ {};
    std::vector<std::int32_t> newIntegerBuffer_ {};
 
    std::unordered_map<std::shared_ptr<GeoLineDrawItem>, GeoLineHoverEntry>
@@ -436,7 +436,7 @@ void GeoLines::FinishLines()
    p->newHoverLines_.clear();
 
    // Mark the draw item dirty
-   p->dirty_ = true;
+   p->dirty_            = true;
    p->geometryUploaded_ = false;
 }
 
@@ -488,7 +488,7 @@ void GeoLines::Impl::UpdateModifiedLineBuffers()
    if (!dirtyLines_.empty())
    {
       dirtyLines_.clear();
-      dirty_ = true;
+      dirty_            = true;
       geometryUploaded_ = false;
    }
 }
@@ -616,10 +616,10 @@ void GeoLines::Impl::UpdateSingleBuffer(
    const float hw =
       di->strokeEnabled_ ? di->strokeBorderHalf_ : (di->width_ * 0.5f);
    const float pickHw = hw + kHoverPickExtraHalfPx;
-   const float lx = -hw;
-   const float rx = +hw;
-   const float ty = +hw;
-   const float by = -hw;
+   const float lx     = -hw;
+   const float rx     = +hw;
+   const float ty     = +hw;
+   const float by     = -hw;
 
    // Modulate color
    const float mc0 = di->modulate_[0];

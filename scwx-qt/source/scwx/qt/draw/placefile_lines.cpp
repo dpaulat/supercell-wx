@@ -82,9 +82,9 @@ public:
    std::size_t currentNumLines_ {};
    std::size_t newNumLines_ {};
 
-   std::vector<float> currentLinesBuffer_ {};
+   std::vector<float>        currentLinesBuffer_ {};
    std::vector<std::int32_t> currentIntegerBuffer_ {};
-   std::vector<float> newLinesBuffer_ {};
+   std::vector<float>        newLinesBuffer_ {};
    std::vector<std::int32_t> newIntegerBuffer_ {};
 
    std::vector<LineHoverEntry> currentHoverLines_ {};

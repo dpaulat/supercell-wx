@@ -76,7 +76,7 @@ public:
    void        UpdateTextureBuffer();
    void        UpdateModifiedIconBuffers();
    void        Update(bool textureAtlasChanged);
-   void UpdateVulkan(bool textureAtlasChanged);
+   void        UpdateVulkan(bool textureAtlasChanged);
 
    std::shared_ptr<render::RenderContext> context_;
 

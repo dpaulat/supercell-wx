@@ -29,7 +29,8 @@ void InitializeGraphics()
    if (enableValidation)
    {
       qputenv("VK_INSTANCE_LAYERS", "VK_LAYER_KHRONOS_validation");
-      logger_->info("Vulkan validation layers enabled (SCWX_VULKAN_VALIDATION)");
+      logger_->info(
+         "Vulkan validation layers enabled (SCWX_VULKAN_VALIDATION)");
    }
 }
 

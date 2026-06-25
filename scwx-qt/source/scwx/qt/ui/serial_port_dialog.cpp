@@ -14,13 +14,13 @@
 #include <QStandardItemModel>
 
 #if defined(_WIN32)
-#include <Windows.h>
-#include <SetupAPI.h>
-#include <initguid.h>
-#include <devguid.h>
-#include <devpkey.h>
-#include <tchar.h>
-#include <cstdlib>
+#   include <Windows.h>
+#   include <SetupAPI.h>
+#   include <initguid.h>
+#   include <devguid.h>
+#   include <devpkey.h>
+#   include <tchar.h>
+#   include <cstdlib>
 #endif
 
 namespace scwx

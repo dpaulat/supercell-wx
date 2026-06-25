@@ -264,7 +264,7 @@ public:
       // Create ImGui Context
       static size_t currentMapId_ {0u};
       imGuiContextName_ = fmt::format("Map {}", ++currentMapId_);
-      imGuiContext_ = model::ImGuiContextModel::Instance().CreateContext(
+      imGuiContext_     = model::ImGuiContextModel::Instance().CreateContext(
          imGuiContextName_, false);
 
       // Initialize ImGui Qt backend
@@ -343,11 +343,11 @@ public:
    {
       return mapChangedOnce_ || mapStylePending_;
    }
-   void SelectNearestRadarSite(double                     latitude,
-                               double                     longitude,
-                               std::optional<std::string> type);
-   void SetRadarSite(const std::string& radarSite,
-                     bool               checkProductAvailability = false);
+   void                  SelectNearestRadarSite(double                     latitude,
+                                                double                     longitude,
+                                                std::optional<std::string> type);
+   void                  SetRadarSite(const std::string& radarSite,
+                                      bool               checkProductAvailability = false);
    [[nodiscard]] QPointF EraseCursorWidgetPosition() const;
    [[nodiscard]] int     EraseCursorRadiusPx(const QPointF& widgetPos) const;
    void                  UpdateAnnotationCursor();
@@ -475,11 +475,9 @@ public:
 
    uint64_t frameDraws_;
 
-   bool     mapNeedsRender_ {true};
-   bool     overlayNeedsRender_ {true};
-   bool     syncingLinkedView_ {false};
-   QPointF  lastPickPos_ {};
-   uint64_t pickFrameCounter_ {0};
+   bool mapNeedsRender_ {true};
+   bool overlayNeedsRender_ {true};
+   bool syncingLinkedView_ {false};
 
    double prevLatitude_ {0.0};
    double prevLongitude_ {0.0};
@@ -499,7 +497,7 @@ public:
    std::unordered_map<std::string, size_t> tiltsToIndices_;
    size_t                                  currentTiltIndex_ {0};
 
-   MapRhiRenderer rhiRenderer_ {};
+   MapRhiRenderer                  rhiRenderer_ {};
    MapImGuiVulkanRenderer          imguiVulkanRenderer_ {};
    MapOverlayRenderer              overlayRenderer_ {};
    bool                            vulkanRenderingInitialized_ {false};
@@ -1814,6 +1812,7 @@ void MapWidgetImpl::AddLayers()
    layerList_.clear();
    genericLayers_.clear();
    placefileLayers_.clear();
+   weakPickedEventHandler_.reset();
 
    // Update custom layer list from model
    types::LayerVector customLayers = model::LayerModel::Instance()->GetLayers();
@@ -3036,13 +3035,7 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
 
          if (hasMouse_ && isPrimaryPane)
          {
-            const bool mouseMoved =
-               (lastPickPos_ - lastPos_).manhattanLength() > 0.5;
-            if (mouseMoved || (pickFrameCounter_++ % 2U) == 0U)
-            {
-               lastPickPos_ = lastPos_;
-               RunMousePicking();
-            }
+            RunMousePicking();
          }
          else if (lastItemPicked_)
          {
@@ -3135,6 +3128,14 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    Q_EMIT widget_->WidgetPainted();
 
    isPainting_ = false;
+
+   // ImGui tooltips must be redrawn every frame; keep rendering while hovering
+   // a pickable overlay item even when the cursor is stationary.
+   if (hasMouse_ && lastItemPicked_)
+   {
+      overlayNeedsRender_ = true;
+      widget_->update();
+   }
 
    if (currentCaptureType != types::CaptureType::None)
    {
@@ -3612,8 +3613,8 @@ void MapWidgetImpl::RadarProductViewDisconnect()
 
 void MapWidgetImpl::ScreenCaptureCopy()
 {
-   const QImage image = widget_->grab().toImage();
-   QClipboard* clipboard = QGuiApplication::clipboard();
+   const QImage image     = widget_->grab().toImage();
+   QClipboard*  clipboard = QGuiApplication::clipboard();
    clipboard->setImage(image);
 
    logger_->info("Map captured to clipboard");
@@ -3621,7 +3622,7 @@ void MapWidgetImpl::ScreenCaptureCopy()
 
 void MapWidgetImpl::ScreenCaptureSaveImage()
 {
-   const QImage image = widget_->grab().toImage();
+   const QImage image     = widget_->grab().toImage();
    const QSize  size      = widget_->size();
    const double latitude  = map_->latitude();
    const double longitude = map_->longitude();
