@@ -104,12 +104,10 @@ public:
                level2ProviderManager_->provider()));
       }
 
-      // Match RadarProductManager::gate_size(); cannot call self_->gate_size()
-      // here because RadarProductManager::p is not constructed yet.
-      // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-      const float gateSize = (radarSite_->type() == "tdwr") ? 150.0f : 250.0f;
-      coordinateTable_     = std::make_unique<RadarCoordinateTable>(
-         radarSite_->latitude(), radarSite_->longitude(), gateSize);
+      coordinateTable_ =
+         std::make_unique<RadarCoordinateTable>(radarSite_->latitude(),
+                                                radarSite_->longitude(),
+                                                gate_size(radarSite_->type()));
    }
    ~RadarProductManagerImpl()
    {
@@ -185,6 +183,8 @@ public:
                                    bool update = true);
 
    void UpdateAvailableProductsSync();
+
+   static float gate_size(types::RadarType radarType);
 
    static bool AreProductTimesPopulated(
       const std::shared_ptr<ProviderManager>& providerManager,
@@ -363,8 +363,13 @@ types::RadarType RadarProductManager::radar_type() const
 
 float RadarProductManager::gate_size() const
 {
+   return RadarProductManagerImpl::gate_size(radar_type());
+}
+
+float RadarProductManagerImpl::gate_size(types::RadarType radarType)
+{
    // wsr88d is 250 meters per gate, others are 150 meters per gate
-   switch (radar_type())
+   switch (radarType)
    {
    case types::RadarType::WSR88D:
       return 250.0f; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
