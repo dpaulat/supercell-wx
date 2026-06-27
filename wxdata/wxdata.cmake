@@ -41,7 +41,8 @@ set(SRC_AWIPS source/scwx/awips/coded_location.cpp
               source/scwx/awips/text_product_message.cpp
               source/scwx/awips/ugc.cpp
               source/scwx/awips/wmo_header.cpp)
-set(HDR_COMMON include/scwx/common/characters.hpp
+set(HDR_COMMON include/scwx/common/application_state.hpp
+               include/scwx/common/characters.hpp
                include/scwx/common/color_table.hpp
                include/scwx/common/constants.hpp
                include/scwx/common/geographic.hpp
@@ -49,14 +50,17 @@ set(HDR_COMMON include/scwx/common/characters.hpp
                include/scwx/common/sites.hpp
                include/scwx/common/types.hpp
                include/scwx/common/vcp.hpp)
-set(SRC_COMMON source/scwx/common/characters.cpp
+set(SRC_COMMON source/scwx/common/application_state.cpp
+               source/scwx/common/characters.cpp
                source/scwx/common/color_table.cpp
                source/scwx/common/geographic.cpp
                source/scwx/common/products.cpp
                source/scwx/common/sites.cpp
                source/scwx/common/vcp.cpp)
-set(HDR_CONFIG include/scwx/config/ondas_config.hpp)
-set(SRC_CONFIG source/scwx/config/ondas_config.cpp)
+set(HDR_CONFIG include/scwx/config/ondas_config.hpp
+               include/scwx/config/ondas_config_loader.hpp)
+set(SRC_CONFIG source/scwx/config/ondas_config.cpp
+               source/scwx/config/ondas_config_loader.cpp)
 set(HDR_GR include/scwx/gr/color.hpp
            include/scwx/gr/gr_types.hpp
            include/scwx/gr/placefile.hpp)
@@ -355,6 +359,7 @@ target_link_libraries(wxdata PUBLIC aws-cpp-sdk-core
                                     spdlog::spdlog
                                     units::units)
 target_link_libraries(wxdata INTERFACE Boost::iostreams
+                                       Boost::url
                                        BZip2::BZip2
                                        hsluv-c)
 

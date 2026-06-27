@@ -1,4 +1,5 @@
 #include <scwx/provider/ondas_level2_data_provider.hpp>
+#include <scwx/config/ondas_config_loader.hpp>
 #include <scwx/types/ondas_types.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
@@ -39,6 +40,8 @@ public:
    std::string baseUri_;
 
    std::mutex listObjectsMutex_ {};
+
+   std::shared_ptr<const config::OndasConfig> ondasConfig_ {};
 };
 
 OndasLevel2DataProvider::OndasLevel2DataProvider(const std::string& radarSite,
@@ -156,9 +159,28 @@ std::string OndasLevel2DataProvider::GetListingUrl(
 {
    (void) date; // Not needed since ONDAS dir.list contains all dates
 
+   // Default list file
+   std::string listFile = "dir.list";
+
+   // Get ONDAS config if not already loaded
+   if (!p->ondasConfig_)
+   {
+      p->ondasConfig_ = config::OndasConfigLoader::Get(p->baseUri_);
+   }
+
+   // Use ONDAS config if available
+   if (p->ondasConfig_)
+   {
+      listFile = p->ondasConfig_->list_file();
+   }
+   else
+   {
+      logger_->debug("No ONDAS config for {}", p->baseUri_);
+   }
+
    // ONDAS directory listing URL format is:
    // {baseUri}/{radarSite}/dir.list
-   return fmt::format("{0}/{1}/dir.list", p->baseUri_, p->radarSite_);
+   return fmt::format("{0}/{1}/{2}", p->baseUri_, p->radarSite_, listFile);
 }
 
 std::string OndasLevel2DataProvider::GetFileUrl(const std::string& key)
