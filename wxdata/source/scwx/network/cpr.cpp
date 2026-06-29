@@ -72,7 +72,8 @@ std::string DownloadToString(const std::string&       url,
    {
       logger_->warn("Failed to download {}: {} ({})",
                     url,
-                    response.error.message,
+                    (response.status_code == 0) ? response.error.message :
+                                                  response.status_line,
                     response.status_code);
       return {};
    }
