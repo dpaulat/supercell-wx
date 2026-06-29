@@ -2,6 +2,7 @@
 #include <scwx/provider/aws_level2_data_provider.hpp>
 #include <scwx/provider/aws_level2_chunks_data_provider.hpp>
 #include <scwx/provider/aws_level3_data_provider.hpp>
+#include <scwx/provider/http_level3_data_provider.hpp>
 #include <scwx/provider/ondas_level2_data_provider.hpp>
 #include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
@@ -116,9 +117,9 @@ NexradDataProviderFactory::CreateLevel3DataProvider(
    else if (boost::istarts_with(baseUri, kHttpPrefix_) ||
             boost::istarts_with(baseUri, kHttpsPrefix_))
    {
-      // HTTP-based provider not implemented yet
-      // provider = std::make_unique<HttpLevel3DataProvider>(radarSite,
-      // product, baseUri);
+      // HTTP-based provider
+      provider =
+         std::make_unique<HttpLevel3DataProvider>(radarSite, product, baseUri);
    }
    else
    {
