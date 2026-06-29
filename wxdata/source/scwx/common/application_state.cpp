@@ -1,13 +1,11 @@
 #include <scwx/common/application_state.hpp>
 
-#include <atomic>
-
 namespace scwx::common
 {
 
 static std::atomic<bool> running_ {true};
 
-bool ApplicationState::IsRunning()
+std::atomic<bool>& ApplicationState::IsRunning()
 {
    return running_;
 }

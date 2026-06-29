@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 namespace scwx::common
 {
 
@@ -15,8 +17,8 @@ public:
    ApplicationState(ApplicationState&&) noexcept            = delete;
    ApplicationState& operator=(ApplicationState&&) noexcept = delete;
 
-   static bool IsRunning();
-   static void Shutdown();
+   static std::atomic<bool>& IsRunning();
+   static void               Shutdown();
 };
 
 } // namespace scwx::common

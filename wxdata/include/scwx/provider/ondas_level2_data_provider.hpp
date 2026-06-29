@@ -28,8 +28,7 @@ public:
    ListObjects(std::chrono::system_clock::time_point date) override;
 
 protected:
-   std::string
-   GetListingUrl(std::chrono::system_clock::time_point date) override;
+   std::string GetListingUrl(std::chrono::system_clock::time_point date);
    std::string GetFileUrl(const std::string& key) override;
 
 private:

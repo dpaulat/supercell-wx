@@ -2,12 +2,14 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/streams.hpp>
 #include <scwx/util/strings.hpp>
+#include <scwx/util/time.hpp>
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>
+#include <re2/re2.h>
 
 namespace scwx::config
 {
@@ -47,6 +49,16 @@ std::string OndasConfig::list_file() const
 std::vector<std::string> OndasConfig::sites() const
 {
    return p->sites_;
+}
+
+std::vector<std::string> OndasConfig::products() const
+{
+   std::vector<std::string> products;
+   for (const auto& [key, value] : p->directoryTemplates_)
+   {
+      products.emplace_back(key);
+   }
+   return products;
 }
 
 void OndasConfig::Parse(std::istream& is)
@@ -109,7 +121,7 @@ void OndasConfig::Impl::ProcessLine(const std::string& line)
 }
 
 std::string OndasConfig::ApplySiteSubstitution(const std::string& radarSite,
-                                               const std::string& product)
+                                               const std::string& product) const
 {
    logger_->debug(
       "ApplySiteSubstitution(): radarSite={}, product={}", radarSite, product);
@@ -148,6 +160,46 @@ std::string OndasConfig::ApplySiteSubstitution(const std::string& radarSite,
    }
 
    return result;
+}
+
+std::chrono::system_clock::time_point
+OndasConfig::GetTimePointFromFilename(const std::string& filename)
+{
+   // Filename/Timestamp Format (per ONDAS spec):
+   // - Format: YYYYMMDD_HHMM (minimum) or SSSS_YYYYMMDD_HHMM
+   // - Example: 20260131_1830 or KILN_20260131_1830
+   // - Note: Some servers may include seconds or version suffix
+
+   // The first 8 contiguous digits are used for the data (yyyymmdd), an
+   // underscore, the next 4 contiguous digits are the time (hhmm) in 24
+   // hour notation. Date and time MUST be in GMT/UTC timezone.
+
+   // June 26, 2005 @ 11:45PM UTC would be 20050626_2145
+
+   static constexpr re2::LazyRE2 re {R"((\d{8}_\d{4}))"};
+
+   std::chrono::system_clock::time_point time {};
+   std::string                           dateTimeStr {};
+
+   if (!RE2::PartialMatch(filename, *re, &dateTimeStr))
+   {
+      logger_->warn("Invalid ONDAS timestamp format in key: \"{}\"", filename);
+      return time;
+   }
+
+   // Match now contains the entire "YYYYMMDD_HHMM" substring
+   // Parse using std::chrono::parse
+   static const std::string timeFormat {"%Y%m%d_%H%M"};
+   std::istringstream       ss(dateTimeStr);
+
+   ss >> util::time::parse(timeFormat, time);
+
+   if (ss.fail())
+   {
+      logger_->warn("Failed to parse ONDAS timestamp: \"{}\"", dateTimeStr);
+   }
+
+   return time;
 }
 
 } // namespace scwx::config

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <istream>
 #include <memory>
 #include <string>
@@ -20,8 +21,9 @@ public:
    OndasConfig(OndasConfig&&) noexcept;
    OndasConfig& operator=(OndasConfig&&) noexcept;
 
-   [[nodiscard]] std::string list_file() const;
+   [[nodiscard]] std::string              list_file() const;
    [[nodiscard]] std::vector<std::string> sites() const;
+   [[nodiscard]] std::vector<std::string> products() const;
 
    /**
     * @brief Parse config content string
@@ -35,7 +37,16 @@ public:
     * Example: "sss/N0R" with site "KILN" -> "iln/N0R"
     */
    std::string ApplySiteSubstitution(const std::string& radarSite,
-                                     const std::string& product);
+                                     const std::string& product) const;
+
+   /**
+    * @brief Get time point from filename
+    *
+    * @param filename
+    * @return std::chrono::system_clock::time_point
+    */
+   static std::chrono::system_clock::time_point
+   GetTimePointFromFilename(const std::string& filename);
 
 private:
    class Impl;

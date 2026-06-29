@@ -48,9 +48,7 @@ protected:
    std::stringstream DownloadToStream(const std::string& url);
 
    // Derived classes must implement these
-   virtual std::string
-   GetListingUrl(std::chrono::system_clock::time_point date) = 0;
-   virtual std::string GetFileUrl(const std::string& key)    = 0;
+   virtual std::string GetFileUrl(const std::string& key) = 0;
 
    // List and parse directory, add to cache. Returns (success, newObjects,
    // totalObjects)

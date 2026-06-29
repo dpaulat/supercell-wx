@@ -18,13 +18,32 @@ public:
    OndasConfigLoader& operator=(OndasConfigLoader&&) noexcept = delete;
 
    /**
+    * @brief Status of the ONDAS config loader.
+    */
+   enum class Status : std::uint8_t
+   {
+      Loaded,
+      NotFound,
+      Error
+   };
+
+   /**
+    * @brief Result of the ONDAS config loader.
+    */
+   struct Result
+   {
+      Status                             status {Status::Error};
+      std::shared_ptr<const OndasConfig> config {};
+   };
+
+   /**
     * @brief Fetch ONDAS config from a server (always hits network).
     *
     * Tries {baseUri}/config.cfg, then {baseUri}/grlevel2.cfg.
     * @param baseUri Server root URL (normalized internally).
-    * @return Parsed config, or nullptr on failure.
+    * @return Result containing the status and parsed config.
     */
-   static std::shared_ptr<const OndasConfig> Fetch(const std::string& baseUri);
+   static Result Fetch(const std::string& baseUri);
 
    /**
     * @brief Get cached ONDAS config for a server, fetching on first miss.
@@ -33,9 +52,9 @@ public:
     * lifetime. Concurrent first callers for the same baseUri coalesce to a
     * single fetch.
     * @param baseUri Server root URL.
-    * @return Cached config, or nullptr if fetch/parse failed (not cached).
+    * @return Result containing the status and cached config.
     */
-   static std::shared_ptr<const OndasConfig> Get(const std::string& baseUri);
+   static Result Get(const std::string& baseUri);
 };
 
 } // namespace scwx::config

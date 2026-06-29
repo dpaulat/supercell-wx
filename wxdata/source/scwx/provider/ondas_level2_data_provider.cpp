@@ -2,12 +2,9 @@
 #include <scwx/config/ondas_config_loader.hpp>
 #include <scwx/types/ondas_types.hpp>
 #include <scwx/util/logger.hpp>
-#include <scwx/util/time.hpp>
 
 #include <chrono>
 #include <mutex>
-
-#include <re2/re2.h>
 
 namespace scwx::provider
 {
@@ -67,41 +64,7 @@ OndasLevel2DataProvider::GetTimePointByKey(const std::string& key) const
 std::chrono::system_clock::time_point
 OndasLevel2DataProvider::GetTimePointFromKey(const std::string& key)
 {
-   // Filename/Timestamp Format (per ONDAS spec):
-   // - Format: YYYYMMDD_HHMM (minimum) or SSSS_YYYYMMDD_HHMM
-   // - Example: 20260131_1830 or KILN_20260131_1830
-   // - Note: Some servers may include seconds or version suffix
-
-   // The first 8 contiguous digits are used for the data (yyyymmdd), an
-   // underscore, the next 4 contiguous digits are the time (hhmm) in 24
-   // hour notation. Date and time MUST be in GMT/UTC timezone.
-
-   // June 26, 2005 @ 11:45PM UTC would be 20050626_2145
-
-   static constexpr re2::LazyRE2 re {R"((\d{8}_\d{4}))"};
-
-   std::chrono::system_clock::time_point time {};
-   std::string                           dateTimeStr {};
-
-   if (!RE2::PartialMatch(key, *re, &dateTimeStr))
-   {
-      logger_->warn("Invalid ONDAS timestamp format in key: \"{}\"", key);
-      return time;
-   }
-
-   // Match now contains the entire "YYYYMMDD_HHMM" substring
-   // Parse using std::chrono::parse
-   static const std::string timeFormat {"%Y%m%d_%H%M"};
-   std::istringstream       ss(dateTimeStr);
-
-   ss >> util::time::parse(timeFormat, time);
-
-   if (ss.fail())
-   {
-      logger_->warn("Failed to parse ONDAS timestamp: \"{}\"", dateTimeStr);
-   }
-
-   return time;
+   return config::OndasConfig::GetTimePointFromFilename(key);
 }
 
 std::tuple<bool, size_t, size_t>
@@ -165,7 +128,8 @@ std::string OndasLevel2DataProvider::GetListingUrl(
    // Get ONDAS config if not already loaded
    if (!p->ondasConfig_)
    {
-      p->ondasConfig_ = config::OndasConfigLoader::Get(p->baseUri_);
+      const auto result = config::OndasConfigLoader::Get(p->baseUri_);
+      p->ondasConfig_   = result.config;
    }
 
    // Use ONDAS config if available

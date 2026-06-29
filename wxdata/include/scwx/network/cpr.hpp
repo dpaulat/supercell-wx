@@ -1,5 +1,7 @@
 #pragma once
 
+#include <scwx/common/application_state.hpp>
+
 #include <atomic>
 #include <memory>
 
@@ -28,5 +30,12 @@ std::shared_ptr<AsyncResponseC> GetAsyncC(Ts... ts)
               GetDefaultProgressCallback(const std::atomic<bool>& isRunning);
 ::cpr::Header GetHeader();
 void          SetUserAgent(const std::string& userAgent);
+
+std::string DownloadToString(
+   const std::string&       url,
+   const std::atomic<bool>& isRunning = common::ApplicationState::IsRunning());
+std::stringstream DownloadToStream(
+   const std::string&       url,
+   const std::atomic<bool>& isRunning = common::ApplicationState::IsRunning());
 
 } // namespace scwx::network::cpr

@@ -22,10 +22,10 @@ static std::unordered_map<std::string, std::shared_ptr<const OndasConfig>>
                          cache_;
 static std::shared_mutex cacheMutex_;
 
-static std::shared_ptr<const OndasConfig>
-FetchConfig(const std::string& baseUri, const std::string& configFile)
+static OndasConfigLoader::Result FetchConfig(const std::string& baseUri,
+                                             const std::string& configFile)
 {
-   std::shared_ptr<OndasConfig> config {};
+   OndasConfigLoader::Result result {};
 
    // Fetch config from server
    ::cpr::Response response =
@@ -39,45 +39,70 @@ FetchConfig(const std::string& baseUri, const std::string& configFile)
 
    if (response.status_code == ::cpr::status::HTTP_OK)
    {
-      config  = std::make_shared<OndasConfig>();
-      auto is = std::istringstream(response.text);
+      auto config = std::make_shared<OndasConfig>();
+      auto is     = std::istringstream(response.text);
       config->Parse(is);
+
+      result.status = OndasConfigLoader::Status::Loaded;
+      result.config = config;
    }
    else if (response.status_code == ::cpr::status::HTTP_NOT_FOUND)
    {
       logger_->debug("Config file not found: {0}/{1}", baseUri, configFile);
+      result.status = OndasConfigLoader::Status::NotFound;
    }
    else
    {
       logger_->warn(
          "Failed to fetch config file: {0}/{1}", baseUri, configFile);
+      result.status = OndasConfigLoader::Status::Error;
    }
 
-   return config;
+   return result;
 }
 
-std::shared_ptr<const OndasConfig>
-OndasConfigLoader::Fetch(const std::string& baseUri)
+OndasConfigLoader::Result OndasConfigLoader::Fetch(const std::string& baseUri)
 {
-   auto cfg = FetchConfig(baseUri, "config.cfg");
-   if (cfg == nullptr)
+   auto result = FetchConfig(baseUri, "config.cfg");
+
+   if (result.config == nullptr)
    {
-      cfg = FetchConfig(baseUri, "grlevel2.cfg");
+      const auto oldStatus = result.status;
+      result               = FetchConfig(baseUri, "grlevel2.cfg");
+
+      // If neither config file was loaded, set the proper error status
+      if (result.status != Status::Loaded && oldStatus == Status::Error)
+      {
+         result.status = oldStatus;
+      }
    }
-   return cfg;
+
+   if (result.config == nullptr)
+   {
+      const auto oldStatus = result.status;
+      result               = FetchConfig(baseUri, "grlevel3.cfg");
+
+      // If neither config file was loaded, set the proper error status
+      if (result.status != Status::Loaded && oldStatus == Status::Error)
+      {
+         result.status = oldStatus;
+      }
+   }
+
+   return result;
 }
 
-std::shared_ptr<const OndasConfig>
-OndasConfigLoader::Get(const std::string& baseUri)
+OndasConfigLoader::Result OndasConfigLoader::Get(const std::string& baseUri)
 {
    const std::string key = boost::urls::url(baseUri).normalize().buffer();
 
-   // Fast path: shared lock, promote weak_ptr
+   // Fast path: shared lock
    {
       std::shared_lock lock(cacheMutex_);
       if (auto it = cache_.find(key); it != cache_.end())
       {
-         return it->second;
+         Status status = it->second ? Status::Loaded : Status::NotFound;
+         return {.status = status, .config = it->second};
       }
    }
 
@@ -85,17 +110,19 @@ OndasConfigLoader::Get(const std::string& baseUri)
    std::unique_lock lock(cacheMutex_);
    if (auto it = cache_.find(key); it != cache_.end())
    {
-      return it->second;
+      Status status = it->second ? Status::Loaded : Status::NotFound;
+      return {.status = status, .config = it->second};
    }
 
-   // Do not cache nullptr; transient failures can retry on next call
-   auto cfg = OndasConfigLoader::Fetch(key);
-   if (cfg)
+   // Do not cache error status; transient failures can retry on next call.
+   // Caching of null when not found is intentional.
+   auto result = OndasConfigLoader::Fetch(key);
+   if (result.status != Status::Error)
    {
-      cache_.insert_or_assign(key, cfg);
+      cache_.insert_or_assign(key, result.config);
    }
 
-   return cfg;
+   return result;
 }
 
 } // namespace scwx::config

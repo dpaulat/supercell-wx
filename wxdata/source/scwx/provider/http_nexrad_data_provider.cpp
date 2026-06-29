@@ -11,8 +11,6 @@
 #include <string>
 #include <utility>
 
-#include <cpr/cpr.h>
-
 namespace scwx::provider
 {
 
@@ -345,34 +343,13 @@ void HttpNexradDataProvider::Shutdown() noexcept
 
 std::string HttpNexradDataProvider::DownloadToString(const std::string& url)
 {
-   // Use CPR to download file
-   ::cpr::Response response =
-      ::cpr::Get(::cpr::Url {url},
-                 network::cpr::GetHeader(),
-                 network::cpr::GetDefaultTimeout(),
-                 network::cpr::GetDefaultConnectTimeout(),
-                 network::cpr::GetDefaultLowSpeed(),
-                 network::cpr::GetDefaultProgressCallback(p->running_));
-
-   if (response.status_code != ::cpr::status::HTTP_OK)
-   {
-      logger_->warn("Failed to download {}: {} ({})",
-                    url,
-                    response.error.message,
-                    response.status_code);
-      return {};
-   }
-
-   return response.text;
+   return network::cpr::DownloadToString(url, p->running_);
 }
 
 std::stringstream
 HttpNexradDataProvider::DownloadToStream(const std::string& url)
 {
-   // Convert response to stream
-   std::stringstream ss {DownloadToString(url),
-                         std::ios::in | std::ios::binary};
-   return ss;
+   return network::cpr::DownloadToStream(url, p->running_);
 }
 
 bool HttpNexradDataProvider::AddToCache(
