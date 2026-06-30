@@ -32,6 +32,12 @@ public:
        config_ {std::move(config)}
    {
    }
+   ~OndasLevel3SiteData() = default;
+
+   OndasLevel3SiteData(const OndasLevel3SiteData&)                = delete;
+   OndasLevel3SiteData& operator=(const OndasLevel3SiteData&)     = delete;
+   OndasLevel3SiteData(OndasLevel3SiteData&&) noexcept            = delete;
+   OndasLevel3SiteData& operator=(OndasLevel3SiteData&&) noexcept = delete;
 
    void                     ListProducts(std::atomic<bool>& running);
    std::vector<std::string> GetAvailableProducts();
@@ -158,8 +164,8 @@ void OndasLevel3Behavior::RequestAvailableProducts()
 
 void OndasLevel3SiteData::ListProducts(std::atomic<bool>& running)
 {
-   std::unique_lock listProductsLock {listProductsMutex_};
-   std::shared_lock readLock {productsMutex_};
+   const std::unique_lock listProductsLock {listProductsMutex_};
+   std::shared_lock       readLock {productsMutex_};
 
    // Only list products once per site
    if (productsReady_)
@@ -180,9 +186,9 @@ void OndasLevel3SiteData::ListProducts(std::atomic<bool>& running)
 
    for (const auto& product : config_->products())
    {
-      std::string productPath =
+      const std::string productPath =
          config_->ApplySiteSubstitution(radarSite_, product);
-      std::string listingUrl = fmt::format(
+      const std::string listingUrl = fmt::format(
          "{0}/{1}/{2}", baseUri_, productPath, config_->list_file());
 
       // Query to see if product is available for this radar site
@@ -236,7 +242,7 @@ void OndasLevel3SiteData::ListProducts(std::atomic<bool>& running)
    if (!error)
    {
       // If no errors, then update the available products
-      std::unique_lock writeLock {productsMutex_};
+      const std::unique_lock writeLock {productsMutex_};
 
       // Move the products into the available products vector
       availableProducts_.swap(products);
@@ -252,7 +258,7 @@ std::vector<std::string> OndasLevel3Behavior::GetAvailableProducts() const
 
 std::vector<std::string> OndasLevel3SiteData::GetAvailableProducts()
 {
-   std::shared_lock lock {productsMutex_};
+   const std::shared_lock lock {productsMutex_};
    return availableProducts_;
 }
 
@@ -276,7 +282,7 @@ std::shared_ptr<OndasLevel3SiteData> OndasLevel3SiteData::Instance(
    std::shared_ptr<OndasLevel3SiteData> instance = nullptr;
 
    {
-      std::unique_lock lock {instanceMutex_};
+      const std::unique_lock lock {instanceMutex_};
 
       // Look up instance shared pointer
       auto it = instanceMap_.find(std::make_pair(baseUri, radarSite));

@@ -123,7 +123,7 @@ void OndasConfig::Impl::ProcessLine(const std::string& line)
 std::string OndasConfig::ApplySiteSubstitution(const std::string& radarSite,
                                                const std::string& product) const
 {
-   logger_->debug(
+   logger_->trace(
       "ApplySiteSubstitution(): radarSite={}, product={}", radarSite, product);
 
    std::string result {};
