@@ -33,7 +33,7 @@ NexradDataProviderFactory::CreateLevel2DataProvider(
 
    if (level2Url.empty())
    {
-      return std::make_unique<AwsLevel2DataProvider>(radarSite);
+      return std::make_shared<AwsLevel2DataProvider>(radarSite);
    }
    else
    {
@@ -55,13 +55,13 @@ NexradDataProviderFactory::CreateLevel2DataProvider(
       const std::string& region     = kDefaultS3Region_; // Default region
 
       provider =
-         std::make_unique<AwsLevel2DataProvider>(radarSite, bucketName, region);
+         std::make_shared<AwsLevel2DataProvider>(radarSite, bucketName, region);
    }
    else if (boost::istarts_with(baseUri, kHttpPrefix_) ||
             boost::istarts_with(baseUri, kHttpsPrefix_))
    {
       // ONDAS is the supported Level 2 HTTP-based provider
-      provider = std::make_unique<OndasLevel2DataProvider>(radarSite, baseUri);
+      provider = std::make_shared<OndasLevel2DataProvider>(radarSite, baseUri);
    }
    else
    {
@@ -76,7 +76,7 @@ std::shared_ptr<NexradDataProvider>
 NexradDataProviderFactory::CreateLevel2ChunksDataProvider(
    const std::string& radarSite)
 {
-   return std::make_unique<AwsLevel2ChunksDataProvider>(radarSite);
+   return std::make_shared<AwsLevel2ChunksDataProvider>(radarSite);
 }
 
 std::shared_ptr<NexradDataProvider>
@@ -88,7 +88,7 @@ NexradDataProviderFactory::CreateLevel3DataProvider(
 
    if (level3Url.empty())
    {
-      return std::make_unique<AwsLevel3DataProvider>(radarSite, product);
+      return std::make_shared<AwsLevel3DataProvider>(radarSite, product);
    }
    else
    {
@@ -111,7 +111,7 @@ NexradDataProviderFactory::CreateLevel3DataProvider(
       const std::string  bucketName = ExtractBucketNameFromS3Uri(baseUri);
       const std::string& region     = kDefaultS3Region_; // Default region
 
-      provider = std::make_unique<AwsLevel3DataProvider>(
+      provider = std::make_shared<AwsLevel3DataProvider>(
          radarSite, product, bucketName, region);
    }
    else if (boost::istarts_with(baseUri, kHttpPrefix_) ||
@@ -119,7 +119,7 @@ NexradDataProviderFactory::CreateLevel3DataProvider(
    {
       // HTTP-based provider
       provider =
-         std::make_unique<HttpLevel3DataProvider>(radarSite, product, baseUri);
+         std::make_shared<HttpLevel3DataProvider>(radarSite, product, baseUri);
    }
    else
    {
