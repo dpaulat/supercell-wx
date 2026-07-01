@@ -116,13 +116,11 @@ public:
       if (it != kProductDirectoryMap_.end())
       {
          productDirectory_ = it->second;
+         productValid_     = true;
       }
       else
       {
          logger_->warn("Product directory not found for product: {}", product_);
-
-         // Note this doesn't work, but is more for logging purposes
-         productDirectory_ = product_;
       }
 
       listingUrl_ = fmt::format("{0}/{1}/SI.{2}",
@@ -141,6 +139,7 @@ public:
    const std::string radarSite_;
    const std::string product_;
 
+   bool        productValid_ {false};
    std::string productDirectory_ {"?"};
    std::string listingUrl_ {};
 
@@ -170,6 +169,12 @@ std::vector<std::string>
 NwsLevel3Behavior::ListObjects(std::chrono::system_clock::time_point date)
 {
    (void) date; // Not needed since NWS directory structure contains all dates
+
+   if (!p->productValid_)
+   {
+      // Skip product listing for invalid products
+      return {};
+   }
 
    logger_->debug("ListObjects: {}", p->listingUrl_);
 
