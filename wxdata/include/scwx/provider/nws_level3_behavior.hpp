@@ -10,13 +10,15 @@ namespace scwx::provider
 class NwsLevel3Behavior : public IHttpLevel3ServerBehavior
 {
 public:
-   explicit NwsLevel3Behavior();
+   explicit NwsLevel3Behavior(const std::string& baseUri,
+                              const std::string& radarSite,
+                              const std::string& product);
    ~NwsLevel3Behavior();
 
-   NwsLevel3Behavior(const NwsLevel3Behavior&) = delete;
+   NwsLevel3Behavior(const NwsLevel3Behavior&)            = delete;
    NwsLevel3Behavior& operator=(const NwsLevel3Behavior&) = delete;
 
-   NwsLevel3Behavior(NwsLevel3Behavior&&) noexcept = default;
+   NwsLevel3Behavior(NwsLevel3Behavior&&) noexcept            = default;
    NwsLevel3Behavior& operator=(NwsLevel3Behavior&&) noexcept = default;
 
    void Shutdown() noexcept override;

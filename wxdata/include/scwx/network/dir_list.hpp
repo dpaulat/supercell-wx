@@ -27,5 +27,14 @@ struct DirListRecord
  */
 std::vector<DirListRecord> DirList(const std::string& baseUrl);
 
+/**
+ * @brief Retrieve Directory Listing from Base URL and Response Text
+ *
+ * Retrieves a directory listing from the base URL and response text. Supports
+ * default Apache-style directory listings only.
+ */
+std::vector<DirListRecord> DirList(const std::string& baseUrl,
+                                   const std::string& responseText);
+
 } // namespace network
 } // namespace scwx

@@ -79,7 +79,8 @@ void HttpLevel3DataProvider::Impl::DetectServerBehavior()
    else if (result.status == config::OndasConfigLoader::Status::NotFound)
    {
       // If the ONDAS config is not found, use the NWS level 3 behavior
-      serverBehavior_ = std::make_unique<NwsLevel3Behavior>();
+      serverBehavior_ =
+         std::make_unique<NwsLevel3Behavior>(baseUri_, radarSite_, product_);
    }
    else
    {
