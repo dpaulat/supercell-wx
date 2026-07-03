@@ -335,6 +335,11 @@ target_compile_options(wxdata PRIVATE
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
 
+# GCC 14+ produces false positives for -Wmaybe-uninitialized
+target_compile_options(wxdata PRIVATE
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,14>>:-Wno-maybe-uninitialized>
+)
+
 # Temporary workaround for Boost and GCC 16+ where -Warray-bounds causes false positives
 target_compile_options(wxdata PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-array-bounds>
