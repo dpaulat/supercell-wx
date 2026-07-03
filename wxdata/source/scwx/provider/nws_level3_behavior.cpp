@@ -1,4 +1,5 @@
 #include <scwx/provider/nws_level3_behavior.hpp>
+#include <scwx/common/application_state.hpp>
 #include <scwx/network/cpr.hpp>
 #include <scwx/network/dir_list.hpp>
 #include <scwx/util/logger.hpp>
@@ -80,7 +81,7 @@ public:
    NwsLevel3SiteData(NwsLevel3SiteData&&) noexcept            = delete;
    NwsLevel3SiteData& operator=(NwsLevel3SiteData&&) noexcept = delete;
 
-   void                     ListProducts(std::atomic<bool>& running);
+   void                     ListProducts();
    std::vector<std::string> GetAvailableProducts(const std::string& radarSite);
    void                     ProcessProductDirectory(const std::string&  product,
                                                     cpr::AsyncResponse& asyncResponse,
@@ -237,10 +238,10 @@ NwsLevel3Behavior::GetTimePointByKey(const std::string& key) const
 void NwsLevel3Behavior::RequestAvailableProducts()
 {
    // Request available products from the NWS Level 3 site data
-   NwsLevel3SiteData::Instance(p->baseUri_)->ListProducts(p->running_);
+   NwsLevel3SiteData::Instance(p->baseUri_)->ListProducts();
 }
 
-void NwsLevel3SiteData::ListProducts(std::atomic<bool>& running)
+void NwsLevel3SiteData::ListProducts()
 {
    const std::unique_lock listProductsLock {listProductsMutex_};
 
@@ -269,7 +270,8 @@ void NwsLevel3SiteData::ListProducts(std::atomic<bool>& running)
                        network::cpr::GetDefaultTimeout(),
                        network::cpr::GetDefaultConnectTimeout(),
                        network::cpr::GetDefaultLowSpeed(),
-                       network::cpr::GetDefaultProgressCallback(running)));
+                       network::cpr::GetDefaultProgressCallback(
+                          common::ApplicationState::IsRunning())));
    }
 
    std::for_each(std::execution::par,
