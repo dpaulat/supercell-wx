@@ -5,6 +5,8 @@
 #include <scwx/config/ondas_config_loader.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <mutex>
+
 namespace scwx::provider
 {
 
@@ -39,6 +41,7 @@ public:
    std::string             product_;
    std::string             baseUri_;
 
+   std::mutex                                 serverBehaviorMutex_ {};
    std::unique_ptr<IHttpLevel3ServerBehavior> serverBehavior_ {};
 
    std::mutex listObjectsMutex_ {};
@@ -61,6 +64,8 @@ HttpLevel3DataProvider::operator=(HttpLevel3DataProvider&&) noexcept = default;
 
 void HttpLevel3DataProvider::Impl::DetectServerBehavior()
 {
+   std::unique_lock lock {serverBehaviorMutex_};
+
    // If the server behavior has already been detected, return
    if (serverBehavior_)
    {
