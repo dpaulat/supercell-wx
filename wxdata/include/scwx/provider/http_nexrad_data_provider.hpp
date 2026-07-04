@@ -10,7 +10,7 @@ class HttpNexradDataProvider : public NexradDataProvider
 public:
    explicit HttpNexradDataProvider(const std::string& radarSite,
                                    const std::string& baseUri);
-   virtual ~HttpNexradDataProvider();
+   ~HttpNexradDataProvider() override;
 
    HttpNexradDataProvider(const HttpNexradDataProvider&)            = delete;
    HttpNexradDataProvider& operator=(const HttpNexradDataProvider&) = delete;

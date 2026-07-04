@@ -10,7 +10,7 @@ static const char* kNwsLevel3BaseUri =
 
 TEST(NwsLevel3BehaviorTest, GetFileUrl)
 {
-   NwsLevel3Behavior behavior(kNwsLevel3BaseUri, "KLSX", "N0Q");
+   const NwsLevel3Behavior behavior(kNwsLevel3BaseUri, "KLSX", "N0Q");
 
    EXPECT_EQ(behavior.GetFileUrl("sn.0001"),
              "https://tgftp.nws.noaa.gov/SL.us008001/DF.of/DC.radar/DS.p94r0/"
@@ -28,7 +28,7 @@ TEST(NwsLevel3BehaviorTest, InvalidProductListObjects)
 
 TEST(NwsLevel3BehaviorTest, DateArchiveNotAvailable)
 {
-   NwsLevel3Behavior behavior(kNwsLevel3BaseUri, "KLSX", "N0Q");
+   const NwsLevel3Behavior behavior(kNwsLevel3BaseUri, "KLSX", "N0Q");
 
    EXPECT_FALSE(behavior.date_archive_available());
 }

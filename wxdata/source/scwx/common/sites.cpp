@@ -1,3 +1,4 @@
+#include <scwx/common/sites.hpp>
 #include <scwx/common/products.hpp>
 
 #include <algorithm>
@@ -12,7 +13,7 @@ std::string GetSiteId(const std::string& radarId)
    // Shorten only if radarId does not contain digits
    if (!std::ranges::any_of(radarId, isdigit))
    {
-      std::size_t siteIdIndex =
+      const std::size_t siteIdIndex =
          std::max<std::size_t>(radarId.length(), 3u) - 3u;
       siteId = radarId.substr(siteIdIndex);
    }

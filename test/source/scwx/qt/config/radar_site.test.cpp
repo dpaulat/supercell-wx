@@ -49,13 +49,13 @@ TEST_F(RadarSiteTest, FindNearest)
 {
    ASSERT_GT(numSites_, 0);
 
-   std::shared_ptr<RadarSite> nearest1 =
+   const std::shared_ptr<RadarSite> nearest1 =
       RadarSite::FindNearest(46.591111, -112.020278); // Helena, MT
-   std::shared_ptr<RadarSite> nearest2 =
+   const std::shared_ptr<RadarSite> nearest2 =
       RadarSite::FindNearest(28.54, -81.38); // Orlando, FL
-   std::shared_ptr<RadarSite> nearest3 = RadarSite::FindNearest(
+   const std::shared_ptr<RadarSite> nearest3 = RadarSite::FindNearest(
       38.627222, -90.197778, types::RadarType::WSR88D); // St Louis, MO
-   std::shared_ptr<RadarSite> nearest4 = RadarSite::FindNearest(
+   const std::shared_ptr<RadarSite> nearest4 = RadarSite::FindNearest(
       38.627222, -90.197778, types::RadarType::TDWR); // St Louis, MO
 
    EXPECT_EQ(nearest1->id(), "KTFX");

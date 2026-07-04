@@ -64,7 +64,7 @@ HttpLevel3DataProvider::operator=(HttpLevel3DataProvider&&) noexcept = default;
 
 void HttpLevel3DataProvider::Impl::DetectServerBehavior()
 {
-   std::unique_lock lock {serverBehaviorMutex_};
+   const std::unique_lock lock {serverBehaviorMutex_};
 
    // If the server behavior has already been detected, return
    if (serverBehavior_)
@@ -140,7 +140,7 @@ HttpLevel3DataProvider::ListObjects(std::chrono::system_clock::time_point date)
       }
 
       // Add to cache (key is the filename)
-      bool inserted = AddToCache(time, object, time);
+      const bool inserted = AddToCache(time, object, time);
       if (inserted)
       {
          newObjects++;

@@ -44,7 +44,7 @@ public:
    [[nodiscard]] std::optional<float> incoming_level_2_elevation() const;
    [[nodiscard]] std::string          radar_id() const;
    [[nodiscard]] std::shared_ptr<config::RadarSite> radar_site() const;
-   [[nodiscard]] types::RadarType     radar_type() const;
+   [[nodiscard]] types::RadarType                   radar_type() const;
 
    void Initialize();
 

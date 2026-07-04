@@ -82,7 +82,7 @@ HttpNexradDataProvider::operator=(HttpNexradDataProvider&&) noexcept = default;
 
 std::size_t HttpNexradDataProvider::cache_size() const
 {
-   std::shared_lock lock(p->objectsMutex_);
+   const std::shared_lock lock(p->objectsMutex_);
    return p->objects_.size();
 }
 
@@ -104,7 +104,7 @@ HttpNexradDataProvider::FindKey(std::chrono::system_clock::time_point time)
 
    std::string key {};
 
-   std::shared_lock lock(p->objectsMutex_);
+   const std::shared_lock lock(p->objectsMutex_);
 
    auto element = util::GetBoundedElement(p->objects_, time);
 
@@ -122,7 +122,7 @@ std::string HttpNexradDataProvider::FindLatestKey()
 
    std::string key {};
 
-   std::shared_lock lock(p->objectsMutex_);
+   const std::shared_lock lock(p->objectsMutex_);
 
    if (!p->objects_.empty())
    {
@@ -329,7 +329,7 @@ void HttpNexradDataProvider::Impl::UpdateObjectDates(
 {
    const auto day = std::chrono::floor<std::chrono::days>(date);
 
-   std::unique_lock lock(objectsMutex_);
+   const std::unique_lock lock(objectsMutex_);
 
    // Remove any existing occurrences of day, and add to the back of the list
    objectDates_.remove(day);

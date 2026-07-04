@@ -17,7 +17,7 @@ ListFile: custom_dir.list
    std::istringstream is {kConfigContent};
    ondasConfig.Parse(is);
 
-   std::string listFile = ondasConfig.list_file();
+   const std::string listFile = ondasConfig.list_file();
    EXPECT_EQ(listFile, "custom_dir.list");
 }
 

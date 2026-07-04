@@ -35,7 +35,8 @@ TEST(OndasLevel3BehaviorTest, GetFileUrl)
 {
    const auto config = MakeTestOndasConfig();
 
-   OndasLevel3Behavior behavior("https://example.com", "KILN", "N0R", config);
+   const OndasLevel3Behavior behavior(
+      "https://example.com", "KILN", "N0R", config);
 
    EXPECT_EQ(behavior.GetFileUrl("20260131_1830"),
              "https://example.com/iln/N0R/20260131_1830");
@@ -45,7 +46,8 @@ TEST(OndasLevel3BehaviorTest, DateArchiveNotAvailable)
 {
    const auto config = MakeTestOndasConfig();
 
-   OndasLevel3Behavior behavior("https://example.com", "KILN", "N0R", config);
+   const OndasLevel3Behavior behavior(
+      "https://example.com", "KILN", "N0R", config);
 
    EXPECT_FALSE(behavior.date_archive_available());
 }

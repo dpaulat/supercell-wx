@@ -10,7 +10,7 @@ namespace scwx::provider
 class IHttpLevel3ServerBehavior
 {
 public:
-   IHttpLevel3ServerBehavior() = default;
+   IHttpLevel3ServerBehavior()          = default;
    virtual ~IHttpLevel3ServerBehavior() = default;
 
    IHttpLevel3ServerBehavior(const IHttpLevel3ServerBehavior&) = delete;

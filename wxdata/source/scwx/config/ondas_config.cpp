@@ -143,10 +143,10 @@ std::string OndasConfig::ApplySiteSubstitution(const std::string& radarSite,
       result = templateStr;
 
       // Replace SSSS/SSS/ssss/sss patterns
-      std::string upperFour  = boost::to_upper_copy(radarSite);
-      std::string lowerFour  = boost::to_lower_copy(radarSite);
-      std::string upperThree = upperFour.substr(1); // "ILN"
-      std::string lowerThree = lowerFour.substr(1); // "iln"
+      const std::string upperFour  = boost::to_upper_copy(radarSite);
+      const std::string lowerFour  = boost::to_lower_copy(radarSite);
+      const std::string upperThree = upperFour.substr(1); // "ILN"
+      const std::string lowerThree = lowerFour.substr(1); // "iln"
 
       // Replace patterns (order matters: check 4-char first)
       boost::replace_all(result, "SSSS", upperFour);

@@ -227,7 +227,7 @@ std::shared_ptr<RadarSite> RadarSite::Get(const std::string& id)
 
 std::vector<std::shared_ptr<RadarSite>> RadarSite::GetAll()
 {
-   std::shared_lock lock(siteMutex_);
+   const std::shared_lock lock(siteMutex_);
    return radarSiteList_;
 }
 
@@ -405,7 +405,7 @@ std::size_t RadarSite::Impl::ReadGisConfig(const std::string& filePath)
    QTextStream fileStream(&file);
    fileStream.setEncoding(QStringConverter::Utf8);
 
-   std::string        fileSource = fileStream.readAll().toStdString();
+   const std::string  fileSource = fileStream.readAll().toStdString();
    std::istringstream is {fileSource};
 
    while (scwx::util::getline(is, line))

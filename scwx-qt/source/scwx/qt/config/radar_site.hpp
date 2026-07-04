@@ -61,7 +61,7 @@ public:
    static std::shared_ptr<RadarSite>
    FindNearest(double                          latitude,
                double                          longitude,
-               std::optional<types::RadarType> type = std::nullopt,
+               std::optional<types::RadarType> type        = std::nullopt,
                bool                            includeDown = true,
                bool                            includeDecommissioned = true);
 

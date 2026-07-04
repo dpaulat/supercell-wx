@@ -214,7 +214,7 @@ NwsLevel3Behavior::ListObjects(std::chrono::system_clock::time_point date)
 
       // Pattern match: sn.nnnn (ignore sn.last)
       static constexpr LazyRE2 re      = {"sn\\.\\d{4}"};
-      bool                     isMatch = RE2::FullMatch(record.filename_, *re);
+      const bool               isMatch = RE2::FullMatch(record.filename_, *re);
       if (isMatch)
       {
          newObjectList.emplace(record.filename_, record.mtime_);
@@ -222,7 +222,7 @@ NwsLevel3Behavior::ListObjects(std::chrono::system_clock::time_point date)
    }
 
    // Update object list with latest directory listing
-   std::unique_lock lock {p->objectsMutex_};
+   const std::unique_lock lock {p->objectsMutex_};
    p->objectList_.swap(newObjectList);
 
    return p->objectList_ | ranges::views::keys | ranges::to<std::vector>();
@@ -239,7 +239,7 @@ std::string NwsLevel3Behavior::GetFileUrl(const std::string& key) const
 std::chrono::system_clock::time_point
 NwsLevel3Behavior::GetTimePointByKey(const std::string& key) const
 {
-   std::shared_lock lock {p->objectsMutex_};
+   const std::shared_lock lock {p->objectsMutex_};
    const auto       it = p->objectList_.find(key);
    if (it != p->objectList_.end())
    {
@@ -354,7 +354,7 @@ void NwsLevel3SiteData::ProcessProductDirectory(
 void NwsLevel3SiteData::RegisterProduct(const std::string& product,
                                         const std::string& radarSite)
 {
-   std::unique_lock lock {productsMutex_};
+   const std::unique_lock lock {productsMutex_};
    const auto       it = availableProducts_.find(radarSite);
    if (it == availableProducts_.end())
    {
@@ -408,7 +408,7 @@ NwsLevel3SiteData::Instance(const std::string& baseUri)
    std::shared_ptr<NwsLevel3SiteData> instance = nullptr;
 
    {
-      std::unique_lock lock {instanceMutex_};
+      const std::unique_lock lock {instanceMutex_};
 
       // Look up instance shared pointer
       auto it = instanceMap_.find(baseUri);

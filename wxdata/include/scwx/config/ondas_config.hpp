@@ -36,8 +36,9 @@ public:
     * Converts SSSS/SSS/ssss/sss patterns to actual site ID
     * Example: "sss/N0R" with site "KILN" -> "iln/N0R"
     */
-   std::string ApplySiteSubstitution(const std::string& radarSite,
-                                     const std::string& product) const;
+   [[nodiscard]] std::string
+   ApplySiteSubstitution(const std::string& radarSite,
+                         const std::string& product) const;
 
    /**
     * @brief Get time point from filename

@@ -1015,7 +1015,7 @@ void RadarProductManagerImpl::PopulateProductTimes(
          providerManager->provider()->GetTimePointsByDate(date, update);
 
       // Lock the merged volume time list
-      std::unique_lock volumeTimesLock {volumeTimesMutex};
+      const std::unique_lock volumeTimesLock {volumeTimesMutex};
 
       // Copy time points to the merged list
       std::copy(timePoints.begin(),

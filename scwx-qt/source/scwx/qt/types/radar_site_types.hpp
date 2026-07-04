@@ -35,8 +35,8 @@ const std::string& GetRadarSiteStatusName(RadarSiteStatus status);
 const std::string& GetRadarSiteStatusLongName(RadarSiteStatus status);
 const std::string& GetRadarSiteStatusDescription(RadarSiteStatus status);
 
-RadarType GetRadarType(const std::string& name);
-RadarType GetRadarType(std::uint32_t code);
+RadarType          GetRadarType(const std::string& name);
+RadarType          GetRadarType(std::uint32_t code);
 const std::string& GetRadarTypeName(RadarType type);
 const std::string& GetRadarTypeLongName(RadarType type);
 

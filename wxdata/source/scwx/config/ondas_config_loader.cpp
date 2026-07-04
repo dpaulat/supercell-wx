@@ -28,7 +28,7 @@ static OndasConfigLoader::Result FetchConfig(const std::string& baseUri,
    OndasConfigLoader::Result result {};
 
    // Fetch config from server
-   ::cpr::Response response =
+   const ::cpr::Response response =
       ::cpr::Get(::cpr::Url {fmt::format("{0}/{1}", baseUri, configFile)},
                  network::cpr::GetHeader(),
                  network::cpr::GetDefaultTimeout(),
@@ -98,19 +98,19 @@ OndasConfigLoader::Result OndasConfigLoader::Get(const std::string& baseUri)
 
    // Fast path: shared lock
    {
-      std::shared_lock lock(cacheMutex_);
+      const std::shared_lock lock(cacheMutex_);
       if (auto it = cache_.find(key); it != cache_.end())
       {
-         Status status = it->second ? Status::Loaded : Status::NotFound;
+         const Status status = it->second ? Status::Loaded : Status::NotFound;
          return {.status = status, .config = it->second};
       }
    }
 
    // Slow path: unique lock, double-check, fetch once
-   std::unique_lock lock(cacheMutex_);
+   const std::unique_lock lock(cacheMutex_);
    if (auto it = cache_.find(key); it != cache_.end())
    {
-      Status status = it->second ? Status::Loaded : Status::NotFound;
+      const Status status = it->second ? Status::Loaded : Status::NotFound;
       return {.status = status, .config = it->second};
    }
 

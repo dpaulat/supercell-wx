@@ -13,7 +13,7 @@ public:
    explicit NwsLevel3Behavior(const std::string& baseUri,
                               const std::string& radarSite,
                               const std::string& product);
-   ~NwsLevel3Behavior();
+   ~NwsLevel3Behavior() override;
 
    NwsLevel3Behavior(const NwsLevel3Behavior&)            = delete;
    NwsLevel3Behavior& operator=(const NwsLevel3Behavior&) = delete;

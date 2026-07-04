@@ -10,7 +10,7 @@ class OndasLevel2DataProvider : public HttpNexradDataProvider
 public:
    explicit OndasLevel2DataProvider(const std::string& radarSite,
                                     const std::string& baseUri);
-   ~OndasLevel2DataProvider();
+   ~OndasLevel2DataProvider() override;
 
    OndasLevel2DataProvider(const OndasLevel2DataProvider&)            = delete;
    OndasLevel2DataProvider& operator=(const OndasLevel2DataProvider&) = delete;

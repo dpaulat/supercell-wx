@@ -11,7 +11,7 @@ public:
    explicit HttpLevel3DataProvider(const std::string& radarSite,
                                    const std::string& product,
                                    const std::string& baseUri);
-   virtual ~HttpLevel3DataProvider();
+   ~HttpLevel3DataProvider() override;
 
    void Shutdown() noexcept override;
 

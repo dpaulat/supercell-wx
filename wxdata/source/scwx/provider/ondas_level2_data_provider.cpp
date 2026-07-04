@@ -104,7 +104,7 @@ OndasLevel2DataProvider::ListObjects(std::chrono::system_clock::time_point date)
       // Add to cache (key is the filename)
       // Note: ONDAS doesn't provide lastModified, use file time as
       // approximation
-      bool inserted = AddToCache(time, record.filename_, time);
+      const bool inserted = AddToCache(time, record.filename_, time);
       if (inserted)
       {
          newObjects++;

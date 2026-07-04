@@ -16,7 +16,7 @@ public:
       const std::string&                                radarSite,
       const std::string&                                product,
       const std::shared_ptr<const config::OndasConfig>& config);
-   ~OndasLevel3Behavior();
+   ~OndasLevel3Behavior() override;
 
    OndasLevel3Behavior(const OndasLevel3Behavior&)            = delete;
    OndasLevel3Behavior& operator=(const OndasLevel3Behavior&) = delete;
