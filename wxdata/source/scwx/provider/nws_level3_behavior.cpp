@@ -60,9 +60,9 @@ static const boost::unordered_flat_map<std::string, std::string>
       {"TZL", "DS.186zl"}, {"NRR", "DS.197rr"}, {"GSM", "DS.p2gsm"},
       {"NSW", "DS.p30sw"}, {"NCR", "DS.p37cr"}, {"NCZ", "DS.p38cr"},
       {"NET", "DS.p41et"}, {"NHI", "DS.p59hi"}, {"NSS", "DS.p62ss"},
-      {"N0Q", "DS.p94r0"}, {"N1R", "DS.p94r1"}, {"N2R", "DS.p94r2"},
-      {"N3R", "DS.p94r3"}, {"NAR", "DS.p94ra"}, {"NBR", "DS.p94rb"},
-      {"NXR", "DS.p94rx"}, {"NYR", "DS.p94ry"}, {"NZR", "DS.p94rz"},
+      {"N0Q", "DS.p94r0"}, {"N1Q", "DS.p94r1"}, {"N2Q", "DS.p94r2"},
+      {"N3Q", "DS.p94r3"}, {"NAQ", "DS.p94ra"}, {"NBQ", "DS.p94rb"},
+      {"NXQ", "DS.p94rx"}, {"NYQ", "DS.p94ry"}, {"NZQ", "DS.p94rz"},
       {"N0U", "DS.p99v0"}, {"N1U", "DS.p99v1"}, {"N2U", "DS.p99v2"},
       {"N3U", "DS.p99v3"}, {"NAU", "DS.p99va"}, {"NBU", "DS.p99vb"},
       {"NXU", "DS.p99vx"}, {"NYU", "DS.p99vy"}, {"NZU", "DS.p99vz"}};
