@@ -57,11 +57,6 @@ HttpLevel3DataProvider::HttpLevel3DataProvider(const std::string& radarSite,
 
 HttpLevel3DataProvider::~HttpLevel3DataProvider() = default;
 
-HttpLevel3DataProvider::HttpLevel3DataProvider(
-   HttpLevel3DataProvider&&) noexcept = default;
-HttpLevel3DataProvider&
-HttpLevel3DataProvider::operator=(HttpLevel3DataProvider&&) noexcept = default;
-
 void HttpLevel3DataProvider::Impl::DetectServerBehavior()
 {
    const std::unique_lock lock {serverBehaviorMutex_};

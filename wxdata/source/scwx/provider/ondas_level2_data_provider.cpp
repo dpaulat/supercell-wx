@@ -50,11 +50,6 @@ OndasLevel2DataProvider::OndasLevel2DataProvider(const std::string& radarSite,
 
 OndasLevel2DataProvider::~OndasLevel2DataProvider() = default;
 
-OndasLevel2DataProvider::OndasLevel2DataProvider(
-   OndasLevel2DataProvider&&) noexcept = default;
-OndasLevel2DataProvider& OndasLevel2DataProvider::operator=(
-   OndasLevel2DataProvider&&) noexcept = default;
-
 std::chrono::system_clock::time_point
 OndasLevel2DataProvider::GetTimePointByKey(const std::string& key) const
 {

@@ -18,10 +18,6 @@ public:
 NexradDataProvider::NexradDataProvider() : p(std::make_unique<Impl>()) {}
 NexradDataProvider::~NexradDataProvider() = default;
 
-NexradDataProvider::NexradDataProvider(NexradDataProvider&&) noexcept = default;
-NexradDataProvider&
-NexradDataProvider::operator=(NexradDataProvider&&) noexcept = default;
-
 void NexradDataProvider::RequestAvailableProducts() {}
 
 std::vector<std::string> NexradDataProvider::GetAvailableProducts()

@@ -19,8 +19,8 @@ public:
    NexradDataProvider(const NexradDataProvider&)            = delete;
    NexradDataProvider& operator=(const NexradDataProvider&) = delete;
 
-   NexradDataProvider(NexradDataProvider&&) noexcept;
-   NexradDataProvider& operator=(NexradDataProvider&&) noexcept;
+   NexradDataProvider(NexradDataProvider&&)            = delete;
+   NexradDataProvider& operator=(NexradDataProvider&&) = delete;
 
    [[nodiscard]] virtual size_t cache_size() const = 0;
 

@@ -15,8 +15,8 @@ public:
    OndasLevel2DataProvider(const OndasLevel2DataProvider&)            = delete;
    OndasLevel2DataProvider& operator=(const OndasLevel2DataProvider&) = delete;
 
-   OndasLevel2DataProvider(OndasLevel2DataProvider&&) noexcept;
-   OndasLevel2DataProvider& operator=(OndasLevel2DataProvider&&) noexcept;
+   OndasLevel2DataProvider(OndasLevel2DataProvider&&)            = delete;
+   OndasLevel2DataProvider& operator=(OndasLevel2DataProvider&&) = delete;
 
    [[nodiscard]] std::chrono::system_clock::time_point
    GetTimePointByKey(const std::string& key) const override;

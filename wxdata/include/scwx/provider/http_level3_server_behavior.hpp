@@ -17,8 +17,8 @@ public:
    IHttpLevel3ServerBehavior&
    operator=(const IHttpLevel3ServerBehavior&) = delete;
 
-   IHttpLevel3ServerBehavior(IHttpLevel3ServerBehavior&&) noexcept;
-   IHttpLevel3ServerBehavior& operator=(IHttpLevel3ServerBehavior&&) noexcept;
+   IHttpLevel3ServerBehavior(IHttpLevel3ServerBehavior&&)            = delete;
+   IHttpLevel3ServerBehavior& operator=(IHttpLevel3ServerBehavior&&) = delete;
 
    virtual void Shutdown() noexcept = 0;
 

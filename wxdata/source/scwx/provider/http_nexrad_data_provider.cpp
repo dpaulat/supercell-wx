@@ -75,11 +75,6 @@ HttpNexradDataProvider::HttpNexradDataProvider(const std::string& radarSite,
 
 HttpNexradDataProvider::~HttpNexradDataProvider() = default;
 
-HttpNexradDataProvider::HttpNexradDataProvider(
-   HttpNexradDataProvider&&) noexcept = default;
-HttpNexradDataProvider&
-HttpNexradDataProvider::operator=(HttpNexradDataProvider&&) noexcept = default;
-
 std::size_t HttpNexradDataProvider::cache_size() const
 {
    const std::shared_lock lock(p->objectsMutex_);

@@ -15,8 +15,8 @@ public:
    HttpNexradDataProvider(const HttpNexradDataProvider&)            = delete;
    HttpNexradDataProvider& operator=(const HttpNexradDataProvider&) = delete;
 
-   HttpNexradDataProvider(HttpNexradDataProvider&&) noexcept;
-   HttpNexradDataProvider& operator=(HttpNexradDataProvider&&) noexcept;
+   HttpNexradDataProvider(HttpNexradDataProvider&&)            = delete;
+   HttpNexradDataProvider& operator=(HttpNexradDataProvider&&) = delete;
 
    // NexradDataProvider interface implementation
    [[nodiscard]] std::size_t cache_size() const override;

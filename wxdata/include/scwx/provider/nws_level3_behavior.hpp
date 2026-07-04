@@ -18,8 +18,8 @@ public:
    NwsLevel3Behavior(const NwsLevel3Behavior&)            = delete;
    NwsLevel3Behavior& operator=(const NwsLevel3Behavior&) = delete;
 
-   NwsLevel3Behavior(NwsLevel3Behavior&&) noexcept            = default;
-   NwsLevel3Behavior& operator=(NwsLevel3Behavior&&) noexcept = default;
+   NwsLevel3Behavior(NwsLevel3Behavior&&)            = delete;
+   NwsLevel3Behavior& operator=(NwsLevel3Behavior&&) = delete;
 
    void Shutdown() noexcept override;
 

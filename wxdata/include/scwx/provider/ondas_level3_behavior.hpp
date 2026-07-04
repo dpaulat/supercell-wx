@@ -21,8 +21,8 @@ public:
    OndasLevel3Behavior(const OndasLevel3Behavior&)            = delete;
    OndasLevel3Behavior& operator=(const OndasLevel3Behavior&) = delete;
 
-   OndasLevel3Behavior(OndasLevel3Behavior&&) noexcept            = default;
-   OndasLevel3Behavior& operator=(OndasLevel3Behavior&&) noexcept = default;
+   OndasLevel3Behavior(OndasLevel3Behavior&&)            = delete;
+   OndasLevel3Behavior& operator=(OndasLevel3Behavior&&) = delete;
 
    void Shutdown() noexcept override;
 

@@ -18,8 +18,8 @@ public:
    HttpLevel3DataProvider(const HttpLevel3DataProvider&)            = delete;
    HttpLevel3DataProvider& operator=(const HttpLevel3DataProvider&) = delete;
 
-   HttpLevel3DataProvider(HttpLevel3DataProvider&&) noexcept;
-   HttpLevel3DataProvider& operator=(HttpLevel3DataProvider&&) noexcept;
+   HttpLevel3DataProvider(HttpLevel3DataProvider&&)            = delete;
+   HttpLevel3DataProvider& operator=(HttpLevel3DataProvider&&) = delete;
 
    std::tuple<bool, size_t, size_t>
    ListObjects(std::chrono::system_clock::time_point date) override;

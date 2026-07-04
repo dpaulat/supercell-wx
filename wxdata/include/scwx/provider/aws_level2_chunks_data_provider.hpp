@@ -29,9 +29,9 @@ public:
    AwsLevel2ChunksDataProvider&
    operator=(const AwsLevel2ChunksDataProvider&) = delete;
 
-   AwsLevel2ChunksDataProvider(AwsLevel2ChunksDataProvider&&) noexcept;
+   AwsLevel2ChunksDataProvider(AwsLevel2ChunksDataProvider&&) = delete;
    AwsLevel2ChunksDataProvider&
-   operator=(AwsLevel2ChunksDataProvider&&) noexcept;
+   operator=(AwsLevel2ChunksDataProvider&&) = delete;
 
    [[nodiscard]] std::chrono::system_clock::time_point
    GetTimePointByKey(const std::string& key) const override;

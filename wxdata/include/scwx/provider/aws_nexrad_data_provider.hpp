@@ -24,8 +24,8 @@ public:
    AwsNexradDataProvider(const AwsNexradDataProvider&)            = delete;
    AwsNexradDataProvider& operator=(const AwsNexradDataProvider&) = delete;
 
-   AwsNexradDataProvider(AwsNexradDataProvider&&) noexcept;
-   AwsNexradDataProvider& operator=(AwsNexradDataProvider&&) noexcept;
+   AwsNexradDataProvider(AwsNexradDataProvider&&)            = delete;
+   AwsNexradDataProvider& operator=(AwsNexradDataProvider&&) = delete;
 
    [[nodiscard]] std::size_t cache_size() const override;
 

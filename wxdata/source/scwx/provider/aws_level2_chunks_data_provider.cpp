@@ -762,11 +762,6 @@ std::vector<std::string> AwsLevel2ChunksDataProvider::GetAvailableProducts()
    return {};
 }
 
-AwsLevel2ChunksDataProvider::AwsLevel2ChunksDataProvider(
-   AwsLevel2ChunksDataProvider&&) noexcept = default;
-AwsLevel2ChunksDataProvider& AwsLevel2ChunksDataProvider::operator=(
-   AwsLevel2ChunksDataProvider&&) noexcept = default;
-
 std::optional<float> AwsLevel2ChunksDataProvider::GetCurrentElevation()
 {
    if (!p->currentScan_.valid_ || p->currentScan_.nexradFile_ == nullptr)
