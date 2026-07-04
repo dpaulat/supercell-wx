@@ -108,13 +108,24 @@ public:
 class NwsLevel3Behavior::Impl
 {
 public:
-   explicit Impl(std::string baseUri,
-                 std::string radarSite,
-                 std::string product) :
-       baseUri_ {std::move(baseUri)},
-       radarSite_ {std::move(radarSite)},
-       product_ {std::move(product)}
+   explicit Impl(const std::string& baseUri,
+                 std::string        radarSite,
+                 std::string        product) :
+       radarSite_ {std::move(radarSite)}, product_ {std::move(product)}
    {
+
+      // Normalize the base URI
+      const auto  url           = boost::urls::url(baseUri).normalize();
+      std::string normalizedUri = url.buffer();
+
+      // Remove trailing slash
+      if (normalizedUri.back() == '/')
+      {
+         normalizedUri.pop_back();
+      }
+
+      baseUri_ = normalizedUri;
+
       const auto it = kProductDirectoryMap_.find(product_);
       if (it != kProductDirectoryMap_.end())
       {
@@ -138,7 +149,7 @@ public:
    Impl(Impl&&) noexcept            = delete;
    Impl& operator=(Impl&&) noexcept = delete;
 
-   const std::string baseUri_;
+   std::string       baseUri_;
    const std::string radarSite_;
    const std::string product_;
 
@@ -394,23 +405,13 @@ NwsLevel3SiteData::Instance(const std::string& baseUri)
       return nullptr;
    }
 
-   // Normalize the base URI
-   const auto  url           = boost::urls::url(baseUri).normalize();
-   std::string normalizedUri = url.buffer();
-
-   // Remove trailing slash
-   if (normalizedUri.back() == '/')
-   {
-      normalizedUri.pop_back();
-   }
-
    std::shared_ptr<NwsLevel3SiteData> instance = nullptr;
 
    {
       std::unique_lock lock {instanceMutex_};
 
       // Look up instance shared pointer
-      auto it = instanceMap_.find(normalizedUri);
+      auto it = instanceMap_.find(baseUri);
       if (it != instanceMap_.end())
       {
          instance = it->second;
@@ -419,8 +420,8 @@ NwsLevel3SiteData::Instance(const std::string& baseUri)
       // If no active instance was found, create a new one
       if (instance == nullptr)
       {
-         instance = std::make_shared<NwsLevel3SiteData>(normalizedUri);
-         instanceMap_.insert_or_assign(normalizedUri, instance);
+         instance = std::make_shared<NwsLevel3SiteData>(baseUri);
+         instanceMap_.insert_or_assign(baseUri, instance);
       }
    }
 

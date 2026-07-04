@@ -68,4 +68,28 @@ Product: N0G sss/test
    EXPECT_EQ(result, "xyz/test");
 }
 
+TEST(OndasConfigTest, GetTimePointFromFilename)
+{
+   using namespace std::chrono;
+   using sys_days = time_point<system_clock, days>;
+
+   constexpr auto expectedTime = sys_days {2026y / January / 31d} + 18h + 30min;
+
+   EXPECT_EQ(OndasConfig::GetTimePointFromFilename("20260131_1830"),
+             expectedTime);
+   EXPECT_EQ(OndasConfig::GetTimePointFromFilename("KILN_20260131_1830"),
+             expectedTime);
+   EXPECT_EQ(OndasConfig::GetTimePointFromFilename("KILN_20260131_1830.raw"),
+             expectedTime);
+}
+
+TEST(OndasConfigTest, GetTimePointFromFilenameInvalid)
+{
+   constexpr std::chrono::system_clock::time_point expectedTime {};
+
+   EXPECT_EQ(OndasConfig::GetTimePointFromFilename("invalid"), expectedTime);
+   EXPECT_EQ(OndasConfig::GetTimePointFromFilename("2026-01-31_1830"),
+             expectedTime);
+}
+
 } // namespace scwx::config
