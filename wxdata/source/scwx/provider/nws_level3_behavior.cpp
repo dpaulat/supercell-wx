@@ -8,10 +8,12 @@
 #include <atomic>
 #include <execution>
 #include <shared_mutex>
+#include <string>
 #include <unordered_map>
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>
+#include <boost/url/url.hpp>
 #include <cpr/cpr.h>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/map.hpp>
@@ -386,13 +388,29 @@ NwsLevel3SiteData::Instance(const std::string& baseUri)
                             instanceMap_;
    static std::shared_mutex instanceMutex_;
 
+   if (baseUri.empty())
+   {
+      // Return nullptr to indicate that the base URI is empty
+      return nullptr;
+   }
+
+   // Normalize the base URI
+   const auto  url           = boost::urls::url(baseUri).normalize();
+   std::string normalizedUri = url.buffer();
+
+   // Remove trailing slash
+   if (normalizedUri.back() == '/')
+   {
+      normalizedUri.pop_back();
+   }
+
    std::shared_ptr<NwsLevel3SiteData> instance = nullptr;
 
    {
       std::unique_lock lock {instanceMutex_};
 
       // Look up instance shared pointer
-      auto it = instanceMap_.find(baseUri);
+      auto it = instanceMap_.find(normalizedUri);
       if (it != instanceMap_.end())
       {
          instance = it->second;
@@ -401,8 +419,8 @@ NwsLevel3SiteData::Instance(const std::string& baseUri)
       // If no active instance was found, create a new one
       if (instance == nullptr)
       {
-         instance = std::make_shared<NwsLevel3SiteData>(baseUri);
-         instanceMap_.insert_or_assign(baseUri, instance);
+         instance = std::make_shared<NwsLevel3SiteData>(normalizedUri);
+         instanceMap_.insert_or_assign(normalizedUri, instance);
       }
    }
 
