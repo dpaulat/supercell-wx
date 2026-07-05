@@ -194,8 +194,9 @@ HttpLevel3DataProvider::GetTimePointByKey(const std::string& key) const
 
 void HttpLevel3DataProvider::RequestAvailableProducts()
 {
-   const std::shared_lock lock {p->serverBehaviorMutex_};
    p->DetectServerBehavior();
+
+   const std::shared_lock lock {p->serverBehaviorMutex_};
    if (!p->serverBehavior_)
    {
       return;
