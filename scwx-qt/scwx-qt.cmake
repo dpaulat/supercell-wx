@@ -498,6 +498,9 @@ set(SHADER_FILES gl/annotation_geo.vert
 
 set(CMAKE_FILES scwx-qt.cmake)
 
+set(GIS_FILES res/config/radars_iastate.gis
+              res/config/radars_weatherpulse.gis)
+
 set(JSON_FILES res/config/radar_sites.json)
 
 set(TS_FILES ts/scwx_en_US.ts)
@@ -556,6 +559,7 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${HDR_VIEW}
                     ${SRC_VIEW}
                     ${SHADER_FILES}
+                    ${GIS_FILES}
                     ${JSON_FILES}
                     ${TS_FILES}
                     ${CMAKE_FILES})
@@ -602,6 +606,7 @@ source_group("Header Files\\view"         FILES ${HDR_VIEW})
 source_group("Source Files\\view"         FILES ${SRC_VIEW})
 source_group("OpenGL Shaders"             FILES ${SHADER_FILES})
 source_group("Resources"                  FILES ${RESOURCE_FILES})
+source_group("Resources\\gis"             FILES ${GIS_FILES})
 source_group("Resources\\json"            FILES ${JSON_FILES})
 source_group("I18N Files"                 FILES ${TS_FILES})
 

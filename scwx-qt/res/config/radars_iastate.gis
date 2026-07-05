@@ -4,6 +4,7 @@ gawx,gawx,   33.98047, -84.00345,   336.00,    29, GA, GAWX/Lawrenceville
 wilu,wilu,   40.465,  -90.685,  212,  1, IL, Western Illinois University (WIU)
 KULM,KULM,   32.529,  -92.012,   55, 29, LA, Monroe/ULM
 mzzu,mzzu,   38.906,  -92.269,  271,  1, MO, Columbia/Mizzou
+KCRI,KCRI,   35.238274,  -97.460030,  390,  1, OK, Norman Testbed KCRI
 DAN1,KCRI,   35.238274,  -97.460030,  390,  1, OK, Norman Testbed DAN1
 DOP1,KCRI,   35.238274,  -97.460030,  390,  1, OK, Norman Testbed DOP1
 FOP1,KCRI,   35.238274,  -97.460030,  390,  1, OK, Norman Testbed FOP1
