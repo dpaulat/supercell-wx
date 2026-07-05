@@ -22,7 +22,7 @@ public:
    AwsLevel2DataProvider(const AwsLevel2DataProvider&)            = delete;
    AwsLevel2DataProvider& operator=(const AwsLevel2DataProvider&) = delete;
 
-   AwsLevel2DataProvider(AwsLevel2DataProvider&&) = delete;
+   AwsLevel2DataProvider(AwsLevel2DataProvider&&)            = delete;
    AwsLevel2DataProvider& operator=(AwsLevel2DataProvider&&) = delete;
 
    std::chrono::system_clock::time_point
