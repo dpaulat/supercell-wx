@@ -268,12 +268,9 @@ void Level3RadialView::ComputeSweep()
       return;
    }
 
-   common::RadialSize radialSize;
-   if (radarProductManager->is_tdwr())
-   {
-      radialSize = common::RadialSize::NonStandard;
-   }
-   else
+   common::RadialSize radialSize = common::RadialSize::NonStandard;
+
+   if (radarProductManager->radar_type() == types::RadarType::WSR88D)
    {
       if (radials == common::MAX_0_5_DEGREE_RADIALS)
       {

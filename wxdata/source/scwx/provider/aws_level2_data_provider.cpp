@@ -44,11 +44,6 @@ AwsLevel2DataProvider::AwsLevel2DataProvider(const std::string& radarSite,
 }
 AwsLevel2DataProvider::~AwsLevel2DataProvider() = default;
 
-AwsLevel2DataProvider::AwsLevel2DataProvider(AwsLevel2DataProvider&&) noexcept =
-   default;
-AwsLevel2DataProvider&
-AwsLevel2DataProvider::operator=(AwsLevel2DataProvider&&) noexcept = default;
-
 std::string
 AwsLevel2DataProvider::GetPrefix(std::chrono::system_clock::time_point date)
 {

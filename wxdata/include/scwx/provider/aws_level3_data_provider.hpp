@@ -24,8 +24,8 @@ public:
    AwsLevel3DataProvider(const AwsLevel3DataProvider&)            = delete;
    AwsLevel3DataProvider& operator=(const AwsLevel3DataProvider&) = delete;
 
-   AwsLevel3DataProvider(AwsLevel3DataProvider&&) noexcept;
-   AwsLevel3DataProvider& operator=(AwsLevel3DataProvider&&) noexcept;
+   AwsLevel3DataProvider(AwsLevel3DataProvider&&)            = delete;
+   AwsLevel3DataProvider& operator=(AwsLevel3DataProvider&&) = delete;
 
    std::chrono::system_clock::time_point
    GetTimePointByKey(const std::string& key) const;

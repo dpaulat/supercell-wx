@@ -41,7 +41,8 @@ set(SRC_AWIPS source/scwx/awips/coded_location.cpp
               source/scwx/awips/text_product_message.cpp
               source/scwx/awips/ugc.cpp
               source/scwx/awips/wmo_header.cpp)
-set(HDR_COMMON include/scwx/common/characters.hpp
+set(HDR_COMMON include/scwx/common/application_state.hpp
+               include/scwx/common/characters.hpp
                include/scwx/common/color_table.hpp
                include/scwx/common/constants.hpp
                include/scwx/common/geographic.hpp
@@ -49,12 +50,17 @@ set(HDR_COMMON include/scwx/common/characters.hpp
                include/scwx/common/sites.hpp
                include/scwx/common/types.hpp
                include/scwx/common/vcp.hpp)
-set(SRC_COMMON source/scwx/common/characters.cpp
+set(SRC_COMMON source/scwx/common/application_state.cpp
+               source/scwx/common/characters.cpp
                source/scwx/common/color_table.cpp
                source/scwx/common/geographic.cpp
                source/scwx/common/products.cpp
                source/scwx/common/sites.cpp
                source/scwx/common/vcp.cpp)
+set(HDR_CONFIG include/scwx/config/ondas_config.hpp
+               include/scwx/config/ondas_config_loader.hpp)
+set(SRC_CONFIG source/scwx/config/ondas_config.cpp
+               source/scwx/config/ondas_config_loader.cpp)
 set(HDR_GR include/scwx/gr/color.hpp
            include/scwx/gr/gr_types.hpp
            include/scwx/gr/placefile.hpp)
@@ -70,27 +76,40 @@ set(HDR_PROVIDER include/scwx/provider/aws_level2_data_provider.hpp
                  include/scwx/provider/aws_level2_chunks_data_provider.hpp
                  include/scwx/provider/aws_level3_data_provider.hpp
                  include/scwx/provider/aws_nexrad_data_provider.hpp
+                 include/scwx/provider/http_level3_data_provider.hpp
+                 include/scwx/provider/http_level3_server_behavior.hpp
+                 include/scwx/provider/http_nexrad_data_provider.hpp
                  include/scwx/provider/iem_api_provider.hpp
                  include/scwx/provider/iem_api_provider.ipp
                  include/scwx/provider/nexrad_data_provider.hpp
                  include/scwx/provider/nexrad_data_provider_factory.hpp
                  include/scwx/provider/nws_api_provider.hpp
+                 include/scwx/provider/nws_level3_behavior.hpp
+                 include/scwx/provider/ondas_level2_data_provider.hpp
+                 include/scwx/provider/ondas_level3_behavior.hpp
                  include/scwx/provider/warnings_provider.hpp)
 set(SRC_PROVIDER source/scwx/provider/aws_level2_data_provider.cpp
                  source/scwx/provider/aws_level2_chunks_data_provider.cpp
                  source/scwx/provider/aws_level3_data_provider.cpp
                  source/scwx/provider/aws_nexrad_data_provider.cpp
+                 source/scwx/provider/http_level3_data_provider.cpp
+                 source/scwx/provider/http_nexrad_data_provider.cpp
                  source/scwx/provider/iem_api_provider.cpp
                  source/scwx/provider/nexrad_data_provider.cpp
                  source/scwx/provider/nexrad_data_provider_factory.cpp
                  source/scwx/provider/nws_api_provider.cpp
+                 source/scwx/provider/nws_level3_behavior.cpp
+                 source/scwx/provider/ondas_level2_data_provider.cpp
+                 source/scwx/provider/ondas_level3_behavior.cpp
                  source/scwx/provider/warnings_provider.cpp)
 set(HDR_TYPES include/scwx/types/iem_types.hpp
               include/scwx/types/ntp_types.hpp
-              include/scwx/types/nws_types.hpp)
+              include/scwx/types/nws_types.hpp
+              include/scwx/types/ondas_types.hpp)
 set(SRC_TYPES source/scwx/types/iem_types.cpp
               source/scwx/types/ntp_types.cpp
-              source/scwx/types/nws_types.cpp)
+              source/scwx/types/nws_types.cpp
+              source/scwx/types/ondas_types.cpp)
 set(HDR_UTIL include/scwx/util/digest.hpp
              include/scwx/util/enum.hpp
              include/scwx/util/environment.hpp
@@ -249,6 +268,8 @@ add_library(wxdata OBJECT ${HDR_AWIPS}
                           ${SRC_AWIPS}
                           ${HDR_COMMON}
                           ${SRC_COMMON}
+                          ${HDR_CONFIG}
+                          ${SRC_CONFIG}
                           ${HDR_GR}
                           ${SRC_GR}
                           ${HDR_NETWORK}
@@ -273,6 +294,8 @@ source_group("Header Files\\awips"       FILES ${HDR_AWIPS})
 source_group("Source Files\\awips"       FILES ${SRC_AWIPS})
 source_group("Header Files\\common"      FILES ${HDR_COMMON})
 source_group("Source Files\\common"      FILES ${SRC_COMMON})
+source_group("Header Files\\config"      FILES ${HDR_CONFIG})
+source_group("Source Files\\config"      FILES ${SRC_CONFIG})
 source_group("Header Files\\gr"          FILES ${HDR_GR})
 source_group("Source Files\\gr"          FILES ${SRC_GR})
 source_group("Header Files\\network"     FILES ${HDR_NETWORK})
@@ -312,6 +335,11 @@ target_compile_options(wxdata PRIVATE
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
 
+# GCC 14+ produces false positives for -Wmaybe-uninitialized
+target_compile_options(wxdata PRIVATE
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,14>>:-Wno-maybe-uninitialized>
+)
+
 # Temporary workaround for Boost and GCC 16+ where -Warray-bounds causes false positives
 target_compile_options(wxdata PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-array-bounds>
@@ -343,6 +371,7 @@ target_link_libraries(wxdata PUBLIC aws-cpp-sdk-core
                                     spdlog::spdlog
                                     units::units)
 target_link_libraries(wxdata INTERFACE Boost::iostreams
+                                       Boost::url
                                        BZip2::BZip2
                                        hsluv-c)
 
