@@ -5,6 +5,7 @@
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/time_types.hpp>
 #include <scwx/common/constants.hpp>
+#include <scwx/deriver/deriver_factory.hpp>
 #include <scwx/provider/aws_level2_chunks_data_provider.hpp>
 #include <scwx/provider/nexrad_data_provider_factory.hpp>
 #include <scwx/util/logger.hpp>
@@ -64,6 +65,17 @@ static std::unordered_map<std::string,
 static std::shared_mutex fileIndexMutex_;
 
 static std::mutex fileLoadMutex_;
+
+class DeriverManager : public QObject
+{
+   Q_OBJECT
+public:
+   explicit DeriverManager(std::string product) : product_ {std::move(product)}
+   {
+   }
+
+   std::string product_;
+};
 
 class RadarProductManagerImpl
 {
@@ -143,6 +155,11 @@ public:
       boost::uuids::uuid                                uuid,
       const std::set<std::shared_ptr<ProviderManager>>& providerManagers,
       bool                                              enabled);
+
+   void DeriverEnableRefresh(boost::uuids::uuid uuid,
+                             const std::string& product,
+                             bool               enabled);
+   void DeriverDisableRefresh(boost::uuids::uuid uuid);
 
    std::tuple<std::map<std::chrono::system_clock::time_point,
                        std::shared_ptr<types::RadarProductRecord>>,
@@ -226,6 +243,9 @@ public:
    std::unordered_map<std::string, std::shared_ptr<ProviderManager>>
                      level3ProviderManagerMap_ {};
    std::shared_mutex level3ProviderManagerMutex_ {};
+   std::unordered_map<std::string, std::weak_ptr<DeriverManager>>
+                     deriverManagerMap_ {};
+   std::shared_mutex deriverManagerMutex_ {};
 
    std::mutex initializeMutex_ {};
    std::mutex level3ProductsInitializeMutex_ {};
@@ -240,7 +260,11 @@ public:
    std::unordered_map<boost::uuids::uuid,
                       std::set<std::shared_ptr<ProviderManager>>,
                       boost::hash<boost::uuids::uuid>>
-                     refreshMap_ {};
+      refreshMap_ {};
+   std::unordered_map<boost::uuids::uuid,
+                      std::shared_ptr<DeriverManager>,
+                      boost::hash<boost::uuids::uuid>>
+                     deriverRefreshMap_;
    std::shared_mutex refreshMapMutex_ {};
 };
 
@@ -433,8 +457,13 @@ void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
                                         bool                      enabled,
                                         boost::uuids::uuid        uuid)
 {
-   if (group == common::RadarProductGroup::Level2)
+   if (group == common::RadarProductGroup::Derived)
    {
+      p->DeriverEnableRefresh(uuid, product, enabled);
+   }
+   else if (group == common::RadarProductGroup::Level2)
+   {
+      p->DeriverDisableRefresh(uuid);
       p->EnableRefresh(
          uuid,
          {p->level2ProviderManager_, p->level2ChunksProviderManager_},
@@ -442,6 +471,7 @@ void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
    }
    else
    {
+      p->DeriverDisableRefresh(uuid);
       const std::shared_ptr<ProviderManager> providerManager =
          p->GetLevel3ProviderManager(product);
 
@@ -477,6 +507,113 @@ void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
          p->EnableRefresh(uuid, {providerManager}, enabled);
       }
    }
+}
+
+void RadarProductManagerImpl::DeriverEnableRefresh(boost::uuids::uuid uuid,
+                                                   const std::string& product,
+                                                   bool               enabled)
+{
+   std::shared_ptr<DeriverManager> deriverManager = nullptr;
+   // TODO see if this can be made less restrictive
+   const std::unique_lock lock {deriverManagerMutex_};
+   const auto&            deriverManagerIt = deriverManagerMap_.find(product);
+   if (deriverManagerIt != deriverManagerMap_.cend())
+   {
+      deriverManager = deriverManagerIt->second.lock();
+   }
+
+   // get the provider managers needed for this product
+   std::set<std::shared_ptr<ProviderManager>> providerManagers = {};
+
+   const auto& derivableProducts =
+      deriver::DeriverFactory::GetDeriveableProducts(product);
+   const auto& productInfoIt = derivableProducts.find(product);
+   if (productInfoIt == derivableProducts.cend())
+   {
+      logger_->error("Could not find derived product {}", product);
+      return;
+   }
+   const auto& productInfo = productInfoIt->second;
+
+   // TODO Make sure only avalible products are selected
+   if (!productInfo.level2Products_.empty())
+   {
+      providerManagers.emplace(level2ProviderManager_);
+      providerManagers.emplace(level2ChunksProviderManager_);
+   }
+   for (const auto& level3Product : productInfo.level3AwipsIds_)
+   {
+      providerManagers.emplace(GetLevel3ProviderManager(level3Product));
+   }
+
+   if (deriverManager == nullptr)
+   {
+      deriverManager = std::make_shared<DeriverManager>(product);
+      deriverManagerMap_.emplace(product, deriverManager);
+
+      // If a deriver already exists, these should already be connected.
+      for (const auto& providerManager : providerManagers)
+      {
+         deriverManager->connect(
+            providerManager.get(),
+            &ProviderManager::NewDataAvailable,
+            deriverManager.get(),
+            [this, deriverManager, product, providerManager](
+               common::RadarProductGroup             gotGroup,
+               const std::string&                    gotProduct,
+               std::chrono::system_clock::time_point latestTime)
+            {
+               // Create file request
+               const std::shared_ptr<request::NexradFileRequest> request =
+                  std::make_shared<request::NexradFileRequest>(
+                     self_->radar_id());
+
+               deriverManager->connect(
+                  request.get(),
+                  &request::NexradFileRequest::RequestComplete,
+                  deriverManager.get(),
+                  [this, product, latestTime, providerManager](
+                     const std::shared_ptr<request::NexradFileRequest>&)
+                  {
+                     // Maybe getting rid of the record is an issue?
+                     Q_EMIT self_->NewDataAvailable(
+                        common::RadarProductGroup::Derived,
+                        product,
+                        providerManager == level2ChunksProviderManager_,
+                        latestTime);
+                  });
+
+               if (gotGroup == common::RadarProductGroup::Level2)
+               {
+                  self_->LoadLevel2Data(latestTime, request);
+               }
+               else if (gotGroup == common::RadarProductGroup::Level3)
+               {
+                  self_->LoadLevel3Data(gotProduct, latestTime, request);
+               }
+            });
+      }
+   }
+   // Refresh always needs to be enabled to manage provider properly
+   EnableRefresh(uuid, providerManagers, enabled);
+
+   {
+      const std::unique_lock refreshLock {refreshMapMutex_};
+      if (enabled)
+      {
+         deriverRefreshMap_.insert_or_assign(uuid, deriverManager);
+      }
+      else
+      {
+         deriverRefreshMap_.erase(uuid);
+      }
+   }
+}
+
+void RadarProductManagerImpl::DeriverDisableRefresh(boost::uuids::uuid uuid)
+{
+   const std::unique_lock refreshLock {refreshMapMutex_};
+   deriverRefreshMap_.erase(uuid);
 }
 
 void RadarProductManagerImpl::EnableRefresh(
@@ -1672,5 +1809,7 @@ RadarProductManager::Instance(const std::string& radarSite)
 
    return instance;
 }
+
+#include "radar_product_manager.moc"
 
 } // namespace scwx::qt::manager

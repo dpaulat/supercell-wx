@@ -30,6 +30,7 @@
 #include <scwx/qt/util/file.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/tooltip.hpp>
+#include <scwx/qt/view/derived_radial_view.hpp>
 #include <scwx/qt/view/overlay_product_view.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
 #include <scwx/util/logger.hpp>
@@ -1158,8 +1159,8 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
 
    if (radarProductView == nullptr ||
        radarProductView->GetRadarProductGroup() != group ||
-       (radarProductView->GetRadarProductGroup() ==
-           common::RadarProductGroup::Level2 &&
+       (radarProductView->GetRadarProductGroup() != // TODO
+           common::RadarProductGroup::Level3 &&
         radarProductView->GetRadarProductName() != productName) ||
        p->context_->radar_product_code() != productCode)
    {
@@ -1193,7 +1194,9 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
          const std::string palette =
             (group == common::RadarProductGroup::Level2) ?
                common::GetLevel2Palette(common::GetLevel2Product(productName)) :
-               common::GetLevel3Palette(productCode);
+            (group == common::RadarProductGroup::Level3) ?
+               common::GetLevel3Palette(productCode) :
+               view::DerivedRadialView::GetPaletteName(product);
 
          auto& paletteSetting =
             settings::PaletteSettings::Instance().palette(palette);
@@ -2810,10 +2813,18 @@ void MapWidgetImpl::RadarProductManagerConnect()
                               radarProductManager_->LoadLevel2Data(latestTime,
                                                                    request);
                            }
-                           else
+                           else if (group == common::RadarProductGroup::Level3)
                            {
                               radarProductManager_->LoadLevel3Data(
                                  product, latestTime, request);
+                           }
+                           else if (group == common::RadarProductGroup::Derived)
+                           {
+                              if (autoUpdateEnabled_)
+                              {
+                                 widget_->SelectRadarProduct(
+                                    group, product, 0, latestTime);
+                              }
                            }
                         }
                         catch (const std::exception& ex)

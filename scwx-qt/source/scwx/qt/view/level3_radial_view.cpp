@@ -305,7 +305,7 @@ void Level3RadialView::ComputeSweep()
 
    p->latitude_  = descriptionBlock->latitude_of_radar();
    p->longitude_ = descriptionBlock->longitude_of_radar();
-   p->range_     = descriptionBlock->range();
+   p->range_     = descriptionBlock->range().value();
    p->elevation_ =
       descriptionBlock->has_elevation() ?
          static_cast<float>(descriptionBlock->elevation().value()) :

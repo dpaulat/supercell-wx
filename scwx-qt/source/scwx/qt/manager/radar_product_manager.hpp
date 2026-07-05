@@ -2,6 +2,7 @@
 
 #include <scwx/common/products.hpp>
 #include <scwx/common/types.hpp>
+#include <scwx/deriver/base_deriver.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/request/nexrad_file_request.hpp>
 #include <scwx/qt/types/radar_product_record.hpp>

@@ -309,6 +309,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/county_dialog.hpp
            source/scwx/qt/ui/custom_layer_dialog.hpp
            source/scwx/qt/ui/download_dialog.hpp
+           source/scwx/qt/ui/derived_products_widget.hpp
            source/scwx/qt/ui/edit_button_dialog.hpp
            source/scwx/qt/ui/edit_line_dialog.hpp
            source/scwx/qt/ui/export_settings_dialog.hpp
@@ -348,6 +349,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/county_dialog.cpp
            source/scwx/qt/ui/custom_layer_dialog.cpp
            source/scwx/qt/ui/download_dialog.cpp
+           source/scwx/qt/ui/derived_products_widget.cpp
            source/scwx/qt/ui/edit_button_dialog.cpp
            source/scwx/qt/ui/edit_line_dialog.cpp
            source/scwx/qt/ui/edit_marker_dialog.cpp
@@ -446,7 +448,6 @@ set(HDR_UTIL source/scwx/qt/util/color.hpp
              source/scwx/qt/util/q_color_modulate.hpp
              source/scwx/qt/util/q_file_buffer.hpp
              source/scwx/qt/util/q_file_input_stream.hpp
-             source/scwx/qt/util/queue_counter.hpp
              source/scwx/qt/util/time.hpp
              source/scwx/qt/util/tooltip.hpp)
 set(SRC_UTIL source/scwx/qt/util/color.cpp
@@ -460,17 +461,18 @@ set(SRC_UTIL source/scwx/qt/util/color.cpp
              source/scwx/qt/util/q_color_modulate.cpp
              source/scwx/qt/util/q_file_buffer.cpp
              source/scwx/qt/util/q_file_input_stream.cpp
-             source/scwx/qt/util/queue_counter.cpp
              source/scwx/qt/util/time.cpp
              source/scwx/qt/util/tooltip.cpp)
-set(HDR_VIEW source/scwx/qt/view/level2_product_view.hpp
+set(HDR_VIEW source/scwx/qt/view/derived_radial_view.hpp
+             source/scwx/qt/view/level2_product_view.hpp
              source/scwx/qt/view/level3_product_view.hpp
              source/scwx/qt/view/level3_radial_view.hpp
              source/scwx/qt/view/level3_raster_view.hpp
              source/scwx/qt/view/overlay_product_view.hpp
              source/scwx/qt/view/radar_product_view.hpp
              source/scwx/qt/view/radar_product_view_factory.hpp)
-set(SRC_VIEW source/scwx/qt/view/level2_product_view.cpp
+set(SRC_VIEW source/scwx/qt/view/derived_radial_view.cpp
+             source/scwx/qt/view/level2_product_view.cpp
              source/scwx/qt/view/level3_product_view.cpp
              source/scwx/qt/view/level3_radial_view.cpp
              source/scwx/qt/view/level3_raster_view.cpp

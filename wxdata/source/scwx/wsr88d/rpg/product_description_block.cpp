@@ -258,9 +258,9 @@ std::uint32_t ProductDescriptionBlock::offset_to_tabular() const
    return p->offsetToTabular_;
 }
 
-float ProductDescriptionBlock::range() const
+units::length::kilometers<float> ProductDescriptionBlock::range() const
 {
-   return range_raw();
+   return units::length::kilometers<float>(range_raw());
 }
 
 std::uint16_t ProductDescriptionBlock::range_raw() const
@@ -276,10 +276,9 @@ std::uint16_t ProductDescriptionBlock::range_raw() const
    return range;
 }
 
-float ProductDescriptionBlock::x_resolution() const
+units::length::kilometers<float> ProductDescriptionBlock::x_resolution() const
 {
-   static constexpr float kScale = 0.001f;
-   return static_cast<float>(x_resolution_raw()) * kScale;
+   return units::length::meters<float>(x_resolution_raw());
 }
 
 std::uint16_t ProductDescriptionBlock::x_resolution_raw() const
@@ -757,6 +756,30 @@ units::angle::degrees<double> ProductDescriptionBlock::elevation() const
 bool ProductDescriptionBlock::has_elevation() const
 {
    return p->elevationNumber_ > 0;
+}
+
+units::velocity::knots<float> ProductDescriptionBlock::avg_storm_speed() const
+{
+   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers) 51
+   // Comes from INTERFACE CONTROL DOCUMENT FOR THE RPG TO CLASS 1 USER Table V
+   return units::velocity::knots<float>(static_cast<float>(p->parameters_[7]) *
+                                        0.1f);
+   // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
+}
+
+units::angle::degrees<float> ProductDescriptionBlock::avg_storm_dir() const
+{
+   // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers) 52
+   // Comes from INTERFACE CONTROL DOCUMENT FOR THE RPG TO CLASS 1 USER Table V
+   return units::angle::degrees<float>(static_cast<float>(p->parameters_[8]) *
+                                       0.1f);
+   // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
+}
+
+bool ProductDescriptionBlock::has_storm_avg() const
+{
+   // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers) SRM = 56
+   return p->productCode_ == 56;
 }
 
 bool ProductDescriptionBlock::IsCompressionEnabled() const
