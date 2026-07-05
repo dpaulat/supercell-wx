@@ -578,7 +578,7 @@ std::size_t RadarSite::Impl::ReadJsonConfig(const std::string& filePath)
                boost::json::value_to<std::string>(o.at("country"));
             site->p->state_ = boost::json::value_to<std::string>(o.at("state"));
             site->p->place_ = boost::json::value_to<std::string>(o.at("place"));
-            site->p->tzName_   = boost::json::value_to<std::string>(o.at("tz"));
+            site->p->tzName_ = boost::json::value_to<std::string>(o.at("tz"));
             site->p->altitude_ = units::length::feet<double> {
                boost::json::value_to<double>(o.at("elevation"))};
 
