@@ -17,8 +17,8 @@ public:
    ApplicationState(ApplicationState&&) noexcept            = delete;
    ApplicationState& operator=(ApplicationState&&) noexcept = delete;
 
-   static std::atomic<bool>& IsRunning();
-   static void               Shutdown();
+   static const std::atomic<bool>& IsRunning();
+   static void                     Shutdown();
 };
 
 } // namespace scwx::common

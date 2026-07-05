@@ -23,10 +23,10 @@ public:
    explicit Impl() = default;
    ~Impl()         = default;
 
-   Impl(const Impl&)             = delete;
-   Impl& operator=(const Impl&)  = delete;
-   Impl(const Impl&&)            = delete;
-   Impl& operator=(const Impl&&) = delete;
+   Impl(const Impl&)            = delete;
+   Impl& operator=(const Impl&) = delete;
+   Impl(Impl&&)                 = delete;
+   Impl& operator=(Impl&&)      = delete;
 
    void ProcessLine(const std::string& line);
 

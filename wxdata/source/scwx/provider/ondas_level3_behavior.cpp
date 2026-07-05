@@ -119,7 +119,7 @@ OndasLevel3Behavior::ListObjects(std::chrono::system_clock::time_point date)
 
    // Download dir.list
    const std::string content =
-      network::cpr::DownloadToString(p->listingUrl_, p->running_);
+      network::cpr::DownloadToString(p->listingUrl_, p->running_).first;
    if (content.empty())
    {
       return {};
@@ -175,7 +175,7 @@ void OndasLevel3SiteData::ListProducts(std::atomic<bool>& running)
 
    readLock.unlock();
 
-   logger_->debug("ListProducts: {}", baseUri_, radarSite_);
+   logger_->debug("ListProducts: {} {}", baseUri_, radarSite_);
 
    std::vector<
       std::pair<std::string, cpr::AsyncWrapper<std::pair<bool, bool>, false>>>

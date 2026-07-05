@@ -188,6 +188,7 @@ int main(int argc, char* argv[])
    }
 
    // Deinitialize application
+   scwx::common::ApplicationState::Shutdown();
    scwx::qt::manager::RadarProductManager::Cleanup();
 
    // Stop Qt Threads
@@ -198,7 +199,6 @@ int main(int argc, char* argv[])
    threadPool.join();
 
    // Shutdown application
-   scwx::common::ApplicationState::Shutdown();
    scwx::qt::manager::ResourceManager::Shutdown();
    scwx::qt::manager::SettingsManager::Instance().Shutdown();
    scwx::qt::manager::TaskManager::Shutdown();

@@ -31,10 +31,23 @@ std::shared_ptr<AsyncResponseC> GetAsyncC(Ts... ts)
 ::cpr::Header GetHeader();
 void          SetUserAgent(const std::string& userAgent);
 
-std::string DownloadToString(
+/**
+ * Download a file to a string.
+ * @param url The URL to download from.
+ * @param isRunning Whether the application is running.
+ * @return A pair containing the string and the status code.
+ */
+std::pair<std::string, long> DownloadToString(
    const std::string&       url,
    const std::atomic<bool>& isRunning = common::ApplicationState::IsRunning());
-std::stringstream DownloadToStream(
+
+/**
+ * Download a file to a stream.
+ * @param url The URL to download from.
+ * @param isRunning Whether the application is running.
+ * @return A pair containing the stream and the status code.
+ */
+std::pair<std::stringstream, long> DownloadToStream(
    const std::string&       url,
    const std::atomic<bool>& isRunning = common::ApplicationState::IsRunning());
 

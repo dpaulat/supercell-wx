@@ -115,11 +115,21 @@ public:
    {
 
       // Normalize the base URI
-      const auto  url           = boost::urls::url(baseUri).normalize();
+      const auto parsed = boost::urls::parse_uri(baseUri);
+
+      // If the URL is invalid, return
+      if (!parsed.has_value())
+      {
+         logger_->warn("Invalid URL: {}", baseUri);
+         return;
+      }
+
+      boost::urls::url url {*parsed};
+      url.normalize();
       std::string normalizedUri = url.buffer();
 
       // Remove trailing slash
-      if (normalizedUri.back() == '/')
+      if (!normalizedUri.empty() && normalizedUri.back() == '/')
       {
          normalizedUri.pop_back();
       }
@@ -149,7 +159,7 @@ public:
    Impl(Impl&&) noexcept            = delete;
    Impl& operator=(Impl&&) noexcept = delete;
 
-   std::string       baseUri_;
+   std::string       baseUri_ {};
    const std::string radarSite_;
    const std::string product_;
 
@@ -194,7 +204,7 @@ NwsLevel3Behavior::ListObjects(std::chrono::system_clock::time_point date)
 
    // Download directory listing
    const std::string content =
-      network::cpr::DownloadToString(p->listingUrl_, p->running_);
+      network::cpr::DownloadToString(p->listingUrl_, p->running_).first;
    if (content.empty())
    {
       return {};
@@ -240,7 +250,7 @@ std::chrono::system_clock::time_point
 NwsLevel3Behavior::GetTimePointByKey(const std::string& key) const
 {
    const std::shared_lock lock {p->objectsMutex_};
-   const auto       it = p->objectList_.find(key);
+   const auto             it = p->objectList_.find(key);
    if (it != p->objectList_.end())
    {
       return it->second;
@@ -251,7 +261,11 @@ NwsLevel3Behavior::GetTimePointByKey(const std::string& key) const
 void NwsLevel3Behavior::RequestAvailableProducts()
 {
    // Request available products from the NWS Level 3 site data
-   NwsLevel3SiteData::Instance(p->baseUri_)->ListProducts();
+   const auto siteData = NwsLevel3SiteData::Instance(p->baseUri_);
+   if (siteData)
+   {
+      siteData->ListProducts();
+   }
 }
 
 void NwsLevel3SiteData::ListProducts()
@@ -355,7 +369,7 @@ void NwsLevel3SiteData::RegisterProduct(const std::string& product,
                                         const std::string& radarSite)
 {
    const std::unique_lock lock {productsMutex_};
-   const auto       it = availableProducts_.find(radarSite);
+   const auto             it = availableProducts_.find(radarSite);
    if (it == availableProducts_.end())
    {
       // Add new radar site to available products
@@ -370,8 +384,12 @@ void NwsLevel3SiteData::RegisterProduct(const std::string& product,
 
 std::vector<std::string> NwsLevel3Behavior::GetAvailableProducts() const
 {
-   return NwsLevel3SiteData::Instance(p->baseUri_)
-      ->GetAvailableProducts(p->radarSite_);
+   const auto siteData = NwsLevel3SiteData::Instance(p->baseUri_);
+   if (siteData)
+   {
+      return siteData->GetAvailableProducts(p->radarSite_);
+   }
+   return {};
 }
 
 std::vector<std::string>

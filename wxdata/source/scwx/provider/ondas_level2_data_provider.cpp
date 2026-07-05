@@ -38,6 +38,7 @@ public:
 
    std::mutex listObjectsMutex_ {};
 
+   std::mutex                                 ondasConfigMutex_ {};
    std::shared_ptr<const config::OndasConfig> ondasConfig_ {};
 };
 
@@ -72,9 +73,6 @@ OndasLevel2DataProvider::ListObjects(std::chrono::system_clock::time_point date)
    const std::string content = DownloadToString(listingUrl);
    if (content.empty())
    {
-      const std::unique_lock lock {p->listObjectsMutex_};
-      ResetCacheStart();
-      ResetCacheFinish();
       return {false, 0, 0};
    }
 
@@ -121,10 +119,13 @@ std::string OndasLevel2DataProvider::GetListingUrl(
    std::string listFile = "dir.list";
 
    // Get ONDAS config if not already loaded
-   if (!p->ondasConfig_)
    {
-      const auto result = config::OndasConfigLoader::Get(p->baseUri_);
-      p->ondasConfig_   = result.config;
+      std::unique_lock lock {p->ondasConfigMutex_};
+      if (!p->ondasConfig_)
+      {
+         const auto result = config::OndasConfigLoader::Get(p->baseUri_);
+         p->ondasConfig_   = result.config;
+      }
    }
 
    // Use ONDAS config if available

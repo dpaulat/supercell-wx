@@ -5,7 +5,7 @@ namespace scwx::common
 
 static std::atomic<bool> running_ {true};
 
-std::atomic<bool>& ApplicationState::IsRunning()
+const std::atomic<bool>& ApplicationState::IsRunning()
 {
    return running_;
 }

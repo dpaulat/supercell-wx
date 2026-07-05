@@ -8,6 +8,8 @@
 #include <scwx/util/logger.hpp>
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/url/parse.hpp>
+#include <boost/url/url.hpp>
 
 namespace scwx::provider
 {
@@ -132,19 +134,16 @@ NexradDataProviderFactory::CreateLevel3DataProvider(
 
 static std::string ExtractBucketNameFromS3Uri(const std::string& s3Uri)
 {
-   if (boost::istarts_with(s3Uri, kS3Prefix_))
+   // Extract bucket from s3Uri
+   // Expected format: s3://bucket-name/
+   const auto parsed = boost::urls::parse_uri(s3Uri);
+   if (!parsed.has_value())
    {
-      auto uriParts = s3Uri.substr(kS3Prefix_.size()).find('/');
-      if (uriParts != std::string::npos)
-      {
-         return s3Uri.substr(kS3Prefix_.size(), uriParts - kS3Prefix_.size());
-      }
-      else
-      {
-         return s3Uri.substr(kS3Prefix_.size());
-      }
+      return {};
    }
-   return {};
+   boost::urls::url url {*parsed};
+   url.normalize();
+   return url.host();
 }
 
 } // namespace scwx::provider

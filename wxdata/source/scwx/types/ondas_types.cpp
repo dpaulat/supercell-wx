@@ -1,6 +1,7 @@
 #include <scwx/types/ondas_types.hpp>
 #include <scwx/util/streams.hpp>
 
+#include <cctype>
 #include <sstream>
 
 #include <boost/algorithm/string/trim.hpp>
@@ -29,7 +30,13 @@ std::vector<OndasDirListRecord> ParseOndasDirList(const std::string& content)
       std::istringstream lineStream(line);
       std::size_t        size {0};
 
-      if (lineStream >> size)
+      const auto sizeParsed = (lineStream >> size) ? true : false;
+      const auto nextChar   = lineStream.peek();
+
+      // If the size was parsed and the next character is a space, then the line
+      // is in the format "size filename". Otherwise, the entire line (including
+      // any digits parsed) is the filename.
+      if (sizeParsed && std::isspace(nextChar))
       {
          // Successfully read a size, now get the rest as filename
          // Skip any whitespace after the size

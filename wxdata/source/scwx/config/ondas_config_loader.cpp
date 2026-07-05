@@ -3,10 +3,13 @@
 #include <scwx/network/cpr.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <boost/url/parse.hpp>
 #include <boost/url/url.hpp>
 #include <cpr/cpr.h>
 #include <fmt/format.h>
 
+#include <memory>
+#include <mutex>
 #include <shared_mutex>
 #include <sstream>
 #include <unordered_map>
@@ -21,6 +24,11 @@ static const auto        logger_    = util::Logger::Create(logPrefix_);
 static std::unordered_map<std::string, std::shared_ptr<const OndasConfig>>
                          cache_;
 static std::shared_mutex cacheMutex_;
+
+// Per-URL fetch mutexes coalesce concurrent first-time lookups for the same key
+static std::unordered_map<std::string, std::shared_ptr<std::mutex>>
+                  fetchMutexes_;
+static std::mutex fetchMutexesMutex_;
 
 static OndasConfigLoader::Result FetchConfig(const std::string& baseUri,
                                              const std::string& configFile)
@@ -94,7 +102,23 @@ OndasConfigLoader::Result OndasConfigLoader::Fetch(const std::string& baseUri)
 
 OndasConfigLoader::Result OndasConfigLoader::Get(const std::string& baseUri)
 {
-   const std::string key = boost::urls::url(baseUri).normalize().buffer();
+   const auto parsed = boost::urls::parse_uri(baseUri);
+
+   // If the URL is invalid, return not found (error would trigger retry)
+   if (!parsed.has_value())
+   {
+      return {.status = Status::NotFound, .config = nullptr};
+   }
+
+   boost::urls::url url {*parsed};
+   url.normalize();
+   std::string key = url.buffer();
+
+   // Remove trailing slash
+   if (!key.empty() && key.back() == '/')
+   {
+      key.pop_back();
+   }
 
    // Fast path: shared lock
    {
@@ -106,12 +130,24 @@ OndasConfigLoader::Result OndasConfigLoader::Get(const std::string& baseUri)
       }
    }
 
-   // Slow path: unique lock, double-check, fetch once
-   const std::unique_lock lock(cacheMutex_);
-   if (auto it = cache_.find(key); it != cache_.end())
+   // Slow path: coalesce fetches per key; different keys fetch concurrently.
+   std::shared_ptr<std::mutex> fetchMutex;
    {
-      const Status status = it->second ? Status::Loaded : Status::NotFound;
-      return {.status = status, .config = it->second};
+      const std::lock_guard lock(fetchMutexesMutex_);
+      fetchMutex =
+         fetchMutexes_.try_emplace(key, std::make_shared<std::mutex>())
+            .first->second;
+   }
+
+   const std::lock_guard fetchLock(*fetchMutex);
+
+   {
+      const std::shared_lock lock(cacheMutex_);
+      if (auto it = cache_.find(key); it != cache_.end())
+      {
+         const Status status = it->second ? Status::Loaded : Status::NotFound;
+         return {.status = status, .config = it->second};
+      }
    }
 
    // Do not cache error status; transient failures can retry on next call.
@@ -119,6 +155,7 @@ OndasConfigLoader::Result OndasConfigLoader::Get(const std::string& baseUri)
    auto result = OndasConfigLoader::Fetch(key);
    if (result.status != Status::Error)
    {
+      const std::unique_lock lock(cacheMutex_);
       cache_.insert_or_assign(key, result.config);
    }
 

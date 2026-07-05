@@ -36,10 +36,10 @@ public:
    {
    }
    ~Impl() { running_ = false; }
-   Impl(const Impl&)             = delete;
-   Impl& operator=(const Impl&)  = delete;
-   Impl(const Impl&&)            = delete;
-   Impl& operator=(const Impl&&) = delete;
+   Impl(const Impl&)            = delete;
+   Impl& operator=(const Impl&) = delete;
+   Impl(Impl&&)                 = delete;
+   Impl& operator=(Impl&&)      = delete;
 
    void CheckDataPresent(std::chrono::system_clock::time_point date,
                          bool                                  update);
@@ -338,13 +338,13 @@ void HttpNexradDataProvider::Shutdown() noexcept
 
 std::string HttpNexradDataProvider::DownloadToString(const std::string& url)
 {
-   return network::cpr::DownloadToString(url, p->running_);
+   return network::cpr::DownloadToString(url, p->running_).first;
 }
 
 std::stringstream
 HttpNexradDataProvider::DownloadToStream(const std::string& url)
 {
-   return network::cpr::DownloadToStream(url, p->running_);
+   return network::cpr::DownloadToStream(url, p->running_).first;
 }
 
 bool HttpNexradDataProvider::AddToCache(

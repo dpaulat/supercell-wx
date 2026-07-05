@@ -6,6 +6,7 @@
 #include <scwx/util/logger.hpp>
 
 #include <mutex>
+#include <shared_mutex>
 
 namespace scwx::provider
 {
@@ -41,8 +42,9 @@ public:
    std::string             product_;
    std::string             baseUri_;
 
-   std::mutex                                 serverBehaviorMutex_ {};
-   std::unique_ptr<IHttpLevel3ServerBehavior> serverBehavior_ {};
+   std::mutex                                 detectMutex_ {};
+   std::shared_mutex                          serverBehaviorMutex_ {};
+   std::shared_ptr<IHttpLevel3ServerBehavior> serverBehavior_ {};
 
    std::mutex listObjectsMutex_ {};
 };
@@ -59,12 +61,24 @@ HttpLevel3DataProvider::~HttpLevel3DataProvider() = default;
 
 void HttpLevel3DataProvider::Impl::DetectServerBehavior()
 {
-   const std::unique_lock lock {serverBehaviorMutex_};
-
-   // If the server behavior has already been detected, return
-   if (serverBehavior_)
+   // Fast path: behavior has already been detected
    {
-      return;
+      const std::shared_lock lock {serverBehaviorMutex_};
+      if (serverBehavior_)
+      {
+         return;
+      }
+   }
+
+   const std::unique_lock detectLock {detectMutex_};
+
+   // Double check after waiting on detectMutex_
+   {
+      const std::shared_lock lock {serverBehaviorMutex_};
+      if (serverBehavior_)
+      {
+         return;
+      }
    }
 
    // Try to load the ONDAS config
@@ -73,14 +87,16 @@ void HttpLevel3DataProvider::Impl::DetectServerBehavior()
    if (result.status == config::OndasConfigLoader::Status::Loaded)
    {
       // If the ONDAS config is loaded, use the ONDAS level 3 behavior
-      serverBehavior_ = std::make_unique<OndasLevel3Behavior>(
+      const std::unique_lock lock {serverBehaviorMutex_};
+      serverBehavior_ = std::make_shared<OndasLevel3Behavior>(
          baseUri_, radarSite_, product_, result.config);
    }
    else if (result.status == config::OndasConfigLoader::Status::NotFound)
    {
       // If the ONDAS config is not found, use the NWS level 3 behavior
+      const std::unique_lock lock {serverBehaviorMutex_};
       serverBehavior_ =
-         std::make_unique<NwsLevel3Behavior>(baseUri_, radarSite_, product_);
+         std::make_shared<NwsLevel3Behavior>(baseUri_, radarSite_, product_);
    }
    else
    {
@@ -92,6 +108,7 @@ void HttpLevel3DataProvider::Impl::DetectServerBehavior()
 
 void HttpLevel3DataProvider::Shutdown() noexcept
 {
+   const std::shared_lock lock {p->serverBehaviorMutex_};
    if (p->serverBehavior_)
    {
       p->serverBehavior_->Shutdown();
@@ -102,20 +119,22 @@ std::tuple<bool, std::size_t, std::size_t>
 HttpLevel3DataProvider::ListObjects(std::chrono::system_clock::time_point date)
 {
    p->DetectServerBehavior();
-   if (!p->serverBehavior_)
+
+   // Acquire a copy of the server behavior to avoid race conditions
+   std::shared_ptr<IHttpLevel3ServerBehavior> serverBehavior = nullptr;
    {
-      const std::unique_lock lock {p->listObjectsMutex_};
-      ResetCacheStart();
-      ResetCacheFinish();
+      const std::shared_lock lock {p->serverBehaviorMutex_};
+      serverBehavior = p->serverBehavior_;
+   }
+
+   if (!serverBehavior)
+   {
       return {false, 0, 0};
    }
 
-   const auto objects = p->serverBehavior_->ListObjects(date);
+   const auto objects = serverBehavior->ListObjects(date);
    if (objects.empty())
    {
-      const std::unique_lock lock {p->listObjectsMutex_};
-      ResetCacheStart();
-      ResetCacheFinish();
       return {false, 0, 0};
    }
 
@@ -128,7 +147,7 @@ HttpLevel3DataProvider::ListObjects(std::chrono::system_clock::time_point date)
 
    for (const auto& object : objects)
    {
-      const auto time = p->serverBehavior_->GetTimePointByKey(object);
+      const auto time = serverBehavior->GetTimePointByKey(object);
       if (time == std::chrono::system_clock::time_point {})
       {
          continue; // Invalid timestamp
@@ -152,6 +171,7 @@ std::string HttpLevel3DataProvider::GetFileUrl(const std::string& key)
 {
    // Don't call DetectServerBehavior() here to avoid blocking the main thread.
    // Behavior should have already been detected.
+   const std::shared_lock lock {p->serverBehaviorMutex_};
    if (!p->serverBehavior_)
    {
       return {};
@@ -164,6 +184,7 @@ HttpLevel3DataProvider::GetTimePointByKey(const std::string& key) const
 {
    // Don't call DetectServerBehavior() here to avoid blocking the main thread.
    // Behavior should have already been detected.
+   const std::shared_lock lock {p->serverBehaviorMutex_};
    if (!p->serverBehavior_)
    {
       return {};
@@ -173,6 +194,7 @@ HttpLevel3DataProvider::GetTimePointByKey(const std::string& key) const
 
 void HttpLevel3DataProvider::RequestAvailableProducts()
 {
+   const std::shared_lock lock {p->serverBehaviorMutex_};
    p->DetectServerBehavior();
    if (!p->serverBehavior_)
    {
@@ -184,6 +206,7 @@ void HttpLevel3DataProvider::RequestAvailableProducts()
 std::vector<std::string> HttpLevel3DataProvider::GetAvailableProducts()
 {
    // Don't call DetectServerBehavior() here to avoid blocking the main thread
+   const std::shared_lock lock {p->serverBehaviorMutex_};
    if (!p->serverBehavior_)
    {
       return {};

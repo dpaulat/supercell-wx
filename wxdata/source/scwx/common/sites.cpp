@@ -11,7 +11,9 @@ std::string GetSiteId(const std::string& radarId)
    std::string siteId = radarId;
 
    // Shorten only if radarId does not contain digits
-   if (!std::ranges::any_of(radarId, isdigit))
+   if (!std::ranges::any_of(
+          radarId,
+          [](char c) { return std::isdigit(static_cast<unsigned char>(c)); }))
    {
       const std::size_t siteIdIndex =
          std::max<std::size_t>(radarId.length(), 3u) - 3u;

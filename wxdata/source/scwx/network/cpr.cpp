@@ -56,8 +56,8 @@ void SetUserAgent(const std::string& userAgent)
    header_.insert_or_assign("User-Agent", userAgent);
 }
 
-std::string DownloadToString(const std::string&       url,
-                             const std::atomic<bool>& isRunning)
+std::pair<std::string, long>
+DownloadToString(const std::string& url, const std::atomic<bool>& isRunning)
 {
    // Use CPR to download file
    ::cpr::Response response =
@@ -75,19 +75,19 @@ std::string DownloadToString(const std::string&       url,
                     (response.status_code == 0) ? response.error.message :
                                                   response.status_line,
                     response.status_code);
-      return {};
+      return {std::string {}, response.status_code};
    }
 
-   return response.text;
+   return {response.text, response.status_code};
 }
 
-std::stringstream DownloadToStream(const std::string&       url,
-                                   const std::atomic<bool>& isRunning)
+std::pair<std::stringstream, long>
+DownloadToStream(const std::string& url, const std::atomic<bool>& isRunning)
 {
    // Convert response to stream
-   std::stringstream ss {DownloadToString(url, isRunning),
-                         std::ios::in | std::ios::binary};
-   return ss;
+   auto [text, statusCode] = DownloadToString(url, isRunning);
+   std::stringstream ss {std::move(text), std::ios::in | std::ios::binary};
+   return {std::move(ss), statusCode};
 }
 
 } // namespace scwx::network::cpr
