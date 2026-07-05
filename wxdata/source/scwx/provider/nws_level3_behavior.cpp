@@ -4,9 +4,8 @@
 #include <scwx/network/dir_list.hpp>
 #include <scwx/util/logger.hpp>
 
-#include <algorithm>
 #include <atomic>
-#include <execution>
+#include <deque>
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
@@ -280,8 +279,10 @@ void NwsLevel3SiteData::ListProducts()
 
    logger_->debug("ListProducts: {}", baseUri_);
 
-   std::vector<std::pair<std::string, cpr::AsyncResponse>> asyncResponses {};
-   std::atomic<bool>                                       error {false};
+   std::deque<std::pair<std::string, cpr::AsyncResponse>> asyncResponses {};
+   std::atomic<bool>                                      error {false};
+
+   static constexpr std::size_t kMaxConcurrentRequests = 8u;
 
    for (const auto& product : kProductDirectoryMap_)
    {
@@ -299,16 +300,21 @@ void NwsLevel3SiteData::ListProducts()
                        network::cpr::GetDefaultLowSpeed(),
                        network::cpr::GetDefaultProgressCallback(
                           common::ApplicationState::IsRunning())));
+
+      while (asyncResponses.size() >= kMaxConcurrentRequests)
+      {
+         auto& front = asyncResponses.front();
+         ProcessProductDirectory(front.first, front.second, error);
+         asyncResponses.pop_front();
+      }
    }
 
-   std::for_each(std::execution::par,
-                 asyncResponses.begin(),
-                 asyncResponses.end(),
-                 [this, &error](auto& asyncResponse)
-                 {
-                    ProcessProductDirectory(
-                       asyncResponse.first, asyncResponse.second, error);
-                 });
+   while (!asyncResponses.empty())
+   {
+      auto& front = asyncResponses.front();
+      ProcessProductDirectory(front.first, front.second, error);
+      asyncResponses.pop_front();
+   }
 
    if (!error)
    {
