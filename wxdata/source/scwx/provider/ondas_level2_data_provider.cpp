@@ -120,7 +120,7 @@ std::string OndasLevel2DataProvider::GetListingUrl(
 
    // Get ONDAS config if not already loaded
    {
-      std::unique_lock lock {p->ondasConfigMutex_};
+      const std::unique_lock lock {p->ondasConfigMutex_};
       if (!p->ondasConfig_)
       {
          const auto result = config::OndasConfigLoader::Get(p->baseUri_);
