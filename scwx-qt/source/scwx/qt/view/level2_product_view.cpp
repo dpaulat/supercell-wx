@@ -687,10 +687,6 @@ void Level2ProductView::ComputeSweep()
    vertexRadials =
       std::min<std::size_t>(vertexRadials, common::MAX_0_5_DEGREE_RADIALS);
 
-   p->ComputeCoordinates(radarData, smoothingEnabled);
-
-   const std::vector<float>& coordinates = p->coordinates_;
-
    auto& radarData0     = (*radarData)[0];
    auto  momentData0    = radarData0->moment_data_block(p->dataBlockType_);
    p->elevationScan_    = radarData;
@@ -703,6 +699,10 @@ void Level2ProductView::ComputeSweep()
       Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
       return;
    }
+
+   p->ComputeCoordinates(radarData, smoothingEnabled);
+
+   const std::vector<float>& coordinates = p->coordinates_;
 
    const uint32_t gates = momentData0->number_of_data_moment_gates();
 
@@ -804,7 +804,9 @@ void Level2ProductView::ComputeSweep()
 
       // Compute gate range [startGate, endGate)
       std::int32_t startGate =
-         (dataMomentRange - dataMomentIntervalH) / gateSizeMeters;
+         (gateSizeMeters > 0) ?
+            (dataMomentRange - dataMomentIntervalH) / gateSizeMeters :
+            0;
       const std::int32_t numberOfDataMomentGates =
          std::min<std::int32_t>(momentData->number_of_data_moment_gates(),
                                 static_cast<std::int32_t>(gates));
@@ -1543,7 +1545,9 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
 
    // Compute gate range [startGate, endGate)
    const std::int32_t startGate =
-      (dataMomentRange - dataMomentIntervalH) / gateSizeMeters;
+      (gateSizeMeters > 0) ?
+         (dataMomentRange - dataMomentIntervalH) / gateSizeMeters :
+         0;
    const std::int32_t numberOfDataMomentGates =
       momentData->number_of_data_moment_gates();
 

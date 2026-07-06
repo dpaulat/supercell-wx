@@ -36,7 +36,9 @@ jobs:
 
     - name: Check Formatting
       shell: bash
+      env:
+        HEAD_REF: ${{ github.event.pull_request.head.sha || github.ref }}
       run: |
-        MERGE_BASE=$(git merge-base origin/develop ${{ github.event.pull_request.head.sha || github.ref }})
+        MERGE_BASE=$(git merge-base origin/develop "${HEAD_REF}")
         echo "Comparing against ${MERGE_BASE}"
         git clang-format-21 --diff --style=file -v ${MERGE_BASE}
