@@ -1,4 +1,5 @@
 #include <scwx/qt/main/program_options.hpp>
+#include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <sstream>
@@ -76,6 +77,22 @@ void HandleArguments(bool& exit)
       exit = true;
    }
 
+   if (!programOptions_.level2Provider_.empty())
+   {
+      // Set environment variable for level 2 provider URL, which will be read
+      // by the data provider factory when creating the provider instance.
+      scwx::util::SetEnvironment("SCWX_LEVEL2_DATA_PROVIDER_URL",
+                                 programOptions_.level2Provider_);
+   }
+
+   if (!programOptions_.level3Provider_.empty())
+   {
+      // Set environment variable for level 3 provider URL, which will be read
+      // by the data provider factory when creating the provider instance.
+      scwx::util::SetEnvironment("SCWX_LEVEL3_DATA_PROVIDER_URL",
+                                 programOptions_.level3Provider_);
+   }
+
    if (!programOptions_.unrecognizedArgs_.empty())
    {
       logger_->warn("Unrecognized command line arguments: {}",
@@ -120,6 +137,18 @@ const boost::program_options::options_description& GetVisibleOptions()
           boost::program_options::bool_switch(&programOptions_.enableConsole_),
           "Enable console output") //
 #endif
+         ("level2-provider",
+          boost::program_options::value<std::string>(
+             &programOptions_.level2Provider_)
+             ->value_name("url"),
+          "Level 2 data provider URL. Protocol may be any of: HTTP/HTTPS "
+          "(ONDAS), or S3.") //
+         ("level3-provider",
+          boost::program_options::value<std::string>(
+             &programOptions_.level3Provider_)
+             ->value_name("url"),
+          "Level 3 data provider. URL Protocol may be any of: HTTP/HTTPS "
+          "(ONDAS or TGFTP), or S3.") //
          ("portable,p",
           boost::program_options::bool_switch(&programOptions_.portableMode_),
           "Run in portable mode, storing settings in the application "

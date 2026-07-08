@@ -209,3 +209,15 @@ See [.github/workflows/ci.yml](.github/workflows/ci.yml) for complete build matr
 ## Resources
 - **Documentation:** https://supercell-wx.readthedocs.io/
 - **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
+
+## Cursor Cloud specific instructions
+
+The Linux dev environment (Ubuntu 24.04) is pre-provisioned in the VM snapshot and refreshed on startup by the update script (`git submodule update --init --recursive` + `./tools/setup-linux-ninja-release.sh`). The setup script (re)creates the `.venv`, installs Python deps, runs Conan, and configures CMake into `build-release/`. Notes that are not obvious:
+
+- **Compiler gotcha:** The base image's default `cc`/`c++` alternatives point at Clang, and Clang fails the project's compiler check with `cannot find -lstdc++`. The project builds with GCC 13, so the default alternatives are set to `gcc-13`/`g++-13` (persisted in the snapshot via `update-alternatives`). Don't switch them back to Clang.
+- **Qt:** Qt 6.11.1 lives at `/opt/Qt/6.11.1/gcc_64` (installed via `aqt`, persisted in snapshot). The setup script already points CMake at it.
+- **Build:** `source .venv/bin/activate`, then `cmake --build build-release --target supercell-wx wxtest` (or `cd build-release && ninja supercell-wx wxtest`). Binaries land in `build-release/Release/bin/`. The first full build is long (~1300 targets, includes vendored MapLibre).
+- **Test:** `cd build-release && ctest --output-on-failure --exclude-regex "test_mln.*|NtpClient.*|UpdateManager.*"` (same exclusions as CI; those tests need network and/or a map API key). Running tests writes into the `test/data` submodule (e.g. `json/settings/*.json`) — `git checkout` those before committing.
+- **Running the GUI:** Display `:1` is a TigerVNC desktop (also used by computer-use) with software OpenGL 4.5 (llvmpipe), which is sufficient. Launch with `DISPLAY=:1 build-release/Release/bin/supercell-wx`. Headless test/launch also works via `xvfb-run -a -s "-screen 0 1920x1080x24" ...`.
+- **Map API key:** `MAPTILER_API_KEY` and `MAPBOX_API_KEY` are provided as Cloud secrets (injected as env vars). The `wxtest` `MapProviderTest` reads them from the environment automatically. The **GUI**, however, reads the key from its settings file (`~/.local/share/Supercell Wx/settings.json`, keys `maptiler_api_key`/`mapbox_api_key`), not from the environment — enter it in the first-run wizard or write it into that file (then restart) to get a real base map. Without a key the base map renders **black**, but radar data (reflectivity/velocity from AWS NEXRAD) still downloads and renders normally.
+- **Network:** Outbound access to AWS S3 (NEXRAD data), NWS, and IEM APIs works from the VM.

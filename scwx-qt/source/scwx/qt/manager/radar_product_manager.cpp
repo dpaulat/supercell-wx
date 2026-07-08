@@ -13,6 +13,7 @@
 #include <scwx/util/time.hpp>
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 
+#include <array>
 #include <execution>
 #include <memory>
 #include <mutex>
@@ -103,12 +104,10 @@ public:
                level2ProviderManager_->provider()));
       }
 
-      // Match RadarProductManager::gate_size(); cannot call self_->gate_size()
-      // here because RadarProductManager::p is not constructed yet.
-      // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-      const float gateSize = (radarSite_->type() == "tdwr") ? 150.0f : 250.0f;
-      coordinateTable_     = std::make_unique<RadarCoordinateTable>(
-         radarSite_->latitude(), radarSite_->longitude(), gateSize);
+      coordinateTable_ =
+         std::make_unique<RadarCoordinateTable>(radarSite_->latitude(),
+                                                radarSite_->longitude(),
+                                                gate_size(radarSite_->type()));
    }
    ~RadarProductManagerImpl()
    {
@@ -184,6 +183,8 @@ public:
                                    bool update = true);
 
    void UpdateAvailableProductsSync();
+
+   static float gate_size(types::RadarType radarType);
 
    static bool AreProductTimesPopulated(
       const std::shared_ptr<ProviderManager>& providerManager,
@@ -355,16 +356,31 @@ const scwx::util::time_zone* RadarProductManager::default_time_zone() const
    }
 }
 
-bool RadarProductManager::is_tdwr() const
+types::RadarType RadarProductManager::radar_type() const
 {
-   return p->radarSite_->type() == "tdwr";
+   return p->radarSite_->type();
 }
 
 float RadarProductManager::gate_size() const
 {
-   // tdwr is 150 meter per gate, wsr88d is 250 meter per gate
-   // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-   return (is_tdwr()) ? 150.0f : 250.0f;
+   return RadarProductManagerImpl::gate_size(radar_type());
+}
+
+float RadarProductManagerImpl::gate_size(types::RadarType radarType)
+{
+   // wsr88d is 250 meters per gate, others are 150 meters per gate
+   switch (radarType)
+   {
+   case types::RadarType::WSR88D:
+      return 250.0f; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+
+   case types::RadarType::Research:
+   case types::RadarType::FAA:
+   case types::RadarType::TDWR:
+   case types::RadarType::Unknown:
+   default:
+      return 150.0f; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+   }
 }
 
 std::optional<float> RadarProductManager::incoming_level_2_elevation() const
@@ -396,7 +412,7 @@ void RadarProductManager::Initialize()
    // Lat/lon tables still come from coordinates() on demand; Initialize() does
    // not resize or fill those vectors.
 
-   if (is_tdwr())
+   if (radar_type() != types::RadarType::WSR88D)
    {
       p->initialized_ = true;
       return;
@@ -454,16 +470,21 @@ void RadarProductManager::EnableRefresh(common::RadarProductGroup group,
             {
                try
                {
-                  providerManager->provider()->RequestAvailableProducts();
-                  const auto availableProducts =
-                     providerManager->provider()->GetAvailableProducts();
+                  const auto provider = providerManager->provider();
 
-                  if (std::find(std::execution::par,
-                                availableProducts.cbegin(),
-                                availableProducts.cend(),
-                                product) != availableProducts.cend())
+                  if (provider)
                   {
-                     p->EnableRefresh(uuid, {providerManager}, enabled);
+                     provider->RequestAvailableProducts();
+                     const auto availableProducts =
+                        provider->GetAvailableProducts();
+
+                     if (std::find(std::execution::par,
+                                   availableProducts.cbegin(),
+                                   availableProducts.cend(),
+                                   product) != availableProducts.cend())
+                     {
+                        p->EnableRefresh(uuid, {providerManager}, enabled);
+                     }
                   }
                }
                catch (const std::exception& ex)
@@ -563,7 +584,11 @@ RadarProductManager::GetActiveVolumeTimes(
       for (const auto& refreshEntry : refreshSet.second)
       {
          // Add the provider for the current entry
-         providers.insert(refreshEntry->provider());
+         const auto provider = refreshEntry->provider();
+         if (provider)
+         {
+            providers.insert(provider);
+         }
       }
    }
 
@@ -573,7 +598,7 @@ RadarProductManager::GetActiveVolumeTimes(
    const auto today     = std::chrono::floor<std::chrono::days>(time);
    const auto yesterday = today - std::chrono::days {1};
    const auto tomorrow  = today + std::chrono::days {1};
-   const auto dates     = {yesterday, today, tomorrow};
+   const auto dates     = std::array {yesterday, today, tomorrow};
 
    // For each provider (in parallel)
    std::for_each(
@@ -582,33 +607,39 @@ RadarProductManager::GetActiveVolumeTimes(
       providers.end(),
       [&](const std::shared_ptr<provider::NexradDataProvider>& provider)
       {
-         // For yesterday, today and tomorrow (in parallel)
-         std::for_each(
-            std::execution::par,
-            dates.begin(),
-            dates.end(),
-            [&](const auto& date)
+         const auto processDate = [&](const auto& date)
+         {
+            // Don't query for a time point in the future
+            if (date > scwx::util::time::now())
             {
-               // Don't query for a time point in the future
-               if (date > scwx::util::time::now())
-               {
-                  return;
-               }
+               return;
+            }
 
-               // Query the provider for volume time points
-               auto timePoints = provider->GetTimePointsByDate(date, true);
+            // Query the provider for volume time points
+            auto timePoints = provider->GetTimePointsByDate(date, true);
 
-               // TODO: Note, this will miss volume times present in Level 2
-               // products with a second scan
+            // TODO: Note, this will miss volume times present in Level 2
+            // products with a second scan
 
-               // Lock the merged volume time list
-               const std::unique_lock volumeTimesLock {volumeTimesMutex};
+            // Lock the merged volume time list
+            const std::unique_lock volumeTimesLock {volumeTimesMutex};
 
-               // Copy time points to the merged list
-               std::copy(timePoints.begin(),
-                         timePoints.end(),
-                         std::inserter(volumeTimes, volumeTimes.end()));
-            });
+            // Copy time points to the merged list
+            std::copy(timePoints.begin(),
+                      timePoints.end(),
+                      std::inserter(volumeTimes, volumeTimes.end()));
+         };
+
+         if (provider->IsDateArchiveAvailable())
+         {
+            // For yesterday, today and tomorrow (in parallel)
+            std::for_each(
+               std::execution::par, dates.begin(), dates.end(), processDate);
+         }
+         else
+         {
+            processDate(today);
+         }
       });
 
    // Return merged volume times list
@@ -651,7 +682,11 @@ void RadarProductManagerImpl::LoadProviderData(
 
          if (existingRecord == nullptr)
          {
-            nexradFile = providerManager->provider()->LoadObjectByTime(time);
+            const auto provider = providerManager->provider();
+            if (provider)
+            {
+               nexradFile = provider->LoadObjectByTime(time);
+            }
             if (nexradFile == nullptr)
             {
                logger_->warn("Attempting to load object without key: {}",
@@ -870,6 +905,13 @@ bool RadarProductManagerImpl::AreProductTimesPopulated(
    const std::shared_ptr<ProviderManager>& providerManager,
    std::chrono::system_clock::time_point   time)
 {
+   const auto provider = providerManager->provider();
+   if (!provider)
+   {
+      // If the provider is not available, assume product times are populated
+      return true;
+   }
+
    auto today = std::chrono::floor<std::chrono::days>(time);
 
    bool productTimesPopulated = true;
@@ -882,20 +924,27 @@ bool RadarProductManagerImpl::AreProductTimesPopulated(
 
    const auto yesterday = today - std::chrono::days {1};
    const auto tomorrow  = today + std::chrono::days {1};
-   const auto dates     = {yesterday, today, tomorrow};
-
-   for (auto& date : dates)
+   if (provider->IsDateArchiveAvailable())
    {
-      // Don't query for a time point in the future
-      if (date > scwx::util::time::now())
-      {
-         continue;
-      }
+      const auto dates = std::array {yesterday, today, tomorrow};
 
-      if (!providerManager->provider()->IsDateCached(date))
+      for (const auto& date : dates)
       {
-         productTimesPopulated = false;
+         // Don't query for a time point in the future
+         if (date > scwx::util::time::now())
+         {
+            continue;
+         }
+
+         if (!provider->IsDateCached(date))
+         {
+            productTimesPopulated = false;
+         }
       }
+   }
+   else if (!provider->IsDateCached(today))
+   {
+      productTimesPopulated = false;
    }
 
    return productTimesPopulated;
@@ -943,6 +992,12 @@ void RadarProductManagerImpl::PopulateProductTimes(
    std::chrono::system_clock::time_point time,
    bool                                  update)
 {
+   const auto provider = providerManager->provider();
+   if (!provider)
+   {
+      return;
+   }
+
    if (update)
    {
       logger_->debug("Populating product times: {}, {}, {}",
@@ -968,36 +1023,41 @@ void RadarProductManagerImpl::PopulateProductTimes(
 
    const auto yesterday = today - std::chrono::days {1};
    const auto tomorrow  = today + std::chrono::days {1};
-   const auto dates     = {yesterday, today, tomorrow};
+   const auto dates     = std::array {yesterday, today, tomorrow};
 
    std::set<std::chrono::system_clock::time_point> volumeTimes {};
    std::mutex                                      volumeTimesMutex {};
 
-   // For yesterday, today and tomorrow (in parallel)
-   std::for_each(std::execution::par,
-                 dates.begin(),
-                 dates.end(),
-                 [&](const auto& date)
-                 {
-                    // Don't query for a time point in the future
-                    if (date > scwx::util::time::now())
-                    {
-                       return;
-                    }
+   const auto processDate = [&](const auto& date)
+   {
+      // Don't query for a time point in the future
+      if (date > scwx::util::time::now())
+      {
+         return;
+      }
 
-                    // Query the provider for volume time points
-                    auto timePoints =
-                       providerManager->provider()->GetTimePointsByDate(date,
-                                                                        update);
+      // Query the provider for volume time points
+      auto timePoints = provider->GetTimePointsByDate(date, update);
 
-                    // Lock the merged volume time list
-                    std::unique_lock volumeTimesLock {volumeTimesMutex};
+      // Lock the merged volume time list
+      const std::unique_lock volumeTimesLock {volumeTimesMutex};
 
-                    // Copy time points to the merged list
-                    std::copy(timePoints.begin(),
-                              timePoints.end(),
-                              std::inserter(volumeTimes, volumeTimes.end()));
-                 });
+      // Copy time points to the merged list
+      std::copy(timePoints.begin(),
+                timePoints.end(),
+                std::inserter(volumeTimes, volumeTimes.end()));
+   };
+
+   if (provider->IsDateArchiveAvailable())
+   {
+      // For yesterday, today and tomorrow (in parallel)
+      std::for_each(
+         std::execution::par, dates.begin(), dates.end(), processDate);
+   }
+   else
+   {
+      processDate(today);
+   }
 
    // Lock the product record map
    std::unique_lock lock {productRecordMutex};
@@ -1411,8 +1471,14 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
       (isEpox ? scwx::util::time::now() : time) - maxChunkDelay;
 
    // See if we have this one in the chunk provider.
-   auto chunkFile = std::dynamic_pointer_cast<wsr88d::Ar2vFile>(
-      p->level2ChunksProviderManager_->provider()->LoadObjectByTime(time));
+   const auto chunkProvider = p->level2ChunksProviderManager_->provider();
+   std::shared_ptr<wsr88d::Ar2vFile> chunkFile = nullptr;
+   if (chunkProvider)
+   {
+      chunkFile = std::dynamic_pointer_cast<wsr88d::Ar2vFile>(
+         chunkProvider->LoadObjectByTime(time));
+   }
+
    if (chunkFile != nullptr)
    {
       std::tie(radarData, elevationCut, elevationCuts) =
@@ -1427,7 +1493,7 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
 
          const std::optional<float> incomingElevation =
             std::dynamic_pointer_cast<provider::AwsLevel2ChunksDataProvider>(
-               p->level2ChunksProviderManager_->provider())
+               chunkProvider)
                ->GetCurrentElevation();
          if (incomingElevation != p->incomingLevel2Elevation_)
          {
@@ -1536,9 +1602,14 @@ RadarProductManager::GetAvailableLevel3Categories()
 
 std::vector<std::string> RadarProductManager::GetLevel3Products()
 {
-   auto level3ProviderManager =
+   const auto level3ProviderManager =
       p->GetLevel3ProviderManager(kDefaultLevel3Product_);
-   return level3ProviderManager->provider()->GetAvailableProducts();
+   const auto level3Provider = level3ProviderManager->provider();
+   if (level3Provider)
+   {
+      return level3Provider->GetAvailableProducts();
+   }
+   return {};
 }
 
 void RadarProductManager::SetCacheLimit(size_t cacheLimit)
@@ -1585,9 +1656,15 @@ void RadarProductManagerImpl::UpdateAvailableProductsSync()
 {
    auto level3ProviderManager =
       GetLevel3ProviderManager(kDefaultLevel3Product_);
-   level3ProviderManager->provider()->RequestAvailableProducts();
-   auto updatedAwipsIdList =
-      level3ProviderManager->provider()->GetAvailableProducts();
+   const auto provider = level3ProviderManager->provider();
+
+   if (!provider)
+   {
+      return;
+   }
+
+   provider->RequestAvailableProducts();
+   auto updatedAwipsIdList = provider->GetAvailableProducts();
 
    std::unique_lock lock {availableCategoryMutex_};
 

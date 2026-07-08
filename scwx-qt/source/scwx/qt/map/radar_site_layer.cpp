@@ -11,6 +11,8 @@
 #include <scwx/common/geographic.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <ranges>
+
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <imgui.h>
 #include <mbgl/util/constants.hpp>
@@ -72,7 +74,7 @@ public:
    void
    RenderRadarSiteButtons(const QMapLibre::CustomLayerRenderParameters& params);
    void RenderRadarSite(const QMapLibre::CustomLayerRenderParameters& params,
-                        std::shared_ptr<config::RadarSite>& radarSite);
+                        const std::shared_ptr<config::RadarSite>& radarSite);
    void RenderRadarLine(const std::shared_ptr<MapContext>& mapContext);
 
    RadarSiteLayer* self_;
@@ -273,7 +275,7 @@ void RadarSiteLayer::RenderVulkanImGui(
 
 void RadarSiteLayer::Impl::RenderRadarSite(
    const QMapLibre::CustomLayerRenderParameters& params,
-   std::shared_ptr<config::RadarSite>&           radarSite)
+   const std::shared_ptr<config::RadarSite>&     radarSite)
 {
    const auto screenCoordinates =
       (util::maplibre::LatLongToScreenCoordinate(

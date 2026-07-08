@@ -16,6 +16,7 @@ _deps
 # Editor directories
 .idea/
 .vs/
+.vscode/
 
 # Python Virtual Environment
 .venv/

@@ -19,8 +19,8 @@ public:
    NexradDataProvider(const NexradDataProvider&)            = delete;
    NexradDataProvider& operator=(const NexradDataProvider&) = delete;
 
-   NexradDataProvider(NexradDataProvider&&) noexcept;
-   NexradDataProvider& operator=(NexradDataProvider&&) noexcept;
+   NexradDataProvider(NexradDataProvider&&)            = delete;
+   NexradDataProvider& operator=(NexradDataProvider&&) = delete;
 
    [[nodiscard]] virtual size_t cache_size() const = 0;
 
@@ -130,6 +130,13 @@ public:
    virtual std::vector<std::chrono::system_clock::time_point>
    GetTimePointsByDate(std::chrono::system_clock::time_point date,
                        bool                                  update) = 0;
+
+   /**
+    * Determines if a historical archive is available.
+    *
+    * @return Whether or not an archive is available
+    */
+   [[nodiscard]] virtual bool IsDateArchiveAvailable() const = 0;
 
    /**
     * Determines if time points for the requested date are cached.

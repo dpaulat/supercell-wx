@@ -25,8 +25,10 @@ namespace scwx::util::time
 {
 
 #if (__cpp_lib_chrono >= 201907L)
+using std::chrono::parse;
 using time_zone = std::chrono::time_zone;
 #else
+using date::parse;
 using time_zone = date::time_zone;
 #endif
 

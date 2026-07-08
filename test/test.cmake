@@ -16,13 +16,19 @@ set(SRC_AWIPS_TESTS source/scwx/awips/coded_location.test.cpp
                     source/scwx/awips/wmo_header.test.cpp)
 set(SRC_COMMON_TESTS source/scwx/common/color_table.test.cpp
                      source/scwx/common/products.test.cpp)
+set(SRC_CONFIG_TESTS source/scwx/config/ondas_config.test.cpp
+                     source/scwx/config/ondas_config_loader.test.cpp)
 set(SRC_GR_TESTS source/scwx/gr/placefile.test.cpp)
 set(SRC_NETWORK_TESTS source/scwx/network/dir_list.test.cpp
                       source/scwx/network/ntp_client.test.cpp)
 set(SRC_PROVIDER_TESTS source/scwx/provider/aws_level2_data_provider.test.cpp
                        source/scwx/provider/aws_level3_data_provider.test.cpp
+                       source/scwx/provider/http_level3_data_provider.test.cpp
                        source/scwx/provider/iem_api_provider.test.cpp
+                       source/scwx/provider/nws_level3_behavior.test.cpp
                        source/scwx/provider/nws_api_provider.test.cpp
+                       source/scwx/provider/ondas_level2_data_provider.test.cpp
+                       source/scwx/provider/ondas_level3_behavior.test.cpp
                        source/scwx/provider/warnings_provider.test.cpp)
 set(SRC_QT_CONFIG_TESTS source/scwx/qt/config/county_database.test.cpp
                         source/scwx/qt/config/radar_site.test.cpp)
@@ -52,6 +58,7 @@ set(SRC_QT_SETTINGS_TESTS source/scwx/qt/settings/settings_container.test.cpp
 set(SRC_QT_UTIL_TESTS source/scwx/qt/util/q_file_input_stream.test.cpp
                       source/scwx/qt/util/geographic_lib.test.cpp
                       source/scwx/qt/util/network.test.cpp)
+set(SRC_TYPES_TESTS source/scwx/types/ondas_types.test.cpp)
 set(SRC_UTIL_TESTS source/scwx/util/float.test.cpp
                    source/scwx/util/rangebuf.test.cpp
                    source/scwx/util/streams.test.cpp
@@ -66,6 +73,7 @@ set(CMAKE_FILES test.cmake)
 add_executable(wxtest ${SRC_MAIN}
                       ${SRC_AWIPS_TESTS}
                       ${SRC_COMMON_TESTS}
+                      ${SRC_CONFIG_TESTS}
                       ${SRC_GR_TESTS}
                       ${SRC_NETWORK_TESTS}
                       ${SRC_PROVIDER_TESTS}
@@ -77,6 +85,7 @@ add_executable(wxtest ${SRC_MAIN}
                       ${SRC_QT_UI_TESTS}
                       ${SRC_QT_SETTINGS_TESTS}
                       ${SRC_QT_UTIL_TESTS}
+                      ${SRC_TYPES_TESTS}
                       ${SRC_UTIL_TESTS}
                       ${SRC_WSR88D_TESTS}
                       ${CMAKE_FILES})
@@ -84,6 +93,7 @@ add_executable(wxtest ${SRC_MAIN}
 source_group("Source Files\\main"         FILES ${SRC_MAIN})
 source_group("Source Files\\awips"        FILES ${SRC_AWIPS_TESTS})
 source_group("Source Files\\common"       FILES ${SRC_COMMON_TESTS})
+source_group("Source Files\\config"       FILES ${SRC_CONFIG_TESTS})
 source_group("Source Files\\gr"           FILES ${SRC_GR_TESTS})
 source_group("Source Files\\network"      FILES ${SRC_NETWORK_TESTS})
 source_group("Source Files\\provider"     FILES ${SRC_PROVIDER_TESTS})
@@ -95,6 +105,7 @@ source_group("Source Files\\qt\\model"    FILES ${SRC_QT_MODEL_TESTS})
 source_group("Source Files\\qt\\ui"       FILES ${SRC_QT_UI_TESTS})
 source_group("Source Files\\qt\\settings" FILES ${SRC_QT_SETTINGS_TESTS})
 source_group("Source Files\\qt\\util"     FILES ${SRC_QT_UTIL_TESTS})
+source_group("Source Files\\types"        FILES ${SRC_TYPES_TESTS})
 source_group("Source Files\\util"         FILES ${SRC_UTIL_TESTS})
 source_group("Source Files\\wsr88d"       FILES ${SRC_WSR88D_TESTS})
 
