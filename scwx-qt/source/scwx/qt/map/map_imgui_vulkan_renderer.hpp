@@ -14,10 +14,10 @@ namespace scwx::qt::map
 class MapImGuiVulkanRenderer
 {
 public:
-   void Initialize(QRhi*          rhi,
-                   QRhiTexture*   colorTexture,
-                   void*          renderPass,
-                   ImGuiContext*  imGuiContext);
+   void Initialize(QRhi*         rhi,
+                   QRhiTexture*  colorTexture,
+                   void*         renderPass,
+                   ImGuiContext* imGuiContext);
    void Shutdown();
    void UpdateRenderPass(void* renderPass);
 

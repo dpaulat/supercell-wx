@@ -205,8 +205,8 @@ void RhiTextureArrayOverlay::SyncAtlas(QRhiCommandBuffer*       commandBuffer,
       return;
    }
 
-   const RhiSharedAtlas shared = AcquireSharedAtlas(
-      rhi_, commandBuffer, buildCount, resourceBatch, phase);
+   const RhiSharedAtlas shared =
+      AcquireSharedAtlas(rhi_, commandBuffer, buildCount, resourceBatch, phase);
    if (shared.texture_ == nullptr || shared.sampler_ == nullptr)
    {
       return;
@@ -217,12 +217,12 @@ void RhiTextureArrayOverlay::SyncAtlas(QRhiCommandBuffer*       commandBuffer,
       atlasWidth_ != shared.width_ || atlasHeight_ != shared.height_ ||
       atlasLayers_ != shared.layers_;
 
-   atlasTexture_      = shared.texture_;
-   atlasSampler_      = shared.sampler_;
-   atlasWidth_        = shared.width_;
-   atlasHeight_       = shared.height_;
-   atlasLayers_       = shared.layers_;
-   syncedBuildCount_  = shared.buildCount_;
+   atlasTexture_     = shared.texture_;
+   atlasSampler_     = shared.sampler_;
+   atlasWidth_       = shared.width_;
+   atlasHeight_      = shared.height_;
+   atlasLayers_      = shared.layers_;
+   syncedBuildCount_ = shared.buildCount_;
 
    if (atlasIdentityChanged)
    {

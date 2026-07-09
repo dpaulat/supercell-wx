@@ -324,8 +324,8 @@ void RadarSiteLayer::Impl::RenderRadarSite(
       return;
    }
 
-   const std::string label     = radarSite->id();
-   const ImVec2      labelSize = ImGui::CalcTextSize(label.c_str());
+   const std::string label        = radarSite->id();
+   const ImVec2      labelSize    = ImGui::CalcTextSize(label.c_str());
    const ImVec2&     framePadding = ImGui::GetStyle().FramePadding;
    const ImVec2      buttonSize {labelSize.x + framePadding.x * 2.0f,
                             labelSize.y + framePadding.y * 2.0f};

@@ -2850,10 +2850,8 @@ void MapWidgetImpl::EnsureImGuiRenderer(QRhiCommandBuffer* commandBuffer)
 
    if (!imguiVulkanRenderer_.IsInitialized())
    {
-      imguiVulkanRenderer_.Initialize(widget_->rhi(),
-                                      widget_->colorTexture(),
-                                      renderPass,
-                                      imGuiContext_);
+      imguiVulkanRenderer_.Initialize(
+         widget_->rhi(), widget_->colorTexture(), renderPass, imGuiContext_);
    }
 
    imGuiRendererInitialized_ = imguiVulkanRenderer_.IsInitialized();
@@ -3167,8 +3165,8 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    const auto overlayStart = std::chrono::steady_clock::now();
    // Primary pane always composites overlays (mouse/tooltip). Followers skip
    // the overlay pass when nothing marked dirty since the last draw.
-   const bool renderOverlays = isPrimaryPane || overlayNeedsRender_ ||
-                               static_cast<bool>(imguiRender);
+   const bool renderOverlays =
+      isPrimaryPane || overlayNeedsRender_ || static_cast<bool>(imguiRender);
    if (renderOverlays)
    {
       overlayRenderer_.Render(commandBuffer,

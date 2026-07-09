@@ -52,8 +52,7 @@ bool MapImGuiVulkanRenderer::InitBackend(void* renderPass)
    // torn down before init; otherwise ImGui_ImplVulkan_Init refuses to bind.
    if (ImGui::GetIO().BackendRendererUserData != nullptr)
    {
-      logger_->warn(
-         "Clearing stale ImGui Vulkan backend before re-init");
+      logger_->warn("Clearing stale ImGui Vulkan backend before re-init");
       ImGui_ImplVulkan_Shutdown();
    }
 
@@ -213,8 +212,7 @@ void MapImGuiVulkanRenderer::Shutdown()
             ImGui::GetIO().BackendRendererUserData != nullptr)
    {
       // initialized_ cleared without a context-correct shutdown (reparent).
-      logger_->warn(
-         "Shutting down orphaned ImGui Vulkan backend");
+      logger_->warn("Shutting down orphaned ImGui Vulkan backend");
       ImGui_ImplVulkan_Shutdown();
    }
 
@@ -233,8 +231,7 @@ bool MapImGuiVulkanRenderer::NewFrame(QWidget* widget)
    if (ImGui::GetCurrentContext() == nullptr ||
        ImGui::GetIO().BackendRendererUserData == nullptr)
    {
-      logger_->error(
-         "ImGui Vulkan NewFrame without backend; forcing shutdown");
+      logger_->error("ImGui Vulkan NewFrame without backend; forcing shutdown");
       initialized_ = false;
       return false;
    }

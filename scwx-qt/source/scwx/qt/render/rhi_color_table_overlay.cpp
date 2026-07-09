@@ -183,11 +183,11 @@ void RhiColorTableOverlay::Render(
       batch->updateDynamicBuffer(
          vertexBuffer_, 0, sizeof(float) * 6 * 2, vertices);
 
-      const bool lutChanged =
-         !lutUploaded_ || uploadedLut_.size() != rgbaColorTable.size() ||
-         std::memcmp(uploadedLut_.data(),
-                     rgbaColorTable.data(),
-                     rgbaColorTable.size()) != 0;
+      const bool lutChanged = !lutUploaded_ ||
+                              uploadedLut_.size() != rgbaColorTable.size() ||
+                              std::memcmp(uploadedLut_.data(),
+                                          rgbaColorTable.data(),
+                                          rgbaColorTable.size()) != 0;
       if (lutChanged)
       {
          const QRhiTextureSubresourceUploadDescription subUpload(

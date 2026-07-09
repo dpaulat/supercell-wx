@@ -128,7 +128,8 @@ struct PipelineBucket
 
 struct RhiStore
 {
-   std::unordered_map<PipelineKey, PipelineBucket, PipelineKeyHash> pipelines_ {};
+   std::unordered_map<PipelineKey, PipelineBucket, PipelineKeyHash>
+                 pipelines_ {};
    QRhiTexture*  atlasTexture_ {nullptr};
    QRhiSampler*  atlasSampler_ {nullptr};
    QRhiSampler*  nearestSampler_ {nullptr};
@@ -151,7 +152,7 @@ struct RhiStore
       delete atlasSampler_;
       atlasSampler_ = nullptr;
       delete nearestSampler_;
-      nearestSampler_ = nullptr;
+      nearestSampler_  = nullptr;
       atlasWidth_      = 0;
       atlasHeight_     = 0;
       atlasLayers_     = 0;
@@ -160,8 +161,8 @@ struct RhiStore
    }
 };
 
-std::mutex                                  storeMutex_;
-std::unordered_map<QRhi*, RhiStore>         stores_;
+std::mutex                          storeMutex_;
+std::unordered_map<QRhi*, RhiStore> stores_;
 
 [[nodiscard]] RhiStore& GetStore(QRhi* rhi)
 {
@@ -171,9 +172,9 @@ std::unordered_map<QRhi*, RhiStore>         stores_;
 [[nodiscard]] PipelineKey MakeKey(QRhiRenderTarget* renderTarget)
 {
    return PipelineKey {.nativeRenderPass_ = NativeRenderPass(renderTarget),
-                       .sampleCount_ = renderTarget != nullptr ?
-                                          renderTarget->sampleCount() :
-                                          1};
+                       .sampleCount_      = renderTarget != nullptr ?
+                                               renderTarget->sampleCount() :
+                                               1};
 }
 
 [[nodiscard]] bool EnsureLayoutResources(QRhi* rhi, PipelineBucket& bucket)
@@ -190,8 +191,7 @@ std::unordered_map<QRhi*, RhiStore>         stores_;
 
    if (bucket.layoutTexture_ == nullptr)
    {
-      bucket.layoutTexture_ =
-         rhi->newTexture(QRhiTexture::RGBA8, QSize(1, 1));
+      bucket.layoutTexture_ = rhi->newTexture(QRhiTexture::RGBA8, QSize(1, 1));
       if (bucket.layoutTexture_ == nullptr || !bucket.layoutTexture_->create())
       {
          return false;
@@ -379,10 +379,9 @@ RhiSharedAtlas AcquireSharedAtlas(QRhi*                    rhi,
       return result;
    }
 
-   const bool dimsChanged = store.atlasTexture_ == nullptr ||
-                            store.atlasWidth_ != width ||
-                            store.atlasHeight_ != height ||
-                            store.atlasLayers_ != layers;
+   const bool dimsChanged =
+      store.atlasTexture_ == nullptr || store.atlasWidth_ != width ||
+      store.atlasHeight_ != height || store.atlasLayers_ != layers;
    const bool contentChanged = store.atlasBuildCount_ != buildCount;
 
    if (dimsChanged || contentChanged)
@@ -456,8 +455,8 @@ RhiSharedAtlas AcquireSharedAtlas(QRhi*                    rhi,
             pixels.data(), static_cast<quint32>(pixels.size()));
          batch->uploadTexture(
             store.atlasTexture_,
-            QRhiTextureUploadDescription(QRhiTextureUploadEntry(
-               static_cast<int>(layer), 0, subUpload)));
+            QRhiTextureUploadDescription(
+               QRhiTextureUploadEntry(static_cast<int>(layer), 0, subUpload)));
       }
 
       SubmitOverlayBatch(commandBuffer, batch, resourceBatch, phase);
@@ -508,10 +507,10 @@ AcquireColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
       return nullptr;
    }
 
-   std::lock_guard     lock {storeMutex_};
-   RhiStore&           store  = GetStore(rhi);
-   const PipelineKey   key    = MakeKey(renderTarget);
-   PipelineBucket&     bucket = store.pipelines_[key];
+   std::lock_guard   lock {storeMutex_};
+   RhiStore&         store  = GetStore(rhi);
+   const PipelineKey key    = MakeKey(renderTarget);
+   PipelineBucket&   bucket = store.pipelines_[key];
    if (bucket.coloredGeometry_ != nullptr)
    {
       return bucket.coloredGeometry_;
@@ -684,8 +683,8 @@ QRhiGraphicsPipeline* AcquireRadarPipeline(QRhi*             rhi,
    return bucket.radar_;
 }
 
-QRhiGraphicsPipeline*
-AcquireColorTablePipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
+QRhiGraphicsPipeline* AcquireColorTablePipeline(QRhi*             rhi,
+                                                QRhiRenderTarget* renderTarget)
 {
    if (rhi == nullptr || renderTarget == nullptr)
    {
