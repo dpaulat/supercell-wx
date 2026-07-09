@@ -11,11 +11,10 @@ namespace scwx::qt::render
 static const std::string logPrefix_ = "scwx::qt::render::rhi_vulkan_result";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static std::mutex g_handlerMutex;
+static std::mutex                                           g_handlerMutex;
 static std::unordered_map<const void*, VulkanResultHandler> g_handlers;
 
-void RegisterVulkanResultHandler(const void*       owner,
-                                 VulkanResultHandler handler)
+void RegisterVulkanResultHandler(const void* owner, VulkanResultHandler handler)
 {
    if (owner == nullptr)
    {

@@ -107,16 +107,22 @@ void Rectangle::RenderVulkan(
          p->vertexBuffer_.begin() +
             static_cast<std::ptrdiff_t>(24 * POINTS_PER_VERTEX),
          p->vertexBuffer_.end());
-      resources.coloredGeometry.Render(
-         commandBuffer, projection, fillVertices, 6, resources.resourceBatch,
-         resources.phase);
+      resources.coloredGeometry.Render(commandBuffer,
+                                       projection,
+                                       fillVertices,
+                                       6,
+                                       resources.resourceBatch,
+                                       resources.phase);
    }
 
    if (p->borderWidth_ > 0.0f)
    {
-      resources.coloredGeometry.Render(
-         commandBuffer, projection, p->vertexBuffer_, 24,
-         resources.resourceBatch, resources.phase);
+      resources.coloredGeometry.Render(commandBuffer,
+                                       projection,
+                                       p->vertexBuffer_,
+                                       24,
+                                       resources.resourceBatch,
+                                       resources.phase);
    }
 }
 

@@ -1263,8 +1263,7 @@ void MainWindowImpl::ConfigureBasemapSharing()
       return maps_.at(leaderIndex)->map_rhi();
    };
 
-   basemapShareCallbacks_.basemapGeneration_ =
-      [this]() -> std::uint64_t
+   basemapShareCallbacks_.basemapGeneration_ = [this]() -> std::uint64_t
    {
       return basemapShareState_.basemapGeneration();
    };

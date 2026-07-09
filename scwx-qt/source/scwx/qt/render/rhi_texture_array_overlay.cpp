@@ -353,9 +353,9 @@ void RhiTextureArrayOverlay::Shutdown()
 }
 
 void RhiTextureArrayOverlay::SyncAtlas(QRhiCommandBuffer*       commandBuffer,
-                                     const std::uint64_t      buildCount,
-                                     QRhiResourceUpdateBatch* resourceBatch,
-                                     RhiOverlayPhase          phase)
+                                       const std::uint64_t      buildCount,
+                                       QRhiResourceUpdateBatch* resourceBatch,
+                                       RhiOverlayPhase          phase)
 {
    if (!initialized_ || commandBuffer == nullptr)
    {
@@ -580,8 +580,10 @@ void RhiTextureArrayOverlay::RenderScreen(
       {
          return;
       }
-      batch->updateDynamicBuffer(
-         screenUniformBuffer_, 0, kScreenUniformBytes, glm::value_ptr(projection));
+      batch->updateDynamicBuffer(screenUniformBuffer_,
+                                 0,
+                                 kScreenUniformBytes,
+                                 glm::value_ptr(projection));
       batch->updateDynamicBuffer(screenFloatBuffer_,
                                  0,
                                  static_cast<quint32>(floatBytes),

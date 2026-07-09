@@ -20,17 +20,17 @@ class RhiTextureArrayOverlay;
 
 struct RhiVulkanOverlayResources
 {
-   RhiColorTableOverlay&   colorTable;
-   RhiRadarOverlay&        radar;
-   RhiColoredGeometry&     coloredGeometry;
-   RhiGeoColoredGeometry&  radarGeoColoredGeometry;
-   RhiGeoColoredGeometry&  geoColoredGeometry;
-   RhiTextureArrayOverlay& textureArrayOverlay;
-   QRhi*                   rhi {nullptr};
-   QRhiRenderTarget*       renderTarget {nullptr};
-   std::uint64_t           renderTargetGeneration {0};
+   RhiColorTableOverlay&    colorTable;
+   RhiRadarOverlay&         radar;
+   RhiColoredGeometry&      coloredGeometry;
+   RhiGeoColoredGeometry&   radarGeoColoredGeometry;
+   RhiGeoColoredGeometry&   geoColoredGeometry;
+   RhiTextureArrayOverlay&  textureArrayOverlay;
+   QRhi*                    rhi {nullptr};
+   QRhiRenderTarget*        renderTarget {nullptr};
+   std::uint64_t            renderTargetGeneration {0};
    QRhiResourceUpdateBatch* resourceBatch {nullptr};
-   RhiOverlayPhase         phase {RhiOverlayPhase::UploadAndDraw};
+   RhiOverlayPhase          phase {RhiOverlayPhase::UploadAndDraw};
 };
 
 } // namespace scwx::qt::render

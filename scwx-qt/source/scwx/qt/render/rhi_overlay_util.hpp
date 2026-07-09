@@ -11,10 +11,8 @@ class QRhiResourceUpdateBatch;
 namespace scwx::qt::render
 {
 
-[[nodiscard]] inline QRhiResourceUpdateBatch*
-AcquireOverlayBatch(QRhi*                    rhi,
-                    QRhiResourceUpdateBatch* externalBatch,
-                    RhiOverlayPhase          phase)
+[[nodiscard]] inline QRhiResourceUpdateBatch* AcquireOverlayBatch(
+   QRhi* rhi, QRhiResourceUpdateBatch* externalBatch, RhiOverlayPhase phase)
 {
    if (phase == RhiOverlayPhase::Draw)
    {

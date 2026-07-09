@@ -51,7 +51,7 @@ public:
                bool                             uploadGeometry,
                bool                             uploadColorTable,
                QRhiResourceUpdateBatch*         resourceBatch = nullptr,
-               RhiOverlayPhase                  phase         = RhiOverlayPhase::UploadAndDraw);
+               RhiOverlayPhase phase = RhiOverlayPhase::UploadAndDraw);
 
    [[nodiscard]] bool IsInitialized() const;
 

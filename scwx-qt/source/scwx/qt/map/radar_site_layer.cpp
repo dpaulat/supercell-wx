@@ -84,8 +84,8 @@ public:
    void
    RenderRadarSiteButtons(const QMapLibre::CustomLayerRenderParameters& params);
    void RenderRadarSite(const QMapLibre::CustomLayerRenderParameters& params,
-                        const std::shared_ptr<config::RadarSite>& radarSite,
-                        int                                         siteIndex);
+                        const std::shared_ptr<config::RadarSite>&     radarSite,
+                        int siteIndex);
    void RenderRadarLine(const std::shared_ptr<MapContext>& mapContext);
 
    RadarSiteLayer* self_;

@@ -465,8 +465,8 @@ const std::uint8_t* TextureAtlas::LayerPixels(std::size_t  layer,
    return reinterpret_cast<const std::uint8_t*>(&view(0, 0));
 }
 
-std::vector<std::uint8_t> TextureAtlas::CopyLayerPixels(
-   const std::size_t layer) const
+std::vector<std::uint8_t>
+TextureAtlas::CopyLayerPixels(const std::size_t layer) const
 {
    std::shared_lock lock(p->atlasMutex_);
 
@@ -477,11 +477,12 @@ std::vector<std::uint8_t> TextureAtlas::CopyLayerPixels(
 
    const boost::gil::rgba8_image_t& image = p->atlasArray_[layer];
    const boost::gil::rgba8c_view_t  view  = boost::gil::const_view(image);
-   const std::size_t byteSize =
+   const std::size_t                byteSize =
       image.width() * image.height() * sizeof(boost::gil::rgba8_pixel_t);
 
    std::vector<std::uint8_t> pixels(byteSize);
-   std::memcpy(pixels.data(), reinterpret_cast<const std::uint8_t*>(&view(0, 0)),
+   std::memcpy(pixels.data(),
+               reinterpret_cast<const std::uint8_t*>(&view(0, 0)),
                byteSize);
    return pixels;
 }

@@ -8,7 +8,7 @@ namespace scwx::qt::render
 
 using VulkanResultHandler = std::function<void(VkResult, const char*)>;
 
-void RegisterVulkanResultHandler(const void*       owner,
+void RegisterVulkanResultHandler(const void*         owner,
                                  VulkanResultHandler handler);
 void UnregisterVulkanResultHandler(const void* owner);
 

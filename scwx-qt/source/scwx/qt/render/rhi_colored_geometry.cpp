@@ -178,8 +178,10 @@ void RhiColoredGeometry::Render(QRhiCommandBuffer*        commandBuffer,
       }
       batch->updateDynamicBuffer(
          uniformBuffer_, 0, kUniformBytes, glm::value_ptr(projection));
-      batch->updateDynamicBuffer(
-         vertexBuffer_, 0, static_cast<quint32>(requiredBytes), vertices.data());
+      batch->updateDynamicBuffer(vertexBuffer_,
+                                 0,
+                                 static_cast<quint32>(requiredBytes),
+                                 vertices.data());
       SubmitOverlayBatch(commandBuffer, batch, resourceBatch, phase);
    }
 

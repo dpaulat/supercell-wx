@@ -31,7 +31,7 @@ public:
                const std::vector<float>& vertices,
                std::size_t               vertexCount,
                QRhiResourceUpdateBatch*  resourceBatch = nullptr,
-               RhiOverlayPhase           phase         = RhiOverlayPhase::UploadAndDraw);
+               RhiOverlayPhase phase = RhiOverlayPhase::UploadAndDraw);
 
    [[nodiscard]] bool IsInitialized() const;
 

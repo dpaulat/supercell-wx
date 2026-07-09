@@ -354,9 +354,9 @@ public:
    {
       return mapChangedOnce_ || mapStylePending_;
    }
-   void SelectNearestRadarSite(double                          latitude,
-                             double                          longitude,
-                             std::optional<types::RadarType> type);
+   void                  SelectNearestRadarSite(double                          latitude,
+                                                double                          longitude,
+                                                std::optional<types::RadarType> type);
    void SetRadarSite(const std::string& radarSite,
                      bool               checkProductAvailability = false);
    [[nodiscard]] QPointF EraseCursorWidgetPosition() const;
@@ -1978,24 +1978,24 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
       case types::InformationLayer::RadarSite:
          radarSiteLayer_ = std::make_shared<RadarSiteLayer>(renderContext_);
          AddLayer(layerName, radarSiteLayer_, before);
-         connect(radarSiteLayer_.get(),
-                 &RadarSiteLayer::RadarSiteSelected,
-                 this,
-                 [this](const std::string& id)
-                 {
-                    auto& generalSettings =
-                       settings::GeneralSettings::Instance();
-                    auto selectedRadarSite = widget_->GetRadarSite();
-                    const std::string requestedRadarSite =
-                       (selectedRadarSite != nullptr &&
-                        selectedRadarSite->id() == id) ?
-                          std::string {} :
-                          id;
-                    widget_->RadarSiteRequested(
-                       requestedRadarSite,
-                       generalSettings.center_on_radar_selection().GetValue());
-                 },
-                 Qt::QueuedConnection);
+         connect(
+            radarSiteLayer_.get(),
+            &RadarSiteLayer::RadarSiteSelected,
+            this,
+            [this](const std::string& id)
+            {
+               auto& generalSettings   = settings::GeneralSettings::Instance();
+               auto  selectedRadarSite = widget_->GetRadarSite();
+               const std::string requestedRadarSite =
+                  (selectedRadarSite != nullptr &&
+                   selectedRadarSite->id() == id) ?
+                     std::string {} :
+                     id;
+               widget_->RadarSiteRequested(
+                  requestedRadarSite,
+                  generalSettings.center_on_radar_selection().GetValue());
+            },
+            Qt::QueuedConnection);
          break;
 
       // Create the location marker layer
@@ -2079,10 +2079,7 @@ void MapWidgetImpl::AddLayer(const std::string&                   id,
    connect(layer.get(),
            &GenericLayer::NeedsRendering,
            widget_,
-           [this]()
-           {
-              widget_->RequestOverlayRepaint();
-           });
+           [this]() { widget_->RequestOverlayRepaint(); });
 }
 
 bool MapWidget::event(QEvent* e)
@@ -2679,8 +2676,8 @@ void MapWidget::releaseResources()
    p->overlayRenderer_.Shutdown();
    p->ReleaseBasemapTexture();
    p->lastCopiedBasemapGeneration_ = 0;
-   p->imGuiRendererInitialized_   = false;
-   p->vulkanRenderingInitialized_ = false;
+   p->imGuiRendererInitialized_    = false;
+   p->vulkanRenderingInitialized_  = false;
 }
 
 void MapWidgetImpl::ResetMap(const std::string& styleName)
@@ -2983,8 +2980,7 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    const bool isBasemapLeader =
       basemapShareDecision.role_ == BasemapPaneRole::Leader;
 
-   bool canShareBasemap =
-      isBasemapFollower && !isPrimaryPane;
+   bool canShareBasemap = isBasemapFollower && !isPrimaryPane;
    if (canShareBasemap && basemapShareCallbacks_ != nullptr &&
        basemapShareCallbacks_->leaderRhi_ != nullptr)
    {
@@ -2999,9 +2995,8 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    const bool selfBasemap = !isBasemapFollower || !canShareBasemap;
 
    const bool renderMapThisFrame =
-      selfBasemap &&
-      (isBasemapLeader || isPrimaryPane || mapNeedsRender_ ||
-       overlayNeedsRender_);
+      selfBasemap && (isBasemapLeader || isPrimaryPane || mapNeedsRender_ ||
+                      overlayNeedsRender_);
 
    const auto mapStart  = std::chrono::steady_clock::now();
    queuedMapSize_       = widget_->size();
@@ -3037,13 +3032,13 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
             {
                const auto copyStart = std::chrono::steady_clock::now();
                MapRhiRenderer::CopyColorTexture(widget_->rhi(),
-                                              commandBuffer,
-                                              followerTexture,
-                                              leaderTexture);
+                                                commandBuffer,
+                                                followerTexture,
+                                                leaderTexture);
                basemapCopyMs =
                   ElapsedMs(copyStart, std::chrono::steady_clock::now());
                lastCopiedBasemapGeneration_ = basemapGeneration;
-               basemapCopied                  = true;
+               basemapCopied                = true;
             }
          }
       }
@@ -3078,8 +3073,7 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    EnsureImGuiRenderer(commandBuffer);
 
    std::function<void(QRhiCommandBuffer*)> imguiRender;
-   const bool                              renderImGuiOverlays =
-      isPrimaryPane || overlayNeedsRender_;
+   const bool renderImGuiOverlays = isPrimaryPane || overlayNeedsRender_;
    if (imGuiRendererInitialized_ && renderImGuiOverlays)
    {
       ImGui::SetCurrentContext(imGuiContext_);
@@ -3254,7 +3248,7 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
          if (frameDraws_ >= captureFrame)
          {
             smokeCaptureQueued_ = true;
-            QString filePath = QString::fromStdString(smokeCapturePath);
+            QString filePath    = QString::fromStdString(smokeCapturePath);
             // Multi-pane: path.png → path.pane0.png, path.pane1.png, ...
             if (filePath.endsWith(".png"))
             {

@@ -30,10 +30,10 @@ public:
                    QRhiCommandBuffer* commandBuffer);
    void Shutdown();
 
-   void SyncAtlas(QRhiCommandBuffer*     commandBuffer,
-                  std::uint64_t          buildCount,
+   void SyncAtlas(QRhiCommandBuffer*       commandBuffer,
+                  std::uint64_t            buildCount,
                   QRhiResourceUpdateBatch* resourceBatch = nullptr,
-                  RhiOverlayPhase        phase           = RhiOverlayPhase::UploadAndDraw);
+                  RhiOverlayPhase phase = RhiOverlayPhase::UploadAndDraw);
 
    void RenderGeo(QRhiCommandBuffer*               commandBuffer,
                   const GeoUniforms&               uniforms,
@@ -41,7 +41,7 @@ public:
                   const std::vector<std::int32_t>& integerVertices,
                   std::uint32_t                    vertexCount,
                   QRhiResourceUpdateBatch*         resourceBatch = nullptr,
-                  RhiOverlayPhase                  phase         = RhiOverlayPhase::UploadAndDraw);
+                  RhiOverlayPhase phase = RhiOverlayPhase::UploadAndDraw);
 
    void RenderScreen(QRhiCommandBuffer*        commandBuffer,
                      const glm::mat4&          projection,
@@ -49,7 +49,7 @@ public:
                      const std::vector<float>& texCoords,
                      std::uint32_t             vertexCount,
                      QRhiResourceUpdateBatch*  resourceBatch = nullptr,
-                     RhiOverlayPhase           phase         = RhiOverlayPhase::UploadAndDraw);
+                     RhiOverlayPhase phase = RhiOverlayPhase::UploadAndDraw);
 
    [[nodiscard]] bool IsInitialized() const;
 

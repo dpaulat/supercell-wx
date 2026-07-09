@@ -321,8 +321,10 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
       batch->updateDynamicBuffer(uniformBuffer_, 0, kUniformBytes, &uniforms);
       if (uploadGeometry)
       {
-         batch->updateDynamicBuffer(
-            vertexBuffer_, 0, static_cast<quint32>(vertexBytes), vertices.data());
+         batch->updateDynamicBuffer(vertexBuffer_,
+                                    0,
+                                    static_cast<quint32>(vertexBytes),
+                                    vertices.data());
          batch->updateDynamicBuffer(momentBuffer_,
                                     0,
                                     static_cast<quint32>(momentBytes),
@@ -335,10 +337,9 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
       {
          const QRhiTextureSubresourceUploadDescription subUpload(
             lutRgba_.data(), static_cast<quint32>(kMaxLutWidth * 4));
-         batch->uploadTexture(
-            lutTexture_,
-            QRhiTextureUploadDescription(
-               QRhiTextureUploadEntry(0, 0, subUpload)));
+         batch->uploadTexture(lutTexture_,
+                              QRhiTextureUploadDescription(
+                                 QRhiTextureUploadEntry(0, 0, subUpload)));
       }
 
       SubmitOverlayBatch(commandBuffer, batch, resourceBatch, phase);

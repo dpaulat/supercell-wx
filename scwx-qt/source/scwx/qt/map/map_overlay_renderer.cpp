@@ -227,7 +227,7 @@ void MapOverlayRenderer::Render(
                                                 p->preserveRenderTarget_,
                                                 p->renderTargetGeneration_};
 
-   resources.phase        = render::RhiOverlayPhase::Upload;
+   resources.phase         = render::RhiOverlayPhase::Upload;
    resources.resourceBatch = p->rhi_->nextResourceUpdateBatch();
    if (resources.resourceBatch != nullptr)
    {
@@ -238,7 +238,8 @@ void MapOverlayRenderer::Render(
             continue;
          }
 
-         layer->RenderVulkanOverlay(commandBuffer, resources, mapContext, params);
+         layer->RenderVulkanOverlay(
+            commandBuffer, resources, mapContext, params);
       }
       commandBuffer->resourceUpdate(resources.resourceBatch);
    }

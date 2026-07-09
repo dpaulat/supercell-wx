@@ -129,7 +129,7 @@ public:
    {
       std::unique_ptr<render::RhiGeoColoredGeometry> renderer_ {};
       bool                                           geometryUploaded_ {false};
-      std::uint64_t                                  renderTargetGeneration_ {0};
+      std::uint64_t renderTargetGeneration_ {0};
    };
 
    std::unordered_map<QRhi*, GeoRendererCacheEntry> geoRendererByRhi_ {};
@@ -195,14 +195,14 @@ void GeoLines::Impl::EnsureGeoRenderer(
       {
          entry.renderer_->Shutdown();
       }
-      entry.renderer_               = std::make_unique<render::RhiGeoColoredGeometry>();
+      entry.renderer_ = std::make_unique<render::RhiGeoColoredGeometry>();
       entry.renderTargetGeneration_ = resources.renderTargetGeneration;
       entry.geometryUploaded_       = false;
    }
 
    if (entry.renderer_ == nullptr)
    {
-      entry.renderer_               = std::make_unique<render::RhiGeoColoredGeometry>();
+      entry.renderer_ = std::make_unique<render::RhiGeoColoredGeometry>();
       entry.renderTargetGeneration_ = resources.renderTargetGeneration;
    }
 
@@ -650,7 +650,7 @@ void GeoLines::Impl::UpdateSingleBuffer(
       util::maplibre::LatLongToScreenCoordinate({lat1, lon1});
    const glm::vec2 sc2 =
       util::maplibre::LatLongToScreenCoordinate({lat2, lon2});
-   glm::vec2 along {sc2.x - sc1.x, -(sc2.y - sc1.y)};
+   glm::vec2   along {sc2.x - sc1.x, -(sc2.y - sc1.y)};
    const float alongLen = glm::length(along);
    if (alongLen > 1.0e-6f)
    {
@@ -669,10 +669,10 @@ void GeoLines::Impl::UpdateSingleBuffer(
    const float lx     = -hw;
    const float rx     = +hw;
    // Local (perp, along): start uses -along, end uses +along
-   const glm::vec2 bl = perp * lx + along * (-hw);
-   const glm::vec2 tl = perp * lx + along * (+hw);
-   const glm::vec2 br = perp * rx + along * (-hw);
-   const glm::vec2 tr = perp * rx + along * (+hw);
+   const glm::vec2 bl  = perp * lx + along * (-hw);
+   const glm::vec2 tl  = perp * lx + along * (+hw);
+   const glm::vec2 br  = perp * rx + along * (-hw);
+   const glm::vec2 tr  = perp * rx + along * (+hw);
    const float     blX = bl.x;
    const float     blY = bl.y;
    const float     tlX = tl.x;

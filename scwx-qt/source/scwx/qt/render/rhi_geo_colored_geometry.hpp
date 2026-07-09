@@ -32,7 +32,7 @@ public:
                std::uint32_t                    vertexCount,
                bool                             uploadGeometry = true,
                QRhiResourceUpdateBatch*         resourceBatch  = nullptr,
-               RhiOverlayPhase                  phase          = RhiOverlayPhase::UploadAndDraw);
+               RhiOverlayPhase phase = RhiOverlayPhase::UploadAndDraw);
 
    [[nodiscard]] bool IsInitialized() const;
 

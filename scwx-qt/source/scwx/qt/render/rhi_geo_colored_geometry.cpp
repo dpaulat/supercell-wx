@@ -185,7 +185,8 @@ void RhiGeoColoredGeometry::Render(
    uploadGeometry = uploadGeometry || floatCapacity_ < floatBytes ||
                     integerCapacity_ < integerBytes;
 
-   if (OverlayShouldUpload(phase) && uploadGeometry && floatCapacity_ < floatBytes)
+   if (OverlayShouldUpload(phase) && uploadGeometry &&
+       floatCapacity_ < floatBytes)
    {
       if (!EnsureDynamicBuffer(rhi_,
                                floatBuffer_,
@@ -197,7 +198,8 @@ void RhiGeoColoredGeometry::Render(
          return;
       }
    }
-   if (OverlayShouldUpload(phase) && uploadGeometry && integerCapacity_ < integerBytes)
+   if (OverlayShouldUpload(phase) && uploadGeometry &&
+       integerCapacity_ < integerBytes)
    {
       if (!EnsureDynamicBuffer(rhi_,
                                integerBuffer_,
