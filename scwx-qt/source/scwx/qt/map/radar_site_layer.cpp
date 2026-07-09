@@ -324,8 +324,8 @@ void RadarSiteLayer::Impl::RenderRadarSite(
       return;
    }
 
-   const char* const label        = radarSite->id().c_str();
-   const ImVec2      labelSize    = ImGui::CalcTextSize(label);
+   const std::string label     = radarSite->id();
+   const ImVec2      labelSize = ImGui::CalcTextSize(label.c_str());
    const ImVec2&     framePadding = ImGui::GetStyle().FramePadding;
    const ImVec2      buttonSize {labelSize.x + framePadding.x * 2.0f,
                             labelSize.y + framePadding.y * 2.0f};
@@ -341,7 +341,7 @@ void RadarSiteLayer::Impl::RenderRadarSite(
                                       ImGuiCol_ButtonActive,
                                       std::get<2>(colorIt->second)};
 
-   if (ImGui::Button(label, buttonSize))
+   if (ImGui::Button(label.c_str(), buttonSize))
    {
       Q_EMIT self_->RadarSiteSelected(radarSite->id());
    }

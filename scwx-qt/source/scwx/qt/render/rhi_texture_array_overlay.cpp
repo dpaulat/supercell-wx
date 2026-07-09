@@ -1,8 +1,7 @@
 #include <scwx/qt/render/rhi_texture_array_overlay.hpp>
 #include <scwx/qt/render/rhi_buffer_util.hpp>
+#include <scwx/qt/render/rhi_overlay_gpu_store.hpp>
 #include <scwx/qt/render/rhi_overlay_util.hpp>
-#include <scwx/qt/render/rhi_shader_util.hpp>
-#include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <glm/gtc/type_ptr.hpp>
@@ -18,11 +17,6 @@ static const auto logger_ = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr int kGeoUniformBytes    = 144;
 static constexpr int kScreenUniformBytes = 64;
-
-static constexpr std::size_t kGeoFloatsPerVertex       = 12;
-static constexpr std::size_t kGeoIntegersPerVertex     = 4;
-static constexpr std::size_t kScreenFloatsPerVertex    = 10;
-static constexpr std::size_t kScreenTexCoordsPerVertex = 3;
 
 void RhiTextureArrayOverlay::Initialize(QRhi*             rhi,
                                         QRhiRenderTarget* renderTarget,
@@ -84,31 +78,19 @@ void RhiTextureArrayOverlay::Initialize(QRhi*             rhi,
       return;
    }
 
-   atlasSampler_ = rhi_->newSampler(QRhiSampler::Linear,
-                                    QRhiSampler::Linear,
-                                    QRhiSampler::None,
-                                    QRhiSampler::ClampToEdge,
-                                    QRhiSampler::ClampToEdge,
-                                    QRhiSampler::ClampToEdge);
-   if (atlasSampler_ == nullptr || !atlasSampler_->create())
-   {
-      Shutdown();
-      return;
-   }
-
    initialized_ = true;
 }
 
-bool RhiTextureArrayOverlay::EnsureShaderResources(QRhi* rhi)
+bool RhiTextureArrayOverlay::EnsureShaderResources(QRhi* /* rhi */)
 {
-   if (atlasTexture_ == nullptr)
+   if (atlasTexture_ == nullptr || atlasSampler_ == nullptr)
    {
       return false;
    }
 
    if (geoSrb_ == nullptr)
    {
-      geoSrb_ = rhi->newShaderResourceBindings();
+      geoSrb_ = rhi_->newShaderResourceBindings();
       if (geoSrb_ == nullptr)
       {
          logger_->error("Failed to allocate geo texture array shader bindings");
@@ -136,7 +118,7 @@ bool RhiTextureArrayOverlay::EnsureShaderResources(QRhi* rhi)
 
    if (screenSrb_ == nullptr)
    {
-      screenSrb_ = rhi->newShaderResourceBindings();
+      screenSrb_ = rhi_->newShaderResourceBindings();
       if (screenSrb_ == nullptr)
       {
          logger_->error(
@@ -166,167 +148,28 @@ bool RhiTextureArrayOverlay::EnsureShaderResources(QRhi* rhi)
 bool RhiTextureArrayOverlay::EnsureGeoPipeline(QRhi*             rhi,
                                                QRhiRenderTarget* renderTarget)
 {
-   if (geoPipeline_ != nullptr)
-   {
-      return true;
-   }
-
-   const QShader vertexShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/geo_texture_array.vert.spv", QShader::VertexStage);
-   const QShader fragmentShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/geo_texture_array.frag.spv", QShader::FragmentStage);
-   if (!vertexShader.isValid() || !fragmentShader.isValid())
-   {
-      logger_->error("Failed to load geo texture array SPIR-V shaders");
-      return false;
-   }
-
-   if (atlasTexture_ != nullptr && !EnsureShaderResources(rhi))
-   {
-      return false;
-   }
-
-   QRhiVertexInputLayout inputLayout;
-   inputLayout.setBindings({{kGeoFloatsPerVertex * sizeof(float)},
-                            {kGeoIntegersPerVertex * sizeof(std::int32_t)}});
-   inputLayout.setAttributes(
-      {{0, 0, QRhiVertexInputAttribute::Float2, 0},
-       {0, 1, QRhiVertexInputAttribute::Float2, 2 * sizeof(float)},
-       {0, 2, QRhiVertexInputAttribute::Float3, 4 * sizeof(float)},
-       {0, 3, QRhiVertexInputAttribute::Float4, 7 * sizeof(float)},
-       {0, 4, QRhiVertexInputAttribute::Float, 11 * sizeof(float)},
-       {1, 5, QRhiVertexInputAttribute::SInt, 0},
-       {1, 6, QRhiVertexInputAttribute::SInt, sizeof(std::int32_t)},
-       {1, 7, QRhiVertexInputAttribute::SInt, 2 * sizeof(std::int32_t)},
-       {1, 8, QRhiVertexInputAttribute::SInt, 3 * sizeof(std::int32_t)}});
-
-   QRhiGraphicsPipeline::TargetBlend blend;
-   blend.enable   = true;
-   blend.srcColor = QRhiGraphicsPipeline::SrcAlpha;
-   blend.dstColor = QRhiGraphicsPipeline::OneMinusSrcAlpha;
-   blend.srcAlpha = QRhiGraphicsPipeline::One;
-   blend.dstAlpha = QRhiGraphicsPipeline::OneMinusSrcAlpha;
-
-   std::unique_ptr<QRhiGraphicsPipeline> pipeline(rhi->newGraphicsPipeline());
-   if (pipeline == nullptr)
-   {
-      logger_->error("Failed to allocate geo texture array pipeline");
-      return false;
-   }
-   pipeline->setShaderStages(
-      {QRhiShaderStage {QRhiShaderStage::Vertex, vertexShader},
-       QRhiShaderStage {QRhiShaderStage::Fragment, fragmentShader}});
-   pipeline->setVertexInputLayout(inputLayout);
-   if (geoSrb_ != nullptr)
-   {
-      pipeline->setShaderResourceBindings(geoSrb_);
-   }
-   pipeline->setRenderPassDescriptor(renderTarget->renderPassDescriptor());
-   pipeline->setSampleCount(renderTarget->sampleCount());
-   pipeline->setTopology(QRhiGraphicsPipeline::Triangles);
-   pipeline->setCullMode(QRhiGraphicsPipeline::None);
-   pipeline->setDepthTest(false);
-   pipeline->setDepthWrite(false);
-   pipeline->setTargetBlends({blend});
-
-   if (!pipeline->create())
-   {
-      logger_->error("Failed to create geo texture array pipeline");
-      return false;
-   }
-
-   geoPipeline_ = pipeline.release();
-   return true;
+   geoPipeline_ = AcquireTextureArrayGeoPipeline(rhi, renderTarget);
+   return geoPipeline_ != nullptr;
 }
 
 bool RhiTextureArrayOverlay::EnsureScreenPipeline(
    QRhi* rhi, QRhiRenderTarget* renderTarget)
 {
-   if (screenPipeline_ != nullptr)
-   {
-      return true;
-   }
-
-   const QShader vertexShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/screen_texture_array.vert.spv", QShader::VertexStage);
-   const QShader fragmentShader =
-      LoadSpirvShader(":/gl/vulkan/spirv/screen_texture_array.frag.spv",
-                      QShader::FragmentStage);
-   if (!vertexShader.isValid() || !fragmentShader.isValid())
-   {
-      logger_->error("Failed to load screen texture array SPIR-V shaders");
-      return false;
-   }
-
-   if (atlasTexture_ != nullptr && !EnsureShaderResources(rhi))
-   {
-      return false;
-   }
-
-   QRhiVertexInputLayout inputLayout;
-   inputLayout.setBindings({{kScreenFloatsPerVertex * sizeof(float)},
-                            {kScreenTexCoordsPerVertex * sizeof(float)}});
-   inputLayout.setAttributes(
-      {{0, 0, QRhiVertexInputAttribute::Float2, 0},
-       {0, 1, QRhiVertexInputAttribute::Float2, 2 * sizeof(float)},
-       {0, 3, QRhiVertexInputAttribute::Float4, 4 * sizeof(float)},
-       {0, 4, QRhiVertexInputAttribute::Float, 8 * sizeof(float)},
-       {0, 5, QRhiVertexInputAttribute::Float, 9 * sizeof(float)},
-       {1, 2, QRhiVertexInputAttribute::Float3, 0}});
-
-   QRhiGraphicsPipeline::TargetBlend blend;
-   blend.enable   = true;
-   blend.srcColor = QRhiGraphicsPipeline::SrcAlpha;
-   blend.dstColor = QRhiGraphicsPipeline::OneMinusSrcAlpha;
-   blend.srcAlpha = QRhiGraphicsPipeline::One;
-   blend.dstAlpha = QRhiGraphicsPipeline::OneMinusSrcAlpha;
-
-   std::unique_ptr<QRhiGraphicsPipeline> pipeline(rhi->newGraphicsPipeline());
-   if (pipeline == nullptr)
-   {
-      logger_->error("Failed to allocate screen texture array pipeline");
-      return false;
-   }
-   pipeline->setShaderStages(
-      {QRhiShaderStage {QRhiShaderStage::Vertex, vertexShader},
-       QRhiShaderStage {QRhiShaderStage::Fragment, fragmentShader}});
-   pipeline->setVertexInputLayout(inputLayout);
-   if (screenSrb_ != nullptr)
-   {
-      pipeline->setShaderResourceBindings(screenSrb_);
-   }
-   pipeline->setRenderPassDescriptor(renderTarget->renderPassDescriptor());
-   pipeline->setSampleCount(renderTarget->sampleCount());
-   pipeline->setTopology(QRhiGraphicsPipeline::Triangles);
-   pipeline->setCullMode(QRhiGraphicsPipeline::None);
-   pipeline->setDepthTest(false);
-   pipeline->setDepthWrite(false);
-   pipeline->setTargetBlends({blend});
-
-   if (!pipeline->create())
-   {
-      logger_->error("Failed to create screen texture array pipeline");
-      return false;
-   }
-
-   screenPipeline_ = pipeline.release();
-   return true;
+   screenPipeline_ = AcquireTextureArrayScreenPipeline(rhi, renderTarget);
+   return screenPipeline_ != nullptr;
 }
 
 void RhiTextureArrayOverlay::Shutdown()
 {
-   delete geoPipeline_;
-   geoPipeline_ = nullptr;
-   delete screenPipeline_;
+   // Pipelines and atlas texture/sampler are owned by the shared GPU store.
+   geoPipeline_    = nullptr;
    screenPipeline_ = nullptr;
+   atlasTexture_   = nullptr;
+   atlasSampler_   = nullptr;
    delete geoSrb_;
    geoSrb_ = nullptr;
    delete screenSrb_;
    screenSrb_ = nullptr;
-   delete atlasTexture_;
-   atlasTexture_ = nullptr;
-   delete atlasSampler_;
-   atlasSampler_ = nullptr;
    delete screenTexCoordBuffer_;
    screenTexCoordBuffer_ = nullptr;
    delete screenFloatBuffer_;
@@ -357,96 +200,44 @@ void RhiTextureArrayOverlay::SyncAtlas(QRhiCommandBuffer*       commandBuffer,
                                        QRhiResourceUpdateBatch* resourceBatch,
                                        RhiOverlayPhase          phase)
 {
-   if (!initialized_ || commandBuffer == nullptr)
+   if (!initialized_ || commandBuffer == nullptr || rhi_ == nullptr)
    {
       return;
    }
 
-   util::TextureAtlas& atlas  = util::TextureAtlas::Instance();
-   const std::size_t   layers = atlas.LayerCount();
-   const std::size_t   width  = atlas.AtlasWidth();
-   const std::size_t   height = atlas.AtlasHeight();
-
-   if (layers == 0 || width == 0 || height == 0)
+   const RhiSharedAtlas shared = AcquireSharedAtlas(
+      rhi_, commandBuffer, buildCount, resourceBatch, phase);
+   if (shared.texture_ == nullptr || shared.sampler_ == nullptr)
    {
       return;
    }
 
-   const bool atlasChanged = atlasTexture_ == nullptr || atlasWidth_ != width ||
-                             atlasHeight_ != height || atlasLayers_ != layers ||
-                             syncedBuildCount_ != buildCount;
+   const bool atlasIdentityChanged =
+      atlasTexture_ != shared.texture_ || atlasSampler_ != shared.sampler_ ||
+      atlasWidth_ != shared.width_ || atlasHeight_ != shared.height_ ||
+      atlasLayers_ != shared.layers_;
 
-   if (!atlasChanged)
-   {
-      return;
-   }
+   atlasTexture_      = shared.texture_;
+   atlasSampler_      = shared.sampler_;
+   atlasWidth_        = shared.width_;
+   atlasHeight_       = shared.height_;
+   atlasLayers_       = shared.layers_;
+   syncedBuildCount_  = shared.buildCount_;
 
-   if (!OverlayShouldUpload(phase))
+   if (atlasIdentityChanged)
    {
-      return;
-   }
-
-   if (atlasTexture_ == nullptr || atlasWidth_ != width ||
-       atlasHeight_ != height || atlasLayers_ != layers)
-   {
-      delete geoPipeline_;
-      geoPipeline_ = nullptr;
-      delete screenPipeline_;
-      screenPipeline_ = nullptr;
       delete geoSrb_;
       geoSrb_ = nullptr;
       delete screenSrb_;
       screenSrb_ = nullptr;
-      delete atlasTexture_;
-      atlasTexture_ = rhi_->newTextureArray(
-         QRhiTexture::RGBA8,
-         static_cast<int>(layers),
-         QSize(static_cast<int>(width), static_cast<int>(height)));
-      if (atlasTexture_ == nullptr || !atlasTexture_->create())
-      {
-         logger_->error("Failed to create texture atlas array");
-         delete atlasTexture_;
-         atlasTexture_ = nullptr;
-         return;
-      }
-
-      atlasWidth_  = width;
-      atlasHeight_ = height;
-      atlasLayers_ = layers;
-
-      if (!EnsureShaderResources(rhi_) ||
-          !EnsureGeoPipeline(rhi_, renderTarget_) ||
-          !EnsureScreenPipeline(rhi_, renderTarget_))
-      {
-         logger_->error("Failed to rebuild texture array overlay pipelines");
-         return;
-      }
    }
 
-   QRhiResourceUpdateBatch* batch =
-      AcquireOverlayBatch(rhi_, resourceBatch, phase);
-   if (batch == nullptr)
+   if (!EnsureShaderResources(rhi_) ||
+       !EnsureGeoPipeline(rhi_, renderTarget_) ||
+       !EnsureScreenPipeline(rhi_, renderTarget_))
    {
-      return;
+      logger_->error("Failed to bind shared texture array overlay resources");
    }
-
-   for (std::size_t layer = 0; layer < layers; ++layer)
-   {
-      const std::vector<std::uint8_t> pixels = atlas.CopyLayerPixels(layer);
-      if (pixels.empty())
-      {
-         continue;
-      }
-
-      const QRhiTextureSubresourceUploadDescription subUpload(
-         pixels.data(), static_cast<quint32>(pixels.size()));
-      batch->uploadTexture(atlasTexture_,
-                           QRhiTextureUploadDescription(QRhiTextureUploadEntry(
-                              static_cast<int>(layer), 0, subUpload)));
-   }
-
-   SubmitOverlayBatch(commandBuffer, batch, resourceBatch, phase);
-   syncedBuildCount_ = buildCount;
 }
 
 void RhiTextureArrayOverlay::RenderGeo(

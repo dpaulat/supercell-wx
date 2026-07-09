@@ -28,39 +28,29 @@ if (MLN_WITH_VULKAN)
         list(APPEND _scwx_qt_gui_include_dirs "$ENV{QT_ROOT_DIR}/include/QtGui")
     endif()
     list(REMOVE_DUPLICATES _scwx_qt_gui_include_dirs)
+
+    # MapLibre only probes for qvulkaninstance.h at configure time; it is not
+    # included by the Vulkan backend sources. aqt macOS Qt often omits it, so
+    # provide a stub ahead of the real Qt include dirs when the probe fails.
+    find_path(_SCWX_QT_VULKAN_HEADER qvulkaninstance.h
+              PATHS ${_scwx_qt_gui_include_dirs}
+              NO_DEFAULT_PATH)
+    if (NOT _SCWX_QT_VULKAN_HEADER)
+        set(_SCWX_QT_VULKAN_STUB_DIR
+            "${CMAKE_CURRENT_BINARY_DIR}/scwx-qt-vulkan-stub")
+        file(MAKE_DIRECTORY "${_SCWX_QT_VULKAN_STUB_DIR}")
+        file(WRITE "${_SCWX_QT_VULKAN_STUB_DIR}/qvulkaninstance.h"
+             "// Stub for MapLibre configure-time Vulkan probe (unused at compile).\n"
+             "#pragma once\n")
+        list(INSERT _scwx_qt_gui_include_dirs 0 "${_SCWX_QT_VULKAN_STUB_DIR}")
+        message(STATUS
+                "Qt build has no qvulkaninstance.h; using stub for MapLibre Vulkan probe")
+    endif()
+    unset(_SCWX_QT_VULKAN_HEADER CACHE)
+
     set(Qt${QT_VERSION_MAJOR}Gui_INCLUDE_DIRS
         "${_scwx_qt_gui_include_dirs}"
         CACHE STRING "" FORCE)
-endif()
-
-# aqt macOS Qt may omit qvulkaninstance.h; mbgl only probes for it — not used
-# at compile time — so allow headless Vulkan on macOS when the probe fails.
-set(_SCWX_MLN_QT_CMAKE
-    "${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native-qt/vendor/maplibre-native/platform/qt/qt.cmake")
-if (EXISTS "${_SCWX_MLN_QT_CMAKE}")
-    file(READ "${_SCWX_MLN_QT_CMAKE}" _scwx_mln_qt_cmake)
-    set(_SCWX_MLN_QT_OLD
-        "    if(NOT QT_VULKAN_HEADER)\n        message(FATAL_ERROR \"Qt build has no Vulkan headers; can not build Qt Vulkan backend\")\n    endif()")
-    set(_SCWX_MLN_QT_NEW
-        "    if(NOT QT_VULKAN_HEADER)\n        if(APPLE)\n            message(STATUS \"Qt build has no qvulkaninstance.h; continuing with headless Vulkan on macOS\")\n        else()\n            message(FATAL_ERROR \"Qt build has no Vulkan headers; can not build Qt Vulkan backend\")\n        endif()\n    endif()")
-    string(FIND "${_scwx_mln_qt_cmake}" "continuing with headless Vulkan on macOS"
-           _scwx_mln_qt_already_patched)
-    if(_scwx_mln_qt_already_patched EQUAL -1)
-        string(FIND "${_scwx_mln_qt_cmake}" "can not build Qt Vulkan backend"
-               _scwx_mln_qt_patchable)
-        if(_scwx_mln_qt_patchable GREATER -1)
-            string(REPLACE "${_SCWX_MLN_QT_OLD}" "${_SCWX_MLN_QT_NEW}"
-                   _scwx_mln_qt_cmake _scwx_mln_qt_cmake)
-            string(LENGTH "${_scwx_mln_qt_cmake}" _scwx_mln_qt_cmake_len)
-            if(_scwx_mln_qt_cmake_len GREATER 100)
-                file(WRITE "${_SCWX_MLN_QT_CMAKE}" "${_scwx_mln_qt_cmake}")
-            else()
-                message(WARNING "Refusing to patch maplibre qt.cmake: patched content too small")
-            endif()
-        else()
-            message(WARNING "Could not patch maplibre qt.cmake for macOS Vulkan probe")
-        endif()
-    endif()
 endif()
 
 add_subdirectory(maplibre-native-qt)

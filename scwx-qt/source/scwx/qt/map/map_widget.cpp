@@ -299,7 +299,7 @@ public:
       overlayRenderer_.Shutdown();
       render::UnregisterVulkanResultHandler(widget_);
 
-      // Set ImGui Context
+      // Set ImGui Context before Vulkan/Qt ImGui teardown
       ImGui::SetCurrentContext(imGuiContext_);
 
       // Shutdown ImGui Context
@@ -2101,12 +2101,16 @@ bool MapWidget::event(QEvent* e)
 
    if (e->type() == QEvent::Type::ParentAboutToChange)
    {
+      // Tear down QRhi/ImGui Vulkan state before the widget leaves this
+      // top-level window (pop-out / dock). New parent gets a new QRhi.
       p->vulkanRenderingInitialized_ = false;
       releaseResources();
    }
    else if (e->type() == QEvent::Type::ParentChange)
    {
       p->vulkanRenderingInitialized_ = false;
+      p->imGuiRendererInitialized_   = false;
+      p->imguiOverlayGeneration_     = 0;
    }
 
    switch (e->type())
@@ -2672,10 +2676,14 @@ void MapWidget::releaseResources()
       p->rhiRenderer_.ReleaseMapRenderer(p->map_.get());
    }
 
+   // ImGui Vulkan backend is per-context; must bind this pane's context or
+   // Shutdown skips / tears down the wrong backend (pop-out reparent crash).
+   ImGui::SetCurrentContext(p->imGuiContext_);
    p->imguiVulkanRenderer_.Shutdown();
    p->overlayRenderer_.Shutdown();
    p->ReleaseBasemapTexture();
    p->lastCopiedBasemapGeneration_ = 0;
+   p->imguiOverlayGeneration_      = 0;
    p->imGuiRendererInitialized_    = false;
    p->vulkanRenderingInitialized_  = false;
 }
@@ -2842,8 +2850,10 @@ void MapWidgetImpl::EnsureImGuiRenderer(QRhiCommandBuffer* commandBuffer)
 
    if (!imguiVulkanRenderer_.IsInitialized())
    {
-      imguiVulkanRenderer_.Initialize(
-         widget_->rhi(), widget_->colorTexture(), renderPass);
+      imguiVulkanRenderer_.Initialize(widget_->rhi(),
+                                      widget_->colorTexture(),
+                                      renderPass,
+                                      imGuiContext_);
    }
 
    imGuiRendererInitialized_ = imguiVulkanRenderer_.IsInitialized();
@@ -3155,12 +3165,19 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    }
 
    const auto overlayStart = std::chrono::steady_clock::now();
-   overlayRenderer_.Render(commandBuffer,
-                           widget_->colorTexture(),
-                           genericLayers_,
-                           context_,
-                           overlayParams,
-                           imguiRender);
+   // Primary pane always composites overlays (mouse/tooltip). Followers skip
+   // the overlay pass when nothing marked dirty since the last draw.
+   const bool renderOverlays = isPrimaryPane || overlayNeedsRender_ ||
+                               static_cast<bool>(imguiRender);
+   if (renderOverlays)
+   {
+      overlayRenderer_.Render(commandBuffer,
+                              widget_->colorTexture(),
+                              genericLayers_,
+                              context_,
+                              overlayParams,
+                              imguiRender);
+   }
    overlayNeedsRender_   = false;
    const auto overlayEnd = std::chrono::steady_clock::now();
 

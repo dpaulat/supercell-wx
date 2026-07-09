@@ -769,9 +769,7 @@ void GeoLines::Impl::UpdateSingleBuffer(
    {
       const units::angle::radians<double> radians = angle;
 
-      const auto sc1 = util::maplibre::LatLongToScreenCoordinate({lat1, lon1});
-      const auto sc2 = util::maplibre::LatLongToScreenCoordinate({lat2, lon2});
-
+      // Reuse outer sc1/sc2 (MSVC C4456 if redeclared here).
       const float cosAngle = cosf(static_cast<float>(radians.value()));
       const float sinAngle = sinf(static_cast<float>(radians.value()));
 

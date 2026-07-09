@@ -5,6 +5,7 @@
 #include <scwx/qt/render/rhi_colored_geometry.hpp>
 #include <scwx/qt/render/rhi_color_table_overlay.hpp>
 #include <scwx/qt/render/rhi_geo_colored_geometry.hpp>
+#include <scwx/qt/render/rhi_overlay_gpu_store.hpp>
 #include <scwx/qt/render/rhi_radar_overlay.hpp>
 #include <scwx/qt/render/rhi_texture_array_overlay.hpp>
 #include <scwx/qt/render/rhi_vulkan_overlay.hpp>
@@ -63,6 +64,7 @@ public:
    QRhiTextureRenderTarget*       preserveRenderTarget_ {nullptr};
    QSize                          pixelSize_ {};
    std::uint64_t                  renderTargetGeneration_ {0};
+   bool                           storeRetained_ {false};
 };
 
 bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
@@ -129,11 +131,12 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
       if (oldNativeRenderPass == nullptr ||
           oldNativeRenderPass != newNativeRenderPass)
       {
+         // Drop this pane's overlay objects so they rebind to new pass.
+         // Shared pipelines for the old pass key stay until unused; other
+         // panes may still hold them. New pass gets a new store key.
          colorTableOverlay_.Shutdown();
          radarOverlay_.Shutdown();
          coloredGeometry_.Shutdown();
-         radarGeoColoredGeometry_.Shutdown();
-         geoColoredGeometry_.Shutdown();
          textureArrayOverlay_.Shutdown();
          ++renderTargetGeneration_;
       }
@@ -151,16 +154,6 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
    {
       radarOverlay_.Initialize(rhi_, preserveRenderTarget_, commandBuffer);
    }
-   if (!radarGeoColoredGeometry_.IsInitialized())
-   {
-      radarGeoColoredGeometry_.Initialize(
-         rhi_, preserveRenderTarget_, commandBuffer);
-   }
-   if (!geoColoredGeometry_.IsInitialized())
-   {
-      geoColoredGeometry_.Initialize(
-         rhi_, preserveRenderTarget_, commandBuffer);
-   }
    if (!textureArrayOverlay_.IsInitialized())
    {
       textureArrayOverlay_.Initialize(
@@ -169,8 +162,6 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
 
    return colorTableOverlay_.IsInitialized() && radarOverlay_.IsInitialized() &&
           coloredGeometry_.IsInitialized() &&
-          radarGeoColoredGeometry_.IsInitialized() &&
-          geoColoredGeometry_.IsInitialized() &&
           textureArrayOverlay_.IsInitialized();
 }
 
@@ -181,7 +172,21 @@ void MapOverlayRenderer::Initialize(QRhi* rhi)
       p = std::make_unique<Impl>();
    }
 
-   p->rhi_ = rhi;
+   if (p->rhi_ != rhi)
+   {
+      if (p->storeRetained_ && p->rhi_ != nullptr)
+      {
+         render::ReleaseOverlayGpuStore(p->rhi_);
+         p->storeRetained_ = false;
+      }
+      p->rhi_ = rhi;
+   }
+
+   if (p->rhi_ != nullptr && !p->storeRetained_)
+   {
+      render::RetainOverlayGpuStore(p->rhi_);
+      p->storeRetained_ = true;
+   }
 }
 
 void MapOverlayRenderer::Shutdown()
@@ -201,7 +206,13 @@ void MapOverlayRenderer::Shutdown()
    p->preserveRenderTarget_ = nullptr;
    p->colorTexture_         = nullptr;
    p->pixelSize_            = {};
-   p->rhi_                  = nullptr;
+
+   if (p->storeRetained_ && p->rhi_ != nullptr)
+   {
+      render::ReleaseOverlayGpuStore(p->rhi_);
+      p->storeRetained_ = false;
+   }
+   p->rhi_ = nullptr;
 }
 
 void MapOverlayRenderer::Render(

@@ -1,8 +1,9 @@
 #include <scwx/qt/render/rhi_color_table_overlay.hpp>
 #include <scwx/qt/render/rhi_overlay_util.hpp>
-#include <scwx/qt/render/rhi_shader_util.hpp>
+#include <scwx/qt/render/rhi_overlay_gpu_store.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <cstring>
 #include <glm/gtc/type_ptr.hpp>
 
 #include <rhi/qrhi.h>
@@ -63,12 +64,8 @@ void RhiColorTableOverlay::Initialize(QRhi*              rhi,
       }
    }
 
-   sampler_ = rhi_->newSampler(QRhiSampler::Nearest,
-                               QRhiSampler::Nearest,
-                               QRhiSampler::None,
-                               QRhiSampler::ClampToEdge,
-                               QRhiSampler::ClampToEdge);
-   if (sampler_ == nullptr || !sampler_->create())
+   sampler_ = AcquireNearestSampler(rhi_);
+   if (sampler_ == nullptr)
    {
       Shutdown();
       return;
@@ -86,18 +83,9 @@ void RhiColorTableOverlay::Initialize(QRhi*              rhi,
 bool RhiColorTableOverlay::EnsurePipeline(QRhi*             rhi,
                                           QRhiRenderTarget* renderTarget)
 {
-   if (pipeline_ != nullptr)
+   pipeline_ = AcquireColorTablePipeline(rhi, renderTarget);
+   if (pipeline_ == nullptr)
    {
-      return true;
-   }
-
-   const QShader vertexShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/texture1d.vert.spv", QShader::VertexStage);
-   const QShader fragmentShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/texture_lut.frag.spv", QShader::FragmentStage);
-   if (!vertexShader.isValid() || !fragmentShader.isValid())
-   {
-      logger_->error("Failed to load color table SPIR-V shaders");
       return false;
    }
 
@@ -137,57 +125,18 @@ bool RhiColorTableOverlay::EnsurePipeline(QRhi*             rhi,
       return false;
    }
 
-   QRhiVertexInputLayout inputLayout;
-   inputLayout.setBindings({{2 * sizeof(float)}, {sizeof(float)}});
-   inputLayout.setAttributes({{0, 0, QRhiVertexInputAttribute::Float2, 0},
-                              {1, 1, QRhiVertexInputAttribute::Float, 0}});
-
-   QRhiGraphicsPipeline::TargetBlend blend;
-   blend.enable   = true;
-   blend.srcColor = QRhiGraphicsPipeline::SrcAlpha;
-   blend.dstColor = QRhiGraphicsPipeline::OneMinusSrcAlpha;
-   blend.srcAlpha = QRhiGraphicsPipeline::One;
-   blend.dstAlpha = QRhiGraphicsPipeline::OneMinusSrcAlpha;
-
-   std::unique_ptr<QRhiGraphicsPipeline> pipeline(rhi->newGraphicsPipeline());
-   if (pipeline == nullptr)
-   {
-      logger_->error("Failed to allocate color table graphics pipeline");
-      return false;
-   }
-   pipeline->setShaderStages(
-      {QRhiShaderStage {QRhiShaderStage::Vertex, vertexShader},
-       QRhiShaderStage {QRhiShaderStage::Fragment, fragmentShader}});
-   pipeline->setVertexInputLayout(inputLayout);
-   pipeline->setShaderResourceBindings(srb_);
-   pipeline->setRenderPassDescriptor(renderTarget->renderPassDescriptor());
-   pipeline->setSampleCount(renderTarget->sampleCount());
-   pipeline->setTopology(QRhiGraphicsPipeline::Triangles);
-   pipeline->setCullMode(QRhiGraphicsPipeline::None);
-   pipeline->setDepthTest(false);
-   pipeline->setDepthWrite(false);
-   pipeline->setTargetBlends({blend});
-
-   if (!pipeline->create())
-   {
-      logger_->error("Failed to create color table graphics pipeline");
-      return false;
-   }
-
-   pipeline_ = pipeline.release();
    return true;
 }
 
 void RhiColorTableOverlay::Shutdown()
 {
-   delete pipeline_;
+   // Pipeline and nearest sampler owned by shared GPU store.
    pipeline_ = nullptr;
+   sampler_  = nullptr;
    delete srb_;
    srb_ = nullptr;
    delete lutTexture_;
    lutTexture_ = nullptr;
-   delete sampler_;
-   sampler_ = nullptr;
    delete texCoordBuffer_;
    texCoordBuffer_ = nullptr;
    delete vertexBuffer_;
@@ -197,7 +146,9 @@ void RhiColorTableOverlay::Shutdown()
    rhi_           = nullptr;
    renderTarget_  = nullptr;
    lutWidth_      = 0;
-   initialized_   = false;
+   lutUploaded_   = false;
+   uploadedLut_.clear();
+   initialized_ = false;
 }
 
 void RhiColorTableOverlay::Render(
@@ -232,11 +183,21 @@ void RhiColorTableOverlay::Render(
       batch->updateDynamicBuffer(
          vertexBuffer_, 0, sizeof(float) * 6 * 2, vertices);
 
-      const QRhiTextureSubresourceUploadDescription subUpload(
-         rgbaColorTable.data(), static_cast<quint32>(tableWidth * 4));
-      const QRhiTextureUploadDescription upload(
-         QRhiTextureUploadEntry(0, 0, subUpload));
-      batch->uploadTexture(lutTexture_, upload);
+      const bool lutChanged =
+         !lutUploaded_ || uploadedLut_.size() != rgbaColorTable.size() ||
+         std::memcmp(uploadedLut_.data(),
+                     rgbaColorTable.data(),
+                     rgbaColorTable.size()) != 0;
+      if (lutChanged)
+      {
+         const QRhiTextureSubresourceUploadDescription subUpload(
+            rgbaColorTable.data(), static_cast<quint32>(tableWidth * 4));
+         const QRhiTextureUploadDescription upload(
+            QRhiTextureUploadEntry(0, 0, subUpload));
+         batch->uploadTexture(lutTexture_, upload);
+         uploadedLut_ = rgbaColorTable;
+         lutUploaded_ = true;
+      }
 
       SubmitOverlayBatch(commandBuffer, batch, resourceBatch, phase);
    }

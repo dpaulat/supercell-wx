@@ -1,7 +1,7 @@
 #include <scwx/qt/render/rhi_geo_colored_geometry.hpp>
 #include <scwx/qt/render/rhi_overlay_util.hpp>
 #include <scwx/qt/render/rhi_buffer_util.hpp>
-#include <scwx/qt/render/rhi_shader_util.hpp>
+#include <scwx/qt/render/rhi_overlay_gpu_store.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <rhi/qrhi.h>
@@ -63,26 +63,20 @@ void RhiGeoColoredGeometry::Initialize(QRhi*             rhi,
 bool RhiGeoColoredGeometry::EnsurePipeline(QRhi*             rhi,
                                            QRhiRenderTarget* renderTarget)
 {
-   if (pipeline_ != nullptr)
+   pipeline_ = AcquireGeoColoredGeometryPipeline(rhi, renderTarget);
+   if (pipeline_ == nullptr)
    {
-      return true;
-   }
-
-   const QShader vertexShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/geo_color.vert.spv", QShader::VertexStage);
-   const QShader fragmentShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/geo_color.frag.spv", QShader::FragmentStage);
-   if (!vertexShader.isValid() || !fragmentShader.isValid())
-   {
-      logger_->error("Failed to load geo colored SPIR-V shaders");
       return false;
    }
 
-   srb_ = rhi->newShaderResourceBindings();
    if (srb_ == nullptr)
    {
-      logger_->error("Failed to allocate geo colored shader bindings");
-      return false;
+      srb_ = rhi->newShaderResourceBindings();
+      if (srb_ == nullptr)
+      {
+         logger_->error("Failed to allocate geo colored shader bindings");
+         return false;
+      }
    }
    srb_->setBindings({QRhiShaderResourceBinding::uniformBuffer(
       0,
@@ -94,60 +88,12 @@ bool RhiGeoColoredGeometry::EnsurePipeline(QRhi*             rhi,
       return false;
    }
 
-   QRhiVertexInputLayout inputLayout;
-   inputLayout.setBindings({{20 * sizeof(float)}, {4 * sizeof(std::int32_t)}});
-   inputLayout.setAttributes(
-      {{0, 0, QRhiVertexInputAttribute::Float2, 0},
-       {0, 1, QRhiVertexInputAttribute::Float2, 2 * sizeof(float)},
-       {0, 2, QRhiVertexInputAttribute::Float4, 4 * sizeof(float)},
-       {0, 3, QRhiVertexInputAttribute::Float, 8 * sizeof(float)},
-       {0, 4, QRhiVertexInputAttribute::Float4, 9 * sizeof(float)},
-       {0, 5, QRhiVertexInputAttribute::Float4, 13 * sizeof(float)},
-       {0, 6, QRhiVertexInputAttribute::Float3, 17 * sizeof(float)},
-       {1, 7, QRhiVertexInputAttribute::SInt, 0},
-       {1, 8, QRhiVertexInputAttribute::SInt, sizeof(std::int32_t)},
-       {1, 9, QRhiVertexInputAttribute::SInt, 2 * sizeof(std::int32_t)},
-       {1, 10, QRhiVertexInputAttribute::SInt, 3 * sizeof(std::int32_t)}});
-
-   QRhiGraphicsPipeline::TargetBlend blend;
-   blend.enable   = true;
-   blend.srcColor = QRhiGraphicsPipeline::SrcAlpha;
-   blend.dstColor = QRhiGraphicsPipeline::OneMinusSrcAlpha;
-   blend.srcAlpha = QRhiGraphicsPipeline::One;
-   blend.dstAlpha = QRhiGraphicsPipeline::OneMinusSrcAlpha;
-
-   std::unique_ptr<QRhiGraphicsPipeline> pipeline(rhi->newGraphicsPipeline());
-   if (pipeline == nullptr)
-   {
-      logger_->error("Failed to allocate geo colored pipeline");
-      return false;
-   }
-   pipeline->setShaderStages(
-      {QRhiShaderStage {QRhiShaderStage::Vertex, vertexShader},
-       QRhiShaderStage {QRhiShaderStage::Fragment, fragmentShader}});
-   pipeline->setVertexInputLayout(inputLayout);
-   pipeline->setShaderResourceBindings(srb_);
-   pipeline->setRenderPassDescriptor(renderTarget->renderPassDescriptor());
-   pipeline->setSampleCount(renderTarget->sampleCount());
-   pipeline->setTopology(QRhiGraphicsPipeline::Triangles);
-   pipeline->setCullMode(QRhiGraphicsPipeline::None);
-   pipeline->setDepthTest(false);
-   pipeline->setDepthWrite(false);
-   pipeline->setTargetBlends({blend});
-
-   if (!pipeline->create())
-   {
-      logger_->error("Failed to create geo colored pipeline");
-      return false;
-   }
-
-   pipeline_ = pipeline.release();
    return true;
 }
 
 void RhiGeoColoredGeometry::Shutdown()
 {
-   delete pipeline_;
+   // Pipeline owned by shared GPU store.
    pipeline_ = nullptr;
    delete srb_;
    srb_ = nullptr;

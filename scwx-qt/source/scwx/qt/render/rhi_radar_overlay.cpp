@@ -1,7 +1,7 @@
 #include <scwx/qt/render/rhi_overlay_util.hpp>
 #include <scwx/qt/render/rhi_radar_overlay.hpp>
 #include <scwx/qt/render/rhi_buffer_util.hpp>
-#include <scwx/qt/render/rhi_shader_util.hpp>
+#include <scwx/qt/render/rhi_overlay_gpu_store.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <algorithm>
@@ -91,12 +91,8 @@ void RhiRadarOverlay::Initialize(QRhi*             rhi,
       return;
    }
 
-   sampler_ = rhi_->newSampler(QRhiSampler::Nearest,
-                               QRhiSampler::Nearest,
-                               QRhiSampler::None,
-                               QRhiSampler::ClampToEdge,
-                               QRhiSampler::ClampToEdge);
-   if (sampler_ == nullptr || !sampler_->create())
+   sampler_ = AcquireNearestSampler(rhi_);
+   if (sampler_ == nullptr)
    {
       Shutdown();
       return;
@@ -113,33 +109,30 @@ void RhiRadarOverlay::Initialize(QRhi*             rhi,
 
 bool RhiRadarOverlay::EnsurePipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
 {
-   if (pipeline_ != nullptr)
+   pipeline_ = AcquireRadarPipeline(rhi, renderTarget);
+   if (pipeline_ == nullptr)
    {
-      return true;
-   }
-
-   const QShader vertexShader =
-      LoadSpirvShader(":/gl/vulkan/spirv/radar.vert.spv", QShader::VertexStage);
-   const QShader fragmentShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/radar.frag.spv", QShader::FragmentStage);
-   if (!vertexShader.isValid() || !fragmentShader.isValid())
-   {
-      logger_->error("Failed to load radar SPIR-V shaders");
       return false;
    }
 
-   lutTexture_ = rhi->newTexture(QRhiTexture::RGBA8, QSize(kMaxLutWidth, 1));
-   if (lutTexture_ == nullptr || !lutTexture_->create())
+   if (lutTexture_ == nullptr)
    {
-      logger_->error("Failed to create radar LUT texture");
-      return false;
+      lutTexture_ = rhi->newTexture(QRhiTexture::RGBA8, QSize(kMaxLutWidth, 1));
+      if (lutTexture_ == nullptr || !lutTexture_->create())
+      {
+         logger_->error("Failed to create radar LUT texture");
+         return false;
+      }
    }
 
-   srb_ = rhi->newShaderResourceBindings();
    if (srb_ == nullptr)
    {
-      logger_->error("Failed to allocate radar shader bindings");
-      return false;
+      srb_ = rhi->newShaderResourceBindings();
+      if (srb_ == nullptr)
+      {
+         logger_->error("Failed to allocate radar shader bindings");
+         return false;
+      }
    }
    srb_->setBindings({
       QRhiShaderResourceBinding::uniformBuffer(
@@ -155,59 +148,18 @@ bool RhiRadarOverlay::EnsurePipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
       return false;
    }
 
-   QRhiVertexInputLayout inputLayout;
-   inputLayout.setBindings(
-      {{2 * sizeof(float)}, {sizeof(std::uint32_t)}, {sizeof(std::uint32_t)}});
-   inputLayout.setAttributes({{0, 0, QRhiVertexInputAttribute::Float2, 0},
-                              {1, 1, QRhiVertexInputAttribute::UInt, 0},
-                              {2, 2, QRhiVertexInputAttribute::UInt, 0}});
-
-   QRhiGraphicsPipeline::TargetBlend blend;
-   blend.enable   = true;
-   blend.srcColor = QRhiGraphicsPipeline::SrcAlpha;
-   blend.dstColor = QRhiGraphicsPipeline::OneMinusSrcAlpha;
-   blend.srcAlpha = QRhiGraphicsPipeline::One;
-   blend.dstAlpha = QRhiGraphicsPipeline::OneMinusSrcAlpha;
-
-   std::unique_ptr<QRhiGraphicsPipeline> pipeline(rhi->newGraphicsPipeline());
-   if (pipeline == nullptr)
-   {
-      logger_->error("Failed to allocate radar graphics pipeline");
-      return false;
-   }
-   pipeline->setShaderStages(
-      {QRhiShaderStage {QRhiShaderStage::Vertex, vertexShader},
-       QRhiShaderStage {QRhiShaderStage::Fragment, fragmentShader}});
-   pipeline->setVertexInputLayout(inputLayout);
-   pipeline->setShaderResourceBindings(srb_);
-   pipeline->setRenderPassDescriptor(renderTarget->renderPassDescriptor());
-   pipeline->setSampleCount(renderTarget->sampleCount());
-   pipeline->setTopology(QRhiGraphicsPipeline::Triangles);
-   pipeline->setCullMode(QRhiGraphicsPipeline::None);
-   pipeline->setDepthTest(false);
-   pipeline->setDepthWrite(false);
-   pipeline->setTargetBlends({blend});
-
-   if (!pipeline->create())
-   {
-      logger_->error("Failed to create radar graphics pipeline");
-      return false;
-   }
-
-   pipeline_ = pipeline.release();
    return true;
 }
 
 void RhiRadarOverlay::Shutdown()
 {
-   delete pipeline_;
+   // Pipeline and nearest sampler owned by shared GPU store.
    pipeline_ = nullptr;
+   sampler_  = nullptr;
    delete srb_;
    srb_ = nullptr;
    delete lutTexture_;
    lutTexture_ = nullptr;
-   delete sampler_;
-   sampler_ = nullptr;
    delete cfpBuffer_;
    cfpBuffer_ = nullptr;
    delete momentBuffer_;

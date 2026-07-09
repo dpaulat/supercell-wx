@@ -213,6 +213,7 @@ set(HDR_RENDER source/scwx/qt/render/render_backend.hpp
                source/scwx/qt/render/rhi_geo_uniforms.hpp
                source/scwx/qt/render/rhi_geo_colored_geometry.hpp
                source/scwx/qt/render/rhi_texture_array_overlay.hpp
+               source/scwx/qt/render/rhi_overlay_gpu_store.hpp
                source/scwx/qt/render/rhi_buffer_util.hpp
                source/scwx/qt/render/rhi_imgui_util.hpp)
 set(SRC_RENDER source/scwx/qt/render/render_context.cpp
@@ -225,6 +226,7 @@ set(SRC_RENDER source/scwx/qt/render/render_context.cpp
                source/scwx/qt/render/rhi_geo_uniforms.cpp
                source/scwx/qt/render/rhi_geo_colored_geometry.cpp
                source/scwx/qt/render/rhi_texture_array_overlay.cpp
+               source/scwx/qt/render/rhi_overlay_gpu_store.cpp
                source/scwx/qt/render/rhi_buffer_util.cpp
                source/scwx/qt/render/rhi_pipeline_cache.cpp
                source/scwx/qt/render/rhi_vulkan_result.cpp

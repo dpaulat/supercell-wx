@@ -50,6 +50,8 @@ private:
    QRhiShaderResourceBindings* srb_ {nullptr};
    QRhiGraphicsPipeline*       pipeline_ {nullptr};
    int                         lutWidth_ {0};
+   std::vector<std::uint8_t>   uploadedLut_ {};
+   bool                        lutUploaded_ {false};
    bool                        initialized_ {false};
 };
 

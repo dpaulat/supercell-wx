@@ -26,12 +26,35 @@ static void CheckVkResult(VkResult result)
    render::ReportVulkanResult(result, "ImGui Vulkan");
 }
 
+void MapImGuiVulkanRenderer::BindContext() const
+{
+   if (imGuiContext_ != nullptr)
+   {
+      ImGui::SetCurrentContext(imGuiContext_);
+   }
+}
+
 bool MapImGuiVulkanRenderer::InitBackend(void* renderPass)
 {
    if (rhi_ == nullptr || renderPass == nullptr ||
        rhi_->backend() != QRhi::Vulkan)
    {
       return false;
+   }
+
+   BindContext();
+   if (ImGui::GetCurrentContext() == nullptr)
+   {
+      return false;
+   }
+
+   // Stale backend from a previous QRhi/device (e.g. pop-out reparent) must be
+   // torn down before init; otherwise ImGui_ImplVulkan_Init refuses to bind.
+   if (ImGui::GetIO().BackendRendererUserData != nullptr)
+   {
+      logger_->warn(
+         "Clearing stale ImGui Vulkan backend before re-init");
+      ImGui_ImplVulkan_Shutdown();
    }
 
    const QRhiNativeHandles* nativeHandles = rhi_->nativeHandles();
@@ -94,24 +117,31 @@ bool MapImGuiVulkanRenderer::InitBackend(void* renderPass)
 
 void MapImGuiVulkanRenderer::Initialize(QRhi* rhi,
                                         QRhiTexture* /* colorTexture */,
-                                        void* renderPass)
+                                        void*         renderPass,
+                                        ImGuiContext* imGuiContext)
 {
-   if (initialized_ || rhi == nullptr || renderPass == nullptr)
+   if (rhi == nullptr || renderPass == nullptr)
    {
       return;
    }
+
+   imGuiContext_ = imGuiContext;
+   BindContext();
 
    if (ImGui::GetCurrentContext() == nullptr)
    {
       return;
    }
 
-   if (ImGui::GetIO().BackendRendererUserData != nullptr)
+   if (initialized_)
    {
-      logger_->warn(
-         "ImGui Vulkan backend already bound to current context; skipping "
-         "init");
-      return;
+      if (rhi_ == rhi && renderPass_ == renderPass)
+      {
+         return;
+      }
+      Shutdown();
+      imGuiContext_ = imGuiContext;
+      BindContext();
    }
 
    rhi_        = rhi;
@@ -135,6 +165,8 @@ void MapImGuiVulkanRenderer::UpdateRenderPass(void* renderPass)
       return;
    }
 
+   BindContext();
+
    if (initialized_)
    {
       Shutdown();
@@ -154,6 +186,8 @@ void MapImGuiVulkanRenderer::UpdateRenderPass(void* renderPass)
 
 void MapImGuiVulkanRenderer::Shutdown()
 {
+   BindContext();
+
    if (initialized_)
    {
       if (ImGui::GetCurrentContext() != nullptr &&
@@ -175,6 +209,14 @@ void MapImGuiVulkanRenderer::Shutdown()
 
       initialized_ = false;
    }
+   else if (ImGui::GetCurrentContext() != nullptr &&
+            ImGui::GetIO().BackendRendererUserData != nullptr)
+   {
+      // initialized_ cleared without a context-correct shutdown (reparent).
+      logger_->warn(
+         "Shutting down orphaned ImGui Vulkan backend");
+      ImGui_ImplVulkan_Shutdown();
+   }
 
    rhi_        = nullptr;
    renderPass_ = nullptr;
@@ -184,6 +226,16 @@ bool MapImGuiVulkanRenderer::NewFrame(QWidget* widget)
 {
    if (!initialized_ || widget == nullptr)
    {
+      return false;
+   }
+
+   BindContext();
+   if (ImGui::GetCurrentContext() == nullptr ||
+       ImGui::GetIO().BackendRendererUserData == nullptr)
+   {
+      logger_->error(
+         "ImGui Vulkan NewFrame without backend; forcing shutdown");
+      initialized_ = false;
       return false;
    }
 
@@ -197,6 +249,13 @@ bool MapImGuiVulkanRenderer::NewFrame(QWidget* widget)
 void MapImGuiVulkanRenderer::UpdateTextures()
 {
    if (!initialized_)
+   {
+      return;
+   }
+
+   BindContext();
+   if (ImGui::GetCurrentContext() == nullptr ||
+       ImGui::GetIO().BackendRendererUserData == nullptr)
    {
       return;
    }
@@ -219,6 +278,13 @@ void MapImGuiVulkanRenderer::UpdateTextures()
 void MapImGuiVulkanRenderer::RenderDrawData(QRhiCommandBuffer* commandBuffer)
 {
    if (!initialized_ || commandBuffer == nullptr)
+   {
+      return;
+   }
+
+   BindContext();
+   if (ImGui::GetCurrentContext() == nullptr ||
+       ImGui::GetIO().BackendRendererUserData == nullptr)
    {
       return;
    }
