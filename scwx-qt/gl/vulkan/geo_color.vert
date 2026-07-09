@@ -4,11 +4,11 @@
 #define PI_OVER_4     0.785398163397448309615660825
 #define PI_OVER_360   0.00872664625997164788461845361111
 #define RAD2DEG       57.295779513082320876798156332941
-#define DEG2RAD       0.0174532925199432957692369055556
 
 layout(location = 0) in vec2 aLatLong;
 layout(location = 1) in vec2 aXYOffset;
 layout(location = 2) in vec4 aModulate;
+// GeoLines/placefile lines: unrotated perpendicular offset (not degrees).
 layout(location = 3) in float aAngleDeg;
 layout(location = 4) in vec4 aHighlightColor;
 layout(location = 5) in vec4 aBorderColor;
@@ -55,14 +55,15 @@ void main()
    vColor            = aModulate;
    vHighlightColor   = aHighlightColor;
    vBorderColor      = aBorderColor;
-   vStrokeHalf       = aStrokeHalf;
-   vOffsetY          = aXYOffset.y;
+   vStrokeHalf = aStrokeHalf;
+   // Prefer aAngleDeg (CPU packs unrotated perpendicular there). Also accept
+   // legacy buffers that still store degrees in aAngleDeg: if |aAngleDeg| looks
+   // like a pixel offset (<= stroke outer half), use it; else fall back.
+   vOffsetY = aAngleDeg;
 
    vec2 p = latLngToDeltaScreenCoordinate(aLatLong);
 
-   float angle  = aAngleDeg * DEG2RAD;
-   mat2  rotate = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
-
+   // aXYOffset is CPU-rotated into screen pixel space already.
    gl_Position = uMapMatrix * vec4(p, 0.0, 1.0) +
-                 uMVPMatrix * vec4(rotate * aXYOffset, 0.0, 0.0);
+                 uMVPMatrix * vec4(aXYOffset, 0.0, 0.0);
 }

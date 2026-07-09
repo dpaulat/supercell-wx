@@ -156,6 +156,12 @@ void MapImGuiVulkanRenderer::Shutdown()
 {
    if (initialized_)
    {
+      if (ImGui::GetCurrentContext() != nullptr &&
+          ImGui::GetIO().BackendRendererUserData != nullptr)
+      {
+         ImGui_ImplVulkan_Shutdown();
+      }
+
       if (pipelineCache_ != VK_NULL_HANDLE && device_ != VK_NULL_HANDLE)
       {
          const QByteArray pipelineCacheBlob =
@@ -167,11 +173,6 @@ void MapImGuiVulkanRenderer::Shutdown()
          device_        = VK_NULL_HANDLE;
       }
 
-      if (ImGui::GetCurrentContext() != nullptr &&
-          ImGui::GetIO().BackendRendererUserData != nullptr)
-      {
-         ImGui_ImplVulkan_Shutdown();
-      }
       initialized_ = false;
    }
 

@@ -42,6 +42,7 @@
 #include <scwx/util/time.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <functional>
 #include <limits>
@@ -99,6 +100,13 @@ namespace
 {
 
 constexpr int kFallbackEraseCursorRadiusPx {8};
+
+struct PaintingGuard
+{
+   bool& flag_;
+   explicit PaintingGuard(bool& flag) : flag_ {flag} {}
+   ~PaintingGuard() { flag_ = false; }
+};
 
 bool VulkanSmokeEnabled() noexcept
 {
@@ -287,6 +295,10 @@ public:
          connection.disconnect();
       }
 
+      // Shutdown overlay and Vulkan handlers before ImGui teardown.
+      overlayRenderer_.Shutdown();
+      render::UnregisterVulkanResultHandler(widget_);
+
       // Set ImGui Context
       ImGui::SetCurrentContext(imGuiContext_);
 
@@ -336,7 +348,6 @@ public:
    void RenderFrameVulkan(QRhiCommandBuffer* commandBuffer);
    void EnsureImGuiRenderer(QRhiCommandBuffer* commandBuffer);
    void EnsureBasemapTexture();
-   void SnapshotBasemap(QRhiCommandBuffer* commandBuffer);
    void ReleaseBasemapTexture();
    void RenderMapAndSnapshot(QRhiCommandBuffer* commandBuffer);
    [[nodiscard]] bool MapStyleReadyForRender() const
@@ -504,6 +515,7 @@ public:
    std::uint64_t                   imguiOverlayGeneration_ {0};
    bool                            smokeCaptureQueued_ {false};
    const MapBasemapShareCallbacks* basemapShareCallbacks_ {nullptr};
+   std::uint64_t                   lastCopiedBasemapGeneration_ {0};
    QRhiTexture*                    basemapTexture_ {nullptr};
    QSize                           basemapTextureSize_ {};
 
@@ -1524,6 +1536,26 @@ void MapWidget::RequestBasemapRepaint()
       p->widget_, static_cast<void (QWidget::*)()>(&QWidget::update));
 }
 
+void MapWidget::RequestOverlayRepaint()
+{
+   if (p->basemapShareCallbacks_ != nullptr &&
+       p->basemapShareCallbacks_->notifyOverlayDirty_ != nullptr)
+   {
+      p->basemapShareCallbacks_->notifyOverlayDirty_(p->id_);
+   }
+   else
+   {
+      MarkOverlayDirty();
+   }
+}
+
+void MapWidget::MarkOverlayDirty()
+{
+   p->overlayNeedsRender_ = true;
+   QMetaObject::invokeMethod(
+      p->widget_, static_cast<void (QWidget::*)()>(&QWidget::update));
+}
+
 void MapWidgetImpl::SyncStoredViewFromMap()
 {
    if (map_ == nullptr)
@@ -1684,6 +1716,11 @@ void MapWidget::SetBasemapShareCallbacks(
 QRhiTexture* MapWidget::basemap_color_texture() const
 {
    return p->basemapTexture_;
+}
+
+QRhi* MapWidget::map_rhi() const
+{
+   return rhi();
 }
 
 void MapWidget::SetInitialMapStyle(const std::string& styleName)
@@ -1957,7 +1994,8 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
                     widget_->RadarSiteRequested(
                        requestedRadarSite,
                        generalSettings.center_on_radar_selection().GetValue());
-                 });
+                 },
+                 Qt::QueuedConnection);
          break;
 
       // Create the location marker layer
@@ -2043,8 +2081,7 @@ void MapWidgetImpl::AddLayer(const std::string&                   id,
            widget_,
            [this]()
            {
-              overlayNeedsRender_ = true;
-              widget_->update();
+              widget_->RequestOverlayRepaint();
            });
 }
 
@@ -2583,7 +2620,8 @@ void MapWidget::initialize(QRhiCommandBuffer* cb)
 
    p->overlayRenderer_.Initialize(rhi());
 
-   render::SetVulkanResultHandler(
+   render::RegisterVulkanResultHandler(
+      this,
       [this](VkResult result, const char* /* context */)
       {
          if (result != VK_ERROR_DEVICE_LOST &&
@@ -2629,6 +2667,7 @@ void MapWidget::releaseResources()
 {
    logger_->debug("releaseResources()");
 
+   render::UnregisterVulkanResultHandler(this);
    render::PersistQrhiPipelineCache(rhi());
 
    if (p->map_ != nullptr)
@@ -2639,6 +2678,7 @@ void MapWidget::releaseResources()
    p->imguiVulkanRenderer_.Shutdown();
    p->overlayRenderer_.Shutdown();
    p->ReleaseBasemapTexture();
+   p->lastCopiedBasemapGeneration_ = 0;
    p->imGuiRendererInitialized_   = false;
    p->vulkanRenderingInitialized_ = false;
 }
@@ -2841,18 +2881,6 @@ void MapWidgetImpl::EnsureBasemapTexture()
    basemapTextureSize_ = size;
 }
 
-void MapWidgetImpl::SnapshotBasemap(QRhiCommandBuffer* commandBuffer)
-{
-   if (commandBuffer == nullptr || basemapTexture_ == nullptr ||
-       widget_->colorTexture() == nullptr)
-   {
-      return;
-   }
-
-   MapRhiRenderer::CopyColorTexture(
-      widget_->rhi(), commandBuffer, basemapTexture_, widget_->colorTexture());
-}
-
 void MapWidgetImpl::ReleaseBasemapTexture()
 {
    delete basemapTexture_;
@@ -2862,9 +2890,22 @@ void MapWidgetImpl::ReleaseBasemapTexture()
 
 void MapWidgetImpl::RenderMapAndSnapshot(QRhiCommandBuffer* commandBuffer)
 {
-   rhiRenderer_.RenderMap(widget_->colorTexture(), map_.get());
+   QRhiTexture* const colorTexture = widget_->colorTexture();
+   if (colorTexture == nullptr)
+   {
+      return;
+   }
+
+   rhiRenderer_.RenderMap(colorTexture, map_.get());
+
    EnsureBasemapTexture();
-   SnapshotBasemap(commandBuffer);
+   if (basemapTexture_ == nullptr || commandBuffer == nullptr)
+   {
+      return;
+   }
+
+   MapRhiRenderer::CopyColorTexture(
+      widget_->rhi(), commandBuffer, basemapTexture_, colorTexture);
 }
 
 void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
@@ -2901,6 +2942,7 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    }
 
    isPainting_ = true;
+   const PaintingGuard paintingGuard {isPainting_};
    frameDraws_++;
    const bool perfEnabled = VulkanPerfEnabled();
    const auto frameStart  = std::chrono::steady_clock::now();
@@ -2941,39 +2983,74 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    const bool isBasemapLeader =
       basemapShareDecision.role_ == BasemapPaneRole::Leader;
 
+   bool canShareBasemap =
+      isBasemapFollower && !isPrimaryPane;
+   if (canShareBasemap && basemapShareCallbacks_ != nullptr &&
+       basemapShareCallbacks_->leaderRhi_ != nullptr)
+   {
+      QRhi* const leaderRhi =
+         basemapShareCallbacks_->leaderRhi_(basemapShareDecision.leaderIndex_);
+      if (leaderRhi == nullptr || leaderRhi != widget_->rhi())
+      {
+         canShareBasemap = false;
+      }
+   }
+
+   const bool selfBasemap = !isBasemapFollower || !canShareBasemap;
+
+   const bool renderMapThisFrame =
+      selfBasemap &&
+      (isBasemapLeader || isPrimaryPane || mapNeedsRender_ ||
+       overlayNeedsRender_);
+
    const auto mapStart  = std::chrono::steady_clock::now();
    queuedMapSize_       = widget_->size();
    queuedMapPixelRatio_ = widget_->pixelRatio();
    ApplyQueuedMapResize();
-
-   const bool renderMapThisFrame =
-      !isBasemapFollower &&
-      (isBasemapLeader || isPrimaryPane || mapNeedsRender_);
    double basemapCopyMs    = 0.0;
    bool   mapLibreRendered = false;
    bool   basemapCopied    = false;
-   if (isBasemapFollower && !isPrimaryPane)
+   if (canShareBasemap)
    {
       if (basemapShareCallbacks_ != nullptr &&
           basemapShareCallbacks_->leaderTexture_ != nullptr)
       {
-         QRhiTexture* const leaderTexture =
-            basemapShareCallbacks_->leaderTexture_(
-               basemapShareDecision.leaderIndex_);
-         QRhiTexture* const followerTexture = widget_->colorTexture();
-         if (leaderTexture != nullptr && followerTexture != nullptr &&
-             leaderTexture->pixelSize() == followerTexture->pixelSize() &&
-             leaderTexture->format() == followerTexture->format())
+         const std::uint64_t basemapGeneration =
+            basemapShareCallbacks_->basemapGeneration_ != nullptr ?
+               basemapShareCallbacks_->basemapGeneration_() :
+               0;
+
+         if (basemapGeneration > 0 &&
+             basemapGeneration == lastCopiedBasemapGeneration_)
          {
-            const auto copyStart = std::chrono::steady_clock::now();
-            MapRhiRenderer::CopyColorTexture(
-               widget_->rhi(), commandBuffer, followerTexture, leaderTexture);
-            basemapCopyMs =
-               ElapsedMs(copyStart, std::chrono::steady_clock::now());
             basemapCopied = true;
          }
+         else
+         {
+            QRhiTexture* const leaderTexture =
+               basemapShareCallbacks_->leaderTexture_(
+                  basemapShareDecision.leaderIndex_);
+            QRhiTexture* const followerTexture = widget_->colorTexture();
+            if (leaderTexture != nullptr && followerTexture != nullptr &&
+                leaderTexture->pixelSize() == followerTexture->pixelSize() &&
+                leaderTexture->format() == followerTexture->format())
+            {
+               const auto copyStart = std::chrono::steady_clock::now();
+               MapRhiRenderer::CopyColorTexture(widget_->rhi(),
+                                              commandBuffer,
+                                              followerTexture,
+                                              leaderTexture);
+               basemapCopyMs =
+                  ElapsedMs(copyStart, std::chrono::steady_clock::now());
+               lastCopiedBasemapGeneration_ = basemapGeneration;
+               basemapCopied                  = true;
+            }
+         }
       }
-      mapNeedsRender_ = false;
+      if (basemapCopied)
+      {
+         mapNeedsRender_ = false;
+      }
    }
    else if (renderMapThisFrame)
    {
@@ -3002,7 +3079,7 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
 
    std::function<void(QRhiCommandBuffer*)> imguiRender;
    const bool                              renderImGuiOverlays =
-      isPrimaryPane || (overlayNeedsRender_ && !isBasemapFollower);
+      isPrimaryPane || overlayNeedsRender_;
    if (imGuiRendererInitialized_ && renderImGuiOverlays)
    {
       ImGui::SetCurrentContext(imGuiContext_);
@@ -3130,8 +3207,6 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
 
    Q_EMIT widget_->WidgetPainted();
 
-   isPainting_ = false;
-
    // ImGui tooltips must be redrawn every frame; keep rendering while hovering
    // a pickable overlay item even when the cursor is stationary.
    if (hasMouse_ && lastItemPicked_)
@@ -3166,12 +3241,6 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
          scwx::util::GetEnvironment("SCWX_VULKAN_SMOKE_CAPTURE");
       if (!smokeCapturePath.empty())
       {
-         static bool smokeCaptureGlobalQueued = false;
-         if (smokeCaptureGlobalQueued)
-         {
-            return;
-         }
-
          std::uint64_t     captureFrame = 120u;
          const std::string captureFrames =
             scwx::util::GetEnvironment("SCWX_VULKAN_SMOKE_CAPTURE_FRAMES");
@@ -3180,34 +3249,46 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
             captureFrame = std::stoull(captureFrames);
          }
 
-         const auto radarProductView = context_->radar_product_view();
-         const bool radarReady       = radarProductView != nullptr &&
-                                 radarProductView->IsInitialized() &&
-                                 radarProductView->sweep_time() !=
-                                    std::chrono::system_clock::time_point {};
-
-         if (frameDraws_ >= captureFrame && radarReady)
+         // Capture every pane once frame threshold hit (don't require radar —
+         // followers may lag). Quit shortly after first capture wave starts.
+         if (frameDraws_ >= captureFrame)
          {
-            smokeCaptureQueued_      = true;
-            smokeCaptureGlobalQueued = true;
-            const QString filePath   = QString::fromStdString(smokeCapturePath);
+            smokeCaptureQueued_ = true;
+            QString filePath = QString::fromStdString(smokeCapturePath);
+            // Multi-pane: path.png → path.pane0.png, path.pane1.png, ...
+            if (filePath.endsWith(".png"))
+            {
+               filePath.insert(filePath.size() - 4,
+                               QString(".pane%1").arg(id_));
+            }
+            else
+            {
+               filePath += QString(".pane%1.png").arg(id_);
+            }
+
+            static std::atomic<bool> quitScheduled {false};
+            if (!quitScheduled.exchange(true))
+            {
+               QTimer::singleShot(1500, widget_, &QApplication::quit);
+            }
+
             QTimer::singleShot(
                0,
                widget_,
-               [filePath, widget = widget_]()
+               [filePath, widget = widget_, paneId = id_]()
                {
                   const QImage image = widget->grab().toImage();
                   if (image.save(filePath))
                   {
-                     logger_->info("Vulkan smoke capture saved: {}",
-                                   filePath.toStdString());
+                     logger_->info("Vulkan smoke capture saved: {} (pane {})",
+                                   filePath.toStdString(),
+                                   paneId);
                   }
                   else
                   {
                      logger_->error("Vulkan smoke capture failed: {}",
                                     filePath.toStdString());
                   }
-                  QApplication::quit();
                });
          }
          else
@@ -3582,7 +3663,7 @@ void MapWidgetImpl::RadarProductViewConnect()
                   {radarSite->latitude(), radarSite->longitude()});
             }
 
-            widget_->update();
+            widget_->RequestOverlayRepaint();
             Q_EMIT widget_->RadarSweepUpdated();
          },
          Qt::QueuedConnection);

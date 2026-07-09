@@ -227,6 +227,25 @@ void MapOverlayRenderer::Render(
                                                 p->preserveRenderTarget_,
                                                 p->renderTargetGeneration_};
 
+   resources.phase        = render::RhiOverlayPhase::Upload;
+   resources.resourceBatch = p->rhi_->nextResourceUpdateBatch();
+   if (resources.resourceBatch != nullptr)
+   {
+      for (const auto& layer : layers)
+      {
+         if (layer == nullptr)
+         {
+            continue;
+         }
+
+         layer->RenderVulkanOverlay(commandBuffer, resources, mapContext, params);
+      }
+      commandBuffer->resourceUpdate(resources.resourceBatch);
+   }
+
+   resources.phase         = render::RhiOverlayPhase::Draw;
+   resources.resourceBatch = nullptr;
+
    const QRhiViewport viewport(0.0f,
                                0.0f,
                                static_cast<float>(p->pixelSize_.width()),

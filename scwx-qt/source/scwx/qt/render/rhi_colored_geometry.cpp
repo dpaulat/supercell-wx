@@ -1,4 +1,5 @@
 #include <scwx/qt/render/rhi_colored_geometry.hpp>
+#include <scwx/qt/render/rhi_overlay_util.hpp>
 #include <scwx/qt/render/rhi_buffer_util.hpp>
 #include <scwx/qt/render/rhi_shader_util.hpp>
 #include <scwx/util/logger.hpp>
@@ -144,7 +145,9 @@ void RhiColoredGeometry::Shutdown()
 void RhiColoredGeometry::Render(QRhiCommandBuffer*        commandBuffer,
                                 const glm::mat4&          projection,
                                 const std::vector<float>& vertices,
-                                const std::size_t         vertexCount)
+                                const std::size_t         vertexCount,
+                                QRhiResourceUpdateBatch*  resourceBatch,
+                                RhiOverlayPhase           phase)
 {
    if (!initialized_ || commandBuffer == nullptr || vertexCount == 0)
    {
@@ -152,7 +155,7 @@ void RhiColoredGeometry::Render(QRhiCommandBuffer*        commandBuffer,
    }
 
    const std::size_t requiredBytes = vertexCount * 7 * sizeof(float);
-   if (vertexCapacity_ < requiredBytes)
+   if (OverlayShouldUpload(phase) && vertexCapacity_ < requiredBytes)
    {
       if (!EnsureDynamicBuffer(rhi_,
                                vertexBuffer_,
@@ -165,12 +168,25 @@ void RhiColoredGeometry::Render(QRhiCommandBuffer*        commandBuffer,
       }
    }
 
-   QRhiResourceUpdateBatch* batch = rhi_->nextResourceUpdateBatch();
-   batch->updateDynamicBuffer(
-      uniformBuffer_, 0, kUniformBytes, glm::value_ptr(projection));
-   batch->updateDynamicBuffer(
-      vertexBuffer_, 0, static_cast<quint32>(requiredBytes), vertices.data());
-   commandBuffer->resourceUpdate(batch);
+   if (OverlayShouldUpload(phase))
+   {
+      QRhiResourceUpdateBatch* batch =
+         AcquireOverlayBatch(rhi_, resourceBatch, phase);
+      if (batch == nullptr)
+      {
+         return;
+      }
+      batch->updateDynamicBuffer(
+         uniformBuffer_, 0, kUniformBytes, glm::value_ptr(projection));
+      batch->updateDynamicBuffer(
+         vertexBuffer_, 0, static_cast<quint32>(requiredBytes), vertices.data());
+      SubmitOverlayBatch(commandBuffer, batch, resourceBatch, phase);
+   }
+
+   if (!OverlayShouldDraw(phase))
+   {
+      return;
+   }
 
    const QRhiCommandBuffer::VertexInput bindings[] = {{vertexBuffer_, 0}};
    commandBuffer->setGraphicsPipeline(pipeline_);

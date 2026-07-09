@@ -113,7 +113,9 @@ void PlacefileTriangles::RenderVulkan(
    resources.coloredGeometry.Render(commandBuffer,
                                     identity,
                                     transformedVertices,
-                                    transformedVertices.size() / 7);
+                                    transformedVertices.size() / 7,
+                                    resources.resourceBatch,
+                                    resources.phase);
 }
 
 void PlacefileTriangles::Deinitialize()

@@ -1,5 +1,6 @@
 #include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/render/rhi_pipeline_cache.hpp>
+#include <scwx/qt/render/rhi_vulkan_result.hpp>
 #include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -21,7 +22,7 @@ static const std::string logPrefix_ = "scwx::qt::render::rhi_pipeline_cache";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 constexpr char    kMagic[]         = {'S', 'C', 'W', 'X', 'P', 'C', '1'};
-constexpr quint32 kCacheVersion    = 1;
+constexpr quint32 kCacheVersion    = 3;
 constexpr char    kQrhiCacheFile[] = "qrhi-vulkan-pipeline-cache.bin";
 
 bool PipelineCacheDisabled()
@@ -190,7 +191,10 @@ VkResult CreateVulkanPipelineCache(VkDevice          device,
       createInfo.pInitialData    = initialData.constData();
    }
 
-   return vkCreatePipelineCache(device, &createInfo, nullptr, pipelineCache);
+   const VkResult result =
+      vkCreatePipelineCache(device, &createInfo, nullptr, pipelineCache);
+   ReportVulkanResult(result, "vkCreatePipelineCache");
+   return result;
 }
 
 QByteArray GetVulkanPipelineCacheBlob(VkDevice        device,
@@ -213,6 +217,7 @@ QByteArray GetVulkanPipelineCacheBlob(VkDevice        device,
    data.resize(static_cast<int>(dataSize));
    result =
       vkGetPipelineCacheData(device, pipelineCache, &dataSize, data.data());
+   ReportVulkanResult(result, "vkGetPipelineCacheData");
    if (result != VK_SUCCESS)
    {
       data.clear();

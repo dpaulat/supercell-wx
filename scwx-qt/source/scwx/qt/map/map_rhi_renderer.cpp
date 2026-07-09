@@ -48,8 +48,6 @@ void MapRhiRenderer::InitializeMapRenderer(QRhi*           rhi,
    }
 
    map->createRenderer(nullptr);
-
-   initialized_ = true;
 }
 
 void MapRhiRenderer::RenderMap(QRhiTexture* colorTexture, QMapLibre::Map* map)

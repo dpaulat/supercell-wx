@@ -1,4 +1,5 @@
 #include <scwx/qt/render/rhi_geo_colored_geometry.hpp>
+#include <scwx/qt/render/rhi_overlay_util.hpp>
 #include <scwx/qt/render/rhi_buffer_util.hpp>
 #include <scwx/qt/render/rhi_shader_util.hpp>
 #include <scwx/util/logger.hpp>
@@ -169,7 +170,9 @@ void RhiGeoColoredGeometry::Render(
    const std::vector<float>&        floatVertices,
    const std::vector<std::int32_t>& integerVertices,
    const std::uint32_t              vertexCount,
-   bool                             uploadGeometry)
+   bool                             uploadGeometry,
+   QRhiResourceUpdateBatch*         resourceBatch,
+   RhiOverlayPhase                  phase)
 {
    if (!initialized_ || commandBuffer == nullptr || vertexCount == 0)
    {
@@ -182,7 +185,7 @@ void RhiGeoColoredGeometry::Render(
    uploadGeometry = uploadGeometry || floatCapacity_ < floatBytes ||
                     integerCapacity_ < integerBytes;
 
-   if (uploadGeometry && floatCapacity_ < floatBytes)
+   if (OverlayShouldUpload(phase) && uploadGeometry && floatCapacity_ < floatBytes)
    {
       if (!EnsureDynamicBuffer(rhi_,
                                floatBuffer_,
@@ -194,7 +197,7 @@ void RhiGeoColoredGeometry::Render(
          return;
       }
    }
-   if (uploadGeometry && integerCapacity_ < integerBytes)
+   if (OverlayShouldUpload(phase) && uploadGeometry && integerCapacity_ < integerBytes)
    {
       if (!EnsureDynamicBuffer(rhi_,
                                integerBuffer_,
@@ -207,20 +210,33 @@ void RhiGeoColoredGeometry::Render(
       }
    }
 
-   QRhiResourceUpdateBatch* batch = rhi_->nextResourceUpdateBatch();
-   batch->updateDynamicBuffer(uniformBuffer_, 0, kUniformBytes, &uniforms);
-   if (uploadGeometry)
+   if (OverlayShouldUpload(phase))
    {
-      batch->updateDynamicBuffer(floatBuffer_,
-                                 0,
-                                 static_cast<quint32>(floatBytes),
-                                 floatVertices.data());
-      batch->updateDynamicBuffer(integerBuffer_,
-                                 0,
-                                 static_cast<quint32>(integerBytes),
-                                 integerVertices.data());
+      QRhiResourceUpdateBatch* batch =
+         AcquireOverlayBatch(rhi_, resourceBatch, phase);
+      if (batch == nullptr)
+      {
+         return;
+      }
+      batch->updateDynamicBuffer(uniformBuffer_, 0, kUniformBytes, &uniforms);
+      if (uploadGeometry)
+      {
+         batch->updateDynamicBuffer(floatBuffer_,
+                                    0,
+                                    static_cast<quint32>(floatBytes),
+                                    floatVertices.data());
+         batch->updateDynamicBuffer(integerBuffer_,
+                                    0,
+                                    static_cast<quint32>(integerBytes),
+                                    integerVertices.data());
+      }
+      SubmitOverlayBatch(commandBuffer, batch, resourceBatch, phase);
    }
-   commandBuffer->resourceUpdate(batch);
+
+   if (!OverlayShouldDraw(phase))
+   {
+      return;
+   }
 
    const QRhiCommandBuffer::VertexInput bindings[] = {{floatBuffer_, 0},
                                                       {integerBuffer_, 0}};

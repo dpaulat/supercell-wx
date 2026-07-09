@@ -1,5 +1,7 @@
 #pragma once
 
+#include <scwx/qt/render/rhi_overlay_phase.hpp>
+
 #include <glm/glm.hpp>
 
 #include <cstddef>
@@ -11,6 +13,7 @@ class QRhiCommandBuffer;
 class QRhiGraphicsPipeline;
 class QRhiRenderTarget;
 class QRhiShaderResourceBindings;
+class QRhiResourceUpdateBatch;
 
 namespace scwx::qt::render
 {
@@ -26,7 +29,9 @@ public:
    void Render(QRhiCommandBuffer*        commandBuffer,
                const glm::mat4&          projection,
                const std::vector<float>& vertices,
-               std::size_t               vertexCount);
+               std::size_t               vertexCount,
+               QRhiResourceUpdateBatch*  resourceBatch = nullptr,
+               RhiOverlayPhase           phase         = RhiOverlayPhase::UploadAndDraw);
 
    [[nodiscard]] bool IsInitialized() const;
 

@@ -1,3 +1,4 @@
+#include <scwx/qt/render/rhi_overlay_util.hpp>
 #include <scwx/qt/render/rhi_radar_overlay.hpp>
 #include <scwx/qt/render/rhi_buffer_util.hpp>
 #include <scwx/qt/render/rhi_shader_util.hpp>
@@ -239,7 +240,9 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
                              const std::vector<std::uint8_t>& rgbaColorTable,
                              const std::uint32_t              vertexCount,
                              bool                             uploadGeometry,
-                             bool                             uploadColorTable)
+                             bool                             uploadColorTable,
+                             QRhiResourceUpdateBatch*         resourceBatch,
+                             RhiOverlayPhase                  phase)
 {
    if (!initialized_ || pipeline_ == nullptr || commandBuffer == nullptr ||
        vertexCount == 0 || rgbaColorTable.empty() ||
@@ -307,36 +310,50 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
       }
    }
 
-   QRhiResourceUpdateBatch* batch = rhi_->nextResourceUpdateBatch();
-   batch->updateDynamicBuffer(uniformBuffer_, 0, kUniformBytes, &uniforms);
-   if (uploadGeometry)
+   if (OverlayShouldUpload(phase))
    {
-      batch->updateDynamicBuffer(
-         vertexBuffer_, 0, static_cast<quint32>(vertexBytes), vertices.data());
-      batch->updateDynamicBuffer(momentBuffer_,
-                                 0,
-                                 static_cast<quint32>(momentBytes),
-                                 momentU32_.data());
-      batch->updateDynamicBuffer(
-         cfpBuffer_, 0, static_cast<quint32>(momentBytes), cfpU32_.data());
+      QRhiResourceUpdateBatch* batch =
+         AcquireOverlayBatch(rhi_, resourceBatch, phase);
+      if (batch == nullptr)
+      {
+         return;
+      }
+      batch->updateDynamicBuffer(uniformBuffer_, 0, kUniformBytes, &uniforms);
+      if (uploadGeometry)
+      {
+         batch->updateDynamicBuffer(
+            vertexBuffer_, 0, static_cast<quint32>(vertexBytes), vertices.data());
+         batch->updateDynamicBuffer(momentBuffer_,
+                                    0,
+                                    static_cast<quint32>(momentBytes),
+                                    momentU32_.data());
+         batch->updateDynamicBuffer(
+            cfpBuffer_, 0, static_cast<quint32>(momentBytes), cfpU32_.data());
+      }
+
+      if (uploadColorTable)
+      {
+         const QRhiTextureSubresourceUploadDescription subUpload(
+            lutRgba_.data(), static_cast<quint32>(kMaxLutWidth * 4));
+         batch->uploadTexture(
+            lutTexture_,
+            QRhiTextureUploadDescription(
+               QRhiTextureUploadEntry(0, 0, subUpload)));
+      }
+
+      SubmitOverlayBatch(commandBuffer, batch, resourceBatch, phase);
+      if (uploadGeometry)
+      {
+         uploadedVertexCount_ = vertexCount;
+      }
+      geometryUploaded_ = geometryUploaded_ || uploadGeometry;
+      lutUploaded_      = lutUploaded_ || uploadColorTable;
    }
 
-   if (uploadColorTable)
+   if (!OverlayShouldDraw(phase))
    {
-      const QRhiTextureSubresourceUploadDescription subUpload(
-         lutRgba_.data(), static_cast<quint32>(kMaxLutWidth * 4));
-      batch->uploadTexture(
-         lutTexture_,
-         QRhiTextureUploadDescription(QRhiTextureUploadEntry(0, 0, subUpload)));
+      return;
    }
-
-   commandBuffer->resourceUpdate(batch);
-   if (uploadGeometry)
-   {
-      uploadedVertexCount_ = vertexCount;
-   }
-   geometryUploaded_ = geometryUploaded_ || uploadGeometry;
-   lutUploaded_      = lutUploaded_ || uploadColorTable;
 
    const QRhiCommandBuffer::VertexInput bindings[] = {
       {vertexBuffer_, 0}, {momentBuffer_, 0}, {cfpBuffer_, 0}};

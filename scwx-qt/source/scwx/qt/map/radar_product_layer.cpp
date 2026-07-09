@@ -300,8 +300,10 @@ void RadarProductLayer::RenderVulkanOverlay(
       {
          render::RadarUniforms uniforms {};
          const glm::vec2       mapScale = util::maplibre::GetMapScale(params);
-         uniforms.uMVPMatrix            = glm::mat4 {1.0f};
-         uniforms.uMapMatrix            = glm::scale(
+         // GetMapScale already divides by width/height → NDC-ish space.
+         // Identity MVP; map matrix alone places bins in clip space.
+         uniforms.uMVPMatrix = glm::mat4 {1.0f};
+         uniforms.uMapMatrix = glm::scale(
             glm::mat4 {1.0f}, glm::vec3(mapScale.x, -mapScale.y, 1.0f));
          uniforms.uMapMatrix =
             glm::rotate(uniforms.uMapMatrix,
@@ -324,7 +326,9 @@ void RadarProductLayer::RenderVulkanOverlay(
                                 p->rgbaColorTable_,
                                 static_cast<std::uint32_t>(p->numVertices_),
                                 p->sweepUploadNeeded_,
-                                p->colorTableUploadNeeded_);
+                                p->colorTableUploadNeeded_,
+                                resources.resourceBatch,
+                                resources.phase);
          p->sweepUploadNeeded_      = false;
          p->colorTableUploadNeeded_ = false;
 

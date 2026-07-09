@@ -201,7 +201,7 @@ Map rendering uses Qt `QRhiWidget` with Vulkan. Optional environment variables:
 | `SCWX_VULKAN_PERF=1` | Extra Vulkan/QRhi timing logs |
 | `SCWX_VULKAN_PIPELINE_CACHE_DISABLE=1` | Skip loading/saving Vulkan pipeline cache blobs |
 
-Device or surface loss triggers map resource reset via `render::SetVulkanResultHandler`. Pipeline cache files live under the app cache directory (`qrhi-vulkan-pipeline-cache.bin`, `imgui-vulkan-pipeline-cache.bin`); bump `kCacheVersion` in `rhi_pipeline_cache.cpp` when shader layouts change materially.
+Device or surface loss triggers map resource reset via `render::RegisterVulkanResultHandler`. Pipeline cache files live under the app cache directory (`qrhi-vulkan-pipeline-cache.bin`, `imgui-vulkan-pipeline-cache.bin`); bump `kCacheVersion` in `rhi_pipeline_cache.cpp` when shader layouts change materially.
 
 ### CI Reference
 See [.github/workflows/ci.yml](.github/workflows/ci.yml) for complete build matrix. Mirrors setup scripts but includes AppImage packaging, artifact collection.

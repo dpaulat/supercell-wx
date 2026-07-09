@@ -4,6 +4,7 @@
 #include <scwx/util/logger.hpp>
 
 #include <execution>
+#include <cstring>
 #include <shared_mutex>
 #include <unordered_map>
 
@@ -462,6 +463,27 @@ const std::uint8_t* TextureAtlas::LayerPixels(std::size_t  layer,
    byteSize =
       image.width() * image.height() * sizeof(boost::gil::rgba8_pixel_t);
    return reinterpret_cast<const std::uint8_t*>(&view(0, 0));
+}
+
+std::vector<std::uint8_t> TextureAtlas::CopyLayerPixels(
+   const std::size_t layer) const
+{
+   std::shared_lock lock(p->atlasMutex_);
+
+   if (layer >= p->atlasArray_.size())
+   {
+      return {};
+   }
+
+   const boost::gil::rgba8_image_t& image = p->atlasArray_[layer];
+   const boost::gil::rgba8c_view_t  view  = boost::gil::const_view(image);
+   const std::size_t byteSize =
+      image.width() * image.height() * sizeof(boost::gil::rgba8_pixel_t);
+
+   std::vector<std::uint8_t> pixels(byteSize);
+   std::memcpy(pixels.data(), reinterpret_cast<const std::uint8_t*>(&view(0, 0)),
+               byteSize);
+   return pixels;
 }
 
 TextureAttributes TextureAtlas::GetTextureAttributes(const std::string& name)

@@ -1,4 +1,5 @@
 #include <scwx/qt/render/rhi_color_table_overlay.hpp>
+#include <scwx/qt/render/rhi_overlay_util.hpp>
 #include <scwx/qt/render/rhi_shader_util.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -203,7 +204,9 @@ void RhiColorTableOverlay::Render(
    QRhiCommandBuffer*               commandBuffer,
    const glm::mat4&                 projection,
    const float                      vertices[6][2],
-   const std::vector<std::uint8_t>& rgbaColorTable)
+   const std::vector<std::uint8_t>& rgbaColorTable,
+   QRhiResourceUpdateBatch*         resourceBatch,
+   RhiOverlayPhase                  phase)
 {
    if (!initialized_ || commandBuffer == nullptr || rgbaColorTable.empty())
    {
@@ -216,19 +219,32 @@ void RhiColorTableOverlay::Render(
       return;
    }
 
-   QRhiResourceUpdateBatch* batch = rhi_->nextResourceUpdateBatch();
-   batch->updateDynamicBuffer(
-      uniformBuffer_, 0, kUniformBytes, glm::value_ptr(projection));
-   batch->updateDynamicBuffer(
-      vertexBuffer_, 0, sizeof(float) * 6 * 2, vertices);
+   if (OverlayShouldUpload(phase))
+   {
+      QRhiResourceUpdateBatch* batch =
+         AcquireOverlayBatch(rhi_, resourceBatch, phase);
+      if (batch == nullptr)
+      {
+         return;
+      }
+      batch->updateDynamicBuffer(
+         uniformBuffer_, 0, kUniformBytes, glm::value_ptr(projection));
+      batch->updateDynamicBuffer(
+         vertexBuffer_, 0, sizeof(float) * 6 * 2, vertices);
 
-   const QRhiTextureSubresourceUploadDescription subUpload(
-      rgbaColorTable.data(), static_cast<quint32>(tableWidth * 4));
-   const QRhiTextureUploadDescription upload(
-      QRhiTextureUploadEntry(0, 0, subUpload));
-   batch->uploadTexture(lutTexture_, upload);
+      const QRhiTextureSubresourceUploadDescription subUpload(
+         rgbaColorTable.data(), static_cast<quint32>(tableWidth * 4));
+      const QRhiTextureUploadDescription upload(
+         QRhiTextureUploadEntry(0, 0, subUpload));
+      batch->uploadTexture(lutTexture_, upload);
 
-   commandBuffer->resourceUpdate(batch);
+      SubmitOverlayBatch(commandBuffer, batch, resourceBatch, phase);
+   }
+
+   if (!OverlayShouldDraw(phase))
+   {
+      return;
+   }
 
    const QRhiCommandBuffer::VertexInput bindings[] = {{vertexBuffer_, 0},
                                                       {texCoordBuffer_, 0}};

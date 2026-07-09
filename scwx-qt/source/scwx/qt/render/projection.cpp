@@ -59,8 +59,20 @@ std::vector<float> TransformMapColorVertices(
    const glm::vec2 mapScreenCoord = util::maplibre::LatLongToScreenCoordinate(
       {params.latitude, params.longitude});
 
+   if (floatVertices.size() % kMapColorFloatsPerVertex_ != 0)
+   {
+      return {};
+   }
+
    const std::size_t vertexCount =
       floatVertices.size() / kMapColorFloatsPerVertex_;
+   const std::size_t requiredIntegerCount =
+      vertexCount * kMapColorIntegersPerVertex_;
+   if (integerVertices.size() < requiredIntegerCount)
+   {
+      return {};
+   }
+
    std::vector<float> transformed;
    transformed.reserve(vertexCount * kColoredFloatsPerVertex_);
 

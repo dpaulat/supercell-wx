@@ -1,5 +1,6 @@
 #include <scwx/qt/render/rhi_texture_array_overlay.hpp>
 #include <scwx/qt/render/rhi_buffer_util.hpp>
+#include <scwx/qt/render/rhi_overlay_util.hpp>
 #include <scwx/qt/render/rhi_shader_util.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/util/logger.hpp>
@@ -351,8 +352,10 @@ void RhiTextureArrayOverlay::Shutdown()
    initialized_            = false;
 }
 
-void RhiTextureArrayOverlay::SyncAtlas(QRhiCommandBuffer*  commandBuffer,
-                                       const std::uint64_t buildCount)
+void RhiTextureArrayOverlay::SyncAtlas(QRhiCommandBuffer*       commandBuffer,
+                                     const std::uint64_t      buildCount,
+                                     QRhiResourceUpdateBatch* resourceBatch,
+                                     RhiOverlayPhase          phase)
 {
    if (!initialized_ || commandBuffer == nullptr)
    {
@@ -374,6 +377,11 @@ void RhiTextureArrayOverlay::SyncAtlas(QRhiCommandBuffer*  commandBuffer,
                              syncedBuildCount_ != buildCount;
 
    if (!atlasChanged)
+   {
+      return;
+   }
+
+   if (!OverlayShouldUpload(phase))
    {
       return;
    }
@@ -415,24 +423,29 @@ void RhiTextureArrayOverlay::SyncAtlas(QRhiCommandBuffer*  commandBuffer,
       }
    }
 
-   QRhiResourceUpdateBatch* batch = rhi_->nextResourceUpdateBatch();
+   QRhiResourceUpdateBatch* batch =
+      AcquireOverlayBatch(rhi_, resourceBatch, phase);
+   if (batch == nullptr)
+   {
+      return;
+   }
+
    for (std::size_t layer = 0; layer < layers; ++layer)
    {
-      std::size_t         byteSize = 0;
-      const std::uint8_t* pixels   = atlas.LayerPixels(layer, byteSize);
-      if (pixels == nullptr || byteSize == 0)
+      const std::vector<std::uint8_t> pixels = atlas.CopyLayerPixels(layer);
+      if (pixels.empty())
       {
          continue;
       }
 
       const QRhiTextureSubresourceUploadDescription subUpload(
-         pixels, static_cast<quint32>(byteSize));
+         pixels.data(), static_cast<quint32>(pixels.size()));
       batch->uploadTexture(atlasTexture_,
                            QRhiTextureUploadDescription(QRhiTextureUploadEntry(
                               static_cast<int>(layer), 0, subUpload)));
    }
 
-   commandBuffer->resourceUpdate(batch);
+   SubmitOverlayBatch(commandBuffer, batch, resourceBatch, phase);
    syncedBuildCount_ = buildCount;
 }
 
@@ -441,7 +454,9 @@ void RhiTextureArrayOverlay::RenderGeo(
    const GeoUniforms&               uniforms,
    const std::vector<float>&        floatVertices,
    const std::vector<std::int32_t>& integerVertices,
-   const std::uint32_t              vertexCount)
+   const std::uint32_t              vertexCount,
+   QRhiResourceUpdateBatch*         resourceBatch,
+   RhiOverlayPhase                  phase)
 {
    if (!initialized_ || commandBuffer == nullptr || vertexCount == 0 ||
        geoPipeline_ == nullptr || geoSrb_ == nullptr ||
@@ -454,7 +469,7 @@ void RhiTextureArrayOverlay::RenderGeo(
    const std::size_t integerBytes =
       integerVertices.size() * sizeof(std::int32_t);
 
-   if (geoFloatCapacity_ < floatBytes)
+   if (OverlayShouldUpload(phase) && geoFloatCapacity_ < floatBytes)
    {
       if (!EnsureDynamicBuffer(rhi_,
                                geoFloatBuffer_,
@@ -466,7 +481,7 @@ void RhiTextureArrayOverlay::RenderGeo(
          return;
       }
    }
-   if (geoIntegerCapacity_ < integerBytes)
+   if (OverlayShouldUpload(phase) && geoIntegerCapacity_ < integerBytes)
    {
       if (!EnsureDynamicBuffer(rhi_,
                                geoIntegerBuffer_,
@@ -479,18 +494,31 @@ void RhiTextureArrayOverlay::RenderGeo(
       }
    }
 
-   QRhiResourceUpdateBatch* batch = rhi_->nextResourceUpdateBatch();
-   batch->updateDynamicBuffer(
-      geoUniformBuffer_, 0, kGeoUniformBytes, &uniforms);
-   batch->updateDynamicBuffer(geoFloatBuffer_,
-                              0,
-                              static_cast<quint32>(floatBytes),
-                              floatVertices.data());
-   batch->updateDynamicBuffer(geoIntegerBuffer_,
-                              0,
-                              static_cast<quint32>(integerBytes),
-                              integerVertices.data());
-   commandBuffer->resourceUpdate(batch);
+   if (OverlayShouldUpload(phase))
+   {
+      QRhiResourceUpdateBatch* batch =
+         AcquireOverlayBatch(rhi_, resourceBatch, phase);
+      if (batch == nullptr)
+      {
+         return;
+      }
+      batch->updateDynamicBuffer(
+         geoUniformBuffer_, 0, kGeoUniformBytes, &uniforms);
+      batch->updateDynamicBuffer(geoFloatBuffer_,
+                                 0,
+                                 static_cast<quint32>(floatBytes),
+                                 floatVertices.data());
+      batch->updateDynamicBuffer(geoIntegerBuffer_,
+                                 0,
+                                 static_cast<quint32>(integerBytes),
+                                 integerVertices.data());
+      SubmitOverlayBatch(commandBuffer, batch, resourceBatch, phase);
+   }
+
+   if (!OverlayShouldDraw(phase))
+   {
+      return;
+   }
 
    const QRhiCommandBuffer::VertexInput bindings[] = {{geoFloatBuffer_, 0},
                                                       {geoIntegerBuffer_, 0}};
@@ -505,7 +533,9 @@ void RhiTextureArrayOverlay::RenderScreen(
    const glm::mat4&          projection,
    const std::vector<float>& floatVertices,
    const std::vector<float>& texCoords,
-   const std::uint32_t       vertexCount)
+   const std::uint32_t       vertexCount,
+   QRhiResourceUpdateBatch*  resourceBatch,
+   RhiOverlayPhase           phase)
 {
    if (!initialized_ || commandBuffer == nullptr || vertexCount == 0 ||
        screenPipeline_ == nullptr || screenSrb_ == nullptr ||
@@ -517,7 +547,7 @@ void RhiTextureArrayOverlay::RenderScreen(
    const std::size_t floatBytes    = floatVertices.size() * sizeof(float);
    const std::size_t texCoordBytes = texCoords.size() * sizeof(float);
 
-   if (screenFloatCapacity_ < floatBytes)
+   if (OverlayShouldUpload(phase) && screenFloatCapacity_ < floatBytes)
    {
       if (!EnsureDynamicBuffer(rhi_,
                                screenFloatBuffer_,
@@ -529,7 +559,7 @@ void RhiTextureArrayOverlay::RenderScreen(
          return;
       }
    }
-   if (screenTexCoordCapacity_ < texCoordBytes)
+   if (OverlayShouldUpload(phase) && screenTexCoordCapacity_ < texCoordBytes)
    {
       if (!EnsureDynamicBuffer(rhi_,
                                screenTexCoordBuffer_,
@@ -542,18 +572,31 @@ void RhiTextureArrayOverlay::RenderScreen(
       }
    }
 
-   QRhiResourceUpdateBatch* batch = rhi_->nextResourceUpdateBatch();
-   batch->updateDynamicBuffer(
-      screenUniformBuffer_, 0, kScreenUniformBytes, glm::value_ptr(projection));
-   batch->updateDynamicBuffer(screenFloatBuffer_,
-                              0,
-                              static_cast<quint32>(floatBytes),
-                              floatVertices.data());
-   batch->updateDynamicBuffer(screenTexCoordBuffer_,
-                              0,
-                              static_cast<quint32>(texCoordBytes),
-                              texCoords.data());
-   commandBuffer->resourceUpdate(batch);
+   if (OverlayShouldUpload(phase))
+   {
+      QRhiResourceUpdateBatch* batch =
+         AcquireOverlayBatch(rhi_, resourceBatch, phase);
+      if (batch == nullptr)
+      {
+         return;
+      }
+      batch->updateDynamicBuffer(
+         screenUniformBuffer_, 0, kScreenUniformBytes, glm::value_ptr(projection));
+      batch->updateDynamicBuffer(screenFloatBuffer_,
+                                 0,
+                                 static_cast<quint32>(floatBytes),
+                                 floatVertices.data());
+      batch->updateDynamicBuffer(screenTexCoordBuffer_,
+                                 0,
+                                 static_cast<quint32>(texCoordBytes),
+                                 texCoords.data());
+      SubmitOverlayBatch(commandBuffer, batch, resourceBatch, phase);
+   }
+
+   if (!OverlayShouldDraw(phase))
+   {
+      return;
+   }
 
    const QRhiCommandBuffer::VertexInput bindings[] = {
       {screenFloatBuffer_, 0}, {screenTexCoordBuffer_, 0}};

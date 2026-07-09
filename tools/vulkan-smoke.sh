@@ -2,6 +2,13 @@
 # Quick Vulkan backend smoke check — run locally before asking user to test.
 set -euo pipefail
 
+for cmd in timeout rg python3; do
+   if ! command -v "${cmd}" >/dev/null 2>&1; then
+      echo "Missing required command: ${cmd}" >&2
+      exit 1
+   fi
+done
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BIN="${ROOT}/build-local/Release/bin/supercell-wx"
 LOG="$(mktemp /tmp/scwx-vulkan-smoke.XXXXXX.log)"
@@ -71,15 +78,28 @@ if rg -q "ImGui_ImplVulkan_Init failed|Vulkan call failed" "${LOG}"; then
    exit 1
 fi
 
-if [[ ! -s "${CAPTURE}" ]]; then
+# Multi-pane smoke writes CAPTURE.paneN.png; single-pane may write CAPTURE.
+CAPTURES=()
+shopt -s nullglob
+for f in "${CAPTURE%.png}".pane*.png "${CAPTURE}"; do
+   [[ -s "${f}" ]] && CAPTURES+=("${f}")
+done
+shopt -u nullglob
+
+if [[ ${#CAPTURES[@]} -eq 0 ]]; then
    echo "FAIL: smoke capture missing or empty: ${CAPTURE}" >&2
    rg -n "Vulkan smoke capture|error|Failed" "${LOG}" | tail -20 || true
    exit 1
 fi
 
-python3 "${ROOT}/tools/analyze-vulkan-capture.py" "${CAPTURE}" || {
-   echo "Capture kept for inspection: ${CAPTURE}" >&2
+FAIL=0
+for f in "${CAPTURES[@]}"; do
+   echo "Analyzing ${f}"
+   python3 "${ROOT}/tools/analyze-vulkan-capture.py" "${f}" || FAIL=1
+done
+if [[ ${FAIL} -ne 0 ]]; then
+   echo "Capture(s) kept for inspection under ${CAPTURE%/*}" >&2
    exit 1
-}
+fi
 
 echo "Smoke check complete. Full log: ${LOG}"

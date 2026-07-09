@@ -9,10 +9,16 @@
 #include <scwx/qt/render/rhi_geo_uniforms.hpp>
 #include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 
+#include <cmath>
 #include <memory>
+#include <unordered_map>
+#include <utility>
 
 #include <boost/unordered/unordered_flat_set.hpp>
+#include <glm/glm.hpp>
 #include <units/angle.h>
+
+#include <rhi/qrhi.h>
 
 namespace scwx
 {
@@ -119,10 +125,16 @@ public:
    std::unordered_map<std::shared_ptr<GeoLineDrawItem>, GeoLineHoverEntry>
       newHoverLines_ {};
 
-   std::unique_ptr<render::RhiGeoColoredGeometry> geoRenderer_ {};
-   bool                                           geometryUploaded_ {false};
-   std::uint64_t                                  renderTargetGeneration_ {0};
+   struct GeoRendererCacheEntry
+   {
+      std::unique_ptr<render::RhiGeoColoredGeometry> renderer_ {};
+      bool                                           geometryUploaded_ {false};
+      std::uint64_t                                  renderTargetGeneration_ {0};
+   };
 
+   std::unordered_map<QRhi*, GeoRendererCacheEntry> geoRendererByRhi_ {};
+
+   void InvalidateGeometryUploads();
    void EnsureGeoRenderer(render::RhiVulkanOverlayResources& resources,
                           QRhiCommandBuffer*                 commandBuffer);
 };
@@ -157,6 +169,15 @@ void GeoLines::Render(
 {
 }
 
+void GeoLines::Impl::InvalidateGeometryUploads()
+{
+   for (auto& [rhi, entry] : geoRendererByRhi_)
+   {
+      (void) rhi;
+      entry.geometryUploaded_ = false;
+   }
+}
+
 void GeoLines::Impl::EnsureGeoRenderer(
    render::RhiVulkanOverlayResources& resources,
    QRhiCommandBuffer*                 commandBuffer)
@@ -166,26 +187,28 @@ void GeoLines::Impl::EnsureGeoRenderer(
       return;
    }
 
-   if (renderTargetGeneration_ != resources.renderTargetGeneration)
+   GeoRendererCacheEntry& entry = geoRendererByRhi_[resources.rhi];
+
+   if (entry.renderTargetGeneration_ != resources.renderTargetGeneration)
    {
-      if (geoRenderer_ != nullptr)
+      if (entry.renderer_ != nullptr)
       {
-         geoRenderer_->Shutdown();
+         entry.renderer_->Shutdown();
       }
-      geoRenderer_ = std::make_unique<render::RhiGeoColoredGeometry>();
-      renderTargetGeneration_ = resources.renderTargetGeneration;
-      geometryUploaded_       = false;
+      entry.renderer_               = std::make_unique<render::RhiGeoColoredGeometry>();
+      entry.renderTargetGeneration_ = resources.renderTargetGeneration;
+      entry.geometryUploaded_       = false;
    }
 
-   if (geoRenderer_ == nullptr)
+   if (entry.renderer_ == nullptr)
    {
-      geoRenderer_ = std::make_unique<render::RhiGeoColoredGeometry>();
-      renderTargetGeneration_ = resources.renderTargetGeneration;
+      entry.renderer_               = std::make_unique<render::RhiGeoColoredGeometry>();
+      entry.renderTargetGeneration_ = resources.renderTargetGeneration;
    }
 
-   if (!geoRenderer_->IsInitialized())
+   if (!entry.renderer_->IsInitialized())
    {
-      geoRenderer_->Initialize(
+      entry.renderer_->Initialize(
          resources.rhi, resources.renderTarget, commandBuffer);
    }
 }
@@ -214,29 +237,37 @@ void GeoLines::RenderVulkan(
    }
 
    p->EnsureGeoRenderer(resources, commandBuffer);
-   if (p->geoRenderer_ == nullptr || !p->geoRenderer_->IsInitialized())
+
+   const auto entryIt = p->geoRendererByRhi_.find(resources.rhi);
+   if (entryIt == p->geoRendererByRhi_.end() ||
+       entryIt->second.renderer_ == nullptr ||
+       !entryIt->second.renderer_->IsInitialized())
    {
       return;
    }
+
+   auto& entry = entryIt->second;
 
    const scwx::qt::render::GeoUniforms uniforms =
       scwx::qt::render::BuildGeoUniforms(
          params, p->thresholded_, p->selectedTime_);
 
-   const bool uploadGeometry = !p->geometryUploaded_;
+   const bool uploadGeometry = !entry.geometryUploaded_;
 
-   p->geoRenderer_->Render(
+   entry.renderer_->Render(
       commandBuffer,
       uniforms,
       p->currentLinesBuffer_,
       p->currentIntegerBuffer_,
       static_cast<std::uint32_t>(p->currentLineList_.size() *
                                  kVerticesPerRectangle),
-      uploadGeometry);
+      uploadGeometry,
+      resources.resourceBatch,
+      resources.phase);
 
    if (uploadGeometry)
    {
-      p->geometryUploaded_ = true;
+      entry.geometryUploaded_ = true;
    }
 }
 
@@ -248,13 +279,15 @@ void GeoLines::Deinitialize()
    p->currentIntegerBuffer_.clear();
    p->currentHoverLines_.clear();
 
-   if (p->geoRenderer_ != nullptr)
+   for (auto& [rhi, entry] : p->geoRendererByRhi_)
    {
-      p->geoRenderer_->Shutdown();
-      p->geoRenderer_.reset();
+      (void) rhi;
+      if (entry.renderer_ != nullptr)
+      {
+         entry.renderer_->Shutdown();
+      }
    }
-   p->geometryUploaded_       = false;
-   p->renderTargetGeneration_ = 0;
+   p->geoRendererByRhi_.clear();
 }
 
 void GeoLines::SetVisible(bool visible)
@@ -436,8 +469,8 @@ void GeoLines::FinishLines()
    p->newHoverLines_.clear();
 
    // Mark the draw item dirty
-   p->dirty_            = true;
-   p->geometryUploaded_ = false;
+   p->dirty_ = true;
+   p->InvalidateGeometryUploads();
 }
 
 void GeoLines::Impl::UpdateBuffers()
@@ -488,8 +521,8 @@ void GeoLines::Impl::UpdateModifiedLineBuffers()
    if (!dirtyLines_.empty())
    {
       dirtyLines_.clear();
-      dirty_            = true;
-      geometryUploaded_ = false;
+      dirty_ = true;
+      InvalidateGeometryUploads();
    }
 }
 
@@ -607,10 +640,27 @@ void GeoLines::Impl::UpdateSingleBuffer(
    // const float x2 = static_cast<float>(di->x2_);
    // const float y2 = static_cast<float>(di->y2_);
 
-   // Angle
+   // Screen-space direction (not GeographicLib azimuth). BuildGeoUniforms uses
+   // mapScale.y negated, so visual dir ∝ (dx, -dy) in offset/pixel space.
+   // Baking corners here also avoids relying on the GPU aAngleDeg attribute.
    const units::angle::degrees<double> angle =
       util::GeographicLib::GetAngle(lat1, lon1, lat2, lon2);
-   const float a = static_cast<float>(angle.value());
+
+   const glm::vec2 sc1 =
+      util::maplibre::LatLongToScreenCoordinate({lat1, lon1});
+   const glm::vec2 sc2 =
+      util::maplibre::LatLongToScreenCoordinate({lat2, lon2});
+   glm::vec2 along {sc2.x - sc1.x, -(sc2.y - sc1.y)};
+   const float alongLen = glm::length(along);
+   if (alongLen > 1.0e-6f)
+   {
+      along /= alongLen;
+   }
+   else
+   {
+      along = glm::vec2 {0.0f, 1.0f};
+   }
+   const glm::vec2 perp {-along.y, along.x};
 
    // Final X/Y offsets in pixels
    const float hw =
@@ -618,8 +668,19 @@ void GeoLines::Impl::UpdateSingleBuffer(
    const float pickHw = hw + kHoverPickExtraHalfPx;
    const float lx     = -hw;
    const float rx     = +hw;
-   const float ty     = +hw;
-   const float by     = -hw;
+   // Local (perp, along): start uses -along, end uses +along
+   const glm::vec2 bl = perp * lx + along * (-hw);
+   const glm::vec2 tl = perp * lx + along * (+hw);
+   const glm::vec2 br = perp * rx + along * (-hw);
+   const glm::vec2 tr = perp * rx + along * (+hw);
+   const float     blX = bl.x;
+   const float     blY = bl.y;
+   const float     tlX = tl.x;
+   const float     tlY = tl.y;
+   const float     brX = br.x;
+   const float     brY = br.y;
+   const float     trX = tr.x;
+   const float     trY = tr.y;
 
    // Modulate color
    const float mc0 = di->modulate_[0];
@@ -644,20 +705,20 @@ void GeoLines::Impl::UpdateSingleBuffer(
    // Visibility
    const auto v = static_cast<std::int32_t>(di->visible_);
 
-   // Initiailize line data
+   // Initiailize line data (aAngleDeg slot = unrotated perpendicular offset)
    const auto lineData = {
       // Line
-      lat1, lon1, lx,  by,  mc0, mc1, mc2, mc3, a,   hc0,
+      lat1, lon1, blX, blY, mc0, mc1, mc2, mc3, lx,  hc0,
       hc1,  hc2,  hc3, bc0, bc1, bc2, bc3, sh0, sh1, sh2, // BL
-      lat2, lon2, lx,  ty,  mc0, mc1, mc2, mc3, a,   hc0,
+      lat2, lon2, tlX, tlY, mc0, mc1, mc2, mc3, lx,  hc0,
       hc1,  hc2,  hc3, bc0, bc1, bc2, bc3, sh0, sh1, sh2, // TL
-      lat1, lon1, rx,  by,  mc0, mc1, mc2, mc3, a,   hc0,
+      lat1, lon1, brX, brY, mc0, mc1, mc2, mc3, rx,  hc0,
       hc1,  hc2,  hc3, bc0, bc1, bc2, bc3, sh0, sh1, sh2, // BR
-      lat1, lon1, rx,  by,  mc0, mc1, mc2, mc3, a,   hc0,
+      lat1, lon1, brX, brY, mc0, mc1, mc2, mc3, rx,  hc0,
       hc1,  hc2,  hc3, bc0, bc1, bc2, bc3, sh0, sh1, sh2, // BR
-      lat2, lon2, rx,  ty,  mc0, mc1, mc2, mc3, a,   hc0,
+      lat2, lon2, trX, trY, mc0, mc1, mc2, mc3, rx,  hc0,
       hc1,  hc2,  hc3, bc0, bc1, bc2, bc3, sh0, sh1, sh2, // TR
-      lat2, lon2, lx,  ty,  mc0, mc1, mc2, mc3, a,   hc0,
+      lat2, lon2, tlX, tlY, mc0, mc1, mc2, mc3, lx,  hc0,
       hc1,  hc2,  hc3, bc0, bc1, bc2, bc3, sh0, sh1, sh2 // TL
    };
    const auto integerData = {thresholdValue, startTime, endTime, v,

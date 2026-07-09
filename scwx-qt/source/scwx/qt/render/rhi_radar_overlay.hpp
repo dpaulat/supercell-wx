@@ -1,5 +1,7 @@
 #pragma once
 
+#include <scwx/qt/render/rhi_overlay_phase.hpp>
+
 #include <glm/glm.hpp>
 
 #include <cstdint>
@@ -13,6 +15,7 @@ class QRhiRenderTarget;
 class QRhiSampler;
 class QRhiShaderResourceBindings;
 class QRhiTexture;
+class QRhiResourceUpdateBatch;
 
 namespace scwx::qt::render
 {
@@ -46,7 +49,9 @@ public:
                const std::vector<std::uint8_t>& rgbaColorTable,
                std::uint32_t                    vertexCount,
                bool                             uploadGeometry,
-               bool                             uploadColorTable);
+               bool                             uploadColorTable,
+               QRhiResourceUpdateBatch*         resourceBatch = nullptr,
+               RhiOverlayPhase                  phase         = RhiOverlayPhase::UploadAndDraw);
 
    [[nodiscard]] bool IsInitialized() const;
 

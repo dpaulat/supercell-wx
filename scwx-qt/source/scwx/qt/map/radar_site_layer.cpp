@@ -49,6 +49,16 @@ public:
    ImGuiStyleColorStack& operator=(const ImGuiStyleColorStack&) = delete;
 };
 
+class ImGuiIdScope
+{
+public:
+   explicit ImGuiIdScope(const int id) { ImGui::PushID(id); }
+   ~ImGuiIdScope() { ImGui::PopID(); }
+
+   ImGuiIdScope(const ImGuiIdScope&)            = delete;
+   ImGuiIdScope& operator=(const ImGuiIdScope&) = delete;
+};
+
 } // namespace
 
 class RadarSiteLayer::Impl
@@ -74,7 +84,8 @@ public:
    void
    RenderRadarSiteButtons(const QMapLibre::CustomLayerRenderParameters& params);
    void RenderRadarSite(const QMapLibre::CustomLayerRenderParameters& params,
-                        const std::shared_ptr<config::RadarSite>& radarSite);
+                        const std::shared_ptr<config::RadarSite>& radarSite,
+                        int                                         siteIndex);
    void RenderRadarLine(const std::shared_ptr<MapContext>& mapContext);
 
    RadarSiteLayer* self_;
@@ -202,9 +213,9 @@ void RadarSiteLayer::Impl::RenderRadarSiteButtons(
       return;
    }
 
-   for (auto& radarSite : radarSites_)
+   for (std::size_t i = 0; i < radarSites_.size(); ++i)
    {
-      RenderRadarSite(params, radarSite);
+      RenderRadarSite(params, radarSites_[i], static_cast<int>(i));
    }
 
    ImGui::End();
@@ -275,7 +286,8 @@ void RadarSiteLayer::RenderVulkanImGui(
 
 void RadarSiteLayer::Impl::RenderRadarSite(
    const QMapLibre::CustomLayerRenderParameters& params,
-   const std::shared_ptr<config::RadarSite>&     radarSite)
+   const std::shared_ptr<config::RadarSite>&     radarSite,
+   const int                                     siteIndex)
 {
    const auto screenCoordinates =
       (util::maplibre::LatLongToScreenCoordinate(
@@ -320,7 +332,7 @@ void RadarSiteLayer::Impl::RenderRadarSite(
 
    ImGui::SetCursorScreenPos(
       ImVec2 {x - buttonSize.x * 0.5f, y - buttonSize.y * 0.5f});
-   ImGui::PushID(label);
+   ImGuiIdScope idScope {siteIndex};
 
    ImGuiStyleColorStack buttonColors {ImGuiCol_Button,
                                       std::get<0>(colorIt->second),
@@ -349,8 +361,6 @@ void RadarSiteLayer::Impl::RenderRadarSite(
                      common::GetLatitudeString(radarSite->latitude()),
                      common::GetLongitudeString(radarSite->longitude()));
    }
-
-   ImGui::PopID();
 }
 
 void RadarSiteLayer::Impl::RenderRadarLine(

@@ -148,7 +148,9 @@ void PlacefileImagesXY::RenderVulkan(
    p->UpdateVulkan(textureAtlasChanged);
 
    resources.textureArrayOverlay.SyncAtlas(commandBuffer,
-                                           p->context_->texture_buffer_count());
+                                           p->context_->texture_buffer_count(),
+                                           resources.resourceBatch,
+                                           resources.phase);
 
    glm::mat4 projection = scwx::qt::render::OrthoMapProjection(params);
    projection =
@@ -165,7 +167,9 @@ void PlacefileImagesXY::RenderVulkan(
       identity,
       screenVertices,
       p->textureBuffer_,
-      static_cast<std::uint32_t>(p->numVertices_));
+      static_cast<std::uint32_t>(p->numVertices_),
+      resources.resourceBatch,
+      resources.phase);
 }
 
 void PlacefileImagesXY::Deinitialize()

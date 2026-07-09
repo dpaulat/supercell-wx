@@ -28,6 +28,7 @@
 class QContextMenuEvent;
 class QKeyEvent;
 class QMouseEvent;
+class QRhi;
 class QRhiCommandBuffer;
 class QResizeEvent;
 class QWheelEvent;
@@ -145,6 +146,8 @@ public:
                          double pitch,
                          bool   linkedViewSync = false);
    void RequestBasemapRepaint();
+   void RequestOverlayRepaint();
+   void MarkOverlayDirty();
 
    void GetMapViewParameters(double& latitude,
                              double& longitude,
@@ -156,6 +159,7 @@ public:
    [[nodiscard]] MapViewSnapshot ExportMapViewSnapshot() const;
    void SetBasemapShareCallbacks(const MapBasemapShareCallbacks* callbacks);
    [[nodiscard]] QRhiTexture* basemap_color_texture() const;
+   [[nodiscard]] QRhi*        map_rhi() const;
 
    void SetInitialMapStyle(const std::string& styleName);
    void SetMapStyle(const std::string& styleName, bool force = false);

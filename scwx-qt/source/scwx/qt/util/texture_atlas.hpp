@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <boost/gil/point.hpp>
 #include <boost/gil/typedefs.hpp>
@@ -81,6 +82,8 @@ public:
    [[nodiscard]] std::size_t         AtlasHeight() const;
    [[nodiscard]] const std::uint8_t* LayerPixels(std::size_t  layer,
                                                  std::size_t& byteSize) const;
+   [[nodiscard]] std::vector<std::uint8_t>
+   CopyLayerPixels(std::size_t layer) const;
 
    TextureAttributes GetTextureAttributes(const std::string& name);
 

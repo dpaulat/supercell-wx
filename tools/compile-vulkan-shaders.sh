@@ -16,7 +16,7 @@ mkdir -p "${SPIRV_DIR}"
 for shader in "${GLSL_DIR}"/*.vert "${GLSL_DIR}"/*.frag; do
    [[ -f "${shader}" ]] || continue
    base="$(basename "${shader}")"
-   name="${base%.*}"
-   "${COMPILER}" -V "${shader}" -o "${SPIRV_DIR}/${name}.spv"
-   echo "compiled ${name}.spv"
+   # Keep stage suffix: radar.vert.spv (not radar.spv). qrc loads *.vert.spv.
+   "${COMPILER}" -V "${shader}" -o "${SPIRV_DIR}/${base}.spv"
+   echo "compiled ${base}.spv"
 done

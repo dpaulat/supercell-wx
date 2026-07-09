@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scwx/qt/render/rhi_geo_uniforms.hpp>
+#include <scwx/qt/render/rhi_overlay_phase.hpp>
 
 #include <cstddef>
 #include <vector>
@@ -11,6 +12,7 @@ class QRhiCommandBuffer;
 class QRhiGraphicsPipeline;
 class QRhiRenderTarget;
 class QRhiShaderResourceBindings;
+class QRhiResourceUpdateBatch;
 
 namespace scwx::qt::render
 {
@@ -28,7 +30,9 @@ public:
                const std::vector<float>&        floatVertices,
                const std::vector<std::int32_t>& integerVertices,
                std::uint32_t                    vertexCount,
-               bool                             uploadGeometry = true);
+               bool                             uploadGeometry = true,
+               QRhiResourceUpdateBatch*         resourceBatch  = nullptr,
+               RhiOverlayPhase                  phase          = RhiOverlayPhase::UploadAndDraw);
 
    [[nodiscard]] bool IsInitialized() const;
 

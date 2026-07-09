@@ -110,7 +110,9 @@ void ColorTableLayer::RenderVulkanOverlay(
    resources.colorTable.Render(commandBuffer,
                                render::OrthoMapProjection(params),
                                vertices,
-                               rgbaColorTable);
+                               rgbaColorTable,
+                               resources.resourceBatch,
+                               resources.phase);
 
    static constexpr int kBottomMargin = 10;
    mapContext->set_color_table_margins(QMargins {0, 0, 0, kBottomMargin});

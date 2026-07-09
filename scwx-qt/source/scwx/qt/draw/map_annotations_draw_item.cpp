@@ -136,7 +136,8 @@ RenderColoredAnnotationVertices(QRhiCommandBuffer* commandBuffer,
    if (!vertices.empty())
    {
       resources.coloredGeometry.Render(
-         commandBuffer, glm::mat4 {1.0f}, vertices, vertices.size() / 7);
+         commandBuffer, glm::mat4 {1.0f}, vertices, vertices.size() / 7,
+         resources.resourceBatch, resources.phase);
    }
 }
 

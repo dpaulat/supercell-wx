@@ -1253,10 +1253,63 @@ void MainWindowImpl::ConfigureBasemapSharing()
       return maps_.at(leaderIndex)->basemap_color_texture();
    };
 
+   basemapShareCallbacks_.leaderRhi_ =
+      [this](const std::size_t leaderIndex) -> QRhi*
+   {
+      if (leaderIndex >= maps_.size() || maps_.at(leaderIndex) == nullptr)
+      {
+         return nullptr;
+      }
+      return maps_.at(leaderIndex)->map_rhi();
+   };
+
+   basemapShareCallbacks_.basemapGeneration_ =
+      [this]() -> std::uint64_t
+   {
+      return basemapShareState_.basemapGeneration();
+   };
+
    basemapShareCallbacks_.notifyRendered_ =
       [this](const std::size_t leaderIndex)
    {
       basemapShareState_.NotifyBasemapRendered(leaderIndex);
+      // Wake linked followers so they copy the new basemap and redraw overlays.
+      SyncMapPaneViewLinkStateSize();
+      for (std::size_t i = 0; i < maps_.size(); ++i)
+      {
+         if (i == leaderIndex)
+         {
+            continue;
+         }
+         if (i >= mapPaneViewLinked_.size() || !mapPaneViewLinked_.at(i))
+         {
+            continue;
+         }
+         map::MapWidget* mapWidget = maps_.at(i);
+         if (mapWidget != nullptr)
+         {
+            mapWidget->MarkOverlayDirty();
+         }
+      }
+   };
+
+   basemapShareCallbacks_.notifyOverlayDirty_ =
+      [this](const std::size_t /* sourceIndex */)
+   {
+      SyncMapPaneViewLinkStateSize();
+      for (std::size_t i = 0; i < maps_.size(); ++i)
+      {
+         if (i >= mapPaneViewLinked_.size() || !mapPaneViewLinked_.at(i))
+         {
+            continue;
+         }
+
+         map::MapWidget* mapWidget = maps_.at(i);
+         if (mapWidget != nullptr)
+         {
+            mapWidget->MarkOverlayDirty();
+         }
+      }
    };
 
    for (map::MapWidget* mapWidget : maps_)

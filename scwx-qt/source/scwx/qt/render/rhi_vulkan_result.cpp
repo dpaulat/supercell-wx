@@ -2,17 +2,39 @@
 
 #include <scwx/util/logger.hpp>
 
+#include <mutex>
+#include <unordered_map>
+
 namespace scwx::qt::render
 {
 
 static const std::string logPrefix_ = "scwx::qt::render::rhi_vulkan_result";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static VulkanResultHandler g_handler;
+static std::mutex g_handlerMutex;
+static std::unordered_map<const void*, VulkanResultHandler> g_handlers;
 
-void SetVulkanResultHandler(VulkanResultHandler handler)
+void RegisterVulkanResultHandler(const void*       owner,
+                                 VulkanResultHandler handler)
 {
-   g_handler = std::move(handler);
+   if (owner == nullptr)
+   {
+      return;
+   }
+
+   std::lock_guard lock {g_handlerMutex};
+   g_handlers[owner] = std::move(handler);
+}
+
+void UnregisterVulkanResultHandler(const void* owner)
+{
+   if (owner == nullptr)
+   {
+      return;
+   }
+
+   std::lock_guard lock {g_handlerMutex};
+   g_handlers.erase(owner);
 }
 
 void ReportVulkanResult(VkResult result, const char* context)
@@ -26,9 +48,14 @@ void ReportVulkanResult(VkResult result, const char* context)
                   context,
                   static_cast<int>(result));
 
-   if (g_handler != nullptr)
+   std::lock_guard lock {g_handlerMutex};
+   for (const auto& [owner, handler] : g_handlers)
    {
-      g_handler(result, context);
+      (void) owner;
+      if (handler != nullptr)
+      {
+         handler(result, context);
+      }
    }
 }
 

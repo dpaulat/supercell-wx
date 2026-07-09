@@ -42,6 +42,8 @@ bool EnsureDynamicBuffer(QRhi*                  rhi,
    }
    if (!buffer->create())
    {
+      delete buffer;
+      buffer   = nullptr;
       capacity = 0;
       return false;
    }

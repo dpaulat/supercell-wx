@@ -9,9 +9,14 @@
 #include <scwx/qt/render/rhi_geo_uniforms.hpp>
 #include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 
+#include <array>
 #include <execution>
 #include <memory>
-#include <array>
+#include <unordered_map>
+
+#include <glm/glm.hpp>
+
+#include <rhi/qrhi.h>
 
 namespace scwx
 {
@@ -93,10 +98,16 @@ public:
    std::uint32_t numVertices_;
 
    std::vector<std::int32_t>                      expandedIntegerBuffer_ {};
-   std::unique_ptr<render::RhiGeoColoredGeometry> geoRenderer_ {};
-   bool                                           geometryUploaded_ {false};
-   std::uint64_t                                  renderTargetGeneration_ {0};
+   struct GeoRendererCacheEntry
+   {
+      std::unique_ptr<render::RhiGeoColoredGeometry> renderer_ {};
+      bool                                           geometryUploaded_ {false};
+      std::uint64_t                                  renderTargetGeneration_ {0};
+   };
 
+   std::unordered_map<QRhi*, GeoRendererCacheEntry> geoRendererByRhi_ {};
+
+   void InvalidateGeometryUploads();
    void RebuildExpandedIntegerBuffer();
    void EnsureGeoRenderer(render::RhiVulkanOverlayResources& resources,
                           QRhiCommandBuffer*                 commandBuffer);
@@ -143,7 +154,16 @@ void PlacefileLines::Impl::RebuildExpandedIntegerBuffer()
       expandedIntegerBuffer_.push_back(currentIntegerBuffer_[i + 2]);
       expandedIntegerBuffer_.push_back(1);
    }
-   geometryUploaded_ = false;
+   InvalidateGeometryUploads();
+}
+
+void PlacefileLines::Impl::InvalidateGeometryUploads()
+{
+   for (auto& [rhi, entry] : geoRendererByRhi_)
+   {
+      (void) rhi;
+      entry.geometryUploaded_ = false;
+   }
 }
 
 void PlacefileLines::Impl::EnsureGeoRenderer(
@@ -155,26 +175,28 @@ void PlacefileLines::Impl::EnsureGeoRenderer(
       return;
    }
 
-   if (renderTargetGeneration_ != resources.renderTargetGeneration)
+   GeoRendererCacheEntry& entry = geoRendererByRhi_[resources.rhi];
+
+   if (entry.renderTargetGeneration_ != resources.renderTargetGeneration)
    {
-      if (geoRenderer_ != nullptr)
+      if (entry.renderer_ != nullptr)
       {
-         geoRenderer_->Shutdown();
+         entry.renderer_->Shutdown();
       }
-      geoRenderer_ = std::make_unique<render::RhiGeoColoredGeometry>();
-      renderTargetGeneration_ = resources.renderTargetGeneration;
-      geometryUploaded_       = false;
+      entry.renderer_               = std::make_unique<render::RhiGeoColoredGeometry>();
+      entry.renderTargetGeneration_ = resources.renderTargetGeneration;
+      entry.geometryUploaded_       = false;
    }
 
-   if (geoRenderer_ == nullptr)
+   if (entry.renderer_ == nullptr)
    {
-      geoRenderer_ = std::make_unique<render::RhiGeoColoredGeometry>();
-      renderTargetGeneration_ = resources.renderTargetGeneration;
+      entry.renderer_               = std::make_unique<render::RhiGeoColoredGeometry>();
+      entry.renderTargetGeneration_ = resources.renderTargetGeneration;
    }
 
-   if (!geoRenderer_->IsInitialized())
+   if (!entry.renderer_->IsInitialized())
    {
-      geoRenderer_->Initialize(
+      entry.renderer_->Initialize(
          resources.rhi, resources.renderTarget, commandBuffer);
    }
 }
@@ -193,27 +215,35 @@ void PlacefileLines::RenderVulkan(
    }
 
    p->EnsureGeoRenderer(resources, commandBuffer);
-   if (p->geoRenderer_ == nullptr || !p->geoRenderer_->IsInitialized())
+
+   const auto entryIt = p->geoRendererByRhi_.find(resources.rhi);
+   if (entryIt == p->geoRendererByRhi_.end() ||
+       entryIt->second.renderer_ == nullptr ||
+       !entryIt->second.renderer_->IsInitialized())
    {
       return;
    }
+
+   auto& entry = entryIt->second;
 
    const scwx::qt::render::GeoUniforms uniforms =
       scwx::qt::render::BuildGeoUniforms(
          params, p->thresholded_, p->selectedTime_);
 
-   const bool uploadGeometry = !p->geometryUploaded_;
+   const bool uploadGeometry = !entry.geometryUploaded_;
 
-   p->geoRenderer_->Render(commandBuffer,
+   entry.renderer_->Render(commandBuffer,
                            uniforms,
                            p->currentLinesBuffer_,
                            p->expandedIntegerBuffer_,
                            static_cast<std::uint32_t>(p->numVertices_),
-                           uploadGeometry);
+                           uploadGeometry,
+                           resources.resourceBatch,
+                           resources.phase);
 
    if (uploadGeometry)
    {
-      p->geometryUploaded_ = true;
+      entry.geometryUploaded_ = true;
    }
 }
 
@@ -226,13 +256,15 @@ void PlacefileLines::Deinitialize()
    p->currentHoverLines_.clear();
 
    p->expandedIntegerBuffer_.clear();
-   if (p->geoRenderer_ != nullptr)
+   for (auto& [rhi, entry] : p->geoRendererByRhi_)
    {
-      p->geoRenderer_->Shutdown();
-      p->geoRenderer_.reset();
+      (void) rhi;
+      if (entry.renderer_ != nullptr)
+      {
+         entry.renderer_->Shutdown();
+      }
    }
-   p->geometryUploaded_       = false;
-   p->renderTargetGeneration_ = 0;
+   p->geoRendererByRhi_.clear();
 }
 
 void PlacefileLines::StartLines()
@@ -366,15 +398,40 @@ void PlacefileLines::Impl::BufferLine(
    // const float x2 = static_cast<float>(e2.x_);
    // const float y2 = static_cast<float>(e2.y_);
 
-   // Angle
-   const float a = static_cast<float>(angle.value());
+   // Screen-space direction (map Y flipped). Bake into aXYOffset; aAngleDeg
+   // slot holds unrotated perpendicular for stroke banding.
+   const glm::vec2 sc1 =
+      util::maplibre::LatLongToScreenCoordinate({lat1, lon1});
+   const glm::vec2 sc2 =
+      util::maplibre::LatLongToScreenCoordinate({lat2, lon2});
+   glm::vec2 along {sc2.x - sc1.x, -(sc2.y - sc1.y)};
+   const float alongLen = glm::length(along);
+   if (alongLen > 1.0e-6f)
+   {
+      along /= alongLen;
+   }
+   else
+   {
+      along = glm::vec2 {0.0f, 1.0f};
+   }
+   const glm::vec2 perp {-along.y, along.x};
 
    // Final X/Y offsets in pixels
    const float hw = width * 0.5f;
    const float lx = -hw;
    const float rx = +hw;
-   const float ty = +hw;
-   const float by = -hw;
+   const glm::vec2 bl = perp * lx + along * (-hw);
+   const glm::vec2 tl = perp * lx + along * (+hw);
+   const glm::vec2 br = perp * rx + along * (-hw);
+   const glm::vec2 tr = perp * rx + along * (+hw);
+   const float     blX = bl.x;
+   const float     blY = bl.y;
+   const float     tlX = tl.x;
+   const float     tlY = tl.y;
+   const float     brX = br.x;
+   const float     brY = br.y;
+   const float     trX = tr.x;
+   const float     trY = tr.y;
 
    // Modulate color
    const float mc0 = color[0] / 255.0f;
@@ -383,21 +440,22 @@ void PlacefileLines::Impl::BufferLine(
    const float mc3 = color[3] / 255.0f;
 
    // Update buffers
-   const auto appendVertex = [&](float lat, float lon, float x, float y)
+   const auto appendVertex =
+      [&](float lat, float lon, float x, float y, float perp)
    {
       newLinesBuffer_.insert(newLinesBuffer_.end(),
-                             {lat, lon, x, y, mc0, mc1, mc2, mc3, a});
+                             {lat, lon, x, y, mc0, mc1, mc2, mc3, perp});
       newLinesBuffer_.insert(newLinesBuffer_.end(),
                              kNoStrokeVertexPadding.begin(),
                              kNoStrokeVertexPadding.end());
    };
 
-   appendVertex(lat1, lon1, lx, by);
-   appendVertex(lat2, lon2, lx, ty);
-   appendVertex(lat1, lon1, rx, by);
-   appendVertex(lat1, lon1, rx, by);
-   appendVertex(lat2, lon2, rx, ty);
-   appendVertex(lat2, lon2, lx, ty);
+   appendVertex(lat1, lon1, blX, blY, lx);
+   appendVertex(lat2, lon2, tlX, tlY, lx);
+   appendVertex(lat1, lon1, brX, brY, rx);
+   appendVertex(lat1, lon1, brX, brY, rx);
+   appendVertex(lat2, lon2, trX, trY, rx);
+   appendVertex(lat2, lon2, tlX, tlY, lx);
    newIntegerBuffer_.insert(newIntegerBuffer_.end(),
                             {threshold,
                              startTime,

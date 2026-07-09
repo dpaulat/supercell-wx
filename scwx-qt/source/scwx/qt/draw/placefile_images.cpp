@@ -161,7 +161,9 @@ void PlacefileImages::RenderVulkan(
    p->UpdateVulkan(textureAtlasChanged);
 
    resources.textureArrayOverlay.SyncAtlas(commandBuffer,
-                                           p->context_->texture_buffer_count());
+                                           p->context_->texture_buffer_count(),
+                                           resources.resourceBatch,
+                                           resources.phase);
 
    const std::vector<float> mergedVertices =
       MergeGeoImageVertices(p->currentImageBuffer_, p->textureBuffer_);
@@ -187,7 +189,9 @@ void PlacefileImages::RenderVulkan(
       uniforms,
       mergedVertices,
       integerVertices,
-      static_cast<std::uint32_t>(p->numVertices_));
+      static_cast<std::uint32_t>(p->numVertices_),
+      resources.resourceBatch,
+      resources.phase);
 }
 
 void PlacefileImages::Deinitialize()

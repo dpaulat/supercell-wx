@@ -25,8 +25,8 @@ enum class GeoStrokeBand
 [[nodiscard]] GeoStrokeHalfWidths ComputeGeoStrokeHalfWidths(
    float lineWidth, float highlightWidth, float borderWidth) noexcept;
 
-/** Mirrors geo_color.frag band selection (offsetY = perpendicular pixel
- * offset). */
+/** Mirrors geo_color.frag band selection (offset = |aXYOffset.x|, the
+ * perpendicular pixel offset from the centerline). */
 [[nodiscard]] GeoStrokeBand
 ClassifyGeoStrokeBand(float                      offsetY,
                       const GeoStrokeHalfWidths& widths) noexcept;
