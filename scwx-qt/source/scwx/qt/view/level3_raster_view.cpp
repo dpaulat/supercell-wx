@@ -71,7 +71,7 @@ Level3RasterView::~Level3RasterView()
    // alive. Do not hold sweep_mutex across join: a worker blocked on that lock
    // would deadlock.
    DisconnectProductSettings();
-   DisconnectRadarProductManager();
+   Level3RasterView::DisconnectRadarProductManager();
 
    p->threadPool_.stop();
    p->threadPool_.join();

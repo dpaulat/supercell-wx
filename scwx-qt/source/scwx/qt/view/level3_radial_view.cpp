@@ -81,7 +81,7 @@ Level3RadialView::~Level3RadialView()
    // alive. Do not hold sweep_mutex across join: a worker blocked on that lock
    // would deadlock.
    DisconnectProductSettings();
-   DisconnectRadarProductManager();
+   Level3RadialView::DisconnectRadarProductManager();
 
    p->threadPool_.stop();
    p->threadPool_.join();

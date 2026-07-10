@@ -201,7 +201,7 @@ Level2ProductView::~Level2ProductView()
    // alive. Do not hold sweep_mutex across join: a worker blocked on that lock
    // would deadlock.
    DisconnectProductSettings();
-   DisconnectRadarProductManager();
+   Level2ProductView::DisconnectRadarProductManager();
 
    p->threadPool_.stop();
    p->threadPool_.join();
@@ -1603,8 +1603,19 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
       return std::nullopt;
    }
 
+   const auto radialData = radarData->find(*radial);
+   if (radialData == radarData->cend() || radialData->second == nullptr)
+   {
+      return std::nullopt;
+   }
+
+   const auto momentData = radialData->second->moment_data_block(dataBlockType);
+   if (momentData == nullptr)
+   {
+      return std::nullopt;
+   }
+
    // Compute gate interval
-   auto momentData = (*radarData)[*radial]->moment_data_block(dataBlockType);
    const std::int32_t dataMomentInterval =
       momentData->data_moment_range_sample_interval_raw();
    const std::int32_t dataMomentIntervalH = dataMomentInterval / 2;
@@ -1703,6 +1714,11 @@ Level2ProductView::GetDataLevelCode(std::uint16_t level) const
 
 std::optional<float> Level2ProductView::GetDataValue(std::uint16_t level) const
 {
+   if (p->momentDataBlock0_ == nullptr)
+   {
+      return std::nullopt;
+   }
+
    const float   offset    = p->momentDataBlock0_->offset();
    const float   scale     = p->momentDataBlock0_->scale();
    std::uint16_t threshold = std::numeric_limits<std::uint16_t>::max();
