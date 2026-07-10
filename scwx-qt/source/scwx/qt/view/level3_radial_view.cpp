@@ -28,7 +28,12 @@ class Level3RadialView::Impl
 {
 public:
    explicit Impl(Level3RadialView* self) : self_ {self} {}
-   ~Impl() { threadPool_.join(); };
+   ~Impl() = default;
+
+   Impl(const Impl&)                = delete;
+   Impl& operator=(const Impl&)     = delete;
+   Impl(Impl&&) noexcept            = delete;
+   Impl& operator=(Impl&&) noexcept = delete;
 
    void ComputeCoordinates(
       const std::shared_ptr<wsr88d::rpg::GenericRadialDataPacket>& radialData,
@@ -72,7 +77,14 @@ Level3RadialView::Level3RadialView(
 
 Level3RadialView::~Level3RadialView()
 {
-   std::unique_lock sweepLock {sweep_mutex()};
+   // Stop callbacks that can post ComputeSweep, then join while Impl is still
+   // alive. Do not hold sweep_mutex across join: a worker blocked on that lock
+   // would deadlock.
+   DisconnectProductSettings();
+   DisconnectRadarProductManager();
+
+   p->threadPool_.stop();
+   p->threadPool_.join();
 }
 
 boost::asio::thread_pool& Level3RadialView::thread_pool()

@@ -108,8 +108,6 @@ public:
          otherUnitsCallbackUuid_);
       unitSettings.speed_units().UnregisterValueChangedCallback(
          speedUnitsCallbackUuid_);
-
-      threadPool_.join();
    };
 
    Impl(const Impl&)            = delete;
@@ -199,7 +197,14 @@ Level2ProductView::Level2ProductView(
 
 Level2ProductView::~Level2ProductView()
 {
-   std::unique_lock sweepLock {sweep_mutex()};
+   // Stop callbacks that can post ComputeSweep, then join while Impl is still
+   // alive. Do not hold sweep_mutex across join: a worker blocked on that lock
+   // would deadlock.
+   DisconnectProductSettings();
+   DisconnectRadarProductManager();
+
+   p->threadPool_.stop();
+   p->threadPool_.join();
 }
 
 void Level2ProductView::ConnectRadarProductManager()
@@ -238,6 +243,10 @@ void Level2ProductView::DisconnectRadarProductManager()
 {
    disconnect(radar_product_manager().get(),
               &manager::RadarProductManager::DataReloaded,
+              this,
+              nullptr);
+   disconnect(radar_product_manager().get(),
+              &manager::RadarProductManager::ProductTimesPopulated,
               this,
               nullptr);
 }

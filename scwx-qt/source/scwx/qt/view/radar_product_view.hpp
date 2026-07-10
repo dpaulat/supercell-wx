@@ -103,6 +103,12 @@ protected:
    virtual void DisconnectRadarProductManager() = 0;
    virtual void UpdateColorTableLut()           = 0;
 
+   /**
+    * Disconnects callbacks that can post work to the view thread pool.
+    * Derived destructors must call this before joining their thread pool.
+    */
+   void DisconnectProductSettings();
+
    void set_load_status(types::RadarProductLoadStatus loadStatus);
 
 protected slots:
