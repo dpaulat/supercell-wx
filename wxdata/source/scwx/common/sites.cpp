@@ -3,8 +3,72 @@
 
 #include <algorithm>
 
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+
 namespace scwx::common
 {
+
+namespace
+{
+
+struct RadarIdTransitionRule
+{
+   std::string                           originalRadarId;
+   std::string                           canonicalRadarId;
+   std::chrono::system_clock::time_point transitionStart;
+   std::chrono::system_clock::time_point transitionEnd;
+};
+
+struct OriginalRadarIdTag
+{
+};
+struct CanonicalRadarIdTag
+{
+};
+
+} // namespace
+
+using namespace std::chrono;
+
+namespace bmi = boost::multi_index;
+
+static const bmi::multi_index_container<
+   RadarIdTransitionRule,
+   bmi::indexed_by<
+      bmi::hashed_unique<bmi::tag<OriginalRadarIdTag>,
+                         bmi::member<RadarIdTransitionRule,
+                                     std::string,
+                                     &RadarIdTransitionRule::originalRadarId>>,
+      bmi::hashed_unique<
+         bmi::tag<CanonicalRadarIdTag>,
+         bmi::member<RadarIdTransitionRule,
+                     std::string,
+                     &RadarIdTransitionRule::canonicalRadarId>>>>
+   kRadarIdTransitionRules_ = {{
+      {
+         .originalRadarId  = "TPBI",
+         .canonicalRadarId = "TDJT",
+         .transitionStart  = std::chrono::sys_days {2026y / August / 3d},
+         .transitionEnd    = std::chrono::sys_days {2026y / August / 17d},
+      },
+   }};
+
+std::string GetCanonicalRadarId(const std::string& radarId)
+{
+   // Find by original radar ID
+   const auto& originalIndex =
+      kRadarIdTransitionRules_.get<OriginalRadarIdTag>();
+
+   const auto it = originalIndex.find(radarId);
+   if (it != originalIndex.end())
+   {
+      return it->canonicalRadarId;
+   }
+
+   return radarId;
+}
 
 std::string GetSiteId(const std::string& radarId)
 {
@@ -21,6 +85,55 @@ std::string GetSiteId(const std::string& radarId)
    }
 
    return siteId;
+}
+
+std::vector<std::string>
+GetRadarIdCandidates(const std::string&                          radarId,
+                     const std::chrono::system_clock::time_point date)
+{
+   // Find by original or canonical radar ID
+   static const auto& originalIndex =
+      kRadarIdTransitionRules_.get<OriginalRadarIdTag>();
+   static const auto& canonicalIndex =
+      kRadarIdTransitionRules_.get<CanonicalRadarIdTag>();
+
+   const RadarIdTransitionRule* transitionRule = nullptr;
+   std::vector<std::string>     candidates {};
+
+   const auto originalIt = originalIndex.find(radarId);
+   if (originalIt != originalIndex.end())
+   {
+      transitionRule = &*originalIt;
+   }
+   else
+   {
+      const auto canonicalIt = canonicalIndex.find(radarId);
+      if (canonicalIt != canonicalIndex.end())
+      {
+         transitionRule = &*canonicalIt;
+      }
+   }
+
+   if (transitionRule != nullptr)
+   {
+      // If the date is after the transition start date, add the canonical ID
+      if (date >= transitionRule->transitionStart)
+      {
+         candidates.push_back(transitionRule->canonicalRadarId);
+      }
+
+      // If the date is before the transition end date, add the original ID
+      if (date < transitionRule->transitionEnd)
+      {
+         candidates.push_back(transitionRule->originalRadarId);
+      }
+   }
+   else
+   {
+      candidates.push_back(radarId);
+   }
+
+   return candidates;
 }
 
 } // namespace scwx::common
