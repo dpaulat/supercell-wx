@@ -15,8 +15,14 @@ if (APPLE)
     set(MLN_WITH_METAL OFF CACHE BOOL "" FORCE)
 endif()
 
-# aqt/macOS Qt layouts may expose qvulkaninstance.h under include/QtGui while
-# Qt6Gui_INCLUDE_DIRS points at the framework Headers path only.
+# MapLibre platform/qt/qt.cmake FATAL_ERRORs unless find_path finds
+# qvulkaninstance.h in Qt*Gui_INCLUDE_DIRS. aqt macOS Qt often omits that
+# header; MapLibre never #includes it for the Vulkan backend — probe only.
+#
+# Do NOT rely on mutating Qt*Gui_INCLUDE_DIRS: maplibre-native-qt's
+# CMakeLists re-runs find_package(Qt Gui) and resets those dirs, wiping any
+# stub path. Pre-seed QT_VULKAN_HEADER (MapLibre's find_path cache var)
+# instead so the probe succeeds regardless.
 if (MLN_WITH_VULKAN)
     find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Gui REQUIRED)
     set(_scwx_qt_gui_include_dirs ${Qt${QT_VERSION_MAJOR}Gui_INCLUDE_DIRS})
@@ -29,28 +35,25 @@ if (MLN_WITH_VULKAN)
     endif()
     list(REMOVE_DUPLICATES _scwx_qt_gui_include_dirs)
 
-    # MapLibre only probes for qvulkaninstance.h at configure time; it is not
-    # included by the Vulkan backend sources. aqt macOS Qt often omits it, so
-    # provide a stub ahead of the real Qt include dirs when the probe fails.
     find_path(_SCWX_QT_VULKAN_HEADER qvulkaninstance.h
               PATHS ${_scwx_qt_gui_include_dirs}
               NO_DEFAULT_PATH)
-    if (NOT _SCWX_QT_VULKAN_HEADER)
+    if (_SCWX_QT_VULKAN_HEADER)
+        set(QT_VULKAN_HEADER "${_SCWX_QT_VULKAN_HEADER}" CACHE PATH
+            "Directory containing qvulkaninstance.h (MapLibre probe)" FORCE)
+    else()
         set(_SCWX_QT_VULKAN_STUB_DIR
             "${CMAKE_CURRENT_BINARY_DIR}/scwx-qt-vulkan-stub")
         file(MAKE_DIRECTORY "${_SCWX_QT_VULKAN_STUB_DIR}")
         file(WRITE "${_SCWX_QT_VULKAN_STUB_DIR}/qvulkaninstance.h"
              "// Stub for MapLibre configure-time Vulkan probe (unused at compile).\n"
              "#pragma once\n")
-        list(INSERT _scwx_qt_gui_include_dirs 0 "${_SCWX_QT_VULKAN_STUB_DIR}")
+        set(QT_VULKAN_HEADER "${_SCWX_QT_VULKAN_STUB_DIR}" CACHE PATH
+            "Stub dir for MapLibre qvulkaninstance.h probe" FORCE)
         message(STATUS
                 "Qt build has no qvulkaninstance.h; using stub for MapLibre Vulkan probe")
     endif()
     unset(_SCWX_QT_VULKAN_HEADER CACHE)
-
-    set(Qt${QT_VERSION_MAJOR}Gui_INCLUDE_DIRS
-        "${_scwx_qt_gui_include_dirs}"
-        CACHE STRING "" FORCE)
 endif()
 
 add_subdirectory(maplibre-native-qt)
