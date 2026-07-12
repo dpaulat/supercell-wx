@@ -215,12 +215,14 @@ void RadarSite::set_status(types::RadarSiteStatus status)
 
 std::shared_ptr<RadarSite> RadarSite::Get(const std::string& id)
 {
-   std::shared_lock           lock(siteMutex_);
+   const std::string canonicalId = common::GetCanonicalRadarId(id);
+
+   const std::shared_lock     lock(siteMutex_);
    std::shared_ptr<RadarSite> radarSite = nullptr;
 
-   if (radarSiteMap_.contains(id))
+   if (radarSiteMap_.contains(canonicalId))
    {
-      radarSite = radarSiteMap_.at(id);
+      radarSite = radarSiteMap_.at(canonicalId);
    }
 
    return radarSite;
