@@ -63,7 +63,7 @@ public:
 
    std::optional<float> GetCurrentElevation();
 
-   void SetLevel2DataProvider(
+   void AddLevel2DataProvider(
       const std::shared_ptr<AwsLevel2DataProvider>& provider);
 
    /**

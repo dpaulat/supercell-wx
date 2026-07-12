@@ -36,6 +36,6 @@ std::string GetSiteId(const std::string& radarId);
  */
 std::vector<std::string>
 GetRadarIdCandidates(const std::string&                          radarId,
-                     const std::chrono::system_clock::time_point date);
+                     const std::chrono::system_clock::time_point date = {});
 
 } // namespace scwx::common

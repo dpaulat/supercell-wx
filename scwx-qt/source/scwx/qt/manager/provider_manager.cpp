@@ -47,9 +47,12 @@ public:
    bool                            refreshEnabled_ {false};
    boost::asio::steady_timer       refreshTimer_ {providerThreadPool_};
    std::mutex                      refreshTimerMutex_ {};
-   std::shared_ptr<provider::NexradDataProvider> provider_ {nullptr};
-   std::size_t                                   refreshCount_ {0};
-   bool                                          providerShutdown_ {false};
+   std::size_t                     refreshCount_ {0};
+   bool                            providersShutdown_ {false};
+   bool                            firstRefreshComplete_ {false};
+
+   std::vector<std::shared_ptr<provider::NexradDataProvider>> providers_ {};
+   std::shared_ptr<provider::NexradDataProvider>              lastProvider_ {};
 };
 
 ProviderManager::ProviderManager(RadarProductManager*      self,
@@ -74,9 +77,12 @@ ProviderManager::ProviderManager(RadarProductManager*      self,
 
 ProviderManager::~ProviderManager()
 {
-   if (p->provider_ != nullptr && !p->providerShutdown_)
+   if (!p->providersShutdown_)
    {
-      p->provider_->Shutdown();
+      for (const auto& provider : p->providers_)
+      {
+         provider->Shutdown();
+      }
    }
 
    p->providerThreadPool_.stop();
@@ -111,10 +117,13 @@ void ProviderManager::Disable(bool shutdown)
    p->refreshEnabled_ = false;
    p->refreshTimer_.cancel();
 
-   if (shutdown && p->provider_ != nullptr && !p->providerShutdown_)
+   if (shutdown && !p->providersShutdown_)
    {
-      p->provider_->Shutdown();
-      p->providerShutdown_ = true;
+      for (const auto& provider : p->providers_)
+      {
+         provider->Shutdown();
+      }
+      p->providersShutdown_ = true;
    }
 }
 
@@ -145,12 +154,15 @@ void ProviderManager::RefreshDataSync()
 {
    using namespace std::chrono_literals;
 
-   if (p->provider_ == nullptr)
+   if (p->providers_.empty())
    {
       return;
    }
 
-   auto [newObjects, totalObjects] = p->provider_->Refresh();
+   std::size_t newObjects   = 0;
+   std::size_t totalObjects = 0;
+
+   std::chrono::system_clock::time_point latestTime {};
 
    // Level2 chunked data is updated quickly and uses a faster interval
    const std::chrono::milliseconds fastRetryInterval =
@@ -159,39 +171,61 @@ void ProviderManager::RefreshDataSync()
       p->isChunks_ ? kSlowRetryIntervalChunks_ : kSlowRetryInterval_;
    std::chrono::milliseconds interval = fastRetryInterval;
 
-   if (totalObjects > 0)
+   for (const auto& provider : p->providers_)
    {
-      auto latestTime        = p->provider_->FindLatestTime();
-      auto updatePeriod      = p->provider_->update_period();
-      auto lastModified      = p->provider_->last_modified();
-      auto sinceLastModified = scwx::util::time::now() - lastModified;
+      auto [providerNewObjects, providerTotalObjects] = provider->Refresh();
 
-      // For the default interval, assume products are updated at a
-      // constant rate. Expect the next product at a time based on the
-      // previous two.
-      interval = std::chrono::duration_cast<std::chrono::milliseconds>(
-         updatePeriod - sinceLastModified);
-
-      // Allow 5 update periods before considering the data stale
-      constexpr std::size_t kUpdatePeriodStaleCount = 5;
-
-      if (updatePeriod > 0s &&
-          sinceLastModified > updatePeriod * kUpdatePeriodStaleCount)
+      // Only update the latest time and interval if this is the first provider
+      // to have data
+      if (providerTotalObjects > 0 && totalObjects == 0)
       {
-         // If it has been at least 5 update periods since the file has
-         // been last modified, slow the retry period
-         interval = slowRetryInterval;
-      }
-      else if (interval < std::chrono::milliseconds {fastRetryInterval})
-      {
-         // The interval should be no quicker than the fast retry interval
-         interval = fastRetryInterval;
+         latestTime             = provider->FindLatestTime();
+         auto updatePeriod      = provider->update_period();
+         auto lastModified      = provider->last_modified();
+         auto sinceLastModified = scwx::util::time::now() - lastModified;
+
+         // For the default interval, assume products are updated at a
+         // constant rate. Expect the next product at a time based on the
+         // previous two.
+         interval = std::chrono::duration_cast<std::chrono::milliseconds>(
+            updatePeriod - sinceLastModified);
+
+         // Allow 5 update periods before considering the data stale
+         constexpr std::size_t kUpdatePeriodStaleCount = 5;
+
+         if (updatePeriod > 0s &&
+             sinceLastModified > updatePeriod * kUpdatePeriodStaleCount)
+         {
+            // If it has been at least 5 update periods since the file has
+            // been last modified, slow the retry period
+            interval = slowRetryInterval;
+         }
+         else if (interval < std::chrono::milliseconds {fastRetryInterval})
+         {
+            // The interval should be no quicker than the fast retry interval
+            interval = fastRetryInterval;
+         }
+
+         p->lastProvider_ = provider;
       }
 
-      if (newObjects > 0)
+      newObjects += providerNewObjects;
+      totalObjects += providerTotalObjects;
+
+      // Don't refresh other providers if this one has data, or we have already
+      // successfully loaded a file from this provider, unless it is the first
+      // time through the loop.
+      if (p->firstRefreshComplete_ &&
+          (providerTotalObjects > 0 || p->lastProvider_ == provider))
       {
-         Q_EMIT NewDataAvailable(p->group_, p->product_, latestTime);
+         break;
       }
+   }
+
+   if (newObjects > 0)
+   {
+      p->firstRefreshComplete_ = true;
+      Q_EMIT NewDataAvailable(p->group_, p->product_, latestTime);
    }
    else if (p->refreshEnabled_)
    {
@@ -235,13 +269,13 @@ void ProviderManager::RefreshDataSync()
 
 std::shared_ptr<provider::NexradDataProvider> ProviderManager::provider() const
 {
-   return p->provider_;
+   return (p->providers_.empty() ? nullptr : p->providers_.front());
 }
 
-void ProviderManager::set_provider(
+void ProviderManager::add_provider(
    std::shared_ptr<provider::NexradDataProvider> provider)
 {
-   p->provider_ = std::move(provider);
+   p->providers_.emplace_back(std::move(provider));
 }
 
 common::RadarProductGroup ProviderManager::group() const

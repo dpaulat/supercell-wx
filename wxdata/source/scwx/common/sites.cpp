@@ -116,14 +116,18 @@ GetRadarIdCandidates(const std::string&                          radarId,
 
    if (transitionRule != nullptr)
    {
-      // If the date is after the transition start date, add the canonical ID
-      if (date >= transitionRule->transitionStart)
+      // If the date is after the transition start date, or unspecified, add the
+      // canonical ID
+      if (date >= transitionRule->transitionStart ||
+          date == std::chrono::system_clock::time_point {})
       {
          candidates.push_back(transitionRule->canonicalRadarId);
       }
 
-      // If the date is before the transition end date, add the original ID
-      if (date < transitionRule->transitionEnd)
+      // If the date is before the transition end date, or unspecified, add the
+      // original ID
+      if (date < transitionRule->transitionEnd ||
+          date == std::chrono::system_clock::time_point {})
       {
          candidates.push_back(transitionRule->originalRadarId);
       }

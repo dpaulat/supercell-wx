@@ -5,6 +5,7 @@
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/time_types.hpp>
 #include <scwx/common/constants.hpp>
+#include <scwx/common/sites.hpp>
 #include <scwx/provider/aws_level2_chunks_data_provider.hpp>
 #include <scwx/provider/nexrad_data_provider_factory.hpp>
 #include <scwx/util/logger.hpp>
@@ -19,7 +20,6 @@
 #include <mutex>
 #include <optional>
 #include <shared_mutex>
-#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -87,21 +87,28 @@ public:
          radarSite_ = std::make_shared<config::RadarSite>();
       }
 
-      level2ProviderManager_->set_provider(
-         provider::NexradDataProviderFactory::CreateLevel2DataProvider(
-            radarId));
-      level2ChunksProviderManager_->set_provider(
-         provider::NexradDataProviderFactory::CreateLevel2ChunksDataProvider(
-            radarId));
-
-      auto level2ChunksProvider =
-         std::dynamic_pointer_cast<provider::AwsLevel2ChunksDataProvider>(
-            level2ChunksProviderManager_->provider());
-      if (level2ChunksProvider != nullptr)
+      const auto radarIdCandidates = common::GetRadarIdCandidates(radarId);
+      for (const auto& radarIdCandidate : radarIdCandidates)
       {
-         level2ChunksProvider->SetLevel2DataProvider(
-            std::dynamic_pointer_cast<provider::AwsLevel2DataProvider>(
-               level2ProviderManager_->provider()));
+         const auto level2Provider =
+            provider::NexradDataProviderFactory::CreateLevel2DataProvider(
+               radarIdCandidate);
+         const auto level2ChunksProviderBase =
+            provider::NexradDataProviderFactory::CreateLevel2ChunksDataProvider(
+               radarIdCandidate);
+
+         level2ProviderManager_->add_provider(level2Provider);
+         level2ChunksProviderManager_->add_provider(level2ChunksProviderBase);
+
+         const auto level2ChunksProvider =
+            std::dynamic_pointer_cast<provider::AwsLevel2ChunksDataProvider>(
+               level2ChunksProviderBase);
+         if (level2ChunksProvider != nullptr)
+         {
+            level2ChunksProvider->AddLevel2DataProvider(
+               std::dynamic_pointer_cast<provider::AwsLevel2DataProvider>(
+                  level2Provider));
+         }
       }
 
       coordinateTable_ =
@@ -428,14 +435,21 @@ RadarProductManagerImpl::GetLevel3ProviderManager(const std::string& product)
 
    if (!level3ProviderManagerMap_.contains(product))
    {
-      level3ProviderManagerMap_.emplace(
+      const auto result = level3ProviderManagerMap_.emplace(
          std::piecewise_construct,
          std::forward_as_tuple(product),
          std::forward_as_tuple(std::make_shared<ProviderManager>(
             self_, radarId_, common::RadarProductGroup::Level3, product)));
-      level3ProviderManagerMap_.at(product)->set_provider(
-         provider::NexradDataProviderFactory::CreateLevel3DataProvider(
-            radarId_, product));
+      const auto level3ProviderManager = result.first->second;
+
+      for (const auto& radarIdCandidate :
+           common::GetRadarIdCandidates(radarId_))
+      {
+         const auto level3Provider =
+            provider::NexradDataProviderFactory::CreateLevel3DataProvider(
+               radarIdCandidate, product);
+         level3ProviderManager->add_provider(level3Provider);
+      }
    }
 
    std::shared_ptr<ProviderManager> providerManager =
