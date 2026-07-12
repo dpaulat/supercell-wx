@@ -37,6 +37,9 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static const std::string defaultRadarSiteFile_ =
    ":/res/config/radar_sites.json";
 
+static const std::unordered_map<std::string, std::string> staticSiteIdMap_ {
+   {"PBI", "TDJT"}};
+
 static std::unordered_map<std::string, std::shared_ptr<RadarSite>>
                                                     radarSiteMap_;
 static std::vector<std::shared_ptr<RadarSite>>      radarSiteList_;
@@ -305,6 +308,12 @@ void RadarSite::Initialize()
 
    if (!initialized_)
    {
+      // Add static radar site mappings
+      for (const auto& record : staticSiteIdMap_)
+      {
+         siteIdMap_.emplace(record.first, record.second);
+      }
+
       ReadConfig(defaultRadarSiteFile_);
 
       const std::string level2Url =
