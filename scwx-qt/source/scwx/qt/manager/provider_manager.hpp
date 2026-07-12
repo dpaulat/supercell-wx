@@ -39,6 +39,10 @@ public:
    void RefreshDataSync();
 
    [[nodiscard]] std::shared_ptr<provider::NexradDataProvider> provider() const;
+   [[nodiscard]] std::shared_ptr<provider::NexradDataProvider>
+   provider(const std::string& radarId) const;
+   [[nodiscard]] std::vector<std::shared_ptr<provider::NexradDataProvider>>
+        providers() const;
    void add_provider(std::shared_ptr<provider::NexradDataProvider> provider);
 
    [[nodiscard]] common::RadarProductGroup group() const;

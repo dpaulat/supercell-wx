@@ -272,6 +272,35 @@ std::shared_ptr<provider::NexradDataProvider> ProviderManager::provider() const
    return (p->providers_.empty() ? nullptr : p->providers_.front());
 }
 
+std::shared_ptr<provider::NexradDataProvider>
+ProviderManager::provider(const std::string& radarId) const
+{
+   // If there is only one provider, return it
+   if (p->providers_.size() == 1)
+   {
+      return p->providers_.front();
+   }
+
+   // If there are multiple providers, find the one with the matching radar site
+   for (const auto& provider : p->providers_)
+   {
+      if (provider->radar_site() == radarId)
+      {
+         return provider;
+      }
+   }
+
+   logger_->warn("No provider found for radar ID: {}", radarId);
+
+   return nullptr;
+}
+
+std::vector<std::shared_ptr<provider::NexradDataProvider>>
+ProviderManager::providers() const
+{
+   return p->providers_;
+}
+
 void ProviderManager::add_provider(
    std::shared_ptr<provider::NexradDataProvider> provider)
 {
