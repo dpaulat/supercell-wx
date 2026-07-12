@@ -155,6 +155,7 @@ AwsLevel2ChunksDataProvider::AwsLevel2ChunksDataProvider(
    const std::string& radarSite,
    const std::string& bucketName,
    const std::string& region) :
+    NexradDataProvider(radarSite),
     p(std::make_unique<Impl>(this, radarSite, bucketName, region))
 {
 }
@@ -722,7 +723,8 @@ std::pair<size_t, size_t> AwsLevel2ChunksDataProvider::Refresh()
                   for (const auto& level2DataProviderPtr :
                        p->level2DataProviders_)
                   {
-                     const auto level2DataProvider = level2DataProviderPtr.lock();
+                     const auto level2DataProvider =
+                        level2DataProviderPtr.lock();
                      if (level2DataProvider != nullptr)
                      {
                         level2DataProvider->ListObjects(p->lastScan_.time_);
