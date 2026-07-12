@@ -52,6 +52,7 @@ static const std::unordered_map<std::string, std::string> timeZoneMap_ {
    {"FWLX", "America/Chicago"},
    {"GAWX", "America/New_York"},
    {"K08D", "America/Chicago"},
+   {"KCRI", "America/Chicago"},
    {"KOUN", "America/Chicago"},
    {"KULM", "America/Chicago"},
    {"KXWA", "America/Chicago"},
