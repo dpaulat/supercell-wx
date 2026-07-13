@@ -737,6 +737,9 @@ void RadarProductManagerImpl::LoadProviderData(
                if (provider)
                {
                   nexradFile = provider->LoadObjectByTime(time);
+               }
+               if (nexradFile != nullptr)
+               {
                   break;
                }
             }
