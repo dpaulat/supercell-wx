@@ -1843,11 +1843,13 @@ RadarProductManager::Instance(const std::string& radarSite)
    std::shared_ptr<RadarProductManager> instance        = nullptr;
    bool                                 instanceCreated = false;
 
+   const std::string canonicalRadarId = common::GetCanonicalRadarId(radarSite);
+
    {
       std::unique_lock lock {instanceMutex_};
 
       // Look up instance weak pointer
-      auto it = instanceMap_.find(radarSite);
+      auto it = instanceMap_.find(canonicalRadarId);
       if (it != instanceMap_.end())
       {
          // Attempt to convert the weak pointer to a shared pointer. It may have
@@ -1858,8 +1860,8 @@ RadarProductManager::Instance(const std::string& radarSite)
       // If no active instance was found, create a new one
       if (instance == nullptr)
       {
-         instance = std::make_shared<RadarProductManager>(radarSite);
-         instanceMap_.insert_or_assign(radarSite, instance);
+         instance = std::make_shared<RadarProductManager>(canonicalRadarId);
+         instanceMap_.insert_or_assign(canonicalRadarId, instance);
          instanceCreated = true;
       }
    }
@@ -1867,7 +1869,7 @@ RadarProductManager::Instance(const std::string& radarSite)
    if (instanceCreated)
    {
       Q_EMIT RadarProductManagerNotifier::Instance().RadarProductManagerCreated(
-         radarSite);
+         canonicalRadarId);
    }
 
    return instance;
