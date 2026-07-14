@@ -4,6 +4,7 @@
 #include <scwx/util/time.hpp>
 
 #include <limits>
+#include <list>
 #include <map>
 #include <shared_mutex>
 
@@ -26,6 +27,11 @@ static constexpr std::chrono::seconds kFastRetryIntervalChunks_ {3};
 static constexpr std::chrono::seconds kSlowRetryInterval_ {120};
 static constexpr std::chrono::seconds kSlowRetryIntervalChunks_ {20};
 
+// Match AwsNexradDataProvider: keep today/yesterday plus several archived dates
+// before pruning least-recently used days once the ownership map is large.
+static constexpr std::size_t kMinDatesBeforePruning_ = 6u;
+static constexpr std::size_t kMaxVolumeTimeOwners_   = 2500u;
+
 } // namespace
 
 class ProviderManager::Impl
@@ -43,6 +49,10 @@ public:
    }
 
    [[nodiscard]] std::size_t ProviderIndex(const std::string& radarId) const;
+
+   // Assumes volumeTimeOwnersMutex_ is held exclusively.
+   void UpdateVolumeTimeOwnerDates(std::chrono::system_clock::time_point date);
+   void PruneVolumeTimeOwners();
 
    boost::asio::thread_pool providerThreadPool_ {2u};
 
@@ -66,6 +76,9 @@ public:
    mutable std::shared_mutex volumeTimeOwnersMutex_ {};
    std::map<std::chrono::system_clock::time_point, std::string>
       volumeTimeOwners_ {};
+   // Least-recently used dates at the front (same convention as provider
+   // caches).
+   std::list<std::chrono::system_clock::time_point> volumeTimeOwnerDates_ {};
 };
 
 std::size_t
@@ -80,6 +93,44 @@ ProviderManager::Impl::ProviderIndex(const std::string& radarId) const
    }
 
    return std::numeric_limits<std::size_t>::max();
+}
+
+void ProviderManager::Impl::UpdateVolumeTimeOwnerDates(
+   std::chrono::system_clock::time_point date)
+{
+   const auto day = std::chrono::floor<std::chrono::days>(date);
+
+   // Remove any existing occurrences of day, and add to the back of the list
+   volumeTimeOwnerDates_.remove(day);
+   volumeTimeOwnerDates_.emplace_back(day);
+}
+
+void ProviderManager::Impl::PruneVolumeTimeOwners()
+{
+   using namespace std::chrono;
+
+   const auto today     = floor<days>(util::time::now());
+   const auto yesterday = today - days {1};
+
+   for (auto it = volumeTimeOwnerDates_.cbegin();
+        it != volumeTimeOwnerDates_.cend() &&
+        volumeTimeOwners_.size() > kMaxVolumeTimeOwners_ &&
+        volumeTimeOwnerDates_.size() >= kMinDatesBeforePruning_;)
+   {
+      if (*it < yesterday)
+      {
+         // Erase ownership for the least-recently used archived day
+         const auto eraseBegin = volumeTimeOwners_.lower_bound(*it);
+         const auto eraseEnd   = volumeTimeOwners_.lower_bound(*it + days {1});
+         volumeTimeOwners_.erase(eraseBegin, eraseEnd);
+
+         it = volumeTimeOwnerDates_.erase(it);
+      }
+      else
+      {
+         ++it;
+      }
+   }
 }
 
 ProviderManager::ProviderManager(RadarProductManager*      self,
@@ -378,6 +429,23 @@ void ProviderManager::NoteVolumeTimes(
          it->second = radarId;
       }
    }
+
+   // Times from GetTimePointsByDate are chronologically ordered for one day;
+   // touch each distinct day once for LRU tracking.
+   std::chrono::system_clock::time_point lastDay {};
+   bool                                  haveLastDay = false;
+   for (const auto& time : times)
+   {
+      const auto day = std::chrono::floor<std::chrono::days>(time);
+      if (!haveLastDay || day != lastDay)
+      {
+         p->UpdateVolumeTimeOwnerDates(day);
+         lastDay     = day;
+         haveLastDay = true;
+      }
+   }
+
+   p->PruneVolumeTimeOwners();
 }
 
 std::shared_ptr<wsr88d::NexradFile>
