@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace scwx::common
@@ -26,6 +27,16 @@ std::string GetCanonicalRadarId(const std::string& radarId);
  * @return The site ID.
  */
 std::string GetSiteId(const std::string& radarId);
+
+/**
+ * @brief Get the site ID map.
+ *
+ * The site ID map is a static map of site IDs to canonical radar IDs based on
+ * the radar ID transition rules.
+ *
+ * @return The site ID map.
+ */
+std::unordered_map<std::string, std::string> GetSiteIdMap();
 
 /**
  * @brief Get ordered radar ID candidates from the radar ID and date.

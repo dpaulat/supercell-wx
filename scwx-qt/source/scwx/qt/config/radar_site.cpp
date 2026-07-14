@@ -37,9 +37,6 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static const std::string defaultRadarSiteFile_ =
    ":/res/config/radar_sites.json";
 
-static const std::unordered_map<std::string, std::string> staticSiteIdMap_ {
-   {"PBI", "TDJT"}};
-
 static std::unordered_map<std::string, std::shared_ptr<RadarSite>>
                                                     radarSiteMap_;
 static std::vector<std::shared_ptr<RadarSite>>      radarSiteList_;
@@ -345,7 +342,7 @@ std::size_t RadarSite::ReadConfig(const std::string& path)
    // that call ReadConfig without Initialize still resolve legacy designators.
    {
       const std::unique_lock lock(siteMutex_);
-      for (const auto& record : staticSiteIdMap_)
+      for (const auto& record : common::GetSiteIdMap())
       {
          siteIdMap_.emplace(record.first, record.second);
       }

@@ -55,11 +55,12 @@ public:
    std::mutex                      refreshTimerMutex_ {};
    std::size_t                     refreshCount_ {0};
    bool                            providersShutdown_ {false};
-   bool                            firstRefreshComplete_ {false};
+   std::atomic<bool>               firstRefreshComplete_ {false};
 
    std::vector<std::shared_ptr<provider::NexradDataProvider>> providers_ {};
    // Sticky site chosen by first-hit refresh (TDJT once it publishes; else TPBI
    // during the cutover uncertainty window).
+   mutable std::shared_mutex                     lastProviderMutex_ {};
    std::shared_ptr<provider::NexradDataProvider> lastProvider_ {};
 
    mutable std::shared_mutex volumeTimeOwnersMutex_ {};
@@ -235,7 +236,10 @@ void ProviderManager::RefreshDataSync()
             interval = fastRetryInterval;
          }
 
-         p->lastProvider_ = provider;
+         {
+            const std::unique_lock lock(p->lastProviderMutex_);
+            p->lastProvider_ = provider;
+         }
       }
 
       newObjects += providerNewObjects;
@@ -244,6 +248,7 @@ void ProviderManager::RefreshDataSync()
       // Stop after the active provider has data, or remains the sticky
       // provider. On the first pass, continue so an empty TDJT can fall back
       // to TPBI before cutover.
+      const std::shared_lock lock(p->lastProviderMutex_);
       if (p->firstRefreshComplete_ &&
           (providerTotalObjects > 0 || p->lastProvider_ == provider))
       {
@@ -256,7 +261,7 @@ void ProviderManager::RefreshDataSync()
       p->firstRefreshComplete_ = true;
       Q_EMIT NewDataAvailable(p->group_, p->product_, latestTime);
    }
-   else if (p->refreshEnabled_)
+   else if (totalObjects == 0 && p->refreshEnabled_)
    {
       logger_->info("[{}] No data found", name());
 
@@ -327,6 +332,8 @@ ProviderManager::provider(const std::string& radarId) const
 std::shared_ptr<provider::NexradDataProvider>
 ProviderManager::active_provider() const
 {
+   const std::shared_lock lock(p->lastProviderMutex_);
+
    if (p->lastProvider_ != nullptr)
    {
       return p->lastProvider_;

@@ -1,5 +1,4 @@
 #include <scwx/common/sites.hpp>
-#include <scwx/common/products.hpp>
 
 #include <algorithm>
 
@@ -85,6 +84,18 @@ std::string GetSiteId(const std::string& radarId)
    }
 
    return siteId;
+}
+
+std::unordered_map<std::string, std::string> GetSiteIdMap()
+{
+   std::unordered_map<std::string, std::string> siteIdMap;
+
+   for (const auto& rule : kRadarIdTransitionRules_)
+   {
+      siteIdMap.emplace(GetSiteId(rule.originalRadarId), rule.canonicalRadarId);
+   }
+
+   return siteIdMap;
 }
 
 std::vector<std::string>

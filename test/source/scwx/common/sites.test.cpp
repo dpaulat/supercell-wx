@@ -45,6 +45,16 @@ INSTANTIATE_TEST_SUITE_P(Sites,
                          testing::Values(std::make_pair("KLSX", "KLSX"),
                                          std::make_pair("TPBI", "TDJT")));
 
+TEST(Sites, GetRadarIdCandidatesSingleCandidateTest)
+{
+   const std::vector<std::string> candidates = GetRadarIdCandidates("KLSX");
+   EXPECT_EQ(candidates.size(), 1);
+   if (candidates.size() >= 1)
+   {
+      EXPECT_EQ(candidates[0], "KLSX");
+   }
+}
+
 TEST_P(GetRadarIdCandidatesTest, RadarIdCandidatesTest)
 {
    const auto& [originalRadarId,
@@ -110,5 +120,20 @@ INSTANTIATE_TEST_SUITE_P(Sites,
                                std::chrono::sys_days {2026y / August / 3d}),
                             std::chrono::system_clock::time_point(
                                std::chrono::sys_days {2026y / August / 17d}))));
+
+TEST(Sites, GetSiteIdMapTest)
+{
+   const std::unordered_map<std::string, std::string> siteIdMap =
+      GetSiteIdMap();
+   EXPECT_GE(siteIdMap.size(), 1);
+
+   const auto it = siteIdMap.find("PBI");
+   EXPECT_NE(it, siteIdMap.end());
+
+   if (it != siteIdMap.end())
+   {
+      EXPECT_EQ(it->second, "TDJT");
+   }
+}
 
 } // namespace scwx::common

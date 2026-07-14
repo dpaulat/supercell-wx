@@ -19,6 +19,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <shared_mutex>
 #include <unordered_map>
 #include <unordered_set>
@@ -984,6 +985,7 @@ bool RadarProductManagerImpl::AreProductTimesPopulated(
    for (const auto& provider : providers)
    {
       bool providerTimesPopulated = true;
+      bool providerValidForDates  = false;
 
       if (provider->IsDateArchiveAvailable())
       {
@@ -997,18 +999,42 @@ bool RadarProductManagerImpl::AreProductTimesPopulated(
                continue;
             }
 
+            const auto candidates =
+               common::GetRadarIdCandidates(provider->radar_site(), date);
+
+            // Skip dates outside this provider's candidate window
+            if (std::ranges::find(candidates, provider->radar_site()) ==
+                candidates.cend())
+            {
+               continue;
+            }
+
+            providerValidForDates = true;
+
             if (!provider->IsDateCached(date))
             {
                providerTimesPopulated = false;
             }
          }
       }
-      else if (!provider->IsDateCached(today))
+      else
       {
-         providerTimesPopulated = false;
+         const auto candidates =
+            common::GetRadarIdCandidates(provider->radar_site(), today);
+
+         if (std::ranges::find(candidates, provider->radar_site()) !=
+             candidates.cend())
+         {
+            providerValidForDates = true;
+         }
+
+         if (providerValidForDates && !provider->IsDateCached(today))
+         {
+            providerTimesPopulated = false;
+         }
       }
 
-      if (providerTimesPopulated)
+      if (providerValidForDates && providerTimesPopulated)
       {
          productTimesPopulated = true;
          break;
@@ -1579,7 +1605,6 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
       common::GetRadarIdCandidates(p->radarSite_->id(), time);
    std::shared_ptr<wsr88d::Ar2vFile> chunkFile = nullptr;
 
-   // TODO: What happens during overlap?
    std::shared_ptr<provider::NexradDataProvider> chunkProvider = nullptr;
    for (const auto& radarId : radarIdCandidates)
    {
@@ -1722,8 +1747,8 @@ std::vector<std::string> RadarProductManager::GetLevel3Products()
       p->GetLevel3ProviderManager(kDefaultLevel3Product_);
 
    // Get the unique available products from all providers
-   std::vector<std::string>        availableProducts;
-   std::unordered_set<std::string> availableProductSet;
+   std::vector<std::string> availableProducts;
+   std::set<std::string>    availableProductSet;
 
    for (const auto& provider : level3ProviderManager->providers())
    {
