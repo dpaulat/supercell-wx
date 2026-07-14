@@ -337,11 +337,6 @@ void HttpNexradDataProvider::Shutdown() noexcept
    p->running_ = false;
 }
 
-std::string HttpNexradDataProvider::DownloadToString(const std::string& url)
-{
-   return network::cpr::DownloadToString(url, p->running_).first;
-}
-
 std::stringstream
 HttpNexradDataProvider::DownloadToStream(const std::string& url)
 {

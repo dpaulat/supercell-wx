@@ -1,10 +1,13 @@
 #include <scwx/provider/ondas_level2_data_provider.hpp>
 #include <scwx/config/ondas_config_loader.hpp>
+#include <scwx/network/cpr.hpp>
 #include <scwx/types/ondas_types.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <chrono>
 #include <mutex>
+
+#include <cpr/status_codes.h>
 
 namespace scwx::provider
 {
@@ -70,10 +73,17 @@ OndasLevel2DataProvider::ListObjects(std::chrono::system_clock::time_point date)
    logger_->debug("ListObjects: {}", listingUrl);
 
    // Download dir.list
-   const std::string content = DownloadToString(listingUrl);
+   const auto         response   = network::cpr::DownloadToString(listingUrl);
+   const std::string& content    = response.first;
+   const long         statusCode = response.second;
+
+   // Treat 2xx and 4xx status codes as success, and 5xx (server errors) as
+   // error.
+   const bool success = statusCode < cpr::status::SERVER_ERROR_CODE_OFFSET;
+
    if (content.empty())
    {
-      return {false, 0, 0};
+      return {success, 0, 0};
    }
 
    // Parse ONDAS format

@@ -44,7 +44,6 @@ public:
 
 protected:
    // HTTP operations for derived classes
-   std::string       DownloadToString(const std::string& url);
    std::stringstream DownloadToStream(const std::string& url);
 
    // Derived classes must implement these
