@@ -290,7 +290,7 @@ void NwsLevel3SiteData::ListProducts()
    std::deque<std::pair<std::string, cpr::AsyncResponse>> asyncResponses {};
    std::atomic<bool>                                      error {false};
 
-   static constexpr std::size_t kMaxConcurrentRequests = 8u;
+   static constexpr std::size_t kMaxConcurrentRequests = 4u;
 
    for (const auto& product : kProductDirectoryMap_)
    {
