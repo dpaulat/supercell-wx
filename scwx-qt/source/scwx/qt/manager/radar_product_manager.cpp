@@ -170,11 +170,11 @@ public:
       std::mutex&                                        mutex,
       std::chrono::system_clock::time_point              time);
    void
-   LoadProviderData(std::chrono::system_clock::time_point time,
-                    std::shared_ptr<ProviderManager>      providerManager,
-                    RadarProductRecordMap&                recordMap,
-                    std::shared_mutex&                    recordMutex,
-                    std::mutex&                           loadDataMutex,
+   LoadProviderData(std::chrono::system_clock::time_point   time,
+                    const std::shared_ptr<ProviderManager>& providerManager,
+                    RadarProductRecordMap&                  recordMap,
+                    std::shared_mutex&                      recordMutex,
+                    std::mutex&                             loadDataMutex,
                     const std::shared_ptr<request::NexradFileRequest>& request);
 
    bool AreLevel2ProductTimesPopulated(
@@ -589,7 +589,10 @@ RadarProductManager::GetActiveVolumeTimes(
    std::chrono::system_clock::time_point time)
 {
    std::unordered_set<std::shared_ptr<provider::NexradDataProvider>>
-                                                   providers {};
+      providers {};
+   std::unordered_map<std::shared_ptr<provider::NexradDataProvider>,
+                      std::unordered_set<std::shared_ptr<ProviderManager>>>
+                                                   providerManagersMap {};
    std::set<std::chrono::system_clock::time_point> volumeTimes {};
    std::mutex                                      volumeTimesMutex {};
 
@@ -612,6 +615,7 @@ RadarProductManager::GetActiveVolumeTimes(
          for (const auto& provider : entryProviders)
          {
             providers.insert(provider);
+            providerManagersMap[provider].insert(refreshEntry);
          }
       }
    }
@@ -640,7 +644,17 @@ RadarProductManager::GetActiveVolumeTimes(
             }
 
             // Query the provider for volume time points
-            auto timePoints = provider->GetTimePointsByDate(date, true);
+            const auto timePoints = provider->GetTimePointsByDate(date, true);
+            if (timePoints.empty())
+            {
+               return;
+            }
+
+            for (const auto& providerManager : providerManagersMap.at(provider))
+            {
+               providerManager->NoteVolumeTimes(provider->radar_site(),
+                                                timePoints);
+            }
 
             // TODO: Note, this will miss volume times present in Level 2
             // products with a second scan
@@ -692,7 +706,7 @@ RadarProductManager::GetActiveVolumeTimes(
 
 void RadarProductManagerImpl::LoadProviderData(
    std::chrono::system_clock::time_point              time,
-   std::shared_ptr<ProviderManager>                   providerManager,
+   const std::shared_ptr<ProviderManager>&            providerManager,
    RadarProductRecordMap&                             recordMap,
    std::shared_mutex&                                 recordMutex,
    std::mutex&                                        loadDataMutex,
@@ -703,7 +717,7 @@ void RadarProductManagerImpl::LoadProviderData(
                   scwx::util::TimeString(time));
 
    LoadNexradFileAsync(
-      [providerManager, time, &recordMap, &recordMutex, this]()
+      [providerManager, time, &recordMap, &recordMutex]()
          -> std::shared_ptr<wsr88d::NexradFile>
       {
          std::shared_ptr<types::RadarProductRecord> existingRecord = nullptr;
@@ -727,22 +741,7 @@ void RadarProductManagerImpl::LoadProviderData(
 
          if (existingRecord == nullptr)
          {
-            const auto radarIdCandidates =
-               common::GetRadarIdCandidates(radarId_, time);
-
-            for (const auto& radarIdCandidate : radarIdCandidates)
-            {
-               const auto provider =
-                  providerManager->provider(radarIdCandidate);
-               if (provider)
-               {
-                  nexradFile = provider->LoadObjectByTime(time);
-               }
-               if (nexradFile != nullptr)
-               {
-                  break;
-               }
-            }
+            nexradFile = providerManager->LoadObjectByTime(time);
 
             if (nexradFile == nullptr)
             {
@@ -1108,7 +1107,13 @@ void RadarProductManagerImpl::PopulateProductTimes(
       }
 
       // Query the provider for volume time points
-      auto timePoints = provider->GetTimePointsByDate(date, update);
+      const auto timePoints = provider->GetTimePointsByDate(date, update);
+      if (timePoints.empty())
+      {
+         return;
+      }
+
+      providerManager->NoteVolumeTimes(provider->radar_site(), timePoints);
 
       // Lock the merged volume time list
       const std::unique_lock volumeTimesLock {volumeTimesMutex};
@@ -1574,6 +1579,7 @@ RadarProductManager::GetLevel2Data(wsr88d::rda::DataBlockType dataBlockType,
       common::GetRadarIdCandidates(p->radarSite_->id(), time);
    std::shared_ptr<wsr88d::Ar2vFile> chunkFile = nullptr;
 
+   // TODO: What happens during overlap?
    std::shared_ptr<provider::NexradDataProvider> chunkProvider = nullptr;
    for (const auto& radarId : radarIdCandidates)
    {

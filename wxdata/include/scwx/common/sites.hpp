@@ -30,9 +30,18 @@ std::string GetSiteId(const std::string& radarId);
 /**
  * @brief Get ordered radar ID candidates from the radar ID and date.
  *
- * @param radarId The radar ID.
- * @param date The date.
- * @return The radar ID candidates.
+ * For sites with a rename transition (e.g. TPBI → TDJT), returns an ordered
+ * list used for first-hit-wins lookups. The transition window is cutover
+ * uncertainty (when NWS may flip the ID), not a period of dual publication:
+ * prefer the canonical ID once it has data and disregard the legacy ID.
+ *
+ * Ordering is canonical first when the date is on/after transition start,
+ * then the original ID while the date is before transition end. Callers
+ * should try candidates in order and stop at the first with usable data.
+ *
+ * @param radarId The radar ID (original or canonical).
+ * @param date The request date (UTC). Unspecified selects both candidates.
+ * @return The radar ID candidates in try order.
  */
 std::vector<std::string>
 GetRadarIdCandidates(const std::string&                          radarId,

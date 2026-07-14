@@ -308,12 +308,6 @@ void RadarSite::Initialize()
 
    if (!initialized_)
    {
-      // Add static radar site mappings
-      for (const auto& record : staticSiteIdMap_)
-      {
-         siteIdMap_.emplace(record.first, record.second);
-      }
-
       ReadConfig(defaultRadarSiteFile_);
 
       const std::string level2Url =
@@ -346,6 +340,16 @@ void RadarSite::Initialize()
 std::size_t RadarSite::ReadConfig(const std::string& path)
 {
    logger_->info("Loading radar sites from \"{}\"...", path);
+
+   // Apply static site-ID aliases (e.g. PBI -> TDJT) before parsing so tests
+   // that call ReadConfig without Initialize still resolve legacy designators.
+   {
+      const std::unique_lock lock(siteMutex_);
+      for (const auto& record : staticSiteIdMap_)
+      {
+         siteIdMap_.emplace(record.first, record.second);
+      }
+   }
 
    std::size_t sitesAdded = 0;
 

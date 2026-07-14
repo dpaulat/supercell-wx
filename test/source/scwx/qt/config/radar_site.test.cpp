@@ -45,6 +45,22 @@ TEST_F(RadarSiteTest, DefaultConfig)
    EXPECT_DOUBLE_EQ(radarSite->longitude(), -90.682877);
 }
 
+TEST_F(RadarSiteTest, TpbiTdjtAlias)
+{
+   ASSERT_GT(numSites_, 0);
+
+   const std::shared_ptr<RadarSite> tdjt = RadarSite::Get("TDJT");
+   const std::shared_ptr<RadarSite> tpbi = RadarSite::Get("TPBI");
+
+   ASSERT_NE(tdjt, nullptr);
+   ASSERT_NE(tpbi, nullptr);
+   EXPECT_EQ(tdjt.get(), tpbi.get());
+   EXPECT_EQ(tdjt->id(), "TDJT");
+   EXPECT_EQ(tdjt->place(), "West Palm Beach");
+   EXPECT_EQ(GetRadarIdFromSiteId("PBI"), "TDJT");
+   EXPECT_EQ(GetRadarIdFromSiteId("DJT"), "TDJT");
+}
+
 TEST_F(RadarSiteTest, FindNearest)
 {
    ASSERT_GT(numSites_, 0);
