@@ -69,6 +69,7 @@ public:
 
 HttpNexradDataProvider::HttpNexradDataProvider(const std::string& radarSite,
                                                const std::string& baseUri) :
+    NexradDataProvider(radarSite),
     p(std::make_unique<Impl>(this, baseUri, radarSite))
 {
 }

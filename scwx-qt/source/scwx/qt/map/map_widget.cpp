@@ -32,6 +32,7 @@
 #include <scwx/qt/util/tooltip.hpp>
 #include <scwx/qt/view/overlay_product_view.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
+#include <scwx/common/sites.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
@@ -3063,21 +3064,25 @@ void MapWidgetImpl::SetRadarSite(const std::string& radarSite,
                                  bool               checkProductAvailability)
 {
    // Set the radar site in the context
-   context_->set_radar_site(config::RadarSite::Get(radarSite));
+   const std::string canonicalRadarSite =
+      common::GetCanonicalRadarId(radarSite);
+   const auto newRadarSite = config::RadarSite::Get(canonicalRadarSite);
+   context_->set_radar_site(newRadarSite);
 
    const std::shared_ptr<config::RadarSite> currentRadarSite =
       radarProductManager_ != nullptr ? radarProductManager_->radar_site() :
                                         nullptr;
 
    // Check if radar site has changed
-   if ((currentRadarSite == nullptr && !radarSite.empty()) ||
-       (currentRadarSite != nullptr && radarSite != currentRadarSite->id()))
+   if ((currentRadarSite == nullptr && !canonicalRadarSite.empty()) ||
+       (currentRadarSite != nullptr &&
+        canonicalRadarSite != currentRadarSite->id()))
    {
       // Disconnect signals from old RadarProductManager
       RadarProductManagerDisconnect();
 
       // Update views
-      if (radarSite.empty())
+      if (canonicalRadarSite.empty())
       {
          radarProductManager_.reset();
          context_->overlay_product_view()->set_radar_product_manager(nullptr);
@@ -3088,7 +3093,8 @@ void MapWidgetImpl::SetRadarSite(const std::string& radarSite,
       }
 
       // Set new RadarProductManager
-      radarProductManager_ = manager::RadarProductManager::Instance(radarSite);
+      radarProductManager_ =
+         manager::RadarProductManager::Instance(canonicalRadarSite);
       context_->overlay_product_view()->set_radar_product_manager(
          radarProductManager_);
 

@@ -52,6 +52,7 @@ static const std::unordered_map<std::string, std::string> timeZoneMap_ {
    {"FWLX", "America/Chicago"},
    {"GAWX", "America/New_York"},
    {"K08D", "America/Chicago"},
+   {"KCRI", "America/Chicago"},
    {"KOUN", "America/Chicago"},
    {"KULM", "America/Chicago"},
    {"KXWA", "America/Chicago"},
@@ -214,12 +215,14 @@ void RadarSite::set_status(types::RadarSiteStatus status)
 
 std::shared_ptr<RadarSite> RadarSite::Get(const std::string& id)
 {
-   std::shared_lock           lock(siteMutex_);
+   const std::string canonicalId = common::GetCanonicalRadarId(id);
+
+   const std::shared_lock     lock(siteMutex_);
    std::shared_ptr<RadarSite> radarSite = nullptr;
 
-   if (radarSiteMap_.contains(id))
+   if (radarSiteMap_.contains(canonicalId))
    {
-      radarSite = radarSiteMap_.at(id);
+      radarSite = radarSiteMap_.at(canonicalId);
    }
 
    return radarSite;
@@ -334,6 +337,16 @@ void RadarSite::Initialize()
 std::size_t RadarSite::ReadConfig(const std::string& path)
 {
    logger_->info("Loading radar sites from \"{}\"...", path);
+
+   // Apply static site-ID aliases (e.g. PBI -> TDJT) before parsing so tests
+   // that call ReadConfig without Initialize still resolve legacy designators.
+   {
+      const std::unique_lock lock(siteMutex_);
+      for (const auto& record : common::GetSiteIdMap())
+      {
+         siteIdMap_.emplace(record.first, record.second);
+      }
+   }
 
    std::size_t sitesAdded = 0;
 

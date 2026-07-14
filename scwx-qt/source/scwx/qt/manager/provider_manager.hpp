@@ -2,11 +2,13 @@
 
 #include <scwx/common/products.hpp>
 #include <scwx/provider/nexrad_data_provider.hpp>
+#include <scwx/wsr88d/nexrad_file.hpp>
 
 #include <chrono>
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <QObject>
 
@@ -39,7 +41,36 @@ public:
    void RefreshDataSync();
 
    [[nodiscard]] std::shared_ptr<provider::NexradDataProvider> provider() const;
-   void set_provider(std::shared_ptr<provider::NexradDataProvider> provider);
+   [[nodiscard]] std::shared_ptr<provider::NexradDataProvider>
+   provider(const std::string& radarId) const;
+   /**
+    * @brief Provider selected by first-hit refresh, or the first provider if
+    * refresh has not chosen one yet.
+    */
+   [[nodiscard]] std::shared_ptr<provider::NexradDataProvider>
+   active_provider() const;
+   [[nodiscard]] std::vector<std::shared_ptr<provider::NexradDataProvider>>
+        providers() const;
+   void add_provider(std::shared_ptr<provider::NexradDataProvider> provider);
+
+   /**
+    * Records which provider listed the given volume times. Used so loads go to
+    * the site that actually published each volume (e.g. TPBI vs TDJT). When
+    * multiple providers claim the same time, the earlier entry in providers()
+    * wins (canonical / post-cutover site first).
+    */
+   void NoteVolumeTimes(
+      const std::string&                                        radarId,
+      const std::vector<std::chrono::system_clock::time_point>& times);
+
+   /**
+    * Loads a volume by time from the owning provider when known, otherwise
+    * from each candidate provider in order based on time. Does not fall through
+    * across site aliases with a nearest-time match (once TDJT publishes, TPBI
+    * is disregarded for new data).
+    */
+   [[nodiscard]] std::shared_ptr<wsr88d::NexradFile>
+   LoadObjectByTime(std::chrono::system_clock::time_point time);
 
    [[nodiscard]] common::RadarProductGroup group() const;
    [[nodiscard]] const std::string&        product() const;
