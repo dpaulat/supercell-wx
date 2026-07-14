@@ -81,8 +81,12 @@ OndasLevel2DataProvider::ListObjects(std::chrono::system_clock::time_point date)
    // error.
    const bool success = statusCode < cpr::status::SERVER_ERROR_CODE_OFFSET;
 
-   if (content.empty())
+   if (!success || content.empty())
    {
+      if (success)
+      {
+         SetDataRefreshed();
+      }
       return {success, 0, 0};
    }
 

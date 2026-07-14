@@ -50,8 +50,8 @@ public:
    std::string baseUri_;
    std::string radarSite_;
 
-   bool dateArchiveAvailable_ {false};
-   bool dataRefreshed_ {false};
+   bool              dateArchiveAvailable_ {false};
+   std::atomic<bool> dataRefreshed_ {false};
 
    std::map<std::chrono::system_clock::time_point, ObjectRecord> objects_ {};
    std::map<std::chrono::system_clock::time_point, ObjectRecord> newObjects_ {};
@@ -304,18 +304,16 @@ void HttpNexradDataProvider::Impl::CheckDataPresent(
    }
    else
    {
-      if (update)
+      if (update && !dataRefreshed_)
       {
-         std::shared_lock lock(objectsMutex_);
+         // Update requested and data not refreshed, so list objects
+         self_->ListObjects(date);
 
-         // Is data present?
-         if (objects_.empty())
-         {
-            lock.unlock();
-
-            // List objects, since no data is present
-            self_->ListObjects(date);
-         }
+         // Ensure IsDateCached becomes true after a listing attempt so
+         // RadarProductManager does not tight-loop on ProductTimesPopulated.
+         // Retryable failures (e.g. 5xx) are retried by Refresh(), not by
+         // re-entering the populate path.
+         self_->SetDataRefreshed();
       }
    }
 }
@@ -386,6 +384,11 @@ void HttpNexradDataProvider::ResetCacheFinish()
    }
 
    p->cacheResetting_ = false;
+}
+
+void HttpNexradDataProvider::SetDataRefreshed()
+{
+   p->dataRefreshed_ = true;
 }
 
 } // namespace scwx::provider

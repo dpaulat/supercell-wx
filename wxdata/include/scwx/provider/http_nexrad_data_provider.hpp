@@ -60,6 +60,7 @@ protected:
                                  std::chrono::system_clock::time_point lastModified);
    void               ResetCacheStart();
    void               ResetCacheFinish();
+   void               SetDataRefreshed();
    [[nodiscard]] bool IsRunning() const;
 
 private:

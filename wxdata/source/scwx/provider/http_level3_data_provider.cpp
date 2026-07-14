@@ -131,12 +131,17 @@ HttpLevel3DataProvider::ListObjects(std::chrono::system_clock::time_point date)
    {
       // If the server behavior is not found, return success and no objects.
       // Returning false would cause repeated attempts to list objects.
+      SetDataRefreshed();
       return {true, 0, 0};
    }
 
    const auto [success, objects] = serverBehavior->ListObjects(date);
    if (!success || objects.empty())
    {
+      if (success)
+      {
+         SetDataRefreshed();
+      }
       return {success, 0, 0};
    }
 

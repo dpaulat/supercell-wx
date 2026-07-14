@@ -196,7 +196,7 @@ NwsLevel3Behavior::ListObjects(std::chrono::system_clock::time_point date)
    if (!p->productValid_)
    {
       // Skip product listing for invalid products
-      return {};
+      return {true, {}};
    }
 
    logger_->debug("ListObjects: {}", p->listingUrl_);
