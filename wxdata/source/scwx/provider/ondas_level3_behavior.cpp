@@ -110,7 +110,7 @@ void OndasLevel3Behavior::Shutdown() noexcept
    p->running_ = false;
 }
 
-std::vector<std::string>
+std::pair<bool, std::vector<std::string>>
 OndasLevel3Behavior::ListObjects(std::chrono::system_clock::time_point date)
 {
    (void) date; // Not needed since ONDAS dir.list contains all dates
@@ -118,11 +118,19 @@ OndasLevel3Behavior::ListObjects(std::chrono::system_clock::time_point date)
    logger_->debug("ListObjects: {}", p->listingUrl_);
 
    // Download dir.list
-   const std::string content =
-      network::cpr::DownloadToString(p->listingUrl_, p->running_).first;
+   const auto response =
+      network::cpr::DownloadToString(p->listingUrl_, p->running_);
+   const std::string& content    = response.first;
+   const long         statusCode = response.second;
+
+   // Treat 2xx and 4xx status codes as success, and 5xx (server errors) as
+   // error.
+   const bool success = statusCode >= cpr::status::SUCCESS_CODE_OFFSET &&
+                        statusCode < cpr::status::SERVER_ERROR_CODE_OFFSET;
+
    if (content.empty())
    {
-      return {};
+      return {success, {}};
    }
 
    // Parse ONDAS format
@@ -133,7 +141,7 @@ OndasLevel3Behavior::ListObjects(std::chrono::system_clock::time_point date)
                           std::back_inserter(keys),
                           [](const auto& record) { return record.filename_; });
 
-   return keys;
+   return {true, std::move(keys)};
 }
 
 std::string OndasLevel3Behavior::GetFileUrl(const std::string& key) const

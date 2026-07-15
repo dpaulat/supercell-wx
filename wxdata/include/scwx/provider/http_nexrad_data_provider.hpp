@@ -44,7 +44,6 @@ public:
 
 protected:
    // HTTP operations for derived classes
-   std::string       DownloadToString(const std::string& url);
    std::stringstream DownloadToStream(const std::string& url);
 
    // Derived classes must implement these
@@ -61,6 +60,7 @@ protected:
                                  std::chrono::system_clock::time_point lastModified);
    void               ResetCacheStart();
    void               ResetCacheFinish();
+   void               SetDataRefreshed();
    [[nodiscard]] bool IsRunning() const;
 
 private:

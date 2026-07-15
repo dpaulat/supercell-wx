@@ -22,7 +22,7 @@ public:
 
    virtual void Shutdown() noexcept = 0;
 
-   virtual std::vector<std::string>
+   virtual std::pair<bool, std::vector<std::string>>
    ListObjects(std::chrono::system_clock::time_point date) = 0;
 
    [[nodiscard]] virtual std::string

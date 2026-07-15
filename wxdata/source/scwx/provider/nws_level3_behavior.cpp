@@ -188,7 +188,7 @@ void NwsLevel3Behavior::Shutdown() noexcept
    p->running_ = false;
 }
 
-std::vector<std::string>
+std::pair<bool, std::vector<std::string>>
 NwsLevel3Behavior::ListObjects(std::chrono::system_clock::time_point date)
 {
    (void) date; // Not needed since NWS directory structure contains all dates
@@ -196,17 +196,25 @@ NwsLevel3Behavior::ListObjects(std::chrono::system_clock::time_point date)
    if (!p->productValid_)
    {
       // Skip product listing for invalid products
-      return {};
+      return {true, {}};
    }
 
    logger_->debug("ListObjects: {}", p->listingUrl_);
 
    // Download directory listing
-   const std::string content =
-      network::cpr::DownloadToString(p->listingUrl_, p->running_).first;
+   const auto response =
+      network::cpr::DownloadToString(p->listingUrl_, p->running_);
+   const std::string& content    = response.first;
+   const long         statusCode = response.second;
+
+   // Treat 2xx and 4xx status codes as success, and 5xx (server errors) as
+   // error.
+   const bool success = statusCode >= cpr::status::SUCCESS_CODE_OFFSET &&
+                        statusCode < cpr::status::SERVER_ERROR_CODE_OFFSET;
+
    if (content.empty())
    {
-      return {};
+      return {success, {}};
    }
 
    std::unordered_map<std::string, std::chrono::system_clock::time_point>
@@ -234,7 +242,8 @@ NwsLevel3Behavior::ListObjects(std::chrono::system_clock::time_point date)
    const std::unique_lock lock {p->objectsMutex_};
    p->objectList_.swap(newObjectList);
 
-   return p->objectList_ | ranges::views::keys | ranges::to<std::vector>();
+   return {true,
+           p->objectList_ | ranges::views::keys | ranges::to<std::vector>()};
 }
 
 std::string NwsLevel3Behavior::GetFileUrl(const std::string& key) const
@@ -282,7 +291,7 @@ void NwsLevel3SiteData::ListProducts()
    std::deque<std::pair<std::string, cpr::AsyncResponse>> asyncResponses {};
    std::atomic<bool>                                      error {false};
 
-   static constexpr std::size_t kMaxConcurrentRequests = 8u;
+   static constexpr std::size_t kMaxConcurrentRequests = 4u;
 
    for (const auto& product : kProductDirectoryMap_)
    {
