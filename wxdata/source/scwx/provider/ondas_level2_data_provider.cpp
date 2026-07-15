@@ -79,7 +79,8 @@ OndasLevel2DataProvider::ListObjects(std::chrono::system_clock::time_point date)
 
    // Treat 2xx and 4xx status codes as success, and 5xx (server errors) as
    // error.
-   const bool success = statusCode < cpr::status::SERVER_ERROR_CODE_OFFSET;
+   const bool success = statusCode >= cpr::status::SUCCESS_CODE_OFFSET &&
+                        statusCode < cpr::status::SERVER_ERROR_CODE_OFFSET;
 
    if (!success || content.empty())
    {
