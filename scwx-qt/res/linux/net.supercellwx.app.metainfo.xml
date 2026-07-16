@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2021-2026 Dan Paulat -->
+<component type="desktop-application">
+  <id>net.supercellwx.app</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Supercell Wx</name>
+  <summary>Weather radar and data viewer</summary>
+  <developer id="net.supercellwx">
+    <name>Dan Paulat</name>
+  </developer>
+  <description>
+    <p>
+      Supercell Wx is a free, open source application to visualize live and
+      archive NEXRAD Level 2 and Level 3 data, and severe weather alerts. It
+      displays continuously updating weather data on top of a responsive map,
+      providing the capability to monitor weather events using reflectivity,
+      velocity, and other products.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Live and archive NEXRAD Level 2 and Level 3 radar products</li>
+      <li>Severe weather alert display and monitoring</li>
+      <li>Responsive map with multiple product views and layouts</li>
+      <li>Timeline controls for looping historical data</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">net.supercellwx.app.desktop</launchable>
+  <url type="homepage">https://supercell-wx.readthedocs.io/</url>
+  <url type="bugtracker">https://github.com/dpaulat/supercell-wx/issues</url>
+  <url type="help">https://supercell-wx.readthedocs.io/</url>
+  <url type="donation">https://github.com/sponsors/dpaulat</url>
+  <url type="vcs-browser">https://github.com/dpaulat/supercell-wx</url>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Supercell Wx configured with radar data on the map</caption>
+      <image>https://supercell-wx.readthedocs.io/en/stable/_images/initial-setup-03-initial-configured-small.png</image>
+    </screenshot>
+  </screenshots>
+  <provides>
+    <binary>supercell-wx</binary>
+  </provides>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.6.0" date="2026-06-05"/>
+  </releases>
+</component>
