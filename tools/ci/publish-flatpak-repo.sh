@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Build a dual-arch Flatpak OSTree repo site tree for GitHub Pages.
 #
-# Imports x86_64 + aarch64 bundles onto the given channel (nightly|stable),
-# mirrors any existing Pages repo first, then prunes and writes .flatpakrepo
-# metadata.
+# Imports x86_64 + aarch64 bundles onto the given channel (nightly|stable):
+# each bundle is unpacked in a scratch OSTree repo, then published into the
+# live repo with build-commit-from so only the channel ref is updated. Mirrors
+# any existing Pages repo first, then prunes and writes .flatpakrepo metadata.
 set -euo pipefail
 
 APP_ID="net.supercellwx.app"
@@ -88,117 +89,101 @@ mkdir -p "${SITE_DIR}"
 
 restore_previous_repo() {
   echo "==> Checking for existing OSTree repo at ${REPO_URL}"
-  if curl -fsI "${PAGES_URL}/repo/config" >/dev/null 2>&1; then
-    echo "==> Mirroring existing repo from Pages (GPG-verified with ${GPG_KEY_ID})"
-    ostree init --repo="${REPO_DIR}" --mode=archive-z2
-    # Verify commits with the same key we use for signing. Export to a keyring
-    # file because ostree remote --gpg-import expects a path.
-    local gpg_import
-    gpg_import="$(mktemp)"
-    gpg --batch --export "${GPG_KEY_ID}" > "${gpg_import}"
-    ostree remote add \
+  local http_code curl_status=0
+  http_code="$(curl -sS -o /dev/null -w "%{http_code}" -I "${PAGES_URL}/repo/config")" \
+    || curl_status=$?
+
+  if (( curl_status != 0 )); then
+    echo "ERROR: Failed to reach ${PAGES_URL}/repo/config (curl exit ${curl_status})." >&2
+    exit 1
+  fi
+
+  case "${http_code}" in
+    404)
+      echo "==> No existing Pages repo found (HTTP 404); initializing a fresh repo"
+      ostree init --repo="${REPO_DIR}" --mode=archive-z2
+      return 0
+      ;;
+    200|301|302|303|307|308)
+      ;;
+    *)
+      echo "ERROR: Unexpected HTTP ${http_code} checking ${PAGES_URL}/repo/config" >&2
+      exit 1
+      ;;
+  esac
+
+  echo "==> Mirroring existing repo from Pages (GPG-verified with ${GPG_KEY_ID})"
+  ostree init --repo="${REPO_DIR}" --mode=archive-z2
+  # Verify commits with the same key we use for signing. Export to a keyring
+  # file because ostree remote --gpg-import expects a path.
+  local gpg_import
+  gpg_import="$(mktemp)"
+  gpg --batch --export "${GPG_KEY_ID}" > "${gpg_import}"
+  if ! ostree remote add \
       --repo="${REPO_DIR}" \
       --gpg-import="${gpg_import}" \
-      pages "${REPO_URL}"
+      pages "${REPO_URL}"; then
     rm -f "${gpg_import}"
-    if ostree pull --repo="${REPO_DIR}" --mirror pages; then
-      ostree remote delete --repo="${REPO_DIR}" pages || true
-      return 0
-    fi
-    echo "Warning: mirror pull failed; initializing a fresh repo" >&2
-    rm -rf "${REPO_DIR}"
-  else
-    echo "==> No existing Pages repo found"
+    echo "ERROR: Failed to add Pages OSTree remote ${REPO_URL}" >&2
+    exit 1
   fi
-  ostree init --repo="${REPO_DIR}" --mode=archive-z2
+  rm -f "${gpg_import}"
+
+  if ! ostree pull --repo="${REPO_DIR}" --mirror pages; then
+    echo "ERROR: Failed to mirror existing Flatpak repo from ${REPO_URL}" >&2
+    exit 1
+  fi
+  ostree remote delete --repo="${REPO_DIR}" pages || true
 }
 
 restore_previous_repo
 
-# Return the xa.ref binding embedded in a commit (e.g. app/id/arch/master).
-commit_bound_ref() {
-  local commit="$1"
-  ostree show --repo="${REPO_DIR}" --print-metadata-key=xa.ref "${commit}" 2>/dev/null \
-    | tr -d "'\"" \
-    | tr -d '\n' \
-    || true
-}
-
+# Import a bundle into a disposable scratch repo, then publish only the channel
+# ref into REPO_DIR via build-commit-from. That keeps temporary native refs
+# (e.g. master, or nightly when publishing stable) out of the live repository
+# so we never delete another channel's published ref.
 import_bundle() {
   local arch="$1"
   local bundle="$2"
   local update_appstream="${3:-false}"
   local dest_ref="app/${APP_ID}/${arch}/${CHANNEL}"
-  local src_ref=""
-  local ref rev bound
-  local -A revs_before
-  revs_before=()
+  local scratch src_ref
+  local appstream_args=()
 
-  while IFS= read -r ref; do
-    [[ -z "${ref}" ]] && continue
-    revs_before["${ref}"]="$(ostree rev-parse --repo="${REPO_DIR}" "${ref}")"
-  done < <(ostree refs --repo="${REPO_DIR}" | grep "^app/${APP_ID}/${arch}/" || true)
+  scratch="$(mktemp -d "${TMPDIR:-/tmp}/flatpak-scratch.XXXXXX")"
+  # shellcheck disable=SC2064
+  trap "rm -rf -- $(printf '%q' "${scratch}")" RETURN
 
-  echo "==> Importing ${bundle} at its native branch (not rewriting xa.ref yet)"
+  echo "==> Importing ${bundle} into scratch repo"
+  ostree init --repo="${scratch}" --mode=archive-z2
   flatpak build-import-bundle \
-    --gpg-sign="${GPG_KEY_ID}" \
     --no-update-summary \
-    "${REPO_DIR}" \
+    "${scratch}" \
     "${bundle}"
 
-  # The native bundle branch is the ref whose commit changed (or appeared) and
-  # whose xa.ref binding matches the ref name. Using --ref= on import only moves
-  # the ref pointer and leaves xa.ref as master, which clients reject.
-  while IFS= read -r ref; do
-    [[ -z "${ref}" ]] && continue
-    rev="$(ostree rev-parse --repo="${REPO_DIR}" "${ref}")"
-    if [[ -z "${revs_before[${ref}]:-}" || "${revs_before[${ref}]}" != "${rev}" ]]; then
-      bound="$(commit_bound_ref "${rev}")"
-      if [[ "${bound}" == "${ref}" ]]; then
-        src_ref="${ref}"
-        break
-      fi
-      # Keep a fallback if xa.ref is missing/unexpected.
-      if [[ -z "${src_ref}" ]]; then
-        src_ref="${ref}"
-      fi
-    fi
-  done < <(ostree refs --repo="${REPO_DIR}" | grep "^app/${APP_ID}/${arch}/" || true)
-
+  src_ref="$(ostree refs --repo="${scratch}" \
+    | grep "^app/${APP_ID}/${arch}/" \
+    | head -n1 \
+    || true)"
   if [[ -z "${src_ref}" ]]; then
-    echo "Import of ${bundle} did not update any app/${APP_ID}/${arch}/* refs" >&2
-    ostree refs --repo="${REPO_DIR}" >&2 || true
-    exit 1
+    echo "Scratch import of ${bundle} produced no app/${APP_ID}/${arch}/* ref" >&2
+    ostree refs --repo="${scratch}" >&2 || true
+    return 1
   fi
 
-  if [[ "${src_ref}" != "${dest_ref}" ]]; then
-    echo "==> Rebinding ${src_ref} -> ${dest_ref} (new commit with matching xa.ref)"
-    local appstream_args=()
-    if [[ "${update_appstream}" == "true" ]]; then
-      appstream_args+=(--update-appstream)
-    fi
-    flatpak build-commit-from \
-      --gpg-sign="${GPG_KEY_ID}" \
-      --src-ref="${src_ref}" \
-      --no-update-summary \
-      "${appstream_args[@]}" \
-      "${REPO_DIR}" \
-      "${dest_ref}"
-    echo "==> Deleting temporary ref ${src_ref}"
-    ostree refs --repo="${REPO_DIR}" --delete "${src_ref}"
-  else
-    echo "==> Bundle already on ${dest_ref} with matching ref bindings"
-    if [[ "${update_appstream}" == "true" ]]; then
-      # Refresh appstream from current heads without changing the app commit.
-      flatpak build-commit-from \
-        --gpg-sign="${GPG_KEY_ID}" \
-        --src-ref="${dest_ref}" \
-        --update-appstream \
-        --no-update-summary \
-        "${REPO_DIR}" \
-        "${dest_ref}"
-    fi
+  if [[ "${update_appstream}" == "true" ]]; then
+    appstream_args+=(--update-appstream)
   fi
+
+  echo "==> Publishing scratch ${src_ref} -> live ${dest_ref}"
+  flatpak build-commit-from \
+    --gpg-sign="${GPG_KEY_ID}" \
+    --src-repo="${scratch}" \
+    --src-ref="${src_ref}" \
+    --no-update-summary \
+    "${appstream_args[@]}" \
+    "${REPO_DIR}" \
+    "${dest_ref}"
 }
 
 import_bundle "x86_64" "${BUNDLE_X64}" false
@@ -213,7 +198,7 @@ flatpak build-update-repo \
   "${REPO_DIR}"
 
 echo "==> Writing public GPG key and .flatpakrepo files"
-gpg --export --armor "${GPG_KEY_ID}" > "${SITE_DIR}/supercell-wx.gpg"
+gpg --export --armor "${GPG_KEY_ID}" > "${SITE_DIR}/supercell-wx-flatpak.gpg"
 GPG_KEY_BASE64="$(gpg --export "${GPG_KEY_ID}" | base64 -w0)"
 
 write_flatpakrepo() {

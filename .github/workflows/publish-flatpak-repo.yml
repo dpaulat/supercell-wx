@@ -8,9 +8,9 @@ name: Publish Flatpak Repo
 # Stable: release published, or workflow_dispatch.
 #
 # Repo settings required once: Settings → Pages → Source = GitHub Actions.
-# Secrets required: FLATPAK_GPG_PRIVATE_KEY, optional FLATPAK_GPG_PASSPHRASE.
+# Secrets required: FLATPAK_GPG_PRIVATE_KEY, FLATPAK_GPG_PASSPHRASE.
 #
-# id-token: write is required by actions/deploy-pages (OIDC to GitHub Pages).
+# pages/id-token write are granted only on the deploy job (OIDC for deploy-pages).
 on:
   workflow_run:
     workflows:
@@ -49,8 +49,6 @@ concurrency:
 permissions:
   contents: read
   actions: read
-  pages: write
-  id-token: write
 
 env:
   PAGES_URL: https://dpaulat.github.io/supercell-wx
@@ -76,29 +74,37 @@ jobs:
       - name: Resolve publish metadata
         id: meta
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
+          INPUT_CHANNEL: ${{ inputs.channel }}
+          INPUT_BUNDLE_SOURCE: ${{ inputs.bundle_source }}
+          INPUT_RELEASE_TAG: ${{ inputs.release_tag }}
+          INPUT_CI_RUN_ID: ${{ inputs.ci_run_id }}
         run: |
           set -euo pipefail
-          case "${{ github.event_name }}" in
+          case "${EVENT_NAME}" in
             workflow_run)
               channel="nightly"
               bundle_source="artifacts"
               release_tag=""
-              ci_run_id="${{ github.event.workflow_run.id }}"
+              ci_run_id="${WORKFLOW_RUN_ID}"
               ;;
             release)
               channel="stable"
               bundle_source="release"
-              release_tag="${{ github.event.release.tag_name }}"
+              release_tag="${RELEASE_TAG_NAME}"
               ci_run_id=""
               ;;
             workflow_dispatch)
-              channel="${{ inputs.channel }}"
-              bundle_source="${{ inputs.bundle_source }}"
-              release_tag="${{ inputs.release_tag }}"
-              ci_run_id="${{ inputs.ci_run_id }}"
+              channel="${INPUT_CHANNEL}"
+              bundle_source="${INPUT_BUNDLE_SOURCE}"
+              release_tag="${INPUT_RELEASE_TAG}"
+              ci_run_id="${INPUT_CI_RUN_ID}"
               ;;
             *)
-              echo "Unsupported event: ${{ github.event_name }}" >&2
+              echo "Unsupported event: ${EVENT_NAME}" >&2
               exit 1
               ;;
           esac
@@ -111,9 +117,15 @@ jobs:
             echo "Invalid bundle_source: ${bundle_source}" >&2
             exit 1
           fi
-          if [[ "${bundle_source}" == "artifacts" && -z "${ci_run_id}" ]]; then
-            echo "ci_run_id is required when bundle_source=artifacts" >&2
-            exit 1
+          if [[ "${bundle_source}" == "artifacts" ]]; then
+            if [[ -z "${ci_run_id}" ]]; then
+              echo "ci_run_id is required when bundle_source=artifacts" >&2
+              exit 1
+            fi
+            if [[ ! "${ci_run_id}" =~ ^[0-9]+$ ]]; then
+              echo "ci_run_id must be numeric (got: ${ci_run_id})" >&2
+              exit 1
+            fi
           fi
 
           echo "channel=${channel}" >> "${GITHUB_OUTPUT}"
@@ -122,8 +134,20 @@ jobs:
           echo "ci_run_id=${ci_run_id}" >> "${GITHUB_OUTPUT}"
           echo "Publishing channel=${channel} bundle_source=${bundle_source} release_tag=${release_tag:-<none>} ci_run_id=${ci_run_id:-<none>}"
 
-      - name: Checkout
+      - name: Checkout default branch
+        if: github.event_name != 'workflow_dispatch'
         uses: actions/checkout@v7
+        with:
+          # workflow_run / release: always use default-branch publish tooling.
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Checkout workflow branch
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v7
+        with:
+          # Keep the branch selected in the Actions UI for testing publish changes.
+          persist-credentials: false
 
       - name: Install Flatpak tools
         shell: bash
@@ -254,7 +278,7 @@ jobs:
 
       - name: Download CI Flatpak artifacts
         if: steps.meta.outputs.bundle_source == 'artifacts'
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: supercell-wx-flatpak-linux-gcc-13-*
           path: bundles
@@ -267,12 +291,14 @@ jobs:
         if: steps.meta.outputs.bundle_source == 'artifacts'
         id: bundles-artifacts
         shell: bash
+        env:
+          CI_RUN_ID: ${{ steps.meta.outputs.ci_run_id }}
         run: |
           set -euo pipefail
           x64="bundles/supercell-wx-flatpak-linux-gcc-13-x64/supercell-wx.flatpak"
           arm="bundles/supercell-wx-flatpak-linux-gcc-13-arm64/supercell-wx.flatpak"
           if [[ ! -f "${x64}" || ! -f "${arm}" ]]; then
-            echo "Expected gcc-13 x64 and arm64 Flatpak artifacts were not found in run ${{ steps.meta.outputs.ci_run_id }}." >&2
+            echo "Expected gcc-13 x64 and arm64 Flatpak artifacts were not found in run ${CI_RUN_ID}." >&2
             find bundles -type f -print >&2 || true
             exit 1
           fi
@@ -286,11 +312,13 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.meta.outputs.release_tag }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
-          tag="${{ steps.meta.outputs.release_tag }}"
+          tag="${RELEASE_TAG}"
           if [[ -z "${tag}" ]]; then
-            tag="$(gh release view -R "${{ github.repository }}" --json tagName -q .tagName)"
+            tag="$(gh release view -R "${REPOSITORY}" --json tagName -q .tagName)"
           fi
           echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
           echo "Using release tag: ${tag}"
@@ -301,18 +329,20 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
           mkdir -p bundles
-          gh release download "${{ steps.release.outputs.tag }}" \
-            -R "${{ github.repository }}" \
+          gh release download "${RELEASE_TAG}" \
+            -R "${REPOSITORY}" \
             -D bundles \
             -p '*-linux-x64.flatpak' \
             -p '*-linux-arm64.flatpak'
           x64="$(find bundles -type f -name '*-linux-x64.flatpak' | head -n1)"
           arm="$(find bundles -type f -name '*-linux-arm64.flatpak' | head -n1)"
           if [[ -z "${x64}" || -z "${arm}" ]]; then
-            echo "Release ${{ steps.release.outputs.tag }} is missing linux-x64/arm64 Flatpak assets." >&2
+            echo "Release ${RELEASE_TAG} is missing linux-x64/arm64 Flatpak assets." >&2
             ls -la bundles >&2 || true
             exit 1
           fi
@@ -348,10 +378,10 @@ jobs:
             --gpg-key-id "${{ steps.import-gpg.outputs.fingerprint }}"
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: flatpak-pages-site
           include-hidden-files: true
@@ -371,10 +401,13 @@ jobs:
     needs: build-repo
     if: needs.build-repo.result == 'success'
     runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
