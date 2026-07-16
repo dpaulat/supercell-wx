@@ -115,23 +115,94 @@ restore_previous_repo() {
 
 restore_previous_repo
 
+# Return the xa.ref binding embedded in a commit (e.g. app/id/arch/master).
+commit_bound_ref() {
+  local commit="$1"
+  ostree show --repo="${REPO_DIR}" --print-metadata-key=xa.ref "${commit}" 2>/dev/null \
+    | tr -d "'\"" \
+    | tr -d '\n' \
+    || true
+}
+
 import_bundle() {
   local arch="$1"
   local bundle="$2"
-  local ref="app/${APP_ID}/${arch}/${CHANNEL}"
+  local update_appstream="${3:-false}"
+  local dest_ref="app/${APP_ID}/${arch}/${CHANNEL}"
+  local src_ref=""
+  local ref rev bound
+  local -A revs_before
+  revs_before=()
 
-  echo "==> Importing ${bundle} as ${ref}"
+  while IFS= read -r ref; do
+    [[ -z "${ref}" ]] && continue
+    revs_before["${ref}"]="$(ostree rev-parse --repo="${REPO_DIR}" "${ref}")"
+  done < <(ostree refs --repo="${REPO_DIR}" | grep "^app/${APP_ID}/${arch}/" || true)
+
+  echo "==> Importing ${bundle} at its native branch (not rewriting xa.ref yet)"
   flatpak build-import-bundle \
     --gpg-sign="${GPG_KEY_ID}" \
-    --ref="${ref}" \
-    --update-appstream \
     --no-update-summary \
     "${REPO_DIR}" \
     "${bundle}"
+
+  # The native bundle branch is the ref whose commit changed (or appeared) and
+  # whose xa.ref binding matches the ref name. Using --ref= on import only moves
+  # the ref pointer and leaves xa.ref as master, which clients reject.
+  while IFS= read -r ref; do
+    [[ -z "${ref}" ]] && continue
+    rev="$(ostree rev-parse --repo="${REPO_DIR}" "${ref}")"
+    if [[ -z "${revs_before[${ref}]:-}" || "${revs_before[${ref}]}" != "${rev}" ]]; then
+      bound="$(commit_bound_ref "${rev}")"
+      if [[ "${bound}" == "${ref}" ]]; then
+        src_ref="${ref}"
+        break
+      fi
+      # Keep a fallback if xa.ref is missing/unexpected.
+      if [[ -z "${src_ref}" ]]; then
+        src_ref="${ref}"
+      fi
+    fi
+  done < <(ostree refs --repo="${REPO_DIR}" | grep "^app/${APP_ID}/${arch}/" || true)
+
+  if [[ -z "${src_ref}" ]]; then
+    echo "Import of ${bundle} did not update any app/${APP_ID}/${arch}/* refs" >&2
+    ostree refs --repo="${REPO_DIR}" >&2 || true
+    exit 1
+  fi
+
+  if [[ "${src_ref}" != "${dest_ref}" ]]; then
+    echo "==> Rebinding ${src_ref} -> ${dest_ref} (new commit with matching xa.ref)"
+    local appstream_args=()
+    if [[ "${update_appstream}" == "true" ]]; then
+      appstream_args+=(--update-appstream)
+    fi
+    flatpak build-commit-from \
+      --gpg-sign="${GPG_KEY_ID}" \
+      --src-ref="${src_ref}" \
+      --no-update-summary \
+      "${appstream_args[@]}" \
+      "${REPO_DIR}" \
+      "${dest_ref}"
+    echo "==> Deleting temporary ref ${src_ref}"
+    ostree refs --repo="${REPO_DIR}" --delete "${src_ref}"
+  else
+    echo "==> Bundle already on ${dest_ref} with matching ref bindings"
+    if [[ "${update_appstream}" == "true" ]]; then
+      # Refresh appstream from current heads without changing the app commit.
+      flatpak build-commit-from \
+        --gpg-sign="${GPG_KEY_ID}" \
+        --src-ref="${dest_ref}" \
+        --update-appstream \
+        --no-update-summary \
+        "${REPO_DIR}" \
+        "${dest_ref}"
+    fi
+  fi
 }
 
-import_bundle "x86_64" "${BUNDLE_X64}"
-import_bundle "aarch64" "${BUNDLE_AARCH64}"
+import_bundle "x86_64" "${BUNDLE_X64}" false
+import_bundle "aarch64" "${BUNDLE_AARCH64}" true
 
 echo "==> Updating repository summary, deltas, and prune"
 flatpak build-update-repo \
