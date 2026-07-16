@@ -1,0 +1,380 @@
+name: Publish Flatpak Repo
+
+# Publishes the dual-arch Flatpak OSTree repository to GitHub Pages.
+#
+# Nightly: workflow_run after CI completes on develop (push / workflow_dispatch only).
+#   workflow_run always loads THIS file from the default branch, so a PR cannot
+#   weaken the branch/event checks below by editing the workflow in the PR.
+# Stable: release published, or workflow_dispatch.
+#
+# Repo settings required once: Settings → Pages → Source = GitHub Actions.
+# Secrets required: FLATPAK_GPG_PRIVATE_KEY, optional FLATPAK_GPG_PASSPHRASE.
+#
+# id-token: write is required by actions/deploy-pages (OIDC to GitHub Pages).
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Flatpak branch to publish
+        type: choice
+        options: [nightly, stable]
+        default: nightly
+      bundle_source:
+        description: Where to get .flatpak bundles
+        type: choice
+        options: [artifacts, release]
+        default: artifacts
+      release_tag:
+        description: Release tag when bundle_source=release (empty = latest)
+        type: string
+        required: false
+        default: ''
+      ci_run_id:
+        description: CI run ID when bundle_source=artifacts (required for manual artifact publish)
+        type: string
+        required: false
+        default: ''
+
+concurrency:
+  group: flatpak-repo
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+env:
+  PAGES_URL: https://dpaulat.github.io/supercell-wx
+  HOMEPAGE_URL: https://supercellwx.net
+
+jobs:
+  build-repo:
+    name: Build Flatpak OSTree repo
+    runs-on: ubuntu-24.04
+    # Refuse PR-triggered CI and non-develop heads. These checks live only on the
+    # default-branch copy of this workflow (workflow_run property).
+    # Allow CI conclusion=failure so a non-Flatpak matrix cell (e.g. clang) can
+    # fail without blocking nightly; missing gcc-13 artifacts still fail later.
+    if: |
+      github.event_name != 'workflow_run' || (
+        github.event.workflow_run.conclusion != 'cancelled' &&
+        github.event.workflow_run.conclusion != 'skipped' &&
+        github.event.workflow_run.head_branch == 'develop' &&
+        (github.event.workflow_run.event == 'push' ||
+         github.event.workflow_run.event == 'workflow_dispatch')
+      )
+    steps:
+      - name: Resolve publish metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${{ github.event_name }}" in
+            workflow_run)
+              channel="nightly"
+              bundle_source="artifacts"
+              release_tag=""
+              ci_run_id="${{ github.event.workflow_run.id }}"
+              ;;
+            release)
+              channel="stable"
+              bundle_source="release"
+              release_tag="${{ github.event.release.tag_name }}"
+              ci_run_id=""
+              ;;
+            workflow_dispatch)
+              channel="${{ inputs.channel }}"
+              bundle_source="${{ inputs.bundle_source }}"
+              release_tag="${{ inputs.release_tag }}"
+              ci_run_id="${{ inputs.ci_run_id }}"
+              ;;
+            *)
+              echo "Unsupported event: ${{ github.event_name }}" >&2
+              exit 1
+              ;;
+          esac
+
+          if [[ "${channel}" != "nightly" && "${channel}" != "stable" ]]; then
+            echo "Invalid channel: ${channel}" >&2
+            exit 1
+          fi
+          if [[ "${bundle_source}" != "artifacts" && "${bundle_source}" != "release" ]]; then
+            echo "Invalid bundle_source: ${bundle_source}" >&2
+            exit 1
+          fi
+          if [[ "${bundle_source}" == "artifacts" && -z "${ci_run_id}" ]]; then
+            echo "ci_run_id is required when bundle_source=artifacts" >&2
+            exit 1
+          fi
+
+          echo "channel=${channel}" >> "${GITHUB_OUTPUT}"
+          echo "bundle_source=${bundle_source}" >> "${GITHUB_OUTPUT}"
+          echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+          echo "ci_run_id=${ci_run_id}" >> "${GITHUB_OUTPUT}"
+          echo "Publishing channel=${channel} bundle_source=${bundle_source} release_tag=${release_tag:-<none>} ci_run_id=${ci_run_id:-<none>}"
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Flatpak tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y flatpak ostree curl gnupg
+
+      - name: Import GPG signing key
+        id: import-gpg
+        shell: bash
+        env:
+          FLATPAK_GPG_PRIVATE_KEY: ${{ secrets.FLATPAK_GPG_PRIVATE_KEY }}
+          FLATPAK_GPG_PASSPHRASE: ${{ secrets.FLATPAK_GPG_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+
+          # Validate the key secret and passphrase are set
+          if [[ -z "${FLATPAK_GPG_PRIVATE_KEY}" ]]; then
+            echo "FLATPAK_GPG_PRIVATE_KEY secret is not set" >&2
+            exit 1
+          fi
+          if [[ -z "${FLATPAK_GPG_PASSPHRASE}" ]]; then
+            echo "FLATPAK_GPG_PASSPHRASE secret is not set" >&2
+            exit 1
+          fi
+
+          # Set up a temporary GNUPG home directory
+          GNUPGHOME="$(mktemp -d)"
+          chmod 700 "${GNUPGHOME}"
+          export GNUPGHOME
+
+          # Make this home available to later workflow steps
+          echo "GNUPGHOME=${GNUPGHOME}" >> "${GITHUB_ENV}"
+
+          # Cleanup on failure
+          cleanup_on_failure() {
+            status=$?
+            if (( status != 0 )); then
+              gpgconf --homedir "${GNUPGHOME}" --kill gpg-agent \
+                2>/dev/null || true
+              rm -rf "${GNUPGHOME}"
+            fi
+            exit "${status}"
+          }
+          trap cleanup_on_failure EXIT
+
+          # Non-interactive signing for flatpak/ostree (they invoke gpg without a TTY).
+          cat > "${GNUPGHOME}/gpg-agent.conf" <<'EOF'
+          allow-preset-passphrase
+          EOF
+          gpgconf --kill gpg-agent 2>/dev/null || true
+
+          # Import the private key
+          printf '%s\n' "${FLATPAK_GPG_PRIVATE_KEY}" |
+            gpg --batch --no-tty --import
+
+          # Get the fingerprint of the imported key
+          mapfile -t fingerprints < <(
+            gpg --batch --with-colons --list-secret-keys |
+              awk -F: '
+                $1 == "sec" { want_fingerprint = 1; next }
+                want_fingerprint && $1 == "fpr" {
+                  print $10
+                  want_fingerprint = 0
+                }
+              '
+          )
+
+          if (( ${#fingerprints[@]} != 1 )); then
+            echo "Expected exactly one imported GPG identity" >&2
+            exit 1
+          fi
+
+          fingerprint="${fingerprints[0]}"
+          echo "fingerprint=${fingerprint}" >> "${GITHUB_OUTPUT}"
+          echo "Imported GPG key ${fingerprint}"
+
+          # Unlock the key with the passphrase
+          preset_bin=""
+          for candidate in \
+            /usr/lib/gnupg/gpg-preset-passphrase \
+            /usr/lib/gnupg2/gpg-preset-passphrase \
+            /usr/libexec/gpg-preset-passphrase; do
+            if [[ -x "${candidate}" ]]; then
+              preset_bin="${candidate}"
+              break
+            fi
+          done
+
+          if [[ -z "${preset_bin}" ]]; then
+            echo "gpg-preset-passphrase not found; cannot unlock keyed passphrase" >&2
+            exit 1
+          fi
+
+          gpgconf --launch gpg-agent
+
+          mapfile -t keygrips < <(
+            gpg \
+              --batch \
+              --with-colons \
+              --with-keygrip \
+              --list-secret-keys |
+              awk -F: '$1 == "grp" && $10 != "" { print $10 }'
+          )
+
+          if (( ${#keygrips[@]} == 0 )); then
+            echo "No secret-key keygrips found" >&2
+            exit 1
+          fi
+
+          for keygrip in "${keygrips[@]}"; do
+            printf '%s' "$FLATPAK_GPG_PASSPHRASE" |
+              "$preset_bin" --preset "$keygrip"
+          done
+
+          # Prove that unattended signing works from the agent cache
+          printf 'Flatpak signing test' |
+            gpg \
+              --batch \
+              --no-tty \
+              --local-user "${fingerprint}" \
+              --detach-sign \
+              --output /dev/null
+
+          # Remove the trap now that we've proven the key is unlocked
+          trap - EXIT
+
+      - name: Download CI Flatpak artifacts
+        if: steps.meta.outputs.bundle_source == 'artifacts'
+        uses: actions/download-artifact@v7
+        with:
+          pattern: supercell-wx-flatpak-linux-gcc-13-*
+          path: bundles
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.meta.outputs.ci_run_id }}
+
+      - name: Locate CI bundles
+        if: steps.meta.outputs.bundle_source == 'artifacts'
+        id: bundles-artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          x64="bundles/supercell-wx-flatpak-linux-gcc-13-x64/supercell-wx.flatpak"
+          arm="bundles/supercell-wx-flatpak-linux-gcc-13-arm64/supercell-wx.flatpak"
+          if [[ ! -f "${x64}" || ! -f "${arm}" ]]; then
+            echo "Expected gcc-13 x64 and arm64 Flatpak artifacts were not found in run ${{ steps.meta.outputs.ci_run_id }}." >&2
+            find bundles -type f -print >&2 || true
+            exit 1
+          fi
+          echo "bundle_x64=${x64}" >> "${GITHUB_OUTPUT}"
+          echo "bundle_aarch64=${arm}" >> "${GITHUB_OUTPUT}"
+          ls -lh "${x64}" "${arm}"
+
+      - name: Resolve release tag
+        if: steps.meta.outputs.bundle_source == 'release'
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${{ steps.meta.outputs.release_tag }}"
+          if [[ -z "${tag}" ]]; then
+            tag="$(gh release view -R "${{ github.repository }}" --json tagName -q .tagName)"
+          fi
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "Using release tag: ${tag}"
+
+      - name: Download release Flatpak assets
+        if: steps.meta.outputs.bundle_source == 'release'
+        id: bundles-release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p bundles
+          gh release download "${{ steps.release.outputs.tag }}" \
+            -R "${{ github.repository }}" \
+            -D bundles \
+            -p '*-linux-x64.flatpak' \
+            -p '*-linux-arm64.flatpak'
+          x64="$(find bundles -type f -name '*-linux-x64.flatpak' | head -n1)"
+          arm="$(find bundles -type f -name '*-linux-arm64.flatpak' | head -n1)"
+          if [[ -z "${x64}" || -z "${arm}" ]]; then
+            echo "Release ${{ steps.release.outputs.tag }} is missing linux-x64/arm64 Flatpak assets." >&2
+            ls -la bundles >&2 || true
+            exit 1
+          fi
+          echo "bundle_x64=${x64}" >> "${GITHUB_OUTPUT}"
+          echo "bundle_aarch64=${arm}" >> "${GITHUB_OUTPUT}"
+          ls -lh "${x64}" "${arm}"
+
+      - name: Select bundle paths
+        id: bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ steps.meta.outputs.bundle_source }}" == "artifacts" ]]; then
+            echo "bundle_x64=${{ steps.bundles-artifacts.outputs.bundle_x64 }}" >> "${GITHUB_OUTPUT}"
+            echo "bundle_aarch64=${{ steps.bundles-artifacts.outputs.bundle_aarch64 }}" >> "${GITHUB_OUTPUT}"
+          else
+            echo "bundle_x64=${{ steps.bundles-release.outputs.bundle_x64 }}" >> "${GITHUB_OUTPUT}"
+            echo "bundle_aarch64=${{ steps.bundles-release.outputs.bundle_aarch64 }}" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Build Pages site
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x tools/ci/publish-flatpak-repo.sh
+          tools/ci/publish-flatpak-repo.sh \
+            --channel "${{ steps.meta.outputs.channel }}" \
+            --site-dir "${{ github.workspace }}/flatpak-pages-site" \
+            --bundle-x64 "${{ steps.bundles.outputs.bundle_x64 }}" \
+            --bundle-aarch64 "${{ steps.bundles.outputs.bundle_aarch64 }}" \
+            --pages-url "${{ env.PAGES_URL }}" \
+            --homepage "${{ env.HOMEPAGE_URL }}" \
+            --gpg-key-id "${{ steps.import-gpg.outputs.fingerprint }}"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: flatpak-pages-site
+          include-hidden-files: true
+
+      - name: Remove GPG signing key
+        if: always()
+        shell: bash
+        run: |
+          if [[ -n "${GNUPGHOME:-}" && -d "${GNUPGHOME}" ]]; then
+            gpgconf --homedir "${GNUPGHOME}" --kill gpg-agent \
+              2>/dev/null || true
+            rm -rf "${GNUPGHOME}"
+          fi
+
+  deploy:
+    name: Deploy GitHub Pages
+    needs: build-repo
+    if: needs.build-repo.result == 'success'
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

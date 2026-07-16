@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Supercell Wx Flatpak</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --fg: #1a1a1a;
+      --muted: #555;
+      --bg: #f6f7f9;
+      --card: #fff;
+      --border: #d8dde6;
+      --accent: #0b57d0;
+      --code-bg: #eef1f6;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --fg: #f2f4f8;
+        --muted: #b0b8c4;
+        --bg: #12151a;
+        --card: #1b2028;
+        --border: #2e3642;
+        --accent: #8ab4ff;
+        --code-bg: #0f1318;
+      }
+    }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      line-height: 1.5;
+      color: var(--fg);
+      background: var(--bg);
+    }
+    main {
+      max-width: 44rem;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 3rem;
+    }
+    h1 { margin: 0 0 0.35rem; font-size: 1.85rem; }
+    p { margin: 0.75rem 0; }
+    .muted { color: var(--muted); }
+    section {
+      margin-top: 1.5rem;
+      padding: 1.1rem 1.2rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    h2 { margin: 0 0 0.6rem; font-size: 1.15rem; }
+    pre {
+      margin: 0.75rem 0 0;
+      padding: 0.85rem 1rem;
+      overflow-x: auto;
+      background: var(--code-bg);
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    a { color: var(--accent); }
+    ul { margin: 0.5rem 0 0; padding-left: 1.2rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Supercell Wx Flatpak</h1>
+    <p class="muted">
+      Install and update Supercell Wx from this Flatpak remote
+      (<code>x86_64</code> and <code>aarch64</code>).
+    </p>
+
+    <section>
+      <h2>Stable</h2>
+      <pre>flatpak remote-add --if-not-exists supercell-wx \
+  https://dpaulat.github.io/supercell-wx/supercell-wx.flatpakrepo
+flatpak install supercell-wx net.supercellwx.app
+flatpak update</pre>
+    </section>
+
+    <section>
+      <h2>Nightly</h2>
+      <p class="muted">Development builds from the <code>develop</code> branch.</p>
+      <pre>flatpak remote-add --if-not-exists supercell-wx-nightly \
+  https://dpaulat.github.io/supercell-wx/supercell-wx-nightly.flatpakrepo
+flatpak install supercell-wx-nightly net.supercellwx.app//nightly
+flatpak update</pre>
+    </section>
+
+    <section>
+      <h2>Runtime</h2>
+      <p class="muted">
+        The Freedesktop runtime comes from Flathub. Add it once if needed:
+      </p>
+      <pre>flatpak remote-add --if-not-exists flathub \
+  https://dl.flathub.org/repo/flathub.flatpakrepo</pre>
+    </section>
+
+    <section>
+      <h2>Files</h2>
+      <ul>
+        <li><a href="supercell-wx.flatpakrepo">supercell-wx.flatpakrepo</a></li>
+        <li><a href="supercell-wx-nightly.flatpakrepo">supercell-wx-nightly.flatpakrepo</a></li>
+        <li><a href="supercell-wx.gpg">supercell-wx.gpg</a> (public signing key)</li>
+        <li><a href="repo/">repo/</a> (OSTree repository)</li>
+      </ul>
+      <p class="muted">
+        Project site:
+        <a href="https://supercellwx.net">supercellwx.net</a>
+        · Docs:
+        <a href="https://supercell-wx.readthedocs.io/">readthedocs</a>
+      </p>
+    </section>
+  </main>
+</body>
+</html>
