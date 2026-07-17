@@ -408,10 +408,17 @@ jobs:
         path: ${{ github.workspace }}/*-${{ matrix.appimage_arch }}.AppImage*
 
     - name: Build FlatPak (Linux)
-      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      # Ubuntu 22.04 ships flatpak-builder < 1.4, which still runs appstream-compose
+      # inside the SDK. Freedesktop 25.08 removed that tool; 24.04+ builder uses
+      # host appstreamcli compose instead. Publish only consumes gcc-13 artifacts.
+      if: ${{ startsWith(matrix.os, 'ubuntu') && matrix.os != 'ubuntu-22.04' }}
       env:
         INSTALL_DIR: ${{ github.workspace }}/supercell-wx/
         FLATPAK_DIR: ${{ github.workspace }}/supercell-wx-flatpak/
+        # CI always builds the nightly branch. Stable is assigned later by the
+        # Flatpak repo publish job when a GitHub Release is published (tags
+        # are often created after this workflow has already finished).
+        FLATPAK_DEFAULT_BRANCH: nightly
       shell: bash
       run: |
         cp -r ${{ env.INSTALL_DIR }} ${{ env.FLATPAK_DIR }}
@@ -430,13 +437,15 @@ jobs:
         flatpak-builder --force-clean \
             --user \
             --install-deps-from=flathub \
+            --default-branch="${FLATPAK_DEFAULT_BRANCH}" \
             --repo=flatpak-repo \
             --install flatpak-build \
             ${{ github.workspace }}/source/tools/net.supercellwx.app.yml
-        flatpak build-bundle flatpak-repo supercell-wx.flatpak net.supercellwx.app
+        flatpak build-bundle flatpak-repo supercell-wx.flatpak \
+            net.supercellwx.app "${FLATPAK_DEFAULT_BRANCH}"
 
     - name: Upload FlatPak (Linux)
-      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      if: ${{ startsWith(matrix.os, 'ubuntu') && matrix.os != 'ubuntu-22.04' }}
       uses: actions/upload-artifact@v7
       with:
         name: supercell-wx-flatpak-${{ matrix.artifact_suffix }}
