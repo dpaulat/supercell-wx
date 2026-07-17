@@ -130,6 +130,12 @@ jobs:
         name: ${{ matrix.windows_artifact_name }}
         path: ${{ github.workspace }}/supercell-wx/
 
+    - name: Upload Debug Artifacts (Windows)
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.windows_artifact_name }}-debug
+        path: ${{ github.workspace }}/build/Release/bin/*.pdb
+
     - name: Sign Artifacts (Windows)
       id: sign-windows-artifacts
       uses: signpath/github-action-submit-signing-request@v2
