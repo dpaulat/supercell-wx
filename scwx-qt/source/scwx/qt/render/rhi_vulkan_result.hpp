@@ -1,11 +1,15 @@
 #pragma once
 
 #include <functional>
-#include <vulkan/vulkan_core.h>
+
+#if !defined(__APPLE__)
+#   include <vulkan/vulkan_core.h>
+#endif
 
 namespace scwx::qt::render
 {
 
+#if !defined(__APPLE__)
 using VulkanResultHandler = std::function<void(VkResult, const char*)>;
 
 void RegisterVulkanResultHandler(const void*         owner,
@@ -13,5 +17,8 @@ void RegisterVulkanResultHandler(const void*         owner,
 void UnregisterVulkanResultHandler(const void* owner);
 
 void ReportVulkanResult(VkResult result, const char* context);
+#else
+inline void UnregisterVulkanResultHandler(const void* /* owner */) {}
+#endif
 
 } // namespace scwx::qt::render

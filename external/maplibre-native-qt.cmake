@@ -8,19 +8,20 @@ set(MLN_QT_WITH_WIDGETS OFF CACHE BOOL "" FORCE)
 set(MLN_QT_WITH_QUICK_PLUGIN OFF CACHE BOOL "" FORCE)
 set(MLN_QT_WITH_INTERNAL_ICU ON CACHE BOOL "" FORCE)
 
-set(MLN_WITH_VULKAN ON CACHE BOOL "" FORCE)
 set(MLN_WITH_OPENGL OFF CACHE BOOL "" FORCE)
 
 if (APPLE)
+    # Stock aqt macOS Qt has QT_FEATURE_vulkan off; use MapLibre Metal.
+    set(MLN_WITH_METAL ON CACHE BOOL "" FORCE)
+    set(MLN_WITH_VULKAN OFF CACHE BOOL "" FORCE)
+else()
+    set(MLN_WITH_VULKAN ON CACHE BOOL "" FORCE)
     set(MLN_WITH_METAL OFF CACHE BOOL "" FORCE)
 endif()
 
 # MapLibre platform/qt/qt.cmake FATAL_ERRORs unless find_path finds
-# qvulkaninstance.h in Qt*Gui_INCLUDE_DIRS. Stock aqt macOS Qt omits Vulkan
-# Gui headers entirely (QT_FEATURE_vulkan off); the Vulkan Qt backend still
-# #includes QVulkan* at compile time, so macOS CI is disabled until Metal or
-# a custom Qt+MoltenVK build. Pre-seed QT_VULKAN_HEADER for the configure
-# probe on other hosts that only lack the header path (not the full API).
+# qvulkaninstance.h when MLN_WITH_VULKAN is on. Pre-seed QT_VULKAN_HEADER for
+# hosts that only lack the header path. Skip entirely on Apple (Metal).
 #
 # Do NOT rely on mutating Qt*Gui_INCLUDE_DIRS: maplibre-native-qt's
 # CMakeLists re-runs find_package(Qt Gui) and resets those dirs.

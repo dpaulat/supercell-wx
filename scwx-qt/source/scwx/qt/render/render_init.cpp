@@ -15,6 +15,11 @@ void InitializeGraphics()
 {
    logger_->info("Render backend: {}", RenderBackendName(kRenderBackend));
 
+   if (kRenderBackend != RenderBackend::Vulkan)
+   {
+      return;
+   }
+
    const bool validationRequested =
       scwx::util::HasEnvironment("SCWX_VULKAN_VALIDATION");
    const bool validationDisabled =

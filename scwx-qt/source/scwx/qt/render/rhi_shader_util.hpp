@@ -7,7 +7,8 @@
 namespace scwx::qt::render
 {
 
-[[nodiscard]] QShader LoadSpirvShader(const char*    resourcePath,
-                                      QShader::Stage stage);
+// Load a Qt Shader Baker pack (.qsb) that embeds SPIR-V (Vulkan) and MSL
+// (Metal). QRhi selects the backend variant at pipeline creation.
+[[nodiscard]] QShader LoadShader(const char* resourcePath);
 
 } // namespace scwx::qt::render

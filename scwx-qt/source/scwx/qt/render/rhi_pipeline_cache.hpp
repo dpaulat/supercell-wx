@@ -4,7 +4,9 @@
 
 class QRhi;
 
-#include <vulkan/vulkan_core.h>
+#if !defined(__APPLE__)
+#   include <vulkan/vulkan_core.h>
+#endif
 
 namespace scwx::qt::render
 {
@@ -12,6 +14,7 @@ namespace scwx::qt::render
 void RestoreQrhiPipelineCache(QRhi* rhi);
 void PersistQrhiPipelineCache(QRhi* rhi);
 
+#if !defined(__APPLE__)
 [[nodiscard]] QByteArray LoadVulkanPipelineCacheBlob(const char* fileName);
 void SaveVulkanPipelineCacheBlob(const char* fileName, const QByteArray& data);
 
@@ -21,5 +24,6 @@ CreateVulkanPipelineCache(VkDevice          device,
                           VkPipelineCache*  pipelineCache);
 [[nodiscard]] QByteArray
 GetVulkanPipelineCacheBlob(VkDevice device, VkPipelineCache pipelineCache);
+#endif
 
 } // namespace scwx::qt::render

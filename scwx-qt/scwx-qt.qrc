@@ -1,18 +1,18 @@
 <RCC>
     <qresource prefix="/">
-        <file>gl/vulkan/spirv/color.frag.spv</file>
-        <file>gl/vulkan/spirv/color.vert.spv</file>
-        <file>gl/vulkan/spirv/geo_color.frag.spv</file>
-        <file>gl/vulkan/spirv/geo_color.vert.spv</file>
-        <file>gl/vulkan/spirv/geo_texture_array.frag.spv</file>
-        <file>gl/vulkan/spirv/geo_texture_array.vert.spv</file>
-        <file>gl/vulkan/spirv/radar.frag.spv</file>
-        <file>gl/vulkan/spirv/radar.vert.spv</file>
-        <file>gl/vulkan/spirv/screen_texture_array.frag.spv</file>
-        <file>gl/vulkan/spirv/screen_texture_array.vert.spv</file>
-        <file>gl/vulkan/spirv/texture1d.frag.spv</file>
-        <file>gl/vulkan/spirv/texture1d.vert.spv</file>
-        <file>gl/vulkan/spirv/texture_lut.frag.spv</file>
+        <file>gl/vulkan/qsb/color.frag.qsb</file>
+        <file>gl/vulkan/qsb/color.vert.qsb</file>
+        <file>gl/vulkan/qsb/geo_color.frag.qsb</file>
+        <file>gl/vulkan/qsb/geo_color.vert.qsb</file>
+        <file>gl/vulkan/qsb/geo_texture_array.frag.qsb</file>
+        <file>gl/vulkan/qsb/geo_texture_array.vert.qsb</file>
+        <file>gl/vulkan/qsb/radar.frag.qsb</file>
+        <file>gl/vulkan/qsb/radar.vert.qsb</file>
+        <file>gl/vulkan/qsb/screen_texture_array.frag.qsb</file>
+        <file>gl/vulkan/qsb/screen_texture_array.vert.qsb</file>
+        <file>gl/vulkan/qsb/texture1d.frag.qsb</file>
+        <file>gl/vulkan/qsb/texture1d.vert.qsb</file>
+        <file>gl/vulkan/qsb/texture_lut.frag.qsb</file>
         <file>res/audio/wikimedia/Emergency_Alert_System_Attention_Signal_20s.ogg</file>
         <file>res/config/radar_sites.json</file>
         <file>res/config/radars_iastate.gis</file>

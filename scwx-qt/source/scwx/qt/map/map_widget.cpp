@@ -1,6 +1,10 @@
 #include <scwx/qt/map/map_annotation_layer.hpp>
 #include <scwx/qt/map/map_rhi_renderer.hpp>
-#include <scwx/qt/map/map_imgui_vulkan_renderer.hpp>
+#if defined(__APPLE__)
+#   include <scwx/qt/map/map_imgui_metal_renderer.hpp>
+#else
+#   include <scwx/qt/map/map_imgui_vulkan_renderer.hpp>
+#endif
 #include <scwx/qt/map/map_overlay_renderer.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/render/render_backend.hpp>
@@ -89,7 +93,9 @@
 
 #include <rhi/qrhi.h>
 
-#include <vulkan/vulkan_core.h>
+#if !defined(__APPLE__)
+#   include <vulkan/vulkan_core.h>
+#endif
 
 namespace scwx::qt::map
 {
@@ -304,7 +310,7 @@ public:
       ImGui::SetCurrentContext(imGuiContext_);
 
       // Shutdown ImGui Context
-      imguiVulkanRenderer_.Shutdown();
+      imguiRenderer_.Shutdown();
       ReleaseBasemapTexture();
       ImGui_ImplQt_Shutdown();
 
@@ -510,7 +516,11 @@ public:
    size_t                                  currentTiltIndex_ {0};
 
    MapRhiRenderer                  rhiRenderer_ {};
-   MapImGuiVulkanRenderer          imguiVulkanRenderer_ {};
+#if defined(__APPLE__)
+   MapImGuiMetalRenderer           imguiRenderer_ {};
+#else
+   MapImGuiVulkanRenderer          imguiRenderer_ {};
+#endif
    MapOverlayRenderer              overlayRenderer_ {};
    bool                            vulkanRenderingInitialized_ {false};
    std::uint64_t                   imguiOverlayGeneration_ {0};
@@ -530,7 +540,11 @@ MapWidget::MapWidget(std::size_t                            id,
     p(std::make_unique<MapWidgetImpl>(
        this, id, settings, std::move(renderContext)))
 {
+#if defined(__APPLE__)
+   setApi(QRhiWidget::Api::Metal);
+#else
    setApi(QRhiWidget::Api::Vulkan);
+#endif
    setAutoRenderTarget(true);
    setMirrorVertically(false);
 
@@ -2622,6 +2636,7 @@ void MapWidget::initialize(QRhiCommandBuffer* cb)
 
    p->overlayRenderer_.Initialize(rhi());
 
+#if !defined(__APPLE__)
    render::RegisterVulkanResultHandler(
       this,
       [this](VkResult result, const char* /* context */)
@@ -2649,6 +2664,7 @@ void MapWidget::initialize(QRhiCommandBuffer* cb)
             },
             Qt::QueuedConnection);
       });
+#endif
 
    p->vulkanRenderingInitialized_ = true;
 
@@ -2680,7 +2696,7 @@ void MapWidget::releaseResources()
    // ImGui Vulkan backend is per-context; must bind this pane's context or
    // Shutdown skips / tears down the wrong backend (pop-out reparent crash).
    ImGui::SetCurrentContext(p->imGuiContext_);
-   p->imguiVulkanRenderer_.Shutdown();
+   p->imguiRenderer_.Shutdown();
    p->overlayRenderer_.Shutdown();
    p->ReleaseBasemapTexture();
    p->lastCopiedBasemapGeneration_ = 0;
@@ -2835,9 +2851,9 @@ void MapWidgetImpl::EnsureImGuiRenderer(QRhiCommandBuffer* commandBuffer)
       overlayRenderer_.GetRenderTargetGeneration();
    if (overlayGeneration != imguiOverlayGeneration_)
    {
-      if (imguiVulkanRenderer_.IsInitialized())
+      if (imguiRenderer_.IsInitialized())
       {
-         imguiVulkanRenderer_.Shutdown();
+         imguiRenderer_.Shutdown();
       }
       imguiOverlayGeneration_ = overlayGeneration;
    }
@@ -2849,13 +2865,13 @@ void MapWidgetImpl::EnsureImGuiRenderer(QRhiCommandBuffer* commandBuffer)
       return;
    }
 
-   if (!imguiVulkanRenderer_.IsInitialized())
+   if (!imguiRenderer_.IsInitialized())
    {
-      imguiVulkanRenderer_.Initialize(
+      imguiRenderer_.Initialize(
          widget_->rhi(), widget_->colorTexture(), renderPass, imGuiContext_);
    }
 
-   imGuiRendererInitialized_ = imguiVulkanRenderer_.IsInitialized();
+   imGuiRendererInitialized_ = imguiRenderer_.IsInitialized();
 }
 
 void MapWidgetImpl::EnsureBasemapTexture()
@@ -3094,7 +3110,7 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
       std::shared_lock imguiFontAtlasLock {
          manager::FontManager::Instance().imgui_font_atlas_mutex()};
 
-      if (imguiVulkanRenderer_.NewFrame(widget_))
+      if (imguiRenderer_.NewFrame(widget_))
       {
          ImGui::PushFont(defaultFont.first->font(), defaultFont.second.value());
 
@@ -3128,7 +3144,7 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
 
          ImGui::PopFont();
          ImGui::Render();
-         imguiVulkanRenderer_.UpdateTextures();
+         imguiRenderer_.UpdateTextures();
       }
 
       if (VulkanSmokeEnabled())
@@ -3151,7 +3167,7 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
       imguiRender = [this](QRhiCommandBuffer* cb)
       {
          ImGui::SetCurrentContext(imGuiContext_);
-         imguiVulkanRenderer_.RenderDrawData(cb);
+         imguiRenderer_.RenderDrawData(cb);
       };
    }
    const auto imguiEnd = std::chrono::steady_clock::now();
@@ -3207,7 +3223,7 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
          const ImDrawData* drawData = ImGui::GetDrawData();
          logger_->info(
             "Vulkan frame smoke: imguiInit={} vtx={} layers={} frames={}",
-            imguiVulkanRenderer_.IsInitialized(),
+            imguiRenderer_.IsInitialized(),
             drawData != nullptr ? drawData->TotalVtxCount : -1,
             genericLayers_.size(),
             frameDraws_);

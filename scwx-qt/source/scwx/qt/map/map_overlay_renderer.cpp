@@ -33,16 +33,23 @@ void* NativeRenderPass(QRhiTextureRenderTarget* renderTarget)
       return nullptr;
    }
 
+#if !defined(__APPLE__)
    const QRhiNativeHandles* nativeHandles =
       renderPassDescriptor->nativeHandles();
-   if (nativeHandles == nullptr)
+   if (nativeHandles != nullptr)
    {
-      return nullptr;
+      const auto* vkHandles =
+         static_cast<const QRhiVulkanRenderPassNativeHandles*>(nativeHandles);
+      if (vkHandles != nullptr && vkHandles->renderPass != nullptr)
+      {
+         return static_cast<void*>(vkHandles->renderPass);
+      }
    }
+#endif
 
-   const auto* vkHandles =
-      static_cast<const QRhiVulkanRenderPassNativeHandles*>(nativeHandles);
-   return static_cast<void*>(vkHandles->renderPass);
+   // Metal (and backends without a native pass handle): use the QRhi
+   // descriptor pointer as a stable pipeline / ImGui identity key.
+   return static_cast<void*>(renderPassDescriptor);
 }
 
 } // namespace

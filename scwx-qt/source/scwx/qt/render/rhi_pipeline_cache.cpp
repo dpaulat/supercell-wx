@@ -1,6 +1,8 @@
 #include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/render/rhi_pipeline_cache.hpp>
-#include <scwx/qt/render/rhi_vulkan_result.hpp>
+#if !defined(__APPLE__)
+#   include <scwx/qt/render/rhi_vulkan_result.hpp>
+#endif
 #include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -22,7 +24,7 @@ static const std::string logPrefix_ = "scwx::qt::render::rhi_pipeline_cache";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 constexpr char    kMagic[]         = {'S', 'C', 'W', 'X', 'P', 'C', '1'};
-constexpr quint32 kCacheVersion    = 3;
+constexpr quint32 kCacheVersion    = 4;
 constexpr char    kQrhiCacheFile[] = "qrhi-vulkan-pipeline-cache.bin";
 
 bool PipelineCacheDisabled()
@@ -148,6 +150,8 @@ void PersistQrhiPipelineCache(QRhi* rhi)
    }
 }
 
+#if !defined(__APPLE__)
+
 QByteArray LoadVulkanPipelineCacheBlob(const char* fileName)
 {
    QByteArray data;
@@ -227,5 +231,7 @@ QByteArray GetVulkanPipelineCacheBlob(VkDevice        device,
    data.resize(static_cast<int>(dataSize));
    return data;
 }
+
+#endif // !defined(__APPLE__)
 
 } // namespace scwx::qt::render

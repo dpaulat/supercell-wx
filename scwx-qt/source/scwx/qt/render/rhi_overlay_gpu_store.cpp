@@ -42,16 +42,21 @@ static constexpr std::size_t kScreenTexCoordsPerVertex = 3;
       return nullptr;
    }
 
+#if !defined(__APPLE__)
    const QRhiNativeHandles* nativeHandles =
       renderPassDescriptor->nativeHandles();
-   if (nativeHandles == nullptr)
+   if (nativeHandles != nullptr)
    {
-      return nullptr;
+      const auto* vkHandles =
+         static_cast<const QRhiVulkanRenderPassNativeHandles*>(nativeHandles);
+      if (vkHandles != nullptr && vkHandles->renderPass != nullptr)
+      {
+         return static_cast<void*>(vkHandles->renderPass);
+      }
    }
+#endif
 
-   const auto* vkHandles =
-      static_cast<const QRhiVulkanRenderPassNativeHandles*>(nativeHandles);
-   return static_cast<void*>(vkHandles->renderPass);
+   return static_cast<void*>(renderPassDescriptor);
 }
 
 struct PipelineKey
@@ -521,12 +526,12 @@ AcquireColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
    }
 
    const QShader vertexShader =
-      LoadSpirvShader(":/gl/vulkan/spirv/color.vert.spv", QShader::VertexStage);
-   const QShader fragmentShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/color.frag.spv", QShader::FragmentStage);
+      LoadShader(":/gl/vulkan/qsb/color.vert.qsb");
+   const QShader fragmentShader = LoadShader(
+      ":/gl/vulkan/qsb/color.frag.qsb");
    if (!vertexShader.isValid() || !fragmentShader.isValid())
    {
-      logger_->error("Failed to load colored geometry SPIR-V shaders");
+      logger_->error("Failed to load colored geometry shaders");
       return nullptr;
    }
 
@@ -578,13 +583,13 @@ AcquireGeoColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
       return nullptr;
    }
 
-   const QShader vertexShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/geo_color.vert.spv", QShader::VertexStage);
-   const QShader fragmentShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/geo_color.frag.spv", QShader::FragmentStage);
+   const QShader vertexShader = LoadShader(
+      ":/gl/vulkan/qsb/geo_color.vert.qsb");
+   const QShader fragmentShader = LoadShader(
+      ":/gl/vulkan/qsb/geo_color.frag.qsb");
    if (!vertexShader.isValid() || !fragmentShader.isValid())
    {
-      logger_->error("Failed to load geo colored SPIR-V shaders");
+      logger_->error("Failed to load geo colored shaders");
       return nullptr;
    }
 
@@ -646,12 +651,12 @@ QRhiGraphicsPipeline* AcquireRadarPipeline(QRhi*             rhi,
    }
 
    const QShader vertexShader =
-      LoadSpirvShader(":/gl/vulkan/spirv/radar.vert.spv", QShader::VertexStage);
-   const QShader fragmentShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/radar.frag.spv", QShader::FragmentStage);
+      LoadShader(":/gl/vulkan/qsb/radar.vert.qsb");
+   const QShader fragmentShader = LoadShader(
+      ":/gl/vulkan/qsb/radar.frag.qsb");
    if (!vertexShader.isValid() || !fragmentShader.isValid())
    {
-      logger_->error("Failed to load radar SPIR-V shaders");
+      logger_->error("Failed to load radar shaders");
       return nullptr;
    }
 
@@ -704,13 +709,13 @@ QRhiGraphicsPipeline* AcquireColorTablePipeline(QRhi*             rhi,
       return nullptr;
    }
 
-   const QShader vertexShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/texture1d.vert.spv", QShader::VertexStage);
-   const QShader fragmentShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/texture_lut.frag.spv", QShader::FragmentStage);
+   const QShader vertexShader = LoadShader(
+      ":/gl/vulkan/qsb/texture1d.vert.qsb");
+   const QShader fragmentShader = LoadShader(
+      ":/gl/vulkan/qsb/texture_lut.frag.qsb");
    if (!vertexShader.isValid() || !fragmentShader.isValid())
    {
-      logger_->error("Failed to load color table SPIR-V shaders");
+      logger_->error("Failed to load color table shaders");
       return nullptr;
    }
 
@@ -761,13 +766,13 @@ AcquireTextureArrayGeoPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
       return nullptr;
    }
 
-   const QShader vertexShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/geo_texture_array.vert.spv", QShader::VertexStage);
-   const QShader fragmentShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/geo_texture_array.frag.spv", QShader::FragmentStage);
+   const QShader vertexShader = LoadShader(
+      ":/gl/vulkan/qsb/geo_texture_array.vert.qsb");
+   const QShader fragmentShader = LoadShader(
+      ":/gl/vulkan/qsb/geo_texture_array.frag.qsb");
    if (!vertexShader.isValid() || !fragmentShader.isValid())
    {
-      logger_->error("Failed to load geo texture array SPIR-V shaders");
+      logger_->error("Failed to load geo texture array shaders");
       return nullptr;
    }
 
@@ -827,14 +832,13 @@ AcquireTextureArrayScreenPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
       return nullptr;
    }
 
-   const QShader vertexShader = LoadSpirvShader(
-      ":/gl/vulkan/spirv/screen_texture_array.vert.spv", QShader::VertexStage);
+   const QShader vertexShader = LoadShader(
+      ":/gl/vulkan/qsb/screen_texture_array.vert.qsb");
    const QShader fragmentShader =
-      LoadSpirvShader(":/gl/vulkan/spirv/screen_texture_array.frag.spv",
-                      QShader::FragmentStage);
+      LoadShader(":/gl/vulkan/qsb/screen_texture_array.frag.qsb");
    if (!vertexShader.isValid() || !fragmentShader.isValid())
    {
-      logger_->error("Failed to load screen texture array SPIR-V shaders");
+      logger_->error("Failed to load screen texture array shaders");
       return nullptr;
    }
 

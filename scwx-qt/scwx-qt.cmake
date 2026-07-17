@@ -22,7 +22,9 @@ find_package(JPEG)
 find_package(Python COMPONENTS Interpreter)
 find_package(SQLite3)
 find_package(TIFF)
-find_package(Vulkan REQUIRED)
+if (NOT APPLE)
+    find_package(Vulkan REQUIRED)
+endif()
 
 find_package(QT NAMES Qt6
              COMPONENTS Gui
@@ -171,8 +173,12 @@ set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp
             source/scwx/qt/map/radar_site_layer.hpp
             source/scwx/qt/map/map_rhi_renderer.hpp
-            source/scwx/qt/map/map_imgui_vulkan_renderer.hpp
             source/scwx/qt/map/map_overlay_renderer.hpp)
+if (APPLE)
+    list(APPEND HDR_MAP source/scwx/qt/map/map_imgui_metal_renderer.hpp)
+else()
+    list(APPEND HDR_MAP source/scwx/qt/map/map_imgui_vulkan_renderer.hpp)
+endif()
 set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/geo_stroke.cpp
             source/scwx/qt/map/map_basemap_share.cpp
@@ -197,8 +203,16 @@ set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp
             source/scwx/qt/map/radar_site_layer.cpp
             source/scwx/qt/map/map_rhi_renderer.cpp
-            source/scwx/qt/map/map_imgui_vulkan_renderer.cpp
             source/scwx/qt/map/map_overlay_renderer.cpp)
+if (APPLE)
+    enable_language(OBJCXX)
+    list(APPEND SRC_MAP source/scwx/qt/map/map_imgui_metal_renderer.mm)
+    set_source_files_properties(
+        source/scwx/qt/map/map_imgui_metal_renderer.mm
+        PROPERTIES COMPILE_FLAGS "-fobjc-arc")
+else()
+    list(APPEND SRC_MAP source/scwx/qt/map/map_imgui_vulkan_renderer.cpp)
+endif()
 set(HDR_RENDER source/scwx/qt/render/render_backend.hpp
                source/scwx/qt/render/render_context.hpp
                source/scwx/qt/render/render_init.hpp
@@ -517,19 +531,19 @@ set(SRC_VIEW source/scwx/qt/view/level2_product_view.cpp
 
 set(RESOURCE_FILES scwx-qt.qrc)
 
-set(SHADER_FILES gl/vulkan/spirv/color.frag.spv
-                 gl/vulkan/spirv/color.vert.spv
-                 gl/vulkan/spirv/geo_color.frag.spv
-                 gl/vulkan/spirv/geo_color.vert.spv
-                 gl/vulkan/spirv/geo_texture_array.frag.spv
-                 gl/vulkan/spirv/geo_texture_array.vert.spv
-                 gl/vulkan/spirv/radar.frag.spv
-                 gl/vulkan/spirv/radar.vert.spv
-                 gl/vulkan/spirv/screen_texture_array.frag.spv
-                 gl/vulkan/spirv/screen_texture_array.vert.spv
-                 gl/vulkan/spirv/texture1d.frag.spv
-                 gl/vulkan/spirv/texture1d.vert.spv
-                 gl/vulkan/spirv/texture_lut.frag.spv)
+set(SHADER_FILES gl/vulkan/qsb/color.frag.qsb
+                 gl/vulkan/qsb/color.vert.qsb
+                 gl/vulkan/qsb/geo_color.frag.qsb
+                 gl/vulkan/qsb/geo_color.vert.qsb
+                 gl/vulkan/qsb/geo_texture_array.frag.qsb
+                 gl/vulkan/qsb/geo_texture_array.vert.qsb
+                 gl/vulkan/qsb/radar.frag.qsb
+                 gl/vulkan/qsb/radar.vert.qsb
+                 gl/vulkan/qsb/screen_texture_array.frag.qsb
+                 gl/vulkan/qsb/screen_texture_array.vert.qsb
+                 gl/vulkan/qsb/texture1d.frag.qsb
+                 gl/vulkan/qsb/texture1d.vert.qsb
+                 gl/vulkan/qsb/texture_lut.frag.qsb)
 
 set(CMAKE_FILES scwx-qt.cmake)
 
@@ -892,7 +906,6 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      GEOS::geos
                                      GEOS::geos_cxx_flags
                                      glm::glm
-                                     Vulkan::Vulkan
                                      imgui
                                      JPEG::JPEG
                                      qt6ct-common
@@ -900,6 +913,17 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      SQLite::SQLite3
                                      TIFF::TIFF
                                      wxdata)
+
+if (APPLE)
+    target_link_libraries(scwx-qt PUBLIC
+                          "-framework Metal"
+                          "-framework MetalKit"
+                          "-framework QuartzCore"
+                          "-framework Foundation"
+                          "-framework AppKit")
+else()
+    target_link_libraries(scwx-qt PUBLIC Vulkan::Vulkan)
+endif()
 
 target_link_libraries(scwx-qt INTERFACE Boost::program_options)
 

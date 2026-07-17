@@ -1,5 +1,7 @@
 #include <scwx/qt/map/map_rhi_renderer.hpp>
 
+#include <scwx/util/logger.hpp>
+
 #include <QMapLibre/Map>
 
 #include <rhi/qrhi.h>
@@ -8,6 +10,9 @@
 
 namespace scwx::qt::map
 {
+
+static const std::string logPrefix_ = "scwx::qt::map::map_rhi_renderer";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 void MapRhiRenderer::InitializeMapRenderer(QRhi*           rhi,
                                            QWindow*        window,
@@ -21,6 +26,7 @@ void MapRhiRenderer::InitializeMapRenderer(QRhi*           rhi,
    map->destroyRenderer();
    initialized_ = false;
 
+#if !defined(__APPLE__)
    if (rhi->backend() == QRhi::Vulkan)
    {
       const QRhiNativeHandles* nativeHandles = rhi->nativeHandles();
@@ -42,12 +48,21 @@ void MapRhiRenderer::InitializeMapRenderer(QRhi*           rhi,
                                                   vkHandles->dev,
                                                   vkHandles->gfxQueueFamilyIdx);
             initialized_ = true;
+            logger_->debug("MapLibre Vulkan renderer initialized");
             return;
          }
       }
    }
+#else
+   (void) window;
+#endif
 
+   // Metal (and fallback): MapLibre creates its own device/context and
+   // receives the QRhi color texture each frame via setExternalDrawable.
    map->createRenderer(nullptr);
+   initialized_ = true;
+   logger_->debug("MapLibre renderer initialized (backend={})",
+                  static_cast<int>(rhi->backend()));
 }
 
 void MapRhiRenderer::RenderMap(QRhiTexture* colorTexture, QMapLibre::Map* map)
@@ -60,11 +75,11 @@ void MapRhiRenderer::RenderMap(QRhiTexture* colorTexture, QMapLibre::Map* map)
    const QRhiTexture::NativeTexture nativeTexture =
       colorTexture->nativeTexture();
 
-   auto* vulkanImagePtr =
-      reinterpret_cast<void*>(nativeTexture.object); // NOLINT
-   if (vulkanImagePtr != nullptr)
+   // Vulkan: VkImage*; Metal: MTLTexture* — MapLibre interprets by backend.
+   auto* nativePtr = reinterpret_cast<void*>(nativeTexture.object); // NOLINT
+   if (nativePtr != nullptr)
    {
-      map->setExternalDrawable(vulkanImagePtr, colorTexture->pixelSize());
+      map->setExternalDrawable(nativePtr, colorTexture->pixelSize());
    }
 
    map->render();

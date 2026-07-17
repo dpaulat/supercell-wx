@@ -1,5 +1,7 @@
 #include <scwx/qt/render/rhi_vulkan_result.hpp>
 
+#if !defined(__APPLE__)
+
 #include <scwx/util/logger.hpp>
 
 #include <mutex>
@@ -59,3 +61,5 @@ void ReportVulkanResult(VkResult result, const char* context)
 }
 
 } // namespace scwx::qt::render
+
+#endif // !defined(__APPLE__)

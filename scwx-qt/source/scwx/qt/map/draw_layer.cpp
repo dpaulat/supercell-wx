@@ -13,7 +13,9 @@
 #include <scwx/qt/render/rhi_imgui_util.hpp>
 #include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 
-#include <backends/imgui_impl_vulkan.h>
+#if !defined(__APPLE__)
+#   include <backends/imgui_impl_vulkan.h>
+#endif
 
 namespace scwx::qt::map
 {
@@ -114,7 +116,9 @@ void DrawLayer::ImGuiFrameStartVulkan(
 
    model::ImGuiContextModel::Instance().NewFrame();
    ImGui_ImplQt_NewFrame(mapContext->widget());
+#if !defined(__APPLE__)
    ImGui_ImplVulkan_NewFrame();
+#endif
    ImGui::NewFrame();
    ImGui::PushFont(defaultFont.first->font(), defaultFont.second.value());
 }

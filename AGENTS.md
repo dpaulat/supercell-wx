@@ -190,8 +190,10 @@ Recommended extensions: C/C++ Extension Pack, clangd, CMake Tools, Python.
 ### Address Sanitizer
 Enable with `-DSCWX_ADDRESS_SANITIZER=ON` or use presets like `linux-gcc-debug-asan`. Useful for memory leak/corruption detection.
 
-### Vulkan Development
-Map rendering uses Qt `QRhiWidget` with Vulkan. Optional environment variables:
+### Graphics backends
+Map rendering uses Qt `QRhiWidget`: **Vulkan** on Windows/Linux, **Metal** on macOS (stock aqt Qt; no MoltenVK/custom Qt). Overlay draw code stays on QRhi; shaders are `.qsb` packs (SPIR-V + MSL) from GLSL via `tools/compile-vulkan-shaders.sh`.
+
+Optional environment variables (Vulkan hosts):
 
 | Variable | Effect |
 |---|---|
@@ -201,7 +203,7 @@ Map rendering uses Qt `QRhiWidget` with Vulkan. Optional environment variables:
 | `SCWX_VULKAN_PERF=1` | Extra Vulkan/QRhi timing logs |
 | `SCWX_VULKAN_PIPELINE_CACHE_DISABLE=1` | Skip loading/saving Vulkan pipeline cache blobs |
 
-Device or surface loss triggers map resource reset via `render::RegisterVulkanResultHandler`. Pipeline cache files live under the app cache directory (`qrhi-vulkan-pipeline-cache.bin`, `imgui-vulkan-pipeline-cache.bin`); bump `kCacheVersion` in `rhi_pipeline_cache.cpp` when shader layouts change materially.
+Device or surface loss triggers map resource reset via `render::RegisterVulkanResultHandler` (Vulkan only). Pipeline cache files live under the app cache directory (`qrhi-vulkan-pipeline-cache.bin`, `imgui-vulkan-pipeline-cache.bin`); bump `kCacheVersion` in `rhi_pipeline_cache.cpp` when shader layouts change materially.
 
 ### CI Reference
 See [.github/workflows/ci.yml](.github/workflows/ci.yml) for complete build matrix. Mirrors setup scripts but includes AppImage packaging, artifact collection.
