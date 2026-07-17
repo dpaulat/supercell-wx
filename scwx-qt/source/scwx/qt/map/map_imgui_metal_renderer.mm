@@ -81,9 +81,9 @@ bool MapImGuiMetalRenderer::InitBackend(QRhiTexture* colorTexture)
    const auto* metalHandles =
       static_cast<const QRhiMetalNativeHandles*>(nativeHandles);
    // Qt forward-declares MTLDevice as a class; Metal.h uses a protocol.
-   // Cast via void* so ARC accepts Qt's MTLDevice* as id<MTLDevice>.
+   // ARC: ObjC* → void* needs __bridge, then void* → id<>.
    id<MTLDevice> device =
-      (__bridge id<MTLDevice>)(void*) metalHandles->dev;
+      (__bridge id<MTLDevice>)(__bridge void*) metalHandles->dev;
    if (device == nil)
    {
       return false;
@@ -95,7 +95,7 @@ bool MapImGuiMetalRenderer::InitBackend(QRhiTexture* colorTexture)
       return false;
    }
 
-   device_ = (void*) metalHandles->dev;
+   device_ = (__bridge void*) metalHandles->dev;
    EnsureRenderPassDescriptor(colorTexture);
    return true;
 }
@@ -270,9 +270,11 @@ void MapImGuiMetalRenderer::RenderDrawData(QRhiCommandBuffer* commandBuffer)
    const auto* metalHandles =
       static_cast<const QRhiMetalCommandBufferNativeHandles*>(nativeHandles);
    id<MTLCommandBuffer> commandBufferMetal =
-      (__bridge id<MTLCommandBuffer>)(void*) metalHandles->commandBuffer;
+      (__bridge id<MTLCommandBuffer>)(__bridge void*)
+         metalHandles->commandBuffer;
    id<MTLRenderCommandEncoder> encoder =
-      (__bridge id<MTLRenderCommandEncoder>)(void*) metalHandles->encoder;
+      (__bridge id<MTLRenderCommandEncoder>)(__bridge void*)
+         metalHandles->encoder;
    if (commandBufferMetal == nil || encoder == nil)
    {
       return;
