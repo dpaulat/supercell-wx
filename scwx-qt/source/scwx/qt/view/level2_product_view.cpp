@@ -108,8 +108,6 @@ public:
          otherUnitsCallbackUuid_);
       unitSettings.speed_units().UnregisterValueChangedCallback(
          speedUnitsCallbackUuid_);
-
-      threadPool_.join();
    };
 
    Impl(const Impl&)            = delete;
@@ -199,7 +197,14 @@ Level2ProductView::Level2ProductView(
 
 Level2ProductView::~Level2ProductView()
 {
-   std::unique_lock sweepLock {sweep_mutex()};
+   // Stop callbacks that can post ComputeSweep, then join while Impl is still
+   // alive. Do not hold sweep_mutex across join: a worker blocked on that lock
+   // would deadlock.
+   DisconnectProductSettings();
+   Level2ProductView::DisconnectRadarProductManager();
+
+   p->threadPool_.stop();
+   p->threadPool_.join();
 }
 
 void Level2ProductView::ConnectRadarProductManager()
@@ -238,6 +243,10 @@ void Level2ProductView::DisconnectRadarProductManager()
 {
    disconnect(radar_product_manager().get(),
               &manager::RadarProductManager::DataReloaded,
+              this,
+              nullptr);
+   disconnect(radar_product_manager().get(),
+              &manager::RadarProductManager::ProductTimesPopulated,
               this,
               nullptr);
 }
@@ -687,10 +696,19 @@ void Level2ProductView::ComputeSweep()
    vertexRadials =
       std::min<std::size_t>(vertexRadials, common::MAX_0_5_DEGREE_RADIALS);
 
-   auto& radarData0     = (*radarData)[0];
-   auto  momentData0    = radarData0->moment_data_block(p->dataBlockType_);
-   p->elevationScan_    = radarData;
-   p->momentDataBlock0_ = momentData0;
+   const auto radarData0It = radarData->find(0);
+   if (radarData0It == radarData->cend() || radarData0It->second == nullptr)
+   {
+      logger_->warn("Empty radial data for {}",
+                    common::GetLevel2Name(p->product_));
+      Q_EMIT SweepNotComputed(types::NoUpdateReason::InvalidData);
+      return;
+   }
+
+   const auto& radarData0  = radarData0It->second;
+   const auto  momentData0 = radarData0->moment_data_block(p->dataBlockType_);
+   p->elevationScan_       = radarData;
+   p->momentDataBlock0_    = momentData0;
 
    if (momentData0 == nullptr)
    {
@@ -778,8 +796,20 @@ void Level2ProductView::ComputeSweep()
       const auto&   radialPair = *it;
       std::uint16_t radial     = radialPair.first;
       const auto&   radialData = radialPair.second;
+      if (radialData == nullptr)
+      {
+         logger_->warn("Radial {} has no data", radial);
+         continue;
+      }
+
       const std::shared_ptr<wsr88d::rda::GenericRadarData::MomentDataBlock>
          momentData = radialData->moment_data_block(p->dataBlockType_);
+
+      if (momentData == nullptr)
+      {
+         logger_->warn("Radial {} has no moment data", radial);
+         continue;
+      }
 
       if (momentData0->data_word_size() != momentData->data_word_size())
       {
@@ -841,9 +871,13 @@ void Level2ProductView::ComputeSweep()
 
       if (cfpMoments.size() > 0)
       {
-         cfpMomentsArray = reinterpret_cast<const std::uint8_t*>(
-            radialData->moment_data_block(wsr88d::rda::DataBlockType::MomentCfp)
-               ->data_moments());
+         const auto cfpMomentData = radialData->moment_data_block(
+            wsr88d::rda::DataBlockType::MomentCfp);
+         if (cfpMomentData != nullptr)
+         {
+            cfpMomentsArray = reinterpret_cast<const std::uint8_t*>(
+               cfpMomentData->data_moments());
+         }
       }
 
       std::shared_ptr<wsr88d::rda::GenericRadarData::MomentDataBlock>
@@ -860,7 +894,18 @@ void Level2ProductView::ComputeSweep()
 
          const auto& nextRadialPair = *(nextIt);
          const auto& nextRadialData = nextRadialPair.second;
+         if (nextRadialData == nullptr)
+         {
+            logger_->warn("Next radial has no data");
+            continue;
+         }
+
          nextMomentData = nextRadialData->moment_data_block(p->dataBlockType_);
+         if (nextMomentData == nullptr)
+         {
+            logger_->warn("Next radial has no moment data");
+            continue;
+         }
 
          if (momentData->data_word_size() != nextMomentData->data_word_size())
          {
@@ -1191,8 +1236,20 @@ void Level2ProductView::Impl::ComputeCoordinates(
    // Calculate azimuth coordinates
    timer.start();
 
-   auto& radarData0  = (*radarData)[0];
-   auto  momentData0 = radarData0->moment_data_block(dataBlockType_);
+   const auto radarData0It = radarData->find(0);
+   if (radarData0It == radarData->cend() || radarData0It->second == nullptr)
+   {
+      logger_->warn("Empty radial data");
+      return;
+   }
+
+   const auto& radarData0  = radarData0It->second;
+   const auto  momentData0 = radarData0->moment_data_block(dataBlockType_);
+   if (momentData0 == nullptr)
+   {
+      logger_->warn("No moment data");
+      return;
+   }
 
    const auto gateSize = momentData0->data_moment_range_sample_interval();
 
@@ -1231,8 +1288,9 @@ void Level2ProductView::Impl::ComputeCoordinates(
       {
          units::degrees<float> angle {};
 
-         auto radialData = radarData->find(radial);
-         if (radialData != radarData->cend() && smoothingEnabled)
+         const auto radialData = radarData->find(radial);
+         if (radialData != radarData->cend() && radialData->second != nullptr &&
+             smoothingEnabled)
          {
             angle = radialData->second->azimuth_angle();
          }
@@ -1244,7 +1302,9 @@ void Level2ProductView::Impl::ComputeCoordinates(
                (radial >= 2) ? radial - 2 : numRadials - (2 - radial));
 
             if (radialData != radarData->cend() &&
-                prevRadial1 != radarData->cend() && !smoothingEnabled)
+                radialData->second != nullptr &&
+                prevRadial1 != radarData->cend() &&
+                prevRadial1->second != nullptr && !smoothingEnabled)
             {
                const units::degrees<float> currentAngle =
                   radialData->second->azimuth_angle();
@@ -1261,7 +1321,8 @@ void Level2ProductView::Impl::ComputeCoordinates(
 
                angle = currentAngle - deltaAngle * deltaScale;
             }
-            else if (radialData != radarData->cend() && !smoothingEnabled)
+            else if (radialData != radarData->cend() &&
+                     radialData->second != nullptr && !smoothingEnabled)
             {
                const units::degrees<float> currentAngle =
                   radialData->second->azimuth_angle();
@@ -1277,7 +1338,9 @@ void Level2ProductView::Impl::ComputeCoordinates(
                angle = currentAngle - deltaAngle * deltaScale;
             }
             else if (prevRadial1 != radarData->cend() &&
-                     prevRadial2 != radarData->cend())
+                     prevRadial1->second != nullptr &&
+                     prevRadial2 != radarData->cend() &&
+                     prevRadial2->second != nullptr)
             {
                const units::degrees<float> prevAngle1 =
                   prevRadial1->second->azimuth_angle();
@@ -1299,7 +1362,8 @@ void Level2ProductView::Impl::ComputeCoordinates(
 
                angle = prevAngle1 + deltaAngle * deltaScale;
             }
-            else if (prevRadial1 != radarData->cend())
+            else if (prevRadial1 != radarData->cend() &&
+                     prevRadial1->second != nullptr)
             {
                const units::degrees<float> prevAngle1 =
                   prevRadial1->second->azimuth_angle();
@@ -1363,6 +1427,13 @@ bool Level2ProductView::Impl::IsRadarDataIncomplete(
    // Assume the data is incomplete when the delta between the first and last
    // angles is greater than 2.5 degrees.
    constexpr units::degrees<float> kIncompleteDataAngleThreshold_ {2.5};
+
+   if (radarData == nullptr || radarData->empty() ||
+       radarData->cbegin()->second == nullptr ||
+       radarData->crbegin()->second == nullptr)
+   {
+      return false;
+   }
 
    const units::degrees<float> firstAngle =
       radarData->cbegin()->second->azimuth_angle();
@@ -1462,13 +1533,14 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
          units::degrees<float> startAngle {};
          units::degrees<float> nextAngle {};
 
-         auto radialData = radarData->find(i);
-         if (radialData != radarData->cend())
+         const auto radialData = radarData->find(i);
+         if (radialData != radarData->cend() && radialData->second != nullptr)
          {
             startAngle = radialData->second->azimuth_angle();
 
-            auto nextRadial = radarData->find((i + 1) % numRadials);
-            if (nextRadial != radarData->cend())
+            const auto nextRadial = radarData->find((i + 1) % numRadials);
+            if (nextRadial != radarData->cend() &&
+                nextRadial->second != nullptr)
             {
                nextAngle = nextRadial->second->azimuth_angle();
 
@@ -1486,7 +1558,8 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
                auto prevRadial =
                   radarData->find((i >= 1) ? i - 1 : numRadials - (1 - i));
 
-               if (prevRadial != radarData->cend())
+               if (prevRadial != radarData->cend() &&
+                   prevRadial->second != nullptr)
                {
                   const units::degrees<float> prevAngle =
                      prevRadial->second->azimuth_angle();
@@ -1530,8 +1603,19 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
       return std::nullopt;
    }
 
+   const auto radialData = radarData->find(*radial);
+   if (radialData == radarData->cend() || radialData->second == nullptr)
+   {
+      return std::nullopt;
+   }
+
+   const auto momentData = radialData->second->moment_data_block(dataBlockType);
+   if (momentData == nullptr)
+   {
+      return std::nullopt;
+   }
+
    // Compute gate interval
-   auto momentData = (*radarData)[*radial]->moment_data_block(dataBlockType);
    const std::int32_t dataMomentInterval =
       momentData->data_moment_range_sample_interval_raw();
    const std::int32_t dataMomentIntervalH = dataMomentInterval / 2;
@@ -1630,6 +1714,11 @@ Level2ProductView::GetDataLevelCode(std::uint16_t level) const
 
 std::optional<float> Level2ProductView::GetDataValue(std::uint16_t level) const
 {
+   if (p->momentDataBlock0_ == nullptr)
+   {
+      return std::nullopt;
+   }
+
    const float   offset    = p->momentDataBlock0_->offset();
    const float   scale     = p->momentDataBlock0_->scale();
    std::uint16_t threshold = std::numeric_limits<std::uint16_t>::max();

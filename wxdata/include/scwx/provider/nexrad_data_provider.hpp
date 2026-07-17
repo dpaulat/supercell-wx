@@ -13,7 +13,7 @@ namespace scwx::provider
 class NexradDataProvider
 {
 public:
-   explicit NexradDataProvider();
+   explicit NexradDataProvider(const std::string& radarSite);
    virtual ~NexradDataProvider();
 
    NexradDataProvider(const NexradDataProvider&)            = delete;
@@ -32,6 +32,13 @@ public:
     */
    [[nodiscard]] virtual std::chrono::system_clock::time_point
    last_modified() const = 0;
+
+   /**
+    * Gets the radar site of the provider.
+    *
+    * @return Radar site of the provider
+    */
+   [[nodiscard]] virtual std::string radar_site() const;
 
    /**
     * Gets the current update period. This is equal to the difference between

@@ -26,7 +26,7 @@ public:
 
    void Shutdown() noexcept override;
 
-   std::vector<std::string>
+   std::pair<bool, std::vector<std::string>>
    ListObjects(std::chrono::system_clock::time_point date) override;
 
    [[nodiscard]] std::string GetFileUrl(const std::string& key) const override;

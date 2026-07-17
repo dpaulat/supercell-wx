@@ -53,6 +53,7 @@
 #include <scwx/qt/ui/import/import_settings_wizard.hpp>
 #include <scwx/common/characters.hpp>
 #include <scwx/common/products.hpp>
+#include <scwx/common/sites.hpp>
 #include <scwx/common/vcp.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
@@ -3907,8 +3908,8 @@ void MainWindowImpl::UpdateRadarProductSettings()
 void MainWindowImpl::UpdateRadarSite()
 {
    std::shared_ptr<config::RadarSite> radarSite = activeMap_->GetRadarSite();
-   const std::string                  homeRadarSite =
-      settings::GeneralSettings::Instance().default_radar_site().GetValue();
+   const std::string homeRadarSite              = common::GetCanonicalRadarId(
+      settings::GeneralSettings::Instance().default_radar_site().GetValue());
 
    if (radarSite != nullptr)
    {

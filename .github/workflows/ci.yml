@@ -130,36 +130,17 @@ jobs:
             appimage_arch: aarch64
             artifact_suffix: linux-gcc-13-arm64
             compiler_packages: g++-13
-          - name: macos_clang-22_x64
-            os: macos-15-intel
-            build_type: Release
-            env_cc: clang
-            env_cxx: clang++
-            compiler: clang
-            qt_version: 6.11.1
-            qt_arch_aqt: clang_64
-            qt_arch_dir: macos
-            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
-            qt_tools: ''
-            conan_package_manager: ''
-            conan_profile: scwx-macos_clang-22
-            appimage_arch: ''
-            artifact_suffix: macos-x64
-          - name: macos_clang-22_arm64
-            os: macos-14
-            build_type: Release
-            env_cc: clang
-            env_cxx: clang++
-            compiler: clang
-            qt_version: 6.11.1
-            qt_arch_aqt: clang_64
-            qt_arch_dir: macos
-            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
-            qt_tools: ''
-            conan_package_manager: ''
-            conan_profile: scwx-macos_clang-22_armv8
-            appimage_arch: ''
-            artifact_suffix: macos-arm64
+          # macOS CI disabled for the Vulkan stack: stock aqt Qt builds omit
+          # QT_FEATURE_vulkan / QtGui QVulkan* headers. MapLibre's Vulkan Qt
+          # backend includes those headers at compile time, and MapWidget pins
+          # QRhiWidget::Api::Vulkan. Re-enable when Apple uses Metal (or a
+          # custom Qt+MoltenVK build) for both MapLibre and QRhi.
+          # - name: macos_clang-22_x64
+          #   os: macos-15-intel
+          #   ...
+          # - name: macos_clang-22_arm64
+          #   os: macos-14
+          #   ...
     name: ${{ matrix.name }}
     env:
       CC: ${{ matrix.env_cc }}

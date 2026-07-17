@@ -171,6 +171,10 @@ void Level3ProductView::DisconnectRadarProductManager()
               &manager::RadarProductManager::DataReloaded,
               this,
               nullptr);
+   disconnect(radar_product_manager().get(),
+              &manager::RadarProductManager::ProductTimesPopulated,
+              this,
+              nullptr);
 }
 
 std::shared_ptr<common::ColorTable> Level3ProductView::color_table() const

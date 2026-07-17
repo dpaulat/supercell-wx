@@ -20,7 +20,12 @@ class OverlayProductView::Impl
 {
 public:
    explicit Impl(OverlayProductView* self) : self_ {self} {}
-   ~Impl() { threadPool_.join(); }
+   ~Impl() = default;
+
+   Impl(const Impl&)                = delete;
+   Impl& operator=(const Impl&)     = delete;
+   Impl(Impl&&) noexcept            = delete;
+   Impl& operator=(Impl&&) noexcept = delete;
 
    void ConnectRadarProductManager();
    void DisconnectRadarProductManager();
@@ -49,7 +54,15 @@ public:
 };
 
 OverlayProductView::OverlayProductView() : p(std::make_unique<Impl>(this)) {};
-OverlayProductView::~OverlayProductView() = default;
+OverlayProductView::~OverlayProductView()
+{
+   // Stop callbacks that can post work before joining the pool, while Impl and
+   // the QObject are still alive.
+   p->DisconnectRadarProductManager();
+
+   p->threadPool_.stop();
+   p->threadPool_.join();
+}
 
 std::shared_ptr<manager::RadarProductManager>
 OverlayProductView::radar_product_manager() const
@@ -147,7 +160,15 @@ void OverlayProductView::Impl::DisconnectRadarProductManager()
    if (radarProductManager_ != nullptr)
    {
       disconnect(radarProductManager_.get(),
+                 &manager::RadarProductManager::DataReloaded,
+                 self_,
+                 nullptr);
+      disconnect(radarProductManager_.get(),
                  &manager::RadarProductManager::NewDataAvailable,
+                 self_,
+                 nullptr);
+      disconnect(radarProductManager_.get(),
+                 &manager::RadarProductManager::ProductTimesPopulated,
                  self_,
                  nullptr);
    }

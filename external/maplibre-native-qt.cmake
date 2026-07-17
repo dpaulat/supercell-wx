@@ -16,13 +16,14 @@ if (APPLE)
 endif()
 
 # MapLibre platform/qt/qt.cmake FATAL_ERRORs unless find_path finds
-# qvulkaninstance.h in Qt*Gui_INCLUDE_DIRS. aqt macOS Qt often omits that
-# header; MapLibre never #includes it for the Vulkan backend — probe only.
+# qvulkaninstance.h in Qt*Gui_INCLUDE_DIRS. Stock aqt macOS Qt omits Vulkan
+# Gui headers entirely (QT_FEATURE_vulkan off); the Vulkan Qt backend still
+# #includes QVulkan* at compile time, so macOS CI is disabled until Metal or
+# a custom Qt+MoltenVK build. Pre-seed QT_VULKAN_HEADER for the configure
+# probe on other hosts that only lack the header path (not the full API).
 #
 # Do NOT rely on mutating Qt*Gui_INCLUDE_DIRS: maplibre-native-qt's
-# CMakeLists re-runs find_package(Qt Gui) and resets those dirs, wiping any
-# stub path. Pre-seed QT_VULKAN_HEADER (MapLibre's find_path cache var)
-# instead so the probe succeeds regardless.
+# CMakeLists re-runs find_package(Qt Gui) and resets those dirs.
 if (MLN_WITH_VULKAN)
     find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Gui REQUIRED)
     set(_scwx_qt_gui_include_dirs ${Qt${QT_VERSION_MAJOR}Gui_INCLUDE_DIRS})

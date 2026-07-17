@@ -15,7 +15,8 @@ set(SRC_AWIPS_TESTS source/scwx/awips/coded_location.test.cpp
                     source/scwx/awips/ugc.test.cpp
                     source/scwx/awips/wmo_header.test.cpp)
 set(SRC_COMMON_TESTS source/scwx/common/color_table.test.cpp
-                     source/scwx/common/products.test.cpp)
+                     source/scwx/common/products.test.cpp
+                     source/scwx/common/sites.test.cpp)
 set(SRC_CONFIG_TESTS source/scwx/config/ondas_config.test.cpp
                      source/scwx/config/ondas_config_loader.test.cpp)
 set(SRC_GR_TESTS source/scwx/gr/placefile.test.cpp)

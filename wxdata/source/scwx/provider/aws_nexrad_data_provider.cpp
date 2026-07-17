@@ -103,6 +103,7 @@ public:
 AwsNexradDataProvider::AwsNexradDataProvider(const std::string& radarSite,
                                              const std::string& bucketName,
                                              const std::string& region) :
+    NexradDataProvider(radarSite),
     p(std::make_unique<Impl>(radarSite, bucketName, region))
 {
 }

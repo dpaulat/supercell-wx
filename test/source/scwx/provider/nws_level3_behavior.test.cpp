@@ -21,7 +21,8 @@ TEST(NwsLevel3BehaviorTest, InvalidProductListObjects)
 {
    NwsLevel3Behavior behavior(kNwsLevel3BaseUri, "KLSX", "???");
 
-   const auto objects = behavior.ListObjects(std::chrono::system_clock::now());
+   const auto objects =
+      behavior.ListObjects(std::chrono::system_clock::now()).second;
 
    EXPECT_TRUE(objects.empty());
 }
@@ -37,7 +38,8 @@ TEST(NwsLevel3BehaviorTest, ListObjects)
 {
    NwsLevel3Behavior behavior(kNwsLevel3BaseUri, "KLSX", "N0Q");
 
-   const auto objects = behavior.ListObjects(std::chrono::system_clock::now());
+   const auto objects =
+      behavior.ListObjects(std::chrono::system_clock::now()).second;
 
    if (objects.empty())
    {
@@ -57,7 +59,8 @@ TEST(NwsLevel3BehaviorTest, GetTimePointByKey)
 {
    NwsLevel3Behavior behavior(kNwsLevel3BaseUri, "KLSX", "N0Q");
 
-   const auto objects = behavior.ListObjects(std::chrono::system_clock::now());
+   const auto objects =
+      behavior.ListObjects(std::chrono::system_clock::now()).second;
 
    if (objects.empty())
    {
