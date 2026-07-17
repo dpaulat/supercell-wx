@@ -32,6 +32,7 @@
 #include <scwx/qt/util/tooltip.hpp>
 #include <scwx/qt/view/overlay_product_view.hpp>
 #include <scwx/qt/view/radar_product_view_factory.hpp>
+#include <scwx/common/sites.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
@@ -300,9 +301,9 @@ public:
    void RunMousePicking();
    void ScreenCaptureCopy();
    void ScreenCaptureSaveImage();
-   void SelectNearestRadarSite(double                     latitude,
-                               double                     longitude,
-                               std::optional<std::string> type);
+   void SelectNearestRadarSite(double                          latitude,
+                               double                          longitude,
+                               std::optional<types::RadarType> type);
    void SetRadarSite(const std::string& radarSite,
                      bool               checkProductAvailability = false);
    [[nodiscard]] QPointF EraseCursorWidgetPosition() const;
@@ -1382,12 +1383,12 @@ void MapWidget::SetMapLocation(double latitude,
          auto& generalSettings = settings::GeneralSettings::Instance();
 
          // Find the nearest radar
-         std::optional<std::string> type = std::nullopt;
+         std::optional<types::RadarType> type = std::nullopt;
 
          if (generalSettings.auto_navigate_to_wsr88d_only().GetValue())
          {
             // Find the nearest WSR-88D radar
-            type = "wsr88d";
+            type = types::RadarType::WSR88D;
          }
 
          // Find the nearest radar
@@ -1958,10 +1959,13 @@ void MapWidget::mousePressEvent(QMouseEvent* ev)
       {
          auto& generalSettings = settings::GeneralSettings::Instance();
 
-         std::optional<std::string> type = std::nullopt;
+         // Select nearest radar on middle click
+         std::optional<types::RadarType> type = std::nullopt;
+
          if (generalSettings.auto_navigate_to_wsr88d_only().GetValue())
          {
-            type = "wsr88d";
+            // Select nearest WSR-88D radar on middle click
+            type = types::RadarType::WSR88D;
          }
 
          auto coordinate = p->map_->coordinateForPixel(p->lastPos_);
@@ -3038,16 +3042,16 @@ void MapWidgetImpl::ScreenCaptureSaveImage()
       });
 }
 
-void MapWidgetImpl::SelectNearestRadarSite(double                     latitude,
-                                           double                     longitude,
-                                           std::optional<std::string> type)
+void MapWidgetImpl::SelectNearestRadarSite(double latitude,
+                                           double longitude,
+                                           std::optional<types::RadarType> type)
 {
    const bool isArchiveMode =
       manager::TimelineManager::Instance()->GetViewType() ==
       types::MapTime::Archive;
    const bool includeDown           = isArchiveMode;
    const bool includeDecommissioned = isArchiveMode;
-   auto       radarSite             = config::RadarSite::FindNearest(
+   const auto radarSite             = config::RadarSite::FindNearest(
       latitude, longitude, type, includeDown, includeDecommissioned);
 
    if (radarSite != nullptr)
@@ -3060,21 +3064,25 @@ void MapWidgetImpl::SetRadarSite(const std::string& radarSite,
                                  bool               checkProductAvailability)
 {
    // Set the radar site in the context
-   context_->set_radar_site(config::RadarSite::Get(radarSite));
+   const std::string canonicalRadarSite =
+      common::GetCanonicalRadarId(radarSite);
+   const auto newRadarSite = config::RadarSite::Get(canonicalRadarSite);
+   context_->set_radar_site(newRadarSite);
 
    const std::shared_ptr<config::RadarSite> currentRadarSite =
       radarProductManager_ != nullptr ? radarProductManager_->radar_site() :
                                         nullptr;
 
    // Check if radar site has changed
-   if ((currentRadarSite == nullptr && !radarSite.empty()) ||
-       (currentRadarSite != nullptr && radarSite != currentRadarSite->id()))
+   if ((currentRadarSite == nullptr && !canonicalRadarSite.empty()) ||
+       (currentRadarSite != nullptr &&
+        canonicalRadarSite != currentRadarSite->id()))
    {
       // Disconnect signals from old RadarProductManager
       RadarProductManagerDisconnect();
 
       // Update views
-      if (radarSite.empty())
+      if (canonicalRadarSite.empty())
       {
          radarProductManager_.reset();
          context_->overlay_product_view()->set_radar_product_manager(nullptr);
@@ -3085,7 +3093,8 @@ void MapWidgetImpl::SetRadarSite(const std::string& radarSite,
       }
 
       // Set new RadarProductManager
-      radarProductManager_ = manager::RadarProductManager::Instance(radarSite);
+      radarProductManager_ =
+         manager::RadarProductManager::Instance(canonicalRadarSite);
       context_->overlay_product_view()->set_radar_product_manager(
          radarProductManager_);
 

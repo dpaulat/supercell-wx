@@ -1,0 +1,300 @@
+
+      OPEN NEXRAD DATA ACCESS SPECIFICATION -- ONDAS/1.0-DRAFT
+
+                   Tyler J Allison  (AllisonHouse)
+                Michael Gibson (Gibson Ridge Software)
+                Eric Nelson (College of DuPage Nexlab)
+                   Tim Vasquez (Weather Graphics)
+
+			     June 2005
+
+
+
+		         TABLE OF CONTENTS
+
+1.  INTRODUCTION .................................................. 1
+2.  REQUIREMENTS .................................................. 1
+3.  SPECIFICATIONS ..,,............................................ 2 
+    3.1 Base URI .................................................. 2 
+    3.2 Data Configuration File ................................... 2
+        3.2.1 Naming Convention ................................... 2
+        3.2.2 Content ............................................. 2
+              3.2.2.1 File Listing ................................ 2
+              3.2.2.2 Available Sites ............................. 3 
+              3.2.2.3 Available Products .......................... 3
+              3.2.2.3.1 Level II Data ............................. 3
+              3.2.2.3.2 Level III Data ............................ 3
+    3.3 NEXRAD Data Files ......................................... 4 
+       3.3.1 Directory Listing .................................... 4
+       3.3.2 Level III Data Format ................................ 4
+             3.3.2.1 Uncompressed ................................. 4
+             3.3.2.2 Compressed ................................... 5
+4.  LDM Configuration ............................................. X
+    4.1 Level II .................................................. X
+    4.2 Level III ................................................. X
+
+
+
+
+
+                   OPEN NEXRAD DATA ACCESS SPECIFICATION
+
+1. INTRODUCTION
+
+   The objective of the Open Nexrad Data Access Specification (ONDAS)
+   is to make raw NEXRAD data, and ancillary related data, available
+   to clients in a structured manner, with minimal impact to the
+   data server and in an efficient manner.
+
+   ONDAS is independent of the particular transmission subsystem and
+   requires only a reliable ordered data stream channel. Local file
+   systems, HTTP or FTP could be used.
+
+
+2. REQUIREMENTS
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL
+   NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and 
+   "OPTIONAL" in this document are to be interpreted as described in
+   RFC 2119.
+
+   An implementation is not compliant if it fails to satisfy one or
+   more of the MUST or REQUIRED level requirements for the
+   specification it implements. An implementation that satisfies all
+   the MUST or REQUIRED level and all the SHOULD level requirements
+   for its protocols is said to be "unconditionally compliant"; one
+   that satisfies all the MUST level requirements but not all the
+   SHOULD level requirements for its protocols is said to be
+   "conditionally compliant".
+
+
+3. SPECIFICATIONS 
+
+3.1 Base URI
+   
+   ONDAS presumes a base URI on which to build the client data
+   request. No particular base URI is required in the specification,
+   but a few examples would be:
+
+   http://www.webserver.com/data/nexrad/
+   ftp://www.ftpserver.com/
+   C:/Nexrad/Data/
+   
+   Clients are expected to already know the Base URI for the
+   particular data service provider they intend to use.
+
+3.2 Data Configuration File
+
+3.2.1 Naming Convention
+
+   Data providers MUST provide a config file upon request from a
+   client. The config file MUST be named 'config.cfg' and be located
+   at the base URI of the service.
+   
+   http://www.webserver.com/data/nexrad/config.cfg
+   ftp://www.ftpserver.com/config.cfg
+   C:/Nexrad/Data/config.cfg
+
+   Clients MUST request the config.cfg file upon first contact with
+   the data provider.
+
+   Clients MAY request the config.cfg file at anytime.
+
+3.2.2 Content
+
+3.2.2.1 File Listing
+
+   The configuration file MUST contain a ListFile directive that
+   specifies what file contains a list of available data files. A
+   new line starting with 'ListFile:' is used.
+
+   The format MUST be:
+
+   ListFile: ffffff
+
+   ONDAS clients MUST default to a ListFile of 'dir.list' should no
+   ListFile directive be found in the Data Configuration File.
+
+3.2.2.2 Available Sites
+
+   The configuration file MUST contain a Site directive that specifies
+   which radar sites are available beneath the Base URI. A new line
+   starting with 'Site:' specifies a single radar location.
+
+   The format MUST be:
+
+   Site: SSSS
+
+   Data providers MUST use the four letter WMO format in all capitals.
+
+   Site: KILN
+   Site: KFWS
+   
+3.2.2.3 Available Products
+
+3.2.2.3.1 Level II Data
+
+   Level II NEXRAD data is not made available from the NWS in
+   individual product files as is the case with Level III data.
+
+   Level II data providers MUST store the data in a directory
+   structure using the 4 letter WMO format and MUST be all capitals
+   letters. [See LDM Configuration]
+
+   Level II clients MAY ignore the Product directive and presume
+   that all products for a particular site and for a particular time
+   are contained within a single file within the site directory
+   below the Base URI.
+
+   A directory listing URI for the Level II data at site location
+   KILN, from a server whos config.cfg file contains the
+   following lines:
+
+   ListFile: dir.list
+   Site: KILN
+
+   might be...
+
+   http://www.webserver.com/data/nexrad/KILN/dir.list
+   ftp://www.ftpserver.com/KILN/dir.list
+   C:/Nexrad/Data/KILN/dir.list
+
+
+3.2.2.3.2 Level III Data
+
+   When providing Level III NEXRAD data the configuration file MUST
+   contain a Product directive that specifies what products are
+   available beneath the Base URI. A new line starting with 
+   'Product:' specifies a single product.
+
+   Each line MUST consist of the following:
+
+   Product: TTT DDDDDD
+
+   TTT is the three letter code for a product.
+   DDDDDD is the directory in which the product can be found.
+
+   Clients MUST search the DDDDDD portion of the product directive
+   for literal 'SSSS', 'SSS', 'ssss', and 'sss'. If found the client
+   MUST convert to upper or lower, and possibly trim, the requested
+   site to the appropriate format. The remaining characters in the
+   directory portion of the product directive MUST have their case
+   preserved. For example:
+
+   For 'Site: KILN'
+   Product: N0R SSS/N0R  =  Product: NOR ILN/NOR 
+   Product: N0R sss/N0R  =  Product: NOR iln/NOR
+   Product: N0R ssss/nor =  Product: NOR kiln/nor
+
+   A directory listing URI for the Level III NOR product at site
+   location KILN, from a server whos config.cfg file contains the
+   following lines:
+
+   ListFile: dir.list
+   Site: KILN
+   Product: NOR sss/NOR
+
+   might be...
+
+   http://www.webserver.com/data/nexrad/iln/NOR/dir.list
+   ftp://www.ftpserver.com/iln/NOR/dir.list
+   C:/Nexrad/Data/iln/NOR/dir.list
+
+
+3.3 NEXRAD Data Files
+
+   All data providers MUST store files using the below specified
+   format. 
+
+   The first 8 contiguous digits are used for the data (yyyymmdd), an
+   underscore, the next 4 contiguous digits are the time (hhmm) in 24
+   hour notation. Date and time MUST be in GMT/UTC timezone.
+
+   June 26, 2005 @ 11:45PM UTC would be 20050626_2145
+
+3.3.1 Directory Listing
+
+   Data providers MUST provide the client with a directory listing
+   upon request. 
+
+   Data providers MAY restrict how often a client may request a
+   directory listing.
+
+   Clients SHOULD NOT request a directory listing less than 60
+   seconds from the previous directory listing.
+
+   When producing a directory listing (default: dir.list) the files
+   must be in date sorted order with the newest file at the bottom of
+   the list. A directory listing might contain the following:
+
+   20050626_2145
+   20050626_2155
+   20050626_2205
+   20050626_2214
+   20050626_2224
+   20050626_2234
+   20050626_2244
+   20050626_2253
+   20050626_2303
+
+3.3.2 Level III Data Format
+
+   All clients MUST support uncompressed and compressed file formats.
+
+   All clients MUST be able to determine if they are dealing with a
+   compressed file or an uncompressed file. The data provider is not
+   required to identify the format.
+
+   Data providers MAY provide either format.
+
+3.3.2.1 Uncompressed
+
+   All clients MUST support uncompressed data.
+
+   Data providers MAY support uncompressed data.
+
+   Uncompressed format is what is normally available on the public
+   National Weather Service servers.
+
+3.3.2.2 Compressed
+
+   All clients MUST support compressed data.
+
+   Data providers MAY support compressed data.
+
+   Level III data is commonly compressed using the zlib compression
+   algorithm when transmitted using the Unidata/LDM system. The files
+   also contain a standard WMO CCB header.  Once the file has been
+   decompressed and the header is stripped, the file will process
+   exactly like the uncompressed format.
+
+   Sample code is available upon request. (ucnids.c)
+
+4. LDM Configuration
+
+  LDM is a software package provided by Unidata and is commonly used
+  to obtain meterological data.
+
+4.1 Level II
+
+  Your pqact.conf file would contain the following if you intended to
+  make all radar data available via your service. The output directory
+  is up to the administrator, however a suggestion is provided below.
+
+  CRAFT   ^L2-BZIP2/(....)/([0-9][0-9][0-9][0-9][0-1][0-9][0-3][0-9])(
+[0-2][0-9][0 -5][0-9])([0-9][0-9])
+        FILE    data/craft/\1/\1_\2_\3
+ 
+4.2 Level III 
+
+  Your pqact.conf file would contain the following if you intended to
+  make all radar data available via your service. The output directory
+  is up to the administrator, however a suggestion is provided below.
+
+  NEXRAD  ^SDUS.. .... ([0-3][0-9])([0-2][0-9])([0-6][0-9]).*/p(...)(.
+..)
+        FILE    -close  data/nexrad/\5/\4/(\1:yyyy)(\1:mm)\1_\2\3
+
+
+
+1234567890123456789012345678901234567890123456789012345678901234567890

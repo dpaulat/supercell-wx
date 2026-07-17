@@ -12,6 +12,8 @@ struct Options
    bool                     showHelp_ {false};
    bool                     enableConsole_ {false};
    bool                     portableMode_ {false};
+   std::string              level2Provider_ {};
+   std::string              level3Provider_ {};
    std::string              settingsDirectory_ {};
    std::vector<std::string> unrecognizedArgs_ {};
 };

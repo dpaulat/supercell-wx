@@ -2,24 +2,33 @@
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/qt/util/json.hpp>
 #include <scwx/common/sites.hpp>
+#include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
+#include <scwx/util/streams.hpp>
+#include <scwx/util/time.hpp>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <iterator>
 #include <shared_mutex>
+#include <string>
 #include <unordered_map>
 
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/json.hpp>
+#include <boost/tokenizer.hpp>
+#include <units/length.h>
+#include <QFile>
+#include <QTextStream>
 
 #if (__cpp_lib_chrono < 201907L)
 #   include <date/date.h>
 #endif
 
-namespace scwx
-{
-namespace qt
-{
-namespace config
+namespace scwx::qt::config
 {
 
 static const std::string logPrefix_ = "scwx::qt::config::radar_site";
@@ -28,13 +37,32 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static const std::string defaultRadarSiteFile_ =
    ":/res/config/radar_sites.json";
 
-static const std::unordered_map<std::string, std::string> typeNameMap_ {
-   {"wsr88d", "WSR-88D"}, {"tdwr", "TDWR"}, {"?", "?"}};
-
 static std::unordered_map<std::string, std::shared_ptr<RadarSite>>
                                                     radarSiteMap_;
+static std::vector<std::shared_ptr<RadarSite>>      radarSiteList_;
 static std::unordered_map<std::string, std::string> siteIdMap_;
 static std::shared_mutex                            siteMutex_;
+
+// Time zones for known custom radar sites
+static const std::unordered_map<std::string, std::string> timeZoneMap_ {
+   {"DAN1", "America/Chicago"},
+   {"DOP1", "America/Chicago"},
+   {"FOP1", "America/Chicago"},
+   {"FUSA", "America/New_York"},
+   {"FWLX", "America/Chicago"},
+   {"GAWX", "America/New_York"},
+   {"K08D", "America/Chicago"},
+   {"KCRI", "America/Chicago"},
+   {"KOUN", "America/Chicago"},
+   {"KULM", "America/Chicago"},
+   {"KXWA", "America/Chicago"},
+   {"MZZU", "America/Chicago"},
+   {"NOP3", "America/Chicago"},
+   {"NOP4", "America/Chicago"},
+   {"OP5R", "America/Anchorage"},
+   {"ROP3", "America/Chicago"},
+   {"ROP4", "America/Chicago"},
+   {"WILU", "America/Chicago"}};
 
 static bool ValidateJsonEntry(const boost::json::object& o);
 
@@ -49,15 +77,18 @@ public:
    Impl(const Impl&&)            = delete;
    Impl& operator=(const Impl&&) = delete;
 
-   std::string type_ {};
-   std::string id_ {};
-   double      latitude_ {0.0};
-   double      longitude_ {0.0};
-   std::string country_ {};
-   std::string state_ {};
-   std::string place_ {};
-   std::string tzName_ {};
-   double      altitude_ {0.0};
+   static std::size_t ReadGisConfig(const std::string& filePath);
+   static std::size_t ReadJsonConfig(const std::string& filePath);
+
+   types::RadarType            type_ {types::RadarType::Unknown};
+   std::string                 id_ {};
+   double                      latitude_ {0.0};
+   double                      longitude_ {0.0};
+   std::string                 country_ {};
+   std::string                 state_ {};
+   std::string                 place_ {};
+   std::string                 tzName_ {};
+   units::length::feet<double> altitude_ {0.0};
 
    std::atomic<std::chrono::system_clock::time_point> lastReceived_ {};
    std::atomic<std::chrono::milliseconds>             latency_ {};
@@ -73,22 +104,14 @@ RadarSite::~RadarSite() = default;
 RadarSite::RadarSite(RadarSite&&) noexcept            = default;
 RadarSite& RadarSite::operator=(RadarSite&&) noexcept = default;
 
-std::string RadarSite::type() const
+types::RadarType RadarSite::type() const
 {
    return p->type_;
 }
 
 std::string RadarSite::type_name() const
 {
-   auto it = typeNameMap_.find(p->type_);
-   if (it != typeNameMap_.cend())
-   {
-      return it->second;
-   }
-   else
-   {
-      return typeNameMap_.at("?");
-   }
+   return types::GetRadarTypeLongName(p->type_);
 }
 
 std::string RadarSite::id() const
@@ -125,7 +148,7 @@ std::string RadarSite::location_name() const
 {
    std::string locationName;
 
-   if (p->country_ == "USA")
+   if (p->country_ == "USA" || p->country_.empty())
    {
       locationName = fmt::format("{}, {}", p->place_, p->state_);
    }
@@ -192,12 +215,14 @@ void RadarSite::set_status(types::RadarSiteStatus status)
 
 std::shared_ptr<RadarSite> RadarSite::Get(const std::string& id)
 {
-   std::shared_lock           lock(siteMutex_);
+   const std::string canonicalId = common::GetCanonicalRadarId(id);
+
+   const std::shared_lock     lock(siteMutex_);
    std::shared_ptr<RadarSite> radarSite = nullptr;
 
-   if (radarSiteMap_.contains(id))
+   if (radarSiteMap_.contains(canonicalId))
    {
-      radarSite = radarSiteMap_.at(id);
+      radarSite = radarSiteMap_.at(canonicalId);
    }
 
    return radarSite;
@@ -205,25 +230,16 @@ std::shared_ptr<RadarSite> RadarSite::Get(const std::string& id)
 
 std::vector<std::shared_ptr<RadarSite>> RadarSite::GetAll()
 {
-   std::shared_lock                        lock(siteMutex_);
-   std::vector<std::shared_ptr<RadarSite>> radarSites;
-
-   radarSites.reserve(radarSiteMap_.size());
-
-   for (const auto& site : radarSiteMap_)
-   {
-      radarSites.push_back(site.second);
-   }
-
-   return radarSites;
+   const std::shared_lock lock(siteMutex_);
+   return radarSiteList_;
 }
 
 std::shared_ptr<RadarSite>
-RadarSite::FindNearest(double                            latitude,
-                       double                            longitude,
-                       const std::optional<std::string>& type,
-                       bool                              includeDown,
-                       bool                              includeDecommissioned)
+RadarSite::FindNearest(double                                latitude,
+                       double                                longitude,
+                       const std::optional<types::RadarType> type,
+                       bool                                  includeDown,
+                       bool includeDecommissioned)
 {
    std::shared_lock lock(siteMutex_);
 
@@ -232,12 +248,10 @@ RadarSite::FindNearest(double                            latitude,
    std::shared_ptr<RadarSite> nearestRadarSite = nullptr;
    double                     nearestDistance  = 0.0;
 
-   for (const auto& site : radarSiteMap_)
+   for (const auto& radarSite : radarSiteList_)
    {
-      auto& radarSite = site.second;
-
       // If the type filter doesn't match, skip
-      if (type.has_value() && radarSite->type() != type)
+      if (type.has_value() && radarSite->type() != *type)
       {
          continue;
       }
@@ -292,28 +306,273 @@ void RadarSite::Initialize()
    if (!initialized_)
    {
       ReadConfig(defaultRadarSiteFile_);
+
+      const std::string level2Url =
+         scwx::util::GetEnvironment("SCWX_LEVEL2_DATA_PROVIDER_URL");
+      const std::string level3Url =
+         scwx::util::GetEnvironment("SCWX_LEVEL3_DATA_PROVIDER_URL");
+
+      if (boost::icontains(level2Url, "iastate.edu") ||
+          boost::icontains(level3Url, "iastate.edu"))
+      {
+         // Detected Iowa State University data provider URL in environment
+         // variables. Load radar sites from Iowa State University GIS config.
+         ReadConfig(":/res/config/radars_iastate.gis");
+      }
+
+      if (boost::icontains(level2Url, "allisonhouse.com") ||
+          boost::icontains(level3Url, "allisonhouse.com") ||
+          boost::icontains(level2Url, "weatherpulse.com") ||
+          boost::icontains(level3Url, "weatherpulse.com"))
+      {
+         // Detected Weather Pulse data provider URL in environment
+         // variables. Load radar sites from Weather Pulse GIS config.
+         ReadConfig(":/res/config/radars_weatherpulse.gis");
+      }
+
       initialized_ = true;
    }
 }
 
-size_t RadarSite::ReadConfig(const std::string& path)
+std::size_t RadarSite::ReadConfig(const std::string& path)
 {
    logger_->info("Loading radar sites from \"{}\"...", path);
 
-   bool   dataValid  = true;
-   size_t sitesAdded = 0;
+   // Apply static site-ID aliases (e.g. PBI -> TDJT) before parsing so tests
+   // that call ReadConfig without Initialize still resolve legacy designators.
+   {
+      const std::unique_lock lock(siteMutex_);
+      for (const auto& record : common::GetSiteIdMap())
+      {
+         siteIdMap_.emplace(record.first, record.second);
+      }
+   }
 
-   boost::json::value j = util::json::ReadJsonQFile(path);
+   std::size_t sitesAdded = 0;
+
+   if (boost::iends_with(path, ".json"))
+   {
+      sitesAdded = Impl::ReadJsonConfig(path);
+   }
+   else if (boost::iends_with(path, ".gis"))
+   {
+      sitesAdded = Impl::ReadGisConfig(path);
+   }
+   else
+   {
+      logger_->warn("Unsupported radar site config format: \"{}\"", path);
+   }
+
+   return sitesAdded;
+}
+
+std::size_t RadarSite::Impl::ReadGisConfig(const std::string& filePath)
+{
+   // CSV fields:
+   // 0: ID (e.g. "MZZU")
+   // 1: Parent ID (e.g. "MZZU")
+   // 2: Latitude (e.g. "34.161")
+   // 3: Longitude (e.g. "-84.143")
+   // 4: Elevation in meters (e.g. "305.0")
+   // 5: Type ID (e.g. "1" for Research, "29" for WSR-88D, etc.)
+   // 6: State (e.g. "GA")
+   // 7: Description (e.g. "Some description")
+   enum class Field : std::uint8_t
+   {
+      Id = 0,
+      ParentId,
+      Latitude,
+      Longitude,
+      Elevation,
+      TypeId,
+      State,
+      Description
+   };
+
+   static constexpr std::size_t kNumFields = 8;
+   std::size_t                  sitesAdded = 0;
+
+   QFile file {QString::fromStdString(filePath)};
+   if (!file.open(QIODevice::ReadOnly))
+   {
+      logger_->error("Failed to open radar site config file: \"{}\"", filePath);
+      return sitesAdded;
+   }
+
+   std::string                   line;
+   std::string                   id;
+   std::string                   parentId;
+   double                        latitude {};
+   double                        longitude {};
+   units::length::meters<double> elevation;
+   std::uint32_t                 typeId {};
+   std::string                   state;
+   std::string                   description;
+
+   using tokenizer = boost::tokenizer<boost::escaped_list_separator<char>>;
+   static const boost::escaped_list_separator<char> separator {
+      '\\',  // Escape character
+      ',',   // Separator character
+      '\"'}; // Quote character
+
+   QTextStream fileStream(&file);
+   fileStream.setEncoding(QStringConverter::Utf8);
+
+   const std::string  fileSource = fileStream.readAll().toStdString();
+   std::istringstream is {fileSource};
+
+   while (scwx::util::getline(is, line))
+   {
+      boost::trim(line);
+      if (line.empty())
+      {
+         continue; // Skip empty lines
+      }
+
+      const tokenizer   tokens {line, separator};
+      const std::size_t tokenCount =
+         std::distance(tokens.begin(), tokens.end());
+
+      if (tokenCount < kNumFields)
+      {
+         logger_->warn(
+            "Invalid line in GIS radar site config (expected at least {} "
+            "fields): \"{}\"",
+            kNumFields,
+            line);
+         continue;
+      }
+
+      std::vector<std::string> fields {};
+      fields.reserve(std::distance(tokens.begin(), tokens.end()));
+      std::ranges::transform(tokens,
+                             std::back_inserter(fields),
+                             [](const std::string& s)
+                             { return boost::trim_copy(s); });
+
+      try
+      {
+         id       = fields[static_cast<std::size_t>(Field::Id)];
+         parentId = fields[static_cast<std::size_t>(Field::ParentId)];
+         latitude =
+            std::stod(fields[static_cast<std::size_t>(Field::Latitude)]);
+         longitude =
+            std::stod(fields[static_cast<std::size_t>(Field::Longitude)]);
+         elevation = units::length::meters<double> {
+            std::stod(fields[static_cast<std::size_t>(Field::Elevation)])};
+         typeId = static_cast<std::uint32_t>(
+            std::stoul(fields[static_cast<std::size_t>(Field::TypeId)]));
+         state       = fields[static_cast<std::size_t>(Field::State)];
+         description = fields[static_cast<std::size_t>(Field::Description)];
+      }
+      catch (const std::exception& ex)
+      {
+         logger_->warn(
+            "Error parsing line in GIS radar site config: \"{}\". Error: {}",
+            line,
+            ex.what());
+         continue;
+      }
+
+      logger_->trace(
+         "Parsed GIS radar site: id={}, parentId={}, lat={}, lon={}, elev={}, "
+         "typeId={}, state={}, description={}",
+         id,
+         parentId,
+         latitude,
+         longitude,
+         elevation.value(),
+         typeId,
+         state,
+         description);
+
+      boost::to_upper(id);
+
+      // Create RadarSite object and add to map
+      auto radarSite           = std::make_shared<RadarSite>();
+      radarSite->p->id_        = id;
+      radarSite->p->type_      = types::GetRadarType(typeId);
+      radarSite->p->latitude_  = latitude;
+      radarSite->p->longitude_ = longitude;
+      radarSite->p->altitude_  = elevation;
+      radarSite->p->state_     = state;
+      radarSite->p->place_     = description; // Using description as place
+
+      const auto timeZoneIt = timeZoneMap_.find(id);
+      if (timeZoneIt != timeZoneMap_.end())
+      {
+         radarSite->p->tzName_ = timeZoneIt->second;
+      }
+      else
+      {
+         // GIS config doesn't include time zone info
+         radarSite->p->tzName_ = "UTC";
+      }
+
+      try
+      {
+#if (__cpp_lib_chrono >= 201907L)
+         using namespace std::chrono;
+#else
+         using namespace date;
+#endif
+
+         radarSite->p->timeZone_ =
+            get_tzdb().locate_zone(radarSite->p->tzName_);
+      }
+      catch (const std::runtime_error&)
+      {
+         logger_->warn("{} unknown time zone: {}",
+                       radarSite->p->id_,
+                       radarSite->p->tzName_);
+      }
+
+      const std::unique_lock lock(siteMutex_);
+
+      if (!radarSiteMap_.contains(id))
+      {
+         radarSiteMap_[id] = radarSite;
+         radarSiteList_.push_back(radarSite);
+         ++sitesAdded;
+      }
+      else
+      {
+         logger_->debug("Duplicate radar site ID found in GIS config: \"{}\"",
+                        id);
+      }
+
+      const std::string siteId = common::GetSiteId(id);
+
+      if (!siteIdMap_.contains(siteId))
+      {
+         siteIdMap_[siteId] = id;
+      }
+      else if (siteIdMap_.at(siteId) != id)
+      {
+         logger_->warn(
+            "Site ID conflict: {} and {}", siteIdMap_.at(siteId), id);
+      }
+   }
+
+   return sitesAdded;
+}
+
+std::size_t RadarSite::Impl::ReadJsonConfig(const std::string& filePath)
+{
+   bool        dataValid  = true;
+   std::size_t sitesAdded = 0;
+
+   const boost::json::value j = util::json::ReadJsonQFile(filePath);
 
    dataValid = j.is_array();
 
    if (dataValid)
    {
-      std::unique_lock lock(siteMutex_);
+      const std::unique_lock lock(siteMutex_);
 
-      for (auto& v : j.as_array())
+      for (const auto& v : j.as_array())
       {
-         auto& o = v.as_object();
+         const auto& o = v.as_object();
 
          if (!ValidateJsonEntry(o))
          {
@@ -323,17 +582,18 @@ size_t RadarSite::ReadConfig(const std::string& path)
          {
             std::shared_ptr<RadarSite> site = std::make_shared<RadarSite>();
 
-            site->p->type_ = boost::json::value_to<std::string>(o.at("type"));
-            site->p->id_   = boost::json::value_to<std::string>(o.at("id"));
-            site->p->latitude_  = boost::json::value_to<double>(o.at("lat"));
+            site->p->type_ = types::GetRadarType(
+               boost::json::value_to<std::string>(o.at("type")));
+            site->p->id_       = boost::json::value_to<std::string>(o.at("id"));
+            site->p->latitude_ = boost::json::value_to<double>(o.at("lat"));
             site->p->longitude_ = boost::json::value_to<double>(o.at("lon"));
             site->p->country_ =
                boost::json::value_to<std::string>(o.at("country"));
             site->p->state_ = boost::json::value_to<std::string>(o.at("state"));
             site->p->place_ = boost::json::value_to<std::string>(o.at("place"));
             site->p->tzName_ = boost::json::value_to<std::string>(o.at("tz"));
-            site->p->altitude_ =
-               boost::json::value_to<double>(o.at("elevation"));
+            site->p->altitude_ = units::length::feet<double> {
+               boost::json::value_to<double>(o.at("elevation"))};
 
             try
             {
@@ -354,6 +614,7 @@ size_t RadarSite::ReadConfig(const std::string& path)
             if (!radarSiteMap_.contains(site->p->id_))
             {
                radarSiteMap_[site->p->id_] = site;
+               radarSiteList_.push_back(site);
                ++sitesAdded;
             }
 
@@ -387,6 +648,4 @@ static bool ValidateJsonEntry(const boost::json::object& o)
            o.contains("place") && o.at("place").is_string());
 }
 
-} // namespace config
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::config

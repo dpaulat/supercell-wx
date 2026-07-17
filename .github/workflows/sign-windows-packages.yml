@@ -3,19 +3,11 @@ name: Sign Windows Packages
 on:
   workflow_dispatch:
     inputs:
-      run-id:
-        description: CI workflow run ID that produced the Windows artifacts
-        required: true
-        type: string
       signing-policy:
         description: SignPath signing policy slug
         required: true
         type: string
         default: test-signing
-
-permissions:
-  actions: read
-  contents: read
 
 jobs:
   sign-and-package:
@@ -23,25 +15,23 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: windows_vs2022_x64
-            os: windows-2022
+          - name: windows_vs2026_x64
+            os: windows-2025-vs2026
             build_type: Release
             vs_arch: x64
-            vs_version: 2022
+            vs_version: 18
             qt_version: 6.11.1
             qt_arch_aqt: win64_msvc2022_64
             qt_arch_dir: msvc2022_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
-            conan_profile: scwx-windows_vs2022_x64
-            windows_artifact_name: supercell-wx-windows-vs2022-x64
-            signed_windows_artifact_name: supercell-wx-signed-windows-vs2022-x64
-            unsigned_installer_artifact_name: supercell-wx-installer-unsigned-windows-vs2022-x64
-            signed_installer_artifact_name: supercell-wx-installer-signed-windows-vs2022-x64
+            conan_profile: scwx-windows_vs2026_x64
+            windows_artifact_name: supercell-wx-windows-vs2026-x64
+            signed_windows_artifact_name: supercell-wx-signed-windows-vs2026-x64
+            unsigned_installer_artifact_name: supercell-wx-installer-unsigned-windows-vs2026-x64
+            signed_installer_artifact_name: supercell-wx-installer-signed-windows-vs2026-x64
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     env:
-      RUN_ID: ${{ inputs.run-id || '22879759893' }}
-      UNSIGNED_ARTIFACTS_DIR: ${{ github.workspace }}\unsigned-artifacts
       SIGNED_ARTIFACTS_DIR: ${{ github.workspace }}\signed-artifacts
       SIGNED_INSTALLER_DIR: ${{ github.workspace }}\signed-installer
       SIGNPATH_ORGANIZATION_ID: 7b83cc63-b02a-4b77-a91f-808f4b4db14c
@@ -49,46 +39,6 @@ jobs:
       SIGNPATH_SIGNING_POLICY: ${{ inputs.signing-policy || 'test-signing' }}
 
     steps:
-    - name: Resolve CI Windows Artifact
-      id: ci-artifact
-      uses: actions/github-script@v9
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const runId = Number(process.env.RUN_ID);
-
-          if (!Number.isInteger(runId) || runId <= 0) {
-            core.setFailed(`Invalid workflow run ID: ${process.env.RUN_ID}`);
-            return;
-          }
-
-          const {owner, repo} = context.repo;
-          const artifactName = `${{ matrix.windows_artifact_name }}`;
-          const [runResponse, artifactsResponse] = await Promise.all([
-            github.rest.actions.getWorkflowRun({owner, repo, run_id: runId}),
-            github.rest.actions.listWorkflowRunArtifacts({owner, repo, run_id: runId, per_page: 100})
-          ]);
-
-          if (runResponse.data.status !== 'completed') {
-            core.setFailed(`Workflow run ${runId} is not completed.`);
-            return;
-          }
-
-          if (runResponse.data.conclusion !== 'success') {
-            core.setFailed(`Workflow run ${runId} concluded with '${runResponse.data.conclusion}'.`);
-            return;
-          }
-
-          const artifact = artifactsResponse.data.artifacts.find(a => a.name === artifactName && !a.expired);
-
-          if (!artifact) {
-            core.setFailed(`Artifact '${artifactName}' was not found for workflow run ${runId}.`);
-            return;
-          }
-
-          core.info(`Using artifact '${artifact.name}' (${artifact.id}) from ${runResponse.data.html_url}`);
-          core.info(`Artifact workflow head SHA: ${runResponse.data.head_sha}`);
-
     - name: Setup
       shell: pwsh
       run: git config --global core.longpaths true
@@ -98,21 +48,6 @@ jobs:
       with:
         path: source
         submodules: recursive
-
-    - name: Download CI Artifacts (Windows)
-      uses: actions/download-artifact@v8
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        run-id: ${{ env.RUN_ID }}
-        name: ${{ matrix.windows_artifact_name }}
-        path: ${{ env.UNSIGNED_ARTIFACTS_DIR }}\${{ matrix.windows_artifact_name }}
-
-    - name: Upload Unsigned Artifacts (Windows)
-      id: upload-unsigned-windows-artifacts
-      uses: actions/upload-artifact@v7
-      with:
-        name: ${{ matrix.windows_artifact_name }}
-        path: ${{ env.UNSIGNED_ARTIFACTS_DIR }}\${{ matrix.windows_artifact_name }}
 
     - name: Install Qt
       uses: jdpurcell/install-qt-action@v5
@@ -125,22 +60,33 @@ jobs:
         aqtsource: git+https://github.com/miurahr/aqtinstall.git@073e34d7c2ab4ae6961ed7cca690b3abd5ba5a7e
 
     - name: Setup MSVC
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: ${{ matrix.vs_arch }}
-        vsversion: ${{ matrix.vs_version }}
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+        $vsPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        if (-not $vsPath) { throw "Visual Studio with C++ tools not found" }
+
+        $vsDevCmd = Join-Path $vsPath "Common7\Tools\VsDevCmd.bat"
+        if (-not (Test-Path $vsDevCmd)) { throw "VsDevCmd not found at $vsDevCmd" }
+
+        $arch = if ("${{ matrix.vs_arch }}" -eq "x64") { "amd64" } else { "${{ matrix.vs_arch }}" }
+
+        cmd.exe /d /s /c """$vsDevCmd"" -arch=$arch -host_arch=$arch && set" |
+          ForEach-Object {
+            if ($_ -match "^(.*?)=(.*)$") {
+              "$($matches[1])=$($matches[2])" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            }
+          }
 
     - name: Setup Python Environment
       shell: pwsh
       run: |
-        pip install conan
+        pip install geopandas `
+                    GitPython `
+                    conan
 
-    - name: Cache Conan Packages
-      uses: actions/cache@v5
-      with:
-        path: ~/.conan2
-        key: build-v2-${{ matrix.conan_profile }}-${{ hashFiles('./source/conanfile.py', './source/tools/conan/profiles/*') }}
-
+    # Do not use cache for Conan packages for the signing workflow for traceability purposes
     - name: Install Conan Packages
       shell: pwsh
       run: |
@@ -157,6 +103,32 @@ jobs:
           --settings:all build_type=${{ matrix.build_type }} `
           --output-folder ./conan/
         conan cache clean
+
+    - name: Build Supercell Wx
+      shell: pwsh
+      run: |
+        cd build
+        cmake ../source/ `
+          -G Ninja `
+          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" `
+          -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES="${{ github.workspace }}/source/external/cmake-conan/conan_provider.cmake" `
+          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/supercell-wx" `
+          -DCONAN_HOST_PROFILE="${{ matrix.conan_profile }}" `
+          -DCONAN_BUILD_PROFILE="${{ matrix.conan_profile }}"
+        ninja supercell-wx wxtest
+
+    - name: Install Supercell Wx
+      shell: pwsh
+      run: |
+        cd build
+        cmake --install . --component supercell-wx
+
+    - name: Upload Unsigned Artifacts (Windows)
+      id: upload-unsigned-windows-artifacts
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.windows_artifact_name }}
+        path: ${{ github.workspace }}/supercell-wx/
 
     - name: Sign Artifacts (Windows)
       id: sign-windows-artifacts

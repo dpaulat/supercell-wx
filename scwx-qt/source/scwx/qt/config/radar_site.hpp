@@ -24,7 +24,7 @@ public:
    RadarSite(RadarSite&&) noexcept;
    RadarSite& operator=(RadarSite&&) noexcept;
 
-   [[nodiscard]] std::string                 type() const;
+   [[nodiscard]] types::RadarType            type() const;
    [[nodiscard]] std::string                 type_name() const;
    [[nodiscard]] std::string                 id() const;
    [[nodiscard]] double                      latitude() const;
@@ -59,11 +59,11 @@ public:
     * @return Nearest radar site
     */
    static std::shared_ptr<RadarSite>
-   FindNearest(double                            latitude,
-               double                            longitude,
-               const std::optional<std::string>& type        = std::nullopt,
-               bool                              includeDown = true,
-               bool                              includeDecommissioned = true);
+   FindNearest(double                          latitude,
+               double                          longitude,
+               std::optional<types::RadarType> type        = std::nullopt,
+               bool                            includeDown = true,
+               bool                            includeDecommissioned = true);
 
    static void   Initialize();
    static size_t ReadConfig(const std::string& path);

@@ -19,6 +19,7 @@
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/qt/ui/setup/setup_wizard.hpp>
 #include <scwx/qt/main/check_privilege.hpp>
+#include <scwx/common/application_state.hpp>
 #include <scwx/network/cpr.hpp>
 #include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
@@ -187,6 +188,7 @@ int main(int argc, char* argv[])
    }
 
    // Deinitialize application
+   scwx::common::ApplicationState::Shutdown();
    scwx::qt::manager::RadarProductManager::Cleanup();
 
    // Stop Qt Threads

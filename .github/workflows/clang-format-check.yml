@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   format:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
 
     - name: Checkout
@@ -30,13 +30,15 @@ jobs:
     - name: Setup Ubuntu Environment
       shell: bash
       run: |
-        sudo apt-get install clang-format-19
+        sudo apt-get install clang-format-21
         sudo rm -f /usr/bin/clang-format
-        sudo ln -s /usr/bin/clang-format-19 /usr/bin/clang-format
+        sudo ln -s /usr/bin/clang-format-21 /usr/bin/clang-format
 
     - name: Check Formatting
       shell: bash
+      env:
+        HEAD_REF: ${{ github.event.pull_request.head.sha || github.ref }}
       run: |
-        MERGE_BASE=$(git merge-base origin/develop ${{ github.event.pull_request.head.sha || github.ref }})
+        MERGE_BASE=$(git merge-base origin/develop "${HEAD_REF}")
         echo "Comparing against ${MERGE_BASE}"
-        git clang-format-19 --diff --style=file -v ${MERGE_BASE}
+        git clang-format-21 --diff --style=file -v ${MERGE_BASE}

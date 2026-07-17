@@ -103,15 +103,11 @@ public:
 AwsNexradDataProvider::AwsNexradDataProvider(const std::string& radarSite,
                                              const std::string& bucketName,
                                              const std::string& region) :
+    NexradDataProvider(radarSite),
     p(std::make_unique<Impl>(radarSite, bucketName, region))
 {
 }
 AwsNexradDataProvider::~AwsNexradDataProvider() = default;
-
-AwsNexradDataProvider::AwsNexradDataProvider(AwsNexradDataProvider&&) noexcept =
-   default;
-AwsNexradDataProvider&
-AwsNexradDataProvider::operator=(AwsNexradDataProvider&&) noexcept = default;
 
 size_t AwsNexradDataProvider::cache_size() const
 {
@@ -236,6 +232,11 @@ AwsNexradDataProvider::GetTimePointsByDate(
    }
 
    return timePoints;
+}
+
+bool AwsNexradDataProvider::IsDateArchiveAvailable() const
+{
+   return true;
 }
 
 bool AwsNexradDataProvider::IsDateCached(

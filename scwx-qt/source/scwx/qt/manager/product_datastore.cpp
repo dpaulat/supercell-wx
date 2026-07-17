@@ -1,14 +1,17 @@
 #include <scwx/qt/manager/product_datastore.hpp>
 #include <scwx/qt/manager/provider_manager.hpp>
+#include <scwx/common/sites.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/map.hpp>
 #include <scwx/util/time.hpp>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <execution>
 #include <list>
 #include <mutex>
+#include <ranges>
 #include <set>
 #include <shared_mutex>
 #include <unordered_map>
@@ -328,7 +331,13 @@ private:
                         std::chrono::system_clock::time_point time,
                         bool                                  update)
    {
-      if (providerManager == nullptr || providerManager->provider() == nullptr)
+      if (providerManager == nullptr)
+      {
+         return;
+      }
+
+      const auto providers = providerManager->providers();
+      if (providers.empty())
       {
          return;
       }
@@ -359,30 +368,71 @@ private:
 
       const auto yesterday = today - std::chrono::days {1};
       const auto tomorrow  = today + std::chrono::days {1};
-      const auto dates     = {yesterday, today, tomorrow};
+      const auto dates     = std::array {yesterday, today, tomorrow};
 
       std::set<std::chrono::system_clock::time_point> volumeTimes {};
       std::mutex                                      volumeTimesMutex {};
 
+      const auto processDate =
+         [&](const std::shared_ptr<provider::NexradDataProvider>& provider,
+             const auto&                                          date)
+      {
+         if (date > scwx::util::time::now())
+         {
+            return;
+         }
+
+         const auto timePoints = provider->GetTimePointsByDate(date, update);
+         if (timePoints.empty())
+         {
+            return;
+         }
+
+         providerManager->NoteVolumeTimes(provider->radar_site(), timePoints);
+
+         const std::unique_lock volumeTimesLock {volumeTimesMutex};
+
+         std::copy(timePoints.begin(),
+                   timePoints.end(),
+                   std::inserter(volumeTimes, volumeTimes.end()));
+      };
+
       std::for_each(
          std::execution::par,
-         dates.begin(),
-         dates.end(),
-         [&](const auto& date)
+         providers.begin(),
+         providers.end(),
+         [&](const auto& provider)
          {
-            if (date > scwx::util::time::now())
+            if (provider->IsDateArchiveAvailable())
             {
-               return;
+               std::for_each(std::execution::par,
+                             dates.begin(),
+                             dates.end(),
+                             [&](const auto& date)
+                             {
+                                const auto candidates =
+                                   common::GetRadarIdCandidates(
+                                      provider->radar_site(), date);
+
+                                if (std::ranges::find(candidates,
+                                                      provider->radar_site()) !=
+                                    candidates.cend())
+                                {
+                                   processDate(provider, date);
+                                }
+                             });
             }
+            else
+            {
+               const auto candidates =
+                  common::GetRadarIdCandidates(provider->radar_site(), today);
 
-            auto timePoints =
-               providerManager->provider()->GetTimePointsByDate(date, update);
-
-            std::unique_lock const volumeTimesLock {volumeTimesMutex};
-
-            std::copy(timePoints.begin(),
-                      timePoints.end(),
-                      std::inserter(volumeTimes, volumeTimes.end()));
+               if (std::ranges::find(candidates, provider->radar_site()) !=
+                   candidates.cend())
+               {
+                  processDate(provider, today);
+               }
+            }
          });
 
       std::unique_lock const lock {productRecordMutex};
@@ -435,14 +485,21 @@ bool ProductDatastore::AreProductTimesPopulated(
    const std::shared_ptr<ProviderManager>& providerManager,
    std::chrono::system_clock::time_point   time)
 {
-   if (providerManager == nullptr || providerManager->provider() == nullptr)
+   if (providerManager == nullptr)
    {
       return false;
    }
 
+   const auto providers = providerManager->providers();
+   if (providers.empty())
+   {
+      // If providers are not available, assume product times are populated
+      return true;
+   }
+
    auto today = std::chrono::floor<std::chrono::days>(time);
 
-   bool productTimesPopulated = true;
+   bool productTimesPopulated = false;
 
    if (today == std::chrono::system_clock::time_point {})
    {
@@ -451,18 +508,61 @@ bool ProductDatastore::AreProductTimesPopulated(
 
    const auto yesterday = today - std::chrono::days {1};
    const auto tomorrow  = today + std::chrono::days {1};
-   const auto dates     = {yesterday, today, tomorrow};
 
-   for (auto& date : dates)
+   for (const auto& provider : providers)
    {
-      if (date > scwx::util::time::now())
+      bool providerTimesPopulated = true;
+      bool providerValidForDates  = false;
+
+      if (provider->IsDateArchiveAvailable())
       {
-         continue;
+         const auto dates = std::array {yesterday, today, tomorrow};
+
+         for (const auto& date : dates)
+         {
+            if (date > scwx::util::time::now())
+            {
+               continue;
+            }
+
+            const auto candidates =
+               common::GetRadarIdCandidates(provider->radar_site(), date);
+
+            if (std::ranges::find(candidates, provider->radar_site()) ==
+                candidates.cend())
+            {
+               continue;
+            }
+
+            providerValidForDates = true;
+
+            if (!provider->IsDateCached(date))
+            {
+               providerTimesPopulated = false;
+            }
+         }
+      }
+      else
+      {
+         const auto candidates =
+            common::GetRadarIdCandidates(provider->radar_site(), today);
+
+         if (std::ranges::find(candidates, provider->radar_site()) !=
+             candidates.cend())
+         {
+            providerValidForDates = true;
+         }
+
+         if (providerValidForDates && !provider->IsDateCached(today))
+         {
+            providerTimesPopulated = false;
+         }
       }
 
-      if (!providerManager->provider()->IsDateCached(date))
+      if (providerValidForDates && providerTimesPopulated)
       {
-         productTimesPopulated = false;
+         productTimesPopulated = true;
+         break;
       }
    }
 

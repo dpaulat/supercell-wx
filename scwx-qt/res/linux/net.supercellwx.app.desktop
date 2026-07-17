@@ -3,5 +3,5 @@ Type=Application
 Name=Supercell Wx
 Comment=Weather Radar and Data Viewer
 Exec=supercell-wx
-Icon=net.supercellwx.app.png
+Icon=net.supercellwx.app
 Categories=Network;Science;

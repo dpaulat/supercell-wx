@@ -500,6 +500,9 @@ set(SHADER_FILES gl/annotation_geo.vert
 
 set(CMAKE_FILES scwx-qt.cmake)
 
+set(GIS_FILES res/config/radars_iastate.gis
+              res/config/radars_weatherpulse.gis)
+
 set(JSON_FILES res/config/radar_sites.json)
 
 set(TS_FILES ts/scwx_en_US.ts)
@@ -558,6 +561,7 @@ set(PROJECT_SOURCES ${HDR_MAIN}
                     ${HDR_VIEW}
                     ${SRC_VIEW}
                     ${SHADER_FILES}
+                    ${GIS_FILES}
                     ${JSON_FILES}
                     ${TS_FILES}
                     ${CMAKE_FILES})
@@ -604,6 +608,7 @@ source_group("Header Files\\view"         FILES ${HDR_VIEW})
 source_group("Source Files\\view"         FILES ${SRC_VIEW})
 source_group("OpenGL Shaders"             FILES ${SHADER_FILES})
 source_group("Resources"                  FILES ${RESOURCE_FILES})
+source_group("Resources\\gis"             FILES ${GIS_FILES})
 source_group("Resources\\json"            FILES ${JSON_FILES})
 source_group("I18N Files"                 FILES ${TS_FILES})
 
@@ -762,6 +767,14 @@ target_compile_options(scwx-qt PRIVATE
 target_compile_options(supercell-wx PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
+)
+
+# GCC 14+ produces false positives for -Wmaybe-uninitialized
+target_compile_options(scwx-qt PRIVATE
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,14>>:-Wno-maybe-uninitialized>
+)
+target_compile_options(supercell-wx PRIVATE
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,14>>:-Wno-maybe-uninitialized>
 )
 
 # Temporary workaround for Boost and GCC 16+ where -Warray-bounds causes false positives
