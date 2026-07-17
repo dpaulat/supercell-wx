@@ -13,9 +13,9 @@ namespace scwx::qt::map
 class MapImGuiMetalRenderer
 {
 public:
-   void Initialize(QRhi*         rhi,
-                   QRhiTexture*  colorTexture,
-                   void*         /* renderPass */,
+   void Initialize(QRhi*        rhi,
+                   QRhiTexture* colorTexture,
+                   void* /* renderPass */,
                    ImGuiContext* imGuiContext);
    void Shutdown();
    void UpdateRenderPass(void* /* renderPass */);
@@ -34,7 +34,7 @@ private:
    ImGuiContext* imGuiContext_ {nullptr};
    QRhi*         rhi_ {nullptr};
    QRhiTexture*  colorTexture_ {nullptr};
-   void*         device_ {nullptr};              // id<MTLDevice>
+   void*         device_ {nullptr};               // id<MTLDevice>
    void*         renderPassDescriptor_ {nullptr}; // MTLRenderPassDescriptor*
    bool          initialized_ {false};
 };

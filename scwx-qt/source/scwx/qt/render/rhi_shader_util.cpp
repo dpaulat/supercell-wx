@@ -18,7 +18,7 @@ QShader LoadShader(const char* resourcePath)
       return {};
    }
 
-   const QByteArray bytes = file.readAll();
+   const QByteArray bytes  = file.readAll();
    QShader          shader = QShader::fromSerialized(bytes);
    if (!shader.isValid())
    {

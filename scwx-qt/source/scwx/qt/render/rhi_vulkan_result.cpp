@@ -2,10 +2,10 @@
 
 #if !defined(__APPLE__)
 
-#include <scwx/util/logger.hpp>
+#   include <scwx/util/logger.hpp>
 
-#include <mutex>
-#include <unordered_map>
+#   include <mutex>
+#   include <unordered_map>
 
 namespace scwx::qt::render
 {

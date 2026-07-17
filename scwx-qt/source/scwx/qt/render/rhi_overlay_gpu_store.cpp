@@ -525,10 +525,8 @@ AcquireColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
       return nullptr;
    }
 
-   const QShader vertexShader =
-      LoadShader(":/gl/vulkan/qsb/color.vert.qsb");
-   const QShader fragmentShader = LoadShader(
-      ":/gl/vulkan/qsb/color.frag.qsb");
+   const QShader vertexShader   = LoadShader(":/gl/vulkan/qsb/color.vert.qsb");
+   const QShader fragmentShader = LoadShader(":/gl/vulkan/qsb/color.frag.qsb");
    if (!vertexShader.isValid() || !fragmentShader.isValid())
    {
       logger_->error("Failed to load colored geometry shaders");
@@ -583,10 +581,10 @@ AcquireGeoColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
       return nullptr;
    }
 
-   const QShader vertexShader = LoadShader(
-      ":/gl/vulkan/qsb/geo_color.vert.qsb");
-   const QShader fragmentShader = LoadShader(
-      ":/gl/vulkan/qsb/geo_color.frag.qsb");
+   const QShader vertexShader =
+      LoadShader(":/gl/vulkan/qsb/geo_color.vert.qsb");
+   const QShader fragmentShader =
+      LoadShader(":/gl/vulkan/qsb/geo_color.frag.qsb");
    if (!vertexShader.isValid() || !fragmentShader.isValid())
    {
       logger_->error("Failed to load geo colored shaders");
@@ -650,10 +648,8 @@ QRhiGraphicsPipeline* AcquireRadarPipeline(QRhi*             rhi,
       return nullptr;
    }
 
-   const QShader vertexShader =
-      LoadShader(":/gl/vulkan/qsb/radar.vert.qsb");
-   const QShader fragmentShader = LoadShader(
-      ":/gl/vulkan/qsb/radar.frag.qsb");
+   const QShader vertexShader   = LoadShader(":/gl/vulkan/qsb/radar.vert.qsb");
+   const QShader fragmentShader = LoadShader(":/gl/vulkan/qsb/radar.frag.qsb");
    if (!vertexShader.isValid() || !fragmentShader.isValid())
    {
       logger_->error("Failed to load radar shaders");
@@ -709,10 +705,10 @@ QRhiGraphicsPipeline* AcquireColorTablePipeline(QRhi*             rhi,
       return nullptr;
    }
 
-   const QShader vertexShader = LoadShader(
-      ":/gl/vulkan/qsb/texture1d.vert.qsb");
-   const QShader fragmentShader = LoadShader(
-      ":/gl/vulkan/qsb/texture_lut.frag.qsb");
+   const QShader vertexShader =
+      LoadShader(":/gl/vulkan/qsb/texture1d.vert.qsb");
+   const QShader fragmentShader =
+      LoadShader(":/gl/vulkan/qsb/texture_lut.frag.qsb");
    if (!vertexShader.isValid() || !fragmentShader.isValid())
    {
       logger_->error("Failed to load color table shaders");
@@ -766,10 +762,10 @@ AcquireTextureArrayGeoPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
       return nullptr;
    }
 
-   const QShader vertexShader = LoadShader(
-      ":/gl/vulkan/qsb/geo_texture_array.vert.qsb");
-   const QShader fragmentShader = LoadShader(
-      ":/gl/vulkan/qsb/geo_texture_array.frag.qsb");
+   const QShader vertexShader =
+      LoadShader(":/gl/vulkan/qsb/geo_texture_array.vert.qsb");
+   const QShader fragmentShader =
+      LoadShader(":/gl/vulkan/qsb/geo_texture_array.frag.qsb");
    if (!vertexShader.isValid() || !fragmentShader.isValid())
    {
       logger_->error("Failed to load geo texture array shaders");
@@ -832,8 +828,8 @@ AcquireTextureArrayScreenPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
       return nullptr;
    }
 
-   const QShader vertexShader = LoadShader(
-      ":/gl/vulkan/qsb/screen_texture_array.vert.qsb");
+   const QShader vertexShader =
+      LoadShader(":/gl/vulkan/qsb/screen_texture_array.vert.qsb");
    const QShader fragmentShader =
       LoadShader(":/gl/vulkan/qsb/screen_texture_array.frag.qsb");
    if (!vertexShader.isValid() || !fragmentShader.isValid())

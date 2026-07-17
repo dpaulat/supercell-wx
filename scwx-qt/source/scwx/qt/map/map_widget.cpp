@@ -364,8 +364,8 @@ public:
    void                  SelectNearestRadarSite(double                          latitude,
                                                 double                          longitude,
                                                 std::optional<types::RadarType> type);
-   void SetRadarSite(const std::string& radarSite,
-                     bool               checkProductAvailability = false);
+   void                  SetRadarSite(const std::string& radarSite,
+                                      bool               checkProductAvailability = false);
    [[nodiscard]] QPointF EraseCursorWidgetPosition() const;
    [[nodiscard]] int     EraseCursorRadiusPx(const QPointF& widgetPos) const;
    void                  UpdateAnnotationCursor();
@@ -515,11 +515,11 @@ public:
    std::unordered_map<std::string, size_t> tiltsToIndices_;
    size_t                                  currentTiltIndex_ {0};
 
-   MapRhiRenderer                  rhiRenderer_ {};
+   MapRhiRenderer rhiRenderer_ {};
 #if defined(__APPLE__)
-   MapImGuiMetalRenderer           imguiRenderer_ {};
+   MapImGuiMetalRenderer imguiRenderer_ {};
 #else
-   MapImGuiVulkanRenderer          imguiRenderer_ {};
+   MapImGuiVulkanRenderer imguiRenderer_ {};
 #endif
    MapOverlayRenderer              overlayRenderer_ {};
    bool                            vulkanRenderingInitialized_ {false};

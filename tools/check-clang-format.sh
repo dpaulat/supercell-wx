@@ -33,8 +33,12 @@ MERGE_BASE="$(git merge-base "${BASE_REF}" HEAD)"
 echo "Comparing against ${MERGE_BASE} (${BASE_REF})"
 
 if [[ "${1:-check}" == "fix" ]]; then
-   "${GIT_CLANG_FORMAT}" --binary "${CLANG_FORMAT}" --style=file --force "${MERGE_BASE}"
+   "${GIT_CLANG_FORMAT}" --binary "${CLANG_FORMAT}" --style=file --force \
+      --extensions "c,h,C,H,cpp,hpp,cc,hh,c++,h++,cxx,hxx" \
+      "${MERGE_BASE}"
    echo "Applied clang-format to lines changed since ${MERGE_BASE}"
 else
-   "${GIT_CLANG_FORMAT}" --binary "${CLANG_FORMAT}" --style=file --diff -v "${MERGE_BASE}"
+   "${GIT_CLANG_FORMAT}" --binary "${CLANG_FORMAT}" --style=file --diff -v \
+      --extensions "c,h,C,H,cpp,hpp,cc,hh,c++,h++,cxx,hxx" \
+      "${MERGE_BASE}"
 fi
