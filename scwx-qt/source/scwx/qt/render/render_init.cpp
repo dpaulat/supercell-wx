@@ -15,7 +15,7 @@ void InitializeGraphics()
 {
    logger_->info("Render backend: {}", RenderBackendName(kRenderBackend));
 
-   if (kRenderBackend != RenderBackend::Vulkan)
+   if constexpr (kRenderBackend != RenderBackend::Vulkan)
    {
       return;
    }

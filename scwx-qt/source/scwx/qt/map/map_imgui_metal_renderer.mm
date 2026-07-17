@@ -12,6 +12,8 @@
 #import <Metal/Metal.h>
 #import <CoreFoundation/CoreFoundation.h>
 
+#include <cstdint>
+
 namespace scwx::qt::map
 {
 
@@ -33,22 +35,6 @@ void MapImGuiMetalRenderer::EnsureRenderPassDescriptor(QRhiTexture* colorTexture
       return;
    }
 
-   MTLPixelFormat format = MTLPixelFormatBGRA8Unorm;
-   switch (colorTexture->format())
-   {
-   case QRhiTexture::RGBA8:
-      format = MTLPixelFormatRGBA8Unorm;
-      break;
-   case QRhiTexture::BGRA8:
-      format = MTLPixelFormatBGRA8Unorm;
-      break;
-   case QRhiTexture::RGBA16F:
-      format = MTLPixelFormatRGBA16Float;
-      break;
-   default:
-      break;
-   }
-
    MTLRenderPassDescriptor* desc =
       (__bridge MTLRenderPassDescriptor*) renderPassDescriptor_;
    if (desc == nil)
@@ -57,9 +43,14 @@ void MapImGuiMetalRenderer::EnsureRenderPassDescriptor(QRhiTexture* colorTexture
       renderPassDescriptor_ = (__bridge_retained void*) desc;
    }
 
+   // ImGui reads pixelFormat from the attachment texture. Qt's Metal native
+   // handle is MTLTexture* stuffed into NativeTexture::object (quint64).
+   id<MTLTexture> texture = (__bridge id<MTLTexture>)(void*)(uintptr_t)
+                               colorTexture->nativeTexture().object;
+
+   desc.colorAttachments[0].texture     = texture;
    desc.colorAttachments[0].loadAction  = MTLLoadActionLoad;
    desc.colorAttachments[0].storeAction = MTLStoreActionStore;
-   desc.colorAttachments[0].pixelFormat = format;
 }
 
 bool MapImGuiMetalRenderer::InitBackend(QRhiTexture* colorTexture)
@@ -89,7 +80,10 @@ bool MapImGuiMetalRenderer::InitBackend(QRhiTexture* colorTexture)
 
    const auto* metalHandles =
       static_cast<const QRhiMetalNativeHandles*>(nativeHandles);
-   id<MTLDevice> device = (__bridge id<MTLDevice>) metalHandles->dev;
+   // Qt forward-declares MTLDevice as a class; Metal.h uses a protocol.
+   // Cast via void* so ARC accepts Qt's MTLDevice* as id<MTLDevice>.
+   id<MTLDevice> device =
+      (__bridge id<MTLDevice>)(void*) metalHandles->dev;
    if (device == nil)
    {
       return false;
@@ -101,7 +95,7 @@ bool MapImGuiMetalRenderer::InitBackend(QRhiTexture* colorTexture)
       return false;
    }
 
-   device_ = metalHandles->dev;
+   device_ = (void*) metalHandles->dev;
    EnsureRenderPassDescriptor(colorTexture);
    return true;
 }
@@ -276,9 +270,9 @@ void MapImGuiMetalRenderer::RenderDrawData(QRhiCommandBuffer* commandBuffer)
    const auto* metalHandles =
       static_cast<const QRhiMetalCommandBufferNativeHandles*>(nativeHandles);
    id<MTLCommandBuffer> commandBufferMetal =
-      (__bridge id<MTLCommandBuffer>) metalHandles->commandBuffer;
+      (__bridge id<MTLCommandBuffer>)(void*) metalHandles->commandBuffer;
    id<MTLRenderCommandEncoder> encoder =
-      (__bridge id<MTLRenderCommandEncoder>) metalHandles->encoder;
+      (__bridge id<MTLRenderCommandEncoder>)(void*) metalHandles->encoder;
    if (commandBufferMetal == nil || encoder == nil)
    {
       return;
