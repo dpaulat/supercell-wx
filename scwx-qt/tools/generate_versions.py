@@ -137,7 +137,7 @@ def CollectVersionInfo(args):
 
     commitString = str(repo.head.commit)[:10]
     releaseDate  = datetime.datetime.fromtimestamp(
-        repo.head.commit.committed_date).strftime("%Y-%m-%d")
+        repo.head.commit.committed_date, tz=datetime.timezone.utc).strftime("%Y-%m-%d")
 
     if not repo.is_dirty(submodules = False):
         copyrightYear = datetime.datetime.fromtimestamp(repo.head.commit.committed_date).year
@@ -211,13 +211,13 @@ def WriteHeader(versionInfo: VersionInfo, args):
     return WriteTemplate(versionInfo, args.inputHeader_, args.outputHeader_)
 
 def WriteResource(versionInfo: VersionInfo, args):
-    if args.inputResource_ == None or args.outputResource_ == None:
+    if args.inputResource_ is None or args.outputResource_ is None:
         return None
     print("Writing resource")
     return WriteTemplate(versionInfo, args.inputResource_, args.outputResource_)
 
 def WriteMetainfo(versionInfo: VersionInfo, args):
-    if args.inputMetainfo_ == None or args.outputMetainfo_ == None:
+    if args.inputMetainfo_ is None or args.outputMetainfo_ is None:
         return None
     print("Writing metainfo")
     return WriteTemplate(versionInfo, args.inputMetainfo_, args.outputMetainfo_)
@@ -259,9 +259,9 @@ def main() -> int:
 
         if writeHeaderStatus or writeResourceStatus or writeMetainfoStatus:
             UpdateCache(versionInfo, args)
-        if writeHeaderStatus == False or \
-           writeResourceStatus == False or \
-           writeMetainfoStatus == False:
+        if not writeHeaderStatus or \
+           not writeResourceStatus or \
+           not writeMetainfoStatus:
             status = -1
 
     return status
