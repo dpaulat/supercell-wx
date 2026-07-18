@@ -53,3 +53,12 @@ Frequently asked questions:
 
 - Q: How can I contribute?
   - A. Head to [Developer Setup](https://supercell-wx.readthedocs.io/en/stable/development/developer-setup.html) and [Contributing](CONTRIBUTING.md) to configure the Supercell Wx development environment for your IDE. Currently Visual Studio and Visual Studio Code are recommended, with other IDEs remaining untested at this time.
+
+## Sponsors
+
+<table>
+  <tr>
+    <td><a href="https://signpath.io/"><img src="https://signpath.org/assets/favicon-50x50.png" alt="SignPath" width="32" /></a></td>
+    <td>Free code signing on Windows provided by <a href="https://signpath.io/">SignPath.io</a>, certificate by <a href="https://signpath.org/">SignPath Foundation</a></td>
+  </tr>
+</table>
