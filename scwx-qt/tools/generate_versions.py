@@ -259,9 +259,9 @@ def main() -> int:
 
         if writeHeaderStatus or writeResourceStatus or writeMetainfoStatus:
             UpdateCache(versionInfo, args)
-        if not writeHeaderStatus or \
-           not writeResourceStatus or \
-           not writeMetainfoStatus:
+        if writeHeaderStatus == False or \
+           writeResourceStatus == False or \
+           writeMetainfoStatus == False:
             status = -1
 
     return status
