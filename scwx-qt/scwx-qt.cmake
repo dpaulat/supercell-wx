@@ -517,6 +517,8 @@ set(COUNTIES_SQLITE_DB ${scwx-qt_BINARY_DIR}/res/db/counties.db)
 
 set(RESOURCE_INPUT  ${scwx-qt_SOURCE_DIR}/res/scwx-qt.rc.in)
 set(RESOURCE_OUTPUT ${scwx-qt_BINARY_DIR}/res/scwx-qt.rc)
+set(METAINFO_INPUT  ${scwx-qt_SOURCE_DIR}/res/linux/net.supercellwx.app.metainfo.xml.in)
+set(METAINFO_OUTPUT ${scwx-qt_BINARY_DIR}/res/linux/net.supercellwx.app.metainfo.xml)
 set(VERSIONS_INPUT  ${scwx-qt_SOURCE_DIR}/source/scwx/qt/main/versions.hpp.in)
 set(VERSIONS_CACHE  ${scwx-qt_BINARY_DIR}/versions_cache.json)
 set(VERSIONS_HEADER ${scwx-qt_BINARY_DIR}/scwx/qt/main/versions.hpp)
@@ -640,7 +642,10 @@ else()
 endif()
 
 if (WIN32)
-    add_custom_command(OUTPUT  ${VERSIONS_HEADER} ${RESOURCE_OUTPUT} ${VERSIONS_HEADER}-ALWAYS_RUN
+    add_custom_command(OUTPUT  ${VERSIONS_HEADER}
+                               ${RESOURCE_OUTPUT}
+                               ${METAINFO_OUTPUT}
+                               ${VERSIONS_HEADER}-ALWAYS_RUN
                        COMMAND ${Python_EXECUTABLE}
                                ${scwx-qt_SOURCE_DIR}/tools/generate_versions.py
                                -g ${SCWX_DIR}
@@ -650,9 +655,13 @@ if (WIN32)
                                -o ${VERSIONS_HEADER}
                                -b ${SCWX_BUILD_NUM}
                                --input-resource ${RESOURCE_INPUT}
-                               --output-resource ${RESOURCE_OUTPUT})
+                               --output-resource ${RESOURCE_OUTPUT}
+                               --input-metainfo ${METAINFO_INPUT}
+                               --output-metainfo ${METAINFO_OUTPUT})
 else()
-    add_custom_command(OUTPUT  ${VERSIONS_HEADER} ${VERSIONS_HEADER}-ALWAYS_RUN
+    add_custom_command(OUTPUT  ${VERSIONS_HEADER}
+                               ${METAINFO_OUTPUT}
+                               ${VERSIONS_HEADER}-ALWAYS_RUN
                        COMMAND ${Python_EXECUTABLE}
                                ${scwx-qt_SOURCE_DIR}/tools/generate_versions.py
                                -g ${SCWX_DIR}
@@ -660,7 +669,9 @@ else()
                                -c ${VERSIONS_CACHE}
                                -i ${VERSIONS_INPUT}
                                -o ${VERSIONS_HEADER}
-                               -b ${SCWX_BUILD_NUM})
+                               -b ${SCWX_BUILD_NUM}
+                               --input-metainfo ${METAINFO_INPUT}
+                               --output-metainfo ${METAINFO_OUTPUT})
 endif()
 
 add_custom_target(scwx-qt_generate_versions ALL
@@ -723,7 +734,7 @@ elseif (APPLE)
                           MACOSX_BUNDLE_INFO_PLIST           "${scwx-qt_SOURCE_DIR}/res/scwx-qt.plist.in"
                           MACOSX_BUNDLE_GUI_IDENTIFIER       "net.supercellwx.app"
                           MACOSX_BUNDLE_BUNDLE_NAME          "Supercell Wx"
-                          MACOSX_BUNDLE_BUNDLE_VERSION       "${SCWX_VERSION}"
+                          MACOSX_BUNDLE_BUNDLE_VERSION       "${SCWX_BUILD_NUM}"
                           MACOSX_BUNDLE_SHORT_VERSION_STRING "${SCWX_VERSION}"
                           MACOSX_BUNDLE_COPYRIGHT            "Copyright ${CURRENT_YEAR} Dan Paulat"
                           MACOSX_BUNDLE_ICON_FILE            "scwx.icns"
