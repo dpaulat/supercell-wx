@@ -4,7 +4,8 @@ project(scwx-data)
 
 include(CheckCXXSymbolExists)
 
-find_package(Boost)
+find_package(Boost REQUIRED COMPONENTS iostreams url)
+find_package(BZip2)
 find_package(cpr)
 find_package(LibXml2)
 find_package(libzip)
