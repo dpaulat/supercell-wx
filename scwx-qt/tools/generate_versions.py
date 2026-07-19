@@ -1,6 +1,5 @@
 import argparse
 import datetime
-import git
 import json
 import os
 import pathlib
@@ -64,6 +63,13 @@ kKeys_ = [Keys.BuildNumber,
           Keys.VersionCommas,
           Keys.VersionString]
 
+def ParseReleaseDate(value: str) -> str:
+    try:
+        return datetime.date.fromisoformat(value).strftime("%Y-%m-%d")
+    except ValueError as ex:
+        raise argparse.ArgumentTypeError(
+            f"invalid release date '{value}'; expected YYYY-MM-DD") from ex
+
 def ParseArguments():
     parser = argparse.ArgumentParser(description='Generate versions')
     parser.add_argument("-c", "--cache",
@@ -126,6 +132,12 @@ def ParseArguments():
                         dest     = "version_",
                         type     = str,
                         required = True)
+    parser.add_argument("--release-date",
+                        metavar  = "YYYY-MM-DD",
+                        help     = "release date (YYYY-MM-DD)",
+                        dest     = "releaseDate_",
+                        type     = ParseReleaseDate,
+                        required = True)
     return parser.parse_args()
 
 def CollectVersionInfo(args):
@@ -133,24 +145,12 @@ def CollectVersionInfo(args):
 
     versionInfo = VersionInfo()
 
-    repo = git.Repo(args.gitRepo_, search_parent_directories = True)
-
-    commitString = str(repo.head.commit)[:10]
-    releaseDate  = datetime.datetime.fromtimestamp(
-        repo.head.commit.committed_date, tz=datetime.timezone.utc).strftime("%Y-%m-%d")
-
-    if not repo.is_dirty(submodules = False):
-        copyrightYear = datetime.datetime.fromtimestamp(repo.head.commit.committed_date).year
-    else:
-        commitString  = commitString + "+dirty"
-        copyrightYear = datetime.date.today().year
-
     resourceDir = str(args.gitRepo_).replace("\\", "\\\\")
 
     versionInfo.buildNumber_   = args.buildNumber_
-    versionInfo.commitString_  = commitString
-    versionInfo.copyrightYear_ = copyrightYear
-    versionInfo.releaseDate_   = releaseDate
+    versionInfo.commitString_  = "@rev@"
+    versionInfo.copyrightYear_ = datetime.date.fromisoformat(args.releaseDate_).year
+    versionInfo.releaseDate_   = args.releaseDate_
     versionInfo.resourceDir_   = resourceDir
     versionInfo.versionString_ = args.version_
 

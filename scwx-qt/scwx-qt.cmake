@@ -642,6 +642,12 @@ else()
     set(SCWX_BUILD_NUM 0)
 endif()
 
+if (NOT SCWX_RELEASE_DATE)
+    message(FATAL_ERROR
+            "SCWX_RELEASE_DATE must be set to YYYY-MM-DD "
+            "(e.g. -DSCWX_RELEASE_DATE=2026-07-18)")
+endif()
+
 if (WIN32)
     add_custom_command(OUTPUT  ${VERSIONS_HEADER}
                                ${RESOURCE_OUTPUT}
@@ -655,6 +661,7 @@ if (WIN32)
                                -i ${VERSIONS_INPUT}
                                -o ${VERSIONS_HEADER}
                                -b ${SCWX_BUILD_NUM}
+                               --release-date ${SCWX_RELEASE_DATE}
                                --input-resource ${RESOURCE_INPUT}
                                --output-resource ${RESOURCE_OUTPUT}
                                --input-metainfo ${METAINFO_INPUT}
@@ -671,6 +678,7 @@ else()
                                -i ${VERSIONS_INPUT}
                                -o ${VERSIONS_HEADER}
                                -b ${SCWX_BUILD_NUM}
+                               --release-date ${SCWX_RELEASE_DATE}
                                --input-metainfo ${METAINFO_INPUT}
                                --output-metainfo ${METAINFO_OUTPUT})
 endif()
