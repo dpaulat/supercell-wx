@@ -15,7 +15,7 @@ set_property(DIRECTORY
              units.cmake
              qt6ct.cmake)
 
-include(aws-sdk-cpp.cmake)
+find_package(AWSSDK CONFIG REQUIRED)
 include(date.cmake)
 include(glad.cmake)
 include(hsluv-c.cmake)
