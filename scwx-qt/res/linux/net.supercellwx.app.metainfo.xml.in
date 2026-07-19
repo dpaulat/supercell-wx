@@ -26,7 +26,7 @@
     </ul>
   </description>
   <launchable type="desktop-id">net.supercellwx.app.desktop</launchable>
-  <url type="homepage">https://supercell-wx.readthedocs.io/</url>
+  <url type="homepage">https://supercellwx.net/</url>
   <url type="bugtracker">https://github.com/dpaulat/supercell-wx/issues</url>
   <url type="help">https://supercell-wx.readthedocs.io/</url>
   <url type="donation">https://github.com/sponsors/dpaulat</url>
