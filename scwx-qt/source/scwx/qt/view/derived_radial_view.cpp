@@ -523,7 +523,7 @@ void DerivedRadialView::ComputeSweep()
    }
 
    common::RadialSize radialSize = common::RadialSize::NonStandard;
-   if (radarProductManager->is_tdwr())
+   if (radarProductManager->radar_type() != types::RadarType::WSR88D)
    {
       radialSize = common::RadialSize::NonStandard;
    }
