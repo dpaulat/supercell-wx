@@ -1625,3 +1625,5 @@ RadarProductManager::Instance(const std::string& radarSite)
 }
 
 } // namespace scwx::qt::manager
+
+#include "radar_product_manager.moc"
