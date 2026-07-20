@@ -13,16 +13,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 OPTION(SCWX_DISABLE_CONSOLE "Disables the Windows console in release mode" ON)
 
-find_package(Boost)
-find_package(Fontconfig)
-find_package(geographiclib)
-find_package(geos)
-find_package(glm)
-find_package(JPEG)
+find_package(Boost
+             COMPONENTS atomic
+                        json
+                        program_options
+                        timer
+             REQUIRED)
+find_package(Fontconfig REQUIRED)
+find_package(GeographicLib REQUIRED)
+find_package(geos REQUIRED)
+find_package(glm REQUIRED)
+find_package(JPEG REQUIRED)
 find_package(OpenGL REQUIRED)
+find_package(PNG REQUIRED)
 find_package(Python COMPONENTS Interpreter)
-find_package(SQLite3)
-find_package(TIFF)
+find_package(SQLite3 REQUIRED)
+find_package(TIFF REQUIRED)
 
 find_package(QT NAMES Qt6
              COMPONENTS Gui
@@ -786,12 +792,14 @@ target_compile_options(supercell-wx PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,14>>:-Wno-maybe-uninitialized>
 )
 
-# Temporary workaround for Boost and GCC 16+ where -Warray-bounds causes false positives
+# Temporary workaround for Boost and GCC 16+ where -Warray-bounds and -Wstringop-overflow cause false positives
 target_compile_options(scwx-qt PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-array-bounds>
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-stringop-overflow>
 )
 target_compile_options(supercell-wx PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-array-bounds>
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-stringop-overflow>
 )
 
 if (MSVC)
@@ -869,6 +877,7 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      glm::glm
                                      imgui
                                      JPEG::JPEG
+                                     PNG::PNG
                                      qt6ct-common
                                      qt6ct-widgets
                                      SQLite::SQLite3

@@ -90,6 +90,8 @@ jobs:
     - name: Install Conan Packages
       shell: pwsh
       run: |
+        $ErrorActionPreference = 'Stop'
+        $PSNativeCommandUseErrorActionPreference = $true
         conan config install `
           ./source/tools/conan/profiles/${{ matrix.conan_profile }} `
           -tf profiles
