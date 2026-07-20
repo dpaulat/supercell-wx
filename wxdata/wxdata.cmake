@@ -4,7 +4,11 @@ project(scwx-data)
 
 include(CheckCXXSymbolExists)
 
-find_package(Boost)
+find_package(Boost
+             COMPONENTS iostreams
+                        url
+             REQUIRED)
+find_package(BZip2)
 find_package(cpr)
 find_package(LibXml2)
 find_package(libzip)
@@ -362,6 +366,7 @@ endif()
 
 target_link_libraries(wxdata PUBLIC aws-cpp-sdk-core
                                     aws-cpp-sdk-s3
+                                    aws-crt-cpp
                                     cpr::cpr
                                     LibXml2::LibXml2
                                     libzip::zip

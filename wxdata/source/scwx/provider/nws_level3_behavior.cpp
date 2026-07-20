@@ -12,6 +12,7 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>
+#include <boost/url/parse.hpp>
 #include <boost/url/url.hpp>
 #include <cpr/cpr.h>
 #include <range/v3/range/conversion.hpp>

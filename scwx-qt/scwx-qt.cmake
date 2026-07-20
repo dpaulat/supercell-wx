@@ -13,13 +13,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 OPTION(SCWX_DISABLE_CONSOLE "Disables the Windows console in release mode" ON)
 
-find_package(Boost)
+find_package(Boost
+             COMPONENTS atomic
+                        json
+                        program_options
+                        timer
+             REQUIRED)
 find_package(Fontconfig)
-find_package(geographiclib)
+find_package(GeographicLib)
 find_package(geos)
 find_package(glm)
 find_package(JPEG)
 find_package(OpenGL REQUIRED)
+find_package(PNG)
 find_package(Python COMPONENTS Interpreter)
 find_package(SQLite3)
 find_package(TIFF)
@@ -869,6 +875,7 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      glm::glm
                                      imgui
                                      JPEG::JPEG
+                                     PNG::PNG
                                      qt6ct-common
                                      qt6ct-widgets
                                      SQLite::SQLite3
