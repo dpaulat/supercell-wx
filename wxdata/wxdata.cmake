@@ -8,19 +8,19 @@ find_package(Boost
              COMPONENTS iostreams
                         url
              REQUIRED)
-find_package(BZip2)
-find_package(cpr)
-find_package(LibXml2)
-find_package(libzip)
-find_package(OpenSSL)
-find_package(range-v3)
-find_package(re2)
-find_package(spdlog)
+find_package(BZip2 REQUIRED)
+find_package(cpr REQUIRED)
+find_package(LibXml2 REQUIRED)
+find_package(libzip REQUIRED)
+find_package(OpenSSL REQUIRED)
+find_package(range-v3 REQUIRED)
+find_package(re2 REQUIRED)
+find_package(spdlog REQUIRED)
 
 check_cxx_symbol_exists(_LIBCPP_VERSION version LIBCPP)
 
 if (LINUX)
-    find_package(TBB)
+    find_package(TBB REQUIRED)
 endif()
 
 set(HDR_AWIPS include/scwx/awips/coded_location.hpp

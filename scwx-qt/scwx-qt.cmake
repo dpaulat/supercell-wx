@@ -19,16 +19,16 @@ find_package(Boost
                         program_options
                         timer
              REQUIRED)
-find_package(Fontconfig)
-find_package(GeographicLib)
-find_package(geos)
-find_package(glm)
-find_package(JPEG)
+find_package(Fontconfig REQUIRED)
+find_package(GeographicLib REQUIRED)
+find_package(geos REQUIRED)
+find_package(glm REQUIRED)
+find_package(JPEG REQUIRED)
 find_package(OpenGL REQUIRED)
-find_package(PNG)
+find_package(PNG REQUIRED)
 find_package(Python COMPONENTS Interpreter)
-find_package(SQLite3)
-find_package(TIFF)
+find_package(SQLite3 REQUIRED)
+find_package(TIFF REQUIRED)
 
 find_package(QT NAMES Qt6
              COMPONENTS Gui
