@@ -881,11 +881,13 @@ target_link_libraries(supercell-wx PRIVATE scwx-qt
                                            wxdata)
 
 if (WIN32)
-    # Deploy Qt to target directory
+    # Deploy Qt to target directory (CRT comes from the bootstrapper / system redist)
     add_custom_command(TARGET supercell-wx
                        POST_BUILD
                        COMMAND "${WINDEPLOYQT_EXECUTABLE}"
-                           --no-translations $<TARGET_FILE:supercell-wx>
+                           --no-translations
+                           --no-compiler-runtime
+                           $<TARGET_FILE:supercell-wx>
                        COMMENT "Running windeployqt for supercell-wx...")
 endif()
 
@@ -917,14 +919,17 @@ install(TARGETS supercell-wx
 
 # NO_TRANSLATIONS is needed for Qt 6.5.0 (will be fixed in 6.5.1)
 # https://bugreports.qt.io/browse/QTBUG-112204
+# NO_COMPILER_RUNTIME: VC++ redistributable is installed by the bootstrapper
 qt_generate_deploy_app_script(TARGET MLNQtCore # QMapLibre::Core
                               OUTPUT_SCRIPT deploy_script_qmaplibre_core
                               NO_TRANSLATIONS
+                              NO_COMPILER_RUNTIME
                               NO_UNSUPPORTED_PLATFORM_ERROR)
 
 qt_generate_deploy_app_script(TARGET supercell-wx
                               OUTPUT_SCRIPT deploy_script_scwx
                               NO_TRANSLATIONS
+                              NO_COMPILER_RUNTIME
                               NO_UNSUPPORTED_PLATFORM_ERROR)
 
 install(SCRIPT ${deploy_script_qmaplibre_core}
