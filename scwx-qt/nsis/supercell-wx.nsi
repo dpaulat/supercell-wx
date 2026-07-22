@@ -147,9 +147,9 @@ Section "Install"
 
   Call Bootstrapper_StripTrailingSlash
 
-  ; Always /qn: NSIS already owns the UI (welcome/license/directory/progress).
+  ; Always /qn /norestart: NSIS owns the UI; reboot prompt is deferred to Finish.
   DetailPrint "Installing Supercell Wx..."
-  ExecWait '"$SYSDIR\msiexec.exe" /i "$PLUGINSDIR\${SCWX_MSI_FILE}" /qn INSTALL_ROOT="$INSTDIR"' $1
+  ExecWait '"$SYSDIR\msiexec.exe" /i "$PLUGINSDIR\${SCWX_MSI_FILE}" /qn /norestart INSTALL_ROOT="$INSTDIR"' $1
 
   ; msiexec: 0 success, 3010 success with reboot required.
   ${If} $1 == 3010
