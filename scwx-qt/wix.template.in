@@ -23,6 +23,11 @@
             AllowSameVersionUpgrades="yes"
             DowngradeErrorMessage="A later version of [ProductName] is already installed. Setup will now exit."/>
 
+        <!-- Force file overwrite so PE version downgrades (e.g. CI build N →
+             release 0) do not skip InstallFiles and leave binaries missing
+             after RemoveExistingProducts. -->
+        <Property Id="REINSTALLMODE" Value="amus"/>
+
         <WixVariable Id="WixUILicenseRtf" Value="$(var.CPACK_WIX_LICENSE_RTF)"/>
         <Property Id="WIXUI_INSTALLDIR" Value="INSTALL_ROOT"/>
 
