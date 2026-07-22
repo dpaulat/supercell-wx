@@ -360,19 +360,31 @@ jobs:
           ${{ github.workspace }}/build/Release/bin/*.debug
           ${{ github.workspace }}/build/Release/lib/*.debug
 
+    - name: Install NSIS (Windows)
+      if: ${{ startsWith(matrix.os, 'windows') }}
+      shell: pwsh
+      run: |
+        choco install nsis -y --no-progress
+        if ($LASTEXITCODE -ne 0) { throw "choco install nsis failed with exit code $LASTEXITCODE" }
+
     - name: Build Installer (Windows)
       if: ${{ startsWith(matrix.os, 'windows') }}
       shell: pwsh
       run: |
         cd build
         cpack
+        & "${{ github.workspace }}/source/tools/build-windows-nsis-bootstrapper.ps1" `
+          -BuildDir "${{ github.workspace }}/build" `
+          -SourceDir "${{ github.workspace }}/source"
 
     - name: Upload Installer (Windows)
       if: ${{ startsWith(matrix.os, 'windows') }}
       uses: actions/upload-artifact@v7
       with:
         name: supercell-wx-installer-${{ matrix.artifact_suffix }}
-        path: ${{ github.workspace }}/build/supercell-wx-*.msi*
+        path: |
+          ${{ github.workspace }}/build/supercell-wx-*.msi*
+          ${{ github.workspace }}/build/supercell-wx-*.exe
 
     - name: Build AppImage (Linux)
       if: ${{ startsWith(matrix.os, 'ubuntu') }}
