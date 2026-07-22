@@ -136,7 +136,7 @@ Section "Install"
   DetailPrint "Installing Microsoft Visual C++ Redistributable (x64)..."
   ExecWait '"$PLUGINSDIR\VC_redist.x64.exe" /install /quiet /norestart' $0
 
-  ; Parity with WiX Burn: 0 success, 1638 newer already installed, 3010 reboot needed.
+  ; Accept 0 (success), 1638 (newer already installed), 3010 (reboot needed).
   ${If} $0 == 3010
     StrCpy $RedistRebootRequired 1
   ${ElseIf} $0 != 0

@@ -881,7 +881,7 @@ target_link_libraries(supercell-wx PRIVATE scwx-qt
                                            wxdata)
 
 if (WIN32)
-    # Deploy Qt to target directory (CRT comes from the bootstrapper / system redist)
+    # Deploy Qt to target directory (CRT comes from the NSIS bootstrapper / system redist)
     add_custom_command(TARGET supercell-wx
                        POST_BUILD
                        COMMAND "${WINDEPLOYQT_EXECUTABLE}"
@@ -919,7 +919,7 @@ install(TARGETS supercell-wx
 
 # NO_TRANSLATIONS is needed for Qt 6.5.0 (will be fixed in 6.5.1)
 # https://bugreports.qt.io/browse/QTBUG-112204
-# NO_COMPILER_RUNTIME: VC++ redistributable is installed by the bootstrapper
+# NO_COMPILER_RUNTIME: VC++ redistributable is installed by the NSIS bootstrapper
 qt_generate_deploy_app_script(TARGET MLNQtCore # QMapLibre::Core
                               OUTPUT_SCRIPT deploy_script_qmaplibre_core
                               NO_TRANSLATIONS
