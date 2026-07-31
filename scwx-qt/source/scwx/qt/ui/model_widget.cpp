@@ -25,6 +25,7 @@
 #include <QPixmap>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QResizeEvent>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSlider>
@@ -112,6 +113,84 @@ protected:
    }
 };
 
+class ResponsivePixmapLabel final : public QLabel
+{
+public:
+   explicit ResponsivePixmapLabel(QWidget* parent = nullptr) : QLabel(parent)
+   {
+      setAlignment(Qt::AlignCenter);
+      SetFit(true);
+   }
+
+   void SetSourcePixmap(const QPixmap& source)
+   {
+      source_ = source;
+      UpdateGeometryForMode();
+      UpdatePixmap();
+   }
+
+   void SetFit(bool fit)
+   {
+      fit_ = fit;
+      UpdateGeometryForMode();
+      UpdatePixmap();
+   }
+
+   [[nodiscard]] QSize sizeHint() const override
+   {
+      return fit_ ? QSize {480, 320} : source_.size();
+   }
+
+   [[nodiscard]] QSize minimumSizeHint() const override
+   {
+      return fit_ ? QSize {1, 1} : source_.size();
+   }
+
+protected:
+   void resizeEvent(QResizeEvent* event) override
+   {
+      QLabel::resizeEvent(event);
+      if (fit_)
+         UpdatePixmap();
+   }
+
+private:
+   void UpdateGeometryForMode()
+   {
+      if (fit_)
+      {
+         setMinimumSize(1, 1);
+         setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+         setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+      }
+      else if (!source_.isNull())
+      {
+         setFixedSize(source_.size());
+         setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+      }
+      updateGeometry();
+   }
+
+   void UpdatePixmap()
+   {
+      if (source_.isNull())
+         return;
+
+      if (fit_ && width() > 0 && height() > 0)
+      {
+         QLabel::setPixmap(source_.scaled(
+            size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+      }
+      else if (!fit_)
+      {
+         QLabel::setPixmap(source_);
+      }
+   }
+
+   QPixmap source_ {};
+   bool    fit_ {true};
+};
+
 class SoundingWindow final : public QDialog
 {
 public:
@@ -134,61 +213,31 @@ public:
       scroll_ = new QScrollArea(this);
       scroll_->setAlignment(Qt::AlignCenter);
       scroll_->setWidgetResizable(true);
-      image_ = new QLabel(scroll_);
-      image_->setAlignment(Qt::AlignCenter);
+      image_ = new ResponsivePixmapLabel(scroll_);
       scroll_->setWidget(image_);
-      scroll_->viewport()->installEventFilter(this);
       layout->addWidget(scroll_, 1);
 
-      QObject::connect(
-         fit_, &QCheckBox::toggled, this, [this]() { UpdateImage(); });
+      QObject::connect(fit_,
+                       &QCheckBox::toggled,
+                       this,
+                       [this](bool fit)
+                       {
+                          image_->SetFit(fit);
+                          scroll_->setWidgetResizable(fit);
+                       });
    }
 
    void SetSounding(const QPixmap& image, const QString& title)
    {
-      source_ = image;
       title_->setText(title);
-      UpdateImage();
-   }
-
-protected:
-   bool eventFilter(QObject* watched, QEvent* event) override
-   {
-      if (watched == scroll_->viewport() && event->type() == QEvent::Resize &&
-          fit_->isChecked())
-      {
-         UpdateImage();
-      }
-      return QDialog::eventFilter(watched, event);
+      image_->SetSourcePixmap(image);
    }
 
 private:
-   void UpdateImage()
-   {
-      if (source_.isNull())
-         return;
-
-      if (fit_->isChecked())
-      {
-         scroll_->setWidgetResizable(true);
-         const QSize available = scroll_->viewport()->size();
-         image_->resize(available);
-         image_->setPixmap(source_.scaled(
-            available, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-      }
-      else
-      {
-         scroll_->setWidgetResizable(false);
-         image_->setPixmap(source_);
-         image_->resize(source_.size());
-      }
-   }
-
-   QLabel*      title_ {};
-   QCheckBox*   fit_ {};
-   QScrollArea* scroll_ {};
-   QLabel*      image_ {};
-   QPixmap      source_ {};
+   QLabel*                title_ {};
+   QCheckBox*             fit_ {};
+   QScrollArea*           scroll_ {};
+   ResponsivePixmapLabel* image_ {};
 };
 
 } // namespace
@@ -261,7 +310,7 @@ public:
    QPushButton*                   sounding_ {};
    QPushButton*                   openSounding_ {};
    QLabel*                        soundingStatus_ {};
-   QLabel*                        soundingImage_ {};
+   ResponsivePixmapLabel*         soundingImage_ {};
    SoundingWindow*                soundingWindow_ {};
    QProgressBar*                  progress_ {};
    int                            pendingCatalogHour_ {-1};
@@ -513,11 +562,10 @@ void ModelWidget::Impl::BuildUi()
    soundingLayout->addWidget(soundingStatus_);
 
    auto* soundingScroll = new QScrollArea(soundingPage);
-   soundingScroll->setWidgetResizable(false);
+   soundingScroll->setWidgetResizable(true);
    soundingScroll->setAlignment(Qt::AlignCenter);
    soundingScroll->setMinimumHeight(360);
-   soundingImage_ = new QLabel(soundingScroll);
-   soundingImage_->setAlignment(Qt::AlignCenter);
+   soundingImage_ = new ResponsivePixmapLabel(soundingScroll);
    soundingImage_->setText(self_->tr("No sounding generated"));
    soundingImage_->resize(480, 320);
    soundingScroll->setWidget(soundingImage_);
@@ -929,8 +977,7 @@ void ModelWidget::Impl::ConnectSignals()
             return;
          }
 
-         soundingImage_->setPixmap(image);
-         soundingImage_->resize(image.size());
+         soundingImage_->SetSourcePixmap(image);
          QString location = QString("%1 deg, %2 deg")
                                .arg(sounding.selectedLatitude_, 0, 'f', 3)
                                .arg(sounding.selectedLongitude_, 0, 'f', 3);
