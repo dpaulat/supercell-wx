@@ -10,12 +10,17 @@ The integration uses a versioned JSON-lines protocol between Supercell Wx and
 the bridge. Supercell Wx therefore does not link a Rust ABI, and the C++ and
 Rust implementations can evolve independently.
 
+See [Forecast model processing architecture](model-processing-architecture.md)
+for the process diagram, host/helper boundary, protocol, failure isolation,
+datastore alignment, and built-in or plugin replacement paths.
+
 ## Capabilities
 
 - Model, cycle, source, and product catalogs are reported by the bridge instead
   of being duplicated in Supercell Wx.
-- Run probing reports the forecast hours currently published by the selected
-  source.
+- **Find latest** confirms the requested forecast hour on the newest available
+  scheduled run without scanning the model's entire forecast horizon. Other
+  requested hours are checked when they are processed.
 - Downloads are cached, decoded, and retained in a reusable local run store.
   A view-oriented profile limits downloads to map fields, while the full and
   sounding profiles include the additional data needed by their workflows.

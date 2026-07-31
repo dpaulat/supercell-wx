@@ -40,6 +40,8 @@ struct ModelProbeResult
    int          cycleUtc_ {0};
    QString      source_;
    QVector<int> forecastHours_;
+   QVector<int> supportedForecastHours_;
+   bool         forecastHoursComplete_ {true};
 };
 
 struct ModelRun

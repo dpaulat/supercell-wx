@@ -624,6 +624,10 @@ void ModelWidget::Impl::ConnectSignals()
                     self_,
                     [this]()
                     {
+                       hours_->setToolTip(self_->tr(
+                          "Forecast hours to download or render. Availability "
+                          "is checked when processing. Examples: 0, 0,3,6, or "
+                          "0-48"));
                        manager_->Probe(model_->currentData().toString(),
                                        date_->date(),
                                        probeHour_->value(),
@@ -806,13 +810,28 @@ void ModelWidget::Impl::ConnectSignals()
          const int sourceIndex = source_->findData(result.source_);
          if (sourceIndex >= 0)
             source_->setCurrentIndex(sourceIndex);
-         if (!result.forecastHours_.isEmpty())
+         if (!result.forecastHours_.isEmpty() &&
+             !result.forecastHoursComplete_)
+         {
+            hours_->setToolTip(
+               self_
+                  ->tr("F%1 was confirmed for the latest run. Other requested "
+                       "forecast hours are checked when processing.")
+                  .arg(result.forecastHours_.front(), 3, 10, QChar('0')));
+         }
+         else if (!result.forecastHours_.isEmpty())
          {
             hours_->setToolTip(
                self_
                   ->tr("Available forecast hours: %1. The value in this field "
                        "controls which hours will be downloaded or rendered.")
                   .arg(FormatForecastHours(result.forecastHours_)));
+         }
+         else
+         {
+            hours_->setToolTip(self_->tr(
+               "Forecast hours to download or render. Availability is checked "
+               "when processing. Examples: 0, 0,3,6, or 0-48"));
          }
       });
    QObject::connect(manager_.get(),

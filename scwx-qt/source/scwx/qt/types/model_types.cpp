@@ -101,6 +101,10 @@ ModelProbeResult ParseModelProbe(const QJsonObject& data, QString& error)
       .cycleUtc_      = data.value("cycle_utc").toInt(-1),
       .source_        = data.value("source").toString(),
       .forecastHours_ = ParseIntegerArray(data.value("forecast_hours")),
+      .supportedForecastHours_ =
+         ParseIntegerArray(data.value("supported_forecast_hours")),
+      .forecastHoursComplete_ =
+         data.value("forecast_hours_complete").toBool(true),
    };
    if (result.model_.isEmpty() || result.date_.isEmpty() ||
        result.cycleUtc_ < 0)

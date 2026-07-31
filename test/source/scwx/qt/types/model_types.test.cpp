@@ -73,6 +73,41 @@ TEST(ModelTypesTest, ParsesStoredRunsForOfflineUse)
    EXPECT_EQ(runs.runs_[1].forecastHours_.back(), 6);
 }
 
+TEST(ModelTypesTest, ParsesFastProbeContract)
+{
+   const auto document = QJsonDocument::fromJson(R"json(
+      {"model":"hrrr","date":"20260731","cycle_utc":6,
+       "source":"nomads","forecast_hours":[3],
+       "forecast_hours_complete":false,
+       "supported_forecast_hours":[0,1,2,3,4,5,6]}
+   )json");
+   QString    error;
+   const auto probe = ParseModelProbe(document.object(), error);
+
+   ASSERT_TRUE(error.isEmpty()) << error.toStdString();
+   ASSERT_EQ(probe.forecastHours_.size(), 1);
+   EXPECT_EQ(probe.forecastHours_.front(), 3);
+   EXPECT_FALSE(probe.forecastHoursComplete_);
+   ASSERT_EQ(probe.supportedForecastHours_.size(), 7);
+   EXPECT_EQ(probe.supportedForecastHours_.back(), 6);
+}
+
+TEST(ModelTypesTest, LegacyProbeContractRemainsComplete)
+{
+   const auto document = QJsonDocument::fromJson(R"json(
+      {"model":"gfs","date":"20260731","cycle_utc":0,
+       "source":"nomads","forecast_hours":[0,1,2,3]}
+   )json");
+   QString    error;
+   const auto probe = ParseModelProbe(document.object(), error);
+
+   ASSERT_TRUE(error.isEmpty()) << error.toStdString();
+   EXPECT_TRUE(probe.forecastHoursComplete_);
+   EXPECT_TRUE(probe.supportedForecastHours_.isEmpty());
+   ASSERT_EQ(probe.forecastHours_.size(), 4);
+   EXPECT_EQ(probe.forecastHours_.back(), 3);
+}
+
 TEST(ModelTypesTest, ParsesRenderedSounding)
 {
    const auto document = QJsonDocument::fromJson(R"json(
