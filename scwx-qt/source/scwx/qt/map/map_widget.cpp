@@ -12,6 +12,7 @@
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_settings.hpp>
 #include <scwx/qt/map/marker_layer.hpp>
+#include <scwx/qt/map/model_layer.hpp>
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/map/overlay_product_layer.hpp>
 #include <scwx/qt/map/placefile_layer.hpp>
@@ -377,6 +378,7 @@ public:
    std::shared_ptr<OverlayProductLayer>       overlayProductLayer_ {nullptr};
    std::shared_ptr<PlacefileLayer>            placefileLayer_;
    std::shared_ptr<MarkerLayer>               markerLayer_;
+   std::shared_ptr<ModelLayer>                modelLayer_;
    std::shared_ptr<ColorTableLayer>           colorTableLayer_;
    std::shared_ptr<RadarSiteLayer>            radarSiteLayer_ {nullptr};
    std::shared_ptr<MapAnnotationLayer>        annotationLayer_;
@@ -1487,6 +1489,51 @@ void MapWidget::GetMapViewParameters(double& latitude,
    p->GetMapViewParameters(latitude, longitude, zoom, bearing, pitch);
 }
 
+std::array<double, 4> MapWidget::GetVisibleBounds() const
+{
+   if (p->map_ == nullptr || width() <= 0 || height() <= 0)
+   {
+      return {-130.0, -60.0, 20.0, 55.0};
+   }
+   const std::array<QPointF, 4> corners {
+      QPointF {0.0, 0.0},
+      QPointF {static_cast<qreal>(width()), 0.0},
+      QPointF {0.0, static_cast<qreal>(height())},
+      QPointF {static_cast<qreal>(width()), static_cast<qreal>(height())}};
+   double                west  = 180.0;
+   double                east  = -180.0;
+   double                south = 90.0;
+   double                north = -90.0;
+   std::array<double, 4> longitudes {};
+   for (std::size_t i = 0; i < corners.size(); ++i)
+   {
+      const auto coordinate = p->map_->coordinateForPixel(corners[i]);
+      south                 = std::min(south, coordinate.first);
+      north                 = std::max(north, coordinate.first);
+      west                  = std::min(west, coordinate.second);
+      east                  = std::max(east, coordinate.second);
+      longitudes[i]         = coordinate.second;
+   }
+   const double rawSpan = east - west;
+   if (rawSpan > 180.0 && rawSpan < 359.0)
+   {
+      double wrappedWest = 360.0;
+      double wrappedEast = 0.0;
+      for (double longitude : longitudes)
+      {
+         const double wrapped = longitude < 0.0 ? longitude + 360.0 : longitude;
+         wrappedWest          = std::min(wrappedWest, wrapped);
+         wrappedEast          = std::max(wrappedEast, wrapped);
+      }
+      if (wrappedEast - wrappedWest < rawSpan)
+      {
+         west = wrappedWest > 180.0 ? wrappedWest - 360.0 : wrappedWest;
+         east = wrappedEast > 180.0 ? wrappedEast - 360.0 : wrappedEast;
+      }
+   }
+   return {west, east, std::max(south, -85.0), std::min(north, 85.0)};
+}
+
 void MapWidget::SetInitialMapStyle(const std::string& styleName)
 {
    p->initialStyleName_ = styleName;
@@ -1765,6 +1812,11 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
    {
       switch (std::get<types::DataLayer>(description))
       {
+      case types::DataLayer::ModelField:
+         modelLayer_ = std::make_shared<ModelLayer>(glContext_);
+         AddLayer(layerName, modelLayer_, before);
+         break;
+
       // If there is a radar product view, create the overlay product layer
       case types::DataLayer::OverlayProduct:
          if (radarProductView != nullptr)

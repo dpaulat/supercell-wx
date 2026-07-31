@@ -10,6 +10,7 @@
 #include <scwx/qt/types/text_event_key.hpp>
 
 #include <chrono>
+#include <array>
 #include <memory>
 #include <optional>
 #include <string>
@@ -148,6 +149,8 @@ public:
                              double& zoom,
                              double& bearing,
                              double& pitch) const;
+   /** Visible west/east/south/north bounds, including rotated-map corners. */
+   [[nodiscard]] std::array<double, 4> GetVisibleBounds() const;
 
    void SetInitialMapStyle(const std::string& styleName);
    void SetMapStyle(const std::string& styleName, bool force = false);

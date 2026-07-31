@@ -28,12 +28,13 @@ enum class LayerType
 
 enum class DataLayer
 {
+   ModelField,
    OverlayProduct,
    RadarRange,
    Unknown
 };
 using DataLayerIterator = scwx::util::
-   Iterator<DataLayer, DataLayer::OverlayProduct, DataLayer::RadarRange>;
+   Iterator<DataLayer, DataLayer::ModelField, DataLayer::RadarRange>;
 
 enum class InformationLayer
 {

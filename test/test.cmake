@@ -48,6 +48,7 @@ set(SRC_QT_UI_TESTS source/scwx/qt/ui/threshold_value_utility.test.cpp)
 set(SRC_QT_SETTINGS_TESTS source/scwx/qt/settings/settings_container.test.cpp
                           source/scwx/qt/settings/settings_variable.test.cpp
                           source/scwx/qt/settings/ui_settings.test.cpp)
+set(SRC_QT_TYPES_TESTS source/scwx/qt/types/model_types.test.cpp)
 set(SRC_QT_UTIL_TESTS source/scwx/qt/util/q_file_input_stream.test.cpp
                       source/scwx/qt/util/geographic_lib.test.cpp
                       source/scwx/qt/util/network.test.cpp)
@@ -77,6 +78,7 @@ add_executable(wxtest ${SRC_MAIN}
                       ${SRC_QT_MODEL_TESTS}
                       ${SRC_QT_UI_TESTS}
                       ${SRC_QT_SETTINGS_TESTS}
+                      ${SRC_QT_TYPES_TESTS}
                       ${SRC_QT_UTIL_TESTS}
                       ${SRC_TYPES_TESTS}
                       ${SRC_UTIL_TESTS}
@@ -97,6 +99,7 @@ source_group("Source Files\\qt\\map"      FILES ${SRC_QT_MAP_TESTS})
 source_group("Source Files\\qt\\model"    FILES ${SRC_QT_MODEL_TESTS})
 source_group("Source Files\\qt\\ui"       FILES ${SRC_QT_UI_TESTS})
 source_group("Source Files\\qt\\settings" FILES ${SRC_QT_SETTINGS_TESTS})
+source_group("Source Files\\qt\\types"    FILES ${SRC_QT_TYPES_TESTS})
 source_group("Source Files\\qt\\util"     FILES ${SRC_QT_UTIL_TESTS})
 source_group("Source Files\\types"        FILES ${SRC_TYPES_TESTS})
 source_group("Source Files\\util"         FILES ${SRC_UTIL_TESTS})

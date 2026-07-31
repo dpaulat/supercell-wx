@@ -45,6 +45,7 @@
 #include <scwx/qt/ui/level3_settings_widget.hpp>
 #include <scwx/qt/ui/placefile_dialog.hpp>
 #include <scwx/qt/ui/marker_dialog.hpp>
+#include <scwx/qt/ui/model_widget.hpp>
 #include <scwx/qt/ui/radar_site_dialog.hpp>
 #include <scwx/qt/ui/settings_dialog.hpp>
 #include <scwx/qt/ui/update_dialog.hpp>
@@ -71,6 +72,7 @@
 #include <QActionGroup>
 #include <QDesktopServices>
 #include <QDialog>
+#include <QDockWidget>
 #include <QFileDialog>
 #include <QGuiApplication>
 #include <QJsonArray>
@@ -83,6 +85,7 @@
 #include <QPointer>
 #include <QPoint>
 #include <QScreen>
+#include <QScrollArea>
 #include <QSignalBlocker>
 #include <QSizePolicy>
 #include <QSplitter>
@@ -338,11 +341,13 @@ public:
 
    ui::Level3ProductsWidget* level3ProductsWidget_ {nullptr};
    ui::Level3SettingsWidget* level3SettingsWidget_ {nullptr};
+   ui::ModelWidget*          modelWidget_ {nullptr};
 
    QLabel* coordinateLabel_ {nullptr};
    QLabel* timeLabel_ {nullptr};
 
    ui::AlertDockWidget*                  alertDockWidget_ {};
+   QDockWidget*                          modelDockWidget_ {};
    QPointer<ui::MapAnnotationDockWidget> mapAnnotationDock_ {};
    ui::AnimationDockWidget*              animationDockWidget_ {};
    ui::AboutDialog*                      aboutDialog_ {};
@@ -471,6 +476,23 @@ MainWindow::MainWindow(QWidget* parent) :
    p->alertDockWidget_ = new ui::AlertDockWidget(this);
    addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
 
+   // Forecast models have their own dock. Model/run selection, downloads,
+   // map products and point soundings are a separate workflow from radar
+   // product selection and should not resize or overload the Radar Toolbox.
+   p->modelDockWidget_ = new QDockWidget(tr("Forecast Models"), this);
+   p->modelDockWidget_->setObjectName("forecastModelsDock");
+   p->modelDockWidget_->setAllowedAreas(Qt::LeftDockWidgetArea |
+                                        Qt::RightDockWidgetArea);
+   auto* modelScrollArea = new QScrollArea(p->modelDockWidget_);
+   modelScrollArea->setWidgetResizable(true);
+   modelScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+   p->modelWidget_ = new ui::ModelWidget(modelScrollArea);
+   p->modelWidget_->SetMapWidget(p->activeMap_);
+   modelScrollArea->setWidget(p->modelWidget_);
+   p->modelDockWidget_->setWidget(modelScrollArea);
+   addDockWidget(Qt::RightDockWidgetArea, p->modelDockWidget_);
+   p->modelDockWidget_->hide();
+
    p->mapAnnotationDock_ =
       new ui::MapAnnotationDockWidget(p->mainWindow_->ui->centralwidget);
    p->mapAnnotationDock_->AttachToMap(p->activeMap_);
@@ -496,6 +518,10 @@ MainWindow::MainWindow(QWidget* parent) :
                               ui->radarToolboxDock->toggleViewAction());
    ui->radarToolboxDock->toggleViewAction()->setText(tr("Radar &Toolbox"));
    ui->actionRadarToolbox->setVisible(false);
+
+   ui->menuView->insertAction(ui->actionAlerts,
+                              p->modelDockWidget_->toggleViewAction());
+   p->modelDockWidget_->toggleViewAction()->setText(tr("Forecast &Models"));
 
    ui->menuView->insertAction(ui->actionAlerts,
                               p->alertDockWidget_->toggleViewAction());
@@ -3370,6 +3396,10 @@ void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)
    }
 
    activeMap_ = mapWidget;
+   if (modelWidget_ != nullptr)
+   {
+      modelWidget_->SetMapWidget(activeMap_);
+   }
 
    for (map::MapWidget* widget : maps_)
    {

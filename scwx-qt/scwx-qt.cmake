@@ -12,6 +12,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 OPTION(SCWX_DISABLE_CONSOLE "Disables the Windows console in release mode" ON)
+set(SCWX_MODEL_BRIDGE_EXECUTABLE "" CACHE FILEPATH
+    "Optional prebuilt rw_model_bridge executable to package beside Supercell Wx")
+set(SCWX_MODEL_BRIDGE_LICENSE "" CACHE FILEPATH
+    "Optional Rusty Weather license file to include when packaging the model bridge")
 
 find_package(Boost
              COMPONENTS atomic
@@ -122,6 +126,7 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/log_manager.hpp
                 source/scwx/qt/manager/marker_manager.hpp
                 source/scwx/qt/manager/media_manager.hpp
+                source/scwx/qt/manager/model_manager.hpp
                 source/scwx/qt/manager/placefile_manager.hpp
                 source/scwx/qt/manager/position_manager.hpp
                 source/scwx/qt/manager/provider_manager.hpp
@@ -143,6 +148,7 @@ set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                 source/scwx/qt/manager/log_manager.cpp
                 source/scwx/qt/manager/marker_manager.cpp
                 source/scwx/qt/manager/media_manager.cpp
+                source/scwx/qt/manager/model_manager.cpp
                 source/scwx/qt/manager/placefile_manager.cpp
                 source/scwx/qt/manager/position_manager.cpp
                 source/scwx/qt/manager/provider_manager.cpp
@@ -178,6 +184,7 @@ set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/overlay_product_layer.hpp
             source/scwx/qt/map/placefile_layer.hpp
             source/scwx/qt/map/marker_layer.hpp
+            source/scwx/qt/map/model_layer.hpp
             source/scwx/qt/map/radar_product_layer.hpp
             source/scwx/qt/map/radar_range_layer.hpp
             source/scwx/qt/map/radar_site_layer.hpp)
@@ -199,6 +206,7 @@ set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/overlay_product_layer.cpp
             source/scwx/qt/map/placefile_layer.cpp
             source/scwx/qt/map/marker_layer.cpp
+            source/scwx/qt/map/model_layer.cpp
             source/scwx/qt/map/radar_product_layer.cpp
             source/scwx/qt/map/radar_range_layer.cpp
             source/scwx/qt/map/radar_site_layer.cpp)
@@ -274,6 +282,7 @@ set(HDR_TYPES source/scwx/qt/types/alert_types.hpp
               source/scwx/qt/types/layer_types.hpp
               source/scwx/qt/types/location_types.hpp
               source/scwx/qt/types/map_types.hpp
+              source/scwx/qt/types/model_types.hpp
               source/scwx/qt/types/marker_types.hpp
               source/scwx/qt/types/media_types.hpp
               source/scwx/qt/types/placefile_types.hpp
@@ -295,6 +304,7 @@ set(SRC_TYPES source/scwx/qt/types/alert_types.cpp
               source/scwx/qt/types/layer_types.cpp
               source/scwx/qt/types/location_types.cpp
               source/scwx/qt/types/map_types.cpp
+              source/scwx/qt/types/model_types.cpp
               source/scwx/qt/types/media_types.cpp
               source/scwx/qt/types/placefile_types.cpp
               source/scwx/qt/types/qt_types.cpp
@@ -337,6 +347,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/map_annotation_dock_widget.hpp
            source/scwx/qt/ui/marker_dialog.hpp
            source/scwx/qt/ui/marker_settings_widget.hpp
+           source/scwx/qt/ui/model_widget.hpp
            source/scwx/qt/ui/progress_dialog.hpp
            source/scwx/qt/ui/radar_site_dialog.hpp
            source/scwx/qt/ui/serial_port_dialog.hpp
@@ -376,6 +387,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/map_annotation_dock_widget.cpp
            source/scwx/qt/ui/marker_dialog.cpp
            source/scwx/qt/ui/marker_settings_widget.cpp
+           source/scwx/qt/ui/model_widget.cpp
            source/scwx/qt/ui/progress_dialog.cpp
            source/scwx/qt/ui/radar_site_dialog.cpp
            source/scwx/qt/ui/settings_dialog.cpp
@@ -493,6 +505,8 @@ set(SHADER_FILES gl/annotation_geo.vert
                  gl/geo_line.vert
                  gl/geo_texture2d.vert
                  gl/map_color.vert
+                 gl/model_overlay.frag
+                 gl/model_overlay.vert
                  gl/radar.frag
                  gl/radar.vert
                  gl/texture1d.frag
@@ -888,6 +902,36 @@ target_link_libraries(scwx-qt INTERFACE Boost::program_options)
 
 target_link_libraries(supercell-wx PRIVATE scwx-qt
                                            wxdata)
+
+if (SCWX_MODEL_BRIDGE_EXECUTABLE)
+    if (NOT EXISTS "${SCWX_MODEL_BRIDGE_EXECUTABLE}")
+        message(FATAL_ERROR
+                "SCWX_MODEL_BRIDGE_EXECUTABLE does not exist: ${SCWX_MODEL_BRIDGE_EXECUTABLE}")
+    endif()
+    add_custom_command(TARGET supercell-wx
+                       POST_BUILD
+                       COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                           "${SCWX_MODEL_BRIDGE_EXECUTABLE}"
+                           "$<TARGET_FILE_DIR:supercell-wx>/rw_model_bridge${CMAKE_EXECUTABLE_SUFFIX}"
+                       COMMENT "Packaging Rusty Weather model bridge...")
+    install(PROGRAMS "${SCWX_MODEL_BRIDGE_EXECUTABLE}"
+            TYPE BIN
+            RENAME "rw_model_bridge${CMAKE_EXECUTABLE_SUFFIX}"
+            COMPONENT supercell-wx)
+    if (SCWX_MODEL_BRIDGE_LICENSE)
+        if (NOT EXISTS "${SCWX_MODEL_BRIDGE_LICENSE}")
+            message(FATAL_ERROR
+                    "SCWX_MODEL_BRIDGE_LICENSE does not exist: ${SCWX_MODEL_BRIDGE_LICENSE}")
+        endif()
+        install(FILES "${SCWX_MODEL_BRIDGE_LICENSE}"
+                DESTINATION "share/licenses/supercell-wx"
+                RENAME "rusty-weather-LICENSE"
+                COMPONENT supercell-wx)
+    else()
+        message(WARNING
+                "A packaged Rusty Weather bridge must include its MIT license; set SCWX_MODEL_BRIDGE_LICENSE for install artifacts")
+    endif()
+endif()
 
 if (WIN32)
     # Deploy Qt to target directory
