@@ -19,6 +19,8 @@ Rust implementations can evolve independently.
 - Downloads are cached, decoded, and retained in a reusable local run store.
   A view-oriented profile limits downloads to map fields, while the full and
   sounding profiles include the additional data needed by their workflows.
+- Heavy ECAPE diagnostics are opt-in. Normal `full` processing retains the
+  five sounding volumes without running the minute-scale heavy compute stage.
 - Direct, derived, heavy, and windowed products use Rusty Weather's production
   recipes and palettes.
 - One or more products and forecast hours can be rendered as transparent

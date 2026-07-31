@@ -333,8 +333,9 @@ void ModelWidget::Impl::BuildUi()
    cycle_     = new QComboBox(runGroup);
    probeHour_ = new QSpinBox(runGroup);
    probeHour_->setRange(0, 999);
-   hours_ = new QLineEdit("0-18", runGroup);
-   hours_->setToolTip(self_->tr("Examples: 0, 0,3,6, or 0-48"));
+   hours_ = new QLineEdit("0", runGroup);
+   hours_->setToolTip(self_->tr(
+      "Forecast hours to download or render. Examples: 0, 0,3,6, or 0-48"));
    profile_ = new QComboBox(runGroup);
    profile_->addItems({"view", "full", "sounding"});
    compactCombo(model_);
@@ -344,7 +345,10 @@ void ModelWidget::Impl::BuildUi()
    compactCombo(profile_);
    date_->installEventFilter(wheelFilter);
    probeHour_->installEventFilter(wheelFilter);
-   heavy_  = new QCheckBox(self_->tr("Heavy diagnostics"), runGroup);
+   heavy_ = new QCheckBox(self_->tr("Heavy ECAPE"), runGroup);
+   heavy_->setToolTip(self_->tr(
+      "Adds CPU-intensive ECAPE diagnostics. HRRR commonly takes 1-2 "
+      "minutes per hour; leave this off for normal full processing."));
    verify_ = new QCheckBox(self_->tr("Verify stored output"), runGroup);
    auto* runButtons       = new QWidget(runGroup);
    auto* runButtonsLayout = new QGridLayout(runButtons);
@@ -756,7 +760,11 @@ void ModelWidget::Impl::ConnectSignals()
             source_->setCurrentIndex(sourceIndex);
          if (!result.forecastHours_.isEmpty())
          {
-            hours_->setText(FormatForecastHours(result.forecastHours_));
+            hours_->setToolTip(
+               self_
+                  ->tr("Available forecast hours: %1. The value in this field "
+                       "controls which hours will be downloaded or rendered.")
+                  .arg(FormatForecastHours(result.forecastHours_)));
          }
       });
    QObject::connect(manager_.get(),
