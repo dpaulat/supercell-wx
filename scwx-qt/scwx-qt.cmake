@@ -13,16 +13,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 OPTION(SCWX_DISABLE_CONSOLE "Disables the Windows console in release mode" ON)
 
-find_package(Boost)
-find_package(Fontconfig)
-find_package(geographiclib)
-find_package(geos)
-find_package(glm)
-find_package(JPEG)
+find_package(Boost
+             COMPONENTS atomic
+                        json
+                        program_options
+                        timer
+             REQUIRED)
+find_package(Fontconfig REQUIRED)
+find_package(GeographicLib REQUIRED)
+find_package(geos REQUIRED)
+find_package(glm REQUIRED)
+find_package(JPEG REQUIRED)
 find_package(OpenGL REQUIRED)
+find_package(PNG REQUIRED)
 find_package(Python COMPONENTS Interpreter)
-find_package(SQLite3)
-find_package(TIFF)
+find_package(SQLite3 REQUIRED)
+find_package(TIFF REQUIRED)
 
 find_package(QT NAMES Qt6
              COMPONENTS Gui
@@ -519,6 +525,8 @@ set(COUNTIES_SQLITE_DB ${scwx-qt_BINARY_DIR}/res/db/counties.db)
 
 set(RESOURCE_INPUT  ${scwx-qt_SOURCE_DIR}/res/scwx-qt.rc.in)
 set(RESOURCE_OUTPUT ${scwx-qt_BINARY_DIR}/res/scwx-qt.rc)
+set(METAINFO_INPUT  ${scwx-qt_SOURCE_DIR}/res/linux/net.supercellwx.app.metainfo.xml.in)
+set(METAINFO_OUTPUT ${scwx-qt_BINARY_DIR}/res/linux/net.supercellwx.app.metainfo.xml)
 set(VERSIONS_INPUT  ${scwx-qt_SOURCE_DIR}/source/scwx/qt/main/versions.hpp.in)
 set(VERSIONS_CACHE  ${scwx-qt_BINARY_DIR}/versions_cache.json)
 set(VERSIONS_HEADER ${scwx-qt_BINARY_DIR}/scwx/qt/main/versions.hpp)
@@ -642,7 +650,10 @@ else()
 endif()
 
 if (WIN32)
-    add_custom_command(OUTPUT  ${VERSIONS_HEADER} ${RESOURCE_OUTPUT} ${VERSIONS_HEADER}-ALWAYS_RUN
+    add_custom_command(OUTPUT  ${VERSIONS_HEADER}
+                               ${RESOURCE_OUTPUT}
+                               ${METAINFO_OUTPUT}
+                               ${VERSIONS_HEADER}-ALWAYS_RUN
                        COMMAND ${Python_EXECUTABLE}
                                ${scwx-qt_SOURCE_DIR}/tools/generate_versions.py
                                -g ${SCWX_DIR}
@@ -652,9 +663,13 @@ if (WIN32)
                                -o ${VERSIONS_HEADER}
                                -b ${SCWX_BUILD_NUM}
                                --input-resource ${RESOURCE_INPUT}
-                               --output-resource ${RESOURCE_OUTPUT})
+                               --output-resource ${RESOURCE_OUTPUT}
+                               --input-metainfo ${METAINFO_INPUT}
+                               --output-metainfo ${METAINFO_OUTPUT})
 else()
-    add_custom_command(OUTPUT  ${VERSIONS_HEADER} ${VERSIONS_HEADER}-ALWAYS_RUN
+    add_custom_command(OUTPUT  ${VERSIONS_HEADER}
+                               ${METAINFO_OUTPUT}
+                               ${VERSIONS_HEADER}-ALWAYS_RUN
                        COMMAND ${Python_EXECUTABLE}
                                ${scwx-qt_SOURCE_DIR}/tools/generate_versions.py
                                -g ${SCWX_DIR}
@@ -662,7 +677,9 @@ else()
                                -c ${VERSIONS_CACHE}
                                -i ${VERSIONS_INPUT}
                                -o ${VERSIONS_HEADER}
-                               -b ${SCWX_BUILD_NUM})
+                               -b ${SCWX_BUILD_NUM}
+                               --input-metainfo ${METAINFO_INPUT}
+                               --output-metainfo ${METAINFO_OUTPUT})
 endif()
 
 add_custom_target(scwx-qt_generate_versions ALL
@@ -725,7 +742,7 @@ elseif (APPLE)
                           MACOSX_BUNDLE_INFO_PLIST           "${scwx-qt_SOURCE_DIR}/res/scwx-qt.plist.in"
                           MACOSX_BUNDLE_GUI_IDENTIFIER       "net.supercellwx.app"
                           MACOSX_BUNDLE_BUNDLE_NAME          "Supercell Wx"
-                          MACOSX_BUNDLE_BUNDLE_VERSION       "${SCWX_VERSION}"
+                          MACOSX_BUNDLE_BUNDLE_VERSION       "${SCWX_BUILD_NUM}"
                           MACOSX_BUNDLE_SHORT_VERSION_STRING "${SCWX_VERSION}"
                           MACOSX_BUNDLE_COPYRIGHT            "Copyright ${CURRENT_YEAR} Dan Paulat"
                           MACOSX_BUNDLE_ICON_FILE            "scwx.icns"
@@ -777,12 +794,14 @@ target_compile_options(supercell-wx PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,14>>:-Wno-maybe-uninitialized>
 )
 
-# Temporary workaround for Boost and GCC 16+ where -Warray-bounds causes false positives
+# Temporary workaround for Boost and GCC 16+ where -Warray-bounds and -Wstringop-overflow cause false positives
 target_compile_options(scwx-qt PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-array-bounds>
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-stringop-overflow>
 )
 target_compile_options(supercell-wx PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-array-bounds>
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-stringop-overflow>
 )
 
 if (MSVC)
@@ -860,6 +879,7 @@ target_link_libraries(scwx-qt PUBLIC Qt${QT_VERSION_MAJOR}::Widgets
                                      glm::glm
                                      imgui
                                      JPEG::JPEG
+                                     PNG::PNG
                                      qt6ct-common
                                      qt6ct-widgets
                                      SQLite::SQLite3

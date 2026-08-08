@@ -1,5 +1,5 @@
 id: net.supercellwx.app
-version: '0.6.0'
+version: '0.6.1'
 runtime: "org.freedesktop.Platform"
 runtime-version: "25.08"
 sdk: "org.freedesktop.Sdk"
@@ -16,11 +16,10 @@ modules:
       - cp -r * /app/
     sources:
       - type: dir
+        # Includes generated net.supercellwx.app.metainfo.xml staged by CI
         path: ../../supercell-wx-flatpak
       - type: file
         path: ../scwx-qt/res/linux/net.supercellwx.app.desktop
-      - type: file
-        path: ../scwx-qt/res/linux/net.supercellwx.app.metainfo.xml
       - type: file
         path: ../scwx-qt/res/icons/scwx-256.png
       - type: file
