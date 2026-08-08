@@ -443,9 +443,14 @@ private:
          std::inserter(productRecordMap, productRecordMap.begin()),
          [](const std::chrono::system_clock::time_point& volumeTime)
          {
+            // Match Store()/GetCachedNexradFile() second-aligned keys
+            const auto timeInSeconds =
+               std::chrono::time_point_cast<std::chrono::seconds,
+                                            std::chrono::system_clock>(
+                  volumeTime);
             return std::pair<std::chrono::system_clock::time_point,
                              std::weak_ptr<types::RadarProductRecord>>(
-               volumeTime, std::weak_ptr<types::RadarProductRecord> {});
+               timeInSeconds, std::weak_ptr<types::RadarProductRecord> {});
          });
    }
 
