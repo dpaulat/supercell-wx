@@ -75,7 +75,7 @@ jobs:
             conan_profile: scwx-linux_gcc-11
             appimage_arch: x86_64
             artifact_suffix: linux-gcc-11-x64
-            compiler_packages: ''
+            compiler_packages: g++-11
           - name: linux_gcc-13_x64
             os: ubuntu-24.04
             build_type: Release
@@ -93,9 +93,135 @@ jobs:
             conan_profile: scwx-linux_gcc-13
             appimage_arch: x86_64
             artifact_suffix: linux-gcc-13-x64
-            compiler_packages: ''
-          - name: linux_clang-22_x64
+            compiler_packages: g++-13
+          - name: linux_gcc-14_x64
             os: ubuntu-24.04
+            build_type: Release
+            env_cc: gcc-14
+            env_cxx: g++-14
+            compiler: gcc
+            cppflags: ''
+            ldflags: ''
+            qt_version: 6.11.1
+            qt_arch_aqt: linux_gcc_64
+            qt_arch_dir: gcc_64
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
+            qt_tools: ''
+            conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
+            conan_profile: scwx-linux_gcc-14
+            appimage_arch: x86_64
+            artifact_suffix: linux-gcc-14-x64
+            compiler_packages: g++-14
+          - name: linux_gcc-15_x64
+            os: ubuntu-26.04
+            build_type: Release
+            env_cc: gcc-15
+            env_cxx: g++-15
+            compiler: gcc
+            cppflags: ''
+            ldflags: ''
+            qt_version: 6.11.1
+            qt_arch_aqt: linux_gcc_64
+            qt_arch_dir: gcc_64
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
+            qt_tools: ''
+            conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
+            conan_profile: scwx-linux_gcc-15
+            appimage_arch: x86_64
+            artifact_suffix: linux-gcc-15-x64
+            compiler_packages: g++-15
+          - name: linux_gcc-16_x64
+            os: ubuntu-26.04
+            build_type: Release
+            env_cc: gcc-16
+            env_cxx: g++-16
+            compiler: gcc
+            cppflags: ''
+            ldflags: ''
+            qt_version: 6.11.1
+            qt_arch_aqt: linux_gcc_64
+            qt_arch_dir: gcc_64
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
+            qt_tools: ''
+            conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
+            conan_profile: scwx-linux_gcc-16
+            appimage_arch: x86_64
+            artifact_suffix: linux-gcc-16-x64
+            compiler_packages: g++-16
+          - name: linux_clang-18_x64
+            os: ubuntu-24.04
+            build_type: Release
+            env_cc: clang-18
+            env_cxx: clang++-18
+            compiler: clang
+            cppflags: ''
+            ldflags: ''
+            qt_version: 6.11.1
+            qt_arch_aqt: linux_gcc_64
+            qt_arch_dir: gcc_64
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
+            qt_tools: ''
+            conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
+            conan_profile: scwx-linux_clang-18
+            appimage_arch: x86_64
+            artifact_suffix: linux-clang-18-x64
+            compiler_packages: clang-18
+          - name: linux_clang-19_x64
+            os: ubuntu-24.04
+            build_type: Release
+            env_cc: clang-19
+            env_cxx: clang++-19
+            compiler: clang
+            cppflags: ''
+            ldflags: ''
+            qt_version: 6.11.1
+            qt_arch_aqt: linux_gcc_64
+            qt_arch_dir: gcc_64
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
+            qt_tools: ''
+            conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
+            conan_profile: scwx-linux_clang-19
+            appimage_arch: x86_64
+            artifact_suffix: linux-clang-19-x64
+            compiler_packages: clang-19
+          - name: linux_clang-20_x64
+            os: ubuntu-24.04
+            build_type: Release
+            env_cc: clang-20
+            env_cxx: clang++-20
+            compiler: clang
+            cppflags: ''
+            ldflags: ''
+            qt_version: 6.11.1
+            qt_arch_aqt: linux_gcc_64
+            qt_arch_dir: gcc_64
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
+            qt_tools: ''
+            conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
+            conan_profile: scwx-linux_clang-20
+            appimage_arch: x86_64
+            artifact_suffix: linux-clang-20-x64
+            compiler_packages: clang-20
+          - name: linux_clang-21_x64
+            os: ubuntu-26.04
+            build_type: Release
+            env_cc: clang-21
+            env_cxx: clang++-21
+            compiler: clang
+            cppflags: ''
+            ldflags: ''
+            qt_version: 6.11.1
+            qt_arch_aqt: linux_gcc_64
+            qt_arch_dir: gcc_64
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
+            qt_tools: ''
+            conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
+            conan_profile: scwx-linux_clang-21
+            appimage_arch: x86_64
+            artifact_suffix: linux-clang-21-x64
+            compiler_packages: clang-21
+          - name: linux_clang-22_x64
+            os: ubuntu-26.04
             build_type: Release
             env_cc: clang-22
             env_cxx: clang++-22
@@ -111,7 +237,7 @@ jobs:
             conan_profile: scwx-linux_clang-22
             appimage_arch: x86_64
             artifact_suffix: linux-clang-22-x64
-            compiler_packages: ''
+            compiler_packages: clang-22
           - name: linux_gcc-13_arm64
             os: ubuntu-24.04-arm
             build_type: Release
@@ -164,7 +290,7 @@ jobs:
     env:
       CC: ${{ matrix.env_cc }}
       CXX: ${{ matrix.env_cxx }}
-      SCWX_VERSION: v0.6.0
+      SCWX_VERSION: v0.6.1
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -278,16 +404,19 @@ jobs:
                     GitPython `
                     conan
 
-    - name: Cache Conan Packages
-      uses: actions/cache@v6
+    - name: Restore Conan Packages
+      id: cache-conan
+      uses: actions/cache/restore@v6
       with:
         path: ~/.conan2
         key: build-v2-${{ matrix.conan_profile }}-${{ hashFiles('./source/conanfile.py', './source/tools/conan/profiles/*') }}
-        save-always: true
 
     - name: Install Conan Packages
+      id: conan-install
       shell: pwsh
       run: |
+        $ErrorActionPreference = 'Stop'
+        $PSNativeCommandUseErrorActionPreference = $true
         conan config install `
           ./source/tools/conan/profiles/${{ matrix.conan_profile }} `
           -tf profiles
@@ -301,6 +430,14 @@ jobs:
           --settings:all build_type=${{ matrix.build_type }} `
           --output-folder ./conan/ `
           ${{ matrix.conan_package_manager }}
+        conan cache clean
+
+    - name: Save Conan Packages
+      if: steps.conan-install.outcome == 'success' && steps.cache-conan.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: ~/.conan2
+        key: ${{ steps.cache-conan.outputs.cache-primary-key }}
 
     - name: Build Supercell Wx
       shell: pwsh
@@ -437,13 +574,23 @@ jobs:
         path: ${{ github.workspace }}/*-${{ matrix.appimage_arch }}.AppImage*
 
     - name: Build FlatPak (Linux)
-      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      # Ubuntu 22.04 ships flatpak-builder < 1.4, which still runs appstream-compose
+      # inside the SDK. Freedesktop 25.08 removed that tool; 24.04+ builder uses
+      # host appstreamcli compose instead. Publish only consumes gcc-13 artifacts.
+      if: ${{ startsWith(matrix.os, 'ubuntu') && matrix.os != 'ubuntu-22.04' }}
       env:
         INSTALL_DIR: ${{ github.workspace }}/supercell-wx/
         FLATPAK_DIR: ${{ github.workspace }}/supercell-wx-flatpak/
+        # CI always builds the nightly branch. Stable is assigned later by the
+        # Flatpak repo publish job when a GitHub Release is published (tags
+        # are often created after this workflow has already finished).
+        FLATPAK_DEFAULT_BRANCH: nightly
       shell: bash
       run: |
         cp -r ${{ env.INSTALL_DIR }} ${{ env.FLATPAK_DIR }}
+        # Stage generated AppStream metainfo into the Flatpak source dir
+        cp "${{ github.workspace }}/build/scwx-qt/res/linux/net.supercellwx.app.metainfo.xml" \
+           "${{ env.FLATPAK_DIR }}/"
         # Copy krb5 libraries to flatpak
         cp -a /usr/lib/*/libkrb5.so* \
               /usr/lib/*/libkrb5support.so* \
@@ -455,13 +602,15 @@ jobs:
         flatpak-builder --force-clean \
             --user \
             --install-deps-from=flathub \
+            --default-branch="${FLATPAK_DEFAULT_BRANCH}" \
             --repo=flatpak-repo \
             --install flatpak-build \
             ${{ github.workspace }}/source/tools/net.supercellwx.app.yml
-        flatpak build-bundle flatpak-repo supercell-wx.flatpak net.supercellwx.app
+        flatpak build-bundle flatpak-repo supercell-wx.flatpak \
+            net.supercellwx.app "${FLATPAK_DEFAULT_BRANCH}"
 
     - name: Upload FlatPak (Linux)
-      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      if: ${{ startsWith(matrix.os, 'ubuntu') && matrix.os != 'ubuntu-22.04' }}
       uses: actions/upload-artifact@v7
       with:
         name: supercell-wx-flatpak-${{ matrix.artifact_suffix }}

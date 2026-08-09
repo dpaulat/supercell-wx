@@ -10,6 +10,7 @@ class Keys:
     BuildNumber   = "build_number"
     CommitString  = "commit_string"
     CopyrightYear = "copyright_year"
+    ReleaseDate   = "release_date"
     ResourceDir   = "resource_dir"
     VersionCommas = "version_commas"
     VersionString = "version_string"
@@ -19,6 +20,7 @@ class VersionInfo:
         self.buildNumber_   = None
         self.commitString_  = None
         self.copyrightYear_ = None
+        self.releaseDate_   = None
         self.resourceDir_   = None
         self.versionCommas_ = None
         self.versionString_ = None
@@ -28,6 +30,7 @@ class VersionInfo:
             return self.buildNumber_ == other.buildNumber_ and \
                 self.commitString_ == other.commitString_ and \
                 self.copyrightYear_ == other.copyrightYear_ and \
+                self.releaseDate_ == other.releaseDate_ and \
                 self.resourceDir_ == other.resourceDir_ and \
                 self.versionString_ == other.versionString_
 
@@ -42,6 +45,8 @@ class VersionInfo:
                 return self.commitString_
             case Keys.CopyrightYear:
                 return self.copyrightYear_
+            case Keys.ReleaseDate:
+                return self.releaseDate_
             case Keys.ResourceDir:
                 return self.resourceDir_
             case Keys.VersionCommas:
@@ -54,6 +59,7 @@ class VersionInfo:
 kKeys_ = [Keys.BuildNumber,
           Keys.CommitString,
           Keys.CopyrightYear,
+          Keys.ReleaseDate,
           Keys.ResourceDir,
           Keys.VersionCommas,
           Keys.VersionString]
@@ -102,6 +108,18 @@ def ParseArguments():
                         dest     = "outputResource_",
                         default  = None,
                         type     = pathlib.Path)
+    parser.add_argument("--input-metainfo",
+                        metavar  = "filename",
+                        help     = "input metainfo template",
+                        dest     = "inputMetainfo_",
+                        default  = None,
+                        type     = pathlib.Path)
+    parser.add_argument("--output-metainfo",
+                        metavar  = "filename",
+                        help     = "output metainfo",
+                        dest     = "outputMetainfo_",
+                        default  = None,
+                        type     = pathlib.Path)
     parser.add_argument("-v", "--version",
                         metavar  = "version",
                         help     = "version string",
@@ -118,6 +136,8 @@ def CollectVersionInfo(args):
     repo = git.Repo(args.gitRepo_, search_parent_directories = True)
 
     commitString = str(repo.head.commit)[:10]
+    releaseDate  = datetime.datetime.fromtimestamp(
+        repo.head.commit.committed_date, tz=datetime.timezone.utc).strftime("%Y-%m-%d")
 
     if not repo.is_dirty(submodules = False):
         copyrightYear = datetime.datetime.fromtimestamp(repo.head.commit.committed_date).year
@@ -130,6 +150,7 @@ def CollectVersionInfo(args):
     versionInfo.buildNumber_   = args.buildNumber_
     versionInfo.commitString_  = commitString
     versionInfo.copyrightYear_ = copyrightYear
+    versionInfo.releaseDate_   = releaseDate
     versionInfo.resourceDir_   = resourceDir
     versionInfo.versionString_ = args.version_
 
@@ -138,6 +159,7 @@ def CollectVersionInfo(args):
     print("Build Number: " + str(versionInfo.buildNumber_))
     print("Commit String: " + str(versionInfo.commitString_))
     print("Copyright Year: " + str(versionInfo.copyrightYear_))
+    print("Release Date: " + str(versionInfo.releaseDate_))
     print("Version String: " + str(versionInfo.versionString_))
 
     return versionInfo
@@ -157,6 +179,8 @@ def LoadCache(args):
                 cache.commitString_ = data[Keys.CommitString]
             if Keys.CopyrightYear in data:
                 cache.copyrightYear_ = data[Keys.CopyrightYear]
+            if Keys.ReleaseDate in data:
+                cache.releaseDate_ = data[Keys.ReleaseDate]
             if Keys.ResourceDir in data:
                 cache.resourceDir_ = data[Keys.ResourceDir]
             if Keys.VersionString in data:
@@ -177,7 +201,7 @@ def WriteTemplate(versionInfo: VersionInfo, inputFile, outputFile):
                     line = line.replace("${" + key + "}", str(versionInfo.Value(key)))
                 fo.write(line)
     except Exception as ex:
-        print("Error writing header: " + repr(ex))
+        print("Error writing template: " + repr(ex))
         return False
 
     return True
@@ -187,10 +211,16 @@ def WriteHeader(versionInfo: VersionInfo, args):
     return WriteTemplate(versionInfo, args.inputHeader_, args.outputHeader_)
 
 def WriteResource(versionInfo: VersionInfo, args):
-    if args.inputResource_ == None or args.outputResource_ == None:
+    if args.inputResource_ is None or args.outputResource_ is None:
         return None
     print("Writing resource")
     return WriteTemplate(versionInfo, args.inputResource_, args.outputResource_)
+
+def WriteMetainfo(versionInfo: VersionInfo, args):
+    if args.inputMetainfo_ is None or args.outputMetainfo_ is None:
+        return None
+    print("Writing metainfo")
+    return WriteTemplate(versionInfo, args.inputMetainfo_, args.outputMetainfo_)
 
 def UpdateCache(versionInfo: VersionInfo, args):
     print("Updating cache")
@@ -199,6 +229,7 @@ def UpdateCache(versionInfo: VersionInfo, args):
     data[Keys.BuildNumber]   = versionInfo.buildNumber_
     data[Keys.CommitString]  = versionInfo.commitString_
     data[Keys.CopyrightYear] = versionInfo.copyrightYear_
+    data[Keys.ReleaseDate]   = versionInfo.releaseDate_
     data[Keys.ResourceDir]   = versionInfo.resourceDir_
     data[Keys.VersionString] = versionInfo.versionString_
 
@@ -218,15 +249,19 @@ def main() -> int:
 
     if versionInfo == cache and \
        (args.outputHeader_ is None or os.path.exists(args.outputHeader_)) and \
-       (args.outputResource_ is None or os.path.exists(args.outputResource_)):
+       (args.outputResource_ is None or os.path.exists(args.outputResource_)) and \
+       (args.outputMetainfo_ is None or os.path.exists(args.outputMetainfo_)):
         print("No version changes detected")
     else:
         writeHeaderStatus   = WriteHeader(versionInfo, args)
         writeResourceStatus = WriteResource(versionInfo, args)
+        writeMetainfoStatus = WriteMetainfo(versionInfo, args)
 
-        if writeHeaderStatus or writeResourceStatus:
+        if writeHeaderStatus or writeResourceStatus or writeMetainfoStatus:
             UpdateCache(versionInfo, args)
-        if writeHeaderStatus == False or writeResourceStatus == False:
+        if writeHeaderStatus == False or \
+           writeResourceStatus == False or \
+           writeMetainfoStatus == False:
             status = -1
 
     return status

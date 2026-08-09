@@ -4,19 +4,23 @@ project(scwx-data)
 
 include(CheckCXXSymbolExists)
 
-find_package(Boost)
-find_package(cpr)
-find_package(LibXml2)
-find_package(libzip)
-find_package(OpenSSL)
-find_package(range-v3)
-find_package(re2)
-find_package(spdlog)
+find_package(Boost
+             COMPONENTS iostreams
+                        url
+             REQUIRED)
+find_package(BZip2 REQUIRED)
+find_package(cpr REQUIRED)
+find_package(LibXml2 REQUIRED)
+find_package(libzip REQUIRED)
+find_package(OpenSSL REQUIRED)
+find_package(range-v3 REQUIRED)
+find_package(re2 REQUIRED)
+find_package(spdlog REQUIRED)
 
 check_cxx_symbol_exists(_LIBCPP_VERSION version LIBCPP)
 
 if (LINUX)
-    find_package(TBB)
+    find_package(TBB REQUIRED)
 endif()
 
 set(HDR_AWIPS include/scwx/awips/coded_location.hpp
@@ -340,14 +344,10 @@ target_compile_options(wxdata PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,14>>:-Wno-maybe-uninitialized>
 )
 
-# Temporary workaround for Boost and GCC 15+ where -Warray-bounds causes false positives
+# Temporary workaround for Boost and GCC 16+ where -Warray-bounds and -Wstringop-overflow cause false positives
 target_compile_options(wxdata PRIVATE
-    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,15>>:-Wno-array-bounds>
-)
-
-# Temporary workaround for Boost and GCC 15+ where -Wstringop-overflow causes false positives
-target_compile_options(wxdata PRIVATE
-    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,15>>:-Wno-stringop-overflow>
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-array-bounds>
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-stringop-overflow>
 )
 
 if (MSVC)
@@ -367,6 +367,7 @@ endif()
 
 target_link_libraries(wxdata PUBLIC aws-cpp-sdk-core
                                     aws-cpp-sdk-s3
+                                    aws-crt-cpp
                                     cpr::cpr
                                     LibXml2::LibXml2
                                     libzip::zip
