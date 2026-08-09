@@ -8,6 +8,10 @@ set(MLN_QT_WITH_WIDGETS OFF CACHE BOOL "" FORCE)
 set(MLN_QT_WITH_QUICK_PLUGIN OFF CACHE BOOL "" FORCE)
 set(MLN_QT_WITH_INTERNAL_ICU ON CACHE BOOL "" FORCE)
 
+# Core MapLibre tests link Qt::OpenGLWidgets even when MLN_QT_WITH_WIDGETS is
+# off (widgets path is what normally find_packages it).
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS OpenGLWidgets REQUIRED)
+
 set(MLN_WITH_OPENGL OFF CACHE BOOL "" FORCE)
 
 if (APPLE)
@@ -105,7 +109,18 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     endif()
 endif()
 
+# GCC 15+/16+: MapLibre false positive with -Wsfinae-incomplete under -Werror.
+# Use flag probe — local toolchains can report a different CMAKE version than
+# the g++ that actually compiles (e.g. gcc-15 profile with system g++ 16).
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag("-Wno-sfinae-incomplete"
+                            SCWX_GNU_HAS_WNO_SFINAE_INCOMPLETE)
+    if (SCWX_GNU_HAS_WNO_SFINAE_INCOMPLETE)
+        target_compile_options(mbgl-core PRIVATE
+                               "-Wno-sfinae-incomplete"
+                               "-Wno-error=sfinae-incomplete")
+    endif()
     target_compile_options(mbgl-core PRIVATE "-Wno-unused-parameter")
 endif()
 

@@ -37,6 +37,8 @@ find_package(QT NAMES Qt6
                         LinguistTools
                         Multimedia
                         Network
+                        OpenGL
+                        OpenGLWidgets
                         Positioning
                         SerialPort
                         Svg
@@ -49,6 +51,8 @@ find_package(Qt${QT_VERSION_MAJOR}
                         LinguistTools
                         Multimedia
                         Network
+                        OpenGL
+                        OpenGLWidgets
                         Positioning
                         SerialPort
                         Svg
@@ -837,14 +841,15 @@ target_compile_options(supercell-wx PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,14>>:-Wno-maybe-uninitialized>
 )
 
-# Temporary workaround for Boost and GCC 16+ where -Warray-bounds and -Wstringop-overflow cause false positives
+# Temporary workaround for Boost and GCC 15+ where -Warray-bounds and -Wstringop-overflow cause false positives
+# (upstream uses 16+; keep 15+ so toolchains that report 15 but compile with 16 still suppress)
 target_compile_options(scwx-qt PRIVATE
-    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-array-bounds>
-    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-stringop-overflow>
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,15>>:-Wno-array-bounds>
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,15>>:-Wno-stringop-overflow>
 )
 target_compile_options(supercell-wx PRIVATE
-    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-array-bounds>
-    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,16>>:-Wno-stringop-overflow>
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,15>>:-Wno-array-bounds>
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,15>>:-Wno-stringop-overflow>
 )
 
 if (MSVC)
