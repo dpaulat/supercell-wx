@@ -256,7 +256,7 @@ jobs:
             appimage_arch: aarch64
             artifact_suffix: linux-gcc-13-arm64
             compiler_packages: g++-13
-          - name: macos_clang-18_x64
+          - name: macos_clang-22_x64
             os: macos-15-intel
             build_type: Release
             env_cc: clang
@@ -268,10 +268,10 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: ''
-            conan_profile: scwx-macos_clang-18
+            conan_profile: scwx-macos_clang-22
             appimage_arch: ''
             artifact_suffix: macos-x64
-          - name: macos_clang-18_arm64
+          - name: macos_clang-22_arm64
             os: macos-14
             build_type: Release
             env_cc: clang
@@ -283,7 +283,7 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: ''
-            conan_profile: scwx-macos_clang-18_armv8
+            conan_profile: scwx-macos_clang-22_armv8
             appimage_arch: ''
             artifact_suffix: macos-arm64
     name: ${{ matrix.name }}
@@ -335,12 +335,22 @@ jobs:
             }
           }
 
+    - name: Install LLVM 22
+      if: ${{ startsWith(matrix.os, 'ubuntu') && contains(matrix.name, 'clang-22') }}
+      shell: bash
+      run: |
+        wget -q https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 22
+
     - name: Setup Ubuntu Environment
       if: ${{ startsWith(matrix.os, 'ubuntu') }}
       shell: bash
       run: |
         sudo apt-get install doxygen \
+                             ccache \
                              libfuse2 \
+                             libvulkan-dev \
                              ninja-build \
                              wayland-protocols \
                              libwayland-dev \
@@ -361,12 +371,31 @@ jobs:
       if: ${{ startsWith(matrix.os, 'macos') }}
       shell: bash
       run: |
-        brew install llvm@18
-        LLVM_PATH=$(brew --prefix llvm@18)
+        export HOMEBREW_NO_AUTO_UPDATE=1
+        brew install ccache llvm@22 ninja
+        LLVM_PATH=$(brew --prefix llvm@22)
         echo "CC=${LLVM_PATH}/bin/clang" >> $GITHUB_ENV
         echo "CXX=${LLVM_PATH}/bin/clang++" >> $GITHUB_ENV
         echo "CPPFLAGS=-I${LLVM_PATH}/include" >> $GITHUB_ENV
         echo "LDFLAGS=-L${LLVM_PATH}/lib -L${LLVM_PATH}/lib/c++" >> $GITHUB_ENV
+
+    - name: Cache ccache
+      if: ${{ startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos') }}
+      uses: actions/cache@v6
+      with:
+        path: ~/.ccache
+        key: ccache-${{ matrix.name }}-${{ hashFiles('./source/conanfile.py', './source/tools/conan/profiles/*') }}
+        restore-keys: |
+          ccache-${{ matrix.name }}-
+        save-always: true
+
+    - name: Setup ccache
+      if: ${{ startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos') }}
+      shell: bash
+      run: |
+        ccache --max-size=2G
+        echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
+        echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
 
     - name: Setup Python Environment
       shell: pwsh
@@ -569,10 +598,6 @@ jobs:
               /usr/lib/*/libk5crypto.so* \
               /usr/lib/*/libkeyutils.so* \
               ${{ env.FLATPAK_DIR }}/lib
-        # Copy GLU library to flatpak
-        cp -a /usr/lib/*/libGLU.so* \
-              ${{ env.FLATPAK_DIR }}/lib
-
         flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
         flatpak-builder --force-clean \
             --user \

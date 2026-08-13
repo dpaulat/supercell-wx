@@ -2,11 +2,11 @@
 #include "./ui_main_window.h"
 
 #include <scwx/qt/map/map_link_policy.hpp>
+#include <scwx/qt/map/map_basemap_share.hpp>
 #include <scwx/qt/map/map_pane_splitter_state.hpp>
 #include <scwx/qt/map/map_pane_view_link_state.hpp>
 #include <scwx/qt/map/map_popout_frame.hpp>
 
-#include <scwx/qt/gl/gl_context.hpp>
 #include <scwx/qt/main/application.hpp>
 #include <scwx/qt/main/versions.hpp>
 #include <scwx/qt/config/radar_site.hpp>
@@ -20,6 +20,7 @@
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/manager/update_manager.hpp>
+#include <scwx/qt/render/render_context.hpp>
 #include <scwx/qt/map/map_pane_context_menu.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_widget.hpp>
@@ -29,6 +30,7 @@
 #include <scwx/qt/settings/map_settings.hpp>
 #include <scwx/qt/settings/product_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
+#include <scwx/util/environment.hpp>
 #include <scwx/qt/ui/about_dialog.hpp>
 #include <scwx/qt/ui/alert_dock_widget.hpp>
 #include <scwx/qt/ui/animation_dock_widget.hpp>
@@ -61,6 +63,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <memory>
 #include <vector>
 #include <set>
@@ -89,6 +92,8 @@
 #include <QTimer>
 #include <QToolButton>
 #include <QWindow>
+
+#include <rhi/qrhi.h>
 
 namespace scwx::qt::main
 {
@@ -218,6 +223,13 @@ public:
          settings::GeneralSettings::Instance().map_provider().GetValue());
       map::ConfigureMapSettings(mapProvider_, settings_);
 
+      mapPaneSplitterStateSaveTimer_.setSingleShot(true);
+      mapPaneSplitterStateSaveTimer_.setInterval(150);
+      connect(&mapPaneSplitterStateSaveTimer_,
+              &QTimer::timeout,
+              this,
+              &MainWindowImpl::SaveMapPaneSplitterState);
+
       if (settings::GeneralSettings::Instance().track_location().GetValue())
       {
          positionManager_->TrackLocation(true);
@@ -263,6 +275,7 @@ public:
       bool tryRestorePaneSizesFromSettingsFirst = true);
    bool RestoreMapPaneSizesFromSettingsIfMatching();
    void SaveMapPaneSplitterState();
+   void ScheduleMapPaneSplitterStateSave();
    bool RestoreMapPaneViewLinkFromSettingsIfMatching();
    void SaveMapPaneViewLinkState();
    void SetLinkRowSplitters(bool on);
@@ -315,6 +328,10 @@ public:
    void SavePoppedMapWindowsToSettings();
    void TryRestorePoppedMapWindows();
    void ConnectMapAnnotationLayerReady(map::MapWidget* mw);
+   void ConfigureBasemapSharing();
+   [[nodiscard]] map::BasemapShareDecision
+   ResolveBasemapShare(std::size_t                 paneIndex,
+                       const map::MapViewSnapshot& view) const;
    /// Layer broadcast, floating host resolver, deferred float-from-settings.
    void ConfigureMapAnnotationDock();
 
@@ -325,7 +342,7 @@ public:
    map::MapProvider    mapProvider_;
    map::MapWidget*     activeMap_;
 
-   std::shared_ptr<gl::GlContext> glContext_ {nullptr};
+   std::shared_ptr<render::RenderContext> renderContext_ {nullptr};
 
    ui::CollapsibleGroup*     mapSettingsGroup_ {nullptr};
    ui::CollapsibleGroup*     level2ProductsGroup_ {nullptr};
@@ -358,6 +375,7 @@ public:
    ui::UpdateDialog*                     updateDialog_ {};
 
    QTimer clockTimer_ {};
+   QTimer mapPaneSplitterStateSaveTimer_ {};
 
    bool customStyleAvailable_ {false};
 
@@ -404,6 +422,9 @@ public:
    std::vector<QPointer<QWidget>>                    mapPanePlaceholders_ {};
    std::vector<std::unique_ptr<map::MapPopoutFrame>> mapPanePopoutFrames_ {};
    bool popoutPanesRestoredThisSession_ {false};
+
+   map::MapBasemapShareState     basemapShareState_ {};
+   map::MapBasemapShareCallbacks basemapShareCallbacks_ {};
 
    QSplitter* mapLayoutRoot_ {nullptr};
 
@@ -954,7 +975,7 @@ void MainWindow::on_actionFullScreen_triggered(bool checked)
    if (checked)
    {
 #ifdef Q_OS_WIN
-      // On Windows, showFullScreen() with QOpenGLWidgets breaks dropdown menus.
+      // On Windows, showFullScreen() with map widgets breaks dropdown menus.
       // Use a frameless window covering the screen geometry as a workaround.
       p->priorFullScreenWindowState_ = windowState();
       p->priorFullScreenGeometry_    = geometry();
@@ -1129,9 +1150,9 @@ void MainWindowImpl::EnsureMapWidgets(int64_t gridWidth, int64_t gridHeight)
       maps_.resize(mapCount, nullptr);
    }
 
-   if (!glContext_)
+   if (!renderContext_)
    {
-      glContext_ = std::make_shared<gl::GlContext>();
+      renderContext_ = render::CreateRenderContext();
    }
 
    for (int64_t i = 0; i < mapCount; i++)
@@ -1144,12 +1165,149 @@ void MainWindowImpl::EnsureMapWidgets(int64_t gridWidth, int64_t gridHeight)
          }
          // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): Owned by parent
          maps_.at(i) = new map::MapWidget(
-            static_cast<std::size_t>(i), settings_, glContext_);
+            static_cast<std::size_t>(i), settings_, renderContext_);
          ConnectMapAnnotationLayerReady(maps_.at(i));
       }
    }
 
    SyncMapPaneViewLinkStateSize();
+   ConfigureBasemapSharing();
+}
+
+map::BasemapShareDecision
+MainWindowImpl::ResolveBasemapShare(const std::size_t           paneIndex,
+                                    const map::MapViewSnapshot& view) const
+{
+   std::vector<map::MapViewSnapshot> allViews;
+   allViews.reserve(maps_.size());
+   for (const map::MapWidget* mapWidget : maps_)
+   {
+      if (mapWidget != nullptr)
+      {
+         allViews.push_back(mapWidget->ExportMapViewSnapshot());
+      }
+      else
+      {
+         allViews.emplace_back();
+      }
+   }
+
+   std::size_t activePaneIndex = 0;
+   if (activeMap_ != nullptr)
+   {
+      const auto activeIt = std::ranges::find(maps_, activeMap_);
+      if (activeIt != maps_.end())
+      {
+         activePaneIndex =
+            static_cast<std::size_t>(std::distance(maps_.begin(), activeIt));
+      }
+   }
+
+   const bool viewLinked =
+      paneIndex < mapPaneViewLinked_.size() && mapPaneViewLinked_.at(paneIndex);
+   const bool poppedOut =
+      paneIndex < mapPanePoppedOut_.size() && mapPanePoppedOut_.at(paneIndex);
+
+   return map::ResolveBasemapShareDecision(paneIndex,
+                                           maps_.size(),
+                                           viewLinked,
+                                           poppedOut,
+                                           view,
+                                           activePaneIndex,
+                                           allViews,
+                                           mapPaneViewLinked_,
+                                           mapPanePoppedOut_);
+}
+
+void MainWindowImpl::ConfigureBasemapSharing()
+{
+   basemapShareCallbacks_ = {};
+   basemapShareState_.Reset(maps_.size());
+
+   const bool enabled =
+      scwx::util::IsEnvironmentEnabled("SCWX_BASEMAP_SHARE", true);
+   if (!enabled)
+   {
+      for (map::MapWidget* mapWidget : maps_)
+      {
+         if (mapWidget != nullptr)
+         {
+            mapWidget->SetBasemapShareCallbacks(nullptr);
+         }
+      }
+      return;
+   }
+
+   basemapShareCallbacks_.resolve_ =
+      [this](const std::size_t paneIndex, const map::MapViewSnapshot& view)
+   {
+      return ResolveBasemapShare(paneIndex, view);
+   };
+
+   basemapShareCallbacks_.leaderTexture_ =
+      [this](const std::size_t leaderIndex) -> QRhiTexture*
+   {
+      if (leaderIndex >= maps_.size() || maps_.at(leaderIndex) == nullptr)
+      {
+         return nullptr;
+      }
+      return maps_.at(leaderIndex)->basemap_color_texture();
+   };
+
+   basemapShareCallbacks_.leaderRhi_ =
+      [this](const std::size_t leaderIndex) -> QRhi*
+   {
+      if (leaderIndex >= maps_.size() || maps_.at(leaderIndex) == nullptr)
+      {
+         return nullptr;
+      }
+      return maps_.at(leaderIndex)->map_rhi();
+   };
+
+   basemapShareCallbacks_.basemapGeneration_ = [this]() -> std::uint64_t
+   {
+      return basemapShareState_.basemapGeneration();
+   };
+
+   basemapShareCallbacks_.notifyRendered_ =
+      [this](const std::size_t leaderIndex)
+   {
+      basemapShareState_.NotifyBasemapRendered(leaderIndex);
+      // Wake every other pane so per-pane overlays are redrawn on top of a
+      // fresh basemap (not only view-linked followers).
+      for (std::size_t i = 0; i < maps_.size(); ++i)
+      {
+         if (i == leaderIndex)
+         {
+            continue;
+         }
+         map::MapWidget* mapWidget = maps_.at(i);
+         if (mapWidget != nullptr)
+         {
+            mapWidget->MarkOverlayDirty();
+         }
+      }
+   };
+
+   basemapShareCallbacks_.notifyOverlayDirty_ =
+      [this](const std::size_t /* sourceIndex */)
+   {
+      for (map::MapWidget* mapWidget : maps_)
+      {
+         if (mapWidget != nullptr)
+         {
+            mapWidget->MarkOverlayDirty();
+         }
+      }
+   };
+
+   for (map::MapWidget* mapWidget : maps_)
+   {
+      if (mapWidget != nullptr)
+      {
+         mapWidget->SetBasemapShareCallbacks(&basemapShareCallbacks_);
+      }
+   }
 }
 
 void MainWindowImpl::ConnectMapAnnotationLayerReady(map::MapWidget* mw)
@@ -1328,6 +1486,7 @@ void MainWindowImpl::BuildMapLayout(
    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): Central layout owns
    auto* vs = new QSplitter(Qt::Vertical, mainWindow_->ui->centralwidget);
    vs->setHandleWidth(1);
+   vs->setOpaqueResize(true);
    mapLayoutRoot_ = vs;
 
    auto MoveSplitter = [this, vs](int /*pos*/, int /*index*/)
@@ -1361,19 +1520,19 @@ void MainWindowImpl::BuildMapLayout(
       {
          if (auto* rowHs = qobject_cast<QSplitter*>(vs->widget(r)))
          {
-            if (rowHs->count() == sizes.size())
+            if (rowHs != s && rowHs->count() == sizes.size() &&
+                rowHs->sizes() != sizes)
             {
+               const QSignalBlocker block {rowHs};
                rowHs->setSizes(sizes);
             }
          }
       }
+      ScheduleMapPaneSplitterStateSave();
    };
    auto MoveVerticalSplitter = [this](int /*pos*/, int /*index*/)
    {
-      if (linkColumnHeights_)
-      {
-         SnapLinkedColumnHeights();
-      }
+      ScheduleMapPaneSplitterStateSave();
    };
    connect(vs, &QSplitter::splitterMoved, this, MoveVerticalSplitter);
 
@@ -1382,6 +1541,7 @@ void MainWindowImpl::BuildMapLayout(
       // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): mapLayoutRoot_ owns
       QSplitter* hs = new QSplitter(vs);
       hs->setHandleWidth(1);
+      hs->setOpaqueResize(true);
 
       for (int64_t x = 0; x < gridWidth; x++, mapIndex++)
       {
@@ -1983,6 +2143,11 @@ void MainWindowImpl::SaveMapPaneSplitterState()
    settings::UiSettings::Instance().map_pane_splitter_state().StageValue(json);
 }
 
+void MainWindowImpl::ScheduleMapPaneSplitterStateSave()
+{
+   mapPaneSplitterStateSaveTimer_.start();
+}
+
 bool MainWindowImpl::RestoreMapPaneViewLinkFromSettingsIfMatching()
 {
    if (maps_.empty() || builtLayoutGridW_ < 1 || builtLayoutGridH_ < 1)
@@ -2560,6 +2725,8 @@ void MainWindowImpl::ConfigureUiSettings()
 
 void MainWindowImpl::ConnectMapSignals()
 {
+   ConfigureBasemapSharing();
+
    for (const auto& mapWidget : maps_)
    {
       connect(mapWidget,
@@ -3390,6 +3557,16 @@ void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)
          mapAnnotationDock_->BindToLayer(nullptr);
       }
    }
+
+   // Every pane must redraw after focus change — inactive panes otherwise keep
+   // a color buffer that lost overlays (or never repaint after a clear).
+   for (map::MapWidget* widget : maps_)
+   {
+      if (widget != nullptr)
+      {
+         widget->RequestBasemapRepaint();
+      }
+   }
 }
 
 void MainWindowImpl::UpdateAvailableLevel3Products()
@@ -3414,6 +3591,7 @@ void MainWindowImpl::HandleMapPaneLinkViewToggled(std::size_t     mapIndex,
    }
    mapPaneViewLinked_[mapIndex] = linked;
    SaveMapPaneViewLinkState();
+   ConfigureBasemapSharing();
    if (linked)
    {
       // If active is this pane, copying from activeMap_ is a
@@ -3455,7 +3633,7 @@ void MainWindowImpl::HandleMapPaneLinkViewToggled(std::size_t     mapIndex,
       {
          double lat {}, lon {}, zoom {}, bearing {}, pitch {};
          ref->GetMapViewParameters(lat, lon, zoom, bearing, pitch);
-         map->SetMapParameters(lat, lon, zoom, bearing, pitch);
+         map->SetMapParameters(lat, lon, zoom, bearing, pitch, true);
          if (const std::shared_ptr<config::RadarSite> site =
                 ref->GetRadarSite();
              site != nullptr)
@@ -3620,7 +3798,28 @@ void MainWindowImpl::UpdateMapParameters(
       {
          continue;
       }
-      map->SetMapParameters(latitude, longitude, zoom, bearing, pitch);
+      map->SetMapParameters(latitude, longitude, zoom, bearing, pitch, true);
+   }
+
+   if (sourceMap != nullptr && basemapShareCallbacks_.resolve_ != nullptr)
+   {
+      const auto sourceIt = std::ranges::find(maps_, sourceMap);
+      if (sourceIt != maps_.end())
+      {
+         const auto sourceIndex =
+            static_cast<std::size_t>(std::distance(maps_.begin(), sourceIt));
+         const map::BasemapShareDecision decision = ResolveBasemapShare(
+            sourceIndex, sourceMap->ExportMapViewSnapshot());
+         if (decision.role_ != map::BasemapPaneRole::Independent &&
+             decision.leaderIndex_ < maps_.size())
+         {
+            map::MapWidget* const leader = maps_.at(decision.leaderIndex_);
+            if (leader != nullptr && leader != sourceMap)
+            {
+               leader->RequestBasemapRepaint();
+            }
+         }
+      }
    }
 }
 

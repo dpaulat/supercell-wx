@@ -3,11 +3,12 @@
 #include <scwx/common/geographic.hpp>
 #include <scwx/common/products.hpp>
 #include <scwx/qt/config/radar_site.hpp>
-#include <scwx/qt/gl/gl.hpp>
+#include <scwx/qt/render/render_context.hpp>
 #include <scwx/qt/types/capture_types.hpp>
 #include <scwx/qt/types/map_types.hpp>
 #include <scwx/qt/types/radar_product_record.hpp>
 #include <scwx/qt/types/text_event_key.hpp>
+#include <scwx/qt/map/map_basemap_share.hpp>
 
 #include <chrono>
 #include <memory>
@@ -18,21 +19,20 @@
 #include <qmaplibre.hpp>
 
 #include <QGestureEvent>
-#include <QOpenGLWidget>
 #include <QPoint>
 #include <QPropertyAnimation>
 #include <QtGlobal>
 
+#include <QtWidgets/QRhiWidget>
+
 class QContextMenuEvent;
 class QKeyEvent;
 class QMouseEvent;
+class QRhi;
+class QRhiCommandBuffer;
 class QResizeEvent;
 class QWheelEvent;
-
-namespace scwx::qt::gl
-{
-class GlContext;
-}
+class QRhiTexture;
 
 namespace scwx::qt::map
 {
@@ -40,14 +40,16 @@ namespace scwx::qt::map
 class MapAnnotationLayer;
 class MapWidgetImpl;
 
-class MapWidget : public QOpenGLWidget
+using MapWidgetBase = QRhiWidget;
+
+class MapWidget : public MapWidgetBase
 {
    Q_OBJECT
 
 public:
    explicit MapWidget(std::size_t id,
                       const QMapLibre::Settings&,
-                      std::shared_ptr<gl::GlContext> glContext);
+                      std::shared_ptr<render::RenderContext> renderContext);
    ~MapWidget();
 
    void DumpLayerList() const;
@@ -141,13 +143,24 @@ public:
                          double longitude,
                          double zoom,
                          double bearing,
-                         double pitch);
+                         double pitch,
+                         bool   linkedViewSync = false);
+   void ResetBearingNorth();
+   void RequestBasemapRepaint();
+   void RequestOverlayRepaint();
+   void MarkOverlayDirty();
 
    void GetMapViewParameters(double& latitude,
                              double& longitude,
                              double& zoom,
                              double& bearing,
                              double& pitch) const;
+
+   [[nodiscard]] std::size_t     pane_id() const;
+   [[nodiscard]] MapViewSnapshot ExportMapViewSnapshot() const;
+   void SetBasemapShareCallbacks(const MapBasemapShareCallbacks* callbacks);
+   [[nodiscard]] QRhiTexture* basemap_color_texture() const;
+   [[nodiscard]] QRhi*        map_rhi() const;
 
    void SetInitialMapStyle(const std::string& styleName);
    void SetMapStyle(const std::string& styleName, bool force = false);
@@ -181,9 +194,9 @@ private:
    void wheelEvent(QWheelEvent* ev) final;
    void resizeEvent(QResizeEvent* event) override;
 
-   // QOpenGLWidget implementation.
-   void initializeGL() override final;
-   void paintGL() override final;
+   void initialize(QRhiCommandBuffer* cb) override;
+   void render(QRhiCommandBuffer* cb) override;
+   void releaseResources() override;
 
    std::unique_ptr<MapWidgetImpl> p;
 

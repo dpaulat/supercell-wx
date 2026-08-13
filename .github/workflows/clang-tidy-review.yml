@@ -18,16 +18,16 @@ jobs:
           - name: linux_clang-tidy_x64
             os: ubuntu-24.04
             build_type: Release
-            env_cc: clang-18
-            env_cxx: clang++-18
+            env_cc: clang-22
+            env_cxx: clang++-22
             qt_version: 6.11.1
             qt_arch_aqt: linux_gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_clang-18
-            compiler_packages: clang-18 clang-tidy-18
-            clang_tidy_binary: clang-tidy-18
+            conan_profile: scwx-linux_clang-22
+            compiler_packages: ''
+            clang_tidy_binary: clang-tidy-22
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     env:
@@ -40,6 +40,13 @@ jobs:
       with:
         path: source
         submodules: recursive
+        fetch-depth: 0
+
+    - name: Update References
+      shell: bash
+      run: |
+        cd source
+        git fetch origin develop
 
     - name: Checkout clang-tidy-review Repository
       uses: actions/checkout@v7
@@ -57,6 +64,13 @@ jobs:
         arch: ${{ matrix.qt_arch_aqt }}
         modules: ${{ matrix.qt_modules }}
         tools: ${{ matrix.qt_tools }}
+
+    - name: Install LLVM 22
+      shell: bash
+      run: |
+        wget -q https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 22 all
 
     - name: Setup Ubuntu Environment
       if: ${{ startsWith(matrix.os, 'ubuntu') }}
@@ -112,7 +126,6 @@ jobs:
           --settings:all build_type=${{ matrix.build_type }} `
           --output-folder ./conan/ `
           ${{ matrix.conan_package_manager }}
-        conan cache clean
 
     - name: Save Conan Packages
       if: steps.conan-install.outcome == 'success' && steps.cache-conan.outputs.cache-hit != 'true'
@@ -133,8 +146,7 @@ jobs:
           -DCONAN_HOST_PROFILE="${{ matrix.conan_profile }}" `
           -DCONAN_BUILD_PROFILE="${{ matrix.conan_profile }}" `
           -DCMAKE_EXPORT_COMPILE_COMMANDS=on
-        ninja glad_gl_core_33 `
-              scwx-qt_generate_counties_db `
+        ninja scwx-qt_generate_counties_db `
               scwx-qt_generate_versions `
               scwx-qt_autogen
 
@@ -143,6 +155,8 @@ jobs:
       shell: bash
       run: |
         cd source
+        MERGE_BASE=$(git merge-base origin/develop HEAD)
+        set +e
         review --clang_tidy_binary=${{ matrix.clang_tidy_binary }} \
                --token=${{ github.token }} \
                --repo='${{ github.repository }}' \
@@ -160,6 +174,46 @@ jobs:
                --split_workflow=true \
                --annotations=false \
                --parallel=0
+        REVIEW_EXIT=$?
+        set -e
+
+        if [ ! -f clang-tidy-review-output.json ]; then
+          echo "GitHub PR diff unavailable (review exit ${REVIEW_EXIT}); using local git diff"
+          # llvm.sh installs the script under /usr/lib/llvm-*/share/clang/, not
+          # as clang-tidy-diff-22 on PATH.
+          CLANG_TIDY_DIFF=""
+          for candidate in \
+              "/usr/lib/llvm-22/share/clang/clang-tidy-diff.py" \
+              "/usr/share/clang/clang-tidy-diff.py" \
+              "$(command -v clang-tidy-diff-22 || true)" \
+              "$(command -v clang-tidy-diff || true)"; do
+            if [ -n "${candidate}" ] && [ -f "${candidate}" ]; then
+              CLANG_TIDY_DIFF="${candidate}"
+              break
+            fi
+          done
+          if [ -z "${CLANG_TIDY_DIFF}" ]; then
+            echo "clang-tidy-diff not found; skipping local fallback review"
+            echo '{"body":"clang-tidy review skipped: PR diff unavailable and clang-tidy-diff missing","event":"COMMENT","comments":[]}' > clang-tidy-review-output.json
+            echo "{\"pr_number\":${{ github.event.pull_request.number }}}" > clang-tidy-review-metadata.json
+          else
+            echo "Using clang-tidy-diff: ${CLANG_TIDY_DIFF}"
+            git diff -U0 ${MERGE_BASE}...HEAD -- \
+              '*.cpp' '*.cxx' '*.cc' '*.hpp' '*.h' '*.hh' '*.h++' '*.c' | \
+              python3 "${CLANG_TIDY_DIFF}" \
+                -path ../build \
+                -p1 \
+                -clang-tidy-binary=${{ matrix.clang_tidy_binary }} \
+                -quiet
+            TIDY_EXIT=$?
+            echo '{"body":"clang-tidy local git diff review","event":"COMMENT","comments":[]}' > clang-tidy-review-output.json
+            echo "{\"pr_number\":${{ github.event.pull_request.number }}}" > clang-tidy-review-metadata.json
+            if [ ${TIDY_EXIT} -ne 0 ]; then
+              exit ${TIDY_EXIT}
+            fi
+          fi
+        fi
+
         rsync -avzh --ignore-missing-args clang-tidy-review-output.json ../
         rsync -avzh --ignore-missing-args clang-tidy-review-metadata.json ../
         rsync -avzh --ignore-missing-args clang_fixes.json ../

@@ -1,0 +1,71 @@
+#pragma once
+
+#include <scwx/qt/draw/draw_item.hpp>
+#include <scwx/gr/placefile.hpp>
+
+namespace scwx
+{
+namespace qt
+{
+namespace draw
+{
+
+class PlacefileLines : public DrawItem
+{
+public:
+   explicit PlacefileLines(
+      const std::shared_ptr<render::RenderContext>& context);
+   ~PlacefileLines();
+
+   PlacefileLines(const PlacefileLines&)            = delete;
+   PlacefileLines& operator=(const PlacefileLines&) = delete;
+
+   PlacefileLines(PlacefileLines&&) noexcept;
+   PlacefileLines& operator=(PlacefileLines&&) noexcept;
+
+   void set_selected_time(std::chrono::system_clock::time_point selectedTime);
+   void set_thresholded(bool thresholded);
+
+   void Initialize() override;
+   void Render(const QMapLibre::CustomLayerRenderParameters& params) override;
+   void Deinitialize() override;
+
+   void RenderVulkan(QRhiCommandBuffer*                           commandBuffer,
+                     scwx::qt::render::RhiVulkanOverlayResources& resources,
+                     const QMapLibre::CustomLayerRenderParameters& params,
+                     bool textureAtlasChanged) override;
+
+   bool
+   RunMousePicking(const QMapLibre::CustomLayerRenderParameters& params,
+                   const QPointF&                                mouseLocalPos,
+                   const QPointF&                                mouseGlobalPos,
+                   const glm::vec2&                              mouseCoords,
+                   const common::Coordinate&                     mouseGeoCoords,
+                   std::shared_ptr<types::EventHandler>& eventHandler) override;
+
+   /**
+    * Resets and prepares the draw item for adding a new set of lines.
+    */
+   void StartLines();
+
+   /**
+    * Adds a placefile line to the internal draw list.
+    *
+    * @param [in] di Placefile line
+    */
+   void AddLine(const std::shared_ptr<gr::Placefile::LineDrawItem>& di);
+
+   /**
+    * Finalizes the draw item after adding new lines.
+    */
+   void FinishLines();
+
+private:
+   class Impl;
+
+   std::unique_ptr<Impl> p;
+};
+
+} // namespace draw
+} // namespace qt
+} // namespace scwx

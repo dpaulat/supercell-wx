@@ -1,0 +1,82 @@
+#pragma once
+
+#include <scwx/qt/draw/draw_item.hpp>
+#include <scwx/qt/manager/placefile_manager.hpp>
+#include <scwx/qt/types/imgui_font.hpp>
+#include <scwx/gr/placefile.hpp>
+
+#include <boost/unordered/unordered_flat_map.hpp>
+
+namespace scwx
+{
+namespace qt
+{
+namespace draw
+{
+
+class PlacefileText : public DrawItem
+{
+public:
+   explicit PlacefileText(const std::string& placefileName);
+   ~PlacefileText();
+
+   PlacefileText(const PlacefileText&)            = delete;
+   PlacefileText& operator=(const PlacefileText&) = delete;
+
+   PlacefileText(PlacefileText&&) noexcept;
+   PlacefileText& operator=(PlacefileText&&) noexcept;
+
+   void set_placefile_name(const std::string& placefileName);
+   void set_selected_time(std::chrono::system_clock::time_point selectedTime);
+   void set_thresholded(bool thresholded);
+
+   void Initialize() override;
+   void Render(const QMapLibre::CustomLayerRenderParameters& params) override;
+   void Deinitialize() override;
+
+   void RenderVulkan(QRhiCommandBuffer*                           commandBuffer,
+                     scwx::qt::render::RhiVulkanOverlayResources& resources,
+                     const QMapLibre::CustomLayerRenderParameters& params,
+                     bool textureAtlasChanged) override;
+
+   bool
+   RunMousePicking(const QMapLibre::CustomLayerRenderParameters& params,
+                   const QPointF&                                mouseLocalPos,
+                   const QPointF&                                mouseGlobalPos,
+                   const glm::vec2&                              mouseCoords,
+                   const common::Coordinate&                     mouseGeoCoords,
+                   std::shared_ptr<types::EventHandler>& eventHandler) override;
+
+   /**
+    * Resets and prepares the draw item for adding a new set of text.
+    */
+   void StartText();
+
+   /**
+    * Configures the fonts for drawing the placefile text.
+    *
+    * @param [in] fonts A map of ImGui fonts
+    */
+   void SetFonts(const manager::PlacefileManager::FontMap& fonts);
+
+   /**
+    * Adds placefile text to the internal draw list.
+    *
+    * @param [in] di Placefile icon
+    */
+   void AddText(const std::shared_ptr<gr::Placefile::TextDrawItem>& di);
+
+   /**
+    * Finalizes the draw item after adding new text.
+    */
+   void FinishText();
+
+private:
+   class Impl;
+
+   std::unique_ptr<Impl> p;
+};
+
+} // namespace draw
+} // namespace qt
+} // namespace scwx

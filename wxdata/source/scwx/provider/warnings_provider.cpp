@@ -10,6 +10,8 @@
 
 #include <atomic>
 #include <mutex>
+#include <optional>
+#include <vector>
 
 #if defined(_MSC_VER)
 #   pragma warning(push, 0)
@@ -82,7 +84,8 @@ WarningsProvider::operator=(WarningsProvider&&) noexcept = default;
 
 std::vector<std::shared_ptr<awips::TextProductFile>>
 WarningsProvider::LoadUpdatedFiles(
-   std::chrono::sys_time<std::chrono::hours> startTime)
+   const std::chrono::sys_time<std::chrono::hours>                startTime,
+   const std::optional<std::chrono::sys_time<std::chrono::hours>> endBefore)
 {
    using namespace std::chrono;
 
@@ -106,14 +109,26 @@ WarningsProvider::LoadUpdatedFiles(
 
    const std::chrono::sys_time<std::chrono::hours> now =
       std::chrono::floor<std::chrono::hours>(util::time::now());
-   std::chrono::sys_time<std::chrono::hours> currentHour =
+   const std::chrono::sys_time<std::chrono::hours> rangeStart =
       (startTime != std::chrono::sys_time<std::chrono::hours> {}) ?
          startTime :
          now - std::chrono::hours {1};
 
-   logger_->trace("Querying files newer than: {}", util::TimeString(startTime));
+   const std::chrono::sys_time<std::chrono::hours> rangeEnd =
+      endBefore.has_value() ? std::min(now, *endBefore - 1h) : now;
 
-   while (currentHour <= now)
+   if (rangeEnd < rangeStart)
+   {
+      return updatedFiles;
+   }
+
+   logger_->trace("Querying warning files from {} through {}",
+                  util::TimeString(rangeStart),
+                  util::TimeString(rangeEnd));
+
+   for (std::chrono::sys_time<std::chrono::hours> currentHour = rangeEnd;
+        currentHour >= rangeStart;
+        currentHour -= 1h)
    {
       const std::string filename = df::format(kDateTimeFormat, currentHour);
       const std::string url      = p->baseUrl_ + "/" + filename;
@@ -166,9 +181,6 @@ WarningsProvider::LoadUpdatedFiles(
             network::cpr::GetDefaultConnectTimeout(),
             network::cpr::GetDefaultLowSpeed(),
             network::cpr::GetDefaultProgressCallback(p->running_)));
-
-      // Query the next hour
-      currentHour += 1h;
    }
 
    for (auto& asyncCallback : asyncCallbacks)

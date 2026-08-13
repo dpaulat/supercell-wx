@@ -53,6 +53,11 @@ void ImGuiFont::Impl::CreateImGuiFont(const std::vector<char>& fontData)
    static constexpr float kSizePixels_ = 16.0f;
 
    ImFontAtlas* fontAtlas = model::ImGuiContextModel::Instance().font_atlas();
+   if (ImGui::GetCurrentContext() != nullptr &&
+       ImGui::GetIO().Fonts != fontAtlas)
+   {
+      fontAtlas = ImGui::GetIO().Fonts;
+   }
    ImFontConfig fontConfig {};
 
    // Do not transfer ownership of font data to ImGui, makes const_cast safe

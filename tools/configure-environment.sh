@@ -48,6 +48,8 @@ conan profile detect -e
 if [[ "$(uname)" == "Darwin" ]]; then
     # macOS profiles
     conan_profiles=(
+        "scwx-macos_clang-22"
+        "scwx-macos_clang-22_armv8"
         "scwx-macos_clang-18"
         "scwx-macos_clang-18_armv8"
         "scwx-macos_clang-19_armv8"

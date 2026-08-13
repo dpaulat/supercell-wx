@@ -10,13 +10,20 @@ class RadarProductLayer : public GenericLayer
    Q_DISABLE_COPY_MOVE(RadarProductLayer)
 
 public:
-   explicit RadarProductLayer(std::shared_ptr<gl::GlContext> glContext);
+   explicit RadarProductLayer(
+      std::shared_ptr<render::RenderContext> renderContext);
    ~RadarProductLayer();
 
    void Initialize(const std::shared_ptr<MapContext>& mapContext) final;
    void Render(const std::shared_ptr<MapContext>& mapContext,
                const QMapLibre::CustomLayerRenderParameters&) final;
    void Deinitialize() final;
+
+   void RenderVulkanOverlay(
+      QRhiCommandBuffer*                            commandBuffer,
+      render::RhiVulkanOverlayResources&            resources,
+      const std::shared_ptr<MapContext>&            mapContext,
+      const QMapLibre::CustomLayerRenderParameters& params) override;
 
    bool
    RunMousePicking(const std::shared_ptr<MapContext>&            mapContext,

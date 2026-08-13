@@ -11,7 +11,7 @@ class MarkerLayer : public DrawLayer
    Q_DISABLE_COPY_MOVE(MarkerLayer)
 
 public:
-   explicit MarkerLayer(const std::shared_ptr<gl::GlContext>& context);
+   explicit MarkerLayer(const std::shared_ptr<render::RenderContext>& context);
    ~MarkerLayer();
 
    void Initialize(const std::shared_ptr<MapContext>& mapContext) final;

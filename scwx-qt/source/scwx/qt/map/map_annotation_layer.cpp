@@ -1,4 +1,4 @@
-#include <scwx/qt/gl/draw/map_annotations_draw_item.hpp>
+#include <scwx/qt/draw/map_annotations_draw_item.hpp>
 #include <scwx/qt/map/map_annotation_layer.hpp>
 #include <scwx/qt/map/map_annotation_model.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
@@ -121,18 +121,18 @@ MeasureDistanceM(const MapAnnotationMeasure& measure)
 class MapAnnotationLayer::Impl
 {
 public:
-   explicit Impl(std::shared_ptr<gl::GlContext> glContext) :
-       glContext_ {std::move(glContext)},
+   explicit Impl(std::shared_ptr<render::RenderContext> renderContext) :
+       renderContext_ {std::move(renderContext)},
        model_ {},
-       draw_ {std::make_shared<gl::draw::MapAnnotationsDrawItem>(glContext_,
-                                                                 &model_)}
+       draw_ {std::make_shared<draw::MapAnnotationsDrawItem>(renderContext_,
+                                                             &model_)}
    {
    }
 
-   std::shared_ptr<MapContext>                       mapContext_;
-   std::shared_ptr<gl::GlContext>                    glContext_;
-   MapAnnotationModel                                model_;
-   std::shared_ptr<gl::draw::MapAnnotationsDrawItem> draw_;
+   std::shared_ptr<MapContext>                   mapContext_;
+   std::shared_ptr<render::RenderContext>        renderContext_;
+   MapAnnotationModel                            model_;
+   std::shared_ptr<draw::MapAnnotationsDrawItem> draw_;
 
    MapAnnotationTool  tool_ {MapAnnotationTool::None};
    MapAnnotationStyle style_ {};
@@ -150,6 +150,7 @@ public:
     * resampling. */
    std::optional<QPointF>            lastFreehandPixel_ {};
    std::optional<QPointF>            lastErasePixel_ {};
+   std::size_t                       freehandPtsSinceSimplify_ {0};
    std::unordered_set<std::uint64_t> erasedIds_ {};
    std::unordered_set<std::uint64_t> pendingGpuEraseIds_ {};
    bool                              eraseGpuDirty_ {false};
@@ -171,6 +172,7 @@ public:
       draggedMeasureHandle_.reset();
       lastFreehandPixel_.reset();
       lastErasePixel_.reset();
+      freehandPtsSinceSimplify_ = 0;
       erasedIds_.clear();
       pendingGpuEraseIds_.clear();
       eraseGpuDirty_ = false;
@@ -182,6 +184,7 @@ public:
       if (draftPoints_.empty() || (draftPoints_.size() < 2 && !roundStroke))
       {
          draftPoints_.clear();
+         freehandPtsSinceSimplify_ = 0;
          return;
       }
       MapAnnotationPolyline pl;
@@ -199,6 +202,7 @@ public:
       obj.style   = style_;
       static_cast<void>(model_.Add(std::move(obj)));
       draftPoints_.clear();
+      freehandPtsSinceSimplify_ = 0;
       draw_->Rebuild();
       draw_->ClearPreview();
    }
@@ -213,6 +217,22 @@ public:
       if (tool_ == MapAnnotationTool::Measure)
       {
          draw_->SetPreviewPolyline(draftPoints_, style_, true);
+         return;
+      }
+      if (tool_ == MapAnnotationTool::Circle && draftPoints_.size() >= 2)
+      {
+         const double r =
+            util::GeographicLib::GetDistance(draftPoints_[0].latitude_,
+                                             draftPoints_[0].longitude_,
+                                             draftPoints_[1].latitude_,
+                                             draftPoints_[1].longitude_)
+               .value();
+         draw_->SetPreviewCircle(draftPoints_[0], r, style_);
+         return;
+      }
+      if (tool_ == MapAnnotationTool::Rectangle && draftPoints_.size() >= 2)
+      {
+         draw_->SetPreviewRectangle(draftPoints_[0], draftPoints_[1], style_);
          return;
       }
       if (draftPoints_.size() < 2 && tool_ != MapAnnotationTool::Freehand)
@@ -409,8 +429,9 @@ public:
 };
 
 MapAnnotationLayer::MapAnnotationLayer(
-   std::shared_ptr<gl::GlContext> glContext) :
-    GenericLayer(std::move(glContext)), p(std::make_unique<Impl>(gl_context()))
+   std::shared_ptr<render::RenderContext> renderContext) :
+    GenericLayer(renderContext),
+    p(std::make_unique<Impl>(std::move(renderContext)))
 {
 }
 MapAnnotationLayer::~MapAnnotationLayer() = default;
@@ -419,15 +440,20 @@ void MapAnnotationLayer::Initialize(
    const std::shared_ptr<MapContext>& mapContext)
 {
    p->mapContext_ = mapContext;
-   p->draw_->Initialize();
+   p->draw_->Rebuild();
 }
 
-void MapAnnotationLayer::Deinitialize()
-{
-   p->draw_->Deinitialize();
-}
+void MapAnnotationLayer::Deinitialize() {}
 
 void MapAnnotationLayer::Render(
+   const std::shared_ptr<MapContext>& /* mapContext */,
+   const QMapLibre::CustomLayerRenderParameters& /* params */)
+{
+}
+
+void MapAnnotationLayer::RenderVulkanOverlay(
+   QRhiCommandBuffer*                 commandBuffer,
+   render::RhiVulkanOverlayResources& resources,
    const std::shared_ptr<MapContext>& /* mapContext */,
    const QMapLibre::CustomLayerRenderParameters& params)
 {
@@ -435,8 +461,8 @@ void MapAnnotationLayer::Render(
    {
       return;
    }
-   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-   p->draw_->Render(params);
+
+   p->draw_->RenderVulkan(commandBuffer, resources, params, false);
 }
 
 bool MapAnnotationLayer::RunMousePicking(
@@ -657,6 +683,7 @@ void MapAnnotationLayer::HandleMousePress(
    {
    case MapAnnotationTool::Freehand:
       p->draftPoints_.clear();
+      p->freehandPtsSinceSimplify_ = 0;
       p->draftPoints_.push_back(p->pressGeo_);
       p->lastFreehandPixel_ = localPos;
       p->UpdatePreview();
@@ -693,15 +720,20 @@ void MapAnnotationLayer::HandleMouseMove(
       }
       if (const auto lastFreehandPixel = p->lastFreehandPixel_)
       {
+         const std::size_t sizeBefore = p->draftPoints_.size();
          AppendFreehandAlongPixelSegment(
             p->draftPoints_, map, *lastFreehandPixel, localPos);
          p->lastFreehandPixel_ = localPos;
+         p->freehandPtsSinceSimplify_ += p->draftPoints_.size() - sizeBefore;
+         // Re-simplify only every N new points — old `>= 48` re-ran every move
+         // and could jitter/thin the live stroke.
          constexpr std::size_t kLiveSimplifyPointInterval {48};
-         if (p->draftPoints_.size() >= kLiveSimplifyPointInterval)
+         if (p->freehandPtsSinceSimplify_ >= kLiveSimplifyPointInterval)
          {
             const double toleranceM =
                std::clamp(p->style_.strokeWidthM.value() * 0.04, 2.0, 30.0);
             SimplifyFreehandPoints(p->draftPoints_, toleranceM);
+            p->freehandPtsSinceSimplify_ = 0;
          }
          p->UpdatePreview();
          Q_EMIT NeedsRendering();
@@ -828,12 +860,12 @@ void MapAnnotationLayer::HandleMouseRelease(
             obj.payload = circle;
             obj.style   = p->style_;
             static_cast<void>(p->model_.Add(std::move(obj)));
-            p->draw_->Rebuild();
          }
       }
       p->circleCenter_.reset();
       p->drawing_ = false;
       p->draw_->ClearPreview();
+      p->draw_->Rebuild();
       Q_EMIT NeedsRendering();
       return;
    }
@@ -851,11 +883,14 @@ void MapAnnotationLayer::HandleMouseRelease(
          obj.payload = rect;
          obj.style   = p->style_;
          static_cast<void>(p->model_.Add(std::move(obj)));
-         p->draw_->Rebuild();
       }
       p->rectCorner_.reset();
       p->drawing_ = false;
+      // Clear preview before rebuild so the first paint after commit uses
+      // committed fill+stroke only (preview clear after rebuild left a frame
+      // with stroke and no fill until the next interaction).
       p->draw_->ClearPreview();
+      p->draw_->Rebuild();
       Q_EMIT NeedsRendering();
       return;
    }
