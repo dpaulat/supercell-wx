@@ -1,5 +1,4 @@
 #include <scwx/qt/draw/icons.hpp>
-#include <scwx/qt/util/maplibre.hpp>
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/qt/util/tooltip.hpp>
 #include <scwx/util/logger.hpp>
@@ -9,7 +8,7 @@
 #include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <execution>
+#include <algorithm>
 
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <boost/unordered/unordered_flat_set.hpp>
@@ -159,10 +158,6 @@ void Icons::RenderVulkan(QRhiCommandBuffer*                 commandBuffer,
                                            resources.phase);
 
    glm::mat4 projection = scwx::qt::render::OrthoMapProjection(params);
-   projection =
-      glm::rotate(projection,
-                  glm::radians<float>(static_cast<float>(params.bearing)),
-                  glm::vec3(0.0f, 0.0f, 1.0f));
 
    resources.textureArrayOverlay.RenderScreen(
       commandBuffer,
@@ -676,32 +671,34 @@ bool Icons::RunMousePicking(
    bool itemPicked = false;
 
    // Convert local coordinates to icon coordinates
-   glm::vec2 mouseLocalCoords {mouseLocalPos.x(),
-                               params.height - mouseLocalPos.y()};
+   glm::vec2 mouseLocalCoords {static_cast<float>(mouseLocalPos.x()),
+                               static_cast<float>(params.height) -
+                                  static_cast<float>(mouseLocalPos.y())};
 
-   // For each pickable icon
-   auto it = std::find_if( //
-      std::execution::par,
+   auto it = std::find_if(
       p->currentHoverIcons_.crbegin(),
       p->currentHoverIcons_.crend(),
       [&mouseLocalCoords](const auto& icon)
       {
-         // Initialize vertices
-         glm::vec2 bl = {static_cast<float>(icon.di_->x_),
-                         static_cast<float>(icon.di_->y_)};
-         glm::vec2 br = bl;
-         glm::vec2 tl = br;
-         glm::vec2 tr = tl;
-
-         // Offset vertices
-         tl += icon.otl_;
-         bl += icon.obl_;
-         br += icon.obr_;
-         tr += icon.otr_;
-
-         // Test point against polygon bounds
-         return util::maplibre::IsPointInPolygon({tl, bl, br, tr},
-                                                 mouseLocalCoords);
+         const glm::vec2 origin {static_cast<float>(icon.di_->x_),
+                                 static_cast<float>(icon.di_->y_)};
+         const glm::vec2 corners[] = {origin + icon.otl_,
+                                      origin + icon.otr_,
+                                      origin + icon.obl_,
+                                      origin + icon.obr_};
+         const float     minX =
+            std::min({corners[0].x, corners[1].x, corners[2].x, corners[3].x});
+         const float maxX =
+            std::max({corners[0].x, corners[1].x, corners[2].x, corners[3].x});
+         const float minY =
+            std::min({corners[0].y, corners[1].y, corners[2].y, corners[3].y});
+         const float maxY =
+            std::max({corners[0].y, corners[1].y, corners[2].y, corners[3].y});
+         static constexpr float kPickPad = 4.0f;
+         return mouseLocalCoords.x >= minX - kPickPad &&
+                mouseLocalCoords.x <= maxX + kPickPad &&
+                mouseLocalCoords.y >= minY - kPickPad &&
+                mouseLocalCoords.y <= maxY + kPickPad;
       });
 
    if (it != p->currentHoverIcons_.crend())

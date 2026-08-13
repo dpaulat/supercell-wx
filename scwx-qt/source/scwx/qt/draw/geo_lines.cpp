@@ -530,6 +530,7 @@ namespace
 {
 
 static constexpr float kHoverPickExtraHalfPx = 18.0f;
+static constexpr float kLineCapOverlapPx     = 1.0f;
 
 static bool
 IsGeoLinePickable(const GeoLineDrawItem&                       drawItem,
@@ -640,9 +641,10 @@ void GeoLines::Impl::UpdateSingleBuffer(
    // const float x2 = static_cast<float>(di->x2_);
    // const float y2 = static_cast<float>(di->y2_);
 
-   // Screen-space direction (not GeographicLib azimuth). BuildGeoUniforms uses
-   // mapScale.y negated, so visual dir ∝ (dx, -dy) in offset/pixel space.
-   // Baking corners here also avoids relying on the GPU aAngleDeg attribute.
+   // Offset pixels use OrthoMapProjection (Y-down). CPU mercator Y already
+   // increases north. along = (dx, dy) so square caps extend past each
+   // endpoint. Negating dy (old GL ortho) pulled caps inward and ate short
+   // polygon edges — dashed/broken alert outlines.
    const units::angle::degrees<double> angle =
       util::GeographicLib::GetAngle(lat1, lon1, lat2, lon2);
 
@@ -650,7 +652,7 @@ void GeoLines::Impl::UpdateSingleBuffer(
       util::maplibre::LatLongToScreenCoordinate({lat1, lon1});
    const glm::vec2 sc2 =
       util::maplibre::LatLongToScreenCoordinate({lat2, lon2});
-   glm::vec2   along {sc2.x - sc1.x, -(sc2.y - sc1.y)};
+   glm::vec2   along {sc2.x - sc1.x, sc2.y - sc1.y};
    const float alongLen = glm::length(along);
    if (alongLen > 1.0e-6f)
    {
@@ -666,13 +668,14 @@ void GeoLines::Impl::UpdateSingleBuffer(
    const float hw =
       di->strokeEnabled_ ? di->strokeBorderHalf_ : (di->width_ * 0.5f);
    const float pickHw = hw + kHoverPickExtraHalfPx;
+   const float cap    = hw + kLineCapOverlapPx;
    const float lx     = -hw;
    const float rx     = +hw;
-   // Local (perp, along): start uses -along, end uses +along
-   const glm::vec2 bl  = perp * lx + along * (-hw);
-   const glm::vec2 tl  = perp * lx + along * (+hw);
-   const glm::vec2 br  = perp * rx + along * (-hw);
-   const glm::vec2 tr  = perp * rx + along * (+hw);
+   // Local (perp, along): start uses -along, end uses +along (outward caps)
+   const glm::vec2 bl  = perp * lx + along * (-cap);
+   const glm::vec2 tl  = perp * lx + along * (+cap);
+   const glm::vec2 br  = perp * rx + along * (-cap);
+   const glm::vec2 tr  = perp * rx + along * (+cap);
    const float     blX = bl.x;
    const float     blY = bl.y;
    const float     tlX = tl.x;

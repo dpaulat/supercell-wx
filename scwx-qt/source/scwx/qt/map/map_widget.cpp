@@ -490,6 +490,7 @@ public:
       Qt::KeyboardModifier::NoModifier};
 
    std::weak_ptr<types::EventHandler> weakPickedEventHandler_ {};
+   bool                               overlayPointerCaptured_ {false};
 
    uint64_t frameDraws_;
 
@@ -1511,6 +1512,19 @@ void MapWidget::SetMapLocation(double latitude,
    }
 }
 
+void MapWidget::ResetBearingNorth()
+{
+   if (p->map_ == nullptr)
+   {
+      return;
+   }
+
+   p->map_->setBearing(0.0);
+   p->mapNeedsRender_     = true;
+   p->overlayNeedsRender_ = true;
+   p->Update();
+}
+
 void MapWidget::SetMapParameters(double     latitude,
                                  double     longitude,
                                  double     zoom,
@@ -2037,19 +2051,14 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
          }
          break;
 
-      // If there is a radar product view, create the radar range layer
+      // Per-pane QRhi overlay. MapLibre geojson lived on the shared basemap
+      // texture, so view-linked panes inherited the leader's product range.
       case types::DataLayer::RadarRange:
-         if (radarProductView != nullptr && radarProductManager_ != nullptr &&
-             radarProductManager_->radar_site() != nullptr)
+         if (radarProductView != nullptr)
          {
-            std::shared_ptr<config::RadarSite> radarSite =
-               radarProductManager_->radar_site();
-            RadarRangeLayer::Add(
-               map_,
-               radarProductView->range(),
-               {radarSite->latitude(), radarSite->longitude()},
-               QString::fromStdString(before));
-            layerList_.push_back(types::GetLayerName(type, description));
+            AddLayer(layerName,
+                     std::make_shared<RadarRangeLayer>(renderContext_),
+                     before);
          }
          break;
 
@@ -2151,7 +2160,8 @@ void MapWidget::enterEvent(QEnterEvent* /* ev */)
 
 void MapWidget::leaveEvent(QEvent* /* ev */)
 {
-   p->hasMouse_ = false;
+   p->hasMouse_               = false;
+   p->overlayPointerCaptured_ = false;
    p->UpdateAnnotationCursor();
 }
 
@@ -2197,6 +2207,20 @@ void MapWidget::mousePressEvent(QMouseEvent* ev)
    {
       ev->accept();
       return;
+   }
+
+   if (ev->button() == Qt::MouseButton::LeftButton)
+   {
+      p->RunMousePicking();
+      auto handler = p->weakPickedEventHandler_.lock();
+      if (p->lastItemPicked_ && handler != nullptr &&
+          handler->event_ != nullptr)
+      {
+         p->overlayPointerCaptured_ = true;
+         handler->event_(ev);
+         ev->accept();
+         return;
+      }
    }
 
    if (ev->type() == QEvent::Type::MouseButtonPress &&
@@ -2283,6 +2307,14 @@ void MapWidget::mouseDoubleClickEvent(QMouseEvent* ev)
 
 void MapWidget::mouseMoveEvent(QMouseEvent* ev)
 {
+   if (p->overlayPointerCaptured_)
+   {
+      p->lastPos_       = ev->position();
+      p->lastGlobalPos_ = ev->globalPosition();
+      ev->accept();
+      return;
+   }
+
    if (p->map_ == nullptr)
    {
       p->lastPos_       = ev->position();
@@ -2365,6 +2397,14 @@ void MapWidget::mouseReleaseEvent(QMouseEvent* ev)
 {
    p->lastPos_       = ev->position();
    p->lastGlobalPos_ = ev->globalPosition();
+
+   if (p->overlayPointerCaptured_ &&
+       ev->button() == Qt::MouseButton::LeftButton)
+   {
+      p->overlayPointerCaptured_ = false;
+      ev->accept();
+      return;
+   }
 
    // Let annotation tools see left-button release when a tool is active.
    if (ev->button() == Qt::MouseButton::LeftButton &&
@@ -3090,8 +3130,7 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    EnsureImGuiRenderer(commandBuffer);
 
    std::function<void(QRhiCommandBuffer*)> imguiRender;
-   const bool renderImGuiOverlays = isPrimaryPane || overlayNeedsRender_;
-   if (imGuiRendererInitialized_ && renderImGuiOverlays)
+   if (imGuiRendererInitialized_)
    {
       ImGui::SetCurrentContext(imGuiContext_);
       manager::FontManager::Instance().EnsureImGuiFontsBuilt();
@@ -3673,19 +3712,6 @@ void MapWidgetImpl::RadarProductViewConnect()
          this,
          [=, this]()
          {
-            std::shared_ptr<config::RadarSite> radarSite =
-               radarProductManager_ != nullptr ?
-                  radarProductManager_->radar_site() :
-                  nullptr;
-
-            if (map_ != nullptr && radarSite != nullptr)
-            {
-               RadarRangeLayer::Update(
-                  map_,
-                  radarProductView->range(),
-                  {radarSite->latitude(), radarSite->longitude()});
-            }
-
             widget_->RequestOverlayRepaint();
             Q_EMIT widget_->RadarSweepUpdated();
          },

@@ -6,6 +6,7 @@
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
 #include <scwx/qt/map/map_settings.hpp>
+#include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/texture_types.hpp>
@@ -22,6 +23,7 @@
 #include <QGeoPositionInfo>
 #include <QGuiApplication>
 #include <QMouseEvent>
+#include <QWidget>
 
 #include <cmath>
 
@@ -34,6 +36,9 @@ namespace scwx::qt::map
 
 static const std::string logPrefix_ = "scwx::qt::map::overlay_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
+
+static constexpr float kCompassIconPx_    = 32.0f;
+static constexpr float kCompassMarginCss_ = 8.0f;
 
 class OverlayLayer::Impl
 {
@@ -104,6 +109,7 @@ public:
    void SetupScreenIcons(const std::shared_ptr<MapContext>& mapContext);
    void UpdateScreenIcons(const std::shared_ptr<MapContext>& mapContext,
                           const QMapLibre::CustomLayerRenderParameters& params);
+   [[nodiscard]] static float CompassReservePx(float pixelRatio);
    void UpdateImGuiState(const QMapLibre::CustomLayerRenderParameters& params);
    void UpdateSweepTimeString(const std::shared_ptr<MapContext>& mapContext);
    void
@@ -138,8 +144,6 @@ public:
 
    std::shared_ptr<draw::GeoIconDrawItem> cursorIcon_ {};
 
-   const std::string& cardinalPointIconName_ {
-      types::GetTextureName(types::ImageTexture::CardinalPoint24)};
    const std::string& compassIconName_ {
       types::GetTextureName(types::ImageTexture::Compass24)};
    std::string cursorIconName_ {
@@ -160,7 +164,6 @@ public:
 
    std::shared_ptr<draw::IconDrawItem> compassIcon_ {};
    std::shared_ptr<draw::IconDrawItem> mapCenterIcon_ {};
-   double                              lastBearing_ {0.0};
 
    std::shared_ptr<draw::IconDrawItem> mapLogoIcon_ {};
 
@@ -242,7 +245,6 @@ void OverlayLayer::Impl::SetupScreenIcons(
    const std::shared_ptr<MapContext>& mapContext)
 {
    icons_->StartIconSheets();
-   icons_->AddIconSheet(cardinalPointIconName_);
    icons_->AddIconSheet(compassIconName_);
    icons_->AddIconSheet(mapCenterIconName_);
    for (const auto& logoEntry : mapProviderLogos_)
@@ -253,7 +255,7 @@ void OverlayLayer::Impl::SetupScreenIcons(
 
    icons_->StartIcons();
    compassIcon_ = icons_->AddIcon();
-   icons_->SetIconTexture(compassIcon_, cardinalPointIconName_, 0);
+   icons_->SetIconTexture(compassIcon_, compassIconName_, 0);
    draw::Icons::RegisterEventHandler(
       compassIcon_,
       [this, mapContext](QEvent* ev)
@@ -272,15 +274,21 @@ void OverlayLayer::Impl::SetupScreenIcons(
                boost::gil::rgba32f_pixel_t {1.0f, 1.0f, 1.0f, 1.0f});
             break;
 
+         case QEvent::Type::MouseButtonPress:
          case QEvent::Type::MouseButtonRelease:
          {
             QMouseEvent* mouseEvent = reinterpret_cast<QMouseEvent*>(ev);
             if (mouseEvent->button() == Qt::MouseButton::LeftButton)
             {
-               auto map = mapContext->map().lock();
-               if (map != nullptr)
+               if (auto* mapWidget =
+                      qobject_cast<MapWidget*>(mapContext->widget()))
+               {
+                  mapWidget->ResetBearingNorth();
+               }
+               else if (auto map = mapContext->map().lock(); map != nullptr)
                {
                   map->setBearing(0.0);
+                  Q_EMIT self_->NeedsRendering();
                }
                ev->accept();
             }
@@ -311,30 +319,14 @@ void OverlayLayer::Impl::UpdateScreenIcons(
 {
    auto& generalSettings = settings::GeneralSettings::Instance();
 
-   static constexpr int kCompassMargin = 8;
-
-   if (params.width != lastWidth_ || params.height != lastHeight_ ||
-       firstRender_)
-   {
-      icons_->SetIconLocation(
-         compassIcon_, params.width - 24 - kCompassMargin, kCompassMargin);
-   }
-
-   if (params.bearing != lastBearing_)
-   {
-      if (params.bearing == 0.0)
-      {
-         icons_->SetIconTexture(compassIcon_, cardinalPointIconName_, 0);
-         icons_->SetIconAngle(compassIcon_,
-                              units::angle::degrees<double> {0.0});
-      }
-      else
-      {
-         icons_->SetIconTexture(compassIcon_, compassIconName_, 0);
-         icons_->SetIconAngle(
-            compassIcon_, units::angle::degrees<double> {-45 - params.bearing});
-      }
-   }
+   const float pixelRatio = mapContext->pixel_ratio();
+   const float margin     = kCompassMarginCss_ * pixelRatio;
+   const float half       = kCompassIconPx_ * 0.5f;
+   icons_->SetIconLocation(compassIcon_,
+                           params.width - margin - half,
+                           params.height - margin - half);
+   icons_->SetIconAngle(compassIcon_,
+                        units::angle::degrees<double> {-params.bearing});
 
    if (params.width != lastWidth_ || params.height != lastHeight_)
    {
@@ -359,6 +351,11 @@ void OverlayLayer::Impl::UpdateScreenIcons(
    }
    icons_->SetIconVisible(mapLogoIcon_,
                           generalSettings.show_map_logo().GetValue());
+}
+
+float OverlayLayer::Impl::CompassReservePx(float pixelRatio)
+{
+   return kCompassMarginCss_ * pixelRatio + kCompassIconPx_ + 4.0f * pixelRatio;
 }
 
 void OverlayLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
@@ -542,7 +539,6 @@ void OverlayLayer::Impl::UpdateImGuiState(
    firstRender_  = false;
    lastWidth_    = params.width;
    lastHeight_   = params.height;
-   lastBearing_  = params.bearing;
    lastFontSize_ = ImGui::GetFontSize();
 }
 
@@ -553,7 +549,6 @@ void OverlayLayer::Impl::RenderImGuiOverlay(
    RenderProductName(mapContext);
    RenderProductDetails(mapContext, params);
    RenderAttribution(mapContext, params);
-   UpdateImGuiState(params);
 }
 
 void OverlayLayer::Impl::UpdateSweepTimeString(
@@ -676,9 +671,12 @@ void OverlayLayer::Impl::RenderProductDetails(
 {
    auto radarProductView = mapContext->radar_product_view();
 
-   ImGui::SetNextWindowPos(ImVec2 {static_cast<float>(params.width), 0.0f},
-                           ImGuiCond_Always,
-                           ImVec2 {1.0f, 0.0f});
+   ImGui::SetNextWindowPos(
+      ImVec2 {static_cast<float>(params.width) -
+                 CompassReservePx(mapContext->pixel_ratio()),
+              0.0f},
+      ImGuiCond_Always,
+      ImVec2 {1.0f, 0.0f});
 
    bool                          productNotAvailable = false;
    types::RadarProductLoadStatus newLoadStatus =
@@ -829,19 +827,28 @@ bool OverlayLayer::RunMousePicking(
    const common::Coordinate&                     mouseGeoCoords,
    std::shared_ptr<types::EventHandler>&         eventHandler)
 {
-   // If sweep time was picked, don't process additional items
-   if (p->sweepTimePicked_)
+   float scale = mapContext->pixel_ratio();
+   if (QWidget* widget = mapContext->widget();
+       widget != nullptr && widget->width() > 0)
+   {
+      scale =
+         static_cast<float>(params.width) / static_cast<float>(widget->width());
+   }
+   const QPointF mouseFramebufferPos {mouseLocalPos.x() * scale,
+                                      mouseLocalPos.y() * scale};
+
+   if (DrawLayer::RunMousePicking(mapContext,
+                                  params,
+                                  mouseFramebufferPos,
+                                  mouseGlobalPos,
+                                  mouseCoords,
+                                  mouseGeoCoords,
+                                  eventHandler))
    {
       return true;
    }
 
-   return DrawLayer::RunMousePicking(mapContext,
-                                     params,
-                                     mouseLocalPos,
-                                     mouseGlobalPos,
-                                     mouseCoords,
-                                     mouseGeoCoords,
-                                     eventHandler);
+   return p->sweepTimePicked_;
 }
 
 void OverlayLayer::UpdateSweepTimeNextFrame()

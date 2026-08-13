@@ -36,10 +36,14 @@ static bool IsMapColorTriangleVisible(std::int32_t threshold,
 glm::mat4
 OrthoMapProjection(const QMapLibre::CustomLayerRenderParameters& params)
 {
+   // Y-up, origin at the bottom-left (MapLibre / GL). Overlay shaders are
+   // consumed as-is on Vulkan/Metal, whose native NDC is Y-down. glm::ortho
+   // maps `bottom` → NDC -1 (Vulkan top) and `top` → NDC +1 (Vulkan bottom),
+   // so pass height as bottom and 0 as top.
    return glm::ortho(0.0f,
                      static_cast<float>(params.width),
-                     0.0f,
-                     static_cast<float>(params.height));
+                     static_cast<float>(params.height),
+                     0.0f);
 }
 
 std::vector<float> TransformMapColorVertices(

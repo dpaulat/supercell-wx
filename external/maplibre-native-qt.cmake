@@ -93,7 +93,10 @@ endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     include(CheckCXXCompilerFlag)
-    check_cxx_compiler_flag("-Wno-sfinae-incomplete"
+    # Probe the positive form. GCC/Clang accept unknown -Wno-* flags, so
+    # checking -Wno-sfinae-incomplete false-passes, then -Wno-error=...
+    # fails the compile on toolchains that lack the warning.
+    check_cxx_compiler_flag("-Wsfinae-incomplete"
                             SCWX_HAS_WNO_SFINAE_INCOMPLETE)
     if (SCWX_HAS_WNO_SFINAE_INCOMPLETE)
         target_compile_options(
@@ -109,12 +112,12 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     endif()
 endif()
 
-# GCC 15+/16+: MapLibre false positive with -Wsfinae-incomplete under -Werror.
-# Use flag probe — local toolchains can report a different CMAKE version than
-# the g++ that actually compiles (e.g. gcc-15 profile with system g++ 16).
+# GCC 16+: MapLibre false positive with -Wsfinae-incomplete under -Werror.
+# Older GNU (11–15) do not implement the warning; -Wno-error=sfinae-incomplete
+# is a hard error there.
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     include(CheckCXXCompilerFlag)
-    check_cxx_compiler_flag("-Wno-sfinae-incomplete"
+    check_cxx_compiler_flag("-Wsfinae-incomplete"
                             SCWX_GNU_HAS_WNO_SFINAE_INCOMPLETE)
     if (SCWX_GNU_HAS_WNO_SFINAE_INCOMPLETE)
         target_compile_options(mbgl-core PRIVATE

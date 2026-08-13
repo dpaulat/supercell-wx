@@ -37,6 +37,8 @@ static constexpr std::size_t kIntegersPerVertex_ = 3;
 static constexpr std::array<float, 11> kNoStrokeVertexPadding = {
    0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 
+static constexpr float kLineCapOverlapPx = 1.0f;
+
 static const boost::gil::rgba8_pixel_t kBlack_ {0, 0, 0, 255};
 
 class PlacefileLines::Impl
@@ -398,13 +400,13 @@ void PlacefileLines::Impl::BufferLine(
    // const float x2 = static_cast<float>(e2.x_);
    // const float y2 = static_cast<float>(e2.y_);
 
-   // Screen-space direction (map Y flipped). Bake into aXYOffset; aAngleDeg
-   // slot holds unrotated perpendicular for stroke banding.
+   // Offset pixels use OrthoMapProjection (Y-down). along = (dx, dy) so
+   // square caps extend outward. See geo_lines.cpp.
    const glm::vec2 sc1 =
       util::maplibre::LatLongToScreenCoordinate({lat1, lon1});
    const glm::vec2 sc2 =
       util::maplibre::LatLongToScreenCoordinate({lat2, lon2});
-   glm::vec2   along {sc2.x - sc1.x, -(sc2.y - sc1.y)};
+   glm::vec2   along {sc2.x - sc1.x, sc2.y - sc1.y};
    const float alongLen = glm::length(along);
    if (alongLen > 1.0e-6f)
    {
@@ -418,12 +420,13 @@ void PlacefileLines::Impl::BufferLine(
 
    // Final X/Y offsets in pixels
    const float     hw  = width * 0.5f;
+   const float     cap = hw + kLineCapOverlapPx;
    const float     lx  = -hw;
    const float     rx  = +hw;
-   const glm::vec2 bl  = perp * lx + along * (-hw);
-   const glm::vec2 tl  = perp * lx + along * (+hw);
-   const glm::vec2 br  = perp * rx + along * (-hw);
-   const glm::vec2 tr  = perp * rx + along * (+hw);
+   const glm::vec2 bl  = perp * lx + along * (-cap);
+   const glm::vec2 tl  = perp * lx + along * (+cap);
+   const glm::vec2 br  = perp * rx + along * (-cap);
+   const glm::vec2 tr  = perp * rx + along * (+cap);
    const float     blX = bl.x;
    const float     blY = bl.y;
    const float     tlX = tl.x;

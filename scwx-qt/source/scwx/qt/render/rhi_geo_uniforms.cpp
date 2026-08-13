@@ -1,4 +1,5 @@
 #include <scwx/qt/render/rhi_geo_uniforms.hpp>
+#include <scwx/qt/render/projection.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/util/time.hpp>
 
@@ -14,10 +15,7 @@ BuildGeoUniforms(const QMapLibre::CustomLayerRenderParameters& params,
 {
    GeoUniforms uniforms {};
 
-   uniforms.uMVPMatrix = glm::ortho(0.0f,
-                                    static_cast<float>(params.width),
-                                    0.0f,
-                                    static_cast<float>(params.height));
+   uniforms.uMVPMatrix = OrthoMapProjection(params);
    uniforms.uMVPMatrix =
       glm::rotate(uniforms.uMVPMatrix,
                   glm::radians<float>(static_cast<float>(params.bearing)),

@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstddef>
 #include <deque>
+#include <numbers>
 #include <type_traits>
 #include <unordered_set>
 #include <unordered_map>

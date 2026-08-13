@@ -1,16 +1,33 @@
 #pragma once
 
-#include <qmaplibre.hpp>
+#include <scwx/qt/map/draw_layer.hpp>
 
-namespace scwx::qt::map::RadarRangeLayer
+namespace scwx::qt::map
 {
 
-void Add(std::shared_ptr<QMapLibre::Map> map,
-         float                           range,
-         QMapLibre::Coordinate           center,
-         const QString&                  before = QString());
-void Update(std::shared_ptr<QMapLibre::Map> map,
-            float                           range,
-            QMapLibre::Coordinate           center);
+class RadarRangeLayer : public DrawLayer
+{
+   Q_DISABLE_COPY_MOVE(RadarRangeLayer)
 
-} // namespace scwx::qt::map::RadarRangeLayer
+public:
+   explicit RadarRangeLayer(
+      const std::shared_ptr<render::RenderContext>& renderContext);
+   ~RadarRangeLayer() override;
+
+   void Initialize(const std::shared_ptr<MapContext>& mapContext) final;
+   void Render(const std::shared_ptr<MapContext>& mapContext,
+               const QMapLibre::CustomLayerRenderParameters&) final;
+   void Deinitialize() final;
+
+   void RenderVulkanOverlay(
+      QRhiCommandBuffer*                            commandBuffer,
+      render::RhiVulkanOverlayResources&            resources,
+      const std::shared_ptr<MapContext>&            mapContext,
+      const QMapLibre::CustomLayerRenderParameters& params) override;
+
+private:
+   class Impl;
+   std::unique_ptr<Impl> p;
+};
+
+} // namespace scwx::qt::map

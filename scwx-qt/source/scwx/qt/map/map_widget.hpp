@@ -145,6 +145,7 @@ public:
                          double bearing,
                          double pitch,
                          bool   linkedViewSync = false);
+   void ResetBearingNorth();
    void RequestBasemapRepaint();
    void RequestOverlayRepaint();
    void MarkOverlayDirty();
