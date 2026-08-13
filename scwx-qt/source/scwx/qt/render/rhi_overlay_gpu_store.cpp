@@ -329,12 +329,12 @@ std::unordered_map<QRhi*, RhiStore> stores_;
 [[nodiscard]] QRhiGraphicsPipeline::TargetBlend AlphaBlend()
 {
    QRhiGraphicsPipeline::TargetBlend blend;
-   blend.enable   = true;
-   blend.srcColor = QRhiGraphicsPipeline::SrcAlpha;
-   blend.dstColor = QRhiGraphicsPipeline::OneMinusSrcAlpha;
+   blend.enable     = true;
+   blend.srcColor   = QRhiGraphicsPipeline::SrcAlpha;
+   blend.dstColor   = QRhiGraphicsPipeline::OneMinusSrcAlpha;
    blend.opColor    = QRhiGraphicsPipeline::Add;
-   blend.srcAlpha = QRhiGraphicsPipeline::One;
-   blend.dstAlpha = QRhiGraphicsPipeline::OneMinusSrcAlpha;
+   blend.srcAlpha   = QRhiGraphicsPipeline::One;
+   blend.dstAlpha   = QRhiGraphicsPipeline::OneMinusSrcAlpha;
    blend.opAlpha    = QRhiGraphicsPipeline::Add;
    blend.colorWrite = QRhiGraphicsPipeline::R | QRhiGraphicsPipeline::G |
                       QRhiGraphicsPipeline::B | QRhiGraphicsPipeline::A;
