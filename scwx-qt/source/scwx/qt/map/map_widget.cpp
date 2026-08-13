@@ -2951,10 +2951,10 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    const bool isPrimaryPane =
       context_->settings().isActive_ || widget_->underMouse();
 
-   if (!isPrimaryPane && !mapNeedsRender_ && !overlayNeedsRender_ && !hasMouse_)
-   {
-      return;
-   }
+   // Always paint. Skipping inactive panes left annotations blank after the
+   // color buffer was cleared/replaced between frames (QRhiWidget does not
+   // guarantee preserving the prior present).
+   static_cast<void>(isPrimaryPane);
 
    const types::CaptureType currentCaptureType = screenCaptureRequested_;
    if (screenCaptureRequested_ != types::CaptureType::None)
@@ -3035,36 +3035,28 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
       if (basemapShareCallbacks_ != nullptr &&
           basemapShareCallbacks_->leaderTexture_ != nullptr)
       {
-         const std::uint64_t basemapGeneration =
-            basemapShareCallbacks_->basemapGeneration_ != nullptr ?
-               basemapShareCallbacks_->basemapGeneration_() :
-               0;
-
-         if (basemapGeneration > 0 &&
-             basemapGeneration == lastCopiedBasemapGeneration_)
+         QRhiTexture* const leaderTexture =
+            basemapShareCallbacks_->leaderTexture_(
+               basemapShareDecision.leaderIndex_);
+         QRhiTexture* const followerTexture = widget_->colorTexture();
+         // Always copy. QRhiWidget color contents are not reliable across
+         // frames — skipping the copy when generation matched left followers
+         // without a basemap underlay and dropped per-pane overlays.
+         if (leaderTexture != nullptr && followerTexture != nullptr &&
+             leaderTexture->pixelSize() == followerTexture->pixelSize() &&
+             leaderTexture->format() == followerTexture->format())
          {
-            basemapCopied = true;
-         }
-         else
-         {
-            QRhiTexture* const leaderTexture =
-               basemapShareCallbacks_->leaderTexture_(
-                  basemapShareDecision.leaderIndex_);
-            QRhiTexture* const followerTexture = widget_->colorTexture();
-            if (leaderTexture != nullptr && followerTexture != nullptr &&
-                leaderTexture->pixelSize() == followerTexture->pixelSize() &&
-                leaderTexture->format() == followerTexture->format())
+            const auto copyStart = std::chrono::steady_clock::now();
+            MapRhiRenderer::CopyColorTexture(
+               widget_->rhi(), commandBuffer, followerTexture, leaderTexture);
+            basemapCopyMs =
+               ElapsedMs(copyStart, std::chrono::steady_clock::now());
+            if (basemapShareCallbacks_->basemapGeneration_ != nullptr)
             {
-               const auto copyStart = std::chrono::steady_clock::now();
-               MapRhiRenderer::CopyColorTexture(widget_->rhi(),
-                                                commandBuffer,
-                                                followerTexture,
-                                                leaderTexture);
-               basemapCopyMs =
-                  ElapsedMs(copyStart, std::chrono::steady_clock::now());
-               lastCopiedBasemapGeneration_ = basemapGeneration;
-               basemapCopied                = true;
+               lastCopiedBasemapGeneration_ =
+                  basemapShareCallbacks_->basemapGeneration_();
             }
+            basemapCopied = true;
          }
       }
       if (basemapCopied)
@@ -3180,20 +3172,25 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    }
 
    const auto overlayStart = std::chrono::steady_clock::now();
-   // Primary pane always composites overlays (mouse/tooltip). Followers skip
-   // the overlay pass when nothing marked dirty since the last draw.
-   const bool renderOverlays =
-      isPrimaryPane || overlayNeedsRender_ || static_cast<bool>(imguiRender);
-   if (renderOverlays)
+   // Always composite overlays after map/basemap. Skipping this for inactive
+   // panes dropped annotations after the color buffer was replaced.
+   const bool overlayOk = overlayRenderer_.Render(commandBuffer,
+                                                  widget_->colorTexture(),
+                                                  genericLayers_,
+                                                  context_,
+                                                  overlayParams,
+                                                  imguiRender);
+
+   const bool keepInactiveAnnotationsAlive =
+      !context_->settings().isActive_ && annotationLayer_ != nullptr &&
+      annotationLayer_->visible() && annotationLayer_->GetObjectCount() > 0;
+
+   overlayNeedsRender_ = !overlayOk || keepInactiveAnnotationsAlive;
+   if (overlayNeedsRender_)
    {
-      overlayRenderer_.Render(commandBuffer,
-                              widget_->colorTexture(),
-                              genericLayers_,
-                              context_,
-                              overlayParams,
-                              imguiRender);
+      widget_->update();
    }
-   overlayNeedsRender_   = false;
+
    const auto overlayEnd = std::chrono::steady_clock::now();
 
    if (perfEnabled)

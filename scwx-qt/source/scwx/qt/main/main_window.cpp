@@ -1273,15 +1273,11 @@ void MainWindowImpl::ConfigureBasemapSharing()
       [this](const std::size_t leaderIndex)
    {
       basemapShareState_.NotifyBasemapRendered(leaderIndex);
-      // Wake linked followers so they copy the new basemap and redraw overlays.
-      SyncMapPaneViewLinkStateSize();
+      // Wake every other pane so per-pane overlays are redrawn on top of a
+      // fresh basemap (not only view-linked followers).
       for (std::size_t i = 0; i < maps_.size(); ++i)
       {
          if (i == leaderIndex)
-         {
-            continue;
-         }
-         if (i >= mapPaneViewLinked_.size() || !mapPaneViewLinked_.at(i))
          {
             continue;
          }
@@ -1296,15 +1292,8 @@ void MainWindowImpl::ConfigureBasemapSharing()
    basemapShareCallbacks_.notifyOverlayDirty_ =
       [this](const std::size_t /* sourceIndex */)
    {
-      SyncMapPaneViewLinkStateSize();
-      for (std::size_t i = 0; i < maps_.size(); ++i)
+      for (map::MapWidget* mapWidget : maps_)
       {
-         if (i >= mapPaneViewLinked_.size() || !mapPaneViewLinked_.at(i))
-         {
-            continue;
-         }
-
-         map::MapWidget* mapWidget = maps_.at(i);
          if (mapWidget != nullptr)
          {
             mapWidget->MarkOverlayDirty();
@@ -3566,6 +3555,16 @@ void MainWindowImpl::SetActiveMap(map::MapWidget* mapWidget)
       {
          mapAnnotationDock_->AttachToMap(nullptr);
          mapAnnotationDock_->BindToLayer(nullptr);
+      }
+   }
+
+   // Every pane must redraw after focus change — inactive panes otherwise keep
+   // a color buffer that lost overlays (or never repaint after a clear).
+   for (map::MapWidget* widget : maps_)
+   {
+      if (widget != nullptr)
+      {
+         widget->RequestBasemapRepaint();
       }
    }
 }

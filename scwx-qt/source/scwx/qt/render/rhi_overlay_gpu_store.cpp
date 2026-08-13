@@ -332,8 +332,12 @@ std::unordered_map<QRhi*, RhiStore> stores_;
    blend.enable   = true;
    blend.srcColor = QRhiGraphicsPipeline::SrcAlpha;
    blend.dstColor = QRhiGraphicsPipeline::OneMinusSrcAlpha;
+   blend.opColor    = QRhiGraphicsPipeline::Add;
    blend.srcAlpha = QRhiGraphicsPipeline::One;
    blend.dstAlpha = QRhiGraphicsPipeline::OneMinusSrcAlpha;
+   blend.opAlpha    = QRhiGraphicsPipeline::Add;
+   blend.colorWrite = QRhiGraphicsPipeline::R | QRhiGraphicsPipeline::G |
+                      QRhiGraphicsPipeline::B | QRhiGraphicsPipeline::A;
    return blend;
 }
 
@@ -549,8 +553,9 @@ AcquireColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
       {QRhiShaderStage {QRhiShaderStage::Vertex, vertexShader},
        QRhiShaderStage {QRhiShaderStage::Fragment, fragmentShader}});
    pipeline->setVertexInputLayout(inputLayout);
+   // layoutSrbUniformTexture_: UBO + backdrop sampler (manual alpha composite).
    if (!ConfigureCommonPipeline(
-          pipeline.get(), renderTarget, bucket.layoutSrbUniform_))
+          pipeline.get(), renderTarget, bucket.layoutSrbUniformTexture_))
    {
       logger_->error("Failed to create shared colored geometry pipeline");
       return nullptr;

@@ -27,7 +27,9 @@ public:
    void Initialize(QRhi* rhi);
    void Shutdown();
 
-   void Render(QRhiCommandBuffer*                                commandBuffer,
+   /** Returns false if overlays were not composited (caller should keep the
+    * pane dirty — otherwise drawings vanish until the next focus/paint). */
+   bool Render(QRhiCommandBuffer*                                commandBuffer,
                QRhiTexture*                                      colorTexture,
                const std::vector<std::shared_ptr<GenericLayer>>& layers,
                const std::shared_ptr<MapContext>&                mapContext,

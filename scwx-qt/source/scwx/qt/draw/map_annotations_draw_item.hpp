@@ -44,6 +44,12 @@ public:
                            const map::MapAnnotationStyle&         style,
                            bool roundStroke               = false,
                            bool committedRoundMeshPreview = false);
+   void SetPreviewCircle(const common::Coordinate&      center,
+                         double                         radiusMeters,
+                         const map::MapAnnotationStyle& style);
+   void SetPreviewRectangle(const common::Coordinate&      corner1,
+                            const common::Coordinate&      corner2,
+                            const map::MapAnnotationStyle& style);
    void ClearPreview();
 
    void Rebuild();

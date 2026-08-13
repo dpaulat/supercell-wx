@@ -59,6 +59,8 @@ class MapOverlayRenderer::Impl
 public:
    [[nodiscard]] bool EnsureReady(QRhiCommandBuffer* commandBuffer,
                                   QRhiTexture*       colorTexture);
+   [[nodiscard]] bool EnsureBackdrop(QRhiTexture* colorTexture);
+   void               ReleaseBackdrop();
 
    render::RhiColorTableOverlay   colorTableOverlay_ {};
    render::RhiRadarOverlay        radarOverlay_ {};
@@ -68,11 +70,50 @@ public:
    render::RhiTextureArrayOverlay textureArrayOverlay_ {};
    QRhi*                          rhi_ {nullptr};
    QRhiTexture*                   colorTexture_ {nullptr};
+   QRhiTexture*                   backdropTexture_ {nullptr};
+   QSize                          backdropSize_ {};
    QRhiTextureRenderTarget*       preserveRenderTarget_ {nullptr};
    QSize                          pixelSize_ {};
    std::uint64_t                  renderTargetGeneration_ {0};
    bool                           storeRetained_ {false};
 };
+
+void MapOverlayRenderer::Impl::ReleaseBackdrop()
+{
+   delete backdropTexture_;
+   backdropTexture_ = nullptr;
+   backdropSize_    = {};
+}
+
+bool MapOverlayRenderer::Impl::EnsureBackdrop(QRhiTexture* colorTexture)
+{
+   if (rhi_ == nullptr || colorTexture == nullptr)
+   {
+      return false;
+   }
+
+   const QSize size = colorTexture->pixelSize();
+   if (size.isEmpty())
+   {
+      return false;
+   }
+
+   if (backdropTexture_ != nullptr && backdropSize_ == size &&
+       backdropTexture_->format() == colorTexture->format())
+   {
+      return true;
+   }
+
+   ReleaseBackdrop();
+   backdropTexture_ = rhi_->newTexture(colorTexture->format(), size);
+   if (backdropTexture_ == nullptr || !backdropTexture_->create())
+   {
+      ReleaseBackdrop();
+      return false;
+   }
+   backdropSize_ = size;
+   return true;
+}
 
 bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
                                            QRhiTexture*       colorTexture)
@@ -100,6 +141,7 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
       preserveRenderTarget_ = nullptr;
       colorTexture_         = nullptr;
       pixelSize_            = {};
+      ReleaseBackdrop();
    }
 
    if (preserveRenderTarget_ == nullptr)
@@ -167,9 +209,10 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
          rhi_, preserveRenderTarget_, commandBuffer);
    }
 
-   return colorTableOverlay_.IsInitialized() && radarOverlay_.IsInitialized() &&
-          coloredGeometry_.IsInitialized() &&
-          textureArrayOverlay_.IsInitialized();
+   // Colored geometry alone is enough to keep annotations/lines visible.
+   // Requiring every overlay subsystem used to abort the whole pass after a
+   // basemap copy — inactive panes then showed a clean map with drawings gone.
+   return coloredGeometry_.IsInitialized();
 }
 
 void MapOverlayRenderer::Initialize(QRhi* rhi)
@@ -213,6 +256,7 @@ void MapOverlayRenderer::Shutdown()
    p->preserveRenderTarget_ = nullptr;
    p->colorTexture_         = nullptr;
    p->pixelSize_            = {};
+   p->ReleaseBackdrop();
 
    if (p->storeRetained_ && p->rhi_ != nullptr)
    {
@@ -222,7 +266,7 @@ void MapOverlayRenderer::Shutdown()
    p->rhi_ = nullptr;
 }
 
-void MapOverlayRenderer::Render(
+bool MapOverlayRenderer::Render(
    QRhiCommandBuffer*                                commandBuffer,
    QRhiTexture*                                      colorTexture,
    const std::vector<std::shared_ptr<GenericLayer>>& layers,
@@ -232,7 +276,12 @@ void MapOverlayRenderer::Render(
 {
    if (p == nullptr || !p->EnsureReady(commandBuffer, colorTexture))
    {
-      return;
+      return false;
+   }
+
+   if (!p->EnsureBackdrop(colorTexture))
+   {
+      return false;
    }
 
    render::RhiVulkanOverlayResources resources {p->colorTableOverlay_,
@@ -247,20 +296,35 @@ void MapOverlayRenderer::Render(
 
    resources.phase         = render::RhiOverlayPhase::Upload;
    resources.resourceBatch = p->rhi_->nextResourceUpdateBatch();
-   if (resources.resourceBatch != nullptr)
+   if (resources.resourceBatch == nullptr)
    {
-      for (const auto& layer : layers)
-      {
-         if (layer == nullptr)
-         {
-            continue;
-         }
-
-         layer->RenderVulkanOverlay(
-            commandBuffer, resources, mapContext, params);
-      }
-      commandBuffer->resourceUpdate(resources.resourceBatch);
+      // Inside a pass or out of batches — drawing would underrun empty cmds
+      // and leave a basemap-only frame (annotations "vanish" until refocus).
+      return false;
    }
+
+   // Shared coloredGeometry accumulates every drawer upload this frame, then
+   // Draw consumes recorded vertex ranges (avoids last-upload-wins clobber).
+   p->coloredGeometry_.BeginFrame();
+
+   // Snapshot destination before the overlay pass so color.frag can mix
+   // translucent geometry without relying on broken SrcAlpha blending.
+   resources.resourceBatch->copyTexture(p->backdropTexture_, colorTexture);
+
+   for (const auto& layer : layers)
+   {
+      if (layer == nullptr)
+      {
+         continue;
+      }
+
+      layer->RenderVulkanOverlay(commandBuffer, resources, mapContext, params);
+   }
+   p->coloredGeometry_.UploadFrame(resources.resourceBatch);
+   commandBuffer->resourceUpdate(resources.resourceBatch);
+
+   QRhiSampler* const backdropSampler = render::AcquireNearestSampler(p->rhi_);
+   p->coloredGeometry_.SetBackdrop(p->backdropTexture_, backdropSampler);
 
    resources.phase         = render::RhiOverlayPhase::Draw;
    resources.resourceBatch = nullptr;
@@ -295,6 +359,7 @@ void MapOverlayRenderer::Render(
    }
 
    commandBuffer->endPass();
+   return true;
 }
 
 bool MapOverlayRenderer::EnsureRenderTarget(QRhiCommandBuffer* commandBuffer,

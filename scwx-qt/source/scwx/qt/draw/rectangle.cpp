@@ -101,26 +101,36 @@ void Rectangle::RenderVulkan(
 
    const glm::mat4 projection = scwx::qt::render::OrthoMapProjection(params);
 
-   if (p->fillColor_.has_value())
-   {
-      const std::vector<float> fillVertices(
-         p->vertexBuffer_.begin() +
-            static_cast<std::ptrdiff_t>(24 * POINTS_PER_VERTEX),
-         p->vertexBuffer_.end());
-      resources.coloredGeometry.Render(commandBuffer,
-                                       projection,
-                                       fillVertices,
-                                       6,
-                                       resources.resourceBatch,
-                                       resources.phase);
-   }
+   // coloredGeometry is shared across overlay drawers with Upload-then-Draw.
+   // Multiple Render() uploads overwrite the same dynamic buffer, so merge
+   // fill + border into one upload/draw when both are present.
+   std::vector<float> vertices;
+   std::size_t        vertexCount = 0;
 
    if (p->borderWidth_ > 0.0f)
    {
+      vertices.insert(vertices.end(),
+                      p->vertexBuffer_.begin(),
+                      p->vertexBuffer_.begin() +
+                         static_cast<std::ptrdiff_t>(24 * POINTS_PER_VERTEX));
+      vertexCount += 24;
+   }
+
+   if (p->fillColor_.has_value())
+   {
+      vertices.insert(vertices.end(),
+                      p->vertexBuffer_.begin() +
+                         static_cast<std::ptrdiff_t>(24 * POINTS_PER_VERTEX),
+                      p->vertexBuffer_.end());
+      vertexCount += 6;
+   }
+
+   if (vertexCount > 0)
+   {
       resources.coloredGeometry.Render(commandBuffer,
                                        projection,
-                                       p->vertexBuffer_,
-                                       24,
+                                       vertices,
+                                       vertexCount,
                                        resources.resourceBatch,
                                        resources.phase);
    }

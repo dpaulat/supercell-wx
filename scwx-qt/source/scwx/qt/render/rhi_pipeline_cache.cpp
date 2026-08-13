@@ -24,7 +24,7 @@ static const std::string logPrefix_ = "scwx::qt::render::rhi_pipeline_cache";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 constexpr char    kMagic[]         = {'S', 'C', 'W', 'X', 'P', 'C', '1'};
-constexpr quint32 kCacheVersion    = 4;
+constexpr quint32 kCacheVersion    = 11;
 constexpr char    kQrhiCacheFile[] = "qrhi-vulkan-pipeline-cache.bin";
 
 bool PipelineCacheDisabled()
