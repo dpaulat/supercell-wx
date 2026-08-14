@@ -109,6 +109,18 @@ static const std::unordered_map<DistanceUnits, double> distanceUnitsScale_ {
    {DistanceUnits::User, 1.0f},
    {DistanceUnits::Unknown, 1.0f}};
 
+static const std::unordered_map<RadarBeamHeightReference, std::string>
+   radarBeamHeightReferenceAbbreviation_ {
+      {RadarBeamHeightReference::AboveRadarLevel, "ARL"},
+      {RadarBeamHeightReference::AboveMeanSeaLevel, "AMSL"},
+      {RadarBeamHeightReference::Unknown, ""}};
+
+static const std::unordered_map<RadarBeamHeightReference, std::string>
+   radarBeamHeightReferenceName_ {
+      {RadarBeamHeightReference::AboveRadarLevel, "Above Radar Level"},
+      {RadarBeamHeightReference::AboveMeanSeaLevel, "Above Mean Sea Level"},
+      {RadarBeamHeightReference::Unknown, "?"}};
+
 SCWX_GET_ENUM(AccumulationUnits,
               GetAccumulationUnitsFromName,
               accumulationUnitsName_)
@@ -116,6 +128,9 @@ SCWX_GET_ENUM(EchoTopsUnits, GetEchoTopsUnitsFromName, echoTopsUnitsName_)
 SCWX_GET_ENUM(OtherUnits, GetOtherUnitsFromName, otherUnitsName_)
 SCWX_GET_ENUM(SpeedUnits, GetSpeedUnitsFromName, speedUnitsName_)
 SCWX_GET_ENUM(DistanceUnits, GetDistanceUnitsFromName, distanceUnitsName_)
+SCWX_GET_ENUM(RadarBeamHeightReference,
+              GetRadarBeamHeightReferenceFromName,
+              radarBeamHeightReferenceName_)
 
 const std::string& GetAccumulationUnitsAbbreviation(AccumulationUnits units)
 {
@@ -180,6 +195,18 @@ const std::string& GetDistanceUnitsName(DistanceUnits units)
 double GetDistanceUnitsScale(DistanceUnits units)
 {
    return distanceUnitsScale_.at(units);
+}
+
+const std::string&
+GetRadarBeamHeightReferenceAbbreviation(RadarBeamHeightReference reference)
+{
+   return radarBeamHeightReferenceAbbreviation_.at(reference);
+}
+
+const std::string&
+GetRadarBeamHeightReferenceName(RadarBeamHeightReference reference)
+{
+   return radarBeamHeightReferenceName_.at(reference);
 }
 
 } // namespace types

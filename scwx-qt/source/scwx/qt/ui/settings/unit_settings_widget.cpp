@@ -92,6 +92,24 @@ public:
                               types::GetEchoTopsUnitsName);
       AddRow(echoTopsUnits_, "Echo Tops", echoTopsComboBox);
 
+      auto* radarBeamHeightComboBox = new QFocusedComboBox(self);
+      radarBeamHeightComboBox->setSizePolicy(QSizePolicy::Expanding,
+                                             QSizePolicy::Preferred);
+      radarBeamHeightComboBox->setFocusPolicy(Qt::StrongFocus);
+      radarBeamHeightComboBox->setToolTip(QObject::tr(
+         "Reference for radar beam height in the Shift+hover tooltip. "
+         "Above Radar Level (ARL) is the height above the radar antenna. "
+         "Above Mean Sea Level (AMSL) includes the radar site elevation."));
+      radarBeamHeightReference_.SetSettingsVariable(
+         unitSettings.radar_beam_height_reference());
+      SCWX_SETTINGS_COMBO_BOX(radarBeamHeightReference_,
+                              radarBeamHeightComboBox,
+                              types::RadarBeamHeightReferenceIterator(),
+                              types::GetRadarBeamHeightReferenceName);
+      AddRow(radarBeamHeightReference_,
+             "Radar Beam Height",
+             radarBeamHeightComboBox);
+
       auto* speedComboBox = new QFocusedComboBox(self);
       speedComboBox->setSizePolicy(QSizePolicy::Expanding,
                                    QSizePolicy::Preferred);
@@ -145,6 +163,7 @@ public:
 
    settings::SettingsInterface<std::string> accumulationUnits_ {};
    settings::SettingsInterface<std::string> echoTopsUnits_ {};
+   settings::SettingsInterface<std::string> radarBeamHeightReference_ {};
    settings::SettingsInterface<std::string> otherUnits_ {};
    settings::SettingsInterface<std::string> speedUnits_ {};
    settings::SettingsInterface<std::string> distanceUnits_ {};

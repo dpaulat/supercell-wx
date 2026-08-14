@@ -24,12 +24,16 @@ public:
          types::GetSpeedUnitsName(types::SpeedUnits::Knots);
       std::string defaultDistanceUnitsValue =
          types::GetDistanceUnitsName(types::DistanceUnits::Miles);
+      std::string defaultRadarBeamHeightReferenceValue =
+         types::GetRadarBeamHeightReferenceName(
+            types::RadarBeamHeightReference::AboveRadarLevel);
 
       boost::to_lower(defaultAccumulationUnitsValue);
       boost::to_lower(defaultEchoTopsUnitsValue);
       boost::to_lower(defaultOtherUnitsValue);
       boost::to_lower(defaultSpeedUnitsValue);
       boost::to_lower(defaultDistanceUnitsValue);
+      boost::to_lower(defaultRadarBeamHeightReferenceValue);
 
       // SetDefault, SetMinimum and SetMaximum are descriptive
       // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
@@ -38,6 +42,8 @@ public:
       otherUnits_.SetDefault(defaultOtherUnitsValue);
       speedUnits_.SetDefault(defaultSpeedUnitsValue);
       distanceUnits_.SetDefault(defaultDistanceUnitsValue);
+      radarBeamHeightReference_.SetDefault(
+         defaultRadarBeamHeightReferenceValue);
       // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
 
       accumulationUnits_.SetValidator(
@@ -60,6 +66,10 @@ public:
          SCWX_SETTINGS_ENUM_VALIDATOR(types::DistanceUnits,
                                       types::DistanceUnitsIterator(),
                                       types::GetDistanceUnitsName));
+      radarBeamHeightReference_.SetValidator(SCWX_SETTINGS_ENUM_VALIDATOR(
+         types::RadarBeamHeightReference,
+         types::RadarBeamHeightReferenceIterator(),
+         types::GetRadarBeamHeightReferenceName));
    }
 
    ~Impl()                       = default;
@@ -73,6 +83,8 @@ public:
    SettingsVariable<std::string> otherUnits_ {"other_units"};
    SettingsVariable<std::string> speedUnits_ {"speed_units"};
    SettingsVariable<std::string> distanceUnits_ {"distance_units"};
+   SettingsVariable<std::string> radarBeamHeightReference_ {
+      "radar_beam_height_reference"};
 };
 
 UnitSettings::UnitSettings() :
@@ -82,7 +94,8 @@ UnitSettings::UnitSettings() :
                       &p->echoTopsUnits_,
                       &p->otherUnits_,
                       &p->speedUnits_,
-                      &p->distanceUnits_});
+                      &p->distanceUnits_,
+                      &p->radarBeamHeightReference_});
    SetDefaults();
 }
 UnitSettings::~UnitSettings() = default;
@@ -115,6 +128,11 @@ SettingsVariable<std::string>& UnitSettings::distance_units() const
    return p->distanceUnits_;
 }
 
+SettingsVariable<std::string>& UnitSettings::radar_beam_height_reference() const
+{
+   return p->radarBeamHeightReference_;
+}
+
 UnitSettings& UnitSettings::Instance()
 {
    static UnitSettings generalSettings_;
@@ -127,7 +145,9 @@ bool operator==(const UnitSettings& lhs, const UnitSettings& rhs)
            lhs.p->echoTopsUnits_ == rhs.p->echoTopsUnits_ &&
            lhs.p->otherUnits_ == rhs.p->otherUnits_ &&
            lhs.p->speedUnits_ == rhs.p->speedUnits_ &&
-           lhs.p->distanceUnits_ == rhs.p->distanceUnits_);
+           lhs.p->distanceUnits_ == rhs.p->distanceUnits_ &&
+           lhs.p->radarBeamHeightReference_ ==
+              rhs.p->radarBeamHeightReference_);
 }
 
 } // namespace scwx::qt::settings

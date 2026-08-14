@@ -453,11 +453,23 @@ bool RadarProductLayer::RunMousePicking(
       std::optional<float> elevation = radarProductView->elevation();
       if (elevation.has_value())
       {
-         const auto altitudeMeters =
-            util::GeographicLib::GetRadarBeamAltititude(
-               distanceMeters,
-               units::angle::degrees<double>(*elevation),
-               mapContext->radar_site()->altitude());
+         const units::length::meters<double> radarAltitude =
+            mapContext->radar_site()->altitude();
+         auto altitudeMeters = util::GeographicLib::GetRadarBeamAltititude(
+            distanceMeters,
+            units::angle::degrees<double>(*elevation),
+            radarAltitude);
+
+         const types::RadarBeamHeightReference heightReference =
+            types::GetRadarBeamHeightReferenceFromName(
+               settings::UnitSettings::Instance()
+                  .radar_beam_height_reference()
+                  .GetValue());
+         if (heightReference ==
+             types::RadarBeamHeightReference::AboveRadarLevel)
+         {
+            altitudeMeters -= radarAltitude;
+         }
 
          const std::string heightUnitName =
             settings::UnitSettings::Instance().echo_tops_units().GetValue();
@@ -466,13 +478,19 @@ bool RadarProductLayer::RunMousePicking(
          const double heightScale = types::GetEchoTopsUnitsScale(heightUnits);
          const std::string heightAbbrev =
             types::GetEchoTopsUnitsAbbreviation(heightUnits);
+         const std::string heightReferenceAbbrev =
+            types::GetRadarBeamHeightReferenceAbbreviation(heightReference);
 
          const double altitude = altitudeMeters.value() *
                                  scwx::common::kKilometersPerMeter *
                                  heightScale;
 
-         distanceHeightStr = fmt::format(
-            "{}\n{:.2f} {}", distanceHeightStr, altitude, heightAbbrev);
+         distanceHeightStr =
+            fmt::format("{}\n{:.2f} {} {}",
+                        distanceHeightStr,
+                        altitude,
+                        heightAbbrev,
+                        heightReferenceAbbrev);
       }
 
       std::optional<std::uint16_t> binLevel =

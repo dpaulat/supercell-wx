@@ -122,13 +122,15 @@ bool AreaInRangeOfPoint(const std::vector<common::Coordinate>& area,
                         const units::length::meters<double>    distance);
 
 /**
- * Get the altitude of the radar beam at a given distance, elevation and height
+ * Get the altitude of the radar beam at a given range, elevation and radar
+ * site height. The returned value is above mean sea level (AMSL). Subtract
+ * the radar site height from the result for above radar level (ARL).
  *
- * @param [in] range The range to the radar site
- * @param [in] elevation The elevation of the radar site
- * @param [in] height The height of the radar site
+ * @param [in] range The range from the radar site
+ * @param [in] elevation The elevation angle of the radar beam
+ * @param [in] height The height of the radar site above mean sea level
  *
- * @return The altitude of the radar at that range
+ * @return The beam altitude above mean sea level at that range
  */
 units::length::meters<double>
 GetRadarBeamAltititude(units::length::meters<double> range,

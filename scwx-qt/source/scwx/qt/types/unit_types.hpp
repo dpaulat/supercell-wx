@@ -67,6 +67,17 @@ typedef scwx::util::
    Iterator<DistanceUnits, DistanceUnits::Kilometers, DistanceUnits::User>
       DistanceUnitsIterator;
 
+enum class RadarBeamHeightReference
+{
+   AboveRadarLevel,
+   AboveMeanSeaLevel,
+   Unknown
+};
+typedef scwx::util::Iterator<RadarBeamHeightReference,
+                             RadarBeamHeightReference::AboveRadarLevel,
+                             RadarBeamHeightReference::AboveMeanSeaLevel>
+   RadarBeamHeightReferenceIterator;
+
 const std::string& GetAccumulationUnitsAbbreviation(AccumulationUnits units);
 const std::string& GetAccumulationUnitsName(AccumulationUnits units);
 AccumulationUnits  GetAccumulationUnitsFromName(const std::string& name);
@@ -89,6 +100,13 @@ const std::string& GetDistanceUnitsAbbreviation(DistanceUnits units);
 const std::string& GetDistanceUnitsName(DistanceUnits units);
 DistanceUnits      GetDistanceUnitsFromName(const std::string& name);
 double             GetDistanceUnitsScale(DistanceUnits units);
+
+const std::string&
+GetRadarBeamHeightReferenceAbbreviation(RadarBeamHeightReference reference);
+const std::string&
+GetRadarBeamHeightReferenceName(RadarBeamHeightReference reference);
+RadarBeamHeightReference
+GetRadarBeamHeightReferenceFromName(const std::string& name);
 
 } // namespace types
 } // namespace qt
