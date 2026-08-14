@@ -32,6 +32,8 @@ public:
 
    GLint GetUniformLocation(const std::string& name);
 
+   static void SetCurrentLayerOpacity(float opacity);
+
    bool Load(const std::string& vertexPath, const std::string& fragmentPath);
    bool Load(std::initializer_list<std::pair<GLenum, std::string>> shaderPaths);
 

@@ -1,5 +1,7 @@
 #include <scwx/qt/map/generic_layer.hpp>
 
+#include <algorithm>
+
 namespace scwx::qt::map
 {
 
@@ -19,6 +21,7 @@ public:
    Impl& operator=(const Impl&&) = delete;
 
    std::shared_ptr<gl::GlContext> glContext_;
+   float                          opacity_ {1.0f};
 };
 
 GenericLayer::GenericLayer(std::shared_ptr<gl::GlContext> glContext) :
@@ -43,6 +46,16 @@ bool GenericLayer::RunMousePicking(
 std::shared_ptr<gl::GlContext> GenericLayer::gl_context() const
 {
    return p->glContext_;
+}
+
+void GenericLayer::set_opacity(float opacity)
+{
+   p->opacity_ = std::clamp(opacity, 0.0f, 1.0f);
+}
+
+float GenericLayer::opacity() const
+{
+   return p->opacity_;
 }
 
 } // namespace scwx::qt::map

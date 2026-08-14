@@ -89,6 +89,25 @@ namespace
 
 constexpr int kFallbackEraseCursorRadiusPx {8};
 
+std::string CustomLayerId(types::LayerType        type,
+                          types::LayerDescription description)
+{
+   if (type == types::LayerType::Alert &&
+       std::holds_alternative<awips::Phenomenon>(description))
+   {
+      return fmt::format(
+         "alert.{}",
+         awips::GetPhenomenonCode(std::get<awips::Phenomenon>(description)));
+   }
+
+   return types::GetLayerName(type, description);
+}
+
+float LayerOpacity(const types::LayerInfo& info)
+{
+   return types::LayerSupportsOpacity(info.type_) ? info.opacity_ : 1.0f;
+}
+
 /** Ring + eraser in pixmap so KDE/Wayland compositor tracks cursor with zero
  * lag. Pixmap radius is capped (~124px) for display only; geographic erase pick
  * and `EraseCursorRadiusPx` use the full brush width in ground meters. */
@@ -285,6 +304,7 @@ public:
                           const std::string& before);
    void ConnectMapSignals();
    void ConnectSignals();
+   void UpdateLayerOpacities();
    void HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat);
    void HandleHotkeyReleased(types::Hotkey hotkey);
    void HandleHotkeyUpdates();
@@ -346,6 +366,8 @@ public:
    std::list<std::string>          layerList_;
 
    std::vector<std::shared_ptr<GenericLayer>> genericLayers_ {};
+   std::unordered_map<std::string, std::shared_ptr<GenericLayer>>
+      genericLayerMap_ {};
 
    const std::vector<MapStyle> emptyStyles_ {};
    const std::vector<MapStyle> noneStyles_ {
@@ -553,6 +575,8 @@ void MapWidgetImpl::ConnectSignals()
            {
               static const int enabledColumn =
                  static_cast<int>(model::LayerModel::Column::Enabled);
+              static const int opacityColumn =
+                 static_cast<int>(model::LayerModel::Column::Opacity);
               const int displayColumn =
                  static_cast<int>(model::LayerModel::Column::DisplayMap1) +
                  static_cast<int>(id_);
@@ -565,6 +589,11 @@ void MapWidgetImpl::ConnectSignals()
                    enabledColumn <= bottomRight.column()))
               {
                  AddLayers();
+              }
+              else if (topLeft.column() <= opacityColumn &&
+                       opacityColumn <= bottomRight.column())
+              {
+                 UpdateLayerOpacities();
               }
            });
    connect(layerModel_.get(),
@@ -1605,6 +1634,7 @@ void MapWidgetImpl::AddLayers()
    }
    layerList_.clear();
    genericLayers_.clear();
+   genericLayerMap_.clear();
    placefileLayers_.clear();
 
    // Update custom layer list from model
@@ -1667,6 +1697,8 @@ void MapWidgetImpl::AddLayers()
    {
       context_->set_color_table_margins({});
    }
+
+   UpdateLayerOpacities();
 }
 
 void MapWidgetImpl::AddLayer(types::LayerType        type,
@@ -1786,7 +1818,8 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
                map_,
                radarProductView->range(),
                {radarSite->latitude(), radarSite->longitude()},
-               QString::fromStdString(before));
+               QString::fromStdString(before),
+               LayerOpacity(layerModel_->GetLayerInfo(type, description)));
             layerList_.push_back(types::GetLayerName(type, description));
          }
          break;
@@ -1832,6 +1865,7 @@ void MapWidgetImpl::AddLayer(const std::string&                   id,
 
       layerList_.push_back(id);
       genericLayers_.push_back(layer);
+      genericLayerMap_[id] = layer;
 
       connect(layer.get(),
               &GenericLayer::NeedsRendering,
@@ -1842,6 +1876,33 @@ void MapWidgetImpl::AddLayer(const std::string&                   id,
    {
       // When dragging and dropping, a temporary duplicate layer exists
    }
+}
+
+void MapWidgetImpl::UpdateLayerOpacities()
+{
+   const types::LayerVector layers = layerModel_->GetLayers();
+   for (const auto& info : layers)
+   {
+      const float opacity = LayerOpacity(info);
+
+      if (info.type_ == types::LayerType::Data &&
+          std::holds_alternative<types::DataLayer>(info.description_) &&
+          std::get<types::DataLayer>(info.description_) ==
+             types::DataLayer::RadarRange)
+      {
+         RadarRangeLayer::SetOpacity(map_, opacity);
+         continue;
+      }
+
+      const std::string id = CustomLayerId(info.type_, info.description_);
+      auto              it = genericLayerMap_.find(id);
+      if (it != genericLayerMap_.end() && it->second != nullptr)
+      {
+         it->second->set_opacity(opacity);
+      }
+   }
+
+   widget_->update();
 }
 
 bool MapWidget::event(QEvent* e)
@@ -2448,9 +2509,9 @@ MapWidgetImpl::ResolveMapStyleName(const std::string& preferredStyleName) const
    if ((customStyles_[0].IsValid() && preferredStyleName == "Custom") ||
        preferredStyleName == "None" ||
        std::ranges::find_if(mapProviderInfo.mapStyles_,
-                            [&](const auto& mapStyle)
-                            { return mapStyle.name_ == preferredStyleName; }) !=
-          mapProviderInfo.mapStyles_.cend())
+                            [&](const auto& mapStyle) {
+                               return mapStyle.name_ == preferredStyleName;
+                            }) != mapProviderInfo.mapStyles_.cend())
    {
       return preferredStyleName;
    }
@@ -2693,8 +2754,7 @@ void MapWidgetImpl::RadarProductManagerConnect()
       connect(radarProductManager_.get(),
               &manager::RadarProductManager::IncomingLevel2ElevationChanged,
               this,
-              [this](std::optional<float> incomingElevation)
-              {
+              [this](std::optional<float> incomingElevation) {
                  Q_EMIT widget_->IncomingLevel2ElevationChanged(
                     incomingElevation);
               });

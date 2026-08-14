@@ -1,4 +1,5 @@
 #include <scwx/qt/map/layer_wrapper.hpp>
+#include <scwx/qt/gl/shader_program.hpp>
 
 namespace scwx::qt::map
 {
@@ -47,7 +48,9 @@ void LayerWrapper::render(const QMapLibre::CustomLayerRenderParameters& params)
    auto& layer = p->layer_;
    if (layer != nullptr)
    {
+      gl::ShaderProgram::SetCurrentLayerOpacity(layer->opacity());
       layer->Render(p->mapContext_, params);
+      gl::ShaderProgram::SetCurrentLayerOpacity(1.0f);
    }
 }
 

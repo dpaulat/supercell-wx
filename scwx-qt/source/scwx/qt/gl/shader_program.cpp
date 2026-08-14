@@ -1,6 +1,9 @@
 #include <scwx/qt/gl/shader_program.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <algorithm>
+#include <unordered_map>
+
 #include <QFile>
 #include <QTextStream>
 
@@ -16,6 +19,8 @@ static const std::unordered_map<GLenum, std::string> kShaderNames_ {
    {GL_VERTEX_SHADER, "vertex"},
    {GL_GEOMETRY_SHADER, "geometry"},
    {GL_FRAGMENT_SHADER, "fragment"}};
+
+float currentLayerOpacity_ {1.0f};
 
 class ShaderProgram::Impl
 {
@@ -36,6 +41,7 @@ public:
    static std::string ShaderName(GLenum type);
 
    GLuint id_;
+   GLint  uOpacityLocation_ {-1};
 };
 
 ShaderProgram::ShaderProgram() : p(std::make_unique<Impl>()) {}
@@ -57,6 +63,11 @@ GLint ShaderProgram::GetUniformLocation(const std::string& name)
       logger_->warn("Could not find {}", name);
    }
    return location;
+}
+
+void ShaderProgram::SetCurrentLayerOpacity(float opacity)
+{
+   currentLayerOpacity_ = std::clamp(opacity, 0.0f, 1.0f);
 }
 
 std::string ShaderProgram::Impl::ShaderName(GLenum type)
@@ -156,6 +167,8 @@ bool ShaderProgram::Load(
       {
          logger_->warn("Shader program linked with warnings: {}", infoLog);
       }
+
+      p->uOpacityLocation_ = glGetUniformLocation(p->id_, "uOpacity");
    }
 
    // Delete shaders
@@ -170,6 +183,10 @@ bool ShaderProgram::Load(
 void ShaderProgram::Use() const
 {
    glUseProgram(p->id_);
+   if (p->uOpacityLocation_ != -1)
+   {
+      glUniform1f(p->uOpacityLocation_, currentLayerOpacity_);
+   }
 }
 
 } // namespace scwx::qt::gl
