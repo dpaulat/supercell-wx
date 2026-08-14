@@ -1,3 +1,4 @@
+#include <scwx/qt/main/application.hpp>
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/qt/types/layer_types.hpp>
 
@@ -9,14 +10,22 @@ namespace scwx::qt::model
 class LayerModelOpacityTest : public ::testing::Test
 {
 protected:
-   void SetUp() override
+   static void SetUpTestSuite()
    {
+      // PlacefileManager waits on application initialization; without this
+      // the LayerModel destructor deadlocks joining that thread.
+      main::Application::FinishInitialization();
       model_ = LayerModel::Instance();
-      model_->ResetLayers();
    }
 
-   std::shared_ptr<LayerModel> model_ {};
+   static void TearDownTestSuite() { model_.reset(); }
+
+   void SetUp() override { model_->ResetLayers(); }
+
+   static std::shared_ptr<LayerModel> model_;
 };
+
+std::shared_ptr<LayerModel> LayerModelOpacityTest::model_ {};
 
 int FindRow(const std::shared_ptr<LayerModel>& model, types::LayerType type)
 {

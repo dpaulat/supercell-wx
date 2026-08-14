@@ -46,7 +46,7 @@ TEST(LayerTypes, OpacityJsonRoundTrip)
    EXPECT_EQ(restored.type_, LayerType::Radar);
    EXPECT_FLOAT_EQ(restored.opacity_, 0.6f);
    ASSERT_TRUE(json.is_object());
-   EXPECT_DOUBLE_EQ(json.as_object().at("opacity").to_number<double>(), 0.6);
+   EXPECT_FLOAT_EQ(json.as_object().at("opacity").to_number<float>(), 0.6f);
 }
 
 TEST(LayerTypes, OpacityJsonDefaultsWhenMissing)
