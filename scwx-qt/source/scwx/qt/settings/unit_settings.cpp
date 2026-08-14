@@ -66,10 +66,10 @@ public:
          SCWX_SETTINGS_ENUM_VALIDATOR(types::DistanceUnits,
                                       types::DistanceUnitsIterator(),
                                       types::GetDistanceUnitsName));
-      radarBeamHeightReference_.SetValidator(SCWX_SETTINGS_ENUM_VALIDATOR(
-         types::RadarBeamHeightReference,
-         types::RadarBeamHeightReferenceIterator(),
-         types::GetRadarBeamHeightReferenceName));
+      radarBeamHeightReference_.SetValidator(
+         SCWX_SETTINGS_ENUM_VALIDATOR(types::RadarBeamHeightReference,
+                                      types::RadarBeamHeightReferenceIterator(),
+                                      types::GetRadarBeamHeightReferenceName));
    }
 
    ~Impl()                       = default;

@@ -485,12 +485,11 @@ bool RadarProductLayer::RunMousePicking(
                                  scwx::common::kKilometersPerMeter *
                                  heightScale;
 
-         distanceHeightStr =
-            fmt::format("{}\n{:.2f} {} {}",
-                        distanceHeightStr,
-                        altitude,
-                        heightAbbrev,
-                        heightReferenceAbbrev);
+         distanceHeightStr = fmt::format("{}\n{:.2f} {} {}",
+                                         distanceHeightStr,
+                                         altitude,
+                                         heightAbbrev,
+                                         heightReferenceAbbrev);
       }
 
       std::optional<std::uint16_t> binLevel =

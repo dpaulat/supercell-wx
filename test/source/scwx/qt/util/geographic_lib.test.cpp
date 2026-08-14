@@ -67,11 +67,10 @@ TEST(geographic_lib, area_in_range_far)
 TEST(geographic_lib, radar_beam_altitude_at_radar)
 {
    const units::length::meters<double> radarHeight {914.4}; // 3000 ft
-   const auto                          altitude =
-      scwx::qt::util::GeographicLib::GetRadarBeamAltititude(
-         units::length::meters<double> {0.0},
-         units::angle::degrees<double> {0.5},
-         radarHeight);
+   const auto altitude = scwx::qt::util::GeographicLib::GetRadarBeamAltititude(
+      units::length::meters<double> {0.0},
+      units::angle::degrees<double> {0.5},
+      radarHeight);
 
    EXPECT_NEAR(altitude.value(), radarHeight.value(), 0.01);
 }
@@ -88,9 +87,8 @@ TEST(geographic_lib, radar_beam_altitude_arl_near_radar)
    // Close to the radar, ARL should be much smaller than AMSL
    EXPECT_LT(altitudeArl.value(), 50.0);
    EXPECT_GT(altitudeArl.value(), 0.0);
-   EXPECT_NEAR(altitudeAmsl.value(),
-               radarHeight.value() + altitudeArl.value(),
-               0.01);
+   EXPECT_NEAR(
+      altitudeAmsl.value(), radarHeight.value() + altitudeArl.value(), 0.01);
 }
 
 TEST(geographic_lib, radar_beam_altitude_amsl_includes_site_height)
