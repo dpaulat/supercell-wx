@@ -29,11 +29,14 @@ jobs:
             signed_windows_artifact_name: supercell-wx-signed-windows-vs2026-x64
             unsigned_installer_artifact_name: supercell-wx-installer-unsigned-windows-vs2026-x64
             signed_installer_artifact_name: supercell-wx-installer-signed-windows-vs2026-x64
+            unsigned_bootstrap_artifact_name: supercell-wx-bootstrap-unsigned-windows-vs2026-x64
+            signed_bootstrap_artifact_name: supercell-wx-bootstrap-signed-windows-vs2026-x64
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     env:
       SIGNED_ARTIFACTS_DIR: ${{ github.workspace }}\signed-artifacts
       SIGNED_INSTALLER_DIR: ${{ github.workspace }}\signed-installer
+      SIGNED_BOOTSTRAP_DIR: ${{ github.workspace }}\signed-bootstrap
       SIGNPATH_ORGANIZATION_ID: 7b83cc63-b02a-4b77-a91f-808f4b4db14c
       SIGNPATH_PROJECT: supercell-wx
       SIGNPATH_SIGNING_POLICY: ${{ inputs.signing-policy || 'test-signing' }}
@@ -149,6 +152,7 @@ jobs:
         artifact-configuration-slug: binary-archive
         github-artifact-id: ${{ steps.upload-unsigned-windows-artifacts.outputs.artifact-id }}
         wait-for-completion: true
+        wait-for-completion-timeout-in-seconds: 3600
         output-artifact-directory: ${{ env.SIGNED_ARTIFACTS_DIR }}
 
     - name: Upload Signed Artifacts (Windows)
@@ -169,6 +173,12 @@ jobs:
           -DCONAN_HOST_PROFILE="${{ matrix.conan_profile }}" `
           -DCONAN_BUILD_PROFILE="${{ matrix.conan_profile }}" `
           -DSCWX_WINDOWS_PACKAGE_INSTALL_ROOT="${{ env.SIGNED_ARTIFACTS_DIR }}"
+
+    - name: Install NSIS (Windows)
+      shell: pwsh
+      run: |
+        choco install nsis -y --no-progress
+        if ($LASTEXITCODE -ne 0) { throw "choco install nsis failed with exit code $LASTEXITCODE" }
 
     - name: Build Installer (Windows)
       shell: pwsh
@@ -201,3 +211,43 @@ jobs:
       with:
         name: ${{ matrix.signed_installer_artifact_name }}
         path: ${{ env.SIGNED_INSTALLER_DIR }}/**/*.msi
+
+    - name: Build Bootstrap (Windows)
+      shell: pwsh
+      run: |
+        $signedMsi = Get-ChildItem -Path "${{ env.SIGNED_INSTALLER_DIR }}" `
+          -Filter "supercell-wx-*.msi" -Recurse |
+          Select-Object -First 1 -ExpandProperty FullName
+        if (-not $signedMsi) {
+          throw "Signed MSI not found under ${{ env.SIGNED_INSTALLER_DIR }}"
+        }
+        & "${{ github.workspace }}/source/tools/build-windows-nsis-bootstrapper.ps1" `
+          -BuildDir "${{ github.workspace }}/build" `
+          -SourceDir "${{ github.workspace }}/source" `
+          -MsiPath $signedMsi
+
+    - name: Upload Unsigned Bootstrap (Windows)
+      id: upload-unsigned-bootstrap
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.unsigned_bootstrap_artifact_name }}
+        path: ${{ github.workspace }}/build/supercell-wx-*.exe
+
+    - name: Sign Bootstrap (Windows)
+      id: sign-windows-bootstrap
+      uses: signpath/github-action-submit-signing-request@v2
+      with:
+        api-token:           ${{ secrets.SIGNPATH_API_TOKEN }}
+        organization-id:     ${{ env.SIGNPATH_ORGANIZATION_ID }}
+        project-slug:        ${{ env.SIGNPATH_PROJECT }}
+        signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY }}
+        artifact-configuration-slug: windows-bootstrap-archive
+        github-artifact-id: ${{ steps.upload-unsigned-bootstrap.outputs.artifact-id }}
+        wait-for-completion: true
+        output-artifact-directory: ${{ env.SIGNED_BOOTSTRAP_DIR }}
+
+    - name: Upload Signed Bootstrap (Windows)
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.signed_bootstrap_artifact_name }}
+        path: ${{ env.SIGNED_BOOTSTRAP_DIR }}/**/*.exe
