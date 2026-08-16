@@ -113,9 +113,24 @@ FunctionEnd
 
 Function Bootstrapper_StripTrailingSlash
   ; Ensures INSTALL_ROOT="..." is not broken by a trailing backslash escape.
+  ; Drive roots must stay absolute: C:\ or C: → C:\. (NSIS often stores roots as C:).
   StrCpy $R8 $INSTDIR 1 -1
   ${If} $R8 == "\"
-    StrCpy $INSTDIR $INSTDIR -1
+    StrLen $R9 $INSTDIR
+    StrCpy $R8 $INSTDIR 1 1
+    ${If} $R9 == 3
+    ${AndIf} $R8 == ":"
+      StrCpy $INSTDIR "$INSTDIR."
+    ${Else}
+      StrCpy $INSTDIR $INSTDIR -1
+    ${EndIf}
+  ${Else}
+    StrLen $R9 $INSTDIR
+    StrCpy $R8 $INSTDIR 1 1
+    ${If} $R9 == 2
+    ${AndIf} $R8 == ":"
+      StrCpy $INSTDIR "$INSTDIR\."
+    ${EndIf}
   ${EndIf}
 FunctionEnd
 
