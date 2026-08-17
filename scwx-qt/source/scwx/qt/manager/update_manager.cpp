@@ -229,7 +229,9 @@ void UpdateManager::RemoveTemporaryReleases()
 
    for (auto& file : it)
    {
-      if (file.is_regular_file() && file.path().string().ends_with(".msi") &&
+      if (file.is_regular_file() &&
+          (file.path().string().ends_with(".msi") ||
+           file.path().string().ends_with(".exe")) &&
           file.path().stem().string().starts_with("supercell-wx-"))
       {
          logger_->info("Removing temporary installer: {}",

@@ -9,7 +9,6 @@
 
 #include <QDesktopServices>
 #include <QFontDatabase>
-#include <QProcess>
 
 namespace scwx::qt::ui
 {
@@ -89,9 +88,9 @@ void UpdateDialog::Impl::HandleAsset(const types::gh::ReleaseAsset& asset)
 #if defined(_WIN32)
 
 #   if defined(_M_AMD64)
-   static const std::string assetSuffix = "-x64.msi";
+   static const std::string assetSuffix = "-x64.exe";
 #   else
-   static const std::string assetSuffix = "-arm64.msi";
+   static const std::string assetSuffix = "-arm64.exe";
 #   endif
 
    if (asset.name_.ends_with(assetSuffix))
@@ -154,28 +153,26 @@ void UpdateDialog::on_installUpdateButton_clicked()
               });
 
       // Connect dialog signals
-      connect(
-         downloadDialog,
-         &QDialog::accepted,
-         this,
-         [=, this]()
-         {
-            std::filesystem::path installerPackage =
-               request->destination_path();
-            installerPackage.make_preferred();
+      connect(downloadDialog,
+              &QDialog::accepted,
+              this,
+              [=, this]()
+              {
+                 std::filesystem::path installerPackage =
+                    request->destination_path();
+                 installerPackage.make_preferred();
 
-            logger_->info("Launching application installer: {}",
-                          installerPackage.string());
+                 logger_->info("Launching application installer: {}",
+                               installerPackage.string());
 
-            if (!QProcess::startDetached(
-                   "msiexec.exe",
-                   {"/i", QString::fromStdString(installerPackage.string())}))
-            {
-               logger_->error("Failed to launch installer");
-            }
+                 if (!QDesktopServices::openUrl(QUrl::fromLocalFile(
+                        QString::fromStdString(installerPackage.string()))))
+                 {
+                    logger_->error("Failed to launch installer");
+                 }
 
-            ui->installUpdateButton->setEnabled(true);
-         });
+                 ui->installUpdateButton->setEnabled(true);
+              });
       connect(downloadDialog,
               &QDialog::rejected,
               this,
