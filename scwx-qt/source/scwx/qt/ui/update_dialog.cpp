@@ -156,7 +156,7 @@ void UpdateDialog::on_installUpdateButton_clicked()
       connect(downloadDialog,
               &QDialog::accepted,
               this,
-              [=, this]()
+              [request, this]()
               {
                  std::filesystem::path installerPackage =
                     request->destination_path();
