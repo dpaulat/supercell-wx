@@ -647,6 +647,25 @@ else()
     set(SCWX_BUILD_NUM 0)
 endif()
 
+# Extra arguments for generate_versions.py
+# These can be set by the user to override the default values
+set(SCWX_COMMIT_STRING "" CACHE STRING
+    "Optional git commit hash override for version info (first 10 characters are used)")
+set(SCWX_RELEASE_DATE "" CACHE STRING
+    "Optional release date override for version info (YYYY-MM-DD)")
+
+set(SCWX_GENERATE_VERSIONS_EXTRA_ARGS)
+if (SCWX_COMMIT_STRING)
+    string(SUBSTRING "${SCWX_COMMIT_STRING}" 0 10 _scwxCommitString)
+    list(APPEND SCWX_GENERATE_VERSIONS_EXTRA_ARGS
+         --commit-string "${_scwxCommitString}")
+    unset(_scwxCommitString)
+endif()
+if (SCWX_RELEASE_DATE)
+    list(APPEND SCWX_GENERATE_VERSIONS_EXTRA_ARGS
+         --release-date "${SCWX_RELEASE_DATE}")
+endif()
+
 if (WIN32)
     add_custom_command(OUTPUT  ${VERSIONS_HEADER}
                                ${RESOURCE_OUTPUT}
@@ -663,7 +682,8 @@ if (WIN32)
                                --input-resource ${RESOURCE_INPUT}
                                --output-resource ${RESOURCE_OUTPUT}
                                --input-metainfo ${METAINFO_INPUT}
-                               --output-metainfo ${METAINFO_OUTPUT})
+                               --output-metainfo ${METAINFO_OUTPUT}
+                               ${SCWX_GENERATE_VERSIONS_EXTRA_ARGS})
 else()
     add_custom_command(OUTPUT  ${VERSIONS_HEADER}
                                ${METAINFO_OUTPUT}
@@ -677,7 +697,8 @@ else()
                                -o ${VERSIONS_HEADER}
                                -b ${SCWX_BUILD_NUM}
                                --input-metainfo ${METAINFO_INPUT}
-                               --output-metainfo ${METAINFO_OUTPUT})
+                               --output-metainfo ${METAINFO_OUTPUT}
+                               ${SCWX_GENERATE_VERSIONS_EXTRA_ARGS})
 endif()
 
 add_custom_target(scwx-qt_generate_versions ALL
