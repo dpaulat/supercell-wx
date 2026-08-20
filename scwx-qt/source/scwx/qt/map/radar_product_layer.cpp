@@ -176,19 +176,20 @@ void RadarProductLayer::Initialize(
               }
            });
 
+   auto updateRadarBeamHeightReference = [this](auto&&...)
+   {
+      p->radarBeamHeightReference_ = types::GetRadarBeamHeightReferenceFromName(
+         settings::UnitSettings::Instance()
+            .radar_beam_height_reference()
+            .GetValue());
+   };
+
    p->radarBeamHeightReferenceConnection_ =
       settings::UnitSettings::Instance()
          .radar_beam_height_reference()
          .changed_signal()
-         .connect(
-            [this](auto&&...)
-            {
-               p->radarBeamHeightReference_ =
-                  types::GetRadarBeamHeightReferenceFromName(
-                     settings::UnitSettings::Instance()
-                        .radar_beam_height_reference()
-                        .GetValue());
-            });
+         .connect(updateRadarBeamHeightReference);
+   updateRadarBeamHeightReference();
 }
 
 void RadarProductLayer::UpdateSweep(
