@@ -796,21 +796,59 @@ install(TARGETS supercell-wx
 
 # NO_TRANSLATIONS is needed for Qt 6.5.0 (will be fixed in 6.5.1)
 # https://bugreports.qt.io/browse/QTBUG-112204
-qt_generate_deploy_app_script(TARGET MLNQtCore # QMapLibre::Core
-                              OUTPUT_SCRIPT deploy_script_qmaplibre_core
-                              NO_TRANSLATIONS
-                              NO_UNSUPPORTED_PLATFORM_ERROR)
 
-qt_generate_deploy_app_script(TARGET supercell-wx
-                              OUTPUT_SCRIPT deploy_script_scwx
-                              NO_TRANSLATIONS
-                              NO_UNSUPPORTED_PLATFORM_ERROR)
+# Windows ARM64 uses a cross-compiled Qt package. The deployment tool itself
+# runs from the host Qt installation, but it must query the target Qt tree so
+# that ARM64 Qt libraries and plugins are deployed instead of x64 ones.
+set(SCWX_DEPLOY_TOOL_OPTIONS)
+
+if (WIN32 AND DEFINED QT_HOST_PATH AND DEFINED Qt6_DIR)
+    get_filename_component(
+        SCWX_TARGET_QT_PREFIX
+        "${Qt6_DIR}/../../.."
+        ABSOLUTE
+    )
+
+    set(
+        SCWX_TARGET_QTPATHS
+        "${SCWX_TARGET_QT_PREFIX}/bin/qtpaths.bat"
+    )
+
+    if (NOT EXISTS "${SCWX_TARGET_QTPATHS}")
+        message(FATAL_ERROR
+                "Target Qt qtpaths.bat not found: ${SCWX_TARGET_QTPATHS}")
+    endif()
+
+    message(STATUS
+            "Qt cross-deploy target qtpaths: ${SCWX_TARGET_QTPATHS}")
+
+    list(APPEND SCWX_DEPLOY_TOOL_OPTIONS
+         --qtpaths
+         "${SCWX_TARGET_QTPATHS}")
+endif()
+
+qt_generate_deploy_app_script(
+    TARGET MLNQtCore # QMapLibre::Core
+    OUTPUT_SCRIPT deploy_script_qmaplibre_core
+    NO_TRANSLATIONS
+    NO_UNSUPPORTED_PLATFORM_ERROR
+    DEPLOY_TOOL_OPTIONS ${SCWX_DEPLOY_TOOL_OPTIONS}
+)
+
+qt_generate_deploy_app_script(
+    TARGET supercell-wx
+    OUTPUT_SCRIPT deploy_script_scwx
+    NO_TRANSLATIONS
+    NO_UNSUPPORTED_PLATFORM_ERROR
+    DEPLOY_TOOL_OPTIONS ${SCWX_DEPLOY_TOOL_OPTIONS}
+)
 
 install(SCRIPT ${deploy_script_qmaplibre_core}
         COMPONENT supercell-wx)
 
 install(SCRIPT ${deploy_script_scwx}
         COMPONENT supercell-wx)
+
 
 if (APPLE)
     # Install additional script to fix up the bundle
