@@ -2,6 +2,7 @@
 #include <scwx/util/logger.hpp>
 
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 
 #include <zip.h>
