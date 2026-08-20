@@ -3,7 +3,7 @@
 #define SCWX_SETTINGS_ENUM_VALIDATOR(Type, Iterator, ToName)                   \
    [](const std::string& value)                                                \
    {                                                                           \
-      for (Type enumValue : Iterator)                                          \
+      for (const Type enumValue : Iterator)                                    \
       {                                                                        \
          /* If the value is equal to a lower case name */                      \
          std::string enumName = ToName(enumValue);                             \

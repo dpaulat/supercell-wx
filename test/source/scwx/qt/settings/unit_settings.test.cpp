@@ -7,15 +7,15 @@
 namespace scwx::qt::settings
 {
 
-TEST(UnitSettingsTest, RadarBeamHeightReferenceDefaultsToArl)
+TEST(UnitSettingsTest, RadarBeamHeightReferenceDefaultsToMsl)
 {
    const UnitSettings settings;
 
    EXPECT_EQ(settings.radar_beam_height_reference().GetValue(),
-             "above radar level");
+             "mean sea level");
    EXPECT_EQ(types::GetRadarBeamHeightReferenceFromName(
                 settings.radar_beam_height_reference().GetValue()),
-             types::RadarBeamHeightReference::AboveRadarLevel);
+             types::RadarBeamHeightReference::MeanSeaLevel);
 }
 
 TEST(UnitSettingsTest, RadarBeamHeightReferenceParticipatesInEquality)
@@ -25,11 +25,11 @@ TEST(UnitSettingsTest, RadarBeamHeightReferenceParticipatesInEquality)
 
    EXPECT_TRUE(lhs == rhs);
 
-   std::string amslName = types::GetRadarBeamHeightReferenceName(
-      types::RadarBeamHeightReference::AboveMeanSeaLevel);
-   boost::to_lower(amslName);
+   std::string arlName = types::GetRadarBeamHeightReferenceName(
+      types::RadarBeamHeightReference::AboveRadarLevel);
+   boost::to_lower(arlName);
 
-   EXPECT_TRUE(lhs.radar_beam_height_reference().SetValue(amslName));
+   EXPECT_TRUE(lhs.radar_beam_height_reference().SetValue(arlName));
    EXPECT_FALSE(lhs == rhs);
 }
 
@@ -39,8 +39,8 @@ TEST(UnitSettingsTest, RadarBeamHeightReferenceAbbreviations)
                 types::RadarBeamHeightReference::AboveRadarLevel),
              "ARL");
    EXPECT_EQ(types::GetRadarBeamHeightReferenceAbbreviation(
-                types::RadarBeamHeightReference::AboveMeanSeaLevel),
-             "AMSL");
+                types::RadarBeamHeightReference::MeanSeaLevel),
+             "MSL");
 }
 
 } // namespace scwx::qt::settings

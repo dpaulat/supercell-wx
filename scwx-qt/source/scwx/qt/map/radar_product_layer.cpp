@@ -65,13 +65,20 @@ public:
 
    types::RadarProductLoadStatus latchedLoadStatus_ {
       types::RadarProductLoadStatus::ProductNotAvailable};
+
+   types::RadarBeamHeightReference radarBeamHeightReference_ {
+      types::RadarBeamHeightReference::Unknown};
+   boost::signals2::scoped_connection radarBeamHeightReferenceConnection_;
 };
 
 RadarProductLayer::RadarProductLayer(std::shared_ptr<gl::GlContext> glContext) :
     GenericLayer(std::move(glContext)), p(std::make_unique<Impl>())
 {
 }
-RadarProductLayer::~RadarProductLayer() = default;
+RadarProductLayer::~RadarProductLayer()
+{
+   p->radarBeamHeightReferenceConnection_.disconnect();
+};
 
 void RadarProductLayer::Initialize(
    const std::shared_ptr<MapContext>& mapContext)
@@ -168,6 +175,20 @@ void RadarProductLayer::Initialize(
                  }
               }
            });
+
+   p->radarBeamHeightReferenceConnection_ =
+      settings::UnitSettings::Instance()
+         .radar_beam_height_reference()
+         .changed_signal()
+         .connect(
+            [this](auto&&...)
+            {
+               p->radarBeamHeightReference_ =
+                  types::GetRadarBeamHeightReferenceFromName(
+                     settings::UnitSettings::Instance()
+                        .radar_beam_height_reference()
+                        .GetValue());
+            });
 }
 
 void RadarProductLayer::UpdateSweep(
@@ -461,10 +482,7 @@ bool RadarProductLayer::RunMousePicking(
             radarAltitude);
 
          const types::RadarBeamHeightReference heightReference =
-            types::GetRadarBeamHeightReferenceFromName(
-               settings::UnitSettings::Instance()
-                  .radar_beam_height_reference()
-                  .GetValue());
+            p->radarBeamHeightReference_;
          if (heightReference ==
              types::RadarBeamHeightReference::AboveRadarLevel)
          {

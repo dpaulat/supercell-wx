@@ -26,7 +26,7 @@ public:
          types::GetDistanceUnitsName(types::DistanceUnits::Miles);
       std::string defaultRadarBeamHeightReferenceValue =
          types::GetRadarBeamHeightReferenceName(
-            types::RadarBeamHeightReference::AboveRadarLevel);
+            types::RadarBeamHeightReference::MeanSeaLevel);
 
       boost::to_lower(defaultAccumulationUnitsValue);
       boost::to_lower(defaultEchoTopsUnitsValue);

@@ -2,48 +2,44 @@
 
 #include <scwx/util/iterator.hpp>
 
+#include <cstdint>
 #include <string>
 
-namespace scwx
-{
-namespace qt
-{
-namespace types
+namespace scwx::qt::types
 {
 
-enum class AccumulationUnits
+enum class AccumulationUnits : std::uint8_t
 {
    Inches,
    Millimeters,
    User,
    Unknown
 };
-typedef scwx::util::Iterator<AccumulationUnits,
-                             AccumulationUnits::Inches,
-                             AccumulationUnits::User>
-   AccumulationUnitsIterator;
+using AccumulationUnitsIterator =
+   scwx::util::Iterator<AccumulationUnits,
+                        AccumulationUnits::Inches,
+                        AccumulationUnits::User>;
 
-enum class EchoTopsUnits
+enum class EchoTopsUnits : std::uint8_t
 {
    Kilofeet,
    Kilometers,
    User,
    Unknown
 };
-typedef scwx::util::
-   Iterator<EchoTopsUnits, EchoTopsUnits::Kilofeet, EchoTopsUnits::User>
-      EchoTopsUnitsIterator;
+using EchoTopsUnitsIterator = scwx::util::
+   Iterator<EchoTopsUnits, EchoTopsUnits::Kilofeet, EchoTopsUnits::User>;
 
-enum class OtherUnits
+enum class OtherUnits : std::uint8_t
 {
    Default,
    User,
    Unknown
 };
-typedef scwx::util::Iterator<OtherUnits, OtherUnits::Default, OtherUnits::User>
-   OtherUnitsIterator;
+using OtherUnitsIterator =
+   scwx::util::Iterator<OtherUnits, OtherUnits::Default, OtherUnits::User>;
 
-enum class SpeedUnits
+enum class SpeedUnits : std::uint8_t
 {
    KilometersPerHour,
    Knots,
@@ -52,31 +48,29 @@ enum class SpeedUnits
    User,
    Unknown
 };
-typedef scwx::util::
-   Iterator<SpeedUnits, SpeedUnits::KilometersPerHour, SpeedUnits::User>
-      SpeedUnitsIterator;
+using SpeedUnitsIterator = scwx::util::
+   Iterator<SpeedUnits, SpeedUnits::KilometersPerHour, SpeedUnits::User>;
 
-enum class DistanceUnits
+enum class DistanceUnits : std::uint8_t
 {
    Kilometers,
    Miles,
    User,
    Unknown
 };
-typedef scwx::util::
-   Iterator<DistanceUnits, DistanceUnits::Kilometers, DistanceUnits::User>
-      DistanceUnitsIterator;
+using DistanceUnitsIterator = scwx::util::
+   Iterator<DistanceUnits, DistanceUnits::Kilometers, DistanceUnits::User>;
 
-enum class RadarBeamHeightReference
+enum class RadarBeamHeightReference : std::uint8_t
 {
    AboveRadarLevel,
-   AboveMeanSeaLevel,
+   MeanSeaLevel,
    Unknown
 };
-typedef scwx::util::Iterator<RadarBeamHeightReference,
-                             RadarBeamHeightReference::AboveRadarLevel,
-                             RadarBeamHeightReference::AboveMeanSeaLevel>
-   RadarBeamHeightReferenceIterator;
+using RadarBeamHeightReferenceIterator =
+   scwx::util::Iterator<RadarBeamHeightReference,
+                        RadarBeamHeightReference::AboveRadarLevel,
+                        RadarBeamHeightReference::MeanSeaLevel>;
 
 const std::string& GetAccumulationUnitsAbbreviation(AccumulationUnits units);
 const std::string& GetAccumulationUnitsName(AccumulationUnits units);
@@ -108,6 +102,4 @@ GetRadarBeamHeightReferenceName(RadarBeamHeightReference reference);
 RadarBeamHeightReference
 GetRadarBeamHeightReferenceFromName(const std::string& name);
 
-} // namespace types
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::types

@@ -6,11 +6,7 @@
 #include <boost/algorithm/string.hpp>
 #include <units/velocity.h>
 
-namespace scwx
-{
-namespace qt
-{
-namespace types
+namespace scwx::qt::types
 {
 
 static const std::unordered_map<AccumulationUnits, std::string>
@@ -112,13 +108,13 @@ static const std::unordered_map<DistanceUnits, double> distanceUnitsScale_ {
 static const std::unordered_map<RadarBeamHeightReference, std::string>
    radarBeamHeightReferenceAbbreviation_ {
       {RadarBeamHeightReference::AboveRadarLevel, "ARL"},
-      {RadarBeamHeightReference::AboveMeanSeaLevel, "AMSL"},
+      {RadarBeamHeightReference::MeanSeaLevel, "MSL"},
       {RadarBeamHeightReference::Unknown, ""}};
 
 static const std::unordered_map<RadarBeamHeightReference, std::string>
    radarBeamHeightReferenceName_ {
       {RadarBeamHeightReference::AboveRadarLevel, "Above Radar Level"},
-      {RadarBeamHeightReference::AboveMeanSeaLevel, "Above Mean Sea Level"},
+      {RadarBeamHeightReference::MeanSeaLevel, "Mean Sea Level"},
       {RadarBeamHeightReference::Unknown, "?"}};
 
 SCWX_GET_ENUM(AccumulationUnits,
@@ -209,6 +205,4 @@ GetRadarBeamHeightReferenceName(RadarBeamHeightReference reference)
    return radarBeamHeightReferenceName_.at(reference);
 }
 
-} // namespace types
-} // namespace qt
-} // namespace scwx
+} // namespace scwx::qt::types
