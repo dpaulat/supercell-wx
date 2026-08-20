@@ -15,8 +15,11 @@ LayerOpacityDelegate::createEditor(QWidget* parent,
                                    const QStyleOptionViewItem& /* option */,
                                    const QModelIndex& /* index */) const
 {
+   static constexpr int kMinOpacity = 0;
+   static constexpr int kMaxOpacity = 100;
+
    auto* spinBox = new QFocusedSpinBox(parent);
-   spinBox->setRange(0, 100);
+   spinBox->setRange(kMinOpacity, kMaxOpacity);
    spinBox->setSuffix(tr("%"));
    spinBox->setKeyboardTracking(false);
    return spinBox;

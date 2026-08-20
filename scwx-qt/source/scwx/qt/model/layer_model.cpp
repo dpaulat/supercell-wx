@@ -392,12 +392,11 @@ LayerModel::GetLayerInfo(types::LayerType        type,
                          types::LayerDescription description) const
 {
    // Find the matching layer
-   auto it = std::find_if(p->layers_.begin(),
-                          p->layers_.end(),
-                          [&](const types::LayerInfo& layer) {
-                             return layer.type_ == type &&
-                                    layer.description_ == description;
-                          });
+   auto it = std::find_if(
+      p->layers_.begin(),
+      p->layers_.end(),
+      [&](const types::LayerInfo& layer)
+      { return layer.type_ == type && layer.description_ == description; });
    if (it != p->layers_.end())
    {
       // Return the layer info
@@ -417,12 +416,11 @@ void LayerModel::SetLayerDisplayed(types::LayerType        type,
                                    bool                    displayed)
 {
    // Find the matching layer
-   auto it = std::find_if(p->layers_.begin(),
-                          p->layers_.end(),
-                          [&](const types::LayerInfo& layer) {
-                             return layer.type_ == type &&
-                                    layer.description_ == description;
-                          });
+   auto it = std::find_if(
+      p->layers_.begin(),
+      p->layers_.end(),
+      [&](const types::LayerInfo& layer)
+      { return layer.type_ == type && layer.description_ == description; });
 
    if (it != p->layers_.end())
    {
@@ -453,12 +451,11 @@ bool LayerModel::SetLayerOpacity(types::LayerType        type,
       return false;
    }
 
-   auto it = std::find_if(p->layers_.begin(),
-                          p->layers_.end(),
-                          [&](const types::LayerInfo& layer) {
-                             return layer.type_ == type &&
-                                    layer.description_ == description;
-                          });
+   auto it = std::find_if(
+      p->layers_.begin(),
+      p->layers_.end(),
+      [&](const types::LayerInfo& layer)
+      { return layer.type_ == type && layer.description_ == description; });
 
    if (it == p->layers_.end())
    {
@@ -471,9 +468,10 @@ bool LayerModel::SetLayerOpacity(types::LayerType        type,
       return false;
    }
 
-   it->opacity_      = clamped;
-   const int   row   = std::distance(p->layers_.begin(), it);
-   QModelIndex index = createIndex(row, static_cast<int>(Column::Opacity));
+   it->opacity_  = clamped;
+   const int row = static_cast<int>(std::distance(p->layers_.begin(), it));
+   const QModelIndex index =
+      createIndex(row, static_cast<int>(Column::Opacity));
    Q_EMIT dataChanged(index, index);
    return true;
 }
@@ -906,8 +904,8 @@ bool LayerModel::setData(const QModelIndex& index,
       if (role == Qt::ItemDataRole::EditRole &&
           types::LayerSupportsOpacity(layer.type_))
       {
-         bool ok             = false;
-         int  opacityPercent = value.toInt(&ok);
+         bool      ok             = false;
+         const int opacityPercent = value.toInt(&ok);
          if (ok)
          {
             const float opacity =

@@ -172,7 +172,7 @@ std::string GetLayerName(types::LayerType        type,
 {
    return fmt::format("scwx.{}.{}",
                       types::GetLayerTypeName(type),
-                      types::GetLayerDescriptionName(description));
+                      types::GetLayerDescriptionName(std::move(description)));
 }
 
 bool LayerSupportsOpacity(LayerType type)
@@ -187,10 +187,13 @@ float ClampLayerOpacity(float opacity)
 
 int LayerOpacityToPercent(float opacity)
 {
+   static constexpr int kMinOpacity = 0;
+   static constexpr int kMaxOpacity = 100;
+
    return std::clamp(
       static_cast<int>(std::lround(ClampLayerOpacity(opacity) * 100.0f)),
-      0,
-      100);
+      kMinOpacity,
+      kMaxOpacity);
 }
 
 float LayerOpacityFromPercent(int percent)

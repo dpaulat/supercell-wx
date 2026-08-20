@@ -2533,6 +2533,10 @@ void MainWindowImpl::OnPanesMatchMapStyleToggled(bool checked)
 
 void MainWindowImpl::ConfigureRadarOpacityControls()
 {
+   static constexpr int kMinOpacity   = 0;
+   static constexpr int kMaxOpacity   = 100;
+   static constexpr int kTickInterval = 25;
+
    auto* opacityWidget = new QWidget(mapSettingsGroup_);
    auto* opacityLayout = new QHBoxLayout(opacityWidget);
    opacityLayout->setContentsMargins(0, 0, 0, 0);
@@ -2540,14 +2544,14 @@ void MainWindowImpl::ConfigureRadarOpacityControls()
    auto* opacityLabel = new QLabel(QObject::tr("Radar Opacity"), opacityWidget);
    radarOpacitySlider_ =
       new QSlider(Qt::Orientation::Horizontal, opacityWidget);
-   radarOpacitySlider_->setRange(0, 100);
+   radarOpacitySlider_->setRange(kMinOpacity, kMaxOpacity);
    radarOpacitySlider_->setTickPosition(QSlider::TickPosition::TicksBelow);
-   radarOpacitySlider_->setTickInterval(25);
+   radarOpacitySlider_->setTickInterval(kTickInterval);
    radarOpacitySlider_->setToolTip(
       QObject::tr("Radar product opacity. Map styles stay opaque."));
 
    radarOpacitySpinBox_ = new QFocusedSpinBox(opacityWidget);
-   radarOpacitySpinBox_->setRange(0, 100);
+   radarOpacitySpinBox_->setRange(kMinOpacity, kMaxOpacity);
    radarOpacitySpinBox_->setSuffix(QObject::tr("%"));
    radarOpacitySpinBox_->setKeyboardTracking(false);
 

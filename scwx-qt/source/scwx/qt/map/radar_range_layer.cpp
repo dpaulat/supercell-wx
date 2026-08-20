@@ -14,11 +14,11 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static std::shared_ptr<QMapLibre::Feature>
 GetRangeCircle(float range, QMapLibre::Coordinate center);
 
-void RadarRangeLayer::Add(std::shared_ptr<QMapLibre::Map> map,
-                          float                           range,
-                          QMapLibre::Coordinate           center,
-                          const QString&                  before,
-                          float                           opacity)
+void RadarRangeLayer::Add(const std::shared_ptr<QMapLibre::Map>& map,
+                          float                                  range,
+                          QMapLibre::Coordinate                  center,
+                          const QString&                         before,
+                          float                                  opacity)
 {
    static const QString layerId = QString::fromStdString(types::GetLayerName(
       types::LayerType::Data, types::DataLayer::RadarRange));
@@ -46,8 +46,8 @@ void RadarRangeLayer::Add(std::shared_ptr<QMapLibre::Map> map,
    map->setPaintProperty(layerId, "line-opacity", opacity);
 }
 
-void RadarRangeLayer::SetOpacity(std::shared_ptr<QMapLibre::Map> map,
-                                 float                           opacity)
+void RadarRangeLayer::SetOpacity(const std::shared_ptr<QMapLibre::Map>& map,
+                                 float                                  opacity)
 {
    static const QString layerId = QString::fromStdString(types::GetLayerName(
       types::LayerType::Data, types::DataLayer::RadarRange));
@@ -58,9 +58,9 @@ void RadarRangeLayer::SetOpacity(std::shared_ptr<QMapLibre::Map> map,
    }
 }
 
-void RadarRangeLayer::Update(std::shared_ptr<QMapLibre::Map> map,
-                             float                           range,
-                             QMapLibre::Coordinate           center)
+void RadarRangeLayer::Update(const std::shared_ptr<QMapLibre::Map>& map,
+                             float                                  range,
+                             QMapLibre::Coordinate                  center)
 {
    std::shared_ptr<QMapLibre::Feature> rangeCircle =
       GetRangeCircle(range, center);

@@ -2509,9 +2509,9 @@ MapWidgetImpl::ResolveMapStyleName(const std::string& preferredStyleName) const
    if ((customStyles_[0].IsValid() && preferredStyleName == "Custom") ||
        preferredStyleName == "None" ||
        std::ranges::find_if(mapProviderInfo.mapStyles_,
-                            [&](const auto& mapStyle) {
-                               return mapStyle.name_ == preferredStyleName;
-                            }) != mapProviderInfo.mapStyles_.cend())
+                            [&](const auto& mapStyle)
+                            { return mapStyle.name_ == preferredStyleName; }) !=
+          mapProviderInfo.mapStyles_.cend())
    {
       return preferredStyleName;
    }
@@ -2754,7 +2754,8 @@ void MapWidgetImpl::RadarProductManagerConnect()
       connect(radarProductManager_.get(),
               &manager::RadarProductManager::IncomingLevel2ElevationChanged,
               this,
-              [this](std::optional<float> incomingElevation) {
+              [this](std::optional<float> incomingElevation)
+              {
                  Q_EMIT widget_->IncomingLevel2ElevationChanged(
                     incomingElevation);
               });

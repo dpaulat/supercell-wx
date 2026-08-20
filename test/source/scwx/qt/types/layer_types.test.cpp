@@ -41,7 +41,7 @@ TEST(LayerTypes, OpacityJsonRoundTrip)
                        .opacity_     = 0.6f};
 
    const boost::json::value json     = boost::json::value_from(original);
-   const LayerInfo          restored = boost::json::value_to<LayerInfo>(json);
+   const auto               restored = boost::json::value_to<LayerInfo>(json);
 
    EXPECT_EQ(restored.type_, LayerType::Radar);
    EXPECT_FLOAT_EQ(restored.opacity_, 0.6f);
@@ -57,7 +57,7 @@ TEST(LayerTypes, OpacityJsonDefaultsWhenMissing)
       {"movable", true},
       {"displayed", {true, true, true, true, true, true, true, true, true}}};
 
-   const LayerInfo restored = boost::json::value_to<LayerInfo>(json);
+   const auto restored = boost::json::value_to<LayerInfo>(json);
    EXPECT_EQ(restored.type_, LayerType::Radar);
    EXPECT_FLOAT_EQ(restored.opacity_, 1.0f);
 }
@@ -70,7 +70,7 @@ TEST(LayerTypes, MapStyleOpacityStaysOpaque)
                        .opacity_     = 0.25f};
 
    const boost::json::value json     = boost::json::value_from(mapLayer);
-   const LayerInfo          restored = boost::json::value_to<LayerInfo>(json);
+   const auto               restored = boost::json::value_to<LayerInfo>(json);
 
    EXPECT_EQ(restored.type_, LayerType::Map);
    EXPECT_FLOAT_EQ(restored.opacity_, 1.0f);
@@ -85,7 +85,7 @@ TEST(LayerTypes, OpacityJsonClampsOutOfRange)
                                     {"displayed", {true}},
                                     {"opacity", 2.5}};
 
-   const LayerInfo restored = boost::json::value_to<LayerInfo>(json);
+   const auto restored = boost::json::value_to<LayerInfo>(json);
    EXPECT_FLOAT_EQ(restored.opacity_, 1.0f);
 }
 

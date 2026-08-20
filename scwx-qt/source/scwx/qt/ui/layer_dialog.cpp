@@ -24,6 +24,10 @@ namespace scwx::qt::ui
 static const std::string logPrefix_ = "scwx::qt::ui::layer_dialog";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+static constexpr int kMinOpacity_   = 0;
+static constexpr int kMaxOpacity_   = 100;
+static constexpr int kTickInterval_ = 25;
+
 class LayerDialogImpl
 {
 public:
@@ -79,14 +83,14 @@ LayerDialog::LayerDialog(QWidget* parent) :
    opacityLayout->setContentsMargins(0, 0, 0, 0);
    opacityLayout->addWidget(new QLabel(tr("Opacity"), opacityFrame));
    p->opacitySlider_ = new QSlider(Qt::Orientation::Horizontal, opacityFrame);
-   p->opacitySlider_->setRange(0, 100);
+   p->opacitySlider_->setRange(kMinOpacity_, kMaxOpacity_);
    p->opacitySlider_->setTickPosition(QSlider::TickPosition::TicksBelow);
-   p->opacitySlider_->setTickInterval(25);
+   p->opacitySlider_->setTickInterval(kTickInterval_);
    p->opacitySlider_->setToolTip(
       tr("Layer opacity. Map style layers stay opaque."));
    opacityLayout->addWidget(p->opacitySlider_);
    p->opacitySpinBox_ = new QFocusedSpinBox(opacityFrame);
-   p->opacitySpinBox_->setRange(0, 100);
+   p->opacitySpinBox_->setRange(kMinOpacity_, kMaxOpacity_);
    p->opacitySpinBox_->setSuffix(tr("%"));
    p->opacitySpinBox_->setKeyboardTracking(false);
    opacityLayout->addWidget(p->opacitySpinBox_);
@@ -94,7 +98,8 @@ LayerDialog::LayerDialog(QWidget* parent) :
 
    auto layerViewHeader = ui->layerTreeView->header();
 
-   layerViewHeader->setMinimumSectionSize(10);
+   static constexpr int kMinimumSectionSize = 10;
+   layerViewHeader->setMinimumSectionSize(kMinimumSectionSize);
 
    // Give small columns a fixed size
    for (auto column : model::LayerModel::ColumnIterator())
@@ -428,10 +433,10 @@ void LayerDialogImpl::UpdateOpacityControls()
    updatingOpacityControls_ = true;
 
    const auto selectedRows   = GetSelectedRows();
-   int        opacityPercent = 100;
+   int        opacityPercent = kMaxOpacity_;
    bool       anyEditable    = false;
 
-   for (int row : selectedRows)
+   for (const int row : selectedRows)
    {
       const QModelIndex typeIndex = layerModel_->index(
          row, static_cast<int>(model::LayerModel::Column::Type));
@@ -471,7 +476,7 @@ void LayerDialogImpl::SetSelectedLayersOpacityPercent(int percent)
    opacitySpinBox_->setValue(percent);
    updatingOpacityControls_ = false;
 
-   for (int row : GetSelectedRows())
+   for (const int row : GetSelectedRows())
    {
       const QModelIndex opacityIndex = layerModel_->index(
          row, static_cast<int>(model::LayerModel::Column::Opacity));
