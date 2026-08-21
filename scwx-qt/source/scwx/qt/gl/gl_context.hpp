@@ -45,6 +45,9 @@ public:
 
    GLuint GetTextureAtlas();
 
+   void  set_layer_opacity(float opacity);
+   float layer_opacity() const;
+
    void Initialize();
    void StartFrame();
 
