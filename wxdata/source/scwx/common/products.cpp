@@ -44,8 +44,9 @@ static const std::unordered_map<Level2Product, std::string> level2Palette_ {
 
 static const std::unordered_map<int, std::string> level3ProductCodeMap_ {
    {30, "SW"},   {37, "NCR"},  {41, "NET"},  {56, "SRM"},  {57, "NVL"},
-   {78, "N1P"},  {79, "N3P"},  {80, "NTP"},  {81, "DPA"},  {82, "SPD"},
-   {94, "DR"},   {99, "DV"},   {134, "DVL"}, {135, "EET"}, {138, "DSP"},
+   {58, "NST"},  {59, "NHI"},  {60, "NME"},  {61, "NTV"},  {78, "N1P"},
+   {79, "N3P"},  {80, "NTP"},  {81, "DPA"},  {82, "SPD"},  {94, "DR"},
+   {99, "DV"},   {134, "DVL"}, {135, "EET"}, {138, "DSP"}, {141, "NMD"},
    {153, "SDR"}, {154, "SDV"}, {159, "DZD"}, {161, "DCC"}, {163, "DKD"},
    {165, "DHC"}, {166, "ML"},  {169, "OHA"}, {170, "DAA"}, {172, "DTA"},
    {173, "DUA"}, {174, "DOD"}, {175, "DSD"}, {177, "HHC"}, {180, "TDR"},
@@ -58,6 +59,11 @@ static const std::unordered_map<std::string, std::string>
       {"NET", "Echo Tops"},
       {"SRM", "Storm Relative Mean Radial Velocity"},
       {"NVL", "Vertically Integrated Liquid"},
+      {"NST", "Storm Tracking Information"},
+      {"NHI", "Hail Index"},
+      {"NME", "Mesocyclone"},
+      {"NTV", "Tornadic Vortex Signature"},
+      {"NMD", "Mesocyclone Detection"},
       {"N1P", "Surface Rainfall Accumulation (1 hr)"},
       {"N3P", "Surface Rainfall Accumulation (3 hr)"},
       {"NTP", "Storm Total Rainfall Accumulation"},
@@ -144,6 +150,13 @@ static const std::unordered_map<std::string, std::vector<std::string>>
 
       // Melting Layer
       {"ML", {"NXM", "NYM", "NZM", "N0M", "NAM", "N1M", "NBM", "N2M", "N3M"}},
+
+      // Overlay products (not selectable radar categories)
+      {"NST", {"NST"}},
+      {"NHI", {"NHI"}},
+      {"NME", {"NME"}},
+      {"NTV", {"NTV"}},
+      {"NMD", {"NMD"}},
 
       // Unknown
       {"?", {}}};

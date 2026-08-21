@@ -42,6 +42,7 @@ static const std::unordered_map<int, CreateLevel3MessageFunction> //
             {57, GraphicProductMessage::Create},
             {58, StormTrackingInformationMessage::Create},
             {59, GraphicProductMessage::Create},
+            {60, GraphicProductMessage::Create},
             {61, GraphicProductMessage::Create},
             {62, TabularProductMessage::Create},
             {65, GraphicProductMessage::Create},

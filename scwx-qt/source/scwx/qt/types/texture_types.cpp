@@ -57,7 +57,13 @@ static const std::unordered_map<ImageTexture, TextureInfo> imageTextureInfo_ {
    {ImageTexture::MapTilerLogo,
     {"images/maptiler-logo", ":/res/textures/images/maptiler-logo.svg"}},
    {ImageTexture::OpenFreeMapLogo,
-    {"images/openfreemap-logo", ":res/textures/images/openfreemap-logo.jpg"}}};
+    {"images/openfreemap-logo", ":res/textures/images/openfreemap-logo.jpg"}},
+   {ImageTexture::HailIndex,
+    {"images/hail-index", ":/res/textures/images/hail-index.svg"}},
+   {ImageTexture::Mesocyclone,
+    {"images/mesocyclone", ":/res/textures/images/mesocyclone.svg"}},
+   {ImageTexture::TornadicVortexSignature,
+    {"images/tvs", ":/res/textures/images/tvs.svg"}}};
 
 static const std::unordered_map<LineTexture, TextureInfo> lineTextureInfo_ {
    {LineTexture::Default1x7,

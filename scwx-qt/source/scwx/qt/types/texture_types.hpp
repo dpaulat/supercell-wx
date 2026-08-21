@@ -30,11 +30,14 @@ enum class ImageTexture
    LocationTent,
    MapboxLogo,
    MapTilerLogo,
-   OpenFreeMapLogo
+   OpenFreeMapLogo,
+   HailIndex,
+   Mesocyclone,
+   TornadicVortexSignature
 };
 typedef scwx::util::Iterator<ImageTexture,
                              ImageTexture::CardinalPoint24,
-                             ImageTexture::OpenFreeMapLogo>
+                             ImageTexture::TornadicVortexSignature>
    ImageTextureIterator;
 
 enum class LineTexture

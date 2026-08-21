@@ -41,7 +41,8 @@ set(SRC_QT_MANAGER_TESTS source/scwx/qt/manager/radar_product_manager.test.cpp
                          source/scwx/qt/manager/update_manager.test.cpp)
 set(SRC_QT_MAP_TESTS source/scwx/qt/map/map_annotation_layer.test.cpp
                      source/scwx/qt/map/map_annotation_model.test.cpp
-                     source/scwx/qt/map/map_provider.test.cpp)
+                     source/scwx/qt/map/map_provider.test.cpp
+                     source/scwx/qt/map/overlay_product_symbols.test.cpp)
 set(SRC_QT_MODEL_TESTS source/scwx/qt/model/imgui_context_model.test.cpp
                        source/scwx/qt/model/marker_model.test.cpp)
 set(SRC_QT_UI_TESTS source/scwx/qt/ui/threshold_value_utility.test.cpp)
@@ -60,7 +61,8 @@ set(SRC_UTIL_TESTS source/scwx/util/float.test.cpp
                    source/scwx/util/vectorbuf.test.cpp)
 set(SRC_WSR88D_TESTS source/scwx/wsr88d/ar2v_file.test.cpp
                      source/scwx/wsr88d/level3_file.test.cpp
-                     source/scwx/wsr88d/nexrad_file_factory.test.cpp)
+                     source/scwx/wsr88d/nexrad_file_factory.test.cpp
+                     source/scwx/wsr88d/rpg/graphic_overlay_symbols.test.cpp)
 
 set(CMAKE_FILES test.cmake)
 
