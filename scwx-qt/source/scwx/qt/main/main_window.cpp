@@ -826,17 +826,16 @@ void MainWindow::on_actionSaveNexrad_triggered()
    auto radarSite = currentMap->GetRadarSite();
    if (radarSite == nullptr)
    {
-      QMessageBox::warning(this,
-                           tr("Save NEXRAD Product"),
-                           tr("No radar site is selected."));
+      QMessageBox::warning(
+         this, tr("Save NEXRAD Product"), tr("No radar site is selected."));
       return;
    }
 
    auto manager = manager::RadarProductManager::Instance(radarSite->id());
-   auto record  = manager->GetRadarProductRecord(
-      currentMap->GetRadarProductGroup(),
-      currentMap->GetRadarProductName(),
-      currentMap->GetSelectedTime());
+   auto record =
+      manager->GetRadarProductRecord(currentMap->GetRadarProductGroup(),
+                                     currentMap->GetRadarProductName(),
+                                     currentMap->GetSelectedTime());
 
    auto nexradFile = (record != nullptr) ? record->nexrad_file() : nullptr;
    if (nexradFile == nullptr || !nexradFile->has_file_data())
@@ -868,25 +867,24 @@ void MainWindow::on_actionSaveNexrad_triggered()
            static_cast<void (MainWindow::*)()>(&MainWindow::update),
            Qt::QueuedConnection);
 
-   connect(
-      dialog,
-      &QFileDialog::fileSelected,
-      this,
-      [this, nexradFile](const QString& file)
-      {
-         const std::string filename =
-            QDir::toNativeSeparators(file).toStdString();
-         logger_->info("Saving NEXRAD product: {}", filename);
+   connect(dialog,
+           &QFileDialog::fileSelected,
+           this,
+           [this, nexradFile](const QString& file)
+           {
+              const std::string filename =
+                 QDir::toNativeSeparators(file).toStdString();
+              logger_->info("Saving NEXRAD product: {}", filename);
 
-         if (!nexradFile->SaveFile(filename))
-         {
-            QMessageBox::critical(
-               this,
-               tr("Save NEXRAD Product"),
-               tr("Unable to save NEXRAD product to %1.")
-                  .arg(QDir::toNativeSeparators(file)));
-         }
-      });
+              if (!nexradFile->SaveFile(filename))
+              {
+                 QMessageBox::critical(
+                    this,
+                    tr("Save NEXRAD Product"),
+                    tr("Unable to save NEXRAD product to %1.")
+                       .arg(QDir::toNativeSeparators(file)));
+              }
+           });
 
    dialog->open();
 }

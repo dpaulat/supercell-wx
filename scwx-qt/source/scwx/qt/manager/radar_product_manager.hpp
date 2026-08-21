@@ -140,10 +140,10 @@ public:
     *
     * @return Cached radar product record, or nullptr if none is loaded
     */
-   std::shared_ptr<types::RadarProductRecord> GetRadarProductRecord(
-      common::RadarProductGroup             group,
-      const std::string&                    product = {},
-      std::chrono::system_clock::time_point time    = {});
+   std::shared_ptr<types::RadarProductRecord>
+   GetRadarProductRecord(common::RadarProductGroup             group,
+                         const std::string&                    product = {},
+                         std::chrono::system_clock::time_point time    = {});
 
    common::Level3ProductCategoryMap GetAvailableLevel3Categories();
    std::vector<std::string>         GetLevel3Products();

@@ -139,7 +139,7 @@ TEST(RadarProductRecord, SuggestedFilenameFromSource)
 
    const std::string filename = std::string(SCWX_TEST_DATA_DIR) +
                                 "/nexrad/level2/Level2_KLSX_20210527_1757.ar2v";
-   auto file = wsr88d::NexradFileFactory::Create(filename);
+   auto              file     = wsr88d::NexradFileFactory::Create(filename);
    ASSERT_NE(file, nullptr);
 
    auto record = types::RadarProductRecord::Create(file);
@@ -153,7 +153,7 @@ TEST(RadarProductRecord, SuggestedFilenameGzip)
 
    const std::string filename = std::string(SCWX_TEST_DATA_DIR) +
                                 "/nexrad/level2/KLSX20130206_175044_V06.gz";
-   auto file = wsr88d::NexradFileFactory::Create(filename);
+   auto              file     = wsr88d::NexradFileFactory::Create(filename);
    ASSERT_NE(file, nullptr);
 
    auto record = types::RadarProductRecord::Create(file);

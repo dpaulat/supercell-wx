@@ -19,7 +19,8 @@ static const std::string logPrefix_ = "scwx::wsr88d::nexrad_file_factory.test";
 static std::string ReadAllBytes(const std::string& filename)
 {
    std::ifstream is(filename, std::ios_base::in | std::ios_base::binary);
-   return {std::istreambuf_iterator<char>(is), std::istreambuf_iterator<char>()};
+   return {std::istreambuf_iterator<char>(is),
+           std::istreambuf_iterator<char>()};
 }
 
 TEST(NexradFileFactory, Level2V06)

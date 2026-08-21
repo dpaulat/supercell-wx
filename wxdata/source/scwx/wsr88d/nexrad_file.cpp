@@ -28,19 +28,13 @@ NexradFile::NexradFile(NexradFile&&) noexcept            = default;
 NexradFile& NexradFile::operator=(NexradFile&&) noexcept = default;
 
 const std::vector<std::uint8_t>& NexradFile::file_data() const
-{
-   return p->fileData_;
-}
+{ return p->fileData_; }
 
 const std::string& NexradFile::filename() const
-{
-   return p->filename_;
-}
+{ return p->filename_; }
 
 bool NexradFile::has_file_data() const
-{
-   return !p->fileData_.empty();
-}
+{ return !p->fileData_.empty(); }
 
 bool NexradFile::is_gzip_compressed() const
 {
@@ -52,20 +46,15 @@ bool NexradFile::is_gzip_compressed() const
 }
 
 void NexradFile::set_file_data(std::vector<std::uint8_t> data)
-{
-   p->fileData_ = std::move(data);
-}
+{ p->fileData_ = std::move(data); }
 
 void NexradFile::set_filename(std::string filename)
-{
-   p->filename_ = std::move(filename);
-}
+{ p->filename_ = std::move(filename); }
 
 void NexradFile::set_filename_from_path(const std::string& path)
 {
    const std::size_t pos = path.find_last_of("/\\");
-   p->filename_ =
-      (pos == std::string::npos) ? path : path.substr(pos + 1);
+   p->filename_ = (pos == std::string::npos) ? path : path.substr(pos + 1);
 }
 
 bool NexradFile::SaveFile(const std::string& filename) const

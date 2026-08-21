@@ -157,8 +157,8 @@ std::string RadarProductRecord::suggested_filename() const
 
       if (p->radarProductGroup_ == common::RadarProductGroup::Level2)
       {
-         name = fmt::format(
-            "{0}{1:%Y%m%d}_{1:%H%M%S}", p->radarId_, recordTime);
+         name =
+            fmt::format("{0}{1:%Y%m%d}_{1:%H%M%S}", p->radarId_, recordTime);
       }
       else
       {

@@ -881,9 +881,8 @@ RadarProductManager::GetRadarProductRecord(
    const std::string&                    product,
    std::chrono::system_clock::time_point time)
 {
-   auto lookupRecord =
-      [](RadarProductRecordMap&                records,
-         std::chrono::system_clock::time_point queryTime)
+   auto lookupRecord = [](RadarProductRecordMap&                records,
+                          std::chrono::system_clock::time_point queryTime)
       -> std::shared_ptr<types::RadarProductRecord>
    {
       if (records.empty())
