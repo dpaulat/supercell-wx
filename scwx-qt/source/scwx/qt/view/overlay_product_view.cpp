@@ -124,7 +124,7 @@ void OverlayProductView::Impl::ConnectRadarProductManager()
               if (record->radar_product_group() !=
                      common::RadarProductGroup::Level3 ||
                   std::chrono::floor<std::chrono::seconds>(record->time()) !=
-                     selectedTime_)
+                     std::chrono::floor<std::chrono::seconds>(selectedTime_))
               {
                  return;
               }
@@ -314,13 +314,10 @@ void OverlayProductView::Impl::ResetProducts()
 
 void OverlayProductView::SelectTime(std::chrono::system_clock::time_point time)
 {
-   if (time != p->selectedTime_)
+   p->selectedTime_ = time;
+   if (p->radarProductManager_ != nullptr)
    {
-      p->selectedTime_ = time;
-      if (p->radarProductManager_ != nullptr)
-      {
-         p->UpdateAll();
-      }
+      p->UpdateAll();
    }
 }
 
