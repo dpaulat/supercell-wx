@@ -37,10 +37,10 @@ public:
    void UpdateAll();
    void UpdateAutoRefresh(bool enabled) const;
 
-   OverlayProductView*                                 self_;
-   std::unordered_map<std::string, boost::uuids::uuid> uuidMap_ {};
+   OverlayProductView*                                         self_;
+   mutable std::unordered_map<std::string, boost::uuids::uuid> uuidMap_ {};
 
-   boost::uuids::uuid UuidFor(const std::string& product)
+   boost::uuids::uuid UuidFor(const std::string& product) const
    {
       auto it = uuidMap_.find(product);
       if (it == uuidMap_.end())

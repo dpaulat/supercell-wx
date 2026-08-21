@@ -975,8 +975,8 @@ std::string OverlayProductLayer::Impl::BuildHoverText(
    auto dateTime = sti->date_time();
    if (dateTime.has_value())
    {
-      hoverText +=
-         fmt::format("\nDate/Time: {}", util::TimeString(dateTime.value()));
+      hoverText += fmt::format("\nDate/Time: {}",
+                               scwx::util::TimeString(dateTime.value()));
    }
 
    auto forecastInterval = sti->forecast_interval();
