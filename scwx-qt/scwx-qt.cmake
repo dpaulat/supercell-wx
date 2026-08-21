@@ -911,12 +911,17 @@ target_link_libraries(supercell-wx PRIVATE scwx-qt
                                            wxdata)
 
 if (WIN32)
-    # Deploy Qt to target directory (CRT comes from the NSIS bootstrapper / system redist)
+    scwx_windeployqt_qtpaths_options(_qtpaths_opts)
+
+    set(SCWX_WINDEPLOYQT_OPTIONS --no-translations
+                                 --no-compiler-runtime # (CRT comes from the NSIS bootstrapper / system redist)
+                                 ${_qtpaths_opts})
+
+    # Deploy Qt to target directory 
     add_custom_command(TARGET supercell-wx
                        POST_BUILD
                        COMMAND "${WINDEPLOYQT_EXECUTABLE}"
-                           --no-translations
-                           --no-compiler-runtime
+                           ${SCWX_WINDEPLOYQT_OPTIONS}
                            $<TARGET_FILE:supercell-wx>
                        COMMENT "Running windeployqt for supercell-wx...")
 endif()
@@ -947,6 +952,8 @@ install(TARGETS supercell-wx
           COMPONENT supercell-wx
           OPTIONAL)
 
+scwx_windeployqt_qtpaths_options(SCWX_DEPLOY_TOOL_OPTIONS)
+
 # NO_TRANSLATIONS is needed for Qt 6.5.0 (will be fixed in 6.5.1)
 # https://bugreports.qt.io/browse/QTBUG-112204
 # NO_COMPILER_RUNTIME: VC++ redistributable is installed by the NSIS bootstrapper
@@ -954,13 +961,15 @@ qt_generate_deploy_app_script(TARGET MLNQtCore # QMapLibre::Core
                               OUTPUT_SCRIPT deploy_script_qmaplibre_core
                               NO_TRANSLATIONS
                               NO_COMPILER_RUNTIME
-                              NO_UNSUPPORTED_PLATFORM_ERROR)
+                              NO_UNSUPPORTED_PLATFORM_ERROR
+                              DEPLOY_TOOL_OPTIONS ${SCWX_DEPLOY_TOOL_OPTIONS})
 
 qt_generate_deploy_app_script(TARGET supercell-wx
                               OUTPUT_SCRIPT deploy_script_scwx
                               NO_TRANSLATIONS
                               NO_COMPILER_RUNTIME
-                              NO_UNSUPPORTED_PLATFORM_ERROR)
+                              NO_UNSUPPORTED_PLATFORM_ERROR
+                              DEPLOY_TOOL_OPTIONS ${SCWX_DEPLOY_TOOL_OPTIONS})
 
 install(SCRIPT ${deploy_script_qmaplibre_core}
         COMPONENT supercell-wx)
@@ -1026,7 +1035,13 @@ set(SCWX_WINDOWS_PACKAGE_INSTALL_ROOT "" CACHE PATH
     "Existing installed Supercell Wx tree to package for Windows")
 
 if (MSVC)
-    set(CPACK_PACKAGE_FILE_NAME           "supercell-wx-v${SCWX_VERSION}-windows")
+    if (CMAKE_CXX_COMPILER_ARCHITECTURE_ID STREQUAL "ARM64" OR
+        CMAKE_SYSTEM_PROCESSOR MATCHES "^(ARM64|arm64|aarch64)$")
+        set(CPACK_PACKAGE_FILE_NAME "supercell-wx-v${SCWX_VERSION}-windows-arm64")
+    else()
+        set(CPACK_PACKAGE_FILE_NAME "supercell-wx-v${SCWX_VERSION}-windows-x64")
+    endif()
+
     set(CPACK_PACKAGE_INSTALL_DIRECTORY   "Supercell Wx")
     set(CPACK_PACKAGE_ICON                "${CMAKE_CURRENT_SOURCE_DIR}/res/icons/scwx-256.ico")
     set(CPACK_GENERATOR                   WIX)

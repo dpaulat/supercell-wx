@@ -133,12 +133,19 @@ target_link_libraries(wxtest GTest::gtest
                              wxdata)
 
 if (WIN32)
+    scwx_windeployqt_qtpaths_options(_qtpaths_opts)
+
+    set(SCWX_WINDEPLOYQT_OPTIONS --no-translations
+                                 --no-compiler-runtime # (CRT comes from the NSIS bootstrapper / system redist)
+                                 ${_qtpaths_opts})
+
     # Deploy Qt before gtest_discover_tests POST_BUILD runs wxtest.exe (needs
     # Qt DLLs beside the binary on Windows).
     add_custom_command(TARGET wxtest
                        POST_BUILD
                        COMMAND "${WINDEPLOYQT_EXECUTABLE}"
-                           --no-translations $<TARGET_FILE:wxtest>
+                               ${SCWX_WINDEPLOYQT_OPTIONS}
+                               $<TARGET_FILE:wxtest>
                        COMMENT "Running windeployqt for wxtest...")
 endif()
 

@@ -56,3 +56,18 @@ macro(scwx_python_setup)
                         RESULT_VARIABLE PIP_RESULT)
     endif()
 endmacro()
+
+# Host windeployqt must query the *target* Qt prefix when QT_HOST_PATH is set
+# (Windows ARM64 cross-builds). Empty on native/non-Windows.
+function(scwx_windeployqt_qtpaths_options out_var)
+    set(_opts)
+    if (WIN32 AND DEFINED QT_HOST_PATH AND DEFINED Qt6_DIR)
+        get_filename_component(_prefix "${Qt6_DIR}/../../.." ABSOLUTE)
+        set(_qtpaths "${_prefix}/bin/qtpaths.bat")
+        if (NOT EXISTS "${_qtpaths}")
+            message(FATAL_ERROR "Qt paths file not found: ${_qtpaths}")
+        endif()
+        list(APPEND _opts --qtpaths "${_qtpaths}")
+    endif()
+    set(${out_var} ${_opts} PARENT_SCOPE)
+endfunction()
