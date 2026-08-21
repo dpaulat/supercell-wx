@@ -50,8 +50,8 @@ public:
          productSettings.sti_forecast_enabled().RegisterValueStagedCallback(
             [=, this](const bool& value)
             {
-               stiForecastEnabled_  = value;
-               overlaysNeedUpdate_  = true;
+               stiForecastEnabled_ = value;
+               overlaysNeedUpdate_ = true;
                Q_EMIT self_->NeedsRendering();
             });
       stiPastEnabledCallbackUuid_ =
@@ -119,10 +119,9 @@ public:
    void UpdateGraphicOverlay(const std::shared_ptr<MapContext>& mapContext,
                              const std::string&                 product);
 
-   static common::Coordinate
-   SymbolCoordinate(const common::Coordinate& center,
-                    std::int16_t              iPosition,
-                    std::int16_t              jPosition);
+   static common::Coordinate SymbolCoordinate(const common::Coordinate& center,
+                                              std::int16_t iPosition,
+                                              std::int16_t jPosition);
 
    static std::string FindAssociatedLabel(
       const std::vector<std::shared_ptr<wsr88d::rpg::Packet>>& packets,
@@ -288,10 +287,10 @@ void OverlayProductLayer::Impl::UpdateOverlays(
    geoIcons_->FinishIcons();
 }
 
-common::Coordinate OverlayProductLayer::Impl::SymbolCoordinate(
-   const common::Coordinate& center,
-   std::int16_t              iPosition,
-   std::int16_t              jPosition)
+common::Coordinate
+OverlayProductLayer::Impl::SymbolCoordinate(const common::Coordinate& center,
+                                            std::int16_t              iPosition,
+                                            std::int16_t              jPosition)
 {
    return util::GeographicLib::GetCoordinate(
       center,
@@ -307,19 +306,16 @@ std::string OverlayProductLayer::Impl::FindAssociatedLabel(
    std::string  nearestLabel;
    std::int64_t nearestDistance = std::numeric_limits<std::int64_t>::max();
 
-   auto consider = [&](std::int16_t       labelI,
-                       std::int16_t       labelJ,
-                       const std::string& label)
+   auto consider =
+      [&](std::int16_t labelI, std::int16_t labelJ, const std::string& label)
    {
       if (label.empty())
       {
          return;
       }
 
-      const std::int64_t di =
-         static_cast<std::int64_t>(labelI) - iPosition;
-      const std::int64_t dj =
-         static_cast<std::int64_t>(labelJ) - jPosition;
+      const std::int64_t di = static_cast<std::int64_t>(labelI) - iPosition;
+      const std::int64_t dj = static_cast<std::int64_t>(labelJ) - jPosition;
       const std::int64_t distanceSquared = di * di + dj * dj;
 
       if (distanceSquared < nearestDistance)
@@ -381,20 +377,18 @@ std::string OverlayProductLayer::Impl::FindAssociatedLabel(
 }
 
 void OverlayProductLayer::Impl::UpdateGraphicOverlay(
-   const std::shared_ptr<MapContext>& mapContext,
-   const std::string&                 product)
+   const std::shared_ptr<MapContext>& mapContext, const std::string& product)
 {
    auto overlayProductView  = mapContext->overlay_product_view();
    auto radarProductManager = overlayProductView->radar_product_manager();
-   auto message =
-      overlayProductView->radar_product_message(product);
+   auto message = overlayProductView->radar_product_message(product);
 
    std::shared_ptr<wsr88d::rpg::GraphicProductMessage> gpm = nullptr;
    std::shared_ptr<wsr88d::rpg::ProductSymbologyBlock> psb = nullptr;
    if (message != nullptr)
    {
-      gpm = std::dynamic_pointer_cast<wsr88d::rpg::GraphicProductMessage>(
-         message);
+      gpm =
+         std::dynamic_pointer_cast<wsr88d::rpg::GraphicProductMessage>(message);
    }
    if (gpm != nullptr)
    {
@@ -420,8 +414,7 @@ void OverlayProductLayer::Impl::UpdateGraphicOverlay(
 
    for (std::size_t layer = 0; layer < psb->number_of_layers(); ++layer)
    {
-      auto packetList =
-         psb->packet_list(static_cast<std::uint16_t>(layer));
+      auto packetList = psb->packet_list(static_cast<std::uint16_t>(layer));
       std::string lastLabel;
 
       for (auto& packet : packetList)
@@ -447,10 +440,10 @@ void OverlayProductLayer::Impl::UpdateGraphicOverlay(
                   continue;
                }
 
-               const std::string label = FindAssociatedLabel(
-                  packetList,
-                  hailPacket->i_position(r),
-                  hailPacket->j_position(r));
+               const std::string label =
+                  FindAssociatedLabel(packetList,
+                                      hailPacket->i_position(r),
+                                      hailPacket->j_position(r));
                if (!label.empty())
                {
                   lastLabel = label;
@@ -505,8 +498,7 @@ void OverlayProductLayer::Impl::UpdateGraphicOverlay(
                geoIcons_->SetIconLocation(
                   di, coord.latitude_, coord.longitude_);
                geoIcons_->SetIconHoverText(
-                  di,
-                  positive ? "Hail (Positive)" : "Hail (Probable)");
+                  di, positive ? "Hail (Positive)" : "Hail (Probable)");
             }
             break;
          }
@@ -530,19 +522,19 @@ void OverlayProductLayer::Impl::UpdateGraphicOverlay(
                   continue;
                }
 
-               const std::string label = FindAssociatedLabel(
-                  packetList,
-                  featurePacket->i_position(r),
-                  featurePacket->j_position(r));
+               const std::string label =
+                  FindAssociatedLabel(packetList,
+                                      featurePacket->i_position(r),
+                                      featurePacket->j_position(r));
                if (!label.empty())
                {
                   lastLabel = label;
                }
 
-               const auto coord = SymbolCoordinate(
-                  center,
-                  featurePacket->i_position(r),
-                  featurePacket->j_position(r));
+               const auto coord =
+                  SymbolCoordinate(center,
+                                   featurePacket->i_position(r),
+                                   featurePacket->j_position(r));
 
                auto di = geoIcons_->AddIcon();
                geoIcons_->SetIconLocation(
@@ -596,10 +588,10 @@ void OverlayProductLayer::Impl::UpdateGraphicOverlay(
                   continue;
                }
 
-               const std::string label = FindAssociatedLabel(
-                  packetList,
-                  mesoPacket->i_position(r),
-                  mesoPacket->j_position(r));
+               const std::string label =
+                  FindAssociatedLabel(packetList,
+                                      mesoPacket->i_position(r),
+                                      mesoPacket->j_position(r));
                if (!label.empty())
                {
                   lastLabel = label;
@@ -610,17 +602,14 @@ void OverlayProductLayer::Impl::UpdateGraphicOverlay(
                   di,
                   mesoIconSheet_,
                   MesocycloneIconIndexFromPacketCode(packetCode));
-               const auto coord = SymbolCoordinate(center,
-                                                   mesoPacket->i_position(r),
-                                                   mesoPacket->j_position(r));
+               const auto coord = SymbolCoordinate(
+                  center, mesoPacket->i_position(r), mesoPacket->j_position(r));
                geoIcons_->SetIconLocation(
                   di, coord.latitude_, coord.longitude_);
                geoIcons_->SetIconHoverText(
                   di,
                   LegacyMesocycloneHoverText(
-                     label,
-                     packetCode,
-                     mesoPacket->radius_of_mesocyclone(r)));
+                     label, packetCode, mesoPacket->radius_of_mesocyclone(r)));
             }
             break;
          }
@@ -639,10 +628,10 @@ void OverlayProductLayer::Impl::UpdateGraphicOverlay(
 
             for (std::size_t r = 0; r < tvsPacket->RecordCount(); ++r)
             {
-               const std::string label = FindAssociatedLabel(
-                  packetList,
-                  tvsPacket->i_position(r),
-                  tvsPacket->j_position(r));
+               const std::string label =
+                  FindAssociatedLabel(packetList,
+                                      tvsPacket->i_position(r),
+                                      tvsPacket->j_position(r));
                if (!label.empty())
                {
                   lastLabel = label;
@@ -661,8 +650,7 @@ void OverlayProductLayer::Impl::UpdateGraphicOverlay(
             break;
          }
 
-         case static_cast<std::uint16_t>(
-            wsr88d::rpg::PacketCode::ScitPastData):
+         case static_cast<std::uint16_t>(wsr88d::rpg::PacketCode::ScitPastData):
          case static_cast<std::uint16_t>(
             wsr88d::rpg::PacketCode::ScitForecastData):
          {
@@ -741,7 +729,7 @@ void OverlayProductLayer::Impl::UpdateStormTrackingInformation(
 
    auto overlayProductView  = mapContext->overlay_product_view();
    auto radarProductManager = overlayProductView->radar_product_manager();
-   auto message = overlayProductView->radar_product_message("NST");
+   auto message             = overlayProductView->radar_product_message("NST");
 
    float latitude  = 0.0f;
    float longitude = 0.0f;

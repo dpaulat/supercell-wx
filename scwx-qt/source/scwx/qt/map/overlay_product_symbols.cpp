@@ -16,12 +16,11 @@ namespace
 
 constexpr std::int16_t kBeyondRangeProbability = -999;
 
-const std::array<std::string, 5> kOverlayProducts_ {
-   std::string {kNstProduct},
-   std::string {kNhiProduct},
-   std::string {kNmdProduct},
-   std::string {kNtvProduct},
-   std::string {kNmeProduct}};
+const std::array<std::string, 5> kOverlayProducts_ {std::string {kNstProduct},
+                                                    std::string {kNhiProduct},
+                                                    std::string {kNmdProduct},
+                                                    std::string {kNtvProduct},
+                                                    std::string {kNmeProduct}};
 
 const std::unordered_set<std::int16_t> kOverlayProductCodes_ {
    58, 59, 60, 61, 141};
@@ -199,8 +198,7 @@ std::string LegacyMesocycloneHoverText(const std::string& label,
    }
 
    hoverText += fmt::format(
-      "\nType: {}",
-      packetCode == 11 ? "3-D Correlated Shear" : "Mesocyclone");
+      "\nType: {}", packetCode == 11 ? "3-D Correlated Shear" : "Mesocyclone");
    hoverText += fmt::format("\nRadius: {:.2f} km", radiusQuarterKm * 0.25);
    return hoverText;
 }
@@ -241,7 +239,10 @@ std::string TvsHoverText(const std::string& label, const std::string& typeName)
 
 std::string TrimLabel(std::string text)
 {
-   auto notSpace = [](unsigned char ch) { return !std::isspace(ch); };
+   auto notSpace = [](unsigned char ch)
+   {
+      return !std::isspace(ch);
+   };
 
    text.erase(text.begin(), std::find_if(text.begin(), text.end(), notSpace));
    text.erase(std::find_if(text.rbegin(), text.rend(), notSpace).base(),

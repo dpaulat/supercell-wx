@@ -37,7 +37,7 @@ public:
    void UpdateAll();
    void UpdateAutoRefresh(bool enabled) const;
 
-   OverlayProductView* self_;
+   OverlayProductView*                                 self_;
    std::unordered_map<std::string, boost::uuids::uuid> uuidMap_ {};
 
    boost::uuids::uuid UuidFor(const std::string& product)
@@ -45,9 +45,8 @@ public:
       auto it = uuidMap_.find(product);
       if (it == uuidMap_.end())
       {
-         it = uuidMap_
-                 .emplace(product, boost::uuids::random_generator()())
-                 .first;
+         it =
+            uuidMap_.emplace(product, boost::uuids::random_generator()()).first;
       }
       return it->second;
    }
@@ -358,7 +357,7 @@ void OverlayProductView::Impl::Update(const std::string& product)
    {
       logger_->debug("{} data not found", product);
 
-      std::unique_lock lock {messageMutex_};
+      std::unique_lock  lock {messageMutex_};
       const std::size_t elementsRemoved = messageMap_.erase(product);
       lock.unlock();
 
@@ -401,10 +400,8 @@ void OverlayProductView::Impl::UpdateAutoRefresh(bool enabled) const
 
    for (const auto& product : map::OverlayProductNames())
    {
-      radarProductManager_->EnableRefresh(common::RadarProductGroup::Level3,
-                                          product,
-                                          enabled,
-                                          UuidFor(product));
+      radarProductManager_->EnableRefresh(
+         common::RadarProductGroup::Level3, product, enabled, UuidFor(product));
    }
 }
 

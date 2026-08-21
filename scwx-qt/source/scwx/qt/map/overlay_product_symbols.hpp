@@ -24,18 +24,18 @@ inline constexpr std::size_t kHailIconLarge  = 2;
 inline constexpr std::size_t kHailIconSevere = 3;
 
 // Mesocyclone icon sheet indices
-inline constexpr std::size_t kMesoIconShear           = 0;
-inline constexpr std::size_t kMesoIconCirculation     = 1;
-inline constexpr std::size_t kMesoIconElevatedStrong  = 2;
-inline constexpr std::size_t kMesoIconLowLevelStrong  = 3;
+inline constexpr std::size_t kMesoIconShear          = 0;
+inline constexpr std::size_t kMesoIconCirculation    = 1;
+inline constexpr std::size_t kMesoIconElevatedStrong = 2;
+inline constexpr std::size_t kMesoIconLowLevelStrong = 3;
 
 // TVS icon sheet indices
 inline constexpr std::size_t kTvsIconTvs  = 0;
 inline constexpr std::size_t kTvsIconEtvs = 1;
 
 const std::vector<std::string>& OverlayProductNames();
-bool IsOverlayProduct(const std::string& product);
-bool IsOverlayProductCode(std::int16_t productCode);
+bool                            IsOverlayProduct(const std::string& product);
+bool                            IsOverlayProductCode(std::int16_t productCode);
 
 bool        HailSymbolVisible(std::int16_t probabilityOfHail);
 std::size_t HailIconIndex(std::int16_t  probabilityOfHail,

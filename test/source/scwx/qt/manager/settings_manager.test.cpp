@@ -98,7 +98,7 @@ static void NormalizeProductDefaults(boost::json::value& root)
       return;
    }
 
-   boost::json::object& obj = root.as_object();
+   boost::json::object& obj       = root.as_object();
    auto                 productIt = obj.find("product");
    if (productIt == obj.end() || !productIt->value().is_object())
    {

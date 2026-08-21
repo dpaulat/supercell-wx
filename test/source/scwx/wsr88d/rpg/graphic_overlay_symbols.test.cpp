@@ -17,9 +17,8 @@ std::shared_ptr<rpg::GraphicProductMessage>
 LoadGraphicProduct(const std::string& filename)
 {
    Level3File file;
-   const bool fileValid =
-      file.LoadFile(std::string(SCWX_TEST_DATA_DIR) + "/nexrad/level3/" +
-                    filename);
+   const bool fileValid = file.LoadFile(std::string(SCWX_TEST_DATA_DIR) +
+                                        "/nexrad/level3/" + filename);
    EXPECT_TRUE(fileValid);
    auto message = file.message();
    EXPECT_NE(message, nullptr);
@@ -38,7 +37,7 @@ TEST(GraphicOverlaySymbols, HailIndex)
    ASSERT_NE(psb, nullptr);
    ASSERT_GE(psb->number_of_layers(), 1);
 
-   auto packets = psb->packet_list(0);
+   auto        packets      = psb->packet_list(0);
    std::size_t hailCount    = 0;
    std::size_t stormIdCount = 0;
    bool        foundP3      = false;
@@ -90,8 +89,8 @@ TEST(GraphicOverlaySymbols, MesocycloneDetection)
    ASSERT_NE(psb, nullptr);
    ASSERT_GE(psb->number_of_layers(), 1);
 
-   auto        packets     = psb->packet_list(0);
-   std::size_t featureCount = 0;
+   auto        packets       = psb->packet_list(0);
+   std::size_t featureCount  = 0;
    bool        foundLowLevel = false;
 
    for (const auto& packet : packets)
@@ -128,9 +127,9 @@ TEST(GraphicOverlaySymbols, TornadicVortexSignature)
    ASSERT_NE(psb, nullptr);
    ASSERT_GE(psb->number_of_layers(), 1);
 
-   auto        packets   = psb->packet_list(0);
-   std::size_t tvsCount  = 0;
-   bool        foundM9   = false;
+   auto        packets  = psb->packet_list(0);
+   std::size_t tvsCount = 0;
+   bool        foundM9  = false;
 
    for (const auto& packet : packets)
    {
