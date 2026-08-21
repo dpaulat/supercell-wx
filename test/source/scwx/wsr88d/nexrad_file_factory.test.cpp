@@ -78,7 +78,7 @@ TEST_P(NexradFileSaveTest, SaveRoundTrip)
 {
    const std::string filename = std::string(SCWX_TEST_DATA_DIR) + GetParam();
 
-   std::shared_ptr<NexradFile> file = NexradFileFactory::Create(filename);
+   const std::shared_ptr<NexradFile> file = NexradFileFactory::Create(filename);
    ASSERT_NE(file, nullptr);
    ASSERT_TRUE(file->has_file_data());
 
@@ -101,8 +101,8 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST(NexradFile, SaveFileWithoutData)
 {
-   Ar2vFile   file;
-   const auto tempPath =
+   const Ar2vFile file;
+   const auto     tempPath =
       std::filesystem::temp_directory_path() / "scwx_nexrad_export_missing";
 
    EXPECT_FALSE(file.has_file_data());

@@ -906,14 +906,14 @@ RadarProductManager::GetRadarProductRecord(
 
    if (group == common::RadarProductGroup::Level2)
    {
-      std::shared_lock lock {p->level2ProductRecordMutex_};
+      const std::shared_lock lock {p->level2ProductRecordMutex_};
       return lookupRecord(p->level2ProductRecords_, time);
    }
 
    if (group == common::RadarProductGroup::Level3)
    {
-      std::shared_lock lock {p->level3ProductRecordMutex_};
-      auto             it = p->level3ProductRecordsMap_.find(product);
+      const std::shared_lock lock {p->level3ProductRecordMutex_};
+      auto                   it = p->level3ProductRecordsMap_.find(product);
       if (it != p->level3ProductRecordsMap_.cend())
       {
          return lookupRecord(it->second, time);

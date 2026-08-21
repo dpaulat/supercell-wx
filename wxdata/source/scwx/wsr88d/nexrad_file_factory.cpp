@@ -3,9 +3,12 @@
 #include <scwx/wsr88d/level3_file.hpp>
 #include <scwx/util/logger.hpp>
 
-#include <array>
+#include <cstddef>
+#include <cstring>
 #include <fstream>
+#include <iterator>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #if defined(_MSC_VER)
@@ -39,23 +42,17 @@ namespace wsr88d
 static const std::string logPrefix_ = "scwx::wsr88d::nexrad_file_factory";
 static const auto        logger_    = util::Logger::Create(logPrefix_);
 
+static constexpr std::size_t kFileHeaderSize = 8;
+
 static std::vector<std::uint8_t> ReadStream(std::istream& is)
 {
-   std::vector<std::uint8_t> data {};
-   std::array<char, 4096>    buffer {};
-
-   while (is)
+   using CharIterator = std::istreambuf_iterator<char>;
+   const std::vector<char>   raw {CharIterator {is}, CharIterator {}};
+   std::vector<std::uint8_t> data(raw.size());
+   if (!raw.empty())
    {
-      is.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
-      const auto count = is.gcount();
-      if (count > 0)
-      {
-         const auto* begin =
-            reinterpret_cast<const std::uint8_t*>(buffer.data());
-         data.insert(data.end(), begin, begin + count);
-      }
+      std::memcpy(data.data(), raw.data(), raw.size());
    }
-
    return data;
 }
 
@@ -88,7 +85,7 @@ NexradFileFactory::Create(std::istream& is, const std::string& sourcePath)
    std::shared_ptr<NexradFile> message = nullptr;
 
    std::vector<std::uint8_t> originalData = ReadStream(is);
-   if (originalData.size() < 8)
+   if (originalData.size() < kFileHeaderSize)
    {
       logger_->warn("Error reading file");
       return nullptr;
@@ -105,9 +102,10 @@ NexradFileFactory::Create(std::istream& is, const std::string& sourcePath)
    std::string       buffer;
    bool              dataValid;
 
-   buffer.resize(8);
+   buffer.resize(kFileHeaderSize);
 
-   originalStream.read(buffer.data(), 8);
+   originalStream.read(buffer.data(),
+                       static_cast<std::streamsize>(kFileHeaderSize));
    dataValid = originalStream.good();
    originalStream.seekg(pisBegin, std::ios_base::beg);
 
@@ -124,7 +122,7 @@ NexradFileFactory::Create(std::istream& is, const std::string& sourcePath)
          pis      = &ss;
          pisBegin = ss.tellg();
 
-         ss.read(buffer.data(), 8);
+         ss.read(buffer.data(), static_cast<std::streamsize>(kFileHeaderSize));
          dataValid = ss.good();
          ss.seekg(pisBegin, std::ios_base::beg);
 

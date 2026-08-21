@@ -852,7 +852,7 @@ void MainWindow::on_actionSaveNexrad_triggered()
 
    static const std::string nexradFilter = "NEXRAD Products (*)";
 
-   QFileDialog* dialog = new QFileDialog(this);
+   auto dialog = new QFileDialog(this);
 
    dialog->setAcceptMode(QFileDialog::AcceptSave);
    dialog->setFileMode(QFileDialog::AnyFile);
