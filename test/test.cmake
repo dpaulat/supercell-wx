@@ -33,6 +33,7 @@ set(SRC_PROVIDER_TESTS source/scwx/provider/aws_level2_data_provider.test.cpp
                        source/scwx/provider/warnings_provider.test.cpp)
 set(SRC_QT_CONFIG_TESTS source/scwx/qt/config/county_database.test.cpp
                         source/scwx/qt/config/radar_site.test.cpp)
+set(SRC_QT_GL_TESTS source/scwx/qt/gl/gl_context.test.cpp)
 set(SRC_QT_MAIN_TESTS source/scwx/qt/main/application_paths.test.cpp
                       source/scwx/qt/main/program_options.test.cpp
                       source/scwx/qt/main/theme.test.cpp)
@@ -75,6 +76,7 @@ add_executable(wxtest ${SRC_MAIN}
                       ${SRC_NETWORK_TESTS}
                       ${SRC_PROVIDER_TESTS}
                       ${SRC_QT_CONFIG_TESTS}
+                      ${SRC_QT_GL_TESTS}
                       ${SRC_QT_MAIN_TESTS}
                       ${SRC_QT_MANAGER_TESTS}
                       ${SRC_QT_MAP_TESTS}
@@ -95,6 +97,7 @@ source_group("Source Files\\gr"           FILES ${SRC_GR_TESTS})
 source_group("Source Files\\network"      FILES ${SRC_NETWORK_TESTS})
 source_group("Source Files\\provider"     FILES ${SRC_PROVIDER_TESTS})
 source_group("Source Files\\qt\\config"   FILES ${SRC_QT_CONFIG_TESTS})
+source_group("Source Files\\qt\\gl"       FILES ${SRC_QT_GL_TESTS})
 source_group("Source Files\\qt\\main"     FILES ${SRC_QT_MAIN_TESTS})
 source_group("Source Files\\qt\\manager"  FILES ${SRC_QT_MANAGER_TESTS})
 source_group("Source Files\\qt\\map"      FILES ${SRC_QT_MAP_TESTS})
