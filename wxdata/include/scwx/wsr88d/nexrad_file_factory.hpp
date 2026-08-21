@@ -18,7 +18,8 @@ public:
    NexradFileFactory& operator=(NexradFileFactory&&) noexcept = delete;
 
    static std::shared_ptr<NexradFile> Create(const std::string& filename);
-   static std::shared_ptr<NexradFile> Create(std::istream& is);
+   static std::shared_ptr<NexradFile>
+   Create(std::istream& is, const std::string& sourcePath = {});
 };
 
 } // namespace wsr88d

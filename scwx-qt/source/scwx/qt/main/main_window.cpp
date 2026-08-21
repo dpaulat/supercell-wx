@@ -71,6 +71,7 @@
 #include <QActionGroup>
 #include <QDesktopServices>
 #include <QDialog>
+#include <QDir>
 #include <QFileDialog>
 #include <QGuiApplication>
 #include <QJsonArray>
@@ -810,6 +811,82 @@ void MainWindow::on_actionOpenTextEvent_triggered()
               logger_->info("Selected: {}", file.toStdString());
               p->textEventManager_->LoadFile(file.toStdString());
            });
+
+   dialog->open();
+}
+
+void MainWindow::on_actionSaveNexrad_triggered()
+{
+   map::MapWidget* currentMap = p->activeMap_;
+   if (currentMap == nullptr)
+   {
+      return;
+   }
+
+   auto radarSite = currentMap->GetRadarSite();
+   if (radarSite == nullptr)
+   {
+      QMessageBox::warning(this,
+                           tr("Save NEXRAD Product"),
+                           tr("No radar site is selected."));
+      return;
+   }
+
+   auto manager = manager::RadarProductManager::Instance(radarSite->id());
+   auto record  = manager->GetRadarProductRecord(
+      currentMap->GetRadarProductGroup(),
+      currentMap->GetRadarProductName(),
+      currentMap->GetSelectedTime());
+
+   auto nexradFile = (record != nullptr) ? record->nexrad_file() : nullptr;
+   if (nexradFile == nullptr || !nexradFile->has_file_data())
+   {
+      QMessageBox::warning(
+         this,
+         tr("Save NEXRAD Product"),
+         tr("The currently displayed radar product is not available as a "
+            "complete NEXRAD file. This can happen while a live Level 2 volume "
+            "is still being received. Select a completed historical volume, "
+            "then try again."));
+      return;
+   }
+
+   static const std::string nexradFilter = "NEXRAD Products (*)";
+
+   QFileDialog* dialog = new QFileDialog(this);
+
+   dialog->setAcceptMode(QFileDialog::AcceptSave);
+   dialog->setFileMode(QFileDialog::AnyFile);
+   dialog->setNameFilter(tr(nexradFilter.c_str()));
+   dialog->setAttribute(Qt::WA_DeleteOnClose);
+   dialog->selectFile(QString::fromStdString(record->suggested_filename()));
+
+   // Make sure the parent window properly repaints on close
+   connect(dialog,
+           &QFileDialog::finished,
+           this,
+           static_cast<void (MainWindow::*)()>(&MainWindow::update),
+           Qt::QueuedConnection);
+
+   connect(
+      dialog,
+      &QFileDialog::fileSelected,
+      this,
+      [this, nexradFile](const QString& file)
+      {
+         const std::string filename =
+            QDir::toNativeSeparators(file).toStdString();
+         logger_->info("Saving NEXRAD product: {}", filename);
+
+         if (!nexradFile->SaveFile(filename))
+         {
+            QMessageBox::critical(
+               this,
+               tr("Save NEXRAD Product"),
+               tr("Unable to save NEXRAD product to %1.")
+                  .arg(QDir::toNativeSeparators(file)));
+         }
+      });
 
    dialog->open();
 }
