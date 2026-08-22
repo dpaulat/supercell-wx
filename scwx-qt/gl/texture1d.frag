@@ -4,7 +4,10 @@
 precision mediump float;
 
 uniform sampler1D uTexture;
-uniform float uOpacity;
+layout(std140) uniform LayerState
+{
+   float uOpacity;
+};
 
 in float texCoord;
 

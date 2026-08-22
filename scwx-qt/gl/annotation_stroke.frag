@@ -7,7 +7,10 @@ smooth in float vDashPeriod;
 smooth in float vDashDuty;
 
 uniform int uHatchMode;
-uniform float uOpacity;
+layout(std140) uniform LayerState
+{
+   float uOpacity;
+};
 
 layout(location = 0) out vec4 fragColor;
 

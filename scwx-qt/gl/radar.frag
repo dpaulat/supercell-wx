@@ -6,7 +6,10 @@ precision mediump float;
 uniform sampler1D uTexture;
 uniform uint uDataMomentOffset;
 uniform float uDataMomentScale;
-uniform float uOpacity;
+layout(std140) uniform LayerState
+{
+   float uOpacity;
+};
 
 uniform bool uCFPEnabled;
 

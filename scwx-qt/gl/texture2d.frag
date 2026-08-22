@@ -4,7 +4,10 @@
 precision mediump float;
 
 uniform sampler2D uTexture;
-uniform float uOpacity;
+layout(std140) uniform LayerState
+{
+   float uOpacity;
+};
 
 smooth in vec2 texCoord;
 smooth in vec4 color;
