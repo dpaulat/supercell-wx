@@ -58,4 +58,14 @@ float GenericLayer::opacity() const
    return p->opacity_;
 }
 
+void GenericLayer::BindLayerState()
+{
+   p->glContext_->set_layer_opacity(p->opacity_);
+}
+
+void GenericLayer::ResetLayerState()
+{
+   p->glContext_->set_layer_opacity(1.0f);
+}
+
 } // namespace scwx::qt::map
