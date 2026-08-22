@@ -39,7 +39,7 @@ jobs:
             vs_version: 18
             qt_version: 6.11.1
             qt_arch_aqt: win64_msvc2022_arm64_cross_compiled
-            qt_arch_dir: win64_msvc2022_arm64
+            qt_arch_dir: msvc2022_arm64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             conan_build_profile: scwx-windows_vs2026_x64
             conan_host_profile: scwx-windows_vs2026_armv8
@@ -91,9 +91,12 @@ jobs:
         $vsDevCmd = Join-Path $vsPath "Common7\Tools\VsDevCmd.bat"
         if (-not (Test-Path $vsDevCmd)) { throw "VsDevCmd not found at $vsDevCmd" }
 
-        $arch = if ("${{ matrix.vs_arch }}" -eq "x64") { "amd64" } else { "${{ matrix.vs_arch }}" }
+        # GitHub-hosted Windows images are x64. ARM64 is produced with the
+        # x64-hosted cross compiler (Hostx64\arm64), not HostARM64\ARM64.
+        $targetArch = if ("${{ matrix.vs_arch }}" -eq "x64") { "amd64" } else { "${{ matrix.vs_arch }}" }
+        $hostArch = if ("${{ matrix.vs_arch }}" -eq "arm64") { "amd64" } else { $targetArch }
 
-        cmd.exe /d /s /c """$vsDevCmd"" -arch=$arch -host_arch=$arch && set" |
+        cmd.exe /d /s /c """$vsDevCmd"" -arch=$targetArch -host_arch=$hostArch && set" |
           ForEach-Object {
             if ($_ -match "^(.*?)=(.*)$") {
               "$($matches[1])=$($matches[2])" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
@@ -142,7 +145,7 @@ jobs:
           -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/supercell-wx" `
           -DCONAN_HOST_PROFILE="${{ matrix.conan_host_profile }}" `
           -DCONAN_BUILD_PROFILE="${{ matrix.conan_build_profile }}"
-        ninja supercell-wx wxtest
+        ninja supercell-wx
 
     - name: Install Supercell Wx
       shell: pwsh
