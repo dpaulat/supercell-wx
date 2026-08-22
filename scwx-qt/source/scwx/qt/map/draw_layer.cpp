@@ -1,7 +1,6 @@
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/map/draw_layer.hpp>
 #include <scwx/qt/model/imgui_context_model.hpp>
-#include <scwx/qt/gl/shader_program.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <ranges>
@@ -103,11 +102,13 @@ void DrawLayer::ImGuiFrameStart(const std::shared_ptr<MapContext>& mapContext)
    ImGui_ImplOpenGL3_NewFrame();
    ImGui::NewFrame();
    ImGui::PushFont(defaultFont.first->font(), defaultFont.second.value());
+   ImGui::PushStyleVar(ImGuiStyleVar_Alpha, opacity());
 }
 
 void DrawLayer::ImGuiFrameEnd()
 {
-   // Pop default font
+   // Pop default style and font
+   ImGui::PopStyleVar();
    ImGui::PopFont();
 
    // Render ImGui Frame
