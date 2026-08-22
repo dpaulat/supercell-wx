@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <boost/container_hash/hash.hpp>
 #include <QMessageBox>
+#include <QOpenGLContext>
 
 namespace scwx::qt::gl
 {
@@ -18,7 +19,7 @@ public:
    explicit Impl() = default;
    ~Impl()
    {
-      if (layerStateUbo_ != 0)
+      if (layerStateUbo_ != 0 && QOpenGLContext::currentContext() != nullptr)
       {
          glDeleteBuffers(1, &layerStateUbo_);
          layerStateUbo_ = 0;
@@ -126,7 +127,7 @@ void GlContext::Impl::InitializeGL()
    glInitialized_ = true;
 }
 
-void BindLayerStateBlock(GLuint programId)
+static void BindLayerStateBlock(GLuint programId)
 {
    const GLuint index = glGetUniformBlockIndex(programId, kLayerStateBlockName);
    if (index != GL_INVALID_INDEX)

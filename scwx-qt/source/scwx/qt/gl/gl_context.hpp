@@ -3,6 +3,7 @@
 #include <scwx/qt/gl/gl.hpp>
 #include <scwx/qt/gl/shader_program.hpp>
 
+#include <array>
 #include <cstdint>
 
 namespace scwx
@@ -17,8 +18,8 @@ inline constexpr const char* kLayerStateBlockName {"LayerState"};
 
 struct alignas(16) LayerStateBlock
 {
-   float opacity {1.0f};
-   float pad[3] {};
+   float                opacity {1.0f};
+   std::array<float, 3> pad {};
 };
 
 static_assert(sizeof(LayerStateBlock) == 16);
