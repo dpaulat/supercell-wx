@@ -7,6 +7,7 @@
 ; Built after cpack by tools/build-windows-nsis-bootstrapper.ps1.
 ; Required defines:
 ;   SCWX_VERSION
+;   SCWX_ARCH            (x64 or arm64)
 ;   SCWX_NSIS_PLUGINDIR  (data/nsis/plugins/x86-unicode - ShellExecAsUser.dll)
 ; Optional defines (defaults assume staged files in the makensis working directory):
 ;   SCWX_OUTFILE, SCWX_MSI (source path), SCWX_MSI_FILE (embedded name),
@@ -17,17 +18,27 @@
   !error "SCWX_VERSION must be defined (e.g. makensis /DSCWX_VERSION=x.y.z)"
 !endif
 
+!ifndef SCWX_ARCH
+  !error "SCWX_ARCH must be defined (x64 or arm64)"
+!endif
+!if "${SCWX_ARCH}" != "x64"
+  !if "${SCWX_ARCH}" != "arm64"
+    !error "SCWX_ARCH must be x64 or arm64"
+  !endif
+!endif
+
 !ifndef SCWX_OUTFILE
-  !define SCWX_OUTFILE "supercell-wx-v${SCWX_VERSION}-windows-x64.exe"
+  !define SCWX_OUTFILE "supercell-wx-v${SCWX_VERSION}-windows-${SCWX_ARCH}.exe"
 !endif
 !ifndef SCWX_MSI_FILE
-  !define SCWX_MSI_FILE "supercell-wx-v${SCWX_VERSION}-windows-x64.msi"
+  !define SCWX_MSI_FILE "supercell-wx-v${SCWX_VERSION}-windows-${SCWX_ARCH}.msi"
 !endif
 !ifndef SCWX_MSI
   !define SCWX_MSI "${SCWX_MSI_FILE}"
 !endif
+!define SCWX_VC_REDIST_FILE "VC_redist.${SCWX_ARCH}.exe"
 !ifndef SCWX_VC_REDIST
-  !define SCWX_VC_REDIST "VC_redist.x64.exe"
+  !define SCWX_VC_REDIST "${SCWX_VC_REDIST_FILE}"
 !endif
 !ifndef SCWX_LICENSE
   !define SCWX_LICENSE "License.rtf"
@@ -137,19 +148,26 @@ FunctionEnd
 Section "Install"
   StrCpy $RedistRebootRequired 0
 
-  ${IfNot} ${RunningX64}
-    Push "Supercell Wx requires 64-bit Windows."
+!if "${SCWX_ARCH}" == "arm64"
+  ${IfNot} ${IsNativeARM64}
+    Push "This installer requires 64-bit ARM Windows."
     Call Bootstrapper_Fail
   ${EndIf}
+!else
+  ${IfNot} ${IsNativeAMD64}
+    Push "This installer requires 64-bit Intel/AMD Windows."
+    Call Bootstrapper_Fail
+  ${EndIf}
+!endif
 
   InitPluginsDir
   SetOutPath "$PLUGINSDIR"
 
-  File "/oname=VC_redist.x64.exe" "${SCWX_VC_REDIST}"
+  File "/oname=${SCWX_VC_REDIST_FILE}" "${SCWX_VC_REDIST}"
   File "/oname=${SCWX_MSI_FILE}" "${SCWX_MSI}"
 
-  DetailPrint "Installing Microsoft Visual C++ Redistributable (x64)..."
-  ExecWait '"$PLUGINSDIR\VC_redist.x64.exe" /install /quiet /norestart' $0
+  DetailPrint "Installing Microsoft Visual C++ Redistributable (${SCWX_ARCH})..."
+  ExecWait '"$PLUGINSDIR\${SCWX_VC_REDIST_FILE}" /install /quiet /norestart' $0
 
   ; Accept 0 (success), 1638 (newer already installed), 3010 (reboot needed).
   ${If} $0 == 3010

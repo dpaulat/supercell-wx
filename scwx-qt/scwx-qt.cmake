@@ -913,12 +913,17 @@ target_link_libraries(supercell-wx PRIVATE scwx-qt
                                            wxdata)
 
 if (WIN32)
-    # Deploy Qt to target directory (CRT comes from the NSIS bootstrapper / system redist)
+    scwx_windeployqt_qtpaths_options(_qtpaths_opts)
+
+    set(SCWX_WINDEPLOYQT_OPTIONS --no-translations
+                                 --no-compiler-runtime # (CRT comes from the NSIS bootstrapper / system redist)
+                                 ${_qtpaths_opts})
+
+    # Deploy Qt to target directory 
     add_custom_command(TARGET supercell-wx
                        POST_BUILD
                        COMMAND "${WINDEPLOYQT_EXECUTABLE}"
-                           --no-translations
-                           --no-compiler-runtime
+                           ${SCWX_WINDEPLOYQT_OPTIONS}
                            $<TARGET_FILE:supercell-wx>
                        COMMENT "Running windeployqt for supercell-wx...")
 endif()
@@ -929,12 +934,23 @@ if (LINUX)
     set_target_properties(supercell-wx PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
 endif()
 
-install(TARGETS supercell-wx
-                MLNQtCore # QMapLibre::Core
+# install(TARGETS RUNTIME_DEPENDENCIES) is rejected when CMAKE_CROSSCOMPILING.
+# Qt's Windows ARM64 toolchain sets that on x64 hosts; copy imported runtime
+# DLLs instead. windeployqt still deploys Qt.
+if (NOT CMAKE_CROSSCOMPILING)
+    set(_scwx_runtime_dependencies
         RUNTIME_DEPENDENCIES
           PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-" "qt6"
           POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
                                "^(/usr)?/lib/.*\\.so(\\..*)?"
+    )
+else()
+    set(_scwx_runtime_dependencies)
+endif()
+
+install(TARGETS supercell-wx
+                MLNQtCore # QMapLibre::Core
+        ${_scwx_runtime_dependencies}
         RUNTIME
           COMPONENT supercell-wx
         BUNDLE
@@ -949,6 +965,36 @@ install(TARGETS supercell-wx
           COMPONENT supercell-wx
           OPTIONAL)
 
+if (WIN32 AND CMAKE_CROSSCOMPILING)
+    # TARGET_RUNTIME_DLLS only lists direct link dependencies. Transitive
+    # runtime DLLs (e.g. iconv-2.dll via fontconfig) are staged next to the
+    # executable by conanfile.py generate() but are omitted from install
+    # without RUNTIME_DEPENDENCIES (unsupported when cross-compiling).
+    install(CODE "
+        set(_scwx_runtime_dlls
+            \"$<TARGET_RUNTIME_DLLS:supercell-wx>\"
+            \"$<TARGET_RUNTIME_DLLS:MLNQtCore>\")
+        file(GLOB _scwx_staged_dlls \"$<TARGET_FILE_DIR:supercell-wx>/*.dll\")
+        list(APPEND _scwx_runtime_dlls \${_scwx_staged_dlls})
+        list(REMOVE_DUPLICATES _scwx_runtime_dlls)
+        foreach(_scwx_dll IN LISTS _scwx_runtime_dlls)
+            if(_scwx_dll STREQUAL \"\")
+                continue()
+            endif()
+            get_filename_component(_scwx_dll_name \"\${_scwx_dll}\" NAME)
+            if(_scwx_dll_name MATCHES \"^[Qq]t6\" OR
+               _scwx_dll_name MATCHES \"^(api-ms-|ext-ms-)\")
+                continue()
+            endif()
+            file(INSTALL DESTINATION \"\${CMAKE_INSTALL_PREFIX}/bin\"
+                 TYPE SHARED_LIBRARY
+                 FILES \"\${_scwx_dll}\")
+        endforeach()
+        " COMPONENT supercell-wx)
+endif()
+
+scwx_windeployqt_qtpaths_options(SCWX_DEPLOY_TOOL_OPTIONS)
+
 # NO_TRANSLATIONS is needed for Qt 6.5.0 (will be fixed in 6.5.1)
 # https://bugreports.qt.io/browse/QTBUG-112204
 # NO_COMPILER_RUNTIME: VC++ redistributable is installed by the NSIS bootstrapper
@@ -956,13 +1002,15 @@ qt_generate_deploy_app_script(TARGET MLNQtCore # QMapLibre::Core
                               OUTPUT_SCRIPT deploy_script_qmaplibre_core
                               NO_TRANSLATIONS
                               NO_COMPILER_RUNTIME
-                              NO_UNSUPPORTED_PLATFORM_ERROR)
+                              NO_UNSUPPORTED_PLATFORM_ERROR
+                              DEPLOY_TOOL_OPTIONS ${SCWX_DEPLOY_TOOL_OPTIONS})
 
 qt_generate_deploy_app_script(TARGET supercell-wx
                               OUTPUT_SCRIPT deploy_script_scwx
                               NO_TRANSLATIONS
                               NO_COMPILER_RUNTIME
-                              NO_UNSUPPORTED_PLATFORM_ERROR)
+                              NO_UNSUPPORTED_PLATFORM_ERROR
+                              DEPLOY_TOOL_OPTIONS ${SCWX_DEPLOY_TOOL_OPTIONS})
 
 install(SCRIPT ${deploy_script_qmaplibre_core}
         COMPONENT supercell-wx)
@@ -1028,7 +1076,13 @@ set(SCWX_WINDOWS_PACKAGE_INSTALL_ROOT "" CACHE PATH
     "Existing installed Supercell Wx tree to package for Windows")
 
 if (MSVC)
-    set(CPACK_PACKAGE_FILE_NAME           "supercell-wx-v${SCWX_VERSION}-windows-x64")
+    if (CMAKE_CXX_COMPILER_ARCHITECTURE_ID STREQUAL "ARM64" OR
+        CMAKE_SYSTEM_PROCESSOR MATCHES "^(ARM64|arm64|aarch64)$")
+        set(CPACK_PACKAGE_FILE_NAME "supercell-wx-v${SCWX_VERSION}-windows-arm64")
+    else()
+        set(CPACK_PACKAGE_FILE_NAME "supercell-wx-v${SCWX_VERSION}-windows-x64")
+    endif()
+
     set(CPACK_PACKAGE_INSTALL_DIRECTORY   "Supercell Wx")
     set(CPACK_PACKAGE_ICON                "${CMAKE_CURRENT_SOURCE_DIR}/res/icons/scwx-256.ico")
     set(CPACK_GENERATOR                   WIX)

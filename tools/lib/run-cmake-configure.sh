@@ -18,6 +18,7 @@ if [[ -n "${build_type}" ]]; then
     cmake_args+=(
         -DCMAKE_BUILD_TYPE="${build_type}"
         -DCMAKE_CONFIGURATION_TYPES="${build_type}"
+        -DCONAN_INSTALL_BUILD_CONFIGURATIONS="${build_type}"
         -DCMAKE_INSTALL_PREFIX="${build_dir}/${build_type}/supercell-wx"
     )
 else
