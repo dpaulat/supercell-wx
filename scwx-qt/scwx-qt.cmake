@@ -964,10 +964,16 @@ install(TARGETS supercell-wx
           OPTIONAL)
 
 if (WIN32 AND CMAKE_CROSSCOMPILING)
+    # TARGET_RUNTIME_DLLS only lists direct link dependencies. Transitive
+    # runtime DLLs (e.g. iconv-2.dll via fontconfig) are staged next to the
+    # executable by conanfile.py generate() but are omitted from install
+    # without RUNTIME_DEPENDENCIES (unsupported when cross-compiling).
     install(CODE "
         set(_scwx_runtime_dlls
             \"$<TARGET_RUNTIME_DLLS:supercell-wx>\"
             \"$<TARGET_RUNTIME_DLLS:MLNQtCore>\")
+        file(GLOB _scwx_staged_dlls \"$<TARGET_FILE_DIR:supercell-wx>/*.dll\")
+        list(APPEND _scwx_runtime_dlls \${_scwx_staged_dlls})
         list(REMOVE_DUPLICATES _scwx_runtime_dlls)
         foreach(_scwx_dll IN LISTS _scwx_runtime_dlls)
             if(_scwx_dll STREQUAL \"\")
