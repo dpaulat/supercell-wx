@@ -220,6 +220,7 @@ public:
 
       std::shared_lock const lock {level2ProductRecordMutex_};
 
+      // If a default-initialized time point is given, return the latest record
       if (!level2ProductRecords_.empty() &&
           time == std::chrono::system_clock::time_point {})
       {
@@ -228,6 +229,7 @@ public:
       }
       else
       {
+         // Get the requested record
          auto recordIt =
             scwx::util::GetBoundedElementIterator(level2ProductRecords_, time);
 
@@ -235,6 +237,7 @@ public:
          {
             entries.push_back({recordIt->first, recordIt->second});
 
+            // The requested time may be in the previous record, so get that too
             if (recordIt != level2ProductRecords_.cbegin())
             {
                const auto previousIt = std::prev(recordIt);
@@ -258,6 +261,7 @@ public:
          return std::nullopt;
       }
 
+      // If a default-initialized time point is given, return the latest record
       if (time == std::chrono::system_clock::time_point {})
       {
          const auto& recordEntry = *it->second.rbegin();
@@ -309,17 +313,20 @@ private:
       auto it = std::find(recentList.cbegin(), recentList.cend(), record);
       if (it != recentList.cbegin() && it != recentList.cend())
       {
+         // If the record exists beyond the front of the list, remove it
          recentList.erase(it);
          iteratorErased = true;
       }
 
       if (iteratorErased || recentList.size() == 0 || it != recentList.cbegin())
       {
+         // Add the record to the front of the list, unless it's already there
          recentList.push_front(record);
       }
 
       while (recentList.size() > recentListMaxSize)
       {
+         // Remove from the end of the list while it's too big
          recentList.pop_back();
       }
    }
@@ -361,6 +368,7 @@ private:
 
       auto today = std::chrono::floor<std::chrono::days>(time);
 
+      // Assume a query for the epoch is a query for now
       if (today == std::chrono::system_clock::time_point {})
       {
          today = std::chrono::floor<std::chrono::days>(scwx::util::time::now());
@@ -377,11 +385,13 @@ private:
          [&](const std::shared_ptr<provider::NexradDataProvider>& provider,
              const auto&                                          date)
       {
+         // Don't query for a time point in the future
          if (date > scwx::util::time::now())
          {
             return;
          }
 
+         // Query the provider for volume time points
          const auto timePoints = provider->GetTimePointsByDate(date, update);
          if (timePoints.empty())
          {
@@ -390,8 +400,10 @@ private:
 
          providerManager->NoteVolumeTimes(provider->radar_site(), timePoints);
 
+         // Lock the merged volume time list
          const std::unique_lock volumeTimesLock {volumeTimesMutex};
 
+         // Copy time points to the merged list
          std::copy(timePoints.begin(),
                    timePoints.end(),
                    std::inserter(volumeTimes, volumeTimes.end()));
@@ -405,6 +417,7 @@ private:
          {
             if (provider->IsDateArchiveAvailable())
             {
+               // For yesterday, today and tomorrow (in parallel)
                std::for_each(std::execution::par,
                              dates.begin(),
                              dates.end(),
@@ -435,8 +448,10 @@ private:
             }
          });
 
+      // Lock the product record map
       std::unique_lock const lock {productRecordMutex};
 
+      // Merge volume times into map
       std::transform(
          volumeTimes.cbegin(),
          volumeTimes.cend(),
@@ -506,6 +521,7 @@ bool ProductDatastore::AreProductTimesPopulated(
 
    bool productTimesPopulated = false;
 
+   // Assume a query for the epoch is a query for now
    if (today == std::chrono::system_clock::time_point {})
    {
       today = std::chrono::floor<std::chrono::days>(scwx::util::time::now());
@@ -525,6 +541,7 @@ bool ProductDatastore::AreProductTimesPopulated(
 
          for (const auto& date : dates)
          {
+            // Don't query for a time point in the future
             if (date > scwx::util::time::now())
             {
                continue;
@@ -533,6 +550,7 @@ bool ProductDatastore::AreProductTimesPopulated(
             const auto candidates =
                common::GetRadarIdCandidates(provider->radar_site(), date);
 
+            // Skip dates outside this provider's candidate window
             if (std::ranges::find(candidates, provider->radar_site()) ==
                 candidates.cend())
             {
