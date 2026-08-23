@@ -6,6 +6,7 @@
 @set conan_profile=scwx-windows_vs2026_armv8
 @set conan_build_profile=scwx-windows_vs2026_x64
 @set generator=Visual Studio 18 2026
+@set vs_platform=ARM64
 @set qt_base=C:/Qt
 @set qt_arch=msvc2022_arm64
 @set qt_host_arch=msvc2022_64

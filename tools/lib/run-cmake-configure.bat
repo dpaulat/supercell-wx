@@ -24,6 +24,12 @@ if "%conan_build_profile%" == "" (
         -DQT_ROOT_DIR="%qt_base%/%qt_version%/%qt_arch%"
 )
 
+:: Visual Studio defaults to the host architecture. Pass -A so the generator
+:: platform is ARM64 on first configure, before scwx_config.cmake runs.
+@if defined vs_platform (
+    set cmake_args=%cmake_args% -A %vs_platform%
+)
+
 @if defined build_type (
     set cmake_args=%cmake_args% ^
         -DCMAKE_BUILD_TYPE=%build_type% ^
