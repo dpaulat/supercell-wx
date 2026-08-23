@@ -932,12 +932,23 @@ if (LINUX)
     set_target_properties(supercell-wx PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
 endif()
 
-install(TARGETS supercell-wx
-                MLNQtCore # QMapLibre::Core
+# install(TARGETS RUNTIME_DEPENDENCIES) is rejected when CMAKE_CROSSCOMPILING.
+# Qt's Windows ARM64 toolchain sets that on x64 hosts; copy imported runtime
+# DLLs instead. windeployqt still deploys Qt.
+if (NOT CMAKE_CROSSCOMPILING)
+    set(_scwx_runtime_dependencies
         RUNTIME_DEPENDENCIES
           PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-" "qt6"
           POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
                                "^(/usr)?/lib/.*\\.so(\\..*)?"
+    )
+else()
+    set(_scwx_runtime_dependencies)
+endif()
+
+install(TARGETS supercell-wx
+                MLNQtCore # QMapLibre::Core
+        ${_scwx_runtime_dependencies}
         RUNTIME
           COMPONENT supercell-wx
         BUNDLE
@@ -951,6 +962,28 @@ install(TARGETS supercell-wx
           DESTINATION Frameworks
           COMPONENT supercell-wx
           OPTIONAL)
+
+if (WIN32 AND CMAKE_CROSSCOMPILING)
+    install(CODE "
+        set(_scwx_runtime_dlls
+            \"$<TARGET_RUNTIME_DLLS:supercell-wx>\"
+            \"$<TARGET_RUNTIME_DLLS:MLNQtCore>\")
+        list(REMOVE_DUPLICATES _scwx_runtime_dlls)
+        foreach(_scwx_dll IN LISTS _scwx_runtime_dlls)
+            if(_scwx_dll STREQUAL \"\")
+                continue()
+            endif()
+            get_filename_component(_scwx_dll_name \"\${_scwx_dll}\" NAME)
+            if(_scwx_dll_name MATCHES \"^[Qq]t6\" OR
+               _scwx_dll_name MATCHES \"^(api-ms-|ext-ms-)\")
+                continue()
+            endif()
+            file(INSTALL DESTINATION \"\${CMAKE_INSTALL_PREFIX}/bin\"
+                 TYPE SHARED_LIBRARY
+                 FILES \"\${_scwx_dll}\")
+        endforeach()
+        " COMPONENT supercell-wx)
+endif()
 
 scwx_windeployqt_qtpaths_options(SCWX_DEPLOY_TOOL_OPTIONS)
 

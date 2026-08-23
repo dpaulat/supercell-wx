@@ -15,6 +15,15 @@ if(WIN32 AND NOT CMAKE_TOOLCHAIN_FILE)
             message(STATUS "Using Qt cross-compile toolchain: ${_scwx_qt_tc}")
             message(STATUS "Using host Qt tools from: ${_scwx_qt_host}")
         endif()
+        # Qt's toolchain sets CMAKE_SYSTEM_PROCESSOR=arm64 but does not select
+        # the Visual Studio platform. Without ARM64, try_compile uses x64 cl.
+        if(CMAKE_GENERATOR MATCHES "Visual Studio" AND
+           _scwx_qt_root MATCHES "[Aa][Rr][Mm]64" AND
+           NOT CMAKE_GENERATOR_PLATFORM)
+            set(CMAKE_GENERATOR_PLATFORM ARM64 CACHE STRING
+                "Visual Studio target platform")
+            message(STATUS "Using Visual Studio platform ARM64")
+        endif()
         file(GLOB _scwx_host_tools_dirs "${_scwx_qt_host}/lib/cmake/Qt6*Tools")
         foreach(_scwx_tools_dir IN LISTS _scwx_host_tools_dirs)
             get_filename_component(_scwx_tools_name "${_scwx_tools_dir}" NAME)
@@ -120,6 +129,21 @@ function(scwx_windeployqt_qtpaths_options out_var)
         endif()
         message(STATUS "windeployqt --qtpaths ${_qtpaths}")
         list(APPEND _opts --qtpaths "${_qtpaths}")
+
+        # Target-prefix windeployqt.exe is ARM64 and will not run on an x64 host.
+        set(_host_wdq "")
+        foreach(_candidate IN ITEMS windeployqt.exe windeployqt6.exe)
+            if (EXISTS "${QT_HOST_PATH}/bin/${_candidate}")
+                set(_host_wdq "${QT_HOST_PATH}/bin/${_candidate}")
+                break()
+            endif()
+        endforeach()
+        if (NOT _host_wdq)
+            message(FATAL_ERROR
+                "Host windeployqt not found under ${QT_HOST_PATH}/bin")
+        endif()
+        message(STATUS "Using host windeployqt: ${_host_wdq}")
+        set(WINDEPLOYQT_EXECUTABLE "${_host_wdq}" PARENT_SCOPE)
     endif()
     set(${out_var} ${_opts} PARENT_SCOPE)
 endfunction()
