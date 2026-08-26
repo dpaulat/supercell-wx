@@ -16,6 +16,7 @@ namespace gl
 inline constexpr GLuint      kLayerStateBindingPoint {16};
 inline constexpr const char* kLayerStateBlockName {"LayerState"};
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers): Readability
 struct alignas(16) LayerStateBlock
 {
    float                opacity {1.0f};
@@ -23,6 +24,7 @@ struct alignas(16) LayerStateBlock
 };
 
 static_assert(sizeof(LayerStateBlock) == 16);
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
 
 class GlContext
 {
@@ -46,8 +48,8 @@ public:
 
    GLuint GetTextureAtlas();
 
-   void  set_layer_opacity(float opacity);
-   float layer_opacity() const;
+   void                set_layer_opacity(float opacity);
+   [[nodiscard]] float layer_opacity() const;
 
    void Initialize();
    void StartFrame();

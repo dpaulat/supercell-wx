@@ -1,7 +1,6 @@
 #include <scwx/qt/gl/gl_context.hpp>
 
 #include <cstddef>
-#include <cstring>
 
 #include <gtest/gtest.h>
 
@@ -16,7 +15,7 @@ TEST(LayerStateBlock, Std140Layout)
    EXPECT_EQ(offsetof(LayerStateBlock, opacity), 0u);
    EXPECT_EQ(alignof(LayerStateBlock), 16u);
 
-   LayerStateBlock block {};
+   const LayerStateBlock block {};
    EXPECT_FLOAT_EQ(block.opacity, 1.0f);
 }
 
