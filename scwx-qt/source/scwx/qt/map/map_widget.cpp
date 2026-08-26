@@ -89,15 +89,18 @@ namespace
 
 constexpr int kFallbackEraseCursorRadiusPx {8};
 
+std::string CustomAlertLayerId(awips::Phenomenon phenomenon)
+{
+   return fmt::format("alert.{}", awips::GetPhenomenonCode(phenomenon));
+}
+
 std::string CustomLayerId(types::LayerType        type,
                           types::LayerDescription description)
 {
    if (type == types::LayerType::Alert &&
        std::holds_alternative<awips::Phenomenon>(description))
    {
-      return fmt::format(
-         "alert.{}",
-         awips::GetPhenomenonCode(std::get<awips::Phenomenon>(description)));
+      return CustomAlertLayerId(std::get<awips::Phenomenon>(description));
    }
 
    return types::GetLayerName(type, description);
@@ -1724,9 +1727,7 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
 
       std::shared_ptr<AlertLayer> alertLayer =
          std::make_shared<AlertLayer>(glContext_, phenomenon);
-      AddLayer(fmt::format("alert.{}", awips::GetPhenomenonCode(phenomenon)),
-               alertLayer,
-               before);
+      AddLayer(CustomAlertLayerId(phenomenon), alertLayer, before);
       connect(alertLayer.get(),
               &AlertLayer::AlertSelected,
               widget_,
@@ -1865,7 +1866,7 @@ void MapWidgetImpl::AddLayer(const std::string&                   id,
 
       layerList_.push_back(id);
       genericLayers_.push_back(layer);
-      genericLayerMap_[id] = layer;
+      genericLayerMap_.insert_or_assign(id, layer);
 
       connect(layer.get(),
               &GenericLayer::NeedsRendering,
