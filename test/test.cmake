@@ -47,6 +47,7 @@ set(SRC_QT_MAP_TESTS source/scwx/qt/map/map_annotation_layer.test.cpp
 set(SRC_QT_MODEL_TESTS source/scwx/qt/model/imgui_context_model.test.cpp
                        source/scwx/qt/model/layer_model.test.cpp
                        source/scwx/qt/model/marker_model.test.cpp)
+set(SRC_QT_TYPES_TESTS source/scwx/qt/types/layer_types.test.cpp)
 set(SRC_QT_UI_TESTS source/scwx/qt/ui/threshold_value_utility.test.cpp)
 set(SRC_QT_SETTINGS_TESTS source/scwx/qt/settings/settings_container.test.cpp
                           source/scwx/qt/settings/settings_variable.test.cpp
@@ -55,8 +56,7 @@ set(SRC_QT_SETTINGS_TESTS source/scwx/qt/settings/settings_container.test.cpp
 set(SRC_QT_UTIL_TESTS source/scwx/qt/util/q_file_input_stream.test.cpp
                       source/scwx/qt/util/geographic_lib.test.cpp
                       source/scwx/qt/util/network.test.cpp)
-set(SRC_TYPES_TESTS source/scwx/qt/types/layer_types.test.cpp
-                    source/scwx/types/ondas_types.test.cpp)
+set(SRC_TYPES_TESTS source/scwx/types/ondas_types.test.cpp)
 set(SRC_UTIL_TESTS source/scwx/util/float.test.cpp
                    source/scwx/util/rangebuf.test.cpp
                    source/scwx/util/streams.test.cpp
@@ -81,6 +81,7 @@ add_executable(wxtest ${SRC_MAIN}
                       ${SRC_QT_MANAGER_TESTS}
                       ${SRC_QT_MAP_TESTS}
                       ${SRC_QT_MODEL_TESTS}
+                      ${SRC_QT_TYPES_TESTS}
                       ${SRC_QT_UI_TESTS}
                       ${SRC_QT_SETTINGS_TESTS}
                       ${SRC_QT_UTIL_TESTS}
@@ -102,6 +103,7 @@ source_group("Source Files\\qt\\main"     FILES ${SRC_QT_MAIN_TESTS})
 source_group("Source Files\\qt\\manager"  FILES ${SRC_QT_MANAGER_TESTS})
 source_group("Source Files\\qt\\map"      FILES ${SRC_QT_MAP_TESTS})
 source_group("Source Files\\qt\\model"    FILES ${SRC_QT_MODEL_TESTS})
+source_group("Source Files\\qt\\types"    FILES ${SRC_QT_TYPES_TESTS})
 source_group("Source Files\\qt\\ui"       FILES ${SRC_QT_UI_TESTS})
 source_group("Source Files\\qt\\settings" FILES ${SRC_QT_SETTINGS_TESTS})
 source_group("Source Files\\qt\\util"     FILES ${SRC_QT_UTIL_TESTS})
