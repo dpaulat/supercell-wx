@@ -17,14 +17,7 @@ class GlContext::Impl
 {
 public:
    explicit Impl() = default;
-   ~Impl()
-   {
-      if (layerStateUbo_ != 0 && QOpenGLContext::currentContext() != nullptr)
-      {
-         glDeleteBuffers(1, &layerStateUbo_);
-         layerStateUbo_ = 0;
-      }
-   }
+   ~Impl()         = default;
 
    Impl(const Impl&)             = delete;
    Impl& operator=(const Impl&)  = delete;
