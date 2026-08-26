@@ -5,17 +5,14 @@
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/layer_types.hpp>
 #include <scwx/qt/ui/layer_opacity_delegate.hpp>
-#include <scwx/qt/ui/widgets/focused_spin_box.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <boost/signals2/connection.hpp>
 
-#include <QFrame>
-#include <QHBoxLayout>
-#include <QLabel>
 #include <QPushButton>
 #include <QSlider>
 #include <QSortFilterProxyModel>
+#include <QSpinBox>
 #include <QWidget>
 
 namespace scwx::qt::ui
@@ -24,9 +21,7 @@ namespace scwx::qt::ui
 static const std::string logPrefix_ = "scwx::qt::ui::layer_dialog";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static constexpr int kMinOpacity_   = 0;
-static constexpr int kMaxOpacity_   = 100;
-static constexpr int kTickInterval_ = 25;
+static constexpr int kMaxOpacity_ = 100;
 
 class LayerDialogImpl
 {
@@ -59,8 +54,6 @@ public:
    std::shared_ptr<model::LayerModel> layerModel_;
    QSortFilterProxyModel*             layerProxyModel_;
    LayerOpacityDelegate*              opacityDelegate_ {};
-   QSlider*                           opacitySlider_ {};
-   QFocusedSpinBox*                   opacitySpinBox_ {};
    bool                               updatingOpacityControls_ {false};
 };
 
@@ -77,24 +70,6 @@ LayerDialog::LayerDialog(QWidget* parent) :
    ui->layerTreeView->setItemDelegateForColumn(
       static_cast<int>(model::LayerModel::Column::Opacity),
       p->opacityDelegate_);
-
-   auto* opacityFrame  = new QFrame(this);
-   auto* opacityLayout = new QHBoxLayout(opacityFrame);
-   opacityLayout->setContentsMargins(0, 0, 0, 0);
-   opacityLayout->addWidget(new QLabel(tr("Opacity"), opacityFrame));
-   p->opacitySlider_ = new QSlider(Qt::Orientation::Horizontal, opacityFrame);
-   p->opacitySlider_->setRange(kMinOpacity_, kMaxOpacity_);
-   p->opacitySlider_->setTickPosition(QSlider::TickPosition::TicksBelow);
-   p->opacitySlider_->setTickInterval(kTickInterval_);
-   p->opacitySlider_->setToolTip(
-      tr("Layer opacity. Map style layers stay opaque."));
-   opacityLayout->addWidget(p->opacitySlider_);
-   p->opacitySpinBox_ = new QFocusedSpinBox(opacityFrame);
-   p->opacitySpinBox_->setRange(kMinOpacity_, kMaxOpacity_);
-   p->opacitySpinBox_->setSuffix(tr("%"));
-   p->opacitySpinBox_->setKeyboardTracking(false);
-   opacityLayout->addWidget(p->opacitySpinBox_);
-   ui->verticalLayout->insertWidget(1, opacityFrame);
 
    auto layerViewHeader = ui->layerTreeView->header();
 
@@ -181,12 +156,12 @@ void LayerDialogImpl::ConnectSignals()
                        UpdateOpacityControls();
                     });
 
-   QObject::connect(opacitySlider_,
+   QObject::connect(self_->ui->opacitySlider,
                     &QSlider::valueChanged,
                     self_,
                     [this](int value)
                     { SetSelectedLayersOpacityPercent(value); });
-   QObject::connect(opacitySpinBox_,
+   QObject::connect(self_->ui->opacitySpinBox,
                     &QSpinBox::valueChanged,
                     self_,
                     [this](int value)
@@ -456,10 +431,10 @@ void LayerDialogImpl::UpdateOpacityControls()
       break;
    }
 
-   opacitySlider_->setEnabled(anyEditable);
-   opacitySpinBox_->setEnabled(anyEditable);
-   opacitySlider_->setValue(opacityPercent);
-   opacitySpinBox_->setValue(opacityPercent);
+   self_->ui->opacitySlider->setEnabled(anyEditable);
+   self_->ui->opacitySpinBox->setEnabled(anyEditable);
+   self_->ui->opacitySlider->setValue(opacityPercent);
+   self_->ui->opacitySpinBox->setValue(opacityPercent);
 
    updatingOpacityControls_ = false;
 }
@@ -472,8 +447,8 @@ void LayerDialogImpl::SetSelectedLayersOpacityPercent(int percent)
    }
 
    updatingOpacityControls_ = true;
-   opacitySlider_->setValue(percent);
-   opacitySpinBox_->setValue(percent);
+   self_->ui->opacitySlider->setValue(percent);
+   self_->ui->opacitySpinBox->setValue(percent);
    updatingOpacityControls_ = false;
 
    for (const int row : GetSelectedRows())
