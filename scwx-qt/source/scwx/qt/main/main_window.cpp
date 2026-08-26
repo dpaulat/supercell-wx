@@ -29,6 +29,7 @@
 #include <scwx/qt/settings/map_settings.hpp>
 #include <scwx/qt/settings/product_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
+#include <scwx/qt/types/layer_types.hpp>
 #include <scwx/qt/ui/about_dialog.hpp>
 #include <scwx/qt/ui/alert_dock_widget.hpp>
 #include <scwx/qt/ui/animation_dock_widget.hpp>
@@ -85,9 +86,12 @@
 #include <QScreen>
 #include <QSignalBlocker>
 #include <QSizePolicy>
+#include <QSlider>
+#include <QSpinBox>
 #include <QSplitter>
 #include <QTimer>
 #include <QToolButton>
+#include <QWidget>
 #include <QWindow>
 
 namespace scwx::qt::main
@@ -317,6 +321,9 @@ public:
    void ConnectMapAnnotationLayerReady(map::MapWidget* mw);
    /// Layer broadcast, floating host resolver, deferred float-from-settings.
    void ConfigureMapAnnotationDock();
+   void ConfigureRadarOpacityControls();
+   void SyncRadarOpacityControls();
+   void SetRadarOpacityPercent(int percent);
 
    boost::asio::thread_pool threadPool_ {1u};
 
@@ -338,6 +345,8 @@ public:
 
    ui::Level3ProductsWidget* level3ProductsWidget_ {nullptr};
    ui::Level3SettingsWidget* level3SettingsWidget_ {nullptr};
+
+   bool updatingRadarOpacityControls_ {false};
 
    QLabel* coordinateLabel_ {nullptr};
    QLabel* timeLabel_ {nullptr};
@@ -528,6 +537,11 @@ MainWindow::MainWindow(QWidget* parent) :
    p->mapSettingsGroup_ = new ui::CollapsibleGroup(tr("Map Settings"), this);
    p->mapSettingsGroup_->GetContentsLayout()->addWidget(ui->mapStyleLabel);
    p->mapSettingsGroup_->GetContentsLayout()->addWidget(ui->mapStyleComboBox);
+   p->mapSettingsGroup_->GetContentsLayout()->addWidget(ui->radarOpacityLabel);
+   p->mapSettingsGroup_->GetContentsLayout()->addWidget(ui->radarOpacityWidget);
+
+   p->ConfigureRadarOpacityControls();
+
    p->mapSettingsGroup_->GetContentsLayout()->addWidget(
       ui->smoothRadarDataCheckBox);
    p->mapSettingsGroup_->GetContentsLayout()->addWidget(
@@ -2514,6 +2528,67 @@ void MainWindowImpl::OnPanesMatchMapStyleToggled(bool checked)
       RestoreAllPanesFromSavedMapSettings();
    }
    UpdateMatchMapStyleFromPanesState(false);
+}
+
+void MainWindowImpl::ConfigureRadarOpacityControls()
+{
+   QObject::connect(mainWindow_->ui->radarOpacitySlider,
+                    &QSlider::valueChanged,
+                    mainWindow_,
+                    [this](int value) { SetRadarOpacityPercent(value); });
+   QObject::connect(mainWindow_->ui->radarOpacitySpinBox,
+                    &QSpinBox::valueChanged,
+                    mainWindow_,
+                    [this](int value) { SetRadarOpacityPercent(value); });
+   QObject::connect(
+      layerModel_.get(),
+      &QAbstractItemModel::dataChanged,
+      mainWindow_,
+      [this](const QModelIndex& topLeft, const QModelIndex& bottomRight)
+      {
+         const int opacityColumn =
+            static_cast<int>(model::LayerModel::Column::Opacity);
+         if (topLeft.column() <= opacityColumn &&
+             opacityColumn <= bottomRight.column())
+         {
+            SyncRadarOpacityControls();
+         }
+      });
+   QObject::connect(layerModel_.get(),
+                    &QAbstractItemModel::modelReset,
+                    mainWindow_,
+                    [this]() { SyncRadarOpacityControls(); });
+
+   SyncRadarOpacityControls();
+}
+
+void MainWindowImpl::SyncRadarOpacityControls()
+{
+   const types::LayerInfo radarLayer =
+      layerModel_->GetLayerInfo(types::LayerType::Radar, std::monostate {});
+   const int percent = types::LayerOpacityToPercent(radarLayer.opacity_);
+
+   updatingRadarOpacityControls_ = true;
+   mainWindow_->ui->radarOpacitySlider->setValue(percent);
+   mainWindow_->ui->radarOpacitySpinBox->setValue(percent);
+   updatingRadarOpacityControls_ = false;
+}
+
+void MainWindowImpl::SetRadarOpacityPercent(int percent)
+{
+   if (updatingRadarOpacityControls_)
+   {
+      return;
+   }
+
+   updatingRadarOpacityControls_ = true;
+   mainWindow_->ui->radarOpacitySlider->setValue(percent);
+   mainWindow_->ui->radarOpacitySpinBox->setValue(percent);
+   updatingRadarOpacityControls_ = false;
+
+   layerModel_->SetLayerOpacity(types::LayerType::Radar,
+                                std::monostate {},
+                                types::LayerOpacityFromPercent(percent));
 }
 
 void MainWindowImpl::ConfigureUiSettings()

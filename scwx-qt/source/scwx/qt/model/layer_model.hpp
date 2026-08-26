@@ -32,7 +32,8 @@ public:
       DisplayMap9 = 9,
       Type        = 10,
       Enabled     = 11,
-      Description = 12
+      Opacity     = 12,
+      Description = 13
    };
    using ColumnIterator =
       scwx::util::Iterator<Column, Column::Order, Column::Description>;
@@ -50,6 +51,9 @@ public:
    void                             SetLayerDisplayed(types::LayerType        type,
                                                       types::LayerDescription description,
                                                       bool                    displayed);
+   bool                             SetLayerOpacity(types::LayerType        type,
+                                                    types::LayerDescription description,
+                                                    float                   opacity);
 
    void ResetLayers();
 

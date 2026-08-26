@@ -47,7 +47,9 @@ void LayerWrapper::render(const QMapLibre::CustomLayerRenderParameters& params)
    auto& layer = p->layer_;
    if (layer != nullptr)
    {
+      layer->BindLayerState();
       layer->Render(p->mapContext_, params);
+      layer->ResetLayerState();
    }
 }
 

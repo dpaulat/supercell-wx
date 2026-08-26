@@ -3,6 +3,7 @@
 #include <scwx/qt/gl/gl.hpp>
 #include <scwx/qt/gl/shader_program.hpp>
 
+#include <array>
 #include <cstdint>
 
 namespace scwx
@@ -11,6 +12,19 @@ namespace qt
 {
 namespace gl
 {
+
+inline constexpr GLuint      kLayerStateBindingPoint {16};
+inline constexpr const char* kLayerStateBlockName {"LayerState"};
+
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers): Readability
+struct alignas(16) LayerStateBlock
+{
+   float                opacity {1.0f};
+   std::array<float, 3> pad {};
+};
+
+static_assert(sizeof(LayerStateBlock) == 16);
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
 
 class GlContext
 {
@@ -33,6 +47,9 @@ public:
       std::initializer_list<std::pair<GLenum, std::string>> shaders);
 
    GLuint GetTextureAtlas();
+
+   void                set_layer_opacity(float opacity);
+   [[nodiscard]] float layer_opacity() const;
 
    void Initialize();
    void StartFrame();

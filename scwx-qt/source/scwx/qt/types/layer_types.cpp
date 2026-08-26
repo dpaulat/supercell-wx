@@ -1,5 +1,7 @@
 #include <scwx/qt/types/layer_types.hpp>
 
+#include <algorithm>
+#include <cmath>
 #include <unordered_map>
 
 #include <boost/algorithm/string.hpp>
@@ -39,6 +41,7 @@ static const std::string kTypeName_ {"type"};
 static const std::string kDescriptionName_ {"description"};
 static const std::string kMovableName_ {"movable"};
 static const std::string kDisplayedName_ {"displayed"};
+static const std::string kOpacityName_ {"opacity"};
 
 LayerType GetLayerType(const std::string& name)
 {
@@ -169,7 +172,33 @@ std::string GetLayerName(types::LayerType        type,
 {
    return fmt::format("scwx.{}.{}",
                       types::GetLayerTypeName(type),
-                      types::GetLayerDescriptionName(description));
+                      types::GetLayerDescriptionName(std::move(description)));
+}
+
+bool LayerSupportsOpacity(LayerType type)
+{
+   return type != LayerType::Map && type != LayerType::Unknown;
+}
+
+float ClampLayerOpacity(float opacity)
+{
+   return std::clamp(opacity, 0.0f, 1.0f);
+}
+
+int LayerOpacityToPercent(float opacity)
+{
+   static constexpr int kMinOpacity = 0;
+   static constexpr int kMaxOpacity = 100;
+
+   return std::clamp(
+      static_cast<int>(std::lround(ClampLayerOpacity(opacity) * 100.0f)),
+      kMinOpacity,
+      kMaxOpacity);
+}
+
+float LayerOpacityFromPercent(int percent)
+{
+   return ClampLayerOpacity(static_cast<float>(percent) / 100.0f);
 }
 
 void tag_invoke(boost::json::value_from_tag,
@@ -201,10 +230,15 @@ void tag_invoke(boost::json::value_from_tag,
       description = std::get<std::string>(record.description_);
    }
 
+   const float opacity = record.type_ == LayerType::Map ?
+                            1.0f :
+                            ClampLayerOpacity(record.opacity_);
+
    jv = {{kTypeName_, GetLayerTypeName(record.type_)},
          {kDescriptionName_, description},
          {kMovableName_, record.movable_},
-         {kDisplayedName_, boost::json::value_from(record.displayed_)}};
+         {kDisplayedName_, boost::json::value_from(record.displayed_)},
+         {kOpacityName_, opacity}};
 }
 
 LayerInfo tag_invoke(boost::json::value_to_tag<LayerInfo>,
@@ -242,11 +276,28 @@ LayerInfo tag_invoke(boost::json::value_to_tag<LayerInfo>,
       description = descriptionName;
    }
 
+   float opacity = 1.0f;
+   if (const auto* object = jv.if_object(); object != nullptr)
+   {
+      if (const auto* opacityValue = object->if_contains(kOpacityName_);
+          opacityValue != nullptr && opacityValue->is_number())
+      {
+         opacity = ClampLayerOpacity(
+            static_cast<float>(opacityValue->to_number<double>()));
+      }
+   }
+
+   if (!LayerSupportsOpacity(layerType))
+   {
+      opacity = 1.0f;
+   }
+
    return LayerInfo {
       .type_        = layerType,
       .description_ = description,
       .movable_     = jv.at(kMovableName_).as_bool(),
-      .displayed_   = [&jv]()
+      .displayed_ =
+         [&jv]()
       {
          std::array<bool, types::kMapCount_> displayed {};
          const auto& displayedArray = jv.at(kDisplayedName_).as_array();
@@ -274,7 +325,8 @@ LayerInfo tag_invoke(boost::json::value_to_tag<LayerInfo>,
          }
 
          return displayed;
-      }()};
+      }(),
+      .opacity_ = opacity};
 }
 
 } // namespace scwx::qt::types

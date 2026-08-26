@@ -91,7 +91,14 @@ jobs:
       uses: actions/cache/restore@v6
       with:
         path: ~/.conan2
-        key: build-v2-${{ matrix.conan_profile }}-${{ hashFiles('./source/conanfile.py', './source/tools/conan/profiles/*') }}
+        key: >-
+          build-v2-${{ matrix.conan_profile }}-${{
+            hashFiles(
+              './source/conanfile.py',
+              format('./source/tools/conan/profiles/{0}', matrix.conan_profile),
+              format('./source/tools/conan/profiles/{0}', matrix.conan_profile)
+            )
+          }}
 
     - name: Install Conan Packages
       id: conan-install

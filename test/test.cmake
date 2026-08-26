@@ -33,6 +33,7 @@ set(SRC_PROVIDER_TESTS source/scwx/provider/aws_level2_data_provider.test.cpp
                        source/scwx/provider/warnings_provider.test.cpp)
 set(SRC_QT_CONFIG_TESTS source/scwx/qt/config/county_database.test.cpp
                         source/scwx/qt/config/radar_site.test.cpp)
+set(SRC_QT_GL_TESTS source/scwx/qt/gl/gl_context.test.cpp)
 set(SRC_QT_MAIN_TESTS source/scwx/qt/main/application_paths.test.cpp
                       source/scwx/qt/main/program_options.test.cpp
                       source/scwx/qt/main/theme.test.cpp)
@@ -44,7 +45,9 @@ set(SRC_QT_MAP_TESTS source/scwx/qt/map/map_annotation_layer.test.cpp
                      source/scwx/qt/map/map_annotation_model.test.cpp
                      source/scwx/qt/map/map_provider.test.cpp)
 set(SRC_QT_MODEL_TESTS source/scwx/qt/model/imgui_context_model.test.cpp
+                       source/scwx/qt/model/layer_model.test.cpp
                        source/scwx/qt/model/marker_model.test.cpp)
+set(SRC_QT_TYPES_TESTS source/scwx/qt/types/layer_types.test.cpp)
 set(SRC_QT_UI_TESTS source/scwx/qt/ui/threshold_value_utility.test.cpp)
 set(SRC_QT_SETTINGS_TESTS source/scwx/qt/settings/settings_container.test.cpp
                           source/scwx/qt/settings/settings_variable.test.cpp
@@ -73,10 +76,12 @@ add_executable(wxtest ${SRC_MAIN}
                       ${SRC_NETWORK_TESTS}
                       ${SRC_PROVIDER_TESTS}
                       ${SRC_QT_CONFIG_TESTS}
+                      ${SRC_QT_GL_TESTS}
                       ${SRC_QT_MAIN_TESTS}
                       ${SRC_QT_MANAGER_TESTS}
                       ${SRC_QT_MAP_TESTS}
                       ${SRC_QT_MODEL_TESTS}
+                      ${SRC_QT_TYPES_TESTS}
                       ${SRC_QT_UI_TESTS}
                       ${SRC_QT_SETTINGS_TESTS}
                       ${SRC_QT_UTIL_TESTS}
@@ -93,10 +98,12 @@ source_group("Source Files\\gr"           FILES ${SRC_GR_TESTS})
 source_group("Source Files\\network"      FILES ${SRC_NETWORK_TESTS})
 source_group("Source Files\\provider"     FILES ${SRC_PROVIDER_TESTS})
 source_group("Source Files\\qt\\config"   FILES ${SRC_QT_CONFIG_TESTS})
+source_group("Source Files\\qt\\gl"       FILES ${SRC_QT_GL_TESTS})
 source_group("Source Files\\qt\\main"     FILES ${SRC_QT_MAIN_TESTS})
 source_group("Source Files\\qt\\manager"  FILES ${SRC_QT_MANAGER_TESTS})
 source_group("Source Files\\qt\\map"      FILES ${SRC_QT_MAP_TESTS})
 source_group("Source Files\\qt\\model"    FILES ${SRC_QT_MODEL_TESTS})
+source_group("Source Files\\qt\\types"    FILES ${SRC_QT_TYPES_TESTS})
 source_group("Source Files\\qt\\ui"       FILES ${SRC_QT_UI_TESTS})
 source_group("Source Files\\qt\\settings" FILES ${SRC_QT_SETTINGS_TESTS})
 source_group("Source Files\\qt\\util"     FILES ${SRC_QT_UTIL_TESTS})

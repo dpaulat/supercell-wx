@@ -4,6 +4,10 @@
 precision mediump float;
 
 uniform sampler1D uTexture;
+layout(std140) uniform LayerState
+{
+   float uOpacity;
+};
 
 in float texCoord;
 
@@ -12,4 +16,5 @@ layout (location = 0) out vec4 fragColor;
 void main()
 {
    fragColor = texture(uTexture, texCoord);
+   fragColor.a *= uOpacity;
 }

@@ -6,6 +6,10 @@ precision mediump float;
 uniform sampler1D uTexture;
 uniform uint uDataMomentOffset;
 uniform float uDataMomentScale;
+layout(std140) uniform LayerState
+{
+   float uOpacity;
+};
 
 uniform bool uCFPEnabled;
 
@@ -24,4 +28,5 @@ void main()
    }
 
    fragColor = texture(uTexture, texCoord);
+   fragColor.a *= uOpacity;
 }

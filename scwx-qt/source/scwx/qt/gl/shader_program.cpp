@@ -1,6 +1,8 @@
 #include <scwx/qt/gl/shader_program.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <unordered_map>
+
 #include <QFile>
 #include <QTextStream>
 

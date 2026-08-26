@@ -65,7 +65,14 @@ struct LayerInfo
    bool                         movable_ {true};
    std::array<bool, kMapCount_> displayed_ {
       true, true, true, true, true, true, true, true, true};
+   // 0.0 (transparent) to 1.0 (opaque). Map style layers stay at 1.0.
+   float opacity_ {1.0f};
 };
+
+bool  LayerSupportsOpacity(LayerType type);
+float ClampLayerOpacity(float opacity);
+int   LayerOpacityToPercent(float opacity);
+float LayerOpacityFromPercent(int percent);
 
 using LayerVector = boost::container::stable_vector<LayerInfo>;
 

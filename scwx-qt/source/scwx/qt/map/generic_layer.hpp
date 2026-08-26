@@ -50,6 +50,12 @@ public:
                    const common::Coordinate&                     mouseGeoCoords,
                    std::shared_ptr<types::EventHandler>&         eventHandler);
 
+   void                set_opacity(float opacity);
+   [[nodiscard]] float opacity() const;
+
+   void BindLayerState();
+   void ResetLayerState();
+
 signals:
    void NeedsRendering();
 

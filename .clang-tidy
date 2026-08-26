@@ -9,6 +9,7 @@ Checks:
   - '-bugprone-easily-swappable-parameters'
   - '-cppcoreguidelines-avoid-do-while'
   - '-cppcoreguidelines-avoid-non-const-global-variables'
+  - '-cppcoreguidelines-owning-memory'
   - '-cppcoreguidelines-pro-type-reinterpret-cast'
   - '-cppcoreguidelines-pro-type-union-access'
   - '-cppcoreguidelines-pro-type-vararg'

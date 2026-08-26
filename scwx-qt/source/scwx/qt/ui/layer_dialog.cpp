@@ -3,18 +3,25 @@
 
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
+#include <scwx/qt/types/layer_types.hpp>
+#include <scwx/qt/ui/layer_opacity_delegate.hpp>
 #include <scwx/util/logger.hpp>
 
 #include <boost/signals2/connection.hpp>
 
 #include <QPushButton>
+#include <QSlider>
 #include <QSortFilterProxyModel>
+#include <QSpinBox>
+#include <QWidget>
 
 namespace scwx::qt::ui
 {
 
 static const std::string logPrefix_ = "scwx::qt::ui::layer_dialog";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
+
+static constexpr int kMaxOpacity_ = 100;
 
 class LayerDialogImpl
 {
@@ -34,6 +41,8 @@ public:
    void ConnectSignals();
    void UpdateMapDisplayColumns();
    void UpdateMoveButtonsEnabled();
+   void UpdateOpacityControls();
+   void SetSelectedLayersOpacityPercent(int percent);
 
    boost::signals2::scoped_connection gridWidthSettingsConnection_ {};
    boost::signals2::scoped_connection gridHeightSettingsConnection_ {};
@@ -44,6 +53,8 @@ public:
    LayerDialog*                       self_;
    std::shared_ptr<model::LayerModel> layerModel_;
    QSortFilterProxyModel*             layerProxyModel_;
+   LayerOpacityDelegate*              opacityDelegate_ {};
+   bool                               updatingOpacityControls_ {false};
 };
 
 LayerDialog::LayerDialog(QWidget* parent) :
@@ -55,9 +66,15 @@ LayerDialog::LayerDialog(QWidget* parent) :
 
    ui->layerTreeView->setModel(p->layerProxyModel_);
 
+   p->opacityDelegate_ = new LayerOpacityDelegate(ui->layerTreeView);
+   ui->layerTreeView->setItemDelegateForColumn(
+      static_cast<int>(model::LayerModel::Column::Opacity),
+      p->opacityDelegate_);
+
    auto layerViewHeader = ui->layerTreeView->header();
 
-   layerViewHeader->setMinimumSectionSize(10);
+   static constexpr int kMinimumSectionSize = 10;
+   layerViewHeader->setMinimumSectionSize(kMinimumSectionSize);
 
    // Give small columns a fixed size
    for (auto column : model::LayerModel::ColumnIterator())
@@ -79,6 +96,7 @@ LayerDialog::LayerDialog(QWidget* parent) :
    p->UpdateMapDisplayColumns();
 
    p->ConnectSignals();
+   p->UpdateOpacityControls();
 }
 
 LayerDialog::~LayerDialog()
@@ -117,7 +135,11 @@ void LayerDialogImpl::ConnectSignals()
       self_->ui->buttonBox->button(QDialogButtonBox::StandardButton::Reset),
       &QAbstractButton::clicked,
       self_,
-      [this]() { layerModel_->ResetLayers(); });
+      [this]()
+      {
+         layerModel_->ResetLayers();
+         UpdateOpacityControls();
+      });
 
    QObject::connect(self_->ui->layerFilter,
                     &QLineEdit::textChanged,
@@ -129,7 +151,40 @@ void LayerDialogImpl::ConnectSignals()
                     self_,
                     [this](const QItemSelection& /* selected */,
                            const QItemSelection& /* deselected */)
-                    { UpdateMoveButtonsEnabled(); });
+                    {
+                       UpdateMoveButtonsEnabled();
+                       UpdateOpacityControls();
+                    });
+
+   QObject::connect(self_->ui->opacitySlider,
+                    &QSlider::valueChanged,
+                    self_,
+                    [this](int value)
+                    { SetSelectedLayersOpacityPercent(value); });
+   QObject::connect(self_->ui->opacitySpinBox,
+                    &QSpinBox::valueChanged,
+                    self_,
+                    [this](int value)
+                    { SetSelectedLayersOpacityPercent(value); });
+
+   QObject::connect(
+      layerModel_.get(),
+      &QAbstractItemModel::dataChanged,
+      self_,
+      [this](const QModelIndex& topLeft, const QModelIndex& bottomRight)
+      {
+         const int opacityColumn =
+            static_cast<int>(model::LayerModel::Column::Opacity);
+         if (topLeft.column() <= opacityColumn &&
+             opacityColumn <= bottomRight.column())
+         {
+            UpdateOpacityControls();
+         }
+      });
+   QObject::connect(layerModel_.get(),
+                    &QAbstractItemModel::modelReset,
+                    self_,
+                    [this]() { UpdateOpacityControls(); });
 
    auto& generalSettings = settings::GeneralSettings::Instance();
    gridWidthSettingsConnection_ =
@@ -346,6 +401,67 @@ void LayerDialogImpl::UpdateMoveButtonsEnabled()
    self_->ui->moveUpButton->setEnabled(itemsMovableUp);
    self_->ui->moveDownButton->setEnabled(itemsMovableDown);
    self_->ui->moveBottomButton->setEnabled(itemsMovableDown);
+}
+
+void LayerDialogImpl::UpdateOpacityControls()
+{
+   updatingOpacityControls_ = true;
+
+   const auto selectedRows   = GetSelectedRows();
+   int        opacityPercent = kMaxOpacity_;
+   bool       anyEditable    = false;
+
+   for (const int row : selectedRows)
+   {
+      const QModelIndex typeIndex = layerModel_->index(
+         row, static_cast<int>(model::LayerModel::Column::Type));
+      const auto type =
+         types::GetLayerType(typeIndex.data(Qt::ItemDataRole::DisplayRole)
+                                .toString()
+                                .toStdString());
+      if (!types::LayerSupportsOpacity(type))
+      {
+         continue;
+      }
+
+      anyEditable                    = true;
+      const QModelIndex opacityIndex = layerModel_->index(
+         row, static_cast<int>(model::LayerModel::Column::Opacity));
+      opacityPercent = opacityIndex.data(Qt::ItemDataRole::EditRole).toInt();
+      break;
+   }
+
+   self_->ui->opacitySlider->setEnabled(anyEditable);
+   self_->ui->opacitySpinBox->setEnabled(anyEditable);
+   self_->ui->opacitySlider->setValue(opacityPercent);
+   self_->ui->opacitySpinBox->setValue(opacityPercent);
+
+   updatingOpacityControls_ = false;
+}
+
+void LayerDialogImpl::SetSelectedLayersOpacityPercent(int percent)
+{
+   if (updatingOpacityControls_)
+   {
+      return;
+   }
+
+   updatingOpacityControls_ = true;
+   self_->ui->opacitySlider->setValue(percent);
+   self_->ui->opacitySpinBox->setValue(percent);
+   updatingOpacityControls_ = false;
+
+   for (const int row : GetSelectedRows())
+   {
+      const QModelIndex opacityIndex = layerModel_->index(
+         row, static_cast<int>(model::LayerModel::Column::Opacity));
+      if ((layerModel_->flags(opacityIndex) & Qt::ItemFlag::ItemIsEditable) ==
+          Qt::ItemFlag::ItemIsEditable)
+      {
+         layerModel_->setData(
+            opacityIndex, percent, Qt::ItemDataRole::EditRole);
+      }
+   }
 }
 
 } // namespace scwx::qt::ui

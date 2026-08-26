@@ -2,8 +2,10 @@
 #include <scwx/qt/util/texture_atlas.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <algorithm>
 #include <boost/container_hash/hash.hpp>
 #include <QMessageBox>
+#include <QOpenGLContext>
 
 namespace scwx::qt::gl
 {
@@ -34,6 +36,8 @@ public:
    std::mutex shaderProgramMutex_ {};
 
    GLuint     textureAtlas_ {GL_INVALID_INDEX};
+   GLuint     layerStateUbo_ {0};
+   float      layerOpacity_ {1.0f};
    std::mutex textureMutex_ {};
 
    std::uint64_t textureBufferCount_ {};
@@ -106,7 +110,23 @@ void GlContext::Impl::InitializeGL()
 
    glGenTextures(1, &textureAtlas_);
 
+   glGenBuffers(1, &layerStateUbo_);
+   glBindBuffer(GL_UNIFORM_BUFFER, layerStateUbo_);
+   const LayerStateBlock initialBlock {};
+   glBufferData(
+      GL_UNIFORM_BUFFER, sizeof(initialBlock), &initialBlock, GL_DYNAMIC_DRAW);
+   glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
    glInitialized_ = true;
+}
+
+static void BindLayerStateBlock(GLuint programId)
+{
+   const GLuint index = glGetUniformBlockIndex(programId, kLayerStateBlockName);
+   if (index != GL_INVALID_INDEX)
+   {
+      glUniformBlockBinding(programId, index, kLayerStateBindingPoint);
+   }
 }
 
 std::shared_ptr<gl::ShaderProgram>
@@ -131,6 +151,7 @@ std::shared_ptr<gl::ShaderProgram> GlContext::GetShaderProgram(
    {
       shaderProgram = std::make_shared<gl::ShaderProgram>();
       shaderProgram->Load(shaders);
+      BindLayerStateBlock(shaderProgram->id());
       p->shaderProgramMap_[key] = shaderProgram;
    }
    else
@@ -156,6 +177,26 @@ GLuint GlContext::GetTextureAtlas()
    }
 
    return p->textureAtlas_;
+}
+
+void GlContext::set_layer_opacity(float opacity)
+{
+   p->InitializeGL();
+   p->layerOpacity_ = std::clamp(opacity, 0.0f, 1.0f);
+
+   LayerStateBlock block {};
+   block.opacity = p->layerOpacity_;
+
+   glBindBuffer(GL_UNIFORM_BUFFER, p->layerStateUbo_);
+   glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(block), &block);
+   glBindBuffer(GL_UNIFORM_BUFFER, 0);
+   glBindBufferBase(
+      GL_UNIFORM_BUFFER, kLayerStateBindingPoint, p->layerStateUbo_);
+}
+
+float GlContext::layer_opacity() const
+{
+   return p->layerOpacity_;
 }
 
 void GlContext::Initialize()

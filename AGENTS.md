@@ -162,6 +162,9 @@ Q_EMIT DataReloaded();  // Correct
 emit DataReloaded();    // Incorrect - will cause build issues
 ```
 
+### Qt Designer / `.ui` Files
+Define widgets, layouts, and static properties (labels, ranges, tooltips, suffixes, size policies) in `.ui` files so they remain editable in Qt Designer. Use C++ for behavior only: signal/slot connections, dynamic enablement, and runtime state. Promote custom widgets in the `.ui` file (`<customwidgets>`) rather than constructing them in code. When a dialog already has a `.ui` file, add new static UI there instead of `new QWidget(...)` in the `.cpp`.
+
 ## Common Tasks
 
 ### Adding New Radar Product Support
