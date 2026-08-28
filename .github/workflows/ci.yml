@@ -20,26 +20,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: windows_vs2022_x64
-            os: windows-2022
-            build_type: Release
-            env_cc: ''
-            env_cxx: ''
-            compiler: msvc
-            cppflags: ''
-            ldflags: ''
-            vs_arch: x64
-            vs_version: 2022
-            qt_version: 6.11.1
-            qt_arch_aqt: win64_msvc2022_64
-            qt_arch_dir: msvc2022_64
-            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
-            qt_tools: ''
-            conan_package_manager: ''
-            conan_build_profile: scwx-windows_vs2022_x64
-            conan_host_profile: scwx-windows_vs2022_x64
-            appimage_arch: ''
-            artifact_suffix: windows-vs2022-x64
           - name: windows_vs2026_x64
             os: windows-2025-vs2026
             build_type: Release
