@@ -384,13 +384,34 @@ bool SettingsVariable<T>::ReadValue(const boost::json::object& json)
    {
       try
       {
-         validated = SetValueOrDefault(boost::json::value_to<T>(*jv));
+         // value_to() throws with_throw_location<system_error>, which Clang 20
+         // + libc++ does not catch as std::exception.
+         const auto converted = boost::json::try_value_to<T>(*jv);
+         if (converted.has_error())
+         {
+            logger_->warn("{} is invalid ({}), setting to default: {}",
+                          name(),
+                          converted.error().message(),
+                          FormatParameter<T>(p->default_));
+            p->value_ = p->default_;
+         }
+         else
+         {
+            validated = SetValueOrDefault(*converted);
+         }
       }
       catch (const std::exception& ex)
       {
          logger_->warn("{} is invalid ({}), setting to default: {}",
                        name(),
                        ex.what(),
+                       FormatParameter<T>(p->default_));
+         p->value_ = p->default_;
+      }
+      catch (...)
+      {
+         logger_->warn("{} is invalid, setting to default: {}",
+                       name(),
                        FormatParameter<T>(p->default_));
          p->value_ = p->default_;
       }
