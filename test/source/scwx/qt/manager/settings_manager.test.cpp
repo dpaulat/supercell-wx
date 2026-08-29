@@ -21,24 +21,25 @@ static const std::string TEMP_SETTINGS_FILE =
 
 class SettingsManagerTest : public testing::Test
 {
-   virtual void SetUp() { scwx::qt::config::RadarSite::Initialize(); }
-   virtual void TearDown() { std::filesystem::remove(TEMP_SETTINGS_FILE); }
+   void SetUp() override { scwx::qt::config::RadarSite::Initialize(); }
+   void TearDown() override { std::filesystem::remove(TEMP_SETTINGS_FILE); }
 };
 
 class DefaultSettingsTest : public testing::TestWithParam<std::string>
 {
-   virtual void SetUp() { scwx::qt::config::RadarSite::Initialize(); }
-   virtual void TearDown() { std::filesystem::remove(TEMP_SETTINGS_FILE); }
+   void SetUp() override { scwx::qt::config::RadarSite::Initialize(); }
+   void TearDown() override { std::filesystem::remove(TEMP_SETTINGS_FILE); }
 };
 
 class BadSettingsTest :
     public testing::TestWithParam<std::pair<std::string, std::string>>
 {
-   virtual void SetUp() { scwx::qt::config::RadarSite::Initialize(); }
-   virtual void TearDown() { std::filesystem::remove(TEMP_SETTINGS_FILE); }
+   void SetUp() override { scwx::qt::config::RadarSite::Initialize(); }
+   void TearDown() override { std::filesystem::remove(TEMP_SETTINGS_FILE); }
 };
 
-static void CopyToTempSettings(const std::string& sourceFile, const std::string& tempSettingsFile)
+static void CopyToTempSettings(const std::string& sourceFile,
+                               const std::string& tempSettingsFile)
 {
    std::filesystem::remove(tempSettingsFile);
    std::filesystem::copy_file(sourceFile, tempSettingsFile);
@@ -138,7 +139,7 @@ TEST_F(SettingsManagerTest, CreateJson)
 TEST_F(SettingsManagerTest, SettingsKeax)
 {
    const std::string filename(std::string(SCWX_TEST_DATA_DIR) +
-                        "/json/settings/settings-keax.json");
+                              "/json/settings/settings-keax.json");
 
    SettingsManager::Instance().ReadSettings(filename);
 
@@ -154,8 +155,8 @@ TEST_F(SettingsManagerTest, SettingsKeax)
 
 TEST_P(DefaultSettingsTest, DefaultSettings)
 {
-   const std::string sourceFile(std::string(SCWX_TEST_DATA_DIR) + "/json/settings/" +
-                          GetParam());
+   const std::string sourceFile(std::string(SCWX_TEST_DATA_DIR) +
+                                "/json/settings/" + GetParam());
    const std::string filename {TEMP_SETTINGS_FILE};
 
    CopyToTempSettings(sourceFile, filename);
