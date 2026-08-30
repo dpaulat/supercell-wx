@@ -106,50 +106,49 @@ NwsApiProvider::Impl::RequestData(std::string_view       endpointUrl,
 
    if (response.status_code == cpr::status::HTTP_OK)
    {
-      try
+      auto converted = boost::json::try_value_to<T>(json);
+      if (!converted.has_error())
       {
-         data = boost::json::value_to<T>(json);
+         data = std::move(*converted);
       }
-      catch (const std::exception& ex)
+      else
       {
-         // Unexpected bad response
-         logger_->warn("Error parsing JSON: {}", ex.what());
+         logger_->warn("Error parsing JSON: {}", converted.error().message());
          return boost::system::errc::make_error_code(
             boost::system::errc::bad_message);
       }
    }
    else if (json != nullptr)
    {
-      try
+      // Log error response details
+      const auto errorResponse =
+         boost::json::try_value_to<types::nws::ErrorResponse>(json);
+
+      if (!errorResponse.has_error())
       {
-         // Log error response details
-         const auto errorResponse =
-            boost::json::value_to<types::nws::ErrorResponse>(json);
          logger_->warn("GetRadarStations error response ({}): {} ({})",
                        response.status_code,
-                       errorResponse.title_,
-                       errorResponse.detail_);
+                       errorResponse->title_,
+                       errorResponse->detail_);
 
-         for (auto& parameterError : errorResponse.parameterErrors_)
+         for (auto& parameterError : errorResponse->parameterErrors_)
          {
             logger_->warn(" Parameter error: {} {}",
                           parameterError.parameter_,
                           parameterError.message_);
          }
-
-         return boost::system::errc::make_error_code(
-            boost::system::errc::no_message);
       }
-      catch (const std::exception& ex)
+      else
       {
+
          // Unexpected bad response
          logger_->warn("Error parsing error response ({}): {}",
                        response.status_code,
-                       ex.what());
-
-         return boost::system::errc::make_error_code(
-            boost::system::errc::no_message);
+                       errorResponse.error().message());
       }
+
+      return boost::system::errc::make_error_code(
+         boost::system::errc::no_message);
    }
    else if (running_)
    {

@@ -76,18 +76,21 @@ IemApiProvider::ProcessTextProductLists(
 
       if (response.status_code == cpr::status::HTTP_OK)
       {
-         try
+         // Get AFOS list from response
+         auto converted = boost::json::try_value_to<types::iem::AfosList>(json);
+
+         if (!converted.has_error())
          {
-            // Get AFOS list from response
-            auto entries = boost::json::value_to<types::iem::AfosList>(json);
+            types::iem::AfosList entries = std::move(*converted);
+
             textProducts.insert(textProducts.end(),
                                 std::make_move_iterator(entries.data_.begin()),
                                 std::make_move_iterator(entries.data_.end()));
          }
-         catch (const std::exception& ex)
+         else
          {
-            // Unexpected bad response
-            logger_->warn("Error parsing JSON: {}", ex.what());
+            logger_->warn("Error parsing JSON: {}",
+                          converted.error().message());
             return boost::system::errc::make_error_code(
                boost::system::errc::bad_message);
          }
@@ -95,18 +98,20 @@ IemApiProvider::ProcessTextProductLists(
       else if (response.status_code == cpr::status::HTTP_BAD_REQUEST &&
                json != nullptr)
       {
-         try
+         // Log bad request details
+         const auto badRequest =
+            boost::json::try_value_to<types::iem::BadRequest>(json);
+
+         if (!badRequest.has_error())
          {
-            // Log bad request details
-            auto badRequest =
-               boost::json::value_to<types::iem::BadRequest>(json);
             logger_->warn("ListTextProducts bad request: {}",
-                          badRequest.detail_);
+                          badRequest->detail_);
          }
-         catch (const std::exception& ex)
+         else
          {
             // Unexpected bad response
-            logger_->warn("Error parsing bad response: {}", ex.what());
+            logger_->warn("Error parsing bad response: {}",
+                          badRequest.error().message());
          }
 
          return boost::system::errc::make_error_code(
@@ -115,18 +120,20 @@ IemApiProvider::ProcessTextProductLists(
       else if (response.status_code == cpr::status::HTTP_UNPROCESSABLE_ENTITY &&
                json != nullptr)
       {
-         try
+         // Log validation error details
+         const auto error =
+            boost::json::try_value_to<types::iem::ValidationError>(json);
+
+         if (!error.has_error())
          {
-            // Log validation error details
-            auto error =
-               boost::json::value_to<types::iem::ValidationError>(json);
             logger_->warn("ListTextProducts validation error: {}",
-                          error.detail_.at(0).msg_);
+                          error->detail_.at(0).msg_);
          }
-         catch (const std::exception& ex)
+         else
          {
             // Unexpected bad response
-            logger_->warn("Error parsing validation error: {}", ex.what());
+            logger_->warn("Error parsing validation error: {}",
+                          error.error().message());
          }
 
          return boost::system::errc::make_error_code(
