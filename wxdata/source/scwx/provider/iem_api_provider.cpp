@@ -126,8 +126,15 @@ IemApiProvider::ProcessTextProductLists(
 
          if (!error.has_error())
          {
-            logger_->warn("ListTextProducts validation error: {}",
-                          error->detail_.at(0).msg_);
+            if (error->detail_.empty())
+            {
+               logger_->warn("ListTextProducts validation error");
+            }
+            else
+            {
+               logger_->warn("ListTextProducts validation error: {}",
+                             error->detail_.at(0).msg_);
+            }
          }
          else
          {
