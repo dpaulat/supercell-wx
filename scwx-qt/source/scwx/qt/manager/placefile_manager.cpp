@@ -37,6 +37,8 @@ static const std::string kThresholdedName_ = "thresholded";
 static const std::string kTitleName_       = "title";
 static const std::string kNameName_        = "name";
 
+namespace
+{
 // JSON settings DTO. PlacefileRecord is not copyable/movable (mutex, atomic,
 // ASIO types), so try_value_to cannot wrap it in boost::system::result.
 struct PlacefileSettingsEntry
@@ -52,11 +54,12 @@ tag_invoke(boost::json::value_to_tag<PlacefileSettingsEntry>,
            const boost::json::value& jv)
 {
    return PlacefileSettingsEntry {
-      boost::json::value_to<std::string>(jv.at(kNameName_)),
-      boost::json::value_to<std::string>(jv.at(kTitleName_)),
-      jv.at(kEnabledName_).as_bool(),
-      jv.at(kThresholdedName_).as_bool()};
+      .name        = boost::json::value_to<std::string>(jv.at(kNameName_)),
+      .title       = boost::json::value_to<std::string>(jv.at(kTitleName_)),
+      .enabled     = jv.at(kEnabledName_).as_bool(),
+      .thresholded = jv.at(kThresholdedName_).as_bool()};
 }
+} // namespace
 
 class PlacefileManager::Impl
 {
