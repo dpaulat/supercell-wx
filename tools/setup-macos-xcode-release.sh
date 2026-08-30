@@ -22,6 +22,9 @@ export PATH="${llvm_prefix}/bin:$PATH"
 export LDFLAGS="-L${llvm_prefix}/lib -L${llvm_prefix}/lib/c++"
 export CPPFLAGS="-I${llvm_prefix}/include"
 
+# Clang 21+ requires macOS 13.3
+export MACOSX_DEPLOYMENT_TARGET=13.3
+
 # Assign user-specified Python Virtual Environment
 if [ "${3:-}" = "none" ]; then
     unset venv_path

@@ -40,5 +40,11 @@ else
     )
 fi
 
+if [[ -n "${MACOSX_DEPLOYMENT_TARGET:-}" ]]; then
+    cmake_args+=(
+        -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET}"
+    )
+fi
+
 mkdir -p "${build_dir}"
 cmake "${cmake_args[@]}"

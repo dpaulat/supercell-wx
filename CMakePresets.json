@@ -545,7 +545,7 @@
       "hidden": true,
       "cacheVariables": {
         "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.11.1/macos",
-        "CMAKE_OSX_DEPLOYMENT_TARGET": "13.3"
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "12.0"
       },
       "condition": {
         "type": "equals",
@@ -557,9 +557,6 @@
       "name": "macos-clang18-x64-base",
       "inherits": "macos-base",
       "hidden": true,
-      "cacheVariables": {
-        "CMAKE_OSX_DEPLOYMENT_TARGET": "12.0"
-      },
       "environment": {
         "CC": "/usr/local/opt/llvm@18/bin/clang",
         "CXX": "/usr/local/opt/llvm@18/bin/clang++",
@@ -572,9 +569,6 @@
       "name": "macos-clang19-x64-base",
       "inherits": "macos-base",
       "hidden": true,
-      "cacheVariables": {
-        "CMAKE_OSX_DEPLOYMENT_TARGET": "12.0"
-      },
       "environment": {
         "CC": "/usr/local/opt/llvm@19/bin/clang",
         "CXX": "/usr/local/opt/llvm@19/bin/clang++",
@@ -587,9 +581,6 @@
       "name": "macos-clang20-x64-base",
       "inherits": "macos-base",
       "hidden": true,
-      "cacheVariables": {
-        "CMAKE_OSX_DEPLOYMENT_TARGET": "12.0"
-      },
       "environment": {
         "CC": "/usr/local/opt/llvm@20/bin/clang",
         "CXX": "/usr/local/opt/llvm@20/bin/clang++",
@@ -602,6 +593,9 @@
       "name": "macos-clang21-x64-base",
       "inherits": "macos-base",
       "hidden": true,
+      "cacheVariables": {
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "13.3"
+      },
       "environment": {
         "CC": "/usr/local/opt/llvm@21/bin/clang",
         "CXX": "/usr/local/opt/llvm@21/bin/clang++",
@@ -614,6 +608,9 @@
       "name": "macos-clang22-x64-base",
       "inherits": "macos-base",
       "hidden": true,
+      "cacheVariables": {
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "13.3"
+      },
       "environment": {
         "CC": "/usr/local/opt/llvm@22/bin/clang",
         "CXX": "/usr/local/opt/llvm@22/bin/clang++",
@@ -626,6 +623,9 @@
       "name": "macos-clang23-x64-base",
       "inherits": "macos-base",
       "hidden": true,
+      "cacheVariables": {
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "13.3"
+      },
       "environment": {
         "CC": "/usr/local/opt/llvm@23/bin/clang",
         "CXX": "/usr/local/opt/llvm@23/bin/clang++",
@@ -638,9 +638,6 @@
       "name": "macos-clang18-arm64-base",
       "inherits": "macos-base",
       "hidden": true,
-      "cacheVariables": {
-        "CMAKE_OSX_DEPLOYMENT_TARGET": "12.0"
-      },
       "environment": {
         "CC": "/opt/homebrew/opt/llvm@18/bin/clang",
         "CXX": "/opt/homebrew/opt/llvm@18/bin/clang++",
@@ -653,9 +650,6 @@
       "name": "macos-clang19-arm64-base",
       "inherits": "macos-base",
       "hidden": true,
-      "cacheVariables": {
-        "CMAKE_OSX_DEPLOYMENT_TARGET": "12.0"
-      },
       "environment": {
         "CC": "/opt/homebrew/opt/llvm@19/bin/clang",
         "CXX": "/opt/homebrew/opt/llvm@19/bin/clang++",
@@ -668,9 +662,6 @@
       "name": "macos-clang20-arm64-base",
       "inherits": "macos-base",
       "hidden": true,
-      "cacheVariables": {
-        "CMAKE_OSX_DEPLOYMENT_TARGET": "12.0"
-      },
       "environment": {
         "CC": "/opt/homebrew/opt/llvm@20/bin/clang",
         "CXX": "/opt/homebrew/opt/llvm@20/bin/clang++",
@@ -683,6 +674,9 @@
       "name": "macos-clang21-arm64-base",
       "inherits": "macos-base",
       "hidden": true,
+      "cacheVariables": {
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "13.3"
+      },
       "environment": {
         "CC": "/opt/homebrew/opt/llvm@21/bin/clang",
         "CXX": "/opt/homebrew/opt/llvm@21/bin/clang++",
@@ -695,6 +689,9 @@
       "name": "macos-clang22-arm64-base",
       "inherits": "macos-base",
       "hidden": true,
+      "cacheVariables": {
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "13.3"
+      },
       "environment": {
         "CC": "/opt/homebrew/opt/llvm@22/bin/clang",
         "CXX": "/opt/homebrew/opt/llvm@22/bin/clang++",
@@ -707,6 +704,9 @@
       "name": "macos-clang23-arm64-base",
       "inherits": "macos-base",
       "hidden": true,
+      "cacheVariables": {
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "13.3"
+      },
       "environment": {
         "CC": "/opt/homebrew/opt/llvm@23/bin/clang",
         "CXX": "/opt/homebrew/opt/llvm@23/bin/clang++",
