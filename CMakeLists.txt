@@ -3,7 +3,7 @@ set(PROJECT_NAME supercell-wx)
 
 include(tools/scwx_config.cmake)
 
-set(CMAKE_OSX_DEPLOYMENT_TARGET 12.0)
+set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum macOS deployment target")
 
 scwx_python_setup()
 

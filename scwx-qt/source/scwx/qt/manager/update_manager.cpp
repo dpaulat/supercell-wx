@@ -169,17 +169,19 @@ size_t UpdateManager::Impl::AddReleases(const boost::json::value& json)
 {
    // Parse releases
    std::vector<types::gh::Release> newReleases {};
-   try
+
+   auto converted =
+      boost::json::try_value_to<std::vector<types::gh::Release>>(json);
+   if (!converted.has_error())
    {
-      newReleases =
-         boost::json::value_to<std::vector<types::gh::Release>>(json);
+      newReleases = std::move(*converted);
    }
-   catch (const std::exception& ex)
+   else
    {
-      logger_->warn("Error parsing JSON: {}", ex.what());
+      logger_->warn("Error parsing JSON: {}", converted.error().message());
    }
 
-   size_t newReleaseCount = newReleases.size();
+   const size_t newReleaseCount = newReleases.size();
 
    // Add releases to the current list
    releases_.insert(releases_.end(), newReleases.begin(), newReleases.end());

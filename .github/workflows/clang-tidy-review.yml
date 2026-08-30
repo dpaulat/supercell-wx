@@ -16,18 +16,18 @@ jobs:
       matrix:
         include:
           - name: linux_clang-tidy_x64
-            os: ubuntu-24.04
+            os: ubuntu-26.04
             build_type: Release
-            env_cc: clang-18
-            env_cxx: clang++-18
+            env_cc: clang-21
+            env_cxx: clang++-21
             qt_version: 6.11.1
             qt_arch_aqt: linux_gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
-            conan_profile: scwx-linux_clang-18
-            compiler_packages: clang-18 clang-tidy-18
-            clang_tidy_binary: clang-tidy-18
+            conan_profile: scwx-linux_clang-21
+            compiler_packages: clang-21 clang-tidy-21
+            clang_tidy_binary: clang-tidy-21
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     env:

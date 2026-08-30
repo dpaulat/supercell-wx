@@ -1,5 +1,6 @@
 #include <scwx/qt/settings/settings_variable.hpp>
 
+#include <boost/json.hpp>
 #include <gtest/gtest.h>
 
 namespace scwx
@@ -20,6 +21,26 @@ TEST(SettingsVariableTest, Boolean)
    EXPECT_EQ(boolVariable.SetValue(true), true);
    EXPECT_EQ(boolVariable.GetValue(), true);
    EXPECT_EQ(boolVariable.SetValueOrDefault(false), true);
+   EXPECT_EQ(boolVariable.GetValue(), false);
+}
+
+TEST(SettingsVariableTest, ReadValueInvalidTypeUsesDefault)
+{
+   SettingsVariable<bool> boolVariable {"bool"};
+   boolVariable.SetDefault(true);
+   boolVariable.SetValue(false);
+
+   const boost::json::object stringValue {{"bool", ""}};
+   EXPECT_FALSE(boolVariable.ReadValue(stringValue));
+   EXPECT_EQ(boolVariable.GetValue(), true);
+
+   boolVariable.SetValue(false);
+   const boost::json::object integerValue {{"bool", 0}};
+   EXPECT_FALSE(boolVariable.ReadValue(integerValue));
+   EXPECT_EQ(boolVariable.GetValue(), true);
+
+   const boost::json::object validValue {{"bool", false}};
+   EXPECT_TRUE(boolVariable.ReadValue(validValue));
    EXPECT_EQ(boolVariable.GetValue(), false);
 }
 

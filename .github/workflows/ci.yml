@@ -20,26 +20,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: windows_vs2022_x64
-            os: windows-2022
-            build_type: Release
-            env_cc: ''
-            env_cxx: ''
-            compiler: msvc
-            cppflags: ''
-            ldflags: ''
-            vs_arch: x64
-            vs_version: 2022
-            qt_version: 6.11.1
-            qt_arch_aqt: win64_msvc2022_64
-            qt_arch_dir: msvc2022_64
-            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
-            qt_tools: ''
-            conan_package_manager: ''
-            conan_build_profile: scwx-windows_vs2022_x64
-            conan_host_profile: scwx-windows_vs2022_x64
-            appimage_arch: ''
-            artifact_suffix: windows-vs2022-x64
           - name: windows_vs2026_x64
             os: windows-2025-vs2026
             build_type: Release
@@ -289,7 +269,7 @@ jobs:
             appimage_arch: aarch64
             artifact_suffix: linux-gcc-13-arm64
             compiler_packages: g++-13
-          - name: macos_clang-18_x64
+          - name: macos_clang-20_x64
             os: macos-15-intel
             build_type: Release
             env_cc: clang
@@ -301,11 +281,11 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: ''
-            conan_build_profile: scwx-macos_clang-18
-            conan_host_profile: scwx-macos_clang-18
+            conan_build_profile: scwx-macos_clang-20
+            conan_host_profile: scwx-macos_clang-20
             appimage_arch: ''
             artifact_suffix: macos-x64
-          - name: macos_clang-18_arm64
+          - name: macos_clang-20_arm64
             os: macos-14
             build_type: Release
             env_cc: clang
@@ -317,8 +297,8 @@ jobs:
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
             conan_package_manager: ''
-            conan_build_profile: scwx-macos_clang-18_armv8
-            conan_host_profile: scwx-macos_clang-18_armv8
+            conan_build_profile: scwx-macos_clang-20_armv8
+            conan_host_profile: scwx-macos_clang-20_armv8
             appimage_arch: ''
             artifact_suffix: macos-arm64
     name: ${{ matrix.name }}
@@ -399,8 +379,8 @@ jobs:
       if: ${{ startsWith(matrix.os, 'macos') }}
       shell: bash
       run: |
-        brew install llvm@18
-        LLVM_PATH=$(brew --prefix llvm@18)
+        brew install llvm@20
+        LLVM_PATH=$(brew --prefix llvm@20)
         echo "CC=${LLVM_PATH}/bin/clang" >> $GITHUB_ENV
         echo "CXX=${LLVM_PATH}/bin/clang++" >> $GITHUB_ENV
         echo "CPPFLAGS=-I${LLVM_PATH}/include" >> $GITHUB_ENV
@@ -463,13 +443,19 @@ jobs:
       shell: pwsh
       run: |
         cd build
-        cmake ../source/ `
-          -G Ninja `
-          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" `
-          -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES="${{ github.workspace }}/source/external/cmake-conan/conan_provider.cmake" `
-          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/supercell-wx" `
-          -DCONAN_HOST_PROFILE="${{ matrix.conan_host_profile }}" `
-          -DCONAN_BUILD_PROFILE="${{ matrix.conan_build_profile }}"
+        $cmakeArgs = @(
+          '../source/',
+          '-G', 'Ninja',
+          "-DCMAKE_BUILD_TYPE=${{ matrix.build_type }}",
+          "-DCMAKE_PROJECT_TOP_LEVEL_INCLUDES=${{ github.workspace }}/source/external/cmake-conan/conan_provider.cmake",
+          "-DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/supercell-wx",
+          "-DCONAN_HOST_PROFILE=${{ matrix.conan_host_profile }}",
+          "-DCONAN_BUILD_PROFILE=${{ matrix.conan_build_profile }}"
+        )
+        if ('${{ matrix.os }}' -like 'macos*') {
+          $cmakeArgs += '-DCMAKE_OSX_DEPLOYMENT_TARGET=12.0'
+        }
+        cmake @cmakeArgs
         ninja supercell-wx
 
     - name: Build Supercell Wx (Test)

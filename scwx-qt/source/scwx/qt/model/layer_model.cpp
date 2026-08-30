@@ -231,15 +231,17 @@ void LayerModel::Impl::ApplyLayerSettings(const boost::json::value& layerJson)
       auto& layerArray = layerJson.as_array();
       for (auto& layerEntry : layerArray)
       {
-         try
+         // Convert layer entry to a LayerInfo record, and add to new layers
+         auto converted =
+            boost::json::try_value_to<types::LayerInfo>(layerEntry);
+         if (!converted.has_error())
          {
-            // Convert layer entry to a LayerInfo record, and add to new layers
-            newLayers.emplace_back(
-               boost::json::value_to<types::LayerInfo>(layerEntry));
+            newLayers.emplace_back(std::move(*converted));
          }
-         catch (const std::exception& ex)
+         else
          {
-            logger_->warn("Invalid layer entry: {}", ex.what());
+            logger_->warn("Invalid layer entry: {}",
+                          converted.error().message());
          }
       }
 
