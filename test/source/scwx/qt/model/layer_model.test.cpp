@@ -1,7 +1,13 @@
 #include <scwx/qt/main/application.hpp>
+#include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/qt/types/layer_types.hpp>
 
+#include <chrono>
+#include <condition_variable>
+#include <mutex>
+
+#include <QObject>
 #include <gtest/gtest.h>
 
 namespace scwx::qt::model
@@ -12,19 +18,55 @@ class LayerModelOpacityTest : public ::testing::Test
 protected:
    static void SetUpTestSuite()
    {
-      // PlacefileManager waits on application initialization; without this
-      // the LayerModel destructor deadlocks joining that thread.
+      std::mutex              mutex;
+      std::condition_variable cv;
+      bool                    placefilesInitialized = false;
+
+      // PlacefileManager posts init work that waits on application
+      // initialization, then emits PlacefilesInitialized. Unblock that wait
+      // and join the work before creating LayerModel. Otherwise teardown
+      // destroys LayerModel while the worker still emits into it (CI:
+      // intermittent SIGSEGV after the test body).
+      placefileManager_ = manager::PlacefileManager::Instance();
+      const QMetaObject::Connection connection =
+         QObject::connect(placefileManager_.get(),
+                          &manager::PlacefileManager::PlacefilesInitialized,
+                          [&]()
+                          {
+                             const std::unique_lock lock(mutex);
+                             placefilesInitialized = true;
+                             cv.notify_all();
+                          });
+
       main::Application::FinishInitialization();
+
+      std::unique_lock lock(mutex);
+      const bool       initialized =
+         cv.wait_for(lock,
+                     std::chrono::seconds(10),
+                     [&]() { return placefilesInitialized; });
+      QObject::disconnect(connection);
+
+      ASSERT_TRUE(initialized)
+         << "PlacefilesInitialized was not received before timeout";
+
       model_ = LayerModel::Instance();
    }
 
-   static void TearDownTestSuite() { model_.reset(); }
+   static void TearDownTestSuite()
+   {
+      model_.reset();
+      placefileManager_.reset();
+   }
 
    void SetUp() override { model_->ResetLayers(); }
 
-   static std::shared_ptr<LayerModel> model_;
+   static std::shared_ptr<manager::PlacefileManager> placefileManager_;
+   static std::shared_ptr<LayerModel>                model_;
 };
 
+std::shared_ptr<manager::PlacefileManager>
+                            LayerModelOpacityTest::placefileManager_ {};
 std::shared_ptr<LayerModel> LayerModelOpacityTest::model_ {};
 
 int FindRow(const std::shared_ptr<LayerModel>& model, types::LayerType type)

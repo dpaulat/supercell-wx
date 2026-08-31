@@ -173,9 +173,13 @@ LayerModel::LayerModel(QObject* parent) :
 
 LayerModel::~LayerModel()
 {
+   // Drop PlacefileManager connections before Impl (and that manager) is
+   // destroyed. PlacefileManager may still emit from its init thread.
+   disconnect(p->placefileManager_.get(), nullptr, this, nullptr);
+
    // Save layer settings on shutdown
    p->SaveLayerSettings();
-};
+}
 
 void LayerModel::Impl::InitializeLayerSettings()
 {
