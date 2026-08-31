@@ -32,7 +32,7 @@ protected:
                           &manager::PlacefileManager::PlacefilesInitialized,
                           [&]()
                           {
-                             std::unique_lock lock(mutex);
+                             const std::unique_lock lock(mutex);
                              placefilesInitialized = true;
                              cv.notify_all();
                           });
