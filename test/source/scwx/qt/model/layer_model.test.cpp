@@ -3,6 +3,7 @@
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/qt/types/layer_types.hpp>
 
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
 
@@ -40,11 +41,14 @@ protected:
       main::Application::FinishInitialization();
 
       std::unique_lock lock(mutex);
-      while (!placefilesInitialized)
-      {
-         cv.wait(lock);
-      }
+      const bool       initialized =
+         cv.wait_for(lock,
+                     std::chrono::seconds(10),
+                     [&]() { return placefilesInitialized; });
       QObject::disconnect(connection);
+
+      ASSERT_TRUE(initialized)
+         << "PlacefilesInitialized was not received before timeout";
 
       model_ = LayerModel::Instance();
    }
