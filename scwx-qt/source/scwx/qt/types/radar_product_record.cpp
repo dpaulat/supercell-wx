@@ -3,6 +3,9 @@
 #include <scwx/common/sites.hpp>
 #include <scwx/util/time.hpp>
 
+#include <fmt/chrono.h>
+#include <fmt/format.h>
+
 namespace scwx
 {
 namespace qt
@@ -136,6 +139,43 @@ std::chrono::system_clock::time_point RadarProductRecord::time() const
 void RadarProductRecord::set_time(std::chrono::system_clock::time_point time)
 {
    p->time_ = time;
+}
+
+std::string RadarProductRecord::suggested_filename() const
+{
+   std::string name {};
+
+   if (p->nexradFile_ != nullptr)
+   {
+      name = p->nexradFile_->filename();
+   }
+
+   if (name.empty())
+   {
+      const auto recordTime =
+         std::chrono::time_point_cast<std::chrono::seconds>(p->time_);
+
+      if (p->radarProductGroup_ == common::RadarProductGroup::Level2)
+      {
+         name =
+            fmt::format("{0}{1:%Y%m%d}_{1:%H%M%S}", p->radarId_, recordTime);
+      }
+      else
+      {
+         name = fmt::format("{0}_{1}_{2:%Y_%m_%d_%H_%M_%S}",
+                            p->siteId_,
+                            p->radarProduct_,
+                            recordTime);
+      }
+   }
+
+   if (p->nexradFile_ != nullptr && p->nexradFile_->is_gzip_compressed() &&
+       !name.ends_with(".gz") && !name.ends_with(".GZ"))
+   {
+      name += ".gz";
+   }
+
+   return name;
 }
 
 std::shared_ptr<RadarProductRecord>

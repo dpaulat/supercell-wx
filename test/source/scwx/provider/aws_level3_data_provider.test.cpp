@@ -42,6 +42,9 @@ TEST(AwsLevel3DataProvider, LoadObjectByKey)
    auto file = provider.LoadObjectByKey(key);
 
    EXPECT_NE(file, nullptr);
+   ASSERT_NE(file, nullptr);
+   EXPECT_EQ(file->filename(), "LSX_N0Q_2021_05_27_17_57_17");
+   EXPECT_TRUE(file->has_file_data());
 }
 
 TEST(AwsLevel3DataProvider, Refresh)
