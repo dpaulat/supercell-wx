@@ -37,9 +37,18 @@ if [ -x /usr/bin/gcc ] && [ -x /usr/bin/g++ ]; then
     sudo update-alternatives --set c++ /usr/bin/g++
 fi
 
+# Project venv is required for aqt (PEP 668 blocks pip --user on Ubuntu 24.04)
+if [ -d "${repo_root}/.venv" ] && ! "${repo_root}/.venv/bin/python" -c "import pip" 2>/dev/null; then
+    rm -rf "${repo_root}/.venv"
+fi
+python3 -m venv "${repo_root}/.venv"
+# shellcheck disable=SC1091
+source "${repo_root}/.venv/bin/activate"
+python3 -m pip install --upgrade pip
+
 qt_prefix="/opt/Qt/6.11.1/gcc_64"
 if [ ! -d "${qt_prefix}" ]; then
-    python3 -m pip install --user aqtinstall
+    python3 -m pip install aqtinstall
     sudo mkdir -p /opt/Qt
     sudo chown "$(id -u):$(id -g)" /opt/Qt
     AQT_CONFIG="${repo_root}/tools/aqt-settings.ini" \
