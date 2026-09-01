@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="32" viewBox="0 0 128 32">
+  <!-- 0: small hail -->
+  <polygon points="16,8 24,24 8,24" fill="#f5d76e" stroke="#1a1a1a" stroke-width="1.5"/>
+  <!-- 1: medium hail -->
+  <polygon points="48,6 58,26 38,26" fill="#f39c12" stroke="#1a1a1a" stroke-width="1.5"/>
+  <!-- 2: large hail -->
+  <polygon points="80,4 92,28 68,28" fill="#e74c3c" stroke="#1a1a1a" stroke-width="1.5"/>
+  <!-- 3: severe hail -->
+  <polygon points="112,4 124,28 100,28" fill="#c0392b" stroke="#f1c40f" stroke-width="2.5"/>
+</svg>
