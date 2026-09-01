@@ -1,5 +1,10 @@
 #!/bin/bash
+set -euo pipefail
 script_dir="$(dirname "$(readlink -f "$0")")"
+
+export PATH="${HOME}/.local/bin:${PATH}"
+export CC="${CC:-/usr/bin/gcc-13}"
+export CXX="${CXX:-/usr/bin/g++-13}"
 
 export build_dir="$(readlink -f "${1:-${script_dir}/../build-release}")"
 export build_type=Release

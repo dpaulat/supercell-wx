@@ -1,6 +1,12 @@
 #!/bin/bash
+set -euo pipefail
+
 script_source="${BASH_SOURCE[0]:-$0}"
 script_dir="$(cd "$(dirname "${script_source}")" && pwd)"
+
+# User-site scripts (conan, aqt, pip) must be on PATH even when a venv
+# is not active. Environment-build install environments often omit this.
+export PATH="${HOME}/.local/bin:${PATH}"
 
 # Import common paths
 source "${script_dir}/common-paths.sh"
@@ -12,7 +18,17 @@ fi
 
 # Activate python3 Virtual Environment
 if [ -n "${venv_path:-}" ]; then
+    if ! python3 -c "import ensurepip" 2>/dev/null; then
+        echo "error: python3 venv/ensurepip is not available." >&2
+        echo "On Debian/Ubuntu, install it with: sudo apt-get install -y python3-venv" >&2
+        exit 1
+    fi
+    # Recreate a leftover tree from a previous failed venv (no pip/activate)
+    if [ -d "${venv_path}" ] && ! "${venv_path}/bin/python" -c "import pip" 2>/dev/null; then
+        rm -rf "${venv_path}"
+    fi
     python3 -m venv "${venv_path}"
+    # shellcheck disable=SC1091
     source "${venv_path}/bin/activate"
 fi
 
@@ -28,10 +44,12 @@ else
 fi
 
 # Install python3 packages
+# shellcheck disable=SC2086
 python3 -m pip install ${PIP_FLAGS} pip
+# shellcheck disable=SC2086
 python3 -m pip install ${PIP_FLAGS} -r "${script_dir}/../../requirements.txt"
 
-if [[ -n "${build_type}" ]]; then
+if [[ -n "${build_type:-}" ]]; then
     # Install Conan profile and packages
     "${script_dir}/setup-conan.sh"
 else
