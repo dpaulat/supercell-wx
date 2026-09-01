@@ -13,24 +13,22 @@ export PATH="${HOME}/.local/bin:${PATH}"
 export CC="${CC:-/usr/bin/gcc-13}"
 export CXX="${CXX:-/usr/bin/g++-13}"
 
-need_apt=0
-if ! python3 -c "import ensurepip" 2>/dev/null; then
-    need_apt=1
-fi
-if ! command -v ninja >/dev/null 2>&1; then
-    need_apt=1
-fi
-
-if [ "${need_apt}" -eq 1 ]; then
-    sudo apt-get update
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-        python3-venv \
-        python3.12-venv \
-        ninja-build \
-        wayland-protocols \
-        libwayland-dev \
-        libwayland-egl-backend-dev
-fi
+sudo apt-get update
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    python3-venv \
+    python3.12-venv \
+    ninja-build \
+    wayland-protocols \
+    libwayland-dev \
+    libwayland-egl-backend-dev \
+    libgl1-mesa-dev \
+    libglu1-mesa-dev \
+    libegl1-mesa-dev \
+    libvulkan-dev \
+    libxkbcommon-dev \
+    libxkbcommon-x11-dev \
+    libxcb-cursor-dev \
+    pkg-config
 
 if [ -x /usr/bin/gcc ] && [ -x /usr/bin/g++ ]; then
     sudo update-alternatives --set cc /usr/bin/gcc
@@ -58,4 +56,6 @@ if [ ! -d "${qt_prefix}" ]; then
 fi
 
 git submodule update --init --recursive
+# Allow Conan to apt-install remaining system deps (opengl/system, glu/system)
+export CONAN_SYSTEM_PACKAGE_MANAGER=install
 "${script_dir}/setup-linux-ninja-release.sh"
