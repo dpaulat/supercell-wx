@@ -13,7 +13,7 @@ static const std::string logPrefix_ =
    "scwx::qt::render::rhi_geo_colored_geometry";
 static const auto logger_ = scwx::util::Logger::Create(logPrefix_);
 
-static constexpr int kUniformBytes = 144;
+static constexpr int kUniformBytes = static_cast<int>(sizeof(GeoUniforms));
 
 void RhiGeoColoredGeometry::Initialize(QRhi*             rhi,
                                        QRhiRenderTarget* renderTarget,

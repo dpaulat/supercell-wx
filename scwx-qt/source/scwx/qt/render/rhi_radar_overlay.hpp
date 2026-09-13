@@ -28,8 +28,10 @@ struct RadarUniforms
    alignas(4) std::uint32_t uDataMomentOffset {0};
    alignas(4) float uDataMomentScale {1.0f};
    alignas(4) std::int32_t uCFPEnabled {0};
-   alignas(4) std::uint32_t _pad {0};
+   alignas(4) float uOpacity {1.0f};
 };
+
+static_assert(sizeof(RadarUniforms) == 160);
 
 class RhiRadarOverlay
 {

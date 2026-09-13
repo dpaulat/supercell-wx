@@ -123,6 +123,7 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/media_manager.hpp
                 source/scwx/qt/manager/placefile_manager.hpp
                 source/scwx/qt/manager/position_manager.hpp
+                source/scwx/qt/manager/product_datastore.hpp
                 source/scwx/qt/manager/provider_manager.hpp
                 source/scwx/qt/manager/radar_coordinate_table.hpp
                 source/scwx/qt/manager/radar_product_manager.hpp
@@ -144,6 +145,7 @@ set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                 source/scwx/qt/manager/media_manager.cpp
                 source/scwx/qt/manager/placefile_manager.cpp
                 source/scwx/qt/manager/position_manager.cpp
+                source/scwx/qt/manager/product_datastore.cpp
                 source/scwx/qt/manager/provider_manager.cpp
                 source/scwx/qt/manager/radar_coordinate_table.cpp
                 source/scwx/qt/manager/radar_product_manager.cpp
@@ -378,6 +380,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/imgui_debug_dialog.hpp
            source/scwx/qt/ui/imgui_debug_widget.hpp
            source/scwx/qt/ui/layer_dialog.hpp
+           source/scwx/qt/ui/layer_opacity_delegate.hpp
            source/scwx/qt/ui/left_elided_item_delegate.hpp
            source/scwx/qt/ui/level2_products_widget.hpp
            source/scwx/qt/ui/level2_settings_widget.hpp
@@ -417,6 +420,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/imgui_debug_dialog.cpp
            source/scwx/qt/ui/imgui_debug_widget.cpp
            source/scwx/qt/ui/layer_dialog.cpp
+           source/scwx/qt/ui/layer_opacity_delegate.cpp
            source/scwx/qt/ui/left_elided_item_delegate.cpp
            source/scwx/qt/ui/level2_products_widget.cpp
            source/scwx/qt/ui/level2_settings_widget.cpp
@@ -701,6 +705,25 @@ else()
     set(SCWX_BUILD_NUM 0)
 endif()
 
+# Extra arguments for generate_versions.py
+# These can be set by the user to override the default values
+set(SCWX_COMMIT_STRING "" CACHE STRING
+    "Optional git commit hash override for version info (first 10 characters are used)")
+set(SCWX_RELEASE_DATE "" CACHE STRING
+    "Optional release date override for version info (YYYY-MM-DD)")
+
+set(SCWX_GENERATE_VERSIONS_EXTRA_ARGS)
+if (SCWX_COMMIT_STRING)
+    string(SUBSTRING "${SCWX_COMMIT_STRING}" 0 10 _scwxCommitString)
+    list(APPEND SCWX_GENERATE_VERSIONS_EXTRA_ARGS
+         --commit-string "${_scwxCommitString}")
+    unset(_scwxCommitString)
+endif()
+if (SCWX_RELEASE_DATE)
+    list(APPEND SCWX_GENERATE_VERSIONS_EXTRA_ARGS
+         --release-date "${SCWX_RELEASE_DATE}")
+endif()
+
 if (WIN32)
     add_custom_command(OUTPUT  ${VERSIONS_HEADER}
                                ${RESOURCE_OUTPUT}
@@ -717,7 +740,8 @@ if (WIN32)
                                --input-resource ${RESOURCE_INPUT}
                                --output-resource ${RESOURCE_OUTPUT}
                                --input-metainfo ${METAINFO_INPUT}
-                               --output-metainfo ${METAINFO_OUTPUT})
+                               --output-metainfo ${METAINFO_OUTPUT}
+                               ${SCWX_GENERATE_VERSIONS_EXTRA_ARGS})
 else()
     add_custom_command(OUTPUT  ${VERSIONS_HEADER}
                                ${METAINFO_OUTPUT}
@@ -731,7 +755,8 @@ else()
                                -o ${VERSIONS_HEADER}
                                -b ${SCWX_BUILD_NUM}
                                --input-metainfo ${METAINFO_INPUT}
-                               --output-metainfo ${METAINFO_OUTPUT})
+                               --output-metainfo ${METAINFO_OUTPUT}
+                               ${SCWX_GENERATE_VERSIONS_EXTRA_ARGS})
 endif()
 
 add_custom_target(scwx-qt_generate_versions ALL
@@ -948,11 +973,18 @@ target_link_libraries(supercell-wx PRIVATE scwx-qt
                                            wxdata)
 
 if (WIN32)
-#Deploy Qt to                                       target directory
+    scwx_windeployqt_qtpaths_options(_qtpaths_opts)
+
+    set(SCWX_WINDEPLOYQT_OPTIONS --no-translations
+                                 --no-compiler-runtime # (CRT comes from the NSIS bootstrapper / system redist)
+                                 ${_qtpaths_opts})
+
+    # Deploy Qt to target directory
     add_custom_command(TARGET supercell-wx
                        POST_BUILD
                        COMMAND "${WINDEPLOYQT_EXECUTABLE}"
-                           --no-translations $<TARGET_FILE:supercell-wx>
+                           ${SCWX_WINDEPLOYQT_OPTIONS}
+                           $<TARGET_FILE:supercell-wx>
                        COMMENT "Running windeployqt for supercell-wx...")
 endif()
 
@@ -962,12 +994,23 @@ if (LINUX)
     set_target_properties(supercell-wx PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
 endif()
 
-install(TARGETS supercell-wx
-                MLNQtCore # QMapLibre::Core
+# install(TARGETS RUNTIME_DEPENDENCIES) is rejected when CMAKE_CROSSCOMPILING.
+# Qt's Windows ARM64 toolchain sets that on x64 hosts; copy imported runtime
+# DLLs instead. windeployqt still deploys Qt.
+if (NOT CMAKE_CROSSCOMPILING)
+    set(_scwx_runtime_dependencies
         RUNTIME_DEPENDENCIES
           PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-" "qt6"
           POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
                                "^(/usr)?/lib/.*\\.so(\\..*)?"
+    )
+else()
+    set(_scwx_runtime_dependencies)
+endif()
+
+install(TARGETS supercell-wx
+                MLNQtCore # QMapLibre::Core
+        ${_scwx_runtime_dependencies}
         RUNTIME
           COMPONENT supercell-wx
         BUNDLE
@@ -982,17 +1025,52 @@ install(TARGETS supercell-wx
           COMPONENT supercell-wx
           OPTIONAL)
 
-#NO_TRANSLATIONS is needed for Qt 6.5.0(will be fixed in 6.5.1)
-#https: // bugreports.qt.io/browse/QTBUG-112204
+if (WIN32 AND CMAKE_CROSSCOMPILING)
+    # TARGET_RUNTIME_DLLS only lists direct link dependencies. Transitive
+    # runtime DLLs (e.g. iconv-2.dll via fontconfig) are staged next to the
+    # executable by conanfile.py generate() but are omitted from install
+    # without RUNTIME_DEPENDENCIES (unsupported when cross-compiling).
+    install(CODE "
+        set(_scwx_runtime_dlls
+            \"$<TARGET_RUNTIME_DLLS:supercell-wx>\"
+            \"$<TARGET_RUNTIME_DLLS:MLNQtCore>\")
+        file(GLOB _scwx_staged_dlls \"$<TARGET_FILE_DIR:supercell-wx>/*.dll\")
+        list(APPEND _scwx_runtime_dlls \${_scwx_staged_dlls})
+        list(REMOVE_DUPLICATES _scwx_runtime_dlls)
+        foreach(_scwx_dll IN LISTS _scwx_runtime_dlls)
+            if(_scwx_dll STREQUAL \"\")
+                continue()
+            endif()
+            get_filename_component(_scwx_dll_name \"\${_scwx_dll}\" NAME)
+            if(_scwx_dll_name MATCHES \"^[Qq]t6\" OR
+               _scwx_dll_name MATCHES \"^(api-ms-|ext-ms-)\")
+                continue()
+            endif()
+            file(INSTALL DESTINATION \"\${CMAKE_INSTALL_PREFIX}/bin\"
+                 TYPE SHARED_LIBRARY
+                 FILES \"\${_scwx_dll}\")
+        endforeach()
+        " COMPONENT supercell-wx)
+endif()
+
+scwx_windeployqt_qtpaths_options(SCWX_DEPLOY_TOOL_OPTIONS)
+
+# NO_TRANSLATIONS is needed for Qt 6.5.0 (will be fixed in 6.5.1)
+# https://bugreports.qt.io/browse/QTBUG-112204
+# NO_COMPILER_RUNTIME: VC++ redistributable is installed by the NSIS bootstrapper
 qt_generate_deploy_app_script(TARGET MLNQtCore # QMapLibre::Core
                               OUTPUT_SCRIPT deploy_script_qmaplibre_core
                               NO_TRANSLATIONS
-                              NO_UNSUPPORTED_PLATFORM_ERROR)
+                              NO_COMPILER_RUNTIME
+                              NO_UNSUPPORTED_PLATFORM_ERROR
+                              DEPLOY_TOOL_OPTIONS ${SCWX_DEPLOY_TOOL_OPTIONS})
 
 qt_generate_deploy_app_script(TARGET supercell-wx
                               OUTPUT_SCRIPT deploy_script_scwx
                               NO_TRANSLATIONS
-                              NO_UNSUPPORTED_PLATFORM_ERROR)
+                              NO_COMPILER_RUNTIME
+                              NO_UNSUPPORTED_PLATFORM_ERROR
+                              DEPLOY_TOOL_OPTIONS ${SCWX_DEPLOY_TOOL_OPTIONS})
 
 install(SCRIPT ${deploy_script_qmaplibre_core}
         COMPONENT supercell-wx)
@@ -1058,7 +1136,13 @@ set(SCWX_WINDOWS_PACKAGE_INSTALL_ROOT "" CACHE PATH
     "Existing installed Supercell Wx tree to package for Windows")
 
 if (MSVC)
-    set(CPACK_PACKAGE_FILE_NAME           "supercell-wx-v${SCWX_VERSION}-windows-x64")
+    if (CMAKE_CXX_COMPILER_ARCHITECTURE_ID STREQUAL "ARM64" OR
+        CMAKE_SYSTEM_PROCESSOR MATCHES "^(ARM64|arm64|aarch64)$")
+        set(CPACK_PACKAGE_FILE_NAME "supercell-wx-v${SCWX_VERSION}-windows-arm64")
+    else()
+        set(CPACK_PACKAGE_FILE_NAME "supercell-wx-v${SCWX_VERSION}-windows-x64")
+    endif()
+
     set(CPACK_PACKAGE_INSTALL_DIRECTORY   "Supercell Wx")
     set(CPACK_PACKAGE_ICON                "${CMAKE_CURRENT_SOURCE_DIR}/res/icons/scwx-256.ico")
     set(CPACK_GENERATOR                   WIX)

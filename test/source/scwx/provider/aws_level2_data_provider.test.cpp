@@ -1,5 +1,7 @@
 #include <scwx/provider/aws_level2_data_provider.hpp>
 
+#include <tuple>
+
 #include <gtest/gtest.h>
 
 namespace scwx
@@ -54,13 +56,25 @@ TEST(AwsLevel2DataProvider, Prune)
    const auto yesterday = today - days {1};
    auto       date      = today + days {1};
 
-   for (size_t i = 0; i < 15; i++)
+   // Skip empty days (radar outages) so prune still sees 15 populated dates
+   // and FindKey is queried on a date that was actually inserted into the
+   // cache.
+   for (size_t i = 0; i < 15;)
    {
       date -= days {1};
-      provider.ListObjects(date);
+      ASSERT_GE(date, today - days {60})
+         << "Not enough KEAX Level 2 objects in lookback window to exercise "
+            "prune";
+
+      const size_t totalObjects = std::get<2>(provider.ListObjects(date));
 
       // Expect the cache size to be under the prune threshold
       EXPECT_LE(provider.cache_size(), 2500);
+
+      if (totalObjects > 0)
+      {
+         ++i;
+      }
    }
 
    std::string key  = provider.FindLatestKey();

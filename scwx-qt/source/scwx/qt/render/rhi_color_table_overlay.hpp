@@ -33,7 +33,8 @@ public:
                const float                      vertices[6][2],
                const std::vector<std::uint8_t>& rgbaColorTable,
                QRhiResourceUpdateBatch*         resourceBatch = nullptr,
-               RhiOverlayPhase phase = RhiOverlayPhase::UploadAndDraw);
+               RhiOverlayPhase phase   = RhiOverlayPhase::UploadAndDraw,
+               float           opacity = 1.0f);
 
    [[nodiscard]] bool IsInitialized() const;
 

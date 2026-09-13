@@ -15,6 +15,7 @@ layout(set = 0, binding = 0) uniform UniformBlock {
     vec2 uOriginLatLong;
     float uMapDistance;
     int uSelectedTime;
+    float uOpacity;
 };
 
 layout(set = 0, binding = 1) uniform sampler2DArray uTexture;
@@ -50,4 +51,5 @@ void main()
    }
 
    fragColor = texture(uTexture, vTexCoord) * vColor;
+   fragColor.a *= uOpacity;
 }

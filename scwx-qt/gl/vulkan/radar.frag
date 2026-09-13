@@ -12,6 +12,7 @@ layout(set = 0, binding = 0) uniform UniformBlock {
     uint uDataMomentOffset;
     float uDataMomentScale;
     int uCFPEnabled;
+    float uOpacity;
 };
 
 layout(set = 0, binding = 1) uniform sampler2D uTexture;
@@ -27,4 +28,5 @@ void main()
    }
 
    fragColor = texture(uTexture, vec2(texCoord, 0.5));
+   fragColor.a *= uOpacity;
 }

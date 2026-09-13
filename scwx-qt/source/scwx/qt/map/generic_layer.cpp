@@ -1,5 +1,7 @@
 #include <scwx/qt/map/generic_layer.hpp>
 
+#include <algorithm>
+
 namespace scwx::qt::map
 {
 
@@ -19,6 +21,7 @@ public:
    Impl& operator=(const Impl&&) = delete;
 
    std::shared_ptr<render::RenderContext> renderContext_;
+   float                                  opacity_ {1.0f};
 };
 
 GenericLayer::GenericLayer(
@@ -52,6 +55,32 @@ void GenericLayer::RenderVulkanOverlay(
 std::shared_ptr<render::RenderContext> GenericLayer::render_context() const
 {
    return p->renderContext_;
+}
+
+void GenericLayer::set_opacity(float opacity)
+{
+   p->opacity_ = std::clamp(opacity, 0.0f, 1.0f);
+}
+
+float GenericLayer::opacity() const
+{
+   return p->opacity_;
+}
+
+void GenericLayer::BindLayerState()
+{
+   if (p->renderContext_ != nullptr)
+   {
+      p->renderContext_->set_layer_opacity(p->opacity_);
+   }
+}
+
+void GenericLayer::ResetLayerState()
+{
+   if (p->renderContext_ != nullptr)
+   {
+      p->renderContext_->set_layer_opacity(1.0f);
+   }
 }
 
 } // namespace scwx::qt::map

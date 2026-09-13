@@ -121,6 +121,28 @@ bool VulkanSmokeEnabled() noexcept
    return enabled;
 }
 
+std::string CustomAlertLayerId(awips::Phenomenon phenomenon)
+{
+   return fmt::format("alert.{}", awips::GetPhenomenonCode(phenomenon));
+}
+
+std::string CustomLayerId(types::LayerType        type,
+                          types::LayerDescription description)
+{
+   if (type == types::LayerType::Alert &&
+       std::holds_alternative<awips::Phenomenon>(description))
+   {
+      return CustomAlertLayerId(std::get<awips::Phenomenon>(description));
+   }
+
+   return types::GetLayerName(type, description);
+}
+
+float LayerOpacity(const types::LayerInfo& info)
+{
+   return types::LayerSupportsOpacity(info.type_) ? info.opacity_ : 1.0f;
+}
+
 /** Ring + eraser in pixmap so KDE/Wayland compositor tracks cursor with zero
  * lag. Pixmap radius is capped (~124px) for display only; geographic erase pick
  * and `EraseCursorRadiusPx` use the full brush width in ground meters. */
@@ -336,6 +358,7 @@ public:
                           const std::string& before);
    void ConnectMapSignals();
    void ConnectSignals();
+   void UpdateLayerOpacities();
    void HandleHotkeyPressed(types::Hotkey hotkey, bool isAutoRepeat);
    void HandleHotkeyReleased(types::Hotkey hotkey);
    void HandleHotkeyUpdates();
@@ -410,6 +433,8 @@ public:
    std::list<std::string>          layerList_;
 
    std::vector<std::shared_ptr<GenericLayer>> genericLayers_ {};
+   std::unordered_map<std::string, std::shared_ptr<GenericLayer>>
+      genericLayerMap_ {};
 
    const std::vector<MapStyle> emptyStyles_ {};
    const std::vector<MapStyle> noneStyles_ {
@@ -654,6 +679,8 @@ void MapWidgetImpl::ConnectSignals()
            {
               static const int enabledColumn =
                  static_cast<int>(model::LayerModel::Column::Enabled);
+              static const int opacityColumn =
+                 static_cast<int>(model::LayerModel::Column::Opacity);
               const int displayColumn =
                  static_cast<int>(model::LayerModel::Column::DisplayMap1) +
                  static_cast<int>(id_);
@@ -666,6 +693,11 @@ void MapWidgetImpl::ConnectSignals()
                    enabledColumn <= bottomRight.column()))
               {
                  AddLayers();
+              }
+              else if (topLeft.column() <= opacityColumn &&
+                       opacityColumn <= bottomRight.column())
+              {
+                 UpdateLayerOpacities();
               }
            });
    connect(layerModel_.get(),
@@ -1877,6 +1909,7 @@ void MapWidgetImpl::AddLayers()
    }
    layerList_.clear();
    genericLayers_.clear();
+   genericLayerMap_.clear();
    placefileLayers_.clear();
    weakPickedEventHandler_.reset();
 
@@ -1940,6 +1973,8 @@ void MapWidgetImpl::AddLayers()
    {
       context_->set_color_table_margins({});
    }
+
+   UpdateLayerOpacities();
 }
 
 void MapWidgetImpl::AddLayer(types::LayerType        type,
@@ -1966,9 +2001,7 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
 
       std::shared_ptr<AlertLayer> alertLayer =
          std::make_shared<AlertLayer>(renderContext_, phenomenon);
-      AddLayer(fmt::format("alert.{}", awips::GetPhenomenonCode(phenomenon)),
-               alertLayer,
-               before);
+      AddLayer(CustomAlertLayerId(phenomenon), alertLayer, before);
       connect(alertLayer.get(),
               &AlertLayer::AlertSelected,
               widget_,
@@ -2099,11 +2132,31 @@ void MapWidgetImpl::AddLayer(const std::string&                   id,
    genericLayers_.push_back(layer);
 
    layer->Initialize(context_);
+   genericLayerMap_.insert_or_assign(id, layer);
 
    connect(layer.get(),
            &GenericLayer::NeedsRendering,
            widget_,
            [this]() { widget_->RequestOverlayRepaint(); });
+}
+
+void MapWidgetImpl::UpdateLayerOpacities()
+{
+   const types::LayerVector layers = layerModel_->GetLayers();
+   for (const auto& info : layers)
+   {
+      const float opacity = LayerOpacity(info);
+
+      const std::string id = CustomLayerId(info.type_, info.description_);
+      auto              it = genericLayerMap_.find(id);
+      if (it != genericLayerMap_.end() && it->second != nullptr)
+      {
+         it->second->set_opacity(opacity);
+      }
+   }
+
+   widget_->RequestOverlayRepaint();
+   widget_->update();
 }
 
 bool MapWidget::event(QEvent* e)
@@ -3147,19 +3200,27 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
 
          if (overlayLayer_ != nullptr)
          {
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, overlayLayer_->opacity());
             overlayLayer_->RenderVulkanImGui(context_, overlayParams);
+            ImGui::PopStyleVar();
          }
 
          if (radarSiteLayer_ != nullptr)
          {
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha,
+                                radarSiteLayer_->opacity());
             radarSiteLayer_->RenderVulkanImGui(context_, overlayParams);
+            ImGui::PopStyleVar();
          }
 
          for (const auto& placefileLayer : placefileLayers_)
          {
             if (placefileLayer != nullptr)
             {
+               ImGui::PushStyleVar(ImGuiStyleVar_Alpha,
+                                   placefileLayer->opacity());
                placefileLayer->RenderVulkanImGui(context_, overlayParams);
+               ImGui::PopStyleVar();
             }
          }
 

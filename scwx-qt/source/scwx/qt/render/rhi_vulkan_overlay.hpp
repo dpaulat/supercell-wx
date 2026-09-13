@@ -31,6 +31,7 @@ struct RhiVulkanOverlayResources
    std::uint64_t            renderTargetGeneration {0};
    QRhiResourceUpdateBatch* resourceBatch {nullptr};
    RhiOverlayPhase          phase {RhiOverlayPhase::UploadAndDraw};
+   float                    layerOpacity {1.0f};
 };
 
 } // namespace scwx::qt::render

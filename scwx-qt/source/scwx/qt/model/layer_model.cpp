@@ -173,9 +173,13 @@ LayerModel::LayerModel(QObject* parent) :
 
 LayerModel::~LayerModel()
 {
+   // Drop PlacefileManager connections before Impl (and that manager) is
+   // destroyed. PlacefileManager may still emit from its init thread.
+   disconnect(p->placefileManager_.get(), nullptr, this, nullptr);
+
    // Save layer settings on shutdown
    p->SaveLayerSettings();
-};
+}
 
 void LayerModel::Impl::InitializeLayerSettings()
 {
@@ -231,15 +235,17 @@ void LayerModel::Impl::ApplyLayerSettings(const boost::json::value& layerJson)
       auto& layerArray = layerJson.as_array();
       for (auto& layerEntry : layerArray)
       {
-         try
+         // Convert layer entry to a LayerInfo record, and add to new layers
+         auto converted =
+            boost::json::try_value_to<types::LayerInfo>(layerEntry);
+         if (!converted.has_error())
          {
-            // Convert layer entry to a LayerInfo record, and add to new layers
-            newLayers.emplace_back(
-               boost::json::value_to<types::LayerInfo>(layerEntry));
+            newLayers.emplace_back(std::move(*converted));
          }
-         catch (const std::exception& ex)
+         else
          {
-            logger_->warn("Invalid layer entry: {}", ex.what());
+            logger_->warn("Invalid layer entry: {}",
+                          converted.error().message());
          }
       }
 
@@ -279,6 +285,15 @@ void LayerModel::Impl::ValidateLayerSettings(types::LayerVector& layers)
       // Ensure layers are appropriately marked movable
       it->movable_ = (it->type_ != types::LayerType::Information &&
                       it->type_ != types::LayerType::Map);
+
+      if (types::LayerSupportsOpacity(it->type_))
+      {
+         it->opacity_ = types::ClampLayerOpacity(it->opacity_);
+      }
+      else
+      {
+         it->opacity_ = 1.0f;
+      }
 
       // Continue to the next layer
       ++it;
@@ -433,6 +448,40 @@ void LayerModel::SetLayerDisplayed(types::LayerType        type,
    }
 }
 
+bool LayerModel::SetLayerOpacity(types::LayerType        type,
+                                 types::LayerDescription description,
+                                 float                   opacity)
+{
+   if (!types::LayerSupportsOpacity(type))
+   {
+      return false;
+   }
+
+   auto it = std::find_if(
+      p->layers_.begin(),
+      p->layers_.end(),
+      [&](const types::LayerInfo& layer)
+      { return layer.type_ == type && layer.description_ == description; });
+
+   if (it == p->layers_.end())
+   {
+      return false;
+   }
+
+   const float clamped = types::ClampLayerOpacity(opacity);
+   if (it->opacity_ == clamped)
+   {
+      return false;
+   }
+
+   it->opacity_  = clamped;
+   const int row = static_cast<int>(std::distance(p->layers_.begin(), it));
+   const QModelIndex index =
+      createIndex(row, static_cast<int>(Column::Opacity));
+   Q_EMIT dataChanged(index, index);
+   return true;
+}
+
 void LayerModel::ResetLayers()
 {
    // Initialize a new layer vector from the default
@@ -455,9 +504,7 @@ void LayerModel::ResetLayers()
    {
       if (it->type_ == types::LayerType::Placefile)
       {
-         newLayers.insert(
-            radarSiteIterator + 1,
-            {it->type_, it->description_, it->movable_, it->displayed_});
+         newLayers.insert(radarSiteIterator + 1, *it);
       }
    }
 
@@ -532,6 +579,13 @@ Qt::ItemFlags LayerModel::flags(const QModelIndex& index) const
       {
          flags |=
             Qt::ItemFlag::ItemIsUserCheckable | Qt::ItemFlag::ItemIsEditable;
+      }
+      break;
+
+   case static_cast<int>(Column::Opacity):
+      if (types::LayerSupportsOpacity(layer.type_))
+      {
+         flags |= Qt::ItemFlag::ItemIsEditable;
       }
       break;
 
@@ -640,6 +694,25 @@ QVariant LayerModel::data(const QModelIndex& index, int role) const
       }
       break;
 
+   case static_cast<int>(Column::Opacity):
+      if (role == Qt::ItemDataRole::DisplayRole ||
+          role == Qt::ItemDataRole::ToolTipRole)
+      {
+         if (!types::LayerSupportsOpacity(layer.type_))
+         {
+            return QObject::tr("Opaque");
+         }
+
+         return QStringLiteral("%1%").arg(
+            types::LayerOpacityToPercent(layer.opacity_));
+      }
+      else if (role == Qt::ItemDataRole::EditRole &&
+               types::LayerSupportsOpacity(layer.type_))
+      {
+         return types::LayerOpacityToPercent(layer.opacity_);
+      }
+      break;
+
    case static_cast<int>(Column::Description):
       if (role == Qt::ItemDataRole::DisplayRole ||
           role == Qt::ItemDataRole::ToolTipRole)
@@ -715,6 +788,9 @@ LayerModel::headerData(int section, Qt::Orientation orientation, int role) const
          case static_cast<int>(Column::Enabled):
             return tr("Enabled");
 
+         case static_cast<int>(Column::Opacity):
+            return tr("Opacity");
+
          case static_cast<int>(Column::Description):
             return tr("Description");
 
@@ -756,6 +832,9 @@ LayerModel::headerData(int section, Qt::Orientation orientation, int role) const
 
       case static_cast<int>(Column::DisplayMap9):
          return tr("Display on Map 9");
+
+      case static_cast<int>(Column::Opacity):
+         return tr("Layer opacity. Map style layers stay opaque.");
 
       default:
          break;
@@ -827,6 +906,25 @@ bool LayerModel::setData(const QModelIndex& index,
       }
       break;
 
+   case static_cast<int>(Column::Opacity):
+      if (role == Qt::ItemDataRole::EditRole &&
+          types::LayerSupportsOpacity(layer.type_))
+      {
+         bool      ok             = false;
+         const int opacityPercent = value.toInt(&ok);
+         if (ok)
+         {
+            const float opacity =
+               types::LayerOpacityFromPercent(opacityPercent);
+            if (layer.opacity_ != opacity)
+            {
+               layer.opacity_ = opacity;
+               result         = true;
+            }
+         }
+      }
+      break;
+
    default:
       break;
    }
@@ -834,7 +932,10 @@ bool LayerModel::setData(const QModelIndex& index,
    if (result)
    {
       Q_EMIT dataChanged(index, index);
-      Q_EMIT LayerDisplayChanged(layer);
+      if (index.column() != static_cast<int>(Column::Opacity))
+      {
+         Q_EMIT LayerDisplayChanged(layer);
+      }
    }
 
    return result;

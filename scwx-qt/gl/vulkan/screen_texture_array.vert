@@ -15,12 +15,13 @@ layout(location = 2) out flat float vDisplayed;
 
 layout(set = 0, binding = 0) uniform UniformBlock {
     mat4 uMVPMatrix;
+    float uOpacity;
 };
 
 void main()
 {
    vTexCoord  = aTexCoord;
-   vColor     = aModulate;
+   vColor     = vec4(aModulate.rgb, aModulate.a * uOpacity);
    vDisplayed = aDisplayed;
 
    float angle  = aAngleDeg * DEG2RAD;

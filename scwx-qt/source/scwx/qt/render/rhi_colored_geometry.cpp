@@ -166,7 +166,7 @@ void RhiColoredGeometry::AppendTransformed(const glm::mat4&          projection,
       stagingVertices_.push_back(v[3]);
       stagingVertices_.push_back(v[4]);
       stagingVertices_.push_back(v[5]);
-      stagingVertices_.push_back(v[6]);
+      stagingVertices_.push_back(v[6] * layerOpacity_);
    }
 }
 

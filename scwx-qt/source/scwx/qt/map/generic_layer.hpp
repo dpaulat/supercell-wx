@@ -67,6 +67,12 @@ public:
                        const std::shared_ptr<MapContext>& mapContext,
                        const QMapLibre::CustomLayerRenderParameters& params);
 
+   void                set_opacity(float opacity);
+   [[nodiscard]] float opacity() const;
+
+   void BindLayerState();
+   void ResetLayerState();
+
 signals:
    void NeedsRendering();
 

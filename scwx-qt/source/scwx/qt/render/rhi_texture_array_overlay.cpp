@@ -15,8 +15,19 @@ static const std::string logPrefix_ =
    "scwx::qt::render::rhi_texture_array_overlay";
 static const auto logger_ = scwx::util::Logger::Create(logPrefix_);
 
-static constexpr int kGeoUniformBytes    = 144;
-static constexpr int kScreenUniformBytes = 64;
+static constexpr int kGeoUniformBytes = static_cast<int>(sizeof(GeoUniforms));
+
+struct ScreenUniforms
+{
+   alignas(16) glm::mat4 uMVPMatrix {};
+   alignas(4) float uOpacity {1.0f};
+   alignas(4) float _pad0 {0.0f};
+   alignas(8) glm::vec2 _pad1 {};
+};
+
+static_assert(sizeof(ScreenUniforms) == 80);
+static constexpr int kScreenUniformBytes =
+   static_cast<int>(sizeof(ScreenUniforms));
 
 void RhiTextureArrayOverlay::Initialize(QRhi*             rhi,
                                         QRhiRenderTarget* renderTarget,
@@ -326,7 +337,8 @@ void RhiTextureArrayOverlay::RenderScreen(
    const std::vector<float>& texCoords,
    const std::uint32_t       vertexCount,
    QRhiResourceUpdateBatch*  resourceBatch,
-   RhiOverlayPhase           phase)
+   RhiOverlayPhase           phase,
+   const float               opacity)
 {
    if (!initialized_ || commandBuffer == nullptr || vertexCount == 0 ||
        screenPipeline_ == nullptr || screenSrb_ == nullptr ||
@@ -371,10 +383,11 @@ void RhiTextureArrayOverlay::RenderScreen(
       {
          return;
       }
-      batch->updateDynamicBuffer(screenUniformBuffer_,
-                                 0,
-                                 kScreenUniformBytes,
-                                 glm::value_ptr(projection));
+      ScreenUniforms screenUniforms {};
+      screenUniforms.uMVPMatrix = projection;
+      screenUniforms.uOpacity   = opacity;
+      batch->updateDynamicBuffer(
+         screenUniformBuffer_, 0, kScreenUniformBytes, &screenUniforms);
       batch->updateDynamicBuffer(screenFloatBuffer_,
                                  0,
                                  static_cast<quint32>(floatBytes),

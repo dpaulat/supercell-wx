@@ -169,7 +169,8 @@ void PlacefileImagesXY::RenderVulkan(
       p->textureBuffer_,
       static_cast<std::uint32_t>(p->numVertices_),
       resources.resourceBatch,
-      resources.phase);
+      resources.phase,
+      resources.layerOpacity);
 }
 
 void PlacefileImagesXY::Deinitialize()

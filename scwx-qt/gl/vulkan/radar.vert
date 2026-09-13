@@ -19,6 +19,7 @@ layout(set = 0, binding = 0) uniform UniformBlock {
     uint uDataMomentOffset;
     float uDataMomentScale;
     int uCFPEnabled;
+    float uOpacity;
 };
 
 vec2 latLngToDeltaScreenCoordinate(vec2 latLng)

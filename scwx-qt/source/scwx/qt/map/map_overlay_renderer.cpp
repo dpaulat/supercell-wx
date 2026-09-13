@@ -318,7 +318,11 @@ bool MapOverlayRenderer::Render(
          continue;
       }
 
+      resources.layerOpacity = layer->opacity();
+      p->coloredGeometry_.SetLayerOpacity(resources.layerOpacity);
+      layer->BindLayerState();
       layer->RenderVulkanOverlay(commandBuffer, resources, mapContext, params);
+      layer->ResetLayerState();
    }
    p->coloredGeometry_.UploadFrame(resources.resourceBatch);
    commandBuffer->resourceUpdate(resources.resourceBatch);
@@ -350,7 +354,11 @@ bool MapOverlayRenderer::Render(
          continue;
       }
 
+      resources.layerOpacity = layer->opacity();
+      p->coloredGeometry_.SetLayerOpacity(resources.layerOpacity);
+      layer->BindLayerState();
       layer->RenderVulkanOverlay(commandBuffer, resources, mapContext, params);
+      layer->ResetLayerState();
    }
 
    if (imguiRender)

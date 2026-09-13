@@ -40,6 +40,7 @@ public:
    // Backdrop copy of the destination color buffer for in-shader alpha mix.
    // Must be set before Draw (texture != the active color target).
    void SetBackdrop(QRhiTexture* texture, QRhiSampler* sampler);
+   void SetLayerOpacity(float opacity) { layerOpacity_ = opacity; }
 
    void Render(QRhiCommandBuffer*        commandBuffer,
                const glm::mat4&          projection,
@@ -78,6 +79,7 @@ private:
    std::vector<DrawCommand> drawCommands_ {};
    std::size_t              drawCursor_ {0};
    bool                     frameUploaded_ {false};
+   float                    layerOpacity_ {1.0f};
 };
 
 } // namespace scwx::qt::render

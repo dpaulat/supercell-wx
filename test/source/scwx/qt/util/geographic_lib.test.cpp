@@ -4,9 +4,7 @@
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 
-namespace scwx
-{
-namespace util
+namespace scwx::util
 {
 
 std::vector<common::Coordinate> area = {
@@ -64,5 +62,50 @@ TEST(geographic_lib, area_in_range_far)
    EXPECT_EQ(value, true);
 }
 
-} // namespace util
-} // namespace scwx
+TEST(geographic_lib, radar_beam_altitude_at_radar)
+{
+   const units::length::meters<double> radarHeight {914.4}; // 3000 ft
+   const auto altitude = scwx::qt::util::GeographicLib::GetRadarBeamAltititude(
+      units::length::meters<double> {0.0},
+      units::angle::degrees<double> {0.5},
+      radarHeight);
+
+   EXPECT_NEAR(altitude.value(), radarHeight.value(), 0.01);
+}
+
+TEST(geographic_lib, radar_beam_altitude_arl_near_radar)
+{
+   const units::length::meters<double> radarHeight {3048.0}; // ~10000 ft
+   const units::length::meters<double> range {1000.0};
+   const auto                          altitudeMsl =
+      scwx::qt::util::GeographicLib::GetRadarBeamAltititude(
+         range, units::angle::degrees<double> {0.5}, radarHeight);
+   const auto altitudeArl = altitudeMsl - radarHeight;
+
+   // Close to the radar, ARL should be much smaller than MSL
+   EXPECT_LT(altitudeArl.value(), 50.0);
+   EXPECT_GT(altitudeArl.value(), 0.0);
+   EXPECT_NEAR(
+      altitudeMsl.value(), radarHeight.value() + altitudeArl.value(), 0.01);
+}
+
+TEST(geographic_lib, radar_beam_altitude_msl_includes_site_height)
+{
+   const units::length::meters<double> lowSite {100.0};
+   const units::length::meters<double> highSite {3000.0};
+   const units::length::meters<double> range {5000.0};
+   const units::angle::degrees<double> elevation {0.5};
+
+   const auto lowAltitude =
+      scwx::qt::util::GeographicLib::GetRadarBeamAltititude(
+         range, elevation, lowSite);
+   const auto highAltitude =
+      scwx::qt::util::GeographicLib::GetRadarBeamAltititude(
+         range, elevation, highSite);
+
+   EXPECT_NEAR(highAltitude.value() - lowAltitude.value(),
+               highSite.value() - lowSite.value(),
+               1.0);
+}
+
+} // namespace scwx::util

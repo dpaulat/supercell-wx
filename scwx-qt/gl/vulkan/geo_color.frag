@@ -18,6 +18,7 @@ layout(set = 0, binding = 0) uniform UniformBlock {
     vec2 uOriginLatLong;
     float uMapDistance;
     int uSelectedTime;
+    float uOpacity;
 };
 
 bool IsVisible()
@@ -53,6 +54,7 @@ void main()
    if (vStrokeHalf.z <= 0.0)
    {
       fragColor = vColor;
+      fragColor.a *= uOpacity;
       return;
    }
 
@@ -73,4 +75,6 @@ void main()
    {
       fragColor = vColor;
    }
+
+   fragColor.a *= uOpacity;
 }

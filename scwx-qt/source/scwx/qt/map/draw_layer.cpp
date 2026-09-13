@@ -121,10 +121,12 @@ void DrawLayer::ImGuiFrameStartVulkan(
 #endif
    ImGui::NewFrame();
    ImGui::PushFont(defaultFont.first->font(), defaultFont.second.value());
+   ImGui::PushStyleVar(ImGuiStyleVar_Alpha, opacity());
 }
 
 void DrawLayer::ImGuiFrameEndVulkan(QRhiCommandBuffer* commandBuffer)
 {
+   ImGui::PopStyleVar();
    ImGui::PopFont();
    ImGui::Render();
    render::RenderImGuiDrawData(commandBuffer);

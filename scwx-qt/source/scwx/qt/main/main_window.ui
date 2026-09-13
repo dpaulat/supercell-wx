@@ -359,6 +359,63 @@
              <widget class="QComboBox" name="mapStyleComboBox"/>
             </item>
             <item>
+             <widget class="QLabel" name="radarOpacityLabel">
+              <property name="text">
+               <string>Radar Opacity</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QWidget" name="radarOpacityWidget" native="true">
+              <layout class="QHBoxLayout" name="radarOpacityLayout">
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QSlider" name="radarOpacitySlider">
+                 <property name="toolTip">
+                  <string>Radar product opacity. Map styles stay opaque.</string>
+                 </property>
+                 <property name="maximum">
+                  <number>100</number>
+                 </property>
+                 <property name="value">
+                  <number>100</number>
+                 </property>
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QFocusedSpinBox" name="radarOpacitySpinBox">
+                 <property name="keyboardTracking">
+                  <bool>false</bool>
+                 </property>
+                 <property name="suffix">
+                  <string>%</string>
+                 </property>
+                 <property name="maximum">
+                  <number>100</number>
+                 </property>
+                 <property name="value">
+                  <number>100</number>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
              <widget class="QCheckBox" name="smoothRadarDataCheckBox">
               <property name="text">
                <string>Smooth Radar Data</string>
@@ -654,6 +711,13 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QFocusedSpinBox</class>
+   <extends>QSpinBox</extends>
+   <header>scwx/qt/ui/widgets/focused_spin_box.hpp</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="../../../../scwx-qt.qrc"/>
  </resources>

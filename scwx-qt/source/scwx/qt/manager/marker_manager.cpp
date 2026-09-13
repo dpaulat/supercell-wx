@@ -198,22 +198,23 @@ void MarkerManager::Impl::ApplyMarkerSettings(
          idToIndex_.reserve(markerArray.size());
          for (auto& markerEntry : markerArray)
          {
-            try
-            {
-               auto record = boost::json::value_to<MarkerRecord>(markerEntry);
+            auto record = boost::json::try_value_to<MarkerRecord>(markerEntry);
 
+            if (!record.has_error())
+            {
                const types::MarkerId id    = NewId();
                const size_t          index = markerRecords_.size();
-               record.markerInfo_.id       = id;
+               record->markerInfo_.id      = id;
                markerRecords_.emplace_back(
-                  std::make_shared<MarkerRecord>(record.markerInfo_));
+                  std::make_shared<MarkerRecord>(record->markerInfo_));
                idToIndex_.emplace(id, index);
 
-               self_->add_icon(record.markerInfo_.iconName, true);
+               self_->add_icon(record->markerInfo_.iconName, true);
             }
-            catch (const std::exception& ex)
+            else
             {
-               logger_->warn("Invalid location marker entry: {}", ex.what());
+               logger_->warn("Invalid location marker entry: {}",
+                             record.error().message());
             }
          }
 

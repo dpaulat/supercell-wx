@@ -1,10 +1,15 @@
 import argparse
 import datetime
-import git
 import json
 import os
 import pathlib
 import sys
+
+try:
+    import git
+except ImportError:
+    # GitPython is not installed
+    git = None
 
 class Keys:
     BuildNumber   = "build_number"
@@ -126,6 +131,18 @@ def ParseArguments():
                         dest     = "version_",
                         type     = str,
                         required = True)
+    parser.add_argument("--commit-string",
+                        metavar  = "string",
+                        help     = "commit string",
+                        dest     = "commitString_",
+                        default  = None,
+                        type     = str)
+    parser.add_argument("--release-date",
+                        metavar  = "YYYY-MM-DD",
+                        help     = "release date (YYYY-MM-DD)",
+                        dest     = "releaseDate_",
+                        default  = None,
+                        type     = str)
     return parser.parse_args()
 
 def CollectVersionInfo(args):
@@ -133,17 +150,41 @@ def CollectVersionInfo(args):
 
     versionInfo = VersionInfo()
 
-    repo = git.Repo(args.gitRepo_, search_parent_directories = True)
-
-    commitString = str(repo.head.commit)[:10]
-    releaseDate  = datetime.datetime.fromtimestamp(
-        repo.head.commit.committed_date, tz=datetime.timezone.utc).strftime("%Y-%m-%d")
-
-    if not repo.is_dirty(submodules = False):
-        copyrightYear = datetime.datetime.fromtimestamp(repo.head.commit.committed_date).year
+    if git is not None:
+        repo = git.Repo(args.gitRepo_, search_parent_directories = True)
     else:
-        commitString  = commitString + "+dirty"
-        copyrightYear = datetime.date.today().year
+        repo = None
+
+    if args.releaseDate_ is not None:
+        # Release date is provided on the command line
+        releaseDate   = args.releaseDate_
+        copyrightYear = datetime.datetime.strptime(releaseDate, "%Y-%m-%d").year
+    elif repo is not None:
+        # Determine release date and copyright year from git repository
+        releaseDate = datetime.datetime.fromtimestamp(
+            repo.head.commit.committed_date, tz=datetime.timezone.utc).strftime("%Y-%m-%d")
+
+        if not repo.is_dirty(submodules = False):
+            copyrightYear = datetime.datetime.fromtimestamp(repo.head.commit.committed_date).year
+        else:
+            copyrightYear = datetime.date.today().year
+    else:
+        # Release date and copyright year are today
+        releaseDate   = datetime.datetime.now().strftime("%Y-%m-%d")
+        copyrightYear = datetime.datetime.now().year
+
+    if args.commitString_ is not None:
+        # Commit string is provided on the command line
+        commitString = args.commitString_
+    elif repo is not None:
+        # Commit string is the first 10 characters of the commit hash
+        commitString = str(repo.head.commit)[:10]
+
+        if repo.is_dirty(submodules = False):
+            commitString = commitString + "+dirty"
+    else:
+        # Commit string is empty
+        commitString = ""
 
     resourceDir = str(args.gitRepo_).replace("\\", "\\\\")
 

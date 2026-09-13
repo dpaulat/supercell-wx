@@ -49,7 +49,8 @@ public:
                      const std::vector<float>& texCoords,
                      std::uint32_t             vertexCount,
                      QRhiResourceUpdateBatch*  resourceBatch = nullptr,
-                     RhiOverlayPhase phase = RhiOverlayPhase::UploadAndDraw);
+                     RhiOverlayPhase phase   = RhiOverlayPhase::UploadAndDraw,
+                     float           opacity = 1.0f);
 
    [[nodiscard]] bool IsInitialized() const;
 

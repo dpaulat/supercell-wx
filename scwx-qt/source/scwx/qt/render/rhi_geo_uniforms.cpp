@@ -11,9 +11,11 @@ namespace scwx::qt::render
 GeoUniforms
 BuildGeoUniforms(const QMapLibre::CustomLayerRenderParameters& params,
                  const bool                                    thresholded,
-                 const std::chrono::system_clock::time_point   selectedTime)
+                 const std::chrono::system_clock::time_point   selectedTime,
+                 const float                                   opacity)
 {
    GeoUniforms uniforms {};
+   uniforms.uOpacity = opacity;
 
    uniforms.uMVPMatrix = OrthoMapProjection(params);
    uniforms.uMVPMatrix =

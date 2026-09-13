@@ -382,17 +382,18 @@ bool SettingsVariable<T>::ReadValue(const boost::json::object& json)
 
    if (jv != nullptr)
    {
-      try
-      {
-         validated = SetValueOrDefault(boost::json::value_to<T>(*jv));
-      }
-      catch (const std::exception& ex)
+      const auto converted = boost::json::try_value_to<T>(*jv);
+      if (converted.has_error())
       {
          logger_->warn("{} is invalid ({}), setting to default: {}",
                        name(),
-                       ex.what(),
+                       converted.error().message(),
                        FormatParameter<T>(p->default_));
          p->value_ = p->default_;
+      }
+      else
+      {
+         validated = SetValueOrDefault(*converted);
       }
    }
    else

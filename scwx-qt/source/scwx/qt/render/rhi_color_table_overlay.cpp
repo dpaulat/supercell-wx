@@ -15,8 +15,18 @@ static const std::string logPrefix_ =
    "scwx::qt::render::rhi_color_table_overlay";
 static const auto logger_ = scwx::util::Logger::Create(logPrefix_);
 
-static constexpr int kUniformBytes = 64;
-static constexpr int kMaxLutWidth  = 512;
+struct ColorTableUniforms
+{
+   alignas(16) glm::mat4 uMVPMatrix {};
+   alignas(4) float uOpacity {1.0f};
+   alignas(4) float _pad0 {0.0f};
+   alignas(8) glm::vec2 _pad1 {};
+};
+
+static_assert(sizeof(ColorTableUniforms) == 80);
+static constexpr int kUniformBytes =
+   static_cast<int>(sizeof(ColorTableUniforms));
+static constexpr int kMaxLutWidth = 512;
 
 void RhiColorTableOverlay::Initialize(QRhi*              rhi,
                                       QRhiRenderTarget*  renderTarget,
@@ -157,7 +167,8 @@ void RhiColorTableOverlay::Render(
    const float                      vertices[6][2],
    const std::vector<std::uint8_t>& rgbaColorTable,
    QRhiResourceUpdateBatch*         resourceBatch,
-   RhiOverlayPhase                  phase)
+   RhiOverlayPhase                  phase,
+   const float                      opacity)
 {
    if (!initialized_ || commandBuffer == nullptr || rgbaColorTable.empty())
    {
@@ -178,8 +189,10 @@ void RhiColorTableOverlay::Render(
       {
          return;
       }
-      batch->updateDynamicBuffer(
-         uniformBuffer_, 0, kUniformBytes, glm::value_ptr(projection));
+      ColorTableUniforms uniforms {};
+      uniforms.uMVPMatrix = projection;
+      uniforms.uOpacity   = opacity;
+      batch->updateDynamicBuffer(uniformBuffer_, 0, kUniformBytes, &uniforms);
       batch->updateDynamicBuffer(
          vertexBuffer_, 0, sizeof(float) * 6 * 2, vertices);
 

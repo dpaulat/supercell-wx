@@ -230,7 +230,7 @@ void PlacefileLines::RenderVulkan(
 
    const scwx::qt::render::GeoUniforms uniforms =
       scwx::qt::render::BuildGeoUniforms(
-         params, p->thresholded_, p->selectedTime_);
+         params, p->thresholded_, p->selectedTime_, resources.layerOpacity);
 
    const bool uploadGeometry = !entry.geometryUploaded_;
 

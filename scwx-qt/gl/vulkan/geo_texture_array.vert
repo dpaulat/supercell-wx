@@ -29,6 +29,7 @@ layout(set = 0, binding = 0) uniform UniformBlock {
     vec2 uOriginLatLong;
     float uMapDistance;
     int uSelectedTime;
+    float uOpacity;
 };
 
 vec2 latLngToDeltaScreenCoordinate(vec2 latLng)

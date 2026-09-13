@@ -182,7 +182,7 @@ void PlacefileImages::RenderVulkan(
 
    const scwx::qt::render::GeoUniforms uniforms =
       scwx::qt::render::BuildGeoUniforms(
-         params, p->thresholded_, p->selectedTime_);
+         params, p->thresholded_, p->selectedTime_, resources.layerOpacity);
 
    resources.textureArrayOverlay.RenderGeo(
       commandBuffer,

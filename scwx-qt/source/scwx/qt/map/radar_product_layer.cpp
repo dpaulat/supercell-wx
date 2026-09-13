@@ -105,6 +105,10 @@ public:
 
    types::RadarProductLoadStatus latchedLoadStatus_ {
       types::RadarProductLoadStatus::ProductNotAvailable};
+
+   types::RadarBeamHeightReference radarBeamHeightReference_ {
+      types::RadarBeamHeightReference::Unknown};
+   boost::signals2::scoped_connection radarBeamHeightReferenceConnection_;
 };
 
 RadarProductLayer::RadarProductLayer(
@@ -112,7 +116,10 @@ RadarProductLayer::RadarProductLayer(
     GenericLayer(std::move(renderContext)), p(std::make_unique<Impl>())
 {
 }
-RadarProductLayer::~RadarProductLayer() = default;
+RadarProductLayer::~RadarProductLayer()
+{
+   p->radarBeamHeightReferenceConnection_.disconnect();
+};
 
 void RadarProductLayer::Initialize(
    const std::shared_ptr<MapContext>& mapContext)
@@ -166,6 +173,21 @@ void RadarProductLayer::Initialize(
                  }
               }
            });
+
+   auto updateRadarBeamHeightReference = [this](auto&&...)
+   {
+      p->radarBeamHeightReference_ = types::GetRadarBeamHeightReferenceFromName(
+         settings::UnitSettings::Instance()
+            .radar_beam_height_reference()
+            .GetValue());
+   };
+
+   p->radarBeamHeightReferenceConnection_ =
+      settings::UnitSettings::Instance()
+         .radar_beam_height_reference()
+         .changed_signal()
+         .connect(updateRadarBeamHeightReference);
+   updateRadarBeamHeightReference();
 }
 
 void RadarProductLayer::UpdateSweep(
@@ -315,6 +337,7 @@ void RadarProductLayer::RenderVulkanOverlay(
          uniforms.uDataMomentOffset = p->rangeMin_;
          uniforms.uDataMomentScale  = p->scale_;
          uniforms.uCFPEnabled       = p->cfpEnabled_ ? 1 : 0;
+         uniforms.uOpacity          = resources.layerOpacity;
 
          resources.radar.Render(commandBuffer,
                                 uniforms,
@@ -435,11 +458,20 @@ bool RadarProductLayer::RunMousePicking(
       std::optional<float> elevation = radarProductView->elevation();
       if (elevation.has_value())
       {
-         const auto altitudeMeters =
-            util::GeographicLib::GetRadarBeamAltititude(
-               distanceMeters,
-               units::angle::degrees<double>(*elevation),
-               mapContext->radar_site()->altitude());
+         const units::length::meters<double> radarAltitude =
+            mapContext->radar_site()->altitude();
+         auto altitudeMeters = util::GeographicLib::GetRadarBeamAltititude(
+            distanceMeters,
+            units::angle::degrees<double>(*elevation),
+            radarAltitude);
+
+         const types::RadarBeamHeightReference heightReference =
+            p->radarBeamHeightReference_;
+         if (heightReference ==
+             types::RadarBeamHeightReference::AboveRadarLevel)
+         {
+            altitudeMeters -= radarAltitude;
+         }
 
          const std::string heightUnitName =
             settings::UnitSettings::Instance().echo_tops_units().GetValue();
@@ -448,13 +480,18 @@ bool RadarProductLayer::RunMousePicking(
          const double heightScale = types::GetEchoTopsUnitsScale(heightUnits);
          const std::string heightAbbrev =
             types::GetEchoTopsUnitsAbbreviation(heightUnits);
+         const std::string heightReferenceAbbrev =
+            types::GetRadarBeamHeightReferenceAbbreviation(heightReference);
 
          const double altitude = altitudeMeters.value() *
                                  scwx::common::kKilometersPerMeter *
                                  heightScale;
 
-         distanceHeightStr = fmt::format(
-            "{}\n{:.2f} {}", distanceHeightStr, altitude, heightAbbrev);
+         distanceHeightStr = fmt::format("{}\n{:.2f} {} {}",
+                                         distanceHeightStr,
+                                         altitude,
+                                         heightAbbrev,
+                                         heightReferenceAbbrev);
       }
 
       std::optional<std::uint16_t> binLevel =

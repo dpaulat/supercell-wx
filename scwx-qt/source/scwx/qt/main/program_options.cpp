@@ -137,6 +137,11 @@ const boost::program_options::options_description& GetVisibleOptions()
           boost::program_options::bool_switch(&programOptions_.enableConsole_),
           "Enable console output") //
 #endif
+         ("custom-radars-gis",
+          boost::program_options::value<std::string>(
+             &programOptions_.customRadarsGis_)
+             ->value_name("path"),
+          "Path to custom radar sites GIS configuration file.") //
          ("level2-provider",
           boost::program_options::value<std::string>(
              &programOptions_.level2Provider_)
