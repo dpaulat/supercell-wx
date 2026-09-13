@@ -8,8 +8,8 @@ namespace scwx::qt::map
 class GenericLayer::Impl
 {
 public:
-   explicit Impl(std::shared_ptr<gl::GlContext> glContext) :
-       glContext_ {std::move(glContext)}
+   explicit Impl(std::shared_ptr<render::RenderContext> renderContext) :
+       renderContext_ {std::move(renderContext)}
    {
    }
 
@@ -20,12 +20,13 @@ public:
    Impl(const Impl&&)            = delete;
    Impl& operator=(const Impl&&) = delete;
 
-   std::shared_ptr<gl::GlContext> glContext_;
-   float                          opacity_ {1.0f};
+   std::shared_ptr<render::RenderContext> renderContext_;
+   float                                  opacity_ {1.0f};
 };
 
-GenericLayer::GenericLayer(std::shared_ptr<gl::GlContext> glContext) :
-    p(std::make_unique<Impl>(std::move(glContext)))
+GenericLayer::GenericLayer(
+   std::shared_ptr<render::RenderContext> renderContext) :
+    p(std::make_unique<Impl>(std::move(renderContext)))
 {
 }
 GenericLayer::~GenericLayer() = default;
@@ -43,9 +44,17 @@ bool GenericLayer::RunMousePicking(
    return false;
 }
 
-std::shared_ptr<gl::GlContext> GenericLayer::gl_context() const
+void GenericLayer::RenderVulkanOverlay(
+   QRhiCommandBuffer* /* commandBuffer */,
+   render::RhiVulkanOverlayResources& /* resources */,
+   const std::shared_ptr<MapContext>& /* mapContext */,
+   const QMapLibre::CustomLayerRenderParameters& /* params */)
 {
-   return p->glContext_;
+}
+
+std::shared_ptr<render::RenderContext> GenericLayer::render_context() const
+{
+   return p->renderContext_;
 }
 
 void GenericLayer::set_opacity(float opacity)
@@ -60,12 +69,18 @@ float GenericLayer::opacity() const
 
 void GenericLayer::BindLayerState()
 {
-   p->glContext_->set_layer_opacity(p->opacity_);
+   if (p->renderContext_ != nullptr)
+   {
+      p->renderContext_->set_layer_opacity(p->opacity_);
+   }
 }
 
 void GenericLayer::ResetLayerState()
 {
-   p->glContext_->set_layer_opacity(1.0f);
+   if (p->renderContext_ != nullptr)
+   {
+      p->renderContext_->set_layer_opacity(1.0f);
+   }
 }
 
 } // namespace scwx::qt::map

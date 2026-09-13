@@ -63,6 +63,20 @@ glm::vec2 GetMapScale(const QMapLibre::CustomLayerRenderParameters& params)
    return glm::vec2 {xScale, yScale};
 }
 
+QMapLibre::CustomLayerRenderParameters BuildOverlayRenderParameters(
+   const QMapLibre::Map& map, double renderWidth, double renderHeight)
+{
+   return QMapLibre::CustomLayerRenderParameters {
+      .width       = renderWidth,
+      .height      = renderHeight,
+      .latitude    = map.coordinate().first,
+      .longitude   = map.coordinate().second,
+      .zoom        = map.zoom(),
+      .bearing     = map.bearing(),
+      .pitch       = map.pitch(),
+      .fieldOfView = 0};
+}
+
 bool IsPointInPolygon(const std::vector<glm::vec2>& vertices,
                       const glm::vec2&              point)
 {

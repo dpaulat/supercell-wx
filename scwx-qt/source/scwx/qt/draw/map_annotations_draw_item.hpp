@@ -1,0 +1,73 @@
+#pragma once
+
+#include <scwx/qt/draw/draw_item.hpp>
+#include <scwx/qt/map/map_annotation_types.hpp>
+
+#include <units/length.h>
+
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <unordered_set>
+#include <vector>
+
+namespace scwx::qt::map
+{
+class MapAnnotationModel;
+}
+
+namespace scwx::qt::draw
+{
+
+class MapAnnotationsDrawItem : public DrawItem
+{
+public:
+   explicit MapAnnotationsDrawItem(
+      std::shared_ptr<render::RenderContext> context,
+      map::MapAnnotationModel*               model);
+   ~MapAnnotationsDrawItem() override;
+
+   MapAnnotationsDrawItem(const MapAnnotationsDrawItem&)            = delete;
+   MapAnnotationsDrawItem& operator=(const MapAnnotationsDrawItem&) = delete;
+   MapAnnotationsDrawItem(MapAnnotationsDrawItem&&)                 = delete;
+   MapAnnotationsDrawItem& operator=(MapAnnotationsDrawItem&&)      = delete;
+
+   void Initialize() override;
+   void Render(const QMapLibre::CustomLayerRenderParameters& params) override;
+   void RenderVulkan(QRhiCommandBuffer*                 commandBuffer,
+                     render::RhiVulkanOverlayResources& resources,
+                     const QMapLibre::CustomLayerRenderParameters& params,
+                     bool textureAtlasChanged = false) override;
+   void Deinitialize() override;
+
+   void SetPreviewPolyline(const std::vector<common::Coordinate>& pts,
+                           const map::MapAnnotationStyle&         style,
+                           bool roundStroke               = false,
+                           bool committedRoundMeshPreview = false);
+   void SetPreviewCircle(const common::Coordinate&      center,
+                         double                         radiusMeters,
+                         const map::MapAnnotationStyle& style);
+   void SetPreviewRectangle(const common::Coordinate&      corner1,
+                            const common::Coordinate&      corner2,
+                            const map::MapAnnotationStyle& style);
+   void ClearPreview();
+
+   void Rebuild();
+
+   /** Remove cached GPU/pick geometry for @p ids without rebuilding survivors.
+    */
+   void RemoveCommittedObjects(const std::unordered_set<std::uint64_t>& ids);
+
+   /** @p pickExtraHalfWidthM Added to each stroke half-width (eraser brush
+    * radius). */
+   [[nodiscard]] std::vector<std::uint64_t>
+   PickObjects(const common::Coordinate&     mouseGeo,
+               units::length::meters<double> pickExtraHalfWidthM =
+                  units::length::meters<double> {0.0}) const;
+
+private:
+   class Impl;
+   std::unique_ptr<Impl> p;
+};
+
+} // namespace scwx::qt::draw

@@ -1,6 +1,7 @@
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/main/application_paths.hpp>
+#include <scwx/qt/model/imgui_context_model.hpp>
 #include <scwx/qt/settings/text_settings.hpp>
 #include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
@@ -17,6 +18,7 @@
 #include <boost/unordered/unordered_flat_set.hpp>
 #include <fmt/ranges.h>
 #include <fontconfig/fontconfig.h>
+#include <imgui.h>
 
 namespace scwx::qt::manager
 {
@@ -62,6 +64,9 @@ public:
    void InitializeFontconfig();
    void UpdateImGuiFont(types::FontCategory fontCategory);
    void UpdateQFont(types::FontCategory fontCategory);
+   void UpdateImGuiFontForCurrentAtlas(types::FontCategory fontCategory);
+
+   static ImFontAtlas* CurrentAtlas();
 
    const std::vector<char>& GetRawFontData(const std::string& filename);
 
@@ -75,10 +80,15 @@ public:
 
    std::shared_mutex imguiFontAtlasMutex_ {};
 
-   boost::unordered_flat_map<FontRecord,
-                             std::shared_ptr<types::ImGuiFont>,
-                             FontRecordHash<FontRecord>>
-                     imguiFonts_ {};
+   // ImGui fonts are cached per font atlas. On Vulkan, each map pane uses its
+   // own ImFontAtlas (so descriptor sets do not collide across per-pane Vulkan
+   // backends); each backend owns the atlas for its renderer.
+   boost::unordered_flat_map<
+      ImFontAtlas*,
+      boost::unordered_flat_map<FontRecord,
+                                std::shared_ptr<types::ImGuiFont>,
+                                FontRecordHash<FontRecord>>>
+                     imguiFontsByAtlas_ {};
    std::shared_mutex imguiFontsMutex_ {};
 
    boost::unordered_flat_map<std::string, std::vector<char>> rawFontData_ {};
@@ -86,10 +96,12 @@ public:
 
    std::pair<std::shared_ptr<types::ImGuiFont>, units::font_size::pixels<float>>
       defaultFont_ {};
-   boost::unordered_flat_map<types::FontCategory,
-                             std::pair<std::shared_ptr<types::ImGuiFont>,
-                                       units::font_size::pixels<float>>>
-      fontCategoryImguiFontMap_ {};
+   boost::unordered_flat_map<
+      ImFontAtlas*,
+      boost::unordered_flat_map<types::FontCategory,
+                                std::pair<std::shared_ptr<types::ImGuiFont>,
+                                          units::font_size::pixels<float>>>>
+      fontCategoryImguiFontByAtlas_ {};
    boost::unordered_flat_map<types::FontCategory, QFont>
               fontCategoryQFontMap_ {};
    std::mutex fontCategoryMutex_ {};
@@ -160,6 +172,22 @@ void FontManager::InitializeFonts()
    }
 }
 
+void FontManager::EnsureImGuiFontsBuilt()
+{
+   if (ImGui::GetCurrentContext() == nullptr || ImGui::GetIO().Fonts == nullptr)
+   {
+      return;
+   }
+
+   // Build each category for the current atlas if not already cached. Must run
+   // before the caller takes a shared lock on the atlas mutex (GetImGuiFont may
+   // acquire it exclusively to create fonts).
+   for (auto fontCategory : types::FontCategoryIterator())
+   {
+      (void) GetImGuiFont(fontCategory);
+   }
+}
+
 units::font_size::pixels<float>
 FontManager::ImFontSize(units::font_size::pixels<double> size)
 {
@@ -176,7 +204,23 @@ FontManager::ImFontSize(units::font_size::pixels<double> size)
    return imFontSize;
 }
 
+ImFontAtlas* FontManager::Impl::CurrentAtlas()
+{
+   if (ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().Fonts != nullptr)
+   {
+      return ImGui::GetIO().Fonts;
+   }
+
+   return model::ImGuiContextModel::Instance().font_atlas();
+}
+
 void FontManager::Impl::UpdateImGuiFont(types::FontCategory fontCategory)
+{
+   UpdateImGuiFontForCurrentAtlas(fontCategory);
+}
+
+void FontManager::Impl::UpdateImGuiFontForCurrentAtlas(
+   types::FontCategory fontCategory)
 {
    auto& textSettings = settings::TextSettings::Instance();
 
@@ -185,9 +229,12 @@ void FontManager::Impl::UpdateImGuiFont(types::FontCategory fontCategory)
    units::font_size::points<double> size {
       textSettings.font_point_size(fontCategory).GetValue()};
 
-   fontCategoryImguiFontMap_.insert_or_assign(
+   ImFontAtlas* atlas = CurrentAtlas();
+
+   fontCategoryImguiFontByAtlas_[atlas].insert_or_assign(
       fontCategory,
-      std::make_pair(self_->LoadImGuiFont(family, {styles}), ImFontSize(size)));
+      std::make_pair(self_->LoadImGuiFont(family, {styles}, true),
+                     ImFontSize(size)));
 }
 
 void FontManager::Impl::UpdateQFont(types::FontCategory fontCategory)
@@ -234,10 +281,29 @@ FontManager::GetImGuiFont(types::FontCategory fontCategory)
 {
    std::unique_lock lock {p->fontCategoryMutex_};
 
-   auto it = p->fontCategoryImguiFontMap_.find(fontCategory);
-   if (it != p->fontCategoryImguiFontMap_.cend())
+   ImFontAtlas* atlas = Impl::CurrentAtlas();
+
+   auto atlasIt = p->fontCategoryImguiFontByAtlas_.find(atlas);
+   if (atlasIt != p->fontCategoryImguiFontByAtlas_.cend())
    {
-      return it->second;
+      auto it = atlasIt->second.find(fontCategory);
+      if (it != atlasIt->second.cend())
+      {
+         return it->second;
+      }
+   }
+
+   // Not yet built for this atlas; build it now (current context is set)
+   p->UpdateImGuiFontForCurrentAtlas(fontCategory);
+
+   atlasIt = p->fontCategoryImguiFontByAtlas_.find(atlas);
+   if (atlasIt != p->fontCategoryImguiFontByAtlas_.cend())
+   {
+      auto it = atlasIt->second.find(fontCategory);
+      if (it != atlasIt->second.cend())
+      {
+         return it->second;
+      }
    }
 
    return p->defaultFont_;
@@ -268,15 +334,21 @@ FontManager::LoadImGuiFont(const std::string&              family,
 
    FontRecord fontRecord = Impl::MatchFontFile(family, styles);
 
+   ImFontAtlas* atlas = Impl::CurrentAtlas();
+
    // Search for a loaded ImGui font
    {
       std::shared_lock imguiFontLock {p->imguiFontsMutex_};
 
-      // Search for the associated ImGui font
-      auto it = p->imguiFonts_.find(fontRecord);
-      if (it != p->imguiFonts_.end())
+      // Search for the associated ImGui font in the current atlas
+      auto atlasIt = p->imguiFontsByAtlas_.find(atlas);
+      if (atlasIt != p->imguiFontsByAtlas_.end())
       {
-         return it->second;
+         auto it = atlasIt->second.find(fontRecord);
+         if (it != atlasIt->second.end())
+         {
+            return it->second;
+         }
       }
 
       // No ImGui font was found, we need to create one
@@ -298,11 +370,16 @@ FontManager::LoadImGuiFont(const std::string&              family,
 
    // Search for the associated ImGui font again, to prevent loading the same
    // font twice
-   auto it = p->imguiFonts_.find(fontRecord);
-   if (it != p->imguiFonts_.end())
+   auto& atlasFonts = p->imguiFontsByAtlas_[atlas];
+   auto  it         = atlasFonts.find(fontRecord);
+   if (it != atlasFonts.end())
    {
       return it->second;
    }
+
+   logger_->debug("Creating ImGui font for atlas {}: {}",
+                  static_cast<void*>(atlas),
+                  fontString);
 
    // Define a name for the ImGui font
    std::string fontName;
@@ -322,7 +399,7 @@ FontManager::LoadImGuiFont(const std::string&              family,
       std::make_shared<types::ImGuiFont>(fontName, rawFontData);
 
    // Store the ImGui font
-   p->imguiFonts_.insert_or_assign(fontRecord, imguiFont);
+   atlasFonts.insert_or_assign(fontRecord, imguiFont);
 
    // Return the ImGui font
    return imguiFont;

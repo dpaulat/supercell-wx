@@ -37,6 +37,8 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr std::chrono::hours kInitialLoadHistoryDuration_ =
    std::chrono::days {3};
+static constexpr std::chrono::hours kInitialRecentLoadDuration_ =
+   std::chrono::hours {12};
 static constexpr std::chrono::hours kDefaultLoadHistoryDuration_ =
    std::chrono::hours {1};
 
@@ -77,7 +79,8 @@ public:
          generalSettings.warnings_provider().RegisterValueChangedCallback(
             [this](const std::string& value)
             {
-               loadHistoryDuration_ = kInitialLoadHistoryDuration_;
+               loadHistoryDuration_    = kInitialRecentLoadDuration_;
+               historyBackfillPending_ = true;
                warningsProvider_ =
                   std::make_shared<provider::WarningsProvider>(value);
             });
@@ -137,6 +140,7 @@ public:
    void PruneArchives();
    void RefreshAsync();
    void Refresh();
+   void RefreshHistoryBackfill();
    template<ranges::forward_range DateRange>
       requires std::same_as<ranges::range_value_t<DateRange>,
                             std::chrono::sys_days>
@@ -162,7 +166,8 @@ public:
 
    std::shared_ptr<provider::WarningsProvider> warningsProvider_ {nullptr};
 
-   std::chrono::hours loadHistoryDuration_ {kInitialLoadHistoryDuration_};
+   std::chrono::hours loadHistoryDuration_ {kInitialRecentLoadDuration_};
+   bool               historyBackfillPending_ {true};
    std::chrono::sys_time<std::chrono::hours> prevLoadTime_ {};
    std::chrono::sys_days                     archiveLimit_ {};
 
@@ -686,11 +691,8 @@ void TextEventManager::Impl::Refresh()
       warningsProvider_;
 
    // Load updated files from the warnings provider
-   // Start time should default to:
-   // - 3 days of history for the first load
-   // - 1 hour of history for subsequent loads
-   // If the time jumps, we should attempt to load from no later than the
-   // previous load time
+   // First load: recent hours only so alerts appear quickly; older history
+   // backfills asynchronously. Subsequent loads use 1 hour of history.
    auto loadTime =
       std::chrono::floor<std::chrono::hours>(scwx::util::time::now());
    auto startTime = loadTime - loadHistoryDuration_;
@@ -702,7 +704,8 @@ void TextEventManager::Impl::Refresh()
 
    if (archiveLimit_ == std::chrono::sys_days {})
    {
-      archiveLimit_ = std::chrono::ceil<std::chrono::days>(startTime);
+      archiveLimit_ = std::chrono::ceil<std::chrono::days>(
+         loadTime - kInitialLoadHistoryDuration_);
    }
 
    auto updatedFiles = warningsProvider->LoadUpdatedFiles(startTime);
@@ -710,6 +713,8 @@ void TextEventManager::Impl::Refresh()
    // Store the load time and reset the load history duration
    prevLoadTime_        = loadTime;
    loadHistoryDuration_ = kDefaultLoadHistoryDuration_;
+
+   Q_EMIT self_->BulkAlertLoadStarted();
 
    // Handle messages
    for (auto& file : updatedFiles)
@@ -720,10 +725,36 @@ void TextEventManager::Impl::Refresh()
       }
    }
 
+   Q_EMIT self_->BulkAlertLoadFinished();
+
+   const bool scheduleHistoryBackfill = historyBackfillPending_;
+   if (historyBackfillPending_)
+   {
+      historyBackfillPending_ = false;
+   }
+
    // Check for shutdown
    if (stopping_)
    {
       return;
+   }
+
+   lock.unlock();
+
+   if (scheduleHistoryBackfill)
+   {
+      boost::asio::post(threadPool_,
+                        [this]()
+                        {
+                           try
+                           {
+                              RefreshHistoryBackfill();
+                           }
+                           catch (const std::exception& ex)
+                           {
+                              logger_->error(ex.what());
+                           }
+                        });
    }
 
    // Schedule another update in 15 seconds
@@ -745,6 +776,34 @@ void TextEventManager::Impl::Refresh()
             RefreshAsync();
          }
       });
+}
+
+void TextEventManager::Impl::RefreshHistoryBackfill()
+{
+   logger_->debug("Backfilling alert history");
+
+   std::shared_ptr<provider::WarningsProvider> warningsProvider =
+      warningsProvider_;
+
+   const auto loadTime =
+      std::chrono::floor<std::chrono::hours>(scwx::util::time::now());
+   const auto backfillStart = loadTime - kInitialLoadHistoryDuration_;
+   const auto backfillEnd   = loadTime - kInitialRecentLoadDuration_;
+
+   auto updatedFiles =
+      warningsProvider->LoadUpdatedFiles(backfillStart, backfillEnd);
+
+   Q_EMIT self_->BulkAlertLoadStarted();
+
+   for (auto& file : updatedFiles)
+   {
+      for (auto& message : file->messages())
+      {
+         HandleMessage(message);
+      }
+   }
+
+   Q_EMIT self_->BulkAlertLoadFinished();
 }
 
 template<ranges::forward_range DateRange>

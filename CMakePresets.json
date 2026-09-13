@@ -340,6 +340,14 @@
       }
     },
     {
+      "name": "linux-gcc15-vulkan-release",
+      "inherits": "linux-gcc15-release",
+      "displayName": "Linux GCC 15 Release (Vulkan)",
+      "cacheVariables": {
+        "SCWX_RENDER_BACKEND": "VULKAN"
+      }
+    },
+    {
       "name": "linux-gcc16-release",
       "inherits": "linux-gcc16-base",
       "displayName": "Linux GCC 16 Release",

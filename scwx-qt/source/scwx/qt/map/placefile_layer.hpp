@@ -13,8 +13,9 @@ class PlacefileLayer : public DrawLayer
    Q_DISABLE_COPY_MOVE(PlacefileLayer)
 
 public:
-   explicit PlacefileLayer(const std::shared_ptr<gl::GlContext>& glContext,
-                           const std::string&                    placefileName);
+   explicit PlacefileLayer(
+      const std::shared_ptr<render::RenderContext>& renderContext,
+      const std::string&                            placefileName);
    ~PlacefileLayer();
 
    std::string placefile_name() const;
@@ -25,6 +26,14 @@ public:
    void Render(const std::shared_ptr<MapContext>& mapContext,
                const QMapLibre::CustomLayerRenderParameters&) final;
    void Deinitialize() final;
+
+   void RenderVulkanImGui(const std::shared_ptr<MapContext>& mapContext,
+                          const QMapLibre::CustomLayerRenderParameters& params);
+   void RenderVulkanOverlay(
+      QRhiCommandBuffer*                            commandBuffer,
+      render::RhiVulkanOverlayResources&            resources,
+      const std::shared_ptr<MapContext>&            mapContext,
+      const QMapLibre::CustomLayerRenderParameters& params) override;
 
    void ReloadData();
 

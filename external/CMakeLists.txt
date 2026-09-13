@@ -6,7 +6,6 @@ set_property(DIRECTORY
              PROPERTY CMAKE_CONFIGURE_DEPENDS
              aws-sdk-cpp.cmake
              date.cmake
-             glad.cmake
              hsluv-c.cmake
              imgui.cmake
              maplibre-native-qt.cmake
@@ -17,7 +16,6 @@ set_property(DIRECTORY
 
 include(aws-sdk-cpp.cmake)
 include(date.cmake)
-include(glad.cmake)
 include(hsluv-c.cmake)
 include(imgui.cmake)
 include(maplibre-native-qt.cmake)

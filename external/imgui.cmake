@@ -9,7 +9,7 @@ find_package(Qt${QT_VERSION_MAJOR}
              COMPONENTS Gui
                         Widgets
              REQUIRED)
-             
+
 find_package(Freetype)
 
 set(IMGUI_SOURCES include/scwx/external/imgui/imconfig.h
@@ -23,12 +23,22 @@ set(IMGUI_SOURCES include/scwx/external/imgui/imconfig.h
                   imgui/imstb_rectpack.h
                   imgui/imstb_textedit.h
                   imgui/imstb_truetype.h
-                  imgui/backends/imgui_impl_opengl3.cpp
-                  imgui/backends/imgui_impl_opengl3.h
                   imgui/misc/freetype/imgui_freetype.cpp
                   imgui/misc/freetype/imgui_freetype.h
                   imgui-backend-qt/backends/imgui_impl_qt.cpp
                   imgui-backend-qt/backends/imgui_impl_qt.hpp)
+
+if (APPLE)
+    enable_language(OBJCXX)
+    list(APPEND IMGUI_SOURCES
+         imgui/backends/imgui_impl_metal.mm
+         imgui/backends/imgui_impl_metal.h)
+else()
+    find_package(Vulkan REQUIRED)
+    list(APPEND IMGUI_SOURCES
+         imgui/backends/imgui_impl_vulkan.cpp
+         imgui/backends/imgui_impl_vulkan.h)
+endif()
 
 add_library(imgui STATIC ${IMGUI_SOURCES})
 
@@ -39,6 +49,18 @@ target_compile_definitions(imgui PUBLIC IMGUI_USER_CONFIG=<scwx/external/imgui/i
 
 target_link_libraries(imgui PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
                                     Freetype::Freetype)
+
+if (APPLE)
+    target_link_libraries(imgui PRIVATE
+                          "-framework Metal"
+                          "-framework MetalKit"
+                          "-framework QuartzCore"
+                          "-framework AppKit")
+    set_source_files_properties(imgui/backends/imgui_impl_metal.mm
+                                PROPERTIES COMPILE_FLAGS "-fobjc-arc")
+else()
+    target_link_libraries(imgui PRIVATE Vulkan::Vulkan)
+endif()
 
 if (MSVC)
     # Produce PDB file for debug
