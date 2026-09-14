@@ -212,7 +212,7 @@ HttpNexradDataProvider::LoadObjectByKey(const std::string& key)
    }
    ss.seekg(0, std::ios::beg);
 
-   return wsr88d::NexradFileFactory::Create(ss);
+   return wsr88d::NexradFileFactory::Create(ss, key);
 }
 
 std::shared_ptr<wsr88d::NexradFile> HttpNexradDataProvider::LoadObjectByTime(

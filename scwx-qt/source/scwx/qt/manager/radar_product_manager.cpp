@@ -811,6 +811,54 @@ void RadarProductManager::LoadFile(
    }
 }
 
+std::shared_ptr<types::RadarProductRecord>
+RadarProductManager::GetRadarProductRecord(
+   common::RadarProductGroup             group,
+   const std::string&                    product,
+   std::chrono::system_clock::time_point time)
+{
+   auto lookupRecord = [](RadarProductRecordMap&                records,
+                          std::chrono::system_clock::time_point queryTime)
+      -> std::shared_ptr<types::RadarProductRecord>
+   {
+      if (records.empty())
+      {
+         return nullptr;
+      }
+
+      if (queryTime == std::chrono::system_clock::time_point {})
+      {
+         return records.rbegin()->second.lock();
+      }
+
+      auto it = scwx::util::GetBoundedElementIterator(records, queryTime);
+      if (it == records.cend())
+      {
+         return nullptr;
+      }
+
+      return it->second.lock();
+   };
+
+   if (group == common::RadarProductGroup::Level2)
+   {
+      const std::shared_lock lock {p->level2ProductRecordMutex_};
+      return lookupRecord(p->level2ProductRecords_, time);
+   }
+
+   if (group == common::RadarProductGroup::Level3)
+   {
+      const std::shared_lock lock {p->level3ProductRecordMutex_};
+      auto                   it = p->level3ProductRecordsMap_.find(product);
+      if (it != p->level3ProductRecordsMap_.cend())
+      {
+         return lookupRecord(it->second, time);
+      }
+   }
+
+   return nullptr;
+}
+
 void RadarProductManagerImpl::LoadNexradFileAsync(
    CreateNexradFileFunction                           load,
    const std::shared_ptr<request::NexradFileRequest>& request,

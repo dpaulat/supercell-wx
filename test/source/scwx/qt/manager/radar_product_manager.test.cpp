@@ -1,8 +1,10 @@
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/qt/manager/provider_manager.hpp>
 #include <scwx/qt/config/radar_site.hpp>
+#include <scwx/qt/types/radar_product_record.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
 #include <scwx/common/constants.hpp>
+#include <scwx/wsr88d/nexrad_file_factory.hpp>
 
 #include <array>
 #include <cstdint>
@@ -129,6 +131,34 @@ TEST(ProviderManager, NameFormatting)
    EXPECT_EQ(level2ProviderManager.name(), "KLSX, L2");
    EXPECT_EQ(level3ProviderManager.name(), "KLSX, L3, N0B");
    EXPECT_EQ(level2ChunksProviderManager.name(), "KLSX, L2");
+}
+
+TEST(RadarProductRecord, SuggestedFilenameFromSource)
+{
+   config::RadarSite::Initialize();
+
+   const std::string filename = std::string(SCWX_TEST_DATA_DIR) +
+                                "/nexrad/level2/Level2_KLSX_20210527_1757.ar2v";
+   auto file = wsr88d::NexradFileFactory::Create(filename);
+   ASSERT_NE(file, nullptr);
+
+   auto record = types::RadarProductRecord::Create(file);
+   ASSERT_NE(record, nullptr);
+   EXPECT_EQ(record->suggested_filename(), "Level2_KLSX_20210527_1757.ar2v");
+}
+
+TEST(RadarProductRecord, SuggestedFilenameGzip)
+{
+   config::RadarSite::Initialize();
+
+   const std::string filename = std::string(SCWX_TEST_DATA_DIR) +
+                                "/nexrad/level2/KLSX20130206_175044_V06.gz";
+   auto file = wsr88d::NexradFileFactory::Create(filename);
+   ASSERT_NE(file, nullptr);
+
+   auto record = types::RadarProductRecord::Create(file);
+   ASSERT_NE(record, nullptr);
+   EXPECT_EQ(record->suggested_filename(), "KLSX20130206_175044_V06.gz");
 }
 
 } // namespace scwx::qt::manager
