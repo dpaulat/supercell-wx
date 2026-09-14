@@ -52,6 +52,10 @@ INSTANTIATE_TEST_SUITE_P(Products,
                          GetLevel3ProductByAwipsIdTest,
                          testing::Values(std::make_pair("N0Q", "DR"),
                                          std::make_pair("N0B", "SDR"),
+                                         std::make_pair("NHI", "NHI"),
+                                         std::make_pair("NMD", "NMD"),
+                                         std::make_pair("NME", "NME"),
+                                         std::make_pair("NTV", "NTV"),
                                          std::make_pair("XXX", "?")));
 
 } // namespace common

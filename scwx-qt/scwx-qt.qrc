@@ -100,5 +100,8 @@
         <file>res/textures/images/mapbox-logo.svg</file>
         <file>res/textures/images/maptiler-logo.svg</file>
         <file>res/textures/images/openfreemap-logo.jpg</file>
+        <file>res/textures/images/hail-index.svg</file>
+        <file>res/textures/images/mesocyclone.svg</file>
+        <file>res/textures/images/tvs.svg</file>
     </qresource>
 </RCC>

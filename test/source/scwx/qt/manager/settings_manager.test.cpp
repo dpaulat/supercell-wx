@@ -101,6 +101,35 @@ static void RemoveTransientUiState(boost::json::value& root)
    uiObj.erase("map_annotation_state");
 }
 
+static void NormalizeProductDefaults(boost::json::value& root)
+{
+   if (!root.is_object())
+   {
+      return;
+   }
+
+   boost::json::object& obj       = root.as_object();
+   auto                 productIt = obj.find("product");
+   if (productIt == obj.end() || !productIt->value().is_object())
+   {
+      return;
+   }
+
+   boost::json::object& productObj = productIt->value().as_object();
+   if (!productObj.contains("hail_index_enabled"))
+   {
+      productObj["hail_index_enabled"] = true;
+   }
+   if (!productObj.contains("mesocyclone_enabled"))
+   {
+      productObj["mesocyclone_enabled"] = true;
+   }
+   if (!productObj.contains("tvs_enabled"))
+   {
+      productObj["tvs_enabled"] = true;
+   }
+}
+
 static void CompareFiles(const std::string& file1, const std::string& file2)
 {
    auto jf1 = scwx::util::json::ReadJsonFile(file1);
@@ -110,6 +139,8 @@ static void CompareFiles(const std::string& file1, const std::string& file2)
    RemoveUserPaths(jf2);
    RemoveTransientUiState(jf1);
    RemoveTransientUiState(jf2);
+   NormalizeProductDefaults(jf1);
+   NormalizeProductDefaults(jf2);
 
    EXPECT_EQ(jf1, jf2);
 }

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32" viewBox="0 0 64 32">
+  <!-- 0: TVS -->
+  <polygon points="16,26 24,6 8,6" fill="#e74c3c" stroke="#1a1a1a" stroke-width="1.5"/>
+  <!-- 1: ETVS -->
+  <polygon points="48,26 56,6 40,6" fill="#e67e22" stroke="#1a1a1a" stroke-width="1.5"/>
+</svg>

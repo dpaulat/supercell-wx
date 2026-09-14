@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="32" viewBox="0 0 128 32">
+  <!-- 0: 3-D correlated shear / weak MDA -->
+  <circle cx="16" cy="16" r="10" fill="none" stroke="#f1c40f" stroke-width="2"/>
+  <!-- 1: mesocyclone -->
+  <circle cx="48" cy="16" r="11" fill="none" stroke="#e67e22" stroke-width="2.5"/>
+  <!-- 2: elevated strong MDA -->
+  <circle cx="80" cy="16" r="11" fill="none" stroke="#e74c3c" stroke-width="3"/>
+  <!-- 3: low-level strong MDA -->
+  <circle cx="112" cy="16" r="8" fill="#e74c3c" stroke="#1a1a1a" stroke-width="1.5"/>
+  <circle cx="112" cy="16" r="12" fill="none" stroke="#e74c3c" stroke-width="2.5"/>
+</svg>

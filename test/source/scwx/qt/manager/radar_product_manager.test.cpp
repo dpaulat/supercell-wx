@@ -2,6 +2,7 @@
 #include <scwx/qt/manager/provider_manager.hpp>
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/util/geographic_lib.hpp>
+#include <scwx/qt/view/radar_product_view_factory.hpp>
 #include <scwx/common/constants.hpp>
 
 #include <array>
@@ -108,6 +109,27 @@ TEST(RadarProductManager, CoordinateGenerationMatchesGeodesicReference)
                              units::angle::degrees<float> {1.0f},
                              units::angle::degrees<float> {0.5f},
                              0.5f);
+}
+
+TEST(RadarProductViewFactory, OverlayProductsHaveNoSweepView)
+{
+   using view::RadarProductViewFactory;
+
+   EXPECT_EQ(RadarProductViewFactory::Create(
+                common::RadarProductGroup::Level3, "NHI", 59, nullptr),
+             nullptr);
+   EXPECT_EQ(RadarProductViewFactory::Create(
+                common::RadarProductGroup::Level3, "NMD", 141, nullptr),
+             nullptr);
+   EXPECT_EQ(RadarProductViewFactory::Create(
+                common::RadarProductGroup::Level3, "NTV", 61, nullptr),
+             nullptr);
+   EXPECT_EQ(RadarProductViewFactory::Create(
+                common::RadarProductGroup::Level3, "NME", 60, nullptr),
+             nullptr);
+   EXPECT_EQ(RadarProductViewFactory::Create(
+                common::RadarProductGroup::Level3, "NST", 58, nullptr),
+             nullptr);
 }
 
 TEST(ProviderManager, NameFormatting)
