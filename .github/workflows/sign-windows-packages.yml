@@ -168,7 +168,7 @@ jobs:
 
     - name: Sign Artifacts (Windows)
       id: sign-windows-artifacts
-      uses: signpath/github-action-submit-signing-request@v2
+      uses: signpath/github-action-submit-signing-request@v3
       with:
         api-token:           ${{ secrets.SIGNPATH_API_TOKEN }}
         organization-id:     ${{ env.SIGNPATH_ORGANIZATION_ID }}
@@ -220,7 +220,7 @@ jobs:
 
     - name: Sign Installer (Windows)
       id: sign-windows-installer
-      uses: signpath/github-action-submit-signing-request@v2
+      uses: signpath/github-action-submit-signing-request@v3
       with:
         api-token:           ${{ secrets.SIGNPATH_API_TOKEN }}
         organization-id:     ${{ env.SIGNPATH_ORGANIZATION_ID }}
@@ -261,7 +261,7 @@ jobs:
 
     - name: Sign Bootstrap (Windows)
       id: sign-windows-bootstrap
-      uses: signpath/github-action-submit-signing-request@v2
+      uses: signpath/github-action-submit-signing-request@v3
       with:
         api-token:           ${{ secrets.SIGNPATH_API_TOKEN }}
         organization-id:     ${{ env.SIGNPATH_ORGANIZATION_ID }}
