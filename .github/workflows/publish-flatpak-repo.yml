@@ -59,7 +59,7 @@ env:
 jobs:
   build-repo:
     name: Build Flatpak OSTree repo
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     # Refuse PR-triggered CI and non-develop heads. These checks live only on the
     # default-branch copy of this workflow (workflow_run property).
     # Allow CI conclusion=failure so a non-Flatpak matrix cell (e.g. clang) can
@@ -401,7 +401,7 @@ jobs:
     name: Deploy GitHub Pages
     needs: build-repo
     if: needs.build-repo.result == 'success'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       pages: write
       id-token: write
