@@ -82,7 +82,8 @@ WarningsProvider::operator=(WarningsProvider&&) noexcept = default;
 
 std::vector<std::shared_ptr<awips::TextProductFile>>
 WarningsProvider::LoadUpdatedFiles(
-   std::chrono::sys_time<std::chrono::hours> startTime)
+   std::chrono::sys_time<std::chrono::hours>     startTime,
+   const network::cpr::DownloadProgressCallback& progressCallback)
 {
    using namespace std::chrono;
 
@@ -123,7 +124,7 @@ WarningsProvider::LoadUpdatedFiles(
       asyncCallbacks.emplace_back(
          filename,
          cpr::HeadCallback(
-            [url, filename, this](
+            [url, filename, this, progressCallback](
                cpr::Response headResponse) -> std::optional<cpr::AsyncResponse>
             {
                if (headResponse.status_code == cpr::status::HTTP_OK)
@@ -140,7 +141,8 @@ WarningsProvider::LoadUpdatedFiles(
                         network::cpr::GetDefaultTimeout(),
                         network::cpr::GetDefaultConnectTimeout(),
                         network::cpr::GetDefaultLowSpeed(),
-                        network::cpr::GetDefaultProgressCallback(p->running_));
+                        network::cpr::GetDefaultProgressCallback(
+                           p->running_, progressCallback));
                   }
                }
                else if (headResponse.status_code != cpr::status::HTTP_NOT_FOUND)
@@ -277,8 +279,6 @@ bool WarningsProvider::Impl::UpdateFileRecord(const cpr::Response& response,
 }
 
 void WarningsProvider::Shutdown() noexcept
-{
-   p->running_ = false;
-}
+{ p->running_ = false; }
 
 } // namespace scwx::provider

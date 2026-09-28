@@ -1,5 +1,6 @@
 #include <scwx/qt/config/radar_site.hpp>
 #include <scwx/qt/manager/radar_site_status_manager.hpp>
+#include <scwx/qt/manager/status_manager.hpp>
 #include <scwx/qt/types/radar_site_types.hpp>
 #include <scwx/provider/nws_api_provider.hpp>
 #include <scwx/util/logger.hpp>
@@ -68,9 +69,7 @@ void RadarSiteStatusManager::Start()
 }
 
 void RadarSiteStatusManager::Stop()
-{
-   p->Stop();
-}
+{ p->Stop(); }
 
 void RadarSiteStatusManager::Impl::Stop()
 {
@@ -123,8 +122,27 @@ void RadarSiteStatusManager::Impl::Run()
 
 void RadarSiteStatusManager::Impl::RunOnce()
 {
-   const auto now      = scwx::util::time::now();
-   const auto response = nwsApiProvider_->GetRadarStations();
+   const auto now = scwx::util::time::now();
+
+   // manager::StatusManager here is the new shared download-progress
+   // reporter (see its own class comment) -- an unfortunately similar
+   // name to this very class, RadarSiteStatusManager, which is about
+   // per-site up/down status, not downloads; kept fully qualified in this
+   // file specifically to avoid that confusion for a future reader.
+   auto       downloadStatusManager = manager::StatusManager::Instance();
+   const auto response              = nwsApiProvider_->GetRadarStations(
+      {},
+      std::nullopt,
+      std::nullopt,
+      [&downloadStatusManager](std::int64_t bytesReceived,
+                               std::int64_t totalBytes)
+      {
+         downloadStatusManager->ReportProgress("nws-radar-stations",
+                                               "NWS Radar Stations",
+                                               bytesReceived,
+                                               totalBytes);
+      });
+   downloadStatusManager->ReportComplete("nws-radar-stations");
 
    if (response.has_value())
    {

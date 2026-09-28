@@ -132,6 +132,7 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/radar_site_status_manager.hpp
                 source/scwx/qt/manager/resource_manager.hpp
                 source/scwx/qt/manager/settings_manager.hpp
+                source/scwx/qt/manager/status_manager.hpp
                 source/scwx/qt/manager/task_manager.hpp
                 source/scwx/qt/manager/text_event_manager.hpp
                 source/scwx/qt/manager/thread_manager.hpp
@@ -154,6 +155,7 @@ set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                 source/scwx/qt/manager/radar_site_status_manager.cpp
                 source/scwx/qt/manager/resource_manager.cpp
                 source/scwx/qt/manager/settings_manager.cpp
+                source/scwx/qt/manager/status_manager.cpp
                 source/scwx/qt/manager/task_manager.cpp
                 source/scwx/qt/manager/text_event_manager.cpp
                 source/scwx/qt/manager/thread_manager.cpp

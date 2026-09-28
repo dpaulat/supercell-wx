@@ -32,8 +32,10 @@ public:
    Impl& operator=(const Impl&&) = delete;
 
    template<typename T>
-   boost::outcome_v2::result<T> RequestData(std::string_view       endpointUrl,
-                                            const cpr::Parameters& parameters);
+   boost::outcome_v2::result<T>
+   RequestData(std::string_view                              endpointUrl,
+               const cpr::Parameters&                        parameters,
+               const network::cpr::DownloadProgressCallback& progressCallback);
 
    cpr::Header header_ {network::cpr::GetHeader()};
 
@@ -47,9 +49,11 @@ NwsApiProvider::NwsApiProvider(NwsApiProvider&&) noexcept            = default;
 NwsApiProvider& NwsApiProvider::operator=(NwsApiProvider&&) noexcept = default;
 
 boost::outcome_v2::result<std::vector<types::nws::ObservationStation>>
-NwsApiProvider::GetRadarStations(const std::vector<std::string>& stationType,
-                                 std::optional<std::string_view> reportingHost,
-                                 std::optional<std::string_view> host)
+NwsApiProvider::GetRadarStations(
+   const std::vector<std::string>&               stationType,
+   std::optional<std::string_view>               reportingHost,
+   std::optional<std::string_view>               host,
+   const network::cpr::DownloadProgressCallback& progressCallback)
 {
    logger_->debug("GetRadarStations");
 
@@ -71,8 +75,8 @@ NwsApiProvider::GetRadarStations(const std::vector<std::string>& stationType,
    }
 
    auto stationCollection =
-      p->RequestData<types::nws::ObservationStationCollection>(kEndpointUrl,
-                                                               parameters);
+      p->RequestData<types::nws::ObservationStationCollection>(
+         kEndpointUrl, parameters, progressCallback);
 
    if (stationCollection.has_value())
    {
@@ -85,20 +89,21 @@ NwsApiProvider::GetRadarStations(const std::vector<std::string>& stationType,
 }
 
 template<typename T>
-boost::outcome_v2::result<T>
-NwsApiProvider::Impl::RequestData(std::string_view       endpointUrl,
-                                  const cpr::Parameters& parameters)
+boost::outcome_v2::result<T> NwsApiProvider::Impl::RequestData(
+   std::string_view                              endpointUrl,
+   const cpr::Parameters&                        parameters,
+   const network::cpr::DownloadProgressCallback& progressCallback)
 {
    T data;
 
-   auto asyncResponse =
-      cpr::GetAsync(cpr::Url {endpointUrl},
-                    header_,
-                    parameters,
-                    network::cpr::GetDefaultTimeout(),
-                    network::cpr::GetDefaultConnectTimeout(),
-                    network::cpr::GetDefaultLowSpeed(),
-                    network::cpr::GetDefaultProgressCallback(running_));
+   auto asyncResponse = cpr::GetAsync(
+      cpr::Url {endpointUrl},
+      header_,
+      parameters,
+      network::cpr::GetDefaultTimeout(),
+      network::cpr::GetDefaultConnectTimeout(),
+      network::cpr::GetDefaultLowSpeed(),
+      network::cpr::GetDefaultProgressCallback(running_, progressCallback));
 
    const auto response = asyncResponse.get();
 
@@ -162,8 +167,6 @@ NwsApiProvider::Impl::RequestData(std::string_view       endpointUrl,
 }
 
 void NwsApiProvider::Shutdown() noexcept
-{
-   p->running_ = false;
-}
+{ p->running_ = false; }
 
 } // namespace scwx::provider
