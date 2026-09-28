@@ -5,6 +5,7 @@
 #include <scwx/qt/settings/unit_settings.hpp>
 #include <scwx/qt/types/unit_types.hpp>
 #include <scwx/provider/mrms_data_provider.hpp>
+#include <scwx/provider/nbm_data_provider.hpp>
 #include <scwx/provider/rrfs_data_provider.hpp>
 #include <scwx/provider/rtma_data_provider.hpp>
 #include <scwx/util/logger.hpp>
@@ -177,6 +178,29 @@ struct ProductConfig
    // picker, this is fixed for a product's whole lifetime.
    provider::RrfsFileFamily rrfsFileFamily =
       provider::RrfsFileFamily::TwoDField;
+
+   // Nbm-only (meaningless for every other category, left empty) -- NBM's
+   // own per-cycle file bundles every field for the whole CONUS domain in
+   // one ~160MB object, too large to download whole per product the way
+   // Rtma/Rrfs do (see provider::NbmDataProvider's own class comment).
+   // Every Nbm product instead downloads exactly one GRIB2 message via
+   // AwsNexradDataProvider::DownloadGribMessageByIndex(), selected by
+   // these three fields against the file's own ".idx" sidecar --
+   // wgrib2's own PARAM/LEVEL/QUALIFIER vocabulary (e.g. "TMP"/
+   // "2 m above ground"), *not* eccodes shortName (that's what the
+   // existing `shortName` field above is for instead: once the one
+   // matching message is downloaded, decode_grib still decodes it
+   // normally by shortName -- real, live-confirmed defense against a
+   // wrong idx match, not redundant, since the two vocabularies don't
+   // always agree). nbmQualifier's default ("") matches only a record
+   // with no qualifier at all -- see scwx::util::grib_idx::FindRecord()
+   // for the exact semantics, including the real ambiguous case
+   // (CAPE:surface:1 hour fcst: sharing its parameter+level with a
+   // second record differing only by an "ens std dev" qualifier) this
+   // mechanism exists to resolve.
+   std::string nbmParameter {};
+   std::string nbmLevel {};
+   std::string nbmQualifier {};
 };
 
 // clang-format off
@@ -582,6 +606,49 @@ static const std::vector<ProductConfig> kRrfsProducts_ {
    {"Sat Band 16 (13.3um)", "", "SBTA1616", 190.0f, 92.0f, -999.0f,
     PhysicalQuantity::TemperatureKelvin, "K", 0.0f, "", "", -1, -1},
 };
+
+// NBM (National Blend of Models): map::GribCategory::Nbm. A first,
+// deliberately small set -- every entry's own nbmParameter/nbmLevel/
+// nbmQualifier confirmed live (2026-09-26) against a real downloaded
+// blend.t12z.core.f024.co.grib2 idx, and shortName confirmed live via
+// grib_ls against the actual single-message file each one range-
+// downloads to (see AwsNexradDataProvider::DownloadGribMessageByIndex(),
+// scwx::util::grib_idx). Precipitation/accumulation fields are
+// deliberately not included yet -- NBM's own idx step text ("N-1 to N
+// hour acc fcst") embeds the forecast hour itself, so picking "the
+// 1-hour amount" needs a per-request dynamic step match this table's
+// static nbmQualifier alone can't express; a real follow-up, not
+// forgotten.
+static const std::vector<ProductConfig> kNbmProducts_ {
+   // shortName "2t" (not "tmp"/"t") -- confirmed live via grib_ls, same
+   // "eccodes' own shortName isn't the obvious guess" lesson this
+   // project has hit repeatedly (STP's LCL height, RRFS prslev's
+   // isobaric fields, ...).
+   {"2m Temperature", "", "2t", 250.0f, 70.0f, -999.0f,
+    PhysicalQuantity::TemperatureKelvin, "K", 0.0f, "", "", -1, -1, -1, -1,
+    provider::RrfsFileFamily::TwoDField, "TMP", "2 m above ground", ""},
+   {"2m Dewpoint", "", "2d", 230.0f, 70.0f, -999.0f,
+    PhysicalQuantity::TemperatureKelvin, "K", 0.0f, "", "", -1, -1, -1, -1,
+    provider::RrfsFileFamily::TwoDField, "DPT", "2 m above ground", ""},
+   // "WIND" in the idx decodes to shortName "10si" (wind *speed*
+   // directly, not raw u/v components) -- confirmed live, another real
+   // shortName surprise.
+   {"10m Wind Speed", "", "10si", 0.0f, 30.0f, -999.0f,
+    PhysicalQuantity::SpeedMetersPerSecond, "m/s", 0.0f, "", "", -1, -1, -1,
+    -1, provider::RrfsFileFamily::TwoDField, "WIND", "10 m above ground",
+    ""},
+   {"10m Wind Gust", "", "i10fg", 0.0f, 40.0f, -999.0f,
+    PhysicalQuantity::SpeedMetersPerSecond, "m/s", 0.0f, "", "", -1, -1, -1,
+    -1, provider::RrfsFileFamily::TwoDField, "GUST", "10 m above ground",
+    ""},
+   // "surface" (not the several "reserved"-level TCDC records that share
+   // that exact parameter+level+qualifier combination with each other in
+   // the real idx -- a genuinely ambiguous group this table avoids
+   // entirely rather than picking one arbitrarily).
+   {"Total Cloud Cover", "", "tcc", 0.0f, 100.0f, -999.0f,
+    PhysicalQuantity::None, "%", 0.0f, "", "", -1, -1, -1, -1,
+    provider::RrfsFileFamily::TwoDField, "TCDC", "surface", ""},
+};
 // clang-format on
 
 const std::vector<ProductConfig>& Products(map::GribCategory category)
@@ -592,6 +659,8 @@ const std::vector<ProductConfig>& Products(map::GribCategory category)
       return kMrmsProducts_;
    case map::GribCategory::Rtma:
       return kRtmaProducts_;
+   case map::GribCategory::Nbm:
+      return kNbmProducts_;
    case map::GribCategory::Rrfs:
    default:
       return kRrfsProducts_;
@@ -641,6 +710,8 @@ MakeProvider(map::GribCategory category, const ProductConfig& product)
       rrfsProvider->SetFileFamily(product.rrfsFileFamily);
       return rrfsProvider;
    }
+   case map::GribCategory::Nbm:
+      return std::make_shared<provider::NbmDataProvider>();
    case map::GribCategory::Rtma:
    default:
       return std::make_shared<provider::RtmaDataProvider>();
@@ -844,6 +915,24 @@ public:
    // distinct from an explicit 0 upper bound.
    int rrfsLoopStartHour_ {0};
    int rrfsLoopEndHour_ {-1};
+
+   // Nbm-only -- same shape and reason as the RRFS trio above (each
+   // active Nbm product holds its own NbmDataProvider instance that
+   // needs to agree with the others, and a freshly-constructed one
+   // starts at defaults). No loop-range equivalent: each Nbm product's
+   // own cached download is a single range-fetched field (~1-2MB, see
+   // ProductConfig's own nbmParameter/nbmLevel/nbmQualifier doc), nowhere
+   // near the cache-budget pressure a whole RRFS forecast-hour prefetch
+   // creates.
+   bool                                  nbmUseLatestCycle_ {true};
+   std::chrono::system_clock::time_point nbmCycleOverride_ {};
+   // 1, not 0 -- confirmed live (2026-09-26): unlike RRFS/GFS, NBM
+   // doesn't publish an F000 file at all for the CONUS core product, so
+   // F001 is the real minimum (see NbmDataProvider::kMinForecastHour_'s
+   // own comment). Matches that class's own default so a freshly
+   // constructed provider and this manager's own idea of "the current
+   // hour" never disagree.
+   int nbmForecastHour_ {1};
 };
 
 GribManager::GribManager(map::GribCategory category) :
@@ -1005,6 +1094,11 @@ void GribManager::SetProductActive(const std::string& displayName, bool active)
             // Poll()/FetchArchiveFrame() call below runs against it.
             SyncRrfsProviderState(*p->providers_[i]);
          }
+         else if (p->category_ == map::GribCategory::Nbm)
+         {
+            // Same reason as the Rrfs branch above.
+            SyncNbmProviderState(*p->providers_[i]);
+         }
       }
       else
       {
@@ -1039,6 +1133,14 @@ void GribManager::SetProductActive(const std::string& displayName, bool active)
             // SetRrfsCycle()'s own doc in grib_manager.hpp for why these
             // are independent axes.
             FetchRrfsSelection();
+         }
+         else if (p->category_ == map::GribCategory::Nbm)
+         {
+            // Same reason as the Rrfs branch above -- Nbm's own cycle/
+            // hour selection is a separate axis, and Poll()'s generic
+            // "latest" loop deliberately skips Nbm entirely (see its own
+            // comment), so nothing else would ever fetch this product.
+            FetchNbmSelection();
          }
          else if (p->isLive_)
          {
@@ -1279,6 +1381,18 @@ void GribManager::Poll()
          continue;
       }
 
+      if (p->category_ == map::GribCategory::Nbm)
+      {
+         // Nbm's own per-field idx-based fetch is handled entirely
+         // through FetchArchiveFrameForProduct()'s dedicated dispatch
+         // (via FetchNbmSelection(), called whenever cycle/hour changes)
+         // -- same reason as SHIP's own skip above: this generic "find
+         // latest, RequestFrame" loop would call QueueDownload's category
+         // switch, which has no Nbm case and would bad-cast this
+         // provider to the wrong concrete type.
+         continue;
+      }
+
       auto& provider = p->providers_.at(index);
 
       auto [newObjects, totalObjects] = provider->Refresh();
@@ -1419,6 +1533,19 @@ bool GribManager::FetchArchiveFrameForProduct(
       // QueueDownload()/ApplyCachedDownload() below, all of which assume
       // one key per product.
       FetchShipSelection(productIndex);
+      return true;
+   }
+
+   if (p->category_ == map::GribCategory::Nbm)
+   {
+      // Nbm's own single-field idx-based dispatch -- see
+      // FetchNbmSelectionForProduct()'s own doc. Never reaches
+      // RequestFrame()/QueueDownload() below (both assume a whole-file
+      // download), and deliberately ignores the `time` argument the same
+      // way the Rrfs branch below does -- resolves its own key from the
+      // provider's own live cycle/forecast-hour state instead (kept in
+      // sync by SyncNbmProviderState() whenever that state changes).
+      FetchNbmSelectionForProduct(productIndex);
       return true;
    }
 
@@ -1718,6 +1845,285 @@ bool GribManager::ApplyShipDownload(std::size_t        productIndex,
                  map::GetGribFramePath(p->category_, productIndex));
    Q_EMIT FrameReady(productIndex);
    return true;
+}
+
+void GribManager::SyncNbmProviderState(
+   provider::AwsNexradDataProvider& provider) const
+{
+   auto& nbmProvider = static_cast<provider::NbmDataProvider&>(provider);
+
+   if (p->nbmUseLatestCycle_)
+   {
+      nbmProvider.UseLatestCycle();
+   }
+   else
+   {
+      nbmProvider.SetCycle(p->nbmCycleOverride_);
+   }
+   nbmProvider.SetForecastHour(p->nbmForecastHour_);
+}
+
+void GribManager::FetchNbmSelection()
+{
+   using namespace std::chrono;
+
+   auto& nbmProvider = static_cast<provider::NbmDataProvider&>(
+      *p->providers_.at(CurrentProductIndex()));
+
+   // FetchArchiveFrameForProduct()'s own Nbm branch ignores this `time`
+   // argument entirely, resolving each product's key from its own
+   // provider state instead -- same reasoning as FetchRrfsSelection()'s
+   // identical call shape. Computed anyway for readability/logging, not
+   // because anything downstream reads it.
+   const auto time = nbmProvider.CurrentCycle() + hours {nbmProvider.ForecastHour()};
+
+   FetchArchiveFrame(time);
+}
+
+// Nbm's own per-product dispatch, called from FetchArchiveFrameForProduct()
+// for every active Nbm product (via FetchArchiveFrame()'s loop) and
+// directly from FetchNbmSelection()/SetProductActive() when the manager
+// only has one product's selection to resolve. Unlike Rrfs/MRMS/RTMA, a
+// key alone doesn't say what to download here -- NBM's own per-cycle
+// file bundles every field, so the *field* (this product's own
+// nbmParameter/nbmLevel/nbmQualifier) has to come along too, and each
+// field's cached bytes need their own path (see cacheKey below) since
+// several products share the same underlying S3 key.
+void GribManager::FetchNbmSelectionForProduct(std::size_t productIndex)
+{
+   auto& nbmProvider =
+      static_cast<provider::NbmDataProvider&>(*p->providers_.at(productIndex));
+
+   const std::string key = provider::NbmDataProvider::BuildKey(
+      nbmProvider.CurrentCycle(), nbmProvider.ForecastHour());
+
+   // Suffixed with this product's own shortName -- distinct products
+   // downloading different fields out of the *same* underlying key must
+   // not collide on one cache path (CachedDownloadPath() otherwise keys
+   // purely off the S3 object path, correct for every other category
+   // where one download serves every product sharing that file).
+   const std::string cacheKey = key + "." + Products(p->category_)[productIndex].shortName;
+
+   {
+      std::lock_guard lock(p->fetchMutex_);
+      if (cacheKey == p->lastKeys_[productIndex])
+      {
+         // Already showing this one.
+         return;
+      }
+      p->lastRequestedKeys_[productIndex] = cacheKey;
+   }
+
+   if (std::filesystem::exists(CachedDownloadPath(cacheKey)))
+   {
+      const ProductConfig& product = Products(p->category_)[productIndex];
+      ApplyCachedDownload(productIndex,
+                          cacheKey,
+                          product.shortName,
+                          product.colorOffset,
+                          product.colorScale,
+                          product.noDataThreshold,
+                          product.contourInterval,
+                          product.derivedIndex,
+                          product.typeOfLevel,
+                          product.topLevel,
+                          product.bottomLevel,
+                          product.startStep,
+                          product.lengthOfTimeRange);
+      return;
+   }
+
+   QueueNbmDownload(productIndex, key, cacheKey);
+}
+
+// Downloads exactly one field via NbmDataProvider::FetchField() (the
+// idx-based range fetch, see AwsNexradDataProvider::
+// DownloadGribMessageByIndex()) rather than RequestFrame()/
+// QueueDownload()'s whole-file DownloadRaw() path -- those assume the
+// downloaded bytes decode by shortName alone out of a multi-field file,
+// which is true for Rtma/Rrfs but not for Nbm, where the byte range
+// fetched already contains only the one field asked for.
+void GribManager::QueueNbmDownload(std::size_t        productIndex,
+                                   const std::string& key,
+                                   const std::string& cacheKey)
+{
+   {
+      std::lock_guard lock(p->fetchMutex_);
+      if (!p->inFlightKeys_.insert({productIndex, cacheKey}).second)
+      {
+         return;
+      }
+   }
+
+   std::shared_ptr<provider::AwsNexradDataProvider> provider =
+      p->providers_.at(productIndex);
+   const ProductConfig product = Products(p->category_)[productIndex];
+
+   auto statusManager = manager::StatusManager::Instance();
+
+   boost::asio::post(
+      p->fetchPool_,
+      [this, productIndex, key, cacheKey, provider, product, statusManager]()
+      {
+         const std::string cachedPath = CachedDownloadPath(cacheKey);
+         std::filesystem::create_directories(
+            std::filesystem::path(cachedPath).parent_path());
+
+         const std::string statusId = fmt::format(
+            "grib-{}-{}", static_cast<int>(p->category_), productIndex);
+         const auto progressCallback =
+            [&statusManager, &statusId, &product](std::int64_t bytesReceived,
+                                                  std::int64_t totalBytes)
+         {
+            statusManager->ReportProgress(
+               statusId, product.displayName, bytesReceived, totalBytes);
+         };
+
+         auto downloaded =
+            static_cast<provider::NbmDataProvider&>(*provider).FetchField(
+               key,
+               product.nbmParameter,
+               product.nbmLevel,
+               product.nbmQualifier,
+               cachedPath,
+               progressCallback);
+
+         statusManager->ReportComplete(statusId);
+
+         {
+            std::lock_guard lock(p->fetchMutex_);
+            p->inFlightKeys_.erase({productIndex, cacheKey});
+         }
+
+         if (!downloaded.has_value())
+         {
+            logger_->warn("Failed to download NBM field {} ({}) from {}",
+                          product.displayName,
+                          product.shortName,
+                          key);
+            return;
+         }
+
+         PruneDownloadCache();
+
+         bool stillWanted;
+         {
+            std::lock_guard lock(p->fetchMutex_);
+            stillWanted = (p->lastRequestedKeys_[productIndex] == cacheKey);
+         }
+
+         if (stillWanted)
+         {
+            ApplyCachedDownload(productIndex,
+                                cacheKey,
+                                product.shortName,
+                                product.colorOffset,
+                                product.colorScale,
+                                product.noDataThreshold,
+                                product.contourInterval,
+                                product.derivedIndex,
+                                product.typeOfLevel,
+                                product.topLevel,
+                                product.bottomLevel,
+                                product.startStep,
+                                product.lengthOfTimeRange);
+         }
+      });
+}
+
+void GribManager::SetNbmCycle(std::chrono::system_clock::time_point cycleTime)
+{
+   if (p->category_ != map::GribCategory::Nbm)
+   {
+      logger_->warn("SetNbmCycle() is only meaningful for GribCategory::Nbm");
+      return;
+   }
+
+   p->nbmUseLatestCycle_ = false;
+   p->nbmCycleOverride_  = cycleTime;
+
+   for (auto& [index, providerPtr] : p->providers_)
+   {
+      SyncNbmProviderState(*providerPtr);
+   }
+
+   FetchNbmSelection();
+}
+
+void GribManager::UseLatestNbmCycle()
+{
+   if (p->category_ != map::GribCategory::Nbm)
+   {
+      logger_->warn(
+         "UseLatestNbmCycle() is only meaningful for GribCategory::Nbm");
+      return;
+   }
+
+   p->nbmUseLatestCycle_ = true;
+
+   for (auto& [index, providerPtr] : p->providers_)
+   {
+      SyncNbmProviderState(*providerPtr);
+   }
+
+   FetchNbmSelection();
+}
+
+bool GribManager::IsUsingLatestNbmCycle() const
+{
+   return p->category_ != map::GribCategory::Nbm || p->nbmUseLatestCycle_;
+}
+
+std::chrono::system_clock::time_point GribManager::CurrentNbmCycle() const
+{
+   if (p->category_ != map::GribCategory::Nbm)
+   {
+      return {};
+   }
+
+   return static_cast<provider::NbmDataProvider&>(
+             *p->providers_.at(CurrentProductIndex()))
+      .CurrentCycle();
+}
+
+void GribManager::SetNbmForecastHour(int hour)
+{
+   if (p->category_ != map::GribCategory::Nbm)
+   {
+      logger_->warn(
+         "SetNbmForecastHour() is only meaningful for GribCategory::Nbm");
+      return;
+   }
+
+   // Snapped to a real, fetchable hour immediately -- NBM's own forecast-
+   // hour step is non-uniform beyond F069 for extended cycles (see
+   // NbmDataProvider::SnapForecastHour()'s own doc), so a caller driving
+   // this from a linear slider would otherwise request hours that simply
+   // don't exist for most of the range.
+   p->nbmForecastHour_ =
+      provider::NbmDataProvider::SnapForecastHour(CurrentNbmCycle(), hour);
+
+   for (auto& [index, providerPtr] : p->providers_)
+   {
+      SyncNbmProviderState(*providerPtr);
+   }
+
+   FetchNbmSelection();
+}
+
+int GribManager::NbmForecastHour() const
+{
+   return (p->category_ == map::GribCategory::Nbm) ? p->nbmForecastHour_ : 0;
+}
+
+int GribManager::MaxNbmForecastHour() const
+{
+   if (p->category_ != map::GribCategory::Nbm)
+   {
+      return 0;
+   }
+
+   return provider::NbmDataProvider::MaxForecastHourForCycle(CurrentNbmCycle());
 }
 
 void GribManager::RequestFrame(std::size_t productIndex, const std::string& key)

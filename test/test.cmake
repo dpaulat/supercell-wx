@@ -28,6 +28,7 @@ set(SRC_PROVIDER_TESTS source/scwx/provider/aws_level2_data_provider.test.cpp
                        source/scwx/provider/http_level3_data_provider.test.cpp
                        source/scwx/provider/iem_api_provider.test.cpp
                        source/scwx/provider/mrms_data_provider.test.cpp
+                       source/scwx/provider/nbm_data_provider.test.cpp
                        source/scwx/provider/nws_level3_behavior.test.cpp
                        source/scwx/provider/nws_api_provider.test.cpp
                        source/scwx/provider/ondas_level2_data_provider.test.cpp
@@ -64,6 +65,7 @@ set(SRC_QT_UTIL_TESTS source/scwx/qt/util/q_file_input_stream.test.cpp
                       source/scwx/qt/util/network.test.cpp)
 set(SRC_TYPES_TESTS source/scwx/types/ondas_types.test.cpp)
 set(SRC_UTIL_TESTS source/scwx/util/float.test.cpp
+                   source/scwx/util/grib_idx.test.cpp
                    source/scwx/util/rangebuf.test.cpp
                    source/scwx/util/streams.test.cpp
                    source/scwx/util/strings.test.cpp

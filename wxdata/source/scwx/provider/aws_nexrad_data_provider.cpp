@@ -8,6 +8,7 @@
 #include <atomic>
 #include <fstream>
 #include <shared_mutex>
+#include <sstream>
 
 #include <aws/core/auth/AWSCredentials.h>
 #include <aws/core/http/HttpRequest.h>
@@ -379,9 +380,101 @@ std::optional<std::string> AwsNexradDataProvider::DownloadObject(
    const std::string&              outputPath,
    const DownloadProgressCallback& progressCallback)
 {
+   return DownloadObjectImpl(
+      bucketName, key, std::nullopt, outputPath, progressCallback);
+}
+
+std::optional<std::string> AwsNexradDataProvider::DownloadObjectRange(
+   const std::string&               bucketName,
+   const std::string&               key,
+   const util::grib_idx::ByteRange& range,
+   const std::string&               outputPath,
+   const DownloadProgressCallback&  progressCallback)
+{
+   return DownloadObjectImpl(bucketName, key, range, outputPath, progressCallback);
+}
+
+std::optional<std::string> AwsNexradDataProvider::DownloadObjectString(
+   const std::string& bucketName, const std::string& key)
+{
    Aws::S3::Model::GetObjectRequest request;
    request.SetBucket(bucketName);
    request.SetKey(key);
+
+   request.SetContinueRequestHandler([this](const Aws::Http::HttpRequest*)
+                                     { return p->running_.load(); });
+
+   auto outcome = p->client_->GetObject(request);
+
+   if (!outcome.IsSuccess())
+   {
+      if (p->running_)
+      {
+         logger_->warn(
+            "Failed to download {}: {}", key, outcome.GetError().GetMessage());
+      }
+      else
+      {
+         logger_->debug("Download cancelled for key: {}", key);
+      }
+      return std::nullopt;
+   }
+
+   auto&              body = outcome.GetResultWithOwnership().GetBody();
+   std::ostringstream contents;
+   contents << body.rdbuf();
+
+   return contents.str();
+}
+
+std::optional<std::string> AwsNexradDataProvider::DownloadGribMessageByIndex(
+   const std::string&               bucketName,
+   const std::string&               key,
+   const std::string&               parameter,
+   const std::string&               level,
+   const std::string&               qualifier,
+   const std::string&               outputPath,
+   const DownloadProgressCallback&  progressCallback)
+{
+   auto idxText = DownloadObjectString(bucketName, key + ".idx");
+   if (!idxText.has_value())
+   {
+      return std::nullopt;
+   }
+
+   auto records = util::grib_idx::ParseIdx(*idxText);
+   auto found = util::grib_idx::FindRecord(records, parameter, level, qualifier);
+
+   if (!found.has_value())
+   {
+      logger_->warn("No idx record for {}:{}{} in {}",
+                    parameter,
+                    level,
+                    qualifier.empty() ? std::string {} : (":" + qualifier),
+                    key);
+      return std::nullopt;
+   }
+
+   auto range = util::grib_idx::RangeForRecord(records, *found);
+
+   return DownloadObjectRange(bucketName, key, range, outputPath, progressCallback);
+}
+
+std::optional<std::string> AwsNexradDataProvider::DownloadObjectImpl(
+   const std::string&                              bucketName,
+   const std::string&                              key,
+   const std::optional<util::grib_idx::ByteRange>& range,
+   const std::string&                              outputPath,
+   const DownloadProgressCallback&                 progressCallback)
+{
+   Aws::S3::Model::GetObjectRequest request;
+   request.SetBucket(bucketName);
+   request.SetKey(key);
+
+   if (range.has_value())
+   {
+      request.SetRange(util::grib_idx::ToRangeHeader(*range));
+   }
 
    // Same cancellation idiom LoadObjectByKey() already uses.
    request.SetContinueRequestHandler([this](const Aws::Http::HttpRequest*)
