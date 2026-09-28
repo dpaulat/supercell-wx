@@ -1,5 +1,6 @@
 #pragma once
 
+#include <scwx/network/cpr.hpp>
 #include <scwx/types/nws_types.hpp>
 
 #include <memory>
@@ -34,12 +35,15 @@ public:
     * @param [in] reportingHost Show RDA and latency info from specific
     * reporting host
     * @param [in] host Show latency info from specific LDM host
+    * @param [in] progressCallback Optional incremental download progress
+    * report -- see network::cpr::DownloadProgressCallback's own doc.
     */
    boost::outcome_v2::result<std::vector<types::nws::ObservationStation>>
    GetRadarStations(
       const std::vector<std::string>& stationType = std::vector<std::string> {},
       std::optional<std::string_view> reportingHost = std::nullopt,
-      std::optional<std::string_view> host          = std::nullopt);
+      std::optional<std::string_view> host          = std::nullopt,
+      const network::cpr::DownloadProgressCallback& progressCallback = nullptr);
 
    /**
     * @brief Shuts down the provider and stops any in-progress network requests.

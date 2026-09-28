@@ -1,5 +1,6 @@
 #include <scwx/qt/manager/update_manager.hpp>
 #include <scwx/qt/main/application_paths.hpp>
+#include <scwx/qt/manager/status_manager.hpp>
 #include <scwx/network/cpr.hpp>
 #include <scwx/util/json.hpp>
 #include <scwx/util/logger.hpp>
@@ -50,14 +51,10 @@ UpdateManager::UpdateManager() : p(std::make_unique<Impl>(this)) {}
 UpdateManager::~UpdateManager() = default;
 
 types::gh::Release UpdateManager::latest_release() const
-{
-   return p->latestRelease_;
-}
+{ return p->latestRelease_; }
 
 std::string UpdateManager::latest_version() const
-{
-   return p->latestVersion_;
-}
+{ return p->latestVersion_; }
 
 std::string
 UpdateManager::Impl::GetVersionString(const std::string& releaseName)
@@ -117,7 +114,8 @@ size_t UpdateManager::Impl::PopulateReleases()
    {
       const std::string pageString {fmt::format("{}", page)};
 
-      cpr::Response r = cpr::Get(
+      auto          statusManager = manager::StatusManager::Instance();
+      cpr::Response r             = cpr::Get(
          cpr::Url {kScwxReleaseEndpoint},
          cpr::Parameters {{"per_page", perPageString}, {"page", pageString}},
          cpr::Header {{"accept", "application/vnd.github+json"},
@@ -125,7 +123,17 @@ size_t UpdateManager::Impl::PopulateReleases()
          network::cpr::GetDefaultTimeout(),
          network::cpr::GetDefaultConnectTimeout(),
          network::cpr::GetDefaultLowSpeed(),
-         network::cpr::GetDefaultProgressCallback(running_));
+         network::cpr::GetDefaultProgressCallback(
+            running_,
+            [&statusManager](std::int64_t bytesReceived,
+                             std::int64_t totalBytes)
+            {
+               statusManager->ReportProgress("update-manager",
+                                             "Checking for Updates",
+                                             bytesReceived,
+                                             totalBytes);
+            }));
+      statusManager->ReportComplete("update-manager");
 
       // Successful REST API query
       if (r.status_code == 200)

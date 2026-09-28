@@ -1,5 +1,6 @@
 #include <scwx/qt/manager/text_event_manager.hpp>
 #include <scwx/qt/main/application.hpp>
+#include <scwx/qt/manager/status_manager.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/awips/text_product_file.hpp>
 #include <scwx/provider/iem_api_provider.ipp>
@@ -549,7 +550,7 @@ void TextEventManager::Impl::LoadArchives(
       auto loadView = loadListEntries |
                       ranges::views::transform([](const auto& entry)
                                                { return entry.productId_; });
-      products = provider::IemApiProvider::LoadTextProducts(loadView);
+      products      = provider::IemApiProvider::LoadTextProducts(loadView);
    }
 
    // Process loaded products
@@ -705,7 +706,20 @@ void TextEventManager::Impl::Refresh()
       archiveLimit_ = std::chrono::ceil<std::chrono::days>(startTime);
    }
 
-   auto updatedFiles = warningsProvider->LoadUpdatedFiles(startTime);
+   // A single shared id, not one per file -- LoadUpdatedFiles() can fire
+   // several concurrent per-hour GETs at once, and each shares the same
+   // "warnings" identity in the status bar rather than each clobbering
+   // the others' own slot (same simplification GribManager's own
+   // per-product ids don't need, since those never share one id).
+   auto statusManager = manager::StatusManager::Instance();
+   auto updatedFiles  = warningsProvider->LoadUpdatedFiles(
+      startTime,
+      [&statusManager](std::int64_t bytesReceived, std::int64_t totalBytes)
+      {
+         statusManager->ReportProgress(
+            "warnings", "Warnings", bytesReceived, totalBytes);
+      });
+   statusManager->ReportComplete("warnings");
 
    // Store the load time and reset the load history duration
    prevLoadTime_        = loadTime;

@@ -21,43 +21,49 @@ static constexpr std::chrono::seconds kLowSpeedTime_   = 15s;
 static ::cpr::Header header_ {};
 
 ::cpr::ConnectTimeout GetDefaultConnectTimeout()
-{
-   return ::cpr::ConnectTimeout {kConnectTimeout_};
-}
+{ return ::cpr::ConnectTimeout {kConnectTimeout_}; }
 
 ::cpr::Timeout GetDefaultTimeout()
-{
-   return ::cpr::Timeout {kTimeout_};
-}
+{ return ::cpr::Timeout {kTimeout_}; }
 
 ::cpr::LowSpeed GetDefaultLowSpeed()
-{
-   return ::cpr::LowSpeed {kLowSpeedLimit_, kLowSpeedTime_};
-}
+{ return ::cpr::LowSpeed {kLowSpeedLimit_, kLowSpeedTime_}; }
 
 ::cpr::ProgressCallback
-GetDefaultProgressCallback(const std::atomic<bool>& isRunning)
+GetDefaultProgressCallback(const std::atomic<bool>&        isRunning,
+                           const DownloadProgressCallback& progressCallback)
 {
-   return ::cpr::ProgressCallback([&](::cpr::cpr_off_t /* downloadTotal */,
-                                      ::cpr::cpr_off_t /* downloadNow */,
-                                      ::cpr::cpr_off_t /* uploadTotal */,
-                                      ::cpr::cpr_off_t /* uploadNow */,
-                                      std::intptr_t /* userdata */)
-                                  { return isRunning.load(); });
+   return ::cpr::ProgressCallback(
+      [&isRunning, progressCallback](::cpr::cpr_off_t downloadTotal,
+                                     ::cpr::cpr_off_t downloadNow,
+                                     ::cpr::cpr_off_t /* uploadTotal */,
+                                     ::cpr::cpr_off_t /* uploadNow */,
+                                     std::intptr_t /* userdata */)
+      {
+         // downloadNow == 0 fires before any real bytes arrive (e.g. at
+         // request start) -- skip reporting that, not worth a "0 bytes"
+         // flicker.
+         if (progressCallback && downloadNow > 0)
+         {
+            progressCallback(static_cast<std::int64_t>(downloadNow),
+                             downloadTotal > 0 ?
+                                static_cast<std::int64_t>(downloadTotal) :
+                                -1);
+         }
+         return isRunning.load();
+      });
 }
 
 ::cpr::Header GetHeader()
-{
-   return header_;
-}
+{ return header_; }
 
 void SetUserAgent(const std::string& userAgent)
-{
-   header_.insert_or_assign("User-Agent", userAgent);
-}
+{ header_.insert_or_assign("User-Agent", userAgent); }
 
 std::pair<std::string, long>
-DownloadToString(const std::string& url, const std::atomic<bool>& isRunning)
+DownloadToString(const std::string&              url,
+                 const std::atomic<bool>&        isRunning,
+                 const DownloadProgressCallback& progressCallback)
 {
    // Use CPR to download file
    ::cpr::Response response =
@@ -66,7 +72,7 @@ DownloadToString(const std::string& url, const std::atomic<bool>& isRunning)
                  network::cpr::GetDefaultTimeout(),
                  network::cpr::GetDefaultConnectTimeout(),
                  network::cpr::GetDefaultLowSpeed(),
-                 GetDefaultProgressCallback(isRunning));
+                 GetDefaultProgressCallback(isRunning, progressCallback));
 
    if (response.status_code != ::cpr::status::HTTP_OK)
    {
@@ -82,10 +88,12 @@ DownloadToString(const std::string& url, const std::atomic<bool>& isRunning)
 }
 
 std::pair<std::stringstream, long>
-DownloadToStream(const std::string& url, const std::atomic<bool>& isRunning)
+DownloadToStream(const std::string&              url,
+                 const std::atomic<bool>&        isRunning,
+                 const DownloadProgressCallback& progressCallback)
 {
    // Convert response to stream
-   auto [text, statusCode] = DownloadToString(url, isRunning);
+   auto [text, statusCode] = DownloadToString(url, isRunning, progressCallback);
    std::stringstream ss {std::move(text), std::ios::in | std::ios::binary};
    return {std::move(ss), statusCode};
 }

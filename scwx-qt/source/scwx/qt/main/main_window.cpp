@@ -14,6 +14,7 @@
 #include <scwx/qt/manager/hotkey_manager.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
+#include <scwx/qt/manager/status_manager.hpp>
 #include <scwx/qt/manager/marker_manager.hpp>
 #include <scwx/qt/manager/position_manager.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
@@ -386,6 +387,8 @@ public:
    std::shared_ptr<manager::TextEventManager> textEventManager_;
    std::shared_ptr<manager::TimelineManager>  timelineManager_;
    std::shared_ptr<manager::UpdateManager>    updateManager_;
+   std::shared_ptr<manager::StatusManager>    statusManager_ {
+      manager::StatusManager::Instance()};
 
    std::shared_ptr<model::LayerModel> layerModel_ {
       model::LayerModel::Instance()};
@@ -627,6 +630,28 @@ MainWindow::MainWindow(QWidget* parent) :
    statusBarLayout->addWidget(p->coordinateLabel_, 0, 0);
    statusBarLayout->addWidget(p->timeLabel_, 0, 1);
    ui->statusbar->addPermanentWidget(statusBarWidget);
+
+   // Background fetch/decode activity shows in the status bar's own
+   // *non-permanent* message area, on the left -- exactly what
+   // QStatusBar::showMessage()/clearMessage() are for, and (confirmed)
+   // nothing else in this app was already using them, unlike the
+   // permanent widgets on the right (coordinate/time) which are a live
+   // readout, not a transient "something is happening" signal.
+   connect(p->statusManager_.get(),
+           &manager::StatusManager::StatusChanged,
+           this,
+           [this]()
+           {
+              const std::string text = p->statusManager_->CurrentStatusText();
+              if (text.empty())
+              {
+                 ui->statusbar->clearMessage();
+              }
+              else
+              {
+                 ui->statusbar->showMessage(QString::fromStdString(text));
+              }
+           });
 
    // ImGui Debug Dialog
    p->imGuiDebugDialog_ = new ui::ImGuiDebugDialog(this);
