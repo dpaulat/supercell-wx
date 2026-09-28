@@ -19,7 +19,8 @@ set(SRC_COMMON_TESTS source/scwx/common/color_table.test.cpp
                      source/scwx/common/sites.test.cpp)
 set(SRC_CONFIG_TESTS source/scwx/config/ondas_config.test.cpp
                      source/scwx/config/ondas_config_loader.test.cpp)
-set(SRC_GR_TESTS source/scwx/gr/placefile.test.cpp)
+set(SRC_GR_TESTS source/scwx/gr/outlook_placefile.test.cpp
+                 source/scwx/gr/placefile.test.cpp)
 set(SRC_NETWORK_TESTS source/scwx/network/dir_list.test.cpp
                       source/scwx/network/ntp_client.test.cpp)
 set(SRC_PROVIDER_TESTS source/scwx/provider/aws_level2_data_provider.test.cpp

@@ -1,6 +1,7 @@
 #include <scwx/qt/manager/placefile_manager.hpp>
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/resource_manager.hpp>
+#include <scwx/qt/manager/status_manager.hpp>
 #include <scwx/qt/main/application.hpp>
 #include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/util/network.hpp>
@@ -36,6 +37,7 @@ static const std::string kEnabledName_     = "enabled";
 static const std::string kThresholdedName_ = "thresholded";
 static const std::string kTitleName_       = "title";
 static const std::string kNameName_        = "name";
+static const std::string kCategoryName_    = "category";
 
 namespace
 {
@@ -47,17 +49,29 @@ struct PlacefileSettingsEntry
    std::string title {};
    bool        enabled {false};
    bool        thresholded {false};
+   std::string category {};
 };
 
 PlacefileSettingsEntry
 tag_invoke(boost::json::value_to_tag<PlacefileSettingsEntry>,
            const boost::json::value& jv)
 {
+   // category is read leniently (missing -> "") -- a settings file
+   // written before this field existed must still load every entry it
+   // has, not silently drop them.
+   std::string category {};
+   if (const auto* categoryValue = jv.as_object().if_contains(kCategoryName_);
+       categoryValue != nullptr && categoryValue->is_string())
+   {
+      category = boost::json::value_to<std::string>(*categoryValue);
+   }
+
    return PlacefileSettingsEntry {
       .name        = boost::json::value_to<std::string>(jv.at(kNameName_)),
       .title       = boost::json::value_to<std::string>(jv.at(kTitleName_)),
       .enabled     = jv.at(kEnabledName_).as_bool(),
-      .thresholded = jv.at(kThresholdedName_).as_bool()};
+      .thresholded = jv.at(kThresholdedName_).as_bool(),
+      .category    = std::move(category)};
 }
 } // namespace
 
@@ -101,15 +115,17 @@ public:
    explicit PlacefileRecord(Impl*                          impl,
                             const std::string&             name,
                             std::shared_ptr<gr::Placefile> placefile,
-                            const std::string&             title   = {},
-                            bool                           enabled = false,
-                            bool thresholded                       = false) :
+                            const std::string&             title       = {},
+                            bool                           enabled     = false,
+                            bool                           thresholded = false,
+                            const std::string&             category    = {}) :
        p {impl},
        name_ {name},
        title_ {title},
        placefile_ {placefile},
        enabled_ {enabled},
-       thresholded_ {thresholded}
+       thresholded_ {thresholded},
+       category_ {category}
    {
    }
    ~PlacefileRecord()
@@ -141,7 +157,8 @@ public:
       jv = {{kEnabledName_, record->enabled_.load()},
             {kThresholdedName_, record->thresholded_},
             {kTitleName_, record->title_},
-            {kNameName_, record->name_}};
+            {kNameName_, record->name_},
+            {kCategoryName_, record->category_}};
    }
 
    Impl* p;
@@ -151,6 +168,7 @@ public:
    std::shared_ptr<gr::Placefile> placefile_;
    std::atomic<bool>              enabled_;
    bool                           thresholded_;
+   std::string                    category_;
    boost::asio::thread_pool       threadPool_ {1u};
    boost::asio::steady_timer      refreshTimer_ {threadPool_};
    std::mutex                     refreshMutex_ {};
@@ -226,6 +244,18 @@ std::string PlacefileManager::placefile_title(const std::string& name)
    if (it != p->placefileRecordMap_.cend())
    {
       return it->second->title_;
+   }
+   return {};
+}
+
+std::string PlacefileManager::placefile_category(const std::string& name)
+{
+   std::shared_lock lock(p->placefileRecordLock_);
+
+   auto it = p->placefileRecordMap_.find(name);
+   if (it != p->placefileRecordMap_.cend())
+   {
+      return it->second->category_;
    }
    return {};
 }
@@ -310,6 +340,24 @@ void PlacefileManager::set_placefile_thresholded(const std::string& name,
 
       Q_EMIT PlacefileUpdated(name);
    }
+}
+
+void PlacefileManager::set_placefile_category(const std::string& name,
+                                              const std::string& category)
+{
+   std::unique_lock lock(p->placefileRecordLock_);
+
+   auto it = p->placefileRecordMap_.find(name);
+   if (it == p->placefileRecordMap_.cend() || it->second->category_ == category)
+   {
+      return;
+   }
+
+   it->second->category_ = category;
+
+   lock.unlock();
+
+   Q_EMIT PlacefileUpdated(name);
 }
 
 void PlacefileManager::set_placefile_url(const std::string& name,
@@ -431,7 +479,8 @@ void PlacefileManager::Impl::ApplyPlacefileSettings(
                self_->AddUrl(record->name,
                              record->title,
                              record->enabled,
-                             record->thresholded);
+                             record->thresholded,
+                             record->category);
             }
          }
          else
@@ -490,7 +539,8 @@ void PlacefileManager::SetRadarSite(
 void PlacefileManager::AddUrl(const std::string& urlString,
                               const std::string& title,
                               bool               enabled,
-                              bool               thresholded)
+                              bool               thresholded,
+                              const std::string& category)
 {
    std::string normalizedUrl = util::network::NormalizeUrl(urlString);
 
@@ -511,9 +561,14 @@ void PlacefileManager::AddUrl(const std::string& urlString,
    logger_->info("AddUrl: {}", normalizedUrl);
 
    // Add an empty placefile record for the new URL
-   auto& record =
-      p->placefileRecords_.emplace_back(std::make_shared<Impl::PlacefileRecord>(
-         p.get(), normalizedUrl, nullptr, title, enabled, thresholded));
+   auto& record = p->placefileRecords_.emplace_back(
+      std::make_shared<Impl::PlacefileRecord>(p.get(),
+                                              normalizedUrl,
+                                              nullptr,
+                                              title,
+                                              enabled,
+                                              thresholded,
+                                              category));
    p->placefileRecordMap_.insert_or_assign(normalizedUrl, record);
 
    lock.unlock();
@@ -643,6 +698,7 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
       }
 
       // Send HTTP GET request
+      auto statusManager = manager::StatusManager::Instance();
       auto response =
          cpr::Get(cpr::Url {decodedUrl},
                   network::cpr::GetHeader(),
@@ -650,7 +706,17 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
                   network::cpr::GetDefaultTimeout(),
                   network::cpr::GetDefaultConnectTimeout(),
                   network::cpr::GetDefaultLowSpeed(),
-                  network::cpr::GetDefaultProgressCallback(enabled_));
+                  network::cpr::GetDefaultProgressCallback(
+                     enabled_,
+                     [&statusManager, &name](std::int64_t bytesReceived,
+                                             std::int64_t totalBytes)
+                     {
+                        statusManager->ReportProgress("placefile-" + name,
+                                                      "Placefile: " + name,
+                                                      bytesReceived,
+                                                      totalBytes);
+                     }));
+      statusManager->ReportComplete("placefile-" + name);
 
       if (cpr::status::is_success(response.status_code))
       {

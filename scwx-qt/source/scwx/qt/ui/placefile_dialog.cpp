@@ -1,8 +1,11 @@
 #include "placefile_dialog.hpp"
 #include "ui_placefile_dialog.h"
 
+#include <scwx/qt/manager/outlook_manager.hpp>
 #include <scwx/qt/ui/placefile_settings_widget.hpp>
 #include <scwx/util/logger.hpp>
+
+#include <QTabWidget>
 
 namespace scwx
 {
@@ -20,7 +23,9 @@ public:
    explicit PlacefileDialogImpl() {}
    ~PlacefileDialogImpl() = default;
 
+   QTabWidget*              tabWidget_ {nullptr};
    PlacefileSettingsWidget* placefileSettingsWidget_ {nullptr};
+   PlacefileSettingsWidget* outlookSettingsWidget_ {nullptr};
 };
 
 PlacefileDialog::PlacefileDialog(QWidget* parent) :
@@ -30,15 +35,33 @@ PlacefileDialog::PlacefileDialog(QWidget* parent) :
 {
    ui->setupUi(this);
 
-   p->placefileSettingsWidget_ = new PlacefileSettingsWidget(this);
+   p->tabWidget_ = new QTabWidget(this);
+
+   // Regular placefiles: everything except manager::OutlookManager's own
+   // built-in entries (see below) -- unchanged from before this tab split
+   // existed, just excluding what now has its own tab.
+   p->placefileSettingsWidget_ = new PlacefileSettingsWidget(
+      p->tabWidget_,
+      PlacefileSettingsWidget::CategoryMode::ExcludeCategory,
+      manager::OutlookPlacefileCategory());
    p->placefileSettingsWidget_->layout()->setContentsMargins(0, 0, 0, 0);
-   ui->contentsFrame->layout()->addWidget(p->placefileSettingsWidget_);
+   p->tabWidget_->addTab(p->placefileSettingsWidget_, tr("Placefiles"));
+
+   // Built-in SPC/WPC risk outlooks (manager::OutlookManager) -- same
+   // widget, same underlying PlacefileModel/PlacefileManager, just
+   // filtered to the opposite side of the same category split.
+   p->outlookSettingsWidget_ = new PlacefileSettingsWidget(
+      p->tabWidget_,
+      PlacefileSettingsWidget::CategoryMode::OnlyCategory,
+      manager::OutlookPlacefileCategory());
+   p->outlookSettingsWidget_->layout()->setContentsMargins(0, 0, 0, 0);
+   p->tabWidget_->addTab(p->outlookSettingsWidget_, tr("Outlooks"));
+
+   ui->contentsFrame->layout()->addWidget(p->tabWidget_);
 }
 
 PlacefileDialog::~PlacefileDialog()
-{
-   delete ui;
-}
+{ delete ui; }
 
 } // namespace ui
 } // namespace qt

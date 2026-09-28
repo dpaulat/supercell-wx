@@ -63,14 +63,10 @@ PlacefileModel::PlacefileModel(QObject* parent) :
 PlacefileModel::~PlacefileModel() = default;
 
 int PlacefileModel::rowCount(const QModelIndex& parent) const
-{
-   return parent.isValid() ? 0 : static_cast<int>(p->placefileNames_.size());
-}
+{ return parent.isValid() ? 0 : static_cast<int>(p->placefileNames_.size()); }
 
 int PlacefileModel::columnCount(const QModelIndex& parent) const
-{
-   return parent.isValid() ? 0 : kNumColumns;
-}
+{ return parent.isValid() ? 0 : kNumColumns; }
 
 Qt::ItemFlags PlacefileModel::flags(const QModelIndex& index) const
 {
@@ -172,6 +168,11 @@ QVariant PlacefileModel::data(const QModelIndex& index, int role) const
                role == types::ItemDataRole::SortRole)
       {
          return QString::fromStdString(placefileName);
+      }
+      else if (role == types::ItemDataRole::CategoryRole)
+      {
+         return QString::fromStdString(
+            p->placefileManager_->placefile_category(placefileName));
       }
       break;
 

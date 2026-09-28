@@ -67,8 +67,10 @@ set(SRC_CONFIG source/scwx/config/ondas_config.cpp
                source/scwx/config/ondas_config_loader.cpp)
 set(HDR_GR include/scwx/gr/color.hpp
            include/scwx/gr/gr_types.hpp
+           include/scwx/gr/outlook_placefile.hpp
            include/scwx/gr/placefile.hpp)
 set(SRC_GR source/scwx/gr/color.cpp
+           source/scwx/gr/outlook_placefile.cpp
            source/scwx/gr/placefile.cpp)
 set(HDR_NETWORK include/scwx/network/cpr.hpp
                 include/scwx/network/dir_list.hpp
