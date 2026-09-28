@@ -19,16 +19,75 @@ namespace ui
 static const std::string logPrefix_ = "scwx::qt::ui::placefile_settings_widget";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
+namespace
+{
+
+// Sits between PlacefileModel and the existing free-text-search proxy
+// (chained, not merged, so the two filters -- category and the user's own
+// search box -- both apply independently without a bespoke combined
+// predicate). ShowAll (the default, matching every prior behavior) skips
+// filtering entirely.
+class CategoryFilterProxyModel : public QSortFilterProxyModel
+{
+public:
+   explicit CategoryFilterProxyModel(PlacefileSettingsWidget::CategoryMode mode,
+                                     std::string category,
+                                     QObject*    parent = nullptr) :
+       QSortFilterProxyModel(parent),
+       mode_ {mode},
+       category_ {std::move(category)}
+   {
+   }
+
+protected:
+   bool filterAcceptsRow(int                sourceRow,
+                         const QModelIndex& sourceParent) const override
+   {
+      if (mode_ == PlacefileSettingsWidget::CategoryMode::ShowAll)
+      {
+         return true;
+      }
+
+      const QModelIndex index =
+         sourceModel()->index(sourceRow, 0, sourceParent);
+      const std::string rowCategory =
+         sourceModel()
+            ->data(index, types::ItemDataRole::CategoryRole)
+            .toString()
+            .toStdString();
+
+      const bool matches = (rowCategory == category_);
+      return mode_ == PlacefileSettingsWidget::CategoryMode::OnlyCategory ?
+                matches :
+                !matches;
+   }
+
+private:
+   PlacefileSettingsWidget::CategoryMode mode_;
+   std::string                           category_;
+};
+
+} // namespace
+
 class PlacefileSettingsWidgetImpl
 {
 public:
-   explicit PlacefileSettingsWidgetImpl(PlacefileSettingsWidget* self) :
+   explicit PlacefileSettingsWidgetImpl(
+      PlacefileSettingsWidget*              self,
+      PlacefileSettingsWidget::CategoryMode categoryMode,
+      const std::string&                    category) :
        self_ {self},
        openUrlDialog_ {new OpenUrlDialog(QObject::tr("Add Placefile"), self_)},
        placefileModel_ {new model::PlacefileModel(self_)},
-       placefileProxyModel_ {new QSortFilterProxyModel(self_)}
+       categoryFilterModel_ {
+          new CategoryFilterProxyModel(categoryMode, category, self_)},
+       placefileProxyModel_ {new QSortFilterProxyModel(self_)},
+       categoryMode_ {categoryMode},
+       category_ {category}
    {
-      placefileProxyModel_->setSourceModel(placefileModel_);
+      categoryFilterModel_->setSourceModel(placefileModel_);
+
+      placefileProxyModel_->setSourceModel(categoryFilterModel_);
       placefileProxyModel_->setSortRole(types::ItemDataRole::SortRole);
       placefileProxyModel_->setFilterCaseSensitivity(
          Qt::CaseSensitivity::CaseInsensitive);
@@ -44,13 +103,23 @@ public:
    std::shared_ptr<manager::PlacefileManager> placefileManager_ {
       manager::PlacefileManager::Instance()};
 
-   model::PlacefileModel* placefileModel_;
-   QSortFilterProxyModel* placefileProxyModel_;
+   model::PlacefileModel*    placefileModel_;
+   CategoryFilterProxyModel* categoryFilterModel_;
+   QSortFilterProxyModel*    placefileProxyModel_;
+
+   // Used only so the Add button can tag a URL added from an OnlyCategory
+   // view with that same category -- otherwise it would immediately
+   // vanish from view (added, but filtered out of the tab the user just
+   // used to add it).
+   PlacefileSettingsWidget::CategoryMode categoryMode_;
+   std::string                           category_;
 };
 
-PlacefileSettingsWidget::PlacefileSettingsWidget(QWidget* parent) :
+PlacefileSettingsWidget::PlacefileSettingsWidget(QWidget*           parent,
+                                                 CategoryMode       mode,
+                                                 const std::string& category) :
     QFrame(parent),
-    p {std::make_unique<PlacefileSettingsWidgetImpl>(this)},
+    p {std::make_unique<PlacefileSettingsWidgetImpl>(this, mode, category)},
     ui(new Ui::PlacefileSettingsWidget)
 {
    ui->setupUi(this);
@@ -79,9 +148,7 @@ PlacefileSettingsWidget::PlacefileSettingsWidget(QWidget* parent) :
 }
 
 PlacefileSettingsWidget::~PlacefileSettingsWidget()
-{
-   delete ui;
-}
+{ delete ui; }
 
 void PlacefileSettingsWidgetImpl::ConnectSignals()
 {
@@ -145,7 +212,18 @@ void PlacefileSettingsWidgetImpl::ConnectSignals()
       &OpenUrlDialog::accepted,
       self_,
       [this]()
-      { placefileManager_->AddUrl(openUrlDialog_->url().toStdString()); });
+      {
+         // Tag with this view's own category when it's showing only one
+         // (the Outlooks tab) -- otherwise a URL added there would be
+         // added, then immediately filtered right back out of view.
+         const std::string category =
+            categoryMode_ ==
+                  PlacefileSettingsWidget::CategoryMode::OnlyCategory ?
+               category_ :
+               std::string {};
+         placefileManager_->AddUrl(
+            openUrlDialog_->url().toStdString(), {}, false, false, category);
+      });
 
    QObject::connect(self_->ui->placefileFilter,
                     &QLineEdit::textChanged,

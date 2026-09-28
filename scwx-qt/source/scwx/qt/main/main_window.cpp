@@ -13,6 +13,7 @@
 #include <scwx/qt/manager/alert_manager.hpp>
 #include <scwx/qt/manager/hotkey_manager.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
+#include <scwx/qt/manager/outlook_manager.hpp>
 #include <scwx/qt/manager/settings_manager.hpp>
 #include <scwx/qt/manager/status_manager.hpp>
 #include <scwx/qt/manager/marker_manager.hpp>
@@ -211,6 +212,7 @@ public:
        settings_ {},
        activeMap_ {nullptr},
        alertManager_ {manager::AlertManager::Instance()},
+       outlookManager_ {manager::OutlookManager::Instance()},
        placefileManager_ {manager::PlacefileManager::Instance()},
        markerManager_ {manager::MarkerManager::Instance()},
        positionManager_ {manager::PositionManager::Instance()},
@@ -379,6 +381,7 @@ public:
 #endif
 
    std::shared_ptr<manager::AlertManager>  alertManager_;
+   std::shared_ptr<manager::OutlookManager>   outlookManager_;
    std::shared_ptr<manager::HotkeyManager> hotkeyManager_ {
       manager::HotkeyManager::Instance()};
    std::shared_ptr<manager::PlacefileManager> placefileManager_;

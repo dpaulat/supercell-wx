@@ -18,7 +18,8 @@ enum ItemDataRole
 {
    SortRole = Qt::UserRole,
    TimePointRole,
-   RawDataRole
+   RawDataRole,
+   CategoryRole
 };
 
 enum class UiStyle
