@@ -525,6 +525,8 @@ MainWindow::MainWindow(QWidget* parent) :
 
    // Layer Dialog
    p->layerDialog_ = new ui::LayerDialog(this);
+   addDockWidget(Qt::RightDockWidgetArea, p->layerDialog_);
+   p->layerDialog_->hide();
 
    // Import/Export Dialogs
    p->importSettingsWizard_ = new ui::import::ImportSettingsWizard(this);
@@ -945,7 +947,7 @@ void MainWindow::on_actionMarkerManager_triggered()
 
 void MainWindow::on_actionLayerManager_triggered()
 {
-   p->layerDialog_->show();
+   p->layerDialog_->toggleViewAction()->trigger();
 }
 
 void MainWindow::on_actionImGuiDebug_triggered()

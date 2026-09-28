@@ -4,6 +4,7 @@
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/layer_types.hpp>
+#include <scwx/qt/ui/layer_displayed_panes_delegate.hpp>
 #include <scwx/qt/ui/layer_opacity_delegate.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -54,11 +55,12 @@ public:
    std::shared_ptr<model::LayerModel> layerModel_;
    QSortFilterProxyModel*             layerProxyModel_;
    LayerOpacityDelegate*              opacityDelegate_ {};
+   LayerDisplayedPanesDelegate*       displayedPanesDelegate_ {};
    bool                               updatingOpacityControls_ {false};
 };
 
 LayerDialog::LayerDialog(QWidget* parent) :
-    QDialog(parent),
+    QDockWidget(parent),
     p {std::make_unique<LayerDialogImpl>(this)},
     ui(new Ui::LayerDialog)
 {
@@ -70,6 +72,12 @@ LayerDialog::LayerDialog(QWidget* parent) :
    ui->layerTreeView->setItemDelegateForColumn(
       static_cast<int>(model::LayerModel::Column::Opacity),
       p->opacityDelegate_);
+
+   p->displayedPanesDelegate_ =
+      new LayerDisplayedPanesDelegate(ui->layerTreeView);
+   ui->layerTreeView->setItemDelegateForColumn(
+      static_cast<int>(model::LayerModel::Column::DisplayedPanes),
+      p->displayedPanesDelegate_);
 
    auto layerViewHeader = ui->layerTreeView->header();
 
@@ -100,32 +108,32 @@ LayerDialog::LayerDialog(QWidget* parent) :
 }
 
 LayerDialog::~LayerDialog()
-{
-   delete ui;
-}
+{ delete ui; }
 
 void LayerDialog::RefreshMapDisplayColumns()
-{
-   p->UpdateMapDisplayColumns();
-}
+{ p->UpdateMapDisplayColumns(); }
 
 void LayerDialogImpl::UpdateMapDisplayColumns()
 {
-   auto&        generalSettings = settings::GeneralSettings::Instance();
-   std::int64_t gridWidth       = generalSettings.grid_width().GetValue();
-   std::int64_t gridHeight      = generalSettings.grid_height().GetValue();
-   int          mapCount        = static_cast<int>(gridWidth * gridHeight);
-
-   int displayMap1Column =
+   // The 9 individual DisplayMap1..9 columns are always hidden now,
+   // regardless of the configured grid size -- Column::DisplayedPanes (a
+   // compact "1-3,5,8" summary, with a popup of these same checkboxes on
+   // click, see LayerDisplayedPanesDelegate) replaces them, since up to 9
+   // separate checkbox columns don't fit when this dock is narrow (e.g.
+   // sidebar-docked). This function's old job -- hiding just the columns
+   // beyond the current grid's actual pane count -- is now moot for these
+   // columns specifically, since none of them are ever shown; kept around
+   // (and still called on grid size changes) since Column::DisplayedPanes
+   // itself reads the current grid size live from GeneralSettings each
+   // time it's rendered, same as before.
+   const int displayMap1Column =
       static_cast<int>(model::LayerModel::Column::DisplayMap1);
 
-   // For each 0-based map index, 1-n (excluding 0, always displayed)
-   for (int mapIndex = 1; mapIndex < static_cast<int>(types::kMapCount_);
+   for (int mapIndex = 0; mapIndex < static_cast<int>(types::kMapCount_);
         ++mapIndex)
    {
-      const int  column = displayMap1Column + mapIndex;
-      const bool hide   = mapIndex >= mapCount;
-      self_->ui->layerTreeView->setColumnHidden(column, hide);
+      self_->ui->layerTreeView->setColumnHidden(displayMap1Column + mapIndex,
+                                                true);
    }
 }
 

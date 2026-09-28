@@ -33,10 +33,18 @@ public:
       Type        = 10,
       Enabled     = 11,
       Opacity     = 12,
-      Description = 13
+      Description = 13,
+      // Compact "1-3,5,8"-style summary of the DisplayMap1..9 columns
+      // above, for the case they're all hidden (e.g. a narrow/sidebar-
+      // docked Layer Manager doesn't have room for up to 9 checkbox
+      // columns) -- see LayerDisplayedPanesDelegate, whose popup editor
+      // is the actual way to toggle individual panes when that's the
+      // only column shown. Purely a display of the same displayed_ data
+      // the 9 columns above already hold; not separate state.
+      DisplayedPanes = 14
    };
    using ColumnIterator =
-      scwx::util::Iterator<Column, Column::Order, Column::Description>;
+      scwx::util::Iterator<Column, Column::Order, Column::DisplayedPanes>;
 
    explicit LayerModel(QObject* parent = nullptr);
    ~LayerModel();
@@ -45,15 +53,15 @@ public:
    void WriteLayerSettings(std::ostream& os);
 
    [[nodiscard]] types::LayerInfo
-                                    GetLayerInfo(types::LayerType        type,
-                                                 types::LayerDescription description) const;
+   GetLayerInfo(types::LayerType        type,
+                types::LayerDescription description) const;
    [[nodiscard]] types::LayerVector GetLayers() const;
-   void                             SetLayerDisplayed(types::LayerType        type,
-                                                      types::LayerDescription description,
-                                                      bool                    displayed);
-   bool                             SetLayerOpacity(types::LayerType        type,
-                                                    types::LayerDescription description,
-                                                    float                   opacity);
+   void SetLayerDisplayed(types::LayerType        type,
+                          types::LayerDescription description,
+                          bool                    displayed);
+   bool SetLayerOpacity(types::LayerType        type,
+                        types::LayerDescription description,
+                        float                   opacity);
 
    void ResetLayers();
 

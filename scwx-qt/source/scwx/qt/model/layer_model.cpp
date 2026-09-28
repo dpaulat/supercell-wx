@@ -1,6 +1,7 @@
 #include <scwx/qt/model/layer_model.hpp>
 #include <scwx/qt/main/application_paths.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
+#include <scwx/qt/settings/general_settings.hpp>
 #include <scwx/qt/types/map_types.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/util/json.hpp>
@@ -26,10 +27,68 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr int kFirstColumn = static_cast<int>(LayerModel::Column::Order);
 static constexpr int kLastColumn =
-   static_cast<int>(LayerModel::Column::Description);
+   static_cast<int>(LayerModel::Column::DisplayedPanes);
 static constexpr int kNumColumns = kLastColumn - kFirstColumn + 1;
 
 static const QString kMimeFormat {"application/x.scwx-layer-model"};
+
+namespace
+{
+
+// "1-3,5,8"-style compression of which 1-based pane indices are displayed,
+// for Column::DisplayedPanes. mapCount bounds how many of the 9 possible
+// panes are actually part of the user's configured grid (unused ones stay
+// unset in displayed_ and shouldn't show up here) -- same count
+// LayerDialogImpl::UpdateMapDisplayColumns() already uses to hide unused
+// DisplayMap columns.
+QString
+FormatDisplayedPanes(const std::array<bool, types::kMapCount_>& displayed,
+                     int                                        mapCount)
+{
+   std::vector<int> active;
+   for (int i = 0; i < mapCount; ++i)
+   {
+      if (displayed.at(static_cast<std::size_t>(i)))
+      {
+         active.push_back(i + 1); // 1-based for display
+      }
+   }
+
+   if (active.empty())
+   {
+      return QObject::tr("None");
+   }
+   if (static_cast<int>(active.size()) == mapCount)
+   {
+      return QObject::tr("All");
+   }
+
+   QStringList parts;
+   std::size_t i = 0;
+   while (i < active.size())
+   {
+      std::size_t j = i;
+      while (j + 1 < active.size() && active[j + 1] == active[j] + 1)
+      {
+         ++j;
+      }
+
+      if (j == i)
+      {
+         parts << QString::number(active[i]);
+      }
+      else
+      {
+         parts << QString("%1-%2").arg(active[i]).arg(active[j]);
+      }
+
+      i = j + 1;
+   }
+
+   return parts.join(",");
+}
+
+} // namespace
 
 static const std::vector<types::LayerInfo> kDefaultLayers_ {
    {.type_        = types::LayerType::Information,
@@ -413,9 +472,7 @@ LayerModel::GetLayerInfo(types::LayerType        type,
 }
 
 types::LayerVector LayerModel::GetLayers() const
-{
-   return p->layers_;
-}
+{ return p->layers_; }
 
 void LayerModel::SetLayerDisplayed(types::LayerType        type,
                                    types::LayerDescription description,
@@ -543,14 +600,10 @@ void LayerModel::Impl::SynchronizePlacefileLayers()
 }
 
 int LayerModel::rowCount(const QModelIndex& parent) const
-{
-   return parent.isValid() ? 0 : static_cast<int>(p->layers_.size());
-}
+{ return parent.isValid() ? 0 : static_cast<int>(p->layers_.size()); }
 
 int LayerModel::columnCount(const QModelIndex& parent) const
-{
-   return parent.isValid() ? 0 : kNumColumns;
-}
+{ return parent.isValid() ? 0 : kNumColumns; }
 
 Qt::ItemFlags LayerModel::flags(const QModelIndex& index) const
 {
@@ -582,6 +635,16 @@ Qt::ItemFlags LayerModel::flags(const QModelIndex& index) const
       }
       break;
 
+   case static_cast<int>(Column::DisplayedPanes):
+      if (layer.type_ != types::LayerType::Map)
+      {
+         // Not ItemIsUserCheckable -- this cell isn't a checkbox itself,
+         // opening LayerDisplayedPanesDelegate's popup (of the real
+         // DisplayMap1..9 checkboxes) is what ItemIsEditable triggers.
+         flags |= Qt::ItemFlag::ItemIsEditable;
+      }
+      break;
+
    case static_cast<int>(Column::Opacity):
       if (types::LayerSupportsOpacity(layer.type_))
       {
@@ -604,9 +667,7 @@ Qt::ItemFlags LayerModel::flags(const QModelIndex& index) const
 }
 
 Qt::DropActions LayerModel::supportedDropActions() const
-{
-   return Qt::DropAction::MoveAction;
-}
+{ return Qt::DropAction::MoveAction; }
 
 bool LayerModel::IsMovable(int row) const
 {
@@ -669,6 +730,19 @@ QVariant LayerModel::data(const QModelIndex& index, int role) const
             return static_cast<int>(displayed ? Qt::CheckState::Checked :
                                                 Qt::CheckState::Unchecked);
          }
+      }
+      break;
+
+   case static_cast<int>(Column::DisplayedPanes):
+      if (layer.type_ != types::LayerType::Map &&
+          (role == Qt::ItemDataRole::DisplayRole ||
+           role == Qt::ItemDataRole::ToolTipRole))
+      {
+         auto&     generalSettings = settings::GeneralSettings::Instance();
+         const int mapCount =
+            static_cast<int>(generalSettings.grid_width().GetValue() *
+                             generalSettings.grid_height().GetValue());
+         return FormatDisplayedPanes(layer.displayed_, mapCount);
       }
       break;
 
@@ -782,6 +856,9 @@ LayerModel::headerData(int section, Qt::Orientation orientation, int role) const
          case static_cast<int>(Column::DisplayMap9):
             return tr("9");
 
+         case static_cast<int>(Column::DisplayedPanes):
+            return tr("Panes");
+
          case static_cast<int>(Column::Type):
             return tr("Type");
 
@@ -832,6 +909,11 @@ LayerModel::headerData(int section, Qt::Orientation orientation, int role) const
 
       case static_cast<int>(Column::DisplayMap9):
          return tr("Display on Map 9");
+
+      case static_cast<int>(Column::DisplayedPanes):
+         return tr(
+            "Which map panes this layer is displayed on. Click to "
+            "pick individual panes.");
 
       case static_cast<int>(Column::Opacity):
          return tr("Layer opacity. Map style layers stay opaque.");
@@ -936,15 +1018,23 @@ bool LayerModel::setData(const QModelIndex& index,
       {
          Q_EMIT LayerDisplayChanged(layer);
       }
+      if (index.column() >= static_cast<int>(Column::DisplayMap1) &&
+          index.column() <= static_cast<int>(Column::DisplayMap9))
+      {
+         // The DisplayedPanes summary column reads the same displayed_
+         // data but is a different cell, so it needs its own
+         // dataChanged() to actually repaint with the new text.
+         const QModelIndex panesIndex =
+            createIndex(index.row(), static_cast<int>(Column::DisplayedPanes));
+         Q_EMIT dataChanged(panesIndex, panesIndex);
+      }
    }
 
    return result;
 }
 
 QStringList LayerModel::mimeTypes() const
-{
-   return {kMimeFormat};
-}
+{ return {kMimeFormat}; }
 
 QMimeData* LayerModel::mimeData(const QModelIndexList& indexes) const
 {
