@@ -248,6 +248,124 @@ TEST(GribManagerTest, RrfsSelectionNoOpForOtherCategories)
    EXPECT_EQ(gribManager->RrfsForecastHour(), 0);
 }
 
+// Real S3 access below (SetNbmCycle()/SetNbmForecastHour()/
+// UseLatestNbmCycle() all fetch immediately, see FetchNbmSelection() in
+// grib_manager.cpp) -- same reasoning and category-singleton caveat as
+// RrfsForecastHourSelection above, but for map::GribCategory::Nbm. Uses a
+// non-6-hourly-multiple forecast hour (70) specifically to exercise the
+// snap-to-valid-hour behavior SetNbmForecastHour() has that
+// SetRrfsForecastHour() doesn't need (RRFS's own step is uniform; NBM's
+// isn't beyond F069 for an extended cycle -- see
+// NbmDataProvider::SnapForecastHour()'s own doc).
+TEST(GribManagerTest, NbmForecastHourSelection)
+{
+   using namespace std::chrono;
+   using sys_days = time_point<system_clock, days>;
+
+   auto gribManager = GribManager::Instance(map::GribCategory::Nbm);
+
+   EXPECT_TRUE(gribManager->IsUsingLatestNbmCycle());
+   // 1, not 0 -- NBM has no F000 file at all (see NbmDataProvider's own
+   // kMinForecastHour_ comment).
+   EXPECT_EQ(gribManager->NbmForecastHour(), 1);
+
+   // A fixed, extended (6-hourly) cycle -- 264h max.
+   const auto fixedCycle = sys_days {2026y / September / 25d} + 12h;
+   gribManager->SetNbmCycle(fixedCycle);
+   EXPECT_FALSE(gribManager->IsUsingLatestNbmCycle());
+   EXPECT_EQ(gribManager->CurrentNbmCycle(), fixedCycle);
+   EXPECT_EQ(gribManager->MaxNbmForecastHour(), 264);
+
+   // F070 doesn't exist for an extended cycle (confirmed live 2026-09-26
+   // -- see NbmDataProvider's own class comment) -- snapped up to the
+   // next real hour, F072, rather than stored as asked.
+   gribManager->SetNbmForecastHour(70);
+   EXPECT_EQ(gribManager->NbmForecastHour(), 72);
+
+   // A short (non-extended) cycle -- 36h max, uniformly hourly throughout,
+   // so no snapping needed for an in-range hour.
+   gribManager->SetNbmCycle(sys_days {2026y / September / 25d} + 9h);
+   EXPECT_EQ(gribManager->MaxNbmForecastHour(), 36);
+   gribManager->SetNbmForecastHour(20);
+   EXPECT_EQ(gribManager->NbmForecastHour(), 20);
+
+   gribManager->UseLatestNbmCycle();
+   EXPECT_TRUE(gribManager->IsUsingLatestNbmCycle());
+}
+
+// Confirms the whole Nbm chain -- FetchNbmSelectionForProduct()/
+// QueueNbmDownload()/NbmDataProvider::FetchField() (the idx-based range
+// fetch) -- reaches a correctly-targeted real decode end to end, not just
+// that it compiles. Real S3 access: a small (~1-2MB) range fetch plus
+// decode, so this runs far faster than the whole-file RRFS tests above.
+TEST(GribManagerTest, NbmProductDecodesRealFile)
+{
+   using namespace std::chrono;
+   using namespace std::chrono_literals;
+   using sys_days = time_point<system_clock, days>;
+
+   auto gribManager = GribManager::Instance(map::GribCategory::Nbm);
+
+   const auto names = gribManager->ProductNames();
+   const auto it = std::find(names.begin(), names.end(), "2m Temperature");
+   ASSERT_NE(it, names.end());
+   const std::size_t productIndex =
+      static_cast<std::size_t>(std::distance(names.begin(), it));
+
+   gribManager->SetProductActive("2m Temperature", true);
+   gribManager->SetNbmCycle(sys_days {2026y / September / 25d} + 12h);
+   gribManager->SetNbmForecastHour(24);
+
+   // Checks the decoded field's own mean, not header metadata -- same
+   // lesson as PrslevProductDecodesRealFile's own comment on
+   // decode_grib's validTime not distinguishing forecast hours. Real
+   // mean confirmed live via a direct decode_grib CLI run against this
+   // exact cycle/hour's real 2t field: 288.995 K, grid 2345x1597
+   // (3744965 cells) -- NBM's own CONUS grid, a different size from
+   // RRFS's (1905141).
+   const std::string framePath =
+      map::GetGribFramePath(map::GribCategory::Nbm, productIndex);
+   constexpr double   kExpectedMean = 288.995;
+   constexpr double   kTolerance    = 0.5;
+   bool                found        = false;
+   double              lastMean     = 0.0;
+   std::vector<float>  payload;
+
+   for (int i = 0; i < 60 && !found; ++i)
+   {
+      std::ifstream in(framePath, std::ios::binary);
+      if (in.is_open())
+      {
+         std::string header;
+         std::getline(in, header);
+
+         payload.assign(3744965, 0.0f);
+         in.read(reinterpret_cast<char*>(payload.data()),
+                 static_cast<std::streamsize>(payload.size() * sizeof(float)));
+
+         if (in.good() || in.eof())
+         {
+            const double sum =
+               std::accumulate(payload.begin(), payload.end(), 0.0);
+            lastMean = sum / static_cast<double>(payload.size());
+
+            if (std::abs(lastMean - kExpectedMean) < kTolerance)
+            {
+               found = true;
+               break;
+            }
+         }
+      }
+      std::this_thread::sleep_for(500ms);
+   }
+
+   EXPECT_TRUE(found) << "Last decoded mean seen: " << lastMean
+                      << " (expected ~" << kExpectedMean << ")";
+
+   gribManager->SetProductActive("2m Temperature", false);
+   gribManager->UseLatestNbmCycle();
+}
+
 } // namespace manager
 } // namespace qt
 } // namespace scwx

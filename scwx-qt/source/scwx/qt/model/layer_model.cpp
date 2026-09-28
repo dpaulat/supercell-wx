@@ -154,6 +154,12 @@ static const std::vector<types::LayerInfo> kDefaultLayers_ {
    {.type_        = types::LayerType::Data,
     .description_ = types::DataLayer::GribRrfs,
     .movable_     = true},
+   // Placed last (so, per the same reverse-iteration behavior, absolute
+   // bottom) -- NBM is a blended, coarser-cadence forecast background,
+   // same category of layer as GribRrfs just added even more recently.
+   {.type_        = types::LayerType::Data,
+    .description_ = types::DataLayer::GribNbm,
+    .movable_     = true},
 };
 
 static const std::vector<types::LayerInfo> kImmovableLayers_ {

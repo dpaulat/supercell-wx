@@ -402,6 +402,7 @@ public:
    std::shared_ptr<GribProductLayer>          gribMrmsLayer_;
    std::shared_ptr<GribProductLayer>          gribRtmaLayer_;
    std::shared_ptr<GribProductLayer>          gribRrfsLayer_;
+   std::shared_ptr<GribProductLayer>          gribNbmLayer_;
    std::shared_ptr<OverlayLayer>              overlayLayer_;
    std::shared_ptr<OverlayProductLayer>       overlayProductLayer_ {nullptr};
    std::shared_ptr<PlacefileLayer>            placefileLayer_;
@@ -1756,6 +1757,7 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
          WireAreaSiblingPair(radarProductLayer_, gribMrmsLayer_);
          WireAreaSiblingPair(radarProductLayer_, gribRtmaLayer_);
          WireAreaSiblingPair(radarProductLayer_, gribRrfsLayer_);
+         WireAreaSiblingPair(radarProductLayer_, gribNbmLayer_);
 
          AddLayer(layerName, radarProductLayer_, before);
       }
@@ -1884,6 +1886,7 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
                glContext_, map::GribCategory::Mrms);
             WireAreaSiblingPair(gribMrmsLayer_, gribRtmaLayer_);
             WireAreaSiblingPair(gribMrmsLayer_, gribRrfsLayer_);
+            WireAreaSiblingPair(gribMrmsLayer_, gribNbmLayer_);
             WireAreaSiblingPair(gribMrmsLayer_, radarProductLayer_);
          }
          AddLayer(layerName, gribMrmsLayer_, before);
@@ -1896,6 +1899,7 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
                glContext_, map::GribCategory::Rtma);
             WireAreaSiblingPair(gribRtmaLayer_, gribMrmsLayer_);
             WireAreaSiblingPair(gribRtmaLayer_, gribRrfsLayer_);
+            WireAreaSiblingPair(gribRtmaLayer_, gribNbmLayer_);
             WireAreaSiblingPair(gribRtmaLayer_, radarProductLayer_);
          }
          AddLayer(layerName, gribRtmaLayer_, before);
@@ -1908,9 +1912,23 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
                glContext_, map::GribCategory::Rrfs);
             WireAreaSiblingPair(gribRrfsLayer_, gribMrmsLayer_);
             WireAreaSiblingPair(gribRrfsLayer_, gribRtmaLayer_);
+            WireAreaSiblingPair(gribRrfsLayer_, gribNbmLayer_);
             WireAreaSiblingPair(gribRrfsLayer_, radarProductLayer_);
          }
          AddLayer(layerName, gribRrfsLayer_, before);
+         break;
+
+      case types::DataLayer::GribNbm:
+         if (gribNbmLayer_ == nullptr)
+         {
+            gribNbmLayer_ = std::make_shared<GribProductLayer>(
+               glContext_, map::GribCategory::Nbm);
+            WireAreaSiblingPair(gribNbmLayer_, gribMrmsLayer_);
+            WireAreaSiblingPair(gribNbmLayer_, gribRtmaLayer_);
+            WireAreaSiblingPair(gribNbmLayer_, gribRrfsLayer_);
+            WireAreaSiblingPair(gribNbmLayer_, radarProductLayer_);
+         }
+         AddLayer(layerName, gribNbmLayer_, before);
          break;
 
       default:

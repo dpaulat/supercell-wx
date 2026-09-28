@@ -210,6 +210,31 @@ public:
    // limitation as PrefetchLoopRange().
    void PrefetchRrfsForecastHourRange();
 
+   // Nbm-only cycle/forecast-hour selection -- same shape and reasoning as
+   // the Rrfs block above (a second, orthogonal axis from the main
+   // timeline, applied to every active provider, fetched immediately
+   // rather than waiting for a poll tick that -- for Nbm -- would never
+   // come anyway, see Poll()'s own comment on why it skips this category
+   // entirely). No loop-range/prefetch equivalent: each Nbm product's own
+   // cached download is one range-fetched field (~1-2MB), nowhere near
+   // the cache-budget pressure a whole RRFS forecast-hour prefetch
+   // creates, so there's been no need for one yet.
+   //
+   // SetNbmForecastHour() snaps `hour` to the nearest real, fetchable
+   // hour for the currently-targeted cycle before storing it (see
+   // NbmDataProvider::SnapForecastHour()) -- NBM's own forecast-hour step
+   // is non-uniform (hourly, then 3-hourly, then 6-hourly) for the
+   // 6-hourly "extended" cycles, unlike RRFS's uniform step, so a caller
+   // driving this from a linear slider needs the snap to land on
+   // something that actually exists.
+   void SetNbmCycle(std::chrono::system_clock::time_point cycleTime);
+   void UseLatestNbmCycle();
+   [[nodiscard]] bool IsUsingLatestNbmCycle() const;
+   [[nodiscard]] std::chrono::system_clock::time_point CurrentNbmCycle() const;
+   void              SetNbmForecastHour(int hour);
+   [[nodiscard]] int NbmForecastHour() const;
+   [[nodiscard]] int MaxNbmForecastHour() const;
+
 signals:
    // Emitted once a requested frame has actually been decoded and applied
    // to GetGribFramePath(category, productIndex) -- may fire from a
@@ -276,6 +301,43 @@ private:
    bool ApplyShipDownload(std::size_t        productIndex,
                           const std::string& key2dfld,
                           const std::string& keyPrslev);
+
+   // Applies this instance's own stored Nbm cycle/forecast-hour selection
+   // to one provider -- same shape and reason as SyncRrfsProviderState().
+   // Nbm-only; caller must already know category_ == Nbm.
+   void SyncNbmProviderState(provider::AwsNexradDataProvider& provider) const;
+
+   // SetNbmCycle()/SetNbmForecastHour()/UseLatestNbmCycle()'s shared "now
+   // go fetch that" tail -- same shape as FetchRrfsSelection(), calling
+   // FetchArchiveFrame() (whose per-product dispatch, for Nbm, ignores the
+   // time argument and resolves each product's own key from its own
+   // provider state instead -- see FetchNbmSelectionForProduct()).
+   void FetchNbmSelection();
+
+   // Nbm's own per-product dispatch -- FetchArchiveFrameForProduct()
+   // routes here instead of its normal listing-based path whenever
+   // category_ == Nbm, since a key alone doesn't say which *field* to
+   // download out of NBM's own multi-field per-cycle file (see
+   // ProductConfig::nbmParameter/nbmLevel/nbmQualifier's own doc).
+   // Resolves the current key, checks whether this product's own
+   // per-field cache entry already exists, and either applies it
+   // synchronously or queues a download (see QueueNbmDownload()).
+   void FetchNbmSelectionForProduct(std::size_t productIndex);
+
+   // Downloads one Nbm product's own field on the background thread pool
+   // (if not already in flight) via NbmDataProvider::FetchField() (the
+   // idx-based range fetch), then applies it via the existing
+   // ApplyCachedDownload() -- unlike SHIP, one product needs only one
+   // input, so no dedicated Apply* counterpart is needed here; the
+   // existing single-input decode path already fits once the field is on
+   // disk under its own per-field cache key. `key` is the real S3 object
+   // key (what FetchField() range-fetches from); `cacheKey` is that key
+   // suffixed with this product's own shortName (what CachedDownloadPath()
+   // uses -- several products share one `key`, so the plain key alone
+   // can't be the cache path).
+   void QueueNbmDownload(std::size_t        productIndex,
+                        const std::string& key,
+                        const std::string& cacheKey);
 
    // Downloads (if not already cached on disk) and decodes everything the
    // current animation loop range will need, in the background, ahead of

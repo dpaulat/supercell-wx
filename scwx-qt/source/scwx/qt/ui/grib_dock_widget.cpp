@@ -3,6 +3,7 @@
 #include <scwx/qt/map/grib_frame_info.hpp>
 #include <scwx/qt/ui/checkable_combo_box.hpp>
 #include <scwx/qt/ui/widgets/focused_spin_box.hpp>
+#include <scwx/provider/nbm_data_provider.hpp>
 #include <scwx/provider/rrfs_data_provider.hpp>
 
 #include <chrono>
@@ -37,8 +38,10 @@ std::string CategoryDisplayName(map::GribCategory category)
    case map::GribCategory::Rtma:
       return "RTMA";
    case map::GribCategory::Rrfs:
-   default:
       return "RRFS";
+   case map::GribCategory::Nbm:
+   default:
+      return "NBM";
    }
 }
 
@@ -56,6 +59,9 @@ constexpr int kRrfsCycleHistoryHours_ = 24;
 // cycle's own max) takes ~42s at this pace, fast enough to actually watch
 // evolve without being so fast the frame-by-frame detail blurs together.
 constexpr int kRrfsAnimationIntervalMs_ = 500;
+
+// Same reasoning as kRrfsCycleHistoryHours_ -- NBM also cycles hourly.
+constexpr int kNbmCycleHistoryHours_ = 24;
 
 } // namespace
 
@@ -183,6 +189,45 @@ void GribDockWidget::Impl::BuildSection(map::GribCategory category,
       groupLayout->addLayout(loopRow);
 
       section.gribManager->SetRrfsLoopRange(0, initialMaxHour);
+
+      section.animationTimer = new QTimer(self_);
+      section.animationTimer->setInterval(kRrfsAnimationIntervalMs_);
+   }
+   else if (category == map::GribCategory::Nbm)
+   {
+      // Same shape as the Rrfs block above, minus the loop-range
+      // spinboxes and HodographManager coupling -- neither applies here
+      // (see GribManager::SetNbmCycle()'s own doc: no loop-range
+      // equivalent, and NBM doesn't feed the hodograph).
+      section.cycleComboBox = new QComboBox(groupBox);
+      section.cycleComboBox->addItem(tr("Latest"), QVariant());
+
+      const auto now = std::chrono::floor<std::chrono::hours>(
+         std::chrono::system_clock::now());
+      for (int i = 0; i < kNbmCycleHistoryHours_; ++i)
+      {
+         const auto cycleTime = now - std::chrono::hours {i};
+         const int  maxHour =
+            provider::NbmDataProvider::MaxForecastHourForCycle(cycleTime);
+         const std::string label = fmt::format(
+            "{:%Y-%m-%d %H}z ({}h)", fmt::gmtime(cycleTime), maxHour);
+         section.cycleComboBox->addItem(
+            QString::fromStdString(label),
+            QVariant::fromValue<qint64>(cycleTime.time_since_epoch().count()));
+      }
+      groupLayout->addWidget(section.cycleComboBox);
+
+      auto* hourRow      = new QHBoxLayout();
+      section.hourLabel  = new QLabel(tr("F001"), groupBox);
+      section.hourSlider = new QSlider(Qt::Horizontal, groupBox);
+      // Starts at 1, not 0 -- NBM has no F000 file at all (see
+      // NbmDataProvider's own kMinForecastHour_ comment).
+      section.hourSlider->setRange(1, section.gribManager->MaxNbmForecastHour());
+      section.playButton = new QPushButton(tr("Play"), groupBox);
+      hourRow->addWidget(section.hourLabel);
+      hourRow->addWidget(section.hourSlider);
+      hourRow->addWidget(section.playButton);
+      groupLayout->addLayout(hourRow);
 
       section.animationTimer = new QTimer(self_);
       section.animationTimer->setInterval(kRrfsAnimationIntervalMs_);
@@ -349,6 +394,96 @@ void GribDockWidget::Impl::BuildSection(map::GribCategory category,
                  stored.hourSlider->setValue(next);
               });
    }
+   else if (category == map::GribCategory::Nbm)
+   {
+      connect(
+         stored.cycleComboBox,
+         qOverload<int>(&QComboBox::currentIndexChanged),
+         self_,
+         [&stored](int cycleIndex)
+         {
+            if (cycleIndex <= 0)
+            {
+               stored.gribManager->UseLatestNbmCycle();
+            }
+            else
+            {
+               const qint64 ticks =
+                  stored.cycleComboBox->itemData(cycleIndex).value<qint64>();
+               const auto cycleTime = std::chrono::system_clock::time_point {
+                  std::chrono::system_clock::duration {ticks}};
+               stored.gribManager->SetNbmCycle(cycleTime);
+            }
+            stored.hourSlider->setRange(
+               1, stored.gribManager->MaxNbmForecastHour());
+
+            // setRange() only fires valueChanged if it had to clamp the
+            // value into the new range -- re-snap explicitly too, since a
+            // value that stayed numerically in-range can still land in a
+            // step gap under the *new* cycle's own hourly/3-hourly/
+            // 6-hourly rule (see SetNbmForecastHour()'s own doc).
+            stored.gribManager->SetNbmForecastHour(stored.hourSlider->value());
+            const int actualHour = stored.gribManager->NbmForecastHour();
+            stored.hourSlider->setValue(actualHour);
+            stored.hourLabel->setText(
+               QString::fromStdString(fmt::format("F{:03d}", actualHour)));
+         });
+
+      connect(stored.hourSlider,
+              &QSlider::valueChanged,
+              self_,
+              [&stored](int hour)
+              {
+                 stored.gribManager->SetNbmForecastHour(hour);
+
+                 // NBM's own forecast-hour step is non-uniform (see
+                 // SetNbmForecastHour()'s own doc) -- what actually got
+                 // stored may differ from the raw slider position, so
+                 // read it back and snap the slider (and label) to match
+                 // rather than showing a value that wasn't really
+                 // fetched. setValue() only re-emits valueChanged if this
+                 // changes the value, and re-entering with an
+                 // already-valid hour is a harmless no-op the second
+                 // time.
+                 const int actualHour = stored.gribManager->NbmForecastHour();
+                 if (actualHour != hour)
+                 {
+                    stored.hourSlider->setValue(actualHour);
+                 }
+                 stored.hourLabel->setText(
+                    QString::fromStdString(fmt::format("F{:03d}", actualHour)));
+              });
+
+      connect(stored.playButton,
+              &QPushButton::clicked,
+              self_,
+              [&stored]()
+              {
+                 if (stored.animationTimer->isActive())
+                 {
+                    stored.animationTimer->stop();
+                    stored.playButton->setText(tr("Play"));
+                 }
+                 else
+                 {
+                    stored.animationTimer->start();
+                    stored.playButton->setText(tr("Pause"));
+                 }
+              });
+
+      connect(stored.animationTimer,
+              &QTimer::timeout,
+              self_,
+              [&stored]()
+              {
+                 int next = stored.hourSlider->value() + 1;
+                 if (next > stored.hourSlider->maximum())
+                 {
+                    next = stored.hourSlider->minimum(); // 1, not 0 -- no F000
+                 }
+                 stored.hourSlider->setValue(next);
+              });
+   }
 
    RefreshSection(stored);
 }
@@ -397,13 +532,14 @@ GribDockWidget::GribDockWidget(QWidget* parent) :
    auto* contents = new QWidget(this);
    auto* layout   = new QVBoxLayout(contents);
 
-   // Fixed at 3 (Mrms/Rtma/Rrfs) -- reserved upfront so BuildSection's
+   // Fixed at 4 (Mrms/Rtma/Rrfs/Nbm) -- reserved upfront so BuildSection's
    // own push_back never reallocates mid-construction (see its comment).
-   p->sections_.reserve(3);
+   p->sections_.reserve(4);
 
    p->BuildSection(map::GribCategory::Mrms, layout, contents);
    p->BuildSection(map::GribCategory::Rtma, layout, contents);
    p->BuildSection(map::GribCategory::Rrfs, layout, contents);
+   p->BuildSection(map::GribCategory::Nbm, layout, contents);
 
    layout->addStretch();
    setWidget(contents);
