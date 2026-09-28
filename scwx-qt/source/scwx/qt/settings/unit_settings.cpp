@@ -24,6 +24,10 @@ public:
          types::GetSpeedUnitsName(types::SpeedUnits::Knots);
       std::string defaultDistanceUnitsValue =
          types::GetDistanceUnitsName(types::DistanceUnits::Miles);
+      std::string defaultTemperatureUnitsValue =
+         types::GetTemperatureUnitsName(types::TemperatureUnits::Fahrenheit);
+      std::string defaultPressureUnitsValue =
+         types::GetPressureUnitsName(types::PressureUnits::InchesOfMercury);
       std::string defaultRadarBeamHeightReferenceValue =
          types::GetRadarBeamHeightReferenceName(
             types::RadarBeamHeightReference::MeanSeaLevel);
@@ -33,6 +37,8 @@ public:
       boost::to_lower(defaultOtherUnitsValue);
       boost::to_lower(defaultSpeedUnitsValue);
       boost::to_lower(defaultDistanceUnitsValue);
+      boost::to_lower(defaultTemperatureUnitsValue);
+      boost::to_lower(defaultPressureUnitsValue);
       boost::to_lower(defaultRadarBeamHeightReferenceValue);
 
       // SetDefault, SetMinimum and SetMaximum are descriptive
@@ -42,6 +48,8 @@ public:
       otherUnits_.SetDefault(defaultOtherUnitsValue);
       speedUnits_.SetDefault(defaultSpeedUnitsValue);
       distanceUnits_.SetDefault(defaultDistanceUnitsValue);
+      temperatureUnits_.SetDefault(defaultTemperatureUnitsValue);
+      pressureUnits_.SetDefault(defaultPressureUnitsValue);
       radarBeamHeightReference_.SetDefault(
          defaultRadarBeamHeightReferenceValue);
       // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
@@ -66,6 +74,14 @@ public:
          SCWX_SETTINGS_ENUM_VALIDATOR(types::DistanceUnits,
                                       types::DistanceUnitsIterator(),
                                       types::GetDistanceUnitsName));
+      temperatureUnits_.SetValidator(
+         SCWX_SETTINGS_ENUM_VALIDATOR(types::TemperatureUnits,
+                                      types::TemperatureUnitsIterator(),
+                                      types::GetTemperatureUnitsName));
+      pressureUnits_.SetValidator(
+         SCWX_SETTINGS_ENUM_VALIDATOR(types::PressureUnits,
+                                      types::PressureUnitsIterator(),
+                                      types::GetPressureUnitsName));
       radarBeamHeightReference_.SetValidator(
          SCWX_SETTINGS_ENUM_VALIDATOR(types::RadarBeamHeightReference,
                                       types::RadarBeamHeightReferenceIterator(),
@@ -83,6 +99,8 @@ public:
    SettingsVariable<std::string> otherUnits_ {"other_units"};
    SettingsVariable<std::string> speedUnits_ {"speed_units"};
    SettingsVariable<std::string> distanceUnits_ {"distance_units"};
+   SettingsVariable<std::string> temperatureUnits_ {"temperature_units"};
+   SettingsVariable<std::string> pressureUnits_ {"pressure_units"};
    SettingsVariable<std::string> radarBeamHeightReference_ {
       "radar_beam_height_reference"};
 };
@@ -95,6 +113,8 @@ UnitSettings::UnitSettings() :
                       &p->otherUnits_,
                       &p->speedUnits_,
                       &p->distanceUnits_,
+                      &p->temperatureUnits_,
+                      &p->pressureUnits_,
                       &p->radarBeamHeightReference_});
    SetDefaults();
 }
@@ -104,34 +124,28 @@ UnitSettings::UnitSettings(UnitSettings&&) noexcept            = default;
 UnitSettings& UnitSettings::operator=(UnitSettings&&) noexcept = default;
 
 SettingsVariable<std::string>& UnitSettings::accumulation_units() const
-{
-   return p->accumulationUnits_;
-}
+{ return p->accumulationUnits_; }
 
 SettingsVariable<std::string>& UnitSettings::echo_tops_units() const
-{
-   return p->echoTopsUnits_;
-}
+{ return p->echoTopsUnits_; }
 
 SettingsVariable<std::string>& UnitSettings::other_units() const
-{
-   return p->otherUnits_;
-}
+{ return p->otherUnits_; }
 
 SettingsVariable<std::string>& UnitSettings::speed_units() const
-{
-   return p->speedUnits_;
-}
+{ return p->speedUnits_; }
 
 SettingsVariable<std::string>& UnitSettings::distance_units() const
-{
-   return p->distanceUnits_;
-}
+{ return p->distanceUnits_; }
+
+SettingsVariable<std::string>& UnitSettings::temperature_units() const
+{ return p->temperatureUnits_; }
+
+SettingsVariable<std::string>& UnitSettings::pressure_units() const
+{ return p->pressureUnits_; }
 
 SettingsVariable<std::string>& UnitSettings::radar_beam_height_reference() const
-{
-   return p->radarBeamHeightReference_;
-}
+{ return p->radarBeamHeightReference_; }
 
 UnitSettings& UnitSettings::Instance()
 {
@@ -146,6 +160,8 @@ bool operator==(const UnitSettings& lhs, const UnitSettings& rhs)
            lhs.p->otherUnits_ == rhs.p->otherUnits_ &&
            lhs.p->speedUnits_ == rhs.p->speedUnits_ &&
            lhs.p->distanceUnits_ == rhs.p->distanceUnits_ &&
+           lhs.p->temperatureUnits_ == rhs.p->temperatureUnits_ &&
+           lhs.p->pressureUnits_ == rhs.p->pressureUnits_ &&
            lhs.p->radarBeamHeightReference_ ==
               rhs.p->radarBeamHeightReference_);
 }

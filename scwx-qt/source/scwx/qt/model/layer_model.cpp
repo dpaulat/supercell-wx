@@ -134,6 +134,26 @@ static const std::vector<types::LayerInfo> kDefaultLayers_ {
    {.type_        = types::LayerType::Map,
     .description_ = types::MapLayer::MapUnderlay,
     .movable_     = false},
+   // All three placed last so the
+   // reverse-order layer loop in MapWidgetImpl::AddLayers() adds them
+   // before any Map-type entry has changed "before" from its initial
+   // value -- i.e. they render at the very bottom of the custom-layer
+   // stack, underneath per-site radar, alerts, and markers. The very last
+   // entry in this list ends up the absolute bottom (per that same
+   // reverse-iteration behavior), so this order puts GribRrfs (coarsest,
+   // a forecast background) under GribRtma (a finer rolling analysis)
+   // under GribMrms (e.g. a temperature background under reflectivity) --
+   // all three are user-movable via the Layer Manager if a different
+   // stacking is wanted.
+   {.type_        = types::LayerType::Data,
+    .description_ = types::DataLayer::GribMrms,
+    .movable_     = true},
+   {.type_        = types::LayerType::Data,
+    .description_ = types::DataLayer::GribRtma,
+    .movable_     = true},
+   {.type_        = types::LayerType::Data,
+    .description_ = types::DataLayer::GribRrfs,
+    .movable_     = true},
 };
 
 static const std::vector<types::LayerInfo> kImmovableLayers_ {

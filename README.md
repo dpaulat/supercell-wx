@@ -39,6 +39,17 @@ Supercell Wx requires the following Linux dependencies:
 - Linux with support for GCC 13, OpenGL 3.3 and OpenGL ES 3.0
 - If using X11, XCB libraries including xcb-cursor
 
+## Optional: GRIB Overlays
+
+The MRMS/RTMA/RRFS GRIB overlays are decoded by a small helper program,
+`decode_grib` (see [grib-helper/README.md](grib-helper/README.md)), built
+automatically alongside Supercell Wx when the
+[eccodes](https://confluence.ecmwf.int/display/ECC) library is available
+at configure time via `pkg-config`. If it isn't found, the rest of the
+application still builds and runs normally; those specific overlays are
+just unavailable. See grib-helper/README.md for per-platform install
+commands.
+
 ## FAQ
 
 Frequently asked questions:

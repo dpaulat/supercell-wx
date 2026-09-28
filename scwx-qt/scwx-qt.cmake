@@ -118,6 +118,7 @@ set(SRC_GL_DRAW source/scwx/qt/gl/draw/draw_item.cpp
 set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
                 source/scwx/qt/manager/download_manager.hpp
                 source/scwx/qt/manager/font_manager.hpp
+                source/scwx/qt/manager/grib_manager.hpp
                 source/scwx/qt/manager/hotkey_manager.hpp
                 source/scwx/qt/manager/log_manager.hpp
                 source/scwx/qt/manager/marker_manager.hpp
@@ -142,6 +143,7 @@ set(HDR_MANAGER source/scwx/qt/manager/alert_manager.hpp
 set(SRC_MANAGER source/scwx/qt/manager/alert_manager.cpp
                 source/scwx/qt/manager/download_manager.cpp
                 source/scwx/qt/manager/font_manager.cpp
+                source/scwx/qt/manager/grib_manager.cpp
                 source/scwx/qt/manager/hotkey_manager.cpp
                 source/scwx/qt/manager/log_manager.cpp
                 source/scwx/qt/manager/marker_manager.cpp
@@ -168,6 +170,8 @@ set(HDR_MAP source/scwx/qt/map/alert_layer.hpp
             source/scwx/qt/map/color_table_layer.hpp
             source/scwx/qt/map/draw_layer.hpp
             source/scwx/qt/map/generic_layer.hpp
+            source/scwx/qt/map/grib_frame_info.hpp
+            source/scwx/qt/map/grib_product_layer.hpp
             source/scwx/qt/map/layer_wrapper.hpp
             source/scwx/qt/map/map_annotation_layer.hpp
             source/scwx/qt/map/map_annotation_model.hpp
@@ -192,6 +196,8 @@ set(SRC_MAP source/scwx/qt/map/alert_layer.cpp
             source/scwx/qt/map/color_table_layer.cpp
             source/scwx/qt/map/draw_layer.cpp
             source/scwx/qt/map/generic_layer.cpp
+            source/scwx/qt/map/grib_frame_info.cpp
+            source/scwx/qt/map/grib_product_layer.cpp
             source/scwx/qt/map/layer_wrapper.cpp
             source/scwx/qt/map/map_annotation_layer.cpp
             source/scwx/qt/map/map_annotation_model.cpp
@@ -317,6 +323,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/alert_dock_widget.hpp
            source/scwx/qt/ui/animation_dock_widget.hpp
            source/scwx/qt/ui/api_key_edit_widget.hpp
+           source/scwx/qt/ui/checkable_combo_box.hpp
            source/scwx/qt/ui/collapsible_group.hpp
            source/scwx/qt/ui/county_dialog.hpp
            source/scwx/qt/ui/custom_layer_dialog.hpp
@@ -326,6 +333,7 @@ set(HDR_UI source/scwx/qt/ui/about_dialog.hpp
            source/scwx/qt/ui/export_settings_dialog.hpp
            source/scwx/qt/ui/edit_marker_dialog.hpp
            source/scwx/qt/ui/flow_layout.hpp
+           source/scwx/qt/ui/grib_dock_widget.hpp
            source/scwx/qt/ui/gps_info_dialog.hpp
            source/scwx/qt/ui/hotkey_edit.hpp
            source/scwx/qt/ui/imgui_debug_dialog.hpp
@@ -358,6 +366,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/alert_dock_widget.cpp
            source/scwx/qt/ui/animation_dock_widget.cpp
            source/scwx/qt/ui/api_key_edit_widget.cpp
+           source/scwx/qt/ui/checkable_combo_box.cpp
            source/scwx/qt/ui/collapsible_group.cpp
            source/scwx/qt/ui/county_dialog.cpp
            source/scwx/qt/ui/custom_layer_dialog.cpp
@@ -367,6 +376,7 @@ set(SRC_UI source/scwx/qt/ui/about_dialog.cpp
            source/scwx/qt/ui/edit_marker_dialog.cpp
            source/scwx/qt/ui/export_settings_dialog.cpp
            source/scwx/qt/ui/flow_layout.cpp
+           source/scwx/qt/ui/grib_dock_widget.cpp
            source/scwx/qt/ui/gps_info_dialog.cpp
            source/scwx/qt/ui/hotkey_edit.cpp
            source/scwx/qt/ui/imgui_debug_dialog.cpp

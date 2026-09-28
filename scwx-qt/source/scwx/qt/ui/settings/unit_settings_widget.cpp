@@ -114,6 +114,28 @@ public:
                               types::GetDistanceUnitsName);
       AddRow(distanceUnits_, "Distance", distanceComboBox);
 
+      auto* temperatureComboBox = new QFocusedComboBox(self);
+      temperatureComboBox->setSizePolicy(QSizePolicy::Expanding,
+                                         QSizePolicy::Preferred);
+      temperatureComboBox->setFocusPolicy(Qt::StrongFocus);
+      temperatureUnits_.SetSettingsVariable(unitSettings.temperature_units());
+      SCWX_SETTINGS_COMBO_BOX(temperatureUnits_,
+                              temperatureComboBox,
+                              types::TemperatureUnitsIterator(),
+                              types::GetTemperatureUnitsName);
+      AddRow(temperatureUnits_, "Temperature", temperatureComboBox);
+
+      auto* pressureComboBox = new QFocusedComboBox(self);
+      pressureComboBox->setSizePolicy(QSizePolicy::Expanding,
+                                      QSizePolicy::Preferred);
+      pressureComboBox->setFocusPolicy(Qt::StrongFocus);
+      pressureUnits_.SetSettingsVariable(unitSettings.pressure_units());
+      SCWX_SETTINGS_COMBO_BOX(pressureUnits_,
+                              pressureComboBox,
+                              types::PressureUnitsIterator(),
+                              types::GetPressureUnitsName);
+      AddRow(pressureUnits_, "Pressure", pressureComboBox);
+
       auto* otherComboBox = new QFocusedComboBox(self);
       otherComboBox->setSizePolicy(QSizePolicy::Expanding,
                                    QSizePolicy::Preferred);
@@ -165,8 +187,10 @@ public:
    settings::SettingsInterface<std::string> distanceUnits_ {};
    settings::SettingsInterface<std::string> echoTopsUnits_ {};
    settings::SettingsInterface<std::string> otherUnits_ {};
+   settings::SettingsInterface<std::string> pressureUnits_ {};
    settings::SettingsInterface<std::string> radarBeamHeightReference_ {};
    settings::SettingsInterface<std::string> speedUnits_ {};
+   settings::SettingsInterface<std::string> temperatureUnits_ {};
 };
 
 UnitSettingsWidget::UnitSettingsWidget(QWidget* parent) :

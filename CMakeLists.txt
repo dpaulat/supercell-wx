@@ -37,6 +37,7 @@ set(SCWX_VERSION "0.6.1")
 option(SCWX_ADDRESS_SANITIZER "Build with Address Sanitizer" OFF)
 
 add_subdirectory(external)
+add_subdirectory(grib-helper)
 add_subdirectory(wxdata)
 add_subdirectory(scwx-qt)
 add_subdirectory(test)

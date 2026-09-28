@@ -1,6 +1,7 @@
 #include <scwx/qt/map/generic_layer.hpp>
 
 #include <algorithm>
+#include <vector>
 
 namespace scwx::qt::map
 {
@@ -22,6 +23,9 @@ public:
 
    std::shared_ptr<gl::GlContext> glContext_;
    float                          opacity_ {1.0f};
+
+   // See AddAreaSibling()/CombineAreaHoverText().
+   std::vector<std::weak_ptr<GenericLayer>> areaSiblings_;
 };
 
 GenericLayer::GenericLayer(std::shared_ptr<gl::GlContext> glContext) :
@@ -43,29 +47,67 @@ bool GenericLayer::RunMousePicking(
    return false;
 }
 
-std::shared_ptr<gl::GlContext> GenericLayer::gl_context() const
+std::optional<std::string>
+GenericLayer::GetHoverText(const std::shared_ptr<MapContext>& /* mapContext */,
+                           const common::Coordinate& /* mouseGeoCoords */) const
+{ return std::nullopt; }
+
+void GenericLayer::AddAreaSibling(std::weak_ptr<GenericLayer> sibling)
+{ p->areaSiblings_.push_back(std::move(sibling)); }
+
+std::optional<std::string> GenericLayer::CombineAreaHoverText(
+   const std::shared_ptr<MapContext>& mapContext,
+   const common::Coordinate&          mouseGeoCoords) const
 {
-   return p->glContext_;
+   std::string combined;
+
+   if (std::optional<std::string> ownText =
+          GetHoverText(mapContext, mouseGeoCoords);
+       ownText.has_value())
+   {
+      combined = std::move(*ownText);
+   }
+
+   for (const std::weak_ptr<GenericLayer>& weakSibling : p->areaSiblings_)
+   {
+      std::shared_ptr<GenericLayer> sibling = weakSibling.lock();
+      if (sibling == nullptr)
+      {
+         continue;
+      }
+
+      if (std::optional<std::string> siblingText =
+             sibling->GetHoverText(mapContext, mouseGeoCoords);
+          siblingText.has_value())
+      {
+         if (!combined.empty())
+         {
+            combined += "\n\n";
+         }
+         combined += *siblingText;
+      }
+   }
+
+   if (combined.empty())
+   {
+      return std::nullopt;
+   }
+   return combined;
 }
+
+std::shared_ptr<gl::GlContext> GenericLayer::gl_context() const
+{ return p->glContext_; }
 
 void GenericLayer::set_opacity(float opacity)
-{
-   p->opacity_ = std::clamp(opacity, 0.0f, 1.0f);
-}
+{ p->opacity_ = std::clamp(opacity, 0.0f, 1.0f); }
 
 float GenericLayer::opacity() const
-{
-   return p->opacity_;
-}
+{ return p->opacity_; }
 
 void GenericLayer::BindLayerState()
-{
-   p->glContext_->set_layer_opacity(p->opacity_);
-}
+{ p->glContext_->set_layer_opacity(p->opacity_); }
 
 void GenericLayer::ResetLayerState()
-{
-   p->glContext_->set_layer_opacity(1.0f);
-}
+{ p->glContext_->set_layer_opacity(1.0f); }
 
 } // namespace scwx::qt::map

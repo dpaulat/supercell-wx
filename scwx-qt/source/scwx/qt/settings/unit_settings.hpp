@@ -26,6 +26,8 @@ public:
    [[nodiscard]] SettingsVariable<std::string>& other_units() const;
    [[nodiscard]] SettingsVariable<std::string>& speed_units() const;
    [[nodiscard]] SettingsVariable<std::string>& distance_units() const;
+   [[nodiscard]] SettingsVariable<std::string>& temperature_units() const;
+   [[nodiscard]] SettingsVariable<std::string>& pressure_units() const;
    [[nodiscard]] SettingsVariable<std::string>&
    radar_beam_height_reference() const;
 

@@ -6,6 +6,8 @@
 #include <scwx/common/geographic.hpp>
 
 #include <memory>
+#include <optional>
+#include <string>
 
 #include <QObject>
 #include <glm/gtc/type_ptr.hpp>
@@ -56,11 +58,46 @@ public:
    void BindLayerState();
    void ResetLayerState();
 
+   /**
+    * @brief This layer's own Shift-hover data tooltip text for a point, or
+    * nullopt if it has nothing to show there. Default returns nullopt --
+    * only "area" layers with a meaningful per-point value (radar sweeps,
+    * gridded data) need to override this; most layer types (alerts,
+    * placefiles, markers -- anything polygon/point-shaped) never will,
+    * and get this default for free. See CombineAreaHoverText() below for
+    * how multiple such layers combine into one tooltip.
+    */
+   virtual std::optional<std::string>
+   GetHoverText(const std::shared_ptr<MapContext>& mapContext,
+                const common::Coordinate&          mouseGeoCoords) const;
+
+   /**
+    * @brief Registers another "area" layer (see GetHoverText()) to combine
+    * with via CombineAreaHoverText() -- deliberately not automatic/global:
+    * only layers explicitly wired together this way combine, so the
+    * app's ordinary polygon/marker mouse-picking dispatch (which stops at
+    * the first hit -- see MapWidgetImpl::RunMousePicking) is unaffected.
+    * Not symmetric on its own -- call it in both directions to actually
+    * combine two layers (see MapWidgetImpl::AddLayer's wiring).
+    */
+   void AddAreaSibling(std::weak_ptr<GenericLayer> sibling);
+
 signals:
    void NeedsRendering();
 
 protected:
    [[nodiscard]] std::shared_ptr<gl::GlContext> gl_context() const;
+
+   /**
+    * @brief This layer's own GetHoverText() combined with every sibling
+    * added via AddAreaSibling(), separated by a blank line, in whichever
+    * order they were added (this layer's own text first). Returns
+    * nullopt only if neither this layer nor any sibling has anything to
+    * show at this point.
+    */
+   [[nodiscard]] std::optional<std::string>
+   CombineAreaHoverText(const std::shared_ptr<MapContext>& mapContext,
+                        const common::Coordinate& mouseGeoCoords) const;
 
 private:
    class Impl;

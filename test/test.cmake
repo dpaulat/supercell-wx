@@ -27,10 +27,13 @@ set(SRC_PROVIDER_TESTS source/scwx/provider/aws_level2_data_provider.test.cpp
                        source/scwx/provider/aws_level3_data_provider.test.cpp
                        source/scwx/provider/http_level3_data_provider.test.cpp
                        source/scwx/provider/iem_api_provider.test.cpp
+                       source/scwx/provider/mrms_data_provider.test.cpp
                        source/scwx/provider/nws_level3_behavior.test.cpp
                        source/scwx/provider/nws_api_provider.test.cpp
                        source/scwx/provider/ondas_level2_data_provider.test.cpp
                        source/scwx/provider/ondas_level3_behavior.test.cpp
+                       source/scwx/provider/rrfs_data_provider.test.cpp
+                       source/scwx/provider/rtma_data_provider.test.cpp
                        source/scwx/provider/warnings_provider.test.cpp)
 set(SRC_QT_CONFIG_TESTS source/scwx/qt/config/county_database.test.cpp
                         source/scwx/qt/config/radar_site.test.cpp)
@@ -38,7 +41,8 @@ set(SRC_QT_GL_TESTS source/scwx/qt/gl/gl_context.test.cpp)
 set(SRC_QT_MAIN_TESTS source/scwx/qt/main/application_paths.test.cpp
                       source/scwx/qt/main/program_options.test.cpp
                       source/scwx/qt/main/theme.test.cpp)
-set(SRC_QT_MANAGER_TESTS source/scwx/qt/manager/product_datastore.test.cpp
+set(SRC_QT_MANAGER_TESTS source/scwx/qt/manager/grib_manager.test.cpp
+                         source/scwx/qt/manager/product_datastore.test.cpp
                          source/scwx/qt/manager/radar_product_manager.test.cpp
                          source/scwx/qt/manager/settings_manager.test.cpp
                          source/scwx/qt/manager/status_manager.test.cpp

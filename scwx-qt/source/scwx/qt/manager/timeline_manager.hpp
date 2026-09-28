@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <memory>
+#include <utility>
 
 #include <QObject>
 
@@ -26,6 +27,16 @@ public:
 
    [[nodiscard]] std::chrono::system_clock::time_point GetSelectedTime() const;
    [[nodiscard]] types::MapTime                        GetViewType() const;
+
+   // The current loop's [start, end) range -- end is "now" (live) or the
+   // pinned archive time, start is end minus the configured loop duration.
+   // Exposes Impl::GetLoopStartAndEndTimes(), already used internally by
+   // AnimationStepBegin/UpdateCacheLimit, to external consumers that need
+   // to know the loop's range without duplicating live-vs-pinned-time
+   // logic (e.g. a data layer prefetching everything the loop will need).
+   [[nodiscard]] std::pair<std::chrono::system_clock::time_point,
+                           std::chrono::system_clock::time_point>
+   GetLoopStartAndEndTimes() const;
 
    void SetMapCount(std::size_t mapCount);
 

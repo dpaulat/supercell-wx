@@ -23,6 +23,9 @@ static const std::unordered_map<LayerType, std::string> layerTypeName_ {
 static const std::unordered_map<DataLayer, std::string> dataLayerName_ {
    {DataLayer::OverlayProduct, "Overlay Product"},
    {DataLayer::RadarRange, "Radar Range"},
+   {DataLayer::GribMrms, "MRMS"},
+   {DataLayer::GribRtma, "RTMA"},
+   {DataLayer::GribRrfs, "RRFS"},
    {DataLayer::Unknown, "?"}};
 
 static const std::unordered_map<InformationLayer, std::string>

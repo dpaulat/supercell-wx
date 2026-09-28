@@ -38,6 +38,7 @@
 #include <scwx/qt/ui/collapsible_group.hpp>
 #include <scwx/qt/ui/export_settings_dialog.hpp>
 #include <scwx/qt/ui/flow_layout.hpp>
+#include <scwx/qt/ui/grib_dock_widget.hpp>
 #include <scwx/qt/ui/gps_info_dialog.hpp>
 #include <scwx/qt/ui/imgui_debug_dialog.hpp>
 #include <scwx/qt/ui/layer_dialog.hpp>
@@ -355,6 +356,7 @@ public:
    QLabel* timeLabel_ {nullptr};
 
    ui::AlertDockWidget*                  alertDockWidget_ {};
+   ui::GribDockWidget*                   gribDockWidget_ {};
    QPointer<ui::MapAnnotationDockWidget> mapAnnotationDock_ {};
    ui::AnimationDockWidget*              animationDockWidget_ {};
    ui::AboutDialog*                      aboutDialog_ {};
@@ -485,6 +487,19 @@ MainWindow::MainWindow(QWidget* parent) :
    // Configure Alert Dock
    p->alertDockWidget_ = new ui::AlertDockWidget(this);
    addDockWidget(Qt::BottomDockWidgetArea, p->alertDockWidget_);
+
+   // No anchor action in main_window.ui for this yet (unlike
+   // Alerts/Radar Toolbox below) -- appended to the View menu directly to
+   // avoid touching that file. One combined dock, not one per category --
+   // each category gets its own section inside it, via a checkable
+   // multi-select dropdown rather than a plain single-select one, so more
+   // than one product per category can be active at once (see
+   // manager::GribManager::SetProductActive).
+   p->gribDockWidget_ = new ui::GribDockWidget(this);
+   addDockWidget(Qt::RightDockWidgetArea, p->gribDockWidget_);
+   p->gribDockWidget_->toggleViewAction()->setText(tr("&GRIB"));
+   ui->menuView->addAction(p->gribDockWidget_->toggleViewAction());
+   p->gribDockWidget_->hide();
 
    p->mapAnnotationDock_ =
       new ui::MapAnnotationDockWidget(p->mainWindow_->ui->centralwidget);

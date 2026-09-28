@@ -76,9 +76,7 @@ RadarProductLayer::RadarProductLayer(std::shared_ptr<gl::GlContext> glContext) :
 {
 }
 RadarProductLayer::~RadarProductLayer()
-{
-   p->radarBeamHeightReferenceConnection_.disconnect();
-};
+{ p->radarBeamHeightReferenceConnection_.disconnect(); };
 
 void RadarProductLayer::Initialize(
    const std::shared_ptr<MapContext>& mapContext)
@@ -353,10 +351,10 @@ void RadarProductLayer::Render(
 
    if (sweepVisible)
    {
-      const double scale = std::pow(2.0, params.zoom) * 2.0 *
-                           mbgl::util::tileSize_D / mbgl::util::DEGREES_MAX;
-      const auto xScale = static_cast<float>(scale / params.width);
-      const auto yScale = static_cast<float>(scale / params.height);
+      const double scale  = std::pow(2.0, params.zoom) * 2.0 *
+                            mbgl::util::tileSize_D / mbgl::util::DEGREES_MAX;
+      const auto   xScale = static_cast<float>(scale / params.width);
+      const auto   yScale = static_cast<float>(scale / params.height);
 
       glm::mat4 uMVPMatrix(1.0f);
       uMVPMatrix = glm::scale(uMVPMatrix, glm::vec3(xScale, yScale, 1.0f));
@@ -429,201 +427,192 @@ bool RadarProductLayer::RunMousePicking(
    const common::Coordinate& mouseGeoCoords,
    std::shared_ptr<types::EventHandler>& /* eventHandler */)
 {
-   bool itemPicked = false;
-
-   if (QGuiApplication::keyboardModifiers() &
-       Qt::KeyboardModifier::ShiftModifier)
+   if (!(QGuiApplication::keyboardModifiers() &
+         Qt::KeyboardModifier::ShiftModifier))
    {
-      std::shared_ptr<view::RadarProductView> radarProductView =
-         mapContext->radar_product_view();
+      return false;
+   }
 
-      if (mapContext->radar_site() == nullptr)
+   // Combines this layer's own GetHoverText() with every "area" layer
+   // wired to it via GenericLayer::AddAreaSibling() (see
+   // MapWidgetImpl::AddLayer) -- e.g. a GRIB layer's value at the same
+   // point, shown together with radar's own distance/altitude/bin value.
+   std::optional<std::string> hoverText =
+      CombineAreaHoverText(mapContext, mouseGeoCoords);
+   if (!hoverText.has_value())
+   {
+      return false;
+   }
+
+   util::tooltip::Show(*hoverText, mouseGlobalPos);
+   return true;
+}
+
+std::optional<std::string>
+RadarProductLayer::GetHoverText(const std::shared_ptr<MapContext>& mapContext,
+                                const common::Coordinate& mouseGeoCoords) const
+{
+   std::shared_ptr<view::RadarProductView> radarProductView =
+      mapContext->radar_product_view();
+
+   if (mapContext->radar_site() == nullptr)
+   {
+      return std::nullopt;
+   }
+
+   // Get distance and altitude of point
+   const double radarLatitude  = mapContext->radar_site()->latitude();
+   const double radarLongitude = mapContext->radar_site()->longitude();
+
+   const auto distanceMeters =
+      util::GeographicLib::GetDistance(mouseGeoCoords.latitude_,
+                                       mouseGeoCoords.longitude_,
+                                       radarLatitude,
+                                       radarLongitude);
+
+   const std::string distanceUnitName =
+      settings::UnitSettings::Instance().distance_units().GetValue();
+   const types::DistanceUnits distanceUnits =
+      types::GetDistanceUnitsFromName(distanceUnitName);
+   const double distanceScale = types::GetDistanceUnitsScale(distanceUnits);
+   const std::string distanceAbbrev =
+      types::GetDistanceUnitsAbbreviation(distanceUnits);
+
+   const double distance = distanceMeters.value() *
+                           scwx::common::kKilometersPerMeter * distanceScale;
+   std::string  distanceHeightStr =
+      fmt::format("{:.2f} {}", distance, distanceAbbrev);
+
+   if (radarProductView == nullptr)
+   {
+      return distanceHeightStr;
+   }
+
+   std::optional<float> elevation = radarProductView->elevation();
+   if (elevation.has_value())
+   {
+      const units::length::meters<double> radarAltitude =
+         mapContext->radar_site()->altitude();
+      auto altitudeMeters = util::GeographicLib::GetRadarBeamAltititude(
+         distanceMeters,
+         units::angle::degrees<double>(*elevation),
+         radarAltitude);
+
+      const types::RadarBeamHeightReference heightReference =
+         p->radarBeamHeightReference_;
+      if (heightReference == types::RadarBeamHeightReference::AboveRadarLevel)
       {
-         return itemPicked;
+         altitudeMeters -= radarAltitude;
       }
 
-      // Get distance and altitude of point
-      const double radarLatitude  = mapContext->radar_site()->latitude();
-      const double radarLongitude = mapContext->radar_site()->longitude();
+      const std::string heightUnitName =
+         settings::UnitSettings::Instance().echo_tops_units().GetValue();
+      const types::EchoTopsUnits heightUnits =
+         types::GetEchoTopsUnitsFromName(heightUnitName);
+      const double      heightScale = types::GetEchoTopsUnitsScale(heightUnits);
+      const std::string heightAbbrev =
+         types::GetEchoTopsUnitsAbbreviation(heightUnits);
+      const std::string heightReferenceAbbrev =
+         types::GetRadarBeamHeightReferenceAbbreviation(heightReference);
 
-      const auto distanceMeters =
-         util::GeographicLib::GetDistance(mouseGeoCoords.latitude_,
-                                          mouseGeoCoords.longitude_,
-                                          radarLatitude,
-                                          radarLongitude);
+      const double altitude = altitudeMeters.value() *
+                              scwx::common::kKilometersPerMeter * heightScale;
 
-      const std::string distanceUnitName =
-         settings::UnitSettings::Instance().distance_units().GetValue();
-      const types::DistanceUnits distanceUnits =
-         types::GetDistanceUnitsFromName(distanceUnitName);
-      const double distanceScale = types::GetDistanceUnitsScale(distanceUnits);
-      const std::string distanceAbbrev =
-         types::GetDistanceUnitsAbbreviation(distanceUnits);
+      distanceHeightStr = fmt::format("{}\n{:.2f} {} {}",
+                                      distanceHeightStr,
+                                      altitude,
+                                      heightAbbrev,
+                                      heightReferenceAbbrev);
+   }
 
-      const double distance = distanceMeters.value() *
-                              scwx::common::kKilometersPerMeter * distanceScale;
-      std::string distanceHeightStr =
-         fmt::format("{:.2f} {}", distance, distanceAbbrev);
+   std::optional<std::uint16_t> binLevel =
+      radarProductView->GetBinLevel(mouseGeoCoords);
 
-      if (radarProductView == nullptr)
+   if (!binLevel.has_value())
+   {
+      // Always show distance and altitude, even off any bin
+      return distanceHeightStr;
+   }
+
+   // Hovering over a bin on the map
+   std::optional<wsr88d::DataLevelCode> code =
+      radarProductView->GetDataLevelCode(binLevel.value());
+   std::optional<float> value =
+      radarProductView->GetDataValue(binLevel.value());
+
+   if (code.has_value() && //
+       code.value() != wsr88d::DataLevelCode::Blank &&
+       code.value() != wsr88d::DataLevelCode::NoData &&
+       code.value() != wsr88d::DataLevelCode::Topped)
+   {
+      // Level has associated data level code
+      std::string codeName = wsr88d::GetDataLevelCodeName(code.value());
+      std::string codeShortName =
+         wsr88d::GetDataLevelCodeShortName(code.value());
+
+      if (codeName != codeShortName && !codeShortName.empty())
       {
-         util::tooltip::Show(distanceHeightStr, mouseGlobalPos);
-         itemPicked = true;
-         return itemPicked;
+         // There is a unique long and short name for the code
+         return fmt::format(
+            "{}: {}\n{}", codeShortName, codeName, distanceHeightStr);
       }
+      // Otherwise, only use the long name (always present)
+      return fmt::format("{}\n{}", codeName, distanceHeightStr);
+   }
 
-      std::optional<float> elevation = radarProductView->elevation();
-      if (elevation.has_value())
+   if (value.has_value())
+   {
+      // Level has associated data value
+      float       f = value.value();
+      std::string units {};
+      std::string suffix {};
+
+      // Determine units from radar product view
+      units = radarProductView->units();
+      if (!units.empty())
       {
-         const units::length::meters<double> radarAltitude =
-            mapContext->radar_site()->altitude();
-         auto altitudeMeters = util::GeographicLib::GetRadarBeamAltititude(
-            distanceMeters,
-            units::angle::degrees<double>(*elevation),
-            radarAltitude);
-
-         const types::RadarBeamHeightReference heightReference =
-            p->radarBeamHeightReference_;
-         if (heightReference ==
-             types::RadarBeamHeightReference::AboveRadarLevel)
-         {
-            altitudeMeters -= radarAltitude;
-         }
-
-         const std::string heightUnitName =
-            settings::UnitSettings::Instance().echo_tops_units().GetValue();
-         const types::EchoTopsUnits heightUnits =
-            types::GetEchoTopsUnitsFromName(heightUnitName);
-         const double heightScale = types::GetEchoTopsUnitsScale(heightUnits);
-         const std::string heightAbbrev =
-            types::GetEchoTopsUnitsAbbreviation(heightUnits);
-         const std::string heightReferenceAbbrev =
-            types::GetRadarBeamHeightReferenceAbbreviation(heightReference);
-
-         const double altitude = altitudeMeters.value() *
-                                 scwx::common::kKilometersPerMeter *
-                                 heightScale;
-
-         distanceHeightStr = fmt::format("{}\n{:.2f} {} {}",
-                                         distanceHeightStr,
-                                         altitude,
-                                         heightAbbrev,
-                                         heightReferenceAbbrev);
-      }
-
-      std::optional<std::uint16_t> binLevel =
-         radarProductView->GetBinLevel(mouseGeoCoords);
-
-      if (binLevel.has_value())
-      {
-         // Hovering over a bin on the map
-         std::optional<wsr88d::DataLevelCode> code =
-            radarProductView->GetDataLevelCode(binLevel.value());
-         std::optional<float> value =
-            radarProductView->GetDataValue(binLevel.value());
-
-         if (code.has_value() && //
-             code.value() != wsr88d::DataLevelCode::Blank &&
-             code.value() != wsr88d::DataLevelCode::NoData &&
-             code.value() != wsr88d::DataLevelCode::Topped)
-         {
-            // Level has associated data level code
-            std::string codeName = wsr88d::GetDataLevelCodeName(code.value());
-            std::string codeShortName =
-               wsr88d::GetDataLevelCodeShortName(code.value());
-            std::string hoverText;
-
-            if (codeName != codeShortName && !codeShortName.empty())
-            {
-               // There is a unique long and short name for the code
-               hoverText = fmt::format(
-                  "{}: {}\n{}", codeShortName, codeName, distanceHeightStr);
-            }
-            else
-            {
-               // Otherwise, only use the long name (always present)
-               hoverText = fmt::format("{}\n{}", codeName, distanceHeightStr);
-            }
-
-            // Show the tooltip
-            util::tooltip::Show(hoverText, mouseGlobalPos);
-
-            itemPicked = true;
-         }
-         else if (value.has_value())
-         {
-            // Level has associated data value
-            float       f = value.value();
-            std::string units {};
-            std::string suffix {};
-            std::string hoverText;
-
-            // Determine units from radar product view
-            units = radarProductView->units();
-            if (!units.empty())
-            {
-               f = f * radarProductView->unit_scale();
-            }
-            else
-            {
-               std::shared_ptr<common::ColorTable> colorTable =
-                  radarProductView->color_table();
-
-               if (colorTable != nullptr)
-               {
-                  // Scale data value according to the color table, and get
-                  // units
-                  f     = f * colorTable->scale() + colorTable->offset();
-                  units = colorTable->units();
-               }
-            }
-
-            if (code.has_value() &&
-                code.value() == wsr88d::DataLevelCode::Topped)
-            {
-               // Show " TOPPED" suffix for echo tops
-               suffix = " TOPPED";
-            }
-
-            if (units.empty() ||          //
-                units.starts_with("?") || //
-                boost::iequals(units, "NONE") ||
-                boost::iequals(units, "UNITLESS") ||
-                radarProductView->IgnoreUnits())
-            {
-               // Don't display a units value that wasn't intended to be
-               // displayed
-               hoverText =
-                  fmt::format("{}{}\n{}", f, suffix, distanceHeightStr);
-            }
-            else if (std::isalpha(static_cast<unsigned char>(units.at(0))))
-            {
-               // dBZ, Kts, etc.
-               hoverText = fmt::format(
-                  "{} {}{}\n{}", f, units, suffix, distanceHeightStr);
-            }
-            else
-            {
-               // %, etc.
-               hoverText = fmt::format(
-                  "{}{}{}\n{}", f, units, suffix, distanceHeightStr);
-            }
-
-            // Show the tooltip
-            util::tooltip::Show(hoverText, mouseGlobalPos);
-
-            itemPicked = true;
-         }
+         f = f * radarProductView->unit_scale();
       }
       else
       {
-         // Always show tooltip for distance and altitude
-         util::tooltip::Show(distanceHeightStr, mouseGlobalPos);
-         itemPicked = true;
+         std::shared_ptr<common::ColorTable> colorTable =
+            radarProductView->color_table();
+
+         if (colorTable != nullptr)
+         {
+            // Scale data value according to the color table, and get units
+            f     = f * colorTable->scale() + colorTable->offset();
+            units = colorTable->units();
+         }
       }
+
+      if (code.has_value() && code.value() == wsr88d::DataLevelCode::Topped)
+      {
+         // Show " TOPPED" suffix for echo tops
+         suffix = " TOPPED";
+      }
+
+      if (units.empty() ||          //
+          units.starts_with("?") || //
+          boost::iequals(units, "NONE") || boost::iequals(units, "UNITLESS") ||
+          radarProductView->IgnoreUnits())
+      {
+         // Don't display a units value that wasn't intended to be displayed
+         return fmt::format("{}{}\n{}", f, suffix, distanceHeightStr);
+      }
+      if (std::isalpha(static_cast<unsigned char>(units.at(0))))
+      {
+         // dBZ, Kts, etc.
+         return fmt::format("{} {}{}\n{}", f, units, suffix, distanceHeightStr);
+      }
+      // %, etc.
+      return fmt::format("{}{}{}\n{}", f, units, suffix, distanceHeightStr);
    }
 
-   return itemPicked;
+   // Bin has neither a usable data level code nor a value -- nothing to
+   // show for this layer at this point (matches the original behavior:
+   // no tooltip in this case).
+   return std::nullopt;
 }
 
 void RadarProductLayer::UpdateColorTable(

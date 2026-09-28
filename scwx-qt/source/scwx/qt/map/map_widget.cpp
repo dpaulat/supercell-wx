@@ -8,6 +8,7 @@
 #include <scwx/qt/manager/timeline_manager.hpp>
 #include <scwx/qt/map/alert_layer.hpp>
 #include <scwx/qt/map/color_table_layer.hpp>
+#include <scwx/qt/map/grib_product_layer.hpp>
 #include <scwx/qt/map/layer_wrapper.hpp>
 #include <scwx/qt/map/map_provider.hpp>
 #include <scwx/qt/map/map_settings.hpp>
@@ -398,6 +399,9 @@ public:
    std::shared_ptr<manager::RadarProductManager> radarProductManager_;
 
    std::shared_ptr<RadarProductLayer>         radarProductLayer_;
+   std::shared_ptr<GribProductLayer>          gribMrmsLayer_;
+   std::shared_ptr<GribProductLayer>          gribRtmaLayer_;
+   std::shared_ptr<GribProductLayer>          gribRrfsLayer_;
    std::shared_ptr<OverlayLayer>              overlayLayer_;
    std::shared_ptr<OverlayProductLayer>       overlayProductLayer_ {nullptr};
    std::shared_ptr<PlacefileLayer>            placefileLayer_;
@@ -1620,6 +1624,28 @@ void MapWidget::DumpLayerList() const
    logger_->info("Layers: {}", p->map_->layerIds().join(", ").toStdString());
 }
 
+namespace
+{
+
+// Mutual AddAreaSibling wiring for one pair of "area" layers (see
+// GenericLayer::AddAreaSibling/CombineAreaHoverText) -- a no-op if either
+// side doesn't exist yet. Promoted to a helper once GribCategory grew
+// from 2 to 3 families (Mrms/Rtma/Rrfs): each family's construction site
+// now needs to wire itself to *two* other GRIB layers instead of one,
+// and radar's own recreation site wires to all three -- four call sites
+// repeating the same "if both exist, wire both ways" shape.
+void WireAreaSiblingPair(const std::shared_ptr<GenericLayer>& a,
+                         const std::shared_ptr<GenericLayer>& b)
+{
+   if (a != nullptr && b != nullptr)
+   {
+      a->AddAreaSibling(b);
+      b->AddAreaSibling(a);
+   }
+}
+
+} // namespace
+
 void MapWidgetImpl::AddLayers()
 {
    if (styleLayers_.isEmpty() || map_ == nullptr)
@@ -1718,6 +1744,19 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
       if (radarProductView != nullptr)
       {
          radarProductLayer_ = std::make_shared<RadarProductLayer>(glContext_);
+
+         // Unlike the GRIB layers below, this one is recreated on every
+         // radar site change (no existence guard), so it needs to
+         // re-wire itself to whichever GRIB layers already exist each
+         // time -- they persist across radar site changes and don't
+         // re-wire themselves to a replaced radar instance on their own.
+         // Only this direction of each pair is done here; each GRIB <->
+         // GRIB pair is wired once, from their own (guarded) construction
+         // below, and does not need redoing when radar is recreated.
+         WireAreaSiblingPair(radarProductLayer_, gribMrmsLayer_);
+         WireAreaSiblingPair(radarProductLayer_, gribRtmaLayer_);
+         WireAreaSiblingPair(radarProductLayer_, gribRrfsLayer_);
+
          AddLayer(layerName, radarProductLayer_, before);
       }
    }
@@ -1823,6 +1862,55 @@ void MapWidgetImpl::AddLayer(types::LayerType        type,
                LayerOpacity(layerModel_->GetLayerInfo(type, description)));
             layerList_.push_back(types::GetLayerName(type, description));
          }
+         break;
+
+      // Not gated on
+      // radarProductView, unlike the other Data layers above -- none of
+      // the three has a dependency on the selected radar site. Each
+      // cross-wires itself to whichever of {the other two GRIB
+      // categories, radar} already exist for this pane, so their
+      // Shift-hover tooltips can combine (see GenericLayer::
+      // AddAreaSibling/CombineAreaHoverText) -- order-independent for
+      // each GRIB <-> GRIB pair, since whichever is added second is the
+      // one that finds the other already there and does the (mutual)
+      // wiring; radar's side of each radar <-> GRIB pair is instead
+      // redone every time radar itself is recreated (see the
+      // LayerType::Radar case above), since unlike these three, radar
+      // has no existence guard and gets rebuilt on every site change.
+      case types::DataLayer::GribMrms:
+         if (gribMrmsLayer_ == nullptr)
+         {
+            gribMrmsLayer_ = std::make_shared<GribProductLayer>(
+               glContext_, map::GribCategory::Mrms);
+            WireAreaSiblingPair(gribMrmsLayer_, gribRtmaLayer_);
+            WireAreaSiblingPair(gribMrmsLayer_, gribRrfsLayer_);
+            WireAreaSiblingPair(gribMrmsLayer_, radarProductLayer_);
+         }
+         AddLayer(layerName, gribMrmsLayer_, before);
+         break;
+
+      case types::DataLayer::GribRtma:
+         if (gribRtmaLayer_ == nullptr)
+         {
+            gribRtmaLayer_ = std::make_shared<GribProductLayer>(
+               glContext_, map::GribCategory::Rtma);
+            WireAreaSiblingPair(gribRtmaLayer_, gribMrmsLayer_);
+            WireAreaSiblingPair(gribRtmaLayer_, gribRrfsLayer_);
+            WireAreaSiblingPair(gribRtmaLayer_, radarProductLayer_);
+         }
+         AddLayer(layerName, gribRtmaLayer_, before);
+         break;
+
+      case types::DataLayer::GribRrfs:
+         if (gribRrfsLayer_ == nullptr)
+         {
+            gribRrfsLayer_ = std::make_shared<GribProductLayer>(
+               glContext_, map::GribCategory::Rrfs);
+            WireAreaSiblingPair(gribRrfsLayer_, gribMrmsLayer_);
+            WireAreaSiblingPair(gribRrfsLayer_, gribRtmaLayer_);
+            WireAreaSiblingPair(gribRrfsLayer_, radarProductLayer_);
+         }
+         AddLayer(layerName, gribRrfsLayer_, before);
          break;
 
       default:

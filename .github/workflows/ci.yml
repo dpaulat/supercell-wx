@@ -358,6 +358,7 @@ jobs:
       shell: bash
       run: |
         sudo apt-get install doxygen \
+                             libeccodes-dev \
                              libfuse2 \
                              ninja-build \
                              wayland-protocols \
@@ -588,7 +589,16 @@ jobs:
         mv lib/ usr/
         mv plugins/ usr/
         popd
-        ./linuxdeploy-${{ matrix.appimage_arch }}.AppImage --appdir ${{ env.APPIMAGE_DIR }} -i supercell-wx.png -d supercell-wx.desktop
+        # decode_grib (see grib-helper/) isn't referenced by the .desktop
+        # file's Exec line, so linuxdeploy won't discover it (or its own
+        # eccodes dependency) on its own -- only built when eccodes was
+        # found at CI configure time (see grib-helper/CMakeLists.txt), so
+        # only pass -e when it's actually present in this AppDir.
+        DECODE_GRIB_ARGS=()
+        if [ -f "${{ env.APPIMAGE_DIR }}usr/bin/decode_grib" ]; then
+          DECODE_GRIB_ARGS=(-e "${{ env.APPIMAGE_DIR }}usr/bin/decode_grib")
+        fi
+        ./linuxdeploy-${{ matrix.appimage_arch }}.AppImage --appdir ${{ env.APPIMAGE_DIR }} -i supercell-wx.png -d supercell-wx.desktop "${DECODE_GRIB_ARGS[@]}"
         ./linuxdeploy-${{ matrix.appimage_arch }}.AppImage --appdir ${{ env.APPIMAGE_DIR }} --output appimage
         rm -f linuxdeploy-${{ matrix.appimage_arch }}.AppImage
 

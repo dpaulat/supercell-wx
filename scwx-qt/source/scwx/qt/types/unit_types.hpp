@@ -61,6 +61,29 @@ enum class DistanceUnits : std::uint8_t
 using DistanceUnitsIterator = scwx::util::
    Iterator<DistanceUnits, DistanceUnits::Kilometers, DistanceUnits::User>;
 
+enum class TemperatureUnits : std::uint8_t
+{
+   Celsius,
+   Fahrenheit,
+   Kelvin,
+   Unknown
+};
+using TemperatureUnitsIterator = scwx::util::Iterator<TemperatureUnits,
+                                                      TemperatureUnits::Celsius,
+                                                      TemperatureUnits::Kelvin>;
+
+enum class PressureUnits : std::uint8_t
+{
+   InchesOfMercury,
+   Hectopascals,
+   MillimetersOfMercury,
+   Unknown
+};
+using PressureUnitsIterator =
+   scwx::util::Iterator<PressureUnits,
+                        PressureUnits::InchesOfMercury,
+                        PressureUnits::MillimetersOfMercury>;
+
 enum class RadarBeamHeightReference : std::uint8_t
 {
    AboveRadarLevel,
@@ -94,6 +117,20 @@ const std::string& GetDistanceUnitsAbbreviation(DistanceUnits units);
 const std::string& GetDistanceUnitsName(DistanceUnits units);
 DistanceUnits      GetDistanceUnitsFromName(const std::string& name);
 double             GetDistanceUnitsScale(DistanceUnits units);
+
+const std::string& GetTemperatureUnitsAbbreviation(TemperatureUnits units);
+const std::string& GetTemperatureUnitsName(TemperatureUnits units);
+TemperatureUnits   GetTemperatureUnitsFromName(const std::string& name);
+// Kelvin in, converted out -- not a pure scale factor like the others
+// above (Celsius/Fahrenheit both need an additive offset, not just a
+// multiplier), so this takes the raw value directly rather than a
+// separate GetTemperatureUnitsScale().
+float ConvertTemperatureFromKelvin(float kelvinValue, TemperatureUnits to);
+
+const std::string& GetPressureUnitsAbbreviation(PressureUnits units);
+const std::string& GetPressureUnitsName(PressureUnits units);
+PressureUnits      GetPressureUnitsFromName(const std::string& name);
+float              GetPressureUnitsScale(PressureUnits units); // from pascals
 
 const std::string&
 GetRadarBeamHeightReferenceAbbreviation(RadarBeamHeightReference reference);

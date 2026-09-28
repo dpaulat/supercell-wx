@@ -6,9 +6,12 @@
 #include <scwx/wsr88d/nexrad_file_factory.hpp>
 
 #include <atomic>
+#include <fstream>
 #include <shared_mutex>
 
 #include <aws/core/auth/AWSCredentials.h>
+#include <aws/core/http/HttpRequest.h>
+#include <aws/core/http/HttpResponse.h>
 #include <aws/s3/S3Client.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/ListObjectsV2Request.h>
@@ -368,6 +371,83 @@ std::shared_ptr<wsr88d::NexradFile> AwsNexradDataProvider::LoadObjectByTime(
    {
       return LoadObjectByKey(key);
    }
+}
+
+std::optional<std::string> AwsNexradDataProvider::DownloadObject(
+   const std::string&              bucketName,
+   const std::string&              key,
+   const std::string&              outputPath,
+   const DownloadProgressCallback& progressCallback)
+{
+   Aws::S3::Model::GetObjectRequest request;
+   request.SetBucket(bucketName);
+   request.SetKey(key);
+
+   // Same cancellation idiom LoadObjectByKey() already uses.
+   request.SetContinueRequestHandler([this](const Aws::Http::HttpRequest*)
+                                     { return p->running_.load(); });
+
+   if (progressCallback)
+   {
+      // Captured by value in the lambda below (not atomic -- a
+      // synchronous GetObject() call invokes this handler serially, on
+      // the same thread that's blocked inside it, never concurrently).
+      auto bytesReceived = std::make_shared<std::int64_t>(0);
+
+      request.SetDataReceivedEventHandler(
+         [bytesReceived, progressCallback](const Aws::Http::HttpRequest*,
+                                           Aws::Http::HttpResponse* response,
+                                           long long                chunkSize)
+         {
+            *bytesReceived += chunkSize;
+
+            std::int64_t totalBytes = -1;
+            if (response != nullptr &&
+                response->HasHeader(Aws::Http::CONTENT_LENGTH_HEADER))
+            {
+               try
+               {
+                  totalBytes = std::stoll(
+                     response->GetHeader(Aws::Http::CONTENT_LENGTH_HEADER));
+               }
+               catch (const std::exception&)
+               {
+                  // Malformed/unparseable header -- report unknown
+                  // rather than a wrong total.
+               }
+            }
+
+            progressCallback(*bytesReceived, totalBytes);
+         });
+   }
+
+   auto outcome = p->client_->GetObject(request);
+
+   if (!outcome.IsSuccess())
+   {
+      if (p->running_)
+      {
+         logger_->warn(
+            "Failed to download {}: {}", key, outcome.GetError().GetMessage());
+      }
+      else
+      {
+         logger_->debug("Download cancelled for key: {}", key);
+      }
+      return std::nullopt;
+   }
+
+   auto& body = outcome.GetResultWithOwnership().GetBody();
+
+   std::ofstream out(outputPath, std::ios::binary);
+   if (!out)
+   {
+      logger_->warn("Could not open {} for writing", outputPath);
+      return std::nullopt;
+   }
+   out << body.rdbuf();
+
+   return outputPath;
 }
 
 std::pair<size_t, size_t> AwsNexradDataProvider::Refresh()

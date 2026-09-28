@@ -119,19 +119,18 @@ TimelineManager::TimelineManager() : p(std::make_unique<Impl>(this)) {}
 TimelineManager::~TimelineManager() = default;
 
 std::chrono::system_clock::time_point TimelineManager::GetSelectedTime() const
-{
-   return p->selectedTime_;
-}
+{ return p->selectedTime_; }
 
 types::MapTime TimelineManager::GetViewType() const
-{
-   return p->viewType_;
-}
+{ return p->viewType_; }
+
+std::pair<std::chrono::system_clock::time_point,
+          std::chrono::system_clock::time_point>
+TimelineManager::GetLoopStartAndEndTimes() const
+{ return p->GetLoopStartAndEndTimes(); }
 
 void TimelineManager::SetMapCount(std::size_t mapCount)
-{
-   p->mapCount_ = mapCount;
-}
+{ p->mapCount_ = mapCount; }
 
 void TimelineManager::SetRadarSite(const std::string& radarSite)
 {
@@ -299,9 +298,7 @@ void TimelineManager::AnimationStepEnd()
 }
 
 void TimelineManager::Impl::RadarSweepMonitorDisable()
-{
-   radarSweepMonitorActive_ = false;
-}
+{ radarSweepMonitorActive_ = false; }
 
 void TimelineManager::Impl::RadarSweepMonitorReset()
 {
