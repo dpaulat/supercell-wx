@@ -1,6 +1,6 @@
 #pragma once
 
-#include <QDialog>
+#include <QDockWidget>
 
 namespace Ui
 {
@@ -16,7 +16,7 @@ namespace ui
 
 class LayerDialogImpl;
 
-class LayerDialog : public QDialog
+class LayerDialog : public QDockWidget
 {
    Q_OBJECT
    Q_DISABLE_COPY_MOVE(LayerDialog)

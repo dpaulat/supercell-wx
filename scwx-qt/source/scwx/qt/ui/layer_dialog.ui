@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>LayerDialog</class>
- <widget class="QDialog" name="LayerDialog">
+ <widget class="QDockWidget" name="LayerDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -13,6 +13,7 @@
   <property name="windowTitle">
    <string>Layer Manager</string>
   </property>
+  <widget class="QWidget" name="dockWidgetContents">
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QFrame" name="frame">
@@ -249,7 +250,7 @@
          <enum>Qt::Orientation::Horizontal</enum>
         </property>
         <property name="standardButtons">
-         <set>QDialogButtonBox::StandardButton::Close|QDialogButtonBox::StandardButton::Reset</set>
+         <set>QDialogButtonBox::StandardButton::Reset</set>
         </property>
        </widget>
       </item>
@@ -257,6 +258,7 @@
     </widget>
    </item>
   </layout>
+  </widget>
  </widget>
  <customwidgets>
   <customwidget>
@@ -268,38 +270,4 @@
  <resources>
   <include location="../../../../scwx-qt.qrc"/>
  </resources>
- <connections>
-  <connection>
-   <sender>buttonBox</sender>
-   <signal>accepted()</signal>
-   <receiver>LayerDialog</receiver>
-   <slot>accept()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>248</x>
-     <y>254</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>157</x>
-     <y>274</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>buttonBox</sender>
-   <signal>rejected()</signal>
-   <receiver>LayerDialog</receiver>
-   <slot>reject()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>316</x>
-     <y>260</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>286</x>
-     <y>274</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
 </ui>
