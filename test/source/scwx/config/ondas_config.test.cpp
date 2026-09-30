@@ -83,6 +83,20 @@ TEST(OndasConfigTest, GetTimePointFromFilename)
              expectedTime);
 }
 
+TEST(OndasConfigTest, GetTimePointFromFilenameMissingUnderscore)
+{
+   using namespace std::chrono;
+   using sys_days = time_point<system_clock, days>;
+
+   constexpr auto expectedTime =
+      sys_days {2026y / September / 28d} + 8h + 50min;
+
+   EXPECT_EQ(OndasConfig::GetTimePointFromFilename("nhur20260928085000.ar2v"),
+             expectedTime);
+   EXPECT_EQ(OndasConfig::GetTimePointFromFilename("202609280850"),
+             expectedTime);
+}
+
 TEST(OndasConfigTest, GetTimePointFromFilenameInvalid)
 {
    constexpr std::chrono::system_clock::time_point expectedTime {};

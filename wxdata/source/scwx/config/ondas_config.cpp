@@ -168,26 +168,28 @@ OndasConfig::GetTimePointFromFilename(const std::string& filename)
    // Filename/Timestamp Format (per ONDAS spec):
    // - Format: YYYYMMDD_HHMM (minimum) or SSSS_YYYYMMDD_HHMM
    // - Example: 20260131_1830 or KILN_20260131_1830
-   // - Note: Some servers may include seconds or version suffix
+   // - Note: Some servers omit the underscore or include seconds / a suffix
 
-   // The first 8 contiguous digits are used for the data (yyyymmdd), an
-   // underscore, the next 4 contiguous digits are the time (hhmm) in 24
-   // hour notation. Date and time MUST be in GMT/UTC timezone.
+   // The first 8 contiguous digits are used for the date (yyyymmdd). The spec
+   // places an underscore before the next 4 contiguous digits (hhmm, UTC), but
+   // some servers concatenate them (e.g. nhur20260928085000.ar2v).
 
    // June 26, 2005 @ 11:45PM UTC would be 20050626_2145
 
-   static constexpr re2::LazyRE2 re {R"((\d{8}_\d{4}))"};
+   static constexpr re2::LazyRE2 re {R"((\d{8})_?(\d{4}))"};
 
    std::chrono::system_clock::time_point time {};
-   std::string                           dateTimeStr {};
+   std::string                           dateStr {};
+   std::string                           timeStr {};
 
-   if (!RE2::PartialMatch(filename, *re, &dateTimeStr))
+   if (!RE2::PartialMatch(filename, *re, &dateStr, &timeStr))
    {
       logger_->warn("Invalid ONDAS timestamp format in key: \"{}\"", filename);
       return time;
    }
 
-   // Match now contains the entire "YYYYMMDD_HHMM" substring
+   const std::string dateTimeStr = dateStr + "_" + timeStr;
+
    // Parse using std::chrono::parse
    static const std::string timeFormat {"%Y%m%d_%H%M"};
    std::istringstream       ss(dateTimeStr);
