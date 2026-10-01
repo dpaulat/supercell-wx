@@ -326,6 +326,15 @@ void RadarSite::Initialize()
          ReadConfig(":/res/config/radars_iastate.gis");
       }
 
+      if (boost::icontains(level2Url, "mrrl.net") ||
+          boost::icontains(level3Url, "mrrl.net"))
+      {
+         // Detected Mobile Radar Research Lab data provider URL in environment
+         // variables. Load radar sites from Mobile Radar Research Lab GIS
+         // config.
+         ReadConfig(":/res/config/radars_mrrl.gis");
+      }
+
       if (boost::icontains(level2Url, "allisonhouse.com") ||
           boost::icontains(level3Url, "allisonhouse.com") ||
           boost::icontains(level2Url, "weatherpulse.com") ||
