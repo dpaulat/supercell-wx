@@ -1,9 +1,11 @@
 #include <scwx/qt/view/overlay_product_view.hpp>
+#include <scwx/qt/map/overlay_product_symbols.hpp>
 #include <scwx/qt/manager/radar_product_manager.hpp>
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
 #include <mutex>
+#include <unordered_map>
 
 #include <boost/asio.hpp>
 #include <boost/uuid/random_generator.hpp>
@@ -13,8 +15,6 @@ namespace scwx::qt::view
 
 static const std::string logPrefix_ = "scwx::qt::view::overlay_product_view";
 static const auto        logger_    = util::Logger::Create(logPrefix_);
-
-static const std::string kNst_ = "NST";
 
 class OverlayProductView::Impl
 {
@@ -34,10 +34,22 @@ public:
                     bool                                  autoUpdate);
    void ResetProducts();
    void Update(const std::string& product);
+   void UpdateAll();
    void UpdateAutoRefresh(bool enabled) const;
 
-   OverlayProductView* self_;
-   boost::uuids::uuid  uuid_ {boost::uuids::random_generator()()};
+   OverlayProductView*                                         self_;
+   mutable std::unordered_map<std::string, boost::uuids::uuid> uuidMap_ {};
+
+   boost::uuids::uuid UuidFor(const std::string& product) const
+   {
+      auto it = uuidMap_.find(product);
+      if (it == uuidMap_.end())
+      {
+         it =
+            uuidMap_.emplace(product, boost::uuids::random_generator()()).first;
+      }
+      return it->second;
+   }
 
    boost::asio::thread_pool threadPool_ {1u};
 
@@ -109,14 +121,17 @@ void OverlayProductView::Impl::ConnectRadarProductManager()
            self_,
            [this](std::shared_ptr<types::RadarProductRecord> record)
            {
-              if (record->radar_product_group() ==
-                     common::RadarProductGroup::Level3 &&
-                  record->radar_product() == kNst_ &&
-                  std::chrono::floor<std::chrono::seconds>(record->time()) ==
-                     selectedTime_)
+              if (record->radar_product_group() !=
+                     common::RadarProductGroup::Level3 ||
+                  std::chrono::floor<std::chrono::seconds>(record->time()) !=
+                     std::chrono::floor<std::chrono::seconds>(selectedTime_))
               {
-                 // If the data associated with the currently selected time is
-                 // reloaded, update the view
+                 return;
+              }
+
+              if (map::IsOverlayProduct(record->radar_product()) ||
+                  map::IsOverlayProductCode(record->product_code()))
+              {
                  Update(record->radar_product());
               }
            });
@@ -131,7 +146,8 @@ void OverlayProductView::Impl::ConnectRadarProductManager()
              std::chrono::system_clock::time_point latestTime)
       {
          if (autoRefreshEnabled_ &&
-             group == common::RadarProductGroup::Level3 && product == kNst_)
+             group == common::RadarProductGroup::Level3 &&
+             map::IsOverlayProduct(product))
          {
             LoadProduct(product, latestTime, autoUpdateEnabled_);
          }
@@ -146,10 +162,8 @@ void OverlayProductView::Impl::ConnectRadarProductManager()
                   std::chrono::system_clock::time_point queryTime)
            {
               if (group == common::RadarProductGroup::Level3 &&
-                  product == kNst_ && queryTime == selectedTime_)
+                  map::IsOverlayProduct(product) && queryTime == selectedTime_)
               {
-                 // If the data associated with the currently selected time is
-                 // reloaded, update the view
                  Update(product);
               }
            });
@@ -292,18 +306,18 @@ void OverlayProductView::Impl::ResetProducts()
    messageMap_.clear();
    lock.unlock();
 
-   Q_EMIT self_->ProductUpdated(kNst_);
+   for (const auto& product : map::OverlayProductNames())
+   {
+      Q_EMIT self_->ProductUpdated(product);
+   }
 }
 
 void OverlayProductView::SelectTime(std::chrono::system_clock::time_point time)
 {
-   if (time != p->selectedTime_)
+   p->selectedTime_ = time;
+   if (p->radarProductManager_ != nullptr)
    {
-      p->selectedTime_ = time;
-      if (p->radarProductManager_ != nullptr)
-      {
-         p->Update(kNst_);
-      }
+      p->UpdateAll();
    }
 }
 
@@ -339,6 +353,16 @@ void OverlayProductView::Impl::Update(const std::string& product)
    if (message == nullptr)
    {
       logger_->debug("{} data not found", product);
+
+      std::unique_lock  lock {messageMutex_};
+      const std::size_t elementsRemoved = messageMap_.erase(product);
+      lock.unlock();
+
+      if (elementsRemoved > 0)
+      {
+         Q_EMIT self_->ProductUpdated(product);
+      }
+
       return;
    }
 
@@ -356,12 +380,25 @@ void OverlayProductView::Impl::Update(const std::string& product)
    }
 }
 
+void OverlayProductView::Impl::UpdateAll()
+{
+   for (const auto& product : map::OverlayProductNames())
+   {
+      Update(product);
+   }
+}
+
 void OverlayProductView::Impl::UpdateAutoRefresh(bool enabled) const
 {
-   if (radarProductManager_ != nullptr)
+   if (radarProductManager_ == nullptr)
+   {
+      return;
+   }
+
+   for (const auto& product : map::OverlayProductNames())
    {
       radarProductManager_->EnableRefresh(
-         common::RadarProductGroup::Level3, kNst_, enabled, uuid_);
+         common::RadarProductGroup::Level3, product, enabled, UuidFor(product));
    }
 }
 

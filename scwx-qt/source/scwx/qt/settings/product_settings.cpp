@@ -46,6 +46,9 @@ public:
       showSmoothedRangeFolding_.SetDefault(false);
       stiForecastEnabled_.SetDefault(true);
       stiPastEnabled_.SetDefault(true);
+      hailIndexEnabled_.SetDefault(true);
+      mesocycloneEnabled_.SetDefault(true);
+      tvsEnabled_.SetDefault(true);
       // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
    }
 
@@ -119,6 +122,9 @@ public:
       "show_smoothed_range_folding"};
    SettingsVariable<bool> stiForecastEnabled_ {"sti_forecast_enabled"};
    SettingsVariable<bool> stiPastEnabled_ {"sti_past_enabled"};
+   SettingsVariable<bool> hailIndexEnabled_ {"hail_index_enabled"};
+   SettingsVariable<bool> mesocycloneEnabled_ {"mesocyclone_enabled"};
+   SettingsVariable<bool> tvsEnabled_ {"tvs_enabled"};
    std::map<std::string, ThresholdData> thresholdData_ {};
 };
 
@@ -127,7 +133,10 @@ ProductSettings::ProductSettings() :
 {
    RegisterVariables({&p->showSmoothedRangeFolding_,
                       &p->stiForecastEnabled_,
-                      &p->stiPastEnabled_});
+                      &p->stiPastEnabled_,
+                      &p->hailIndexEnabled_,
+                      &p->mesocycloneEnabled_,
+                      &p->tvsEnabled_});
    SetDefaults();
 }
 ProductSettings::~ProductSettings() = default;
@@ -149,6 +158,21 @@ SettingsVariable<bool>& ProductSettings::sti_forecast_enabled()
 SettingsVariable<bool>& ProductSettings::sti_past_enabled()
 {
    return p->stiPastEnabled_;
+}
+
+SettingsVariable<bool>& ProductSettings::hail_index_enabled()
+{
+   return p->hailIndexEnabled_;
+}
+
+SettingsVariable<bool>& ProductSettings::mesocyclone_enabled()
+{
+   return p->mesocycloneEnabled_;
+}
+
+SettingsVariable<bool>& ProductSettings::tvs_enabled()
+{
+   return p->tvsEnabled_;
 }
 
 std::optional<float>
@@ -208,6 +232,9 @@ bool ProductSettings::Shutdown()
    // Commit settings that are managed separate from the settings dialog
    dataChanged |= p->stiForecastEnabled_.Commit();
    dataChanged |= p->stiPastEnabled_.Commit();
+   dataChanged |= p->hailIndexEnabled_.Commit();
+   dataChanged |= p->mesocycloneEnabled_.Commit();
+   dataChanged |= p->tvsEnabled_.Commit();
 
    for (auto& thresholdEntry : p->thresholdData_)
    {
@@ -313,6 +340,9 @@ bool operator==(const ProductSettings& lhs, const ProductSettings& rhs)
               rhs.p->showSmoothedRangeFolding_ &&
            lhs.p->stiForecastEnabled_ == rhs.p->stiForecastEnabled_ &&
            lhs.p->stiPastEnabled_ == rhs.p->stiPastEnabled_ &&
+           lhs.p->hailIndexEnabled_ == rhs.p->hailIndexEnabled_ &&
+           lhs.p->mesocycloneEnabled_ == rhs.p->mesocycloneEnabled_ &&
+           lhs.p->tvsEnabled_ == rhs.p->tvsEnabled_ &&
            lhs.p->thresholdData_ == rhs.p->thresholdData_);
 }
 

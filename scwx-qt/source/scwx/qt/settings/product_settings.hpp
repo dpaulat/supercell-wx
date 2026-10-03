@@ -26,6 +26,9 @@ public:
    SettingsVariable<bool>& show_smoothed_range_folding();
    SettingsVariable<bool>& sti_forecast_enabled();
    SettingsVariable<bool>& sti_past_enabled();
+   SettingsVariable<bool>& hail_index_enabled();
+   SettingsVariable<bool>& mesocyclone_enabled();
+   SettingsVariable<bool>& tvs_enabled();
 
    [[nodiscard]] std::optional<float>
         color_table_threshold(common::RadarProductGroup group,

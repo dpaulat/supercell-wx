@@ -1068,7 +1068,47 @@ RadarProductManagerImpl::GetLevel3ProductRecord(
                               common::RadarProductGroup::Level3, product, time);
                         });
 
-      // Return listing products status
+      // Files opened locally are already in the record map. Return them
+      // immediately so overlay products render without waiting on listing.
+      {
+         using namespace std::chrono_literals;
+
+         std::shared_lock lock {level3ProductRecordMutex_};
+
+         auto it = level3ProductRecordsMap_.find(product);
+         if (it != level3ProductRecordsMap_.cend() && !it->second.empty())
+         {
+            if (time == std::chrono::system_clock::time_point {})
+            {
+               recordPtr = &(*it->second.rbegin());
+            }
+            else
+            {
+               recordPtr =
+                  scwx::util::GetBoundedElementPointer(it->second, time);
+            }
+         }
+
+         if (recordPtr != nullptr)
+         {
+            recordTime = recordPtr->first;
+
+            if ((time == std::chrono::system_clock::time_point {} &&
+                 (recordTime > scwx::util::time::now() - 24h ||
+                  recordTime == time)) ||
+                (time != std::chrono::system_clock::time_point {} &&
+                 std::chrono::abs(recordTime - time) < 24h))
+            {
+               record = recordPtr->second.lock();
+            }
+         }
+      }
+
+      if (record != nullptr)
+      {
+         status = types::RadarProductLoadStatus::ProductLoaded;
+      }
+
       return {record, recordTime, status};
    }
    else

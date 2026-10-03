@@ -14,6 +14,7 @@
 #include <scwx/qt/map/marker_layer.hpp>
 #include <scwx/qt/map/overlay_layer.hpp>
 #include <scwx/qt/map/overlay_product_layer.hpp>
+#include <scwx/qt/map/overlay_product_symbols.hpp>
 #include <scwx/qt/map/placefile_layer.hpp>
 #include <scwx/qt/map/radar_product_layer.hpp>
 #include <scwx/qt/map/radar_range_layer.hpp>
@@ -1179,6 +1180,18 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
       p->currentTiltIndex_ = 0;
    }
 
+   // Graphic overlay products (STI, hail, mesocyclone, TVS) have no radial or
+   // raster view. Keep the current product on the map and load them as
+   // overlays at the file's time.
+   if (group == common::RadarProductGroup::Level3 &&
+       (IsOverlayProduct(productName) || IsOverlayProductCode(productCode)))
+   {
+      logger_->debug("Keeping current radar view for overlay product: {}",
+                     productName);
+      SelectTime(time);
+      return;
+   }
+
    if (p->radarProductManager_ == nullptr)
    {
       p->context_->set_radar_product_group(group);
@@ -1200,6 +1213,16 @@ void MapWidget::SelectRadarProduct(common::RadarProductGroup group,
 
       radarProductView = view::RadarProductViewFactory::Create(
          group, productName, productCode, p->radarProductManager_);
+      if (radarProductView == nullptr)
+      {
+         logger_->warn("No radar product view for product {}, code {}",
+                       productName,
+                       productCode);
+         p->RadarProductViewConnect();
+         SelectTime(time);
+         return;
+      }
+
       radarProductView->set_smoothing_enabled(p->smoothingEnabled_);
       p->context_->set_radar_product_view(radarProductView);
 
@@ -2510,9 +2533,9 @@ MapWidgetImpl::ResolveMapStyleName(const std::string& preferredStyleName) const
    if ((customStyles_[0].IsValid() && preferredStyleName == "Custom") ||
        preferredStyleName == "None" ||
        std::ranges::find_if(mapProviderInfo.mapStyles_,
-                            [&](const auto& mapStyle)
-                            { return mapStyle.name_ == preferredStyleName; }) !=
-          mapProviderInfo.mapStyles_.cend())
+                            [&](const auto& mapStyle) {
+                               return mapStyle.name_ == preferredStyleName;
+                            }) != mapProviderInfo.mapStyles_.cend())
    {
       return preferredStyleName;
    }
@@ -2755,8 +2778,7 @@ void MapWidgetImpl::RadarProductManagerConnect()
       connect(radarProductManager_.get(),
               &manager::RadarProductManager::IncomingLevel2ElevationChanged,
               this,
-              [this](std::optional<float> incomingElevation)
-              {
+              [this](std::optional<float> incomingElevation) {
                  Q_EMIT widget_->IncomingLevel2ElevationChanged(
                     incomingElevation);
               });

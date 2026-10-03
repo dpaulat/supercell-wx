@@ -138,22 +138,39 @@ public:
       // Storm Tracking Information
       QCheckBox* stiPastEnableCheckBox     = new QCheckBox();
       QCheckBox* stiForecastEnableCheckBox = new QCheckBox();
+      QCheckBox* hailIndexEnableCheckBox   = new QCheckBox();
+      QCheckBox* mesocycloneEnableCheckBox = new QCheckBox();
+      QCheckBox* tvsEnableCheckBox         = new QCheckBox();
 
       stiPastEnableCheckBox->setText(QObject::tr("Storm Tracks (Past)"));
       stiForecastEnableCheckBox->setText(
          QObject::tr("Storm Tracks (Forecast)"));
+      hailIndexEnableCheckBox->setText(QObject::tr("Hail Index"));
+      mesocycloneEnableCheckBox->setText(QObject::tr("Mesocyclone"));
+      tvsEnableCheckBox->setText(QObject::tr("Tornadic Vortex Signature"));
 
       layout_->addWidget(stiPastEnableCheckBox);
       layout_->addWidget(stiForecastEnableCheckBox);
+      layout_->addWidget(hailIndexEnableCheckBox);
+      layout_->addWidget(mesocycloneEnableCheckBox);
+      layout_->addWidget(tvsEnableCheckBox);
 
       auto& productSettings = settings::ProductSettings::Instance();
 
       stiPastEnabled_.SetSettingsVariable(productSettings.sti_past_enabled());
       stiForecastEnabled_.SetSettingsVariable(
          productSettings.sti_forecast_enabled());
+      hailIndexEnabled_.SetSettingsVariable(
+         productSettings.hail_index_enabled());
+      mesocycloneEnabled_.SetSettingsVariable(
+         productSettings.mesocyclone_enabled());
+      tvsEnabled_.SetSettingsVariable(productSettings.tvs_enabled());
 
       stiPastEnabled_.SetEditWidget(stiPastEnableCheckBox);
       stiForecastEnabled_.SetEditWidget(stiForecastEnableCheckBox);
+      hailIndexEnabled_.SetEditWidget(hailIndexEnableCheckBox);
+      mesocycloneEnabled_.SetEditWidget(mesocycloneEnableCheckBox);
+      tvsEnabled_.SetEditWidget(tvsEnableCheckBox);
 
       QObject::connect(hotkeyManager_.get(),
                        &manager::HotkeyManager::HotkeyPressed,
@@ -193,6 +210,9 @@ public:
 
    settings::SettingsInterface<bool> stiPastEnabled_ {};
    settings::SettingsInterface<bool> stiForecastEnabled_ {};
+   settings::SettingsInterface<bool> hailIndexEnabled_ {};
+   settings::SettingsInterface<bool> mesocycloneEnabled_ {};
+   settings::SettingsInterface<bool> tvsEnabled_ {};
 };
 
 Level3ProductsWidget::Level3ProductsWidget(QWidget* parent) :
