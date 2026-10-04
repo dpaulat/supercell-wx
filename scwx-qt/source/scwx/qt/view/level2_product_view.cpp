@@ -22,9 +22,6 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr std::uint32_t kMaxCoordinateGates_ =
    common::MAX_DATA_MOMENT_GATE_COORDINATES;
-static constexpr std::uint32_t kMaxRadialGates_ =
-   common::MAX_RADIALS * kMaxCoordinateGates_;
-static constexpr std::uint32_t kMaxCoordinates_ = kMaxRadialGates_ * 2u;
 
 static constexpr std::uint8_t kDataWordSize8_ = 8u;
 
@@ -88,8 +85,6 @@ public:
    {
       auto& unitSettings = settings::UnitSettings::Instance();
 
-      coordinates_.resize(kMaxCoordinates_);
-
       SetProduct(product);
 
       otherUnitsCallbackUuid_ =
@@ -131,11 +126,11 @@ public:
    template<typename T>
    [[nodiscard]] inline T RemapDataMoment(T dataMoment) const;
 
-   static constexpr std::size_t CoordinateOffset(std::uint32_t radial,
-                                                 std::uint32_t gate);
-   static std::int32_t          DataMomentStartGate(
-               const std::shared_ptr<wsr88d::rda::GenericRadarData::MomentDataBlock>&
-                  momentData);
+   [[nodiscard]] std::size_t CoordinateOffset(std::uint32_t radial,
+                                              std::uint32_t gate) const;
+   static std::int32_t       DataMomentStartGate(
+            const std::shared_ptr<wsr88d::rda::GenericRadarData::MomentDataBlock>&
+               momentData);
    static bool IsRadarDataIncomplete(
       const std::shared_ptr<const wsr88d::rda::ElevationScan>& radarData);
    static units::degrees<float> NormalizeAngle(units::degrees<float> angle);
@@ -158,6 +153,7 @@ public:
    bool lastSmoothingEnabled_ {false};
 
    std::vector<float>    coordinates_ {};
+   std::uint32_t         coordinateGateStride_ {0};
    std::vector<float>    vertices_ {};
    std::vector<uint8_t>  dataMoments8_ {};
    std::vector<uint16_t> dataMoments16_ {};
@@ -1081,11 +1077,11 @@ void Level2ProductView::ComputeSweep()
 
             const std::uint16_t baseCoord = gate - 1;
 
-            const std::size_t offset1 = Impl::CoordinateOffset(
+            const std::size_t offset1 = p->CoordinateOffset(
                (startRadial + radial) % vertexRadials, baseCoord);
             const std::size_t offset2 =
                offset1 + static_cast<std::size_t>(gatesPerBin) * 2;
-            const std::size_t offset3 = Impl::CoordinateOffset(
+            const std::size_t offset3 = p->CoordinateOffset(
                (startRadial + radial + 1) % vertexRadials, baseCoord);
             const std::size_t offset4 =
                offset3 + static_cast<std::size_t>(gatesPerBin) * 2;
@@ -1112,9 +1108,9 @@ void Level2ProductView::ComputeSweep()
          {
             const std::uint16_t baseCoord = gate;
 
-            const std::size_t offset1 = Impl::CoordinateOffset(
+            const std::size_t offset1 = p->CoordinateOffset(
                (startRadial + radial) % vertexRadials, baseCoord);
-            const std::size_t offset2 = Impl::CoordinateOffset(
+            const std::size_t offset2 = p->CoordinateOffset(
                (startRadial + radial + 1) % vertexRadials, baseCoord);
 
             vertices[vIndex++] = p->latitude_;
@@ -1252,6 +1248,13 @@ void Level2ProductView::Impl::ComputeCoordinates(
 
    // Limit radials
    numRadials = std::min<std::uint16_t>(numRadials, common::MAX_RADIALS);
+
+   // Pack coordinates to this sweep's radial and gate counts so WSR-88D
+   // volumes do not pay a larger than necessary allocation.
+   coordinateGateStride_ = numRangeBins;
+   coordinates_.resize(static_cast<std::size_t>(numRadials) *
+                       static_cast<std::size_t>(coordinateGateStride_) * 2u);
+   coordinates_.shrink_to_fit();
 
    auto radials = boost::irange<std::uint32_t>(0u, numRadials);
    auto gates   = boost::irange<std::uint32_t>(0u, numRangeBins);
@@ -1407,11 +1410,11 @@ void Level2ProductView::Impl::ComputeCoordinates(
    logger_->debug("Coordinates calculated in {}", timer.format(6, "%ws"));
 }
 
-constexpr std::size_t
-Level2ProductView::Impl::CoordinateOffset(std::uint32_t radial,
-                                          std::uint32_t gate)
+std::size_t Level2ProductView::Impl::CoordinateOffset(std::uint32_t radial,
+                                                      std::uint32_t gate) const
 {
-   return (static_cast<std::size_t>(radial) * kMaxCoordinateGates_ + gate) * 2u;
+   return (static_cast<std::size_t>(radial) * coordinateGateStride_ + gate) *
+          2u;
 }
 
 std::int32_t Level2ProductView::Impl::DataMomentStartGate(
