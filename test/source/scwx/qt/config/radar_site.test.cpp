@@ -45,6 +45,18 @@ TEST_F(RadarSiteTest, DefaultConfig)
    EXPECT_DOUBLE_EQ(radarSite->longitude(), -90.682877);
 }
 
+TEST_F(RadarSiteTest, GetIsCaseInsensitive)
+{
+   ASSERT_GT(numSites_, 0);
+
+   const auto upper = RadarSite::Get("KLSX");
+   const auto lower = RadarSite::Get("klsx");
+
+   ASSERT_NE(upper, nullptr);
+   EXPECT_EQ(upper, lower);
+   EXPECT_EQ(upper->id(), "KLSX");
+}
+
 TEST_F(RadarSiteTest, TpbiTdjtAlias)
 {
    ASSERT_GT(numSites_, 0);

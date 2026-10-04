@@ -29,6 +29,7 @@
 #   pragma warning(push, 0)
 #endif
 
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/thread_pool.hpp>
@@ -1445,7 +1446,16 @@ RadarProductManager::Instance(const std::string& radarSite)
    std::shared_ptr<RadarProductManager> instance        = nullptr;
    bool                                 instanceCreated = false;
 
-   const std::string canonicalRadarId = common::GetCanonicalRadarId(radarSite);
+   std::string canonicalRadarId {};
+   if (const auto site = config::RadarSite::Get(radarSite); site != nullptr)
+   {
+      canonicalRadarId = common::GetCanonicalRadarId(site->id());
+   }
+   else
+   {
+      canonicalRadarId =
+         common::GetCanonicalRadarId(boost::to_upper_copy(radarSite));
+   }
 
    {
       std::unique_lock lock {instanceMutex_};

@@ -110,6 +110,28 @@ TEST(RadarProductManager, CoordinateGenerationMatchesGeodesicReference)
                              0.5f);
 }
 
+TEST(RadarProductManager, InstanceIsCaseInsensitive)
+{
+   config::RadarSite::Initialize();
+
+   const auto upper = RadarProductManager::Instance("KLSX");
+   const auto lower = RadarProductManager::Instance("klsx");
+
+   ASSERT_NE(upper, nullptr);
+   EXPECT_EQ(upper, lower);
+   EXPECT_EQ(upper->radar_id(), "KLSX");
+}
+
+TEST(RadarProductManager, InstanceUnknownSiteIsCaseInsensitive)
+{
+   const auto upper = RadarProductManager::Instance("NHUR");
+   const auto lower = RadarProductManager::Instance("nhur");
+
+   ASSERT_NE(upper, nullptr);
+   EXPECT_EQ(upper, lower);
+   EXPECT_EQ(upper->radar_id(), "NHUR");
+}
+
 TEST(ProviderManager, NameFormatting)
 {
    config::RadarSite::Initialize();
