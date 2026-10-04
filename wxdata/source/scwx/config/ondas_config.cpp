@@ -176,6 +176,7 @@ OndasConfig::GetTimePointFromFilename(const std::string& filename)
 
    // June 26, 2005 @ 11:45PM UTC would be 20050626_2145
 
+   // NOLINTNEXTLINE(modernize-use-designated-initializers)
    static constexpr re2::LazyRE2 re {R"((\d{8})_?(\d{4}))"};
 
    std::chrono::system_clock::time_point time {};
