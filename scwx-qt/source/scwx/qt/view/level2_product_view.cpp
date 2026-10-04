@@ -827,9 +827,10 @@ void Level2ProductView::ComputeSweep()
       const std::int32_t numberOfDataMomentGates =
          std::min<std::int32_t>(momentData->number_of_data_moment_gates(),
                                 static_cast<std::int32_t>(gates));
-      const std::int32_t endGate = std::min<std::int32_t>(
-         startGate + numberOfDataMomentGates * gatesPerBin,
-         static_cast<std::int32_t>(common::MAX_DATA_MOMENT_GATES));
+      const auto endGate = std::min<std::int32_t>(
+         {startGate + numberOfDataMomentGates * gatesPerBin,
+          static_cast<std::int32_t>(common::MAX_DATA_MOMENT_GATES),
+          static_cast<std::int32_t>(p->coordinateGateStride_)});
 
       if (smoothingEnabled)
       {
