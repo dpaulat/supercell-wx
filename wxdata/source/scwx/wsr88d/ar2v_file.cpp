@@ -9,6 +9,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <utility>
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -303,8 +304,12 @@ std::size_t Ar2vFileImpl::DecompressLDMRecords(std::istream& is)
 
       try
       {
-         std::streamsize bytesCopied = boost::iostreams::copy(in, ldmData_);
+         std::stringstream decompressedRecord;
+         std::streamsize   bytesCopied =
+            boost::iostreams::copy(in, decompressedRecord);
          logger_->trace("Decompressed record size = {} bytes", bytesCopied);
+
+         ldmData_ << std::move(decompressedRecord).str();
       }
       catch (const boost::iostreams::bzip2_error& ex)
       {
