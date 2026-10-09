@@ -341,7 +341,7 @@ AwsNexradDataProvider::LoadObjectByKey(const std::string& key)
    if (outcome.IsSuccess())
    {
       auto& body = outcome.GetResultWithOwnership().GetBody();
-      nexradFile = wsr88d::NexradFileFactory::Create(body);
+      nexradFile = wsr88d::NexradFileFactory::Create(body, key);
    }
    else if (p->running_)
    {

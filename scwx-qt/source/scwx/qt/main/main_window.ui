@@ -61,6 +61,7 @@
      <addaction name="actionScreenCaptureSaveImage"/>
     </widget>
     <addaction name="menu_Open"/>
+    <addaction name="actionSaveNexrad"/>
     <addaction name="separator"/>
     <addaction name="menuScreenCapture"/>
     <addaction name="separator"/>
@@ -482,6 +483,14 @@
   <action name="actionOpenTextEvent">
    <property name="text">
     <string>Text &amp;Event Product...</string>
+   </property>
+  </action>
+  <action name="actionSaveNexrad">
+   <property name="text">
+    <string>&amp;Save NEXRAD Product...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+S</string>
    </property>
   </action>
   <action name="actionAlerts">
