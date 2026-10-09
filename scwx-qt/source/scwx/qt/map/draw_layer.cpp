@@ -5,11 +5,17 @@
 
 #include <ranges>
 
-#include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_qt.hpp>
 #include <utility>
 #include <fmt/format.h>
 #include <imgui.h>
+
+#include <scwx/qt/render/rhi_imgui_util.hpp>
+#include <scwx/qt/render/rhi_vulkan_overlay.hpp>
+
+#if !defined(__APPLE__)
+#   include <backends/imgui_impl_vulkan.h>
+#endif
 
 namespace scwx::qt::map
 {
@@ -20,9 +26,9 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class DrawLayer::Impl
 {
 public:
-   explicit Impl(std::shared_ptr<gl::GlContext> glContext,
-                 const std::string&             imGuiContextName) :
-       glContext_ {std::move(glContext)}
+   explicit Impl(std::shared_ptr<render::RenderContext> renderContext,
+                 const std::string&                     imGuiContextName) :
+       renderContext_ {std::move(renderContext)}
    {
       static size_t currentLayerId_ {0u};
       imGuiContextName_ =
@@ -40,11 +46,6 @@ public:
       // Set ImGui Context
       ImGui::SetCurrentContext(imGuiContext_);
 
-      // Shutdown ImGui Context
-      if (imGuiRendererInitialized_)
-      {
-         ImGui_ImplOpenGL3_Shutdown();
-      }
       ImGui_ImplQt_Shutdown();
 
       // Destroy ImGui Context
@@ -56,10 +57,9 @@ public:
    Impl(const Impl&&)            = delete;
    Impl& operator=(const Impl&&) = delete;
 
-   std::shared_ptr<gl::GlContext> glContext_;
+   std::shared_ptr<render::RenderContext> renderContext_;
 
-   std::vector<std::shared_ptr<gl::draw::DrawItem>> drawList_ {};
-   GLuint textureAtlas_ {GL_INVALID_INDEX};
+   std::vector<std::shared_ptr<draw::DrawItem>> drawList_ {};
 
    std::uint64_t textureAtlasBuildCount_ {};
 
@@ -68,92 +68,95 @@ public:
    bool          imGuiRendererInitialized_ {};
 };
 
-DrawLayer::DrawLayer(std::shared_ptr<gl::GlContext> glContext,
-                     const std::string&             imGuiContextName) :
-    GenericLayer(glContext),
-    p(std::make_unique<Impl>(std::move(glContext), imGuiContextName))
+DrawLayer::DrawLayer(std::shared_ptr<render::RenderContext> renderContext,
+                     const std::string&                     imGuiContextName) :
+    GenericLayer(renderContext),
+    p(std::make_unique<Impl>(std::move(renderContext), imGuiContextName))
 {
 }
 DrawLayer::~DrawLayer() = default;
 
 void DrawLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
 {
-   p->textureAtlas_ = p->glContext_->GetTextureAtlas();
-
-   for (auto& item : p->drawList_)
-   {
-      item->Initialize();
-   }
-
    ImGuiInitialize(mapContext);
 }
 
 void DrawLayer::ImGuiFrameStart(const std::shared_ptr<MapContext>& mapContext)
 {
-   auto defaultFont = manager::FontManager::Instance().GetImGuiFont(
-      types::FontCategory::Default);
-
-   // Setup ImGui Frame
-   ImGui::SetCurrentContext(p->imGuiContext_);
-
-   // Start ImGui Frame
-   model::ImGuiContextModel::Instance().NewFrame();
-   ImGui_ImplQt_NewFrame(mapContext->widget());
-   ImGui_ImplOpenGL3_NewFrame();
-   ImGui::NewFrame();
-   ImGui::PushFont(defaultFont.first->font(), defaultFont.second.value());
-   ImGui::PushStyleVar(ImGuiStyleVar_Alpha, opacity());
+   (void) mapContext;
 }
 
-void DrawLayer::ImGuiFrameEnd()
-{
-   // Pop default style and font
-   ImGui::PopStyleVar();
-   ImGui::PopFont();
-
-   // Render ImGui Frame
-   ImGui::Render();
-   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
+void DrawLayer::ImGuiFrameEnd() {}
 
 void DrawLayer::ImGuiInitialize(const std::shared_ptr<MapContext>& mapContext)
 {
    ImGui::SetCurrentContext(p->imGuiContext_);
    ImGui_ImplQt_RegisterWidget(mapContext->widget());
-   ImGui_ImplOpenGL3_Init();
    p->imGuiRendererInitialized_ = true;
 }
 
 void DrawLayer::RenderWithoutImGui(
    const QMapLibre::CustomLayerRenderParameters& params)
 {
-   auto& glContext = p->glContext_;
-
-   p->textureAtlas_ = glContext->GetTextureAtlas();
-
-   // Determine if the texture atlas changed since last render
-   const std::uint64_t newTextureAtlasBuildCount =
-      glContext->texture_buffer_count();
-   const bool textureAtlasChanged =
-      newTextureAtlasBuildCount != p->textureAtlasBuildCount_;
-
-   // Set OpenGL blend mode for transparency
-   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-   glActiveTexture(GL_TEXTURE0);
-   glBindTexture(GL_TEXTURE_2D_ARRAY, p->textureAtlas_);
-
-   for (auto& item : p->drawList_)
-   {
-      item->Render(params, textureAtlasChanged);
-   }
-
-   p->textureAtlasBuildCount_ = newTextureAtlasBuildCount;
+   (void) params;
 }
 
 void DrawLayer::ImGuiSelectContext()
 {
    ImGui::SetCurrentContext(p->imGuiContext_);
+}
+
+void DrawLayer::ImGuiFrameStartVulkan(
+   const std::shared_ptr<MapContext>& mapContext)
+{
+   auto defaultFont = manager::FontManager::Instance().GetImGuiFont(
+      types::FontCategory::Default);
+
+   ImGui::SetCurrentContext(p->imGuiContext_);
+
+   model::ImGuiContextModel::Instance().NewFrame();
+   ImGui_ImplQt_NewFrame(mapContext->widget());
+#if !defined(__APPLE__)
+   ImGui_ImplVulkan_NewFrame();
+#endif
+   ImGui::NewFrame();
+   ImGui::PushFont(defaultFont.first->font(), defaultFont.second.value());
+   ImGui::PushStyleVar(ImGuiStyleVar_Alpha, opacity());
+}
+
+void DrawLayer::ImGuiFrameEndVulkan(QRhiCommandBuffer* commandBuffer)
+{
+   ImGui::PopStyleVar();
+   ImGui::PopFont();
+   ImGui::Render();
+   render::RenderImGuiDrawData(commandBuffer);
+}
+
+void DrawLayer::RenderWithoutImGuiVulkan(
+   QRhiCommandBuffer*                            commandBuffer,
+   render::RhiVulkanOverlayResources&            resources,
+   const QMapLibre::CustomLayerRenderParameters& params)
+{
+   const std::uint64_t newTextureAtlasBuildCount =
+      p->renderContext_->texture_buffer_count();
+   const bool textureAtlasChanged =
+      newTextureAtlasBuildCount != p->textureAtlasBuildCount_;
+
+   for (auto& item : p->drawList_)
+   {
+      item->RenderVulkan(commandBuffer, resources, params, textureAtlasChanged);
+   }
+
+   p->textureAtlasBuildCount_ = newTextureAtlasBuildCount;
+}
+
+void DrawLayer::RenderVulkanOverlay(
+   QRhiCommandBuffer*                 commandBuffer,
+   render::RhiVulkanOverlayResources& resources,
+   const std::shared_ptr<MapContext>& /* mapContext */,
+   const QMapLibre::CustomLayerRenderParameters& params)
+{
+   RenderWithoutImGuiVulkan(commandBuffer, resources, params);
 }
 
 void DrawLayer::Render(const std::shared_ptr<MapContext>&            mapContext,
@@ -164,15 +167,7 @@ void DrawLayer::Render(const std::shared_ptr<MapContext>&            mapContext,
    ImGuiFrameEnd();
 }
 
-void DrawLayer::Deinitialize()
-{
-   p->textureAtlas_ = GL_INVALID_INDEX;
-
-   for (auto& item : p->drawList_)
-   {
-      item->Deinitialize();
-   }
-}
+void DrawLayer::Deinitialize() {}
 
 bool DrawLayer::RunMousePicking(
    const std::shared_ptr<MapContext>& /* mapContext */,
@@ -205,7 +200,7 @@ bool DrawLayer::RunMousePicking(
    return itemPicked;
 }
 
-void DrawLayer::AddDrawItem(const std::shared_ptr<gl::draw::DrawItem>& drawItem)
+void DrawLayer::AddDrawItem(const std::shared_ptr<draw::DrawItem>& drawItem)
 {
    p->drawList_.push_back(drawItem);
 }

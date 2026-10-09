@@ -24,6 +24,13 @@ units::length::meters<double>
 glm::mat4 GetMapMatrix(const QMapLibre::CustomLayerRenderParameters& params);
 glm::vec2 GetMapScale(const QMapLibre::CustomLayerRenderParameters& params);
 
+/** Overlay uniforms must use the same pixel dimensions as the RHI color
+ * texture. */
+[[nodiscard]] QMapLibre::CustomLayerRenderParameters
+BuildOverlayRenderParameters(const QMapLibre::Map& map,
+                             double                renderWidth,
+                             double                renderHeight);
+
 /** Ground meters per screen pixel at @p widgetPixel (MapLibre mercator scale).
  */
 [[nodiscard]] units::length::meters<double>

@@ -43,6 +43,8 @@ signals:
    void AlertUpdated(const types::TextEventKey& key,
                      std::size_t                messageIndex,
                      boost::uuids::uuid         uuid);
+   void BulkAlertLoadStarted();
+   void BulkAlertLoadFinished();
 
 private:
    class Impl;

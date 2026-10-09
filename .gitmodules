@@ -22,12 +22,9 @@
 [submodule "external/imgui-backend-qt"]
 	path = external/imgui-backend-qt
 	url = https://github.com/dpaulat/imgui-backend-qt
-[submodule "external/maplibre-native"]
-	path = external/maplibre-native
-	url = https://github.com/dpaulat/maplibre-gl-native.git
 [submodule "external/maplibre-native-qt"]
 	path = external/maplibre-native-qt
-	url = https://github.com/dpaulat/maplibre-native-qt.git
+	url = https://github.com/maplibre/maplibre-native-qt.git
 [submodule "external/qt6ct"]
 	path = external/qt6ct
 	url = https://github.com/AdenKoperczak/qt6ct.git

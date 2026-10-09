@@ -39,6 +39,8 @@ public:
    void LoadApplicationFont(types::Font font, const std::string& filename);
    void InitializeFonts();
 
+   void EnsureImGuiFontsBuilt();
+
    static units::font_size::pixels<float>
    ImFontSize(units::font_size::pixels<double> size);
 

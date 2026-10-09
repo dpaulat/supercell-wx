@@ -1,8 +1,6 @@
 #pragma once
 
-#include <scwx/qt/gl/gl.hpp>
-
-#include <QOpenGLWidget>
+#include <QWidget>
 
 struct ImGuiContext;
 
@@ -20,7 +18,7 @@ namespace ui
 
 class ImGuiDebugWidgetImpl;
 
-class ImGuiDebugWidget : public QOpenGLWidget
+class ImGuiDebugWidget : public QWidget
 {
 private:
    Q_DISABLE_COPY(ImGuiDebugWidget)
@@ -32,9 +30,6 @@ public:
    std::string context_name() const;
 
    void set_current_context(ImGuiContext* context);
-
-   void initializeGL() override;
-   void paintGL() override;
 
 private:
    friend class ImGuiDebugWidgetImpl;

@@ -1,7 +1,7 @@
 #include <scwx/qt/map/marker_layer.hpp>
 #include <scwx/qt/manager/marker_manager.hpp>
 #include <scwx/util/logger.hpp>
-#include <scwx/qt/gl/draw/geo_icons.hpp>
+#include <scwx/qt/draw/geo_icons.hpp>
 #include <scwx/qt/types/marker_types.hpp>
 #include <scwx/qt/ui/edit_marker_dialog.hpp>
 
@@ -19,10 +19,10 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 class MarkerLayer::Impl
 {
 public:
-   explicit Impl(MarkerLayer*                          self,
-                 const std::shared_ptr<gl::GlContext>& glContext) :
+   explicit Impl(MarkerLayer*                                  self,
+                 const std::shared_ptr<render::RenderContext>& renderContext) :
        self_ {self},
-       geoIcons_ {std::make_shared<gl::draw::GeoIcons>(glContext)},
+       geoIcons_ {std::make_shared<draw::GeoIcons>(renderContext)},
        editMarkerDialog_ {std::make_shared<ui::EditMarkerDialog>()}
    {
       ConnectSignals();
@@ -44,7 +44,7 @@ public:
 
    MarkerLayer* self_;
 
-   std::shared_ptr<gl::draw::GeoIcons>   geoIcons_;
+   std::shared_ptr<draw::GeoIcons>       geoIcons_;
    std::shared_ptr<ui::EditMarkerDialog> editMarkerDialog_;
 };
 
@@ -76,7 +76,7 @@ void MarkerLayer::Impl::ReloadMarkers()
          // callback.
          const types::MarkerId id = marker.id;
 
-         const std::shared_ptr<gl::draw::GeoIconDrawItem> icon =
+         const std::shared_ptr<draw::GeoIconDrawItem> icon =
             geoIcons_->AddIcon();
 
          const std::string latitudeString =
@@ -130,9 +130,10 @@ void MarkerLayer::Impl::ReloadMarkers()
    Q_EMIT self_->NeedsRendering();
 }
 
-MarkerLayer::MarkerLayer(const std::shared_ptr<gl::GlContext>& glContext) :
-    DrawLayer(glContext, "MarkerLayer"),
-    p(std::make_unique<MarkerLayer::Impl>(this, glContext))
+MarkerLayer::MarkerLayer(
+   const std::shared_ptr<render::RenderContext>& renderContext) :
+    DrawLayer(renderContext, "MarkerLayer"),
+    p(std::make_unique<MarkerLayer::Impl>(this, renderContext))
 {
    AddDrawItem(p->geoIcons_);
 }
@@ -166,8 +167,6 @@ void MarkerLayer::Render(const std::shared_ptr<MapContext>& mapContext,
                          const QMapLibre::CustomLayerRenderParameters& params)
 {
    DrawLayer::Render(mapContext, params);
-
-   SCWX_GL_CHECK_ERROR();
 }
 
 void MarkerLayer::Deinitialize()

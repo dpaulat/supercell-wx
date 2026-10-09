@@ -39,7 +39,8 @@ public:
 
    QModelIndex IndexOf(const std::string& contextName) const;
 
-   ImGuiContext* CreateContext(const std::string& name);
+   ImGuiContext* CreateContext(const std::string& name,
+                               bool               shareFontAtlas = true);
    void          DestroyContext(const std::string& name);
 
    void NewFrame();
