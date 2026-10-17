@@ -188,7 +188,7 @@ Modify [conanfile.py](conanfile.py) `requires` tuple, then re-run Conan install.
 
 ### Visual Studio Code Setup
 Recommended extensions: C/C++ Extension Pack, clangd, CMake Tools, Python. 
-**Windows-specific:** Launch from *x64 Native Tools Command Prompt for VS 2022* or configure shortcut (see [developer-setup.rst](https://supercell-wx.readthedocs.io/en/stable/development/developer-setup.html)).
+**Windows-specific:** Launch from *x64 Native Tools Command Prompt for VS 2026* or configure shortcut (see [developer-setup.rst](https://supercell-wx.readthedocs.io/en/stable/development/developer-setup.html)).
 
 ### Address Sanitizer
 Enable with `-DSCWX_ADDRESS_SANITIZER=ON` or use presets like `linux-gcc-debug-asan`. Useful for memory leak/corruption detection.
