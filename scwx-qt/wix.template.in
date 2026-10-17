@@ -44,7 +44,9 @@
         <WixVariable Id="WixUIDialogBmp" Value="$(var.CPACK_WIX_UI_DIALOG)"/>
         <?endif?>
 
-        <FeatureRef Id="ProductFeature"/>
+        <FeatureRef Id="ProductFeature">
+            <ComponentRef Id="CleanupProviderShortcuts"/>
+        </FeatureRef>
 
         <!-- Keep Start Menu / taskbar pins across major upgrades: do not remove
              shortcuts while the old product is being replaced. -->
@@ -75,5 +77,26 @@
 
         <?include "properties.wxi"?>
         <?include "product_fragment.wxi"?>
+
+        <!-- Remove NSIS-created provider shortcuts on uninstall. The MSI does
+             not create these .lnk files; the NSIS bootstrapper may. -->
+        <DirectoryRef Id="PROGRAM_MENU_FOLDER">
+            <Component Id="CleanupProviderShortcuts"
+                       Guid="368B24DA-3D65-40C9-9A3A-6DF7F8A30108"
+                       Win64="yes">
+                <RemoveFile Id="RemoveIAStateShortcut"
+                            Name="Supercell Wx (IA State).lnk"
+                            On="uninstall"/>
+                <RemoveFile Id="RemoveMRRLShortcut"
+                            Name="Supercell Wx (MRRL).lnk"
+                            On="uninstall"/>
+                <RegistryValue Root="HKCU"
+                               Key="Software\Dan Paulat\Supercell Wx"
+                               Name="ProviderShortcutCleanup"
+                               Type="integer"
+                               Value="1"
+                               KeyPath="yes"/>
+            </Component>
+        </DirectoryRef>
     </Product>
 </Wix>
