@@ -410,27 +410,20 @@ jobs:
     - name: Install Conan Packages
       id: conan-install
       shell: pwsh
+      env:
+        CONAN_REMOTE_URL: ${{ vars.CONAN_REMOTE_URL }}
+        CONAN_REMOTE_USERNAME: ${{ secrets.CONAN_REMOTE_USERNAME }}
+        CONAN_REMOTE_PASSWORD: ${{ secrets.CONAN_REMOTE_PASSWORD }}
       run: |
         $ErrorActionPreference = 'Stop'
         $PSNativeCommandUseErrorActionPreference = $true
-        conan config install `
-          ./source/tools/conan/profiles/${{ matrix.conan_build_profile }} `
-          -tf profiles
-        conan config install `
-          ./source/tools/conan/profiles/${{ matrix.conan_host_profile }} `
-          -tf profiles
-        mkdir build
-        cd build
-        mkdir conan
-        conan install ../source/ `
-          --remote conancenter `
-          --build missing `
-          --profile:build ${{ matrix.conan_build_profile }} `
-          --profile:host ${{ matrix.conan_host_profile }} `
-          --settings:all build_type=${{ matrix.build_type }} `
-          --output-folder ./conan/ `
-          ${{ matrix.conan_package_manager }}
-        conan cache clean
+        ./source/tools/ci/conan-install.ps1 `
+          -SourceDir ./source `
+          -BuildDir ./build `
+          -BuildType ${{ matrix.build_type }} `
+          -BuildProfile ${{ matrix.conan_build_profile }} `
+          -HostProfile ${{ matrix.conan_host_profile }} `
+          -PackageManagerArgs '${{ matrix.conan_package_manager }}'
 
     - name: Save Conan Packages
       if: steps.conan-install.outcome == 'success' && steps.cache-conan.outputs.cache-hit != 'true'
