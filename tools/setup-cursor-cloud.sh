@@ -44,13 +44,13 @@ python3 -m venv "${repo_root}/.venv"
 source "${repo_root}/.venv/bin/activate"
 python3 -m pip install --upgrade pip
 
-qt_prefix="/opt/Qt/6.11.1/gcc_64"
+qt_prefix="/opt/Qt/6.12.0/gcc_64"
 if [ ! -d "${qt_prefix}" ]; then
     python3 -m pip install aqtinstall
     sudo mkdir -p /opt/Qt
     sudo chown "$(id -u):$(id -g)" /opt/Qt
     AQT_CONFIG="${repo_root}/tools/aqt-settings.ini" \
-        aqt install-qt linux desktop 6.11.1 linux_gcc_64 \
+        aqt install-qt linux desktop 6.12.0 linux_gcc_64 \
         -m qtimageformats qtmultimedia qtpositioning qtserialport \
         --outputdir /opt/Qt
 fi

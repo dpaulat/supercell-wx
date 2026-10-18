@@ -20,7 +20,7 @@ jobs:
             build_type: Release
             vs_arch: x64
             vs_version: 18
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: win64_msvc2022_64
             qt_arch_dir: msvc2022_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -37,7 +37,7 @@ jobs:
             build_type: Release
             vs_arch: arm64
             vs_version: 18
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: win64_msvc2022_arm64_cross_compiled
             qt_arch_dir: msvc2022_arm64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport

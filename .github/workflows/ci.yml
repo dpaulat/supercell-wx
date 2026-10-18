@@ -30,7 +30,7 @@ jobs:
             ldflags: ''
             vs_arch: x64
             vs_version: 18
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: win64_msvc2022_64
             qt_arch_dir: msvc2022_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -50,7 +50,7 @@ jobs:
             ldflags: ''
             vs_arch: arm64
             vs_version: 18
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: win64_msvc2022_arm64_cross_compiled
             qt_arch_dir: msvc2022_arm64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -68,7 +68,7 @@ jobs:
             compiler: gcc
             cppflags: ''
             ldflags: ''
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: linux_gcc_64
             qt_arch_dir: gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -87,7 +87,7 @@ jobs:
             compiler: gcc
             cppflags: ''
             ldflags: ''
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: linux_gcc_64
             qt_arch_dir: gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -106,7 +106,7 @@ jobs:
             compiler: gcc
             cppflags: ''
             ldflags: ''
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: linux_gcc_64
             qt_arch_dir: gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -125,7 +125,7 @@ jobs:
             compiler: gcc
             cppflags: ''
             ldflags: ''
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: linux_gcc_64
             qt_arch_dir: gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -144,7 +144,7 @@ jobs:
             compiler: gcc
             cppflags: ''
             ldflags: ''
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: linux_gcc_64
             qt_arch_dir: gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -163,7 +163,7 @@ jobs:
             compiler: clang
             cppflags: ''
             ldflags: ''
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: linux_gcc_64
             qt_arch_dir: gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -182,7 +182,7 @@ jobs:
             compiler: clang
             cppflags: ''
             ldflags: ''
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: linux_gcc_64
             qt_arch_dir: gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -201,7 +201,7 @@ jobs:
             compiler: clang
             cppflags: ''
             ldflags: ''
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: linux_gcc_64
             qt_arch_dir: gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -220,7 +220,7 @@ jobs:
             compiler: clang
             cppflags: ''
             ldflags: ''
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: linux_gcc_64
             qt_arch_dir: gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -239,7 +239,7 @@ jobs:
             compiler: clang
             cppflags: ''
             ldflags: ''
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: linux_gcc_64
             qt_arch_dir: gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -258,7 +258,7 @@ jobs:
             compiler: gcc
             cppflags: ''
             ldflags: ''
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: linux_gcc_arm64
             qt_arch_dir: gcc_arm64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -275,7 +275,7 @@ jobs:
             env_cc: clang
             env_cxx: clang++
             compiler: clang
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: clang_64
             qt_arch_dir: macos
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
@@ -291,7 +291,7 @@ jobs:
             env_cc: clang
             env_cxx: clang++
             compiler: clang
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: clang_64
             qt_arch_dir: macos
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport

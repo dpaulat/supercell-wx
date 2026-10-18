@@ -103,12 +103,12 @@ Per [tools/scwx_config.cmake](tools/scwx_config.cmake), binaries go to:
   - Use submodules when heavy customization or unreleased versions needed
   - MapLibre is vendored because Qt bindings require custom build
 
-### Qt 6.11.1 Requirement
+### Qt 6.12.0 Requirement
 Qt must be installed separately (not via Conan). Install via [Qt online installer](https://www.qt.io/download-open-source) or `aqtinstall`:
 ```bash
-aqt install-qt windows desktop 6.11.1 win64_msvc2022_64 -m qtimageformats qtmultimedia qtpositioning qtserialport
+aqt install-qt windows desktop 6.12.0 win64_msvc2022_64 -m qtimageformats qtmultimedia qtpositioning qtserialport
 ```
-Qt version compatibility: patch releases interchangeable (6.11.x), minor versions may break.
+Qt version compatibility: patch releases interchangeable (6.12.x), minor versions may break.
 
 ## Testing
 
@@ -202,11 +202,11 @@ See [.github/workflows/ci.yml](.github/workflows/ci.yml) for complete build matr
 
 ## Cursor Cloud specific instructions
 
-The Linux dev environment (Ubuntu 24.04) is refreshed by `./tools/setup-cursor-cloud.sh`. Recurring environment builds start from a **clean Ubuntu image** (not the previous snapshot), so install must provision missing packages itself: `python3-venv` / `python3.12-venv`, `ninja-build`, GCC as `cc`/`c++`, and Qt 6.11.1 under `/opt/Qt`. After that it runs `git submodule update --init --recursive` and `./tools/setup-linux-ninja-release.sh` (venv, Conan, CMake into `build-release/`). Notes that are not obvious:
+The Linux dev environment (Ubuntu 24.04) is refreshed by `./tools/setup-cursor-cloud.sh`. Recurring environment builds start from a **clean Ubuntu image** (not the previous snapshot), so install must provision missing packages itself: `python3-venv` / `python3.12-venv`, `ninja-build`, GCC as `cc`/`c++`, and Qt 6.12.0 under `/opt/Qt`. After that it runs `git submodule update --init --recursive` and `./tools/setup-linux-ninja-release.sh` (venv, Conan, CMake into `build-release/`). Notes that are not obvious:
 
 - **python3-venv:** Cursor's default Ubuntu image does not include `ensurepip`. `python3 -m venv .venv` fails without `python3.12-venv`, and the old setup scripts kept going (`conan: command not found`, then CMake could not find Ninja).
 - **Compiler gotcha:** The base image's default `cc`/`c++` alternatives point at Clang, and Clang fails the project's compiler check with `cannot find -lstdc++`. The project builds with GCC 13, so install sets `CC`/`CXX` to `gcc-13`/`g++-13` and `update-alternatives` to gcc. Don't switch them back to Clang.
-- **Qt:** Qt 6.11.1 lives at `/opt/Qt/6.11.1/gcc_64` (installed via `aqt` when missing). The setup script already points CMake at it.
+- **Qt:** Qt 6.12.0 lives at `/opt/Qt/6.12.0/gcc_64` (installed via `aqt` when missing). The setup script already points CMake at it.
 - **PATH:** If the venv is not active, `conan` from a `--user` pip install lives in `~/.local/bin`. Setup scripts prepend that directory to `PATH`.
 - **Build:** `source .venv/bin/activate`, then `cmake --build build-release --target supercell-wx wxtest` (or `cd build-release && ninja supercell-wx wxtest`). Binaries land in `build-release/Release/bin/`. The first full build is long (~1300 targets, includes vendored MapLibre).
 - **Test:** `cd build-release && ctest --output-on-failure --exclude-regex "test_mln.*|NtpClient.*|UpdateManager.*"` (same exclusions as CI; those tests need network and/or a map API key). Running tests writes into the `test/data` submodule (e.g. `json/settings/*.json`) — `git checkout` those before committing.
