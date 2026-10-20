@@ -20,7 +20,7 @@ jobs:
             build_type: Release
             env_cc: clang-21
             env_cxx: clang++-21
-            qt_version: 6.11.1
+            qt_version: 6.12.0
             qt_arch_aqt: linux_gcc_64
             qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
             qt_tools: ''
@@ -103,23 +103,19 @@ jobs:
     - name: Install Conan Packages
       id: conan-install
       shell: pwsh
+      env:
+        CONAN_REMOTE_URL: ${{ vars.CONAN_REMOTE_URL }}
+        CONAN_REMOTE_USERNAME: ${{ secrets.CONAN_REMOTE_USERNAME }}
+        CONAN_REMOTE_PASSWORD: ${{ secrets.CONAN_REMOTE_PASSWORD }}
       run: |
         $ErrorActionPreference = 'Stop'
         $PSNativeCommandUseErrorActionPreference = $true
-        conan config install `
-          ./source/tools/conan/profiles/${{ matrix.conan_profile }} `
-          -tf profiles
-        mkdir build
-        cd build
-        mkdir conan
-        conan install ../source/ `
-          --remote conancenter `
-          --build missing `
-          --profile:all ${{ matrix.conan_profile }} `
-          --settings:all build_type=${{ matrix.build_type }} `
-          --output-folder ./conan/ `
-          ${{ matrix.conan_package_manager }}
-        conan cache clean
+        ./source/tools/ci/conan-install.ps1 `
+          -SourceDir ./source `
+          -BuildDir ./build `
+          -BuildType ${{ matrix.build_type }} `
+          -Profile ${{ matrix.conan_profile }} `
+          -PackageManagerArgs '${{ matrix.conan_package_manager }}'
 
     - name: Save Conan Packages
       if: steps.conan-install.outcome == 'success' && steps.cache-conan.outputs.cache-hit != 'true'

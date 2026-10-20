@@ -44,7 +44,7 @@ SetupWizard::SetupWizard(QWidget* parent) :
    setPage(static_cast<int>(Page::AudioCodec), new AudioCodecPage(this));
    setPage(static_cast<int>(Page::Finish), new FinishPage(this));
 
-#if !defined(Q_OS_MAC)
+#if !defined(Q_OS_MACOS)
    setWizardStyle(QWizard::WizardStyle::ModernStyle);
 #endif
 
