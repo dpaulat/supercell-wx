@@ -33,7 +33,7 @@ MF91, MF91, 14.50139, -61.0175, 370.0, 1, MQ, MARTINIQUE
 MF92, MF92, -20.91167, 55.42194, 740.0, 1, RE, LA RÉUNION COLORADO
 MF93, MF93, -21.19056, 55.57361, 1710.0, 1, RE, LA REUNION PITON VILLERS
 MF94, MF94, -22.27611, 166.45278, 70.0, 1, NC, NOUVELLE-CALÉDONIE NOUMEA
-MF96, MF96, -20.93889, 167.21806, 30.0, 1, FR, NOUVELLE-CALÉDONIE LIFOU
+MF96, MF96, -20.93889, 167.21806, 30.0, 1, NC, NOUVELLE-CALÉDONIE LIFOU
 
 1852, CANC, 21.0290107727051, -86.8521041870117, 23, 1, MX, Cancun
 1853, GUAS, 25.5674991607666, -108.463333129883, 57, 1, MX, Guasave
@@ -94,7 +94,6 @@ nhas, norw, 70.6052, 22.443, 444, 1, NO, Hasvik
 nhfj, norw, 61.2318, 10.5273, 1080, 1, NO, Hafjell
 nhgb, norw, 58.3601, 7.1648, 631, 1, NO, Haegebostad
 nhur, norw, 59.6272, 10.5645, 363, 1, NO, Hurum
-nosl, norw, 59.855, 10.379, 466, 1, NO, Oslo
 nrsa, norw, 63.6905, 10.2037, 616, 1, NO, Rissa
 nrsg, norw, 69.2186, 23.4397, 604, 1, NO, Rassegalvarri
 nrst, norw, 67.5307, 12.0986, 17, 1, NO, Rost
@@ -107,18 +106,18 @@ dsam, test,	55.8119, 10.5853, 48, 1, DK, Samsø
 dsin, test,	57.4893, 10.1365, 109, 1, DK, Sindal
 dste, test,	55.3262, 12.4493, 53, 1, DK, Stevns
 
-FI49, FI49, 63.1048, 23.8209, 0, 1, FI, Vimpeli
-FI53, FI53, 60.5562, 24.4956, 0, 1, FI, Vihti
-FI47, FI47, 64.7745, 26.3188, 0, 1, FI, Alakylä
-FI51, FI51, 62.3045, 25.4409, 0, 1, FI, Petäjävesi
-FI52, FI52, 63.8378, 29.4489, 0, 1, FI, Mujejärvi
-FI48, FI48, 67.1391, 26.8962, 0, 1, FI, Aarniluosto
-FI45, FI45, 62.8659, 27.3814, 0, 1, FI, Kuopio
-FI46, FI46, 60.1284, 21.6433, 0, 1, FI, Inikorp
-FI50, FI50, 61.9069, 29.7977, 0, 1, FI, Kotalahti
-FI54, FI54, 61.8108, 22.5020, 0, 1, FI, Ylinen
-FI44, FI44, 60.9038, 27.1080, 0, 1, FI, Kaipiainen
-FI55, FI55, 68.4344329833984, 27.4439907073975, 0, 1, FI, Saariselkä
+FI49, FI49, 63.1048, 23.8209, 200, 1, FI, Vimpeli
+FI53, FI53, 60.5562, 24.4956, 181, 1, FI, Vihti
+FI47, FI47, 64.7745, 26.3188, 118, 1, FI, Alakylä
+FI51, FI51, 62.3045, 25.4409, 271, 1, FI, Petäjävesi
+FI52, FI52, 63.8378, 29.4489, 323, 1, FI, Mujejärvi
+FI48, FI48, 67.1391, 26.8962, 533, 1, FI, Aarniluosto
+FI45, FI45, 62.8659, 27.3814, 268, 1, FI, Kuopio
+FI46, FI46, 60.1284, 21.6433, 61, 1, FI, Inikorp
+FI50, FI50, 61.9069, 29.7977, 174, 1, FI, Kotalahti
+FI54, FI54, 61.8108, 22.5020, 175, 1, FI, Ylinen
+FI44, FI44, 60.9038, 27.1080, 139, 1, FI, Kaipiainen
+FI55, FI55, 68.4344329833984, 27.4439907073975, 463, 1, FI, Saariselkä
 
 ASB_, ASB_, 53.564011,  6.748292,   63, 1, DE, ASR Borkum
 BOO_, BOO_, 54.004381, 10.046899,  125, 1, DE, Boostedt
@@ -142,6 +141,8 @@ FLER, FLER, 45.4814499802887, 10.1767599955201, 174, 1, IT, Flero
 DESI, DESI, 45.6272660940885, 9.19631805270909, 276, 1, IT, Desio
 BRIC, BRIC, 45.0341720581055, 7.7327241897583, 756, 1, IT, Bric della Croce
 SETT, SETT, 44.2449989318848, 8.19777679443359, 1495, 1, IT, Settepani
+TVDR, TVDR, 45.36277778, 11.67361111, 472, 1, IT, Teolo Monte Grande
+ILON, ILON, 45.78, 12.76, 35, 1, IT, Loncon
 
 SI42, SI42, 46.0979804992676, 14.2282400131226, 1043, 1, SI, Pasjaravan
 SI41, SI41, 46.0677680969238, 15.2848997116089, 950, 1, SI, Sevnica
@@ -151,6 +152,7 @@ HDEB, HDEB, 44.0455, 15.3765, 208, 1, HR, Debeljak
 HGRA, HGRA, 45.1592, 18.7033, 110, 1, HR, Gradište
 HPUN, HPUN, 45.9078, 15.9683, 1030, 1, HR, Puntijarka
 HULJ, HULJ, 42.8944, 17.4783, 463, 1, HR, Uljenje
+HGOL, HGOL, 45.0205, 14.1223, 553, 1, HR, Gora
 
 IDUB, IDUB, 53.4299011230469, -6.24429988861084, 99, 1, IE, Dublin
 ISHA, ISHA, 52.6927871704102, -8.91999435424805, 29, 1, IE, Shannon
@@ -173,16 +175,16 @@ LT41, LT41, 54.62622, 25.10678, 193, 1, LT, Vilnius
 MGUD, MGUD, 35.8527793884277, 14.4747219085693, 115, 1, MT, Malta International Airport
 BJAB, BJAB, 51.1916999816895, 3.06419992446899, 65, 1, BE, Jabbeke
 BWID, BWID, 49.9136009216309, 5.50439977645874, 600, 1, BE, Wideumont
-BHEL, BHEL, 51.0702267, 5.4053717, 0, 1, BE, Helchteren
+BHEL, BHEL, 51.0702267, 5.4053717, 144, 1, BE, Helchteren
 
-CALB, CALB, 47.2843322753906, 8.51200008392334, 0, 1, CH, Langnau am Albis
-CDOL, CDOL, 46.4251136779785, 6.09941482543945, 0, 1, CH, La Dôle
-CLEM, CLEM, 46.0407600402832, 8.83321666717529, 0, 1, CH, Lema
-CPPM, CPPM, 46.370647, 7.486552, 0, 1, CH, Icogne
-CWEI, CWEI, 46.8349723815918, 9.79445838928223, 0, 1, CH, Weissfluh
+CALB, CALB, 47.2843322753906, 8.51200008392334, 938, 1, CH, Langnau am Albis
+CDOL, CDOL, 46.4251136779785, 6.09941482543945, 1682, 1, CH, La Dôle
+CLEM, CLEM, 46.0407600402832, 8.83321666717529, 1626, 1, CH, Lema
+CPPM, CPPM, 46.370647, 7.486552, 2937, 1, CH, Icogne
+CWEI, CWEI, 46.8349723815918, 9.79445838928223, 2850, 1, CH, Weissfluh
 
-NDHL, TEST, 52.95279, 4.79061, 0, 1, NL, Den Helder
-NHRW, TEST, 51.8369, 5.1381, 0, 1, NL, Herwijnen
+NDHL, TEST, 52.95279, 4.79061, 55, 1, NL, Den Helder
+NHRW, TEST, 51.8369, 5.1381, 25, 1, NL, Herwijnen
 
 SANG, SANG, 56.367452, 12.851691, 209, 1, SE, Angelholm
 SATV, SATV, 58.105907, 15.936496, 222, 1, SE, Atvidaberg
@@ -211,6 +213,12 @@ SP42, SP42, 40.1759, -3.7137, 717, 1, ES, Madrid
 
 kbpp, kbis,   46.187, -103.428,   902,   1, ND, Bowman ARB
 kxwa, kbis,   48.263432, -103.747284,   729,   1, ND, Williston ARB
+ARMR, KHUN,  34.646149, -86.771530,    206,   1, AL, ARMOR C-band
+fwlx,fwlx,   35.254,  -87.325,  220,  1, TN, WLX X-Band
+fusa,fusa,   38.86949, -75.81616,    36.40,    29, MD, FUSA/Denton
+gawx,gawx,   33.98047, -84.00345,   336.00,    29, GA, GAWX/Lawrenceville
+wilu,wilu,   40.465,  -90.685,  212,  1, IL, Western Illinois University (WIU)
+mzzu,mzzu,   38.906,  -92.269,  271,  1, MO, Columbia/Mizzou
 
 CSBI, CSBI, 45.79280207942087, -80.53280023777236,  190, 13, ON, Britt
 CSMR, CSMR, 47.24779917930804, -84.59579980756531,  489, 13, ON, Montreal River Harbour
@@ -238,9 +246,88 @@ CSSM, CSSM, 51.20640297403917, -113.398099398063,   968, 13, AB, Strathmore
 CSSS, CSSS, 50.36949956550984, -119.0632975196792, 1880, 13, BC, Silver Star Mountain
 CSRF, CSRF, 49.27999911863017, -81.79389925246255,  244, 13, ON, Timmins
 CSWL, CSWL, 50.15390127678006, -97.77829702046067,  270, 13, MB, Woodlands
-CSBV, CSBV, 45.70639900572199, -73.85852623627264,  0, 13, QC, Montreal-Blainville
-CSFM, CSFM, 56.375629775983434, -111.21498655600045, 0, 13, AB, Fort McMurray
+CSBV, CSBV, 45.70639900572199, -73.85852623627264,  104, 13, QC, Montreal-Blainville
+CSFM, CSFM, 56.375629775983434, -111.21498655600045, 787, 13, AB, Fort McMurray
 CSMA, CSMA, 47.9779167175293,  -71.4310150146484, 917, 13, QC, Mont Apica
 CSHP, CSHP, 49.5270347595215, -123.853713989258, 612, 13, BC, Halfmoon Peak
 CSSN, CSSN, 48.5960006713867, -89.1000366210938, 536, 13, ON, Shuniah
 CSCL, CSCL, 54.3788833618164, -110.061378479004, 668, 13, SK, Cold Lake
+
+CPFO, CPFO, 34.77085, 32.54716, 392, 1, CY, Paphos
+CLCA, CLCA, 34.93654, 33.56654, 100, 1, CY, Larnaca
+
+HHAR, HHAR, 46.1775, 18.3372, 627, 1, HU, Harmashegy
+HNAP, HANP, 47.9622, 21.8867, 153, 1, HU, Napkor
+HPOG, HPOG, 46.6604, 17.0624, 311, 1, HU, Poganyvar
+HSZE, HSZE, 46.6397, 20.4325, 124, 1, HU, Szentes
+HBUD, HBUD, 47.4294, 19.1817, 161, 1, HU, Budapest
+
+abrd, abrd, -37.6910,    144.9460,   127, 1, AU, Broadmeadows
+amel, amel, -37.8552,    144.7552,   45, 1, AU, Melbourne (Laverton)
+awap, awap, -34.2623,    150.8751,   472, 1, AU, Wollongong (Appin)
+anew, anew, -32.7298,    152.0254,   84, 1, AU, Lemon Tree Passage (Newcastle)
+ager, ager, -28.8047,    114.6973,   48, 1, AU, Geraldton
+agmk, agmk, -25.9572,    152.5769,   354, 1, AU, Gympie (Mt Kanigan)
+adar, adar, -12.4247,    130.8919,   40, 1, AU, Darwin AP
+aper, aper, -31.9530,    115.8420,   25, 1, AU, Perth 
+amtg, amtg, -37.7475,    140.7746,   80, 1, AU, Mt Gambier
+adam, adam, -20.6544,    116.6822,   58, 1, AU, Dampier
+abel, abel, -20.3718,    118.6317,   24, 1, AU, Port Hedland
+abro, abro, -17.9475,    122.2353,   31, 1, AU, Broome
+awei, awei, -12.6778,    141.9208,   44, 1, AU, Weipa
+acsm, acsm, -16.8182,    145.6630,   661, 1, AU, Cairns (Saddle Mt)
+amac, amac, -21.1172,    149.2169,   55, 1, AU, Mackay
+agla, agla, -23.8553,    151.2628,   93, 1, AU, Gladstone
+abow, abow, -19.8858,    148.076,    72, 1, AU, Bowen
+aasp, aasp, -23.7951,    133.889,    563, 1, AU, Alice Springs
+apap, apap, -31.9273,    115.9756,   25, 1, AU, Perth AP
+awoo, awoo, -31.1558,    136.8044,   176, 1, AU, Woomera
+agra, agra, -29.6206,    152.9632,   50, 1, AU, Grafton
+alcr, alcr, -22.1030,    113.9990,   333, 1, AU, Learmonth
+alba, alba, -34.9419,    117.8018,   93, 1, AU, Albany
+aesp, aesp, -33.8300,    121.8909,   43, 1, AU, Esperance
+aced, aced, -32.1296,    133.6962,   33, 1, AU, Ceduna
+amis, amis, -16.6640,    139.1837,   20, 1, AU, Mornington Island
+ahap, ahap, -42.8374,    147.5008,   32, 1, AU, Hobart AP
+anwd, anwd, -33.0970,    119.0090,   340, 1, AU, Newdegate
+ahck, ahck, -18.2289,    127.6628,   439, 1, AU, Halls Creek
+acfc, acfc, -35.6614,    149.5123,   1383, 1, AU, Captains Flat (Canberra)
+awis, awis, -16.2878,    149.9652,   20, 1, AU, Willis Island
+atka, atka, -14.5131,    132.4461,   225, 1, AU, Tindal (Katherine)
+agil, agil, -25.0341,    128.3010,   607, 1, AU, Giles
+asmt, asmt, -35.3295,    138.5025,   395, 1, AU, Sellick's Hill (Mt Terrible)
+akal, akal, -30.7839,    121.4536,   390, 1, AU, Kalgoorlie
+ayar, ayar, -36.0294,    146.0306,   147, 1, AU, Yarrawonga
+amar, amar, -27.6064,    152.5401,   386, 1, AU, Marburg
+awta, awta, -41.1806,    145.5783,   601, 1, AU, West Takone
+amor, amor, -29.4903,    149.8461,   222, 1, AU, Moree
+awaw, awaw, -35.1582,    147.4563,   229, 1, AU, Wagga Wagga
+alon, alon, -23.4398,    144.2822,   202, 1, AU, Longreach
+asdo, asdo, -31.7770,    117.9530,   416, 1, AU, South Doodlakine
+anlk, anlk, -29.0330,    167.9330,   121, 1, AU, Norfolk Island
+aber, aber, -12.4559,    130.9266,   60, 1, AU, Berrimah
+aabp, aabp, -34.6169,    138.4689,   29, 1, AU, Adelaide (Buckland Park)
+abms, abms, -27.7177,    153.2399,   175, 1, AU, Brisbane-Mt Stapylton
+awar, awar, -26.4401,    147.3491,   534, 1, AU, Warrego
+abgp, abgp, -37.8874,    147.5756,   65, 1, AU, Bairnsdale
+anam, anam, -31.0236,    150.1917,   720, 1, AU, Namoi (Blackjack Mountain)
+apse, apse, -32.3917,    115.867,    42, 1, AU, Perth Serpentine
+asth, asth, -33.7008,    151.2094,   224, 1, AU, Sydney (Terrey Hills)
+aemr, aemr, -23.5494,    148.2392,   211, 1, AU, Emerald
+affw, affw, -19.4196,    146.5511,   595, 1, AU, Townsville (Hervey Range)
+agnv, agnv, -18.9803,    144.9405,   512, 1, AU, Greenvale
+amth, amth, -20.7114,    139.5553,   517, 1, AU, Mount Isa (Telstra Hill)
+ahmk, ahmk, -43.1122,    147.8061,   512, 1, AU, Hobart (Mt Koonya)
+aara, aara, -11.6485,    133.38,     44, 1, AU, Arafura (aka Warruwi)
+awat, awat, -30.3600,    116.2900,   367, 1, AU, Watheroo
+abrw, abrw, -29.9708,    146.8140,   149, 1, AU, Brewarrina
+ahil, ahil, -33.5520,    145.5286,   144, 1, AU, Hilston
+arnb, arnb, -35.9980,    142.0130,   149, 1, AU, Rainbow
+ayeo, ayeo, -32.7444,    148.7081,   487, 1, AU, Yeoval
+acul, acul, -34.2781,    141.5982,   80, 1, AU, Mildura (Cullulleraine)
+atar, atar, -25.6962,    149.8982,   312, 1, AU, Taroom
+arch, arch, -20.7518,    143.1414,   245, 1, AU, Richmond
+atoo, atoo, -26.9631,    151.5877,   781, 1, AU, Toowoomba
+agov, agov, -12.2689,    136.8204,   63, 1, AU, Gove
+acar, acar, -24.8883,    113.6690,   28, 1, AU, Gascoyne
+akrr, akrr, -20.992,     116.876,    213, 1, AU, Karratha
