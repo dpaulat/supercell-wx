@@ -47,7 +47,7 @@ public:
 
    /// Requests MSAA for overlay drawing (1 disables). Takes effect at the next
    /// frame; the effective count is limited by device support.
-   void SetSampleCount(int sampleCount);
+   void              SetSampleCount(int sampleCount);
    [[nodiscard]] int GetSampleCount() const;
 
    [[nodiscard]] bool  EnsureRenderTarget(QRhiCommandBuffer* commandBuffer,

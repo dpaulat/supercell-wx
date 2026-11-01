@@ -599,20 +599,18 @@ AcquireColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
    return bucket.coloredGeometry_;
 }
 
-QRhiGraphicsPipeline*
-AcquireGeoColoredGeometryPipeline(QRhi*             rhi,
-                                  QRhiRenderTarget* renderTarget,
-                                  bool              compact)
+QRhiGraphicsPipeline* AcquireGeoColoredGeometryPipeline(
+   QRhi* rhi, QRhiRenderTarget* renderTarget, bool compact)
 {
    if (rhi == nullptr || renderTarget == nullptr)
    {
       return nullptr;
    }
 
-   std::lock_guard   lock {storeMutex_};
-   RhiStore&         store  = GetStore(rhi);
-   const PipelineKey key    = MakeKey(renderTarget);
-   PipelineBucket&   bucket = store.pipelines_[key];
+   std::lock_guard        lock {storeMutex_};
+   RhiStore&              store  = GetStore(rhi);
+   const PipelineKey      key    = MakeKey(renderTarget);
+   PipelineBucket&        bucket = store.pipelines_[key];
    QRhiGraphicsPipeline*& cached =
       compact ? bucket.geoColoredCompactGeometry_ : bucket.geoColoredGeometry_;
    if (cached != nullptr)
@@ -646,11 +644,10 @@ AcquireGeoColoredGeometryPipeline(QRhi*             rhi,
       // Compact layout: 9 floats + 3 ints per vertex. Stroke/highlight/border
       // attributes and the displayed flag are constant for the whole draw and
       // come from a single per-instance record (instance 0).
-      inputLayout.setBindings({{9 * sizeof(float)},
-                               {3 * sizeof(std::int32_t)},
-                               {12 * sizeof(std::int32_t),
-                                QRhiVertexInputBinding::PerInstance,
-                                1}});
+      inputLayout.setBindings(
+         {{9 * sizeof(float)},
+          {3 * sizeof(std::int32_t)},
+          {12 * sizeof(std::int32_t), QRhiVertexInputBinding::PerInstance, 1}});
       inputLayout.setAttributes(
          {{0, 0, QRhiVertexInputAttribute::Float2, 0},
           {0, 1, QRhiVertexInputAttribute::Float2, 2 * sizeof(float)},

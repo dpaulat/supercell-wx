@@ -73,14 +73,10 @@ public:
    void NotifyBasemapRendered(std::size_t leaderIndex);
 
    [[nodiscard]] std::uint64_t basemapGeneration() const noexcept
-   {
-      return basemapGeneration_;
-   }
+   { return basemapGeneration_; }
 
    [[nodiscard]] std::optional<std::size_t> lastLeaderIndex() const noexcept
-   {
-      return lastLeaderIndex_;
-   }
+   { return lastLeaderIndex_; }
 
 private:
    std::uint64_t              basemapGeneration_ {0};

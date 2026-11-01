@@ -390,7 +390,7 @@ public:
    void               EnsureSymbologyTexture();
    void               ReleaseSymbologyTexture();
    void               RenderSymbology(QRhiCommandBuffer* commandBuffer);
-   void RenderMapAndSnapshot(QRhiCommandBuffer* commandBuffer);
+   void               RenderMapAndSnapshot(QRhiCommandBuffer* commandBuffer);
    [[nodiscard]] bool MapStyleReadyForRender() const
    { return mapChangedOnce_ || mapStylePending_; }
    void SelectNearestRadarSite(double                          latitude,
@@ -2822,7 +2822,7 @@ void MapWidget::releaseResources()
    p->overlayRenderer_.Shutdown();
    p->ReleaseBasemapTexture();
    p->ReleaseSymbologyTexture();
-   p->symbologyDirty_             = true;
+   p->symbologyDirty_              = true;
    p->lastCopiedBasemapGeneration_ = 0;
    p->imguiOverlayGeneration_      = 0;
    p->imGuiRendererInitialized_    = false;
@@ -2980,20 +2980,20 @@ bool MapWidgetImpl::SymbologySplitActive() const
           symbologySplitApplied_;
 }
 
-void MapWidgetImpl::ApplySymbologySplit(QMapLibre::Map* map,
-                                        bool            hideSymbology)
+void MapWidgetImpl::ApplySymbologySplit(QMapLibre::Map* map, bool hideSymbology)
 {
    if (map == nullptr || currentStyle_ == nullptr)
    {
       return;
    }
 
-   const auto      layerIds = map->layerIds();
+   const auto        layerIds = map->layerIds();
    const QStringList layers(layerIds.begin(), layerIds.end());
 
    // Layers from the symbology layer onward are drawn above custom layers
-   const int boundary = layers.indexOf(QString::fromStdString(
-      util::maplibre::FindMapSymbologyLayer(layers, currentStyle_->drawBelow_)));
+   const int boundary = layers.indexOf(
+      QString::fromStdString(util::maplibre::FindMapSymbologyLayer(
+         layers, currentStyle_->drawBelow_)));
    if (boundary <= 0)
    {
       // No symbology layer in this style; render it as a single map

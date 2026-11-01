@@ -20,9 +20,9 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr std::size_t kVerticesPerTriangle = 3;
 // lat, long, x offset, y offset, r, g, b, a, perpendicular (unused)
-static constexpr std::size_t kPointsPerVertex     = 9;
+static constexpr std::size_t kPointsPerVertex = 9;
 // Threshold, start time, end time
-static constexpr std::size_t kIntegersPerVertex   = 3;
+static constexpr std::size_t kIntegersPerVertex = 3;
 
 class PlacefileTriangles::Impl
 {
@@ -194,17 +194,16 @@ void PlacefileTriangles::Impl::UpdateBuffers(
       const float b = lastColor[2] / 255.0f;
       const float a = lastColor[3] / 255.0f;
 
-      newBuffer_.insert(
-         newBuffer_.end(),
-         {static_cast<float>(element.latitude_),
-          static_cast<float>(element.longitude_),
-          x,
-          y,
-          r,
-          g,
-          b,
-          a,
-          0.0f});
+      newBuffer_.insert(newBuffer_.end(),
+                        {static_cast<float>(element.latitude_),
+                         static_cast<float>(element.longitude_),
+                         x,
+                         y,
+                         r,
+                         g,
+                         b,
+                         a,
+                         0.0f});
       newIntegerBuffer_.insert(newIntegerBuffer_.end(),
                                {thresholdValue, startTime, endTime});
    }

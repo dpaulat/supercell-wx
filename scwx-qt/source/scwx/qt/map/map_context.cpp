@@ -54,44 +54,28 @@ MapContext::MapContext(MapContext&&) noexcept            = default;
 MapContext& MapContext::operator=(MapContext&&) noexcept = default;
 
 std::weak_ptr<QMapLibre::Map> MapContext::map() const
-{
-   return p->map_;
-}
+{ return p->map_; }
 
 std::weak_ptr<QMapLibre::Map> MapContext::symbology_map() const
-{
-   return p->symbologyMap_;
-}
+{ return p->symbologyMap_; }
 
 std::string MapContext::map_copyrights() const
-{
-   return p->mapCopyrights_;
-}
+{ return p->mapCopyrights_; }
 
 MapProvider MapContext::map_provider() const
-{
-   return p->mapProvider_;
-}
+{ return p->mapProvider_; }
 
 MapSettings& MapContext::settings()
-{
-   return p->settings_;
-}
+{ return p->settings_; }
 
 QMargins MapContext::color_table_margins() const
-{
-   return p->colorTableMargins_;
-}
+{ return p->colorTableMargins_; }
 
 float MapContext::pixel_ratio() const
-{
-   return p->pixelRatio_;
-}
+{ return p->pixelRatio_; }
 
 common::Coordinate MapContext::mouse_coordinate() const
-{
-   return p->mouseCoordinate_;
-}
+{ return p->mouseCoordinate_; }
 
 std::shared_ptr<view::OverlayProductView>
 MapContext::overlay_product_view() const
@@ -107,64 +91,40 @@ std::shared_ptr<view::RadarProductView> MapContext::radar_product_view() const
 }
 
 common::RadarProductGroup MapContext::radar_product_group() const
-{
-   return p->radarProductGroup_;
-}
+{ return p->radarProductGroup_; }
 
 std::string MapContext::radar_product() const
-{
-   return p->radarProduct_;
-}
+{ return p->radarProduct_; }
 
 std::shared_ptr<config::RadarSite> MapContext::radar_site() const
-{
-   return p->radarSite_;
-}
+{ return p->radarSite_; }
 
 int16_t MapContext::radar_product_code() const
-{
-   return p->radarProductCode_;
-}
+{ return p->radarProductCode_; }
 
 bool MapContext::screen_capture() const
-{
-   return p->screenCapture_;
-}
+{ return p->screenCapture_; }
 
 QWidget* MapContext::widget() const
-{
-   return p->widget_;
-}
+{ return p->widget_; }
 
 void MapContext::set_map(const std::shared_ptr<QMapLibre::Map>& map)
-{
-   p->map_ = map;
-}
+{ p->map_ = map; }
 
 void MapContext::set_symbology_map(const std::shared_ptr<QMapLibre::Map>& map)
-{
-   p->symbologyMap_ = map;
-}
+{ p->symbologyMap_ = map; }
 
 void MapContext::set_map_copyrights(const std::string& copyrights)
-{
-   p->mapCopyrights_ = copyrights;
-}
+{ p->mapCopyrights_ = copyrights; }
 
 void MapContext::set_map_provider(MapProvider provider)
-{
-   p->mapProvider_ = provider;
-}
+{ p->mapProvider_ = provider; }
 
 void MapContext::set_color_table_margins(const QMargins& margins)
-{
-   p->colorTableMargins_ = margins;
-}
+{ p->colorTableMargins_ = margins; }
 
 void MapContext::set_mouse_coordinate(const common::Coordinate& coordinate)
-{
-   p->mouseCoordinate_ = coordinate;
-}
+{ p->mouseCoordinate_ = coordinate; }
 
 void MapContext::set_overlay_product_view(
    const std::shared_ptr<view::OverlayProductView>& overlayProductView)
@@ -174,9 +134,7 @@ void MapContext::set_overlay_product_view(
 }
 
 void MapContext::set_pixel_ratio(float pixelRatio)
-{
-   p->pixelRatio_ = pixelRatio;
-}
+{ p->pixelRatio_ = pixelRatio; }
 
 void MapContext::set_radar_product_view(
    const std::shared_ptr<view::RadarProductView>& radarProductView)
@@ -187,33 +145,21 @@ void MapContext::set_radar_product_view(
 
 void MapContext::set_radar_product_group(
    common::RadarProductGroup radarProductGroup)
-{
-   p->radarProductGroup_ = radarProductGroup;
-}
+{ p->radarProductGroup_ = radarProductGroup; }
 
 void MapContext::set_radar_product(const std::string& radarProduct)
-{
-   p->radarProduct_ = radarProduct;
-}
+{ p->radarProduct_ = radarProduct; }
 
 void MapContext::set_radar_product_code(int16_t radarProductCode)
-{
-   p->radarProductCode_ = radarProductCode;
-}
+{ p->radarProductCode_ = radarProductCode; }
 
 void MapContext::set_radar_site(const std::shared_ptr<config::RadarSite>& site)
-{
-   p->radarSite_ = site;
-}
+{ p->radarSite_ = site; }
 
 void MapContext::set_screen_capture(bool screenCapture)
-{
-   p->screenCapture_ = screenCapture;
-}
+{ p->screenCapture_ = screenCapture; }
 
 void MapContext::set_widget(QWidget* widget)
-{
-   p->widget_ = widget;
-}
+{ p->widget_ = widget; }
 
 } // namespace scwx::qt::map

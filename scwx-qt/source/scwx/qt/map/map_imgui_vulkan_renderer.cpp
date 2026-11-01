@@ -24,9 +24,7 @@ static const auto logger_ = scwx::util::Logger::Create(logPrefix_);
 static const char kImGuiPipelineCacheFile[] = "imgui-vulkan-pipeline-cache.bin";
 
 static void CheckVkResult(VkResult result)
-{
-   render::ReportVulkanResult(result, "ImGui Vulkan");
-}
+{ render::ReportVulkanResult(result, "ImGui Vulkan"); }
 
 void MapImGuiVulkanRenderer::BindContext() const
 {
@@ -84,8 +82,8 @@ bool MapImGuiVulkanRenderer::InitBackend(void* renderPass)
    initInfo.PipelineInfoMain.Subpass    = 0;
    initInfo.PipelineInfoMain.MSAASamples =
       static_cast<VkSampleCountFlagBits>(std::max(1, sampleCount_));
-   initInfo.MinImageCount                = 2;
-   initInfo.ImageCount                   = 2;
+   initInfo.MinImageCount = 2;
+   initInfo.ImageCount    = 2;
    initInfo.DescriptorPoolSize =
       IMGUI_IMPL_VULKAN_MINIMUM_SAMPLED_IMAGE_POOL_SIZE * 16;
    initInfo.UseDynamicRendering = false;
@@ -295,8 +293,6 @@ void MapImGuiVulkanRenderer::RenderDrawData(QRhiCommandBuffer* commandBuffer)
 }
 
 bool MapImGuiVulkanRenderer::IsInitialized() const
-{
-   return initialized_;
-}
+{ return initialized_; }
 
 } // namespace scwx::qt::map

@@ -36,10 +36,8 @@ AcquireSharedAtlas(QRhi*                    rhi,
 [[nodiscard]] QRhiGraphicsPipeline*
 AcquireColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget);
 
-[[nodiscard]] QRhiGraphicsPipeline*
-AcquireGeoColoredGeometryPipeline(QRhi*             rhi,
-                                  QRhiRenderTarget* renderTarget,
-                                  bool              compact = false);
+[[nodiscard]] QRhiGraphicsPipeline* AcquireGeoColoredGeometryPipeline(
+   QRhi* rhi, QRhiRenderTarget* renderTarget, bool compact = false);
 
 [[nodiscard]] QRhiGraphicsPipeline*
 AcquireRadarPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget);

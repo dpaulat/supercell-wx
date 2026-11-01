@@ -23,12 +23,12 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr std::size_t kVerticesPerTriangle = 3;
 // lat, long, x offset, y offset, r, g, b, a, perpendicular (unused)
-static constexpr std::size_t kPointsPerVertex     = 9;
+static constexpr std::size_t kPointsPerVertex = 9;
 // Threshold, start time, end time
-static constexpr std::size_t kIntegersPerVertex   = 3;
+static constexpr std::size_t kIntegersPerVertex = 3;
 
-static constexpr std::size_t kTessVertexLat_ = 0;
-static constexpr std::size_t kTessVertexLon_ = 1;
+static constexpr std::size_t kTessVertexLat_     = 0;
+static constexpr std::size_t kTessVertexLon_     = 1;
 static constexpr std::size_t kTessVertexXOffset_ = 3;
 static constexpr std::size_t kTessVertexYOffset_ = 4;
 static constexpr std::size_t kTessVertexR_       = 5;

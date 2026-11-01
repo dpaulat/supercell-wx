@@ -67,8 +67,8 @@ public:
    [[nodiscard]] bool EnsureReady(QRhiCommandBuffer* commandBuffer,
                                   QRhiTexture*       colorTexture);
    void DrawSymbology(QRhiCommandBuffer* commandBuffer, QRhiTexture* texture);
-   void DrawBlit(QRhiCommandBuffer*          commandBuffer,
-                 QRhiTexture*                texture,
+   void DrawBlit(QRhiCommandBuffer*           commandBuffer,
+                 QRhiTexture*                 texture,
                  QRhiShaderResourceBindings*& srb,
                  QRhiTexture*&                srbTexture);
    [[nodiscard]] int EffectiveSampleCount() const;
@@ -88,13 +88,13 @@ public:
    // Multisampled overlay target. The pane color texture is the resolve
    // target, so the basemap is first copied to baseCopy_ (a texture cannot be
    // sampled while it is a resolve attachment of the same pass).
-   int               requestedSamples_ {1};
-   int               activeSamples_ {1};
-   QRhiRenderBuffer* msaaBuffer_ {nullptr};
-   QRhiTexture*      baseCopy_ {nullptr};
-   QRhi*                          rhi_ {nullptr};
-   QRhiTexture*                   colorTexture_ {nullptr};
-   QRhiTextureRenderTarget*       preserveRenderTarget_ {nullptr};
+   int                      requestedSamples_ {1};
+   int                      activeSamples_ {1};
+   QRhiRenderBuffer*        msaaBuffer_ {nullptr};
+   QRhiTexture*             baseCopy_ {nullptr};
+   QRhi*                    rhi_ {nullptr};
+   QRhiTexture*             colorTexture_ {nullptr};
+   QRhiTextureRenderTarget* preserveRenderTarget_ {nullptr};
    // Owned. Reused across color texture changes (resize) while the attachment
    // format and sample count match, so the native render pass handle, shared
    // pipelines, and overlay GPU state all stay valid.
@@ -108,9 +108,7 @@ public:
 
 void MapOverlayRenderer::Impl::DrawSymbology(QRhiCommandBuffer* commandBuffer,
                                              QRhiTexture*       texture)
-{
-   DrawBlit(commandBuffer, texture, blitSrb_, blitSrbTexture_);
-}
+{ DrawBlit(commandBuffer, texture, blitSrb_, blitSrbTexture_); }
 
 void MapOverlayRenderer::Impl::DrawBlit(QRhiCommandBuffer* commandBuffer,
                                         QRhiTexture*       texture,
@@ -228,12 +226,9 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
       QRhiColorAttachment attachment {colorTexture};
       if (samples > 1)
       {
-         msaaBuffer_ = rhi_->newRenderBuffer(QRhiRenderBuffer::Color,
-                                             size,
-                                             samples,
-                                             {},
-                                             colorTexture->format());
-         baseCopy_   = rhi_->newTexture(colorTexture->format(), size);
+         msaaBuffer_ = rhi_->newRenderBuffer(
+            QRhiRenderBuffer::Color, size, samples, {}, colorTexture->format());
+         baseCopy_ = rhi_->newTexture(colorTexture->format(), size);
          if (msaaBuffer_ == nullptr || !msaaBuffer_->create() ||
              baseCopy_ == nullptr || !baseCopy_->create())
          {

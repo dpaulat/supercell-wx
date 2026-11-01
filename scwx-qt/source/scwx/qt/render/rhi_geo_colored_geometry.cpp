@@ -124,12 +124,12 @@ void RhiGeoColoredGeometry::Shutdown()
    delete constantBuffer_;
    constantBuffer_ = nullptr;
    delete uniformBuffer_;
-   uniformBuffer_      = nullptr;
-   rhi_                = nullptr;
-   renderTarget_       = nullptr;
-   constantUploaded_   = false;
-   activeVertexCount_  = 0;
-   initialized_        = false;
+   uniformBuffer_     = nullptr;
+   rhi_               = nullptr;
+   renderTarget_      = nullptr;
+   constantUploaded_  = false;
+   activeVertexCount_ = 0;
+   initialized_       = false;
 }
 
 bool RhiGeoColoredGeometry::StartPendingUpload(const std::size_t   floatBytes,
@@ -218,8 +218,8 @@ bool RhiGeoColoredGeometry::Render(
 
       if (uploadActive_)
       {
-         const auto uploadChunk = [&batch](QRhiBuffer* buffer,
-                                           std::size_t totalBytes,
+         const auto uploadChunk = [&batch](QRhiBuffer*  buffer,
+                                           std::size_t  totalBytes,
                                            std::size_t& offset,
                                            const void*  data,
                                            std::size_t  chunkBytes)
@@ -229,11 +229,10 @@ bool RhiGeoColoredGeometry::Render(
                return;
             }
             const std::size_t n = std::min(chunkBytes, totalBytes - offset);
-            batch->uploadStaticBuffer(
-               buffer,
-               static_cast<quint32>(offset),
-               static_cast<quint32>(n),
-               static_cast<const char*>(data) + offset);
+            batch->uploadStaticBuffer(buffer,
+                                      static_cast<quint32>(offset),
+                                      static_cast<quint32>(n),
+                                      static_cast<const char*>(data) + offset);
             offset += n;
          };
 
@@ -298,8 +297,6 @@ bool RhiGeoColoredGeometry::Render(
 }
 
 bool RhiGeoColoredGeometry::IsInitialized() const
-{
-   return initialized_;
-}
+{ return initialized_; }
 
 } // namespace scwx::qt::render
