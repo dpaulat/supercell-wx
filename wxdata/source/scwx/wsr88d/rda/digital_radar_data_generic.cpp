@@ -1,4 +1,5 @@
 #include <scwx/wsr88d/rda/digital_radar_data_generic.hpp>
+#include <scwx/common/constants.hpp>
 #include <scwx/util/logger.hpp>
 
 namespace scwx::wsr88d::rda
@@ -207,7 +208,7 @@ bool DigitalRadarDataGeneric::MomentDataBlock::Parse(std::istream& is)
 
    // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
 
-   if (p->numberOfDataMomentGates_ <= 1840)
+   if (p->numberOfDataMomentGates_ <= common::MAX_DATA_MOMENT_GATES)
    {
       if (p->dataWordSize_ == 8)
       {
@@ -723,7 +724,7 @@ bool DigitalRadarDataGeneric::Parse(std::istream& is)
 
    // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
 
-   if (p->azimuthNumber_ < 1 || p->azimuthNumber_ > 720)
+   if (p->azimuthNumber_ < 1 || p->azimuthNumber_ > common::MAX_AZIMUTH_NUMBER)
    {
       logger_->warn("Invalid azimuth number: {}", p->azimuthNumber_);
       messageValid = false;

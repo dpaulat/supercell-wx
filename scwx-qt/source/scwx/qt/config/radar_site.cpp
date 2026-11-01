@@ -216,14 +216,16 @@ void RadarSite::set_status(types::RadarSiteStatus status)
 
 std::shared_ptr<RadarSite> RadarSite::Get(const std::string& id)
 {
-   const std::string canonicalId = common::GetCanonicalRadarId(id);
+   const std::string canonicalId =
+      common::GetCanonicalRadarId(boost::to_upper_copy(id));
 
    const std::shared_lock     lock(siteMutex_);
    std::shared_ptr<RadarSite> radarSite = nullptr;
 
-   if (radarSiteMap_.contains(canonicalId))
+   const auto it = radarSiteMap_.find(canonicalId);
+   if (it != radarSiteMap_.end())
    {
-      radarSite = radarSiteMap_.at(canonicalId);
+      radarSite = it->second;
    }
 
    return radarSite;
@@ -322,6 +324,15 @@ void RadarSite::Initialize()
          // Detected Iowa State University data provider URL in environment
          // variables. Load radar sites from Iowa State University GIS config.
          ReadConfig(":/res/config/radars_iastate.gis");
+      }
+
+      if (boost::icontains(level2Url, "mrrl.net") ||
+          boost::icontains(level3Url, "mrrl.net"))
+      {
+         // Detected Mobile Radar Research Lab data provider URL in environment
+         // variables. Load radar sites from Mobile Radar Research Lab GIS
+         // config.
+         ReadConfig(":/res/config/radars_mrrl.gis");
       }
 
       if (boost::icontains(level2Url, "allisonhouse.com") ||

@@ -8,9 +8,9 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum macOS deployment ta
 scwx_python_setup()
 
 project(${PROJECT_NAME}
-        VERSION      0.6.1
+        VERSION      0.6.2
         DESCRIPTION  "Supercell Wx is a free, open source advanced weather radar viewer."
-        HOMEPAGE_URL "https://github.com/dpaulat/supercell-wx"
+        HOMEPAGE_URL "https://supercellwx.net"
         LANGUAGES    C CXX)
 
 set(CMAKE_POLICY_DEFAULT_CMP0054 NEW)
@@ -32,7 +32,7 @@ set_property(DIRECTORY
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_ALL_NO_LIB")
 
 set(SCWX_DIR ${PROJECT_SOURCE_DIR})
-set(SCWX_VERSION "0.6.1")
+set(SCWX_VERSION "0.6.2")
 
 option(SCWX_ADDRESS_SANITIZER "Build with Address Sanitizer" OFF)
 

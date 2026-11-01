@@ -31,6 +31,7 @@
 #include <scwx/qt/settings/product_settings.hpp>
 #include <scwx/qt/settings/ui_settings.hpp>
 #include <scwx/qt/types/layer_types.hpp>
+#include <scwx/qt/types/map_types.hpp>
 #include <scwx/util/environment.hpp>
 #include <scwx/qt/ui/about_dialog.hpp>
 #include <scwx/qt/ui/alert_dock_widget.hpp>
@@ -287,6 +288,7 @@ public:
    void SnapLinkedColumnWidths();
    void SnapLinkedColumnHeights();
    void ConfigureMapStyles(bool mapStylesIgnoreLiveWidget = false);
+   void StageUserMapStyle(const std::string& styleName);
    void RestoreAllPanesFromSavedMapSettings();
    void StageMapIndexFromRefWidget(std::size_t           mapIndex,
                                    const map::MapWidget& ref,
@@ -2502,6 +2504,23 @@ void MainWindowImpl::ConfigureMapStyles(const bool mapStylesIgnoreLiveWidget)
    }
 }
 
+void MainWindowImpl::StageUserMapStyle(const std::string& styleName)
+{
+   if (settings::UiSettings::Instance()
+          .panes_match_map_style()
+          .GetStagedOrValue())
+   {
+      auto&             mapSettings = settings::MapSettings::Instance();
+      const std::size_t count =
+         (maps_.size() < types::kMapCount_) ? maps_.size() : types::kMapCount_;
+
+      for (std::size_t i = 0; i < count; ++i)
+      {
+         mapSettings.map_style(i).StageValue(styleName);
+      }
+   }
+}
+
 void MainWindowImpl::StageMapIndexFromRefWidget(const std::size_t     mapIndex,
                                                 const map::MapWidget& ref,
                                                 const bool copyMapStyle)
@@ -2848,6 +2867,7 @@ void MainWindowImpl::ConnectMapSignals()
                   }
                }
                UpdateMapStyle(mapStyle);
+               StageUserMapStyle(mapStyle);
             }
             else
             {
@@ -3108,6 +3128,7 @@ void MainWindowImpl::ConnectOtherSignals()
                   w->SetMapStyle(s, true);
                }
             }
+            StageUserMapStyle(s);
          }
          else
          {

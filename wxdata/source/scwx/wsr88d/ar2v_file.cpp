@@ -9,6 +9,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <utility>
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -72,7 +73,7 @@ public:
                               std::shared_ptr<rda::ElevationScan>>>>
       index_ {};
 
-   std::list<std::stringstream> rawRecords_ {};
+   std::stringstream ldmData_ {};
 };
 
 Ar2vFile::Ar2vFile() : p(std::make_unique<Ar2vFileImpl>()) {}
@@ -303,11 +304,12 @@ std::size_t Ar2vFileImpl::DecompressLDMRecords(std::istream& is)
 
       try
       {
-         std::stringstream ss;
-         std::streamsize   bytesCopied = boost::iostreams::copy(in, ss);
+         std::stringstream decompressedRecord;
+         std::streamsize   bytesCopied =
+            boost::iostreams::copy(in, decompressedRecord);
          logger_->trace("Decompressed record size = {} bytes", bytesCopied);
 
-         rawRecords_.push_back(std::move(ss));
+         ldmData_ << std::move(decompressedRecord).str();
       }
       catch (const boost::iostreams::bzip2_error& ex)
       {
@@ -329,19 +331,8 @@ std::size_t Ar2vFileImpl::DecompressLDMRecords(std::istream& is)
 void Ar2vFileImpl::ParseLDMRecords()
 {
    logger_->trace("Parsing LDM Records");
-
-   std::size_t count = 0;
-
-   for (auto it = rawRecords_.begin(); it != rawRecords_.end(); it++)
-   {
-      std::stringstream& ss = *it;
-
-      logger_->trace("Record {}", count++);
-
-      ParseLDMRecord(ss);
-   }
-
-   rawRecords_.clear();
+   ParseLDMRecord(ldmData_);
+   ldmData_.clear();
 }
 
 void Ar2vFileImpl::ParseLDMRecord(std::istream& is)

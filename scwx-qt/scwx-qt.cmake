@@ -562,6 +562,7 @@ set(SHADER_FILES gl/vulkan/qsb/color.frag.qsb
 set(CMAKE_FILES scwx-qt.cmake)
 
 set(GIS_FILES res/config/radars_iastate.gis
+              res/config/radars_mrrl.gis
               res/config/radars_weatherpulse.gis)
 
 set(JSON_FILES res/config/radar_sites.json)

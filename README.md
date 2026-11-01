@@ -19,8 +19,7 @@ Please be sure to check out the documentation before getting started: [Supercell
 
 Supercell Wx supports the following 64-bit operating systems:
 
-- Windows 10 (1809 or later)
-- Windows 11
+- Windows 10 (1809 or later) and Windows 11 (x64 and ARM64)
 - Linux
   - Arch Linux (EndeavourOS, SteamOS [Steam Deck], and other Arch derivatives)
   - Fedora Linux 39+

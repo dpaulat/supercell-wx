@@ -56,6 +56,16 @@
 !include MUI2.nsh
 !include LogicLib.nsh
 !include x64.nsh
+!include FileFunc.nsh
+!include Sections.nsh
+!insertmacro GetParameters
+!insertmacro GetOptions
+
+!define SCWX_START_MENU_FOLDER "$SMPROGRAMS\Supercell Wx"
+!define SCWX_IASTATE_SHORTCUT "${SCWX_START_MENU_FOLDER}\Supercell Wx (IA State).lnk"
+!define SCWX_MRRL_SHORTCUT "${SCWX_START_MENU_FOLDER}\Supercell Wx (MRRL).lnk"
+!define SCWX_IASTATE_ARGS "--level2-provider https://mesonet-nexrad.agron.iastate.edu/level2/raw/"
+!define SCWX_MRRL_ARGS "--level2-provider https://feeds.mrrl.net/polling/"
 
 Unicode true
 ManifestDPIAware true
@@ -76,6 +86,7 @@ InstallDir "$PROGRAMFILES64\Supercell Wx"
 BrandingText "Supercell Wx"
 
 ; Silent installs: pass /S (and optional /D=dir as the last argument).
+; Optional: /NOPROVIDERSHORTCUTS skips IA State and MRRL Start Menu shortcuts.
 
 Icon "${SCWX_ICON}"
 
@@ -87,9 +98,14 @@ Icon "${SCWX_ICON}"
 !define MUI_WELCOMEFINISHPAGE_BITMAP "${SCWX_WELCOME_BMP}"
 !define MUI_ABORTWARNING
 
+!define MUI_COMPONENTSPAGE_SMALLDESC
+!define MUI_COMPONENTSPAGE_TEXT_TOP \
+  "The default Supercell Wx shortcut is always installed. Optional shortcuts launch with alternate Level 2 data providers."
+
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "${SCWX_LICENSE}"
 !insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_INSTFILES
 
 ; Launch unelevated: default MUI_FINISHPAGE_RUN inherits the installer's admin token.
@@ -145,7 +161,8 @@ Function Bootstrapper_StripTrailingSlash
   ${EndIf}
 FunctionEnd
 
-Section "Install"
+Section "Supercell Wx" SecInstall
+  SectionIn RO
   StrCpy $RedistRebootRequired 0
 
 !if "${SCWX_ARCH}" == "arm64"
@@ -194,4 +211,44 @@ Section "Install"
     ; Prefer prompting after MSI so the product is installed before reboot.
     SetRebootFlag true
   ${EndIf}
+
+  ; Recreated below if the optional component is selected (also handles upgrades).
+  SetShellVarContext all
+  Delete "${SCWX_IASTATE_SHORTCUT}"
+  Delete "${SCWX_MRRL_SHORTCUT}"
 SectionEnd
+
+Section "Level 2 provider shortcuts" SecProviderShortcuts
+  SetShellVarContext all
+  SetOutPath "$INSTDIR\bin"
+  CreateDirectory "${SCWX_START_MENU_FOLDER}"
+  CreateShortCut "${SCWX_IASTATE_SHORTCUT}" \
+    "$INSTDIR\bin\supercell-wx.exe" \
+    "${SCWX_IASTATE_ARGS}" \
+    "$INSTDIR\bin\supercell-wx.exe"
+  CreateShortCut "${SCWX_MRRL_SHORTCUT}" \
+    "$INSTDIR\bin\supercell-wx.exe" \
+    "${SCWX_MRRL_ARGS}" \
+    "$INSTDIR\bin\supercell-wx.exe"
+SectionEnd
+
+LangString DESC_SecInstall ${LANG_ENGLISH} \
+  "Installs Supercell Wx, including the default Start Menu shortcut."
+LangString DESC_SecProviderShortcuts ${LANG_ENGLISH} \
+  "Start Menu shortcuts that launch with the Iowa State Mesonet or MRRL Level 2 providers."
+
+!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecInstall} $(DESC_SecInstall)
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecProviderShortcuts} $(DESC_SecProviderShortcuts)
+!insertmacro MUI_FUNCTION_DESCRIPTION_END
+
+Function .onInit
+  SetShellVarContext all
+
+  ${GetParameters} $R0
+  ClearErrors
+  ${GetOptions} $R0 "/NOPROVIDERSHORTCUTS" $R1
+  ${IfNot} ${Errors}
+    !insertmacro UnselectSection ${SecProviderShortcuts}
+  ${EndIf}
+FunctionEnd

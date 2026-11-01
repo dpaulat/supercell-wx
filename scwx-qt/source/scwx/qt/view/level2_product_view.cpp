@@ -20,9 +20,8 @@ namespace scwx::qt::view
 static const std::string logPrefix_ = "scwx::qt::view::level2_product_view";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-static constexpr std::uint32_t kMaxRadialGates_ =
-   common::MAX_0_5_DEGREE_RADIALS * common::MAX_DATA_MOMENT_GATES;
-static constexpr std::uint32_t kMaxCoordinates_ = kMaxRadialGates_ * 2u;
+static constexpr std::uint32_t kMaxCoordinateGates_ =
+   common::MAX_DATA_MOMENT_GATE_COORDINATES;
 
 static constexpr std::uint8_t kDataWordSize8_ = 8u;
 
@@ -86,8 +85,6 @@ public:
    {
       auto& unitSettings = settings::UnitSettings::Instance();
 
-      coordinates_.resize(kMaxCoordinates_);
-
       SetProduct(product);
 
       otherUnitsCallbackUuid_ =
@@ -129,6 +126,11 @@ public:
    template<typename T>
    [[nodiscard]] inline T RemapDataMoment(T dataMoment) const;
 
+   [[nodiscard]] std::size_t CoordinateOffset(std::uint32_t radial,
+                                              std::uint32_t gate) const;
+   static std::int32_t       DataMomentStartGate(
+            const std::shared_ptr<wsr88d::rda::GenericRadarData::MomentDataBlock>&
+               momentData);
    static bool IsRadarDataIncomplete(
       const std::shared_ptr<const wsr88d::rda::ElevationScan>& radarData);
    static units::degrees<float> NormalizeAngle(units::degrees<float> angle);
@@ -151,6 +153,7 @@ public:
    bool lastSmoothingEnabled_ {false};
 
    std::vector<float>    coordinates_ {};
+   std::uint32_t         coordinateGateStride_ {0};
    std::vector<float>    vertices_ {};
    std::vector<uint8_t>  dataMoments8_ {};
    std::vector<uint16_t> dataMoments16_ {};
@@ -692,9 +695,8 @@ void Level2ProductView::ComputeSweep()
    }
 
    // Limit radials
-   radials = std::min<std::size_t>(radials, common::MAX_0_5_DEGREE_RADIALS);
-   vertexRadials =
-      std::min<std::size_t>(vertexRadials, common::MAX_0_5_DEGREE_RADIALS);
+   radials       = std::min<std::size_t>(radials, common::MAX_RADIALS);
+   vertexRadials = std::min<std::size_t>(vertexRadials, common::MAX_RADIALS);
 
    const auto radarData0It = radarData->find(0);
    if (radarData0It == radarData->cend() || radarData0It->second == nullptr)
@@ -817,32 +819,18 @@ void Level2ProductView::ComputeSweep()
          continue;
       }
 
-      // Compute gate interval
-      const std::int32_t dataMomentInterval =
-         momentData->data_moment_range_sample_interval_raw();
-      const std::int32_t dataMomentIntervalH = dataMomentInterval / 2;
-      const std::int32_t dataMomentRange     = std::max<std::int32_t>(
-         momentData->data_moment_range_raw(), dataMomentIntervalH);
-
-      // Compute gate size
-      const units::length::meters<float> gateSize =
-         momentData->data_moment_range_sample_interval();
-      const auto gateSizeMeters = static_cast<std::int32_t>(gateSize.value());
-
       // Number of gates per bin is 1 for level 2 data
       constexpr std::int32_t gatesPerBin = 1;
 
       // Compute gate range [startGate, endGate)
-      std::int32_t startGate =
-         (gateSizeMeters > 0) ?
-            (dataMomentRange - dataMomentIntervalH) / gateSizeMeters :
-            0;
+      std::int32_t       startGate = Impl::DataMomentStartGate(momentData);
       const std::int32_t numberOfDataMomentGates =
          std::min<std::int32_t>(momentData->number_of_data_moment_gates(),
                                 static_cast<std::int32_t>(gates));
-      const std::int32_t endGate = std::min<std::int32_t>(
-         startGate + numberOfDataMomentGates * gatesPerBin,
-         static_cast<std::int32_t>(common::MAX_DATA_MOMENT_GATES));
+      const auto endGate = std::min<std::int32_t>(
+         {startGate + numberOfDataMomentGates * gatesPerBin,
+          static_cast<std::int32_t>(common::MAX_DATA_MOMENT_GATES),
+          static_cast<std::int32_t>(p->coordinateGateStride_)});
 
       if (smoothingEnabled)
       {
@@ -1090,18 +1078,12 @@ void Level2ProductView::ComputeSweep()
 
             const std::uint16_t baseCoord = gate - 1;
 
-            const std::size_t offset1 =
-               ((startRadial + radial) % vertexRadials *
-                   common::MAX_DATA_MOMENT_GATES +
-                baseCoord) *
-               2;
+            const std::size_t offset1 = p->CoordinateOffset(
+               (startRadial + radial) % vertexRadials, baseCoord);
             const std::size_t offset2 =
                offset1 + static_cast<std::size_t>(gatesPerBin) * 2;
-            const std::size_t offset3 =
-               (((startRadial + radial + 1) % vertexRadials) *
-                   common::MAX_DATA_MOMENT_GATES +
-                baseCoord) *
-               2;
+            const std::size_t offset3 = p->CoordinateOffset(
+               (startRadial + radial + 1) % vertexRadials, baseCoord);
             const std::size_t offset4 =
                offset3 + static_cast<std::size_t>(gatesPerBin) * 2;
 
@@ -1127,15 +1109,10 @@ void Level2ProductView::ComputeSweep()
          {
             const std::uint16_t baseCoord = gate;
 
-            std::size_t offset1 = ((startRadial + radial) % vertexRadials *
-                                      common::MAX_DATA_MOMENT_GATES +
-                                   baseCoord) *
-                                  2;
-            std::size_t offset2 =
-               (((startRadial + radial + 1) % vertexRadials) *
-                   common::MAX_DATA_MOMENT_GATES +
-                baseCoord) *
-               2;
+            const std::size_t offset1 = p->CoordinateOffset(
+               (startRadial + radial) % vertexRadials, baseCoord);
+            const std::size_t offset2 = p->CoordinateOffset(
+               (startRadial + radial + 1) % vertexRadials, baseCoord);
 
             vertices[vIndex++] = p->latitude_;
             vertices[vIndex++] = p->longitude_;
@@ -1255,9 +1232,14 @@ void Level2ProductView::Impl::ComputeCoordinates(
 
    std::uint16_t numRadials =
       static_cast<std::uint16_t>(radarData->crbegin()->first + 1);
-   const std::uint16_t numRangeBins =
-      std::max(momentData0->number_of_data_moment_gates() + 1u,
-               common::MAX_DATA_MOMENT_GATES);
+   // Vertices index absolute gate numbers, which start at startGate (8 for
+   // WSR-88D super-res reflectivity) rather than 0. Filling only gates+1
+   // leaves the last bins at the default (0, 0) coordinate.
+   const std::uint32_t startGate = static_cast<std::uint32_t>(
+      std::max<std::int32_t>(0, DataMomentStartGate(momentData0)));
+   const std::uint16_t numRangeBins = static_cast<std::uint16_t>(
+      std::min(startGate + momentData0->number_of_data_moment_gates() + 1u,
+               kMaxCoordinateGates_));
 
    // Add an extra radial when incomplete data exists
    if (IsRadarDataIncomplete(radarData))
@@ -1266,8 +1248,14 @@ void Level2ProductView::Impl::ComputeCoordinates(
    }
 
    // Limit radials
-   numRadials =
-      std::min<std::uint16_t>(numRadials, common::MAX_0_5_DEGREE_RADIALS);
+   numRadials = std::min<std::uint16_t>(numRadials, common::MAX_RADIALS);
+
+   // Pack coordinates to this sweep's radial and gate counts so WSR-88D
+   // volumes do not pay a larger than necessary allocation.
+   coordinateGateStride_ = numRangeBins;
+   coordinates_.resize(static_cast<std::size_t>(numRadials) *
+                       static_cast<std::size_t>(coordinateGateStride_) * 2u);
+   coordinates_.shrink_to_fit();
 
    auto radials = boost::irange<std::uint32_t>(0u, numRadials);
    auto gates   = boost::irange<std::uint32_t>(0u, numRangeBins);
@@ -1396,12 +1384,14 @@ void Level2ProductView::Impl::ComputeCoordinates(
             gates.end(),
             [&](std::uint32_t gate)
             {
-               const std::uint32_t radialGate =
-                  radial * common::MAX_DATA_MOMENT_GATES + gate;
+               const std::size_t offset = CoordinateOffset(radial, gate);
+               if (offset + 1 >= coordinates_.size())
+               {
+                  return;
+               }
+
                const units::length::meters<float> range =
                   (static_cast<float>(gate) + gateRangeOffset) * gateSize;
-               const std::size_t offset =
-                  static_cast<std::size_t>(radialGate) * 2;
 
                double latitude  = 0.0;
                double longitude = 0.0;
@@ -1419,6 +1409,39 @@ void Level2ProductView::Impl::ComputeCoordinates(
       });
    timer.stop();
    logger_->debug("Coordinates calculated in {}", timer.format(6, "%ws"));
+}
+
+std::size_t Level2ProductView::Impl::CoordinateOffset(std::uint32_t radial,
+                                                      std::uint32_t gate) const
+{
+   return (static_cast<std::size_t>(radial) * coordinateGateStride_ + gate) *
+          2u;
+}
+
+std::int32_t Level2ProductView::Impl::DataMomentStartGate(
+   const std::shared_ptr<wsr88d::rda::GenericRadarData::MomentDataBlock>&
+      momentData)
+{
+   if (momentData == nullptr)
+   {
+      return 0;
+   }
+
+   const std::int32_t dataMomentInterval =
+      momentData->data_moment_range_sample_interval_raw();
+   const std::int32_t dataMomentIntervalH = dataMomentInterval / 2;
+   const std::int32_t dataMomentRange     = std::max<std::int32_t>(
+      momentData->data_moment_range_raw(), dataMomentIntervalH);
+   const units::length::meters<float> gateSize =
+      momentData->data_moment_range_sample_interval();
+   const auto gateSizeMeters = static_cast<std::int32_t>(gateSize.value());
+
+   if (gateSizeMeters <= 0)
+   {
+      return 0;
+   }
+
+   return (dataMomentRange - dataMomentIntervalH) / gateSizeMeters;
 }
 
 bool Level2ProductView::Impl::IsRadarDataIncomplete(
@@ -1516,8 +1539,7 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
    }
 
    // Limit radials
-   numRadials =
-      std::min<std::uint16_t>(numRadials, common::MAX_0_5_DEGREE_RADIALS);
+   numRadials = std::min<std::uint16_t>(numRadials, common::MAX_RADIALS);
 
    auto radials = boost::irange<std::uint32_t>(0u, numRadials);
 
@@ -1618,20 +1640,9 @@ Level2ProductView::GetBinLevel(const common::Coordinate& coordinate) const
    // Compute gate interval
    const std::int32_t dataMomentInterval =
       momentData->data_moment_range_sample_interval_raw();
-   const std::int32_t dataMomentIntervalH = dataMomentInterval / 2;
-   const std::int32_t dataMomentRange     = std::max<std::int32_t>(
-      momentData->data_moment_range_raw(), dataMomentIntervalH);
-
-   // Compute gate size
-   const units::length::meters<float> gateSize =
-      momentData->data_moment_range_sample_interval();
-   const auto gateSizeMeters = static_cast<std::int32_t>(gateSize.value());
 
    // Compute gate range [startGate, endGate)
-   const std::int32_t startGate =
-      (gateSizeMeters > 0) ?
-         (dataMomentRange - dataMomentIntervalH) / gateSizeMeters :
-         0;
+   const std::int32_t startGate = Impl::DataMomentStartGate(momentData);
    const std::int32_t numberOfDataMomentGates =
       momentData->number_of_data_moment_gates();
 
