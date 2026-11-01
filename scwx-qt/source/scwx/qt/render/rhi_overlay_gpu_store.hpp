@@ -37,7 +37,9 @@ AcquireSharedAtlas(QRhi*                    rhi,
 AcquireColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget);
 
 [[nodiscard]] QRhiGraphicsPipeline*
-AcquireGeoColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget);
+AcquireGeoColoredGeometryPipeline(QRhi*             rhi,
+                                  QRhiRenderTarget* renderTarget,
+                                  bool              compact = false);
 
 [[nodiscard]] QRhiGraphicsPipeline*
 AcquireRadarPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget);
@@ -50,6 +52,11 @@ AcquireTextureArrayGeoPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget);
 
 [[nodiscard]] QRhiGraphicsPipeline*
 AcquireTextureArrayScreenPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget);
+
+// Fullscreen 1:1 blit of a premultiplied-alpha texture (single sampled
+// texture at binding 0, no vertex input).
+[[nodiscard]] QRhiGraphicsPipeline*
+AcquireBlitPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget);
 
 [[nodiscard]] QRhiSampler* AcquireNearestSampler(QRhi* rhi);
 

@@ -19,6 +19,7 @@ public:
    ~Impl() {}
 
    std::weak_ptr<QMapLibre::Map> map_ {};
+   std::weak_ptr<QMapLibre::Map> symbologyMap_ {};
    MapSettings                   settings_ {};
    float                         pixelRatio_ {1.0f};
    common::RadarProductGroup     radarProductGroup_ {
@@ -55,6 +56,11 @@ MapContext& MapContext::operator=(MapContext&&) noexcept = default;
 std::weak_ptr<QMapLibre::Map> MapContext::map() const
 {
    return p->map_;
+}
+
+std::weak_ptr<QMapLibre::Map> MapContext::symbology_map() const
+{
+   return p->symbologyMap_;
 }
 
 std::string MapContext::map_copyrights() const
@@ -133,6 +139,11 @@ QWidget* MapContext::widget() const
 void MapContext::set_map(const std::shared_ptr<QMapLibre::Map>& map)
 {
    p->map_ = map;
+}
+
+void MapContext::set_symbology_map(const std::shared_ptr<QMapLibre::Map>& map)
+{
+   p->symbologyMap_ = map;
 }
 
 void MapContext::set_map_copyrights(const std::string& copyrights)

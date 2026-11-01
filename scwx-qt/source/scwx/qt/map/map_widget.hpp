@@ -160,6 +160,7 @@ public:
    [[nodiscard]] MapViewSnapshot ExportMapViewSnapshot() const;
    void SetBasemapShareCallbacks(const MapBasemapShareCallbacks* callbacks);
    [[nodiscard]] QRhiTexture* basemap_color_texture() const;
+   [[nodiscard]] QRhiTexture* basemap_symbology_texture() const;
    [[nodiscard]] QRhi*        map_rhi() const;
 
    void SetInitialMapStyle(const std::string& styleName);

@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
+        <file>gl/vulkan/qsb/blit.frag.qsb</file>
+        <file>gl/vulkan/qsb/blit.vert.qsb</file>
         <file>gl/vulkan/qsb/color.frag.qsb</file>
         <file>gl/vulkan/qsb/color.vert.qsb</file>
         <file>gl/vulkan/qsb/geo_color.frag.qsb</file>

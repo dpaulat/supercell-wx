@@ -3,6 +3,8 @@
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <QColor>
+
 #include <QApplication>
 #include <QCheckBox>
 #include <QFontMetrics>
@@ -166,7 +168,21 @@ QVariant PlacefileModel::data(const QModelIndex& index, int role) const
             description = title + '\n' + description;
          }
 
+         std::string error =
+            p->placefileManager_->placefile_error(placefileName);
+         if (!error.empty())
+         {
+            description += "\nError: " + error;
+         }
+
          return QString::fromStdString(description);
+      }
+      else if (role == Qt::ItemDataRole::ForegroundRole)
+      {
+         if (!p->placefileManager_->placefile_error(placefileName).empty())
+         {
+            return QColor(Qt::red);
+         }
       }
       else if (role == Qt::ItemDataRole::EditRole ||
                role == types::ItemDataRole::SortRole)

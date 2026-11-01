@@ -9,6 +9,8 @@
 #include <backends/imgui_impl_vulkan.h>
 #include <imgui.h>
 
+#include <algorithm>
+
 #include <rhi/qrhi.h>
 #include <rhi/qrhi_platform.h>
 
@@ -80,7 +82,8 @@ bool MapImGuiVulkanRenderer::InitBackend(void* renderPass)
    initInfo.Queue                       = vkHandles->gfxQueue;
    initInfo.PipelineInfoMain.RenderPass = static_cast<VkRenderPass>(renderPass);
    initInfo.PipelineInfoMain.Subpass    = 0;
-   initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+   initInfo.PipelineInfoMain.MSAASamples =
+      static_cast<VkSampleCountFlagBits>(std::max(1, sampleCount_));
    initInfo.MinImageCount                = 2;
    initInfo.ImageCount                   = 2;
    initInfo.DescriptorPoolSize =
@@ -117,8 +120,10 @@ bool MapImGuiVulkanRenderer::InitBackend(void* renderPass)
 void MapImGuiVulkanRenderer::Initialize(QRhi* rhi,
                                         QRhiTexture* /* colorTexture */,
                                         void*         renderPass,
-                                        ImGuiContext* imGuiContext)
+                                        ImGuiContext* imGuiContext,
+                                        int           sampleCount)
 {
+   sampleCount_ = sampleCount;
    if (rhi == nullptr || renderPass == nullptr)
    {
       return;

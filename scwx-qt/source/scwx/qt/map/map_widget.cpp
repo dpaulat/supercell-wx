@@ -329,6 +329,7 @@ public:
       // Shutdown ImGui Context
       imguiRenderer_.Shutdown();
       ReleaseBasemapTexture();
+      ReleaseSymbologyTexture();
       ImGui_ImplQt_Shutdown();
 
       // Destroy ImGui Context
@@ -337,6 +338,10 @@ public:
       if (map_ != nullptr)
       {
          rhiRenderer_.ReleaseMapRenderer(map_.get());
+      }
+      if (symbologyMap_ != nullptr)
+      {
+         symbologyRhiRenderer_.ReleaseMapRenderer(symbologyMap_.get());
       }
 
       threadPool_.join();
@@ -374,6 +379,17 @@ public:
    void EnsureImGuiRenderer(QRhiCommandBuffer* commandBuffer);
    void EnsureBasemapTexture();
    void ReleaseBasemapTexture();
+
+   // Basemap symbology (roads, labels) is rendered by a companion map into its
+   // own texture so it can be composited above custom layers placed below it.
+   void CreateSymbologyMap();
+   void ConnectSymbologyMapSignals();
+   void ApplySymbologySplit(QMapLibre::Map* map, bool hideSymbology);
+   void ResetSymbologySplit();
+   [[nodiscard]] bool SymbologySplitActive() const;
+   void               EnsureSymbologyTexture();
+   void               ReleaseSymbologyTexture();
+   void               RenderSymbology(QRhiCommandBuffer* commandBuffer);
    void RenderMapAndSnapshot(QRhiCommandBuffer* commandBuffer);
    [[nodiscard]] bool MapStyleReadyForRender() const
    { return mapChangedOnce_ || mapStylePending_; }
@@ -548,6 +564,25 @@ public:
    std::uint64_t                   lastCopiedBasemapGeneration_ {0};
    QRhiTexture*                    basemapTexture_ {nullptr};
    QSize                           basemapTextureSize_ {};
+
+   std::shared_ptr<QMapLibre::Map> symbologyMap_ {};
+   MapRhiRenderer                  symbologyRhiRenderer_ {};
+   QRhiTexture*                    symbologyTexture_ {nullptr};
+   QSize                           symbologyTextureSize_ {};
+   bool                            symbologyDirty_ {true};
+   bool                            underlaySplitApplied_ {false};
+   bool                            symbologySplitApplied_ {false};
+   std::size_t                     symbologyLayerIndex_ {0};
+   struct SymbologyCamera
+   {
+      double latitude_ {};
+      double longitude_ {};
+      double zoom_ {};
+      double bearing_ {};
+      double pitch_ {};
+      bool   operator==(const SymbologyCamera&) const = default;
+   };
+   std::optional<SymbologyCamera> symbologyCamera_ {};
 
 public slots:
    void Update();
@@ -1667,6 +1702,11 @@ void MapWidgetImpl::ApplyQueuedMapResize()
    }
 
    map_->resize(queuedMapSize_, queuedMapPixelRatio_);
+   if (symbologyMap_ != nullptr)
+   {
+      symbologyMap_->resize(queuedMapSize_, queuedMapPixelRatio_);
+      symbologyDirty_ = true;
+   }
    appliedMapSize_       = queuedMapSize_;
    appliedMapPixelRatio_ = queuedMapPixelRatio_;
 }
@@ -1756,6 +1796,9 @@ void MapWidget::SetBasemapShareCallbacks(
 QRhiTexture* MapWidget::basemap_color_texture() const
 { return p->basemapTexture_; }
 
+QRhiTexture* MapWidget::basemap_symbology_texture() const
+{ return p->SymbologySplitActive() ? p->symbologyTexture_ : nullptr; }
+
 QRhi* MapWidget::map_rhi() const
 { return rhi(); }
 
@@ -1789,6 +1832,7 @@ void MapWidget::SetMapStyle(const std::string& styleName, bool force)
 
          logger_->debug("Updating style: {}", style->name_);
 
+         p->ResetSymbologySplit();
          util::maplibre::SetMapStyleUrl(p->context_, style->url_);
 
          break;
@@ -1841,6 +1885,7 @@ void MapWidget::changeStyle()
 
    logger_->debug("Updating style: {}", p->currentStyle_->name_);
 
+   p->ResetSymbologySplit();
    util::maplibre::SetMapStyleUrl(p->context_, p->currentStyle_->url_);
 
    Q_EMIT MapStyleChanged(p->currentStyle_->name_);
@@ -1884,6 +1929,9 @@ void MapWidgetImpl::AddLayers()
    placefileLayers_.clear();
    weakPickedEventHandler_.reset();
 
+   // Without a symbology entry, the symbology draws above every layer
+   symbologyLayerIndex_ = std::numeric_limits<std::size_t>::max();
+
    // Update custom layer list from model
    types::LayerVector customLayers = model::LayerModel::Instance()->GetLayers();
 
@@ -1907,6 +1955,8 @@ void MapWidgetImpl::AddLayers()
          // Subsequent layers are drawn after all style-defined layers
          case types::MapLayer::MapSymbology:
             before = "";
+            // Layers added from here on are drawn above basemap symbology
+            symbologyLayerIndex_ = genericLayers_.size();
             break;
 
          default:
@@ -2674,6 +2724,11 @@ void MapWidget::initialize(QRhiCommandBuffer* cb)
       if (p->map_ != nullptr)
       {
          p->map_->resize(size(), pixelRatio());
+         if (p->symbologyMap_ != nullptr)
+         {
+            p->symbologyMap_->resize(size(), pixelRatio());
+            p->symbologyDirty_ = true;
+         }
          p->appliedMapSize_       = size();
          p->appliedMapPixelRatio_ = pixelRatio();
       }
@@ -2687,6 +2742,10 @@ void MapWidget::initialize(QRhiCommandBuffer* cb)
       rhi(),
       window() != nullptr ? window()->windowHandle() : nullptr,
       p->map_.get());
+   p->symbologyRhiRenderer_.InitializeMapRenderer(
+      rhi(),
+      window() != nullptr ? window()->windowHandle() : nullptr,
+      p->symbologyMap_.get());
 
    std::shared_lock imguiFontAtlasLock {
       manager::FontManager::Instance().imgui_font_atlas_mutex()};
@@ -2737,6 +2796,7 @@ void MapWidget::initialize(QRhiCommandBuffer* cb)
    {
       p->map_->triggerRepaint();
    }
+   p->symbologyDirty_ = true;
 }
 
 void MapWidget::releaseResources()
@@ -2750,6 +2810,10 @@ void MapWidget::releaseResources()
    {
       p->rhiRenderer_.ReleaseMapRenderer(p->map_.get());
    }
+   if (p->symbologyMap_ != nullptr)
+   {
+      p->symbologyRhiRenderer_.ReleaseMapRenderer(p->symbologyMap_.get());
+   }
 
    // ImGui Vulkan backend is per-context; must bind this pane's context or
    // Shutdown skips / tears down the wrong backend (pop-out reparent crash).
@@ -2757,6 +2821,8 @@ void MapWidget::releaseResources()
    p->imguiRenderer_.Shutdown();
    p->overlayRenderer_.Shutdown();
    p->ReleaseBasemapTexture();
+   p->ReleaseSymbologyTexture();
+   p->symbologyDirty_             = true;
    p->lastCopiedBasemapGeneration_ = 0;
    p->imguiOverlayGeneration_      = 0;
    p->imGuiRendererInitialized_    = false;
@@ -2777,6 +2843,10 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
    if (hadExistingMap)
    {
       rhiRenderer_.ReleaseMapRenderer(map_.get());
+      if (symbologyMap_ != nullptr)
+      {
+         symbologyRhiRenderer_.ReleaseMapRenderer(symbologyMap_.get());
+      }
    }
 
    map_ = std::make_shared<QMapLibre::Map>(
@@ -2785,6 +2855,7 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
    appliedMapPixelRatio_ = widget_->pixelRatio();
    context_->set_map(map_);
    ConnectMapSignals();
+   CreateSymbologyMap();
 
    // Set initial location:
    //  - On first initialization, center on the radar site.
@@ -2854,12 +2925,174 @@ void MapWidgetImpl::ResetMap(const std::string& styleName)
 
    if (vulkanRenderingInitialized_)
    {
-      rhiRenderer_.InitializeMapRenderer(widget_->rhi(),
-                                         widget_->window() != nullptr ?
-                                            widget_->window()->windowHandle() :
-                                            nullptr,
-                                         map_.get());
+      QWindow* const window = widget_->window() != nullptr ?
+                                 widget_->window()->windowHandle() :
+                                 nullptr;
+      rhiRenderer_.InitializeMapRenderer(widget_->rhi(), window, map_.get());
+      symbologyRhiRenderer_.InitializeMapRenderer(
+         widget_->rhi(), window, symbologyMap_.get());
    }
+}
+
+void MapWidgetImpl::CreateSymbologyMap()
+{
+   symbologyMap_ = std::make_shared<QMapLibre::Map>(
+      nullptr, settings_, widget_->size(), widget_->pixelRatio());
+   context_->set_symbology_map(symbologyMap_);
+   symbologyCamera_.reset();
+   symbologyDirty_ = true;
+   ResetSymbologySplit();
+   ConnectSymbologyMapSignals();
+}
+
+void MapWidgetImpl::ConnectSymbologyMapSignals()
+{
+   connect(symbologyMap_.get(),
+           &QMapLibre::Map::needsRendering,
+           this,
+           [this]()
+           {
+              symbologyDirty_ = true;
+              Update();
+           });
+   connect(symbologyMap_.get(),
+           &QMapLibre::Map::mapChanged,
+           this,
+           [this](QMapLibre::Map::MapChange mapChange)
+           {
+              if (mapChange == QMapLibre::Map::MapChangeDidFinishLoadingStyle)
+              {
+                 ApplySymbologySplit(symbologyMap_.get(), false);
+              }
+           });
+}
+
+void MapWidgetImpl::ResetSymbologySplit()
+{
+   underlaySplitApplied_  = false;
+   symbologySplitApplied_ = false;
+   symbologyDirty_        = true;
+}
+
+bool MapWidgetImpl::SymbologySplitActive() const
+{
+   return symbologyMap_ != nullptr && underlaySplitApplied_ &&
+          symbologySplitApplied_;
+}
+
+void MapWidgetImpl::ApplySymbologySplit(QMapLibre::Map* map,
+                                        bool            hideSymbology)
+{
+   if (map == nullptr || currentStyle_ == nullptr)
+   {
+      return;
+   }
+
+   const auto      layerIds = map->layerIds();
+   const QStringList layers(layerIds.begin(), layerIds.end());
+
+   // Layers from the symbology layer onward are drawn above custom layers
+   const int boundary = layers.indexOf(QString::fromStdString(
+      util::maplibre::FindMapSymbologyLayer(layers, currentStyle_->drawBelow_)));
+   if (boundary <= 0)
+   {
+      // No symbology layer in this style; render it as a single map
+      return;
+   }
+
+   const int first = hideSymbology ? boundary : 0;
+   const int last  = hideSymbology ? static_cast<int>(layers.size()) : boundary;
+   for (int i = first; i < last; ++i)
+   {
+      map->setLayoutProperty(layers[i], "visibility", "none");
+   }
+
+   if (hideSymbology)
+   {
+      underlaySplitApplied_ = true;
+   }
+   else
+   {
+      symbologySplitApplied_ = true;
+   }
+   symbologyDirty_ = true;
+   Update();
+}
+
+void MapWidgetImpl::EnsureSymbologyTexture()
+{
+   QRhi* const        rhi          = widget_->rhi();
+   QRhiTexture* const colorTexture = widget_->colorTexture();
+   if (rhi == nullptr || colorTexture == nullptr)
+   {
+      return;
+   }
+
+   const QSize size = colorTexture->pixelSize();
+   if (symbologyTexture_ != nullptr && symbologyTextureSize_ == size &&
+       symbologyTexture_->format() == colorTexture->format())
+   {
+      return;
+   }
+
+   delete symbologyTexture_;
+   symbologyTexture_ = rhi->newTexture(colorTexture->format(), size);
+   if (symbologyTexture_ == nullptr || !symbologyTexture_->create())
+   {
+      delete symbologyTexture_;
+      symbologyTexture_     = nullptr;
+      symbologyTextureSize_ = {};
+      return;
+   }
+
+   symbologyTextureSize_ = size;
+   symbologyDirty_       = true;
+}
+
+void MapWidgetImpl::ReleaseSymbologyTexture()
+{
+   delete symbologyTexture_;
+   symbologyTexture_     = nullptr;
+   symbologyTextureSize_ = {};
+}
+
+void MapWidgetImpl::RenderSymbology(QRhiCommandBuffer* commandBuffer)
+{
+   QRhiTexture* const colorTexture = widget_->colorTexture();
+   if (!SymbologySplitActive() || colorTexture == nullptr ||
+       commandBuffer == nullptr)
+   {
+      return;
+   }
+
+   // Follow the main map's camera
+   const SymbologyCamera camera {map_->latitude(),
+                                 map_->longitude(),
+                                 map_->zoom(),
+                                 map_->bearing(),
+                                 map_->pitch()};
+   if (symbologyCamera_ != camera)
+   {
+      symbologyMap_->setCoordinateZoom({camera.latitude_, camera.longitude_},
+                                       camera.zoom_);
+      symbologyMap_->setBearing(camera.bearing_);
+      symbologyMap_->setPitch(camera.pitch_);
+      symbologyCamera_ = camera;
+      symbologyDirty_  = true;
+   }
+
+   EnsureSymbologyTexture();
+   if (symbologyTexture_ == nullptr || !symbologyDirty_)
+   {
+      return;
+   }
+
+   // Renders into the pane's color texture (cleared to transparent by the
+   // companion map), then snapshots it. The main map renders over it after.
+   symbologyRhiRenderer_.RenderMap(colorTexture, symbologyMap_.get());
+   MapRhiRenderer::CopyColorTexture(
+      widget_->rhi(), commandBuffer, symbologyTexture_, colorTexture);
+   symbologyDirty_ = false;
 }
 
 std::string
@@ -2898,6 +3131,11 @@ void MapWidgetImpl::EnsureImGuiRenderer(QRhiCommandBuffer* commandBuffer)
       return;
    }
 
+   overlayRenderer_.SetSampleCount(
+      settings::GeneralSettings::Instance().anti_aliasing_enabled().GetValue() ?
+         4 :
+         1);
+
    if (!overlayRenderer_.EnsureRenderTarget(commandBuffer,
                                             widget_->colorTexture()))
    {
@@ -2925,8 +3163,11 @@ void MapWidgetImpl::EnsureImGuiRenderer(QRhiCommandBuffer* commandBuffer)
 
    if (!imguiRenderer_.IsInitialized())
    {
-      imguiRenderer_.Initialize(
-         widget_->rhi(), widget_->colorTexture(), renderPass, imGuiContext_);
+      imguiRenderer_.Initialize(widget_->rhi(),
+                                widget_->colorTexture(),
+                                renderPass,
+                                imGuiContext_,
+                                overlayRenderer_.GetSampleCount());
    }
 
    imGuiRendererInitialized_ = imguiRenderer_.IsInitialized();
@@ -2975,6 +3216,10 @@ void MapWidgetImpl::RenderMapAndSnapshot(QRhiCommandBuffer* commandBuffer)
    {
       return;
    }
+
+   // Companion symbology map first: it uses the color texture as scratch and
+   // snapshots it, then the main map renders into the texture.
+   RenderSymbology(commandBuffer);
 
    rhiRenderer_.RenderMap(colorTexture, map_.get());
 
@@ -3250,12 +3495,36 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    const auto overlayStart = std::chrono::steady_clock::now();
    // Always composite overlays after map/basemap. Skipping this for inactive
    // panes dropped annotations after the color buffer was replaced.
+   // Basemap symbology composites above the layers below it. Followers use
+   // the leader's symbology (same QRhi), others use their own.
+   QRhiTexture* symbologyTexture = nullptr;
+   if (basemapCopied)
+   {
+      if (basemapShareCallbacks_ != nullptr &&
+          basemapShareCallbacks_->leaderSymbologyTexture_ != nullptr)
+      {
+         symbologyTexture = basemapShareCallbacks_->leaderSymbologyTexture_(
+            basemapShareDecision.leaderIndex_);
+      }
+   }
+   else if (SymbologySplitActive())
+   {
+      symbologyTexture = symbologyTexture_;
+   }
+
+   overlayRenderer_.SetSampleCount(
+      settings::GeneralSettings::Instance().anti_aliasing_enabled().GetValue() ?
+         4 :
+         1);
+
    const bool overlayOk = overlayRenderer_.Render(commandBuffer,
                                                   widget_->colorTexture(),
                                                   genericLayers_,
                                                   context_,
                                                   overlayParams,
-                                                  imguiRender);
+                                                  imguiRender,
+                                                  symbologyTexture,
+                                                  symbologyLayerIndex_);
 
    const bool keepInactiveAnnotationsAlive =
       !context_->settings().isActive_ && annotationLayer_ != nullptr &&
@@ -3515,6 +3784,7 @@ void MapWidget::mapChanged(QMapLibre::Map::MapChange mapChange)
    {
    case QMapLibre::Map::MapChangeDidFinishLoadingStyle:
       p->UpdateLoadedStyle();
+      p->ApplySymbologySplit(p->map_.get(), true);
       p->AddLayers();
       p->mapChangedOnce_  = true;
       p->mapStylePending_ = false;
@@ -3529,6 +3799,7 @@ void MapWidget::mapChanged(QMapLibre::Map::MapChange mapChange)
       if (p->mapStylePending_)
       {
          p->UpdateLoadedStyle();
+         p->ApplySymbologySplit(p->map_.get(), true);
          p->AddLayers();
          p->mapChangedOnce_  = true;
          p->mapStylePending_ = false;

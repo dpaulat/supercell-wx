@@ -1270,6 +1270,16 @@ void MainWindowImpl::ConfigureBasemapSharing()
       return maps_.at(leaderIndex)->basemap_color_texture();
    };
 
+   basemapShareCallbacks_.leaderSymbologyTexture_ =
+      [this](const std::size_t leaderIndex) -> QRhiTexture*
+   {
+      if (leaderIndex >= maps_.size() || maps_.at(leaderIndex) == nullptr)
+      {
+         return nullptr;
+      }
+      return maps_.at(leaderIndex)->basemap_symbology_texture();
+   };
+
    basemapShareCallbacks_.leaderRhi_ =
       [this](const std::size_t leaderIndex) -> QRhi*
    {

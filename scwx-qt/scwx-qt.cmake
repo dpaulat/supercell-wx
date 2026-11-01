@@ -238,6 +238,7 @@ set(HDR_RENDER source/scwx/qt/render/render_backend.hpp
                source/scwx/qt/render/rhi_colored_geometry.hpp
                source/scwx/qt/render/rhi_geo_uniforms.hpp
                source/scwx/qt/render/rhi_geo_colored_geometry.hpp
+               source/scwx/qt/render/rhi_geo_colored_geometry_cache.hpp
                source/scwx/qt/render/rhi_texture_array_overlay.hpp
                source/scwx/qt/render/rhi_overlay_gpu_store.hpp
                source/scwx/qt/render/rhi_buffer_util.hpp
@@ -251,6 +252,7 @@ set(SRC_RENDER source/scwx/qt/render/render_context.cpp
                source/scwx/qt/render/rhi_colored_geometry.cpp
                source/scwx/qt/render/rhi_geo_uniforms.cpp
                source/scwx/qt/render/rhi_geo_colored_geometry.cpp
+               source/scwx/qt/render/rhi_geo_colored_geometry_cache.cpp
                source/scwx/qt/render/rhi_texture_array_overlay.cpp
                source/scwx/qt/render/rhi_overlay_gpu_store.cpp
                source/scwx/qt/render/rhi_buffer_util.cpp
@@ -545,7 +547,9 @@ set(SRC_VIEW source/scwx/qt/view/level2_product_view.cpp
 
 set(RESOURCE_FILES scwx-qt.qrc)
 
-set(SHADER_FILES gl/vulkan/qsb/color.frag.qsb
+set(SHADER_FILES gl/vulkan/qsb/blit.frag.qsb
+                 gl/vulkan/qsb/blit.vert.qsb
+                 gl/vulkan/qsb/color.frag.qsb
                  gl/vulkan/qsb/color.vert.qsb
                  gl/vulkan/qsb/geo_color.frag.qsb
                  gl/vulkan/qsb/geo_color.vert.qsb

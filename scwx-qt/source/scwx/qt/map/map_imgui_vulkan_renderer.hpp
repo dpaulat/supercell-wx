@@ -17,7 +17,8 @@ public:
    void Initialize(QRhi*         rhi,
                    QRhiTexture*  colorTexture,
                    void*         renderPass,
-                   ImGuiContext* imGuiContext);
+                   ImGuiContext* imGuiContext,
+                   int           sampleCount = 1);
    void Shutdown();
    void UpdateRenderPass(void* renderPass);
 
@@ -30,6 +31,7 @@ public:
 private:
    void BindContext() const;
    bool InitBackend(void* renderPass);
+   int  sampleCount_ {1};
 
    ImGuiContext*   imGuiContext_ {nullptr};
    QRhi*           rhi_ {nullptr};

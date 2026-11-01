@@ -32,6 +32,8 @@ struct RhiVulkanOverlayResources
    QRhiResourceUpdateBatch* resourceBatch {nullptr};
    RhiOverlayPhase          phase {RhiOverlayPhase::UploadAndDraw};
    float                    layerOpacity {1.0f};
+   // Set by draw items with chunked geometry upload still in progress
+   bool uploadPending {false};
 };
 
 } // namespace scwx::qt::render

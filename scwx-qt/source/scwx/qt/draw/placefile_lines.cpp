@@ -5,7 +5,7 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
-#include <scwx/qt/render/rhi_geo_colored_geometry.hpp>
+#include <scwx/qt/render/rhi_geo_colored_geometry_cache.hpp>
 #include <scwx/qt/render/rhi_geo_uniforms.hpp>
 #include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 
@@ -33,9 +33,6 @@ static constexpr std::size_t kVerticesPerRectangle = kVerticesPerTriangle * 2;
 
 // Threshold, start time, end time
 static constexpr std::size_t kIntegersPerVertex_ = 3;
-
-static constexpr std::array<float, 11> kNoStrokeVertexPadding = {
-   0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 
 static constexpr float kLineCapOverlapPx = 1.0f;
 
@@ -99,20 +96,7 @@ public:
 
    std::uint32_t numVertices_;
 
-   std::vector<std::int32_t> expandedIntegerBuffer_ {};
-   struct GeoRendererCacheEntry
-   {
-      std::unique_ptr<render::RhiGeoColoredGeometry> renderer_ {};
-      bool                                           geometryUploaded_ {false};
-      std::uint64_t renderTargetGeneration_ {0};
-   };
-
-   std::unordered_map<QRhi*, GeoRendererCacheEntry> geoRendererByRhi_ {};
-
-   void InvalidateGeometryUploads();
-   void RebuildExpandedIntegerBuffer();
-   void EnsureGeoRenderer(render::RhiVulkanOverlayResources& resources,
-                          QRhiCommandBuffer*                 commandBuffer);
+   render::RhiGeoColoredGeometryCache geoRenderer_ {};
 };
 
 PlacefileLines::PlacefileLines(
@@ -139,66 +123,6 @@ void PlacefileLines::Render(
 {
 }
 
-void PlacefileLines::Impl::RebuildExpandedIntegerBuffer()
-{
-   expandedIntegerBuffer_.clear();
-   expandedIntegerBuffer_.reserve(currentIntegerBuffer_.size() /
-                                  kIntegersPerVertex_ * 4);
-   for (std::size_t i = 0; i < currentIntegerBuffer_.size();
-        i += kIntegersPerVertex_)
-   {
-      expandedIntegerBuffer_.push_back(currentIntegerBuffer_[i]);
-      expandedIntegerBuffer_.push_back(currentIntegerBuffer_[i + 1]);
-      expandedIntegerBuffer_.push_back(currentIntegerBuffer_[i + 2]);
-      expandedIntegerBuffer_.push_back(1);
-   }
-   InvalidateGeometryUploads();
-}
-
-void PlacefileLines::Impl::InvalidateGeometryUploads()
-{
-   for (auto& [rhi, entry] : geoRendererByRhi_)
-   {
-      (void) rhi;
-      entry.geometryUploaded_ = false;
-   }
-}
-
-void PlacefileLines::Impl::EnsureGeoRenderer(
-   render::RhiVulkanOverlayResources& resources,
-   QRhiCommandBuffer*                 commandBuffer)
-{
-   if (resources.rhi == nullptr || resources.renderTarget == nullptr)
-   {
-      return;
-   }
-
-   GeoRendererCacheEntry& entry = geoRendererByRhi_[resources.rhi];
-
-   if (entry.renderTargetGeneration_ != resources.renderTargetGeneration)
-   {
-      if (entry.renderer_ != nullptr)
-      {
-         entry.renderer_->Shutdown();
-      }
-      entry.renderer_ = std::make_unique<render::RhiGeoColoredGeometry>();
-      entry.renderTargetGeneration_ = resources.renderTargetGeneration;
-      entry.geometryUploaded_       = false;
-   }
-
-   if (entry.renderer_ == nullptr)
-   {
-      entry.renderer_ = std::make_unique<render::RhiGeoColoredGeometry>();
-      entry.renderTargetGeneration_ = resources.renderTargetGeneration;
-   }
-
-   if (!entry.renderer_->IsInitialized())
-   {
-      entry.renderer_->Initialize(
-         resources.rhi, resources.renderTarget, commandBuffer);
-   }
-}
-
 void PlacefileLines::RenderVulkan(
    QRhiCommandBuffer*                            commandBuffer,
    render::RhiVulkanOverlayResources&            resources,
@@ -212,37 +136,14 @@ void PlacefileLines::RenderVulkan(
       return;
    }
 
-   p->EnsureGeoRenderer(resources, commandBuffer);
-
-   const auto entryIt = p->geoRendererByRhi_.find(resources.rhi);
-   if (entryIt == p->geoRendererByRhi_.end() ||
-       entryIt->second.renderer_ == nullptr ||
-       !entryIt->second.renderer_->IsInitialized())
-   {
-      return;
-   }
-
-   auto& entry = entryIt->second;
-
-   const scwx::qt::render::GeoUniforms uniforms =
-      scwx::qt::render::BuildGeoUniforms(
-         params, p->thresholded_, p->selectedTime_, resources.layerOpacity);
-
-   const bool uploadGeometry = !entry.geometryUploaded_;
-
-   entry.renderer_->Render(commandBuffer,
-                           uniforms,
-                           p->currentLinesBuffer_,
-                           p->expandedIntegerBuffer_,
-                           static_cast<std::uint32_t>(p->numVertices_),
-                           uploadGeometry,
-                           resources.resourceBatch,
-                           resources.phase);
-
-   if (uploadGeometry)
-   {
-      entry.geometryUploaded_ = true;
-   }
+   p->geoRenderer_.Render(commandBuffer,
+                          resources,
+                          params,
+                          p->thresholded_,
+                          p->selectedTime_,
+                          p->currentLinesBuffer_,
+                          p->currentIntegerBuffer_,
+                          p->numVertices_);
 }
 
 void PlacefileLines::Deinitialize()
@@ -253,16 +154,7 @@ void PlacefileLines::Deinitialize()
    p->currentIntegerBuffer_.clear();
    p->currentHoverLines_.clear();
 
-   p->expandedIntegerBuffer_.clear();
-   for (auto& [rhi, entry] : p->geoRendererByRhi_)
-   {
-      (void) rhi;
-      if (entry.renderer_ != nullptr)
-      {
-         entry.renderer_->Shutdown();
-      }
-   }
-   p->geoRendererByRhi_.clear();
+   p->geoRenderer_.Shutdown();
 }
 
 void PlacefileLines::StartLines()
@@ -311,7 +203,7 @@ void PlacefileLines::FinishLines()
 
    // Mark the draw item dirty
    p->dirty_ = true;
-   p->RebuildExpandedIntegerBuffer();
+   p->geoRenderer_.Invalidate();
 }
 
 void PlacefileLines::Impl::UpdateBuffers(
@@ -449,9 +341,6 @@ void PlacefileLines::Impl::BufferLine(
    {
       newLinesBuffer_.insert(newLinesBuffer_.end(),
                              {lat, lon, x, y, mc0, mc1, mc2, mc3, perp});
-      newLinesBuffer_.insert(newLinesBuffer_.end(),
-                             kNoStrokeVertexPadding.begin(),
-                             kNoStrokeVertexPadding.end());
    };
 
    appendVertex(lat1, lon1, blX, blY, lx);
@@ -460,25 +349,11 @@ void PlacefileLines::Impl::BufferLine(
    appendVertex(lat1, lon1, brX, brY, rx);
    appendVertex(lat2, lon2, trX, trY, rx);
    appendVertex(lat2, lon2, tlX, tlY, lx);
-   newIntegerBuffer_.insert(newIntegerBuffer_.end(),
-                            {threshold,
-                             startTime,
-                             endTime,
-                             threshold,
-                             startTime,
-                             endTime,
-                             threshold,
-                             startTime,
-                             endTime,
-                             threshold,
-                             startTime,
-                             endTime,
-                             threshold,
-                             startTime,
-                             endTime,
-                             threshold,
-                             startTime,
-                             endTime});
+   for (std::size_t i = 0; i < kVerticesPerRectangle; ++i)
+   {
+      newIntegerBuffer_.insert(newIntegerBuffer_.end(),
+                               {threshold, startTime, endTime});
+   }
 
    if (bufferHover && !di->hoverText_.empty())
    {

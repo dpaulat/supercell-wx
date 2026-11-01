@@ -20,12 +20,30 @@ namespace scwx::qt::render
 class RhiGeoColoredGeometry
 {
 public:
+   enum class Layout
+   {
+      /// 20 floats + 4 ints per vertex (stroke/highlight/border/displayed)
+      Full,
+      /// 9 floats + 3 ints per vertex; stroke attributes are constant
+      Compact
+   };
+
    void Initialize(QRhi*              rhi,
                    QRhiRenderTarget*  renderTarget,
-                   QRhiCommandBuffer* commandBuffer);
+                   QRhiCommandBuffer* commandBuffer,
+                   Layout             layout = Layout::Full);
    void Shutdown();
 
-   void Render(QRhiCommandBuffer*               commandBuffer,
+   /**
+    * Records geometry upload and draw. Geometry is uploaded in bounded chunks
+    * into device-local buffers; the previously uploaded geometry keeps drawing
+    * until the new geometry is complete.
+    *
+    * @param uploadGeometry true when the vertex data changed (restarts upload)
+    * @return true if more upload work remains (caller should request another
+    * frame)
+    */
+   bool Render(QRhiCommandBuffer*               commandBuffer,
                const GeoUniforms&               uniforms,
                const std::vector<float>&        floatVertices,
                const std::vector<std::int32_t>& integerVertices,
@@ -39,16 +57,35 @@ public:
 private:
    bool EnsurePipeline(QRhi* rhi, QRhiRenderTarget* renderTarget);
 
+   bool StartPendingUpload(std::size_t   floatBytes,
+                           std::size_t   integerBytes,
+                           std::uint32_t vertexCount);
+   void ReleasePending();
+
    QRhi*                       rhi_ {nullptr};
    QRhiRenderTarget*           renderTarget_ {nullptr};
    QRhiBuffer*                 uniformBuffer_ {nullptr};
+   QRhiBuffer*                 constantBuffer_ {nullptr};
    QRhiBuffer*                 floatBuffer_ {nullptr};
    QRhiBuffer*                 integerBuffer_ {nullptr};
    QRhiShaderResourceBindings* srb_ {nullptr};
    QRhiGraphicsPipeline*       pipeline_ {nullptr};
-   std::size_t                 floatCapacity_ {0};
-   std::size_t                 integerCapacity_ {0};
+   Layout                      layout_ {Layout::Full};
+   bool                        constantUploaded_ {false};
    bool                        initialized_ {false};
+
+   // Geometry currently drawn
+   std::uint32_t activeVertexCount_ {0};
+
+   // Geometry being uploaded
+   QRhiBuffer*   pendingFloatBuffer_ {nullptr};
+   QRhiBuffer*   pendingIntegerBuffer_ {nullptr};
+   std::size_t   pendingFloatBytes_ {0};
+   std::size_t   pendingIntegerBytes_ {0};
+   std::size_t   pendingFloatOffset_ {0};
+   std::size_t   pendingIntegerOffset_ {0};
+   std::uint32_t pendingVertexCount_ {0};
+   bool          uploadActive_ {false};
 };
 
 } // namespace scwx::qt::render

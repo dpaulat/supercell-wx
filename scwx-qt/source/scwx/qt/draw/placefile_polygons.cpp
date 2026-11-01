@@ -4,8 +4,7 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
-#include <scwx/qt/render/projection.hpp>
-#include <scwx/qt/render/rhi_colored_geometry.hpp>
+#include <scwx/qt/render/rhi_geo_colored_geometry_cache.hpp>
 #include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 
 #include <mutex>
@@ -23,10 +22,13 @@ static const std::string logPrefix_ = "scwx::qt::draw::placefile_polygons";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr std::size_t kVerticesPerTriangle = 3;
-static constexpr std::size_t kPointsPerVertex     = 8;
+// lat, long, x offset, y offset, r, g, b, a, perpendicular (unused)
+static constexpr std::size_t kPointsPerVertex     = 9;
+// Threshold, start time, end time
+static constexpr std::size_t kIntegersPerVertex   = 3;
 
-static constexpr std::size_t kTessVertexScreenX_ = 0;
-static constexpr std::size_t kTessVertexScreenY_ = 1;
+static constexpr std::size_t kTessVertexLat_ = 0;
+static constexpr std::size_t kTessVertexLon_ = 1;
 static constexpr std::size_t kTessVertexXOffset_ = 3;
 static constexpr std::size_t kTessVertexYOffset_ = 4;
 static constexpr std::size_t kTessVertexR_       = 5;
@@ -68,6 +70,8 @@ public:
 
    std::uint32_t numVertices_;
 
+   render::RhiGeoColoredGeometryCache geoRenderer_ {};
+
    std::int32_t currentThreshold_ {};
    std::int32_t currentStartTime_ {};
    std::int32_t currentEndTime_ {};
@@ -104,40 +108,25 @@ void PlacefilePolygons::RenderVulkan(
    const QMapLibre::CustomLayerRenderParameters& params,
    bool /* textureAtlasChanged */)
 {
-   // Hold the buffer lock across the update and transform so a concurrent
-   // buffer swap cannot misalign the vertex and integer buffers.
-   std::vector<float> transformedVertices {};
-   {
-      std::unique_lock lock {p->bufferMutex_};
+   // Hold the buffer lock so a concurrent buffer swap cannot misalign the
+   // vertex and integer buffers while they are uploaded.
+   std::unique_lock lock {p->bufferMutex_};
 
-      if (p->currentBuffer_.empty())
-      {
-         return;
-      }
-
-      p->Update();
-
-      std::vector<std::int32_t> integerVertices(
-         p->currentIntegerBuffer_.begin(), p->currentIntegerBuffer_.end());
-      transformedVertices = render::TransformMapColorVertices(p->currentBuffer_,
-                                                              integerVertices,
-                                                              params,
-                                                              p->thresholded_,
-                                                              p->selectedTime_);
-   }
-
-   if (transformedVertices.empty())
+   if (p->currentBuffer_.empty())
    {
       return;
    }
 
-   const glm::mat4 identity {1.0f};
-   resources.coloredGeometry.Render(commandBuffer,
-                                    identity,
-                                    transformedVertices,
-                                    transformedVertices.size() / 7,
-                                    resources.resourceBatch,
-                                    resources.phase);
+   p->Update();
+
+   p->geoRenderer_.Render(commandBuffer,
+                          resources,
+                          params,
+                          p->thresholded_,
+                          p->selectedTime_,
+                          p->currentBuffer_,
+                          p->currentIntegerBuffer_,
+                          p->numVertices_);
 }
 
 void PlacefilePolygons::Deinitialize()
@@ -147,6 +136,7 @@ void PlacefilePolygons::Deinitialize()
    // Clear the current buffers
    p->currentBuffer_.clear();
    p->currentIntegerBuffer_.clear();
+   p->geoRenderer_.Shutdown();
 }
 
 void PlacefilePolygons::StartPolygons()
@@ -181,6 +171,7 @@ void PlacefilePolygons::FinishPolygons()
 
    // Mark the draw item dirty
    p->dirty_ = true;
+   p->geoRenderer_.Invalidate();
 }
 
 void PlacefilePolygons::Impl::Update()
@@ -231,9 +222,10 @@ void PlacefilePolygons::Impl::Tessellate(
             lastColor = element.color_.value();
          }
 
+         // Triangulate in projected space, but store lat/long for the GPU
          ring.push_back({screenCoordinate.x, screenCoordinate.y});
-         vertexAttributes.emplace_back(TessVertexArray {screenCoordinate.x,
-                                                        screenCoordinate.y,
+         vertexAttributes.emplace_back(TessVertexArray {element.latitude_,
+                                                        element.longitude_,
                                                         0.0,
                                                         element.x_,
                                                         element.y_,
@@ -261,24 +253,25 @@ void PlacefilePolygons::Impl::Tessellate(
       AppendVertex(vertexAttributes[index]);
    }
 
-   while (newBuffer_.size() % kVerticesPerTriangle != 0)
+   while ((newBuffer_.size() / kPointsPerVertex) % kVerticesPerTriangle != 0)
    {
-      newBuffer_.pop_back();
-      newIntegerBuffer_.pop_back();
+      newBuffer_.resize(newBuffer_.size() - kPointsPerVertex);
+      newIntegerBuffer_.resize(newIntegerBuffer_.size() - kIntegersPerVertex);
    }
 }
 
 void PlacefilePolygons::Impl::AppendVertex(const TessVertexArray& data)
 {
    newBuffer_.insert(newBuffer_.end(),
-                     {static_cast<float>(data[kTessVertexScreenX_]),
-                      static_cast<float>(data[kTessVertexScreenY_]),
+                     {static_cast<float>(data[kTessVertexLat_]),
+                      static_cast<float>(data[kTessVertexLon_]),
                       static_cast<float>(data[kTessVertexXOffset_]),
                       static_cast<float>(data[kTessVertexYOffset_]),
                       static_cast<float>(data[kTessVertexR_]),
                       static_cast<float>(data[kTessVertexG_]),
                       static_cast<float>(data[kTessVertexB_]),
-                      static_cast<float>(data[kTessVertexA_])});
+                      static_cast<float>(data[kTessVertexA_]),
+                      0.0f});
    newIntegerBuffer_.insert(
       newIntegerBuffer_.end(),
       {currentThreshold_, currentStartTime_, currentEndTime_});

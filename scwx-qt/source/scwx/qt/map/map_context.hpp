@@ -35,6 +35,8 @@ public:
    MapContext& operator=(MapContext&&) noexcept;
 
    [[nodiscard]] std::weak_ptr<QMapLibre::Map> map() const;
+   /// Companion map that renders only the basemap symbology layers
+   [[nodiscard]] std::weak_ptr<QMapLibre::Map> symbology_map() const;
    [[nodiscard]] std::string                   map_copyrights() const;
    [[nodiscard]] MapProvider                   map_provider() const;
    [[nodiscard]] MapSettings&                  settings();
@@ -53,6 +55,7 @@ public:
    [[nodiscard]] QWidget*                           widget() const;
 
    void set_map(const std::shared_ptr<QMapLibre::Map>& map);
+   void set_symbology_map(const std::shared_ptr<QMapLibre::Map>& map);
    void set_map_copyrights(const std::string& copyrights);
    void set_map_provider(MapProvider provider);
    void set_color_table_margins(const QMargins& margins);

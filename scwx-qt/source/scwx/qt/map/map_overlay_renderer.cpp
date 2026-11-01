@@ -10,11 +10,18 @@
 #include <scwx/qt/render/rhi_texture_array_overlay.hpp>
 #include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 
+#include <scwx/util/logger.hpp>
+
+#include <algorithm>
+
 #include <rhi/qrhi.h>
 #include <rhi/qrhi_platform.h>
 
 namespace scwx::qt::map
 {
+
+static const std::string logPrefix_ = "scwx::qt::map::map_overlay_renderer";
+static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 namespace
 {
@@ -59,6 +66,13 @@ class MapOverlayRenderer::Impl
 public:
    [[nodiscard]] bool EnsureReady(QRhiCommandBuffer* commandBuffer,
                                   QRhiTexture*       colorTexture);
+   void DrawSymbology(QRhiCommandBuffer* commandBuffer, QRhiTexture* texture);
+   void DrawBlit(QRhiCommandBuffer*          commandBuffer,
+                 QRhiTexture*                texture,
+                 QRhiShaderResourceBindings*& srb,
+                 QRhiTexture*&                srbTexture);
+   [[nodiscard]] int EffectiveSampleCount() const;
+   void              ReleaseMsaa();
 
    render::RhiColorTableOverlay   colorTableOverlay_ {};
    render::RhiRadarOverlay        radarOverlay_ {};
@@ -66,6 +80,18 @@ public:
    render::RhiGeoColoredGeometry  radarGeoColoredGeometry_ {};
    render::RhiGeoColoredGeometry  geoColoredGeometry_ {};
    render::RhiTextureArrayOverlay textureArrayOverlay_ {};
+   QRhiShaderResourceBindings*    blitSrb_ {nullptr};
+   QRhiTexture*                   blitSrbTexture_ {nullptr};
+   QRhiShaderResourceBindings*    baseSrb_ {nullptr};
+   QRhiTexture*                   baseSrbTexture_ {nullptr};
+
+   // Multisampled overlay target. The pane color texture is the resolve
+   // target, so the basemap is first copied to baseCopy_ (a texture cannot be
+   // sampled while it is a resolve attachment of the same pass).
+   int               requestedSamples_ {1};
+   int               activeSamples_ {1};
+   QRhiRenderBuffer* msaaBuffer_ {nullptr};
+   QRhiTexture*      baseCopy_ {nullptr};
    QRhi*                          rhi_ {nullptr};
    QRhiTexture*                   colorTexture_ {nullptr};
    QRhiTextureRenderTarget*       preserveRenderTarget_ {nullptr};
@@ -79,6 +105,90 @@ public:
    std::uint64_t             renderTargetGeneration_ {0};
    bool                      storeRetained_ {false};
 };
+
+void MapOverlayRenderer::Impl::DrawSymbology(QRhiCommandBuffer* commandBuffer,
+                                             QRhiTexture*       texture)
+{
+   DrawBlit(commandBuffer, texture, blitSrb_, blitSrbTexture_);
+}
+
+void MapOverlayRenderer::Impl::DrawBlit(QRhiCommandBuffer* commandBuffer,
+                                        QRhiTexture*       texture,
+                                        QRhiShaderResourceBindings*& srb,
+                                        QRhiTexture*&                srbTexture)
+{
+   if (texture == nullptr || preserveRenderTarget_ == nullptr ||
+       texture->pixelSize() != pixelSize_)
+   {
+      return;
+   }
+
+   QRhiGraphicsPipeline* const pipeline =
+      render::AcquireBlitPipeline(rhi_, preserveRenderTarget_);
+   QRhiSampler* const sampler = render::AcquireNearestSampler(rhi_);
+   if (pipeline == nullptr || sampler == nullptr)
+   {
+      return;
+   }
+
+   if (srb == nullptr || srbTexture != texture)
+   {
+      delete srb;
+      srb = rhi_->newShaderResourceBindings();
+      if (srb == nullptr)
+      {
+         return;
+      }
+      srb->setBindings({QRhiShaderResourceBinding::sampledTexture(
+         0, QRhiShaderResourceBinding::FragmentStage, texture, sampler)});
+      if (!srb->create())
+      {
+         delete srb;
+         srb        = nullptr;
+         srbTexture = nullptr;
+         return;
+      }
+      srbTexture = texture;
+   }
+
+   commandBuffer->setGraphicsPipeline(pipeline);
+   commandBuffer->setShaderResources(srb);
+   commandBuffer->draw(3);
+}
+
+int MapOverlayRenderer::Impl::EffectiveSampleCount() const
+{
+#if defined(__APPLE__)
+   // The Metal ImGui backend is not multisample aware
+   return 1;
+#else
+   if (rhi_ == nullptr || requestedSamples_ <= 1)
+   {
+      return 1;
+   }
+
+   int best = 1;
+   for (const int count : rhi_->supportedSampleCounts())
+   {
+      if (count <= requestedSamples_ && count > best)
+      {
+         best = count;
+      }
+   }
+   return best;
+#endif
+}
+
+void MapOverlayRenderer::Impl::ReleaseMsaa()
+{
+   delete msaaBuffer_;
+   msaaBuffer_ = nullptr;
+   delete baseCopy_;
+   baseCopy_ = nullptr;
+   delete baseSrb_;
+   baseSrb_        = nullptr;
+   baseSrbTexture_ = nullptr;
+}
 
 bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
                                            QRhiTexture*       colorTexture)
@@ -94,9 +204,12 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
       return false;
    }
 
+   const int samples = EffectiveSampleCount();
+
    const bool renderTargetChanged =
       preserveRenderTarget_ != nullptr &&
-      (colorTexture_ != colorTexture || pixelSize_ != size);
+      (colorTexture_ != colorTexture || pixelSize_ != size ||
+       activeSamples_ != samples);
    const void* oldNativeRenderPass =
       renderTargetChanged ? NativeRenderPass(preserveRenderTarget_) : nullptr;
 
@@ -110,11 +223,35 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
 
    if (preserveRenderTarget_ == nullptr)
    {
-      QRhiTextureRenderTargetDescription desc {
-         QRhiColorAttachment {colorTexture}};
+      ReleaseMsaa();
+
+      QRhiColorAttachment attachment {colorTexture};
+      if (samples > 1)
+      {
+         msaaBuffer_ = rhi_->newRenderBuffer(QRhiRenderBuffer::Color,
+                                             size,
+                                             samples,
+                                             {},
+                                             colorTexture->format());
+         baseCopy_   = rhi_->newTexture(colorTexture->format(), size);
+         if (msaaBuffer_ == nullptr || !msaaBuffer_->create() ||
+             baseCopy_ == nullptr || !baseCopy_->create())
+         {
+            logger_->error("Failed to create MSAA overlay target");
+            ReleaseMsaa();
+            requestedSamples_ = 1;
+            return false;
+         }
+         attachment = QRhiColorAttachment {msaaBuffer_};
+         attachment.setResolveTexture(colorTexture);
+      }
+
+      QRhiTextureRenderTargetDescription desc {attachment};
 
       preserveRenderTarget_ = rhi_->newTextureRenderTarget(
-         desc, QRhiTextureRenderTarget::PreserveColorContents);
+         desc,
+         samples > 1 ? QRhiTextureRenderTarget::Flags {} :
+                       QRhiTextureRenderTarget::PreserveColorContents);
       if (preserveRenderTarget_ == nullptr)
       {
          return false;
@@ -122,7 +259,7 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
 
       const bool reuseRenderPass = renderPassDescriptor_ != nullptr &&
                                    rpdFormat_ == colorTexture->format() &&
-                                   rpdSamples_ == colorTexture->sampleCount();
+                                   rpdSamples_ == samples;
 
       if (!reuseRenderPass)
       {
@@ -136,7 +273,7 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
             return false;
          }
          rpdFormat_  = colorTexture->format();
-         rpdSamples_ = colorTexture->sampleCount();
+         rpdSamples_ = samples;
       }
 
       preserveRenderTarget_->setRenderPassDescriptor(renderPassDescriptor_);
@@ -147,8 +284,9 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
          return false;
       }
 
-      colorTexture_ = colorTexture;
-      pixelSize_    = size;
+      colorTexture_  = colorTexture;
+      pixelSize_     = size;
+      activeSamples_ = samples;
 
       const void* newNativeRenderPass = NativeRenderPass(preserveRenderTarget_);
       if (oldNativeRenderPass == nullptr ||
@@ -226,6 +364,10 @@ void MapOverlayRenderer::Shutdown()
    p->radarGeoColoredGeometry_.Shutdown();
    p->geoColoredGeometry_.Shutdown();
    p->textureArrayOverlay_.Shutdown();
+   delete p->blitSrb_;
+   p->blitSrb_        = nullptr;
+   p->blitSrbTexture_ = nullptr;
+   p->ReleaseMsaa();
    delete p->preserveRenderTarget_;
    p->preserveRenderTarget_ = nullptr;
    delete p->renderPassDescriptor_;
@@ -249,7 +391,9 @@ bool MapOverlayRenderer::Render(
    const std::vector<std::shared_ptr<GenericLayer>>& layers,
    const std::shared_ptr<MapContext>&                mapContext,
    const QMapLibre::CustomLayerRenderParameters&     params,
-   const std::function<void(QRhiCommandBuffer*)>&    imguiRender)
+   const std::function<void(QRhiCommandBuffer*)>&    imguiRender,
+   QRhiTexture*                                      symbologyTexture,
+   std::size_t                                       symbologyLayerIndex)
 {
    if (p == nullptr || !p->EnsureReady(commandBuffer, colorTexture))
    {
@@ -293,6 +437,12 @@ bool MapOverlayRenderer::Render(
       layer->ResetLayerState();
    }
    p->coloredGeometry_.UploadFrame(resources.resourceBatch);
+   if (p->msaaBuffer_ != nullptr && p->baseCopy_ != nullptr)
+   {
+      // Snapshot the basemap; it is composited into the multisampled target
+      // below (the color texture itself is only the resolve destination).
+      resources.resourceBatch->copyTexture(p->baseCopy_, colorTexture);
+   }
    commandBuffer->resourceUpdate(resources.resourceBatch);
 
    resources.phase         = render::RhiOverlayPhase::Draw;
@@ -303,8 +453,10 @@ bool MapOverlayRenderer::Render(
                                static_cast<float>(p->pixelSize_.width()),
                                static_cast<float>(p->pixelSize_.height()));
 
+   const bool multisampled = p->msaaBuffer_ != nullptr;
+
    commandBuffer->beginPass(p->preserveRenderTarget_,
-                            QColor(),
+                            multisampled ? QColor(Qt::transparent) : QColor(),
                             QRhiDepthStencilClearValue(),
                             nullptr,
                             QRhiCommandBuffer::ExternalContent);
@@ -312,8 +464,21 @@ bool MapOverlayRenderer::Render(
    commandBuffer->setScissor(
       {0, 0, p->pixelSize_.width(), p->pixelSize_.height()});
 
-   for (const auto& layer : layers)
+   if (multisampled)
    {
+      p->DrawBlit(commandBuffer, p->baseCopy_, p->baseSrb_, p->baseSrbTexture_);
+   }
+
+   bool symbologyDrawn = (symbologyTexture == nullptr);
+   for (std::size_t i = 0; i < layers.size(); ++i)
+   {
+      if (!symbologyDrawn && i >= symbologyLayerIndex)
+      {
+         p->DrawSymbology(commandBuffer, symbologyTexture);
+         symbologyDrawn = true;
+      }
+
+      const auto& layer = layers[i];
       if (layer == nullptr)
       {
          continue;
@@ -326,6 +491,11 @@ bool MapOverlayRenderer::Render(
       layer->ResetLayerState();
    }
 
+   if (!symbologyDrawn)
+   {
+      p->DrawSymbology(commandBuffer, symbologyTexture);
+   }
+
    if (imguiRender)
    {
       imguiRender(commandBuffer);
@@ -334,6 +504,18 @@ bool MapOverlayRenderer::Render(
    commandBuffer->endPass();
    return true;
 }
+
+void MapOverlayRenderer::SetSampleCount(int sampleCount)
+{
+   if (p == nullptr)
+   {
+      p = std::make_unique<Impl>();
+   }
+   p->requestedSamples_ = std::max(1, sampleCount);
+}
+
+int MapOverlayRenderer::GetSampleCount() const
+{ return p != nullptr ? p->activeSamples_ : 1; }
 
 bool MapOverlayRenderer::EnsureRenderTarget(QRhiCommandBuffer* commandBuffer,
                                             QRhiTexture*       colorTexture)

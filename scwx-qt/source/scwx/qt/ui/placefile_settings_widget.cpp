@@ -7,6 +7,7 @@
 #include <scwx/qt/ui/open_url_dialog.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <QMessageBox>
 #include <QSortFilterProxyModel>
 
 namespace scwx
@@ -145,7 +146,17 @@ void PlacefileSettingsWidgetImpl::ConnectSignals()
       &OpenUrlDialog::accepted,
       self_,
       [this]()
-      { placefileManager_->AddUrl(openUrlDialog_->url().toStdString()); });
+      {
+         const auto url = openUrlDialog_->url();
+         if (!placefileManager_->AddUrl(url.toStdString()))
+         {
+            QMessageBox::information(
+               self_,
+               QObject::tr("Add Placefile"),
+               QObject::tr("This placefile has already been added:\n%1")
+                  .arg(url));
+         }
+      });
 
    QObject::connect(self_->ui->placefileFilter,
                     &QLineEdit::textChanged,

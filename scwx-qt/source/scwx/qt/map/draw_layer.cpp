@@ -134,9 +134,16 @@ void DrawLayer::RenderWithoutImGuiVulkan(
    const bool textureAtlasChanged =
       newTextureAtlasBuildCount != p->textureAtlasBuildCount_;
 
+   resources.uploadPending = false;
    for (auto& item : p->drawList_)
    {
       item->RenderVulkan(commandBuffer, resources, params, textureAtlasChanged);
+   }
+   if (resources.uploadPending)
+   {
+      // Chunked geometry upload still in progress; schedule another frame
+      resources.uploadPending = false;
+      Q_EMIT NeedsRendering();
    }
 
    p->textureAtlasBuildCount_ = newTextureAtlasBuildCount;

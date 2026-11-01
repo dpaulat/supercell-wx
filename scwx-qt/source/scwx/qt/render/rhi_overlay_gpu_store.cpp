@@ -84,15 +84,18 @@ struct PipelineBucket
 {
    QRhiGraphicsPipeline* coloredGeometry_ {nullptr};
    QRhiGraphicsPipeline* geoColoredGeometry_ {nullptr};
+   QRhiGraphicsPipeline* geoColoredCompactGeometry_ {nullptr};
    QRhiGraphicsPipeline* radar_ {nullptr};
    QRhiGraphicsPipeline* colorTable_ {nullptr};
    QRhiGraphicsPipeline* textureArrayGeo_ {nullptr};
    QRhiGraphicsPipeline* textureArrayScreen_ {nullptr};
+   QRhiGraphicsPipeline* blit_ {nullptr};
 
    QRhiBuffer*                 layoutUniform_ {nullptr};
    QRhiTexture*                layoutTexture_ {nullptr};
    QRhiSampler*                layoutSampler_ {nullptr};
    QRhiShaderResourceBindings* layoutSrbUniform_ {nullptr};
+   QRhiShaderResourceBindings* layoutSrbTexture_ {nullptr};
    QRhiShaderResourceBindings* layoutSrbUniformTexture_ {nullptr};
    QRhiShaderResourceBindings* layoutSrbGeoTexture_ {nullptr};
    QRhiShaderResourceBindings* layoutSrbScreenTexture_ {nullptr};
@@ -104,6 +107,8 @@ struct PipelineBucket
       coloredGeometry_ = nullptr;
       delete geoColoredGeometry_;
       geoColoredGeometry_ = nullptr;
+      delete geoColoredCompactGeometry_;
+      geoColoredCompactGeometry_ = nullptr;
       delete radar_;
       radar_ = nullptr;
       delete colorTable_;
@@ -112,6 +117,10 @@ struct PipelineBucket
       textureArrayGeo_ = nullptr;
       delete textureArrayScreen_;
       textureArrayScreen_ = nullptr;
+      delete blit_;
+      blit_ = nullptr;
+      delete layoutSrbTexture_;
+      layoutSrbTexture_ = nullptr;
       delete layoutSrbUniform_;
       layoutSrbUniform_ = nullptr;
       delete layoutSrbUniformTexture_;
@@ -230,6 +239,25 @@ std::unordered_map<QRhi*, RhiStore> stores_;
       }
    }
 
+   if (bucket.layoutSrbTexture_ == nullptr)
+   {
+      bucket.layoutSrbTexture_ = rhi->newShaderResourceBindings();
+      if (bucket.layoutSrbTexture_ == nullptr)
+      {
+         return false;
+      }
+      bucket.layoutSrbTexture_->setBindings(
+         {QRhiShaderResourceBinding::sampledTexture(
+            0,
+            QRhiShaderResourceBinding::FragmentStage,
+            bucket.layoutTexture_,
+            bucket.layoutSampler_)});
+      if (!bucket.layoutSrbTexture_->create())
+      {
+         return false;
+      }
+   }
+
    if (bucket.layoutSrbGeoUniform_ == nullptr)
    {
       bucket.layoutSrbGeoUniform_ = rhi->newShaderResourceBindings();
@@ -339,9 +367,18 @@ std::unordered_map<QRhi*, RhiStore> stores_;
    return blend;
 }
 
-[[nodiscard]] bool ConfigureCommonPipeline(QRhiGraphicsPipeline* pipeline,
-                                           QRhiRenderTarget*     renderTarget,
-                                           QRhiShaderResourceBindings* srb)
+[[nodiscard]] QRhiGraphicsPipeline::TargetBlend PremultipliedBlend()
+{
+   QRhiGraphicsPipeline::TargetBlend blend = AlphaBlend();
+   blend.srcColor                          = QRhiGraphicsPipeline::One;
+   return blend;
+}
+
+[[nodiscard]] bool ConfigureCommonPipeline(
+   QRhiGraphicsPipeline*                   pipeline,
+   QRhiRenderTarget*                       renderTarget,
+   QRhiShaderResourceBindings*             srb,
+   const QRhiGraphicsPipeline::TargetBlend blend = AlphaBlend())
 {
    if (pipeline == nullptr || renderTarget == nullptr || srb == nullptr)
    {
@@ -355,7 +392,7 @@ std::unordered_map<QRhi*, RhiStore> stores_;
    pipeline->setCullMode(QRhiGraphicsPipeline::None);
    pipeline->setDepthTest(false);
    pipeline->setDepthWrite(false);
-   pipeline->setTargetBlends({AlphaBlend()});
+   pipeline->setTargetBlends({blend});
    return pipeline->create();
 }
 
@@ -563,7 +600,9 @@ AcquireColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
 }
 
 QRhiGraphicsPipeline*
-AcquireGeoColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
+AcquireGeoColoredGeometryPipeline(QRhi*             rhi,
+                                  QRhiRenderTarget* renderTarget,
+                                  bool              compact)
 {
    if (rhi == nullptr || renderTarget == nullptr)
    {
@@ -574,9 +613,11 @@ AcquireGeoColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
    RhiStore&         store  = GetStore(rhi);
    const PipelineKey key    = MakeKey(renderTarget);
    PipelineBucket&   bucket = store.pipelines_[key];
-   if (bucket.geoColoredGeometry_ != nullptr)
+   QRhiGraphicsPipeline*& cached =
+      compact ? bucket.geoColoredCompactGeometry_ : bucket.geoColoredGeometry_;
+   if (cached != nullptr)
    {
-      return bucket.geoColoredGeometry_;
+      return cached;
    }
    if (!EnsureLayoutResources(rhi, bucket))
    {
@@ -600,19 +641,46 @@ AcquireGeoColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
    }
 
    QRhiVertexInputLayout inputLayout;
-   inputLayout.setBindings({{20 * sizeof(float)}, {4 * sizeof(std::int32_t)}});
-   inputLayout.setAttributes(
-      {{0, 0, QRhiVertexInputAttribute::Float2, 0},
-       {0, 1, QRhiVertexInputAttribute::Float2, 2 * sizeof(float)},
-       {0, 2, QRhiVertexInputAttribute::Float4, 4 * sizeof(float)},
-       {0, 3, QRhiVertexInputAttribute::Float, 8 * sizeof(float)},
-       {0, 4, QRhiVertexInputAttribute::Float4, 9 * sizeof(float)},
-       {0, 5, QRhiVertexInputAttribute::Float4, 13 * sizeof(float)},
-       {0, 6, QRhiVertexInputAttribute::Float3, 17 * sizeof(float)},
-       {1, 7, QRhiVertexInputAttribute::SInt, 0},
-       {1, 8, QRhiVertexInputAttribute::SInt, sizeof(std::int32_t)},
-       {1, 9, QRhiVertexInputAttribute::SInt, 2 * sizeof(std::int32_t)},
-       {1, 10, QRhiVertexInputAttribute::SInt, 3 * sizeof(std::int32_t)}});
+   if (compact)
+   {
+      // Compact layout: 9 floats + 3 ints per vertex. Stroke/highlight/border
+      // attributes and the displayed flag are constant for the whole draw and
+      // come from a single per-instance record (instance 0).
+      inputLayout.setBindings({{9 * sizeof(float)},
+                               {3 * sizeof(std::int32_t)},
+                               {12 * sizeof(std::int32_t),
+                                QRhiVertexInputBinding::PerInstance,
+                                1}});
+      inputLayout.setAttributes(
+         {{0, 0, QRhiVertexInputAttribute::Float2, 0},
+          {0, 1, QRhiVertexInputAttribute::Float2, 2 * sizeof(float)},
+          {0, 2, QRhiVertexInputAttribute::Float4, 4 * sizeof(float)},
+          {0, 3, QRhiVertexInputAttribute::Float, 8 * sizeof(float)},
+          {2, 4, QRhiVertexInputAttribute::Float4, 0},
+          {2, 5, QRhiVertexInputAttribute::Float4, 4 * sizeof(float)},
+          {2, 6, QRhiVertexInputAttribute::Float3, 8 * sizeof(float)},
+          {1, 7, QRhiVertexInputAttribute::SInt, 0},
+          {1, 8, QRhiVertexInputAttribute::SInt, sizeof(std::int32_t)},
+          {1, 9, QRhiVertexInputAttribute::SInt, 2 * sizeof(std::int32_t)},
+          {2, 10, QRhiVertexInputAttribute::SInt, 11 * sizeof(std::int32_t)}});
+   }
+   else
+   {
+      inputLayout.setBindings(
+         {{20 * sizeof(float)}, {4 * sizeof(std::int32_t)}});
+      inputLayout.setAttributes(
+         {{0, 0, QRhiVertexInputAttribute::Float2, 0},
+          {0, 1, QRhiVertexInputAttribute::Float2, 2 * sizeof(float)},
+          {0, 2, QRhiVertexInputAttribute::Float4, 4 * sizeof(float)},
+          {0, 3, QRhiVertexInputAttribute::Float, 8 * sizeof(float)},
+          {0, 4, QRhiVertexInputAttribute::Float4, 9 * sizeof(float)},
+          {0, 5, QRhiVertexInputAttribute::Float4, 13 * sizeof(float)},
+          {0, 6, QRhiVertexInputAttribute::Float3, 17 * sizeof(float)},
+          {1, 7, QRhiVertexInputAttribute::SInt, 0},
+          {1, 8, QRhiVertexInputAttribute::SInt, sizeof(std::int32_t)},
+          {1, 9, QRhiVertexInputAttribute::SInt, 2 * sizeof(std::int32_t)},
+          {1, 10, QRhiVertexInputAttribute::SInt, 3 * sizeof(std::int32_t)}});
+   }
 
    pipeline->setShaderStages(
       {QRhiShaderStage {QRhiShaderStage::Vertex, vertexShader},
@@ -625,8 +693,8 @@ AcquireGeoColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
       return nullptr;
    }
 
-   bucket.geoColoredGeometry_ = pipeline.release();
-   return bucket.geoColoredGeometry_;
+   cached = pipeline.release();
+   return cached;
 }
 
 QRhiGraphicsPipeline* AcquireRadarPipeline(QRhi*             rhi,
@@ -870,6 +938,58 @@ AcquireTextureArrayScreenPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
 
    bucket.textureArrayScreen_ = pipeline.release();
    return bucket.textureArrayScreen_;
+}
+
+QRhiGraphicsPipeline* AcquireBlitPipeline(QRhi*             rhi,
+                                          QRhiRenderTarget* renderTarget)
+{
+   if (rhi == nullptr || renderTarget == nullptr)
+   {
+      return nullptr;
+   }
+
+   std::lock_guard   lock {storeMutex_};
+   RhiStore&         store  = GetStore(rhi);
+   const PipelineKey key    = MakeKey(renderTarget);
+   PipelineBucket&   bucket = store.pipelines_[key];
+   if (bucket.blit_ != nullptr)
+   {
+      return bucket.blit_;
+   }
+   if (!EnsureLayoutResources(rhi, bucket))
+   {
+      return nullptr;
+   }
+
+   const QShader vertexShader   = LoadShader(":/gl/vulkan/qsb/blit.vert.qsb");
+   const QShader fragmentShader = LoadShader(":/gl/vulkan/qsb/blit.frag.qsb");
+   if (!vertexShader.isValid() || !fragmentShader.isValid())
+   {
+      logger_->error("Failed to load blit shaders");
+      return nullptr;
+   }
+
+   std::unique_ptr<QRhiGraphicsPipeline> pipeline(rhi->newGraphicsPipeline());
+   if (pipeline == nullptr)
+   {
+      return nullptr;
+   }
+
+   pipeline->setShaderStages(
+      {QRhiShaderStage {QRhiShaderStage::Vertex, vertexShader},
+       QRhiShaderStage {QRhiShaderStage::Fragment, fragmentShader}});
+   pipeline->setVertexInputLayout({});
+   if (!ConfigureCommonPipeline(pipeline.get(),
+                                renderTarget,
+                                bucket.layoutSrbTexture_,
+                                PremultipliedBlend()))
+   {
+      logger_->error("Failed to create shared blit pipeline");
+      return nullptr;
+   }
+
+   bucket.blit_ = pipeline.release();
+   return bucket.blit_;
 }
 
 void RetainOverlayGpuStore(QRhi* rhi)

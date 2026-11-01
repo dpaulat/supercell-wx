@@ -3,8 +3,7 @@
 #include <scwx/util/logger.hpp>
 #include <scwx/util/time.hpp>
 
-#include <scwx/qt/render/projection.hpp>
-#include <scwx/qt/render/rhi_colored_geometry.hpp>
+#include <scwx/qt/render/rhi_geo_colored_geometry_cache.hpp>
 #include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 
 #include <mutex>
@@ -20,7 +19,10 @@ static const std::string logPrefix_ = "scwx::qt::draw::placefile_triangles";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr std::size_t kVerticesPerTriangle = 3;
-static constexpr std::size_t kPointsPerVertex     = 8;
+// lat, long, x offset, y offset, r, g, b, a, perpendicular (unused)
+static constexpr std::size_t kPointsPerVertex     = 9;
+// Threshold, start time, end time
+static constexpr std::size_t kIntegersPerVertex   = 3;
 
 class PlacefileTriangles::Impl
 {
@@ -51,6 +53,8 @@ public:
    std::vector<std::int32_t> newIntegerBuffer_ {};
 
    std::uint32_t numVertices_;
+
+   render::RhiGeoColoredGeometryCache geoRenderer_ {};
 };
 
 PlacefileTriangles::PlacefileTriangles(
@@ -84,40 +88,25 @@ void PlacefileTriangles::RenderVulkan(
    const QMapLibre::CustomLayerRenderParameters& params,
    bool /* textureAtlasChanged */)
 {
-   // Hold the buffer lock across the update and transform so a concurrent
-   // buffer swap cannot misalign the vertex and integer buffers.
-   std::vector<float> transformedVertices {};
-   {
-      std::unique_lock lock {p->bufferMutex_};
+   // Hold the buffer lock so a concurrent buffer swap cannot misalign the
+   // vertex and integer buffers while they are uploaded.
+   std::unique_lock lock {p->bufferMutex_};
 
-      if (p->currentBuffer_.empty())
-      {
-         return;
-      }
-
-      p->Update();
-
-      std::vector<std::int32_t> integerVertices(
-         p->currentIntegerBuffer_.begin(), p->currentIntegerBuffer_.end());
-      transformedVertices = render::TransformMapColorVertices(p->currentBuffer_,
-                                                              integerVertices,
-                                                              params,
-                                                              p->thresholded_,
-                                                              p->selectedTime_);
-   }
-
-   if (transformedVertices.empty())
+   if (p->currentBuffer_.empty())
    {
       return;
    }
 
-   const glm::mat4 identity {1.0f};
-   resources.coloredGeometry.Render(commandBuffer,
-                                    identity,
-                                    transformedVertices,
-                                    transformedVertices.size() / 7,
-                                    resources.resourceBatch,
-                                    resources.phase);
+   p->Update();
+
+   p->geoRenderer_.Render(commandBuffer,
+                          resources,
+                          params,
+                          p->thresholded_,
+                          p->selectedTime_,
+                          p->currentBuffer_,
+                          p->currentIntegerBuffer_,
+                          p->numVertices_);
 }
 
 void PlacefileTriangles::Deinitialize()
@@ -127,6 +116,7 @@ void PlacefileTriangles::Deinitialize()
    // Clear the current buffers
    p->currentBuffer_.clear();
    p->currentIntegerBuffer_.clear();
+   p->geoRenderer_.Shutdown();
 }
 
 void PlacefileTriangles::StartTriangles()
@@ -161,6 +151,7 @@ void PlacefileTriangles::FinishTriangles()
 
    // Mark the draw item dirty
    p->dirty_ = true;
+   p->geoRenderer_.Invalidate();
 }
 
 void PlacefileTriangles::Impl::UpdateBuffers(
@@ -187,10 +178,6 @@ void PlacefileTriangles::Impl::UpdateBuffers(
    // For each element inside a Triangles statement, add a vertex
    for (auto& element : di->elements_)
    {
-      // Calculate screen coordinate
-      auto screenCoordinate = util::maplibre::LatLongToScreenCoordinate(
-         {element.latitude_, element.longitude_});
-
       // X/Y offset in pixels
       const float x = static_cast<float>(element.x_);
       const float y = static_cast<float>(element.y_);
@@ -209,16 +196,24 @@ void PlacefileTriangles::Impl::UpdateBuffers(
 
       newBuffer_.insert(
          newBuffer_.end(),
-         {screenCoordinate.x, screenCoordinate.y, x, y, r, g, b, a});
+         {static_cast<float>(element.latitude_),
+          static_cast<float>(element.longitude_),
+          x,
+          y,
+          r,
+          g,
+          b,
+          a,
+          0.0f});
       newIntegerBuffer_.insert(newIntegerBuffer_.end(),
                                {thresholdValue, startTime, endTime});
    }
 
    // Remove extra vertices that don't correspond to a full triangle
-   while (newBuffer_.size() % kVerticesPerTriangle != 0)
+   while ((newBuffer_.size() / kPointsPerVertex) % kVerticesPerTriangle != 0)
    {
-      newBuffer_.pop_back();
-      newIntegerBuffer_.pop_back();
+      newBuffer_.resize(newBuffer_.size() - kPointsPerVertex);
+      newIntegerBuffer_.resize(newIntegerBuffer_.size() - kIntegersPerVertex);
    }
 }
 
