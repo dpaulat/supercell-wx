@@ -86,14 +86,10 @@ PlacefilePolygons::operator=(PlacefilePolygons&&) noexcept = default;
 
 void PlacefilePolygons::set_selected_time(
    std::chrono::system_clock::time_point selectedTime)
-{
-   p->selectedTime_ = selectedTime;
-}
+{ p->selectedTime_ = selectedTime; }
 
 void PlacefilePolygons::set_thresholded(bool thresholded)
-{
-   p->thresholded_ = thresholded;
-}
+{ p->thresholded_ = thresholded; }
 
 void PlacefilePolygons::Initialize() {}
 
@@ -108,21 +104,27 @@ void PlacefilePolygons::RenderVulkan(
    const QMapLibre::CustomLayerRenderParameters& params,
    bool /* textureAtlasChanged */)
 {
-   if (p->currentBuffer_.empty())
+   // Hold the buffer lock across the update and transform so a concurrent
+   // buffer swap cannot misalign the vertex and integer buffers.
+   std::vector<float> transformedVertices {};
    {
-      return;
+      std::unique_lock lock {p->bufferMutex_};
+
+      if (p->currentBuffer_.empty())
+      {
+         return;
+      }
+
+      p->Update();
+
+      std::vector<std::int32_t> integerVertices(
+         p->currentIntegerBuffer_.begin(), p->currentIntegerBuffer_.end());
+      transformedVertices = render::TransformMapColorVertices(p->currentBuffer_,
+                                                              integerVertices,
+                                                              params,
+                                                              p->thresholded_,
+                                                              p->selectedTime_);
    }
-
-   p->Update();
-
-   std::vector<std::int32_t> integerVertices(p->currentIntegerBuffer_.begin(),
-                                             p->currentIntegerBuffer_.end());
-   const std::vector<float>  transformedVertices =
-      render::TransformMapColorVertices(p->currentBuffer_,
-                                        integerVertices,
-                                        params,
-                                        p->thresholded_,
-                                        p->selectedTime_);
 
    if (transformedVertices.empty())
    {
@@ -171,9 +173,11 @@ void PlacefilePolygons::FinishPolygons()
    p->currentBuffer_.swap(p->newBuffer_);
    p->currentIntegerBuffer_.swap(p->newIntegerBuffer_);
 
-   // Clear the new buffers
-   p->newBuffer_.clear();
-   p->newIntegerBuffer_.clear();
+   // Release the swapped-out buffers and trim growth slack
+   std::vector<float>().swap(p->newBuffer_);
+   std::vector<std::int32_t>().swap(p->newIntegerBuffer_);
+   p->currentBuffer_.shrink_to_fit();
+   p->currentIntegerBuffer_.shrink_to_fit();
 
    // Mark the draw item dirty
    p->dirty_ = true;
@@ -181,10 +185,9 @@ void PlacefilePolygons::FinishPolygons()
 
 void PlacefilePolygons::Impl::Update()
 {
+   // Caller must hold bufferMutex_
    if (dirty_)
    {
-      std::unique_lock lock {bufferMutex_};
-
       numVertices_ =
          static_cast<std::uint32_t>(currentBuffer_.size() / kPointsPerVertex);
 

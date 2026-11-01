@@ -3,6 +3,7 @@
 #include <scwx/qt/render/rhi_overlay_gpu_store.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <algorithm>
 #include <cstring>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -176,7 +177,7 @@ void RhiColorTableOverlay::Render(
    }
 
    const int tableWidth = static_cast<int>(rgbaColorTable.size() / 4);
-   if (tableWidth <= 0 || tableWidth > kMaxLutWidth)
+   if (tableWidth <= 0)
    {
       return;
    }
@@ -203,8 +204,22 @@ void RhiColorTableOverlay::Render(
                                           rgbaColorTable.size()) != 0;
       if (lutChanged)
       {
+         // Texture coordinates span the full texture, so resample the table
+         // to the texture width (unwritten texels would otherwise be garbage).
+         lutRgba_.resize(static_cast<std::size_t>(kMaxLutWidth) * 4);
+         for (int i = 0; i < kMaxLutWidth; ++i)
+         {
+            const int sourceIndex = std::min(
+               tableWidth - 1,
+               static_cast<int>(((2 * static_cast<std::int64_t>(i) + 1) *
+                                 static_cast<std::int64_t>(tableWidth)) /
+                                static_cast<std::int64_t>(2 * kMaxLutWidth)));
+            std::copy_n(rgbaColorTable.data() + sourceIndex * 4,
+                        4,
+                        lutRgba_.data() + i * 4);
+         }
          const QRhiTextureSubresourceUploadDescription subUpload(
-            rgbaColorTable.data(), static_cast<quint32>(tableWidth * 4));
+            lutRgba_.data(), static_cast<quint32>(kMaxLutWidth * 4));
          const QRhiTextureUploadDescription upload(
             QRhiTextureUploadEntry(0, 0, subUpload));
          batch->uploadTexture(lutTexture_, upload);
@@ -229,8 +244,6 @@ void RhiColorTableOverlay::Render(
 }
 
 bool RhiColorTableOverlay::IsInitialized() const
-{
-   return initialized_;
-}
+{ return initialized_; }
 
 } // namespace scwx::qt::render

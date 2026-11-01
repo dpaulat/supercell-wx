@@ -211,7 +211,7 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
 
    const std::size_t vertexBytes = vertexCount * 2u * sizeof(float);
    const std::size_t momentBytes = vertexCount * sizeof(std::uint32_t);
-   uploadGeometry                = uploadGeometry || !geometryUploaded_ ||
+   uploadGeometry = uploadGeometry || !geometryUploaded_ ||
                     vertexCount != uploadedVertexCount_ ||
                     vertexCapacity_ < vertexBytes ||
                     momentCapacity_ < momentBytes || cfpCapacity_ < momentBytes;
@@ -250,12 +250,13 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
       lutRgba_.resize(kMaxLutWidth * 4);
       for (int i = 0; i < kMaxLutWidth; ++i)
       {
-         const int sourceIndex =
-            (tableWidth == 1) ?
-               0 :
-               static_cast<int>((static_cast<std::int64_t>(i) *
-                                 static_cast<std::int64_t>(tableWidth - 1)) /
-                                static_cast<std::int64_t>(kMaxLutWidth - 1));
+         // Texel i covers [i, i + 1) / kMaxLutWidth of the table. Sample at
+         // its center so each source entry maps to the texels it spans.
+         const int sourceIndex = std::min(
+            tableWidth - 1,
+            static_cast<int>(((2 * static_cast<std::int64_t>(i) + 1) *
+                              static_cast<std::int64_t>(tableWidth)) /
+                             static_cast<std::int64_t>(2 * kMaxLutWidth)));
          std::copy_n(rgbaColorTable.data() + sourceIndex * 4,
                      4,
                      lutRgba_.data() + i * 4);
@@ -317,8 +318,6 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
 }
 
 bool RhiRadarOverlay::IsInitialized() const
-{
-   return initialized_;
-}
+{ return initialized_; }
 
 } // namespace scwx::qt::render

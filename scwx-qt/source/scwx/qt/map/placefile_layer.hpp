@@ -37,6 +37,9 @@ public:
 
    void ReloadData();
 
+   /// Resolves placefile fonts into the current ImGui atlas (render thread).
+   void PrepareImGuiFonts();
+
 signals:
    void DataReloaded();
 

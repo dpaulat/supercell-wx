@@ -61,22 +61,8 @@ bool RhiColoredGeometry::BindResources()
       return false;
    }
 
-   if (backdropTexture_ == nullptr || backdropSampler_ == nullptr)
-   {
-      logger_->error("Colored geometry missing backdrop for alpha composite");
-      return false;
-   }
-
    srb_->setBindings({QRhiShaderResourceBinding::uniformBuffer(
-                         0,
-                         QRhiShaderResourceBinding::VertexStage |
-                            QRhiShaderResourceBinding::FragmentStage,
-                         uniformBuffer_),
-                      QRhiShaderResourceBinding::sampledTexture(
-                         1,
-                         QRhiShaderResourceBinding::FragmentStage,
-                         backdropTexture_,
-                         backdropSampler_)});
+      0, QRhiShaderResourceBinding::VertexStage, uniformBuffer_)});
    return srb_->create();
 }
 
@@ -99,32 +85,13 @@ bool RhiColoredGeometry::EnsurePipeline(QRhi*             rhi,
       }
    }
 
-   // Backdrop may be bound later via SetBackdrop before the first Draw.
-   if (backdropTexture_ != nullptr && backdropSampler_ != nullptr &&
-       !BindResources())
-   {
-      return false;
-   }
-
-   return true;
-}
-
-void RhiColoredGeometry::SetBackdrop(QRhiTexture* texture, QRhiSampler* sampler)
-{
-   backdropTexture_ = texture;
-   backdropSampler_ = sampler;
-   if (initialized_ && srb_ != nullptr)
-   {
-      static_cast<void>(BindResources());
-   }
+   return BindResources();
 }
 
 void RhiColoredGeometry::Shutdown()
 {
-   // Pipeline owned by shared GPU store. Sampler owned by store.
-   pipeline_        = nullptr;
-   backdropTexture_ = nullptr;
-   backdropSampler_ = nullptr;
+   // Pipeline owned by shared GPU store.
+   pipeline_ = nullptr;
    delete srb_;
    srb_ = nullptr;
    delete vertexBuffer_;
@@ -267,11 +234,9 @@ void RhiColoredGeometry::Render(QRhiCommandBuffer*        commandBuffer,
       return;
    }
 
-   if (backdropTexture_ == nullptr || backdropSampler_ == nullptr ||
-       srb_ == nullptr || pipeline_ == nullptr)
+   if (srb_ == nullptr || pipeline_ == nullptr)
    {
-      logger_->error(
-         "Colored geometry draw skipped: missing backdrop/pipeline");
+      logger_->error("Colored geometry draw skipped: missing pipeline");
       return;
    }
 
@@ -293,8 +258,6 @@ void RhiColoredGeometry::Render(QRhiCommandBuffer*        commandBuffer,
 }
 
 bool RhiColoredGeometry::IsInitialized() const
-{
-   return initialized_;
-}
+{ return initialized_; }
 
 } // namespace scwx::qt::render

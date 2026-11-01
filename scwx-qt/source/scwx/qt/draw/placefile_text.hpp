@@ -60,6 +60,12 @@ public:
    void SetFonts(const manager::PlacefileManager::FontMap& fonts);
 
    /**
+    * Re-resolves fonts into the current ImGui atlas. Call with the pane's
+    * ImGui context current, before taking imgui_font_atlas_mutex().
+    */
+   void ResolveFontsForCurrentAtlas();
+
+   /**
     * Adds placefile text to the internal draw list.
     *
     * @param [in] di Placefile icon

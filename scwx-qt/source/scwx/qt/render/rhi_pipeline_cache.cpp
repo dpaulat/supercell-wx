@@ -28,9 +28,7 @@ constexpr quint32 kCacheVersion    = 11;
 constexpr char    kQrhiCacheFile[] = "qrhi-vulkan-pipeline-cache.bin";
 
 bool PipelineCacheDisabled()
-{
-   return scwx::util::HasEnvironment("SCWX_VULKAN_PIPELINE_CACHE_DISABLE");
-}
+{ return scwx::util::HasEnvironment("SCWX_VULKAN_PIPELINE_CACHE_DISABLE"); }
 
 std::filesystem::path CacheFilePath(const char* fileName)
 {
@@ -166,7 +164,11 @@ QByteArray LoadVulkanPipelineCacheBlob(const char* fileName)
 
 void SaveVulkanPipelineCacheBlob(const char* fileName, const QByteArray& data)
 {
-   if (PipelineCacheDisabled() || fileName == nullptr || data.isEmpty())
+   // A cache holding only the 32 byte header has no pipelines; don't clobber
+   // a populated cache file with it.
+   constexpr qsizetype kEmptyCacheHeaderBytes = 32;
+   if (PipelineCacheDisabled() || fileName == nullptr ||
+       data.size() <= kEmptyCacheHeaderBytes)
    {
       return;
    }

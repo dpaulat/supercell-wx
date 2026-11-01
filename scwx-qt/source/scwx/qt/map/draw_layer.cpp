@@ -77,14 +77,10 @@ DrawLayer::DrawLayer(std::shared_ptr<render::RenderContext> renderContext,
 DrawLayer::~DrawLayer() = default;
 
 void DrawLayer::Initialize(const std::shared_ptr<MapContext>& mapContext)
-{
-   ImGuiInitialize(mapContext);
-}
+{ ImGuiInitialize(mapContext); }
 
 void DrawLayer::ImGuiFrameStart(const std::shared_ptr<MapContext>& mapContext)
-{
-   (void) mapContext;
-}
+{ (void) mapContext; }
 
 void DrawLayer::ImGuiFrameEnd() {}
 
@@ -97,14 +93,10 @@ void DrawLayer::ImGuiInitialize(const std::shared_ptr<MapContext>& mapContext)
 
 void DrawLayer::RenderWithoutImGui(
    const QMapLibre::CustomLayerRenderParameters& params)
-{
-   (void) params;
-}
+{ (void) params; }
 
 void DrawLayer::ImGuiSelectContext()
-{
-   ImGui::SetCurrentContext(p->imGuiContext_);
-}
+{ ImGui::SetCurrentContext(p->imGuiContext_); }
 
 void DrawLayer::ImGuiFrameStartVulkan(
    const std::shared_ptr<MapContext>& mapContext)
@@ -155,9 +147,7 @@ void DrawLayer::RenderVulkanOverlay(
    render::RhiVulkanOverlayResources& resources,
    const std::shared_ptr<MapContext>& /* mapContext */,
    const QMapLibre::CustomLayerRenderParameters& params)
-{
-   RenderWithoutImGuiVulkan(commandBuffer, resources, params);
-}
+{ RenderWithoutImGuiVulkan(commandBuffer, resources, params); }
 
 void DrawLayer::Render(const std::shared_ptr<MapContext>&            mapContext,
                        const QMapLibre::CustomLayerRenderParameters& params)
@@ -167,7 +157,13 @@ void DrawLayer::Render(const std::shared_ptr<MapContext>&            mapContext,
    ImGuiFrameEnd();
 }
 
-void DrawLayer::Deinitialize() {}
+void DrawLayer::Deinitialize()
+{
+   for (auto& item : p->drawList_)
+   {
+      item->Deinitialize();
+   }
+}
 
 bool DrawLayer::RunMousePicking(
    const std::shared_ptr<MapContext>& /* mapContext */,
@@ -201,8 +197,6 @@ bool DrawLayer::RunMousePicking(
 }
 
 void DrawLayer::AddDrawItem(const std::shared_ptr<draw::DrawItem>& drawItem)
-{
-   p->drawList_.push_back(drawItem);
-}
+{ p->drawList_.push_back(drawItem); }
 
 } // namespace scwx::qt::map

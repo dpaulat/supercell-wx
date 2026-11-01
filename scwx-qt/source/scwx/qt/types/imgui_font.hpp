@@ -5,6 +5,7 @@
 #include <vector>
 
 struct ImFont;
+struct ImFontAtlas;
 
 namespace scwx
 {
@@ -26,7 +27,8 @@ public:
    ImGuiFont(ImGuiFont&&)            = delete;
    ImGuiFont& operator=(ImGuiFont&&) = delete;
 
-   ImFont* font();
+   ImFont*      font();
+   ImFontAtlas* atlas() const;
 
 private:
    class Impl;

@@ -59,8 +59,6 @@ class MapOverlayRenderer::Impl
 public:
    [[nodiscard]] bool EnsureReady(QRhiCommandBuffer* commandBuffer,
                                   QRhiTexture*       colorTexture);
-   [[nodiscard]] bool EnsureBackdrop(QRhiTexture* colorTexture);
-   void               ReleaseBackdrop();
 
    render::RhiColorTableOverlay   colorTableOverlay_ {};
    render::RhiRadarOverlay        radarOverlay_ {};
@@ -70,50 +68,17 @@ public:
    render::RhiTextureArrayOverlay textureArrayOverlay_ {};
    QRhi*                          rhi_ {nullptr};
    QRhiTexture*                   colorTexture_ {nullptr};
-   QRhiTexture*                   backdropTexture_ {nullptr};
-   QSize                          backdropSize_ {};
    QRhiTextureRenderTarget*       preserveRenderTarget_ {nullptr};
-   QSize                          pixelSize_ {};
-   std::uint64_t                  renderTargetGeneration_ {0};
-   bool                           storeRetained_ {false};
+   // Owned. Reused across color texture changes (resize) while the attachment
+   // format and sample count match, so the native render pass handle, shared
+   // pipelines, and overlay GPU state all stay valid.
+   QRhiRenderPassDescriptor* renderPassDescriptor_ {nullptr};
+   QRhiTexture::Format       rpdFormat_ {QRhiTexture::UnknownFormat};
+   int                       rpdSamples_ {0};
+   QSize                     pixelSize_ {};
+   std::uint64_t             renderTargetGeneration_ {0};
+   bool                      storeRetained_ {false};
 };
-
-void MapOverlayRenderer::Impl::ReleaseBackdrop()
-{
-   delete backdropTexture_;
-   backdropTexture_ = nullptr;
-   backdropSize_    = {};
-}
-
-bool MapOverlayRenderer::Impl::EnsureBackdrop(QRhiTexture* colorTexture)
-{
-   if (rhi_ == nullptr || colorTexture == nullptr)
-   {
-      return false;
-   }
-
-   const QSize size = colorTexture->pixelSize();
-   if (size.isEmpty())
-   {
-      return false;
-   }
-
-   if (backdropTexture_ != nullptr && backdropSize_ == size &&
-       backdropTexture_->format() == colorTexture->format())
-   {
-      return true;
-   }
-
-   ReleaseBackdrop();
-   backdropTexture_ = rhi_->newTexture(colorTexture->format(), size);
-   if (backdropTexture_ == nullptr || !backdropTexture_->create())
-   {
-      ReleaseBackdrop();
-      return false;
-   }
-   backdropSize_ = size;
-   return true;
-}
 
 bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
                                            QRhiTexture*       colorTexture)
@@ -141,7 +106,6 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
       preserveRenderTarget_ = nullptr;
       colorTexture_         = nullptr;
       pixelSize_            = {};
-      ReleaseBackdrop();
    }
 
    if (preserveRenderTarget_ == nullptr)
@@ -156,16 +120,26 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
          return false;
       }
 
-      QRhiRenderPassDescriptor* renderPassDescriptor =
-         preserveRenderTarget_->newCompatibleRenderPassDescriptor();
-      if (renderPassDescriptor == nullptr)
+      const bool reuseRenderPass = renderPassDescriptor_ != nullptr &&
+                                   rpdFormat_ == colorTexture->format() &&
+                                   rpdSamples_ == colorTexture->sampleCount();
+
+      if (!reuseRenderPass)
       {
-         delete preserveRenderTarget_;
-         preserveRenderTarget_ = nullptr;
-         return false;
+         delete renderPassDescriptor_;
+         renderPassDescriptor_ =
+            preserveRenderTarget_->newCompatibleRenderPassDescriptor();
+         if (renderPassDescriptor_ == nullptr)
+         {
+            delete preserveRenderTarget_;
+            preserveRenderTarget_ = nullptr;
+            return false;
+         }
+         rpdFormat_  = colorTexture->format();
+         rpdSamples_ = colorTexture->sampleCount();
       }
 
-      preserveRenderTarget_->setRenderPassDescriptor(renderPassDescriptor);
+      preserveRenderTarget_->setRenderPassDescriptor(renderPassDescriptor_);
       if (!preserveRenderTarget_->create())
       {
          delete preserveRenderTarget_;
@@ -254,9 +228,12 @@ void MapOverlayRenderer::Shutdown()
    p->textureArrayOverlay_.Shutdown();
    delete p->preserveRenderTarget_;
    p->preserveRenderTarget_ = nullptr;
+   delete p->renderPassDescriptor_;
+   p->renderPassDescriptor_ = nullptr;
+   p->rpdFormat_            = QRhiTexture::UnknownFormat;
+   p->rpdSamples_           = 0;
    p->colorTexture_         = nullptr;
    p->pixelSize_            = {};
-   p->ReleaseBackdrop();
 
    if (p->storeRetained_ && p->rhi_ != nullptr)
    {
@@ -275,11 +252,6 @@ bool MapOverlayRenderer::Render(
    const std::function<void(QRhiCommandBuffer*)>&    imguiRender)
 {
    if (p == nullptr || !p->EnsureReady(commandBuffer, colorTexture))
-   {
-      return false;
-   }
-
-   if (!p->EnsureBackdrop(colorTexture))
    {
       return false;
    }
@@ -307,10 +279,6 @@ bool MapOverlayRenderer::Render(
    // Draw consumes recorded vertex ranges (avoids last-upload-wins clobber).
    p->coloredGeometry_.BeginFrame();
 
-   // Snapshot destination before the overlay pass so color.frag can mix
-   // translucent geometry without relying on broken SrcAlpha blending.
-   resources.resourceBatch->copyTexture(p->backdropTexture_, colorTexture);
-
    for (const auto& layer : layers)
    {
       if (layer == nullptr)
@@ -326,9 +294,6 @@ bool MapOverlayRenderer::Render(
    }
    p->coloredGeometry_.UploadFrame(resources.resourceBatch);
    commandBuffer->resourceUpdate(resources.resourceBatch);
-
-   QRhiSampler* const backdropSampler = render::AcquireNearestSampler(p->rhi_);
-   p->coloredGeometry_.SetBackdrop(p->backdropTexture_, backdropSampler);
 
    resources.phase         = render::RhiOverlayPhase::Draw;
    resources.resourceBatch = nullptr;
@@ -392,14 +357,10 @@ void* MapOverlayRenderer::GetNativeRenderPass() const
 }
 
 std::uint64_t MapOverlayRenderer::GetRenderTargetGeneration() const
-{
-   return p != nullptr ? p->renderTargetGeneration_ : 0;
-}
+{ return p != nullptr ? p->renderTargetGeneration_ : 0; }
 
 bool MapOverlayRenderer::IsInitialized() const
-{
-   return p != nullptr && p->colorTableOverlay_.IsInitialized();
-}
+{ return p != nullptr && p->colorTableOverlay_.IsInitialized(); }
 
 MapOverlayRenderer::MapOverlayRenderer()  = default;
 MapOverlayRenderer::~MapOverlayRenderer() = default;

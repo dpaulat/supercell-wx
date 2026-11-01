@@ -170,9 +170,7 @@ std::mutex                          storeMutex_;
 std::unordered_map<QRhi*, RhiStore> stores_;
 
 [[nodiscard]] RhiStore& GetStore(QRhi* rhi)
-{
-   return stores_[rhi];
-}
+{ return stores_[rhi]; }
 
 [[nodiscard]] PipelineKey MakeKey(QRhiRenderTarget* renderTarget)
 {
@@ -553,9 +551,8 @@ AcquireColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
       {QRhiShaderStage {QRhiShaderStage::Vertex, vertexShader},
        QRhiShaderStage {QRhiShaderStage::Fragment, fragmentShader}});
    pipeline->setVertexInputLayout(inputLayout);
-   // layoutSrbUniformTexture_: UBO + backdrop sampler (manual alpha composite).
    if (!ConfigureCommonPipeline(
-          pipeline.get(), renderTarget, bucket.layoutSrbUniformTexture_))
+          pipeline.get(), renderTarget, bucket.layoutSrbUniform_))
    {
       logger_->error("Failed to create shared colored geometry pipeline");
       return nullptr;

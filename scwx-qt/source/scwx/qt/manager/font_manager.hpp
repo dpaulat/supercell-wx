@@ -36,6 +36,14 @@ public:
                  const std::vector<std::string>& styles,
                  bool                            loadIfNotFound = true);
 
+   /**
+    * Returns the equivalent of a font in the current ImGui atlas, creating it
+    * if needed. Must be called with the intended ImGui context current, and
+    * outside of any hold of imgui_font_atlas_mutex().
+    */
+   std::shared_ptr<types::ImGuiFont> ResolveImGuiFontForCurrentAtlas(
+      const std::shared_ptr<types::ImGuiFont>& font);
+
    void LoadApplicationFont(types::Font font, const std::string& filename);
    void InitializeFonts();
 

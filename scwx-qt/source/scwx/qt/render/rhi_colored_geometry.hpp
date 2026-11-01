@@ -37,9 +37,6 @@ public:
    // batch.
    void UploadFrame(QRhiResourceUpdateBatch* resourceBatch);
 
-   // Backdrop copy of the destination color buffer for in-shader alpha mix.
-   // Must be set before Draw (texture != the active color target).
-   void SetBackdrop(QRhiTexture* texture, QRhiSampler* sampler);
    void SetLayerOpacity(float opacity) { layerOpacity_ = opacity; }
 
    void Render(QRhiCommandBuffer*        commandBuffer,
@@ -70,8 +67,6 @@ private:
    QRhiBuffer*                 vertexBuffer_ {nullptr};
    QRhiShaderResourceBindings* srb_ {nullptr};
    QRhiGraphicsPipeline*       pipeline_ {nullptr};
-   QRhiTexture*                backdropTexture_ {nullptr};
-   QRhiSampler*                backdropSampler_ {nullptr};
    std::size_t                 vertexCapacity_ {0};
    bool                        initialized_ {false};
 

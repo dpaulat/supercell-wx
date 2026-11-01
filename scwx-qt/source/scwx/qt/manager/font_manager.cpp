@@ -7,6 +7,7 @@
 #include <scwx/util/logger.hpp>
 
 #include <filesystem>
+#include <optional>
 #include <fstream>
 
 #include <QFile>
@@ -65,6 +66,11 @@ public:
    void UpdateImGuiFont(types::FontCategory fontCategory);
    void UpdateQFont(types::FontCategory fontCategory);
    void UpdateImGuiFontForCurrentAtlas(types::FontCategory fontCategory);
+
+   std::shared_ptr<types::ImGuiFont>
+   LoadImGuiFontRecord(const FontRecord&  fontRecord,
+                       const std::string& fontString,
+                       bool               loadIfNotFound);
 
    static ImFontAtlas* CurrentAtlas();
 
@@ -215,9 +221,7 @@ ImFontAtlas* FontManager::Impl::CurrentAtlas()
 }
 
 void FontManager::Impl::UpdateImGuiFont(types::FontCategory fontCategory)
-{
-   UpdateImGuiFontForCurrentAtlas(fontCategory);
-}
+{ UpdateImGuiFontForCurrentAtlas(fontCategory); }
 
 void FontManager::Impl::UpdateImGuiFontForCurrentAtlas(
    types::FontCategory fontCategory)
@@ -262,9 +266,7 @@ void FontManager::Impl::UpdateQFont(types::FontCategory fontCategory)
 }
 
 std::shared_mutex& FontManager::imgui_font_atlas_mutex()
-{
-   return p->imguiFontAtlasMutex_;
-}
+{ return p->imguiFontAtlasMutex_; }
 
 int FontManager::GetFontId(types::Font font) const
 {
@@ -332,17 +334,70 @@ FontManager::LoadImGuiFont(const std::string&              family,
 
    logger_->debug("LoadFontResource: {}", fontString);
 
-   FontRecord fontRecord = Impl::MatchFontFile(family, styles);
+   const FontRecord fontRecord = Impl::MatchFontFile(family, styles);
 
-   ImFontAtlas* atlas = Impl::CurrentAtlas();
+   return p->LoadImGuiFontRecord(fontRecord, fontString, loadIfNotFound);
+}
+
+std::shared_ptr<types::ImGuiFont> FontManager::ResolveImGuiFontForCurrentAtlas(
+   const std::shared_ptr<types::ImGuiFont>& font)
+{
+   if (font == nullptr)
+   {
+      return nullptr;
+   }
+
+   // Fast path: the font already lives in the current atlas
+   if (font->atlas() == Impl::CurrentAtlas())
+   {
+      return font;
+   }
+
+   // Find the font file the source font was created from
+   std::optional<FontRecord> fontRecord {};
+   {
+      std::shared_lock imguiFontLock {p->imguiFontsMutex_};
+      for (const auto& atlasFonts : p->imguiFontsByAtlas_)
+      {
+         for (const auto& [record, imguiFont] : atlasFonts.second)
+         {
+            if (imguiFont == font)
+            {
+               fontRecord = record;
+               break;
+            }
+         }
+         if (fontRecord.has_value())
+         {
+            break;
+         }
+      }
+   }
+
+   if (!fontRecord.has_value())
+   {
+      return font;
+   }
+
+   auto resolved =
+      p->LoadImGuiFontRecord(*fontRecord, fontRecord->filename_, true);
+   return (resolved != nullptr) ? resolved : font;
+}
+
+std::shared_ptr<types::ImGuiFont>
+FontManager::Impl::LoadImGuiFontRecord(const FontRecord&  fontRecord,
+                                       const std::string& fontString,
+                                       bool               loadIfNotFound)
+{
+   ImFontAtlas* atlas = CurrentAtlas();
 
    // Search for a loaded ImGui font
    {
-      std::shared_lock imguiFontLock {p->imguiFontsMutex_};
+      std::shared_lock imguiFontLock {imguiFontsMutex_};
 
       // Search for the associated ImGui font in the current atlas
-      auto atlasIt = p->imguiFontsByAtlas_.find(atlas);
-      if (atlasIt != p->imguiFontsByAtlas_.end())
+      auto atlasIt = imguiFontsByAtlas_.find(atlas);
+      if (atlasIt != imguiFontsByAtlas_.end())
       {
          auto it = atlasIt->second.find(fontRecord);
          if (it != atlasIt->second.end())
@@ -361,16 +416,16 @@ FontManager::LoadImGuiFont(const std::string&              family,
    }
 
    // Get raw font data
-   const auto& rawFontData = p->GetRawFontData(fontRecord.filename_);
+   const auto& rawFontData = GetRawFontData(fontRecord.filename_);
 
    // The font atlas mutex might already be locked within an ImGui render frame.
    // Lock the font atlas mutex before the fonts mutex to prevent deadlock.
-   std::unique_lock imguiFontAtlasLock {p->imguiFontAtlasMutex_};
-   std::unique_lock imguiFontsLock {p->imguiFontsMutex_};
+   std::unique_lock imguiFontAtlasLock {imguiFontAtlasMutex_};
+   std::unique_lock imguiFontsLock {imguiFontsMutex_};
 
    // Search for the associated ImGui font again, to prevent loading the same
    // font twice
-   auto& atlasFonts = p->imguiFontsByAtlas_[atlas];
+   auto& atlasFonts = imguiFontsByAtlas_[atlas];
    auto  it         = atlasFonts.find(fontRecord);
    if (it != atlasFonts.end())
    {
@@ -451,7 +506,7 @@ void FontManager::LoadApplicationFont(types::Font        font,
    QFileInfo fontFileInfo(fontFile);
 
    QFile       cacheFile(QString::fromStdString(p->fontCachePath_) +
-                   fontFileInfo.fileName());
+                         fontFileInfo.fileName());
    QFileInfo   cacheFileInfo(cacheFile);
    std::string cacheFilename = cacheFile.fileName().toStdString();
 
@@ -525,9 +580,7 @@ void FontManager::Impl::InitializeFontconfig()
 }
 
 void FontManager::Impl::FinalizeFontconfig()
-{
-   FcFini();
-}
+{ FcFini(); }
 
 bool FontManager::Impl::CheckFontFormat(const FcChar8* format)
 {

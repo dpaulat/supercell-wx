@@ -9,8 +9,9 @@ layout(location = 0) in vec2 aLatLong;
 layout(location = 1) in uint aDataMoment;
 layout(location = 2) in uint aCfpMoment;
 
-layout(location = 0) out flat uint vDataMoment;
-layout(location = 1) out flat uint vCfpMoment;
+// Smooth (interpolated) so the smoothing option blends between gates.
+layout(location = 0) out float vDataMoment;
+layout(location = 1) out float vCfpMoment;
 
 layout(set = 0, binding = 0) uniform UniformBlock {
     mat4 uMVPMatrix;
@@ -34,8 +35,8 @@ vec2 latLngToDeltaScreenCoordinate(vec2 latLng)
 
 void main()
 {
-   vDataMoment = aDataMoment;
-   vCfpMoment  = aCfpMoment;
+   vDataMoment = float(aDataMoment);
+   vCfpMoment  = float(aCfpMoment);
    vec2 p      = latLngToDeltaScreenCoordinate(aLatLong);
    gl_Position = uMapMatrix * vec4(p, 0.0, 1.0);
 }

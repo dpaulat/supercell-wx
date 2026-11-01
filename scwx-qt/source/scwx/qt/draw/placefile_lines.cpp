@@ -127,14 +127,10 @@ PlacefileLines& PlacefileLines::operator=(PlacefileLines&&) noexcept = default;
 
 void PlacefileLines::set_selected_time(
    std::chrono::system_clock::time_point selectedTime)
-{
-   p->selectedTime_ = selectedTime;
-}
+{ p->selectedTime_ = selectedTime; }
 
 void PlacefileLines::set_thresholded(bool thresholded)
-{
-   p->thresholded_ = thresholded;
-}
+{ p->thresholded_ = thresholded; }
 
 void PlacefileLines::Initialize() {}
 
@@ -298,10 +294,15 @@ void PlacefileLines::FinishLines()
    p->currentIntegerBuffer_.swap(p->newIntegerBuffer_);
    p->currentHoverLines_.swap(p->newHoverLines_);
 
-   // Clear the new buffers
-   p->newLinesBuffer_.clear();
-   p->newIntegerBuffer_.clear();
+   // Release the swapped-out buffers (clear() would keep their capacity, which
+   // for large placefiles is a full extra copy of the previous geometry), and
+   // trim growth slack from the new current buffers.
+   std::vector<float>().swap(p->newLinesBuffer_);
+   std::vector<std::int32_t>().swap(p->newIntegerBuffer_);
    p->newHoverLines_.clear();
+   p->newHoverLines_.shrink_to_fit();
+   p->currentLinesBuffer_.shrink_to_fit();
+   p->currentIntegerBuffer_.shrink_to_fit();
 
    // Update the number of lines
    p->currentNumLines_ = p->newNumLines_;
@@ -500,9 +501,7 @@ void PlacefileLines::Impl::BufferLine(
 }
 
 void PlacefileLines::Impl::Update()
-{
-   dirty_ = false;
-}
+{ dirty_ = false; }
 
 bool PlacefileLines::RunMousePicking(
    const QMapLibre::CustomLayerRenderParameters& params,

@@ -25,9 +25,7 @@ class ImGuiFont::Impl
 public:
    explicit Impl(std::string fontName, const std::vector<char>& fontData) :
        fontName_ {std::move(fontName)}
-   {
-      CreateImGuiFont(fontData);
-   }
+   { CreateImGuiFont(fontData); }
 
    ~Impl() {}
 
@@ -35,7 +33,8 @@ public:
 
    std::string fontName_;
 
-   ImFont* imFont_ {nullptr};
+   ImFont*      imFont_ {nullptr};
+   ImFontAtlas* atlas_ {nullptr};
 };
 
 ImGuiFont::ImGuiFont(const std::string&       fontName,
@@ -67,6 +66,7 @@ void ImGuiFont::Impl::CreateImGuiFont(const std::vector<char>& fontData)
    strncpy(fontConfig.Name, fontName_.c_str(), sizeof(fontConfig.Name) - 1);
    fontConfig.Name[sizeof(fontConfig.Name) - 1] = 0;
 
+   atlas_  = fontAtlas;
    imFont_ = fontAtlas->AddFontFromMemoryTTF(
       const_cast<void*>(static_cast<const void*>(fontData.data())),
       static_cast<int>(std::clamp<std::size_t>(
@@ -76,9 +76,10 @@ void ImGuiFont::Impl::CreateImGuiFont(const std::vector<char>& fontData)
 }
 
 ImFont* ImGuiFont::font()
-{
-   return p->imFont_;
-}
+{ return p->imFont_; }
+
+ImFontAtlas* ImGuiFont::atlas() const
+{ return p->atlas_; }
 
 } // namespace types
 } // namespace qt
