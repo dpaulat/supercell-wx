@@ -22,9 +22,9 @@ namespace scwx::qt::render
  * with static (lat/long based) geometry. The vertex data is uploaded to the GPU
  * once, in chunks, and drawn directly with no per-frame CPU transform.
  *
- * Vertex layout (RhiGeoColoredGeometry::Layout::Compact):
- *   floats  (9): lat, long, x offset px, y offset px, r, g, b, a, perpendicular
- *   integers(3): threshold, start time, end time
+ * Vertex layout (RhiGeoColoredGeometry::Layout::Packed): see GeoPackedVertex
+ * (28 bytes per vertex: lat, long, x/y offset px, rgba, perpendicular,
+ * threshold, start time, end time)
  */
 class RhiGeoColoredGeometryCache
 {
@@ -37,9 +37,7 @@ public:
                const QMapLibre::CustomLayerRenderParameters& params,
                bool                                          thresholded,
                std::chrono::system_clock::time_point         selectedTime,
-               const std::vector<float>&                     floatVertices,
-               const std::vector<std::int32_t>&              integerVertices,
-               std::uint32_t                                 vertexCount);
+               const std::vector<GeoPackedVertex>&           vertices);
 
    void Shutdown();
 

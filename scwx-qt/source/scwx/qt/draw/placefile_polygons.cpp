@@ -22,10 +22,6 @@ static const std::string logPrefix_ = "scwx::qt::draw::placefile_polygons";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static constexpr std::size_t kVerticesPerTriangle = 3;
-// lat, long, x offset, y offset, r, g, b, a, perpendicular (unused)
-static constexpr std::size_t kPointsPerVertex = 9;
-// Threshold, start time, end time
-static constexpr std::size_t kIntegersPerVertex = 3;
 
 static constexpr std::size_t kTessVertexLat_     = 0;
 static constexpr std::size_t kTessVertexLon_     = 1;
@@ -43,13 +39,11 @@ class PlacefilePolygons::Impl
 {
 public:
    explicit Impl(const std::shared_ptr<render::RenderContext>& context) :
-       context_ {context}, numVertices_ {0}
+       context_ {context}
    {
    }
 
    ~Impl() = default;
-
-   void Update();
 
    void Tessellate(const std::shared_ptr<gr::Placefile::PolygonDrawItem>& di);
 
@@ -62,13 +56,9 @@ public:
 
    std::chrono::system_clock::time_point selectedTime_ {};
 
-   std::mutex                bufferMutex_ {};
-   std::vector<float>        currentBuffer_ {};
-   std::vector<std::int32_t> currentIntegerBuffer_ {};
-   std::vector<float>        newBuffer_ {};
-   std::vector<std::int32_t> newIntegerBuffer_ {};
-
-   std::uint32_t numVertices_;
+   std::mutex                           bufferMutex_ {};
+   render::GeoSharedBuffer              currentBuffer_ {};
+   std::vector<render::GeoPackedVertex> newBuffer_ {};
 
    render::RhiGeoColoredGeometryCache geoRenderer_ {};
 
@@ -116,30 +106,25 @@ void PlacefilePolygons::RenderVulkan(
    // vertex and integer buffers while they are uploaded.
    std::unique_lock lock {p->bufferMutex_};
 
-   if (p->currentBuffer_.empty())
+   if (p->currentBuffer_ == nullptr || p->currentBuffer_->empty())
    {
       return;
    }
-
-   p->Update();
 
    p->geoRenderer_.Render(commandBuffer,
                           resources,
                           params,
                           p->thresholded_,
                           p->selectedTime_,
-                          p->currentBuffer_,
-                          p->currentIntegerBuffer_,
-                          p->numVertices_);
+                          *p->currentBuffer_);
 }
 
 void PlacefilePolygons::Deinitialize()
 {
    std::unique_lock lock {p->bufferMutex_};
 
-   // Clear the current buffers
-   p->currentBuffer_.clear();
-   p->currentIntegerBuffer_.clear();
+   // Release the current buffer
+   p->currentBuffer_.reset();
    p->geoRenderer_.Shutdown();
 }
 
@@ -147,7 +132,6 @@ void PlacefilePolygons::StartPolygons()
 {
    // Clear the new buffers
    p->newBuffer_.clear();
-   p->newIntegerBuffer_.clear();
 }
 
 void PlacefilePolygons::AddPolygon(
@@ -164,30 +148,14 @@ void PlacefilePolygons::FinishPolygons()
    std::unique_lock lock {p->bufferMutex_};
 
    // Swap buffers
-   p->currentBuffer_.swap(p->newBuffer_);
-   p->currentIntegerBuffer_.swap(p->newIntegerBuffer_);
+   p->currentBuffer_ = render::InternGeoBuffer(std::move(p->newBuffer_));
 
    // Release the swapped-out buffers and trim growth slack
-   std::vector<float>().swap(p->newBuffer_);
-   std::vector<std::int32_t>().swap(p->newIntegerBuffer_);
-   p->currentBuffer_.shrink_to_fit();
-   p->currentIntegerBuffer_.shrink_to_fit();
+   std::vector<render::GeoPackedVertex>().swap(p->newBuffer_);
 
    // Mark the draw item dirty
    p->dirty_ = true;
    p->geoRenderer_.Invalidate();
-}
-
-void PlacefilePolygons::Impl::Update()
-{
-   // Caller must hold bufferMutex_
-   if (dirty_)
-   {
-      numVertices_ =
-         static_cast<std::uint32_t>(currentBuffer_.size() / kPointsPerVertex);
-
-      dirty_ = false;
-   }
 }
 
 void PlacefilePolygons::Impl::Tessellate(
@@ -257,28 +225,30 @@ void PlacefilePolygons::Impl::Tessellate(
       AppendVertex(vertexAttributes[index]);
    }
 
-   while ((newBuffer_.size() / kPointsPerVertex) % kVerticesPerTriangle != 0)
-   {
-      newBuffer_.resize(newBuffer_.size() - kPointsPerVertex);
-      newIntegerBuffer_.resize(newIntegerBuffer_.size() - kIntegersPerVertex);
-   }
+   newBuffer_.resize(newBuffer_.size() -
+                     (newBuffer_.size() % kVerticesPerTriangle));
 }
 
 void PlacefilePolygons::Impl::AppendVertex(const TessVertexArray& data)
 {
-   newBuffer_.insert(newBuffer_.end(),
-                     {static_cast<float>(data[kTessVertexLat_]),
-                      static_cast<float>(data[kTessVertexLon_]),
-                      static_cast<float>(data[kTessVertexXOffset_]),
-                      static_cast<float>(data[kTessVertexYOffset_]),
-                      static_cast<float>(data[kTessVertexR_]),
-                      static_cast<float>(data[kTessVertexG_]),
-                      static_cast<float>(data[kTessVertexB_]),
-                      static_cast<float>(data[kTessVertexA_]),
-                      0.0f});
-   newIntegerBuffer_.insert(
-      newIntegerBuffer_.end(),
-      {currentThreshold_, currentStartTime_, currentEndTime_});
+   const auto color = [&data](std::size_t index)
+   {
+      return render::NormalizedByte(static_cast<float>(data[index]));
+   };
+
+   newBuffer_.push_back(
+      render::MakeGeoPackedVertex(static_cast<float>(data[kTessVertexLat_]),
+                                  static_cast<float>(data[kTessVertexLon_]),
+                                  static_cast<float>(data[kTessVertexXOffset_]),
+                                  static_cast<float>(data[kTessVertexYOffset_]),
+                                  color(kTessVertexR_),
+                                  color(kTessVertexG_),
+                                  color(kTessVertexB_),
+                                  color(kTessVertexA_),
+                                  0.0f,
+                                  currentThreshold_,
+                                  currentStartTime_,
+                                  currentEndTime_));
 }
 
 } // namespace draw

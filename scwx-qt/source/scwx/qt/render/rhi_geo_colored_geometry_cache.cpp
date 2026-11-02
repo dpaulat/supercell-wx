@@ -20,12 +20,10 @@ void RhiGeoColoredGeometryCache::Render(
    const QMapLibre::CustomLayerRenderParameters& params,
    const bool                                    thresholded,
    const std::chrono::system_clock::time_point   selectedTime,
-   const std::vector<float>&                     floatVertices,
-   const std::vector<std::int32_t>&              integerVertices,
-   const std::uint32_t                           vertexCount)
+   const std::vector<GeoPackedVertex>&           vertices)
 {
    if (resources.rhi == nullptr || resources.renderTarget == nullptr ||
-       vertexCount == 0)
+       vertices.empty())
    {
       return;
    }
@@ -49,7 +47,7 @@ void RhiGeoColoredGeometryCache::Render(
       entry.renderer_->Initialize(resources.rhi,
                                   resources.renderTarget,
                                   commandBuffer,
-                                  RhiGeoColoredGeometry::Layout::Compact);
+                                  RhiGeoColoredGeometry::Layout::Packed);
       if (!entry.renderer_->IsInitialized())
       {
          return;
@@ -61,14 +59,12 @@ void RhiGeoColoredGeometryCache::Render(
 
    const bool uploadGeometry = !entry.geometryUploaded_;
 
-   const bool moreWork = entry.renderer_->Render(commandBuffer,
-                                                 uniforms,
-                                                 floatVertices,
-                                                 integerVertices,
-                                                 vertexCount,
-                                                 uploadGeometry,
-                                                 resources.resourceBatch,
-                                                 resources.phase);
+   const bool moreWork = entry.renderer_->RenderPacked(commandBuffer,
+                                                       uniforms,
+                                                       vertices,
+                                                       uploadGeometry,
+                                                       resources.resourceBatch,
+                                                       resources.phase);
 
    // Upload only starts in the upload phase; draw-only calls must not consume
    // the invalidation.

@@ -1,4 +1,5 @@
 #include <scwx/qt/render/rhi_overlay_gpu_store.hpp>
+#include <scwx/qt/render/rhi_geo_packed_vertex.hpp>
 
 #include <scwx/qt/render/rhi_overlay_util.hpp>
 #include <scwx/qt/render/rhi_shader_util.hpp>
@@ -85,6 +86,7 @@ struct PipelineBucket
    QRhiGraphicsPipeline* coloredGeometry_ {nullptr};
    QRhiGraphicsPipeline* geoColoredGeometry_ {nullptr};
    QRhiGraphicsPipeline* geoColoredCompactGeometry_ {nullptr};
+   QRhiGraphicsPipeline* geoColoredPackedGeometry_ {nullptr};
    QRhiGraphicsPipeline* radar_ {nullptr};
    QRhiGraphicsPipeline* colorTable_ {nullptr};
    QRhiGraphicsPipeline* textureArrayGeo_ {nullptr};
@@ -109,6 +111,8 @@ struct PipelineBucket
       geoColoredGeometry_ = nullptr;
       delete geoColoredCompactGeometry_;
       geoColoredCompactGeometry_ = nullptr;
+      delete geoColoredPackedGeometry_;
+      geoColoredPackedGeometry_ = nullptr;
       delete radar_;
       radar_ = nullptr;
       delete colorTable_;
@@ -602,7 +606,7 @@ AcquireColoredGeometryPipeline(QRhi* rhi, QRhiRenderTarget* renderTarget)
 }
 
 QRhiGraphicsPipeline* AcquireGeoColoredGeometryPipeline(
-   QRhi* rhi, QRhiRenderTarget* renderTarget, bool compact)
+   QRhi* rhi, QRhiRenderTarget* renderTarget, bool compact, bool packed)
 {
    if (rhi == nullptr || renderTarget == nullptr)
    {
@@ -613,8 +617,9 @@ QRhiGraphicsPipeline* AcquireGeoColoredGeometryPipeline(
    RhiStore&              store  = GetStore(rhi);
    const PipelineKey      key    = MakeKey(renderTarget);
    PipelineBucket&        bucket = store.pipelines_[key];
-   QRhiGraphicsPipeline*& cached =
-      compact ? bucket.geoColoredCompactGeometry_ : bucket.geoColoredGeometry_;
+   QRhiGraphicsPipeline*& cached = packed  ? bucket.geoColoredPackedGeometry_ :
+                                   compact ? bucket.geoColoredCompactGeometry_ :
+                                             bucket.geoColoredGeometry_;
    if (cached != nullptr)
    {
       return cached;
@@ -641,7 +646,29 @@ QRhiGraphicsPipeline* AcquireGeoColoredGeometryPipeline(
    }
 
    QRhiVertexInputLayout inputLayout;
-   if (compact)
+   if (packed)
+   {
+      // Packed layout: one 28-byte GeoPackedVertex per vertex (see
+      // rhi_geo_packed_vertex.hpp). Stroke/highlight/border attributes and the
+      // displayed flag come from the same per-instance record as the compact
+      // layout.
+      inputLayout.setBindings(
+         {{sizeof(GeoPackedVertex)},
+          {12 * sizeof(std::int32_t), QRhiVertexInputBinding::PerInstance, 1}});
+      inputLayout.setAttributes(
+         {{0, 0, QRhiVertexInputAttribute::Float2, 0},
+          {0, 1, QRhiVertexInputAttribute::Half2, 8},
+          {0, 2, QRhiVertexInputAttribute::UNormByte4, 12},
+          {0, 3, QRhiVertexInputAttribute::Half, 16},
+          {1, 4, QRhiVertexInputAttribute::Float4, 0},
+          {1, 5, QRhiVertexInputAttribute::Float4, 4 * sizeof(float)},
+          {1, 6, QRhiVertexInputAttribute::Float3, 8 * sizeof(float)},
+          {0, 7, QRhiVertexInputAttribute::SShort, 18},
+          {0, 8, QRhiVertexInputAttribute::SInt, 20},
+          {0, 9, QRhiVertexInputAttribute::SInt, 24},
+          {1, 10, QRhiVertexInputAttribute::SInt, 11 * sizeof(std::int32_t)}});
+   }
+   else if (compact)
    {
       // Compact layout: 9 floats + 3 ints per vertex. Stroke/highlight/border
       // attributes and the displayed flag are constant for the whole draw and

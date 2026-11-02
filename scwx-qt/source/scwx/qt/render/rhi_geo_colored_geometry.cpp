@@ -44,7 +44,7 @@ void RhiGeoColoredGeometry::Initialize(QRhi*             rhi,
       return;
    }
 
-   if (layout_ == Layout::Compact)
+   if (layout_ != Layout::Full)
    {
       constantBuffer_ = rhi_->newBuffer(
          QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, 12 * sizeof(float));
@@ -68,7 +68,7 @@ bool RhiGeoColoredGeometry::EnsurePipeline(QRhi*             rhi,
                                            QRhiRenderTarget* renderTarget)
 {
    pipeline_ = AcquireGeoColoredGeometryPipeline(
-      rhi, renderTarget, layout_ == Layout::Compact);
+      rhi, renderTarget, layout_ == Layout::Compact, layout_ == Layout::Packed);
    if (pipeline_ == nullptr)
    {
       return false;
@@ -152,8 +152,9 @@ bool RhiGeoColoredGeometry::StartPendingUpload(const std::size_t   floatBytes,
    };
 
    pendingFloatBuffer_   = create(floatBytes);
-   pendingIntegerBuffer_ = create(integerBytes);
-   if (pendingFloatBuffer_ == nullptr || pendingIntegerBuffer_ == nullptr)
+   pendingIntegerBuffer_ = integerBytes > 0 ? create(integerBytes) : nullptr;
+   if (pendingFloatBuffer_ == nullptr ||
+       (integerBytes > 0 && pendingIntegerBuffer_ == nullptr))
    {
       logger_->error("Failed to allocate geo geometry buffers ({} + {} bytes)",
                      floatBytes,
@@ -179,6 +180,49 @@ bool RhiGeoColoredGeometry::Render(
    QRhiResourceUpdateBatch*         resourceBatch,
    RhiOverlayPhase                  phase)
 {
+   return RenderImpl(commandBuffer,
+                     uniforms,
+                     floatVertices.data(),
+                     floatVertices.size() * sizeof(float),
+                     integerVertices.data(),
+                     integerVertices.size() * sizeof(std::int32_t),
+                     vertexCount,
+                     uploadGeometry,
+                     resourceBatch,
+                     phase);
+}
+
+bool RhiGeoColoredGeometry::RenderPacked(
+   QRhiCommandBuffer*                  commandBuffer,
+   const GeoUniforms&                  uniforms,
+   const std::vector<GeoPackedVertex>& vertices,
+   bool                                uploadGeometry,
+   QRhiResourceUpdateBatch*            resourceBatch,
+   RhiOverlayPhase                     phase)
+{
+   return RenderImpl(commandBuffer,
+                     uniforms,
+                     vertices.data(),
+                     vertices.size() * sizeof(GeoPackedVertex),
+                     nullptr,
+                     0,
+                     static_cast<std::uint32_t>(vertices.size()),
+                     uploadGeometry,
+                     resourceBatch,
+                     phase);
+}
+
+bool RhiGeoColoredGeometry::RenderImpl(QRhiCommandBuffer*       commandBuffer,
+                                       const GeoUniforms&       uniforms,
+                                       const void*              floatData,
+                                       const std::size_t        floatBytes,
+                                       const void*              integerData,
+                                       const std::size_t        integerBytes,
+                                       const std::uint32_t      vertexCount,
+                                       bool                     uploadGeometry,
+                                       QRhiResourceUpdateBatch* resourceBatch,
+                                       RhiOverlayPhase          phase)
+{
    if (!initialized_ || commandBuffer == nullptr || vertexCount == 0)
    {
       return false;
@@ -191,9 +235,7 @@ bool RhiGeoColoredGeometry::Render(
       // Start (or restart) when data changed, or when nothing was ever uploaded
       if (uploadGeometry || (!uploadActive_ && activeVertexCount_ == 0))
       {
-         if (!StartPendingUpload(floatVertices.size() * sizeof(float),
-                                 integerVertices.size() * sizeof(std::int32_t),
-                                 vertexCount))
+         if (!StartPendingUpload(floatBytes, integerBytes, vertexCount))
          {
             return false;
          }
@@ -239,13 +281,16 @@ bool RhiGeoColoredGeometry::Render(
          uploadChunk(pendingFloatBuffer_,
                      pendingFloatBytes_,
                      pendingFloatOffset_,
-                     floatVertices.data(),
+                     floatData,
                      kFloatChunkBytes);
-         uploadChunk(pendingIntegerBuffer_,
-                     pendingIntegerBytes_,
-                     pendingIntegerOffset_,
-                     integerVertices.data(),
-                     kIntegerChunkBytes);
+         if (pendingIntegerBuffer_ != nullptr)
+         {
+            uploadChunk(pendingIntegerBuffer_,
+                        pendingIntegerBytes_,
+                        pendingIntegerOffset_,
+                        integerData,
+                        kIntegerChunkBytes);
+         }
 
          if (pendingFloatOffset_ >= pendingFloatBytes_ &&
              pendingIntegerOffset_ >= pendingIntegerBytes_)
@@ -270,12 +315,21 @@ bool RhiGeoColoredGeometry::Render(
    }
 
    if (!OverlayShouldDraw(phase) || floatBuffer_ == nullptr ||
-       integerBuffer_ == nullptr || activeVertexCount_ == 0)
+       (layout_ != Layout::Packed && integerBuffer_ == nullptr) ||
+       activeVertexCount_ == 0)
    {
       return moreWork;
    }
 
-   if (layout_ == Layout::Compact)
+   if (layout_ == Layout::Packed)
+   {
+      const QRhiCommandBuffer::VertexInput bindings[] = {{floatBuffer_, 0},
+                                                         {constantBuffer_, 0}};
+      commandBuffer->setGraphicsPipeline(pipeline_);
+      commandBuffer->setShaderResources(srb_);
+      commandBuffer->setVertexInput(0, 2, bindings);
+   }
+   else if (layout_ == Layout::Compact)
    {
       const QRhiCommandBuffer::VertexInput bindings[] = {
          {floatBuffer_, 0}, {integerBuffer_, 0}, {constantBuffer_, 0}};

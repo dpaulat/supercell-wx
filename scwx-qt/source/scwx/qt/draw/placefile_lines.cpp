@@ -31,9 +31,6 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 static constexpr std::size_t kVerticesPerTriangle  = 3;
 static constexpr std::size_t kVerticesPerRectangle = kVerticesPerTriangle * 2;
 
-// Threshold, start time, end time
-static constexpr std::size_t kIntegersPerVertex_ = 3;
-
 static constexpr float kLineCapOverlapPx = 1.0f;
 
 static const boost::gil::rgba8_pixel_t kBlack_ {0, 0, 0, 255};
@@ -54,7 +51,7 @@ public:
    };
 
    explicit Impl(const std::shared_ptr<render::RenderContext>& context) :
-       context_ {context}, numVertices_ {0}
+       context_ {context}
    {
    }
 
@@ -86,15 +83,11 @@ public:
    std::size_t currentNumLines_ {};
    std::size_t newNumLines_ {};
 
-   std::vector<float>        currentLinesBuffer_ {};
-   std::vector<std::int32_t> currentIntegerBuffer_ {};
-   std::vector<float>        newLinesBuffer_ {};
-   std::vector<std::int32_t> newIntegerBuffer_ {};
+   render::GeoSharedBuffer              currentLinesBuffer_ {};
+   std::vector<render::GeoPackedVertex> newLinesBuffer_ {};
 
    std::vector<LineHoverEntry> currentHoverLines_ {};
    std::vector<LineHoverEntry> newHoverLines_ {};
-
-   std::uint32_t numVertices_;
 
    render::RhiGeoColoredGeometryCache geoRenderer_ {};
 };
@@ -135,7 +128,8 @@ void PlacefileLines::RenderVulkan(
 {
    std::unique_lock lock {p->lineMutex_};
 
-   if (p->currentNumLines_ == 0 || p->currentLinesBuffer_.empty())
+   if (p->currentNumLines_ == 0 || p->currentLinesBuffer_ == nullptr ||
+       p->currentLinesBuffer_->empty())
    {
       return;
    }
@@ -145,18 +139,17 @@ void PlacefileLines::RenderVulkan(
                           params,
                           p->thresholded_,
                           p->selectedTime_,
-                          p->currentLinesBuffer_,
-                          p->currentIntegerBuffer_,
-                          p->numVertices_);
+                          *p->currentLinesBuffer_);
 }
 
 void PlacefileLines::Deinitialize()
 {
    std::unique_lock lock {p->lineMutex_};
 
-   p->currentLinesBuffer_.clear();
-   p->currentIntegerBuffer_.clear();
+   // Release (rather than clear) so the capacity is returned as well
+   p->currentLinesBuffer_.reset();
    p->currentHoverLines_.clear();
+   p->currentHoverLines_.shrink_to_fit();
 
    p->geoRenderer_.Shutdown();
 }
@@ -165,7 +158,6 @@ void PlacefileLines::StartLines()
 {
    // Clear the new buffers
    p->newLinesBuffer_.clear();
-   p->newIntegerBuffer_.clear();
    p->newHoverLines_.clear();
 
    p->newNumLines_ = 0u;
@@ -186,24 +178,19 @@ void PlacefileLines::FinishLines()
    std::unique_lock lock {p->lineMutex_};
 
    // Swap buffers
-   p->currentLinesBuffer_.swap(p->newLinesBuffer_);
-   p->currentIntegerBuffer_.swap(p->newIntegerBuffer_);
+   p->currentLinesBuffer_ =
+      render::InternGeoBuffer(std::move(p->newLinesBuffer_));
    p->currentHoverLines_.swap(p->newHoverLines_);
 
    // Release the swapped-out buffers (clear() would keep their capacity, which
    // for large placefiles is a full extra copy of the previous geometry), and
    // trim growth slack from the new current buffers.
-   std::vector<float>().swap(p->newLinesBuffer_);
-   std::vector<std::int32_t>().swap(p->newIntegerBuffer_);
+   std::vector<render::GeoPackedVertex>().swap(p->newLinesBuffer_);
    p->newHoverLines_.clear();
    p->newHoverLines_.shrink_to_fit();
-   p->currentLinesBuffer_.shrink_to_fit();
-   p->currentIntegerBuffer_.shrink_to_fit();
 
    // Update the number of lines
    p->currentNumLines_ = p->newNumLines_;
-   p->numVertices_ =
-      static_cast<std::uint32_t>(p->currentNumLines_ * kVerticesPerRectangle);
 
    // Mark the draw item dirty
    p->dirty_ = true;
@@ -227,6 +214,20 @@ void PlacefileLines::Impl::UpdateBuffers(
       std::chrono::duration_cast<std::chrono::minutes>(
          di->endTime_.time_since_epoch())
          .count());
+
+   // Grow the buffer once for the whole line (2 quads per segment), instead of
+   // by doubling, which would leave up to 2x slack in a large placefile
+   {
+      const std::size_t needed =
+         newLinesBuffer_.size() +
+         (di->elements_.size() - 1) * 2 * kVerticesPerRectangle;
+      if (needed > newLinesBuffer_.capacity())
+      {
+         newLinesBuffer_.reserve(std::max(needed,
+                                          newLinesBuffer_.capacity() +
+                                             newLinesBuffer_.capacity() / 2));
+      }
+   }
 
    std::vector<units::angle::degrees<double>> angles {};
    angles.reserve(di->elements_.size() - 1);
@@ -324,40 +325,30 @@ void PlacefileLines::Impl::BufferLine(
    const glm::vec2 tl  = perp * lx + along * (+cap);
    const glm::vec2 br  = perp * rx + along * (-cap);
    const glm::vec2 tr  = perp * rx + along * (+cap);
-   const float     blX = bl.x;
-   const float     blY = bl.y;
-   const float     tlX = tl.x;
-   const float     tlY = tl.y;
-   const float     brX = br.x;
-   const float     brY = br.y;
-   const float     trX = tr.x;
-   const float     trY = tr.y;
-
-   // Modulate color
-   const float mc0 = color[0] / 255.0f;
-   const float mc1 = color[1] / 255.0f;
-   const float mc2 = color[2] / 255.0f;
-   const float mc3 = color[3] / 255.0f;
-
-   // Update buffers
+   // Append the two triangles of the quad as packed vertices
    const auto appendVertex =
       [&](float lat, float lon, float x, float y, float perp)
    {
-      newLinesBuffer_.insert(newLinesBuffer_.end(),
-                             {lat, lon, x, y, mc0, mc1, mc2, mc3, perp});
+      newLinesBuffer_.push_back(render::MakeGeoPackedVertex(lat,
+                                                            lon,
+                                                            x,
+                                                            y,
+                                                            color[0],
+                                                            color[1],
+                                                            color[2],
+                                                            color[3],
+                                                            perp,
+                                                            threshold,
+                                                            startTime,
+                                                            endTime));
    };
 
-   appendVertex(lat1, lon1, blX, blY, lx);
-   appendVertex(lat2, lon2, tlX, tlY, lx);
-   appendVertex(lat1, lon1, brX, brY, rx);
-   appendVertex(lat1, lon1, brX, brY, rx);
-   appendVertex(lat2, lon2, trX, trY, rx);
-   appendVertex(lat2, lon2, tlX, tlY, lx);
-   for (std::size_t i = 0; i < kVerticesPerRectangle; ++i)
-   {
-      newIntegerBuffer_.insert(newIntegerBuffer_.end(),
-                               {threshold, startTime, endTime});
-   }
+   appendVertex(lat1, lon1, bl.x, bl.y, lx);
+   appendVertex(lat2, lon2, tl.x, tl.y, lx);
+   appendVertex(lat1, lon1, br.x, br.y, rx);
+   appendVertex(lat1, lon1, br.x, br.y, rx);
+   appendVertex(lat2, lon2, tr.x, tr.y, rx);
+   appendVertex(lat2, lon2, tl.x, tl.y, lx);
 
    if (bufferHover && !di->hoverText_.empty())
    {

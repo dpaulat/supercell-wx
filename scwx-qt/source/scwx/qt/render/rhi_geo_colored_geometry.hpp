@@ -1,5 +1,6 @@
 #pragma once
 
+#include <scwx/qt/render/rhi_geo_packed_vertex.hpp>
 #include <scwx/qt/render/rhi_geo_uniforms.hpp>
 #include <scwx/qt/render/rhi_overlay_phase.hpp>
 
@@ -25,7 +26,9 @@ public:
       /// 20 floats + 4 ints per vertex (stroke/highlight/border/displayed)
       Full,
       /// 9 floats + 3 ints per vertex; stroke attributes are constant
-      Compact
+      Compact,
+      /// One 28-byte GeoPackedVertex per vertex; stroke attributes are constant
+      Packed
    };
 
    void Initialize(QRhi*              rhi,
@@ -52,9 +55,30 @@ public:
                QRhiResourceUpdateBatch*         resourceBatch  = nullptr,
                RhiOverlayPhase phase = RhiOverlayPhase::UploadAndDraw);
 
+   /**
+    * Same as Render, for Layout::Packed geometry.
+    */
+   bool RenderPacked(QRhiCommandBuffer*                  commandBuffer,
+                     const GeoUniforms&                  uniforms,
+                     const std::vector<GeoPackedVertex>& vertices,
+                     bool                                uploadGeometry = true,
+                     QRhiResourceUpdateBatch* resourceBatch = nullptr,
+                     RhiOverlayPhase phase = RhiOverlayPhase::UploadAndDraw);
+
    [[nodiscard]] bool IsInitialized() const;
 
 private:
+   bool RenderImpl(QRhiCommandBuffer*       commandBuffer,
+                   const GeoUniforms&       uniforms,
+                   const void*              floatData,
+                   std::size_t              floatBytes,
+                   const void*              integerData,
+                   std::size_t              integerBytes,
+                   std::uint32_t            vertexCount,
+                   bool                     uploadGeometry,
+                   QRhiResourceUpdateBatch* resourceBatch,
+                   RhiOverlayPhase          phase);
+
    bool EnsurePipeline(QRhi* rhi, QRhiRenderTarget* renderTarget);
 
    bool StartPendingUpload(std::size_t   floatBytes,
