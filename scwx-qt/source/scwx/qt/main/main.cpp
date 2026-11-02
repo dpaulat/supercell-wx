@@ -31,6 +31,9 @@
 #include <aws/core/Aws.h>
 #include <boost/asio.hpp>
 #include <fmt/format.h>
+#if defined(__GLIBC__)
+#   include <malloc.h>
+#endif
 #include <QApplication>
 #include <QLibraryInfo>
 #include <QStandardPaths>
@@ -44,10 +47,46 @@ static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
 static void InitializeOpenGL();
 
+namespace
+{
+
+/**
+ * @brief Tunes glibc malloc to return freed memory to the OS.
+ *
+ * Tile, radar and geometry workers allocate and free many large vectors on
+ * short-lived threads. With glibc defaults every worker thread gets its own
+ * arena and freed blocks are retained, so resident memory only ratchets up
+ * while panning and animating. Capping the arenas and lowering the mmap and
+ * trim thresholds keeps resident memory near the live working set. Explicit
+ * MALLOC_* environment variables are left untouched.
+ */
+void ConfigureMalloc()
+{
+#if defined(__GLIBC__)
+   constexpr int kThresholdBytes = 256 * 1024;
+
+   if (scwx::util::GetEnvironment("MALLOC_ARENA_MAX").empty())
+   {
+      mallopt(M_ARENA_MAX, 2);
+   }
+
+   if (scwx::util::GetEnvironment("MALLOC_MMAP_THRESHOLD_").empty() &&
+       scwx::util::GetEnvironment("MALLOC_TRIM_THRESHOLD_").empty())
+   {
+      mallopt(M_MMAP_THRESHOLD, kThresholdBytes);
+      mallopt(M_TRIM_THRESHOLD, kThresholdBytes);
+   }
+#endif
+}
+
+} // namespace
+
 // NOLINTNEXTLINE(bugprone-exception-escape) — top-level entry; Qt/AWS paths may
 // throw
 int main(int argc, char* argv[])
 {
+   ConfigureMalloc();
+
    // Store arguments
    std::vector<std::string> args {};
    args.reserve(argc);
