@@ -206,6 +206,14 @@ void RhiTextureArrayOverlay::Shutdown()
    initialized_            = false;
 }
 
+void RhiTextureArrayOverlay::SetRenderTarget(QRhiRenderTarget* renderTarget)
+{
+   if (initialized_)
+   {
+      renderTarget_ = renderTarget;
+   }
+}
+
 void RhiTextureArrayOverlay::SyncAtlas(QRhiCommandBuffer*       commandBuffer,
                                        const std::uint64_t      buildCount,
                                        QRhiResourceUpdateBatch* resourceBatch,

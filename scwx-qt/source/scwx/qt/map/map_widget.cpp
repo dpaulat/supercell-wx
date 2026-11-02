@@ -398,16 +398,18 @@ public:
    void               EnsureSymbologyTexture();
    void               ReleaseSymbologyTexture();
    void               RenderSymbology(QRhiCommandBuffer* commandBuffer);
+   [[nodiscard]] bool BasemapSnapshotUsable() const;
+   void               RestoreBasemapSnapshot(QRhiCommandBuffer* commandBuffer);
    void               RenderMapAndSnapshot(QRhiCommandBuffer* commandBuffer);
    [[nodiscard]] bool MapStyleReadyForRender() const
    {
       return mapChangedOnce_ || mapStylePending_;
    }
-   void SelectNearestRadarSite(double                          latitude,
-                               double                          longitude,
-                               std::optional<types::RadarType> type);
-   void SetRadarSite(const std::string& radarSite,
-                     bool               checkProductAvailability = false);
+   void                  SelectNearestRadarSite(double                          latitude,
+                                                double                          longitude,
+                                                std::optional<types::RadarType> type);
+   void                  SetRadarSite(const std::string& radarSite,
+                                      bool               checkProductAvailability = false);
    [[nodiscard]] QPointF EraseCursorWidgetPosition() const;
    [[nodiscard]] int     EraseCursorRadiusPx(const QPointF& widgetPos) const;
    void                  UpdateAnnotationCursor();
@@ -574,6 +576,9 @@ public:
    std::uint64_t                   lastCopiedBasemapGeneration_ {0};
    QRhiTexture*                    basemapTexture_ {nullptr};
    QSize                           basemapTextureSize_ {};
+   bool                            basemapSnapshotValid_ {false};
+   int                             tooltipRepaintsRemaining_ {0};
+   static constexpr int            kTooltipRepaintFrames {3};
 
    std::shared_ptr<QMapLibre::Map> symbologyMap_ {};
    MapRhiRenderer                  symbologyRhiRenderer_ {};
@@ -2495,9 +2500,13 @@ void MapWidget::mouseMoveEvent(QMouseEvent* ev)
       }
    }
 
-   p->lastPos_       = ev->position();
-   p->lastGlobalPos_ = ev->globalPosition();
+   p->lastPos_                  = ev->position();
+   p->lastGlobalPos_            = ev->globalPosition();
+   p->tooltipRepaintsRemaining_ = MapWidgetImpl::kTooltipRepaintFrames;
    p->UpdateAnnotationCursor();
+
+   // Hover picking and tooltips run during paint
+   update();
    ev->accept();
 }
 
@@ -3229,6 +3238,7 @@ void MapWidgetImpl::EnsureBasemapTexture()
       return;
    }
 
+   basemapSnapshotValid_ = false;
    delete basemapTexture_;
    basemapTexture_ = rhi->newTexture(colorTexture->format(), size);
    if (basemapTexture_ == nullptr || !basemapTexture_->create())
@@ -3244,6 +3254,7 @@ void MapWidgetImpl::EnsureBasemapTexture()
 
 void MapWidgetImpl::ReleaseBasemapTexture()
 {
+   basemapSnapshotValid_ = false;
    delete basemapTexture_;
    basemapTexture_     = nullptr;
    basemapTextureSize_ = {};
@@ -3270,6 +3281,25 @@ void MapWidgetImpl::RenderMapAndSnapshot(QRhiCommandBuffer* commandBuffer)
 
    MapRhiRenderer::CopyColorTexture(
       widget_->rhi(), commandBuffer, basemapTexture_, colorTexture);
+   basemapSnapshotValid_ = true;
+}
+
+bool MapWidgetImpl::BasemapSnapshotUsable() const
+{
+   QRhiTexture* const colorTexture = widget_->colorTexture();
+   return basemapSnapshotValid_ && basemapTexture_ != nullptr &&
+          colorTexture != nullptr &&
+          basemapTextureSize_ == colorTexture->pixelSize() &&
+          basemapTexture_->format() == colorTexture->format();
+}
+
+void MapWidgetImpl::RestoreBasemapSnapshot(QRhiCommandBuffer* commandBuffer)
+{
+   // Overlay-only frame: the basemap has not changed, so reuse the last
+   // rendered basemap instead of rendering MapLibre again.
+   RenderSymbology(commandBuffer);
+   MapRhiRenderer::CopyColorTexture(
+      widget_->rhi(), commandBuffer, widget_->colorTexture(), basemapTexture_);
 }
 
 void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
@@ -3292,11 +3322,6 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
 
    const bool isPrimaryPane =
       context_->settings().isActive_ || widget_->underMouse();
-
-   // Always paint. Skipping inactive panes left annotations blank after the
-   // color buffer was cleared/replaced between frames (QRhiWidget does not
-   // guarantee preserving the prior present).
-   static_cast<void>(isPrimaryPane);
 
    const types::CaptureType currentCaptureType = screenCaptureRequested_;
    if (screenCaptureRequested_ != types::CaptureType::None)
@@ -3361,9 +3386,11 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
 
    const bool selfBasemap = !isBasemapFollower || !canShareBasemap;
 
+   // Render MapLibre only when the basemap is dirty (or no usable snapshot
+   // exists). Overlay-only frames, such as hover repaints, restore the cached
+   // basemap snapshot instead.
    const bool renderMapThisFrame =
-      selfBasemap && (isBasemapLeader || isPrimaryPane || mapNeedsRender_ ||
-                      overlayNeedsRender_);
+      selfBasemap && (mapNeedsRender_ || !BasemapSnapshotUsable());
 
    const auto mapStart  = std::chrono::steady_clock::now();
    queuedMapSize_       = widget_->size();
@@ -3372,8 +3399,12 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    double basemapCopyMs    = 0.0;
    bool   mapLibreRendered = false;
    bool   basemapCopied    = false;
+   bool   basemapRestored  = false;
    if (canShareBasemap)
    {
+      // This pane's own snapshot is not updated while following
+      basemapSnapshotValid_ = false;
+
       if (basemapShareCallbacks_ != nullptr &&
           basemapShareCallbacks_->leaderTexture_ != nullptr)
       {
@@ -3416,6 +3447,11 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
          basemapShareCallbacks_->notifyRendered_(id_);
       }
       mapNeedsRender_ = false;
+   }
+   else if (selfBasemap)
+   {
+      RestoreBasemapSnapshot(commandBuffer);
+      basemapRestored = true;
    }
    const auto   mapEnd = std::chrono::steady_clock::now();
    const double mapLibreMs =
@@ -3524,7 +3560,7 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    }
    const auto imguiEnd = std::chrono::steady_clock::now();
 
-   if (!mapLibreRendered && !basemapCopied)
+   if (!mapLibreRendered && !basemapCopied && !basemapRestored)
    {
       RenderMapAndSnapshot(commandBuffer);
       mapLibreRendered = true;
@@ -3614,15 +3650,17 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
 
    Q_EMIT widget_->WidgetPainted();
 
-   // ImGui tooltips must be redrawn every frame they are visible. Qt tooltips
-   // persist on their own, so only keep repainting for the ImGui method, and
-   // schedule it on a timer rather than from inside the paint to cap the rate.
-   if (hasMouse_ && lastItemPicked_ &&
+   // A new ImGui tooltip needs a few frames to appear (auto-sized window), but
+   // once drawn it persists in the widget texture until the next paint. Only
+   // schedule a bounded number of repaints after the hover state changes,
+   // rather than repainting continuously while hovering.
+   if (hasMouse_ && lastItemPicked_ && tooltipRepaintsRemaining_ > 0 &&
        types::GetTooltipMethod(
           settings::TextSettings::Instance().tooltip_method().GetValue()) ==
           types::TooltipMethod::ImGui)
    {
-      constexpr int kTooltipRepaintMs = 33;
+      --tooltipRepaintsRemaining_;
+      constexpr int kTooltipRepaintMs = 16;
       QTimer::singleShot(kTooltipRepaintMs,
                          widget_,
                          [widget = QPointer<MapWidget> {widget_}]()
@@ -3815,6 +3853,11 @@ void MapWidgetImpl::RunMousePicking()
 
    Q_EMIT widget_->MouseCoordinateChanged(
       {coordinate.first, coordinate.second});
+
+   if (itemPicked && !lastItemPicked_)
+   {
+      tooltipRepaintsRemaining_ = kTooltipRepaintFrames;
+   }
 
    lastItemPicked_ = itemPicked;
 }

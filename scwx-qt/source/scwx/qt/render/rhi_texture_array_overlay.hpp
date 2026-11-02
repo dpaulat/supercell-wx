@@ -30,6 +30,15 @@ public:
                    QRhiCommandBuffer* commandBuffer);
    void Shutdown();
 
+   /**
+    * @brief Updates the render target used to (re)acquire pipelines.
+    *
+    * The overlay keeps a non-owning pointer to its render target. When the
+    * owner recreates the render target but keeps this overlay (and its render
+    * pass descriptor) alive, the pointer must be refreshed.
+    */
+   void SetRenderTarget(QRhiRenderTarget* renderTarget);
+
    void SyncAtlas(QRhiCommandBuffer*       commandBuffer,
                   std::uint64_t            buildCount,
                   QRhiResourceUpdateBatch* resourceBatch = nullptr,

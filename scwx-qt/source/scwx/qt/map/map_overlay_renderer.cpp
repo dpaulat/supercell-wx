@@ -300,6 +300,10 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
       }
    }
 
+   // Overlays that survived a render target rebuild (render pass descriptor
+   // reused) must not keep the deleted render target
+   textureArrayOverlay_.SetRenderTarget(preserveRenderTarget_);
+
    if (!colorTableOverlay_.IsInitialized())
    {
       colorTableOverlay_.Initialize(rhi_, preserveRenderTarget_, commandBuffer);
