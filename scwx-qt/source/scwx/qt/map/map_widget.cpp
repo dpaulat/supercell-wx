@@ -3036,7 +3036,8 @@ void MapWidgetImpl::EnsureSymbologyTexture()
    }
 
    delete symbologyTexture_;
-   symbologyTexture_ = rhi->newTexture(colorTexture->format(), size);
+   symbologyTexture_ = rhi->newTexture(
+      colorTexture->format(), size, 1, QRhiTexture::RenderTarget);
    if (symbologyTexture_ == nullptr || !symbologyTexture_->create())
    {
       delete symbologyTexture_;
@@ -3087,11 +3088,10 @@ void MapWidgetImpl::RenderSymbology(QRhiCommandBuffer* commandBuffer)
       return;
    }
 
-   // Renders into the pane's color texture (cleared to transparent by the
-   // companion map), then snapshots it. The main map renders over it after.
-   symbologyRhiRenderer_.RenderMap(colorTexture, symbologyMap_.get());
-   MapRhiRenderer::CopyColorTexture(
-      widget_->rhi(), commandBuffer, symbologyTexture_, colorTexture);
+   // MapLibre renders immediately, while QRhi copies are deferred to command
+   // buffer submission, so a scratch-and-copy would capture the main map
+   // instead. Render straight into the symbology texture.
+   symbologyRhiRenderer_.RenderMap(symbologyTexture_, symbologyMap_.get());
    symbologyDirty_ = false;
 }
 
@@ -3217,8 +3217,7 @@ void MapWidgetImpl::RenderMapAndSnapshot(QRhiCommandBuffer* commandBuffer)
       return;
    }
 
-   // Companion symbology map first: it uses the color texture as scratch and
-   // snapshots it, then the main map renders into the texture.
+   // Companion symbology map first (own texture), then the main map
    RenderSymbology(commandBuffer);
 
    rhiRenderer_.RenderMap(colorTexture, map_.get());
