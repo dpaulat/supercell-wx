@@ -8,6 +8,8 @@
 
 #include <fmt/format.h>
 #include <imgui.h>
+
+#include <algorithm>
 #include <mbgl/util/constants.hpp>
 
 namespace scwx::qt::gl::draw
@@ -54,6 +56,8 @@ public:
    float         halfWidth_ {};
    float         halfHeight_ {};
    std::string   hoverText_ {};
+   ImVec2        displaySize_ {};
+   ImDrawList*   drawList_ {nullptr};
 
    units::length::nautical_miles<double> mapDistance_ {};
 
@@ -117,10 +121,43 @@ void PlacefileText::Render(const QMapLibre::CustomLayerRenderParameters& params)
       p->halfHeight_    = params.height * 0.5f;
       p->mapDistance_   = util::maplibre::GetMapDistance(params);
 
-      for (auto& di : p->textList_)
+      // All of the text for this placefile is drawn into the draw list of a
+      // single, input-transparent, viewport-sized ImGui window.  (Previously
+      // each text item created its own persistent ImGui window, which cost
+      // several KB of heap per item and made large placefiles use GBs of RAM.)
+      p->displaySize_ = ImGui::GetIO().DisplaySize;
+
+      // The window is larger than the display on every side, because ImGui
+      // insets a window's clip rectangle by its padding, which would otherwise
+      // clip text at the edges of the viewport.
+      static constexpr float kWindowMargin = 32.0f;
+      ImGui::SetNextWindowPos(ImVec2 {-kWindowMargin, -kWindowMargin},
+                              ImGuiCond_Always);
+      ImGui::SetNextWindowSize(
+         ImVec2 {p->displaySize_.x + 2.0f * kWindowMargin,
+                 p->displaySize_.y + 2.0f * kWindowMargin},
+         ImGuiCond_Always);
+      const std::string windowName {
+         fmt::format("PlacefileText-{}", p->placefileName_)};
+      if (ImGui::Begin(windowName.c_str(),
+                       nullptr,
+                       ImGuiWindowFlags_NoDecoration |
+                          ImGuiWindowFlags_NoBackground |
+                          ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
+                          ImGuiWindowFlags_NoSavedSettings |
+                          ImGuiWindowFlags_NoFocusOnAppearing |
+                          ImGuiWindowFlags_NoBringToFrontOnFocus))
       {
-         p->RenderTextDrawItem(params, di);
+         p->drawList_ = ImGui::GetWindowDrawList();
+
+         for (auto& di : p->textList_)
+         {
+            p->RenderTextDrawItem(params, di);
+         }
+
+         p->drawList_ = nullptr;
       }
+      ImGui::End();
    }
 }
 
@@ -200,35 +237,71 @@ void PlacefileText::Impl::RenderText(
    float                                         x,
    float                                         y)
 {
-   const std::string windowName {
-      fmt::format("PlacefileText-{}-{}", placefileName_, ++textId_)};
+   if (drawList_ == nullptr)
+   {
+      return;
+   }
 
    // Convert screen to ImGui coordinates
    y = params.height - y;
 
-   // Setup "window" to hold text
-   ImGui::SetNextWindowPos(
-      ImVec2 {x, y}, ImGuiCond_Always, ImVec2 {0.5f, 0.5f});
-   ImGui::Begin(windowName.c_str(),
-                nullptr,
-                ImGuiWindowFlags_AlwaysAutoResize |
-                   ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav |
-                   ImGuiWindowFlags_NoBackground);
+   const ImGuiStyle& style    = ImGui::GetStyle();
+   const float       fontSize = ImGui::GetFontSize();
 
-   // Render text
-   ImGui::PushStyleColor(ImGuiCol_Text,
-                         IM_COL32(color[0], color[1], color[2], color[3]));
-   ImGui::TextUnformatted(text.c_str());
-   ImGui::PopStyleColor();
+   // Cheap conservative cull before measuring the text: no glyph is wider
+   // than ~2 em, so text that is farther outside the viewport than that
+   // cannot be visible.
+   const float maxHalfWidth =
+      static_cast<float>(text.size()) * fontSize * 2.0f * 0.5f +
+      style.WindowPadding.x;
+   const float numLines =
+      1.0f + static_cast<float>(std::count(text.cbegin(), text.cend(), '\n'));
+   const float maxHalfHeight =
+      numLines * fontSize * 1.5f * 0.5f + style.WindowPadding.y;
+   if (x + maxHalfWidth < 0.0f || x - maxHalfWidth > displaySize_.x ||
+       y + maxHalfHeight < 0.0f || y - maxHalfHeight > displaySize_.y)
+   {
+      return;
+   }
+
+   const char*  textBegin = text.c_str();
+   const char*  textEnd   = textBegin + text.size();
+   const ImVec2 textSize  = ImGui::CalcTextSize(textBegin, textEnd);
+
+   // Reproduce the layout of an auto-resized, centered ImGui window that
+   // contains the text (WindowPadding on each side, minimum window size).
+   ImVec2       windowSize {std::max(textSize.x + style.WindowPadding.x * 2.0f,
+                               style.WindowMinSize.x),
+                      std::max(textSize.y + style.WindowPadding.y * 2.0f,
+                               style.WindowMinSize.y)};
+   const ImVec2 windowPos {
+      static_cast<float>(static_cast<int>(x - windowSize.x * 0.5f)),
+      static_cast<float>(static_cast<int>(y - windowSize.y * 0.5f))};
+
+   if (windowPos.x > displaySize_.x || windowPos.y > displaySize_.y ||
+       windowPos.x + windowSize.x < 0.0f || windowPos.y + windowSize.y < 0.0f)
+   {
+      return;
+   }
+
+   const ImVec2 textPos {windowPos.x + style.WindowPadding.x,
+                         windowPos.y + style.WindowPadding.y};
+
+   drawList_->AddText(
+      ImGui::GetFont(),
+      fontSize,
+      textPos,
+      ImGui::GetColorU32(IM_COL32(color[0], color[1], color[2], color[3])),
+      textBegin,
+      textEnd);
 
    // Store hover text for mouse picking pass
-   if (!hoverText.empty() && ImGui::IsItemHovered())
+   if (!hoverText.empty() &&
+       ImGui::IsMouseHoveringRect(
+          textPos, ImVec2 {textPos.x + textSize.x, textPos.y + textSize.y}))
    {
       hoverText_ = hoverText;
    }
-
-   // End window
-   ImGui::End();
 }
 
 void PlacefileText::Deinitialize()
