@@ -7,6 +7,8 @@
 #include <scwx/util/logger.hpp>
 
 #include <cstring>
+#include <map>
+#include <string>
 
 #include <QDataStream>
 #include <QFile>
@@ -75,6 +77,15 @@ bool WriteCacheFile(const std::filesystem::path& path, const QByteArray& data)
       return false;
    }
 
+   // Several panes persist the same cache (shared QRhi, identical ImGui
+   // pipelines); skip rewriting identical content within this process.
+   static std::map<std::string, QByteArray> lastWritten {};
+   if (auto it = lastWritten.find(path.string());
+       it != lastWritten.end() && it->second == data)
+   {
+      return false;
+   }
+
    QSaveFile file(QString::fromStdString(path.string()));
    if (!file.open(QIODevice::WriteOnly))
    {
@@ -95,6 +106,7 @@ bool WriteCacheFile(const std::filesystem::path& path, const QByteArray& data)
       return false;
    }
 
+   lastWritten[path.string()] = data;
    return true;
 }
 
@@ -169,9 +181,18 @@ void SaveVulkanPipelineCacheBlob(const char* fileName, const QByteArray& data)
    // A cache holding only the 32 byte header has no pipelines; don't clobber
    // a populated cache file with it.
    constexpr qsizetype kEmptyCacheHeaderBytes = 32;
-   if (PipelineCacheDisabled() || fileName == nullptr ||
-       data.size() <= kEmptyCacheHeaderBytes)
+   if (PipelineCacheDisabled() || fileName == nullptr)
    {
+      return;
+   }
+
+   if (data.size() <= kEmptyCacheHeaderBytes)
+   {
+      logger_->debug(
+         "Vulkan pipeline cache {} holds no pipeline data ({} "
+         "bytes); not saved",
+         fileName,
+         data.size());
       return;
    }
 

@@ -22,6 +22,9 @@ public:
    void Shutdown();
    void UpdateRenderPass(void* renderPass);
 
+   /// Writes the current ImGui pipeline cache to disk without shutting down.
+   void PersistPipelineCache() const;
+
    [[nodiscard]] bool NewFrame(QWidget* widget);
    void               UpdateTextures();
    void               RenderDrawData(QRhiCommandBuffer* commandBuffer);

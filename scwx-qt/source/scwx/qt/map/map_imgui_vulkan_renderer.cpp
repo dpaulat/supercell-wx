@@ -225,6 +225,19 @@ void MapImGuiVulkanRenderer::Shutdown()
    renderPass_ = nullptr;
 }
 
+void MapImGuiVulkanRenderer::PersistPipelineCache() const
+{
+   if (!initialized_ || pipelineCache_ == VK_NULL_HANDLE ||
+       device_ == VK_NULL_HANDLE)
+   {
+      return;
+   }
+
+   render::SaveVulkanPipelineCacheBlob(
+      kImGuiPipelineCacheFile,
+      render::GetVulkanPipelineCacheBlob(device_, pipelineCache_));
+}
+
 bool MapImGuiVulkanRenderer::NewFrame(QWidget* widget)
 {
    if (!initialized_ || widget == nullptr)

@@ -74,6 +74,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QColor>
+#include <QCoreApplication>
 #include <QCursor>
 #include <QContextMenuEvent>
 #include <QDebug>
@@ -386,6 +387,8 @@ public:
    void RenderFrameVulkan(QRhiCommandBuffer* commandBuffer);
    void EnsureImGuiRenderer(QRhiCommandBuffer* commandBuffer);
    void EnsureBasemapTexture();
+   void PersistPipelineCaches();
+   void SchedulePipelineCacheSave();
    void ReleaseBasemapTexture();
 
    // Basemap symbology (roads, labels) is rendered by a companion map into its
@@ -470,6 +473,7 @@ public:
    ImGuiContext* imGuiContext_;
    std::string   imGuiContextName_;
    bool          imGuiRendererInitialized_ {false};
+   bool          pipelineCacheSaveScheduled_ {false};
 
    std::shared_ptr<model::LayerModel> layerModel_ {
       model::LayerModel::Instance()};
@@ -637,6 +641,16 @@ MapWidget::MapWidget(std::size_t                            id,
    p->editMarkerDialog_ = new ui::EditMarkerDialog(this);
 
    p->ConnectSignals();
+
+   // releaseResources() is not called on a normal application close, so the
+   // pipeline caches have to be persisted explicitly before the event loop ends
+   if (QCoreApplication::instance() != nullptr)
+   {
+      connect(QCoreApplication::instance(),
+              &QCoreApplication::aboutToQuit,
+              this,
+              [this]() { p->PersistPipelineCaches(); });
+   }
 }
 
 MapWidget::~MapWidget() = default;
@@ -3222,6 +3236,37 @@ void MapWidgetImpl::EnsureImGuiRenderer(QRhiCommandBuffer* commandBuffer)
    imGuiRendererInitialized_ = imguiRenderer_.IsInitialized();
 }
 
+void MapWidgetImpl::PersistPipelineCaches()
+{
+   // Called after the first rendered frames and on application quit:
+   // MapWidget::releaseResources() does not run on a normal close.
+   render::PersistQrhiPipelineCache(widget_->rhi());
+#if !defined(__APPLE__)
+   imguiRenderer_.PersistPipelineCache();
+#endif
+}
+
+void MapWidgetImpl::SchedulePipelineCacheSave()
+{
+   if (pipelineCacheSaveScheduled_ || widget_->rhi() == nullptr)
+   {
+      return;
+   }
+
+   // Let the first frames create their pipelines before snapshotting the cache
+   pipelineCacheSaveScheduled_             = true;
+   constexpr int kPipelineCacheSaveDelayMs = 3000;
+   QTimer::singleShot(kPipelineCacheSaveDelayMs,
+                      widget_,
+                      [widget = QPointer<MapWidget> {widget_}]()
+                      {
+                         if (widget != nullptr && widget->rhi() != nullptr)
+                         {
+                            widget->p->PersistPipelineCaches();
+                         }
+                      });
+}
+
 void MapWidgetImpl::EnsureBasemapTexture()
 {
    QRhi* const        rhi          = widget_->rhi();
@@ -3649,6 +3694,8 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    }
 
    Q_EMIT widget_->WidgetPainted();
+
+   SchedulePipelineCacheSave();
 
    // A new ImGui tooltip needs a few frames to appear (auto-sized window), but
    // once drawn it persists in the widget texture until the next paint. Only
