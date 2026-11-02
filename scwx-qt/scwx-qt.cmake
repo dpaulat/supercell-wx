@@ -97,6 +97,7 @@ set(HDR_GL_DRAW source/scwx/qt/gl/draw/draw_item.hpp
                 source/scwx/qt/gl/draw/placefile_images.hpp
                 source/scwx/qt/gl/draw/placefile_images_xy.hpp
                 source/scwx/qt/gl/draw/placefile_lines.hpp
+                source/scwx/qt/gl/draw/placefile_packed_vertex.hpp
                 source/scwx/qt/gl/draw/placefile_polygons.hpp
                 source/scwx/qt/gl/draw/placefile_text.hpp
                 source/scwx/qt/gl/draw/placefile_triangles.hpp

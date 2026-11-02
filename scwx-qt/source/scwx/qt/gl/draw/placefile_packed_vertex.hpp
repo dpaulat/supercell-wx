@@ -1,0 +1,162 @@
+#pragma once
+
+#include <algorithm>
+#include <bit>
+#include <cstddef>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <memory>
+#include <mutex>
+#include <vector>
+
+namespace scwx::qt::gl::draw
+{
+
+/**
+ * Packed vertex for placefile lines, 32 bytes rather than the 48 bytes of 9
+ * floats + 3 integers. The narrower formats are expanded by the vertex fetch
+ * (GL_HALF_FLOAT, normalized GL_UNSIGNED_BYTE, GL_SHORT), so the shaders are
+ * unchanged.
+ */
+struct PackedLineVertex
+{
+   float         latitude_;
+   float         longitude_;
+   std::uint16_t xOffsetHalf_; // Half float, pixels
+   std::uint16_t yOffsetHalf_; // Half float, pixels
+   std::uint8_t  rgba_[4];     // Normalized color
+   float         angle_;       // Degrees
+   std::int16_t  threshold_;   // Nautical miles
+   std::int16_t  padding_;
+   std::int32_t  startTime_; // Minutes since epoch
+   std::int32_t  endTime_;   // Minutes since epoch
+};
+
+static_assert(sizeof(PackedLineVertex) == 32);
+
+/**
+ * Packed vertex for placefile triangles and polygons, 28 bytes rather than the
+ * 44 bytes of 8 floats + 3 integers.
+ */
+struct PackedFillVertex
+{
+   float         screenX_;
+   float         screenY_;
+   std::uint16_t xOffsetHalf_; // Half float, pixels
+   std::uint16_t yOffsetHalf_; // Half float, pixels
+   std::uint8_t  rgba_[4];     // Normalized color
+   std::int16_t  threshold_;   // Nautical miles
+   std::int16_t  padding_;
+   std::int32_t  startTime_; // Minutes since epoch
+   std::int32_t  endTime_;   // Minutes since epoch
+};
+
+static_assert(sizeof(PackedFillVertex) == 28);
+
+/// Converts a float to IEEE 754 binary16 bits (round to nearest even).
+[[nodiscard]] inline std::uint16_t FloatToHalfBits(float value)
+{
+   const std::uint32_t bits = std::bit_cast<std::uint32_t>(value);
+   const std::uint32_t sign = (bits >> 16) & 0x8000u;
+   const std::uint32_t mag  = bits & 0x7FFFFFFFu;
+
+   if (mag >= 0x7F800000u)
+   {
+      // Infinity or NaN
+      return static_cast<std::uint16_t>(sign | 0x7C00u |
+                                        (mag > 0x7F800000u ? 0x0200u : 0u));
+   }
+   if (mag >= 0x477FF000u)
+   {
+      // Rounds to or overflows past the largest half: infinity
+      return static_cast<std::uint16_t>(sign | 0x7C00u);
+   }
+   if (mag < 0x38800000u)
+   {
+      // Subnormal half or zero
+      if (mag < 0x33000000u)
+      {
+         return static_cast<std::uint16_t>(sign);
+      }
+      const std::uint32_t exponent = mag >> 23;
+      const std::uint32_t mantissa = (mag & 0x007FFFFFu) | 0x00800000u;
+      const std::uint32_t shift    = 126u - exponent;
+      std::uint32_t       half     = mantissa >> shift;
+      const std::uint32_t rem      = mantissa & ((1u << shift) - 1u);
+      const std::uint32_t halfway  = 1u << (shift - 1u);
+      if (rem > halfway || (rem == halfway && (half & 1u) != 0u))
+      {
+         ++half;
+      }
+      return static_cast<std::uint16_t>(sign | half);
+   }
+
+   // Normal half: rebias the exponent and round the mantissa
+   std::uint32_t       half = ((mag - 0x38000000u) >> 13);
+   const std::uint32_t rem  = mag & 0x1FFFu;
+   if (rem > 0x1000u || (rem == 0x1000u && (half & 1u) != 0u))
+   {
+      ++half;
+   }
+   return static_cast<std::uint16_t>(sign | half);
+}
+
+[[nodiscard]] inline std::int16_t ClampThreshold(std::int32_t threshold)
+{
+   return static_cast<std::int16_t>(
+      std::clamp<std::int32_t>(threshold, -32768, 32767));
+}
+
+[[nodiscard]] inline std::uint8_t NormalizedByte(double value)
+{
+   return static_cast<std::uint8_t>(
+      std::clamp(std::lround(value * 255.0), 0L, 255L));
+}
+
+/// Immutable, shareable vertex buffer. Every pane has its own placefile
+/// layer, but the geometry is the same for all of them.
+template<typename Vertex>
+using SharedBuffer = std::shared_ptr<const std::vector<Vertex>>;
+
+/**
+ * Takes ownership of freshly built geometry and returns a shared buffer. If an
+ * identical buffer is already alive (e.g. built by another pane for the same
+ * placefile), that one is returned and the new vertices are freed, so N panes
+ * hold one CPU copy rather than N. Equality is by content, so it can never
+ * return a stale buffer.
+ */
+template<typename Vertex>
+[[nodiscard]] SharedBuffer<Vertex> InternBuffer(std::vector<Vertex>&& vertices)
+{
+   static std::mutex                                            mutex;
+   static std::vector<std::weak_ptr<const std::vector<Vertex>>> live;
+
+   if (vertices.capacity() - vertices.size() > vertices.size() / 16)
+   {
+      vertices.shrink_to_fit();
+   }
+
+   std::scoped_lock lock {mutex};
+
+   std::erase_if(live, [](const auto& w) { return w.expired(); });
+
+   for (const auto& w : live)
+   {
+      if (auto existing = w.lock();
+          existing != nullptr && existing->size() == vertices.size() &&
+          std::memcmp(existing->data(),
+                      vertices.data(),
+                      vertices.size() * sizeof(Vertex)) == 0)
+      {
+         return existing;
+      }
+   }
+
+   auto buffer =
+      std::make_shared<const std::vector<Vertex>>(std::move(vertices));
+   live.push_back(buffer);
+   return buffer;
+}
+
+} // namespace scwx::qt::gl::draw
