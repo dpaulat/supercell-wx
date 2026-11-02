@@ -111,10 +111,14 @@ PlacefileLines& PlacefileLines::operator=(PlacefileLines&&) noexcept = default;
 
 void PlacefileLines::set_selected_time(
    std::chrono::system_clock::time_point selectedTime)
-{ p->selectedTime_ = selectedTime; }
+{
+   p->selectedTime_ = selectedTime;
+}
 
 void PlacefileLines::set_thresholded(bool thresholded)
-{ p->thresholded_ = thresholded; }
+{
+   p->thresholded_ = thresholded;
+}
 
 void PlacefileLines::Initialize() {}
 
@@ -376,7 +380,9 @@ void PlacefileLines::Impl::BufferLine(
 }
 
 void PlacefileLines::Impl::Update()
-{ dirty_ = false; }
+{
+   dirty_ = false;
+}
 
 bool PlacefileLines::RunMousePicking(
    const QMapLibre::CustomLayerRenderParameters& params,

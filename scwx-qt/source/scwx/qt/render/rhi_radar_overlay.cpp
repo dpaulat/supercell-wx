@@ -211,7 +211,7 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
 
    const std::size_t vertexBytes = vertexCount * 2u * sizeof(float);
    const std::size_t momentBytes = vertexCount * sizeof(std::uint32_t);
-   uploadGeometry = uploadGeometry || !geometryUploaded_ ||
+   uploadGeometry                = uploadGeometry || !geometryUploaded_ ||
                     vertexCount != uploadedVertexCount_ ||
                     vertexCapacity_ < vertexBytes ||
                     momentCapacity_ < momentBytes || cfpCapacity_ < momentBytes;
@@ -318,6 +318,8 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
 }
 
 bool RhiRadarOverlay::IsInitialized() const
-{ return initialized_; }
+{
+   return initialized_;
+}
 
 } // namespace scwx::qt::render

@@ -80,7 +80,9 @@ PlacefileSettingsWidget::PlacefileSettingsWidget(QWidget* parent) :
 }
 
 PlacefileSettingsWidget::~PlacefileSettingsWidget()
-{ delete ui; }
+{
+   delete ui;
+}
 
 void PlacefileSettingsWidgetImpl::ConnectSignals()
 {

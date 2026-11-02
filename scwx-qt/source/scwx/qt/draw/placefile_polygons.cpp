@@ -90,10 +90,14 @@ PlacefilePolygons::operator=(PlacefilePolygons&&) noexcept = default;
 
 void PlacefilePolygons::set_selected_time(
    std::chrono::system_clock::time_point selectedTime)
-{ p->selectedTime_ = selectedTime; }
+{
+   p->selectedTime_ = selectedTime;
+}
 
 void PlacefilePolygons::set_thresholded(bool thresholded)
-{ p->thresholded_ = thresholded; }
+{
+   p->thresholded_ = thresholded;
+}
 
 void PlacefilePolygons::Initialize() {}
 

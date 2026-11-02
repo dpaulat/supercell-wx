@@ -81,14 +81,20 @@ PlacefileText::PlacefileText(PlacefileText&&) noexcept            = default;
 PlacefileText& PlacefileText::operator=(PlacefileText&&) noexcept = default;
 
 void PlacefileText::set_placefile_name(const std::string& placefileName)
-{ p->placefileName_ = placefileName; }
+{
+   p->placefileName_ = placefileName;
+}
 
 void PlacefileText::set_selected_time(
    std::chrono::system_clock::time_point selectedTime)
-{ p->selectedTime_ = selectedTime; }
+{
+   p->selectedTime_ = selectedTime;
+}
 
 void PlacefileText::set_thresholded(bool thresholded)
-{ p->thresholded_ = thresholded; }
+{
+   p->thresholded_ = thresholded;
+}
 
 void PlacefileText::Initialize() {}
 
@@ -105,8 +111,8 @@ void PlacefileText::Render(const QMapLibre::CustomLayerRenderParameters& params)
       // Update map screen coordinate and scale information
       p->mapScreenCoordLocation_ = util::maplibre::LatLongToScreenCoordinate(
          {params.latitude, params.longitude});
-      p->mapScale_      = std::pow(2.0, params.zoom) * mbgl::util::tileSize_D /
-                          mbgl::util::DEGREES_MAX;
+      p->mapScale_ = std::pow(2.0, params.zoom) * mbgl::util::tileSize_D /
+                     mbgl::util::DEGREES_MAX;
       p->mapBearingCos_ = cosf(params.bearing * common::kDegreesToRadians);
       p->mapBearingSin_ = sinf(params.bearing * common::kDegreesToRadians);
       p->halfWidth_     = params.width * 0.5f;

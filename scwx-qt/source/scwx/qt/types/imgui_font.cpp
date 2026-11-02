@@ -25,7 +25,9 @@ class ImGuiFont::Impl
 public:
    explicit Impl(std::string fontName, const std::vector<char>& fontData) :
        fontName_ {std::move(fontName)}
-   { CreateImGuiFont(fontData); }
+   {
+      CreateImGuiFont(fontData);
+   }
 
    ~Impl() {}
 
@@ -76,10 +78,14 @@ void ImGuiFont::Impl::CreateImGuiFont(const std::vector<char>& fontData)
 }
 
 ImFont* ImGuiFont::font()
-{ return p->imFont_; }
+{
+   return p->imFont_;
+}
 
 ImFontAtlas* ImGuiFont::atlas() const
-{ return p->atlas_; }
+{
+   return p->atlas_;
+}
 
 } // namespace types
 } // namespace qt

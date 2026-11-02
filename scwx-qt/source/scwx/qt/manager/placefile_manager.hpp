@@ -34,7 +34,7 @@ public:
    bool        placefile_enabled(const std::string& name);
    bool        placefile_thresholded(const std::string& name);
    std::string placefile_title(const std::string& name);
-   std::string placefile_error(const std::string& name);
+   std::string                    placefile_error(const std::string& name);
    std::shared_ptr<gr::Placefile> placefile(const std::string& name);
    FontMap                        placefile_fonts(const std::string& name);
 

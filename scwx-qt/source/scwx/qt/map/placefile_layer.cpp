@@ -38,7 +38,9 @@ public:
        placefileTriangles_ {
           std::make_shared<draw::PlacefileTriangles>(renderContext)},
        placefileText_ {std::make_shared<draw::PlacefileText>(placefileName)}
-   { ConnectSignals(); }
+   {
+      ConnectSignals();
+   }
    ~Impl() { threadPool_.join(); }
 
    Impl(const Impl&)             = delete;
@@ -111,7 +113,9 @@ void PlacefileLayer::Impl::ConnectSignals()
 }
 
 std::string PlacefileLayer::placefile_name() const
-{ return p->placefileName_; }
+{
+   return p->placefileName_;
+}
 
 void PlacefileLayer::set_placefile_name(const std::string& placefileName)
 {
@@ -238,7 +242,9 @@ void PlacefileLayer::Deinitialize()
 }
 
 void PlacefileLayer::PrepareImGuiFonts()
-{ p->placefileText_->ResolveFontsForCurrentAtlas(); }
+{
+   p->placefileText_->ResolveFontsForCurrentAtlas();
+}
 
 void PlacefileLayer::ReloadData()
 {

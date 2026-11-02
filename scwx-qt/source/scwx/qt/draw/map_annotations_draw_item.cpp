@@ -521,7 +521,9 @@ static std::array<float, 4> ShapeFillRgba(const map::MapAnnotationStyle& style)
  */
 static double InsetFillRadiusM(double                        outlineRadiusM,
                                units::length::meters<double> strokeWidthM)
-{ return std::max(0.0, outlineRadiusM - strokeWidthM.value() * 0.5); }
+{
+   return std::max(0.0, outlineRadiusM - strokeWidthM.value() * 0.5);
+}
 
 static void AppendRectangleStrokeAndFill(std::vector<float>&       strokeOut,
                                          std::vector<float>&       fillOut,
@@ -593,7 +595,9 @@ static void AppendFilledGeoDisk(std::vector<float>&         fillOut,
 }
 
 static double MeasurePinRadiusM(const map::MapAnnotationStyle& style)
-{ return std::max(style.strokeWidthM.value() * 1.25, 1200.0); }
+{
+   return std::max(style.strokeWidthM.value() * 1.25, 1200.0);
+}
 
 namespace
 {
@@ -1220,7 +1224,9 @@ void MapAnnotationsDrawItem::Impl::RebuildPreviewGeometry()
 }
 
 void MapAnnotationsDrawItem::Initialize()
-{ Rebuild(); }
+{
+   Rebuild();
+}
 
 void MapAnnotationsDrawItem::Deinitialize() {}
 
@@ -1288,7 +1294,9 @@ void MapAnnotationsDrawItem::ClearPreview()
 }
 
 void MapAnnotationsDrawItem::Rebuild()
-{ p->RebuildCommittedGeometry(); }
+{
+   p->RebuildCommittedGeometry();
+}
 
 void MapAnnotationsDrawItem::RemoveCommittedObjects(
    const std::unordered_set<std::uint64_t>& ids)

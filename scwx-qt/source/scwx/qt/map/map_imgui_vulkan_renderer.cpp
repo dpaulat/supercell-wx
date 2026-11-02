@@ -24,7 +24,9 @@ static const auto logger_ = scwx::util::Logger::Create(logPrefix_);
 static const char kImGuiPipelineCacheFile[] = "imgui-vulkan-pipeline-cache.bin";
 
 static void CheckVkResult(VkResult result)
-{ render::ReportVulkanResult(result, "ImGui Vulkan"); }
+{
+   render::ReportVulkanResult(result, "ImGui Vulkan");
+}
 
 void MapImGuiVulkanRenderer::BindContext() const
 {
@@ -293,6 +295,8 @@ void MapImGuiVulkanRenderer::RenderDrawData(QRhiCommandBuffer* commandBuffer)
 }
 
 bool MapImGuiVulkanRenderer::IsInitialized() const
-{ return initialized_; }
+{
+   return initialized_;
+}
 
 } // namespace scwx::qt::map

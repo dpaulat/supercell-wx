@@ -297,6 +297,8 @@ bool RhiGeoColoredGeometry::Render(
 }
 
 bool RhiGeoColoredGeometry::IsInitialized() const
-{ return initialized_; }
+{
+   return initialized_;
+}
 
 } // namespace scwx::qt::render

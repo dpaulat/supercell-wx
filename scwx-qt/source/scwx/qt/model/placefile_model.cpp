@@ -65,10 +65,14 @@ PlacefileModel::PlacefileModel(QObject* parent) :
 PlacefileModel::~PlacefileModel() = default;
 
 int PlacefileModel::rowCount(const QModelIndex& parent) const
-{ return parent.isValid() ? 0 : static_cast<int>(p->placefileNames_.size()); }
+{
+   return parent.isValid() ? 0 : static_cast<int>(p->placefileNames_.size());
+}
 
 int PlacefileModel::columnCount(const QModelIndex& parent) const
-{ return parent.isValid() ? 0 : kNumColumns; }
+{
+   return parent.isValid() ? 0 : kNumColumns;
+}
 
 Qt::ItemFlags PlacefileModel::flags(const QModelIndex& index) const
 {

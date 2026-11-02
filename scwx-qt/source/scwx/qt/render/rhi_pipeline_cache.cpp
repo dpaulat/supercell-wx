@@ -28,7 +28,9 @@ constexpr quint32 kCacheVersion    = 11;
 constexpr char    kQrhiCacheFile[] = "qrhi-vulkan-pipeline-cache.bin";
 
 bool PipelineCacheDisabled()
-{ return scwx::util::HasEnvironment("SCWX_VULKAN_PIPELINE_CACHE_DISABLE"); }
+{
+   return scwx::util::HasEnvironment("SCWX_VULKAN_PIPELINE_CACHE_DISABLE");
+}
 
 std::filesystem::path CacheFilePath(const char* fileName)
 {

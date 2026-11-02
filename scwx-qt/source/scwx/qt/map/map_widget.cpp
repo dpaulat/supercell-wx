@@ -125,7 +125,9 @@ bool VulkanSmokeEnabled() noexcept
 }
 
 std::string CustomAlertLayerId(awips::Phenomenon phenomenon)
-{ return fmt::format("alert.{}", awips::GetPhenomenonCode(phenomenon)); }
+{
+   return fmt::format("alert.{}", awips::GetPhenomenonCode(phenomenon));
+}
 
 std::string CustomLayerId(types::LayerType        type,
                           types::LayerDescription description)
@@ -140,7 +142,9 @@ std::string CustomLayerId(types::LayerType        type,
 }
 
 float LayerOpacity(const types::LayerInfo& info)
-{ return types::LayerSupportsOpacity(info.type_) ? info.opacity_ : 1.0f; }
+{
+   return types::LayerSupportsOpacity(info.type_) ? info.opacity_ : 1.0f;
+}
 
 /** Ring + eraser in pixmap so KDE/Wayland compositor tracks cursor with zero
  * lag. Pixmap radius is capped (~124px) for display only; geographic erase pick
@@ -199,7 +203,7 @@ QString FormatMeasurementDistance(double meters)
       settings::UnitSettings::Instance().distance_units().GetValue());
    const double display = meters * scwx::common::kKilometersPerMeter *
                           types::GetDistanceUnitsScale(units);
-   std::string  abbrev  = types::GetDistanceUnitsAbbreviation(units);
+   std::string abbrev = types::GetDistanceUnitsAbbreviation(units);
    if (abbrev.empty())
    {
       abbrev = "user";
@@ -221,11 +225,15 @@ QString FormatMeasurementDistance(double meters)
 }
 
 bool VulkanPerfEnabled()
-{ return map::MapPerfEnabled(); }
+{
+   return map::MapPerfEnabled();
+}
 
 double ElapsedMs(const std::chrono::steady_clock::time_point& begin,
                  const std::chrono::steady_clock::time_point& end)
-{ return std::chrono::duration<double, std::milli> {end - begin}.count(); }
+{
+   return std::chrono::duration<double, std::milli> {end - begin}.count();
+}
 
 // NOLINTEND(cppcoreguidelines-avoid-magic-numbers,cppcoreguidelines-owning-memory)
 } // namespace
@@ -392,7 +400,9 @@ public:
    void               RenderSymbology(QRhiCommandBuffer* commandBuffer);
    void               RenderMapAndSnapshot(QRhiCommandBuffer* commandBuffer);
    [[nodiscard]] bool MapStyleReadyForRender() const
-   { return mapChangedOnce_ || mapStylePending_; }
+   {
+      return mapChangedOnce_ || mapStylePending_;
+   }
    void SelectNearestRadarSite(double                          latitude,
                                double                          longitude,
                                std::optional<types::RadarType> type);
@@ -404,8 +414,8 @@ public:
    void                  UpdateMeasureLabels();
    void                  UpdateColorTable(const std::string& colorPalette);
    void                  UpdateColorTable(
-      const std::string&                             colorPalette,
-      const std::shared_ptr<view::RadarProductView>& radarProductView);
+                       const std::string&                             colorPalette,
+                       const std::shared_ptr<view::RadarProductView>& radarProductView);
    void UpdateLoadedStyle();
    bool UpdateStoredMapParameters();
    void CheckLevel3Availability();
@@ -1178,7 +1188,9 @@ std::uint16_t MapWidget::GetVcp() const
 }
 
 bool MapWidget::GetRadarWireframeEnabled() const
-{ return p->context_->settings().radarWireframeEnabled_; }
+{
+   return p->context_->settings().radarWireframeEnabled_;
+}
 
 void MapWidget::SetRadarWireframeEnabled(bool wireframeEnabled)
 {
@@ -1188,7 +1200,9 @@ void MapWidget::SetRadarWireframeEnabled(bool wireframeEnabled)
 }
 
 bool MapWidget::GetSmoothingEnabled() const
-{ return p->smoothingEnabled_; }
+{
+   return p->smoothingEnabled_;
+}
 
 void MapWidget::SetSmoothingEnabled(bool smoothingEnabled)
 {
@@ -1663,7 +1677,9 @@ void MapWidgetImpl::RequestRepaint()
 }
 
 void MapWidgetImpl::CancelPaneContextMenuDebounce()
-{ ++paneContextMenuDebounce_; }
+{
+   ++paneContextMenuDebounce_;
+}
 
 void MapWidgetImpl::QueueMapResize()
 {
@@ -1736,7 +1752,9 @@ void MapWidgetImpl::QueueResizeSettleUpdate()
 }
 
 bool MapWidgetImpl::ResizeSettling() const
-{ return std::chrono::steady_clock::now() < resizeQuietUntil_; }
+{
+   return std::chrono::steady_clock::now() < resizeQuietUntil_;
+}
 
 void MapWidgetImpl::GetMapViewParameters(double& latitude,
                                          double& longitude,
@@ -1767,10 +1785,14 @@ void MapWidget::GetMapViewParameters(double& latitude,
                                      double& zoom,
                                      double& bearing,
                                      double& pitch) const
-{ p->GetMapViewParameters(latitude, longitude, zoom, bearing, pitch); }
+{
+   p->GetMapViewParameters(latitude, longitude, zoom, bearing, pitch);
+}
 
 std::size_t MapWidget::pane_id() const
-{ return p->id_; }
+{
+   return p->id_;
+}
 
 MapViewSnapshot MapWidget::ExportMapViewSnapshot() const
 {
@@ -1791,19 +1813,29 @@ MapViewSnapshot MapWidget::ExportMapViewSnapshot() const
 
 void MapWidget::SetBasemapShareCallbacks(
    const MapBasemapShareCallbacks* callbacks)
-{ p->basemapShareCallbacks_ = callbacks; }
+{
+   p->basemapShareCallbacks_ = callbacks;
+}
 
 QRhiTexture* MapWidget::basemap_color_texture() const
-{ return p->basemapTexture_; }
+{
+   return p->basemapTexture_;
+}
 
 QRhiTexture* MapWidget::basemap_symbology_texture() const
-{ return p->SymbologySplitActive() ? p->symbologyTexture_ : nullptr; }
+{
+   return p->SymbologySplitActive() ? p->symbologyTexture_ : nullptr;
+}
 
 QRhi* MapWidget::map_rhi() const
-{ return rhi(); }
+{
+   return rhi();
+}
 
 void MapWidget::SetInitialMapStyle(const std::string& styleName)
-{ p->initialStyleName_ = styleName; }
+{
+   p->initialStyleName_ = styleName;
+}
 
 void MapWidget::SetMapStyle(const std::string& styleName, bool force)
 {
@@ -1863,7 +1895,9 @@ void MapWidget::UpdateMouseCoordinate(const common::Coordinate& coordinate)
 }
 
 qreal MapWidget::pixelRatio()
-{ return devicePixelRatioF(); }
+{
+   return devicePixelRatioF();
+}
 
 void MapWidget::changeStyle()
 {
@@ -2139,7 +2173,9 @@ void MapWidgetImpl::AddPlacefileLayer(const std::string& placefileName,
 
 std::string
 MapWidgetImpl::GetPlacefileLayerName(const std::string& placefileName)
-{ return types::GetLayerName(types::LayerType::Placefile, placefileName); }
+{
+   return types::GetLayerName(types::LayerType::Placefile, placefileName);
+}
 
 void MapWidgetImpl::AddLayer(const std::string&                   id,
                              const std::shared_ptr<GenericLayer>& layer,
@@ -2515,10 +2551,14 @@ void MapWidget::mouseReleaseEvent(QMouseEvent* ev)
 }
 
 std::shared_ptr<MapAnnotationLayer> MapWidget::map_annotation_layer() const
-{ return p->annotationLayer_; }
+{
+   return p->annotationLayer_;
+}
 
 void MapWidget::SyncEraseCursor()
-{ p->UpdateAnnotationCursor(); }
+{
+   p->UpdateAnnotationCursor();
+}
 
 void MapWidget::resizeEvent(QResizeEvent* event)
 {
@@ -3678,7 +3718,9 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    }
 }
 void MapWidget::render(QRhiCommandBuffer* cb)
-{ p->RenderFrameVulkan(cb); }
+{
+   p->RenderFrameVulkan(cb);
+}
 
 void MapWidgetImpl::RunMousePicking()
 {
@@ -3811,7 +3853,9 @@ void MapWidget::mapChanged(QMapLibre::Map::MapChange mapChange)
 }
 
 void MapWidgetImpl::UpdateLoadedStyle()
-{ styleLayers_ = map_->layerIds(); }
+{
+   styleLayers_ = map_->layerIds();
+}
 
 void MapWidgetImpl::RadarProductManagerConnect()
 {
@@ -4243,7 +4287,9 @@ void MapWidgetImpl::Update()
 }
 
 void MapWidgetImpl::UpdateColorTable(const std::string& colorPalette)
-{ UpdateColorTable(colorPalette, context_->radar_product_view()); }
+{
+   UpdateColorTable(colorPalette, context_->radar_product_view());
+}
 
 void MapWidgetImpl::UpdateColorTable(
    const std::string&                             colorPalette,

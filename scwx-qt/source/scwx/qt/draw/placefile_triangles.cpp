@@ -70,10 +70,14 @@ PlacefileTriangles::operator=(PlacefileTriangles&&) noexcept = default;
 
 void PlacefileTriangles::set_selected_time(
    std::chrono::system_clock::time_point selectedTime)
-{ p->selectedTime_ = selectedTime; }
+{
+   p->selectedTime_ = selectedTime;
+}
 
 void PlacefileTriangles::set_thresholded(bool thresholded)
-{ p->thresholded_ = thresholded; }
+{
+   p->thresholded_ = thresholded;
+}
 
 void PlacefileTriangles::Initialize() {}
 

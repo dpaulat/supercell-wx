@@ -221,7 +221,9 @@ ImFontAtlas* FontManager::Impl::CurrentAtlas()
 }
 
 void FontManager::Impl::UpdateImGuiFont(types::FontCategory fontCategory)
-{ UpdateImGuiFontForCurrentAtlas(fontCategory); }
+{
+   UpdateImGuiFontForCurrentAtlas(fontCategory);
+}
 
 void FontManager::Impl::UpdateImGuiFontForCurrentAtlas(
    types::FontCategory fontCategory)
@@ -266,7 +268,9 @@ void FontManager::Impl::UpdateQFont(types::FontCategory fontCategory)
 }
 
 std::shared_mutex& FontManager::imgui_font_atlas_mutex()
-{ return p->imguiFontAtlasMutex_; }
+{
+   return p->imguiFontAtlasMutex_;
+}
 
 int FontManager::GetFontId(types::Font font) const
 {
@@ -506,7 +510,7 @@ void FontManager::LoadApplicationFont(types::Font        font,
    QFileInfo fontFileInfo(fontFile);
 
    QFile       cacheFile(QString::fromStdString(p->fontCachePath_) +
-                         fontFileInfo.fileName());
+                   fontFileInfo.fileName());
    QFileInfo   cacheFileInfo(cacheFile);
    std::string cacheFilename = cacheFile.fileName().toStdString();
 
@@ -580,7 +584,9 @@ void FontManager::Impl::InitializeFontconfig()
 }
 
 void FontManager::Impl::FinalizeFontconfig()
-{ FcFini(); }
+{
+   FcFini();
+}
 
 bool FontManager::Impl::CheckFontFormat(const FcChar8* format)
 {

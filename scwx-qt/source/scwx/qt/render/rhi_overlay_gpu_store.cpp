@@ -179,7 +179,9 @@ std::mutex                          storeMutex_;
 std::unordered_map<QRhi*, RhiStore> stores_;
 
 [[nodiscard]] RhiStore& GetStore(QRhi* rhi)
-{ return stores_[rhi]; }
+{
+   return stores_[rhi];
+}
 
 [[nodiscard]] PipelineKey MakeKey(QRhiRenderTarget* renderTarget)
 {

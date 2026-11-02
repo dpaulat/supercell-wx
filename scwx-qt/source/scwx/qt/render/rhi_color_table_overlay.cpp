@@ -244,6 +244,8 @@ void RhiColorTableOverlay::Render(
 }
 
 bool RhiColorTableOverlay::IsInitialized() const
-{ return initialized_; }
+{
+   return initialized_;
+}
 
 } // namespace scwx::qt::render

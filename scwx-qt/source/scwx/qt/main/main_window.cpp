@@ -682,7 +682,9 @@ MainWindow::MainWindow(QWidget* parent) :
 }
 
 MainWindow::~MainWindow()
-{ delete ui; }
+{
+   delete ui;
+}
 
 void MainWindow::keyPressEvent(QKeyEvent* ev)
 {
@@ -850,55 +852,89 @@ void MainWindow::on_actionOpenTextEvent_triggered()
 }
 
 void MainWindow::on_actionScreenCaptureCopy_triggered()
-{ p->ScreenCapture(types::CaptureType::Copy); }
+{
+   p->ScreenCapture(types::CaptureType::Copy);
+}
 
 void MainWindow::on_actionScreenCaptureSaveImage_triggered()
-{ p->ScreenCapture(types::CaptureType::SaveImage); }
+{
+   p->ScreenCapture(types::CaptureType::SaveImage);
+}
 
 void MainWindow::on_actionImport_triggered()
-{ p->importSettingsWizard_->show(); }
+{
+   p->importSettingsWizard_->show();
+}
 
 void MainWindow::on_actionExport_triggered()
-{ p->exportSettingsDialog_->show(); }
+{
+   p->exportSettingsDialog_->show();
+}
 
 void MainWindow::on_actionSettings_triggered()
-{ p->settingsDialog_->show(); }
+{
+   p->settingsDialog_->show();
+}
 
 void MainWindow::on_actionExit_triggered()
-{ close(); }
+{
+   close();
+}
 
 void MainWindow::on_actionGpsInfo_triggered()
-{ p->gpsInfoDialog_->show(); }
+{
+   p->gpsInfoDialog_->show();
+}
 
 void MainWindow::on_actionRecreateMapLayout_triggered()
-{ p->RecreateMapLayoutFromUser(false); }
+{
+   p->RecreateMapLayoutFromUser(false);
+}
 
 void MainWindow::on_actionPanesLinkColumnWidth_toggled(bool checked)
-{ p->SetLinkRowSplitters(checked); }
+{
+   p->SetLinkRowSplitters(checked);
+}
 
 void MainWindow::on_actionPanesLinkColumnHeight_toggled(bool checked)
-{ p->SetLinkColumnHeights(checked); }
+{
+   p->SetLinkColumnHeights(checked);
+}
 
 void MainWindow::on_actionPanesMatchMapStyle_toggled(bool checked)
-{ p->OnPanesMatchMapStyleToggled(checked); }
+{
+   p->OnPanesMatchMapStyleToggled(checked);
+}
 
 void MainWindow::on_actionPanes1x1_triggered()
-{ p->ApplyMapGridPreset(1, 1); }
+{
+   p->ApplyMapGridPreset(1, 1);
+}
 
 void MainWindow::on_actionPanes1x2_triggered()
-{ p->ApplyMapGridPreset(1, 2); }
+{
+   p->ApplyMapGridPreset(1, 2);
+}
 
 void MainWindow::on_actionPanes2x1_triggered()
-{ p->ApplyMapGridPreset(2, 1); }
+{
+   p->ApplyMapGridPreset(2, 1);
+}
 
 void MainWindow::on_actionPanes2x2_triggered()
-{ p->ApplyMapGridPreset(2, 2); }
+{
+   p->ApplyMapGridPreset(2, 2);
+}
 
 void MainWindow::on_actionPanes3x3_triggered()
-{ p->ApplyMapGridPreset(3, 3); }
+{
+   p->ApplyMapGridPreset(3, 3);
+}
 
 void MainWindow::on_actionPanesCustom_triggered()
-{ p->settingsDialog_->show(); }
+{
+   p->settingsDialog_->show();
+}
 
 void MainWindow::on_actionColorTable_triggered(bool checked)
 {
@@ -921,22 +957,34 @@ void MainWindow::on_actionRadarSites_triggered(bool checked)
 }
 
 void MainWindow::on_actionPlacefileManager_triggered()
-{ p->placefileDialog_->show(); }
+{
+   p->placefileDialog_->show();
+}
 
 void MainWindow::on_actionMarkerManager_triggered()
-{ p->markerDialog_->show(); }
+{
+   p->markerDialog_->show();
+}
 
 void MainWindow::on_actionLayerManager_triggered()
-{ p->layerDialog_->show(); }
+{
+   p->layerDialog_->show();
+}
 
 void MainWindow::on_actionImGuiDebug_triggered()
-{ p->imGuiDebugDialog_->show(); }
+{
+   p->imGuiDebugDialog_->show();
+}
 
 void MainWindow::on_actionDumpLayerList_triggered()
-{ p->activeMap_->DumpLayerList(); }
+{
+   p->activeMap_->DumpLayerList();
+}
 
 void MainWindow::on_actionDumpRadarProductRecords_triggered()
-{ manager::RadarProductManager::DumpRecords(); }
+{
+   manager::RadarProductManager::DumpRecords();
+}
 
 void MainWindow::on_actionFullScreen_triggered(bool checked)
 {
@@ -982,16 +1030,24 @@ void MainWindow::on_actionFullScreen_triggered(bool checked)
 }
 
 void MainWindow::on_actionRadarWireframe_triggered(bool checked)
-{ p->activeMap_->SetRadarWireframeEnabled(checked); }
+{
+   p->activeMap_->SetRadarWireframeEnabled(checked);
+}
 
 void MainWindow::on_actionUserManual_triggered()
-{ QDesktopServices::openUrl(QUrl {"https://supercell-wx.readthedocs.io/"}); }
+{
+   QDesktopServices::openUrl(QUrl {"https://supercell-wx.readthedocs.io/"});
+}
 
 void MainWindow::on_actionDiscord_triggered()
-{ QDesktopServices::openUrl(QUrl {"https://discord.gg/vFMV76brwU"}); }
+{
+   QDesktopServices::openUrl(QUrl {"https://discord.gg/vFMV76brwU"});
+}
 
 void MainWindow::on_actionGitHubRepository_triggered()
-{ QDesktopServices::openUrl(QUrl {"https://github.com/dpaulat/supercell-wx"}); }
+{
+   QDesktopServices::openUrl(QUrl {"https://github.com/dpaulat/supercell-wx"});
+}
 
 void MainWindow::on_actionCheckForUpdates_triggered()
 {
@@ -1025,7 +1081,9 @@ void MainWindow::on_actionCheckForUpdates_triggered()
 }
 
 void MainWindow::on_actionAboutSupercellWx_triggered()
-{ p->aboutDialog_->show(); }
+{
+   p->aboutDialog_->show();
+}
 
 void MainWindow::on_radarSiteHomeButton_clicked()
 {
@@ -1043,7 +1101,9 @@ void MainWindow::on_radarSiteHomeButton_clicked()
 }
 
 void MainWindow::on_radarSiteSelectButton_clicked()
-{ p->radarSiteDialog_->show(); }
+{
+   p->radarSiteDialog_->show();
+}
 
 void MainWindowImpl::AsyncSetup()
 {
@@ -1578,7 +1638,9 @@ void MainWindowImpl::RecreateMapLayoutFromUser(
 }
 
 void MainWindowImpl::ConfigureMapLayout()
-{ RebuildMapLayoutContainer(); }
+{
+   RebuildMapLayoutContainer();
+}
 
 void MainWindowImpl::ScheduleMapLayoutSyncIfGridChanged()
 {
@@ -2108,7 +2170,9 @@ void MainWindowImpl::SaveMapPaneSplitterState()
 }
 
 void MainWindowImpl::ScheduleMapPaneSplitterStateSave()
-{ mapPaneSplitterStateSaveTimer_.start(); }
+{
+   mapPaneSplitterStateSaveTimer_.start();
+}
 
 bool MainWindowImpl::RestoreMapPaneViewLinkFromSettingsIfMatching()
 {
@@ -3618,7 +3682,9 @@ void MainWindowImpl::UpdateAvailableLevel3Products()
 }
 
 void MainWindowImpl::UpdateElevationSelection(float elevation)
-{ level2SettingsWidget_->UpdateElevationSelection(elevation); }
+{
+   level2SettingsWidget_->UpdateElevationSelection(elevation);
+}
 
 void MainWindowImpl::HandleMapPaneLinkViewToggled(std::size_t     mapIndex,
                                                   map::MapWidget* map,

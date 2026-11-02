@@ -108,7 +108,9 @@ public:
 
 void MapOverlayRenderer::Impl::DrawSymbology(QRhiCommandBuffer* commandBuffer,
                                              QRhiTexture*       texture)
-{ DrawBlit(commandBuffer, texture, blitSrb_, blitSrbTexture_); }
+{
+   DrawBlit(commandBuffer, texture, blitSrb_, blitSrbTexture_);
+}
 
 void MapOverlayRenderer::Impl::DrawBlit(QRhiCommandBuffer* commandBuffer,
                                         QRhiTexture*       texture,
@@ -510,7 +512,9 @@ void MapOverlayRenderer::SetSampleCount(int sampleCount)
 }
 
 int MapOverlayRenderer::GetSampleCount() const
-{ return p != nullptr ? p->activeSamples_ : 1; }
+{
+   return p != nullptr ? p->activeSamples_ : 1;
+}
 
 bool MapOverlayRenderer::EnsureRenderTarget(QRhiCommandBuffer* commandBuffer,
                                             QRhiTexture*       colorTexture)
@@ -534,10 +538,14 @@ void* MapOverlayRenderer::GetNativeRenderPass() const
 }
 
 std::uint64_t MapOverlayRenderer::GetRenderTargetGeneration() const
-{ return p != nullptr ? p->renderTargetGeneration_ : 0; }
+{
+   return p != nullptr ? p->renderTargetGeneration_ : 0;
+}
 
 bool MapOverlayRenderer::IsInitialized() const
-{ return p != nullptr && p->colorTableOverlay_.IsInitialized(); }
+{
+   return p != nullptr && p->colorTableOverlay_.IsInitialized();
+}
 
 MapOverlayRenderer::MapOverlayRenderer()  = default;
 MapOverlayRenderer::~MapOverlayRenderer() = default;
