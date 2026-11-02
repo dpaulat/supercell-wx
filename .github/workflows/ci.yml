@@ -389,7 +389,7 @@ jobs:
       if: ${{ startsWith(matrix.os, 'macos') }}
       shell: bash
       run: |
-        brew install llvm@20
+        brew install llvm@20 ccache
         LLVM_PATH=$(brew --prefix llvm@20)
         echo "CC=${LLVM_PATH}/bin/clang" >> $GITHUB_ENV
         echo "CXX=${LLVM_PATH}/bin/clang++" >> $GITHUB_ENV
