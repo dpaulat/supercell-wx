@@ -299,6 +299,12 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
       if (uploadGeometry)
       {
          uploadedVertexCount_ = vertexCount;
+
+         // The update batch owns copies of the expanded moments, which are
+         // rebuilt from the source data for every geometry upload. Release the
+         // scratch so it does not stay resident between sweeps.
+         std::vector<std::uint32_t>().swap(momentU32_);
+         std::vector<std::uint32_t>().swap(cfpU32_);
       }
       geometryUploaded_ = geometryUploaded_ || uploadGeometry;
       lutUploaded_      = lutUploaded_ || uploadColorTable;
