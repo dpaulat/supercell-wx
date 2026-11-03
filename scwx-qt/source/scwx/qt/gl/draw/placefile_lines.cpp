@@ -41,11 +41,7 @@ public:
    };
 
    explicit Impl(const std::shared_ptr<GlContext>& context) :
-       context_ {context},
-       shaderProgram_ {nullptr},
-       vao_ {GL_INVALID_INDEX},
-       vbo_ {GL_INVALID_INDEX},
-       numVertices_ {0}
+       context_ {context}, shaderProgram_ {nullptr}, numVertices_ {0}
    {
    }
 
@@ -91,8 +87,8 @@ public:
    GLint uMapDistanceLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
    GLint uSelectedTimeLocation_ {static_cast<GLint>(GL_INVALID_INDEX)};
 
-   GLuint vao_;
-   GLuint vbo_;
+   GLuint vao_ {GL_INVALID_INDEX};
+   GLuint vbo_ {GL_INVALID_INDEX};
 
    GLsizei numVertices_;
 };
@@ -415,16 +411,17 @@ void PlacefileLines::Impl::BufferLine(
    const auto vertex =
       [&](float lat, float lon, std::uint16_t xHalf, std::uint16_t yHalf)
    {
-      return PackedLineVertex {lat,
-                               lon,
-                               xHalf,
-                               yHalf,
-                               {color[0], color[1], color[2], color[3]},
-                               a,
-                               thresholdShort,
-                               0,
-                               startTime,
-                               endTime};
+      return PackedLineVertex {
+         .latitude_    = lat,
+         .longitude_   = lon,
+         .xOffsetHalf_ = xHalf,
+         .yOffsetHalf_ = yHalf,
+         .rgba_        = {color[0], color[1], color[2], color[3]},
+         .angle_       = a,
+         .threshold_   = thresholdShort,
+         .padding_     = 0,
+         .startTime_   = startTime,
+         .endTime_     = endTime};
    };
 
    // Update buffer

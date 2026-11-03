@@ -5,6 +5,7 @@
 #include <scwx/util/time.hpp>
 
 #include <mutex>
+#include <span>
 
 #include <boost/container/stable_vector.hpp>
 
@@ -55,8 +56,6 @@ public:
        uMapScreenCoordLocation_(GL_INVALID_INDEX),
        uMapDistanceLocation_(GL_INVALID_INDEX),
        uSelectedTimeLocation_(GL_INVALID_INDEX),
-       vao_ {GL_INVALID_INDEX},
-       vbo_ {GL_INVALID_INDEX},
        numVertices_ {0}
    {
       tessellator_ = gluNewTess();
@@ -114,8 +113,8 @@ public:
    GLint                          uMapDistanceLocation_;
    GLint                          uSelectedTimeLocation_;
 
-   GLuint vao_;
-   GLuint vbo_;
+   GLuint vao_ {GL_INVALID_INDEX};
+   GLuint vbo_ {GL_INVALID_INDEX};
 
    GLsizei numVertices_;
 
@@ -235,7 +234,7 @@ void PlacefilePolygons::Render(
 {
    bool hasGeometry = false;
    {
-      std::unique_lock lock {p->bufferMutex_};
+      const std::unique_lock lock {p->bufferMutex_};
       hasGeometry = p->currentBuffer_ != nullptr && !p->currentBuffer_->empty();
    }
 
@@ -283,7 +282,7 @@ void PlacefilePolygons::Deinitialize()
    glDeleteVertexArrays(1, &p->vao_);
    glDeleteBuffers(1, &p->vbo_);
 
-   std::unique_lock lock {p->bufferMutex_};
+   const std::unique_lock lock {p->bufferMutex_};
 
    // Clear the current buffers
    p->currentBuffer_.reset();
@@ -306,7 +305,7 @@ void PlacefilePolygons::AddPolygon(
 
 void PlacefilePolygons::FinishPolygons()
 {
-   std::unique_lock lock {p->bufferMutex_};
+   const std::unique_lock lock {p->bufferMutex_};
 
    // Swap buffers
    p->currentBuffer_ = InternBuffer(std::move(p->newBuffer_));
@@ -459,23 +458,29 @@ void PlacefilePolygons::Impl::TessellateCombineCallback(GLdouble coords[3],
 void PlacefilePolygons::Impl::TessellateVertexCallback(void* vertexData,
                                                        void* polygonData)
 {
-   Impl*     self = static_cast<Impl*>(polygonData);
-   GLdouble* data = static_cast<GLdouble*>(vertexData);
+   Impl* self = static_cast<Impl*>(polygonData);
+
+   // The tessellator hands back the vertex data passed to gluTessVertex, which
+   // is always a TessVertexArray
+   const std::span<const GLdouble, kTessVertexSize_> data {
+      static_cast<const GLdouble*>(vertexData), kTessVertexSize_};
 
    // Buffer vertex
    self->newBuffer_.push_back(PackedFillVertex {
-      static_cast<float>(data[kTessVertexScreenX_]),
-      static_cast<float>(data[kTessVertexScreenY_]),
-      FloatToHalfBits(static_cast<float>(data[kTessVertexXOffset_])),
-      FloatToHalfBits(static_cast<float>(data[kTessVertexYOffset_])),
-      {NormalizedByte(data[kTessVertexR_]),
-       NormalizedByte(data[kTessVertexG_]),
-       NormalizedByte(data[kTessVertexB_]),
-       NormalizedByte(data[kTessVertexA_])},
-      ClampThreshold(self->currentThreshold_),
-      0,
-      self->currentStartTime_,
-      self->currentEndTime_});
+      .screenX_ = static_cast<float>(data[kTessVertexScreenX_]),
+      .screenY_ = static_cast<float>(data[kTessVertexScreenY_]),
+      .xOffsetHalf_ =
+         FloatToHalfBits(static_cast<float>(data[kTessVertexXOffset_])),
+      .yOffsetHalf_ =
+         FloatToHalfBits(static_cast<float>(data[kTessVertexYOffset_])),
+      .rgba_      = {NormalizedByte(data[kTessVertexR_]),
+                     NormalizedByte(data[kTessVertexG_]),
+                     NormalizedByte(data[kTessVertexB_]),
+                     NormalizedByte(data[kTessVertexA_])},
+      .threshold_ = ClampThreshold(self->currentThreshold_),
+      .padding_   = 0,
+      .startTime_ = self->currentStartTime_,
+      .endTime_   = self->currentEndTime_});
 }
 
 void PlacefilePolygons::Impl::TessellateErrorCallback(GLenum errorCode)

@@ -31,8 +31,6 @@ public:
        uMapScreenCoordLocation_(GL_INVALID_INDEX),
        uMapDistanceLocation_(GL_INVALID_INDEX),
        uSelectedTimeLocation_(GL_INVALID_INDEX),
-       vao_ {GL_INVALID_INDEX},
-       vbo_ {GL_INVALID_INDEX},
        numVertices_ {0}
    {
    }
@@ -62,8 +60,8 @@ public:
    GLint                          uMapDistanceLocation_;
    GLint                          uSelectedTimeLocation_;
 
-   GLuint vao_;
-   GLuint vbo_;
+   GLuint vao_ {GL_INVALID_INDEX};
+   GLuint vbo_ {GL_INVALID_INDEX};
 
    GLsizei numVertices_;
 };
@@ -179,7 +177,7 @@ void PlacefileTriangles::Render(
 {
    bool hasGeometry = false;
    {
-      std::unique_lock lock {p->bufferMutex_};
+      const std::unique_lock lock {p->bufferMutex_};
       hasGeometry = p->currentBuffer_ != nullptr && !p->currentBuffer_->empty();
    }
 
@@ -227,7 +225,7 @@ void PlacefileTriangles::Deinitialize()
    glDeleteVertexArrays(1, &p->vao_);
    glDeleteBuffers(1, &p->vbo_);
 
-   std::unique_lock lock {p->bufferMutex_};
+   const std::unique_lock lock {p->bufferMutex_};
 
    // Clear the current buffers
    p->currentBuffer_.reset();
@@ -250,7 +248,7 @@ void PlacefileTriangles::AddTriangles(
 
 void PlacefileTriangles::FinishTriangles()
 {
-   std::unique_lock lock {p->bufferMutex_};
+   const std::unique_lock lock {p->bufferMutex_};
 
    // Swap buffers
    p->currentBuffer_ = InternBuffer(std::move(p->newBuffer_));
@@ -300,15 +298,15 @@ void PlacefileTriangles::Impl::UpdateBuffers(
       }
 
       newBuffer_.push_back(PackedFillVertex {
-         screenCoordinate.x,
-         screenCoordinate.y,
-         FloatToHalfBits(x),
-         FloatToHalfBits(y),
-         {lastColor[0], lastColor[1], lastColor[2], lastColor[3]},
-         ClampThreshold(thresholdValue),
-         0,
-         startTime,
-         endTime});
+         .screenX_     = screenCoordinate.x,
+         .screenY_     = screenCoordinate.y,
+         .xOffsetHalf_ = FloatToHalfBits(x),
+         .yOffsetHalf_ = FloatToHalfBits(y),
+         .rgba_      = {lastColor[0], lastColor[1], lastColor[2], lastColor[3]},
+         .threshold_ = ClampThreshold(thresholdValue),
+         .padding_   = 0,
+         .startTime_ = startTime,
+         .endTime_   = endTime});
    }
 
    // Remove extra vertices that don't correspond to a full triangle
