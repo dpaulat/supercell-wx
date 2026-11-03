@@ -550,6 +550,14 @@ public:
    bool mapNeedsRender_ {true};
    bool overlayNeedsRender_ {true};
 
+   // Extra frames an inactive pane with annotations repaints after something
+   // changed (new frame requested by an event, or the render target was
+   // re-created). This is a short, bounded settle, not a continuous loop: an
+   // idle inactive pane must stop requesting frames so it does not burn the
+   // GPU/CPU every vsync.
+   static constexpr int kInactiveAnnotationSettleFrames {3};
+   int                  inactiveAnnotationSettleFrames_ {0};
+
    // Camera the basemap snapshot (basemapTexture_) was rendered with. Other
    // panes that copy this basemap must draw their overlays with this camera,
    // not with their own (possibly newer) map_ camera.
@@ -2823,6 +2831,10 @@ void MapWidget::initialize(QRhiCommandBuffer* cb)
          p->appliedMapSize_       = size();
          p->appliedMapPixelRatio_ = pixelRatio();
       }
+      // The render target was re-created; let inactive panes repaint a few
+      // times so their annotations come back.
+      p->inactiveAnnotationSettleFrames_ =
+         MapWidgetImpl::kInactiveAnnotationSettleFrames;
       return;
    }
 
@@ -3426,6 +3438,11 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    const bool isPrimaryPane =
       context_->settings().isActive_ || widget_->underMouse();
 
+   // Dirty flags set by events since the previous frame (not by our own
+   // retry below, which only re-asserts overlayNeedsRender_ when drawing
+   // failed).
+   const bool renderRequestedByEvent = overlayNeedsRender_ || mapNeedsRender_;
+
    const types::CaptureType currentCaptureType = screenCaptureRequested_;
    if (screenCaptureRequested_ != types::CaptureType::None)
    {
@@ -3739,12 +3756,27 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
                                                   symbologyTexture,
                                                   symbologyLayerIndex_);
 
-   const bool keepInactiveAnnotationsAlive =
+   // Inactive panes with annotations repaint a few more frames after an
+   // event (pan/zoom, new stroke, pane switch, resize, ...), then stop. The
+   // old code requested another frame every frame forever.
+   if (renderRequestedByEvent)
+   {
+      inactiveAnnotationSettleFrames_ = kInactiveAnnotationSettleFrames;
+   }
+
+   const bool inactivePaneHasAnnotations =
       !context_->settings().isActive_ && annotationLayer_ != nullptr &&
       annotationLayer_->visible() && annotationLayer_->GetObjectCount() > 0;
+   const bool keepInactiveAnnotationsAlive =
+      inactivePaneHasAnnotations && inactiveAnnotationSettleFrames_ > 0;
+   if (keepInactiveAnnotationsAlive)
+   {
+      --inactiveAnnotationSettleFrames_;
+   }
 
-   overlayNeedsRender_ = !overlayOk || keepInactiveAnnotationsAlive;
-   if (overlayNeedsRender_)
+   // Retry when the overlay pass could not draw (resources not ready yet).
+   overlayNeedsRender_ = !overlayOk;
+   if (overlayNeedsRender_ || keepInactiveAnnotationsAlive)
    {
       widget_->update();
    }
