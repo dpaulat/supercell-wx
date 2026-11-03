@@ -1453,9 +1453,6 @@ void AlertLayerHandler::HandleGeoLinesEvent(
 AlertLayer::Impl::LineData
 AlertLayer::Impl::CreateLineData(const settings::LineSettings& lineSettings)
 {
-   static constexpr float kAlertAlphaScale = 0.72f;
-   static constexpr float kAlertWidthScale = 1.5f;
-
    LineData data {
       .borderColor_ {lineSettings.GetBorderColorRgba32f()},
       .highlightColor_ {lineSettings.GetHighlightColorRgba32f()},
@@ -1466,21 +1463,6 @@ AlertLayer::Impl::CreateLineData(const settings::LineSettings& lineSettings)
          static_cast<std::size_t>(lineSettings.highlight_width().GetValue()),
       .lineWidth_ =
          static_cast<std::size_t>(lineSettings.line_width().GetValue())};
-
-   data.lineColor_[3] *= kAlertAlphaScale;
-   data.highlightColor_[3] *= kAlertAlphaScale;
-   data.borderColor_[3] *= kAlertAlphaScale;
-
-   data.lineWidth_ = std::max<std::size_t>(
-      2U,
-      static_cast<std::size_t>(
-         std::lround(static_cast<double>(data.lineWidth_) * kAlertWidthScale)));
-
-   // Single-band stroke: palette highlight/border widths produce dashed look.
-   data.highlightWidth_ = 0;
-   data.borderWidth_    = 0;
-   data.highlightColor_ = data.lineColor_;
-   data.borderColor_    = data.lineColor_;
 
    return data;
 }

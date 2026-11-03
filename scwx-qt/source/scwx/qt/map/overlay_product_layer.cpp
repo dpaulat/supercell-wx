@@ -17,21 +17,6 @@ namespace scwx::qt::map
 static const std::string logPrefix_ = "scwx::qt::map::overlay_product_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
 
-namespace
-{
-
-constexpr float kStormTrackAlphaScale = 0.72f;
-constexpr float kStormTrackWidthScale = 1.5f;
-constexpr float kStormTrackBaseWidth_ = 1.0f;
-
-boost::gil::rgba32f_pixel_t
-StormTrackColor(const float r, const float g, const float b)
-{
-   return {r, g, b, kStormTrackAlphaScale};
-}
-
-} // namespace
-
 class OverlayProductLayer::Impl
 {
 public:
@@ -40,7 +25,7 @@ public:
        self_ {self},
        linkedVectors_ {std::make_shared<draw::LinkedVectors>(renderContext)}
    {
-      linkedVectors_->SetBorderEnabled(false);
+      linkedVectors_->SetBorderEnabled(true);
 
       auto& productSettings = settings::ProductSettings::Instance();
 
@@ -311,7 +296,7 @@ void OverlayProductLayer::Impl::HandleScitDataPacket(
 
    if (scitDataPacket != nullptr)
    {
-      boost::gil::rgba32f_pixel_t color = StormTrackColor(1.0f, 1.0f, 1.0f);
+      boost::gil::rgba32f_pixel_t color {1.0f, 1.0f, 1.0f, 1.0f};
 
       units::length::nautical_miles<float> tickRadius {0.5f};
       units::length::nautical_miles<float> tickRadiusIncrement {0.0f};
@@ -328,7 +313,7 @@ void OverlayProductLayer::Impl::HandleScitDataPacket(
 
          // If this is past data, the default tick radius and increment with a
          // darker color
-         color = StormTrackColor(0.5f, 0.5f, 0.5f);
+         color = {0.5f, 0.5f, 0.5f, 1.0f};
       }
       else
       {
@@ -389,8 +374,7 @@ void OverlayProductLayer::Impl::HandleLinkedVectorPacket(
    if (linkedVectorPacket != nullptr)
    {
       auto di = linkedVectors->AddVector(center, linkedVectorPacket);
-      draw::LinkedVectors::SetVectorWidth(
-         di, kStormTrackBaseWidth_ * kStormTrackWidthScale);
+      draw::LinkedVectors::SetVectorWidth(di, 1.0f);
       draw::LinkedVectors::SetVectorModulate(di, color);
       draw::LinkedVectors::SetVectorHoverText(di, hoverText);
       draw::LinkedVectors::SetVectorTicksEnabled(di, true);

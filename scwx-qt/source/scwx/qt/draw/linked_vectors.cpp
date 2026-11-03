@@ -19,7 +19,9 @@ static const std::string logPrefix_ = "scwx::qt::draw::linked_vectors";
 
 static const boost::gil::rgba32f_pixel_t kBlack {0.0f, 0.0f, 0.0f, 1.0f};
 
-constexpr float kStormTrackBorderWidthScale = 1.5f;
+// Pixels of black border on each side of a storm track line (same as the 2 px
+// wider black underlay used by the OpenGL renderer)
+constexpr float kStormTrackBorderWidth = 1.0f;
 
 struct LinkedVectorDrawItem
 {
@@ -61,6 +63,28 @@ struct LinkedVectorDrawItem
    units::length::nautical_miles<double> tickRadius_ {1.0};
    units::length::nautical_miles<double> tickRadiusIncrement_ {0.0};
 };
+
+// Draws a vector line as one stroke: the colored line, bordered on each side by
+// kStormTrackBorderWidth pixels of black (the OpenGL renderer drew a black line
+// two pixels wider underneath instead).
+static void SetBorderedStroke(GeoLines&                               geoLines,
+                              const std::shared_ptr<GeoLineDrawItem>& line,
+                              const std::shared_ptr<LinkedVectorDrawItem>& di)
+{
+   const auto strokeHalfWidths = scwx::qt::map::ComputeGeoStrokeHalfWidths(
+      di->width_, 0.0f, kStormTrackBorderWidth);
+
+   boost::gil::rgba32f_pixel_t borderColor = kBlack;
+   borderColor[3]                          = di->modulate_[3];
+
+   geoLines.SetLineStrokeStyle(line,
+                               di->modulate_,
+                               di->modulate_,
+                               borderColor,
+                               strokeHalfWidths.lineHalf_,
+                               strokeHalfWidths.highlightHalf_,
+                               strokeHalfWidths.borderHalf_);
+}
 
 class LinkedVectors::Impl
 {
@@ -233,19 +257,7 @@ void LinkedVectors::FinishVectors()
 
          if (p->borderEnabled_)
          {
-            const float borderWidth = 1.0f * kStormTrackBorderWidthScale;
-            const auto  strokeHalfWidths =
-               scwx::qt::map::ComputeGeoStrokeHalfWidths(
-                  di->width_, 0.0f, borderWidth);
-            boost::gil::rgba32f_pixel_t borderColor = kBlack;
-            borderColor[3]                          = di->modulate_[3];
-            p->geoLines_->SetLineStrokeStyle(geoLine,
-                                             di->modulate_,
-                                             di->modulate_,
-                                             borderColor,
-                                             strokeHalfWidths.lineHalf_,
-                                             strokeHalfWidths.highlightHalf_,
-                                             strokeHalfWidths.borderHalf_);
+            SetBorderedStroke(*p->geoLines_, geoLine, di);
             p->geoLines_->SetLineHoverText(geoLine, di->hoverText_);
          }
          else
@@ -278,14 +290,17 @@ void LinkedVectors::FinishVectors()
 
             p->geoLines_->SetLineLocation(
                tickGeoLine, tickLat1, tickLon1, tickLat2, tickLon2);
-            p->geoLines_->SetLineModulate(tickGeoLine, di->modulate_);
-            p->geoLines_->SetLineWidth(tickGeoLine, di->width_);
-            p->geoLines_->SetLineVisible(tickGeoLine, di->visible_);
-
-            if (!p->borderEnabled_)
+            if (p->borderEnabled_)
             {
-               p->geoLines_->SetLineHoverText(tickGeoLine, di->hoverText_);
+               SetBorderedStroke(*p->geoLines_, tickGeoLine, di);
             }
+            else
+            {
+               p->geoLines_->SetLineModulate(tickGeoLine, di->modulate_);
+               p->geoLines_->SetLineWidth(tickGeoLine, di->width_);
+            }
+            p->geoLines_->SetLineVisible(tickGeoLine, di->visible_);
+            p->geoLines_->SetLineHoverText(tickGeoLine, di->hoverText_);
 
             tickRadius += di->tickRadiusIncrement_;
          }

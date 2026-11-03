@@ -9,9 +9,13 @@
 #include <scwx/qt/render/rhi_geo_uniforms.hpp>
 #include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 
+#include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <cstring>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 #include <utility>
 
 #include <boost/unordered/unordered_flat_set.hpp>
@@ -66,6 +70,30 @@ struct GeoLineDrawItem : types::EventHandler
    std::string                  hoverText_ {};
    GeoLines::HoverCallback      hoverCallback_ {nullptr};
    size_t                       lineIndex_ {0};
+
+   /// What is attached to one end of a line (see GeoLines::Impl::ResolveJoins)
+   struct EndJoin
+   {
+      enum class Kind : std::uint8_t
+      {
+         /// Nothing else ends at this point: plain butt end
+         Open,
+         /// Other lines end here, but they cannot be joined with this line
+         Blocked,
+         /// Exactly one other, compatible line ends here: mitered join
+         Joined
+      };
+
+      Kind        kind_ {Kind::Open};
+      std::size_t other_ {0};
+      /// True if the joined end of the other line is its second endpoint
+      bool otherAtEnd_ {false};
+
+      bool operator==(const EndJoin&) const = default;
+   };
+
+   EndJoin joinStart_ {};
+   EndJoin joinEnd_ {};
 };
 
 struct GeoLineHoverEntry
@@ -94,6 +122,10 @@ public:
    void Update();
    void UpdateBuffers();
    void UpdateModifiedLineBuffers();
+   /// Finds which line endpoints meet exactly one other compatible line, so
+   /// consecutive segments (polygon outlines, polylines) can share a mitered
+   /// corner. Returns the indices of lines whose joins changed.
+   std::vector<std::size_t> ResolveJoins();
    void UpdateSingleBuffer(const std::shared_ptr<GeoLineDrawItem>& di,
                            std::vector<float>&                     linesBuffer,
                            std::vector<std::int32_t>&             integerBuffer,
@@ -105,6 +137,8 @@ public:
    bool visible_ {true};
    bool dirty_ {false};
    bool thresholded_ {false};
+   /// Line geometry or style changed since ResolveJoins() last ran
+   bool joinsDirty_ {true};
 
    boost::unordered_flat_set<std::shared_ptr<GeoLineDrawItem>> dirtyLines_ {};
 
@@ -331,6 +365,7 @@ void GeoLines::SetLineLocation(const std::shared_ptr<GeoLineDrawItem>& di,
       di->latitude2_  = latitude2;
       di->longitude2_ = longitude2;
       p->dirtyLines_.insert(di);
+      p->joinsDirty_ = true;
    }
 }
 
@@ -346,6 +381,7 @@ void GeoLines::SetLineModulate(const std::shared_ptr<GeoLineDrawItem>& di,
    {
       di->modulate_ = newModulate;
       p->dirtyLines_.insert(di);
+      p->joinsDirty_ = true;
    }
 }
 
@@ -356,6 +392,7 @@ void GeoLines::SetLineModulate(const std::shared_ptr<GeoLineDrawItem>& di,
    {
       di->modulate_ = modulate;
       p->dirtyLines_.insert(di);
+      p->joinsDirty_ = true;
    }
 }
 
@@ -370,6 +407,7 @@ void GeoLines::SetLineWidth(const std::shared_ptr<GeoLineDrawItem>& di,
       di->strokeHighlightHalf_ = 0.0f;
       di->strokeBorderHalf_    = 0.0f;
       p->dirtyLines_.insert(di);
+      p->joinsDirty_ = true;
    }
 }
 
@@ -452,6 +490,7 @@ void GeoLines::SetLineStrokeStyle(
       di->strokeBorderHalf_    = borderHalf;
       di->width_               = outerWidth;
       p->dirtyLines_.insert(di);
+      p->joinsDirty_ = true;
    }
 }
 
@@ -481,6 +520,9 @@ void GeoLines::FinishLines()
 
 void GeoLines::Impl::UpdateBuffers()
 {
+   ResolveJoins();
+   joinsDirty_ = false;
+
    newLinesBuffer_.clear();
    newLinesBuffer_.reserve(newLineList_.size() * kLineBufferLength_);
    newIntegerBuffer_.clear();
@@ -509,8 +551,35 @@ void GeoLines::Impl::UpdateModifiedLineBuffers()
    currentIntegerBuffer_.resize(currentLineList_.size() *
                                 kVerticesPerRectangle * kIntegersPerVertex_);
 
-   // Update buffers for modified lines
+   // Lines whose endpoint joins changed need new vertices, as do the lines
+   // joined to any modified line (a corner depends on both of its segments)
+   boost::unordered_flat_set<std::shared_ptr<GeoLineDrawItem>> updateLines {};
+
+   if (joinsDirty_)
+   {
+      for (const std::size_t index : ResolveJoins())
+      {
+         updateLines.insert(currentLineList_[index]);
+      }
+      joinsDirty_ = false;
+   }
+
    for (auto& di : dirtyLines_)
+   {
+      updateLines.insert(di);
+
+      for (const auto* join : {&di->joinStart_, &di->joinEnd_})
+      {
+         if (join->kind_ == GeoLineDrawItem::EndJoin::Kind::Joined &&
+             join->other_ < currentLineList_.size())
+         {
+            updateLines.insert(currentLineList_[join->other_]);
+         }
+      }
+   }
+
+   // Update buffers for modified lines
+   for (auto& di : updateLines)
    {
       // Check if modified line is in the current list
       if (di->lineIndex_ >= currentLineList_.size() ||
@@ -524,7 +593,7 @@ void GeoLines::Impl::UpdateModifiedLineBuffers()
    }
 
    // Clear list of modified lines
-   if (!dirtyLines_.empty())
+   if (!dirtyLines_.empty() || !updateLines.empty())
    {
       dirtyLines_.clear();
       dirty_ = true;
@@ -611,7 +680,200 @@ static bool IsPointNearGeoLine(const GeoLineHoverEntry& line,
    return dist <= PickHalfWidthMercator(mapMatrix, pickHw);
 }
 
+// Longest miter, in line half-widths, before the corner is clamped
+static constexpr float kMiterLimit = 3.0f;
+
+static float StrokeHalfWidth(const GeoLineDrawItem& di)
+{
+   return di.strokeEnabled_ ? di.strokeBorderHalf_ : (di.width_ * 0.5f);
+}
+
+static std::uint64_t EndpointKey(const float latitude, const float longitude)
+{
+   std::uint32_t latBits {};
+   std::uint32_t lonBits {};
+   std::memcpy(&latBits, &latitude, sizeof(latBits));
+   std::memcpy(&lonBits, &longitude, sizeof(lonBits));
+   return (static_cast<std::uint64_t>(latBits) << 32) | lonBits;
+}
+
+static bool IsDegenerate(const GeoLineDrawItem& di)
+{
+   return di.latitude1_ == di.latitude2_ && di.longitude1_ == di.longitude2_;
+}
+
+// Two lines can share a corner only if they are drawn identically
+static bool CanJoin(const GeoLineDrawItem& a, const GeoLineDrawItem& b)
+{
+   constexpr float kEpsilon = 1.0e-4f;
+
+   if (a.strokeEnabled_ != b.strokeEnabled_ || a.modulate_ != b.modulate_ ||
+       std::abs(StrokeHalfWidth(a) - StrokeHalfWidth(b)) > kEpsilon)
+   {
+      return false;
+   }
+
+   return !a.strokeEnabled_ ||
+          (a.highlightColor_ == b.highlightColor_ &&
+           a.borderColor_ == b.borderColor_ &&
+           std::abs(a.strokeLineHalf_ - b.strokeLineHalf_) <= kEpsilon &&
+           std::abs(a.strokeHighlightHalf_ - b.strokeHighlightHalf_) <=
+              kEpsilon);
+}
+
+// Unit direction of a line from its first to its second endpoint, in the same
+// (Mercator, north up) space the vertex shader projects to
+static glm::vec2 LineDirection(const GeoLineDrawItem& di)
+{
+   const glm::vec2 sc1 = util::maplibre::LatLongToScreenCoordinate(
+      {di.latitude1_, di.longitude1_});
+   const glm::vec2 sc2 = util::maplibre::LatLongToScreenCoordinate(
+      {di.latitude2_, di.longitude2_});
+   glm::vec2   along {sc2.x - sc1.x, sc2.y - sc1.y};
+   const float alongLen = glm::length(along);
+   if (alongLen > 1.0e-6f)
+   {
+      return along / alongLen;
+   }
+   return glm::vec2 {0.0f, 1.0f};
+}
+
+static glm::vec2 LeftNormal(const glm::vec2& along)
+{
+   return {-along.y, along.x};
+}
+
 } // namespace
+
+std::vector<std::size_t> GeoLines::Impl::ResolveJoins()
+{
+   using EndJoin = GeoLineDrawItem::EndJoin;
+   using Kind    = EndJoin::Kind;
+
+   struct EndRef
+   {
+      std::size_t line_;
+      bool        atEnd_;
+   };
+
+   std::unordered_map<std::uint64_t, std::vector<EndRef>> endpoints {};
+   endpoints.reserve(newLineList_.size() * 2);
+
+   for (std::size_t i = 0; i < newLineList_.size(); ++i)
+   {
+      const GeoLineDrawItem& di = *newLineList_[i];
+      if (IsDegenerate(di))
+      {
+         continue;
+      }
+      endpoints[EndpointKey(di.latitude1_, di.longitude1_)].push_back(
+         {i, false});
+      endpoints[EndpointKey(di.latitude2_, di.longitude2_)].push_back(
+         {i, true});
+   }
+
+   std::vector<EndJoin> starts(newLineList_.size());
+   std::vector<EndJoin> ends(newLineList_.size());
+
+   const auto setJoin = [&](const EndRef& self, const EndJoin& join)
+   {
+      (self.atEnd_ ? ends : starts)[self.line_] = join;
+   };
+
+   for (const auto& [key, refs] : endpoints)
+   {
+      (void) key;
+      if (refs.size() == 1)
+      {
+         continue; // Open
+      }
+
+      // Identical segments (same two endpoints, any direction) are routinely
+      // submitted more than once, e.g. an alert polygon shared by several
+      // alerts. They draw on top of each other, so they count as one neighbor
+      // when deciding whether a corner is a plain two-line join.
+      struct Group
+      {
+         std::uint64_t       otherEnd_;
+         std::vector<EndRef> members_ {};
+      };
+      std::vector<Group> groups {};
+      for (const EndRef& ref : refs)
+      {
+         const GeoLineDrawItem& di = *newLineList_[ref.line_];
+         const std::uint64_t    otherEnd =
+            ref.atEnd_ ? EndpointKey(di.latitude1_, di.longitude1_) :
+                            EndpointKey(di.latitude2_, di.longitude2_);
+
+         auto it = std::find_if(groups.begin(),
+                                groups.end(),
+                                [&](const Group& g)
+                                { return g.otherEnd_ == otherEnd; });
+         if (it == groups.end())
+         {
+            groups.push_back({otherEnd, {ref}});
+         }
+         else
+         {
+            it->members_.push_back(ref);
+         }
+      }
+
+      bool joinable = groups.size() == 2;
+      if (joinable)
+      {
+         const GeoLineDrawItem& repA =
+            *newLineList_[groups[0].members_.front().line_];
+         const GeoLineDrawItem& repB =
+            *newLineList_[groups[1].members_.front().line_];
+         joinable = CanJoin(repA, repB);
+
+         for (std::size_t g = 0; joinable && g < 2; ++g)
+         {
+            const GeoLineDrawItem& rep =
+               *newLineList_[groups[g].members_.front().line_];
+            for (const EndRef& member : groups[g].members_)
+            {
+               joinable = joinable && CanJoin(rep, *newLineList_[member.line_]);
+            }
+         }
+      }
+
+      if (joinable)
+      {
+         const EndRef& partnerA = groups[1].members_.front();
+         const EndRef& partnerB = groups[0].members_.front();
+         for (const EndRef& member : groups[0].members_)
+         {
+            setJoin(member, {Kind::Joined, partnerA.line_, partnerA.atEnd_});
+         }
+         for (const EndRef& member : groups[1].members_)
+         {
+            setJoin(member, {Kind::Joined, partnerB.line_, partnerB.atEnd_});
+         }
+         continue;
+      }
+
+      for (const EndRef& ref : refs)
+      {
+         setJoin(ref, {Kind::Blocked, 0, false});
+      }
+   }
+
+   std::vector<std::size_t> changed {};
+   for (std::size_t i = 0; i < newLineList_.size(); ++i)
+   {
+      GeoLineDrawItem& di = *newLineList_[i];
+      if (di.joinStart_ != starts[i] || di.joinEnd_ != ends[i])
+      {
+         di.joinStart_ = starts[i];
+         di.joinEnd_   = ends[i];
+         changed.push_back(i);
+      }
+   }
+
+   return changed;
+}
 
 void GeoLines::Impl::UpdateSingleBuffer(
    const std::shared_ptr<GeoLineDrawItem>& di,
@@ -648,9 +910,7 @@ void GeoLines::Impl::UpdateSingleBuffer(
    // const float y2 = static_cast<float>(di->y2_);
 
    // Offset pixels use OrthoMapProjection (Y-down). CPU mercator Y already
-   // increases north. along = (dx, dy) so square caps extend past each
-   // endpoint. Negating dy (old GL ortho) pulled caps inward and ate short
-   // polygon edges — dashed/broken alert outlines.
+   // increases north. along = (dx, dy).
    const units::angle::degrees<double> angle =
       util::GeographicLib::GetAngle(lat1, lon1, lat2, lon2);
 
@@ -658,38 +918,80 @@ void GeoLines::Impl::UpdateSingleBuffer(
       util::maplibre::LatLongToScreenCoordinate({lat1, lon1});
    const glm::vec2 sc2 =
       util::maplibre::LatLongToScreenCoordinate({lat2, lon2});
-   glm::vec2   along {sc2.x - sc1.x, sc2.y - sc1.y};
-   const float alongLen = glm::length(along);
-   if (alongLen > 1.0e-6f)
-   {
-      along /= alongLen;
-   }
-   else
-   {
-      along = glm::vec2 {0.0f, 1.0f};
-   }
-   const glm::vec2 perp {-along.y, along.x};
+   const glm::vec2 along = LineDirection(*di);
+   const glm::vec2 perp  = LeftNormal(along);
 
    // Final X/Y offsets in pixels
    const float hw =
       di->strokeEnabled_ ? di->strokeBorderHalf_ : (di->width_ * 0.5f);
    const float pickHw = hw + kHoverPickExtraHalfPx;
-   const float cap    = hw + kLineCapOverlapPx;
    const float lx     = -hw;
    const float rx     = +hw;
-   // Local (perp, along): start uses -along, end uses +along (outward caps)
-   const glm::vec2 bl  = perp * lx + along * (-cap);
-   const glm::vec2 tl  = perp * lx + along * (+cap);
-   const glm::vec2 br  = perp * rx + along * (-cap);
-   const glm::vec2 tr  = perp * rx + along * (+cap);
-   const float     blX = bl.x;
-   const float     blY = bl.y;
-   const float     tlX = tl.x;
-   const float     tlY = tl.y;
-   const float     brX = br.x;
-   const float     brY = br.y;
-   const float     trX = tr.x;
-   const float     trY = tr.y;
+
+   // Offset of the left (side -1) and right (side +1) vertex at one endpoint.
+   //
+   // Where exactly one compatible line continues from the endpoint (polygon
+   // outlines, polylines), both lines use the same mitered corner, so their
+   // quads tile exactly with no gap on the outside of the turn and no overlap
+   // on the inside. The perpendicular offset attribute stays +-hw, so the
+   // line / highlight / border bands follow the corner.
+   //
+   // An endpoint nothing else ends at is a plain butt end. If other lines end
+   // there but cannot be joined (a hairpin turn, different styles, three or
+   // more lines), the end is extended by a square cap to cover the gap.
+   const auto endOffsets =
+      [&](const GeoLineDrawItem::EndJoin& join, const bool atEnd)
+   {
+      using Kind = GeoLineDrawItem::EndJoin::Kind;
+
+      const float     direction = atEnd ? 1.0f : -1.0f;
+      const glm::vec2 left      = perp * lx;
+      const glm::vec2 right     = perp * rx;
+
+      if (join.kind_ == Kind::Joined && join.other_ < newLineList_.size())
+      {
+         const glm::vec2 otherNormal =
+            LeftNormal(LineDirection(*newLineList_[join.other_]));
+
+         // Walking from this line through the corner to the other line, the
+         // other line's left is the same side only if it continues the same
+         // way, i.e. this end is the end of one line and the start of the other
+         const float     sameWay = (join.otherAtEnd_ == atEnd) ? -1.0f : 1.0f;
+         const glm::vec2 n2      = otherNormal * sameWay;
+         const float     denom   = 1.0f + glm::dot(perp, n2);
+
+         if (denom > 1.0e-3f)
+         {
+            // Offset of the right side; the left side is its mirror image
+            glm::vec2 miter = (perp + n2) * (hw / denom);
+
+            const float maxLength = kMiterLimit * hw;
+            const float length    = glm::length(miter);
+            if (length > maxLength && length > 0.0f)
+            {
+               miter *= maxLength / length;
+            }
+
+            return std::pair {-miter, miter};
+         }
+      }
+
+      const float cap =
+         (join.kind_ == Kind::Open) ? 0.0f : (hw + kLineCapOverlapPx);
+      return std::pair {left + along * (direction * cap),
+                        right + along * (direction * cap)};
+   };
+
+   const auto [bl, br] = endOffsets(di->joinStart_, false);
+   const auto [tl, tr] = endOffsets(di->joinEnd_, true);
+   const float blX     = bl.x;
+   const float blY     = bl.y;
+   const float tlX     = tl.x;
+   const float tlY     = tl.y;
+   const float brX     = br.x;
+   const float brY     = br.y;
+   const float trX     = tr.x;
+   const float trY     = tr.y;
 
    // Modulate color
    const float mc0 = di->modulate_[0];
