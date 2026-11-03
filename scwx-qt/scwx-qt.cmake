@@ -37,8 +37,6 @@ find_package(QT NAMES Qt6
                         LinguistTools
                         Multimedia
                         Network
-                        OpenGL
-                        OpenGLWidgets
                         Positioning
                         SerialPort
                         Svg
@@ -51,8 +49,6 @@ find_package(Qt${QT_VERSION_MAJOR}
                         LinguistTools
                         Multimedia
                         Network
-                        OpenGL
-                        OpenGLWidgets
                         Positioning
                         SerialPort
                         Svg
