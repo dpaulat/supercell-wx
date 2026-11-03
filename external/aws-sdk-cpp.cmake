@@ -21,6 +21,11 @@ set(MINIMIZE_SIZE      OFF  CACHE BOOL   "If enabled, the SDK will be built via 
 # Save off ${CMAKE_CXX_FLAGS} before modifying compiler settings
 set(CMAKE_CXX_FLAGS_PREV "${CMAKE_CXX_FLAGS}")
 
+# Ignore any system s2n (e.g. Homebrew on macOS runners) and build the bundled copy
+if (APPLE)
+    set(CMAKE_DISABLE_FIND_PACKAGE_s2n ON)
+endif()
+
 # Configure OpenSSL crypto library
 find_package(OpenSSL)
 add_library(crypto ALIAS OpenSSL::Crypto)
