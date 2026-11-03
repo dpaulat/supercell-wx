@@ -129,6 +129,12 @@ int main(int argc, char* argv[])
 
    scwx::qt::main::ApplicationPaths::LogErrors();
 
+   // Warn if the system can not run the render backend
+   if (!scwx::qt::render::CheckGraphicsSupport())
+   {
+      return 1;
+   }
+
    scwx::network::cpr::SetUserAgent(fmt::format(
       "SupercellWx/{} ({})", scwx::qt::main::kVersionString_, osName));
 

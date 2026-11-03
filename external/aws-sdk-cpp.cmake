@@ -21,20 +21,23 @@ set(MINIMIZE_SIZE      OFF  CACHE BOOL   "If enabled, the SDK will be built via 
 # Save off ${CMAKE_CXX_FLAGS} before modifying compiler settings
 set(CMAKE_CXX_FLAGS_PREV "${CMAKE_CXX_FLAGS}")
 
-# Ignore any system s2n (e.g. Homebrew on macOS runners) and build the bundled copy
-if (APPLE)
-    set(CMAKE_DISABLE_FIND_PACKAGE_s2n ON)
-endif()
-
 # Configure OpenSSL crypto library
 find_package(OpenSSL)
 add_library(crypto ALIAS OpenSSL::Crypto)
+
+# aws-c-io prefers find_package(s2n) over the CRT submodule. cmake-conan's
+# find_package provider then falls through to a Homebrew install
+# (/opt/homebrew/lib/s2n) on macOS ARM, whose AWS::s2n target requires
+# AWS::crypto from aws-lc. Keep s2n on the vendored submodule instead.
+set(CMAKE_DISABLE_FIND_PACKAGE_s2n ON)
 
 # Fix CMake errors for internal variables not set
 include(aws-sdk-cpp/cmake/compiler_settings.cmake)
 set_msvc_warnings()
 
 add_subdirectory(aws-sdk-cpp)
+
+unset(CMAKE_DISABLE_FIND_PACKAGE_s2n)
 
 # Restore ${CMAKE_CXX_FLAGS} now that aws-sdk-cpp has been added
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_PREV}")

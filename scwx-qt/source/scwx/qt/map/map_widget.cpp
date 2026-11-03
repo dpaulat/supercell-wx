@@ -8,6 +8,7 @@
 #include <scwx/qt/map/map_overlay_renderer.hpp>
 #include <scwx/qt/map/map_widget.hpp>
 #include <scwx/qt/render/render_backend.hpp>
+#include <scwx/qt/render/render_init.hpp>
 #include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/manager/hotkey_manager.hpp>
 #include <scwx/qt/manager/placefile_manager.hpp>
@@ -643,6 +644,14 @@ MapWidget::MapWidget(std::size_t                            id,
    grabGesture(Qt::GestureType::PinchGesture);
 
    ImGui_ImplQt_RegisterWidget(this);
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 9, 0)
+   connect(this,
+           &QRhiWidget::renderFailed,
+           this,
+           []()
+           { render::ReportGraphicsInitFailure("QRhiWidget::renderFailed"); });
+#endif
 
    // Qt parent deals with memory management
    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
@@ -2794,6 +2803,12 @@ void MapWidget::initialize(QRhiCommandBuffer* cb)
    Q_UNUSED(cb);
 
    logger_->debug("initialize()");
+
+   if (rhi() == nullptr)
+   {
+      render::ReportGraphicsInitFailure("QRhi is unavailable in MapWidget");
+      return;
+   }
 
    if (p->vulkanRenderingInitialized_)
    {

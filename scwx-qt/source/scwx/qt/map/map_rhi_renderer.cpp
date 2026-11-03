@@ -1,4 +1,5 @@
 #include <scwx/qt/map/map_rhi_renderer.hpp>
+#include <scwx/qt/render/render_init.hpp>
 
 #include <scwx/util/logger.hpp>
 
@@ -7,6 +8,8 @@
 #include <rhi/qrhi.h>
 #include <rhi/qrhi_platform.h>
 #include <QtGui/qwindow.h>
+
+#include <atomic>
 
 namespace scwx::qt::map
 {
@@ -38,9 +41,18 @@ void MapRhiRenderer::InitializeMapRenderer(QRhi*           rhi,
              vkHandles->dev != nullptr && window != nullptr &&
              vkHandles->inst != nullptr)
          {
-            if (window->vulkanInstance() == nullptr)
+            QVulkanInstance* windowInstance = window->vulkanInstance();
+            if (windowInstance == nullptr)
             {
                window->setVulkanInstance(vkHandles->inst);
+            }
+            else if (windowInstance != vkHandles->inst &&
+                     windowInstance->vkInstance() !=
+                        vkHandles->inst->vkInstance())
+            {
+               logger_->warn(
+                  "Window Vulkan instance does not match the QRhi Vulkan "
+                  "instance; MapLibre may render with mismatched handles");
             }
 
             map->createRendererWithQtVulkanDevice(window,
@@ -52,6 +64,14 @@ void MapRhiRenderer::InitializeMapRenderer(QRhi*           rhi,
             return;
          }
       }
+
+      logger_->error(
+         "QRhi Vulkan native handles unavailable (handles={}, window={}); "
+         "falling back to MapLibre-owned renderer",
+         nativeHandles != nullptr,
+         window != nullptr);
+      render::ReportGraphicsInitFailure(
+         "QRhi Vulkan native handles unavailable");
    }
 #else
    (void) window;
@@ -99,12 +119,32 @@ void MapRhiRenderer::CopyColorTexture(QRhi*              rhi,
    if (destination->pixelSize() != source->pixelSize() ||
        destination->format() != source->format())
    {
+      static std::atomic_bool logged {false};
+      if (!logged.exchange(true))
+      {
+         logger_->warn(
+            "Skipping color texture copy: size/format mismatch "
+            "(dst {}x{} fmt {}, src {}x{} fmt {})",
+            destination->pixelSize().width(),
+            destination->pixelSize().height(),
+            static_cast<int>(destination->format()),
+            source->pixelSize().width(),
+            source->pixelSize().height(),
+            static_cast<int>(source->format()));
+      }
       return;
    }
 
    QRhiResourceUpdateBatch* batch = rhi->nextResourceUpdateBatch();
    if (batch == nullptr)
    {
+      static std::atomic_bool logged {false};
+      if (!logged.exchange(true))
+      {
+         logger_->error(
+            "Skipping color texture copy: no resource update batch "
+            "available");
+      }
       return;
    }
 
