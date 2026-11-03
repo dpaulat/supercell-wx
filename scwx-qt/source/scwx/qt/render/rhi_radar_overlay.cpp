@@ -176,10 +176,12 @@ void RhiRadarOverlay::Shutdown()
    momentU32_.clear();
    cfpU32_.clear();
    lutRgba_.clear();
-   geometryUploaded_    = false;
-   lutUploaded_         = false;
-   uploadedVertexCount_ = 0;
-   initialized_         = false;
+   geometryUploaded_             = false;
+   lutUploaded_                  = false;
+   uploadedVertexCount_          = 0;
+   uploadedGeometryGeneration_   = 0;
+   uploadedColorTableGeneration_ = 0;
+   initialized_                  = false;
 }
 
 void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
@@ -193,8 +195,10 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
                              const std::uint32_t              vertexCount,
                              bool                             uploadGeometry,
                              bool                             uploadColorTable,
-                             QRhiResourceUpdateBatch*         resourceBatch,
-                             RhiOverlayPhase                  phase)
+                             const std::uint64_t      geometryGeneration,
+                             const std::uint64_t      colorTableGeneration,
+                             QRhiResourceUpdateBatch* resourceBatch,
+                             RhiOverlayPhase          phase)
 {
    if (!initialized_ || pipeline_ == nullptr || commandBuffer == nullptr ||
        vertexCount == 0 || rgbaColorTable.empty() ||
@@ -216,6 +220,24 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
                     vertexCapacity_ < vertexBytes ||
                     momentCapacity_ < momentBytes || cfpCapacity_ < momentBytes;
    uploadColorTable = uploadColorTable || !lutUploaded_;
+
+   // The per-pane GPU buffers and LUT outlive the layer (and view) that filled
+   // them. Never rely on the caller's "upload needed" flags alone: also upload
+   // whenever the GPU copy was produced from a different data generation, so a
+   // lost flag cannot leave the previous product's moments or colors on the
+   // GPU.
+   uploadGeometry =
+      uploadGeometry || geometryGeneration != uploadedGeometryGeneration_;
+   uploadColorTable =
+      uploadColorTable || colorTableGeneration != uploadedColorTableGeneration_;
+
+   if (!OverlayShouldUpload(phase) && (uploadGeometry || uploadColorTable))
+   {
+      // The draw-only phase cannot upload. Drawing now would show whatever
+      // product was previously resident on the GPU, so skip this frame; the
+      // next upload phase brings the GPU copy up to date.
+      return;
+   }
 
    if (uploadGeometry)
    {
@@ -298,7 +320,8 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
       SubmitOverlayBatch(commandBuffer, batch, resourceBatch, phase);
       if (uploadGeometry)
       {
-         uploadedVertexCount_ = vertexCount;
+         uploadedVertexCount_        = vertexCount;
+         uploadedGeometryGeneration_ = geometryGeneration;
 
          // The update batch owns copies of the expanded moments, which are
          // rebuilt from the source data for every geometry upload. Release the
@@ -308,6 +331,10 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
       }
       geometryUploaded_ = geometryUploaded_ || uploadGeometry;
       lutUploaded_      = lutUploaded_ || uploadColorTable;
+      if (uploadColorTable)
+      {
+         uploadedColorTableGeneration_ = colorTableGeneration;
+      }
    }
 
    if (!OverlayShouldDraw(phase))

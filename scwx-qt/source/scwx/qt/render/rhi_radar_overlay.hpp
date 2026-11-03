@@ -52,6 +52,8 @@ public:
                std::uint32_t                    vertexCount,
                bool                             uploadGeometry,
                bool                             uploadColorTable,
+               std::uint64_t                    geometryGeneration,
+               std::uint64_t                    colorTableGeneration,
                QRhiResourceUpdateBatch*         resourceBatch = nullptr,
                RhiOverlayPhase phase = RhiOverlayPhase::UploadAndDraw);
 
@@ -79,6 +81,8 @@ private:
    bool                        geometryUploaded_ {false};
    bool                        lutUploaded_ {false};
    std::uint32_t               uploadedVertexCount_ {0};
+   std::uint64_t               uploadedGeometryGeneration_ {0};
+   std::uint64_t               uploadedColorTableGeneration_ {0};
    bool                        initialized_ {false};
 };
 

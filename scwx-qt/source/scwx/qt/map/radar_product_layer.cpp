@@ -9,11 +9,13 @@
 #include <scwx/util/environment.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstring>
 
 #include <scwx/qt/render/render_backend.hpp>
+#include <scwx/qt/render/rhi_overlay_util.hpp>
 #include <scwx/qt/render/rhi_radar_overlay.hpp>
 #include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 
@@ -50,6 +52,13 @@ bool VulkanSmokeEnabled() noexcept
 
 static const std::string logPrefix_ = "scwx::qt::map::radar_product_layer";
 static const auto        logger_    = scwx::util::Logger::Create(logPrefix_);
+
+/// Returns a process-unique, non-zero identifier for a new copy of layer data.
+static std::uint64_t NextUploadGeneration()
+{
+   static std::atomic<std::uint64_t> counter {0};
+   return ++counter;
+}
 
 namespace
 {
@@ -95,6 +104,11 @@ public:
    bool sweepNeedsUpdate_ {false};
    bool colorTableUploadNeeded_ {true};
    bool sweepUploadNeeded_ {true};
+
+   // Process-unique identifiers of the data currently held by this layer. The
+   // GPU overlay compares them with what it last uploaded.
+   std::uint64_t sweepGeneration_ {0};
+   std::uint64_t colorTableGeneration_ {0};
 
    std::vector<float>        vertices_ {};
    std::vector<std::uint8_t> momentData_ {};
@@ -245,6 +259,7 @@ void RadarProductLayer::UpdateSweep(
 
    p->numVertices_       = vertices.size() / 2;
    p->sweepUploadNeeded_ = true;
+   p->sweepGeneration_   = NextUploadGeneration();
 
    // NOLINTEND(modernize-use-nullptr)
    // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
@@ -262,14 +277,21 @@ void RadarProductLayer::RenderVulkanOverlay(
    const std::shared_ptr<MapContext>&            mapContext,
    const QMapLibre::CustomLayerRenderParameters& params)
 {
-   if (p->colorTableNeedsUpdate_)
+   // Only refresh the layer's copy of the view data in the upload phase. The
+   // draw phase must render exactly what the upload phase uploaded for this
+   // frame: refreshing here would consume the "upload needed" state in a phase
+   // that cannot upload, leaving the previous product's data on the GPU.
+   if (render::OverlayShouldUpload(resources.phase))
    {
-      UpdateColorTable(mapContext);
-   }
+      if (p->colorTableNeedsUpdate_)
+      {
+         UpdateColorTable(mapContext);
+      }
 
-   if (p->sweepNeedsUpdate_)
-   {
-      UpdateSweep(mapContext);
+      if (p->sweepNeedsUpdate_)
+      {
+         UpdateSweep(mapContext);
+      }
    }
 
    const std::shared_ptr<view::RadarProductView> radarProductView =
@@ -352,10 +374,15 @@ void RadarProductLayer::RenderVulkanOverlay(
                                 static_cast<std::uint32_t>(p->numVertices_),
                                 p->sweepUploadNeeded_,
                                 p->colorTableUploadNeeded_,
+                                p->sweepGeneration_,
+                                p->colorTableGeneration_,
                                 resources.resourceBatch,
                                 resources.phase);
-         p->sweepUploadNeeded_      = false;
-         p->colorTableUploadNeeded_ = false;
+         if (render::OverlayShouldUpload(resources.phase))
+         {
+            p->sweepUploadNeeded_      = false;
+            p->colorTableUploadNeeded_ = false;
+         }
 
          if (VulkanSmokeEnabled())
          {
@@ -639,6 +666,7 @@ void RadarProductLayer::UpdateColorTable(
    p->rangeMin_               = rangeMin;
    p->scale_                  = scale;
    p->colorTableUploadNeeded_ = true;
+   p->colorTableGeneration_   = NextUploadGeneration();
 }
 
 } // namespace scwx::qt::map
