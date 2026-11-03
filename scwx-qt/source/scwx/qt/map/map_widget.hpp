@@ -161,7 +161,10 @@ public:
    void SetBasemapShareCallbacks(const MapBasemapShareCallbacks* callbacks);
    [[nodiscard]] QRhiTexture* basemap_color_texture() const;
    [[nodiscard]] QRhiTexture* basemap_symbology_texture() const;
-   [[nodiscard]] QRhi*        map_rhi() const;
+   /// Camera the basemap texture returned by basemap_color_texture() was
+   /// rendered with, if a basemap has been rendered.
+   [[nodiscard]] std::optional<MapViewSnapshot> basemap_rendered_view() const;
+   [[nodiscard]] QRhi*                          map_rhi() const;
 
    void SetInitialMapStyle(const std::string& styleName);
    void SetMapStyle(const std::string& styleName, bool force = false);

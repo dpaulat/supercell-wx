@@ -275,9 +275,15 @@ void GeoLines::Deinitialize()
 {
    std::unique_lock lock {p->lineMutex_};
 
-   p->currentLinesBuffer_.clear();
-   p->currentIntegerBuffer_.clear();
-   p->currentHoverLines_.clear();
+   // Only the GPU resources are released here. The CPU-side line list, vertex
+   // buffers and hover lines are deliberately kept: they are not GPU objects,
+   // and GeoLines can be shared between layer instances (for example the alert
+   // layers, see AlertLayerHandler::SharedGeoLines), where a layer that
+   // re-initializes (radar site change, pane rebuild) does not repopulate lines
+   // that were already populated. Clearing them here left currentLineList_
+   // populated but currentLinesBuffer_ empty, so RenderVulkan() returned early
+   // and the alert polygons never drew again (and could no longer be hovered).
+   // The next RenderVulkan() recreates the renderer and re-uploads geometry.
 
    for (auto& [rhi, entry] : p->geoRendererByRhi_)
    {

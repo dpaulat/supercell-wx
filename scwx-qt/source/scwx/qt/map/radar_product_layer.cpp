@@ -13,6 +13,7 @@
 #include <cmath>
 #include <cstring>
 
+#include <scwx/qt/render/render_backend.hpp>
 #include <scwx/qt/render/rhi_radar_overlay.hpp>
 #include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 
@@ -326,7 +327,8 @@ void RadarProductLayer::RenderVulkanOverlay(
          // Identity MVP; map matrix alone places bins in clip space.
          uniforms.uMVPMatrix = glm::mat4 {1.0f};
          uniforms.uMapMatrix = glm::scale(
-            glm::mat4 {1.0f}, glm::vec3(mapScale.x, -mapScale.y, 1.0f));
+            glm::mat4 {1.0f},
+            glm::vec3(mapScale.x, render::kMapMatrixYSign * mapScale.y, 1.0f));
          uniforms.uMapMatrix =
             glm::rotate(uniforms.uMapMatrix,
                         glm::radians<float>(static_cast<float>(params.bearing)),

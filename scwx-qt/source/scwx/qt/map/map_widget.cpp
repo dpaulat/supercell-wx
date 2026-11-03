@@ -402,6 +402,8 @@ public:
    void               ReleaseSymbologyTexture();
    void               RenderSymbology(QRhiCommandBuffer* commandBuffer);
    [[nodiscard]] bool BasemapSnapshotUsable() const;
+   [[nodiscard]] MapViewSnapshot CurrentMapView() const;
+   [[nodiscard]] bool            BasemapSnapshotMatchesCamera() const;
    void               RestoreBasemapSnapshot(QRhiCommandBuffer* commandBuffer);
    void               RenderMapAndSnapshot(QRhiCommandBuffer* commandBuffer);
    [[nodiscard]] bool MapStyleReadyForRender() const
@@ -546,6 +548,12 @@ public:
 
    bool mapNeedsRender_ {true};
    bool overlayNeedsRender_ {true};
+
+   // Camera the basemap snapshot (basemapTexture_) was rendered with. Other
+   // panes that copy this basemap must draw their overlays with this camera,
+   // not with their own (possibly newer) map_ camera.
+   std::optional<MapViewSnapshot> basemapRenderedView_ {};
+
    bool syncingLinkedView_ {false};
 
    double prevLatitude_ {0.0};
@@ -1839,6 +1847,11 @@ void MapWidget::SetBasemapShareCallbacks(
 QRhiTexture* MapWidget::basemap_color_texture() const
 {
    return p->basemapTexture_;
+}
+
+std::optional<MapViewSnapshot> MapWidget::basemap_rendered_view() const
+{
+   return p->basemapRenderedView_;
 }
 
 QRhiTexture* MapWidget::basemap_symbology_texture() const
@@ -3317,6 +3330,7 @@ void MapWidgetImpl::RenderMapAndSnapshot(QRhiCommandBuffer* commandBuffer)
    RenderSymbology(commandBuffer);
 
    rhiRenderer_.RenderMap(colorTexture, map_.get());
+   basemapRenderedView_ = CurrentMapView();
 
    EnsureBasemapTexture();
    if (basemapTexture_ == nullptr || commandBuffer == nullptr)
@@ -3327,6 +3341,35 @@ void MapWidgetImpl::RenderMapAndSnapshot(QRhiCommandBuffer* commandBuffer)
    MapRhiRenderer::CopyColorTexture(
       widget_->rhi(), commandBuffer, basemapTexture_, colorTexture);
    basemapSnapshotValid_ = true;
+}
+
+MapViewSnapshot MapWidgetImpl::CurrentMapView() const
+{
+   MapViewSnapshot view {};
+   if (map_ != nullptr)
+   {
+      view.latitude_  = map_->latitude();
+      view.longitude_ = map_->longitude();
+      view.zoom_      = map_->zoom();
+      view.bearing_   = map_->bearing();
+      view.pitch_     = map_->pitch();
+   }
+   return view;
+}
+
+bool MapWidgetImpl::BasemapSnapshotMatchesCamera() const
+{
+   if (!basemapRenderedView_.has_value())
+   {
+      return false;
+   }
+
+   const MapViewSnapshot current = CurrentMapView();
+   return basemapRenderedView_->latitude_ == current.latitude_ &&
+          basemapRenderedView_->longitude_ == current.longitude_ &&
+          basemapRenderedView_->zoom_ == current.zoom_ &&
+          basemapRenderedView_->bearing_ == current.bearing_ &&
+          basemapRenderedView_->pitch_ == current.pitch_;
 }
 
 bool MapWidgetImpl::BasemapSnapshotUsable() const
@@ -3434,8 +3477,16 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
    // Render MapLibre only when the basemap is dirty (or no usable snapshot
    // exists). Overlay-only frames, such as hover repaints, restore the cached
    // basemap snapshot instead.
+   //
+   // The snapshot must also match the camera the overlays are drawn with. A
+   // view-linked pane (SetMapParameters with linkedViewSync) does not mark its
+   // basemap dirty, since it is expected to follow the leader's basemap. When
+   // basemap sharing does not apply (for example pane sizes differ by a
+   // pixel), the pane renders its own basemap, and restoring the old snapshot
+   // would leave the roads/labels one or more frames behind the radar.
    const bool renderMapThisFrame =
-      selfBasemap && (mapNeedsRender_ || !BasemapSnapshotUsable());
+      selfBasemap && (mapNeedsRender_ || !BasemapSnapshotUsable() ||
+                      !BasemapSnapshotMatchesCamera());
 
    const auto mapStart  = std::chrono::steady_clock::now();
    queuedMapSize_       = widget_->size();
@@ -3504,9 +3555,36 @@ void MapWidgetImpl::RenderFrameVulkan(QRhiCommandBuffer* commandBuffer)
 
    UpdateMeasureLabels();
 
-   const QMapLibre::CustomLayerRenderParameters overlayParams =
+   // Overlay parameters use the logical (device independent) widget size, like
+   // the MapLibre custom layer parameters they stand in for: MapLibre's zoom
+   // is defined in logical pixels, and ImGui and mouse coordinates are logical
+   // too. The framebuffer is renderWidth x renderHeight physical pixels.
+   QMapLibre::CustomLayerRenderParameters overlayParams =
       util::maplibre::BuildOverlayRenderParameters(
-         *map_, renderWidth, renderHeight);
+         *map_,
+         static_cast<double>(widget_->size().width()),
+         static_cast<double>(widget_->size().height()));
+
+   if (basemapCopied && basemapShareCallbacks_ != nullptr &&
+       basemapShareCallbacks_->leaderRenderedView_ != nullptr)
+   {
+      // This pane's basemap is a copy of the leader's last rendered basemap,
+      // which may predate this pane's own (just synced) camera, e.g. when this
+      // pane is painted before the leader in the same event loop pass. Draw the
+      // overlays with the camera the basemap was actually rendered with so
+      // they stay locked to it; the leader's next render wakes this pane again
+      // (notifyRendered_) to catch up.
+      if (const auto leaderView = basemapShareCallbacks_->leaderRenderedView_(
+             basemapShareDecision.leaderIndex_);
+          leaderView.has_value())
+      {
+         overlayParams.latitude  = leaderView->latitude_;
+         overlayParams.longitude = leaderView->longitude_;
+         overlayParams.zoom      = leaderView->zoom_;
+         overlayParams.bearing   = leaderView->bearing_;
+         overlayParams.pitch     = leaderView->pitch_;
+      }
+   }
 
    const auto imguiStart = std::chrono::steady_clock::now();
 
@@ -3814,14 +3892,12 @@ void MapWidgetImpl::RunMousePicking()
       return;
    }
 
-   const double pixelRatio = widget_->devicePixelRatioF();
-   const double renderWidth =
-      static_cast<double>(widget_->size().width()) * pixelRatio;
-   const double renderHeight =
-      static_cast<double>(widget_->size().height()) * pixelRatio;
+   // Logical widget size, same as the render pass (see RenderFrameVulkan)
    const QMapLibre::CustomLayerRenderParameters params =
       util::maplibre::BuildOverlayRenderParameters(
-         *map_, renderWidth, renderHeight);
+         *map_,
+         static_cast<double>(widget_->size().width()),
+         static_cast<double>(widget_->size().height()));
 
    auto coordinate = map_->coordinateForPixel(lastPos_);
    auto mouseScreenCoordinate =

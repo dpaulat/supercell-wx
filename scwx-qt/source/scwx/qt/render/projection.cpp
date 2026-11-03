@@ -1,4 +1,5 @@
 #include <scwx/qt/render/projection.hpp>
+#include <scwx/qt/render/render_backend.hpp>
 #include <scwx/qt/render/rhi_geo_uniforms.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 
@@ -36,14 +37,17 @@ static bool IsMapColorTriangleVisible(std::int32_t threshold,
 glm::mat4
 OrthoMapProjection(const QMapLibre::CustomLayerRenderParameters& params)
 {
-   // Y-up, origin at the bottom-left (MapLibre / GL). Overlay shaders are
-   // consumed as-is on Vulkan/Metal, whose native NDC is Y-down. glm::ortho
-   // maps `bottom` → NDC -1 (Vulkan top) and `top` → NDC +1 (Vulkan bottom),
-   // so pass height as bottom and 0 as top.
-   return glm::ortho(0.0f,
-                     static_cast<float>(params.width),
-                     static_cast<float>(params.height),
-                     0.0f);
+   // Y-up in map space, origin at the bottom-left (MapLibre / GL). Overlay
+   // shaders write this straight to gl_Position, so it has to follow the
+   // backend's NDC convention (QRhi::isYUpInNDC()):
+   //  - Vulkan: NDC +1 is the bottom of the framebuffer, so pass height as
+   //    `bottom` and 0 as `top` (y = 0 -> +1 = bottom).
+   //  - Metal: NDC +1 is the top, so a plain GL-style ortho puts y = 0 at the
+   //    bottom.
+   const float width  = static_cast<float>(params.width);
+   const float height = static_cast<float>(params.height);
+   return kNdcYUp ? glm::ortho(0.0f, width, 0.0f, height) :
+                    glm::ortho(0.0f, width, height, 0.0f);
 }
 
 std::vector<float> TransformMapColorVertices(

@@ -45,9 +45,11 @@ struct MapBasemapShareCallbacks
    std::function<QRhiTexture*(std::size_t)> leaderTexture_ {};
    std::function<QRhiTexture*(std::size_t)> leaderSymbologyTexture_ {};
    std::function<QRhi*(std::size_t)>        leaderRhi_ {};
-   std::function<std::uint64_t()>           basemapGeneration_ {};
-   std::function<void(std::size_t)>         notifyRendered_ {};
-   std::function<void(std::size_t)>         notifyOverlayDirty_ {};
+   std::function<std::optional<MapViewSnapshot>(std::size_t)>
+                                    leaderRenderedView_ {};
+   std::function<std::uint64_t()>   basemapGeneration_ {};
+   std::function<void(std::size_t)> notifyRendered_ {};
+   std::function<void(std::size_t)> notifyOverlayDirty_ {};
 };
 
 [[nodiscard]] bool

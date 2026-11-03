@@ -1290,6 +1290,17 @@ void MainWindowImpl::ConfigureBasemapSharing()
       return maps_.at(leaderIndex)->map_rhi();
    };
 
+   basemapShareCallbacks_.leaderRenderedView_ =
+      [this](
+         const std::size_t leaderIndex) -> std::optional<map::MapViewSnapshot>
+   {
+      if (leaderIndex >= maps_.size() || maps_.at(leaderIndex) == nullptr)
+      {
+         return std::nullopt;
+      }
+      return maps_.at(leaderIndex)->basemap_rendered_view();
+   };
+
    basemapShareCallbacks_.basemapGeneration_ = [this]() -> std::uint64_t
    {
       return basemapShareState_.basemapGeneration();

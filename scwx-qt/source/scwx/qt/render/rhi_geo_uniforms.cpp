@@ -1,5 +1,6 @@
 #include <scwx/qt/render/rhi_geo_uniforms.hpp>
 #include <scwx/qt/render/projection.hpp>
+#include <scwx/qt/render/render_backend.hpp>
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/util/time.hpp>
 
@@ -25,7 +26,8 @@ BuildGeoUniforms(const QMapLibre::CustomLayerRenderParameters& params,
 
    const glm::vec2 mapScale = util::maplibre::GetMapScale(params);
    uniforms.uMapMatrix =
-      glm::scale(glm::mat4 {1.0f}, glm::vec3(mapScale.x, -mapScale.y, 1.0f));
+      glm::scale(glm::mat4 {1.0f},
+                 glm::vec3(mapScale.x, kMapMatrixYSign * mapScale.y, 1.0f));
    uniforms.uMapMatrix =
       glm::rotate(uniforms.uMapMatrix,
                   glm::radians<float>(static_cast<float>(params.bearing)),

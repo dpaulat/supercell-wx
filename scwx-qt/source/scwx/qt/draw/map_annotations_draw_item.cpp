@@ -4,6 +4,7 @@
 #include <scwx/qt/util/maplibre.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <scwx/qt/render/render_backend.hpp>
 #include <scwx/qt/render/rhi_colored_geometry.hpp>
 #include <scwx/qt/render/rhi_vulkan_overlay.hpp>
 
@@ -1450,9 +1451,10 @@ void MapAnnotationsDrawItem::RenderVulkan(
    const QMapLibre::CustomLayerRenderParameters& params,
    bool /* textureAtlasChanged */)
 {
-   const glm::vec2 mapScale = util::maplibre::GetMapScale(params);
-   glm::mat4       mapMatrix =
-      glm::scale(glm::mat4 {1.0f}, glm::vec3(mapScale.x, -mapScale.y, 1.0f));
+   const glm::vec2 mapScale  = util::maplibre::GetMapScale(params);
+   glm::mat4       mapMatrix = glm::scale(
+      glm::mat4 {1.0f},
+      glm::vec3(mapScale.x, render::kMapMatrixYSign * mapScale.y, 1.0f));
    mapMatrix =
       glm::rotate(mapMatrix,
                   glm::radians<float>(static_cast<float>(params.bearing)),
