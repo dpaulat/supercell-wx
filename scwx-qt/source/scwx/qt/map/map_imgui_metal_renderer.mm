@@ -103,8 +103,11 @@ bool MapImGuiMetalRenderer::InitBackend(QRhiTexture* colorTexture)
 void MapImGuiMetalRenderer::Initialize(QRhi*         rhi,
                                        QRhiTexture*  colorTexture,
                                        void* /* renderPass */,
-                                       ImGuiContext* imGuiContext)
+                                       ImGuiContext* imGuiContext,
+                                       int /* sampleCount */)
 {
+   // ImGui's Metal backend reads the sample count from the attachment
+   // texture, so the explicit value is not needed here.
    if (rhi == nullptr)
    {
       return;

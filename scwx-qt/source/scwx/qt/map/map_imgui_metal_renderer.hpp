@@ -16,7 +16,8 @@ public:
    void Initialize(QRhi*        rhi,
                    QRhiTexture* colorTexture,
                    void* /* renderPass */,
-                   ImGuiContext* imGuiContext);
+                   ImGuiContext* imGuiContext,
+                   int /* sampleCount */ = 1);
    void Shutdown();
    void UpdateRenderPass(void* /* renderPass */);
 
