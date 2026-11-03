@@ -10,6 +10,8 @@
 #include <imgui.h>
 
 #include <algorithm>
+#include <cstddef>
+#include <iterator>
 #include <mbgl/util/constants.hpp>
 
 namespace scwx::qt::gl::draw
@@ -130,13 +132,13 @@ void PlacefileText::Render(const QMapLibre::CustomLayerRenderParameters& params)
       // The window is larger than the display on every side, because ImGui
       // insets a window's clip rectangle by its padding, which would otherwise
       // clip text at the edges of the viewport.
-      static constexpr float kWindowMargin = 32.0f;
+      static constexpr float kWindowMargin      = 32.0f;
+      static constexpr float kWindowMarginTotal = kWindowMargin * 2.0f;
       ImGui::SetNextWindowPos(ImVec2 {-kWindowMargin, -kWindowMargin},
                               ImGuiCond_Always);
-      ImGui::SetNextWindowSize(
-         ImVec2 {p->displaySize_.x + 2.0f * kWindowMargin,
-                 p->displaySize_.y + 2.0f * kWindowMargin},
-         ImGuiCond_Always);
+      ImGui::SetNextWindowSize(ImVec2 {p->displaySize_.x + kWindowMarginTotal,
+                                       p->displaySize_.y + kWindowMarginTotal},
+                               ImGuiCond_Always);
       const std::string windowName {
          fmt::format("PlacefileText-{}", p->placefileName_)};
       if (ImGui::Begin(windowName.c_str(),
@@ -264,16 +266,21 @@ void PlacefileText::Impl::RenderText(
       return;
    }
 
-   const char*  textBegin = text.c_str();
-   const char*  textEnd   = textBegin + text.size();
-   const ImVec2 textSize  = ImGui::CalcTextSize(textBegin, textEnd);
+   const char* textBegin = text.data();
+   const char* textEnd =
+      std::next(textBegin, static_cast<std::ptrdiff_t>(text.size()));
+   const ImVec2 textSize = ImGui::CalcTextSize(textBegin, textEnd);
+
+   // WindowPadding is applied on both sides of the window
+   static constexpr float kPaddingSides = 2.0f;
 
    // Reproduce the layout of an auto-resized, centered ImGui window that
    // contains the text (WindowPadding on each side, minimum window size).
-   ImVec2       windowSize {std::max(textSize.x + style.WindowPadding.x * 2.0f,
-                               style.WindowMinSize.x),
-                      std::max(textSize.y + style.WindowPadding.y * 2.0f,
-                               style.WindowMinSize.y)};
+   const ImVec2 windowSize {
+      std::max(textSize.x + style.WindowPadding.x * kPaddingSides,
+               style.WindowMinSize.x),
+      std::max(textSize.y + style.WindowPadding.y * kPaddingSides,
+               style.WindowMinSize.y)};
    const ImVec2 windowPos {
       static_cast<float>(static_cast<int>(x - windowSize.x * 0.5f)),
       static_cast<float>(static_cast<int>(y - windowSize.y * 0.5f))};
