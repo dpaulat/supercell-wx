@@ -82,21 +82,31 @@ static void AppendAnnotationTriangleVertices(std::vector<float>&       out,
    }
 }
 
-static std::vector<float>
-BuildColoredAnnotationVertices(const std::vector<float>& in,
-                               std::uint32_t             vertexCount,
-                               const glm::mat4&          mapMatrix,
-                               const glm::vec2&          origin)
+/** Projects triangles [firstVertex, vertexCount) of @p in to clip space and
+ * appends them to @p out. Triangles are independent, so a caller that only
+ * appended geometry can pass the count it already projected as firstVertex. */
+static void BuildColoredAnnotationVertices(std::vector<float>&       out,
+                                           const std::vector<float>& in,
+                                           std::uint32_t    firstVertex,
+                                           std::uint32_t    vertexCount,
+                                           const glm::mat4& mapMatrix,
+                                           const glm::vec2& origin)
 {
-   std::vector<float> out;
-   if (vertexCount <= 0)
+   if (vertexCount <= firstVertex)
    {
-      return out;
+      return;
    }
 
    const std::size_t count = static_cast<std::size_t>(vertexCount);
-   out.reserve(count * 7);
-   for (std::size_t vertex = 0; vertex + 2 < count; vertex += 3)
+   // Whole triangles only.
+   const std::size_t first = (static_cast<std::size_t>(firstVertex) / 3) * 3;
+   if (first == 0)
+   {
+      // Only reserve on a fresh build; reserving the exact size on every small
+      // append would reallocate and copy the whole vector each time.
+      out.reserve((count - first) * 7);
+   }
+   for (std::size_t vertex = first; vertex + 2 < count; vertex += 3)
    {
       const std::size_t base       = vertex * kFloatsPerVertex;
       const float       arcLen     = in[base + 6];
@@ -110,8 +120,6 @@ BuildColoredAnnotationVertices(const std::vector<float>& in,
 
       AppendAnnotationTriangleVertices(out, in, base, mapMatrix, origin);
    }
-
-   return out;
 }
 
 static std::pair<float, float> DashAttribs(const map::MapAnnotationStyle& st)
@@ -284,6 +292,89 @@ static void AppendJoinBevelBothSides(std::vector<float>&         out,
                   dashDuty);
 }
 
+/** Running state needed to continue an open polyline stroke where the previous
+ * call stopped (end-edge corners of the last segment and the dash arc length).
+ */
+struct PolylineStrokeState
+{
+   common::Coordinate prevEndLeft {};
+   common::Coordinate prevEndRight {};
+   bool               havePrev {false};
+   float              arcLen {0.0f};
+};
+
+/** Tessellates segments [firstSeg, numSeg) of @p ring, continuing from @p
+ * state. With firstSeg == 0 and a default state this is the whole stroke. */
+static void AppendPolylineSegments(std::vector<float>&                    out,
+                                   const std::vector<common::Coordinate>& ring,
+                                   bool                          closed,
+                                   std::size_t                   firstSeg,
+                                   std::size_t                   numSeg,
+                                   PolylineStrokeState&          state,
+                                   units::length::meters<double> strokeWidthM,
+                                   const std::array<float, 4>&   rgba,
+                                   const ::GeographicLib::Geodesic& geod,
+                                   float                            dashPeriodM,
+                                   float                            dashDuty)
+{
+   const std::size_t n     = ring.size();
+   const auto        halfW = strokeWidthM * 0.5;
+
+   for (std::size_t s = firstSeg; s < numSeg; ++s)
+   {
+      const common::Coordinate& a = closed ? ring[s % n] : ring[s];
+      const common::Coordinate& b = closed ? ring[(s + 1) % n] : ring[s + 1];
+
+      double             s12 {};
+      common::Coordinate leftA;
+      common::Coordinate rightA;
+      common::Coordinate leftB;
+      common::Coordinate rightB;
+      GeoStrokeSegmentCorners(
+         a, b, halfW, geod, s12, leftA, rightA, leftB, rightB);
+
+      if (state.havePrev)
+      {
+         const common::Coordinate& p0 =
+            closed ? ring[(s + n - 1) % n] : ring[s - 1];
+         const common::Coordinate& p1 = closed ? ring[s % n] : ring[s];
+         const common::Coordinate& p2 =
+            closed ? ring[(s + 1) % n] : ring[s + 1];
+
+         AppendJoinBevelBothSides(out,
+                                  state.prevEndLeft,
+                                  state.prevEndRight,
+                                  leftA,
+                                  rightA,
+                                  p1,
+                                  rgba,
+                                  state.arcLen,
+                                  dashPeriodM,
+                                  dashDuty,
+                                  ScreenLatLon(p0),
+                                  ScreenLatLon(p1),
+                                  ScreenLatLon(p2));
+      }
+
+      const float arcA = state.arcLen;
+      state.arcLen += static_cast<float>(s12);
+      AppendSegmentQuad(out,
+                        leftA,
+                        rightA,
+                        leftB,
+                        rightB,
+                        rgba,
+                        arcA,
+                        state.arcLen,
+                        dashPeriodM,
+                        dashDuty);
+
+      state.prevEndLeft  = leftB;
+      state.prevEndRight = rightB;
+      state.havePrev     = true;
+   }
+}
+
 static void AppendPolylineStroke(std::vector<float>&                    out,
                                  const std::vector<common::Coordinate>& pts,
                                  bool                                   closed,
@@ -308,13 +399,10 @@ static void AppendPolylineStroke(std::vector<float>&                    out,
    {
       return;
    }
-   const auto        halfW = strokeWidthM * 0.5;
-   float             arcLen {0.0f};
+   const auto        halfW  = strokeWidthM * 0.5;
    const std::size_t numSeg = closed ? n : n - 1;
 
-   common::Coordinate prevEndLeft {};
-   common::Coordinate prevEndRight {};
-   bool               havePrev = false;
+   PolylineStrokeState state {};
 
    if (closed && n >= 3)
    {
@@ -334,64 +422,22 @@ static void AppendPolylineStroke(std::vector<float>&                    out,
                               wrapRb);
       (void) wrapLa;
       (void) wrapRa;
-      prevEndLeft  = wrapLb;
-      prevEndRight = wrapRb;
-      havePrev     = true;
+      state.prevEndLeft  = wrapLb;
+      state.prevEndRight = wrapRb;
+      state.havePrev     = true;
    }
 
-   for (std::size_t s = 0; s < numSeg; ++s)
-   {
-      const common::Coordinate& a = closed ? ring[s % n] : ring[s];
-      const common::Coordinate& b = closed ? ring[(s + 1) % n] : ring[s + 1];
-
-      double             s12 {};
-      common::Coordinate leftA;
-      common::Coordinate rightA;
-      common::Coordinate leftB;
-      common::Coordinate rightB;
-      GeoStrokeSegmentCorners(
-         a, b, halfW, geod, s12, leftA, rightA, leftB, rightB);
-
-      if (havePrev)
-      {
-         const common::Coordinate& p0 =
-            closed ? ring[(s + n - 1) % n] : ring[s - 1];
-         const common::Coordinate& p1 = closed ? ring[s % n] : ring[s];
-         const common::Coordinate& p2 =
-            closed ? ring[(s + 1) % n] : ring[s + 1];
-
-         AppendJoinBevelBothSides(out,
-                                  prevEndLeft,
-                                  prevEndRight,
-                                  leftA,
-                                  rightA,
-                                  p1,
-                                  rgba,
-                                  arcLen,
-                                  dashPeriodM,
-                                  dashDuty,
-                                  ScreenLatLon(p0),
-                                  ScreenLatLon(p1),
-                                  ScreenLatLon(p2));
-      }
-
-      const float arcA = arcLen;
-      arcLen += static_cast<float>(s12);
-      AppendSegmentQuad(out,
-                        leftA,
-                        rightA,
-                        leftB,
-                        rightB,
-                        rgba,
-                        arcA,
-                        arcLen,
-                        dashPeriodM,
-                        dashDuty);
-
-      prevEndLeft  = leftB;
-      prevEndRight = rightB;
-      havePrev     = true;
-   }
+   AppendPolylineSegments(out,
+                          ring,
+                          closed,
+                          0,
+                          numSeg,
+                          state,
+                          strokeWidthM,
+                          rgba,
+                          geod,
+                          dashPeriodM,
+                          dashDuty);
 }
 
 static constexpr int kRoundBrushDiskSegments = 48;
@@ -835,17 +881,39 @@ public:
    bool gpuModelDirty_ {true};
    bool gpuPreviewDirty_ {true};
 
-   // Screen-space verts rebuilt only when model/preview or map camera moves.
+   // Screen-space verts. The committed (model) and in-progress (preview)
+   // parts are cached separately so drawing a stroke does not re-project every
+   // committed stroke on each mouse move. Rebuilt when the map camera moves.
    std::vector<float> cachedScreenVertices_ {};
+   std::vector<float> modelFillBuilt_ {};
+   std::vector<float> modelStrokeBuilt_ {};
+   std::vector<float> previewFillBuilt_ {};
+   std::vector<float> previewStrokeBuilt_ {};
    glm::mat4          cachedMapMatrix_ {1.0f};
    glm::vec2          cachedOrigin_ {0.0f, 0.0f};
    bool               screenCacheValid_ {false};
 
-   void InvalidateScreenCache() { screenCacheValid_ = false; }
+   // Preview vertices already projected into the *Built_ vectors above. Valid
+   // only while the preview has only grown since the last projection.
+   std::uint32_t previewFillProjected_ {0};
+   std::uint32_t previewStrokeProjected_ {0};
+   bool          previewResetProjection_ {true};
+
+   // Incremental freehand preview: while true, previewStrokeVertices_ holds the
+   // stroke for previewPts_ and can be extended in place when points are
+   // appended (previewStrokeState_ is where tessellation stopped).
+   bool                previewStrokeIncremental_ {false};
+   PolylineStrokeState previewStrokeState_ {};
 
    void RebuildCommittedGeometry();
    void FlattenModelVertices();
    void RebuildPreviewGeometry();
+   void BuildPreviewStroke();
+   bool CanExtendPreview(const std::vector<common::Coordinate>& pts,
+                         const map::MapAnnotationStyle&         style,
+                         bool                                   roundStroke,
+                         bool committedRoundMeshPreview) const;
+   void ExtendPreviewStroke(std::size_t oldPointCount);
 };
 
 MapAnnotationsDrawItem::MapAnnotationsDrawItem(
@@ -1106,20 +1174,20 @@ void MapAnnotationsDrawItem::Impl::FlattenModelVertices()
    fillModelCount_ =
       static_cast<std::uint32_t>(modelFillVertices_.size() / kFloatsPerVertex);
    gpuModelDirty_ = true;
-   InvalidateScreenCache();
 }
 
 void MapAnnotationsDrawItem::Impl::RebuildPreviewGeometry()
 {
    previewStrokeVertices_.clear();
    previewFillVertices_.clear();
-   strokePreviewCount_ = 0;
-   fillPreviewCount_   = 0;
+   strokePreviewCount_       = 0;
+   fillPreviewCount_         = 0;
+   previewStrokeIncremental_ = false;
+   previewResetProjection_   = true;
 
    if (!previewActive_)
    {
       gpuPreviewDirty_ = true;
-      InvalidateScreenCache();
       return;
    }
 
@@ -1165,7 +1233,6 @@ void MapAnnotationsDrawItem::Impl::RebuildPreviewGeometry()
       if (previewPts_.empty())
       {
          gpuPreviewDirty_ = true;
-         InvalidateScreenCache();
          return;
       }
       if (previewCommittedRoundMesh_)
@@ -1178,15 +1245,7 @@ void MapAnnotationsDrawItem::Impl::RebuildPreviewGeometry()
       }
       else if (previewPts_.size() >= 2)
       {
-         const auto dash = DashAttribs(previewStyle_);
-         AppendPolylineStroke(previewStrokeVertices_,
-                              previewPts_,
-                              false,
-                              previewStyle_.strokeWidthM,
-                              previewStyle_.strokeColor,
-                              geod,
-                              dash.first,
-                              dash.second);
+         BuildPreviewStroke();
       }
       else if (previewPts_.size() == 1)
       {
@@ -1202,18 +1261,9 @@ void MapAnnotationsDrawItem::Impl::RebuildPreviewGeometry()
       if (previewPts_.size() < 2)
       {
          gpuPreviewDirty_ = true;
-         InvalidateScreenCache();
          return;
       }
-      const auto dash = DashAttribs(previewStyle_);
-      AppendPolylineStroke(previewStrokeVertices_,
-                           previewPts_,
-                           false,
-                           previewStyle_.strokeWidthM,
-                           previewStyle_.strokeColor,
-                           geod,
-                           dash.first,
-                           dash.second);
+      BuildPreviewStroke();
    }
 
    strokePreviewCount_ = static_cast<std::uint32_t>(
@@ -1221,7 +1271,86 @@ void MapAnnotationsDrawItem::Impl::RebuildPreviewGeometry()
    fillPreviewCount_ = static_cast<std::uint32_t>(previewFillVertices_.size() /
                                                   kFloatsPerVertex);
    gpuPreviewDirty_  = true;
-   InvalidateScreenCache();
+}
+
+/** Tessellates the whole preview polyline and remembers where it stopped so
+ * later appended points only cost their own segments. */
+void MapAnnotationsDrawItem::Impl::BuildPreviewStroke()
+{
+   const auto& geod = util::GeographicLib::DefaultGeodesic();
+   const auto  dash = DashAttribs(previewStyle_);
+
+   previewStrokeState_ = {};
+   AppendPolylineSegments(previewStrokeVertices_,
+                          previewPts_,
+                          false,
+                          0,
+                          previewPts_.size() - 1,
+                          previewStrokeState_,
+                          previewStyle_.strokeWidthM,
+                          previewStyle_.strokeColor,
+                          geod,
+                          dash.first,
+                          dash.second);
+   previewStrokeIncremental_ = true;
+}
+
+/** True when the new preview is the old one plus appended points, so the
+ * existing preview vertices stay valid. */
+bool MapAnnotationsDrawItem::Impl::CanExtendPreview(
+   const std::vector<common::Coordinate>& pts,
+   const map::MapAnnotationStyle&         style,
+   bool                                   roundStroke,
+   bool                                   committedRoundMeshPreview) const
+{
+   if (!previewActive_ || !previewStrokeIncremental_ ||
+       previewShape_ != PreviewShape::Polyline ||
+       previewRoundStroke_ != roundStroke ||
+       previewCommittedRoundMesh_ != committedRoundMeshPreview ||
+       previewPts_.size() < 2 || pts.size() < previewPts_.size())
+   {
+      return false;
+   }
+
+   const auto& a = previewStyle_;
+   if (a.strokeWidthM != style.strokeWidthM ||
+       a.strokeColor != style.strokeColor ||
+       a.strokeStyle != style.strokeStyle || a.dashPeriodM != style.dashPeriodM)
+   {
+      return false;
+   }
+
+   return std::equal(
+      previewPts_.begin(),
+      previewPts_.end(),
+      pts.begin(),
+      [](const common::Coordinate& x, const common::Coordinate& y)
+      { return x.latitude_ == y.latitude_ && x.longitude_ == y.longitude_; });
+}
+
+void MapAnnotationsDrawItem::Impl::ExtendPreviewStroke(
+   std::size_t oldPointCount)
+{
+   const auto& geod = util::GeographicLib::DefaultGeodesic();
+   const auto  dash = DashAttribs(previewStyle_);
+
+   // The segment that used to end at the last old point is already built; the
+   // next segment to build starts there.
+   AppendPolylineSegments(previewStrokeVertices_,
+                          previewPts_,
+                          false,
+                          oldPointCount - 1,
+                          previewPts_.size() - 1,
+                          previewStrokeState_,
+                          previewStyle_.strokeWidthM,
+                          previewStyle_.strokeColor,
+                          geod,
+                          dash.first,
+                          dash.second);
+
+   strokePreviewCount_ = static_cast<std::uint32_t>(
+      previewStrokeVertices_.size() / kFloatsPerVertex);
+   gpuPreviewDirty_ = true;
 }
 
 void MapAnnotationsDrawItem::Initialize()
@@ -1237,6 +1366,22 @@ void MapAnnotationsDrawItem::SetPreviewPolyline(
    bool                                   roundStroke,
    bool                                   committedRoundMeshPreview)
 {
+   // Freehand drawing calls this on every mouse move with the same points plus
+   // a few new ones; only tessellate the new part.
+   if (p->CanExtendPreview(pts, style, roundStroke, committedRoundMeshPreview))
+   {
+      const std::size_t oldPointCount = p->previewPts_.size();
+      if (pts.size() > oldPointCount)
+      {
+         p->previewPts_.insert(p->previewPts_.end(),
+                               pts.begin() +
+                                  static_cast<std::ptrdiff_t>(oldPointCount),
+                               pts.end());
+         p->ExtendPreviewStroke(oldPointCount);
+      }
+      return;
+   }
+
    p->previewPts_                = pts;
    p->previewStyle_              = style;
    p->previewRoundStroke_        = roundStroke;
@@ -1288,10 +1433,11 @@ void MapAnnotationsDrawItem::ClearPreview()
    p->previewPts_.clear();
    p->previewStrokeVertices_.clear();
    p->previewFillVertices_.clear();
-   p->strokePreviewCount_ = 0;
-   p->fillPreviewCount_   = 0;
-   p->gpuPreviewDirty_    = true;
-   p->InvalidateScreenCache();
+   p->strokePreviewCount_       = 0;
+   p->fillPreviewCount_         = 0;
+   p->gpuPreviewDirty_          = true;
+   p->previewStrokeIncremental_ = false;
+   p->previewResetProjection_   = true;
 }
 
 void MapAnnotationsDrawItem::Rebuild()
@@ -1468,27 +1614,66 @@ void MapAnnotationsDrawItem::RenderVulkan(
 
    if (cameraChanged || p->gpuModelDirty_ || p->gpuPreviewDirty_)
    {
+      if (cameraChanged || p->gpuModelDirty_)
+      {
+         p->modelFillBuilt_.clear();
+         p->modelStrokeBuilt_.clear();
+         BuildColoredAnnotationVertices(p->modelFillBuilt_,
+                                        p->modelFillVertices_,
+                                        0,
+                                        p->fillModelCount_,
+                                        mapMatrix,
+                                        origin);
+         BuildColoredAnnotationVertices(p->modelStrokeBuilt_,
+                                        p->modelStrokeVertices_,
+                                        0,
+                                        p->strokeModelCount_,
+                                        mapMatrix,
+                                        origin);
+      }
+
+      // The preview normally only grows between frames (new freehand points),
+      // so project just the new triangles. Anything else starts over.
+      if (cameraChanged || p->previewResetProjection_ ||
+          p->fillPreviewCount_ < p->previewFillProjected_ ||
+          p->strokePreviewCount_ < p->previewStrokeProjected_)
+      {
+         p->previewFillBuilt_.clear();
+         p->previewStrokeBuilt_.clear();
+         p->previewFillProjected_   = 0;
+         p->previewStrokeProjected_ = 0;
+      }
+      BuildColoredAnnotationVertices(p->previewFillBuilt_,
+                                     p->previewFillVertices_,
+                                     p->previewFillProjected_,
+                                     p->fillPreviewCount_,
+                                     mapMatrix,
+                                     origin);
+      BuildColoredAnnotationVertices(p->previewStrokeBuilt_,
+                                     p->previewStrokeVertices_,
+                                     p->previewStrokeProjected_,
+                                     p->strokePreviewCount_,
+                                     mapMatrix,
+                                     origin);
+      p->previewFillProjected_   = p->fillPreviewCount_;
+      p->previewStrokeProjected_ = p->strokePreviewCount_;
+      p->previewResetProjection_ = false;
+
       // Fill verts first, then stroke, in one upload/draw. Opaque stroke
       // fragments (color.frag a>=0.45) replace on top of fills already
       // rasterized earlier in the same draw.
       p->cachedScreenVertices_.clear();
-      const auto appendBuilt =
-         [&](const std::vector<float>& source, std::uint32_t vertexCount)
+      p->cachedScreenVertices_.reserve(
+         p->modelFillBuilt_.size() + p->previewFillBuilt_.size() +
+         p->modelStrokeBuilt_.size() + p->previewStrokeBuilt_.size());
+      for (const auto* part : {&p->modelFillBuilt_,
+                               &p->previewFillBuilt_,
+                               &p->modelStrokeBuilt_,
+                               &p->previewStrokeBuilt_})
       {
-         if (vertexCount == 0)
-         {
-            return;
-         }
-         std::vector<float> built = BuildColoredAnnotationVertices(
-            source, vertexCount, mapMatrix, origin);
          p->cachedScreenVertices_.insert(
-            p->cachedScreenVertices_.end(), built.begin(), built.end());
-      };
-
-      appendBuilt(p->modelFillVertices_, p->fillModelCount_);
-      appendBuilt(p->previewFillVertices_, p->fillPreviewCount_);
-      appendBuilt(p->modelStrokeVertices_, p->strokeModelCount_);
-      appendBuilt(p->previewStrokeVertices_, p->strokePreviewCount_);
+            p->cachedScreenVertices_.end(), part->begin(), part->end());
+      }
 
       p->cachedMapMatrix_  = mapMatrix;
       p->cachedOrigin_     = origin;
