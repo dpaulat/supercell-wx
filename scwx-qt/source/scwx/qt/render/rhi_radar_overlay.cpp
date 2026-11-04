@@ -83,13 +83,7 @@ void RhiRadarOverlay::Initialize(QRhi*             rhi,
       return;
    }
 
-   cfpBuffer_ =
-      rhi_->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::VertexBuffer, 0);
-   if (cfpBuffer_ == nullptr || !cfpBuffer_->create())
-   {
-      Shutdown();
-      return;
-   }
+   // The CFP buffer is created on demand, only while CFP is in use
 
    sampler_ = AcquireNearestSampler(rhi_);
    if (sampler_ == nullptr)
@@ -213,12 +207,19 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
       return;
    }
 
+   // The CFP vertex buffer is only needed when the shader applies it and there
+   // is CFP data to apply. Otherwise it would hold zeros (a full sweep's worth
+   // of GPU memory), so the CFP vertex input is aliased to the moment buffer,
+   // which the shader ignores while CFP is disabled.
+   const bool useCfp =
+      uniforms.uCFPEnabled != 0 && !cfpData.empty() && cfpComponentSize != 0;
+
    const std::size_t vertexBytes = vertexCount * 2u * sizeof(float);
    const std::size_t momentBytes = vertexCount * sizeof(std::uint32_t);
-   uploadGeometry                = uploadGeometry || !geometryUploaded_ ||
-                    vertexCount != uploadedVertexCount_ ||
-                    vertexCapacity_ < vertexBytes ||
-                    momentCapacity_ < momentBytes || cfpCapacity_ < momentBytes;
+   uploadGeometry =
+      uploadGeometry || !geometryUploaded_ ||
+      vertexCount != uploadedVertexCount_ || vertexCapacity_ < vertexBytes ||
+      momentCapacity_ < momentBytes || (useCfp && cfpCapacity_ < momentBytes);
    uploadColorTable = uploadColorTable || !lutUploaded_;
 
    // The per-pane GPU buffers and LUT outlive the layer (and view) that filled
@@ -239,10 +240,21 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
       return;
    }
 
+   if (!useCfp && cfpBuffer_ != nullptr && OverlayShouldUpload(phase))
+   {
+      // CFP is no longer in use, release its GPU memory
+      delete cfpBuffer_;
+      cfpBuffer_   = nullptr;
+      cfpCapacity_ = 0;
+   }
+
    if (uploadGeometry)
    {
       ExpandMoments(momentData, momentComponentSize, vertexCount, momentU32_);
-      ExpandMoments(cfpData, cfpComponentSize, vertexCount, cfpU32_);
+      if (useCfp)
+      {
+         ExpandMoments(cfpData, cfpComponentSize, vertexCount, cfpU32_);
+      }
 
       if (!EnsureDynamicBuffer(rhi_,
                                vertexBuffer_,
@@ -256,12 +268,12 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
                                QRhiBuffer::Dynamic,
                                QRhiBuffer::VertexBuffer,
                                momentBytes) ||
-          !EnsureDynamicBuffer(rhi_,
-                               cfpBuffer_,
-                               cfpCapacity_,
-                               QRhiBuffer::Dynamic,
-                               QRhiBuffer::VertexBuffer,
-                               momentBytes))
+          (useCfp && !EnsureDynamicBuffer(rhi_,
+                                          cfpBuffer_,
+                                          cfpCapacity_,
+                                          QRhiBuffer::Dynamic,
+                                          QRhiBuffer::VertexBuffer,
+                                          momentBytes)))
       {
          return;
       }
@@ -293,7 +305,10 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
       {
          return;
       }
-      batch->updateDynamicBuffer(uniformBuffer_, 0, kUniformBytes, &uniforms);
+      RadarUniforms bufferUniforms = uniforms;
+      bufferUniforms.uCFPEnabled   = useCfp ? 1 : 0;
+      batch->updateDynamicBuffer(
+         uniformBuffer_, 0, kUniformBytes, &bufferUniforms);
       if (uploadGeometry)
       {
          batch->updateDynamicBuffer(vertexBuffer_,
@@ -304,8 +319,13 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
                                     0,
                                     static_cast<quint32>(momentBytes),
                                     momentU32_.data());
-         batch->updateDynamicBuffer(
-            cfpBuffer_, 0, static_cast<quint32>(momentBytes), cfpU32_.data());
+         if (useCfp)
+         {
+            batch->updateDynamicBuffer(cfpBuffer_,
+                                       0,
+                                       static_cast<quint32>(momentBytes),
+                                       cfpU32_.data());
+         }
       }
 
       if (uploadColorTable)
@@ -343,7 +363,9 @@ void RhiRadarOverlay::Render(QRhiCommandBuffer*               commandBuffer,
    }
 
    const QRhiCommandBuffer::VertexInput bindings[] = {
-      {vertexBuffer_, 0}, {momentBuffer_, 0}, {cfpBuffer_, 0}};
+      {vertexBuffer_, 0},
+      {momentBuffer_, 0},
+      {useCfp ? cfpBuffer_ : momentBuffer_, 0}};
    commandBuffer->setGraphicsPipeline(pipeline_);
    commandBuffer->setShaderResources(srb_);
    commandBuffer->setVertexInput(0, 3, bindings);
