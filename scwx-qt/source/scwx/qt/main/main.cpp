@@ -58,14 +58,24 @@ namespace
  * arena and freed blocks are retained, so resident memory only ratchets up
  * while panning and animating. Capping the arenas and lowering the mmap and
  * trim thresholds keeps resident memory near the live working set. Explicit
- * MALLOC_* environment variables are left untouched.
+ * MALLOC_* environment variables or glibc.malloc tunables are left
+ * untouched.
  */
 void ConfigureMalloc()
 {
 #if defined(__GLIBC__)
    constexpr int kThresholdBytes = 256 * 1024;
 
-   if (scwx::util::GetEnvironment("MALLOC_ARENA_MAX").empty())
+   // Leave allocator settings alone if the user configured glibc malloc via
+   // GLIBC_TUNABLES
+   if (scwx::util::GetEnvironment("GLIBC_TUNABLES").find("glibc.malloc.") !=
+       std::string::npos)
+   {
+      return;
+   }
+
+   if (scwx::util::GetEnvironment("MALLOC_ARENA_MAX").empty() &&
+       scwx::util::GetEnvironment("MALLOC_ARENA_TEST").empty())
    {
       mallopt(M_ARENA_MAX, 2);
    }
