@@ -102,6 +102,10 @@ void PlacefileText::set_thresholded(bool thresholded)
 
 void PlacefileText::Initialize() {}
 
+/**
+ * Draws all placefile text for this layer into a single input-transparent
+ * ImGui window, rather than one window per text item.
+ */
 void PlacefileText::Render(const QMapLibre::CustomLayerRenderParameters& params)
 {
    std::unique_lock lock {p->listMutex_};
@@ -231,6 +235,11 @@ void PlacefileText::Impl::RenderTextDrawItem(
    }
 }
 
+/**
+ * Draws a single text item into the shared draw list, skipping text outside
+ * the viewport, and records its hover text if the mouse is over it and not
+ * over another ImGui window.
+ */
 void PlacefileText::Impl::RenderText(
    const QMapLibre::CustomLayerRenderParameters& params,
    const std::string&                            text,
@@ -302,8 +311,10 @@ void PlacefileText::Impl::RenderText(
       textBegin,
       textEnd);
 
-   // Store hover text for mouse picking pass
+   // Store hover text for mouse picking pass. The text window ignores inputs,
+   // so any hovered window is another window covering the text.
    if (!hoverText.empty() &&
+       !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) &&
        ImGui::IsMouseHoveringRect(
           textPos, ImVec2 {textPos.x + textSize.x, textPos.y + textSize.y}))
    {
