@@ -61,19 +61,23 @@ static_assert(sizeof(PackedFillVertex) == kPackedFillVertexSize);
 /// IEEE 754 binary32 -> binary16 conversion constants
 namespace half_float
 {
-static constexpr std::uint32_t kSignShift         = 16u;
-static constexpr std::uint32_t kSignMask          = 0x8000u;
-static constexpr std::uint32_t kMagnitudeMask     = 0x7FFFFFFFu;
-static constexpr std::uint32_t kFloatInfinity     = 0x7F800000u;
-static constexpr std::uint32_t kHalfInfinity      = 0x7C00u;
-static constexpr std::uint32_t kHalfQuietNaN      = 0x0200u;
-static constexpr std::uint32_t kHalfOverflow      = 0x477FF000u;
-static constexpr std::uint32_t kHalfMinNormal     = 0x38800000u;
-static constexpr std::uint32_t kHalfMinSubnormal  = 0x33000000u;
-static constexpr std::uint32_t kExponentBiasDelta = 0x38000000u;
-static constexpr std::uint32_t kMantissaShift     = 13u;
-static constexpr std::uint32_t kRoundMask         = 0x1FFFu;
-static constexpr std::uint32_t kRoundHalfway      = 0x1000u;
+static constexpr std::uint32_t kSignShift          = 16u;
+static constexpr std::uint32_t kSignMask           = 0x8000u;
+static constexpr std::uint32_t kMagnitudeMask      = 0x7FFFFFFFu;
+static constexpr std::uint32_t kFloatInfinity      = 0x7F800000u;
+static constexpr std::uint32_t kHalfInfinity       = 0x7C00u;
+static constexpr std::uint32_t kHalfQuietNaN       = 0x0200u;
+static constexpr std::uint32_t kHalfOverflow       = 0x477FF000u;
+static constexpr std::uint32_t kHalfMinNormal      = 0x38800000u;
+static constexpr std::uint32_t kHalfMinSubnormal   = 0x33000000u;
+static constexpr std::uint32_t kExponentBiasDelta  = 0x38000000u;
+static constexpr std::uint32_t kMantissaShift      = 13u;
+static constexpr std::uint32_t kRoundMask          = 0x1FFFu;
+static constexpr std::uint32_t kRoundHalfway       = 0x1000u;
+static constexpr std::uint32_t kFloatMantissaBits  = 23u;
+static constexpr std::uint32_t kFloatMantissaMask  = 0x007FFFFFu;
+static constexpr std::uint32_t kFloatImplicitBit   = 0x00800000u;
+static constexpr std::uint32_t kSubnormalShiftBase = 126u;
 } // namespace half_float
 
 /// Converts a float to IEEE 754 binary16 bits (round to nearest even).
@@ -103,12 +107,13 @@ static constexpr std::uint32_t kRoundHalfway      = 0x1000u;
       {
          return static_cast<std::uint16_t>(sign);
       }
-      const std::uint32_t exponent = mag >> 23;
-      const std::uint32_t mantissa = (mag & 0x007FFFFFu) | 0x00800000u;
-      const std::uint32_t shift    = 126u - exponent;
-      std::uint32_t       half     = mantissa >> shift;
-      const std::uint32_t rem      = mantissa & ((1u << shift) - 1u);
-      const std::uint32_t halfway  = 1u << (shift - 1u);
+      const std::uint32_t exponent = mag >> half_float::kFloatMantissaBits;
+      const std::uint32_t mantissa =
+         (mag & half_float::kFloatMantissaMask) | half_float::kFloatImplicitBit;
+      const std::uint32_t shift   = half_float::kSubnormalShiftBase - exponent;
+      std::uint32_t       half    = mantissa >> shift;
+      const std::uint32_t rem     = mantissa & ((1u << shift) - 1u);
+      const std::uint32_t halfway = 1u << (shift - 1u);
       if (rem > halfway || (rem == halfway && (half & 1u) != 0u))
       {
          ++half;
@@ -153,12 +158,14 @@ using SharedBuffer = std::shared_ptr<const std::vector<Vertex>>;
 /**
  * Takes ownership of freshly built geometry and returns a shared buffer. If an
  * identical buffer is already alive (e.g. built by another pane for the same
- * placefile), that one is returned and the new vertices are freed, so N panes
- * hold one CPU copy rather than N. Equality is by content, so it can never
- * return a stale buffer.
+ * placefile), that one is returned and the new vertices are freed when the
+ * by-value parameter goes out of scope, so N panes hold one CPU copy rather
+ * than N. Callers should pass with std::move so their staging allocation is
+ * transferred (and released) rather than copied. Equality is by content, so it
+ * can never return a stale buffer.
  */
 template<typename Vertex>
-[[nodiscard]] SharedBuffer<Vertex> InternBuffer(std::vector<Vertex>&& vertices)
+[[nodiscard]] SharedBuffer<Vertex> InternBuffer(std::vector<Vertex> vertices)
 {
    static constexpr std::size_t kShrinkSlackDivisor = 16;
 
