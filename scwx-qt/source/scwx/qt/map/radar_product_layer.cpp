@@ -20,6 +20,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <mbgl/util/constants.hpp>
 #include <QGuiApplication>
+#include <QTimer>
 
 #if defined(_MSC_VER)
 #   pragma warning(pop)
@@ -62,6 +63,7 @@ public:
 
    bool colorTableNeedsUpdate_ {false};
    bool sweepNeedsUpdate_ {false};
+   bool sweepRetryScheduled_ {false};
 
    types::RadarProductLoadStatus latchedLoadStatus_ {
       types::RadarProductLoadStatus::ProductNotAvailable};
@@ -160,6 +162,12 @@ void RadarProductLayer::Initialize(
            this,
            [this](types::NoUpdateReason reason)
            {
+              if (p->sweepNeedsUpdate_)
+              {
+                 // A sweep update was deferred (view was locked); make sure a
+                 // repaint picks it up even though nothing new was computed
+                 Q_EMIT NeedsRendering();
+              }
               if (reason == types::NoUpdateReason::NotAvailable)
               {
                  // Ensure the radar product is hidden by re-rendering
@@ -208,6 +216,26 @@ void RadarProductLayer::UpdateSweep(
    if (!sweepLock.owns_lock())
    {
       logger_->trace("Sweep locked, deferring update");
+
+      // The compute thread holds the lock, so this update cannot happen now.
+      // Nothing else is guaranteed to ask for another repaint (the compute can
+      // finish with "no change" and emit no repaint at all), which would leave
+      // the old or blank radar on screen until the next input event. Ask for
+      // one more repaint shortly; a single pending retry at a time.
+      if (!p->sweepRetryScheduled_)
+      {
+         p->sweepRetryScheduled_ = true;
+         QTimer::singleShot(16,
+                            this,
+                            [this]()
+                            {
+                               p->sweepRetryScheduled_ = false;
+                               if (p->sweepNeedsUpdate_)
+                               {
+                                  Q_EMIT NeedsRendering();
+                               }
+                            });
+      }
       return;
    }
    logger_->debug("UpdateSweep()");
