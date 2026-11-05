@@ -173,7 +173,10 @@ void MapImGuiVulkanRenderer::UpdateRenderPass(void* renderPass)
 
    if (initialized_)
    {
+      // Shutdown() clears rhi_; keep it so the backend can be re-initialized
+      QRhi* const rhi = rhi_;
       Shutdown();
+      rhi_ = rhi;
    }
 
    renderPass_ = renderPass;
@@ -197,6 +200,12 @@ void MapImGuiVulkanRenderer::Shutdown()
       if (ImGui::GetCurrentContext() != nullptr &&
           ImGui::GetIO().BackendRendererUserData != nullptr)
       {
+         // ImGui_ImplVulkan_Shutdown destroys GPU objects without waiting; make
+         // sure no submitted frame is still using them.
+         if (device_ != VK_NULL_HANDLE)
+         {
+            vkDeviceWaitIdle(device_);
+         }
          ImGui_ImplVulkan_Shutdown();
       }
 

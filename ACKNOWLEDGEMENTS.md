@@ -23,7 +23,6 @@ Supercell Wx uses code from the following dependencies:
 | [FreeType GL](https://github.com/rougier/freetype-gl) | [BSD 2-Clause with views sentence](https://spdx.org/licenses/BSD-2-Clause-Views.html) |
 | [GeographicLib](https://geographiclib.sourceforge.io/) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [geos](https://libgeos.org/) | [GNU Lesser General Public License v2.1 or later](https://spdx.org/licenses/LGPL-2.1-or-later.html) |
-| [GLAD](https://github.com/Dav1dde/glad) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [GLM](https://github.com/g-truc/glm) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [GoogleTest](https://google.github.io/googletest/) | [BSD 3-Clause "New" or "Revised" License](https://spdx.org/licenses/BSD-3-Clause.html) |
 | [HSLuv](https://www.hsluv.org/) | [MIT License](https://spdx.org/licenses/MIT.html) |

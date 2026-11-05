@@ -52,7 +52,7 @@ set +e
 git diff -U0 "${MERGE_BASE}" -- \
    '*.cpp' '*.cxx' '*.cc' '*.c' \
    '*.hpp' '*.hh' '*.h' '*.ipp' '*.h++' '*.c++' \
-   | rg -v '^(\+\+\+|---) external/' \
+   | { rg -v '^(\+\+\+|---) external/' || true; } \
    | "${CLANG_TIDY_DIFF}" -p1 \
       -path "${BUILD_DIR}" \
       -clang-tidy-binary "${CLANG_TIDY}" \

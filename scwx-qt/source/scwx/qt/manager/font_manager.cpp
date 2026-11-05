@@ -161,6 +161,14 @@ void FontManager::Impl::ConnectSignals()
 
                        for (auto fontCategory : dirtyFonts_)
                        {
+                          // Other panes use their own atlas: forget their
+                          // cached font for this category so it is rebuilt
+                          // with the new settings on next use.
+                          for (auto& atlasFonts : fontCategoryImguiFontByAtlas_)
+                          {
+                             atlasFonts.second.erase(fontCategory);
+                          }
+
                           UpdateImGuiFont(fontCategory);
                           UpdateQFont(fontCategory);
                        }
@@ -191,6 +199,24 @@ void FontManager::EnsureImGuiFontsBuilt()
    for (auto fontCategory : types::FontCategoryIterator())
    {
       (void) GetImGuiFont(fontCategory);
+   }
+}
+
+void FontManager::EvictImGuiFontAtlas(const ImFontAtlas* atlas)
+{
+   if (atlas == nullptr)
+   {
+      return;
+   }
+
+   {
+      std::unique_lock lock {p->fontCategoryMutex_};
+      p->fontCategoryImguiFontByAtlas_.erase(const_cast<ImFontAtlas*>(atlas));
+   }
+
+   {
+      std::unique_lock lock {p->imguiFontsMutex_};
+      p->imguiFontsByAtlas_.erase(const_cast<ImFontAtlas*>(atlas));
    }
 }
 

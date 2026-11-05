@@ -210,8 +210,10 @@ static void GeoStrokeSegmentCorners(const common::Coordinate&        a,
 {
    double azi1 {};
    double azi2 {};
-   s12Out = geod.Inverse(
-      a.latitude_, a.longitude_, b.latitude_, b.longitude_, azi1, azi2);
+   // Use the overload that returns the distance in meters (s12). The shorter
+   // overload returns the arc length in degrees, which is the wrong unit here.
+   geod.Inverse(
+      a.latitude_, a.longitude_, b.latitude_, b.longitude_, s12Out, azi1, azi2);
 
    // azi1 / azi2 are both forward along the geodesic (at A toward B, at B as
    // the segment arrives). Use the same ±90° convention at both ends so the

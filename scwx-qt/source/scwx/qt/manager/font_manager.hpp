@@ -9,6 +9,8 @@
 #include <QFont>
 #include <QObject>
 
+struct ImFontAtlas;
+
 namespace scwx
 {
 namespace qt
@@ -48,6 +50,13 @@ public:
    void InitializeFonts();
 
    void EnsureImGuiFontsBuilt();
+
+   /**
+    * Drops every cached font belonging to an ImGui font atlas. Call before the
+    * atlas is destroyed, so a later atlas allocated at the same address cannot
+    * pick up stale (dangling) fonts.
+    */
+   void EvictImGuiFontAtlas(const ImFontAtlas* atlas);
 
    static units::font_size::pixels<float>
    ImFontSize(units::font_size::pixels<double> size);

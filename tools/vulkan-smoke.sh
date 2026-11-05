@@ -10,7 +10,7 @@ for cmd in timeout rg python3; do
 done
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BIN="${ROOT}/build-local/Release/bin/supercell-wx"
+BIN="${SCWX_BIN:-${ROOT}/build-local/Release/bin/supercell-wx}"
 LOG="$(mktemp /tmp/scwx-vulkan-smoke.XXXXXX.log)"
 CAPTURE="$(mktemp /tmp/scwx-vulkan-smoke.XXXXXX.png)"
 export SCWX_VULKAN_SMOKE=1

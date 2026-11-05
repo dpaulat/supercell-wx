@@ -8,6 +8,7 @@
 #include <scwx/qt/util/tooltip.hpp>
 #include <scwx/util/logger.hpp>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -19,6 +20,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/asio/system_timer.hpp>
@@ -225,6 +227,11 @@ private:
    std::unordered_set<std::shared_ptr<const SegmentRecord>> trackedSegments_ {};
    std::mutex                                         trackedSegmentsMutex_ {};
    std::unordered_map<awips::Phenomenon, AlertLayer*> geometryBuilders_ {};
+   // Every live layer per phenomenon (one per map pane). geometryBuilders_
+   // holds the one currently doing the work; if it goes away, another layer
+   // from this list takes over.
+   std::unordered_map<awips::Phenomenon, std::vector<AlertLayer*>>
+              registeredLayers_ {};
    std::mutex                                         geometryBuildersMutex_ {};
 
    boost::asio::thread_pool  refreshThreadPool_ {1u};
@@ -1012,6 +1019,11 @@ void AlertLayerHandler::RegisterGeometryBuilder(awips::Phenomenon phenomenon,
                                                 AlertLayer*       layer)
 {
    std::lock_guard lock {geometryBuildersMutex_};
+   auto&           layers = registeredLayers_[phenomenon];
+   if (std::find(layers.cbegin(), layers.cend(), layer) == layers.cend())
+   {
+      layers.push_back(layer);
+   }
    geometryBuilders_[phenomenon] = layer;
 }
 
@@ -1019,10 +1031,27 @@ void AlertLayerHandler::UnregisterGeometryBuilder(awips::Phenomenon phenomenon,
                                                   AlertLayer*       layer)
 {
    std::lock_guard lock {geometryBuildersMutex_};
-   const auto      it = geometryBuilders_.find(phenomenon);
-   if (it != geometryBuilders_.cend() && it->second == layer)
+
+   auto& layers = registeredLayers_[phenomenon];
+   layers.erase(std::remove(layers.begin(), layers.end(), layer), layers.end());
+
+   const auto it = geometryBuilders_.find(phenomenon);
+   if (it != geometryBuilders_.end() && it->second == layer)
    {
-      geometryBuilders_.erase(it);
+      if (layers.empty())
+      {
+         geometryBuilders_.erase(it);
+      }
+      else
+      {
+         // Hand over to another pane's layer so alert updates keep flowing
+         it->second = layers.back();
+      }
+   }
+
+   if (layers.empty())
+   {
+      registeredLayers_.erase(phenomenon);
    }
 }
 

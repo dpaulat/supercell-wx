@@ -139,6 +139,7 @@ void Rectangle::RenderVulkan(
 void Rectangle::Deinitialize()
 {
    p->vertexBuffer_.clear();
+   p->dirty_ = true;
 }
 
 void Rectangle::SetBorder(float width, boost::gil::rgba8_pixel_t color)

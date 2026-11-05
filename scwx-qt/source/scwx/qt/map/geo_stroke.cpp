@@ -1,6 +1,7 @@
 #include <scwx/qt/map/geo_stroke.hpp>
 
 #include <algorithm>
+#include <cmath>
 
 namespace scwx::qt::map
 {

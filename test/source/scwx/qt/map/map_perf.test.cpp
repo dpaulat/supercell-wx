@@ -10,7 +10,16 @@ namespace scwx::qt::map
 class MapPerfTest : public ::testing::Test
 {
 protected:
-   void SetUp() override { ResetMapPerfForTest(); }
+   void SetUp() override
+   {
+      // Do not inherit the developer's shell environment
+      scwx::util::UnsetEnvironment("SCWX_VULKAN_PERF");
+      ResetMapPerfForTest();
+   }
+   void TearDown() override
+   {
+      scwx::util::UnsetEnvironment("SCWX_VULKAN_PERF");
+   }
 };
 
 TEST_F(MapPerfTest, disabled_by_default)

@@ -1,4 +1,5 @@
 #include <scwx/qt/model/imgui_context_model.hpp>
+#include <scwx/qt/manager/font_manager.hpp>
 #include <scwx/qt/types/qt_types.hpp>
 #include <scwx/util/logger.hpp>
 
@@ -24,8 +25,8 @@ public:
 
    ~ImGuiContextModelImpl()
    {
-      // ImGui deletes the shared atlas when the last context using it is
-      // destroyed; only delete here if contexts were not torn down cleanly.
+      // Normally released in DestroyContext once the last context using it is
+      // gone; delete here if contexts were not torn down cleanly.
       if (sharedFontAtlas_ != nullptr)
       {
          IM_DELETE(sharedFontAtlas_);
@@ -150,6 +151,14 @@ void ImGuiContextModel::DestroyContext(const std::string& name)
       p->contexts_.erase(it);
       endRemoveRows();
 
+      // Forget cached fonts for this atlas before it can be freed (ImGui frees
+      // an atlas it owns during DestroyContext), so a new atlas at the same
+      // address never sees stale fonts. The shared atlas is evicted below.
+      if (contextAtlas != nullptr && !usesSharedAtlas)
+      {
+         manager::FontManager::Instance().EvictImGuiFontAtlas(contextAtlas);
+      }
+
       ImGui::DestroyContext();
 
       if (usesSharedAtlas && p->sharedFontAtlas_ != nullptr)
@@ -164,6 +173,11 @@ void ImGuiContextModel::DestroyContext(const std::string& name)
                         });
          if (!sharedAtlasStillInUse)
          {
+            // ImGui does not own an atlas that is passed to CreateContext, so
+            // it must be freed here.
+            manager::FontManager::Instance().EvictImGuiFontAtlas(
+               p->sharedFontAtlas_);
+            IM_DELETE(p->sharedFontAtlas_);
             p->sharedFontAtlas_ = nullptr;
          }
       }

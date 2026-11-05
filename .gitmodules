@@ -10,9 +10,6 @@
 [submodule "external/date"]
 	path = external/date
 	url = https://github.com/HowardHinnant/date.git
-[submodule "external/glad"]
-	path = external/glad
-	url = https://github.com/Dav1dde/glad.git
 [submodule "external/hsluv-c"]
 	path = external/hsluv-c
 	url = https://github.com/hsluv/hsluv-c.git

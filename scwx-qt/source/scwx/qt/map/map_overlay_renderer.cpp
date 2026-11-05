@@ -89,6 +89,9 @@ public:
    // target, so the basemap is first copied to baseCopy_ (a texture cannot be
    // sampled while it is a resolve attachment of the same pass).
    int                      requestedSamples_ {1};
+   // Requested sample count whose MSAA target failed to be created; it is not
+   // retried (SetSampleCount is called every frame) until the request changes.
+   int                      failedSamples_ {0};
    int                      activeSamples_ {1};
    QRhiRenderBuffer*        msaaBuffer_ {nullptr};
    QRhiTexture*             baseCopy_ {nullptr};
@@ -236,6 +239,7 @@ bool MapOverlayRenderer::Impl::EnsureReady(QRhiCommandBuffer* commandBuffer,
          {
             logger_->error("Failed to create MSAA overlay target");
             ReleaseMsaa();
+            failedSamples_    = requestedSamples_;
             requestedSamples_ = 1;
             return false;
          }
@@ -512,7 +516,8 @@ void MapOverlayRenderer::SetSampleCount(int sampleCount)
    {
       p = std::make_unique<Impl>();
    }
-   p->requestedSamples_ = std::max(1, sampleCount);
+   const int requested = std::max(1, sampleCount);
+   p->requestedSamples_ = (requested == p->failedSamples_) ? 1 : requested;
 }
 
 int MapOverlayRenderer::GetSampleCount() const

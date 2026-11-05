@@ -725,10 +725,10 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
 
    if (updatedPlacefile != nullptr && !updatedPlacefile->IsValid())
    {
-      // Parsed, but nothing drawable: empty file, HTML error page, or malformed
-      logger_->error("Placefile has no drawable content: {}", name);
-      set_error("No valid placefile content (empty or malformed)");
-      updatedPlacefile = nullptr;
+      // Parsed, but nothing drawable. A feed can legitimately become empty
+      // (e.g. no active items), so treat it as a valid update that clears the
+      // previously drawn content, as on develop.
+      logger_->debug("Placefile has no drawable content: {}", name);
    }
 
    if (updatedPlacefile != nullptr)

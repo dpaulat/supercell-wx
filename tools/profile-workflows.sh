@@ -64,6 +64,7 @@ require_bin() {
 }
 
 cmd_builtin() {
+   mkdir -p "${OUT}"
    exec "${ROOT}/tools/profile-vulkan-grid.sh" "${DURATION}" "${OUT}/vulkan-perf.csv"
 }
 
@@ -99,12 +100,18 @@ cmd_flame() {
    sleep "${DURATION}"
    kill -INT "${pid}" 2>/dev/null || true
    wait "${pid}" 2>/dev/null || true
-   if have flamegraph; then
-      perf script -i "${data}" | flamegraph > "${OUT}/flame.svg"
+   # flamegraph tools expect folded stacks, not raw `perf script` output
+   if have inferno-collapse-perf && have inferno-flamegraph; then
+      perf script -i "${data}" | inferno-collapse-perf | inferno-flamegraph \
+         > "${OUT}/flame.svg"
+      echo "Wrote ${OUT}/flame.svg"
+   elif have stackcollapse-perf.pl && have flamegraph.pl; then
+      perf script -i "${data}" | stackcollapse-perf.pl | flamegraph.pl \
+         > "${OUT}/flame.svg"
       echo "Wrote ${OUT}/flame.svg"
    else
-      echo "perf script -i ${data} | flamegraph > flame.svg"
-      echo "(install FlameGraph or perl-FlameGraph)"
+      echo "perf script -i ${data} | inferno-collapse-perf | inferno-flamegraph > flame.svg"
+      echo "(install inferno, or FlameGraph / perl-FlameGraph)"
    fi
 }
 
@@ -115,9 +122,12 @@ cmd_callgrind() {
    local log="${OUT}/callgrind.log"
    echo "Callgrind ~10–20× slower. Profile ~15s of interaction."
    echo "Log: ${log}"
-   timeout 60 valgrind --tool=callgrind --callgrind-out-file="${OUT}/callgrind.out" \
+   # Set the env var for valgrind itself; wrapping the binary in `env` would
+   # make callgrind profile `env` instead of the app.
+   SCWX_VULKAN_PERF=1 timeout 60 valgrind --tool=callgrind \
+      --callgrind-out-file="${OUT}/callgrind.out" \
       --dump-instr=yes --collect-jumps=yes \
-      env SCWX_VULKAN_PERF=1 "${BIN}" 2>&1 | tee "${log}" || true
+      "${BIN}" 2>&1 | tee "${log}" || true
    echo ""
    echo "GUI:  kcachegrind ${OUT}/callgrind.out"
    echo "CLI:  callgrind_annotate ${OUT}/callgrind.out | head -60"
