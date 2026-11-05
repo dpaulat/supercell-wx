@@ -11,7 +11,7 @@ AlignTrailingComments: 'true'
 AllowAllArgumentsOnNextLine: 'true'
 AllowAllConstructorInitializersOnNextLine: 'true'
 AllowAllParametersOfDeclarationOnNextLine: 'true'
-AllowShortBlocksOnASingleLine: 'true'
+AllowShortBlocksOnASingleLine: 'Empty'
 AllowShortCaseLabelsOnASingleLine: 'false'
 AllowShortFunctionsOnASingleLine: Inline
 AllowShortIfStatementsOnASingleLine: Never
