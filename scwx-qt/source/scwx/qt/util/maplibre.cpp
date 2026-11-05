@@ -63,6 +63,20 @@ glm::vec2 GetMapScale(const QMapLibre::CustomLayerRenderParameters& params)
    return glm::vec2 {xScale, yScale};
 }
 
+QMapLibre::CustomLayerRenderParameters BuildOverlayRenderParameters(
+   const QMapLibre::Map& map, double renderWidth, double renderHeight)
+{
+   return QMapLibre::CustomLayerRenderParameters {
+      .width       = renderWidth,
+      .height      = renderHeight,
+      .latitude    = map.coordinate().first,
+      .longitude   = map.coordinate().second,
+      .zoom        = map.zoom(),
+      .bearing     = map.bearing(),
+      .pitch       = map.pitch(),
+      .fieldOfView = 0};
+}
+
 bool IsPointInPolygon(const std::vector<glm::vec2>& vertices,
                       const glm::vec2&              point)
 {
@@ -136,9 +150,13 @@ void SetMapStyleUrl(const std::shared_ptr<map::MapContext>& mapContext,
       qUrl.setQuery(query);
    }
 
-   auto map = mapContext->map().lock();
-   if (map != nullptr)
+   const auto applyStyle = [&qUrl, &url](QMapLibre::Map* map)
    {
+      if (map == nullptr)
+      {
+         return;
+      }
+
       if (url.empty())
       {
          // If the URL is empty, set a blank style to clear the map
@@ -165,7 +183,11 @@ void SetMapStyleUrl(const std::shared_ptr<map::MapContext>& mapContext,
       {
          map->setStyleUrl(qUrl.toString());
       }
-   }
+   };
+
+   // The symbology companion map always shows the same style
+   applyStyle(mapContext->map().lock().get());
+   applyStyle(mapContext->symbology_map().lock().get());
 }
 
 std::string FindMapSymbologyLayer(const QStringList&              styleLayers,

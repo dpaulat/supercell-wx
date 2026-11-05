@@ -165,6 +165,20 @@ public:
    std::chrono::system_clock::time_point lastUpdateTime_ {};
 
    std::size_t failureCount_ {};
+
+   mutable std::mutex errorMutex_ {};
+   std::string        error_ {};
+
+   std::string error() const
+   {
+      std::lock_guard lock {errorMutex_};
+      return error_;
+   }
+   void set_error(std::string error)
+   {
+      std::lock_guard lock {errorMutex_};
+      error_ = std::move(error);
+   }
 };
 
 PlacefileManager::PlacefileManager() : p(std::make_unique<Impl>(this))
@@ -226,6 +240,18 @@ std::string PlacefileManager::placefile_title(const std::string& name)
    if (it != p->placefileRecordMap_.cend())
    {
       return it->second->title_;
+   }
+   return {};
+}
+
+std::string PlacefileManager::placefile_error(const std::string& name)
+{
+   std::shared_lock lock(p->placefileRecordLock_);
+
+   auto it = p->placefileRecordMap_.find(name);
+   if (it != p->placefileRecordMap_.cend())
+   {
+      return it->second->error();
    }
    return {};
 }
@@ -487,7 +513,7 @@ void PlacefileManager::SetRadarSite(
    }
 }
 
-void PlacefileManager::AddUrl(const std::string& urlString,
+bool PlacefileManager::AddUrl(const std::string& urlString,
                               const std::string& title,
                               bool               enabled,
                               bool               thresholded)
@@ -504,7 +530,7 @@ void PlacefileManager::AddUrl(const std::string& urlString,
    if (it != p->placefileRecords_.end())
    {
       logger_->debug("Placefile already added: {}", normalizedUrl);
-      return;
+      return false;
    }
 
    // Placefile is new, proceed with adding
@@ -530,6 +556,8 @@ void PlacefileManager::AddUrl(const std::string& urlString,
    {
       record->UpdateAsync();
    }
+
+   return true;
 }
 
 void PlacefileManager::RemoveUrl(const std::string& urlString)
@@ -590,6 +618,7 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
       if (updatedPlacefile == nullptr)
       {
          logger_->error("Local placefile not found: {}", name);
+         set_error("Local placefile not found");
       }
    }
    else
@@ -654,17 +683,36 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
 
       if (cpr::status::is_success(response.status_code))
       {
-         std::istringstream responseBody {response.text};
-         updatedPlacefile = gr::Placefile::Load(name, responseBody);
+         if (response.text.empty())
+         {
+            set_error("Empty response");
+         }
+         else if (response.text.find('\0', 0) != std::string::npos &&
+                  response.text.find('\0') < 1024u)
+         {
+            set_error("Binary data, not a text placefile");
+         }
+         else
+         {
+            std::istringstream responseBody {response.text};
+            updatedPlacefile = gr::Placefile::Load(name, responseBody);
+         }
       }
       else if (response.status_code == 0 && enabled_)
       {
+         set_error(response.error.message.empty() ?
+                      std::string {"Connection failed"} :
+                      response.error.message);
          logger_->error("Error loading placefile: {} ({})",
                         decodedUrl,
                         response.error.message);
       }
       else if (enabled_)
       {
+         set_error(fmt::format("HTTP {}{}{}",
+                               response.status_code,
+                               response.reason.empty() ? "" : " ",
+                               response.reason));
          logger_->error("Error loading placefile: {} ({})",
                         decodedUrl,
                         response.status_line);
@@ -675,8 +723,18 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
       }
    }
 
+   if (updatedPlacefile != nullptr && !updatedPlacefile->IsValid())
+   {
+      // Parsed, but nothing drawable. A feed can legitimately become empty
+      // (e.g. no active items), so treat it as a valid update that clears the
+      // previously drawn content, as on develop.
+      logger_->debug("Placefile has no drawable content: {}", name);
+   }
+
    if (updatedPlacefile != nullptr)
    {
+      set_error({});
+
       // Load placefile resources
       auto newFonts  = Impl::LoadFontResources(updatedPlacefile);
       auto newImages = Impl::LoadImageResources(updatedPlacefile);
@@ -717,6 +775,8 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
    {
       using namespace std::chrono_literals;
 
+      Q_EMIT p->self_->PlacefileUpdated(name);
+
       ++failureCount_;
 
       // Update refresh timer if the file failed to load, in case it is able to
@@ -732,6 +792,11 @@ void PlacefileManager::Impl::PlacefileRecord::Update()
          ScheduleRefresh(
             std::min<std::chrono::seconds>(15s * failureCount_, 60s));
       }
+   }
+   else
+   {
+      // Disabled placefile failed to load; surface error in the model
+      Q_EMIT p->self_->PlacefileUpdated(name);
    }
 }
 

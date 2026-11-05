@@ -35,7 +35,7 @@ Supercell Wx supports the following 64-bit operating systems:
 
 Supercell Wx requires the following Linux dependencies:
 
-- Linux with support for GCC 13, OpenGL 3.3 and OpenGL ES 3.0
+- Linux with support for GCC 13 and Vulkan 1.0+ with swapchain support
 - If using X11, XCB libraries including xcb-cursor
 
 ## FAQ

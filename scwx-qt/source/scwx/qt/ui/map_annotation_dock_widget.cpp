@@ -980,6 +980,11 @@ public:
                         static_cast<float>(strokeColor_.greenF()),
                         static_cast<float>(strokeColor_.blueF()),
                         static_cast<float>(strokeColor_.alphaF())};
+      // Fill tracks stroke hue; keep translucent so map shows through.
+      st.fillColor   = {st.strokeColor[0],
+                        st.strokeColor[1],
+                        st.strokeColor[2],
+                        std::clamp(st.strokeColor[3] * 0.30f, 0.08f, 0.40f)};
       st.polygonFill = (fillCheck_ != nullptr) && fillCheck_->isChecked();
       st.hatchFill   = false;
       st.strokeStyle = map::MapAnnotationStrokeStyle::Solid;
@@ -1681,12 +1686,11 @@ void MapAnnotationDockWidget::OnChooseColor()
 
 void MapAnnotationDockWidget::OnClearAll()
 {
-   for (const auto& L : p->LayersForToolStyle())
+   // Bound layer is the active pane (BindToLayer on focus change). Do not
+   // broadcast — other panes keep their drawings.
+   if (p->layer_ != nullptr)
    {
-      if (L != nullptr)
-      {
-         L->ClearAll();
-      }
+      p->layer_->ClearAll();
    }
 }
 

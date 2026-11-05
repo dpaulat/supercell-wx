@@ -23,7 +23,6 @@ Supercell Wx uses code from the following dependencies:
 | [FreeType GL](https://github.com/rougier/freetype-gl) | [BSD 2-Clause with views sentence](https://spdx.org/licenses/BSD-2-Clause-Views.html) |
 | [GeographicLib](https://geographiclib.sourceforge.io/) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [geos](https://libgeos.org/) | [GNU Lesser General Public License v2.1 or later](https://spdx.org/licenses/LGPL-2.1-or-later.html) |
-| [GLAD](https://github.com/Dav1dde/glad) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [GLM](https://github.com/g-truc/glm) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [GoogleTest](https://google.github.io/googletest/) | [BSD 3-Clause "New" or "Revised" License](https://spdx.org/licenses/BSD-3-Clause.html) |
 | [HSLuv](https://www.hsluv.org/) | [MIT License](https://spdx.org/licenses/MIT.html) |
@@ -38,7 +37,7 @@ Supercell Wx uses code from the following dependencies:
 | [Mesa 3D](https://mesa3d.org/) | [MIT License](https://spdx.org/licenses/MIT.html) |
 | [nunicode](https://bitbucket.org/alekseyt/nunicode/src/master/) | [MIT License](https://spdx.org/licenses/MIT.html) | Modified for MapLibre Native |
 | [OpenSSL](https://www.openssl.org/) | [OpenSSL License](https://spdx.org/licenses/OpenSSL.html) |
-| [Qt](https://www.qt.io/) | [GNU Lesser General Public License v3.0 only](https://spdx.org/licenses/LGPL-3.0-only.html) | Qt Core, Qt GUI, Qt Multimedia, Qt Network, Qt OpenGL, Qt Positioning, Qt Serial Port, Qt SQL, Qt SVG, Qt Widgets<br/>Additional Licenses: https://doc.qt.io/qt-6/licenses-used-in-qt.html |
+| [Qt](https://www.qt.io/) | [GNU Lesser General Public License v3.0 only](https://spdx.org/licenses/LGPL-3.0-only.html) | Qt Core, Qt GUI, Qt Multimedia, Qt Network, Qt Positioning, Qt Serial Port, Qt SQL, Qt SVG, Qt Widgets<br/>Additional Licenses: https://doc.qt.io/qt-6/licenses-used-in-qt.html |
 | [qt6ct](https://github.com/trialuser02/qt6ct) | [BSD 2-Clause "Simplified" License](https://spdx.org/licenses/BSD-2-Clause.html) |
 | [range-v3](https://github.com/ericniebler/range-v3) | [Boost Software License 1.0](https://spdx.org/licenses/BSL-1.0.html)<br/>[MIT License](https://spdx.org/licenses/MIT.html)<br/>[Stepanov and McJones, "Elements of Programming" license](https://github.com/ericniebler/range-v3/tree/0.12.0?tab=License-1-ov-file)<br/>[SGI C++ Standard Template Library license](https://github.com/ericniebler/range-v3/tree/0.12.0?tab=License-1-ov-file) |
 | [re2](https://github.com/google/re2) | [BSD 3-Clause "New" or "Revised" License](https://spdx.org/licenses/BSD-3-Clause.html) |

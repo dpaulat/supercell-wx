@@ -358,7 +358,9 @@ jobs:
       shell: bash
       run: |
         sudo apt-get install doxygen \
+                             ccache \
                              libfuse2 \
+                             libvulkan-dev \
                              ninja-build \
                              wayland-protocols \
                              libwayland-dev \
@@ -379,7 +381,7 @@ jobs:
       if: ${{ startsWith(matrix.os, 'macos') }}
       shell: bash
       run: |
-        brew install llvm@20
+        brew install llvm@20 ccache
         LLVM_PATH=$(brew --prefix llvm@20)
         echo "CC=${LLVM_PATH}/bin/clang" >> $GITHUB_ENV
         echo "CXX=${LLVM_PATH}/bin/clang++" >> $GITHUB_ENV
@@ -431,6 +433,28 @@ jobs:
       with:
         path: ~/.conan2/p
         key: ${{ steps.cache-conan.outputs.cache-primary-key }}
+
+    - name: Cache ccache
+      if: ${{ startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos') }}
+      uses: actions/cache@v6
+      with:
+        path: ~/.ccache
+        key: ccache-${{ matrix.name }}-${{ github.sha }}
+        restore-keys: |
+          ccache-${{ matrix.name }}-
+        save-always: true
+
+    # Set up after Conan so that ccache only wraps the main build, not the
+    # Conan dependency builds (those are already cached above).
+    - name: Setup ccache
+      if: ${{ startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos') }}
+      shell: bash
+      run: |
+        echo "CCACHE_DIR=${HOME}/.ccache" >> $GITHUB_ENV
+        export CCACHE_DIR="${HOME}/.ccache"
+        ccache --max-size=500M
+        echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
+        echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
 
     - name: Build Supercell Wx
       shell: pwsh
@@ -617,10 +641,6 @@ jobs:
               /usr/lib/*/libk5crypto.so* \
               /usr/lib/*/libkeyutils.so* \
               ${{ env.FLATPAK_DIR }}/lib
-        # Copy GLU library to flatpak
-        cp -a /usr/lib/*/libGLU.so* \
-              ${{ env.FLATPAK_DIR }}/lib
-
         flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
         flatpak-builder --force-clean \
             --user \

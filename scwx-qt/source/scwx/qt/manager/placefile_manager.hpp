@@ -34,6 +34,7 @@ public:
    bool        placefile_enabled(const std::string& name);
    bool        placefile_thresholded(const std::string& name);
    std::string placefile_title(const std::string& name);
+   std::string                    placefile_error(const std::string& name);
    std::shared_ptr<gr::Placefile> placefile(const std::string& name);
    FontMap                        placefile_fonts(const std::string& name);
 
@@ -43,7 +44,8 @@ public:
 
    void SetRadarSite(std::shared_ptr<config::RadarSite> radarSite);
 
-   void AddUrl(const std::string& urlString,
+   /// Returns false if the URL was already present
+   bool AddUrl(const std::string& urlString,
                const std::string& title       = {},
                bool               enabled     = false,
                bool               thresholded = false);

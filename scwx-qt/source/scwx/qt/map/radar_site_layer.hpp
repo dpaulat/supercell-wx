@@ -11,13 +11,22 @@ class RadarSiteLayer : public DrawLayer
    Q_DISABLE_COPY_MOVE(RadarSiteLayer)
 
 public:
-   explicit RadarSiteLayer(const std::shared_ptr<gl::GlContext>& glContext);
+   explicit RadarSiteLayer(
+      const std::shared_ptr<render::RenderContext>& renderContext);
    ~RadarSiteLayer();
 
    void Initialize(const std::shared_ptr<MapContext>& mapContext) final;
    void Render(const std::shared_ptr<MapContext>& mapContext,
                const QMapLibre::CustomLayerRenderParameters&) final;
    void Deinitialize() final;
+
+   void RenderVulkanImGui(const std::shared_ptr<MapContext>& mapContext,
+                          const QMapLibre::CustomLayerRenderParameters& params);
+   void RenderVulkanOverlay(
+      QRhiCommandBuffer*                            commandBuffer,
+      render::RhiVulkanOverlayResources&            resources,
+      const std::shared_ptr<MapContext>&            mapContext,
+      const QMapLibre::CustomLayerRenderParameters& params) override;
 
    bool
    RunMousePicking(const std::shared_ptr<MapContext>&            mapContext,

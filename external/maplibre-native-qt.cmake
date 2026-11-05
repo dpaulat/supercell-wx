@@ -2,10 +2,66 @@ cmake_minimum_required(VERSION 3.24)
 set(PROJECT_NAME scwx-mln)
 
 set(gtest_disable_pthreads ON)
-set(MLN_WITH_QT ON)
-set(MLN_QT_WITH_INTERNAL_ICU ON)
-set(MLN_QT_WITH_LOCATION OFF)
-set(MLN_CORE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native)
+
+set(MLN_QT_WITH_LOCATION OFF CACHE BOOL "" FORCE)
+set(MLN_QT_WITH_WIDGETS OFF CACHE BOOL "" FORCE)
+set(MLN_QT_WITH_QUICK_PLUGIN OFF CACHE BOOL "" FORCE)
+set(MLN_QT_WITH_INTERNAL_ICU ON CACHE BOOL "" FORCE)
+
+# Core MapLibre tests link Qt::OpenGLWidgets even when MLN_QT_WITH_WIDGETS is
+# off (widgets path is what normally find_packages it).
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS OpenGLWidgets REQUIRED)
+
+set(MLN_WITH_OPENGL OFF CACHE BOOL "" FORCE)
+
+if (APPLE)
+    # Stock aqt macOS Qt has QT_FEATURE_vulkan off; use MapLibre Metal.
+    set(MLN_WITH_METAL ON CACHE BOOL "" FORCE)
+    set(MLN_WITH_VULKAN OFF CACHE BOOL "" FORCE)
+else()
+    set(MLN_WITH_VULKAN ON CACHE BOOL "" FORCE)
+    set(MLN_WITH_METAL OFF CACHE BOOL "" FORCE)
+endif()
+
+# MapLibre platform/qt/qt.cmake FATAL_ERRORs unless find_path finds
+# qvulkaninstance.h when MLN_WITH_VULKAN is on. Pre-seed QT_VULKAN_HEADER for
+# hosts that only lack the header path. Skip entirely on Apple (Metal).
+#
+# Do NOT rely on mutating Qt*Gui_INCLUDE_DIRS: maplibre-native-qt's
+# CMakeLists re-runs find_package(Qt Gui) and resets those dirs.
+if (MLN_WITH_VULKAN)
+    find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Gui REQUIRED)
+    set(_scwx_qt_gui_include_dirs ${Qt${QT_VERSION_MAJOR}Gui_INCLUDE_DIRS})
+    if (DEFINED Qt${QT_VERSION_MAJOR}_INSTALL_PREFIX)
+        list(APPEND _scwx_qt_gui_include_dirs
+             "${Qt${QT_VERSION_MAJOR}_INSTALL_PREFIX}/include/QtGui")
+    endif()
+    if (DEFINED ENV{QT_ROOT_DIR})
+        list(APPEND _scwx_qt_gui_include_dirs "$ENV{QT_ROOT_DIR}/include/QtGui")
+    endif()
+    list(REMOVE_DUPLICATES _scwx_qt_gui_include_dirs)
+
+    find_path(_SCWX_QT_VULKAN_HEADER qvulkaninstance.h
+              PATHS ${_scwx_qt_gui_include_dirs}
+              NO_DEFAULT_PATH)
+    if (_SCWX_QT_VULKAN_HEADER)
+        set(QT_VULKAN_HEADER "${_SCWX_QT_VULKAN_HEADER}" CACHE PATH
+            "Directory containing qvulkaninstance.h (MapLibre probe)" FORCE)
+    else()
+        set(_SCWX_QT_VULKAN_STUB_DIR
+            "${CMAKE_CURRENT_BINARY_DIR}/scwx-qt-vulkan-stub")
+        file(MAKE_DIRECTORY "${_SCWX_QT_VULKAN_STUB_DIR}")
+        file(WRITE "${_SCWX_QT_VULKAN_STUB_DIR}/qvulkaninstance.h"
+             "// Stub for MapLibre configure-time Vulkan probe (unused at compile).\n"
+             "#pragma once\n")
+        set(QT_VULKAN_HEADER "${_SCWX_QT_VULKAN_STUB_DIR}" CACHE PATH
+            "Stub dir for MapLibre qvulkaninstance.h probe" FORCE)
+        message(STATUS
+                "Qt build has no qvulkaninstance.h; using stub for MapLibre Vulkan probe")
+    endif()
+    unset(_SCWX_QT_VULKAN_HEADER CACHE)
+endif()
+
 add_subdirectory(maplibre-native-qt)
 
 find_package(ZLIB)
@@ -35,32 +91,75 @@ else()
     target_compile_options(MLNQtCore PRIVATE "$<$<CONFIG:Release>:-g>")
 endif()
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND
-    CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16)
-    target_compile_options(mbgl-core PRIVATE "-Wno-sfinae-incomplete")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    include(CheckCXXCompilerFlag)
+    # Probe the positive form. GCC/Clang accept unknown -Wno-* flags, so
+    # checking -Wno-sfinae-incomplete false-passes, then -Wno-error=...
+    # fails the compile on toolchains that lack the warning.
+    check_cxx_compiler_flag("-Wsfinae-incomplete"
+                            SCWX_HAS_WNO_SFINAE_INCOMPLETE)
+    if (SCWX_HAS_WNO_SFINAE_INCOMPLETE)
+        target_compile_options(
+            mbgl-core
+            PRIVATE
+            "-Wno-sfinae-incomplete"
+            "-Wno-error=sfinae-incomplete")
+        target_compile_options(
+            MLNQtCore
+            PRIVATE
+            "-Wno-sfinae-incomplete"
+            "-Wno-error=sfinae-incomplete")
+    endif()
 endif()
 
-if (APPLE)
-    # Enable GL check error debug
-    target_compile_definitions(mbgl-core PRIVATE MLN_GL_CHECK_ERRORS=1)
-    target_compile_definitions(MLNQtCore PRIVATE MLN_GL_CHECK_ERRORS=1)
+# GCC 16+: MapLibre false positive with -Wsfinae-incomplete under -Werror.
+# Older GNU (11–15) do not implement the warning; -Wno-error=sfinae-incomplete
+# is a hard error there.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag("-Wsfinae-incomplete"
+                            SCWX_GNU_HAS_WNO_SFINAE_INCOMPLETE)
+    if (SCWX_GNU_HAS_WNO_SFINAE_INCOMPLETE)
+        target_compile_options(mbgl-core PRIVATE
+                               "-Wno-sfinae-incomplete"
+                               "-Wno-error=sfinae-incomplete")
+    endif()
+    target_compile_options(mbgl-core PRIVATE "-Wno-unused-parameter")
 endif()
 
-set(MLN_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native/include
-                     ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native-qt/src/core/include
-                     ${CMAKE_CURRENT_BINARY_DIR}/maplibre-native-qt/src/core/include PARENT_SCOPE)
+set(_MLN_VENDOR_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native-qt/vendor/maplibre-native/vendor")
+target_include_directories(
+    MLNQtCore
+    BEFORE
+    PRIVATE
+    "${_MLN_VENDOR_DIR}/Vulkan-Headers/include"
+    "${_MLN_VENDOR_DIR}/VulkanMemoryAllocator/include")
 
-set_target_properties(test_mln_core PROPERTIES EXCLUDE_FROM_ALL True)
-set_target_properties(test_mln_widgets PROPERTIES EXCLUDE_FROM_ALL True)
-set_target_properties(MLNQtWidgets PROPERTIES EXCLUDE_FROM_ALL True)
+set(MLN_INCLUDE_DIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native-qt/vendor/maplibre-native/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native-qt/vendor/maplibre-native/vendor/earcut.hpp/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/maplibre-native-qt/src/core/include
+    ${CMAKE_CURRENT_BINARY_DIR}/maplibre-native-qt/src/core/include
+    PARENT_SCOPE)
 
-set_target_properties(test_mln_core PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
-set_target_properties(test_mln_widgets PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
-set_target_properties(MLNQtWidgets PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
+if (TARGET test_mln_core)
+    set_target_properties(test_mln_core PROPERTIES EXCLUDE_FROM_ALL True)
+    set_target_properties(test_mln_core PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
+    set_target_properties(test_mln_core PROPERTIES FOLDER mln/exclude)
+endif()
 
-set_target_properties(test_mln_core PROPERTIES FOLDER mln/exclude)
-set_target_properties(test_mln_widgets PROPERTIES FOLDER mln/exclude)
-set_target_properties(MLNQtWidgets PROPERTIES FOLDER mln/exclude)
+if (TARGET test_mln_widgets)
+    set_target_properties(test_mln_widgets PROPERTIES EXCLUDE_FROM_ALL True)
+    set_target_properties(test_mln_widgets PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
+    set_target_properties(test_mln_widgets PROPERTIES FOLDER mln/exclude)
+endif()
+
+if (TARGET MLNQtWidgets)
+    set_target_properties(MLNQtWidgets PROPERTIES EXCLUDE_FROM_ALL True)
+    set_target_properties(MLNQtWidgets PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD True)
+    set_target_properties(MLNQtWidgets PROPERTIES FOLDER mln/exclude)
+endif()
 
 set_target_properties(MLNQtCore PROPERTIES FOLDER mln)
 set_target_properties(mbgl-core PROPERTIES FOLDER mln)

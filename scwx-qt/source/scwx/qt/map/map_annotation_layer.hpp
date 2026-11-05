@@ -10,7 +10,7 @@
 #include <optional>
 #include <string>
 
-namespace scwx::qt::gl::draw
+namespace scwx::qt::draw
 {
 class MapAnnotationsDrawItem;
 }
@@ -34,7 +34,8 @@ public:
       units::length::meters<double> distanceM {};
    };
 
-   explicit MapAnnotationLayer(std::shared_ptr<gl::GlContext> glContext);
+   explicit MapAnnotationLayer(
+      std::shared_ptr<render::RenderContext> renderContext);
    ~MapAnnotationLayer() override;
 
    MapAnnotationLayer(const MapAnnotationLayer&)            = delete;
@@ -46,6 +47,12 @@ public:
    void Render(const std::shared_ptr<MapContext>& mapContext,
                const QMapLibre::CustomLayerRenderParameters&) final;
    void Deinitialize() final;
+
+   void RenderVulkanOverlay(
+      QRhiCommandBuffer*                            commandBuffer,
+      render::RhiVulkanOverlayResources&            resources,
+      const std::shared_ptr<MapContext>&            mapContext,
+      const QMapLibre::CustomLayerRenderParameters& params) override;
 
    bool
    RunMousePicking(const std::shared_ptr<MapContext>&            mapContext,

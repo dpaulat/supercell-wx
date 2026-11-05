@@ -32,7 +32,8 @@ public:
                     bool syncUiFromLayer = true);
 
    /**
-    * Layers returned here receive SetTool / SetStyle / ClearAll from the dock.
+    * Layers returned here receive SetTool / SetStyle from the dock (all panes
+    * share the current tool). Clear only applies to BindToLayer()'s pane.
     * The layer passed to BindToLayer() is still used for signals (measure,
     * count) and for PullStyleToUi when the active map changes.
     */
