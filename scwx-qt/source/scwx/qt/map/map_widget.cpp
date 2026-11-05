@@ -205,7 +205,7 @@ QString FormatMeasurementDistance(double meters)
       settings::UnitSettings::Instance().distance_units().GetValue());
    const double display = meters * scwx::common::kKilometersPerMeter *
                           types::GetDistanceUnitsScale(units);
-   std::string  abbrev  = types::GetDistanceUnitsAbbreviation(units);
+   std::string abbrev = types::GetDistanceUnitsAbbreviation(units);
    if (abbrev.empty())
    {
       abbrev = "user";
